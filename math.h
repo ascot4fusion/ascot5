@@ -34,6 +34,8 @@ void math_vec_rpz2xyz(real* rpz, real* xyz, real phi);
 #pragma omp declare simd
 void math_vec_xyz2rpz(real* rpz, real* xyz, real phi);
 #pragma omp declare simd
+void math_matmul(real* matA, real* matB, int d1, int d2, int d3, real* matC);
+#pragma omp declare simd
 real math_normal_rand();
 int math_ipow(int a, int p);
 double math_simpson_helper(double (*f)(double), double a, double b, double eps, double S, double fa, double fb, double fc, int bottom);
