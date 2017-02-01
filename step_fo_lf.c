@@ -3,6 +3,7 @@
  * @brief Calculate a full orbit step for a struct of particles with leap-frog
  **/
 #include <math.h>
+#include <stdio.h>
 #include "math.h"
 #include "ascot5.h"
 #include "step_fo_lf.h"
@@ -26,7 +27,7 @@ void step_fo_lf(particle_simd_fo* p, real t, real h, B_field_data* Bdata) {
     /* Following loop will be executed simultaneously for all i */
     #pragma omp simd 
     for(i = 0; i < NSIMD; i++) {
-        if(!p->running[i]) {
+        if(p->running[i]) {
             /* Convert velocity to cartesian coordinates */
             real vprevxyz[3];
             vprevxyz[0] = p->rdot[i] * cos(p->phi[i]) - p->phidot[i] * sin(p->phi[i]);
@@ -72,6 +73,8 @@ void step_fo_lf(particle_simd_fo* p, real t, real h, B_field_data* Bdata) {
             prevxyz[1] = p->r[i] * sin(p->phi[i]);
             prevxyz[2] = p->z[i];
 
+	    
+
             /* Update positions */
             real xyz[3];
             xyz[0] = prevxyz[0] + h*vxyz[0];
@@ -85,12 +88,16 @@ void step_fo_lf(particle_simd_fo* p, real t, real h, B_field_data* Bdata) {
             p->rdot[i] = vxyz[0] * cos(p->phi[i]) + vxyz[1] * sin(p->phi[i]);
             p->phidot[i] = -vxyz[0] * sin(p->phi[i]) + vxyz[1] * cos(p->phi[i]);
             p->zdot[i] = vxyz[2];
+	    
+	    
 
             /* Evaluate magnetic field at new position */
             B_field_eval_B(Brpz, p->r[i], p->phi[i], p->z[i], Bdata);
+	    //B_field_eval_B(Brpz, 8, 0, 0, Bdata);
             p->B_r[i] = Brpz[0];
             p->B_phi[i] = Brpz[1];
             p->B_z[i] = Brpz[2];
+	    //printf("%20.20g\n",Brpz[0]);
         }
     }
 }
