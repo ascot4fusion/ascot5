@@ -1,0 +1,109 @@
+/**
+ * @mainpage ASCOT5
+ *
+ * @section intro Introduction
+ *
+ * ASCOT5 is a Monte Carlo orbit-following code for solving the Fokker-Planck
+ * equation in tokamak plasmas.
+ *
+ * @section compilation Compilation
+ *
+ * Currently only Intel's compiler version
+ * 14.0 and up support all the OpenMP features used, but gcc can be used to
+ * compile some test programs and the full code with limited features.
+ *
+ * Before compilation the necessary compiler modules need to be loaded. 
+ * The command on CSC Bull and Helios is "module load intel/<version>".
+ * Available versions can be checked with "module avail".
+ *
+ * Due to the use of compiler flags to define code functionality, the code
+ * should always be fully recompiled by calling make clean first if the 
+ * parameters are changed.
+ *
+ * Syntax for compilation:
+ *
+ * make clean && make <program_name> <parameters>
+ *
+ * Available parameters:
+ *
+ *  - NSIMD=n     number of particles in a group (default 16); these are 
+ *                processed simultaneously by each thread
+ *  -  CC=...     compiler (default icc)
+ *  -  SINGLEPRECISION use single-precision variables (floats) (doesn't work)
+ *  -  NOTARGET=1 do not offload the code to Phi
+ *  -  VERBOSE=n  print increasing amounts of progress information; n={1,2}
+ *  -  REPORTORBIT=n output particle orbit with particle id n; -1 outputs all
+ *  -  COULOMBCOLL=1 enable Coulomb collisions
+ *  -  MPI=1      enable MPI
+ *
+ *  Available programs:
+ *
+ *   - ascot5_gc
+ *   - filip5
+ *   - test_ascot4_interface
+ *   - test_B
+ *   - test_hdf5
+ *   - test_interact
+ *   - test_math
+ *   - test_particle
+ *   - test_plasma_1d
+ *   - test_wall_2d
+ *   - test_wall_3d
+ *
+ *  Example:
+ *
+ *  make clean && make ascot5_gc CC=icc NSIMD=16 
+ */
+
+/**
+ * @file ascot-acc.h
+ * @brief Main header file for ascot-acc
+ *
+ * This header file defines all the types and structs used by the program
+ * as well as any features dependent on compiler defined macros.
+ */
+#ifndef ASCOT5_H
+#define ASCOT5_H
+
+/** This is used to tell the compiler that we want a variable aligned to
+ * 64 bits for Xeon Phi; may not be always necessary */
+#define __memalign__ __attribute__((aligned(64)))
+
+/** We use a custom type real to represent floating point numbers; precision
+ * can be defined compile-time. */
+#if defined SINGLEPRECISION
+typedef int integer;
+typedef float real;
+#else
+typedef long integer;
+typedef double real;
+#endif
+
+/** @brief Number of particles simulated simultaneously in a particle group
+ *         operations */
+#ifndef NSIMD
+#define NSIMD 16
+#endif
+
+/** @brief Maximum number of plasma species */
+#define MAX_SPECIES 8
+
+/** @brief Atomic mass unit in kilograms */
+#define CONST_U 1.660538921e-27
+
+/** @brief Elementary charge */
+#define CONST_E 1.602176565e-19
+
+/** @brief Boltzmann constant */
+#define CONST_KB 1.3807e-23
+
+/** @brief Electron mass */
+#define CONST_M_E 9.1094e-31
+
+/** @brief Electric constant */
+#define CONST_E0 8.8542e-12
+
+/** @brief Reduced Planck constant */
+#define CONST_HBAR 1.0546e-34
+
+#endif
