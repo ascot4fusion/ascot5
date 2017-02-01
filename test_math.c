@@ -23,8 +23,22 @@ int main(void) {
   printf("numerical value: %20.18g\n",approx);
   printf("relative error: %20.18g\n",fabs((accurate-approx)/accurate));
   
+  
   for(i=0; i < 1000000; i++) {
     real r = math_normal_rand();
     printf("%lf\n", r);
   }
+  
+
+  printf("Testing matrix operations\n");
+  real matA[6] = {1, 2, 3, 4, 5, 6};/* 3 x 2 matrix*/
+  real matB[8] = {7, 8, 9, 10, 11, 12, 13, 14};/* 2 x 4 matrix*/
+  real matC[12];/* 3 x 4 matrix*/
+  math_matmul(matA, matB, 3, 2, 4, matC);
+  printf("Matrix multiplication\n");
+  printf("Calculated    Correct\n");
+  printf(" %g %g %g %g   %g %g %g %g\n",matC[0],matC[3],matC[6],matC[9] ,39.0,49.0,59.0 ,69.0);
+  printf(" %g %g %g %g   %g %g %g %g\n",matC[1],matC[4],matC[7],matC[10],54.0,68.0,82.0 ,96.0);
+  printf(" %g %g %g %g   %g %g %g %g\n",matC[2],matC[5],matC[8],matC[11],69.0,87.0,105.0,123.0);
+
 }
