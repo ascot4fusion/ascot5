@@ -71,6 +71,35 @@ void math_vec_xyz2rpz(real* xyz, real* rpz, real phi) {
 }
 
 /**
+ * @brief Matrix multiplication
+ *
+ * This function performs matrix multiplication. The matrices are given as arrays,
+ * the indexing being columnwise (same as in e.g. Matlab).
+ *
+ * @param matA input array representing a d1 x d2 matrix
+ * @param matB input array representing a d2 x d3 matrix
+ * @param d1   input scalar dimension (columns in matA and matC)
+ * @param d2   input scalar dimension (rows in matA and columns in matB)
+ * @param d3   input scalar dimension (rows in matB and matC)
+ * @param matC output array representing a d1 x d3 matrix
+ */
+void math_matmul(real* matA, real* matB, int d1, int d2, int d3, real* matC) {
+  int i;
+  int j;
+  int k;
+  real sum;
+  for (i = 0; i < d1; i=i+1) {
+    for (j = 0; j < d3; j=j+1) {
+      sum = 0.0;
+      for (k = 0; k < d2; k=k+1){
+	sum = sum + matA[k * d1 + i]*matB[j * d2 + k];
+      }
+      matC[j * d1 + i] = sum;
+    }
+  }
+}
+
+/**
  * @brief Generate normally distributed random numbers
  *
  * This function generates normally distributed random numbers with expected
