@@ -8,12 +8,14 @@
 #include "B_GS.h"
 #include "B_2D.h"
 #include "B_3D.h"
+#include "B_ST.h"
 
 typedef struct {
     int type;
     B_GS_offload_data BGS;
     B_2D_offload_data B2D;
     B_3D_offload_data B3D;
+    B_ST_offload_data BST;
     int offload_array_length;
 } B_field_offload_data;
 
@@ -22,6 +24,7 @@ typedef struct {
     B_GS_data BGS;
     B_2D_data B2D;
     B_3D_data B3D;
+    B_ST_data BST;
 } B_field_data;
 
 void B_field_init_offload(B_field_offload_data* offload_data,
