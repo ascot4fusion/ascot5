@@ -129,6 +129,11 @@ void B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
     }
 }
 
+
+/* Br   -> B[0]    dBr/dr -> B[1]   dBr/dphi -> B[2]    dBr/dz -> B[3]
+ * Bphi -> B[4]  dBphi/dr -> B[5] dBphi/dphi -> B[6]  dBphi/dz -> B[7]
+ * Bz   -> B[8]    dBz/dr -> B[9]   dBz/dphi -> B[10]   dBz/dz -> B[11]
+ */
 void B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
                        B_field_data* Bdata) {
     switch(Bdata->type) {
