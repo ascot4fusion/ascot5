@@ -11,6 +11,19 @@
 #include "math.h"
 
 /**
+ * @brief Return unit vector of a given 3D vector
+ *
+ * @param vec      3-length array
+ * @param vec_unit corresponding unit vector
+ */
+void math_unit(real* vec, real* vec_unit) {
+    real n = math_norm(vec);
+    vec_unit[0] = vec[0]/n;
+    vec_unit[1] = vec[1]/n;
+    vec_unit[2] = vec[2]/n;
+}
+
+/**
  * @brief Convert cartesian to cylindrical coordinates 
  *
  * @param xyz input xyz coordinates in a 3-length array
@@ -74,7 +87,7 @@ void math_vec_xyz2rpz(real* xyz, real* rpz, real phi) {
  * @brief Matrix multiplication
  *
  * This function performs matrix multiplication. The matrices are given as arrays,
- * the indexing being columnwise (same as in e.g. Matlab).
+ * the indexing being row-wise.
  *
  * @param matA input array representing a d1 x d2 matrix
  * @param matB input array representing a d2 x d3 matrix
@@ -94,7 +107,7 @@ void math_matmul(real* matA, real* matB, int d1, int d2, int d3, real* matC) {
       for (k = 0; k < d2; k=k+1){
 	sum = sum + matA[k * d1 + i]*matB[j * d2 + k];
       }
-      matC[j * d1 + i] = sum;
+      matC[i * d3 + j] = sum;
     }
   }
 }

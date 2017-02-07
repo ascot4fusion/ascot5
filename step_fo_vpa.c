@@ -67,7 +67,9 @@ void step_fo_vpa(particle_simd_fo* p, real t, real h, B_field_data* Bdata, E_fie
       uminus[2] = vxyz[2]*g + sigma*Exyz[2];
       real d = sigma*CONST_C/sqrt(1+math_dot(uminus,uminus));
 
-      real Bhat[9] = {0, -Bxyz[2], Bxyz[1], Bxyz[2], 0, -Bxyz[0], -Bxyz[1], Bxyz[0], 0};
+      real Bhat[9] = {       0, -Bxyz[2],  Bxyz[1], 
+		     Bxyz[2],        0,   -Bxyz[0], 
+		      -Bxyz[1], Bxyz[0],        0};
       real dd[9];
       real a = (1+pow(d,2)*math_dot(Bxyz,Bxyz));
       int j;
