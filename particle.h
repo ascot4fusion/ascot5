@@ -7,12 +7,15 @@
 
 #include "ascot5.h"
 #include "B_field.h"
+#include "E_field.h"
 
 /** @brief Struct representing a single physical particle in cylindrical
  *         coordinates.
  *
  * This is primarily used for particle initialization, this will be converted
  * into SIMD structs in appropriate coordinates for the simulation.
+ *
+ * @todo rdot,phidot, and zdot to v_r, v_phi and v_z? (Only affects phidot)
  */
 typedef struct {
     real r;        /**< r coordinate */
@@ -58,6 +61,8 @@ typedef struct {
  * responsibility of the function performing the change to make sure all
  * parameters are consistent (for example, update magnetic field when position
  * changes.
+ *
+ * @todo prev_* fields are likely redundant
  */
 typedef struct {
     real r[NSIMD] __memalign__;        /**< r coordinate */
@@ -133,10 +138,23 @@ typedef struct {
 } particle_simd_gc;
 
 #pragma omp declare target
+void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
+                    B_field_data* Bdata, E_field_data* Edata);
+void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
+void fo_to_particle(particle_simd_gc* p_gc, int j, particle* p);
+
 void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
                     B_field_data* Bdata);
 void particle_to_gc_dummy(particle_simd_gc* p_gc, int j);
 void gc_to_particle(particle_simd_gc* p_gc, int j, particle* p);
+
+
+void phasespace_particle_to_guidingcenter(real mass, real charge, real r, real phi, real z, 
+					  real v_r, real v_phi, real v_z, real* B_dB, real* gcpos);
+
+void phasespace_guidingcenter_to_particle(real R, real Phi, real Z, real v_para, real mu, 
+					  real B_dB, real* gcpos);
+
 #pragma omp end declare target
 
 #endif
