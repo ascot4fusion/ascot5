@@ -251,19 +251,21 @@ void phasespace_particle_to_guidingcenter(real mass, real charge, real r, real p
     gradlnB[1] = gradB[1]/B_norm;
     gradlnB[2] = gradB[2]/B_norm;
     
-    
     /* Zeroth order momentum terms */
     real p_para0 = pitch*momentum;
     real mu_0 = ( 1 - pow(pitch,2) )*pow(momentum,2)/(2*mass*B_norm);
 
     /* Make the spatial transformation */
-    real rho_norm = sqrt( (2*mass*mu_0)/(pow(charge,2)*B_norm) ); 
-    real rho_unit[3];
-    math_cross(v_unit,B_unit,rho_unit);
+    real rho[3];math_cross(v_unit,B_unit,rho);math_prod(rho,momentum/(charge*B_norm));
 
-    gcpos[0] = r + rho_norm*rho_unit[0];
-    gcpos[1] = phi + rho_norm*rho_unit[1];
-    gcpos[2] = z + rho_norm*rho_unit[2];
+    real rho_unit[3];math_unit(rho,rho_unit);
+    real rho_norm = math_norm(rho);
+
+    //printf("%le\n",rho[2]);
+
+    gcpos[0] = r + rho[0];
+    gcpos[1] = phi + rho[1]/r;
+    gcpos[2] = z + rho[2];
 
     /* First order momentum terms */
     real t1[3];math_cross(rho_unit, B_unit, t1);
@@ -285,6 +287,9 @@ void phasespace_particle_to_guidingcenter(real mass, real charge, real r, real p
     /* Make the momentum transformation */
     gcpos[3] = p_para0 + p_para1;
     gcpos[4] = mu_0 + mu_1;
+
+    gamma = sqrt(1+2*gcpos[4]/(mass*CONST_C2)+pow(gcpos[3]/(mass*CONST_C),2) );
+    gcpos[3] = gcpos[3]/(mass*gamma);
 }
 
 void phasespace_guidingcenter_to_particle(real R, real Phi, real Z, real v_para, real mu, 

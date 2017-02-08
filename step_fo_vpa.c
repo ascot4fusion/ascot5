@@ -34,7 +34,7 @@ void step_fo_vpa(particle_simd_fo* p, real t, real h, B_field_data* Bdata, E_fie
       /* Take a half step and evaluate fields at that position */
       real xhalf[3];
       xhalf[0]= p->r[i] + p->rdot[i]*h/2;
-      xhalf[1]= p->phi[i] + p->phidot[i]*h/2;
+      xhalf[1]= p->phi[i] + p->phidot[i]*h/(2*p->r[i]);
       xhalf[2]= p->z[i] + p->zdot[i]*h/2;
 	    
       real Brpz[3];
