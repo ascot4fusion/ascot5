@@ -10,8 +10,12 @@
 #include "B_3D.h"
 #include "B_ST.h"
 
+typedef enum B_field_type {
+    B_field_type_GS, B_field_type_2D, B_field_type_3D, B_field_type_ST
+} B_field_type;
+
 typedef struct {
-    int type;
+    B_field_type type;
     B_GS_offload_data BGS;
     B_2D_offload_data B2D;
     B_3D_offload_data B3D;
@@ -20,7 +24,7 @@ typedef struct {
 } B_field_offload_data;
 
 typedef struct {
-    int type;
+    B_field_type type;
     B_GS_data BGS;
     B_2D_data B2D;
     B_3D_data B3D;
