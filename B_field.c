@@ -8,6 +8,7 @@
 #include "B_2D.h"
 #include "B_3D.h"
 #include "B_ST.h"
+#include "B_TC.h"
 
 void B_field_init_offload(B_field_offload_data* offload_data,
                           real** offload_array) {
@@ -18,6 +19,9 @@ void B_field_init_offload(B_field_offload_data* offload_data,
         if(f == NULL) {
             /* no magnetic field input, use analytic field */
             offload_data->type = B_field_type_GS;
+
+	    /* trivial cartesian field is only for debugging */
+	    /* offload_data->type = 6; */
         } else {
             /* assuming input.h5 includes stellarator bfield */
             offload_data->type = B_field_type_ST;
@@ -54,6 +58,11 @@ void B_field_init_offload(B_field_offload_data* offload_data,
         B_ST_init_offload(&(offload_data->BST), offload_array);
         offload_data->offload_array_length = offload_data->BST.offload_array_length;
         break;
+
+	case 6:
+        B_TC_init_offload(&(offload_data->BTC), offload_array);
+        offload_data->offload_array_length = offload_data->BTC.offload_array_length;
+        break;
     }
 }
 
@@ -74,6 +83,10 @@ void B_field_free_offload(B_field_offload_data* offload_data,
 
         case B_field_type_ST:
         B_ST_free_offload(&(offload_data->BST), offload_array);
+        break;
+
+	case 6:
+        B_TC_free_offload(&(offload_data->BTC), offload_array);
         break;
     }
 }
@@ -96,6 +109,10 @@ void B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
         case B_field_type_ST:
         B_ST_init(&(Bdata->BST), &(offload_data->BST), offload_array);
         break;
+
+	case 6:
+        B_TC_init(&(Bdata->BTC), &(offload_data->BTC), offload_array);
+        break;
     }
     Bdata->type = offload_data->type;
 }
@@ -116,6 +133,10 @@ void B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata) {
 
         case B_field_type_ST:
         B_ST_eval_B(B, r, phi, z, &(Bdata->BST));
+        break;
+
+	case 6:
+        B_TC_eval_B(B, r, phi, z, &(Bdata->BTC));
         break;
     }
 }
@@ -138,6 +159,10 @@ void B_field_eval_psi(real psi[], real r, real phi, real z,
         case B_field_type_ST:
         B_ST_eval_psi(psi, r, phi, z, &(Bdata->BST));
         break;
+
+	case 6:
+        B_TC_eval_psi(psi, r, phi, z, &(Bdata->BTC));
+        break;
     }
 }
 
@@ -157,6 +182,10 @@ void B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
 
         case B_field_type_ST:
         B_ST_eval_rho(rho, psi, &(Bdata->BST));
+        break;
+
+	case 6:
+        B_TC_eval_rho(rho, psi, &(Bdata->BTC));
         break;
     }
 }
@@ -184,6 +213,10 @@ void B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
         case B_field_type_ST:
         B_ST_eval_B_dB(B_dB, r, phi, z, &(Bdata->BST));
         break;
+
+	case 6:
+        B_TC_eval_B_dB(B_dB, r, phi, z, &(Bdata->BTC));
+        break;
     }
 }
 
@@ -204,6 +237,10 @@ real B_field_get_axis_r(B_field_data* Bdata) {
         case B_field_type_ST:
         B_ST_get_axis_r(&(Bdata->BST));
         break;
+
+	case 6:
+        B_TC_get_axis_r(&(Bdata->BTC));
+        break;
     }
 }
 
@@ -223,6 +260,10 @@ real B_field_get_axis_z(B_field_data* Bdata) {
 
         case B_field_type_ST:
         B_ST_get_axis_z(&(Bdata->BST));
+        break;
+
+	case 6:
+        B_TC_get_axis_z(&(Bdata->BTC));
         break;
     }
 }
