@@ -21,7 +21,7 @@ void B_field_init_offload(B_field_offload_data* offload_data,
             offload_data->type = B_field_type_GS;
 
 	    /* trivial cartesian field is only for debugging */
-	    /* offload_data->type = 6; */
+	    /* offload_data->type = B_field_type_TC; */
         } else {
             /* assuming input.h5 includes stellarator bfield */
             offload_data->type = B_field_type_ST;

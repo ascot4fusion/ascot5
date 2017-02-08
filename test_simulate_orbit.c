@@ -52,8 +52,8 @@ int main(void) {
     p.running = 1;
   
     /* Output files */
-    FILE* f_particle = fopen("test_orbits.particle","w");
-    FILE* f_guidingcenter = fopen("test_orbits.guidingcenter","w");
+    FILE* f_particle = fopen("orbits_particle.test","w");
+    FILE* f_guidingcenter = fopen("orbits_guidingcenter.test","w");
 
     /* Test leap-frog */
     p.id = 1;

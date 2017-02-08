@@ -47,7 +47,7 @@ OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
 	 plasma_1d.o interact.o step_gc_rk4.o step_fo_lf.o step_fo_vpa.o \
 	 hdf5_helpers.o hdf5_histogram.o B_3D.o simulate_fo_lf.o \
 	 simulate_gc_rk4.o wall_3d.o list.o octree.o hdf5_particlestate.o \
-     particle.o endcond.o B_field.o E_field.o wall.o simulate.o \
+     particle.o endcond.o B_field.o E_field.o wall.o simulate.o orbit_write.o \
 
 BINS=test_math \
 	 test_wall_2d test_ascot4_interface test_plasma_1d \
@@ -100,4 +100,4 @@ test_interact: test_interact.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 clean:
-	rm -f *.o *.optrpt $(BINS)
+	rm -f *.o *.test *.optrpt $(BINS)
