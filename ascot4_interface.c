@@ -10,7 +10,9 @@
 #include "ascot4_interface.h"
 #include "math.h"
 #include "B_field.h"
+#include "hdf5_helpers.h"
 #include "hdf5_histogram.h"
+#include "hdf5_particlestate.h"
 #include "distributions.h"
 #include "particle.h"
 

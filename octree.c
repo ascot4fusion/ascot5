@@ -6,6 +6,7 @@
 #include "ascot5.h"
 #include "octree.h"
 #include "list.h"
+#include "wall_3d.h"
 
 void octree_create(octree_node** node, real x_min, real x_max, real y_min,
                    real y_max, real z_min, real z_max, int depth) {

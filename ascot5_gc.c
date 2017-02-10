@@ -18,6 +18,7 @@
 #include "plasma_1d.h"
 #include "interact.h"
 #include "simulate.h"
+#include "simulate_gc_rk4.h"
 #include "particle.h"
 #include "endcond.h"
 
