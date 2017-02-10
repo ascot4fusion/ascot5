@@ -4,7 +4,7 @@ ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
 endif
 
-ifeq ($(NOTARGET),1)
+ifneq ($(TARGET),1)
 	DEFINES+=-DNOTARGET
 endif
 

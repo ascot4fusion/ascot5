@@ -30,7 +30,7 @@
  *                processed simultaneously by each thread
  *  -  CC=...     compiler (default icc)
  *  -  SINGLEPRECISION use single-precision variables (floats) (doesn't work)
- *  -  NOTARGET=1 do not offload the code to Phi
+ *  -  TARGET=1 Offload computation to Xeon Phi accelerator
  *  -  VERBOSE=n  print increasing amounts of progress information; n={1,2}
  *  -  REPORTORBIT=n output particle orbit with particle id n; -1 outputs all
  *  -  COULOMBCOLL=1 enable Coulomb collisions
