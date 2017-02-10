@@ -4,6 +4,7 @@
  **/
 #include <math.h>
 #include "ascot5.h"
+#include "consts.h"
 #include "step_gc_rk4.h"
 #include "B_field.h"
 #include "math.h"
@@ -27,6 +28,8 @@
  */
 inline void ydot_gc(real ydot[], real t, real y[], real mass[], real charge[], real B_dB[]) {
 
+    real gamma = sqrt(1+2*y[4]/(mass[0]*CONST_C2)+pow(y[3]/(CONST_C),2) );;
+
     real B[3];
     B[0] = B_dB[0];
     B[1] = B_dB[4];
@@ -49,17 +52,17 @@ inline void ydot_gc(real ydot[], real t, real y[], real mass[], real charge[], r
     curlB[2] = (B[1] - B_dB[2]) / y[0] + B_dB[5];
 
     real Bstar[3];
-    Bstar[0] = B[0] + (mass[0] * y[3] / charge[0])
+    Bstar[0] = B[0] + (mass[0] * y[3] * gamma / charge[0])
                       * (curlB[0] / normB - gradBcrossB[0] / (normB*normB));
-    Bstar[1] = B[1] + (mass[0] * y[3] / charge[0])
+    Bstar[1] = B[1] + (mass[0] * y[3] * gamma / charge[0])
                       * (curlB[1] / normB - gradBcrossB[1] / (normB*normB));
-    Bstar[2] = B[2] + (mass[0] * y[3] / charge[0])
+    Bstar[2] = B[2] + (mass[0] * y[3] * gamma / charge[0])
                       * (curlB[2] / normB - gradBcrossB[2] / (normB*normB));
 
     real Estar[3];
-    Estar[0] = -y[4] * gradB[0] / charge[0];
-    Estar[1] = -y[4] * gradB[1] / charge[0];
-    Estar[2] = -y[4] * gradB[2] / charge[0];
+    Estar[0] = -y[4] * gradB[0] / (charge[0] * gamma);
+    Estar[1] = -y[4] * gradB[1] / (charge[0] * gamma);
+    Estar[2] = -y[4] * gradB[2] / (charge[0] * gamma);
 
     real Bhat[3];
     Bhat[0] = B[0] / normB;
