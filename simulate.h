@@ -9,6 +9,7 @@
 
 #include "ascot5.h"
 #include "B_field.h"
+#include "E_field.h"
 #include "plasma_1d.h"
 #include "distributions.h"
 #include "wall.h"

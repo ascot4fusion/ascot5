@@ -14,6 +14,7 @@
 #include "step_fo_lf.h"
 #include "step_fo_vpa.h"
 #include "step_gc_rk4.h"
+#include "step_gc_cashkarp.h"
 
 int main(void) {
 
@@ -31,7 +32,8 @@ int main(void) {
     E_field_data Edata;
     E_field_init(&Edata, &offload_Edata, offload_array);
 
-    real tstep = 1.e-10;
+    real tstep[NSIMD];
+    tstep[0] = 1.e-10;
     real tsimend = 1.e-6;
 
     /* Init a bunch of identical test particles */
@@ -62,8 +64,8 @@ int main(void) {
     write_fo_as_particle(f_particle, &p_fo);
     write_fo_as_guidingcenter(f_guidingcenter, &p_fo, &Bdata);
     while(p_fo.time[0] < tsimend){
-	step_fo_lf(&p_fo, p_fo.time[0], tstep, &Bdata);
-	p_fo.time[0] += tstep;
+	step_fo_lf(&p_fo, p_fo.time[0], tstep[0], &Bdata);
+	p_fo.time[0] += tstep[0];
 	write_fo_as_particle(f_particle, &p_fo);
 	write_fo_as_guidingcenter(f_guidingcenter, &p_fo, &Bdata);
     }
@@ -75,8 +77,8 @@ int main(void) {
     write_fo_as_particle(f_particle, &p_fo);
     write_fo_as_guidingcenter(f_guidingcenter, &p_fo, &Bdata);
     while(p_fo.time[0] < tsimend){
-	step_fo_vpa(&p_fo, p_fo.time[0], tstep, &Bdata, &Edata);
-	p_fo.time[0] += tstep;
+	step_fo_vpa(&p_fo, p_fo.time[0], tstep[0], &Bdata, &Edata);
+	p_fo.time[0] += tstep[0];
 	write_fo_as_particle(f_particle, &p_fo);
 	write_fo_as_guidingcenter(f_guidingcenter, &p_fo, &Bdata);
     }
@@ -87,12 +89,23 @@ int main(void) {
     particle_to_gc(&p, 0, &p_gc, 0, &Bdata);
     write_gc_as_guidingcenter(f_guidingcenter, &p_gc);
     while(p_gc.time[0] < tsimend){
-	step_gc_rk4(&p_gc, p_fo.time[0], tstep, &Bdata);
-	p_gc.time[0] += tstep;
+	step_gc_rk4(&p_gc, p_fo.time[0], tstep[0], &Bdata, &Edata);
+	p_gc.time[0] += tstep[0];
 	write_gc_as_guidingcenter(f_guidingcenter, &p_gc);
     }
 
     /* Test Cash-Karp */
+    real tol = 1.0;
+    real tnext[NSIMD];
+    p.id = 4;
+    p.time = 0.0;
+    particle_to_gc(&p, 0, &p_gc, 0, &Bdata);
+    write_gc_as_guidingcenter(f_guidingcenter, &p_gc);
+    while(p_gc.time[0] < tsimend){
+	step_gc_cashkarp(&p_gc, p_fo.time, tstep, tnext, tol, &Bdata, &Edata);
+	p_gc.time[0] += tstep[0];
+	write_gc_as_guidingcenter(f_guidingcenter, &p_gc);
+    }
     
   
     /* Done! Close files and clean */

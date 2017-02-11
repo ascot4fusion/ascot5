@@ -7,6 +7,7 @@
 #include "consts.h"
 #include "step_gc_rk4.h"
 #include "B_field.h"
+#include "E_field.h"
 #include "math.h"
 #include "particle.h"
 
@@ -20,13 +21,10 @@
  * @param yprev input coordinates in a 5-length array (r, phi, z, vpar, mu)
  * @param mass mass 
  * @param charge charge
- * @param B_dB magnetic field and derivatives at the particle location
- *             (Br = B_dB[0][i], dBr/dr = B_dB[1][i], dBr/dphi = B_dB[2][i], 
- *             dBr/dz = B_dB[3][i], Bphi = B_dB[4][i], dBphi/dr = B_dB[5][i],
- *             dBphi/dphi = B_dB[6][i],dBphi/dz = B[7][i], Bz = B[8][i],
- *             dBz/dr = B[9][i], dBz/dphi = B[10][i], dBz/dz = B[11][i])
+ * @param B_dB magnetic field and derivatives at the guiding center location
+ * @param E electric field at the guiding center location
  */
-inline void ydot_gc(real ydot[], real t, real y[], real mass[], real charge[], real B_dB[]) {
+inline void ydot_gc(real* ydot, real t, real* y, real* mass, real* charge, real* B_dB, real* E) {
 
     real gamma = sqrt(1+2*y[4]/(mass[0]*CONST_C2)+pow(y[3]/(CONST_C),2) );;
 
@@ -60,9 +58,9 @@ inline void ydot_gc(real ydot[], real t, real y[], real mass[], real charge[], r
                       * (curlB[2] / normB - gradBcrossB[2] / (normB*normB));
 
     real Estar[3];
-    Estar[0] = -y[4] * gradB[0] / (charge[0] * gamma);
-    Estar[1] = -y[4] * gradB[1] / (charge[0] * gamma);
-    Estar[2] = -y[4] * gradB[2] / (charge[0] * gamma);
+    Estar[0] = E[0] - y[4] * gradB[0] / (charge[0] * gamma);
+    Estar[1] = E[1] - y[4] * gradB[1] / (charge[0] * gamma);
+    Estar[2] = E[2] - y[4] * gradB[2] / (charge[0] * gamma);
 
     real Bhat[3];
     Bhat[0] = B[0] / normB;
@@ -93,8 +91,9 @@ inline void ydot_gc(real ydot[], real t, real y[], real mass[], real charge[], r
  * @param t time
  * @param h length of time step
  * @param Bdata pointer to magnetic field data
+ * @param Edata pointer to electric field data
  */
-void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata) {
+void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_field_data* Edata) {
 
     int i;
     /* Following loop will be executed simultaneously for all i */
@@ -117,6 +116,7 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata) {
 
             real B[3];
             real B_dB[12];
+	    real E[3];
 
             /* Coordinates are copied from the struct into an array to make 
              * passing parameters easier */
@@ -129,7 +129,8 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata) {
             charge[0] = p->charge[i];
 
             B_field_eval_B_dB(B_dB, yprev[0], yprev[1], yprev[2], Bdata);
-            ydot_gc(k1, t, yprev, mass, charge, B_dB);
+	    E_field_eval_E(E, yprev[0], yprev[1], yprev[2], Edata);
+            ydot_gc(k1, t, yprev, mass, charge, B_dB, E);
             int j;
             /* particle coordinates for the subsequent ydot evaluations are
              * stored in tempy */
@@ -138,19 +139,22 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata) {
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-            ydot_gc(k2, t+h/2.0, tempy, mass, charge, B_dB);
+	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
+            ydot_gc(k2, t+h/2.0, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 5; j++) {
                 tempy[j] = yprev[j] + h/2.0*k2[j];
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-            ydot_gc(k3, t+h/2.0, tempy, mass, charge, B_dB);
+	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
+            ydot_gc(k3, t+h/2.0, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 5; j++) {
                 tempy[j] = yprev[j] + h*k3[j];
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-            ydot_gc(k4, t+h, tempy, mass, charge, B_dB);
+	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
+            ydot_gc(k4, t+h, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 5; j++) {
                 y[j] = yprev[j]
                     + h/6.0 * (k1[j] + 2*k2[j] + 2*k3[j] + k4[j]);

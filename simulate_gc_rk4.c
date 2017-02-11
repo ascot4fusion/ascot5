@@ -12,6 +12,7 @@
 #include "wall.h"
 #include "distributions.h"
 #include "B_field.h"
+#include "E_field.h"
 #include "plasma_1d.h"
 #include "interact.h"
 #include "simulate.h"
@@ -24,11 +25,12 @@ void print_orbit_gc(particle_simd_gc* p, double t);
 #pragma omp end declare target
 
 void simulate_gc_rk4(int id, int n_particles, particle* particles,
-                    sim_offload_data sim_offload,
-                    real* B_offload_array,
-                    real* plasma_offload_array,
-                    real* wall_offload_array,
-                    real* dist_offload_array) {
+		     sim_offload_data sim_offload,
+		     real* B_offload_array,
+		     real* E_offload_array,
+		     real* plasma_offload_array,
+		     real* wall_offload_array,
+		     real* dist_offload_array) {
     sim_data sim;
     sim_init(&sim, &sim_offload);
 
@@ -45,6 +47,8 @@ void simulate_gc_rk4(int id, int n_particles, particle* particles,
     #endif
 
     B_field_init(&sim.B_data, &sim_offload.B_offload_data, B_offload_array);
+
+    E_field_init(&sim.E_data, &sim_offload.E_offload_data, E_offload_array);
 
     plasma_1d_init(&sim.plasma_data, &sim_offload.plasma_offload_data,
                    plasma_offload_array);
@@ -85,7 +89,7 @@ void simulate_gc_rk4(int id, int n_particles, particle* particles,
 
         /* Main simulation loop */
         do {
-            step_gc_rk4(&p, 0, sim.tstep, &sim.B_data);
+            step_gc_rk4(&p, 0, sim.tstep, &sim.B_data, &sim.E_data);
 
             #if COULOMBCOLL == 1
             orbsteps++;

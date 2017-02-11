@@ -6,13 +6,14 @@
 #define STEP_GC_RK4_H
 
 #include "B_field.h"
+#include "E_field.h"
 #include "particle.h"
 
 #pragma omp declare target
 #pragma omp declare simd 
-void ydot_gc(real ydot[], real t, real y[], real mass[], real charge[],
-             real B_dB[]);
-void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata);
+void ydot_gc(real* ydot, real t, real* y, real* mass, real* charge,
+             real* B_dB, real* E);
+void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_field_data* Edata);
 #pragma omp end declare target
 
 #endif
