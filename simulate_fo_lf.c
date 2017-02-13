@@ -52,47 +52,6 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
     dist_rzvv_init(&sim.dist_data, &sim_offload.dist_offload_data,
                    dist_offload_array);
 
-    int n = n_particles / NSIMD;
-    if(n_particles % NSIMD != 0) {
-        n++;
-    }
-    particle_simd_fo* p = (particle_simd_fo*) _mm_malloc(
-                                                n*sizeof(particle_simd_fo), 64);
-    int i;
-    for(i = 0; i < n; i++) {
-        int j;
-        for(j = 0; j < NSIMD; j++) {
-            if(i*NSIMD + j < n_particles) {
-                p[i].r[j] = particles[i*NSIMD+j].r;
-                p[i].phi[j] = particles[i*NSIMD+j].phi;
-                p[i].z[j] = particles[i*NSIMD+j].z;
-                p[i].rdot[j] = particles[i*NSIMD+j].rdot;
-                p[i].phidot[j] = particles[i*NSIMD+j].phidot;
-                p[i].zdot[j] = particles[i*NSIMD+j].zdot;
-                p[i].mass[j] = particles[i*NSIMD+j].mass;
-                p[i].charge[j] = particles[i*NSIMD+j].charge;
-                p[i].weight[j] = particles[i*NSIMD+j].weight;
-                p[i].id[j] = particles[i*NSIMD+j].id;
-                p[i].running[j] = 1;
-            }
-            else {
-                /* if there particles don't fill the last struct, remaining
-                   particles are dummies that won't be simulated */
-                p[i].r[j] = 1;
-                p[i].phi[j] = 1;
-                p[i].z[j] = 1;
-                p[i].rdot[j] = 1;
-                p[i].phidot[j] = 1;
-                p[i].zdot[j] = 1;
-                p[i].mass[j] = 1;
-                p[i].charge[j] = 1;
-                p[i].weight[j] = 0;
-                p[i].id[j] = -1;
-                p[i].running[j] = 0;
-            }
-        }
-    }
-
     #ifdef REPORTORBIT
     /** @todo fixme */
     /*for(i = 0; i < n; i++) {
@@ -102,43 +61,35 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
 
     double tt_start = omp_get_wtime();
 
+    int i_next_prt = 0;
+
     /* SIMD particle structs will be computed in parallel with the maximum
      * number of threads available on the platform */
-    #pragma omp parallel for 
-    for(i = 0; i < n; i++) {
+    #pragma omp parallel
+    {
+        particle_simd_fo p;
+        int i_prt;
+        for(int i = 0; i < NSIMD; i++) {
+            #pragma omp ciritcal
+            i_prt = i_next_prt++;
+            if(i_prt < n_particles) {
+                particle_to_fo(&particles[i_prt], i_prt, &p, i, &sim.B_data,
+                    &sim.E_data);
+            }
+            else {
+                particle_to_fo_dummy(&p, i);
+            }
+        }
 
-        double t;
-        double trprev = sim.t0;
-
-        int orbsteps = 0;
         int collstepdivisor = round(sim.tcollstep / sim.tstep);
+        int orbsteps = collstepdivisor;
+
+        int n_running = 0;
 
         /* Main simulation loop */
-        for(t = sim.t0; t < sim.tmax; t += sim.tstep) {
-            int k;
-            #pragma omp simd
-            for(k = 0; k < NSIMD; k++) {
-                p[i].prev_r[k] = p[i].r[k];
-                p[i].prev_phi[k] = p[i].phi[k];
-                p[i].prev_z[k] = p[i].z[k];
-            }
+        do {
+            step_fo_lf(&p, 0, sim.tstep, &sim.B_data);
 
-            /* Perform a single rk4 step. Vectorization magic happens inside
-             * the function. */
-            step_fo_lf(&p[i], t, sim.tstep, &sim.B_data);
-
-            /* Check for wall collisions. This is performed as vector op */
-            #pragma omp simd
-            for(k = 0; k < NSIMD; k++) {
-                if(wall_hit_wall(p[i].prev_r[k], p[i].prev_phi[k],
-                                 p[i].prev_z[k], p[i].r[k], p[i].phi[k],
-                                 p[i].z[k], &sim.wall_data)) 
-                {
-                    p[i].running[k] = 0;
-                }
-            }
-
-            /* Perform collision step */
             #if COULOMBCOLL == 1
             orbsteps++;
             if(orbsteps == collstepdivisor) {
@@ -148,17 +99,32 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
             }
             #endif
 
-            /* Print particle orbit */
-            #ifdef REPORTORBIT
-            if((t-trprev) > sim.trstep) {
-                print_orbit_fo(&p[i], t+sim.tstep);
-                trprev = t;
-            }
-            #endif 
+//            endcond_check_fo(&p, &sim);
 
-            /* Update histogram, vectorization inside */
-            dist_rzvv_update_fo(&sim.dist_data, &p[i], sim.tstep);
-        }
+            dist_rzvv_update_fo(&sim.dist_data, &p, sim.tstep);
+
+            /* update number of running particles */
+            n_running = 0;
+            int k;
+            #pragma omp simd reduction(+:n_running)
+            for(k = 0; k < NSIMD; k++) {
+                if(!p.running[k] && p.id[k] >= 0) {
+                    fo_to_particle(&p, k, &particles[p.index[k]]);
+                    #pragma omp critical
+                    i_prt = i_next_prt++;
+                    if(i_prt < n_particles) {
+                        particle_to_fo(&particles[i_prt], i_prt, &p, k,
+                            &sim.B_data, &sim.E_data);
+                    }
+                    else {
+                        p.id[k] = -1;
+                    }
+                }
+                else {
+                    n_running += p.running[k];
+                }
+            }
+        } while(n_running > 0);
     }
     double tt_end = omp_get_wtime();
 
@@ -168,19 +134,8 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
     #endif
 
     /* copy particles back to individual particles */
-    for(i = 0; i < n_particles; i++) {
-        particles[i].r = p[i/NSIMD].r[i % NSIMD];
-        particles[i].phi = p[i/NSIMD].phi[i % NSIMD];
-        particles[i].z = p[i/NSIMD].z[i % NSIMD];
-        particles[i].rdot = p[i/NSIMD].rdot[i % NSIMD];
-        particles[i].phidot = p[i/NSIMD].phidot[i % NSIMD];
-        particles[i].zdot = p[i/NSIMD].zdot[i % NSIMD];
-        particles[i].mass = p[i/NSIMD].mass[i % NSIMD];
-        particles[i].charge = p[i/NSIMD].charge[i % NSIMD];
-        particles[i].weight = p[i/NSIMD].weight[i % NSIMD];
-        particles[i].id = p[i/NSIMD].id[i % NSIMD];
-        particles[i].running = p[i/NSIMD].running[i % NSIMD];
-    }
+//    for(i = 0; i < n_particles; i++) {
+//    }
 }
 
 void print_orbit_fo(particle_simd_fo* p, double t) {
