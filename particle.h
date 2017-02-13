@@ -141,7 +141,7 @@ typedef struct {
 void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
                     B_field_data* Bdata, E_field_data* Edata);
 void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
-void fo_to_particle(particle_simd_gc* p_gc, int j, particle* p);
+void fo_to_particle(particle_simd_fo* p_fo, int j, particle* p);
 
 void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
                     B_field_data* Bdata);

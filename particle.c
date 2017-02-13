@@ -90,6 +90,18 @@ void particle_to_fo_dummy(particle_simd_fo* p_fo, int j){
     p_fo->index[j] = -1;
 }
 
+void fo_to_particle(particle_simd_fo* p_fo, int j, particle* p) {
+    p->r = p_fo->r[j];
+    p->phi = p_fo->phi[j];
+    p->z = p_fo->z[j];
+    p->rdot = p_fo->rdot[j];
+    p->phidot = p_fo->phidot[j];
+    p->zdot = p_fo->zdot[j];
+    p->time = p_fo->time[j];
+    p->running = p_fo->running[j];
+    p->endcond = p_fo->endcond[j];
+    p->walltile = p_fo->walltile[j];
+}
 
 void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
                     B_field_data* Bdata) {
