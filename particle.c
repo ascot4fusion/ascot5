@@ -48,13 +48,7 @@ void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
 
     p_fo->B_r[j] = B[0];					  
     p_fo->B_phi[j] = B[1];				
-    p_fo->B_z[j] = B[2];				
-    p_fo->E_r[j] = E[0];					  
-    p_fo->E_phi[j] = E[1]; 					 
-    p_fo->E_z[j] = E[2];
-    p_fo->prev_r[j] = p->r;
-    p_fo->prev_phi[j] = p->phi;
-    p_fo->prev_z[j] = p->z;
+    p_fo->B_z[j] = B[2];
     p_fo->index[j] = i;
 }
 
@@ -81,13 +75,7 @@ void particle_to_fo_dummy(particle_simd_fo* p_fo, int j){
     p_fo->walltile[j] = 0;
     p_fo->B_r[j] = 1;					  
     p_fo->B_phi[j] = 1;				
-    p_fo->B_z[j] = 1;				
-    p_fo->E_r[j] = 1;					  
-    p_fo->E_phi[j] = 1; 					 
-    p_fo->E_z[j] = 1;
-    p_fo->prev_r[j] = 1;
-    p_fo->prev_phi[j] = 1;
-    p_fo->prev_z[j] = 1;
+    p_fo->B_z[j] = 1;	        
     p_fo->index[j] = -1;
 }
 

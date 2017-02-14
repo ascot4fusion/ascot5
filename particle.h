@@ -86,17 +86,6 @@ typedef struct {
                                             particle position */
     real B_z[NSIMD] __memalign__;      /**< magnetic field z component at
                                             particle position */
-
-    real E_r[NSIMD] __memalign__;      /**< electric field r component at
-                                            particle position */
-    real E_phi[NSIMD] __memalign__;    /**< electric field phi component at
-                                            particle position */
-    real E_z[NSIMD] __memalign__;      /**< electric field z component at
-                                            particle position */
-
-    real prev_r[NSIMD] __memalign__;      /**< previous r coordinate */
-    real prev_phi[NSIMD] __memalign__;    /**< previous phi coordinate */
-    real prev_z[NSIMD] __memalign__;      /**< previous z coordinate */
     integer index[NSIMD] __memalign__;
 } particle_simd_fo;
 

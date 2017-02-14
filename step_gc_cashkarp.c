@@ -46,11 +46,8 @@ void step_gc_cashkarp(particle_simd_gc* p, real* t, real* h, real* hnext, real t
             real tempy[5];
 	    real yprev[5];
 
-           /* Mass and charge need to have the same structure as in the previous
-               arrays so that the compiler can vectorize the function call, but
-               we only use the first row for actual data */
-            real mass[5];
-            real charge[5];
+            real mass;
+            real charge;
 
             real B[3];
             real B_dB[12];
@@ -63,8 +60,8 @@ void step_gc_cashkarp(particle_simd_gc* p, real* t, real* h, real* hnext, real t
             yprev[2] = p->z[i];
             yprev[3] = p->vpar[i];
             yprev[4] = p->mu[i];
-            mass[0] = p->mass[i];
-            charge[0] = p->charge[i];
+            mass = p->mass[i];
+            charge = p->charge[i];
 
 	    B_field_eval_B_dB(B_dB, yprev[0], yprev[1], yprev[2], Bdata);
 	    E_field_eval_E(E, yprev[0], yprev[1], yprev[2], Edata);
@@ -121,25 +118,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* t, real* h, real* hnext, real t
         
 	    if(err <= 1.0){
 		/* Time step accepted */
-	        hnext[i] = h[i]*pow(err,-0.2);
-		p->r[i] = yout[0];
-		p->phi[i] = yout[1];
-		p->z[i] = yout[2];
-		p->vpar[i] = yout[3];
-		
-		p->time[i] = p->time[i] + h[i];
-		
-		/* Update other particle parameters to be consistent */
-		B_field_eval_B(B, yout[0], yout[1], yout[2], Bdata);
-		p->B_r[i] = B[0];
-		p->B_phi[i] = B[1];
-		p->B_z[i] = B[2]; 
-		
-		p->prev_r[i] = yprev[0];
-		p->prev_phi[i] = yprev[1];
-		p->prev_z[i] = yprev[2];
-		
-		
+	        hnext[i] = h[i]*pow(err,-0.2);		
 		
 	    }
 	    else{
@@ -148,6 +127,22 @@ void step_gc_cashkarp(particle_simd_gc* p, real* t, real* h, real* hnext, real t
 		
 	    }
 
+	    p->r[i] = yout[0];
+	    p->phi[i] = yout[1];
+	    p->z[i] = yout[2];
+	    p->vpar[i] = yout[3];
+		
+	    p->time[i] = p->time[i] + h[i];
+		
+	    /* Update other particle parameters to be consistent */
+	    B_field_eval_B(B, yout[0], yout[1], yout[2], Bdata);
+	    p->B_r[i] = B[0];
+	    p->B_phi[i] = B[1];
+	    p->B_z[i] = B[2]; 
+		
+	    p->prev_r[i] = yprev[0];
+	    p->prev_phi[i] = yprev[1];
+	    p->prev_z[i] = yprev[2];
         }
     }
 }

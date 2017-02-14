@@ -105,16 +105,11 @@ void step_fo_vpa(particle_simd_fo* p, real t, real h, B_field_data* Bdata, E_fie
       p->phidot[i] = ( -vxyz[0] * sin(p->phi[i]) + vxyz[1] * cos(p->phi[i]) ) / p->r[i];
       p->zdot[i] = vxyz[2];
 
-      /* Evaluate electromagnetic fields at new position */
+      /* Evaluate magnetic field at new position */
       B_field_eval_B(Brpz, p->r[i], p->phi[i], p->z[i], Bdata);
       p->B_r[i] = Brpz[0];
       p->B_phi[i] = Brpz[1];
       p->B_z[i] = Brpz[2];
-
-      E_field_eval_E(Erpz, p->r[i], p->phi[i], p->z[i], Edata);
-      p->E_r[i] = Erpz[0];
-      p->E_phi[i] = Erpz[1];
-      p->E_z[i] = Erpz[2];
     }
   }
 }

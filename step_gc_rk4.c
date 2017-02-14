@@ -41,11 +41,8 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_fie
             real yprev[5];
             real y[5];
 
-           /* Mass and charge need to have the same structure as in the previous
-               arrays so that the compiler can vectorize the function call, but
-               we only use the first row for actual data */
-            real mass[5];
-            real charge[5];
+            real mass;
+            real charge;
 
             real B[3];
             real B_dB[12];
@@ -58,8 +55,8 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_fie
             yprev[2] = p->z[i];
             yprev[3] = p->vpar[i];
             yprev[4] = p->mu[i];
-            mass[0] = p->mass[i];
-            charge[0] = p->charge[i];
+            mass = p->mass[i];
+            charge = p->charge[i];
 
             B_field_eval_B_dB(B_dB, yprev[0], yprev[1], yprev[2], Bdata);
 	    E_field_eval_E(E, yprev[0], yprev[1], yprev[2], Edata);

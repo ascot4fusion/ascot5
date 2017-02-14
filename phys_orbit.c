@@ -130,9 +130,9 @@ void phys_gctoprt(real R, real Phi, real Z, real v_para, real mu,
  * @param B_dB magnetic field and derivatives at the guiding center location
  * @param E electric field at the guiding center location
  */
-inline void phys_eomgc(real* ydot, real t, real* y, real* mass, real* charge, real* B_dB, real* E) {
+inline void phys_eomgc(real* ydot, real t, real* y, real mass, real charge, real* B_dB, real* E) {
 
-    real gamma = phys_gammagcv(mass[0],y[3],y[4]);
+    real gamma = phys_gammagcv(mass,y[3],y[4]);
     real B[3];
     B[0] = B_dB[0];
     B[1] = B_dB[4];
@@ -155,17 +155,17 @@ inline void phys_eomgc(real* ydot, real t, real* y, real* mass, real* charge, re
     curlB[2] = (B[1] - B_dB[2]) / y[0] + B_dB[5];
 
     real Bstar[3];
-    Bstar[0] = B[0] + (mass[0] * y[3] * gamma / charge[0])
+    Bstar[0] = B[0] + (mass * y[3] * gamma / charge)
                       * (curlB[0] / normB - gradBcrossB[0] / (normB*normB));
-    Bstar[1] = B[1] + (mass[0] * y[3] * gamma / charge[0])
+    Bstar[1] = B[1] + (mass * y[3] * gamma / charge)
                       * (curlB[1] / normB - gradBcrossB[1] / (normB*normB));
-    Bstar[2] = B[2] + (mass[0] * y[3] * gamma / charge[0])
+    Bstar[2] = B[2] + (mass * y[3] * gamma / charge)
                       * (curlB[2] / normB - gradBcrossB[2] / (normB*normB));
 
     real Estar[3];
-    Estar[0] = E[0] - y[4] * gradB[0] / (charge[0] * gamma);
-    Estar[1] = E[1] - y[4] * gradB[1] / (charge[0] * gamma);
-    Estar[2] = E[2] - y[4] * gradB[2] / (charge[0] * gamma);
+    Estar[0] = E[0] - y[4] * gradB[0] / (charge * gamma);
+    Estar[1] = E[1] - y[4] * gradB[1] / (charge * gamma);
+    Estar[2] = E[2] - y[4] * gradB[2] / (charge * gamma);
 
     real Bhat[3];
     Bhat[0] = B[0] / normB;
@@ -180,6 +180,6 @@ inline void phys_eomgc(real* ydot, real t, real* y, real* mass, real* charge, re
     ydot[0] = (y[3]*Bstar[0]+EstarcrossBhat[0])/BhatDotBstar;
     ydot[1] = (y[3]*Bstar[1]+EstarcrossBhat[1])/(y[0]*BhatDotBstar);
     ydot[2] = (y[3]*Bstar[2]+EstarcrossBhat[2])/BhatDotBstar;
-    ydot[3] = (charge[0]/mass[0]) * math_dot(Bstar,Estar)/BhatDotBstar;
+    ydot[3] = (charge/mass) * math_dot(Bstar,Estar)/BhatDotBstar;
     ydot[4] = 0;
 }

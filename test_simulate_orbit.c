@@ -44,9 +44,9 @@ int main(void) {
     p.r = 8.01;
     p.phi = 0.0;
     p.z = 0.0;
-    p.rdot = 2.e4;
-    p.phidot = 0.0;
-    p.zdot = 1.e4;
+    p.v_r = 2.e4;
+    p.v_phi = 0.0;
+    p.v_z = 1.e4;
     p.mass = 6.6447e-27;
     p.charge = 1.6022e-19;
     p.weight = 1;
