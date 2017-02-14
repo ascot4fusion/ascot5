@@ -148,13 +148,6 @@ void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
 void particle_to_gc_dummy(particle_simd_gc* p_gc, int j);
 void gc_to_particle(particle_simd_gc* p_gc, int j, particle* p);
 
-
-void phasespace_particle_to_guidingcenter(real mass, real charge, real r, real phi, real z, 
-					  real v_r, real v_phi, real v_z, real* B_dB, real* gcpos);
-
-void phasespace_guidingcenter_to_particle(real R, real Phi, real Z, real v_para, real mu, 
-					  real B_dB, real* gcpos);
-
 #pragma omp end declare target
 
 #endif

@@ -7,8 +7,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include "ascot5.h"
-#include "math.h"
 #include "consts.h"
+#include "math.h"
+#include "phys_orbit.h"
 #include "particle.h"
 #include "B_field.h"
 #include "E_field.h"
@@ -108,8 +109,9 @@ void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
     real B_dB[12];
     B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);
     real gcpos[5];
-    phasespace_particle_to_guidingcenter(p->mass, p->charge, p->r, p->phi, p->z, 
-					 p->rdot, p->phidot*p->r, p->zdot, B_dB, gcpos);
+    real gamma = phys_gammaprtv(sqrt(p->rdot*p->rdot + pow(p->phidot,2) + p->zdot*p->zdot));
+    phys_prttogc(p->mass, p->charge, p->r, p->phi, p->z, 
+		 gamma*p->mass*p->rdot, gamma*p->mass*p->phidot, gamma*p->mass*p->zdot, B_dB, gcpos);
 
     p_gc->r[j] = gcpos[0];
     p_gc->phi[j] = gcpos[1];
@@ -117,7 +119,7 @@ void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
     
     real B[3];
     B_field_eval_B(B, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);
-    real gamma = sqrt(1+2*gcpos[4]/(p->mass*CONST_C2)+pow(gcpos[3]/(p->mass*CONST_C),2) );
+    gamma = phys_gammagcp(p->mass, gcpos[3], gcpos[4]);
     p_gc->vpar[j] = gcpos[3]/(p->mass*gamma);
     p_gc->mu[j] = gcpos[4];
 
@@ -208,109 +210,3 @@ void gc_to_particle(particle_simd_gc* p_gc, int j, particle* p) {
     p->walltile = p_gc->walltile[j];
 }
 
-/**
- * @brief Transforms particle to guiding center phase space 
- *
- * The transformation is done between coordinates [r,phi,z,p_r,p_phi,p_z]
- * and [R,Phi,Z,p_para,mu]. The transformation is done up to first order.
- *
- * @todo Should get momentum as an input
- *  
- */
-void phasespace_particle_to_guidingcenter(real mass, real charge, real r, real phi, real z, 
-					  real v_r, real v_phi, real v_z, real* B_dB, real* gcpos){
-    /* Temporary re-used variables */
-    int sum_index;
-    real TEMP_S1;
-    real TEMP_V1[3];
-
-    /* Helper variables */
-    real velocity[3] = {v_r, v_phi, v_z};
-    real v_unit[3];
-    math_unit(velocity, v_unit);
-    real momentum = sqrt( 1/(1-math_dot(velocity,velocity)/CONST_C2) - 1 ) * mass*CONST_C;
-    real gamma = sqrt( 1 + pow(momentum/(mass*CONST_C), 2) );
-
-    real B_vec[3]  = {B_dB[0], B_dB[4], B_dB[8]};
-    real B_norm = math_norm(B_vec);
-    real B_unit[3];
-    math_unit(B_vec, B_unit);
-
-    real pitch = math_dot(v_unit,B_unit);
-
-    /* Magnetic field jacobian, gradient and curl in cylindrical coordinates */
-    real jacB[9] = {B_dB[1], B_dB[2]/r, B_dB[3],
-		    B_dB[5], B_dB[6]/r, B_dB[7],
-		    B_dB[9], B_dB[10]/r, B_dB[11]};
-
-    real gradB[3];
-    gradB[0] = B_unit[0]*jacB[0] + B_unit[0]*jacB[3] + B_unit[0]*jacB[6];
-    gradB[1] = B_unit[1]*jacB[1] + B_unit[1]*jacB[4] + B_unit[1]*jacB[7];
-    gradB[2] = B_unit[2]*jacB[2] + B_unit[2]*jacB[5] + B_unit[2]*jacB[8];
-    math_matmul(jacB,B_unit,3,3,1,gradB);
-
-    real curlB[3] = {jacB[7]-jacB[5], jacB[2]-jacB[6], jacB[3]+B_vec[1]/r-jacB[1]};
-
-    real tau_B = math_dot(B_unit, curlB)/B_norm;
-    real nablabhat[9];
-    nablabhat[0]=(jacB[0] - gradB[0]*B_unit[0])/B_norm;
-    nablabhat[1]=(jacB[1] - gradB[0]*B_unit[1])/B_norm;
-    nablabhat[2]=(jacB[2] - gradB[0]*B_unit[2])/B_norm;
-    nablabhat[3]=(jacB[3] - gradB[1]*B_unit[0])/B_norm;
-    nablabhat[4]=(jacB[4] - gradB[1]*B_unit[1])/B_norm;
-    nablabhat[5]=(jacB[5] - gradB[1]*B_unit[2])/B_norm;
-    nablabhat[6]=(jacB[6] - gradB[2]*B_unit[0])/B_norm;
-    nablabhat[7]=(jacB[7] - gradB[2]*B_unit[1])/B_norm;
-    nablabhat[8]=(jacB[8] - gradB[2]*B_unit[2])/B_norm; 
-
-    real kappa[3];
-    math_matmul(nablabhat,B_unit,3,3,1,kappa);
-    
-    /* Zeroth order momentum terms */
-    real p_para0 = pitch*momentum;
-    real mu_0 = ( 1 - pow(pitch,2) )*pow(momentum,2)/(2*mass*B_norm);
-
-    /* Make the spatial transformation */
-    real rho[3];
-    math_cross(v_unit,B_unit,rho);
-    math_prod(rho,momentum/(charge*B_norm));
-
-    real rho_unit[3];
-    math_unit(rho,rho_unit);
-    real rho_norm = math_norm(rho);
-
-    gcpos[0] = r + rho[0];
-    gcpos[1] = phi + atan(rho[1]/r);
-    gcpos[2] = z + rho[2];
-
-    /* First order momentum terms */
-    real perphat[3];
-    math_cross(rho_unit, B_unit, perphat);
-
-    real a1ddotgradb = 0.5*(2*(rho_unit[0]*perphat[0]*nablabhat[0] + rho_unit[1]*perphat[1]*nablabhat[4]
-			      +rho_unit[2]*perphat[2]*nablabhat[8]) 
-			   +(rho_unit[0]*perphat[1]+rho_unit[1]*perphat[0])*(nablabhat[1]+nablabhat[3])
-			   +(rho_unit[0]*perphat[2]+rho_unit[2]*perphat[0])*(nablabhat[2]+nablabhat[6])
-			   +(rho_unit[1]*perphat[2]+rho_unit[2]*perphat[1])*(nablabhat[5]+nablabhat[7]));
-
-    real p_para1 = p_para0*math_dot(rho,kappa) - ((mass*mu_0)/charge)*(tau_B + a1ddotgradb);
-    TEMP_S1 = pow(p_para0,2)/(mass*B_norm);
-    TEMP_V1[0] = TEMP_S1 * kappa[0] + mu_0*gradB[0]/B_norm;
-    TEMP_V1[1] = TEMP_S1 * kappa[1] + mu_0*gradB[1]/B_norm;
-    TEMP_V1[2] = TEMP_S1 * kappa[2] + mu_0*gradB[2]/B_norm;
-    real mu_1 = -math_dot(rho, TEMP_V1) + ( (mu_0*p_para0)/(charge*B_norm) )*(tau_B + a1ddotgradb);
-
-    /* Make the momentum transformation */
-    gcpos[3] = p_para0 + p_para1;
-    gcpos[4] = mu_0 + mu_1;
-
-    /* Finally, change p_para into v_para as the gcpos[3] is defined */
-    //gamma = sqrt(1+2*gcpos[4]/(mass*CONST_C2)+pow(gcpos[3]/(mass*CONST_C),2) );
-    //gcpos[3] = gcpos[3]/(mass*gamma);
-}
-
-void phasespace_guidingcenter_to_particle(real R, real Phi, real Z, real v_para, real mu, 
-					  real B_dB, real* gcpos){
-
-
-}

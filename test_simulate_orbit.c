@@ -90,7 +90,7 @@ int main(void) {
     write_gc_as_guidingcenter(f_guidingcenter, &p_gc);
     while(p_gc.time[0] < tsimend){
 	step_gc_rk4(&p_gc, p_fo.time[0], tstep[0], &Bdata, &Edata);
-	p_gc.time[0] += tstep[0];
+	//p_gc.time[0] += tstep[0];
 	write_gc_as_guidingcenter(f_guidingcenter, &p_gc);
     }
 
@@ -103,7 +103,7 @@ int main(void) {
     write_gc_as_guidingcenter(f_guidingcenter, &p_gc);
     while(p_gc.time[0] < tsimend){
 	step_gc_cashkarp(&p_gc, p_fo.time, tstep, tnext, tol, &Bdata, &Edata);
-	p_gc.time[0] += tstep[0];
+	//p_gc.time[0] += tstep[0];
 	write_gc_as_guidingcenter(f_guidingcenter, &p_gc);
     }
     

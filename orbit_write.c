@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include "ascot5.h"
 #include "consts.h"
+#include "phys_orbit.h"
 #include "particle.h"
 #include "B_field.h"
 
@@ -33,11 +34,13 @@ void write_fo_as_guidingcenter(FILE* out, particle_simd_fo* p, B_field_data* Bda
     real gcpos[5];
     real B_dB[12];
     B_field_eval_B_dB(B_dB, p->r[0], p->phi[0], p->z[0], Bdata);
-    phasespace_particle_to_guidingcenter(p->mass[0], p->charge[0], p->r[0], p->phi[0], p->z[0],
-					 p->rdot[0], p->phidot[0], p->zdot[0], B_dB, gcpos);
+
+    real gamma = phys_gammaprtv(sqrt(p->rdot[0]*p->rdot[0] + pow(p->phidot[0],2) + p->zdot[0]*p->zdot[0]));
+    phys_prttogc(p->mass[0], p->charge[0], p->r[0], p->phi[0], p->z[0], 
+		 gamma*p->mass[0]*p->rdot[0], gamma*p->mass[0]*p->phidot[0], gamma*p->mass[0]*p->zdot[0], B_dB, gcpos);
 
     B_field_eval_B_dB(B_dB, gcpos[0], gcpos[1], gcpos[2], Bdata);
-    real gamma = sqrt(1+2*gcpos[4]/(p->mass[0]*CONST_C2)+pow(gcpos[3]/(p->mass[0]*CONST_C),2) );
+    gamma = phys_gammagcp(p->mass[0], gcpos[3], gcpos[4]);
     gcpos[3] = gcpos[3]/(p->mass[0]*gamma);
 
     fprintf(out, "%d, %le, %le, %le, %le, %le, %le\n",

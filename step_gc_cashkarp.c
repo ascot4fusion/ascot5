@@ -2,12 +2,15 @@
  * @file step_gc_cashkarp.c
  * @brief Calculate a guiding center step for a struct of particles with adaptive Cash Karp method
  **/
+#include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 #include "ascot5.h"
 #include "step_gc_cashkarp.h"
 #include "step_gc_rk4.h"
 #include "B_field.h"
 #include "math.h"
+#include "phys_orbit.h"
 #include "particle.h"
 
 /**
@@ -65,7 +68,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* t, real* h, real* hnext, real t
 
 	    B_field_eval_B_dB(B_dB, yprev[0], yprev[1], yprev[2], Bdata);
 	    E_field_eval_E(E, yprev[0], yprev[1], yprev[2], Edata);
-	    ydot_gc(k1, t[0], yprev, mass, charge, B_dB, E);
+	    phys_eomgc(k1, t[0], yprev, mass, charge, B_dB, E);
 	    int j;
 
 	    for(j = 0; j < 5; j++) {
@@ -73,47 +76,47 @@ void step_gc_cashkarp(particle_simd_gc* p, real* t, real* h, real* hnext, real t
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
 	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
-	    ydot_gc(k2, t[i]+h[i]/5.0, tempy, mass, charge, B_dB, E);
+	    phys_eomgc(k2, t[i]+h[i]/5.0, tempy, mass, charge, B_dB, E);
 
 	    for(j = 0; j < 5; j++) {
 		tempy[j] = yprev[j] + ((3.0/40)*k1[j]+(9.0/40)*k2[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
 	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
-	    ydot_gc(k3, t[i]+h[i]*(3.0/10), tempy, mass, charge, B_dB, E);
+	    phys_eomgc(k3, t[i]+h[i]*(3.0/10), tempy, mass, charge, B_dB, E);
 
 	    for(j = 0; j < 5; j++) {
 		tempy[j] = yprev[j] + ((3.0/10)*k1[j]+(-9.0/10)*k2[j]+(6.0/5)*k3[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
 	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
-	    ydot_gc(k4, t[i]+h[i]*(3.0/5), tempy, mass, charge, B_dB, E);
+	    phys_eomgc(k4, t[i]+h[i]*(3.0/5), tempy, mass, charge, B_dB, E);
 	
 	    for(j = 0; j < 5; j++) {
 		tempy[j] = yprev[j] + ((-11.0/54)*k1[j]+(5.0/2)*k2[j]+(-70.0/27)*k3[j]+(35.0/27)*k4[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
 	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
-	    ydot_gc(k5, t[i]+h[i], tempy, mass, charge, B_dB, E);
+	    phys_eomgc(k5, t[i]+h[i], tempy, mass, charge, B_dB, E);
 
 	    for(j = 0; j < 5; j++) {
 		tempy[j] = yprev[j] + ((1631.0/55296)*k1[j]+(175.0/512)*k2[j]+(575.0/13824)*k3[j]+(44275.0/110592)*k4[j]+(253.0/4096)*k5[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
 	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
-	    ydot_gc(k6, t[i]+h[i]*(7.0/8), tempy, mass, charge, B_dB, E);
+	    phys_eomgc(k6, t[i]+h[i]*(7.0/8), tempy, mass, charge, B_dB, E);
 
 	    real yout[5];
 	    real yerr;
 	    real ytol;
 	    real err = 0.0;
-	    for(j = 0; j < 5; j++) {
-		yout[j] = yprev[j] + (37.0/378)    *k1[j] + (250.0/621)    *k3[j]
-		    + (125.0/594)    *k4[j] + (512.0/1771)*k6[j];
+	    for(j = 0; j < 4; j++) {
+		yout[j] = yprev[j] + ( (37.0/378)*k1[j] + (250.0/621)*k3[j] + (125.0/594)*k4[j] + (512.0/1771)*k6[j] )*h[i] ;
 		yerr = fabs((yprev[j] + (2825.0/27648)*k1[j] + (18575.0/48384)*k3[j]
-				+ (13525.0/55296)*k4[j] + (277.0/14336)*k5[j] +      (1.0/4)*k6[j])*h[i] - yout[j]);
+				+ (13525.0/55296)*k4[j] + (277.0/14336)*k5[j] +      (1.0/4)*k6[j])*h[i] - yout[j])*h[i];
 		ytol = fabs(yprev[j]) + fabs(k1[j]*h[i]);
 		err = fmax(err,yerr/ytol);
+		
 	    }
         
 	    if(err <= 1.0){
@@ -135,10 +138,14 @@ void step_gc_cashkarp(particle_simd_gc* p, real* t, real* h, real* hnext, real t
 		p->prev_r[i] = yprev[0];
 		p->prev_phi[i] = yprev[1];
 		p->prev_z[i] = yprev[2];
+		
+		
+		
 	    }
 	    else{
 		/* Time step accepted */
 	        hnext[i] = -h[i]*pow(err,-0.25);
+		
 	    }
 
         }
