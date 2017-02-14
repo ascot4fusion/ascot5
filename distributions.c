@@ -119,10 +119,10 @@ void dist_rzvv_update_fo(dist_rzvv_data* dist, particle_simd_fo* p, real dt) {
         if(i_z[i] > dist->n_z - 1)
             i_z[i] = dist->n_z - 1;
 
-        vpara[i] = (p->rdot[i] * p->B_r[i] + p->phidot[i] * p->B_phi[i]
-                   + p->zdot[i] * p->B_z[i])
-                   / sqrt(p->B_r[i]*p->B_r[i]+p->B_phi[i]*p->B_phi[i]
-                          + p->B_z[i]*p->B_z[i]);
+	vpara[i] = (p->rdot[i] * p->B_r[i] + (p->phidot[i] * p->r[i]) * p->B_phi[i]
+		    + p->zdot[i] * p->B_z[i])
+	    / sqrt(p->B_r[i]*p->B_r[i]+p->B_phi[i]*p->B_phi[i]
+		   + p->B_z[i]*p->B_z[i]);
         i_vpara[i] = floor((vpara[i] - dist->min_vpara)
                 / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
         if(i_vpara[i] < 0)
@@ -130,7 +130,7 @@ void dist_rzvv_update_fo(dist_rzvv_data* dist, particle_simd_fo* p, real dt) {
         if(i_vpara[i] > dist->n_vpara - 1)
             i_vpara[i] = dist->n_vpara - 1;
 
-        vperp[i] = sqrt(p->rdot[i]*p->rdot[i] + p->phidot[i]*p->phidot[i]
+        vperp[i] = sqrt(p->rdot[i]*p->rdot[i] + (p->phidot[i]*p->phidot[i]*p->r[i]*p->r[i])
                         + p->zdot[i]*p->zdot[i] - vpara[i]*vpara[i]);
         i_vperp[i] = floor((vperp[i] - dist->min_vperp)
                 / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));

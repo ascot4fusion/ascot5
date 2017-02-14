@@ -9,6 +9,8 @@
 #include "ascot5.h"
 #include "ascot4_interface.h"
 #include "math.h"
+#include "consts.h"
+#include "phys_orbit.h"
 #include "B_field.h"
 #include "hdf5_helpers.h"
 #include "hdf5_histogram.h"
@@ -111,17 +113,16 @@ void ascot4_write_particles(particle* p, int n, char* filename,
         int Znum = (int) lround(p[i].charge / CONST_E);
         double charge = p[i].charge / CONST_E;
         
-        double energy = 0.5 * p[i].mass * (p[i].rdot*p[i].rdot
-                        + p[i].phidot*p[i].phidot
-                        + p[i].zdot*p[i].zdot) / CONST_E;
+	double gamma = phys_gammaprtv(p[i].v_r*p[i].v_r + p[i].v_phi*p[i].v_phi + p[i].v_z*p[i].v_z);
+        double energy = (gamma - 1) * p[i].mass *CONST_C2  / CONST_E;
         
         double phiprt = p[i].phi;
         double Rprt = p[i].r;
         double zprt = p[i].z;
 
-        double vphi = p[i].phidot;
-        double vR = p[i].rdot;
-        double vz = p[i].zdot;
+        double vphi = p[i].v_phi;
+        double vR = p[i].v_r;
+        double vz = p[i].v_z;
 
         double weight = 1.0;
         int id = p[i].id;
@@ -229,9 +230,9 @@ void ascot4_read_particles(particle** p, int *n, char* filename) {
         (*p)[i].r = fields[i_Rprt];
         (*p)[i].phi = fields[i_phiprt] * math_pi / 180;
         (*p)[i].z = fields[i_zprt];
-        (*p)[i].rdot = fields[i_vR];
-        (*p)[i].phidot = fields[i_vphi];
-        (*p)[i].zdot = fields[i_vz];
+        (*p)[i].v_r = fields[i_vR];
+        (*p)[i].v_phi = fields[i_vphi];
+        (*p)[i].v_z = fields[i_vz];
         (*p)[i].mass = fields[i_mass] * CONST_U;
         (*p)[i].charge = fields[i_charge] * CONST_E;
         (*p)[i].weight = fields[i_weight];

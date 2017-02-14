@@ -21,9 +21,9 @@ typedef struct {
     real r;        /**< r coordinate */
     real phi;      /**< phi coordinate */
     real z;        /**< z coordinate */
-    real rdot;     /**< r velocity */
-    real phidot;   /**< phi velocity */
-    real zdot;     /**< z velocity */
+    real v_r;     /**< r velocity */
+    real v_phi;   /**< phi velocity */
+    real v_z;     /**< z velocity */
     real mass;     /**< mass */
     real charge;   /**< charge */
     real weight;   /**< test particle weight */
@@ -68,9 +68,9 @@ typedef struct {
     real r[NSIMD] __memalign__;        /**< r coordinate */
     real phi[NSIMD] __memalign__;      /**< phi coordinate */
     real z[NSIMD] __memalign__;        /**< z coordinate */
-    real rdot[NSIMD] __memalign__;     /**< r velocity */
-    real phidot[NSIMD] __memalign__;   /**< phi velocity */
-    real zdot[NSIMD] __memalign__;     /**< z velocity */
+    real rdot[NSIMD] __memalign__;     /**< dr/dt */
+    real phidot[NSIMD] __memalign__;   /**< dphi/dt */
+    real zdot[NSIMD] __memalign__;     /**< dz/dt */
     real mass[NSIMD] __memalign__;     /**< mass */
     real charge[NSIMD] __memalign__;   /**< charge */
     real weight[NSIMD] __memalign__;   /**< test particle weight */

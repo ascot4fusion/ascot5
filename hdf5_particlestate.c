@@ -43,19 +43,19 @@ int hdf5_particlestate_write(hid_t file, char *state, int n, particle* p) {
     H5LTset_attribute_string(state_group, "zprt", "unit", "m");
 
     for(i = 0; i < n; i++) {
-        data[i] = p[i].rdot;
+        data[i] = p[i].v_r;
     }
     H5LTmake_dataset(state_group, "vR", 1, dims, H5T_IEEE_F64LE, data);
     H5LTset_attribute_string(state_group, "vR", "unit", "m/s");
 
     for(i = 0; i < n; i++) {
-        data[i] = p[i].phidot;
+        data[i] = p[i].v_phi;
     }
     H5LTmake_dataset(state_group, "vphi", 1, dims, H5T_IEEE_F64LE, data);
     H5LTset_attribute_string(state_group, "vphi", "unit", "m/s");
 
     for(i = 0; i < n; i++) {
-        data[i] = p[i].zdot;
+        data[i] = p[i].v_z;
     }
     H5LTmake_dataset(state_group, "vz", 1, dims, H5T_IEEE_F64LE, data);
     H5LTset_attribute_string(state_group, "vz", "unit", "m/s");

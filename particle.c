@@ -29,9 +29,9 @@ void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
     p_fo->r[j] = p->r;
     p_fo->phi[j] = p->phi;
     p_fo->z[j] = p->z;
-    p_fo->rdot[j] = p->rdot;
-    p_fo->phidot[j] = p->phidot;
-    p_fo->zdot[j] = p->zdot;
+    p_fo->rdot[j] = p->v_r;
+    p_fo->phidot[j] = p->v_phi/p->r;
+    p_fo->zdot[j] = p->v_z;
     p_fo->mass[j] = p->mass;
     p_fo->charge[j] = p->charge;
     p_fo->weight[j] = p->weight;
@@ -95,9 +95,9 @@ void fo_to_particle(particle_simd_fo* p_fo, int j, particle* p) {
     p->r = p_fo->r[j];
     p->phi = p_fo->phi[j];
     p->z = p_fo->z[j];
-    p->rdot = p_fo->rdot[j];
-    p->phidot = p_fo->phidot[j];
-    p->zdot = p_fo->zdot[j];
+    p->v_r = p_fo->rdot[j];
+    p->v_phi = p_fo->phidot[j] * p_fo->r[j];
+    p->v_z = p_fo->zdot[j];
     p->time = p_fo->time[j];
     p->running = p_fo->running[j];
     p->endcond = p_fo->endcond[j];
@@ -109,9 +109,9 @@ void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
     real B_dB[12];
     B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);
     real gcpos[5];
-    real gamma = phys_gammaprtv(sqrt(p->rdot*p->rdot + pow(p->phidot,2) + p->zdot*p->zdot));
+    real gamma = phys_gammaprtv(sqrt(p->v_r*p->v_r + p->v_phi*p->v_phi + p->v_z*p->v_z));
     phys_prttogc(p->mass, p->charge, p->r, p->phi, p->z, 
-		 gamma*p->mass*p->rdot, gamma*p->mass*p->phidot, gamma*p->mass*p->zdot, B_dB, gcpos);
+		 gamma*p->mass*p->v_r, gamma*p->mass*p->v_phi, gamma*p->mass*p->v_z, B_dB, gcpos);
 
     p_gc->r[j] = gcpos[0];
     p_gc->phi[j] = gcpos[1];
@@ -201,9 +201,9 @@ void gc_to_particle(particle_simd_gc* p_gc, int j, particle* p) {
     p->r = p_gc->r[j];
     p->phi = p_gc->phi[j];
     p->z = p_gc->z[j];
-    p->rdot = p_gc->mu[j];
-    p->phidot = p_gc->vpar[j];
-    p->zdot = 0;
+    p->v_r = p_gc->mu[j];
+    p->v_phi = p_gc->vpar[j];
+    p->v_z = 0;
     p->time = p_gc->time[j];
     p->running = p_gc->running[j];
     p->endcond = p_gc->endcond[j];

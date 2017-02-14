@@ -30,8 +30,8 @@ void step_fo_lf(particle_simd_fo* p, real t, real h, B_field_data* Bdata) {
         if(p->running[i]) {
             /* Convert velocity to cartesian coordinates */
             real vprevxyz[3];
-            vprevxyz[0] = p->rdot[i] * cos(p->phi[i]) - p->phidot[i] * sin(p->phi[i]);
-            vprevxyz[1] = p->rdot[i] * sin(p->phi[i]) + p->phidot[i] * cos(p->phi[i]);
+            vprevxyz[0] = p->rdot[i] * cos(p->phi[i]) - (p->phidot[i]*p->r[i]) * sin(p->phi[i]);
+            vprevxyz[1] = p->rdot[i] * sin(p->phi[i]) + (p->phidot[i]*p->r[i]) * cos(p->phi[i]);
             vprevxyz[2] = p->zdot[i];
 
             real Brpz[3];
@@ -86,7 +86,7 @@ void step_fo_lf(particle_simd_fo* p, real t, real h, B_field_data* Bdata) {
             p->phi[i] = atan2(xyz[1], xyz[0]);
             p->z[i] = xyz[2];
             p->rdot[i] = vxyz[0] * cos(p->phi[i]) + vxyz[1] * sin(p->phi[i]);
-            p->phidot[i] = -vxyz[0] * sin(p->phi[i]) + vxyz[1] * cos(p->phi[i]);
+            p->phidot[i] = -( vxyz[0] * sin(p->phi[i]) + vxyz[1] * cos(p->phi[i]) ) / p->r[i];
             p->zdot[i] = vxyz[2];
 	    
 	    

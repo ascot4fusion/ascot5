@@ -34,7 +34,7 @@ void step_fo_vpa(particle_simd_fo* p, real t, real h, B_field_data* Bdata, E_fie
       /* Take a half step and evaluate fields at that position */
       real xhalf[3];
       xhalf[0]= p->r[i] + p->rdot[i]*h/2;
-      xhalf[1]= p->phi[i] + p->phidot[i]*h/(2*p->r[i]);
+      xhalf[1]= p->phi[i] + p->phidot[i]*h/2;
       xhalf[2]= p->z[i] + p->zdot[i]*h/2;
 	    
       real Brpz[3];
@@ -51,7 +51,7 @@ void step_fo_vpa(particle_simd_fo* p, real t, real h, B_field_data* Bdata, E_fie
 
       /* Convert velocity to cartesian coordinates */
       real vxyz[3];
-      real vrpz[3] = {p->rdot[i], p->phidot[i], p->zdot[i]};
+      real vrpz[3] = {p->rdot[i], p->phidot[i]/p->r[i], p->zdot[i]};
       math_vec_rpz2xyz(vrpz, vxyz, p->phi[i]);
 
       /* Positions to cartesian coordinates */
@@ -102,7 +102,7 @@ void step_fo_vpa(particle_simd_fo* p, real t, real h, B_field_data* Bdata, E_fie
       p->phi[i] = atan2(pxyz[1], pxyz[0]);
       p->z[i] = pxyz[2];
       p->rdot[i] = vxyz[0] * cos(p->phi[i]) + vxyz[1] * sin(p->phi[i]);
-      p->phidot[i] = -vxyz[0] * sin(p->phi[i]) + vxyz[1] * cos(p->phi[i]);
+      p->phidot[i] = ( -vxyz[0] * sin(p->phi[i]) + vxyz[1] * cos(p->phi[i]) ) / p->r[i];
       p->zdot[i] = vxyz[2];
 
       /* Evaluate electromagnetic fields at new position */

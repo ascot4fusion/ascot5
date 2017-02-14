@@ -40,9 +40,9 @@ void interact_step_fo_euler(particle_simd_fo* p, real t, real h,
             real rho[1];
 
             vprev[0] = p->rdot[i] * cos(p->phi[i])
-                          - p->phidot[i] * sin(p->phi[i]);
+	    	- (p->phidot[i]*p->r[i]) * sin(p->phi[i]);
             vprev[1] = p->rdot[i] * sin(p->phi[i])
-                          + p->phidot[i] * cos(p->phi[i]);
+	    	+ (p->phidot[i]*p->r[i]) * cos(p->phi[i]);
             vprev[2] = p->zdot[i];
 
             real absv = sqrt(vprev[0]*vprev[0]+vprev[1]*vprev[1]
@@ -109,7 +109,7 @@ void interact_step_fo_euler(particle_simd_fo* p, real t, real h,
                        + w3 * (B+(A-B)*vprev[2]*vprev[2]/absv2);
 
             p->rdot[i] = v[0] * cos(p->phi[i]) + v[1] * sin(p->phi[i]);
-            p->phidot[i] = -v[0] * sin(p->phi[i]) + v[1] * cos(p->phi[i]);
+            p->phidot[i] = (-v[0] * sin(p->phi[i]) + v[1] * cos(p->phi[i]) ) / p->r[i];
             p->zdot[i] = v[2];
         }
     }
