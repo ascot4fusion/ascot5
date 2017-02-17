@@ -1,4 +1,4 @@
-CC=icc
+CC=h5cc
 
 ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
@@ -31,7 +31,7 @@ ifeq ($(MPI),1)
 	CC=mpiicc
 endif
 
-CFLAGS=-lm -lhdf5 -lhdf5_hl -fopenmp -std=c99 $(DEFINES) $(FLAGS) 
+CFLAGS=-fopenmp -std=c99 $(DEFINES) $(FLAGS) 
 
 HEADERS=ascot5.h B_GS.h math.h consts.h \
 	   	wall_2d.h ascot4_interface.h distributions.h B_2D.h \
