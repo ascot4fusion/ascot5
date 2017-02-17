@@ -1,1 +1,4 @@
 *.o
+job.err.*
+job.out.*
+*~
