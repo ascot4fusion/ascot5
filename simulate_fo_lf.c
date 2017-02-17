@@ -70,7 +70,7 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
         particle_simd_fo p;
         int i_prt;
         for(int i = 0; i < NSIMD; i++) {
-            #pragma omp ciritcal
+            #pragma omp critical
             i_prt = i_next_prt++;
             if(i_prt < n_particles) {
                 particle_to_fo(&particles[i_prt], i_prt, &p, i, &sim.B_data,
