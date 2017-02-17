@@ -8,6 +8,7 @@
 #include "ascot5.h"
 #include "consts.h"
 
+#pragma omp declare target
 /**
  * @brief Lorentz factor in particle phase space using momentum
  * gamma(mass,p) = sqrt( 1 + (p/mc)^2 )
@@ -64,5 +65,6 @@ void phys_gctoprt(real R, real Phi, real Z, real v_para, real mu,
 void phys_eomprt();
 #pragma omp declare simd
 void phys_eomgc(real* ydot, real t, real* y, real mass, real charge, real* B_dB, real* E);
+#pragma omp end declare target
 
 #endif
