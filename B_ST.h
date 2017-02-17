@@ -67,9 +67,9 @@ void B_ST_eval_B(real B[], real r, real phi, real z, B_ST_data* Bdata);
 void B_ST_eval_psi(real psi[], real r, real phi, real z, B_ST_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 void B_ST_eval_rho(real rho[], real psi, B_ST_data* Bdata);
-#pragma omp declare simd uniform(B)
+#pragma omp declare simd uniform(Bdata)
 void B_ST_eval_B_dB(real B_dB[], real r, real phi, real z, B_ST_data* Bdata);
-#pragma omp declare simd uniform(B)
+#pragma omp declare simd uniform(Bdata)
 real B_ST_get_axis_r(B_ST_data* Bdata);
 real B_ST_get_axis_z(B_ST_data* Bdata);
 #pragma omp end declare target   

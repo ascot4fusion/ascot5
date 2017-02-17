@@ -22,7 +22,7 @@ void E_field_free_offload(E_field_offload_data* offload_data,
 #pragma omp declare target
 void E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
                   real* offload_array);
-#pragma omp declare simd uniform(Bdata) 
+#pragma omp declare simd uniform(Edata) 
 void E_field_eval_E(real* E, real r, real phi, real z, E_field_data* Edata);
 
 #endif
