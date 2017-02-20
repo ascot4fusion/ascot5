@@ -21,6 +21,7 @@
 #include "simulate_gc_rk4.h"
 #include "particle.h"
 #include "endcond.h"
+#include "hdf5_histogram.h"
 
 int read_options(int argc, char** argv, sim_offload_data* sim);
 
@@ -201,7 +202,7 @@ int main(int argc, char** argv) {
 
     /* Combine histograms */
     #ifndef NOTARGET
-    dist_rzvv_sum(sim.dist_offload_data, dist_offload_array_mic0,
+    dist_rzvv_sum(&sim.dist_offload_data, dist_offload_array_mic0,
                   dist_offload_array_mic1);
     ascot4_write_dist_rzvv(&sim.dist_offload_data, dist_offload_array_mic0,
                            filename);
