@@ -134,13 +134,17 @@ int main(int argc, char** argv) {
     double mic0_start, mic0_end, mic1_start, mic1_end, host_start, host_end;
 
     fflush(stdout);
+#ifdef _OMP
     omp_set_nested(1);
+#endif
     #pragma omp parallel sections num_threads(3)
     {
     #ifndef NOTARGET
     #pragma omp section
     {
+#ifdef _OMP
         mic0_start = omp_get_wtime();
+#endif
         #pragma omp target device(0) map( \
             p[0:n_mic], \
             B_offload_array[0:sim.B_offload_data.offload_array_length], \
@@ -150,12 +154,16 @@ int main(int argc, char** argv) {
          )
         simulate_gc_rk4(1, n_mic, p, sim, B_offload_array, plasma_offload_array,
                  wall_offload_array, dist_offload_array_mic0);
+#ifdef _OMP
         mic0_end = omp_get_wtime();
+#endif
     }
 
     #pragma omp section
     {
+#ifdef _OMP
         mic1_start = omp_get_wtime();
+#endif
         #pragma omp target device(1) map( \
             p[n_mic:n_mic], \
             B_offload_array[0:sim.B_offload_data.offload_array_length], \
@@ -165,16 +173,22 @@ int main(int argc, char** argv) {
          )
         simulate_gc_rk4(2, n_mic, p+n_mic, sim, B_offload_array, plasma_offload_array,
                  wall_offload_array, dist_offload_array_mic1);
+#ifdef _OMP
         mic1_end = omp_get_wtime();
+#endif
     } 
     #else
     #pragma omp section
     {
+#ifdef _OMP
         host_start = omp_get_wtime();
+#endif
         simulate_gc_rk4(0, n_host, p+2*n_mic, sim, B_offload_array,
                  plasma_offload_array,
                  wall_offload_array,dist_offload_array_host);
-        host_end = omp_get_wtime();
+#ifdef _OMP
+	host_end = omp_get_wtime();
+#endif
     }
     #endif
     }

@@ -31,16 +31,21 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
                     real* dist_offload_array) {
     sim_data sim;
     sim_init(&sim, &sim_offload);
-
+#ifdef _OPENMP
     double w_start = omp_get_wtime();
+#endif
     wall_init(&sim.wall_data, &sim_offload.wall_offload_data,
               wall_offload_array);
+#ifdef _OPENMP
     double w_end = omp_get_wtime();
+#endif
     #if VERBOSE >= 1
     if(sim.wall_data.type == 3) {
+#ifdef _OPENMP
         printf("%d: Initialized wall tree in %.2f s, %.1f MB.\n", id,
                w_end - w_start,
                sim.wall_data.w3d.tree_array_size*sizeof(int) / (1024.0*1024.0));
+#endif
     }
     #endif
 
@@ -59,8 +64,9 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
     }*/
     #endif 
 
+#ifdef _OPENMP
     double tt_start = omp_get_wtime();
-
+#endif
     int i_next_prt = 0;
 
     /* SIMD particle structs will be computed in parallel with the maximum
@@ -126,11 +132,14 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
             }
         } while(n_running > 0);
     }
+#ifdef _OPENMP
     double tt_end = omp_get_wtime();
-
+#endif
     #if VERBOSE >= 1
+#ifdef _OPENMP
     printf("%d: %d particles done in %lf s.\n", id, n_particles,
            tt_end-tt_start);
+#endif
     #endif
 
     /* copy particles back to individual particles */

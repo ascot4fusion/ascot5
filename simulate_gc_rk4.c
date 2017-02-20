@@ -34,10 +34,17 @@ void simulate_gc_rk4(int id, int n_particles, particle* particles,
     sim_data sim;
     sim_init(&sim, &sim_offload);
 
-    double w_start = omp_get_wtime();
+    double w_start=0.0;
+#ifdef _OMP
+    w_start= omp_get_wtime();
+#endif    
     wall_init(&sim.wall_data, &sim_offload.wall_offload_data,
               wall_offload_array);
-    double w_end = omp_get_wtime();
+    double w_end = 0.0;
+#ifdef _OMP
+    w_end = omp_get_wtime();
+#endif 
+
     #if VERBOSE >= 1
     if(sim.wall_data.type == 3) {
         printf("%d: Initialized wall tree in %.2f s, %.1f MB.\n", id,
@@ -61,8 +68,10 @@ void simulate_gc_rk4(int id, int n_particles, particle* particles,
     /*print_orbit_gc(&p[0], 0.0);*/
     #endif 
 
-    double tt_start = omp_get_wtime();
-
+    double tt_start = 0.0;
+#ifdef _OMP
+    tt_start = omp_get_wtime();
+#endif
     int i_next_prt = 0;
 
     /* SIMD particle structs will be computed in parallel with the maximum
@@ -127,7 +136,10 @@ void simulate_gc_rk4(int id, int n_particles, particle* particles,
             }
         } while(n_running > 0);
     }
-    double tt_end = omp_get_wtime();
+    double tt_end = 0.0;
+#ifdef _OMP
+    tt_end = omp_get_wtime();
+#endif
 
     #if VERBOSE >= 1
     printf("%d: %d particles done in %lf s.\n", id, n_particles,
