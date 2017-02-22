@@ -1,3 +1,4 @@
+
 /**
  * @file ascot5_gc.c
  * @brief ASCOT5 with guiding center orbit following
@@ -193,6 +194,7 @@ int main(int argc, char** argv) {
             dist_offload_array_host);
 #ifdef _OMP
         host_end = omp_get_wtime();
+#endif
     }
     #endif
     }
