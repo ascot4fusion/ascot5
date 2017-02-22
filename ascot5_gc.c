@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
     /* Prepare simulation parameters and data for offload */
     sim_offload_data sim;
     real* B_offload_array;
+    real* E_offload_array;
     real* plasma_offload_array;
     real* wall_offload_array;
     real* dist_offload_array_mic0;
@@ -144,12 +145,13 @@ int main(int argc, char** argv) {
         #pragma omp target device(0) map( \
             p[0:n_mic], \
             B_offload_array[0:sim.B_offload_data.offload_array_length], \
+            E_offload_array[0:sim.E_offload_data.offload_array_length], \
          dist_offload_array_mic0[0:sim.dist_offload_data.offload_array_length],\
          plasma_offload_array[0:sim.plasma_offload_data.offload_array_length], \
             wall_offload_array[0:sim.wall_offload_data.offload_array_length] \
          )
-        simulate_gc_rk4(1, n_mic, p, sim, B_offload_array, plasma_offload_array,
-                 wall_offload_array, dist_offload_array_mic0);
+        simulate_gc_rk4(1, n_mic, p, sim, B_offload_array, E_offload_array,
+            plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
         mic0_end = omp_get_wtime();
     }
 
@@ -159,12 +161,14 @@ int main(int argc, char** argv) {
         #pragma omp target device(1) map( \
             p[n_mic:n_mic], \
             B_offload_array[0:sim.B_offload_data.offload_array_length], \
+            E_offload_array[0:sim.E_offload_data.offload_array_length], \
          dist_offload_array_mic1[0:sim.dist_offload_data.offload_array_length],\
          plasma_offload_array[0:sim.plasma_offload_data.offload_array_length], \
             wall_offload_array[0:sim.wall_offload_data.offload_array_length] \
          )
-        simulate_gc_rk4(2, n_mic, p+n_mic, sim, B_offload_array, plasma_offload_array,
-                 wall_offload_array, dist_offload_array_mic1);
+        simulate_gc_rk4(2, n_mic, p+n_mic, sim, B_offload_array,
+            E_offload_array, plasma_offload_array, wall_offload_array,
+            dist_offload_array_mic1);
         mic1_end = omp_get_wtime();
     } 
     #else
@@ -172,8 +176,8 @@ int main(int argc, char** argv) {
     {
         host_start = omp_get_wtime();
         simulate_gc_rk4(0, n_host, p+2*n_mic, sim, B_offload_array,
-                 plasma_offload_array,
-                 wall_offload_array,dist_offload_array_host);
+            E_offload_array, plasma_offload_array, wall_offload_array,
+            dist_offload_array_host);
         host_end = omp_get_wtime();
     }
     #endif
