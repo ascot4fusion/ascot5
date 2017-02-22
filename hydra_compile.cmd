@@ -60,7 +60,7 @@ make clean
 
 
 
-make TARGET=1 NSIMD=16 ascot5_gc
+make TARGET=1 NSIMD=16 CC=h5cc ascot5_gc 
 
 #make TARGET=1 ascot4_interface.o
 #make TARGET=1 NSIMD=16 objs
