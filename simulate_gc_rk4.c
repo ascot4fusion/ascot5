@@ -19,6 +19,7 @@
 #include "math.h"
 #include "particle.h"
 #include "endcond.h"
+#include "simulate_gc_rk4.h"
 
 #pragma omp declare target
 void print_orbit_gc(particle_simd_gc* p, double t);
