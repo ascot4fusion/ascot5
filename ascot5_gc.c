@@ -1,3 +1,4 @@
+
 /**
  * @file ascot5_gc.c
  * @brief ASCOT5 with guiding center orbit following
@@ -21,6 +22,7 @@
 #include "simulate_gc_rk4.h"
 #include "particle.h"
 #include "endcond.h"
+#include "hdf5_histogram.h"
 
 int read_options(int argc, char** argv, sim_offload_data* sim);
 
@@ -135,13 +137,17 @@ int main(int argc, char** argv) {
     double mic0_start, mic0_end, mic1_start, mic1_end, host_start, host_end;
 
     fflush(stdout);
+#ifdef _OMP
     omp_set_nested(1);
+#endif
     #pragma omp parallel sections num_threads(3)
     {
     #ifndef NOTARGET
     #pragma omp section
     {
+#ifdef _OMP
         mic0_start = omp_get_wtime();
+#endif
         #pragma omp target device(0) map( \
             p[0:n_mic], \
             B_offload_array[0:sim.B_offload_data.offload_array_length], \
@@ -152,12 +158,16 @@ int main(int argc, char** argv) {
          )
         simulate_gc_rk4(1, n_mic, p, sim, B_offload_array, E_offload_array,
             plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
+#ifdef _OMP
         mic0_end = omp_get_wtime();
+#endif
     }
 
     #pragma omp section
     {
+#ifdef _OMP
         mic1_start = omp_get_wtime();
+#endif
         #pragma omp target device(1) map( \
             p[n_mic:n_mic], \
             B_offload_array[0:sim.B_offload_data.offload_array_length], \
@@ -169,16 +179,22 @@ int main(int argc, char** argv) {
         simulate_gc_rk4(2, n_mic, p+n_mic, sim, B_offload_array,
             E_offload_array, plasma_offload_array, wall_offload_array,
             dist_offload_array_mic1);
+#ifdef _OMP
         mic1_end = omp_get_wtime();
+#endif
     } 
     #else
     #pragma omp section
     {
+#ifdef _OMP
         host_start = omp_get_wtime();
+#endif
         simulate_gc_rk4(0, n_host, p+2*n_mic, sim, B_offload_array,
             E_offload_array, plasma_offload_array, wall_offload_array,
             dist_offload_array_host);
+#ifdef _OMP
         host_end = omp_get_wtime();
+#endif
     }
     #endif
     }
@@ -191,7 +207,7 @@ int main(int argc, char** argv) {
 
     /* Combine histograms */
     #ifndef NOTARGET
-    dist_rzvv_sum(sim.dist_offload_data, dist_offload_array_mic0,
+    dist_rzvv_sum(&sim.dist_offload_data, dist_offload_array_mic0,
                   dist_offload_array_mic1);
     ascot4_write_dist_rzvv(&sim.dist_offload_data, dist_offload_array_mic0,
                            filename);

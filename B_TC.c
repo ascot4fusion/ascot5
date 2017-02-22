@@ -19,8 +19,11 @@
  * Note that these are in Cartesian basis. 
  * The default is B_x(0,0,0) = 1 T dB_x/dy = 1 T/m.
  */
+
+#pragma omp declare target
 static const int B_TC_B[3] = {1.0, 0.0, 0.0};
 static const int B_TC_dB[9] = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+#pragma omp end declare target
 
 /**
  * @brief Dummy function

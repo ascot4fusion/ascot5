@@ -44,6 +44,9 @@ typedef struct {
     dist_rzvv_data dist_data;
 } sim_data;
 
+
+#pragma omp declare target
 void sim_init(sim_data* sim, sim_offload_data* offload_data);
+#pragma omp end declare target
 
 #endif
