@@ -2,3 +2,5 @@
 job.err.*
 job.out.*
 *~
+test_offload
+ascot5_gc

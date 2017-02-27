@@ -13,6 +13,7 @@
 void simulate_gc_rk4(int id, int n_particles, particle* particles,
                     sim_offload_data sim,
                     real* B_offload_array,
+                    real* E_offload_array,
                     real* plasma_offload_array,
                     real* wall_offload_array,
                     real* dist_offload_array);

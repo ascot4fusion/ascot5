@@ -51,6 +51,8 @@ void dist_rzvv_free_offload(dist_rzvv_offload_data* offload_data,
 void dist_rzvv_print_rz(dist_rzvv_offload_data* dist, real* histogram);
 void dist_rzvv_print_vv(dist_rzvv_offload_data* dist, real* histogram);
 
+void dist_rzvv_sum(dist_rzvv_offload_data* dist1, real* array1, real* array2);
+
 #pragma omp declare target
 void dist_rzvv_init(dist_rzvv_data* dist_data,
                     dist_rzvv_offload_data* offload_data,

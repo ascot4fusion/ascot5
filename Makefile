@@ -1,4 +1,6 @@
-CC=icc
+ifndef CC
+	CC=icc
+endif
 
 ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
@@ -31,7 +33,11 @@ ifeq ($(MPI),1)
 	CC=mpiicc
 endif
 
-CFLAGS=-lm -lhdf5 -lhdf5_hl -fopenmp -std=c99 $(DEFINES) $(FLAGS) 
+ifeq ($(CC),h5cc)
+	CFLAGS=-Wall -fopenmp -std=c99 $(DEFINES) $(FLAGS) 
+else
+	CFLAGS=-lm -lhdf5 -lhdf5_hl -fopenmp -std=c99 $(DEFINES) $(FLAGS) 
+endif
 
 HEADERS=ascot5.h B_GS.h math.h consts.h \
 	   	wall_2d.h ascot4_interface.h distributions.h B_2D.h \
@@ -48,12 +54,16 @@ OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
 	 hdf5_helpers.o hdf5_histogram.o B_3D.o simulate_fo_lf.o \
 	 simulate_gc_rk4.o wall_3d.o list.o octree.o hdf5_particlestate.o \
      particle.o endcond.o B_field.o E_field.o wall.o simulate.o orbit_write.o \
+<<<<<<< HEAD
 	step_gc_cashkarp.o phys_orbit.o hdf5_bfield.o
+=======
+	step_gc_cashkarp.o phys_orbit.o 
+>>>>>>> b2822157e14d8bfce2d20c8576d20912eef31c5c
 
 BINS=test_math \
 	 test_wall_2d test_ascot4_interface test_plasma_1d \
 	 test_interact test_hdf5 test_wall_3d test_particle filip5 \
-	 test_B ascot5_gc test_simulate_orbit
+	 test_B ascot5_gc test_simulate_orbit test_offload
 
 all: $(BINS)
 
@@ -95,6 +105,9 @@ test_simulate_orbit: test_simulate_orbit.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_interact: test_interact.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_offload: test_offload.o 
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile
