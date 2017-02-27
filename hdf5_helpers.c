@@ -36,6 +36,16 @@ hid_t hdf5_open(const char *filename) {
 }
 
 /**
+ * @brief Close access to given hdf5 file identifier. A negative value is
+ *returned on failure.
+ */
+herr_t hdf5_close(hid_t file_id) {
+    herr_t err;
+    err = H5Fclose(file_id);
+    return err;
+}
+
+/**
  * @brief Create a group (with parent groups if necessary). Returns a handle to
  * the group. Negative on failure.
  */
