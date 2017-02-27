@@ -54,11 +54,7 @@ OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
 	 hdf5_helpers.o hdf5_histogram.o B_3D.o simulate_fo_lf.o \
 	 simulate_gc_rk4.o wall_3d.o list.o octree.o hdf5_particlestate.o \
      particle.o endcond.o B_field.o E_field.o wall.o simulate.o orbit_write.o \
-<<<<<<< HEAD
 	step_gc_cashkarp.o phys_orbit.o hdf5_bfield.o
-=======
-	step_gc_cashkarp.o phys_orbit.o 
->>>>>>> b2822157e14d8bfce2d20c8576d20912eef31c5c
 
 BINS=test_math \
 	 test_wall_2d test_ascot4_interface test_plasma_1d \
