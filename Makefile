@@ -46,7 +46,7 @@ HEADERS=ascot5.h B_GS.h math.h consts.h \
 		simulate_gc_rk4.h wall_3d.h list.h octree.h hdf5_particlestate.h \
 		step_fo_vpa.h step_gc_cashkarp.h B_ST.h B_TC.h \
 		particle.h filip5.h endcond.h orbit_write.h \
-		B_field.h E_field.h wall.h phys_orbit.h hdf5_bfield.h
+		B_field.h E_field.h wall.h phys_orbit.h hdf5_bfield.h B_2Dspl.h
 
 OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
      wall_2d.o distributions.o B_2D.o B_ST.o B_TC.o  \
@@ -54,7 +54,7 @@ OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
 	 hdf5_helpers.o hdf5_histogram.o B_3D.o simulate_fo_lf.o \
 	 simulate_gc_rk4.o wall_3d.o list.o octree.o hdf5_particlestate.o \
      particle.o endcond.o B_field.o E_field.o wall.o simulate.o orbit_write.o \
-	step_gc_cashkarp.o phys_orbit.o hdf5_bfield.o
+	step_gc_cashkarp.o phys_orbit.o hdf5_bfield.o B_2Dspl.o
 
 BINS=test_math \
 	 test_wall_2d test_ascot4_interface test_plasma_1d \
