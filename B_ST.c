@@ -70,14 +70,12 @@ void B_ST_init(B_ST_data* Bdata, B_ST_offload_data* offload_data,
     Bdata->phi_min = offload_data->phi_min;
     Bdata->phi_max = offload_data->phi_max;
     Bdata->phi_grid = offload_data->phi_grid;
-    Bdata->psi0 = offload_data->psi0;
-    Bdata->psi1 = offload_data->psi1;
     Bdata->axis_r = offload_data->axis_r;
     Bdata->axis_z = offload_data->axis_z;
     Bdata->B_r = &offload_array[0];
     Bdata->B_phi = &offload_array[(offload_data->n_phi+4)*offload_data->n_r*offload_data->n_z];
     Bdata->B_z = &offload_array[2*(offload_data->n_phi+4)*offload_data->n_r*offload_data->n_z];
-    Bdata->psi = &offload_array[3*(offload_data->n_phi+4)*offload_data->n_r*offload_data->n_z];
+    Bdata->s = &offload_array[3*(offload_data->n_phi+4)*offload_data->n_r*offload_data->n_z];
 }
 
 /**
@@ -95,7 +93,6 @@ void B_ST_init(B_ST_data* Bdata, B_ST_offload_data* offload_data,
  * @param z z coordinate
  * @param Bdata pointer to magnetic field data struct
  */
-//TODO
 void B_ST_eval_B(real B[], real r, real phi, real z, B_ST_data* Bdata) {
     phi = fmod(phi, 2*math_pi);
     if(phi < 0) {
@@ -123,7 +120,7 @@ void B_ST_eval_B(real B[], real r, real phi, real z, B_ST_data* Bdata) {
     }
 
     real t_r = (r - (Bdata->r_min + i_r * Bdata->r_grid)) / Bdata->r_grid;
-    real t_phi = (phi - (i_phi * Bdata->phi_grid)) / Bdata->phi_grid;
+    real t_phi = (phi - (Bdata->phi_min + i_phi * Bdata->phi_grid)) / Bdata->phi_grid;
     real t_z = (z - (Bdata->z_min + i_z * Bdata->z_grid)) / Bdata->z_grid;
 
     B[0] = B_3D_tricubic(t_r, t_phi, t_z, i_r, i_phi, i_z, Bdata->n_z, Bdata->n_r, Bdata->B_r);
@@ -150,11 +147,22 @@ void B_ST_eval_B(real B[], real r, real phi, real z, B_ST_data* Bdata) {
 void B_ST_eval_psi(real psi[], real r, real phi, real z,
                    B_ST_data* Bdata)
 {
+    phi = fmod(phi, 2*math_pi);
+    if(phi < 0) {
+        phi += 2*math_pi;
+    }
     int i_r = (int) floor((r - Bdata->r_min)
                     / ((Bdata->r_max - Bdata->r_min)
                        / (Bdata->n_r-1)));
     if(i_r < 0 || i_r >= Bdata->n_r) {
         i_r = 0;
+    }
+
+    int i_phi = (int) floor((phi - Bdata->phi_min)
+                    / ((Bdata->phi_max - Bdata->phi_min)
+                       / (Bdata->n_phi+3)));
+    if(i_phi < 0 || i_phi >= Bdata->n_phi+4) {
+        i_phi = 0;
     }
 
     int i_z = (int) floor((z - Bdata->z_min)
@@ -165,33 +173,28 @@ void B_ST_eval_psi(real psi[], real r, real phi, real z,
     }
 
     real t_r = (r - (Bdata->r_min + i_r * Bdata->r_grid)) / Bdata->r_grid;
+    real t_phi = (phi - (Bdata->phi_min + i_phi * Bdata->phi_grid)) / Bdata->phi_grid;
     real t_z = (z - (Bdata->z_min + i_z * Bdata->z_grid)) / Bdata->z_grid;
 
-    psi[0] = B_2D_bicubic(t_r, t_z, i_r, i_z, Bdata->n_r, Bdata->psi);
+    psi[0] = B_3D_tricubic(t_r, t_phi, t_z, i_r, i_phi, i_z, Bdata->n_z, Bdata->n_r, Bdata->s);
 }
 
 /**
  * @brief Evaluate radial coordinate rho
  *
- * This function evaluates the radial coordinate rho at the given psi value
- * using linear interpolation. This is a SIMD function, so the values are 
- * placed in an NSIMD length struct.
+ * This function evaluates the radial coordinate rho at the given psi value.
+ * This is a SIMD function, so the values are placed in an NSIMD length struct.
  *
  * @param i index in the NSIMD struct that will be populated 
  * @param rho rho value will be stored in rho[0][i]
  * @param psi poloidal flux value 
  * @param Bdata pointer to magnetic field data struct
  *
- * @todo Change to a scalar elemental function and compare performance
  */
-//TODO 3D interpolation of rho using S
 void B_ST_eval_rho(real rho[], real psi, B_ST_data* Bdata) {
-    if(psi - Bdata->psi0 < 0) {
-        rho[0] = 0;
-    }
-    else {
-        rho[0] = sqrt((psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0));
-    }
+
+    rho[0] = sqrt(psi);
+    
 }
 
 
@@ -213,7 +216,6 @@ void B_ST_eval_rho(real rho[], real psi, B_ST_data* Bdata) {
  * @param z z coordinate
  * @param Bdata pointer to magnetic field data struct
  */
-//TODO
 void B_ST_eval_B_dB(real B_dB[], real r, real phi, real z, B_ST_data* Bdata) {
     phi = fmod(phi, 2*math_pi);
     if(phi < 0) {
@@ -242,7 +244,7 @@ void B_ST_eval_B_dB(real B_dB[], real r, real phi, real z, B_ST_data* Bdata) {
     }
 
     real t_r = (r - (Bdata->r_min + i_r * Bdata->r_grid)) / Bdata->r_grid;
-    real t_phi = (phi - (i_phi * Bdata->phi_grid)) / Bdata->phi_grid;
+    real t_phi = (phi - (Bdata->phi_min + i_phi * Bdata->phi_grid)) / Bdata->phi_grid;
     real t_z = (z - (Bdata->z_min + i_z * Bdata->z_grid)) / Bdata->z_grid;
 
     B_3D_tricubic_derivs(&B_dB[0], t_r, t_phi, t_z, i_r, i_phi, i_z,

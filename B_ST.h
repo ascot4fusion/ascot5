@@ -21,9 +21,7 @@ typedef struct {
     real z_grid;                /**< z grid interval (z_max-z_min)/(n_z-1) */
     real phi_min;               /**< minimum phi coordinate in the grid */
     real phi_max;               /**< maximum phi coordinate in the grid */
-    real phi_grid;              /**< phi grid interval 2pi/(n_phi-1) */
-    real psi0;                  /**< sqrt(psi) value at magnetic axis */
-    real psi1;                  /**< sqrt(psi) value at separatrix */
+    real phi_grid;              /**< phi grid interval 2pio/(n_phi-1) */
     real axis_r;                /**< r coordinate of magnetic axis */
     real axis_z;                /**< z coordinate of magnetic axis */
     int offload_array_length;   /**< number of elements in offload_array */
@@ -45,11 +43,9 @@ typedef struct {
     real phi_min;   /**< minimum phi coordinate in the grid */
     real phi_max;   /**< maximum phi coordinate in the grid */
     real phi_grid;  /**< phi grid interval 2pi/(n_phi-1) */
-    real psi0;      /**< sqrt(psi) value at magnetic axis */
-    real psi1;      /**< sqrt(psi) value at separatrix */
     real axis_r;    /**< r coordinate of magnetic axis */
     real axis_z;    /**< z coordinate of magnetic axis */
-    real* psi;      /**< pointer to start of psi data in offload_array */
+    real* s;        /**< pointer to start of psi data in offload_array */
     real* B_r;      /**< pointer to start of B_r data in offload_array */
     real* B_phi;    /**< pointer to start of B_phi data in offload_array */
     real* B_z;      /**< pointer to start of B_z data in offload_array */
