@@ -1,6 +1,6 @@
 /**
- * @file B_ST.c
- * @brief Stellarator magnetic field with cubic interpolation
+ * @file hdf5_bfield.c
+ * @brief HDF5 format bfield reading
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,8 +9,6 @@
 #include "math.h"
 #include "ascot5.h"
 #include "B_ST.h"
-#include "B_3D.h" /* for 3D interpolation routines */
-#include "B_2D.h" /* for 2D interpolation routines */
 #include "hdf5.h"
 #include "hdf5_helpers.h"
 #include "hdf5_hl.h"
@@ -34,7 +32,6 @@ void hdf5_bfield_init_offload_ST(B_ST_offload_data* offload_data, real** offload
     herr_t err;
     int version;
     int periods;
-    real period_length;
     hsize_t dims[3];
 
     hid_t f = hdf5_open("input.h5");
@@ -53,33 +50,31 @@ void hdf5_bfield_init_offload_ST(B_ST_offload_data* offload_data, real** offload
     err = H5LTget_dataset_info(f,"/bfield/stellarator/br", dims, NULL, NULL);
 
     /* Sizes of dimensions */
-    offload_data->n_r   = dims[0];
-    offload_data->n_phi = dims[1];
-    offload_data->n_z   = dims[2];
+    int n_z   = dims[0];
+    int n_phi = dims[1];
+    int n_r   = dims[2];
+    offload_data->n_z   = n_z;
+    offload_data->n_phi = n_phi;
+    offload_data->n_r   = n_r;
 
     real* temp_r   = (real*) malloc(offload_data->n_r*sizeof(real));
     real* temp_phi = (real*) malloc(offload_data->n_phi*sizeof(real));
     real* temp_z   = (real*) malloc(offload_data->n_z*sizeof(real));
 
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/br", &temp_r);
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/bphi", &temp_phi);
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/bz", &temp_z);
-
-    /* Note! phi data includes both 0 deg and 36 deg! */
+    err = H5LTread_dataset_double(f, "/bfield/stellarator/r", temp_r);
+    err = H5LTread_dataset_double(f, "/bfield/stellarator/phi", temp_phi);
+    err = H5LTread_dataset_double(f, "/bfield/stellarator/z", temp_z);
 
     offload_data->r_min = temp_r[0];
-    offload_data->r_max = temp_r[offload_data->n_r - 1];
+    offload_data->r_max = temp_r[n_r - 1];
     offload_data->r_grid = (temp_r[1] - temp_r[0]);
-
-    /* Switch to full toroidal phi. Data only contains 1/(periods * 2) of data */
-    offload_data->n_phi = (offload_data->n_phi - 1) * periods * 2 + 1;
-    offload_data->phi_grid = 2*math_pi / (offload_data->n_phi);
-    /* phi array starts from -0.5*phi_grid and ends at 0.5*phi_grid + 2pi! */
-    offload_data->phi_min = -1.5 * offload_data->phi_grid;
-    offload_data->phi_max = 1.5 * offload_data->phi_grid + 2*math_pi;
+    /* Note! phi data in deg, includes both 0 deg and 36 deg! */
+    offload_data->phi_min = temp_phi[0] / 360 * 2*math_pi;
+    offload_data->phi_max = temp_phi[n_phi - 1] / 360 * 2*math_pi;
+    offload_data->phi_grid = (temp_phi[1] - temp_phi[0]) / 360 * 2*math_pi;
 
     offload_data->z_min = temp_z[0];
-    offload_data->z_max = temp_z[offload_data->n_z - 1];
+    offload_data->z_max = temp_z[n_z - 1];
     offload_data->z_grid = (temp_z[1] - temp_z[0]);
 
     free(temp_r);
@@ -87,189 +82,153 @@ void hdf5_bfield_init_offload_ST(B_ST_offload_data* offload_data, real** offload
     free(temp_z);
 
     /* Read the bfield data */
-
-    int temp_B_size = offload_data->n_r*offload_data->n_z*offload_data->n_phi;
+    /* Allocate enough space for half a period */
+    int temp_B_size = n_r*n_z*(2*(n_phi-1)+1);
 
     real* temp_B_r   = (real*) malloc(temp_B_size*sizeof(real));
     real* temp_B_phi = (real*) malloc(temp_B_size*sizeof(real));
     real* temp_B_z   = (real*) malloc(temp_B_size*sizeof(real));
     real* temp_B_s   = (real*) malloc(temp_B_size*sizeof(real));
 
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/br", &temp_B_r);
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/bphi", &temp_B_phi);
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/bz", &temp_B_z);
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/s", &temp_B_s);
+    err = H5LTread_dataset_double(f, "/bfield/stellarator/br", temp_B_r);
+    err = H5LTread_dataset_double(f, "/bfield/stellarator/bphi", temp_B_phi);
+    err = H5LTread_dataset_double(f, "/bfield/stellarator/bz", temp_B_z);
+    err = H5LTread_dataset_double(f, "/bfield/stellarator/s", temp_B_s);
 
-    /* Derive the 3D magnetic field from stellarator symmetry*/
-
-    /* We need to use the stellarator symmetry here.
+    /* We need to use stellarator symmetry here.
      * http://dx.doi.org/10.1016/S0167-2789(97)00216-9
      * The data is expected to include half a period.
-     * First figure out the effective phi angle
      */
-    /* phi = modulo( rpz(2), simu%periodLength) */
-    /* if( 2*phi > simu%periodLength) then */
-    /*     mirrored = .true. */
-    /*     phi = simu%periodLength - phi */
-    /*     z = -rpz(3) */
-    /* else */
-    /*     mirrored = .false. */
-    /*     z = rpz(3) */
-    /* end if */
 
-    *offload_array = (real*) malloc(4*B_size*sizeof(real));
+    int B_size = n_r*n_z*(2*(n_phi - 1) * periods + 1 + 4);
+    int phi_size = n_r*n_z;
+    *offload_array = (real*) malloc(4 * B_size * sizeof(real));
+    offload_data->offload_array_length = 4 * B_size;
 
-    // Loop over toroidal periods
-    //     Copy magnetic field components stellarator-symmetrically
-    //         B_r
-    //         B_phi
-    //         B_z
+    int i_phi;
+    int i_z;
+    int i_r;
+    int i_p;
+    int temp_ind, off_ind, sym_ind;
+    for (i_p = 0; i_p < periods; i_p++) {
+        for (i_phi = 0; i_phi < n_phi; i_phi++) {
+            for (i_z = 0; i_z < n_z; i_z++) {
+                for (i_r = 0; i_r < n_r; i_r++) {
+                    /* Stellarator symmetry: phi = i_phi        <=> phi = 2 * (n_phi - 1) - i_phi
+                     *                         z = i_z          <=> z = n_z - i_z - 1
+                     * So, a point at:       (i_r, i_z, i_phi)  <=> (i_r, n_z - i_z - 1, 2 * (n_phi - 1) - i_phi)
+                     *
+                     * temp_B_x data is in the format: (i_r, i_phi, i_z) = temp_B_x(i_z*n_phi*n_r + i_phi*n_r + i_r)
+                     * offload_array data -"-"-"-"-  : (i_r, i_phi, i_z) =(*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ]
+                     * => (*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ] = temp_B_r(i_z*n_phi*n_r + i_phi*n_r + i_r);
+                     */
+                    
+                    temp_ind = i_z*n_phi*n_r + i_phi*n_r + i_r;
 
-    // Possible solution: reverse each row & then reverse each column
-    
-    
-    
-    hdf5_close(fileid);
+                    /* off_ind  */
+                    off_ind = 2*phi_size + (2*(n_phi - 1)*i_p + i_phi)*n_z*n_r + i_z*n_r + i_r;
+                    sym_ind = 2*phi_size + (2*(n_phi - 1)*(i_p + 1) - i_phi)*n_z*n_r + (n_z - i_z - 1)*n_r + i_r;
 
+                    /* B_r */
+                    (*offload_array)[off_ind] =
+                        temp_B_r[temp_ind];
+                    (*offload_array)[sym_ind] =
+                        temp_B_r[temp_ind];
 
-              /////////////////////////
+                    // B_phi
+                    (*offload_array)[B_size + off_ind] =
+                        temp_B_phi[temp_ind];
+                    (*offload_array)[B_size + sym_ind] =
+                        temp_B_phi[temp_ind];
 
+                    // B_z
+                    (*offload_array)[2*B_size + off_ind] =
+                        temp_B_z[temp_ind];
+                    (*offload_array)[2*B_size + sym_ind] =
+                        temp_B_z[temp_ind];
 
-    /* Read phi parameters */
-    fscanf(f, "%*d %*d %d %*d %*d", &(offload_data->n_phi));
-
-    /* Read r and z parameters */
-    fscanf(f, "%lf %lf %d", &(offload_data->r_min), &(offload_data->r_max),
-                            &(offload_data->n_r));
-    fscanf(f, "%lf %lf %d", &(offload_data->z_min), &(offload_data->z_max),
-                            &(offload_data->n_z));
-
-    offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
-                           / (offload_data->n_r - 1);
-    offload_data->z_grid = (offload_data->z_max - offload_data->z_min)
-                           / (offload_data->n_z - 1);
-    offload_data->phi_grid = 2*math_pi / (offload_data->n_phi);
-
-    /* phi array starts from -0.5*phi_grid and ends at 0.5*phi_grid + 2pi! */
-    offload_data->phi_min = -1.5 * offload_data->phi_grid;
-    offload_data->phi_max = 1.5 * offload_data->phi_grid + 2*math_pi;
-
-    /* Allocate offload_array */
-    int psi_size = offload_data->n_r*offload_data->n_z;
-    int B_size = offload_data->n_r*offload_data->n_z*(offload_data->n_phi+4);
-    *offload_array = (real*) malloc((psi_size + 3 * B_size) * sizeof(real));
-    offload_data->offload_array_length = psi_size + 3 * B_size;
-
-    /* Skip phimaps */
-    fscanf(f, "%*f %*f");
-
-    /* Read psi */
-    int i;
-    for(i = 0; i < psi_size; i++) {
-        fscanf(f, "%lf", &(*offload_array)[i + 3*B_size]);
-    }
-
-    /* Calculate 2D components of poloidal field */
-    real* eq_B_r = (real*) malloc(psi_size*sizeof(real));
-    real* eq_B_z = (real*) malloc(psi_size*sizeof(real));
-
-    for(i = 0; i < offload_data->n_r; i++) {
-        int j;
-        for(j = 0; j < offload_data->n_z; j++) {
-            real psi[4];
-            B_2D_bicubic_derivs(psi, 0, 0, i, j, offload_data->n_r, offload_data->r_grid, offload_data->z_grid, &(*offload_array)[3*B_size]);
-            eq_B_r[j*offload_data->n_r + i] = 1/(2*math_pi) * -psi[3] / (offload_data->r_min + i*offload_data->r_grid);
-            eq_B_z[j*offload_data->n_r + i] = 1/(2*math_pi) * psi[1] / (offload_data->r_min + i*offload_data->r_grid);
-        }
-    }
-
-    real* temp_B_r = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
-    real* temp_B_phi = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
-    real* temp_B_z = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
-
-    /* Read B_r */
-    for(i = 0; i < psi_size*offload_data->n_phi; i++) {
-        fscanf(f, "%lf", &temp_B_r[i]);
-    }
-
-    /* Read B_phi */
-    for(i = 0; i < psi_size*offload_data->n_phi; i++) {
-        fscanf(f, "%lf", &temp_B_phi[i]);
-    }
-
-    /* Read B_z */
-    for(i = 0; i < psi_size*offload_data->n_phi; i++) {
-        fscanf(f, "%lf", &temp_B_z[i]);
-    }
-
-    /* permute the phi and z dimensions */
-    for(i = 0; i < offload_data->n_phi; i++) {
-        int j;
-        for(j = 0; j < offload_data->n_z; j++) {
-            int k;
-            for(k = 0; k < offload_data->n_r; k++) {
-               (*offload_array)[2*psi_size+i*offload_data->n_z*offload_data->n_r
-                          + j*offload_data->n_r + k] =
-                        eq_B_r[j*offload_data->n_r + k] +
-                        temp_B_r[j*offload_data->n_phi*offload_data->n_r
-                          + i*offload_data->n_r + k];
-               (*offload_array)[2*psi_size+i*offload_data->n_z*offload_data->n_r
-                          + j*offload_data->n_r + k + B_size] =
-                        temp_B_phi[j*offload_data->n_phi*offload_data->n_r
-                          + i*offload_data->n_r + k];
-               (*offload_array)[2*psi_size+i*offload_data->n_z*offload_data->n_r
-                          + j*offload_data->n_r + k + 2*B_size] =
-                        eq_B_z[j*offload_data->n_r + k] +
-                        temp_B_z[j*offload_data->n_phi*offload_data->n_r
-                          + i*offload_data->n_r + k];
+                    // B_s
+                    (*offload_array)[3*B_size + off_ind] =
+                        temp_B_s[temp_ind];
+                    (*offload_array)[3*B_size + sym_ind] =
+                        temp_B_s[temp_ind];
+                }
             }
         }
     }
 
-    free(eq_B_r);
-    free(eq_B_z);
-    fclose(f);
+    /* Phi data is now for the full toroidal extent */
+    n_phi = 2*(n_phi - 1) * periods + 1;
+    offload_data->n_phi = n_phi;
+    offload_data->phi_max = offload_data->phi_min + (n_phi - 1)*offload_data->phi_grid;
 
     /* Copy two phi slices into opposite ends for each field
      * component */
     memcpy(&(*offload_array)[0],
-        &(*offload_array)[offload_data->n_phi*psi_size],
-        psi_size * sizeof(real));
+        &(*offload_array)[n_phi*phi_size],
+        phi_size * sizeof(real));
     memcpy(&(*offload_array)[B_size],
-        &(*offload_array)[offload_data->n_phi*psi_size+B_size],
-        psi_size * sizeof(real));
+        &(*offload_array)[B_size + n_phi*phi_size],
+        phi_size * sizeof(real));
     memcpy(&(*offload_array)[2*B_size],
-        &(*offload_array)[offload_data->n_phi*psi_size+2*B_size],
-        psi_size * sizeof(real));
+        &(*offload_array)[2*B_size + n_phi*phi_size],
+        phi_size * sizeof(real));
+    memcpy(&(*offload_array)[3*B_size],
+        &(*offload_array)[3*B_size + n_phi*phi_size],
+        phi_size * sizeof(real));
 
-    memcpy(&(*offload_array)[psi_size],
-        &(*offload_array)[(offload_data->n_phi+1)*psi_size],
-        psi_size * sizeof(real));
-    memcpy(&(*offload_array)[psi_size + B_size],
-        &(*offload_array)[(offload_data->n_phi+1)*psi_size+B_size],
-        psi_size * sizeof(real));
-    memcpy(&(*offload_array)[psi_size + 2*B_size],
-        &(*offload_array)[(offload_data->n_phi+1)*psi_size+2*B_size],
-        psi_size * sizeof(real));
+    memcpy(&(*offload_array)[phi_size],
+        &(*offload_array)[(n_phi+1)*phi_size],
+        phi_size * sizeof(real));
+    memcpy(&(*offload_array)[B_size + phi_size],
+        &(*offload_array)[B_size + (n_phi+1)*phi_size],
+        phi_size * sizeof(real));
+    memcpy(&(*offload_array)[2*B_size + phi_size],
+        &(*offload_array)[2*B_size + (n_phi+1)*phi_size],
+        phi_size * sizeof(real));
+    memcpy(&(*offload_array)[3*B_size + phi_size],
+        &(*offload_array)[3*B_size + (n_phi+1)*phi_size],
+        phi_size * sizeof(real));
 
-    memcpy(&(*offload_array)[(offload_data->n_phi+2)*psi_size],
-        &(*offload_array)[2*psi_size],
-        psi_size * sizeof(real));
-    memcpy(&(*offload_array)[(offload_data->n_phi+2)*psi_size+B_size],
-        &(*offload_array)[2*psi_size+B_size],
-        psi_size * sizeof(real));
-    memcpy(&(*offload_array)[(offload_data->n_phi+2)*psi_size+2*B_size],
-        &(*offload_array)[2*psi_size+2*B_size],
-        psi_size * sizeof(real));
+    memcpy(&(*offload_array)[(n_phi+2)*phi_size],
+        &(*offload_array)[2*phi_size],
+        phi_size * sizeof(real));
+    memcpy(&(*offload_array)[B_size + (n_phi+2)*phi_size],
+        &(*offload_array)[B_size + 2*phi_size],
+        phi_size * sizeof(real));
+    memcpy(&(*offload_array)[2*B_size + (n_phi+2)*phi_size],
+        &(*offload_array)[2*B_size + 2*phi_size],
+        phi_size * sizeof(real));
+    memcpy(&(*offload_array)[3*B_size + (n_phi+2)*phi_size],
+        &(*offload_array)[3*B_size + 2*phi_size],
+        phi_size * sizeof(real));
 
-    memcpy(&(*offload_array)[(offload_data->n_phi+3)*psi_size],
-        &(*offload_array)[3*psi_size],
-        psi_size * sizeof(real));
-    memcpy(&(*offload_array)[(offload_data->n_phi+3)*psi_size+B_size],
-        &(*offload_array)[3*psi_size+B_size],
-        psi_size * sizeof(real));
-    memcpy(&(*offload_array)[(offload_data->n_phi+3)*psi_size+2*B_size],
-        &(*offload_array)[3*psi_size+2*B_size],
-        psi_size * sizeof(real));
+    memcpy(&(*offload_array)[(n_phi+3)*phi_size],
+        &(*offload_array)[3*phi_size],
+        phi_size * sizeof(real));
+    memcpy(&(*offload_array)[B_size + (n_phi+3)*phi_size],
+        &(*offload_array)[B_size + 3*phi_size],
+        phi_size * sizeof(real));
+    memcpy(&(*offload_array)[2*B_size + (n_phi+3)*phi_size],
+        &(*offload_array)[2*B_size + 3*phi_size],
+        phi_size * sizeof(real));
+    memcpy(&(*offload_array)[3*B_size + (n_phi+3)*phi_size],
+        &(*offload_array)[3*B_size + 3*phi_size],
+        phi_size * sizeof(real));
+
+    /* Copying the segments changes the phi limits */
+    offload_data->phi_min = offload_data->phi_min - 2*offload_data->phi_grid;
+    offload_data->phi_max = offload_data->phi_max + 2*offload_data->phi_grid;
+
+    /* Dummy values for magnetic axis */
+    offload_data->axis_r = 0;
+    offload_data->axis_z = 0;
+
+    free(temp_B_r);
+    free(temp_B_phi);
+    free(temp_B_z);
+    free(temp_B_s);
+
+    hdf5_close(f);
 
 }
