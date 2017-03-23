@@ -13,6 +13,7 @@ typedef struct {
     int n_r;                    /**< number of r grid points */
     int n_z;                    /**< number of z grid points */
     int n_phi;                  /**< number of phi grid points */
+    int periods;                /**< number of toroidal periods */
     real r_min;                 /**< minimum r coordinate in the grid */
     real r_max;                 /**< maximum r coordinate in the grid */
     real r_grid;                /**< r grid interval (r_max-r_min)/(n_r-1) */
@@ -34,6 +35,7 @@ typedef struct {
     int n_r;        /**< number of r grid points */
     int n_z;        /**< number of z grid points */
     int n_phi;      /**< number of phi grid points */
+    int periods;    /**< number of toroidal periods */
     real r_min;     /**< minimum r coordinate in the grid */
     real r_max;     /**< maximum r coordinate in the grid */
     real r_grid;    /**< r grid interval (r_max-r_min)/(n_r-1) */

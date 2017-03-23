@@ -21,7 +21,6 @@
  * allocates and fills the offload array.
  *
  * @todo Error checking
- * @todo Constructing full 3D magnetic field from data segment
  * @todo Reading the magnetic axis
  * @todo Reading s and volume profiles
  *
@@ -44,7 +43,8 @@ void hdf5_bfield_init_offload_ST(B_ST_offload_data* offload_data, real** offload
 
     /* Number of toroidal periods */
     err = H5LTread_dataset_int(f,"/bfield/stellarator/toroidalPeriods",&periods);
-
+    offload_data->periods = periods;
+    
     /* Read the coordinate data */
     /* Get dimensions of bfield data */
     err = H5LTget_dataset_info(f,"/bfield/stellarator/br", dims, NULL, NULL);
@@ -83,7 +83,7 @@ void hdf5_bfield_init_offload_ST(B_ST_offload_data* offload_data, real** offload
 
     /* Read the bfield data */
     /* Allocate enough space for half a period */
-    int temp_B_size = n_r*n_z*(2*(n_phi-1)+1);
+    int temp_B_size = n_r*n_z*n_phi;
 
     real* temp_B_r   = (real*) malloc(temp_B_size*sizeof(real));
     real* temp_B_phi = (real*) malloc(temp_B_size*sizeof(real));
@@ -100,7 +100,7 @@ void hdf5_bfield_init_offload_ST(B_ST_offload_data* offload_data, real** offload
      * The data is expected to include half a period.
      */
 
-    int B_size = n_r*n_z*(2*(n_phi - 1) * periods + 1 + 4);
+    int B_size = n_r*n_z*(2*(n_phi - 1) + 1 + 3);
     int phi_size = n_r*n_z;
     *offload_array = (real*) malloc(4 * B_size * sizeof(real));
     offload_data->offload_array_length = 4 * B_size;
@@ -108,57 +108,54 @@ void hdf5_bfield_init_offload_ST(B_ST_offload_data* offload_data, real** offload
     int i_phi;
     int i_z;
     int i_r;
-    int i_p;
     int temp_ind, off_ind, sym_ind;
-    for (i_p = 0; i_p < periods; i_p++) {
-        for (i_phi = 0; i_phi < n_phi; i_phi++) {
-            for (i_z = 0; i_z < n_z; i_z++) {
-                for (i_r = 0; i_r < n_r; i_r++) {
-                    /* Stellarator symmetry: phi = i_phi        <=> phi = 2 * (n_phi - 1) - i_phi
-                     *                         z = i_z          <=> z = n_z - i_z - 1
-                     * So, a point at:       (i_r, i_z, i_phi)  <=> (i_r, n_z - i_z - 1, 2 * (n_phi - 1) - i_phi)
-                     *
-                     * temp_B_x data is in the format: (i_r, i_phi, i_z) = temp_B_x(i_z*n_phi*n_r + i_phi*n_r + i_r)
-                     * offload_array data -"-"-"-"-  : (i_r, i_phi, i_z) =(*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ]
-                     * => (*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ] = temp_B_r(i_z*n_phi*n_r + i_phi*n_r + i_r);
-                     */
-                    
-                    temp_ind = i_z*n_phi*n_r + i_phi*n_r + i_r;
-
-                    /* off_ind  */
-                    off_ind = 2*phi_size + (2*(n_phi - 1)*i_p + i_phi)*n_z*n_r + i_z*n_r + i_r;
-                    sym_ind = 2*phi_size + (2*(n_phi - 1)*(i_p + 1) - i_phi)*n_z*n_r + (n_z - i_z - 1)*n_r + i_r;
-
-                    /* B_r */
-                    (*offload_array)[off_ind] =
-                        temp_B_r[temp_ind];
-                    (*offload_array)[sym_ind] =
-                        temp_B_r[temp_ind];
-
-                    // B_phi
-                    (*offload_array)[B_size + off_ind] =
-                        temp_B_phi[temp_ind];
-                    (*offload_array)[B_size + sym_ind] =
-                        temp_B_phi[temp_ind];
-
-                    // B_z
-                    (*offload_array)[2*B_size + off_ind] =
-                        temp_B_z[temp_ind];
-                    (*offload_array)[2*B_size + sym_ind] =
-                        temp_B_z[temp_ind];
-
-                    // B_s
-                    (*offload_array)[3*B_size + off_ind] =
-                        temp_B_s[temp_ind];
-                    (*offload_array)[3*B_size + sym_ind] =
-                        temp_B_s[temp_ind];
-                }
+    for (i_phi = 0; i_phi < n_phi; i_phi++) {
+        for (i_z = 0; i_z < n_z; i_z++) {
+            for (i_r = 0; i_r < n_r; i_r++) {
+                /* Stellarator symmetry: phi = i_phi        <=> phi = 2 * (n_phi - 1) - i_phi
+                 *                         z = i_z          <=> z = n_z - i_z - 1
+                 * So, a point at:       (i_r, i_z, i_phi)  <=> (i_r, n_z - i_z - 1, 2 * (n_phi - 1) - i_phi)
+                 *
+                 * temp_B_x data is in the format: (i_r, i_phi, i_z) = temp_B_x(i_z*n_phi*n_r + i_phi*n_r + i_r)
+                 * offload_array data -"-"-"-"-  : (i_r, i_phi, i_z) = (*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ]
+                 * => (*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ] = temp_B_r(i_z*n_phi*n_r + i_phi*n_r + i_r);
+                 */
+                
+                temp_ind = i_z*n_phi*n_r + i_phi*n_r + i_r;
+                
+                /* off_ind  */
+                off_ind = 2*phi_size + i_phi*n_z*n_r + i_z*n_r + i_r;
+                sym_ind = 2*phi_size + (2*(n_phi - 1) - i_phi)*n_z*n_r + (n_z - i_z - 1)*n_r + i_r;
+                
+                /* B_r */
+                (*offload_array)[off_ind] =
+                    temp_B_r[temp_ind];
+                (*offload_array)[sym_ind] =
+                    temp_B_r[temp_ind];
+                
+                // B_phi
+                (*offload_array)[B_size + off_ind] =
+                    temp_B_phi[temp_ind];
+                (*offload_array)[B_size + sym_ind] =
+                    temp_B_phi[temp_ind];
+                
+                // B_z
+                (*offload_array)[2*B_size + off_ind] =
+                    temp_B_z[temp_ind];
+                (*offload_array)[2*B_size + sym_ind] =
+                    temp_B_z[temp_ind];
+                
+                // B_s
+                (*offload_array)[3*B_size + off_ind] =
+                    temp_B_s[temp_ind];
+                (*offload_array)[3*B_size + sym_ind] =
+                    temp_B_s[temp_ind];
             }
         }
     }
 
-    /* Phi data is now for the full toroidal extent */
-    n_phi = 2*(n_phi - 1) * periods + 1;
+    /* Phi data is now for one toroidal period */
+    n_phi = 2*(n_phi - 1);
     offload_data->n_phi = n_phi;
     offload_data->phi_max = offload_data->phi_min + (n_phi - 1)*offload_data->phi_grid;
 

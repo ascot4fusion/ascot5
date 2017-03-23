@@ -61,6 +61,7 @@ void B_ST_init(B_ST_data* Bdata, B_ST_offload_data* offload_data,
     Bdata->n_r = offload_data->n_r;
     Bdata->n_z = offload_data->n_z;
     Bdata->n_phi = offload_data->n_phi;
+    Bdata->periods = offload_data->periods;
     Bdata->r_min = offload_data->r_min;
     Bdata->r_max = offload_data->r_max;
     Bdata->r_grid = offload_data->r_grid;
@@ -94,9 +95,9 @@ void B_ST_init(B_ST_data* Bdata, B_ST_offload_data* offload_data,
  * @param Bdata pointer to magnetic field data struct
  */
 void B_ST_eval_B(real B[], real r, real phi, real z, B_ST_data* Bdata) {
-    phi = fmod(phi, 2*math_pi);
+    phi = fmod(phi, 2*math_pi/Bdata->periods);
     if(phi < 0) {
-        phi += 2*math_pi;
+        phi += 2*math_pi/Bdata->periods;
     }
     int i_r = (int) floor((r - Bdata->r_min)
                     / ((Bdata->r_max - Bdata->r_min)
@@ -147,9 +148,9 @@ void B_ST_eval_B(real B[], real r, real phi, real z, B_ST_data* Bdata) {
 void B_ST_eval_psi(real psi[], real r, real phi, real z,
                    B_ST_data* Bdata)
 {
-    phi = fmod(phi, 2*math_pi);
+    phi = fmod(phi, 2*math_pi/Bdata->periods);
     if(phi < 0) {
-        phi += 2*math_pi;
+        phi += 2*math_pi/Bdata->periods;
     }
     int i_r = (int) floor((r - Bdata->r_min)
                     / ((Bdata->r_max - Bdata->r_min)
@@ -217,9 +218,9 @@ void B_ST_eval_rho(real rho[], real psi, B_ST_data* Bdata) {
  * @param Bdata pointer to magnetic field data struct
  */
 void B_ST_eval_B_dB(real B_dB[], real r, real phi, real z, B_ST_data* Bdata) {
-    phi = fmod(phi, 2*math_pi);
+    phi = fmod(phi, 2*math_pi/Bdata->periods);
     if(phi < 0) {
-        phi += 2*math_pi;
+        phi += 2*math_pi/Bdata->periods;
     }
 
     int i_r = (int) floor((r - Bdata->r_min)
