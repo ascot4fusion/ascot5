@@ -46,6 +46,7 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_fie
 
             real B[3];
             real B_dB[12];
+            real rho_drho[4];
 	    real E[3];
 
             /* Coordinates are copied from the struct into an array to make 
@@ -59,7 +60,8 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_fie
             charge = p->charge[i];
 
             B_field_eval_B_dB(B_dB, yprev[0], yprev[1], yprev[2], Bdata);
-	    E_field_eval_E(E, yprev[0], yprev[1], yprev[2], Edata);
+            B_field_eval_rho_drho(rho_drho, yprev[0], yprev[1], yprev[2], Bdata);
+	    E_field_eval_E(E, rho_drho, Edata);
             phys_eomgc(k1, t, yprev, mass, charge, B_dB, E);
             int j;
             /* particle coordinates for the subsequent ydot evaluations are
@@ -69,21 +71,24 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_fie
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
+            B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
+	    E_field_eval_E(E, rho_drho, Edata);
             phys_eomgc(k2, t+h/2.0, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 5; j++) {
                 tempy[j] = yprev[j] + h/2.0*k2[j];
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
+            B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
+	    E_field_eval_E(E, rho_drho, Edata);
             phys_eomgc(k3, t+h/2.0, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 5; j++) {
                 tempy[j] = yprev[j] + h*k3[j];
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
+            B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
+	    E_field_eval_E(E, rho_drho, Edata);
             phys_eomgc(k4, t+h, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 5; j++) {
                 y[j] = yprev[j]

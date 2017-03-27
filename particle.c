@@ -43,8 +43,10 @@ void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
 
     real B[3];
     B_field_eval_B(B, p->r, p->phi, p->z, Bdata);
+    real rho_drho[4];
     real E[3];
-    E_field_eval_E(E, p->r, p->phi, p->z, Edata);
+    B_field_eval_rho_drho(rho_drho, p->r, p->phi, p->z, Bdata);
+    E_field_eval_E(E, rho_drho, Edata);
 
     p_fo->B_r[j] = B[0];					  
     p_fo->B_phi[j] = B[1];				

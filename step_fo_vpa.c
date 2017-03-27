@@ -38,9 +38,11 @@ void step_fo_vpa(particle_simd_fo* p, real t, real h, B_field_data* Bdata, E_fie
       xhalf[2]= p->z[i] + p->zdot[i]*h/2;
 	    
       real Brpz[3];
+      real rho_drho[4];
       real Erpz[3];
       B_field_eval_B(Brpz, xhalf[0], xhalf[1], xhalf[2], Bdata);
-      E_field_eval_E(Erpz, xhalf[0], xhalf[1], xhalf[2], Edata);
+      B_field_eval_rho_drho(rho_drho, xhalf[0], xhalf[1], xhalf[2], Bdata);
+      E_field_eval_E(Erpz, rho_drho, Edata);
 
       /* Electromagnetic fields to cartesian coordinates */  
       real Bxyz[3];

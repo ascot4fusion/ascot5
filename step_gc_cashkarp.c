@@ -51,6 +51,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* t, real* h, real* hnext, real t
 
             real B[3];
             real B_dB[12];
+            real rho_drho[4];
 	    real E[3];
 
             /* Coordinates are copied from the struct into an array to make 
@@ -64,7 +65,8 @@ void step_gc_cashkarp(particle_simd_gc* p, real* t, real* h, real* hnext, real t
             charge = p->charge[i];
 
 	    B_field_eval_B_dB(B_dB, yprev[0], yprev[1], yprev[2], Bdata);
-	    E_field_eval_E(E, yprev[0], yprev[1], yprev[2], Edata);
+            B_field_eval_rho_drho(rho_drho, yprev[0], yprev[1], yprev[2], Bdata);
+	    E_field_eval_E(E, rho_drho, Edata);
 	    phys_eomgc(k1, t[0], yprev, mass, charge, B_dB, E);
 	    int j;
 
@@ -72,35 +74,40 @@ void step_gc_cashkarp(particle_simd_gc* p, real* t, real* h, real* hnext, real t
 		tempy[j] = yprev[j] + ((1.0/5)*k1[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
+            B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
+	    E_field_eval_E(E, rho_drho, Edata);
 	    phys_eomgc(k2, t[i]+h[i]/5.0, tempy, mass, charge, B_dB, E);
 
 	    for(j = 0; j < 5; j++) {
 		tempy[j] = yprev[j] + ((3.0/40)*k1[j]+(9.0/40)*k2[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
+            B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
+	    E_field_eval_E(E, rho_drho, Edata);
 	    phys_eomgc(k3, t[i]+h[i]*(3.0/10), tempy, mass, charge, B_dB, E);
 
 	    for(j = 0; j < 5; j++) {
 		tempy[j] = yprev[j] + ((3.0/10)*k1[j]+(-9.0/10)*k2[j]+(6.0/5)*k3[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
+            B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
+	    E_field_eval_E(E, rho_drho, Edata);
 	    phys_eomgc(k4, t[i]+h[i]*(3.0/5), tempy, mass, charge, B_dB, E);
 	
 	    for(j = 0; j < 5; j++) {
 		tempy[j] = yprev[j] + ((-11.0/54)*k1[j]+(5.0/2)*k2[j]+(-70.0/27)*k3[j]+(35.0/27)*k4[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
+            B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
+	    E_field_eval_E(E, rho_drho, Edata);
 	    phys_eomgc(k5, t[i]+h[i], tempy, mass, charge, B_dB, E);
 
 	    for(j = 0; j < 5; j++) {
 		tempy[j] = yprev[j] + ((1631.0/55296)*k1[j]+(175.0/512)*k2[j]+(575.0/13824)*k3[j]+(44275.0/110592)*k4[j]+(253.0/4096)*k5[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata);
+            B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
+	    E_field_eval_E(E, rho_drho, Edata);
 	    phys_eomgc(k6, t[i]+h[i]*(7.0/8), tempy, mass, charge, B_dB, E);
 
 	    real yout[5];
