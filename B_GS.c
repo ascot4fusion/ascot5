@@ -207,6 +207,19 @@ void B_GS_eval_psi(real psi[], real r, real phi, real z,
 }
 
 /**
+ * @brief Evaluate psi and derivatives
+ *
+ * @todo implement the analytical gradient
+ */
+void B_GS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
+                    B_GS_data* Bdata) {
+    B_GS_eval_psi(&(psi_dpsi[0]), r, phi, z, Bdata);
+    psi_dpsi[1] = 0;
+    psi_dpsi[2] = 0;
+    psi_dpsi[3] = 0;
+}
+
+/**
  * @brief Evaluate radial coordinate rho
  *
  * This function is identical to B_2D_eval_rho.
@@ -220,6 +233,22 @@ void B_GS_eval_rho(real rho[], real psi, B_GS_data* Bdata) {
     else {
         rho[0] = sqrt((psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0));
     }
+}
+
+/**
+ * @brief Evaluate rho and derivatives
+ *
+ */
+void B_GS_eval_rho_drho(real rho_drho[], real r, real phi, real z,
+                    B_GS_data* Bdata) {
+    real rho;
+    B_GS_eval_psi_dpsi(rho_drho, r, phi, z, Bdata);
+    /* Convert: rho = sqrt(psi), drho = dpsi/(2 * sqrt(psi)) */
+    rho = sqrt(rho_drho[0]);
+    rho_drho[0] = rho;
+    rho_drho[1] = rho_drho[1] / (2*rho);
+    rho_drho[2] = rho_drho[1] / (2*rho);
+    rho_drho[3] = rho_drho[1] / (2*rho);
 }
 
 /**

@@ -35,7 +35,12 @@ void B_GS_eval_B(real B[], real r, real phi, real z, B_GS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 void B_GS_eval_psi(real psi[], real r, real phi, real z, B_GS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
+void B_GS_eval_psi_dpsi(real psi[], real r, real phi, real z, B_GS_data* Bdata);
+#pragma omp declare simd uniform(Bdata)
 void B_GS_eval_rho(real rho[], real psi, B_GS_data* Bdata);
+#pragma omp declare simd uniform(Bdata)
+void B_GS_eval_rho_drho(real rho_drho[], real r, real phi, real z,
+                        B_GS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z, B_GS_data* Bdata);
 real B_GS_get_axis_r(B_GS_data* Bdata);

@@ -127,6 +127,16 @@ void B_TC_eval_psi(real* psi, real r, real phi, real z,
 }
 
 /**
+ * @brief Evaluate poloidal flux psi and derivatives
+ *
+ */
+void B_TC_eval_psi_dpsi(real* psi, real r, real phi, real z,
+                   B_TC_data* Bdata) {
+    printf("There is no psi in this field.");
+    exit(EXIT_FAILURE);
+}
+
+/**
  * @brief Evaluate radial coordinate rho
  *
  * This function is identical to B_2D_eval_rho.
@@ -137,6 +147,16 @@ void B_TC_eval_rho(real* rho, real psi, B_TC_data* Bdata) {
     printf("There is no rho in this field.");
     exit(EXIT_FAILURE);
 }
+
+/**
+ * @brief Evaluate radial coordinate rho and derivatives
+ *
+ */
+void B_TC_eval_rho_drho(real* rho, real r, real phi, real z, B_TC_data* Bdata) {
+    printf("There is no rho in this field.");
+    exit(EXIT_FAILURE);
+}
+
 
 /**
  * @brief Evaluate magnetic field 

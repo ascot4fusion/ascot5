@@ -66,7 +66,11 @@ void B_3D_eval_B(real B[], real r, real phi, real z, B_3D_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 void B_3D_eval_psi(real psi[], real r, real phi, real z, B_3D_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
+void B_3D_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_3D_data* Bdata);
+#pragma omp declare simd uniform(Bdata)
 void B_3D_eval_rho(real rho[], real psi, B_3D_data* Bdata);
+#pragma omp declare simd uniform(Bdata)
+void B_3D_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_3D_data* Bdata);
 #pragma omp declare simd uniform(B)
 real B_3D_tricubic(real t_r, real t_phi, real t_z, int i_r, int i_phi, int i_z, int n_z, int n_r, real* B);
 #pragma omp declare simd uniform(Bdata)

@@ -32,10 +32,10 @@ void B_TC_init(B_TC_data* Bdata, B_TC_offload_data* offload_data,
                real* offload_array);
 #pragma omp declare simd uniform(Bdata)
 void B_TC_eval_B(real* B, real r, real phi, real z, B_TC_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
 void B_TC_eval_psi(real* psi, real r, real phi, real z, B_TC_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
+void B_TC_eval_psi_dpsi(real* psi, real r, real phi, real z, B_TC_data* Bdata);
 void B_TC_eval_rho(real* rho, real psi, B_TC_data* Bdata);
+void B_TC_eval_rho_drho(real* rho, real r, real phi, real z, B_TC_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 void B_TC_eval_B_dB(real* B_dB, real r, real phi, real z, B_TC_data* Bdata);
 real B_TC_get_axis_r(B_TC_data* Bdata);

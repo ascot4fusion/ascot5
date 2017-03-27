@@ -58,7 +58,11 @@ void B_2D_eval_B(real B[], real r, real phi, real z, B_2D_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 void B_2D_eval_psi(real psi[], real r, real phi, real z, B_2D_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
+void B_2D_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_2D_data* Bdata);
+#pragma omp declare simd uniform(Bdata)
 void B_2D_eval_rho(real rho[], real psi, B_2D_data* Bdata);
+#pragma omp declare simd uniform(Bdata)
+void B_2D_eval_rho_drho(real rho[], real r, real phi, real z, B_2D_data* Bdata);
 #pragma omp declare simd uniform(B)
 real B_2D_bicubic(real t_r, real t_z, int i_r, int i_z, int n_r, real* B);
 #pragma omp declare simd uniform(Bdata)

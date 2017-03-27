@@ -212,6 +212,44 @@ void B_2D_eval_psi(real psi[], real r, real phi, real z, B_2D_data* Bdata)
 }
 
 /**
+ * @brief Evaluate poloidal flux psi and its derivatives
+ *
+ * This function evaluates the poloidal flux psi and its derivatives at the given coordinates using
+ * bicubic interpolation on the 2D magnetic field data. This is a SIMD
+ * function, so the values are placed in an NSIMD length struct.
+ *
+ * @param i index in the NSIMD struct that will be populated 
+ * @param psi psi values (psi   -> psi_dpsi[0][i]    dpsi/dr -> psi_dpsi[1][i]
+ *        dpsi/dphi -> psi_dpsi[2][i]    dpsi/dz -> psi_dpsi[3][i])
+ * @param r r coordinate
+ * @param phi phi coordinate
+ * @param z z coordinate
+ * @param Bdata pointer to magnetic field data struct
+ *
+ */
+void B_2D_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_2D_data* Bdata) {
+    int i_r = (int) floor((r - Bdata->r_min)
+                    / ((Bdata->r_max - Bdata->r_min)
+                       / (Bdata->n_r-1)));
+    if(i_r < 0 || i_r >= Bdata->n_r) {
+        i_r = 0;
+    }
+
+    int i_z = (int) floor((z - Bdata->z_min)
+                    / ((Bdata->z_max - Bdata->z_min)
+                       / (Bdata->n_z-1)));
+    if(i_z < 0 || i_z >= Bdata->n_z) {
+        i_z = 0;
+    }
+
+    real t_r = (r - (Bdata->r_min + i_r * Bdata->r_grid)) / Bdata->r_grid;
+    real t_z = (z - (Bdata->z_min + i_z * Bdata->z_grid)) / Bdata->z_grid;
+
+    B_2D_bicubic_derivs(psi_dpsi, t_r, t_z, i_r, i_z, Bdata->n_r,
+                        Bdata->r_grid, Bdata->z_grid, Bdata->psi);
+}
+
+/**
  * @brief Evaluate radial coordinate rho
  *
  * This function evaluates the radial coordinate rho at the given psi value
@@ -232,6 +270,34 @@ void B_2D_eval_rho(real rho[], real psi, B_2D_data* Bdata) {
     else {
         rho[0] = sqrt((psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0));
     }
+}
+
+/**
+ * @brief Evaluate radial coordinate rho and its derivatives
+ *
+ * This function evaluates the radial coordinate rho and its derivatives
+ * at the given coordinates using bicubic interpolation on the 
+ * 2D magnetic field data. This is a SIMD 
+ * function, so the values are placed in an NSIMD length struct.
+ *
+ * @param i index in the NSIMD struct that will be populated 
+ * @param rho rho values (rho   -> rho_drho[0][i]    drho/dr -> rho_drho[1][i]
+ *        drho/dphi -> rho_drho[2][i]    drho/dz -> rho_drho[3][i])
+ * @param r r coordinate
+ * @param phi phi coordinate
+ * @param z z coordinate
+ * @param Bdata pointer to magnetic field data struct
+ *
+ */
+void B_2D_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_2D_data* Bdata) {
+    real rho;
+    B_2D_eval_psi_dpsi(rho_drho, r, phi, z, Bdata);
+    /* Convert: rho = sqrt(psi), drho = dpsi/(2 * sqrt(psi)) */
+    rho = sqrt(rho_drho[0]);
+    rho_drho[0] = rho;
+    rho_drho[1] = rho_drho[1] / (2*rho);
+    rho_drho[2] = rho_drho[1] / (2*rho);
+    rho_drho[3] = rho_drho[1] / (2*rho);
 }
 
 /**

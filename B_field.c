@@ -166,6 +166,34 @@ void B_field_eval_psi(real psi[], real r, real phi, real z,
     }
 }
 
+/* psi   -> psi_dpsi[0]    dpsi/dr -> psi_dpsi[1]
+ * dpsi/dphi -> psi_dpsi[2]    dpsi/dz -> psi_dpsi[3]
+ */
+void B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
+                       B_field_data* Bdata) {
+    switch(Bdata->type) {
+        case B_field_type_GS:
+        B_GS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BGS));
+        break;
+
+        case B_field_type_2D:
+        B_2D_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B2D));
+        break;
+
+        case B_field_type_3D:
+        B_3D_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B3D));
+        break;
+
+        case B_field_type_ST:
+        B_ST_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BST));
+        break;
+
+	case B_field_type_TC:
+        B_TC_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BTC));
+        break;
+    }
+}
+
 void B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
     switch(Bdata->type) {
         case B_field_type_GS:
@@ -190,6 +218,33 @@ void B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
     }
 }
 
+/* rho   -> rho_drho[0]    drho/dr -> rho_drho[1]
+ * drho/dphi -> rho_drho[2]    drho/dz -> rho_drho[3]
+ */
+void B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
+                       B_field_data* Bdata) {
+    switch(Bdata->type) {
+        case B_field_type_GS:
+        B_GS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BGS));
+        break;
+
+        case B_field_type_2D:
+        B_2D_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B2D));
+        break;
+
+        case B_field_type_3D:
+        B_3D_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B3D));
+        break;
+
+        case B_field_type_ST:
+        B_ST_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BST));
+        break;
+
+	case B_field_type_TC:
+        B_TC_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BTC));
+        break;
+    }
+}
 
 /* Br   -> B[0]    dBr/dr -> B[1]   dBr/dphi -> B[2]    dBr/dz -> B[3]
  * Bphi -> B[4]  dBphi/dr -> B[5] dBphi/dphi -> B[6]  dBphi/dz -> B[7]
