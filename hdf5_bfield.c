@@ -22,7 +22,7 @@
  *
  * @todo Error checking
  * @todo Reading the magnetic axis
- * @todo Reading s and volume profiles
+ * @todo Reading volume profiles
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
@@ -68,7 +68,7 @@ void hdf5_bfield_init_offload_ST(B_ST_offload_data* offload_data, real** offload
     offload_data->r_min = temp_r[0];
     offload_data->r_max = temp_r[n_r - 1];
     offload_data->r_grid = (temp_r[1] - temp_r[0]);
-    /* Note! phi data in deg, includes both 0 deg and 36 deg! */
+    /* Note! phi data in input.h5 in deg */
     offload_data->phi_min = temp_phi[0] / 360 * 2*math_pi;
     offload_data->phi_max = temp_phi[n_phi - 1] / 360 * 2*math_pi;
     offload_data->phi_grid = (temp_phi[1] - temp_phi[0]) / 360 * 2*math_pi;
@@ -112,44 +112,38 @@ void hdf5_bfield_init_offload_ST(B_ST_offload_data* offload_data, real** offload
     for (i_phi = 0; i_phi < n_phi; i_phi++) {
         for (i_z = 0; i_z < n_z; i_z++) {
             for (i_r = 0; i_r < n_r; i_r++) {
-                /* Stellarator symmetry: phi = i_phi        <=> phi = 2 * (n_phi - 1) - i_phi
-                 *                         z = i_z          <=> z = n_z - i_z - 1
-                 * So, a point at:       (i_r, i_z, i_phi)  <=> (i_r, n_z - i_z - 1, 2 * (n_phi - 1) - i_phi)
+                /* Stellarator symmetry: i_phi        <=> 2*(n_phi-1)-i_phi
+                 *                       i_z          <=> n_z-i_z-1
+                 * So, a point at:      (i_r, i_phi, i_z)  <=> (i_r, 2*(n_phi-1)-i_phi, n_z-i_z-1)
                  *
                  * temp_B_x data is in the format: (i_r, i_phi, i_z) = temp_B_x(i_z*n_phi*n_r + i_phi*n_r + i_r)
                  * offload_array data -"-"-"-"-  : (i_r, i_phi, i_z) = (*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ]
-                 * => (*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ] = temp_B_r(i_z*n_phi*n_r + i_phi*n_r + i_r);
+                 * => (*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ] = temp_B_x(i_z*n_phi*n_r + i_phi*n_r + i_r);
+                 * The values are: Sym[B_r, B_phi, B_z] = [-B_r, B_phi, B_z]
                  */
                 
+                /* Index of data point in temp arrays */
                 temp_ind = i_z*n_phi*n_r + i_phi*n_r + i_r;
                 
-                /* off_ind  */
+                /* Index of data point in offload_array and corresponding stel.-symmetric index  */
                 off_ind = 2*phi_size + i_phi*n_z*n_r + i_z*n_r + i_r;
                 sym_ind = 2*phi_size + (2*(n_phi - 1) - i_phi)*n_z*n_r + (n_z - i_z - 1)*n_r + i_r;
                 
                 /* B_r */
-                (*offload_array)[off_ind] =
-                    temp_B_r[temp_ind];
-                (*offload_array)[sym_ind] =
-                    temp_B_r[temp_ind];
+                (*offload_array)[off_ind] =  temp_B_r[temp_ind];
+                (*offload_array)[sym_ind] = -temp_B_r[temp_ind];
                 
                 // B_phi
-                (*offload_array)[B_size + off_ind] =
-                    temp_B_phi[temp_ind];
-                (*offload_array)[B_size + sym_ind] =
-                    temp_B_phi[temp_ind];
+                (*offload_array)[B_size + off_ind] = temp_B_phi[temp_ind];
+                (*offload_array)[B_size + sym_ind] = temp_B_phi[temp_ind];
                 
                 // B_z
-                (*offload_array)[2*B_size + off_ind] =
-                    temp_B_z[temp_ind];
-                (*offload_array)[2*B_size + sym_ind] =
-                    temp_B_z[temp_ind];
+                (*offload_array)[2*B_size + off_ind] = temp_B_z[temp_ind];
+                (*offload_array)[2*B_size + sym_ind] = temp_B_z[temp_ind];
                 
                 // B_s
-                (*offload_array)[3*B_size + off_ind] =
-                    temp_B_s[temp_ind];
-                (*offload_array)[3*B_size + sym_ind] =
-                    temp_B_s[temp_ind];
+                (*offload_array)[3*B_size + off_ind] = temp_B_s[temp_ind];
+                (*offload_array)[3*B_size + sym_ind] = temp_B_s[temp_ind];
             }
         }
     }
@@ -213,7 +207,7 @@ void hdf5_bfield_init_offload_ST(B_ST_offload_data* offload_data, real** offload
         &(*offload_array)[3*B_size + 3*phi_size],
         phi_size * sizeof(real));
 
-    /* Copying the segments changes the phi limits */
+    /* Copying the segments changes the phi limits, but not n_phi */
     offload_data->phi_min = offload_data->phi_min - 2*offload_data->phi_grid;
     offload_data->phi_max = offload_data->phi_max + 2*offload_data->phi_grid;
 
@@ -227,5 +221,4 @@ void hdf5_bfield_init_offload_ST(B_ST_offload_data* offload_data, real** offload
     free(temp_B_s);
 
     hdf5_close(f);
-
 }
