@@ -98,22 +98,19 @@ void B_ST_eval_B(real B[], real r, real phi, real z, B_ST_data* Bdata) {
         phi += 2*math_pi/Bdata->periods;
     }
     int i_r = (int) floor((r - Bdata->r_min)
-                    / ((Bdata->r_max - Bdata->r_min)
-                       / (Bdata->n_r-1)));
+                          / Bdata->r_grid);
     if(i_r < 0 || i_r >= Bdata->n_r) {
         i_r = 0;
     }
 
     int i_phi = (int) floor((phi - Bdata->phi_min)
-                    / ((Bdata->phi_max - Bdata->phi_min)
-                       / (Bdata->n_phi+3)));
+                            / Bdata->phi_grid);
     if(i_phi < 0 || i_phi >= Bdata->n_phi+4) {
         i_phi = 0;
     }
 
     int i_z = (int) floor((z - Bdata->z_min)
-                    / ((Bdata->z_max - Bdata->z_min)
-                       / (Bdata->n_z-1)));
+                          / Bdata->z_grid);
     if(i_z < 0 || i_z >= Bdata->n_z) {
         i_z = 0;
     }
@@ -150,22 +147,19 @@ void B_ST_eval_psi(real psi[], real r, real phi, real z,
         phi += 2*math_pi/Bdata->periods;
     }
     int i_r = (int) floor((r - Bdata->r_min)
-                    / ((Bdata->r_max - Bdata->r_min)
-                       / (Bdata->n_r-1)));
+                          / Bdata->r_grid);
     if(i_r < 0 || i_r >= Bdata->n_r) {
         i_r = 0;
     }
 
     int i_phi = (int) floor((phi - Bdata->phi_min)
-                    / ((Bdata->phi_max - Bdata->phi_min)
-                       / (Bdata->n_phi+3)));
+                            / Bdata->phi_grid);
     if(i_phi < 0 || i_phi >= Bdata->n_phi+4) {
         i_phi = 0;
     }
 
     int i_z = (int) floor((z - Bdata->z_min)
-                    / ((Bdata->z_max - Bdata->z_min)
-                       / (Bdata->n_z-1)));
+                          / Bdata->z_grid);
     if(i_z < 0 || i_z >= Bdata->n_z) {
         i_z = 0;
     }
@@ -199,22 +193,19 @@ void B_ST_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_ST_data* Bd
     }
 
     int i_r = (int) floor((r - Bdata->r_min)
-                    / ((Bdata->r_max - Bdata->r_min)
-                       / (Bdata->n_r-1)));
+                          / Bdata->r_grid);
     if(i_r < 0 || i_r >= Bdata->n_r) {
         i_r = 0;
     }
 
     int i_phi = (int) floor((phi - Bdata->phi_min)
-                    / ((Bdata->phi_max - Bdata->phi_min)
-                       / (Bdata->n_phi+3)));
+                    / Bdata->phi_grid);
     if(i_phi < 0 || i_phi >= Bdata->n_phi+4) {
         i_phi = 0;
     }
 
     int i_z = (int) floor((z - Bdata->z_min)
-                    / ((Bdata->z_max - Bdata->z_min)
-                       / (Bdata->n_z-1)));
+                    / Bdata->z_grid);
     if(i_z < 0 || i_z >= Bdata->n_z) {
         i_z = 0;
     }
@@ -297,22 +288,19 @@ void B_ST_eval_B_dB(real B_dB[], real r, real phi, real z, B_ST_data* Bdata) {
     }
 
     int i_r = (int) floor((r - Bdata->r_min)
-                    / ((Bdata->r_max - Bdata->r_min)
-                       / (Bdata->n_r-1)));
+                    / Bdata->r_grid);
     if(i_r < 0 || i_r >= Bdata->n_r) {
         i_r = 0;
     }
 
     int i_phi = (int) floor((phi - Bdata->phi_min)
-                    / ((Bdata->phi_max - Bdata->phi_min)
-                       / (Bdata->n_phi+3)));
+                    / Bdata->phi_grid);
     if(i_phi < 0 || i_phi >= Bdata->n_phi+4) {
         i_phi = 0;
     }
 
     int i_z = (int) floor((z - Bdata->z_min)
-                    / ((Bdata->z_max - Bdata->z_min)
-                       / (Bdata->n_z-1)));
+                    / Bdata->z_grid);
     if(i_z < 0 || i_z >= Bdata->n_z) {
         i_z = 0;
     }
