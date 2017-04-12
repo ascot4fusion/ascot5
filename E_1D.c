@@ -20,10 +20,9 @@
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  *
- * @todo replace calculation of dphi/drho with better method
+ * @todo read data from input.h5 file
  */
 void E_1D_init_offload(E_1D_offload_data* offload_data, real** offload_array) {
-    int i;
 
     FILE* f = fopen("input.erad", "r");
 
@@ -38,37 +37,20 @@ void E_1D_init_offload(E_1D_offload_data* offload_data, real** offload_array) {
     offload_data->offload_array_length = 2*n_rho;
     *offload_array = (real*) malloc(2*n_rho*sizeof(real));
 
-    /* Temporary array for potential and rho values.
-     * Includes two extra points at edges.
-     */
-    real* temp_rho = (real*) malloc((n_rho + 2)*sizeof(real));
-    real* temp_phi = (real*) malloc((n_rho + 2)*sizeof(real));
-    
     /* Pointers to beginning of different data series to make code more
      * readable */
     real* rho = &(*offload_array)[0];
-    real* dphi = &(*offload_array)[n_rho];
+    real* dV = &(*offload_array)[n_rho];
 
+    /* For data in format dV/rho, we can ignore effective minor radius */
+    real a = 1.0;
+    
     /* Read actual data into array */
-    for(i = 0; i < n_rho; i++) {
-        fscanf(f, "%lf %lf", &temp_rho[i + 1], &temp_phi[1 + i]);
+    for(int i = 0; i < n_rho; i++) {
+        fscanf(f, "%lf %lf", &rho[i], &dV[i]);
+        /* Scale derivatives by effective minor radius */
+        dV[i] = a * dV[i];
     }
-    /* Duplicate first and last data points */
-    temp_rho[0] = temp_rho[1];
-    temp_rho[n_rho] = temp_rho[n_rho - 1];
-    temp_phi[0] = temp_phi[1];
-    temp_phi[n_rho] = temp_phi[n_rho - 1];
-
-    /* Calculate the derivatives. Erad is calculated
-     * in the code as E_rad = dphi/drho * gradrho
-     */
-    for (int i = 0; i < n_rho; i++) {
-        rho[i] = temp_rho[i + 1];
-        dphi[i] = (temp_phi[i + 2] - temp_phi[i])/(temp_rho[i + 2] - temp_rho[i]);
-    }
-
-    free(temp_rho);
-    free(temp_phi);
     
     fclose(f);
 }
@@ -103,7 +85,7 @@ void E_1D_init(E_1D_data* Edata,
                real* offload_array) {
     Edata->n_rho = offload_data->n_rho;
     Edata->rho = &offload_array[0];
-    Edata->dphi = &offload_array[Edata->n_rho];
+    Edata->dV = &offload_array[Edata->n_rho];
 }
 
 /**
@@ -124,22 +106,20 @@ void E_1D_eval_E(real E[], real rho_drho[], E_1D_data* Edata) {
     /* As the erad data may be provided at irregular intervals, we must
      * search for the correct grid index */
     /** @todo Implement a more efficient search algorithm */
-
     int i_rho = 0;
-    real rho = rho_drho[0];
-    while(i_rho < Edata->n_rho && Edata->rho[i_rho] <= rho) {
+    while(i_rho < Edata->n_rho && Edata->rho[i_rho] <= rho_drho[0]) {
         i_rho++;
     }
     i_rho--;
-
-    real t_rho = (rho - Edata->rho[i_rho])
+    
+    real t_rho = (rho_drho[0] - Edata->rho[i_rho])
         / (Edata->rho[i_rho+1] - Edata->rho[i_rho]);
 
-    real p1 = Edata->dphi[i_rho];
-    real p2 = Edata->dphi[i_rho+1];
-    real dphi = p1 + t_rho * (p2 - p1);
+    real p1 = Edata->dV[i_rho];
+    real p2 = Edata->dV[i_rho+1];
+    real dV = p1 + t_rho * (p2 - p1);
 
-    E[0] = dphi * rho_drho[1];
-    E[1] = dphi * rho_drho[2];
-    E[2] = dphi * rho_drho[3];
+    E[0] = dV * rho_drho[1];
+    E[1] = dV * rho_drho[2];
+    E[2] = dV * rho_drho[3];
 }

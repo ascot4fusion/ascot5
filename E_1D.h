@@ -22,7 +22,7 @@ typedef struct {
     int n_rho;                  /**< number of rho values in the data */
     real* rho;                  /**< pointer to start of rho values in 
                                    offload_array */
-    real* dphi;                 /**< pointer to start of dphi values */
+    real* dV;                   /**< pointer to start of potential derivative values */
 } E_1D_data;
 
 void E_1D_init_offload(E_1D_offload_data* offload_data, real** offload_array);
