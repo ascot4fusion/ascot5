@@ -36,6 +36,7 @@ void E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
         E_1D_init(&(Edata->E1D), &(offload_data->E1D), offload_array);
         break;
     }
+    Edata->type = offload_data->type;
 }
 
 void E_field_eval_E(real E[], real rho_drho[], E_field_data* Edata) {
