@@ -492,12 +492,14 @@ void B_3D_eval_rho_drho(real rho_drho[], real r, real phi, real z,
                     B_3D_data* Bdata) {
     real rho;
     B_3D_eval_psi_dpsi(rho_drho, r, phi, z, Bdata);
-    /* Convert: rho = sqrt(psi), drho = dpsi/(2 * sqrt(psi)) */
+    /* Convert: rho = sqrt(psi), drho = dpsi/(2 * sqrt(psi))
+     * Note that rho_drho[2] = 1/R * drho/dphi, because of cylindrical gradient
+     */
     rho = sqrt(rho_drho[0]);
     rho_drho[0] = rho;
     rho_drho[1] = rho_drho[1] / (2*rho);
-    rho_drho[2] = rho_drho[1] / (2*rho);
-    rho_drho[3] = rho_drho[1] / (2*rho);
+    rho_drho[2] = rho_drho[2] / (2*rho) * r;
+    rho_drho[3] = rho_drho[3] / (2*rho);
 }
 
 real B_3D_tricubic(real t_r, real t_phi, real t_z, int i_r, int i_phi, int i_z, int n_z, int n_r, real* B) {
