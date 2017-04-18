@@ -44,9 +44,9 @@ int main(int argc, char** argv) {
     math_linspace(phi, phi_min, phi_max, n_phi);
 
     /* Write header specifying grid dimensions */
-    printf("%d, %le, %le, ", n_r, r_min, r_max);
-    printf("%d, %le, %le, ", n_phi, phi_min, phi_max);
-    printf("%d, %le, %le\n", n_z, z_min, z_max);
+    printf("%d %le %le ", n_r, r_min, r_max);
+    printf("%d %le %le ", n_phi, phi_min, phi_max);
+    printf("%d %le %le\n", n_z, z_min, z_max);
     
     int i, j, k;
     for(i = 0; i < n_r; i++) {
