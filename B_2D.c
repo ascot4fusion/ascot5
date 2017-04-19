@@ -298,7 +298,7 @@ void B_2D_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_2D_data* Bd
     rho = sqrt(rho_drho[0]);
     rho_drho[0] = rho;
     rho_drho[1] = rho_drho[1] / (2*rho);
-    rho_drho[2] = rho_drho[2] / (2*rho) * r;
+    rho_drho[2] = rho_drho[2] / (2*rho);
     rho_drho[3] = rho_drho[3] / (2*rho);
 }
 
