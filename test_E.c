@@ -54,9 +54,11 @@ int main(int argc, char** argv) {
 
     int i, j, k;
     for(i = 0; i < n_r; i++) {
-        for(j = 0; j < n_z; j++) {
-            for(k = 0; k < n_phi; k++) {
-                B_field_eval_rho_drho(rho, r[i], phi[k], z[j], &Bdata);
+        for(j = 0; j < n_phi; j++) {
+            for(k = 0; k < n_z; k++) {
+                B_field_eval_rho_drho(rho, r[i], phi[j], z[k], &Bdata);
+                /* Correct Jacobian */
+                rho[2] = rho[2]/r[i];
                 E_field_eval_E(E, rho, &Edata);
                 printf("%le %le %le %le ", rho[0], rho[1], rho[2], rho[3]);
                 printf("%le %le %le\n", E[0], E[1], E[2]);

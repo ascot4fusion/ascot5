@@ -50,11 +50,11 @@ int main(int argc, char** argv) {
     
     int i, j, k;
     for(i = 0; i < n_r; i++) {
-        for(j = 0; j < n_z; j++) {
-            for(k = 0; k < n_phi; k++) {
-                B_field_eval_B(B, r[i], phi[k], z[j], &Bdata);
-                B_field_eval_B_dB(B_dB, r[i], phi[k], z[j], &Bdata);
-                B_field_eval_psi(&psi, r[i], phi[k], z[j], &Bdata);
+        for(j = 0; j < n_phi; j++) {
+            for(k = 0; k < n_z; k++) {
+                B_field_eval_B(B, r[i], phi[j], z[k], &Bdata);
+                B_field_eval_B_dB(B_dB, r[i], phi[j], z[k], &Bdata);
+                B_field_eval_psi(&psi, r[i], phi[j], z[k], &Bdata);
                 B_field_eval_rho(&rho, psi, &Bdata);
                 printf("%le %le %le ", B[0], B[1], B[2]);
                 printf("%le %le %le ", B_dB[1], B_dB[2], B_dB[3]);
