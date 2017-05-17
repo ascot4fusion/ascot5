@@ -42,6 +42,8 @@ void step_fo_vpa(particle_simd_fo* p, real t, real h, B_field_data* Bdata, E_fie
       real Erpz[3];
       B_field_eval_B(Brpz, xhalf[0], xhalf[1], xhalf[2], Bdata);
       B_field_eval_rho_drho(rho_drho, xhalf[0], xhalf[1], xhalf[2], Bdata);
+            /* Convert partial derivative to gradient */
+      rho_drho[2] = rho_drho[2]/xhalf[0];
       E_field_eval_E(Erpz, rho_drho, Edata);
 
       /* Electromagnetic fields to cartesian coordinates */  

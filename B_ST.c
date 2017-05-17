@@ -255,9 +255,7 @@ void B_ST_eval_rho(real rho[], real psi, B_ST_data* Bdata) {
 void B_ST_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_ST_data* Bdata) {
     real rho;
     B_ST_eval_psi_dpsi(rho_drho, r, phi, z, Bdata);
-    /* Convert: rho = sqrt(psi), drho = dpsi/(2 * sqrt(psi))
-     * Note that rho_drho[2] = 1/R * drho/dphi, because of cylindrical gradient
-     */
+    /* Convert: rho = sqrt(psi), drho = dpsi/(2 * sqrt(psi)) */
     rho = sqrt(rho_drho[0]);
     rho_drho[0] = rho;
     rho_drho[1] = rho_drho[1] / (2*rho);

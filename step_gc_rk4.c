@@ -61,6 +61,8 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_fie
 
             B_field_eval_B_dB(B_dB, yprev[0], yprev[1], yprev[2], Bdata);
             B_field_eval_rho_drho(rho_drho, yprev[0], yprev[1], yprev[2], Bdata);
+            /* Convert partial derivative to gradient */
+            rho_drho[2] = rho_drho[2]/yprev[0];
 	    E_field_eval_E(E, rho_drho, Edata);
             phys_eomgc(k1, t, yprev, mass, charge, B_dB, E);
             int j;
@@ -72,6 +74,8 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_fie
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
             B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
+            /* Convert partial derivative to gradient */
+            rho_drho[2] = rho_drho[2]/tempy[0];
 	    E_field_eval_E(E, rho_drho, Edata);
             phys_eomgc(k2, t+h/2.0, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 5; j++) {
@@ -80,6 +84,8 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_fie
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
             B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
+            /* Convert partial derivative to gradient */
+            rho_drho[2] = rho_drho[2]/tempy[0];
 	    E_field_eval_E(E, rho_drho, Edata);
             phys_eomgc(k3, t+h/2.0, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 5; j++) {
@@ -88,6 +94,8 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_fie
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
             B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
+            /* Convert partial derivative to gradient */
+            rho_drho[2] = rho_drho[2]/tempy[0];
 	    E_field_eval_E(E, rho_drho, Edata);
             phys_eomgc(k4, t+h, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 5; j++) {
