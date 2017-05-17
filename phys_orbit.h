@@ -48,12 +48,24 @@
  * @brief Gyro frequency (rad/s) in particle phase space (mass, charge, momentum, magnetic field)
  *        w_g = |q| * B / gamma * m
  */
-#define phys_gyrofreqprt(m, q, p, B) ( fabs(q) * math_norm(B) / ( m * phys_gammaprt(m,p) ) );
+#define phys_gyrofreqprt(m, q, p, B) ( fabs(q) * math_norm(B) / ( m * phys_gammaprtp(m,p) ) );
 
 /**
  * @brief Gyro frequency (rad/s) in guiding center phase space
  */
 #define phys_gyrofreqgc() ();
+
+/**
+ * @brief Kinetic energy to magnitude of velocity
+ * v(m,E) = c*sqrt( 1 - 1 /(1 + E/(mc^2))^2 )
+ */
+#define phys_Ekintovelocity(m,E) ( CONST_C * sqrt( 1 - 1 / pow( 1 + E/(m * CONST_C2), 2) ) );
+
+/**
+ * @brief Magnetic moment from v_para and v_perp
+ * mu(v_para,v_perp,m,E) = (gamma*v_perp*m)^2 / (2 * m * B)
+ */
+#define phys_mu(vpa,vpe,m,B) ( pow(phys_gammaprtv( sqrt(vpa*vpa+vpe*vpe) )*vpe*m, 2) / (2*m*B) );
 
 #pragma omp declare simd
 void phys_prttogc(real mass, real charge, real r, real phi, real z, 

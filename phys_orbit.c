@@ -183,3 +183,21 @@ inline void phys_eomgc(real* ydot, real t, real* y, real mass, real charge, real
     ydot[3] = (charge/mass) * math_dot(Bstar,Estar)/BhatDotBstar;
     ydot[4] = 0;
 }
+
+/**
+ * @brief Transforms particle to guiding center phase space 
+ *
+ * The transformation is done between coordinates [r,phi,z,p_r,p_phi,p_z]
+ * and [R,Phi,Z,p_para,mu]. The transformation is done up to first order.
+ *
+ * @param mass   mass
+ * @param E      particle kinetic energy
+ * @param pitch  particle pitch angle
+ * @param v      resulting [v_para,v_perp] velocity
+ */
+void phys_Epitchtovparaperp(real mass, real E, real pitch, real* v) {
+    real magnv;
+    magnv = phys_Ekintovelocity(mass,E);
+    v[0] = magnv*pitch;
+    v[1] = magnv*sqrt( 1 - pow(pitch,2) );
+}
