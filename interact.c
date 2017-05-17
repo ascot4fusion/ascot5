@@ -11,6 +11,7 @@
 #include "B_field.h"
 #include "math.h"
 #include "particle.h"
+#include "consts.h"
 
 /**
  * @brief Integrate a full orbit step of Coulomb interactions

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include "ascot5.h"
 #include "plasma_1d.h"
+#include "consts.h"
 
 /**
  * @brief Load 1D plasma data and prepare parameters

@@ -88,22 +88,4 @@ typedef double real;
 /** @brief Maximum number of plasma species */
 #define MAX_SPECIES 8
 
-/** @brief Atomic mass unit in kilograms */
-#define CONST_U 1.660538921e-27
-
-/** @brief Elementary charge */
-#define CONST_E 1.602176565e-19
-
-/** @brief Boltzmann constant */
-#define CONST_KB 1.3807e-23
-
-/** @brief Electron mass */
-#define CONST_M_E 9.1094e-31
-
-/** @brief Electric constant */
-#define CONST_E0 8.8542e-12
-
-/** @brief Reduced Planck constant */
-#define CONST_HBAR 1.0546e-34
-
 #endif
