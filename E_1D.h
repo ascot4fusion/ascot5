@@ -12,6 +12,8 @@
  */
 typedef struct {
     int n_rho;                  /**< number of rho values in the data */
+    real rho_min;               /**< minimum rho value in the data */
+    real rho_max;               /**< maximum rho value in the data */
     int offload_array_length;   /**< number of elements in offload_array */
 } E_1D_offload_data;
 
@@ -20,6 +22,8 @@ typedef struct {
  */
 typedef struct {
     int n_rho;                  /**< number of rho values in the data */
+    real rho_min;               /**< minimum rho value in the data */
+    real rho_max;               /**< maximum rho value in the data */
     real* rho;                  /**< pointer to start of rho values in 
                                    offload_array */
     real* dV;                   /**< pointer to start of potential derivative values */
