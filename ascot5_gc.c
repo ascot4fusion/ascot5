@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ascot5.h"
+#include "consts.h"
 #include "wall.h"
 #include "distributions.h"
 #include "B_field.h"
