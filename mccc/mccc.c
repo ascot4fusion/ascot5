@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "../ascot5.h"
-#include "../.h"
+#include "../particle.h"
 #include "mccc.h"
 #include "mccc_wiener.h"
 #include "mccc_push.h"
