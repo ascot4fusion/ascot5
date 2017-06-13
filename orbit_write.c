@@ -27,9 +27,9 @@ void write_guidingcenter(FILE* out, particle* p){
 }
 
 void write_fo_as_particle(FILE* out, particle_simd_fo* p){
-    fprintf(out, "%d, %le, %le, %le, %le, %le, %le, %le\n",
-	    (int) p->id[0], p->time[0], p->r[0], p->phi[0], p->z[0],
-	    p->rdot[0], p->r[0]*p->phidot[0], p->zdot[0]);
+  fprintf(out, "%d, %le, %le, %le, %le, %le, %le, %le\n",
+  	    (int) p->id[0], p->time[0], p->r[0], p->phi[0], p->z[0],
+  	    p->rdot[0], p->r[0]*p->phidot[0], p->zdot[0]);
 }
 
 void write_fo_as_guidingcenter(FILE* out, particle_simd_fo* p, B_field_data* Bdata){
