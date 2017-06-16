@@ -128,21 +128,22 @@ void step_gc_cashkarp(particle_simd_gc* p, real* t, real* h, real* hnext, real t
 	    real err = 0.0;
 	    for(j = 0; j < 4; j++) {
 		yout[j] = yprev[j] + ( (37.0/378)*k1[j] + (250.0/621)*k3[j] + (125.0/594)*k4[j] + (512.0/1771)*k6[j] )*h[i] ;
-		yerr = fabs((yprev[j] + (2825.0/27648)*k1[j] + (18575.0/48384)*k3[j]
-				+ (13525.0/55296)*k4[j] + (277.0/14336)*k5[j] +      (1.0/4)*k6[j])*h[i] - yout[j])*h[i];
+		yerr = fabs(yprev[j] + 
+			    ( (2825.0/27648)*k1[j] + (18575.0/48384)*k3[j] + (13525.0/55296)*k4[j] + (277.0/14336)*k5[j] + (1.0/4)*k6[j] )*h[i] 
+			    - yout[j]);
 		ytol = fabs(yprev[j]) + fabs(k1[j]*h[i]);
 		err = fmax(err,yerr/ytol);
-		
 	    }
-        
-	    if(err <= 1.0){
+
+	    err = err/tol;
+	    if(err <= 1){
 		/* Time step accepted */
-	        hnext[i] = h[i]*pow(err,-0.2);		
+	        hnext[i] = 0.85*h[i]*pow(err,-0.2);		
 		
 	    }
 	    else{
-		/* Time step accepted */
-	        hnext[i] = -h[i]*pow(err,-0.25);
+		/* Time step rejected */
+	        hnext[i] = -0.85*h[i]*pow(err,-0.25);
 		
 	    }
 
@@ -150,8 +151,6 @@ void step_gc_cashkarp(particle_simd_gc* p, real* t, real* h, real* hnext, real t
 	    p->phi[i] = yout[1];
 	    p->z[i] = yout[2];
 	    p->vpar[i] = yout[3];
-		
-	    p->time[i] = p->time[i] + h[i];
 		
 	    /* Update other particle parameters to be consistent */
 	    B_field_eval_B(B, yout[0], yout[1], yout[2], Bdata);

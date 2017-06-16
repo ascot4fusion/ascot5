@@ -142,15 +142,8 @@ void mccc_push_gcMI(real K, real nu, real Dpara, real DX, real* B, real dt, real
 	*kappa_k = k2*dt*dt;
     }
 
-    k1 = (1/(6*erru))*fabs(dW[3]*dW[3]*dW[3]*dDpara*dDpara/sqrt(Dpara));
-    k2 = sqrt(1-xiin*xiin)*nu*sqrt(nu)*fabs(dW[4] + sqrt(dt/3))*dt/(2*tol);
-
-    if(k1 > k2){
-	*kappa_d = k1;
-    }
-    else{
-	*kappa_d = k2;
-    }
+    kappa_d[0] = (1/(6*erru))*fabs(dW[3]*dW[3]*dW[3]*dDpara*dDpara/sqrt(Dpara));
+    kappa_d[1] = sqrt(1-xiin*xiin)*nu*sqrt(nu)*fabs(dW[4] + sqrt(dt/3))*dt/(2*tol);
 
     if(isnan(Xout[0]) || isnan(Xout[0]) || isnan(Xout[0]) || isnan(*vout) || isnan(*xiout)){ *err = MCCC_PUSH_ISNAN;}
     if(isinf(Xout[0]) || isinf(Xout[0]) || isinf(Xout[0]) || isnan(*vout) || isnan(*xiout)){ *err = MCCC_PUSH_ISNAN;}

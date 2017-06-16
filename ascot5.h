@@ -88,4 +88,8 @@ typedef double real;
 /** @brief Maximum number of plasma species */
 #define MAX_SPECIES 8
 
+/** @brief Maximum number of Wiener processes stored (effectively number 
+ *  of time step reductions) */
+#define WIENERSLOTS 20
+
 #endif

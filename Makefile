@@ -52,7 +52,7 @@ HEADERS=ascot5.h B_GS.h math.h consts.h \
 		step_fo_vpa.h step_gc_cashkarp.h B_ST.h B_TC.h \
 		particle.h filip5.h endcond.h orbit_write.h \
 		B_field.h E_field.h wall.h phys_orbit.h hdf5_bfield.h \
-		E_1D.h $(MCCCHEADERS)
+		E_1D.h E_0D.h simulate_gc_adaptive.h $(MCCCHEADERS)
 
 OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
      wall_2d.o distributions.o B_2D.o B_ST.o B_TC.o  \
@@ -61,13 +61,13 @@ OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
 	 simulate_gc_rk4.o wall_3d.o list.o octree.o hdf5_particlestate.o \
      particle.o endcond.o B_field.o E_field.o wall.o simulate.o orbit_write.o \
 	step_gc_cashkarp.o phys_orbit.o hdf5_bfield.o \
-	E_1D.o $(MCCCOBJS)
+	E_1D.o E_0D.o simulate_gc_adaptive.o $(MCCCOBJS)
 
 BINS=test_math \
 	 test_wall_2d test_ascot4_interface test_plasma_1d \
 	 test_interact test_hdf5 test_wall_3d test_particle filip5 \
 	 test_B ascot5_gc test_simulate_orbit test_offload test_E \
-	 test_mccc\
+	 test_mccc ascot5_main\
 
 all: $(BINS)
 
@@ -76,6 +76,9 @@ ascotpy: ascotpy.c B_none.o B_GS.o B_2Dlin.o B_2D.o B_3D.o
 	f2py ascotpy.pyf ascotpy.c B_none.o B_GS.o B_2Dlin.o B_2D.o B_3D.o -c $(DEFINES)
 
 ascot5_gc: ascot5_gc.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+ascot5_main: ascot5_main.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_B: test_B.o $(OBJS)
