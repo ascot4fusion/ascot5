@@ -104,7 +104,7 @@ void simulate_gc_rk4(int id, int n_particles, particle* particles,
             #if COULOMBCOLL == 1
             orbsteps++;
             if(orbsteps >= collstepdivisor) {
-                interact_step_gc_euler(&p[i], t, orbsteps*sim.tstep,
+                interact_step_gc_euler(&p, 0, orbsteps*sim.tstep,
                                        &sim.B_data, &sim.plasma_data);
                 orbsteps = 0;
             }

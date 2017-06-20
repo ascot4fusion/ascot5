@@ -99,7 +99,7 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
             #if COULOMBCOLL == 1
             orbsteps++;
             if(orbsteps == collstepdivisor) {
-                interact_step_fo_euler(&p[i], t, orbsteps*sim.tstep,
+                interact_step_fo_euler(&p, 0, orbsteps*sim.tstep,
                                        &sim.B_data, &sim.plasma_data);
                 orbsteps = 0;
             }
