@@ -13,6 +13,7 @@
 #include "plasma_1d.h"
 #include "distributions.h"
 #include "wall.h"
+#include "diag.h"
 
 typedef struct {
     real t0;
@@ -27,6 +28,7 @@ typedef struct {
     plasma_1d_offload_data plasma_offload_data;
     wall_offload_data wall_offload_data;
     dist_rzvv_offload_data dist_offload_data;
+    diag_offload_data diag_offload_data;
 } sim_offload_data;
 
 typedef struct {
@@ -42,6 +44,7 @@ typedef struct {
     plasma_1d_data plasma_data;
     wall_data wall_data;
     dist_rzvv_data dist_data;
+    diag_data diag_data;
 } sim_data;
 
 

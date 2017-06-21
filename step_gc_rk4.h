@@ -10,7 +10,7 @@
 #include "particle.h"
 
 #pragma omp declare target
-void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_field_data* Edata);
+void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data* Edata);
 #pragma omp end declare target
 
 #endif

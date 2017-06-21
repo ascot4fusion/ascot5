@@ -25,7 +25,7 @@
  * @param Edata pointer to electric field data
  */
 void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
-                    B_field_data* Bdata, E_field_data* Edata){
+                    B_field_data* Bdata){
     p_fo->r[j] = p->r;
     p_fo->phi[j] = p->phi;
     p_fo->z[j] = p->z;
@@ -46,9 +46,6 @@ void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
     real rho_drho[4];
     real E[3];
     B_field_eval_rho_drho(rho_drho, p->r, p->phi, p->z, Bdata);
-    /* Convert partial derivative to gradient */
-    rho_drho[2] = rho_drho[2]/p->r;
-    E_field_eval_E(E, rho_drho, Edata);
 
     p_fo->B_r[j] = B[0];					  
     p_fo->B_phi[j] = B[1];				

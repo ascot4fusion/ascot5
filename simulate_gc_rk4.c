@@ -99,7 +99,7 @@ void simulate_gc_rk4(int id, int n_particles, particle* particles,
 
         /* Main simulation loop */
         do {
-            step_gc_rk4(&p, 0, sim.tstep, &sim.B_data, &sim.E_data);
+            step_gc_rk4(&p, &sim.tstep, &sim.B_data, &sim.E_data);
 
             #if COULOMBCOLL == 1
             orbsteps++;
@@ -110,7 +110,7 @@ void simulate_gc_rk4(int id, int n_particles, particle* particles,
             }
             #endif
 
-            endcond_check(&p, &sim);
+            endcond_check_gc(&p, &sim);
 
             dist_rzvv_update_gc(&sim.dist_data, &p, sim.tstep);
 

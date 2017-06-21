@@ -20,6 +20,8 @@
 #include "plasma_1d.h"
 #include "interact.h"
 #include "simulate.h"
+#include "simulate_fo_fixed.h"
+#include "simulate_gc_fixed.h"
 #include "simulate_gc_adaptive.h"
 #include "particle.h"
 #include "endcond.h"
@@ -159,10 +161,10 @@ int main(int argc, char** argv) {
          )
 //	simulate_gc_fixed(1, n_mic, p, sim, B_offload_array, E_offload_array,
 //			     plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
-        simulate_gc_adaptive(1, n_mic, p, sim, B_offload_array, E_offload_array,
-			     plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
-//	simulate_fo_fixed(1, n_mic, p, sim, B_offload_array, E_offload_array,
-//			  plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
+//      simulate_gc_adaptive(1, n_mic, p, sim, B_offload_array, E_offload_array,
+//			     plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
+	simulate_fo_fixed(1, n_mic, p, sim, B_offload_array, E_offload_array,
+			  plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
 
 #ifdef _OMP
         mic0_end = omp_get_wtime();
@@ -182,12 +184,12 @@ int main(int argc, char** argv) {
          plasma_offload_array[0:sim.plasma_offload_data.offload_array_length], \
             wall_offload_array[0:sim.wall_offload_data.offload_array_length] \
          )
-//	simulate_gc_fixed(1, n_mic, p, sim, B_offload_array, E_offload_array,
-//			     plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
-        simulate_gc_adaptive(2, n_mic, p+n_mic, sim, B_offload_array, E_offload_array,
-			     plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
-//	simulate_fo_fixed(1, n_mic, p, sim, B_offload_array, E_offload_array,
-//			  plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
+//	simulate_gc_fixed(2, n_mic, p+n_mic, sim, B_offload_array, E_offload_array,
+//			     plasma_offload_array, wall_offload_array, dist_offload_array_mic1);
+//      simulate_gc_adaptive(2, n_mic, p+n_mic, sim, B_offload_array, E_offload_array,
+//			     plasma_offload_array, wall_offload_array, dist_offload_array_mic1);
+	simulate_fo_fixed(1, n_mic, p, sim, B_offload_array, E_offload_array,
+			  plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
 #ifdef _OMP
         mic1_end = omp_get_wtime();
 #endif
@@ -198,12 +200,12 @@ int main(int argc, char** argv) {
 #ifdef _OMP
         host_start = omp_get_wtime();
 #endif
-//	simulate_gc_fixed(1, n_mic, p, sim, B_offload_array, E_offload_array,
-//			     plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
-        simulate_gc_adaptive(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
-			     plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
-//	simulate_fo_fixed(1, n_mic, p, sim, B_offload_array, E_offload_array,
-//			  plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
+//	simulate_gc_fixed(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
+//			     plasma_offload_array, wall_offload_array, dist_offload_array_host);
+//        simulate_gc_adaptive(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
+//			     plasma_offload_array, wall_offload_array, dist_offload_array_host);
+	simulate_fo_fixed(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
+			  plasma_offload_array, wall_offload_array, dist_offload_array_host);
 #ifdef _OMP
         host_end = omp_get_wtime();
 #endif

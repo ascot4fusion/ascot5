@@ -123,14 +123,13 @@ void phys_gctoprt(real R, real Phi, real Z, real v_para, real mu,
  * @param i particle index that is calculated
  * @param ydot output right hand side of the equations of motion in a
  *             5-length array (rdot, phidot, zdot, vpardot, mudot)
- * @param t time
  * @param yprev input coordinates in a 5-length array (r, phi, z, vpar, mu)
  * @param mass mass 
  * @param charge charge
  * @param B_dB magnetic field and derivatives at the guiding center location
  * @param E electric field at the guiding center location
  */
-inline void phys_eomgc(real* ydot, real t, real* y, real mass, real charge, real* B_dB, real* E) {
+inline void phys_eomgc(real* ydot, real* y, real mass, real charge, real* B_dB, real* E) {
 
     real gamma = phys_gammagcv(mass,y[3],y[4]);
     real B[3];

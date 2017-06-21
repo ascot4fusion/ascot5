@@ -86,6 +86,10 @@ typedef struct {
                                             particle position */
     real B_z[NSIMD] __memalign__;      /**< magnetic field z component at
                                             particle position */
+
+    real prev_r[NSIMD] __memalign__;      /**< previous r coordinate */
+    real prev_phi[NSIMD] __memalign__;    /**< previous phi coordinate */
+    real prev_z[NSIMD] __memalign__;      /**< previous z coordinate */
     integer index[NSIMD] __memalign__;
 } particle_simd_fo;
 
@@ -128,7 +132,7 @@ typedef struct {
 
 #pragma omp declare target
 void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
-                    B_field_data* Bdata, E_field_data* Edata);
+                    B_field_data* Bdata);
 void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
 void fo_to_particle(particle_simd_fo* p_fo, int j, particle* p);
 
