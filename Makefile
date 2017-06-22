@@ -60,6 +60,7 @@ HEADERS=ascot5.h B_GS.h math.h consts.h \
 		B_field.h E_field.h wall.h phys_orbit.h hdf5_bfield.h \
 		E_1D.h E_0D.h $(MCCCHEADERS) \
 		simulate_fo_fixed.h simulate_gc_fixed.h simulate_gc_adaptive.h \
+		simulate_ml_adaptive.h step_ml_cashkarp.h \
 		diag.h diag_orb.h
 
 OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
@@ -71,6 +72,7 @@ OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
 	step_gc_cashkarp.o phys_orbit.o hdf5_bfield.o \
 	E_1D.o E_0D.o $(MCCCOBJS) \
 	simulate_fo_fixed.o simulate_gc_fixed.o simulate_gc_adaptive.o \
+	simulate_ml_adaptive.o step_ml_cashkarp.o \
 	diag.o diag_orb.o
 
 BINS=test_math \

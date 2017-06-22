@@ -104,9 +104,9 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
             }
             #endif
 
+// These both need p_prev to be defined within this loop
 //            endcond_check_fo(&p, &sim);
-
-            dist_rzvv_update_fo(&sim.dist_data, &p, sim.tstep);
+//            dist_rzvv_update_fo(&sim.dist_data, &p, sim.tstep);
 
             /* update number of running particles */
             n_running = 0;

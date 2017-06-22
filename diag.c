@@ -34,6 +34,19 @@ void diag_update_fo(diag_data* d, particle_simd_fo* p_f, particle_simd_fo* p_i){
     }
 }
 
+void diag_update_ml(diag_data* d, particle_simd_ml* p_f, particle_simd_ml* p_i){
+    if(d->diag_orb_collect){
+	diag_orb_updateml(p_f, p_i, d->orbits);
+    }
+    if(d->diag_debug_collect){
+	
+    }
+    if(d->diag_dist4D_collect){
+	
+    }
+}
+
+
 void diag_write(diag_data* d){
     if(d->diag_orb_collect){
 	diag_orb_write(d->orbits);

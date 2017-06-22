@@ -110,9 +110,9 @@ void simulate_gc_rk4(int id, int n_particles, particle* particles,
             }
             #endif
 
-            endcond_check_gc(&p, &sim);
-
-            dist_rzvv_update_gc(&sim.dist_data, &p, sim.tstep);
+	    // These both need p_prev to be defined within this loop
+            //endcond_check_gc(&p, &sim);
+            //dist_rzvv_update_gc(&sim.dist_data, &p, sim.tstep);
 
             /* update number of running particles */
             n_running = 0;

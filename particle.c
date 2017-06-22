@@ -199,3 +199,66 @@ void gc_to_particle(particle_simd_gc* p_gc, int j, particle* p) {
     p->walltile = p_gc->walltile[j];
 }
 
+/**
+ * @brief Transforms particle struct into a magnetic field line simulation struct
+ *
+ * @param p     pointer to the particle being processed
+ * @param i     index
+ * @param p_ml  pointer to particle_simd_ml array
+ * @param j     index of the new ml struct in the SIMD array
+ * @param Bdata pointer to magnetic field data
+ * @param Edata pointer to electric field data
+ */
+void particle_to_ml(particle* p, int i, particle_simd_ml* p_ml, int j,
+                    B_field_data* Bdata){
+    p_ml->r[j] = p->r;
+    p_ml->phi[j] = p->phi;
+    p_ml->z[j] = p->z;
+    p_ml->distance[j] = p->time;
+    p_ml->id[j] = p->id; 
+    p_ml->running[j] = p->running;
+    p_ml->endcond[j] = p->endcond; 
+    p_ml->walltile[j] = p->walltile;
+
+    real B[3];
+    B_field_eval_B(B, p->r, p->phi, p->z, Bdata);
+    real rho_drho[4];
+    real E[3];
+    B_field_eval_rho_drho(rho_drho, p->r, p->phi, p->z, Bdata);
+
+    p_ml->B_r[j] = B[0];					  
+    p_ml->B_phi[j] = B[1];				
+    p_ml->B_z[j] = B[2];
+    p_ml->index[j] = i;
+}
+
+/**
+ * @brief Makes a dummy magnetic field line simulation struct
+ *
+ * @param p_fo  pointer to particle_simd_ml array
+ * @param j     index of the new ml struct in the SIMD array
+ */
+void particle_to_ml_dummy(particle_simd_ml* p_ml, int j){
+    p_ml->r[j] = 1;
+    p_ml->phi[j] = 1;
+    p_ml->z[j] = 1;
+    p_ml->distance[j] = 0;
+    p_ml->id[j] = -1; 
+    p_ml->running[j] = 0;
+    p_ml->endcond[j] = 0; 
+    p_ml->walltile[j] = 0;
+    p_ml->B_r[j] = 1;					  
+    p_ml->B_phi[j] = 1;				
+    p_ml->B_z[j] = 1;	        
+    p_ml->index[j] = -1;
+}
+
+void ml_to_particle(particle_simd_ml* p_ml, int j, particle* p) {
+    p->r = p_ml->r[j];
+    p->phi = p_ml->phi[j];
+    p->z = p_ml->z[j];
+    p->time = p_ml->distance[j];
+    p->running = p_ml->running[j];
+    p->endcond = p_ml->endcond[j];
+    p->walltile = p_ml->walltile[j];
+}

@@ -63,18 +63,40 @@ typedef struct diag_orb_folist{
     struct diag_orb_folist * prev;
 } diag_orb_folist;
 
+typedef struct{ 
+    int id[DIAG_ORB_SLOTS];
+    real distance[DIAG_ORB_SLOTS];
+    real r[DIAG_ORB_SLOTS];
+    real phi[DIAG_ORB_SLOTS];
+    real z[DIAG_ORB_SLOTS];
+
+    int size;
+} diag_orb_mlarray;
+
+typedef struct diag_orb_mllist{ 
+    int id;
+    real distance;
+    real r;
+    real phi;
+    real z;
+
+    struct diag_orb_mllist * prev;
+} diag_orb_mllist;
+
 typedef struct{
 
     /* Essentials */
     int storewhat;
     int islist;
-    int markertype;// 0: fo, 1: gc, 2: fl
+    int markertype;// 0: fo, 1: gc, 2: ml
 
     /* Data storage */
     diag_orb_gclist* gclist;
     diag_orb_gcarray* gcarray;
     diag_orb_folist* folist;
     diag_orb_foarray* foarray;
+    diag_orb_mllist* mllist;
+    diag_orb_mlarray* mlarray;
 
     /* Options */
     real writeInterval;
@@ -125,6 +147,26 @@ void diag_orb_poincarefo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_
 void diag_orb_orbitfo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_data* data, int* write);
 
 void diag_orb_updatefo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_data* data);
+
+void diag_orb_writeml(FILE* out, particle_simd_ml* p);
+
+void diag_orb_writemlarray(FILE* out, diag_orb_mlarray* w);
+
+void diag_orb_writemllist(FILE* out, diag_orb_mllist** w);
+
+void diag_orb_storemlarray(particle_simd_ml* p, diag_orb_mlarray* w, int* write);
+
+void diag_orb_storemllist(particle_simd_ml* p, diag_orb_mllist** winout, int* write);
+
+diag_orb_mlarray* diag_orb_initmlarray();
+
+diag_orb_mllist* diag_orb_initmllist();
+
+void diag_orb_poincareml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data, int* write);
+
+void diag_orb_orbitml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data, int* write);
+
+void diag_orb_updateml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data);
 
 void diag_orb_write(diag_orb_data* data);
 

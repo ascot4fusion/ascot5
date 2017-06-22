@@ -142,7 +142,7 @@ void simulate_gc_fixed(int id, int n_particles, particle* particles,
 		}
 	    }
 	    
-            endcond_check_gc(&p, &sim);
+            endcond_check_gc(&p, &p0, &sim);
 
 	    diag_update_gc(&sim.diag_data, &p, &p0);
 

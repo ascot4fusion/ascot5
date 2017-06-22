@@ -248,6 +248,125 @@ void diag_orb_updatefo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_da
     }
 }
 
+void diag_orb_writeml(FILE* out, particle_simd_ml* p){
+    fprintf(out, "%d, %le, %le, %le, %le\n",
+	    (int) p->id[0], p->distance[0], p->r[0], p->phi[0], p->z[0]);
+}
+
+void diag_orb_writemlarray(FILE* out, diag_orb_mlarray* w){
+    for(int i = 0; i < w->size; i++){
+	fprintf(out, "%d, %le, %le, %le, %le\n",
+		w->id[i], w->distance[i], w->r[i], w->phi[i], w->z[i]);
+    }
+}
+
+void diag_orb_writemllist(FILE* out, diag_orb_mllist** w){
+    diag_orb_mllist* temp;
+    while(*w != NULL){
+	fprintf(out, "%d, %le, %le, %le, %le\n",
+		(*w)->id, (*w)->distance, (*w)->r, (*w)->phi, (*w)->z);
+	temp = *w;
+	(*w) = (*w)->prev;
+	free(temp);
+    }
+}
+
+void diag_orb_storemlarray(particle_simd_ml* p, diag_orb_mlarray* w, int* write){
+    int size = w->size;
+    int i;
+    for(i=0; i < NSIMD; i=i+1){
+	if(write[i]){
+	    w->id[size]       = p->id[i];
+	    w->distance[size] = p->distance[i];
+	    w->r[size]        = p->r[i];
+	    w->phi[size]      = p->phi[i];
+	    w->z[size]        = p->z[i];
+	    size = size + 1;
+	}
+    }
+    w->size = size;
+}
+
+
+void diag_orb_storemllist(particle_simd_ml* p, diag_orb_mllist** winout, int* write){
+    diag_orb_mllist* w;
+    int i;
+    for(i=0; i < NSIMD; i=i+1){
+	if(write[i]){
+	    w = malloc(sizeof(diag_orb_mllist));
+	    w->id       = p->id[i];
+	    w->distance = p->distance[i];
+	    w->r        = p->r[i];
+	    w->phi      = p->phi[i];
+	    w->z        = p->z[i];
+	    w->prev     = *winout;
+	    *winout     = w;
+	}
+    }
+}
+
+diag_orb_mlarray* diag_orb_initmlarray(){
+    diag_orb_mlarray* w = malloc(sizeof(diag_orb_mlarray));
+    w->size = 0;
+    return w;
+}
+
+diag_orb_mllist* diag_orb_initmllist(){
+    return NULL;
+}
+
+void diag_orb_poincareml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data, int* write){
+    int i;
+    #pragma omp simd
+    for(i=0; i < NSIMD; i=i+1){
+	write[i] = (p_f->id[i] > 0) && (p_f->distance[i] != p_i->distance[i]) 
+	    && ( ( p_f->r[i] > 6.0 ) && ((p_f->z[i] > 0.02 && p_i->z[i] < 0.02)
+	|| (p_f->z[i] < 0.02 && p_i->z[i] > 0.02))
+	|| data->particleId[i] != p_f->id[i]);
+	if(write[i]) {
+	    data->particleId[i] = p_f->id[i];
+	}
+    }
+
+}
+
+void diag_orb_orbitml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data, int* write){
+    int i;
+    #pragma omp simd
+    for(i=0; i < NSIMD; i=i+1){
+	write[i] = (p_f->id[i] > 0) && (p_f->distance[i] != p_i->distance[i]) 
+	    && ( (fabs(p_f->distance[i] - data->lastWriteTime[i]) > data->writeInterval) 
+		 || data->particleId[i] != p_f->id[i]);
+	if(write[i]) {
+	    data->lastWriteTime[i] = p_f->distance[i];
+	    data->particleId[i] = p_f->id[i];
+	}
+    }
+}
+
+void diag_orb_updateml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data){
+   
+    int write[NSIMD];
+    switch(data->storewhat){
+	
+    case DIAG_ORB_ORBIT:
+	diag_orb_orbitml(p_f, p_i, data, write);
+	break;
+
+    case(DIAG_ORB_POINCARE):
+	diag_orb_poincareml(p_f, p_i, data, write);
+	break;
+    }
+
+
+    if(data->islist){
+	diag_orb_storemllist(p_f, &data->mllist, write);
+    }
+    else{
+	diag_orb_storemlarray(p_f, data->mlarray, write);
+    }
+}
+
 void diag_orb_write(diag_orb_data* data){
     if(data->markertype == 0) {
 	FILE* out = fopen("foorbits.test","w");
@@ -268,19 +387,32 @@ void diag_orb_write(diag_orb_data* data){
 	    diag_orb_writegcarray(out, data->gcarray);
 	}
     }
+
+    if(data->markertype == 2) {
+	FILE* out = fopen("mlorbits.test","w");
+	if(data->islist){
+	    diag_orb_writemllist(out, &data->mllist);
+	}
+	else{
+	    diag_orb_writemlarray(out, data->mlarray);
+	}
+    }
 }
 
 diag_orb_data* diag_orb_init(){
     diag_orb_data* data = malloc(sizeof(diag_orb_data));
 
-    data->storewhat = DIAG_ORB_ORBIT;
+    //data->storewhat = DIAG_ORB_ORBIT;
+    data->storewhat = DIAG_ORB_POINCARE;
     data->islist = 0;
-    data->markertype = 0;
-    data->writeInterval = 1.0e-8;
+    data->markertype = 2;
+    data->writeInterval = 1.0e-4;
     data->gclist = NULL;
     data->gcarray = NULL;
     data->folist = NULL;
     data->foarray = NULL;
+    data->mllist = NULL;
+    data->mlarray = NULL;
 
     if(data->markertype == 0) {
 	if(data->islist) {
@@ -290,13 +422,25 @@ diag_orb_data* diag_orb_init(){
 	    data->foarray = diag_orb_initfoarray();
 	}
     }
-    else {
+    else if(data->markertype == 1) {
 	if(data->islist) {
 	    data->gclist = diag_orb_initgclist();
 	}
 	else{
 	    data->gcarray = diag_orb_initgcarray();
 	}
+    }
+    else if(data->markertype == 2) {
+	if(data->islist) {
+	    data->mllist = diag_orb_initmllist();
+	}
+	else{
+	    data->mlarray = diag_orb_initmlarray();
+	}
+    }
+    else {
+	printf("\nUnknown marker type in diag_orb_data!\n");
+	exit(1);
     }
 
     for(int i=0; i < NSIMD; i++) {
@@ -331,6 +475,19 @@ void diag_orb_clean(diag_orb_data* data){
     
     if(data->foarray != NULL){
 	free(data->foarray);
+    }
+
+    if(data->mllist != NULL){
+	diag_orb_mllist* temp;
+	while(data->mllist != NULL){
+	    temp = data->mllist;
+	    data->mllist = data->mllist->prev;
+	    free(temp);
+	}
+    }
+    
+    if(data->mlarray != NULL){
+	free(data->mlarray);
     }
 
     free(data);

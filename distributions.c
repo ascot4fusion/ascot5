@@ -92,7 +92,7 @@ void dist_rzvv_init(dist_rzvv_data* dist_data,
  * @param dist pointer to distribution parameter struct
  * @param p pointer to SIMD particle struct
  */
-void dist_rzvv_update_fo(dist_rzvv_data* dist, particle_simd_fo* p, real dt) {
+void dist_rzvv_update_fo(dist_rzvv_data* dist, particle_simd_fo* p_f, particle_simd_fo* p_i) {
     real r[NSIMD];
     real vpara[NSIMD];
     real vperp[NSIMD];
@@ -105,24 +105,24 @@ void dist_rzvv_update_fo(dist_rzvv_data* dist, particle_simd_fo* p, real dt) {
 
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
-        i_r[i] = floor((p->r[i] - dist->min_r)
+        i_r[i] = floor((p_f->r[i] - dist->min_r)
             / ((dist->max_r - dist->min_r)/dist->n_r));
         if(i_r[i] < 0)
             i_r[i] = 0;
         if(i_r[i] > dist->n_r - 1)
             i_r[i] = dist->n_r - 1;
 
-        i_z[i] = floor((p->z[i] - dist->min_z)
+        i_z[i] = floor((p_f->z[i] - dist->min_z)
                 / ((dist->max_z - dist->min_z) / dist->n_z));
         if(i_z[i] < 0)
             i_z[i] = 0;
         if(i_z[i] > dist->n_z - 1)
             i_z[i] = dist->n_z - 1;
 
-	vpara[i] = (p->rdot[i] * p->B_r[i] + (p->phidot[i] * p->r[i]) * p->B_phi[i]
-		    + p->zdot[i] * p->B_z[i])
-	    / sqrt(p->B_r[i]*p->B_r[i]+p->B_phi[i]*p->B_phi[i]
-		   + p->B_z[i]*p->B_z[i]);
+	vpara[i] = (p_f->rdot[i] * p_f->B_r[i] + (p_f->phidot[i] * p_f->r[i]) * p_f->B_phi[i]
+		    + p_f->zdot[i] * p_f->B_z[i])
+	    / sqrt(p_f->B_r[i]*p_f->B_r[i]+p_f->B_phi[i]*p_f->B_phi[i]
+		   + p_f->B_z[i]*p_f->B_z[i]);
         i_vpara[i] = floor((vpara[i] - dist->min_vpara)
                 / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
         if(i_vpara[i] < 0)
@@ -130,8 +130,8 @@ void dist_rzvv_update_fo(dist_rzvv_data* dist, particle_simd_fo* p, real dt) {
         if(i_vpara[i] > dist->n_vpara - 1)
             i_vpara[i] = dist->n_vpara - 1;
 
-        vperp[i] = sqrt(p->rdot[i]*p->rdot[i] + (p->phidot[i]*p->phidot[i]*p->r[i]*p->r[i])
-                        + p->zdot[i]*p->zdot[i] - vpara[i]*vpara[i]);
+        vperp[i] = sqrt(p_f->rdot[i]*p_f->rdot[i] + (p_f->phidot[i]*p_f->phidot[i]*p_f->r[i]*p_f->r[i])
+                        + p_f->zdot[i]*p_f->zdot[i] - vpara[i]*vpara[i]);
         i_vperp[i] = floor((vperp[i] - dist->min_vperp)
                 / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
         if(i_vperp[i] < 0)
@@ -139,8 +139,8 @@ void dist_rzvv_update_fo(dist_rzvv_data* dist, particle_simd_fo* p, real dt) {
         if(i_vperp[i] > dist->n_vperp - 1)
             i_vperp[i] = dist->n_vperp - 1;
         
-        if(p->running[i]) {
-            weight[i] = p->weight[i] * dt;
+        if(p_f->running[i]) {
+            weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
         }
         else {
             weight[i] = 0;
@@ -167,7 +167,7 @@ void dist_rzvv_update_fo(dist_rzvv_data* dist, particle_simd_fo* p, real dt) {
  * @param dist pointer to distribution parameter struct
  * @param p pointer to SIMD particle struct
  */
-void dist_rzvv_update_gc(dist_rzvv_data* dist, particle_simd_gc* p, real dt) {
+void dist_rzvv_update_gc(dist_rzvv_data* dist, particle_simd_gc* p_f, particle_simd_gc* p_i) {
     real vperp[NSIMD];
     real weight[NSIMD];
     int i_r[NSIMD];
@@ -178,14 +178,14 @@ void dist_rzvv_update_gc(dist_rzvv_data* dist, particle_simd_gc* p, real dt) {
 
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
-        i_r[i] = floor((p->r[i] - dist->min_r)
+        i_r[i] = floor((p_f->r[i] - dist->min_r)
             / ((dist->max_r - dist->min_r)/dist->n_r));
         if(i_r[i] < 0)
             i_r[i] = 0;
         if(i_r[i] > dist->n_r - 1)
             i_r[i] = dist->n_r - 1;
 
-        i_z[i] = floor((p->z[i] - dist->min_z)
+        i_z[i] = floor((p_f->z[i] - dist->min_z)
                 / ((dist->max_z - dist->min_z) / dist->n_z));
         if(i_z[i] < 0)
             i_z[i] = 0;
@@ -193,16 +193,16 @@ void dist_rzvv_update_gc(dist_rzvv_data* dist, particle_simd_gc* p, real dt) {
             i_z[i] = dist->n_z - 1;
 
                    ;
-        i_vpara[i] = floor((p->vpar[i] - dist->min_vpara)
+        i_vpara[i] = floor((p_f->vpar[i] - dist->min_vpara)
                 / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
         if(i_vpara[i] < 0)
             i_vpara[i] = 0;
         if(i_vpara[i] > dist->n_vpara - 1)
             i_vpara[i] = dist->n_vpara - 1;
 
-        vperp[i] = sqrt(2 * sqrt(p->B_r[i]*p->B_r[i]+p->B_phi[i]*p->B_phi[i]
-                               +p->B_z[i]*p->B_z[i])
-                        * p->mu[i] / p->mass[i]);
+        vperp[i] = sqrt(2 * sqrt(p_f->B_r[i]*p_f->B_r[i]+p_f->B_phi[i]*p_f->B_phi[i]
+                               +p_f->B_z[i]*p_f->B_z[i])
+                        * p_f->mu[i] / p_f->mass[i]);
         i_vperp[i] = floor((vperp[i] - dist->min_vperp)
                 / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
         if(i_vperp[i] < 0)
@@ -210,8 +210,8 @@ void dist_rzvv_update_gc(dist_rzvv_data* dist, particle_simd_gc* p, real dt) {
         if(i_vperp[i] > dist->n_vperp - 1)
             i_vperp[i] = dist->n_vperp - 1;
         
-        if(p->running[i]) {
-            weight[i] = p->weight[i] * dt;
+        if(p_f->running[i]) {
+            weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
         }
         else {
             weight[i] = 0;
