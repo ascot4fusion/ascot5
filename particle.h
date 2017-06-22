@@ -34,6 +34,12 @@ typedef struct {
     integer walltile;  /**< id of walltile if particle hit the wall */
 } particle;
 
+typedef struct {
+    int n;
+    particle* p;
+    int next;
+} particle_queue_fo;
+
 /** @brief Struct representing a single guiding center in cylindrical
  *         coordinates
  */
@@ -54,6 +60,11 @@ typedef struct {
     integer walltile;  /**< id of walltile if particle hit the wall */
 } particle_gc;
 
+typedef struct {
+    int n;
+    particle_gc* p;
+    int next;
+} particle_queue_gc;
 
 typedef enum input_particle_type {
     input_particle_type_p, input_particle_type_gc
@@ -188,6 +199,10 @@ void particle_to_ml(particle* p, int i, particle_simd_ml* p_ml, int j,
 void particle_to_ml_dummy(particle_simd_ml* p_ml, int j);
 void ml_to_particle(particle_simd_ml* p_ml, int j, particle* p);
 
+int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
+                      B_field_data* Bdata);
+int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
+                      B_field_data* Bdata);
 #pragma omp end declare target
 
 #endif

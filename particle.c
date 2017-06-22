@@ -229,6 +229,49 @@ void gc_to_particle(particle_simd_gc* p_gc, int j, particle* p) {
     p->walltile = p_gc->walltile[j];
 }
 
+void particle_gc_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
+                    B_field_data* Bdata){
+    p_gc->r[j] = p->r;
+    p_gc->phi[j] = p->phi;
+    p_gc->z[j] = p->z;
+    p_gc->vpar[j] = p->vpar;
+    p_gc->mu[j] = p->mu;
+    p_gc->theta[j] = p->theta;
+    p_gc->mass[j] = p->mass;
+    p_gc->charge[j] = p->charge;
+    p_gc->weight[j] = p->weight;
+    p_gc->time[j] = p->time;
+    p_gc->id[j] = p->id;
+    p_gc->running[j] = p->running;
+    p_gc->endcond[j] = p->endcond;
+    p_gc->walltile[j] = p->walltile;
+
+    real B[3];
+    B_field_eval_B(B, p->r, p->phi, p->z, Bdata);
+    real rho_drho[4];
+    real E[3];
+    B_field_eval_rho_drho(rho_drho, p->r, p->phi, p->z, Bdata);
+
+    p_gc->B_r[j] = B[0];
+    p_gc->B_phi[j] = B[1];
+    p_gc->B_z[j] = B[2];
+    p_gc->index[j] = i;
+}
+
+void gc_to_particle_gc(particle_simd_gc* p_gc, int j, particle_gc* p) {
+    p->r = p_gc->r[j];
+    p->phi = p_gc->phi[j];
+    p->z = p_gc->z[j];
+    p->vpar = p_gc->vpar[j];
+    p->mu = p_gc->mu[j];
+    p->theta = p_gc->theta[j];
+    p->time = p_gc->time[j];
+    p->running = p_gc->running[j];
+    p->endcond = p_gc->endcond[j];
+    p->walltile = p_gc->walltile[j];
+}
+
+
 /**
  * @brief Transforms particle struct into a magnetic field line simulation struct
  *
@@ -291,4 +334,58 @@ void ml_to_particle(particle_simd_ml* p_ml, int j, particle* p) {
     p->running = p_ml->running[j];
     p->endcond = p_ml->endcond[j];
     p->walltile = p_ml->walltile[j];
+}
+
+int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
+                      B_field_data* Bdata) {
+    for(int i = 0; i < NSIMD; i++) {
+        if(!p->running[i]) {
+            if(p->id[i] >= 0) {
+                fo_to_particle(p, i, &q->p[p->index[i]]);
+            }
+            int i_prt;
+            #pragma omp critical
+            i_prt = q->next++;
+            if(i_prt < q->n) {
+                particle_to_fo(&q->p[i_prt], i_prt, p, i, Bdata);
+            }
+            else {
+                p->running[i] = 0;
+                p->id[i] = -1;
+            }
+        }
+    }
+
+    int n_running = 0;
+    #pragma omp simd reduction(+:n_running)
+    for(int i = 0; i < NSIMD; i++) {
+        n_running += p->running[i];
+    }
+}
+
+int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
+                      B_field_data* Bdata) {
+    for(int i = 0; i < NSIMD; i++) {
+        if(!p->running[i]) {
+            if(p->id[i] >= 0) {
+                gc_to_particle_gc(p, i, &q->p[p->index[i]]);
+            }
+            int i_prt;
+            #pragma omp critical
+            i_prt = q->next++;
+            if(i_prt < q->n) {
+                particle_gc_to_gc(&q->p[i_prt], i_prt, p, i, Bdata);
+            }
+            else {
+                p->running[i] = 0;
+                p->id[i] = -1;
+            }
+        }
+    }
+
+    int n_running = 0;
+    #pragma omp simd reduction(+:n_running)
+    for(int i = 0; i < NSIMD; i++) {
+        n_running += p->running[i];
+    }
 }
