@@ -156,7 +156,6 @@ void simulate_fo_fixed(int id, int n_particles, particle* particles,
 
                     fo_to_particle(&p, k, &particles[p.index[k]]);
 		    
-                    #pragma omp critical
                     i_prt = i_next_prt++;
                     if(i_prt < n_particles) {
 	                particle_to_fo(&particles[i_prt], i_prt, &p, k,

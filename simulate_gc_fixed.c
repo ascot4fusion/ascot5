@@ -155,7 +155,6 @@ void simulate_gc_fixed(int id, int n_particles, particle* particles,
 
                     gc_to_particle(&p, k, &particles[p.index[k]]);
 
-                    #pragma omp critical
                     i_prt = i_next_prt++;
                     if(i_prt < n_particles) {
                         particle_to_gc(&particles[i_prt], i_prt, &p, k,

@@ -239,7 +239,6 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 		        mccc_wiener_deallocate(wienarr[k]);
 	            #endif
 
-                    #pragma omp critical
                     i_prt = i_next_prt++;
                     if(i_prt < n_particles) {
                         particle_to_gc(&particles[i_prt], i_prt, &p, k,
