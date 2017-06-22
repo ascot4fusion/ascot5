@@ -58,7 +58,7 @@ HEADERS=ascot5.h B_GS.h math.h consts.h \
 		step_fo_vpa.h step_gc_cashkarp.h B_ST.h B_TC.h \
 		particle.h filip5.h endcond.h orbit_write.h \
 		B_field.h E_field.h wall.h phys_orbit.h hdf5_bfield.h \
-		E_1D.h E_0D.h $(MCCCHEADERS) \
+		E_1D.h $(MCCCHEADERS) \
 		simulate_fo_fixed.h simulate_gc_fixed.h simulate_gc_adaptive.h \
 		simulate_ml_adaptive.h step_ml_cashkarp.h \
 		diag.h diag_orb.h
@@ -70,7 +70,7 @@ OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
 	 simulate_gc_rk4.o wall_3d.o list.o octree.o hdf5_particlestate.o \
      particle.o endcond.o B_field.o E_field.o wall.o simulate.o orbit_write.o \
 	step_gc_cashkarp.o phys_orbit.o hdf5_bfield.o \
-	E_1D.o E_0D.o $(MCCCOBJS) \
+	E_1D.o $(MCCCOBJS) \
 	simulate_fo_fixed.o simulate_gc_fixed.o simulate_gc_adaptive.o \
 	simulate_ml_adaptive.o step_ml_cashkarp.o \
 	diag.o diag_orb.o
