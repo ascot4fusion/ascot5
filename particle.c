@@ -132,6 +132,36 @@ void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
     p_gc->index[j] = i;
 }
 
+void guiding_center_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
+                    B_field_data* Bdata) {
+    real B_dB[12];
+
+    p_gc->r[j] = p->r;
+    p_gc->phi[j] = p->phi;
+    p_gc->z[j] = p->z;
+    
+    real B[3];
+    B_field_eval_B(B, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);
+    p_gc->vpar[j] = p->vpar;
+    p_gc->mu[j] = p->mu;
+
+    //p_gc->theta[j] = 0atan2(math_norm(ezcrossrho), math_dot(ez, rho));
+    p_gc->theta[j] = p->theta; // Ill defined quantity
+/*    p_gc->theta[j] = acos(math_dot(ez, rho)
+                          / (math_norm(ez)*math_norm(rho))); */
+
+    p_gc->mass[j] = p->mass;
+    p_gc->charge[j] = p->charge;
+    p_gc->weight[j] = p->weight;
+    p_gc->time[j] = 0;
+    p_gc->id[j] = p->id;
+    p_gc->running[j] = p->running;
+    p_gc->B_r[j] = B[0];
+    p_gc->B_phi[j] = B[1];
+    p_gc->B_z[j] = B[2];
+    p_gc->index[j] = i;
+}
+
 void particle_to_gc_dummy(particle_simd_gc* p_gc, int j) {
     p_gc->r[j] = 1;
     p_gc->phi[j] = 1;

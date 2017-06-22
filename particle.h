@@ -54,6 +54,22 @@ typedef struct {
     integer walltile;  /**< id of walltile if particle hit the wall */
 } particle_gc;
 
+
+typedef enum input_particle_type {
+    input_particle_type_p, input_particle_type_gc
+} input_particle_type;
+
+/** @brief Struct representing either a particle or guiding center, including
+ *         its type.
+ */
+typedef struct {
+    input_particle_type type;
+    union {
+        particle p;
+        particle_gc p_gc;
+    };
+} input_particle;
+
 /** @brief Struct representing a group of NSIMD particles in full orbit
  *         cylindrical coordinates.
  *
@@ -133,6 +149,8 @@ void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
 void fo_to_particle(particle_simd_fo* p_fo, int j, particle* p);
 
 void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
+                    B_field_data* Bdata);
+void guiding_center_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
                     B_field_data* Bdata);
 void particle_to_gc_dummy(particle_simd_gc* p_gc, int j);
 void gc_to_particle(particle_simd_gc* p_gc, int j, particle* p);
