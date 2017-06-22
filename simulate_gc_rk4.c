@@ -99,20 +99,20 @@ void simulate_gc_rk4(int id, int n_particles, particle* particles,
 
         /* Main simulation loop */
         do {
-            step_gc_rk4(&p, 0, sim.tstep, &sim.B_data, &sim.E_data);
+            step_gc_rk4(&p, &sim.tstep, &sim.B_data, &sim.E_data);
 
             #if COULOMBCOLL == 1
             orbsteps++;
             if(orbsteps >= collstepdivisor) {
-                interact_step_gc_euler(&p[i], t, orbsteps*sim.tstep,
+                interact_step_gc_euler(&p, 0, orbsteps*sim.tstep,
                                        &sim.B_data, &sim.plasma_data);
                 orbsteps = 0;
             }
             #endif
 
-            endcond_check(&p, &sim);
-
-            dist_rzvv_update_gc(&sim.dist_data, &p, sim.tstep);
+	    // These both need p_prev to be defined within this loop
+            //endcond_check_gc(&p, &sim);
+            //dist_rzvv_update_gc(&sim.dist_data, &p, sim.tstep);
 
             /* update number of running particles */
             n_running = 0;

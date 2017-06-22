@@ -23,7 +23,7 @@
  * @param Bdata pointer to magnetic field data
  * @param Edata pointer to electric field data
  */
-void step_fo_vpa(particle_simd_fo* p, real t, real h, B_field_data* Bdata, E_field_data* Edata) {
+void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data* Edata) {
 
   int i;
   /* Following loop will be executed simultaneously for all i */
@@ -33,18 +33,19 @@ void step_fo_vpa(particle_simd_fo* p, real t, real h, B_field_data* Bdata, E_fie
 	    
       /* Take a half step and evaluate fields at that position */
       real xhalf[3];
-      xhalf[0]= p->r[i] + p->rdot[i]*h/2;
-      xhalf[1]= p->phi[i] + p->phidot[i]*h/2;
-      xhalf[2]= p->z[i] + p->zdot[i]*h/2;
+      xhalf[0]= p->r[i] + p->rdot[i]*h[i]/2;
+      xhalf[1]= p->phi[i] + p->phidot[i]*h[i]/2;
+      xhalf[2]= p->z[i] + p->zdot[i]*h[i]/2;
 	    
       real Brpz[3];
       real rho_drho[4];
       real Erpz[3];
       B_field_eval_B(Brpz, xhalf[0], xhalf[1], xhalf[2], Bdata);
       B_field_eval_rho_drho(rho_drho, xhalf[0], xhalf[1], xhalf[2], Bdata);
-            /* Convert partial derivative to gradient */
+      /* Convert partial derivative to gradient */
       rho_drho[2] = rho_drho[2]/xhalf[0];
       E_field_eval_E(Erpz, rho_drho, Edata);
+      
 
       /* Electromagnetic fields to cartesian coordinates */  
       real Bxyz[3];
@@ -55,7 +56,7 @@ void step_fo_vpa(particle_simd_fo* p, real t, real h, B_field_data* Bdata, E_fie
 
       /* Convert velocity to cartesian coordinates */
       real vxyz[3];
-      real vrpz[3] = {p->rdot[i], p->phidot[i]/p->r[i], p->zdot[i]};
+      real vrpz[3] = {p->rdot[i], p->phidot[i]*p->r[i], p->zdot[i]};
       math_vec_rpz2xyz(vrpz, vxyz, p->phi[i]);
 
       /* Positions to cartesian coordinates */
@@ -63,7 +64,7 @@ void step_fo_vpa(particle_simd_fo* p, real t, real h, B_field_data* Bdata, E_fie
       math_rpz2xyz(xhalf,pxyz);
 
       /* Precompute some values that will be used repeatedly */
-      real sigma = p->charge[i]*h/(2*p->mass[i]*CONST_C);
+      real sigma = p->charge[i]*h[i]/(2*p->mass[i]*CONST_C);
       real uminus[3];
       real g = (1/sqrt(1-math_dot(vxyz,vxyz)/CONST_C2))/CONST_C;
       uminus[0] = vxyz[0]*g + sigma*Exyz[0];
@@ -97,9 +98,9 @@ void step_fo_vpa(particle_simd_fo* p, real t, real h, B_field_data* Bdata, E_fie
       vxyz[1] = vxyz[1]/(g);
       vxyz[2] = vxyz[2]/(g);
 
-      pxyz[0] = pxyz[0] + h*vxyz[0]/2;
-      pxyz[1] = pxyz[1] + h*vxyz[1]/2;
-      pxyz[2] = pxyz[2] + h*vxyz[2]/2;
+      pxyz[0] = pxyz[0] + h[i]*vxyz[0]/2;
+      pxyz[1] = pxyz[1] + h[i]*vxyz[1]/2;
+      pxyz[2] = pxyz[2] + h[i]*vxyz[2]/2;
 
       /* Back to cylindrical coordinates */
       p->r[i] = sqrt(pxyz[0]*pxyz[0]+pxyz[1]*pxyz[1]);

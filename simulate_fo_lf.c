@@ -79,8 +79,7 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
             #pragma omp critical
             i_prt = i_next_prt++;
             if(i_prt < n_particles) {
-                particle_to_fo(&particles[i_prt], i_prt, &p, i, &sim.B_data,
-                    &sim.E_data);
+                particle_to_fo(&particles[i_prt], i_prt, &p, i, &sim.B_data);
             }
             else {
                 particle_to_fo_dummy(&p, i);
@@ -94,20 +93,20 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
 
         /* Main simulation loop */
         do {
-            step_fo_lf(&p, 0, sim.tstep, &sim.B_data);
+            //step_fo_lf(&p, 0, sim.tstep, &sim.B_data);
 
             #if COULOMBCOLL == 1
             orbsteps++;
             if(orbsteps == collstepdivisor) {
-                interact_step_fo_euler(&p[i], t, orbsteps*sim.tstep,
+                interact_step_fo_euler(&p, 0, orbsteps*sim.tstep,
                                        &sim.B_data, &sim.plasma_data);
                 orbsteps = 0;
             }
             #endif
 
+// These both need p_prev to be defined within this loop
 //            endcond_check_fo(&p, &sim);
-
-            dist_rzvv_update_fo(&sim.dist_data, &p, sim.tstep);
+//            dist_rzvv_update_fo(&sim.dist_data, &p, sim.tstep);
 
             /* update number of running particles */
             n_running = 0;
@@ -119,7 +118,7 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
                     i_prt = i_next_prt++;
                     if(i_prt < n_particles) {
                         particle_to_fo(&particles[i_prt], i_prt, &p, k,
-                            &sim.B_data, &sim.E_data);
+                            &sim.B_data);
                     }
                     else {
                         p.id[k] = -1;

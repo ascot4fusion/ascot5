@@ -57,8 +57,8 @@ void dist_rzvv_sum(dist_rzvv_offload_data* dist1, real* array1, real* array2);
 void dist_rzvv_init(dist_rzvv_data* dist_data,
                     dist_rzvv_offload_data* offload_data,
                     real* offload_array);
-void dist_rzvv_update_fo(dist_rzvv_data* dist, particle_simd_fo* p, real dt);
-void dist_rzvv_update_gc(dist_rzvv_data* dist, particle_simd_gc* p, real dt);
+void dist_rzvv_update_fo(dist_rzvv_data* dist, particle_simd_fo* p_f, particle_simd_fo* p_i);
+void dist_rzvv_update_gc(dist_rzvv_data* dist, particle_simd_gc* p_f, particle_simd_gc* p_i);
 #pragma omp end declare target
 
 #endif

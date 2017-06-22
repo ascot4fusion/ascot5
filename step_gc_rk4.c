@@ -26,7 +26,7 @@
  * @param Bdata pointer to magnetic field data
  * @param Edata pointer to electric field data
  */
-void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_field_data* Edata) {
+void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data* Edata) {
 
     int i;
     /* Following loop will be executed simultaneously for all i */
@@ -64,12 +64,12 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_fie
             /* Convert partial derivative to gradient */
             rho_drho[2] = rho_drho[2]/yprev[0];
 	    E_field_eval_E(E, rho_drho, Edata);
-            phys_eomgc(k1, t, yprev, mass, charge, B_dB, E);
+            phys_eomgc(k1, yprev, mass, charge, B_dB, E);
             int j;
             /* particle coordinates for the subsequent ydot evaluations are
              * stored in tempy */
             for(j = 0; j < 5; j++) {
-                tempy[j] = yprev[j] + h/2.0*k1[j];
+                tempy[j] = yprev[j] + h[i]/2.0*k1[j];
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
@@ -77,9 +77,9 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_fie
             /* Convert partial derivative to gradient */
             rho_drho[2] = rho_drho[2]/tempy[0];
 	    E_field_eval_E(E, rho_drho, Edata);
-            phys_eomgc(k2, t+h/2.0, tempy, mass, charge, B_dB, E);
+            phys_eomgc(k2, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 5; j++) {
-                tempy[j] = yprev[j] + h/2.0*k2[j];
+                tempy[j] = yprev[j] + h[i]/2.0*k2[j];
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
@@ -87,9 +87,9 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_fie
             /* Convert partial derivative to gradient */
             rho_drho[2] = rho_drho[2]/tempy[0];
 	    E_field_eval_E(E, rho_drho, Edata);
-            phys_eomgc(k3, t+h/2.0, tempy, mass, charge, B_dB, E);
+            phys_eomgc(k3, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 5; j++) {
-                tempy[j] = yprev[j] + h*k3[j];
+                tempy[j] = yprev[j] + h[i]*k3[j];
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
@@ -97,18 +97,16 @@ void step_gc_rk4(particle_simd_gc* p, real t, real h, B_field_data* Bdata, E_fie
             /* Convert partial derivative to gradient */
             rho_drho[2] = rho_drho[2]/tempy[0];
 	    E_field_eval_E(E, rho_drho, Edata);
-            phys_eomgc(k4, t+h, tempy, mass, charge, B_dB, E);
+            phys_eomgc(k4, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 5; j++) {
                 y[j] = yprev[j]
-                    + h/6.0 * (k1[j] + 2*k2[j] + 2*k3[j] + k4[j]);
+                    + h[i]/6.0 * (k1[j] + 2*k2[j] + 2*k3[j] + k4[j]);
             } 
 
             p->r[i] = y[0];
             p->phi[i] = y[1];
             p->z[i] = y[2];
             p->vpar[i] = y[3];
-
-            p->time[i] = p->time[i] + h;
 
             /* Update other particle parameters to be consistent */
             B_field_eval_B(B, y[0], y[1], y[2], Bdata);

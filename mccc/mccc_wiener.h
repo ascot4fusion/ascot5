@@ -25,16 +25,25 @@ typedef struct {
    real* wiener;
 } mccc_wienarr;
 
+#pragma omp declare target
+#pragma omp declare simd
 mccc_wienarr* mccc_wiener_allocate(int Ndim, int Nslots, real initime);
 
+#pragma omp declare simd
 void mccc_wiener_deallocate(mccc_wienarr* w);
 
+#pragma omp declare simd
 void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, int* err);
 
+#pragma omp declare simd
 void mccc_wiener_clean(mccc_wienarr* w, real t, int* err);
 
+#pragma omp declare simd
 void mccc_wiener_boxmuller(real* randVar, int Ndim);
 
+#pragma omp declare simd
 void mccc_wiener_error(int err);
+
+#pragma omp end declare target
 
 #endif

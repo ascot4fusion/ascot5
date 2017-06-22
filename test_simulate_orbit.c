@@ -33,8 +33,8 @@ int main(void) {
     E_field_init(&Edata, &offload_Edata, offload_array);
 
     real tstep[NSIMD];
-    tstep[0] = 1.e-10;
-    real tsimend = 1.e-6;
+    tstep[0] = 1.e-9;
+    real tsimend = 1.e-5;
 
     /* Init a bunch of identical test particles */
     particle p;
@@ -44,9 +44,9 @@ int main(void) {
     p.r = 8.01;
     p.phi = 0.0;
     p.z = 0.0;
-    p.v_r = 2.e4;
-    p.v_phi = 0.0;
-    p.v_z = 1.e4;
+    p.v_r = 2.e6;
+    p.v_phi = 1.e6;
+    p.v_z = 1.e6;
     p.mass = 6.6447e-27;
     p.charge = 1.6022e-19;
     p.weight = 1;
@@ -58,6 +58,7 @@ int main(void) {
     FILE* f_guidingcenter = fopen("orbits_guidingcenter.test","w");
 
     /* Test leap-frog */
+/*
     p.id = 1;
     p.time = 0.0;
     particle_to_fo(&p, 0, &p_fo, 0, &Bdata, &Edata);
@@ -69,8 +70,10 @@ int main(void) {
 	write_fo_as_particle(f_particle, &p_fo);
 	write_fo_as_guidingcenter(f_guidingcenter, &p_fo, &Bdata);
     }
+*/
 
     /* Test volume-preserving algorithm */
+
     p.id = 2;
     p.time = 0.0;
     particle_to_fo(&p, 0, &p_fo, 0, &Bdata, &Edata);
@@ -84,6 +87,7 @@ int main(void) {
     }
 
     /* Test RK4 */
+/*
     p.id = 3;
     p.time = 0.0;
     particle_to_gc(&p, 0, &p_gc, 0, &Bdata);
@@ -93,8 +97,9 @@ int main(void) {
 	//p_gc.time[0] += tstep[0];
 	write_gc_as_guidingcenter(f_guidingcenter, &p_gc);
     }
-
+*/
     /* Test Cash-Karp */
+/*
     real tol = 1.0;
     real tnext[NSIMD];
     p.id = 4;
@@ -106,7 +111,7 @@ int main(void) {
 	//p_gc.time[0] += tstep[0];
 	write_gc_as_guidingcenter(f_guidingcenter, &p_gc);
     }
-    
+    */
   
     /* Done! Close files and clean */
     fclose(f_particle);

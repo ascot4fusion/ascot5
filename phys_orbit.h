@@ -76,7 +76,7 @@ void phys_gctoprt(real R, real Phi, real Z, real v_para, real mu,
 #pragma omp declare simd
 void phys_eomprt();
 #pragma omp declare simd
-void phys_eomgc(real* ydot, real t, real* y, real mass, real charge, real* B_dB, real* E);
+void phys_eomgc(real* ydot, real* y, real mass, real charge, real* B_dB, real* E);
 #pragma omp end declare target
 
 #endif
