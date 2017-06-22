@@ -276,49 +276,53 @@ void B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
 }
 
 real B_field_get_axis_r(B_field_data* Bdata) {
+    real axis_r = 0;
     switch(Bdata->type) {
         case B_field_type_GS:
-        B_GS_get_axis_r(&(Bdata->BGS));
+        axis_r = B_GS_get_axis_r(&(Bdata->BGS));
         break;
 
         case B_field_type_2D:
-        B_2D_get_axis_r(&(Bdata->B2D));
+        axis_r = B_2D_get_axis_r(&(Bdata->B2D));
         break;
 
         case B_field_type_3D:
-        B_3D_get_axis_r(&(Bdata->B3D));
+        axis_r = B_3D_get_axis_r(&(Bdata->B3D));
         break;
 
         case B_field_type_ST:
-        B_ST_get_axis_r(&(Bdata->BST));
+        axis_r = B_ST_get_axis_r(&(Bdata->BST));
         break;
 
 	case B_field_type_TC:
-        B_TC_get_axis_r(&(Bdata->BTC));
+        axis_r = B_TC_get_axis_r(&(Bdata->BTC));
         break;
     }
+    return axis_r;
 }
 
 real B_field_get_axis_z(B_field_data* Bdata) {
+    real axis_z = 0;
     switch(Bdata->type) {
         case B_field_type_GS:
-        B_GS_get_axis_z(&(Bdata->BGS));
+        axis_z = B_GS_get_axis_z(&(Bdata->BGS));
         break;
 
         case B_field_type_2D:
-        B_2D_get_axis_z(&(Bdata->B2D));
+        axis_z = B_2D_get_axis_z(&(Bdata->B2D));
         break;
 
         case B_field_type_3D:
-        B_3D_get_axis_z(&(Bdata->B3D));
+        axis_z = B_3D_get_axis_z(&(Bdata->B3D));
         break;
 
         case B_field_type_ST:
-        B_ST_get_axis_z(&(Bdata->BST));
+        axis_z = B_ST_get_axis_z(&(Bdata->BST));
         break;
 
 	case B_field_type_TC:
-        B_TC_get_axis_z(&(Bdata->BTC));
+        axis_z = B_TC_get_axis_z(&(Bdata->BTC));
         break;
     }
+    return axis_z;
 }
