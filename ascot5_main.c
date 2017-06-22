@@ -104,7 +104,7 @@ int main(int argc, char** argv) {
     #endif
 
     int n;
-    particle* p;
+    input_particle* p;
     ascot4_read_particles(&p, &n, "input.particles");
 
     char filename[256];

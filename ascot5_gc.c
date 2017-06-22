@@ -100,10 +100,11 @@ int main(int argc, char** argv) {
     printf("Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
     #endif
 
+    
     int n;
-    particle* p;
+    input_particle* p;
     ascot4_read_particles(&p, &n, "input.particles");
-
+    
     char filename[256];
     if(mpi_size == 1) {
         sprintf(filename, "ascot.h5");
@@ -111,12 +112,13 @@ int main(int argc, char** argv) {
     else {
         sprintf(filename, "ascot_%06d.h5", mpi_rank);
     }
+    
     ascot4_write_inistate(n, p, filename);
 
     #if VERBOSE >= 1
     printf("Read %d particles.\n", n);
     #endif
-
+    
     int start_index = mpi_rank * (n / mpi_size);
     p += start_index;
 

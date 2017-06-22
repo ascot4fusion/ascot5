@@ -78,7 +78,7 @@ void ascot4_write_B(B_field_data* Bdata) {
  */
 void ascot4_write_particles(particle* p, int n, char* filename, 
                             char* comment) {
-    int i, j;
+    int i;
     FILE* f = fopen(filename, "w");
 
     fprintf(f, " PARTICLE INITIAL DATA FOR ASCOT\n");
@@ -147,8 +147,8 @@ void ascot4_write_particles(particle* p, int n, char* filename,
  * @param n number of particle groups
  * @param filename name of the input file
  */
-void ascot4_read_particles(particle** p, int *n, char* filename) {
-    int i, j, k;
+void ascot4_read_particles(input_particle** p, int *n, char* filename) {
+    int i, j;
 
     FILE* f = fopen(filename, "r");
 
@@ -171,7 +171,7 @@ void ascot4_read_particles(particle** p, int *n, char* filename) {
     /* Read number of particles */
     fscanf(f, "%d", n);
 
-    *p = (particle*) malloc(*n * sizeof(particle));
+    *p = (input_particle*) malloc(*n * sizeof(input_particle));
 
     while(fgetc(f) != '\n');
     while(fgetc(f) != '\n');
@@ -188,6 +188,11 @@ void ascot4_read_particles(particle** p, int *n, char* filename) {
     int i_vR = -1;
     int i_vphi = -1;
     int i_vz = -1;
+    int i_R = -1;
+    int i_phi = -1;
+    int i_z = -1;
+    int i_vpar = -1;
+    int i_mu = -1;
     int i_mass = -1;
     int i_charge = -1;
     int i_weight = -1;
@@ -208,6 +213,16 @@ void ascot4_read_particles(particle** p, int *n, char* filename) {
             i_vphi = i;
         else if(!strcmp(field_name, "vz        "))
             i_vz = i;
+        else if(!strcmp(field_name, "R         "))
+            i_R = i;
+        else if(!strcmp(field_name, "phi       "))
+            i_phi = i;
+        else if(!strcmp(field_name, "z         "))
+            i_z = i;
+        else if(!strcmp(field_name, "vpar      "))
+            i_vpar = i;
+        else if(!strcmp(field_name, "mu        "))
+            i_mu = i;
         else if(!strcmp(field_name, "mass      "))
             i_mass = i;
         else if(!strcmp(field_name, "charge    "))
@@ -219,28 +234,49 @@ void ascot4_read_particles(particle** p, int *n, char* filename) {
         while(fgetc(f) != '\n');
     }
     while(fgetc(f) != '\n');
-
+    
     /* Read all the fields in an array and fill the particle struct with
      * some of the fields */
     real* fields = (real*) malloc(num_fields * sizeof(real));
-    for(i = 0; i < *n; i++) {
-        for(k = 0; k < num_fields; k++) {
-            fscanf(f, "%lf", &fields[k]);
+    if (i_Rprt == -1) {
+        for(i = 0; i < *n; i++) {
+            for(j = 0; j < num_fields; j++) {
+                fscanf(f, "%lf", &fields[j]);
+            }
+            (*p)[i].p_gc.r = fields[i_R];
+            (*p)[i].p_gc.phi = fields[i_phi] * math_pi / 180;
+            (*p)[i].p_gc.z = fields[i_z];
+            (*p)[i].p_gc.vpar = fields[i_vpar];
+            (*p)[i].p_gc.mu = fields[i_mu];
+            (*p)[i].p_gc.mass = fields[i_mass] * CONST_U;
+            (*p)[i].p_gc.charge = fields[i_charge] * CONST_E;
+            (*p)[i].p_gc.weight = fields[i_weight];
+            (*p)[i].p_gc.id = (integer) fields[i_id];
+            (*p)[i].p_gc.running = 1;
+            (*p)[i].type = input_particle_type_gc;
         }
-        (*p)[i].r = fields[i_Rprt];
-        (*p)[i].phi = fields[i_phiprt] * math_pi / 180;
-        (*p)[i].z = fields[i_zprt];
-        (*p)[i].v_r = fields[i_vR];
-        (*p)[i].v_phi = fields[i_vphi];
-        (*p)[i].v_z = fields[i_vz];
-        (*p)[i].mass = fields[i_mass] * CONST_U;
-        (*p)[i].charge = fields[i_charge] * CONST_E;
-        (*p)[i].weight = fields[i_weight];
-        (*p)[i].id = (integer) fields[i_id];
-        (*p)[i].running = 1;
+    }
+    else {
+        for(i = 0; i < *n; i++) {
+            for(j = 0; j < num_fields; j++) {
+                fscanf(f, "%lf", &fields[j]);
+            }
+            (*p)[i].p.r = fields[i_Rprt];
+            (*p)[i].p.phi = fields[i_phiprt] * math_pi / 180;
+            (*p)[i].p.z = fields[i_zprt];
+            (*p)[i].p.v_r = fields[i_vR];
+            (*p)[i].p.v_phi = fields[i_vphi];
+            (*p)[i].p.v_z = fields[i_vz];
+            (*p)[i].p.mass = fields[i_mass] * CONST_U;
+            (*p)[i].p.charge = fields[i_charge] * CONST_E;
+            (*p)[i].p.weight = fields[i_weight];
+            (*p)[i].p.id = (integer) fields[i_id];
+            (*p)[i].p.running = 1;
+            (*p)[i].type = input_particle_type_p;
+        }
     }
     free(fields);
-
+    
     fclose(f);
 }
 
@@ -316,12 +352,12 @@ void ascot4_write_dist_rzvv(dist_rzvv_offload_data* dist, real* hist,
 			         );
 }
 
-void ascot4_write_inistate(int n, particle* p, char* filename) {
+void ascot4_write_inistate(int n, input_particle* p, char* filename) {
     hid_t f = hdf5_create(filename);
     hdf5_particlestate_write(f, "inistate", n, p);
 }
 
-void ascot4_write_endstate(int n, particle* p, char* filename) {
+void ascot4_write_endstate(int n, input_particle* p, char* filename) {
     hid_t f = hdf5_open(filename);
     hdf5_particlestate_write(f, "endstate", n, p);
 }
