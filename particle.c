@@ -361,6 +361,8 @@ int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
     for(int i = 0; i < NSIMD; i++) {
         n_running += p->running[i];
     }
+
+    return n_running;
 }
 
 int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
@@ -388,4 +390,6 @@ int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
     for(int i = 0; i < NSIMD; i++) {
         n_running += p->running[i];
     }
+
+    return n_running;
 }
