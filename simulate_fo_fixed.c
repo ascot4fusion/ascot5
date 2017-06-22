@@ -150,12 +150,12 @@ void simulate_fo_fixed(int id, int n_particles, particle* particles,
             /* update number of running particles */
             n_running = 0;
             int k;
-            #pragma omp simd
             for(k = 0; k < NSIMD; k++) {
                 if( !p.running[k] && p.id[k] >= 0) {
 
                     fo_to_particle(&p, k, &particles[p.index[k]]);
-		    
+                    
+                    #pragma omp critical
                     i_prt = i_next_prt++;
                     if(i_prt < n_particles) {
 	                particle_to_fo(&particles[i_prt], i_prt, &p, k,
