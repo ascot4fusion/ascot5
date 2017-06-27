@@ -127,13 +127,13 @@ void simulate_fo_fixed(int id, int n_particles, particle* particles,
 	    
 	    
 	    
-            #if ORBITFOLLOWING == 1
+            if(sim.enable_orbfol) {
 	        step_fo_vpa(&p, hin, &sim.B_data, &sim.E_data);
-            #endif
+	    }
 
-            #if COULOMBCOLL == 1
+            if(sim.enable_clmbcol) {
 	        mccc_step_fo_fixed(&p, &sim.B_data, &sim.plasma_data, hin, err);
-            #endif
+            }
  
 
             #pragma omp simd

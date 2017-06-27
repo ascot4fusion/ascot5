@@ -1,7 +1,7 @@
 
 /**
- * @file ascot5_gc.c
- * @brief ASCOT5 with guiding center orbit following
+ * @file ascot5_main.c
+ * @brief ASCOT5
  */
 #include <getopt.h>
 #include <math.h>
@@ -27,8 +27,11 @@
 #include "particle.h"
 #include "endcond.h"
 #include "hdf5_histogram.h"
+#include "hdf5_input.h"
 
 int read_options(int argc, char** argv, sim_offload_data* sim);
+
+void readArgs(int argc, char** argv, sim_offload_data* sim);
 
 int main(int argc, char** argv) {
     /* Prepare simulation parameters and data for offload */
@@ -40,28 +43,8 @@ int main(int argc, char** argv) {
     real* dist_offload_array_mic0;
     real* dist_offload_array_mic1;
     real* dist_offload_array_host;
-
-    /* Default values */
-    sim.tstep = 1e-8;
-    sim.tcollstep = 1e-6;
-    sim.trstep = 1e-5;
-    sim.tmax = 1.0e3;
-    sim.active_endcond = endcond_tmax | endcond_emin | endcond_therm | endcond_wall | endcond_rhomax;
-    sim.emin = -1e4*CONST_E;
-    sim.dist_offload_data.n_r = 20;
-    sim.dist_offload_data.min_r = 3;
-    sim.dist_offload_data.max_r = 8.5;
-    sim.dist_offload_data.n_z = 40;
-    sim.dist_offload_data.min_z = -4.25;
-    sim.dist_offload_data.max_z = 3.6;
-    sim.dist_offload_data.n_vpara = 25;
-    sim.dist_offload_data.min_vpara = -1.5e7;
-    sim.dist_offload_data.max_vpara = 1.5e7;
-    sim.dist_offload_data.n_vperp = 35;
-    sim.dist_offload_data.min_vperp = 0;
-    sim.dist_offload_data.max_vperp = 0;
-
-    read_options(argc, argv, &sim);
+    sprintf(sim.hdf5fn, "ascot.h5");// TODO read me from command line
+    hdf5_input(&sim);
 
     B_field_init_offload(&sim.B_offload_data, &B_offload_array);
     #if VERBOSE >= 1
@@ -98,7 +81,7 @@ int main(int argc, char** argv) {
     mpi_rank = 0;
     mpi_size = 1;
     #endif
-
+    
     #if VERBOSE >= 1
     printf("Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
     #endif
@@ -139,7 +122,7 @@ int main(int argc, char** argv) {
     #endif
 
     double mic0_start, mic0_end, mic1_start, mic1_end, host_start, host_end;
-
+    
     fflush(stdout);
 #ifdef _OMP
     omp_set_nested(1);
@@ -190,9 +173,9 @@ int main(int argc, char** argv) {
 //			     plasma_offload_array, wall_offload_array, dist_offload_array_mic1);
 //      simulate_gc_adaptive(2, n_mic, p+n_mic, sim, B_offload_array, E_offload_array,
 //			     plasma_offload_array, wall_offload_array, dist_offload_array_mic1);
-//	simulate_fo_fixed(1, n_mic, p, sim, B_offload_array, E_offload_array,
+//	simulate_fo_fixed(1, n_mic, p+n_mic, sim, B_offload_array, E_offload_array,
 //			  plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
-	simulate_ml_adaptive(1, n_mic, p, sim, B_offload_array, E_offload_array,
+	simulate_ml_adaptive(1, n_mic, p+n_mic, sim, B_offload_array, E_offload_array,
 			    plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
 #ifdef _OMP
         mic1_end = omp_get_wtime();
@@ -206,12 +189,12 @@ int main(int argc, char** argv) {
 #endif
 //	simulate_gc_fixed(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
 //			     plasma_offload_array, wall_offload_array, dist_offload_array_host);
-//        simulate_gc_adaptive(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
-//			     plasma_offload_array, wall_offload_array, dist_offload_array_host);
+        simulate_gc_adaptive(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
+			     plasma_offload_array, wall_offload_array, dist_offload_array_host);
 //	simulate_fo_fixed(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
 //			  plasma_offload_array, wall_offload_array, dist_offload_array_host);
-	simulate_ml_adaptive(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
-			    plasma_offload_array, wall_offload_array, dist_offload_array_host);
+//	simulate_ml_adaptive(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
+//			    plasma_offload_array, wall_offload_array, dist_offload_array_host);
 #ifdef _OMP
         host_end = omp_get_wtime();
 #endif
@@ -252,6 +235,11 @@ int main(int argc, char** argv) {
     return 0;
 }
 
+void readArgs(int argc, char** argv, sim_offload_data* sim) {
+    // Only filename for hdf5 input is expected
+    
+}
+	
 int read_options(int argc, char** argv, sim_offload_data* sim) {
     struct option longopts[] = {
         {"dt", required_argument, 0, 1},
@@ -265,16 +253,16 @@ int read_options(int argc, char** argv, sim_offload_data* sim) {
     while((c = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch(c) {
             case 1:
-                sim->tstep = atof(optarg);
+                //sim->tstep = atof(optarg);
                 break;
             case 2:
-                sim->tcollstep = atof(optarg);
+                //sim->tcollstep = atof(optarg);
                 break;
             case 3:
-                sim->trstep = atof(optarg);
+                //sim->trstep = atof(optarg);
                 break;
             case 4:
-                sim->tmax = atof(optarg);
+                //sim->tmax = atof(optarg);
                 break;
         }
     }

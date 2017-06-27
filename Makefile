@@ -61,7 +61,8 @@ HEADERS=ascot5.h B_GS.h math.h consts.h \
 		E_1D.h $(MCCCHEADERS) \
 		simulate_fo_fixed.h simulate_gc_fixed.h simulate_gc_adaptive.h \
 		simulate_ml_adaptive.h step_ml_cashkarp.h \
-		diag.h diag_orb.h
+		diag.h diag_orb.h \
+		hdf5_input.h hdf5_simulate.h
 
 OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
      wall_2d.o distributions.o B_2D.o B_ST.o B_TC.o  \
@@ -73,7 +74,8 @@ OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
 	E_1D.o $(MCCCOBJS) \
 	simulate_fo_fixed.o simulate_gc_fixed.o simulate_gc_adaptive.o \
 	simulate_ml_adaptive.o step_ml_cashkarp.o \
-	diag.o diag_orb.o
+	diag.o diag_orb.o \
+	hdf5_input.o hdf5_simulate.o
 
 BINS=test_math \
 	 test_wall_2d test_ascot4_interface test_plasma_1d \
