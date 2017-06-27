@@ -60,17 +60,17 @@ int main(int argc, char** argv) {
     #if VERBOSE >= 1
     printf("Initialized wall, %.1f MB.\n", sim.wall_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
     #endif
-
+    
     #ifndef NOTARGET
-    dist_rzvv_init_offload(&sim.dist_offload_data, &dist_offload_array_mic0);
-    dist_rzvv_init_offload(&sim.dist_offload_data, &dist_offload_array_mic1);
+    dist_rzvv_init_offload(&sim.diag_offload_data.dist4D, &dist_offload_array_mic0);
+    dist_rzvv_init_offload(&sim.diag_offload_data.dist4D, &dist_offload_array_mic1);
     #else
-    dist_rzvv_init_offload(&sim.dist_offload_data, &dist_offload_array_host);
+    dist_rzvv_init_offload(&sim.diag_offload_data.dist4D, &dist_offload_array_host);
     #endif
     #if VERBOSE >= 1
     printf("Initialized RZVV dist, %.1f MB.\n", sim.dist_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
     #endif
-
+    
     int mpi_rank, mpi_size;
     #ifdef MPI
     MPI_Status status;
