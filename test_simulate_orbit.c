@@ -69,7 +69,6 @@ int main(void) {
 	p_fo.time[0] += tstep[0];
 	write_fo_as_particle(f_particle, &p_fo);
 	write_fo_as_guidingcenter(f_guidingcenter, &p_fo, &Bdata);
-        
     }
 */
 
