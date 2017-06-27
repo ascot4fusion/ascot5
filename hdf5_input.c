@@ -62,6 +62,7 @@ int hdf5_input(sim_offload_data* sim){
 	return -1;
     }
 
+    err = hdf5_bfield_init_offload(f,&(sim->B_offload_data));
     if(err < 0) {
 	printf("\nError: Failed to initialize magnetic field from %s.\n",sim->hdf5fn);
 	return -1;

@@ -27,7 +27,8 @@
  * @param offload_array pointer to pointer to offload array
  */
 void B_ST_init_offload(B_ST_offload_data* offload_data, real** offload_array) {
-    hdf5_bfield_init_offload_ST(offload_data, offload_array);
+    hid_t f = hdf5_open("input.h5");    
+    hdf5_bfield_init_offload_ST(f, offload_data, offload_array);
 }
 
 /**
