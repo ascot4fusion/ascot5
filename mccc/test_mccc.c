@@ -24,7 +24,6 @@ void mccc_initdist(int nbin, real* dist){
 void mccc_updatedist(real val, real dt, real xmin, real xmax, int nbin, real* dist){
     real dx = (xmax-xmin)/nbin;
     int bin = floor((val-xmin)/dx);
-
     if(bin >= nbin){bin=nbin-1;};
     dist[bin] = dist[bin] + dt;
 }
@@ -33,6 +32,13 @@ void mccc_writedist(FILE* fn, real xmin, real xmax, int nbin, real* distA, real*
     real dx = (xmax-xmin)/nbin;
     for(int i=0; i<nbin; i=i+1){
 	fprintf(fn,"%g %g %g %g\n",xmin+dx*i,distA[i],distB[i],distC[i]);
+    }
+}
+
+void mccc_writeonedist(FILE* fn, real xmin, real xmax, int nbin, real* dist){
+    real dx = (xmax-xmin)/nbin;
+    for(int i=0; i<nbin; i=i+1){
+	fprintf(fn,"%g %g\n",xmin+dx*i,dist[i]);
     }
 }
 
@@ -65,11 +71,22 @@ void mccc_push_test(){
     int Ethnbin = 1000;
     real Esdmin=0,Esdmax=1.5e6;
     int Esdnbin = 100;
+    real ximin=-1,ximax=1;
+    int xibin = 50;
+    real rmin=0,rmax=0.1;
+    int rbin = 50;
+    real Dmin=0,Dmax=0.005;
+    int Dbin = 50;
     real* distA;
     real* distB;
     real* distC;
+    real* distxi;
+    real* distr;
+    real* distD;
 
-    real Ekin, pitch;
+    real Ekin, pitch, r, D;
+
+ 
 
     srand48(1);
 
@@ -85,12 +102,18 @@ void mccc_push_test(){
     distA = malloc(Ethnbin*sizeof(real));
     distB = malloc(Ethnbin*sizeof(real));
     distC = malloc(Ethnbin*sizeof(real));
+    distxi = malloc(xibin*sizeof(real));
+    distr = malloc(rbin*sizeof(real));
+    distD = malloc(Dbin*sizeof(real));
 
     mccc_initdist(Ethnbin,distA);
     mccc_initdist(Ethnbin,distB);
     mccc_initdist(Ethnbin,distC);
+    mccc_initdist(xibin,distxi);
+    mccc_initdist(rbin,distr);
+    mccc_initdist(Dbin,distD);
 
-    for(mode=0; mode<2; mode=mode+1){
+    for(mode=1; mode<2; mode=mode+1){
 
 	// Options
 	tmax = 1e-1;
@@ -105,7 +128,7 @@ void mccc_push_test(){
 	vin[2] = sqrt(2*Tb[0]/ma);
 
 	vgcin = math_norm(vin);
-	xiin = (math_dot(vin,B))/(math_norm(vin)*math_norm(B));
+	xiin = 0;// 1.0-2*drand48();//pitch = [-1,1]
 	Xin[0] = 0;
 	Xin[1] = 0;
 	Xin[2] = 0;
@@ -164,9 +187,9 @@ void mccc_push_test(){
 		    Dpara=Dpara+Dparab[i];
 		    DX=DX+DXb[i];
 		}
-		rndgc[0] = 2*(drand48() > 0.5)-1.0;
-		rndgc[1] = 2*(drand48() > 0.5)-1.0;
-		rndgc[2] = 2*(drand48() > 0.5)-1.0;
+		rndgc[0] = 1-2*drand48();//2*(drand48() > 0.5)-1.0;
+		rndgc[1] = 1-2*drand48();//2*(drand48() > 0.5)-1.0;
+		rndgc[2] = 1-2*drand48();//2*(drand48() > 0.5)-1.0;
 		rndgc[3] = 2*(drand48() > 0.5)-1.0;
 		rndgc[4] = 2*(drand48() > 0.5)-1.0;
 		Ekin = 0.5*ma*vgcout*vgcout/q;
@@ -178,13 +201,18 @@ void mccc_push_test(){
 
 		// Update distributions
 		Ekin = 0.5*ma*vgcin*vgcin/q;
+		r = sqrt(pow(Xin[1],2)+pow(Xin[2],2))/dt;
+		D = (pow(Xin[1]-Xout[1],2)+pow(Xin[2]-Xout[2],2))/(2*dt);
 		mccc_updatedist(Ekin,dt,Ethmin,Ethmax,Ethnbin,distB);
-
+		mccc_updatedist(xiin,dt,ximin,ximax,xibin,distxi);
+		mccc_updatedist(r,dt,rmin,rmax,rbin,distr);
+		mccc_updatedist(D,dt,Dmin,Dmax,Dbin,distD);
+		
 		Xin[0] = Xout[0];
 		Xin[1] = Xout[1];
 		Xin[2] = Xout[2];
-		vgcin = vgcout;
-		xiin = xiiout;
+		//vgcin = vgcout;
+		//xiin = xiiout;
 		break;
 	    case 2 :
 		// Update coefficients
@@ -232,14 +260,26 @@ void mccc_push_test(){
 	    tprt = tprt+dt;
 	}
     }
-
+    
     // Write distributions
     FILE* fn_th = fopen("mccc_push_thermal.test","w");
     mccc_writedist(fn_th,Ethmin,Ethmax,Ethnbin,distA,distB,distC);
     fclose(fn_th);
+    FILE* fn_th_xi = fopen("mccc_thermal_pitch.test","w");
+    mccc_writeonedist(fn_th_xi,ximin,ximax,xibin,distxi);
+    fclose(fn_th_xi);
+    FILE* fn_th_r = fopen("mccc_thermal_r.test", "w");
+    mccc_writeonedist(fn_th_r,rmin,rmax,rbin,distr);
+    fclose(fn_th_r);
+    FILE* fn_th_D = fopen("mccc_thermal_diffusion.test","w");
+    mccc_writeonedist(fn_th_D,Dmin,Dmax,Dbin,distD);
+    fclose(fn_th_D);
     free(distA);
     free(distB);
     free(distC);
+    free(distxi);
+    free(distr);
+    free(distD);
 
     printf("\n");
     printf("Done. Results are written in mccc_push_thermal.test\n");
@@ -253,16 +293,22 @@ void mccc_push_test(){
     distA = malloc(Esdnbin*sizeof(real));
     distB = malloc(Esdnbin*sizeof(real));
     distC = malloc(Esdnbin*sizeof(real));
+    distxi = malloc(xibin*sizeof(real));
+    distr = malloc(rbin*sizeof(real));
+    distD = malloc(Dbin*sizeof(real));
 
     mccc_initdist(Esdnbin,distA);
     mccc_initdist(Esdnbin,distB);
     mccc_initdist(Esdnbin,distC);
+    mccc_initdist(xibin,distxi);
+    mccc_initdist(rbin,distr);
+    mccc_initdist(Dbin,distD);
 
     
     // Options
-    int Nprt = 1;
-    dt = 1e-8;
-    for(mode=0; mode<2; mode=mode+1){
+    int Nprt = 100;
+    dt = 1e-6;
+    for(mode=1; mode<2; mode=mode+1){
 	// Init a particle
 	ma = mp;
 	qa = q;
@@ -277,7 +323,7 @@ void mccc_push_test(){
 	    vin[2] = sqrt(2*Eprt/ma);
 	
 	    vgcin = math_norm(vin);
-	    xiin = (math_dot(vin,B))/(math_norm(vin)*math_norm(B));
+	    xiin =  1.0-2*drand48(); 
 	    Xin[0] = 0;
 	    Xin[1] = 0;
 	    Xin[2] = 0;
@@ -295,8 +341,8 @@ void mccc_push_test(){
 		    Dperp=0;
 		    for(i=0; i<nspec; i=i+1){
 			F=F+Fb[i];
-			Dpara=Dpara+Dparab[i];
-			Dperp=Dperp+Dperpb[i];
+			Dpara=Dpara+0*Dparab[i];
+			Dperp=Dperp+0*Dperpb[i];
 		    }
 		    rnd[0] = 2*(drand48() > 0.5)-1.0;
 		    rnd[1] = 2*(drand48() > 0.5)-1.0;
@@ -346,7 +392,12 @@ void mccc_push_test(){
 
 		    // Update distributions
 		    Eprt = 0.5*ma*vgcin*vgcin/q;
+		    r = sqrt(pow(Xin[1],2)+pow(Xin[2],2))/(2*dt);
+		    D = (pow(Xin[1]-Xout[1],2)+pow(Xin[2]-Xout[2],2))/dt;
 		    mccc_updatedist(Eprt,dt,Esdmin,Esdmax,Esdnbin,distB);
+		    mccc_updatedist(xiin,dt,ximin,ximax,xibin,distxi);
+		    mccc_updatedist(r,dt,rmin,rmax,rbin,distr);
+		    mccc_updatedist(D,dt,Dmin,Dmax,Dbin,distD);
 
 		    Xin[0] = Xout[0];
 		    Xin[1] = Xout[1];
@@ -367,9 +418,21 @@ void mccc_push_test(){
     FILE* fn_sd = fopen("mccc_push_fast.test","w");
     mccc_writedist(fn_sd,Esdmin,Esdmax,Esdnbin,distA,distB,distC);
     fclose(fn_sd);
+    FILE* fn_sd_xi = fopen("mccc_fast_pitch.test","w");
+    mccc_writeonedist(fn_sd_xi,ximin,ximax,xibin,distxi);
+    fclose(fn_sd_xi);
+    FILE* fn_sd_r = fopen("mccc_fast_r.test","w");
+    mccc_writeonedist(fn_sd_r,rmin,rmax,rbin,distr);
+    fclose(fn_sd_r);
+    FILE* fn_sd_D = fopen("mccc_fast_diffusion.test","w");
+    mccc_writeonedist(fn_sd_D,Dmin,Dmax,Dbin,distD);
+    fclose(fn_sd_D);
     free(distA);
     free(distB);
     free(distC);
+    free(distxi);
+    free(distr);
+    free(distD);
 
 
     printf("\n");

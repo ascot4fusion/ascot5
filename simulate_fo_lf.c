@@ -1,6 +1,6 @@
 /**
  * @file simulate_fo_lf.c
- * @brief Simulate particles with full orbits using leap frog integrator
+ * @brief Simulate particles with full orbits using leap frog integrator THIS IS GOING TO BE REDUNDANT FUNCTION
  */
 #include <stdio.h>
 #include <omp.h>
@@ -86,7 +86,8 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
             }
         }
 
-        int collstepdivisor = round(sim.tcollstep / sim.tstep);
+        //int collstepdivisor = round(sim.tcollstep / sim.tstep);
+	int collstepdivisor = 1;
         int orbsteps = collstepdivisor;
 
         int n_running = 0;
@@ -98,7 +99,9 @@ void simulate_fo_lf(int id, int n_particles, particle* particles,
             #if COULOMBCOLL == 1
             orbsteps++;
             if(orbsteps == collstepdivisor) {
-                interact_step_fo_euler(&p, 0, orbsteps*sim.tstep,
+                //interact_step_fo_euler(&p, 0, orbsteps*sim.tstep,
+                //                       &sim.B_data, &sim.plasma_data);
+		interact_step_fo_euler(&p, 0, orbsteps*0.0,
                                        &sim.B_data, &sim.plasma_data);
                 orbsteps = 0;
             }

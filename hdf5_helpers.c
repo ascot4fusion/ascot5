@@ -71,3 +71,11 @@ hid_t hdf5_create_group(hid_t loc, const char* path) {
         return hdf5_create_group(g, end);
     }
 }
+
+/**
+ * @brief Checks if given group exists within given hdf5 file. Negative value is returned
+ * if the group doesn't exist.
+ */
+herr_t hdf5_find_group(hid_t loc, const char* path) {
+    return H5Gget_objinfo (loc, path, 0, NULL);
+}

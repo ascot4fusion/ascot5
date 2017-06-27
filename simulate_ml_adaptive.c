@@ -131,7 +131,7 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
 
 	    
 	    
-            #if ORBITFOLLOWING == 1
+            if(sim.enable_orbfol) {
 	        step_ml_cashkarp(&p, hin, hout, tol,&sim.B_data);
 		/* Check whether time step was rejected */
                 #pragma omp simd
@@ -142,7 +142,7 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
 			
 		    }
 	        }
-            #endif
+	    }
  
 		
 

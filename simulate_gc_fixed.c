@@ -101,7 +101,6 @@ void simulate_gc_fixed(int id, int n_particles, particle* particles,
  * - Integrate motion due to bacgkround EM-field (orbit-following)
  * - Integrate scattering due to Coulomb collisions
  * - Advance time
- * - Check wall collisions
  * - Check for end condition(s)
  * - Update diagnostics
  * - 
@@ -124,14 +123,13 @@ void simulate_gc_fixed(int id, int n_particles, particle* particles,
 		p0.walltile[i] = p.walltile[i];
 	    }
 	    
-	    
-            #if ORBITFOLLOWING == 1
+	    if(sim.enable_orbfol) {
 	        step_gc_rk4(&p, hin, &sim.B_data, &sim.E_data);
-            #endif
+	    }
 
-            #if COULOMBCOLL == 1
+	    if(sim.enable_clmbcol) {
 	        mccc_step_gc_fixed(&p, &sim.B_data, &sim.plasma_data, hin, err);
-            #endif
+            }
  
 		
 

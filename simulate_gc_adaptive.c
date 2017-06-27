@@ -38,7 +38,7 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 
     /* Simulation data */
     sim_init(&sim, &sim_offload);
-
+    
     /* Wall data */
     wall_init(&sim.wall_data, &sim_offload.wall_offload_data,
               wall_offload_array);
@@ -58,7 +58,7 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
     dist_rzvv_init(&sim.dist_data, &sim_offload.dist_offload_data,
                    dist_offload_array);
 	
-   
+    
     int i_next_prt = 0;
 
     /* SIMD particle structs will be computed in parallel with the maximum
@@ -73,8 +73,8 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 	real hnext[NSIMD];
 	int err[NSIMD];
 	int windex[NSIMD];
-	real tol_col = 1.0e-2;// TODO move to sim
-	real tol_orb = 1.0e-9;// TODO move to sim
+	real tol_col = sim.ada_tol_clmbcol;
+	real tol_orb = sim.ada_tol_orbfol;
 
 
         particle_simd_gc p;  // This array holds current states
@@ -89,14 +89,14 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 		/* Guiding center transformation */
                 particle_to_gc(&particles[i_prt], i_prt, &p, i, &sim.B_data);
 
-		#if COULOMBCOLL == 1
+		if(sim.enable_clmbcol) {
 		    /* Allocate array storing the Wiener processes */
 		    wienarr[i] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[i]);
-		#endif
+	        }
 
 		// Determine initial time step
-		// TODO get this one from physics
-		hin[i] = 1.e-6;
+	        // TODO get this one from physics
+	        hin[i] = 1.0e-8;
 
 		
             }
@@ -109,7 +109,6 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 	     * separately at each time step */
 	    particle_to_gc_dummy(&p0, i); 
         }
-
 
     
 
@@ -148,8 +147,7 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 	    }
 
 	    
-	    
-            #if ORBITFOLLOWING == 1
+	    if(sim.enable_orbfol) {
 	        step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
 		                 &sim.B_data, &sim.E_data);
 		
@@ -161,9 +159,9 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 			hnext[i] = hout_orb[i];
 		    }
 	        }
-            #endif
+	    }
 
-            #if COULOMBCOLL == 1
+            if(sim.enable_clmbcol) {
 	        mccc_step_gc_adaptive(&p, &sim.B_data, &sim.plasma_data,
 				      hin, hout_col, wienarr, tol_col, err);
 		
@@ -175,7 +173,7 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 			hnext[i] = hout_col[i];
 		    }
 	        }
-            #endif
+	    }
  
 		
 
@@ -212,10 +210,10 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 			    hnext[i] = hin[i];
 			}
 			hin[i] = hnext[i];
-			#if COULOMBCOLL == 1
+			if(sim.enable_clmbcol) {
 			    /* Clear wiener processes */
 			    mccc_wiener_clean(wienarr[i], p.time[i], &err[i]);
-			#endif
+		        }
 			
 		    }
 		}
@@ -233,10 +231,10 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 
                     gc_to_particle(&p, k, &particles[p.index[k]]);
 
-		    #if COULOMBCOLL == 1
+		    if(sim.enable_clmbcol) {
 		        /* Free the associated Wiener array */
 		        mccc_wiener_deallocate(wienarr[k]);
-	            #endif
+		    }
 
                     #pragma omp critical
                     i_prt = i_next_prt++;
@@ -244,9 +242,9 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
                         particle_to_gc(&particles[i_prt], i_prt, &p, k,
 				       &sim.B_data);
 
-			#if COULOMBCOLL == 1
-			wienarr[k] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[k]);
-			#endif
+		        if(sim.enable_clmbcol) {
+			    wienarr[k] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[k]);
+		        }
 		
 			// Determine initial time step
 			// TODO get this one from physics

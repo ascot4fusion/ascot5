@@ -6,10 +6,15 @@
 #define DIAG_H
 #include "ascot5.h"
 #include "particle.h"
+#include "distributions.h"
 #include "diag_orb.h"
 
 typedef struct{
-    int temp;
+    int orb_collect;
+    int debug_collect;
+    int dist4D_collect;
+    diag_orb_data orbits;
+    dist_rzvv_offload_data dist4D;
 
 } diag_offload_data;
 
@@ -18,6 +23,7 @@ typedef struct{
     int diag_debug_collect;
     int diag_dist4D_collect;
     diag_orb_data* orbits;
+    dist_rzvv_offload_data* dist4D;
 
 } diag_data;
 

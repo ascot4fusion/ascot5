@@ -1,6 +1,6 @@
 /**
  * @file simulate_gc_rk4.c
- * @brief Simulate particles with guiding center using RK4 integrator
+ * @brief Simulate particles with guiding center using RK4 integrator THIS IS GOING TO BE REDUNDANT FUNCTION
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,19 +92,21 @@ void simulate_gc_rk4(int id, int n_particles, particle* particles,
             }
         }
 
-        int collstepdivisor = round(sim.tcollstep / sim.tstep);
+        //int collstepdivisor = round(sim.tcollstep / sim.tstep);
+	int collstepdivisor = 1;
         int orbsteps = collstepdivisor;
 
         int n_running = 0;
 
         /* Main simulation loop */
         do {
-            step_gc_rk4(&p, &sim.tstep, &sim.B_data, &sim.E_data);
+            //step_gc_rk4(&p, &sim.tstep, &sim.B_data, &sim.E_data);
+	    step_gc_rk4(&p, &sim.fix_usrdef_val, &sim.B_data, &sim.E_data);
 
             #if COULOMBCOLL == 1
             orbsteps++;
             if(orbsteps >= collstepdivisor) {
-                interact_step_gc_euler(&p, 0, orbsteps*sim.tstep,
+                interact_step_gc_euler(&p, 0, orbsteps*sim.fix_usrdef_val,
                                        &sim.B_data, &sim.plasma_data);
                 orbsteps = 0;
             }
