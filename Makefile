@@ -84,8 +84,8 @@ BINS=test_math \
 all: $(BINS)
 
 ascotpy: CFLAGS+=-fPIC
-ascotpy: ascotpy.c B_none.o B_GS.o B_2Dlin.o B_2D.o B_3D.o
-	f2py ascotpy.pyf ascotpy.c B_none.o B_GS.o B_2Dlin.o B_2D.o B_3D.o -c $(DEFINES)
+ascotpy: ascotpy.o math.o B_field.o hdf5_helpers.o hdf5_bfield.o B_2D.o B_GS.o B_3D.o B_ST.o B_TC.o
+	f2py ascotpy.pyf ascotpy.c math.o B_field.o hdf5_helpers.o hdf5_bfield.o B_GS.o B_2D.o B_3D.o B_ST.o B_TC.o -c $(DEFINES)
 
 ascot5_gc: ascot5_gc.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
