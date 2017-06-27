@@ -60,7 +60,7 @@ MCCCOBJS = $(patsubst %.c,%.o,$(wildcard $(MCCCDIR)mccc*.c))
 
 HEADERS=ascot5.h B_GS.h math.h consts.h \
 	   	wall_2d.h ascot4_interface.h distributions.h B_2D.h \
-		plasma_1d.h interact.h step_gc_rk4.h step_fo_lf.h simulate.h \
+		plasma_1d.h interact.h simulate.h \
 		hdf5_helpers.h hdf5_histogram.h B_3D.h \
 		wall_3d.h list.h octree.h hdf5_particlestate.h \
 		B_ST.h B_TC.h \
@@ -72,7 +72,7 @@ HEADERS=ascot5.h B_GS.h math.h consts.h \
 
 OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
      wall_2d.o distributions.o B_2D.o B_ST.o B_TC.o  \
-	plasma_1d.o interact.o step_fo_lf.o \
+	plasma_1d.o interact.o \
 	hdf5_helpers.o hdf5_histogram.o B_3D.o \
 	 wall_3d.o list.o octree.o hdf5_particlestate.o \
      particle.o endcond.o B_field.o E_field.o wall.o simulate.o \
