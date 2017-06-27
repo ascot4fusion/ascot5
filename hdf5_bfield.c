@@ -36,6 +36,18 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
     if(err < 0) {
         return -1;
     }
+
+    char type[32];
+    err = H5LTget_attribute_string(f, "/bfield/", "type", type);
+    if(err < 0) {
+        return -1;
+    }
+    if(strcmp(type,"B_TC")) {
+	
+	return 1;
+    }
+    
+
     err = H5LTfind_dataset(f, "/bfield/2D");
     if(err >= 0) {
         hdf5_bfield_init_offload_2D(f, &(offload_data->B2D), offload_array);
@@ -423,4 +435,16 @@ void hdf5_bfield_init_offload_ST(hid_t f, B_ST_offload_data* offload_data, real*
     free(temp_B_s);
 
     hdf5_close(f);
+}
+
+/**
+ * @brief Reads Trivial Cartesian magnetic field from hdf5 file
+ * 
+ * @param f hdf5 source file
+ * @param offload_data pointer to offload data struct
+ * @param offload_array pointer to pointer to offload array
+ */
+void hdf5_bfield_init_offload_TC(hid_t f, B_TC_offload_data* offload_data, real** offload_array) {
+
+
 }
