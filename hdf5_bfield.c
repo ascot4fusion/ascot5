@@ -36,18 +36,20 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
     if(err < 0) {
         return -1;
     }
-    err = H5LTfind_dataset(f, "/bfield/2D");
-    if(err >= 0) {
+    char type[10];
+    err = H5LTget_attribute_string(f, "/bfield/", "type", type);
+    if(err < 0) {
+        return -1;
+    }
+    if (strcmp(type, "2D") == 0) {
         hdf5_bfield_init_offload_2D(f, &(offload_data->B2D), offload_array);
         return 1;
     }
-    err = H5LTfind_dataset(f, "/bfield/3D");
-    if(err >= 0) {
+    else if (strcmp(type, "3D") == 0) {
         hdf5_bfield_init_offload_3D(f, &(offload_data->B3D), offload_array);
         return 1;
     }
-    err = H5LTfind_dataset(f, "/bfield/stellarator");
-    if(err >= 0) {
+    else if (strcmp(type, "stellarator") == 0) {
         hdf5_bfield_init_offload_ST(f, &(offload_data->BST), offload_array);
         return;
     }
