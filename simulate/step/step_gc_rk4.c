@@ -3,14 +3,14 @@
  * @brief Calculate a guiding center step for a struct of particles with RK4
  **/
 #include <math.h>
-#include "ascot5.h"
-#include "consts.h"
+#include "../../ascot5.h"
+#include "../../consts.h"
 #include "step_gc_rk4.h"
-#include "phys_orbit.h"
-#include "B_field.h"
-#include "E_field.h"
-#include "math.h"
-#include "particle.h"
+#include "../../phys_orbit.h"
+#include "../../B_field.h"
+#include "../../E_field.h"
+#include "../../math.h"
+#include "../../particle.h"
 
 /**
  * @brief Integrate a guiding center step for a struct of particles with RK4

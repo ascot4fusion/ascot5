@@ -5,9 +5,9 @@
 #ifndef SIMULATE_ML_ADAPTIVE_H
 #define SIMULATE_ML_ADAPTIVE_H
 
-#include "ascot5.h"
-#include "simulate.h"
-#include "particle.h"
+#include "../ascot5.h"
+#include "../simulate.h"
+#include "../particle.h"
 
 #pragma omp declare target
 void simulate_ml_adaptive(int id, int n_particles, particle* particles,

@@ -1,16 +1,16 @@
 /**
- * @file simulate_gc_fixed.h
- * @brief Header file for simulate_gc_fixed.c
+ * @file simulate_fo_fixed.h
+ * @brief Header file for simulate_fo_fixed.c
  */
-#ifndef SIMULATE_GC_FIXED_H
-#define SIMULATE_GC_FIXED_H
+#ifndef SIMULATE_FO_FIXED_H
+#define SIMULATE_FO_FIXED_H
 
-#include "ascot5.h"
-#include "simulate.h"
-#include "particle.h"
+#include "../ascot5.h"
+#include "../simulate.h"
+#include "../particle.h"
 
 #pragma omp declare target
-void simulate_gc_fixed(int id, int n_particles, particle* particles,
+void simulate_fo_fixed(int id, int n_particles, particle* particles,
 		       sim_offload_data sim,
 		       real* B_offload_array,
 		       real* E_offload_array,

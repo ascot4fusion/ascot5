@@ -5,8 +5,8 @@
  */
 #include <stdio.h>
 #include <math.h>
-#include "../ascot5.h"
-#include "../math.h"
+#include "../../ascot5.h"
+#include "../../math.h"
 #include "mccc_push.h"
 
 /**

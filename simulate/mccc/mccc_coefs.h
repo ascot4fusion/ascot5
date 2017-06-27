@@ -5,7 +5,7 @@
 #ifndef MCCC_COEFS_H
 #define MCCC_COEFS_H
 
-#include "../ascot5.h"
+#include "../../ascot5.h"
 
 #pragma omp declare target
 #pragma omp declare simd

@@ -45,35 +45,39 @@ else
 	CFLAGS=-lm -lhdf5 -lhdf5_hl -fopenmp -std=c99 $(DEFINES) $(FLAGS) 
 endif
 
-MCCCHEADERS = mccc/mccc_wiener.h mccc/mccc_special.h mccc/mccc_coefs.h \
-	mccc/mccc_push.h mccc/mccc.h
-MCCCOBJS = mccc/mccc_wiener.o mccc/mccc_special.o mccc/mccc_coefs.o \
-	mccc/mccc_push.o mccc/mccc.o
+SIMDIR = simulate/
+SIMHEADERS = $(wildcard $(SIMDIR)simulate*.h)
+SIMOBJS = $(patsubst %.c,%.o,$(wildcard $(SIMDIR)simulate*.c))
+
+STEPDIR = $(SIMDIR)step/
+STEPHEADERS = $(wildcard $(STEPDIR)step*.h)
+STEPOBJS = $(patsubst %.c,%.o,$(wildcard $(STEPDIR)step*.c))
+
+MCCCDIR = $(SIMDIR)mccc/
+MCCCHEADERS = $(wildcard $(MCCCDIR)mccc*.h)
+MCCCOBJS = $(patsubst %.c,%.o,$(wildcard $(MCCCDIR)mccc*.c))
+
 
 HEADERS=ascot5.h B_GS.h math.h consts.h \
 	   	wall_2d.h ascot4_interface.h distributions.h B_2D.h \
 		plasma_1d.h interact.h step_gc_rk4.h step_fo_lf.h simulate.h \
-		hdf5_helpers.h hdf5_histogram.h B_3D.h simulate_fo_lf.h \
-		simulate_gc_rk4.h wall_3d.h list.h octree.h hdf5_particlestate.h \
-		step_fo_vpa.h step_gc_cashkarp.h B_ST.h B_TC.h \
-		particle.h filip5.h endcond.h orbit_write.h \
+		hdf5_helpers.h hdf5_histogram.h B_3D.h \
+		wall_3d.h list.h octree.h hdf5_particlestate.h \
+		B_ST.h B_TC.h \
+		particle.h filip5.h endcond.h \
 		B_field.h E_field.h wall.h phys_orbit.h hdf5_bfield.h \
-		E_1D.h $(MCCCHEADERS) \
-		simulate_fo_fixed.h simulate_gc_fixed.h simulate_gc_adaptive.h \
-		simulate_ml_adaptive.h step_ml_cashkarp.h \
+		E_1D.h $(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) \
 		diag.h diag_orb.h \
 		hdf5_input.h hdf5_simulate.h
 
 OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
      wall_2d.o distributions.o B_2D.o B_ST.o B_TC.o  \
-	plasma_1d.o interact.o step_gc_rk4.o step_fo_lf.o step_fo_vpa.o \
-	hdf5_helpers.o hdf5_histogram.o B_3D.o simulate_fo_lf.o \
-	 simulate_gc_rk4.o wall_3d.o list.o octree.o hdf5_particlestate.o \
-     particle.o endcond.o B_field.o E_field.o wall.o simulate.o orbit_write.o \
-	step_gc_cashkarp.o phys_orbit.o hdf5_bfield.o \
-	E_1D.o $(MCCCOBJS) \
-	simulate_fo_fixed.o simulate_gc_fixed.o simulate_gc_adaptive.o \
-	simulate_ml_adaptive.o step_ml_cashkarp.o \
+	plasma_1d.o interact.o step_fo_lf.o \
+	hdf5_helpers.o hdf5_histogram.o B_3D.o \
+	 wall_3d.o list.o octree.o hdf5_particlestate.o \
+     particle.o endcond.o B_field.o E_field.o wall.o simulate.o \
+	phys_orbit.o hdf5_bfield.o \
+	E_1D.o $(MCCCOBJS) $(STEPOBJS) $(SIMOBJS)  \
 	diag.o diag_orb.o \
 	hdf5_input.o hdf5_simulate.o
 
@@ -141,4 +145,4 @@ test_mccc: mccc/test_mccc.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 clean:
-	rm -f *.o *.test *.optrpt $(BINS)
+	rm -f *.o *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o $(MCCCDIR)*.o

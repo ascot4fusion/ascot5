@@ -6,9 +6,11 @@
 #define _XOPEN_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
-#include "../ascot5.h"
-#include "../particle.h"
-#include "../math.h"
+#include "../../ascot5.h"
+#include "../../particle.h"
+#include "../../B_field.h"
+#include "../../plasma_1d.h"
+#include "../../math.h"
 #include "mccc.h"
 #include "mccc_wiener.h"
 #include "mccc_push.h"

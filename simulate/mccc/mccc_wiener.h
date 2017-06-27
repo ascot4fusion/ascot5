@@ -5,7 +5,7 @@
 #ifndef MCCC_WIENER_H
 #define MCCC_WIENER_H
 
-#include "../ascot5.h"
+#include "../../ascot5.h"
 
 #define MCCC_WIENER_EXCEEDEDCAPACITY 10
 #define MCCC_WIENER_NOASSOCIATEDPROCESS 11

@@ -5,9 +5,9 @@
 #ifndef STEP_GC_CASHKARP_H
 #define STEP_GC_CASHKARP_H
 
-#include "B_field.h"
-#include "E_field.h"
-#include "particle.h"
+#include "../../B_field.h"
+#include "../../E_field.h"
+#include "../../particle.h"
 
 #pragma omp declare target
 void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, 

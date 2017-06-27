@@ -5,10 +5,10 @@
 #ifndef MCCC_H
 #define MCCC_H
 
-#include "../ascot5.h"
-#include "../B_field.h"
-#include "../plasma_1d.h"
-#include "../particle.h"
+#include "../../ascot5.h"
+#include "../../B_field.h"
+#include "../../plasma_1d.h"
+#include "../../particle.h"
 #include "mccc_wiener.h"
 
 #pragma omp declare target

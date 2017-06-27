@@ -12,9 +12,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "../math.h"
-#include "../ascot5.h"
-#include "../consts.h"
+#include "../../math.h"
+#include "../../ascot5.h"
+#include "../../consts.h"
 #include "mccc_wiener.h"
 
 int MCCC_EMPTY = -999;

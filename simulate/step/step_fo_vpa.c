@@ -4,12 +4,12 @@
  **/
 #include <math.h>
 #include <stdio.h>
-#include "math.h"
-#include "consts.h"
+#include "../../math.h"
+#include "../../consts.h"
 #include "step_fo_vpa.h"
-#include "B_field.h"
-#include "E_field.h"
-#include "particle.h"
+#include "../../B_field.h"
+#include "../../E_field.h"
+#include "../../particle.h"
 
 /**
  * @brief Integrate a full orbit step for a struct of particles with leap-frog

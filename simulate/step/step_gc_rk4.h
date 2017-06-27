@@ -5,9 +5,9 @@
 #ifndef STEP_GC_RK4_H
 #define STEP_GC_RK4_H
 
-#include "B_field.h"
-#include "E_field.h"
-#include "particle.h"
+#include "../../B_field.h"
+#include "../../E_field.h"
+#include "../../particle.h"
 
 #pragma omp declare target
 void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data* Edata);

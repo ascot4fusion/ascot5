@@ -5,13 +5,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "ascot5.h"
+#include "../../ascot5.h"
 #include "step_gc_cashkarp.h"
 #include "step_gc_rk4.h"
-#include "B_field.h"
-#include "math.h"
-#include "phys_orbit.h"
-#include "particle.h"
+#include "../../B_field.h"
+#include "../../math.h"
+#include "../../phys_orbit.h"
+#include "../../particle.h"
 
 /**
  * @brief Integrate a guiding center step for a struct of particles with adaptive Cash Karp method

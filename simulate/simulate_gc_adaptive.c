@@ -8,21 +8,21 @@
 #include <omp.h>
 #include <immintrin.h>
 #include <math.h>
-#include "ascot5.h"
-#include "simulate.h"
-#include "particle.h"
-#include "wall.h"
-#include "distributions.h"
-#include "diag.h"
-#include "B_field.h"
-#include "E_field.h"
-#include "plasma_1d.h"
+#include "../ascot5.h"
+#include "../simulate.h"
+#include "../particle.h"
+#include "../wall.h"
+#include "../distributions.h"
+#include "../diag.h"
+#include "../B_field.h"
+#include "../E_field.h"
+#include "../plasma_1d.h"
 #include "simulate_gc_adaptive.h"
-#include "step_gc_cashkarp.h"
+#include "step/step_gc_cashkarp.h"
 #include "mccc/mccc.h"
 #include "mccc/mccc_wiener.h"
-#include "endcond.h"
-#include "math.h"
+#include "../endcond.h"
+#include "../math.h"
 
 /**
  * @brief Simulates guiding centers using adaptive time-step

@@ -6,9 +6,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "../math.h"
-#include "../consts.h"
-#include "../ascot5.h"
+#include "../../math.h"
+#include "../../consts.h"
+#include "../../ascot5.h"
 #include "mccc_special.h"
 
 int MCCC_COEFS_EXACT = 1;

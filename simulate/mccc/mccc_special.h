@@ -4,7 +4,7 @@
 */
 #ifndef MCCC_SPECIAL_H
 #define MCCC_SPECIAL_H
-#include "../ascot5.h"
+#include "../../ascot5.h"
 
 #pragma omp declare target
 #pragma omp declare simd

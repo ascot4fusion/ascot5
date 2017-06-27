@@ -6,8 +6,8 @@
 #define MCCC_PUSH_H
 
 #include <math.h>
-#include "../ascot5.h"
-#include "../consts.h"
+#include "../../ascot5.h"
+#include "../../consts.h"
 
 #define MCCC_PUSH_ISNAN 20
 #define MCCC_PUSH_NOTPHYSICAL 21

@@ -6,9 +6,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "../math.h"
-#include "../ascot5.h"
-#include "../consts.h"
+#include "../../math.h"
+#include "../../ascot5.h"
+#include "../../consts.h"
 #include "mccc_wiener.h"
 #include "mccc_special.h"
 #include "mccc_coefs.h"
