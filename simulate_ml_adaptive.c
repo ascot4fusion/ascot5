@@ -1,6 +1,7 @@
 /**
+ * @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
  * @file simulate_ml_adaptive.c
- * @brief Simulate particles with guiding center using RK4 integrator
+ * @brief Simulate magnetic field-lines using adaptive time-step
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,18 +9,51 @@
 #include <immintrin.h>
 #include <math.h>
 #include "ascot5.h"
-#include "step_ml_cashkarp.h"
+#include "ascot5.h"
+#include "simulate.h"
+#include "particle.h"
 #include "wall.h"
 #include "distributions.h"
-#include "B_field.h"
-#include "simulate.h"
-#include "math.h"
 #include "diag.h"
-#include "particle.h"
-#include "endcond.h"
+#include "B_field.h"
+#include "E_field.h"
+#include "plasma_1d.h"
 #include "simulate_ml_adaptive.h"
-#include "orbit_write.h"
+#include "step_ml_cashkarp.h"
+#include "endcond.h"
+#include "math.h"
 
+/**
+ * @brief Simulates magnetic field-lines using adaptive time-step
+ *
+ * The simulation includes:
+ * - orbit-following with Cash-Karp method
+ * 
+ * The simulation is carried until all markers have met some
+ * end condition or are aborted/rejected. The final state of the
+ * markers is stored in the given marker array. Other output
+ * is stored in the diagnostic array.
+ *
+ * The adaptive time-step is determined by integrator error 
+ * tolerances as well as user-defined limits for how much
+ * marker state can change during a single time-step.
+ *
+ * Note simulation time is defined by assuming field-lines
+ * "travel" at the speed of light.
+ *
+ * @param id 
+ * @param n_particles number of markers to be simulated
+ * @param particles pointer to marker struct
+ * @param sim_offload simulation offload data struct
+ * @param B_offload_array offload array of magnetic field data
+ * @param E_offload_array offload array of electric field data
+ * @param plasma_offload_array offload array of plasma data
+ * @param wall_offload_array offload array of wall data
+ * @param dist_offload_array offload array of distribution data
+ *
+ * @todo See simulate_gc_adaptive.c
+ * @todo Define simulation time by assuming markers travel at the speed of light
+ */
 void simulate_ml_adaptive(int id, int n_particles, particle* particles,
 			  sim_offload_data sim_offload,
 			  real* B_offload_array,

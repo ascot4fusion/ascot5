@@ -1,3 +1,7 @@
+/**
+ * @file mccc_wiener.h
+ * @brief header file for mccc_wiener.c
+ */
 #ifndef MCCC_WIENER_H
 #define MCCC_WIENER_H
 
@@ -7,22 +11,17 @@
 #define MCCC_WIENER_NOASSOCIATEDPROCESS 11
 
 /**
-*	Struct for storing Wiener processes. Elements of this struct should
-*	not be changed (directly) outside mccc package.
-*
-*	nextslot - integer array where each element shows where the next
-*			   wiener process is located (itself if last process). Starts from 0.
-*	Nslot    - number of slots, i.e., maximum number of time step reductions
-*   Ndim     - Wiener process dimension
-*	time     - time instans for different Wiener processes
-*	wiener   - Ndim x Nslot array of Wiener process values
-*/
+ * @brief Struct for storing Wiener processes. Elements of this struct should
+ *	  not be changed (directly) outside mccc package.
+ */
 typedef struct {
-   int* nextslot;
-   int Nslot;
-   int Ndim;
-   real* time;
-   real* wiener;
+    int* nextslot; /** Integer array where each element shows where the next
+		    *  wiener process is located (itself if last process). 
+		    *  Starts from 0.*/
+    int Nslot; /** Number of slots, i.e., maximum number of time step reductions */
+    int Ndim; /** Wiener process dimension (5 for guiding centers) */
+    real* time; /** Time instances for different Wiener processes */
+    real* wiener; /** Ndim x Nslot 1D array of Wiener process values */
 } mccc_wienarr;
 
 #pragma omp declare target

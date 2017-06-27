@@ -1,6 +1,6 @@
 /**
- * @file simulate_gc_rk4.h
- * @brief Header file for simulate_gc_rk4.c
+ * @file simulate_gc_adaptive.h
+ * @brief Header file for simulate_gc_adaptive.c
  */
 #ifndef SIMULATE_GC_ADAPTIVE_H
 #define SIMULATE_GC_ADAPTIVE_H
@@ -8,8 +8,6 @@
 #include "ascot5.h"
 #include "simulate.h"
 #include "particle.h"
-
-#define WIENERSLOTS 20
 
 #pragma omp declare target
 void simulate_gc_adaptive(int id, int n_particles, particle* particles,

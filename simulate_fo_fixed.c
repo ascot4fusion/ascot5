@@ -1,6 +1,7 @@
 /**
- * @file simulate_gc_rk4.c
- * @brief Simulate particles with guiding center using RK4 integrator
+ * @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
+ * @file simulate_fo_fixed.c
+ * @brief Simulate particles using fixed time-step
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,21 +9,47 @@
 #include <immintrin.h>
 #include <math.h>
 #include "ascot5.h"
-#include "step_fo_vpa.h"
+#include "simulate.h"
+#include "particle.h"
 #include "wall.h"
 #include "distributions.h"
+#include "diag.h"
 #include "B_field.h"
 #include "E_field.h"
 #include "plasma_1d.h"
-#include "simulate.h"
-#include "math.h"
-#include "diag.h"
-#include "particle.h"
-#include "endcond.h"
 #include "simulate_fo_fixed.h"
-#include "orbit_write.h"
+#include "step_fo_vpa.h"
 #include "mccc/mccc.h"
+#include "endcond.h"
+#include "math.h"
 
+/**
+ * @brief Simulates particles using fixed time-step
+ *
+ * The simulation includes:
+ * - orbit-following with Volume-Preserving Algorithm
+ * - Coulomb collisions with Euler-Maruyama method
+ * 
+ * The simulation is carried until all markers have met some
+ * end condition or are aborted/rejected. The final state of the
+ * markers is stored in the given marker array. Other output
+ * is stored in the diagnostic array.
+ *
+ * The time-step is user-defined either directly or as a fraction of
+ * gyrotime.
+ *
+ * @param id 
+ * @param n_particles number of markers to be simulated
+ * @param particles pointer to marker struct
+ * @param sim_offload simulation offload data struct
+ * @param B_offload_array offload array of magnetic field data
+ * @param E_offload_array offload array of electric field data
+ * @param plasma_offload_array offload array of plasma data
+ * @param wall_offload_array offload array of wall data
+ * @param dist_offload_array offload array of distribution data
+ *
+ * @todo See simulate_gc_adaptive.c
+ */
 void simulate_fo_fixed(int id, int n_particles, particle* particles,
 		       sim_offload_data sim_offload,
 		       real* B_offload_array,

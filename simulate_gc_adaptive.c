@@ -1,6 +1,7 @@
 /**
- * @file simulate_gc_rk4.c
- * @brief Simulate particles with guiding center using RK4 integrator
+ * @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
+ * @file simulate_gc_adaptive.c
+ * @brief Simulate guiding centers using adaptive time-step
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,22 +9,53 @@
 #include <immintrin.h>
 #include <math.h>
 #include "ascot5.h"
-#include "step_gc_cashkarp.h"
+#include "simulate.h"
+#include "particle.h"
 #include "wall.h"
 #include "distributions.h"
+#include "diag.h"
 #include "B_field.h"
 #include "E_field.h"
 #include "plasma_1d.h"
-#include "simulate.h"
-#include "math.h"
-#include "diag.h"
-#include "particle.h"
-#include "endcond.h"
 #include "simulate_gc_adaptive.h"
-#include "orbit_write.h"
+#include "step_gc_cashkarp.h"
 #include "mccc/mccc.h"
 #include "mccc/mccc_wiener.h"
+#include "endcond.h"
+#include "math.h"
 
+/**
+ * @brief Simulates guiding centers using adaptive time-step
+ *
+ * The simulation includes:
+ * - orbit-following with Cash-Karp method
+ * - Coulomb collisions with Milstein method
+ * 
+ * The simulation is carried until all marker have met some
+ * end condition or are aborted/rejected. The final state of the
+ * markers is stored in the given marker array. Other output
+ * is stored in the diagnostic array.
+ *
+ * The adaptive time-step is determined by integrator error 
+ * tolerances as well as user-defined limits for how much
+ * marker state can change during a single time-step.
+ *
+ * @param id 
+ * @param n_particles number of markers to be simulated
+ * @param particles pointer to marker struct
+ * @param sim_offload simulation offload data struct
+ * @param B_offload_array offload array of magnetic field data
+ * @param E_offload_array offload array of electric field data
+ * @param plasma_offload_array offload array of plasma data
+ * @param wall_offload_array offload array of wall data
+ * @param dist_offload_array offload array of distribution data
+ *
+ * @todo what is that id field?
+ * @todo replace distribution input with diagnostics input
+ * @todo initial time step is currently hard-coded when it should be physics-defined
+ * @todo time step limits for how much a marker travels in rho or phi
+ * @todo integrators are not updating the marker B-field fields as they should 
+ */
 void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 			  sim_offload_data sim_offload,
 			  real* B_offload_array,
@@ -120,7 +152,6 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
  *   - NO:  revert to initial state and ignore the end of the loop 
  *          (except CPU_TIME_MAX end condition if this is implemented)
  *   - YES: update particle time, clean redundant Wiener processes, and proceed
- * - Check wall collisions
  * - Check for end condition(s)
  * - Update diagnostics
  * - 

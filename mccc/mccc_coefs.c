@@ -1,9 +1,8 @@
 /**
-* This module contains tools to evaluate Fokker-Planck coefficients
-* from plasma parameters.
-*
-* @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
-*/
+ * @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
+ * @file mccc_coefs.c
+ * @brief Tools to evaluate collision coefficients
+ */
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -14,10 +13,35 @@
 
 int MCCC_COEFS_EXACT = 1;
 
+/**
+ * @brief Initializes lookup tables for more(?) efficient evaluation
+ *
+ * @todo Not implemented
+ */
 void mccc_coefs_init(){
 
 }
 
+/**
+ * @brief Evaluates coefficients in particle picture
+ * 
+ * @param ma test particle mass [kg]
+ * @param qa test particle charge [C]
+ * @param va test particle velocity [m/s]
+ * @param mb pointer to array storing background species mass [kg]
+ * @param qb pointer to array storing background species charge [C]
+ * @param nb pointer to array storing background species density [1/m^3]
+ * @param Tb pointer to array storing background species temperature [J]
+ * @param clogab pointer to array storing the evaluated Coulomb logarithms
+ * @param nspec number of background species
+ * @param F pointer to array storing the evaluated Fokker-Planck coefficient [m/s^2]
+ * @param Dpara pointer to array the evaluated storing parallel diffusion coefficient [m^2/s^3] 
+ * @param Dperp pointer to array the evaluated storing perpendicular diffusion coefficient [m²/s^3]
+ * @param K pointer to array storing the evaluated friction coefficient [m/s^2]
+ * @param nu pointer to array storing the evaluated pitch collision frequency [1/s]
+ *
+ * @todo Implement relativistic coefficients
+ */
 void mccc_coefs_fo(real ma, real qa, real va, real* mb, real* qb, real* nb, real* Tb, real* clogab, int nspec, 
 		   real* F, real* Dpara, real* Dperp, real* K, real* nu){
 
@@ -59,6 +83,27 @@ void mccc_coefs_fo(real ma, real qa, real va, real* mb, real* qb, real* nb, real
 	
 }
 
+/**
+ * @brief Evaluates coefficients in guiding center picture for fixed scheme
+ * 
+ * @param ma guiding center mass [kg]
+ * @param qa guiding center charge [C]
+ * @param va guiding center velocity [m/s]
+ * @param va guiding center pitch
+ * @param mb pointer to array storing background species mass [kg]
+ * @param qb pointer to array storing background species charge [C]
+ * @param nb pointer to array storing background species density [1/m^3]
+ * @param Tb pointer to array storing background species temperature [J]
+ * @param B magnetic field magnitude [T]
+ * @param clogab pointer to array storing the evaluated Coulomb logarithms
+ * @param nspec number of background species
+ * @param Dpara pointer to array the evaluated storing parallel diffusion coefficient [m^2/s^3]
+ * @param DX pointer to array storing the classical diffusion coefficient [m^2/s]
+ * @param K pointer to array storing the evaluated friction coefficient [m/s^2]
+ * @param nu pointer to array storing the evaluated pitch collision frequency [1/s]
+ *
+ * @todo Implement relativistic coefficients
+ */
 void mccc_coefs_gcfixed(real ma, real qa, real va, real xi, real* mb, real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, 
 			real* Dpara, real* DX, real* K, real* nu){
 
@@ -101,7 +146,31 @@ void mccc_coefs_gcfixed(real ma, real qa, real va, real xi, real* mb, real* qb, 
 #endif
 	
 }
+
    
+/**
+ * @brief Evaluates coefficients in guiding center picture for adaptive scheme
+ * 
+ * @param ma guiding center mass [kg]
+ * @param qa guiding center charge [C]
+ * @param va guiding center velocity [m/s]
+ * @param va guiding center pitch
+ * @param mb pointer to array storing background species mass [kg]
+ * @param qb pointer to array storing background species charge [C]
+ * @param nb pointer to array storing background species density [1/m^3]
+ * @param Tb pointer to array storing background species temperature [J]
+ * @param B magnetic field magnitude [T]
+ * @param clogab pointer to array storing the evaluated Coulomb logarithms
+ * @param nspec number of background species
+ * @param Dpara pointer to array the evaluated storing parallel diffusion coefficient [m^2/s^3]
+ * @param DX pointer to array storing the classical diffusion coefficient [m^2/s]
+ * @param K pointer to array storing the evaluated friction coefficient [m/s^2]
+ * @param nu pointer to array storing the evaluated pitch collision frequency [1/s]
+ * @param dQ pointer to array storing the evaluated derivative dQ/dv [1/s]
+ * @param dDpara pointer to array storing the evaluated derivative dDpara/dv [m/s^2]
+ *
+ * @todo Implement relativistic coefficients
+ */
 void mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb, real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, 
 			   real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara){
     int i;
@@ -147,8 +216,20 @@ void mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb, real* q
 
 
 
-/**	Evalutes the Coulomb logarithm
-*/
+/**
+ * @brief Evaluate Coulomb logarithm
+ *
+ * @param ma guiding center mass [kg]
+ * @param qa guiding center charge [C]
+ * @param va guiding center velocity [m/s]
+ * @param va guiding center pitch
+ * @param mb pointer to array storing background species mass [kg]
+ * @param qb pointer to array storing background species charge [C]
+ * @param nb pointer to array storing background species density [1/m^3]
+ * @param Tb pointer to array storing background species temperature [J]
+ * @param clogab pointer to array storing the evaluated Coulomb logarithms
+ * @param nspec number of background species
+ */
 void mccc_coefs_clog(real ma, real qa, real va, real* mb, real* qb, real* nb, real* Tb, real* clogab, int nspec){
 
     int i;
