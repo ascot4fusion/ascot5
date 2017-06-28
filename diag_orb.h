@@ -90,6 +90,18 @@ typedef struct{
     int islist;
     int markertype;// 0: fo, 1: gc, 2: ml
 
+    /* Options */
+    real writeInterval;
+
+}diag_orb_offload_data;
+
+typedef struct{
+
+    /* Essentials */
+    int storewhat;
+    int islist;
+    int markertype;// 0: fo, 1: gc, 2: ml
+
     /* Data storage */
     diag_orb_gclist* gclist;
     diag_orb_gcarray* gcarray;

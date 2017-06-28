@@ -15,6 +15,7 @@
 #include "consts.h"
 #include "wall.h"
 #include "distributions.h"
+#include "diag.h"
 #include "B_field.h"
 #include "ascot4_interface.h"
 #include "plasma_1d.h"
@@ -40,9 +41,9 @@ int main(int argc, char** argv) {
     real* E_offload_array;
     real* plasma_offload_array;
     real* wall_offload_array;
-    real* dist_offload_array_mic0;
-    real* dist_offload_array_mic1;
-    real* dist_offload_array_host;
+    real* diag_offload_array_mic0;
+    real* diag_offload_array_mic1;
+    real* diag_offload_array_host;
     sprintf(sim.hdf5fn, "ascot.h5");// TODO read me from command line
     hdf5_input(&sim);
 
@@ -62,13 +63,13 @@ int main(int argc, char** argv) {
     #endif
     
     #ifndef NOTARGET
-    dist_rzvv_init_offload(&sim.diag_offload_data.dist4D, &dist_offload_array_mic0);
-    dist_rzvv_init_offload(&sim.diag_offload_data.dist4D, &dist_offload_array_mic1);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
     #else
-    dist_rzvv_init_offload(&sim.diag_offload_data.dist4D, &dist_offload_array_host);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
     #endif
     #if VERBOSE >= 1
-    printf("Initialized RZVV dist, %.1f MB.\n", sim.dist_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
+    printf("Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
     #endif
     
     int mpi_rank, mpi_size;
@@ -124,77 +125,76 @@ int main(int argc, char** argv) {
     double mic0_start, mic0_end, mic1_start, mic1_end, host_start, host_end;
     
     fflush(stdout);
-#ifdef _OMP
-    omp_set_nested(1);
-#endif
+    #ifdef _OMP
+        omp_set_nested(1);
+    #endif
     #pragma omp parallel sections num_threads(3)
     {
-    #ifndef NOTARGET
-    #pragma omp section
-    {
-#ifdef _OMP
-        mic0_start = omp_get_wtime();
-#endif
-        #pragma omp target device(0) map( \
-            p[0:n_mic], \
-            B_offload_array[0:sim.B_offload_data.offload_array_length], \
-            E_offload_array[0:sim.E_offload_data.offload_array_length], \
-         dist_offload_array_mic0[0:sim.dist_offload_data.offload_array_length],\
-         plasma_offload_array[0:sim.plasma_offload_data.offload_array_length], \
-            wall_offload_array[0:sim.wall_offload_data.offload_array_length] \
-         )
+        #ifndef NOTARGET
+            #pragma omp section
+            {
+                #ifdef _OMP
+                    mic0_start = omp_get_wtime();
+                #endif
+                #pragma omp target device(0) map(		\
+		    p[0:n_mic],						\
+		    B_offload_array[0:sim.B_offload_data.offload_array_length], \
+		    E_offload_array[0:sim.E_offload_data.offload_array_length], \
+		    diag_offload_array_mic0[0:sim.diag_offload_data.offload_array_length], \
+		    plasma_offload_array[0:sim.plasma_offload_data.offload_array_length], \
+		    wall_offload_array[0:sim.wall_offload_data.offload_array_length] \
+		    )
 //	simulate_gc_fixed(1, n_mic, p, sim, B_offload_array, E_offload_array,
-//			     plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
+//			     plasma_offload_array, wall_offload_array, diag_offload_array_mic0);
 //      simulate_gc_adaptive(1, n_mic, p, sim, B_offload_array, E_offload_array,
-//			     plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
+//			     plasma_offload_array, wall_offload_array, diag_offload_array_mic0);
 //	simulate_fo_fixed(1, n_mic, p, sim, B_offload_array, E_offload_array,
-//			  plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
-	simulate_ml_adaptive(1, n_mic, p, sim, B_offload_array, E_offload_array,
-	                    plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
-#ifdef _OMP
-        mic0_end = omp_get_wtime();
-#endif
-    }
-
-    #pragma omp section
-    {
-#ifdef _OMP
-        mic1_start = omp_get_wtime();
-#endif
-        #pragma omp target device(1) map( \
-            p[n_mic:n_mic], \
-            B_offload_array[0:sim.B_offload_data.offload_array_length], \
-            E_offload_array[0:sim.E_offload_data.offload_array_length], \
-         dist_offload_array_mic1[0:sim.dist_offload_data.offload_array_length],\
-         plasma_offload_array[0:sim.plasma_offload_data.offload_array_length], \
-            wall_offload_array[0:sim.wall_offload_data.offload_array_length] \
-         )
+//			  plasma_offload_array, wall_offload_array, diag_offload_array_mic0);
+		    simulate_ml_adaptive(1, n_mic, p, sim, B_offload_array, E_offload_array,
+					     plasma_offload_array, wall_offload_array, diag_offload_array_mic0);
+                #ifdef _OMP
+	            mic0_end = omp_get_wtime();
+                #endif
+	    }
+            #pragma omp section
+            {
+            #ifdef _OMP
+                mic1_start = omp_get_wtime();
+            #endif
+            #pragma omp target device(1) map( \
+		p[n_mic:n_mic],						\
+		B_offload_array[0:sim.B_offload_data.offload_array_length], \
+		E_offload_array[0:sim.E_offload_data.offload_array_length], \
+		diag_offload_array_mic1[0:sim.diag_offload_data.offload_array_length], \
+		plasma_offload_array[0:sim.plasma_offload_data.offload_array_length], \
+		wall_offload_array[0:sim.wall_offload_data.offload_array_length] \
+		)
 //	simulate_gc_fixed(2, n_mic, p+n_mic, sim, B_offload_array, E_offload_array,
-//			     plasma_offload_array, wall_offload_array, dist_offload_array_mic1);
+//			     plasma_offload_array, wall_offload_array, diag_offload_array_mic1);
 //      simulate_gc_adaptive(2, n_mic, p+n_mic, sim, B_offload_array, E_offload_array,
-//			     plasma_offload_array, wall_offload_array, dist_offload_array_mic1);
+//			     plasma_offload_array, wall_offload_array, diag_offload_array_mic1);
 //	simulate_fo_fixed(1, n_mic, p+n_mic, sim, B_offload_array, E_offload_array,
-//			  plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
-	simulate_ml_adaptive(1, n_mic, p+n_mic, sim, B_offload_array, E_offload_array,
-			    plasma_offload_array, wall_offload_array, dist_offload_array_mic0);
-#ifdef _OMP
-        mic1_end = omp_get_wtime();
-#endif
-    } 
-    #else
-    #pragma omp section
-    {
+//			  plasma_offload_array, wall_offload_array, diag_offload_array_mic0);
+		simulate_ml_adaptive(1, n_mic, p+n_mic, sim, B_offload_array, E_offload_array,
+				     plasma_offload_array, wall_offload_array, diag_offload_array_mic0);
+            #ifdef _OMP
+                mic1_end = omp_get_wtime();
+            #endif
+	    } 
+        #else
+            #pragma omp section
+            {
 #ifdef _OMP
         host_start = omp_get_wtime();
 #endif
 //	simulate_gc_fixed(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
-//			     plasma_offload_array, wall_offload_array, dist_offload_array_host);
+//			     plasma_offload_array, wall_offload_array, diag_offload_array_host);
         simulate_gc_adaptive(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
-			     plasma_offload_array, wall_offload_array, dist_offload_array_host);
+			     plasma_offload_array, wall_offload_array, diag_offload_array_host);
 //	simulate_fo_fixed(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
-//			  plasma_offload_array, wall_offload_array, dist_offload_array_host);
+//			  plasma_offload_array, wall_offload_array, diag_offload_array_host);
 //	simulate_ml_adaptive(0, n_host, p+2*n_mic, sim, B_offload_array, E_offload_array,
-//			    plasma_offload_array, wall_offload_array, dist_offload_array_host);
+//			    plasma_offload_array, wall_offload_array, diag_offload_array_host);
 #ifdef _OMP
         host_end = omp_get_wtime();
 #endif
@@ -210,13 +210,12 @@ int main(int argc, char** argv) {
 
     /* Combine histograms */
     #ifndef NOTARGET
-    dist_rzvv_sum(&sim.dist_offload_data, dist_offload_array_mic0,
-                  dist_offload_array_mic1);
-    ascot4_write_dist_rzvv(&sim.dist_offload_data, dist_offload_array_mic0,
-                           filename);
+	diag_sum(&sim.diag_offload_data, diag_offload_array_mic0,diag_offload_array_mic1);
+	//ascot4_write_dist_rzvv(&sim.dist_offload_data, dist_offload_array_mic0,
+	//                 filename);
     #else
-    ascot4_write_dist_rzvv(&sim.dist_offload_data, dist_offload_array_host,
-                           filename);
+	//ascot4_write_dist_rzvv(&sim.dist_offload_data, dist_offload_array_host,
+	//                 filename);
     #endif
     ascot4_write_endstate(n, p, filename);
 
@@ -224,10 +223,10 @@ int main(int argc, char** argv) {
     plasma_1d_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
     #ifndef NOTARGET
-    dist_rzvv_free_offload(&sim.dist_offload_data, &dist_offload_array_mic0);
-    dist_rzvv_free_offload(&sim.dist_offload_data, &dist_offload_array_mic1);
+        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
+        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
     #else
-    dist_rzvv_free_offload(&sim.dist_offload_data, &dist_offload_array_host);
+        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
     #endif
     free(p);
 

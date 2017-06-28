@@ -16,12 +16,11 @@
 #include "diag.h"
 
 typedef struct {
-    char hdf5fn[64];
+    char hdf5fn[256];
     B_field_offload_data B_offload_data;
     E_field_offload_data E_offload_data;
     plasma_1d_offload_data plasma_offload_data;
     wall_offload_data wall_offload_data;
-    dist_rzvv_offload_data dist_offload_data;
     diag_offload_data diag_offload_data;
 
     int sim_mode;
@@ -59,7 +58,6 @@ typedef struct {
     E_field_data E_data;
     plasma_1d_data plasma_data;
     wall_data wall_data;
-    dist_rzvv_data dist_data;
     diag_data diag_data;
 
     int sim_mode;

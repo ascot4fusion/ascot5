@@ -23,31 +23,9 @@ unsigned long dist_rzvv_index(int i_r, int i_z,
 #pragma omp end declare target
 
 /**
- * @brief Initialize distribution
- *
- * Fill the offload struct with distribution parameters and 
- * allocates and empties the offload array.
+ * @brief Frees the offload data
  */
-void dist_rzvv_init_offload(dist_rzvv_offload_data* offload_data,
-                            real** offload_array) {
-    offload_data->offload_array_length = offload_data->n_r * offload_data->n_z
-        * offload_data->n_vpara * offload_data->n_vperp;
-
-    *offload_array = (real*) malloc(sizeof(real)
-                                    * offload_data->offload_array_length);
-    if(*offload_array == 0) {
-        printf("Histogram memory allocation failed\n");
-        exit(1);
-    }
-
-    int i;
-    for(i = 0; i < offload_data->offload_array_length; i++) {
-        (*offload_array)[i] = 0.0;
-    }
-}
-
-void dist_rzvv_free_offload(dist_rzvv_offload_data* offload_data,
-                            real** offload_array) {
+void dist_rzvv_free_offload(dist_rzvv_offload_data* offload_data) {
     offload_data->n_r = 0;
     offload_data->min_r = 0;
     offload_data->max_r = 0;
@@ -60,10 +38,11 @@ void dist_rzvv_free_offload(dist_rzvv_offload_data* offload_data,
     offload_data->n_vperp = 0;
     offload_data->min_vperp = 0;
     offload_data->max_vperp = 0;
-    free(*offload_array);
-    *offload_array = NULL;
 }
 
+/**
+ * @brief Initializes distribution from offload data
+ */
 void dist_rzvv_init(dist_rzvv_data* dist_data,
                     dist_rzvv_offload_data* offload_data,
                     real* offload_array) {
@@ -282,10 +261,10 @@ void dist_rzvv_print_vv(dist_rzvv_offload_data* dist, real* histogram) {
     } 
 }
 
-void dist_rzvv_sum(dist_rzvv_offload_data* dist1, real* array1, real* array2) {
+void dist_rzvv_sum(int start, int stop, real* array1, real* array2) {
     int i;
 
-    for(i=0; i < dist1->offload_array_length; i++) {
+    for(i=start; i < stop; i++) {
         array1[i] += array2[i];
     }
 }

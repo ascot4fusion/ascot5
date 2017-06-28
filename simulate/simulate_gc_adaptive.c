@@ -48,10 +48,9 @@
  * @param E_offload_array offload array of electric field data
  * @param plasma_offload_array offload array of plasma data
  * @param wall_offload_array offload array of wall data
- * @param dist_offload_array offload array of distribution data
+ * @param diag_offload_array offload array of diagnostics data
  *
  * @todo what is that id field?
- * @todo replace distribution input with diagnostics input
  * @todo initial time step is currently hard-coded when it should be physics-defined
  * @todo time step limits for how much a marker travels in rho or phi
  * @todo integrators are not updating the marker B-field fields as they should 
@@ -62,7 +61,7 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 			  real* E_offload_array,
 			  real* plasma_offload_array,
 			  real* wall_offload_array,
-			  real* dist_offload_array) {
+			  real* diag_offload_array) {
     sim_data sim;
 
 
@@ -86,9 +85,8 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
                    plasma_offload_array);
 
     /* Diagnostics data */
-    diag_init(&sim.diag_data,&sim_offload.diag_offload_data);
-    dist_rzvv_init(&sim.dist_data, &sim_offload.dist_offload_data,
-                   dist_offload_array);
+    diag_init(&sim.diag_data,&sim_offload.diag_offload_data,
+	diag_offload_array);
 	
     
     int i_next_prt = 0;
@@ -299,9 +297,6 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
         
 
     }
-
-    // TODO Move these to main program
-    diag_write(&sim.diag_data);
     diag_clean(&sim.diag_data);
 
 }
