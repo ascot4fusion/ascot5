@@ -23,7 +23,6 @@
  * rejected and provides a suggestion for the next time step.
  *
  * @param p particle struct that will be updated
- * @param t array containting time values
  * @param h array containing time step lengths
  * @param hnext suggestion for the next time step. Sign only indicates whether current step was rejected
  * @param tol error tolerance
@@ -152,15 +151,25 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
 	    p->z[i] = yout[2];
 	    p->vpar[i] = yout[3];
 		
-	    /* Update other particle parameters to be consistent */
-	    B_field_eval_B(B, yout[0], yout[1], yout[2], Bdata);
-	    p->B_r[i] = B[0];
-	    p->B_phi[i] = B[1];
-	    p->B_z[i] = B[2]; 
-		
-	    p->prev_r[i] = yprev[0];
-	    p->prev_phi[i] = yprev[1];
-	    p->prev_z[i] = yprev[2];
+
+	    /* Evaluate magnetic field (and gradient) at new position */
+	    B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);
+	    p->B_r[i]        = B_dB[0];
+	    p->B_r_dr[i]     = B_dB[1];
+	    p->B_r_dphi[i]   = B_dB[2];
+	    p->B_r_dz[i]     = B_dB[3];
+
+	    p->B_phi[i]      = B_dB[4];
+	    p->B_phi_dr[i]   = B_dB[5];
+	    p->B_phi_dphi[i] = B_dB[6];
+	    p->B_phi_dz[i]   = B_dB[7];
+
+	    p->B_z[i]        = B_dB[8];
+	    p->B_z_dr[i]     = B_dB[9];
+	    p->B_z_dphi[i]   = B_dB[10];
+	    p->B_z_dz[i]     = B_dB[11];
+
+
         }
     }
 }

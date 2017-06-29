@@ -57,9 +57,12 @@ MCCCDIR = $(SIMDIR)mccc/
 MCCCHEADERS = $(wildcard $(MCCCDIR)mccc*.h)
 MCCCOBJS = $(patsubst %.c,%.o,$(wildcard $(MCCCDIR)mccc*.c))
 
+DIAGHEADERS = diag.h diag_orb.h distributions.h
+DIAGOBJS = diag.o diag_orb.o distributions.o
+
 
 HEADERS=ascot5.h B_GS.h math.h consts.h \
-	   	wall_2d.h ascot4_interface.h distributions.h B_2D.h \
+	   	wall_2d.h ascot4_interface.h $(DIAGHEADERS) B_2D.h \
 		plasma_1d.h interact.h simulate.h \
 		hdf5_helpers.h hdf5_histogram.h B_3D.h \
 		wall_3d.h list.h octree.h hdf5_particlestate.h \
@@ -67,18 +70,16 @@ HEADERS=ascot5.h B_GS.h math.h consts.h \
 		particle.h filip5.h endcond.h \
 		B_field.h E_field.h wall.h phys_orbit.h hdf5_bfield.h \
 		E_1D.h $(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) \
-		diag.h diag_orb.h \
 		hdf5_input.h hdf5_simulate.h
 
 OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
-     wall_2d.o distributions.o B_2D.o B_ST.o B_TC.o  \
+     wall_2d.o $(DIAGOBJS) B_2D.o B_ST.o B_TC.o  \
 	plasma_1d.o interact.o \
 	hdf5_helpers.o hdf5_histogram.o B_3D.o \
 	 wall_3d.o list.o octree.o hdf5_particlestate.o \
      particle.o endcond.o B_field.o E_field.o wall.o simulate.o \
 	phys_orbit.o hdf5_bfield.o \
 	E_1D.o $(MCCCOBJS) $(STEPOBJS) $(SIMOBJS)  \
-	diag.o diag_orb.o \
 	hdf5_input.o hdf5_simulate.o
 
 BINS=test_math \
@@ -133,6 +134,9 @@ test_interact: test_interact.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_offload: test_offload.o 
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_diag_offload: test_diag_offload.o simulate.o $(DIAGOBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_E: test_E.o $(OBJS)

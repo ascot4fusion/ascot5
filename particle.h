@@ -89,7 +89,6 @@ typedef struct {
  * parameters are consistent (for example, update magnetic field when position
  * changes.
  *
- * @todo prev_* fields are likely redundant
  */
 typedef struct {
     real r[NSIMD] __memalign__;        /**< r coordinate */
@@ -114,9 +113,16 @@ typedef struct {
     real B_z[NSIMD] __memalign__;      /**< magnetic field z component at
                                             particle position */
 
-    real prev_r[NSIMD] __memalign__;      /**< previous r coordinate */
-    real prev_phi[NSIMD] __memalign__;    /**< previous phi coordinate */
-    real prev_z[NSIMD] __memalign__;      /**< previous z coordinate */
+    real B_r_dr[NSIMD] __memalign__;      /**< gradient of B_r with respect to r*/
+    real B_phi_dr[NSIMD] __memalign__;    /**< gradient of B_phi with respect to r*/
+    real B_z_dr[NSIMD] __memalign__;      /**< gradient of B_z with respect to r*/
+    real B_r_dphi[NSIMD] __memalign__;    /**< gradient of B_r with respect to phi*/
+    real B_phi_dphi[NSIMD] __memalign__;  /**< gradient of B_phi with respect to phi*/
+    real B_z_dphi[NSIMD] __memalign__;    /**< gradient of B_z with respect to phi*/
+    real B_r_dz[NSIMD] __memalign__;      /**< gradient of B_r with respect to z*/
+    real B_phi_dz[NSIMD] __memalign__;    /**< gradient of B_phi with respect to z*/
+    real B_z_dz[NSIMD] __memalign__;      /**< gradient of B_z with respect to z*/
+
     integer index[NSIMD] __memalign__;
 } particle_simd_fo;
 
@@ -151,9 +157,15 @@ typedef struct {
                                             particle position */
     real B_z[NSIMD] __memalign__;      /**< magnetic field z component at
                                             particle position */
-    real prev_r[NSIMD] __memalign__;      /**< previous r coordinate */
-    real prev_phi[NSIMD] __memalign__;    /**< previous phi coordinate */
-    real prev_z[NSIMD] __memalign__;      /**< previous z coordinate */
+    real B_r_dr[NSIMD] __memalign__;      /**< gradient of B_r with respect to r*/
+    real B_phi_dr[NSIMD] __memalign__;    /**< gradient of B_phi with respect to r*/
+    real B_z_dr[NSIMD] __memalign__;      /**< gradient of B_z with respect to r*/
+    real B_r_dphi[NSIMD] __memalign__;    /**< gradient of B_r with respect to phi*/
+    real B_phi_dphi[NSIMD] __memalign__;  /**< gradient of B_phi with respect to phi*/
+    real B_z_dphi[NSIMD] __memalign__;    /**< gradient of B_z with respect to phi*/
+    real B_r_dz[NSIMD] __memalign__;      /**< gradient of B_r with respect to z*/
+    real B_phi_dz[NSIMD] __memalign__;    /**< gradient of B_phi with respect to z*/
+    real B_z_dz[NSIMD] __memalign__;      /**< gradient of B_z with respect to z*/
     integer index[NSIMD] __memalign__;
 } particle_simd_gc;
 
@@ -178,6 +190,16 @@ typedef struct {
                                             particle position */
     real B_z[NSIMD] __memalign__;      /**< magnetic field z component at
                                             particle position */
+  
+    real B_r_dr[NSIMD] __memalign__;      /**< gradient of B_r with respect to r*/
+    real B_phi_dr[NSIMD] __memalign__;    /**< gradient of B_phi with respect to r*/
+    real B_z_dr[NSIMD] __memalign__;      /**< gradient of B_z with respect to r*/
+    real B_r_dphi[NSIMD] __memalign__;    /**< gradient of B_r with respect to phi*/
+    real B_phi_dphi[NSIMD] __memalign__;  /**< gradient of B_phi with respect to phi*/
+    real B_z_dphi[NSIMD] __memalign__;    /**< gradient of B_z with respect to phi*/
+    real B_r_dz[NSIMD] __memalign__;      /**< gradient of B_r with respect to z*/
+    real B_phi_dz[NSIMD] __memalign__;    /**< gradient of B_phi with respect to z*/
+    real B_z_dz[NSIMD] __memalign__;      /**< gradient of B_z with respect to z*/
     integer index[NSIMD] __memalign__;
 } particle_simd_ml;
 

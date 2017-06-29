@@ -12,14 +12,13 @@
 #include "../../particle.h"
 
 /**
- * @brief Integrate a full orbit step for a struct of particles with leap-frog
+ * @brief Integrate a full orbit step for a struct of particles with VPA
  *
  * The integration is performed for a struct of NSIMD particles using the 
- * volume preserving algorithm (leap-frog for relativistic particles) see Zhang 2015.
+ * volume preserving algorithm (Boris method for relativistic particles) see Zhang 2015.
  *
- * @param p particle struct that will be updated
- * @param t time
- * @param h length of time step
+ * @param p particle_simd_fo struct that will be updated
+ * @param h pointer to array containing time steps
  * @param Bdata pointer to magnetic field data
  * @param Edata pointer to electric field data
  */
@@ -41,8 +40,9 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
       real rho_drho[4];
       real Erpz[3];
       B_field_eval_B(Brpz, xhalf[0], xhalf[1], xhalf[2], Bdata);
-      B_field_eval_rho_drho(rho_drho, xhalf[0], xhalf[1], xhalf[2], Bdata);
+
       /* Convert partial derivative to gradient */
+      B_field_eval_rho_drho(rho_drho, xhalf[0], xhalf[1], xhalf[2], Bdata);
       rho_drho[2] = rho_drho[2]/xhalf[0];
       E_field_eval_E(Erpz, rho_drho, Edata);
       
@@ -110,11 +110,24 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
       p->phidot[i] = ( -vxyz[0] * sin(p->phi[i]) + vxyz[1] * cos(p->phi[i]) ) / p->r[i];
       p->zdot[i] = vxyz[2];
 
-      /* Evaluate magnetic field at new position */
-      B_field_eval_B(Brpz, p->r[i], p->phi[i], p->z[i], Bdata);
-      p->B_r[i] = Brpz[0];
-      p->B_phi[i] = Brpz[1];
-      p->B_z[i] = Brpz[2];
+
+      /* Evaluate magnetic field (and gradient) at new position */
+      real BdBrpz[12];
+      B_field_eval_B_dB(BdBrpz, p->r[i], p->phi[i], p->z[i], Bdata);
+      p->B_r[i]        = BdBrpz[0];
+      p->B_r_dr[i]     = BdBrpz[1];
+      p->B_r_dphi[i]   = BdBrpz[2];
+      p->B_r_dz[i]     = BdBrpz[3];
+
+      p->B_phi[i]      = BdBrpz[4];
+      p->B_phi_dr[i]   = BdBrpz[5];
+      p->B_phi_dphi[i] = BdBrpz[6];
+      p->B_phi_dz[i]   = BdBrpz[7];
+
+      p->B_z[i]        = BdBrpz[8];
+      p->B_z_dr[i]     = BdBrpz[9];
+      p->B_z_dphi[i]   = BdBrpz[10];
+      p->B_z_dz[i]     = BdBrpz[11];
     }
   }
 }

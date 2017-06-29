@@ -139,11 +139,23 @@ void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol, B_fie
 	    p->phi[i] = yout[1];
 	    p->z[i] = yout[2];
 		
-	    /* Update other particle parameters to be consistent */
-	    B_field_eval_B(B, yout[0], yout[1], yout[2], Bdata);
-	    p->B_r[i] = B[0];
-	    p->B_phi[i] = B[1];
-	    p->B_z[i] = B[2]; 
+	    /* Evaluate magnetic field (and gradient) at new position */
+	    real BdBrpz[12];
+	    B_field_eval_B_dB(BdBrpz, p->r[i], p->phi[i], p->z[i], Bdata);
+	    p->B_r[i]        = BdBrpz[0];
+	    p->B_r_dr[i]     = BdBrpz[1];
+	    p->B_r_dphi[i]   = BdBrpz[2];
+	    p->B_r_dz[i]     = BdBrpz[3];
+
+	    p->B_phi[i]      = BdBrpz[4];
+	    p->B_phi_dr[i]   = BdBrpz[5];
+	    p->B_phi_dphi[i] = BdBrpz[6];
+	    p->B_phi_dz[i]   = BdBrpz[7];
+	    
+	    p->B_z[i]        = BdBrpz[8];
+	    p->B_z_dr[i]     = BdBrpz[9];
+	    p->B_z_dphi[i]   = BdBrpz[10];
+	    p->B_z_dz[i]     = BdBrpz[11];
 	        
         }
     }
