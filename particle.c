@@ -41,15 +41,24 @@ void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
     p_fo->endcond[j] = p->endcond; 
     p_fo->walltile[j] = p->walltile;
 
-    real B[3];
-    B_field_eval_B(B, p->r, p->phi, p->z, Bdata);
-    real rho_drho[4];
-    real E[3];
-    B_field_eval_rho_drho(rho_drho, p->r, p->phi, p->z, Bdata);
+    real B_dB[3];
+    B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);
 
-    p_fo->B_r[j] = B[0];					  
-    p_fo->B_phi[j] = B[1];				
-    p_fo->B_z[j] = B[2];
+    p_fo->B_r[j]        = B_dB[0];
+    p_fo->B_r_dr[j]     = B_dB[1];
+    p_fo->B_r_dphi[j]   = B_dB[2];
+    p_fo->B_r_dz[j]     = B_dB[3];
+
+    p_fo->B_phi[j]      = B_dB[4];
+    p_fo->B_phi_dr[j]   = B_dB[5];
+    p_fo->B_phi_dphi[j] = B_dB[6];
+    p_fo->B_phi_dz[j]   = B_dB[7];
+
+    p_fo->B_z[j]        = B_dB[8];
+    p_fo->B_z_dr[j]     = B_dB[9];
+    p_fo->B_z_dphi[j]   = B_dB[10];
+    p_fo->B_z_dz[j]     = B_dB[11];
+
     p_fo->index[j] = i;
 }
 
@@ -123,9 +132,20 @@ void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
     p_gc->time[j] = 0;
     p_gc->id[j] = p->id;
     p_gc->running[j] = p->running;
-    p_gc->B_r[j] = B_dB[0];
-    p_gc->B_phi[j] = B_dB[4];
-    p_gc->B_z[j] = B_dB[8];
+    p_gc->B_r[j]        = B_dB[0];
+    p_gc->B_r_dr[j]     = B_dB[1];
+    p_gc->B_r_dphi[j]   = B_dB[2];
+    p_gc->B_r_dz[j]     = B_dB[3];
+
+    p_gc->B_phi[j]      = B_dB[4];
+    p_gc->B_phi_dr[j]   = B_dB[5];
+    p_gc->B_phi_dphi[j] = B_dB[6];
+    p_gc->B_phi_dz[j]   = B_dB[7];
+
+    p_gc->B_z[j]        = B_dB[8];
+    p_gc->B_z_dr[j]     = B_dB[9];
+    p_gc->B_z_dphi[j]   = B_dB[10];
+    p_gc->B_z_dz[j]     = B_dB[11];
     p_gc->index[j] = i;
 }
 
@@ -137,8 +157,7 @@ void guiding_center_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
     p_gc->phi[j] = p->phi;
     p_gc->z[j] = p->z;
     
-    real B[3];
-    B_field_eval_B(B, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);
+    B_field_eval_B_dB(B_dB, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);
     p_gc->vpar[j] = p->vpar;
     p_gc->mu[j] = p->mu;
 
@@ -153,9 +172,20 @@ void guiding_center_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
     p_gc->time[j] = 0;
     p_gc->id[j] = p->id;
     p_gc->running[j] = p->running;
-    p_gc->B_r[j] = B[0];
-    p_gc->B_phi[j] = B[1];
-    p_gc->B_z[j] = B[2];
+    p_gc->B_r[j]        = B_dB[0];
+    p_gc->B_r_dr[j]     = B_dB[1];
+    p_gc->B_r_dphi[j]   = B_dB[2];
+    p_gc->B_r_dz[j]     = B_dB[3];
+
+    p_gc->B_phi[j]      = B_dB[4];
+    p_gc->B_phi_dr[j]   = B_dB[5];
+    p_gc->B_phi_dphi[j] = B_dB[6];
+    p_gc->B_phi_dz[j]   = B_dB[7];
+
+    p_gc->B_z[j]        = B_dB[8];
+    p_gc->B_z_dr[j]     = B_dB[9];
+    p_gc->B_z_dphi[j]   = B_dB[10];
+    p_gc->B_z_dz[j]     = B_dB[11];
     p_gc->index[j] = i;
 }
 
@@ -166,15 +196,26 @@ void particle_to_gc_dummy(particle_simd_gc* p_gc, int j) {
     p_gc->vpar[j] = 1;
     p_gc->mu[j] = 1;
     p_gc->theta[j] = 1;
-    p_gc->B_r[j] = 1;
-    p_gc->B_phi[j] = 1;
-    p_gc->B_z[j] = 1;
     p_gc->mass[j] = 1;
     p_gc->charge[j] = 1;
     p_gc->time[j] = 0;
     p_gc->weight[j] = 0;
     p_gc->id[j] = -1;
     p_gc->running[j] = 0;
+    p_gc->B_r[j]        = 1;
+    p_gc->B_r_dr[j]     = 1;
+    p_gc->B_r_dphi[j]   = 1;
+    p_gc->B_r_dz[j]     = 1;
+
+    p_gc->B_phi[j]      = 1;
+    p_gc->B_phi_dr[j]   = 1;
+    p_gc->B_phi_dphi[j] = 1;
+    p_gc->B_phi_dz[j]   = 1;
+
+    p_gc->B_z[j]        = 1;
+    p_gc->B_z_dr[j]     = 1;
+    p_gc->B_z_dphi[j]   = 1;
+    p_gc->B_z_dz[j]     = 1;
     p_gc->index[j] = -1;
 }
 
@@ -248,9 +289,6 @@ void particle_gc_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
 
     real B[3];
     B_field_eval_B(B, p->r, p->phi, p->z, Bdata);
-    real rho_drho[4];
-    real E[3];
-    B_field_eval_rho_drho(rho_drho, p->r, p->phi, p->z, Bdata);
 
     p_gc->B_r[j] = B[0];
     p_gc->B_phi[j] = B[1];
@@ -293,15 +331,23 @@ void particle_to_ml(particle* p, int i, particle_simd_ml* p_ml, int j,
     p_ml->endcond[j] = p->endcond; 
     p_ml->walltile[j] = p->walltile;
 
-    real B[3];
-    B_field_eval_B(B, p->r, p->phi, p->z, Bdata);
-    real rho_drho[4];
-    real E[3];
-    B_field_eval_rho_drho(rho_drho, p->r, p->phi, p->z, Bdata);
+    real B_dB[3];
+    B_field_eval_B(B_dB, p->r, p->phi, p->z, Bdata);
 
-    p_ml->B_r[j] = B[0];					  
-    p_ml->B_phi[j] = B[1];				
-    p_ml->B_z[j] = B[2];
+    p_ml->B_r[j]        = B_dB[0];
+    p_ml->B_r_dr[j]     = B_dB[1];
+    p_ml->B_r_dphi[j]   = B_dB[2];
+    p_ml->B_r_dz[j]     = B_dB[3];
+
+    p_ml->B_phi[j]      = B_dB[4];
+    p_ml->B_phi_dr[j]   = B_dB[5];
+    p_ml->B_phi_dphi[j] = B_dB[6];
+    p_ml->B_phi_dz[j]   = B_dB[7];
+
+    p_ml->B_z[j]        = B_dB[8];
+    p_ml->B_z_dr[j]     = B_dB[9];
+    p_ml->B_z_dphi[j]   = B_dB[10];
+    p_ml->B_z_dz[j]     = B_dB[11];
     p_ml->index[j] = i;
 }
 
@@ -319,10 +365,21 @@ void particle_to_ml_dummy(particle_simd_ml* p_ml, int j){
     p_ml->id[j] = -1; 
     p_ml->running[j] = 0;
     p_ml->endcond[j] = 0; 
-    p_ml->walltile[j] = 0;
-    p_ml->B_r[j] = 1;					  
-    p_ml->B_phi[j] = 1;				
-    p_ml->B_z[j] = 1;	        
+    p_ml->walltile[j] = 0;  
+    p_ml->B_r[j]        = 1;
+    p_ml->B_r_dr[j]     = 1;
+    p_ml->B_r_dphi[j]   = 1;
+    p_ml->B_r_dz[j]     = 1;
+
+    p_ml->B_phi[j]      = 1;
+    p_ml->B_phi_dr[j]   = 1;
+    p_ml->B_phi_dphi[j] = 1;
+    p_ml->B_phi_dz[j]   = 1;
+
+    p_ml->B_z[j]        = 1;
+    p_ml->B_z_dr[j]     = 1;
+    p_ml->B_z_dphi[j]   = 1;
+    p_ml->B_z_dz[j]     = 1;
     p_ml->index[j] = -1;
 }
 

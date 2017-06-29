@@ -53,7 +53,11 @@ void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol, B_fie
             yprev[1] = p->phi[i];
             yprev[2] = p->z[i];
 
-	    B_field_eval_B(k1, yprev[0], yprev[1], yprev[2], Bdata);
+	    /* Magnetic field at initial position already known */
+	    k1[0] = p->B_r[i];
+	    k1[1] = p->B_phi[i];
+	    k1[2] = p->B_z[i];
+
 	    k1[1] /= yprev[0];
             normB = math_normc(k1[0], k1[1], k1[2]);
             k1[0] /= normB;

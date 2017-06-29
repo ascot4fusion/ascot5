@@ -63,7 +63,22 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
             mass = p->mass[i];
             charge = p->charge[i];
 
-	    B_field_eval_B_dB(B_dB, yprev[0], yprev[1], yprev[2], Bdata);
+	    /* Magnetic field at initial position already known */
+	    B_dB[0] = p->B_r[i];
+	    B_dB[1] = p->B_r_dr[i];
+	    B_dB[2] = p->B_r_dphi[i];
+	    B_dB[3] = p->B_r_dz[i];
+
+	    B_dB[4] = p->B_phi[i];
+	    B_dB[5] = p->B_phi_dr[i];
+	    B_dB[6] = p->B_phi_dphi[i];
+	    B_dB[7] = p->B_phi_dz[i];
+
+	    B_dB[8] = p->B_z[i];
+	    B_dB[9] = p->B_z_dr[i];
+	    B_dB[10] = p->B_z_dphi[i];
+	    B_dB[11] = p->B_z_dz[i];
+
             B_field_eval_rho_drho(rho_drho, yprev[0], yprev[1], yprev[2], Bdata);
             /* Convert partial derivative to gradient */
             rho_drho[2] = rho_drho[2]/yprev[0];

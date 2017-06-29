@@ -124,7 +124,9 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pd
 	    real B[3];
 	    real xi;
 
-	    B_field_eval_B(B, p->r[i], p->phi[i], p->z[i], Bdata);
+	    B[0] = p->B_r[i];
+	    B[1] = p->B_phi[i];
+	    B[2] = p->B_z[i];
 	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
 	    B_field_eval_rho(rho, psi[0], Bdata);
 
@@ -146,6 +148,7 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pd
 	    mccc_coefs_clog(p->mass[i],p->charge[i],va,pdata->mass,pdata->charge,dens,temp,&clogab[i*MAX_SPECIES],pdata->n_species);
 	    mccc_coefs_gcadaptive(p->mass[i],p->charge[i],va,xi,pdata->mass,pdata->charge,dens,temp,Bnorm,&clogab[i*MAX_SPECIES],pdata->n_species,
 				  &Dpara[i*MAX_SPECIES],&DX[i*MAX_SPECIES],&K[i*MAX_SPECIES],&nu[i*MAX_SPECIES],&dQ[i*MAX_SPECIES],&dDpara[i*MAX_SPECIES]);
+
 	}
     }
 
@@ -229,6 +232,7 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
 	    p->rdot[i] = vout[0] * cos(p->phi[i]) + vout[1] * sin(p->phi[i]);
 	    p->phidot[i] = (-vout[0] * sin(p->phi[i]) + vout[1] * cos(p->phi[i]) ) / p->r[i];
 	    p->zdot[i] = vout[2];
+
 	}
     }
 }
@@ -259,7 +263,9 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 	    real B[3];
 	    real xiin;
 
-	    B_field_eval_B(B, p->r[i], p->phi[i], p->z[i], Bdata);
+	    B[0] = p->B_r[i];
+	    B[1] = p->B_phi[i];
+	    B[2] = p->B_z[i];
 	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
 	    B_field_eval_rho(rho, psi[0], Bdata);
 		
@@ -329,6 +335,24 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 	    p->r[i] = sqrt(Xout[0]*Xout[0] + Xout[1]*Xout[1]);
 	    p->phi[i] = atan2(Xout[1],Xout[0]);
 	    p->z[i] = Xout[2];
+
+	    /* Evaluate magnetic field (and gradient) at new position */
+	    real B_dB[12];
+	    B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);
+	    p->B_r[i]        = B_dB[0];
+	    p->B_r_dr[i]     = B_dB[1];
+	    p->B_r_dphi[i]   = B_dB[2];
+	    p->B_r_dz[i]     = B_dB[3];
+
+	    p->B_phi[i]      = B_dB[4];
+	    p->B_phi_dr[i]   = B_dB[5];
+	    p->B_phi_dphi[i] = B_dB[6];
+	    p->B_phi_dz[i]   = B_dB[7];
+
+	    p->B_z[i]        = B_dB[8];
+	    p->B_z_dr[i]     = B_dB[9];
+	    p->B_z_dphi[i]   = B_dB[10];
+	    p->B_z_dz[i]     = B_dB[11];
 	}
     }
 }
@@ -366,10 +390,10 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    real B[3];
 	    real xiin;
 
-	    B_field_eval_B(B, p->r[i], p->phi[i], p->z[i], Bdata);
-		
+	    B[0] = p->B_r[i];
+	    B[1] = p->B_phi[i];
+	    B[2] = p->B_z[i];
 	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
-		
 	    B_field_eval_rho(rho, psi[0], Bdata);
 		
 	    real temp[MAX_SPECIES];
@@ -508,7 +532,28 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    }
 		
 	    /* Negative value indicates time step was rejected*/
-	    if(rejected){hout[i] = -hout[i];}
+	    if(rejected){
+		hout[i] = -hout[i];
+	    }
+	    else {
+		/* Evaluate magnetic field (and gradient) at new position */
+		real B_dB[12];
+		B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);
+		p->B_r[i]        = B_dB[0];
+		p->B_r_dr[i]     = B_dB[1];
+		p->B_r_dphi[i]   = B_dB[2];
+		p->B_r_dz[i]     = B_dB[3];
+
+		p->B_phi[i]      = B_dB[4];
+		p->B_phi_dr[i]   = B_dB[5];
+		p->B_phi_dphi[i] = B_dB[6];
+		p->B_phi_dz[i]   = B_dB[7];
+
+		p->B_z[i]        = B_dB[8];
+		p->B_z_dr[i]     = B_dB[9];
+		p->B_z_dphi[i]   = B_dB[10];
+		p->B_z_dz[i]     = B_dB[11];
+	    }
 	}
     }
 }
