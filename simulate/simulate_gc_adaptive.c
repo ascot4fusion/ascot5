@@ -23,6 +23,9 @@
 #include "mccc/mccc_wiener.h"
 #include "../endcond.h"
 #include "../math.h"
+#include "../consts.h"
+
+real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
 
 /**
  * @brief Simulates guiding centers using adaptive time-step
@@ -51,7 +54,6 @@
  * @param diag_offload_array offload array of diagnostics data
  *
  * @todo what is that id field?
- * @todo initial time step is currently hard-coded when it should be physics-defined
  * @todo time step limits for how much a marker travels in rho or phi
  * @todo integrators are not updating the marker B-field fields as they should 
  */
@@ -124,9 +126,8 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 		    wienarr[i] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[i]);
 	        }
 
-		// Determine initial time step
-	        // TODO get this one from physics
-	        hin[i] = 1.0e-8;
+		/* Determine initial time step */
+		hin[i] = simulate_gc_adaptive_inidt(&sim, &p, i);
 
 		
             }
@@ -275,9 +276,8 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 			    wienarr[k] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[k]);
 		        }
 		
-			// Determine initial time step
-			// TODO get this one from physics
-			hin[k] = 1.e-8;
+			/* Determine initial time step */
+			hin[k] = simulate_gc_adaptive_inidt(&sim, &p, k);
 						
                     }
                     else {
@@ -299,5 +299,43 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
     }
     diag_clean(&sim.diag_data);
 
+}
+
+/**
+ * @brief Calculates time step value
+ */
+real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
+
+    /* Just use some large value if no physics are defined */
+    real h = 1.0;
+
+    /* Value calculated from gyrotime */
+    if(sim->enable_orbfol) {
+	real B = sqrt(p->B_r[i]*p->B_r[i] + p->B_phi[i]*p->B_phi[i] + p->B_z[i]*p->B_z[i]);
+	real gamma = 1; // TODO relativistic
+	real gyrotime = fabs( CONST_2PI * p->mass[i] * gamma / ( p->charge[i] * B ) );
+	if(h > gyrotime) {h=gyrotime;}
+    }
+
+    /* Value calculated from collision frequency */
+    if(sim->enable_clmbcol) {
+	real clogab[NSIMD*MAX_SPECIES];
+	real Dpara[NSIMD*MAX_SPECIES];
+	real DX[NSIMD*MAX_SPECIES];
+	real K[NSIMD*MAX_SPECIES];
+	real nub[NSIMD*MAX_SPECIES];
+	real dQ[NSIMD*MAX_SPECIES];
+	real dDparab[NSIMD*MAX_SPECIES];
+	mccc_update_gc(p,&sim->B_data,&sim->plasma_data,clogab,Dpara,DX,K,nub,dQ,dDparab);
+	real nu = 0;
+	for(int k = 0; k < MAX_SPECIES; k++) {
+	    nu = nu + nub[MAX_SPECIES*i + k];
+	}
+	/* Only small angle collisions so divide this by 100 */
+	real colltime = 1/(100*nu);
+	if(h > colltime) {h=colltime;}
+    }
+
+    return h;
 }
 

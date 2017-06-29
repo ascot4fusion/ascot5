@@ -22,6 +22,9 @@
 #include "mccc/mccc.h"
 #include "../endcond.h"
 #include "../math.h"
+#include "../consts.h"
+
+real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i); 
 
 /**
  * @brief Simulates particles using fixed time-step
@@ -104,18 +107,16 @@ void simulate_fo_fixed(int id, int n_particles, particle* particles,
             #pragma omp critical
             i_prt = i_next_prt++;
             if(i_prt < n_particles) {
-		/* Guiding center transformation */
+		/* Particle to SIMD transformation */
                 particle_to_fo(&particles[i_prt], i_prt, &p, i, &sim.B_data);
 
-		// Determine initial time step
-		// TODO get this one from physics
-		hin[i] = 1.e-10;
-
-		
+		/* Determine initial time step */
+		hin[i] = simulate_fo_fixed_inidt(&sim, &p, i);		
             }
             else {
 		/* Dummy marker to fill NSIMD when we ran out of actual particles */
                 particle_to_fo_dummy(&p, i);
+
             }
 
 	    /* Init dummy particles here, the (required) fields are initialized 
@@ -186,9 +187,9 @@ void simulate_fo_fixed(int id, int n_particles, particle* particles,
                     if(i_prt < n_particles) {
 	                particle_to_fo(&particles[i_prt], i_prt, &p, k,
 				       &sim.B_data);
-			// Determine initial time step
-			// TODO get this one from physics
-			hin[k] = 1.e-10;
+
+			/* Determine initial time step */
+			hin[k] = simulate_fo_fixed_inidt(&sim, &p, k);
 						
                     }
                     else {
@@ -213,3 +214,20 @@ void simulate_fo_fixed(int id, int n_particles, particle* particles,
 
 }
 
+/**
+ * @brief Calculates time step value
+ */
+real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
+    /* Value defined directly by user */
+    if(sim->fix_usrdef_use) {
+	return sim->fix_usrdef_val;
+    }
+
+    /* Value calculated from gyrotime */
+    real B = sqrt(p->B_r[i]*p->B_r[i] + p->B_phi[i]*p->B_phi[i] + p->B_z[i]*p->B_z[i]);
+    real gamma = 1; // TODO relativistic
+    real gyrotime = fabs( CONST_2PI * p->mass[i] * gamma / ( p->charge[i] * B ) );
+
+    return gyrotime/sim->fix_stepsPerGO;
+
+}

@@ -21,6 +21,9 @@
 #include "step/step_ml_cashkarp.h"
 #include "../endcond.h"
 #include "../math.h"
+#include "../consts.h"
+
+real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i);
 
 /**
  * @brief Simulates magnetic field-lines using adaptive time-step
@@ -112,10 +115,8 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
 		/* Guiding center transformation */
                 particle_to_ml(&particles[i_prt], i_prt, &p, i, &sim.B_data);
 
-		// Determine initial time step
-		// TODO get this one from physics
-		hin[i] = 1.e-4;
-
+		/* Determine initial time step */
+		hin[i] = simulate_ml_adaptive_inidt(&sim, &p, i);
 		
             }
             else {
@@ -134,12 +135,10 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
 /* MAIN SIMULATION LOOP 
  * - Store current state
  * - Integrate motion due to bacgkround EM-field (orbit-following)
- * - Integrate scattering due to Coulomb collisions
  * - Check whether time step was accepted
  *   - NO:  revert to initial state and ignore the end of the loop 
  *          (except CPU_TIME_MAX end condition if this is implemented)
  *   - YES: update particle time, clean redundant Wiener processes, and proceed
- * - Check wall collisions
  * - Check for end condition(s)
  * - Update diagnostics
  * - 
@@ -228,9 +227,8 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
                         particle_to_ml(&particles[i_prt], i_prt, &p, k,
 				       &sim.B_data);
 		
-			// Determine initial time step
-			// TODO get this one from physics
-			hin[k] = 1.e-4;
+			/* Determine initial time step */
+			hin[k] = simulate_ml_adaptive_inidt(&sim, &p, i);
 						
                     }
                     else {
@@ -255,3 +253,14 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
 
 }
 
+/**
+ * @brief Calculates time step value
+ */
+real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i) {
+
+    /* Value calculated from speed of light 
+     * assuming initial time step is of the order of 1 cm / c*/
+
+    return 1.0e-2/CONST_C;
+
+}

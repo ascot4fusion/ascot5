@@ -22,6 +22,9 @@
 #include "mccc/mccc.h"
 #include "../endcond.h"
 #include "../math.h"
+#include "../consts.h"
+
+real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
 
 /**
  * @brief Simulates guiding centers using fixed time-step
@@ -102,12 +105,11 @@ void simulate_gc_fixed(int id, int n_particles, particle* particles,
             #pragma omp critical
             i_prt = i_next_prt++;
             if(i_prt < n_particles) {
-		/* Guiding center transformation */
+		/* Guiding center to SIMD transformation */
                 particle_to_gc(&particles[i_prt], i_prt, &p, i, &sim.B_data);
 
-		// Determine initial time step
-		// TODO get this one from options
-		hin[i] = 1.e-8;
+		/* Determine simulation time-step */
+		hin[i] = simulate_gc_fixed_inidt(&sim, &p, i);
             }
             else {
 		/* Dummy marker to fill NSIMD when we ran out of actual particles */
@@ -184,9 +186,8 @@ void simulate_gc_fixed(int id, int n_particles, particle* particles,
                         particle_to_gc(&particles[i_prt], i_prt, &p, k,
 				       &sim.B_data);
 		
-			// Determine initial time step
-			// TODO get this one from options
-			hin[k] = 1.e-8;
+			/* Determine simulation time-step */
+			hin[k] = simulate_gc_fixed_inidt(&sim, &p, k);
 						
                     }
                     else {
@@ -211,3 +212,19 @@ void simulate_gc_fixed(int id, int n_particles, particle* particles,
 
 }
 
+/**
+ * @brief Calculates time step value
+ */
+real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i) {
+    /* Value defined directly by user */
+    if(sim->fix_usrdef_use) {
+	return sim->fix_usrdef_val;
+    }
+
+    /* Value calculated from gyrotime */
+    real B = sqrt(p->B_r[i]*p->B_r[i] + p->B_phi[i]*p->B_phi[i] + p->B_z[i]*p->B_z[i]);
+    real gamma = 1; // TODO relativistic
+    real gyrotime = fabs( CONST_2PI * p->mass[i] * gamma / ( p->charge[i] * B ) );
+
+    return gyrotime/sim->fix_stepsPerGO;
+}
