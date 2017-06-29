@@ -24,7 +24,6 @@ typedef struct {
     int n_vperp;      /**< number of v_perpendicular bins */
     real min_vperp;   /**< value of lowest v_perpendicular bin */
     real max_vperp;   /**< value of highest v_perpendicular bin */
-    int offload_array_length; /**< number of elements in offload_array */
 } dist_rzvv_offload_data;
 
 typedef struct {
@@ -43,15 +42,10 @@ typedef struct {
     real* histogram;  /**< pointer to start of histogram array */
 } dist_rzvv_data;
 
-void dist_rzvv_init_offload(dist_rzvv_offload_data* offload_data,
-                            real** offload_array);
-void dist_rzvv_free_offload(dist_rzvv_offload_data* offload_data,
-                            real** offload_array);
-
 void dist_rzvv_print_rz(dist_rzvv_offload_data* dist, real* histogram);
 void dist_rzvv_print_vv(dist_rzvv_offload_data* dist, real* histogram);
 
-void dist_rzvv_sum(dist_rzvv_offload_data* dist1, real* array1, real* array2);
+void dist_rzvv_sum(int start, int stop, real* array1, real* array2);
 
 #pragma omp declare target
 void dist_rzvv_init(dist_rzvv_data* dist_data,
