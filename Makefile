@@ -83,6 +83,8 @@ OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
 	E_1D.o $(MCCCOBJS) $(STEPOBJS) $(SIMOBJS)  \
 	diag.o diag_orb.o \
 	hdf5_input.o hdf5_simulate.o hdf5_plasma.o \
+	splinePatrik/interp2D.o splinePatrik/interp3D.o splinePatrik/spline1D.o \
+	splinePatrik/interp2Dexpl.o splinePatrik/interp3Dexpl.o
 
 BINS=test_math \
 	 test_wall_2d test_ascot4_interface test_plasma_1d \
@@ -145,6 +147,18 @@ test_E: test_E.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_mccc: mccc/test_mccc.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_interp2D: test_interp2D.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_interp3D: test_interp3D.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_interp2Dexpl: test_interp2Dexpl.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_interp3Dexpl: test_interp3Dexpl.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile
