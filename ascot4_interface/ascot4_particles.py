@@ -82,10 +82,6 @@ def read_particles(fname):
             data['fields'][data['fieldNames'][j]][i] = columns[i,j]
         
     return data
-
-def write_particles(f, data):
-    for field in data['fieldNames']:
-        f.create_dataset('/inistate/' + field, data=data['fields'][field])
             
 def magneticMoment(Ekin,pitch,mass,B):
     v = Epitch2vparaperp(mass,Ekin,pitch)
@@ -107,3 +103,6 @@ def Ekin2velocity(mass,Ekin):
     val = physics_const.c*vperc;
     return val
 
+def write_particles(f, data):
+    for field in data['fieldNames']:
+        f.create_dataset('/inistate/' + field, data=data['fields'][field])
