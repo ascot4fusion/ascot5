@@ -13,7 +13,7 @@
 #include "B_TC.h"
 #include "hdf5.h"
 
-void hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real** offload_array);
+int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real** offload_array);
 
 void hdf5_bfield_init_offload_2D(hid_t f, B_2D_offload_data* offload_data, real** offload_array);
 

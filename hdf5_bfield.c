@@ -15,6 +15,7 @@
 #include "hdf5.h"
 #include "hdf5_helpers.h"
 #include "hdf5_hl.h"
+#include "hdf5_bfield.h"
 
 /**
  * @brief Initialize magnetic field offload data from h5 file
@@ -55,7 +56,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
     }
     else if (strcmp(type, "stellarator") == 0) {
         hdf5_bfield_init_offload_ST(f, &(offload_data->BST), offload_array);
-        return;
+        return 1;
     }
     return -1;
 }
@@ -65,10 +66,10 @@ void hdf5_bfield_init_offload_2D(hid_t f, B_2D_offload_data* offload_data, real*
         
     err = H5LTread_dataset_int(f,"/bfield/2D/n_r",&(offload_data->n_r));
     err = H5LTread_dataset_int(f,"/bfield/2D/n_z",&(offload_data->n_z));
-    err = H5LTread_dataset_int(f,"/bfield/2D/r_min",&(offload_data->r_min));
-    err = H5LTread_dataset_int(f,"/bfield/2D/r_max",&(offload_data->r_max));
-    err = H5LTread_dataset_int(f,"/bfield/2D/z_min",&(offload_data->z_min));
-    err = H5LTread_dataset_int(f,"/bfield/2D/z_max",&(offload_data->z_max));
+    err = H5LTread_dataset_double(f,"/bfield/2D/r_min",&(offload_data->r_min));
+    err = H5LTread_dataset_double(f,"/bfield/2D/r_max",&(offload_data->r_max));
+    err = H5LTread_dataset_double(f,"/bfield/2D/z_min",&(offload_data->z_min));
+    err = H5LTread_dataset_double(f,"/bfield/2D/z_max",&(offload_data->z_max));
 
     offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
                            / (offload_data->n_r - 1);
@@ -92,8 +93,8 @@ void hdf5_bfield_init_offload_2D(hid_t f, B_2D_offload_data* offload_data, real*
     err = H5LTread_dataset_double(f,"/bfield/2D/psi1",&(offload_data->psi1));
 
     /* Read magnetic axis r and z coordinates */
-    err = H5LTread_dataset_int(f,"/bfield/2D/axis_r",&(offload_data->axis_r));
-    err = H5LTread_dataset_int(f,"/bfield/2D/axis_z",&(offload_data->axis_z));
+    err = H5LTread_dataset_double(f,"/bfield/2D/axis_r",&(offload_data->axis_r));
+    err = H5LTread_dataset_double(f,"/bfield/2D/axis_z",&(offload_data->axis_z));
 }
 
 
@@ -104,10 +105,10 @@ void hdf5_bfield_init_offload_3D(hid_t f, B_3D_offload_data* offload_data, real*
     err = H5LTread_dataset_int(f,"/bfield/3D/n_r",&(offload_data->n_r));
     err = H5LTread_dataset_int(f,"/bfield/3D/n_phi",&(offload_data->n_phi));
     err = H5LTread_dataset_int(f,"/bfield/3D/n_z",&(offload_data->n_z));
-    err = H5LTread_dataset_int(f,"/bfield/3D/r_min",&(offload_data->r_min));
-    err = H5LTread_dataset_int(f,"/bfield/3D/r_max",&(offload_data->r_max));
-    err = H5LTread_dataset_int(f,"/bfield/3D/z_min",&(offload_data->z_min));
-    err = H5LTread_dataset_int(f,"/bfield/3D/z_max",&(offload_data->z_max));
+    err = H5LTread_dataset_double(f,"/bfield/3D/r_min",&(offload_data->r_min));
+    err = H5LTread_dataset_double(f,"/bfield/3D/r_max",&(offload_data->r_max));
+    err = H5LTread_dataset_double(f,"/bfield/3D/z_min",&(offload_data->z_min));
+    err = H5LTread_dataset_double(f,"/bfield/3D/z_max",&(offload_data->z_max));
 
     offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
                            / (offload_data->n_r - 1);
@@ -227,8 +228,8 @@ void hdf5_bfield_init_offload_3D(hid_t f, B_3D_offload_data* offload_data, real*
     err = H5LTread_dataset_double(f,"/bfield/3D/psi1",&(offload_data->psi1));
 
     /* Read magnetic axis r and z coordinates */
-    err = H5LTread_dataset_int(f,"/bfield/3D/axis_r",&(offload_data->axis_r));
-    err = H5LTread_dataset_int(f,"/bfield/3D/axis_z",&(offload_data->axis_z));
+    err = H5LTread_dataset_double(f,"/bfield/3D/axis_r",&(offload_data->axis_r));
+    err = H5LTread_dataset_double(f,"/bfield/3D/axis_z",&(offload_data->axis_z));
 }
 
 /**
