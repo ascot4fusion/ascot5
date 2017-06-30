@@ -5,7 +5,7 @@
 #include "hdf5_input.h"
 #include "hdf5_simulate.h"
 #include "hdf5_bfield.h"
-
+#include "hdf5_plasma.h"
 
 int hdf5_input(sim_offload_data* sim){
     
@@ -53,7 +53,6 @@ int hdf5_input(sim_offload_data* sim){
 	printf("\nError: Inistate not found within %s.\n",sim->hdf5fn);
 	return -1;
     }
-
     */
 
     /* Read input from hdf5 and initialize */
@@ -75,6 +74,7 @@ int hdf5_input(sim_offload_data* sim){
 	return -1;
     }
 
+    hdf5_plasma_init_offload(f,&(sim->plasma_offload_data), a);
     if(err < 0) {
 	printf("\nError: Failed to initialize plasma from %s.\n",sim->hdf5fn);
 	return -1;
