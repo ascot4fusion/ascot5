@@ -37,6 +37,7 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, sim_data* si
         /* Min energy */
         if(sim->endcond_active & endcond_emin
             && energy < sim->endcond_minEkin) {
+	    printf("%d %d %d %d\n", sim->endcond_active, endcond_tmax, endcond_wall, endcond_emin);
             p_f->endcond[i] |= endcond_emin;
             p_f->running[i] = 0;
         }

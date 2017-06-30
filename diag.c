@@ -86,12 +86,17 @@ void diag_free_offload(diag_offload_data* data, real** offload_array) {
  *
  */
 void diag_init(diag_data* data, diag_offload_data* offload_data, real* offload_array){
+    data->diag_debug_collect = offload_data->debug_collect;
+    data->diag_orb_collect = offload_data->orb_collect;
+    data->diag_dist4D_collect = offload_data->dist4D_collect;
+
     if(data->diag_orb_collect) {
 	//data->orbits = diag_orb_init(offload_data);
     }
     if(data->diag_dist4D_collect) {
 	dist_rzvv_init(&data->dist4D, &offload_data->dist4D, 
 		       &offload_array[offload_data->offload_dist4D_index]);
+	
     }
 }
 
@@ -99,14 +104,16 @@ void diag_init(diag_data* data, diag_offload_data* offload_data, real* offload_a
  * @brief Collects diagnostics when marker represents a guiding center
  */
 void diag_update_gc(diag_data* d, particle_simd_gc* p_f, particle_simd_gc* p_i){
+    
     if(d->diag_orb_collect){
 	diag_orb_updategc(p_f, p_i, &d->orbits);
     }
     if(d->diag_debug_collect){
-	dist_rzvv_update_gc(&d->dist4D, p_f, p_i);
+	
+	
     }
     if(d->diag_dist4D_collect){
-	
+	dist_rzvv_update_gc(&d->dist4D, p_f, p_i);
     }
 }
 

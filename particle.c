@@ -132,6 +132,8 @@ void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
     p_gc->time[j] = 0;
     p_gc->id[j] = p->id;
     p_gc->running[j] = p->running;
+    p_gc->endcond[j] = 0; 
+    p_gc->walltile[j] = 0;
     p_gc->B_r[j]        = B_dB[0];
     p_gc->B_r_dr[j]     = B_dB[1];
     p_gc->B_r_dphi[j]   = B_dB[2];
@@ -172,6 +174,8 @@ void guiding_center_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
     p_gc->time[j] = 0;
     p_gc->id[j] = p->id;
     p_gc->running[j] = p->running;
+    p_gc->endcond[j] = 0; 
+    p_gc->walltile[j] = 0;
     p_gc->B_r[j]        = B_dB[0];
     p_gc->B_r_dr[j]     = B_dB[1];
     p_gc->B_r_dphi[j]   = B_dB[2];
@@ -202,6 +206,8 @@ void particle_to_gc_dummy(particle_simd_gc* p_gc, int j) {
     p_gc->weight[j] = 0;
     p_gc->id[j] = -1;
     p_gc->running[j] = 0;
+    p_gc->endcond[j] = 0; 
+    p_gc->walltile[j] = 0;
     p_gc->B_r[j]        = 1;
     p_gc->B_r_dr[j]     = 1;
     p_gc->B_r_dphi[j]   = 1;

@@ -36,6 +36,7 @@ void hdf5_simulate(hid_t f, sim_offload_data* sim){
     /* End conditions */
     int ec;
     err = H5LTread_dataset_int(f, "/options/ENDCOND_SIMTIMELIM", &ec);
+    sim->endcond_active = 0;
     if(ec){
 	sim->endcond_active = sim->endcond_active | endcond_tmax;
 	err = H5LTread_dataset_double(f, "/options/ENDCOND_MAX_SIM_TIME", &sim->endcond_maxSimTime);
@@ -98,16 +99,16 @@ void hdf5_simulate(hid_t f, sim_offload_data* sim){
     err = H5LTread_dataset_int(f, "/options/ENABLE_ORBITWRITE", &diag->orb_collect);
     if(diag->orb_collect) {
 	diag_orb_offload_data* orbits = &diag->orbits;
+	err = H5LTread_dataset_int(f, "/options/ORBITWRITE_MODE", &orbits->mode);
+	err = H5LTread_dataset_int(f, "/options/ORBITWRITE_NTOROIDALPLOTS", &orbits->ntoroidalplots);
+	err = H5LTread_dataset_double(f, "/options/ORBITWRITE_TOROIDALANGLES", orbits->toroidalangles);
+	err = H5LTread_dataset_int(f, "/options/ORBITWRITE_NPOLOIDALPLOTS", &orbits->npoloidalplots);
+	err = H5LTread_dataset_double(f, "/options/ORBITWRITE_POLOIDALANGLES", orbits->poloidalangles);
+	err = H5LTread_dataset_double(f, "/options/ORBITWRITE_INTERVAL", &orbits->writeInterval);
     }
 
-/*
-	err = H5LTread_dataset_double(f, "/options/ORBITWRITE_MODE", &sim->orbitwrite_mode);
-	err = H5LTread_dataset_double(f, "/options/ORBITWRITE_NTOROIDALPLOTS", &sim->orbitwrite_ntoroidalplots);
-	err = H5LTread_dataset_double(f, "/options/ORBITWRITE_TOROIDALANGLES", &sim->orbitwrite_toroidalangles);
-	err = H5LTread_dataset_double(f, "/options/ORBITWRITE_NPOLOIDALPLOTS", &sim->orbitwrite_npoloidalplots);
-	err = H5LTread_dataset_double(f, "/options/ORBITWRITE_POLOIDALANGLES", &sim->orbitwrite_poloidalangles);
-	err = H5LTread_dataset_double(f, "/options/ORBITWRITE_INTERVAL", &sim->orbitwrite_interval);
-	err = H5LTread_dataset_double(f, "/options/ORBITWRITE_LASTNPOINTS", &sim->orbitwrite_lastnpoints);
-	err = H5LTread_dataset_double(f, "/options/ENABLE_DEBUGDIST", &sim->enable_debugdist);
-    */
+    err = H5LTread_dataset_int(f, "/options/ENABLE_DEBUGDIST", &diag->debug_collect);
+
+    
+    
 }

@@ -12,6 +12,7 @@
 #define DIAG_ORB_SLOTS 100000
 #define DIAG_ORB_ORBIT 1
 #define DIAG_ORB_POINCARE 2
+#define DIAG_ORB_MAXPOINCARES 30
 
 typedef struct{ 
     int id[DIAG_ORB_SLOTS];
@@ -92,6 +93,11 @@ typedef struct{
 
     /* Options */
     real writeInterval;
+    int mode;
+    int ntoroidalplots;
+    real toroidalangles[DIAG_ORB_MAXPOINCARES];
+    int npoloidalplots;
+    real poloidalangles[DIAG_ORB_MAXPOINCARES];
 
 }diag_orb_offload_data;
 
@@ -112,6 +118,11 @@ typedef struct{
 
     /* Options */
     real writeInterval;
+    int mode;
+    int ntoroidalplots;
+    real toroidalangles[DIAG_ORB_MAXPOINCARES];
+    int npoloidalplots;
+    real poloidalangles[DIAG_ORB_MAXPOINCARES];
 
     /* Particle specific data */
     int particleId[NSIMD];

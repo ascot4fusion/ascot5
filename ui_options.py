@@ -97,8 +97,8 @@ ADAPTIVE_MAX_ACC   = 10.0
 ENDCOND_SIMTIMELIM = 1
 ENDCOND_CPUTIMELIM = 0
 ENDCOND_RHOLIM     = 0
-ENDCOND_ENERGYLIM  = 1
-ENDCOND_WALLHIT    = 1
+ENDCOND_ENERGYLIM  = 0
+ENDCOND_WALLHIT    = 0
 ENDCOND_MAXORBS    = 0
 
 ## Defining values for different end conditions
@@ -128,7 +128,7 @@ ENDCOND_MAXORBS    = 0
 # - Maximum number of poloidal orbits
 #
 
-ENDCOND_MAX_SIM_TIME             = 1.0
+ENDCOND_MAX_SIM_TIME             = 1.0e-7
 ENDCOND_MAX_CPU_TIME             = 1.0e5
 ENDCOND_MAX_RHO                  = 1.0
 ENDCOND_MIN_RHO                  = 0.0
@@ -252,7 +252,7 @@ ENABLE_DEBUGDIST = 0
 ##    DO NOT MODIFY THIS IF YOU ARE NOT A DEVELOPER     ##
 
 
-f = h5py.File("test.h5", "w")
+f = h5py.File("ascot.h5", "w")
 o = f.create_group("options")
 
 o.create_dataset("SIM_MODE", data = SIM_MODE, dtype='i4')

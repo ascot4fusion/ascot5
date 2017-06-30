@@ -57,7 +57,7 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
  * @todo time step limits for how much a marker travels in rho or phi
  * @todo integrators are not updating the marker B-field fields as they should 
  */
-void simulate_gc_adaptive(int id, int n_particles, particle* particles,
+void simulate_gc_adaptive(int id, int n_particles, input_particle* particles,
 			  sim_offload_data sim_offload,
 			  real* B_offload_array,
 			  real* E_offload_array,
@@ -66,7 +66,7 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 			  real* diag_offload_array) {
     sim_data sim;
 
-
+    
 /* BACKGROUND INITIALIZATION */
 
     /* Simulation data */
@@ -92,7 +92,7 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 	
     
     int i_next_prt = 0;
-
+    
     /* SIMD particle structs will be computed in parallel with the maximum
      * number of threads available on the platform */
     #pragma omp parallel
@@ -119,16 +119,16 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
             i_prt = i_next_prt++;
             if(i_prt < n_particles) {
 		/* Guiding center transformation */
-                particle_to_gc(&particles[i_prt], i_prt, &p, i, &sim.B_data);
+		
+		//input_particle_type_p
+                particle_to_gc(&particles[i_prt].p, i_prt, &p, i, &sim.B_data);
 
 		if(sim.enable_clmbcol) {
 		    /* Allocate array storing the Wiener processes */
 		    wienarr[i] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[i]);
 	        }
-
 		/* Determine initial time step */
 		hin[i] = simulate_gc_adaptive_inidt(&sim, &p, i);
-
 		
             }
             else {
@@ -141,7 +141,7 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 	    particle_to_gc_dummy(&p0, i); 
         }
 
-    
+	
 
 /* MAIN SIMULATION LOOP 
  * - Store current state
@@ -154,7 +154,7 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
  * - Check for end condition(s)
  * - Update diagnostics
  * - 
- * */
+ */
         int n_running = 0;
         do {
             #pragma omp simd
@@ -204,9 +204,9 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 		    }
 	        }
 	    }
- 
+	    
 		
-
+	    
             #pragma omp simd
 	    for(i = 0; i < NSIMD; i++) {
 		/* Retrieve marker states in case time step was rejected */
@@ -248,7 +248,7 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 		    }
 		}
 	    }
-
+	    
             endcond_check_gc(&p, &p0, &sim);
 
 	    diag_update_gc(&sim.diag_data, &p, &p0);
@@ -259,7 +259,7 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
             for(k = 0; k < NSIMD; k++) {
                 if( !p.running[k] && p.id[k] >= 0) {
 
-                    gc_to_particle(&p, k, &particles[p.index[k]]);
+                    gc_to_particle(&p, k, &particles[p.index[k]].p);
 
 		    if(sim.enable_clmbcol) {
 		        /* Free the associated Wiener array */
@@ -269,7 +269,7 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
                     #pragma omp critical
                     i_prt = i_next_prt++;
                     if(i_prt < n_particles) {
-                        particle_to_gc(&particles[i_prt], i_prt, &p, k,
+                        particle_to_gc(&particles[i_prt].p, i_prt, &p, k,
 				       &sim.B_data);
 
 		        if(sim.enable_clmbcol) {
@@ -298,7 +298,6 @@ void simulate_gc_adaptive(int id, int n_particles, particle* particles,
 
     }
     diag_clean(&sim.diag_data);
-
 }
 
 /**
@@ -335,7 +334,6 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
 	real colltime = 1/(100*nu);
 	if(h > colltime) {h=colltime;}
     }
-
     return h;
 }
 
