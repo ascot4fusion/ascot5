@@ -39,7 +39,7 @@ typedef struct {
 
     int enable_orbfol;
     int enable_clmbcol;
-	
+    
     int endcond_active;
     real endcond_maxSimTime;
     real endcond_maxCpuTime;
@@ -49,7 +49,7 @@ typedef struct {
     real endcond_minEkinPerTe;
     real endcond_maxTorOrb;
     real endcond_maxPolOrb;
-	
+    
 } sim_offload_data;
 
 typedef struct {
@@ -76,7 +76,7 @@ typedef struct {
 
     int enable_orbfol;
     int enable_clmbcol;
-	
+    
     int endcond_active;
     real endcond_maxSimTime;
     real endcond_maxCpuTime;
@@ -86,12 +86,19 @@ typedef struct {
     real endcond_minEkinPerTe;
     real endcond_maxTorOrb;
     real endcond_maxPolOrb;
-	
+    
 } sim_data;
 
 
 #pragma omp declare target
 void sim_init(sim_data* sim, sim_offload_data* offload_data);
+void simulate(int id, int n_particles, input_particle* p,
+              sim_offload_data* offload_data,
+              real* B_offload_array,
+              real* E_offload_array,
+              real* plasma_offload_array,
+              real* wall_offload_array,
+              real* diag_offload_array);
 #pragma omp end declare target
 
 #endif
