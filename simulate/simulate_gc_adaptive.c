@@ -12,7 +12,6 @@
 #include "../simulate.h"
 #include "../particle.h"
 #include "../wall.h"
-#include "../distributions.h"
 #include "../diag.h"
 #include "../B_field.h"
 #include "../E_field.h"
@@ -44,103 +43,44 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
  * tolerances as well as user-defined limits for how much
  * marker state can change during a single time-step.
  *
- * @param id 
- * @param n_particles number of markers to be simulated
- * @param particles pointer to marker struct
- * @param sim_offload simulation offload data struct
- * @param B_offload_array offload array of magnetic field data
- * @param E_offload_array offload array of electric field data
- * @param plasma_offload_array offload array of plasma data
- * @param wall_offload_array offload array of wall data
- * @param diag_offload_array offload array of diagnostics data
+ * @param pq particles to be simulated
+ * @param sim simulation data
  *
- * @todo what is that id field?
  * @todo time step limits for how much a marker travels in rho or phi
- * @todo integrators are not updating the marker B-field fields as they should 
  */
-void simulate_gc_adaptive(int id, int n_particles, input_particle* particles,
-			  sim_offload_data sim_offload,
-			  real* B_offload_array,
-			  real* E_offload_array,
-			  real* plasma_offload_array,
-			  real* wall_offload_array,
-			  real* diag_offload_array) {
-    sim_data sim;
+void simulate_gc_adaptive(particle_queue_gc* pq, sim_data* sim) {
 
-    
-/* BACKGROUND INITIALIZATION */
-
-    /* Simulation data */
-    sim_init(&sim, &sim_offload);
-    
-    /* Wall data */
-    wall_init(&sim.wall_data, &sim_offload.wall_offload_data,
-              wall_offload_array);
-
-    /* Magnetic field data */
-    B_field_init(&sim.B_data, &sim_offload.B_offload_data, B_offload_array);
-
-    /* Electric field data */
-    E_field_init(&sim.E_data, &sim_offload.E_offload_data, E_offload_array);
-
-    /* Plasma data */
-    plasma_1d_init(&sim.plasma_data, &sim_offload.plasma_offload_data,
-                   plasma_offload_array);
-
-    /* Diagnostics data */
-    diag_init(&sim.diag_data,&sim_offload.diag_offload_data,
-	diag_offload_array);
-	
-    
-    int i_next_prt = 0;
-    
-    /* SIMD particle structs will be computed in parallel with the maximum
-     * number of threads available on the platform */
-    #pragma omp parallel
-    {
 	/* Arrays needed for the adaptive time step */
-	mccc_wienarr *wienarr[NSIMD];
+	mccc_wienarr* wienarr[NSIMD];
+	int cycle[NSIMD];
 	real hin[NSIMD];
 	real hout_orb[NSIMD];
 	real hout_col[NSIMD];
 	real hnext[NSIMD];
 	int err[NSIMD];
 	int windex[NSIMD];
-	real tol_col = sim.ada_tol_clmbcol;
-	real tol_orb = sim.ada_tol_orbfol;
+	real tol_col = sim->ada_tol_clmbcol;
+	real tol_orb = sim->ada_tol_orbfol;
 
 
         particle_simd_gc p;  // This array holds current states
 	particle_simd_gc p0; // This array stores previous states
-        int i, i_prt;
+        int i;
 
-/** MARKER INITIALIZATION */
-        for(i = 0; i < NSIMD; i++) {
-            #pragma omp critical
-            i_prt = i_next_prt++;
-            if(i_prt < n_particles) {
-		/* Guiding center transformation */
-		
-		//input_particle_type_p
-                particle_to_gc(&particles[i_prt].p, i_prt, &p, i, &sim.B_data);
-
-		if(sim.enable_clmbcol) {
+	/* Initialize running particles */
+	particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+	
+	#pragma omp simd
+	for(int i = 0; i < NSIMD; i++) {
+	    if(cycle[i] > 0) {
+		/* Determine initial time-step */
+		hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
+		if(sim->enable_clmbcol) {
 		    /* Allocate array storing the Wiener processes */
 		    wienarr[i] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[i]);
 	        }
-		/* Determine initial time step */
-		hin[i] = simulate_gc_adaptive_inidt(&sim, &p, i);
-		
-            }
-            else {
-		/* Dummy marker to fill NSIMD when we ran out of actual particles */
-                particle_to_gc_dummy(&p, i);
-            }
-
-	    /* Init dummy particles here, the (required) fields are initialized 
-	     * separately at each time step */
-	    particle_to_gc_dummy(&p0, i); 
-        }
+	    }
+	}
 
 	
 
@@ -154,7 +94,6 @@ void simulate_gc_adaptive(int id, int n_particles, input_particle* particles,
  *   - YES: update particle time, clean redundant Wiener processes, and proceed
  * - Check for end condition(s)
  * - Update diagnostics
- * - 
  */
         int n_running = 0;
         do {
@@ -178,9 +117,9 @@ void simulate_gc_adaptive(int id, int n_particles, input_particle* particles,
 	    }
 
 	    
-	    if(sim.enable_orbfol) {
+	    if(sim->enable_orbfol) {
 	        step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
-		                 &sim.B_data, &sim.E_data);
+		                 &sim->B_data, &sim->E_data);
 		
 		/* Check whether time step was rejected */
                 #pragma omp simd
@@ -192,8 +131,8 @@ void simulate_gc_adaptive(int id, int n_particles, input_particle* particles,
 	        }
 	    }
 
-            if(sim.enable_clmbcol) {
-	        mccc_step_gc_adaptive(&p, &sim.B_data, &sim.plasma_data,
+            if(sim->enable_clmbcol) {
+	        mccc_step_gc_adaptive(&p, &sim->B_data, &sim->plasma_data,
 				      hin, hout_col, wienarr, tol_col, err);
 		
 		/* Check whether time step was rejected */
@@ -241,7 +180,7 @@ void simulate_gc_adaptive(int id, int n_particles, input_particle* particles,
 			    hnext[i] = hin[i];
 			}
 			hin[i] = hnext[i];
-			if(sim.enable_clmbcol) {
+			if(sim->enable_clmbcol) {
 			    /* Clear wiener processes */
 			    mccc_wiener_clean(wienarr[i], p.time[i], &err[i]);
 		        }
@@ -250,56 +189,36 @@ void simulate_gc_adaptive(int id, int n_particles, input_particle* particles,
 		}
 	    }
 	    
-            endcond_check_gc(&p, &p0, &sim);
+            endcond_check_gc(&p, &p0, sim);
 
-	    diag_update_gc(&sim.diag_data, &p, &p0);
+	    diag_update_gc(&sim->diag_data, &p, &p0);
 
-            /* update number of running particles */
-            n_running = 0;
-            int k;
-            for(k = 0; k < NSIMD; k++) {
-                if( !p.running[k] && p.id[k] >= 0) {
+            /* Update number of running particles */
+	    n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
-                    gc_to_particle(&p, k, &particles[p.index[k]].p);
-
-		    if(sim.enable_clmbcol) {
-		        /* Free the associated Wiener array */
-		        mccc_wiener_deallocate(wienarr[k]);
+	    #pragma omp simd
+	    for(int i = 0; i < NSIMD; i++) {
+		if(cycle[i] > 0) {
+		    /* Determine initial time-step */
+		    hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
+		    if(sim->enable_clmbcol) {
+			/* Re-allocate array storing the Wiener processes */
+			mccc_wiener_deallocate(wienarr[i]);
+			wienarr[i] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[i]);
 		    }
-
-                    #pragma omp critical
-                    i_prt = i_next_prt++;
-                    if(i_prt < n_particles) {
-                        particle_to_gc(&particles[i_prt].p, i_prt, &p, k,
-				       &sim.B_data);
-
-		        if(sim.enable_clmbcol) {
-			    wienarr[k] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[k]);
-		        }
-		
-			/* Determine initial time step */
-			hin[k] = simulate_gc_adaptive_inidt(&sim, &p, k);
-						
-                    }
-                    else {
-                        p.id[k] = -1;
-                    }
-	        }
-            }
-
-	    #pragma omp simd reduction(+:n_running)
-	    for(k = 0; k < NSIMD; k++) {
-		n_running += p.running[k];
+		}
+		else if(cycle[i] < 0) {
+		    /* De-allocate array storing the Wiener processes */
+		    mccc_wiener_deallocate(wienarr[i]);
+		}
 	    }
 	   
-
+	    
         } while(n_running > 0);
 	
-        
-
-    }
-    hdf5_orbits_write(&sim);
-    diag_clean(&sim.diag_data);
+       
+	hdf5_orbits_write(sim);
+	diag_clean(&sim->diag_data);
 }
 
 /**

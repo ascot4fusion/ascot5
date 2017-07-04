@@ -369,8 +369,9 @@ void ml_to_particle(particle_simd_ml* p_ml, int j, particle* p) {
 }
 
 int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
-                      B_field_data* Bdata) {
+                      B_field_data* Bdata, int* cycle) {
     for(int i = 0; i < NSIMD; i++) {
+	cycle[i] = 0;
         if(!p->running[i]) {
             if(p->id[i] >= 0) {
                 fo_to_particle(p, i, &q->p[p->index[i]]);
@@ -380,10 +381,12 @@ int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
             i_prt = q->next++;
             if(i_prt < q->n) {
                 particle_to_fo(&q->p[i_prt], i_prt, p, i, Bdata);
+		cycle[i] = 1;
             }
             else {
                 p->running[i] = 0;
                 p->id[i] = -1;
+		cycle[i] = -1;
             }
         }
     }
@@ -398,8 +401,9 @@ int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
 }
 
 int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
-                      B_field_data* Bdata) {
+                      B_field_data* Bdata, int* cycle) {
     for(int i = 0; i < NSIMD; i++) {
+	cycle[i] = 0;
         if(!p->running[i]) {
             if(p->id[i] >= 0) {
                 gc_to_particle_gc(p, i, &q->p[p->index[i]]);
@@ -409,10 +413,12 @@ int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
             i_prt = q->next++;
             if(i_prt < q->n) {
                 particle_gc_to_gc(&q->p[i_prt], i_prt, p, i, Bdata);
+		cycle[i] = 1;
             }
             else {
                 p->running[i] = 0;
                 p->id[i] = -1;
+		cycle[i] = -1;
             }
         }
     }

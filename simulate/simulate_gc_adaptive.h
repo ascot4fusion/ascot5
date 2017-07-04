@@ -10,13 +10,7 @@
 #include "../particle.h"
 
 #pragma omp declare target
-void simulate_gc_adaptive(int id, int n_particles, input_particle* particles,
-			  sim_offload_data sim,
-			  real* B_offload_array,
-			  real* E_offload_array,
-			  real* plasma_offload_array,
-			  real* wall_offload_array,
-			  real* dist_offload_array);
+void simulate_gc_adaptive(particle_queue_gc* pq, sim_data* sim);
 #pragma omp end declare target
 
 #endif

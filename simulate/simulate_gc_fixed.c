@@ -50,6 +50,7 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
  */
 void simulate_gc_fixed(particle_queue_gc* pq, sim_data* sim) {
    
+    int cycle[NSIMD];
     int err[NSIMD];
     real hin[NSIMD];
 
@@ -57,11 +58,14 @@ void simulate_gc_fixed(particle_queue_gc* pq, sim_data* sim) {
     particle_simd_gc p0; // This array stores previous states
 
     /* Initialize running particles */
-    particle_cycle_gc(pq, &p, &sim->B_data);
+    particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
     /* Determine simulation time-step */
+    #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
-        hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
+	if(cycle[i] > 0) {
+	    hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
+	}
     }
 
 /* MAIN SIMULATION LOOP 
@@ -110,12 +114,14 @@ void simulate_gc_fixed(particle_queue_gc* pq, sim_data* sim) {
         diag_update_gc(&sim->diag_data, &p, &p0);
 
         /* Update running particles */
-        n_running = particle_cycle_gc(pq, &p, &sim->B_data);
+        n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
         /* Determine simulation time-step */
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
-            hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
+	    if(cycle[i] > 0) {
+		hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
+	    }
         }
 
     } while(n_running > 0);

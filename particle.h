@@ -223,9 +223,9 @@ void particle_to_ml_dummy(particle_simd_ml* p_ml, int j);
 void ml_to_particle(particle_simd_ml* p_ml, int j, particle* p);
 
 int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
-                      B_field_data* Bdata);
+                      B_field_data* Bdata, int* cycle);
 int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
-                      B_field_data* Bdata);
+                      B_field_data* Bdata, int* cycle);
 #pragma omp end declare target
 
 #endif
