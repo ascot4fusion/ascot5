@@ -211,10 +211,11 @@ void fo_to_particle(particle_simd_fo* p_fo, int j, particle* p);
 
 void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
                     B_field_data* Bdata);
-void guiding_center_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
-                    B_field_data* Bdata);
 void particle_to_gc_dummy(particle_simd_gc* p_gc, int j);
 void gc_to_particle(particle_simd_gc* p_gc, int j, particle* p);
+void particle_gc_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
+                    B_field_data* Bdata);
+void gc_to_particle_gc(particle_simd_gc* p_gc, int j, particle_gc* p);
 
 void particle_to_ml(particle* p, int i, particle_simd_ml* p_ml, int j,
                     B_field_data* Bdata);
