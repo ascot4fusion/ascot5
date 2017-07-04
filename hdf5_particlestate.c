@@ -116,16 +116,16 @@ int hdf5_particlestate_write(hid_t file, char *state, int n, input_particle* p) 
         H5LTset_attribute_string(state_group, "z", "unit", "m");
 
         for(i = 0; i < n; i++) {
-            data[i] = p[i].p_gc.vpar;
+            data[i] = p[i].p_gc.energy;
         }
-        H5LTmake_dataset(state_group, "vpar", 1, dims, H5T_IEEE_F64LE, data);
-        H5LTset_attribute_string(state_group, "vpar", "unit", "m/s");
+        H5LTmake_dataset(state_group, "energy", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "energy", "unit", "J");
 
         for(i = 0; i < n; i++) {
-            data[i] = p[i].p_gc.mu;
+            data[i] = p[i].p_gc.pitch;
         }
-        H5LTmake_dataset(state_group, "mu", 1, dims, H5T_IEEE_F64LE, data);
-        H5LTset_attribute_string(state_group, "mu", "unit", "m/s");
+        H5LTmake_dataset(state_group, "pitch", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "pitch", "unit", "");
 
         for(i = 0; i < n; i++) {
             data[i] = p[i].p_gc.weight;

@@ -239,8 +239,6 @@ void particle_gc_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
     p_gc->r[j] = p->r;
     p_gc->phi[j] = p->phi;
     p_gc->z[j] = p->z;
-    p_gc->vpar[j] = p->vpar;
-    p_gc->mu[j] = p->mu;
     p_gc->theta[j] = p->theta;
     p_gc->mass[j] = p->mass;
     p_gc->charge[j] = p->charge;
@@ -268,6 +266,15 @@ void particle_gc_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
     p_gc->B_z_dphi[j]   = B_dB[10];
     p_gc->B_z_dz[j]     = B_dB[11];
 
+    real v_para, v_perp, magnv, magnB;
+    magnv = phys_Ekintovelocity(p->mass,p->energy);
+    v_para = magnv*p->pitch;
+    v_perp = magnv*sqrt(1 - p->pitch*p->pitch);
+    p_gc->vpar[j] = v_para;
+
+    magnB = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
+    p_gc->mu[j] = phys_mu(v_para,v_perp,p->mass,magnB);
+
     p_gc->index[j] = i;
 }
 
@@ -275,8 +282,21 @@ void gc_to_particle_gc(particle_simd_gc* p_gc, int j, particle_gc* p) {
     p->r = p_gc->r[j];
     p->phi = p_gc->phi[j];
     p->z = p_gc->z[j];
-    p->vpar = p_gc->vpar[j];
-    p->mu = p_gc->mu[j];
+
+    real v_perp, magnB, magnv;
+    magnB = sqrt(p_gc->B_r[j]*p_gc->B_r[j]
+                 + p_gc->B_phi[j]*p_gc->B_phi[j]
+                 + p_gc->B_z[j]*p_gc->B_z[j]);
+    v_perp = phys_mutovperp(p_gc->mass[j], p_gc->vpar[j], p_gc->mu[j], magnB);
+    magnv = sqrt( p_gc->vpar[j]*p_gc->vpar[j] + v_perp*v_perp);
+
+    p->pitch = p_gc->vpar[j]/magnv;
+
+    real gammar;
+    gammar = phys_gammagcv(p_gc->mass[j],p_gc->vpar[j],p_gc->mu[j]);
+    
+    p->energy = p_gc->mass[j]*CONST_C2*(gammar - 1);
+    
     p->theta = p_gc->theta[j];
     p->time = p_gc->time[j];
     p->running = p_gc->running[j];

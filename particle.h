@@ -47,8 +47,8 @@ typedef struct {
     real r;        /**< r coordinate */
     real phi;      /**< phi coordinate */
     real z;        /**< z coordinate */
-    real vpar;     /**< parallel velocity */
-    real mu;       /**< magnetic moment */
+    real energy;   /**< kinetic energy */
+    real pitch;    /**< pitch angle */
     real theta;    /**< gyroangle */
     real mass;     /**< mass */
     real charge;   /**< charge */

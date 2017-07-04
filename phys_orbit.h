@@ -19,7 +19,7 @@
  * @brief Lorentz factor in particle phase space using velocity
  * gamma(v) = 1/sqrt( 1 - v^2/c^2)
  */
-#define phys_gammaprtv(v) ( 1/sqrt(1 - v*v/CONST_C2 ) );
+#define phys_gammaprtv(v) ( 1 / ( sqrt( 1 - ( pow(v,2) / CONST_C2 ) ) ) );
 
 /**
  * @brief Lorentz factor in guiding center phase space using momentum
@@ -63,9 +63,23 @@
 
 /**
  * @brief Magnetic moment from v_para and v_perp
- * mu(v_para,v_perp,m,E) = (gamma*v_perp*m)^2 / (2 * m * B)
+ * OLD: mu(v_para,v_perp,m,E) = (gamma*v_perp*m)^2 / (2 * m * B)
+ * NEW: mu(v_para,v_perp,m,E) = (v_perp*m)^2 / ( (1- (v_para^2 + v_perp^2)/c^2) * 2 * m * B )
  */
-#define phys_mu(vpa,vpe,m,B) ( pow(phys_gammaprtv( sqrt(vpa*vpa+vpe*vpe) )*vpe*m, 2) / (2*m*B) );
+// #define phys_mu(vpa,vpe,m,B) ( pow( (phys_gammaprtv( sqrt(vpa*vpa+vpe*vpe) )*vpe*m) , 2 ) / (2*m*B) );
+#define phys_mu(vpa,vpe,m,B) ( pow(vpe*m , 2) / ( (1 - (vpa*vpa + vpe*vpe)/CONST_C2 )*2*m*B ));
+
+/**
+ * @brief Magnetic moment to perpendicular velocity
+ * v_perp(m,mu,B) = sqrt(2*mu*m*B)/(gamma*m)
+ */
+#define phys_mutovperp(m,vpa,mu,B) ( sqrt( 2*mu*m*B ) / ( sqrt( ( 1 + 2 * mu / ( m * CONST_C2 ) ) / ( 1 - vpa * vpa / CONST_C2 ) ) * m ) );
+
+/**
+ * @brief Magnetic moment to perpendicular velocity
+ * v_perp(m,mu,B) = sqrt(2*mu*m*B)/(gamma*m)
+ */
+#define phys_Ekin(m) ( sqrt( 2*mu*m*B ) / ( sqrt( ( 1 + 2 * mu / ( m * CONST_C2 ) ) / ( 1 - vpa * vpa / CONST_C2 ) ) * m ) );
 
 #pragma omp declare simd
 void phys_prttogc(real mass, real charge, real r, real phi, real z, 

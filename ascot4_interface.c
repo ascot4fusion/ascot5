@@ -191,8 +191,8 @@ void ascot4_read_particles(input_particle** p, int *n, char* filename) {
     int i_R = -1;
     int i_phi = -1;
     int i_z = -1;
-    int i_vpar = -1;
-    int i_mu = -1;
+    int i_energy = -1;
+    int i_pitch = -1;
     int i_mass = -1;
     int i_charge = -1;
     int i_weight = -1;
@@ -219,10 +219,10 @@ void ascot4_read_particles(input_particle** p, int *n, char* filename) {
             i_phi = i;
         else if(!strcmp(field_name, "z         "))
             i_z = i;
-        else if(!strcmp(field_name, "vpar      "))
-            i_vpar = i;
-        else if(!strcmp(field_name, "mu        "))
-            i_mu = i;
+        else if(!strcmp(field_name, "energy    "))
+            i_energy = i;
+        else if(!strcmp(field_name, "pitch     "))
+            i_pitch = i;
         else if(!strcmp(field_name, "mass      "))
             i_mass = i;
         else if(!strcmp(field_name, "charge    "))
@@ -246,8 +246,8 @@ void ascot4_read_particles(input_particle** p, int *n, char* filename) {
             (*p)[i].p_gc.r = fields[i_R];
             (*p)[i].p_gc.phi = fields[i_phi] * math_pi / 180;
             (*p)[i].p_gc.z = fields[i_z];
-            (*p)[i].p_gc.vpar = fields[i_vpar];
-            (*p)[i].p_gc.mu = fields[i_mu];
+            (*p)[i].p_gc.energy = fields[i_energy];
+            (*p)[i].p_gc.pitch = fields[i_pitch];
             (*p)[i].p_gc.mass = fields[i_mass] * CONST_U;
             (*p)[i].p_gc.charge = fields[i_charge] * CONST_E;
             (*p)[i].p_gc.weight = fields[i_weight];
