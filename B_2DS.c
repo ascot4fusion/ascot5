@@ -4,7 +4,7 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
+#include "math.h"
 #include "ascot5.h"
 #include "B_2DS.h"
 #include "splinePatrik/interp2D.h" /* for 2D interpolation routines */
