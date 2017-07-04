@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "particle.h"
 #include "simulate.h"
+#include "simulate/simulate_gc_adaptive.h"
 #include "simulate/simulate_gc_fixed.h"
 #include "simulate/simulate_fo_fixed.h"
 
@@ -13,6 +14,8 @@ void simulate(int id, int n_particles, input_particle* p,
               real* diag_offload_array) {
     sim_data sim;
 
+    /* Initialize simulation data */
+    
     sim_init(&sim, offload_data);
     wall_init(&sim.wall_data, &offload_data->wall_offload_data,
               wall_offload_array);
@@ -23,6 +26,7 @@ void simulate(int id, int n_particles, input_particle* p,
     diag_init(&sim.diag_data, &offload_data->diag_offload_data,
               diag_offload_array);
 
+    /* Initialize markers */
     particle_queue_fo p_fo;
     particle_queue_gc p_gc;
 
@@ -52,18 +56,43 @@ void simulate(int id, int n_particles, input_particle* p,
     p_fo.next = 0;
     p_gc.next = 0;
 
-    #pragma omp parallel
-    {
-        simulate_gc_fixed(&p_gc, &sim);
+    /* Carry out the simulation */
+
+    /* GC simulation (fixed or adaptive) */
+    if(sim.sim_mode == 2 || sim.sim_mode == 3) {
+	if(sim.enable_ada) {
+	    #pragma omp parallel
+	    {
+	        simulate_gc_adaptive(&p_gc, &sim);
+	    }
+	}
+	else {
+	    #pragma omp parallel
+	    {
+	        simulate_gc_fixed(&p_gc, &sim);
+	    }
+	}
     }
 
     /* TODO: For hybrid simulation, transform gc to particle here for full
        orbit following near the wall */
+    if(sim.sim_mode == 3) {
 
-    #pragma omp parallel
-    {
-        simulate_fo_fixed(&p_fo, &sim);
     }
+
+    /* GO simulation (fixed) for hybrid and pure GOs */
+    if(sim.sim_mode == 1) {
+	#pragma omp parallel
+	{
+	    simulate_fo_fixed(&p_fo, &sim);
+	}
+    }
+
+    /* ML simulation (adaptive) */
+    if(sim.sim_mode == 4) {
+	    //simulate_ml_adaptive(&p_ml, &sim);
+    }
+    
 }
 
 void sim_init(sim_data* sim, sim_offload_data* offload_data) {
