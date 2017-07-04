@@ -34,9 +34,9 @@ void B_field_init_offload(B_field_offload_data* offload_data,
         fscanf(f, "%*d %d", &nsector);
         
         if(nsector == 0) {
-            offload_data->type = B_field_type_2D; // When 2DS???
+            offload_data->type = B_field_type_2DS;
         } else {
-            offload_data->type = B_field_type_3D; // When 3DS???
+            offload_data->type = B_field_type_3DS;
         }
     }
 
