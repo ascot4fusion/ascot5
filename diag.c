@@ -37,7 +37,7 @@ void diag_init_offload(diag_offload_data* data, real** offload_array){
     int nlen_dist4D;
 
     if(data->orb_collect) {
-	// Do nothing for now
+	// Do nothing (for now)
     }
     if(data->dist4D_collect) {
 	nlen_dist4D = data->dist4D.n_r * data->dist4D.n_z
@@ -91,12 +91,11 @@ void diag_init(diag_data* data, diag_offload_data* offload_data, real* offload_a
     data->diag_dist4D_collect = offload_data->dist4D_collect;
 
     if(data->diag_orb_collect) {
-	//data->orbits = diag_orb_init(offload_data);
+	diag_orb_init(&data->orbits, &offload_data->orbits);
     }
     if(data->diag_dist4D_collect) {
 	dist_rzvv_init(&data->dist4D, &offload_data->dist4D, 
-		       &offload_array[offload_data->offload_dist4D_index]);
-	
+		       &offload_array[offload_data->offload_dist4D_index]);	
     }
 }
 
@@ -106,7 +105,7 @@ void diag_init(diag_data* data, diag_offload_data* offload_data, real* offload_a
 void diag_update_gc(diag_data* d, particle_simd_gc* p_f, particle_simd_gc* p_i){
     
     if(d->diag_orb_collect){
-	diag_orb_updategc(p_f, p_i, &d->orbits);
+	diag_orb_update_gc(p_f, p_i, &d->orbits);
     }
     if(d->diag_debug_collect){
 	
@@ -122,7 +121,7 @@ void diag_update_gc(diag_data* d, particle_simd_gc* p_f, particle_simd_gc* p_i){
  */
 void diag_update_fo(diag_data* d, particle_simd_fo* p_f, particle_simd_fo* p_i){
     if(d->diag_orb_collect){
-	diag_orb_updatefo(p_f, p_i, &d->orbits);
+	diag_orb_update_fo(p_f, p_i, &d->orbits);
     }
     if(d->diag_debug_collect){
 	
@@ -137,7 +136,7 @@ void diag_update_fo(diag_data* d, particle_simd_fo* p_f, particle_simd_fo* p_i){
  */
 void diag_update_ml(diag_data* d, particle_simd_ml* p_f, particle_simd_ml* p_i){
     if(d->diag_orb_collect){
-	diag_orb_updateml(p_f, p_i, &d->orbits);
+	diag_orb_update_ml(p_f, p_i, &d->orbits);
     }
     if(d->diag_debug_collect){
 	

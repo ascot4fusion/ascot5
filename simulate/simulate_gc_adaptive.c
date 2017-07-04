@@ -24,6 +24,7 @@
 #include "../endcond.h"
 #include "../math.h"
 #include "../consts.h"
+#include "../hdf5_orbits.h"
 
 real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
 
@@ -297,6 +298,7 @@ void simulate_gc_adaptive(int id, int n_particles, input_particle* particles,
         
 
     }
+    hdf5_orbits_write(&sim);
     diag_clean(&sim.diag_data);
 }
 

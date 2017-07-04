@@ -12,7 +12,7 @@ int hdf5_input(sim_offload_data* sim){
     /* This init disables automatic error messages.
      * We want to generate our own that are more informative.*/
     hdf5_init();
-    
+
     /* Check if requested hdf5 exists and open it */
     hid_t f = hdf5_open(sim->hdf5fn);
     if(f < 0) {
@@ -62,8 +62,8 @@ int hdf5_input(sim_offload_data* sim){
 	return -1;
     }
 
-    real** a;
-    hdf5_bfield_init_offload(f,&(sim->B_offload_data), a);
+    //real** a;
+    //hdf5_bfield_init_offload(f,&(sim->B_offload_data), a);
     if(err < 0) {
 	printf("\nError: Failed to initialize magnetic field from %s.\n",sim->hdf5fn);
 	return -1;
@@ -74,7 +74,7 @@ int hdf5_input(sim_offload_data* sim){
 	return -1;
     }
 
-    hdf5_plasma_init_offload(f,&(sim->plasma_offload_data), a);
+    //hdf5_plasma_init_offload(f,&(sim->plasma_offload_data), a);
     if(err < 0) {
 	printf("\nError: Failed to initialize plasma from %s.\n",sim->hdf5fn);
 	return -1;

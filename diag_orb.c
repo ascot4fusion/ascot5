@@ -13,483 +13,225 @@
 #include "B_field.h"
 #include "diag_orb.h"
 
+void diag_orb_intervalTrigger(diag_orb_data* data, integer* id, real* time, int* ok);
 
-void diag_orb_writegc(FILE* out, particle_simd_gc* p){
-    fprintf(out, "%d, %le, %le, %le, %le, %le, %le\n",
-	    (int) p->id[0], p->time[0], p->r[0], p->phi[0], p->z[0],
-	    p->vpar[0], p->mu[0]);
+void diag_orb_poincareTrigger(diag_orb_data* data, int* pol, int* tor, real* kpol, real* ktor, integer* id,
+			      real* ftime, real* fr, real* fphi, real* fz,
+			      real* itime, real* ir, real* iphi, real* iz);
+
+void diag_orb_lastTrigger(diag_orb_data* data, integer* id, real* time, int* ok);
+
+void diag_orb_init_offload(diag_orb_offload_data* data) {
+
+
 }
 
-void diag_orb_writegcarray(FILE* out, diag_orb_gcarray* w){
-    for(int i = 0; i < w->size; i++){
-	fprintf(out, "%d, %le, %le, %le, %le, %le, %le\n",
-		w->id[i], w->time[i], w->r[i], w->phi[i], w->z[i],
-		w->vpar[i], w->mu[i]);
-    }
-}
+void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data) {
+    data->writeInterval = offload_data->writeInterval;
+    data->mode = offload_data->mode;
 
-void diag_orb_writegclist(FILE* out, diag_orb_gclist** w){
-    diag_orb_gclist* temp;
-    while(*w != NULL){
-	fprintf(out, "%d, %le, %le, %le, %le, %le, %le\n",
-		(*w)->id, (*w)->time, (*w)->r, (*w)->phi, (*w)->z,
-		(*w)->vpar, (*w)->mu);
-	temp = *w;
-	(*w) = (*w)->prev;
-	free(temp);
-    }
-}
-
-void diag_orb_storegcarray(particle_simd_gc* p, diag_orb_gcarray* w, int* write){
-    int size = w->size;
     int i;
-    for(i=0; i < NSIMD; i=i+1){
-	if(write[i]){
-	    w->id[size]   = p->id[i];
-	    w->time[size] = p->time[i];
-	    w->r[size]    = p->r[i];
-	    w->phi[size]  = p->phi[i];
-	    w->z[size]    = p->z[i];
-	    w->vpar[size] = p->vpar[i];
-	    w->mu[size]   = p->mu[i];
-	    size = size + 1;
-	}
+    data->ntoroidalplots = offload_data->ntoroidalplots;
+    for(i=0; i<data->ntoroidalplots; i++) {
+	data->toroidalangles[i] = offload_data->toroidalangles[i];
     }
-    w->size = size;
-}
-
-
-void diag_orb_storegclist(particle_simd_gc* p, diag_orb_gclist** winout, int* write){
-    diag_orb_gclist* w;
-    int i;
-    for(i=0; i < NSIMD; i=i+1){
-	if(write[i]){
-	    w = malloc(sizeof(diag_orb_gclist));
-	    w->id   = p->id[i];
-	    w->time = p->time[i];
-	    w->r    = p->r[i];
-	    w->phi  = p->phi[i];
-	    w->z    = p->z[i];
-	    w->vpar = p->vpar[i];
-	    w->mu   = p->mu[i];
-	    w->prev = *winout;
-	    *winout = w;
-	}
+    data->npoloidalplots = offload_data->npoloidalplots;
+    for(i=0; i<data->ntoroidalplots; i++) {
+	data->poloidalangles[i] = offload_data->poloidalangles[i];
     }
-}
 
-diag_orb_gcarray* diag_orb_initgcarray(){
-    diag_orb_gcarray* w = malloc(sizeof(diag_orb_gcarray));
-    w->size = 0;
-    return w;
-}
-
-diag_orb_gclist* diag_orb_initgclist(){
-    return NULL;
-}
-
-void diag_orb_poincaregc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_data* data, int* write){
-
-
-}
-
-void diag_orb_orbitgc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_data* data, int* write){
-    int i;
-    #pragma omp simd
-    for(i=0; i < NSIMD; i=i+1){
-	write[i] = (p_f->id[i] > 0) && (p_f->time[i] != p_i->time[i]) 
-	    && ( (fabs(p_f->time[i] - data->lastWriteTime[i]) > data->writeInterval) 
-		 || data->particleId[i] != p_f->id[i]);
-	if(write[i]) {
-	    data->lastWriteTime[i] = p_f->time[i];
-	    data->particleId[i] = p_f->id[i];
-	}
+    for(i=0; i < NSIMD; i++) {
+	data->particleId[i] = -2;
     }
-}
 
-void diag_orb_updategc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_data* data){
-   
-    int write[NSIMD];
-    switch(data->storewhat){
+    if(data->mode == DIAG_ORB_ORBIT) {
+	data->writelist = NULL;
+    }
+    if(data->mode == DIAG_ORB_POINCARE) {
+	data->poincarelist = NULL;
+    }
+    if(data->mode == DIAG_ORB_WRITELAST) {
 	
-    case DIAG_ORB_ORBIT:
-	diag_orb_orbitgc(p_f, p_i, data, write);
-	break;
-
-    case(DIAG_ORB_POINCARE):
-	diag_orb_poincaregc(p_f, p_i, data, write);
-	break;
     }
-
-
-    if(data->islist){
-	diag_orb_storegclist(p_f, &data->gclist, write);
-    }
-    else{
-	diag_orb_storegcarray(p_f, data->gcarray, write);
-    }
+    data->size = 0;
 }
 
-void diag_orb_writefo(FILE* out, particle_simd_fo* p){
-    fprintf(out, "%d, %le, %le, %le, %le, %le, %le, %le\n",
-	    (int) p->id[0], p->time[0], p->r[0], p->phi[0], p->z[0],
-	    p->rdot[0], p->phidot[0]*p->r[0], p->zdot[0]);
-}
+void diag_orb_update_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_data* data) {
 
-void diag_orb_writefoarray(FILE* out, diag_orb_foarray* w){
-    for(int i = 0; i < w->size; i++){
-	fprintf(out, "%d, %le, %le, %le, %le, %le, %le, %le\n",
-		w->id[i], w->time[i], w->r[i], w->phi[i], w->z[i],
-	        w->rdot[i], w->phidot[i] * w->r[i], w->zdot[i]);
-    }
-}
 
-void diag_orb_writefolist(FILE* out, diag_orb_folist** w){
-    diag_orb_folist* temp;
-    while(*w != NULL){
-	fprintf(out, "%d, %le, %le, %le, %le, %le, %le, %le\n",
-		(*w)->id, (*w)->time, (*w)->r, (*w)->phi, (*w)->z,
-		(*w)->rdot, (*w)->phidot*(*w)->r, (*w)->zdot);
-	temp = *w;
-	(*w) = (*w)->prev;
-	free(temp);
-    }
-}
+    if(data->mode == DIAG_ORB_ORBIT) {
+	/* Check first whether a marker should be stored */
+	int store[NSIMD]; 
+        diag_orb_intervalTrigger(data, p_f->id, p_f->time, store);
 
-void diag_orb_storefoarray(particle_simd_fo* p, diag_orb_foarray* w, int* write){
-    int size = w->size;
-    int i;
-    for(i=0; i < NSIMD; i=i+1){
-	if(write[i]){
-	    w->id[size]     = p->id[i];
-	    w->time[size]   = p->time[i];
-	    w->r[size]      = p->r[i];
-	    w->phi[size]    = p->phi[i];
-	    w->z[size]      = p->z[i];
-	    w->rdot[size]   = p->rdot[i];
-	    w->phidot[size] = p->phidot[i];
-	    w->zdot[size]   = p->zdot[i];
-	    size = size + 1;
+	/* Store marker data */
+	for(int i= 0; i < NSIMD; i++) {
+	    if(store[i]) {
+		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
+
+		new->gc.time = p_f->time[i];
+		new->gc.r    = p_f->r[i];
+		new->gc.phi  = p_f->phi[i];
+		new->gc.z    = p_f->z[i];
+		new->gc.mu   = p_f->mu[i];
+		new->gc.vpar = p_f->vpar[i];
+
+		new->prev = data->writelist;
+		if(data->writelist != NULL) {
+		    data->writelist->next = new;
+		}
+		data->writelist = new;
+		data->size = data->size + 1;
+	    }
 	}
     }
-    w->size = size;
-}
+    else if(data->mode == DIAG_ORB_POINCARE) {
+	/* Check if marker has crossed any Poincare planes.
+	 * For interpolation, kpol and ktor ( in interval [0,1]) 
+	 * indicate where between initial and final state the crossing 
+	 * approximately occurred. */
+	int pol[NSIMD];
+	int tor[NSIMD];
+	real kpol[NSIMD];
+	real ktor[NSIMD];
+        diag_orb_poincareTrigger(data, pol, tor, kpol, ktor, p_f->id,
+				 p_f->time, p_f->r, p_f->phi, p_f->z,
+				 p_i->time, p_i->r, p_i->phi, p_i->z);
 
+	int i;
+	for(i=0; i<NSIMD; i++) {
+	    if(pol[i] > -1) {
+		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
 
-void diag_orb_storefolist(particle_simd_fo* p, diag_orb_folist** winout, int* write){
-    diag_orb_folist* w;
-    int i;
-    for(i=0; i < NSIMD; i=i+1){
-	if(write[i]){
-	    w = malloc(sizeof(diag_orb_folist));
-	    w->id     = p->id[i];
-	    w->time   = p->time[i];
-	    w->r      = p->r[i];
-	    w->phi    = p->phi[i];
-	    w->z      = p->z[i];
-	    w->rdot   = p->rdot[i];
-	    w->phidot = p->phidot[i];
-	    w->zdot   = p->zdot[i];
-	    w->prev   = *winout;
-	    *winout   = w;
+		new->gc.time = kpol[i] * p_f->time[i] + (1 - kpol[i]) * p_i->time[i];
+		new->gc.r    = kpol[i] * p_f->r[i]    + (1 - kpol[i]) * p_i->r[i];
+		new->gc.phi  = kpol[i] * p_f->phi[i]  + (1 - kpol[i]) * p_i->z[i];
+		new->gc.z    = kpol[i] * p_f->z[i]    + (1 - kpol[i]) * p_i->phi[i];
+		new->gc.mu   = kpol[i] * p_f->mu[i]   + (1 - kpol[i]) * p_i->mu[i];
+		new->gc.vpar = kpol[i] * p_f->vpar[i] + (1 - kpol[i]) * p_i->vpar[i];
+	    
+		new->poincareId = pol[i];
+		
+		new->prev = data->writelist;
+		if(data->writelist != NULL) {
+		    data->writelist->next = new;
+		}
+		data->writelist = new;
+		data->size = data->size + 1;
+	    }
+
 	}
-    }
-}
+	for(i=0; i<NSIMD; i++) {
+	    if(tor[i] > -1) {
+		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
 
-diag_orb_foarray* diag_orb_initfoarray(){
-    diag_orb_foarray* w = malloc(sizeof(diag_orb_foarray));
-    w->size = 0;
-    return w;
-}
+		new->gc.time = ktor[i] * p_f->time[i] + (1 - ktor[i]) * p_i->time[i];
+		new->gc.r    = ktor[i] * p_f->r[i]    + (1 - ktor[i]) * p_i->r[i];
+		new->gc.phi  = ktor[i] * p_f->phi[i]  + (1 - ktor[i]) * p_i->z[i];
+		new->gc.z    = ktor[i] * p_f->z[i]    + (1 - ktor[i]) * p_i->phi[i];
+		new->gc.mu   = ktor[i] * p_f->mu[i]   + (1 - ktor[i]) * p_i->mu[i];
+		new->gc.vpar = ktor[i] * p_f->vpar[i] + (1 - ktor[i]) * p_i->vpar[i];
+	    
+		new->poincareId = tor[i];
 
-diag_orb_folist* diag_orb_initfolist(){
-    return NULL;
-}
-
-void diag_orb_poincarefo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_data* data, int* write){
-
-
-}
-
-void diag_orb_orbitfo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_data* data, int* write){
-    int i;
-    #pragma omp simd
-    for(i=0; i < NSIMD; i=i+1){
-	write[i] = (p_f->id[i] > 0) && (p_f->time[i] != p_i->time[i]) 
-	    && ( (fabs(p_f->time[i] - data->lastWriteTime[i]) > data->writeInterval) 
-		 || data->particleId[i] != p_f->id[i]);
-	if(write[i]) {
-	    data->lastWriteTime[i] = p_f->time[i];
-	    data->particleId[i] = p_f->id[i];
+		new->prev = data->writelist;
+		if(data->writelist != NULL) {
+		    data->writelist->next = new;
+		}
+		data->writelist = new;
+		data->size = data->size + 1;
+	    }
 	}
-    }
-}
-
-void diag_orb_updatefo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_data* data){
-   
-    int write[NSIMD];
-    switch(data->storewhat){
 	
-    case DIAG_ORB_ORBIT:
-	diag_orb_orbitfo(p_f, p_i, data, write);
-	break;
-
-    case(DIAG_ORB_POINCARE):
-	diag_orb_poincarefo(p_f, p_i, data, write);
-	break;
     }
-
-
-    if(data->islist){
-	diag_orb_storefolist(p_f, &data->folist, write);
-    }
-    else{
-	diag_orb_storefoarray(p_f, data->foarray, write);
-    }
-}
-
-void diag_orb_writeml(FILE* out, particle_simd_ml* p){
-    fprintf(out, "%d, %le, %le, %le, %le\n",
-	    (int) p->id[0], p->distance[0], p->r[0], p->phi[0], p->z[0]);
-}
-
-void diag_orb_writemlarray(FILE* out, diag_orb_mlarray* w){
-    for(int i = 0; i < w->size; i++){
-	fprintf(out, "%d, %le, %le, %le, %le\n",
-		w->id[i], w->distance[i], w->r[i], w->phi[i], w->z[i]);
-    }
-}
-
-void diag_orb_writemllist(FILE* out, diag_orb_mllist** w){
-    diag_orb_mllist* temp;
-    while(*w != NULL){
-	fprintf(out, "%d, %le, %le, %le, %le\n",
-		(*w)->id, (*w)->distance, (*w)->r, (*w)->phi, (*w)->z);
-	temp = *w;
-	(*w) = (*w)->prev;
-	free(temp);
-    }
-}
-
-void diag_orb_storemlarray(particle_simd_ml* p, diag_orb_mlarray* w, int* write){
-    int size = w->size;
-    int i;
-    for(i=0; i < NSIMD; i=i+1){
-	if(write[i]){
-	    w->id[size]       = p->id[i];
-	    w->distance[size] = p->distance[i];
-	    w->r[size]        = p->r[i];
-	    w->phi[size]      = p->phi[i];
-	    w->z[size]        = p->z[i];
-	    size = size + 1;
-	}
-    }
-    w->size = size;
-}
-
-
-void diag_orb_storemllist(particle_simd_ml* p, diag_orb_mllist** winout, int* write){
-    diag_orb_mllist* w;
-    int i;
-    for(i=0; i < NSIMD; i=i+1){
-	if(write[i]){
-	    w = malloc(sizeof(diag_orb_mllist));
-	    w->id       = p->id[i];
-	    w->distance = p->distance[i];
-	    w->r        = p->r[i];
-	    w->phi      = p->phi[i];
-	    w->z        = p->z[i];
-	    w->prev     = *winout;
-	    *winout     = w;
-	}
-    }
-}
-
-diag_orb_mlarray* diag_orb_initmlarray(){
-    diag_orb_mlarray* w = malloc(sizeof(diag_orb_mlarray));
-    w->size = 0;
-    return w;
-}
-
-diag_orb_mllist* diag_orb_initmllist(){
-    return NULL;
-}
-
-void diag_orb_poincareml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data, int* write){
-    int i;
-    #pragma omp simd
-    for(i=0; i < NSIMD; i=i+1){
-	write[i] = (p_f->id[i] > 0) && (p_f->distance[i] != p_i->distance[i]) 
-	    && ( ( p_f->r[i] > 6.0 ) && ((p_f->z[i] > 0.02 && p_i->z[i] < 0.02)
-	|| (p_f->z[i] < 0.02 && p_i->z[i] > 0.02))
-	|| data->particleId[i] != p_f->id[i]);
-	if(write[i]) {
-	    data->particleId[i] = p_f->id[i];
-	}
-    }
-
-}
-
-void diag_orb_orbitml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data, int* write){
-    int i;
-    #pragma omp simd
-    for(i=0; i < NSIMD; i=i+1){
-	write[i] = (p_f->id[i] > 0) && (p_f->distance[i] != p_i->distance[i]) 
-	    && ( (fabs(p_f->distance[i] - data->lastWriteTime[i]) > data->writeInterval) 
-		 || data->particleId[i] != p_f->id[i]);
-	if(write[i]) {
-	    data->lastWriteTime[i] = p_f->distance[i];
-	    data->particleId[i] = p_f->id[i];
-	}
-    }
-}
-
-void diag_orb_updateml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data){
-   
-    int write[NSIMD];
-    switch(data->storewhat){
-	
-    case DIAG_ORB_ORBIT:
-	diag_orb_orbitml(p_f, p_i, data, write);
-	break;
-
-    case(DIAG_ORB_POINCARE):
-	diag_orb_poincareml(p_f, p_i, data, write);
-	break;
-    }
-
-
-    if(data->islist){
-	diag_orb_storemllist(p_f, &data->mllist, write);
-    }
-    else{
-	diag_orb_storemlarray(p_f, data->mlarray, write);
-    }
-}
-
-void diag_orb_write(diag_orb_data* data){
-    if(data->markertype == 0) {
-	FILE* out = fopen("foorbits.test","w");
-	if(data->islist){
-	    diag_orb_writefolist(out, &data->folist);
-	}
-	else{
-	    diag_orb_writefoarray(out, data->foarray);
-	}
-    }
-
-    if(data->markertype == 1) {
-	FILE* out = fopen("gcorbits.test","w");
-	if(data->islist){
-	    diag_orb_writegclist(out, &data->gclist);
-	}
-	else{
-	    diag_orb_writegcarray(out, data->gcarray);
-	}
-    }
-
-    if(data->markertype == 2) {
-	FILE* out = fopen("mlorbits.test","w");
-	if(data->islist){
-	    diag_orb_writemllist(out, &data->mllist);
-	}
-	else{
-	    diag_orb_writemlarray(out, data->mlarray);
-	}
-    }
-}
-
-diag_orb_data* diag_orb_init(){
-    diag_orb_data* data = malloc(sizeof(diag_orb_data));
-
-    //data->storewhat = DIAG_ORB_ORBIT;
-    data->storewhat = DIAG_ORB_POINCARE;
-    data->islist = 0;
-    data->markertype = 2;
-    data->writeInterval = 1.0e-4;
-    data->gclist = NULL;
-    data->gcarray = NULL;
-    data->folist = NULL;
-    data->foarray = NULL;
-    data->mllist = NULL;
-    data->mlarray = NULL;
-
-    if(data->markertype == 0) {
-	if(data->islist) {
-	    data->folist = diag_orb_initfolist();
-	}
-	else{
-	    data->foarray = diag_orb_initfoarray();
-	}
-    }
-    else if(data->markertype == 1) {
-	if(data->islist) {
-	    data->gclist = diag_orb_initgclist();
-	}
-	else{
-	    data->gcarray = diag_orb_initgcarray();
-	}
-    }
-    else if(data->markertype == 2) {
-	if(data->islist) {
-	    data->mllist = diag_orb_initmllist();
-	}
-	else{
-	    data->mlarray = diag_orb_initmlarray();
-	}
-    }
-    else {
-	printf("\nUnknown marker type in diag_orb_data!\n");
-	exit(1);
-    }
-
-    for(int i=0; i < NSIMD; i++) {
-	data->particleId[i] = -1;
-    }
-
-    return data;
-}
-
-void diag_orb_clean(diag_orb_data* data){
-    if(data->gclist != NULL){
-	diag_orb_gclist* temp;
-	while(data->gclist != NULL){
-	    temp = data->gclist;
-	    data->gclist = data->gclist->prev;
-	    free(temp);
-	}
+    else if(data->mode == DIAG_ORB_WRITELAST) {
+	//diag_orb_lastTrigger(data, p_f->id, p_f->time, p_i->time, ok);
     }
     
-    if(data->gcarray != NULL){
-	free(data->gcarray);
-    }
 
-    if(data->folist != NULL){
-	diag_orb_folist* temp;
-	while(data->folist != NULL){
-	    temp = data->folist;
-	    data->folist = data->folist->prev;
-	    free(temp);
+}
+
+void diag_orb_update_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_data* data) {
+    
+}
+
+void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data) {
+
+}
+
+
+void diag_orb_clean(diag_orb_data* data) {
+    printf("%g\n",data->writelist->gc.time);
+}
+
+void diag_orb_intervalTrigger(diag_orb_data* data, integer* id, real* time, int* store) {
+    #pragma omp simd
+    for(int i= 0; i < NSIMD; i++) {
+	store[i] = 0;
+	if( (id[i] != -1) && (                                           // Check if dummy
+		(id[i] != data->particleId[i]) ||                        // Check if first time this particle
+		(time[i] - data->prevWriteTime[i] > data->writeInterval) // Check if enough time has passed from previous write
+		)) {
+	    
+	    store[i] = 1;
+	    data->particleId[i] = id[i];
+	    data->prevWriteTime[i] = time[i];
 	}
     }
-    
-    if(data->foarray != NULL){
-	free(data->foarray);
-    }
+}
 
-    if(data->mllist != NULL){
-	diag_orb_mllist* temp;
-	while(data->mllist != NULL){
-	    temp = data->mllist;
-	    data->mllist = data->mllist->prev;
-	    free(temp);
+void diag_orb_poincareTrigger(diag_orb_data* data, int* pol, int* tor, real* kpol, real* ktor, integer* id,
+			      real* ftime, real* fr, real* fphi, real* fz,
+			      real* itime, real* ir, real* iphi, real* iz){
+    #pragma omp simd
+    for(int i= 0; i < NSIMD; i++) {
+        if( (id[i] != -1) && (ftime[i] != itime[i]) ) { // Check marker is not dummy and time step was accepted
+            // Check if the particle has crossed one of the poloidal planes
+	    pol[i] = -1;
+	    for(int ip = 0; ip < data->npoloidalplots; ip++) {
+		
+		/* The phi coordinate we use is "unmodulated", i.e., it is not limited to interval [0,2pi).
+		 * We can then find whether this poloidal plane was crossed by adding that plane's toroidal
+		 * coordinate on marker initial and final position, and see if the division with 2pi gives the
+		 * same value (no crossing) or not (marker has crossed the plane) */
+
+		if( floor( (fphi[i] + data->poloidalangles[ip])/CONST_2PI ) !=
+		    floor( (iphi[i] + data->poloidalangles[ip])/CONST_2PI ) 
+		    ) {
+		    pol[i] = ip;
+		    kpol[i] = ( data->poloidalangles[ip] - ( iphi[i] - CONST_2PI*floor(iphi[i] / CONST_2PI) ) ) / (fphi[i] - iphi[i]);
+		    break;
+		}
+	    }
+
+	    // Check if the particle has crossed one of the toroidal planes
+	    tor[i] = -1;
+	    real axisRz[2];
+	    axisRz[0] = 6.2;
+	    axisRz[1] = 0.6; // TODO remove hard coded values
+	    real fpol = atan2(fz[i] - axisRz[1], fr[i] - axisRz[0]); // Marker final poloidal angle
+	    real ipol = atan2(iz[i] - axisRz[1], ir[i] - axisRz[0]); // Marker initial poloidal angle
+	    for(int ip = 0; ip < data->ntoroidalplots; ip++) {
+		
+		/* The poloidal coordinate is "modulated", i.e., it lies within interval [0,2pi). 
+		 * We don't know direction marker is travelling but we assume it has taken the 
+		 * shortest route. */
+
+		if( ( (fpol - data->toroidalangles[ip] < 0) && (ipol - data->toroidalangles[ip] > 0) && 
+		      (ipol - fpol < CONST_PI ) ) ||
+		    ( (fpol - data->toroidalangles[ip] > 0) && (ipol - data->toroidalangles[ip] < 0) &&
+		      (fpol - ipol < CONST_PI ) ) ) {
+		    tor[i] = ip;
+		    ktor[i] = ( data->toroidalangles[ip] - ipol ) / (fpol - ipol);
+		    break;
+		}
+	    }
 	}
     }
-    
-    if(data->mlarray != NULL){
-	free(data->mlarray);
-    }
 
-    free(data);
+
+}
+
+void diag_orb_lastTrigger(diag_orb_data* data, integer* id, real* time, int* ok) {
 
 }

@@ -71,7 +71,7 @@ HEADERS=ascot5.h B_GS.h math.h consts.h \
 		B_field.h E_field.h wall.h phys_orbit.h hdf5_bfield.h \
 		E_1D.h $(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) \
 		diag.h diag_orb.h \
-		hdf5_input.h hdf5_simulate.h hdf5_plasma.h \
+		hdf5_input.h hdf5_simulate.h hdf5_plasma.h hdf5_orbits.h \
 
 OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
      wall_2d.o $(DIAGOBJS) B_2D.o B_ST.o B_TC.o  \
@@ -82,7 +82,7 @@ OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
 	phys_orbit.o hdf5_bfield.o \
 	E_1D.o $(MCCCOBJS) $(STEPOBJS) $(SIMOBJS)  \
 	diag.o diag_orb.o \
-	hdf5_input.o hdf5_simulate.o hdf5_plasma.o \
+	hdf5_input.o hdf5_simulate.o hdf5_plasma.o  hdf5_orbits.o \
 	splinePatrik/interp2D.o splinePatrik/interp3D.o splinePatrik/spline1D.o \
 	splinePatrik/interp2Dexpl.o splinePatrik/interp3Dexpl.o
 

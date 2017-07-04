@@ -11,8 +11,8 @@
 
 
 void hdf5_simulate(hid_t f, sim_offload_data* sim){
-    herr_t err;	
-    
+    herr_t err; 
+
     /* End conditions */
     err = H5LTread_dataset_int(f, "/options/SIM_MODE", &sim->sim_mode);
     err = H5LTread_dataset_int(f, "/options/ENABLE_ADAPTIVE", &sim->enable_ada);
@@ -99,16 +99,16 @@ void hdf5_simulate(hid_t f, sim_offload_data* sim){
     err = H5LTread_dataset_int(f, "/options/ENABLE_ORBITWRITE", &diag->orb_collect);
     if(diag->orb_collect) {
 	diag_orb_offload_data* orbits = &diag->orbits;
+
 	err = H5LTread_dataset_int(f, "/options/ORBITWRITE_MODE", &orbits->mode);
 	err = H5LTread_dataset_int(f, "/options/ORBITWRITE_NTOROIDALPLOTS", &orbits->ntoroidalplots);
 	err = H5LTread_dataset_double(f, "/options/ORBITWRITE_TOROIDALANGLES", orbits->toroidalangles);
 	err = H5LTread_dataset_int(f, "/options/ORBITWRITE_NPOLOIDALPLOTS", &orbits->npoloidalplots);
 	err = H5LTread_dataset_double(f, "/options/ORBITWRITE_POLOIDALANGLES", orbits->poloidalangles);
 	err = H5LTread_dataset_double(f, "/options/ORBITWRITE_INTERVAL", &orbits->writeInterval);
+
     }
-
-    err = H5LTread_dataset_int(f, "/options/ENABLE_DEBUGDIST", &diag->debug_collect);
-
     
-    
+
+    err = H5LTread_dataset_int(f, "/options/ENABLE_DEBUGDIST", &diag->debug_collect);    
 }
