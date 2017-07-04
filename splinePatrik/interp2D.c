@@ -28,18 +28,18 @@
  * @param z_max maximum value of the z axis
  */
 void interp2D_init(interp2D_data* str, real* f, int n_r, int n_z,
-		   real r_min, real r_max,
-		   real z_min, real z_max) {
+		   real r_min, real r_max, real r_grid,
+		   real z_min, real z_max, real z_grid) {
 
     /* Initialize and fill the data struct */
     str->n_r = n_r;
     str->n_z = n_z;
     str->r_min = r_min;
     str->r_max = r_max;
-    str->r_grid = (r_max-r_min)/(n_r-1);
+    str->r_grid = r_grid;//(r_max-r_min)/(n_r-1);
     str->z_min = z_min;
     str->z_max = z_max;
-    str->z_grid = (z_max-z_min)/(n_z-1);
+    str->z_grid = z_grid;//(z_max-z_min)/(n_z-1);
     str->c = malloc(n_z*n_r*16*sizeof(real));
 
     /* Declare and allocate the needed variables */

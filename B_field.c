@@ -6,7 +6,9 @@
 #include "B_field.h"
 #include "B_GS.h"
 #include "B_2D.h"
+#include "B_2DS.h"
 #include "B_3D.h"
+#include "B_3DS.h"
 #include "B_ST.h"
 #include "B_TC.h"
 
@@ -32,9 +34,9 @@ void B_field_init_offload(B_field_offload_data* offload_data,
         fscanf(f, "%*d %d", &nsector);
         
         if(nsector == 0) {
-            offload_data->type = B_field_type_2D;
+            offload_data->type = B_field_type_2D; // When 2DS???
         } else {
-            offload_data->type = B_field_type_3D;
+            offload_data->type = B_field_type_3D; // When 3DS???
         }
     }
 
@@ -49,9 +51,19 @@ void B_field_init_offload(B_field_offload_data* offload_data,
         offload_data->offload_array_length = offload_data->B2D.offload_array_length;
         break;
 
+        case B_field_type_2DS:
+        B_2DS_init_offload(&(offload_data->B2DS), offload_array);
+        offload_data->offload_array_length = offload_data->B2DS.offload_array_length;
+        break;
+
         case B_field_type_3D:
         B_3D_init_offload(&(offload_data->B3D), offload_array);
         offload_data->offload_array_length = offload_data->B3D.offload_array_length;
+        break;
+
+        case B_field_type_3DS:
+        B_3DS_init_offload(&(offload_data->B3DS), offload_array);
+        offload_data->offload_array_length = offload_data->B3DS.offload_array_length;
         break;
 
         case B_field_type_ST:
@@ -77,8 +89,16 @@ void B_field_free_offload(B_field_offload_data* offload_data,
         B_2D_free_offload(&(offload_data->B2D), offload_array);
         break;
 
+        case B_field_type_2DS:
+        B_2DS_free_offload(&(offload_data->B2DS), offload_array);
+        break;
+
         case B_field_type_3D:
         B_3D_free_offload(&(offload_data->B3D), offload_array);
+        break;
+
+        case B_field_type_3DS:
+        B_3DS_free_offload(&(offload_data->B3DS), offload_array);
         break;
 
         case B_field_type_ST:
@@ -102,8 +122,16 @@ void B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
         B_2D_init(&(Bdata->B2D), &(offload_data->B2D), offload_array);
         break;
 
+        case B_field_type_2DS:
+        B_2DS_init(&(Bdata->B2DS), &(offload_data->B2DS), offload_array);
+        break;
+
         case B_field_type_3D:
         B_3D_init(&(Bdata->B3D), &(offload_data->B3D), offload_array);
+        break;
+
+        case B_field_type_3DS:
+        B_3DS_init(&(Bdata->B3DS), &(offload_data->B3DS), offload_array);
         break;
 
         case B_field_type_ST:
@@ -127,8 +155,16 @@ void B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata) {
         B_2D_eval_B(B, r, phi, z, &(Bdata->B2D));
         break;
 
+        case B_field_type_2DS:
+        B_2DS_eval_B(B, r, phi, z, &(Bdata->B2DS));
+        break;
+
         case B_field_type_3D:
         B_3D_eval_B(B, r, phi, z, &(Bdata->B3D));
+        break;
+
+        case B_field_type_3DS:
+        B_3DS_eval_B(B, r, phi, z, &(Bdata->B3DS));
         break;
 
         case B_field_type_ST:
@@ -152,8 +188,16 @@ void B_field_eval_psi(real psi[], real r, real phi, real z,
         B_2D_eval_psi(psi, r, phi, z, &(Bdata->B2D));
         break;
 
+        case B_field_type_2DS:
+        B_2DS_eval_psi(psi, r, phi, z, &(Bdata->B2DS));
+        break;
+
         case B_field_type_3D:
         B_3D_eval_psi(psi, r, phi, z, &(Bdata->B3D));
+        break;
+
+        case B_field_type_3DS:
+        B_3DS_eval_psi(psi, r, phi, z, &(Bdata->B3DS));
         break;
 
         case B_field_type_ST:
@@ -180,8 +224,16 @@ void B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
         B_2D_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B2D));
         break;
 
+        case B_field_type_2DS:
+        B_2DS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B2DS));
+        break;
+
         case B_field_type_3D:
         B_3D_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B3D));
+        break;
+
+        case B_field_type_3DS:
+        B_3DS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B3DS));
         break;
 
         case B_field_type_ST:
@@ -204,8 +256,16 @@ void B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
         B_2D_eval_rho(rho, psi, &(Bdata->B2D));
         break;
 
+        case B_field_type_2DS:
+        B_2DS_eval_rho(rho, psi, &(Bdata->B2DS));
+        break;
+
         case B_field_type_3D:
         B_3D_eval_rho(rho, psi, &(Bdata->B3D));
+        break;
+
+        case B_field_type_3DS:
+        B_3DS_eval_rho(rho, psi, &(Bdata->B3DS));
         break;
 
         case B_field_type_ST:
@@ -232,8 +292,16 @@ void B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
         B_2D_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B2D));
         break;
 
+        case B_field_type_2DS:
+        B_2DS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B2DS));
+        break;
+
         case B_field_type_3D:
         B_3D_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B3D));
+        break;
+
+        case B_field_type_3DS:
+        B_3DS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B3DS));
         break;
 
         case B_field_type_ST:
@@ -261,8 +329,16 @@ void B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
         B_2D_eval_B_dB(B_dB, r, phi, z, &(Bdata->B2D));
         break;
 
+        case B_field_type_2DS:
+        B_2DS_eval_B_dB(B_dB, r, phi, z, &(Bdata->B2DS));
+        break;
+
         case B_field_type_3D:
         B_3D_eval_B_dB(B_dB, r, phi, z, &(Bdata->B3D));
+        break;
+
+        case B_field_type_3DS:
+        B_3DS_eval_B_dB(B_dB, r, phi, z, &(Bdata->B3DS));
         break;
 
         case B_field_type_ST:
@@ -286,8 +362,16 @@ real B_field_get_axis_r(B_field_data* Bdata) {
         axis_r = B_2D_get_axis_r(&(Bdata->B2D));
         break;
 
+        case B_field_type_2DS:
+        axis_r = B_2DS_get_axis_r(&(Bdata->B2DS));
+        break;
+
         case B_field_type_3D:
         axis_r = B_3D_get_axis_r(&(Bdata->B3D));
+        break;
+
+        case B_field_type_3DS:
+        axis_r = B_3DS_get_axis_r(&(Bdata->B3DS));
         break;
 
         case B_field_type_ST:
@@ -312,8 +396,16 @@ real B_field_get_axis_z(B_field_data* Bdata) {
         axis_z = B_2D_get_axis_z(&(Bdata->B2D));
         break;
 
+        case B_field_type_2DS:
+        axis_z = B_2DS_get_axis_z(&(Bdata->B2DS));
+        break;
+
         case B_field_type_3D:
         axis_z = B_3D_get_axis_z(&(Bdata->B3D));
+        break;
+
+        case B_field_type_3DS:
+        axis_z = B_3DS_get_axis_z(&(Bdata->B3DS));
         break;
 
         case B_field_type_ST:

@@ -2,6 +2,8 @@
  * @file interp3D.h
  * @brief Header file for interp3D.c
  */
+#ifndef INTERP3D_H
+#define INTERP3D_H
 #include "../ascot5.h"
 
 /**
@@ -24,7 +26,10 @@ typedef struct {
 } interp3D_data;
 
 void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
-		   real r_min, real r_max, real phi_min, real phi_max, real z_min, real z_max);
+		   real r_min, real r_max, real r_grid,
+		   real phi_min, real phi_max, real phi_grid,
+		   real z_min, real z_max, real z_grid);
 void interp3D_eval_B(real* B, interp3D_data* str, real r, real phi, real z);
 void interp3D_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z);
 void interp3D_free(interp3D_data* str);
+#endif

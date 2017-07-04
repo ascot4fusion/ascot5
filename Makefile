@@ -62,9 +62,9 @@ DIAGOBJS = diag.o diag_orb.o distributions.o
 
 
 HEADERS=ascot5.h B_GS.h math.h consts.h \
-	   	wall_2d.h ascot4_interface.h $(DIAGHEADERS) B_2D.h \
+	   	wall_2d.h ascot4_interface.h $(DIAGHEADERS) B_2D.h B_2DS.h \
 		plasma_1d.h interact.h simulate.h \
-		hdf5_helpers.h hdf5_histogram.h B_3D.h \
+		hdf5_helpers.h hdf5_histogram.h B_3D.h B_3DS.h \
 		wall_3d.h list.h octree.h hdf5_particlestate.h \
 		B_ST.h B_TC.h \
 		particle.h filip5.h endcond.h \
@@ -74,9 +74,9 @@ HEADERS=ascot5.h B_GS.h math.h consts.h \
 		hdf5_input.h hdf5_simulate.h hdf5_plasma.h hdf5_orbits.h \
 
 OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
-     wall_2d.o $(DIAGOBJS) B_2D.o B_ST.o B_TC.o  \
+     wall_2d.o $(DIAGOBJS) B_2D.o B_2DS.o B_ST.o B_TC.o  \
 	plasma_1d.o interact.o \
-	hdf5_helpers.o hdf5_histogram.o B_3D.o \
+	hdf5_helpers.o hdf5_histogram.o B_3D.o B_3DS.o \
 	 wall_3d.o list.o octree.o hdf5_particlestate.o \
      particle.o endcond.o B_field.o E_field.o wall.o simulate.o \
 	phys_orbit.o hdf5_bfield.o \

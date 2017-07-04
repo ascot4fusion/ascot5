@@ -31,9 +31,9 @@
  * @param z_max maximum value of the z axis
  */
 void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
-		   real r_min, real r_max,
-		   real phi_min, real phi_max,
-		   real z_min, real z_max) {
+		   real r_min, real r_max, real r_grid,
+		   real phi_min, real phi_max, real phi_grid,
+		   real z_min, real z_max, real z_grid) {
 
     /* Initialize and fill the data struct */
     str->n_r = n_r;
@@ -41,13 +41,13 @@ void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
     str->n_z = n_z;
     str->r_min = r_min;
     str->r_max = r_max;
-    str->r_grid = (r_max-r_min)/(n_r-1);
+    str->r_grid = r_grid;//(r_max-r_min)/(n_r-1);
     str->phi_min = phi_min;
     str->phi_max = phi_max;
-    str->phi_grid = (phi_max-phi_min)/n_phi;
+    str->phi_grid = phi_grid;//(phi_max-phi_min)/n_phi;
     str->z_min = z_min;
     str->z_max = z_max;
-    str->z_grid = (z_max-z_min)/(n_z-1);
+    str->z_grid = z_grid;//(z_max-z_min)/(n_z-1);
     str->c = malloc(n_phi*n_z*n_r*64*sizeof(real));
 
     /* Declare and allocate the needed variables */
@@ -185,6 +185,7 @@ void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
  * This function evaluates the interpolated value of a 3D scalar field using
  * tricubic spline interpolation coefficients of the compact form.
  * 
+ * @todo Seg fault if in last phi-sector becaause of compact eval +1-coefs
  * @todo Check discrepency to ascot4 and explicit version
  * @todo Error checking
  *
@@ -288,6 +289,7 @@ void interp3D_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
  * its 1st and 2nd derivatives using bicubic spline interpolation coefficients
  * of the compact form.
  * 
+ * @todo Seg fault if in last phi-sector becaause of compact eval +1-coefs
  * @todo Check discrepency to ascot4 and explicit version
  * @todo Error checking
  *
