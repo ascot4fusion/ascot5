@@ -23,6 +23,7 @@
 #include "../endcond.h"
 #include "../math.h"
 #include "../consts.h"
+#include "../hdf5_orbits.h"
 
 #pragma omp declare target
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i); 
@@ -56,9 +57,14 @@ void simulate_fo_fixed(particle_queue_fo* pq, sim_data* sim) {
     particle_simd_fo p;  // This array holds current states
     particle_simd_fo p0; // This array stores previous states
 
-    /* Initialize running particles */
-    particle_cycle_fo(pq, &p, &sim->B_data, cycle);
+    for(int i=0; i< NSIMD; i++) {
+	p.id[i] = -1;
+	p.running[i] = 0;
+    }
 
+    /* Initialize running particles */
+    int n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
+    
     /* Determine simulation time-step */
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
@@ -66,7 +72,7 @@ void simulate_fo_fixed(particle_queue_fo* pq, sim_data* sim) {
 	    hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
 	}
     }
-        
+    
 /* MAIN SIMULATION LOOP 
  * - Store current state
  * - Integrate motion due to background EM-field (orbit-following)
@@ -77,8 +83,8 @@ void simulate_fo_fixed(particle_queue_fo* pq, sim_data* sim) {
  * - Update diagnostics
  * - 
  */
-    int n_running = 0;
-    do {
+    while(n_running > 0) {
+
         /* Store marker states in case time step will be rejected */
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
@@ -125,9 +131,9 @@ void simulate_fo_fixed(particle_queue_fo* pq, sim_data* sim) {
 	    }
 	}
 
-    } while(n_running > 0);
+    } 
     
-        
+    hdf5_orbits_write(sim);
     diag_clean(&sim->diag_data);
 
 }

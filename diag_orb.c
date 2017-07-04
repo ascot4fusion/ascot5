@@ -152,7 +152,33 @@ void diag_orb_update_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_d
 }
 
 void diag_orb_update_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_data* data) {
-    
+    if(data->mode == DIAG_ORB_ORBIT) {
+	/* Check first whether a marker should be stored */
+	int store[NSIMD]; 
+        diag_orb_intervalTrigger(data, p_f->id, p_f->time, store);
+
+	/* Store marker data */
+	for(int i= 0; i < NSIMD; i++) {
+	    if(store[i]) {
+		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
+
+		new->fo.time   = p_f->time[i];
+		new->fo.r      = p_f->r[i];
+		new->fo.phi    = p_f->phi[i];
+		new->fo.z      = p_f->z[i];
+		new->fo.rdot   = p_f->rdot[i];
+		new->fo.phidot = p_f->phidot[i];
+		new->fo.zdot   = p_f->zdot[i];
+
+		new->prev = data->writelist;
+		if(data->writelist != NULL) {
+		    data->writelist->next = new;
+		}
+		data->writelist = new;
+		data->size = data->size + 1;
+	    }
+	}
+    }
 }
 
 void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data) {
@@ -161,7 +187,7 @@ void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_d
 
 
 void diag_orb_clean(diag_orb_data* data) {
-    printf("%g\n",data->writelist->gc.time);
+    //printf("%g\n",data->writelist->gc.time);
 }
 
 void diag_orb_intervalTrigger(diag_orb_data* data, integer* id, real* time, int* store) {

@@ -61,17 +61,16 @@ void simulate_gc_adaptive(particle_queue_gc* pq, sim_data* sim) {
 	int windex[NSIMD];
 	real tol_col = sim->ada_tol_clmbcol;
 	real tol_orb = sim->ada_tol_orbfol;
-
+	int i;
 
         particle_simd_gc p;  // This array holds current states
 	particle_simd_gc p0; // This array stores previous states
-        int i;
 
 	/* Initialize running particles */
 	particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 	
 	#pragma omp simd
-	for(int i = 0; i < NSIMD; i++) {
+	for(i = 0; i < NSIMD; i++) {
 	    if(cycle[i] > 0) {
 		/* Determine initial time-step */
 		hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
@@ -191,13 +190,13 @@ void simulate_gc_adaptive(particle_queue_gc* pq, sim_data* sim) {
 	    
             endcond_check_gc(&p, &p0, sim);
 
-	    diag_update_gc(&sim->diag_data, &p, &p0);
-
+	    //diag_update_gc(&sim->diag_data, &p, &p0);
+	    
             /* Update number of running particles */
 	    n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
-
+	    
 	    #pragma omp simd
-	    for(int i = 0; i < NSIMD; i++) {
+	    for(i = 0; i < NSIMD; i++) {
 		if(cycle[i] > 0) {
 		    /* Determine initial time-step */
 		    hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
@@ -209,16 +208,16 @@ void simulate_gc_adaptive(particle_queue_gc* pq, sim_data* sim) {
 		}
 		else if(cycle[i] < 0) {
 		    /* De-allocate array storing the Wiener processes */
-		    mccc_wiener_deallocate(wienarr[i]);
+		    if(sim->enable_clmbcol) {
+			mccc_wiener_deallocate(wienarr[i]);
+		    }
 		}
 	    }
-	   
-	    
+	    printf("%d\n",n_running);
         } while(n_running > 0);
-	
-       
-	hdf5_orbits_write(sim);
-	diag_clean(&sim->diag_data);
+        
+	//hdf5_orbits_write(sim);
+	//diag_clean(&sim->diag_data);
 }
 
 /**

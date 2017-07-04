@@ -41,7 +41,7 @@ void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
     p_fo->endcond[j] = p->endcond; 
     p_fo->walltile[j] = p->walltile;
 
-    real B_dB[3];
+    real B_dB[12];
     B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);
 
     p_fo->B_r[j]        = B_dB[0];
@@ -391,12 +391,22 @@ void ml_to_particle(particle_simd_ml* p_ml, int j, particle* p) {
 int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
                       B_field_data* Bdata, int* cycle) {
     for(int i = 0; i < NSIMD; i++) {
+	int i_prt;
+
+	/* If there are markers in queue and this position is dummy,
+	 * init a marker here */
+	if(p->id[i] < 0 && q->next < q->n) {
+	    #pragma omp critical
+	    i_prt = q->next++;
+	    particle_to_fo(&q->p[i_prt], i_prt, p, i, Bdata);
+	    cycle[i] = 1;
+	    continue;
+	}
+
 	cycle[i] = 0;
-        if(!p->running[i]) {
-            if(p->id[i] >= 0) {
-                fo_to_particle(p, i, &q->p[p->index[i]]);
-            }
-            int i_prt;
+        if(!p->running[i] && p->id[i] >= 0) {
+	    fo_to_particle(p, i, &q->p[p->index[i]]);
+            
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
@@ -416,7 +426,7 @@ int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
     for(int i = 0; i < NSIMD; i++) {
         n_running += p->running[i];
     }
-
+    
     return n_running;
 }
 
