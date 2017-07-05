@@ -5,9 +5,9 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include "ascot5.h"
-#include "plasma_1d.h"
-#include "consts.h"
+#include "../ascot5.h"
+#include "../plasma_1d.h"
+#include "../consts.h"
 #include "hdf5.h"
 #include "hdf5_helpers.h"
 #include "hdf5_hl.h"

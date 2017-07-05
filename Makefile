@@ -60,29 +60,33 @@ MCCCOBJS = $(patsubst %.c,%.o,$(wildcard $(MCCCDIR)mccc*.c))
 DIAGHEADERS = diag.h diag_orb.h distributions.h
 DIAGOBJS = diag.o diag_orb.o distributions.o
 
+HDF5IODIR = hdf5io/
+HDF5IOHEADERS = $(wildcard $(HDF5IODIR)hdf5*.h)
+HDF5IOOBJS = $(patsubst %.c,%.o,$(wildcard $(HDF5IODIR)hdf5*.c))
+
 
 HEADERS=ascot5.h B_GS.h math.h consts.h \
 	   	wall_2d.h ascot4_interface.h $(DIAGHEADERS) B_2D.h B_2DS.h \
 		plasma_1d.h interact.h simulate.h \
-		hdf5_helpers.h hdf5_histogram.h B_3D.h B_3DS.h \
-		wall_3d.h list.h octree.h hdf5_particlestate.h \
+		B_3D.h B_3DS.h \
+		wall_3d.h list.h octree.h \
 		B_ST.h B_TC.h \
 		particle.h filip5.h endcond.h \
-		B_field.h E_field.h wall.h phys_orbit.h hdf5_bfield.h \
+		B_field.h E_field.h wall.h phys_orbit.h \
 		E_1D.h $(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) \
 		diag.h diag_orb.h \
-		hdf5_input.h hdf5_simulate.h hdf5_plasma.h hdf5_orbits.h \
+		$(HDF5IOHEADERS) \
 
 OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
      wall_2d.o $(DIAGOBJS) B_2D.o B_2DS.o B_ST.o B_TC.o  \
 	plasma_1d.o interact.o \
-	hdf5_helpers.o hdf5_histogram.o B_3D.o B_3DS.o \
-	 wall_3d.o list.o octree.o hdf5_particlestate.o \
+	B_3D.o B_3DS.o \
+	 wall_3d.o list.o octree.o \
      particle.o endcond.o B_field.o E_field.o wall.o simulate.o \
-	phys_orbit.o hdf5_bfield.o \
+	phys_orbit.o \
 	E_1D.o $(MCCCOBJS) $(STEPOBJS) $(SIMOBJS)  \
 	diag.o diag_orb.o \
-	hdf5_input.o hdf5_simulate.o hdf5_plasma.o  hdf5_orbits.o \
+	$(HDF5IOOBJS) \
 	splinePatrik/interp2D.o splinePatrik/interp3D.o splinePatrik/spline1D.o \
 	splinePatrik/interp2Dexpl.o splinePatrik/interp3Dexpl.o
 
@@ -95,8 +99,8 @@ BINS=test_math \
 all: $(BINS)
 
 ascotpy: CFLAGS+=-fPIC
-ascotpy: ascotpy.o math.o B_field.o hdf5_helpers.o hdf5_bfield.o B_2D.o B_GS.o B_3D.o B_ST.o B_TC.o
-	f2py ascotpy.pyf ascotpy.c math.o B_field.o hdf5_helpers.o hdf5_bfield.o B_GS.o B_2D.o B_3D.o B_ST.o B_TC.o -c $(DEFINES)
+ascotpy: ascotpy.o math.o B_field.o $(HDF5IOOBJS) B_2D.o B_GS.o B_3D.o B_ST.o B_TC.o
+	f2py ascotpy.pyf ascotpy.c math.o B_field.o B_GS.o B_2D.o B_3D.o B_ST.o B_TC.o -c $(DEFINES)
 
 ascot5_gc: ascot5_gc.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)

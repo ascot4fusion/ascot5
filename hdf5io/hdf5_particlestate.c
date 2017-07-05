@@ -6,9 +6,9 @@
 #include <stdlib.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
-#include "ascot5.h"
+#include "../ascot5.h"
 #include "hdf5_helpers.h"
-#include "particle.h"
+#include "../particle.h"
 
 /**
    @brief Writes the particle state to an ASCOT4 HDF5 file.

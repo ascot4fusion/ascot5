@@ -11,7 +11,7 @@
 #include "B_ST.h"
 #include "B_3D.h" /* for 3D interpolation routines */
 #include "B_2D.h" /* for 2D interpolation routines */
-#include "hdf5_bfield.h"
+#include "hdf5io/hdf5_bfield.h"
 
 /**
  * @brief Load magnetic field data and prepare parameters

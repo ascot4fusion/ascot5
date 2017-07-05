@@ -1,4 +1,4 @@
-#include "simulate.h"
+#include "../simulate.h"
 #include "hdf5.h"
 #include "hdf5_helpers.h"
 #include "hdf5_hl.h"
@@ -6,8 +6,15 @@
 #include "hdf5_simulate.h"
 #include "hdf5_bfield.h"
 #include "hdf5_plasma.h"
+#include "hdf5_efield.h"
+#include "hdf5_wall.h"
 
-int hdf5_input(sim_offload_data* sim){
+int hdf5_input(sim_offload_data* sim, 
+	       real** B_offload_array,
+	       real** E_offload_array,
+	       real** plasma_offload_array,
+	       real** wall_offload_array,
+	       real** diag_offload_array){
     
     /* This init disables automatic error messages.
      * We want to generate our own that are more informative.*/
@@ -29,7 +36,6 @@ int hdf5_input(sim_offload_data* sim){
 	return -1;
     }
 
-    /* TODO only options data is currently stored in hdf5 
     err = hdf5_find_group(f, "/bfield/");
     if(err < 0) {
 	printf("\nError: Magnetic field not found within %s.\n",sim->hdf5fn);
@@ -48,6 +54,13 @@ int hdf5_input(sim_offload_data* sim){
 	return -1;
     }
 
+    err = hdf5_find_group(f, "/wall/");
+    if(err < 0) {
+	printf("\nError: Wall not found within %s.\n",sim->hdf5fn);
+	return -1;
+    }
+
+    /*
     err = hdf5_find_group(f, "/inistate/");
     if(err < 0) {
 	printf("\nError: Inistate not found within %s.\n",sim->hdf5fn);
@@ -62,28 +75,36 @@ int hdf5_input(sim_offload_data* sim){
 	return -1;
     }
 
-    //real** a;
-    //hdf5_bfield_init_offload(f,&(sim->B_offload_data), a);
+    hdf5_bfield_init_offload(f,&(sim->B_offload_data), B_offload_array);
     if(err < 0) {
 	printf("\nError: Failed to initialize magnetic field from %s.\n",sim->hdf5fn);
 	return -1;
     }
 
+    hdf5_efield_init_offload(f,&(sim->E_offload_data), E_offload_array);
     if(err < 0) {
 	printf("\nError: Failed to initialize electric field from %s.\n",sim->hdf5fn);
 	return -1;
     }
 
-    //hdf5_plasma_init_offload(f,&(sim->plasma_offload_data), a);
+    hdf5_plasma_init_offload(f,&(sim->plasma_offload_data), plasma_offload_array);
     if(err < 0) {
 	printf("\nError: Failed to initialize plasma from %s.\n",sim->hdf5fn);
 	return -1;
     }
 
+    hdf5_wall_init_offload(f,&(sim->wall_offload_data), wall_offload_array);
+    if(err < 0) {
+	printf("\nError: Failed to initialize wall from %s.\n",sim->hdf5fn);
+	return -1;
+    }
+
+    /*
     if(err < 0) {
 	printf("\nError: Failed to initialize inistate from %s.\n",sim->hdf5fn);
 	return -1;
     }
+    */
 	
     /* Close the hdf5 file */
     err = hdf5_close(f);

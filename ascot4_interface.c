@@ -12,9 +12,9 @@
 #include "consts.h"
 #include "phys_orbit.h"
 #include "B_field.h"
-#include "hdf5_helpers.h"
-#include "hdf5_histogram.h"
-#include "hdf5_particlestate.h"
+#include "hdf5io/hdf5_helpers.h"
+#include "hdf5io/hdf5_histogram.h"
+#include "hdf5io/hdf5_particlestate.h"
 #include "distributions.h"
 #include "particle.h"
 

@@ -23,7 +23,7 @@
 #include "../endcond.h"
 #include "../math.h"
 #include "../consts.h"
-#include "../hdf5_orbits.h"
+#include "../hdf5io/hdf5_orbits.h"
 
 real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
 

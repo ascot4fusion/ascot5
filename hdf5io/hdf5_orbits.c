@@ -4,10 +4,10 @@
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "hdf5_helpers.h"
-#include "simulate.h"
-#include "particle.h"
-#include "ascot5.h"
-#include "diag_orb.h"
+#include "../simulate.h"
+#include "../particle.h"
+#include "../ascot5.h"
+#include "../diag_orb.h"
 
 void hdf5_orbits_write(sim_data* sim) {
     diag_orb_data* diag = &sim->diag_data.orbits;

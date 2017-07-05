@@ -20,14 +20,10 @@
 #include "plasma_1d.h"
 #include "interact.h"
 #include "simulate.h"
-#include "simulate/simulate_fo_fixed.h"
-#include "simulate/simulate_gc_fixed.h"
-#include "simulate/simulate_gc_adaptive.h"
-#include "simulate/simulate_ml_adaptive.h"
 #include "particle.h"
 #include "endcond.h"
-#include "hdf5_histogram.h"
-#include "hdf5_input.h"
+#include "hdf5io/hdf5_histogram.h"
+#include "hdf5io/hdf5_input.h"
 
 int read_options(int argc, char** argv, sim_offload_data* sim);
 
@@ -44,28 +40,18 @@ int main(int argc, char** argv) {
     real* diag_offload_array_mic1;
     real* diag_offload_array_host;
     sprintf(sim.hdf5fn, "ascot.h5");// TODO read me from command line
-    hdf5_input(&sim);
-
-    B_field_init_offload(&sim.B_offload_data, &B_offload_array);
-    #if VERBOSE >= 1
-    printf("Initialized magnetic field, %.1f MB.\n", sim.B_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
-    #endif
-
-    plasma_1d_init_offload(&sim.plasma_offload_data, &plasma_offload_array);
-    #if VERBOSE >= 1
-    printf("Initialized background plasma, %.1f MB.\n", sim.plasma_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
-    #endif
-
-    wall_init_offload(&sim.wall_offload_data, &wall_offload_array);
-    #if VERBOSE >= 1
-    printf("Initialized wall, %.1f MB.\n", sim.wall_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
-    #endif
+    
     
     #ifndef NOTARGET
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
+    hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
+	       &wall_offload_array, &diag_offload_array_mic0);
+    /* Copy contents of mic0 to mic1 array */ 
+    diag_offload_array_mic1 = malloc(sim.diag.offload_array_length*sizeof(real));
+    memcpy(diag_offload_array_mic0, diag_offload_array_mic1,
+	sim.diag.offload_array_length*sizeof(real));
     #else
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
+    hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
+	       &wall_offload_array, &diag_offload_array_host);    
     #endif
     #if VERBOSE >= 1
     printf("Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
