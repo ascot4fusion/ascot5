@@ -8,5 +8,8 @@ def read_wall_2d(fn):
     return str
 
 def write_wall_2d(f, w):
+
+    f.create_group('wall/2D')
+    f['wall/2D'].attrs['n'] = w['r'].size
     f.create_dataset('wall/2D/r', data=w['r'])
     f.create_dataset('wall/2D/z', data=w['z'])
