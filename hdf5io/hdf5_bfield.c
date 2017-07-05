@@ -43,19 +43,26 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
         return -1;
     }
     if(strcmp(type,"B_TC") == 0) {
-	
+	offload_data->type = B_field_type_TC;
+	return 1;
+    }
+    if(strcmp(type,"analytic") == 0) {
+	offload_data->type = B_field_type_GS;
 	return 1;
     }
     if(strcmp(type,"2D") == 0) {
         hdf5_bfield_init_offload_2D(f, &(offload_data->B2D), offload_array);
+	offload_data->type = B_field_type_2DS;
         return 1;
     }
     else if (strcmp(type, "3D") == 0) {
         hdf5_bfield_init_offload_3D(f, &(offload_data->B3D), offload_array);
+	offload_data->type = B_field_type_3DS;
         return 1;
     }
     else if (strcmp(type, "stellarator") == 0) {
         hdf5_bfield_init_offload_ST(f, &(offload_data->BST), offload_array);
+	offload_data->type = B_field_type_ST;
         return 1;
     }
     return -1;
