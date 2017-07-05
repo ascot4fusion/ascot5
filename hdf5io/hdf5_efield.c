@@ -5,12 +5,14 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <hdf5.h>
 #include "hdf5_hl.h"
 #include "../E_field.h"
+#include "hdf5_efield.h"
 
 
-void hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real** offload_array) {
+int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real** offload_array) {
     herr_t err;
 
     err = H5LTfind_dataset(f, "/efield/");
@@ -34,7 +36,7 @@ void hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real*
         return 1;
     }
 
-    
+    return -1;
 }
 
 void hdf5_efield_init_offload_1D(hid_t f, E_1D_offload_data* offload_data, real** offload_array) {

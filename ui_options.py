@@ -258,7 +258,7 @@ class ui_optionsIO:
 # c -options class (defined at the start of this file)
 # fn -filename for hdf5-file
 def writeHdf5(c,fn):
-    f = h5py.File(fn, "w")
+    f = h5py.File(fn, "a")
     o = f.create_group("options")
 
     o.create_dataset("SIM_MODE", data = c.SIM_MODE, dtype='i4')
@@ -314,4 +314,4 @@ def writeHdf5(c,fn):
 
     f.close()
 
-writeHdf5(ui_optionsIO(), "ascot.h5")
+##writeHdf5(ui_optionsIO(), "ascot.h5")

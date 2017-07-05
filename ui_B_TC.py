@@ -10,4 +10,3 @@ def write_hdf5(fn, Bxyz, gradB):
 	o.create_dataset("gradB", (9,1), dtype='f8', data = gradB)
 	f.close()
 
-write_hdf5("ascot.h5", np.array([1, 0, 0]), np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])) 

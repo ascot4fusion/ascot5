@@ -6,7 +6,5 @@ def write_hdf5(fn, Exyz):
 	o = f.create_group("efield")
         o.attrs["type"] = np.string_("E_TC");
 	o = o.create_group("TC")
-	o.create_dataset("Exyz", (3,1), dtype='f16', data = Exyz)
+	o.create_dataset("Exyz", (3,1), dtype='f8', data = Exyz)
 	f.close()
-
-write_hdf5("ascot.h5", np.array([1, 0, 0])) 
