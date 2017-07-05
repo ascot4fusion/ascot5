@@ -56,8 +56,8 @@ void hdf5_efield_init_offload_1D(hid_t f, E_1D_offload_data* offload_data, real*
     real* rho = &(*offload_array)[0];
     real* dV = &(*offload_array)[offload_data->n_rho];
     
-    err = H5LTread_dataset_double(f,"/efield/rho",rho);
-    err = H5LTread_dataset_double(f,"/efield/dV_drho",dV);
+    err = H5LTread_dataset_double(f,"/efield/erad/rho",rho);
+    err = H5LTread_dataset_double(f,"/efield/erad/dV_drho",dV);
 
     /* Effective minor radius */
     real r_eff;
