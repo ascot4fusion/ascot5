@@ -6,6 +6,7 @@
 #include "ascot5.h"
 #include "E_field.h"
 #include "B_field.h"
+#include "E_TC.h"
 #include "E_1D.h"
 
 void E_field_init_offload(E_field_offload_data* offload_data,
@@ -26,6 +27,10 @@ void E_field_free_offload(E_field_offload_data* offload_data,
     case E_field_type_1D:
         E_1D_free_offload(&(offload_data->E1D), offload_array);
         break;
+
+    case E_field_type_TC:
+        E_TC_free_offload(&(offload_data->ETC), offload_array);
+        break;
     }
 }
 
@@ -35,6 +40,10 @@ void E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
     case E_field_type_1D:
         E_1D_init(&(Edata->E1D), &(offload_data->E1D), offload_array);
         break;
+
+    case E_field_type_TC:
+        E_TC_init(&(Edata->ETC), &(offload_data->ETC), offload_array);
+        break;
     }
     Edata->type = offload_data->type;
 }
@@ -43,8 +52,11 @@ void E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
 void E_field_eval_E(real E[], real r, real phi, real z, E_field_data* Edata, B_field_data* Bdata) {
     switch(Edata->type) {
     case E_field_type_1D:
-	
         E_1D_eval_E(E, r, phi, z, &(Edata->E1D), Bdata);
+        break;
+
+    case E_field_type_TC:
+        E_TC_eval_E(E, r, phi, z, &(Edata->ETC), Bdata);
         break;
     }
 }

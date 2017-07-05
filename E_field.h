@@ -5,21 +5,25 @@
 #ifndef E_FIELD_H
 #define E_FIELD_H
 
+#include "ascot5.h"
 #include "B_field.h"
+#include "E_TC.h"
 #include "E_1D.h"
 
 typedef enum E_field_type {
-    E_field_type_1D
+    E_field_type_TC, E_field_type_1D
 } E_field_type;
 
 typedef struct {
     E_field_type type;
+    E_TC_offload_data ETC;
     E_1D_offload_data E1D;
     int offload_array_length;
 } E_field_offload_data;
 
 typedef struct {
     E_field_type type;
+    E_TC_data ETC;
     E_1D_data E1D;
 } E_field_data;
 
