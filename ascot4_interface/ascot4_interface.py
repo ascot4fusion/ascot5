@@ -3,6 +3,7 @@ import os.path
 from ascot4_particles import *
 from ascot4_magn_bkg import *
 from ascot4_plasma import *
+from ascot4_erad import *
 from ascot4_wall_2d import *
 from ascot4_wall_3d import *
 
@@ -37,6 +38,16 @@ def main():
             write_plasma_1d(f, data)
             f['plasma'].attrs['type'] = '1D'
 
+    # Radial electric field
+    if overwrite_fields or (not 'efield/erad' in f):
+        fname = 'input.erad'
+        if (os.path.isfile(fname)):
+            data = read_erad(fname)
+            if 'efield/erad' in f:
+                del f['efield/erad']
+            write_erad(f, data)
+            f['efield'].attrs['type'] = 'erad'
+            
     # 2D wall
     if overwrite_fields or (not 'wall/2D' in f):
         fname = 'input.wall_2d'

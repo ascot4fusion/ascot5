@@ -9,19 +9,19 @@ def read_erad(fn):
 
     data = loadtxt(f)
 
-    str['rho'] = data(:,0)
-    str['dV_drho'] = data(:,1)
+    str['rho'] = data[:,0]
+    str['dV_drho'] = data[:,1]
     # For data in format dV/rho, we can ignore effective minor radius
     
     return str
     
-def write_plasma_1d(f, e):
+def write_erad(f, e):
 
-    f.create_group('erad')
-    f['erad'].attrs['n_rho'] = e['n_rho']
-    f['erad'].attrs['r_eff'] = 1.0
-    f['erad'].attrs['rho_min'] = np.amin(e['rho'])
-    f['erad'].attrs['rho_max'] = np.amax(e['rho'])
-    f.create_dataset('erad/rho', data=e['rho'])
-    f.create_dataset('erad/dV_drho', data=e['dV_drho'])
+    f.create_group('efield/erad')
+    f['efield/erad'].attrs['n_rho'] = e['n_rho']
+    f['efield/erad'].attrs['r_eff'] = 1.0
+    f['efield/erad'].attrs['rho_min'] = np.amin(e['rho'])
+    f['efield/erad'].attrs['rho_max'] = np.amax(e['rho'])
+    f.create_dataset('efield/erad/rho', data=e['rho'])
+    f.create_dataset('efield/erad/dV_drho', data=e['dV_drho'])
 
