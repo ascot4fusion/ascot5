@@ -6,6 +6,7 @@
 #ifndef E_1D_H
 #define E_1D_H
 #include "ascot5.h"
+#include "B_field.h"
 
 /**
  * @brief 1D electric field parameters that will be offloaded to target
@@ -36,6 +37,6 @@ void E_1D_free_offload(E_1D_offload_data* offload_data, real** offload_array);
 void E_1D_init(E_1D_data* Edata, E_1D_offload_data* offload_data,
                real* offload_array);
 #pragma omp declare simd uniform(Edata)
-void E_1D_eval_E(real E[], real rho_drho[], E_1D_data* Edata);
+void E_1D_eval_E(real E[], real r, real phi, real z, E_1D_data* Edata, B_field_data* Bdata);
 #pragma omp end declare target   
 #endif

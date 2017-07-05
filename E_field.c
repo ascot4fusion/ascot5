@@ -40,10 +40,11 @@ void E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
 }
 
 /* E[0] = E_r, E[1] = E_phi, E[2] = E_z */
-void E_field_eval_E(real E[], real rho_drho[], E_field_data* Edata) {
+void E_field_eval_E(real E[], real r, real phi, real z, E_field_data* Edata, B_field_data* Bdata) {
     switch(Edata->type) {
     case E_field_type_1D:
-        E_1D_eval_E(E, rho_drho, &(Edata->E1D));
+	
+        E_1D_eval_E(E, r, phi, z, &(Edata->E1D), Bdata);
         break;
     }
 }

@@ -50,7 +50,6 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
 
             real B[3];
             real B_dB[12];
-            real rho_drho[4];
 	    real E[3];
 
             /* Coordinates are copied from the struct into an array to make 
@@ -79,10 +78,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
 	    B_dB[10] = p->B_z_dphi[i];
 	    B_dB[11] = p->B_z_dz[i];
 
-            B_field_eval_rho_drho(rho_drho, yprev[0], yprev[1], yprev[2], Bdata);
-            /* Convert partial derivative to gradient */
-            rho_drho[2] = rho_drho[2]/yprev[0];
-	    E_field_eval_E(E, rho_drho, Edata);
+	    E_field_eval_E(E, yprev[0], yprev[1], yprev[2], Edata, Bdata);
 	    phys_eomgc(k1, yprev, mass, charge, B_dB, E);
 	    int j;
 
@@ -90,50 +86,35 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
 		tempy[j] = yprev[j] + ((1.0/5)*k1[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-            B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
-            /* Convert partial derivative to gradient */
-            rho_drho[2] = rho_drho[2]/tempy[0];
-	    E_field_eval_E(E, rho_drho, Edata);
+	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
 	    phys_eomgc(k2, tempy, mass, charge, B_dB, E);
 
 	    for(j = 0; j < 5; j++) {
 		tempy[j] = yprev[j] + ((3.0/40)*k1[j]+(9.0/40)*k2[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-            B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
-            /* Convert partial derivative to gradient */
-            rho_drho[2] = rho_drho[2]/tempy[0];
-	    E_field_eval_E(E, rho_drho, Edata);
+	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
 	    phys_eomgc(k3, tempy, mass, charge, B_dB, E);
 
 	    for(j = 0; j < 5; j++) {
 		tempy[j] = yprev[j] + ((3.0/10)*k1[j]+(-9.0/10)*k2[j]+(6.0/5)*k3[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-            B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
-            /* Convert partial derivative to gradient */
-            rho_drho[2] = rho_drho[2]/tempy[0];
-	    E_field_eval_E(E, rho_drho, Edata);
+	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
 	    phys_eomgc(k4, tempy, mass, charge, B_dB, E);
 	
 	    for(j = 0; j < 5; j++) {
 		tempy[j] = yprev[j] + ((-11.0/54)*k1[j]+(5.0/2)*k2[j]+(-70.0/27)*k3[j]+(35.0/27)*k4[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-            B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
-            /* Convert partial derivative to gradient */
-            rho_drho[2] = rho_drho[2]/tempy[0];
-	    E_field_eval_E(E, rho_drho, Edata);
+	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
 	    phys_eomgc(k5, tempy, mass, charge, B_dB, E);
 
 	    for(j = 0; j < 5; j++) {
 		tempy[j] = yprev[j] + ((1631.0/55296)*k1[j]+(175.0/512)*k2[j]+(575.0/13824)*k3[j]+(44275.0/110592)*k4[j]+(253.0/4096)*k5[j])*h[i];
 	    }
 	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-            B_field_eval_rho_drho(rho_drho, tempy[0], tempy[1], tempy[2], Bdata);
-            /* Convert partial derivative to gradient */
-            rho_drho[2] = rho_drho[2]/tempy[0];
-	    E_field_eval_E(E, rho_drho, Edata);
+	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
 	    phys_eomgc(k6, tempy, mass, charge, B_dB, E);
 
 	    real yout[5];

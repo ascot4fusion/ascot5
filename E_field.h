@@ -5,6 +5,7 @@
 #ifndef E_FIELD_H
 #define E_FIELD_H
 
+#include "B_field.h"
 #include "E_1D.h"
 
 typedef enum E_field_type {
@@ -31,7 +32,7 @@ void E_field_free_offload(E_field_offload_data* offload_data,
 void E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
                   real* offload_array);
 #pragma omp declare simd uniform(Edata) 
-void E_field_eval_E(real* E, real* rho_drho, E_field_data* Edata);
+void E_field_eval_E(real* E, real r, real phi, real z, E_field_data* Edata, B_field_data* Bdata);
 #pragma omp end declare target
 
 #endif

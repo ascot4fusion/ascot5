@@ -107,7 +107,12 @@ void E_1D_init(E_1D_data* Edata,
  *          [gradrho]_z -> rho_drho[3])
  * @param Edata pointer to electric field data
  */
-void E_1D_eval_E(real E[], real rho_drho[], E_1D_data* Edata) {
+void E_1D_eval_E(real E[], real r, real phi, real z, E_1D_data* Edata, B_field_data* Bdata) {
+
+    real rho_drho[4];
+    B_field_eval_rho_drho(rho_drho, r, phi, z, Bdata);
+    /* Convert partial derivative to gradient */
+    rho_drho[2] = rho_drho[2]/r;
 
     if (rho_drho[0] < Edata->rho_min || rho_drho[0] > Edata->rho_max ) {
         /* We set the field to zero if outside the profile. */
