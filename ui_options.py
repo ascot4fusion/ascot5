@@ -314,4 +314,5 @@ def writeHdf5(c,fn):
 
     f.close()
 
-##writeHdf5(ui_optionsIO(), "ascot.h5")
+if __name__ == "__main__":
+    writeHdf5(ui_optionsIO(), "ascot.h5")
