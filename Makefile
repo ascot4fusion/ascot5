@@ -169,4 +169,4 @@ test_interp3Dexpl: test_interp3Dexpl.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 clean:
-	rm -f *.o *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o $(MCCCDIR)*.o
+	rm -f *.o *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o $(MCCCDIR)*.o $(HDF5IODIR)*.o
