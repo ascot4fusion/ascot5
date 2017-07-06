@@ -33,7 +33,8 @@ void B_TC_init_offload(B_TC_offload_data* offload_data, real** offload_array) {
  */
 void B_TC_free_offload(B_TC_offload_data* offload_data,
                        real** offload_array) {
-    free(offload_array);
+    free(*offload_array);
+    *offload_array = NULL;
 }
 
 /**

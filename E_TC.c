@@ -20,7 +20,8 @@ void E_TC_init_offload(E_TC_offload_data* offload_data,
 
 void E_TC_free_offload(E_TC_offload_data* offload_data,
 			     real** offload_array) {
-    free(offload_array);
+    free(*offload_array);
+    *offload_array = NULL;
 }
 
 void E_TC_init(E_TC_data* Edata, E_TC_offload_data* offload_data,
