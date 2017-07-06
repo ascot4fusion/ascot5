@@ -13,6 +13,7 @@ class ui_optionsIO:
     #   1 - Gyro-orbit 
     #   2 - Guiding center
     #   3 - Hybrid !!TODO Not implemented!!
+    #   4 - Magnetic field lines !!TODO Not implemented!!
     #
     # ENABLE_ADAPTIVE == 0, 1, or 2
     # - Use adaptive time-step in guiding center and hybrid 
@@ -100,8 +101,8 @@ class ui_optionsIO:
     ENDCOND_SIMTIMELIM = 1
     ENDCOND_CPUTIMELIM = 0
     ENDCOND_RHOLIM     = 0
-    ENDCOND_ENERGYLIM  = 1
-    ENDCOND_WALLHIT    = 1
+    ENDCOND_ENERGYLIM  = 0
+    ENDCOND_WALLHIT    = 0
     ENDCOND_MAXORBS    = 0
 
     ## Defining values for different end conditions
@@ -131,7 +132,7 @@ class ui_optionsIO:
     # - Maximum number of poloidal orbits
     #
 
-    ENDCOND_MAX_SIM_TIME             = 1.0
+    ENDCOND_MAX_SIM_TIME             = 1.0e-5
     ENDCOND_MAX_CPU_TIME             = 1.0e5
     ENDCOND_MAX_RHO                  = 1.0
     ENDCOND_MIN_RHO                  = 0.0
@@ -176,7 +177,7 @@ class ui_optionsIO:
     # BIN_X - Number of bins interval [MIN_X MAX_X] is divided into
     #
 
-    ENABLE_RZVparaVperp_DIST    = 1
+    ENABLE_RZVparaVperp_DIST    = 0
 
     DIST_RZVparaVperp_MIN_R     = 3.0
     DIST_RZVparaVperp_MAX_R     = 8.5
@@ -228,7 +229,7 @@ class ui_optionsIO:
     #   marker is terminated
     #
 
-    ENABLE_ORBITWRITE         = 0
+    ENABLE_ORBITWRITE         = 1
     ORBITWRITE_MODE           = 1
     ORBITWRITE_NTOROIDALPLOTS = 1
     ORBITWRITE_TOROIDALANGLES = np.array([0, 180])

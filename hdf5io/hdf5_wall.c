@@ -21,7 +21,11 @@ void hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data, real** off
         offload_data->type = 1;
         hdf5_wall_init_offload_2D(f, &(offload_data->w2d), offload_array);
         offload_data->offload_array_length = offload_data->w2d.offload_array_length;
-
+	
+	#if VERBOSE > 0
+	    printf("Loaded 2D wall (w2d)\n");
+	    printf("with parameters:\n");
+	#endif
 
     }
     else if (strcmp(type, "3D") == 0) {

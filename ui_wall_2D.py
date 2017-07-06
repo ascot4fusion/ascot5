@@ -5,12 +5,12 @@ def write_hdf5(fn, r, z):
     f = h5py.File(fn, "a")
     if not "/wall" in f:
         o = f.create_group('wall')
-        o.attrs["type"] = np.string_("w2d")
+        o.attrs["type"] = np.string_("2D")
     
     else:
         o = f["wall"]
         del o.attrs["type"]
-        o.attrs["type"] = np.string_("w2d")
+        o.attrs["type"] = np.string_("2D")
     
     if  "/wall/2D" in f:
         del f["/wall/2D"]
