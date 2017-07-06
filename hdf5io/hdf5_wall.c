@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "../wall.h"
@@ -83,9 +84,9 @@ void hdf5_wall_init_offload_3D(hid_t f, wall_3d_offload_data* offload_data, real
     /* Allocate space for x1x2x3, y1y2y3, z1z2z3 for each element */
     *offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
 
-    real* x1x2x3[3*offload_data->n];
-    real* y1y2y3[3*offload_data->n];
-    real* z1z2z3[3*offload_data->n];
+    real x1x2x3[3*offload_data->n];
+    real y1y2y3[3*offload_data->n];
+    real z1z2z3[3*offload_data->n];
     
     err = H5LTread_dataset_double(f,"wall/3D/x1x2x3", x1x2x3);
     err = H5LTread_dataset_double(f,"wall/3D/y1y2y3", y1y2y3);
@@ -95,7 +96,6 @@ void hdf5_wall_init_offload_3D(hid_t f, wall_3d_offload_data* offload_data, real
      *  [x1 y1 z1 x2 y2 z2 x3 y3 z3; ... ]
      */
     int i, j;
-    real x, y, z;
     for(i = 0; i < offload_data->n; i++) {
         for(j = 0; j < 3; j++) {
             (*offload_array)[(i+j)*3] = x1x2x3[3*i+j];
