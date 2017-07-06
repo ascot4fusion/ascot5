@@ -13,12 +13,12 @@ def main():
     f = h5py.File(h5file, 'a') # Open for reading or writing    
 
     # Particle input
-    if overwrite_fields or (not 'inistate' in f):
+    if overwrite_fields or (not 'markers' in f):
         fname = 'input.particles'
         if (os.path.isfile(fname)):
             data = read_particles(fname)
-            if 'inistate' in f:
-                del f['inistate']
+            if 'markers' in f:
+                del f['markers']
             write_particles(f, data)
 
     #TODO inputs for all kinds of different ASCOT4 magn_bkg

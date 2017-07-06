@@ -1,3 +1,5 @@
+import numpy as np
+
 def read_particles(fname):
     '''
     Read ASCOT4 input.particles file
@@ -104,5 +106,17 @@ def Ekin2velocity(mass,Ekin):
     return val
 
 def write_particles(f, data):
-    for field in data['fieldNames']:
-        f.create_dataset('/inistate/' + field, data=data['fields'][field])
+    if 'vphi' in data['fieldNames']:
+        # We have particles
+        for field in data['fieldNames']:
+            f.create_dataset('/markers/particle/' + str.lower(field), data=data['fields'][field])
+            f['markers'].attrs['n_particle'] = np.size(data['fields'][field])
+        f['markers'].attrs['n_guiding_center'] = 0
+        f['markers'].attrs['n_field_line'] = 0
+    elif 'energy' in data['fieldNames']:
+        # We have guiding centers
+        for field in data['fieldNames']:
+            f.create_dataset('/markers/guiding_center/' + str.lower(field), data=data['fields'][field])
+            f['markers'].attrs['n_guiding_center'] = np.size(data['fields'][field])
+        f['markers'].attrs['n_particle'] = 0
+        f['markers'].attrs['n_field_line'] = 0
