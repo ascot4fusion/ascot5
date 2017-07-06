@@ -25,9 +25,17 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real**
     if(err < 0) {
         return -1;
     }
-    if(strcmp(type,"E_TC") == 0) {
+    if(strncmp(type,"E_TC",4) == 0) {
         offload_data->type = E_field_type_TC;
 	hdf5_efield_init_offload_TC(f, &(offload_data->ETC), offload_array);
+
+	#if VERBOSE > 0
+	    printf("\nLoaded trivial cartesian electric field (E_TC)\n");
+	    printf("with parameters:\n");
+	    printf("- Electric field Exyz = (%le, %le, %le)\n",
+		   (*offload_array)[0],(*offload_array)[1],(*offload_array)[2]);
+	#endif
+
         return 1;
     }
     if(strcmp(type,"erad") == 0) {

@@ -16,10 +16,12 @@ void hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data, real** off
     if(err < 0) {
         return;
     }
-    if(strcmp(type,"2D") == 0) {
+    if(strncmp(type,"2D",2) == 0) {
         offload_data->type = 1;
         hdf5_wall_init_offload_2D(f, &(offload_data->w2d), offload_array);
         offload_data->offload_array_length = offload_data->w2d.offload_array_length;
+
+
     }
     else if (strcmp(type, "3D") == 0) {
         offload_data->type = 3;

@@ -38,12 +38,34 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
         return -1;
     }
     char type[32];
+
     err = H5LTget_attribute_string(f, "/bfield/", "type", type);
     if(err < 0) {
         return -1;
     }
-    if(strcmp(type,"B_TC") == 0) {
+
+    if(strncmp(type,"B_TC",4) == 0) {
+	hdf5_bfield_init_offload_TC(f, &(offload_data->BTC), offload_array);
 	offload_data->type = B_field_type_TC;
+	
+	#if VERBOSE > 0
+	    printf("\nLoaded trivial cartesian magnetic field (B_TC)\n");
+	    printf("with parameters:\n");
+	    printf("- magnetic axis at (R,z) = (%le,%le)\n",
+		   offload_data->BTC.axisr,offload_data->BTC.axisz);
+	    printf("- psi = %le and rho %le\n",
+		   offload_data->BTC.psival,offload_data->BTC.rhoval);
+	    printf("- magnetic field at origo Bxyz = (%le, %le, %le)\n",
+		   (*offload_array)[0],(*offload_array)[1],(*offload_array)[2]);
+	    printf("- magnetic field gradient\n");
+	    printf("  dBxdx = %le, dBxdy = %le, dBxdz = %le\n",
+		   (*offload_array)[3],(*offload_array)[4],(*offload_array)[5]);
+	    printf("  dBydx = %le, dBydy = %le, dBydz = %le\n",
+		   (*offload_array)[6],(*offload_array)[7],(*offload_array)[8]);
+	    printf("  dBzdx = %le, dBzdy = %le, dBzdz = %le\n",
+		   (*offload_array)[9],(*offload_array)[10],(*offload_array)[11]);
+	#endif
+
 	return 1;
     }
     if(strcmp(type,"analytic") == 0) {
@@ -447,6 +469,18 @@ void hdf5_bfield_init_offload_ST(hid_t f, B_ST_offload_data* offload_data, real*
  * @param offload_array pointer to pointer to offload array
  */
 void hdf5_bfield_init_offload_TC(hid_t f, B_TC_offload_data* offload_data, real** offload_array) {
+    herr_t err;
 
+    err = H5LTread_dataset_double(f,"/bfield/B_TC/axisr",&(offload_data->axisr));
+    err = H5LTread_dataset_double(f,"/bfield/B_TC/axisz",&(offload_data->axisr));
+    err = H5LTread_dataset_double(f,"/bfield/B_TC/psival",&(offload_data->psival));
+    err = H5LTread_dataset_double(f,"/bfield/B_TC/rhoval",&(offload_data->rhoval));
+
+    offload_data->offload_array_length = 12;
+
+    *offload_array = (real*) malloc(offload_data->offload_array_length*sizeof(real));
+    err = H5LTread_dataset_double(f,"/bfield/B_TC/Bxyz",&(*offload_array)[0]);
+    err = H5LTread_dataset_double(f,"/bfield/B_TC/gradB",&(*offload_array)[3]);
+    
 
 }

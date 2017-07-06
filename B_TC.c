@@ -15,16 +15,6 @@
 #include "math.h"
 #include "B_TC.h"
 
-/* Define the magnetic field here. 
- * Note that these are in Cartesian basis. 
- * The default is B_x(0,0,0) = 1 T dB_x/dy = 1 T/m.
- */
-
-#pragma omp declare target
-static const int B_TC_B[3] = {1.0, 0.0, 0.0};
-static const int B_TC_dB[9] = {0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-#pragma omp end declare target
-
 /**
  * @brief Dummy function
  *
@@ -36,14 +26,14 @@ void B_TC_init_offload(B_TC_offload_data* offload_data, real** offload_array) {
 }
 
 /**
- * @brief Dummy function
+ * @brief Frees offload array
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
 void B_TC_free_offload(B_TC_offload_data* offload_data,
                        real** offload_array) {
-    
+    free(offload_array);
 }
 
 /**
@@ -55,19 +45,13 @@ void B_TC_free_offload(B_TC_offload_data* offload_data,
  */
 void B_TC_init(B_TC_data* Bdata, B_TC_offload_data* offload_data,
                real* offload_array) {
-    Bdata->B[0] = B_TC_B[0];
-    Bdata->B[1] = B_TC_B[1];
-    Bdata->B[2] = B_TC_B[2];
+    Bdata->rhoval = offload_data->rhoval;
+    Bdata->psival = offload_data->psival;
+    Bdata->axisr = offload_data->axisr;
+    Bdata->axisz = offload_data->axisz;
 
-    Bdata->dB[0] = B_TC_dB[0];
-    Bdata->dB[1] = B_TC_dB[1];
-    Bdata->dB[2] = B_TC_dB[2];
-    Bdata->dB[3] = B_TC_dB[3];
-    Bdata->dB[4] = B_TC_dB[4];
-    Bdata->dB[5] = B_TC_dB[5];
-    Bdata->dB[6] = B_TC_dB[6];
-    Bdata->dB[7] = B_TC_dB[7];
-    Bdata->dB[8] = B_TC_dB[8];
+    Bdata->B = &(offload_array[0]);
+    Bdata->dB = &(offload_array[3]);
 }
 
 /**
@@ -122,8 +106,7 @@ void B_TC_eval_B(real* B, real r, real phi,
  */
 void B_TC_eval_psi(real* psi, real r, real phi, real z,
                    B_TC_data* Bdata) {
-    printf("There is no psi in this field.");
-    exit(EXIT_FAILURE);
+    psi[0] = Bdata->psival;
 }
 
 /**
@@ -132,8 +115,10 @@ void B_TC_eval_psi(real* psi, real r, real phi, real z,
  */
 void B_TC_eval_psi_dpsi(real* psi, real r, real phi, real z,
                    B_TC_data* Bdata) {
-    printf("There is no psi in this field.");
-    exit(EXIT_FAILURE);
+    psi[0] = Bdata->psival;
+    psi[1] = 0;
+    psi[2] = 0;
+    psi[3] = 0;
 }
 
 /**
@@ -144,8 +129,7 @@ void B_TC_eval_psi_dpsi(real* psi, real r, real phi, real z,
  * @see B_2D_eval_rho
  */
 void B_TC_eval_rho(real* rho, real psi, B_TC_data* Bdata) {
-    printf("There is no rho in this field.");
-    exit(EXIT_FAILURE);
+    rho[0] = Bdata->rhoval;
 }
 
 /**
@@ -153,8 +137,11 @@ void B_TC_eval_rho(real* rho, real psi, B_TC_data* Bdata) {
  *
  */
 void B_TC_eval_rho_drho(real* rho, real r, real phi, real z, B_TC_data* Bdata) {
-    printf("There is no rho in this field.");
-    exit(EXIT_FAILURE);
+    rho[0] = Bdata->rhoval;
+
+    rho[1] = 0;
+    rho[2] = 0;
+    rho[3] = 0;
 }
 
 
@@ -215,13 +202,9 @@ void B_TC_eval_B_dB(real* B_dB, real r, real phi, real z,
 }
 
 real B_TC_get_axis_r(B_TC_data* Bdata) {
-    printf("There is no axis in this field.");
-    exit(EXIT_FAILURE);
-    return 0.0;
+    return Bdata->axisr;
 }
 
 real B_TC_get_axis_z(B_TC_data* Bdata) {
-    printf("There is no axis in this field.");
-    exit(EXIT_FAILURE);
-    return 0.0;
+    return Bdata->axisz;
 }
