@@ -166,11 +166,14 @@ int main(int argc, char** argv) {
                 #ifdef _OMP
                 host_start = omp_get_wtime();
                 #endif
+		
+		sim_data sim_host;
 
-                simulate(0, n_host, p+2*n_mic, &sim, B_offload_array,
-                         E_offload_array,
-                         plasma_offload_array, wall_offload_array,
-                         diag_offload_array_host);
+                simulate_begin(0, n_host, p+2*n_mic, &sim, &sim_host,
+		    B_offload_array,
+		    E_offload_array,
+		    plasma_offload_array, wall_offload_array,
+		    diag_offload_array_host);
 
                 #ifdef _OMP
                 host_end = omp_get_wtime();

@@ -124,3 +124,102 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->endcond_maxPolOrb    = offload_data->endcond_maxPolOrb;
 }
 
+void simulate_begin(int id, int n_particles, input_particle* p,
+		    sim_offload_data* offload_data, sim_data* sim,
+		    real* B_offload_array,
+		    real* E_offload_array,
+		    real* plasma_offload_array,
+		    real* wall_offload_array,
+		    real* diag_offload_array) {
+
+    
+    sim_init(sim, offload_data);
+    wall_init(&sim->wall_data, &offload_data->wall_offload_data,
+              wall_offload_array);
+    B_field_init(&sim->B_data, &offload_data->B_offload_data, B_offload_array);
+    E_field_init(&sim->E_data, &offload_data->E_offload_data, E_offload_array);
+    plasma_1d_init(&sim->plasma_data, &offload_data->plasma_offload_data,
+                   plasma_offload_array);
+    diag_init(&sim->diag_data, &offload_data->diag_offload_data,
+              diag_offload_array);
+    
+    if(sim->sim_mode == 1) {
+	/* FO simulation */
+    }
+    else if(sim->sim_mode == 2 || sim->sim_mode == 3) {
+	/* GC or hybrid simulation */
+    }
+    else if(sim->sim_mode == 4) {
+	/* ML simulation */
+    }
+
+}
+
+/*
+void simulate_continue(int id, int n_particles, input_particle* p,
+		       sim_data* sim) {
+
+    particle_queue_fo p_fo;
+    particle_queue_gc p_gc;
+
+    p_fo.n = 0;
+    p_gc.n = 0;
+    for(int i = 0; i < n_particles; i++) {
+        if(p[i].type == input_particle_type_p) {
+            p_fo.n++;
+        } else if(p[i].type == input_particle_type_gc) {
+            p_gc.n++;
+        }
+    }
+
+    p_fo.p = (particle*) malloc(p_fo.n * sizeof(particle));
+    p_gc.p = (particle_gc*) malloc(p_gc.n * sizeof(particle_gc));
+
+    p_fo.next = 0;
+    p_gc.next = 0;
+    for(int i = 0; i < n_particles; i++) {
+        if(p[i].type == input_particle_type_p) {
+            p_fo.p[p_fo.next++] = p[i].p;
+        } else if(p[i].type == input_particle_type_gc) {
+            p_gc.p[p_gc.next++] = p[i].p_gc;
+        }
+    }
+
+    p_fo.next = 0;
+    p_gc.next = 0;
+
+    if(p_gc.n > 0) {
+	if(sim.enable_ada) {
+	    #pragma omp parallel
+	    {
+	        simulate_gc_adaptive(&p_gc, &sim);
+	    }
+	}
+	else {
+	    #pragma omp parallel
+	    {
+	        simulate_gc_fixed(&p_gc, &sim);
+	    }
+	}
+    }
+    else if(p_fo.n > 0) {
+	#pragma omp parallel
+	{
+	    simulate_fo_fixed(&p_fo, &sim);
+	}
+    }
+
+    free(p_fo.p);
+    free(p_gc.p);
+
+}
+
+void simulate_hybrid(int id, int n_particles, input_particle* p,
+		     sim_data* sim) {
+
+}
+
+void simulate_end(sim_data* sim) {
+    diag_clean(&sim->diag_data);
+}
+*/
