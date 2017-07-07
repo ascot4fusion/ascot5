@@ -39,10 +39,13 @@ int main(int argc, char** argv) {
     real* diag_offload_array_mic0;
     real* diag_offload_array_mic1;
     real* diag_offload_array_host;
+    int n;
+    input_particle* p;
+
     sprintf(sim.hdf5fn, "ascot.h5");// TODO read me from command line
     
     hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
-	       &wall_offload_array);
+	       &wall_offload_array, p, &n);
     
     #ifndef NOTARGET
         diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
@@ -69,10 +72,6 @@ int main(int argc, char** argv) {
     #if VERBOSE >= 1
     printf("Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
     #endif
-
-    int n;
-    input_particle* p;
-    ascot4_read_particles(&p, &n, "input.particles");
 
     char filename[256];
     if(mpi_size == 1) {

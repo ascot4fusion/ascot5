@@ -8,12 +8,15 @@
 #include "hdf5_plasma.h"
 #include "hdf5_efield.h"
 #include "hdf5_wall.h"
+#include "hdf5_markers.h"
 
 int hdf5_input(sim_offload_data* sim, 
 	       real** B_offload_array,
 	       real** E_offload_array,
 	       real** plasma_offload_array,
-	       real** wall_offload_array){
+	       real** wall_offload_array,
+               input_particle* p,
+               int* n_markers){
     
     /* This init disables automatic error messages.
      * We want to generate our own that are more informative.*/
@@ -59,13 +62,11 @@ int hdf5_input(sim_offload_data* sim,
 	return -1;
     }
 
-    /*
-    err = hdf5_find_group(f, "/inistate/");
+    err = hdf5_find_group(f, "/markers/");
     if(err < 0) {
-	printf("\nError: Inistate not found within %s.\n",sim->hdf5fn);
+	printf("\nError: Markers not found within %s.\n",sim->hdf5fn);
 	return -1;
     }
-    */
 
     /* Read input from hdf5 and initialize */
     hdf5_simulate(f, sim);
@@ -98,12 +99,11 @@ int hdf5_input(sim_offload_data* sim,
 	return -1;
     }
 
-    /*
+    hdf5_markers_init(f, n_markers, p);
     if(err < 0) {
-	printf("\nError: Failed to initialize inistate from %s.\n",sim->hdf5fn);
+	printf("\nError: Failed to initialize markers from %s.\n",sim->hdf5fn);
 	return -1;
     }
-    */
 	
     /* Close the hdf5 file */
     err = hdf5_close(f);
