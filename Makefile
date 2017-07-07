@@ -64,6 +64,9 @@ HDF5IODIR = hdf5io/
 HDF5IOHEADERS = $(wildcard $(HDF5IODIR)hdf5*.h)
 HDF5IOOBJS = $(patsubst %.c,%.o,$(wildcard $(HDF5IODIR)hdf5*.c))
 
+UIDIR = ui/
+ASCOT4IFDIR = ascot4_interface/
+
 
 HEADERS=ascot5.h B_GS.h math.h consts.h \
 	   	wall_2d.h ascot4_interface.h $(DIAGHEADERS) B_2D.h B_2DS.h \
@@ -169,4 +172,4 @@ test_interp3Dexpl: test_interp3Dexpl.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 clean:
-	rm -f *.o *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o $(MCCCDIR)*.o $(HDF5IODIR)*.o *.pyc
+	rm -f *.o *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o $(MCCCDIR)*.o $(HDF5IODIR)*.o *.pyc $(ASCOT4IFDIR)*.pyc $(UIDIR)*.pyc
