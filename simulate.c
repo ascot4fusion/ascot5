@@ -73,9 +73,15 @@ void simulate_begin(int id, int n_particles, input_particle* p,
     }
     else if(sim->sim_mode == 2 || sim->sim_mode == 3) {
 	/* GC or hybrid simulation */
+	for(int i = 0; i < n_particles; i++) {
+	    particle_marker_to_state(p, i, &sim->B_data, 2);
+	}
     }
     else if(sim->sim_mode == 4) {
 	/* ML simulation */
+	for(int i = 0; i < n_particles; i++) {
+	    particle_marker_to_state(p, i, &sim->B_data, 4);
+	}
     }
 
 }
@@ -106,7 +112,7 @@ void simulate_continue(int id, int n_particles, input_particle* p,
         if(p[i].type == input_particle_type_ps) {
             p_fo.p[p_fo.next++] = &p[i].p_s;
         } else if(p[i].type == input_particle_type_gcs) {
-            //p_gc.p[p_gc.next++] = p[i].p_gc;
+            p_gc.p[p_gc.next++] = &p[i].p_gc;
         }
     }
 

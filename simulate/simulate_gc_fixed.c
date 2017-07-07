@@ -57,8 +57,13 @@ void simulate_gc_fixed(particle_queue_gc* pq, sim_data* sim) {
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
 
+    for(int i=0; i< NSIMD; i++) {
+	p.id[i] = -1;
+	p.running[i] = 0;
+    }
+
     /* Initialize running particles */
-    particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+    int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
     /* Determine simulation time-step */
     #pragma omp simd
@@ -75,9 +80,7 @@ void simulate_gc_fixed(particle_queue_gc* pq, sim_data* sim) {
  * - Advance time
  * - Check for end condition(s)
  * - Update diagnostics
- * - 
  * */
-    int n_running = 0;
     do {
         /* Store marker states */
         #pragma omp simd
@@ -126,7 +129,6 @@ void simulate_gc_fixed(particle_queue_gc* pq, sim_data* sim) {
 
     } while(n_running > 0);
     
-    diag_clean(&sim->diag_data);
 }
 
 /**

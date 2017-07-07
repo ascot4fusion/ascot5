@@ -66,8 +66,13 @@ void simulate_gc_adaptive(particle_queue_gc* pq, sim_data* sim) {
         particle_simd_gc p;  // This array holds current states
 	particle_simd_gc p0; // This array stores previous states
 
+	for(int i=0; i< NSIMD; i++) {
+	    p.id[i] = -1;
+	    p.running[i] = 0;
+	}
+
 	/* Initialize running particles */
-	particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+	int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 	
 	#pragma omp simd
 	for(i = 0; i < NSIMD; i++) {
@@ -94,7 +99,6 @@ void simulate_gc_adaptive(particle_queue_gc* pq, sim_data* sim) {
  * - Check for end condition(s)
  * - Update diagnostics
  */
-        int n_running = 0;
         do {
             #pragma omp simd
 	    for(i = 0; i < NSIMD; i++) {
@@ -190,7 +194,7 @@ void simulate_gc_adaptive(particle_queue_gc* pq, sim_data* sim) {
 	    
             endcond_check_gc(&p, &p0, sim);
 
-	    //diag_update_gc(&sim->diag_data, &p, &p0);
+	    diag_update_gc(&sim->diag_data, &p, &p0);
 	    
             /* Update number of running particles */
 	    n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
@@ -213,11 +217,8 @@ void simulate_gc_adaptive(particle_queue_gc* pq, sim_data* sim) {
 		    }
 		}
 	    }
-	    printf("%d\n",n_running);
         } while(n_running > 0);
         
-	//hdf5_orbits_write(sim);
-	//diag_clean(&sim->diag_data);
 }
 
 /**

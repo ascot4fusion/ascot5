@@ -177,9 +177,9 @@ int main(int argc, char** argv) {
 		    diag_offload_array_host);
 
 		ascot4_write_inistate(n, p, filename);
-
+		
 		simulate_continue(0, n_host, p+2*n_mic, &sim_host);
-
+		
 		ascot4_write_endstate(n, p, filename);
 
 		hdf5_orbits_write(&sim_host);

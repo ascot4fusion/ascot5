@@ -1,6 +1,7 @@
 
 #include "../ascot5.h"
 #include "../simulate.h"
+#include "hdf5_dist.h"
 
 void hdf5_diag_write(sim_offload_data* sim, real* diag_offload_array) {
     

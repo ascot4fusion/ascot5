@@ -283,6 +283,8 @@ int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
 void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata, int state);
 void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j);
 void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p);
+void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j);
+void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p);
 #pragma omp end declare target
 
 #endif

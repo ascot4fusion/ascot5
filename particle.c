@@ -398,7 +398,6 @@ int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
 	if(p->id[i] < 0 && q->next < q->n) {
 	    #pragma omp critical
 	    i_prt = q->next++;
-	    //particle_to_fo(&q->p[i_prt], i_prt, p, i, Bdata);
 	    particle_state_to_fo(q->p[i_prt], i_prt, p,i);
 	    cycle[i] = 1;
 	    continue;
@@ -406,13 +405,11 @@ int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
 
 	cycle[i] = 0;
         if(!p->running[i] && p->id[i] >= 0) {
-	    //fo_to_particle(p, i, &q->p[p->index[i]]);
 	    particle_fo_to_state(p, i, q->p[p->index[i]]);
 
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
-                //particle_to_fo(&q->p[i_prt], i_prt, p, i, Bdata);
 		particle_state_to_fo(q->p[i_prt], i_prt, p, i);
 		cycle[i] = 1;
             }
@@ -436,16 +433,26 @@ int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
 int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
                       B_field_data* Bdata, int* cycle) {
     for(int i = 0; i < NSIMD; i++) {
+	int i_prt;
+
+	/* If there are markers in queue and this position is dummy,
+	 * init a marker here */
+	if(p->id[i] < 0 && q->next < q->n) {
+	    #pragma omp critical
+	    i_prt = q->next++;
+	    particle_state_to_gc(q->p[i_prt], i_prt, p,i);
+	    cycle[i] = 1;
+	    continue;
+	}
+
 	cycle[i] = 0;
-        if(!p->running[i]) {
-            if(p->id[i] >= 0) {
-                //gc_to_particle_gc(p, i, &q->p[p->index[i]]);
-            }
-            int i_prt;
+        if(!p->running[i] && p->id[i] >= 0) {
+	    particle_gc_to_state(p, i, q->p[p->index[i]]);
+
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
-                //particle_gc_to_gc(&q->p[i_prt], i_prt, p, i, Bdata);
+		particle_state_to_gc(q->p[i_prt], i_prt, p, i);
 		cycle[i] = 1;
             }
             else {
@@ -461,14 +468,18 @@ int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
     for(int i = 0; i < NSIMD; i++) {
         n_running += p->running[i];
     }
-
+    
     return n_running;
 }
 
+/**
+ * @brief Transforms input to state. The integer state indicates whether we are going to simulate fo (1), gc (2) or mf(3)
+ */
 void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata, int state) {
 
     if(state == 1) {
 	if(p[i_prt].type == input_particle_type_p) {
+	    /* Particle to fo */
 	    p[i_prt].type = input_particle_type_ps;
 
 	    real r      = p[i_prt].p.r;
@@ -514,39 +525,61 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata,
 	}
     }
     else if(state == 2) {
-	/*
-	p[i_prt]->r = ;           
-	    p[i_prt]->phi;         
-	    p[i_prt]->z;          
-	    p[i_prt]->vpar;       
-	    p[i_prt]->mu;       
-	    p[i_prt]->theta;       
-	    p[i_prt]->rprt;     
-	    p[i_prt]->phiprt;      
-	    p[i_prt]->zprt;   
-	    p[i_prt]->rdot; 
-	    p[i_prt]->phidot;     
-	    p[i_prt]->zdot;     
-	    p[i_prt]->mass;      
-	    p[i_prt]->charge;  
-	    p[i_prt]->weight;    
-	    p[i_prt]->time;     
-	    p[i_prt]->id;    
-	    p[i_prt]->endcond; 
-	    p[i_prt]->walltile;
-	    p[i_prt]->B_r;     
-	    p[i_prt]->B_phi;     
-	    p[i_prt]->B_z;      
-	    p[i_prt]->B_r_dr;     
-	    p[i_prt]->B_phi_dr;   
-	    p[i_prt]->B_z_dr;     
-	    p[i_prt]->B_r_dphi;  
-	    p[i_prt]->B_phi_dphi;  
-	    p[i_prt]->B_z_dphi;   
-	    p[i_prt]->B_r_dz;      
-	    p[i_prt]->B_phi_dz;   
-	    p[i_prt]->B_z_dz;
-	*/
+	if(p[i_prt].type == input_particle_type_p) {
+	    /* Particle to gc */
+	    p[i_prt].type = input_particle_type_gcs;
+
+	    real r      = p[i_prt].p.r;
+	    real phi    = p[i_prt].p.phi;
+	    real z      = p[i_prt].p.z;
+	    real v_r    = p[i_prt].p.v_r;
+	    real v_phi  = p[i_prt].p.v_phi;
+	    real v_z    = p[i_prt].p.v_z;
+	    real mass   = p[i_prt].p.mass;
+	    real charge = p[i_prt].p.charge;
+	    real weight = p[i_prt].p.weight;
+	    real time   = p[i_prt].p.time;
+	    int id      = p[i_prt].p.id;
+
+	    real B_dB[12];
+	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
+	    real gcpos[5];
+	    real gamma = phys_gammaprtv(sqrt( v_r * v_r + v_phi * v_phi + v_z * v_z));
+	    phys_prttogc(mass, charge, r, phi, z, 
+			 gamma * mass * v_r, gamma * mass * v_phi, gamma * mass * v_z, 
+			 B_dB, gcpos);
+
+
+
+	    gamma = phys_gammagcp(mass, gcpos[3], gcpos[4]);
+
+	    p[i_prt].p_s.r          = gcpos[0];
+	    p[i_prt].p_s.phi        = gcpos[1];
+	    p[i_prt].p_s.z          = gcpos[2];
+	    p[i_prt].p_s.vpar       = gcpos[3]/(mass*gamma);
+	    p[i_prt].p_s.mu         = gcpos[4];
+	    p[i_prt].p_s.theta      = 0.0; // TODO Ill defined quantity
+	    p[i_prt].p_s.mass       = mass;
+	    p[i_prt].p_s.charge     = charge;
+	    p[i_prt].p_s.weight     = weight;
+	    p[i_prt].p_s.time       = time;
+	    p[i_prt].p_s.id         = id;
+	    p[i_prt].p_s.endcond    = 0; 
+	    p[i_prt].p_s.walltile   = 0;
+	    p[i_prt].p_s.B_r        = B_dB[0];     
+	    p[i_prt].p_s.B_phi      = B_dB[4];     
+	    p[i_prt].p_s.B_z        = B_dB[8];      
+	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
+	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
+	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
+	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
+	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
+	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
+	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
+	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
+	    p[i_prt].p_s.B_z_dz     = B_dB[11];
+	}
+
     }
     
 }
@@ -620,4 +653,75 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p) {
     p->B_z_dr   = p_fo->B_z_dr[j];
     p->B_z_dphi = p_fo->B_z_dphi[j];
     p->B_z_dz   = p_fo->B_z_dz[j];
+}
+
+void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j) {
+    
+    p_gc->r[j]        = p->r;
+    p_gc->phi[j]      = p->phi;
+    p_gc->z[j]        = p->z;
+    p_gc->vpar[j]     = p->vpar;
+    p_gc->mu[j]       = p->mu;
+    p_gc->theta[j]    = p->theta;
+    p_gc->mass[j]     = p->mass;
+    p_gc->charge[j]   = p->charge;
+    p_gc->time[j]     = p->time;
+    p_gc->weight[j]   = p->weight;
+    p_gc->id[j]       = p->id;
+    p_gc->endcond[j]  = p->endcond; 
+    p_gc->walltile[j] = p->walltile;
+
+    p_gc->running[j] = 1;
+    if(p->endcond) {
+	p_gc->running[j] = 0;
+    }
+
+    p_gc->B_r[j]        = p->B_r;
+    p_gc->B_r_dr[j]     = p->B_r_dr;
+    p_gc->B_r_dphi[j]   = p->B_r_dphi;
+    p_gc->B_r_dz[j]     = p->B_r_dz;
+
+    p_gc->B_phi[j]      = p->B_phi;
+    p_gc->B_phi_dr[j]   = p->B_phi_dr;
+    p_gc->B_phi_dphi[j] = p->B_phi_dphi;
+    p_gc->B_phi_dz[j]   = p->B_phi_dz;
+
+    p_gc->B_z[j]        = p->B_z;
+    p_gc->B_z_dr[j]     = p->B_z_dr;
+    p_gc->B_z_dphi[j]   = p->B_z_dphi;
+    p_gc->B_z_dz[j]     = p->B_z_dz;
+
+    p_gc->index[j] = i;
+}
+
+void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p) {
+
+    p->r       = p_gc->r[j];
+    p->phi     = p_gc->phi[j];
+    p->z       = p_gc->z[j];
+    p->vpar    = p_gc->vpar[j];
+    p->mu      = p_gc->mu[j];
+    p->theta   = p_gc->theta[j];
+    p->mass    = p_gc->mass[j];
+    p->charge  = p_gc->charge[j];
+    p->time    = p_gc->time[j];
+    p->weight  = p_gc->weight[j];
+    p->id      = p_gc->id[j];
+    p->endcond = p_gc->endcond[j]; 
+    p->walltile = p_gc->walltile[j];
+
+    p->B_r      = p_gc->B_r[j];
+    p->B_r_dr   = p_gc->B_r_dr[j];
+    p->B_r_dphi = p_gc->B_r_dphi[j];
+    p->B_r_dz   = p_gc->B_r_dz[j];
+
+    p->B_phi      = p_gc->B_phi[j];
+    p->B_phi_dr   = p_gc->B_phi_dr[j];
+    p->B_phi_dphi = p_gc->B_phi_dphi[j];
+    p->B_phi_dz   = p_gc->B_phi_dz[j];
+
+    p->B_z      = p_gc->B_z[j];
+    p->B_z_dr   = p_gc->B_z_dr[j];
+    p->B_z_dphi = p_gc->B_z_dphi[j];
+    p->B_z_dz   = p_gc->B_z_dz[j];
 }
