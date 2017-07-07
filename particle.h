@@ -83,7 +83,7 @@ typedef struct {
 
 typedef struct {
     int n;
-    particle_state* p;
+    particle_state** p;
     int next;
 } particle_queue_fo;
 
@@ -109,7 +109,7 @@ typedef struct {
 
 typedef struct {
     int n;
-    particle_state* p;
+    particle_state** p;
     int next;
 } particle_queue_gc;
 

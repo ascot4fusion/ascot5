@@ -14,84 +14,6 @@ void simulate(int id, int n_particles, input_particle* p,
               real* diag_offload_array) {
     sim_data sim;
 
-    /* Initialize simulation data */
-    
-    sim_init(&sim, offload_data);
-    wall_init(&sim.wall_data, &offload_data->wall_offload_data,
-              wall_offload_array);
-    B_field_init(&sim.B_data, &offload_data->B_offload_data, B_offload_array);
-    E_field_init(&sim.E_data, &offload_data->E_offload_data, E_offload_array);
-    plasma_1d_init(&sim.plasma_data, &offload_data->plasma_offload_data,
-                   plasma_offload_array);
-    diag_init(&sim.diag_data, &offload_data->diag_offload_data,
-              diag_offload_array);
-
-    /* Initialize markers */
-    particle_queue_fo p_fo;
-    particle_queue_gc p_gc;
-
-    p_fo.n = 0;
-    p_gc.n = 0;
-    for(int i = 0; i < n_particles; i++) {
-        if(p[i].type == input_particle_type_p) {
-            p_fo.n++;
-        } else if(p[i].type == input_particle_type_gc) {
-            p_gc.n++;
-        }
-    }
-
-    p_fo.p = (particle*) malloc(p_fo.n * sizeof(particle));
-    p_gc.p = (particle_gc*) malloc(p_gc.n * sizeof(particle_gc));
-
-    p_fo.next = 0;
-    p_gc.next = 0;
-    for(int i = 0; i < n_particles; i++) {
-        if(p[i].type == input_particle_type_p) {
-            //p_fo.p[p_fo.next++] = p[i].p;
-        } else if(p[i].type == input_particle_type_gc) {
-            //p_gc.p[p_gc.next++] = p[i].p_gc;
-        }
-    }
-
-    p_fo.next = 0;
-    p_gc.next = 0;
-
-    /* Carry out the simulation */
-
-    /* GC simulation (fixed or adaptive) */
-    if(sim.sim_mode == 2 || sim.sim_mode == 3) {
-	if(sim.enable_ada) {
-	    #pragma omp parallel
-	    {
-	        simulate_gc_adaptive(&p_gc, &sim);
-	    }
-	}
-	else {
-	    #pragma omp parallel
-	    {
-	        simulate_gc_fixed(&p_gc, &sim);
-	    }
-	}
-    }
-
-    /* TODO: For hybrid simulation, transform gc to particle here for full
-       orbit following near the wall */
-    if(sim.sim_mode == 3) {
-
-    }
-
-    /* GO simulation (fixed) for hybrid and pure GOs */
-    if(sim.sim_mode == 1) {
-	#pragma omp parallel
-	{
-	    simulate_fo_fixed(&p_fo, &sim);
-	}
-    }
-
-    /* ML simulation (adaptive) */
-    if(sim.sim_mode == 4) {
-	    //simulate_ml_adaptive(&p_ml, &sim);
-    }
     
 }
 
@@ -175,14 +97,14 @@ void simulate_continue(int id, int n_particles, input_particle* p,
         }
     }
 
-    p_fo.p = (particle_state*) malloc(p_fo.n * sizeof(particle_state));
-    p_gc.p = (particle_state*) malloc(p_gc.n * sizeof(particle_state));
+    p_fo.p = (particle_state**) malloc(p_fo.n * sizeof(particle_state*));
+    p_gc.p = (particle_state**) malloc(p_gc.n * sizeof(particle_state*));
 
     p_fo.next = 0;
     p_gc.next = 0;
     for(int i = 0; i < n_particles; i++) {
         if(p[i].type == input_particle_type_ps) {
-            p_fo.p[p_fo.next++] = p[i].p_s;
+            p_fo.p[p_fo.next++] = &p[i].p_s;
         } else if(p[i].type == input_particle_type_gcs) {
             //p_gc.p[p_gc.next++] = p[i].p_gc;
         }

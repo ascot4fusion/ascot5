@@ -399,7 +399,7 @@ int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
 	    #pragma omp critical
 	    i_prt = q->next++;
 	    //particle_to_fo(&q->p[i_prt], i_prt, p, i, Bdata);
-	    particle_state_to_fo(&q->p[i_prt], i_prt, p,i);
+	    particle_state_to_fo(q->p[i_prt], i_prt, p,i);
 	    cycle[i] = 1;
 	    continue;
 	}
@@ -407,13 +407,13 @@ int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
 	cycle[i] = 0;
         if(!p->running[i] && p->id[i] >= 0) {
 	    //fo_to_particle(p, i, &q->p[p->index[i]]);
-	    particle_fo_to_state(p, i, &q->p[p->index[i]]);
+	    particle_fo_to_state(p, i, q->p[p->index[i]]);
 
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
                 //particle_to_fo(&q->p[i_prt], i_prt, p, i, Bdata);
-		particle_state_to_fo(&q->p[i_prt], i_prt, p, i);
+		particle_state_to_fo(q->p[i_prt], i_prt, p, i);
 		cycle[i] = 1;
             }
             else {
