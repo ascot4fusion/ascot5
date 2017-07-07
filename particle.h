@@ -9,63 +9,6 @@
 #include "B_field.h"
 #include "E_field.h"
 
-/** @brief Struct representing a single physical particle in cylindrical
- *         coordinates.
- *
- * This is primarily used for particle initialization, this will be converted
- * into SIMD structs in appropriate coordinates for the simulation.
- *
- * @todo rdot,phidot, and zdot to v_r, v_phi and v_z? (Only affects phidot)
- */
-typedef struct {
-    real r;        /**< r coordinate */
-    real phi;      /**< phi coordinate */
-    real z;        /**< z coordinate */
-    real v_r;     /**< r velocity */
-    real v_phi;   /**< phi velocity */
-    real v_z;     /**< z velocity */
-    real mass;     /**< mass */
-    real charge;   /**< charge */
-    real weight;   /**< test particle weight */
-    real time;     /**< particle simulation time */
-    integer id;        /**< arbitrary id for the particle */
-    integer running;  /**< 1 if the particle has hit the wall */
-    integer endcond;   /**< particle end condition */
-    integer walltile;  /**< id of walltile if particle hit the wall */
-} particle;
-
-typedef struct {
-    int n;
-    particle* p;
-    int next;
-} particle_queue_fo;
-
-/** @brief Struct representing a single guiding center in cylindrical
- *         coordinates
- */
-typedef struct {
-    real r;        /**< r coordinate */
-    real phi;      /**< phi coordinate */
-    real z;        /**< z coordinate */
-    real energy;   /**< kinetic energy */
-    real pitch;    /**< pitch angle */
-    real theta;    /**< gyroangle */
-    real mass;     /**< mass */
-    real charge;   /**< charge */
-    real weight;   /**< test particle weight */
-    real time;     /**< particle simulation time */
-    integer id;        /**< arbitrary id for the particle */
-    integer running;  /**< 1 if the particle has hit the wall */
-    integer endcond;   /**< particle end condition */
-    integer walltile;  /**< id of walltile if particle hit the wall */
-} particle_gc;
-
-typedef struct {
-    int n;
-    particle_gc* p;
-    int next;
-} particle_queue_gc;
-
 /** @brief Struct the physical state of the particle. Includes self-consistent
  *         full-orbit and guiding-center coordinates.
  *
@@ -112,6 +55,65 @@ typedef struct {
     real B_phi_dz;    /**< gradient of B_phi with respect to z*/
     real B_z_dz;      /**< gradient of B_z with respect to z*/
 } particle_state;
+
+/** @brief Struct representing a single physical particle in cylindrical
+ *         coordinates.
+ *
+ * This is primarily used for particle initialization, this will be converted
+ * into SIMD structs in appropriate coordinates for the simulation.
+ *
+ * @todo rdot,phidot, and zdot to v_r, v_phi and v_z? (Only affects phidot)
+ */
+typedef struct {
+    real r;        /**< r coordinate */
+    real phi;      /**< phi coordinate */
+    real z;        /**< z coordinate */
+    real v_r;     /**< r velocity */
+    real v_phi;   /**< phi velocity */
+    real v_z;     /**< z velocity */
+    real mass;     /**< mass */
+    real charge;   /**< charge */
+    real weight;   /**< test particle weight */
+    real time;     /**< particle simulation time */
+    integer id;        /**< arbitrary id for the particle */
+    integer running;  /**< 1 if the particle has hit the wall */
+    integer endcond;   /**< particle end condition */
+    integer walltile;  /**< id of walltile if particle hit the wall */
+} particle;
+
+typedef struct {
+    int n;
+    particle_state* p;
+    int next;
+} particle_queue_fo;
+
+/** @brief Struct representing a single guiding center in cylindrical
+ *         coordinates
+ */
+typedef struct {
+    real r;        /**< r coordinate */
+    real phi;      /**< phi coordinate */
+    real z;        /**< z coordinate */
+    real energy;   /**< kinetic energy */
+    real pitch;    /**< pitch angle */
+    real theta;    /**< gyroangle */
+    real mass;     /**< mass */
+    real charge;   /**< charge */
+    real weight;   /**< test particle weight */
+    real time;     /**< particle simulation time */
+    integer id;        /**< arbitrary id for the particle */
+    integer running;  /**< 1 if the particle has hit the wall */
+    integer endcond;   /**< particle end condition */
+    integer walltile;  /**< id of walltile if particle hit the wall */
+} particle_gc;
+
+typedef struct {
+    int n;
+    particle_state* p;
+    int next;
+} particle_queue_gc;
+
+
 
 typedef enum input_particle_type {
     input_particle_type_p, input_particle_type_gc, input_particle_type_ps, input_particle_type_gcs
@@ -279,8 +281,8 @@ int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
                       B_field_data* Bdata, int* cycle);
 
 void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata, int state);
-void particle_state_to_fo(particle_state* p, particle_simd_fo* p_fo, int i);
-void particle_fo_to_state(particle_simd_fo* p_fo, particle_state* p, int i);
+void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j);
+void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p);
 #pragma omp end declare target
 
 #endif

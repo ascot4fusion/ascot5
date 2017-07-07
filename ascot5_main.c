@@ -177,7 +177,11 @@ int main(int argc, char** argv) {
 
 		ascot4_write_inistate(n, p, filename);
 
-                #ifdef _OMP
+		simulate_continue(0, n_host, p+2*n_mic, &sim_host);
+
+		ascot4_write_endstate(n, p, filename);
+
+		#ifdef _OMP
                 host_end = omp_get_wtime();
                 #endif
             }
@@ -196,7 +200,7 @@ int main(int argc, char** argv) {
     #else
 	hdf5_diag_write(&sim, diag_offload_array_host);
     #endif
-    ascot4_write_endstate(n, p, filename);
+    
 
     B_field_free_offload(&sim.B_offload_data, &B_offload_array);
     plasma_1d_free_offload(&sim.plasma_offload_data, &plasma_offload_array);

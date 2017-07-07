@@ -398,19 +398,22 @@ int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
 	if(p->id[i] < 0 && q->next < q->n) {
 	    #pragma omp critical
 	    i_prt = q->next++;
-	    particle_to_fo(&q->p[i_prt], i_prt, p, i, Bdata);
+	    //particle_to_fo(&q->p[i_prt], i_prt, p, i, Bdata);
+	    particle_state_to_fo(&q->p[i_prt], i_prt, p,i);
 	    cycle[i] = 1;
 	    continue;
 	}
 
 	cycle[i] = 0;
         if(!p->running[i] && p->id[i] >= 0) {
-	    fo_to_particle(p, i, &q->p[p->index[i]]);
-            
+	    //fo_to_particle(p, i, &q->p[p->index[i]]);
+	    particle_fo_to_state(p, i, &q->p[p->index[i]]);
+
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
-                particle_to_fo(&q->p[i_prt], i_prt, p, i, Bdata);
+                //particle_to_fo(&q->p[i_prt], i_prt, p, i, Bdata);
+		particle_state_to_fo(&q->p[i_prt], i_prt, p, i);
 		cycle[i] = 1;
             }
             else {
@@ -436,13 +439,13 @@ int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
 	cycle[i] = 0;
         if(!p->running[i]) {
             if(p->id[i] >= 0) {
-                gc_to_particle_gc(p, i, &q->p[p->index[i]]);
+                //gc_to_particle_gc(p, i, &q->p[p->index[i]]);
             }
             int i_prt;
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
-                particle_gc_to_gc(&q->p[i_prt], i_prt, p, i, Bdata);
+                //particle_gc_to_gc(&q->p[i_prt], i_prt, p, i, Bdata);
 		cycle[i] = 1;
             }
             else {
@@ -546,4 +549,75 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata,
 	*/
     }
     
+}
+
+void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j) {
+    p_fo->r[j] = p->rprt;
+    p_fo->phi[j] = p->phiprt;
+    p_fo->z[j] = p->zprt;
+    p_fo->rdot[j] = p->rdot;
+    p_fo->phidot[j] = p->phidot;
+    p_fo->zdot[j] = p->zdot;
+    p_fo->mass[j] = p->mass;
+    p_fo->charge[j] = p->charge;
+    p_fo->weight[j] = p->weight;
+    p_fo->time[j] = p->time;
+    p_fo->id[j] = p->id; 
+    p_fo->endcond[j] = p->endcond;
+
+    p_fo->running[j] = 1;
+    if(p->endcond) {
+	p_fo->running[j] = 0;
+    }
+    
+    p_fo->walltile[j] = p->walltile;
+
+    p_fo->B_r[j]        = p->B_r;
+    p_fo->B_r_dr[j]     = p->B_r_dr;
+    p_fo->B_r_dphi[j]   = p->B_r_dphi;
+    p_fo->B_r_dz[j]     = p->B_r_dz;
+
+    p_fo->B_phi[j]      = p->B_phi;
+    p_fo->B_phi_dr[j]   = p->B_phi_dr;
+    p_fo->B_phi_dphi[j] = p->B_phi_dphi;
+    p_fo->B_phi_dz[j]   = p->B_phi_dz;
+
+    p_fo->B_z[j]        = p->B_z;
+    p_fo->B_z_dr[j]     = p->B_z_dr;
+    p_fo->B_z_dphi[j]   = p->B_z_dphi;
+    p_fo->B_z_dz[j]     = p->B_z_dz;
+	        
+    p_fo->index[j] = i;
+}
+
+void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p) {
+    p->rprt    = p_fo->r[j];
+    p->phiprt  = p_fo->phi[j];
+    p->zprt    = p_fo->z[j];
+    p->rdot    = p_fo->rdot[j];
+    p->phidot  = p_fo->phidot[j];
+    p->zdot    = p_fo->zdot[j];
+    p->mass    = p_fo->mass[j];
+    p->charge  = p_fo->charge[j];
+    p->weight  = p_fo->weight[j];
+    p->time    = p_fo->time[j];
+    p->id      = p_fo->id[j]; 
+    p->endcond = p_fo->endcond[j];
+ 
+    p->walltile = p_fo->walltile[j];
+
+    p->B_r      = p_fo->B_r[j];
+    p->B_r_dr   = p_fo->B_r_dr[j];
+    p->B_r_dphi = p_fo->B_r_dphi[j];
+    p->B_r_dz   = p_fo->B_r_dz[j];
+
+    p->B_phi      = p_fo->B_phi[j];
+    p->B_phi_dr   = p_fo->B_phi_dr[j];
+    p->B_phi_dphi = p_fo->B_phi_dphi[j];
+    p->B_phi_dz   = p_fo->B_phi_dz[j];
+
+    p->B_z      = p_fo->B_z[j];
+    p->B_z_dr   = p_fo->B_z_dr[j];
+    p->B_z_dphi = p_fo->B_z_dphi[j];
+    p->B_z_dz   = p_fo->B_z_dz[j];
 }
