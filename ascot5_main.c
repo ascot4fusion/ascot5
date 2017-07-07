@@ -41,18 +41,16 @@ int main(int argc, char** argv) {
     real* diag_offload_array_host;
     sprintf(sim.hdf5fn, "ascot.h5");// TODO read me from command line
     
+    hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
+	       &wall_offload_array);
     
     #ifndef NOTARGET
-    hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
-	       &wall_offload_array, &diag_offload_array_mic0);
-    /* Copy contents of mic0 to mic1 array */ 
-    diag_offload_array_mic1 = malloc(sim.diag.offload_array_length*sizeof(real));
-    memcpy(diag_offload_array_mic0, diag_offload_array_mic1,
-	sim.diag.offload_array_length*sizeof(real));
+        diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
+	diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
     #else
-    hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
-	       &wall_offload_array, &diag_offload_array_host);    
+	diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
     #endif
+
     #if VERBOSE >= 1
     printf("Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
     #endif
@@ -202,10 +200,10 @@ int main(int argc, char** argv) {
     plasma_1d_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
     #ifndef NOTARGET
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
+        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
+        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
     #else
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
+        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
     #endif
     free(p);
 

@@ -13,7 +13,6 @@ int hdf5_input(sim_offload_data* sim,
 	       real** B_offload_array,
 	       real** E_offload_array,
 	       real** plasma_offload_array,
-	       real** wall_offload_array,
-	       real** diag_offload_array);
+	       real** wall_offload_array);
 
 #endif
