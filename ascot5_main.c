@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
     else {
         sprintf(filename, "ascot_%06d.h5", mpi_rank);
     }
-    ascot4_write_inistate(n, p, filename);
+    
 
     #if VERBOSE >= 1
     printf("Read %d particles.\n", n);
@@ -174,6 +174,8 @@ int main(int argc, char** argv) {
 		    E_offload_array,
 		    plasma_offload_array, wall_offload_array,
 		    diag_offload_array_host);
+
+		ascot4_write_inistate(n, p, filename);
 
                 #ifdef _OMP
                 host_end = omp_get_wtime();

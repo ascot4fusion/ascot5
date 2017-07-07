@@ -96,7 +96,75 @@ int hdf5_particlestate_write(hid_t file, char *state, int n, input_particle* p) 
         H5LTmake_dataset(state_group, "wallTile", 1, dims, H5T_IEEE_F64LE, data);
         H5LTset_attribute_string(state_group, "wallTile", "unit", "");
     }
-    else {    
+    else if (p[0].type == input_particle_type_ps) {
+	
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.rprt;
+        }
+        H5LTmake_dataset(state_group, "Rprt", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "Rprt", "unit", "m");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.phiprt;
+        }
+        H5LTmake_dataset(state_group, "phiprt", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "phiprt", "unit", "deg");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.zprt;
+        }
+        H5LTmake_dataset(state_group, "zprt", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "zprt", "unit", "m");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.rdot;
+        }
+        H5LTmake_dataset(state_group, "vR", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "vR", "unit", "m/s");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.phidot * p[i].p_s.rprt;
+        }
+        H5LTmake_dataset(state_group, "vphi", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "vphi", "unit", "m/s");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.zdot;
+        }
+        H5LTmake_dataset(state_group, "vz", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "vz", "unit", "m/s");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.weight;
+        }
+        H5LTmake_dataset(state_group, "weight", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "weight", "unit", "1/s");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.time;
+        }
+        H5LTmake_dataset(state_group, "time", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "time", "unit", "s");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.id;
+        }
+        H5LTmake_dataset(state_group, "id", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "id", "unit", "");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.endcond;
+        }
+        H5LTmake_dataset(state_group, "endCond", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "endCond", "unit", "");
+
+        for(i = 0; i < n; i++) {
+	    data[i] = 0;
+        }
+        H5LTmake_dataset(state_group, "wallTile", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "wallTile", "unit", "");
+    }
+    else if(p[0].type == input_particle_type_gc) {    
         for(i = 0; i < n; i++) {
             data[i] = p[i].p_gc.r;
         }
@@ -162,6 +230,7 @@ int hdf5_particlestate_write(hid_t file, char *state, int n, input_particle* p) 
 
     }
 
+    free(data);
     H5Gclose(state_group);
 
     return 1;

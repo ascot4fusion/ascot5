@@ -145,6 +145,9 @@ void simulate_begin(int id, int n_particles, input_particle* p,
     
     if(sim->sim_mode == 1) {
 	/* FO simulation */
+	for(int i = 0; i < n_particles; i++) {
+	    particle_marker_to_state(p, i, &sim->B_data, 1);
+	}
     }
     else if(sim->sim_mode == 2 || sim->sim_mode == 3) {
 	/* GC or hybrid simulation */

@@ -461,3 +461,89 @@ int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
 
     return n_running;
 }
+
+void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata, int state) {
+
+    if(state == 1) {
+	if(p[i_prt].type == input_particle_type_p) {
+	    p[i_prt].type = input_particle_type_ps;
+
+	    real r      = p[i_prt].p.r;
+	    real phi    = p[i_prt].p.phi;
+	    real z      = p[i_prt].p.z;
+	    real rdot   = p[i_prt].p.v_r;
+	    real phidot = p[i_prt].p.v_phi/r;
+	    real zdot   = p[i_prt].p.v_z;
+	    real mass   = p[i_prt].p.mass;
+	    real charge = p[i_prt].p.charge;
+	    real weight = p[i_prt].p.weight;
+	    real time   = p[i_prt].p.time;
+	    int id      = p[i_prt].p.id;
+
+	    real B_dB[12];
+	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
+      
+	    p[i_prt].p_s.rprt       = r;     
+	    p[i_prt].p_s.phiprt     = phi;      
+	    p[i_prt].p_s.zprt       = z;   
+	    p[i_prt].p_s.rdot       = rdot; 
+	    p[i_prt].p_s.phidot     = phidot;     
+	    p[i_prt].p_s.zdot       = zdot;     
+	    p[i_prt].p_s.mass       = mass;      
+	    p[i_prt].p_s.charge     = charge;  
+	    p[i_prt].p_s.weight     = weight;    
+	    p[i_prt].p_s.time       = time;     
+	    p[i_prt].p_s.id         = id;    
+	    p[i_prt].p_s.endcond    = 0; 
+	    p[i_prt].p_s.walltile   = 0;
+	    p[i_prt].p_s.B_r        = B_dB[0];     
+	    p[i_prt].p_s.B_phi      = B_dB[4];     
+	    p[i_prt].p_s.B_z        = B_dB[8];      
+	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
+	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
+	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
+	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
+	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
+	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
+	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
+	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
+	    p[i_prt].p_s.B_z_dz     = B_dB[11];
+	}
+    }
+    else if(state == 2) {
+	/*
+	p[i_prt]->r = ;           
+	    p[i_prt]->phi;         
+	    p[i_prt]->z;          
+	    p[i_prt]->vpar;       
+	    p[i_prt]->mu;       
+	    p[i_prt]->theta;       
+	    p[i_prt]->rprt;     
+	    p[i_prt]->phiprt;      
+	    p[i_prt]->zprt;   
+	    p[i_prt]->rdot; 
+	    p[i_prt]->phidot;     
+	    p[i_prt]->zdot;     
+	    p[i_prt]->mass;      
+	    p[i_prt]->charge;  
+	    p[i_prt]->weight;    
+	    p[i_prt]->time;     
+	    p[i_prt]->id;    
+	    p[i_prt]->endcond; 
+	    p[i_prt]->walltile;
+	    p[i_prt]->B_r;     
+	    p[i_prt]->B_phi;     
+	    p[i_prt]->B_z;      
+	    p[i_prt]->B_r_dr;     
+	    p[i_prt]->B_phi_dr;   
+	    p[i_prt]->B_z_dr;     
+	    p[i_prt]->B_r_dphi;  
+	    p[i_prt]->B_phi_dphi;  
+	    p[i_prt]->B_z_dphi;   
+	    p[i_prt]->B_r_dz;      
+	    p[i_prt]->B_phi_dz;   
+	    p[i_prt]->B_z_dz;
+	*/
+    }
+    
+}

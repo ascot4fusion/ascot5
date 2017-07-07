@@ -66,8 +66,55 @@ typedef struct {
     int next;
 } particle_queue_gc;
 
+/** @brief Struct the physical state of the particle. Includes self-consistent
+ *         full-orbit and guiding-center coordinates.
+ *
+ * Convention: whenever one particle property is changed, it is the
+ * responsibility of the function performing the change to make sure all
+ * parameters are consistent (for example, update magnetic field when position
+ * changes.
+ *
+ */
+typedef struct {
+    real r;           /**< guiding center r coordinate */
+    real phi;         /**< guiding center phi coordinate */
+    real z;           /**< guiding center z coordinate */
+    real vpar;        /**< parallel velocity */
+    real mu;          /**< magnetic moment */
+    real theta;       /**< gyroangle */
+    real rprt;        /**< particle r coordinate */
+    real phiprt;      /**< particle phi coordinate */
+    real zprt;        /**< particle z coordinate */
+    real rdot;        /**< dr/dt */
+    real phidot;      /**< dphi/dt */
+    real zdot;        /**< dz/dt */
+    real mass;        /**< mass */
+    real charge;      /**< charge */
+    real weight;      /**< test particle weight */
+    real time;        /**< particle simulation time */
+    integer id;       /**< arbitrary id for the particle */
+    integer endcond;  /**< particle end condition */
+    integer walltile; /**< id of walltile if particle hit
+                                               the wall */
+    real B_r;         /**< magnetic field r component at
+                                            particle position */
+    real B_phi;       /**< magnetic field phi component at
+                                            particle position */
+    real B_z;         /**< magnetic field z component at
+                                            particle position */
+    real B_r_dr;      /**< gradient of B_r with respect to r*/
+    real B_phi_dr;    /**< gradient of B_phi with respect to r*/
+    real B_z_dr;      /**< gradient of B_z with respect to r*/
+    real B_r_dphi;    /**< gradient of B_r with respect to phi*/
+    real B_phi_dphi;  /**< gradient of B_phi with respect to phi*/
+    real B_z_dphi;    /**< gradient of B_z with respect to phi*/
+    real B_r_dz;      /**< gradient of B_r with respect to z*/
+    real B_phi_dz;    /**< gradient of B_phi with respect to z*/
+    real B_z_dz;      /**< gradient of B_z with respect to z*/
+} particle_state;
+
 typedef enum input_particle_type {
-    input_particle_type_p, input_particle_type_gc
+    input_particle_type_p, input_particle_type_gc, input_particle_type_ps, input_particle_type_gcs
 } input_particle_type;
 
 /** @brief Struct representing either a particle or guiding center, including
@@ -78,6 +125,7 @@ typedef struct {
     union {
         particle p;
         particle_gc p_gc;
+	particle_state p_s;
     };
 } input_particle;
 
@@ -203,52 +251,7 @@ typedef struct {
     integer index[NSIMD] __memalign__;
 } particle_simd_ml;
 
-/** @brief Struct the physical state of the particle. Includes self-consistent
- *         full-orbit and guiding-center coordinates.
- *
- * Convention: whenever one particle property is changed, it is the
- * responsibility of the function performing the change to make sure all
- * parameters are consistent (for example, update magnetic field when position
- * changes.
- *
- */
-typedef struct {
-    real r;           /**< guiding center r coordinate */
-    real phi;         /**< guiding center phi coordinate */
-    real z;           /**< guiding center z coordinate */
-    real vpar;        /**< parallel velocity */
-    real mu;          /**< magnetic moment */
-    real theta;       /**< gyroangle */
-    real rprt;        /**< particle r coordinate */
-    real phiprt;      /**< particle phi coordinate */
-    real zprt;        /**< particle z coordinate */
-    real rdot;        /**< dr/dt */
-    real phidot;      /**< dphi/dt */
-    real zdot;        /**< dz/dt */
-    real mass;        /**< mass */
-    real charge;      /**< charge */
-    real weight;      /**< test particle weight */
-    real time;        /**< particle simulation time */
-    integer id;       /**< arbitrary id for the particle */
-    integer endcond;  /**< particle end condition */
-    integer walltile; /**< id of walltile if particle hit
-                                               the wall */
-    real B_r;         /**< magnetic field r component at
-                                            particle position */
-    real B_phi;       /**< magnetic field phi component at
-                                            particle position */
-    real B_z;         /**< magnetic field z component at
-                                            particle position */
-    real B_r_dr;      /**< gradient of B_r with respect to r*/
-    real B_phi_dr;    /**< gradient of B_phi with respect to r*/
-    real B_z_dr;      /**< gradient of B_z with respect to r*/
-    real B_r_dphi;    /**< gradient of B_r with respect to phi*/
-    real B_phi_dphi;  /**< gradient of B_phi with respect to phi*/
-    real B_z_dphi;    /**< gradient of B_z with respect to phi*/
-    real B_r_dz;      /**< gradient of B_r with respect to z*/
-    real B_phi_dz;    /**< gradient of B_phi with respect to z*/
-    real B_z_dz;      /**< gradient of B_z with respect to z*/
-} particle_state;
+
 
 
 #pragma omp declare target
@@ -274,6 +277,10 @@ int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
                       B_field_data* Bdata, int* cycle);
 int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
                       B_field_data* Bdata, int* cycle);
+
+void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata, int state);
+void particle_state_to_fo(particle_state* p, particle_simd_fo* p_fo, int i);
+void particle_fo_to_state(particle_simd_fo* p_fo, particle_state* p, int i);
 #pragma omp end declare target
 
 #endif
