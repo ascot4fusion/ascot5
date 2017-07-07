@@ -4,8 +4,8 @@
  */
 #ifndef B_2DS_H
 #define B_2DS_H
-#include "ascot5.h"
-#include "splinePatrik/interp2D.h" /* for 2D interpolation routines */
+#include "../ascot5.h"
+#include "../splinePatrik/interp2D.h" /* for 2D interpolation routines */
 
 /**
  * @brief 2D magnetic field parameters that will be offloaded to target

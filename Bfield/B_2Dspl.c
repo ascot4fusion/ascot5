@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "ascot5.h"
-#include "B_2D.h"
+#include "../ascot5.h"
+#include "B_2Dspl.h"
 
 /**
  * @brief Load magnetic field data and prepare parameters
@@ -21,7 +21,7 @@
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void B_2D_init_offload(B_2D_offload_data* offload_data, real** offload_array) {
+void B_2Dspl_init_offload(B_2D_offload_data* offload_data, real** offload_array) {
     int i;
     FILE* f = fopen("input.magn_bkg", "r");
 
@@ -99,7 +99,7 @@ void B_2D_init_offload(B_2D_offload_data* offload_data, real** offload_array) {
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void B_2D_free_offload(B_2D_offload_data* offload_data, real** offload_array) {
+void B_2Dspl_free_offload(B_2D_offload_data* offload_data, real** offload_array) {
     free(*offload_array);
     *offload_array = NULL;
 }
@@ -115,7 +115,7 @@ void B_2D_free_offload(B_2D_offload_data* offload_data, real** offload_array) {
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  */
-void B_2D_init(B_2D_data* Bdata, B_2D_offload_data* offload_data,
+void B_2Dspl_init(B_2D_data* Bdata, B_2D_offload_data* offload_data,
                real* offload_array) {
     Bdata->n_r = offload_data->n_r;
     Bdata->n_z = offload_data->n_z;
@@ -150,7 +150,7 @@ void B_2D_init(B_2D_data* Bdata, B_2D_offload_data* offload_data,
  * @param z z coordinate
  * @param Bdata pointer to magnetic field data struct
  */
-void B_2D_eval_B(real B[], real r, real phi, real z, B_2D_data* Bdata) {
+void B_2Dspl_eval_B(real B[], real r, real phi, real z, B_2D_data* Bdata) {
     int i_r = (int) floor((r - Bdata->r_min)
                     / ((Bdata->r_max - Bdata->r_min)
                        / (Bdata->n_r-1)));
@@ -189,7 +189,7 @@ void B_2D_eval_B(real B[], real r, real phi, real z, B_2D_data* Bdata) {
  *
  * @todo Change to a scalar elemental function and compare performance
  */
-void B_2D_eval_psi(real psi[], real r, real phi, real z, B_2D_data* Bdata)
+void B_2Dspl_eval_psi(real psi[], real r, real phi, real z, B_2D_data* Bdata)
 {
     int i_r = (int) floor((r - Bdata->r_min)
                     / ((Bdata->r_max - Bdata->r_min)
@@ -225,7 +225,7 @@ void B_2D_eval_psi(real psi[], real r, real phi, real z, B_2D_data* Bdata)
  *
  * @todo Change to a scalar elemental function and compare performance
  */
-void B_2D_eval_rho(real rho[], real psi, B_2D_data* Bdata) {
+void B_2Dspl_eval_rho(real rho[], real psi, B_2D_data* Bdata) {
     if(psi - Bdata->psi0 < 0) {
         rho[0] = 0;
     }
@@ -248,7 +248,7 @@ void B_2D_eval_rho(real rho[], real psi, B_2D_data* Bdata) {
  * @param B pointer to magnetic field component data; can be B_r, B_phi or B_z
  *          from Bdata struct
  */
-real B_2D_bicubic(real t_r, real t_z, int i_r, int i_z, int n_r, real* B) {
+real B_2Dspl_bicubic(real t_r, real t_z, int i_r, int i_z, int n_r, real* B) {
     /* Value of the field at the corners of the grid square to be interpolated
      * (1,1)-(2,2) and the adjacent squares. */
     real B00 = B[(i_z-1)*n_r + i_r-1];
@@ -332,7 +332,7 @@ real B_2D_bicubic(real t_r, real t_z, int i_r, int i_z, int n_r, real* B) {
  * @param z z coordinate
  * @param Bdata pointer to magnetic field data struct
  */
-void B_2D_eval_B_dB(real B_dB[], real r, real phi, real z, B_2D_data* Bdata) {
+void B_2Dspl_eval_B_dB(real B_dB[], real r, real phi, real z, B_2D_data* Bdata) {
     int i_r = (int) floor((r - Bdata->r_min)
                     / ((Bdata->r_max - Bdata->r_min)
                        / (Bdata->n_r-1)));
@@ -385,7 +385,7 @@ void B_2D_eval_B_dB(real B_dB[], real r, real phi, real z, B_2D_data* Bdata) {
  * @param B pointer to magnetic field component data; can be B_r, B_phi or B_z
  *          from Bdata struct
  */
-void B_2D_bicubic_derivs(real B_dB_component[], real t_r,
+void B_2Dsspl_bicubic_derivs(real B_dB_component[], real t_r,
                          real t_z, int i_r, int i_z, int n_r, real r_grid,
                          real z_grid, real* B) {
     /* Value of the field at the corners of the grid square to be interpolated
@@ -498,10 +498,10 @@ void B_2D_bicubic_derivs(real B_dB_component[], real t_r,
     B_dB_component[3] = dz_Btt/z_grid;
 }
 
-real B_2D_get_axis_r(B_2D_data* Bdata) {
+real B_2Dspl_get_axis_r(B_2D_data* Bdata) {
     return Bdata->axis_r;
 }
 
-real B_2D_get_axis_z(B_2D_data* Bdata) {
+real B_2Dspl_get_axis_z(B_2D_data* Bdata) {
     return Bdata->axis_z;
 }

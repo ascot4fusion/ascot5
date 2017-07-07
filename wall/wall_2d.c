@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "ascot5.h"
+#include "../ascot5.h"
 #include "wall_2d.h"
 
 /**

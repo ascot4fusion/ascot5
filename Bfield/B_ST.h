@@ -4,7 +4,7 @@
  */
 #ifndef B_ST_H
 #define B_ST_H
-#include "ascot5.h"
+#include "../ascot5.h"
 
 /**
  * @brief Stellarator magnetic field parameters that will be offloaded to target

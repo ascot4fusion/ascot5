@@ -3,14 +3,15 @@
  * @brief Magnetic field interface
  */
 #include <stdio.h>
+#include "ascot5.h"
 #include "B_field.h"
-#include "B_GS.h"
-#include "B_2D.h"
-#include "B_2DS.h"
-#include "B_3D.h"
-#include "B_3DS.h"
-#include "B_ST.h"
-#include "B_TC.h"
+#include "Bfield/B_GS.h"
+#include "Bfield/B_2D.h"
+#include "Bfield/B_2DS.h"
+#include "Bfield/B_3D.h"
+#include "Bfield/B_3DS.h"
+#include "Bfield/B_ST.h"
+#include "Bfield/B_TC.h"
 
 void B_field_init_offload(B_field_offload_data* offload_data,
                           real** offload_array) {

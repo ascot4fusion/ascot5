@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-#include "math.h"
-#include "ascot5.h"
+#include "../math.h"
+#include "../ascot5.h"
 #include "B_3D.h"
 #include "B_2D.h" /* for 2D interpolation routines */
 #include "B_GS.h"

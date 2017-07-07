@@ -7,7 +7,6 @@
 #include <math.h>
 #include "ascot5.h"
 #include "distributions.h"
-#include "B_GS.h"
 #include "particle.h"
 
 /** @brief Internal function calculating the index in the histogram array */

@@ -5,8 +5,8 @@
  */
 #ifndef E_1D_H
 #define E_1D_H
-#include "ascot5.h"
-#include "B_field.h"
+#include "../ascot5.h"
+#include "../B_field.h"
 
 /**
  * @brief 1D electric field parameters that will be offloaded to target

@@ -8,7 +8,8 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include "ascot5.h"
+#include "../ascot5.h"
+#include "../B_field.h"
 #include "E_1D.h"
 
 /**

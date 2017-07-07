@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include "ascot5.h"
+#include "../ascot5.h"
 #include "B_2D.h"
 
 /**

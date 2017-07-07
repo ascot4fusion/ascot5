@@ -4,8 +4,8 @@
  */
 #include <stdio.h>
 #include "wall.h"
-#include "wall_2d.h"
-#include "wall_3d.h"
+#include "wall/wall_2d.h"
+#include "wall/wall_3d.h"
 
 void wall_init_offload(wall_offload_data* offload_data, real** offload_array) {
     FILE* f = fopen("input.wall_3d", "r");

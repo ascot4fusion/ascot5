@@ -4,7 +4,7 @@
  */
 #ifndef WALL_2D_H
 #define WALL_2D_H
-#include "ascot5.h"
+#include "../ascot5.h"
 
 typedef struct {
     int n;

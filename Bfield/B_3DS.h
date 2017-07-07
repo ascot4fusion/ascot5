@@ -4,9 +4,9 @@
  */
 #ifndef B_3DS_H
 #define B_3DS_H
-#include "ascot5.h"
-#include "splinePatrik/interp2D.h" /* for 2D interpolation routines */
-#include "splinePatrik/interp3D.h" /* for 3D interpolation routines */
+#include "../ascot5.h"
+#include "../splinePatrik/interp2D.h" /* for 2D interpolation routines */
+#include "../splinePatrik/interp3D.h" /* for 3D interpolation routines */
 
 /**
  * @brief 3D magnetic field parameters that will be offloaded to target

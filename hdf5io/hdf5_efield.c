@@ -9,6 +9,8 @@
 #include <hdf5.h>
 #include "hdf5_hl.h"
 #include "../E_field.h"
+#include "../Efield/E_TC.h"
+#include "../Efield/E_1D.h"
 #include "hdf5_efield.h"
 
 

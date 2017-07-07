@@ -6,8 +6,8 @@
 #include "ascot5.h"
 #include "E_field.h"
 #include "B_field.h"
-#include "E_TC.h"
-#include "E_1D.h"
+#include "Efield/E_TC.h"
+#include "Efield/E_1D.h"
 
 void E_field_init_offload(E_field_offload_data* offload_data,
                           real** offload_array) {

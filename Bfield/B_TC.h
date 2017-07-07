@@ -5,7 +5,7 @@
  */
 #ifndef B_TC_H
 #define B_TC_H
-#include "ascot5.h"
+#include "../ascot5.h"
 
 /**
  * @brief Trivial Cartesian magnetic field parameters that will be offloaded to target

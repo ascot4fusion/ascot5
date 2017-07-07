@@ -2,7 +2,10 @@
 #define HDF5_WALL_H
 
 #include <hdf5.h>
+#include "../ascot5.h"
 #include "../wall.h"
+#include "../wall/wall_2d.h"
+#include "../wall/wall_3d.h"
 
 void hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data, real** offload_array);
 

@@ -6,12 +6,11 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-#include "math.h"
-#include "ascot5.h"
+#include "../math.h"
+#include "../ascot5.h"
 #include "B_ST.h"
 #include "B_3D.h" /* for 3D interpolation routines */
 #include "B_2D.h" /* for 2D interpolation routines */
-#include "hdf5io/hdf5_bfield.h"
 
 /**
  * @brief Load magnetic field data and prepare parameters
@@ -27,8 +26,7 @@
  * @param offload_array pointer to pointer to offload array
  */
 void B_ST_init_offload(B_ST_offload_data* offload_data, real** offload_array) {
-    hid_t f = hdf5_open("input.h5");    
-    hdf5_bfield_init_offload_ST(f, offload_data, offload_array);
+    
 }
 
 /**

@@ -4,7 +4,7 @@
  */
 #ifndef B_GS_H
 #define B_GS_H
-#include "ascot5.h"
+#include "../ascot5.h"
 
 /**
  * @brief Analytic magnetic field parameters that will be offloaded to target

@@ -5,13 +5,14 @@
 #ifndef B_FIELD_H
 #define B_FIELD_H
 
-#include "B_GS.h"
-#include "B_2D.h"
-#include "B_2DS.h"
-#include "B_3D.h"
-#include "B_3DS.h"
-#include "B_ST.h"
-#include "B_TC.h"
+#include "ascot5.h"
+#include "Bfield/B_GS.h"
+#include "Bfield/B_2D.h"
+#include "Bfield/B_2DS.h"
+#include "Bfield/B_3D.h"
+#include "Bfield/B_3DS.h"
+#include "Bfield/B_ST.h"
+#include "Bfield/B_TC.h"
 
 typedef enum B_field_type {
     B_field_type_GS, B_field_type_2D, B_field_type_2DS, B_field_type_3D, B_field_type_3DS, B_field_type_ST, B_field_type_TC

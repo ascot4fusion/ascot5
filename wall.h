@@ -5,8 +5,8 @@
 #ifndef WALL_H
 #define WALL_H
 
-#include "wall_2d.h"
-#include "wall_3d.h"
+#include "wall/wall_2d.h"
+#include "wall/wall_3d.h"
 
 typedef struct {
     int type;

@@ -7,9 +7,9 @@
  * Intended for testing purposes.
  */
 #include <stdlib.h>
-#include "ascot5.h"
-#include "math.h"
-#include "B_field.h"
+#include "../ascot5.h"
+#include "../math.h"
+#include "../B_field.h"
 #include "E_TC.h"
 
 

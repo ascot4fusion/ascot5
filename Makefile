@@ -60,6 +60,18 @@ MCCCOBJS = $(patsubst %.c,%.o,$(wildcard $(MCCCDIR)mccc*.c))
 DIAGHEADERS = diag.h diag_orb.h distributions.h
 DIAGOBJS = diag.o diag_orb.o distributions.o
 
+BFDIR = Bfield/
+BFHEADERS = $(wildcard $(BFDIR)B_*.h)
+BFOBJS = $(patsubst %.c,%.o,$(wildcard $(BFDIR)B_*.c))
+
+EFDIR = Efield/
+EFHEADERS = $(wildcard $(EFDIR)E_*.h)
+EFOBJS = $(patsubst %.c,%.o,$(wildcard $(EFDIR)E_*.c))
+
+WALLDIR = wall/
+WALLHEADERS = $(wildcard $(WALLDIR)wall_*.h)
+WALLOBJS = $(patsubst %.c,%.o,$(wildcard $(WALLDIR)wall_*.c))
+
 HDF5IODIR = hdf5io/
 HDF5IOHEADERS = $(wildcard $(HDF5IODIR)hdf5*.h)
 HDF5IOOBJS = $(patsubst %.c,%.o,$(wildcard $(HDF5IODIR)hdf5*.c))
@@ -68,27 +80,24 @@ UIDIR = ui/
 ASCOT4IFDIR = ascot4_interface/
 
 
-HEADERS=ascot5.h B_GS.h math.h consts.h \
-	   	wall_2d.h ascot4_interface.h $(DIAGHEADERS) B_2D.h B_2DS.h \
+HEADERS=ascot5.h math.h consts.h \
+	   	ascot4_interface.h $(DIAGHEADERS)  \
 		plasma_1d.h interact.h simulate.h \
-		B_3D.h B_3DS.h \
-		wall_3d.h list.h octree.h \
-		B_ST.h B_TC.h \
-		particle.h filip5.h endcond.h \
+		list.h octree.h $(BFHEADERS) $(EFHEADERS) \
+		particle.h filip5.h endcond.h $(WALLHEADERS) \
 		B_field.h E_field.h wall.h phys_orbit.h \
-		E_1D.h $(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) \
-		E_TC.h diag.h diag_orb.h \
+		$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) \
+		diag.h diag_orb.h \
 		$(HDF5IOHEADERS) \
 
-OBJS=ascot4_interface.o B_GS.o math.o consts.o  \
-     wall_2d.o $(DIAGOBJS) B_2D.o B_2DS.o B_ST.o B_TC.o  \
+OBJS=ascot4_interface.o math.o consts.o  \
+     $(DIAGOBJS)  $(BFOBJS) $(EFOBJS) \
 	plasma_1d.o interact.o \
-	B_3D.o B_3DS.o \
-	 wall_3d.o list.o octree.o \
+	 $(WALLOBJS) list.o octree.o \
      particle.o endcond.o B_field.o E_field.o wall.o simulate.o \
 	phys_orbit.o \
-	E_1D.o $(MCCCOBJS) $(STEPOBJS) $(SIMOBJS)  \
-	E_TC.o diag.o diag_orb.o \
+	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS)  \
+	diag.o diag_orb.o \
 	$(HDF5IOOBJS) \
 	splinePatrik/interp2D.o splinePatrik/interp3D.o splinePatrik/spline1D.o \
 	splinePatrik/interp2Dexpl.o splinePatrik/interp3Dexpl.o
@@ -102,8 +111,8 @@ BINS=test_math \
 all: $(BINS)
 
 ascotpy: CFLAGS+=-fPIC
-ascotpy: ascotpy.o math.o B_field.o $(HDF5IOOBJS) B_2D.o B_GS.o B_3D.o B_ST.o B_TC.o
-	f2py ascotpy.pyf ascotpy.c math.o B_field.o B_GS.o B_2D.o B_3D.o B_ST.o B_TC.o -c $(DEFINES)
+ascotpy: ascotpy.o math.o B_field.o $(HDF5IOOBJS) $(BFOBJS)
+	f2py ascotpy.pyf ascotpy.c math.o B_field.o -c $(DEFINES)
 
 ascot5_gc: ascot5_gc.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
@@ -172,4 +181,6 @@ test_interp3Dexpl: test_interp3Dexpl.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 clean:
-	rm -f *.o *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o $(MCCCDIR)*.o $(HDF5IODIR)*.o *.pyc $(ASCOT4IFDIR)*.pyc $(UIDIR)*.pyc
+	rm -f *.o *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
+		$(MCCCDIR)*.o $(HDF5IODIR)*.o *.pyc $(ASCOT4IFDIR)*.pyc \
+		$(UIDIR)*.pyc $(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o

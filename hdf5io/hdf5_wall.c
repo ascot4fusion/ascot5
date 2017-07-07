@@ -4,8 +4,8 @@
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "../wall.h"
-#include "../wall_2d.h"
-#include "../wall_3d.h"
+#include "../wall/wall_2d.h"
+#include "../wall/wall_3d.h"
 #include "hdf5_wall.h"
 
 void hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data, real** offload_array) {    

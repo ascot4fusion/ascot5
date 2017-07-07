@@ -5,8 +5,8 @@
 #ifndef E_TC_H
 #define E_TC_H
 
-#include "ascot5.h"
-#include "B_field.h"
+#include "../ascot5.h"
+#include "../B_field.h"
 
 typedef struct {
     int offload_array_length;

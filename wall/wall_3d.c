@@ -6,11 +6,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "ascot5.h"
+#include "../ascot5.h"
 #include "wall_3d.h"
-#include "math.h"
-#include "list.h"
-#include "octree.h"
+#include "../math.h"
+#include "../list.h"
+#include "../octree.h"
 
 /**
  * @brief Load 3D wall data and prepare parameters

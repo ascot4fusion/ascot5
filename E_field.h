@@ -7,8 +7,8 @@
 
 #include "ascot5.h"
 #include "B_field.h"
-#include "E_TC.h"
-#include "E_1D.h"
+#include "Efield/E_TC.h"
+#include "Efield/E_1D.h"
 
 typedef enum E_field_type {
     E_field_type_TC, E_field_type_1D

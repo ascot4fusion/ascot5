@@ -4,7 +4,7 @@
  */
 #ifndef B_3D_H
 #define B_3D_H
-#include "ascot5.h"
+#include "../ascot5.h"
 
 /**
  * @brief 3D magnetic field parameters that will be offloaded to target

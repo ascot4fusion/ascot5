@@ -12,6 +12,7 @@
  */
 #include <stdlib.h>
 #include <math.h>
+#include "../ascot5.h"
 #include "B_GS.h"
 
 #define R0 6.2 /**< @brief Major radius of the torus */

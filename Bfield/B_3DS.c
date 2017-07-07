@@ -6,12 +6,11 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-#include "math.h"
-#include "ascot5.h"
+#include "../math.h"
+#include "../ascot5.h"
 #include "B_3DS.h"
-#include "B_GS.h"
-#include "splinePatrik/interp2D.h" /* for 2D interpolation routines */
-#include "splinePatrik/interp3D.h" /* for 2D interpolation routines */
+#include "../splinePatrik/interp2D.h" /* for 2D interpolation routines */
+#include "../splinePatrik/interp3D.h" /* for 2D interpolation routines */
 
 /**
  * @brief Load magnetic field data and prepare parameters
