@@ -22,7 +22,7 @@
 #include "simulate.h"
 #include "particle.h"
 #include "endcond.h"
-#include "hdf5io/hdf5_histogram.h"
+#include "hdf5io/hdf5_diag.h"
 #include "hdf5io/hdf5_input.h"
 
 int read_options(int argc, char** argv, sim_offload_data* sim);
@@ -187,12 +187,10 @@ int main(int argc, char** argv) {
     
     /* Combine histograms */
     #ifndef NOTARGET
-    diag_sum(&sim.diag_offload_data, diag_offload_array_mic0,diag_offload_array_mic1);
-    //ascot4_write_dist_rzvv(&sim.dist_offload_data, dist_offload_array_mic0,
-    //                 filename);
+        diag_sum(&sim.diag_offload_data, diag_offload_array_mic0,diag_offload_array_mic1);
+        hdf5_diag_write(&sim, diag_offload_array_mic0);
     #else
-    //ascot4_write_dist_rzvv(&sim.dist_offload_data, dist_offload_array_host,
-    //                 filename);
+	hdf5_diag_write(&sim, diag_offload_array_host);
     #endif
     ascot4_write_endstate(n, p, filename);
 
