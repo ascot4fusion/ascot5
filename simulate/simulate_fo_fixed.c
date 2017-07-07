@@ -23,7 +23,6 @@
 #include "../endcond.h"
 #include "../math.h"
 #include "../consts.h"
-#include "../hdf5io/hdf5_orbits.h"
 
 #pragma omp declare target
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i); 
@@ -132,9 +131,6 @@ void simulate_fo_fixed(particle_queue_fo* pq, sim_data* sim) {
 	}
 
     } 
-    
-    hdf5_orbits_write(sim);
-    diag_clean(&sim->diag_data);
 
 }
 

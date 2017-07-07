@@ -15,7 +15,7 @@ int hdf5_input(sim_offload_data* sim,
 	       real** E_offload_array,
 	       real** plasma_offload_array,
 	       real** wall_offload_array,
-               input_particle* p,
+               input_particle** p,
                int* n_markers){
     
     /* This init disables automatic error messages.
@@ -104,7 +104,7 @@ int hdf5_input(sim_offload_data* sim,
 	printf("\nError: Failed to initialize markers from %s.\n",sim->hdf5fn);
 	return -1;
     }
-	
+
     /* Close the hdf5 file */
     err = hdf5_close(f);
     if(err < 0) {

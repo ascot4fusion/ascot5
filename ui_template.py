@@ -5,6 +5,7 @@ import ui_E_TC
 import ui_options
 import ui_plasma_1D
 import ui_wall_2D
+import ui_markers
 
 fn = "ascot.h5"
 f = h5py.File(fn, "a")
@@ -45,8 +46,20 @@ idens = idens.reshape(5,1)
 wr = np.array([0, 0, 100, 100, 0])
 wz = np.array([-50, 50, 50, -50, -50])
 
+ids    = np.array([1.0])
+anum   = np.array([4.0])
+znum   = np.array([2.0])
+weight = np.array([1.0])
+rprt   = np.array([7.0123552])
+phiprt = np.array([352.52435])
+zprt   = np.array([0.0814756])
+vr     = np.array([8789194.5])
+vphi   = np.array([-3242767.0])
+vz     = np.array([-9101402.5])
+
 ui_options.writeHdf5(ui_options.ui_optionsIO(),fn)
 ui_B_TC.write_hdf5(fn, B0, B_dB, axisr, axisz, psival, rhoval) 
 ui_E_TC.write_hdf5(fn, E) 
 ui_plasma_1D.write_hdf5(fn, Znum, Anum, rho, ndens, ntemp, edens, etemp, idens, itemp)
 ui_wall_2D.write_hdf5(fn, wr, wz)
+ui_markers.write_hdf5_particles(fn, ids, anum, znum, rprt, phiprt, zprt, vr, vphi, vz, weight);

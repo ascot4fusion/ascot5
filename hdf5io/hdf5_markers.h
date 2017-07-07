@@ -4,7 +4,7 @@
 #include <hdf5.h>
 #include "../particle.h"
 
-void hdf5_markers_init(hid_t f, int *n, input_particle* p);
+void hdf5_markers_init(hid_t f, int *n, input_particle** p);
 
 void hdf5_markers_init_particle(hid_t f, int n, input_particle* p);
 

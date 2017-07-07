@@ -24,6 +24,7 @@
 #include "endcond.h"
 #include "hdf5io/hdf5_diag.h"
 #include "hdf5io/hdf5_input.h"
+#include "hdf5io/hdf5_orbits.h"
 
 int read_options(int argc, char** argv, sim_offload_data* sim);
 
@@ -45,7 +46,7 @@ int main(int argc, char** argv) {
     sprintf(sim.hdf5fn, "ascot.h5");// TODO read me from command line
     
     hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
-	       &wall_offload_array, p, &n);
+	       &wall_offload_array, &p, &n);
     
     #ifndef NOTARGET
         diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
@@ -53,7 +54,7 @@ int main(int argc, char** argv) {
     #else
 	diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
     #endif
-
+	
     #if VERBOSE >= 1
     printf("Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
     #endif
@@ -168,7 +169,7 @@ int main(int argc, char** argv) {
                 #endif
 		
 		sim_data sim_host;
-
+        
                 simulate_begin(0, n_host, p+2*n_mic, &sim, &sim_host,
 		    B_offload_array,
 		    E_offload_array,
@@ -180,6 +181,10 @@ int main(int argc, char** argv) {
 		simulate_continue(0, n_host, p+2*n_mic, &sim_host);
 
 		ascot4_write_endstate(n, p, filename);
+
+		hdf5_orbits_write(&sim_host);
+
+		simulate_end(&sim_host);
 
 		#ifdef _OMP
                 host_end = omp_get_wtime();
