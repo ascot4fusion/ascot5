@@ -203,6 +203,54 @@ typedef struct {
     integer index[NSIMD] __memalign__;
 } particle_simd_ml;
 
+/** @brief Struct the physical state of the particle. Includes self-consistent
+ *         full-orbit and guiding-center coordinates.
+ *
+ * Convention: whenever one particle property is changed, it is the
+ * responsibility of the function performing the change to make sure all
+ * parameters are consistent (for example, update magnetic field when position
+ * changes.
+ *
+ */
+typedef struct {
+    real r;           /**< guiding center r coordinate */
+    real phi;         /**< guiding center phi coordinate */
+    real z;           /**< guiding center z coordinate */
+    real vpar;        /**< parallel velocity */
+    real mu;          /**< magnetic moment */
+    real theta;       /**< gyroangle */
+    real rprt;        /**< particle r coordinate */
+    real phiprt;      /**< particle phi coordinate */
+    real zprt;        /**< particle z coordinate */
+    real rdot;        /**< dr/dt */
+    real phidot;      /**< dphi/dt */
+    real zdot;        /**< dz/dt */
+    real mass;        /**< mass */
+    real charge;      /**< charge */
+    real weight;      /**< test particle weight */
+    real time;        /**< particle simulation time */
+    integer id;       /**< arbitrary id for the particle */
+    integer endcond;  /**< particle end condition */
+    integer walltile; /**< id of walltile if particle hit
+                                               the wall */
+    real B_r;         /**< magnetic field r component at
+                                            particle position */
+    real B_phi;       /**< magnetic field phi component at
+                                            particle position */
+    real B_z;         /**< magnetic field z component at
+                                            particle position */
+    real B_r_dr;      /**< gradient of B_r with respect to r*/
+    real B_phi_dr;    /**< gradient of B_phi with respect to r*/
+    real B_z_dr;      /**< gradient of B_z with respect to r*/
+    real B_r_dphi;    /**< gradient of B_r with respect to phi*/
+    real B_phi_dphi;  /**< gradient of B_phi with respect to phi*/
+    real B_z_dphi;    /**< gradient of B_z with respect to phi*/
+    real B_r_dz;      /**< gradient of B_r with respect to z*/
+    real B_phi_dz;    /**< gradient of B_phi with respect to z*/
+    real B_z_dz;      /**< gradient of B_z with respect to z*/
+} particle_state;
+
+
 #pragma omp declare target
 void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
                     B_field_data* Bdata);
