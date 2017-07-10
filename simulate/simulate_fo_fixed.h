@@ -10,7 +10,7 @@
 #include "../particle.h"
 
 #pragma omp declare target
-void simulate_fo_fixed(particle_queue_fo* pq, sim_data* sim);
+void simulate_fo_fixed(particle_queue* pq, sim_data* sim);
 #pragma omp end declare target
 
 #endif

@@ -320,7 +320,7 @@ void particle_to_ml(particle* p, int i, particle_simd_ml* p_ml, int j,
     p_ml->r[j] = p->r;
     p_ml->phi[j] = p->phi;
     p_ml->z[j] = p->z;
-    p_ml->distance[j] = p->time;
+    p_ml->time[j] = p->time;
     p_ml->id[j] = p->id; 
     p_ml->running[j] = p->running;
     p_ml->endcond[j] = p->endcond; 
@@ -356,7 +356,7 @@ void particle_to_ml_dummy(particle_simd_ml* p_ml, int j){
     p_ml->r[j] = 1;
     p_ml->phi[j] = 1;
     p_ml->z[j] = 1;
-    p_ml->distance[j] = 0;
+    p_ml->time[j] = 0;
     p_ml->id[j] = -1; 
     p_ml->running[j] = 0;
     p_ml->endcond[j] = 0; 
@@ -382,13 +382,13 @@ void ml_to_particle(particle_simd_ml* p_ml, int j, particle* p) {
     p->r = p_ml->r[j];
     p->phi = p_ml->phi[j];
     p->z = p_ml->z[j];
-    p->time = p_ml->distance[j];
+    p->time = p_ml->time[j];
     p->running = p_ml->running[j];
     p->endcond = p_ml->endcond[j];
     p->walltile = p_ml->walltile[j];
 }
 
-int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
+int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
                       B_field_data* Bdata, int* cycle) {
     for(int i = 0; i < NSIMD; i++) {
 	int i_prt;
@@ -430,7 +430,7 @@ int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
     return n_running;
 }
 
-int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
+int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
                       B_field_data* Bdata, int* cycle) {
     for(int i = 0; i < NSIMD; i++) {
 	int i_prt;
@@ -453,6 +453,48 @@ int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
             i_prt = q->next++;
             if(i_prt < q->n) {
 		particle_state_to_gc(q->p[i_prt], i_prt, p, i);
+		cycle[i] = 1;
+            }
+            else {
+                p->running[i] = 0;
+                p->id[i] = -1;
+		cycle[i] = -1;
+            }
+        }
+    }
+
+    int n_running = 0;
+    #pragma omp simd reduction(+:n_running)
+    for(int i = 0; i < NSIMD; i++) {
+        n_running += p->running[i];
+    }
+    
+    return n_running;
+}
+
+int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
+                      B_field_data* Bdata, int* cycle) {
+    for(int i = 0; i < NSIMD; i++) {
+	int i_prt;
+
+	/* If there are markers in queue and this position is dummy,
+	 * init a marker here */
+	if(p->id[i] < 0 && q->next < q->n) {
+	    #pragma omp critical
+	    i_prt = q->next++;
+	    particle_state_to_ml(q->p[i_prt], i_prt, p,i);
+	    cycle[i] = 1;
+	    continue;
+	}
+
+	cycle[i] = 0;
+        if(!p->running[i] && p->id[i] >= 0) {
+	    particle_ml_to_state(p, i, q->p[p->index[i]]);
+
+            #pragma omp critical
+            i_prt = q->next++;
+            if(i_prt < q->n) {
+		particle_state_to_ml(q->p[i_prt], i_prt, p, i);
 		cycle[i] = 1;
             }
             else {
@@ -699,15 +741,120 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata,
 	}
 
     }
-    else if(state == 3) {
+    else if(state == 4) {
         if(p[i_prt].type == input_particle_type_p) {
-	    
+	    /* Particle to ml */
+	    real r      = p[i_prt].p.r;
+	    real phi    = p[i_prt].p.phi;
+	    real z      = p[i_prt].p.z;
+	    real v_r    = p[i_prt].p.v_r;
+	    real v_phi  = p[i_prt].p.v_phi;
+	    real v_z    = p[i_prt].p.v_z;
+	    real time   = p[i_prt].p.time;
+	    int id      = p[i_prt].p.id;
+
+	    real B_dB[12];
+	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
+
+	    p[i_prt].p_s.r          = r;     
+	    p[i_prt].p_s.phi        = phi;      
+	    p[i_prt].p_s.z          = z;   
+	    p[i_prt].p_s.vpar       = v_r * B_dB[0] + v_phi * B_dB[4] + v_z * B_dB[8]  >= 0;     
+	    p[i_prt].p_s.theta      = 0;     
+	    p[i_prt].p_s.mass       = 0;      
+	    p[i_prt].p_s.charge     = 0;  
+	    p[i_prt].p_s.weight     = 0;    
+	    p[i_prt].p_s.time       = time;     
+	    p[i_prt].p_s.id         = id;    
+	    p[i_prt].p_s.endcond    = 0; 
+	    p[i_prt].p_s.walltile   = 0;
+	    p[i_prt].p_s.B_r        = B_dB[0];     
+	    p[i_prt].p_s.B_phi      = B_dB[4];     
+	    p[i_prt].p_s.B_z        = B_dB[8];      
+	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
+	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
+	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
+	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
+	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
+	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
+	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
+	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
+	    p[i_prt].p_s.B_z_dz     = B_dB[11];
 	}
 	else if(p[i_prt].type == input_particle_type_gc) {
-	    
+	    /* Guiding center to ml */
+
+	    real r      = p[i_prt].p_gc.r;
+	    real phi    = p[i_prt].p_gc.phi;
+	    real z      = p[i_prt].p_gc.z;
+	    real pitch  = p[i_prt].p_gc.pitch;
+	    real time   = p[i_prt].p_gc.time;
+	    integer id  = p[i_prt].p_gc.id;
+
+	    real B_dB[12];
+	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
+
+	    p[i_prt].p_s.r          = r;     
+	    p[i_prt].p_s.phi        = phi;      
+	    p[i_prt].p_s.z          = z;   
+	    p[i_prt].p_s.vpar       = pitch >= 0;     
+	    p[i_prt].p_s.theta      = 0;     
+	    p[i_prt].p_s.mass       = 0;      
+	    p[i_prt].p_s.charge     = 0;  
+	    p[i_prt].p_s.weight     = 0;    
+	    p[i_prt].p_s.time       = time;     
+	    p[i_prt].p_s.id         = id;    
+	    p[i_prt].p_s.endcond    = 0; 
+	    p[i_prt].p_s.walltile   = 0;
+	    p[i_prt].p_s.B_r        = B_dB[0];     
+	    p[i_prt].p_s.B_phi      = B_dB[4];     
+	    p[i_prt].p_s.B_z        = B_dB[8];      
+	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
+	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
+	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
+	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
+	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
+	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
+	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
+	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
+	    p[i_prt].p_s.B_z_dz     = B_dB[11];
 	}
 	else if(p[i_prt].type == input_particle_type_ml) {
+	    /* Magnetic field line to ml */
+	    real r      = p[i_prt].p_ml.r;
+	    real phi    = p[i_prt].p_ml.phi;
+	    real z      = p[i_prt].p_ml.z;
+	    real pitch  = p[i_prt].p_ml.pitch;
+	    real time   = p[i_prt].p_ml.time;
+	    integer id  = p[i_prt].p_ml.id;
 
+	    real B_dB[12];
+	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
+
+	    p[i_prt].p_s.r          = r;     
+	    p[i_prt].p_s.phi        = phi;      
+	    p[i_prt].p_s.z          = z;   
+	    p[i_prt].p_s.vpar       = pitch;     
+	    p[i_prt].p_s.theta      = 0;     
+	    p[i_prt].p_s.mass       = 0;      
+	    p[i_prt].p_s.charge     = 0;  
+	    p[i_prt].p_s.weight     = 0;    
+	    p[i_prt].p_s.time       = time;     
+	    p[i_prt].p_s.id         = id;    
+	    p[i_prt].p_s.endcond    = 0; 
+	    p[i_prt].p_s.walltile   = 0;
+	    p[i_prt].p_s.B_r        = B_dB[0];     
+	    p[i_prt].p_s.B_phi      = B_dB[4];     
+	    p[i_prt].p_s.B_z        = B_dB[8];      
+	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
+	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
+	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
+	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
+	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
+	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
+	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
+	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
+	    p[i_prt].p_s.B_z_dz     = B_dB[11];
 	}
     }
 }
@@ -852,4 +999,71 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p) {
     p->B_z_dr   = p_gc->B_z_dr[j];
     p->B_z_dphi = p_gc->B_z_dphi[j];
     p->B_z_dz   = p_gc->B_z_dz[j];
+}
+
+void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int j) {
+    
+    p_ml->r[j]        = p->r;
+    p_ml->phi[j]      = p->phi;
+    p_ml->z[j]        = p->z;
+
+
+    p_ml->pitch[j]    = p->vpar >= 0;
+    p_ml->time[j]     = p->time;
+    p_ml->id[j]       = p->id;
+    p_ml->endcond[j]  = p->endcond; 
+    p_ml->walltile[j] = p->walltile;
+
+    p_ml->running[j] = 1;
+    if(p->endcond) {
+	p_ml->running[j] = 0;
+    }
+
+    p_ml->B_r[j]        = p->B_r;
+    p_ml->B_r_dr[j]     = p->B_r_dr;
+    p_ml->B_r_dphi[j]   = p->B_r_dphi;
+    p_ml->B_r_dz[j]     = p->B_r_dz;
+
+    p_ml->B_phi[j]      = p->B_phi;
+    p_ml->B_phi_dr[j]   = p->B_phi_dr;
+    p_ml->B_phi_dphi[j] = p->B_phi_dphi;
+    p_ml->B_phi_dz[j]   = p->B_phi_dz;
+
+    p_ml->B_z[j]        = p->B_z;
+    p_ml->B_z_dr[j]     = p->B_z_dr;
+    p_ml->B_z_dphi[j]   = p->B_z_dphi;
+    p_ml->B_z_dz[j]     = p->B_z_dz;
+
+    p_ml->index[j] = i;
+    
+}
+
+void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p) {
+
+    p->r       = p_ml->r[j];
+    p->phi     = p_ml->phi[j];
+    p->z       = p_ml->z[j];
+    p->vpar    = p_ml->pitch[j];
+    p->mass    = 0;
+    p->charge  = 0;
+    p->time    = p_ml->time[j];
+    p->weight  = 0;
+    p->id      = p_ml->id[j];
+    p->endcond = p_ml->endcond[j]; 
+    p->walltile = p_ml->walltile[j];
+
+    p->B_r      = p_ml->B_r[j];
+    p->B_r_dr   = p_ml->B_r_dr[j];
+    p->B_r_dphi = p_ml->B_r_dphi[j];
+    p->B_r_dz   = p_ml->B_r_dz[j];
+
+    p->B_phi      = p_ml->B_phi[j];
+    p->B_phi_dr   = p_ml->B_phi_dr[j];
+    p->B_phi_dphi = p_ml->B_phi_dphi[j];
+    p->B_phi_dz   = p_ml->B_phi_dz[j];
+
+    p->B_z      = p_ml->B_z[j];
+    p->B_z_dr   = p_ml->B_z_dr[j];
+    p->B_z_dphi = p_ml->B_z_dphi[j];
+    p->B_z_dz   = p_ml->B_z_dz[j];
 }

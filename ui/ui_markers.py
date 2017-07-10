@@ -64,3 +64,30 @@ def write_hdf5_guidingcenters(fn, ids, anum, znum, r, phi, z, energy, pitch, the
     f.create_dataset('markers/guiding_center/id', data=ids)
 
     f.close()
+
+def write_hdf5_fieldlines(fn, ids, r, phi, z, pitch):
+    f = h5py.File(fn, "a")
+    if not "/markers" in f:
+        f.create_group('markers')
+
+    if  "/markers/field_line" in f:
+        del f["/markers/field_line"]
+
+
+    f.create_group('markers/field_line')
+
+    f['markers'].attrs['n_field_line'] = np.size(ids)
+
+    if not 'n_particle' in f['markers'].attrs:
+        f['markers'].attrs['n_particle'] = 0
+
+    if not 'n_guiding_center' in f['markers'].attrs:
+        f['markers'].attrs['n_guiding_center'] = 0
+
+    f.create_dataset('markers/field_line/r', data=r)
+    f.create_dataset('markers/field_line/phi', data=phi)
+    f.create_dataset('markers/field_line/z', data=z)
+    f.create_dataset('markers/field_line/pitch', data=pitch)
+    f.create_dataset('markers/field_line/id', data=ids)
+
+    f.close()

@@ -85,7 +85,7 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, sim_data* si
     for(i = 0; i < NSIMD; i++) {
         /* Max time */
         if(sim->endcond_active & endcond_tmax
-            && p_f->distance[i] > sim->endcond_maxSimTime) {
+            && p_f->time[i] > sim->endcond_maxSimTime) {
             p_f->endcond[i] |= endcond_tmax;
             p_f->running[i] = 0;
         }

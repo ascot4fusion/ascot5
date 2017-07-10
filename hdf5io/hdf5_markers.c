@@ -147,6 +147,11 @@ void hdf5_markers_init_guiding_center(hid_t f, int n, input_particle* p) {
         p[i].p_gc.id = (integer) id[i];        
         p[i].p_gc.running = 1;
         p[i].type = input_particle_type_gc;
+
+	//TODO temporary
+	p[i].p_gc.time = 0;
+	p[i].p_gc.endcond = 0;
+	p[i].p_gc.walltile = 0;
     }
     
     free(r);
@@ -161,5 +166,39 @@ void hdf5_markers_init_guiding_center(hid_t f, int n, input_particle* p) {
 }
 
 void hdf5_markers_init_field_line(hid_t f, int n, input_particle* p) {
+    herr_t err;
+    int i;
+    
+    real* r = malloc(n * sizeof(real));
+    real* phi = malloc(n * sizeof(real));
+    real* z = malloc(n * sizeof(real));
+    real* pitch = malloc(n * sizeof(real));
+    real* id = malloc(n * sizeof(real));
+     
+    err = H5LTread_dataset_double(f,"/markers/field_line/r", r);
+    err = H5LTread_dataset_double(f,"/markers/field_line/phi", phi);    
+    err = H5LTread_dataset_double(f,"/markers/field_line/z", z);
+    err = H5LTread_dataset_double(f,"/markers/field_line/pitch", pitch);    
+    err = H5LTread_dataset_double(f,"/markers/field_line/id", id);
+        
+    for(i = 0; i < n; i++) {
+        p[i].p_ml.r = r[i];
+        p[i].p_ml.phi = phi[i] * math_pi / 180;
+        p[i].p_ml.z = z[i];
+        p[i].p_ml.pitch = pitch[i];
+        p[i].p_ml.id = (integer) id[i];        
+        p[i].p_ml.running = 1;
+        p[i].type = input_particle_type_ml;
 
+	//TODO temporary
+	p[i].p_ml.time = 0;
+	p[i].p_ml.endcond = 0;
+	p[i].p_ml.walltile = 0;
+    }
+    
+    free(r);
+    free(phi);
+    free(z);
+    free(pitch);
+    free(id);
 }

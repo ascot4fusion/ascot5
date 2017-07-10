@@ -291,6 +291,56 @@ int hdf5_particlestate_write(hid_t file, char *state, int n, input_particle* p) 
         H5LTset_attribute_string(state_group, "wallTile", "unit", "");
 
     }
+    else if(p[0].type == input_particle_type_mls) {    
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.r;
+        }
+        H5LTmake_dataset(state_group, "R", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "R", "unit", "m");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.phi;
+        }
+        H5LTmake_dataset(state_group, "phi", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "phi", "unit", "deg");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.z;
+        }
+        H5LTmake_dataset(state_group, "z", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "z", "unit", "m");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.vpar;
+        }
+        H5LTmake_dataset(state_group, "pitch", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "vpar", "unit", "");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.time;
+        }
+        H5LTmake_dataset(state_group, "time", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "time", "unit", "s");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.id;
+        }
+        H5LTmake_dataset(state_group, "id", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "id", "unit", "");
+
+        for(i = 0; i < n; i++) {
+            data[i] = p[i].p_s.endcond;
+        }
+        H5LTmake_dataset(state_group, "endCond", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "endCond", "unit", "");
+
+        for(i = 0; i < n; i++) {
+	    data[i] = p[i].p_s.walltile;
+        }
+        H5LTmake_dataset(state_group, "wallTile", 1, dims, H5T_IEEE_F64LE, data);
+        H5LTset_attribute_string(state_group, "wallTile", "unit", "");
+
+    }
 
     free(data);
     H5Gclose(state_group);

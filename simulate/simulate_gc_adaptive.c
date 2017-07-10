@@ -48,7 +48,7 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
  *
  * @todo time step limits for how much a marker travels in rho or phi
  */
-void simulate_gc_adaptive(particle_queue_gc* pq, sim_data* sim) {
+void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
 	/* Arrays needed for the adaptive time step */
 	mccc_wienarr* wienarr[NSIMD];

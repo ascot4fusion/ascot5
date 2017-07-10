@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "particle.h"
 #include "simulate.h"
+#include "simulate/simulate_ml_adaptive.h"
 #include "simulate/simulate_gc_adaptive.h"
 #include "simulate/simulate_gc_fixed.h"
 #include "simulate/simulate_fo_fixed.h"
@@ -90,35 +91,43 @@ void simulate_begin(int id, int n_particles, input_particle* p,
 void simulate_continue(int id, int n_particles, input_particle* p,
 		       sim_data* sim) {
 
-    particle_queue_fo p_fo;
-    particle_queue_gc p_gc;
+    particle_queue p_fo;
+    particle_queue p_gc;
+    particle_queue p_ml;
 
     p_fo.n = 0;
     p_gc.n = 0;
+    p_ml.n = 0;
     for(int i = 0; i < n_particles; i++) {
         if(p[i].type == input_particle_type_ps) {
             p_fo.n++;
         } else if(p[i].type == input_particle_type_gcs) {
             p_gc.n++;
+        } else if(p[i].type == input_particle_type_mls) {
+            p_ml.n++;
         }
     }
 
     p_fo.p = (particle_state**) malloc(p_fo.n * sizeof(particle_state*));
     p_gc.p = (particle_state**) malloc(p_gc.n * sizeof(particle_state*));
+    p_ml.p = (particle_state**) malloc(p_ml.n * sizeof(particle_state*));
 
     p_fo.next = 0;
     p_gc.next = 0;
+    p_ml.next = 0;
     for(int i = 0; i < n_particles; i++) {
         if(p[i].type == input_particle_type_ps) {
             p_fo.p[p_fo.next++] = &p[i].p_s;
         } else if(p[i].type == input_particle_type_gcs) {
-            p_gc.p[p_gc.next++] = &p[i].p_gc;
+            p_gc.p[p_gc.next++] = &p[i].p_s;
+        } else if(p[i].type == input_particle_type_mls) {
+            p_ml.p[p_ml.next++] = &p[i].p_s;
         }
     }
 
     p_fo.next = 0;
     p_gc.next = 0;
-
+    p_ml.next = 0;
     
 
     if(p_gc.n > 0) {
@@ -141,9 +150,16 @@ void simulate_continue(int id, int n_particles, input_particle* p,
 	    simulate_fo_fixed(&p_fo, sim);
 	}
     }
+    else if(p_ml.n > 0) {
+	#pragma omp parallel
+	{
+	    simulate_ml_adaptive(&p_ml, sim);
+	}
+    }
 
     free(p_fo.p);
     free(p_gc.p);
+    free(p_ml.p);
 
 }
 

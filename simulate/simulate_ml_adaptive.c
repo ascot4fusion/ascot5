@@ -43,54 +43,16 @@ real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i);
  * Note simulation time is defined by assuming field-lines
  * "travel" at the speed of light.
  *
- * @param id 
- * @param n_particles number of markers to be simulated
  * @param particles pointer to marker struct
- * @param sim_offload simulation offload data struct
- * @param B_offload_array offload array of magnetic field data
- * @param E_offload_array offload array of electric field data
- * @param plasma_offload_array offload array of plasma data
- * @param wall_offload_array offload array of wall data
- * @param diag_offload_array offload array of diagnostics data
  *
  * @todo See simulate_gc_adaptive.c
  * @todo Define simulation time by assuming markers travel at the speed of light
  */
-void simulate_ml_adaptive(int id, int n_particles, particle* particles,
-			  sim_offload_data sim_offload,
-			  real* B_offload_array,
-			  real* E_offload_array,
-			  real* plasma_offload_array,
-			  real* wall_offload_array,
-			  real* diag_offload_array) {
-    sim_data sim;
+void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 
 
-/* BACKGROUND INITIALIZATION */
 
-    /* Simulation data */
-    sim_init(&sim, &sim_offload);
-
-    /* Wall data */
-    wall_init(&sim.wall_data, &sim_offload.wall_offload_data,
-              wall_offload_array);
-
-    /* Magnetic field data */
-    B_field_init(&sim.B_data, &sim_offload.B_offload_data, B_offload_array);
-
-    /* Electric field data */
-    E_field_init(&sim.E_data, &sim_offload.E_offload_data, E_offload_array);
-
-    /* Plasma data */
-    plasma_1d_init(&sim.plasma_data, &sim_offload.plasma_offload_data,
-                   plasma_offload_array);
-
-    /* Diagnostics data */
-    diag_init(&sim.diag_data,&sim_offload.diag_offload_data,
-	diag_offload_array);
 	
-   
-    int i_next_prt = 0;
 
     /* SIMD particle structs will be computed in parallel with the maximum
      * number of threads available on the platform */
@@ -100,34 +62,28 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
 	real hin[NSIMD];
 	real hout[NSIMD];
 	real hnext[NSIMD];
-	real tol = 1.0e-1;// TODO move to sim
-
+	int cycle[NSIMD];
+	real tol = sim->ada_tol_orbfol;
+	int i;
 
         particle_simd_ml p;  // This array holds current states
 	particle_simd_ml p0; // This array stores previous states
-        int i, i_prt;
 
-/** MARKER INITIALIZATION */
-        for(i = 0; i < NSIMD; i++) {
-            #pragma omp critical
-            i_prt = i_next_prt++;
-            if(i_prt < n_particles) {
-		/* Guiding center transformation */
-                particle_to_ml(&particles[i_prt], i_prt, &p, i, &sim.B_data);
+	for(i=0; i< NSIMD; i++) {
+	    p.id[i] = -1;
+	    p.running[i] = 0;
+	}
 
-		/* Determine initial time step */
-		hin[i] = simulate_ml_adaptive_inidt(&sim, &p, i);
-		
-            }
-            else {
-		/* Dummy marker to fill NSIMD when we ran out of actual particles */
-                particle_to_ml_dummy(&p, i);
-            }
-
-	    /* Init dummy particles here, the (required) fields are initialized 
-	     * separately at each time step */
-	    particle_to_ml_dummy(&p0, i); 
-        }
+	/* Initialize running particles */
+	int n_running = particle_cycle_ml(pq, &p, &sim->B_data, cycle);
+	
+	#pragma omp simd
+	for(i = 0; i < NSIMD; i++) {
+	    if(cycle[i] > 0) {
+		/* Determine initial time-step */
+		hin[i] = simulate_ml_adaptive_inidt(sim, &p, i);
+	    }
+	}
 
 
     
@@ -143,7 +99,6 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
  * - Update diagnostics
  * - 
  * */
-        int n_running = 0;
         do {
             #pragma omp simd
 	    for(i = 0; i < NSIMD; i++) {
@@ -151,7 +106,7 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
 	        p0.r[i]        = p.r[i];
 		p0.phi[i]      = p.phi[i];
 		p0.z[i]        = p.z[i];
-		p0.distance[i] = p.distance[i];
+		p0.time[i]     = p.time[i];
 		p0.running[i]  = p.running[i];
 		p0.endcond[i]  = p.endcond[i];
 		p0.walltile[i] = p.walltile[i];
@@ -162,8 +117,8 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
 
 	    
 	    
-            if(sim.enable_orbfol) {
-	        step_ml_cashkarp(&p, hin, hout, tol,&sim.B_data);
+            if(sim->enable_orbfol) {
+	        step_ml_cashkarp(&p, hin, hout, tol, &sim->B_data);
 		/* Check whether time step was rejected */
                 #pragma omp simd
 	        for(i = 0; i < NSIMD; i++) {
@@ -184,7 +139,7 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
 		    p.r[i]        = p0.r[i];
 		    p.phi[i]      = p0.phi[i];
 		    p.z[i]        = p0.z[i];
-		    p.distance[i] = p0.distance[i];
+		    p.time[i]     = p0.time[i];
 		    p.running[i]  = p0.running[i];
 		    p.endcond[i]  = p0.endcond[i];
 		    p.walltile[i] = p0.walltile[i];
@@ -194,7 +149,7 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
 		else{
 		    if(p.running[i]){
 			
-			p.distance[i] = p.distance[i] + hin[i];
+			p.time[i] = p.time[i] + hin[i];
 			
 			/* Determine next time step */
 			if(hnext[i] > hout[i]) {
@@ -209,37 +164,19 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
 		}
 	    }
 
-            endcond_check_ml(&p, &p0, &sim);
+            endcond_check_ml(&p, &p0, sim);
 	    
-	    diag_update_ml(&sim.diag_data, &p, &p0);
+	    diag_update_ml(&sim->diag_data, &p, &p0);
 
             /* update number of running particles */
-            n_running = 0;
-            int k;
-            for(k = 0; k < NSIMD; k++) {
-                if( !p.running[k] && p.id[k] >= 0) {
-
-                    ml_to_particle(&p, k, &particles[p.index[k]]);
-
-                    #pragma omp critical
-                    i_prt = i_next_prt++;
-                    if(i_prt < n_particles) {
-                        particle_to_ml(&particles[i_prt], i_prt, &p, k,
-				       &sim.B_data);
-		
-			/* Determine initial time step */
-			hin[k] = simulate_ml_adaptive_inidt(&sim, &p, i);
-						
-                    }
-                    else {
-                        p.id[k] = -1;
-                    }
+	    int n_running = particle_cycle_ml(pq, &p, &sim->B_data, cycle);
+	
+	    #pragma omp simd
+	    for(i = 0; i < NSIMD; i++) {
+	        if(cycle[i] > 0) {
+		    /* Determine initial time-step */
+	            hin[i] = simulate_ml_adaptive_inidt(sim, &p, i);
 	        }
-            }
-
-	    #pragma omp simd reduction(+:n_running)
-	    for(k = 0; k < NSIMD; k++) {
-		n_running += p.running[k];
 	    }
 	   
 
@@ -248,8 +185,6 @@ void simulate_ml_adaptive(int id, int n_particles, particle* particles,
         
 
     }
-
-    diag_clean(&sim.diag_data);
 
 }
 
@@ -260,6 +195,7 @@ real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i) {
 
     /* Value calculated from speed of light 
      * assuming initial time step is of the order of 1 cm / c*/
+    /* Define this with a compiler parameter */
 
     return 1.0e-2/CONST_C;
 

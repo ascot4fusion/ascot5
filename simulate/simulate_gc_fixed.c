@@ -48,7 +48,7 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
  *
  * @todo See simulate_gc_adaptive.c
  */
-void simulate_gc_fixed(particle_queue_gc* pq, sim_data* sim) {
+void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
    
     int cycle[NSIMD];
     int err[NSIMD];

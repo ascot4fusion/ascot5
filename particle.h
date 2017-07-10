@@ -81,12 +81,6 @@ typedef struct {
     integer walltile;  /**< id of walltile if particle hit the wall */
 } particle;
 
-typedef struct {
-    int n;
-    particle_state** p;
-    int next;
-} particle_queue_fo;
-
 /** @brief Struct representing a single guiding center in cylindrical
  *         coordinates
  */
@@ -107,13 +101,27 @@ typedef struct {
     integer walltile;  /**< id of walltile if particle hit the wall */
 } particle_gc;
 
+/** @brief Struct representing a single magnetic field line in cylindrical
+ *         coordinates
+ */
+typedef struct {
+    real r;        /**< r coordinate */
+    real phi;      /**< phi coordinate */
+    real z;        /**< z coordinate */
+    real pitch;    /**< pitch angle */
+    real weight;   /**< test particle weight */
+    real time;     /**< particle simulation time */
+    integer id;        /**< arbitrary id for the particle */
+    integer running;  /**< 1 if the particle has hit the wall */
+    integer endcond;   /**< particle end condition */
+    integer walltile;  /**< id of walltile if particle hit the wall */
+} particle_ml;
+
 typedef struct {
     int n;
     particle_state** p;
     int next;
-} particle_queue_gc;
-
-
+} particle_queue;
 
 typedef enum input_particle_type {
     input_particle_type_p, input_particle_type_gc, input_particle_type_ml, 
@@ -128,6 +136,7 @@ typedef struct {
     union {
         particle p;
         particle_gc p_gc;
+	particle_gc p_ml;
 	particle_state p_s;
     };
 } input_particle;
@@ -228,7 +237,8 @@ typedef struct {
     real r[NSIMD] __memalign__;        /**< r coordinate */
     real phi[NSIMD] __memalign__;      /**< phi coordinate */
     real z[NSIMD] __memalign__;        /**< z coordinate */
-    real distance[NSIMD] __memalign__;     /**< field line simulation "time" i.e. distance */
+    real pitch[NSIMD] __memalign__;     /**< pitc = +1 */
+    real time[NSIMD] __memalign__;     /**< field line simulation "time" i.e. distance/c */
     integer id[NSIMD] __memalign__;       /**< arbitrary id for the field line */
     integer running[NSIMD] __memalign__; /**< 1 if the field line has hit the
                                                wall */
@@ -276,9 +286,11 @@ void particle_to_ml(particle* p, int i, particle_simd_ml* p_ml, int j,
 void particle_to_ml_dummy(particle_simd_ml* p_ml, int j);
 void ml_to_particle(particle_simd_ml* p_ml, int j, particle* p);
 
-int particle_cycle_fo(particle_queue_fo* q, particle_simd_fo* p,
+int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
                       B_field_data* Bdata, int* cycle);
-int particle_cycle_gc(particle_queue_gc* q, particle_simd_gc* p,
+int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
+                      B_field_data* Bdata, int* cycle);
+int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
                       B_field_data* Bdata, int* cycle);
 
 void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata, int state);
@@ -286,6 +298,8 @@ void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int 
 void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p);
 void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j);
 void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p);
+void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int j);
+void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p);
 #pragma omp end declare target
 
 #endif
