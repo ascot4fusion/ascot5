@@ -314,34 +314,6 @@ void B_2DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_2DS_data* Bdata) {
     #endif
 }
 
-/**
- * @brief Interpolate magnetic field value and derivatives using bicubic 
- *        interpolation
- *
- * This function interpolates the magnetic field and it's derivatives for a
- * single component at the given point using 2D bicubic interpolation with   
- * Catmull-Rom splines and their partial derivatives.
- *
- * Different components can be evaluated with successive calls to the function, 
- * giving a pointer to the corresponding location in the full B_dB array as the 
- * second parameter (i.e. B_dB[0] for Br, B_dB[4] for Bphi, B_dB[8] for Bz).
- *
- * @param i index in the NSIMD struct that will be populated 
- * @param B_dB_component array where magnetic field values and derivatives for 
- *             a single component will be stored (value->B_dB_component[0][i], 
- *             d/dr -> B_dB_component[1][i], d/dphi -> B_dB_component[2][i],
- *             d/dz -> B_dB_component[3][i]
- * @param t_r r parameter in the given cell, t_r = [0,1)
- * @param t_z z parameter in the given cell, t_z = [0,1)
- * @param i_r r axis index of the cell
- * @param i_z z axis index of the cell
- * @param n_r length of the data grid on r axis
- * @param r_grid r grid interval 
- * @param z_grid z grid interval
- * @param B pointer to magnetic field component data; can be B_r, B_phi or B_z
- *          from Bdata struct
- */
-
 real B_2DS_get_axis_r(B_2DS_data* Bdata) {
     return Bdata->axis_r;
 }

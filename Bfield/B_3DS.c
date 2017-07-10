@@ -10,7 +10,7 @@
 #include "../ascot5.h"
 #include "B_3DS.h"
 #include "../splinePatrik/interp2D.h" /* for 2D interpolation routines */
-#include "../splinePatrik/interp3D.h" /* for 2D interpolation routines */
+#include "../splinePatrik/interp3D.h" /* for 3D interpolation routines */
 
 /**
  * @brief Load magnetic field data and prepare parameters
@@ -37,6 +37,7 @@ void B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) 
     fscanf(f, "%lf %lf %d", &(offload_data->z_min), &(offload_data->z_max),
                             &(offload_data->n_z));
 
+    /* Calculate and store grid cell lengths */
     offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
                            / (offload_data->n_r - 1);
     offload_data->z_grid = (offload_data->z_max - offload_data->z_min)
@@ -62,6 +63,7 @@ void B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) 
         fscanf(f, "%lf", &(*offload_array)[i + 3*B_size]);
     }
 
+    /* Read values to temporary arrays */
     real* temp_B_r = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
     real* temp_B_phi = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
     real* temp_B_z = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
@@ -104,19 +106,6 @@ void B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) 
     }
     
     fclose(f);
-
-    // Compact eval requires one +1-coefs. Should we copy 1st sector to end???
-    /* /\* Copy two phi slices into opposite ends for each field */
-    /*  * component *\/ */
-    /* memcpy(&(*offload_array)[(offload_data->n_phi+2)*psi_size], */
-    /*     &(*offload_array)[2*psi_size], */
-    /*     psi_size * sizeof(real)); */
-    /* memcpy(&(*offload_array)[(offload_data->n_phi+2)*psi_size+B_size], */
-    /*     &(*offload_array)[2*psi_size+B_size], */
-    /*     psi_size * sizeof(real)); */
-    /* memcpy(&(*offload_array)[(offload_data->n_phi+2)*psi_size+2*B_size], */
-    /*     &(*offload_array)[2*psi_size+2*B_size], */
-    /*     psi_size * sizeof(real)); */
 
     /* Read rho parameters from input.magn_header */
     f = fopen("input.magn_header", "r");

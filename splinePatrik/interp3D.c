@@ -176,7 +176,7 @@ void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
 	cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0;
     }
     free(str->c);
-    str->c = cc; // How to free cc?
+    str->c = cc;
 }
 
 /**
@@ -222,6 +222,9 @@ void interp3D_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
     int n = i_phi*str->n_z*str->n_r*8+i_z*str->n_r*8+i_r*8; /**< Index jump to cell */
     int r1 = 8; /**< Index jump one r forward */
     int phi1 = str->n_z*str->n_r*8; /**< Index jump one phi forward */
+    if(i_phi==str->n_phi-1) {
+	phi1 = -(str->n_phi-1)*phi1; /**< If last cell, index jump to 1st phi */
+    }
     int z1 = str->n_r*8; /**< Index jump one z forward */
 	   
     *B = (
@@ -340,6 +343,9 @@ void interp3D_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) 
     int n = i_phi*str->n_z*str->n_r*8+i_z*str->n_r*8+i_r*8; /**< Index jump to cell */
     int r1 = 8; /**< Index jump one r forward */
     int phi1 = str->n_z*str->n_r*8; /**< Index jump one phi forward */
+    if(i_phi==str->n_phi-1) {
+	phi1 = -(str->n_phi-1)*phi1; /**< If last cell, index jump to 1st phi */
+    }
     int z1 = str->n_r*8; str->n_r*4; /**< Index jump one z forward */
 
     /* f */

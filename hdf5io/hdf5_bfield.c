@@ -10,7 +10,9 @@
 #include "../ascot5.h"
 #include "../B_field.h"
 #include "../Bfield/B_2D.h"
+#include "../Bfield/B_2DS.h"
 #include "../Bfield/B_3D.h"
+#include "../Bfield/B_3DS.h"
 #include "../Bfield/B_ST.h"
 #include "hdf5.h"
 #include "hdf5_helpers.h"
@@ -78,7 +80,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
         return 1;
     }
     else if (strcmp(type, "3D") == 0) {
-        hdf5_bfield_init_offload_3D(f, &(offload_data->B3D), offload_array);
+        hdf5_bfield_init_offload_3DS(f, &(offload_data->B3DS), offload_array);
 	offload_data->type = B_field_type_3DS;
         return 1;
     }
@@ -250,6 +252,78 @@ void hdf5_bfield_init_offload_3D(hid_t f, B_3D_offload_data* offload_data, real*
     memcpy(&(*offload_array)[(offload_data->n_phi+3)*psi_size+2*B_size],
         &(*offload_array)[3*psi_size+2*B_size],
         psi_size * sizeof(real));
+
+    /* Read the first two values; These are the poloidal flux (psi) values at
+     * magnetic axis and at x point (that is, separatrix). */
+    err = H5LTread_dataset_double(f,"/bfield/3D/psi0",&(offload_data->psi0));
+    err = H5LTread_dataset_double(f,"/bfield/3D/psi1",&(offload_data->psi1));
+
+    /* Read magnetic axis r and z coordinates */
+    err = H5LTread_dataset_double(f,"/bfield/3D/axis_r",&(offload_data->axis_r));
+    err = H5LTread_dataset_double(f,"/bfield/3D/axis_z",&(offload_data->axis_z));
+}
+
+void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, real** offload_array) {
+    herr_t err;
+    
+    err = H5LTread_dataset_int(f,"/bfield/3D/n_r",&(offload_data->n_r));
+    err = H5LTread_dataset_int(f,"/bfield/3D/n_phi",&(offload_data->n_phi));
+    err = H5LTread_dataset_int(f,"/bfield/3D/n_z",&(offload_data->n_z));
+    err = H5LTread_dataset_double(f,"/bfield/3D/r_min",&(offload_data->r_min));
+    err = H5LTread_dataset_double(f,"/bfield/3D/r_max",&(offload_data->r_max));
+    err = H5LTread_dataset_double(f,"/bfield/3D/z_min",&(offload_data->z_min));
+    err = H5LTread_dataset_double(f,"/bfield/3D/z_max",&(offload_data->z_max));
+
+    offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
+                           / (offload_data->n_r - 1);
+    offload_data->z_grid = (offload_data->z_max - offload_data->z_min)
+                           / (offload_data->n_z - 1);
+    offload_data->phi_grid = 2*math_pi / (offload_data->n_phi);
+
+    /* phi array starts from -0.5*phi_grid and ends at 0.5*phi_grid + 2pi! */
+    offload_data->phi_min = -1.5 * offload_data->phi_grid;
+    offload_data->phi_max = 1.5 * offload_data->phi_grid + 2*math_pi;
+
+    /* Allocate offload_array */
+    int psi_size = offload_data->n_r*offload_data->n_z;
+    int B_size = offload_data->n_r*offload_data->n_z*offload_data->n_phi;
+    *offload_array = (real*) malloc((psi_size + 3 * B_size) * sizeof(real));
+    offload_data->offload_array_length = psi_size + 3 * B_size;
+
+    /* Read psi */
+    err = H5LTread_dataset_double(f,"/bfield/3D/psi",&(*offload_array)[3*B_size]);
+
+    /* Read the magnetic field */
+    real* temp_B_r = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
+    real* temp_B_phi = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
+    real* temp_B_z = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
+
+    err = H5LTread_dataset_double(f,"/bfield/3D/B_r",temp_B_r);
+    err = H5LTread_dataset_double(f,"/bfield/3D/B_phi",temp_B_phi);
+    err = H5LTread_dataset_double(f,"/bfield/3D/B_z",temp_B_z);
+
+    /* permute the phi and z dimensions */
+    int i;
+    for(i = 0; i < offload_data->n_phi; i++) {
+        int j;
+        for(j = 0; j < offload_data->n_z; j++) {
+            int k;
+            for(k = 0; k < offload_data->n_r; k++) {
+               (*offload_array)[i*offload_data->n_z*offload_data->n_r
+                          + j*offload_data->n_r + k] =
+                        temp_B_r[j*offload_data->n_phi*offload_data->n_r
+                          + i*offload_data->n_r + k];
+               (*offload_array)[i*offload_data->n_z*offload_data->n_r
+                          + j*offload_data->n_r + k + B_size] =
+                        temp_B_phi[j*offload_data->n_phi*offload_data->n_r
+                          + i*offload_data->n_r + k];
+               (*offload_array)[i*offload_data->n_z*offload_data->n_r
+                          + j*offload_data->n_r + k + 2*B_size] =
+                        temp_B_z[j*offload_data->n_phi*offload_data->n_r
+                          + i*offload_data->n_r + k];
+            }
+        }
+    }
 
     /* Read the first two values; These are the poloidal flux (psi) values at
      * magnetic axis and at x point (that is, separatrix). */
