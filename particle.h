@@ -116,7 +116,8 @@ typedef struct {
 
 
 typedef enum input_particle_type {
-    input_particle_type_p, input_particle_type_gc, input_particle_type_ps, input_particle_type_gcs
+    input_particle_type_p, input_particle_type_gc, input_particle_type_ml, 
+    input_particle_type_ps, input_particle_type_gcs, input_particle_type_mls
 } input_particle_type;
 
 /** @brief Struct representing either a particle or guiding center, including

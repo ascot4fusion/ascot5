@@ -24,7 +24,7 @@ class ui_optionsIO:
     #
 
     SIM_MODE        = 1
-    ENABLE_ADAPTIVE = 1
+    ENABLE_ADAPTIVE = 0
     RECORD_GO_AS_GC = 0
 
 
@@ -156,7 +156,7 @@ class ui_optionsIO:
     #
 
     ENABLE_ORBIT_FOLLOWING    = 1
-    ENABLE_COULOMB_COLLISIONS = 0
+    ENABLE_COULOMB_COLLISIONS = 1
 
 
     ###############

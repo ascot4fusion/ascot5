@@ -57,9 +57,18 @@ vr     = np.array([8789194.5])
 vphi   = np.array([-3242767.0])
 vz     = np.array([-9101402.5])
 
+r   = np.array([7.0123552])
+phi = np.array([352.52435])
+z   = np.array([0.0814756])
+pitch  = np.array([0.7])
+energy = np.array([3.5e6])
+theta  = np.array([0.1])
+
+
 ui_options.writeHdf5(ui_options.ui_optionsIO(),fn)
 ui_B_TC.write_hdf5(fn, B0, B_dB, axisr, axisz, psival, rhoval) 
 ui_E_TC.write_hdf5(fn, E) 
 ui_plasma_1D.write_hdf5(fn, Znum, Anum, rho, ndens, ntemp, edens, etemp, idens, itemp)
 ui_wall_2D.write_hdf5(fn, wr, wz)
-ui_markers.write_hdf5_particles(fn, ids, anum, znum, rprt, phiprt, zprt, vr, vphi, vz, weight);
+#ui_markers.write_hdf5_particles(fn, ids, anum, znum, rprt, phiprt, zprt, vr, vphi, vz, weight);
+ui_markers.write_hdf5_particles(fn, ids, anum, znum, r, phi, z, energy, pitch, theta, weight);

@@ -111,10 +111,50 @@ void phys_prttogc(real mass, real charge, real r, real phi, real z,
 
 }
 
-void phys_gctoprt(real R, real Phi, real Z, real v_para, real mu, 
+/**
+ * @brief Transform guiding center to particle coordinates
+ * @todo  Implement first order momentum terms
+ */
+void phys_gctoprt(real mass, real charge, real R, real Phi, real Z, real v_para, real mu, real theta,
 		  real* B_dB, real* prtpos){
 
+    real B_norm = sqrt(B_dB[0] * B_dB[0] + B_dB[4] * B_dB[4] + B_dB[8] * B_dB[8]);
+    real vperp = sqrt(B_norm * mu);
+   
+    /* Choose basis vectors a1, which is perpendicular to B and z (since we always have Btor),
+     * and a2 which is perpendicular to a1 and B */
+    real bhat[3];
+    bhat[0] = B_dB[0] / B_norm;
+    bhat[1] = B_dB[4] / B_norm;
+    bhat[2] = B_dB[8] / B_norm;
 
+    real a1[3];
+    a1[0] = bhat[1] / sqrt( bhat[1]*bhat[1] + bhat[0]*bhat[0] );
+    a1[1] = -bhat[0] / sqrt( bhat[1]*bhat[1] + bhat[0]*bhat[0] );
+    a1[2] = 0;
+
+    real a2t[3];
+    a2t[0] = bhat[1] * a1[2] - bhat[2] * a1[1]; 
+    a2t[1] = bhat[2] * a1[0] - bhat[0] * a1[2]; 
+    a2t[2] = bhat[0] * a1[1] - bhat[1] * a1[0];
+
+    real a2[3];
+    math_unit(a2t,a2);
+
+    /* velocity components */
+    real c = cos(theta);
+    real s = sin(theta);
+    prtpos[3] = bhat[0]*v_para + vperp * ( -a1[0] * s + a2[0] * c );
+    prtpos[4] = bhat[1]*v_para + vperp * ( -a1[1] * s + a2[1] * c );
+    prtpos[5] = bhat[2]*v_para + vperp * ( -a1[2] * s + a2[2] * c );
+
+    /* Spatial components */
+    real gamma = phys_gammagcv(mass,v_para,mu);
+    real rho = mass*gamma*sqrt(v_para * v_para + B_norm * mu)/(charge*B_norm);
+
+    prtpos[0] = rho * ( a1[0] * c + a2[0] * s );
+    prtpos[1] = rho * ( a1[1] * c + a2[1] * s );
+    prtpos[2] = rho * ( a1[2] * c + a2[2] * s );
 }
 
 /**

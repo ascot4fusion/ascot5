@@ -523,6 +523,67 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata,
 	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
 	    p[i_prt].p_s.B_z_dz     = B_dB[11];
 	}
+        else if(p[i_prt].type == input_particle_type_gc) {
+	    /* Guiding center to fo */
+	    p[i_prt].type = input_particle_type_ps;
+
+	    real r      = p[i_prt].p_gc.r;
+	    real phi    = p[i_prt].p_gc.phi;
+	    real z      = p[i_prt].p_gc.z;
+	    real pitch  = p[i_prt].p_gc.pitch;
+	    real energy = p[i_prt].p_gc.energy;
+	    real theta  = p[i_prt].p_gc.theta;
+	    real mass   = p[i_prt].p_gc.mass;
+	    real charge = p[i_prt].p_gc.charge;
+	    real weight = p[i_prt].p_gc.weight;
+	    real time   = p[i_prt].p_gc.time;
+	    integer id  = p[i_prt].p_gc.id;
+
+	    real B_dB[12];
+	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
+
+	    real B_norm = sqrt(B_dB[0] * B_dB[0] + B_dB[4] * B_dB[4] + B_dB[8] * B_dB[8]);
+
+	    real gamma = 1 + energy / (mass * CONST_C2);
+	    real vgc = sqrt(1 - 1 / (gamma * gamma)) * CONST_C;
+	    real vpar = pitch*vgc;
+	    real mu = (1 - pitch * pitch) * vgc * vgc / (B_norm);
+	    
+	    real prtpos[6];
+	    phys_gctoprt(mass, charge, r, phi, z, vpar, mu, theta, B_dB, prtpos);
+	     
+	    p[i_prt].p_s.r          = r;     
+	    p[i_prt].p_s.phi        = phi;      
+	    p[i_prt].p_s.z          = z;   
+	    p[i_prt].p_s.mu         = mu; 
+	    p[i_prt].p_s.vpar       = vpar;     
+	    p[i_prt].p_s.theta      = theta;     
+	    p[i_prt].p_s.mass       = mass;      
+	    p[i_prt].p_s.charge     = charge;  
+	    p[i_prt].p_s.weight     = weight;    
+	    p[i_prt].p_s.time       = time;     
+	    p[i_prt].p_s.id         = id;    
+	    p[i_prt].p_s.endcond    = 0; 
+	    p[i_prt].p_s.walltile   = 0;
+	    p[i_prt].p_s.B_r        = B_dB[0];     
+	    p[i_prt].p_s.B_phi      = B_dB[4];     
+	    p[i_prt].p_s.B_z        = B_dB[8];      
+	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
+	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
+	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
+	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
+	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
+	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
+	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
+	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
+	    p[i_prt].p_s.B_z_dz     = B_dB[11];
+           
+	}
+	else if(p[i_prt].type == input_particle_type_ml) {
+	    /* Magnetic field line to fo */
+	    /* NOT ACCEPTABLE TRANSFORMATION */
+	    // TODO generate error
+	}
     }
     else if(state == 2) {
 	if(p[i_prt].type == input_particle_type_p) {
@@ -579,9 +640,76 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata,
 	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
 	    p[i_prt].p_s.B_z_dz     = B_dB[11];
 	}
+	else if(p[i_prt].type == input_particle_type_gc) {
+	    /* Guiding center to gc */
+	    p[i_prt].type = input_particle_type_gcs;
+
+	    real r      = p[i_prt].p_gc.r;
+	    real phi    = p[i_prt].p_gc.phi;
+	    real z      = p[i_prt].p_gc.z;
+	    real pitch  = p[i_prt].p_gc.pitch;
+	    real energy = p[i_prt].p_gc.energy;
+	    real theta  = p[i_prt].p_gc.theta;
+	    real mass   = p[i_prt].p_gc.mass;
+	    real charge = p[i_prt].p_gc.charge;
+	    real weight = p[i_prt].p_gc.weight;
+	    real time   = p[i_prt].p_gc.time;
+	    integer id  = p[i_prt].p_gc.id;
+
+	    real B_dB[12];
+	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
+
+	    real B_norm = sqrt(B_dB[0] * B_dB[0] + B_dB[4] * B_dB[4] + B_dB[8] * B_dB[8]);
+
+	    real gamma = 1 + energy / (mass * CONST_C2);
+	    real vgc = sqrt(1 - 1 / (gamma * gamma)) * CONST_C;
+	    real vpar = pitch*vgc;
+	    real mu = (1 - pitch * pitch) * vgc * vgc / (B_norm);
+
+	    p[i_prt].p_s.r          = r;     
+	    p[i_prt].p_s.phi        = phi;      
+	    p[i_prt].p_s.z          = z;   
+	    p[i_prt].p_s.mu         = mu; 
+	    p[i_prt].p_s.vpar       = vpar;     
+	    p[i_prt].p_s.theta      = theta;     
+	    p[i_prt].p_s.mass       = mass;      
+	    p[i_prt].p_s.charge     = charge;  
+	    p[i_prt].p_s.weight     = weight;    
+	    p[i_prt].p_s.time       = time;     
+	    p[i_prt].p_s.id         = id;    
+	    p[i_prt].p_s.endcond    = 0; 
+	    p[i_prt].p_s.walltile   = 0;
+	    p[i_prt].p_s.B_r        = B_dB[0];     
+	    p[i_prt].p_s.B_phi      = B_dB[4];     
+	    p[i_prt].p_s.B_z        = B_dB[8];      
+	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
+	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
+	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
+	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
+	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
+	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
+	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
+	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
+	    p[i_prt].p_s.B_z_dz     = B_dB[11];
+	}
+	else if(p[i_prt].type == input_particle_type_ml) {
+	    /* Magnetic field line to gc */
+	    /* NOT ACCEPTABLE TRANSFORMATION */
+	    // TODO generate error
+	}
 
     }
-    
+    else if(state == 3) {
+        if(p[i_prt].type == input_particle_type_p) {
+	    
+	}
+	else if(p[i_prt].type == input_particle_type_gc) {
+	    
+	}
+	else if(p[i_prt].type == input_particle_type_ml) {
+
+	}
+    }
 }
 
 void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j) {

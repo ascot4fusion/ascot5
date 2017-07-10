@@ -85,7 +85,7 @@
 void phys_prttogc(real mass, real charge, real r, real phi, real z, 
 		  real p_r, real p_phi, real p_z, real* B_dB, real* gcpos);
 #pragma omp declare simd
-void phys_gctoprt(real R, real Phi, real Z, real v_para, real mu, 
+void phys_gctoprt(real mass, real charge, real R, real Phi, real Z, real v_para, real mu, real theta,
 		  real* B_dB, real* prtpos);
 #pragma omp declare simd
 void phys_eomprt();
