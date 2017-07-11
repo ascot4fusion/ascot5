@@ -91,7 +91,7 @@ def aGS_allInputs(epsilon,kappa,delta,Xpointx,Xpointy,outerEqPoint,innerEqPoint,
 
     ###########################################################################
     #                                                                         #
-    #   Plot the solution if the needed parameters (r0 & D) were given        #
+    #   Plot the solution if parameters r0 and D were given                   #
     #                                                                         #
     ###########################################################################
 
@@ -136,31 +136,3 @@ if __name__ == "__main__":
         D= -np.linspace(-0.005,0.04,15) #Values of the contours for plotting
 
     analyticGS(epsilon,kappa,delta,xsep,ysep,D,R0)
-
-
-#Old functions
-    #A = np.array([psi1(1+epsilon,0), psi2(1+epsilon,0), psi3(1+epsilon,0), psi4(1+epsilon,0), psi5(1+epsilon,0), psi6(1+epsilon,0), psi7(1+epsilon,0), psi8(1+epsilon,0), psi9(1+epsilon,0), psi10(1+epsilon,0), psi11(1+epsilon,0), p#si12(1+epsilon,0), #outer equatorial point
-    #    psi1(1-epsilon,0), psi2(1-epsilon,0), psi3(1-epsilon,0), psi4(1-epsilon,0), psi5(1-epsilon,0), psi6(1-epsilon,0), psi7(1-epsilon,0), psi8(1-epsilon,0), psi9(1-epsilon,0), psi10(1-epsilon,0), psi11(1-epsilon,0), psi12(1-eps#ilon,0), #inner equatorial point
-    #    psi1(1-epsilon*delta,kappa*epsilon), psi2(1-epsilon*delta,kappa*epsilon), psi3(1-epsilon*delta,kappa*epsilon), psi4(1-epsilon*delta,kappa*epsilon), psi5(1-epsilon*delta,kappa*epsilon), psi6(1-epsilon*delta,kappa*epsilon), psi7(1-epsilon*delta,kappa*epsilon), psi8(1-epsilon*delta,kappa*epsilon), psi9(1-epsilon*delta,kappa*epsilon), psi10(1-epsilon*delta,kappa*epsilon), psi11(1-epsilon*delta,kappa*epsilon), psi12(1-epsilon*delta,kappa*epsilon), #upper high point
-    #    psi1(xsep,ysep), psi2(xsep,ysep), psi3(xsep,ysep), psi4(xsep,ysep), psi5(xsep,ysep), psi6(xsep,ysep), psi7(xsep,ysep), psi8(xsep,ysep), psi9(xsep,ysep), psi10(xsep,ysep), psi11(xsep,ysep), psi12(xsep,ysep), #lower X point 
-    #    slope1*psi1x(1+epsilon,0)+psi1y(1+epsilon,0), slope1*psi2x(1+epsilon,0)+psi2y(1+epsilon,0), slope1*psi3x(1+epsilon,0)+psi3y(1+epsilon,0), slope1*psi4x(1+epsilon,0)+psi4y(1+epsilon,0), slope1*psi5x(1+epsilon,0)+psi5y(1+epsilon,0), slope1*psi6x(1+epsilon,0)+psi6y(1+epsilon,0), slope1*psi7x(1+epsilon,0)+psi7y(1+epsilon,0), slope1*psi8x(1+epsilon,0)+psi8y(1+epsilon,0), slope1*psi9x(1+epsilon,0)+psi9y(1+epsilon,0), slope1*psi10x(1+epsilon,0)+psi10y(1+epsilon,0), slope1*psi11x(1+epsilon,0)+psi11y(1+epsilon,0), slope1*psi12x(1+epsilon,0)+psi12y(1+epsilon,0), #outer equatorial point slope
-    #    slope2*psi1x(1-epsilon,0)+psi1y(1-epsilon,0), slope2*psi2x(1-epsilon,0)+psi2y(1-epsilon,0), slope2*psi3x(1-epsilon,0)+psi3y(1-epsilon,0), slope2*psi4x(1-epsilon,0)+psi4y(1-epsilon,0), slope2*psi5x(1-epsilon,0)+psi5y(1-epsilon,0), slope2*psi6x(1-epsilon,0)+psi6y(1-epsilon,0), slope2*psi7x(1-epsilon,0)+psi7y(1-epsilon,0), slope2*psi8x(1-epsilon,0)+psi8y(1-epsilon,0), slope2*psi9x(1-epsilon,0)+psi9y(1-epsilon,0), slope2*psi10x(1-epsilon,0)+psi10y(1-epsilon,0), slope2*psi11x(1-epsilon,0)+psi11y(1-epsilon,0), slope2*psi12x(1-epsilon,0)+psi12y(1-epsilon,0), #inner equatorial point slope
-    #    psi1x(1-epsilon*delta,kappa*epsilon), psi2x(1-epsilon*delta,kappa*epsilon), psi3x(1-epsilon*delta,kappa*epsilon), psi4x(1-epsilon*delta,kappa*epsilon), psi5x(1-epsilon*delta,kappa*epsilon), psi6x(1-epsilon*delta,kappa*epsilon), psi7x(1-epsilon*delta,kappa*epsilon), psi8x(1-epsilon*delta,kappa*epsilon), psi9x(1-epsilon*delta,kappa*epsilon), psi10x(1-epsilon*delta,kappa*epsilon), psi11x(1-epsilon*delta,kappa*epsilon), psi12x(1-epsilon*delta,kappa*epsilon), #upper high point maximum
-    #    psi1x(xsep,ysep), psi2x(xsep,ysep), psi3x(xsep,ysep), psi4x(xsep,ysep), psi5x(xsep,ysep), psi6x(xsep,ysep), psi7x(xsep,ysep), psi8x(xsep,ysep), psi9x(xsep,ysep), psi10x(xsep,ysep), psi11x(xsep,ysep), psi12x(xsep,ysep), #By = 0 at lower X-point
-    #    psi1y(xsep,ysep), psi2y(xsep,ysep), psi3y(xsep,ysep), psi4y(xsep,ysep), psi5y(xsep,ysep), psi6y(xsep,ysep), psi7y(xsep,ysep), psi8y(xsep,ysep), psi9y(xsep,ysep), psi10y(xsep,ysep), psi11y(xsep,ysep), psi12y(xsep,ysep), #Bx = 0 at lower X-point
-    #    curv1*psi1x(1+epsilon,0)+psi1yy(1+epsilon,0), curv1*psi2x(1+epsilon,0)+psi2yy(1+epsilon,0), curv1*psi3x(1+epsilon,0)+psi3yy(1+epsilon,0), curv1*psi4x(1+epsilon,0)+psi4yy(1+epsilon,0), curv1*psi5x(1+epsilon,0)+psi5yy(1+epsilon,0), curv1*psi6x(1+epsilon,0)+psi6yy(1+epsilon,0), curv1*psi7x(1+epsilon,0)+psi7yy(1+epsilon,0), curv1*psi8x(1+epsilon,0)+psi8yy(1+epsilon,0), curv1*psi9x(1+epsilon,0)+psi9yy(1+epsilon,0), curv1*psi10x(1+epsilon,0)+psi10yy(1+epsilon,0), curv1*psi11x(1+epsilon,0)+psi11yy(1+epsilon,0), curv1*psi12x(1+epsilon,0)+psi12yy(1+epsilon,0), #curvature condition at outer equatorial point
-    #    curv3*psi1x(1-epsilon,0)+psi1yy(1-epsilon,0), curv3*psi2x(1-epsilon,0)+psi2yy(1-epsilon,0), curv3*psi3x(1-epsilon,0)+psi3yy(1-epsilon,0), curv3*psi4x(1-epsilon,0)+psi4yy(1-epsilon,0), curv3*psi5x(1-epsilon,0)+psi5yy(1-epsilon,0), curv3*psi6x(1-epsilon,0)+psi6yy(1-epsilon,0), curv3*psi7x(1-epsilon,0)+psi7yy(1-epsilon,0), curv3*psi8x(1-epsilon,0)+psi8yy(1-epsilon,0), curv3*psi9x(1-epsilon,0)+psi9yy(1-epsilon,0), curv3*psi10x(1-epsilon,0)+psi10yy(1-epsilon,0), curv3*psi11x(1-epsilon,0)+psi11yy(1-epsilon,0), curv3*psi12x(1-epsilon,0)+psi12yy(1-epsilon,0), #curvature condition at inner equatorial point
-    #    curv2*psi1y(1-epsilon*delta,kappa*epsilon)+psi1xx(1-epsilon*delta,kappa*epsilon), curv2*psi2y(1-epsilon*delta,kappa*epsilon)+psi2xx(1-epsilon*delta,kappa*epsilon), curv2*psi3y(1-epsilon*delta,kappa*epsilon)+psi3xx(1-epsilon*delta,kappa*epsilon), curv2*psi4y(1-epsilon*delta,kappa*epsilon)+psi4xx(1-epsilon*delta,kappa*epsilon), curv2*psi5y(1-epsilon*delta,kappa*epsilon)+psi5xx(1-epsilon*delta,kappa*epsilon), curv2*psi6y(1-epsilon*delta,kappa*epsilon)+psi6xx(1-epsilon*delta,kappa*epsilon), curv2*psi7y(1-epsilon*delta,kappa*epsilon)+psi7xx(1-epsilon*delta,kappa*epsilon), curv2*psi8y(1-epsilon*delta,kappa*epsilon)+psi8xx(1-epsilon*delta,kappa*epsilon), curv2*psi9y(1-epsilon*delta,kappa*epsilon)+psi9xx(1-epsilon*delta,kappa*epsilon), curv2*psi10y(1-epsilon*delta,kappa*epsilon)+psi10xx(1-epsilon*delta,kappa*epsilon), curv2*psi11y(1-epsilon*delta,kappa*epsilon)+psi11xx(1-epsilon*delta,kappa*epsilon), curv2*psi12y(1-epsilon*delta,kappa*epsilon)+psi12xx(1-epsilon*delta,kappa*epsilon)]) #curvature condition at top
-
-    #B = np.negative([beta*psipart1(1+epsilon,0)+(1-beta)*psipart2(1+epsilon,0), # outer equatorial point
-    #    beta*psipart1(1-epsilon,0)+(1-beta)*psipart2(1-epsilon,0), # inner equatorial point
-    #    beta*psipart1(1-epsilon*delta,kappa*epsilon)+(1-beta)*psipart2(1-epsilon*delta,kappa*epsilon), #upper high point
-    #    beta*psipart1(xsep,ysep)+(1-beta)*psipart2(xsep,ysep), #lower X-point
-    #    beta*(slope1*psipart1x(1+epsilon,0)+psipart1y(1+epsilon,0))+(1-beta)*(slope1*psipart2x(1+epsilon,0)+psipart2y(1+epsilon,0)), #outer equatorial point slope
-    #    beta*(slope2*psipart1x(1-epsilon,0)+psipart1y(1-epsilon,0))+(1-beta)*(slope2*psipart2x(1-epsilon,0)+psipart2y(1-epsilon,0)), #inner equatorial point slope
-    #    beta*psipart1x(1-epsilon*delta,kappa*epsilon)+(1-beta)*psipart2x(1-epsilon*delta,kappa*epsilon), #upper high point maximum
-    #    beta*psipart1x(xsep,ysep)+(1-beta)*psipart2x(xsep,ysep), #By = 0 at lower X-point
-    #    beta*psipart1y(xsep,ysep)+(1-beta)*psipart2y(xsep,ysep), #Bx = 0 at lower X-point
-    #    beta*(curv1*psipart1x(1+epsilon,0)+psipart1yy(1+epsilon,0))+(1-beta)*(curv1*psipart2x(1+epsilon,0)+psipart2yy(1+epsilon,0)), #curvature condition at outer equatorial point
-    #    beta*(curv3*psipart1x(1-epsilon,0)+psipart1yy(1-epsilon,0))+(1-beta)*(curv3*psipart2x(1-epsilon,0)+psipart2yy(1-epsilon,0)), #curvature condition at inner equatorial point
-    #    beta*(curv2*psipart1y(1-epsilon*delta,kappa*epsilon)+psipart1xx(1-epsilon*delta,kappa*epsilon))+(1-beta)*(curv2*psipart2y(1-epsilon*delta,kappa*epsilon)+psipart2xx(1-epsilon*delta,kappa*epsilon))]) #curvature condition at top
