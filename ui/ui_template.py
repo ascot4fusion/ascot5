@@ -71,6 +71,6 @@ ui_B_TC.write_hdf5(fn, B0, B_dB, axisr, axisz, psival, rhoval)
 ui_E_TC.write_hdf5(fn, E) 
 ui_plasma_1D.write_hdf5(fn, Znum, Anum, rho, ndens, ntemp, edens, etemp, idens, itemp)
 ui_wall_2D.write_hdf5(fn, wr, wz)
-#ui_markers.write_hdf5_particles(fn, ids, anum, znum, rprt, phiprt, zprt, vr, vphi, vz, weight);
+ui_markers.write_hdf5_particles(fn, ids, anum, znum, rprt, phiprt, zprt, vr, vphi, vz, weight);
 #ui_markers.write_hdf5_guidingcenters(fn, ids, anum, znum, r, phi, z, energy, pitch, theta, weight);
-ui_markers.write_hdf5_fieldlines(fn, ids, r, phi, z, mlpitch);   
+#ui_markers.write_hdf5_fieldlines(fn, ids, r, phi, z, mlpitch);   

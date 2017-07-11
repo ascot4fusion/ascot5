@@ -1,3 +1,4 @@
+import sys
 import h5py
 import numpy as np
 
@@ -43,7 +44,7 @@ class ui_optionsIO:
     #
 
     FIXEDSTEP_USE_USERDEFINED     = 1
-    FIXEDSTEP_USERDEFINED         = 1e-8
+    FIXEDSTEP_USERDEFINED         = 1e-10
     FIXEDSTEP_NSTEPS_PER_GYROTIME = 10
 
 
@@ -132,7 +133,7 @@ class ui_optionsIO:
     # - Maximum number of poloidal orbits
     #
 
-    ENDCOND_MAX_SIM_TIME             = 1.0e-5
+    ENDCOND_MAX_SIM_TIME             = 1.0e-4
     ENDCOND_MAX_CPU_TIME             = 1.0e5
     ENDCOND_MAX_RHO                  = 1.0
     ENDCOND_MIN_RHO                  = 0.0
@@ -156,7 +157,7 @@ class ui_optionsIO:
     #
 
     ENABLE_ORBIT_FOLLOWING    = 1
-    ENABLE_COULOMB_COLLISIONS = 1
+    ENABLE_COULOMB_COLLISIONS = 0
 
 
     ###############
@@ -235,7 +236,7 @@ class ui_optionsIO:
     ORBITWRITE_TOROIDALANGLES = np.array([0, 180])
     ORBITWRITE_NPOLOIDALPLOTS = 1
     ORBITWRITE_POLOIDALANGLES = np.array([0, 180])
-    ORBITWRITE_INTERVAL       = 1e-6
+    ORBITWRITE_INTERVAL       = 1e-8
     ORBITWRITE_LASTNPOINTS    = 100
 
     ## Debug options ##
@@ -260,6 +261,10 @@ class ui_optionsIO:
 # fn -filename for hdf5-file
 def writeHdf5(c,fn):
     f = h5py.File(fn, "a")
+
+    if  "options" in f:
+        del f["options"]
+
     o = f.create_group("options")
 
     o.create_dataset("SIM_MODE", data = c.SIM_MODE, dtype='i4')
@@ -316,4 +321,7 @@ def writeHdf5(c,fn):
     f.close()
 
 if __name__ == "__main__":
-    writeHdf5(ui_optionsIO(), "ascot.h5")
+    if len(sys.argv) > 1:
+        writeHdf5(ui_optionsIO(), sys.argv[1])
+    else:
+        writeHdf5(ui_optionsIO(), "ascot.h5")

@@ -70,21 +70,35 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 
 	return 1;
     }
-    if(strcmp(type,"analytic") == 0) {
+    if(strncmp(type,"analytic",8) == 0) {
 	offload_data->type = B_field_type_GS;
 	return 1;
     }
-    if(strcmp(type,"2D") == 0) {
-        hdf5_bfield_init_offload_2D(f, &(offload_data->B2D), offload_array);
+    if(strncmp(type,"2D",2) == 0) {
+        hdf5_bfield_init_offload_2D(f, &(offload_data->B2DS), offload_array);
 	offload_data->type = B_field_type_2DS;
+
+	#if VERBOSE > 0
+	    printf("\nLoaded 2D magnetic field (B_2D)\n");
+	    printf("with parameters:\n");
+	    printf("- magnetic axis at (R,z) = (%le,%le)\n",
+		   offload_data->B2DS.axis_r,offload_data->B2DS.axis_z);
+	    printf("- psi axis = %le and psi separatrix %le\n",
+		   offload_data->B2DS.axis_r,offload_data->B2DS.axis_z);
+	    printf("- rmin, rmax, nr = %le, %le, %d\n",
+		   offload_data->B2DS.r_min,offload_data->B2DS.r_max,offload_data->B2DS.n_r);
+	    printf("- zmin, zmax, nz = %le, %le, %d\n",
+		   offload_data->B2DS.z_min,offload_data->B2DS.z_max,offload_data->B2DS.n_z);
+	#endif
+
         return 1;
     }
-    else if (strcmp(type, "3D") == 0) {
+    else if (strncmp(type, "3D",2) == 0) {
         hdf5_bfield_init_offload_3DS(f, &(offload_data->B3DS), offload_array);
 	offload_data->type = B_field_type_3DS;
         return 1;
     }
-    else if (strcmp(type, "stellarator") == 0) {
+    else if (strncmp(type, "stellarator",11) == 0) {
         hdf5_bfield_init_offload_ST(f, &(offload_data->BST), offload_array);
 	offload_data->type = B_field_type_ST;
         return 1;
@@ -92,7 +106,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
     return -1;
 }
 
-void hdf5_bfield_init_offload_2D(hid_t f, B_2D_offload_data* offload_data, real** offload_array) {
+void hdf5_bfield_init_offload_2D(hid_t f, B_2DS_offload_data* offload_data, real** offload_array) {
     herr_t err;
         
     err = H5LTread_dataset_int(f,"/bfield/2D/n_r",&(offload_data->n_r));
