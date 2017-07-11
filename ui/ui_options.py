@@ -24,7 +24,7 @@ class ui_optionsIO:
     #   2 - Use acceleration (valid only in axisymmetric fields) !!TODO Not implemented!!
     #
 
-    SIM_MODE        = 1
+    SIM_MODE        = 4
     ENABLE_ADAPTIVE = 0
     RECORD_GO_AS_GC = 0
 
@@ -66,7 +66,7 @@ class ui_optionsIO:
     # - Maximum acceleration factor
     #
 
-    ADAPTIVE_TOL_ORBIT = 1e-8
+    ADAPTIVE_TOL_ORBIT = 1e-2
     ADAPTIVE_TOL_CCOL  = 1e-2
     ADAPTIVE_MAX_DRHO  = 1.0
     ADAPTIVE_MAX_DPHI  = 1.0
@@ -133,7 +133,7 @@ class ui_optionsIO:
     # - Maximum number of poloidal orbits
     #
 
-    ENDCOND_MAX_SIM_TIME             = 1.0e-4
+    ENDCOND_MAX_SIM_TIME             = 1.0e-7
     ENDCOND_MAX_CPU_TIME             = 1.0e5
     ENDCOND_MAX_RHO                  = 1.0
     ENDCOND_MIN_RHO                  = 0.0
@@ -236,7 +236,7 @@ class ui_optionsIO:
     ORBITWRITE_TOROIDALANGLES = np.array([0, 180])
     ORBITWRITE_NPOLOIDALPLOTS = 1
     ORBITWRITE_POLOIDALANGLES = np.array([0, 180])
-    ORBITWRITE_INTERVAL       = 1e-8
+    ORBITWRITE_INTERVAL       = 1e-9
     ORBITWRITE_LASTNPOINTS    = 100
 
     ## Debug options ##

@@ -149,7 +149,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 		else{
 		    if(p.running[i]){
 			
-			p.time[i] = p.time[i] + hin[i];
+			p.time[i] = p.time[i] + hin[i]/CONST_C;
 			
 			/* Determine next time step */
 			if(hnext[i] > hout[i]) {
@@ -169,7 +169,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 	    diag_update_ml(&sim->diag_data, &p, &p0);
 
             /* update number of running particles */
-	    int n_running = particle_cycle_ml(pq, &p, &sim->B_data, cycle);
+	    n_running = particle_cycle_ml(pq, &p, &sim->B_data, cycle);
 	
 	    #pragma omp simd
 	    for(i = 0; i < NSIMD; i++) {
@@ -181,9 +181,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 	   
 
         } while(n_running > 0);
-	
         
-
     }
 
 }
@@ -197,6 +195,6 @@ real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i) {
      * assuming initial time step is of the order of 1 cm / c*/
     /* Define this with a compiler parameter */
 
-    return 1.0e-2/CONST_C;
+    return 1.0e-2;
 
 }

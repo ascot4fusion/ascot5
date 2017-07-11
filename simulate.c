@@ -68,18 +68,21 @@ void simulate_begin(int id, int n_particles, input_particle* p,
     
     if(sim->sim_mode == 1) {
 	/* FO simulation */
+	sim->diag_data.orbits.type = diag_orb_type_fo;
 	for(int i = 0; i < n_particles; i++) {
 	    particle_marker_to_state(p, i, &sim->B_data, 1);
 	}
     }
     else if(sim->sim_mode == 2 || sim->sim_mode == 3) {
 	/* GC or hybrid simulation */
+	sim->diag_data.orbits.type = diag_orb_type_gc;
 	for(int i = 0; i < n_particles; i++) {
 	    particle_marker_to_state(p, i, &sim->B_data, 2);
 	}
     }
     else if(sim->sim_mode == 4) {
 	/* ML simulation */
+	sim->diag_data.orbits.type = diag_orb_type_ml;
 	for(int i = 0; i < n_particles; i++) {
 	    particle_marker_to_state(p, i, &sim->B_data, 4);
 	}
@@ -128,7 +131,6 @@ void simulate_continue(int id, int n_particles, input_particle* p,
     p_fo.next = 0;
     p_gc.next = 0;
     p_ml.next = 0;
-    
 
     if(p_gc.n > 0) {
 	if(sim->enable_ada) {

@@ -744,6 +744,7 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata,
     else if(state == 4) {
         if(p[i_prt].type == input_particle_type_p) {
 	    /* Particle to ml */
+	    p[i_prt].type = input_particle_type_mls;
 	    real r      = p[i_prt].p.r;
 	    real phi    = p[i_prt].p.phi;
 	    real z      = p[i_prt].p.z;
@@ -783,7 +784,7 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata,
 	}
 	else if(p[i_prt].type == input_particle_type_gc) {
 	    /* Guiding center to ml */
-
+	    p[i_prt].type = input_particle_type_mls;
 	    real r      = p[i_prt].p_gc.r;
 	    real phi    = p[i_prt].p_gc.phi;
 	    real z      = p[i_prt].p_gc.z;
@@ -821,6 +822,7 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata,
 	}
 	else if(p[i_prt].type == input_particle_type_ml) {
 	    /* Magnetic field line to ml */
+	    p[i_prt].type = input_particle_type_mls;
 	    real r      = p[i_prt].p_ml.r;
 	    real phi    = p[i_prt].p_ml.phi;
 	    real z      = p[i_prt].p_ml.z;
