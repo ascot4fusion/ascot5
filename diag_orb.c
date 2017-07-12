@@ -183,6 +183,7 @@ void diag_orb_update_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_d
 
 void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data) {
     if(data->mode == DIAG_ORB_ORBIT) {
+	
 	/* Check first whether a marker should be stored */
 	int store[NSIMD]; 
         diag_orb_intervalTrigger(data, p_f->id, p_f->time, store);
@@ -206,6 +207,62 @@ void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_d
 	    }
 	}
     }
+    else if(data->mode == DIAG_ORB_POINCARE) {
+	/* Check if marker has crossed any Poincare planes.
+	 * For interpolation, kpol and ktor ( in interval [0,1]) 
+	 * indicate where between initial and final state the crossing 
+	 * approximately occurred. */
+	int pol[NSIMD];
+	int tor[NSIMD];
+	real kpol[NSIMD];
+	real ktor[NSIMD];
+        diag_orb_poincareTrigger(data, pol, tor, kpol, ktor, p_f->id,
+				 p_f->time, p_f->r, p_f->phi, p_f->z,
+				 p_i->time, p_i->r, p_i->phi, p_i->z);
+
+	int i;
+	
+	for(i=0; i<NSIMD; i++) {
+	    //printf("%d\n",pol[i]);
+	    if(pol[i] > -1) {
+		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
+
+		new->ml.time = kpol[i] * p_f->time[i] + (1 - kpol[i]) * p_i->time[i];
+		new->ml.r    = kpol[i] * p_f->r[i] + (1 - kpol[i]) * p_i->r[i];
+		new->ml.phi  = kpol[i] * p_f->phi[i]  + (1 - kpol[i]) * p_i->z[i];
+		new->ml.z    = kpol[i] * p_f->z[i] + (1 - kpol[i]) * p_i->z[i];
+	    
+		new->poincareId = pol[i];
+		
+		new->prev = data->writelist;
+		if(data->writelist != NULL) {
+		    data->writelist->next = new;
+		}
+		data->writelist = new;
+		data->size = data->size + 1;
+	    }
+
+	}
+	for(i=0; i<NSIMD; i++) {
+	    if(tor[i] > -1) {
+		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
+
+		new->ml.time = ktor[i] * p_f->time[i] + (1 - ktor[i]) * p_i->time[i];
+		new->ml.r    = ktor[i] * p_f->r[i] + (1 - ktor[i]) * p_i->r[i];
+		new->ml.phi  = ktor[i] * p_f->phi[i]  + (1 - ktor[i]) * p_i->z[i];
+		new->ml.z    = ktor[i] * p_f->z[i] + (1 - ktor[i]) * p_i->z[i];
+	    
+		new->poincareId = tor[i];
+
+		new->prev = data->writelist;
+		if(data->writelist != NULL) {
+		    data->writelist->next = new;
+		}
+		data->writelist = new;
+		data->size = data->size + 1;
+	    }
+	}
+    }
 }
 
 
@@ -214,6 +271,7 @@ void diag_orb_clean(diag_orb_data* data) {
 }
 
 void diag_orb_intervalTrigger(diag_orb_data* data, integer* id, real* time, int* store) {
+    
     #pragma omp simd
     for(int i= 0; i < NSIMD; i++) {
 	store[i] = 0;
@@ -234,9 +292,11 @@ void diag_orb_poincareTrigger(diag_orb_data* data, int* pol, int* tor, real* kpo
 			      real* itime, real* ir, real* iphi, real* iz){
     #pragma omp simd
     for(int i= 0; i < NSIMD; i++) {
+	pol[i] = -1;
+	tor[i] = -1;
         if( (id[i] != -1) && (ftime[i] != itime[i]) ) { // Check marker is not dummy and time step was accepted
             // Check if the particle has crossed one of the poloidal planes
-	    pol[i] = -1;
+	    
 	    for(int ip = 0; ip < data->npoloidalplots; ip++) {
 		
 		/* The phi coordinate we use is "unmodulated", i.e., it is not limited to interval [0,2pi).
@@ -254,7 +314,6 @@ void diag_orb_poincareTrigger(diag_orb_data* data, int* pol, int* tor, real* kpo
 	    }
 
 	    // Check if the particle has crossed one of the toroidal planes
-	    tor[i] = -1;
 	    real axisRz[2];
 	    axisRz[0] = 6.2;
 	    axisRz[1] = 0.6; // TODO remove hard coded values
@@ -270,7 +329,7 @@ void diag_orb_poincareTrigger(diag_orb_data* data, int* pol, int* tor, real* kpo
 		      (ipol - fpol < CONST_PI ) ) ||
 		    ( (fpol - data->toroidalangles[ip] > 0) && (ipol - data->toroidalangles[ip] < 0) &&
 		      (fpol - ipol < CONST_PI ) ) ) {
-		    tor[i] = ip;
+		    tor[i] = ip + DIAG_ORB_MAXPOINCARES;
 		    ktor[i] = ( data->toroidalangles[ip] - ipol ) / (fpol - ipol);
 		    break;
 		}

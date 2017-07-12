@@ -22,6 +22,12 @@ typedef struct{
     real rdot;
     real phidot;
     real zdot;
+    real weight;
+    int charge;
+    real mass;
+    real B_r;
+    real B_phi;
+    real B_z;
 
 } diag_orb_dat_fo;
 
@@ -33,6 +39,13 @@ typedef struct{
     real z;
     real vpar;
     real mu;
+    real theta;
+    real weight;
+    int charge;
+    real mass;
+    real B_r;
+    real B_phi;
+    real B_z;
 
 } diag_orb_dat_gc;
 
