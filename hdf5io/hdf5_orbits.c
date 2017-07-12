@@ -15,7 +15,7 @@ void hdf5_orbits_writeset_fo(hid_t group, diag_orb_dat* list, int size, int* mas
 void hdf5_orbits_writeset_gc(hid_t group, diag_orb_dat* list, int size, int* mask);
 void hdf5_orbits_writeset_ml(hid_t group, diag_orb_dat* list, int size, int* mask);
 
-void hdf5_orbits_write(sim_data* sim) {
+void hdf5_orbits_write(sim_data* sim, char* out) {
     diag_orb_data* diag = &sim->diag_data.orbits;
     diag_orb_dat* top = diag->writelist;
 
@@ -25,7 +25,7 @@ void hdf5_orbits_write(sim_data* sim) {
 	// No data here!
 	return;
     }
-    hid_t file = hdf5_open("ascot.h5");
+    hid_t file = hdf5_open(out);
     hid_t group = hdf5_create_group(file, "orbits");
     hid_t grp;
 	    

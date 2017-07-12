@@ -3,6 +3,6 @@
 
 #include "../simulate.h"
 
-void hdf5_orbits_write(sim_data* sim);
+void hdf5_orbits_write(sim_data* sim, char* out);
 
 #endif

@@ -11,9 +11,11 @@
 #include "../particle.h"
 
 /**
-   @brief Writes the particle state to an ASCOT4 HDF5 file.
+   @brief Writes the particle state to an ASCOT5 HDF5 file.
 */
-int hdf5_particlestate_write(hid_t file, char *state, int n, input_particle* p) {
+int hdf5_particlestate_write(char* fn, char *state, int n, input_particle* p) {
+    hid_t file = hdf5_open(fn);
+
     hid_t state_group = hdf5_create_group(file, state);
     if(state_group < 0) {
         return 0;
@@ -344,6 +346,6 @@ int hdf5_particlestate_write(hid_t file, char *state, int n, input_particle* p) 
 
     free(data);
     H5Gclose(state_group);
-
+    hdf5_close(file);
     return 1;
 }

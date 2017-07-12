@@ -354,11 +354,11 @@ void ascot4_write_dist_rzvv(dist_rzvv_offload_data* dist, real* hist,
 
 void ascot4_write_inistate(int n, input_particle* p, char* filename) {
     hid_t f = hdf5_open(filename);
-    hdf5_particlestate_write(f, "inistate", n, p);
+    //hdf5_particlestate_write(f, "inistate", n, p);
 }
 
 void ascot4_write_endstate(int n, input_particle* p, char* filename) {
     hid_t f = hdf5_open(filename);
-    hdf5_particlestate_write(f, "endstate", n, p);
+    //hdf5_particlestate_write(f, "endstate", n, p);
 }
 
