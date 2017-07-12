@@ -76,9 +76,6 @@ typedef struct {
     real weight;   /**< test particle weight */
     real time;     /**< particle simulation time */
     integer id;        /**< arbitrary id for the particle */
-    integer running;  /**< 1 if the particle has hit the wall */
-    integer endcond;   /**< particle end condition */
-    integer walltile;  /**< id of walltile if particle hit the wall */
 } particle;
 
 /** @brief Struct representing a single guiding center in cylindrical
@@ -96,9 +93,6 @@ typedef struct {
     real weight;   /**< test particle weight */
     real time;     /**< particle simulation time */
     integer id;        /**< arbitrary id for the particle */
-    integer running;  /**< 1 if the particle has hit the wall */
-    integer endcond;   /**< particle end condition */
-    integer walltile;  /**< id of walltile if particle hit the wall */
 } particle_gc;
 
 /** @brief Struct representing a single magnetic field line in cylindrical
@@ -111,10 +105,7 @@ typedef struct {
     real pitch;    /**< pitch angle */
     real weight;   /**< test particle weight */
     real time;     /**< particle simulation time */
-    integer id;        /**< arbitrary id for the particle */
-    integer running;  /**< 1 if the particle has hit the wall */
-    integer endcond;   /**< particle end condition */
-    integer walltile;  /**< id of walltile if particle hit the wall */
+    integer id;    /**< arbitrary id for the particle */
 } particle_ml;
 
 typedef struct {
@@ -124,8 +115,7 @@ typedef struct {
 } particle_queue;
 
 typedef enum input_particle_type {
-    input_particle_type_p, input_particle_type_gc, input_particle_type_ml, 
-    input_particle_type_s, input_particle_type_ps, input_particle_type_gcs, input_particle_type_mls
+    input_particle_type_p, input_particle_type_gc, input_particle_type_ml, input_particle_type_s
 } input_particle_type;
 
 /** @brief Struct representing either a particle or guiding center, including
@@ -294,7 +284,7 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
 int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
                       B_field_data* Bdata, int* cycle);
 
-void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata, int state);
+void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata);
 void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j, B_field_data* Bdata);
 void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p, B_field_data* Bdata);
 void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j, B_field_data* Bdata);

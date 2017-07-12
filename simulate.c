@@ -65,27 +65,9 @@ void simulate_begin(int id, int n_particles, input_particle* p,
                    plasma_offload_array);
     diag_init(&sim->diag_data, &offload_data->diag_offload_data,
               diag_offload_array);
-    
-    if(sim->sim_mode == 1) {
-	/* FO simulation */
-	sim->diag_data.orbits.type = diag_orb_type_fo;
-	for(int i = 0; i < n_particles; i++) {
-	    particle_marker_to_state(p, i, &sim->B_data, 1);
-	}
-    }
-    else if(sim->sim_mode == 2 || sim->sim_mode == 3) {
-	/* GC or hybrid simulation */
-	sim->diag_data.orbits.type = diag_orb_type_gc;
-	for(int i = 0; i < n_particles; i++) {
-	    particle_marker_to_state(p, i, &sim->B_data, 2);
-	}
-    }
-    else if(sim->sim_mode == 4) {
-	/* ML simulation */
-	sim->diag_data.orbits.type = diag_orb_type_ml;
-	for(int i = 0; i < n_particles; i++) {
-	    particle_marker_to_state(p, i, &sim->B_data, 4);
-	}
+
+    for(int i = 0; i < n_particles; i++) {
+	particle_marker_to_state(p, i, &sim->B_data);
     }
 
 }
@@ -94,74 +76,78 @@ void simulate_begin(int id, int n_particles, input_particle* p,
 void simulate_continue(int id, int n_particles, input_particle* p,
 		       sim_data* sim) {
 
-    particle_queue p_fo;
-    particle_queue p_gc;
-    particle_queue p_ml;
+    particle_queue pq;
+    particle_queue pqhyb;
 
-    p_fo.n = 0;
-    p_gc.n = 0;
-    p_ml.n = 0;
+    pq.n = 0;
+    pqhyb.n = 0;
     for(int i = 0; i < n_particles; i++) {
-        if(p[i].type == input_particle_type_ps) {
-            p_fo.n++;
-        } else if(p[i].type == input_particle_type_gcs) {
-            p_gc.n++;
-        } else if(p[i].type == input_particle_type_mls) {
-            p_ml.n++;
-        }
+        if(p[i].p_s.endcond == 0) {
+            pq.n++;
+        } 
+	/* TODO check here for the hybrid endcond
+	else if() {
+            pqhyb.n++;
+        } 
+	*/
     }
 
-    p_fo.p = (particle_state**) malloc(p_fo.n * sizeof(particle_state*));
-    p_gc.p = (particle_state**) malloc(p_gc.n * sizeof(particle_state*));
-    p_ml.p = (particle_state**) malloc(p_ml.n * sizeof(particle_state*));
+    pq.p = (particle_state**) malloc(pq.n * sizeof(particle_state*));
+    pqhyb.p = (particle_state**) malloc(pqhyb.n * sizeof(particle_state*));
 
-    p_fo.next = 0;
-    p_gc.next = 0;
-    p_ml.next = 0;
+    pq.next = 0;
+    pqhyb.next = 0;
     for(int i = 0; i < n_particles; i++) {
-        if(p[i].type == input_particle_type_ps) {
-            p_fo.p[p_fo.next++] = &p[i].p_s;
-        } else if(p[i].type == input_particle_type_gcs) {
-            p_gc.p[p_gc.next++] = &p[i].p_s;
-        } else if(p[i].type == input_particle_type_mls) {
-            p_ml.p[p_ml.next++] = &p[i].p_s;
-        }
+        if(p[i].p_s.endcond == 0) {
+            pq.p[pq.next++] = &p[i].p_s;
+        } 
+	/* hybrid
+	else if() {
+	    p[i].p_s.endcond = 0;
+            pq.p[pqhyb.next++] = &p[i].p_s;
+        } 
+	*/
     }
 
-    p_fo.next = 0;
-    p_gc.next = 0;
-    p_ml.next = 0;
+    pq.next = 0;
+    pqhyb.next = 0;
 
-    if(p_gc.n > 0) {
+    if(pq.n > 0 && (sim->sim_mode == 2 || sim->sim_mode == 3) ) {
 	if(sim->enable_ada) {
 	    #pragma omp parallel
 	    {
-	        simulate_gc_adaptive(&p_gc, sim);
+	        simulate_gc_adaptive(&pq, sim);
 	    }
 	}
 	else {
 	    #pragma omp parallel
 	    {
-	        simulate_gc_fixed(&p_gc, sim);
+	        simulate_gc_fixed(&pq, sim);
 	    }
 	}
     }
-    else if(p_fo.n > 0) {
+    else if(pq.n > 0 && sim->sim_mode == 1) {
 	#pragma omp parallel
 	{
-	    simulate_fo_fixed(&p_fo, sim);
+	    simulate_fo_fixed(&pq, sim);
 	}
     }
-    else if(p_ml.n > 0) {
+    else if(pq.n > 0 && sim->sim_mode == 4) {
 	#pragma omp parallel
 	{
-	    simulate_ml_adaptive(&p_ml, sim);
+	    simulate_ml_adaptive(&pq, sim);
+	}
+    }
+    else if(pqhyb.n > 0 && sim->sim_mode == 3) {
+        /* fo simulation for the hybrid mode */
+	#pragma omp parallel
+	{
+	    simulate_fo_fixed(&pqhyb, sim);
 	}
     }
 
-    free(p_fo.p);
-    free(p_gc.p);
-    free(p_ml.p);
+    free(pq.p);
+    free(pqhyb.p);
 
 }
 

@@ -88,14 +88,11 @@ void hdf5_markers_init_particle(hid_t f, int n, input_particle* p) {
         p[i].p.mass = anum[i] * CONST_U;
         p[i].p.charge = znum[i] * CONST_E;
         p[i].p.weight = weight[i];
-        p[i].p.id = (integer) id[i];        
-        p[i].p.running = 1;
+        p[i].p.id = (integer) id[i];
         p[i].type = input_particle_type_p;
 
 	//TODO temporary
 	p[i].p.time = 0;
-	p[i].p.endcond = 0;
-	p[i].p.walltile = 0;
     }
     
     free(r);
@@ -144,14 +141,11 @@ void hdf5_markers_init_guiding_center(hid_t f, int n, input_particle* p) {
         p[i].p_gc.mass = anum[i] * CONST_U;
         p[i].p_gc.charge = znum[i] * CONST_E;
         p[i].p_gc.weight = weight[i];
-        p[i].p_gc.id = (integer) id[i];        
-        p[i].p_gc.running = 1;
+        p[i].p_gc.id = (integer) id[i];   
         p[i].type = input_particle_type_gc;
 
 	//TODO temporary
 	p[i].p_gc.time = 0;
-	p[i].p_gc.endcond = 0;
-	p[i].p_gc.walltile = 0;
     }
     
     free(r);
@@ -186,14 +180,11 @@ void hdf5_markers_init_field_line(hid_t f, int n, input_particle* p) {
         p[i].p_ml.phi = phi[i] * math_pi / 180;
         p[i].p_ml.z = z[i];
         p[i].p_ml.pitch = pitch[i];
-        p[i].p_ml.id = (integer) id[i];        
-        p[i].p_ml.running = 1;
+        p[i].p_ml.id = (integer) id[i];
         p[i].type = input_particle_type_ml;
 
 	//TODO temporary
 	p[i].p_ml.time = 0;
-	p[i].p_ml.endcond = 0;
-	p[i].p_ml.walltile = 0;
     }
     
     free(r);

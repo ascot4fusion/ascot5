@@ -37,9 +37,6 @@ void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
     p_fo->weight[j] = p->weight;
     p_fo->time[j] = p->time;
     p_fo->id[j] = p->id; 
-    p_fo->running[j] = p->running;
-    p_fo->endcond[j] = p->endcond; 
-    p_fo->walltile[j] = p->walltile;
 
     real B_dB[12];
     B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);
@@ -97,9 +94,6 @@ void fo_to_particle(particle_simd_fo* p_fo, int j, particle* p) {
     p->v_phi = p_fo->phidot[j] * p_fo->r[j];
     p->v_z = p_fo->zdot[j];
     p->time = p_fo->time[j];
-    p->running = p_fo->running[j];
-    p->endcond = p_fo->endcond[j];
-    p->walltile = p_fo->walltile[j];
 }
 
 void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
@@ -131,9 +125,6 @@ void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
     p_gc->weight[j] = p->weight;
     p_gc->time[j] = 0;
     p_gc->id[j] = p->id;
-    p_gc->running[j] = p->running;
-    p_gc->endcond[j] = 0; 
-    p_gc->walltile[j] = 0;
     p_gc->B_r[j]        = B_dB[0];
     p_gc->B_r_dr[j]     = B_dB[1];
     p_gc->B_r_dphi[j]   = B_dB[2];
@@ -163,9 +154,6 @@ void particle_to_gc_dummy(particle_simd_gc* p_gc, int j) {
     p_gc->time[j] = 0;
     p_gc->weight[j] = 0;
     p_gc->id[j] = -1;
-    p_gc->running[j] = 0;
-    p_gc->endcond[j] = 0; 
-    p_gc->walltile[j] = 0;
     p_gc->B_r[j]        = 1;
     p_gc->B_r_dr[j]     = 1;
     p_gc->B_r_dphi[j]   = 1;
@@ -229,9 +217,6 @@ void gc_to_particle(particle_simd_gc* p_gc, int j, particle* p) {
     p->v_phi = p_gc->vpar[j];
     p->v_z = 0;
     p->time = p_gc->time[j];
-    p->running = p_gc->running[j];
-    p->endcond = p_gc->endcond[j];
-    p->walltile = p_gc->walltile[j];
 }
 
 void particle_gc_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
@@ -245,9 +230,6 @@ void particle_gc_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
     p_gc->weight[j] = p->weight;
     p_gc->time[j] = p->time;
     p_gc->id[j] = p->id;
-    p_gc->running[j] = p->running;
-    p_gc->endcond[j] = p->endcond;
-    p_gc->walltile[j] = p->walltile;
 
     real B_dB[12];
     B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);
@@ -299,9 +281,6 @@ void gc_to_particle_gc(particle_simd_gc* p_gc, int j, particle_gc* p) {
     
     p->theta = p_gc->theta[j];
     p->time = p_gc->time[j];
-    p->running = p_gc->running[j];
-    p->endcond = p_gc->endcond[j];
-    p->walltile = p_gc->walltile[j];
 }
 
 
@@ -322,9 +301,6 @@ void particle_to_ml(particle* p, int i, particle_simd_ml* p_ml, int j,
     p_ml->z[j] = p->z;
     p_ml->time[j] = p->time;
     p_ml->id[j] = p->id; 
-    p_ml->running[j] = p->running;
-    p_ml->endcond[j] = p->endcond; 
-    p_ml->walltile[j] = p->walltile;
 
     real B_dB[3];
     B_field_eval_B(B_dB, p->r, p->phi, p->z, Bdata);
@@ -358,9 +334,6 @@ void particle_to_ml_dummy(particle_simd_ml* p_ml, int j){
     p_ml->z[j] = 1;
     p_ml->time[j] = 0;
     p_ml->id[j] = -1; 
-    p_ml->running[j] = 0;
-    p_ml->endcond[j] = 0; 
-    p_ml->walltile[j] = 0;  
     p_ml->B_r[j]        = 1;
     p_ml->B_r_dr[j]     = 1;
     p_ml->B_r_dphi[j]   = 1;
@@ -383,9 +356,6 @@ void ml_to_particle(particle_simd_ml* p_ml, int j, particle* p) {
     p->phi = p_ml->phi[j];
     p->z = p_ml->z[j];
     p->time = p_ml->time[j];
-    p->running = p_ml->running[j];
-    p->endcond = p_ml->endcond[j];
-    p->walltile = p_ml->walltile[j];
 }
 
 int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
@@ -517,7 +487,7 @@ int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
 /**
  * @brief Transforms input to state
  */
-void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata, int state) {
+void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata) {
 
     if(p[i_prt].type == input_particle_type_p) {
 	/* Particle to state */

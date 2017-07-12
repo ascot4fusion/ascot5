@@ -81,8 +81,8 @@ ASCOT4IFDIR = ascot4_interface/
 
 
 HEADERS=ascot5.h math.h consts.h \
-	   	ascot4_interface.h $(DIAGHEADERS)  \
-		plasma_1d.h interact.h simulate.h \
+	   	$(DIAGHEADERS)  \
+		plasma_1d.h simulate.h \
 		list.h octree.h $(BFHEADERS) $(EFHEADERS) \
 		particle.h filip5.h endcond.h $(WALLHEADERS) \
 		B_field.h E_field.h wall.h phys_orbit.h \
@@ -90,9 +90,9 @@ HEADERS=ascot5.h math.h consts.h \
 		diag.h diag_orb.h \
 		$(HDF5IOHEADERS) \
 
-OBJS=ascot4_interface.o math.o consts.o  \
+OBJS= math.o consts.o  \
      $(DIAGOBJS)  $(BFOBJS) $(EFOBJS) \
-	plasma_1d.o interact.o \
+	plasma_1d.o \
 	 $(WALLOBJS) list.o octree.o \
      particle.o endcond.o B_field.o E_field.o wall.o simulate.o \
 	phys_orbit.o \
