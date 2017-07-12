@@ -66,7 +66,7 @@ theta  = np.array([0.1])
 mlpitch = np.array([1.0])
 
 
-ui_options.writeHdf5(ui_options.ui_optionsIO(),fn)
+ui_options.writeHdf5(ui_options.Ui_optionsIO(),fn)
 ui_B_TC.write_hdf5(fn, B0, B_dB, axisr, axisz, psival, rhoval) 
 ui_E_TC.write_hdf5(fn, E) 
 ui_plasma_1D.write_hdf5(fn, Znum, Anum, rho, ndens, ntemp, edens, etemp, idens, itemp)

@@ -3,7 +3,7 @@ import h5py
 import numpy as np
 
 
-class ui_optionsIO:
+class Ui_optionsIO:
 
     ##################################
     # SIMULATION MODE AND TIME STEPS #
@@ -322,6 +322,6 @@ def writeHdf5(c,fn):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        writeHdf5(ui_optionsIO(), sys.argv[1])
+        writeHdf5(Ui_optionsIO(), sys.argv[1])
     else:
-        writeHdf5(ui_optionsIO(), "ascot.h5")
+        writeHdf5(Ui_optionsIO(), "ascot.h5")
