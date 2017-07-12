@@ -398,19 +398,19 @@ int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
 	if(p->id[i] < 0 && q->next < q->n) {
 	    #pragma omp critical
 	    i_prt = q->next++;
-	    particle_state_to_fo(q->p[i_prt], i_prt, p,i);
+	    particle_state_to_fo(q->p[i_prt], i_prt, p, i, Bdata);
 	    cycle[i] = 1;
 	    continue;
 	}
 
 	cycle[i] = 0;
         if(!p->running[i] && p->id[i] >= 0) {
-	    particle_fo_to_state(p, i, q->p[p->index[i]]);
+	    particle_fo_to_state(p, i, q->p[p->index[i]], Bdata);
 
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
-		particle_state_to_fo(q->p[i_prt], i_prt, p, i);
+		particle_state_to_fo(q->p[i_prt], i_prt, p, i, Bdata);
 		cycle[i] = 1;
             }
             else {
@@ -440,19 +440,19 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
 	if(p->id[i] < 0 && q->next < q->n) {
 	    #pragma omp critical
 	    i_prt = q->next++;
-	    particle_state_to_gc(q->p[i_prt], i_prt, p,i);
+	    particle_state_to_gc(q->p[i_prt], i_prt, p, i, Bdata);
 	    cycle[i] = 1;
 	    continue;
 	}
 
 	cycle[i] = 0;
         if(!p->running[i] && p->id[i] >= 0) {
-	    particle_gc_to_state(p, i, q->p[p->index[i]]);
+	    particle_gc_to_state(p, i, q->p[p->index[i]], Bdata);
 
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
-		particle_state_to_gc(q->p[i_prt], i_prt, p, i);
+		particle_state_to_gc(q->p[i_prt], i_prt, p, i, Bdata);
 		cycle[i] = 1;
             }
             else {
@@ -482,19 +482,19 @@ int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
 	if(p->id[i] < 0 && q->next < q->n) {
 	    #pragma omp critical
 	    i_prt = q->next++;
-	    particle_state_to_ml(q->p[i_prt], i_prt, p,i);
+	    particle_state_to_ml(q->p[i_prt], i_prt, p, i, Bdata);
 	    cycle[i] = 1;
 	    continue;
 	}
 
 	cycle[i] = 0;
         if(!p->running[i] && p->id[i] >= 0) {
-	    particle_ml_to_state(p, i, q->p[p->index[i]]);
+	    particle_ml_to_state(p, i, q->p[p->index[i]], Bdata);
 
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
-		particle_state_to_ml(q->p[i_prt], i_prt, p, i);
+		particle_state_to_ml(q->p[i_prt], i_prt, p, i, Bdata);
 		cycle[i] = 1;
             }
             else {
@@ -515,443 +515,315 @@ int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
 }
 
 /**
- * @brief Transforms input to state. The integer state indicates whether we are going to simulate fo (1), gc (2) or mf(3)
+ * @brief Transforms input to state
  */
 void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata, int state) {
 
-    if(state == 1) {
-	if(p[i_prt].type == input_particle_type_p) {
-	    /* Particle to fo */
-	    p[i_prt].type = input_particle_type_ps;
+    if(p[i_prt].type == input_particle_type_p) {
+	/* Particle to state */
+	p[i_prt].type = input_particle_type_s;
 
-	    real r      = p[i_prt].p.r;
-	    real phi    = p[i_prt].p.phi;
-	    real z      = p[i_prt].p.z;
-	    real rdot   = p[i_prt].p.v_r;
-	    real phidot = p[i_prt].p.v_phi/r;
-	    real zdot   = p[i_prt].p.v_z;
-	    real mass   = p[i_prt].p.mass;
-	    real charge = p[i_prt].p.charge;
-	    real weight = p[i_prt].p.weight;
-	    real time   = p[i_prt].p.time;
-	    int id      = p[i_prt].p.id;
+	real rprt   = p[i_prt].p.r;
+	real phiprt = p[i_prt].p.phi;
+	real zprt   = p[i_prt].p.z;
+	real rdot   = p[i_prt].p.v_r;
+	real phidot = p[i_prt].p.v_phi/rprt;
+	real zdot   = p[i_prt].p.v_z;
+	real mass   = p[i_prt].p.mass;
+	real charge = p[i_prt].p.charge;
+	real weight = p[i_prt].p.weight;
+	real time   = p[i_prt].p.time;
+	int id      = p[i_prt].p.id;
 
-	    real B_dB[12];
-	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
-      
-	    p[i_prt].p_s.rprt       = r;     
-	    p[i_prt].p_s.phiprt     = phi;      
-	    p[i_prt].p_s.zprt       = z;   
-	    p[i_prt].p_s.rdot       = rdot; 
-	    p[i_prt].p_s.phidot     = phidot;     
-	    p[i_prt].p_s.zdot       = zdot;     
-	    p[i_prt].p_s.mass       = mass;      
-	    p[i_prt].p_s.charge     = charge;  
-	    p[i_prt].p_s.weight     = weight;    
-	    p[i_prt].p_s.time       = time;     
-	    p[i_prt].p_s.id         = id;    
-	    p[i_prt].p_s.endcond    = 0; 
-	    p[i_prt].p_s.walltile   = 0;
-	    p[i_prt].p_s.B_r        = B_dB[0];     
-	    p[i_prt].p_s.B_phi      = B_dB[4];     
-	    p[i_prt].p_s.B_z        = B_dB[8];      
-	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
-	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
-	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
-	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
-	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
-	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
-	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
-	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
-	    p[i_prt].p_s.B_z_dz     = B_dB[11];
-	}
-        else if(p[i_prt].type == input_particle_type_gc) {
-	    /* Guiding center to fo */
-	    p[i_prt].type = input_particle_type_ps;
+	p[i_prt].p_s.rprt       = rprt;     
+	p[i_prt].p_s.phiprt     = phiprt;      
+	p[i_prt].p_s.zprt       = zprt;   
+	p[i_prt].p_s.rdot       = rdot; 
+	p[i_prt].p_s.phidot     = phidot;     
+	p[i_prt].p_s.zdot       = zdot;
+     
+	p[i_prt].p_s.mass       = mass;      
+	p[i_prt].p_s.charge     = charge;  
+	p[i_prt].p_s.weight     = weight;    
+	p[i_prt].p_s.time       = time;     
+	p[i_prt].p_s.id         = id;    
+	p[i_prt].p_s.endcond    = 0; 
+	p[i_prt].p_s.walltile   = 0;
 
-	    real r      = p[i_prt].p_gc.r;
-	    real phi    = p[i_prt].p_gc.phi;
-	    real z      = p[i_prt].p_gc.z;
-	    real pitch  = p[i_prt].p_gc.pitch;
-	    real energy = p[i_prt].p_gc.energy;
-	    real theta  = p[i_prt].p_gc.theta;
-	    real mass   = p[i_prt].p_gc.mass;
-	    real charge = p[i_prt].p_gc.charge;
-	    real weight = p[i_prt].p_gc.weight;
-	    real time   = p[i_prt].p_gc.time;
-	    integer id  = p[i_prt].p_gc.id;
+	/* Guiding center transformation */
+	real B_dB[12];
+	B_field_eval_B_dB(B_dB, rprt, phiprt, zprt, Bdata);
+	real gcpos[6];
+	real gamma = phys_gammaprtv(sqrt( rdot * rdot + phidot*phidot * rprt*rprt + zdot * zdot));
+	phys_prttogc(mass, charge, rprt, phiprt, zprt, 
+		     gamma * mass * rdot, gamma * mass * phidot * rprt, gamma * mass * zdot, 
+		     B_dB, gcpos);
+        
+	B_field_eval_B_dB(B_dB, gcpos[0], gcpos[1], gcpos[2], Bdata);
+	gamma = phys_gammagcp(mass, gcpos[3], gcpos[4]);
 
-	    real B_dB[12];
-	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
+	p[i_prt].p_s.r          = gcpos[0];
+	p[i_prt].p_s.phi        = gcpos[1];
+	p[i_prt].p_s.z          = gcpos[2];
+	p[i_prt].p_s.vpar       = gcpos[3]/(mass*gamma);
+	p[i_prt].p_s.mu         = gcpos[4];
+	p[i_prt].p_s.theta      = gcpos[5];
 
-	    real B_norm = sqrt(B_dB[0] * B_dB[0] + B_dB[4] * B_dB[4] + B_dB[8] * B_dB[8]);
+	p[i_prt].p_s.B_r        = B_dB[0];     
+	p[i_prt].p_s.B_phi      = B_dB[4];     
+	p[i_prt].p_s.B_z        = B_dB[8];      
+	p[i_prt].p_s.B_r_dr     = B_dB[1];     
+	p[i_prt].p_s.B_phi_dr   = B_dB[5];   
+	p[i_prt].p_s.B_z_dr     = B_dB[9];     
+	p[i_prt].p_s.B_r_dphi   = B_dB[2];  
+	p[i_prt].p_s.B_phi_dphi = B_dB[6];  
+	p[i_prt].p_s.B_z_dphi   = B_dB[10];   
+	p[i_prt].p_s.B_r_dz     = B_dB[3];      
+	p[i_prt].p_s.B_phi_dz   = B_dB[7];   
+	p[i_prt].p_s.B_z_dz     = B_dB[11];
+    }
+    else if(p[i_prt].type == input_particle_type_gc) {
+        /* Guiding center to state */
+	p[i_prt].type = input_particle_type_s;
 
-	    real gamma = 1 + energy / (mass * CONST_C2);
-	    real vgc = sqrt(1 - 1 / (gamma * gamma)) * CONST_C;
-	    real vpar = pitch*vgc;
-	    real mu = (1 - pitch * pitch) * vgc * vgc / (B_norm);
+	real r      = p[i_prt].p_gc.r;
+	real phi    = p[i_prt].p_gc.phi;
+	real z      = p[i_prt].p_gc.z;
+	real pitch  = p[i_prt].p_gc.pitch;
+	real energy = p[i_prt].p_gc.energy;
+	real theta  = p[i_prt].p_gc.theta;
+	real mass   = p[i_prt].p_gc.mass;
+	real charge = p[i_prt].p_gc.charge;
+	real weight = p[i_prt].p_gc.weight;
+	real time   = p[i_prt].p_gc.time;
+	integer id  = p[i_prt].p_gc.id;
+
+	real B_dB[12];
+	B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
+
+	real B_norm = sqrt(B_dB[0] * B_dB[0] + B_dB[4] * B_dB[4] + B_dB[8] * B_dB[8]);
+
+	real gamma = 1 + energy / (mass * CONST_C2);
+	real vgc = sqrt(1 - 1 / (gamma * gamma)) * CONST_C;
+	real vpar = pitch*vgc;
+	real mu = (1 - pitch * pitch) * vgc * vgc / (B_norm);
 	    
-	    real prtpos[6];
-	    phys_gctoprt(mass, charge, r, phi, z, vpar, mu, theta, B_dB, prtpos);
+	real prtpos[6];
+	phys_gctoprt(mass, charge, r, phi, z, vpar, mu, theta, B_dB, prtpos);
 	     
-	    p[i_prt].p_s.r          = r;     
-	    p[i_prt].p_s.phi        = phi;      
-	    p[i_prt].p_s.z          = z;   
-	    p[i_prt].p_s.mu         = mu; 
-	    p[i_prt].p_s.vpar       = vpar;     
-	    p[i_prt].p_s.theta      = theta;     
-	    p[i_prt].p_s.mass       = mass;      
-	    p[i_prt].p_s.charge     = charge;  
-	    p[i_prt].p_s.weight     = weight;    
-	    p[i_prt].p_s.time       = time;     
-	    p[i_prt].p_s.id         = id;    
-	    p[i_prt].p_s.endcond    = 0; 
-	    p[i_prt].p_s.walltile   = 0;
-	    p[i_prt].p_s.B_r        = B_dB[0];     
-	    p[i_prt].p_s.B_phi      = B_dB[4];     
-	    p[i_prt].p_s.B_z        = B_dB[8];      
-	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
-	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
-	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
-	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
-	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
-	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
-	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
-	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
-	    p[i_prt].p_s.B_z_dz     = B_dB[11];
+	p[i_prt].p_s.rprt       = prtpos[0];     
+	p[i_prt].p_s.phiprt     = prtpos[1];      
+	p[i_prt].p_s.zprt       = prtpos[2];   
+	p[i_prt].p_s.rdot       = prtpos[3]; 
+	p[i_prt].p_s.phidot     = prtpos[4];     
+	p[i_prt].p_s.zdot       = prtpos[5];
+
+	p[i_prt].p_s.r          = r;     
+	p[i_prt].p_s.phi        = phi;      
+	p[i_prt].p_s.z          = z;   
+	p[i_prt].p_s.mu         = mu; 
+	p[i_prt].p_s.vpar       = vpar;     
+	p[i_prt].p_s.theta      = theta;
+   
+	p[i_prt].p_s.mass       = mass;      
+	p[i_prt].p_s.charge     = charge;  
+	p[i_prt].p_s.weight     = weight;    
+	p[i_prt].p_s.time       = time;     
+	p[i_prt].p_s.id         = id;    
+	p[i_prt].p_s.endcond    = 0; 
+	p[i_prt].p_s.walltile   = 0;
+
+	p[i_prt].p_s.B_r        = B_dB[0];     
+	p[i_prt].p_s.B_phi      = B_dB[4];     
+	p[i_prt].p_s.B_z        = B_dB[8];      
+	p[i_prt].p_s.B_r_dr     = B_dB[1];     
+	p[i_prt].p_s.B_phi_dr   = B_dB[5];   
+	p[i_prt].p_s.B_z_dr     = B_dB[9];     
+	p[i_prt].p_s.B_r_dphi   = B_dB[2];  
+	p[i_prt].p_s.B_phi_dphi = B_dB[6];  
+	p[i_prt].p_s.B_z_dphi   = B_dB[10];   
+	p[i_prt].p_s.B_r_dz     = B_dB[3];      
+	p[i_prt].p_s.B_phi_dz   = B_dB[7];   
+	p[i_prt].p_s.B_z_dz     = B_dB[11];
            
-	}
-	else if(p[i_prt].type == input_particle_type_ml) {
-	    /* Magnetic field line to fo */
-	    /* NOT ACCEPTABLE TRANSFORMATION */
-	    // TODO generate error
-	}
     }
-    else if(state == 2) {
-	if(p[i_prt].type == input_particle_type_p) {
-	    /* Particle to gc */
-	    p[i_prt].type = input_particle_type_gcs;
+    else if(p[i_prt].type == input_particle_type_ml) {
+	/* Magnetic field line to state */
+	p[i_prt].type = input_particle_type_s;
 
-	    real r      = p[i_prt].p.r;
-	    real phi    = p[i_prt].p.phi;
-	    real z      = p[i_prt].p.z;
-	    real v_r    = p[i_prt].p.v_r;
-	    real v_phi  = p[i_prt].p.v_phi;
-	    real v_z    = p[i_prt].p.v_z;
-	    real mass   = p[i_prt].p.mass;
-	    real charge = p[i_prt].p.charge;
-	    real weight = p[i_prt].p.weight;
-	    real time   = p[i_prt].p.time;
-	    int id      = p[i_prt].p.id;
+	real r      = p[i_prt].p_ml.r;
+	real phi    = p[i_prt].p_ml.phi;
+	real z      = p[i_prt].p_ml.z;
+	real pitch  = p[i_prt].p_ml.pitch;
+	real time   = p[i_prt].p_ml.time;
+	real weight = p[i_prt].p_ml.weight;
+	integer id  = p[i_prt].p_ml.id;
 
-	    real B_dB[12];
-	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
-	    real gcpos[5];
-	    real gamma = phys_gammaprtv(sqrt( v_r * v_r + v_phi * v_phi + v_z * v_z));
-	    phys_prttogc(mass, charge, r, phi, z, 
-			 gamma * mass * v_r, gamma * mass * v_phi, gamma * mass * v_z, 
-			 B_dB, gcpos);
+	p[i_prt].p_s.rprt       = r;     
+	p[i_prt].p_s.phiprt     = phi;      
+	p[i_prt].p_s.zprt       = z;   
+	p[i_prt].p_s.rdot       = 0; 
+	p[i_prt].p_s.phidot     = 0;     
+	p[i_prt].p_s.zdot       = 0;
+     
+	p[i_prt].p_s.mass       = 0;      
+	p[i_prt].p_s.charge     = 0;  
+	p[i_prt].p_s.weight     = weight;    
+	p[i_prt].p_s.time       = time;     
+	p[i_prt].p_s.id         = id;    
+	p[i_prt].p_s.endcond    = 0; 
+	p[i_prt].p_s.walltile   = 0;
 
+	real B_dB[12];
+	B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
 
+	p[i_prt].p_s.r          = r;
+	p[i_prt].p_s.phi        = phi;
+	p[i_prt].p_s.z          = z;
+	p[i_prt].p_s.vpar       = pitch >= 0;
+	p[i_prt].p_s.mu         = 0;
+	p[i_prt].p_s.theta      = 0;
 
-	    gamma = phys_gammagcp(mass, gcpos[3], gcpos[4]);
-
-	    p[i_prt].p_s.r          = gcpos[0];
-	    p[i_prt].p_s.phi        = gcpos[1];
-	    p[i_prt].p_s.z          = gcpos[2];
-	    p[i_prt].p_s.vpar       = gcpos[3]/(mass*gamma);
-	    p[i_prt].p_s.mu         = gcpos[4];
-	    p[i_prt].p_s.theta      = 0.0; // TODO Ill defined quantity
-	    p[i_prt].p_s.mass       = mass;
-	    p[i_prt].p_s.charge     = charge;
-	    p[i_prt].p_s.weight     = weight;
-	    p[i_prt].p_s.time       = time;
-	    p[i_prt].p_s.id         = id;
-	    p[i_prt].p_s.endcond    = 0; 
-	    p[i_prt].p_s.walltile   = 0;
-	    p[i_prt].p_s.B_r        = B_dB[0];     
-	    p[i_prt].p_s.B_phi      = B_dB[4];     
-	    p[i_prt].p_s.B_z        = B_dB[8];      
-	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
-	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
-	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
-	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
-	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
-	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
-	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
-	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
-	    p[i_prt].p_s.B_z_dz     = B_dB[11];
-	}
-	else if(p[i_prt].type == input_particle_type_gc) {
-	    /* Guiding center to gc */
-	    p[i_prt].type = input_particle_type_gcs;
-
-	    real r      = p[i_prt].p_gc.r;
-	    real phi    = p[i_prt].p_gc.phi;
-	    real z      = p[i_prt].p_gc.z;
-	    real pitch  = p[i_prt].p_gc.pitch;
-	    real energy = p[i_prt].p_gc.energy;
-	    real theta  = p[i_prt].p_gc.theta;
-	    real mass   = p[i_prt].p_gc.mass;
-	    real charge = p[i_prt].p_gc.charge;
-	    real weight = p[i_prt].p_gc.weight;
-	    real time   = p[i_prt].p_gc.time;
-	    integer id  = p[i_prt].p_gc.id;
-
-	    real B_dB[12];
-	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
-
-	    real B_norm = sqrt(B_dB[0] * B_dB[0] + B_dB[4] * B_dB[4] + B_dB[8] * B_dB[8]);
-
-	    real gamma = 1 + energy / (mass * CONST_C2);
-	    real vgc = sqrt(1 - 1 / (gamma * gamma)) * CONST_C;
-	    real vpar = pitch*vgc;
-	    real mu = (1 - pitch * pitch) * vgc * vgc / (B_norm);
-
-	    p[i_prt].p_s.r          = r;     
-	    p[i_prt].p_s.phi        = phi;      
-	    p[i_prt].p_s.z          = z;   
-	    p[i_prt].p_s.mu         = mu; 
-	    p[i_prt].p_s.vpar       = vpar;     
-	    p[i_prt].p_s.theta      = theta;     
-	    p[i_prt].p_s.mass       = mass;      
-	    p[i_prt].p_s.charge     = charge;  
-	    p[i_prt].p_s.weight     = weight;    
-	    p[i_prt].p_s.time       = time;     
-	    p[i_prt].p_s.id         = id;    
-	    p[i_prt].p_s.endcond    = 0; 
-	    p[i_prt].p_s.walltile   = 0;
-	    p[i_prt].p_s.B_r        = B_dB[0];     
-	    p[i_prt].p_s.B_phi      = B_dB[4];     
-	    p[i_prt].p_s.B_z        = B_dB[8];      
-	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
-	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
-	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
-	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
-	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
-	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
-	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
-	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
-	    p[i_prt].p_s.B_z_dz     = B_dB[11];
-	}
-	else if(p[i_prt].type == input_particle_type_ml) {
-	    /* Magnetic field line to gc */
-	    /* NOT ACCEPTABLE TRANSFORMATION */
-	    // TODO generate error
-	}
-
-    }
-    else if(state == 4) {
-        if(p[i_prt].type == input_particle_type_p) {
-	    /* Particle to ml */
-	    p[i_prt].type = input_particle_type_mls;
-	    real r      = p[i_prt].p.r;
-	    real phi    = p[i_prt].p.phi;
-	    real z      = p[i_prt].p.z;
-	    real v_r    = p[i_prt].p.v_r;
-	    real v_phi  = p[i_prt].p.v_phi;
-	    real v_z    = p[i_prt].p.v_z;
-	    real time   = p[i_prt].p.time;
-	    int id      = p[i_prt].p.id;
-
-	    real B_dB[12];
-	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
-
-	    p[i_prt].p_s.r          = r;     
-	    p[i_prt].p_s.phi        = phi;      
-	    p[i_prt].p_s.z          = z;   
-	    p[i_prt].p_s.vpar       = v_r * B_dB[0] + v_phi * B_dB[4] + v_z * B_dB[8]  >= 0;     
-	    p[i_prt].p_s.theta      = 0;     
-	    p[i_prt].p_s.mass       = 0;      
-	    p[i_prt].p_s.charge     = 0;  
-	    p[i_prt].p_s.weight     = 0;    
-	    p[i_prt].p_s.time       = time;     
-	    p[i_prt].p_s.id         = id;    
-	    p[i_prt].p_s.endcond    = 0; 
-	    p[i_prt].p_s.walltile   = 0;
-	    p[i_prt].p_s.B_r        = B_dB[0];     
-	    p[i_prt].p_s.B_phi      = B_dB[4];     
-	    p[i_prt].p_s.B_z        = B_dB[8];      
-	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
-	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
-	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
-	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
-	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
-	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
-	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
-	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
-	    p[i_prt].p_s.B_z_dz     = B_dB[11];
-	}
-	else if(p[i_prt].type == input_particle_type_gc) {
-	    /* Guiding center to ml */
-	    p[i_prt].type = input_particle_type_mls;
-	    real r      = p[i_prt].p_gc.r;
-	    real phi    = p[i_prt].p_gc.phi;
-	    real z      = p[i_prt].p_gc.z;
-	    real pitch  = p[i_prt].p_gc.pitch;
-	    real time   = p[i_prt].p_gc.time;
-	    integer id  = p[i_prt].p_gc.id;
-
-	    real B_dB[12];
-	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
-
-	    p[i_prt].p_s.r          = r;     
-	    p[i_prt].p_s.phi        = phi;      
-	    p[i_prt].p_s.z          = z;   
-	    p[i_prt].p_s.vpar       = pitch >= 0;     
-	    p[i_prt].p_s.theta      = 0;     
-	    p[i_prt].p_s.mass       = 0;      
-	    p[i_prt].p_s.charge     = 0;  
-	    p[i_prt].p_s.weight     = 0;    
-	    p[i_prt].p_s.time       = time;     
-	    p[i_prt].p_s.id         = id;    
-	    p[i_prt].p_s.endcond    = 0; 
-	    p[i_prt].p_s.walltile   = 0;
-	    p[i_prt].p_s.B_r        = B_dB[0];     
-	    p[i_prt].p_s.B_phi      = B_dB[4];     
-	    p[i_prt].p_s.B_z        = B_dB[8];      
-	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
-	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
-	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
-	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
-	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
-	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
-	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
-	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
-	    p[i_prt].p_s.B_z_dz     = B_dB[11];
-	}
-	else if(p[i_prt].type == input_particle_type_ml) {
-	    /* Magnetic field line to ml */
-	    p[i_prt].type = input_particle_type_mls;
-	    real r      = p[i_prt].p_ml.r;
-	    real phi    = p[i_prt].p_ml.phi;
-	    real z      = p[i_prt].p_ml.z;
-	    real pitch  = p[i_prt].p_ml.pitch;
-	    real time   = p[i_prt].p_ml.time;
-	    integer id  = p[i_prt].p_ml.id;
-
-	    real B_dB[12];
-	    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
-
-	    p[i_prt].p_s.r          = r;     
-	    p[i_prt].p_s.phi        = phi;      
-	    p[i_prt].p_s.z          = z;   
-	    p[i_prt].p_s.vpar       = pitch;     
-	    p[i_prt].p_s.theta      = 0;     
-	    p[i_prt].p_s.mass       = 0;      
-	    p[i_prt].p_s.charge     = 0;  
-	    p[i_prt].p_s.weight     = 0;    
-	    p[i_prt].p_s.time       = time;     
-	    p[i_prt].p_s.id         = id;    
-	    p[i_prt].p_s.endcond    = 0; 
-	    p[i_prt].p_s.walltile   = 0;
-	    p[i_prt].p_s.B_r        = B_dB[0];     
-	    p[i_prt].p_s.B_phi      = B_dB[4];     
-	    p[i_prt].p_s.B_z        = B_dB[8];      
-	    p[i_prt].p_s.B_r_dr     = B_dB[1];     
-	    p[i_prt].p_s.B_phi_dr   = B_dB[5];   
-	    p[i_prt].p_s.B_z_dr     = B_dB[9];     
-	    p[i_prt].p_s.B_r_dphi   = B_dB[2];  
-	    p[i_prt].p_s.B_phi_dphi = B_dB[6];  
-	    p[i_prt].p_s.B_z_dphi   = B_dB[10];   
-	    p[i_prt].p_s.B_r_dz     = B_dB[3];      
-	    p[i_prt].p_s.B_phi_dz   = B_dB[7];   
-	    p[i_prt].p_s.B_z_dz     = B_dB[11];
-	}
+	p[i_prt].p_s.B_r        = B_dB[0];     
+	p[i_prt].p_s.B_phi      = B_dB[4];     
+	p[i_prt].p_s.B_z        = B_dB[8];      
+	p[i_prt].p_s.B_r_dr     = B_dB[1];     
+	p[i_prt].p_s.B_phi_dr   = B_dB[5];   
+	p[i_prt].p_s.B_z_dr     = B_dB[9];     
+	p[i_prt].p_s.B_r_dphi   = B_dB[2];  
+	p[i_prt].p_s.B_phi_dphi = B_dB[6];  
+	p[i_prt].p_s.B_z_dphi   = B_dB[10];   
+	p[i_prt].p_s.B_r_dz     = B_dB[3];      
+	p[i_prt].p_s.B_phi_dz   = B_dB[7];   
+	p[i_prt].p_s.B_z_dz     = B_dB[11];
     }
 }
 
-void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j) {
-    p_fo->r[j] = p->rprt;
-    p_fo->phi[j] = p->phiprt;
-    p_fo->z[j] = p->zprt;
-    p_fo->rdot[j] = p->rdot;
-    p_fo->phidot[j] = p->phidot;
-    p_fo->zdot[j] = p->zdot;
-    p_fo->mass[j] = p->mass;
-    p_fo->charge[j] = p->charge;
-    p_fo->weight[j] = p->weight;
-    p_fo->time[j] = p->time;
-    p_fo->id[j] = p->id; 
-    p_fo->endcond[j] = p->endcond;
+void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j, 
+			  B_field_data* Bdata) {
+    p_fo->r[j]          = p->rprt;
+    p_fo->phi[j]        = p->phiprt;
+    p_fo->z[j]          = p->zprt;
+    p_fo->rdot[j]       = p->rdot;
+    p_fo->phidot[j]     = p->phidot;
+    p_fo->zdot[j]       = p->zdot;
 
+    p_fo->mass[j]       = p->mass;
+    p_fo->charge[j]     = p->charge;
+    p_fo->weight[j]     = p->weight;
+    p_fo->time[j]       = p->time;
+    p_fo->id[j]         = p->id; 
+    p_fo->endcond[j]    = p->endcond;
+    p_fo->walltile[j]   = p->walltile;
+
+    /* Magnetic field stored in state is for the gc position */
+    real B_dB[12];
+    B_field_eval_B_dB(B_dB, p->rprt, p->phiprt, p->zprt, Bdata);
+
+    p_fo->B_r[j]        = B_dB[0];
+    p_fo->B_r_dr[j]     = B_dB[1];
+    p_fo->B_r_dphi[j]   = B_dB[2];
+    p_fo->B_r_dz[j]     = B_dB[3];
+
+    p_fo->B_phi[j]      = B_dB[4];
+    p_fo->B_phi_dr[j]   = B_dB[5];
+    p_fo->B_phi_dphi[j] = B_dB[6];
+    p_fo->B_phi_dz[j]   = B_dB[7];
+
+    p_fo->B_z[j]        = B_dB[8];
+    p_fo->B_z_dr[j]     = B_dB[9];
+    p_fo->B_z_dphi[j]   = B_dB[10];
+    p_fo->B_z_dz[j]     = B_dB[11];
+	        
     p_fo->running[j] = 1;
     if(p->endcond) {
 	p_fo->running[j] = 0;
     }
-    
-    p_fo->walltile[j] = p->walltile;
-
-    p_fo->B_r[j]        = p->B_r;
-    p_fo->B_r_dr[j]     = p->B_r_dr;
-    p_fo->B_r_dphi[j]   = p->B_r_dphi;
-    p_fo->B_r_dz[j]     = p->B_r_dz;
-
-    p_fo->B_phi[j]      = p->B_phi;
-    p_fo->B_phi_dr[j]   = p->B_phi_dr;
-    p_fo->B_phi_dphi[j] = p->B_phi_dphi;
-    p_fo->B_phi_dz[j]   = p->B_phi_dz;
-
-    p_fo->B_z[j]        = p->B_z;
-    p_fo->B_z_dr[j]     = p->B_z_dr;
-    p_fo->B_z_dphi[j]   = p->B_z_dphi;
-    p_fo->B_z_dz[j]     = p->B_z_dz;
-	        
     p_fo->index[j] = i;
 }
 
-void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p) {
-    p->rprt    = p_fo->r[j];
-    p->phiprt  = p_fo->phi[j];
-    p->zprt    = p_fo->z[j];
-    p->rdot    = p_fo->rdot[j];
-    p->phidot  = p_fo->phidot[j];
-    p->zdot    = p_fo->zdot[j];
-    p->mass    = p_fo->mass[j];
-    p->charge  = p_fo->charge[j];
-    p->weight  = p_fo->weight[j];
-    p->time    = p_fo->time[j];
-    p->id      = p_fo->id[j]; 
-    p->endcond = p_fo->endcond[j];
- 
-    p->walltile = p_fo->walltile[j];
+void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p, 
+			  B_field_data* Bdata) {
+    p->rprt       = p_fo->r[j];
+    p->phiprt     = p_fo->phi[j];
+    p->zprt       = p_fo->z[j];
+    p->rdot       = p_fo->rdot[j];
+    p->phidot     = p_fo->phidot[j];
+    p->zdot       = p_fo->zdot[j];
 
-    p->B_r      = p_fo->B_r[j];
-    p->B_r_dr   = p_fo->B_r_dr[j];
-    p->B_r_dphi = p_fo->B_r_dphi[j];
-    p->B_r_dz   = p_fo->B_r_dz[j];
+    p->mass       = p_fo->mass[j];
+    p->charge     = p_fo->charge[j];
+    p->weight     = p_fo->weight[j];
+    p->time       = p_fo->time[j];
+    p->id         = p_fo->id[j]; 
+    p->endcond    = p_fo->endcond[j];
+    p->walltile   = p_fo->walltile[j];
+
+    /* Particle to guiding center */
+    real B_dB[12];
+    B_dB[0]       = p_fo->B_r[j];
+    B_dB[1]       = p_fo->B_r_dr[j];
+    B_dB[2]       = p_fo->B_r_dphi[j];
+    B_dB[3]       = p_fo->B_r_dz[j];
+    B_dB[4]       = p_fo->B_phi[j];
+    B_dB[5]       = p_fo->B_phi_dr[j];
+    B_dB[6]       = p_fo->B_phi_dphi[j];
+    B_dB[7]       = p_fo->B_phi_dz[j];
+    B_dB[8]       = p_fo->B_z[j];
+    B_dB[9]       = p_fo->B_z_dr[j];
+    B_dB[10]      = p_fo->B_z_dphi[j];
+    B_dB[11]      = p_fo->B_z_dz[j];
+
+    real gcpos[6];
+    real gamma = phys_gammaprtv(sqrt( p->rdot * p->rdot + p->phidot*p->phidot * p->rprt*p->rprt + p->zdot * p->zdot));
+    phys_prttogc(p->mass, p->charge, p->rprt, p->phiprt, p->zprt, 
+		 gamma * p->mass * p->rdot, gamma * p->mass * p->phidot * p->rprt, gamma * p->mass * p->zdot, 
+		 B_dB, gcpos);
+    gamma = phys_gammagcp(p->mass, gcpos[3], gcpos[4]);
+
+    p->r          = gcpos[0];
+    p->phi        = gcpos[1];
+    p->z          = gcpos[2];
+    p->vpar       = gcpos[3]/(p->mass*gamma);
+    p->mu         = gcpos[4];
+    p->theta      = gcpos[5];
+
+    /* Magnetic field stored in state is for the gc position */
+    B_field_eval_B_dB(B_dB, gcpos[0], gcpos[1], gcpos[2], Bdata);
+
+    p->B_r        = p_fo->B_r[j];
+    p->B_r_dr     = p_fo->B_r_dr[j];
+    p->B_r_dphi   = p_fo->B_r_dphi[j];
+    p->B_r_dz     = p_fo->B_r_dz[j];
 
     p->B_phi      = p_fo->B_phi[j];
     p->B_phi_dr   = p_fo->B_phi_dr[j];
     p->B_phi_dphi = p_fo->B_phi_dphi[j];
     p->B_phi_dz   = p_fo->B_phi_dz[j];
 
-    p->B_z      = p_fo->B_z[j];
-    p->B_z_dr   = p_fo->B_z_dr[j];
-    p->B_z_dphi = p_fo->B_z_dphi[j];
-    p->B_z_dz   = p_fo->B_z_dz[j];
+    p->B_z        = p_fo->B_z[j];
+    p->B_z_dr     = p_fo->B_z_dr[j];
+    p->B_z_dphi   = p_fo->B_z_dphi[j];
+    p->B_z_dz     = p_fo->B_z_dz[j];
 }
 
-void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j) {
+void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j, 
+			  B_field_data* Bdata) {
     
-    p_gc->r[j]        = p->r;
-    p_gc->phi[j]      = p->phi;
-    p_gc->z[j]        = p->z;
-    p_gc->vpar[j]     = p->vpar;
-    p_gc->mu[j]       = p->mu;
-    p_gc->theta[j]    = p->theta;
-    p_gc->mass[j]     = p->mass;
-    p_gc->charge[j]   = p->charge;
-    p_gc->time[j]     = p->time;
-    p_gc->weight[j]   = p->weight;
-    p_gc->id[j]       = p->id;
-    p_gc->endcond[j]  = p->endcond; 
-    p_gc->walltile[j] = p->walltile;
+    p_gc->r[j]          = p->r;
+    p_gc->phi[j]        = p->phi;
+    p_gc->z[j]          = p->z;
+    p_gc->vpar[j]       = p->vpar;
+    p_gc->mu[j]         = p->mu;
+    p_gc->theta[j]      = p->theta;
 
-    p_gc->running[j] = 1;
-    if(p->endcond) {
-	p_gc->running[j] = 0;
-    }
+    p_gc->mass[j]       = p->mass;
+    p_gc->charge[j]     = p->charge;
+    p_gc->time[j]       = p->time;
+    p_gc->weight[j]     = p->weight;
+    p_gc->id[j]         = p->id;
+    p_gc->endcond[j]    = p->endcond; 
+    p_gc->walltile[j]   = p->walltile;
 
     p_gc->B_r[j]        = p->B_r;
     p_gc->B_r_dr[j]     = p->B_r_dr;
@@ -968,58 +840,84 @@ void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int 
     p_gc->B_z_dphi[j]   = p->B_z_dphi;
     p_gc->B_z_dz[j]     = p->B_z_dz;
 
+    p_gc->running[j] = 1;
+    if(p->endcond) {
+	p_gc->running[j] = 0;
+    }
     p_gc->index[j] = i;
 }
 
-void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p) {
+void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p, 
+			  B_field_data* Bdata) {
 
-    p->r       = p_gc->r[j];
-    p->phi     = p_gc->phi[j];
-    p->z       = p_gc->z[j];
-    p->vpar    = p_gc->vpar[j];
-    p->mu      = p_gc->mu[j];
-    p->theta   = p_gc->theta[j];
-    p->mass    = p_gc->mass[j];
-    p->charge  = p_gc->charge[j];
-    p->time    = p_gc->time[j];
-    p->weight  = p_gc->weight[j];
-    p->id      = p_gc->id[j];
-    p->endcond = p_gc->endcond[j]; 
-    p->walltile = p_gc->walltile[j];
+    p->r          = p_gc->r[j];
+    p->phi        = p_gc->phi[j];
+    p->z          = p_gc->z[j];
+    p->vpar       = p_gc->vpar[j];
+    p->mu         = p_gc->mu[j];
+    p->theta      = p_gc->theta[j];
 
-    p->B_r      = p_gc->B_r[j];
-    p->B_r_dr   = p_gc->B_r_dr[j];
-    p->B_r_dphi = p_gc->B_r_dphi[j];
-    p->B_r_dz   = p_gc->B_r_dz[j];
+    p->mass       = p_gc->mass[j];
+    p->charge     = p_gc->charge[j];
+    p->time       = p_gc->time[j];
+    p->weight     = p_gc->weight[j];
+    p->id         = p_gc->id[j];
+    p->endcond    = p_gc->endcond[j]; 
+    p->walltile   = p_gc->walltile[j];
+
+    p->B_r        = p_gc->B_r[j];
+    p->B_r_dr     = p_gc->B_r_dr[j];
+    p->B_r_dphi   = p_gc->B_r_dphi[j];
+    p->B_r_dz     = p_gc->B_r_dz[j];
 
     p->B_phi      = p_gc->B_phi[j];
     p->B_phi_dr   = p_gc->B_phi_dr[j];
     p->B_phi_dphi = p_gc->B_phi_dphi[j];
     p->B_phi_dz   = p_gc->B_phi_dz[j];
 
-    p->B_z      = p_gc->B_z[j];
-    p->B_z_dr   = p_gc->B_z_dr[j];
-    p->B_z_dphi = p_gc->B_z_dphi[j];
-    p->B_z_dz   = p_gc->B_z_dz[j];
+    p->B_z        = p_gc->B_z[j];
+    p->B_z_dr     = p_gc->B_z_dr[j];
+    p->B_z_dphi   = p_gc->B_z_dphi[j];
+    p->B_z_dz     = p_gc->B_z_dz[j];
+    
+    /* Guiding center to particle transformation */
+    real B_dB[12];
+    B_dB[0]       = p->B_r;
+    B_dB[1]       = p->B_r_dr;
+    B_dB[2]       = p->B_r_dphi;
+    B_dB[3]       = p->B_r_dz;
+    B_dB[4]       = p->B_phi;
+    B_dB[5]       = p->B_phi_dr;
+    B_dB[6]       = p->B_phi_dphi;
+    B_dB[7]       = p->B_phi_dz;
+    B_dB[8]       = p->B_z;
+    B_dB[9]       = p->B_z_dr;
+    B_dB[10]      = p->B_z_dphi;
+    B_dB[11]      = p->B_z_dz;
+    real prtpos[6];
+    phys_gctoprt(p->mass, p->charge, p->r, p->phi, p->z, p->vpar, p->mu, p->theta, B_dB, prtpos);
+
+    p->rprt       = prtpos[0];     
+    p->phiprt     = prtpos[1];      
+    p->zprt       = prtpos[2];   
+    p->rdot       = prtpos[3]; 
+    p->phidot     = prtpos[4];     
+    p->zdot       = prtpos[5];
 }
 
-void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int j) {
+void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int j, 
+			  B_field_data* Bdata) {
     
-    p_ml->r[j]        = p->r;
-    p_ml->phi[j]      = p->phi;
-    p_ml->z[j]        = p->z;
+    p_ml->r[j]          = p->r;
+    p_ml->phi[j]        = p->phi;
+    p_ml->z[j]          = p->z;
 
-
-    p_ml->pitch[j]    = p->vpar >= 0;
-    p_ml->time[j]     = p->time;
-    p_ml->id[j]       = p->id;
-    p_ml->endcond[j]  = p->endcond; 
-    p_ml->walltile[j] = p->walltile;
-
-    p_ml->running[j] = 1;
-    if(p->endcond) {
-	p_ml->running[j] = 0;
-    }
+    p_ml->pitch[j]      = p->vpar >= 0;
+    p_ml->time[j]       = p->time;
+    p_ml->weight[j]     = p->weight;
+    p_ml->id[j]         = p->id;
+    p_ml->endcond[j]    = p->endcond; 
+    p_ml->walltile[j]   = p->walltile;
 
     p_ml->B_r[j]        = p->B_r;
     p_ml->B_r_dr[j]     = p->B_r_dr;
@@ -1036,36 +934,48 @@ void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int 
     p_ml->B_z_dphi[j]   = p->B_z_dphi;
     p_ml->B_z_dz[j]     = p->B_z_dz;
 
+    p_ml->running[j] = 1;
+    if(p->endcond) {
+	p_ml->running[j] = 0;
+    }
     p_ml->index[j] = i;
     
 }
 
-void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p) {
+void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p, 
+			  B_field_data* Bdata) {
 
-    p->r       = p_ml->r[j];
-    p->phi     = p_ml->phi[j];
-    p->z       = p_ml->z[j];
-    p->vpar    = p_ml->pitch[j];
-    p->mass    = 0;
-    p->charge  = 0;
-    p->time    = p_ml->time[j];
-    p->weight  = 0;
-    p->id      = p_ml->id[j];
-    p->endcond = p_ml->endcond[j]; 
-    p->walltile = p_ml->walltile[j];
+    p->rprt       = p_ml->r[j];
+    p->phiprt     = p_ml->phi[j];
+    p->zprt       = p_ml->z[j];
+    p->rdot       = 0;
+    p->phidot     = 0;
+    p->zdot       = 0;
 
-    p->B_r      = p_ml->B_r[j];
-    p->B_r_dr   = p_ml->B_r_dr[j];
-    p->B_r_dphi = p_ml->B_r_dphi[j];
-    p->B_r_dz   = p_ml->B_r_dz[j];
+    p->r          = p_ml->r[j];
+    p->phi        = p_ml->phi[j];
+    p->z          = p_ml->z[j];
+    p->vpar       = p_ml->pitch[j];
+    p->mass       = 0;
+    p->charge     = 0;
+    p->time       = p_ml->time[j];
+    p->weight     = p_ml->weight[j];
+    p->id         = p_ml->id[j];
+    p->endcond    = p_ml->endcond[j]; 
+    p->walltile   = p_ml->walltile[j];
+
+    p->B_r        = p_ml->B_r[j];
+    p->B_r_dr     = p_ml->B_r_dr[j];
+    p->B_r_dphi   = p_ml->B_r_dphi[j];
+    p->B_r_dz     = p_ml->B_r_dz[j];
 
     p->B_phi      = p_ml->B_phi[j];
     p->B_phi_dr   = p_ml->B_phi_dr[j];
     p->B_phi_dphi = p_ml->B_phi_dphi[j];
     p->B_phi_dz   = p_ml->B_phi_dz[j];
 
-    p->B_z      = p_ml->B_z[j];
-    p->B_z_dr   = p_ml->B_z_dr[j];
-    p->B_z_dphi = p_ml->B_z_dphi[j];
-    p->B_z_dz   = p_ml->B_z_dz[j];
+    p->B_z        = p_ml->B_z[j];
+    p->B_z_dr     = p_ml->B_z_dr[j];
+    p->B_z_dphi   = p_ml->B_z_dphi[j];
+    p->B_z_dz     = p_ml->B_z_dz[j];
 }

@@ -125,7 +125,7 @@ typedef struct {
 
 typedef enum input_particle_type {
     input_particle_type_p, input_particle_type_gc, input_particle_type_ml, 
-    input_particle_type_ps, input_particle_type_gcs, input_particle_type_mls
+    input_particle_type_s, input_particle_type_ps, input_particle_type_gcs, input_particle_type_mls
 } input_particle_type;
 
 /** @brief Struct representing either a particle or guiding center, including
@@ -238,6 +238,7 @@ typedef struct {
     real phi[NSIMD] __memalign__;      /**< phi coordinate */
     real z[NSIMD] __memalign__;        /**< z coordinate */
     real pitch[NSIMD] __memalign__;     /**< pitc = +1 */
+    real weight[NSIMD] __memalign__;   /**< test particle weight */
     real time[NSIMD] __memalign__;     /**< field line simulation "time" i.e. distance/c */
     integer id[NSIMD] __memalign__;       /**< arbitrary id for the field line */
     integer running[NSIMD] __memalign__; /**< 1 if the field line has hit the
@@ -294,12 +295,12 @@ int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
                       B_field_data* Bdata, int* cycle);
 
 void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata, int state);
-void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j);
-void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p);
-void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j);
-void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p);
-void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int j);
-void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p);
+void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j, B_field_data* Bdata);
+void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p, B_field_data* Bdata);
+void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j, B_field_data* Bdata);
+void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p, B_field_data* Bdata);
+void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int j, B_field_data* Bdata);
+void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p, B_field_data* Bdata);
 #pragma omp end declare target
 
 #endif
