@@ -166,13 +166,13 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	    if(!mask[i]){continue;}
 
 	    if(type == diag_orb_type_fo) {
-		datavec[id] = list->fo.phi*(CONST_PI/180);
+		datavec[id] = list->fo.phi*(180/CONST_PI);
 	    }
 	    else if(type == diag_orb_type_gc) {
-		datavec[id] = list->gc.phi*(CONST_PI/180);
+		datavec[id] = list->gc.phi*(180/CONST_PI);
 	    }
 	    else if(type == diag_orb_type_ml) {
-		datavec[id] = list->ml.phi*(CONST_PI/180);
+		datavec[id] = list->ml.phi*(180/CONST_PI);
 	    }
 	    list = list->prev;
 	    id++;
@@ -350,17 +350,17 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	    if(!mask[i]){continue;}
 
 	    if(type == diag_orb_type_fo) {
-		datavec[id] = list->fo.mass;
+		datavec[id] = list->fo.mass/CONST_U;
 	    }
 	    else if(type == diag_orb_type_gc) {
-		datavec[id] = list->gc.mass;
+		datavec[id] = list->gc.mass/CONST_U;
 	    }
 	    list = list->prev;
 	    id++;
 	}
 
 	H5LTmake_dataset(group, "mass", 1, dims, H5T_IEEE_F64LE, datavec);
-	H5LTset_attribute_string(group, "mass", "unit", "kg");
+	H5LTset_attribute_string(group, "mass", "unit", "amu");
 
 	free(datavec);
 	return;

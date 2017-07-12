@@ -56,16 +56,17 @@ void hdf5_markers_init_particle(hid_t f, int n, input_particle* p) {
     herr_t err;
     int i;
     
-    real* r = malloc(n * sizeof(real));
-    real* phi = malloc(n * sizeof(real));
-    real* z = malloc(n * sizeof(real));
-    real* v_r = malloc(n * sizeof(real));
-    real* v_phi = malloc(n * sizeof(real));
-    real* v_z = malloc(n * sizeof(real));
-    real* anum = malloc(n * sizeof(real));
-    real* znum = malloc(n * sizeof(real));
+    real* r      = malloc(n * sizeof(real));
+    real* phi    = malloc(n * sizeof(real));
+    real* z      = malloc(n * sizeof(real));
+    real* v_r    = malloc(n * sizeof(real));
+    real* v_phi  = malloc(n * sizeof(real));
+    real* v_z    = malloc(n * sizeof(real));
+    real* mass   = malloc(n * sizeof(real));
+    int* charge  = malloc(n * sizeof(int));
     real* weight = malloc(n * sizeof(real));
-    real* id = malloc(n * sizeof(real));
+    real* time   = malloc(n * sizeof(real));
+    integer* id  = malloc(n * sizeof(integer));
      
     err = H5LTread_dataset_double(f,"/markers/particle/r", r);
     err = H5LTread_dataset_double(f,"/markers/particle/phi", phi);    
@@ -73,26 +74,25 @@ void hdf5_markers_init_particle(hid_t f, int n, input_particle* p) {
     err = H5LTread_dataset_double(f,"/markers/particle/v_r", v_r);
     err = H5LTread_dataset_double(f,"/markers/particle/v_phi", v_phi);
     err = H5LTread_dataset_double(f,"/markers/particle/v_z", v_z);
-    err = H5LTread_dataset_double(f,"/markers/particle/anum", anum);
-    err = H5LTread_dataset_double(f,"/markers/particle/znum", znum);
-    err = H5LTread_dataset_double(f,"/markers/particle/weight", weight);    
-    err = H5LTread_dataset_double(f,"/markers/particle/id", id);
+    err = H5LTread_dataset_double(f,"/markers/particle/mass", mass);
+    err = H5LTread_dataset_int(f,"/markers/particle/charge", charge);
+    err = H5LTread_dataset_double(f,"/markers/particle/weight", weight);   
+    err = H5LTread_dataset_double(f,"/markers/particle/time", time);
+    err = H5LTread_dataset_long(f,"/markers/particle/id", id);
 
     for(i = 0; i < n; i++) {
-        p[i].p.r = r[i];
-        p[i].p.phi = phi[i] * math_pi / 180;
-        p[i].p.z = z[i];
-        p[i].p.v_r = v_r[i];
-        p[i].p.v_phi = v_phi[i];
-        p[i].p.v_z = v_z[i];
-        p[i].p.mass = anum[i] * CONST_U;
-        p[i].p.charge = znum[i] * CONST_E;
+        p[i].p.r      = r[i];
+        p[i].p.phi    = phi[i] * CONST_PI / 180;
+        p[i].p.z      = z[i];
+        p[i].p.v_r    = v_r[i];
+        p[i].p.v_phi  = v_phi[i];
+        p[i].p.v_z    = v_z[i];
+        p[i].p.mass   = mass[i] * CONST_U;
+        p[i].p.charge = charge[i] * CONST_E;
         p[i].p.weight = weight[i];
-        p[i].p.id = (integer) id[i];
-        p[i].type = input_particle_type_p;
-
-	//TODO temporary
-	p[i].p.time = 0;
+	p[i].p.time   = time[i];
+        p[i].p.id     = (integer) id[i];
+        p[i].type     = input_particle_type_p;
     }
     
     free(r);
@@ -101,9 +101,10 @@ void hdf5_markers_init_particle(hid_t f, int n, input_particle* p) {
     free(v_r);
     free(v_phi);
     free(v_z);
-    free(anum);
-    free(znum);
+    free(mass);
+    free(charge);
     free(weight);
+    free(time);
     free(id);
 }
 
@@ -112,40 +113,42 @@ void hdf5_markers_init_guiding_center(hid_t f, int n, input_particle* p) {
     herr_t err;
     int i;
     
-    real* r = malloc(n * sizeof(real));
-    real* phi = malloc(n * sizeof(real));
-    real* z = malloc(n * sizeof(real));
+    real* r      = malloc(n * sizeof(real));
+    real* phi    = malloc(n * sizeof(real));
+    real* z      = malloc(n * sizeof(real));
     real* energy = malloc(n * sizeof(real));
-    real* pitch = malloc(n * sizeof(real));
-    real* anum = malloc(n * sizeof(real));
-    real* znum = malloc(n * sizeof(real));
+    real* pitch  = malloc(n * sizeof(real));
+    real* theta  = malloc(n * sizeof(real));
+    real* mass   = malloc(n * sizeof(real));
+    int* charge  = malloc(n * sizeof(int));
     real* weight = malloc(n * sizeof(real));
-    real* id = malloc(n * sizeof(real));
+    real* time   = malloc(n * sizeof(real));
+    integer* id  = malloc(n * sizeof(integer));
      
     err = H5LTread_dataset_double(f,"/markers/guiding_center/r", r);
     err = H5LTread_dataset_double(f,"/markers/guiding_center/phi", phi);    
     err = H5LTread_dataset_double(f,"/markers/guiding_center/z", z);
     err = H5LTread_dataset_double(f,"/markers/guiding_center/energy", energy);
-    err = H5LTread_dataset_double(f,"/markers/guiding_center/pitch", pitch);    
-    err = H5LTread_dataset_double(f,"/markers/guiding_center/anum", anum);
-    err = H5LTread_dataset_double(f,"/markers/guiding_center/znum", znum);
-    err = H5LTread_dataset_double(f,"/markers/guiding_center/weight", weight);    
-    err = H5LTread_dataset_double(f,"/markers/guiding_center/id", id);
+    err = H5LTread_dataset_double(f,"/markers/guiding_center/pitch", pitch); 
+    err = H5LTread_dataset_double(f,"/markers/guiding_center/theta", theta);
+    err = H5LTread_dataset_double(f,"/markers/guiding_center/mass", mass);
+    err = H5LTread_dataset_int(f,"/markers/guiding_center/charge", charge);
+    err = H5LTread_dataset_double(f,"/markers/guiding_center/weight", weight);   
+    err = H5LTread_dataset_double(f,"/markers/guiding_center/time", time);
+    err = H5LTread_dataset_long(f,"/markers/guiding_center/id", id);
         
     for(i = 0; i < n; i++) {
-        p[i].p_gc.r = r[i];
-        p[i].p_gc.phi = phi[i] * math_pi / 180;
-        p[i].p_gc.z = z[i];
+        p[i].p_gc.r      = r[i];
+        p[i].p_gc.phi    = phi[i] * CONST_PI / 180;
+        p[i].p_gc.z      = z[i];
         p[i].p_gc.energy = energy[i];
-        p[i].p_gc.pitch = pitch[i];
-        p[i].p_gc.mass = anum[i] * CONST_U;
-        p[i].p_gc.charge = znum[i] * CONST_E;
+        p[i].p_gc.pitch  = pitch[i];
+	p[i].p_gc.theta  = theta[i];
+        p[i].p_gc.mass   = mass[i] * CONST_U;
+        p[i].p_gc.charge = charge[i] * CONST_E;
         p[i].p_gc.weight = weight[i];
-        p[i].p_gc.id = (integer) id[i];   
-        p[i].type = input_particle_type_gc;
-
-	//TODO temporary
-	p[i].p_gc.time = 0;
+        p[i].p_gc.id     = (integer) id[i];   
+        p[i].type        = input_particle_type_gc;
     }
     
     free(r);
@@ -153,9 +156,11 @@ void hdf5_markers_init_guiding_center(hid_t f, int n, input_particle* p) {
     free(z);
     free(energy);
     free(pitch);
-    free(anum);
-    free(znum);
+    free(theta);
+    free(mass);
+    free(charge);
     free(weight);
+    free(time);
     free(id);
 }
 
@@ -163,33 +168,38 @@ void hdf5_markers_init_field_line(hid_t f, int n, input_particle* p) {
     herr_t err;
     int i;
     
-    real* r = malloc(n * sizeof(real));
-    real* phi = malloc(n * sizeof(real));
-    real* z = malloc(n * sizeof(real));
-    real* pitch = malloc(n * sizeof(real));
-    real* id = malloc(n * sizeof(real));
+    real* r      = malloc(n * sizeof(real));
+    real* phi    = malloc(n * sizeof(real));
+    real* z      = malloc(n * sizeof(real));
+    real* pitch  = malloc(n * sizeof(real));
+    real* weight = malloc(n * sizeof(real));
+    real* time   = malloc(n * sizeof(real));
+    integer* id  = malloc(n * sizeof(integer));
      
     err = H5LTread_dataset_double(f,"/markers/field_line/r", r);
     err = H5LTread_dataset_double(f,"/markers/field_line/phi", phi);    
     err = H5LTread_dataset_double(f,"/markers/field_line/z", z);
-    err = H5LTread_dataset_double(f,"/markers/field_line/pitch", pitch);    
-    err = H5LTread_dataset_double(f,"/markers/field_line/id", id);
+    err = H5LTread_dataset_double(f,"/markers/field_line/pitch", pitch);
+    err = H5LTread_dataset_double(f,"/markers/field_line/weight", weight);
+    err = H5LTread_dataset_double(f,"/markers/field_line/time", time);
+    err = H5LTread_dataset_long(f,"/markers/field_line/id", id);
         
     for(i = 0; i < n; i++) {
-        p[i].p_ml.r = r[i];
-        p[i].p_ml.phi = phi[i] * math_pi / 180;
-        p[i].p_ml.z = z[i];
-        p[i].p_ml.pitch = pitch[i];
-        p[i].p_ml.id = (integer) id[i];
-        p[i].type = input_particle_type_ml;
-
-	//TODO temporary
-	p[i].p_ml.time = 0;
+        p[i].p_ml.r      = r[i];
+        p[i].p_ml.phi    = phi[i] * CONST_PI / 180;
+        p[i].p_ml.z      = z[i];
+        p[i].p_ml.pitch  = pitch[i];
+	p[i].p_ml.weight = weight[i];
+	p[i].p_ml.time   = time[i];
+        p[i].p_ml.id     = (integer)id[i];
+        p[i].type        = input_particle_type_ml;
     }
     
     free(r);
     free(phi);
     free(z);
     free(pitch);
+    free(weight);
+    free(time);
     free(id);
 }

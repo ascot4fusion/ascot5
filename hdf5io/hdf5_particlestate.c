@@ -42,7 +42,7 @@ int hdf5_particlestate_write(char* fn, char *state, int n, input_particle* p) {
     H5LTset_attribute_string(state_group, "Rprt", "unit", "m");
 
     for(i = 0; i < n; i++) {
-	data[i] = p[i].p_s.phiprt*(CONST_PI/180);
+	data[i] = p[i].p_s.phiprt*(180/CONST_PI);
     }
     H5LTmake_dataset(state_group, "phiprt", 1, dims, H5T_IEEE_F64LE, data);
     H5LTset_attribute_string(state_group, "phiprt", "unit", "deg");
@@ -79,7 +79,7 @@ int hdf5_particlestate_write(char* fn, char *state, int n, input_particle* p) {
     H5LTset_attribute_string(state_group, "R", "unit", "m");
 
     for(i = 0; i < n; i++) {
-	data[i] = p[i].p_s.phi*(CONST_PI/180);
+	data[i] = p[i].p_s.phi*(180/CONST_PI);
     }
     H5LTmake_dataset(state_group, "phi", 1, dims, H5T_IEEE_F64LE, data);
     H5LTset_attribute_string(state_group, "phi", "unit", "deg");
@@ -122,10 +122,10 @@ int hdf5_particlestate_write(char* fn, char *state, int n, input_particle* p) {
     H5LTset_attribute_string(state_group, "time", "unit", "s");
 
     for(i = 0; i < n; i++) {
-	data[i] = p[i].p_s.mass;
+	data[i] = p[i].p_s.mass/CONST_U;
     }
     H5LTmake_dataset(state_group, "mass", 1, dims, H5T_IEEE_F64LE, data);
-    H5LTset_attribute_string(state_group, "mass", "unit", "kg");
+    H5LTset_attribute_string(state_group, "mass", "unit", "amu");
 
     /* Magnetic field */
     for(i = 0; i < n; i++) {
