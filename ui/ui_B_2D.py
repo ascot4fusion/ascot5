@@ -6,14 +6,14 @@ def write_hdf5(fn, rlim, zlim, psirz, Br, Bphi, Bz, axisRz, psivals):
 
     Keyword arguments:
     fn      -- path to hdf5 file
-    rlim    -- [r_min, r_max] values of the R grid
-    zlim    -- [z_min, z_max] values of the z grid
-    psirz   -- psi values in Rz grid
-    Br      -- Br values in Rz grid
-    Bphi    -- Bphi values in Rz grid
-    Bz      -- Bz values in Rz grid
-    axisRz  -- magnetic axis (R,z) coordinates
-    psivals -- psi values at magnetic axis and X-point (separatrix)
+    rlim    -- [r_min, r_max] values of the R grid (m)
+    zlim    -- [z_min, z_max] values of the z grid (m)
+    psirz   -- psi values in Rz grid (T/m) as defined in GS equation
+    Br      -- Br values in Rz grid (T) superimposed on equilibrium
+    Bphi    -- Bphi values in Rz grid (T)
+    Bz      -- Bz values in Rz grid (T) superimposed on equilibrium 
+    axisRz  -- magnetic axis (R,z) coordinates (m)
+    psivals -- psi values at magnetic axis and X-point, i.e. separatrix (T/m)
     """
     
     # Create bfield group if one does not exists and set 

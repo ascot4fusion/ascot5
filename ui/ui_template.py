@@ -47,9 +47,11 @@ wr = np.array([0, 0, 100, 100, 0])
 wz = np.array([-50, 50, 50, -50, -50])
 
 ids    = np.array([1.0])
-anum   = np.array([4.0])
-znum   = np.array([2.0])
-weight = np.array([1.0])
+mass   = np.array([4.002602])
+charge = np.array([2])
+weight = np.array([1])
+time   = np.array([0])
+
 rprt   = np.array([7.0123552])
 phiprt = np.array([352.52435])
 zprt   = np.array([0.0814756])
@@ -71,6 +73,6 @@ ui_B_TC.write_hdf5(fn, B0, B_dB, axisr, axisz, psival, rhoval)
 ui_E_TC.write_hdf5(fn, E) 
 ui_plasma_1D.write_hdf5(fn, Znum, Anum, rho, ndens, ntemp, edens, etemp, idens, itemp)
 ui_wall_2D.write_hdf5(fn, wr, wz)
-ui_markers.write_hdf5_particles(fn, ids, anum, znum, rprt, phiprt, zprt, vr, vphi, vz, weight);
-#ui_markers.write_hdf5_guidingcenters(fn, ids, anum, znum, r, phi, z, energy, pitch, theta, weight);
-#ui_markers.write_hdf5_fieldlines(fn, ids, r, phi, z, mlpitch);   
+ui_markers.write_hdf5_particles(fn, ids, mass, charge, rprt, phiprt, zprt, vr, vphi, vz, weight, time);
+ui_markers.write_hdf5_guidingcenters(fn, ids+1, mass, charge, r, phi, z, energy, pitch, theta, weight, time);
+ui_markers.write_hdf5_fieldlines(fn, ids+1, r, phi, z, mlpitch, weight, time);   
