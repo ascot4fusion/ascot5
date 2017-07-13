@@ -54,6 +54,7 @@ typedef struct{
     real time;
     real r;
     real phi;
+    real weight;
     real z;
     real B_r;
     real B_phi;
