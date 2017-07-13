@@ -113,6 +113,8 @@ void simulate_continue(int id, int n_particles, input_particle* p,
     pqhyb.next = 0;
 
     if(pq.n > 0 && (sim->sim_mode == 2 || sim->sim_mode == 3) ) {
+	sim->diag_data.orbits.type = diag_orb_type_gc;
+
 	if(sim->enable_ada) {
 	    #pragma omp parallel
 	    {
@@ -127,12 +129,19 @@ void simulate_continue(int id, int n_particles, input_particle* p,
 	}
     }
     else if(pq.n > 0 && sim->sim_mode == 1) {
+	if(sim->record_GOasGC) {
+	    sim->diag_data.orbits.type = diag_orb_type_gc;
+	}
+	else {
+	    sim->diag_data.orbits.type = diag_orb_type_fo;
+	}
 	#pragma omp parallel
 	{
 	    simulate_fo_fixed(&pq, sim);
 	}
     }
     else if(pq.n > 0 && sim->sim_mode == 4) {
+	sim->diag_data.orbits.type = diag_orb_type_ml;
 	#pragma omp parallel
 	{
 	    simulate_ml_adaptive(&pq, sim);
