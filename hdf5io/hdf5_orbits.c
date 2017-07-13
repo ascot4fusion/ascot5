@@ -373,16 +373,16 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	    if(!mask[i]){continue;}
 
 	    if(type == diag_orb_type_fo) {
-		datavec[id] = list->fo.charge;
+		datavec[id] = (int)(list->fo.charge/CONST_E);
 	    }
 	    else if(type == diag_orb_type_gc) {
-		datavec[id] = list->gc.charge;
+		datavec[id] = (int)(list->gc.charge/CONST_E);
 	    }
 	    list = list->prev;
 	    id++;
 	}
 
-	H5LTmake_dataset(group, "charge", 1, dims, H5T_STD_I64LE, datavec);
+	H5LTmake_dataset(group, "charge", 1, dims, H5T_STD_I32LE, datavec);
 	H5LTset_attribute_string(group, "charge", "unit", "e");
 
 	free(datavec);

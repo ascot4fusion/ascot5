@@ -69,12 +69,21 @@ void diag_orb_update_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_d
 	    if(store[i]) {
 		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
 
-		new->gc.time = p_f->time[i];
-		new->gc.r    = p_f->r[i];
-		new->gc.phi  = p_f->phi[i];
-		new->gc.z    = p_f->z[i];
-		new->gc.mu   = p_f->mu[i];
-		new->gc.vpar = p_f->vpar[i];
+		new->gc.id     = p_f->id[i];
+		new->gc.time   = p_f->time[i];
+		new->gc.r      = p_f->r[i];
+		new->gc.phi    = p_f->phi[i];
+		new->gc.z      = p_f->z[i];
+		new->gc.mu     = p_f->mu[i];
+		new->gc.vpar   = p_f->vpar[i];
+		new->gc.theta  = p_f->theta[i];
+
+		new->gc.mass   = p_f->mass[i];
+		new->gc.charge = p_f->charge[i];
+		new->gc.weight = p_f->weight[i];
+		new->gc.B_r    = p_f->B_r[i];
+		new->gc.B_phi  = p_f->B_phi[i];
+		new->gc.B_z    = p_f->B_z[i];
 
 		new->prev = data->writelist;
 		if(data->writelist != NULL) {
@@ -171,8 +180,8 @@ void diag_orb_update_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_d
 		new->fo.phidot = p_f->phidot[i];
 		new->fo.zdot   = p_f->zdot[i];
 
-		new->fo.mass   = p_f->mass[i] / CONST_U;
-		new->fo.charge = (int)(p_f->charge[i] /CONST_E);
+		new->fo.mass   = p_f->mass[i];
+		new->fo.charge = p_f->charge[i];
 		new->fo.weight = p_f->weight[i];
 		new->fo.B_r    = p_f->B_r[i];
 		new->fo.B_phi  = p_f->B_phi[i];
@@ -201,10 +210,16 @@ void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_d
 	    if(store[i]) {
 		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
 
+		new->ml.id     = p_f->id[i];
 		new->ml.time   = p_f->time[i];
 		new->ml.r      = p_f->r[i];
 		new->ml.phi    = p_f->phi[i];
 		new->ml.z      = p_f->z[i];
+
+		new->ml.weight = p_f->weight[i];
+		new->ml.B_r    = p_f->B_r[i];
+		new->ml.B_phi  = p_f->B_phi[i];
+		new->ml.B_z    = p_f->B_z[i];
 
 		new->prev = data->writelist;
 		if(data->writelist != NULL) {

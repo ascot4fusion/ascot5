@@ -224,9 +224,9 @@ int hdf5_particlestate_write(char* fn, char *state, int n, input_particle* p) {
     H5LTset_attribute_string(state_group, "id", "unit", "1");
 
     for(i = 0; i < n; i++) {
-	intdata[i] = p[i].p_s.charge;
+	intdata[i] = (int)(p[i].p_s.charge/CONST_E);
     }
-    H5LTmake_dataset(state_group, "charge", 1, dims, H5T_STD_I64LE, intdata);
+    H5LTmake_dataset(state_group, "charge", 1, dims, H5T_STD_I32LE, intdata);
     H5LTset_attribute_string(state_group, "charge", "unit", "e");
 
     for(i = 0; i < n; i++) {

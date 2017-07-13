@@ -23,7 +23,7 @@ typedef struct{
     real phidot;
     real zdot;
     real weight;
-    int charge;
+    real charge;
     real mass;
     real B_r;
     real B_phi;
@@ -41,7 +41,7 @@ typedef struct{
     real mu;
     real theta;
     real weight;
-    int charge;
+    real charge;
     real mass;
     real B_r;
     real B_phi;
@@ -54,8 +54,8 @@ typedef struct{
     real time;
     real r;
     real phi;
-    real weight;
     real z;
+    real weight;
     real B_r;
     real B_phi;
     real B_z;
