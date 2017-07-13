@@ -19,7 +19,7 @@
  * @brief Lorentz factor in particle phase space using velocity
  * gamma(v) = 1/sqrt( 1 - v^2/c^2)
  */
-#define phys_gammaprtv(v) ( 1 / ( sqrt( 1 - ( pow(v,2) / CONST_C2 ) ) ) );
+#define phys_gammaprtv(v) ( 1 / ( sqrt( 1 - ( pow(v,2) / CONST_C2 ) ) ) )
 
 /**
  * @brief Lorentz factor in guiding center phase space using momentum
@@ -31,7 +31,7 @@
  * @brief Lorentz factor in guiding center phase space using velocity
  * gamma(mass,vpara,mu) = sqrt( ( 1 + 2 * mu / m * c^2 )/( 1-vpara^2/c^2 ))
  */
-#define phys_gammagcv(m,vpara,mu) ( sqrt( ( 1 + 2 * mu / ( m * CONST_C2 ) ) / ( 1 - vpara * vpara / CONST_C2 ) ) );
+#define phys_gammagcv(m,vpara,mu) ( sqrt( ( 1 + 2 * mu / ( m * CONST_C2 ) ) / ( 1 - vpara * vpara / CONST_C2 ) ) )
 
 /**
  * @brief Gyro length (m) in particle phase space (mass, charge, momentum[3], magnetic field [3])

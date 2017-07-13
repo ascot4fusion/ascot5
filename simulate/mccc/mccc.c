@@ -70,7 +70,7 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data* pd
 
 	    int j;
 	    for(j = 0; j < pdata->n_species; j++) {
-		temp[j] = plasma_1d_eval_temp(rho[0], j, pdata);
+		temp[j] = plasma_1d_eval_temp(rho[0], j, pdata)*CONST_KB;
 		dens[j] = plasma_1d_eval_dens(rho[0], j, pdata);
 	    }
 
@@ -135,7 +135,7 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pd
 
 	    int j;
 	    for(j = 0; j < pdata->n_species; j++) {
-		temp[j] = plasma_1d_eval_temp(rho[0], j, pdata);
+		temp[j] = plasma_1d_eval_temp(rho[0], j, pdata)*CONST_KB;
 		dens[j] = plasma_1d_eval_dens(rho[0], j, pdata);
 	    }
 

@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "../ascot5.h"
+#include "../consts.h"
 #include "../simulate.h"
 #include "../endcond.h"
 #include "../distributions.h"
@@ -59,6 +60,7 @@ void hdf5_simulate(hid_t f, sim_offload_data* sim){
     if(ec){
 	sim->endcond_active = sim->endcond_active | endcond_emin | endcond_therm;
 	err = H5LTread_dataset_double(f, "/options/ENDCOND_MIN_ENERGY", &sim->endcond_minEkin);
+	sim->endcond_minEkin = sim->endcond_minEkin*CONST_E;
 	err = H5LTread_dataset_double(f, "/options/ENDCOND_MIN_ENERGY_TIMES_THERMAL", &sim->endcond_minEkinPerTe);
     }
 	
@@ -70,8 +72,12 @@ void hdf5_simulate(hid_t f, sim_offload_data* sim){
     err = H5LTread_dataset_int(f, "/options/ENDCOND_MAXORBS", &ec);
     if(ec){
 	sim->endcond_active = sim->endcond_active | endcond_polmax | endcond_tormax;
-	err = H5LTread_dataset_double(f, "/options/ENDCOND_MAX_POLOIDALORBS", &sim->endcond_maxTorOrb);
-	err = H5LTread_dataset_double(f, "/options/ENDCOND_MAX_TOROIDALORBS", &sim->endcond_maxPolOrb);
+	int temp[1];
+	err = H5LTread_dataset_int(f, "/options/ENDCOND_MAX_POLOIDALORBS", temp);
+	sim->endcond_maxPolOrb = temp[0] * 2 *CONST_PI;
+
+	err = H5LTread_dataset_int(f, "/options/ENDCOND_MAX_TOROIDALORBS", temp);
+	sim->endcond_maxTorOrb = temp[0] * 2 *CONST_PI;
     }
 
     /* Diagnostics */
