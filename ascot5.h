@@ -65,6 +65,9 @@
 #ifndef ASCOT5_H
 #define ASCOT5_H
 
+#include <omp.h>
+#include <time.h>
+
 /** This is used to tell the compiler that we want a variable aligned to
  * 64 bits for Xeon Phi; may not be always necessary */
 #define __memalign__ __attribute__((aligned(64)))
@@ -91,5 +94,13 @@ typedef double real;
 /** @brief Maximum number of Wiener processes stored (effectively number 
  *  of time step reductions) */
 #define WIENERSLOTS 20
+
+
+/** @brief Wall time */
+#ifdef _OMP
+#define A5_WTIME omp_get_wtime()
+#else
+#define A5_WTIME ( ((real)clock()) / CLOCKS_PER_SEC)
+#endif
 
 #endif

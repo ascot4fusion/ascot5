@@ -519,6 +519,7 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata)
 	p[i_prt].p_s.id         = id;    
 	p[i_prt].p_s.endcond    = 0; 
 	p[i_prt].p_s.walltile   = 0;
+	p[i_prt].p_s.cputime    = 0;
 
 	/* Guiding center transformation */
 	real B_dB[12];
@@ -539,6 +540,12 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata)
 	p[i_prt].p_s.mu         = gcpos[4];
 	p[i_prt].p_s.theta      = gcpos[5];
 
+	real psi[1];
+	real rho[1];
+	B_field_eval_psi(psi, gcpos[0], gcpos[1], gcpos[2], Bdata);
+	B_field_eval_rho(rho, psi[0], Bdata);
+
+	p[i_prt].p_s.rho        = rho[0];
 	p[i_prt].p_s.B_r        = B_dB[0];     
 	p[i_prt].p_s.B_phi      = B_dB[4];     
 	p[i_prt].p_s.B_z        = B_dB[8];      
@@ -576,8 +583,8 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata)
 	real gamma = 1 + energy / (mass * CONST_C2);
 	real vgc = sqrt(1 - 1 / (gamma * gamma)) * CONST_C;
 	real vpar = pitch*vgc;
-	real mu = (1 - pitch * pitch) * vgc * vgc / (B_norm);
-	    
+	real mu = (1 - pitch * pitch) * mass * vgc * vgc / (2 * B_norm);
+
 	real prtpos[6];
 	phys_gctoprt(mass, charge, r, phi, z, vpar, mu, theta, B_dB, prtpos);
 	     
@@ -602,8 +609,15 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata)
 	p[i_prt].p_s.id         = id;    
 	p[i_prt].p_s.endcond    = 0; 
 	p[i_prt].p_s.walltile   = 0;
+	p[i_prt].p_s.cputime    = 0;
 
-	p[i_prt].p_s.B_r        = B_dB[0];     
+	real psi[1];
+	real rho[1];
+	B_field_eval_psi(psi, r, phi, z, Bdata);
+	B_field_eval_rho(rho, psi[0], Bdata);
+
+	p[i_prt].p_s.rho        = rho[0];
+	p[i_prt].p_s.B_r        = B_dB[0];
 	p[i_prt].p_s.B_phi      = B_dB[4];     
 	p[i_prt].p_s.B_z        = B_dB[8];      
 	p[i_prt].p_s.B_r_dr     = B_dB[1];     
@@ -643,9 +657,14 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata)
 	p[i_prt].p_s.id         = id;    
 	p[i_prt].p_s.endcond    = 0; 
 	p[i_prt].p_s.walltile   = 0;
+	p[i_prt].p_s.cputime    = 0;
 
 	real B_dB[12];
 	B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
+	real psi[1];
+	real rho[1];
+	B_field_eval_psi(psi, r, phi, z, Bdata);
+	B_field_eval_rho(rho, psi[0], Bdata);
 
 	p[i_prt].p_s.r          = r;
 	p[i_prt].p_s.phi        = phi;
@@ -654,6 +673,7 @@ void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata)
 	p[i_prt].p_s.mu         = 0;
 	p[i_prt].p_s.theta      = 0;
 
+	p[i_prt].p_s.rho        = rho[0]; 
 	p[i_prt].p_s.B_r        = B_dB[0];     
 	p[i_prt].p_s.B_phi      = B_dB[4];     
 	p[i_prt].p_s.B_z        = B_dB[8];      
@@ -690,6 +710,13 @@ void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int 
     real B_dB[12];
     B_field_eval_B_dB(B_dB, p->rprt, p->phiprt, p->zprt, Bdata);
 
+    real psi[1];
+    real rho[1];
+    B_field_eval_psi(psi, p->rprt, p->phiprt, p->zprt, Bdata);
+    B_field_eval_rho(rho, psi[0], Bdata);
+
+    p_fo->rho[j]        = rho[0];
+
     p_fo->B_r[j]        = B_dB[0];
     p_fo->B_r_dr[j]     = B_dB[1];
     p_fo->B_r_dphi[j]   = B_dB[2];
@@ -709,7 +736,8 @@ void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int 
     if(p->endcond) {
 	p_fo->running[j] = 0;
     }
-    p_fo->index[j] = i;
+    p_fo->cputime[j] = p->cputime;
+    p_fo->index[j]   = i;
 }
 
 void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p, 
@@ -728,6 +756,7 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->id         = p_fo->id[j]; 
     p->endcond    = p_fo->endcond[j];
     p->walltile   = p_fo->walltile[j];
+    p->cputime    = p_fo->cputime[j];
 
     /* Particle to guiding center */
     real B_dB[12];
@@ -760,6 +789,13 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
 
     /* Magnetic field stored in state is for the gc position */
     B_field_eval_B_dB(B_dB, gcpos[0], gcpos[1], gcpos[2], Bdata);
+
+    real psi[1];
+    real rho[1];
+    B_field_eval_psi(psi, gcpos[0], gcpos[1], gcpos[2], Bdata);
+    B_field_eval_rho(rho, psi[0], Bdata);
+
+    p->rho        = rho[0];
 
     p->B_r        = p_fo->B_r[j];
     p->B_r_dr     = p_fo->B_r_dr[j];

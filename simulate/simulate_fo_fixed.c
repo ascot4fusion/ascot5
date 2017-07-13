@@ -5,6 +5,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <omp.h>
 #include <immintrin.h>
 #include <math.h>
@@ -71,32 +72,57 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 	    hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
 	}
     }
+
+    real cputime_start = A5_WTIME;
+    real cputime_end;
     
 /* MAIN SIMULATION LOOP 
  * - Store current state
  * - Integrate motion due to background EM-field (orbit-following)
  * - Integrate scattering due to Coulomb collisions
- * - Check whether time step was accepted
  * - Advance time
  * - Check for end condition(s)
  * - Update diagnostics
- * - 
  */
     while(n_running > 0) {
 
-        /* Store marker states in case time step will be rejected */
+        /* Store marker states */
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
-            p0.r[i]        = p.r[i];
-            p0.phi[i]      = p.phi[i];
-            p0.z[i]        = p.z[i];
-            p0.rdot[i]     = p.rdot[i];
-            p0.phidot[i]   = p.phidot[i];
-            p0.zdot[i]     = p.zdot[i];
-            p0.time[i]     = p.time[i];
-            p0.running[i]  = p.running[i];
-            p0.endcond[i]  = p.endcond[i];
-            p0.walltile[i] = p.walltile[i];
+            p0.r[i]          = p.r[i];
+            p0.phi[i]        = p.phi[i];
+            p0.z[i]          = p.z[i];
+            p0.rdot[i]       = p.rdot[i];
+            p0.phidot[i]     = p.phidot[i];
+            p0.zdot[i]       = p.zdot[i];
+
+            p0.time[i]       = p.time[i];
+	    p0.cputime[i]    = p.cputime[i];
+	    p0.rho[i]        = p.rho[i];
+	    p0.weight[i]     = p.weight[i];
+
+	    p0.mass[i]       = p.mass[i];
+	    p0.charge[i]     = p.charge[i];
+
+            p0.running[i]    = p.running[i];
+            p0.endcond[i]    = p.endcond[i];
+            p0.walltile[i]   = p.walltile[i];
+
+	    p0.B_r[i]        = p.B_r[i];
+	    p0.B_phi[i]      = p.B_phi[i];
+	    p0.B_z[i]        = p.B_z[i];
+
+	    p0.B_r_dr[i]     = p.B_r_dr[i];
+	    p0.B_r_dphi[i]   = p.B_r_dphi[i];
+	    p0.B_r_dz[i]     = p.B_r_dz[i];
+
+	    p0.B_phi_dr[i]   = p.B_phi_dr[i];
+	    p0.B_phi_dphi[i] = p.B_phi_dphi[i];
+	    p0.B_phi_dz[i]   = p.B_z_dz[i];
+
+	    p0.B_z_dr[i]     = p.B_z_dr[i];
+	    p0.B_z_dphi[i]   = p.B_z_dphi[i];
+	    p0.B_z_dz[i]     = p.B_z_dz[i];
         }
 
         if(sim->enable_orbfol) {
@@ -107,13 +133,15 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
             mccc_step_fo_fixed(&p, &sim->B_data, &sim->plasma_data, hin, err);
         }
  
-
+	cputime_end = A5_WTIME;
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]){
                 p.time[i] = p.time[i] + hin[i];
+		p.cputime[i] += cputime_end - cputime_start;
             }
         }
+	cputime_start = cputime_end;
 
         endcond_check_fo(&p, &p0, sim);
 
@@ -140,7 +168,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
     /* Value defined directly by user */
     if(sim->fix_usrdef_use) {
-    return sim->fix_usrdef_val;
+	return sim->fix_usrdef_val;
     }
 
     /* Value calculated from gyrotime */

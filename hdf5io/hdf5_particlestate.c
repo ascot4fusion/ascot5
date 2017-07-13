@@ -122,6 +122,18 @@ int hdf5_particlestate_write(char* fn, char *state, int n, input_particle* p) {
     H5LTset_attribute_string(state_group, "time", "unit", "s");
 
     for(i = 0; i < n; i++) {
+	data[i] = p[i].p_s.cputime;
+    }
+    H5LTmake_dataset(state_group, "cputime", 1, dims, H5T_IEEE_F64LE, data);
+    H5LTset_attribute_string(state_group, "cputime", "unit", "s");
+
+   for(i = 0; i < n; i++) {
+	data[i] = p[i].p_s.rho;
+    }
+    H5LTmake_dataset(state_group, "rho", 1, dims, H5T_IEEE_F64LE, data);
+    H5LTset_attribute_string(state_group, "rho", "unit", "1");
+
+    for(i = 0; i < n; i++) {
 	data[i] = p[i].p_s.mass/CONST_U;
     }
     H5LTmake_dataset(state_group, "mass", 1, dims, H5T_IEEE_F64LE, data);

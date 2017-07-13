@@ -141,7 +141,7 @@ void hdf5_markers_init_guiding_center(hid_t f, int n, input_particle* p) {
         p[i].p_gc.r      = r[i];
         p[i].p_gc.phi    = phi[i] * CONST_PI / 180;
         p[i].p_gc.z      = z[i];
-        p[i].p_gc.energy = energy[i];
+        p[i].p_gc.energy = energy[i] * CONST_E;
         p[i].p_gc.pitch  = pitch[i];
 	p[i].p_gc.theta  = theta[i];
         p[i].p_gc.mass   = mass[i] * CONST_U;

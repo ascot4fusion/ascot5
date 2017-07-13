@@ -35,6 +35,8 @@ typedef struct {
     real charge;      /**< charge */
     real weight;      /**< test particle weight */
     real time;        /**< particle simulation time */
+    real cputime;     /**< test particle cputime */
+    real rho;         /**< test particle rho coordinate */
     integer id;       /**< arbitrary id for the particle */
     integer endcond;  /**< particle end condition */
     integer walltile; /**< id of walltile if particle hit
@@ -151,6 +153,8 @@ typedef struct {
     real charge[NSIMD] __memalign__;   /**< charge */
     real weight[NSIMD] __memalign__;   /**< test particle weight */
     real time[NSIMD] __memalign__;     /**< particle simulation time */
+    real cputime[NSIMD] __memalign__;  /**< particle cpu time */
+    real rho[NSIMD] __memalign__;      /**< particle rho coordinate */
     integer id[NSIMD] __memalign__;       /**< arbitrary id for the particle */
     integer running[NSIMD] __memalign__;
     integer endcond[NSIMD] __memalign__;  /**< particle end condition */
