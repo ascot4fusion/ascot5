@@ -827,6 +827,7 @@ void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int 
     p_gc->charge[j]     = p->charge;
     p_gc->time[j]       = p->time;
     p_gc->weight[j]     = p->weight;
+    p_gc->rho[j]        = p->rho;
     p_gc->id[j]         = p->id;
     p_gc->endcond[j]    = p->endcond; 
     p_gc->walltile[j]   = p->walltile;
@@ -850,7 +851,8 @@ void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int 
     if(p->endcond) {
 	p_gc->running[j] = 0;
     }
-    p_gc->index[j] = i;
+    p_gc->cputime[j] = p->cputime;
+    p_gc->index[j]   = i;
 }
 
 void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p, 
@@ -868,6 +870,8 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     p->time       = p_gc->time[j];
     p->weight     = p_gc->weight[j];
     p->id         = p_gc->id[j];
+    p->cputime    = p_gc->cputime[j];
+    p->rho        = p_gc->rho[j];
     p->endcond    = p_gc->endcond[j]; 
     p->walltile   = p_gc->walltile[j];
 
@@ -922,6 +926,8 @@ void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int 
     p_ml->time[j]       = p->time;
     p_ml->weight[j]     = p->weight;
     p_ml->id[j]         = p->id;
+    p_ml->cputime[j]    = p->cputime;
+    p_ml->rho[j]        = p->rho;
     p_ml->endcond[j]    = p->endcond; 
     p_ml->walltile[j]   = p->walltile;
 
@@ -967,6 +973,8 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->time       = p_ml->time[j];
     p->weight     = p_ml->weight[j];
     p->id         = p_ml->id[j];
+    p->cputime    = p_ml->cputime[j]; 
+    p->rho        = p_ml->rho[j]; 
     p->endcond    = p_ml->endcond[j]; 
     p->walltile   = p_ml->walltile[j];
 

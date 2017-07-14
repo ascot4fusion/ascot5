@@ -108,8 +108,8 @@ def aGS_allInputs(epsilon,kappa,delta,Xpointx,Xpointy,outerEqPoint,innerEqPoint,
         plt.show()
 
 if __name__ == "__main__":
-    R0=1.0
-    method='aug'
+    R0=6.2
+    method='itertok'
 
     epsilon=kappa=delta=xsep=ysep=D=0    
     if method == 'itertok':

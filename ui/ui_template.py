@@ -1,6 +1,7 @@
 import h5py
 import numpy as np
 import ui_B_TC
+import ui_B_GS
 import ui_E_TC
 import ui_options
 import ui_plasma_1D
@@ -67,12 +68,21 @@ energy = np.array([3.5e6])
 theta  = np.array([0.1])
 mlpitch = np.array([1.0])
 
+axisr = 6.2
+axisz = 0
+psi0 = -0.0365
+psi1 = 0
+B_phi0 = 5.3
+psimult = 1000
+psicoef = np.array([8.629491085780416348e-02, 3.279306587723925803e-01, 5.268677701240817024e-01, -2.366208946912087274e-01, 3.825826765593096646e-01, -3.573153147754407621e-01, -1.484166833037287025e-02, 1.506045943286430100e-01, 7.428226459414810634e-01, -4.447153105104519888e-01, -1.084640395736786167e-01, 1.281599235951017685e-02, -0.155])
+
 
 ui_options.writeHdf5(ui_options.Ui_optionsIO(),fn)
-ui_B_TC.write_hdf5(fn, B0, B_dB, axisr, axisz, psival, rhoval) 
+#ui_B_TC.write_hdf5(fn, B0, B_dB, axisr, axisz, psival, rhoval) 
+ui_B_GS.write_hdf5(fn, axisr, axisz, B_phi0, psi0, psi1, psimult, psicoef) 
 ui_E_TC.write_hdf5(fn, E) 
 ui_plasma_1D.write_hdf5(fn, Znum, Anum, rho, ndens, ntemp, edens, etemp, idens, itemp)
 ui_wall_2D.write_hdf5(fn, wr, wz)
 ui_markers.write_hdf5_particles(fn, ids, mass, charge, rprt, phiprt, zprt, vr, vphi, vz, weight, time);
-ui_markers.write_hdf5_guidingcenters(fn, ids+1, mass, charge, r, phi, z, energy, pitch, theta, weight, time);
-ui_markers.write_hdf5_fieldlines(fn, ids+1, r, phi, z, mlpitch, weight, time);   
+#ui_markers.write_hdf5_guidingcenters(fn, ids+1, mass, charge, r, phi, z, energy, pitch, theta, weight, time);
+#ui_markers.write_hdf5_fieldlines(fn, ids+1, r, phi, z, mlpitch, weight, time);   

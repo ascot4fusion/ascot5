@@ -21,12 +21,12 @@ def write_hdf5(fn, rlim, zlim, psirz, Br, Bphi, Bz, axisRz, psivals):
     f = h5py.File(fn, "a")
     if not "/bfield" in f:
         o = f.create_group('bfield')
-        o.attrs["type"] = np.string_("2D")
+        o.attrs["type"] = np.string_("B_2D")
     
     else:
         o = f["bfield"]
         del o.attrs["type"]
-        o.attrs["type"] = np.string_("2D")
+        o.attrs["type"] = np.string_("B_2D")
         
     # Remove 2D field if one is already present
     if  "/bfield/2D" in f:

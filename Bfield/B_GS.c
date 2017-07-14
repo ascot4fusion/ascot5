@@ -3,8 +3,7 @@
  * @brief Analytic magnetic field
  *
  * This module implements a toroidal magnetic field based on an analytical
- * solution to the Grad-Shafranov equation [1]. The field is scaled in
- * dimensions and field strength to approximate the Iter field at 9 MA.
+ * solution to the Grad-Shafranov equation [1]. 
  *
  * [1] A.J. Cerfon, J.P. Freidberg. "One size fits all" analytic solutions to
  *     the Grad-Shafranov equation. Physics of Plasmas 17 (3) (2010) 032502. 
@@ -14,10 +13,6 @@
 #include <math.h>
 #include "../ascot5.h"
 #include "B_GS.h"
-
-#define R0 6.2 /**< @brief Major radius of the torus */
-#define B_phi0 5 /**< @brief Toroidal field at the magnetic axis */
-#define psi_mult 138 /**< @brief Psi multiplier yielding 9 MA plasma current */
 
 /**
  * @brief Load magnetic field data and prepare parameters
@@ -78,8 +73,12 @@ void B_GS_free_offload(B_GS_offload_data* offload_data,
  */
 void B_GS_init(B_GS_data* Bdata, B_GS_offload_data* offload_data,
                real* offload_array) {
-    Bdata->psi0 = offload_data->psi0;
-    Bdata->psi1 = offload_data->psi1;
+    Bdata->R0        = offload_data->R0;
+    Bdata->z0        = offload_data->z0;
+    Bdata->B_phi0    = offload_data->B_phi0;
+    Bdata->psi0      = offload_data->psi0;
+    Bdata->psi1      = offload_data->psi1;
+    Bdata->psi_mult  = offload_data->psi_mult;
     Bdata->psi_coeff = offload_array;
 }
 
@@ -103,8 +102,8 @@ void B_GS_init(B_GS_data* Bdata, B_GS_offload_data* offload_data,
 void B_GS_eval_B(real B[], real r, real phi,
                  real z, B_GS_data* Bdata) {
     /* Normalize the coordinates */
-    r /= R0;
-    z /= R0;
+    r /= Bdata->R0;
+    z /= Bdata->R0;
 
     real* C = Bdata->psi_coeff;
 
@@ -131,10 +130,10 @@ void B_GS_eval_B(real B[], real r, real phi,
               + C[9]  * (3*z2 - 3*r2*logr) 
               + C[10] * (3*r4 - 12*z2*r2) 
               + C[11] * (40*z4 - 45*r4 - 240*z2*r2*logr + 60*r4*logr);
-    B[0] *= -psi_mult / (r * R0 * R0);
+    B[0] *= -Bdata->psi_mult / (r * Bdata->R0 * Bdata->R0);
 
     /* phi field component */
-    B[1] = B_phi0 / r;
+    B[1] = Bdata->B_phi0 / r;
 
     /* z field component */
     B[2] = (1-C[12]) * (r3/2)
@@ -150,7 +149,7 @@ void B_GS_eval_B(real B[], real r, real phi,
               + C[9]  * (-6*z*r*logr - 3*z*r)
               + C[10] * (12*z*r3 - 8*z3*r)
               + C[11] * (-120*z*r3-160*z3*r*logr-80*z3*r+240*z*r3*logr);
-    B[2] *= psi_mult / (r * R0 * R0);
+    B[2] *= Bdata->psi_mult / (r * Bdata->R0 * Bdata->R0);
 }
 
 /**
@@ -172,8 +171,8 @@ void B_GS_eval_B(real B[], real r, real phi,
 void B_GS_eval_psi(real psi[], real r, real phi, real z,
                    B_GS_data* Bdata) {
     /* Normalize the coordinates */
-    r /= R0;
-    z /= R0;
+    r /= Bdata->R0;
+    z /= Bdata->R0;
 
     real* C = Bdata->psi_coeff;
 
@@ -288,12 +287,12 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
     real z3 = z2*z;
     real z4 = z3*z;
     real z5 = z4*z;
-    real logr = log(r/R0);
-    real R02 = R0*R0;
-    real R03 = R02*R0;
-    real R04 = R03*R0;
-    real R05 = R04*R0;
-    real R06 = R05*R0;
+    real logr = log(r/Bdata->R0);
+    real R02 = Bdata->R0*Bdata->R0;
+    real R03 = R02*Bdata->R0;
+    real R04 = R03*Bdata->R0;
+    real R05 = R04*Bdata->R0;
+    real R06 = R05*Bdata->R0;
 
     /* r field component */
     B_dB[0] =   C[2]  * (-2*z) / R02
@@ -302,12 +301,12 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
               + C[5]  * (-24*r4*z + 32*r2*z3) / R06
               + C[6]  * (48*z5 - 560*r2*z3 - 480*r2*logr*z3 +360*r4*logr*z
                          + 150*r4*z) / R06
-              + C[7]  * (1) / R0
+              + C[7]  * (1) / Bdata->R0
               + C[8]  * (r2) / R03
               + C[9]  * (3*z2 - 3*r2*logr) / R03
               + C[10] * (3*r4 - 12*z2*r2) / R05
               + C[11] * (40*z4 - 45*r4 - 240*z2*r2*logr + 60*r4*logr) / R05;
-    B_dB[0] *= -psi_mult / r;
+    B_dB[0] *= -Bdata->psi_mult / r;
     B_dB[1] =   C[3]  * (-16*r*z) / R04
                  + C[4]  * (-60*r*z - 48*r*logr*z) / R04
                  + C[5]  * (-96*r3*z  + 64*r*z3) / R06
@@ -317,7 +316,7 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
                  + C[9]  * (-6*r*logr - 3*r) / R03
                  + C[10] * (12*r3 - 24*z2*r) / R05
                  + C[11] * (-120*r3 - 480*z2*r*logr -240*z2*r +240*r3*logr)/R05;
-    B_dB[1] = -B_dB[0] / r - B_dB[1] * psi_mult / r;
+    B_dB[1] = -B_dB[0] / r - B_dB[1] * Bdata->psi_mult / r;
     B_dB[2] = 0;
     B_dB[3] =   C[2]  * (-2) / R02
                  + C[3]  * (-8*r2) / R04
@@ -328,11 +327,11 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
                  + C[9]  * (6*z) / R03
                  + C[10] * (-24*z*r2) / R05
                  + C[11] * (160*z3 - 480*z*r2*logr) / R05;
-    B_dB[3] *= -psi_mult / r;
+    B_dB[3] *= -Bdata->psi_mult / r;
 
     /* phi field component */
-    B_dB[4] = B_phi0 * R0 / r;
-    B_dB[5] = -B_phi0 * R0 / r2;
+    B_dB[4] = Bdata->B_phi0 * Bdata->R0 / r;
+    B_dB[5] = -Bdata->B_phi0 * Bdata->R0 / r2;
     B_dB[6] = 0;
     B_dB[7] = 0;
 
@@ -350,7 +349,7 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
               + C[9]  * (-6*z*r*logr - 3*z*r) / R03
               + C[10] * (12*z*r3 - 8*z3*r) / R05
               + C[11] * (-120*z*r3-160*z3*r*logr-80*z3*r+240*z*r3*logr) / R05;
-    B_dB[8] *= psi_mult / r;
+    B_dB[8] *= Bdata->psi_mult / r;
     B_dB[9] = (1-C[12]) * (3*r2/2) / R04
                  + C[12] * (1.5 + logr) / R02
                  + C[1]  * (2) / R02
@@ -364,15 +363,15 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
                  + C[9]  * (-6*z*logr - 9*z) / R03
                  + C[10] * (36*z*r2 - 8*z3) / R05
                  + C[11] * (-120*z*r2 - 160*z3*logr -240*z3 +720*z*r2*logr)/R05;
-    B_dB[9] = B_dB[9] * psi_mult / r - B_dB[8] / r;
+    B_dB[9] = B_dB[9] * Bdata->psi_mult / r - B_dB[8] / r;
     B_dB[10] = 0;
     B_dB[11] = -B_dB[1] - B_dB[0] / r;
 }
 
 real B_GS_get_axis_r(B_GS_data* Bdata) {
-    return 6.52306293;
+    return Bdata->R0;
 }
 
 real B_GS_get_axis_z(B_GS_data* Bdata) {
-    return 0.17144154;
+    return Bdata->z0;
 }

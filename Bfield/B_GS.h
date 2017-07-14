@@ -10,8 +10,12 @@
  * @brief Analytic magnetic field parameters that will be offloaded to target
  */
 typedef struct {
+    real R0;                    /**< magnetic axis R coordinate */
+    real z0;                    /**< magnetic axis z coordinate */
+    real B_phi0;                /**< on-axis toroidal field */
     real psi0;                  /**< sqrt(psi) value at magnetic axis */
     real psi1;                  /**< sqrt(psi) value at separatrix */
+    real psi_mult;              /**< psi multiplier */
     int offload_array_length;   /**< number of elements in offload_array */
 } B_GS_offload_data;
 
@@ -19,8 +23,12 @@ typedef struct {
  * @brief Analytic magnetic field parameters on the target
  */
 typedef struct {
+    real R0;            /**< magnetic axis R coordinate */
+    real z0;            /**< magnetic axis z coordinate */
+    real B_phi0;        /**< on-axis toroidal field */
     real psi0;          /**< sqrt(psi) value at magnetic axis */
     real psi1;          /**< sqrt(psi) value at separatrix */
+    real psi_mult;      /**< psi multiplier */
     real *psi_coeff;    /**< Coefficients for the psi function components */
 } B_GS_data;
 
