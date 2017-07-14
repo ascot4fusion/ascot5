@@ -59,8 +59,8 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data* pd
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
 	    /* Update background data */
-	    real* psi;
-	    real* rho;
+	    real psi[1];
+	    real rho[1];
 
 	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
 	    B_field_eval_rho(rho, psi[0], Bdata);
@@ -84,6 +84,66 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data* pd
 
 	}
     }
+
+}
+
+/**
+ * @brief Evaluates collision frequency in gc picture
+ *
+ * Finds the rho coordinate first and uses it to evaluate plasma parameters
+ * that are then used to evaluate Coulomb logarithm and collision coefficients.
+ *
+ * @param p pointer to SIMD_gc struct containing the markers
+ * @param Bdata pointer to magnetic field data
+ * @param pdata pointer to plasma data
+ * @param nu pointer to pitch collision frequency
+ * @param i index of the marker in simd array
+ */
+void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pdata, 
+		    real* nu, int i){
+
+    /* Update background data */
+    real psi[1];
+    real rho[1];
+    real B[3];
+    real xi;
+
+    B[0] = p->B_r[i];
+    B[1] = p->B_phi[i];
+    B[2] = p->B_z[i];
+
+    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
+    B_field_eval_rho(rho, psi[0], Bdata);
+
+    real temp[MAX_SPECIES];
+    real dens[MAX_SPECIES];
+
+    int j;
+    for(j = 0; j < pdata->n_species; j++) {
+	temp[j] = plasma_1d_eval_temp(rho[0], j, pdata)*CONST_KB;
+	dens[j] = plasma_1d_eval_dens(rho[0], j, pdata);
+    }
+
+    /* Evaluate coefficients */
+    real Bnorm = math_norm(B);
+    real t = 2*p->mu[i]*Bnorm*p->mass[i];
+    real va = sqrt(p->vpar[i]*p->vpar[i] + t*t);
+    xi = p->vpar[i]/va;
+
+    real clogab[MAX_SPECIES];
+    real Dparab[MAX_SPECIES];
+    real Kb[MAX_SPECIES];
+    real nub[MAX_SPECIES];
+    real DXb[MAX_SPECIES];
+    mccc_coefs_clog(p->mass[i],p->charge[i],va,pdata->mass,pdata->charge,dens,temp,clogab,pdata->n_species);
+    mccc_coefs_gcfixed(p->mass[i],p->charge[i],va,xi,pdata->mass,pdata->charge,dens,temp,Bnorm,clogab,pdata->n_species,
+		       Dparab,DXb,Kb,nub);
+
+    *nu = 0;
+    for(j = 0; j < pdata->n_species; j++) {
+        *nu += nub[j];
+    }
+
 
 }
 
@@ -119,8 +179,8 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pd
         if(p->running[i]) {
 
 	    /* Update background data */
-	    real* psi;
-	    real* rho;
+	    real psi[1];
+	    real rho[1];
 	    real B[3];
 	    real xi;
 

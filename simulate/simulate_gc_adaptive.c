@@ -49,42 +49,43 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
  * @todo time step limits for how much a marker travels in rho or phi
  */
 void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
+    
+    /* Arrays needed for the adaptive time step */
+    mccc_wienarr* wienarr[NSIMD];
+    int cycle[NSIMD];
+    real hin[NSIMD];
+    real hout_orb[NSIMD];
+    real hout_col[NSIMD];
+    real hnext[NSIMD];
+    int err[NSIMD];
+    int windex[NSIMD];
+    real tol_col = sim->ada_tol_clmbcol;
+    real tol_orb = sim->ada_tol_orbfol;
+    int i;
 
-	/* Arrays needed for the adaptive time step */
-	mccc_wienarr* wienarr[NSIMD];
-	int cycle[NSIMD];
-	real hin[NSIMD];
-	real hout_orb[NSIMD];
-	real hout_col[NSIMD];
-	real hnext[NSIMD];
-	int err[NSIMD];
-	int windex[NSIMD];
-	real tol_col = sim->ada_tol_clmbcol;
-	real tol_orb = sim->ada_tol_orbfol;
-	int i;
+    particle_simd_gc p;  // This array holds current states
+    particle_simd_gc p0; // This array stores previous states
 
-        particle_simd_gc p;  // This array holds current states
-	particle_simd_gc p0; // This array stores previous states
-
-	for(int i=0; i< NSIMD; i++) {
-	    p.id[i] = -1;
-	    p.running[i] = 0;
-	}
-
-	/* Initialize running particles */
-	int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+    for(int i=0; i< NSIMD; i++) {
+	p.id[i] = -1;
+	p.running[i] = 0;
+    }
+    
+    /* Initialize running particles */
+    int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 	
-	#pragma omp simd
-	for(i = 0; i < NSIMD; i++) {
-	    if(cycle[i] > 0) {
-		/* Determine initial time-step */
-		hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
-		if(sim->enable_clmbcol) {
-		    /* Allocate array storing the Wiener processes */
-		    wienarr[i] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[i]);
-	        }
+    #pragma omp simd
+    for(i = 0; i < NSIMD; i++) {
+	if(cycle[i] > 0) {
+	    /* Determine initial time-step */
+	    hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
+	    if(sim->enable_clmbcol) {
+		/* Allocate array storing the Wiener processes */
+		printf("dsada\n");
+		wienarr[i] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[i]);
 	    }
 	}
+    }
 
 	
 
@@ -147,7 +148,6 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 		    }
 	        }
 	    }
-	    
 		
 	    
             #pragma omp simd
@@ -239,18 +239,8 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
 
     /* Value calculated from collision frequency */
     if(sim->enable_clmbcol) {
-	real clogab[NSIMD*MAX_SPECIES];
-	real Dpara[NSIMD*MAX_SPECIES];
-	real DX[NSIMD*MAX_SPECIES];
-	real K[NSIMD*MAX_SPECIES];
-	real nub[NSIMD*MAX_SPECIES];
-	real dQ[NSIMD*MAX_SPECIES];
-	real dDparab[NSIMD*MAX_SPECIES];
-	mccc_update_gc(p,&sim->B_data,&sim->plasma_data,clogab,Dpara,DX,K,nub,dQ,dDparab);
-	real nu = 0;
-	for(int k = 0; k < MAX_SPECIES; k++) {
-	    nu = nu + nub[MAX_SPECIES*i + k];
-	}
+	real nu;
+	mccc_collfreq_gc(p,&sim->B_data,&sim->plasma_data,&nu,i);
 	/* Only small angle collisions so divide this by 100 */
 	real colltime = 1/(100*nu);
 	if(h > colltime) {h=colltime;}
