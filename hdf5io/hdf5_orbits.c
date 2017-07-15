@@ -211,6 +211,32 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	return;
     }
 
+    if(strcmp(dataset,"rho")==0) {
+	real* datavec = (real*)malloc(datasize*sizeof(real));
+
+	for(i = 0; i < size; i++) {
+	    if(!mask[i]){continue;}
+
+	    if(type == diag_orb_type_fo) {
+		datavec[id] = list->fo.rho;
+	    }
+	    else if(type == diag_orb_type_gc) {
+		datavec[id] = list->gc.rho;
+	    }
+	    else if(type == diag_orb_type_ml) {
+		datavec[id] = list->ml.rho;
+	    }
+	    list = list->prev;
+	    id++;
+	}
+
+	H5LTmake_dataset(group, "rho", 1, dims, H5T_IEEE_F64LE, datavec);
+	H5LTset_attribute_string(group, "rho", "unit", "1");
+
+	free(datavec);
+	return;
+    }
+
     if(strcmp(dataset,"time")==0) {
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
@@ -540,6 +566,7 @@ void hdf5_orbits_writeset_fo(hid_t group, diag_orb_dat* list, int size, int* mas
     hdf5_orbits_writeset(group, diag_orb_type_fo, list, size, mask, "v_z");
     hdf5_orbits_writeset(group, diag_orb_type_fo, list, size, mask, "time");
     hdf5_orbits_writeset(group, diag_orb_type_fo, list, size, mask, "id");
+    hdf5_orbits_writeset(group, diag_orb_type_fo, list, size, mask, "rho");
     hdf5_orbits_writeset(group, diag_orb_type_fo, list, size, mask, "weight");
     hdf5_orbits_writeset(group, diag_orb_type_fo, list, size, mask, "mass");
     hdf5_orbits_writeset(group, diag_orb_type_fo, list, size, mask, "charge");
@@ -557,6 +584,7 @@ void hdf5_orbits_writeset_gc(hid_t group, diag_orb_dat* list, int size, int* mas
     hdf5_orbits_writeset(group, diag_orb_type_gc, list, size, mask, "theta");
     hdf5_orbits_writeset(group, diag_orb_type_gc, list, size, mask, "time");
     hdf5_orbits_writeset(group, diag_orb_type_gc, list, size, mask, "id");
+    hdf5_orbits_writeset(group, diag_orb_type_gc, list, size, mask, "rho");
     hdf5_orbits_writeset(group, diag_orb_type_gc, list, size, mask, "weight");
     hdf5_orbits_writeset(group, diag_orb_type_gc, list, size, mask, "mass");
     hdf5_orbits_writeset(group, diag_orb_type_gc, list, size, mask, "charge");
@@ -571,6 +599,7 @@ void hdf5_orbits_writeset_ml(hid_t group, diag_orb_dat* list, int size, int* mas
     hdf5_orbits_writeset(group, diag_orb_type_ml, list, size, mask, "z");
     hdf5_orbits_writeset(group, diag_orb_type_ml, list, size, mask, "time");
     hdf5_orbits_writeset(group, diag_orb_type_ml, list, size, mask, "id");
+    hdf5_orbits_writeset(group, diag_orb_type_ml, list, size, mask, "rho");
     hdf5_orbits_writeset(group, diag_orb_type_ml, list, size, mask, "B_r");
     hdf5_orbits_writeset(group, diag_orb_type_ml, list, size, mask, "B_phi");
     hdf5_orbits_writeset(group, diag_orb_type_ml, list, size, mask, "B_z");

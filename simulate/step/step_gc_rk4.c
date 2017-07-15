@@ -47,6 +47,9 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             real B_dB[12];
 	    real E[3];
 
+	    real R0   = p->r[i];
+	    real z0   = p->z[i];
+
             /* Coordinates are copied from the struct into an array to make 
              * passing parameters easier */
             yprev[0] = p->r[i];
@@ -109,7 +112,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             p->z[i] = y[2];
             p->vpar[i] = y[3];
 
-	    /* Evaluate magnetic field (and gradient) at new position */
+	    /* Evaluate magnetic field (and gradient) and rho at new position */
 	    B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);
 	    p->B_r[i]        = B_dB[0];
 	    p->B_r_dr[i]     = B_dB[1];
@@ -126,6 +129,20 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
 	    p->B_z_dphi[i]   = B_dB[10];
 	    p->B_z_dz[i]     = B_dB[11];
 
+	    
+	    real psi[1];
+	    real rho[1];
+	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
+	    B_field_eval_rho(rho, psi[0], Bdata);
+	    p->rho[i] = rho[0];
+
+	    
+	    /* Evaluate pol angle so that it is cumulative */
+	    real axis_r = B_field_get_axis_r(Bdata);
+	    real axis_z = B_field_get_axis_z(Bdata);
+	    p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
+				(R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
+	    
         }
     }
 }

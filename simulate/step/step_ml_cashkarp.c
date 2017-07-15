@@ -47,6 +47,9 @@ void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol, B_fie
             real B[3];
 	    real normB;
 
+	    real R0   = p->r[i];
+	    real z0   = p->z[i];
+
             /* Coordinates are copied from the struct into an array to make 
              * passing parameters easier */
             yprev[0] = p->r[i];
@@ -143,7 +146,7 @@ void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol, B_fie
 	    p->phi[i] = yout[1];
 	    p->z[i] = yout[2];
 		
-	    /* Evaluate magnetic field (and gradient) at new position */
+	    /* Evaluate magnetic field (and gradient) and rho at new position */
 	    real BdBrpz[12];
 	    B_field_eval_B_dB(BdBrpz, p->r[i], p->phi[i], p->z[i], Bdata);
 	    p->B_r[i]        = BdBrpz[0];
@@ -160,7 +163,21 @@ void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol, B_fie
 	    p->B_z_dr[i]     = BdBrpz[9];
 	    p->B_z_dphi[i]   = BdBrpz[10];
 	    p->B_z_dz[i]     = BdBrpz[11];
-	        
+
+
+	    real psi[1];
+	    real rho[1];
+	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
+	    B_field_eval_rho(rho, psi[0], Bdata);
+	    p->rho[i] = rho[0];
+
+	    
+	    /* Evaluate pol angle so that it is cumulative */
+	    real axis_r = B_field_get_axis_r(Bdata);
+	    real axis_z = B_field_get_axis_z(Bdata);
+	    p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
+				(R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
+
         }
     }
 }

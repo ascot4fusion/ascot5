@@ -77,6 +77,7 @@ void diag_orb_update_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_d
 		new->gc.mu     = p_f->mu[i];
 		new->gc.vpar   = p_f->vpar[i];
 		new->gc.theta  = p_f->theta[i];
+		new->gc.rho    = p_f->rho[i];
 
 		new->gc.mass   = p_f->mass[i];
 		new->gc.charge = p_f->charge[i];
@@ -179,6 +180,7 @@ void diag_orb_update_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_d
 		new->fo.rdot   = p_f->rdot[i];
 		new->fo.phidot = p_f->phidot[i];
 		new->fo.zdot   = p_f->zdot[i];
+		new->fo.rho    = p_f->rho[i];
 
 		new->fo.mass   = p_f->mass[i];
 		new->fo.charge = p_f->charge[i];
@@ -215,6 +217,7 @@ void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_d
 		new->ml.r      = p_f->r[i];
 		new->ml.phi    = p_f->phi[i];
 		new->ml.z      = p_f->z[i];
+		new->ml.rho    = p_f->rho[i];
 
 		new->ml.weight = p_f->weight[i];
 		new->ml.B_r    = p_f->B_r[i];
@@ -246,7 +249,6 @@ void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_d
 	int i;
 	
 	for(i=0; i<NSIMD; i++) {
-	    //printf("%d\n",pol[i]);
 	    if(pol[i] > -1) {
 		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
 

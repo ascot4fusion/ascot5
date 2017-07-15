@@ -63,13 +63,13 @@ int hdf5_particlestate_write(char* fn, char *state, int n, input_particle* p) {
 	data[i] = p[i].p_s.phidot * p[i].p_s.rprt;
     }
     H5LTmake_dataset(state_group, "vphi", 1, dims, H5T_IEEE_F64LE, data);
-    H5LTset_attribute_string(state_group, "phiprt", "unit", "m/s");
+    H5LTset_attribute_string(state_group, "vphi", "unit", "m/s");
 
     for(i = 0; i < n; i++) {
 	data[i] = p[i].p_s.zdot;
     }
     H5LTmake_dataset(state_group, "vz", 1, dims, H5T_IEEE_F64LE, data);
-    H5LTset_attribute_string(state_group, "zprt", "unit", "m/s");
+    H5LTset_attribute_string(state_group, "vz", "unit", "m/s");
 
     /* Guiding center coordinates */
     for(i = 0; i < n; i++) {
@@ -132,6 +132,12 @@ int hdf5_particlestate_write(char* fn, char *state, int n, input_particle* p) {
     }
     H5LTmake_dataset(state_group, "rho", 1, dims, H5T_IEEE_F64LE, data);
     H5LTset_attribute_string(state_group, "rho", "unit", "1");
+
+    for(i = 0; i < n; i++) {
+	data[i] = p[i].p_s.pol*(180/CONST_PI);
+    }
+    H5LTmake_dataset(state_group, "pol", 1, dims, H5T_IEEE_F64LE, data);
+    H5LTset_attribute_string(state_group, "pol", "unit", "deg");
 
     for(i = 0; i < n; i++) {
 	data[i] = p[i].p_s.mass/CONST_U;

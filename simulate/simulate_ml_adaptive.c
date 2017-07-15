@@ -63,6 +63,8 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 	real hout[NSIMD];
 	real hnext[NSIMD];
 	int cycle[NSIMD];
+	real cputime_last[NSIMD];
+	real cputime;
 	real tol = sim->ada_tol_orbfol;
 	int i;
 
@@ -82,6 +84,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 	    if(cycle[i] > 0) {
 		/* Determine initial time-step */
 		hin[i] = simulate_ml_adaptive_inidt(sim, &p, i);
+		cputime_last[i] = A5_WTIME;
 	    }
 	}
 
@@ -103,13 +106,39 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
             #pragma omp simd
 	    for(i = 0; i < NSIMD; i++) {
 		/* Store marker states in case time step will be rejected */
-	        p0.r[i]        = p.r[i];
-		p0.phi[i]      = p.phi[i];
-		p0.z[i]        = p.z[i];
-		p0.time[i]     = p.time[i];
-		p0.running[i]  = p.running[i];
-		p0.endcond[i]  = p.endcond[i];
-		p0.walltile[i] = p.walltile[i];
+		p0.r[i]          = p.r[i];
+		p0.phi[i]        = p.phi[i];
+		p0.z[i]          = p.z[i];
+		p0.pitch[i]      = p.pitch[i];
+
+		p0.time[i]       = p.time[i];
+		p0.cputime[i]    = p.cputime[i];
+		p0.rho[i]        = p.rho[i];
+		p0.weight[i]     = p.weight[i];
+		p0.cputime[i]    = p.cputime[i]; 
+		p0.rho[i]        = p.rho[i];      
+		p0.pol[i]        = p.pol[i]; 
+
+		p0.running[i]    = p.running[i];
+		p0.endcond[i]    = p.endcond[i];
+		p0.walltile[i]   = p.walltile[i];
+
+		p0.B_r[i]        = p.B_r[i];
+		p0.B_phi[i]      = p.B_phi[i];
+		p0.B_z[i]        = p.B_z[i];
+
+		p0.B_r_dr[i]     = p.B_r_dr[i];
+		p0.B_r_dphi[i]   = p.B_r_dphi[i];
+		p0.B_r_dz[i]     = p.B_r_dz[i];
+
+		p0.B_phi_dr[i]   = p.B_phi_dr[i];
+		p0.B_phi_dphi[i] = p.B_phi_dphi[i];
+		p0.B_phi_dz[i]   = p.B_z_dz[i];
+
+		p0.B_z_dr[i]     = p.B_z_dr[i];
+		p0.B_z_dphi[i]   = p.B_z_dphi[i];
+		p0.B_z_dz[i]     = p.B_z_dz[i];
+
 
 		hout[i] = 1.0;
 		hnext[i] = 1.0; 
@@ -131,18 +160,44 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 	    }
  
 		
-
+	    cputime = A5_WTIME;
             #pragma omp simd
 	    for(i = 0; i < NSIMD; i++) {
 		/* Retrieve marker states in case time step was rejected */
 		if(hnext[i] < 0){
-		    p.r[i]        = p0.r[i];
-		    p.phi[i]      = p0.phi[i];
-		    p.z[i]        = p0.z[i];
-		    p.time[i]     = p0.time[i];
-		    p.running[i]  = p0.running[i];
-		    p.endcond[i]  = p0.endcond[i];
-		    p.walltile[i] = p0.walltile[i];
+		    p.r[i]          = p0.r[i];
+		    p.phi[i]        = p0.phi[i];
+		    p.z[i]          = p0.z[i];
+		    p.pitch[i]      = p0.pitch[i];
+
+		    p.time[i]       = p0.time[i];
+		    p.cputime[i]    = p0.cputime[i];
+		    p.rho[i]        = p0.rho[i];
+		    p.weight[i]     = p0.weight[i];
+		    p.cputime[i]    = p0.cputime[i]; 
+		    p.rho[i]        = p0.rho[i];      
+		    p.pol[i]        = p0.pol[i]; 
+
+		    p.running[i]    = p0.running[i];
+		    p.endcond[i]    = p0.endcond[i];
+		    p.walltile[i]   = p0.walltile[i];
+
+		    p.B_r[i]        = p0.B_r[i];
+		    p.B_phi[i]      = p0.B_phi[i];
+		    p.B_z[i]        = p0.B_z[i];
+
+		    p.B_r_dr[i]     = p0.B_r_dr[i];
+		    p.B_r_dphi[i]   = p0.B_r_dphi[i];
+		    p.B_r_dz[i]     = p0.B_r_dz[i];
+
+		    p.B_phi_dr[i]   = p0.B_phi_dr[i];
+		    p.B_phi_dphi[i] = p0.B_phi_dphi[i];
+		    p.B_phi_dz[i]   = p0.B_z_dz[i];
+
+		    p.B_z_dr[i]     = p0.B_z_dr[i];
+		    p.B_z_dphi[i]   = p0.B_z_dphi[i];
+		    p.B_z_dz[i]     = p0.B_z_dz[i];
+
 		    hin[i] = -hnext[i];
 		    
 		}
@@ -159,6 +214,8 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 			    hnext[i] = hin[i];
 			}
 			hin[i] = hnext[i];
+			p.cputime[i] += cputime - cputime_last[i];
+			cputime_last[i] = cputime;
 			
 		    }
 		}
@@ -176,6 +233,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 	        if(cycle[i] > 0) {
 		    /* Determine initial time-step */
 	            hin[i] = simulate_ml_adaptive_inidt(sim, &p, i);
+		    cputime_last[i] = A5_WTIME;
 	        }
 	    }
 	   

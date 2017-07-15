@@ -53,6 +53,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     int cycle[NSIMD];
     int err[NSIMD];
     real hin[NSIMD];
+    real cputime_last[NSIMD];
+    real cputime;
 
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
@@ -70,6 +72,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     for(int i = 0; i < NSIMD; i++) {
 	if(cycle[i] > 0) {
 	    hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
+	    cputime_last[i] = A5_WTIME;
 	}
     }
 
@@ -91,10 +94,38 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
             p0.vpar[i]     = p.vpar[i];
             p0.mu[i]       = p.mu[i];
             p0.theta[i]    = p.theta[i];
-            p0.time[i]     = p.time[i];
-            p0.running[i]  = p.running[i];
-            p0.endcond[i]  = p.endcond[i];
-            p0.walltile[i] = p.walltile[i];
+
+            p0.time[i]       = p.time[i];
+	    p0.cputime[i]    = p.cputime[i];
+	    p0.rho[i]        = p.rho[i];
+	    p0.weight[i]     = p.weight[i];
+	    p0.cputime[i]    = p.cputime[i]; 
+	    p0.rho[i]        = p.rho[i];      
+	    p0.pol[i]        = p.pol[i]; 
+
+	    p0.mass[i]       = p.mass[i];
+	    p0.charge[i]     = p.charge[i];
+
+            p0.running[i]    = p.running[i];
+            p0.endcond[i]    = p.endcond[i];
+            p0.walltile[i]   = p.walltile[i];
+
+	    p0.B_r[i]        = p.B_r[i];
+	    p0.B_phi[i]      = p.B_phi[i];
+	    p0.B_z[i]        = p.B_z[i];
+
+	    p0.B_r_dr[i]     = p.B_r_dr[i];
+	    p0.B_r_dphi[i]   = p.B_r_dphi[i];
+	    p0.B_r_dz[i]     = p.B_r_dz[i];
+
+	    p0.B_phi_dr[i]   = p.B_phi_dr[i];
+	    p0.B_phi_dphi[i] = p.B_phi_dphi[i];
+	    p0.B_phi_dz[i]   = p.B_z_dz[i];
+
+	    p0.B_z_dr[i]     = p.B_z_dr[i];
+	    p0.B_z_dphi[i]   = p.B_z_dphi[i];
+	    p0.B_z_dz[i]     = p.B_z_dz[i];
+
         }
         
         if(sim->enable_orbfol) {
@@ -105,10 +136,13 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
             mccc_step_gc_fixed(&p, &sim->B_data, &sim->plasma_data, hin, err);
         }
 
+	cputime = A5_WTIME;
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]) {
                 p.time[i] = p.time[i] + hin[i];
+		p.cputime[i] += cputime - cputime_last[i];
+		cputime_last[i] = cputime;
             }
         }
         
@@ -124,6 +158,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         for(int i = 0; i < NSIMD; i++) {
 	    if(cycle[i] > 0) {
 		hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
+		cputime_last[i] = A5_WTIME;
 	    }
         }
 

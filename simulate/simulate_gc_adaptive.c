@@ -5,6 +5,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <omp.h>
 #include <immintrin.h>
 #include <math.h>
@@ -63,6 +64,9 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     real tol_orb = sim->ada_tol_orbfol;
     int i;
 
+    real cputime_last[NSIMD];
+    real cputime;
+
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
 
@@ -79,6 +83,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 	if(cycle[i] > 0) {
 	    /* Determine initial time-step */
 	    hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
+	    cputime_last[i] = A5_WTIME;
 	    if(sim->enable_clmbcol) {
 		/* Allocate array storing the Wiener processes */
 		printf("dsada\n");
@@ -86,8 +91,6 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 	    }
 	}
     }
-
-	
 
 /* MAIN SIMULATION LOOP 
  * - Store current state
@@ -100,124 +103,184 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
  * - Check for end condition(s)
  * - Update diagnostics
  */
-        do {
-            #pragma omp simd
-	    for(i = 0; i < NSIMD; i++) {
-		/* Store marker states in case time step will be rejected */
-	        p0.r[i]        = p.r[i];
-		p0.phi[i]      = p.phi[i];
-		p0.z[i]        = p.z[i];
-		p0.vpar[i]     = p.vpar[i];
-		p0.mu[i]       = p.mu[i];
-		p0.theta[i]    = p.theta[i];
-		p0.time[i]     = p.time[i];
-		p0.running[i]  = p.running[i];
-		p0.endcond[i]  = p.endcond[i];
-		p0.walltile[i] = p.walltile[i];
-		// Just use some large value here
-		hout_orb[i] = 1.0;
-		hout_col[i] = 1.0;
-		hnext[i] = 1.0; 
-	    }
+    do {
+	#pragma omp simd
+	for(i = 0; i < NSIMD; i++) {
+	    /* Store marker states in case time step will be rejected */
+            p0.r[i]        = p.r[i];
+            p0.phi[i]      = p.phi[i];
+            p0.z[i]        = p.z[i];
+            p0.vpar[i]     = p.vpar[i];
+            p0.mu[i]       = p.mu[i];
+            p0.theta[i]    = p.theta[i];
+
+            p0.time[i]       = p.time[i];
+	    p0.cputime[i]    = p.cputime[i];
+	    p0.rho[i]        = p.rho[i];
+	    p0.weight[i]     = p.weight[i];
+	    p0.cputime[i]    = p.cputime[i]; 
+	    p0.rho[i]        = p.rho[i];      
+	    p0.pol[i]        = p.pol[i]; 
+
+	    p0.mass[i]       = p.mass[i];
+	    p0.charge[i]     = p.charge[i];
+
+            p0.running[i]    = p.running[i];
+            p0.endcond[i]    = p.endcond[i];
+            p0.walltile[i]   = p.walltile[i];
+
+	    p0.B_r[i]        = p.B_r[i];
+	    p0.B_phi[i]      = p.B_phi[i];
+	    p0.B_z[i]        = p.B_z[i];
+
+	    p0.B_r_dr[i]     = p.B_r_dr[i];
+	    p0.B_r_dphi[i]   = p.B_r_dphi[i];
+	    p0.B_r_dz[i]     = p.B_r_dz[i];
+
+	    p0.B_phi_dr[i]   = p.B_phi_dr[i];
+	    p0.B_phi_dphi[i] = p.B_phi_dphi[i];
+	    p0.B_phi_dz[i]   = p.B_z_dz[i];
+
+	    p0.B_z_dr[i]     = p.B_z_dr[i];
+	    p0.B_z_dphi[i]   = p.B_z_dphi[i];
+	    p0.B_z_dz[i]     = p.B_z_dz[i];
+
+
+	    // Just use some large value here
+	    hout_orb[i] = 1.0;
+	    hout_col[i] = 1.0;
+	    hnext[i] = 1.0; 
+	}
 
 	    
-	    if(sim->enable_orbfol) {
-	        step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
-		                 &sim->B_data, &sim->E_data);
+	if(sim->enable_orbfol) {
+	    step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
+			     &sim->B_data, &sim->E_data);
 		
-		/* Check whether time step was rejected */
-                #pragma omp simd
-	        for(i = 0; i < NSIMD; i++) {
-		    if(p.running[i] && hout_orb[i] < 0){
-			p.running[i] = 0;
-			hnext[i] = hout_orb[i];
-		    }
-	        }
-	    }
-
-            if(sim->enable_clmbcol) {
-	        mccc_step_gc_adaptive(&p, &sim->B_data, &sim->plasma_data,
-				      hin, hout_col, wienarr, tol_col, err);
-		
-		/* Check whether time step was rejected */
-                #pragma omp simd
-	        for(i = 0; i < NSIMD; i++) {
-		    if(p.running[i] && hout_col[i] < 0){
-			p.running[i] = 0;
-			hnext[i] = hout_col[i];
-		    }
-	        }
-	    }
-		
-	    
-            #pragma omp simd
-	    for(i = 0; i < NSIMD; i++) {
-		/* Retrieve marker states in case time step was rejected */
-		if(hnext[i] < 0){
-		    p.r[i]        = p0.r[i];
-		    p.phi[i]      = p0.phi[i];
-		    p.z[i]        = p0.z[i];
-		    p.vpar[i]     = p0.vpar[i];
-		    p.mu[i]       = p0.mu[i];
-		    p.theta[i]    = p0.theta[i];
-		    p.time[i]     = p0.time[i];
-		    p.running[i]  = p0.running[i];
-		    p.endcond[i]  = p0.endcond[i];
-		    p.walltile[i] = p0.walltile[i];
-		    hin[i] = -hnext[i];
-		    
-		}
-		else{
-		    if(p.running[i]){
-			
-			p.time[i] = p.time[i] + hin[i];
-			
-			/* Determine next time step */
-			if(hnext[i] > hout_orb[i]) {
-			    hnext[i] = hout_orb[i];
-			}
-			if(hnext[i] > hout_col[i]) {
-			    hnext[i] = hout_col[i];
-			}
-			if(hnext[i] == 1.0) {
-			    hnext[i] = hin[i];
-			}
-			hin[i] = hnext[i];
-			if(sim->enable_clmbcol) {
-			    /* Clear wiener processes */
-			    mccc_wiener_clean(wienarr[i], p.time[i], &err[i]);
-		        }
-			
-		    }
-		}
-	    }
-	    
-            endcond_check_gc(&p, &p0, sim);
-
-	    diag_update_gc(&sim->diag_data, &p, &p0);
-	    
-            /* Update number of running particles */
-	    n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
-	    
+	    /* Check whether time step was rejected */
 	    #pragma omp simd
 	    for(i = 0; i < NSIMD; i++) {
-		if(cycle[i] > 0) {
-		    /* Determine initial time-step */
-		    hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
-		    if(sim->enable_clmbcol) {
-			/* Re-allocate array storing the Wiener processes */
-			mccc_wiener_deallocate(wienarr[i]);
-			wienarr[i] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[i]);
-		    }
-		}
-		else if(cycle[i] < 0) {
-		    /* De-allocate array storing the Wiener processes */
-		    if(sim->enable_clmbcol) {
-			mccc_wiener_deallocate(wienarr[i]);
-		    }
+	        if(p.running[i] && hout_orb[i] < 0){
+	            p.running[i] = 0;
+	            hnext[i] = hout_orb[i];
+	        }
+	    }
+	}
+
+        if(sim->enable_clmbcol) {
+	    mccc_step_gc_adaptive(&p, &sim->B_data, &sim->plasma_data,
+		hin, hout_col, wienarr, tol_col, err);
+		
+	    /* Check whether time step was rejected */
+	    #pragma omp simd
+	    for(i = 0; i < NSIMD; i++) {
+		if(p.running[i] && hout_col[i] < 0){
+		    p.running[i] = 0;
+		    hnext[i] = hout_col[i];
 		}
 	    }
-        } while(n_running > 0);
+	}
+		
+	cputime = A5_WTIME;
+	#pragma omp simd
+	for(i = 0; i < NSIMD; i++) {
+	    /* Retrieve marker states in case time step was rejected */
+	    if(hnext[i] < 0){
+		p.r[i]        = p0.r[i];
+		p.phi[i]      = p0.phi[i];
+		p.z[i]        = p0.z[i];
+		p.vpar[i]     = p0.vpar[i];
+		p.mu[i]       = p0.mu[i];
+		p.theta[i]    = p0.theta[i];
+
+		p.time[i]       = p0.time[i];
+		p.cputime[i]    = p0.cputime[i];
+		p.rho[i]        = p0.rho[i];
+		p.weight[i]     = p0.weight[i];
+		p.cputime[i]    = p0.cputime[i]; 
+		p.rho[i]        = p0.rho[i];      
+		p.pol[i]        = p0.pol[i]; 
+
+		p.mass[i]       = p0.mass[i];
+		p.charge[i]     = p0.charge[i];
+
+		p.running[i]    = p0.running[i];
+		p.endcond[i]    = p0.endcond[i];
+		p.walltile[i]   = p0.walltile[i];
+
+		p.B_r[i]        = p0.B_r[i];
+		p.B_phi[i]      = p0.B_phi[i];
+		p.B_z[i]        = p0.B_z[i];
+
+		p.B_r_dr[i]     = p0.B_r_dr[i];
+		p.B_r_dphi[i]   = p0.B_r_dphi[i];
+		p.B_r_dz[i]     = p0.B_r_dz[i];
+
+		p.B_phi_dr[i]   = p0.B_phi_dr[i];
+		p.B_phi_dphi[i] = p0.B_phi_dphi[i];
+		p.B_phi_dz[i]   = p0.B_z_dz[i];
+
+		p.B_z_dr[i]     = p0.B_z_dr[i];
+		p.B_z_dphi[i]   = p0.B_z_dphi[i];
+		p.B_z_dz[i]     = p0.B_z_dz[i];
+
+		hin[i] = -hnext[i];
+		    
+	    }
+	    else{
+		if(p.running[i]){
+			
+		    p.time[i] = p.time[i] + hin[i];
+		    p.cputime[i] += cputime - cputime_last[i];
+		    cputime_last[i] = cputime;
+			
+		    /* Determine next time step */
+		    if(hnext[i] > hout_orb[i]) {
+			hnext[i] = hout_orb[i];
+		    }
+		    if(hnext[i] > hout_col[i]) {
+			hnext[i] = hout_col[i];
+		    }
+		    if(hnext[i] == 1.0) {
+			hnext[i] = hin[i];
+		    }
+		    hin[i] = hnext[i];
+		    if(sim->enable_clmbcol) {
+			/* Clear wiener processes */
+			mccc_wiener_clean(wienarr[i], p.time[i], &err[i]);
+		    }
+			
+		}
+	    }
+	}
+	    
+	endcond_check_gc(&p, &p0, sim);
+
+	diag_update_gc(&sim->diag_data, &p, &p0);
+	    
+	/* Update number of running particles */
+	n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+	    
+	#pragma omp simd
+	for(i = 0; i < NSIMD; i++) {
+	    if(cycle[i] > 0) {
+		/* Determine initial time-step */
+		hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
+		cputime_last[i] = A5_WTIME;
+		if(sim->enable_clmbcol) {
+		    /* Re-allocate array storing the Wiener processes */
+		    mccc_wiener_deallocate(wienarr[i]);
+		    wienarr[i] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[i]);
+		}
+	    }
+	    else if(cycle[i] < 0) {
+		/* De-allocate array storing the Wiener processes */
+		if(sim->enable_clmbcol) {
+		    mccc_wiener_deallocate(wienarr[i]);
+		}
+	    }
+	}
+    } while(n_running > 0);
         
 }
 

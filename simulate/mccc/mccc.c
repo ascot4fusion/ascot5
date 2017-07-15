@@ -59,19 +59,13 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data* pd
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
 	    /* Update background data */
-	    real psi[1];
-	    real rho[1];
-
-	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
-	    B_field_eval_rho(rho, psi[0], Bdata);
-
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
 
 	    int j;
 	    for(j = 0; j < pdata->n_species; j++) {
-		temp[j] = plasma_1d_eval_temp(rho[0], j, pdata)*CONST_KB;
-		dens[j] = plasma_1d_eval_dens(rho[0], j, pdata);
+		temp[j] = plasma_1d_eval_temp(p->rho[i], j, pdata)*CONST_KB;
+		dens[j] = plasma_1d_eval_dens(p->rho[i], j, pdata);
 	    }
 
 	    /* Evaluate coefficients */
@@ -103,8 +97,6 @@ void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* 
 		    real* nu, int i){
 
     /* Update background data */
-    real psi[1];
-    real rho[1];
     real B[3];
     real xi;
 
@@ -112,16 +104,13 @@ void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* 
     B[1] = p->B_phi[i];
     B[2] = p->B_z[i];
 
-    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
-    B_field_eval_rho(rho, psi[0], Bdata);
-
     real temp[MAX_SPECIES];
     real dens[MAX_SPECIES];
 
     int j;
     for(j = 0; j < pdata->n_species; j++) {
-	temp[j] = plasma_1d_eval_temp(rho[0], j, pdata)*CONST_KB;
-	dens[j] = plasma_1d_eval_dens(rho[0], j, pdata);
+	temp[j] = plasma_1d_eval_temp(p->rho[i], j, pdata)*CONST_KB;
+	dens[j] = plasma_1d_eval_dens(p->rho[i], j, pdata);
     }
 
     /* Evaluate coefficients */
@@ -179,24 +168,20 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pd
         if(p->running[i]) {
 
 	    /* Update background data */
-	    real psi[1];
-	    real rho[1];
 	    real B[3];
 	    real xi;
 
 	    B[0] = p->B_r[i];
 	    B[1] = p->B_phi[i];
 	    B[2] = p->B_z[i];
-	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
-	    B_field_eval_rho(rho, psi[0], Bdata);
 
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
 
 	    int j;
 	    for(j = 0; j < pdata->n_species; j++) {
-		temp[j] = plasma_1d_eval_temp(rho[0], j, pdata)*CONST_KB;
-		dens[j] = plasma_1d_eval_dens(rho[0], j, pdata);
+		temp[j] = plasma_1d_eval_temp(p->rho[i], j, pdata)*CONST_KB;
+		dens[j] = plasma_1d_eval_dens(p->rho[i], j, pdata);
 	    }
 
 	    /* Evaluate coefficients */
@@ -236,19 +221,13 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
         if(p->running[i]) {
 
 	    /* Update background data */
-	    real psi[1];
-	    real rho[1];
-
-	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
-	    B_field_eval_rho(rho, psi[0], Bdata);
-
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
 
 	    int j;
 	    for(j = 0; j < pdata->n_species; j++) {
-		temp[j] = plasma_1d_eval_temp(rho[0], j, pdata)*CONST_KB;
-		dens[j] = plasma_1d_eval_dens(rho[0], j, pdata);
+		temp[j] = plasma_1d_eval_temp(p->rho[i], j, pdata)*CONST_KB;
+		dens[j] = plasma_1d_eval_dens(p->rho[i], j, pdata);
 	    }
 	    
 	    /* Evaluate coefficients */
@@ -318,24 +297,20 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
 	    /* Update background data */
-	    real psi[1];
-	    real rho[1];
 	    real B[3];
 	    real xiin;
 
 	    B[0] = p->B_r[i];
 	    B[1] = p->B_phi[i];
 	    B[2] = p->B_z[i];
-	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
-	    B_field_eval_rho(rho, psi[0], Bdata);
 		
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
 		
 	    int j;
 	    for(j = 0; j < pdata->n_species; j++) {
-		temp[j] = plasma_1d_eval_temp(rho[0], j, pdata)*CONST_KB;
-		dens[j] = plasma_1d_eval_dens(rho[0], j, pdata);
+		temp[j] = plasma_1d_eval_temp(p->rho[i], j, pdata)*CONST_KB;
+		dens[j] = plasma_1d_eval_dens(p->rho[i], j, pdata);
 	    }
 	        
 	    /* Evaluate coefficients */
@@ -396,7 +371,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 	    p->phi[i] = atan2(Xout[1],Xout[0]);
 	    p->z[i] = Xout[2];
 
-	    /* Evaluate magnetic field (and gradient) at new position */
+	    /* Evaluate magnetic field (and gradient) and rho at new position */
 	    real B_dB[12];
 	    B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);
 	    p->B_r[i]        = B_dB[0];
@@ -413,6 +388,12 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 	    p->B_z_dr[i]     = B_dB[9];
 	    p->B_z_dphi[i]   = B_dB[10];
 	    p->B_z_dz[i]     = B_dB[11];
+
+	    real psi[1];
+	    real rho[1];
+	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
+	    B_field_eval_rho(rho, psi[0], Bdata);
+	    p->rho[i] = rho[0];
 	}
     }
 }
@@ -445,24 +426,20 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
     for(i = 0; i < NSIMD; i++) {
 	if(p->running[i]) {
 	    /* Update background data */
-	    real psi[1];
-	    real rho[1];
 	    real B[3];
 	    real xiin;
 
 	    B[0] = p->B_r[i];
 	    B[1] = p->B_phi[i];
 	    B[2] = p->B_z[i];
-	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
-	    B_field_eval_rho(rho, psi[0], Bdata);
 		
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
 		
 	    int j;
 	    for(j = 0; j < pdata->n_species; j++) {
-		temp[j] = plasma_1d_eval_temp(rho[0], j, pdata)*CONST_KB;
-		dens[j] = plasma_1d_eval_dens(rho[0], j, pdata);
+		temp[j] = plasma_1d_eval_temp(p->rho[i], j, pdata)*CONST_KB;
+		dens[j] = plasma_1d_eval_dens(p->rho[i], j, pdata);
 	    }
 	        
 	    /* Evaluate coefficients */
@@ -613,6 +590,12 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 		p->B_z_dr[i]     = B_dB[9];
 		p->B_z_dphi[i]   = B_dB[10];
 		p->B_z_dz[i]     = B_dB[11];
+
+		real psi[1];
+		real rho[1];
+		B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
+		B_field_eval_rho(rho, psi[0], Bdata);
+		p->rho[i] = rho[0];
 	    }
 	}
     }
