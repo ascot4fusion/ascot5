@@ -18,7 +18,7 @@ void hdf5_orbits_writeset_ml(hid_t group, diag_orb_dat* list, int size, int* mas
 void hdf5_orbits_write(sim_data* sim, char* out) {
     diag_orb_data* diag = &sim->diag_data.orbits;
     diag_orb_dat* top = diag->writelist;
-
+    
     int size = diag->size;
     int i;
     if(!size) {
@@ -28,8 +28,8 @@ void hdf5_orbits_write(sim_data* sim, char* out) {
     hid_t file = hdf5_open(out);
     hid_t group = hdf5_create_group(file, "orbits");
     hid_t grp;
-	    
-    if(diag->mode == DIAG_ORB_ORBIT) {
+    
+    if(diag->mode == DIAG_ORB_ORBIT || diag->mode == DIAG_ORB_WRITELAST) {
 	
 	int mask[size];
 	for(i=0; i<size; i++) {

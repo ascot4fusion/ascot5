@@ -66,7 +66,7 @@ class Ui_optionsIO:
     # - Maximum acceleration factor
     #
 
-    ADAPTIVE_TOL_ORBIT = 1e-2
+    ADAPTIVE_TOL_ORBIT = 1e-8
     ADAPTIVE_TOL_CCOL  = 1e-2
     ADAPTIVE_MAX_DRHO  = 1.0
     ADAPTIVE_MAX_DPHI  = 1.0
@@ -133,7 +133,7 @@ class Ui_optionsIO:
     # - Maximum number of poloidal orbits
     #
 
-    ENDCOND_MAX_SIM_TIME             = 1.0e-7
+    ENDCOND_MAX_SIM_TIME             = 1.0e-6
     ENDCOND_MAX_CPU_TIME             = 1.0e5
     ENDCOND_MAX_RHO                  = 1.0
     ENDCOND_MIN_RHO                  = 0.0
@@ -231,7 +231,7 @@ class Ui_optionsIO:
     #
 
     ENABLE_ORBITWRITE         = 1
-    ORBITWRITE_MODE           = 1
+    ORBITWRITE_MODE           = 2
     ORBITWRITE_NTOROIDALPLOTS = 1
     ORBITWRITE_TOROIDALANGLES = np.array([0, 180])
     ORBITWRITE_NPOLOIDALPLOTS = 1

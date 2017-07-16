@@ -102,8 +102,6 @@ typedef struct{
 
     /* Data storage */
     diag_orb_dat* writelist;
-    diag_orb_dat* poincarelist;
-    diag_orb_dat** lastlist;
     int size;
     diag_orb_dat_type type;
 
@@ -119,6 +117,8 @@ typedef struct{
     /* Particle specific data */
     int particleId[NSIMD];
     real prevWriteTime[NSIMD];
+    int nextN[NSIMD];
+    diag_orb_dat** Nlist;
     
 }diag_orb_data;
 
@@ -128,9 +128,9 @@ void diag_orb_init_offload(diag_orb_offload_data* data);
 
 void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data);
 
-void diag_orb_update_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_data* data);
-
 void diag_orb_update_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_data* data);
+
+void diag_orb_update_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_data* data);
 
 void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data);
 
