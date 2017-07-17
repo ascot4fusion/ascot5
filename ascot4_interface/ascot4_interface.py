@@ -36,7 +36,7 @@ def main():
             if 'plasma' in f:
                 del f['plasma']
             write_plasma_1d(f, data)
-            f['plasma'].attrs['type'] = '1D'
+            f['plasma'].attrs['type'] = 'p1d'
 
     # Radial electric field
     if overwrite_fields or (not 'efield/erad' in f):
