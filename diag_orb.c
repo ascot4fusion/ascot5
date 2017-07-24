@@ -170,7 +170,7 @@ void diag_orb_update_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_d
 		new->fo.charge = p_f->charge[i];
 		new->fo.weight = p_f->weight[i];
 
-		new->poincareId = tor[i];
+		new->poincareId = tor[i] + DIAG_ORB_MAXPOINCARES;
 	    }
 	}
 	
@@ -344,7 +344,7 @@ void diag_orb_update_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_d
 		new->gc.charge = p_f->charge[i];
 		new->gc.weight = p_f->weight[i];
 
-		new->poincareId = tor[i];
+		new->poincareId = tor[i] + DIAG_ORB_MAXPOINCARES;
 	    }
 	}
 	
@@ -474,6 +474,16 @@ void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_d
 		new->ml.B_r    = kpol[i] * p_f->B_r[i]    + (1 - kpol[i]) * p_i->B_r[i];
 		new->ml.B_phi  = kpol[i] * p_f->B_phi[i]  + (1 - kpol[i]) * p_i->B_phi[i];
 		new->ml.B_z    = kpol[i] * p_f->B_z[i]    + (1 - kpol[i]) * p_i->B_z[i];
+		new->ml.id     = p_f->id[i];
+		new->ml.time   = p_f->time[i];
+		new->ml.r      = p_f->r[i];
+		new->ml.phi    = p_f->phi[i];
+		new->ml.z      = p_f->z[i];
+		new->ml.rho    = p_f->rho[i];
+		new->ml.weight = p_f->weight[i];
+		new->ml.B_r    = p_f->B_r[i];
+		new->ml.B_phi  = p_f->B_phi[i];
+		new->ml.B_z    = p_f->B_z[i];
 	    
 		new->poincareId = pol[i];		
 	    }
@@ -499,8 +509,18 @@ void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_d
 		new->ml.B_r    = ktor[i] * p_f->B_r[i]    + (1 - ktor[i]) * p_i->B_r[i];
 		new->ml.B_phi  = ktor[i] * p_f->B_phi[i]  + (1 - ktor[i]) * p_i->B_phi[i];
 		new->ml.B_z    = ktor[i] * p_f->B_z[i]    + (1 - ktor[i]) * p_i->B_z[i];
+		new->ml.id     = p_f->id[i];
+		new->ml.time   = p_f->time[i];
+		new->ml.r      = p_f->r[i];
+		new->ml.phi    = p_f->phi[i];
+		new->ml.z      = p_f->z[i];
+		new->ml.rho    = p_f->rho[i];
+		new->ml.weight = p_f->weight[i];
+		new->ml.B_r    = p_f->B_r[i];
+		new->ml.B_phi  = p_f->B_phi[i];
+		new->ml.B_z    = p_f->B_z[i];
 
-		new->poincareId = tor[i];
+		new->poincareId = tor[i] + DIAG_ORB_MAXPOINCARES;
 	    }
 	}
     }
