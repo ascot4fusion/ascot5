@@ -213,8 +213,8 @@ void B_3DS_eval_B(real B[], real r, real phi, real z, B_3DS_data* Bdata) {
     #ifndef NOPSI
     real psi_dpsi[4];
     B_3DS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
-    B[0] = B[0]+1/(2*math_pi)*-psi_dpsi[2]/r;
-    B[2] = B[2]+1/(2*math_pi)*psi_dpsi[1]/r;
+    B[0] = B[0] - psi_dpsi[3]/r;
+    B[2] = B[2] + psi_dpsi[1]/r;
     #endif
 }
 
@@ -360,12 +360,12 @@ void B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata) {
     #ifndef NOPSI
     real psi_dpsi[6];
     interp2D_eval_dB(psi_dpsi, &Bdata->psi, r, z);
-    B_dB[0] = B_dB[0]+1/(2*math_pi)*-psi_dpsi[2]/r;
-    B_dB[1] = B_dB[1] = 1/(2*math_pi*r)*(1/r*psi_dpsi[2]-psi_dpsi[5]);
-    B_dB[3] = -1/(2*math_pi*r)*psi_dpsi[4];
-    B_dB[8] = B_dB[0]+1/(2*math_pi)*psi_dpsi[1]/r;
-    B_dB[9] = B_dB[1] = 1/(2*math_pi*r)*(-1/r*psi_dpsi[1]*psi_dpsi[3]);
-    B_dB[11] = 1/(2*math_pi*r)*psi_dpsi[5];
+    B_dB[0] = B_dB[0] - psi_dpsi[2]/r;
+    B_dB[1] = B_dB[1] + psi_dpsi[2]/(r*r)-psi_dpsi[5]/r;
+    B_dB[3] = B_dB[3] - psi_dpsi[4]/r;
+    B_dB[8] = B_dB[8] + psi_dpsi[1]/r;
+    B_dB[9] = B_dB[9] - psi_dpsi[1]/(r*r) + psi_dpsi[3]/r;
+    B_dB[11] = B_dB[11] + psi_dpsi[5]/r;
     #endif
 }
 

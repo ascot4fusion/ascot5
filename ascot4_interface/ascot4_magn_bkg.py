@@ -1,5 +1,5 @@
 import sys
-sys.path.append('ui')
+sys.path.append('../ui')
 
 from pylab import *
 import ui_B_2D

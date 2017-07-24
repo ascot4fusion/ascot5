@@ -29,8 +29,8 @@ def write_hdf5(fn, rlim, zlim, psirz, Br, Bphi, Bz, axisRz, psivals):
         o.attrs["type"] = np.string_("B_2D")
         
     # Remove 2D field if one is already present
-    if  "/bfield/2D" in f:
-        del f["/bfield/2D"]
+    if  "/bfield/B_2D" in f:
+        del f["/bfield/B_2D"]
 
     # Deduce field dimensions from psirz matrix
     n_r = psirz.shape[1];
