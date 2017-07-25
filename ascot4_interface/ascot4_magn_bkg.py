@@ -3,6 +3,7 @@ sys.path.append('../ui')
 
 from pylab import *
 import ui_B_2D
+import ui_B_3D
 
 def read_magn_bkg(fn):
     str = dict()
@@ -50,9 +51,16 @@ def read_magn_header(fn):
     return str
 
 def write_magn_bkg(f, m):
-    ui_B_2D.write_hdf5('ascot.h5',
-                       np.array([m['r'][0], m['r'][-1]]),
-                       np.array([m['z'][0], m['z'][-1]]),
-                       m['psi']/(2*np.pi), m['br']*0, m['bphi'], m['bz']*0,
-                       np.array([6.2, 0.6]), np.array([-12, 0]))
+    if(m['nPhi'] > 1):
+        ui_B_3D.write_hdf5('ascot.h5',
+                           np.array([m['r'][0], m['r'][-1]]),
+                           np.array([m['z'][0], m['z'][-1]]), m['nPhi'],
+                           m['psi']/(2*np.pi), m['br'], m['bphi'], m['bz'],
+                           np.array([6.2, 0.6]), np.array([-12, 0]))
+    else:
+        ui_B_2D.write_hdf5('ascot.h5',
+                           np.array([m['r'][0], m['r'][-1]]),
+                           np.array([m['z'][0], m['z'][-1]]),
+                           m['psi']/(2*np.pi), m['br']*0, m['bphi'], m['bz']*0,
+                           np.array([6.2, 0.6]), np.array([-12, 0]))
     return
