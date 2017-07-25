@@ -173,8 +173,8 @@ int hdf5_particlestate_write(char* fn, char *state, int n, input_particle* p) {
     for(i = 0; i < n; i++) {
 	data[i] = p[i].p_s.B_r_dphi/p[i].p_s.r;
     }
-    H5LTmake_dataset(state_group, "B_R_dPhi", 1, dims, H5T_IEEE_F64LE, data);
-    H5LTset_attribute_string(state_group, "B_R_dPhi", "unit", "T/m");
+    H5LTmake_dataset(state_group, "B_R_dphi", 1, dims, H5T_IEEE_F64LE, data);
+    H5LTset_attribute_string(state_group, "B_R_dphi", "unit", "T/m");
 
     for(i = 0; i < n; i++) {
 	data[i] = p[i].p_s.B_r_dz;

@@ -8,6 +8,7 @@
 #include "../ascot5.h"
 #include "B_2DS.h"
 #include "../splinePatrik/interp2D.h" /* for 2D interpolation routines */
+#include "../splinePatrik/interp2Dexpl.h"
 
 /**
  * @brief Load magnetic field data and prepare parameters
@@ -123,19 +124,19 @@ void B_2DS_init(B_2DS_data* Bdata, B_2DS_offload_data* offload_data,
     Bdata->axis_r = offload_data->axis_r;
     Bdata->axis_z = offload_data->axis_z;
     /* Spline initialization and storage. */
-    interp2D_init(&Bdata->psi, offload_array,
+    interp2Dexpl_init(&Bdata->psi, offload_array,
     		  offload_data->n_r, offload_data->n_z,
     		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
     		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    interp2D_init(&Bdata->B_r, offload_array+offload_data->n_z*offload_data->n_r,
+    interp2Dexpl_init(&Bdata->B_r, offload_array+offload_data->n_z*offload_data->n_r,
     		  offload_data->n_r, offload_data->n_z,
     		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
     		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    interp2D_init(&Bdata->B_phi, offload_array+2*offload_data->n_z*offload_data->n_r,
+    interp2Dexpl_init(&Bdata->B_phi, offload_array+2*offload_data->n_z*offload_data->n_r,
     		  offload_data->n_r, offload_data->n_z,
     		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
     		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    interp2D_init(&Bdata->B_z, offload_array+3*offload_data->n_z*offload_data->n_r,
+    interp2Dexpl_init(&Bdata->B_z, offload_array+3*offload_data->n_z*offload_data->n_r,
     		  offload_data->n_r, offload_data->n_z,
     		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
 		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
@@ -157,9 +158,9 @@ void B_2DS_init(B_2DS_data* Bdata, B_2DS_offload_data* offload_data,
  * @param Bdata pointer to magnetic field data struct
  */
 void B_2DS_eval_B(real B[], real r, real phi, real z, B_2DS_data* Bdata) {
-    interp2D_eval_B(&B[0], &Bdata->B_r, r, z);
-    interp2D_eval_B(&B[1], &Bdata->B_phi, r, z);
-    interp2D_eval_B(&B[2], &Bdata->B_z, r, z);
+    interp2Dexpl_eval_B(&B[0], &Bdata->B_r, r, z);
+    interp2Dexpl_eval_B(&B[1], &Bdata->B_phi, r, z);
+    interp2Dexpl_eval_B(&B[2], &Bdata->B_z, r, z);
     #ifndef NOPSI
     real psi_dpsi[4];
     B_2DS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
@@ -186,7 +187,7 @@ void B_2DS_eval_B(real B[], real r, real phi, real z, B_2DS_data* Bdata) {
  */
 void B_2DS_eval_psi(real psi[], real r, real phi, real z, B_2DS_data* Bdata)
 {
-    interp2D_eval_B(&psi[0], &Bdata->psi, r, z);
+    interp2Dexpl_eval_B(&psi[0], &Bdata->psi, r, z);
 }
 
 /**
@@ -207,7 +208,7 @@ void B_2DS_eval_psi(real psi[], real r, real phi, real z, B_2DS_data* Bdata)
  */
 void B_2DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_2DS_data* Bdata) {
     real psi_dpsi_temp[6];
-    interp2D_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
+    interp2Dexpl_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
     psi_dpsi[2] = 0;
@@ -287,24 +288,24 @@ void B_2DS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_2DS_data* 
  */
 void B_2DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_2DS_data* Bdata) {
     real B_dB_temp[6];
-    interp2D_eval_dB(B_dB_temp, &Bdata->B_r, r, z);
+    interp2Dexpl_eval_dB(B_dB_temp, &Bdata->B_r, r, z);
     B_dB[0] = B_dB_temp[0];
     B_dB[1] = B_dB_temp[1];
     B_dB[2] = 0;
     B_dB[3] = B_dB_temp[2];
-    interp2D_eval_dB(B_dB_temp, &Bdata->B_phi, r, z);
+    interp2Dexpl_eval_dB(B_dB_temp, &Bdata->B_phi, r, z);
     B_dB[4] = B_dB_temp[0];
     B_dB[5] = B_dB_temp[1];
     B_dB[6] = 0;
     B_dB[7] = B_dB_temp[2];
-    interp2D_eval_dB(B_dB_temp, &Bdata->B_z, r, z);
+    interp2Dexpl_eval_dB(B_dB_temp, &Bdata->B_z, r, z);
     B_dB[8] = B_dB_temp[0];
     B_dB[9] = B_dB_temp[1];
     B_dB[10] = 0;
     B_dB[11] = B_dB_temp[2];
     #ifndef NOPSI
     real psi_dpsi[6];
-    interp2D_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+    interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
     B_dB[0] = B_dB[0] - psi_dpsi[2]/r;
     B_dB[1] = B_dB[1] + psi_dpsi[2]/(r*r)-psi_dpsi[5]/r;
     B_dB[3] = B_dB[3] - psi_dpsi[4]/r;

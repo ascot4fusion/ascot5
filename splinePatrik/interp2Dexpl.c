@@ -6,6 +6,7 @@
 #include <stdio.h> /* Needed for printf debugging purposes */
 #include "../ascot5.h"
 #include "interp2Dexpl.h"
+#include "interp2D.h"
 #include "spline1D.h"
 
 /**
@@ -26,19 +27,19 @@
  * @param z_min minimum value of the z axis
  * @param z_max maximum value of the z axis
  */
-void interp2Dexpl_init(interp2Dexpl_data* str, real* f, int n_r, int n_z,
-		   real r_min, real r_max,
-		   real z_min, real z_max) {
+void interp2Dexpl_init(interp2D_data* str, real* f, int n_r, int n_z,
+		       real r_min, real r_max, real r_grid,
+		       real z_min, real z_max, real z_grid) {
 
     /* Initialize and fill the data struct */
     str->n_r = n_r;
     str->n_z = n_z;
     str->r_min = r_min;
     str->r_max = r_max;
-    str->r_grid = (r_max-r_min)/(n_r-1);
+    str->r_grid = r_grid;//(r_max-r_min)/(n_r-1);
     str->z_min = z_min;
     str->z_max = z_max;
-    str->z_grid = (z_max-z_min)/(n_z-1);
+    str->z_grid = z_grid;//(z_max-z_min)/(n_z-1);
     str->c = malloc(n_z*n_r*16*sizeof(real));
 
     /* Declare and allocate the needed variables */
@@ -106,7 +107,7 @@ void interp2Dexpl_init(interp2Dexpl_data* str, real* f, int n_r, int n_z,
  * @param r r-coordinate
  * @param z z-coordinate
  */
-void interp2Dexpl_eval_B(real* B, interp2Dexpl_data* str, real r, real z) {
+void interp2Dexpl_eval_B(real* B, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid;
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
     real dr2 = dr*dr;
@@ -140,7 +141,7 @@ void interp2Dexpl_eval_B(real* B, interp2Dexpl_data* str, real r, real z) {
  * @param r r-coordinate
  * @param z z-coordinate
  */
-void interp2Dexpl_eval_dB(real* B_dB, interp2Dexpl_data* str, real r, real z) {
+void interp2Dexpl_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid;
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
     real dr2 = dr*dr;
@@ -196,6 +197,6 @@ void interp2Dexpl_eval_dB(real* B_dB, interp2Dexpl_data* str, real r, real z) {
  *
  * @param str data struct for data interpolation
  */
-void interp2Dexpl_free(interp2Dexpl_data* str) {
+void interp2Dexpl_free(interp2D_data* str) {
     free(str->c);
 }
