@@ -70,7 +70,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 
 	return 1;
     }
-    if(strncmp(type,"B_GS",4) == 0) {
+    else if(strncmp(type,"B_GS",4) == 0) {
 	hdf5_bfield_init_offload_GS(f, &(offload_data->BGS), offload_array);
 	offload_data->type = B_field_type_GS;
 
@@ -89,7 +89,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 	#endif
 	return 1;
     }
-    if(strncmp(type,"B_2D",2) == 0) {
+    else if(strncmp(type,"B_2D",4) == 0) {
         hdf5_bfield_init_offload_2D(f, &(offload_data->B2DS), offload_array);
 	offload_data->type = B_field_type_2DS;
 
@@ -108,9 +108,21 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 
         return 1;
     }
-    else if (strncmp(type, "B_3D",2) == 0) {
+    else if (strncmp(type, "B_3D",4) == 0) {
         hdf5_bfield_init_offload_3DS(f, &(offload_data->B3DS), offload_array);
 	offload_data->type = B_field_type_3DS;
+	#if VERBOSE > 0
+	    printf("\nLoaded 3D magnetic field (B_3D)\n");
+	    printf("with parameters:\n");
+	    printf("- magnetic axis at (R,z) = (%le,%le)\n",
+		   offload_data->B3DS.axis_r,offload_data->B3DS.axis_z);
+	    printf("- psi axis = %le and psi separatrix %le\n",
+		   offload_data->B3DS.axis_r,offload_data->B3DS.axis_z);
+	    printf("- rmin, rmax, nr = %le, %le, %d\n",
+		   offload_data->B3DS.r_min,offload_data->B3DS.r_max,offload_data->B3DS.n_r);
+	    printf("- zmin, zmax, nz = %le, %le, %d\n",
+		   offload_data->B3DS.z_min,offload_data->B3DS.z_max,offload_data->B3DS.n_z);
+	#endif
         return 1;
     }
     else if (strncmp(type, "B_ST",4) == 0) {
@@ -118,6 +130,8 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 	offload_data->type = B_field_type_ST;
         return 1;
     }
+    
+    printf("\nFailed to load magnetic field\n");
     return -1;
 }
 
@@ -362,6 +376,7 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
     /* Read magnetic axis r and z coordinates */
     err = H5LTread_dataset_double(f,"/bfield/B_3D/axis_r",&(offload_data->axis_r));
     err = H5LTread_dataset_double(f,"/bfield/B_3D/axis_z",&(offload_data->axis_z));
+
 }
 
 /**

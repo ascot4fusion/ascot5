@@ -36,24 +36,24 @@ def write_hdf5(fn, rlim, zlim, psirz, Br, Bphi, Bz, axisRz, psivals):
     n_r = psirz.shape[1];
     n_z = psirz.shape[0];
 
-    f.create_group('bfield/2D')
-    f.create_dataset('bfield/2D/r_min', data=rlim[0])
-    f.create_dataset('bfield/2D/r_max', data=rlim[1])
-    f.create_dataset('bfield/2D/n_r', data=n_r)
+    f.create_group('bfield/B_2D')
+    f.create_dataset('bfield/B_2D/r_min', data=rlim[0])
+    f.create_dataset('bfield/B_2D/r_max', data=rlim[1])
+    f.create_dataset('bfield/B_2D/n_r', data=n_r)
 
-    f.create_dataset('bfield/2D/z_min', data=zlim[0])
-    f.create_dataset('bfield/2D/z_max', data=zlim[1])
-    f.create_dataset('bfield/2D/n_z', data=n_z)
+    f.create_dataset('bfield/B_2D/z_min', data=zlim[0])
+    f.create_dataset('bfield/B_2D/z_max', data=zlim[1])
+    f.create_dataset('bfield/B_2D/n_z', data=n_z)
 
-    f.create_dataset('bfield/2D/psi', data=psirz.flatten(order='C'))
-    f.create_dataset('bfield/2D/B_r', data=Br.flatten(order='C'))
-    f.create_dataset('bfield/2D/B_phi', data=Bphi.flatten(order='C'))
-    f.create_dataset('bfield/2D/B_z', data=Bz.flatten(order='C'))
+    f.create_dataset('bfield/B_2D/psi', data=psirz.flatten(order='C'))
+    f.create_dataset('bfield/B_2D/B_r', data=Br.flatten(order='C'))
+    f.create_dataset('bfield/B_2D/B_phi', data=Bphi.flatten(order='C'))
+    f.create_dataset('bfield/B_2D/B_z', data=Bz.flatten(order='C'))
 
     # Magnetic axis and psi values
-    f.create_dataset('bfield/2D/axis_r', data=axisRz[0])
-    f.create_dataset('bfield/2D/axis_z', data=axisRz[1])
+    f.create_dataset('bfield/B_2D/axis_r', data=axisRz[0])
+    f.create_dataset('bfield/B_2D/axis_z', data=axisRz[1])
 
-    f.create_dataset('bfield/2D/psi0', data=psivals[0])
-    f.create_dataset('bfield/2D/psi1', data=psivals[1])
+    f.create_dataset('bfield/B_2D/psi0', data=psivals[0])
+    f.create_dataset('bfield/B_2D/psi1', data=psivals[1])
     f.close()
