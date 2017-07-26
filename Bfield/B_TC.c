@@ -53,6 +53,7 @@ void B_TC_init(B_TC_data* Bdata, B_TC_offload_data* offload_data,
 
     Bdata->B = &(offload_array[0]);
     Bdata->dB = &(offload_array[3]);
+
 }
 
 /**
@@ -189,17 +190,17 @@ void B_TC_eval_B_dB(real* B_dB, real r, real phi, real z,
     real c = cos(phi);
     real s = sin(phi);
 
-    B_dB[1] = c*Bdata->dB[0]+s*Bdata->dB[1];
-    B_dB[2] = -r*s*Bdata->dB[0]+r*c*Bdata->dB[1];
+    B_dB[1] = s * Bdata->dB[0]      + c * Bdata->dB[1];
+    B_dB[2] = r * c *Bdata->dB[0]   - r * s * Bdata->dB[1];
     B_dB[3] = Bdata->dB[2];
 
-    B_dB[5] = c*Bdata->dB[3]+s*Bdata->dB[4];
-    B_dB[6] = -r*s*Bdata->dB[3]+r*c*Bdata->dB[4];
+    B_dB[5] = s * Bdata->dB[3]      + c * Bdata->dB[4];
+    B_dB[6] = r * c * Bdata->dB[3]  - r * s * Bdata->dB[4];
     B_dB[7] = Bdata->dB[5];
 
-    B_dB[9]  = c*Bdata->dB[6]+s*Bdata->dB[7];
-    B_dB[11] = -r*s*Bdata->dB[6]+r*c*Bdata->dB[7];
-    B_dB[10] = Bdata->dB[8];
+    B_dB[9]  = s * Bdata->dB[6]     + c * Bdata->dB[7];
+    B_dB[10] = r * c * Bdata->dB[6] - r * s * Bdata->dB[7];
+    B_dB[11] = Bdata->dB[8];
 }
 
 real B_TC_get_axis_r(B_TC_data* Bdata) {
