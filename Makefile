@@ -90,6 +90,7 @@ HEADERS=ascot5.h math.h consts.h \
 		$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) \
 		diag.h diag_orb.h \
 		$(HDF5IOHEADERS) \
+        offload.h
 
 OBJS= math.o consts.o  \
      $(DIAGOBJS)  $(BFOBJS) $(EFOBJS) \
@@ -100,6 +101,7 @@ OBJS= math.o consts.o  \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS)  \
 	diag.o diag_orb.o \
 	$(HDF5IOOBJS) \
+    offload.c \
 	splinePatrik/interp2D.o splinePatrik/interp3D.o splinePatrik/spline1D.o \
 	splinePatrik/interp2Dexpl.o splinePatrik/interp3Dexpl.o
 
