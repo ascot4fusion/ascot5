@@ -296,7 +296,7 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
 int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
                       B_field_data* Bdata, int* cycle);
 
-void particle_marker_to_state(input_particle* p, int i_prt, B_field_data* Bdata);
+void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data* Bdata);
 void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j, B_field_data* Bdata);
 void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p, B_field_data* Bdata);
 void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j, B_field_data* Bdata);

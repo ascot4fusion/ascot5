@@ -94,7 +94,7 @@ typedef struct {
 
 #pragma omp declare target
 void sim_init(sim_data* sim, sim_offload_data* offload_data);
-void simulate(int id, int n_particles, input_particle* p,
+void simulate(int id, int n_particles, particle_state* p,
               sim_offload_data* offload_data,
               real* B_offload_array,
               real* E_offload_array,

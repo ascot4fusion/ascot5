@@ -48,16 +48,16 @@ int main(int argc, char** argv) {
     read_options(argc, argv, &sim);
     
     err = hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
-		     &wall_offload_array, &p, &n);
+             &wall_offload_array, &p, &n);
     if(err) {return 0;};
     
     #ifndef NOTARGET
         diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-	diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
     #else
-	diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
     #endif
-	
+    
     #if VERBOSE >= 1
     printf("Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
     #endif
@@ -78,13 +78,13 @@ int main(int argc, char** argv) {
     #endif
 
     if(mpi_size == 1) {
-	char temp[256];
-	strcat(sim.hdf5_out, ".h5");
+    char temp[256];
+    strcat(sim.hdf5_out, ".h5");
     }
     else {
-	char temp[256];
+    char temp[256];
         sprintf(temp, "_%06d.h5", mpi_rank);
-	strcat(sim.hdf5_out, temp);
+    strcat(sim.hdf5_out, temp);
     }
     err = hdf5_checkoutput(&sim);
     if(err) {return 0;};
@@ -102,6 +102,17 @@ int main(int argc, char** argv) {
     else {
         n = n / mpi_size;
     }
+
+    /* Set up particlestates on host, needs magnetic field evaluation */
+    B_field_data Bdata;
+    B_field_init(&Bdata, &sim.B_offload_data, B_offload_array);
+
+    particle_state* ps = (particle_state*) malloc(n * sizeof(particle_state));
+    for(int i = 0; i < n; i++) {
+        particle_input_to_state(&p[i], &ps[i], &Bdata);
+    }
+    
+    hdf5_particlestate_write(sim.hdf5_out, "inistate", n, ps);
 
     #ifndef NOTARGET
     int n_mic = n / 2;
@@ -129,14 +140,14 @@ int main(int argc, char** argv) {
                 #endif
                 
                 #pragma omp target device(0) map( \
-        p[0:n_mic], \
+        ps[0:n_mic], \
         B_offload_array[0:sim.B_offload_data.offload_array_length], \
         E_offload_array[0:sim.E_offload_data.offload_array_length], \
         diag_offload_array_mic0[0:sim.diag_offload_data.offload_array_length], \
         plasma_offload_array[0:sim.plasma_offload_data.offload_array_length], \
         wall_offload_array[0:sim.wall_offload_data.offload_array_length] \
                 )
-                simulate(1, n_mic, p, &sim, B_offload_array, E_offload_array,
+                simulate(1, n_mic, ps, &sim, B_offload_array, E_offload_array,
                          plasma_offload_array, wall_offload_array,
                          diag_offload_array_mic0);
 
@@ -151,14 +162,14 @@ int main(int argc, char** argv) {
                 mic1_start = omp_get_wtime();
                 #endif
                 #pragma omp target device(1) map( \
-        p[n_mic:2*n_mic], \
+        ps[n_mic:2*n_mic], \
         B_offload_array[0:sim.B_offload_data.offload_array_length], \
         E_offload_array[0:sim.E_offload_data.offload_array_length], \
         diag_offload_array_mic1[0:sim.diag_offload_data.offload_array_length], \
         plasma_offload_array[0:sim.plasma_offload_data.offload_array_length], \
         wall_offload_array[0:sim.wall_offload_data.offload_array_length] \
                 )
-                simulate(2, n_mic, p+n_mic, &sim, B_offload_array,
+                simulate(2, n_mic, ps+n_mic, &sim, B_offload_array,
                          E_offload_array, plasma_offload_array,
                          wall_offload_array, diag_offload_array_mic1);
 
@@ -173,32 +184,21 @@ int main(int argc, char** argv) {
                 #ifdef _OMP
                 host_start = omp_get_wtime();
                 #endif
-		
-		sim_data sim_host;
         
-                simulate_begin(0, n_host, p+2*n_mic, &sim, &sim_host,
-		    B_offload_array,
-		    E_offload_array,
-		    plasma_offload_array, wall_offload_array,
-		    diag_offload_array_host);
+                simulate(0, n_host, ps+2*n_mic, &sim, B_offload_array,
+                         E_offload_array, plasma_offload_array,
+                         wall_offload_array, diag_offload_array_host);
 
-		hdf5_particlestate_write(sim.hdf5_out, "inistate", n, p);
-		
-		simulate_continue(0, n_host, p+2*n_mic, &sim_host);
-		
-		hdf5_particlestate_write(sim.hdf5_out, "endstate", n, p);
-
-		hdf5_orbits_write(&sim_host, sim.hdf5_out);
-
-		simulate_end(&sim_host);
-
-		#ifdef _OMP
+                #ifdef _OMP
                 host_end = omp_get_wtime();
                 #endif
             }
     }
     /* Code excution returns to host. */
-    
+
+    hdf5_particlestate_write(sim.hdf5_out, "endstate", n, ps);
+    hdf5_orbits_write(&sim, sim.hdf5_out);
+
     #if VERBOSE >= 1
     printf("mic0 %lf s, mic1 %lf s, host %lf s\n", mic0_end-mic0_start,
            mic1_end-mic1_start, host_end-host_start);
@@ -209,7 +209,7 @@ int main(int argc, char** argv) {
         diag_sum(&sim.diag_offload_data, diag_offload_array_mic0,diag_offload_array_mic1);
         hdf5_diag_write(&sim, diag_offload_array_mic0, sim.hdf5_out);
     #else
-	hdf5_diag_write(&sim, diag_offload_array_host, sim.hdf5_out);
+    hdf5_diag_write(&sim, diag_offload_array_host, sim.hdf5_out);
     #endif
     
 
@@ -241,33 +241,33 @@ int read_options(int argc, char** argv, sim_offload_data* sim) {
     int c;
     while((c = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch(c) {
-	    case 1:
-	        strcpy(sim->hdf5_in, optarg);
-	        break;
-	    case 2:
+        case 1:
+            strcpy(sim->hdf5_in, optarg);
+            break;
+        case 2:
                 strcpy(sim->hdf5_out, optarg);
                 break;
-	    default:
-		printf("\nUnrecognized option. The valid parameters are:\n");
-		printf("-in hdf5 input file (default ascot)\n");
-		printf("-out hdf5 output file (default same as input)\n");
-		abort();
+        default:
+        printf("\nUnrecognized option. The valid parameters are:\n");
+        printf("-in hdf5 input file (default ascot)\n");
+        printf("-out hdf5 output file (default same as input)\n");
+        abort();
         }
     }
     
     if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] == '\0') {
-	strcpy(sim->hdf5_in, "ascot.h5");
-	strcpy(sim->hdf5_out, "ascot");
+    strcpy(sim->hdf5_in, "ascot.h5");
+    strcpy(sim->hdf5_out, "ascot");
     }
     else if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] != '\0') {
-	strcpy(sim->hdf5_in, "ascot.h5");
+    strcpy(sim->hdf5_in, "ascot.h5");
     }
     else if(sim->hdf5_in[0] != '\0' && sim->hdf5_out[0] == '\0') {
-	strcpy(sim->hdf5_out, sim->hdf5_in);
-	strcat(sim->hdf5_in, ".h5");
+    strcpy(sim->hdf5_out, sim->hdf5_in);
+    strcat(sim->hdf5_in, ".h5");
     }
     else {
-	strcat(sim->hdf5_in, ".h5");
+    strcat(sim->hdf5_in, ".h5");
     }
     
     return 0;
