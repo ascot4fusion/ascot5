@@ -108,7 +108,7 @@ OBJS= math.o consts.o  \
 BINS=test_math \
 	 test_wall_2d test_ascot4_interface test_plasma_1d \
 	 test_interact test_hdf5 test_wall_3d test_particle filip5 \
-	 test_B ascot5_gc test_simulate_orbit test_offload test_E \
+	 test_B test_simulate_orbit test_offload test_E \
 	 test_mccc ascot5_main\
 
 all: $(BINS)
@@ -116,9 +116,6 @@ all: $(BINS)
 ascotpy: CFLAGS+=-fPIC
 ascotpy: ascotpy.o math.o B_field.o $(HDF5IOOBJS) $(BFOBJS)
 	f2py ascotpy.pyf ascotpy.c math.o B_field.o -c $(DEFINES)
-
-ascot5_gc: ascot5_gc.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
 
 ascot5_main: ascot5_main.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
