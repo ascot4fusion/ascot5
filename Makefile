@@ -8,6 +8,7 @@ endif
 
 ifneq ($(TARGET),1)
 	DEFINES+=-DNOTARGET
+    CFLAGS+=-qno-openmp-offload -diag-disable 3180
 endif
 
 ifdef VERBOSE
