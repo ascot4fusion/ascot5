@@ -97,9 +97,9 @@ void interp2D_init(interp2D_data* str, real* f, int n_r, int n_z,
     for(i_z=0; i_z<n_z-1; i_z++) {
     	for(i_r=0; i_r<n_r-1; i_r++) {
     	    cc[i_z*n_r*4+i_r*4]   =     str->c[i_z*n_r*16+i_r*16];
-    	    cc[i_z*n_r*4+i_r*4+1] = 2.0*str->c[i_z*n_r*16+i_r*16+2];
-    	    cc[i_z*n_r*4+i_r*4+2] = 2.0*str->c[i_z*n_r*16+i_r*16+8];
-    	    cc[i_z*n_r*4+i_r*4+3] = 4.0*str->c[i_z*n_r*16+i_r*16+10];
+    	    cc[i_z*n_r*4+i_r*4+1] = (1.0/(r_grid*r_grid))*2.0*str->c[i_z*n_r*16+i_r*16+2];
+    	    cc[i_z*n_r*4+i_r*4+2] = (1.0/(z_grid*z_grid))*2.0*str->c[i_z*n_r*16+i_r*16+8];
+					  cc[i_z*n_r*4+i_r*4+3] = (1.0/(z_grid*z_grid*r_grid*r_grid))*4.0*str->c[i_z*n_r*16+i_r*16+10];
     	}
     	cc[i_z*n_r*4+(n_r-1)*4]   = f[i_z*n_r+n_r-1];
     	cc[i_z*n_r*4+(n_r-1)*4+1] = 0;
@@ -182,10 +182,10 @@ void interp2D_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid; /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
-    real dr3 = dr*dr*dr-dr;
+    real dr3 = dr*(dr*dr-1);
     real dr3dr = 3*dr*dr-1; /**< r-derivative of dr3, not including 1/r_grid */
     real dri = 1.0-dr;
-    real dri3 = dri*dri*dri-dri;
+    real dri3 = dri*(dri*dri-1);
     real dri3dr = -3*dri*dri+1; /**< r-derivative of dri3, not including 1/r_grid */
     real rg = str->r_grid; /**< Cell length in r direction */
     real rg2 = rg*rg;
@@ -193,10 +193,10 @@ void interp2D_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     int i_z = (z-str->z_min)/str->z_grid; /**< index for z variable */
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
 							       current cell */
-    real dz3 = dz*dz*dz-dz;
+    real dz3 = dz*(dz*dz-1);
     real dz3dz = 3*dz*dz-1; /**< z-derivative of dz3, not including 1/z_grid */
     real dzi = 1.0-dz;
-    real dzi3 = dzi*dzi*dzi-dzi;
+    real dzi3 = dzi*(dzi*dzi-1);
     real dzi3dz = -3*dzi*dzi+1; /**< z-derivative of dzi3, not including 1/z_grid */
     real zg = str->z_grid; /**< Cell length in z direction */
     real zg2 = zg*zg;
@@ -210,8 +210,8 @@ void interp2D_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
 	      dri*(dzi*str->c[n]+dz*str->c[n+z1])+
 	      dr*(dzi*str->c[n+4]+dz*str->c[n+z1+4]))
 	+rg2/6*(
-		dri3*(dzi*str->c[n+1]+ dz*str->c[n+z1+1])+
-		dr3*(dzi*str->c[n+4+1]+ dz*str->c[n+z1+4+1]))
+		dri3*(dzi*str->c[n+1] + dz*str->c[n+z1+1])+
+		dr3*(dzi*str->c[n+4+1] + dz*str->c[n+z1+4+1]))
 	+zg2/6*(
 		dri*(dzi3*str->c[n+2]+dz3*str->c[n+z1+2])+
 		dr*(dzi3*str->c[n+4+2]+dz3*str->c[n+z1+4+2]))
@@ -233,7 +233,7 @@ void interp2D_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
 		    dri3dr*(dzi3*str->c[n+3]  +dz3*str->c[n+z1+3])+
 		    dr3dr*(dzi3*str->c[n+4+3]+dz3*str->c[n+z1+4+3]));
 
-    /* dr/dz */
+    /* df/dz */
     B_dB[2] = zgi*(
 		  dri*(-str->c[n]  +str->c[n+z1])+
 		  dr*(-str->c[n+4]+str->c[n+z1+4]))
@@ -259,7 +259,7 @@ void interp2D_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     B_dB[4] = (
 	      dri*(dzi*str->c[n+2]  +dz*str->c[n+z1+2])+
 	      dr*(dzi*dzi3*str->c[n+4+2]+dz*str->c[n+z1+4+2]))
-	+rg2/6*(
+	+(rg2/6)*(
 		dri3*(dzi*str->c[n+3]  +dz*str->c[n+z1+3])+
 		dr3*(dzi*str->c[n+4+3]+dz*str->c[n+z1+4+3]));
 

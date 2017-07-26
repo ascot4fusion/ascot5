@@ -176,8 +176,8 @@ void interp2Dexpl_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
 		       +dz3*(2*str->c[n+14]+6*dr*str->c[n+15]));
 
     /* d2f/dz^2 */
-    B_dB[4] = zgi*zgi*(2*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
-		       +6*dz*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]));
+    B_dB[4] = zgi*zgi*(2.0*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
+		       +6.0*dz*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]));
 
     /* d2f/dzdr */
     B_dB[5] = rgi*zgi*(str->c[n+ 5]+2*dr*str->c[n+ 6]+3*dr2*str->c[n+ 7]
