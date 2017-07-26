@@ -117,8 +117,6 @@ void interp2Dexpl_eval_B(real* B, interp2D_data* str, real r, real z) {
     real dz2 = dz*dz;
     real dz3 = dz2*dz;
     int n = i_z*str->n_r*16+i_r*16;
-    printf("i_r = %d, dr = %le\ni_z = %d, dz = %le\n",
-    	   i_r, dr, i_z, dz);
 
     *B =      str->c[n+ 0]+dr*str->c[n+ 1]+dr2*str->c[n+ 2]+dr3*str->c[n+ 3]
 	 +dz*(str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7])
@@ -146,13 +144,13 @@ void interp2Dexpl_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
     real dr2 = dr*dr;
     real dr3 = dr2*dr;
+    real rgi = 1.0/str->r_grid;
     int i_z = (z-str->z_min)/str->z_grid;
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid;
     real dz2 = dz*dz;
     real dz3 = dz2*dz;
+    real zgi = 1.0/str->r_grid;
     int n = i_z*str->n_r*16+i_r*16;
-    printf("i_r = %d, dr = %le\ni_z = %d, dz = %le\n",
-    	   i_r, dr, i_z, dz);
 
     /* f */
     B_dB[0] = str->c[n+ 0]+dr*str->c[n+ 1]+dr2*str->c[n+ 2]+dr3*str->c[n+ 3]
@@ -161,30 +159,30 @@ void interp2Dexpl_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
 	+dz3*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]);
 
     /* df/dr */
-    B_dB[1] = str->c[n+ 1]+2*dr*str->c[n+ 2]+3*dr2*str->c[n+ 3]
-	+dz*(str->c[n+ 5]+2*dr*str->c[n+ 6]+3*dr2*str->c[n+ 7])
-        +dz2*(str->c[n+ 9]+2*dr*str->c[n+10]+3*dr2*str->c[n+11])
-        +dz3*(str->c[n+13]+2*dr*str->c[n+14]+3*dr2*str->c[n+15]);
+    B_dB[1] = rgi*(str->c[n+ 1]+2*dr*str->c[n+ 2]+3*dr2*str->c[n+ 3]
+		   +dz*(str->c[n+ 5]+2*dr*str->c[n+ 6]+3*dr2*str->c[n+ 7])
+		   +dz2*(str->c[n+ 9]+2*dr*str->c[n+10]+3*dr2*str->c[n+11])
+		   +dz3*(str->c[n+13]+2*dr*str->c[n+14]+3*dr2*str->c[n+15]));
 
     /* df/dz */
-    B_dB[2] =   str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7]
-         +2*dz*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
-        +3*dz2*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]);
+    B_dB[2] = zgi*(str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7]
+		   +2*dz*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
+		   +3*dz2*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]));
 
     /* d2f/dr^2 */
-    B_dB[3] = 2*str->c[n+ 2]+6*dr*str->c[n+ 3]
-	 +dz*(2*str->c[n+ 6]+6*dr*str->c[n+ 7])
-        +dz2*(2*str->c[n+10]+6*dr*str->c[n+11])
-        +dz3*(2*str->c[n+14]+6*dr*str->c[n+15]);
+    B_dB[3] = rgi*rgi*(2*str->c[n+ 2]+6*dr*str->c[n+ 3]
+		       +dz*(2*str->c[n+ 6]+6*dr*str->c[n+ 7])
+		       +dz2*(2*str->c[n+10]+6*dr*str->c[n+11])
+		       +dz3*(2*str->c[n+14]+6*dr*str->c[n+15]));
 
     /* d2f/dz^2 */
-    B_dB[4] = 2*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
-          +6*dz*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]);
+    B_dB[4] = zgi*zgi*(2*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
+		       +6*dz*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]));
 
     /* d2f/dzdr */
-    B_dB[5] =   str->c[n+ 5]+2*dr*str->c[n+ 6]+3*dr2*str->c[n+ 7]
-	 +2*dz*(str->c[n+ 9]+2*dr*str->c[n+10]+3*dr2*str->c[n+11])
-        +3*dz2*(str->c[n+13]+2*dr*str->c[n+14]+3*dr2*str->c[n+15]);
+    B_dB[5] = rgi*zgi*(str->c[n+ 5]+2*dr*str->c[n+ 6]+3*dr2*str->c[n+ 7]
+		       +2*dz*(str->c[n+ 9]+2*dr*str->c[n+10]+3*dr2*str->c[n+11])
+		       +3*dz2*(str->c[n+13]+2*dr*str->c[n+14]+3*dr2*str->c[n+15]));
 }
 
 /**
