@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "../ascot5.h"
 #include "interp3Dexpl.h"
+#include "interp3D.h"
 #include "spline1D.h"
 
 /**
@@ -29,10 +30,10 @@
  * @param z_min minimum value of the z axis
  * @param z_max maximum value of the z axis
  */
-void interp3Dexpl_init(interp3Dexpl_data* str, real* f, int n_r, int n_phi, int n_z,
-		   real r_min, real r_max,
-		   real phi_min, real phi_max,
-		   real z_min, real z_max) {
+void interp3Dexpl_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
+		       real r_min, real r_max, real r_grid,
+		       real phi_min, real phi_max, real phi_grid,
+		       real z_min, real z_max, real z_grid) {
 
     /* Initialize and fill the data struct */
     str->n_r = n_r;
@@ -40,13 +41,13 @@ void interp3Dexpl_init(interp3Dexpl_data* str, real* f, int n_r, int n_phi, int 
     str->n_z = n_z;
     str->r_min = r_min;
     str->r_max = r_max;
-    str->r_grid = (r_max-r_min)/(n_r-1);
+    str->r_grid = r_grid;//(r_max-r_min)/(n_r-1);
     str->phi_min = phi_min;
     str->phi_max = phi_max;
-    str->phi_grid = (phi_max-phi_min)/n_phi;
+    str->phi_grid = phi_grid;//(phi_max-phi_min)/n_phi;
     str->z_min = z_min;
     str->z_max = z_max;
-    str->z_grid = (z_max-z_min)/(n_z-1);
+    str->z_grid = z_grid;//(z_max-z_min)/(n_z-1);
     str->c = malloc(n_phi*n_z*n_r*64*sizeof(real));
 
     /* Declare and allocate the needed variables */
@@ -147,7 +148,7 @@ void interp3Dexpl_init(interp3Dexpl_data* str, real* f, int n_r, int n_phi, int 
  * @param phi phi-coordinate
  * @param z z-coordinate
  */
-void interp3Dexpl_eval_B(real* B, interp3Dexpl_data* str, real r, real phi, real z) {
+void interp3Dexpl_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
     int i_r = (r-str->r_min)/str->r_grid;
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
     real dr2 = dr*dr;
@@ -200,7 +201,7 @@ void interp3Dexpl_eval_B(real* B, interp3Dexpl_data* str, real r, real phi, real
  * @param phi phi-coordinate
  * @param z z-coordinate
  */
-void interp3Dexpl_eval_dB(real* B_dB, interp3Dexpl_data* str, real r, real phi, real z) {
+void interp3Dexpl_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) {
     real ri = 1/r;
     int i_r = (r-str->r_min)/str->r_grid;
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
@@ -415,6 +416,6 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3Dexpl_data* str, real r, real phi, 
  *
  * @param str data struct for data interpolation
  */
-void interp3Dexpl_free(interp3Dexpl_data* str) {
+void interp3Dexpl_free(interp3D_data* str) {
     free(str->c);
 }

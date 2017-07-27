@@ -11,6 +11,8 @@
 #include "B_3DS.h"
 #include "../splinePatrik/interp2D.h" /* for 2D interpolation routines */
 #include "../splinePatrik/interp3D.h" /* for 3D interpolation routines */
+#include "../splinePatrik/interp2Dexpl.h" 
+#include "../splinePatrik/interp3Dexpl.h"
 
 /**
  * @brief Load magnetic field data and prepare parameters
@@ -167,6 +169,31 @@ void B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
     Bdata->axis_r = offload_data->axis_r;
     Bdata->axis_z = offload_data->axis_z;
     /* Spline initialization and storage. */
+
+    #if INTERP_SPL_EXPL
+    interp2Dexpl_init(&Bdata->psi, offload_array
+		      +3*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
+		      offload_data->n_r, offload_data->n_z,
+		      offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+		      offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    interp3Dexpl_init(&Bdata->B_r, offload_array,
+		      offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+		      offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+		      offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
+		      offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    interp3Dexpl_init(&Bdata->B_phi, offload_array
+		      +offload_data->n_phi*offload_data->n_z*offload_data->n_r,
+		      offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+		      offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+		      offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
+		      offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    interp3Dexpl_init(&Bdata->B_z, offload_array
+		      +2*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
+		      offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+		      offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+		      offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
+		      offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    #else
     interp2D_init(&Bdata->psi, offload_array
     		  +3*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
     		  offload_data->n_r, offload_data->n_z,
@@ -189,6 +216,7 @@ void B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
     		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
     		  offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    #endif
 }
 
 /**
@@ -207,9 +235,16 @@ void B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
  * @param Bdata pointer to magnetic field data struct
  */
 void B_3DS_eval_B(real B[], real r, real phi, real z, B_3DS_data* Bdata) {
+    #if INTERP_SPL_EXPL
+    interp3Dexpl_eval_B(&B[0], &Bdata->B_r, r, phi, z);
+    interp3Dexpl_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
+    interp3Dexpl_eval_B(&B[2], &Bdata->B_z, r, phi, z);
+    #else
     interp3D_eval_B(&B[0], &Bdata->B_r, r, phi, z);
     interp3D_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
     interp3D_eval_B(&B[2], &Bdata->B_z, r, phi, z);
+    #endif
+
     #ifndef NOPSI
     real psi_dpsi[4];
     B_3DS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
@@ -237,7 +272,11 @@ void B_3DS_eval_B(real B[], real r, real phi, real z, B_3DS_data* Bdata) {
 void B_3DS_eval_psi(real psi[], real r, real phi, real z,
                    B_3DS_data* Bdata)
 {
+    #if INTERP_SPL_EXPL
     interp2D_eval_B(&psi[0], &Bdata->psi, r, z);
+    #else
+    interp2D_eval_B(&psi[0], &Bdata->psi, r, z);
+    #endif
 }
 
 /**
@@ -261,7 +300,11 @@ void B_3DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
                    B_3DS_data* Bdata)
 {
     real psi_dpsi_temp[6];
+    #if INTERP_SPL_EXPL
+    interp2Dexpl_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
+    #else
     interp2D_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
+    #endif
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
     psi_dpsi[2] = 0;
@@ -342,24 +385,50 @@ void B_3DS_eval_rho_drho(real rho_drho[], real r, real phi, real z,
  */
 void B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata) {
     real B_dB_temp[10];
+    #if INTERP_SPL_EXPL
+    interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
+    #else
     interp3D_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
+    #endif
+
     B_dB[0] = B_dB_temp[0];
     B_dB[1] = B_dB_temp[1];
     B_dB[2] = B_dB_temp[2];
     B_dB[3] = B_dB_temp[3];
+
+
+    #if INTERP_SPL_EXPL
+    interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
+    #else
     interp3D_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
+    #endif
+
     B_dB[4] = B_dB_temp[0];
     B_dB[5] = B_dB_temp[1];
     B_dB[6] = B_dB_temp[2];
     B_dB[7] = B_dB_temp[3];
+
+
+    #if INTERP_SPL_EXPL
+    interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
+    #else
     interp3D_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
+    #endif
+
     B_dB[8] = B_dB_temp[0];
     B_dB[9] = B_dB_temp[1];
     B_dB[10] = B_dB_temp[2];
     B_dB[11] = B_dB_temp[3];
+
+
     #ifndef NOPSI
     real psi_dpsi[6];
+    #if INTERP_SPL_EXPL
+    interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+    #else
     interp2D_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+    #endif
+
     B_dB[0] = B_dB[0] - psi_dpsi[2]/r;
     B_dB[1] = B_dB[1] + psi_dpsi[2]/(r*r)-psi_dpsi[5]/r;
     B_dB[3] = B_dB[3] - psi_dpsi[4]/r;
