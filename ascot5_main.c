@@ -197,7 +197,7 @@ int main(int argc, char** argv) {
     /* Code excution returns to host. */
 
     hdf5_particlestate_write(sim.hdf5_out, "endstate", n, ps);
-    hdf5_orbits_write(&sim, sim.hdf5_out);
+    //hdf5_orbits_write(&sim, sim.hdf5_out);
 
     #if VERBOSE >= 1
     printf("mic0 %lf s, mic1 %lf s, host %lf s\n", mic0_end-mic0_start,

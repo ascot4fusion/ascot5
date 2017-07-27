@@ -5,6 +5,7 @@
 #include "simulate/simulate_gc_adaptive.h"
 #include "simulate/simulate_gc_fixed.h"
 #include "simulate/simulate_fo_fixed.h"
+#include "hdf5io/hdf5_orbits.h"
 
 void simulate(int id, int n_particles, particle_state* p,
               sim_offload_data* offload_data,
@@ -106,6 +107,11 @@ void simulate(int id, int n_particles, particle_state* p,
 
     free(pq.p);
     free(pqhyb.p);
+
+    // Temporary solution
+    #ifdef NOTARGET
+        hdf5_orbits_write(&sim, offload_data->hdf5_out);
+    #endif
 
     diag_clean(&sim.diag_data);
 }
