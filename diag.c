@@ -23,6 +23,7 @@
 #include "ascot5.h"
 #include "particle.h"
 #include "distributions.h"
+#include "diag_orb.h"
 #include "diag.h"
 
 /**
@@ -100,12 +101,29 @@ void diag_init(diag_data* data, diag_offload_data* offload_data, real* offload_a
 }
 
 /**
+ * @brief Collects diagnostics when marker represents a particle
+ */
+void diag_update_fo(diag_data* d, diag_storage* ds, particle_simd_fo* p_f, particle_simd_fo* p_i){
+    if(d->diag_orb_collect){
+	diag_orb_update_fo(ds->particleId, ds->prevWriteTime, ds->nextN, ds->Nlist, 
+			   &d->orbits, p_f, p_i);
+    }
+    if(d->diag_debug_collect){
+	
+    }
+    if(d->diag_dist4D_collect){
+	dist_rzvv_update_fo(&d->dist4D, p_f, p_i);
+    }
+}
+
+/**
  * @brief Collects diagnostics when marker represents a guiding center
  */
-void diag_update_gc(diag_data* d, particle_simd_gc* p_f, particle_simd_gc* p_i){
+void diag_update_gc(diag_data* d, diag_storage* ds, particle_simd_gc* p_f, particle_simd_gc* p_i){
     
     if(d->diag_orb_collect){
-	diag_orb_update_gc(p_f, p_i, &d->orbits);
+	diag_orb_update_gc(ds->particleId, ds->prevWriteTime, ds->nextN, ds->Nlist, 
+			   &d->orbits, p_f, p_i);
     }
     if(d->diag_debug_collect){
 	
@@ -117,26 +135,12 @@ void diag_update_gc(diag_data* d, particle_simd_gc* p_f, particle_simd_gc* p_i){
 }
 
 /**
- * @brief Collects diagnostics when marker represents a particle
- */
-void diag_update_fo(diag_data* d, particle_simd_fo* p_f, particle_simd_fo* p_i){
-    if(d->diag_orb_collect){
-	diag_orb_update_fo(p_f, p_i, &d->orbits);
-    }
-    if(d->diag_debug_collect){
-	
-    }
-    if(d->diag_dist4D_collect){
-	dist_rzvv_update_fo(&d->dist4D, p_f, p_i);
-    }
-}
-
-/**
  * @brief Collects diagnostics when marker represents a magnetic field line
  */
-void diag_update_ml(diag_data* d, particle_simd_ml* p_f, particle_simd_ml* p_i){
+void diag_update_ml(diag_data* d, diag_storage* ds, particle_simd_ml* p_f, particle_simd_ml* p_i){
     if(d->diag_orb_collect){
-	diag_orb_update_ml(p_f, p_i, &d->orbits);
+	diag_orb_update_ml(ds->particleId, ds->prevWriteTime, ds->nextN, ds->Nlist, 
+			   &d->orbits, p_f, p_i);
     }
     if(d->diag_debug_collect){
 	
@@ -171,6 +175,7 @@ void diag_sum(diag_data* d, real* array1, real* array2){
  *
  */
 void diag_clean(diag_data* d){
+
     if(d->diag_orb_collect){
 	diag_orb_clean(&d->orbits);
     }
@@ -179,7 +184,33 @@ void diag_clean(diag_data* d){
     }
     if(d->diag_dist4D_collect){
 	// Do nothing
-    }
-    
+    }    
 }
 
+/**
+ * @brief Allocates a new diag_storage
+ */
+void diag_storage_aquire(diag_data* data, diag_storage** ds) {
+    *ds = malloc(sizeof(diag_storage));
+
+    /* N-last specific input */
+    (*ds)->Nlist = NULL;
+    if(data->orbits.mode == DIAG_ORB_WRITELAST) {
+	(*ds)->Nlist = malloc(data->orbits.writeNlast*NSIMD*sizeof(diag_orb_dat*));
+    }
+
+    /* Initialize data storage */
+    for(int i=0; i < NSIMD; i++) {
+	(*ds)->particleId[i] = -2;
+    }
+}
+
+/**
+ * @brief De-allocates a diag_storage
+ */
+void diag_storage_discard(diag_storage* ds) {
+    if(ds->Nlist != NULL) {
+	free(ds->Nlist);
+    }
+    free(ds);
+}
