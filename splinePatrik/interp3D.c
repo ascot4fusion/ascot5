@@ -41,29 +41,29 @@ void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
     str->n_z = n_z;
     str->r_min = r_min;
     str->r_max = r_max;
-    str->r_grid = r_grid;//(r_max-r_min)/(n_r-1);
+    str->r_grid = r_grid;
     str->phi_min = phi_min;
     str->phi_max = phi_max;
-    str->phi_grid = phi_grid;//(phi_max-phi_min)/n_phi;
+    str->phi_grid = phi_grid;
     str->z_min = z_min;
     str->z_max = z_max;
-    str->z_grid = z_grid;//(z_max-z_min)/(n_z-1);
+    str->z_grid = z_grid;
     str->c = malloc(n_phi*n_z*n_r*64*sizeof(real));
 
     /* Declare and allocate the needed variables */
-    int i_r; /**< index for r variable */
-    int i_phi;
-    int i_z; /**< index for z variable */
-    int i_c; /**< index for coefficient for data struct */
-    real* f_r = malloc(n_r*sizeof(real)); /**< Temporary array for data along r */
-    real* f_phi = malloc(n_phi*sizeof(real));
-    real* f_z = malloc(n_z*sizeof(real)); /**< Temporary array for data along z */
+    int i_r;                                  /**< index for r variable */
+    int i_phi;                                /**< index for phi variable */
+    int i_z;                                  /**< index for z variable */
+    int i_c;                                  /**< index for coefficient for data struct */
+    real* f_r = malloc(n_r*sizeof(real));       /**< Temporary array for data along r */
+    real* f_phi = malloc(n_phi*sizeof(real));   /**< Temp array for data along phi */
+    real* f_z = malloc(n_z*sizeof(real));       /**< Temp array for data along z */
     real* c_r = malloc((n_r-1)*4*sizeof(real)); /**< Temp array for coefficients along r */
     real* c_phi = malloc(n_phi*4*sizeof(real)); /**< Temp array for coefs along phi */
     real* c_z = malloc((n_z-1)*4*sizeof(real)); /**< Temp array for coefficients along z */
-    int i_s; /**< index for spline regarding degree in r */
-    int i_ss; /**< index for spline regarding degree in z */
-    int i_ct; /**< index for coefficient array */
+    int i_s;                                 /**< index for spline regarding degree in r */
+    int i_ss;                                /**< index for spline regarding degree in z */
+    int i_ct;                                   /**< index for coefficient array */
 
     /* Bicubic spline surface over rz-grid for each phi */
     for(i_phi=0; i_phi<n_phi; i_phi++) {
@@ -139,20 +139,26 @@ void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
 	    for(i_r=0; i_r<n_r-1; i_r++) {
 		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+0] =
 		    str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+0];
-		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+1] =
+		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+1] = (1.0/(r_grid*r_grid))*
 		    2*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+2];
-		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+2] =
-		    2*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+32]; // 1/r2?
-		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+3] =
+		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+2] = (1.0/
+		    ((r_min+i_r*r_grid)*(r_min+i_r*r_grid)*phi_grid*phi_grid))*
+		    2*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+32];
+		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+3] = (1.0/(z_grid*z_grid))*
 		    2*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+8];
-		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+4] =
-		    4*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+34]; // 1/r2?
-		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+5] =
+		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+4] = (1.0/(r_grid*r_grid*
+		    (r_min+i_r*r_grid)*(r_min+i_r*r_grid)*phi_grid*phi_grid))*
+		    4*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+34];
+		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+5] = (1.0/(r_grid*r_grid*
+		    z_grid*z_grid))*
 		    4*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+10];
-		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+6] =
-		    4*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+40]; // 1/r2?
-		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+7] =
-		    8*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+9+42]; // 1/r2?
+		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+6] = (1.0/((r_min+i_r*r_grid)*
+		    (r_min+i_r*r_grid)*phi_grid*phi_grid*z_grid*z_grid))*
+		    4*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+40];
+		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+7] = (1.0/(r_grid*r_grid*
+		    (r_min+i_r*r_grid)*(r_min+i_r*r_grid)*phi_grid*phi_grid*
+		    z_grid*z_grid))*
+		    8*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+9+42];
 		
 	    }
 	    cc[i_phi*n_z*n_r*8+i_z*n_r*8+(n_r-1)*8+0] = f[i_phi*n_z*n_r+i_z*n_r+n_r-1]; // From coefs?
@@ -196,14 +202,13 @@ void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
  * @param z z-coordinate
  */
 void interp3D_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
-    int i_r = (r-str->r_min)/str->r_grid; /**< index for r variable */
+    int i_r = (r-str->r_min)/str->r_grid;     /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
     real dri = 1.0-dr;
     real dr3 = dr*dr*dr-dr;
     real dri3 = (1.0-dr)*(1.0-dr)*(1.0-dr)-(1.0-dr);
-    real rg2 = str->r_grid*str->r_grid; /**< Square of cell length in r direction */
-    phi = phi*6.283185307179586/360; // Degrees to radians
+    real rg2 = str->r_grid*str->r_grid;       /**< Square of cell length in r direction */
     int i_phi = (phi-str->phi_min)/str->phi_grid; /**< index for phi variable */
     real dphi = (phi-(str->phi_min+i_phi*str->phi_grid))/str->phi_grid; /**< Normalized phi
 									   coordinate in
@@ -212,20 +217,20 @@ void interp3D_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
     real dphi3 = dphi*dphi*dphi-dphi;
     real dphii3 = (1.0-dphi)*(1.0-dphi)*(1.0-dphi)-(1.0-dphi);
     real phig2 = str->phi_grid*str->phi_grid; /**< Square of cell length in phi dir */
-    int i_z = (z-str->z_min)/str->z_grid; /**< index for z variable */
+    int i_z = (z-str->z_min)/str->z_grid;     /**< index for z variable */
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
 							       current cell */
     real dzi = 1.0-dz;
     real dz3 = dz*dz*dz-dz;
     real dzi3 = (1.0-dz)*(1.0-dz)*(1.0-dz)-(1.0-dz);
-    real zg2 = str->z_grid*str->z_grid; /**< Square of cell length in z direction */
+    real zg2 = str->z_grid*str->z_grid;       /**< Square of cell length in z direction */
     int n = i_phi*str->n_z*str->n_r*8+i_z*str->n_r*8+i_r*8; /**< Index jump to cell */
-    int r1 = 8; /**< Index jump one r forward */
-    int phi1 = str->n_z*str->n_r*8; /**< Index jump one phi forward */
+    int r1 = 8;                               /**< Index jump one r forward */
+    int phi1 = str->n_z*str->n_r*8;           /**< Index jump one phi forward */
     if(i_phi==str->n_phi-1) {
-	phi1 = -(str->n_phi-1)*phi1; /**< If last cell, index jump to 1st phi */
+	phi1 = -(str->n_phi-1)*phi1;          /**< If last cell, index jump to 1st phi */
     }
-    int z1 = str->n_r*8; /**< Index jump one z forward */
+    int z1 = str->n_r*8;                      /**< Index jump one z forward */
 	   
     *B = (
 	  dzi*(
@@ -303,18 +308,17 @@ void interp3D_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
  * @param z z-coordinate
  */
 void interp3D_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) {
-    int i_r = (r-str->r_min)/str->r_grid; /**< index for r variable */
+    int i_r = (r-str->r_min)/str->r_grid;       /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
     real dr3 = dr*dr*dr-dr;
-    real dr3dr = 3*dr*dr-1.0; /**< r-derivative of dr3, not including 1/r_grid */
+    real dr3dr = 3*dr*dr-1.0;           /**< r-derivative of dr3, not including 1/r_grid */
     real dri = 1.0-dr;
     real dri3 = dri*dri*dri-dri;
-    real dri3dr = -3*dri*dri+1.0; /**< r-derivative of dri3, not including 1/r_grid */
-    real rg = str->r_grid; /**< Cell length in r direction */
+    real dri3dr = -3*dri*dri+1.0;      /**< r-derivative of dri3, not including 1/r_grid */
+    real rg = str->r_grid;                      /**< Cell length in r direction */
     real rg2 = rg*rg;
     real rgi = 1.0/rg;
-    phi = phi*6.283185307179586/360; // Degrees to radians
     int i_phi = (phi-str->phi_min)/str->phi_grid; /**< index for phi variable */
     real dphi = (phi-(str->phi_min+i_phi*str->phi_grid))/str->phi_grid; /**< Normalized phi
 									   coordinate in
@@ -326,27 +330,27 @@ void interp3D_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) 
     real dphii3 = dphii*dphii*dphii-dphii;
     real dphii3dphi = -3*dphii*dphii+1.0; /**< phi-derivative of dphii3,
 					     not including 1/r_grid */
-    real phig = str->phi_grid; /**< Cell length in phi direction */
+    real phig = str->phi_grid;                  /**< Cell length in phi direction */
     real phig2 = phig*phig;
     real phigi = 1.0/phig;
-    int i_z = (z-str->z_min)/str->z_grid; /**< index for z variable */
+    int i_z = (z-str->z_min)/str->z_grid;       /**< index for z variable */
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
 							       current cell */
     real dz3 = dz*dz*dz-dz;
-    real dz3dz = 3*dz*dz-1.0; /**< z-derivative of dz3, not including 1/z_grid */
+    real dz3dz = 3*dz*dz-1.0;          /**< z-derivative of dz3, not including 1/z_grid */
     real dzi = 1.0-dz;
     real dzi3 = dzi*dzi*dzi-dzi;
-    real dzi3dz = -3*dzi*dzi+1.0; /**< z-derivative of dzi3, not including 1/z_grid */
-    real zg = str->z_grid; /**< Cell length in z direction */
+    real dzi3dz = -3*dzi*dzi+1.0;      /**< z-derivative of dzi3, not including 1/z_grid */
+    real zg = str->z_grid;                      /**< Cell length in z direction */
     real zg2 = zg*zg;
     real zgi = 1.0/zg;
     int n = i_phi*str->n_z*str->n_r*8+i_z*str->n_r*8+i_r*8; /**< Index jump to cell */
-    int r1 = 8; /**< Index jump one r forward */
-    int phi1 = str->n_z*str->n_r*8; /**< Index jump one phi forward */
+    int r1 = 8;                                 /**< Index jump one r forward */
+    int phi1 = str->n_z*str->n_r*8;             /**< Index jump one phi forward */
     if(i_phi==str->n_phi-1) {
-	phi1 = -(str->n_phi-1)*phi1; /**< If last cell, index jump to 1st phi */
+	phi1 = -(str->n_phi-1)*phi1;            /**< If last cell, index jump to 1st phi */
     }
-    int z1 = str->n_r*8; str->n_r*4; /**< Index jump one z forward */
+    int z1 = str->n_r*8; str->n_r*4;            /**< Index jump one z forward */
 
     /* f */
     B_dB[0] = (

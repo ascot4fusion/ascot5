@@ -36,22 +36,22 @@ void interp2D_init(interp2D_data* str, real* f, int n_r, int n_z,
     str->n_z = n_z;
     str->r_min = r_min;
     str->r_max = r_max;
-    str->r_grid = r_grid;//(r_max-r_min)/(n_r-1);
+    str->r_grid = r_grid;
     str->z_min = z_min;
     str->z_max = z_max;
-    str->z_grid = z_grid;//(z_max-z_min)/(n_z-1);
+    str->z_grid = z_grid;
     str->c = malloc(n_z*n_r*16*sizeof(real));
 
     /* Declare and allocate the needed variables */
-    int i_r; /**< index for r variable */
-    int i_z; /**< index for z variable */
-    int i_c; /**< index for coefficient for data struct */
-    real* f_r = malloc(n_r*sizeof(real)); /**< Temporary array for data along r */
-    real* f_z = malloc(n_z*sizeof(real)); /**< Temporary array for data along z */
+    int i_r;                                    /**< index for r variable */
+    int i_z;                                    /**< index for z variable */
+    int i_c;                                  /**< index for coefficient for data struct */
+    real* f_r = malloc(n_r*sizeof(real));       /**< Temporary array for data along r */
+    real* f_z = malloc(n_z*sizeof(real));       /**< Temporary array for data along z */
     real* c_r = malloc((n_r-1)*4*sizeof(real)); /**< Temp array for coefficients along r */
     real* c_z = malloc((n_z-1)*4*sizeof(real)); /**< Temp array for coefficients along z */
-    int i_s; /**< index for spline regarding degree in r */
-    int i_ct; /**< index for coefficient array */
+    int i_s;                                 /**< index for spline regarding degree in r */
+    int i_ct;                                /**< index for coefficient array */
 
     /* Bicubic spline surface over rz-grid */
     /* Cubic spline along r for each z */
@@ -96,10 +96,11 @@ void interp2D_init(interp2D_data* str, real* f, int n_r, int n_z,
     real* cc = malloc(n_z*n_r*4*sizeof(real)); /**< Temporary coefficient array */
     for(i_z=0; i_z<n_z-1; i_z++) {
     	for(i_r=0; i_r<n_r-1; i_r++) {
-    	    cc[i_z*n_r*4+i_r*4]   =     str->c[i_z*n_r*16+i_r*16];
-    	    cc[i_z*n_r*4+i_r*4+1] = (1.0/(r_grid*r_grid))*2.0*str->c[i_z*n_r*16+i_r*16+2];
-    	    cc[i_z*n_r*4+i_r*4+2] = (1.0/(z_grid*z_grid))*2.0*str->c[i_z*n_r*16+i_r*16+8];
-					  cc[i_z*n_r*4+i_r*4+3] = (1.0/(z_grid*z_grid*r_grid*r_grid))*4.0*str->c[i_z*n_r*16+i_r*16+10];
+    	    cc[i_z*n_r*4+i_r*4]   = str->c[i_z*n_r*16+i_r*16];
+    	    cc[i_z*n_r*4+i_r*4+1] = (1.0/(r_grid*r_grid))*2*str->c[i_z*n_r*16+i_r*16+2];
+    	    cc[i_z*n_r*4+i_r*4+2] = (1.0/(z_grid*z_grid))*2*str->c[i_z*n_r*16+i_r*16+8];
+	    cc[i_z*n_r*4+i_r*4+3] = (1.0/(r_grid*r_grid*z_grid*z_grid))*
+		                    4*str->c[i_z*n_r*16+i_r*16+10];
     	}
     	cc[i_z*n_r*4+(n_r-1)*4]   = f[i_z*n_r+n_r-1];
     	cc[i_z*n_r*4+(n_r-1)*4+1] = 0;
@@ -132,22 +133,22 @@ void interp2D_init(interp2D_data* str, real* f, int n_r, int n_z,
  */
 void interp2D_eval_B(real* B, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid; /**< index for r variable */
-    real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;/**< Normalized r coordinate in
-							      current cell */
+    real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
+							       current cell */
     real dr3 = dr*(dr*dr-1.0);
     real dri = 1.0-dr;
     real dri3 = dri*(dri*dri-1.0);
-    real rg2 = str->r_grid*str->r_grid; /**< Square of cell length in r direction */
-    int i_z = (z-str->z_min)/str->z_grid; /**< index for z variable */
+    real rg2 = str->r_grid*str->r_grid;        /**< Square of cell length in r direction */
+    int i_z = (z-str->z_min)/str->z_grid;                   /**< index for z variable */
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
 							       current cell */
     real dz3 = dz*(dz*dz-1.0);
     real dzi = 1.0-dz;
     real dzi3 = dzi*(dzi*dzi-1.0);
     real zg2 = str->z_grid*str->z_grid; /**< Square of cell length in z direction */
-    int n = i_z*str->n_r*4+i_r*4; /**< Index jump to cell */
-    int r1 = 4; /**< Index jump one r forward */
-    int z1 = str->n_r*4; /**< Index jump one z forward */
+    int n = i_z*str->n_r*4+i_r*4;       /**< Index jump to cell */
+    int r1 = 4;                         /**< Index jump one r forward */
+    int z1 = str->n_r*4;                /**< Index jump one z forward */
 
     *B = (
 	   dri*(dzi*str->c[n]   +dz*str->c[n+z1])+
@@ -179,31 +180,31 @@ void interp2D_eval_B(real* B, interp2D_data* str, real r, real z) {
  * @param z z-coordinate
  */
 void interp2D_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
-    int i_r = (r-str->r_min)/str->r_grid; /**< index for r variable */
+    int i_r = (r-str->r_min)/str->r_grid;                   /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
     real dr3 = dr*(dr*dr-1);
-    real dr3dr = 3*dr*dr-1; /**< r-derivative of dr3, not including 1/r_grid */
+    real dr3dr = 3*dr*dr-1;           /**< r-derivative of dr3, not including 1/r_grid */
     real dri = 1.0-dr;
     real dri3 = dri*(dri*dri-1);
-    real dri3dr = -3*dri*dri+1; /**< r-derivative of dri3, not including 1/r_grid */
-    real rg = str->r_grid; /**< Cell length in r direction */
+    real dri3dr = -3*dri*dri+1;       /**< r-derivative of dri3, not including 1/r_grid */
+    real rg = str->r_grid;            /**< Cell length in r direction */
     real rg2 = rg*rg;
     real rgi = 1.0/rg;
     int i_z = (z-str->z_min)/str->z_grid; /**< index for z variable */
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
 							       current cell */
     real dz3 = dz*(dz*dz-1);
-    real dz3dz = 3*dz*dz-1; /**< z-derivative of dz3, not including 1/z_grid */
+    real dz3dz = 3*dz*dz-1;           /**< z-derivative of dz3, not including 1/z_grid */
     real dzi = 1.0-dz;
     real dzi3 = dzi*(dzi*dzi-1);
-    real dzi3dz = -3*dzi*dzi+1; /**< z-derivative of dzi3, not including 1/z_grid */
-    real zg = str->z_grid; /**< Cell length in z direction */
+    real dzi3dz = -3*dzi*dzi+1;       /**< z-derivative of dzi3, not including 1/z_grid */
+    real zg = str->z_grid;            /**< Cell length in z direction */
     real zg2 = zg*zg;
     real zgi = 1.0/zg;
-    int n = i_z*str->n_r*4+i_r*4; /**< Index jump to cell */
-    int r1 = 4; /**< Index jump one r forward */
-    int z1 = str->n_r*4; /**< Index jump one z forward */
+    int n = i_z*str->n_r*4+i_r*4;     /**< Index jump to cell */
+    int r1 = 4;                       /**< Index jump one r forward */
+    int z1 = str->n_r*4;              /**< Index jump one z forward */
 
     /* f */
     B_dB[0] = (

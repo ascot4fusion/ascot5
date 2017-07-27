@@ -152,7 +152,7 @@ void interp3Dexpl_eval_B(real* B, interp3Dexpl_data* str, real r, real phi, real
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
     real dr2 = dr*dr;
     real dr3 = dr2*dr;
-    int i_phi = (phi-str->phi_min)/str->phi_grid; // Degrees and radians mixed!
+    int i_phi = (phi-str->phi_min)/str->phi_grid;
     real dphi = (phi-(str->phi_min+i_phi*str->phi_grid))/str->phi_grid;
     real dphi2 = dphi*dphi;
     real dphi3 = dphi2*dphi;
@@ -163,23 +163,23 @@ void interp3Dexpl_eval_B(real* B, interp3Dexpl_data* str, real r, real phi, real
     int n = i_phi*str->n_z*str->n_r*64+i_z*str->n_r*64+i_r*64;
 
     *B = (
-	  str->c[n+ 0]+dr*str->c[n+ 1]+dr2*str->c[n+ 2]+dr3*str->c[n+ 3]
-	  +dz*(str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7])
-	  +dz2*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
-	  +dz3*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]))
-	+dphi*(
-	       str->c[n+16]+dr*str->c[n+17]+dr2*str->c[n+18]+dr3*str->c[n+19]
-	       +dz*(str->c[n+20]+dr*str->c[n+21]+dr2*str->c[n+22]+dr3*str->c[n+23])
+	             str->c[n+ 0]+dr*str->c[n+ 1]+dr2*str->c[n+ 2]+dr3*str->c[n+ 3]
+	        +dz*(str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7])
+	       +dz2*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
+	       +dz3*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]))
+	 +dphi*(
+	             str->c[n+16]+dr*str->c[n+17]+dr2*str->c[n+18]+dr3*str->c[n+19]
+	        +dz*(str->c[n+20]+dr*str->c[n+21]+dr2*str->c[n+22]+dr3*str->c[n+23])
 	       +dz2*(str->c[n+24]+dr*str->c[n+25]+dr2*str->c[n+26]+dr3*str->c[n+27])
 	       +dz3*(str->c[n+28]+dr*str->c[n+29]+dr2*str->c[n+30]+dr3*str->c[n+31]))
     	+dphi2*(
-		str->c[n+32]+dr*str->c[n+33]+dr2*str->c[n+34]+dr3*str->c[n+35]
-		+dz*(str->c[n+36]+dr*str->c[n+37]+dr2*str->c[n+38]+dr3*str->c[n+39])
+		      str->c[n+32]+dr*str->c[n+33]+dr2*str->c[n+34]+dr3*str->c[n+35]
+		 +dz*(str->c[n+36]+dr*str->c[n+37]+dr2*str->c[n+38]+dr3*str->c[n+39])
     	        +dz2*(str->c[n+40]+dr*str->c[n+41]+dr2*str->c[n+42]+dr3*str->c[n+43])
     	        +dz3*(str->c[n+44]+dr*str->c[n+45]+dr2*str->c[n+46]+dr3*str->c[n+47]))
     	+dphi3*(
-		str->c[n+48]+dr*str->c[n+49]+dr2*str->c[n+50]+dr3*str->c[n+51]
-		+dz*(str->c[n+52]+dr*str->c[n+53]+dr2*str->c[n+54]+dr3*str->c[n+55])
+		      str->c[n+48]+dr*str->c[n+49]+dr2*str->c[n+50]+dr3*str->c[n+51]
+		 +dz*(str->c[n+52]+dr*str->c[n+53]+dr2*str->c[n+54]+dr3*str->c[n+55])
     	        +dz2*(str->c[n+56]+dr*str->c[n+57]+dr2*str->c[n+58]+dr3*str->c[n+59])
     	        +dz3*(str->c[n+60]+dr*str->c[n+61]+dr2*str->c[n+62]+dr3*str->c[n+63]));
 }
@@ -201,44 +201,49 @@ void interp3Dexpl_eval_B(real* B, interp3Dexpl_data* str, real r, real phi, real
  * @param z z-coordinate
  */
 void interp3Dexpl_eval_dB(real* B_dB, interp3Dexpl_data* str, real r, real phi, real z) {
+    real ri = 1/r;
     int i_r = (r-str->r_min)/str->r_grid;
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
     real dr2 = dr*dr;
     real dr3 = dr2*dr;
-    int i_phi = (phi-str->phi_min)/str->phi_grid; // Degrees and radians mixed!
+    real rgi = 1.0/str->r_grid;
+    int i_phi = (phi-str->phi_min)/str->phi_grid;
     real dphi = (phi-(str->phi_min+i_phi*str->phi_grid))/str->phi_grid;
     real dphi2 = dphi*dphi;
     real dphi3 = dphi2*dphi;
+    real phigi = 1.0/str->phi_grid;
     int i_z = (z-str->z_min)/str->z_grid;
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid;
     real dz2 = dz*dz;
     real dz3 = dz2*dz;
+    ral zgi = 1.0/str->z_grid;
     int n = i_phi*str->n_z*str->n_r*64+i_z*str->n_r*64+i_r*64;
 
     /* f */
     B_dB[0] = (
-	     str->c[n+ 0]+dr*str->c[n+ 1]+dr2*str->c[n+ 2]+dr3*str->c[n+ 3]
-	     +dz*(str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7])
-	     +dz2*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
-	     +dz3*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]))
-	+dphi*(
-	       str->c[n+16]+dr*str->c[n+17]+dr2*str->c[n+18]+dr3*str->c[n+19]
-	       +dz*(str->c[n+20]+dr*str->c[n+21]+dr2*str->c[n+22]+dr3*str->c[n+23])
-	       +dz2*(str->c[n+24]+dr*str->c[n+25]+dr2*str->c[n+26]+dr3*str->c[n+27])
-	       +dz3*(str->c[n+28]+dr*str->c[n+29]+dr2*str->c[n+30]+dr3*str->c[n+31]))
+	              str->c[n+ 0]+dr*str->c[n+ 1]+dr2*str->c[n+ 2]+dr3*str->c[n+ 3]
+	         +dz*(str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7])
+	        +dz2*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
+	        +dz3*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]))
+	 +dphi*(
+	              str->c[n+16]+dr*str->c[n+17]+dr2*str->c[n+18]+dr3*str->c[n+19]
+	         +dz*(str->c[n+20]+dr*str->c[n+21]+dr2*str->c[n+22]+dr3*str->c[n+23])
+	        +dz2*(str->c[n+24]+dr*str->c[n+25]+dr2*str->c[n+26]+dr3*str->c[n+27])
+	        +dz3*(str->c[n+28]+dr*str->c[n+29]+dr2*str->c[n+30]+dr3*str->c[n+31]))
     	+dphi2*(
-		str->c[n+32]+dr*str->c[n+33]+dr2*str->c[n+34]+dr3*str->c[n+35]
-		+dz*(str->c[n+36]+dr*str->c[n+37]+dr2*str->c[n+38]+dr3*str->c[n+39])
+		      str->c[n+32]+dr*str->c[n+33]+dr2*str->c[n+34]+dr3*str->c[n+35]
+		 +dz*(str->c[n+36]+dr*str->c[n+37]+dr2*str->c[n+38]+dr3*str->c[n+39])
     	        +dz2*(str->c[n+40]+dr*str->c[n+41]+dr2*str->c[n+42]+dr3*str->c[n+43])
     	        +dz3*(str->c[n+44]+dr*str->c[n+45]+dr2*str->c[n+46]+dr3*str->c[n+47]))
     	+dphi3*(
-		str->c[n+48]+dr*str->c[n+49]+dr2*str->c[n+50]+dr3*str->c[n+51]
-		+dz*(str->c[n+52]+dr*str->c[n+53]+dr2*str->c[n+54]+dr3*str->c[n+55])
+		      str->c[n+48]+dr*str->c[n+49]+dr2*str->c[n+50]+dr3*str->c[n+51]
+		 +dz*(str->c[n+52]+dr*str->c[n+53]+dr2*str->c[n+54]+dr3*str->c[n+55])
     	        +dz2*(str->c[n+56]+dr*str->c[n+57]+dr2*str->c[n+58]+dr3*str->c[n+59])
     	        +dz3*(str->c[n+60]+dr*str->c[n+61]+dr2*str->c[n+62]+dr3*str->c[n+63]));
 
     /* df/dr */
-    B_dB[1] =  (
+    B_dB[1] = rgi*( 
+	       (
                       str->c[n+ 1]+2*dr*str->c[n+ 2]+3*dr2*str->c[n+ 3]
                  +dz*(str->c[n+ 5]+2*dr*str->c[n+ 6]+3*dr2*str->c[n+ 7])
                 +dz2*(str->c[n+ 9]+2*dr*str->c[n+10]+3*dr2*str->c[n+11])
@@ -257,14 +262,15 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3Dexpl_data* str, real r, real phi, 
                       str->c[n+49]+2*dr*str->c[n+50]+3*dr2*str->c[n+51]
                  +dz*(str->c[n+53]+2*dr*str->c[n+54]+3*dr2*str->c[n+55])
                 +dz2*(str->c[n+57]+2*dr*str->c[n+58]+3*dr2*str->c[n+59])
-                +dz3*(str->c[n+61]+2*dr*str->c[n+62]+3*dr2*str->c[n+63]));
+		+dz3*(str->c[n+61]+2*dr*str->c[n+62]+3*dr2*str->c[n+63])));
 
     /* df/dphi */
-    B_dB[2] = (
-                     str->c[n+16]+dr*str->c[n+17]+dr2*str->c[n+18]+dr3*str->c[n+19]
-                +dz*(str->c[n+20]+dr*str->c[n+21]+dr2*str->c[n+22]+dr3*str->c[n+23])
-               +dz2*(str->c[n+24]+dr*str->c[n+25]+dr2*str->c[n+26]+dr3*str->c[n+27])
-               +dz3*(str->c[n+28]+dr*str->c[n+29]+dr2*str->c[n+30]+dr3*str->c[n+31]))
+    B_dB[2] = ri*phigi*(
+	         (
+                        str->c[n+16]+dr*str->c[n+17]+dr2*str->c[n+18]+dr3*str->c[n+19]
+                   +dz*(str->c[n+20]+dr*str->c[n+21]+dr2*str->c[n+22]+dr3*str->c[n+23])
+                  +dz2*(str->c[n+24]+dr*str->c[n+25]+dr2*str->c[n+26]+dr3*str->c[n+27])
+                  +dz3*(str->c[n+28]+dr*str->c[n+29]+dr2*str->c[n+30]+dr3*str->c[n+31]))
          +2*dphi*(
                         str->c[n+32]+dr*str->c[n+33]+dr2*str->c[n+34]+dr3*str->c[n+35]
                    +dz*(str->c[n+36]+dr*str->c[n+37]+dr2*str->c[n+38]+dr3*str->c[n+39])
@@ -274,17 +280,18 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3Dexpl_data* str, real r, real phi, 
                         str->c[n+48]+dr*str->c[n+49]+dr2*str->c[n+50]+dr3*str->c[n+51]
                    +dz*(str->c[n+52]+dr*str->c[n+53]+dr2*str->c[n+54]+dr3*str->c[n+55])
                   +dz2*(str->c[n+56]+dr*str->c[n+57]+dr2*str->c[n+58]+dr3*str->c[n+59])
-                  +dz3*(str->c[n+60]+dr*str->c[n+61]+dr2*str->c[n+62]+dr3*str->c[n+63]));
+		  +dz3*(str->c[n+60]+dr*str->c[n+61]+dr2*str->c[n+62]+dr3*str->c[n+63])));
 
     /* df/dz */
-    B_dB[3] = (
-                       str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7]
-                +2*dz*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
-               +3*dz2*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]))
+    B_dB[3] = zgi*(
+	      (
+                        str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7]
+                 +2*dz*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
+                +3*dz2*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]))
         +dphi*(
-                       str->c[n+20]+dr*str->c[n+21]+dr2*str->c[n+22]+dr3*str->c[n+23]
-                +2*dz*(str->c[n+24]+dr*str->c[n+25]+dr2*str->c[n+26]+dr3*str->c[n+27])
-               +3*dz2*(str->c[n+28]+dr*str->c[n+29]+dr2*str->c[n+30]+dr3*str->c[n+31]))
+                        str->c[n+20]+dr*str->c[n+21]+dr2*str->c[n+22]+dr3*str->c[n+23]
+                 +2*dz*(str->c[n+24]+dr*str->c[n+25]+dr2*str->c[n+26]+dr3*str->c[n+27])
+                +3*dz2*(str->c[n+28]+dr*str->c[n+29]+dr2*str->c[n+30]+dr3*str->c[n+31]))
         +dphi2*(
                         str->c[n+36]+dr*str->c[n+37]+dr2*str->c[n+38]+dr3*str->c[n+39]
                  +2*dz*(str->c[n+40]+dr*str->c[n+41]+dr2*str->c[n+42]+dr3*str->c[n+43])
@@ -292,32 +299,34 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3Dexpl_data* str, real r, real phi, 
         +dphi3*(
                         str->c[n+52]+dr*str->c[n+53]+dr2*str->c[n+54]+dr3*str->c[n+55]
                  +2*dz*(str->c[n+56]+dr*str->c[n+57]+dr2*str->c[n+58]+dr3*str->c[n+59])
-                +3*dz2*(str->c[n+60]+dr*str->c[n+61]+dr2*str->c[n+62]+dr3*str->c[n+63]));
+		+3*dz2*(str->c[n+60]+dr*str->c[n+61]+dr2*str->c[n+62]+dr3*str->c[n+63])));
 
     /* d2f/dr^2 */
-    B_dB[4] =  (
-                            2*str->c[n+ 2]+6*dr*str->c[n+ 3]
-		       +dz*(2*str->c[n+ 6]+6*dr*str->c[n+ 7])
-		      +dz2*(2*str->c[n+10]+6*dr*str->c[n+11])
-		      +dz3*(2*str->c[n+14]+6*dr*str->c[n+15]))
-	+dphi*(
-                            2*str->c[n+18]+6*dr*str->c[n+19]
-		       +dz*(2*str->c[n+22]+6*dr*str->c[n+23])
-		      +dz2*(2*str->c[n+26]+6*dr*str->c[n+27])
-		      +dz3*(2*str->c[n+30]+6*dr*str->c[n+31]))
+    B_dB[4] =  rgi*rgi*(
+	      (
+                      2*str->c[n+ 2]+6*dr*str->c[n+ 3]
+		 +dz*(2*str->c[n+ 6]+6*dr*str->c[n+ 7])
+		+dz2*(2*str->c[n+10]+6*dr*str->c[n+11])
+		+dz3*(2*str->c[n+14]+6*dr*str->c[n+15]))
+	 +dphi*(
+                      2*str->c[n+18]+6*dr*str->c[n+19]
+		 +dz*(2*str->c[n+22]+6*dr*str->c[n+23])
+		+dz2*(2*str->c[n+26]+6*dr*str->c[n+27])
+		+dz3*(2*str->c[n+30]+6*dr*str->c[n+31]))
         +dphi2*(
-                            2*str->c[n+34]+6*dr*str->c[n+35]
-		       +dz*(2*str->c[n+38]+6*dr*str->c[n+39])
-		      +dz2*(2*str->c[n+42]+6*dr*str->c[n+43])
-		      +dz3*(2*str->c[n+46]+6*dr*str->c[n+47]))
+                      2*str->c[n+34]+6*dr*str->c[n+35]
+		 +dz*(2*str->c[n+38]+6*dr*str->c[n+39])
+		+dz2*(2*str->c[n+42]+6*dr*str->c[n+43])
+		+dz3*(2*str->c[n+46]+6*dr*str->c[n+47]))
         +dphi3*(
-                            2*str->c[n+50]+6*dr*str->c[n+51]
-		       +dz*(2*str->c[n+54]+6*dr*str->c[n+55])
-		      +dz2*(2*str->c[n+58]+6*dr*str->c[n+59])
-		      +dz3*(2*str->c[n+62]+6*dr*str->c[n+63]));
+                      2*str->c[n+50]+6*dr*str->c[n+51]
+		 +dz*(2*str->c[n+54]+6*dr*str->c[n+55])
+		+dz2*(2*str->c[n+58]+6*dr*str->c[n+59])
+		      +dz3*(2*str->c[n+62]+6*dr*str->c[n+63])));
 
     /* d2f/dphi^2 */
-    B_dB[5] = 2*(
+    B_dB[5] = ri*ri*phigi*phigi*(
+	      2*(
                        str->c[n+32]+dr*str->c[n+33]+dr2*str->c[n+34]+dr3*str->c[n+35]
 		  +dz*(str->c[n+36]+dr*str->c[n+37]+dr2*str->c[n+38]+dr3*str->c[n+39])
 		 +dz2*(str->c[n+40]+dr*str->c[n+41]+dr2*str->c[n+42]+dr3*str->c[n+43])
@@ -326,10 +335,11 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3Dexpl_data* str, real r, real phi, 
                        str->c[n+48]+dr*str->c[n+49]+dr2*str->c[n+50]+dr3*str->c[n+51]
        		  +dz*(str->c[n+52]+dr*str->c[n+53]+dr2*str->c[n+54]+dr3*str->c[n+55])
 		 +dz2*(str->c[n+56]+dr*str->c[n+57]+dr2*str->c[n+58]+dr3*str->c[n+59])
-		 +dz3*(str->c[n+60]+dr*str->c[n+61]+dr2*str->c[n+62]+dr3*str->c[n+63]));
+		 +dz3*(str->c[n+60]+dr*str->c[n+61]+dr2*str->c[n+62]+dr3*str->c[n+63])));
 
     /* d2f/dz^2 */
-    B_dB[6] =  (
+    B_dB[6] = zgi*zgi*(
+	       (
                     2*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
 	        +6*dz*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]))
          +dphi*(
@@ -340,10 +350,11 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3Dexpl_data* str, real r, real phi, 
 		+6*dz*(str->c[n+44]+dr*str->c[n+45]+dr2*str->c[n+46]+dr3*str->c[n+47]))
         +dphi3*(
                     2*(str->c[n+56]+dr*str->c[n+57]+dr2*str->c[n+58]+dr3*str->c[n+59])
-		+6*dz*(str->c[n+60]+dr*str->c[n+61]+dr2*str->c[n+62]+dr3*str->c[n+63]));
+	        +6*dz*(str->c[n+60]+dr*str->c[n+61]+dr2*str->c[n+62]+dr3*str->c[n+63])));
 
     /* d2f/dphidr */
-    B_dB[7] =    (
+    B_dB[7] = rgi*ri*phigi*(
+		 (
                         str->c[n+17]+2*dr*str->c[n+18]+3*dr2*str->c[n+19]
 		   +dz*(str->c[n+21]+2*dr*str->c[n+22]+3*dr2*str->c[n+23])
 		  +dz2*(str->c[n+25]+2*dr*str->c[n+26]+3*dr2*str->c[n+27])
@@ -357,10 +368,11 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3Dexpl_data* str, real r, real phi, 
                         str->c[n+49]+2*dr*str->c[n+50]+3*dr2*str->c[n+51]
 		   +dz*(str->c[n+53]+2*dr*str->c[n+54]+3*dr2*str->c[n+55])
 		  +dz2*(str->c[n+57]+2*dr*str->c[n+58]+3*dr2*str->c[n+59])
-		  +dz3*(str->c[n+61]+2*dr*str->c[n+62]+3*dr2*str->c[n+63]));
+		  +dz3*(str->c[n+61]+2*dr*str->c[n+62]+3*dr2*str->c[n+63])));
 
     /* d2f/dzdr */
-    B_dB[8] =  (
+    B_dB[8] =  rgi*zgi*(
+	       (
                         str->c[n+ 5]+2*dr*str->c[n+ 6]+3*dr2*str->c[n+ 7]
 		 +2*dz*(str->c[n+ 9]+2*dr*str->c[n+10]+3*dr2*str->c[n+11])
 		+3*dz2*(str->c[n+13]+2*dr*str->c[n+14]+3*dr2*str->c[n+15]))
@@ -375,10 +387,11 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3Dexpl_data* str, real r, real phi, 
         +dphi3*(
                         str->c[n+53]+2*dr*str->c[n+54]+3*dr2*str->c[n+55]
 		 +2*dz*(str->c[n+57]+2*dr*str->c[n+58]+3*dr2*str->c[n+59])
-		+3*dz2*(str->c[n+61]+2*dr*str->c[n+62]+3*dr2*str->c[n+63]));
+			+3*dz2*(str->c[n+61]+2*dr*str->c[n+62]+3*dr2*str->c[n+63])));
 
     /* d2f/dzdphi */
-    B_dB[9] =    (
+    B_dB[9] = ri*phigi*zgi*(
+		 (
                           str->c[n+20]+dr*str->c[n+21]+dr2*str->c[n+22]+dr3*str->c[n+23]
 		   +2*dz*(str->c[n+24]+dr*str->c[n+25]+dr2*str->c[n+26]+dr3*str->c[n+27])
 		  +3*dz2*(str->c[n+28]+dr*str->c[n+29]+dr2*str->c[n+30]+dr3*str->c[n+31]))
@@ -387,9 +400,9 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3Dexpl_data* str, real r, real phi, 
 		   +2*dz*(str->c[n+40]+dr*str->c[n+41]+dr2*str->c[n+42]+dr3*str->c[n+43])
 		  +3*dz2*(str->c[n+44]+dr*str->c[n+45]+dr2*str->c[n+46]+dr3*str->c[n+47]))
         +3*dphi2*(
-                          str->c[n+52]+dr*str->c[n+53]+dr2*str->c[n+54]+dr3*str->c[n+55]
-		   +2*dz*(str->c[n+56]+dr*str->c[n+57]+dr2*str->c[n+58]+dr3*str->c[n+59])
-		  +3*dz2*(str->c[n+60]+dr*str->c[n+61]+dr2*str->c[n+62]+dr3*str->c[n+63]));
+                         str->c[n+52]+dr*str->c[n+53]+dr2*str->c[n+54]+dr3*str->c[n+55]
+		  +2*dz*(str->c[n+56]+dr*str->c[n+57]+dr2*str->c[n+58]+dr3*str->c[n+59])
+		 +3*dz2*(str->c[n+60]+dr*str->c[n+61]+dr2*str->c[n+62]+dr3*str->c[n+63])));
 }
 
 /**
