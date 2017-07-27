@@ -216,7 +216,7 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3Dexpl_data* str, real r, real phi, 
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid;
     real dz2 = dz*dz;
     real dz3 = dz2*dz;
-    ral zgi = 1.0/str->z_grid;
+    real zgi = 1.0/str->z_grid;
     int n = i_phi*str->n_z*str->n_r*64+i_z*str->n_r*64+i_r*64;
 
     /* f */
