@@ -60,6 +60,11 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
     particle_simd_fo p;  // This array holds current states
     particle_simd_fo p0; // This array stores previous states
 
+    // This is diagnostic specific data which is declared 
+    // here to make it thread safe
+    diag_storage* diag_strg;
+    diag_storage_aquire(&sim->diag_data, &diag_strg);
+
     for(int i=0; i< NSIMD; i++) {
 	p.id[i] = -1;
 	p.running[i] = 0;
@@ -149,7 +154,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 
         endcond_check_fo(&p, &p0, sim);
 
-        diag_update_fo(&sim->diag_data, &p, &p0);
+        diag_update_fo(&sim->diag_data, diag_strg, &p, &p0);
 
         /* Update running particles */
         n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
@@ -163,7 +168,9 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 	    }
 	}
 
-    } 
+    }
+
+    diag_storage_discard(diag_strg);
 
 }
 

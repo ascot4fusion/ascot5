@@ -13,7 +13,8 @@
 #include "B_field.h"
 #include "diag_orb.h"
 
-void diag_orb_intervalTrigger(diag_orb_data* data, integer* id, real* time, int* store);
+void diag_orb_intervalTrigger(diag_orb_data* data, integer* particleId, real* prevWriteTime,
+			      integer* id, real* time, int* store);
 
 void diag_orb_poincareTrigger(diag_orb_data* data, int* pol, int* tor, real* kpol, real* ktor, integer* id,
 			      real* ftime, real* fpol, real* fphi,
@@ -45,39 +46,34 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data) {
     for(i=0; i<data->ntoroidalplots; i++) {
 	data->poloidalangles[i] = offload_data->poloidalangles[i];
     }
-
-    /* N-last specific input */
     data->writeNlast = offload_data->writeNlast;
-    if(data->mode == DIAG_ORB_WRITELAST) {
-	data->Nlist = malloc(data->writeNlast*NSIMD*sizeof(diag_orb_dat*));
-    }
-
-    /* Initialize data storage */
-    for(i=0; i < NSIMD; i++) {
-	data->particleId[i] = -2;
-    }
     data->writelist = NULL;
     data->size = 0;
 }
 
-void diag_orb_update_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_data* data) {
+void diag_orb_update_fo(integer* particleId, real* prevWriteTime, int* nextN, diag_orb_dat** Nlist,
+			diag_orb_data* data, particle_simd_fo* p_f, particle_simd_fo* p_i) {
 
     if(data->mode == DIAG_ORB_ORBIT) {
 	/* Check first whether a marker should be stored */
 	int store[NSIMD]; 
-        diag_orb_intervalTrigger(data, p_f->id, p_f->time, store);
+        diag_orb_intervalTrigger(data,  particleId, prevWriteTime, 
+				 p_f->id, p_f->time, store);
 
 	/* Store marker data */
 	for(int i= 0; i < NSIMD; i++) {
 	    if(store[i]) {
 		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
 
-		new->prev = data->writelist;
-		if(data->writelist != NULL) {
-		    data->writelist->next = new;
+		#pragma omp critical 
+		{
+		    new->prev = data->writelist;
+		    if(data->writelist != NULL) {
+			data->writelist->next = new;
+		    }
+		    data->writelist = new;
+		    data->size = data->size + 1;
 		}
-		data->writelist = new;
-		data->size = data->size + 1;
 
 		new->fo.id     = p_f->id[i];
 		new->fo.time   = p_f->time[i];
@@ -115,12 +111,16 @@ void diag_orb_update_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_d
 	for(i=0; i<NSIMD; i++) {
 	    if(pol[i] > -1) {
 		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
-		new->prev = data->writelist;
-		if(data->writelist != NULL) {
-		    data->writelist->next = new;
+
+		#pragma omp critical 
+		{
+		    new->prev = data->writelist;
+		    if(data->writelist != NULL) {
+			data->writelist->next = new;
+		    }
+		    data->writelist = new;
+		    data->size = data->size + 1;
 		}
-		data->writelist = new;
-		data->size = data->size + 1;
 	    
 		new->fo.id     = p_f->id[i];
 		new->fo.time   = kpol[i] * p_f->time[i]   + (1 - kpol[i]) * p_i->time[i];
@@ -146,12 +146,16 @@ void diag_orb_update_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_d
 	for(i=0; i<NSIMD; i++) {
 	    if(tor[i] > -1) {
 		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
-		new->prev = data->writelist;
-		if(data->writelist != NULL) {
-		    data->writelist->next = new;
+
+		#pragma omp critical 
+		{
+		    new->prev = data->writelist;
+		    if(data->writelist != NULL) {
+			data->writelist->next = new;
+		    }
+		    data->writelist = new;
+		    data->size = data->size + 1;
 		}
-		data->writelist = new;
-		data->size = data->size + 1;
 
 		new->fo.id     = p_f->id[i];
 		new->fo.time   = ktor[i] * p_f->time[i]   + (1 - ktor[i]) * p_i->time[i];
@@ -184,33 +188,36 @@ void diag_orb_update_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_d
 	for(int i= 0; i < NSIMD; i++) {
 	    if(store[i]) {
 		/* See if we should start a new Nlist */
-		if(p_f->id[i] != data->particleId[i]) {
-		    data->nextN[i] = -1;
-		    data->particleId[i] = p_f->id[i];
+		if(p_f->id[i] != particleId[i]) {
+		    nextN[i] = -1;
+		    particleId[i] = p_f->id[i];
 		}
 
 		/* See whether we need a new list or can we 
 		   use some that exists */
 		diag_orb_dat* new;
-		if(data->nextN[i] < (data->writeNlast-1)) {
-		    data->nextN[i]++;
+		if(nextN[i] < (data->writeNlast-1)) {
+		    nextN[i]++;
 		    new = malloc(sizeof(diag_orb_dat));
-		    data->Nlist[i*data->writeNlast + data->nextN[i]] = new;
+		    Nlist[i*data->writeNlast + nextN[i]] = new;
 
-		    new->prev = data->writelist;
-		    if(data->writelist != NULL) {
-			data->writelist->next = new;
+		    #pragma omp critical 
+		    {
+			new->prev = data->writelist;
+			if(data->writelist != NULL) {
+			    data->writelist->next = new;
+			}
+			data->writelist = new;
+			data->size = data->size + 1;
 		    }
-		    data->writelist = new;
-		    data->size = data->size + 1;
 		}
 		else {
-		    data->nextN[i]++;
-		    if(data->nextN[i] == 2*data->writeNlast) {
-			data->nextN[i] = data->writeNlast;
+		    nextN[i]++;
+		    if(nextN[i] == 2*data->writeNlast) {
+			nextN[i] = data->writeNlast;
 		    }
 		    
-		    new = data->Nlist[i*data->writeNlast + (data->nextN[i]-data->writeNlast)];
+		    new = Nlist[i*data->writeNlast + (nextN[i]-data->writeNlast)];
 		}
 
 		new->fo.id     = p_f->id[i];
@@ -234,24 +241,29 @@ void diag_orb_update_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, diag_orb_d
     }
 }
 
-void diag_orb_update_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_data* data) {
+void diag_orb_update_gc(integer* particleId, real* prevWriteTime, int* nextN, diag_orb_dat** Nlist,
+			diag_orb_data* data, particle_simd_gc* p_f, particle_simd_gc* p_i) {
 
     if(data->mode == DIAG_ORB_ORBIT) {
 	/* Check first whether a marker should be stored */
 	int store[NSIMD]; 
-        diag_orb_intervalTrigger(data, p_f->id, p_f->time, store);
+        diag_orb_intervalTrigger(data, particleId, prevWriteTime,
+				 p_f->id, p_f->time, store);
 
 	/* Store marker data */
 	for(int i= 0; i < NSIMD; i++) {
 	    if(store[i]) {
 		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
 
-		new->prev = data->writelist;
-		if(data->writelist != NULL) {
-		    data->writelist->next = new;
+		#pragma omp critical 
+		{
+		    new->prev = data->writelist;
+		    if(data->writelist != NULL) {
+			data->writelist->next = new;
+		    }
+		    data->writelist = new;
+		    data->size = data->size + 1;
 		}
-		data->writelist = new;
-		data->size = data->size + 1;
 
 		new->gc.id     = p_f->id[i];
 		new->gc.time   = p_f->time[i];
@@ -289,12 +301,15 @@ void diag_orb_update_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_d
 	for(i=0; i<NSIMD; i++) {
 	    if(pol[i] > -1) {
 		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
-		new->prev = data->writelist;
-		if(data->writelist != NULL) {
-		    data->writelist->next = new;
+		#pragma omp critical 
+		{
+		    new->prev = data->writelist;
+		    if(data->writelist != NULL) {
+			data->writelist->next = new;
+		    }
+		    data->writelist = new;
+		    data->size = data->size + 1;
 		}
-		data->writelist = new;
-		data->size = data->size + 1;
 	    
 		new->gc.id     = p_f->id[i];
 		new->gc.time   = kpol[i] * p_f->time[i]  + (1 - kpol[i]) * p_i->time[i];
@@ -320,12 +335,15 @@ void diag_orb_update_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_d
 	for(i=0; i<NSIMD; i++) {
 	    if(tor[i] > -1) {
 		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
-		new->prev = data->writelist;
-		if(data->writelist != NULL) {
-		    data->writelist->next = new;
+		#pragma omp critical 
+		{
+		    new->prev = data->writelist;
+		    if(data->writelist != NULL) {
+			data->writelist->next = new;
+		    }
+		    data->writelist = new;
+		    data->size = data->size + 1;
 		}
-		data->writelist = new;
-		data->size = data->size + 1;
 
 		new->gc.id     = p_f->id[i];
 		new->gc.time   = ktor[i] * p_f->time[i]  + (1 - ktor[i]) * p_i->time[i];
@@ -358,33 +376,37 @@ void diag_orb_update_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_d
 	for(int i= 0; i < NSIMD; i++) {
 	    if(store[i]) {
 		/* See if we should start a new Nlist */
-		if(p_f->id[i] != data->particleId[i]) {
-		    data->nextN[i] = -1;
-		    data->particleId[i] = p_f->id[i];
+		if(p_f->id[i] != particleId[i]) {
+		    nextN[i] = -1;
+		    particleId[i] = p_f->id[i];
 		}
 
 		/* See whether we need a new list or can we 
 		   use some that exists */
 		diag_orb_dat* new;
-		if(data->nextN[i] < (data->writeNlast-1)) {
-		    data->nextN[i]++;
-		    new = malloc(sizeof(diag_orb_dat));
-		    data->Nlist[i*data->writeNlast + data->nextN[i]] = new;
+		if(nextN[i] < (data->writeNlast-1)) {
+		    nextN[i]++;
 
-		    new->prev = data->writelist;
-		    if(data->writelist != NULL) {
-			data->writelist->next = new;
+		    new = malloc(sizeof(diag_orb_dat));
+		    #pragma omp critical 
+		    {
+			Nlist[i*data->writeNlast + nextN[i]] = new;
+
+			new->prev = data->writelist;
+			if(data->writelist != NULL) {
+			    data->writelist->next = new;
+			}
+			data->writelist = new;
+			data->size = data->size + 1;
 		    }
-		    data->writelist = new;
-		    data->size = data->size + 1;
 		}
 		else {
-		    data->nextN[i]++;
-		    if(data->nextN[i] == 2*data->writeNlast) {
-			data->nextN[i] = data->writeNlast;
+		    nextN[i]++;
+		    if(nextN[i] == 2*data->writeNlast) {
+			nextN[i] = data->writeNlast;
 		    }
 		    
-		    new = data->Nlist[i*data->writeNlast + (data->nextN[i]-data->writeNlast)];
+		    new = Nlist[i*data->writeNlast + (nextN[i]-data->writeNlast)];
 		}
 
 		new->gc.id     = p_f->id[i];
@@ -408,23 +430,29 @@ void diag_orb_update_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, diag_orb_d
     }
 }
 
-void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_data* data) {
+void diag_orb_update_ml(integer* particleId, real* prevWriteTime, int* nextN, diag_orb_dat** Nlist,
+			diag_orb_data* data, particle_simd_ml* p_f, particle_simd_ml* p_i) {
     if(data->mode == DIAG_ORB_ORBIT) {
 	
 	/* Check first whether a marker should be stored */
 	int store[NSIMD]; 
-        diag_orb_intervalTrigger(data, p_f->id, p_f->time, store);
+        diag_orb_intervalTrigger(data, particleId, prevWriteTime,
+				 p_f->id, p_f->time, store);
 
 	/* Store marker data */
 	for(int i= 0; i < NSIMD; i++) {
 	    if(store[i]) {
 		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
-		new->prev = data->writelist;
-		if(data->writelist != NULL) {
-		    data->writelist->next = new;
+
+		#pragma omp critical
+		{
+		    new->prev = data->writelist;
+		    if(data->writelist != NULL) {
+			data->writelist->next = new;
+		    }
+		    data->writelist = new;
+		    data->size = data->size + 1;
 		}
-		data->writelist = new;
-		data->size = data->size + 1;
 
 		new->ml.id     = p_f->id[i];
 		new->ml.time   = p_f->time[i];
@@ -457,12 +485,17 @@ void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_d
 	for(i=0; i<NSIMD; i++) {
 	    if(pol[i] > -1) {
 		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
-		new->prev = data->writelist;
-		if(data->writelist != NULL) {
-		    data->writelist->next = new;
+		
+		#pragma omp critical
+		{
+		    new->prev = data->writelist;
+		    if(data->writelist != NULL) {
+			data->writelist->next = new;
+		    }
+		    data->writelist = new;
+
+		    data->size = data->size + 1;
 		}
-		data->writelist = new;
-		data->size = data->size + 1;
 
 		new->ml.id     = p_f->id[i];
 		new->ml.time   = kpol[i] * p_f->time[i]   + (1 - kpol[i]) * p_i->time[i];
@@ -492,12 +525,15 @@ void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_d
 	for(i=0; i<NSIMD; i++) {
 	    if(tor[i] > -1) {
 		diag_orb_dat* new = malloc(sizeof(diag_orb_dat));
-		new->prev = data->writelist;
-		if(data->writelist != NULL) {
-		    data->writelist->next = new;
+		#pragma omp critical
+		{
+		    new->prev = data->writelist;
+		    if(data->writelist != NULL) {
+			data->writelist->next = new;
+		    }
+		    data->writelist = new;
+		    data->size = data->size + 1;
 		}
-		data->writelist = new;
-		data->size = data->size + 1;
 
 		new->ml.id     = p_f->id[i];
 		new->ml.time   = ktor[i] * p_f->time[i]   + (1 - ktor[i]) * p_i->time[i];
@@ -533,33 +569,37 @@ void diag_orb_update_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, diag_orb_d
 	for(int i= 0; i < NSIMD; i++) {
 	    if(store[i]) {
 		/* See if we should start a new Nlist */
-		if(p_f->id[i] != data->particleId[i]) {
-		    data->nextN[i] = -1;
-		    data->particleId[i] = p_f->id[i];
+		if(p_f->id[i] != particleId[i]) {
+		    nextN[i] = -1;
+		    particleId[i] = p_f->id[i];
 		}
 
 		/* See whether we need a new list or can we 
 		   use some that exists */
 		diag_orb_dat* new;
-		if(data->nextN[i] < (data->writeNlast-1)) {
-		    data->nextN[i]++;
+		if(nextN[i] < (data->writeNlast-1)) {
+		    nextN[i]++;
 		    new = malloc(sizeof(diag_orb_dat));
-		    data->Nlist[i*data->writeNlast + data->nextN[i]] = new;
 
-		    new->prev = data->writelist;
-		    if(data->writelist != NULL) {
-			data->writelist->next = new;
+
+		    Nlist[i*data->writeNlast + nextN[i]] = new;
+		    #pragma omp critical
+		    {
+			new->prev = data->writelist;
+			if(data->writelist != NULL) {
+			    data->writelist->next = new;
+			}
+			data->writelist = new;
+			data->size = data->size + 1;
 		    }
-		    data->writelist = new;
-		    data->size = data->size + 1;
 		}
 		else {
-		    data->nextN[i]++;
-		    if(data->nextN[i] == 2*data->writeNlast) {
-			data->nextN[i] = data->writeNlast;
+		    nextN[i]++;
+		    if(nextN[i] == 2*data->writeNlast) {
+			nextN[i] = data->writeNlast;
 		    }
 		    
-		    new = data->Nlist[i*data->writeNlast + (data->nextN[i]-data->writeNlast)];
+		    new = Nlist[i*data->writeNlast + (nextN[i]-data->writeNlast)];
 		}
 
 		new->ml.id     = p_f->id[i];
@@ -586,9 +626,6 @@ void diag_orb_clean(diag_orb_data* data) {
 	free(data->writelist);
 	data->writelist = list;
     }
-    for(int i=0; i < NSIMD; i++) {
-	data->particleId[i] = -2;
-    }
     data->writelist = NULL;
     data->size = 0;
 }
@@ -602,19 +639,20 @@ void diag_orb_clean(diag_orb_data* data) {
  *
  * Checks are done for NSIMD markers simultaneously.
  */
-void diag_orb_intervalTrigger(diag_orb_data* data, integer* id, real* time, int* store) {
+void diag_orb_intervalTrigger(diag_orb_data* data, integer* particleId, real* prevWriteTime,
+			      integer* id, real* time, int* store) {
     
     #pragma omp simd
     for(int i= 0; i < NSIMD; i++) {
 	store[i] = 0;
 	if( (id[i] != -1) && (                                           // Check if dummy
-		(id[i] != data->particleId[i]) ||                        // Check if first time this particle
-		(time[i] - data->prevWriteTime[i] > data->writeInterval) // Check if enough time has passed from previous write
+		(id[i] != particleId[i]) ||                        // Check if first time this particle
+		(time[i] - prevWriteTime[i] > data->writeInterval) // Check if enough time has passed from previous write
 		)) {
 	    
 	    store[i] = 1;
-	    data->particleId[i] = id[i];
-	    data->prevWriteTime[i] = time[i];
+	    particleId[i] = id[i];
+	    prevWriteTime[i] = time[i];
 	}
     }
 }

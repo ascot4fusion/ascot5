@@ -32,6 +32,16 @@ typedef struct{
 
 } diag_data;
 
+/** @brief Struct for storing particle specific data needed exclusively for diagnostics
+ *  In principle, this could be stored in diag_data struct bu we need multiple instances,
+ *  one for each thread. */
+typedef struct{
+    integer particleId[NSIMD];
+    real prevWriteTime[NSIMD];
+    int nextN[NSIMD];
+    diag_orb_dat** Nlist;
+} diag_storage;
+
 void diag_init_offload(diag_offload_data* data, real** offload_array);
 
 void diag_free_offload(diag_offload_data* data, real** offload_array);
@@ -41,11 +51,15 @@ void diag_sum(diag_data* d, real* array1, real* array2);
 #pragma omp declare target
 void diag_init(diag_data* data, diag_offload_data* offload_data, real* offload_array);
 
-void diag_update_gc(diag_data* d, particle_simd_gc* p_f, particle_simd_gc* p_i);
+void diag_update_fo(diag_data* d, diag_storage* ds, particle_simd_fo* p_f, particle_simd_fo* p_i);
 
-void diag_update_fo(diag_data* d, particle_simd_fo* p_f, particle_simd_fo* p_i);
+void diag_update_gc(diag_data* d, diag_storage* ds, particle_simd_gc* p_f, particle_simd_gc* p_i);
 
-void diag_update_ml(diag_data* d, particle_simd_ml* p_f, particle_simd_ml* p_i);
+void diag_update_ml(diag_data* d, diag_storage* ds, particle_simd_ml* p_f, particle_simd_ml* p_i);
+
+void diag_storage_aquire(diag_data* data, diag_storage** ds);
+
+void diag_storage_discard(diag_storage* ds);
 
 void diag_clean(diag_data* d);
 #pragma omp end declare target
