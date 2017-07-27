@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "hdf5_helpers.h"
@@ -64,18 +65,19 @@ void hdf5_orbits_write(sim_data* sim, char* out) {
 	    }
 
 	    char groupname[16];
+	    int polangle = round(diag->toroidalangles[ip]*180/CONST_PI);
 	    if(diag->type == diag_orb_type_fo) {
-		sprintf(groupname, "fopol%d", (int)diag->poloidalangles[ip]);
+		sprintf(groupname, "fopol%d", polangle);
 		grp = hdf5_create_group(group, groupname); 
 		hdf5_orbits_writeset_fo(grp, top, size, mask);
 	    }
 	    else if(diag->type == diag_orb_type_gc) {
-		sprintf(groupname, "gcpol%d", (int)diag->poloidalangles[ip]);
+		sprintf(groupname, "gcpol%d", polangle);
 		grp = hdf5_create_group(group, groupname); 
 		hdf5_orbits_writeset_gc(grp, top, size, mask);
 	    }
 	    else if(diag->type == diag_orb_type_ml) {
-		sprintf(groupname, "mlpol%d", (int)diag->poloidalangles[ip]);
+		sprintf(groupname, "mlpol%d", polangle);
 		grp = hdf5_create_group(group, groupname);
 		hdf5_orbits_writeset_ml(grp, top, size, mask);
 	    }
@@ -94,18 +96,19 @@ void hdf5_orbits_write(sim_data* sim, char* out) {
 	    }
 
 	    char groupname[16];
+	    int torangle = round(diag->poloidalangles[ip]*180/CONST_PI);
 	    if(diag->type == diag_orb_type_fo) {
-		sprintf(groupname, "fotor%d", (int)diag->poloidalangles[ip]);
+		sprintf(groupname, "fotor%d", torangle);
 	        grp = hdf5_create_group(group, groupname); 
 		hdf5_orbits_writeset_fo(grp, top, size, mask);
 	    }
 	    else if(diag->type == diag_orb_type_gc) {
-		sprintf(groupname, "gctor%d", (int)diag->poloidalangles[ip]);
+		sprintf(groupname, "gctor%d", torangle);
 		grp = hdf5_create_group(group, groupname);
 		hdf5_orbits_writeset_gc(grp, top, size, mask);
 	    }
 	    else if(diag->type == diag_orb_type_ml) {
-		sprintf(groupname, "mltor%d", (int)diag->poloidalangles[ip]);
+		sprintf(groupname, "mltor%d", torangle);
 		grp = hdf5_create_group(group, groupname);
 		hdf5_orbits_writeset_ml(grp, top, size, mask);
 	    }
@@ -137,7 +140,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 	
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 	    
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.r;
@@ -163,7 +166,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.phi*(180/CONST_PI);
@@ -189,7 +192,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.z;
@@ -215,7 +218,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.rho;
@@ -241,7 +244,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.time;
@@ -267,7 +270,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	integer* datavec = (integer*)malloc(datasize*sizeof(integer));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.id;
@@ -294,7 +297,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.B_r;
@@ -320,7 +323,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.B_phi;
@@ -346,7 +349,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.B_z;
@@ -373,7 +376,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.mass/CONST_U;
@@ -396,7 +399,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	int* datavec = (int*)malloc(datasize*sizeof(int));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = (int)(list->fo.charge/CONST_E);
@@ -419,7 +422,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.weight;
@@ -443,7 +446,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.rdot;
@@ -462,7 +465,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.phidot * list->fo.r;
@@ -481,7 +484,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_fo) {
 		datavec[id] = list->fo.zdot;
@@ -502,7 +505,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_gc) {
 		datavec[id] = list->gc.vpar;
@@ -521,7 +524,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_gc) {
 		datavec[id] = list->gc.mu/CONST_E;
@@ -540,7 +543,7 @@ void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* li
 	real* datavec = (real*)malloc(datasize*sizeof(real));
 
 	for(i = 0; i < size; i++) {
-	    if(!mask[i]){continue;}
+	    if(!mask[i]){list = list->prev;continue;}
 
 	    if(type == diag_orb_type_gc) {
 		datavec[id] = list->gc.theta;
