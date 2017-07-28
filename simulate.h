@@ -14,6 +14,7 @@
 #include "distributions.h"
 #include "wall.h"
 #include "diag.h"
+#include "offload.h"
 
 typedef struct {
     char hdf5_in[256];
@@ -95,11 +96,9 @@ typedef struct {
 #pragma omp declare target
 void sim_init(sim_data* sim, sim_offload_data* offload_data);
 void simulate(int id, int n_particles, particle_state* p,
-              sim_offload_data* offload_data,
-              real* B_offload_array,
-              real* E_offload_array,
-              real* plasma_offload_array,
-              real* wall_offload_array,
+              sim_offload_data* sim_offload,
+              offload_package* offload_data,
+              real* offload_array,
               real* diag_offload_array);
 
 void simulate_begin(int id, int n_particles, input_particle* p,

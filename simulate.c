@@ -6,24 +6,34 @@
 #include "simulate/simulate_gc_fixed.h"
 #include "simulate/simulate_fo_fixed.h"
 #include "hdf5io/hdf5_orbits.h"
+#include "offload.h"
 
 void simulate(int id, int n_particles, particle_state* p,
-              sim_offload_data* offload_data,
-              real* B_offload_array,
-              real* E_offload_array,
-              real* plasma_offload_array,
-              real* wall_offload_array,
+              sim_offload_data* sim_offload,
+              offload_package* offload_data,
+              real* offload_array,
               real* diag_offload_array) {
     sim_data sim;
+    sim_init(&sim, sim_offload);
 
-    sim_init(&sim, offload_data);
-    wall_init(&sim.wall_data, &offload_data->wall_offload_data,
-              wall_offload_array);
-    B_field_init(&sim.B_data, &offload_data->B_offload_data, B_offload_array);
-    E_field_init(&sim.E_data, &offload_data->E_offload_data, E_offload_array);
-    plasma_1d_init(&sim.plasma_data, &offload_data->plasma_offload_data,
-                   plasma_offload_array);
-    diag_init(&sim.diag_data, &offload_data->diag_offload_data,
+    real* ptr;
+    ptr = offload_unpack(offload_data, offload_array,
+                         sim_offload->B_offload_data.offload_array_length);
+    B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+                         sim_offload->E_offload_data.offload_array_length);
+    E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+                         sim_offload->plasma_offload_data.offload_array_length);
+    plasma_1d_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+                         sim_offload->wall_offload_data.offload_array_length);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+
+    diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
               diag_offload_array);
     
     particle_queue pq;
@@ -110,7 +120,7 @@ void simulate(int id, int n_particles, particle_state* p,
 
     // Temporary solution
     #ifdef NOTARGET
-        hdf5_orbits_write(&sim, offload_data->hdf5_out);
+        hdf5_orbits_write(&sim, sim_offload->hdf5_out);
     #endif
 
     diag_clean(&sim.diag_data);

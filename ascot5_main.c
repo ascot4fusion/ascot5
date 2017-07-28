@@ -27,6 +27,7 @@
 #include "hdf5io/hdf5_input.h"
 #include "hdf5io/hdf5_orbits.h"
 #include "hdf5io/hdf5_particlestate.h"
+#include "offload.h"
 
 int read_options(int argc, char** argv, sim_offload_data* sim);
 
@@ -40,6 +41,7 @@ int main(int argc, char** argv) {
     real* diag_offload_array_mic0;
     real* diag_offload_array_mic1;
     real* diag_offload_array_host;
+    real* offload_array;
     int n;
     input_particle* p;
 
@@ -50,9 +52,20 @@ int main(int argc, char** argv) {
     err = hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
              &wall_offload_array, &p, &n);
     if(err) {return 0;};
-    
+
+    offload_package offload_data;
+    offload_init_offload(&offload_data, &offload_array);
+    offload_pack(&offload_data, &offload_array, B_offload_array,
+                 sim.B_offload_data.offload_array_length);
+    offload_pack(&offload_data, &offload_array, E_offload_array,
+                 sim.E_offload_data.offload_array_length);
+    offload_pack(&offload_data, &offload_array, plasma_offload_array,
+                 sim.plasma_offload_data.offload_array_length);
+    offload_pack(&offload_data, &offload_array, wall_offload_array,
+                 sim.wall_offload_data.offload_array_length);
+
     #ifndef NOTARGET
-        diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
     diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
     #else
     diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
@@ -141,14 +154,10 @@ int main(int argc, char** argv) {
                 
                 #pragma omp target device(0) map( \
         ps[0:n_mic], \
-        B_offload_array[0:sim.B_offload_data.offload_array_length], \
-        E_offload_array[0:sim.E_offload_data.offload_array_length], \
+        offload_array[0:offload_data.offload_array_length], \
         diag_offload_array_mic0[0:sim.diag_offload_data.offload_array_length], \
-        plasma_offload_array[0:sim.plasma_offload_data.offload_array_length], \
-        wall_offload_array[0:sim.wall_offload_data.offload_array_length] \
                 )
-                simulate(1, n_mic, ps, &sim, B_offload_array, E_offload_array,
-                         plasma_offload_array, wall_offload_array,
+                simulate(1, n_mic, ps, &sim, &offload_data, offload_array,
                          diag_offload_array_mic0);
 
                 #ifdef _OMP
@@ -163,15 +172,11 @@ int main(int argc, char** argv) {
                 #endif
                 #pragma omp target device(1) map( \
         ps[n_mic:2*n_mic], \
-        B_offload_array[0:sim.B_offload_data.offload_array_length], \
-        E_offload_array[0:sim.E_offload_data.offload_array_length], \
+        offload_array[0:offload_data.offload_array_length], \
         diag_offload_array_mic1[0:sim.diag_offload_data.offload_array_length], \
-        plasma_offload_array[0:sim.plasma_offload_data.offload_array_length], \
-        wall_offload_array[0:sim.wall_offload_data.offload_array_length] \
                 )
-                simulate(2, n_mic, ps+n_mic, &sim, B_offload_array,
-                         E_offload_array, plasma_offload_array,
-                         wall_offload_array, diag_offload_array_mic1);
+                simulate(2, n_mic, ps+n_mic, &sim, &offload_data, offload_array,
+                         diag_offload_array_mic1);
 
                 #ifdef _OMP
                 mic1_end = omp_get_wtime();
@@ -185,9 +190,8 @@ int main(int argc, char** argv) {
                 host_start = omp_get_wtime();
                 #endif
         
-                simulate(0, n_host, ps+2*n_mic, &sim, B_offload_array,
-                         E_offload_array, plasma_offload_array,
-                         wall_offload_array, diag_offload_array_host);
+                simulate(0, n_host, ps+2*n_mic, &sim, &offload_data,
+                         offload_array, diag_offload_array_host);
 
                 #ifdef _OMP
                 host_end = omp_get_wtime();
@@ -217,11 +221,13 @@ int main(int argc, char** argv) {
     plasma_1d_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
     #ifndef NOTARGET
-        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
+    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
+    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
     #else
-        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
+    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
     #endif
+    offload_free_offload(&offload_data, &offload_array);
+    
     free(p);
 
     printf("Done\n");
