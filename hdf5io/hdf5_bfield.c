@@ -49,6 +49,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
     if(strncmp(type,"B_TC",4) == 0) {
 	hdf5_bfield_init_offload_TC(f, &(offload_data->BTC), offload_array);
 	offload_data->type = B_field_type_TC;
+    offload_data->offload_array_length = offload_data->BTC.offload_array_length;
 	
 	#if VERBOSE > 0
 	    printf("\nLoaded trivial cartesian magnetic field (B_TC)\n");
@@ -73,6 +74,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
     else if(strncmp(type,"B_GS",4) == 0) {
 	hdf5_bfield_init_offload_GS(f, &(offload_data->BGS), offload_array);
 	offload_data->type = B_field_type_GS;
+    offload_data->offload_array_length = offload_data->BGS.offload_array_length;
 
 	#if VERBOSE > 0
 	    printf("\nLoaded analytical tokamak magnetic field (B_GS)\n");
@@ -92,6 +94,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
     else if(strncmp(type,"B_2D",4) == 0) {
         hdf5_bfield_init_offload_2D(f, &(offload_data->B2DS), offload_array);
 	offload_data->type = B_field_type_2DS;
+    offload_data->offload_array_length=offload_data->B2DS.offload_array_length;
 
 	#if VERBOSE > 0
 	    printf("\nLoaded 2D magnetic field (B_2D)\n");
@@ -111,6 +114,8 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
     else if (strncmp(type, "B_3D",4) == 0) {
         hdf5_bfield_init_offload_3DS(f, &(offload_data->B3DS), offload_array);
 	offload_data->type = B_field_type_3DS;
+    offload_data->offload_array_length=offload_data->B3DS.offload_array_length;
+
 	#if VERBOSE > 0
 	    printf("\nLoaded 3D magnetic field (B_3D)\n");
 	    printf("with parameters:\n");
@@ -128,6 +133,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
     else if (strncmp(type, "B_ST",4) == 0) {
         hdf5_bfield_init_offload_ST(f, &(offload_data->BST), offload_array);
 	offload_data->type = B_field_type_ST;
+    offload_data->offload_array_length=offload_data->BST.offload_array_length;
         return 1;
     }
     
