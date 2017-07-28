@@ -30,6 +30,7 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real**
     if(strncmp(type,"E_TC",4) == 0) {
         offload_data->type = E_field_type_TC;
 	hdf5_efield_init_offload_TC(f, &(offload_data->ETC), offload_array);
+    offload_data->offload_array_length = offload_data->ETC.offload_array_length;
 
 	#if VERBOSE > 0
 	    printf("\nLoaded trivial cartesian electric field (E_TC)\n");
@@ -43,6 +44,7 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real**
     if(strcmp(type,"erad") == 0) {
         offload_data->type = E_field_type_1D;
 	hdf5_efield_init_offload_1D(f, &(offload_data->E1D), offload_array);
+    offload_data->offload_array_length = offload_data->E1D.offload_array_length;
         return 1;
     }
 
