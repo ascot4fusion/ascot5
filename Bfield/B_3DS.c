@@ -9,10 +9,10 @@
 #include "../math.h"
 #include "../ascot5.h"
 #include "B_3DS.h"
-#include "../splinePatrik/interp2D.h" /* for 2D interpolation routines */
-#include "../splinePatrik/interp3D.h" /* for 3D interpolation routines */
-#include "../splinePatrik/interp2Dexpl.h" 
-#include "../splinePatrik/interp3Dexpl.h"
+#include "../spline/interp2D.h" /* for 2D interpolation routines */
+#include "../spline/interp3D.h" /* for 3D interpolation routines */
+#include "../spline/interp2Dexpl.h" 
+#include "../spline/interp3Dexpl.h"
 
 /**
  * @brief Load magnetic field data and prepare parameters

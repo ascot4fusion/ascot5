@@ -102,8 +102,8 @@ OBJS= math.o consts.o  \
 	diag.o diag_orb.o \
 	$(HDF5IOOBJS) \
     offload.c \
-	splinePatrik/interp2D.o splinePatrik/interp3D.o splinePatrik/spline1D.o \
-	splinePatrik/interp2Dexpl.o splinePatrik/interp3Dexpl.o
+	spline/interp2D.o spline/interp3D.o spline/spline1D.o \
+	spline/interp2Dexpl.o spline/interp3Dexpl.o
 
 BINS=test_math \
 	 test_wall_2d test_ascot4_interface test_plasma_1d \
