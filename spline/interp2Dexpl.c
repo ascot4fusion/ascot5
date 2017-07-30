@@ -149,7 +149,7 @@ void interp2Dexpl_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid;
     real dz2 = dz*dz;
     real dz3 = dz2*dz;
-    real zgi = 1.0/str->r_grid;
+    real zgi = 1.0/str->z_grid;
     int n = i_z*str->n_r*16+i_r*16;
 
     /* f */

@@ -259,10 +259,10 @@ void interp2D_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     /* d2f/dz2 */
     B_dB[4] = (
 	      dri*(dzi*str->c[n+2]  +dz*str->c[n+z1+2])+
-	      dr*(dzi*dzi3*str->c[n+4+2]+dz*str->c[n+z1+4+2]))
-	+(rg2/6)*(
-		dri3*(dzi*str->c[n+3]  +dz*str->c[n+z1+3])+
-		dr3*(dzi*str->c[n+4+3]+dz*str->c[n+z1+4+3]));
+	      dr*(dzi*str->c[n+4+2]+dz*str->c[n+z1+4+2]))
+	+rg2/6*(
+	    dri3*(dzi*str->c[n+3]  +dz*str->c[n+z1+3])+
+	    dr3*(dzi*str->c[n+4+3]+dz*str->c[n+z1+4+3]));
 
     /* d2f/dzdr */
     B_dB[5] = rgi*zgi*(

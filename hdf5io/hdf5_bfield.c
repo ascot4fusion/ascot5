@@ -102,7 +102,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 	    printf("- magnetic axis at (R,z) = (%le,%le)\n",
 		   offload_data->B2DS.axis_r,offload_data->B2DS.axis_z);
 	    printf("- psi axis = %le and psi separatrix %le\n",
-		   offload_data->B2DS.axis_r,offload_data->B2DS.axis_z);
+		   offload_data->B2DS.psi0,offload_data->B2DS.psi1);
 	    printf("- rmin, rmax, nr = %le, %le, %d\n",
 		   offload_data->B2DS.r_min,offload_data->B2DS.r_max,offload_data->B2DS.n_r);
 	    printf("- zmin, zmax, nz = %le, %le, %d\n",
@@ -122,7 +122,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 	    printf("- magnetic axis at (R,z) = (%le,%le)\n",
 		   offload_data->B3DS.axis_r,offload_data->B3DS.axis_z);
 	    printf("- psi axis = %le and psi separatrix %le\n",
-		   offload_data->B3DS.axis_r,offload_data->B3DS.axis_z);
+		   offload_data->B3DS.psi0,offload_data->B3DS.psi1);
 	    printf("- rmin, rmax, nr = %le, %le, %d\n",
 		   offload_data->B3DS.r_min,offload_data->B3DS.r_max,offload_data->B3DS.n_r);
 	    printf("- zmin, zmax, nz = %le, %le, %d\n",

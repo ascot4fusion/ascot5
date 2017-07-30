@@ -4,7 +4,9 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include "../ascot5.h"
+#include "../consts.h"
 #include "interp3Dexpl.h"
 #include "interp3D.h"
 #include "spline1D.h"
@@ -149,6 +151,11 @@ void interp3Dexpl_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
  * @param z z-coordinate
  */
 void interp3Dexpl_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
+
+    /** Make sure phi is in interval [0,2pi) */
+    phi = fmod(phi,CONST_2PI);
+    if(phi < 0){phi = CONST_2PI - phi;}
+
     int i_r = (r-str->r_min)/str->r_grid;
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
     real dr2 = dr*dr;
@@ -202,6 +209,10 @@ void interp3Dexpl_eval_B(real* B, interp3D_data* str, real r, real phi, real z) 
  * @param z z-coordinate
  */
 void interp3Dexpl_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) {
+    /** Make sure phi is in interval [0,2pi) */
+    phi = fmod(phi,CONST_2PI);
+    if(phi < 0){phi = CONST_2PI - phi;}
+
     real ri = 1/r;
     int i_r = (r-str->r_min)/str->r_grid;
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
