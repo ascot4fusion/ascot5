@@ -42,6 +42,7 @@ def write_hdf5(fn, R0, z0, B_phi0, psi0, psi1, psi_mult, psi_coeff):
     f.create_dataset('bfield/B_GS/psi1', data=psi1, dtype='f8')
     f.create_dataset('bfield/B_GS/psi_mult', data=psi_mult, dtype='f8')
     f.create_dataset('bfield/B_GS/psi_coeff', data=psi_coeff, dtype='f8')
+    f.close()
 
 def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, rgrid, zgrid):
     """Write analytical tokamak magnetic field as a 2D field input in hdf5 file.
@@ -86,3 +87,4 @@ def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, rgrid, zgrid):
     #plt.contour(psirz)
     #plt.show()
     ui_B_2D.write_hdf5(fn, rlim, zlim, psirz, Br, Bphi, Bz, axisRz, psivals)
+    
