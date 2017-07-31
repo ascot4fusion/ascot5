@@ -251,6 +251,13 @@ class Ui_optionsIO:
 
 ## END OF OPTIONS ##
 
+#Help function that sets all given flags to zero in the input Ui_optionsIO instance (see ui_template.py)
+def flagsToZero(options,flags):
+    for i in dir(options):
+        if i.startswith(flags):
+            setattr(options,i,0)
+    return options
+
 ##########################################################
 ## A python script for writing the options in hdf5 file ##
 ##    DO NOT MODIFY THIS IF YOU ARE NOT A DEVELOPER     ##
