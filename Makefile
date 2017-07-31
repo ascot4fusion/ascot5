@@ -1,6 +1,4 @@
-ifndef CC
-	CC=h5cc
-endif
+CC=h5cc
 
 ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
@@ -8,7 +6,7 @@ endif
 
 ifneq ($(TARGET),1)
 	DEFINES+=-DNOTARGET
-	CFLAGS+=-qno-openmp-offload -diag-disable 3180
+#	CFLAGS+=-qno-openmp-offload -diag-disable 3180
 endif
 
 ifdef VERBOSE
