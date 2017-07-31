@@ -11,6 +11,15 @@ def clean(fn):
         del f["orbits"]
     if  "dist" in f:
         del f["dist"]
+
+    if "/options" in f:
+        del f["options"]
+    if "/bfield" in f:
+        del f["bfield"]
+    if "/efield" in f:
+        del f["efield"]
+    if "/plasma" in f:
+        del f["plasma"]
     f.close()
 
 if __name__ == "__main__":

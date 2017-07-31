@@ -7,22 +7,20 @@ import ui_options
 import ui_plasma_1D
 import ui_wall_2D
 import ui_markers
+import ui_cleanout
+import subprocess
 
 fn = "ascot.h5"
-f = h5py.File(fn, "a")
-if "/options" in f:
-    del f["options"]
 
-if "/bfield" in f:
-    del f["bfield"]
+#Remove data from old runs
+ui_cleanout.clean(fn)
 
-if "/efield" in f:
-    del f["efield"]
+#Create new options instance and set flags to zero:
+flags = ('ENABLE','ENDCOND')
+options = ui_options.Ui_optionsIO()
+ui_options.flagsToZero(options,flags)
 
-if "/plasma" in f:
-    del f["plasma"]
-
-f.close();
+#Modify flags further as needed
 
 axisr = 0;
 axisz = 0;
@@ -76,7 +74,7 @@ B_phi0 = 5.3
 psimult = 200
 psicoef = np.array([8.629491085780416348e-02, 3.279306587723925803e-01, 5.268677701240817024e-01, -2.366208946912087274e-01, 3.825826765593096646e-01, -3.573153147754407621e-01, -1.484166833037287025e-02, 1.506045943286430100e-01, 7.428226459414810634e-01, -4.447153105104519888e-01, -1.084640395736786167e-01, 1.281599235951017685e-02, -0.155])
 
-
+#Input the new parameters in the hdf5 file
 ui_options.writeHdf5(ui_options.Ui_optionsIO(),fn)
 #ui_B_TC.write_hdf5(fn, B0, B_dB, axisr, axisz, psival, rhoval)
 #ui_B_GS.write_hdf5(fn, axisr, axisz, B_phi0, psi0, psi1, psimult, psicoef) 
@@ -87,3 +85,11 @@ ui_wall_2D.write_hdf5(fn, wr, wz)
 #ui_markers.write_hdf5_particles(fn, ids, mass, charge, rprt, phiprt, zprt, vr, vphi, vz, weight, time);
 #ui_markers.write_hdf5_guidingcenters(fn, ids+1, mass, charge, r, phi, z, energy, pitch, theta, weight, time);
 #ui_markers.write_hdf5_fieldlines(fn, ids+1, r, phi, z, mlpitch, weight, time);   
+
+#Compile and run ASCOT5
+subprocess.call(['make','ascot5_main','CC=mpicc','VERBOSE=1','NSIMD=1'])
+subprocess.call(['./ascot5_main'])
+
+#Analyse the data returned by ASCOT5 
+f = h5py.File(fn, 'r')
+f.close()
