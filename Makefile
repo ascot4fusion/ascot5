@@ -1,5 +1,5 @@
 ifndef CC
-	CC=icc
+	CC=h5cc
 endif
 
 ifdef NSIMD
@@ -8,7 +8,7 @@ endif
 
 ifneq ($(TARGET),1)
 	DEFINES+=-DNOTARGET
-    CFLAGS+=-qno-openmp-offload -diag-disable 3180
+	CFLAGS+=-qno-openmp-offload -diag-disable 3180
 endif
 
 ifdef VERBOSE
@@ -37,14 +37,16 @@ endif
 
 ifeq ($(MPI),1)
 	DEFINES+=-DMPI
-	CC=mpiicc
+	CC=h5pcc
 endif
 
-ifeq ($(CC),h5cc)
-	CFLAGS=-Wall -fopenmp -std=c99 $(DEFINES) $(FLAGS) 
-else
-	CFLAGS=-lm -lhdf5 -lhdf5_hl -fopenmp -std=c99 $(DEFINES) $(FLAGS) 
+ifneq ($(CC),h5cc)
+	ifneq ($(CC),h5pcc)
+		CFLAGS+=-lhdf5 -lhdf5_hl
+	endif
 endif
+
+CFLAGS+=-lm -Wall -fopenmp -std=c99 $(DEFINES) $(FLAGS) 
 
 SIMDIR = simulate/
 SIMHEADERS = $(wildcard $(SIMDIR)simulate*.h)
