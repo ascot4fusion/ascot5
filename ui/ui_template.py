@@ -75,7 +75,7 @@ psimult = 200
 psicoef = np.array([8.629491085780416348e-02, 3.279306587723925803e-01, 5.268677701240817024e-01, -2.366208946912087274e-01, 3.825826765593096646e-01, -3.573153147754407621e-01, -1.484166833037287025e-02, 1.506045943286430100e-01, 7.428226459414810634e-01, -4.447153105104519888e-01, -1.084640395736786167e-01, 1.281599235951017685e-02, -0.155])
 
 #Input the new parameters in the hdf5 file
-ui_options.writeHdf5(ui_options.Ui_optionsIO(),fn)
+ui_options.writeHdf5(options,fn)
 #ui_B_TC.write_hdf5(fn, B0, B_dB, axisr, axisz, psival, rhoval)
 #ui_B_GS.write_hdf5(fn, axisr, axisz, B_phi0, psi0, psi1, psimult, psicoef) 
 ui_B_GS.write_hdf5_B_2D(fn, axisr, axisz, B_phi0, psimult, psicoef, np.array([3.9, 8.9, 400]), np.array([-5.0, 5.0, 800])) 
