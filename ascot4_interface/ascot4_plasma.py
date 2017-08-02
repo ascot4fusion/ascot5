@@ -1,6 +1,11 @@
 from pylab import *
 import numpy as np
 
+import sys
+sys.path.append('../ui')
+import ui_plasma_1D as p1D
+
+
 def read_plasma(fn):
     f = open(fn,'r')
     c1 = f.readline()
@@ -20,15 +25,15 @@ def read_plasma(fn):
 def read_1d(fh):
     str = {'comm1' : fh.readline(),'comm2' : fh.readline(),'comm3' : fh.readline()}
     nrho,nion = map(int,fh.readline().split()[:2])
-    str['znum'] = map(int,fh.readline().split()[:nion])
-    str['anum'] = map(int,fh.readline().split()[:nion])
-    str['coll'] = map(int,fh.readline().split()[:nion+1])
+    str['znum'] = np.array(map(int,fh.readline().split()[:nion]))
+    str['anum'] = np.array(map(int,fh.readline().split()[:nion]))
+    str['coll'] = np.array(map(int,fh.readline().split()[:nion+1]))
     str['nrho'] = nrho
     str['nion'] = nion
     fieldnames = fh.readline().split()[0:-1:2]
     data = loadtxt(fh)
     for i,name in enumerate(fieldnames):
-        str[name.lower()] = data[:,i]
+        str[name.lower()] = np.array(data[:,i])
 
     fh.close()
     return str
@@ -56,23 +61,8 @@ def read_2d(fh):
     fh.close()
     return str
     
-def write_plasma_1d(f, p):
-
-    f.create_group('plasma')
-    f['plasma'].attrs["type"] = np.string_("p1d")
-    f.create_dataset('plasma/Z_num', data=p['znum'])
-    f.create_dataset('plasma/A_mass', data=p['anum'])
-    f['plasma'].attrs['n_ions'] = p['nion']
-    f['plasma'].attrs['n_neutrals'] = 0 # No neutral data in ascot4 input
-
-    # 1D plasma properties
-    f.create_dataset('plasma/1D/rho', data=p['rho'])
-    f.create_dataset('plasma/1D/temp_0', data=np.zeros(p['rho'].shape))
-    f.create_dataset('plasma/1D/dens_0', data=np.zeros(p['rho'].shape))
-    f.create_dataset('plasma/1D/temp_e', data=p['te']*8.6173e-05)
-    f.create_dataset('plasma/1D/dens_e', data=p['ne'])
-    f.create_dataset('plasma/1D/temp_i', data=p['ti1']*8.6173e-05)
+def write_plasma_1d(fn, p):
     dens_i = np.array([p['ni'+str(i)] for i in range(1,p['nion']+1)])
-    f.create_dataset('plasma/1D/dens_i', data=np.transpose(dens_i))
-    f['plasma/1D'].attrs['n_rho'] = p['nrho']
+    p1D.write_hdf5(fn, p['nrho'], p['nion'], p['znum'], p['znum'], p['rho'], np.zeros(p['rho'].shape), np.zeros(p['rho'].shape), p['ne'], p['te']*8.6173e-05, dens_i, p['ti1']*8.6173e-05)
+
 

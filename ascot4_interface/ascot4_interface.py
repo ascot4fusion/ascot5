@@ -7,6 +7,10 @@ from ascot4_erad import *
 from ascot4_wall_2d import *
 from ascot4_wall_3d import *
 
+import sys
+sys.path.append('../ui')
+import ui_E_TC
+
 def main():
     overwrite_fields = False
     h5file = 'ascot.h5'
@@ -35,8 +39,8 @@ def main():
             data = read_plasma(fname)
             if 'plasma' in f:
                 del f['plasma']
-            write_plasma_1d(f, data)
-            f['plasma'].attrs['type'] = 'p1d'
+            f.close()
+            write_plasma_1d(h5file, data)
 
     # Radial electric field
     if overwrite_fields or (not 'efield/erad' in f):
@@ -47,6 +51,9 @@ def main():
                 del f['efield/erad']
             write_erad(f, data)
             f['efield'].attrs['type'] = 'erad'
+        else:
+            E = np.array([0.0, 0, 0])
+            ui_E_TC.write_hdf5(h5file, E) 
             
     # 2D wall
     if overwrite_fields or (not 'wall/2D' in f):
@@ -55,8 +62,9 @@ def main():
             data = read_wall_2d(fname)
             if 'wall/2D' in f:
                 del f['wall/2D']
+            f = h5py.File(h5file, 'a')
             write_wall_2d(f, data)
-            f['wall'].attrs['type'] = '2D'
+            f['wall'].attrs['type'] = np.string_("2D")
 
     # 3D wall
     if overwrite_fields or (not 'wall/3D' in f):

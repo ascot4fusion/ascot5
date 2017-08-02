@@ -44,10 +44,30 @@ def read_magn_bkg(fn):
 
     fh.close()
     
+    read_magn_header('input.magn_header',str)
     return str
 
-def read_magn_header(fn):
-    str = dict()
+def read_magn_header(fn,str):
+    fh = open(fn)
+
+    # first four lines contain nothing interesting
+    fh.readline()
+    fh.readline()
+    fh.readline()
+    fh.readline()
+
+    # Next three lines contain axis psi, R, and z values
+    tmp = map(float,fh.readline().split())
+    str['psi0']       = tmp[0]
+    str['psi1']       = tmp[1]
+
+    tmp = map(float,fh.readline().split())
+    str['axis_r']       = tmp[0]
+
+    tmp = map(float,fh.readline().split())
+    str['axis_z']       = tmp[0]
+
+    fh.close()
     return str
 
 def write_magn_bkg(f, m):
@@ -56,11 +76,11 @@ def write_magn_bkg(f, m):
                            np.array([m['r'][0], m['r'][-1]]),
                            np.array([m['z'][0], m['z'][-1]]), m['nPhi'],
                            m['psi']/(2*np.pi), m['br'], m['bphi'], m['bz'],
-                           np.array([6.2, 0.6]), np.array([-12, 0]))
+                           np.array([m['axis_r'], m['axis_z']]), np.array([m['psi0'], m['psi1']]))
     else:
         ui_B_2D.write_hdf5('ascot.h5',
                            np.array([m['r'][0], m['r'][-1]]),
                            np.array([m['z'][0], m['z'][-1]]),
                            m['psi']/(2*np.pi), m['br']*0, m['bphi'], m['bz']*0,
-                           np.array([6.2, 0.6]), np.array([-12, 0]))
+                           np.array([m['axis_r'], m['axis_z']]), np.array([m['psi0'], m['psi1']]))
     return

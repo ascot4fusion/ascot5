@@ -40,16 +40,16 @@ int hdf5_plasma_init_offload(hid_t f, plasma_1d_offload_data* offload_data,
         return -1;
     }
 
-    if(strncmp(type,"p1d",3) == 0) {
+    if(strncmp(type,"P_1D",3) == 0) {
 	// TODO Plasma needs interface
 	int i, j;
-	err = H5LTfind_dataset(f, "/plasma/1D");
+	err = H5LTfind_dataset(f, "/plasma/P_1D");
 
 	int n_ions;
 	err = H5LTget_attribute_int(f, "/plasma/", "n_ions", &n_ions);
 	offload_data->n_species = n_ions + 1; /* Include electrons */
     
-	err = H5LTget_attribute_int(f, "/plasma/1D", "n_rho", &(offload_data->n_rho));
+	err = H5LTget_attribute_int(f, "/plasma/P_1D", "n_rho", &(offload_data->n_rho));
 	int n_rho = offload_data->n_rho;
     
 	/* Allocate space for rho + temperature for each ion species and electrons
@@ -87,22 +87,22 @@ int hdf5_plasma_init_offload(hid_t f, plasma_1d_offload_data* offload_data,
 	}
     
 	/* Read actual data into array */
-	err = H5LTread_dataset_double(f,"/plasma/1D/rho", rho);
+	err = H5LTread_dataset_double(f,"/plasma/P_1D/rho", rho);
 	real temp_temp_e[n_rho];
-	err = H5LTread_dataset_double(f,"/plasma/1D/temp_e", temp_e);
+	err = H5LTread_dataset_double(f,"/plasma/P_1D/temp_e", temp_e);
 	for(i = 0; i < n_rho; i++) {
 	    temp_e[i] = temp_e[i] * CONST_E / CONST_KB;
 	}
-	err = H5LTread_dataset_double(f,"/plasma/1D/dens_e", dens_e);
+	err = H5LTread_dataset_double(f,"/plasma/P_1D/dens_e", dens_e);
 
 	/* All ions have same temperature */
-	err = H5LTread_dataset_double(f,"/plasma/1D/temp_i", temp_i);
+	err = H5LTread_dataset_double(f,"/plasma/P_1D/temp_i", temp_i);
 	for(i = 0; i < n_rho; i++) {
 	    temp_i[i] = temp_i[i] * CONST_E / CONST_KB;
 	}
     
 	real temp_dens_i[n_ions*n_rho];
-	err = H5LTread_dataset_double(f,"/plasma/1D/dens_i", temp_dens_i);
+	err = H5LTread_dataset_double(f,"/plasma/P_1D/dens_i", temp_dens_i);
 	for(i = 0; i < n_rho; i++) {
 	    for(j = 0; j < n_ions; j++) {
 		dens_i[j*n_rho + i] = temp_dens_i[j*n_rho + i];
@@ -110,7 +110,7 @@ int hdf5_plasma_init_offload(hid_t f, plasma_1d_offload_data* offload_data,
 	}
 
 	#if VERBOSE > 0
-	    printf("\nLoaded 1D plasma profiles (p1d)\n");
+	    printf("\nLoaded 1D plasma profiles (P_1D)\n");
 	    printf("with parameters:\n");
 	    printf("- %d number of rho values ranging from %le to %le\n",
 		   n_rho, rho[0], rho[n_rho-1]);
