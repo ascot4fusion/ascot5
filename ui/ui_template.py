@@ -12,16 +12,17 @@ import subprocess
 
 def run():
     fn = "ascot.h5"
-
+    
     #Remove data from old runs
-    ui_cleanout.clean(fn)
+    #ui_cleanout.clean(fn)
 
     #Create new options instance and set flags to zero:
     flags = ('ENABLE','ENDCOND')
     options = ui_options.Ui_optionsIO()
-    ui_options.flagsToZero(options,flags)
+    #ui_options.flagsToZero(options,flags)
 
     #Modify flags further as needed
+
 
     axisr = 0;
     axisz = 0;
@@ -30,8 +31,8 @@ def run():
     B0 = np.array([1, 0, 0])
     B_dB = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
     E = np.array([1, 0, 0])
-    Znum = 1
-    Anum = 1
+    Znum = np.array([1])
+    Anum = np.array([1])
     rho = np.array([0, 0.5, 1, 2, 3])
     ndens = np.array([0, 0, 0, 0, 0])
     ntemp = np.array([0, 0, 0, 0, 0])
@@ -39,6 +40,8 @@ def run():
     etemp = np.array([1, 1, 1, 1, 1]) * 1e4
     idens = np.array([1, 1, 1, 1, 1]) * 1e20
     itemp = np.array([1, 1, 1, 1, 1]) * 1e4
+    Nrho = 5
+    Nion = 1
 
     ndens = ndens.reshape(5,1)
     idens = idens.reshape(5,1)
@@ -75,6 +78,7 @@ def run():
     psimult = 200
     psicoef = np.array([8.629491085780416348e-02, 3.279306587723925803e-01, 5.268677701240817024e-01, -2.366208946912087274e-01, 3.825826765593096646e-01, -3.573153147754407621e-01, -1.484166833037287025e-02, 1.506045943286430100e-01, 7.428226459414810634e-01, -4.447153105104519888e-01, -1.084640395736786167e-01, 1.281599235951017685e-02, -0.155])
 
+
     #Input the new parameters in the hdf5 file
     ui_options.writeHdf5(options,fn)
     #ui_B_TC.write_hdf5(fn, B0, B_dB, axisr, axisz, psival, rhoval)
@@ -82,15 +86,15 @@ def run():
     ui_B_GS.write_hdf5(fn, axisr, axisz, B_phi0, psi0, psi1, psimult, psicoef,Nripple=18,a0=2,delta0=0.05,alpha0=3.8) 
     #ui_B_GS.write_hdf5_B_2D(fn, axisr, axisz, B_phi0, psimult, psicoef, np.array([3.9, 8.9, 400]), np.array([-5.0, 5.0, 800])) 
     ui_E_TC.write_hdf5(fn, E) 
-    ui_plasma_1D.write_hdf5(fn, Znum, Anum, rho, ndens, ntemp, edens, etemp, idens, itemp)
+    ui_plasma_1D.write_hdf5(fn, Nrho, Nion, Znum, Anum, rho, ndens, ntemp, edens, etemp, idens, itemp)
     ui_wall_2D.write_hdf5(fn, wr, wz)
     ui_markers.write_hdf5_particles(fn, ids, mass, charge, rprt, phiprt, zprt, vr, vphi, vz, weight, time);
     #ui_markers.write_hdf5_guidingcenters(fn, ids+1, mass, charge, r, phi, z, energy, pitch, theta, weight, time);
     #ui_markers.write_hdf5_fieldlines(fn, ids+1, r, phi, z, mlpitch, weight, time);   
-
+    
     #Compile and run ASCOT5
-    subprocess.call(['make','ascot5_main','CC=mpicc','VERBOSE=1','NSIMD=1'])
-    subprocess.call(['./ascot5_main'])
+    #subprocess.call(['make','ascot5_main','CC=mpicc','VERBOSE=1','NSIMD=1'])
+    #subprocess.call(['./ascot5_main'])
 
     #Analyse the data returned by ASCOT5 
     f = h5py.File(fn, 'r')
