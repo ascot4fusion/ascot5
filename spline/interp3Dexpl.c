@@ -277,7 +277,7 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real
 		+dz3*(str->c[n+61]+2*dr*str->c[n+62]+3*dr2*str->c[n+63])));
 
     /* df/dphi */
-    B_dB[2] = ri*phigi*(
+    B_dB[2] = phigi*(
 	         (
                         str->c[n+16]+dr*str->c[n+17]+dr2*str->c[n+18]+dr3*str->c[n+19]
                    +dz*(str->c[n+20]+dr*str->c[n+21]+dr2*str->c[n+22]+dr3*str->c[n+23])
@@ -337,7 +337,7 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real
 		      +dz3*(2*str->c[n+62]+6*dr*str->c[n+63])));
 
     /* d2f/dphi^2 */
-    B_dB[5] = ri*ri*phigi*phigi*(
+    B_dB[5] = phigi*phigi*(
 	      2*(
                        str->c[n+32]+dr*str->c[n+33]+dr2*str->c[n+34]+dr3*str->c[n+35]
 		  +dz*(str->c[n+36]+dr*str->c[n+37]+dr2*str->c[n+38]+dr3*str->c[n+39])
@@ -365,7 +365,7 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real
 	        +6*dz*(str->c[n+60]+dr*str->c[n+61]+dr2*str->c[n+62]+dr3*str->c[n+63])));
 
     /* d2f/dphidr */
-    B_dB[7] = rgi*ri*phigi*(
+    B_dB[7] = rgi*phigi*(
 		 (
                         str->c[n+17]+2*dr*str->c[n+18]+3*dr2*str->c[n+19]
 		   +dz*(str->c[n+21]+2*dr*str->c[n+22]+3*dr2*str->c[n+23])
@@ -402,7 +402,7 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real
 			+3*dz2*(str->c[n+61]+2*dr*str->c[n+62]+3*dr2*str->c[n+63])));
 
     /* d2f/dzdphi */
-    B_dB[9] = ri*phigi*zgi*(
+    B_dB[9] = phigi*zgi*(
 		 (
                           str->c[n+20]+dr*str->c[n+21]+dr2*str->c[n+22]+dr3*str->c[n+23]
 		   +2*dz*(str->c[n+24]+dr*str->c[n+25]+dr2*str->c[n+26]+dr3*str->c[n+27])

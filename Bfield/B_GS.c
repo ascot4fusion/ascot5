@@ -10,8 +10,10 @@
  *     http://scitation.aip.org/content/aip/journal/pop/17/3/10.1063/1.3328818
  */
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 #include "../ascot5.h"
+#include "../consts.h"
 #include "B_GS.h"
 
 /**
@@ -79,6 +81,12 @@ void B_GS_init(B_GS_data* Bdata, B_GS_offload_data* offload_data,
     Bdata->psi0      = offload_data->psi0;
     Bdata->psi1      = offload_data->psi1;
     Bdata->psi_mult  = offload_data->psi_mult;
+
+    Bdata->Nripple   = offload_data->Nripple;
+    Bdata->a0        = offload_data->a0;
+    Bdata->delta0    = offload_data->delta0;
+    Bdata->alpha0    = offload_data->alpha0;
+
     Bdata->psi_coeff = offload_array;
 }
 
@@ -150,6 +158,19 @@ void B_GS_eval_B(real B[], real r, real phi,
               + C[10] * (12*z*r3 - 8*z3*r)
               + C[11] * (-120*z*r3-160*z3*r*logr-80*z3*r+240*z*r3*logr);
     B[2] *= Bdata->psi_mult / (r * Bdata->R0 * Bdata->R0);
+
+    /* Ripple */
+    if(Bdata->Nripple > 0) {
+	r *= Bdata->R0;
+	z *= Bdata->R0;
+	real radius = sqrt( ( r - Bdata->R0 ) * ( r - Bdata->R0 )
+			    + ( z - Bdata->z0 ) * ( z - Bdata->z0 ));
+	real theta = atan2( z - Bdata->z0, r - Bdata->R0 );
+	real delta = Bdata->delta0 * exp(-0.5*theta*theta)
+	    * pow( radius / Bdata->a0, Bdata->alpha0 );
+	B[1] = B[1] * ( 1 + 5*delta * cos(Bdata->Nripple * phi) );
+	//printf("%le\n",z);
+    }
 }
 
 /**
@@ -366,6 +387,17 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
     B_dB[9] = B_dB[9] * Bdata->psi_mult / r - B_dB[8] / r;
     B_dB[10] = 0;
     B_dB[11] = -B_dB[1] - B_dB[0] / r;
+    
+    /* Ripple */
+    if(Bdata->Nripple > 0) {
+	real radius = sqrt( ( r - Bdata->R0 ) * ( r - Bdata->R0 )
+			    + ( z - Bdata->z0 ) * ( z - Bdata->z0 ));
+	real theta = atan2( z - Bdata->z0, r - Bdata->R0 );
+	real delta = Bdata->delta0 * exp(-0.5*theta*theta)
+	    * pow( radius / Bdata->a0, Bdata->alpha0 );
+
+	B_dB[4] = B_dB[4] * ( 1 + delta * cos(Bdata->Nripple * phi) );
+    }
 }
 
 real B_GS_get_axis_r(B_GS_data* Bdata) {

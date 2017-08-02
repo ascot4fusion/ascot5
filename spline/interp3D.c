@@ -143,22 +143,17 @@ void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
 		    str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+0];
 		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+1] = (1.0/(r_grid*r_grid))*
 		    2*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+2];
-		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+2] = (1.0/
-		    ((r_min+i_r*r_grid)*(r_min+i_r*r_grid)*phi_grid*phi_grid))*
+		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+2] = (1.0/(phi_grid*phi_grid))*
 		    2*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+32];
 		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+3] = (1.0/(z_grid*z_grid))*
 		    2*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+8];
-		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+4] = (1.0/(r_grid*r_grid*
-		    (r_min+i_r*r_grid)*(r_min+i_r*r_grid)*phi_grid*phi_grid))*
+		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+4] = (1.0/(r_grid*r_grid*phi_grid*phi_grid))*
 		    4*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+34];
-		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+5] = (1.0/(r_grid*r_grid*
-		    z_grid*z_grid))*
+		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+5] = (1.0/(r_grid*r_grid*z_grid*z_grid))*
 		    4*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+10];
-		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+6] = (1.0/((r_min+i_r*r_grid)*
-		    (r_min+i_r*r_grid)*phi_grid*phi_grid*z_grid*z_grid))*
+		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+6] = (1.0/(r_grid*r_grid*phi_grid*phi_grid*z_grid*z_grid))*
 		    4*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+40];
-		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+7] = (1.0/(r_grid*r_grid*
-		    (r_min+i_r*r_grid)*(r_min+i_r*r_grid)*phi_grid*phi_grid*
+		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+7] = (1.0/(r_grid*r_grid*phi_grid*phi_grid*
 		    z_grid*z_grid))*
 		    8*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+9+42];
 		
@@ -213,7 +208,7 @@ void interp3D_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
     real dri = 1.0-dr;
-    real dr3 = dr*dr*dr-dr;
+    real dr3 = dr*(dr*dr-1);
     real dri3 = (1.0-dr)*(1.0-dr)*(1.0-dr)-(1.0-dr);
     real rg2 = str->r_grid*str->r_grid;       /**< Square of cell length in r direction */
     int i_phi = (phi-str->phi_min)/str->phi_grid; /**< index for phi variable */

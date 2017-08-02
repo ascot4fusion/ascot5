@@ -327,11 +327,15 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
                            / (offload_data->n_r - 1);
     offload_data->z_grid = (offload_data->z_max - offload_data->z_min)
                            / (offload_data->n_z - 1);
-    offload_data->phi_grid = 2*math_pi / (offload_data->n_phi);
+    //offload_data->phi_grid = 2*math_pi / (offload_data->n_phi);
 
     /* phi array starts from -0.5*phi_grid and ends at 0.5*phi_grid + 2pi! */
-    offload_data->phi_min = -1.5 * offload_data->phi_grid;
-    offload_data->phi_max = 1.5 * offload_data->phi_grid + 2*math_pi;
+    //offload_data->phi_min = -1.5 * offload_data->phi_grid;
+    //offload_data->phi_max = 1.5 * offload_data->phi_grid + 2*math_pi;
+
+    offload_data->phi_grid = 2*math_pi / (offload_data->n_phi);
+    offload_data->phi_min = 0;
+    offload_data->phi_max = 2*math_pi;
 
     /* Allocate offload_array */
     int psi_size = offload_data->n_r*offload_data->n_z;
@@ -619,12 +623,19 @@ void hdf5_bfield_init_offload_TC(hid_t f, B_TC_offload_data* offload_data, real*
 void hdf5_bfield_init_offload_GS(hid_t f, B_GS_offload_data* offload_data, real** offload_array) {
     herr_t err;
 
+    /* Equilibrium */
     err = H5LTread_dataset_double(f,"/bfield/B_GS/R0",&(offload_data->R0));
     err = H5LTread_dataset_double(f,"/bfield/B_GS/z0",&(offload_data->z0));
     err = H5LTread_dataset_double(f,"/bfield/B_GS/B_phi0",&(offload_data->B_phi0));
     err = H5LTread_dataset_double(f,"/bfield/B_GS/psi0",&(offload_data->psi0));
     err = H5LTread_dataset_double(f,"/bfield/B_GS/psi1",&(offload_data->psi1));
     err = H5LTread_dataset_double(f,"/bfield/B_GS/psi_mult",&(offload_data->psi_mult));
+
+    /* Ripple */
+    err = H5LTread_dataset_double(f,"/bfield/B_GS/delta0",&(offload_data->delta0));
+    err = H5LTread_dataset_double(f,"/bfield/B_GS/alpha0",&(offload_data->alpha0));
+    err = H5LTread_dataset_double(f,"/bfield/B_GS/a0",&(offload_data->a0));
+    err = H5LTread_dataset_int(f,"/bfield/B_GS/Nripple",&(offload_data->Nripple));
 
     offload_data->offload_array_length = 13;
 

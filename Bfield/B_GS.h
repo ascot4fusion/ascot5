@@ -16,6 +16,10 @@ typedef struct {
     real psi0;                  /**< sqrt(psi) value at magnetic axis */
     real psi1;                  /**< sqrt(psi) value at separatrix */
     real psi_mult;              /**< psi multiplier */
+    int Nripple;                /**< Number of toroidal field coils */
+    real a0;                    /**< minor radius */
+    real alpha0;                /**< ripple r-dependency (delta ~ (r/a0)^alpha0) */
+    real delta0;                /**< ripple strength */
     int offload_array_length;   /**< number of elements in offload_array */
 } B_GS_offload_data;
 
@@ -29,6 +33,10 @@ typedef struct {
     real psi0;          /**< sqrt(psi) value at magnetic axis */
     real psi1;          /**< sqrt(psi) value at separatrix */
     real psi_mult;      /**< psi multiplier */
+    int Nripple;        /**< Number of toroidal field coils */
+    real a0;            /**< minor radius */
+    real alpha0;        /**< ripple r-dependency (delta ~ (r/a0)^alpha0) */
+    real delta0;        /**< ripple strength */
     real *psi_coeff;    /**< Coefficients for the psi function components */
 } B_GS_data;
 
