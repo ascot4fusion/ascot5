@@ -112,7 +112,8 @@ def Ekin2velocity(mass,Ekin):
 def write_particles(fn, data):
     if 'vphi' in data['fieldNames']:
         # We have particles
-        markers.write_hdf5_particles(fn, data["id"], data["mass"], data["charge"], data["R_prt"], data["phi_prt"], data["z_prt"], data["v_R"], data["v_phi"], data["v_z"], data["weight"], data["time"])
+        data = data["fields"]
+        markers.write_hdf5_particles(fn, data["id"], data["mass"], data["charge"], data["Rprt"], data["phiprt"], data["zprt"], data["vR"], data["vphi"], data["vz"], data["weight"], data["weight"]*0)
     elif 'energy' in data['fieldNames']:
         # We have guiding centers
-        markers.write_hdf5_guidingcenters(fn, data["id"], data["mass"], data["charge"], data["R"], data["phi"], data["z"], data["energy"], data["pitch"], data["theta"]*0, data["weight"], data["time"])
+        markers.write_hdf5_guidingcenters(fn, data["id"], data["mass"], data["charge"], data["R"], data["phi"], data["z"], data["energy"], data["pitch"], data["theta"]*0, data["weight"], data["weight"]*0)

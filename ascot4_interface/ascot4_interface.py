@@ -23,7 +23,8 @@ def main():
             data = read_particles(fname)
             if 'markers' in f:
                 del f['markers']
-            write_particles(f, data)
+            #f.close()
+            write_particles(h5file, data)
 
     #TODO inputs for all kinds of different ASCOT4 magn_bkg
     # at least 2D and 3D
