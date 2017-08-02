@@ -112,8 +112,6 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 	    p0.cputime[i]    = p.cputime[i];
 	    p0.rho[i]        = p.rho[i];
 	    p0.weight[i]     = p.weight[i];
-	    p0.cputime[i]    = p.cputime[i]; 
-	    p0.rho[i]        = p.rho[i];      
 	    p0.pol[i]        = p.pol[i]; 
 
 	    p0.running[i]    = p.running[i];
@@ -130,7 +128,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 
 	    p0.B_phi_dr[i]   = p.B_phi_dr[i];
 	    p0.B_phi_dphi[i] = p.B_phi_dphi[i];
-	    p0.B_phi_dz[i]   = p.B_z_dz[i];
+	    p0.B_phi_dz[i]   = p.B_phi_dz[i];
 
 	    p0.B_z_dr[i]     = p.B_z_dr[i];
 	    p0.B_z_dphi[i]   = p.B_z_dphi[i];
@@ -161,40 +159,38 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 	for(i = 0; i < NSIMD; i++) {
 	    /* Retrieve marker states in case time step was rejected */
 	    if(hnext[i] < 0){
-	    p.r[i]          = p0.r[i];
-	    p.phi[i]        = p0.phi[i];
-	    p.z[i]          = p0.z[i];
-	    p.pitch[i]      = p0.pitch[i];
+		p.r[i]          = p0.r[i];
+		p.phi[i]        = p0.phi[i];
+		p.z[i]          = p0.z[i];
+		p.pitch[i]      = p0.pitch[i];
 
-	    p.time[i]       = p0.time[i];
-	    p.cputime[i]    = p0.cputime[i];
-	    p.rho[i]        = p0.rho[i];
-	    p.weight[i]     = p0.weight[i];
-	    p.cputime[i]    = p0.cputime[i]; 
-	    p.rho[i]        = p0.rho[i];      
-	    p.pol[i]        = p0.pol[i]; 
+		p.time[i]       = p0.time[i];
+		p.cputime[i]    = p0.cputime[i];
+		p.rho[i]        = p0.rho[i];
+		p.weight[i]     = p0.weight[i];
+		p.pol[i]        = p0.pol[i]; 
 
-	    p.running[i]    = p0.running[i];
-	    p.endcond[i]    = p0.endcond[i];
-	    p.walltile[i]   = p0.walltile[i];
+		p.running[i]    = p0.running[i];
+		p.endcond[i]    = p0.endcond[i];
+		p.walltile[i]   = p0.walltile[i];
 
-	    p.B_r[i]        = p0.B_r[i];
-	    p.B_phi[i]      = p0.B_phi[i];
-	    p.B_z[i]        = p0.B_z[i];
+		p.B_r[i]        = p0.B_r[i];
+		p.B_phi[i]      = p0.B_phi[i];
+		p.B_z[i]        = p0.B_z[i];
 
-	    p.B_r_dr[i]     = p0.B_r_dr[i];
-	    p.B_r_dphi[i]   = p0.B_r_dphi[i];
-	    p.B_r_dz[i]     = p0.B_r_dz[i];
+		p.B_r_dr[i]     = p0.B_r_dr[i];
+		p.B_r_dphi[i]   = p0.B_r_dphi[i];
+		p.B_r_dz[i]     = p0.B_r_dz[i];
 
-	    p.B_phi_dr[i]   = p0.B_phi_dr[i];
-	    p.B_phi_dphi[i] = p0.B_phi_dphi[i];
-	    p.B_phi_dz[i]   = p0.B_z_dz[i];
+		p.B_phi_dr[i]   = p0.B_phi_dr[i];
+		p.B_phi_dphi[i] = p0.B_phi_dphi[i];
+		p.B_phi_dz[i]   = p0.B_phi_dz[i];
 
-	    p.B_z_dr[i]     = p0.B_z_dr[i];
-	    p.B_z_dphi[i]   = p0.B_z_dphi[i];
-	    p.B_z_dz[i]     = p0.B_z_dz[i];
+		p.B_z_dr[i]     = p0.B_z_dr[i];
+		p.B_z_dphi[i]   = p0.B_z_dphi[i];
+		p.B_z_dz[i]     = p0.B_z_dz[i];
 
-	    hin[i] = -hnext[i];
+		hin[i] = -hnext[i];
 		    
 	    }
 	    else{

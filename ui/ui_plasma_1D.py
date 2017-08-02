@@ -2,11 +2,13 @@ import h5py
 import numpy as np
 
 def write_hdf5(fn, znum, anum, rho, ndens, ntemp, edens, etemp, idens, itemp):
+    
+
     f = h5py.File(fn, "a")
 
     o = f.create_group('plasma')
 
-    o.attrs["type"] = np.string_("p1d");
+    o.attrs["type"] = np.string_("p1d")
 
     f.create_dataset('plasma/Z_num', data=znum)
     f.create_dataset('plasma/A_mass', data=anum)

@@ -78,11 +78,12 @@ psicoef = np.array([8.629491085780416348e-02, 3.279306587723925803e-01, 5.268677
 ui_options.writeHdf5(options,fn)
 #ui_B_TC.write_hdf5(fn, B0, B_dB, axisr, axisz, psival, rhoval)
 #ui_B_GS.write_hdf5(fn, axisr, axisz, B_phi0, psi0, psi1, psimult, psicoef) 
-ui_B_GS.write_hdf5_B_2D(fn, axisr, axisz, B_phi0, psimult, psicoef, np.array([3.9, 8.9, 400]), np.array([-5.0, 5.0, 800])) 
+ui_B_GS.write_hdf5(fn, axisr, axisz, B_phi0, psi0, psi1, psimult, psicoef,Nripple=18,a0=2,delta0=0.05,alpha0=3.8) 
+#ui_B_GS.write_hdf5_B_2D(fn, axisr, axisz, B_phi0, psimult, psicoef, np.array([3.9, 8.9, 400]), np.array([-5.0, 5.0, 800])) 
 ui_E_TC.write_hdf5(fn, E) 
 ui_plasma_1D.write_hdf5(fn, Znum, Anum, rho, ndens, ntemp, edens, etemp, idens, itemp)
 ui_wall_2D.write_hdf5(fn, wr, wz)
-#ui_markers.write_hdf5_particles(fn, ids, mass, charge, rprt, phiprt, zprt, vr, vphi, vz, weight, time);
+ui_markers.write_hdf5_particles(fn, ids, mass, charge, rprt, phiprt, zprt, vr, vphi, vz, weight, time);
 #ui_markers.write_hdf5_guidingcenters(fn, ids+1, mass, charge, r, phi, z, energy, pitch, theta, weight, time);
 #ui_markers.write_hdf5_fieldlines(fn, ids+1, r, phi, z, mlpitch, weight, time);   
 

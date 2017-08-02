@@ -59,6 +59,7 @@ def read_2d(fh):
 def write_plasma_1d(f, p):
 
     f.create_group('plasma')
+    f['plasma'].attrs["type"] = np.string_("p1d")
     f.create_dataset('plasma/Z_num', data=p['znum'])
     f.create_dataset('plasma/A_mass', data=p['anum'])
     f['plasma'].attrs['n_ions'] = p['nion']
@@ -68,10 +69,10 @@ def write_plasma_1d(f, p):
     f.create_dataset('plasma/1D/rho', data=p['rho'])
     f.create_dataset('plasma/1D/temp_0', data=np.zeros(p['rho'].shape))
     f.create_dataset('plasma/1D/dens_0', data=np.zeros(p['rho'].shape))
-    f.create_dataset('plasma/1D/temp_e', data=p['te'])
+    f.create_dataset('plasma/1D/temp_e', data=p['te']*8.6173e-05)
     f.create_dataset('plasma/1D/dens_e', data=p['ne'])
-    f.create_dataset('plasma/1D/temp_i', data=p['ti1'])
+    f.create_dataset('plasma/1D/temp_i', data=p['ti1']*8.6173e-05)
     dens_i = np.array([p['ni'+str(i)] for i in range(1,p['nion']+1)])
-    f.create_dataset('plasma/1D/dens_i', data=dens_i)
+    f.create_dataset('plasma/1D/dens_i', data=np.transpose(dens_i))
     f['plasma/1D'].attrs['n_rho'] = p['nrho']
 

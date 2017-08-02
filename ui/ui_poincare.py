@@ -7,7 +7,7 @@ def populate(fn, Rmin, Rmax, z0, N):
     ids    = np.arange(0,N) + 1
     r      = np.linspace(Rmin,Rmax,num=N)
     z      = np.ones(N)*z0
-    phi    = np.ones(N)*0
+    phi    = np.ones(N)*0 +10
     pitch  = np.ones(N)
     weight = np.ones(N)
     time   = np.ones(N)*0
@@ -15,8 +15,8 @@ def populate(fn, Rmin, Rmax, z0, N):
 
 if __name__ == "__main__":
     fn   = "ascot.h5"
-    Rmin = 6.2
-    Rmax = 8
+    Rmin = 6.3
+    Rmax = 8.1
     z0   = 0.6
     N    = 100
     populate(fn,Rmin,Rmax,z0,N)
