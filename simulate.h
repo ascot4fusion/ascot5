@@ -20,6 +20,9 @@ typedef struct {
     char hdf5_in[256];
     char hdf5_out[256];
 
+    int mpi_rank;
+    int mpi_size;
+
     B_field_offload_data B_offload_data;
     E_field_offload_data E_offload_data;
     plasma_1d_offload_data plasma_offload_data;
