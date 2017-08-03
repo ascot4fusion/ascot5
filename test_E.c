@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
                 B_field_eval_rho_drho(rho, r[i], phi[j], z[k], &Bdata);
                 /* Correct Jacobian */
                 rho[2] = rho[2]/r[i];
-                E_field_eval_E(E, rho, &Edata);
+                E_field_eval_E(E, r[i], phi[j], z[k], &Edata, &Bdata);
                 printf("%le %le %le %le ", rho[0], rho[1], rho[2], rho[3]);
                 printf("%le %le %le\n", E[0], E[1], E[2]);
             }
