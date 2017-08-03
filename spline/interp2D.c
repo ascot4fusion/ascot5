@@ -209,74 +209,74 @@ void interp2D_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     /* f */
     B_dB[0] = (
 	      dri*(dzi*str->c[n]+dz*str->c[n+z1])+
-	      dr*(dzi*str->c[n+4]+dz*str->c[n+z1+4]))
+	      dr*(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
 	+rg2/6*(
 		dri3*(dzi*str->c[n+1] + dz*str->c[n+z1+1])+
-		dr3*(dzi*str->c[n+4+1] + dz*str->c[n+z1+4+1]))
+		dr3*(dzi*str->c[n+r1+1] + dz*str->c[n+z1+r1+1]))
 	+zg2/6*(
 		dri*(dzi3*str->c[n+2]+dz3*str->c[n+z1+2])+
-		dr*(dzi3*str->c[n+4+2]+dz3*str->c[n+z1+4+2]))
+		dr*(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
 	+rg2*zg2/36*(
 		     dri3*(dzi3*str->c[n+3]+dz3*str->c[n+z1+3])+
-		     dr3*(dzi3*str->c[n+4+3]+dz3*str->c[n+z1+4+3]));
+		     dr3*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
 
     /* df/dr */
     B_dB[1] = rgi*(
 		  -(dzi*str->c[n]  +dz*str->c[n+z1])
-		  +(dzi*str->c[n+4]+dz*str->c[n+z1+4]))
+		  +(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
 	+rg/6*(
 	       dri3dr*(dzi*str->c[n+1]  +dz*str->c[n+z1+1])+
-	       dr3dr*(dzi*str->c[n+4+1]+dz*str->c[n+z1+4+1]))
+	       dr3dr*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
 	+rgi*zg2/6*(
 		    -(dzi3*str->c[n+2]  +dz3*str->c[n+z1+2])
-		    +(dzi3*str->c[n+4+2]+dz3*str->c[n+z1+4+2]))
+		    +(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
 	+rg*zg2/36*(
 		    dri3dr*(dzi3*str->c[n+3]  +dz3*str->c[n+z1+3])+
-		    dr3dr*(dzi3*str->c[n+4+3]+dz3*str->c[n+z1+4+3]));
+		    dr3dr*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
 
     /* df/dz */
     B_dB[2] = zgi*(
 		  dri*(-str->c[n]  +str->c[n+z1])+
-		  dr*(-str->c[n+4]+str->c[n+z1+4]))
+		  dr*(-str->c[n+r1]+str->c[n+z1+r1]))
 	+rg2*zgi/6*(
                     dri3*(-str->c[n+1]  +str->c[n+z1+1])+
-                    dr3*(-str->c[n+4+1]+str->c[n+z1+4+1]))
+                    dr3*(-str->c[n+r1+1]+str->c[n+z1+r1+1]))
 	+zg/6*(
 	       dri*(dzi3dz*str->c[n+2]  +dz3dz*str->c[n+z1+2])+
-	       dr*(dzi3dz*str->c[n+4+2]+dz3dz*str->c[n+z1+4+2]))
+	       dr*(dzi3dz*str->c[n+r1+2]+dz3dz*str->c[n+z1+r1+2]))
 	+rg2*zg/36*(
                     dri3*(dzi3dz*str->c[n+3]  +dz3dz*str->c[n+z1+3])+
-                    dr3*(dzi3dz*str->c[n+4+3]+dz3dz*str->c[n+z1+4+3]));
+                    dr3*(dzi3dz*str->c[n+r1+3]+dz3dz*str->c[n+z1+r1+3]));
 
     /* d2f/dr2 */
     B_dB[3] = (
 	      dri*(dzi*str->c[n+1]  +dz*str->c[n+z1+1])+
-	      dr*(dzi*str->c[n+4+1]+dz*str->c[n+z1+4+1]))
+	      dr*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
 	+zg2/6*(
 		dri*(dzi3*str->c[n+3]  +dz3*str->c[n+z1+3])+
-		dr*(dzi3*str->c[n+4+3]+dz3*str->c[n+z1+4+3]));
+		dr*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
 
     /* d2f/dz2 */
     B_dB[4] = (
 	      dri*(dzi*str->c[n+2]  +dz*str->c[n+z1+2])+
-	      dr*(dzi*str->c[n+4+2]+dz*str->c[n+z1+4+2]))
+	      dr*(dzi*str->c[n+r1+2]+dz*str->c[n+z1+r1+2]))
 	+rg2/6*(
 	    dri3*(dzi*str->c[n+3]  +dz*str->c[n+z1+3])+
-	    dr3*(dzi*str->c[n+4+3]+dz*str->c[n+z1+4+3]));
+	    dr3*(dzi*str->c[n+r1+3]+dz*str->c[n+z1+r1+3]));
 
     /* d2f/dzdr */
     B_dB[5] = rgi*zgi*(
 		      str->c[n]  -str->c[n+z1]
-		      -str->c[n+4]+str->c[n+z1+4])
+		      -str->c[n+r1]+str->c[n+z1+r1])
 	+rg/6*zgi*(
 		   dri3dr*(-str->c[n+1]  +str->c[n+z1+1])+
-		   dr3dr*(-str->c[n+4+1]+str->c[n+z1+4+1]))
+		   dr3dr*(-str->c[n+r1+1]+str->c[n+z1+r1+1]))
 	+rgi/6*zg*(
 		   -(dzi3dz*str->c[n+2]  +dz3dz*str->c[n+z1+2])
-		   +(dzi3dz*str->c[n+4+2]+dz3dz*str->c[n+z1+4+2]))
+		   +(dzi3dz*str->c[n+r1+2]+dz3dz*str->c[n+z1+r1+2]))
 	+rg*zg/36*(
 		   dri3dr*(dzi3dz*str->c[n+3]  +dz3dz*str->c[n+z1+3])+
-		   dr3dr*(dzi3dz*str->c[n+4+3]+dz3dz*str->c[n+z1+4+3]));
+		   dr3dr*(dzi3dz*str->c[n+r1+3]+dz3dz*str->c[n+z1+r1+3]));
 }
 
 /**

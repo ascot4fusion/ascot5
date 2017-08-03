@@ -356,7 +356,7 @@ void interp3D_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) 
     if(i_phi==str->n_phi-1) {
 	phi1 = -(str->n_phi-1)*phi1;            /**< If last cell, index jump to 1st phi */
     }
-    int z1 = str->n_r*8; str->n_r*4;            /**< Index jump one z forward */
+    int z1 = str->n_r*8;                        /**< Index jump one z forward */
 
     /* f */
     B_dB[0] = (
