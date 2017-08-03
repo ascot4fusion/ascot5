@@ -126,7 +126,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
 	    p0.B_phi_dr[i]   = p.B_phi_dr[i];
 	    p0.B_phi_dphi[i] = p.B_phi_dphi[i];
-	    p0.B_phi_dz[i]   = p.B_z_dz[i];
+	    p0.B_phi_dz[i]   = p.B_phi_dz[i];
 
 	    p0.B_z_dr[i]     = p.B_z_dr[i];
 	    p0.B_z_dphi[i]   = p.B_z_dphi[i];
