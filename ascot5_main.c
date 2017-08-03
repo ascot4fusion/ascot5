@@ -34,6 +34,8 @@ int read_options(int argc, char** argv, sim_offload_data* sim);
 int main(int argc, char** argv) {
     /* Prepare simulation parameters and data for offload */
     sim_offload_data sim;
+    sim.mpi_rank = 0;
+    sim.mpi_size = 1;
     real* B_offload_array;
     real* E_offload_array;
     real* plasma_offload_array;
@@ -82,8 +84,8 @@ int main(int argc, char** argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
     #else
-    mpi_rank = 0;
-    mpi_size = 1;
+    mpi_rank = sim.mpi_rank;
+    mpi_size = sim.mpi_size;
     #endif
     
     #if VERBOSE >= 1
@@ -238,6 +240,8 @@ int read_options(int argc, char** argv, sim_offload_data* sim) {
     struct option longopts[] = {
         {"in", required_argument, 0, 1},
         {"out", required_argument, 0, 2},
+	{"mpi_size", required_argument, 0, 3},
+	{"mpi_rank", required_argument, 0, 4},
         {0, 0, 0, 0}
     };
 
@@ -251,29 +255,37 @@ int read_options(int argc, char** argv, sim_offload_data* sim) {
             strcpy(sim->hdf5_in, optarg);
             break;
         case 2:
-                strcpy(sim->hdf5_out, optarg);
-                break;
+	    strcpy(sim->hdf5_out, optarg);
+	    break;
+	case 3:
+	    sim->mpi_size = atoi(optarg);
+	    break;
+	case 4:
+	    sim->mpi_rank = atoi(optarg);
+	    break;
         default:
-        printf("\nUnrecognized option. The valid parameters are:\n");
-        printf("-in hdf5 input file (default ascot)\n");
-        printf("-out hdf5 output file (default same as input)\n");
-        abort();
+	    printf("\nUnrecognized option. The valid parameters are:\n");
+	    printf("-in hdf5 input file (default ascot)\n");
+	    printf("-out hdf5 output file (default same as input)\n");
+	    printf("-mpi_size \n");
+	    printf("-mpi_rank \n");
+	    abort();
         }
     }
     
     if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] == '\0') {
-    strcpy(sim->hdf5_in, "ascot.h5");
-    strcpy(sim->hdf5_out, "ascot");
+	strcpy(sim->hdf5_in, "ascot.h5");
+	strcpy(sim->hdf5_out, "ascot");
     }
     else if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] != '\0') {
-    strcpy(sim->hdf5_in, "ascot.h5");
+	strcpy(sim->hdf5_in, "ascot.h5");
     }
     else if(sim->hdf5_in[0] != '\0' && sim->hdf5_out[0] == '\0') {
-    strcpy(sim->hdf5_out, sim->hdf5_in);
-    strcat(sim->hdf5_in, ".h5");
+	strcpy(sim->hdf5_out, sim->hdf5_in);
+	strcat(sim->hdf5_in, ".h5");
     }
     else {
-    strcat(sim->hdf5_in, ".h5");
+	strcat(sim->hdf5_in, ".h5");
     }
     
     return 0;
