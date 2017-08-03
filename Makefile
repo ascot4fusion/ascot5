@@ -87,7 +87,8 @@ OBJS= math.o consts.o  \
 	$(HDF5IOOBJS) \
     offload.c \
 	spline/interp2D.o spline/interp3D.o spline/spline1D.o \
-	spline/interp2Dexpl.o spline/interp3Dexpl.o
+	spline/interp2Dexpl.o spline/interp3Dexpl.o \
+	spline/interp2Dcomp.o spline/interp3Dcomp.o spline/spline1Dcomp.o \
 
 BINS=test_math \
 	 test_wall_2d test_ascot4_interface test_plasma_1d \
