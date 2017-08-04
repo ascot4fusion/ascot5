@@ -168,8 +168,7 @@ void B_GS_eval_B(real B[], real r, real phi,
 	real theta = atan2( z - Bdata->z0, r - Bdata->R0 );
 	real delta = Bdata->delta0 * exp(-0.5*theta*theta)
 	    * pow( radius / Bdata->a0, Bdata->alpha0 );
-	B[1] = B[1] * ( 1 + 5*delta * cos(Bdata->Nripple * phi) );
-	//printf("%le\n",z);
+	B[1] = B[1] * ( 1 + delta * cos(Bdata->Nripple * phi) );
     }
 }
 
@@ -210,21 +209,22 @@ void B_GS_eval_psi(real psi[], real r, real phi, real z,
     double z6 = z5*z;
     double logr = log(r);
 
-    psi[0] = (1-C[12]) * (r4/8)
-                + C[12] * (r2*logr/2)
-                + C[0]  * (1)
-                + C[1]  * (r2)
-                + C[2]  * (r2*logr - z2)
-                + C[3]  * (r4 - 4*r2*z2)
-                + C[4]  * (3*r4*logr - 9*r2*z2 - 12*r2*logr*z2 + 2*z4)
-                + C[5]  * (r6 - 12*r4*z2 + 8*r2*z4)
-                + C[6]  * (8*z6 - 140*r2*z4 - 120*r2*logr*z4 + 180*r4*logr*z2
-                           + 75*r4*z2 - 15*r6*logr)
-                + C[7]  * (z)
-                + C[8]  * (z*r2)
-                + C[9]  * (z3 - 3*z*r2*logr)
-                + C[10] * (3*z*r4 - 4*z3*r2)
-                + C[11] * (8*z5 - 45*z*r4 - 80*z3*r2*logr + 60*z*r4*logr);
+    psi[0] = Bdata->psi_mult * (
+	(1-C[12]) * (r4/8)
+	+ C[12] * (r2*logr/2)
+	+ C[0]  * (1)
+	+ C[1]  * (r2)
+	+ C[2]  * (r2*logr - z2)
+	+ C[3]  * (r4 - 4*r2*z2)
+	+ C[4]  * (3*r4*logr - 9*r2*z2 - 12*r2*logr*z2 + 2*z4)
+	+ C[5]  * (r6 - 12*r4*z2 + 8*r2*z4)
+	+ C[6]  * (8*z6 - 140*r2*z4 - 120*r2*logr*z4 + 180*r4*logr*z2
+		   + 75*r4*z2 - 15*r6*logr)
+	+ C[7]  * (z)
+	+ C[8]  * (z*r2)
+	+ C[9]  * (z3 - 3*z*r2*logr)
+	+ C[10] * (3*z*r4 - 4*z3*r2)
+	+ C[11] * (8*z5 - 45*z*r4 - 80*z3*r2*logr + 60*z*r4*logr) );
 }
 
 /**
@@ -396,7 +396,17 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
 	real delta = Bdata->delta0 * exp(-0.5*theta*theta)
 	    * pow( radius / Bdata->a0, Bdata->alpha0 );
 
-	B_dB[4] = B_dB[4] * ( 1 + delta * cos(Bdata->Nripple * phi) );
+	real Bphi = B_dB[4];
+	B_dB[4] = Bphi * ( 1 + delta * cos(Bdata->Nripple * phi) );
+	B_dB[6] += - Bphi * delta * Bdata->Nripple * sin(Bdata->Nripple * phi);
+
+	real dBdr = Bphi * Bdata->a0 * delta * cos(Bdata->Nripple * phi) /
+	    (radius * Bdata->alpha0);
+	real dBdtheta = - theta * Bphi * delta * cos(Bdata->Nripple * phi);
+
+	B_dB[5] += ( (r - Bdata->R0) /radius) * dBdr + (-(z - Bdata->z0) /(radius*radius)) * dBdtheta;
+	B_dB[7] += ( (z - Bdata->z0) /radius) * dBdr + ( (r - Bdata->R0) /(radius*radius)) * dBdtheta;
+
     }
 }
 

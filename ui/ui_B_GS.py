@@ -1,6 +1,7 @@
 import numpy as np
 import h5py
 import ui_B_2D
+import ui_B_3D
 import analyticBKGpsifun as psifun
 import matplotlib.pyplot as plt
 
@@ -91,7 +92,7 @@ def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, rgrid, zgrid):
 
     ui_B_2D.write_hdf5(fn, rlim, zlim, psirz, Br, Bphi, Bz, axisRz, psivals)
 
-def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, Nripple, a0, alpha0, delta0, rgrid, zgrid, phigrid):
+def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, Nripple, a0, alpha0, delta0, rgrid, zgrid, n_phi):
     """Write analytical tokamak magnetic field as a 3D field input in hdf5 file.
 
     Keyword arguments:
@@ -119,13 +120,24 @@ def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, Nripple, a0, alpha0
     c = psi_coeff
     psirz = psi_mult*psifun.psi0(Rg/R0,zg/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12])
 
-    Br = np.zeros((n_z,n_r))
-    Bz = np.zeros((n_z,n_r))
-    Bphi = (R0/Rg)*B_phi0
+    Br = np.zeros((n_z,n_r,n_phi))
+    Bz = np.zeros((n_z,n_r,n_phi))
+    Bphi = np.zeros((n_z,n_r,n_phi))
 
     axisRz = np.array([R0, z0])
     axispsi = psi_mult*psifun.psi0(R0/R0,z0/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12])
     psivals = np.array([axispsi, 0.0])
 
-    ui_B_2D.write_hdf5(fn, rlim, zlim, psirz, Br, Bphi, Bz, axisRz, psivals)
+    radius = np.sqrt( ( Rg - R0 ) * ( Rg - R0 ) + ( zg - z0 ) * ( zg - z0 ))
+    theta = np.arctan2( zg - z0, Rg - R0 )
+    delta = delta0 * np.exp(-0.5*theta*theta) * np.power( radius / a0, alpha0 )
+
+    phigrid = np.linspace(0,2*np.pi,n_phi+1)
+    phigrid = phigrid[0:-1]
+
+    for i in range(0,n_phi):
+        Bphi[:,:,i] = ((R0/Rg)*B_phi0 * ( 1 + delta * np.cos(Nripple * phigrid[i]) ))
+
+    Bphi = np.transpose(Bphi,(0,2,1))
+    ui_B_3D.write_hdf5(fn, rlim, zlim, n_phi, psirz, Br, Bphi, Bz, axisRz, psivals)
     
