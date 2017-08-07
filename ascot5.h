@@ -105,6 +105,6 @@ typedef double real;
 
 /** @brief Choose whether magnetic field spline interpolation is done
  *  with an explicit (1) or compact (0) way*/
-#define INTERP_SPL_EXPL 1
+#define INTERP_SPL_EXPL 0
 
 #endif
