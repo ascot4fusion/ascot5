@@ -213,7 +213,6 @@ void interp3Dexpl_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real
     phi = fmod(phi,CONST_2PI);
     if(phi < 0){phi = CONST_2PI - phi;}
 
-    real ri = 1/r;
     int i_r = (r-str->r_min)/str->r_grid;
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
     real dr2 = dr*dr;

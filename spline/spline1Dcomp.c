@@ -90,13 +90,13 @@ void spline1Dcomp(real* f, int n, int bc, real* c) {
 	}
 	/* Free allocated memory */
 	free(r);
-	/* Period-closing spline coefficients */
-	c[(n-1)*2] = f[n-1];
-	c[(n-1)*2+1] = D[n-1];
     }
 
-    /* Store solved spline coefficients */
-    for(i=0; i<n-1; i++) {
+    /* Store solved spline coefficients. With compact we store all the way to n,
+       because evaluation requires it. This also means that the periodic bc
+       clause (above) doesn't need a separate code segment for storage of period-closing
+       spline coefficients, like with the explicit algorithm. */
+    for(i=0; i<n; i++) {
 	c[i*2] = f[i];
 	c[i*2+1] = D[i];
     }

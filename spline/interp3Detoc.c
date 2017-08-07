@@ -1,5 +1,5 @@
 /**
- * @file interp3D.c
+ * @file interp3Detoc.c
  * @brief Tricubic spline interpolation, i.e. cubic spline interpolation of 3D scalar data
  */
 #include <stdlib.h>
@@ -7,7 +7,7 @@
 #include <math.h>
 #include "../ascot5.h"
 #include "../consts.h"
-#include "interp3D.h"
+#include "interp3Detoc.h"
 #include "spline1D.h"
 
 /**
@@ -32,10 +32,10 @@
  * @param z_min minimum value of the z axis
  * @param z_max maximum value of the z axis
  */
-void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
-		   real r_min, real r_max, real r_grid,
-		   real phi_min, real phi_max, real phi_grid,
-		   real z_min, real z_max, real z_grid) {
+void interp3Detoc_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
+		       real r_min, real r_max, real r_grid,
+		       real phi_min, real phi_max, real phi_grid,
+		       real z_min, real z_max, real z_grid) {
 
     /* Initialize and fill the data struct */
     str->n_r = n_r;
@@ -151,11 +151,11 @@ void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
 		    4*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+34];
 		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+5] = (1.0/(r_grid*r_grid*z_grid*z_grid))*
 		    4*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+10];
-		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+6] = (1.0/(phi_grid*phi_grid*z_grid*z_grid))*
+		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+6] = (1.0/(r_grid*r_grid*phi_grid*phi_grid*z_grid*z_grid))*
 		    4*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+40];
 		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+7] = (1.0/(r_grid*r_grid*phi_grid*phi_grid*
 		    z_grid*z_grid))*
-		    8*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+42];
+		    8*str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+9+42];
 		
 	    }
 	    cc[i_phi*n_z*n_r*8+i_z*n_r*8+(n_r-1)*8+0] = f[i_phi*n_z*n_r+i_z*n_r+n_r-1]; // From coefs?
@@ -188,7 +188,6 @@ void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
  * This function evaluates the interpolated value of a 3D scalar field using
  * tricubic spline interpolation coefficients of the compact form.
  * 
- * @todo Seg fault if in last phi-sector becaause of compact eval +1-coefs
  * @todo Check discrepency to ascot4 and explicit version
  * @todo Error checking
  *
@@ -198,7 +197,7 @@ void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
  * @param phi phi-coordinate
  * @param z z-coordinate
  */
-void interp3D_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
+void interp3Detoc_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
 
     /** Make sure phi is in interval [0,2pi) */
     phi = fmod(phi,CONST_2PI);
@@ -299,7 +298,6 @@ void interp3D_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
  * its 1st and 2nd derivatives using bicubic spline interpolation coefficients
  * of the compact form.
  * 
- * @todo Seg fault if in last phi-sector becaause of compact eval +1-coefs
  * @todo Check discrepency to ascot4 and explicit version
  * @todo Error checking
  *
@@ -309,7 +307,7 @@ void interp3D_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
  * @param phi phi-coordinate
  * @param z z-coordinate
  */
-void interp3D_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) {
+void interp3Detoc_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) {
     /** Make sure phi is in interval [0,2pi) */
     phi = fmod(phi,CONST_2PI);
     if(phi < 0){phi = CONST_2PI - phi;}
@@ -865,6 +863,6 @@ void interp3D_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) 
  *
  * @param str data struct for data interpolation
  */
-void interp3D_free(interp3D_data* str) {
+void interp3Detoc_free(interp3D_data* str) {
     free(str->c);
 }

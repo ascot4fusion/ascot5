@@ -1,20 +1,21 @@
 /**
- * @file interp2Dcomp.c
- * @brief Bicubic spline interpolation in compact form
+ * @file interp2Detoc.c
+ * @brief Bicubic spline interpolation, i.e. cubic spline interpolation of 2D scalar data
  */
 #include <stdlib.h>
 #include <stdio.h> /* Needed for printf debugging purposes */
 #include "../ascot5.h"
-#include "interp2Dcomp.h"
-#include "spline1Dcomp.h"
+#include "interp2Detoc.h"
+#include "spline1D.h"
 
 /**
  * @brief Calculate bicubic spline interpolation coefficients for scalar 2D data
  *
  * This function calculates the bicubic spline interpolation coefficients for
- * the given data and stores them in the data struct. Compact  cofficients are
- * calculated directly.
+ * the given data and stores them in the data struct. The explicit cofficients
+ * are first calculated and then compact coefficients are derived from these.
  * 
+ * @todo Directly calculate compact coefficients
  * @todo Error checking
  *
  * @param str data struct for data interpolation
@@ -26,7 +27,7 @@
  * @param z_min minimum value of the z axis
  * @param z_max maximum value of the z axis
  */
-void interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
+void interp2Detoc_init(interp2D_data* str, real* f, int n_r, int n_z,
 		       real r_min, real r_max, real r_grid,
 		       real z_min, real z_max, real z_grid) {
 
@@ -39,46 +40,49 @@ void interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
     str->z_min = z_min;
     str->z_max = z_max;
     str->z_grid = z_grid;
-    str->c = malloc(n_z*n_r*4*sizeof(real));
+    str->c = malloc(n_z*n_r*16*sizeof(real));
 
     /* Declare and allocate the needed variables */
-    int i_r;                                 /**< index for r variable */
-    int i_z;                                 /**< index for z variable */
-    real* f_r = malloc(n_r*sizeof(real));    /**< Temporary array for data along r */
-    real* f_z = malloc(n_z*sizeof(real));    /**< Temporary array for data along z */
-    real* c_r = malloc(n_r*2*sizeof(real));  /**< Temp array for coefficients along r */
-    real* c_z = malloc(n_z*2*sizeof(real));  /**< Temp array for coefficients along z */
+    int i_r;                                    /**< index for r variable */
+    int i_z;                                    /**< index for z variable */
+    int i_c;                                  /**< index for coefficient for data struct */
+    real* f_r = malloc(n_r*sizeof(real));       /**< Temporary array for data along r */
+    real* f_z = malloc(n_z*sizeof(real));       /**< Temporary array for data along z */
+    real* c_r = malloc((n_r-1)*4*sizeof(real)); /**< Temp array for coefficients along r */
+    real* c_z = malloc((n_z-1)*4*sizeof(real)); /**< Temp array for coefficients along z */
+    int i_s;                                 /**< index for spline regarding degree in r */
+    int i_ct;                                /**< index for coefficient array */
 
-    /* Bicubic spline surface over rz-grid. Note how we account for normalized grid. */
-    /* Cubic spline along r for each z to get frr */
+    /* Bicubic spline surface over rz-grid */
+    /* Cubic spline along r for each z */
     for(i_z=0; i_z<n_z; i_z++) {
 	for(i_r=0; i_r<n_r; i_r++) {
 	    f_r[i_r] = f[i_z*n_r+i_r];
 	}
-	spline1Dcomp(f_r,n_r,0,c_r);
-	for(i_r=0; i_r<n_r; i_r++) {
-	    str->c[i_z*n_r*4+i_r*4] = c_r[i_r*2];
-	    str->c[i_z*n_r*4+i_r*4+1] = c_r[i_r*2+1]/(r_grid*r_grid);
+	spline1D(f_r,n_r,0,c_r);
+	for(i_r=0; i_r<n_r-1; i_r++) {
+	    for(i_c=0; i_c<4; i_c++) {
+		i_ct = i_c;
+		str->c[i_z*n_r*16+i_r*16+i_c] = c_r[i_r*4+i_ct];
+	    }
 	}
     }
-
-    /* Two cubic splines along z for each r using f and frr */
-    for(i_r=0; i_r<n_r; i_r++) {
-	/* fzz */
-	for(i_z=0; i_z<n_z; i_z++) {
-	    f_z[i_z] =  f[i_z*n_r+i_r];
-	}
-	spline1Dcomp(f_z,n_z,0,c_z);
-	for(i_z=0; i_z<n_z; i_z++) {
-	    str->c[i_z*n_r*4+i_r*4+2] = c_z[i_z*2+1]/(z_grid*z_grid);
-	}
-	/* frrzz */
-	for(i_z=0; i_z<n_z; i_z++) {
-	    f_z[i_z] =  str->c[i_z*n_r*4+i_r*4+1];
-	}
-	spline1Dcomp(f_z,n_z,0,c_z);
-	for(i_z=0; i_z<n_z; i_z++) {
-	    str->c[i_z*n_r*4+i_r*4+3] = c_z[i_z*2+1]/(z_grid*z_grid);
+    
+    /* Four cubic splines along z for each r using four different data sets */
+    for(i_r=0; i_r<n_r-1; i_r++) {
+	/* s0, s1, s2, s3 */
+	for(i_s=0; i_s<4; i_s++) {
+	    for(i_z=0; i_z<n_z; i_z++) {
+		f_z[i_z] = str->c[i_z*n_r*16+i_r*16+i_s];
+	    }
+	    spline1D(f_z,n_z,0,c_z);
+	    for(i_z=0; i_z<n_z-1; i_z++) {
+		i_ct = 0;
+		for(i_c=i_s; i_c<16; i_c=i_c+4) {
+		    str->c[i_z*n_r*16+i_r*16+i_c] = c_z[i_z*4+i_ct];
+		    i_ct++;
+		}
+	    }
 	}
     }
 
@@ -87,6 +91,30 @@ void interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
     free(f_z);
     free(c_r);
     free(c_z);
+
+    /* Transform from explicit to compact */
+    real* cc = malloc(n_z*n_r*4*sizeof(real)); /**< Temporary coefficient array */
+    for(i_z=0; i_z<n_z-1; i_z++) {
+    	for(i_r=0; i_r<n_r-1; i_r++) {
+    	    cc[i_z*n_r*4+i_r*4]   = str->c[i_z*n_r*16+i_r*16];
+    	    cc[i_z*n_r*4+i_r*4+1] = (1.0/(r_grid*r_grid))*2*str->c[i_z*n_r*16+i_r*16+2];
+    	    cc[i_z*n_r*4+i_r*4+2] = (1.0/(z_grid*z_grid))*2*str->c[i_z*n_r*16+i_r*16+8];
+	    cc[i_z*n_r*4+i_r*4+3] = (1.0/(r_grid*r_grid*z_grid*z_grid))*
+		                    4*str->c[i_z*n_r*16+i_r*16+10];
+    	}
+    	cc[i_z*n_r*4+(n_r-1)*4]   = f[i_z*n_r+n_r-1];
+    	cc[i_z*n_r*4+(n_r-1)*4+1] = 0;
+    	cc[i_z*n_r*4+(n_r-1)*4+2] = 0; // Is this correct?
+    	cc[i_z*n_r*4+(n_r-1)*4+3] = 0;
+    }
+    for(i_r=0; i_r<n_r; i_r++) {
+    	cc[(n_z-1)*n_r*4+i_r*4]   = f[(n_z-1)*n_r+i_r];
+    	cc[(n_z-1)*n_r*4+i_r*4+1] = 0; // Is this correct?
+    	cc[(n_z-1)*n_r*4+i_r*4+2] = 0;
+    	cc[(n_z-1)*n_r*4+i_r*4+3] = 0;
+    }
+    free(str->c);
+    str->c = cc; // How to free cc?
 }
 
 /**
@@ -103,7 +131,7 @@ void interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
  * @param r r-coordinate
  * @param z z-coordinate
  */
-void interp2Dcomp_eval_B(real* B, interp2D_data* str, real r, real z) {
+void interp2Detoc_eval_B(real* B, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid; /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
@@ -151,7 +179,7 @@ void interp2Dcomp_eval_B(real* B, interp2D_data* str, real r, real z) {
  * @param r r-coordinate
  * @param z z-coordinate
  */
-void interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
+void interp2Detoc_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid;                   /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
@@ -231,10 +259,10 @@ void interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     /* d2f/dz2 */
     B_dB[4] = (
 	      dri*(dzi*str->c[n+2]  +dz*str->c[n+z1+2])+
-	      dr*(dzi*dzi3*str->c[n+r1+2]+dz*str->c[n+z1+r1+2]))
-	+(rg2/6)*(
-		dri3*(dzi*str->c[n+3]  +dz*str->c[n+z1+3])+
-		dr3*(dzi*str->c[n+r1+3]+dz*str->c[n+z1+r1+3]));
+	      dr*(dzi*str->c[n+r1+2]+dz*str->c[n+z1+r1+2]))
+	+rg2/6*(
+	    dri3*(dzi*str->c[n+3]  +dz*str->c[n+z1+3])+
+	    dr3*(dzi*str->c[n+r1+3]+dz*str->c[n+z1+r1+3]));
 
     /* d2f/dzdr */
     B_dB[5] = rgi*zgi*(
@@ -261,6 +289,6 @@ void interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
  *
  * @param str data struct for data interpolation
  */
-void interp2Dcomp_free(interp2D_data* str) {
+void interp2Detoc_free(interp2D_data* str) {
     free(str->c);
 }

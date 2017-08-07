@@ -5,21 +5,7 @@
 #ifndef INTERP2DCOMP_H
 #define INTERP2DCOMP_H
 #include "../ascot5.h"
-
-/**
- * @brief Interpolation struct bla bla
- */
-typedef struct {
-    int n_r;                  /**< number of r grid points */
-    int n_z;                  /**< number of z grid points */
-    real r_min;               /**< minimum r coordinate in the grid */
-    real r_max;               /**< r grid interval (r_max-r_min)/(n_r-1) */
-    real r_grid;              /**< r grid interval (r_max-r_min)/(n_r-1) */
-    real z_min;               /**< minimum z coordinate in the grid */
-    real z_max;               /**< z grid interval (z_max-z_min)/(n_z-1) */
-    real z_grid;              /**< z grid interval (z_max-z_min)/(n_z-1) */
-    real* c;                  /**< pointer to array with spline coefficients */
-} interp2D_data;
+#include "interp2D.h"
 
 void interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
 		   real r_min, real r_max, real r_grid,

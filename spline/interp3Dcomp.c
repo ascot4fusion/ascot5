@@ -50,18 +50,19 @@ void interp3Dcomp_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
     str->c = malloc(n_phi*n_z*n_r*8*sizeof(real));
 
     /* Declare and allocate the needed variables */
-    int i_r;                                  /**< index for r variable */
-    int i_phi;                                /**< index for phi variable */
-    int i_z;                                  /**< index for z variable */
+    int i_r;                                    /**< index for r variable */
+    int i_phi;                                  /**< index for phi variable */
+    int i_z;                                    /**< index for z variable */
     real* f_r = malloc(n_r*sizeof(real));       /**< Temporary array for data along r */
     real* f_phi = malloc(n_phi*sizeof(real));   /**< Temp array for data along phi */
     real* f_z = malloc(n_z*sizeof(real));       /**< Temp array for data along z */
-    real* c_r = malloc((n_r-1)*2*sizeof(real)); /**< Temp array for coefficients along r */
+    real* c_r = malloc(n_r*2*sizeof(real));     /**< Temp array for coefficients along r */
     real* c_phi = malloc(n_phi*2*sizeof(real)); /**< Temp array for coefs along phi */
-    real* c_z = malloc((n_z-1)*2*sizeof(real)); /**< Temp array for coefficients along z */
+    real* c_z = malloc(n_z*2*sizeof(real));     /**< Temp array for coefficients along z */
 
     /* Tricubic spline volume coefficients: For i_r, i_phi and i_z the 8 coefficients
-       are [f, frr, fphiphi, fzz, frrphiphi, frrzz, fphiphizz, frrphiphizz] */
+       are [f, frr, fphiphi, fzz, frrphiphi, frrzz, fphiphizz, frrphiphizz].
+       Note how we account for normalized grid. */
     /* Bicubic spline surface over rz-grid for each phi */
     for(i_phi=0; i_phi<n_phi; i_phi++) {
 	/* Cubic spline along r for each z to get frr */
@@ -70,44 +71,44 @@ void interp3Dcomp_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
 		f_r[i_r] = f[i_phi*n_z*n_r+i_z*n_r+i_r];
 	    }
 	    spline1Dcomp(f_r,n_r,0,c_r);
-	    for(i_r=0; i_r<n_r-1; i_r++) {
+	    for(i_r=0; i_r<n_r; i_r++) {
 		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8] = c_r[i_r*2];
-		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+1] = c_r[i_r*2+1];
+		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+1] = c_r[i_r*2+1]/(r_grid*r_grid);
 	    }
 	}
 	
 	/* Two cubic splines along z for each r using f and frr */
-	for(i_r=0; i_r<n_r-1; i_r++) {
+	for(i_r=0; i_r<n_r; i_r++) {
 	    /* fzz */
 	    for(i_z=0; i_z<n_z; i_z++) {
 		f_z[i_z] =  f[i_phi*n_z*n_r+i_z*n_r+i_r];
 	    }
 	    spline1Dcomp(f_z,n_z,0,c_z);
-	    for(i_z=0; i_z<n_z-1; i_z++) {
-		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+3] = c_z[i_z*2+1];
+	    for(i_z=0; i_z<n_z; i_z++) {
+		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+3] = c_z[i_z*2+1]/(z_grid*z_grid);
 	    }
 	    /* frrzz */
 	    for(i_z=0; i_z<n_z; i_z++) {
 		f_z[i_z] = str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+1];
 	    }
 	    spline1Dcomp(f_z,n_z,0,c_z);
-	    for(i_z=0; i_z<n_z-1; i_z++) {
-		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+5] = c_z[i_z*2+1];
+	    for(i_z=0; i_z<n_z; i_z++) {
+		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+5] = c_z[i_z*2+1]/(z_grid*z_grid);
 	    }
 	}
     }
 
     /* Cubic spline along phi for each rz-pair to find the compact coefficients
        of the tricubic spline volume */
-    for(i_z=0; i_z<n_z-1; i_z++) {
-	for(i_r=0; i_r<n_r-1; i_r++) {
+    for(i_z=0; i_z<n_z; i_z++) {
+	for(i_r=0; i_r<n_r; i_r++) {
 	    /* fphiphi */
 	    for(i_phi=0; i_phi<n_phi; i_phi++) {
 		f_phi[i_phi] = f[i_phi*n_z*n_r+i_z*n_r+i_r];
 	    }
 	    spline1Dcomp(f_phi,n_phi,1,c_phi);
 	    for(i_phi=0; i_phi<n_phi; i_phi++) {
-		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+2] = c_phi[i_phi*2+1];
+		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+2] = c_phi[i_phi*2+1]/(phi_grid*phi_grid);
 	    }
 	    /* frrphiphi */
 	    for(i_phi=0; i_phi<n_phi; i_phi++) {
@@ -115,7 +116,7 @@ void interp3Dcomp_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
 	    }
 	    spline1Dcomp(f_phi,n_phi,1,c_phi);
 	    for(i_phi=0; i_phi<n_phi; i_phi++) {
-		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+4] = c_phi[i_phi*2+1];
+		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+4] = c_phi[i_phi*2+1]/(phi_grid*phi_grid);
 	    }
 	    /* fphiphizz */
 	    for(i_phi=0; i_phi<n_phi; i_phi++) {
@@ -123,7 +124,7 @@ void interp3Dcomp_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
 	    }
 	    spline1Dcomp(f_phi,n_phi,1,c_phi);
 	    for(i_phi=0; i_phi<n_phi; i_phi++) {
-		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+6] = c_phi[i_phi*2+1];
+		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+6] = c_phi[i_phi*2+1]/(phi_grid*phi_grid);
 	    }
 	    /* frrphiphizz */
 	    for(i_phi=0; i_phi<n_phi; i_phi++) {
@@ -131,7 +132,7 @@ void interp3Dcomp_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
 	    }
 	    spline1Dcomp(f_phi,n_phi,1,c_phi);
 	    for(i_phi=0; i_phi<n_phi; i_phi++) {
-		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+7] = c_phi[i_phi*2+1];
+		str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+7] = c_phi[i_phi*2+1]/(phi_grid*phi_grid);
 	    }
 	}
     }
