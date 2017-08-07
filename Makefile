@@ -88,6 +88,7 @@ OBJS= math.o consts.o  \
     offload.c \
 	spline/interp2D.o spline/interp3D.o spline/spline1D.o \
 	spline/interp2Dexpl.o spline/interp3Dexpl.o \
+	spline/interp2Detoc.o spline/interp3Detoc.o \
 	spline/interp2Dcomp.o spline/interp3Dcomp.o spline/spline1Dcomp.o \
 
 BINS=test_math \
@@ -160,6 +161,18 @@ test_interp2Dexpl: test_interp2Dexpl.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_interp3Dexpl: test_interp3Dexpl.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_interp2Detoc: test_interp2Detoc.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_interp3Detoc: test_interp3Detoc.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_interp2Dcomp: test_interp2Dcomp.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_interp3Dcomp: test_interp3Dcomp.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile
