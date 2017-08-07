@@ -397,15 +397,23 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
 	    * pow( radius / Bdata->a0, Bdata->alpha0 );
 
 	real Bphi = B_dB[4];
-	B_dB[4] = Bphi * ( 1 + delta * cos(Bdata->Nripple * phi) );
+	real Bpert = Bphi * delta * cos(Bdata->Nripple * phi);
+	B_dB[4] += Bpert;
 	B_dB[6] += - Bphi * delta * Bdata->Nripple * sin(Bdata->Nripple * phi);
+	
+        
+	real dBpertdR = Bpert * ( 
+	    ( (r - Bdata->R0) /radius) * ( Bdata->alpha0 / radius )
+	    + ( (z - Bdata->z0) /(radius*radius) ) * theta
+	    );
 
-	real dBdr = Bphi * Bdata->a0 * delta * cos(Bdata->Nripple * phi) /
-	    (radius * Bdata->alpha0);
-	real dBdtheta = - theta * Bphi * delta * cos(Bdata->Nripple * phi);
+	real dBpertdz = Bpert * ( 
+	    ( (z - Bdata->z0) /radius) * ( Bdata->alpha0 / radius )
+	    - ( (r - Bdata->R0) /(radius*radius) ) * theta
+	    );
 
-	B_dB[5] += ( (r - Bdata->R0) /radius) * dBdr + (-(z - Bdata->z0) /(radius*radius)) * dBdtheta;
-	B_dB[7] += ( (z - Bdata->z0) /radius) * dBdr + ( (r - Bdata->R0) /(radius*radius)) * dBdtheta;
+	B_dB[5] += B_dB[5] * Bpert / Bphi + dBpertdR;
+	B_dB[7] += dBpertdz;
 
     }
 }
