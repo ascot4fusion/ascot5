@@ -136,7 +136,7 @@ void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
 
     /* Transform from explicit to compact */
     real* cc = malloc(n_phi*n_z*n_r*8*sizeof(real)); /**< Temporary coefficient array */
-    for(i_phi=0; i_phi<n_z; i_phi++) {
+    for(i_phi=0; i_phi<n_phi; i_phi++) {
 	for(i_z=0; i_z<n_z-1; i_z++) {
 	    for(i_r=0; i_r<n_r-1; i_r++) {
 		cc[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+0] =
@@ -167,16 +167,17 @@ void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
 	    cc[i_phi*n_z*n_r*8+i_z*n_r*8+(n_r-1)*8+6] = 0;
 	    cc[i_phi*n_z*n_r*8+i_z*n_r*8+(n_r-1)*8+7] = 0;
 	}
-    }
-    for(i_r=0; i_r<n_r; i_r++) {
-    	cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = f[i_phi*n_z*n_r+(n_z-1)*n_r+i_r]; // From coefs?
-    	cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0; // Are all derivs 0?
-	cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0;
-	cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0;
-	cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0;
-	cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0;
-	cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0;
-	cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0;
+	
+	for(i_r=0; i_r<n_r; i_r++) {
+	    cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = f[i_phi*n_z*n_r+(n_z-1)*n_r+i_r]; // From coefs?
+	    cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0; // Are all derivs 0?
+	    cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0;
+	    cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0;
+	    cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0;
+	    cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0;
+	    cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0;
+	    cc[i_phi*n_z*n_r*8+(n_z-1)*n_r*8+i_r*8+0] = 0;
+	}
     }
     free(str->c);
     str->c = cc;

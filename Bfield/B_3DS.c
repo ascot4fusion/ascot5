@@ -11,6 +11,8 @@
 #include "B_3DS.h"
 #include "../spline/interp2D.h" /* for 2D interpolation routines */
 #include "../spline/interp3D.h" /* for 3D interpolation routines */
+#include "../spline/interp2Dcomp.h" 
+#include "../spline/interp3Dcomp.h" 
 #include "../spline/interp2Dexpl.h" 
 #include "../spline/interp3Dexpl.h"
 
@@ -194,28 +196,28 @@ void B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
 		      offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 		      offload_data->z_min, offload_data->z_max, offload_data->z_grid);
     #else
-    interp2D_init(&Bdata->psi, offload_array
-    		  +3*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-    		  offload_data->n_r, offload_data->n_z,
-    		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-    		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    interp3D_init(&Bdata->B_r, offload_array,
-    		  offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-    		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-    		  offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-    		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    interp3D_init(&Bdata->B_phi, offload_array
-    		  +offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-    		  offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-    		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-    		  offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-    		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    interp3D_init(&Bdata->B_z, offload_array
-    		  +2*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-    		  offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-    		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-    		  offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    interp2Dcomp_init(&Bdata->psi, offload_array
+		      +3*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
+		      offload_data->n_r, offload_data->n_z,
+		      offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+		      offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    interp3Dcomp_init(&Bdata->B_r, offload_array,
+		      offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+		      offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+		      offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
+		      offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    interp3Dcomp_init(&Bdata->B_phi, offload_array
+		      +offload_data->n_phi*offload_data->n_z*offload_data->n_r,
+		      offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+		      offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+		      offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
+		      offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    interp3Dcomp_init(&Bdata->B_z, offload_array
+		      +2*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
+		      offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+		      offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+		      offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
+		      offload_data->z_min, offload_data->z_max, offload_data->z_grid);
     #endif
 }
 
@@ -240,9 +242,9 @@ void B_3DS_eval_B(real B[], real r, real phi, real z, B_3DS_data* Bdata) {
     interp3Dexpl_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
     interp3Dexpl_eval_B(&B[2], &Bdata->B_z, r, phi, z);
     #else
-    interp3D_eval_B(&B[0], &Bdata->B_r, r, phi, z);
-    interp3D_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
-    interp3D_eval_B(&B[2], &Bdata->B_z, r, phi, z);
+    interp3Dcomp_eval_B(&B[0], &Bdata->B_r, r, phi, z);
+    interp3Dcomp_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
+    interp3Dcomp_eval_B(&B[2], &Bdata->B_z, r, phi, z);
     #endif
 
     #ifndef NOPSI
@@ -273,9 +275,9 @@ void B_3DS_eval_psi(real psi[], real r, real phi, real z,
                    B_3DS_data* Bdata)
 {
     #if INTERP_SPL_EXPL
-    interp2D_eval_B(&psi[0], &Bdata->psi, r, z);
+    interp2Dexpl_eval_B(&psi[0], &Bdata->psi, r, z);
     #else
-    interp2D_eval_B(&psi[0], &Bdata->psi, r, z);
+    interp2Dcomp_eval_B(&psi[0], &Bdata->psi, r, z);
     #endif
 }
 
@@ -303,7 +305,7 @@ void B_3DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
     #if INTERP_SPL_EXPL
     interp2Dexpl_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
     #else
-    interp2D_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
+    interp2Dcomp_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
     #endif
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
@@ -388,7 +390,7 @@ void B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata) {
     #if INTERP_SPL_EXPL
     interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
     #else
-    interp3D_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
+    interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
     #endif
 
     B_dB[0] = B_dB_temp[0];
@@ -400,7 +402,7 @@ void B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata) {
     #if INTERP_SPL_EXPL
     interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
     #else
-    interp3D_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
+    interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
     #endif
 
     B_dB[4] = B_dB_temp[0];
@@ -412,7 +414,7 @@ void B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata) {
     #if INTERP_SPL_EXPL
     interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
     #else
-    interp3D_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
+    interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
     #endif
 
     B_dB[8] = B_dB_temp[0];
@@ -426,7 +428,7 @@ void B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata) {
     #if INTERP_SPL_EXPL
     interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
     #else
-    interp2D_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+    interp2Dcomp_eval_dB(psi_dpsi, &Bdata->psi, r, z);
     #endif
 
     B_dB[0] = B_dB[0] - psi_dpsi[2]/r;
