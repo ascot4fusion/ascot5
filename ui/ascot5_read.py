@@ -1,6 +1,7 @@
 import numpy as np
 import h5py
 import ascot5_orbits
+import ascot5_dists
 
 def ascot5_read(fn):
     f = h5py.File(fn, "r")
@@ -44,8 +45,8 @@ def ascot5_read(fn):
     else:
         out["markers"] = {}
 
-    if "/dists" in f:
-        out["dists"] = {} #ascot5_dists_read(f["dists"], mode)
+    if "/distributions" in f:
+        out["dists"] = ascot5_dists.read(f["distributions"], mode)
     else:
         out["dists"] = {}
 

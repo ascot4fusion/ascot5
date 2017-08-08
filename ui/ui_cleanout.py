@@ -9,8 +9,8 @@ def clean(fn):
         del f["endstate"]
     if  "orbits" in f:
         del f["orbits"]
-    if  "dist" in f:
-        del f["dist"]
+    if  "distributions" in f:
+        del f["distributions"]
 
     f.close()
 
