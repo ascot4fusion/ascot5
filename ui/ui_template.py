@@ -9,6 +9,8 @@ import ui_wall_2D
 import ui_markers
 import ui_cleanout
 import subprocess
+import analyticBKGpsifun as psifun
+
 
 def run():
     fn = "ascot.h5"
@@ -46,8 +48,8 @@ def run():
     ndens = ndens.reshape(5,1)
     idens = idens.reshape(5,1)
 
-    wr = np.array([0, 0, 100, 100, 0])
-    wz = np.array([-50, 50, 50, -50, -50])
+    wr = np.array([0, 0, 8.3, 8.3, 0])
+    wz = np.array([-4, 4, 4, -4, -4])
 
     ids    = np.array([1.0])
     mass   = np.array([4.002602])
@@ -72,24 +74,24 @@ def run():
 
     axisr = 6.2
     axisz = 0
-    psi0 = -0.0365
-    psi1 = 0
     B_phi0 = 5.3
     psimult = 200
     psicoef = np.array([8.629491085780416348e-02, 3.279306587723925803e-01, 5.268677701240817024e-01, -2.366208946912087274e-01, 3.825826765593096646e-01, -3.573153147754407621e-01, -1.484166833037287025e-02, 1.506045943286430100e-01, 7.428226459414810634e-01, -4.447153105104519888e-01, -1.084640395736786167e-01, 1.281599235951017685e-02, -0.155])
+    psi0 = psimult*psifun.psi0(axisr/axisr,axisz/axisr,psicoef[0],psicoef[1],psicoef[2],psicoef[3],psicoef[4],psicoef[5],psicoef[6],psicoef[7],psicoef[8],psicoef[9],psicoef[10],psicoef[11],psicoef[12])
+    psi1 = 0
 
 
     #Input the new parameters in the hdf5 file
     ui_options.writeHdf5(options,fn)
     #ui_B_TC.write_hdf5(fn, B0, B_dB, axisr, axisz, psival, rhoval)
     #ui_B_GS.write_hdf5(fn, axisr, axisz, B_phi0, psi0, psi1, psimult, psicoef) 
-    #ui_B_GS.write_hdf5(fn, axisr, axisz, B_phi0, psi0, psi1, psimult, psicoef,Nripple=18,a0=2,delta0=0.01,alpha0=3.8) 
-    ui_B_GS.write_hdf5_B_3D(fn, axisr, axisz, B_phi0, psimult, psicoef,18, 2 ,3.8,0.01, np.array([3.9, 8.9, 100]), np.array([-5.0, 5.0, 200]), 360) 
+    ui_B_GS.write_hdf5(fn, axisr, axisz, B_phi0, psi0, psi1, psimult, psicoef,Nripple=18,a0=2,delta0=0.5,alpha0=1.8) 
+    #ui_B_GS.write_hdf5_B_3D(fn, axisr, axisz, B_phi0, psimult, psicoef,18, 2 ,3.8,0.01, np.array([3.9, 8.9, 100]), np.array([-5.0, 5.0, 200]), 360) 
     ui_E_TC.write_hdf5(fn, E) 
     ui_plasma_1D.write_hdf5(fn, Nrho, Nion, Znum, Anum, rho, ndens, ntemp, edens, etemp, idens, itemp)
     ui_wall_2D.write_hdf5(fn, wr, wz)
     #ui_markers.write_hdf5_particles(fn, ids, mass, charge, rprt, phiprt, zprt, vr, vphi, vz, weight, time);
-    #ui_markers.write_hdf5_guidingcenters(fn, ids+1, mass, charge, r, phi, z, energy, pitch, theta, weight, time);
+    ui_markers.write_hdf5_guidingcenters(fn, ids+1, mass, charge, r, phi, z, energy, pitch, theta, weight, time);
     #ui_markers.write_hdf5_fieldlines(fn, ids+1, r, phi, z, mlpitch, weight, time);   
     
     #Compile and run ASCOT5
