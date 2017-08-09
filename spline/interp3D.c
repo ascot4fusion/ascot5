@@ -203,7 +203,7 @@ void interp3D_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
 
     /** Make sure phi is in interval [0,2pi) */
     phi = fmod(phi,CONST_2PI);
-    if(phi < 0){phi = CONST_2PI - phi;}
+    if(phi < 0){phi = CONST_2PI + phi;}
 
     int i_r = (r-str->r_min)/str->r_grid;     /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
@@ -313,7 +313,7 @@ void interp3D_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
 void interp3D_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) {
     /** Make sure phi is in interval [0,2pi) */
     phi = fmod(phi,CONST_2PI);
-    if(phi < 0){phi = CONST_2PI - phi;}
+    if(phi < 0){phi = CONST_2PI + phi;}
 
     int i_r = (r-str->r_min)/str->r_grid;       /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in

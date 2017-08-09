@@ -4,6 +4,7 @@
  **/
 #include <stdlib.h>
 #include <stdio.h>
+#include <float.h>
 #include <math.h>
 #include "../../ascot5.h"
 #include "step_ml_cashkarp.h"
@@ -44,7 +45,6 @@ void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol, B_fie
             real tempy[3];
 	    real yprev[3];
 
-            real B[3];
 	    real normB;
 
 	    real R0   = p->r[i];
@@ -60,62 +60,63 @@ void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol, B_fie
 	    k1[0] = p->B_r[i];
 	    k1[1] = p->B_phi[i];
 	    k1[2] = p->B_z[i];
-
-	    k1[1] /= yprev[0];
+	    
             normB = math_normc(k1[0], k1[1], k1[2]);
             k1[0] /= normB;
             k1[1] /= normB;
             k1[2] /= normB;
+	    k1[1] /= yprev[0];
+
 	    int j;
 	    for(j = 0; j < 3; j++) {
 		tempy[j] = yprev[j] + ((1.0/5)*k1[j])*h[i];
 	    }
-	    B_field_eval_B(k2, tempy[0], tempy[1], tempy[2], Bdata);
-	    k2[1] /= tempy[0];
+	    B_field_eval_B(k2, tempy[0], tempy[1], tempy[2], Bdata);	    
             normB = math_normc(k2[0], k2[1], k2[2]);
             k2[0] /= normB;
             k2[1] /= normB;
             k2[2] /= normB;
+	    k2[1] /= tempy[0];
 
 	    for(j = 0; j < 3; j++) {
 		tempy[j] = yprev[j] + ((3.0/40)*k1[j]+(9.0/40)*k2[j])*h[i];
 	    }
 	    B_field_eval_B(k3, tempy[0], tempy[1], tempy[2], Bdata);
-	    k3[1] /= tempy[0];
             normB = math_normc(k3[0], k3[1], k3[2]);
             k3[0] /= normB;
             k3[1] /= normB;
             k3[2] /= normB;
+	    k3[1] /= tempy[0];
 
 	    for(j = 0; j < 3; j++) {
 		tempy[j] = yprev[j] + ((3.0/10)*k1[j]+(-9.0/10)*k2[j]+(6.0/5)*k3[j])*h[i];
 	    }
-	    B_field_eval_B(k4, tempy[0], tempy[1], tempy[2], Bdata);
-	    k4[1] /= tempy[0];
+	    B_field_eval_B(k4, tempy[0], tempy[1], tempy[2], Bdata);	    
             normB = math_normc(k4[0], k4[1], k4[2]);
             k4[0] /= normB;
             k4[1] /= normB;
             k4[2] /= normB;
+	    k4[1] /= tempy[0];
 
 	    for(j = 0; j < 3; j++) {
 		tempy[j] = yprev[j] + ((-11.0/54)*k1[j]+(5.0/2)*k2[j]+(-70.0/27)*k3[j]+(35.0/27)*k4[j])*h[i];
 	    }
 	    B_field_eval_B(k5, tempy[0], tempy[1], tempy[2], Bdata);
-	    k5[1] /= tempy[0];
             normB = math_normc(k5[0], k5[1], k5[2]);
             k5[0] /= normB;
             k5[1] /= normB;
             k5[2] /= normB;
+	    k5[1] /= tempy[0];
 
 	    for(j = 0; j < 3; j++) {
 		tempy[j] = yprev[j] + ((1631.0/55296)*k1[j]+(175.0/512)*k2[j]+(575.0/13824)*k3[j]+(44275.0/110592)*k4[j]+(253.0/4096)*k5[j])*h[i];
 	    }
 	    B_field_eval_B(k6, tempy[0], tempy[1], tempy[2], Bdata);
-	    k6[1] /= tempy[0];
             normB = math_normc(k6[0], k6[1], k6[2]);
             k6[0] /= normB;
             k6[1] /= normB;
             k6[2] /= normB;
+	    k6[1] /= tempy[0];
 
 	    real yout[3];
 	    real yerr;
@@ -126,7 +127,7 @@ void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol, B_fie
 		yerr = fabs(yprev[j] + 
 			    ( (2825.0/27648)*k1[j] + (18575.0/48384)*k3[j] + (13525.0/55296)*k4[j] + (277.0/14336)*k5[j] + (1.0/4)*k6[j] )*h[i] 
 			    - yout[j]);
-		ytol = fabs(yprev[j]) + fabs(k1[j]*h[i]) + 1e-3;
+		ytol = fabs(yprev[j]) + fabs(k1[j]*h[i]) + DBL_EPSILON ;
 		
 		err = fmax(err,yerr/ytol);
 	    }
