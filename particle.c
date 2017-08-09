@@ -302,7 +302,7 @@ void particle_to_ml(particle* p, int i, particle_simd_ml* p_ml, int j,
     p_ml->time[j] = p->time;
     p_ml->id[j] = p->id; 
 
-    real B_dB[3];
+    real B_dB[12];
     B_field_eval_B(B_dB, p->r, p->phi, p->z, Bdata);
 
     p_ml->B_r[j]        = B_dB[0];
@@ -932,7 +932,7 @@ void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int 
     p_ml->phi[j]        = p->phi;
     p_ml->z[j]          = p->z;
 
-    p_ml->pitch[j]      = p->vpar >= 0;
+    p_ml->pitch[j]      = 2*(p->vpar >= 0) - 1.0;
     p_ml->time[j]       = p->time;
     p_ml->weight[j]     = p->weight;
     p_ml->id[j]         = p->id;

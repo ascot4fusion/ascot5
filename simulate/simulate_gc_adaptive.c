@@ -91,7 +91,6 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 	    cputime_last[i] = A5_WTIME;
 	    if(sim->enable_clmbcol) {
 		/* Allocate array storing the Wiener processes */
-		printf("dsada\n");
 		wienarr[i] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[i]);
 	    }
 	}

@@ -6,11 +6,13 @@
 #define _XOPEN_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include "../../ascot5.h"
 #include "../../particle.h"
 #include "../../B_field.h"
 #include "../../plasma_1d.h"
 #include "../../math.h"
+#include "../../consts.h"
 #include "mccc.h"
 #include "mccc_wiener.h"
 #include "mccc_push.h"
@@ -327,9 +329,11 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 	    mccc_coefs_clog(p->mass[i],p->charge[i],vin,pdata->mass,pdata->charge,dens,temp,clogab,pdata->n_species);
 	    mccc_coefs_gcfixed(p->mass[i],p->charge[i],vin,xiin,pdata->mass,pdata->charge,dens,temp,Bnorm,clogab,pdata->n_species,
 			       Dparab,DXb,Kb,nub);
-		
-	    int tindex;
-	    real dW[5];
+
+	    real phi0 = p->phi[i];
+	    real R0   = p->r[i];
+	    real z0   = p->z[i];
+
 	    real xiout;
 		
 	    real vout;
@@ -368,8 +372,17 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 	    p->mu[i] = (1-xiout*xiout)*p->mass[i]*vout*vout/(2*Bnorm);
 	    p->vpar[i] = vout*xiout;
 	    p->r[i] = sqrt(Xout[0]*Xout[0] + Xout[1]*Xout[1]);
-	    p->phi[i] = atan2(Xout[1],Xout[0]);
 	    p->z[i] = Xout[2];
+
+	    /* Evaluate phi and pol angles so that they are cumulative */
+	    real axis_r = B_field_get_axis_r(Bdata);
+	    real axis_z = B_field_get_axis_z(Bdata);
+	    p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
+				(R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
+	    real tphi = fmod(phi0 , CONST_2PI );
+	    if(tphi < 0){tphi = CONST_2PI+tphi;}
+	    tphi = atan2(Xout[1],Xout[0]) + CONST_PI -  tphi;
+	    p->phi[i] = phi0 + tphi;
 
 	    /* Evaluate magnetic field (and gradient) and rho at new position */
 	    real B_dB[12];
@@ -467,6 +480,10 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    real Xin[3];
 	    real Xout[3];
 	    real cutoff = 0; //TODO give me a real value!
+
+	    real phi0 = p->phi[i];
+	    real R0   = p->r[i];
+	    real z0   = p->z[i];
 			
 	    real Dpara = 0;
 	    real K = 0;
@@ -506,8 +523,17 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    p->mu[i] = (1-xiout*xiout)*p->mass[i]*vout*vout/(2*Bnorm);
 	    p->vpar[i] = vout*xiout;
 	    p->r[i] = sqrt(Xout[0]*Xout[0] + Xout[1]*Xout[1]);
-	    p->phi[i] = atan2(Xout[1],Xout[0]);
 	    p->z[i] = Xout[2];
+
+	    /* Evaluate phi and pol angles so that they are cumulative */
+	    real axis_r = B_field_get_axis_r(Bdata);
+	    real axis_z = B_field_get_axis_z(Bdata);
+	    p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
+				(R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
+	    real tphi = fmod(phi0 , CONST_2PI );
+	    if(tphi < 0){tphi = CONST_2PI+tphi;}
+	    tphi = atan2(Xout[1],Xout[0]) + CONST_PI -  tphi;
+	    p->phi[i] = phi0 + tphi;
 		
 	    /* Check whether time step was accepted and find value for the next time-step */
 	    int rejected = 0;
