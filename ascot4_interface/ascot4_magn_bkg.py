@@ -70,6 +70,11 @@ def read_magn_header(fn,str):
     fh.close()
     return str
 
+def read_bfield_stellarator(f):
+    str = dict()
+    str['bphi'] = f['bfield/stellarator/']
+    return str
+    
 def write_magn_bkg(f, m):
     if(m['nPhi'] > 1):
         ui_B_3D.write_hdf5('ascot.h5',
