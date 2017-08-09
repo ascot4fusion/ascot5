@@ -21,7 +21,7 @@
  * @param p_phi  particle momentum phi-component
  * @param p_z    particle momentum z-component
  * @param B_dB   magnetic field and jacobian at (r,phi,z)
- * @param gcpos  resulting guiding center [R,Phi,Z,p_para,mu] position
+ * @param gcpos  resulting guiding center [R,Phi,Z,p_para,mu,theta] position
  */
 void phys_prttogc(real mass, real charge, real r, real phi, real z, 
 		  real p_r, real p_phi, real p_z, real* B_dB, real* gcpos){
@@ -112,7 +112,21 @@ void phys_prttogc(real mass, real charge, real r, real phi, real z,
     /* Make the momentum transformation */
     gcpos[3] = p_para0 + p_para1;
     gcpos[4] = mu_0 + mu_1;
+    
+    /* Calculate gyroangle */
+    real a1[3];
+    real z_unit[3];
+    z_unit[0] = 0.0;
+    z_unit[1] = 0.0;
+    z_unit[2] = 1.0;
+    math_cross(B_unit,z_unit,a1);
+    math_unit(a1,a1);
 
+    real a2[3];
+    math_cross(a1,B_unit,a2);
+    math_unit(a2,a2);
+
+    gcpos[5] = atan2(math_dot(rho_unit,a2),math_dot(rho_unit,a1)) + CONST_PI;
 }
 
 /**
@@ -184,8 +198,8 @@ void phys_gctoprt(real mass, real charge, real R, real Phi, real Z,
     real a1[3];
     real z_unit[3];
     z_unit[0] = 0.0;
-    z_unit[0] = 0.0;
-    z_unit[0] = 1.0;
+    z_unit[1] = 0.0;
+    z_unit[2] = 1.0;
     math_cross(B_unit,z_unit,a1);
     math_unit(a1,a1);
 
@@ -315,6 +329,7 @@ inline void phys_eomgc(real* ydot, real* y, real mass, real charge, real* B_dB, 
     ydot[2] = (y[3]*Bstar[2]+EstarcrossBhat[2])/BhatDotBstar;
     ydot[3] = (charge/mass) * math_dot(Bstar,Estar)/BhatDotBstar;
     ydot[4] = 0;
+    ydot[5] = (charge/mass) * normB;
 }
 
 /**

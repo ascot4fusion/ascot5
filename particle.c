@@ -593,9 +593,9 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	ps->rprt       = prtpos[0];     
 	ps->phiprt     = prtpos[1];      
 	ps->zprt       = prtpos[2];   
-	ps->rdot       = prtpos[3]; 
-	ps->phidot     = prtpos[4];     
-	ps->zdot       = prtpos[5];
+	ps->rdot       = prtpos[3]/mass; 
+	ps->phidot     = (prtpos[4]/mass)/ps->rprt;     
+	ps->zdot       = prtpos[5]/mass;
 
 	ps->r          = r;     
 	ps->phi        = phi;      
@@ -920,9 +920,9 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     p->rprt       = prtpos[0];     
     p->phiprt     = prtpos[1];      
     p->zprt       = prtpos[2];   
-    p->rdot       = prtpos[3]; 
-    p->phidot     = prtpos[4];     
-    p->zdot       = prtpos[5];
+    p->rdot       = prtpos[3]/p->mass; 
+    p->phidot     = (prtpos[4]/p->mass)/p->rprt;    ;     
+    p->zdot       = prtpos[5]/p->mass;
 }
 
 void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int j, 
@@ -979,6 +979,8 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->phi        = p_ml->phi[j];
     p->z          = p_ml->z[j];
     p->vpar       = p_ml->pitch[j];
+    p->mu         = 0;
+    p->theta      = 0;
     p->mass       = 0;
     p->charge     = 0;
     p->time       = p_ml->time[j];

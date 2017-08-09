@@ -32,13 +32,13 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
     #pragma omp simd 
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
-            real k1[5];
-            real k2[5];
-            real k3[5];
-            real k4[5];
-            real tempy[5];
-            real yprev[5];
-            real y[5];
+            real k1[6];
+            real k2[6];
+            real k3[6];
+            real k4[6];
+            real tempy[6];
+            real yprev[6];
+            real y[6];
 
             real mass;
             real charge;
@@ -57,6 +57,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             yprev[2] = p->z[i];
             yprev[3] = p->vpar[i];
             yprev[4] = p->mu[i];
+	    yprev[5] = p->theta[i];
             mass = p->mass[i];
             charge = p->charge[i];
 
@@ -81,28 +82,28 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             int j;
             /* particle coordinates for the subsequent ydot evaluations are
              * stored in tempy */
-            for(j = 0; j < 5; j++) {
+            for(j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]/2.0*k1[j];
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
             E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
             phys_eomgc(k2, tempy, mass, charge, B_dB, E);
-            for(j = 0; j < 5; j++) {
+            for(j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]/2.0*k2[j];
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);;
 	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
             phys_eomgc(k3, tempy, mass, charge, B_dB, E);
-            for(j = 0; j < 5; j++) {
+            for(j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]*k3[j];
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
 	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
             phys_eomgc(k4, tempy, mass, charge, B_dB, E);
-            for(j = 0; j < 5; j++) {
+            for(j = 0; j < 6; j++) {
                 y[j] = yprev[j]
                     + h[i]/6.0 * (k1[j] + 2*k2[j] + 2*k3[j] + k4[j]);
             } 
@@ -111,6 +112,9 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             p->phi[i] = y[1];
             p->z[i] = y[2];
             p->vpar[i] = y[3];
+	    p->mu[i] = y[4];
+	    p->theta[i] = fmod(y[5],CONST_2PI);
+	    if(p->theta[i]<0){p->theta[i] = CONST_2PI + p->theta[i];}
 
 	    /* Evaluate magnetic field (and gradient) and rho at new position */
 	    B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);
