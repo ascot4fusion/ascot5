@@ -23,20 +23,24 @@ def read_plasma(fn):
         print l
 
 def read_1d(fh):
-    str = {'comm1' : fh.readline(),'comm2' : fh.readline(),'comm3' : fh.readline()}
+    pls = {'comm1' : fh.readline(),'comm2' : fh.readline(),'comm3' : fh.readline()}
     nrho,nion = map(int,fh.readline().split()[:2])
-    str['znum'] = np.array(map(int,fh.readline().split()[:nion]))
-    str['anum'] = np.array(map(int,fh.readline().split()[:nion]))
-    str['coll'] = np.array(map(int,fh.readline().split()[:nion+1]))
-    str['nrho'] = nrho
-    str['nion'] = nion
-    fieldnames = fh.readline().split()[0:-1:2]
+    pls['znum'] = np.array(map(int,fh.readline().split()[:nion]))
+    pls['anum'] = np.array(map(int,fh.readline().split()[:nion]))
+    pls['coll'] = np.array(map(int,fh.readline().split()[:nion+1]))
+    pls['nrho'] = nrho
+    pls['nion'] = nion
+    fh.readline() # ignore headers
     data = loadtxt(fh)
-    for i,name in enumerate(fieldnames):
-        str[name.lower()] = np.array(data[:,i])
-
+    pls['rho'] = np.array(data[:,0])
+    pls['te'] = np.array(data[:,1])
+    pls['ne'] = np.array(data[:,2])
+    pls['vtor'] = np.array(data[:,3])
+    pls['ti1'] = np.array(data[:,4])
+    for i in range(0,nion):
+        pls['ni'+str(i+1)] = np.array(data[:,5+i])
     fh.close()
-    return str
+    return pls
 
 def read_2d(fh):
     str = {'comm1' : fh.readline(),'comm2' : fh.readline(),'comm3' : fh.readline()}
