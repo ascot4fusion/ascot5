@@ -126,7 +126,8 @@ void phys_prttogc(real mass, real charge, real r, real phi, real z,
     math_cross(a1,B_unit,a2);
     math_unit(a2,a2);
 
-    gcpos[5] = atan2(math_dot(rho_unit,a2),math_dot(rho_unit,a1)) + CONST_PI;
+    gcpos[5] = atan2(math_dot(rho_unit,a2),math_dot(rho_unit,a1));
+    gcpos[5] = fmod(gcpos[5] + CONST_2PI, CONST_2PI); /* theta is in interval 0 to 2PI */
 }
 
 /**

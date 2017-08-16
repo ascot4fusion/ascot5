@@ -381,7 +381,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 				(R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
 	    real tphi = fmod(phi0 , CONST_2PI );
 	    if(tphi < 0){tphi = CONST_2PI+tphi;}
-	    tphi = atan2(Xout[1],Xout[0]) + CONST_PI -  tphi;
+	    tphi = fmod(atan2(Xout[1],Xout[0])+CONST_2PI,CONST_2PI) -  tphi;
 	    p->phi[i] = phi0 + tphi;
 
 	    /* Evaluate magnetic field (and gradient) and rho at new position */
@@ -532,7 +532,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 				(R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
 	    real tphi = fmod(phi0 , CONST_2PI );
 	    if(tphi < 0){tphi = CONST_2PI+tphi;}
-	    tphi = atan2(Xout[1],Xout[0]) + CONST_PI -  tphi;
+	    tphi = fmod(atan2(Xout[1],Xout[0])+CONST_2PI,CONST_2PI) -  tphi;
 	    p->phi[i] = phi0 + tphi;
 		
 	    /* Check whether time step was accepted and find value for the next time-step */

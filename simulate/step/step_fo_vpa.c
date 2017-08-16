@@ -141,7 +141,8 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 			    (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
 	real tphi = fmod(phi0 , CONST_2PI );
 	if(tphi < 0){tphi = CONST_2PI+tphi;}
-	tphi = p->phi[i] + CONST_PI -  tphi;
+	tphi = fmod(p->phi[i]+CONST_2PI,CONST_2PI) -  tphi;
+        
 	p->phi[i] = phi0 + tphi;
     }
   }
