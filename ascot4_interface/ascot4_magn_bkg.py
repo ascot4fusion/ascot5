@@ -1,9 +1,11 @@
+import h5py
 import sys
 sys.path.append('../ui')
 
 from pylab import *
 import ui_B_2D
 import ui_B_3D
+import ui_B_ST
 
 def read_magn_bkg(fn):
     str = dict()
@@ -70,20 +72,45 @@ def read_magn_header(fn,str):
     fh.close()
     return str
 
-def read_bfield_stellarator(f):
+def read_magn_bkg_stellarator(fn):
+
+    f = h5py.File(fn, 'r') # Open for reading
+
     str = dict()
-    str['bphi'] = f['bfield/stellarator/']
+    
+    str['r'] = f['bfield/stellarator/r'][:]
+    str['phi'] = f['bfield/stellarator/phi'][:]
+    str['z'] = f['bfield/stellarator/z'][:]
+
+    str['br'] = f['bfield/stellarator/br'][:]
+    str['bphi'] = f['bfield/stellarator/bphi'][:]
+    str['bz'] = f['bfield/stellarator/bz'][:]
+    str['s'] = f['bfield/stellarator/s'][:]
+    
+    str['axis_r'] = f['bfield/stellarator/axis_R'][:]
+    str['axis_phi'] = f['bfield/stellarator/axis_phi'][:]
+    str['axis_z'] = f['bfield/stellarator/axis_z'][:]
+
+    str['n_periods'] = f['bfield/stellarator/toroidalPeriods'][:]
+
+    f.close()
     return str
     
-def write_magn_bkg(f, m):
-    if(m['nPhi'] > 1):
-        ui_B_3D.write_hdf5('ascot.h5',
+def write_magn_bkg(fn, m):
+    if 'n_periods' in m:
+        ui_B_ST.write_hdf5(fn,
+                           m['r'], m['phi'], m['z'],
+                           m['br'], m['bphi'], m['bz'], m['s'],
+                           m['axis_r'], m['axis_phi'], m['axis_z'],
+                           m['n_periods'])
+    elif(m['nPhi'] > 1):
+        ui_B_3D.write_hdf5(fn,
                            np.array([m['r'][0], m['r'][-1]]),
                            np.array([m['z'][0], m['z'][-1]]), m['nPhi'],
                            m['psi']/(2*np.pi), m['br'], m['bphi'], m['bz'],
                            np.array([m['axis_r'], m['axis_z']]), np.array([m['psi0'], m['psi1']]))
     else:
-        ui_B_2D.write_hdf5('ascot.h5',
+        ui_B_2D.write_hdf5(fn,
                            np.array([m['r'][0], m['r'][-1]]),
                            np.array([m['z'][0], m['z'][-1]]),
                            m['psi']/(2*np.pi), m['br']*0, m['bphi'], m['bz']*0,

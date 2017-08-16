@@ -14,7 +14,7 @@ import ui_E_TC
 def main():
     overwrite_fields = True
     h5file = 'ascot.h5'
-    f = h5py.File(h5file, 'a') # Open for reading or writing    
+    f = h5py.File(h5file, 'a') # Open for reading or writing
 
     # Particle input
     if overwrite_fields or (not 'markers' in f):
@@ -56,8 +56,8 @@ def main():
                 f['efield'].attrs['type'] = 'erad'
             else:
                 E = np.array([0.0, 0, 0])
-                ui_E_TC.write_hdf5(h5file, E) 
-    
+                ui_E_TC.write_hdf5(h5file, E)
+
     # 2D wall
     if overwrite_fields or (not 'wall/2D' in f):
         fname = 'input.wall_2d'
@@ -70,30 +70,23 @@ def main():
         fname = 'input.wall_3d'
         if (os.path.isfile(fname)):
             data = read_wall_3d(fname)
-            if 'wall/3D' in f:
-                del f['wall/3D']
-            write_wall_3d(f, data)
-            f['wall'].attrs['type'] = '3D'
+            write_wall_3d(h5file, data)
 
-    # HDF5 file, with stellarator bfield and/or 3D wall
-    fname = 'input.h5'
-    inputf = h5py.File(fname, 'r') # Open for reading or writing
+    # HDF5 stellarator bfield
     if overwrite_fields or (not 'bfield/B_3D' in f):
-        if 'bfield/stellarator' in inputf:
-            if 'bfield/stellarator' in f:
-                del f['bfield/stellarator']
-            f.create_group('bfield/stellarator')
-            inputf.copy("/bfield/stellarator", f['/bfield/stellarator'])
+        fname = 'input.h5'
+        if (os.path.isfile(fname)):
+            data = read_magn_bkg_stellarator(fname)
+            write_magn_bkg(h5file, data)
+            # HDF5 3D wall
     if overwrite_fields or (not 'wall/3D' in f):
-        if 'wall/3d' in inputf:
-            if 'wall/3D' in f:
-                del f['wall/3D']
-            write_wall_3d_hdf5(f,inputf)
+        fname = 'input.h5'
+        if (os.path.isfile(fname)):
+            data = read_wall_3d_hdf5(fname)
+            write_wall_3d(h5file, data)
             f['wall'].attrs['type'] = '3D'
-            
-    f.close()
-    inputf.close()
 
-    
+    f.close()
+
 if __name__ == '__main__':
     main()

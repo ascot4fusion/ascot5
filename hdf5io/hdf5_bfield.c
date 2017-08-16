@@ -409,12 +409,12 @@ void hdf5_bfield_init_offload_ST(hid_t f, B_ST_offload_data* offload_data, real*
     hsize_t dims[3];
 
     /* Number of toroidal periods */
-    err = H5LTread_dataset_int(f,"/bfield/stellarator/toroidalPeriods",&periods);
+    err = H5LTread_dataset_int(f,"/bfield/B_ST/toroidalPeriods",&periods);
     offload_data->periods = periods;
 
     /* Read the coordinate data */
     /* Get dimensions of bfield data */
-    err = H5LTget_dataset_info(f,"/bfield/stellarator/br", dims, NULL, NULL);
+    err = H5LTget_dataset_info(f,"/bfield/B_ST/B_r", dims, NULL, NULL);
 
     /* Sizes of dimensions */
     int n_z   = dims[0];
@@ -428,9 +428,9 @@ void hdf5_bfield_init_offload_ST(hid_t f, B_ST_offload_data* offload_data, real*
     real* temp_phi = (real*) malloc(offload_data->n_phi*sizeof(real));
     real* temp_z   = (real*) malloc(offload_data->n_z*sizeof(real));
 
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/r", temp_r);
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/phi", temp_phi);
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/z", temp_z);
+    err = H5LTread_dataset_double(f, "/bfield/B_ST/r", temp_r);
+    err = H5LTread_dataset_double(f, "/bfield/B_ST/phi", temp_phi);
+    err = H5LTread_dataset_double(f, "/bfield/B_ST/z", temp_z);
 
     offload_data->r_min = temp_r[0];
     offload_data->r_max = temp_r[n_r - 1];
@@ -457,10 +457,10 @@ void hdf5_bfield_init_offload_ST(hid_t f, B_ST_offload_data* offload_data, real*
     real* temp_B_z   = (real*) malloc(temp_B_size*sizeof(real));
     real* temp_B_s   = (real*) malloc(temp_B_size*sizeof(real));
 
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/br", temp_B_r);
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/bphi", temp_B_phi);
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/bz", temp_B_z);
-    err = H5LTread_dataset_double(f, "/bfield/stellarator/s", temp_B_s);
+    err = H5LTread_dataset_double(f, "/bfield/B_ST/B_r", temp_B_r);
+    err = H5LTread_dataset_double(f, "/bfield/B_ST/B_phi", temp_B_phi);
+    err = H5LTread_dataset_double(f, "/bfield/B_ST/B_z", temp_B_z);
+    err = H5LTread_dataset_double(f, "/bfield/B_ST/s", temp_B_s);
 
     /* We need to use stellarator symmetry here.
      * http://dx.doi.org/10.1016/S0167-2789(97)00216-9
@@ -585,8 +585,6 @@ void hdf5_bfield_init_offload_ST(hid_t f, B_ST_offload_data* offload_data, real*
     free(temp_B_phi);
     free(temp_B_z);
     free(temp_B_s);
-
-    hdf5_close(f);
 }
 
 /**
