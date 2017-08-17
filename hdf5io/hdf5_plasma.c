@@ -120,9 +120,10 @@ int hdf5_plasma_init_offload(hid_t f, plasma_1d_offload_data* offload_data,
 		printf("  - Znum %d, Amass %d\n",Znum[k],Amass[k]);
 	    }
 	    //printf("- Number of neutral species %d, Znum %d, Anum %d\n");
-	    printf("- Central electron temperature %le and density %le\n",
-		   temp_e[0], dens_e[0]);
-	    printf("- Central ion temperature %le and densities\n", temp_i[0]);
+	    printf("- Central electron temperature %le eV and density %le m^-3\n",
+		   temp_e[0] * CONST_KB / CONST_E, dens_e[0]);
+	    printf("- Central ion temperature %le eV and densities [m^-3]\n", 
+		   temp_i[0] * CONST_KB / CONST_E);
 	    for(int k=0; k<n_ions; k++) {
 		printf("  - %le\n",dens_i[k*n_rho]);
 	    }

@@ -122,6 +122,10 @@ void hdf5_wall_init_offload_3D(hid_t f, wall_3d_offload_data* offload_data, real
         }
     }
     
+    free(x1x2x3);
+    free(y1y2y3);
+    free(z1z2z3);
+    
     /* Depth of the octree in which the triangles are sorted */
     offload_data->depth = 7;
     offload_data->ngrid = 1;

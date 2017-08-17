@@ -67,6 +67,6 @@ def read_2d(fh):
     
 def write_plasma_1d(fn, p):
     dens_i = np.array([p['ni'+str(i)] for i in range(1,p['nion']+1)])
-    p1D.write_hdf5(fn, p['nrho'], p['nion'], p['znum'], p['znum'], p['rho'], np.zeros(p['rho'].shape), np.zeros(p['rho'].shape), p['ne'], p['te']*8.6173e-05, dens_i, p['ti1']*8.6173e-05)
+    p1D.write_hdf5(fn, p['nrho'], p['nion'], p['znum'], p['znum'], p['rho'], np.zeros(p['rho'].shape), np.zeros(p['rho'].shape), p['ne'], p['te'], dens_i, p['ti1'])
 
 
