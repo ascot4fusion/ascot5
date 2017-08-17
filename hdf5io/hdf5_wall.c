@@ -29,10 +29,14 @@ void hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data, real** off
 	#endif
 
     }
-    else if (strcmp(type, "3D") == 0) {
+    else if (strncmp(type, "3D",2) == 0) {
         offload_data->type = 3;
         hdf5_wall_init_offload_3D(f, &(offload_data->w3d), offload_array);
         offload_data->offload_array_length = offload_data->w3d.offload_array_length;
+	#if VERBOSE > 0
+	    printf("\nLoaded 3D wall (w3d)\n");
+	    printf("with parameters:\n");
+	#endif
     }
 }
 
@@ -65,10 +69,7 @@ void hdf5_wall_init_offload_3D(hid_t f, wall_3d_offload_data* offload_data, real
     herr_t err;
 
     /* Read number of wall elements */
-    err = H5LTget_attribute_int(f, "/wall/3D", "n", &(offload_data->n));
-
-    *offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
-    offload_data->offload_array_length = 9 * offload_data->n;
+    err = H5LTget_attribute_int(f, "/wall/3D", "n_elements", &(offload_data->n));
 
     H5LTget_attribute_double(f, "/wall/3D", "min_x", &(offload_data->xmin));
     H5LTget_attribute_double(f, "/wall/3D", "max_x", &(offload_data->xmax));
@@ -87,11 +88,14 @@ void hdf5_wall_init_offload_3D(hid_t f, wall_3d_offload_data* offload_data, real
     offload_data->zmax += 0.1;
 
     /* Allocate space for x1x2x3, y1y2y3, z1z2z3 for each element */
+
+    offload_data->offload_array_length = 9 * offload_data->n;
     *offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
 
-    real x1x2x3[3*offload_data->n];
-    real y1y2y3[3*offload_data->n];
-    real z1z2z3[3*offload_data->n];
+    
+    real* x1x2x3 = (real*)malloc(3 * offload_data->n * sizeof(real));
+    real* y1y2y3 = (real*)malloc(3 * offload_data->n * sizeof(real));
+    real* z1z2z3 = (real*)malloc(3 * offload_data->n * sizeof(real));
     
     err = H5LTread_dataset_double(f,"wall/3D/x1x2x3", x1x2x3);
     err = H5LTread_dataset_double(f,"wall/3D/y1y2y3", y1y2y3);
