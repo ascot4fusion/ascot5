@@ -29,14 +29,23 @@ void hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data, real** off
 	#endif
 
     }
-    else if (strncmp(type, "3D",2) == 0) {
+    if (strncmp(type, "3D",2) == 0) {
         offload_data->type = 3;
         hdf5_wall_init_offload_3D(f, &(offload_data->w3d), offload_array);
         offload_data->offload_array_length = offload_data->w3d.offload_array_length;
 	#if VERBOSE > 0
 	    printf("\nLoaded 3D wall (w3d)\n");
 	    printf("with parameters:\n");
-	#endif
+	    printf("- number of wall elements = %d\n",
+		   offload_data->w3d.n);
+	    printf("- xmin = %le and xmax = %le\n",
+		   offload_data->w3d.xmin,offload_data->w3d.xmax);
+	    printf("- ymin = %le and ymax = %le\n",
+		   offload_data->w3d.ymin,offload_data->w3d.ymax);
+	    printf("- zmin = %le and zmax = %le\n",
+		   offload_data->w3d.zmin,offload_data->w3d.zmax);
+
+        #endif
     }
 }
 

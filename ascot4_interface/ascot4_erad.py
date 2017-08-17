@@ -18,10 +18,9 @@ def read_erad(fn):
 def write_erad(f, e):
 
     f.create_group('efield/erad')
-    f['efield/erad'].attrs['n_rho'] = e['n_rho']
+    f['efield/erad'].attrs['n_rho'] = int(e['n_rho'])
     f['efield/erad'].attrs['r_eff'] = 1.0
     f['efield/erad'].attrs['rho_min'] = np.amin(e['rho'])
     f['efield/erad'].attrs['rho_max'] = np.amax(e['rho'])
     f.create_dataset('efield/erad/rho', data=e['rho'])
     f.create_dataset('efield/erad/dV_drho', data=e['dV_drho'])
-

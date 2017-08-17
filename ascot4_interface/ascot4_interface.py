@@ -53,7 +53,7 @@ def main():
                 if not 'efield' in f:
                     f.create_group('efield')
                 write_erad(f, data)
-                f['efield'].attrs['type'] = 'erad'
+                f['efield'].attrs['type'] = np.string_('erad')
             else:
                 E = np.array([0.0, 0, 0])
                 ui_E_TC.write_hdf5(h5file, E)
@@ -78,13 +78,13 @@ def main():
         if (os.path.isfile(fname)):
             data = read_magn_bkg_stellarator(fname)
             write_magn_bkg(h5file, data)
-            # HDF5 3D wall
+
+    # HDF5 3D wall
     if overwrite_fields or (not 'wall/3D' in f):
         fname = 'input.h5'
         if (os.path.isfile(fname)):
             data = read_wall_3d_hdf5(fname)
             write_wall_3d(h5file, data)
-            f['wall'].attrs['type'] = '3D'
 
     f.close()
 

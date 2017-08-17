@@ -41,10 +41,18 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real**
 
         return 1;
     }
-    if(strcmp(type,"erad") == 0) {
+    if(strncmp(type,"erad",4) == 0) {
         offload_data->type = E_field_type_1D;
 	hdf5_efield_init_offload_1D(f, &(offload_data->E1D), offload_array);
     offload_data->offload_array_length = offload_data->E1D.offload_array_length;
+
+	#if VERBOSE > 0
+	    printf("\nLoaded radial electric field (E_TC)\n");
+	    printf("with parameters:\n");
+	    printf("(n_rho, rho_min, rho_max) = (%d, %le, %le)\n",
+		   offload_data->E1D.n_rho,offload_data->E1D.rho_min,offload_data->E1D.rho_max);
+	#endif
+            
         return 1;
     }
 
@@ -73,7 +81,7 @@ void hdf5_efield_init_offload_1D(hid_t f, E_1D_offload_data* offload_data, real*
 
     /* Effective minor radius */
     real r_eff;
-    err = H5LTget_attribute_double(f, "/efield/erad/", "r_eff", &(r_eff));    
+    err = H5LTget_attribute_double(f, "/efield/erad/", "r_eff", &(r_eff));
     /* Scale derivatives by effective minor radius */
     for(int i = 0; i < offload_data->n_rho; i++) {
         dV[i] = r_eff * dV[i];
