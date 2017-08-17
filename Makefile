@@ -181,4 +181,5 @@ test_interp3Dcomp: test_interp3Dcomp.o $(OBJS)
 clean:
 	rm -f *.o *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
 		$(MCCCDIR)*.o $(HDF5IODIR)*.o *.pyc $(ASCOT4IFDIR)*.pyc \
-		$(UIDIR)*.pyc $(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o
+		$(UIDIR)*.pyc $(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
+		spline/*.o
