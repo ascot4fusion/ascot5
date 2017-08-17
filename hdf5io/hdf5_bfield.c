@@ -134,6 +134,18 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
         hdf5_bfield_init_offload_ST(f, &(offload_data->BST), offload_array);
 	offload_data->type = B_field_type_ST;
     offload_data->offload_array_length=offload_data->BST.offload_array_length;
+	#if VERBOSE > 0
+	    printf("\nLoaded stellarator magnetic field (B_ST)\n");
+	    printf("with parameters:\n");
+	    printf("- number of toroidal periods = %d\n",
+		   offload_data->BST.periods);
+	    printf("- rmin, rmax, nr = %le, %le, %d\n",
+		   offload_data->BST.r_min,offload_data->BST.r_max,offload_data->BST.n_r);
+	    printf("- phimin, phimax, nphi = %le, %le, %d\n",
+		   offload_data->BST.phi_min,offload_data->BST.phi_max,offload_data->BST.n_phi);
+	    printf("- zmin, zmax, nz = %le, %le, %d\n",
+		   offload_data->BST.z_min,offload_data->BST.z_max,offload_data->BST.n_z);
+	#endif
         return 1;
     }
     
