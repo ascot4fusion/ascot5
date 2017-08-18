@@ -23,7 +23,9 @@
 #include "../math.h"
 #include "../consts.h"
 
+#pragma omp declare target
 real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i);
+#pragma omp end declare target
 
 /**
  * @brief Simulates magnetic field-lines using adaptive time-step

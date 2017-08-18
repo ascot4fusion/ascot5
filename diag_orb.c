@@ -13,6 +13,7 @@
 #include "B_field.h"
 #include "diag_orb.h"
 
+#pragma omp declare target
 void diag_orb_intervalTrigger(diag_orb_data* data, integer* particleId, real* prevWriteTime,
 			      integer* id, real* time, int* store);
 
@@ -21,6 +22,7 @@ void diag_orb_poincareTrigger(diag_orb_data* data, int* pol, int* tor, real* kpo
 			      real* itime, real* ipol, real* iphi);
 
 void diag_orb_lastTrigger(diag_orb_data* data, integer* id, real* ftime, real* itime, int* store);
+#pragma omp end declare target
 
 void diag_orb_init_offload(diag_orb_offload_data* data) {
 

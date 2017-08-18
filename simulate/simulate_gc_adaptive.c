@@ -26,7 +26,9 @@
 #include "../consts.h"
 #include "../hdf5io/hdf5_orbits.h"
 
+#pragma omp declare target
 real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
+#pragma omp end declare target
 
 /**
  * @brief Simulates guiding centers using adaptive time-step
