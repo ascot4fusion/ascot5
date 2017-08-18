@@ -16,6 +16,13 @@
 #include "diag.h"
 #include "offload.h"
 
+enum {
+    simulate_mode_fo = 1,
+    simulate_mode_gc = 2,
+    simulate_mode_hybrid = 3,
+    simulate_mode_ml = 4
+};
+
 typedef struct {
     char hdf5_in[256];
     char hdf5_out[256];
@@ -103,22 +110,6 @@ void simulate(int id, int n_particles, particle_state* p,
               offload_package* offload_data,
               real* offload_array,
               real* diag_offload_array);
-
-void simulate_begin(int id, int n_particles, input_particle* p,
-		    sim_offload_data* offload_data, sim_data* sim,
-		    real* B_offload_array,
-		    real* E_offload_array,
-		    real* plasma_offload_array,
-		    real* wall_offload_array,
-		    real* diag_offload_array);
-
-void simulate_continue(int id, int n_particles, input_particle* p,
-		       sim_data* sim);
-
-void simulate_hybrid(int id, int n_particles, input_particle* p,
-		     sim_data* sim);
-
-void simulate_end(sim_data* sim);
 #pragma omp end declare target
 
 #endif

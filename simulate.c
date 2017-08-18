@@ -1,127 +1,147 @@
 #include <stdlib.h>
+#include <string.h>
+#include "endcond.h"
+#include "hdf5io/hdf5_orbits.h"
+#include "offload.h"
 #include "particle.h"
 #include "simulate.h"
 #include "simulate/simulate_ml_adaptive.h"
 #include "simulate/simulate_gc_adaptive.h"
 #include "simulate/simulate_gc_fixed.h"
 #include "simulate/simulate_fo_fixed.h"
-#include "hdf5io/hdf5_orbits.h"
-#include "offload.h"
 
 void simulate(int id, int n_particles, particle_state* p,
-              sim_offload_data* sim_offload,
-              offload_package* offload_data,
-              real* offload_array,
-              real* diag_offload_array) {
+        sim_offload_data* sim_offload,
+        offload_package* offload_data,
+        real* offload_array,
+        real* diag_offload_array) {
     sim_data sim;
     sim_init(&sim, sim_offload);
 
     real* ptr;
     ptr = offload_unpack(offload_data, offload_array,
-                         sim_offload->B_offload_data.offload_array_length);
+            sim_offload->B_offload_data.offload_array_length);
     B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
 
     ptr = offload_unpack(offload_data, offload_array,
-                         sim_offload->E_offload_data.offload_array_length);
+            sim_offload->E_offload_data.offload_array_length);
     E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
 
     ptr = offload_unpack(offload_data, offload_array,
-                         sim_offload->plasma_offload_data.offload_array_length);
+            sim_offload->plasma_offload_data.offload_array_length);
     plasma_1d_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
 
     ptr = offload_unpack(offload_data, offload_array,
-                         sim_offload->wall_offload_data.offload_array_length);
+            sim_offload->wall_offload_data.offload_array_length);
     wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
     diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
-              diag_offload_array);
-    
+            diag_offload_array);
+
     particle_queue pq;
-    particle_queue pqhyb;
+    particle_queue pq_hybrid;
 
     pq.n = 0;
-    pqhyb.n = 0;
+    pq_hybrid.n = 0;
     for(int i = 0; i < n_particles; i++) {
         if(p[i].endcond == 0) {
             pq.n++;
-        } 
-	/* TODO check here for the hybrid endcond
-	else if() {
-            pqhyb.n++;
-        } 
-	*/
+        }
+        else if(p[i].endcond == endcond_hybrid) {
+            pq_hybrid.n++;
+        }
     }
 
     pq.p = (particle_state**) malloc(pq.n * sizeof(particle_state*));
-    pqhyb.p = (particle_state**) malloc(pqhyb.n * sizeof(particle_state*));
+    pq_hybrid.p = (particle_state**)malloc(pq_hybrid.n*sizeof(particle_state*));
 
     pq.next = 0;
-    pqhyb.next = 0;
+    pq_hybrid.next = 0;
     for(int i = 0; i < n_particles; i++) {
         if(p[i].endcond == 0) {
             pq.p[pq.next++] = &p[i];
-        } 
-	/* hybrid
-	else if() {
-	    p[i].p_s.endcond = 0;
-            pq.p[pqhyb.next++] = &p[i];
-        } 
-	*/
-    }
+        }
+        else if(p[i].endcond == endcond_hybrid) {
+            pq_hybrid.p[pq_hybrid.next++] = &p[i];
+        }
 
+    }
     pq.next = 0;
-    pqhyb.next = 0;
 
-    if(pq.n > 0 && (sim.sim_mode == 2 || sim.sim_mode == 3) ) {
-	sim.diag_data.orbits.type = diag_orb_type_gc;
+    if(pq.n > 0 && (sim.sim_mode == simulate_mode_gc
+            || sim.sim_mode == simulate_mode_hybrid)) {
+        sim.diag_data.orbits.type = diag_orb_type_gc;
 
-	if(sim.enable_ada) {
-	    #pragma omp parallel
-	    {
-	        simulate_gc_adaptive(&pq, &sim);
-	    }
-	}
-	else {
-	    #pragma omp parallel
-	    {
-	        simulate_gc_fixed(&pq, &sim);
-	    }
-	}
+        if(sim.enable_ada) {
+            #pragma omp parallel
+            {
+                simulate_gc_adaptive(&pq, &sim);
+            }
+        }
+        else {
+            #pragma omp parallel
+            {
+                simulate_gc_fixed(&pq, &sim);
+            }
+        }
     }
-    else if(pq.n > 0 && sim.sim_mode == 1) {
-	if(sim.record_GOasGC) {
-	    sim.diag_data.orbits.type = diag_orb_type_gc;
-	}
-	else {
-	    sim.diag_data.orbits.type = diag_orb_type_fo;
-	}
-	#pragma omp parallel
-	{
-	    simulate_fo_fixed(&pq, &sim);
-	}
+    else if(pq.n > 0 && sim.sim_mode == simulate_mode_fo) {
+        if(sim.record_GOasGC) {
+            sim.diag_data.orbits.type = diag_orb_type_gc;
+        }
+        else {
+            sim.diag_data.orbits.type = diag_orb_type_fo;
+        }
+        #pragma omp parallel
+        {
+            simulate_fo_fixed(&pq, &sim);
+        }
     }
-    else if(pq.n > 0 && sim.sim_mode == 4) {
-	sim.diag_data.orbits.type = diag_orb_type_ml;
-	#pragma omp parallel
-	{
-	    simulate_ml_adaptive(&pq, &sim);
-	}
+    else if(pq.n > 0 && sim.sim_mode == simulate_mode_ml) {
+        sim.diag_data.orbits.type = diag_orb_type_ml;
+        #pragma omp parallel
+        {
+            simulate_ml_adaptive(&pq, &sim);
+        }
     }
-    else if(pqhyb.n > 0 && sim.sim_mode == 3) {
-        /* fo simulation for the hybrid mode */
-	#pragma omp parallel
-	{
-	    simulate_fo_fixed(&pqhyb, &sim);
-	}
+
+    /* Finish simulating hybrid particles with fo */
+    if(sim.sim_mode == simulate_mode_hybrid) {
+        int n_new = 0;
+        for(int i = 0; i < pq.n; i++) {
+            if(pq.p[i]->endcond == endcond_hybrid) {
+                n_new++;
+            }
+        }
+
+        if(n_new > 0) {
+            particle_state** tmp = pq_hybrid.p;
+            pq_hybrid.p = (particle_state**) malloc((pq_hybrid.n + n_new)
+                    * sizeof(particle_state*));
+            memcpy(pq_hybrid.p, tmp, pq_hybrid.n * sizeof(particle_state*));
+            free(tmp);
+
+            for(int i = 0; i < pq.n; i++) {
+                if(pq.p[i]->endcond == endcond_hybrid) {
+                    pq_hybrid.p[pq_hybrid.next++] = &p[i];
+                }
+            }
+        }
+        pq_hybrid.next = 0;
+
+        #pragma omp parallel
+        {
+            simulate_fo_fixed(&pq_hybrid, &sim);
+        }
     }
 
     free(pq.p);
-    free(pqhyb.p);
+    free(pq_hybrid.p);
 
     // Temporary solution
-    #ifdef NOTARGET
-        hdf5_orbits_write(&sim, sim_offload->hdf5_out);
-    #endif
+#ifdef NOTARGET
+    hdf5_orbits_write(&sim, sim_offload->hdf5_out);
+#endif
 
     diag_clean(&sim.diag_data);
 }
@@ -154,14 +174,3 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->endcond_maxTorOrb    = offload_data->endcond_maxTorOrb;
     sim->endcond_maxPolOrb    = offload_data->endcond_maxPolOrb;
 }
-
-void simulate_continue(int id, int n_particles, input_particle* p,
-		       sim_data* sim) {
-
-}
-
-void simulate_hybrid(int id, int n_particles, input_particle* p,
-		     sim_data* sim) {
-
-}
-
