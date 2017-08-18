@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
                 #pragma omp target device(0) map( \
         ps[0:n_mic], \
         offload_array[0:offload_data.offload_array_length], \
-        diag_offload_array_mic0[0:sim.diag_offload_data.offload_array_length], \
+        diag_offload_array_mic0[0:sim.diag_offload_data.offload_array_length] \
                 )
                 simulate(1, n_mic, ps, &sim, &offload_data, offload_array,
                          diag_offload_array_mic0);
@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
                 #pragma omp target device(1) map( \
         ps[n_mic:2*n_mic], \
         offload_array[0:offload_data.offload_array_length], \
-        diag_offload_array_mic1[0:sim.diag_offload_data.offload_array_length], \
+        diag_offload_array_mic1[0:sim.diag_offload_data.offload_array_length] \
                 )
                 simulate(2, n_mic, ps+n_mic, &sim, &offload_data, offload_array,
                          diag_offload_array_mic1);
