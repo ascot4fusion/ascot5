@@ -3,6 +3,6 @@ job.err.*
 job.out.*
 *~
 test_offload
-ascot5_gc
 ascot5_main
 ascot.h5
+*.optrpt
