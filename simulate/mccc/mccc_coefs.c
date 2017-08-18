@@ -9,9 +9,10 @@
 #include "../../math.h"
 #include "../../consts.h"
 #include "../../ascot5.h"
+#include "mccc_coefs.h"
 #include "mccc_special.h"
 
-int MCCC_COEFS_EXACT = 1;
+const int MCCC_COEFS_EXACT = 1;
 
 /**
  * @brief Initializes lookup tables for more(?) efficient evaluation

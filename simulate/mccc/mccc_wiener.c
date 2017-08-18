@@ -17,7 +17,7 @@
 #include "../../consts.h"
 #include "mccc_wiener.h"
 
-int MCCC_EMPTY = -999;
+const int MCCC_EMPTY = -999;
 
 /**
  * @brief Allocates a struct that will be used to store generated Wiener processes 

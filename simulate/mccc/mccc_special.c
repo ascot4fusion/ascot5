@@ -9,6 +9,7 @@
 #include "../../ascot5.h"
 #include "../../math.h"
 #include "../../consts.h"
+#include "mccc_special.h"
 
 
 void mccc_special_G(real x, real* G, int exact){
