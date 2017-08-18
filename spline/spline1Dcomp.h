@@ -6,5 +6,7 @@
 #define SPLINE1DCOMP_H
 #include "../ascot5.h"
 
+#pragma omp declare target
 void spline1Dcomp(real* f, int n, int bc, real* c);
+#pragma omp end declare target
 #endif

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h> /* Needed for printf debugging purposes */
 #include "../ascot5.h"
+#include "spline1Dcomp.h"
 
 /**
  * @brief Calculate compact tricubic spline interpolation coefficients for scalar 3D data

@@ -25,6 +25,7 @@ typedef struct {
     real* c;                  /**< pointer to array with spline coefficients */
 } interp3D_data;
 
+#pragma omp declare target
 void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
 		   real r_min, real r_max, real r_grid,
 		   real phi_min, real phi_max, real phi_grid,
@@ -32,4 +33,5 @@ void interp3D_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
 void interp3D_eval_B(real* B, interp3D_data* str, real r, real phi, real z);
 void interp3D_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z);
 void interp3D_free(interp3D_data* str);
+#pragma omp end declare target
 #endif

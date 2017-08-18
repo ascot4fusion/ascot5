@@ -21,10 +21,12 @@ typedef struct {
     real* c;                  /**< pointer to array with spline coefficients */
 } interp2D_data;
 
+#pragma omp declare target
 void interp2D_init(interp2D_data* str, real* f, int n_r, int n_z,
 		   real r_min, real r_max, real r_grid,
 		   real z_min, real z_max, real z_grid);
 void interp2D_eval_B(real* B, interp2D_data* str, real r, real z);
 void interp2D_eval_dB(real* B_dB, interp2D_data* str, real r, real z);
 void interp2D_free(interp2D_data* str);
+#pragma omp end declare target
 #endif
