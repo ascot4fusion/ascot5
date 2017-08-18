@@ -234,7 +234,7 @@ int main(int argc, char** argv) {
     #endif
     offload_free_offload(&offload_data, &offload_array);
     
-    free(p);
+    free(p-start_index);
 
     
 
