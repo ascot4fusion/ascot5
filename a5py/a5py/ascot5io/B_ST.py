@@ -1,0 +1,145 @@
+"""
+Stellarator magnetic field IO.
+"""
+import numpy as np
+import h5py
+import random
+import datetime
+
+def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
+               B_R, B_phi, B_z, s, n_periods,
+               axisR, axisphi, axisz):
+    """
+    Write stellarator magnetic field input in HDF5 file.
+
+    TODO Not compatible with new HDF5 format. (or old...)
+    TODO fill documentation
+
+    Parameters
+    ----------
+
+    fn : str
+        Full path to the HDF5 file.
+    Rlim, Rmax, phimin, phimax, zmin, zmax : real
+        Edges of the uniform Rphiz-grid.
+    nR, nphi, nz : int
+        Number of Rphiz-grid points.
+    B_R, B_phi, B_z : real R x phi x z numpy array
+        Magnetic field components in Rphiz-grid
+    s : real
+        TODO
+    n_periods : int
+        TODO
+    axisR, axisphi, axisz : real
+        Magnetic axis Rphiz-location.
+    """
+
+    group = "bfield"
+    type_ = "B_ST"
+    path = "bfield/B_ST"
+    
+    # Create group and set the type to this one.
+    f = h5py.File(fn, "a")
+    if not group in f:
+        o = f.create_group(group)
+        o.attrs["type"] = np.string_(type_)
+    else:
+        o = f[group]
+        del o.attrs["type"]
+        o.attrs["type"] = np.string_(type_)
+        
+    # Remove group if one is already present.
+    if path in f:
+        del f[path]
+    f.create_group(path)
+
+    # TODO Check that inputs are consistent.
+
+    # Metadata.
+    qid = random.getrandbits(64)
+    f[path].attrs["qid"]  = np.int64_(qid)
+    f[path].attrs["date"] = np.string_(datetime.datetime.now())
+
+    # Actual data.
+    f.create_dataset(path + "/r_min", data=Rmin, dtype="f8")
+    f.create_dataset(path + "/r_max", data=Rmax, dtype="f8")
+    f.create_dataset(path + "/n_r",   data=nR, dtype="i8")
+
+    f.create_dataset(path + "/phi_min", data=Rmin, dtype="f8")
+    f.create_dataset(path + "/phi_max", data=Rmax, dtype="f8")
+    f.create_dataset(path + "/n_phi",   data=nR, dtype="i8")
+
+    f.create_dataset(path + "/z_min", data=zmin, dtype="f8")
+    f.create_dataset(path + "/z_max", data=zmax, dtype="f8")
+    f.create_dataset(path + "/n_z",   data=nz, dtype="i8")
+
+    # Magnetic field data
+    f.create_dataset(path + "/B_r",   data=B_R, dtype="f8")
+    f.create_dataset(path + "/B_phi", data=B_phi, dtype="f8")
+    f.create_dataset(path + "/B_z",   data=B_z, dtype="f8")
+    f.create_dataset(path + "/s",     data=s, dtype="f8")
+
+    # Magnetic axis (TODO not implemented)
+    f.create_dataset(path + "/axis_r",   data=axisR, dtype="f8")
+    f.create_dataset(path + "/axis_phi", data=axisphi, dtype="f8")
+    f.create_dataset(path + "/axis_z",   data=axisz, dtype="f8")
+
+    # Toroidal periods
+    f.create_dataset(path + "/toroidalPeriods", data=n_periods, dtype="i4")
+    
+    f.close()
+
+
+def read_hdf5(fn)
+    """
+    Read stellarator magnetic field input from HDF5 file.
+
+    TODO Not compatible with new HDF5 format.
+
+    Parameters
+    ----------
+
+    fn : str
+        Full path to the HDF5 file.
+
+    Returns
+    -------
+
+    Dictionary containing magnetic field data.
+    """
+
+    path = "bfield/B_ST"
+
+    f = h5py.File(fn,"r")
+
+    out = {}
+
+    # Metadata.
+    out["qid"]  = f[path].attrs["qid"]
+    out["date"] = f[path].attrs["date"]
+
+    # Actual data.
+    out["Rmin"] = f[path]["r_min"][:]
+    out["Rmax"] = f[path]["r_max"][:]
+    out["nR"]   = f[path]["n_r"][:]
+
+    out["phimin"] = f[path]["phi_min"][:]
+    out["phimax"] = f[path]["phi_max"][:]
+    out["nphi"]   = f[path]["n_phi"][:]
+
+    out["zmin"] = f[path]["z_min"][:]
+    out["zmax"] = f[path]["z_max"][:]
+    out["nz"]   = f[path]["n_z"][:]
+
+    out["s"]     = f[path]["s"][:]
+    out["B_R"]   = f[path]["B_r"][:]
+    out["B_phi"] = f[path]["B_phi"][:]
+    out["B_z"]   = f[path]["B_z"][:]
+
+    out["axisR"]   = f[path]["axis_r"][:]
+    out["axisphi"] = f[path]["axis_phi"][:]
+    out["axisz"]   = f[path]["axis_z"][:]
+
+    out["n_periods"] = f[path]["toroidalPeriods"][:]
+
+    f.close()
