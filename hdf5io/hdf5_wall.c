@@ -26,6 +26,8 @@ void hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data, real** off
 	#if VERBOSE > 0
 	    printf("Loaded 2D wall (w2d)\n");
 	    printf("with parameters:\n");
+	    printf("- number of wall elements = %d\n",
+		   offload_data->w2d.n);
 	#endif
 
     }

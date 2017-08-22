@@ -1,11 +1,16 @@
 """
 Test case module.
 """
-
+import numpy as np
 import a5py.ascot5io.B_TC as B_TC
 import a5py.ascot5io.E_TC as E_TC
 import a5py.ascot5io.plasma_1D as plasma_1D
 import a5py.ascot5io.wall_2D as wall_2D
+import a5py.ascot5io.options as options
+
+import sys
+sys.path.append('..')
+import opt
 
 def createbase(fn, Bxyz, Exyz, n, T):
     """
@@ -31,27 +36,34 @@ def createbase(fn, Bxyz, Exyz, n, T):
 
     Nrho = 2
     Nion = 1
-    znum = 1
-    anum = 1
+    znum = np.array([1])
+    anum = np.array([1])
     rho = np.array([0, 1])
-    ndens = 0*ones(rho.shape)
-    ntemp = 0*ones(rho.shape)
-    edens = n*ones(rho.shape)
-    etemp = T*ones(rho.shape)
-    idens = n*ones(rho.shape)
-    itemp = T*ones(rho.shape)
+    ndens = 0*np.ones(rho.shape)
+    ntemp = 0*np.ones(rho.shape)
+    edens = n*np.ones(rho.shape)
+    etemp = T*np.ones(rho.shape)
+    idens = n*np.ones(rho.shape)
+    itemp = T*np.ones(rho.shape)
     plasma_1D.write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, idens, itemp)
 
     n = 4
-    R = [0.1, 100, 100, 0.1]
-    z = [-100, -100, 100, 100] 
-    wall2D.write_hdf5(fn, n, R, z)
+    R = np.array([0.1, 100, 100, 0.1])
+    z = np.array([-100, -100, 100, 100])
+    wall_2D.write_hdf5(fn, n, R, z)
 
+    o = opt.generateopt()
+    o = flagsToZero(o,"ENABLE")
+    o = flagsToZero(o,"ENDCOND")
+
+    o["RECORD_GO_AS_GC"] = np.array([0],dtype='i4')
+
+    options.write_hdf5(fn, o)
 
 def flagsToZero(options,flags):
     for i in options:
         if i.startswith(flags):
-            setattr(options,i,0)
+            options[i] = np.array([0],dtype='i4')
     return options
 
 
