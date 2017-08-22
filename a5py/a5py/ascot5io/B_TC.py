@@ -61,7 +61,7 @@ def write_hdf5(fn, Bxyz, J, rhoval):
     f.close()
 
 
-def read_hdf5(fn)
+def read_hdf5(fn):
     """
     Read trivial cartesian magnetic field input from HDF5 file.
 

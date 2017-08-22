@@ -90,7 +90,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     f.close()
 
 
-def read_hdf5(fn)
+def read_hdf5(fn):
     """
     Read stellarator magnetic field input from HDF5 file.
 

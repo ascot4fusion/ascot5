@@ -55,7 +55,7 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, iden
         raise Exception('Ion density data is not consisten with Nrho and Nion')
 
     if etemp[0] < 1 or etemp[0] > 1e5 or itemp[0] < 1 or itemp[0] >1e5:
-        print "Warning: Check that temperature is given in eV"
+        print("Warning: Check that temperature is given in eV")
 
     # convert ion density matrix in 1D array (which is how it is stored in hdf5)
     if idens.size != (Nion,Nrho):
@@ -108,7 +108,7 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, iden
     f.close();
 
 
-def read_hdf5(fn)
+def read_hdf5(fn):
     """
     Read 1D plasma input from HDF5 file.
 

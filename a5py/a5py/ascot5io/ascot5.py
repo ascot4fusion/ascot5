@@ -3,27 +3,27 @@ Main module for reading ASCOT5 HDF5 files.
 """
 import numpy as np
 import h5py
-from __future__ import a5py.ascot5io.B_2D as B_2D
-from __future__ import a5py.ascot5io.B_3D as B_3D
-from __future__ import a5py.ascot5io.B_ST as B_ST
-from __future__ import a5py.ascot5io.B_TC as B_TC
-from __future__ import a5py.ascot5io.B_GS as B_GS
+from . import B_2D
+from . import B_3D
+from . import B_ST
+from . import B_TC
+from . import B_GS
 
-from __future__ import a5py.ascot5io.E_TC as E_TC
-from __future__ import a5py.ascot5io.E_1D as E_1D
+from . import E_TC
+from . import E_1D
 
-from __future__ import a5py.ascot5io.wall_2D as wall_2D
-from __future__ import a5py.ascot5io.wall_3D as wall_3D
+from . import wall_2D
+from . import wall_3D
 
-from __future__ import a5py.ascot5io.plasma_1D as plasma_1D
+from . import plasma_1D
 
-from __future__ import a5py.ascot5io.metadata as metadata
+from . import metadata
 
-from __future__ import a5py.ascot5io.markers as markers
+from . import markers
 
-from __future__ import a5py.ascot5io.orbits as orbits
-from __future__ import a5py.ascot5io.dists as dists
-from __future__ import a5py.ascot5io.states as states
+from . import orbits
+from . import dists
+from . import states
 
 def read_hdf5(fn, groups="all"):
     """
@@ -47,7 +47,8 @@ def read_hdf5(fn, groups="all"):
     """
 
     if groups == "all":
-        groups = 
+        groups = ["bfield", "efield", "options", "wall", "plasma"
+                  "markers", "metadata", "states", "orbits", "dists"]
 
     f = h5py.File(fn, "r")
 

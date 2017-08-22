@@ -8,7 +8,8 @@ setup(name='a5py',
       packages=find_packages(),
       zip_safe=False,
       scripts=[
-        'bin/a5removeruns'
+        'bin/a5removeruns',
+        'bin/a5setoptions'
       ])
 
 

@@ -3,7 +3,7 @@ Tools to modify HDF5 files.
 """
 import numpy as np
 import h5py
-from __future__ import a5py.ascot5io.ascot5 as ascot5
+from . import ascot5
 
 def remove(fn,runid=0):
     """

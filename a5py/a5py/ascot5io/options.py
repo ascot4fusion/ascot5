@@ -3,8 +3,7 @@ Options IO.
 """
 import h5py
 import numpy as np
-import random
-import datetime
+from . ascot5group import replacegroup, setgrouptype, setmetadata
 
 def write_hdf5(fn,options):
     """
@@ -29,21 +28,14 @@ def write_hdf5(fn,options):
         
     f = h5py.File(fn, "a")
 
-    # Remove group if one is already present.
-    if path in f:
-        del f[path]
-    f.create_group(path)
-
+    replacegroup(f, path)
+    setmetadata(f[path])
+    
     # TODO Check that inputs are consistent.
-
-    # Metadata.
-    qid = random.getrandbits(64)
-    f[path].attrs["qid"]  = np.int64_(qid)
-    f[path].attrs["date"] = np.string_(datetime.datetime.now())
 
     # Actual data.
     for opt in options:
-        f.create_dataset(path + opt, data=f[path][opt])
+        f.create_dataset(path + opt, data=options[opt])
     
     f.close()
 

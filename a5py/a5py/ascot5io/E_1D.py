@@ -60,8 +60,8 @@ def write_hdf5(fn, Nrho, r_eff, rhomin, rhomax, rho, dVdrho):
     # Actual data.
     f[path].attrs['n_rho']   = Nrho
     f[path].attrs['r_eff']   = r_eff
-    f[path].attrs['rho_min'] = rhomin)
-    f[path].attrs['rho_max'] = rhomax)
+    f[path].attrs['rho_min'] = rhomin
+    f[path].attrs['rho_max'] = rhomax
     f.create_dataset(path + '/rho', data=rho, dtype='f8')
     f.create_dataset(path + '/dV_drho', data=dVdrho, dtype='f8')
 
@@ -97,10 +97,10 @@ def read_hdf5(fn):
     out["date"] = f[path].attrs["date"]
     
     # Actual data.
-    out["Nrho"]    = f['efield/erad'].attrs['n_rho']
-    out["r_eff"]   = .attrs['r_eff']
-    out["rho_min"] = .attrs['rho_min']
-    out["rho_max"] = .attrs['rho_max']
+    out["Nrho"]    = f[path].attrs['n_rho']
+    out["r_eff"]   = f[path].attrs['r_eff']
+    out["rho_min"] = f[path].attrs['rho_min']
+    out["rho_max"] = f[path].attrs['rho_max']
     out["rho"]     = f[path + '/rho'][:]
     out["dVdrho"]  = f[path + '/dV_drho'][:]
 

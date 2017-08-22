@@ -9,8 +9,6 @@ import datetime
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                axisR, axisz, psiRz, psiaxis, psisepx,
                B_R, B_phi, B_z):
-
-(fn, rlim, zlim, n_phi, psirz, Br, Bphi, Bz, axisRz, psivals):
     """
     Write 3D magnetic field input in HDF5 file.
 
@@ -104,7 +102,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     f.close()
 
 
-def read_hdf5(fn)
+def read_hdf5(fn):
     """
     Read 3D magnetic field input from HDF5 file.
 

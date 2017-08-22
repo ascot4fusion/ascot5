@@ -92,7 +92,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
     f.close()
 
 
-def read_hdf5(fn)
+def read_hdf5(fn):
     """
     Read 2D magnetic field input from HDF5 file.
 
