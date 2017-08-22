@@ -6,6 +6,8 @@ import numpy as np
 import random
 import datetime
 
+from . ascot5group import replacegroup, setgrouptype, setmetadata
+
 def write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, idens, itemp):
     """
     Write 1D plasma input in HDF5 file.
@@ -69,26 +71,14 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, iden
     
     # Create group and set the type to this one.
     f = h5py.File(fn, "a")
-    if not group in f:
-        o = f.create_group(group)
-        o.attrs["type"] = np.string_(type_)
-    else:
-        o = f[group]
-        del o.attrs["type"]
-        o.attrs["type"] = np.string_(type_)
-        
-    # Remove group if one is already present.
-    if path in f:
-        del f[path]
-    f.create_group(path)
+    if "plasma" in f:
+        del f["plasma"]
+
+    setgrouptype(f, group, type_)
+    replacegroup(f, path)
+    setmetadata(f[path])
 
     # TODO Check that inputs are consistent.
-
-    # Metadata.
-    qid = random.getrandbits(64)
-    f[path].attrs["qid"]  = np.int64_(qid)
-    f[path].attrs["date"] = np.string_(datetime.datetime.now())
-
 
     f.create_dataset('plasma/Z_num', (Nion,1), dtype='i4', data=znum)
     f.create_dataset('plasma/A_mass', (Nion,1), dtype='i4', data=anum)
@@ -140,8 +130,8 @@ def read_hdf5(fn):
     # Actual data.
     out["Z_num"]    = f[group]["Z_num"][:]
     out["A_mass"]   = f[group]["A_mass"][:]
-    out["Nion"]     = f['plasma'].attrs['n_ions']
-    out["Nneutral"] = f['plasma'].attrs['n_neutrals']
+    out["Nion"]     = f[group].attrs['n_ions']
+    out["Nneutral"] = f[group].attrs['n_neutrals']
     out["Nrho"]     = f[path].attrs['n_rho']
 
     out["rho"] = f[path]["rho"][:]

@@ -9,6 +9,8 @@ import numpy as np
 import random
 import datetime
 
+from . ascot5group import replacegroup, setgrouptype, setmetadata
+
 def write_hdf5(fn, Bxyz, J, rhoval):
     """
     Write trivial cartesian magnetic field input in HDF5 file.
@@ -34,30 +36,16 @@ def write_hdf5(fn, Bxyz, J, rhoval):
     
     # Create group and set the type to this one.
     f = h5py.File(fn, "a")
-    if not group in f:
-        o = f.create_group(group)
-        o.attrs["type"] = np.string_(type_)
-    else:
-        o = f[group]
-        del o.attrs["type"]
-        o.attrs["type"] = np.string_(type_)
-        
-    # Remove group if one is already present.
-    if path in f:
-        del f[path]
-    f.create_group(path)
+    setgrouptype(f, group, type_)
+    replacegroup(f, path)
+    setmetadata(f[path])
 
     # TODO Check that inputs are consistent.
 
-    # Metadata.
-    qid = random.getrandbits(64)
-    f[path].attrs["qid"]  = np.int64_(qid)
-    f[path].attrs["date"] = np.string_(datetime.datetime.now())
-
     # Actual data.
-    f.create_dataset(path + "/Bxyz",   data=Bxyz, dtype="f8")
-    f.create_dataset(path + "/J",      data=J, dtype="f8")
-    f.create_dataset(path + "/rhoval", data=rhoval, dtype="f8")
+    f.create_dataset(path + "/Bxyz",         data=Bxyz, dtype="f8")
+    f.create_dataset(path + "/J",            data=J, dtype="f8")
+    f.create_dataset(path + "/rhoval", (1,), data=rhoval, dtype="f8")
     f.close()
 
 
@@ -95,3 +83,5 @@ def read_hdf5(fn):
     out["rhoval"] = f[path]["rhoval"][:]
 
     f.close()
+
+    return out

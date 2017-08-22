@@ -39,8 +39,8 @@ def read_hdf5(fn, read="all"):
     for state in read:
         out[state] = {}
         for field in allstates[state]:
-            out[state][field]           = orbits[state][field][:]
-            out[state][field + "_unit"] = orbits[state][field].attrs["unit"]
+            out[state][field]           = f[state][field][:]
+            out[state][field + "_unit"] = f[state][field].attrs["unit"]
         
     # TODO Parse endconditions.
     
@@ -48,7 +48,7 @@ def read_hdf5(fn, read="all"):
     # Find number of markers and check that no markers share same id
     # (which they shouldn't).
     for state in out:
-        out[state]["N"] = np.unique().size
+        out[state]["N"] = np.unique(out[state]["id"]).size
         if out[state]["N"] != out[state]["id"].size:
             print("Warning: Markers don't have unique Id.")
 

@@ -1,10 +1,12 @@
 """
-2D wall IO.
+3D wall IO.
 """
 import h5py
 import numpy as np
 import random
 import datetime
+
+from . ascot5group import replacegroup, setgrouptype, setmetadata
 
 def write_hdf5(fn, n, x1x2x3, y1y2y3, z1z2z3, flag):
     """
@@ -31,25 +33,11 @@ def write_hdf5(fn, n, x1x2x3, y1y2y3, z1z2z3, flag):
 
     # Create group and set the type to this one.
     f = h5py.File(fn, "a")
-    if not group in f:
-        o = f.create_group(group)
-        o.attrs["type"] = np.string_(type_)
-    else:
-        o = f[group]
-        del o.attrs["type"]
-        o.attrs["type"] = np.string_(type_)
-
-    # Remove group if one is already present.
-    if path in f:
-        del f[path]
-    f.create_group(path)
+    setgrouptype(f, group, type_)
+    replacegroup(f, path)
+    setmetadata(f[path])
 
     # TODO Check that inputs are consistent.
-
-    # Metadata.
-    qid = random.getrandbits(64)
-    f[path].attrs["qid"]  = np.int64_(qid)
-    f[path].attrs["date"] = np.string_(datetime.datetime.now())
 
     # Actual data.
     f.create_dataset('wall/3D/x1x2x3', (n,3), dtype='f8', data=x1x2x3)
@@ -103,3 +91,5 @@ def read_hdf5(fn):
     out["flag"]   = f[path]["flag"][:]
     
     f.close()
+
+    return out

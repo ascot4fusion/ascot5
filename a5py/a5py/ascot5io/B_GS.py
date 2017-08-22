@@ -9,6 +9,8 @@ import a5py.preprocessing.analyticequilibrium as psifun
 import a5py.ascot5io.B_2D as B_2D
 import a5py.ascot5io.B_3D as B_3D
 
+from . ascot5group import replacegroup, setgrouptype, setmetadata
+
 def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff, 
                Nripple=0, a0=2, alpha0=2, delta0=0.05):
     """
@@ -67,44 +69,30 @@ def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     
     # Create group and set the type to this one.
     f = h5py.File(fn, "a")
-    if not group in f:
-        o = f.create_group(group)
-        o.attrs["type"] = np.string_(type_)
-    else:
-        o = f[group]
-        del o.attrs["type"]
-        o.attrs["type"] = np.string_(type_)
-        
-    # Remove group if one is already present.
-    if path in f:
-        del f[path]
-    f.create_group(path)
+    setgrouptype(f, group, type_)
+    replacegroup(f, path)
+    setmetadata(f[path])
 
     # TODO Check that inputs are consistent.
-
-    # Metadata.
-    qid = random.getrandbits(64)
-    f[path].attrs["qid"]  = np.int64_(qid)
-    f[path].attrs["date"] = np.string_(datetime.datetime.now())
 
     c = psi_coeff # For shorter notation.
     psi0 = psi_mult*psifun.psi0(R0/R0,z0/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12]) # At axis.
     psi1 = 0 # At separatrix always
 
     # 2D field data.
-    f.create_dataset(path + "/R0",        data=R0, dtype='f8')
-    f.create_dataset(path + "/z0",        data=z0, dtype='f8')
-    f.create_dataset(path + "/B_phi0",    data=B_phi0, dtype='f8')
-    f.create_dataset(path + "/psi0",      data=psi0, dtype='f8')
-    f.create_dataset(path + "/psi1",      data=psi1, dtype='f8')
-    f.create_dataset(path + "/psi_mult",  data=psi_mult, dtype='f8')
-    f.create_dataset(path + "/psi_coeff", data=psi_coeff, dtype='f8')
+    f.create_dataset(path + "/R0", (1,),        data=R0, dtype='f8')
+    f.create_dataset(path + "/z0", (1,),        data=z0, dtype='f8')
+    f.create_dataset(path + "/B_phi0", (1,),    data=B_phi0, dtype='f8')
+    f.create_dataset(path + "/psi0", (1,),      data=psi0, dtype='f8')
+    f.create_dataset(path + "/psi1", (1,),      data=psi1, dtype='f8')
+    f.create_dataset(path + "/psi_mult", (1,),  data=psi_mult, dtype='f8')
+    f.create_dataset(path + "/psi_coeff",       data=psi_coeff, dtype='f8')
 
     # 3D field data.
-    f.create_dataset(path + "/Nripple", data=Nripple, dtype='i8')
-    f.create_dataset(path + "/a0",      data=a0, dtype='f8')
-    f.create_dataset(path + "/alpha0",  data=alpha0, dtype='f8')
-    f.create_dataset(path + "/delta0",  data=delta0, dtype='f8')
+    f.create_dataset(path + "/Nripple", (1,), data=Nripple, dtype='i8')
+    f.create_dataset(path + "/a0", (1,),      data=a0, dtype='f8')
+    f.create_dataset(path + "/alpha0", (1,),  data=alpha0, dtype='f8')
+    f.create_dataset(path + "/delta0", (1,),  data=delta0, dtype='f8')
     f.close()
 
 
@@ -151,6 +139,8 @@ def read_hdf5(fn):
     out["delta0"]  = f[path]["delta0"][:]
 
     f.close()
+
+    return out
 
 
 def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, 
@@ -199,7 +189,9 @@ def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
                     Br, Bphi, Bz)
 
 
-def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, Nripple, a0, alpha0, delta0, rgrid, zgrid, n_phi):
+def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, 
+                    Nripple, a0, alpha0, delta0, 
+                    Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi):
     """
     Write analytical tokamak magnetic field as a 3D field input in HDF5 file.
 
@@ -255,10 +247,10 @@ def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, Nripple, a0, alpha0
     theta = np.arctan2( zg - z0, Rg - R0 )
     delta = delta0 * np.exp(-0.5*theta*theta) * np.power( radius / a0, alpha0 )
 
-    phigrid = np.linspace(phimin,phimax,n_phi+1)
+    phigrid = np.linspace(phimin,phimax,nphi+1)
     phigrid = phigrid[0:-1]
 
-    for i in range(0,n_phi):
+    for i in range(0,nphi):
         Bphi[:,:,i] = ((R0/Rg)*B_phi0 * ( 1 + delta * np.cos(Nripple * phigrid[i]) ))
 
     Br = np.transpose(Br,(0,2,1))

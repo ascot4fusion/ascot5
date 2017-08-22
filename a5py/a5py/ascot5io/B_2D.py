@@ -6,6 +6,8 @@ import h5py
 import random
 import datetime
 
+from . ascot5group import replacegroup, setgrouptype, setmetadata
+
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
                axisR, axisz, psiRz, psiaxis, psisepx,
                B_R, B_phi, B_z):
@@ -50,45 +52,31 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
     
     # Create group and set the type to this one.
     f = h5py.File(fn, "a")
-    if not group in f:
-        o = f.create_group(group)
-        o.attrs["type"] = np.string_(type_)
-    else:
-        o = f[group]
-        del o.attrs["type"]
-        o.attrs["type"] = np.string_(type_)
-        
-    # Remove group if one is already present.
-    if path in f:
-        del f[path]
-    f.create_group(path)
-
+    setgrouptype(f, group, type_)
+    replacegroup(f, path)
+    setmetadata(f[path])
+    
     # TODO Check that inputs are consistent.
 
-    # Metadata.
-    qid = random.getrandbits(64)
-    f[path].attrs["qid"]  = np.int64_(qid)
-    f[path].attrs["date"] = np.string_(datetime.datetime.now())
-
     # Actual data.
-    f.create_dataset(path + "/r_min", data=Rmin, dtype="f8")
-    f.create_dataset(path + "/r_max", data=Rmax, dtype="f8")
-    f.create_dataset(path + "/n_r",   data=nR, dtype="i8")
+    f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")
+    f.create_dataset(path + "/r_max", (1,), data=Rmax, dtype="f8")
+    f.create_dataset(path + "/n_r", (1,),   data=nR, dtype="i8")
 
-    f.create_dataset(path + "/z_min", data=zmin, dtype="f8")
-    f.create_dataset(path + "/z_max", data=zmax, dtype="f8")
-    f.create_dataset(path + "/n_z",   data=nz, dtype="i8")
+    f.create_dataset(path + "/z_min", (1,), data=zmin, dtype="f8")
+    f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
+    f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
 
     f.create_dataset(path + "/psi",   data=psiRz.flatten(order='C'), dtype="f8")
     f.create_dataset(path + "/B_r",   data=B_R.flatten(order='C'), dtype="f8")
     f.create_dataset(path + "/B_phi", data=B_phi.flatten(order='C'), dtype="f8")
     f.create_dataset(path + "/B_z",   data=B_z.flatten(order='C'), dtype="f8")
 
-    f.create_dataset(path + "/axis_r", data=axisR, dtype="f8")
-    f.create_dataset(path + "/axis_z", data=axisz, dtype="f8")
+    f.create_dataset(path + "/axis_r", (1,), data=axisR, dtype="f8")
+    f.create_dataset(path + "/axis_z", (1,), data=axisz, dtype="f8")
 
-    f.create_dataset(path + "/psi0", data=psiaxis, dtype="f8")
-    f.create_dataset(path + "/psi1", data=psisepx, dtype="f8")
+    f.create_dataset(path + "/psi0", (1,), data=psiaxis, dtype="f8")
+    f.create_dataset(path + "/psi1", (1,), data=psisepx, dtype="f8")
     f.close()
 
 
@@ -141,3 +129,5 @@ def read_hdf5(fn):
     out["psisepx"] = f[path]["psi1"][:]
 
     f.close()
+
+    return out

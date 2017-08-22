@@ -35,7 +35,7 @@ def write_hdf5(fn,options):
 
     # Actual data.
     for opt in options:
-        f.create_dataset(path + opt, data=options[opt])
+        f.create_dataset(path + opt, (options[opt].size,), data=options[opt])
     
     f.close()
 

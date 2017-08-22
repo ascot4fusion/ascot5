@@ -6,6 +6,8 @@ import numpy as np
 import random
 import datetime
     
+from . ascot5group import replacegroup, setgrouptype, setmetadata
+
 def write_hdf5(fn, Nrho, r_eff, rhomin, rhomax, rho, dVdrho):
     """
     Write radial electric field input in HDF5 file.
@@ -37,25 +39,11 @@ def write_hdf5(fn, Nrho, r_eff, rhomin, rhomax, rho, dVdrho):
 
     # Create group and set the type to this one.
     f = h5py.File(fn, "a")
-    if not group in f:
-        o = f.create_group(group)
-        o.attrs["type"] = np.string_(type_)
-    else:
-        o = f[group]
-        del o.attrs["type"]
-        o.attrs["type"] = np.string_(type_)
-
-    # Remove group if one is already present.
-    if path in f:
-        del f[path]
-    f.create_group(path)
+    setgrouptype(f, group, type_)
+    replacegroup(f, path)
+    setmetadata(f[path])
 
     # TODO check that input is valid
-
-    # Metadata.
-    qid = random.getrandbits(64)
-    f[path].attrs["qid"]  = np.int64_(qid)
-    f[path].attrs["date"] = np.string_(datetime.datetime.now())
 
     # Actual data.
     f[path].attrs['n_rho']   = Nrho

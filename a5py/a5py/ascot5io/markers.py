@@ -6,6 +6,8 @@ import numpy as np
 import random
 import datetime
 
+from . ascot5group import setmetadata
+
 def write_hdf5_particles(fn, ids, mass, charge, 
                          r, phi, z, vR, vphi, vz, 
                          weight, time):
@@ -59,7 +61,7 @@ def write_hdf5_particles(fn, ids, mass, charge,
         del f[path]
     f.create_group(path)
 
-    f[group].attrs['n_particle'] = np.int64_(N)
+    f[group].attrs['n_particle'] = N
 
     if not "n_guiding_center" in f[group].attrs:
         f[group].attrs["n_guiding_center"] = 0
@@ -70,9 +72,7 @@ def write_hdf5_particles(fn, ids, mass, charge,
     # TODO Check that inputs are consistent.
 
     # Metadata.
-    qid = random.getrandbits(64)
-    f[path].attrs["qid"]  = np.int64_(qid)
-    f[path].attrs["date"] = np.string_(datetime.datetime.now())
+    setmetadata(f[path])
 
     # Actual data.
     f.create_dataset(path + "/r",      data=r, dtype='f8').attrs['unit'] = 'm';
@@ -142,7 +142,7 @@ def write_hdf5_guidingcenters(fn, ids, mass, charge,
         del f[path]
     f.create_group(path)
 
-    f[group].attrs['n_guiding_center'] = np.int64_(N)
+    f[group].attrs['n_guiding_center'] = N
 
     if not "n_particle" in f[group].attrs:
         f[group].attrs["n_particle"] = 0
@@ -153,9 +153,7 @@ def write_hdf5_guidingcenters(fn, ids, mass, charge,
     # TODO Check that inputs are consistent.
 
     # Metadata.
-    qid = random.getrandbits(64)
-    f[path].attrs["qid"]  = np.int64_(qid)
-    f[path].attrs["date"] = np.string_(datetime.datetime.now())
+    setmetadata(f[path])
 
     # Actual data.
     f.create_dataset(path + "/r",      data=r, dtype='f8').attrs['unit'] = 'm';
@@ -216,7 +214,7 @@ def write_hdf5_fieldlines(fn, N, ids, r, phi, z, pitch, weight, time):
         del f[path]
     f.create_group(path)
 
-    f[group].attrs['n_field_line'] = np.int64_(N)
+    f[group].attrs['n_field_line'] = N
 
     if not "n_particle" in f[group].attrs:
         f[group].attrs["n_particle"] = 0
@@ -227,9 +225,7 @@ def write_hdf5_fieldlines(fn, N, ids, r, phi, z, pitch, weight, time):
     # TODO Check that inputs are consistent.
 
     # Metadata.
-    qid = random.getrandbits(64)
-    f[path].attrs["qid"]  = np.int64_(qid)
-    f[path].attrs["date"] = np.string_(datetime.datetime.now())
+    setmetadata(f[path])
 
     # Actual data.
     f.create_dataset(path + "/r",      data=r, dtype='f8').attrs['unit'] = 'm';
@@ -243,7 +239,7 @@ def write_hdf5_fieldlines(fn, N, ids, r, phi, z, pitch, weight, time):
     f.close()
 
 
-def red_hdf5(fn):
+def read_hdf5(fn):
     """
     Read marker input from HDF5 file.
 
@@ -271,33 +267,35 @@ def red_hdf5(fn):
     out["field_line"]["N"] = f["markers"].attrs["n_field_line"]
     
     if out["particle"]["N"] > 0:
+        path = "markers/particle"
         # Metadata.
         out["particle"]["qid"]  = f[path].attrs["qid"]
         out["particle"]["date"] = f[path].attrs["date"]
 
         # Actual data.
-        for field in f["markers/particle"]:
-            out["particle"][field] = f["markers/particle" + field][:]
+        for field in f[path]:
+            out["particle"][field] = f[path][field][:]
 
     if out["guiding_center"]["N"] > 0:
+        path = "markers/guiding_center"
         # Metadata.
         out["guiding_center"]["qid"]  = f[path].attrs["qid"]
         out["guiding_center"]["date"] = f[path].attrs["date"]
 
         # Actual data.
-        for field in f["markers/guiding_center"]:
-            out["guiding_center"][field] = f["markers/guiding_center" + field][:]
+        for field in f[path]:
+            out["guiding_center"][field] = f[path][field][:]
 
     if out["field_line"]["N"] > 0:
+        path = "markers/field_line"
         # Metadata.
         out["field_line"]["qid"]  = f[path].attrs["qid"]
         out["field_line"]["date"] = f[path].attrs["date"]
 
         # Actual data.
-        for field in f["markers/field_line"]:
-            out["field_line"][field] = f["markers/field_line" + field][:]
+        for field in f[path]:
+            out["field_line"][field] = f[path][field][:]
 
     f.close()
 
-    
-
+    return out

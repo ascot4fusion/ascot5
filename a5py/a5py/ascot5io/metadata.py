@@ -54,4 +54,4 @@ def read_hdf5(fn):
 
     f.close()
 
-
+    return out

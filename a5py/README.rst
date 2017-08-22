@@ -23,11 +23,18 @@ Installation
 Make sure you have `pip` and `virtualenv` installed first (and `python3`). 
 Begin by creating your own virtual environment:
 
->> virtualenv -p python3 ascot
+>> virtualenv -p python3 --system-site-packages ascot
 >> source ascot/bin/activate
 
-Now you have your very own virtual environment where you can install
-required packages:
+Flag --system-site-packages makes your virtual environment inherit packages already
+present in your system. This is necessary if you wish to do any plotting as installing
+`matplotlib` is painful with pip.
+
+Now you have your very own virtual environment. See what packages are present with:
+
+>> pip list
+
+If necessary, install the required packages:
 
 >> pip install numpy
 >> pip install scipy
@@ -53,7 +60,11 @@ For developers
 Everytime you modify the source code, you need to re-install `a5py`. You can 
 do this with
 
->> pip install --ignore-installed a5py
+>> pip install --ignore-installed path/to/a5py
+
+or
+
+>> pip install -I path/to/a5py
 
 Subpackages
 -----------

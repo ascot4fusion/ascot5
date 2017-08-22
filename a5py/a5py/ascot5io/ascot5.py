@@ -21,6 +21,8 @@ from . import metadata
 
 from . import markers
 
+from . import options
+
 from . import orbits
 from . import dists
 from . import states
@@ -47,7 +49,7 @@ def read_hdf5(fn, groups="all"):
     """
 
     if groups == "all":
-        groups = ["bfield", "efield", "options", "wall", "plasma"
+        groups = ["bfield", "efield", "options", "wall", "plasma",
                   "markers", "metadata", "states", "orbits", "dists"]
 
     f = h5py.File(fn, "r")
@@ -57,7 +59,7 @@ def read_hdf5(fn, groups="all"):
 
     out["options"] = {}
     if "options" in f and "options" in groups:
-        out["options"] = options.read_hdf5(f["options"])
+        out["options"] = options.read_hdf5(fn)
 
     out["bfield"] = {}
     if "bfield" in f and "bfield" in groups:
@@ -88,6 +90,7 @@ def read_hdf5(fn, groups="all"):
 
     out["plasma"] = {}
     if "plasma" in f and "plasma" in groups:
+        
         if "P_1D" in f["plasma"]:
             out["plasma"] = plasma_1D.read_hdf5(fn)
 
@@ -108,7 +111,7 @@ def read_hdf5(fn, groups="all"):
         out["orbits"] = orbits.read_hdf5(fn)
         
     out["states"] = {}
-    if "states" in f and "states" in groups:
+    if "inistate" in f and "states" in groups:
         out["states"] = states.read_hdf5(fn)
         
 
