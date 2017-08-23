@@ -129,6 +129,8 @@ void simulate(int id, int n_particles, particle_state* p,
         }
         pq_hybrid.next = 0;
 
+	sim.record_GOasGC = 1; // Make sure we don't collect fos in gc diagnostics
+	sim.diag_data.orbits.type = diag_orb_type_gc;
         #pragma omp parallel
         {
             simulate_fo_fixed(&pq_hybrid, &sim);
