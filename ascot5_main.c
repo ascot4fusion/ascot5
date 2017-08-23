@@ -122,12 +122,20 @@ int main(int argc, char** argv) {
     B_field_data Bdata;
     B_field_init(&Bdata, &sim.B_offload_data, B_offload_array);
 
+    #if VERBOSE >= 1
+    printf("Magnetic field initialization complete.\n");
+    #endif
+
     particle_state* ps = (particle_state*) malloc(n * sizeof(particle_state));
     for(int i = 0; i < n; i++) {
         particle_input_to_state(&p[i], &ps[i], &Bdata);
     }
     
     hdf5_particlestate_write(sim.hdf5_out, "inistate", n, ps);
+
+    #if VERBOSE >= 1
+    printf("Markers initialized and inistate written.\n");
+    #endif
 
     #ifndef NOTARGET
     int n_mic = n / 2;
