@@ -68,6 +68,10 @@ void simulate(int id, int n_particles, particle_state* p,
     }
     pq.next = 0;
 
+    #if VERBOSE >= 1
+    printf("All fields initialized. Simulation begins.\n");
+    #endif
+
     if(pq.n > 0 && (sim.sim_mode == simulate_mode_gc
             || sim.sim_mode == simulate_mode_hybrid)) {
         sim.diag_data.orbits.type = diag_orb_type_gc;
