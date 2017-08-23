@@ -9,7 +9,10 @@ setup(name='a5py',
       zip_safe=False,
       scripts=[
         'bin/a5removeruns',
-        'bin/a5setoptions'
+        'bin/a5setoptions',
+        'bin/a5poincare',
+        'bin/a5combine',
+        'bin/a5ascot4input'
       ])
 
 
