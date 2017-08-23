@@ -95,6 +95,15 @@ typedef double real;
  *  of time step reductions) */
 #define WIENERSLOTS 20
 
+/** @brief Turn off energy component of Coulomb collisions */
+#define A5_CCOL_NOENERGY 0
+
+/** @brief Turn off pitch component of Coulomb collisions */
+#define A5_CCOL_NOPITCH  0
+
+/** @brief Turn off spatial component in gc picture (classical diffusion) 
+    of Coulomb collisions */
+#define A5_CCOL_NOGCDIFF 0
 
 /** @brief Wall time */
 #ifdef _OMP

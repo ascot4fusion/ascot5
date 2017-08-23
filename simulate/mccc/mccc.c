@@ -302,6 +302,18 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
 	    mccc_push_foEM(F,Dpara,Dperp,h[i],rnd,vin,vout,&err[i]);
 			
 	    /* Update particle */
+	    #if A5_CCOL_NOENERGY
+		real vnorm = va/sqrt(vout[0]*vout[0] + vout[1]*vout[1] + vout[2]*vout[2]);
+	        vout[0] *= vnorm;
+		vout[1] *= vnorm;
+		vout[2] *= vnorm;
+	    #endif
+	    #if A5_CCOL_NOPITCH
+		real vnorm = sqrt(vout[0]*vout[0] + vout[1]*vout[1] + vout[2]*vout[2])/va;
+		vout[0] = vin[0] * vnorm;
+		vout[1] = vin[1] * vnorm;
+		vout[2] = vin[2] * vnorm;
+	    #endif
 	    p->rdot[i] = vout[0] * cos(p->phi[i]) + vout[1] * sin(p->phi[i]);
 	    p->phidot[i] = (-vout[0] * sin(p->phi[i]) + vout[1] * cos(p->phi[i]) ) / p->r[i];
 	    p->zdot[i] = vout[2];
@@ -409,6 +421,17 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 			   vin,&vout,xiin,&xiout,Xin,Xout,cutoff,&err[i]);
 		    
 	    /* Update particle */
+	    #if A5_CCOL_NOENERGY
+	        vout = vin;
+	    #endif
+	    #if A5_CCOL_NOPITCH
+	        xiout = xiin;
+	    #endif
+	    #if A5_CCOL_NOGCDIFF
+	        Xout[0] = Xin[0];
+		Xout[1] = Xin[1];
+		Xout[2] = Xin[2];
+	    #endif
 	    p->mu[i] = (1-xiout*xiout)*p->mass[i]*vout*vout/(2*Bnorm);
 	    p->vpar[i] = vout*xiout;
 	    p->r[i] = sqrt(Xout[0]*Xout[0] + Xout[1]*Xout[1]);
@@ -568,6 +591,17 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 			   vin,&vout,xiin,&xiout,Xin,Xout,cutoff,tol,&kappa_k,kappa_d,&err[i]);
 		        
 	    /* Update particle */
+	    #if A5_CCOL_NOENERGY
+	        vout = vin;
+	    #endif
+	    #if A5_CCOL_NOPITCH
+	        xiout = xiin;
+	    #endif
+	    #if A5_CCOL_NOGCDIFF
+	        Xout[0] = Xin[0];
+		Xout[1] = Xin[1];
+		Xout[2] = Xin[2];
+	    #endif
 	    p->mu[i] = (1-xiout*xiout)*p->mass[i]*vout*vout/(2*Bnorm);
 	    p->vpar[i] = vout*xiout;
 	    p->r[i] = sqrt(Xout[0]*Xout[0] + Xout[1]*Xout[1]);
