@@ -8,7 +8,7 @@ import datetime
 
 from . ascot5group import setmetadata
 
-def write_hdf5_particles(fn, ids, mass, charge, 
+def write_hdf5_particles(fn, N, ids, mass, charge, 
                          r, phi, z, vR, vphi, vz, 
                          weight, time):
     """
@@ -89,7 +89,7 @@ def write_hdf5_particles(fn, ids, mass, charge,
 
     f.close()
 
-def write_hdf5_guidingcenters(fn, ids, mass, charge, 
+def write_hdf5_guidingcenters(fn, N, ids, mass, charge, 
                               r, phi, z, energy, pitch, theta, 
                               weight, time):
     """
