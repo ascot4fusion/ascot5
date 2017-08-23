@@ -1,10 +1,6 @@
 from pylab import *
 import numpy as np
 
-import sys
-sys.path.append('../ui')
-import ui_plasma_1D as p1D
-
 
 def read_plasma(fn):
     f = open(fn,'r')
@@ -19,8 +15,8 @@ def read_plasma(fn):
         f.seek(0)
         return read_2d(f)
     else:
-        print 'unrecognized first line after comments'
-        print l
+        print('unrecognized first line after comments')
+        print(l)
 
 def read_1d(fh):
     pls = {'comm1' : fh.readline(),'comm2' : fh.readline(),'comm3' : fh.readline()}
@@ -59,8 +55,8 @@ def read_2d(fh):
         str[name.lower()] = data[:,i].reshape(nr,nz).T
 
     if(i+1 < shape(data)[1]):
-        print 'Not all data fields assigned to struct'
-        print 'Something is probably wrong with the data file'
+        print('Not all data fields assigned to struct')
+        print('Something is probably wrong with the data file')
     
     fh.close()
     return str

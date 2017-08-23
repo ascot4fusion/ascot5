@@ -2,10 +2,6 @@ import h5py
 from pylab import *
 import numpy as np
 
-import sys
-sys.path.append('../ui')
-import ui_wall_3D
-
 # # The input file contains an integer giving the number of wall triangles
 # # followed by a list of coordinates for the corners of each triangle
 # # (x1,y1,z1,x2,y2,z2,x3,y3,z3).
@@ -51,7 +47,7 @@ def read_wall_3d(fn):
     for sector in range(1,str['n_sectors']+1):
         f.readline() # Skip empty line
         n_elements = int(f.readline().split()[0])
-        print f.readline()
+        print(f.readline())
         for i in range(n_elements):
             f.readline() # Skip empty line
             f.readline() # Skip element info
@@ -87,7 +83,4 @@ def read_wall_3d_hdf5(fname):
     f.close()
 
     return str
-
-def write_wall_3d(fn, w):
-    ui_wall_3D.write_hdf5(fn, w['x1x2x3'], w['y1y2y3'], w['z1z2z3'], w['id'])
 

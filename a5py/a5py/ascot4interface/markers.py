@@ -1,9 +1,5 @@
 import numpy as np
 
-import sys
-sys.path.append('../ui')
-import ui_markers as markers
-
 def read_particles(fname):
     '''
     Read ASCOT4 input.particles file
@@ -20,13 +16,13 @@ def read_particles(fname):
         line = f.readline()
         headerLength += 1
         if line[:-1] != ' PARTICLE INITIAL DATA FOR ASCOT' and line[:-1] != ' PARTICLE OUTPUT DATA FROM ASCOT':
-            print '"'+line[:-1]+'"'
+            print( '"'+line[:-1]+'"')
             raise NameError('Unrecognized first line in "'+fname+'".')
         
         line = f.readline()
         headerLength += 1
         if line.split()[0] != '4':
-            print '"'+line+'"'
+            print( '"'+line+'"')
             raise NameError('Bad file version in "'+fname+'".')
     
         line = f.readline()
@@ -73,11 +69,11 @@ def read_particles(fname):
     # Read the actual data table
     # --------------------------
     
-    print 'Reading', nFields, 'fields for', nParticles, 'particles.'
+    print('Reading', nFields, 'fields for', nParticles, 'particles.')
     columns = numpy.loadtxt(fname,skiprows=headerLength)
     nParticles = columns.shape[0]
 
-    print 'Read ', nParticles, 'particles'
+    print('Read ', nParticles, 'particles')
     
     for i in range(0,nFields):
         data['fields'][data['fieldNames'][i]]=-999.0 * numpy.ones(nParticles)    
@@ -108,12 +104,3 @@ def Ekin2velocity(mass,Ekin):
     vperc = sqrt( 1-1/( 1+Ekin/(mass*physics_const.c^2) )^2 );
     val = physics_const.c*vperc;
     return val
-
-def write_particles(fn, data):
-    if 'vphi' in data['fieldNames']:
-        # We have particles
-        data = data["fields"]
-        markers.write_hdf5_particles(fn, data["id"], data["mass"], data["charge"], data["Rprt"], data["phiprt"], data["zprt"], data["vR"], data["vphi"], data["vz"], data["weight"], data["weight"]*0)
-    elif 'energy' in data['fieldNames']:
-        # We have guiding centers
-        markers.write_hdf5_guidingcenters(fn, data["id"], data["mass"], data["charge"], data["R"], data["phi"], data["z"], data["energy"], data["pitch"], data["theta"]*0, data["weight"], data["weight"]*0)

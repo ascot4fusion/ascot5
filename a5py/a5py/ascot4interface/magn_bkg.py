@@ -1,13 +1,8 @@
-import h5py
-import sys
-sys.path.append('../ui')
+
 
 from pylab import *
-import ui_B_2D
-import ui_B_3D
-import ui_B_ST
 
-def read_magn_bkg(fn):
+def read_magn_bkg(fn,hdrfn):
     str = dict()
     fh = open(fn)
     tmp = map(float,fh.readline().split())
@@ -39,14 +34,14 @@ def read_magn_bkg(fn):
     sz2d = nr*nz
     sz3d = nr*nz*str['nPhi']
     str['psi']  = data[:sz2d].reshape(nz,nr)
-    print shape(data),nz,str['nPhi'],nr,sz2d,sz3d
+    print(shape(data),nz,str['nPhi'],nr,sz2d,sz3d)
     str['br']   = data[sz2d+0*sz3d:sz2d+1*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
     str['bphi'] = data[sz2d+1*sz3d:sz2d+2*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
     str['bz']   = data[sz2d+2*sz3d:sz2d+3*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
 
     fh.close()
     
-    read_magn_header('input.magn_header',str)
+    read_magn_header(hdrfn,str)
     return str
 
 def read_magn_header(fn,str):
@@ -96,23 +91,3 @@ def read_magn_bkg_stellarator(fn):
     f.close()
     return str
     
-def write_magn_bkg(fn, m):
-    if 'n_periods' in m:
-        ui_B_ST.write_hdf5(fn,
-                           m['r'], m['phi'], m['z'],
-                           m['br'], m['bphi'], m['bz'], m['s'],
-                           m['axis_r'], m['axis_phi'], m['axis_z'],
-                           m['n_periods'])
-    elif(m['nPhi'] > 1):
-        ui_B_3D.write_hdf5(fn,
-                           np.array([m['r'][0], m['r'][-1]]),
-                           np.array([m['z'][0], m['z'][-1]]), m['nPhi'],
-                           m['psi']/(2*np.pi), m['br'], m['bphi'], m['bz'],
-                           np.array([m['axis_r'], m['axis_z']]), np.array([m['psi0'], m['psi1']]))
-    else:
-        ui_B_2D.write_hdf5(fn,
-                           np.array([m['r'][0], m['r'][-1]]),
-                           np.array([m['z'][0], m['z'][-1]]),
-                           m['psi']/(2*np.pi), m['br']*0, m['bphi'], m['bz']*0,
-                           np.array([m['axis_r'], m['axis_z']]), np.array([m['psi0'], m['psi1']]))
-    return
