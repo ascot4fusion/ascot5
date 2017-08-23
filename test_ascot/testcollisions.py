@@ -6,6 +6,7 @@ import a5py.ascot5io.ascot5 as ascot5
 import a5py.ascot5io.options as options
 import a5py.ascot5io.B_GS as B_GS
 import a5py.ascot5io.markers as markers
+import a5py.postprocessing.disttrasnformations as disttrans
 from testcase import createbase
 
 def run():
@@ -16,10 +17,11 @@ def run():
     # Test options
     simmode = 2
     adaptive = 1
-    timestep = 1.e-7
+    timestep = 1.e-6
     tolorb = 1e-8
     tolcol = 1e-2
-    Nmrk = 10
+    orbfollowing = 0
+    Nmrk = 100
 
     # Proton
     m = 1.00727647
@@ -53,7 +55,7 @@ def run():
     o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + timestep
     o["ADAPTIVE_TOL_ORBIT"]        = 0*o["ADAPTIVE_TOL_ORBIT"] + tolorb
     o["ADAPTIVE_TOL_CCOL"]         = 0*o["ADAPTIVE_TOL_CCOL"] + tolcol
-    o["ENABLE_ORBIT_FOLLOWING"]    = 0*o["ENABLE_ORBIT_FOLLOWING"] + 1
+    o["ENABLE_ORBIT_FOLLOWING"]    = 0*o["ENABLE_ORBIT_FOLLOWING"] + orbfollowing
     o["ENABLE_COULOMB_COLLISIONS"] = 0*o["ENABLE_COULOMB_COLLISIONS"] + 1
     o["ENABLE_RZVparaVperp_DIST"]  = 0*o["ENABLE_RZVparaVperp_DIST"] + 1
     o["DIST_RZVparaVperp_MIN_R"]   = 0*o["DIST_RZVparaVperp_MIN_R"] + 4
@@ -95,7 +97,7 @@ def run():
     weight = 1*np.ones(ids.shape)
     time   = 0*np.ones(ids.shape)
     
-    energy = 1.0e6*np.ones(ids.shape)
+    energy = 1.0e5*np.ones(ids.shape)
     pitch  = 0.9*np.ones(ids.shape)
     markers.write_hdf5_guidingcenters(fn1, Nmrk, ids, mass, charge, 
                                       R, phi, z, energy, pitch, theta, weight, time)
@@ -103,7 +105,7 @@ def run():
     # Thermal options and markers
     o = options.read_hdf5(fn2)
     o["ENDCOND_SIMTIMELIM"]          = 0*o["ENDCOND_SIMTIMELIM"] + 1
-    o["ENDCOND_MAX_SIM_TIME"]        = 0*o["ENDCOND_MAX_SIM_TIME"] + 1e-2
+    o["ENDCOND_MAX_SIM_TIME"]        = 0*o["ENDCOND_MAX_SIM_TIME"] + 1e-4
     o["ORBITWRITE_INTERVAL"]         = 0*o["ORBITWRITE_INTERVAL"] + 1e-5
     o["DIST_RZVparaVperp_MIN_VPARA"] = 0*o["DIST_RZVparaVperp_MIN_VPARA"] - 1e7
     o["DIST_RZVparaVperp_MAX_VPARA"] = 0*o["DIST_RZVparaVperp_MAX_VPARA"] + 1e7
@@ -123,20 +125,36 @@ def run():
     subprocess.call(["./ascot5_main", "--in="+fn1[0:-3]])
     subprocess.call(["./ascot5_main", "--in="+fn2[0:-3]])
 
-    # Read distribution and orbits from slowing down
-    is1 = ascot5.read_hdf5(fn1,"orbits")["orbits"]["gc"]
-    t1 = is1["time"]
-    B  = np.sqrt(np.power(is1["B_R"],2) + np.power(is1["B_phi"],2) + np.power(is1["B_z"],2))
-    e1 = is1["mu"] * B + 0.5*m*np.power(is1["vpar"],2) * AMU2KG / ELEMENTARY_CHARGE
+    if simmode == 2:
+        # Read distribution and orbits from slowing down
+        is1 = ascot5.read_hdf5(fn1,"orbits")["orbits"]["gc"]
+        t1 = is1["time"]
+        B  = np.sqrt(np.power(is1["B_R"],2) + np.power(is1["B_phi"],2) + np.power(is1["B_z"],2))
+        e1 = is1["mu"] * B + 0.5*m*np.power(is1["vpar"],2) * AMU2KG / ELEMENTARY_CHARGE
+        
+        # Read endstate and orbits from thermal
+        is2 = ascot5.read_hdf5(fn2,"orbits")["orbits"]["gc"]
+        t2 = is2["time"]
+        B  = np.sqrt(np.power(is2["B_R"],2) + np.power(is2["B_phi"],2) + np.power(is2["B_z"],2))
+        e2 = is2["mu"] * B + 0.5*m*np.power(is2["vpar"],2) * AMU2KG / ELEMENTARY_CHARGE
 
-    # Read endstate and orbits from thermal
-    is2 = ascot5.read_hdf5(fn2,"orbits")["orbits"]["gc"]
-    t2 = is2["time"]
-    B  = np.sqrt(np.power(is2["B_R"],2) + np.power(is2["B_phi"],2) + np.power(is2["B_z"],2))
-    e2 = is2["mu"] * B + 0.5*m*np.power(is2["vpar"],2) * AMU2KG / ELEMENTARY_CHARGE
-    
+        is2 = ascot5.read_hdf5(fn2,"states")["states"]["endstate"]
+        B  = np.sqrt(np.power(is2["B_R"],2) + np.power(is2["B_phi"],2) + np.power(is2["B_z"],2))
+        thermaldist = is2["mu"] * B + 0.5*m*np.power(is2["vpar"],2) * AMU2KG / ELEMENTARY_CHARGE
+    else:
+        # Read distribution and orbits from slowing down
+        is1 = ascot5.read_hdf5(fn1,"orbits")["orbits"]["fo"]
+        t1 = is1["time"]
+        e1 = 0.5 * m * ( np.power(is1["v_R"],2) + np.power(is1["v_phi"],2) + np.power(is1["v_z"],2) )* AMU2KG / ELEMENTARY_CHARGE
+        
+        # Read endstate and orbits from thermal
+        is2 = ascot5.read_hdf5(fn2,"orbits")["orbits"]["fo"]
+        t2 = is2["time"]
+        e2 = 0.5 * m * ( np.power(is2["v_R"],2) + np.power(is2["v_phi"],2) + np.power(is2["v_z"],2) )* AMU2KG / ELEMENTARY_CHARGE
     
     # Plot if needed.
+    
+    """
     plt.figure()
     plt.plot(t1,e1)
     plt.show()
@@ -144,7 +162,20 @@ def run():
     plt.figure()
     plt.plot(t2,e2)
     plt.show()
+    """
+    E_edges = np.linspace(0,2,1000)*1e5
+    xi_edges = np.linspace(-1,1,20)
+    RzExi = disttrans.vpavpe2Epitch(ascot5.read_hdf5(fn1,"dists")["dists"], E_edges, xi_edges, m)
+    RzExi = np.squeeze(RzExi['ordinate'])
 
+    plt.figure()
+    Edist = RzExi.sum(axis=1)
+    plt.plot(Edist)
+    plt.show()
+
+    plt.figure()
+    n, bins, patches = plt.hist(thermaldist, 50, normed=1, facecolor='green', alpha=0.75)
+    plt.show()
     # Compare.
 
 
