@@ -3,4 +3,4 @@
 import sys
 import a5py.ascot5io.tools as tools
 print('Removing runs from ' + sys.argv[1])
-tools.removeruns(sys.argv[1])
+tools.remove(sys.argv[1])

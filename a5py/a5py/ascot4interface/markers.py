@@ -71,7 +71,7 @@ def read_particles(fname):
     
     print('Reading', nFields, 'fields for', nParticles, 'particles.')
     columns = numpy.loadtxt(fname,skiprows=headerLength)
-    nParticles = columns.shape[0]
+    #nParticles = columns.shape[0]
 
     print('Read ', nParticles, 'particles')
     

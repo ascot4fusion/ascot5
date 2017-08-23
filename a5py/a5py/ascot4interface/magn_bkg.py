@@ -5,7 +5,7 @@ from pylab import *
 def read_magn_bkg(fn,hdrfn):
     str = dict()
     fh = open(fn)
-    tmp = map(float,fh.readline().split())
+    tmp = list(map(float,fh.readline().split()))
     str['phi0']       = tmp[0]
     str['nSector']    = int(tmp[1])
     str['nPhi']       = int(tmp[2])
@@ -54,14 +54,14 @@ def read_magn_header(fn,str):
     fh.readline()
 
     # Next three lines contain axis psi, R, and z values
-    tmp = map(float,fh.readline().split())
+    tmp = list(map(float,fh.readline().split()))
     str['psi0']       = tmp[0]
     str['psi1']       = tmp[1]
 
-    tmp = map(float,fh.readline().split())
+    tmp = list(map(float,fh.readline().split()))
     str['axis_r']       = tmp[0]
 
-    tmp = map(float,fh.readline().split())
+    tmp = list(map(float,fh.readline().split()))
     str['axis_z']       = tmp[0]
 
     fh.close()

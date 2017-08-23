@@ -1,3 +1,10 @@
 #!/usr/bin/env python
 
-print("You used me which means you have to implement me.")
+import subprocess
+import a5py.ascot4interface.interface as a4
+
+print("Converting ASCOT4 input files in this folder to")
+print("ASCOT5 input as ascot.h5.")
+
+subprocess.call(["rm","ascot.h5"]) 
+a4.run(".", "ascot.h5", overwrite=True)

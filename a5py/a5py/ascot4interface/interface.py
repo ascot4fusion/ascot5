@@ -1,21 +1,24 @@
 """
 Converting ASCOT4 input files to ASCOT5 input HDF5.
 """
-from ascot4_particles import *
-from ascot4_magn_bkg import *
-from ascot4_plasma import *
-from ascot4_erad import *
-from ascot4_wall_2d import *
-from ascot4_wall_3d import *
+import os.path
 
-import a5py.hdf5io.B_2D as B_2D
-import a5py.hdf5io.B_3D as B_3D
-import a5py.hdf5io.B_ST as B_ST
-import a5py.hdf5io.plasma_1D as plasma_1D
-import a5py.hdf5io.E_TC as E_TC
-import a5py.hdf5io.E_1D as E_1D
-import a5py.hdf5io.wall_2D as wall_2D
-import a5py.hdf5io.wall_3D as wall_3D
+from . markers import *
+from . magn_bkg import *
+from . plasma import *
+from . erad import *
+from . wall_2d import *
+from . wall_3d import *
+
+import a5py.ascot5io.B_2D as B_2D
+import a5py.ascot5io.B_3D as B_3D
+import a5py.ascot5io.B_ST as B_ST
+import a5py.ascot5io.plasma_1D as plasma_1D
+import a5py.ascot5io.markers as markers
+import a5py.ascot5io.E_TC as E_TC
+import a5py.ascot5io.E_1D as E_1D
+import a5py.ascot5io.wall_2D as wall_2D
+import a5py.ascot5io.wall_3D as wall_3D
 
 def run(a4folder, h5fn, overwrite=True):
     """
@@ -48,6 +51,10 @@ def run(a4folder, h5fn, overwrite=True):
     inputs.
     """
 
+    if not os.path.isfile(h5fn):
+        f = h5py.File(h5fn, 'a')
+        f.close()
+
     f = h5py.File(h5fn, 'r')
 
     if a4folder[-1] != "/":
@@ -58,31 +65,34 @@ def run(a4folder, h5fn, overwrite=True):
         fname = a4folder + "input.particles"
         if (os.path.isfile(fname)):
             data = read_particles(fname)
+            f.close()
             if 'vphi' in data['fieldNames']:
                 # We have particles (time is set to zero)
                 data = data["fields"]
-                markers.write_hdf5_particles(h5fn, data["id"], data["mass"], data["charge"], 
+                markers.write_hdf5_particles(h5fn, data["id"].size, data["id"], data["mass"], data["charge"], 
                                              data["Rprt"], data["phiprt"], data["zprt"], data["vR"], 
                                              data["vphi"], data["vz"], data["weight"], data["weight"]*0)
             elif 'energy' in data['fieldNames']:
                 # We have guiding centers (time and theta are set to zero)
-                markers.write_hdf5_guidingcenters(h5fn, data["id"], data["mass"], data["charge"], data["R"], 
+                markers.write_hdf5_guidingcenters(h5fn, data["id"].size, data["id"], data["mass"], data["charge"], data["R"], 
                                                   data["phi"], data["z"], data["energy"], data["pitch"], data["theta"]*0, 
                                                   data["weight"], data["weight"]*0)
+            f = h5py.File(h5fn, 'r')
 
     # Magnetic field.
     if overwrite or (not "bfield" in f):
         fnamebkg = a4folder + "input.magn_bkg"
         fnamehdr = a4folder + "input.magn_header"
         fnameh5  = a4folder + "input.h5"
+        f.close()
         if (os.path.isfile(fnamebkg)) and (os.path.isfile(fnamehdr)):
             data = read_magn_bkg(fnamebkg, fnamehdr)
-
-            if data["n_phi"] > 1:
-                B_3D.write_hdf5(fn,
+            
+            if data["nPhi"] > 1:
+                B_3D.write_hdf5(h5fn,
                                 data['r'][0], data['r'][-1], data['r'].size,
                                 data['z'][0], data['z'][-1], data['z'].size,
-                                0, 2*np.pi, data['n_phi'],
+                                0, 2*np.pi, data['nPhi'],
                                 data['axis_r'], data['axis_z'], data['psi']/(2*np.pi), data['psi0'], data['psi1'],
                                 data['br'], data['bphi'], data['bz'])
             else:
@@ -94,25 +104,30 @@ def run(a4folder, h5fn, overwrite=True):
 
         elif os.path.isfile(fnameh5):
             data = read_magn_bkg_stellarator(fnameh5)
-            B_ST.write_hdf5(fn,
+            B_ST.write_hdf5(h5fn,
                            data['r'], data['phi'], data['z'],
                            data['br'], data['bphi'], data['bz'], data['s'],
                            data['axis_r'], data['axis_phi'], data['axis_z'],
                            data['n_periods'])
+        
+        f = h5py.File(h5fn, 'r')
 
     # Plasma profiles.
     if overwrite or (not "plasma" in f):
         fname = a4folder + "input.plasma_1d"
+        f.close()
         if (os.path.isfile(fname)):
             data = read_plasma(fname)
             dens_i = np.array([data['ni'+str(i)] for i in range(1,data['nion']+1)])
-            plasma_1D.write_hdf5(h5fn, data['nrho'], data['nion'], data['znum'], data['znum'], 
+            plasma_1D.write_hdf5(h5fn, data['nrho'], data['nion'], data['znum'], data['anum'], 
                                  data['rho'], np.zeros(data['rho'].shape), np.zeros(data['rho'].shape), 
                                  data['ne'], data['te'], dens_i, data['ti1'])
+        f = h5py.File(h5fn, 'r')
 
     # Electric field.
     if overwrite or (not "efield" in f):
         fname = a4folder + "input.erad"
+        f.close()
         if (os.path.isfile(fname)):
             data = read_erad(fname)
             E_1D.write_hdf5(h5fn, int(data['n_rho']), 1.0, np.amin(data['rho']), 
@@ -120,10 +135,12 @@ def run(a4folder, h5fn, overwrite=True):
         else:
             E = np.array([0, 0, 0])
             E_TC.write_hdf5(h5fn, E)
+        f = h5py.File(h5fn, 'r')
 
     # Wall.
     if overwrite or (not "wall" in f):
         fname = a4folder + "input.wall_2d"
+        f.close()
         if (os.path.isfile(fname)):
             data = read_wall_2d(fname)
             wall_2D.write_hdf5(h5fn, data['r'].size, data['r'], data['z'])
@@ -133,14 +150,14 @@ def run(a4folder, h5fn, overwrite=True):
         if (os.path.isfile(fname)):
             data = read_wall_3d(fname)
 
-            wall_3D.write_hdf5(h5fn, data['x1x2x3'].size, data['x1x2x3'], 
+            wall_3D.write_hdf5(h5fn, data['id'].size, data['x1x2x3'], 
                                data['y1y2y3'], data['z1z2z3'], data['id'])
 
         elif (os.path.isfile(fnameh5)):
             data = read_wall_3d_hdf5(fname)
 
-            wall_3D.write_hdf5(h5fn, data['x1x2x3'].size, data['x1x2x3'], 
+            wall_3D.write_hdf5(h5fn, data['id'].size, data['x1x2x3'], 
                                data['y1y2y3'], data['z1z2z3'], data['id'])
-
+        f = h5py.File(h5fn, 'r')
     f.close()
 

@@ -20,10 +20,10 @@ def read_plasma(fn):
 
 def read_1d(fh):
     pls = {'comm1' : fh.readline(),'comm2' : fh.readline(),'comm3' : fh.readline()}
-    nrho,nion = map(int,fh.readline().split()[:2])
-    pls['znum'] = np.array(map(int,fh.readline().split()[:nion]))
-    pls['anum'] = np.array(map(int,fh.readline().split()[:nion]))
-    pls['coll'] = np.array(map(int,fh.readline().split()[:nion+1]))
+    nrho,nion = list(map(int,fh.readline().split()[:2]))
+    pls['znum'] = np.array(list(map(int,fh.readline().split()[:nion])))
+    pls['anum'] = np.array(list(map(int,fh.readline().split()[:nion])))
+    pls['coll'] = np.array(list(map(int,fh.readline().split()[:nion+1])))
     pls['nrho'] = nrho
     pls['nion'] = nion
     fh.readline() # ignore headers
@@ -41,12 +41,12 @@ def read_1d(fh):
 def read_2d(fh):
     str = {'comm1' : fh.readline(),'comm2' : fh.readline(),'comm3' : fh.readline()}
     nr,nz = map(int,fh.readline().split()[:2])
-    rmin,rmax,zmin,zmax = map(float,fh.readline().split()[:4])
-    nion,rho2d = map(float,fh.readline().split()[:2])
+    rmin,rmax,zmin,zmax = list(map(float,fh.readline().split()[:4]))
+    nion,rho2d = list(map(float,fh.readline().split()[:2]))
     nion = int(nion)
-    str['znum'] = map(int,fh.readline().split()[:nion])
-    str['anum'] = map(int,fh.readline().split()[:nion])
-    str['coll'] = map(int,fh.readline().split()[:nion+1])
+    str['znum'] = list(map(int,fh.readline().split()[:nion]))
+    str['anum'] = list(map(int,fh.readline().split()[:nion]))
+    str['coll'] = list(map(int,fh.readline().split()[:nion+1]))
     fieldnames = fh.readline().split()[0:-1:2]
     data = loadtxt(fh)
     str['r'] = linspace(rmin,rmax,nr)
