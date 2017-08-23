@@ -17,9 +17,13 @@ void hdf5_orbits_writeset_gc(hid_t group, diag_orb_dat* list, int size, int* mas
 void hdf5_orbits_writeset_ml(hid_t group, diag_orb_dat* list, int size, int* mask);
 
 void hdf5_orbits_write(sim_data* sim, char* out) {
+    #if VERBOSE > 0
+        printf("\nWriting orbit data to file.\n");
+    #endif
+
     diag_orb_data* diag = &sim->diag_data.orbits;
     diag_orb_dat* top = diag->writelist;
-    
+
     int size = diag->size;
     int i;
     if(!size) {
@@ -32,7 +36,7 @@ void hdf5_orbits_write(sim_data* sim, char* out) {
     
     if(diag->mode == DIAG_ORB_ORBIT || diag->mode == DIAG_ORB_WRITELAST) {
 	
-	int mask[size];
+	int* mask = malloc(size * sizeof(int));
 	for(i=0; i<size; i++) {
 	    mask[i] = 1;
 	}
@@ -49,13 +53,14 @@ void hdf5_orbits_write(sim_data* sim, char* out) {
 	    grp = hdf5_create_group(group, "ml"); 
 	    hdf5_orbits_writeset_ml(grp, top, size, mask);
 	}
+	free(mask);
     }
     else if(diag->mode == DIAG_ORB_POINCARE) {
 	
 	for(int ip=0; ip<diag->npoloidalplots; ip++) {
 	    
 	    diag_orb_dat* list = top;
-	    int mask[size];
+	    int* mask = malloc(size * sizeof(int));
 	    for(i=0; i<size; i++) {
 		mask[i] = 0;
 		if(list->poincareId == ip) {
@@ -81,12 +86,13 @@ void hdf5_orbits_write(sim_data* sim, char* out) {
 		grp = hdf5_create_group(group, groupname);
 		hdf5_orbits_writeset_ml(grp, top, size, mask);
 	    }
+	    free(mask);
 	}
 
 	for(int ip=0; ip<diag->ntoroidalplots; ip++) {
 	    
 	    diag_orb_dat* list = top;
-	    int mask[size];
+	    int* mask = malloc(size * sizeof(int));
 	    for(i=0; i<size; i++) {
 		mask[i] = 0;
 		if((list->poincareId - DIAG_ORB_MAXPOINCARES) == ip) {
@@ -112,6 +118,7 @@ void hdf5_orbits_write(sim_data* sim, char* out) {
 		grp = hdf5_create_group(group, groupname);
 		hdf5_orbits_writeset_ml(grp, top, size, mask);
 	    }
+	    free(mask);
 	}
     }
 
