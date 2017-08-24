@@ -64,11 +64,24 @@ def v(vr_pol, vphi_pol, phi):
 def v2D(v):
     return  np.sqrt(np.power(v[0],2)+np.power(v[1],2))
 
+#(for loop is a bit slow)
+#len(x) == len(y) must be true
+def v2D2(x,y):
+    out = np.zeros((len(x),1))
+    for i in range(0, len(x)):
+        out[i] =  np.sqrt(np.power(x[i],2)+np.power(y[i],2))
+    return  out 
+
 #Velocity on a cartesian 3D field
 #v = Tuple of x and y velocity (returned by function v)
 def v3D(v,z):
     vxy = v2D(v)
     return v2D((vxy,z))
+
+#Multiple velocities
+def v3D2(x,y,z):
+    vxy = v2D2(x,y)
+    return v2D2(vxy,z)
 
 #Average velocity
 def v_avg(start,end,time):
@@ -89,8 +102,12 @@ def unit2(v):
 #Vector projection of v1 in the direction of v2
 #Returns 2x3 tuple in the form ((x1,y1,z1),(x2,y2,z2))
 def vectProjection(v1, v2):
+    #print(v1)
+    print('######')
     u2 = unit3(v2) #unit vector of v2
-    scalar = np.dot(v1,u2) #scalar projection
+    scalar = np.zeros((len(v1),1))
+    for i in range(len(v1)):
+        scalar[i] = np.dot(v1[i],u2[i])
     component = np.multiply(scalar,u2)
     rejection = np.subtract(v1,component)
     return (component, rejection)
@@ -185,7 +202,7 @@ def Larmor(x, y, T, time):
 def T(v, time):
     vmax = argrelextrema(v, np.greater)
     if vmax[0].size < 2:
-        print 'Simulation time is too short, cannot calculate period of rotation'
+        print('Simulation time is too short, cannot calculate period of rotation')
     return np.multiply(vmax[0][0]-vmax[0][1],time[1]-time[0])
 
 #Calculates GC drift velocity with the help of larmor radius
