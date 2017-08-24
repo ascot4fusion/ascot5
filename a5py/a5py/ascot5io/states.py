@@ -93,7 +93,10 @@ def write_hdf5(fn, states, qid):
         
         # Read data from file.
         for field in states[state]:
-            d = f.create_dataset(path + "/" + field, data=states[state][field])
-            d.attrs["unit"] = states[state][field + "_unit"]
+            if field[-4:] != "unit" and field != "N" and field != "uniqueId":
+                d = f.create_dataset(path + "/" + field, data=states[state][field])
+                d.attrs["unit"] = states[state][field + "_unit"]
+            
+            
 
     f.close()

@@ -42,12 +42,14 @@ def read_hdf5(fn):
         out[orbgroup]["uniqueId"] = np.unique(orbits[orbgroup]["id"][:])
 
     # Sort fields by id (major) and time (minor), both ascending.
+    
     for orbgroup in orbits:
         if out[orbgroup]["N"] > 0:
             ind = np.lexsort((out[orbgroup]["id"], out[orbgroup]["time"]))
             for field in orbits[orbgroup]:
-                out[orbgroup][field] = out[orbgroup][field][ind]
-
+                if field[-4:] != "unit":
+                    out[orbgroup][field] = out[orbgroup][field][ind]
+    
     f.close()
     
     return out
@@ -83,8 +85,8 @@ def write_hdf5(fn, orbits, qid):
     else:
         o = f[group]
 
-    for orbitgroup in orbits:
-        path = "orbits/" + orbitgroup
+    for orbgroup in orbits:
+        path = "orbits/" + orbgroup
 
         # Remove group if one is already present.
         if path in f:
@@ -96,7 +98,8 @@ def write_hdf5(fn, orbits, qid):
         
         # Write data to file.
         for field in orbits[orbgroup]:
-            d = f.create_dataset(path + "/" + field, data=orbits[orbgroup][field])
-            d.attrs["unit"] = orbits[orbgroup][field + "_unit"]
+            if field[-4:] != "unit" and field != "N" and field != "uniqueId":
+                d = f.create_dataset(path + "/" + field, data=orbits[orbgroup][field])
+                d.attrs["unit"] = orbits[orbgroup][field + "_unit"]
 
     f.close()

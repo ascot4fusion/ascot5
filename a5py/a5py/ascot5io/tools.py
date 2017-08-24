@@ -4,6 +4,9 @@ Tools to modify HDF5 files.
 import numpy as np
 import h5py
 from . import ascot5
+from . import states
+from . import orbits
+from . import dists
 
 def remove(fn,runid=0):
     """
@@ -104,57 +107,95 @@ def combine(fnt, fns, mode="add"):
         "continue" assumes "fns" is continued simulation of "fnt".
     """
 
-    print("Combining output to " + fnt + "with mode " + mode)
-
-    # Open target file.
-    ft = h5py.File(fnt, "a")
+    print("Combining output to " + fnt + " with mode " + "\"" + mode + "\"")
+    
 
     for state in ["inistate", "endstate"]:
         print("Combining " + state)
 
-        target = ascot5.read(fnt,state)
-        target = target["states"][state]
+        target = ascot5.read_hdf5(fnt,state)
 
+        # Check whether target has the desired state.
+        # Init empty state if necessary.
+        if state not in target["states"]:
+            target["states"][state] = {}
+
+        target = target["states"]
+
+        # Iterate over source files
         for fn in fns:
-            source = ascot5.read(fn,state)
-            
-            for field in target:
-                if target[field][-4:] != "unit": # No need to combine unit specifiers
-                    target[field].extend(source[field])
-            
+            source = ascot5.read_hdf5(fn,"states")
 
-        ft["states"][state] = target
-        #states.write(ft,fnt,state)
+            # Check that source contains the state
+            if state in source["states"]:
+                source = source["states"][state]
+                
+                # Iterate over all fields in a state
+                for field in source:
+                    
+                    # If target does not have this field, add it.
+                    # Otherwise extend or replace it depending on mode.
+                    if field not in target[state]:
+                        target[state][field] = source[field]
+                        
+                    # No need to combine unit specifiers (fields ending with "unit")
+                    elif field[-4:] != "unit" and field != "N" and field != "uniqueId":
+                        if mode == "add":
+                            target[state][field] = np.concatenate((target[state][field],source[field]))
+                        elif mode == "continue":
+                            print("TODO")
 
+        # Target now contains all data from combined runs, so we just need to write it.
+        states.write_hdf5(fnt,target,0)
 
+    
     print("Combining distributions.")
 
-    target = ascot5.read(fnt,"dists")
-    for fn in fns:
-        source = ascot5.read(fn,"dists")
-        target["dists"]["ordinate"] += source["dists"]["ordinate"]
-        
+    target = ascot5.read_hdf5(fnt,"dists")
 
-    ft["distributions"]["ordinate"] = target["dists"]["ordinate"]
-    #dists.write(ft,fnt)
+    # If target does not have distributions, we get them from the first
+    # source file.
+    source = ascot5.read_hdf5(fns[0],"dists")
+    for dist in source["dists"]:
+        if not dist in target["dists"]:
+            target["dists"][dist] = source["dists"][dist]
+            target["dists"][dist]["ordinate"] = target["dists"][dist]["ordinate"] * 0
+
+
+    # Sum ordinates in all distributions (same for both modes)
+    for fn in fns:
+        source = ascot5.read_hdf5(fn,"dists")
+        for dist in source["dists"]:
+            target["dists"][dist]["ordinate"] += source["dists"][dist]["ordinate"]
+
+    dists.write_hdf5(fnt,target["dists"],0)
 
     print("Combining orbits.")
+
+
+    target = ascot5.read_hdf5(fnt,"orbits")["orbits"]
     
-    target = ascot5.read(fnt,"orbits")
+    # Iterate over source files
     for fn in fns:
-        source = ascot5.read(fn,"orbits")
+        source = ascot5.read_hdf5(fn,"orbits")["orbits"]
+        
+        # Check whether target has the desired state.
+        # Init empty state if necessary.
+        for orbgroup in source:
+            if orbgroup not in target:
+                target[orbgroup] = {}
 
-        for orbgroup in ft["orbits"]:
-            target = target["orbits"][state]
-            
-            
-            for field in target[orbgroup]:
-                if target[orbgroup][field][-4:] != "unit": # No need to combine unit specifiers
-                    target[orbgroup][field].extend(source[orbgroup][field])
-            
-
-        ft["orbits"][orbgroup] = target["orbits"][orbgroup]
-        #orbits.write(ft,fnt)
-
-    # Clean.
-    ft.close()
+            # Iterate over all fields in a orbit
+            for field in source[orbgroup]:
+                
+                # If target does not have this field, add it.
+                # Otherwise extend it.
+                if field not in target[orbgroup]:
+                    target[orbgroup][field] = source[orbgroup][field]
+                    
+                # No need to combine unit specifiers (fields ending with "unit")
+                elif field[-4:] != "unit" and field != "N" and field != "uniqueId":
+                    target[orbgroup][field] = np.concatenate((target[orbgroup][field],source[orbgroup][field]))
+                        
+    # Target now contains all data from combined runs, so we just need to write it.
+    orbits.write_hdf5(fnt,target,0)

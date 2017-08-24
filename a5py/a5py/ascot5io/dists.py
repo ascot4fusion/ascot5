@@ -29,6 +29,10 @@ def read_hdf5(fn):
     out = {}
 
     if "rzVDist" in dists:
+        out["rzVDist"]    = {}
+        temp = out
+        out  = temp["rzVDist"]
+
         out['R_edges']    = dists['rzVDist/abscissae/dim1'][:]
         out['R']          = np.linspace(0.5*(out['R_edges'][0]+out['R_edges'][1]), 0.5*(out['R_edges'][-2]+out['R_edges'][-1]), num=out['R_edges'].size-1)
         out['R_unit']     = 'm'
@@ -57,12 +61,15 @@ def read_hdf5(fn):
         out['ordinate']       = np.reshape(dists['rzVDist/ordinate'][:].flatten(), [out['nR'], out['nz'], out['nvpa'], out['nvpe'], out['ntime']] )
         out['ordinate_names'] = ['R','z','vpa','vpe','time']
 
+        temp["rzVDist"] = out
+        out = temp
+
     f.close()
 
     return out
 
 
-def write_hdf5(fn, orbits, qid):
+def write_hdf5(fn, dists, qid):
     """
     Write distributions.
 
@@ -94,19 +101,18 @@ def write_hdf5(fn, orbits, qid):
         f.create_group(path)
 
     # TODO Check that inputs are consistent.
-        
-    
+
     # Write data to file.
     if "rzVDist" in dists:
-        f.create_group("rzVDist")
-        f.create_group("rzVDist/abscissae")
+        f.create_group(path + "rzVDist")
+        f.create_group(path + "rzVDist/abscissae")
 
-        f.create_dataset(path + "rzVDist/abscissae/dim1", data=out["R_edges"])
-        f.create_dataset(path + "rzVDist/abscissae/dim2", data=out["z_edges"])
-        f.create_dataset(path + "rzVDist/abscissae/dim3", data=out["vpa_edges"])
-        f.create_dataset(path + "rzVDist/abscissae/dim4", data=out["vpe_edges"])
-        f.create_dataset(path + "rzVDist/abscissae/dim5", data=out["time_edges"])
+        f.create_dataset(path + "rzVDist/abscissae/dim1", data=dists["rzVDist"]["R_edges"])
+        f.create_dataset(path + "rzVDist/abscissae/dim2", data=dists["rzVDist"]["z_edges"])
+        f.create_dataset(path + "rzVDist/abscissae/dim3", data=dists["rzVDist"]["vpa_edges"])
+        f.create_dataset(path + "rzVDist/abscissae/dim4", data=dists["rzVDist"]["vpe_edges"])
+        f.create_dataset(path + "rzVDist/abscissae/dim5", data=dists["rzVDist"]["time_edges"])
 
-        f.create_dataset(path + "rzVDist/ordinate", data=out["ordinate"])
+        f.create_dataset(path + "rzVDist/ordinate", data=dists["rzVDist"]["ordinate"])
 
     f.close()
