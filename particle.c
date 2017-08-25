@@ -362,21 +362,22 @@ int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
                       B_field_data* Bdata, int* cycle) {
     for(int i = 0; i < NSIMD; i++) {
 	int i_prt;
+	int newmarker = 0;
+	cycle[i] = 0;
 
 	/* If there are markers in queue and this position is dummy,
 	 * init a marker here */
 	if(p->id[i] < 0 && q->next < q->n) {
-	    #pragma omp critical
-	    i_prt = q->next++;
-	    particle_state_to_fo(q->p[i_prt], i_prt, p, i, Bdata);
-	    cycle[i] = 1;
-	    continue;
+	    newmarker = 1;
 	}
 
-	cycle[i] = 0;
+	/* This marker has finished simulation */
         if(!p->running[i] && p->id[i] >= 0) {
 	    particle_fo_to_state(p, i, q->p[p->index[i]], Bdata);
+	    newmarker = 1;
+	}
 
+	if(newmarker) {
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
@@ -404,21 +405,22 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
                       B_field_data* Bdata, int* cycle) {
     for(int i = 0; i < NSIMD; i++) {
 	int i_prt;
+	int newmarker = 0;
+	cycle[i] = 0;
 
 	/* If there are markers in queue and this position is dummy,
 	 * init a marker here */
 	if(p->id[i] < 0 && q->next < q->n) {
-	    #pragma omp critical
-	    i_prt = q->next++;
-	    particle_state_to_gc(q->p[i_prt], i_prt, p, i, Bdata);
-	    cycle[i] = 1;
-	    continue;
+	    newmarker = 1;
 	}
 
-	cycle[i] = 0;
+	/* This marker has finished simulation */
         if(!p->running[i] && p->id[i] >= 0) {
 	    particle_gc_to_state(p, i, q->p[p->index[i]], Bdata);
+	    newmarker = 1;
+	}
 
+	if(newmarker) {
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
@@ -446,21 +448,22 @@ int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
                       B_field_data* Bdata, int* cycle) {
     for(int i = 0; i < NSIMD; i++) {
 	int i_prt;
+	int newmarker = 0;
+	cycle[i] = 0;
 
 	/* If there are markers in queue and this position is dummy,
 	 * init a marker here */
 	if(p->id[i] < 0 && q->next < q->n) {
-	    #pragma omp critical
-	    i_prt = q->next++;
-	    particle_state_to_ml(q->p[i_prt], i_prt, p, i, Bdata);
-	    cycle[i] = 1;
-	    continue;
+	    newmarker = 1;
 	}
 
-	cycle[i] = 0;
+	/* This marker has finished simulation */
         if(!p->running[i] && p->id[i] >= 0) {
 	    particle_ml_to_state(p, i, q->p[p->index[i]], Bdata);
+	    newmarker = 1;
+	}
 
+	if(newmarker) {
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
