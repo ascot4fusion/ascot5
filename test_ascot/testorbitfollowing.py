@@ -24,10 +24,10 @@ def run():
     # Test options
     simmode = [2, 2, 1]
     adaptive = [0, 1, 0]
-    timestep = 1.e-8 # tai 1e-9
+    timestep = [1e-8, 1e-8, 1.e-10]
     tolorb = 1e-8
     tolcol = 1e-2
-    writedt = 1e-8
+    writedt = 2e-7
     simtime = 1e-3
     Nmrk = 4
 
@@ -52,7 +52,7 @@ def run():
                           7.428226459414810634e-01, -4.447153105104519888e-01, -1.084640395736786167e-01, 1.281599235951017685e-02, 
                           -0.155])
 
-    # General markers
+    # Markers
     ids    = np.linspace(1,Nmrk,Nmrk)
     mass   = m*np.ones(ids.shape)
     charge = q*np.ones(ids.shape)
@@ -61,15 +61,6 @@ def run():
     z      = 0*np.ones(ids.shape)
     weight = 1*np.ones(ids.shape)
     time   = 0*np.ones(ids.shape)
-
-    v = np.sqrt(BOLTZMANN_CONSTANT*T*EV2K/m)
-    print(v)
-    # FO specific markers
-    vR     = np.array([v/3])
-    vphi   = np.array([v/3])
-    vz     = np.array([v/3])
-
-    # GC specific markers
     energy = 1.0e5*np.ones(ids.shape)
     pitch  = np.array([-0.9, -0.3, 0.3, 0.9])
     theta  = 0*np.ones(ids.shape)
@@ -83,7 +74,7 @@ def run():
         o["SIM_MODE"]                  = 0*o["SIM_MODE"] + simmode[i]
         o["ENABLE_ADAPTIVE"]           = 0*o["ENABLE_ADAPTIVE"] + adaptive[i]
         o["FIXEDSTEP_USE_USERDEFINED"] = 0*o["FIXEDSTEP_USE_USERDEFINED"] + 1
-        o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + timestep
+        o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + timestep[i]
         o["ADAPTIVE_TOL_ORBIT"]        = 0*o["ADAPTIVE_TOL_ORBIT"] + tolorb
         o["ADAPTIVE_TOL_CCOL"]         = 0*o["ADAPTIVE_TOL_CCOL"] + tolcol
         o["ENABLE_ORBIT_FOLLOWING"]    = 0*o["ENABLE_ORBIT_FOLLOWING"] + 1
@@ -100,53 +91,41 @@ def run():
         subprocess.call(["./ascot5_main", "--in="+fn[i][0:-3]])
 
     # Read orbits
-    orb, t, B, R, z, e, mu, BGS, psi_mult, c, R0, z0, psi, pphi = ([] for i in range(14))
+    orb, t, B, R, z, e, mu, pphi = ([] for i in range(8))
     for i in range(0,len(fn)):
         if simmode[i] == 1:
             orb.append(ascot5.read_hdf5(fn[i],"orbits")["orbits"]["fo"])
         else:
             orb.append(ascot5.read_hdf5(fn[i],"orbits")["orbits"]["gc"])
+
         t.append(orb[i]["time"])
         B.append(np.sqrt(np.power(orb[i]["B_R"],2) + np.power(orb[i]["B_phi"],2) + np.power(orb[i]["B_z"],2)))
         R.append(orb[i]["R"])
         z.append(orb[i]["z"])
         if simmode[i] == 1:
-            e.append(0.5 * m * (np.power(orb[i]["v_R"],2) + np.power(orb[i]["v_phi"],2) + np.power(orb[i]["v_z"],2)) * AMU2KG / ELEMENTARY_CHARGE)
-            #mu = 0.5*mvperp^2/B
+            v = np.sqrt(np.power(orb[i]["v_R"],2) + np.power(orb[i]["v_phi"],2) + np.power(orb[i]["v_z"],2))
+            e.append(0.5 * m * np.power(v,2) * AMU2KG / ELEMENTARY_CHARGE)
+            
+            pitch = (orb[i]["B_R"] * orb[i]['v_R'] + orb[i]["B_phi"] * orb[i]['v_phi'] + orb[i]["B_z"] * orb[i]['v_z']) / ( v * B[i] )
+
+            mu.append(0.5*(1-np.power(pitch,2))*np.power(v,2)*m*AMU2KG/(B[i]*ELEMENTARY_CHARGE))
         else:
             e.append(orb[i]["mu"] * B[i] + 0.5 * m * np.power(orb[i]["vpar"],2) * AMU2KG / ELEMENTARY_CHARGE)
             mu.append(orb[i]["mu"])
     
         #Canonical momentum
-        BGS.append(ascot5.read_hdf5(fn[i],"bfield")["bfield"]["B_GS"])
-        psi_mult.append(BGS[i]["psi_mult"])
-        c.append(BGS[i]["psi_coeff"])
-        R0.append(BGS[i]["R0"])
-        z0.append(BGS[i]["z0"])
-        psi.append(psi_mult[i]*psifun.psi0(R0[i]/R0[i],z0[i]/R0[i],c[i][0],c[i][1],c[i][2],c[i][3],c[i][4],c[i][5],c[i][6],c[i][7],c[i][8],c[i][9],c[i][10],c[i][11],c[i][12]))
+        c = psi_coeff
+        psi = psi_mult*psifun.psi0(R[i]/R0,z[i]/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12])
         if simmode[i] == 2:
-            pphi.append(tf.canonicalMomentum(mass[0]* AMU2KG,R[i],orb[i]["vpar"],charge[0]* ELEMENTARY_CHARGE,psi[i]))
+            vtor = orb[i]["vpar"] * orb[i]["B_phi"] / B[i]
+            pphi.append(mass[0]* AMU2KG * R[i] * vtor + charge[0]* ELEMENTARY_CHARGE*psi)
+                #tf.canonicalMomentum(mass[0]* AMU2KG,R[i],orb[i]["vpar"],charge[0]* ELEMENTARY_CHARGE,psi[i]))
         else:
-            phi = np.deg2rad(orb[i]['phi'])
-             #Particle velocity in every timestep:
-            vR = orb[i]['v_R']
-            vphi =  np.deg2rad(orb[i]['v_phi'])
-            vz = orb[i]['v_z']
-            vxy = np.array(tf.v(vR, vphi, phi)) #v[0] = x, v[1] = y
-            v2 = np.transpose(np.array([vxy[0],vxy[1],vz]))
-
-            #Magnetic field in every timestep:
-            BR = orb[i]['B_R']
-            Bphi = np.deg2rad(orb[i]['B_phi'])
-            Bz = np.deg2rad(orb[i]['B_z'])
-            Bxy = tf.v(BR, Bphi, phi)
-            B2 = np.array([Bxy[0],Bxy[1],Bz]) 
-
-            v = np.transpose(tf.vectProjection(v2,B2)) # = 0: xyz, 1: timestep 2:(v_para, v_perp)
-            vpar = np.squeeze(tf.v3D2(np.transpose(v[0][:])[0],np.transpose(v[1][:])[0],np.transpose(v[2][:])[0]))
-            pphi.append(tf.canonicalMomentum(mass[0]* AMU2KG,R[i],vpar,charge[0]* ELEMENTARY_CHARGE,psi[i]))
+            pphi.append(mass[0]* AMU2KG * R[i] * orb[i]["v_phi"] + charge[0]* ELEMENTARY_CHARGE*psi)
+                #tf.canonicalMomentum(mass[0]* AMU2KG,R[i],vpar,charge[0]* ELEMENTARY_CHARGE,psi[i]))
 
     # Plot if needed.
+    
     
     plt.figure()
     for i in range(len(fn)):
@@ -154,7 +133,7 @@ def run():
     plt.show()
 
     plt.figure()
-    for i in range(2):
+    for i in range(len(fn)):
         plt.plot(t[i],mu[i],'.')
     plt.show()
 
@@ -167,6 +146,7 @@ def run():
     for i in range(len(fn)):
         plt.plot(t[i],pphi[i],'.')
     plt.show()
+    
 
     # Write relevant data in files for plotting in Matlab
 
