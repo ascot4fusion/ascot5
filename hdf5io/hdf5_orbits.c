@@ -17,6 +17,11 @@ void hdf5_orbits_writeset_gc(hid_t group, diag_orb_dat* list, int size, int* mas
 void hdf5_orbits_writeset_ml(hid_t group, diag_orb_dat* list, int size, int* mask);
 
 void hdf5_orbits_write(sim_data* sim, char* out) {
+    if(sim->diag_data.diag_orb_collect == 0) {
+	/* Nothing to write.*/
+	return;
+    }
+
     #if VERBOSE > 0
         printf("\nWriting orbit data to file.\n");
     #endif
