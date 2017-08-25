@@ -149,7 +149,7 @@ int main(int argc, char** argv) {
     
     fflush(stdout);
 
-    #ifdef _OMP
+    #ifdef _OPENMP
     omp_set_nested(1);
     #endif
     
@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
         #ifndef NOTARGET
             #pragma omp section
             {
-                #ifdef _OMP
+                #ifdef _OPENMP
                 mic0_start = omp_get_wtime();
                 #endif
                 
@@ -170,16 +170,17 @@ int main(int argc, char** argv) {
                 simulate(1, n_mic, ps, &sim, &offload_data, offload_array,
                          diag_offload_array_mic0);
 
-                #ifdef _OMP
+                #ifdef _OPENMP
                 mic0_end = omp_get_wtime();
                 #endif
             }
 
             #pragma omp section
             {
-                #ifdef _OMP
+                #ifdef _OPENMP
                 mic1_start = omp_get_wtime();
                 #endif
+
                 #pragma omp target device(1) map( \
         ps[n_mic:2*n_mic], \
         offload_array[0:offload_data.offload_array_length], \
@@ -188,7 +189,7 @@ int main(int argc, char** argv) {
                 simulate(2, n_mic, ps+n_mic, &sim, &offload_data, offload_array,
                          diag_offload_array_mic1);
 
-                #ifdef _OMP
+                #ifdef _OPENMP
                 mic1_end = omp_get_wtime();
                 #endif
             }
@@ -196,14 +197,14 @@ int main(int argc, char** argv) {
         #endif
             #pragma omp section
             {
-                #ifdef _OMP
+                #ifdef _OPENMP
                 host_start = omp_get_wtime();
                 #endif
         
                 simulate(0, n_host, ps+2*n_mic, &sim, &offload_data,
                          offload_array, diag_offload_array_host);
 
-                #ifdef _OMP
+                #ifdef _OPENMP
                 host_end = omp_get_wtime();
                 #endif
             }
