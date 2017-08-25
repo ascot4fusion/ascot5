@@ -118,9 +118,9 @@ void hdf5_wall_init_offload_3D(hid_t f, wall_3d_offload_data* offload_data, real
     int i, j;
     for(i = 0; i < offload_data->n; i++) {
         for(j = 0; j < 3; j++) {
-            (*offload_array)[(i+j)*3] = x1x2x3[3*i+j];
-            (*offload_array)[(i+j)*3+1] = y1y2y3[3*i+j];
-            (*offload_array)[(i+j)*3+2] = z1z2z3[3*i+j];
+            (*offload_array)[i*9 + j*3 + 0] = x1x2x3[3*i+j];
+            (*offload_array)[i*9 + j*3 + 1] = y1y2y3[3*i+j];
+            (*offload_array)[i*9 + j*3 + 2] = z1z2z3[3*i+j];
         }
     }
     
