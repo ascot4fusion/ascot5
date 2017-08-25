@@ -210,6 +210,10 @@ int main(int argc, char** argv) {
     }
     /* Code excution returns to host. */
 
+    #if VERBOSE >= 1
+    printf("Writing endstate.");
+    #endif
+
     hdf5_particlestate_write(sim.hdf5_out, "endstate", n, ps);
     //hdf5_orbits_write(&sim, sim.hdf5_out);
 
