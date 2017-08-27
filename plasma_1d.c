@@ -155,18 +155,29 @@ real plasma_1d_eval_temp(real rho, int species, plasma_1d_data* plasma_data) {
     /* As the plasma data may be provided at irregular intervals, we must
      * search for the correct grid index */
     /** @todo Implement a more efficient search algorithm */
-    int i_rho = 0;
-    while(i_rho < plasma_data->n_rho && plasma_data->rho[i_rho] <= rho) {
-        i_rho++;
+    
+    real p = 0;
+    if(rho < plasma_data->rho[0]) {
+	p = plasma_data->temp[species*plasma_data->n_rho];
     }
-    i_rho--;
-
-    real t_rho = (rho - plasma_data->rho[i_rho])
+    else if(rho > plasma_data->rho[plasma_data->n_rho]) {
+	p = plasma_data->temp[species*plasma_data->n_rho + plasma_data->n_rho - 1];
+    }
+    else {
+	int i_rho = 0;
+	while(i_rho < plasma_data->n_rho && plasma_data->rho[i_rho] <= rho) {
+	    i_rho++;
+	}
+	i_rho--;
+	real t_rho = (rho - plasma_data->rho[i_rho])
                  / (plasma_data->rho[i_rho+1] - plasma_data->rho[i_rho]);
 
-    real p1 = plasma_data->temp[species*plasma_data->n_rho + i_rho];
-    real p2 = plasma_data->temp[species*plasma_data->n_rho + i_rho+1];
-    return p1 + t_rho * (p2 - p1);
+	real p1 = plasma_data->temp[species*plasma_data->n_rho + i_rho];
+	real p2 = plasma_data->temp[species*plasma_data->n_rho + i_rho+1];
+	p = p1 + t_rho * (p2 - p1);
+    }
+    
+    return p;
 }
 
 /**
@@ -175,16 +186,26 @@ real plasma_1d_eval_temp(real rho, int species, plasma_1d_data* plasma_data) {
  * @see plasma_1d_eval_temp
  */
 real plasma_1d_eval_dens(real rho, int species, plasma_1d_data* plasma_data) {
-    int i_rho = 0;
-    while(i_rho < plasma_data->n_rho && plasma_data->rho[i_rho] <= rho) {
-        i_rho++;
+    real p = 0;
+    if(rho < plasma_data->rho[0]) {
+	p = plasma_data->dens[species*plasma_data->n_rho];
     }
-    i_rho--;
-
-    real t_rho = (rho - plasma_data->rho[i_rho])
+    else if(rho > plasma_data->rho[plasma_data->n_rho]) {
+	p = plasma_data->dens[species*plasma_data->n_rho + plasma_data->n_rho - 1];
+    }
+    else {
+	int i_rho = 0;
+	while(i_rho < plasma_data->n_rho && plasma_data->rho[i_rho] <= rho) {
+	    i_rho++;
+	}
+	i_rho--;
+	real t_rho = (rho - plasma_data->rho[i_rho])
                  / (plasma_data->rho[i_rho+1] - plasma_data->rho[i_rho]);
 
-    real p1 = plasma_data->dens[species*plasma_data->n_rho + i_rho];
-    real p2 = plasma_data->dens[species*plasma_data->n_rho + i_rho+1];
-    return p1 + t_rho * (p2 - p1);
+	real p1 = plasma_data->dens[species*plasma_data->n_rho + i_rho];
+	real p2 = plasma_data->dens[species*plasma_data->n_rho + i_rho+1];
+	p = p1 + t_rho * (p2 - p1);
+    }
+    
+    return p;
 }
