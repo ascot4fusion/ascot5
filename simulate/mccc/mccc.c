@@ -256,19 +256,11 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
 	    /* Update background data */
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
-
-	    // Electron and ion temperature
-	    temp[0] = plasma_1d_eval_temp(p->rho[i], 0, pdata)*CONST_KB;
-	    temp[1] = plasma_1d_eval_temp(p->rho[i], 1, pdata)*CONST_KB;
-
-	    // Electron density
-	    dens[0] = plasma_1d_eval_dens(p->rho[i], 0, pdata);
-
-	    // Ion densities (and temperatures)
+	    
+	    plasma_1d_eval_densandtemp(p->rho[i], pdata, dens, temp);
 	    int j;
-	    for(j = 1; j < pdata->n_species; j++) {
-		dens[j] = plasma_1d_eval_dens(p->rho[i], j, pdata);
-		temp[j] = temp[1];
+	    for(j = 0; j < pdata->n_species; j++) {
+		temp[j] = temp[j]*CONST_KB;
 	    }
 	    
 	    /* Evaluate coefficients */
@@ -365,18 +357,10 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
 		
-	    // Electron and ion temperature
-	    temp[0] = plasma_1d_eval_temp(p->rho[i], 0, pdata)*CONST_KB;
-	    temp[1] = plasma_1d_eval_temp(p->rho[i], 1, pdata)*CONST_KB;
-
-	    // Electron density
-	    dens[0] = plasma_1d_eval_dens(p->rho[i], 0, pdata);
-
-	    // Ion densities (and temperatures)
 	    int j;
-	    for(j = 1; j < pdata->n_species; j++) {
-		dens[j] = plasma_1d_eval_dens(p->rho[i], j, pdata);
-		temp[j] = temp[1];
+	    plasma_1d_eval_densandtemp(p->rho[i], pdata, dens, temp);
+	    for(j = 0; j < pdata->n_species; j++) {
+		temp[j] = temp[j]*CONST_KB;
 	    }
 	        
 	    /* Evaluate coefficients */
@@ -526,18 +510,10 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
 		
-	    // Electron and ion temperature
-	    temp[0] = plasma_1d_eval_temp(p->rho[i], 0, pdata)*CONST_KB;
-	    temp[1] = plasma_1d_eval_temp(p->rho[i], 1, pdata)*CONST_KB;
-
-	    // Electron density
-	    dens[0] = plasma_1d_eval_dens(p->rho[i], 0, pdata);
-
-	    // Ion densities (and temperatures)
 	    int j;
-	    for(j = 1; j < pdata->n_species; j++) {
-		dens[j] = plasma_1d_eval_dens(p->rho[i], j, pdata);
-		temp[j] = temp[1];
+	    plasma_1d_eval_densandtemp(p->rho[i], pdata, dens, temp);
+	    for(j = 0; j < pdata->n_species; j++) {
+		temp[j] = temp[j]*CONST_KB;
 	    }
 	        
 	    /* Evaluate coefficients */

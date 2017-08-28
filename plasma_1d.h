@@ -46,6 +46,8 @@ void plasma_1d_init(plasma_1d_data* plasma_data,
 real plasma_1d_eval_temp(real rho, int species, plasma_1d_data* plasma_data);
 #pragma omp declare simd uniform(plasma_data)
 real plasma_1d_eval_dens(real rho, int species, plasma_1d_data* plasma_data);
+#pragma omp declare simd uniform(plasma_data)
+void plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* dens, real* temp);
 #pragma omp end declare target
 
 #endif
