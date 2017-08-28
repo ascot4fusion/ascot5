@@ -144,7 +144,7 @@ void mccc_push_gcEM(real K, real nu, real Dpara, real DX, real* B, real dt, real
  * @param err pointer to error flag
  */
 void mccc_push_gcMI(real K, real nu, real Dpara, real DX, real* B, real dt, real* dW, real dQ, real dDpara, real vin, real* vout, 
-		    real xiin, real* xiout, real* Xin, real* Xout, real cutoff, real tol, real* kappa_k, real* kappa_d, int* err){
+		    real xiin, real* xiout, real* Xin, real* Xout, real cutoff, real tol, real* kappa_k, real* kappa_d0, real* kappa_d1, int* err){
 
     int rejected = 0;
     real bhat[3];
@@ -186,8 +186,8 @@ void mccc_push_gcMI(real K, real nu, real Dpara, real DX, real* B, real dt, real
 	*kappa_k = k2*dt*dt;
     }
 
-    kappa_d[0] = (1/(6*erru))*fabs(dW[3]*dW[3]*dW[3]*dDpara*dDpara/sqrt(Dpara));
-    kappa_d[1] = sqrt(1-xiin*xiin)*nu*sqrt(nu)*fabs(dW[4] + sqrt(dt/3))*dt/(2*tol);
+    *kappa_d0 = (1/(6*erru))*fabs(dW[3]*dW[3]*dW[3]*dDpara*dDpara/sqrt(Dpara));
+    *kappa_d1 = sqrt(1-xiin*xiin)*nu*sqrt(nu)*fabs(dW[4] + sqrt(dt/3))*dt/(2*tol);
 
     if(isnan(Xout[0]) || isnan(Xout[0]) || isnan(Xout[0]) || isnan(*vout) || isnan(*xiout)){ *err = MCCC_PUSH_ISNAN;}
     if(isinf(Xout[0]) || isinf(Xout[0]) || isinf(Xout[0]) || isnan(*vout) || isnan(*xiout)){ *err = MCCC_PUSH_ISNAN;}

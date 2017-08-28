@@ -55,9 +55,10 @@ void mccc_wiener_initialize(mccc_wienarr* w, real initime){
  * @param w array that stores the Wiener processes
  * @param t time for which the new process will be generated
  * @param windex index of the generated Wiener process in the Wiener array
+ * @param rand5 array of 5 normal distributed random numbers
  * @param err error flag, negative indicates something went wrong
  */
-void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, int* err){
+void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5, int* err){
     
     int eidx, i; /* Helper variables */
     int im, ip; /* Indexes of the Wiener processes for which tm < t < tp */
@@ -111,9 +112,7 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, int* err){
     }
 
     if(!(*err)) {
-	/* The eidx entry in the wiener array is always empty. We use that for temporary storage
-	 * to spare one allocation/deallocation cycle. */
-	mccc_wiener_boxmuller( &(w->wiener[MCCC_NDIM*eidx]), MCCC_NDIM);
+
 	if(ip == -1){
 	    /* There are no Wiener processes existing for tp > t.
 	     * The generated Wiener process then has a mean W(tm) and variance t-tm. */
@@ -121,7 +120,7 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, int* err){
 	    w->nextslot[eidx] = eidx;
 	    w->time[eidx] = t;
 	    for(i=0; i < MCCC_NDIM; i=i+1){
-		w->wiener[i + eidx*MCCC_NDIM] = w->wiener[i + im*MCCC_NDIM] + sqrt(t-w->time[im])*w->wiener[i + eidx*MCCC_NDIM];
+		w->wiener[i + eidx*MCCC_NDIM] = w->wiener[i + im*MCCC_NDIM] + sqrt(t-w->time[im])*rand5[i];
 	    }
 	    *windex = eidx;
 	    w->nextslot[im] = eidx;
@@ -137,7 +136,7 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, int* err){
 		w->wiener[i + eidx*MCCC_NDIM] = w->wiener[i + im*MCCC_NDIM] + ( w->wiener[i + ip*MCCC_NDIM] - w->wiener[i + im*MCCC_NDIM] )
 		    *( t-w->time[im] )/( w->time[ip]-w->time[im] )
 		    + sqrt( ( t-w->time[im] )*( w->time[ip]-t )/( w->time[ip]-w->time[im] ) )
-		    *w->wiener[i + eidx*MCCC_NDIM];
+		    *rand5[i];
 	    }
 	    /* Sort new wiener process to its correct place */
 	    w->nextslot[eidx] = ip;

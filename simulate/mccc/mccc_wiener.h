@@ -32,12 +32,11 @@ typedef struct {
 void mccc_wiener_initialize(mccc_wienarr* w, real initime);
 
 #pragma omp declare simd
-void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, int* err);
+void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5, int* err);
 
 #pragma omp declare simd
 void mccc_wiener_clean(mccc_wienarr* w, real t, int* err);
 
-#pragma omp declare simd
 void mccc_wiener_boxmuller(real* randVar, int Ndim);
 
 #pragma omp declare simd
