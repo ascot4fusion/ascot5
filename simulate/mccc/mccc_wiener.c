@@ -20,30 +20,17 @@
 const int MCCC_EMPTY = -999;
 
 /**
- * @brief Allocates a struct that will be used to store generated Wiener processes 
+ * @brief Initializes a struct that will be used to store generated Wiener processes 
  *
- * @param Ndim Wiener process dimension 
- * @param Nslots Maximum number of stored Wiener processes
+ * @param w Wiener struct to be initialized
  * @param initime time instance corresponding to initial Wiener process (which has value W(t) = 0)
- * @return Pointer to allocated Wiener struct
- *
- * @todo There is no need to allocate the array as the size is known in advance in the main program
- * @todo Reusing wiener arrays is possible but not done at the moment
  */
-mccc_wienarr* mccc_wiener_allocate(int Ndim, int Nslots, real initime){
+void mccc_wiener_initialize(mccc_wienarr* w, real initime){
 
     int i;
 
-    mccc_wienarr* w = malloc(sizeof(mccc_wienarr));
-    w->Nslot = Nslots;
-    w->Ndim = Ndim;
-    
-    w->wiener = malloc(sizeof(real)*Ndim*Nslots);
-    w->time = malloc(sizeof(real)*Nslots);
-    w->nextslot = malloc(sizeof(int)*Nslots);
-
     /* Initialize position instances indicating all slots are empty */
-    for(i = 0; i < Nslots; i = i +1){
+    for(i = 0; i < MCCC_NSLOTS; i = i +1){
 	w->time[i] = MCCC_EMPTY;
 	w->nextslot[i] = MCCC_EMPTY;
     }
@@ -52,26 +39,9 @@ mccc_wienarr* mccc_wiener_allocate(int Ndim, int Nslots, real initime){
     w->nextslot[0] = 0;
     w->time[0] = initime;
     
-    for(i = 0; i < Ndim; i = i +1){
+    for(i = 0; i < MCCC_NDIM; i = i +1){
 	w->wiener[i] = 0.0;
     }
-
-    return w;
-}
-
-
-/**
- * @brief Deallocates Wiener struct
- *
- * @param w Wiener struct to be deallocated
- *
- * @todo See mccc_eiener_deallocate
- */
-void mccc_wiener_deallocate(mccc_wienarr* w){
-    free(w->nextslot);
-    free(w->time);
-    free(w->wiener);
-    free(w);
 }
 
 /**
@@ -92,8 +62,6 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, int* err){
     int eidx, i; /* Helper variables */
     int im, ip; /* Indexes of the Wiener processes for which tm < t < tp */
 
-    int Nslots = w->Nslot;
-    int Ndim = w->Ndim; 
     *windex = -1;
     *err=0;
 
@@ -102,16 +70,16 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, int* err){
     /* Find im and ip */
     int idx = 0;
     im = 0;
-    for(i = 0; i < Nslots; i=i+1){
+    for(i = 0; i < MCCC_NSLOTS; i=i+1){
 	if(w->nextslot[idx] == idx){
 	    /* Reached last process */
-	    i = Nslots;
+	    i = MCCC_NSLOTS;
 	}
 	else {
 	    if(w->time[idx] == t) {
 		/* Process already exists */
 		*windex = idx;
-		i = Nslots;
+		i = MCCC_NSLOTS;
 	    }
 	    else {
 		if(w->time[idx] < t ) {
@@ -130,10 +98,10 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, int* err){
     
     /* Find an empty slot for the next process */
     eidx = 0;
-    for( i = 0; i < Nslots; i = i+1 ){
+    for( i = 0; i < MCCC_NSLOTS; i = i+1 ){
 	if( w->nextslot[i] == MCCC_EMPTY){
 	    eidx = i;
-	    i = Nslots;
+	    i = MCCC_NSLOTS;
 	}
     }
     if(eidx == 0){
@@ -145,15 +113,15 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, int* err){
     if(!(*err)) {
 	/* The eidx entry in the wiener array is always empty. We use that for temporary storage
 	 * to spare one allocation/deallocation cycle. */
-	mccc_wiener_boxmuller( &(w->wiener[(Ndim)*eidx]), Ndim);
+	mccc_wiener_boxmuller( &(w->wiener[MCCC_NDIM*eidx]), MCCC_NDIM);
 	if(ip == -1){
 	    /* There are no Wiener processes existing for tp > t.
 	     * The generated Wiener process then has a mean W(tm) and variance t-tm. */
 
 	    w->nextslot[eidx] = eidx;
 	    w->time[eidx] = t;
-	    for(i=0; i < Ndim; i=i+1){
-		w->wiener[i + eidx*w->Ndim] = w->wiener[i + im*w->Ndim] + sqrt(t-w->time[im])*w->wiener[i + eidx*w->Ndim];
+	    for(i=0; i < MCCC_NDIM; i=i+1){
+		w->wiener[i + eidx*MCCC_NDIM] = w->wiener[i + im*MCCC_NDIM] + sqrt(t-w->time[im])*w->wiener[i + eidx*MCCC_NDIM];
 	    }
 	    *windex = eidx;
 	    w->nextslot[im] = eidx;
@@ -165,11 +133,11 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, int* err){
 	     * mean = W(tm) + ( W(ip)-W(im) )*(t-tm)/(tp-tm)
 	     * variance = (t-tm)*(tp-t)/(tp-tm) */
 	    w->time[eidx] = t;
-	    for(i=0;i < Ndim; i = i+1){
-		w->wiener[i + eidx*w->Ndim] = w->wiener[i + im*w->Ndim] + ( w->wiener[i + ip*w->Ndim] - w->wiener[i + im*w->Ndim] )
+	    for(i=0;i < MCCC_NDIM; i = i+1){
+		w->wiener[i + eidx*MCCC_NDIM] = w->wiener[i + im*MCCC_NDIM] + ( w->wiener[i + ip*MCCC_NDIM] - w->wiener[i + im*MCCC_NDIM] )
 		    *( t-w->time[im] )/( w->time[ip]-w->time[im] )
 		    + sqrt( ( t-w->time[im] )*( w->time[ip]-t )/( w->time[ip]-w->time[im] ) )
-		    *w->wiener[i + eidx*w->Ndim];
+		    *w->wiener[i + eidx*MCCC_NDIM];
 	    }
 	    /* Sort new wiener process to its correct place */
 	    w->nextslot[eidx] = ip;
@@ -220,8 +188,8 @@ void mccc_wiener_clean(mccc_wienarr* w, real t, int* err){
      
 	w->time[0] = w->time[idx];
 	w->time[idx] = MCCC_EMPTY;
-	for(i = 0; i < w->Ndim; i=i+1){
-	    w->wiener[i] = w->wiener[idx*w->Ndim+i];
+	for(i = 0; i < MCCC_NDIM; i=i+1){
+	    w->wiener[i] = w->wiener[idx*MCCC_NDIM+i];
 	}
      
 	/* Check if the process is also the last one */

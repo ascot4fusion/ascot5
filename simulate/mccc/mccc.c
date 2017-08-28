@@ -574,11 +574,11 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    /* Evaluate collisions */
 	    real t = w[i]->time[0];
 	    mccc_wiener_generate(w[i], t+hin[i], &tindex, &err[i]);
-	    dW[0] = w[i]->wiener[tindex*5 + 0] - w[i]->wiener[0];
-	    dW[1] = w[i]->wiener[tindex*5 + 1] - w[i]->wiener[1];
-	    dW[2] = w[i]->wiener[tindex*5 + 2] - w[i]->wiener[2];
-	    dW[3] = w[i]->wiener[tindex*5 + 3] - w[i]->wiener[3];
-	    dW[4] = w[i]->wiener[tindex*5 + 4] - w[i]->wiener[4];
+	    dW[0] = w[i]->wiener[tindex*MCCC_NDIM + 0] - w[i]->wiener[0];
+	    dW[1] = w[i]->wiener[tindex*MCCC_NDIM + 1] - w[i]->wiener[1];
+	    dW[2] = w[i]->wiener[tindex*MCCC_NDIM + 2] - w[i]->wiener[2];
+	    dW[3] = w[i]->wiener[tindex*MCCC_NDIM + 3] - w[i]->wiener[3];
+	    dW[4] = w[i]->wiener[tindex*MCCC_NDIM + 4] - w[i]->wiener[4];
 		        
 	    xiin = p->vpar[i]/vin;
 	    Xin[0] = p->r[i]*cos(p->phi[i]);
@@ -640,9 +640,11 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 		if(1.5*hin[i] < dti){dti = 1.5*hin[i];}
 		for(ki=1; ki < 4; ki=ki+1){
 		    mccc_wiener_generate(w[i], t+ki*dti/3, &windex, &err[i]);
-		    dW[3] = fabs(w[i]->wiener[3 + windex*5] - w[i]->wiener[3 + tindex*5]);
+		    dW[3] = fabs(w[i]->wiener[3 + windex*MCCC_NDIM] 
+				 - w[i]->wiener[3 + tindex*MCCC_NDIM]);
 		    if(dW[3] > dWopt[0]){break;}
-		    dW[4] = fabs(w[i]->wiener[4 + windex*5] - w[i]->wiener[4 + tindex*5]);
+		    dW[4] = fabs(w[i]->wiener[4 + windex*MCCC_NDIM] 
+				 - w[i]->wiener[4 + tindex*MCCC_NDIM]);
 		    if(dW[4] > dWopt[1]){break;}
 		}
 		if(ki == 1){
@@ -663,9 +665,9 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 
 		for(ki=1; ki < 4; ki=ki+1){
 		    mccc_wiener_generate(w[i], t+ki*hin[i]/3, &windex, &err[i]);
-		    dW[3] = abs(w[i]->wiener[3 + windex*w[i]->Ndim] - w[i]->wiener[3 + tindex*w[i]->Ndim]);
+		    dW[3] = abs(w[i]->wiener[3 + windex*MCCC_NDIM] - w[i]->wiener[3 + tindex*MCCC_NDIM]);
 		    if(dW[3] > dWopt[0]){exit;}
-		    dW[4] = abs(w[i]->wiener[4 + windex*w[i]->Ndim] - w[i]->wiener[4 + tindex*w[i]->Ndim]);
+		    dW[4] = abs(w[i]->wiener[4 + windex*MCCC_NDIM] - w[i]->wiener[4 + tindex*MCCC_NDIM]);
 		    if(dW[4] > dWopt[1]){exit;}
 		}
 		if(ki == 1){

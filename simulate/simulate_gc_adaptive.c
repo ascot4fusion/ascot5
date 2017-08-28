@@ -93,7 +93,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 	    cputime_last[i] = A5_WTIME;
 	    if(sim->enable_clmbcol) {
 		/* Allocate array storing the Wiener processes */
-		wienarr[i] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[i]);
+		mccc_wiener_initialize(wienarr[i],p.time[i]);
 	    }
 	}
     }
@@ -275,14 +275,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 		cputime_last[i] = A5_WTIME;
 		if(sim->enable_clmbcol) {
 		    /* Re-allocate array storing the Wiener processes */
-		    mccc_wiener_deallocate(wienarr[i]);
-		    wienarr[i] = mccc_wiener_allocate(5,WIENERSLOTS,p.time[i]);
-		}
-	    }
-	    else if(cycle[i] < 0) {
-		/* De-allocate array storing the Wiener processes */
-		if(sim->enable_clmbcol) {
-		    mccc_wiener_deallocate(wienarr[i]);
+		    mccc_wiener_initialize(wienarr[i],p.time[i]);
 		}
 	    }
 	}
