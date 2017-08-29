@@ -628,13 +628,13 @@ void mccc_special_test(){
 void mccc_wiener_test(){
 
     mccc_wienarr *wienarr, *temparr;
-    int Ndim = 3, Nslots = 5, windex;
+    int Ndim = 5, Nslot = 5, windex;
     int j,k;
     int Niter = 10000, iter;
     int err;
     real W[30000];
     real initime = 0.0;
-    real meanCom[3], meanThr[3], varCom[3], varThr[3];
+    real meanCom[5], meanThr[5], varCom[5], varThr[5];
 
     srand48(1);
 
@@ -644,8 +644,9 @@ void mccc_wiener_test(){
     printf("\n");
 
     printf("\n");
-    printf("Allocating a 5 slot array of 3D Wiener processes...\n");
-    wienarr = mccc_wiener_allocate(Ndim, Nslots, initime);
+    printf("Initializing a 5 slot array of 3D Wiener processes...\n");
+    mccc_wiener_initialize(wienarr,initime);
+    mccc_wiener_initialize(temparr,initime);
     printf("Done. The wiener, time, and index values are:\n");
     printf("\n");
     printf("%g %g %g %g %g\n",wienarr->wiener[0],wienarr->wiener[1*Ndim],wienarr->wiener[2*Ndim],wienarr->wiener[3*Ndim],wienarr->wiener[4*Ndim]);
@@ -735,11 +736,10 @@ void mccc_wiener_test(){
 
     mccc_wiener_clean(wienarr,2.0, &err);
     mccc_printerror(err);
-    temparr = mccc_wiener_allocate(Ndim, Nslots, initime);
-    for(j = 0; j < wienarr->Nslot; j = j+1){
+    for(j = 0; j < Nslot; j = j+1){
 	temparr->time[j] = wienarr->time[j];
 	temparr->nextslot[j] = wienarr->nextslot[j];
-	for(k = 0; k < wienarr->Ndim; k = k+1){
+	for(k = 0; k < Ndim; k = k+1){
 	    temparr->wiener[j*Ndim + k] = wienarr->wiener[j*Ndim + k];
 	}
     }
@@ -752,7 +752,7 @@ void mccc_wiener_test(){
 	W[iter*Ndim+1] = temparr->wiener[windex*Ndim+1];
 	W[iter*Ndim+2] = temparr->wiener[windex*Ndim+2];
 
-	for(j = 0; j < wienarr->Nslot; j = j+1){
+	for(j = 0; j < Nslot; j = j+1){
 	    temparr->time[j] = wienarr->time[j];
 	    temparr->nextslot[j] = wienarr->nextslot[j];
 	}
@@ -796,7 +796,7 @@ void mccc_wiener_test(){
 
     mccc_wiener_generate(wienarr, 3.1, &windex, &err);
     mccc_printerror(err);
-    for(j = 0; j < wienarr->Nslot; j = j+1){
+    for(j = 0; j < Nslot; j = j+1){
 	temparr->time[j] = wienarr->time[j];
 	temparr->nextslot[j] = wienarr->nextslot[j];
 	for(k = 0; k < wienarr->Ndim; k = k+1){
@@ -812,7 +812,7 @@ void mccc_wiener_test(){
 	W[iter*Ndim+1] = temparr->wiener[windex*Ndim+1];
 	W[iter*Ndim+2] = temparr->wiener[windex*Ndim+2];
 
-	for(j = 0; j < wienarr->Nslot; j = j+1){
+	for(j = 0; j < Nslot; j = j+1){
 	    temparr->time[j] = wienarr->time[j];
 	    temparr->nextslot[j] = wienarr->nextslot[j];
 	}
@@ -830,9 +830,9 @@ void mccc_wiener_test(){
 	meanCom[2] = meanCom[2] + W[iter*Ndim+2]/Niter;
     }
     mccc_wiener_generate(temparr, 3.1, &windex, &err);
-    meanThr[0] = wienarr->wiener[0] + (wienarr->wiener[windex*wienarr->Ndim+0] - wienarr->wiener[0])*(3.0-2.0)/(3.1-2.0);
-    meanThr[1] = wienarr->wiener[1] + (wienarr->wiener[windex*wienarr->Ndim+1] - wienarr->wiener[1])*(3.0-2.0)/(3.1-2.0);
-    meanThr[2] = wienarr->wiener[2] + (wienarr->wiener[windex*wienarr->Ndim+2] - wienarr->wiener[2])*(3.0-2.0)/(3.1-2.0);
+    meanThr[0] = wienarr->wiener[0] + (wienarr->wiener[windex*Ndim+0] - wienarr->wiener[0])*(3.0-2.0)/(3.1-2.0);
+    meanThr[1] = wienarr->wiener[1] + (wienarr->wiener[windex*Ndim+1] - wienarr->wiener[1])*(3.0-2.0)/(3.1-2.0);
+    meanThr[2] = wienarr->wiener[2] + (wienarr->wiener[windex*Ndim+2] - wienarr->wiener[2])*(3.0-2.0)/(3.1-2.0);
 
     varCom[0] = 0;
     varCom[1] = 0;
@@ -855,9 +855,6 @@ void mccc_wiener_test(){
     printf("%g, %g",meanCom[2],varCom[2]);
     printf("  (%g, %g)\n",meanThr[2],varThr[2]);
     printf("\n");
-
-    mccc_wiener_deallocate(wienarr);
-    mccc_wiener_deallocate(temparr);
 
     printf("Wiener test complete.\n");
     printf("\n");

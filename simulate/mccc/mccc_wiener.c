@@ -76,72 +76,75 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5, int
 	    /* Reached last process */
 	    i = MCCC_NSLOTS;
 	}
-	else {
-	    if(w->time[idx] == t) {
-		/* Process already exists */
-		*windex = idx;
-		i = MCCC_NSLOTS;
-	    }
-	    else {
-		if(w->time[idx] < t ) {
-		    /* Process i for which t_i < t */
-		    im = idx;
-		}
-		if(w->time[w->nextslot[idx]] > t) {
-		    /* Process i for which t_i > t */
-		    ip = w->nextslot[idx];
-		}
-	    }
-	    
-	    idx = w->nextslot[idx];
-	}
-    }
-    
-    /* Find an empty slot for the next process */
-    eidx = 0;
-    for( i = 0; i < MCCC_NSLOTS; i = i+1 ){
-	if( w->nextslot[i] == MCCC_EMPTY){
-	    eidx = i;
+        
+	if(w->time[idx] == t) {
+	    /* Process already exists */
+	    *windex = idx;
 	    i = MCCC_NSLOTS;
 	}
-    }
-    if(eidx == 0){
-	/* It seems that we have exceeded capacity of the Wiener array
-	 * Produce an error. */
-	*err = MCCC_WIENER_EXCEEDEDCAPACITY;
-    }
-
-    if(!(*err)) {
-
-	if(ip == -1){
-	    /* There are no Wiener processes existing for tp > t.
-	     * The generated Wiener process then has a mean W(tm) and variance t-tm. */
-
-	    w->nextslot[eidx] = eidx;
-	    w->time[eidx] = t;
-	    for(i=0; i < MCCC_NDIM; i=i+1){
-		w->wiener[i + eidx*MCCC_NDIM] = w->wiener[i + im*MCCC_NDIM] + sqrt(t-w->time[im])*rand5[i];
+	else {
+	    if(w->time[idx] < t ) {
+		/* Process i for which t_i < t */
+		im = idx;
 	    }
-	    *windex = eidx;
-	    w->nextslot[im] = eidx;
+	    if(w->time[w->nextslot[idx]] > t) {
+		/* Process i for which t_i > t */
+		ip = w->nextslot[idx];
+		i = MCCC_NSLOTS; // Exit loop
+	    }
 	}
-	else{
-	    /* A Wiener process for tp > t exist. Generate a new process using the rules
-	     * set by the Brownian bridge. The rules are:
-	     *
-	     * mean = W(tm) + ( W(ip)-W(im) )*(t-tm)/(tp-tm)
-	     * variance = (t-tm)*(tp-t)/(tp-tm) */
-	    w->time[eidx] = t;
-	    for(i=0;i < MCCC_NDIM; i = i+1){
-		w->wiener[i + eidx*MCCC_NDIM] = w->wiener[i + im*MCCC_NDIM] + ( w->wiener[i + ip*MCCC_NDIM] - w->wiener[i + im*MCCC_NDIM] )
-		    *( t-w->time[im] )/( w->time[ip]-w->time[im] )
-		    + sqrt( ( t-w->time[im] )*( w->time[ip]-t )/( w->time[ip]-w->time[im] ) )
-		    *rand5[i];
+	    
+	idx = w->nextslot[idx];
+	
+    }
+    
+    if(*windex == -1) {
+	/* Find an empty slot for the next process */
+	eidx = 0;
+	for( i = 0; i < MCCC_NSLOTS; i = i+1 ){
+	    if( w->nextslot[i] == MCCC_EMPTY){
+		eidx = i;
+		i = MCCC_NSLOTS;
 	    }
-	    /* Sort new wiener process to its correct place */
-	    w->nextslot[eidx] = ip;
-	    w->nextslot[im] = eidx;
-	    *windex = eidx;
+	}
+	if(eidx == 0){
+	    /* It seems that we have exceeded capacity of the Wiener array
+	     * Produce an error. */
+	    *err = MCCC_WIENER_EXCEEDEDCAPACITY;
+	}
+
+	if(!(*err)) {
+
+	    if(ip == -1){
+		/* There are no Wiener processes existing for tp > t.
+		 * The generated Wiener process then has a mean W(tm) and variance t-tm. */
+
+		w->nextslot[eidx] = eidx;
+		w->time[eidx] = t;
+		for(i=0; i < MCCC_NDIM; i=i+1){
+		    w->wiener[i + eidx*MCCC_NDIM] = w->wiener[i + im*MCCC_NDIM] + sqrt(t-w->time[im])*rand5[i];
+		}
+		*windex = eidx;
+		w->nextslot[im] = eidx;
+	    }
+	    else{
+		/* A Wiener process for tp > t exist. Generate a new process using the rules
+		 * set by the Brownian bridge. The rules are:
+		 *
+		 * mean = W(tm) + ( W(ip)-W(im) )*(t-tm)/(tp-tm)
+		 * variance = (t-tm)*(tp-t)/(tp-tm) */
+		w->time[eidx] = t;
+		for(i=0;i < MCCC_NDIM; i = i+1){
+		    w->wiener[i + eidx*MCCC_NDIM] = w->wiener[i + im*MCCC_NDIM] + ( w->wiener[i + ip*MCCC_NDIM] - w->wiener[i + im*MCCC_NDIM] )
+			*( t-w->time[im] )/( w->time[ip]-w->time[im] )
+			+ sqrt( ( t-w->time[im] )*( w->time[ip]-t )/( w->time[ip]-w->time[im] ) )
+			*rand5[i];
+		}
+		/* Sort new wiener process to its correct place */
+		w->nextslot[eidx] = ip;
+		w->nextslot[im] = eidx;
+		*windex = eidx;
+	    }
 	}
     }
 }

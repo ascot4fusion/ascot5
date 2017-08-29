@@ -568,7 +568,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    dW[2] = w[i]->wiener[tindex[i]*MCCC_NDIM + 2] - w[i]->wiener[2];
 	    dW[3] = w[i]->wiener[tindex[i]*MCCC_NDIM + 3] - w[i]->wiener[3];
 	    dW[4] = w[i]->wiener[tindex[i]*MCCC_NDIM + 4] - w[i]->wiener[4];
-		        
+	    
 	    xiin = p->vpar[i]/vin;
 	    Xin[0] = p->r[i]*cos(p->phi[i]);
 	    Xin[1] = p->r[i]*sin(p->phi[i]);
@@ -587,7 +587,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 		alpha[i] = fabs(dW[4]);
 	    }
 	    alpha[i] = alpha[i]/sqrt(hin[i]);
-		        
+
 	    /* Update particle */
 	    #if A5_CCOL_NOENERGY
 	        vout = vin;

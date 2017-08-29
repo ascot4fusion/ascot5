@@ -217,7 +217,6 @@ real plasma_1d_eval_dens(real rho, int species, plasma_1d_data* plasma_data) {
 void plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* dens, real* temp) {
 
     real p1, p2;
-
     if(rho < plasma_data->rho[0]) {
 	for(int i = 0; i < plasma_data->n_species; i++) {
 	    dens[i] = plasma_data->dens[i*plasma_data->n_rho];
@@ -231,16 +230,12 @@ void plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* den
 	}
     }
     else {
-	int i_rho = plasma_data->n_rho/2;
-	while( !( plasma_data->rho[i_rho] <= rho && rho < plasma_data->rho[i_rho + 1] )) {
-	    if( rho >= plasma_data->rho[i_rho + 1]  ) {
-		i_rho -= i_rho/2;
-	    }
-	    else {
-		i_rho += (i_rho/2 - i_rho);
-	    }
+	int i_rho = 0;
+	while(i_rho < plasma_data->n_rho && plasma_data->rho[i_rho] <= rho) {
+	    i_rho++;
 	}
 	i_rho--;
+
 	real t_rho = (rho - plasma_data->rho[i_rho])
                  / (plasma_data->rho[i_rho+1] - plasma_data->rho[i_rho]);
 
@@ -248,9 +243,17 @@ void plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* den
 	    p1 = plasma_data->dens[i*plasma_data->n_rho + i_rho];
 	    p2 = plasma_data->dens[i*plasma_data->n_rho + i_rho+1];
 	    dens[i] = p1 + t_rho * (p2 - p1);
-	    p1 = plasma_data->temp[i*plasma_data->n_rho + i_rho];
-	    p2 = plasma_data->temp[i*plasma_data->n_rho + i_rho+1];
-	    temp[i] = p1 + t_rho * (p2 - p1);
+
+	    if(i < 2) {
+		/* Electron and ion temperature */
+		p1 = plasma_data->temp[i*plasma_data->n_rho + i_rho];
+		p2 = plasma_data->temp[i*plasma_data->n_rho + i_rho+1];
+		temp[i] = p1 + t_rho * (p2 - p1);
+	    }
+	    else {
+		/* Temperature is same for all ion species */
+		temp[i] = temp[1];
+	    }
 	}
     }
     

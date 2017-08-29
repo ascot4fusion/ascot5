@@ -55,13 +55,16 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     
     /* Arrays needed for the adaptive time step */
     mccc_wienarr* wienarr[NSIMD];
+    for(int i=0; i < NSIMD; i++) {
+	wienarr[i] = malloc(sizeof(mccc_wienarr));
+    }
+
     int cycle[NSIMD];
     real hin[NSIMD];
     real hout_orb[NSIMD];
     real hout_col[NSIMD];
     real hnext[NSIMD];
     int err[NSIMD];
-    int windex[NSIMD];
     real tol_col = sim->ada_tol_clmbcol;
     real tol_orb = sim->ada_tol_orbfol;
     int i;
@@ -282,6 +285,9 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     }
 
     diag_storage_discard(diag_strg);
+    for(int i=0; i < NSIMD; i++) {
+	free(wienarr[i]);
+    }
         
 }
 

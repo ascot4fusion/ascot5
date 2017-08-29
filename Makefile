@@ -148,7 +148,7 @@ test_diag_offload: test_diag_offload.o simulate.o $(DIAGOBJS)
 test_E: test_E.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_mccc: mccc/test_mccc.o $(OBJS)
+test_mccc: simulate/mccc/test_mccc.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_interp2D: test_interp2D.o $(OBJS)
