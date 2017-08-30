@@ -63,9 +63,9 @@ void hdf5_efield_init_offload_1D(hid_t f, E_1D_offload_data* offload_data, real*
     
     herr_t err;
 
-    err = H5LTget_attribute_int(f, "/efield/erad/", "n_rho", &(offload_data->n_rho));
-    err = H5LTget_attribute_double(f, "/efield/erad/", "rho_min", &(offload_data->rho_min));
-    err = H5LTget_attribute_double(f, "/efield/erad/", "rho_max", &(offload_data->rho_max));
+    err = H5LTget_attribute_int(f, "/efield/E_1D/", "n_rho", &(offload_data->n_rho));
+    err = H5LTget_attribute_double(f, "/efield/E_1D/", "rho_min", &(offload_data->rho_min));
+    err = H5LTget_attribute_double(f, "/efield/E_1D/", "rho_max", &(offload_data->rho_max));
     
     /* Allocate n_rho space for both rho and dV/drho */
     offload_data->offload_array_length = 2*offload_data->n_rho;
@@ -76,12 +76,12 @@ void hdf5_efield_init_offload_1D(hid_t f, E_1D_offload_data* offload_data, real*
     real* rho = &(*offload_array)[0];
     real* dV = &(*offload_array)[offload_data->n_rho];
     
-    err = H5LTread_dataset_double(f,"/efield/erad/rho",rho);
-    err = H5LTread_dataset_double(f,"/efield/erad/dV_drho",dV);
+    err = H5LTread_dataset_double(f,"/efield/E_1D/rho",rho);
+    err = H5LTread_dataset_double(f,"/efield/E_1D/dV_drho",dV);
 
     /* Effective minor radius */
     real r_eff;
-    err = H5LTget_attribute_double(f, "/efield/erad/", "r_eff", &(r_eff));
+    err = H5LTget_attribute_double(f, "/efield/E_1D/", "r_eff", &(r_eff));
     /* Scale derivatives by effective minor radius */
     for(int i = 0; i < offload_data->n_rho; i++) {
         dV[i] = r_eff * dV[i];
@@ -93,7 +93,7 @@ void hdf5_efield_init_offload_TC(hid_t f, E_TC_offload_data* offload_data, real*
     herr_t err;
 
     *offload_array = (real*) malloc(3*sizeof(real));
-    err = H5LTread_dataset_double(f,"/efield/etc/Exyz", *offload_array);
+    err = H5LTread_dataset_double(f,"/efield/E_TC/Exyz", *offload_array);
 
     offload_data->offload_array_length = 3;
 }

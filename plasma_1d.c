@@ -165,7 +165,7 @@ real plasma_1d_eval_temp(real rho, int species, plasma_1d_data* plasma_data) {
     }
     else {
 	int i_rho = 0;
-	while(i_rho < plasma_data->n_rho && plasma_data->rho[i_rho] <= rho) {
+	while(i_rho < plasma_data->n_rho - 1 && plasma_data->rho[i_rho] <= rho) {
 	    i_rho++;
 	}
 	i_rho--;
@@ -195,7 +195,7 @@ real plasma_1d_eval_dens(real rho, int species, plasma_1d_data* plasma_data) {
     }
     else {
 	int i_rho = 0;
-	while(i_rho < plasma_data->n_rho && plasma_data->rho[i_rho] <= rho) {
+	while(i_rho < plasma_data->n_rho - 1 && plasma_data->rho[i_rho] <= rho) {
 	    i_rho++;
 	}
 	i_rho--;
@@ -215,23 +215,38 @@ real plasma_1d_eval_dens(real rho, int species, plasma_1d_data* plasma_data) {
  *
  */
 void plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* dens, real* temp) {
-
     real p1, p2;
     if(rho < plasma_data->rho[0]) {
 	for(int i = 0; i < plasma_data->n_species; i++) {
 	    dens[i] = plasma_data->dens[i*plasma_data->n_rho];
-	    temp[i] = plasma_data->temp[i*plasma_data->n_rho];
+
+	    if(i < 2) {
+		/* Electron and ion temperature */
+		 temp[i] = temp[i] = plasma_data->temp[i*plasma_data->n_rho];
+	    }
+	    else {
+		/* Temperature is same for all ion species */
+		temp[i] = temp[1];
+	    }
 	}
     }
     else if(rho >= plasma_data->rho[plasma_data->n_rho]) {
 	for(int i = 0; i < plasma_data->n_species; i++) {
 	    dens[i] = plasma_data->dens[i*plasma_data->n_rho + plasma_data->n_rho - 1];
-	    temp[i] = plasma_data->temp[i*plasma_data->n_rho + plasma_data->n_rho - 1];
+
+	    if(i < 2) {
+		/* Electron and ion temperature */
+		 temp[i] = plasma_data->temp[i*plasma_data->n_rho + plasma_data->n_rho - 1];
+	    }
+	    else {
+		/* Temperature is same for all ion species */
+		temp[i] = temp[1];
+	    }
 	}
     }
     else {
 	int i_rho = 0;
-	while(i_rho < plasma_data->n_rho && plasma_data->rho[i_rho] <= rho) {
+	while(i_rho < plasma_data->n_rho-1 && plasma_data->rho[i_rho] <= rho) {
 	    i_rho++;
 	}
 	i_rho--;
@@ -256,5 +271,4 @@ void plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* den
 	    }
 	}
     }
-    
 }

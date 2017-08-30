@@ -29,16 +29,16 @@ def createbase(fn, Bxyz, Exyz, n, T):
     """
 
     J = np.array([0,0,0,0,0,0,0,0,0])
-    rhoval = 0.5
+    rhoval = 1.5
     B_TC.write_hdf5(fn, Bxyz, J, rhoval)
     
     E_TC.write_hdf5(fn, Exyz)
 
-    Nrho = 2
+    Nrho = 3
     Nion = 1
     znum = np.array([1])
     anum = np.array([1])
-    rho = np.array([0, 1])
+    rho = np.array([0, 0.5, 1])
     ndens = 0*np.ones(rho.shape)
     ntemp = 0*np.ones(rho.shape)
     edens = n*np.ones(rho.shape)
