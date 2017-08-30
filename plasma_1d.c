@@ -160,7 +160,7 @@ real plasma_1d_eval_temp(real rho, int species, plasma_1d_data* plasma_data) {
     if(rho < plasma_data->rho[0]) {
 	p = plasma_data->temp[species*plasma_data->n_rho];
     }
-    else if(rho >= plasma_data->rho[plasma_data->n_rho]) {
+    else if(rho >= plasma_data->rho[plasma_data->n_rho-1]) {
 	p = plasma_data->temp[species*plasma_data->n_rho + plasma_data->n_rho - 1];
     }
     else {
@@ -190,7 +190,7 @@ real plasma_1d_eval_dens(real rho, int species, plasma_1d_data* plasma_data) {
     if(rho < plasma_data->rho[0]) {
 	p = plasma_data->dens[species*plasma_data->n_rho];
     }
-    else if(rho >= plasma_data->rho[plasma_data->n_rho]) {
+    else if(rho >= plasma_data->rho[plasma_data->n_rho-1]) {
 	p = plasma_data->dens[species*plasma_data->n_rho + plasma_data->n_rho - 1];
     }
     else {
@@ -230,7 +230,7 @@ void plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* den
 	    }
 	}
     }
-    else if(rho >= plasma_data->rho[plasma_data->n_rho]) {
+    else if(rho >= plasma_data->rho[plasma_data->n_rho-1]) {
 	for(int i = 0; i < plasma_data->n_species; i++) {
 	    dens[i] = plasma_data->dens[i*plasma_data->n_rho + plasma_data->n_rho - 1];
 
