@@ -11,7 +11,7 @@ import datetime
 
 from . ascot5group import replacegroup, setgrouptype, setmetadata
 
-def write_hdf5(fn, Bxyz, J, rhoval):
+def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0):
     """
     Write trivial cartesian magnetic field input in HDF5 file.
 
@@ -28,6 +28,12 @@ def write_hdf5(fn, Bxyz, J, rhoval):
         Magnetic field Jacobian, J(i,j) = dB_i/dx_j
     rhoval: real
         Constant rho (simultaneously psi) value.
+    psival: real, optional
+        Constant psi value. Same as rho by default.
+    axisR: real, optional
+        Magnetic axis R coordinate. Default value 1.
+    axisz: real, optional
+        Magnetic axis z coordinate. Default value 0.
     """
     
     group = "bfield"
@@ -41,11 +47,16 @@ def write_hdf5(fn, Bxyz, J, rhoval):
     setmetadata(f[path])
 
     # TODO Check that inputs are consistent.
+    if psival == 0:
+        psival = rhoval
 
     # Actual data.
     f.create_dataset(path + "/Bxyz",         data=Bxyz, dtype="f8")
     f.create_dataset(path + "/J",            data=J, dtype="f8")
     f.create_dataset(path + "/rhoval", (1,), data=rhoval, dtype="f8")
+    f.create_dataset(path + "/psival", (1,), data=psival, dtype="f8")
+    f.create_dataset(path + "/axisr", (1,),  data=axisR, dtype="f8")
+    f.create_dataset(path + "/axisz", (1,),  data=axisz, dtype="f8")
     f.close()
 
 
@@ -81,6 +92,9 @@ def read_hdf5(fn):
     out["Bxyz"]   = f[path]["Bxyz"][:]
     out["J"]      = f[path]["J"][:]
     out["rhoval"] = f[path]["rhoval"][:]
+    out["psival"] = f[path]["psival"][:]
+    out["axisR"]  = f[path]["axisr"][:]
+    out["axisz"]  = f[path]["axisz"][:]
 
     f.close()
 

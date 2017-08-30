@@ -40,7 +40,7 @@ def write_hdf5(fn, Exyz):
         raise Exception('Exyz has invalid format.')
 
     # Actual data.
-    f.create_dataset(path + "/Exyz", data = Exyz, dtype="f8")
+    f.create_dataset(path + "/Exyz", (3,1), data = Exyz, dtype="f8")
     f.close()
     
 
