@@ -70,9 +70,9 @@ void B_2D_eval_B_dB(real B_dB[], real r, real phi, real z, B_2D_data* Bdata);
 #pragma omp declare simd uniform(B)
 void B_2D_bicubic_derivs(real B_dB_component[], real t_r, real t_z, int i_r,
                          int i_z, int n_r, real r_grid, real z_grid, real* B);
-#pragma omp declare simd uniform(B)
+#pragma omp declare simd uniform(Bdata)
 real B_2D_get_axis_r(B_2D_data* Bdata);
-#pragma omp declare simd uniform(B)
+#pragma omp declare simd uniform(Bdata)
 real B_2D_get_axis_z(B_2D_data* Bdata);
 #pragma omp end declare target   
 #endif
