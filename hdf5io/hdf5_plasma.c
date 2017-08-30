@@ -130,4 +130,6 @@ int hdf5_plasma_init_offload(hid_t f, plasma_1d_offload_data* offload_data,
 	    //printf("- Central neutral temperature %le and density %le\n");
 	#endif
     }
+
+    return 0;
 }

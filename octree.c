@@ -100,4 +100,8 @@ list_int_node* octree_get(octree_node* node, real p[3]) {
         if(p[0] > x && p[1] > y && p[2] > z)
             return octree_get(node->n111, p);
     }
+
+    /* We should not ever get here but this 
+       supresses compiler warnings. */
+    return NULL;
 }
