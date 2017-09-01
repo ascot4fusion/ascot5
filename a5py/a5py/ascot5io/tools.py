@@ -80,8 +80,11 @@ def copy(fns,fnt,field,subfield):
             del ot[subfield]
 
     # Do the copying and set the type
-    ot.attrs["type"] = np.string_(subfield)
     fs.copy(field + "/" + subfield, ot, name=subfield)
+    ft[field].attrs["type"] = np.string_(subfield)
+    ft[field][subfield].attrs["qid"] = fs[field][subfield].attrs["qid"]
+    ft[field][subfield].attrs["date"] = fs[field][subfield].attrs["date"]
+    
 
     fs.close()
     ft.close()

@@ -12,7 +12,8 @@ setup(name='a5py',
         'bin/a5setoptions',
         'bin/a5poincare',
         'bin/a5combine',
-        'bin/a5ascot4input'
+        'bin/a5ascot4input',
+        'bin/a5copyinput'
       ])
 
 

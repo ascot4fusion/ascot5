@@ -1,0 +1,8 @@
+#!/usr/bin/env python
+
+import sys
+import a5py.ascot5io.tools as tools
+print('Copying input ' + sys.argv[3] + ' from ' + sys.argv[1] + ' to ' + sys.argv[2])
+field = sys.argv[3].split("/")[0]
+subfield = sys.argv[3].split("/")[1]
+tools.copy(sys.argv[1],sys.argv[2],field,subfield)
