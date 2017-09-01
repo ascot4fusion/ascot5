@@ -15,13 +15,14 @@ def run():
     AMU2KG = 1.66053904e-27
 
     # Test options
-    simmode = 2
-    adaptive = 1
+    simmode = 2  # GO output is not handled completely (energy)
+    adaptive = 0 # Adaptive wont work here
     timestep = 1.e-6
     tolorb = 1e-8
     tolcol = 1e-2
     orbfollowing = 0
-    Nmrk = 100
+    Nmrksd = 1000 # 1000 is suitable number
+    Nmrkth = 100000 # 100000 is suitable number
 
     # Proton
     m = 1.00727647
@@ -77,17 +78,17 @@ def run():
     o = options.read_hdf5(fn1)
     o["ENDCOND_ENERGYLIM"]                = 0*o["ENDCOND_ENERGYLIM"] + 1
     o["ENDCOND_MIN_ENERGY"]               = 0*o["ENDCOND_MIN_ENERGY"] + 1e3
-    o["ENDCOND_MIN_ENERGY_TIMES_THERMAL"] = 0*o["ENDCOND_MIN_ENERGY_TIMES_THERMAL"] + 0.5
+    o["ENDCOND_MIN_ENERGY_TIMES_THERMAL"] = 0*o["ENDCOND_MIN_ENERGY_TIMES_THERMAL"] + 0.01
     o["ORBITWRITE_INTERVAL"]              = 0*o["ORBITWRITE_INTERVAL"] + 1e-4
-    o["DIST_RZVparaVperp_MIN_VPARA"]      = 0*o["DIST_RZVparaVperp_MIN_VPARA"] - 7e7
-    o["DIST_RZVparaVperp_MAX_VPARA"]      = 0*o["DIST_RZVparaVperp_MAX_VPARA"] + 7e7
+    o["DIST_RZVparaVperp_MIN_VPARA"]      = 0*o["DIST_RZVparaVperp_MIN_VPARA"] - 5e6
+    o["DIST_RZVparaVperp_MAX_VPARA"]      = 0*o["DIST_RZVparaVperp_MAX_VPARA"] + 5e6
     o["DIST_RZVparaVperp_BIN_VPARA"]      = 0*o["DIST_RZVparaVperp_BIN_VPARA"] + 100
     o["DIST_RZVparaVperp_MIN_VPERP"]      = 0*o["DIST_RZVparaVperp_MIN_VPERP"] + 0
-    o["DIST_RZVparaVperp_MAX_VPERP"]      = 0*o["DIST_RZVparaVperp_MAX_VPERP"] + 7e7
+    o["DIST_RZVparaVperp_MAX_VPERP"]      = 0*o["DIST_RZVparaVperp_MAX_VPERP"] + 5e6
     o["DIST_RZVparaVperp_BIN_VPERP"]      = 0*o["DIST_RZVparaVperp_BIN_VPERP"] + 50
     options.write_hdf5(fn1,o)
 
-    ids    = np.linspace(1,Nmrk,Nmrk)
+    ids    = np.linspace(1,Nmrksd,Nmrksd)
     mass   = m*np.ones(ids.shape)
     charge = q*np.ones(ids.shape)
     R      = 6.4*np.ones(ids.shape)
@@ -98,8 +99,8 @@ def run():
     time   = 0*np.ones(ids.shape)
     
     energy = 1.0e5*np.ones(ids.shape)
-    pitch  = 0.9*np.ones(ids.shape)
-    markers.write_hdf5_guidingcenters(fn1, Nmrk, ids, mass, charge, 
+    pitch  = 1-2*np.random.rand(1,Nmrksd)
+    markers.write_hdf5_guidingcenters(fn1, Nmrksd, ids, mass, charge, 
                                       R, phi, z, energy, pitch, theta, weight, time)
 
     # Thermal options and markers
@@ -107,17 +108,27 @@ def run():
     o["ENDCOND_SIMTIMELIM"]          = 0*o["ENDCOND_SIMTIMELIM"] + 1
     o["ENDCOND_MAX_SIM_TIME"]        = 0*o["ENDCOND_MAX_SIM_TIME"] + 1e-4
     o["ORBITWRITE_INTERVAL"]         = 0*o["ORBITWRITE_INTERVAL"] + 1e-5
-    o["DIST_RZVparaVperp_MIN_VPARA"] = 0*o["DIST_RZVparaVperp_MIN_VPARA"] - 1e7
-    o["DIST_RZVparaVperp_MAX_VPARA"] = 0*o["DIST_RZVparaVperp_MAX_VPARA"] + 1e7
+    o["DIST_RZVparaVperp_MIN_VPARA"] = 0*o["DIST_RZVparaVperp_MIN_VPARA"] - 2e6
+    o["DIST_RZVparaVperp_MAX_VPARA"] = 0*o["DIST_RZVparaVperp_MAX_VPARA"] + 2e6
     o["DIST_RZVparaVperp_BIN_VPARA"] = 0*o["DIST_RZVparaVperp_BIN_VPARA"] + 100
     o["DIST_RZVparaVperp_MIN_VPERP"] = 0*o["DIST_RZVparaVperp_MIN_VPERP"] + 0
-    o["DIST_RZVparaVperp_MAX_VPERP"] = 0*o["DIST_RZVparaVperp_MAX_VPERP"] + 1e7
+    o["DIST_RZVparaVperp_MAX_VPERP"] = 0*o["DIST_RZVparaVperp_MAX_VPERP"] + 2e6
     o["DIST_RZVparaVperp_BIN_VPERP"] = 0*o["DIST_RZVparaVperp_BIN_VPERP"] + 50
     options.write_hdf5(fn2,o)
 
+    ids    = np.linspace(1,Nmrkth,Nmrkth)
+    mass   = m*np.ones(ids.shape)
+    charge = q*np.ones(ids.shape)
+    R      = 6.4*np.ones(ids.shape)
+    phi    = 0*np.ones(ids.shape)
+    z      = 0*np.ones(ids.shape)
+    theta  = 0*np.ones(ids.shape)
+    weight = 1*np.ones(ids.shape)
+    time   = 0*np.ones(ids.shape)
+
     energy = 1.0e3*np.ones(ids.shape)
     pitch  = 0.9*np.ones(ids.shape)
-    markers.write_hdf5_guidingcenters(fn2, Nmrk, ids, mass, charge, 
+    markers.write_hdf5_guidingcenters(fn2, Nmrkth, ids, mass, charge, 
                                       R, phi, z, energy, pitch, theta, weight, time)
 
 
@@ -141,6 +152,9 @@ def run():
         is2 = ascot5.read_hdf5(fn2,"states")["states"]["endstate"]
         B  = np.sqrt(np.power(is2["B_R"],2) + np.power(is2["B_phi"],2) + np.power(is2["B_z"],2))
         thermaldist = is2["mu"] * B + 0.5*m*np.power(is2["vpar"],2) * AMU2KG / ELEMENTARY_CHARGE
+
+        is2 = ascot5.read_hdf5(fn1,"states")["states"]["endstate"]
+        slowingdist = is2["time"]
     else:
         # Read distribution and orbits from slowing down
         is1 = ascot5.read_hdf5(fn1,"orbits")["orbits"]["fo"]
@@ -163,17 +177,26 @@ def run():
     plt.plot(t2,e2)
     plt.show()
     """
-    E_edges = np.linspace(0,2,1000)*1e5
-    xi_edges = np.linspace(-1,1,20)
-    RzExi = disttrans.vpavpe2Epitch(ascot5.read_hdf5(fn1,"dists")["dists"], E_edges, xi_edges, m)
+    E_edges = np.linspace(0,1.9*1e5,100)
+    xi_edges = np.linspace(-1,1,100)
+    RzExi = disttrans.vpavpe2Epitch(ascot5.read_hdf5(fn1,"dists")["dists"]["rzVDist"], E_edges, xi_edges, m)
     RzExi = np.squeeze(RzExi['ordinate'])
 
-    plt.figure()
-    Edist = RzExi.sum(axis=1)
-    plt.plot(Edist)
+    rzVdist = ascot5.read_hdf5(fn1,"dists")["dists"]["rzVDist"]
+
+    plt.figure() # Slowing down vpa vpe distribution
+    plt.pcolor(rzVdist["vpa"],rzVdist["vpe"],np.transpose(np.squeeze(rzVdist["ordinate"])))
     plt.show()
 
-    plt.figure()
+    plt.figure() # Slowing down energy distribution, something wrong here
+    plt.plot(E_edges[0:-1],RzExi.sum(axis=(1)))
+    plt.show()
+
+    plt.figure() # Slowing down time distribution
+    n, bins, patches = plt.hist(slowingdist, 50, normed=1, facecolor='green', alpha=0.75)
+    plt.show()
+
+    plt.figure() # Endstate energy distribution for thermal population
     n, bins, patches = plt.hist(thermaldist, 50, normed=1, facecolor='green', alpha=0.75)
     plt.show()
     # Compare.
