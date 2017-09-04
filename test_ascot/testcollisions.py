@@ -15,14 +15,14 @@ def run():
     AMU2KG = 1.66053904e-27
 
     # Test options
-    simmode = 2  # GO output is not handled completely (energy)
-    adaptive = 0 # Adaptive wont work here
-    timestep = 1.e-6
+    simmode = 2  
+    adaptive = 0
+    timestep = 1.e-7
     tolorb = 1e-8
-    tolcol = 1e-2
-    orbfollowing = 0
-    Nmrksd = 1000 # 1000 is suitable number
-    Nmrkth = 1 # 100000 is suitable number
+    tolcol = 1e-1
+    orbfollowing = 1
+    Nmrksd = 100 # 1000 is suitable number
+    Nmrkth = 1000 # 100000 is suitable number
 
     # Proton
     m = 1.00727647
@@ -106,7 +106,7 @@ def run():
     # Thermal options and markers
     o = options.read_hdf5(fn2)
     o["ENDCOND_SIMTIMELIM"]          = 0*o["ENDCOND_SIMTIMELIM"] + 1
-    o["ENDCOND_MAX_SIM_TIME"]        = 0*o["ENDCOND_MAX_SIM_TIME"] + 1e-4
+    o["ENDCOND_MAX_SIM_TIME"]        = 0*o["ENDCOND_MAX_SIM_TIME"] + 1e-3
     o["ORBITWRITE_INTERVAL"]         = 0*o["ORBITWRITE_INTERVAL"] + 1e-5
     o["DIST_RZVparaVperp_MIN_VPARA"] = 0*o["DIST_RZVparaVperp_MIN_VPARA"] - 2e6
     o["DIST_RZVparaVperp_MAX_VPARA"] = 0*o["DIST_RZVparaVperp_MAX_VPARA"] + 2e6
@@ -128,6 +128,7 @@ def run():
 
     energy = 1.0e3*np.ones(ids.shape)
     pitch  = 0.9*np.ones(ids.shape)
+    #pitch  = 1-2*np.random.rand(1,Nmrkth)
     markers.write_hdf5_guidingcenters(fn2, Nmrkth, ids, mass, charge, 
                                       R, phi, z, energy, pitch, theta, weight, time)
 
@@ -149,12 +150,7 @@ def run():
         B  = np.sqrt(np.power(is2["B_R"],2) + np.power(is2["B_phi"],2) + np.power(is2["B_z"],2))
         e2 = is2["mu"] * B + 0.5*m*np.power(is2["vpar"],2) * AMU2KG / ELEMENTARY_CHARGE
 
-        is2 = ascot5.read_hdf5(fn2,"states")["states"]["endstate"]
-        B  = np.sqrt(np.power(is2["B_R"],2) + np.power(is2["B_phi"],2) + np.power(is2["B_z"],2))
-        thermaldist = is2["mu"] * B + 0.5*m*np.power(is2["vpar"],2) * AMU2KG / ELEMENTARY_CHARGE
-
-        is2 = ascot5.read_hdf5(fn1,"states")["states"]["endstate"]
-        slowingdist = is2["time"]
+        
     else:
         # Read distribution and orbits from slowing down
         is1 = ascot5.read_hdf5(fn1,"orbits")["orbits"]["fo"]
@@ -165,6 +161,14 @@ def run():
         is2 = ascot5.read_hdf5(fn2,"orbits")["orbits"]["fo"]
         t2 = is2["time"]
         e2 = 0.5 * m * ( np.power(is2["v_R"],2) + np.power(is2["v_phi"],2) + np.power(is2["v_z"],2) )* AMU2KG / ELEMENTARY_CHARGE
+
+    is2 = ascot5.read_hdf5(fn2,"states")["states"]["endstate"]
+    B  = np.sqrt(np.power(is2["B_R"],2) + np.power(is2["B_phi"],2) + np.power(is2["B_z"],2))
+    thermaldist = is2["mu"] * B + 0.5*m*np.power(is2["vpar"],2) * AMU2KG / ELEMENTARY_CHARGE
+    thermalpitchdist = is2["vpar"] / np.sqrt( 2 * thermaldist * ELEMENTARY_CHARGE / (m*AMU2KG) ) # vpara / v
+
+    is2 = ascot5.read_hdf5(fn1,"states")["states"]["endstate"]
+    slowingdist = is2["time"]  
     
     # Plot if needed.
     
@@ -199,6 +203,11 @@ def run():
     plt.figure() # Endstate energy distribution for thermal population
     n, bins, patches = plt.hist(thermaldist, 50, normed=1, facecolor='green', alpha=0.75)
     plt.show()
+
+    plt.figure() # Endstate pitch distribution for thermal population
+    n, bins, patches = plt.hist(thermalpitchdist, 50, normed=1, facecolor='green', alpha=0.75)
+    plt.show()
+
     # Compare.
 
 

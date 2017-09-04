@@ -17,6 +17,8 @@
 #include "../../consts.h"
 #include "mccc_wiener.h"
 
+#define MCCC_WIENER_USE_GBM 1
+
 const int MCCC_EMPTY = -999;
 
 /**
@@ -225,7 +227,7 @@ void mccc_wiener_boxmuller(real* randVar, int Ndim){
     int i; /* Helper variables */
     
     isOdd = (Ndim+1) % 2;
-#ifdef MCCC_WIENER_USE_GBM
+#if MCCC_WIENER_USE_GBM == 1
     /* The geometric form */
     for( i = 0; i < Ndim; i=i+2){
 	w = 2.0;

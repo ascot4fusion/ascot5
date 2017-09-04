@@ -51,8 +51,6 @@ void mccc_init(){
  * @param Dperp pointer to array the evaluated storing perpendicular diffusion coefficient [m²/s^3]
  * @param K pointer to array storing the evaluated friction coefficient [m/s^2]
  * @param nu pointer to array storing the evaluated pitch collision frequency [1/s]
- *
- * @todo Do not evaluate rho here but use the one stored in particle struct
  */
 void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data* pdata, 
 		    real* clogab, real* F, real* Dpara, real* Dperp, real* K, real* nu){
@@ -243,11 +241,7 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pd
 void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data* pdata, real* h,  int* err){
     int i;
     real rnd[3*NSIMD];
-    for(i = 0; i < NSIMD; i++) {
-	rnd[i+0] = 1-2*drand48();
-	rnd[i+1] = 1-2*drand48();
-	rnd[i+2] = 1-2*drand48();
-    }
+    mccc_wiener_boxmuller(rnd, 3*NSIMD);
 
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
@@ -335,13 +329,7 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
 void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pdata, real* h, int* err){
     int i;
     real rnd[5*NSIMD];
-    for(i = 0; i < NSIMD; i++) {
-	rnd[i+0] = 1-2*drand48();
-	rnd[i+1] = 1-2*drand48();
-	rnd[i+2] = 1-2*drand48();
-	rnd[i+3] = 1-2*drand48();
-	rnd[i+4] = 1-2*drand48();
-    }
+    mccc_wiener_boxmuller(rnd, 5*NSIMD);
 
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
@@ -387,7 +375,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 	    real vout;
 	    real Xin[3];
 	    real Xout[3];
-	    real cutoff = 0; //TODO give me a real value!
+	    real cutoff = 0.1*sqrt(temp[0]/p->mass[i]);
 			
 	    real Dpara = 0;
 	    real K = 0;
@@ -484,7 +472,6 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
  * @param err pointer to error flags
  *
  * @todo There is no need to check for error when collision frequency is low and other processes determine adaptive time-step
- * @todo Define cutoff value
  */
 void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pdata, real* hin, real* hout, mccc_wienarr** w, real tol, int* err){
     int i;
@@ -539,7 +526,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    real vout;
 	    real Xin[3];
 	    real Xout[3];
-	    real cutoff = 0; //TODO give me a real value!
+	    real cutoff = 0.1*sqrt(temp[0]/p->mass[i]);
 
 	    real phi0 = p->phi[i];
 	    real R0   = p->r[i];
