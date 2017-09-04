@@ -22,7 +22,7 @@ def run():
     tolcol = 1e-2
     orbfollowing = 0
     Nmrksd = 1000 # 1000 is suitable number
-    Nmrkth = 100000 # 100000 is suitable number
+    Nmrkth = 1 # 100000 is suitable number
 
     # Proton
     m = 1.00727647
@@ -82,10 +82,10 @@ def run():
     o["ORBITWRITE_INTERVAL"]              = 0*o["ORBITWRITE_INTERVAL"] + 1e-4
     o["DIST_RZVparaVperp_MIN_VPARA"]      = 0*o["DIST_RZVparaVperp_MIN_VPARA"] - 5e6
     o["DIST_RZVparaVperp_MAX_VPARA"]      = 0*o["DIST_RZVparaVperp_MAX_VPARA"] + 5e6
-    o["DIST_RZVparaVperp_BIN_VPARA"]      = 0*o["DIST_RZVparaVperp_BIN_VPARA"] + 100
+    o["DIST_RZVparaVperp_BIN_VPARA"]      = 0*o["DIST_RZVparaVperp_BIN_VPARA"] + 200
     o["DIST_RZVparaVperp_MIN_VPERP"]      = 0*o["DIST_RZVparaVperp_MIN_VPERP"] + 0
     o["DIST_RZVparaVperp_MAX_VPERP"]      = 0*o["DIST_RZVparaVperp_MAX_VPERP"] + 5e6
-    o["DIST_RZVparaVperp_BIN_VPERP"]      = 0*o["DIST_RZVparaVperp_BIN_VPERP"] + 50
+    o["DIST_RZVparaVperp_BIN_VPERP"]      = 0*o["DIST_RZVparaVperp_BIN_VPERP"] + 100
     options.write_hdf5(fn1,o)
 
     ids    = np.linspace(1,Nmrksd,Nmrksd)
@@ -177,8 +177,8 @@ def run():
     plt.plot(t2,e2)
     plt.show()
     """
-    E_edges = np.linspace(0,1.9*1e5,100)
-    xi_edges = np.linspace(-1,1,100)
+    E_edges = np.linspace(0,1.1*1e5,100)
+    xi_edges = np.linspace(-1,1,3)
     RzExi = disttrans.vpavpe2Epitch(ascot5.read_hdf5(fn1,"dists")["dists"]["rzVDist"], E_edges, xi_edges, m)
     RzExi = np.squeeze(RzExi['ordinate'])
 
