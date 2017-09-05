@@ -16,13 +16,13 @@ def run():
 
     # Test options
     simmode = 1
-    adaptive = 1
-    timestep = 1.e-10
+    adaptive = 0
+    timestep = 1.e-10 # GO: 1e-10 (or smaller) & GC: 1e-8
     tolorb = 1e-8
     tolcol = 1e-2
     orbfollowing = 1
-    simtime = 1e-4
-    Nmrk = 100
+    simtime = 1e-6
+    Nmrk = 10000 # 1000-10000
 
     # Proton
     m = 1.00727647
@@ -30,10 +30,10 @@ def run():
 
     # Init testbase.
     fn = "test1.h5"
-    Bxyz = np.array([0, 1, 0])
+    Bxyz = np.array([0, 5, 0])
     Exyz = np.array([0, 0, 0])
     n = 1e20
-    T = 1e4
+    T = 1e3
     createbase(fn, Bxyz, Exyz, n, T)
 
     # Options
@@ -47,10 +47,10 @@ def run():
     o["ENDCOND_SIMTIMELIM"]        = 0*o["ENDCOND_SIMTIMELIM"] + 1
     o["ENDCOND_MAX_SIM_TIME"]      = 0*o["ENDCOND_MAX_SIM_TIME"] + simtime
     o["ENABLE_ORBIT_FOLLOWING"]    = 0*o["ENABLE_ORBIT_FOLLOWING"] + orbfollowing
-    o["ENABLE_COULOMB_COLLISIONS"] = 0*o["ENABLE_COULOMB_COLLISIONS"] + 0
+    o["ENABLE_COULOMB_COLLISIONS"] = 0*o["ENABLE_COULOMB_COLLISIONS"] + 1
     o["ENABLE_ORBITWRITE"]         = 0*o["ENABLE_ORBITWRITE"] + 1
     o["ORBITWRITE_MODE"]           = 0*o["ORBITWRITE_MODE"] + 1
-    o["ORBITWRITE_INTERVAL"]       = 0*o["ORBITWRITE_INTERVAL"] + 1e-7
+    o["ORBITWRITE_INTERVAL"]       = 0*o["ORBITWRITE_INTERVAL"] + 1e-5
     options.write_hdf5(fn,o)
 
     # Markers
@@ -70,7 +70,9 @@ def run():
                                       R, phi, z, energy, pitch, theta, weight, time)
 
 
-    # Simulate.
+    # Simulate. (The ascot5_momcoll is the main program "ascot5_main"
+    # but compiled by setting A5_CCOL_NOENERGY to 1 in ascot5.h. This turns off
+    # the energy part of the collisions.)
     subprocess.call(["./ascot5_momcoll", "--in="+fn[0:-3]])
 
     if simmode == 2:
@@ -110,7 +112,7 @@ def run():
     #plt.show()
 
     plt.figure()
-    n, bins, patches = plt.hist(muf-mui, 50, normed=1, facecolor='green', alpha=0.75)
+    n, bins, patches = plt.hist(rf-ri, 50, normed=1, facecolor='green', alpha=0.75)
     plt.show()
 
 
