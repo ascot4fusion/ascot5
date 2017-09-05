@@ -324,501 +324,575 @@ void interp3Dcomp_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real
     }
     int z1 = str->n_r*8;                        /**< Index jump one z forward */
 
+
+    real c0000 = str->c[n+0];
+    real c0001 = str->c[n+1];
+    real c0002 = str->c[n+2];
+    real c0003 = str->c[n+3];
+    real c0004 = str->c[n+4];
+    real c0005 = str->c[n+5];
+    real c0006 = str->c[n+6];
+    real c0007 = str->c[n+7];
+
+    real c0010 = str->c[n+r1+0];
+    real c0011 = str->c[n+r1+1];
+    real c0012 = str->c[n+r1+2];
+    real c0013 = str->c[n+r1+3];
+    real c0014 = str->c[n+r1+4];
+    real c0015 = str->c[n+r1+5];
+    real c0016 = str->c[n+r1+6];
+    real c0017 = str->c[n+r1+7];
+
+    real c0100 = str->c[n+phi1+0];
+    real c0101 = str->c[n+phi1+1];
+    real c0102 = str->c[n+phi1+2];
+    real c0103 = str->c[n+phi1+3];
+    real c0104 = str->c[n+phi1+4];
+    real c0105 = str->c[n+phi1+5];
+    real c0106 = str->c[n+phi1+6];
+    real c0107 = str->c[n+phi1+7];
+
+    real c1000 = str->c[n+z1+0];
+    real c1001 = str->c[n+z1+1];
+    real c1002 = str->c[n+z1+2];
+    real c1003 = str->c[n+z1+3];
+    real c1004 = str->c[n+z1+4];
+    real c1005 = str->c[n+z1+5];
+    real c1006 = str->c[n+z1+6];
+    real c1007 = str->c[n+z1+7];
+
+    real c0110 = str->c[n+phi1+r1+0];
+    real c0111 = str->c[n+phi1+r1+1];
+    real c0112 = str->c[n+phi1+r1+2];
+    real c0113 = str->c[n+phi1+r1+3];
+    real c0114 = str->c[n+phi1+r1+4];
+    real c0115 = str->c[n+phi1+r1+5];
+    real c0116 = str->c[n+phi1+r1+6];
+    real c0117 = str->c[n+phi1+r1+7];
+
+    real c1100 = str->c[n+phi1+z1+0];
+    real c1101 = str->c[n+phi1+z1+1];
+    real c1102 = str->c[n+phi1+z1+2];
+    real c1103 = str->c[n+phi1+z1+3];
+    real c1104 = str->c[n+phi1+z1+4];
+    real c1105 = str->c[n+phi1+z1+5];
+    real c1106 = str->c[n+phi1+z1+6];
+    real c1107 = str->c[n+phi1+z1+7];
+
+    real c1010 = str->c[n+r1+z1+0];
+    real c1011 = str->c[n+r1+z1+1];
+    real c1012 = str->c[n+r1+z1+2];
+    real c1013 = str->c[n+r1+z1+3];
+    real c1014 = str->c[n+r1+z1+4];
+    real c1015 = str->c[n+r1+z1+5];
+    real c1016 = str->c[n+r1+z1+6];
+    real c1017 = str->c[n+r1+z1+7];
+
+    real c1110 = str->c[n+r1+phi1+z1+0];
+    real c1111 = str->c[n+r1+phi1+z1+1];
+    real c1112 = str->c[n+r1+phi1+z1+2];
+    real c1113 = str->c[n+r1+phi1+z1+3];
+    real c1114 = str->c[n+r1+phi1+z1+4];
+    real c1115 = str->c[n+r1+phi1+z1+5];
+    real c1116 = str->c[n+r1+phi1+z1+6];
+    real c1117 = str->c[n+r1+phi1+z1+7];
+
+
     /* f */
     B_dB[0] = (
 	       dzi*(
-		    dri*(dphii*str->c[n+0]+dphi*str->c[n+phi1+0])+
-		    dr*(dphii*str->c[n+r1+0]+dphi*str->c[n+phi1+r1+0]))
+		    dri*(dphii*c0000+dphi*c0100)+
+		    dr*(dphii*c0010+dphi*c0110))
 	       +dz*(
-		    dri*(dphii*str->c[n+z1+0]+dphi*str->c[n+phi1+z1+0])+
-		    dr*(dphii*str->c[n+r1+z1+0]+dphi*str->c[n+phi1+z1+r1+0])))
+		    dri*(dphii*c1000+dphi*c1100)+
+		    dr*(dphii*c1010+dphi*c1110)))
 	+rg2/6*(
 		dzi*(
-		     dri3*(dphii*str->c[n+1]+dphi*str->c[n+phi1+1])+
-		     dr3*(dphii*str->c[n+r1+1]+dphi*str->c[n+phi1+r1+1]))
+		     dri3*(dphii*c0001+dphi*c0101)+
+		     dr3*(dphii*c0011+dphi*c0111))
 		+dz*(
-		     dri3*(dphii*str->c[n+z1+1]+dphi*str->c[n+phi1+z1+1])+
-		     dr3*(dphii*str->c[n+r1+z1+1]+dphi*str->c[n+phi1+z1+r1+1])))
+		     dri3*(dphii*c1001+dphi*c1101)+
+		     dr3*(dphii*c1011+dphi*c1111)))
 	+phig2/6*(
 		  dzi*(
-		       dri*(dphii3*str->c[n+2]+dphi3*str->c[n+phi1+2])+
-		       dr*(dphii3*str->c[n+r1+2]+dphi3*str->c[n+phi1+r1+2]))
+		       dri*(dphii3*c0002+dphi3*c0102)+
+		       dr*(dphii3*c0012+dphi3*c0112))
 		  +dz*(
-		       dri*(dphii3*str->c[n+z1+2]+dphi3*str->c[n+phi1+z1+2])+
-		       dr*(dphii3*str->c[n+r1+z1+2]+dphi3*str->c[n+phi1+z1+r1+2])))
+		       dri*(dphii3*c1002+dphi3*c1102)+
+		       dr*(dphii3*c1012+dphi3*c1112)))
 	+zg2/6*(
 		dzi3*(
-		      dri*(dphii*str->c[n+3]+dphi*str->c[n+phi1+3])+
-		      dr*(dphii*str->c[n+r1+3]+dphi*str->c[n+phi1+r1+3]))
+		      dri*(dphii*c0003+dphi*c0103)+
+		      dr*(dphii*c0013+dphi*c0113))
 		+dz3*(
-		      dri*(dphii*str->c[n+z1+3]+dphi*str->c[n+phi1+z1+3])+
-		      dr*(dphii*str->c[n+r1+z1+3]+dphi*str->c[n+phi1+z1+r1+3])))
+		      dri*(dphii*c1003+dphi*c1103)+
+		      dr*(dphii*c1013+dphi*c1113)))
 	+rg2*phig2/36*(
 		       dzi*(
-			    dri3*(dphii3*str->c[n+4]+dphi3*str->c[n+phi1+4])+
-			    dr3*(dphii3*str->c[n+r1+4]+dphi3*str->c[n+phi1+r1+4]))
+			    dri3*(dphii3*c0004+dphi3*c0104)+
+			    dr3*(dphii3*c0014+dphi3*c0114))
 		       +dz*(
-			    dri3*(dphii3*str->c[n+z1+4]+dphi3*str->c[n+phi1+z1+4])+
-			    dr3*(dphii3*str->c[n+r1+z1+4]+dphi3*str->c[n+phi1+z1+r1+4])))
+			    dri3*(dphii3*c1004+dphi3*c1104)+
+			    dr3*(dphii3*c1014+dphi3*c1114)))
 	+rg2*zg2/36*(
 		     dzi3*(
-			   dri3*(dphii*str->c[n+5]+dphi*str->c[n+phi1+5])+
-			   dr3*(dphii*str->c[n+r1+5]+dphi*str->c[n+phi1+r1+5]))
+			   dri3*(dphii*c0005+dphi*c0105)+
+			   dr3*(dphii*c0015+dphi*c0115))
 		     +dz3*(
-			   dri3*(dphii*str->c[n+z1+5]+dphi*str->c[n+phi1+z1+5])+
-			   dr3*(dphii*str->c[n+r1+z1+5]+dphi*str->c[n+phi1+z1+r1+5])))
+			   dri3*(dphii*c1005+dphi*c1105)+
+			   dr3*(dphii*c1015+dphi*c1115)))
 	+phig2*zg2/36*(
 		       dzi3*(
-			     dri*(dphii3*str->c[n+6]+dphi3*str->c[n+phi1+6])+
-			     dr*(dphii3*str->c[n+r1+6]+dphi3*str->c[n+phi1+r1+6]))
+			     dri*(dphii3*c0006+dphi3*c0106)+
+			     dr*(dphii3*c0016+dphi3*c0116))
 		       +dz3*(
-			     dri*(dphii3*str->c[n+z1+6]+dphi3*str->c[n+phi1+z1+6])+
-			     dr*(dphii3*str->c[n+r1+z1+6]+dphi3*str->c[n+phi1+z1+r1+6])))
+			     dri*(dphii3*c1006+dphi3*c1106)+
+			     dr*(dphii3*c1016+dphi3*c1116)))
 	+rg2*phig2*zg2/216*(
 			    dzi3*(
-				  dri3*(dphii3*str->c[n+7]+dphi3*str->c[n+phi1+7])+
-				  dr3*(dphii3*str->c[n+r1+7]+dphi3*str->c[n+phi1+r1+7]))
+				  dri3*(dphii3*c0007+dphi3*c0107)+
+				  dr3*(dphii3*c0017+dphi3*c0117))
 			    +dz3*(
-				  dri3*(dphii3*str->c[n+z1+7]+dphi3*str->c[n+phi1+z1+7])+
-				  dr3*(dphii3*str->c[n+r1+z1+7]+dphi3*str->c[n+phi1+z1+r1+7])));
+				  dri3*(dphii3*c1007+dphi3*c1107)+
+				  dr3*(dphii3*c1017+dphi3*c1117)));
     
     /* df/dr */
     B_dB[1] = rgi*(
 		   dzi*(
-			-(dphii*str->c[n+0]+dphi*str->c[n+phi1+0])
-			+(dphii*str->c[n+r1+0]+dphi*str->c[n+phi1+r1+0]))
+			-(dphii*c0000+dphi*c0100)
+			+(dphii*c0010+dphi*c0110))
 		   +dz*(
-			-(dphii*str->c[n+z1+0]+dphi*str->c[n+phi1+z1+0])
-			+(dphii*str->c[n+r1+z1+0]+dphi*str->c[n+phi1+z1+r1+0])))
+			-(dphii*c1000+dphi*c1100)
+			+(dphii*c1010+dphi*c1110)))
 	+rg/6*(
 	       dzi*(
-		    dri3dr*(dphii*str->c[n+1]+dphi*str->c[n+phi1+1])+
-		    dr3dr*(dphii*str->c[n+r1+1]+dphi*str->c[n+phi1+r1+1]))
+		    dri3dr*(dphii*c0001+dphi*c0101)+
+		    dr3dr*(dphii*c0011+dphi*c0111))
 	       +dz*(
-		    dri3dr*(dphii*str->c[n+z1+1]  +dphi*str->c[n+phi1+z1+1])+
-		    dr3dr*(dphii*str->c[n+r1+z1+1]+dphi*str->c[n+phi1+z1+r1+1])))
+		    dri3dr*(dphii*c1001  +dphi*c1101)+
+		    dr3dr*(dphii*c1011+dphi*c1111)))
 	+rgi*phig2/6*(
 		      dzi*(
-			   -(dphii3*str->c[n+2]+dphi3*str->c[n+phi1+2])
-			   +(dphii3*str->c[n+r1+2]+dphi3*str->c[n+phi1+r1+2]))
+			   -(dphii3*c0002+dphi3*c0102)
+			   +(dphii3*c0012+dphi3*c0112))
 		      +dz*(
-			   -(dphii3*str->c[n+z1+2]+dphi3*str->c[n+phi1+z1+2])
-			   +(dphii3*str->c[n+r1+z1+2]+dphi3*str->c[n+phi1+z1+r1+2])))
+			   -(dphii3*c1002+dphi3*c1102)
+			   +(dphii3*c1012+dphi3*c1112)))
 	+rgi*zg2/6*(
 		    dzi3*(
-			  -(dphii*str->c[n+3]+dphi*str->c[n+phi1+3])
-			  +(dphii*str->c[n+r1+3]+dphi*str->c[n+phi1+r1+3]))
+			  -(dphii*c0003+dphi*c0103)
+			  +(dphii*c0013+dphi*c0113))
 		    +dz3*(
-			  -(dphii*str->c[n+z1+3]+dphi*str->c[n+phi1+z1+3])
-			  +(dphii*str->c[n+r1+z1+3]+dphi*str->c[n+phi1+z1+r1+3])))
+			  -(dphii*c1003+dphi*c1103)
+			  +(dphii*c1013+dphi*c1113)))
 	+rg*phig2/36*(
 		      dzi*(
-			   dri3dr*(dphii3*str->c[n+4]+dphi3*str->c[n+phi1+4])+
-			   dr3dr*(dphii3*str->c[n+r1+4]+dphi3*str->c[n+phi1+r1+4]))
+			   dri3dr*(dphii3*c0004+dphi3*c0104)+
+			   dr3dr*(dphii3*c0014+dphi3*c0114))
 		      +dz*(
-			   dri3dr*(dphii3*str->c[n+z1+4]+dphi3*str->c[n+phi1+z1+4])+
-			   dr3dr*(dphii3*str->c[n+r1+z1+4]+dphi3*str->c[n+phi1+z1+r1+4])))
+			   dri3dr*(dphii3*c1004+dphi3*c1104)+
+			   dr3dr*(dphii3*c1014+dphi3*c1114)))
 	+rg*zg2/36*(
 		    dzi3*(
-			  dri3dr*(dphii*str->c[n+5]+dphi*str->c[n+phi1+5])+
-			  dr3dr*(dphii*str->c[n+r1+5]+dphi*str->c[n+phi1+r1+5]))
+			  dri3dr*(dphii*c0005+dphi*c0105)+
+			  dr3dr*(dphii*c0015+dphi*c0115))
 		    +dz3*(
-			  dri3dr*(dphii*str->c[n+z1+5]+dphi*str->c[n+phi1+z1+5])+
-			  dr3dr*(dphii*str->c[n+r1+z1+5]+dphi*str->c[n+phi1+z1+r1+5])))
+			  dri3dr*(dphii*c1005+dphi*c1105)+
+			  dr3dr*(dphii*c1015+dphi*c1115)))
 	+rgi*phig2*zg2/36*(
 			   dzi3*(
-				 -(dphii3*str->c[n+6]+dphi3*str->c[n+phi1+6])
-				 +(dphii3*str->c[n+r1+6]+dphi3*str->c[n+phi1+r1+6]))
+				 -(dphii3*c0006+dphi3*c0106)
+				 +(dphii3*c0016+dphi3*c0116))
 			   +dz3*(
-				 -(dphii3*str->c[n+z1+6]+dphi3*str->c[n+phi1+z1+6])
-				 +(dphii3*str->c[n+r1+z1+6]+dphi3*str->c[n+phi1+z1+r1+6])))
+				 -(dphii3*c1006+dphi3*c1106)
+				 +(dphii3*c1016+dphi3*c1116)))
 	+rg*phig2*zg2/216*(
 			   dzi3*(
-				 dri3dr*(dphii3*str->c[n+7]+dphi3*str->c[n+phi1+7])+
-				 dr3dr*(dphii3*str->c[n+r1+7]+dphi3*str->c[n+phi1+r1+7]))
+				 dri3dr*(dphii3*c0007+dphi3*c0107)+
+				 dr3dr*(dphii3*c0017+dphi3*c0117))
 			   +dz3*(
-				 dri3dr*(dphii3*str->c[n+z1+7]+dphi3*str->c[n+phi1+z1+7])+
-				 dr3dr*(dphii3*str->c[n+r1+z1+7]+dphi3*str->c[n+phi1+z1+r1+7])));
+				 dri3dr*(dphii3*c1007+dphi3*c1107)+
+				 dr3dr*(dphii3*c1017+dphi3*c1117)));
     
     /* df/dphi */
     B_dB[2] = phigi*(
 		     dzi*(
-			  dri*(-str->c[n+0]+str->c[n+phi1+0])+
-			  dr*(-str->c[n+r1+0]+str->c[n+phi1+r1+0]))
+			  dri*(-c0000+c0100)+
+			  dr*(-c0010+c0110))
 		     +dz*(
-			  dri*(-str->c[n+z1+0]+str->c[n+phi1+z1+0])+
-			  dr*(-str->c[n+r1+z1+0]+str->c[n+phi1+z1+r1+0])))
+			  dri*(-c1000+c1100)+
+			  dr*(-c1010+c1110)))
 	+phigi*rg2/6*(
 		      dzi*(
-			   dri3*(-str->c[n+1]+str->c[n+phi1+1])+
-			   dr3*(-str->c[n+r1+1]+str->c[n+phi1+r1+1]))
+			   dri3*(-c0001+c0101)+
+			   dr3*(-c0011+c0111))
 		      +dz*(
-			   dri3*(-str->c[n+z1+1]+str->c[n+phi1+z1+1])+
-			   dr3*(-str->c[n+r1+z1+1]+str->c[n+phi1+z1+r1+1])))
+			   dri3*(-c1001+c1101)+
+			   dr3*(-c1011+c1111)))
 	+phig/6*(
 		 dzi*(
-		      dri*(dphii3dphi*str->c[n+2]+dphi3dphi*str->c[n+phi1+2])+
-		      dr*(dphii3dphi*str->c[n+r1+2]+dphi3dphi*str->c[n+phi1+r1+2]))
+		      dri*(dphii3dphi*c0002+dphi3dphi*c0102)+
+		      dr*(dphii3dphi*c0012+dphi3dphi*c0112))
 		 +dz*(
-		      dri*(dphii3dphi*str->c[n+z1+2]+dphi3dphi*str->c[n+phi1+z1+2])+
-		      dr*(dphii3dphi*str->c[n+r1+z1+2]+dphi3dphi*str->c[n+phi1+z1+r1+2])))
+		      dri*(dphii3dphi*c1002+dphi3dphi*c1102)+
+		      dr*(dphii3dphi*c1012+dphi3dphi*c1112)))
 	+phigi*zg2/6*(
 		      dzi3*(
-			    dri*(-str->c[n+3]+str->c[n+phi1+3])+
-			    dr*(-str->c[n+r1+3]+str->c[n+phi1+r1+3]))
+			    dri*(-c0003+c0103)+
+			    dr*(-c0013+c0113))
 		      +dz3*(
-			    dri*(-str->c[n+z1+3]+str->c[n+phi1+z1+3])+
-			    dr*(-str->c[n+r1+z1+3]+str->c[n+phi1+z1+r1+3])))
+			    dri*(-c1003+c1103)+
+			    dr*(-c1013+c1113)))
 	+rg2*phig/36*(
 		      dzi*(
-			   dri3*(dphii3dphi*str->c[n+4]+dphi3dphi*str->c[n+phi1+4])+
-			   dr3*(dphii3dphi*str->c[n+r1+4]+dphi3dphi*str->c[n+phi1+r1+4]))
+			   dri3*(dphii3dphi*c0004+dphi3dphi*c0104)+
+			   dr3*(dphii3dphi*c0014+dphi3dphi*c0114))
 		      +dz*(
-			   dri3*(dphii3dphi*str->c[n+z1+4]+dphi3dphi*str->c[n+phi1+z1+4])+
-			   dr3*(dphii3dphi*str->c[n+r1+z1+4]+dphi3dphi*str->c[n+phi1+z1+r1+4])))
+			   dri3*(dphii3dphi*c1004+dphi3dphi*c1104)+
+			   dr3*(dphii3dphi*c1014+dphi3dphi*c1114)))
 	+phigi*rg2*zg2/36*(
 			   dzi3*(
-				 dri3*(-str->c[n+5]+str->c[n+phi1+5])+
-				 dr3*(-str->c[n+r1+5]+str->c[n+phi1+r1+5]))
+				 dri3*(-c0005+c0105)+
+				 dr3*(-c0015+c0115))
 			   +dz3*(
-				 dri3*(-str->c[n+z1+5]+str->c[n+phi1+z1+5])+
-				 dr3*(-str->c[n+r1+z1+5]+str->c[n+phi1+z1+r1+5])))
+				 dri3*(-c1005+c1105)+
+				 dr3*(-c1015+c1115)))
 	+phig*zg2/36*(
 		      dzi3*(
-			    dri*(dphii3dphi*str->c[n+6]+dphi3dphi*str->c[n+phi1+6])+
-			    dr*(dphii3dphi*str->c[n+r1+6]+dphi3dphi*str->c[n+phi1+r1+6]))
+			    dri*(dphii3dphi*c0006+dphi3dphi*c0106)+
+			    dr*(dphii3dphi*c0016+dphi3dphi*c0116))
 		      +dz3*(
-			    dri*(dphii3dphi*str->c[n+z1+6]+dphi3dphi*str->c[n+phi1+z1+6])+
-			    dr*(dphii3dphi*str->c[n+r1+z1+6]+dphi3dphi*str->c[n+phi1+z1+r1+6])))
+			    dri*(dphii3dphi*c1006+dphi3dphi*c1106)+
+			    dr*(dphii3dphi*c1016+dphi3dphi*c1116)))
 	+rg2*phig*zg2/216*(
 			   dzi3*(
-				 dri3*(dphii3dphi*str->c[n+7]+dphi3dphi*str->c[n+phi1+7])+
-				 dr3*(dphii3dphi*str->c[n+r1+7]+dphi3dphi*str->c[n+phi1+r1+7]))
+				 dri3*(dphii3dphi*c0007+dphi3dphi*c0107)+
+				 dr3*(dphii3dphi*c0017+dphi3dphi*c0117))
 			   +dz3*(
-				 dri3*(dphii3dphi*str->c[n+z1+7]+dphi3dphi*str->c[n+phi1+z1+7])+
-				 dr3*(dphii3dphi*str->c[n+r1+z1+7]+dphi3dphi*str->c[n+phi1+z1+r1+7])));
+				 dri3*(dphii3dphi*c1007+dphi3dphi*c1107)+
+				 dr3*(dphii3dphi*c1017+dphi3dphi*c1117)));
     
     /* df/dz */
     B_dB[3] = zgi*(
 		   -(
-		     dri*(dphii*str->c[n+0]+dphi*str->c[n+phi1+0])+
-		     dr*(dphii*str->c[n+r1+0]+dphi*str->c[n+phi1+r1+0]))
+		     dri*(dphii*c0000+dphi*c0100)+
+		     dr*(dphii*c0010+dphi*c0110))
 		   +(
-		     dri*(dphii*str->c[n+z1+0]+dphi*str->c[n+phi1+z1+0])+
-		     dr*(dphii*str->c[n+r1+z1+0]+dphi*str->c[n+phi1+z1+r1+0])))
+		     dri*(dphii*c1000+dphi*c1100)+
+		     dr*(dphii*c1010+dphi*c1110)))
 	+rg2*zgi/6*(
 		    -(
-		      dri3*(dphii*str->c[n+1]+dphi*str->c[n+phi1+1])+
-		      dr3*(dphii*str->c[n+r1+1]+dphi*str->c[n+phi1+r1+1]))
+		      dri3*(dphii*c0001+dphi*c0101)+
+		      dr3*(dphii*c0011+dphi*c0111))
 		    +(
-		      dri3*(dphii*str->c[n+z1+1]+dphi*str->c[n+phi1+z1+1])+
-		      dr3*(dphii*str->c[n+r1+z1+1]+dphi*str->c[n+phi1+z1+r1+1])))
+		      dri3*(dphii*c1001+dphi*c1101)+
+		      dr3*(dphii*c1011+dphi*c1111)))
 	+phig2*zgi/6*(
 		      -(
-			dri*(dphii3*str->c[n+2]+dphi3*str->c[n+phi1+2])+
-			dr*(dphii3*str->c[n+r1+2]+dphi3*str->c[n+phi1+r1+2]))
+			dri*(dphii3*c0002+dphi3*c0102)+
+			dr*(dphii3*c0012+dphi3*c0112))
 		      +(
-			dri*(dphii3*str->c[n+z1+2]+dphi3*str->c[n+phi1+z1+2])+
-			dr*(dphii3*str->c[n+r1+z1+2]+dphi3*str->c[n+phi1+z1+r1+2])))
+			dri*(dphii3*c1002+dphi3*c1102)+
+			dr*(dphii3*c1012+dphi3*c1112)))
 	+zg/6*(
 	       dzi3dz*(
-		       dri*(dphii*str->c[n+3]+dphi*str->c[n+phi1+3])+
-		       dr*(dphii*str->c[n+r1+3]+dphi*str->c[n+phi1+r1+3]))
+		       dri*(dphii*c0003+dphi*c0103)+
+		       dr*(dphii*c0013+dphi*c0113))
 	       +dz3dz*(
-		       dri*(dphii*str->c[n+z1+3]+dphi*str->c[n+phi1+z1+3])+
-		       dr*(dphii*str->c[n+r1+z1+3]+dphi*str->c[n+phi1+z1+r1+3])))
+		       dri*(dphii*c1003+dphi*c1103)+
+		       dr*(dphii*c1013+dphi*c1113)))
 	+rg2*phig2*zgi/36*(
 			   -(
-			     dri3*(dphii3*str->c[n+4]+dphi3*str->c[n+phi1+4])+
-			     dr3*(dphii3*str->c[n+r1+4]+dphi3*str->c[n+phi1+r1+4]))
+			     dri3*(dphii3*c0004+dphi3*c0104)+
+			     dr3*(dphii3*c0014+dphi3*c0114))
 			   +(
-			     dri3*(dphii3*str->c[n+z1+4]+dphi3*str->c[n+phi1+z1+4])+
-			     dr3*(dphii3*str->c[n+r1+z1+4]+dphi3*str->c[n+phi1+z1+r1+4])))
+			     dri3*(dphii3*c1004+dphi3*c1104)+
+			     dr3*(dphii3*c1014+dphi3*c1114)))
 	+rg2*zg/36*(
 		    dzi3dz*(
-			    dri3*(dphii*str->c[n+5]+dphi*str->c[n+phi1+5])+
-			    dr3*(dphii*str->c[n+r1+5]+dphi*str->c[n+phi1+r1+5]))
+			    dri3*(dphii*c0005+dphi*c0105)+
+			    dr3*(dphii*c0015+dphi*c0115))
 		    +dz3dz*(
-			    dri3*(dphii*str->c[n+z1+5]+dphi*str->c[n+phi1+z1+5])+
-			    dr3*(dphii*str->c[n+r1+z1+5]+dphi*str->c[n+phi1+z1+r1+5])))
+			    dri3*(dphii*c1005+dphi*c1105)+
+			    dr3*(dphii*c1015+dphi*c1115)))
 	+phig2*zg/36*(
 		      dzi3dz*(
-			      dri*(dphii3*str->c[n+6]+dphi3*str->c[n+phi1+6])+
-			      dr*(dphii3*str->c[n+r1+6]+dphi3*str->c[n+phi1+r1+6]))
+			      dri*(dphii3*c0006+dphi3*c0106)+
+			      dr*(dphii3*c0016+dphi3*c0116))
 		      +dz3dz*(
-			      dri*(dphii3*str->c[n+z1+6]+dphi3*str->c[n+phi1+z1+6])+
-			      dr*(dphii3*str->c[n+r1+z1+6]+dphi3*str->c[n+phi1+z1+r1+6])))
+			      dri*(dphii3*c1006+dphi3*c1106)+
+			      dr*(dphii3*c1016+dphi3*c1116)))
 	+rg2*phig2*zg/216*(
 			   dzi3dz*(
-				   dri3*(dphii3*str->c[n+7]+dphi3*str->c[n+phi1+7])+
-				   dr3*(dphii3*str->c[n+r1+7]+dphi3*str->c[n+phi1+r1+7]))
+				   dri3*(dphii3*c0007+dphi3*c0107)+
+				   dr3*(dphii3*c0017+dphi3*c0117))
 			   +dz3dz*(
-				   dri3*(dphii3*str->c[n+z1+7]+dphi3*str->c[n+phi1+z1+7])+
-				   dr3*(dphii3*str->c[n+r1+z1+7]+dphi3*str->c[n+phi1+z1+r1+7])));
+				   dri3*(dphii3*c1007+dphi3*c1107)+
+				   dr3*(dphii3*c1017+dphi3*c1117)));
     
     /* d2f/dr2 */
     B_dB[4] = (
 	       dzi*(
-		    dri*(dphii*str->c[n+1]+dphi*str->c[n+phi1+1])+
-		    dr*(dphii*str->c[n+r1+1]+dphi*str->c[n+phi1+r1+1]))
+		    dri*(dphii*c0001+dphi*c0101)+
+		    dr*(dphii*c0011+dphi*c0111))
 	       +dz*(
-		    dri*(dphii*str->c[n+z1+1]+dphi*str->c[n+phi1+z1+1])+
-		    dr*(dphii*str->c[n+r1+z1+1]+dphi*str->c[n+phi1+z1+r1+1])))
+		    dri*(dphii*c1001+dphi*c1101)+
+		    dr*(dphii*c1011+dphi*c1111)))
 	+phig2/6*(
 		  dzi*(
-		       dri*(dphii3*str->c[n+4]+dphi3*str->c[n+phi1+4])+
-		       dr*(dphii3*str->c[n+r1+4]+dphi3*str->c[n+phi1+r1+4]))
+		       dri*(dphii3*c0004+dphi3*c0104)+
+		       dr*(dphii3*c0014+dphi3*c0114))
 		  +dz*(
-		       dri*(dphii3*str->c[n+z1+4]+dphi3*str->c[n+phi1+z1+4])+
-		       dr*(dphii3*str->c[n+r1+z1+4]+dphi3*str->c[n+phi1+z1+r1+4])))
+		       dri*(dphii3*c1004+dphi3*c1104)+
+		       dr*(dphii3*c1014+dphi3*c1114)))
 	+zg2/6*(
 		dzi3*(
-		      dri*(dphii*str->c[n+5]+dphi*str->c[n+phi1+5])+
-		      dr*(dphii*str->c[n+r1+5]+dphi*str->c[n+phi1+r1+5]))
+		      dri*(dphii*c0005+dphi*c0105)+
+		      dr*(dphii*c0015+dphi*c0115))
 		+dz3*(
-		      dri*(dphii*str->c[n+z1+5]+dphi*str->c[n+phi1+z1+5])+
-		      dr*(dphii*str->c[n+r1+z1+5]+dphi*str->c[n+phi1+z1+r1+5])))
+		      dri*(dphii*c1005+dphi*c1105)+
+		      dr*(dphii*c1015+dphi*c1115)))
 	+phig2*zg2/36*(
 		       dzi3*(
-			     dri*(dphii3*str->c[n+7]+dphi3*str->c[n+phi1+7])+
-			     dr*(dphii3*str->c[n+r1+7]+dphi3*str->c[n+phi1+r1+7]))
+			     dri*(dphii3*c0007+dphi3*c0107)+
+			     dr*(dphii3*c0017+dphi3*c0117))
 		       +dz3*(
-			     dri*(dphii3*str->c[n+z1+7]+dphi3*str->c[n+phi1+z1+7])+
-			     dr*(dphii3*str->c[n+r1+z1+7]+dphi3*str->c[n+phi1+z1+r1+7])));
+			     dri*(dphii3*c1007+dphi3*c1107)+
+			     dr*(dphii3*c1017+dphi3*c1117)));
     
     /* d2f/dphi2 */
     B_dB[5] = (
 	       dzi*(
-		    dri*(dphii*str->c[n+2]+dphi*str->c[n+phi1+2])+
-		    dr*(dphii*str->c[n+r1+2]+dphi*str->c[n+phi1+r1+2]))
+		    dri*(dphii*c0002+dphi*c0102)+
+		    dr*(dphii*c0012+dphi*c0112))
 	       +dz*(
-		    dri*(dphii*str->c[n+z1+2]+dphi*str->c[n+phi1+z1+2])+
-		    dr*(dphii*str->c[n+r1+z1+2]+dphi*str->c[n+phi1+z1+r1+2])))
+		    dri*(dphii*c1002+dphi*c1102)+
+		    dr*(dphii*c1012+dphi*c1112)))
 	+rg2/6*(
 		dzi*(
-		     dri3*(dphii*str->c[n+4]+dphi*str->c[n+phi1+4])+
-		     dr3*(dphii*str->c[n+r1+4]+dphi*str->c[n+phi1+r1+4]))
+		     dri3*(dphii*c0004+dphi*c0104)+
+		     dr3*(dphii*c0014+dphi*c0114))
 		+dz*(
-		     dri3*(dphii*str->c[n+z1+4]+dphi*str->c[n+phi1+z1+4])+
-		     dr3*(dphii*str->c[n+r1+z1+4]+dphi*str->c[n+phi1+z1+r1+4])))
+		     dri3*(dphii*c1004+dphi*c1104)+
+		     dr3*(dphii*c1014+dphi*c1114)))
 	+zg2/6*(
 		dzi3*(
-		      dri*(dphii*str->c[n+6]+dphi*str->c[n+phi1+6])+
-		      dr*(dphii*str->c[n+r1+6]+dphi*str->c[n+phi1+r1+6]))
+		      dri*(dphii*c0006+dphi*c0106)+
+		      dr*(dphii*c0016+dphi*c0116))
 		+dz3*(
-		      dri*(dphii*str->c[n+z1+6]+dphi*str->c[n+phi1+z1+6])+
-		      dr*(dphii*str->c[n+r1+z1+6]+dphi*str->c[n+phi1+z1+r1+6])))
+		      dri*(dphii*c1006+dphi*c1106)+
+		      dr*(dphii*c1016+dphi*c1116)))
 	+rg2*zg2/36*(
 		     dzi3*(
-			   dri3*(dphii*str->c[n+7]+dphi*str->c[n+phi1+7])+
-			   dr3*(dphii*str->c[n+r1+7]+dphi*str->c[n+phi1+r1+7]))
+			   dri3*(dphii*c0007+dphi*c0107)+
+			   dr3*(dphii*c0017+dphi*c0117))
 		     +dz3*(
-			   dri3*(dphii*str->c[n+z1+7]+dphi*str->c[n+phi1+z1+7])+
-			   dr3*(dphii*str->c[n+r1+z1+7]+dphi*str->c[n+phi1+z1+r1+7])));
+			   dri3*(dphii*c1007+dphi*c1107)+
+			   dr3*(dphii*c1017+dphi*c1117)));
     
     /* d2f/dz2 */
     B_dB[6] = (
 	       dzi*(
-		    dri*(dphii*str->c[n+3]+dphi*str->c[n+phi1+3])+
-		    dr*(dphii*str->c[n+r1+3]+dphi*str->c[n+phi1+r1+3]))
+		    dri*(dphii*c0003+dphi*c0103)+
+		    dr*(dphii*c0013+dphi*c0113))
 	       +dz*(
-		    dri*(dphii*str->c[n+z1+3]+dphi*str->c[n+phi1+z1+3])+
-		    dr*(dphii*str->c[n+r1+z1+3]+dphi*str->c[n+phi1+z1+r1+3])))
+		    dri*(dphii*c1003+dphi*c1103)+
+		    dr*(dphii*c1013+dphi*c1113)))
 	+rg2/6*(
 		dzi*(
-		     dri3*(dphii*str->c[n+5]+dphi*str->c[n+phi1+5])+
-		     dr3*(dphii*str->c[n+r1+5]+dphi*str->c[n+phi1+r1+5]))
+		     dri3*(dphii*c0005+dphi*c0105)+
+		     dr3*(dphii*c0015+dphi*c0115))
 		+dz*(
-		     dri3*(dphii*str->c[n+z1+5]+dphi*str->c[n+phi1+z1+5])+
-		     dr3*(dphii*str->c[n+r1+z1+5]+dphi*str->c[n+phi1+z1+r1+5])))
+		     dri3*(dphii*c1005+dphi*c1105)+
+		     dr3*(dphii*c1015+dphi*c1115)))
 	+phig2/6*(
 		  dzi*(
-		       dri*(dphii3*str->c[n+6]+dphi3*str->c[n+phi1+6])+
-		       dr*(dphii3*str->c[n+r1+6]+dphi3*str->c[n+phi1+r1+6]))
+		       dri*(dphii3*c0006+dphi3*c0106)+
+		       dr*(dphii3*c0016+dphi3*c0116))
 		  +dz*(
-		       dri*(dphii3*str->c[n+z1+6]+dphi3*str->c[n+phi1+z1+6])+
-		       dr*(dphii3*str->c[n+r1+z1+6]+dphi3*str->c[n+phi1+z1+r1+6])))
+		       dri*(dphii3*c1006+dphi3*c1106)+
+		       dr*(dphii3*c1016+dphi3*c1116)))
 	+rg2*phig2/36*(
 		       dzi*(
-			    dri3*(dphii3*str->c[n+7]+dphi3*str->c[n+phi1+7])+
-			    dr3*(dphii3*str->c[n+r1+7]+dphi3*str->c[n+phi1+r1+7]))
+			    dri3*(dphii3*c0007+dphi3*c0107)+
+			    dr3*(dphii3*c0017+dphi3*c0117))
 		       +dz*(
-			    dri3*(dphii3*str->c[n+z1+7]+dphi3*str->c[n+phi1+z1+7])+
-			    dr3*(dphii3*str->c[n+r1+z1+7]+dphi3*str->c[n+phi1+z1+r1+7])));
+			    dri3*(dphii3*c1007+dphi3*c1107)+
+			    dr3*(dphii3*c1017+dphi3*c1117)));
     
     /* d2f/drdphi */
     B_dB[7] = rgi*phigi*(
 			 dzi*(
-			      (str->c[n+0]  -str->c[n+phi1+0])-
-			      (str->c[n+r1+0]-str->c[n+phi1+r1+0]))
+			      (c0000  -c0100)-
+			      (c0010-c0110))
 			 +dz*(
-			      (str->c[n+z1+0]  -str->c[n+phi1+z1+0])-
-			      (str->c[n+r1+z1+0]-str->c[n+phi1+z1+r1+0])))
+			      (c1000  -c1100)-
+			      (c1010-c1110)))
 	+phigi*rg/6*(
 		     dzi*(
-			  dri3dr*(-str->c[n+1]+str->c[n+phi1+1])+
-			  dr3dr*(-str->c[n+r1+1]+str->c[n+phi1+r1+1]))
+			  dri3dr*(-c0001+c0101)+
+			  dr3dr*(-c0011+c0111))
 		     +dz*(
-			  dri3dr*(-str->c[n+z1+1]+str->c[n+phi1+z1+1])+
-			  dr3dr*(-str->c[n+r1+z1+1]+str->c[n+phi1+z1+r1+1])))
+			  dri3dr*(-c1001+c1101)+
+			  dr3dr*(-c1011+c1111)))
 	+rgi*phig/6*(
 		     dzi*(
-			  -(dphii3dphi*str->c[n+2]+dphi3dphi*str->c[n+phi1+2])
-			  +(dphii3dphi*str->c[n+r1+2]+dphi3dphi*str->c[n+phi1+r1+2]))
+			  -(dphii3dphi*c0002+dphi3dphi*c0102)
+			  +(dphii3dphi*c0012+dphi3dphi*c0112))
 		     +dz*(
-			  -(dphii3dphi*str->c[n+z1+2]+dphi3dphi*str->c[n+phi1+z1+2])
-			  +(dphii3dphi*str->c[n+r1+z1+2]+dphi3dphi*str->c[n+phi1+z1+r1+2])))
+			  -(dphii3dphi*c1002+dphi3dphi*c1102)
+			  +(dphii3dphi*c1012+dphi3dphi*c1112)))
 	+rgi*phigi*zg2/6*(
 			  dzi3*(
-				(str->c[n+3]  -str->c[n+phi1+3])-
-				(str->c[n+r1+3]-str->c[n+phi1+r1+3]))
+				(c0003  -c0103)-
+				(c0013-c0113))
 			  +dz3*(
-				(str->c[n+z1+3]  -str->c[n+phi1+z1+3])-
-				(str->c[n+r1+z1+3]-str->c[n+phi1+z1+r1+3])))
+				(c1003  -c1103)-
+				(c1013-c1113)))
 	+rg*phig/36*(
 		     dzi*(
-			  dri3dr*(dphii3dphi*str->c[n+4]+dphi3dphi*str->c[n+phi1+4])+
-			  dr3dr*(dphii3dphi*str->c[n+r1+4]+dphi3dphi*str->c[n+phi1+r1+4]))
+			  dri3dr*(dphii3dphi*c0004+dphi3dphi*c0104)+
+			  dr3dr*(dphii3dphi*c0014+dphi3dphi*c0114))
 		     +dz*(
-			  dri3dr*(dphii3dphi*str->c[n+z1+4]+dphi3dphi*str->c[n+phi1+z1+4])+
-			  dr3dr*(dphii3dphi*str->c[n+r1+z1+4]+dphi3dphi*str->c[n+phi1+z1+r1+4])))
+			  dri3dr*(dphii3dphi*c1004+dphi3dphi*c1104)+
+			  dr3dr*(dphii3dphi*c1014+dphi3dphi*c1114)))
 	+phigi*rg*zg2/36*(
 			  dzi3*(
-				dri3dr*(-str->c[n+5]+str->c[n+phi1+5])+
-				dr3dr*(-str->c[n+r1+5]+str->c[n+phi1+r1+5]))
+				dri3dr*(-c0005+c0105)+
+				dr3dr*(-c0015+c0115))
 			  +dz3*(
-				dri3dr*(-str->c[n+z1+5]+str->c[n+phi1+z1+5])+
-				dr3dr*(-str->c[n+r1+z1+5]+str->c[n+phi1+z1+r1+5])))
+				dri3dr*(-c1005+c1105)+
+				dr3dr*(-c1015+c1115)))
 	+rgi*phig*zg2/36*(
 			  dzi3*(
-				-(dphii3dphi*str->c[n+6]+dphi3dphi*str->c[n+phi1+6])
-				+(dphii3dphi*str->c[n+r1+6]+dphi3dphi*str->c[n+phi1+r1+6]))
+				-(dphii3dphi*c0006+dphi3dphi*c0106)
+				+(dphii3dphi*c0016+dphi3dphi*c0116))
 			  +dz3*(
-				-(dphii3dphi*str->c[n+z1+6]+dphi3dphi*str->c[n+phi1+z1+6])
-				+(dphii3dphi*str->c[n+r1+z1+6]+dphi3dphi*str->c[n+phi1+z1+r1+6])))
+				-(dphii3dphi*c1006+dphi3dphi*c1106)
+				+(dphii3dphi*c1016+dphi3dphi*c1116)))
 	+rg*phig*zg2/216*(
 			  dzi3*(
-				dri3dr*(dphii3dphi*str->c[n+7]+dphi3dphi*str->c[n+phi1+7])+
-				dr3dr*(dphii3dphi*str->c[n+r1+7]+dphi3dphi*str->c[n+phi1+r1+7]))
+				dri3dr*(dphii3dphi*c0007+dphi3dphi*c0107)+
+				dr3dr*(dphii3dphi*c0017+dphi3dphi*c0117))
 			  +dz3*(
-				dri3dr*(dphii3dphi*str->c[n+z1+7]+dphi3dphi*str->c[n+phi1+z1+7])+
-				dr3dr*(dphii3dphi*str->c[n+r1+z1+7]+dphi3dphi*str->c[n+phi1+z1+r1+7])));
+				dri3dr*(dphii3dphi*c1007+dphi3dphi*c1107)+
+				dr3dr*(dphii3dphi*c1017+dphi3dphi*c1117)));
     
     /* d2f/drdz */
     B_dB[8] = rgi*zgi*(
 		       (
-			(dphii*str->c[n+0]+dphi*str->c[n+phi1+0]) -
-			(dphii*str->c[n+r1+0]+dphi*str->c[n+phi1+r1+0]))
+			(dphii*c0000+dphi*c0100) -
+			(dphii*c0010+dphi*c0110))
 		       -(
-			 (dphii*str->c[n+z1+0]+dphi*str->c[n+phi1+z1+0]) -
-			 (dphii*str->c[n+r1+z1+0]+dphi*str->c[n+phi1+z1+r1+0])))
+			 (dphii*c1000+dphi*c1100) -
+			 (dphii*c1010+dphi*c1110)))
 	+rg*zgi/6*(
 		   -(
-		     dri3dr*(dphii*str->c[n+1]+dphi*str->c[n+phi1+1])+
-		     dr3dr*(dphii*str->c[n+r1+1]+dphi*str->c[n+phi1+r1+1]))
+		     dri3dr*(dphii*c0001+dphi*c0101)+
+		     dr3dr*(dphii*c0011+dphi*c0111))
 		   +(
-		     dri3dr*(dphii*str->c[n+z1+1]+dphi*str->c[n+phi1+z1+1])+
-		     dr3dr*(dphii*str->c[n+r1+z1+1]+dphi*str->c[n+phi1+z1+r1+1])))
+		     dri3dr*(dphii*c1001+dphi*c1101)+
+		     dr3dr*(dphii*c1011+dphi*c1111)))
 	+rgi*phig2*zgi/6*(
 			  (
-			   (dphii3*str->c[n+2]+dphi3*str->c[n+phi1+2]) -
-			   (dphii3*str->c[n+r1+2]+dphi3*str->c[n+phi1+r1+2]))
+			   (dphii3*c0002+dphi3*c0102) -
+			   (dphii3*c0012+dphi3*c0112))
 			  -(
-			    (dphii3*str->c[n+z1+2]+dphi3*str->c[n+phi1+z1+2]) -
-			    (dphii3*str->c[n+r1+z1+2]+dphi3*str->c[n+phi1+z1+r1+2])))
+			    (dphii3*c1002+dphi3*c1102) -
+			    (dphii3*c1012+dphi3*c1112)))
 	+rgi*zg/6*(
 		   dzi3dz*(
-			   -(dphii*str->c[n+3]+dphi*str->c[n+phi1+3])
-			   +(dphii*str->c[n+r1+3]+dphi*str->c[n+phi1+r1+3]))
+			   -(dphii*c0003+dphi*c0103)
+			   +(dphii*c0013+dphi*c0113))
 		   +dz3dz*(
-			   -(dphii*str->c[n+z1+3]+dphi*str->c[n+phi1+z1+3])
-			   +(dphii*str->c[n+r1+z1+3]+dphi*str->c[n+phi1+z1+r1+3])))
+			   -(dphii*c1003+dphi*c1103)
+			   +(dphii*c1013+dphi*c1113)))
 	+rg*phig2*zgi/36*(
 			  -(
-			    dri3dr*(dphii3*str->c[n+4]+dphi3*str->c[n+phi1+4])+
-			    dr3dr*(dphii3*str->c[n+r1+4]+dphi3*str->c[n+phi1+r1+4]))
+			    dri3dr*(dphii3*c0004+dphi3*c0104)+
+			    dr3dr*(dphii3*c0014+dphi3*c0114))
 			  +(
-			    dri3dr*(dphii3*str->c[n+z1+4]+dphi3*str->c[n+phi1+z1+4])+
-			    dr3dr*(dphii3*str->c[n+r1+z1+4]+dphi3*str->c[n+phi1+z1+r1+4])))
+			    dri3dr*(dphii3*c1004+dphi3*c1104)+
+			    dr3dr*(dphii3*c1014+dphi3*c1114)))
 	+rg*zg/36*(
 		   dzi3dz*(
-			   dri3dr*(dphii*str->c[n+5]+dphi*str->c[n+phi1+5])+
-			   dr3dr*(dphii*str->c[n+r1+5]+dphi*str->c[n+phi1+r1+5]))
+			   dri3dr*(dphii*c0005+dphi*c0105)+
+			   dr3dr*(dphii*c0015+dphi*c0115))
 		   +dz3dz*(
-			   dri3dr*(dphii*str->c[n+z1+5]+dphi*str->c[n+phi1+z1+5])+
-			   dr3dr*(dphii*str->c[n+r1+z1+5]+dphi*str->c[n+phi1+z1+r1+5])))
+			   dri3dr*(dphii*c1005+dphi*c1105)+
+			   dr3dr*(dphii*c1015+dphi*c1115)))
 	+rgi*phig2*zg/36*(
 			  dzi3dz*(
-				  -(dphii3*str->c[n+6]+dphi3*str->c[n+phi1+6])
-				  +(dphii3*str->c[n+r1+6]+dphi3*str->c[n+phi1+r1+6]))
+				  -(dphii3*c0006+dphi3*c0106)
+				  +(dphii3*c0016+dphi3*c0116))
 			  +dz3dz*(
-				  -(dphii3*str->c[n+z1+6]+dphi3*str->c[n+phi1+z1+6])
-				  +(dphii3*str->c[n+r1+z1+6]+dphi3*str->c[n+phi1+z1+r1+6])))
+				  -(dphii3*c1006+dphi3*c1106)
+				  +(dphii3*c1016+dphi3*c1116)))
 	+rg*phig2*zg/216*(
 			  dzi3dz*(
-				  dri3dr*(dphii3*str->c[n+7]+dphi3*str->c[n+phi1+7])+
-				  dr3dr*(dphii3*str->c[n+r1+7]+dphi3*str->c[n+phi1+r1+7]))
+				  dri3dr*(dphii3*c0007+dphi3*c0107)+
+				  dr3dr*(dphii3*c0017+dphi3*c0117))
 			  +dz3dz*(
-				  dri3dr*(dphii3*str->c[n+z1+7]+dphi3*str->c[n+phi1+z1+7])+
-				  dr3dr*(dphii3*str->c[n+r1+z1+7]+dphi3*str->c[n+phi1+z1+r1+7])));
+				  dri3dr*(dphii3*c1007+dphi3*c1107)+
+				  dr3dr*(dphii3*c1017+dphi3*c1117)));
     
     /* d2f/dphidz */
     B_dB[9] = phigi*zgi*(
 			 (
-			  dri*(str->c[n+0]  -str->c[n+phi1+0])+
-			  dr*(str->c[n+r1+0]-str->c[n+phi1+r1+0]))
+			  dri*(c0000  -c0100)+
+			  dr*(c0010-c0110))
 			 -(
-			   dri*(str->c[n+z1+0]  -str->c[n+phi1+z1+0])+
-			   dr*(str->c[n+r1+z1+0]-str->c[n+phi1+z1+r1+0])))
+			   dri*(c1000  -c1100)+
+			   dr*(c1010-c1110)))
 	+phigi*rg2*zgi/6*(
 			  (
-			   dri3*(str->c[n+1]  -str->c[n+phi1+1])+
-			   dr3*(str->c[n+r1+1]-str->c[n+phi1+r1+1]))
+			   dri3*(c0001  -c0101)+
+			   dr3*(c0011-c0111))
 			  -(
-			    dri3*(str->c[n+z1+1]  -str->c[n+phi1+z1+1])+
-			    dr3*(str->c[n+r1+z1+1]-str->c[n+phi1+z1+r1+1])))
+			    dri3*(c1001  -c1101)+
+			    dr3*(c1011-c1111)))
 	+phig*zgi/6*(
 		     -(
-		       dri*(dphii3dphi*str->c[n+2]+dphi3dphi*str->c[n+phi1+2])+
-		       dr*(dphii3dphi*str->c[n+r1+2]+dphi3dphi*str->c[n+phi1+r1+2]))
+		       dri*(dphii3dphi*c0002+dphi3dphi*c0102)+
+		       dr*(dphii3dphi*c0012+dphi3dphi*c0112))
 		     +(
-		       dri*(dphii3dphi*str->c[n+z1+2]+dphi3dphi*str->c[n+phi1+z1+2])+
-		       dr*(dphii3dphi*str->c[n+r1+z1+2]+dphi3dphi*str->c[n+phi1+z1+r1+2])))
+		       dri*(dphii3dphi*c1002+dphi3dphi*c1102)+
+		       dr*(dphii3dphi*c1012+dphi3dphi*c1112)))
 	+phigi*zg/6*(
 		     dzi3dz*(
-			     dri*(-str->c[n+3]+str->c[n+phi1+3])+
-			     dr*(-str->c[n+r1+3]+str->c[n+phi1+r1+3]))
+			     dri*(-c0003+c0103)+
+			     dr*(-c0013+c0113))
 		     +dz3dz*(
-			     dri*(-str->c[n+z1+3]+str->c[n+phi1+z1+3])+
-			     dr*(-str->c[n+r1+z1+3]+str->c[n+phi1+z1+r1+3])))
+			     dri*(-c1003+c1103)+
+			     dr*(-c1013+c1113)))
 	+rg2*phig*zgi/36*(
 			  -(
-			    dri3*(dphii3dphi*str->c[n+4]+dphi3dphi*str->c[n+phi1+4])+
-			    dr3*(dphii3dphi*str->c[n+r1+4]+dphi3dphi*str->c[n+phi1+r1+4]))
+			    dri3*(dphii3dphi*c0004+dphi3dphi*c0104)+
+			    dr3*(dphii3dphi*c0014+dphi3dphi*c0114))
 			  +(
-			    dri3*(dphii3dphi*str->c[n+z1+4]+dphi3dphi*str->c[n+phi1+z1+4])+
-			    dr3*(dphii3dphi*str->c[n+r1+z1+4]+dphi3dphi*str->c[n+phi1+z1+r1+4])))
+			    dri3*(dphii3dphi*c1004+dphi3dphi*c1104)+
+			    dr3*(dphii3dphi*c1014+dphi3dphi*c1114)))
 	+phigi*rg2*zg/36*(
 			  dzi3dz*(
-				  dri3*(-str->c[n+5]+str->c[n+phi1+5])+
-				  dr3*(-str->c[n+r1+5]+str->c[n+phi1+r1+5]))
+				  dri3*(-c0005+c0105)+
+				  dr3*(-c0015+c0115))
 			  +dz3dz*(
-				  dri3*(-str->c[n+z1+5]+str->c[n+phi1+z1+5])+
-				  dr3*(-str->c[n+r1+z1+5]+str->c[n+phi1+z1+r1+5])))
+				  dri3*(-c1005+c1105)+
+				  dr3*(-c1015+c1115)))
 	+phig*zg/36*(
 		     dzi3dz*(
-			     dri*(dphii3dphi*str->c[n+6]+dphi3dphi*str->c[n+phi1+6])+
-			     dr*(dphii3dphi*str->c[n+r1+6]+dphi3dphi*str->c[n+phi1+r1+6]))
+			     dri*(dphii3dphi*c0006+dphi3dphi*c0106)+
+			     dr*(dphii3dphi*c0016+dphi3dphi*c0116))
 		     +dz3dz*(
-			     dri*(dphii3dphi*str->c[n+z1+6]+dphi3dphi*str->c[n+phi1+z1+6])+
-			     dr*(dphii3dphi*str->c[n+r1+z1+6]+dphi3dphi*str->c[n+phi1+z1+r1+6])))
+			     dri*(dphii3dphi*c1006+dphi3dphi*c1106)+
+			     dr*(dphii3dphi*c1016+dphi3dphi*c1116)))
 	+rg2*phig*zg/216*(
 			  dzi3dz*(
-				  dri3*(dphii3dphi*str->c[n+7]+dphi3dphi*str->c[n+phi1+7])+
-				  dr3*(dphii3dphi*str->c[n+r1+7]+dphi3dphi*str->c[n+phi1+r1+7]))
+				  dri3*(dphii3dphi*c0007+dphi3dphi*c0107)+
+				  dr3*(dphii3dphi*c0017+dphi3dphi*c0117))
 			  +dz3dz*(
-				  dri3*(dphii3dphi*str->c[n+z1+7]+dphi3dphi*str->c[n+phi1+z1+7])+
-				  dr3*(dphii3dphi*str->c[n+r1+z1+7]+dphi3dphi*str->c[n+phi1+z1+r1+7])));
+				  dri3*(dphii3dphi*c1007+dphi3dphi*c1107)+
+				  dr3*(dphii3dphi*c1017+dphi3dphi*c1117)));
 }
 
 /**
