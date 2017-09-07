@@ -95,6 +95,10 @@ typedef double real;
  *  of time step reductions) */
 #define WIENERSLOTS 20
 
+/** @brief Determine whether to use geometric method of Box-Muller to
+ *  to generate normal random numbers. */
+#define A5_CCOL_USE_GEOBM 1
+
 /** @brief Turn off energy component of Coulomb collisions */
 #define A5_CCOL_NOENERGY 0
 

@@ -17,8 +17,6 @@
 #include "../../consts.h"
 #include "mccc_wiener.h"
 
-#define MCCC_WIENER_USE_GBM 1
-
 const int MCCC_EMPTY = -999;
 
 /**
@@ -211,7 +209,7 @@ void mccc_wiener_clean(mccc_wienarr* w, real t, int* err){
  * 
  * Random numbers are created using the Box-Muller method.
  *
- * Compiler flag MCCC_WIENER_USE_GBM determines whether geometric
+ * Compiler flag  A5_CCOL_USE_GEOBM in ascot5.h determines whether geometric
  * or common form is used.
  *
  * @param randVar pointer to array to be populated with random numbers
@@ -227,7 +225,7 @@ void mccc_wiener_boxmuller(real* randVar, int Ndim){
     int i; /* Helper variables */
     
     isOdd = (Ndim+1) % 2;
-#if MCCC_WIENER_USE_GBM == 1
+#if A5_CCOL_USE_GEOBM == 1
     /* The geometric form */
     for( i = 0; i < Ndim; i=i+2){
 	w = 2.0;
@@ -244,7 +242,7 @@ void mccc_wiener_boxmuller(real* randVar, int Ndim){
 	}
     }
 #else
-    /* The common form which could be faster on some platforms */
+    /* The common form */
     for( i = 0; i < Ndim; i=i+2){
 	x1 = ((real)drand48());
 	x2 = (drand48());
