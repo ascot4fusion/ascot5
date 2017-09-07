@@ -34,8 +34,8 @@
  */
 void diag_init_offload(diag_offload_data* data, real** offload_array){
     /* Determine how long array we need and allocate it */
-    int nlen = 1;
-    int nlen_dist4D;
+    int nlen = 0;
+    int nlen_dist4D=0;
 
     if(data->orb_collect) {
 	// Do nothing (for now)
