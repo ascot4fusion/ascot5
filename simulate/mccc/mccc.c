@@ -654,8 +654,8 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 		if(1.5*hin[i] < dti){dti = 1.5*hin[i];}
 		kmax = 4;
 		for(ki=1; ki < kmax; ki=ki+1){
-		    mccc_wiener_boxmuller(&rand5[i*NSIMD], MCCC_NDIM);
-		    mccc_wiener_generate(w[i], t+ki*dti/3, &windex, &rand5[i*NSIMD], &err[i]);
+		    mccc_wiener_boxmuller(&rand5[i*MCCC_NDIM], MCCC_NDIM);
+		    mccc_wiener_generate(w[i], t+ki*dti/3, &windex, &rand5[i*MCCC_NDIM], &err[i]);
 		    dW[0] = fabs(w[i]->wiener[3 + windex*MCCC_NDIM] 
 				 - w[i]->wiener[3 + tindex[i]*MCCC_NDIM]);
 		    if(dW[0] > dWopt0[i]) {
@@ -686,8 +686,8 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 		}
 
 		for(ki=1; ki < kmax; ki=ki+1){
-		    mccc_wiener_boxmuller(&rand5[i*NSIMD], MCCC_NDIM);
-		    mccc_wiener_generate(w[i], t+ki*hin[i]/3, &windex, &rand5[i*NSIMD], &err[i]);
+		    mccc_wiener_boxmuller(&rand5[i*MCCC_NDIM], MCCC_NDIM);
+		    mccc_wiener_generate(w[i], t+ki*hin[i]/3, &windex, &rand5[i*MCCC_NDIM], &err[i]);
 		    dW[0] = abs(w[i]->wiener[3 + windex*MCCC_NDIM] - w[i]->wiener[3 + tindex[i]*MCCC_NDIM]);
 		    if(dW[0] > dWopt0[i]) {
 			kmax = 0; // Exit loop
