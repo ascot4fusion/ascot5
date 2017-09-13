@@ -224,12 +224,6 @@ int hdf5_particlestate_write(char* fn, char *state, int n, particle_state* p) {
     H5LTset_attribute_string(state_group, "id", "unit", "1");
 
     for(i = 0; i < n; i++) {
-	intdata[i] = (int)(p[i].charge/CONST_E);
-    }
-    H5LTmake_dataset(state_group, "charge", 1, dims, H5T_STD_I32LE, intdata);
-    H5LTset_attribute_string(state_group, "charge", "unit", "e");
-
-    for(i = 0; i < n; i++) {
 	intdata[i] = p[i].endcond;
     }
     H5LTmake_dataset(state_group, "endCond", 1, dims, H5T_STD_I64LE, intdata);
@@ -242,6 +236,15 @@ int hdf5_particlestate_write(char* fn, char *state, int n, particle_state* p) {
     H5LTset_attribute_string(state_group, "wallTile", "unit", "1");
 
     free(intdata);
+
+    int* intdata32 = (int*) malloc(n * sizeof(int));
+    for(i = 0; i < n; i++) {
+	intdata32[i] = (int)(p[i].charge/CONST_E);
+    }
+    H5LTmake_dataset(state_group, "charge", 1, dims, H5T_STD_I32LE, intdata32);
+    H5LTset_attribute_string(state_group, "charge", "unit", "e");
+
+    free(intdata32);
 
     H5Gclose(state_group);
     hdf5_close(file);
