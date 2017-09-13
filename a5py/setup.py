@@ -13,7 +13,9 @@ setup(name='a5py',
         'bin/a5poincare',
         'bin/a5combine',
         'bin/a5ascot4input',
-        'bin/a5copyinput'
+        'bin/a5copyinput',
+        'bin/a5continuerun',
+        'bin/a5GUI'
       ])
 
 
