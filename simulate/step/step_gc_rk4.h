@@ -5,6 +5,7 @@
 #ifndef STEP_GC_RK4_H
 #define STEP_GC_RK4_H
 
+#include "../../ascot5.h"
 #include "../../B_field.h"
 #include "../../E_field.h"
 #include "../../particle.h"

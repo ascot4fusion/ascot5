@@ -9,7 +9,7 @@
 #include "ascot5.h"
 #include "consts.h"
 #include "math.h"
-#include "phys_orbit.h"
+#include "physlib.h"
 #include "particle.h"
 #include "B_field.h"
 #include "E_field.h"
@@ -317,25 +317,21 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	/* Guiding center transformation */
 	real B_dB[12];
 	B_field_eval_B_dB(B_dB, rprt, phiprt, zprt, Bdata);
-	real gcpos[6];
-	real gamma = phys_gammaprtv(sqrt( rdot * rdot + phidot*phidot * rprt*rprt + zdot * zdot));
-	phys_prttogc(mass, charge, rprt, phiprt, zprt, 
-		     gamma * mass * rdot, gamma * mass * phidot * rprt, gamma * mass * zdot, 
-		     B_dB, gcpos);
-        
-	B_field_eval_B_dB(B_dB, gcpos[0], gcpos[1], gcpos[2], Bdata);
-	gamma = phys_gammagcp(mass, gcpos[3], gcpos[4]);
+	real gamma = physlib_relfactorv_fo(math_normc(p->p.v_r, p->p.v_phi, p->p.v_z));
 
-	ps->r          = gcpos[0];
-	ps->phi        = gcpos[1];
-	ps->z          = gcpos[2];
-	ps->vpar       = gcpos[3]/(mass*gamma);
-	ps->mu         = gcpos[4];
-	ps->theta      = gcpos[5];
+	real ppar;
+	physlib_fo2gc(mass, charge, B_dB, rprt, phiprt, zprt, 
+		      gamma*mass*p->p.v_r, gamma*mass*p->p.v_phi, gamma*mass*p->p.v_z,
+		      &ps->r, &ps->phi, &ps->z, &ps->mu, &ppar, &ps->theta);
 
+	B_field_eval_B_dB(B_dB, ps->r, ps->phi, ps->z, Bdata);
+	gamma = physlib_relfactorp_gc(mass, ps->mu, ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
+	ps->vpar = ppar/(mass*gamma);
+
+	/* Update magnetic field at gc position */
 	real psi[1];
 	real rho[1];
-	B_field_eval_psi(psi, gcpos[0], gcpos[1], gcpos[2], Bdata);
+	B_field_eval_psi(psi, ps->r, ps->phi, ps->z, Bdata);
 	B_field_eval_rho(rho, psi[0], Bdata);
 
 	ps->rho        = rho[0];
@@ -368,25 +364,33 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	real time   = p->p_gc.time;
 	integer id  = p->p_gc.id;
 
+	/* Input is in (Ekin,xi) coordinates but state needs (mu,vpar) */
+
+	// From kinetic energy we get Lorentz factor as gamma = 1 + Ekin/mc^2
+	real gamma = 1 + energy / (mass * CONST_C2);
+	// And then we can use the usual formula for Lorentz factor to get total velocity
+	real v = sqrt(1 - 1 / (gamma * gamma)) * CONST_C;
+
+	// Now we can use library functions for transformation
 	real B_dB[12];
 	B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
 
-	real B_norm = sqrt(B_dB[0] * B_dB[0] + B_dB[4] * B_dB[4] + B_dB[8] * B_dB[8]);
+	real B_norm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
 
-	real gamma = 1 + energy / (mass * CONST_C2);
-	real vgc = sqrt(1 - 1 / (gamma * gamma)) * CONST_C;
-	real vpar = pitch*vgc;
-	real mu = (1 - pitch * pitch) * mass * vgc * vgc / (2 * B_norm);
+	real mu, vpar;
+	physlib_gc_vxi2muvpar(mass, B_norm, v, pitch, &mu, &vpar);
 
-	real prtpos[6];
-	phys_gctoprt(mass, charge, r, phi, z, vpar, mu, theta, B_dB, prtpos);
-	     
-	ps->rprt       = prtpos[0];     
-	ps->phiprt     = prtpos[1];      
-	ps->zprt       = prtpos[2];   
-	ps->rdot       = prtpos[3]/mass; 
-	ps->phidot     = (prtpos[4]/mass)/ps->rprt;     
-	ps->zdot       = prtpos[5]/mass;
+	/* Guiding center transformation to get particle coordinates */
+	real pR, pphi, pz;
+	physlib_gc2fo(mass, charge, B_dB,
+		      r, phi, z, mu, gamma*mass*vpar, theta,
+		      &ps->rprt, &ps->phiprt, &ps->zprt, &pR, &pphi, &pz);
+
+        gamma = physlib_relfactorp_fo(mass, math_normc(pR, pphi, pz));
+   
+	ps->rdot       = pR/(gamma*mass); 
+	ps->phidot     = pphi/(gamma*mass*ps->rprt);     
+	ps->zdot       = pz/(gamma*mass);
 
 	ps->r          = r;     
 	ps->phi        = phi;      
@@ -400,7 +404,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	ps->weight     = weight;    
 	ps->time       = time; 
 	ps->pol        = atan2(z-B_field_get_axis_z(Bdata),
-					r-B_field_get_axis_r(Bdata));   
+			       r-B_field_get_axis_r(Bdata));   
 	ps->id         = id;    
 	ps->endcond    = 0; 
 	ps->walltile   = 0;
@@ -451,7 +455,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	ps->time       = time;     
 	ps->id         = id; 
 	ps->pol        = atan2(z-B_field_get_axis_z(Bdata), 
-					r-B_field_get_axis_r(Bdata)); 
+			       r-B_field_get_axis_r(Bdata)); 
 	ps->endcond    = 0; 
 	ps->walltile   = 0;
 	ps->cputime    = 0;
@@ -590,26 +594,25 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     B_dB[10]      = p_fo->B_z_dphi[j];
     B_dB[11]      = p_fo->B_z_dz[j];
 
-    real gcpos[6];
-    real gamma = phys_gammaprtv(sqrt( p->rdot * p->rdot + p->phidot*p->phidot * p->rprt*p->rprt + p->zdot * p->zdot));
-    phys_prttogc(p->mass, p->charge, p->rprt, p->phiprt, p->zprt, 
-		 gamma * p->mass * p->rdot, gamma * p->mass * p->phidot * p->rprt, gamma * p->mass * p->zdot, 
-		 B_dB, gcpos);
-    gamma = phys_gammagcp(p->mass, gcpos[3], gcpos[4]);
+    /* Guiding center transformation */
+    real vR   = p->rdot;
+    real vphi = p->phidot * p->rprt;
+    real vz   = p->zdot;
 
-    p->r          = gcpos[0];
-    p->phi        = gcpos[1];
-    p->z          = gcpos[2];
-    p->vpar       = gcpos[3]/(p->mass*gamma);
-    p->mu         = gcpos[4];
-    p->theta      = gcpos[5];
+    real gamma = physlib_relfactorv_fo(math_normc(vR, vphi, vz));
 
-    /* Magnetic field stored in state is for the gc position */
-    B_field_eval_B_dB(B_dB, gcpos[0], gcpos[1], gcpos[2], Bdata);
+    real ppar;
+    physlib_fo2gc(p->mass, p->charge, B_dB, p->rprt, p->phiprt, p->zprt, 
+		  gamma*p->mass*vR , gamma*p->mass*vphi, gamma*p->mass*vz,
+		  &p->r, &p->phi, &p->z, &p->mu, &ppar, &p->theta);
+
+    B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);
+    gamma = physlib_relfactorp_gc(p->mass, p->mu, ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
+    p->vpar = ppar/(p->mass*gamma);
 
     real psi[1];
     real rho[1];
-    B_field_eval_psi(psi, gcpos[0], gcpos[1], gcpos[2], Bdata);
+    B_field_eval_psi(psi, p->r, p->phi, p->z, Bdata);
     B_field_eval_rho(rho, psi[0], Bdata);
 
     p->rho        = rho[0];
@@ -741,15 +744,19 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     B_dB[9]       = p->B_z_dr;
     B_dB[10]      = p->B_z_dphi;
     B_dB[11]      = p->B_z_dz;
-    real prtpos[6];
-    phys_gctoprt(p->mass, p->charge, p->r, p->phi, p->z, p->vpar, p->mu, p->theta, B_dB, prtpos);
 
-    p->rprt       = prtpos[0];     
-    p->phiprt     = prtpos[1];      
-    p->zprt       = prtpos[2];   
-    p->rdot       = prtpos[3]/p->mass; 
-    p->phidot     = (prtpos[4]/p->mass)/p->rprt;    ;     
-    p->zdot       = prtpos[5]/p->mass;
+    real gamma = physlib_relfactorv_gc(p->mass, p->mu, p->vpar, 
+				       math_normc(B_dB[0], B_dB[4], B_dB[8]));
+    real pR, pphi, pz;
+    physlib_gc2fo(p->mass, p->charge, B_dB,
+		  p->r, p->phi, p->z, p->mu, gamma*p->mass*p->vpar, p->theta,
+		  &p->rprt, &p->phiprt, &p->zprt, &pR, &pphi, &pz);
+    
+    gamma = physlib_relfactorp_fo(p->mass, math_normc(pR, pphi, pz));
+    
+    p->rdot       = pR/(gamma*p->mass); 
+    p->phidot     = pphi/(gamma*p->mass*p->rprt);     
+    p->zdot       = pz/(gamma*p->mass);
 }
 
 /**

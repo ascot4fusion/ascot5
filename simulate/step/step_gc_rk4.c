@@ -5,12 +5,12 @@
 #include <math.h>
 #include "../../ascot5.h"
 #include "../../consts.h"
-#include "step_gc_rk4.h"
-#include "../../phys_orbit.h"
 #include "../../B_field.h"
 #include "../../E_field.h"
 #include "../../math.h"
 #include "../../particle.h"
+#include "step_gceom.h"
+#include "step_gc_rk4.h"
 
 /**
  * @brief Integrate a guiding center step for a struct of particles with RK4
@@ -78,7 +78,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
 	    B_dB[11] = p->B_z_dz[i];
 
 	    E_field_eval_E(E, yprev[0], yprev[1], yprev[2], Edata, Bdata);
-            phys_eomgc(k1, yprev, mass, charge, B_dB, E);
+            step_gceom(k1, yprev, mass, charge, B_dB, E);
             int j;
             /* particle coordinates for the subsequent ydot evaluations are
              * stored in tempy */
@@ -88,21 +88,21 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
             E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
-            phys_eomgc(k2, tempy, mass, charge, B_dB, E);
+            step_gceom(k2, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]/2.0*k2[j];
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);;
 	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
-            phys_eomgc(k3, tempy, mass, charge, B_dB, E);
+            step_gceom(k3, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]*k3[j];
             }
 
             B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
 	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
-            phys_eomgc(k4, tempy, mass, charge, B_dB, E);
+            step_gceom(k4, tempy, mass, charge, B_dB, E);
             for(j = 0; j < 6; j++) {
                 y[j] = yprev[j]
                     + h[i]/6.0 * (k1[j] + 2*k2[j] + 2*k3[j] + k4[j]);

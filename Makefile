@@ -65,27 +65,21 @@ UIDIR = ui/
 ASCOT4IFDIR = ascot4_interface/
 
 
-HEADERS=ascot5.h math.h consts.h \
-	   	$(DIAGHEADERS)  \
-		plasma_1d.h simulate.h \
-		list.h octree.h $(BFHEADERS) $(EFHEADERS) \
-		particle.h filip5.h endcond.h $(WALLHEADERS) \
-		B_field.h E_field.h wall.h phys_orbit.h \
-		$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) \
-		diag.h diag_orb.h \
-		$(HDF5IOHEADERS) \
-        offload.h
+HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h \
+	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
+	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
+	plasma_1d.h particle.h endcond.h B_field.h E_field.h \
+	wall.h simulate.h diag.h diag_orb.h offload.h \
+	spline/interp2D.h spline/interp3D.h spline/spline1D.h \
+	spline/interp2Dexpl.h spline/interp3Dexpl.h \
+	spline/interp2Detoc.h spline/interp3Detoc.h \
+	spline/interp2Dcomp.h spline/interp3Dcomp.h spline/spline1Dcomp.h \
 
-OBJS= math.o consts.o  \
-     $(DIAGOBJS)  $(BFOBJS) $(EFOBJS) \
-	plasma_1d.o \
-	 $(WALLOBJS) list.o octree.o \
-     particle.o endcond.o B_field.o E_field.o wall.o simulate.o \
-	phys_orbit.o \
-	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS)  \
-	diag.o diag_orb.o \
-	$(HDF5IOOBJS) \
-    offload.c \
+OBJS= math.o consts.o list.o octree.o physlib.o \
+     $(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
+	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
+	plasma_1d.o particle.o endcond.o B_field.o E_field.o \
+	wall.o simulate.o diag.o diag_orb.o offload.o \
 	spline/interp2D.o spline/interp3D.o spline/spline1D.o \
 	spline/interp2Dexpl.o spline/interp3Dexpl.o \
 	spline/interp2Detoc.o spline/interp3Detoc.o \
@@ -95,7 +89,7 @@ BINS=test_math \
 	 test_wall_2d test_ascot4_interface test_plasma_1d \
 	 test_interact test_hdf5 test_wall_3d test_particle filip5 \
 	 test_B test_simulate_orbit test_offload test_E \
-	 test_mccc ascot5_main\
+	 test_mccc ascot5_main \
 
 all: $(BINS)
 
