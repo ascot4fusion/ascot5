@@ -565,15 +565,14 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 			   vin,&vout,xiin,&xiout,Xin,Xout,cutoff,tol, 
 			   &kappa_k[i], &kappa_d0[i], &kappa_d1[i],&err[i]);
 
-	    
-	    /* Needed for finding the next time step */
-	    dWopt0[i] = 0.9*fabs(dW[3])*pow(kappa_d0[i],-1.0/3);
+	    /* Needed for finding the next time step (for the old method, see end of function)*/
+	    /*dWopt0[i] = 0.9*fabs(dW[3])*pow(kappa_d0[i],-1.0/3);
 	    dWopt1[i] = 0.9*fabs(dW[4])*pow(kappa_d1[i],-1.0/3);
 	    alpha[i]  = fabs(dW[3]);
 	    if(alpha[i] < fabs(dW[4])) {
 		alpha[i] = fabs(dW[4]);
 	    }
-	    alpha[i] = alpha[i]/sqrt(hin[i]);
+	    alpha[i] = alpha[i]/sqrt(hin[i]);*/
 
 	    /* Update particle */
 	    #if A5_CCOL_NOENERGY
@@ -625,10 +624,33 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
 	    B_field_eval_rho(rho, psi[0], Bdata);
 	    p->rho[i] = rho[0];
-		
+
+	    int rejected = 0;
+	    if(kappa_k[i] > 1 || kappa_d0[i] > 1 || kappa_d1[i] > 1) {
+		rejected = 1;
+		tindex[i]=0;
+	    }
+
+	    /* Needed for finding the next time step */
+	    if(kappa_k[i] >= kappa_d0[i] && kappa_k[i] >= kappa_d1[i]) {
+		hout[i] = 0.8*hin[i]/sqrt(kappa_k[i]);
+	    }
+	    else if(kappa_d0[i] >= kappa_k[i] && kappa_d0[i] >= kappa_d1[i]) {
+		hout[i] = pow(0.9*fabs(dW[3])*pow(kappa_d0[i],-1.0/3),2.0);
+	    }
+	    else {
+		hout[i] = pow(0.9*fabs(dW[4])*pow(kappa_d1[i],-1.0/3),2.0);
+	    }
+
+	    /* Negative value indicates time step was rejected*/
+	    if(rejected){
+		hout[i] = -hout[i];
+	    }
+	    
 	}
     }
 
+    return; // More accurate but probably less efficient method below
     /* Choose next time step (This loop can be vectorized if there is a 
        suitable tool for drawing random numbers) */
     for(i = 0; i < NSIMD; i++) {
