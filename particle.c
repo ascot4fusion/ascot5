@@ -14,50 +14,6 @@
 #include "B_field.h"
 #include "E_field.h"
 
-/**
- * @brief Transforms particle struct into a full-orbit simulation struct
- *
- * @param p     pointer to the particle being processed
- * @param i     index
- * @param p_fo  pointer to particle_simd_fo array
- * @param j     index of the new fo struct in the SIMD array
- * @param Bdata pointer to magnetic field data
- * @param Edata pointer to electric field data
- */
-void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
-                    B_field_data* Bdata){
-    p_fo->r[j] = p->r;
-    p_fo->phi[j] = p->phi;
-    p_fo->z[j] = p->z;
-    p_fo->rdot[j] = p->v_r;
-    p_fo->phidot[j] = p->v_phi/p->r;
-    p_fo->zdot[j] = p->v_z;
-    p_fo->mass[j] = p->mass;
-    p_fo->charge[j] = p->charge;
-    p_fo->weight[j] = p->weight;
-    p_fo->time[j] = p->time;
-    p_fo->id[j] = p->id; 
-
-    real B_dB[12];
-    B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);
-
-    p_fo->B_r[j]        = B_dB[0];
-    p_fo->B_r_dr[j]     = B_dB[1];
-    p_fo->B_r_dphi[j]   = B_dB[2];
-    p_fo->B_r_dz[j]     = B_dB[3];
-
-    p_fo->B_phi[j]      = B_dB[4];
-    p_fo->B_phi_dr[j]   = B_dB[5];
-    p_fo->B_phi_dphi[j] = B_dB[6];
-    p_fo->B_phi_dz[j]   = B_dB[7];
-
-    p_fo->B_z[j]        = B_dB[8];
-    p_fo->B_z_dr[j]     = B_dB[9];
-    p_fo->B_z_dphi[j]   = B_dB[10];
-    p_fo->B_z_dz[j]     = B_dB[11];
-
-    p_fo->index[j] = i;
-}
 
 /**
  * @brief Makes a dummy full-orbit simulation struct
@@ -86,62 +42,12 @@ void particle_to_fo_dummy(particle_simd_fo* p_fo, int j){
     p_fo->index[j] = -1;
 }
 
-void fo_to_particle(particle_simd_fo* p_fo, int j, particle* p) {
-    p->r = p_fo->r[j];
-    p->phi = p_fo->phi[j];
-    p->z = p_fo->z[j];
-    p->v_r = p_fo->rdot[j];
-    p->v_phi = p_fo->phidot[j] * p_fo->r[j];
-    p->v_z = p_fo->zdot[j];
-    p->time = p_fo->time[j];
-}
-
-void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
-                    B_field_data* Bdata) {
-    real B_dB[12];
-    B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);
-    real gcpos[5];
-    real gamma = phys_gammaprtv(sqrt(p->v_r*p->v_r + p->v_phi*p->v_phi + p->v_z*p->v_z));
-    phys_prttogc(p->mass, p->charge, p->r, p->phi, p->z, 
-		 gamma*p->mass*p->v_r, gamma*p->mass*p->v_phi, gamma*p->mass*p->v_z, B_dB, gcpos);
-
-    p_gc->r[j] = gcpos[0];
-    p_gc->phi[j] = gcpos[1];
-    p_gc->z[j] =gcpos[2];
-    
-    real B[3];
-    B_field_eval_B(B, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);
-    gamma = phys_gammagcp(p->mass, gcpos[3], gcpos[4]);
-    p_gc->vpar[j] = gcpos[3]/(p->mass*gamma);
-    p_gc->mu[j] = gcpos[4];
-
-    //p_gc->theta[j] = 0atan2(math_norm(ezcrossrho), math_dot(ez, rho));
-    p_gc->theta[j] = 0.0; // Ill defined quantity
-/*    p_gc->theta[j] = acos(math_dot(ez, rho)
-                          / (math_norm(ez)*math_norm(rho))); */
-
-    p_gc->mass[j] = p->mass;
-    p_gc->charge[j] = p->charge;
-    p_gc->weight[j] = p->weight;
-    p_gc->time[j] = 0;
-    p_gc->id[j] = p->id;
-    p_gc->B_r[j]        = B_dB[0];
-    p_gc->B_r_dr[j]     = B_dB[1];
-    p_gc->B_r_dphi[j]   = B_dB[2];
-    p_gc->B_r_dz[j]     = B_dB[3];
-
-    p_gc->B_phi[j]      = B_dB[4];
-    p_gc->B_phi_dr[j]   = B_dB[5];
-    p_gc->B_phi_dphi[j] = B_dB[6];
-    p_gc->B_phi_dz[j]   = B_dB[7];
-
-    p_gc->B_z[j]        = B_dB[8];
-    p_gc->B_z_dr[j]     = B_dB[9];
-    p_gc->B_z_dphi[j]   = B_dB[10];
-    p_gc->B_z_dz[j]     = B_dB[11];
-    p_gc->index[j] = i;
-}
-
+/**
+ * @brief Makes a dummy guiding center simulation struct
+ *
+ * @param p_gc  pointer to particle_simd_gc array
+ * @param j     index of the new fo struct in the SIMD array
+ */
 void particle_to_gc_dummy(particle_simd_gc* p_gc, int j) {
     p_gc->r[j] = 1;
     p_gc->phi[j] = 1;
@@ -169,157 +75,6 @@ void particle_to_gc_dummy(particle_simd_gc* p_gc, int j) {
     p_gc->B_z_dphi[j]   = 1;
     p_gc->B_z_dz[j]     = 1;
     p_gc->index[j] = -1;
-}
-
-void gc_to_particle(particle_simd_gc* p_gc, int j, particle* p) {
-    real B[3];
-    B[0] = p_gc->B_r[j];
-    B[1] = p_gc->B_phi[j];
-    B[2] = p_gc->B_z[j];
-    real normB = sqrt(math_dot(B, B));
-    real Bxyz[3];
-    math_vec_rpz2xyz(B, Bxyz, p_gc->phi[j]);
-
-    real ez[3];
-    ez[0] = -Bxyz[2]/normB * Bxyz[0]/normB;
-    ez[1] = -Bxyz[2]/normB * Bxyz[1]/normB;
-    ez[2] = 1 - Bxyz[2]/normB * Bxyz[2]/normB;
-
-    real a[3];
-    a[0] = ez[0]/math_norm(ez);
-    a[1] = ez[1]/math_norm(ez);
-    a[2] = ez[2]/math_norm(ez);
-    
-    real b[3];
-    math_cross(B,ez,b);
-    real tmp = math_norm(b);
-    b[0] = b[0]/tmp;
-    b[1] = b[1]/tmp;
-    b[2] = b[2]/tmp;
-
-    real rho = fabs(sqrt(2*p_gc->mu[j]*p_gc->mass[j]/normB)/p_gc->charge[j]);
-    real rhovec[3];
-    rhovec[0] = rho*(sin(p_gc->theta[j]) * a[0] + cos(p_gc->theta[j]) * b[0]);
-    rhovec[1] = rho*(sin(p_gc->theta[j]) * a[1] + cos(p_gc->theta[j]) * b[1]);
-    rhovec[2] = rho*(sin(p_gc->theta[j]) * a[2] + cos(p_gc->theta[j]) * b[2]);
-
-    real rhovecrpz[3];
-    math_vec_xyz2rpz(rhovec,rhovecrpz,p_gc->phi[j]);
-
-/*    p->r = p_gc->r[j] + rhovecrpz[0];
-    p->phi = p_gc->phi[j] + rhovecrpz[1];
-    p->z = p_gc->z[j] + rhovecrpz[2];*/
-
-    p->r = p_gc->r[j];
-    p->phi = p_gc->phi[j];
-    p->z = p_gc->z[j];
-    p->v_r = p_gc->mu[j];
-    p->v_phi = p_gc->vpar[j];
-    p->v_z = 0;
-    p->time = p_gc->time[j];
-}
-
-void particle_gc_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
-                    B_field_data* Bdata){
-    p_gc->r[j] = p->r;
-    p_gc->phi[j] = p->phi;
-    p_gc->z[j] = p->z;
-    p_gc->theta[j] = p->theta;
-    p_gc->mass[j] = p->mass;
-    p_gc->charge[j] = p->charge;
-    p_gc->weight[j] = p->weight;
-    p_gc->time[j] = p->time;
-    p_gc->id[j] = p->id;
-
-    real B_dB[12];
-    B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);
-    p_gc->B_r[j]        = B_dB[0];
-    p_gc->B_r_dr[j]     = B_dB[1];
-    p_gc->B_r_dphi[j]   = B_dB[2];
-    p_gc->B_r_dz[j]     = B_dB[3];
-
-    p_gc->B_phi[j]      = B_dB[4];
-    p_gc->B_phi_dr[j]   = B_dB[5];
-    p_gc->B_phi_dphi[j] = B_dB[6];
-    p_gc->B_phi_dz[j]   = B_dB[7];
-
-    p_gc->B_z[j]        = B_dB[8];
-    p_gc->B_z_dr[j]     = B_dB[9];
-    p_gc->B_z_dphi[j]   = B_dB[10];
-    p_gc->B_z_dz[j]     = B_dB[11];
-
-    real v_para, v_perp, magnv, magnB;
-    magnv = phys_Ekintovelocity(p->mass,p->energy);
-    v_para = magnv*p->pitch;
-    v_perp = magnv*sqrt(1 - p->pitch*p->pitch);
-    p_gc->vpar[j] = v_para;
-
-    magnB = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
-    p_gc->mu[j] = phys_mu(v_para,v_perp,p->mass,magnB);
-
-    p_gc->index[j] = i;
-}
-
-void gc_to_particle_gc(particle_simd_gc* p_gc, int j, particle_gc* p) {
-    p->r = p_gc->r[j];
-    p->phi = p_gc->phi[j];
-    p->z = p_gc->z[j];
-
-    real v_perp, magnB, magnv;
-    magnB = sqrt(p_gc->B_r[j]*p_gc->B_r[j]
-                 + p_gc->B_phi[j]*p_gc->B_phi[j]
-                 + p_gc->B_z[j]*p_gc->B_z[j]);
-    v_perp = phys_mutovperp(p_gc->mass[j], p_gc->vpar[j], p_gc->mu[j], magnB);
-    magnv = sqrt( p_gc->vpar[j]*p_gc->vpar[j] + v_perp*v_perp);
-
-    p->pitch = p_gc->vpar[j]/magnv;
-
-    real gammar;
-    gammar = phys_gammagcv(p_gc->mass[j],p_gc->vpar[j],p_gc->mu[j]);
-    
-    p->energy = p_gc->mass[j]*CONST_C2*(gammar - 1);
-    
-    p->theta = p_gc->theta[j];
-    p->time = p_gc->time[j];
-}
-
-
-/**
- * @brief Transforms particle struct into a magnetic field line simulation struct
- *
- * @param p     pointer to the particle being processed
- * @param i     index
- * @param p_ml  pointer to particle_simd_ml array
- * @param j     index of the new ml struct in the SIMD array
- * @param Bdata pointer to magnetic field data
- * @param Edata pointer to electric field data
- */
-void particle_to_ml(particle* p, int i, particle_simd_ml* p_ml, int j,
-                    B_field_data* Bdata){
-    p_ml->r[j] = p->r;
-    p_ml->phi[j] = p->phi;
-    p_ml->z[j] = p->z;
-    p_ml->time[j] = p->time;
-    p_ml->id[j] = p->id; 
-
-    real B_dB[12];
-    B_field_eval_B(B_dB, p->r, p->phi, p->z, Bdata);
-
-    p_ml->B_r[j]        = B_dB[0];
-    p_ml->B_r_dr[j]     = B_dB[1];
-    p_ml->B_r_dphi[j]   = B_dB[2];
-    p_ml->B_r_dz[j]     = B_dB[3];
-
-    p_ml->B_phi[j]      = B_dB[4];
-    p_ml->B_phi_dr[j]   = B_dB[5];
-    p_ml->B_phi_dphi[j] = B_dB[6];
-    p_ml->B_phi_dz[j]   = B_dB[7];
-
-    p_ml->B_z[j]        = B_dB[8];
-    p_ml->B_z_dr[j]     = B_dB[9];
-    p_ml->B_z_dphi[j]   = B_dB[10];
-    p_ml->B_z_dz[j]     = B_dB[11];
-    p_ml->index[j] = i;
 }
 
 /**
@@ -351,13 +106,18 @@ void particle_to_ml_dummy(particle_simd_ml* p_ml, int j){
     p_ml->index[j] = -1;
 }
 
-void ml_to_particle(particle_simd_ml* p_ml, int j, particle* p) {
-    p->r = p_ml->r[j];
-    p->phi = p_ml->phi[j];
-    p->z = p_ml->z[j];
-    p->time = p_ml->time[j];
-}
-
+/**
+ * @brief Clean finished markers from the SIMD struct and 
+ * fetch a fresh one from the simulation queue
+ *
+ * @param q  particle queue storing all simulated particles
+ * @param p  SIMD structure of particles
+ * @param Bdata pointer to magnetic field data
+ * @param cycle NSIMD integer array indicating what was done for each marker:
+ *        0 : Nothing 
+ *       -1 : Finished marker replaced with a dummy (queue is empty)
+ *        1 : Finished marker replaced with a fresh one
+ */
 int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
                       B_field_data* Bdata, int* cycle) {
     for(int i = 0; i < NSIMD; i++) {
@@ -401,6 +161,18 @@ int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
     return n_running;
 }
 
+/**
+ * @brief Clean finished markers from the SIMD struct and 
+ * fetch a fresh one from the simulation queue
+ *
+ * @param q  guiding center queue storing all simulated guiding centers
+ * @param p  SIMD structure of guiding centers
+ * @param Bdata pointer to magnetic field data
+ * @param cycle NSIMD integer array indicating what was done for each marker:
+ *        0 : Nothing 
+ *       -1 : Finished marker replaced with a dummy (queue is empty)
+ *        1 : Finished marker replaced with a fresh one
+ */
 int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
                       B_field_data* Bdata, int* cycle) {
     for(int i = 0; i < NSIMD; i++) {
@@ -444,6 +216,18 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
     return n_running;
 }
 
+/**
+ * @brief Clean finished markers from the SIMD struct and 
+ * fetch a fresh one from the simulation queue
+ *
+ * @param q  field line queue storing all simulated field line tracers
+ * @param p  SIMD structure of field line tracers
+ * @param Bdata pointer to magnetic field data
+ * @param cycle NSIMD integer array indicating what was done for each marker:
+ *        0 : Nothing 
+ *       -1 : Finished marker replaced with a dummy (queue is empty)
+ *        1 : Finished marker replaced with a fresh one
+ */
 int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
                       B_field_data* Bdata, int* cycle) {
     for(int i = 0; i < NSIMD; i++) {
@@ -488,7 +272,11 @@ int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
 }
 
 /**
- * @brief Transforms input to state
+ * @brief Transforms input markers to simulation state
+ *
+ * @param p  marker input
+ * @param ps corresponding state that was filled
+ * @param Bdata pointer to magnetic field data
  */
 void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data* Bdata) {
 
@@ -698,6 +486,15 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
     }
 }
 
+/**
+ * @brief Transform state into a fo SIMD struct
+ * 
+ * @param p  pointer to state being transformed
+ * @param i  index of this state in the state array
+ * @param p_fo SIMD structure where marker is transformed
+ * @param j  index where in the SIMD structure marker is stored
+ * @param Bdata pointer to magnetic field data
+ */
 void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j, 
 			  B_field_data* Bdata) {
     p_fo->r[j]          = p->rprt;
@@ -750,6 +547,15 @@ void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int 
     p_fo->index[j]   = i;
 }
 
+/**
+ * @brief Transform fo struct into a state on its original location 
+ * in the array of states
+ * 
+ * @param p_fo SIMD structure being transformed
+ * @param j  index where in the SIMD structure marker is stored
+ * @param p  pointer state array where marker is transformed
+ * @param Bdata pointer to magnetic field data
+ */
 void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p, 
 			  B_field_data* Bdata) {
     p->rprt       = p_fo->r[j];
@@ -824,6 +630,15 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->B_z_dz     = p_fo->B_z_dz[j];
 }
 
+/**
+ * @brief Transform state into a gc SIMD struct
+ * 
+ * @param p  pointer to state being transformed
+ * @param i  index of this state in the state array
+ * @param p_gc SIMD structure where marker is transformed
+ * @param j  index where in the SIMD structure marker is stored
+ * @param Bdata pointer to magnetic field data
+ */
 void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j, 
 			  B_field_data* Bdata) {
     
@@ -867,6 +682,15 @@ void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int 
     p_gc->index[j]   = i;
 }
 
+/**
+ * @brief Transform gc struct into a state on its original location 
+ * in the array of states
+ * 
+ * @param p_gc SIMD structure being transformed
+ * @param j  index where in the SIMD structure marker is stored
+ * @param p  pointer state array where marker is transformed
+ * @param Bdata pointer to magnetic field data
+ */
 void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p, 
 			  B_field_data* Bdata) {
 
@@ -928,6 +752,15 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     p->zdot       = prtpos[5]/p->mass;
 }
 
+/**
+ * @brief Transform state into a ml SIMD struct
+ * 
+ * @param p  pointer to state being transformed
+ * @param i  index of this state in the state array
+ * @param p_ml SIMD structure where marker is transformed
+ * @param j  index where in the SIMD structure marker is stored
+ * @param Bdata pointer to magnetic field data
+ */
 void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int j, 
 			  B_field_data* Bdata) {
     
@@ -968,6 +801,15 @@ void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int 
     
 }
 
+/**
+ * @brief Transform ml struct into a state on its original location 
+ * in the array of states
+ * 
+ * @param p_ml SIMD structure being transformed
+ * @param j  index where in the SIMD structure marker is stored
+ * @param p  pointer state array where marker is transformed
+ * @param Bdata pointer to magnetic field data
+ */
 void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p, 
 			  B_field_data* Bdata) {
 

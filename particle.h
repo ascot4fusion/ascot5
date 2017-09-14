@@ -271,23 +271,9 @@ typedef struct {
 
 
 #pragma omp declare target
-void particle_to_fo(particle* p, int i, particle_simd_fo* p_fo, int j,
-                    B_field_data* Bdata);
 void particle_to_fo_dummy(particle_simd_fo* p_fo, int j);
-void fo_to_particle(particle_simd_fo* p_fo, int j, particle* p);
-
-void particle_to_gc(particle* p, int i, particle_simd_gc* p_gc, int j,
-                    B_field_data* Bdata);
 void particle_to_gc_dummy(particle_simd_gc* p_gc, int j);
-void gc_to_particle(particle_simd_gc* p_gc, int j, particle* p);
-void particle_gc_to_gc(particle_gc* p, int i, particle_simd_gc* p_gc, int j,
-                    B_field_data* Bdata);
-void gc_to_particle_gc(particle_simd_gc* p_gc, int j, particle_gc* p);
-
-void particle_to_ml(particle* p, int i, particle_simd_ml* p_ml, int j,
-                    B_field_data* Bdata);
 void particle_to_ml_dummy(particle_simd_ml* p_ml, int j);
-void ml_to_particle(particle_simd_ml* p_ml, int j, particle* p);
 
 int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
                       B_field_data* Bdata, int* cycle);
@@ -297,6 +283,7 @@ int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
                       B_field_data* Bdata, int* cycle);
 
 void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data* Bdata);
+
 void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j, B_field_data* Bdata);
 void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p, B_field_data* Bdata);
 void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j, B_field_data* Bdata);
