@@ -56,8 +56,6 @@ void math_rpz2xyz(real* rpz, real* xyz) {
  * @param rpz input rpz coordinates in a 3-length array
  * @param xyz output xyz coordinates in a 3-length array
  * @param phi phi coordinate of the vector
- *
- * @bug Does not work with SIMD (unknown reason)
  */
 void math_vec_rpz2xyz(real* rpz, real* xyz, real phi) {
     xyz[0] = rpz[0] * cos(phi) - rpz[1] * sin(phi);
@@ -74,13 +72,100 @@ void math_vec_rpz2xyz(real* rpz, real* xyz, real phi) {
  * @param xyz input xyz coordinates in a 3-length array
  * @param rpz output rpz coordinates in a 3-length array
  * @param phi phi coordinate of the vector
- *
- * @bug Probably does not work with SIMD (unknown reason) (see vec_rpz2xyz) 
  */
 void math_vec_xyz2rpz(real* xyz, real* rpz, real phi) {
     rpz[0] = xyz[0] * cos(phi) + xyz[1] * sin(phi);
     rpz[1] = -xyz[0] * sin(phi) + xyz[1] * cos(phi);
     rpz[2] = xyz[2];
+}
+
+/**
+ * @brief Convert a gradient from cylindrical to cartesian coordinates
+ *
+ * This function converts a gradient located at angle phi from cylindrical
+ * to cartesian coordinates.
+ *
+ * @param rpz input rpz coordinates in a 3-length array
+ * @param xyz output xyz coordinates in a 3-length array
+ * @param r   r coordinate of the gradient
+ * @param phi phi coordinate of the gradient
+ */
+void math_grad_rpz2xyz(real* rpz, real* xyz, real r, real phi) {
+    xyz[0] = rpz[0] * cos(phi) - rpz[1] * sin(phi) / r;
+    xyz[1] = rpz[0] * sin(phi) + rpz[1] * cos(phi) / r;
+    xyz[2] = rpz[2];
+}
+
+/**
+ * @brief Convert a gradient from cartesian to cylindrical coordinates
+ *
+ * This function converts a gradient located at radius r and angle phi 
+ * from cartesian to cylindrical coordinates.
+ *
+ * @param xyz input xyz coordinates in a 3-length array
+ * @param rpz output rpz coordinates in a 3-length array
+ * @param r   r coordinate of the gradient
+ * @param phi phi coordinate of the gradient
+ */
+void math_grad_xyz2rpz(real* xyz, real* rpz, real r, real phi) {
+    rpz[0] = xyz[0] * cos(phi) + xyz[1] * sin(phi);
+    rpz[1] = (-xyz[0] * sin(phi) + xyz[1] * cos(phi)) / r;
+    rpz[2] = xyz[2];
+}
+
+/**
+ * @brief Convert a Jacobian from cylindrical to cartesian coordinates
+ *
+ * This function converts a Jacobian located at angle phi from cylindrical
+ * to cartesian coordinates. The input Jacobian is an array with
+ *
+ * [dBr/dr dBr/dphi dBr/dz  dBphi/dr dBphi/dphi dBphi/dz  dBz/dr dBz/dphi dBz/dz]
+ *
+ * an the output is
+ *
+ * [dBx/dx dBx/dy dBx/dz  dBy/dx dBy/dy dBy/dz  dBz/dx dBz/dy dBz/dz].
+ *
+ * @param rpz input rpz coordinates in a 3-length array
+ * @param xyz output xyz coordinates in a 3-length array
+ * @param r   r coordinate of the gradient
+ * @param phi phi coordinate of the gradient
+ */
+void math_jac_rpz2xyz(real* rpz, real* xyz, real r, real phi) {
+    // Temporary variables
+    real c = cos(phi);
+    real s = sin(phi);
+    
+    real temp[3];
+    
+    // Step 1: Vector [dBx/dr dBx/dphi dBx/dz]
+    temp[0] = rpz[0] * c - rpz[3] * s;
+    temp[1] = rpz[1] * c - rpz[4] * s;
+    temp[2] = rpz[2] * c - rpz[5] * s;
+    
+    // Step 2: Gradient
+    xyz[0] = temp[0] * c - temp[1] * s / r;
+    xyz[1] = temp[0] * s + temp[1] * c / r;
+    xyz[2] = temp[2];
+
+    // Step 1: Vector [dBy/dr dBy/dphi dBy/dz]
+    temp[0] = rpz[0] * s + rpz[3] * c;
+    temp[1] = rpz[1] * s + rpz[4] * c;
+    temp[2] = rpz[2] * s + rpz[5] * c;
+    
+    // Step 2: Gradient
+    xyz[3] = temp[0] * c - temp[1] * s / r;
+    xyz[4] = temp[0] * s + temp[1] * c / r;
+    xyz[5] = temp[2];
+
+    // Step 1: Vector [dBz/dr dBz/dphi dBz/dz]
+    temp[0] = rpz[6];
+    temp[1] = rpz[7];
+    temp[2] = rpz[8];
+    
+    // Step 2: Gradient
+    xyz[6] = temp[0] * c - temp[1] * s / r;
+    xyz[7] = temp[0] * s + temp[1] * c / r;
+    xyz[8] = temp[2];
 }
 
 /**

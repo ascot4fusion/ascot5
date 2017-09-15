@@ -35,7 +35,7 @@ real physlib_relfactorp_fo(real mass, real pnorm) {
 /**
  * @brief Lorentz factor
  *
- * gamma = sqrt( (1 + mu*B/mc^2) / (1 - vpar^2/c^2) )
+ * gamma = sqrt( (1 + 2*mu*B/mc^2) / (1 - vpar^2/c^2) )
  *
  * @param mass  guiding center mass
  * @param mu    guiding center magnetic moment
@@ -43,13 +43,13 @@ real physlib_relfactorp_fo(real mass, real pnorm) {
  * @param Bnorm magnetic field norm
  */
 real physlib_relfactorv_gc(real mass, real mu, real vpar, real Bnorm) {
-    return sqrt( ( 1 + mu*Bnorm/(mass*CONST_C2) ) / (1 - vpar*vpar/CONST_C2) );
+    return sqrt( ( 1 + 2*mu*Bnorm/(mass*CONST_C2) ) / (1 - vpar*vpar/CONST_C2) );
 }
 
 /**
  * @brief Lorentz factor
  *
- * gamma = sqrt(1 + mu*B/mc^2 + (ppar/mc)^2 )
+ * gamma = sqrt(1 + 2*mu*B/mc^2 + (ppar/mc)^2 )
  *
  * @param mass  guiding center mass
  * @param mu    guiding center magnetic moment
@@ -57,7 +57,7 @@ real physlib_relfactorv_gc(real mass, real mu, real vpar, real Bnorm) {
  * @param Bnorm magnetic field norm
  */
 real physlib_relfactorp_gc(real mass, real mu, real ppar, real Bnorm) {
-    return sqrt( 1 + mu*Bnorm/(mass*CONST_C2) + pow(ppar/mass,2)/CONST_C2 );
+    return sqrt( 1 + 2*mu*Bnorm/(mass*CONST_C2) + pow(ppar/mass,2)/CONST_C2 );
 }
 
 /**
@@ -100,7 +100,7 @@ void physlib_gc_vxi2muvpar(real mass, real Bnorm, real v, real xi, real* mu, rea
     vpar[0] = xi*v;
     real v2 = v * v;
     real gamma2 = ( 1.0 / (1 - v2 / CONST_C2) );
-    mu[0] = gamma2 * v2 * (1 - xi*xi) / (mass *Bnorm);
+    mu[0] = mass * gamma2 * v2 * (1 - xi*xi) / (2*Bnorm);
 }
 
 /**
@@ -111,11 +111,11 @@ void physlib_gc_vxi2muvpar(real mass, real Bnorm, real v, real xi, real* mu, rea
  * @param v     guiding center total velocity
  * @param xi    guiding center pitch
  * @param mu    pointer to returned magnetic moment
- * @param mu    pointer to returned parallel velocity
+ * @param vpar  pointer to returned parallel velocity
  */
 void physlib_gc_muvpar2vxi(real mass, real Bnorm, real mu, real vpar, real* v, real* xi) {
     real gamma2 = ( 1 + mu*Bnorm/(mass*CONST_C2) ) / (1 - vpar*vpar/CONST_C2);
-    real vperp2 = mu*Bnorm/(gamma2*mass);
+    real vperp2 = 2*mu*Bnorm/(gamma2*mass);
     
     v[0]  = sqrt(vperp2 + vpar*vpar);
     xi[0] = vpar/v[0];
@@ -144,28 +144,53 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
     /* Helper variables */
     real ptot  = math_normc(pR, pphi, pz);
     
-    real p_unit[3];
-    p_unit[0] = pR/ptot;
-    p_unit[1] = pphi/ptot;
-    p_unit[2] = pz/ptot;
+    real prt_rpz[3];
+    prt_rpz[0] = Rprt;
+    prt_rpz[1] = phiprt;
+    prt_rpz[2] = zprt;
+
+    real p_rpz[3];
+    p_rpz[0] = pR;
+    p_rpz[1] = pphi;
+    p_rpz[2] = pz;
+    
 
     real B_norm = math_normc(B_dB[0],B_dB[4],B_dB[8]);
+    real b_rpz[3];
+    b_rpz[0] = B_dB[0]/B_norm;
+    b_rpz[1] = B_dB[4]/B_norm;
+    b_rpz[2] = B_dB[8]/B_norm;
+
+    real pitch = math_dot(p_rpz,b_rpz)/ptot;
+
+    /* Magnetic field Jacobian in cartesian coordinates */
+    real jacBrpz[9] = {B_dB[1], B_dB[2], B_dB[3],
+		    B_dB[5], B_dB[6], B_dB[7],
+		    B_dB[9], B_dB[10], B_dB[11]};
+
+    real jacB[9];
+    math_jac_rpz2xyz(jacBrpz, jacB, Rprt, phiprt);
+
+
+    /* Transform in the cartesian system */
+    real prt_xyz[3];
+    math_rpz2xyz(prt_rpz, prt_xyz);
+
+    real p_unit[3];
+    math_vec_rpz2xyz(p_rpz, p_unit, phiprt);
+    p_unit[0] /= ptot;
+    p_unit[1] /= ptot;
+    p_unit[2] /= ptot;
+
     real B_unit[3];
-    B_unit[0] = B_dB[0]/B_norm;
-    B_unit[1] = B_dB[4]/B_norm;
-    B_unit[2] = B_dB[8]/B_norm;
+    math_vec_rpz2xyz(b_rpz, B_unit, phiprt);
 
-    real pitch = math_dot(p_unit,B_unit);
 
-    /* Magnetic field jacobian, gradient and curl in cylindrical coordinates */
-    real jacB[9] = {B_dB[1], B_dB[2]/Rprt, B_dB[3],
-		    B_dB[5], B_dB[6]/Rprt, B_dB[7],
-		    B_dB[9], B_dB[10]/Rprt, B_dB[11]};
-
+    /* Evaluate some required magnetic field quantities */
     real gradB[3];
     math_matmul(jacB,B_unit,3,3,1,gradB);
 
-    real curlB[3] = {jacB[7]-jacB[5], jacB[2]-jacB[6], jacB[3]+B_dB[4]/Rprt-jacB[1]};
+    real curlB[3] = {jacB[7]-jacB[5], jacB[2]-jacB[6], jacB[3]-jacB[1]};
 
     real tau_B = math_dot(B_unit, curlB)/B_norm;
     real nablabhat[9];
@@ -184,7 +209,7 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
     
     /* Zeroth order momentum terms */
     real p_para0 = pitch*ptot;
-    real mu_0 = ( 1 - pow(pitch,2) )*pow(ptot,2)/(2*mass*B_norm);
+    real mu_0 = ( 1 - pitch*pitch )*(ptot*ptot)/(2*mass*B_norm);
 
     /* Make the spatial transformation */
     real rho[3];
@@ -194,13 +219,14 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
     real rho_unit[3];
     math_unit(rho,rho_unit);
 
-    R[0]   = Rprt   - 0*rho[0];
-    phi[0] = phiprt - 0*rho[1];
-    z[0]   = zprt   - 0*rho[2];
+    real xyz[3];
+    xyz[0] = prt_xyz[0] - rho[0];
+    xyz[1] = prt_xyz[1] - rho[1];
+    xyz[2] = prt_xyz[2] - rho[2];
 
     /* First order momentum terms */
     real perphat[3];
-    math_cross(rho_unit, B_unit, perphat); /* Does this hold for ions and elecs? */
+    math_cross(rho_unit, B_unit, perphat);
 
     real a1ddotgradb = -0.5*(2*(rho_unit[0]*perphat[0]*nablabhat[0]+
 				rho_unit[1]*perphat[1]*nablabhat[4]+
@@ -222,18 +248,30 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
     /* Make the momentum transformation */
     ppar[0] = p_para0 + p_para1;
     mu[0]   = mu_0 + mu_1;
-    
+
+    /* Back to cylindrical system */
+    real rpz[3];
+    math_xyz2rpz(xyz,rpz);
+    R[0]   = rpz[0];
+    phi[0] = rpz[1];
+    z[0]   = rpz[2];
+
+    rho[0] = Rprt   - R[0];
+    rho[1] = phiprt - phi[0];
+    rho[2] = zprt   - z[0];
+    math_unit(rho,rho_unit);
+
     /* Calculate gyroangle (this is zeroth order) */
     real a1[3];
     real z_unit[3];
     z_unit[0] = 0.0;
     z_unit[1] = 0.0;
     z_unit[2] = 1.0;
-    math_cross(B_unit,z_unit,a1);
+    math_cross(b_rpz,z_unit,a1);
     math_unit(a1,a1);
 
     real a2[3];
-    math_cross(a1,B_unit,a2);
+    math_cross(a1,b_rpz,a2);
     math_unit(a2,a2);
 
     theta[0] = atan2(math_dot(rho_unit,a2),math_dot(rho_unit,a1));

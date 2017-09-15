@@ -387,7 +387,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 		      &ps->rprt, &ps->phiprt, &ps->zprt, &pR, &pphi, &pz);
 
         gamma = physlib_relfactorp_fo(mass, math_normc(pR, pphi, pz));
-   
+
 	ps->rdot       = pR/(gamma*mass); 
 	ps->phidot     = pphi/(gamma*mass*ps->rprt);     
 	ps->zdot       = pz/(gamma*mass);

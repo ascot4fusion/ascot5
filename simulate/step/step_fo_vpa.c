@@ -59,52 +59,65 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 	math_vec_rpz2xyz(vrpz, vxyz, p->phi[i]);
 
 	/* Positions to cartesian coordinates */
-	real pxyz[3];
-	math_rpz2xyz(xhalf,pxyz);
+	real posxyz[3];
+	math_rpz2xyz(xhalf,posxyz);
 
-	/* Precompute some values that will be used repeatedly */
-	real sigma = p->charge[i]*h[i]/(2*p->mass[i]*CONST_C);
-	real uminus[3];
-	real g = (1/sqrt(1-math_dot(vxyz,vxyz)/CONST_C2))/CONST_C;
-	uminus[0] = vxyz[0]*g + sigma*Exyz[0];
-	uminus[1] = vxyz[1]*g + sigma*Exyz[1];
-	uminus[2] = vxyz[2]*g + sigma*Exyz[2];
-	real d = sigma*CONST_C/sqrt(1+math_dot(uminus,uminus));
+	/* Evaluate helper variable pminus */
+	real pminus[3];
+	real gamma = 1 / sqrt( 1 - math_dot(vxyz,vxyz)/CONST_C2 );
+	real sigma = p->charge[i]*h[i]/2;
 
-	real Bhat[9] = {       0, -Bxyz[2],  Bxyz[1], 
-			       Bxyz[2],        0,   -Bxyz[0], 
-			       -Bxyz[1], Bxyz[0],        0};
-	real dd[9];
-	real a = (1+pow(d,2)*math_dot(Bxyz,Bxyz));
-	int j;
-	for(j = 0; j < 9 ; j++) dd[j]= 2*d*Bhat[j]/a;
+	pminus[0] = p->mass[i]*vxyz[0]*gamma + sigma*Exyz[0];
+	pminus[1] = p->mass[i]*vxyz[1]*gamma + sigma*Exyz[1];
+	pminus[2] = p->mass[i]*vxyz[2]*gamma + sigma*Exyz[2];
 
-	real m1[9];math_matmul(dd,Bhat,3,3,3,m1);
-	for(j = 0; j < 9 ; j++) m1[j] = d*m1[j] + dd[j];
-	real m2[3];math_matmul(m1,uminus,3,3,1,m2);
-	real uplus[3];
-	uplus[0] = uminus[0]+m2[0];
-	uplus[1] = uminus[1]+m2[1];
-	uplus[2] = uminus[2]+m2[2];
+	/* Second helper variable pplus*/
+	real d = (p->charge[i]*h[i]/2) / 
+	    sqrt( p->mass[i]*p->mass[i] + math_dot(pminus,pminus)/CONST_C2 );
+	real d2 = d*d;
+
+	real Bhat[9] = {       0,  Bxyz[2], -Bxyz[1], 
+			-Bxyz[2],        0,  Bxyz[0], 
+			 Bxyz[1], -Bxyz[0],       0};
+	real Bhat2[9];
+	math_matmul(Bhat, Bhat, 3, 3, 3, Bhat2);
+	
+	real B2 = Bxyz[0]*Bxyz[0] + Bxyz[1]*Bxyz[1] + Bxyz[2]*Bxyz[2];
+	
+	real A[9];
+	for(int j=0; j<9; j++) {
+	    A[j] = (d*Bhat[j] + d2*Bhat2[j]) * (2.0/(1+d2*B2));
+	}
+
+	// Add identity matrix to the mix
+	A[0] += 1;
+	A[4] += 1;
+	A[8] += 1;
+
+	real pplus[3];
+	math_matmul(pminus, A, 1, 3, 3, pplus);
 
 	/* Take the step */
-	vxyz[0] = uplus[0] + sigma*Exyz[0];
-	vxyz[1] = uplus[1] + sigma*Exyz[1];
-	vxyz[2] = uplus[2] + sigma*Exyz[2];
+	real pfinal[3];
+	pfinal[0] = pplus[0] + sigma*Exyz[0];
+	pfinal[1] = pplus[1] + sigma*Exyz[1];
+	pfinal[2] = pplus[2] + sigma*Exyz[2];
 
-	g = sqrt(1+math_dot(vxyz,vxyz))/CONST_C;
-	vxyz[0] = vxyz[0]/(g);
-	vxyz[1] = vxyz[1]/(g);
-	vxyz[2] = vxyz[2]/(g);
+	// gamma = sqrt(1+(p/mc)^2)
+	gamma = sqrt( 1 + math_dot(pfinal,pfinal)/(p->mass[i]*p->mass[i]*CONST_C2) );
 
-	pxyz[0] = pxyz[0] + h[i]*vxyz[0]/2;
-	pxyz[1] = pxyz[1] + h[i]*vxyz[1]/2;
-	pxyz[2] = pxyz[2] + h[i]*vxyz[2]/2;
+	vxyz[0] = pfinal[0]/(gamma*p->mass[i]);
+	vxyz[1] = pfinal[1]/(gamma*p->mass[i]);
+	vxyz[2] = pfinal[2]/(gamma*p->mass[i]);
+
+	posxyz[0] = posxyz[0] + h[i]*vxyz[0]/2;
+	posxyz[1] = posxyz[1] + h[i]*vxyz[1]/2;
+	posxyz[2] = posxyz[2] + h[i]*vxyz[2]/2;
 
 	/* Back to cylindrical coordinates */
-	p->r[i] = sqrt(pxyz[0]*pxyz[0]+pxyz[1]*pxyz[1]);
-	p->phi[i] = atan2(pxyz[1], pxyz[0]);
-	p->z[i] = pxyz[2];
+	p->r[i] = sqrt(posxyz[0]*posxyz[0]+posxyz[1]*posxyz[1]);
+	p->phi[i] = atan2(posxyz[1], posxyz[0]);
+	p->z[i] = posxyz[2];
 	p->rdot[i] = vxyz[0] * cos(p->phi[i]) + vxyz[1] * sin(p->phi[i]);
 	p->phidot[i] = ( -vxyz[0] * sin(p->phi[i]) + vxyz[1] * cos(p->phi[i]) ) / p->r[i];
 	p->zdot[i] = vxyz[2];
