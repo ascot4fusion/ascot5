@@ -617,20 +617,21 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
 
     p->rho        = rho[0];
 
-    p->B_r        = p_fo->B_r[j];
-    p->B_r_dr     = p_fo->B_r_dr[j];
-    p->B_r_dphi   = p_fo->B_r_dphi[j];
-    p->B_r_dz     = p_fo->B_r_dz[j];
+    // should be guiding center position?
+    p->B_r        = B_dB[0];
+    p->B_r_dr     = B_dB[1];
+    p->B_r_dphi   = B_dB[2];
+    p->B_r_dz     = B_dB[3];
 
-    p->B_phi      = p_fo->B_phi[j];
-    p->B_phi_dr   = p_fo->B_phi_dr[j];
-    p->B_phi_dphi = p_fo->B_phi_dphi[j];
-    p->B_phi_dz   = p_fo->B_phi_dz[j];
+    p->B_phi      = B_dB[4];
+    p->B_phi_dr   = B_dB[5];
+    p->B_phi_dphi = B_dB[6];
+    p->B_phi_dz   = B_dB[7];
 
-    p->B_z        = p_fo->B_z[j];
-    p->B_z_dr     = p_fo->B_z_dr[j];
-    p->B_z_dphi   = p_fo->B_z_dphi[j];
-    p->B_z_dz     = p_fo->B_z_dz[j];
+    p->B_z        = B_dB[8];
+    p->B_z_dr     = B_dB[9];
+    p->B_z_dphi   = B_dB[10];
+    p->B_z_dz     = B_dB[11];
 }
 
 /**
@@ -858,4 +859,83 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->B_z_dr     = p_ml->B_z_dr[j];
     p->B_z_dphi   = p_ml->B_z_dphi[j];
     p->B_z_dz     = p_ml->B_z_dz[j];
+}
+
+/**
+ * @brief Transform fo struct into a gc struct
+ * 
+ * @param p_fo  fo SIMD structure being transformed
+ * @param j     index where in the SIMD structure marker is stored
+ * @param p_gc  gc SIMD structure where marker is transformed
+ * @param Bdata pointer to magnetic field data
+ */
+void particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc, 
+			  B_field_data* Bdata) {
+    real Rprt   = p_fo->r[j];
+    real phiprt = p_fo->phi[j];
+    real zprt   = p_fo->z[j];
+    real vR     = p_fo->rdot[j];
+    real vphi   = p_fo->phidot[j] * p_fo->r[j];
+    real vz     = p_fo->zdot[j];
+    real mass   = p_fo->mass[j];
+    real charge = p_fo->charge[j];
+
+    p_gc->mass[j]     = p_fo->mass[j];
+    p_gc->charge[j]   = p_fo->charge[j];
+    p_gc->weight[j]   = p_fo->weight[j];
+    p_gc->time[j]     = p_fo->time[j];
+    p_gc->pol[j]      = p_fo->pol[j]; // This is not accurate
+    p_gc->id[j]       = p_fo->id[j]; 
+    p_gc->endcond[j]  = p_fo->endcond[j];
+    p_gc->walltile[j] = p_fo->walltile[j];
+    p_gc->cputime[j]  = p_fo->cputime[j];
+
+    /* Particle to guiding center */
+    real B_dB[12];
+    B_dB[0]       = p_fo->B_r[j];
+    B_dB[1]       = p_fo->B_r_dr[j];
+    B_dB[2]       = p_fo->B_r_dphi[j];
+    B_dB[3]       = p_fo->B_r_dz[j];
+    B_dB[4]       = p_fo->B_phi[j];
+    B_dB[5]       = p_fo->B_phi_dr[j];
+    B_dB[6]       = p_fo->B_phi_dphi[j];
+    B_dB[7]       = p_fo->B_phi_dz[j];
+    B_dB[8]       = p_fo->B_z[j];
+    B_dB[9]       = p_fo->B_z_dr[j];
+    B_dB[10]      = p_fo->B_z_dphi[j];
+    B_dB[11]      = p_fo->B_z_dz[j];
+
+    /* Guiding center transformation */
+    real gamma = physlib_relfactorv_fo(math_normc(vR, vphi, vz));
+
+    real ppar;
+    physlib_fo2gc(mass, charge, B_dB, Rprt, phiprt, zprt, 
+		  gamma*mass*vR , gamma*mass*vphi, gamma*mass*vz,
+		  &p_gc->r[j], &p_gc->phi[j], &p_gc->z[j], &p_gc->mu[j], &ppar, &p_gc->theta[j]);
+
+    B_field_eval_B_dB(B_dB, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);
+    gamma = physlib_relfactorp_gc(mass, p_gc->mu[j], ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
+    p_gc->vpar[j] = ppar/(mass*gamma);
+
+    real psi[1];
+    real rho[1];
+    B_field_eval_psi(psi, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);
+    B_field_eval_rho(rho, psi[0], Bdata);
+
+    p_gc->rho[j]        = rho[0];
+
+    p_gc->B_r[j]        = B_dB[0];
+    p_gc->B_r_dr[j]     = B_dB[1];
+    p_gc->B_r_dphi[j]   = B_dB[2];
+    p_gc->B_r_dz[j]     = B_dB[3];
+
+    p_gc->B_phi[j]      = B_dB[4];
+    p_gc->B_phi_dr[j]   = B_dB[5];
+    p_gc->B_phi_dphi[j] = B_dB[6];
+    p_gc->B_phi_dz[j]   = B_dB[7];
+
+    p_gc->B_z[j]        = B_dB[8];
+    p_gc->B_z_dr[j]     = B_dB[9];
+    p_gc->B_z_dphi[j]   = B_dB[10];
+    p_gc->B_z_dz[j]     = B_dB[11];
 }

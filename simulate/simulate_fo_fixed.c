@@ -154,7 +154,26 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 
         endcond_check_fo(&p, &p0, sim);
 
-        diag_update_fo(&sim->diag_data, diag_strg, &p, &p0);
+	if(sim->record_GOasGC) {
+	    particle_simd_gc gc_f;
+	    particle_simd_gc gc_i;
+
+	    #pragma omp simd
+	    for(int i=0; i<NSIMD; i++) {
+		if(p.running[i]) {
+		    particle_fo_to_gc( &p, i, &gc_f, &sim->B_data);
+		    particle_fo_to_gc(&p0, i, &gc_i, &sim->B_data);
+		}
+		else {
+		    gc_f.running[i] = 0;
+		    gc_i.running[i] = 0;
+		}
+	    }
+	    diag_update_gc(&sim->diag_data, diag_strg, &gc_f, &gc_i);
+	}
+	else {
+	    diag_update_fo(&sim->diag_data, diag_strg, &p, &p0);
+	}
 
         /* Update running particles */
         n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
