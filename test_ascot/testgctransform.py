@@ -7,6 +7,7 @@ import a5py.ascot5io.ascot5 as ascot5
 import a5py.ascot5io.options as options
 import a5py.ascot5io.B_GS as B_GS
 import a5py.ascot5io.markers as markers
+import a5py.postprocessing.physicslib as physlib
 import testfunctions as tf
 from testcase import createbase
    
@@ -18,8 +19,8 @@ def run():
     EV2K = constants.physical_constants['electron volt-kelvin relationship'][0]
 
     # Test options
-    writedt = 1e-10
-    simtime = 1e-4
+    writedt = 1e-11
+    simtime = 4e-6
 
     # Proton
     m = 1.00727647
@@ -27,7 +28,7 @@ def run():
 
     # Init testbase.
     fn = ['GO.h5', 'GO2GC.h5', 'GC.h5']
-    Bxyz = np.array([1, 0, 0])
+    Bxyz = np.array([0, 1, 0])
     Exyz = np.array([0, 0, 0])
     n = 1e20
     T = 1e3
@@ -54,8 +55,8 @@ def run():
     z      = 0*np.ones(ids.shape)
     weight = 1*np.ones(ids.shape)
     time   = 0*np.ones(ids.shape)
-    energy = 1.0e6*np.ones(ids.shape)
-    pitch  = 0.5*np.ones(ids.shape)
+    energy = 1.0e3*np.ones(ids.shape)
+    pitch  = 0.999*np.ones(ids.shape)
     theta  = 0*np.ones(ids.shape)  
 
     # Options
@@ -82,7 +83,7 @@ def run():
 
     o = options.read_hdf5(fn[2])
     o["SIM_MODE"]                  = 0*o["SIM_MODE"] + 2
-    o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + 1e-8
+    o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + 1e-9
     options.write_hdf5(fn[2],o)
 
     # Simulate.
@@ -95,20 +96,47 @@ def run():
     go2gc = ascot5.read_hdf5(fn[1],"orbits")["orbits"]["gc"]
     gc    = ascot5.read_hdf5(fn[2],"orbits")["orbits"]["gc"]
 
-    plt.figure()
-    plt.plot(go["R"], go["z"])
-    plt.plot(go2gc["R"], go2gc["z"])
-    plt.plot(gc["R"], gc["z"])
+    pitch = physlib.pitch(massamu=go["mass"], vR=go["v_R"], vphi=go["v_phi"], vz=go["v_z"],
+                          BR=go["B_R"], Bphi=go["B_phi"], Bz=go["B_z"])
+    gamma = physlib.gamma(massamu=go["mass"], vR=go["v_R"], vphi=go["v_phi"], vz=go["v_z"],
+                          BR=go["B_R"], Bphi=go["B_phi"], Bz=go["B_z"])
+    govpar = pitch * physlib.vecnorm(go["v_R"],go["v_phi"],go["v_z"])
+    gomu   = gamma*gamma*(1-pitch*pitch) * go["mass"] * AMU2KG * np.power(physlib.vecnorm(go["v_R"],go["v_phi"],go["v_z"]),2)/physlib.vecnorm(go["B_R"],go["B_phi"],go["B_z"])
+    gomu   = 0.5*gomu/ELEMENTARY_CHARGE
+
+    if True:
+        plt.figure()
+        plt.plot(go["R"], go["z"])
+        plt.plot(go2gc["R"], go2gc["z"])
+        plt.plot(gc["R"], gc["z"])
+    else:
+        plt.figure()
+        x,y = pol2cart(go["R"], go["phi"]*np.pi/180)
+        plt.plot(x,go["z"])
+        x,y = pol2cart(go2gc["R"], go2gc["phi"]*np.pi/180)
+        plt.plot(x,go2gc["z"])
+        x,y = pol2cart(gc["R"], gc["phi"]*np.pi/180)
+        plt.plot(x,gc["z"])
+        plt.axis('equal')
+        
+
 
     plt.figure()
+    plt.plot(go["time"], gomu)
     plt.plot(go2gc["time"], go2gc["mu"])
     plt.plot(gc["time"], gc["mu"])
 
     plt.figure()
+    plt.plot(go["time"], govpar)
     plt.plot(go2gc["time"], go2gc["vpar"])
     plt.plot(gc["time"], gc["vpar"])
 
     plt.show()
+
+def pol2cart(rho, phi):
+    x = rho * np.cos(phi)
+    y = rho * np.sin(phi)
+    return(x, y)
 
 if __name__ == '__main__':
     run()

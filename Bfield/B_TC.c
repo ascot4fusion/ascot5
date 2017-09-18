@@ -187,20 +187,10 @@ void B_TC_eval_B_dB(real* B_dB, real r, real phi, real z,
     B_dB[4] = Brpz[1];
     B_dB[8] = Brpz[2];
 
-    real c = cos(phi);
-    real s = sin(phi);
-
-    B_dB[1] = s * Bdata->dB[0]      + c * Bdata->dB[1];
-    B_dB[2] = r * c *Bdata->dB[0]   - r * s * Bdata->dB[1];
-    B_dB[3] = Bdata->dB[2];
-
-    B_dB[5] = s * Bdata->dB[3]      + c * Bdata->dB[4];
-    B_dB[6] = r * c * Bdata->dB[3]  - r * s * Bdata->dB[4];
-    B_dB[7] = Bdata->dB[5];
-
-    B_dB[9]  = s * Bdata->dB[6]     + c * Bdata->dB[7];
-    B_dB[10] = r * c * Bdata->dB[6] - r * s * Bdata->dB[7];
-    B_dB[11] = Bdata->dB[8];
+    real B_dBxyz[12] = {Bdata->B[0], Bdata->dB[0], Bdata->dB[1], Bdata->dB[2],
+		    Bdata->B[1], Bdata->dB[3], Bdata->dB[4], Bdata->dB[5],
+		    Bdata->B[2], Bdata->dB[6], Bdata->dB[7], Bdata->dB[8]};
+    math_jac_xyz2rpz(B_dBxyz, B_dB, r, phi);
 }
 
 real B_TC_get_axis_r(B_TC_data* Bdata) {

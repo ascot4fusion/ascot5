@@ -369,7 +369,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	// From kinetic energy we get Lorentz factor as gamma = 1 + Ekin/mc^2
 	real gamma = 1 + energy / (mass * CONST_C2);
 	// And then we can use the usual formula for Lorentz factor to get total velocity
-	real v = sqrt(1 - 1 / (gamma * gamma)) * CONST_C;
+	real v = sqrt(1 - 1.0 / (gamma * gamma)) * CONST_C;
 
 	// Now we can use library functions for transformation
 	real B_dB[12];
@@ -617,7 +617,6 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
 
     p->rho        = rho[0];
 
-    // should be guiding center position?
     p->B_r        = B_dB[0];
     p->B_r_dr     = B_dB[1];
     p->B_r_dphi   = B_dB[2];

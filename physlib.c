@@ -142,49 +142,41 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
     real TEMP_V1[3];
 
     /* Helper variables */
-    real ptot  = math_normc(pR, pphi, pz);
+    real prtrpz[3];
+    prtrpz[0] = Rprt;
+    prtrpz[1] = phiprt;
+    prtrpz[2] = zprt;
+
+    real prpz[3];
+    prpz[0] = pR;
+    prpz[1] = pphi;
+    prpz[2] = pz;
+    real ptot  = math_norm(prpz);
     
-    real prt_rpz[3];
-    prt_rpz[0] = Rprt;
-    prt_rpz[1] = phiprt;
-    prt_rpz[2] = zprt;
 
-    real p_rpz[3];
-    p_rpz[0] = pR;
-    p_rpz[1] = pphi;
-    p_rpz[2] = pz;
-    
-
-    real B_norm = math_normc(B_dB[0],B_dB[4],B_dB[8]);
-    real b_rpz[3];
-    b_rpz[0] = B_dB[0]/B_norm;
-    b_rpz[1] = B_dB[4]/B_norm;
-    b_rpz[2] = B_dB[8]/B_norm;
-
-    real pitch = math_dot(p_rpz,b_rpz)/ptot;
-
-    /* Magnetic field Jacobian in cartesian coordinates */
-    real jacBrpz[9] = {B_dB[1], B_dB[2], B_dB[3],
-		    B_dB[5], B_dB[6], B_dB[7],
-		    B_dB[9], B_dB[10], B_dB[11]};
-
-    real jacB[9];
-    math_jac_rpz2xyz(jacBrpz, jacB, Rprt, phiprt);
-
-
-    /* Transform in the cartesian system */
-    real prt_xyz[3];
-    math_rpz2xyz(prt_rpz, prt_xyz);
+    /* Transform into the cartesian system */
+    real prtxyz[3];
+    math_rpz2xyz(prtrpz, prtxyz);
 
     real p_unit[3];
-    math_vec_rpz2xyz(p_rpz, p_unit, phiprt);
+    math_vec_rpz2xyz(prpz, p_unit, phiprt);
     p_unit[0] /= ptot;
     p_unit[1] /= ptot;
     p_unit[2] /= ptot;
 
+    real B_dBc[12];
+    math_jac_rpz2xyz(B_dB, B_dBc, Rprt, phiprt);
+    real jacB[9] = {B_dBc[1], B_dBc[2], B_dBc[3],
+		    B_dBc[5], B_dBc[6], B_dBc[7],
+		    B_dBc[9], B_dBc[10], B_dBc[11]};
+    real B[3] = {B_dBc[0], B_dBc[4], B_dBc[8]};
+    real B_norm = math_norm(B);
     real B_unit[3];
-    math_vec_rpz2xyz(b_rpz, B_unit, phiprt);
+    B_unit[0] = B[0]/B_norm;
+    B_unit[1] = B[1]/B_norm;
+    B_unit[2] = B[2]/B_norm;
 
+    real pitch = math_dot(p_unit,B_unit);
 
     /* Evaluate some required magnetic field quantities */
     real gradB[3];
@@ -213,16 +205,16 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
 
     /* Make the spatial transformation */
     real rho[3];
-    math_cross(B_unit,p_unit,rho);
-    math_prod(rho,ptot/(charge*B_norm));
+    math_cross(B_unit, p_unit, rho);
+    math_prod(rho, sqrt(2*mass*mu_0/B_norm)/charge );
 
     real rho_unit[3];
     math_unit(rho,rho_unit);
 
     real xyz[3];
-    xyz[0] = prt_xyz[0] - rho[0];
-    xyz[1] = prt_xyz[1] - rho[1];
-    xyz[2] = prt_xyz[2] - rho[2];
+    xyz[0] = prtxyz[0] - rho[0];
+    xyz[1] = prtxyz[1] - rho[1];
+    xyz[2] = prtxyz[2] - rho[2];
 
     /* First order momentum terms */
     real perphat[3];
@@ -256,22 +248,17 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
     phi[0] = rpz[1];
     z[0]   = rpz[2];
 
-    rho[0] = Rprt   - R[0];
-    rho[1] = phiprt - phi[0];
-    rho[2] = zprt   - z[0];
-    math_unit(rho,rho_unit);
-
     /* Calculate gyroangle (this is zeroth order) */
     real a1[3];
     real z_unit[3];
     z_unit[0] = 0.0;
     z_unit[1] = 0.0;
     z_unit[2] = 1.0;
-    math_cross(b_rpz,z_unit,a1);
+    math_cross(B_unit,z_unit,a1);
     math_unit(a1,a1);
 
     real a2[3];
-    math_cross(a1,b_rpz,a2);
+    math_cross(a1,B_unit,a2);
     math_unit(a2,a2);
 
     theta[0] = atan2(math_dot(rho_unit,a2),math_dot(rho_unit,a1));
@@ -298,15 +285,21 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
     real TEMP_V1[3];
 
     /* Helper variables */
-    real B_vec[3]  = {B_dB[0], B_dB[4], B_dB[8]};
+    real B_dBc[12];
+    math_jac_rpz2xyz(B_dB,B_dBc,R,phi);
+    real xyz[3];
+    real rpz[3] = {R, phi, z};
+    math_rpz2xyz(rpz,xyz);
+
+    real B_vec[3]  = {B_dBc[0], B_dBc[4], B_dBc[8]};
     real B_norm = math_norm(B_vec);
     real B_unit[3];
     math_unit(B_vec, B_unit);
 
-    /* Magnetic field jacobian, gradient and curl in cylindrical coordinates */
-    real jacB[9] = {B_dB[1], B_dB[2]/R, B_dB[3],
-		    B_dB[5], B_dB[6]/R, B_dB[7],
-		    B_dB[9], B_dB[10]/R, B_dB[11]};
+    /* Magnetic field jacobian, gradient and curl in cartesian coordinates */
+    real jacB[9] = {B_dBc[1], B_dBc[2],  B_dBc[3],
+		    B_dBc[5], B_dBc[6],  B_dBc[7],
+		    B_dBc[9], B_dBc[10], B_dBc[11]};
 
     real gradB[3];
     gradB[0] = B_unit[0]*jacB[0] + B_unit[0]*jacB[3] + B_unit[0]*jacB[6];
@@ -314,7 +307,7 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
     gradB[2] = B_unit[2]*jacB[2] + B_unit[2]*jacB[5] + B_unit[2]*jacB[8];
     math_matmul(jacB,B_unit,3,3,1,gradB);
 
-    real curlB[3] = {jacB[7]-jacB[5], jacB[2]-jacB[6], jacB[3]+B_vec[1]/R-jacB[1]};
+    real curlB[3] = {jacB[7]-jacB[5], jacB[2]-jacB[6], jacB[3]-jacB[1]};
 
     real tau_B = math_dot(B_unit, curlB)/B_norm;
     real nablabhat[9];
@@ -351,7 +344,7 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
     math_unit(a2,a2);
 
     real rho_unit[3];
-    rho_unit[0] = cos(theta)*a1[0]+sin(theta)*a2[0]; /* theta + for ions, - for elecs */
+    rho_unit[0] = cos(theta)*a1[0]+sin(theta)*a2[0]; 
     rho_unit[1] = cos(theta)*a1[1]+sin(theta)*a2[1];
     rho_unit[2] = cos(theta)*a1[2]+sin(theta)*a2[2];
 
@@ -359,18 +352,13 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
     rho[0] = rho_unit[0];
     rho[1] = rho_unit[1];
     rho[2] = rho_unit[2];
-    math_prod(rho,sqrt(mass*mu/B_norm)/fabs(charge));
-
-    /* Make the spatial transformation */
-    Rprt[0]   = R+rho[0];
-    phiprt[0] = phi+rho[1];
-    zprt[0]   = z+rho[2];
+    math_prod(rho,sqrt(2*mass*mu/B_norm)/charge);
 
     /* First order momentum terms */
     real perphat[3];
-    math_cross(rho_unit,B_unit,perphat); /* Does this hold for ions and elecs? */
+    math_cross(rho_unit,B_unit,perphat); 
 
-    real a1ddotgradb = -0.5*(2*(rho_unit[0]*perphat[0]*nablabhat[0]+
+/*    real a1ddotgradb = -0.5*(2*(rho_unit[0]*perphat[0]*nablabhat[0]+
 				rho_unit[1]*perphat[1]*nablabhat[4]+
 				rho_unit[2]*perphat[2]*nablabhat[8])
 			     +(rho_unit[0]*perphat[1]+rho_unit[1]*perphat[0])*
@@ -379,6 +367,15 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
 			      (nablabhat[2]+nablabhat[6])
 			     +(rho_unit[1]*perphat[2]+rho_unit[2]*perphat[1])*
 			      (nablabhat[5]+nablabhat[7]));
+*/
+    real A1[9] = {rho_unit[0]*perphat[0], rho_unit[1]*perphat[0], rho_unit[2]*perphat[0],
+		  rho_unit[0]*perphat[1], rho_unit[1]*perphat[1], rho_unit[2]*perphat[1],
+		  rho_unit[0]*perphat[2], rho_unit[1]*perphat[2], rho_unit[2]*perphat[2]};
+    real a1ddotgradb = 0;
+    for(int i=0; i<9; i++) {
+	a1ddotgradb += A1[i]*nablabhat[i];
+    }
+    a1ddotgradb *= -0.5;
 
     real p_para1 = -p_para0*math_dot(rho,kappa)+((mass*mu_0)/charge)*(tau_B+a1ddotgradb);
     TEMP_S1 = pow(p_para0,2)/(mass*B_norm);
@@ -401,8 +398,27 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
     p_perp[2] = perphat[2];
     math_prod(p_perp,sqrt(2*mass*(mu_0-mu_1)*B_norm));
 
+    /* Make the spatial transformation */
+    real xyzprt[3];
+    xyzprt[0] = xyz[0]+rho[0];
+    xyzprt[2] = xyz[1]+rho[1];
+    xyzprt[1] = xyz[2]+rho[2];
+
+    real rpzprt[3];
+    math_xyz2rpz(xyzprt,rpzprt);
+    Rprt[0]   = rpzprt[0];
+    phiprt[0] = rpzprt[1];
+    zprt[0]   = rpzprt[2];
+
     /* Calculate the momentum vector */
-    pR[0]   = p_para[0]+p_perp[0];
-    pphi[0] = p_para[1]+p_perp[1];
-    pz[0]   = p_para[2]+p_perp[2];
+    real pxyz[3];
+    pxyz[0]   = p_para[0]+p_perp[0];
+    pxyz[1]   = p_para[1]+p_perp[1];
+    pxyz[2]   = p_para[2]+p_perp[2];
+    
+    real prpz[3];
+    math_vec_xyz2rpz(pxyz,prpz,phiprt[0]);
+    pR[0]   = prpz[0];
+    pphi[0] = prpz[1];
+    pz[0]   = prpz[2];
 }

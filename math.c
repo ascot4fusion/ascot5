@@ -116,14 +116,14 @@ void math_grad_xyz2rpz(real* xyz, real* rpz, real r, real phi) {
 /**
  * @brief Convert a Jacobian from cylindrical to cartesian coordinates
  *
- * This function converts a Jacobian located at angle phi from cylindrical
- * to cartesian coordinates. The input Jacobian is an array with
+ * This function converts a Jacobian located at angle phi and radius r 
+ * from cylindrical to cartesian coordinates. The input Jacobian is an array with
  *
- * [dBr/dr dBr/dphi dBr/dz  dBphi/dr dBphi/dphi dBphi/dz  dBz/dr dBz/dphi dBz/dz]
+ * [Br dBr/dr dBr/dphi dBr/dz  Bphi dBphi/dr dBphi/dphi dBphi/dz  Bz dBz/dr dBz/dphi dBz/dz]
  *
  * an the output is
  *
- * [dBx/dx dBx/dy dBx/dz  dBy/dx dBy/dy dBy/dz  dBz/dx dBz/dy dBz/dz].
+ * [Bx dBx/dx dBx/dy dBx/dz  By dBy/dx dBy/dy dBy/dz  Bz dBz/dx dBz/dy dBz/dz].
  *
  * @param rpz input rpz coordinates in a 3-length array
  * @param xyz output xyz coordinates in a 3-length array
@@ -134,38 +134,101 @@ void math_jac_rpz2xyz(real* rpz, real* xyz, real r, real phi) {
     // Temporary variables
     real c = cos(phi);
     real s = sin(phi);
+    real temp[3];
+
+    xyz[0] = rpz[0] * c - rpz[4] * s;
+    xyz[4] = rpz[0] * s + rpz[4] * c;
+    xyz[8] = rpz[8];
     
+    // Step 1: Vector [dBr/dx dBr/dy dBr/dz]
+    temp[0] = rpz[1] * c - rpz[5] * s;
+    temp[1] = rpz[2] * c - rpz[6] * s;
+    temp[2] = rpz[3] * c - rpz[7] * s;
+    
+    // Step 2: Gradient
+    xyz[1] = temp[0] * c - temp[1] * s / r + (rpz[0]*s + rpz[4]*c) * s / r;
+    xyz[2] = temp[0] * s + temp[1] * c / r - (rpz[0]*s + rpz[4]*c) * c / r;
+    xyz[3] = temp[2];
+
+    // Step 1: Vector [dBphi/dx dBphi/dy dBphi/dz]
+    temp[0] = rpz[1] * s + rpz[5] * c;
+    temp[1] = rpz[2] * s + rpz[6] * c;
+    temp[2] = rpz[3] * s + rpz[7] * c;
+    
+    // Step 2: Gradient
+    xyz[5] = temp[0] * c - temp[1] * s / r + (rpz[0]*c - rpz[4]*s) * s / r;
+    xyz[6] = temp[0] * s + temp[1] * c / r - (rpz[0]*c - rpz[4]*s) * c / r;
+    xyz[7] = temp[2];
+
+    // Step 1: Vector [dBz/dx dBz/dy dBz/dz]
+    temp[0] = rpz[9];
+    temp[1] = rpz[10];
+    temp[2] = rpz[11];
+    
+    // Step 2: Gradient
+    xyz[9]  = temp[0] * c - temp[1] * s / r;
+    xyz[10] = temp[0] * s + temp[1] * c / r;
+    xyz[11] = temp[2];
+}
+
+/**
+ * @brief Convert a Jacobian from cartesian to cylindrical coordinates
+ *
+ * This function converts a Jacobian located at angle phi and radius r
+ * from cylindrical to cartesian coordinates. The input Jacobian is an array with
+ *
+ * [Bx dBx/dx dBx/dy dBx/dz  By dBy/dx dBy/dy dBy/dz  Bz dBz/dx dBz/dy dBz/dz]
+ *
+ * an the output is
+ *
+ * [Br dBr/dr dBr/dphi dBr/dz  Bphi dBphi/dr dBphi/dphi dBphi/dz  Bz dBz/dr dBz/dphi dBz/dz].
+ *
+ * @param xyz output xyz coordinates in a 3-length array
+ * @param rpz input rpz coordinates in a 3-length array
+ * @param r   r coordinate of the gradient
+ * @param phi phi coordinate of the gradient
+ */
+void math_jac_xyz2rpz(real* xyz, real* rpz, real r, real phi) {
+    // Temporary variables
+    real c = cos(phi);
+    real s = sin(phi);
     real temp[3];
     
+    rpz[0] =  xyz[0] * c + xyz[4] * s;
+    rpz[4] = -xyz[0] * s + xyz[4] * c;
+    rpz[8] =  xyz[8];
+
     // Step 1: Vector [dBx/dr dBx/dphi dBx/dz]
-    temp[0] = rpz[0] * c - rpz[3] * s;
-    temp[1] = rpz[1] * c - rpz[4] * s;
-    temp[2] = rpz[2] * c - rpz[5] * s;
+    temp[0] = xyz[1] * c + xyz[5] * s;
+    temp[1] = xyz[2] * c + xyz[6] * s;
+    temp[2] = xyz[3] * c + xyz[7] * s;
     
     // Step 2: Gradient
-    xyz[0] = temp[0] * c - temp[1] * s / r;
-    xyz[1] = temp[0] * s + temp[1] * c / r;
-    xyz[2] = temp[2];
+    rpz[1] =  temp[0] * c + temp[1] * s;
+    rpz[2] = -temp[0] * s * r + temp[1] * c * r  
+	- xyz[0] * s + xyz[4] * c;
+    rpz[3] =  temp[2];
 
     // Step 1: Vector [dBy/dr dBy/dphi dBy/dz]
-    temp[0] = rpz[0] * s + rpz[3] * c;
-    temp[1] = rpz[1] * s + rpz[4] * c;
-    temp[2] = rpz[2] * s + rpz[5] * c;
+    temp[0] = -xyz[1] * s + xyz[5] * c;
+    temp[1] = -xyz[2] * s + xyz[6] * c;
+    temp[2] = -xyz[3] * s + xyz[7] * c;
     
     // Step 2: Gradient
-    xyz[3] = temp[0] * c - temp[1] * s / r;
-    xyz[4] = temp[0] * s + temp[1] * c / r;
-    xyz[5] = temp[2];
+    rpz[5] =  temp[0] * c + temp[1] * s;
+    rpz[6] = -temp[0] * s * r + temp[1] * c * r
+	- xyz[0] * c - xyz[4] * s;
+    rpz[7] =  temp[2];
 
     // Step 1: Vector [dBz/dr dBz/dphi dBz/dz]
-    temp[0] = rpz[6];
-    temp[1] = rpz[7];
-    temp[2] = rpz[8];
+    temp[0] = xyz[9];
+    temp[1] = xyz[10];
+    temp[2] = xyz[11];
     
     // Step 2: Gradient
-    xyz[6] = temp[0] * c - temp[1] * s / r;
-    xyz[7] = temp[0] * s + temp[1] * c / r;
-    xyz[8] = temp[2];
+    rpz[9]  =  temp[0] * c + temp[1] * s;
+    rpz[10] = -temp[0] * s * r + temp[1] * c * r;
+    rpz[11] =  temp[2];
 }
 
 /**
