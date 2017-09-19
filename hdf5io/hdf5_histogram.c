@@ -96,7 +96,7 @@ int hdf5_histogram_write_uniform_double(
   if( 1 ) {
     dims[6] = ordinateLength;
     for ( i=0;            i<abscissaDim; ++i ) dims[6-(i+1)] = abscissaNslots[i] ;
-    for ( i=abscissaDim;  i<7;           ++i ) dims[6-(i+1)] = 1;
+    //for ( i=abscissaDim;  i<7;           ++i ) dims[6-(i+1)] = 1; This line would just rewrite ordinateLength...
   }else{
     dims[0] = ordinateLength;
     for ( i=0;            i<abscissaDim; ++i ) dims[  (i+1)] = abscissaNslots[i] ;
