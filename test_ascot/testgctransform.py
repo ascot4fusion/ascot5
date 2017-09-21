@@ -17,10 +17,11 @@ def run():
     AMU2KG = constants.physical_constants['atomic mass unit-kilogram relationship'][0]
     BOLTZMANN_CONSTANT = constants.Boltzmann
     EV2K = constants.physical_constants['electron volt-kelvin relationship'][0]
+    C2 = constants.c * constants.c
 
     # Test options
-    writedt = 1e-11
-    simtime = 4e-6
+    writedt = 1e-12
+    simtime = 1e-7
 
     # Proton
     m = 1.00727647
@@ -43,7 +44,7 @@ def run():
                           3.825826765593096646e-01, -3.573153147754407621e-01, -1.484166833037287025e-02, 1.506045943286430100e-01, 
                           7.428226459414810634e-01, -4.447153105104519888e-01, -1.084640395736786167e-01, 1.281599235951017685e-02, 
                           -0.155])
-    B_GS.write_hdf5(fn[0], R0, z0, B_phi0, psi_mult, psi_coeff)
+    #B_GS.write_hdf5(fn[0], R0, z0, B_phi0, psi_mult, psi_coeff)
 
     # Markers
     Nmrk   = 1
@@ -55,15 +56,15 @@ def run():
     z      = 0*np.ones(ids.shape)
     weight = 1*np.ones(ids.shape)
     time   = 0*np.ones(ids.shape)
-    energy = 1.0e3*np.ones(ids.shape)
-    pitch  = 0.999*np.ones(ids.shape)
+    energy = 1.0e6*np.ones(ids.shape)
+    pitch  = 0.5*np.ones(ids.shape)
     theta  = 0*np.ones(ids.shape)  
 
     # Options
     o = options.read_hdf5(fn[0])
     o["SIM_MODE"]                  = 0*o["SIM_MODE"] + 1
     o["FIXEDSTEP_USE_USERDEFINED"] = 0*o["FIXEDSTEP_USE_USERDEFINED"] + 1
-    o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + 1e-11
+    o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + 1e-12
     o["ENABLE_ORBIT_FOLLOWING"]    = 0*o["ENABLE_ORBIT_FOLLOWING"] + 1
     o["ENABLE_ORBITWRITE"]         = 0*o["ENABLE_ORBITWRITE"] + 1
     o["ORBITWRITE_MODE"]           = 0*o["ORBITWRITE_MODE"] + 1
@@ -72,7 +73,12 @@ def run():
     o["ORBITWRITE_INTERVAL"]       = 0*o["ORBITWRITE_INTERVAL"] + writedt
     options.write_hdf5(fn[0],o)
     
-    markers.write_hdf5_guidingcenters(fn[0], Nmrk, ids, mass, charge, R, phi, z, energy, pitch, theta, weight, time)
+    gamma = 1+energy*ELEMENTARY_CHARGE/(mass*AMU2KG*C2)
+    v = np.sqrt(1-1/(gamma*gamma))*constants.c
+    vR = np.sqrt(1-pitch*pitch)*v
+    vphi = pitch*v
+    vz = 0
+    markers.write_hdf5_particles(fn[0], Nmrk, ids, mass, charge, R, phi, z, vR, vphi, vz, weight, time)
     
     subprocess.call(["cp", fn[0], fn[1]])
     subprocess.call(["cp", fn[0], fn[2]])
@@ -83,7 +89,7 @@ def run():
 
     o = options.read_hdf5(fn[2])
     o["SIM_MODE"]                  = 0*o["SIM_MODE"] + 2
-    o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + 1e-9
+    o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + 1e-12
     options.write_hdf5(fn[2],o)
 
     # Simulate.
@@ -104,7 +110,7 @@ def run():
     gomu   = gamma*gamma*(1-pitch*pitch) * go["mass"] * AMU2KG * np.power(physlib.vecnorm(go["v_R"],go["v_phi"],go["v_z"]),2)/physlib.vecnorm(go["B_R"],go["B_phi"],go["B_z"])
     gomu   = 0.5*gomu/ELEMENTARY_CHARGE
 
-    if True:
+    if False:
         plt.figure()
         plt.plot(go["R"], go["z"])
         plt.plot(go2gc["R"], go2gc["z"])
