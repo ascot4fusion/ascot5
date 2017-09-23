@@ -6,7 +6,9 @@
 #include "endcond.h"
 #include "particle.h"
 #include "simulate.h"
-#include "phys_orbit.h"
+#include "physlib.h"
+#include "consts.h"
+#include "math.h"
 
 void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, sim_data* sim) {
     int i;
@@ -36,9 +38,9 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, sim_data* si
 
 	    /* Min energy */
 	    if(sim->endcond_active & endcond_emin) {
-		real v = sqrt(p_f->rdot[i] * p_f->rdot[i] + p_f->phidot[i] * p_f->phidot[i] * p_f->r[i] * p_f->r[i] + 
-			      p_f->zdot[i] * p_f->zdot[i]);
-		real ekin = CONST_C2 * p_f->mass[i] * (phys_gammaprtv(v) - 1);
+		real vnorm = math_normc(p_f->rdot[i], p_f->phidot[i] * p_f->r[i], p_f->zdot[i]);
+		real gamma = physlib_relfactorv_fo(vnorm);
+		real ekin = CONST_C2 * p_f->mass[i] * (gamma - 1);
 
 		/* Fixed limit */
 		if(ekin < sim->endcond_minEkin) {
@@ -116,7 +118,9 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, sim_data* si
 
 	/* Min energy */
 	if(sim->endcond_active & endcond_emin) {
-	    real ekin = CONST_C2 * p_f->mass[i] * (phys_gammagcv(p_f->mass[i],p_f->vpar[i],p_f->mu[i]) - 1);
+	    real Bnorm = math_normc(p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]);
+	    real gamma = physlib_relfactorv_gc(p_f->mass[i], p_f->mu[i], p_f->vpar[i], Bnorm);
+	    real ekin = CONST_C2 * p_f->mass[i] * (gamma - 1);
 
 	    /* Fixed limit */
 	    if(ekin < sim->endcond_minEkin) {

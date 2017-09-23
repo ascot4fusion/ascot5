@@ -353,6 +353,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 	        
 	    /* Evaluate coefficients */
 	    real Bnorm = math_norm(B);
+	    
 	    real tmp = 2*p->mu[i]*Bnorm/p->mass[i];
 	    real vin = sqrt(p->vpar[i]*p->vpar[i] + tmp);
 	    xiin = p->vpar[i]/vin;
@@ -410,8 +411,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 		Xout[1] = Xin[1];
 		Xout[2] = Xin[2];
 	    #endif
-	    p->mu[i] = (1-xiout*xiout)*p->mass[i]*vout*vout/(2*Bnorm);
-	    p->vpar[i] = vout*xiout;
+	    
 	    p->r[i] = sqrt(Xout[0]*Xout[0] + Xout[1]*Xout[1]);
 	    p->z[i] = Xout[2];
 
@@ -448,6 +448,10 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
 	    B_field_eval_rho(rho, psi[0], Bdata);
 	    p->rho[i] = rho[0];
+
+	    Bnorm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
+	    p->mu[i] = (1-xiout*xiout)*p->mass[i]*vout*vout/(2*Bnorm);
+	    p->vpar[i] = vout*xiout;
 	}
     }
 }
