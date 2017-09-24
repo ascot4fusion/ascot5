@@ -89,7 +89,7 @@ void mccc_push_gcEM(real K, real nu, real Dpara, real DX, real* B, real dt, real
 
     /* Use Euler-Maruyama method to get Xout, vout, and xiout */
 
-    real k1 = sqrt(DX);
+    real k1 = sqrt(2*DX);
     real k2 = math_dot(bhat,dW);
 
     Xout[0] = Xin[0] + k1*(dW[0]-k2*bhat[0]);
@@ -154,7 +154,7 @@ void mccc_push_gcMI(real K, real nu, real Dpara, real DX, real* B, real dt, real
 
     /* Use Euler-Maruyama method to get Xout, vout, and xiout */
 
-    real k1 = sqrt(DX);
+    real k1 = sqrt(2*DX);
     real k2 = math_dot(bhat,dW);
 
     Xout[0] = Xin[0] + k1*(dW[0]-k2*bhat[0]);

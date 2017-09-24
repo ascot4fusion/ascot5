@@ -10,59 +10,74 @@ import a5py.ascot5io.ascot5 as ascot5
 import a5py.ascot5io.options as options
 import a5py.ascot5io.B_GS as B_GS
 import a5py.ascot5io.markers as markers
-import analyticBKGpsifun as psifun
+import a5py.postprocessing.physicslib as physlib
+import a5py.preprocessing.analyticequilibrium as psifun
 import testfunctions as tf
 from testcase import createbase
 
-def run():
+ELEMENTARY_CHARGE = constants.elementary_charge
+AMU2KG = constants.physical_constants['atomic mass unit-kilogram relationship'][0]
+BOLTZMANN_CONSTANT = constants.Boltzmann
+EV2K = constants.physical_constants['electron volt-kelvin relationship'][0]
 
-    ELEMENTARY_CHARGE = constants.elementary_charge
-    AMU2KG = constants.physical_constants['atomic mass unit-kilogram relationship'][0]
-    BOLTZMANN_CONSTANT = constants.Boltzmann
-    EV2K = constants.physical_constants['electron volt-kelvin relationship'][0]
+psi_coeff = np.array([8.629491085780416348e-02, 3.279306587723925803e-01, 5.268677701240817024e-01, -2.366208946912087274e-01, 
+                      3.825826765593096646e-01, -3.573153147754407621e-01, -1.484166833037287025e-02, 1.506045943286430100e-01, 
+                      7.428226459414810634e-01, -4.447153105104519888e-01, -1.084640395736786167e-01, 1.281599235951017685e-02, 
+                      -0.155])
+psi_mult = 200
+R0 = 6.2
+z0 = 0
+
+simmode = [2, 2, 1]
+fn = ['orbfol_GCFIX.h5', 'orbfol_GCADA.h5', 'orbfol_GO.h5']
+
+def init(fast):
+    
 
     # Test options
-    simmode = [2, 2, 1]
-    adaptive = [0, 1, 0]
-    timestep = [1e-8, 1e-8, 1.e-10]
-    tolorb = 1e-8
-    tolcol = 1e-2
-    writedt = 2e-7
-    simtime = 1e-3
-    Nmrk = 4
+   
+    adaptive      = [0, 1, 0]
+    timestep      = [1e-11, 1e-11, 1e-13]
+    tolorb        = 1e-9
+    Nmrk          = 4
 
-    # Proton
-    m = 1.00727647
-    q = 1
+    if(fast):
+        simtime = 5e-6
+    else:
+        simtime = 1e-4
+    writedt       = simtime/1e5
+
+    # Proton and electron info (mass [amu], charge [e], energy [eV])
+    mp = 1.00727647
+    qp = 1
+    Ep = 1e6
+
+    me = 5.485799090e-4
+    qe = -1
+    Ee = 1e8
+
 
     # Init testbase.
-    fn = ['GCfixed.h5', 'GCadaptive.h5', 'GO.h5'] #@GO adaptive == fixed
     Bxyz = np.array([1, 0, 0])
     Exyz = np.array([0, 0, 0])
     n = 1e20
     T = 1e3
 
     # Init magnetic field.
-    R0 = 6.2
-    z0 = 0
     B_phi0 = 5.3
-    psi_mult = 200
-    psi_coeff = np.array([8.629491085780416348e-02, 3.279306587723925803e-01, 5.268677701240817024e-01, -2.366208946912087274e-01, 
-                          3.825826765593096646e-01, -3.573153147754407621e-01, -1.484166833037287025e-02, 1.506045943286430100e-01, 
-                          7.428226459414810634e-01, -4.447153105104519888e-01, -1.084640395736786167e-01, 1.281599235951017685e-02, 
-                          -0.155])
-
+    
+    
     # Markers
     ids    = np.linspace(1,Nmrk,Nmrk)
-    mass   = m*np.ones(ids.shape)
-    charge = q*np.ones(ids.shape)
-    R      = np.linspace(6.4,7.4,Nmrk)
+    mass   = me*np.ones(ids.shape)
+    charge = qe*np.ones(ids.shape)
+    R      = 7.6*np.ones(ids.shape)
     phi    = 0*np.ones(ids.shape)
     z      = 0*np.ones(ids.shape)
     weight = 1*np.ones(ids.shape)
     time   = 0*np.ones(ids.shape)
-    energy = 1.0e5*np.ones(ids.shape)
-    pitch  = np.array([-0.9, -0.3, 0.3, 0.9])
+    energy = 1e7*np.ones(ids.shape)
+    pitch  = np.array([-0.9, -0.5, 0.9, 0.5])
     theta  = 0*np.ones(ids.shape)
 
     for i in range(0,len(fn)):
@@ -71,133 +86,181 @@ def run():
 
         # Options
         o = options.read_hdf5(fn[i])
-        o["SIM_MODE"]                  = 0*o["SIM_MODE"] + simmode[i]
-        o["ENABLE_ADAPTIVE"]           = 0*o["ENABLE_ADAPTIVE"] + adaptive[i]
-        o["FIXEDSTEP_USE_USERDEFINED"] = 0*o["FIXEDSTEP_USE_USERDEFINED"] + 1
-        o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + timestep[i]
-        o["ADAPTIVE_TOL_ORBIT"]        = 0*o["ADAPTIVE_TOL_ORBIT"] + tolorb
-        o["ADAPTIVE_TOL_CCOL"]         = 0*o["ADAPTIVE_TOL_CCOL"] + tolcol
-        o["ENABLE_ORBIT_FOLLOWING"]    = 0*o["ENABLE_ORBIT_FOLLOWING"] + 1
-        o["ENABLE_ORBITWRITE"]         = 0*o["ENABLE_ORBITWRITE"] + 1
-        o["ORBITWRITE_MODE"]           = 0*o["ORBITWRITE_MODE"] + 1
-        o["ENDCOND_SIMTIMELIM"]        = 0*o["ENDCOND_SIMTIMELIM"] + 1
-        o["ENDCOND_MAX_SIM_TIME"]      = 0*o["ENDCOND_MAX_SIM_TIME"] + simtime
-        o["ORBITWRITE_INTERVAL"]       = 0*o["ORBITWRITE_INTERVAL"] + writedt
+        o["SIM_MODE"]                      = 0*o["SIM_MODE"] + simmode[i]
+        o["ENABLE_ADAPTIVE"]               = 0*o["ENABLE_ADAPTIVE"] + adaptive[i]
+        o["FIXEDSTEP_USE_USERDEFINED"]     = 0*o["FIXEDSTEP_USE_USERDEFINED"] + 1
+        o["FIXEDSTEP_USERDEFINED"]         = 0*o["FIXEDSTEP_USERDEFINED"] + timestep[i]
+        o["ADAPTIVE_TOL_ORBIT"]            = 0*o["ADAPTIVE_TOL_ORBIT"] + tolorb
+        o["ENABLE_ORBIT_FOLLOWING"]        = 0*o["ENABLE_ORBIT_FOLLOWING"] + 1
+        o["ENABLE_ORBITWRITE"]             = 0*o["ENABLE_ORBITWRITE"] + 1
+        o["ORBITWRITE_MODE"]               = 0*o["ORBITWRITE_MODE"] + 1
+        o["ENDCOND_SIMTIMELIM"]            = 0*o["ENDCOND_SIMTIMELIM"] + 1
+        o["ENDCOND_MAX_SIM_TIME"]          = 0*o["ENDCOND_MAX_SIM_TIME"] + simtime
+        o["ORBITWRITE_INTERVAL"]           = 0*o["ORBITWRITE_INTERVAL"] + writedt
         options.write_hdf5(fn[i],o)
 
         markers.write_hdf5_guidingcenters(fn[i], Nmrk, ids, mass, charge, R, phi, z, energy, pitch, theta, weight, time)
 
-        # Simulate.
+def run():
+    # Simulate.
+    for i in range(len(fn)):
         subprocess.call(["./ascot5_main", "--in="+fn[i][0:-3]])
 
+def check(plot):
+    Etol = np.array([1e-6, 1e-6, 1e-6])
+    mutol = np.array([1e-8, 1e-8, 5e-2])
+    cpphitol = np.array([1e-3, 1e-3, 1e-3])
+
     # Read orbits
-    orb, t, B, R, z, e, mu, pphi = ([] for i in range(8))
+    ids, t, R, z, Ekin, mu, cpphi = ([] for i in range(7))
     for i in range(0,len(fn)):
         if simmode[i] == 1:
-            orb.append(ascot5.read_hdf5(fn[i],"orbits")["orbits"]["fo"])
+            orb = ascot5.read_hdf5(fn[i],"orbits")["orbits"]["fo"]
         else:
-            orb.append(ascot5.read_hdf5(fn[i],"orbits")["orbits"]["gc"])
+            orb = ascot5.read_hdf5(fn[i],"orbits")["orbits"]["gc"]
 
-        t.append(orb[i]["time"])
-        B.append(np.sqrt(np.power(orb[i]["B_R"],2) + np.power(orb[i]["B_phi"],2) + np.power(orb[i]["B_z"],2)))
-        R.append(orb[i]["R"])
-        z.append(orb[i]["z"])
-        if simmode[i] == 1:
-            v = np.sqrt(np.power(orb[i]["v_R"],2) + np.power(orb[i]["v_phi"],2) + np.power(orb[i]["v_z"],2))
-            e.append(0.5 * m * np.power(v,2) * AMU2KG / ELEMENTARY_CHARGE)
-            
-            pitch = (orb[i]["B_R"] * orb[i]['v_R'] + orb[i]["B_phi"] * orb[i]['v_phi'] + orb[i]["B_z"] * orb[i]['v_z']) / ( v * B[i] )
+        ids.append(orb["id"])
+        t.append(orb["time"])
+        R.append(orb["R"])
+        z.append(orb["z"])
 
-            mu.append(0.5*(1-np.power(pitch,2))*np.power(v,2)*m*AMU2KG/(B[i]*ELEMENTARY_CHARGE))
-        else:
-            e.append(orb[i]["mu"] * B[i] + 0.5 * m * np.power(orb[i]["vpar"],2) * AMU2KG / ELEMENTARY_CHARGE)
-            mu.append(orb[i]["mu"])
-    
-        #Canonical momentum
         c = psi_coeff
         psi = psi_mult*psifun.psi0(R[i]/R0,z[i]/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12])
-        if simmode[i] == 2:
-            vtor = orb[i]["vpar"] * orb[i]["B_phi"] / B[i]
-            pphi.append(mass[0]* AMU2KG * R[i] * vtor + charge[0]* ELEMENTARY_CHARGE*psi)
-                #tf.canonicalMomentum(mass[0]* AMU2KG,R[i],orb[i]["vpar"],charge[0]* ELEMENTARY_CHARGE,psi[i]))
+        B = np.sqrt(np.power(orb["B_R"],2) + np.power(orb["B_phi"],2) + np.power(orb["B_z"],2))
+
+        if simmode[i] == 1:
+            v = np.sqrt(np.power(orb["v_R"],2) + np.power(orb["v_phi"],2) + np.power(orb["v_z"],2))
+            pitch = (orb["B_R"] * orb['v_R'] + orb["B_phi"] * orb['v_phi'] + orb["B_z"] * orb['v_z']) / (v*B)
+            gamma = 1/np.sqrt( 1-np.power(v/constants.c,2) )
+
+            Ekin.append( (gamma-1)*orb["mass"]*AMU2KG * constants.c * constants.c / ELEMENTARY_CHARGE)
+            mu.append(0.5*(1-np.power(pitch,2))*np.power(v*gamma,2)*orb["mass"]*AMU2KG/(B*ELEMENTARY_CHARGE))
+            cpphi.append(gamma * orb["mass"] * AMU2KG * R[i] * orb["v_phi"] + orb["charge"] * ELEMENTARY_CHARGE * psi)
         else:
-            pphi.append(mass[0]* AMU2KG * R[i] * orb[i]["v_phi"] + charge[0]* ELEMENTARY_CHARGE*psi)
-                #tf.canonicalMomentum(mass[0]* AMU2KG,R[i],vpar,charge[0]* ELEMENTARY_CHARGE,psi[i]))
+            Ekin.append(physlib.Ekin(massamu=orb["mass"], mueVperT=orb["mu"], vpar=orb["vpar"], Btot=B)/ELEMENTARY_CHARGE)
+            gamma = 1 + Ekin[i]/(orb["mass"]*AMU2KG * constants.c * constants.c / ELEMENTARY_CHARGE)
 
-    # Plot if needed.
-    
-    
-    plt.figure()
-    for i in range(len(fn)):
-        plt.plot(t[i],e[i],'.')
-    plt.show()
-
-    plt.figure()
-    for i in range(len(fn)):
-        plt.plot(t[i],mu[i],'.')
-    plt.show()
-
-    plt.figure()
-    for i in range(len(fn)):
-        plt.plot(R[i],z[i],'.')
-    plt.show()
-    
-    plt.figure()
-    for i in range(len(fn)):
-        plt.plot(t[i],pphi[i],'.')
-    plt.show()
-    
-
-    # Write relevant data in files for plotting in Matlab
-
-    #canonical momentum
-    with open('pphi.txt', 'w') as f:
-        for run in pphi:
-            for val in run:
-                f.write("%s," % val)
-            f.write("\n")
-
-    #time
-    with open('time.txt', 'w') as f:
-        for run in t:
-            for val in run:
-                f.write("%s," % val)
-            f.write("\n")
-
-    #energy
-    with open('energy.txt', 'w') as f:
-        for run in e:
-            for val in run:
-                f.write("%s," % val)
-            f.write("\n")
-
-    #magnetic moment
-    with open('mu.txt', 'w') as f:
-        for run in mu:
-            for val in run:
-                f.write("%s," % val)
-            f.write("\n")
-
-    #location in R-coordinate
-    with open('R.txt', 'w') as f:
-        for run in R:
-            for val in run:
-                f.write("%s," % val)
-            f.write("\n")
-
-    #location in z-coordinate
-    with open('z.txt', 'w') as f:
-        for run in z:
-            for val in run:
-                f.write("%s," % val)
-            f.write("\n")
+            mu.append(orb["mu"])
+            vtor = orb["vpar"] * orb["B_phi"] / B
+            cpphi.append(gamma * orb["mass"] * AMU2KG * R[i] * vtor + orb["charge"] * ELEMENTARY_CHARGE * psi)
+            
 
     # Compare.
+    isOkay = np.ones((3,4),dtype='int32')
+    Ei = np.zeros(isOkay.shape)
+    Ef = np.zeros(isOkay.shape)
+    Ee = np.zeros(isOkay.shape)
+    mui = np.zeros(isOkay.shape)
+    muf = np.zeros(isOkay.shape)
+    mue = np.zeros(isOkay.shape)
+    cpphii = np.zeros(isOkay.shape)
+    cpphif = np.zeros(isOkay.shape)
+    cpphie = np.zeros(isOkay.shape)
+    
+    for i in range(0,len(fn)):
+        for j in range(0,4):
+            idx = ids[i] == j+1
+            E = Ekin[i][idx]
+            Ei[i][j] = np.max(E)
+            Ef[i][j] = np.min(E)
+            Ee[i][j] = np.absolute((Ei[i][j]-Ef[i][j])/Ei[i][j])
 
+            muu = mu[i][idx]
+            mui[i][j] = np.max(muu)
+            muf[i][j] = np.min(muu)
+            mue[i][j] = np.absolute((mui[i][j]-muf[i][j])/mui[i][j])
 
-    # Clean.
-    #for f in fn:
-    #    subprocess.call(["rm", f])
+            cpphix = cpphi[i][idx]
+            cpphii[i][j] = np.max(cpphix)
+            cpphif[i][j] = np.min(cpphix)
+            cpphie[i][j] = np.absolute((cpphii[i][j]-cpphif[i][j])/cpphii[i][j])
+            
+            if( Ee[i][j]  > Etol[i]):
+                isOkay[i,j] = 0
+            if( mue[i][j] > mutol[i]):
+                isOkay[i,j] = 0
+            if( cpphie[i][j]  > cpphitol[i]):
+                isOkay[i,j] = 0
+
+    ok = ["WRONG!", "OK"]
+
+    print("\nInitial and final energy, mag. mom., and can. tor. mom. and error\n")
+    mode = ["GCA", "GCF", "GO"]
+    for j in range(2,-1,-1):
+        for i in range(0,4):
+            print("\n" + mode[j] + " " + str(i+1) +
+                  " E: " + str(Ei[j][i]) + ", " + str(Ef[j][i]) + ", " + str(Ee[j][i]) + 
+                  "\n mu: " + str(mui[j][i]) + ", " + str(muf[j][i]) + ", " + str(mue[j][i]) + 
+                  "\n cpphi: " + str(cpphii[j][i]) + ", " + str(cpphif[j][i]) + ", " + str(cpphie[j][i]) + 
+                  "\n " + ok[isOkay[j][i]])
+
+    isOkay = np.sum(np.sum(isOkay))
+    if(isOkay == 3*4):
+        print("Test succeeded.")
+    else:
+        print("Test failed!")
+
+    # Plot if needed.
+    if(plot):
+        c = ['b', 'g', 'r']
+        f  = plt.figure()
+        a1 = f.add_subplot(2,2,1)
+        a2 = f.add_subplot(2,2,2)
+        a3 = f.add_subplot(2,2,3)
+        a4 = f.add_subplot(2,2,4)
+
+        for i in range(2,-1,-1):
+            for j in range(0,4):
+                idx = ids[i] == j+1
+                Ei = Ekin[i][idx]
+                ti = t[i][idx]
+                mui = mu[i][idx]
+                cpphii = cpphi[i][idx]
+                Ri = R[i][idx]
+                zi = z[i][idx]
+
+                a1.plot(ti,Ei/Ei[0],color=c[i])
+                a2.plot(ti,mui/mui[0],color=c[i])
+                a3.plot(ti,cpphii/cpphii[0],color=c[i])
+                a4.plot(Ri,zi,color=c[i])
+
+        a1.set_xlabel("Time (s)")
+        a1.set_ylabel("Relative change in energy")
+
+        a2.set_xlabel("Time (s)")
+        a2.set_ylabel("Relative change in mu")
+
+        a3.set_xlabel("Time (s)")
+        a3.set_ylabel("Relative change in cpphhi")
+
+        a4.set_xlabel("R (m)")
+        a4.set_ylabel("z (m)")
+        
+        plt.show()
+
+    return isOkay
+
+def clean():
+    # Clean
+    for f in fn:
+        subprocess.call(["rm", f])
 
 if __name__ == '__main__':
+    print("\n\
+    This test validates the orbit-following.\n\
+    Markers are simulated in ITER-like background without collisions.\n\
+    Markers are relativistic electrons (Ekin = 100 MeV). Simulations \n\
+    are repeated with GO, GC fixed and GC adaptive modes.\n\
+    \n\
+    In GC modes, energy and canonical toroidal momentum may drift but this\n\
+    drift should decrease with time step. Magnetic moment should be conserved\n\
+    exactly.\n\
+    \n\
+    In GO mode, energy is conserved exactly but canonical momentum and\n\
+    magnetic moment might drift.\n\
+    ")
+
+    init(True)
     run()
+    check(True)
+    clean()
