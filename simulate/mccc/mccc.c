@@ -288,7 +288,7 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
 	    vin[1] = p->rdot[i] * sin(p->phi[i]) + (p->phidot[i]*p->r[i]) * cos(p->phi[i]);
 	    vin[2] = p->zdot[i];
 			
-	    mccc_push_foEM(F,Dpara,Dperp,h[i],rnd,vin,vout,&err[i]);
+	    mccc_push_foEM(F,Dpara,Dperp,h[i],&rnd[i*3],vin,vout,&err[i]);
 			
 	    /* Update particle */
 	    #if A5_CCOL_NOENERGY
@@ -396,7 +396,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 		
 	    
 	    /* Evaluate collisions */
-	    mccc_push_gcEM(K,nu,Dpara,DX,B,h[i],rnd, 
+	    mccc_push_gcEM(K,nu,Dpara,DX,B,h[i],&rnd[i*5], 
 			   vin,&vout,xiin,&xiout,Xin,Xout,cutoff,&err[i]);
 		    
 	    /* Update particle */
