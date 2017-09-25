@@ -50,11 +50,11 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i);
  * @todo See simulate_gc_adaptive.c
  */
 void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
-    int cycle[NSIMD];
-    real hin[NSIMD];
-    int err[NSIMD];
+    int cycle[NSIMD]  __memalign__;
+    real hin[NSIMD]  __memalign__;
+    int err[NSIMD]  __memalign__;
     
-    real cputime_last[NSIMD];
+    real cputime_last[NSIMD] __memalign__;
     real cputime;
 
     particle_simd_fo p;  // This array holds current states

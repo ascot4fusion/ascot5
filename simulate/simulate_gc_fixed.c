@@ -50,10 +50,10 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
  */
 void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
    
-    int cycle[NSIMD];
-    int err[NSIMD];
-    real hin[NSIMD];
-    real cputime_last[NSIMD];
+    int cycle[NSIMD]  __memalign__;
+    int err[NSIMD]  __memalign__;
+    real hin[NSIMD]  __memalign__;
+    real cputime_last[NSIMD]  __memalign__;
     real cputime;
 
     particle_simd_gc p;  // This array holds current states

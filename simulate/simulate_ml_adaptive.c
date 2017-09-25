@@ -53,11 +53,11 @@ real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i);
 void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 
     /* Arrays needed for the adaptive time step */
-    real hin[NSIMD];
-    real hout[NSIMD];
-    real hnext[NSIMD];
-    int cycle[NSIMD];
-    real cputime_last[NSIMD];
+    real hin[NSIMD] __memalign__;
+    real hout[NSIMD] __memalign__;
+    real hnext[NSIMD] __memalign__;
+    int cycle[NSIMD] __memalign__;
+    real cputime_last[NSIMD] __memalign__;
     real cputime;
     real tol = sim->ada_tol_orbfol;
     int i;

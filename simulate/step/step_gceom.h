@@ -7,7 +7,7 @@
 #include "../../ascot5.h"
 
 #pragma omp declare target
-#pragma omp simd uniform(y, B_dB, E)
+#pragma omp declare simd uniform(y, B_dB, E)
 void step_gceom(real* ydot, real* y, real mass, real charge, real* B_dB, real* E);
 #pragma omp end declare target
 

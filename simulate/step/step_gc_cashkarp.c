@@ -33,7 +33,9 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
 
     int i;
     /* Following loop will be executed simultaneously for all i */
-    #pragma omp simd 
+    __assume_aligned(h, 64);
+    __assume_aligned(hnext, 64);
+    #pragma omp simd aligned(h, hnext : 64)
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
             real k1[6];

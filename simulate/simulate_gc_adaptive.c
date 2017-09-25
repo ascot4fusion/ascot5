@@ -59,17 +59,17 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 	wienarr[i] = malloc(sizeof(mccc_wienarr));
     }
 
-    int cycle[NSIMD];
-    real hin[NSIMD];
-    real hout_orb[NSIMD];
-    real hout_col[NSIMD];
-    real hnext[NSIMD];
-    int err[NSIMD];
+    int cycle[NSIMD] __memalign__;
+    real hin[NSIMD]  __memalign__;
+    real hout_orb[NSIMD]  __memalign__;
+    real hout_col[NSIMD]  __memalign__;
+    real hnext[NSIMD]  __memalign__;
+    int err[NSIMD]  __memalign__;
     real tol_col = sim->ada_tol_clmbcol;
     real tol_orb = sim->ada_tol_orbfol;
     int i;
 
-    real cputime_last[NSIMD];
+    real cputime_last[NSIMD]  __memalign__;
     real cputime;
 
     particle_simd_gc p;  // This array holds current states
