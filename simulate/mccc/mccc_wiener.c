@@ -221,10 +221,10 @@ void mccc_wiener_clean(mccc_wienarr* w, real t, int* err){
 void mccc_wiener_boxmuller(real* randVar, int Ndim){
     
     real x1, x2, w, s;
-    int isOdd; /* Indicates if even number of random numbers are requested */
+    int isEven; /* Indicates if even number of random numbers are requested */
     int i; /* Helper variables */
     
-    isOdd = (Ndim+1) % 2;
+    isEven = (Ndim+1) % 2;
 #if A5_CCOL_USE_GEOBM == 1
     /* The geometric form */
     for( i = 0; i < Ndim; i=i+2){
@@ -237,7 +237,7 @@ void mccc_wiener_boxmuller(real* randVar, int Ndim){
 	
 	w = sqrt( (-2 * log( w ) ) / w );
 	randVar[i] = x1 * w;
-	if((i < Ndim-2) || (isOdd > 0)) {
+	if((i < Ndim-2) || (isEven > 0)) {
 	    randVar[i+1] = x2 * w;
 	}
     }
@@ -249,7 +249,7 @@ void mccc_wiener_boxmuller(real* randVar, int Ndim){
 	w = sqrt(-2*log(x1));
 	s = cos(CONST_2PI*x2);
 	randVar[i] = w*s;
-	if((i < Ndim-2) || (isOdd > 0) ){
+	if((i < Ndim-2) || (isEven > 0) ){
 	    if(x2 < 0.5){
 		randVar[i+1] = w*sqrt(1-s*s);
 	    }
