@@ -139,8 +139,8 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
                 hnext[i] = 0.85*h[i]*pow(err,-0.2);
 
 		/* Make sure we don't make a huge jump */
-		if(hnext[i] > 1.5*hin[i]) {
-                    hnext[i] = 1.5*hin[i];
+		if(hnext[i] > 1.5*h[i]) {
+                    hnext[i] = 1.5*h[i];
                 }
 	    }
 	    else{
