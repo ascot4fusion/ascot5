@@ -654,6 +654,10 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    if(rejected){
 		hout[i] = -hout[i];
 	    }
+	    else if(hout[i] > 1.5*hin[i]) {
+		/* Make sure we don't increase time step too much */
+		hout[i] = 1.5*hin[i];
+	    }
 	    
 	}
     }
