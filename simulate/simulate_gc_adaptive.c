@@ -193,6 +193,19 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 	cputime = A5_WTIME;
 	#pragma omp simd
 	for(i = 0; i < NSIMD; i++) {
+	    /* Check other time step limitations */
+	    
+	    if(hnext[i] > 0) {
+	        real dphi = fabs(p0.phi[i]-p.phi[i]) / sim->ada_max_dphi;
+		real drho = fabs(p0.rho[i]-p.rho[i]) / sim->ada_max_drho;
+
+		if(dphi > 1 && dphi > drho) {
+		    hnext[i] = -hin[i]/dphi;
+		}
+		else if(drho > 1 && drho > dphi) {
+		    hnext[i] = -hin[i]/drho;
+		}
+	    }
 	    /* Retrieve marker states in case time step was rejected */
 	    if(hnext[i] < 0){
 		p.r[i]        = p0.r[i];
@@ -252,6 +265,9 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 		    }
 		    if(hnext[i] == 1.0) {
 			hnext[i] = hin[i];
+		    }
+		    else if(hnext[i] > 1e-6) {
+		        hnext[i] = 1e-6;
 		    }
 		    hin[i] = hnext[i];
 		    if(sim->enable_clmbcol) {
