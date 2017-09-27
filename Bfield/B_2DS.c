@@ -9,6 +9,7 @@
 #include "../ascot5.h"
 #include "B_2DS.h"
 #include "../spline/interp2D.h" /* for 2D interpolation routines */
+#include "../spline/interp2Dcomp.h"
 #include "../spline/interp2Dexpl.h"
 
 /**
@@ -118,48 +119,68 @@ void B_2DS_free_offload(B_2DS_offload_data* offload_data, real** offload_array) 
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  */
-void B_2DS_init(B_2DS_data* Bdata, B_2DS_offload_data* offload_data,
+int B_2DS_init(B_2DS_data* Bdata, B_2DS_offload_data* offload_data,
                real* offload_array) {
+    int err = 0;
+
     Bdata->psi0 = offload_data->psi0;
     Bdata->psi1 = offload_data->psi1;
     Bdata->axis_r = offload_data->axis_r;
     Bdata->axis_z = offload_data->axis_z;
     /* Spline initialization and storage. */
     #if INTERP_SPL_EXPL
-    interp2Dexpl_init(&Bdata->psi, offload_array,
-    		  offload_data->n_r, offload_data->n_z,
-    		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-    		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    interp2Dexpl_init(&Bdata->B_r, offload_array+offload_data->n_z*offload_data->n_r,
-    		  offload_data->n_r, offload_data->n_z,
-    		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-    		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    interp2Dexpl_init(&Bdata->B_phi, offload_array+2*offload_data->n_z*offload_data->n_r,
-    		  offload_data->n_r, offload_data->n_z,
-    		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-    		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    interp2Dexpl_init(&Bdata->B_z, offload_array+3*offload_data->n_z*offload_data->n_r,
-    		  offload_data->n_r, offload_data->n_z,
-    		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    if(!err) {
+        err = interp2Dexpl_init(&Bdata->psi, offload_array,
+	                        offload_data->n_r, offload_data->n_z,
+	                        offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+	                        offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    }
+    if(!err) {
+        err = interp2Dexpl_init(&Bdata->B_r, offload_array+offload_data->n_z*offload_data->n_r,
+	                        offload_data->n_r, offload_data->n_z,
+	                        offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+                                offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    }
+    if(!err) {
+        err = interp2Dexpl_init(&Bdata->B_phi, offload_array+2*offload_data->n_z*offload_data->n_r,
+    		                offload_data->n_r, offload_data->n_z,
+	                        offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+                                offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    }
+    if(!err) {
+        err = interp2Dexpl_init(&Bdata->B_z, offload_array+3*offload_data->n_z*offload_data->n_r,
+    		                offload_data->n_r, offload_data->n_z,
+	                        offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+	                        offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    }
     #else
-    interp2D_init(&Bdata->psi, offload_array,
-    		  offload_data->n_r, offload_data->n_z,
-    		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-    		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    interp2D_init(&Bdata->B_r, offload_array+offload_data->n_z*offload_data->n_r,
-    		  offload_data->n_r, offload_data->n_z,
-    		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-    		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    interp2D_init(&Bdata->B_phi, offload_array+2*offload_data->n_z*offload_data->n_r,
-    		  offload_data->n_r, offload_data->n_z,
-    		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-    		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    interp2D_init(&Bdata->B_z, offload_array+3*offload_data->n_z*offload_data->n_r,
-    		  offload_data->n_r, offload_data->n_z,
-    		  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-		  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    if(!err) {
+	err = interp2Dcomp_init(&Bdata->psi, offload_array,
+				offload_data->n_r, offload_data->n_z,
+				offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+				offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    }
+    if(!err) {
+	err = interp2Dcomp_init(&Bdata->B_r, offload_array+offload_data->n_z*offload_data->n_r,
+				offload_data->n_r, offload_data->n_z,
+				offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+				offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    }
+    if(!err) {
+	err = interp2Dcomp_init(&Bdata->B_phi, offload_array+2*offload_data->n_z*offload_data->n_r,
+				offload_data->n_r, offload_data->n_z,
+				offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+				offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    }
+    if(!err) {
+	err = interp2Dcomp_init(&Bdata->B_z, offload_array+3*offload_data->n_z*offload_data->n_r,
+				offload_data->n_r, offload_data->n_z,
+				offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+				offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    }
     #endif
+
+    return err;
 }
 
 /**
@@ -177,23 +198,41 @@ void B_2DS_init(B_2DS_data* Bdata, B_2DS_offload_data* offload_data,
  * @param z z coordinate
  * @param Bdata pointer to magnetic field data struct
  */
-void B_2DS_eval_B(real B[], real r, real phi, real z, B_2DS_data* Bdata) {
+int B_2DS_eval_B(real B[], real r, real phi, real z, B_2DS_data* Bdata) {
+    int err = 0;
+
     #if INTERP_SPL_EXPL
-    interp2Dexpl_eval_B(&B[0], &Bdata->B_r, r, z);
-    interp2Dexpl_eval_B(&B[1], &Bdata->B_phi, r, z);
-    interp2Dexpl_eval_B(&B[2], &Bdata->B_z, r, z);
+    if(!err) {
+	err = interp2Dexpl_eval_B(&B[0], &Bdata->B_r, r, z);
+    }
+    if(!err) {
+	err = interp2Dexpl_eval_B(&B[1], &Bdata->B_phi, r, z);
+    }
+    if(!err) {
+	err = interp2Dexpl_eval_B(&B[2], &Bdata->B_z, r, z);
+    }
     #else
-    interp2D_eval_B(&B[0], &Bdata->B_r, r, z);
-    interp2D_eval_B(&B[1], &Bdata->B_phi, r, z);
-    interp2D_eval_B(&B[2], &Bdata->B_z, r, z);
+    if(!err) {
+        err = interp2Dcomp_eval_B(&B[0], &Bdata->B_r, r, z);
+    }
+    if(!err) {
+        err = interp2Dcomp_eval_B(&B[1], &Bdata->B_phi, r, z);
+    }
+    if(!err) {
+        err = interp2Dcomp_eval_B(&B[2], &Bdata->B_z, r, z);
+    }
     #endif
 
     #ifndef NOPSI
     real psi_dpsi[4];
-    B_2DS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
-    B[0] = B[0] - psi_dpsi[3]/r;
-    B[2] = B[2] + psi_dpsi[1]/r;
+    if(!err) {
+        err = B_2DS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
+        B[0] = B[0] - psi_dpsi[3]/r;
+        B[2] = B[2] + psi_dpsi[1]/r;
+    }
     #endif
+
+    return err;
 }
 
 /**
@@ -212,13 +251,16 @@ void B_2DS_eval_B(real B[], real r, real phi, real z, B_2DS_data* Bdata) {
  *
  * @todo Change to a scalar elemental function and compare performance
  */
-void B_2DS_eval_psi(real psi[], real r, real phi, real z, B_2DS_data* Bdata)
+int B_2DS_eval_psi(real psi[], real r, real phi, real z, B_2DS_data* Bdata)
 {
+    int err = 0;
     #if INTERP_SPL_EXPL
-    interp2Dexpl_eval_B(&psi[0], &Bdata->psi, r, z);
+    err = interp2Dexpl_eval_B(&psi[0], &Bdata->psi, r, z);
     #else
-    interp2D_eval_B(&psi[0], &Bdata->psi, r, z);
+    err = interp2Dcomp_eval_B(&psi[0], &Bdata->psi, r, z);
     #endif
+
+    return err;
 }
 
 /**
@@ -237,12 +279,13 @@ void B_2DS_eval_psi(real psi[], real r, real phi, real z, B_2DS_data* Bdata)
  * @param Bdata pointer to magnetic field data struct
  *
  */
-void B_2DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_2DS_data* Bdata) {
+int B_2DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_2DS_data* Bdata) {
+    int err = 0;
     real psi_dpsi_temp[6];
     #if INTERP_SPL_EXPL
-    interp2Dexpl_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
+    err = interp2Dexpl_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
     #else
-    interp2D_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
+    err = interp2Dcomp_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
     #endif
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
@@ -264,13 +307,15 @@ void B_2DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_2DS_data* 
  *
  * @todo Change to a scalar elemental function and compare performance
  */
-void B_2DS_eval_rho(real rho[], real psi, B_2DS_data* Bdata) {
+int B_2DS_eval_rho(real rho[], real psi, B_2DS_data* Bdata) {
+    int err = 0;
     if(psi - Bdata->psi0 < 0) {
         rho[0] = 0;
     }
     else {
         rho[0] = sqrt((psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0));
     }
+    return err;
 }
 
 /**
@@ -290,9 +335,10 @@ void B_2DS_eval_rho(real rho[], real psi, B_2DS_data* Bdata) {
  * @param Bdata pointer to magnetic field data struct
  *
  */
-void B_2DS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_2DS_data* Bdata) {
+int B_2DS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_2DS_data* Bdata) {
+    int err = 0;
     real rho;
-    B_2DS_eval_psi_dpsi(rho_drho, r, phi, z, Bdata);
+    err = B_2DS_eval_psi_dpsi(rho_drho, r, phi, z, Bdata);
     /* Convert: rho = sqrt(psi), drho = dpsi/(2 * sqrt(psi))
      * Note that rho_drho[2] = 1/R * drho/dphi, because of cylindrical gradient
      */
@@ -301,6 +347,7 @@ void B_2DS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_2DS_data* 
     rho_drho[1] = rho_drho[1] / (2*rho);
     rho_drho[2] = rho_drho[2] / (2*rho);
     rho_drho[3] = rho_drho[3] / (2*rho);
+    return err;
 }
 
 /**
@@ -321,37 +368,43 @@ void B_2DS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_2DS_data* 
  * @param z z coordinate
  * @param Bdata pointer to magnetic field data struct
  */
-void B_2DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_2DS_data* Bdata) {
+int B_2DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_2DS_data* Bdata) {
+    int err = 0;
     real B_dB_temp[6];
-    #if INTERP_SPL_EXPL
-    interp2Dexpl_eval_dB(B_dB_temp, &Bdata->B_r, r, z);
-    #else
-    interp2D_eval_dB(B_dB_temp, &Bdata->B_r, r, z);
-    #endif
+    
+    if(!err) {
+	#if INTERP_SPL_EXPL
+	err = interp2Dexpl_eval_dB(B_dB_temp, &Bdata->B_r, r, z);
+	#else
+	err = interp2Dcomp_eval_dB(B_dB_temp, &Bdata->B_r, r, z);
+	#endif
+    }
 
     B_dB[0] = B_dB_temp[0];
     B_dB[1] = B_dB_temp[1];
     B_dB[2] = 0;
     B_dB[3] = B_dB_temp[2];
 
-
-    #if INTERP_SPL_EXPL
-    interp2Dexpl_eval_dB(B_dB_temp, &Bdata->B_phi, r, z);
-    #else
-    interp2D_eval_dB(B_dB_temp, &Bdata->B_phi, r, z);
-    #endif
+    if(!err) {
+	#if INTERP_SPL_EXPL
+	interp2Dexpl_eval_dB(B_dB_temp, &Bdata->B_phi, r, z);
+	#else
+	interp2Dcomp_eval_dB(B_dB_temp, &Bdata->B_phi, r, z);
+	#endif
+    }
 
     B_dB[4] = B_dB_temp[0];
     B_dB[5] = B_dB_temp[1];
     B_dB[6] = 0;
     B_dB[7] = B_dB_temp[2];
 
-
-    #if INTERP_SPL_EXPL
-    interp2Dexpl_eval_dB(B_dB_temp, &Bdata->B_z, r, z);
-    #else
-    interp2D_eval_dB(B_dB_temp, &Bdata->B_z, r, z);
-    #endif
+    if(!err) {
+	#if INTERP_SPL_EXPL
+	interp2Dexpl_eval_dB(B_dB_temp, &Bdata->B_z, r, z);
+	#else
+	interp2Dcomp_eval_dB(B_dB_temp, &Bdata->B_z, r, z);
+	#endif
+    }
 
     B_dB[8] = B_dB_temp[0];
     B_dB[9] = B_dB_temp[1];
@@ -362,11 +415,13 @@ void B_2DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_2DS_data* Bdata) {
     #ifndef NOPSI
     real psi_dpsi[6];
 
-    #if INTERP_SPL_EXPL
-    interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
-    #else
-    interp2D_eval_dB(psi_dpsi, &Bdata->psi, r, z);
-    #endif
+    if(!err) {
+	#if INTERP_SPL_EXPL
+	interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+	#else
+	interp2Dcomp_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+	#endif
+    }
 
     B_dB[0] = B_dB[0] - psi_dpsi[2]/r;
     B_dB[1] = B_dB[1] + psi_dpsi[2]/(r*r)-psi_dpsi[5]/r;
@@ -375,6 +430,8 @@ void B_2DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_2DS_data* Bdata) {
     B_dB[9] = B_dB[9] - psi_dpsi[1]/(r*r) + psi_dpsi[3]/r;
     B_dB[11] = B_dB[11] + psi_dpsi[5]/r;
     #endif
+
+    return err;
 }
 
 real B_2DS_get_axis_r(B_2DS_data* Bdata) {

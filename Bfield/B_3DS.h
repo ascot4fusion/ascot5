@@ -49,26 +49,20 @@ void B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array);
 void B_3DS_free_offload(B_3DS_offload_data* offload_data, real** offload_array);
 
 #pragma omp declare target
-void B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
+int B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
                real* offload_array);
 #pragma omp declare simd uniform(Bdata)
-void B_3DS_eval_B(real B[], real r, real phi, real z, B_3DS_data* Bdata);
+int B_3DS_eval_B(real B[], real r, real phi, real z, B_3DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-void B_3DS_eval_psi(real psi[], real r, real phi, real z, B_3DS_data* Bdata);
+int B_3DS_eval_psi(real psi[], real r, real phi, real z, B_3DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-void B_3DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_3DS_data* Bdata);
+int B_3DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_3DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-void B_3DS_eval_rho(real rho[], real psi, B_3DS_data* Bdata);
+int B_3DS_eval_rho(real rho[], real psi, B_3DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-void B_3DS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_3DS_data* Bdata);
-#pragma omp declare simd uniform(B)
-real B_3DS_tricubic(real t_r, real t_phi, real t_z, int i_r, int i_phi, int i_z, int n_z, int n_r, real* B);
+int B_3DS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_3DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-void B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata);
-#pragma omp declare simd uniform(B)
-void B_3DS_tricubic_derivs(real B_dB_component[], real t_r, real t_phi, real t_z,
-                          int i_r, int i_phi, int i_z, int n_r, int n_z,
-                          real r_grid, real phi_grid, real z_grid, real* B);
+int B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 real B_3DS_get_axis_r(B_3DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)

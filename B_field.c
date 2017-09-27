@@ -112,8 +112,10 @@ void B_field_free_offload(B_field_offload_data* offload_data,
     }
 }
 
-void B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
+int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
                   real* offload_array) {
+    int err = 0;
+
     switch(offload_data->type) {
         case B_field_type_GS:
         B_GS_init(&(Bdata->BGS), &(offload_data->BGS), offload_array);
@@ -124,7 +126,7 @@ void B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
         break;
 
         case B_field_type_2DS:
-        B_2DS_init(&(Bdata->B2DS), &(offload_data->B2DS), offload_array);
+	err = B_2DS_init(&(Bdata->B2DS), &(offload_data->B2DS), offload_array);
         break;
 
         case B_field_type_3D:
@@ -132,7 +134,7 @@ void B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
         break;
 
         case B_field_type_3DS:
-        B_3DS_init(&(Bdata->B3DS), &(offload_data->B3DS), offload_array);
+        err = B_3DS_init(&(Bdata->B3DS), &(offload_data->B3DS), offload_array);
         break;
 
         case B_field_type_ST:
@@ -144,9 +146,13 @@ void B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
         break;
     }
     Bdata->type = offload_data->type;
+
+    return err;
 }
 
-void B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata) {
+int B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata) {
+    int err = 0;
+    
     switch(Bdata->type) {
         case B_field_type_GS:
         B_GS_eval_B(B, r, phi, z, &(Bdata->BGS));
@@ -157,7 +163,7 @@ void B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata) {
         break;
 
         case B_field_type_2DS:
-        B_2DS_eval_B(B, r, phi, z, &(Bdata->B2DS));
+        err = B_2DS_eval_B(B, r, phi, z, &(Bdata->B2DS));
         break;
 
         case B_field_type_3D:
@@ -165,7 +171,7 @@ void B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata) {
         break;
 
         case B_field_type_3DS:
-        B_3DS_eval_B(B, r, phi, z, &(Bdata->B3DS));
+        err = B_3DS_eval_B(B, r, phi, z, &(Bdata->B3DS));
         break;
 
         case B_field_type_ST:
@@ -176,10 +182,14 @@ void B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata) {
         B_TC_eval_B(B, r, phi, z, &(Bdata->BTC));
         break;
     }
+
+    return err;
 }
 
-void B_field_eval_psi(real psi[], real r, real phi, real z,
+int B_field_eval_psi(real psi[], real r, real phi, real z,
                       B_field_data* Bdata) {
+    int err = 0;
+
     switch(Bdata->type) {
         case B_field_type_GS:
         B_GS_eval_psi(psi, r, phi, z, &(Bdata->BGS));
@@ -190,7 +200,7 @@ void B_field_eval_psi(real psi[], real r, real phi, real z,
         break;
 
         case B_field_type_2DS:
-        B_2DS_eval_psi(psi, r, phi, z, &(Bdata->B2DS));
+        err = B_2DS_eval_psi(psi, r, phi, z, &(Bdata->B2DS));
         break;
 
         case B_field_type_3D:
@@ -198,7 +208,7 @@ void B_field_eval_psi(real psi[], real r, real phi, real z,
         break;
 
         case B_field_type_3DS:
-        B_3DS_eval_psi(psi, r, phi, z, &(Bdata->B3DS));
+        err = B_3DS_eval_psi(psi, r, phi, z, &(Bdata->B3DS));
         break;
 
         case B_field_type_ST:
@@ -209,13 +219,17 @@ void B_field_eval_psi(real psi[], real r, real phi, real z,
         B_TC_eval_psi(psi, r, phi, z, &(Bdata->BTC));
         break;
     }
+
+    return err;
 }
 
 /* psi   -> psi_dpsi[0]    dpsi/dr -> psi_dpsi[1]
  * dpsi/dphi -> psi_dpsi[2]    dpsi/dz -> psi_dpsi[3]
  */
-void B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
+int B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
                        B_field_data* Bdata) {
+    int err = 0;
+
     switch(Bdata->type) {
         case B_field_type_GS:
         B_GS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BGS));
@@ -226,7 +240,7 @@ void B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
         break;
 
         case B_field_type_2DS:
-        B_2DS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B2DS));
+        err = B_2DS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B2DS));
         break;
 
         case B_field_type_3D:
@@ -234,7 +248,7 @@ void B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
         break;
 
         case B_field_type_3DS:
-        B_3DS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B3DS));
+        err = B_3DS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B3DS));
         break;
 
         case B_field_type_ST:
@@ -245,9 +259,13 @@ void B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
         B_TC_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BTC));
         break;
     }
+
+    return err;
 }
 
-void B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
+int B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
+    int err = 0;
+
     switch(Bdata->type) {
         case B_field_type_GS:
         B_GS_eval_rho(rho, psi, &(Bdata->BGS));
@@ -258,7 +276,7 @@ void B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
         break;
 
         case B_field_type_2DS:
-        B_2DS_eval_rho(rho, psi, &(Bdata->B2DS));
+        err = B_2DS_eval_rho(rho, psi, &(Bdata->B2DS));
         break;
 
         case B_field_type_3D:
@@ -266,7 +284,7 @@ void B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
         break;
 
         case B_field_type_3DS:
-        B_3DS_eval_rho(rho, psi, &(Bdata->B3DS));
+        err = B_3DS_eval_rho(rho, psi, &(Bdata->B3DS));
         break;
 
         case B_field_type_ST:
@@ -277,13 +295,17 @@ void B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
         B_TC_eval_rho(rho, psi, &(Bdata->BTC));
         break;
     }
+
+    return err;
 }
 
 /* rho   -> rho_drho[0]    drho/dr -> rho_drho[1]
  * drho/dphi -> rho_drho[2]    drho/dz -> rho_drho[3]
  */
-void B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
+int B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
                        B_field_data* Bdata) {
+    int err = 0;
+
     switch(Bdata->type) {
         case B_field_type_GS:
         B_GS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BGS));
@@ -294,7 +316,7 @@ void B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
         break;
 
         case B_field_type_2DS:
-        B_2DS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B2DS));
+        err = B_2DS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B2DS));
         break;
 
         case B_field_type_3D:
@@ -302,7 +324,7 @@ void B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
         break;
 
         case B_field_type_3DS:
-        B_3DS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B3DS));
+        err = B_3DS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B3DS));
         break;
 
         case B_field_type_ST:
@@ -313,14 +335,18 @@ void B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
         B_TC_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BTC));
         break;
     }
+
+    return err;
 }
 
 /* Br   -> B[0]    dBr/dr -> B[1]   dBr/dphi -> B[2]    dBr/dz -> B[3]
  * Bphi -> B[4]  dBphi/dr -> B[5] dBphi/dphi -> B[6]  dBphi/dz -> B[7]
  * Bz   -> B[8]    dBz/dr -> B[9]   dBz/dphi -> B[10]   dBz/dz -> B[11]
  */
-void B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
+int B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
                        B_field_data* Bdata) {
+    int err = 0;
+
     switch(Bdata->type) {
         case B_field_type_GS:
         B_GS_eval_B_dB(B_dB, r, phi, z, &(Bdata->BGS));
@@ -331,7 +357,7 @@ void B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
         break;
 
         case B_field_type_2DS:
-        B_2DS_eval_B_dB(B_dB, r, phi, z, &(Bdata->B2DS));
+        err = B_2DS_eval_B_dB(B_dB, r, phi, z, &(Bdata->B2DS));
         break;
 
         case B_field_type_3D:
@@ -339,7 +365,7 @@ void B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
         break;
 
         case B_field_type_3DS:
-        B_3DS_eval_B_dB(B_dB, r, phi, z, &(Bdata->B3DS));
+        err = B_3DS_eval_B_dB(B_dB, r, phi, z, &(Bdata->B3DS));
         break;
 
         case B_field_type_ST:
@@ -350,6 +376,8 @@ void B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
         B_TC_eval_B_dB(B_dB, r, phi, z, &(Bdata->BTC));
         break;
     }
+
+    return err = 0;
 }
 
 real B_field_get_axis_r(B_field_data* Bdata) {

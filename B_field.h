@@ -47,24 +47,24 @@ void B_field_free_offload(B_field_offload_data* offload_data,
                           real** offload_array);
 
 #pragma omp declare target
-void B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
-                  real* offload_array);
+int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
+		 real* offload_array);
 #pragma omp declare simd uniform(Bdata)
-void B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata);
+int B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-void B_field_eval_psi(real psi[], real r, real phi, real z,
-                      B_field_data* Bdata);
+int B_field_eval_psi(real psi[], real r, real phi, real z,
+		     B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-void B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
-                           B_field_data* Bdata);
+int B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
+			  B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-void B_field_eval_rho(real rho[], real psi, B_field_data* Bdata);
+int B_field_eval_rho(real rho[], real psi, B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-void B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
-                           B_field_data* Bdata);
+int B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
+			  B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-void B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
-                       B_field_data* Bdata);
+int B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
+		      B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 real B_field_get_axis_r(B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
