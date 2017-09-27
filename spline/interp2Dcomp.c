@@ -26,9 +26,10 @@
  * @param z_min minimum value of the z axis
  * @param z_max maximum value of the z axis
  */
-void interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
-		       real r_min, real r_max, real r_grid,
-		       real z_min, real z_max, real z_grid) {
+int interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
+		      real r_min, real r_max, real r_grid,
+		      real z_min, real z_max, real z_grid) {
+    int err = 0;
 
     /* Initialize and fill the data struct */
     str->n_r = n_r;
@@ -49,36 +50,41 @@ void interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
     real* c_r = malloc(n_r*2*sizeof(real));  /**< Temp array for coefficients along r */
     real* c_z = malloc(n_z*2*sizeof(real));  /**< Temp array for coefficients along z */
 
-    /* Bicubic spline surface over rz-grid. Note how we account for normalized grid. */
-    /* Cubic spline along r for each z to get frr */
-    for(i_z=0; i_z<n_z; i_z++) {
-	for(i_r=0; i_r<n_r; i_r++) {
-	    f_r[i_r] = f[i_z*n_r+i_r];
-	}
-	spline1Dcomp(f_r,n_r,0,c_r);
-	for(i_r=0; i_r<n_r; i_r++) {
-	    str->c[i_z*n_r*4+i_r*4] = c_r[i_r*2];
-	    str->c[i_z*n_r*4+i_r*4+1] = c_r[i_r*2+1]/(r_grid*r_grid);
-	}
+    if(f_r == NULL || f_z == NULL || c_r == NULL || c_z == NULL) {
+	err = 1;
     }
+    else {
+	/* Bicubic spline surface over rz-grid. Note how we account for normalized grid. */
+	/* Cubic spline along r for each z to get frr */
+	for(i_z=0; i_z<n_z; i_z++) {
+	    for(i_r=0; i_r<n_r; i_r++) {
+		f_r[i_r] = f[i_z*n_r+i_r];
+	    }
+	    spline1Dcomp(f_r,n_r,0,c_r);
+	    for(i_r=0; i_r<n_r; i_r++) {
+		str->c[i_z*n_r*4+i_r*4] = c_r[i_r*2];
+		str->c[i_z*n_r*4+i_r*4+1] = c_r[i_r*2+1]/(r_grid*r_grid);
+	    }
+	}
 
-    /* Two cubic splines along z for each r using f and frr */
-    for(i_r=0; i_r<n_r; i_r++) {
-	/* fzz */
-	for(i_z=0; i_z<n_z; i_z++) {
-	    f_z[i_z] =  f[i_z*n_r+i_r];
-	}
-	spline1Dcomp(f_z,n_z,0,c_z);
-	for(i_z=0; i_z<n_z; i_z++) {
-	    str->c[i_z*n_r*4+i_r*4+2] = c_z[i_z*2+1]/(z_grid*z_grid);
-	}
-	/* frrzz */
-	for(i_z=0; i_z<n_z; i_z++) {
-	    f_z[i_z] =  str->c[i_z*n_r*4+i_r*4+1];
-	}
-	spline1Dcomp(f_z,n_z,0,c_z);
-	for(i_z=0; i_z<n_z; i_z++) {
-	    str->c[i_z*n_r*4+i_r*4+3] = c_z[i_z*2+1]/(z_grid*z_grid);
+	/* Two cubic splines along z for each r using f and frr */
+	for(i_r=0; i_r<n_r; i_r++) {
+	    /* fzz */
+	    for(i_z=0; i_z<n_z; i_z++) {
+		f_z[i_z] =  f[i_z*n_r+i_r];
+	    }
+	    spline1Dcomp(f_z,n_z,0,c_z);
+	    for(i_z=0; i_z<n_z; i_z++) {
+		str->c[i_z*n_r*4+i_r*4+2] = c_z[i_z*2+1]/(z_grid*z_grid);
+	    }
+	    /* frrzz */
+	    for(i_z=0; i_z<n_z; i_z++) {
+		f_z[i_z] =  str->c[i_z*n_r*4+i_r*4+1];
+	    }
+	    spline1Dcomp(f_z,n_z,0,c_z);
+	    for(i_z=0; i_z<n_z; i_z++) {
+		str->c[i_z*n_r*4+i_r*4+3] = c_z[i_z*2+1]/(z_grid*z_grid);
+	    }
 	}
     }
 
@@ -87,6 +93,8 @@ void interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
     free(f_z);
     free(c_r);
     free(c_z);
+
+    return err;
 }
 
 /**
@@ -103,7 +111,7 @@ void interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
  * @param r r-coordinate
  * @param z z-coordinate
  */
-void interp2Dcomp_eval_B(real* B, interp2D_data* str, real r, real z) {
+int interp2Dcomp_eval_B(real* B, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid; /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
@@ -122,18 +130,28 @@ void interp2Dcomp_eval_B(real* B, interp2D_data* str, real r, real z) {
     int r1 = 4;                         /**< Index jump one r forward */
     int z1 = str->n_r*4;                /**< Index jump one z forward */
 
-    *B = (
-	   dri*(dzi*str->c[n]   +dz*str->c[n+z1])+
+    int err = 0;
+
+    /* Check that the point is not outside the evaluation regime */
+    if(r < str->r_min || r > str->r_max
+	|| z < str->z_min || z > str->z_max) {
+	err = 1;
+    }
+    else {
+	*B = (
+	    dri*(dzi*str->c[n]   +dz*str->c[n+z1])+
 	    dr*(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
-    	+rg2/6.0*(
-	  dri3*(dzi*str->c[n+1]   +dz*str->c[n+z1+1])+
-	   dr3*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
-    	+zg2/6.0*(
-	   dri*(dzi3*str->c[n+2]   +dz3*str->c[n+z1+2])+
-	    dr*(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
-    	+rg2*zg2/36.0*(
-	  dri3*(dzi3*str->c[n+3]   +dz3*str->c[n+z1+3])+
-	   dr3*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
+	    +rg2/6.0*(
+		dri3*(dzi*str->c[n+1]   +dz*str->c[n+z1+1])+
+		dr3*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
+	    +zg2/6.0*(
+		dri*(dzi3*str->c[n+2]   +dz3*str->c[n+z1+2])+
+		dr*(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
+	    +rg2*zg2/36.0*(
+		dri3*(dzi3*str->c[n+3]   +dz3*str->c[n+z1+3])+
+		dr3*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
+    }
+    return err;
 }
 
 /**
@@ -151,7 +169,7 @@ void interp2Dcomp_eval_B(real* B, interp2D_data* str, real r, real z) {
  * @param r r-coordinate
  * @param z z-coordinate
  */
-void interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
+int interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid;                   /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
@@ -178,77 +196,88 @@ void interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     int r1 = 4;                       /**< Index jump one r forward */
     int z1 = str->n_r*4;              /**< Index jump one z forward */
 
-    /* f */
-    B_dB[0] = (
-	      dri*(dzi*str->c[n]+dz*str->c[n+z1])+
-	      dr*(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
-	+rg2/6*(
+    int err = 0;
+
+    /* Check that the point is not outside the evaluation regime */
+    if(r < str->r_min || r > str->r_max
+	|| z < str->z_min || z > str->z_max) {
+	err = 1;
+    }
+    else {
+	/* f */
+	B_dB[0] = (
+	    dri*(dzi*str->c[n]+dz*str->c[n+z1])+
+	    dr*(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
+	    +rg2/6*(
 		dri3*(dzi*str->c[n+1] + dz*str->c[n+z1+1])+
 		dr3*(dzi*str->c[n+r1+1] + dz*str->c[n+z1+r1+1]))
-	+zg2/6*(
+	    +zg2/6*(
 		dri*(dzi3*str->c[n+2]+dz3*str->c[n+z1+2])+
 		dr*(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
-	+rg2*zg2/36*(
-		     dri3*(dzi3*str->c[n+3]+dz3*str->c[n+z1+3])+
-		     dr3*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
+	    +rg2*zg2/36*(
+		dri3*(dzi3*str->c[n+3]+dz3*str->c[n+z1+3])+
+		dr3*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
 
-    /* df/dr */
-    B_dB[1] = rgi*(
-		  -(dzi*str->c[n]  +dz*str->c[n+z1])
-		  +(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
-	+rg/6*(
-	       dri3dr*(dzi*str->c[n+1]  +dz*str->c[n+z1+1])+
-	       dr3dr*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
-	+rgi*zg2/6*(
-		    -(dzi3*str->c[n+2]  +dz3*str->c[n+z1+2])
-		    +(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
-	+rg*zg2/36*(
-		    dri3dr*(dzi3*str->c[n+3]  +dz3*str->c[n+z1+3])+
-		    dr3dr*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
+	/* df/dr */
+	B_dB[1] = rgi*(
+	    -(dzi*str->c[n]  +dz*str->c[n+z1])
+	    +(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
+	    +rg/6*(
+		dri3dr*(dzi*str->c[n+1]  +dz*str->c[n+z1+1])+
+		dr3dr*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
+	    +rgi*zg2/6*(
+		-(dzi3*str->c[n+2]  +dz3*str->c[n+z1+2])
+		+(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
+	    +rg*zg2/36*(
+		dri3dr*(dzi3*str->c[n+3]  +dz3*str->c[n+z1+3])+
+		dr3dr*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
 
-    /* df/dz */
-    B_dB[2] = zgi*(
-		  dri*(-str->c[n]  +str->c[n+z1])+
-		  dr*(-str->c[n+r1]+str->c[n+z1+r1]))
-	+rg2*zgi/6*(
-                    dri3*(-str->c[n+1]  +str->c[n+z1+1])+
-                    dr3*(-str->c[n+r1+1]+str->c[n+z1+r1+1]))
-	+zg/6*(
-	       dri*(dzi3dz*str->c[n+2]  +dz3dz*str->c[n+z1+2])+
-	       dr*(dzi3dz*str->c[n+r1+2]+dz3dz*str->c[n+z1+r1+2]))
-	+rg2*zg/36*(
-                    dri3*(dzi3dz*str->c[n+3]  +dz3dz*str->c[n+z1+3])+
-                    dr3*(dzi3dz*str->c[n+r1+3]+dz3dz*str->c[n+z1+r1+3]));
+	/* df/dz */
+	B_dB[2] = zgi*(
+	    dri*(-str->c[n]  +str->c[n+z1])+
+	    dr*(-str->c[n+r1]+str->c[n+z1+r1]))
+	    +rg2*zgi/6*(
+		dri3*(-str->c[n+1]  +str->c[n+z1+1])+
+		dr3*(-str->c[n+r1+1]+str->c[n+z1+r1+1]))
+	    +zg/6*(
+		dri*(dzi3dz*str->c[n+2]  +dz3dz*str->c[n+z1+2])+
+		dr*(dzi3dz*str->c[n+r1+2]+dz3dz*str->c[n+z1+r1+2]))
+	    +rg2*zg/36*(
+		dri3*(dzi3dz*str->c[n+3]  +dz3dz*str->c[n+z1+3])+
+		dr3*(dzi3dz*str->c[n+r1+3]+dz3dz*str->c[n+z1+r1+3]));
 
-    /* d2f/dr2 */
-    B_dB[3] = (
-	      dri*(dzi*str->c[n+1]  +dz*str->c[n+z1+1])+
-	      dr*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
-	+zg2/6*(
+	/* d2f/dr2 */
+	B_dB[3] = (
+	    dri*(dzi*str->c[n+1]  +dz*str->c[n+z1+1])+
+	    dr*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
+	    +zg2/6*(
 		dri*(dzi3*str->c[n+3]  +dz3*str->c[n+z1+3])+
 		dr*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
 
-    /* d2f/dz2 */
-    B_dB[4] = (
-	      dri*(dzi*str->c[n+2]  +dz*str->c[n+z1+2])+
-	      dr*(dzi*dzi3*str->c[n+r1+2]+dz*str->c[n+z1+r1+2]))
-	+(rg2/6)*(
+	/* d2f/dz2 */
+	B_dB[4] = (
+	    dri*(dzi*str->c[n+2]  +dz*str->c[n+z1+2])+
+	    dr*(dzi*dzi3*str->c[n+r1+2]+dz*str->c[n+z1+r1+2]))
+	    +(rg2/6)*(
 		dri3*(dzi*str->c[n+3]  +dz*str->c[n+z1+3])+
 		dr3*(dzi*str->c[n+r1+3]+dz*str->c[n+z1+r1+3]));
 
-    /* d2f/dzdr */
-    B_dB[5] = rgi*zgi*(
-		      str->c[n]  -str->c[n+z1]
-		      -str->c[n+r1]+str->c[n+z1+r1])
-	+rg/6*zgi*(
-		   dri3dr*(-str->c[n+1]  +str->c[n+z1+1])+
-		   dr3dr*(-str->c[n+r1+1]+str->c[n+z1+r1+1]))
-	+rgi/6*zg*(
-		   -(dzi3dz*str->c[n+2]  +dz3dz*str->c[n+z1+2])
-		   +(dzi3dz*str->c[n+r1+2]+dz3dz*str->c[n+z1+r1+2]))
-	+rg*zg/36*(
-		   dri3dr*(dzi3dz*str->c[n+3]  +dz3dz*str->c[n+z1+3])+
-		   dr3dr*(dzi3dz*str->c[n+r1+3]+dz3dz*str->c[n+z1+r1+3]));
+	/* d2f/dzdr */
+	B_dB[5] = rgi*zgi*(
+	    str->c[n]  -str->c[n+z1]
+	    -str->c[n+r1]+str->c[n+z1+r1])
+	    +rg/6*zgi*(
+		dri3dr*(-str->c[n+1]  +str->c[n+z1+1])+
+		dr3dr*(-str->c[n+r1+1]+str->c[n+z1+r1+1]))
+	    +rgi/6*zg*(
+		-(dzi3dz*str->c[n+2]  +dz3dz*str->c[n+z1+2])
+		+(dzi3dz*str->c[n+r1+2]+dz3dz*str->c[n+z1+r1+2]))
+	    +rg*zg/36*(
+		dri3dr*(dzi3dz*str->c[n+3]  +dz3dz*str->c[n+z1+3])+
+		dr3dr*(dzi3dz*str->c[n+r1+3]+dz3dz*str->c[n+z1+r1+3]));
+    }
+
+    return err;
 }
 
 /**

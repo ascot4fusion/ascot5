@@ -27,9 +27,11 @@
  * @param z_min minimum value of the z axis
  * @param z_max maximum value of the z axis
  */
-void interp2Dexpl_init(interp2D_data* str, real* f, int n_r, int n_z,
+int interp2Dexpl_init(interp2D_data* str, real* f, int n_r, int n_z,
 		       real r_min, real r_max, real r_grid,
 		       real z_min, real z_max, real z_grid) {
+
+    int err = 0;
 
     /* Initialize and fill the data struct */
     str->n_r = n_r;
@@ -53,34 +55,39 @@ void interp2Dexpl_init(interp2D_data* str, real* f, int n_r, int n_z,
     int i_s;
     int i_ct;
 
-    /* Bicubic spline surface over rz-grid */
-    /* Cubic spline along r for each z */
-    for(i_z=0; i_z<n_z; i_z++) {
-	for(i_r=0; i_r<n_r; i_r++) {
-	    f_r[i_r] = f[i_z*n_r+i_r];
-	}
-	spline1D(f_r,n_r,0,c_r);
-	for(i_r=0; i_r<n_r-1; i_r++) {
-	    for(i_c=0; i_c<4; i_c++) {
-		i_ct = i_c;
-		str->c[i_z*n_r*16+i_r*16+i_c] = c_r[i_r*4+i_ct];
-	    }
-	}
+    if(f_r == NULL || f_z == NULL || c_r == NULL || c_z == NULL) {
+	err = 1;
     }
-    
-    /* Four cubic splines along z for each r using four different data sets */
-    for(i_r=0; i_r<n_r-1; i_r++) {
-	/* s0, s1, s2, s3 */
-	for(i_s=0; i_s<4; i_s++) {
-	    for(i_z=0; i_z<n_z; i_z++) {
-		f_z[i_z] = str->c[i_z*n_r*16+i_r*16+i_s];
+    else {
+	/* Bicubic spline surface over rz-grid */
+	/* Cubic spline along r for each z */
+	for(i_z=0; i_z<n_z; i_z++) {
+	    for(i_r=0; i_r<n_r; i_r++) {
+		f_r[i_r] = f[i_z*n_r+i_r];
 	    }
-	    spline1D(f_z,n_z,0,c_z);
-	    for(i_z=0; i_z<n_z-1; i_z++) {
-		i_ct = 0;
-		for(i_c=i_s; i_c<16; i_c=i_c+4) {
-		    str->c[i_z*n_r*16+i_r*16+i_c] = c_z[i_z*4+i_ct];
-		    i_ct++;
+	    spline1D(f_r,n_r,0,c_r);
+	    for(i_r=0; i_r<n_r-1; i_r++) {
+		for(i_c=0; i_c<4; i_c++) {
+		    i_ct = i_c;
+		    str->c[i_z*n_r*16+i_r*16+i_c] = c_r[i_r*4+i_ct];
+		}
+	    }
+	}
+    
+	/* Four cubic splines along z for each r using four different data sets */
+	for(i_r=0; i_r<n_r-1; i_r++) {
+	    /* s0, s1, s2, s3 */
+	    for(i_s=0; i_s<4; i_s++) {
+		for(i_z=0; i_z<n_z; i_z++) {
+		    f_z[i_z] = str->c[i_z*n_r*16+i_r*16+i_s];
+		}
+		spline1D(f_z,n_z,0,c_z);
+		for(i_z=0; i_z<n_z-1; i_z++) {
+		    i_ct = 0;
+		    for(i_c=i_s; i_c<16; i_c=i_c+4) {
+			str->c[i_z*n_r*16+i_r*16+i_c] = c_z[i_z*4+i_ct];
+			i_ct++;
+		    }
 		}
 	    }
 	}
@@ -91,6 +98,8 @@ void interp2Dexpl_init(interp2D_data* str, real* f, int n_r, int n_z,
     free(f_z);
     free(c_r);
     free(c_z);
+
+    return err;
 }
 
 /**
@@ -107,7 +116,7 @@ void interp2Dexpl_init(interp2D_data* str, real* f, int n_r, int n_z,
  * @param r r-coordinate
  * @param z z-coordinate
  */
-void interp2Dexpl_eval_B(real* B, interp2D_data* str, real r, real z) {
+int interp2Dexpl_eval_B(real* B, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid;
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
     real dr2 = dr*dr;
@@ -118,10 +127,21 @@ void interp2Dexpl_eval_B(real* B, interp2D_data* str, real r, real z) {
     real dz3 = dz2*dz;
     int n = i_z*str->n_r*16+i_r*16;
 
-    *B =      str->c[n+ 0]+dr*str->c[n+ 1]+dr2*str->c[n+ 2]+dr3*str->c[n+ 3]
-	 +dz*(str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7])
-	+dz2*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
-	+dz3*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]);
+    int err = 0;
+
+    /* Check that the point is not outside the evaluation regime */
+    if(r < str->r_min || r > str->r_max
+       || z < str->z_min || z > str->z_max) {
+	err = 1;
+    }
+    else {
+	*B =      str->c[n+ 0]+dr*str->c[n+ 1]+dr2*str->c[n+ 2]+dr3*str->c[n+ 3]
+	    +dz*(str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7])
+	    +dz2*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
+	    +dz3*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]);
+    }
+
+    return err;
 }
 
 /**
@@ -139,7 +159,7 @@ void interp2Dexpl_eval_B(real* B, interp2D_data* str, real r, real z) {
  * @param r r-coordinate
  * @param z z-coordinate
  */
-void interp2Dexpl_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
+int interp2Dexpl_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid;
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
     real dr2 = dr*dr;
@@ -152,42 +172,53 @@ void interp2Dexpl_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     real zgi = 1.0/str->z_grid;
     int n = i_z*str->n_r*16+i_r*16;
 
-    /* f */
-    B_dB[0] = str->c[n+ 0]+dr*str->c[n+ 1]+dr2*str->c[n+ 2]+dr3*str->c[n+ 3]
-	 +dz*(str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7])
-	+dz2*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
-	+dz3*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]);
+    int err = 0;
 
-    /* df/dr */
-    B_dB[1] = rgi*(
-	      str->c[n+ 1]+2*dr*str->c[n+ 2]+3*dr2*str->c[n+ 3]
-	 +dz*(str->c[n+ 5]+2*dr*str->c[n+ 6]+3*dr2*str->c[n+ 7])
-	+dz2*(str->c[n+ 9]+2*dr*str->c[n+10]+3*dr2*str->c[n+11])
-	+dz3*(str->c[n+13]+2*dr*str->c[n+14]+3*dr2*str->c[n+15]));
+    /* Check that the point is not outside the evaluation regime */
+    if(r < str->r_min || r > str->r_max
+       || z < str->z_min || z > str->z_max) {
+	err = 1;
+    }
+    else {
+	/* f */
+	B_dB[0] = str->c[n+ 0]+dr*str->c[n+ 1]+dr2*str->c[n+ 2]+dr3*str->c[n+ 3]
+	    +dz*(str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7])
+	    +dz2*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
+	    +dz3*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]);
 
-    /* df/dz */
-    B_dB[2] = zgi*(
-	        str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7]
-	 +2*dz*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
-	+3*dz2*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]));
+	/* df/dr */
+	B_dB[1] = rgi*(
+	    str->c[n+ 1]+2*dr*str->c[n+ 2]+3*dr2*str->c[n+ 3]
+	    +dz*(str->c[n+ 5]+2*dr*str->c[n+ 6]+3*dr2*str->c[n+ 7])
+	    +dz2*(str->c[n+ 9]+2*dr*str->c[n+10]+3*dr2*str->c[n+11])
+	    +dz3*(str->c[n+13]+2*dr*str->c[n+14]+3*dr2*str->c[n+15]));
 
-    /* d2f/dr^2 */
-    B_dB[3] = rgi*rgi*(
-	      2*str->c[n+ 2]+6*dr*str->c[n+ 3]
-	 +dz*(2*str->c[n+ 6]+6*dr*str->c[n+ 7])
-	+dz2*(2*str->c[n+10]+6*dr*str->c[n+11])
-	+dz3*(2*str->c[n+14]+6*dr*str->c[n+15]));
+	/* df/dz */
+	B_dB[2] = zgi*(
+	    str->c[n+ 4]+dr*str->c[n+ 5]+dr2*str->c[n+ 6]+dr3*str->c[n+ 7]
+	    +2*dz*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
+	    +3*dz2*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]));
 
-    /* d2f/dz^2 */
-    B_dB[4] = zgi*zgi*(
+	/* d2f/dr^2 */
+	B_dB[3] = rgi*rgi*(
+	    2*str->c[n+ 2]+6*dr*str->c[n+ 3]
+	    +dz*(2*str->c[n+ 6]+6*dr*str->c[n+ 7])
+	    +dz2*(2*str->c[n+10]+6*dr*str->c[n+11])
+	    +dz3*(2*str->c[n+14]+6*dr*str->c[n+15]));
+
+	/* d2f/dz^2 */
+	B_dB[4] = zgi*zgi*(
 	    2*(str->c[n+ 8]+dr*str->c[n+ 9]+dr2*str->c[n+10]+dr3*str->c[n+11])
-	+6*dz*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]));
+	    +6*dz*(str->c[n+12]+dr*str->c[n+13]+dr2*str->c[n+14]+dr3*str->c[n+15]));
 
-    /* d2f/dzdr */
-    B_dB[5] = rgi*zgi*(
-	        str->c[n+ 5]+2*dr*str->c[n+ 6]+3*dr2*str->c[n+ 7]
-	 +2*dz*(str->c[n+ 9]+2*dr*str->c[n+10]+3*dr2*str->c[n+11])
-	+3*dz2*(str->c[n+13]+2*dr*str->c[n+14]+3*dr2*str->c[n+15]));
+	/* d2f/dzdr */
+	B_dB[5] = rgi*zgi*(
+	    str->c[n+ 5]+2*dr*str->c[n+ 6]+3*dr2*str->c[n+ 7]
+	    +2*dz*(str->c[n+ 9]+2*dr*str->c[n+10]+3*dr2*str->c[n+11])
+	    +3*dz2*(str->c[n+13]+2*dr*str->c[n+14]+3*dr2*str->c[n+15]));
+    }
+
+    return err;
 }
 
 /**
