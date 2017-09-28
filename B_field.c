@@ -4,6 +4,7 @@
  */
 #include <stdio.h>
 #include "ascot5.h"
+#include "error.h"
 #include "B_field.h"
 #include "Bfield/B_GS.h"
 #include "Bfield/B_2D.h"
@@ -150,45 +151,9 @@ int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
     return err;
 }
 
-int B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata) {
-    int err = 0;
-    
-    switch(Bdata->type) {
-        case B_field_type_GS:
-        B_GS_eval_B(B, r, phi, z, &(Bdata->BGS));
-        break;
-
-        case B_field_type_2D:
-        B_2D_eval_B(B, r, phi, z, &(Bdata->B2D));
-        break;
-
-        case B_field_type_2DS:
-        err = B_2DS_eval_B(B, r, phi, z, &(Bdata->B2DS));
-        break;
-
-        case B_field_type_3D:
-        B_3D_eval_B(B, r, phi, z, &(Bdata->B3D));
-        break;
-
-        case B_field_type_3DS:
-        err = B_3DS_eval_B(B, r, phi, z, &(Bdata->B3DS));
-        break;
-
-        case B_field_type_ST:
-        B_ST_eval_B(B, r, phi, z, &(Bdata->BST));
-        break;
-
-	case B_field_type_TC:
-        B_TC_eval_B(B, r, phi, z, &(Bdata->BTC));
-        break;
-    }
-
-    return err;
-}
-
-int B_field_eval_psi(real psi[], real r, real phi, real z,
+a5err B_field_eval_psi(real psi[], real r, real phi, real z,
                       B_field_data* Bdata) {
-    int err = 0;
+    a5err err = 0;
 
     switch(Bdata->type) {
         case B_field_type_GS:
@@ -220,15 +185,20 @@ int B_field_eval_psi(real psi[], real r, real phi, real z,
         break;
     }
 
+    if(err) {
+	/* Return some reasonable values to avoid further errors */
+	psi[0] = 1;
+    }
+
     return err;
 }
 
 /* psi   -> psi_dpsi[0]    dpsi/dr -> psi_dpsi[1]
  * dpsi/dphi -> psi_dpsi[2]    dpsi/dz -> psi_dpsi[3]
  */
-int B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
+a5err B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
                        B_field_data* Bdata) {
-    int err = 0;
+    a5err err = 0;
 
     switch(Bdata->type) {
         case B_field_type_GS:
@@ -260,11 +230,17 @@ int B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
         break;
     }
 
+    if(err) {
+	/* Return some reasonable values to avoid further errors */
+	psi_dpsi[0] = 1;
+	for(int k=1; k<4; k++) {psi_dpsi[k] = 0;}
+    }
+
     return err;
 }
 
-int B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
-    int err = 0;
+a5err B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
+    a5err err = 0;
 
     switch(Bdata->type) {
         case B_field_type_GS:
@@ -296,15 +272,20 @@ int B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
         break;
     }
 
+    if(err) {
+	/* Return some reasonable values to avoid further errors */
+	rho[0] = 1;
+    }
+
     return err;
 }
 
 /* rho   -> rho_drho[0]    drho/dr -> rho_drho[1]
  * drho/dphi -> rho_drho[2]    drho/dz -> rho_drho[3]
  */
-int B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
+a5err B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
                        B_field_data* Bdata) {
-    int err = 0;
+    a5err err = 0;
 
     switch(Bdata->type) {
         case B_field_type_GS:
@@ -336,6 +317,54 @@ int B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
         break;
     }
 
+    if(err) {
+	/* Return some reasonable values to avoid further errors */
+	rho_drho[0] = 1;
+	for(int k=1; k<4; k++) {rho_drho[k] = 0;}
+    }
+
+    return err;
+}
+
+a5err B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata) {
+    a5err err = 0;
+    
+    switch(Bdata->type) {
+        case B_field_type_GS:
+        B_GS_eval_B(B, r, phi, z, &(Bdata->BGS));
+        break;
+
+        case B_field_type_2D:
+        B_2D_eval_B(B, r, phi, z, &(Bdata->B2D));
+        break;
+
+        case B_field_type_2DS:
+        err = B_2DS_eval_B(B, r, phi, z, &(Bdata->B2DS));
+        break;
+
+        case B_field_type_3D:
+        B_3D_eval_B(B, r, phi, z, &(Bdata->B3D));
+        break;
+
+        case B_field_type_3DS:
+        err = B_3DS_eval_B(B, r, phi, z, &(Bdata->B3DS));
+        break;
+
+        case B_field_type_ST:
+        B_ST_eval_B(B, r, phi, z, &(Bdata->BST));
+        break;
+
+	case B_field_type_TC:
+        B_TC_eval_B(B, r, phi, z, &(Bdata->BTC));
+        break;
+    }
+
+    if(err) {
+	/* Return some reasonable values to avoid further errors */
+	B[0] = 1;
+	for(int k=1; k<3; k++) {B[k] = 0;}
+    }
+
     return err;
 }
 
@@ -343,9 +372,9 @@ int B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
  * Bphi -> B[4]  dBphi/dr -> B[5] dBphi/dphi -> B[6]  dBphi/dz -> B[7]
  * Bz   -> B[8]    dBz/dr -> B[9]   dBz/dphi -> B[10]   dBz/dz -> B[11]
  */
-int B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
-                       B_field_data* Bdata) {
-    int err = 0;
+a5err B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
+			B_field_data* Bdata) {
+    a5err err = 0;
 
     switch(Bdata->type) {
         case B_field_type_GS:
@@ -375,6 +404,12 @@ int B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
 	case B_field_type_TC:
         B_TC_eval_B_dB(B_dB, r, phi, z, &(Bdata->BTC));
         break;
+    }
+
+    if(err) {
+	/* Return some reasonable values to avoid further errors */
+	B_dB[0] = 1;
+	for(int k=1; k<12; k++) {B_dB[k] = 0;}
     }
 
     return err = 0;

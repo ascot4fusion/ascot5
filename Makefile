@@ -65,7 +65,7 @@ UIDIR = ui/
 ASCOT4IFDIR = ascot4_interface/
 
 
-HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h \
+HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
 	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
 	plasma_1d.h particle.h endcond.h B_field.h E_field.h \

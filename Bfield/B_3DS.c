@@ -8,6 +8,7 @@
 #include <string.h>
 #include "../math.h"
 #include "../ascot5.h"
+#include "../error.h"
 #include "B_3DS.h"
 #include "../spline/interp2D.h" /* for 2D interpolation routines */
 #include "../spline/interp3D.h" /* for 3D interpolation routines */
@@ -224,42 +225,6 @@ int B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
 }
 
 /**
- * @brief Evaluate magnetic field
- *
- * This function evaluates the magnetic field at the given coordinates using
- * bicubic interpolation on the 3D magnetic field data. This is a SIMD
- * function, so the values are placed in an NSIMD length struct.
- *
- * @param i index in the NSIMD struct that will be populated 
- * @param B array where magnetic field values will be stored (Br -> B[0][i],
- *          Bphi -> B[1][i], Bz -> B[2][i]
- * @param r r coordinate
- * @param phi phi coordinate
- * @param z z coordinate
- * @param Bdata pointer to magnetic field data struct
- */
-int B_3DS_eval_B(real B[], real r, real phi, real z, B_3DS_data* Bdata) {
-    int err = 0;
-    #if INTERP_SPL_EXPL
-    err += interp3Dexpl_eval_B(&B[0], &Bdata->B_r, r, phi, z);
-    err += interp3Dexpl_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
-    err += interp3Dexpl_eval_B(&B[2], &Bdata->B_z, r, phi, z);
-    #else
-    err += interp3Dcomp_eval_B(&B[0], &Bdata->B_r, r, phi, z);
-    err += interp3Dcomp_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
-    err += interp3Dcomp_eval_B(&B[2], &Bdata->B_z, r, phi, z);
-    #endif
-
-    #ifndef NOPSI
-    real psi_dpsi[4];
-    err += B_3DS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
-    B[0] = B[0] - psi_dpsi[3]/r;
-    B[2] = B[2] + psi_dpsi[1]/r;
-    #endif
-    return err;
-}
-
-/**
  * @brief Evaluate poloidal flux psi
  *
  * This function evaluates the poloidal flux psi at the given coordinates using
@@ -275,14 +240,21 @@ int B_3DS_eval_B(real B[], real r, real phi, real z, B_3DS_data* Bdata) {
  *
  * @todo Change to a scalar elemental function and compare performance
  */
-int B_3DS_eval_psi(real psi[], real r, real phi, real z,
+a5err B_3DS_eval_psi(real psi[], real r, real phi, real z,
                    B_3DS_data* Bdata) {
-    int err = 0;
+    a5err err = 0;
+    int interperr = 0; /* If error happened during interpolation */
     #if INTERP_SPL_EXPL
-    err += interp2Dexpl_eval_B(&psi[0], &Bdata->psi, r, z);
+    interperr += interp2Dexpl_eval_B(&psi[0], &Bdata->psi, r, z);
     #else
-    err += interp2Dcomp_eval_B(&psi[0], &Bdata->psi, r, z);
+    interperr += interp2Dcomp_eval_B(&psi[0], &Bdata->psi, r, z);
     #endif
+
+    if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
+
+    /* Check that the values seem valid */
+    if(!err && isnan(psi[0])) {err = error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );}
+
     return err;
 }
 
@@ -303,19 +275,28 @@ int B_3DS_eval_psi(real psi[], real r, real phi, real z,
  *
  * @todo Change to a scalar elemental function and compare performance
  */
-int B_3DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
+a5err B_3DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
                    B_3DS_data* Bdata) {
-    int err = 0;
+    a5err err = 0;
+    int interperr = 0; /* If error happened during interpolation */
     real psi_dpsi_temp[6];
     #if INTERP_SPL_EXPL
-    err += interp2Dexpl_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
+    interperr += interp2Dexpl_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
     #else
-    err += interp2Dcomp_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
+    interperr += interp2Dcomp_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
     #endif
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
     psi_dpsi[2] = 0;
     psi_dpsi[3] = psi_dpsi_temp[2];
+
+    if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
+
+    /* Check that the values seem valid */
+    int check = 0;
+    for(int k=0; k<4; k++) {check += isnan(psi_dpsi[k]);}
+
+    if(!err && check) { err = error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );}
 
     return err;
 }
@@ -331,17 +312,17 @@ int B_3DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
  * @param rho rho value will be stored in rho[0][i]
  * @param psi poloidal flux value 
  * @param Bdata pointer to magnetic field data struct
- *
- * @todo Change to a scalar elemental function and compare performance
  */
-int B_3DS_eval_rho(real rho[], real psi, B_3DS_data* Bdata) {
-    int err = 0;
-    if(psi - Bdata->psi0 < 0) {
-        rho[0] = 0;
-    }
+a5err B_3DS_eval_rho(real rho[], real psi, B_3DS_data* Bdata) {
+    a5err err = 0;
+
+    /* Check that the values seem valid */
+    if( (psi - Bdata->psi0) < 0 ) {err = error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );}
     else {
+        /* Normalize psi to get rho */
         rho[0] = sqrt((psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0));
     }
+
     return err;
 }
 
@@ -362,19 +343,97 @@ int B_3DS_eval_rho(real rho[], real psi, B_3DS_data* Bdata) {
  * @param Bdata pointer to magnetic field data struct
  *
  */
-int B_3DS_eval_rho_drho(real rho_drho[], real r, real phi, real z,
-                    B_3DS_data* Bdata) {
-    int err = 0;
-    real rho;
-    err += B_3DS_eval_psi_dpsi(rho_drho, r, phi, z, Bdata);
-    /* Convert: rho = sqrt(psi), drho = dpsi/(2 * sqrt(psi))
-     * Note that rho_drho[2] = 1/R * drho/dphi, because of cylindrical gradient
-     */
-    rho = sqrt(rho_drho[0]);
-    rho_drho[0] = rho;
-    rho_drho[1] = rho_drho[1] / (2*rho);
-    rho_drho[2] = rho_drho[2] / (2*rho);
-    rho_drho[3] = rho_drho[3] / (2*rho);
+a5err B_3DS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_3DS_data* Bdata) {
+    a5err err = 0;
+    int interperr = 0; /* If error happened during interpolation */
+    real psi_dpsi[6];
+    #if INTERP_SPL_EXPL
+    interperr += interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+    #else
+    interperr += interp2Dcomp_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+    #endif
+
+    if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
+    
+    /* Check that the values seem valid */
+    int check = 0;
+    for(int k=0; k<4; k++) {check += isnan(psi_dpsi[k]);}
+    
+    if(!err && check)                                {err = error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );}
+    else if(!err && (psi_dpsi[0] - Bdata->psi0) < 0) {err = error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );}
+    else if(!err) {
+        /* Normalize psi to get rho */
+        real delta = Bdata->psi1 - Bdata->psi0;
+        rho_drho[0] = sqrt((psi_dpsi[0] - Bdata->psi0) / delta);
+	
+	if(rho_drho[0] == 0) {
+            rho_drho[1] = psi_dpsi[1] / (2*delta*rho_drho[0]);
+	    rho_drho[2] = 0;
+	    rho_drho[3] = psi_dpsi[2] / (2*delta*rho_drho[0]);
+        }
+	else {
+            rho_drho[1] = 0;
+            rho_drho[2] = 0;
+	    rho_drho[3] = 0;
+        }
+
+    }
+
+    return err;
+}
+
+/**
+ * @brief Evaluate magnetic field
+ *
+ * This function evaluates the magnetic field at the given coordinates using
+ * bicubic interpolation on the 3D magnetic field data. This is a SIMD
+ * function, so the values are placed in an NSIMD length struct.
+ *
+ * @param i index in the NSIMD struct that will be populated 
+ * @param B array where magnetic field values will be stored (Br -> B[0][i],
+ *          Bphi -> B[1][i], Bz -> B[2][i]
+ * @param r r coordinate
+ * @param phi phi coordinate
+ * @param z z coordinate
+ * @param Bdata pointer to magnetic field data struct
+ */
+a5err B_3DS_eval_B(real B[], real r, real phi, real z, B_3DS_data* Bdata) {
+    a5err err = 0;
+    int interperr = 0; /* If error happened during interpolation */
+    #if INTERP_SPL_EXPL
+    interperr += interp3Dexpl_eval_B(&B[0], &Bdata->B_r, r, phi, z);
+    interperr += interp3Dexpl_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
+    interperr += interp3Dexpl_eval_B(&B[2], &Bdata->B_z, r, phi, z);
+    #else
+    interperr += interp3Dcomp_eval_B(&B[0], &Bdata->B_r, r, phi, z);
+    interperr += interp3Dcomp_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
+    interperr += interp3Dcomp_eval_B(&B[2], &Bdata->B_z, r, phi, z);
+    #endif
+
+    /* Test for B field interpolation error */
+    if(interperr) {err = error_raise( ERR_OUTSIDE_BFIELD, __LINE__ );}
+
+    #ifndef NOPSI
+    if(!err) {
+	real psi_dpsi[6];
+	#if INTERP_SPL_EXPL
+	interperr += interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+	#else
+	interperr += interp2Dcomp_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+	#endif
+	B[0] = B[0] - psi_dpsi[2]/r;
+	B[2] = B[2] + psi_dpsi[1]/r;
+
+	/* Test for psi interpolation error */
+	if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
+    }
+    #endif
+
+    /* Check that magnetic field seems valid */
+    int check = 0;
+    for(int k=0; k<3; k++){ check += isnan(B[k]);}
+    check += ((B[0]*B[0] + B[1]*B[1] + B[2]*B[2]) == 0);
+    if(!err && check) {err = error_raise( ERR_UNPHYSICAL_B, __LINE__ );}
 
     return err;
 }
@@ -397,13 +456,14 @@ int B_3DS_eval_rho_drho(real rho_drho[], real r, real phi, real z,
  * @param z z coordinate
  * @param Bdata pointer to magnetic field data struct
  */
-int B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata) {
-    int err = 0;
+a5err B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata) {
+    a5err err = 0;
+    int interperr = 0; /* If error happened during interpolation */
     real B_dB_temp[10];
     #if INTERP_SPL_EXPL
-    err += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
+    interperr += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
     #else
-    err += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
+    interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
     #endif
 
     B_dB[0] = B_dB_temp[0];
@@ -413,9 +473,9 @@ int B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata) {
 
 
     #if INTERP_SPL_EXPL
-    err += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
+    interperr += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
     #else
-    err += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
+    interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
     #endif
 
     B_dB[4] = B_dB_temp[0];
@@ -425,9 +485,9 @@ int B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata) {
 
 
     #if INTERP_SPL_EXPL
-    err += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
+    interperr += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
     #else
-    err += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
+    interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
     #endif
 
     B_dB[8] = B_dB_temp[0];
@@ -435,22 +495,35 @@ int B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata) {
     B_dB[10] = B_dB_temp[2];
     B_dB[11] = B_dB_temp[3];
 
+    /* Test for B field interpolation error */
+    if(interperr) {err = error_raise( ERR_OUTSIDE_BFIELD, __LINE__ );}
 
     #ifndef NOPSI
     real psi_dpsi[6];
-    #if INTERP_SPL_EXPL
-    err += interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
-    #else
-    err += interp2Dcomp_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+    if(!err) {
+	#if INTERP_SPL_EXPL
+	interperr += interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+	#else
+	interperr += interp2Dcomp_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+	#endif
+
+	B_dB[0] = B_dB[0] - psi_dpsi[2]/r;
+	B_dB[1] = B_dB[1] + psi_dpsi[2]/(r*r)-psi_dpsi[5]/r;
+	B_dB[3] = B_dB[3] - psi_dpsi[4]/r;
+	B_dB[8] = B_dB[8] + psi_dpsi[1]/r;
+	B_dB[9] = B_dB[9] - psi_dpsi[1]/(r*r) + psi_dpsi[3]/r;
+	B_dB[11] = B_dB[11] + psi_dpsi[5]/r;
+
+	/* Test for psi interpolation error */
+	if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
+    }
     #endif
 
-    B_dB[0] = B_dB[0] - psi_dpsi[2]/r;
-    B_dB[1] = B_dB[1] + psi_dpsi[2]/(r*r)-psi_dpsi[5]/r;
-    B_dB[3] = B_dB[3] - psi_dpsi[4]/r;
-    B_dB[8] = B_dB[8] + psi_dpsi[1]/r;
-    B_dB[9] = B_dB[9] - psi_dpsi[1]/(r*r) + psi_dpsi[3]/r;
-    B_dB[11] = B_dB[11] + psi_dpsi[5]/r;
-    #endif
+    /* Check that magnetic field seems valid */
+    int check = 0;
+    for(int k=0; k<12; k++){ check += isnan(B_dB[k]);}
+    check += ((B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]) == 0);
+    if(!err && check) {err = error_raise( ERR_UNPHYSICAL_B, __LINE__ );}
 
     return err;
 }
