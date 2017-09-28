@@ -22,24 +22,25 @@
  * @param j     index of the new fo struct in the SIMD array
  */
 void particle_to_fo_dummy(particle_simd_fo* p_fo, int j){
-    p_fo->r[j] = 1;
-    p_fo->phi[j] = 1;
-    p_fo->z[j] = 1;
-    p_fo->rdot[j] = 1;
-    p_fo->phidot[j] = 1;
-    p_fo->zdot[j] = 1;
-    p_fo->mass[j] = 1;
-    p_fo->charge[j] = 1;
-    p_fo->weight[j] = 0;
-    p_fo->time[j] = 0;
-    p_fo->id[j] = -1; 
-    p_fo->running[j] = 0;
-    p_fo->endcond[j] = 0; 
+    p_fo->r[j]        = 1;
+    p_fo->phi[j]      = 1;
+    p_fo->z[j]        = 1;
+    p_fo->rdot[j]     = 1;
+    p_fo->phidot[j]   = 1;
+    p_fo->zdot[j]     = 1;
+    p_fo->mass[j]     = 1;
+    p_fo->charge[j]   = 1;
+    p_fo->weight[j]   = 0;
+    p_fo->time[j]     = 0;
+    p_fo->id[j]       = -1; 
+    p_fo->running[j]  = 0;
+    p_fo->endcond[j]  = 0; 
     p_fo->walltile[j] = 0;
-    p_fo->B_r[j] = 1;					  
-    p_fo->B_phi[j] = 1;				
-    p_fo->B_z[j] = 1;	        
-    p_fo->index[j] = -1;
+    p_fo->B_r[j]      = 1;					  
+    p_fo->B_phi[j]    = 1;				
+    p_fo->B_z[j]      = 1;	        
+    p_fo->index[j]    = -1;
+    p_fo->err[j]      = 0;
 }
 
 /**
@@ -49,17 +50,17 @@ void particle_to_fo_dummy(particle_simd_fo* p_fo, int j){
  * @param j     index of the new fo struct in the SIMD array
  */
 void particle_to_gc_dummy(particle_simd_gc* p_gc, int j) {
-    p_gc->r[j] = 1;
-    p_gc->phi[j] = 1;
-    p_gc->z[j] = 1;
-    p_gc->vpar[j] = 1;
-    p_gc->mu[j] = 1;
-    p_gc->theta[j] = 1;
-    p_gc->mass[j] = 1;
-    p_gc->charge[j] = 1;
-    p_gc->time[j] = 0;
-    p_gc->weight[j] = 0;
-    p_gc->id[j] = -1;
+    p_gc->r[j]          = 1;
+    p_gc->phi[j]        = 1;
+    p_gc->z[j]          = 1;
+    p_gc->vpar[j]       = 1;
+    p_gc->mu[j]         = 1;
+    p_gc->theta[j]      = 1;
+    p_gc->mass[j]       = 1;
+    p_gc->charge[j]     = 1;
+    p_gc->time[j]       = 0;
+    p_gc->weight[j]     = 0;
+    p_gc->id[j]         = -1;
     p_gc->B_r[j]        = 1;
     p_gc->B_r_dr[j]     = 1;
     p_gc->B_r_dphi[j]   = 1;
@@ -74,7 +75,8 @@ void particle_to_gc_dummy(particle_simd_gc* p_gc, int j) {
     p_gc->B_z_dr[j]     = 1;
     p_gc->B_z_dphi[j]   = 1;
     p_gc->B_z_dz[j]     = 1;
-    p_gc->index[j] = -1;
+    p_gc->index[j]      = -1;
+    p_gc->err[j]        = 0;
 }
 
 /**
@@ -84,11 +86,11 @@ void particle_to_gc_dummy(particle_simd_gc* p_gc, int j) {
  * @param j     index of the new ml struct in the SIMD array
  */
 void particle_to_ml_dummy(particle_simd_ml* p_ml, int j){
-    p_ml->r[j] = 1;
-    p_ml->phi[j] = 1;
-    p_ml->z[j] = 1;
-    p_ml->time[j] = 0;
-    p_ml->id[j] = -1; 
+    p_ml->r[j]          = 1;
+    p_ml->phi[j]        = 1;
+    p_ml->z[j]          = 1;
+    p_ml->time[j]       = 0;
+    p_ml->id[j]         = -1; 
     p_ml->B_r[j]        = 1;
     p_ml->B_r_dr[j]     = 1;
     p_ml->B_r_dphi[j]   = 1;
@@ -103,7 +105,8 @@ void particle_to_ml_dummy(particle_simd_ml* p_ml, int j){
     p_ml->B_z_dr[j]     = 1;
     p_ml->B_z_dphi[j]   = 1;
     p_ml->B_z_dz[j]     = 1;
-    p_ml->index[j] = -1;
+    p_ml->index[j]      = -1;
+    p_ml->err[j]        = 0;
 }
 
 /**
@@ -347,6 +350,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	ps->B_r_dz     = B_dB[3];      
 	ps->B_phi_dz   = B_dB[7];   
 	ps->B_z_dz     = B_dB[11];
+
+	ps->err = 0;
     }
     else if(p->type == input_particle_type_gc) {
         /* Guiding center to state */
@@ -429,6 +434,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	ps->B_phi_dz   = B_dB[7];   
 	ps->B_z_dz     = B_dB[11];
            
+	ps->err = 0;
     }
     else if(p->type == input_particle_type_ml) {
 	/* Magnetic field line to state */
@@ -487,6 +493,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	ps->B_r_dz     = B_dB[3];      
 	ps->B_phi_dz   = B_dB[7];   
 	ps->B_z_dz     = B_dB[11];
+
+	ps->err = 0;
     }
 }
 
@@ -549,6 +557,8 @@ void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int 
     }
     p_fo->cputime[j] = p->cputime;
     p_fo->index[j]   = i;
+
+    p_fo->err[j] = p->err;
 }
 
 /**
@@ -631,6 +641,8 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->B_z_dr     = B_dB[9];
     p->B_z_dphi   = B_dB[10];
     p->B_z_dz     = B_dB[11];
+
+    p->err = p_fo->err[j];
 }
 
 /**
@@ -661,6 +673,7 @@ void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int 
     p_gc->id[j]         = p->id;
     p_gc->endcond[j]    = p->endcond; 
     p_gc->walltile[j]   = p->walltile;
+    p_gc->err[j]        = p->err;
 
     p_gc->B_r[j]        = p->B_r;
     p_gc->B_r_dr[j]     = p->B_r_dr;
@@ -757,6 +770,7 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     p->rdot       = pR/(gamma*p->mass); 
     p->phidot     = pphi/(gamma*p->mass*p->rprt);     
     p->zdot       = pz/(gamma*p->mass);
+    p->err        = p_gc->err[j];
 }
 
 /**
@@ -784,6 +798,7 @@ void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int 
     p_ml->pol[j]        = p->pol;
     p_ml->endcond[j]    = p->endcond; 
     p_ml->walltile[j]   = p->walltile;
+    p_ml->err[j]        = p->err;
 
     p_ml->B_r[j]        = p->B_r;
     p_ml->B_r_dr[j]     = p->B_r_dr;
@@ -843,6 +858,7 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->pol        = p_ml->pol[j];
     p->endcond    = p_ml->endcond[j]; 
     p->walltile   = p_ml->walltile[j];
+    p->err        = p_ml->err[j];
 
     p->B_r        = p_ml->B_r[j];
     p->B_r_dr     = p_ml->B_r_dr[j];
@@ -937,4 +953,5 @@ void particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
     p_gc->B_z_dr[j]     = B_dB[9];
     p_gc->B_z_dphi[j]   = B_dB[10];
     p_gc->B_z_dz[j]     = B_dB[11];
+    p_gc->err[j]        = p_fo->err[j];
 }

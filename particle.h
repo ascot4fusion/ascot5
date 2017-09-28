@@ -8,6 +8,7 @@
 #include "ascot5.h"
 #include "B_field.h"
 #include "E_field.h"
+#include "error.h"
 
 /** @brief Struct the physical state of the particle. Includes self-consistent
  *         full-orbit and guiding-center coordinates.
@@ -57,6 +58,8 @@ typedef struct {
     real B_r_dz;      /**< gradient of B_r with respect to z*/
     real B_phi_dz;    /**< gradient of B_phi with respect to z*/
     real B_z_dz;      /**< gradient of B_z with respect to z*/
+    
+    a5err err;        /**< error flag */
 } particle_state;
 
 /** @brief Struct representing a single physical particle in cylindrical
@@ -129,7 +132,7 @@ typedef struct {
     union {
         particle p;
         particle_gc p_gc;
-	particle_gc p_ml;
+	particle_ml p_ml;
 	particle_state p_s;
     };
 } input_particle;
@@ -179,6 +182,8 @@ typedef struct {
     real B_phi_dz[NSIMD] __memalign__;    /**< gradient of B_phi with respect to z*/
     real B_z_dz[NSIMD] __memalign__;      /**< gradient of B_z with respect to z*/
 
+    a5err err[NSIMD] __memalign__;        /**< error flag */
+
     integer index[NSIMD] __memalign__;
 } particle_simd_fo;
 
@@ -225,6 +230,9 @@ typedef struct {
     real B_r_dz[NSIMD] __memalign__;      /**< gradient of B_r with respect to z*/
     real B_phi_dz[NSIMD] __memalign__;    /**< gradient of B_phi with respect to z*/
     real B_z_dz[NSIMD] __memalign__;      /**< gradient of B_z with respect to z*/
+
+    a5err err[NSIMD] __memalign__;        /**< error flag */
+
     integer index[NSIMD] __memalign__;
 } particle_simd_gc;
 
@@ -264,6 +272,9 @@ typedef struct {
     real B_r_dz[NSIMD] __memalign__;      /**< gradient of B_r with respect to z*/
     real B_phi_dz[NSIMD] __memalign__;    /**< gradient of B_phi with respect to z*/
     real B_z_dz[NSIMD] __memalign__;      /**< gradient of B_z with respect to z*/
+
+    a5err err[NSIMD] __memalign__;        /**< error flag */
+
     integer index[NSIMD] __memalign__;
 } particle_simd_ml;
 
