@@ -5,6 +5,7 @@
 #ifndef PLASMA_1D_H
 #define PLASMA_1D_H
 #include "ascot5.h"
+#include "error.h"
 
 /**
  * @brief 1D plasma parameters that will be offloaded to target
@@ -39,15 +40,15 @@ void plasma_1d_free_offload(plasma_1d_offload_data* offload_data,
                             real** offload_array);
 
 #pragma omp declare target
-void plasma_1d_init(plasma_1d_data* plasma_data,
-                    plasma_1d_offload_data* offload_data,
-                    real* offload_array);
+int plasma_1d_init(plasma_1d_data* plasma_data,
+		   plasma_1d_offload_data* offload_data,
+		   real* offload_array);
 #pragma omp declare simd uniform(plasma_data)
 real plasma_1d_eval_temp(real rho, int species, plasma_1d_data* plasma_data);
 #pragma omp declare simd uniform(plasma_data)
 real plasma_1d_eval_dens(real rho, int species, plasma_1d_data* plasma_data);
 #pragma omp declare simd uniform(plasma_data)
-void plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* dens, real* temp);
+a5err plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* dens, real* temp);
 #pragma omp end declare target
 
 #endif

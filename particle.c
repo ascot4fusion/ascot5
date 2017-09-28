@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "ascot5.h"
+#include "error.h"
 #include "consts.h"
 #include "math.h"
 #include "physlib.h"

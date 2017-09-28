@@ -6,6 +6,7 @@
 #define E_FIELD_H
 
 #include "ascot5.h"
+#include "error.h"
 #include "B_field.h"
 #include "Efield/E_TC.h"
 #include "Efield/E_1D.h"
@@ -33,10 +34,10 @@ void E_field_free_offload(E_field_offload_data* offload_data,
                           real** offload_array);
 
 #pragma omp declare target
-void E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
-                  real* offload_array);
+int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
+		 real* offload_array);
 #pragma omp declare simd uniform(Edata, Bdata) 
-void E_field_eval_E(real* E, real r, real phi, real z, E_field_data* Edata, B_field_data* Bdata);
+a5err E_field_eval_E(real* E, real r, real phi, real z, E_field_data* Edata, B_field_data* Bdata);
 #pragma omp end declare target
 
 #endif

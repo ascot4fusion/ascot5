@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ascot5.h"
+#include "error.h"
 #include "plasma_1d.h"
 #include "consts.h"
 
@@ -125,9 +126,12 @@ void plasma_1d_free_offload(plasma_1d_offload_data* offload_data,
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
 */
-void plasma_1d_init(plasma_1d_data* plasma_data,
+int plasma_1d_init(plasma_1d_data* plasma_data,
                     plasma_1d_offload_data* offload_data,
                     real* offload_array) {
+
+    int err = 0;
+
     plasma_data->n_rho = offload_data->n_rho;
     plasma_data->n_species = offload_data->n_species;
     int i;
@@ -139,6 +143,8 @@ void plasma_1d_init(plasma_1d_data* plasma_data,
     plasma_data->temp = &offload_array[plasma_data->n_rho];
     plasma_data->dens = &offload_array[plasma_data->n_rho
                                   + plasma_data->n_rho*plasma_data->n_species];
+
+    return err;
 }
 
 /**
@@ -214,7 +220,8 @@ real plasma_1d_eval_dens(real rho, int species, plasma_1d_data* plasma_data) {
  * @brief Evaluate plasma density and temperature for all species
  *
  */
-void plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* dens, real* temp) {
+a5err plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* dens, real* temp) {
+    a5err err = 0;
     real p1, p2;
     if(rho < plasma_data->rho[0]) {
 	for(int i = 0; i < plasma_data->n_species; i++) {
@@ -222,7 +229,7 @@ void plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* den
 
 	    if(i < 2) {
 		/* Electron and ion temperature */
-		 temp[i] = temp[i] = plasma_data->temp[i*plasma_data->n_rho];
+		 temp[i] = plasma_data->temp[i*plasma_data->n_rho];
 	    }
 	    else {
 		/* Temperature is same for all ion species */
@@ -271,4 +278,6 @@ void plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* den
 	    }
 	}
     }
+
+    return err;
 }
