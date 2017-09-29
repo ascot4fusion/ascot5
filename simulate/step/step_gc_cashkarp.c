@@ -36,6 +36,8 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
     #pragma omp simd aligned(h, hnext : 64)
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
+            a5err errflag = 0;
+
             real k1[6];
             real k2[6];
             real k3[6];
@@ -81,113 +83,136 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
 	    B_dB[10] = p->B_z_dphi[i];
 	    B_dB[11] = p->B_z_dz[i];
 
-	    E_field_eval_E(E, yprev[0], yprev[1], yprev[2], Edata, Bdata);
-	    step_gceom(k1, yprev, mass, charge, B_dB, E);
-	    int j;
+	    if(!errflag) {errflag = E_field_eval_E(E, yprev[0], yprev[1], yprev[2], Edata, Bdata);}
+	    if(!errflag) {step_gceom(k1, yprev, mass, charge, B_dB, E);}
 
-	    for(j = 0; j < 6; j++) {
-		tempy[j] = yprev[j] + ((1.0/5)*k1[j])*h[i];
-	    }
-	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
-	    step_gceom(k2, tempy, mass, charge, B_dB, E);
+	    for(int j = 0; j < 6; j++) {
+                tempy[j] = yprev[j] + ((1.0/5)*k1[j])*h[i];
+            }
+	    if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
+	    if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
+	    if(!errflag) {step_gceom(k2, tempy, mass, charge, B_dB, E);}
 
-	    for(j = 0; j < 6; j++) {
+	    for(int j = 0; j < 6; j++) {
 		tempy[j] = yprev[j] + ((3.0/40)*k1[j]+(9.0/40)*k2[j])*h[i];
 	    }
-	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
-	    step_gceom(k3, tempy, mass, charge, B_dB, E);
+	    if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
+	    if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
+	    if(!errflag) {step_gceom(k3, tempy, mass, charge, B_dB, E);}
 
-	    for(j = 0; j < 6; j++) {
+	    for(int j = 0; j < 6; j++) {
 		tempy[j] = yprev[j] + ((3.0/10)*k1[j]+(-9.0/10)*k2[j]+(6.0/5)*k3[j])*h[i];
 	    }
-	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
-	    step_gceom(k4, tempy, mass, charge, B_dB, E);
+	    if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
+	    if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
+	    if(!errflag) {step_gceom(k4, tempy, mass, charge, B_dB, E);}
 	
-	    for(j = 0; j < 6; j++) {
+	    for(int j = 0; j < 6; j++) {
 		tempy[j] = yprev[j] + ((-11.0/54)*k1[j]+(5.0/2)*k2[j]+(-70.0/27)*k3[j]+(35.0/27)*k4[j])*h[i];
 	    }
-	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
-	    step_gceom(k5, tempy, mass, charge, B_dB, E);
+	    if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
+	    if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
+	    if(!errflag) {step_gceom(k5, tempy, mass, charge, B_dB, E);}
 
-	    for(j = 0; j < 6; j++) {
+	    for(int j = 0; j < 6; j++) {
 		tempy[j] = yprev[j] + ((1631.0/55296)*k1[j]+(175.0/512)*k2[j]+(575.0/13824)*k3[j]+(44275.0/110592)*k4[j]+(253.0/4096)*k5[j])*h[i];
 	    }
-	    B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);
-	    E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);
-	    step_gceom(k6, tempy, mass, charge, B_dB, E);
+	    if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
+	    if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
+	    if(!errflag) {step_gceom(k6, tempy, mass, charge, B_dB, E);}
 
+	    /* Evaluate new gc position and suggestion for the next time-step */
 	    real yout[6];
-	    real yerr;
-	    real ytol;
-	    real err = 0.0;
-	    for(j = 0; j < 6; j++) {
-		yout[j] = yprev[j] + ( (37.0/378)*k1[j] + (250.0/621)*k3[j] + (125.0/594)*k4[j] + (512.0/1771)*k6[j] )*h[i] ;
-		yerr = fabs(yprev[j] + 
-			    ( (2825.0/27648)*k1[j] + (18575.0/48384)*k3[j] + (13525.0/55296)*k4[j] + (277.0/14336)*k5[j] + (1.0/4)*k6[j] )*h[i] 
-			    - yout[j]);
-		ytol = fabs(yprev[j]) + fabs(k1[j]*h[i]);
-		err = fmax(err,yerr/ytol);
-	    }
-
-	    err = err/tol;
-	    if(err <= 1){
-		/* Time step accepted */
-                hnext[i] = 0.85*h[i]*pow(err,-0.2);
-
-		/* Make sure we don't make a huge jump */
-		if(hnext[i] > 1.5*h[i]) {
-                    hnext[i] = 1.5*h[i];
+	    if(!errflag) {
+	        real yerr;
+		real ytol;
+		real err = 0.0;
+		for(int j = 0; j < 6; j++) {
+                    yout[j] = yprev[j] + ( (37.0/378)*k1[j] + (250.0/621)*k3[j] + (125.0/594)*k4[j] + (512.0/1771)*k6[j] )*h[i] ;
+		    yerr = fabs(yprev[j] + 
+	                   ( (2825.0/27648)*k1[j] + (18575.0/48384)*k3[j] + (13525.0/55296)*k4[j] + (277.0/14336)*k5[j] + (1.0/4)*k6[j] )*h[i] 
+			   - yout[j]);
+		    ytol = fabs(yprev[j]) + fabs(k1[j]*h[i]);
+		    err = fmax(err,yerr/ytol);
                 }
-	    }
-	    else{
-		/* Time step rejected */
-	        hnext[i] = -0.85*h[i]*pow(err,-0.25);
 		
-	    }
+		err = err/tol;
+		if(err <= 1){
+                    /* Time step accepted */
+                    hnext[i] = 0.85*h[i]*pow(err,-0.2);
+		    
+		    /* Make sure we don't make a huge jump */
+		    if(hnext[i] > 1.5*h[i]) {
+                        hnext[i] = 1.5*h[i];
+                    }
+	        }
+	        else{
+		    /* Time step rejected */
+	            hnext[i] = -0.85*h[i]*pow(err,-0.25);
+	        }
+            }
 
-	    p->r[i] = yout[0];
-	    p->phi[i] = yout[1];
-	    p->z[i] = yout[2];
-	    p->vpar[i] = yout[3];
-	    p->mu[i] = yout[4];
-	    p->theta[i] = fmod(yout[5],CONST_2PI);
-	    if(p->theta[i]<0){p->theta[i] = CONST_2PI + p->theta[i];}
+	    /* Test that results are physical */
+	    if(!errflag && fabs(hnext[i]) < A5_EXTREMELY_SMALL_TIMESTEP)      {errflag = error_raise(ERR_EXTREMELY_SMALL_TIMESTEP, __LINE__);}
+	    else if(!errflag && (isnan(yout[0]) || yout[0] <= 0))             {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    else if(!errflag && isnan(yout[1]))                               {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    else if(!errflag && isnan(yout[2]))                               {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    else if(!errflag && (isnan(yout[3]) || fabs(yout[4]) >= CONST_C)) {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    else if(!errflag && (isnan(yout[4]) || yout[4] < 0))              {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    else if(!errflag && isnan(yout[5]))                               {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+
+
+	    /* Update gc phase space position */
+	    if(!errflag) {
+                p->r[i] = yout[0];
+		p->phi[i] = yout[1];
+		p->z[i] = yout[2];
+		p->vpar[i] = yout[3];
+		p->mu[i] = yout[4];
+		p->theta[i] = fmod(yout[5],CONST_2PI);
+		if(p->theta[i]<0){p->theta[i] = CONST_2PI + p->theta[i];}
+            }
 		
 
 	    /* Evaluate magnetic field (and gradient) and rho at new position */
-	    B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);
-	    p->B_r[i]        = B_dB[0];
-	    p->B_r_dr[i]     = B_dB[1];
-	    p->B_r_dphi[i]   = B_dB[2];
-	    p->B_r_dz[i]     = B_dB[3];
-
-	    p->B_phi[i]      = B_dB[4];
-	    p->B_phi_dr[i]   = B_dB[5];
-	    p->B_phi_dphi[i] = B_dB[6];
-	    p->B_phi_dz[i]   = B_dB[7];
-
-	    p->B_z[i]        = B_dB[8];
-	    p->B_z_dr[i]     = B_dB[9];
-	    p->B_z_dphi[i]   = B_dB[10];
-	    p->B_z_dz[i]     = B_dB[11];
-
 	    real psi[1];
 	    real rho[1];
-	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
-	    B_field_eval_rho(rho, psi[0], Bdata);
-	    p->rho[i] = rho[0];
+	    if(!errflag) {errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);}
+	    if(!errflag) {errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);}
+	    if(!errflag) {errflag = B_field_eval_rho(rho, psi[0], Bdata);}
 
-	    
-	    /* Evaluate pol angle so that it is cumulative */
-	    real axis_r = B_field_get_axis_r(Bdata);
-	    real axis_z = B_field_get_axis_z(Bdata);
-	    p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
-				(R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
+	    if(!errflag) {
+                p->B_r[i]        = B_dB[0];
+		p->B_r_dr[i]     = B_dB[1];
+		p->B_r_dphi[i]   = B_dB[2];
+		p->B_r_dz[i]     = B_dB[3];
+		
+		p->B_phi[i]      = B_dB[4];
+		p->B_phi_dr[i]   = B_dB[5];
+		p->B_phi_dphi[i] = B_dB[6];
+		p->B_phi_dz[i]   = B_dB[7];
+		
+		p->B_z[i]        = B_dB[8];
+		p->B_z_dr[i]     = B_dB[9];
+		p->B_z_dphi[i]   = B_dB[10];
+		p->B_z_dz[i]     = B_dB[11];
+		p->rho[i] = rho[0];
+		
+		
+		/* Evaluate pol angle so that it is cumulative */
+		real axis_r = B_field_get_axis_r(Bdata);
+		real axis_z = B_field_get_axis_z(Bdata);
+		p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
+	                     (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
 
+            }
+
+	    /* Error handling */
+	    if(errflag) {
+                p->err[i]     = error_module(errflag, ERRMOD_ORBSTEP);
+		p->running[i] = 0; 
+		hnext[i]      = h[i];
+            }
         }
     }
 }

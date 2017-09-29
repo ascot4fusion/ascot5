@@ -10,29 +10,29 @@
 
 typedef unsigned long int a5err;
 
-static const unsigned int ERRMOD_ORBSTEP  = 1;
-static const unsigned int ERRMOD_COLLSTEP = 2;
-static const unsigned int ERRMOD_DIAGORB  = 3;
-static const unsigned int ERRMOD_DIAGDIST = 4;
+static const unsigned int ERRMOD_REJECTED = 1;/** @brief Error arised when input marker was first transformed into a state in particle.c. */
+static const unsigned int ERRMOD_STATE = 2;/** @brief Error arised when transforming between simd and state structures in particle.c. */
+static const unsigned int ERRMOD_ORBSTEP  = 5;/** @brief Error originates from step_gc_cashkarp.c, step_gc_rk4.c or step_fo_vpa.c. */
+static const unsigned int ERRMOD_COLLSTEP = 6;/** @brief Error originates from mccc.c or associated modules. */
 
-static const unsigned int ERR_UNPHYSICAL_B     = 1;
-static const unsigned int ERR_OUTSIDE_BFIELD   = 2;
-static const unsigned int ERR_UNPHYSICAL_PSI   = 3;
-static const unsigned int ERR_OUTSIDE_PSIFIELD = 4;
-static const unsigned int ERR_UNPHYSICAL_E     = 5;
-static const unsigned int ERR_OUTSIDE_EFIELD   = 6;
-static const unsigned int ERR_UNPHYSICAL_TE    = 7;
-static const unsigned int ERR_UNPHYSICAL_TI    = 8;
-static const unsigned int ERR_UNPHYSICAL_TN    = 9;
-static const unsigned int ERR_UNPHYSICAL_NE    = 10;
-static const unsigned int ERR_UNPHYSICAL_NI    = 11;
-static const unsigned int ERR_UNPHYSICAL_NN    = 12;
-static const unsigned int ERR_OUTSIDE_PLASMA   = 13;
-static const unsigned int ERR_FO_ZERO_OR_NAN   = 14;
-static const unsigned int ERR_GC_ZERO_OR_NAN   = 15;
-static const unsigned int ERR_ML_ZERO_OR_NAN   = 16;
-static const unsigned int ERR_EXTREMELY_SMALL_TIMESTEP = 17;
-static const unsigned int ERR_TIMESTEP_ZERO_OR_NAN = 18;
+static const unsigned int ERR_UNPHYSICAL_B     = 1;/** @brief Magnetic field is zero or NaN */
+static const unsigned int ERR_OUTSIDE_BFIELD   = 2;/** @brief Tried to evaluate magnetic field at outside the grid */
+static const unsigned int ERR_UNPHYSICAL_PSI   = 3;/** @brief Psi is zero or NaN */
+static const unsigned int ERR_OUTSIDE_PSIFIELD = 4;/** @brief Tried to evaluate psi at outside the grid */
+static const unsigned int ERR_UNPHYSICAL_E     = 5;/** @brief Electric field is zero or NaN */
+static const unsigned int ERR_OUTSIDE_EFIELD   = 6;/** @brief Tried to evaluate electric field at outside the grid */
+static const unsigned int ERR_UNPHYSICAL_TE    = 7;/** @brief Electron temperature is non-positive or NaN */
+static const unsigned int ERR_UNPHYSICAL_TI    = 8;/** @brief Ion temperature is non-positive or NaN */
+static const unsigned int ERR_UNPHYSICAL_TN    = 9;/** @brief Neutral temperature is negative or NaN */
+static const unsigned int ERR_UNPHYSICAL_NE    = 10;/** @brief Electron density is non-positive or NaN */
+static const unsigned int ERR_UNPHYSICAL_NI    = 11;/** @brief Ion density is non-positive or NaN */
+static const unsigned int ERR_UNPHYSICAL_NN    = 12;/** @brief Neutral density is negative or NaN */
+static const unsigned int ERR_OUTSIDE_PLASMA   = 13;/** @brief Tried to evaluate plasma profiles at outside the grid */
+static const unsigned int ERR_UNPHYSICAL_FO    = 14;/** @brief R <= 0 or vtot > c or at least one fo parameter is NaN */ 
+static const unsigned int ERR_UNPHYSICAL_GC    = 15;/** @brief R <= 0 or vpar > c or mu < 0 or at least one gc parameter is NaN */ 
+static const unsigned int ERR_UNPHYSICAL_ML    = 16;/** @brief R <= 0 or pitch == 0 or at least one ml parameter is NaN */ 
+static const unsigned int ERR_EXTREMELY_SMALL_TIMESTEP = 17;/** @brief Time step smaller than the A5_EXTREMELY_SMALL_TIMESTEP defined in ascot5.h */
+static const unsigned int ERR_TIMESTEP_ZERO_OR_NAN = 18;/** @brief Time step is zero or NaN. */
 
 #pragma omp declare target
 
