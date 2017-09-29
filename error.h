@@ -11,7 +11,7 @@
 typedef unsigned long int a5err;
 
 static const unsigned int ERRMOD_REJECTED = 1;/** @brief Error arised when input marker was first transformed into a state in particle.c. */
-static const unsigned int ERRMOD_STATE = 2;/** @brief Error arised when transforming between simd and state structures in particle.c. */
+static const unsigned int ERRMOD_STATE    = 2;/** @brief Error arised when transforming between simd and state structures in particle.c. */
 static const unsigned int ERRMOD_ORBSTEP  = 5;/** @brief Error originates from step_gc_cashkarp.c, step_gc_rk4.c or step_fo_vpa.c. */
 static const unsigned int ERRMOD_COLLSTEP = 6;/** @brief Error originates from mccc.c or associated modules. */
 

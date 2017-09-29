@@ -141,17 +141,21 @@ int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
 	    newmarker = 1;
 	}
 
-	if(newmarker) {
+	while(newmarker) {
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
-		particle_state_to_fo(q->p[i_prt], i_prt, p, i, Bdata);
-		cycle[i] = 1;
+		a5err err = particle_state_to_fo(q->p[i_prt], i_prt, p, i, Bdata);
+		if(!err) {
+		    cycle[i] = 1;
+		    newmarker = 0;
+		}
             }
             else {
                 p->running[i] = 0;
                 p->id[i] = -1;
 		cycle[i] = -1;
+		newmarker = 0;
             }
         }
     }
@@ -196,17 +200,21 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
 	    newmarker = 1;
 	}
 
-	if(newmarker) {
+	while(newmarker) {
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
-		particle_state_to_gc(q->p[i_prt], i_prt, p, i, Bdata);
-		cycle[i] = 1;
+		a5err err = particle_state_to_gc(q->p[i_prt], i_prt, p, i, Bdata);
+		if(!err) {
+		    cycle[i] = 1;
+		    newmarker = 0;
+		}
             }
             else {
                 p->running[i] = 0;
                 p->id[i] = -1;
 		cycle[i] = -1;
+		newmarker = 0;
             }
         }
     }
@@ -251,17 +259,21 @@ int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
 	    newmarker = 1;
 	}
 
-	if(newmarker) {
+	while(newmarker) {
             #pragma omp critical
             i_prt = q->next++;
             if(i_prt < q->n) {
-		particle_state_to_ml(q->p[i_prt], i_prt, p, i, Bdata);
-		cycle[i] = 1;
+		a5err err = particle_state_to_ml(q->p[i_prt], i_prt, p, i, Bdata);
+		if(!err) {
+		    cycle[i] = 1;
+		    newmarker = 0;
+		}
             }
             else {
                 p->running[i] = 0;
                 p->id[i] = -1;
 		cycle[i] = -1;
+		newmarker = 0;
             }
         }
     }
@@ -556,25 +568,27 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
  * @param j  index where in the SIMD structure marker is stored
  * @param Bdata pointer to magnetic field data
  */
-void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j, 
+a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j, 
 			  B_field_data* Bdata) {
-    a5err err = 0;
+    a5err err = p->err;
 
-    p_fo->r[j]          = p->rprt;
-    p_fo->phi[j]        = p->phiprt;
-    p_fo->z[j]          = p->zprt;
-    p_fo->rdot[j]       = p->rdot;
-    p_fo->phidot[j]     = p->phidot;
-    p_fo->zdot[j]       = p->zdot;
-
-    p_fo->mass[j]       = p->mass;
-    p_fo->charge[j]     = p->charge;
-    p_fo->weight[j]     = p->weight;
-    p_fo->time[j]       = p->time;
-    p_fo->pol[j]        = p->pol; 
-    p_fo->id[j]         = p->id; 
-    p_fo->endcond[j]    = p->endcond;
-    p_fo->walltile[j]   = p->walltile;
+    if(!err) {
+	p_fo->r[j]          = p->rprt;
+	p_fo->phi[j]        = p->phiprt;
+	p_fo->z[j]          = p->zprt;
+	p_fo->rdot[j]       = p->rdot;
+	p_fo->phidot[j]     = p->phidot;
+	p_fo->zdot[j]       = p->zdot;
+	
+	p_fo->mass[j]       = p->mass;
+	p_fo->charge[j]     = p->charge;
+	p_fo->weight[j]     = p->weight;
+	p_fo->time[j]       = p->time;
+	p_fo->pol[j]        = p->pol; 
+	p_fo->id[j]         = p->id; 
+	p_fo->endcond[j]    = p->endcond;
+	p_fo->walltile[j]   = p->walltile;
+    }
 
     /* Magnetic field stored in state is for the gc position */
     real B_dB[12], psi[1], rho[1];
@@ -582,31 +596,35 @@ void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int 
     if(!err) {err = B_field_eval_psi(psi, p->rprt, p->phiprt, p->zprt, Bdata);}
     if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
 
-    p_fo->rho[j]        = rho[0];
+    if(!err) {
+	p_fo->rho[j]        = rho[0];
 
-    p_fo->B_r[j]        = B_dB[0];
-    p_fo->B_r_dr[j]     = B_dB[1];
-    p_fo->B_r_dphi[j]   = B_dB[2];
-    p_fo->B_r_dz[j]     = B_dB[3];
+	p_fo->B_r[j]        = B_dB[0];
+	p_fo->B_r_dr[j]     = B_dB[1];
+	p_fo->B_r_dphi[j]   = B_dB[2];
+	p_fo->B_r_dz[j]     = B_dB[3];
 
-    p_fo->B_phi[j]      = B_dB[4];
-    p_fo->B_phi_dr[j]   = B_dB[5];
-    p_fo->B_phi_dphi[j] = B_dB[6];
-    p_fo->B_phi_dz[j]   = B_dB[7];
+	p_fo->B_phi[j]      = B_dB[4];
+	p_fo->B_phi_dr[j]   = B_dB[5];
+	p_fo->B_phi_dphi[j] = B_dB[6];
+	p_fo->B_phi_dz[j]   = B_dB[7];
 
-    p_fo->B_z[j]        = B_dB[8];
-    p_fo->B_z_dr[j]     = B_dB[9];
-    p_fo->B_z_dphi[j]   = B_dB[10];
-    p_fo->B_z_dz[j]     = B_dB[11];
+	p_fo->B_z[j]        = B_dB[8];
+	p_fo->B_z_dr[j]     = B_dB[9];
+	p_fo->B_z_dphi[j]   = B_dB[10];
+	p_fo->B_z_dz[j]     = B_dB[11];
 	        
-    p_fo->running[j] = 1;
-    if(p->endcond) {
-	p_fo->running[j] = 0;
-    }
-    p_fo->cputime[j] = p->cputime;
-    p_fo->index[j]   = i;
+	p_fo->running[j] = 1;
+	if(p->endcond) {
+	    p_fo->running[j] = 0;
+	}
+	p_fo->cputime[j] = p->cputime;
+	p_fo->index[j]   = i;
 
-    p_fo->err[j] = p->err;
+	p_fo->err[j] = 0;
+    }
+
+    return err;
 }
 
 /**
@@ -620,7 +638,9 @@ void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int 
  */
 void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p, 
 			  B_field_data* Bdata) {
-    a5err err = 0;
+    a5err err = p_fo->err[j];
+    int simerr = 0; /* Error occurred during simulation */
+    if(err) {simerr = 1;}
 
     p->rprt       = p_fo->r[j];
     p->phiprt     = p_fo->phi[j];
@@ -641,6 +661,7 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
 
     /* Particle to guiding center */
     real B_dB[12], psi[1], rho[1];
+    rho[0]        = p_fo->rho[j];
     B_dB[0]       = p_fo->B_r[j];
     B_dB[1]       = p_fo->B_r_dr[j];
     B_dB[2]       = p_fo->B_r_dphi[j];
@@ -655,23 +676,36 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     B_dB[11]      = p_fo->B_z_dz[j];
 
     /* Guiding center transformation */
-    real vR   = p->rdot;
-    real vphi = p->phidot * p->rprt;
-    real vz   = p->zdot;
-
-    real gamma = physlib_relfactorv_fo(math_normc(vR, vphi, vz));
-
-    real ppar;
-    physlib_fo2gc(p->mass, p->charge, B_dB, p->rprt, p->phiprt, p->zprt, 
-		  gamma*p->mass*vR , gamma*p->mass*vphi, gamma*p->mass*vz,
-		  &p->r, &p->phi, &p->z, &p->mu, &ppar, &p->theta);
+    real ppar, gamma;
+    if(!err) {
+	real vR   = p->rdot;
+	real vphi = p->phidot * p->rprt;
+	real vz   = p->zdot;
+	
+	gamma = physlib_relfactorv_fo(math_normc(vR, vphi, vz));
+	physlib_fo2gc(p->mass, p->charge, B_dB, p->rprt, p->phiprt, p->zprt, 
+		      gamma*p->mass*vR , gamma*p->mass*vphi, gamma*p->mass*vz,
+		      &p->r, &p->phi, &p->z, &p->mu, &ppar, &p->theta);
+    }
+    if(!err && ( isnan(p->r) || p->r <= 0 ))  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && isnan(p->phi))                 {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && isnan(p->z))                   {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && ( isnan(p->mu) || p->mu < 0 )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && isnan(p->theta))               {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
     if(!err) {err = B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);}
     if(!err) {err = B_field_eval_psi(psi, p->r, p->phi, p->z, Bdata);}
     if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
-    gamma = physlib_relfactorp_gc(p->mass, p->mu, ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
-    p->vpar = ppar/(p->mass*gamma);
 
+    if(!err) {
+	gamma = physlib_relfactorp_gc(p->mass, p->mu, ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
+	p->vpar = ppar/(p->mass*gamma);
+    }
+    if(!err && ( isnan(p->vpar) || p->vpar >= CONST_C )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+
+    /* Normally magnetic field data at gc position is stored here
+     * but, if gc transformation fails, field at particle position is
+     * stored instead. */
     p->rho        = rho[0];
 
     p->B_r        = B_dB[0];
@@ -689,7 +723,8 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->B_z_dphi   = B_dB[10];
     p->B_z_dz     = B_dB[11];
 
-    p->err = p_fo->err[j];
+    if(!simerr) {err = error_module(err, ERRMOD_STATE);}
+    p->err = err;
 }
 
 /**
@@ -701,48 +736,53 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
  * @param j  index where in the SIMD structure marker is stored
  * @param Bdata pointer to magnetic field data
  */
-void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j, 
-			  B_field_data* Bdata) {
+a5err particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j, 
+			   B_field_data* Bdata) {
+    a5err err = p->err;
     
-    p_gc->r[j]          = p->r;
-    p_gc->phi[j]        = p->phi;
-    p_gc->z[j]          = p->z;
-    p_gc->vpar[j]       = p->vpar;
-    p_gc->mu[j]         = p->mu;
-    p_gc->theta[j]      = p->theta;
+    if(!err) {
+	p_gc->r[j]          = p->r;
+	p_gc->phi[j]        = p->phi;
+	p_gc->z[j]          = p->z;
+	p_gc->vpar[j]       = p->vpar;
+	p_gc->mu[j]         = p->mu;
+	p_gc->theta[j]      = p->theta;
 
-    p_gc->mass[j]       = p->mass;
-    p_gc->charge[j]     = p->charge;
-    p_gc->time[j]       = p->time;
-    p_gc->weight[j]     = p->weight;
-    p_gc->rho[j]        = p->rho;
-    p_gc->pol[j]        = p->pol;
-    p_gc->id[j]         = p->id;
-    p_gc->endcond[j]    = p->endcond; 
-    p_gc->walltile[j]   = p->walltile;
-    p_gc->err[j]        = p->err;
+	p_gc->mass[j]       = p->mass;
+	p_gc->charge[j]     = p->charge;
+	p_gc->time[j]       = p->time;
+	p_gc->weight[j]     = p->weight;
+	p_gc->rho[j]        = p->rho;
+	p_gc->pol[j]        = p->pol;
+	p_gc->id[j]         = p->id;
+	p_gc->endcond[j]    = p->endcond; 
+	p_gc->walltile[j]   = p->walltile;
 
-    p_gc->B_r[j]        = p->B_r;
-    p_gc->B_r_dr[j]     = p->B_r_dr;
-    p_gc->B_r_dphi[j]   = p->B_r_dphi;
-    p_gc->B_r_dz[j]     = p->B_r_dz;
+	p_gc->B_r[j]        = p->B_r;
+	p_gc->B_r_dr[j]     = p->B_r_dr;
+	p_gc->B_r_dphi[j]   = p->B_r_dphi;
+	p_gc->B_r_dz[j]     = p->B_r_dz;
 
-    p_gc->B_phi[j]      = p->B_phi;
-    p_gc->B_phi_dr[j]   = p->B_phi_dr;
-    p_gc->B_phi_dphi[j] = p->B_phi_dphi;
-    p_gc->B_phi_dz[j]   = p->B_phi_dz;
+	p_gc->B_phi[j]      = p->B_phi;
+	p_gc->B_phi_dr[j]   = p->B_phi_dr;
+	p_gc->B_phi_dphi[j] = p->B_phi_dphi;
+	p_gc->B_phi_dz[j]   = p->B_phi_dz;
 
-    p_gc->B_z[j]        = p->B_z;
-    p_gc->B_z_dr[j]     = p->B_z_dr;
-    p_gc->B_z_dphi[j]   = p->B_z_dphi;
-    p_gc->B_z_dz[j]     = p->B_z_dz;
+	p_gc->B_z[j]        = p->B_z;
+	p_gc->B_z_dr[j]     = p->B_z_dr;
+	p_gc->B_z_dphi[j]   = p->B_z_dphi;
+	p_gc->B_z_dz[j]     = p->B_z_dz;
 
-    p_gc->running[j] = 1;
-    if(p->endcond) {
-	p_gc->running[j] = 0;
+	p_gc->running[j] = 1;
+	if(p->endcond) {
+	    p_gc->running[j] = 0;
+	}
+	p_gc->cputime[j] = p->cputime;
+	p_gc->index[j]   = i;
+	p_gc->err[j] = 0;
     }
-    p_gc->cputime[j] = p->cputime;
-    p_gc->index[j]   = i;
+
+    return err;
 }
 
 /**
@@ -756,39 +796,44 @@ void particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int 
  */
 void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p, 
 			  B_field_data* Bdata) {
+    a5err err  = p_gc->err[j];
+    int simerr = 0; /* Error occurred during simulation */
+    if(err) {simerr = 1;}
 
-    p->r          = p_gc->r[j];
-    p->phi        = p_gc->phi[j];
-    p->z          = p_gc->z[j];
-    p->vpar       = p_gc->vpar[j];
-    p->mu         = p_gc->mu[j];
-    p->theta      = p_gc->theta[j];
+    if(!err) {
+	p->r          = p_gc->r[j];
+	p->phi        = p_gc->phi[j];
+	p->z          = p_gc->z[j];
+	p->vpar       = p_gc->vpar[j];
+	p->mu         = p_gc->mu[j];
+	p->theta      = p_gc->theta[j];
 
-    p->mass       = p_gc->mass[j];
-    p->charge     = p_gc->charge[j];
-    p->time       = p_gc->time[j];
-    p->weight     = p_gc->weight[j];
-    p->id         = p_gc->id[j];
-    p->cputime    = p_gc->cputime[j];
-    p->rho        = p_gc->rho[j];
-    p->pol        = p_gc->pol[j];
-    p->endcond    = p_gc->endcond[j]; 
-    p->walltile   = p_gc->walltile[j];
+	p->mass       = p_gc->mass[j];
+	p->charge     = p_gc->charge[j];
+	p->time       = p_gc->time[j];
+	p->weight     = p_gc->weight[j];
+	p->id         = p_gc->id[j];
+	p->cputime    = p_gc->cputime[j];
+	p->rho        = p_gc->rho[j];
+	p->pol        = p_gc->pol[j];
+	p->endcond    = p_gc->endcond[j]; 
+	p->walltile   = p_gc->walltile[j];
 
-    p->B_r        = p_gc->B_r[j];
-    p->B_r_dr     = p_gc->B_r_dr[j];
-    p->B_r_dphi   = p_gc->B_r_dphi[j];
-    p->B_r_dz     = p_gc->B_r_dz[j];
+	p->B_r        = p_gc->B_r[j];
+	p->B_r_dr     = p_gc->B_r_dr[j];
+	p->B_r_dphi   = p_gc->B_r_dphi[j];
+	p->B_r_dz     = p_gc->B_r_dz[j];
 
-    p->B_phi      = p_gc->B_phi[j];
-    p->B_phi_dr   = p_gc->B_phi_dr[j];
-    p->B_phi_dphi = p_gc->B_phi_dphi[j];
-    p->B_phi_dz   = p_gc->B_phi_dz[j];
+	p->B_phi      = p_gc->B_phi[j];
+	p->B_phi_dr   = p_gc->B_phi_dr[j];
+	p->B_phi_dphi = p_gc->B_phi_dphi[j];
+	p->B_phi_dz   = p_gc->B_phi_dz[j];
 
-    p->B_z        = p_gc->B_z[j];
-    p->B_z_dr     = p_gc->B_z_dr[j];
-    p->B_z_dphi   = p_gc->B_z_dphi[j];
-    p->B_z_dz     = p_gc->B_z_dz[j];
+	p->B_z        = p_gc->B_z[j];
+	p->B_z_dr     = p_gc->B_z_dr[j];
+	p->B_z_dphi   = p_gc->B_z_dphi[j];
+	p->B_z_dz     = p_gc->B_z_dz[j];
+    }
     
     /* Guiding center to particle transformation */
     real B_dB[12];
@@ -805,19 +850,29 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     B_dB[10]      = p->B_z_dphi;
     B_dB[11]      = p->B_z_dz;
 
-    real gamma = physlib_relfactorv_gc(p->mass, p->mu, p->vpar, 
-				       math_normc(B_dB[0], B_dB[4], B_dB[8]));
-    real pR, pphi, pz;
-    physlib_gc2fo(p->mass, p->charge, B_dB,
-		  p->r, p->phi, p->z, p->mu, gamma*p->mass*p->vpar, p->theta,
-		  &p->rprt, &p->phiprt, &p->zprt, &pR, &pphi, &pz);
+    real pR, pphi, pz, gamma;
+    if(!err) {
+	gamma = physlib_relfactorv_gc(p->mass, p->mu, p->vpar, 
+					   math_normc(B_dB[0], B_dB[4], B_dB[8]));
+	physlib_gc2fo(p->mass, p->charge, B_dB,
+		      p->r, p->phi, p->z, p->mu, gamma*p->mass*p->vpar, p->theta,
+		      &p->rprt, &p->phiprt, &p->zprt, &pR, &pphi, &pz);
+	gamma = physlib_relfactorp_fo(p->mass, math_normc(pR, pphi, pz));
+    }
+    if(!err && ( isnan(p->rprt) || p->rprt <= 0 )) {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+    if(!err && isnan(p->phiprt))                   {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+    if(!err && isnan(p->zprt))                     {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+    if(!err && ( isnan(gamma) || gamma < 1 ))      {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+
+    if(!err) {
+	p->rdot       = pR/(gamma*p->mass); 
+	p->phidot     = pphi/(gamma*p->mass*p->rprt);     
+	p->zdot       = pz/(gamma*p->mass);
+    }
     
-    gamma = physlib_relfactorp_fo(p->mass, math_normc(pR, pphi, pz));
-    
-    p->rdot       = pR/(gamma*p->mass); 
-    p->phidot     = pphi/(gamma*p->mass*p->rprt);     
-    p->zdot       = pz/(gamma*p->mass);
-    p->err        = p_gc->err[j];
+
+    if(!simerr) {err = error_module(err, ERRMOD_STATE);}
+    p->err = err;
 }
 
 /**
@@ -829,45 +884,51 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
  * @param j  index where in the SIMD structure marker is stored
  * @param Bdata pointer to magnetic field data
  */
-void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int j, 
-			  B_field_data* Bdata) {
+a5err particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int j, 
+			   B_field_data* Bdata) {
+    a5err err = p->err;
     
-    p_ml->r[j]          = p->r;
-    p_ml->phi[j]        = p->phi;
-    p_ml->z[j]          = p->z;
+    if(!err) {
+	p_ml->r[j]          = p->r;
+	p_ml->phi[j]        = p->phi;
+	p_ml->z[j]          = p->z;
 
-    p_ml->pitch[j]      = 2*(p->vpar >= 0) - 1.0;
-    p_ml->time[j]       = p->time;
-    p_ml->weight[j]     = p->weight;
-    p_ml->id[j]         = p->id;
-    p_ml->cputime[j]    = p->cputime;
-    p_ml->rho[j]        = p->rho;
-    p_ml->pol[j]        = p->pol;
-    p_ml->endcond[j]    = p->endcond; 
-    p_ml->walltile[j]   = p->walltile;
-    p_ml->err[j]        = p->err;
+	p_ml->pitch[j]      = 2*(p->vpar >= 0) - 1.0;
+	p_ml->time[j]       = p->time;
+	p_ml->weight[j]     = p->weight;
+	p_ml->id[j]         = p->id;
+	p_ml->cputime[j]    = p->cputime;
+	p_ml->rho[j]        = p->rho;
+	p_ml->pol[j]        = p->pol;
+	p_ml->endcond[j]    = p->endcond; 
+	p_ml->walltile[j]   = p->walltile;
+    
 
-    p_ml->B_r[j]        = p->B_r;
-    p_ml->B_r_dr[j]     = p->B_r_dr;
-    p_ml->B_r_dphi[j]   = p->B_r_dphi;
-    p_ml->B_r_dz[j]     = p->B_r_dz;
+	p_ml->B_r[j]        = p->B_r;
+	p_ml->B_r_dr[j]     = p->B_r_dr;
+	p_ml->B_r_dphi[j]   = p->B_r_dphi;
+	p_ml->B_r_dz[j]     = p->B_r_dz;
 
-    p_ml->B_phi[j]      = p->B_phi;
-    p_ml->B_phi_dr[j]   = p->B_phi_dr;
-    p_ml->B_phi_dphi[j] = p->B_phi_dphi;
-    p_ml->B_phi_dz[j]   = p->B_phi_dz;
+	p_ml->B_phi[j]      = p->B_phi;
+	p_ml->B_phi_dr[j]   = p->B_phi_dr;
+	p_ml->B_phi_dphi[j] = p->B_phi_dphi;
+	p_ml->B_phi_dz[j]   = p->B_phi_dz;
 
-    p_ml->B_z[j]        = p->B_z;
-    p_ml->B_z_dr[j]     = p->B_z_dr;
-    p_ml->B_z_dphi[j]   = p->B_z_dphi;
-    p_ml->B_z_dz[j]     = p->B_z_dz;
+	p_ml->B_z[j]        = p->B_z;
+	p_ml->B_z_dr[j]     = p->B_z_dr;
+	p_ml->B_z_dphi[j]   = p->B_z_dphi;
+	p_ml->B_z_dz[j]     = p->B_z_dz;
 
-    p_ml->running[j] = 1;
-    if(p->endcond) {
-	p_ml->running[j] = 0;
+	p_ml->running[j] = 1;
+	if(p->endcond) {
+	    p_ml->running[j] = 0;
+	}
+	p_ml->index[j] = i;
+
+	p_ml->err[j] = 0;
     }
-    p_ml->index[j] = i;
     
+    return err;
 }
 
 /**
@@ -881,6 +942,9 @@ void particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int 
  */
 void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p, 
 			  B_field_data* Bdata) {
+    a5err err = p_ml->err[j];
+    int simerr = 0; /* Error occurred during simulation */
+    if(err) {simerr = 1;}
 
     p->rprt       = p_ml->r[j];
     p->phiprt     = p_ml->phi[j];
@@ -921,6 +985,9 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->B_z_dr     = p_ml->B_z_dr[j];
     p->B_z_dphi   = p_ml->B_z_dphi[j];
     p->B_z_dz     = p_ml->B_z_dz[j];
+
+    if(!simerr) {err = error_module(err, ERRMOD_STATE);}
+    p->err = err;
 }
 
 /**
@@ -931,74 +998,93 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
  * @param p_gc  gc SIMD structure where marker is transformed
  * @param Bdata pointer to magnetic field data
  */
-void particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc, 
-			  B_field_data* Bdata) {
-    real Rprt   = p_fo->r[j];
-    real phiprt = p_fo->phi[j];
-    real zprt   = p_fo->z[j];
-    real vR     = p_fo->rdot[j];
-    real vphi   = p_fo->phidot[j] * p_fo->r[j];
-    real vz     = p_fo->zdot[j];
-    real mass   = p_fo->mass[j];
-    real charge = p_fo->charge[j];
+a5err particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc, 
+			B_field_data* Bdata) {
+    a5err err = p_fo->err[j];
+    int simerr = 0; /* Error has already occurred */
+    if(err) {simerr = 1;}
 
-    p_gc->mass[j]     = p_fo->mass[j];
-    p_gc->charge[j]   = p_fo->charge[j];
-    p_gc->weight[j]   = p_fo->weight[j];
-    p_gc->time[j]     = p_fo->time[j];
-    p_gc->pol[j]      = p_fo->pol[j]; // This is not accurate
-    p_gc->id[j]       = p_fo->id[j]; 
-    p_gc->endcond[j]  = p_fo->endcond[j];
-    p_gc->walltile[j] = p_fo->walltile[j];
-    p_gc->cputime[j]  = p_fo->cputime[j];
+    real r, phi, z, gamma, ppar, mu, theta, B_dB[12];
+    if(!err) {
+	real Rprt   = p_fo->r[j];
+	real phiprt = p_fo->phi[j];
+	real zprt   = p_fo->z[j];
+	real vR     = p_fo->rdot[j];
+	real vphi   = p_fo->phidot[j] * p_fo->r[j];
+	real vz     = p_fo->zdot[j];
+	real mass   = p_fo->mass[j];
+	real charge = p_fo->charge[j];
 
-    /* Particle to guiding center */
-    real B_dB[12];
-    B_dB[0]       = p_fo->B_r[j];
-    B_dB[1]       = p_fo->B_r_dr[j];
-    B_dB[2]       = p_fo->B_r_dphi[j];
-    B_dB[3]       = p_fo->B_r_dz[j];
-    B_dB[4]       = p_fo->B_phi[j];
-    B_dB[5]       = p_fo->B_phi_dr[j];
-    B_dB[6]       = p_fo->B_phi_dphi[j];
-    B_dB[7]       = p_fo->B_phi_dz[j];
-    B_dB[8]       = p_fo->B_z[j];
-    B_dB[9]       = p_fo->B_z_dr[j];
-    B_dB[10]      = p_fo->B_z_dphi[j];
-    B_dB[11]      = p_fo->B_z_dz[j];
+	p_gc->mass[j]     = p_fo->mass[j];
+	p_gc->charge[j]   = p_fo->charge[j];
+	p_gc->weight[j]   = p_fo->weight[j];
+	p_gc->time[j]     = p_fo->time[j];
+	p_gc->pol[j]      = p_fo->pol[j]; // This is not accurate
+	p_gc->id[j]       = p_fo->id[j]; 
+	p_gc->endcond[j]  = p_fo->endcond[j];
+	p_gc->walltile[j] = p_fo->walltile[j];
+	p_gc->cputime[j]  = p_fo->cputime[j];
 
-    /* Guiding center transformation */
-    real gamma = physlib_relfactorv_fo(math_normc(vR, vphi, vz));
+	B_dB[0]       = p_fo->B_r[j];
+	B_dB[1]       = p_fo->B_r_dr[j];
+	B_dB[2]       = p_fo->B_r_dphi[j];
+	B_dB[3]       = p_fo->B_r_dz[j];
+	B_dB[4]       = p_fo->B_phi[j];
+	B_dB[5]       = p_fo->B_phi_dr[j];
+	B_dB[6]       = p_fo->B_phi_dphi[j];
+	B_dB[7]       = p_fo->B_phi_dz[j];
+	B_dB[8]       = p_fo->B_z[j];
+	B_dB[9]       = p_fo->B_z_dr[j];
+	B_dB[10]      = p_fo->B_z_dphi[j];
+	B_dB[11]      = p_fo->B_z_dz[j];
 
-    real ppar;
-    physlib_fo2gc(mass, charge, B_dB, Rprt, phiprt, zprt, 
-		  gamma*mass*vR , gamma*mass*vphi, gamma*mass*vz,
-		  &p_gc->r[j], &p_gc->phi[j], &p_gc->z[j], &p_gc->mu[j], &ppar, &p_gc->theta[j]);
+	/* Guiding center transformation */
+	gamma = physlib_relfactorv_fo(math_normc(vR, vphi, vz));
+	physlib_fo2gc(mass, charge, B_dB, Rprt, phiprt, zprt, 
+		      gamma*mass*vR , gamma*mass*vphi, gamma*mass*vz,
+		      &r, &phi, &z, &mu, &ppar, &theta);
+    }
+    if(!err && ( isnan(r) || r <= 0 ))  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && isnan(phi))              {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && isnan(z))                {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && ( isnan(mu) || mu < 0 )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && isnan(theta))            {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    
+    real psi[1], rho[1];
+    if(!err) {err = B_field_eval_B_dB(B_dB, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);}
+    if(!err) {err = B_field_eval_psi(psi, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);}
+    if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
+    if(!err) {
+	gamma = physlib_relfactorp_gc(p_gc->mass[j], mu, ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
+    }
+    if(!err && ( isnan(gamma) || gamma < 1 )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    
+    if(!err) {
+	p_gc->r[j]          = r;
+	p_gc->phi[j]        = phi;
+	p_gc->z[j]          = z;
+	p_gc->mu[j]         = mu;
+	p_gc->theta[j]      = theta;
+	p_gc->vpar[j]       = ppar/(p_gc->mass[j]*gamma);
+	p_gc->rho[j]        = rho[0];
 
-    B_field_eval_B_dB(B_dB, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);
-    gamma = physlib_relfactorp_gc(mass, p_gc->mu[j], ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
-    p_gc->vpar[j] = ppar/(mass*gamma);
+	p_gc->B_r[j]        = B_dB[0];
+	p_gc->B_r_dr[j]     = B_dB[1];
+	p_gc->B_r_dphi[j]   = B_dB[2];
+	p_gc->B_r_dz[j]     = B_dB[3];
 
-    real psi[1];
-    real rho[1];
-    B_field_eval_psi(psi, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);
-    B_field_eval_rho(rho, psi[0], Bdata);
+	p_gc->B_phi[j]      = B_dB[4];
+	p_gc->B_phi_dr[j]   = B_dB[5];
+	p_gc->B_phi_dphi[j] = B_dB[6];
+	p_gc->B_phi_dz[j]   = B_dB[7];
 
-    p_gc->rho[j]        = rho[0];
+	p_gc->B_z[j]        = B_dB[8];
+	p_gc->B_z_dr[j]     = B_dB[9];
+	p_gc->B_z_dphi[j]   = B_dB[10];
+	p_gc->B_z_dz[j]     = B_dB[11];
+	p_gc->err[j]        = 0;
+    }
+    if(!simerr) {err = error_module(err, ERRMOD_STATE);}
 
-    p_gc->B_r[j]        = B_dB[0];
-    p_gc->B_r_dr[j]     = B_dB[1];
-    p_gc->B_r_dphi[j]   = B_dB[2];
-    p_gc->B_r_dz[j]     = B_dB[3];
-
-    p_gc->B_phi[j]      = B_dB[4];
-    p_gc->B_phi_dr[j]   = B_dB[5];
-    p_gc->B_phi_dphi[j] = B_dB[6];
-    p_gc->B_phi_dz[j]   = B_dB[7];
-
-    p_gc->B_z[j]        = B_dB[8];
-    p_gc->B_z_dr[j]     = B_dB[9];
-    p_gc->B_z_dphi[j]   = B_dB[10];
-    p_gc->B_z_dz[j]     = B_dB[11];
-    p_gc->err[j]        = p_fo->err[j];
+    return err;
 }
