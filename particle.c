@@ -283,219 +283,267 @@ int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
  * @param Bdata pointer to magnetic field data
  */
 void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data* Bdata) {
+    a5err err = 0;
+    integer id;
 
     if(p->type == input_particle_type_p) {
+	/* Check that input is valid */
+	if(!err && ( isnan(p->p.r) || p->p.r <= 0 ))                         {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && isnan(p->p.phi))                                          {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && isnan(p->p.z))                                            {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && isnan(p->p.v_r))                                          {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && isnan(p->p.v_phi))                                        {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && isnan(p->p.v_z))                                          {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && ( math_normc(p->p.v_r,p->p.v_phi,p->p.v_z) >= CONST_C2 )) {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && isnan(p->p.time))                                         {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && isnan(p->p.charge))                                       {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && ( isnan(p->p.mass) || p->p.mass <= 0 ))                   {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && ( isnan(p->p.weight) || p->p.weight <= 0 ))               {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && p->p.id <= 0)                                             {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+
 	/* Particle to state */
 	p->type = input_particle_type_s;
+	id = p->p.id;
 
-	real rprt   = p->p.r;
-	real phiprt = p->p.phi;
-	real zprt   = p->p.z;
-	real rdot   = p->p.v_r;
-	real phidot = p->p.v_phi/rprt;
-	real zdot   = p->p.v_z;
-	real mass   = p->p.mass;
-	real charge = p->p.charge;
-	real weight = p->p.weight;
-	real time   = p->p.time;
-	int id      = p->p.id;
-
-	ps->rprt       = rprt;     
-	ps->phiprt     = phiprt;      
-	ps->zprt       = zprt;   
-	ps->rdot       = rdot; 
-	ps->phidot     = phidot;     
-	ps->zdot       = zdot;
-     
-	ps->mass       = mass;      
-	ps->charge     = charge;  
-	ps->weight     = weight;    
-	ps->time       = time; 
-	ps->pol        = atan2(zprt-B_field_get_axis_r(Bdata),
-					rprt-B_field_get_axis_z(Bdata));   
-	ps->id         = id;    
-	ps->endcond    = 0; 
-	ps->walltile   = 0;
-	ps->cputime    = 0;
+	if(!err) {
+	    ps->rprt   = p->p.r;     
+	    ps->phiprt = p->p.phi;      
+	    ps->zprt   = p->p.z;   
+	    ps->rdot   = p->p.v_r; 
+	    ps->phidot = p->p.v_phi/ps->rprt;     
+	    ps->zdot   = p->p.v_z;
+	    ps->mass   = p->p.mass;      
+	    ps->charge = p->p.charge;  
+	    ps->weight = p->p.weight;    
+	    ps->time   = p->p.time; 
+	    ps->pol    = atan2(ps->zprt-B_field_get_axis_r(Bdata),
+			       ps->rprt-B_field_get_axis_z(Bdata));   
+	    ps->id       = id;    
+	    ps->endcond  = 0; 
+	    ps->walltile = 0;
+	    ps->cputime  = 0;
+	}
 
 	/* Guiding center transformation */
-	real B_dB[12];
-	B_field_eval_B_dB(B_dB, rprt, phiprt, zprt, Bdata);
-	real gamma = physlib_relfactorv_fo(math_normc(p->p.v_r, p->p.v_phi, p->p.v_z));
+	real B_dB[12], r, phi, z, vpar, mu, theta, gamma, ppar, psi[1], rho[1];
+	if(!err) {err = B_field_eval_B_dB(B_dB, ps->rprt, ps->phiprt, ps->zprt, Bdata);}
 
-	real ppar;
-	physlib_fo2gc(mass, charge, B_dB, rprt, phiprt, zprt, 
-		      gamma*mass*p->p.v_r, gamma*mass*p->p.v_phi, gamma*mass*p->p.v_z,
-		      &ps->r, &ps->phi, &ps->z, &ps->mu, &ppar, &ps->theta);
-
-	B_field_eval_B_dB(B_dB, ps->r, ps->phi, ps->z, Bdata);
-	gamma = physlib_relfactorp_gc(mass, ps->mu, ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
-	ps->vpar = ppar/(mass*gamma);
+	if(!err) {
+	    gamma = physlib_relfactorv_fo(math_normc(p->p.v_r, p->p.v_phi, p->p.v_z));
+	    physlib_fo2gc(ps->mass, ps->charge, B_dB, ps->rprt, ps->phiprt, ps->zprt, 
+			  gamma*ps->mass*p->p.v_r, gamma*ps->mass*p->p.v_phi, gamma*ps->mass*p->p.v_z,
+			  &r, &phi, &z, &mu, &ppar, &theta);
+	}
+	if(!err && ( isnan(r) || r <= 0 ))  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && isnan(phi))              {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && isnan(z))                {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && ( isnan(mu) || mu < 0 )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && isnan(theta))            {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
 	/* Update magnetic field at gc position */
-	real psi[1];
-	real rho[1];
-	B_field_eval_psi(psi, ps->r, ps->phi, ps->z, Bdata);
-	B_field_eval_rho(rho, psi[0], Bdata);
+	if(!err) {err = B_field_eval_B_dB(B_dB, r, phi, z, Bdata);}
+	if(!err) {err = B_field_eval_psi(psi, r, phi, z, Bdata);}
+	if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
 
-	ps->rho        = rho[0];
-	ps->B_r        = B_dB[0];     
-	ps->B_phi      = B_dB[4];     
-	ps->B_z        = B_dB[8];      
-	ps->B_r_dr     = B_dB[1];     
-	ps->B_phi_dr   = B_dB[5];   
-	ps->B_z_dr     = B_dB[9];     
-	ps->B_r_dphi   = B_dB[2];  
-	ps->B_phi_dphi = B_dB[6];  
-	ps->B_z_dphi   = B_dB[10];   
-	ps->B_r_dz     = B_dB[3];      
-	ps->B_phi_dz   = B_dB[7];   
-	ps->B_z_dz     = B_dB[11];
+	if(!err) {
+	    gamma = physlib_relfactorp_gc(ps->mass, mu, ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
+	    vpar = ppar/(ps->mass*gamma);
+	}
+	if(!err && ( isnan(vpar) || vpar >= CONST_C )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
-	ps->err = 0;
+	if(!err) {
+	    ps->r     = r; 
+	    ps->phi   = phi;
+	    ps->z     = z;
+	    ps->vpar  = vpar;
+	    ps->mu    = mu;
+	    ps->theta = theta;
+
+	    ps->rho        = rho[0];
+	    ps->B_r        = B_dB[0];     
+	    ps->B_phi      = B_dB[4];     
+	    ps->B_z        = B_dB[8];      
+	    ps->B_r_dr     = B_dB[1];     
+	    ps->B_phi_dr   = B_dB[5];   
+	    ps->B_z_dr     = B_dB[9];     
+	    ps->B_r_dphi   = B_dB[2];  
+	    ps->B_phi_dphi = B_dB[6];  
+	    ps->B_z_dphi   = B_dB[10];   
+	    ps->B_r_dz     = B_dB[3];      
+	    ps->B_phi_dz   = B_dB[7];   
+	    ps->B_z_dz     = B_dB[11];
+
+	    ps->err = 0;
+	}
+	
     }
     else if(p->type == input_particle_type_gc) {
+	/* Check that input is valid */
+	if(!err && ( isnan(p->p_gc.r) || p->p_gc.r <= 0 ))              {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && isnan(p->p_gc.phi))                                  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && isnan(p->p_gc.z))                                    {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && ( isnan(p->p_gc.pitch) || fabs(p->p_gc.pitch) < 1 )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && ( isnan(p->p_gc.energy) || p->p_gc.energy <= 0 ))    {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && isnan(p->p_gc.theta))                                {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && isnan(p->p_gc.time))                                 {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && isnan(p->p_gc.charge))                               {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && ( isnan(p->p_gc.mass) || p->p_gc.mass <= 0 ))        {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && ( isnan(p->p_gc.weight) || p->p_gc.weight <= 0 ))    {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && p->p_gc.id <= 0)                                     {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+
         /* Guiding center to state */
 	p->type = input_particle_type_s;
+	id = p->p_gc.id;
 
-	real r      = p->p_gc.r;
-	real phi    = p->p_gc.phi;
-	real z      = p->p_gc.z;
-	real pitch  = p->p_gc.pitch;
-	real energy = p->p_gc.energy;
-	real theta  = p->p_gc.theta;
-	real mass   = p->p_gc.mass;
-	real charge = p->p_gc.charge;
-	real weight = p->p_gc.weight;
-	real time   = p->p_gc.time;
-	integer id  = p->p_gc.id;
+	real B_dB[12], psi[1], rho[1];
+	if(!err) {err = B_field_eval_B_dB(B_dB, p->p_gc.r, p->p_gc.phi, p->p_gc.z, Bdata);}
+	if(!err) {err = B_field_eval_psi(psi, p->p_gc.r, p->p_gc.phi, p->p_gc.z, Bdata);}
+	if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
 
-	/* Input is in (Ekin,xi) coordinates but state needs (mu,vpar) */
+	if(!err) {
+	    ps->rho        = rho[0];
+	    ps->B_r        = B_dB[0];
+	    ps->B_phi      = B_dB[4];     
+	    ps->B_z        = B_dB[8];      
+	    ps->B_r_dr     = B_dB[1];     
+	    ps->B_phi_dr   = B_dB[5];   
+	    ps->B_z_dr     = B_dB[9];     
+	    ps->B_r_dphi   = B_dB[2];  
+	    ps->B_phi_dphi = B_dB[6];  
+	    ps->B_z_dphi   = B_dB[10];   
+	    ps->B_r_dz     = B_dB[3];      
+	    ps->B_phi_dz   = B_dB[7];   
+	    ps->B_z_dz     = B_dB[11];
+	}
 
-	// From kinetic energy we get Lorentz factor as gamma = 1 + Ekin/mc^2
-	real gamma = 1 + energy / (mass * CONST_C2);
-	// And then we can use the usual formula for Lorentz factor to get total velocity
-	real v = sqrt(1 - 1.0 / (gamma * gamma)) * CONST_C;
+	/* Input is in (Ekin,xi) coordinates but state needs (mu,vpar) so we need to do that
+	 * transformation first. */
+	real gamma, mu, vpar;
+	if(!err) {
+	    /* From kinetic energy we get Lorentz factor as gamma = 1 + Ekin/mc^2 */
+	    gamma = 1 + p->p_gc.energy / (p->p_gc.mass * CONST_C2);
 
-	// Now we can use library functions for transformation
-	real B_dB[12];
-	B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
+	    /* And then we can use the usual formula for Lorentz factor to get total velocity */
+	    real v = sqrt(1 - 1.0 / (gamma * gamma)) * CONST_C;
+       
+	    /* Now we can use library functions for transformation */
+	    real B_norm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
+	    physlib_gc_vxi2muvpar(p->p_gc.mass, B_norm, v, p->p_gc.pitch, &mu, &vpar);
+	}
+	if(!err && ( isnan(mu) || mu < 0 ))            {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && ( isnan(vpar) || vpar >= CONST_C )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
-	real B_norm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
-
-	real mu, vpar;
-	physlib_gc_vxi2muvpar(mass, B_norm, v, pitch, &mu, &vpar);
-
+	if(!err) {
+	    ps->r          = p->p_gc.r;     
+	    ps->phi        = p->p_gc.phi;      
+	    ps->z          = p->p_gc.z;   
+	    ps->mu         = mu; 
+	    ps->vpar       = vpar;     
+	    ps->theta      = p->p_gc.theta;
+	    ps->mass       = p->p_gc.mass;      
+	    ps->charge     = p->p_gc.charge;  
+	    ps->weight     = p->p_gc.weight;    
+	    ps->time       = p->p_gc.time;
+	    ps->pol        = atan2(ps->z-B_field_get_axis_z(Bdata),
+				   ps->r-B_field_get_axis_r(Bdata));   
+	    ps->id         = id;    
+	    ps->endcond    = 0; 
+	    ps->walltile   = 0;
+	    ps->cputime    = 0;
+	}
+	  
 	/* Guiding center transformation to get particle coordinates */
-	real pR, pphi, pz;
-	physlib_gc2fo(mass, charge, B_dB,
-		      r, phi, z, mu, gamma*mass*vpar, theta,
-		      &ps->rprt, &ps->phiprt, &ps->zprt, &pR, &pphi, &pz);
-
-        gamma = physlib_relfactorp_fo(mass, math_normc(pR, pphi, pz));
-
-	ps->rdot       = pR/(gamma*mass); 
-	ps->phidot     = pphi/(gamma*mass*ps->rprt);     
-	ps->zdot       = pz/(gamma*mass);
-
-	ps->r          = r;     
-	ps->phi        = phi;      
-	ps->z          = z;   
-	ps->mu         = mu; 
-	ps->vpar       = vpar;     
-	ps->theta      = theta;
-   
-	ps->mass       = mass;      
-	ps->charge     = charge;  
-	ps->weight     = weight;    
-	ps->time       = time; 
-	ps->pol        = atan2(z-B_field_get_axis_z(Bdata),
-			       r-B_field_get_axis_r(Bdata));   
-	ps->id         = id;    
-	ps->endcond    = 0; 
-	ps->walltile   = 0;
-	ps->cputime    = 0;
-
-	real psi[1];
-	real rho[1];
-	B_field_eval_psi(psi, r, phi, z, Bdata);
-	B_field_eval_rho(rho, psi[0], Bdata);
-
-	ps->rho        = rho[0];
-	ps->B_r        = B_dB[0];
-	ps->B_phi      = B_dB[4];     
-	ps->B_z        = B_dB[8];      
-	ps->B_r_dr     = B_dB[1];     
-	ps->B_phi_dr   = B_dB[5];   
-	ps->B_z_dr     = B_dB[9];     
-	ps->B_r_dphi   = B_dB[2];  
-	ps->B_phi_dphi = B_dB[6];  
-	ps->B_z_dphi   = B_dB[10];   
-	ps->B_r_dz     = B_dB[3];      
-	ps->B_phi_dz   = B_dB[7];   
-	ps->B_z_dz     = B_dB[11];
+	real rprt, phiprt, zprt, pR, pphi, pz;
+	if(!err) {
+	    physlib_gc2fo(ps->mass, ps->charge, B_dB,
+			  ps->r, ps->phi, ps->z, ps->mu, gamma*ps->mass*ps->vpar, ps->theta,
+			  &rprt, &phiprt, &zprt, &pR, &pphi, &pz);
+	    gamma = physlib_relfactorp_fo(ps->mass, math_normc(pR, pphi, pz));
+	}
+	if(!err && ( isnan(rprt) || rprt <= 0 ))  {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && isnan(phiprt))                 {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && isnan(zprt))                   {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && ( isnan(gamma) || gamma < 1 )) {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	
+	if(!err) {
+	    ps->rprt   = rprt;
+	    ps->phiprt = phiprt;
+	    ps->zprt   = zprt;
+	    ps->rdot   = pR/(gamma*ps->mass); 
+	    ps->phidot = pphi/(gamma*ps->mass*ps->rprt);     
+	    ps->zdot   = pz/(gamma*ps->mass);
            
-	ps->err = 0;
+	    ps->err = 0;
+	}
     }
     else if(p->type == input_particle_type_ml) {
+	/* Check that input is valid */
+	if(!err && ( isnan(p->p_ml.r) || p->p_ml.r <= 0 ))           {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
+	if(!err && isnan(p->p_ml.phi))                               {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
+	if(!err && isnan(p->p_ml.z))                                 {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
+	if(!err && isnan(p->p_ml.pitch))                             {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
+	if(!err && isnan(p->p_ml.time))                              {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
+	if(!err && ( isnan(p->p_ml.weight) || p->p_ml.weight <= 0 )) {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
+	if(!err && p->p_ml.id <= 0)  
+
 	/* Magnetic field line to state */
 	p->type = input_particle_type_s;
+	id = p->p_ml.id;
 
-	real r      = p->p_ml.r;
-	real phi    = p->p_ml.phi;
-	real z      = p->p_ml.z;
-	real pitch  = p->p_ml.pitch;
-	real time   = p->p_ml.time;
-	real weight = p->p_ml.weight;
-	integer id  = p->p_ml.id;
+	real B_dB[12], psi[1], rho[1];
+	if(!err) {err = B_field_eval_B_dB(B_dB, p->p_ml.r, p->p_ml.phi, p->p_ml.z, Bdata);}
+	if(!err) {err = B_field_eval_psi(psi, p->p_ml.r, p->p_ml.phi, p->p_ml.z, Bdata);}
+	if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
 
-	ps->rprt       = r;     
-	ps->phiprt     = phi;      
-	ps->zprt       = z;   
-	ps->rdot       = 0; 
-	ps->phidot     = 0;     
-	ps->zdot       = 0;
+	if(!err) {
+	    ps->rprt       = p->p_ml.r;     
+	    ps->phiprt     = p->p_ml.phi;      
+	    ps->zprt       = p->p_ml.z;   
+	    ps->rdot       = 0; 
+	    ps->phidot     = 0;     
+	    ps->zdot       = 0;
      
-	ps->mass       = 0;      
-	ps->charge     = 0;  
-	ps->weight     = weight;    
-	ps->time       = time;     
-	ps->id         = id; 
-	ps->pol        = atan2(z-B_field_get_axis_z(Bdata), 
-			       r-B_field_get_axis_r(Bdata)); 
-	ps->endcond    = 0; 
-	ps->walltile   = 0;
-	ps->cputime    = 0;
+	    ps->mass       = 0;      
+	    ps->charge     = 0;  
+	    ps->weight     = p->p_ml.weight;    
+	    ps->time       = p->p_ml.time;     
+	    ps->id         = id; 
+	    ps->pol        = atan2(p->p_ml.z-B_field_get_axis_z(Bdata), 
+				   p->p_ml.r-B_field_get_axis_r(Bdata)); 
+	    ps->endcond    = 0; 
+	    ps->walltile   = 0;
+	    ps->cputime    = 0;
 
-	real B_dB[12];
-	B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
-	real psi[1];
-	real rho[1];
-	B_field_eval_psi(psi, r, phi, z, Bdata);
-	B_field_eval_rho(rho, psi[0], Bdata);
+	    ps->r          = p->p_ml.r;
+	    ps->phi        = p->p_ml.phi;
+	    ps->z          = p->p_ml.z;
+	    ps->vpar       = p->p_ml.pitch >= 0;
+	    ps->mu         = 0;
+	    ps->theta      = 0;
 
-	ps->r          = r;
-	ps->phi        = phi;
-	ps->z          = z;
-	ps->vpar       = pitch >= 0;
-	ps->mu         = 0;
-	ps->theta      = 0;
+	    ps->rho        = rho[0]; 
+	    ps->B_r        = B_dB[0];     
+	    ps->B_phi      = B_dB[4];     
+	    ps->B_z        = B_dB[8];      
+	    ps->B_r_dr     = B_dB[1];     
+	    ps->B_phi_dr   = B_dB[5];   
+	    ps->B_z_dr     = B_dB[9];     
+	    ps->B_r_dphi   = B_dB[2];  
+	    ps->B_phi_dphi = B_dB[6];  
+	    ps->B_z_dphi   = B_dB[10];   
+	    ps->B_r_dz     = B_dB[3];      
+	    ps->B_phi_dz   = B_dB[7];   
+	    ps->B_z_dz     = B_dB[11];
 
-	ps->rho        = rho[0]; 
-	ps->B_r        = B_dB[0];     
-	ps->B_phi      = B_dB[4];     
-	ps->B_z        = B_dB[8];      
-	ps->B_r_dr     = B_dB[1];     
-	ps->B_phi_dr   = B_dB[5];   
-	ps->B_z_dr     = B_dB[9];     
-	ps->B_r_dphi   = B_dB[2];  
-	ps->B_phi_dphi = B_dB[6];  
-	ps->B_z_dphi   = B_dB[10];   
-	ps->B_r_dz     = B_dB[3];      
-	ps->B_phi_dz   = B_dB[7];   
-	ps->B_z_dz     = B_dB[11];
+	    ps->err = 0;
+	}
+    }
 
-	ps->err = 0;
+    /* If particle was rejected, ensure that these fields are filled */
+    if(err) {
+	ps->id      = id;    
+	ps->endcond = 0;
+	ps->err     = error_module(err, ERRMOD_REJECTED);
     }
 }
 
@@ -510,6 +558,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
  */
 void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j, 
 			  B_field_data* Bdata) {
+    a5err err = 0;
+
     p_fo->r[j]          = p->rprt;
     p_fo->phi[j]        = p->phiprt;
     p_fo->z[j]          = p->zprt;
@@ -527,13 +577,10 @@ void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int 
     p_fo->walltile[j]   = p->walltile;
 
     /* Magnetic field stored in state is for the gc position */
-    real B_dB[12];
-    B_field_eval_B_dB(B_dB, p->rprt, p->phiprt, p->zprt, Bdata);
-
-    real psi[1];
-    real rho[1];
-    B_field_eval_psi(psi, p->rprt, p->phiprt, p->zprt, Bdata);
-    B_field_eval_rho(rho, psi[0], Bdata);
+    real B_dB[12], psi[1], rho[1];
+    if(!err) {err = B_field_eval_B_dB(B_dB, p->rprt, p->phiprt, p->zprt, Bdata);}
+    if(!err) {err = B_field_eval_psi(psi, p->rprt, p->phiprt, p->zprt, Bdata);}
+    if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
 
     p_fo->rho[j]        = rho[0];
 
@@ -573,6 +620,8 @@ void particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int 
  */
 void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p, 
 			  B_field_data* Bdata) {
+    a5err err = 0;
+
     p->rprt       = p_fo->r[j];
     p->phiprt     = p_fo->phi[j];
     p->zprt       = p_fo->z[j];
@@ -591,7 +640,7 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->cputime    = p_fo->cputime[j];
 
     /* Particle to guiding center */
-    real B_dB[12];
+    real B_dB[12], psi[1], rho[1];
     B_dB[0]       = p_fo->B_r[j];
     B_dB[1]       = p_fo->B_r_dr[j];
     B_dB[2]       = p_fo->B_r_dphi[j];
@@ -617,14 +666,11 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
 		  gamma*p->mass*vR , gamma*p->mass*vphi, gamma*p->mass*vz,
 		  &p->r, &p->phi, &p->z, &p->mu, &ppar, &p->theta);
 
-    B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);
+    if(!err) {err = B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);}
+    if(!err) {err = B_field_eval_psi(psi, p->r, p->phi, p->z, Bdata);}
+    if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
     gamma = physlib_relfactorp_gc(p->mass, p->mu, ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
     p->vpar = ppar/(p->mass*gamma);
-
-    real psi[1];
-    real rho[1];
-    B_field_eval_psi(psi, p->r, p->phi, p->z, Bdata);
-    B_field_eval_rho(rho, psi[0], Bdata);
 
     p->rho        = rho[0];
 
