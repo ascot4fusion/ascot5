@@ -33,6 +33,10 @@ static const unsigned int ERR_UNPHYSICAL_GC    = 15;/** @brief R <= 0 or vpar > 
 static const unsigned int ERR_UNPHYSICAL_ML    = 16;/** @brief R <= 0 or pitch == 0 or at least one ml parameter is NaN */ 
 static const unsigned int ERR_EXTREMELY_SMALL_TIMESTEP = 17;/** @brief Time step smaller than the A5_EXTREMELY_SMALL_TIMESTEP defined in ascot5.h */
 static const unsigned int ERR_TIMESTEP_ZERO_OR_NAN = 18;/** @brief Time step is zero or NaN. */
+static const unsigned int ERR_CCOEF_EVAL_FAIL  = 19;/** @brief Collision coefficient evaluation failed */
+static const unsigned int ERR_CCOL_EVAL_FAIL   = 20;/** @brief Collision evaluation failed */
+static const unsigned int ERR_WIENARR_EXCEEDED = 21;/** @brief Exceeded wiener array capacity */
+static const unsigned int ERR_WIENARR_NOPROC   = 22;/** @brief Cannot clean wiener processes for t < t0 since W(t0) does not exists */
 
 #pragma omp declare target
 

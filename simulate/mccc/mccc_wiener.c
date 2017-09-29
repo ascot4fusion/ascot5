@@ -15,6 +15,7 @@
 #include "../../math.h"
 #include "../../ascot5.h"
 #include "../../consts.h"
+#include "../../error.h"
 #include "mccc_wiener.h"
 
 const int MCCC_EMPTY = -999;
@@ -27,10 +28,8 @@ const int MCCC_EMPTY = -999;
  */
 void mccc_wiener_initialize(mccc_wienarr* w, real initime){
 
-    int i;
-
     /* Initialize position instances indicating all slots are empty */
-    for(i = 0; i < MCCC_NSLOTS; i = i +1){
+    for(int i = 0; i < MCCC_NSLOTS; i = i +1){
 	w->time[i] = MCCC_EMPTY;
 	w->nextslot[i] = MCCC_EMPTY;
     }
@@ -38,8 +37,7 @@ void mccc_wiener_initialize(mccc_wienarr* w, real initime){
     /* W(t_0) = 0 by the definition of the Wiener process. Here we initialize it. */
     w->nextslot[0] = 0;
     w->time[0] = initime;
-    
-    for(i = 0; i < MCCC_NDIM; i = i +1){
+    for(int i = 0; i < MCCC_NDIM; i = i +1){
 	w->wiener[i] = 0.0;
     }
 }
@@ -58,14 +56,12 @@ void mccc_wiener_initialize(mccc_wienarr* w, real initime){
  * @param rand5 array of 5 normal distributed random numbers
  * @param err error flag, negative indicates something went wrong
  */
-void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5, int* err){
-    
+a5err mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5){
+    a5err err = 0;
     int eidx, i; /* Helper variables */
     int im, ip; /* Indexes of the Wiener processes for which tm < t < tp */
 
-    *windex = -1;
-    *err=0;
-
+    windex[0] = -1;
     ip = -1; /* There isn't necessarily a Wiener process tp > t */
 
     /* Find im and ip */
@@ -79,7 +75,7 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5, int
         
 	if(w->time[idx] == t) {
 	    /* Process already exists */
-	    *windex = idx;
+	    windex[0] = idx;
 	    i = MCCC_NSLOTS;
 	}
 	else {
@@ -98,7 +94,7 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5, int
 	
     }
     
-    if(*windex == -1) {
+    if(windex[0] == -1) {
 	/* Find an empty slot for the next process */
 	eidx = 0;
 	for( i = 0; i < MCCC_NSLOTS; i = i+1 ){
@@ -110,10 +106,10 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5, int
 	if(eidx == 0){
 	    /* It seems that we have exceeded capacity of the Wiener array
 	     * Produce an error. */
-	    *err = MCCC_WIENER_EXCEEDEDCAPACITY;
+	    err = error_raise(ERR_WIENARR_EXCEEDED, __LINE__);
 	}
 
-	if(!(*err)) {
+	if(!err) {
 
 	    if(ip == -1){
 		/* There are no Wiener processes existing for tp > t.
@@ -124,7 +120,7 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5, int
 		for(i=0; i < MCCC_NDIM; i=i+1){
 		    w->wiener[i + eidx*MCCC_NDIM] = w->wiener[i + im*MCCC_NDIM] + sqrt(t-w->time[im])*rand5[i];
 		}
-		*windex = eidx;
+		windex[0] = eidx;
 		w->nextslot[im] = eidx;
 	    }
 	    else{
@@ -143,10 +139,11 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5, int
 		/* Sort new wiener process to its correct place */
 		w->nextslot[eidx] = ip;
 		w->nextslot[im] = eidx;
-		*windex = eidx;
+		windex[0] = eidx;
 	    }
 	}
     }
+    return err;
 }
 
 /**
@@ -160,19 +157,17 @@ void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5, int
  * @param t time for which the new process will be generated
  * @param err error flag, negative indicates something went wrong
  */
-void mccc_wiener_clean(mccc_wienarr* w, real t, int* err){
+a5err mccc_wiener_clean(mccc_wienarr* w, real t){
+    a5err err = 0;
+    int idx, i, nextidx;
 
-    int idx, nidx, i, nextidx;
-
-    *err = 0;
-        
     /* Remove processes W(t_i) until ti = t */
     idx = 0;
     real ti = w->time[idx];
     while(ti < t){
 	nextidx = w->nextslot[idx];
 	if(idx == nextidx){
-	    *err = MCCC_WIENER_NOASSOCIATEDPROCESS;
+	    err = error_raise(ERR_WIENARR_NOPROC, __LINE__);
 	    t = ti; // Breaks the loop
 	}
 	else {
@@ -184,7 +179,7 @@ void mccc_wiener_clean(mccc_wienarr* w, real t, int* err){
 	}
     }
 
-    if(idx!=0 && !(*err)){
+    if(idx!=0 && !err){
 	/* Move W(t) process as the first one */
 	w->nextslot[0] = w->nextslot[idx];
      
@@ -201,6 +196,7 @@ void mccc_wiener_clean(mccc_wienarr* w, real t, int* err){
 	w->nextslot[idx] = MCCC_EMPTY;
     }
 
+    return err;
 }
   
   
@@ -220,14 +216,12 @@ void mccc_wiener_clean(mccc_wienarr* w, real t, int* err){
  */
 void mccc_wiener_boxmuller(real* randVar, int Ndim){
     
-    real x1, x2, w, s;
-    int isEven; /* Indicates if even number of random numbers are requested */
-    int i; /* Helper variables */
+    real x1, x2, w; /* Helper variables */
+    int isEven = (Ndim+1) % 2; /* Indicates if even number of random numbers are requested */
     
-    isEven = (Ndim+1) % 2;
 #if A5_CCOL_USE_GEOBM == 1
     /* The geometric form */
-    for( i = 0; i < Ndim; i=i+2){
+    for(int i = 0; i < Ndim; i=i+2){
 	w = 2.0;
 	while( w >= 1.0 ){
 	    x1 = 2*((real)drand48())-1;
@@ -243,7 +237,8 @@ void mccc_wiener_boxmuller(real* randVar, int Ndim){
     }
 #else
     /* The common form */
-    for( i = 0; i < Ndim; i=i+2){
+    real s;
+    for(int i = 0; i < Ndim; i=i+2){
 	x1 = ((real)drand48());
 	x2 = (drand48());
 	w = sqrt(-2*log(x1));

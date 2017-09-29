@@ -6,9 +6,7 @@
 #define MCCC_WIENER_H
 
 #include "../../ascot5.h"
-
-#define MCCC_WIENER_EXCEEDEDCAPACITY 10
-#define MCCC_WIENER_NOASSOCIATEDPROCESS 11
+#include "../../error.h"
 
 #define MCCC_NDIM 5 /* Wiener process dimension. NDIM=5 because 
 			    only guiding centers are simulated with 
@@ -30,17 +28,12 @@ typedef struct {
 #pragma omp declare target
 #pragma omp declare simd
 void mccc_wiener_initialize(mccc_wienarr* w, real initime);
-
 #pragma omp declare simd
-void mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5, int* err);
-
+a5err mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5);
 #pragma omp declare simd
-void mccc_wiener_clean(mccc_wienarr* w, real t, int* err);
+a5err mccc_wiener_clean(mccc_wienarr* w, real t);
 
 void mccc_wiener_boxmuller(real* randVar, int Ndim);
-
-#pragma omp declare simd
-void mccc_wiener_error(int err);
 
 #pragma omp end declare target
 

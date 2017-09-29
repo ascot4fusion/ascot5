@@ -64,7 +64,6 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     real hout_orb[NSIMD]  __memalign__;
     real hout_col[NSIMD]  __memalign__;
     real hnext[NSIMD]  __memalign__;
-    int err[NSIMD]  __memalign__;
     real tol_col = sim->ada_tol_clmbcol;
     real tol_orb = sim->ada_tol_orbfol;
     int i;
@@ -178,7 +177,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
         if(sim->enable_clmbcol) {
 	    mccc_step_gc_adaptive(&p, &sim->B_data, &sim->plasma_data,
-		hin, hout_col, wienarr, tol_col, err);
+		hin, hout_col, wienarr, tol_col);
 		
 	    /* Check whether time step was rejected */
 	    #pragma omp simd
@@ -193,88 +192,88 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 	cputime = A5_WTIME;
 	#pragma omp simd
 	for(i = 0; i < NSIMD; i++) {
-	    /* Check other time step limitations */
-	    
-	    if(hnext[i] > 0) {
-	        real dphi = fabs(p0.phi[i]-p.phi[i]) / sim->ada_max_dphi;
-		real drho = fabs(p0.rho[i]-p.rho[i]) / sim->ada_max_drho;
+	    if(!p.err[i]) {
+		/* Check other time step limitations */
+		if(hnext[i] > 0) {
+		    real dphi = fabs(p0.phi[i]-p.phi[i]) / sim->ada_max_dphi;
+		    real drho = fabs(p0.rho[i]-p.rho[i]) / sim->ada_max_drho;
 
-		if(dphi > 1 && dphi > drho) {
-		    hnext[i] = -hin[i]/dphi;
+		    if(dphi > 1 && dphi > drho) {
+			hnext[i] = -hin[i]/dphi;
+		    }
+		    else if(drho > 1 && drho > dphi) {
+			hnext[i] = -hin[i]/drho;
+		    }
 		}
-		else if(drho > 1 && drho > dphi) {
-		    hnext[i] = -hin[i]/drho;
-		}
-	    }
-	    /* Retrieve marker states in case time step was rejected */
-	    if(hnext[i] < 0){
-		p.r[i]        = p0.r[i];
-		p.phi[i]      = p0.phi[i];
-		p.z[i]        = p0.z[i];
-		p.vpar[i]     = p0.vpar[i];
-		p.mu[i]       = p0.mu[i];
-		p.theta[i]    = p0.theta[i];
+		/* Retrieve marker states in case time step was rejected */
+		if(hnext[i] < 0){
+		    p.r[i]        = p0.r[i];
+		    p.phi[i]      = p0.phi[i];
+		    p.z[i]        = p0.z[i];
+		    p.vpar[i]     = p0.vpar[i];
+		    p.mu[i]       = p0.mu[i];
+		    p.theta[i]    = p0.theta[i];
 
-		p.time[i]       = p0.time[i];
-		p.cputime[i]    = p0.cputime[i];
-		p.rho[i]        = p0.rho[i];
-		p.weight[i]     = p0.weight[i];
-		p.cputime[i]    = p0.cputime[i]; 
-		p.rho[i]        = p0.rho[i];      
-		p.pol[i]        = p0.pol[i]; 
+		    p.time[i]       = p0.time[i];
+		    p.cputime[i]    = p0.cputime[i];
+		    p.rho[i]        = p0.rho[i];
+		    p.weight[i]     = p0.weight[i];
+		    p.cputime[i]    = p0.cputime[i]; 
+		    p.rho[i]        = p0.rho[i];      
+		    p.pol[i]        = p0.pol[i]; 
 
-		p.mass[i]       = p0.mass[i];
-		p.charge[i]     = p0.charge[i];
+		    p.mass[i]       = p0.mass[i];
+		    p.charge[i]     = p0.charge[i];
 
-		p.running[i]    = p0.running[i];
-		p.endcond[i]    = p0.endcond[i];
-		p.walltile[i]   = p0.walltile[i];
+		    p.running[i]    = p0.running[i];
+		    p.endcond[i]    = p0.endcond[i];
+		    p.walltile[i]   = p0.walltile[i];
 
-		p.B_r[i]        = p0.B_r[i];
-		p.B_phi[i]      = p0.B_phi[i];
-		p.B_z[i]        = p0.B_z[i];
+		    p.B_r[i]        = p0.B_r[i];
+		    p.B_phi[i]      = p0.B_phi[i];
+		    p.B_z[i]        = p0.B_z[i];
 
-		p.B_r_dr[i]     = p0.B_r_dr[i];
-		p.B_r_dphi[i]   = p0.B_r_dphi[i];
-		p.B_r_dz[i]     = p0.B_r_dz[i];
+		    p.B_r_dr[i]     = p0.B_r_dr[i];
+		    p.B_r_dphi[i]   = p0.B_r_dphi[i];
+		    p.B_r_dz[i]     = p0.B_r_dz[i];
 
-		p.B_phi_dr[i]   = p0.B_phi_dr[i];
-		p.B_phi_dphi[i] = p0.B_phi_dphi[i];
-		p.B_phi_dz[i]   = p0.B_phi_dz[i];
+		    p.B_phi_dr[i]   = p0.B_phi_dr[i];
+		    p.B_phi_dphi[i] = p0.B_phi_dphi[i];
+		    p.B_phi_dz[i]   = p0.B_phi_dz[i];
 
-		p.B_z_dr[i]     = p0.B_z_dr[i];
-		p.B_z_dphi[i]   = p0.B_z_dphi[i];
-		p.B_z_dz[i]     = p0.B_z_dz[i];
+		    p.B_z_dr[i]     = p0.B_z_dr[i];
+		    p.B_z_dphi[i]   = p0.B_z_dphi[i];
+		    p.B_z_dz[i]     = p0.B_z_dz[i];
 
-		hin[i] = -hnext[i];
+		    hin[i] = -hnext[i];
 		    
-	    }
-	    else{
-		if(p.running[i]){
+		}
+		else{
+		    if(p.running[i]){
 			
-		    p.time[i] = p.time[i] + hin[i];
-		    p.cputime[i] += cputime - cputime_last[i];
-		    cputime_last[i] = cputime;
+			p.time[i] = p.time[i] + hin[i];
+			p.cputime[i] += cputime - cputime_last[i];
+			cputime_last[i] = cputime;
 			
-		    /* Determine next time step */
-		    if(hnext[i] > hout_orb[i]) {
-			hnext[i] = hout_orb[i];
+			/* Determine next time step */
+			if(hnext[i] > hout_orb[i]) {
+			    hnext[i] = hout_orb[i];
+			}
+			if(hnext[i] > hout_col[i]) {
+			    hnext[i] = hout_col[i];
+			}
+			if(hnext[i] == 1.0) {
+			    hnext[i] = hin[i];
+			}
+			else if(hnext[i] > 1e-6) {
+			    hnext[i] = 1e-6;
+			}
+			hin[i] = hnext[i];
+			if(sim->enable_clmbcol) {
+			    /* Clear wiener processes */
+			    mccc_wiener_clean(wienarr[i], p.time[i]);
+			}
 		    }
-		    if(hnext[i] > hout_col[i]) {
-			hnext[i] = hout_col[i];
-		    }
-		    if(hnext[i] == 1.0) {
-			hnext[i] = hin[i];
-		    }
-		    else if(hnext[i] > 1e-6) {
-		        hnext[i] = 1e-6;
-		    }
-		    hin[i] = hnext[i];
-		    if(sim->enable_clmbcol) {
-			/* Clear wiener processes */
-			mccc_wiener_clean(wienarr[i], p.time[i], &err[i]);
-		    }
-			
 		}
 	    }
 	}

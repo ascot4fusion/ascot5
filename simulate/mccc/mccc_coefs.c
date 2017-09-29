@@ -9,6 +9,7 @@
 #include "../../math.h"
 #include "../../consts.h"
 #include "../../ascot5.h"
+#include "../../error.h"
 #include "mccc_coefs.h"
 #include "mccc_special.h"
 
@@ -43,10 +44,11 @@ void mccc_coefs_init(){
  *
  * @todo Implement relativistic coefficients
  */
-void mccc_coefs_fo(real ma, real qa, real va, real* mb, real* qb, real* nb, real* Tb, real* clogab, int nspec, 
-		   real* F, real* Dpara, real* Dperp, real* K, real* nu){
-
-    int i;
+a5err mccc_coefs_fo(real ma, real qa, real va, real* mb, 
+		    real* qb, real* nb, real* Tb, real* clogab, int nspec, 
+		    real* F, real* Dpara, real* Dperp, real* K, real* nu){
+    a5err err = 0;
+    int check = 0;
     real Q, dDpara;
     real x, vth, cab;
 
@@ -54,8 +56,7 @@ void mccc_coefs_fo(real ma, real qa, real va, real* mb, real* qb, real* nb, real
 
 #else
     real fdf[3];
-
-    for(i = 0; i < nspec; i=i+1){
+    for(int i = 0; i < nspec; i=i+1){
 	cab = nb[i]*qa*qa*qb[i]*qb[i]*clogab[i]/(4*CONST_PI*CONST_E0*CONST_E0);
 	vth = sqrt(2*Tb[i]/mb[i]);
 	x = va/vth;
@@ -78,10 +79,14 @@ void mccc_coefs_fo(real ma, real qa, real va, real* mb, real* qb, real* nb, real
 
 	K[i] = Q + dDpara + 2*Dpara[i]/va;
 	nu[i] = 2*Dperp[i]/(va*va);
+
+	check += isnan(F[i]) + isnan(Dpara[i]) + isnan(Dperp[i]) + isnan(K[i]) + isnan(nu[i]);
+	check += (Dpara[i] > 0) + (Dperp[i] > 0) + (nu[i] > 0);
     }
 
 #endif
-	
+    if(check) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
+    return err;
 }
 
 /**
@@ -105,10 +110,11 @@ void mccc_coefs_fo(real ma, real qa, real va, real* mb, real* qb, real* nb, real
  *
  * @todo Implement relativistic coefficients
  */
-void mccc_coefs_gcfixed(real ma, real qa, real va, real xi, real* mb, real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, 
-			real* Dpara, real* DX, real* K, real* nu){
-
-    int i;
+a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi, 
+			 real* mb, real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, 
+			 real* Dpara, real* DX, real* K, real* nu){
+    a5err err = 0;
+    int check = 0;
     real Q, dDpara, Dperp;
     real x, vth, cab, gyrofreq;
 
@@ -116,10 +122,10 @@ void mccc_coefs_gcfixed(real ma, real qa, real va, real xi, real* mb, real* qb, 
 
 #else
     real fdf[3];
+    real gamma = 1.0/sqrt(1-(va*va)/CONST_C2);
+    gyrofreq = qa*B/(gamma*ma);
 
-    gyrofreq = qa*B/ma;
-
-    for(i = 0; i < nspec; i=i+1){
+    for(int i = 0; i < nspec; i=i+1){
 	cab = nb[i]*qa*qa*qb[i]*qb[i]*clogab[i]/(4*CONST_PI*CONST_E0*CONST_E0);
 	vth = sqrt(2*Tb[i]/mb[i]);
 	x = va/vth;
@@ -142,10 +148,15 @@ void mccc_coefs_gcfixed(real ma, real qa, real va, real xi, real* mb, real* qb, 
 	K[i] = Q + dDpara + 2*Dpara[i]/va;
 	nu[i] = 2*Dperp/(va*va);
 	DX[i] = ( (Dpara[i] - Dperp)*(1-xi*xi)/2 + Dperp )/(gyrofreq*gyrofreq);
+
+	check += isnan(Dpara[i]) + isnan(DX[i]) + isnan(K[i]) + isnan(nu[i]);
+	check += (Dpara[i] > 0) + (DX[i] > 0) + (nu[i] > 0);
     }
 
 #endif
-	
+
+    if(check) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
+    return err;	
 }
 
    
@@ -172,9 +183,11 @@ void mccc_coefs_gcfixed(real ma, real qa, real va, real xi, real* mb, real* qb, 
  *
  * @todo Implement relativistic coefficients
  */
-void mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb, real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, 
-			   real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara){
-    int i;
+a5err mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb, 
+			    real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, 
+			    real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara){
+    a5err err = 0;
+    int check = 0;
     real Q, Dperp;
     real x, vth, cab, gyrofreq;
 
@@ -182,10 +195,10 @@ void mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb, real* q
 
 #else
     real fdf[3];
+    real gamma = 1.0/sqrt(1-(va*va)/CONST_C2);
+    gyrofreq = qa*B/(gamma*ma);
 
-    gyrofreq = qa*B/ma;
-
-    for(i = 0; i < nspec; i=i+1){
+    for(int i = 0; i < nspec; i=i+1){
 	cab = nb[i]*qa*qa*qb[i]*qb[i]*clogab[i]/(4*CONST_PI*CONST_E0*CONST_E0);
 	vth = sqrt(2*Tb[i]/mb[i]);
 	x = va/vth;
@@ -209,10 +222,13 @@ void mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb, real* q
 	K[i] = Q + dDpara[i] + 2*Dpara[i]/va;
 	nu[i] = 2*Dperp/(va*va);
 	DX[i] = ( (Dpara[i] - Dperp)*(1-xi*xi)/2 + Dperp )/(gyrofreq*gyrofreq);
-    }
 
+	check += isnan(Dpara[i]) + isnan(DX[i]) + isnan(K[i]) + isnan(nu[i]) + isnan(dQ[i]) + isnan(dDpara[i]);
+	check += (Dpara[i] > 0) + (DX[i] > 0) + (nu[i] > 0);
+    }
 #endif
-    
+    if(check) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
+    return err;	
 }
 
 
@@ -231,32 +247,36 @@ void mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb, real* q
  * @param clogab pointer to array storing the evaluated Coulomb logarithms
  * @param nspec number of background species
  */
-void mccc_coefs_clog(real ma, real qa, real va, real* mb, real* qb, real* nb, real* Tb, real* clogab, int nspec){
-
-    int i;
-
-    real u = (va/CONST_C)/sqrt(1 - (va*va)/CONST_C2 );
+a5err mccc_coefs_clog(real ma, real qa, real va, real* mb, real* qb, real* nb, real* Tb, real* clogab, int nspec){
+    a5err err = 0;
     real vbar[MAX_SPECIES];
     real s = 0;
-    for(i = 0; i < nspec; i=i+1){
+    for(int i = 0; i < nspec; i=i+1){
 	s = s + (nb[i] * qb[i] * qb[i])/(Tb[i]);
 	vbar[i] = va*va + 2*Tb[i]/mb[i];
     }
-    real debyeLength = sqrt(CONST_E0/s);
+    if(!err && ( isnan(s) || s <= 0 )) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
 
-    real mr, bcl, bqm;
-    for(i=0; i < nspec; i=i+1){
-	mr = ma*mb[i]/(ma+mb[i]);
-	bcl = fabs(qa*qb[i]/(4 * CONST_PI * CONST_E0 * mr * vbar[i]));
-	bqm = fabs(CONST_HBAR/(2*mr*sqrt(vbar[i])));
+    if(!err) {
+	int check = 0;
+	real debyeLength = sqrt(CONST_E0/s);
+	real mr, bcl, bqm;
+	for(int i=0; i < nspec; i=i+1){
+	    mr = ma*mb[i]/(ma+mb[i]);
+	    bcl = fabs(qa*qb[i]/(4 * CONST_PI * CONST_E0 * mr * vbar[i]));
+	    bqm = fabs(CONST_HBAR/(2*mr*sqrt(vbar[i])));
        
-	if(bcl > bqm){
-	    clogab[i] = log(debyeLength/bcl);
+	    if(bcl > bqm){
+		clogab[i] = log(debyeLength/bcl);
+	    }
+	    else{
+		clogab[i] = log(debyeLength/bqm);
+	    }
+	    check += ( isnan(clogab[i]) || (clogab[i] <= 0) );
 	}
-	else{
-	    clogab[i] = log(debyeLength/bqm);
-	}
+	if(check) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
     }
+    return err;	
 }
 
 

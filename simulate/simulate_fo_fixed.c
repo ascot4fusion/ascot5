@@ -52,7 +52,6 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i);
 void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
     int cycle[NSIMD]  __memalign__;
     real hin[NSIMD]  __memalign__;
-    int err[NSIMD]  __memalign__;
     
     real cputime_last[NSIMD] __memalign__;
     real cputime;
@@ -139,13 +138,13 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         }
 
         if(sim->enable_clmbcol) {
-            mccc_step_fo_fixed(&p, &sim->B_data, &sim->plasma_data, hin, err);
+            mccc_step_fo_fixed(&p, &sim->B_data, &sim->plasma_data, hin);
         }
  
 	cputime = A5_WTIME;
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
-            if(p.running[i]){
+            if(!p.err && p.running[i]){
                 p.time[i] = p.time[i] + hin[i];
 		p.cputime[i] += cputime - cputime_last[i] ;
 		cputime_last[i] = cputime;
