@@ -161,7 +161,6 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
 	    else if(!errflag && (isnan(yout[4]) || yout[4] < 0))              {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 	    else if(!errflag && isnan(yout[5]))                               {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
-
 	    /* Update gc phase space position */
 	    if(!errflag) {
                 p->r[i] = yout[0];
@@ -172,7 +171,6 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
 		p->theta[i] = fmod(yout[5],CONST_2PI);
 		if(p->theta[i]<0){p->theta[i] = CONST_2PI + p->theta[i];}
             }
-		
 
 	    /* Evaluate magnetic field (and gradient) and rho at new position */
 	    real psi[1];
@@ -198,13 +196,11 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
 		p->B_z_dz[i]     = B_dB[11];
 		p->rho[i] = rho[0];
 		
-		
 		/* Evaluate pol angle so that it is cumulative */
 		real axis_r = B_field_get_axis_r(Bdata);
 		real axis_z = B_field_get_axis_z(Bdata);
 		p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
 	                     (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
-
             }
 
 	    /* Error handling */

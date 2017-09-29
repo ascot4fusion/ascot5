@@ -247,49 +247,47 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
+	    a5err errflag = 0;
 
-	    /* Update background data */
+	    /* Gather relevant particle data */
+	    real vin[3], vout[3];
+	    real va = sqrt(p->rdot[i]*p->rdot[i] + (p->r[i]*p->phidot[i])*(p->r[i]*p->phidot[i]) + p->zdot[i]*p->zdot[i]);
+	    vin[0] = p->rdot[i] * cos(p->phi[i]) - (p->phidot[i]*p->r[i]) * sin(p->phi[i]);
+	    vin[1] = p->rdot[i] * sin(p->phi[i]) + (p->phidot[i]*p->r[i]) * cos(p->phi[i]);
+	    vin[2] = p->zdot[i];
+
+	    /* Evaluate density and temperature */
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
-	    
-	    plasma_1d_eval_densandtemp(p->rho[i], pdata, dens, temp);
-	    int j;
-	    for(j = 0; j < pdata->n_species; j++) {
+	    if(!errflag) {errflag = plasma_1d_eval_densandtemp(p->rho[i], pdata, dens, temp);}
+	    for(int j = 0; j < pdata->n_species; j++) {
 		temp[j] = temp[j]*CONST_KB;
 	    }
 	    
 	    /* Evaluate coefficients */
-	    real va = sqrt(p->rdot[i]*p->rdot[i] + (p->r[i]*p->phidot[i])*(p->r[i]*p->phidot[i]) + p->zdot[i]*p->zdot[i]);
-
 	    real clogab[MAX_SPECIES];
-	    real Fb[MAX_SPECIES];
-	    real Dparab[MAX_SPECIES];
-	    real Dperpb[MAX_SPECIES];
 	    real Kb[MAX_SPECIES];
 	    real nub[MAX_SPECIES];
-	    mccc_coefs_clog(p->mass[i],p->charge[i],va,pdata->mass,pdata->charge,dens,temp,clogab,pdata->n_species);
-	    mccc_coefs_fo(p->mass[i],p->charge[i],va,pdata->mass,pdata->charge,dens,temp,clogab,pdata->n_species,
-			  Fb,Dparab,Dperpb,Kb,nub);
-
-	    
-	    real vin[3];
-	    real vout[3];
-			
-	    real F = 0;
-	    real Dpara = 0;
-	    real Dperp = 0;
-	    for(j=0; j<pdata->n_species; j=j+1){
+	    real Fb[MAX_SPECIES],     F     = 0;
+	    real Dparab[MAX_SPECIES], Dpara = 0;
+	    real Dperpb[MAX_SPECIES], Dperp = 0;
+	    if(!errflag) {
+		errflag = mccc_coefs_clog(p->mass[i], p->charge[i], va, 
+					  pdata->mass, pdata->charge, dens, temp, clogab, pdata->n_species);
+	    }
+	    if(!errflag) {
+		errflag = mccc_coefs_fo(p->mass[i], p->charge[i], va,
+					pdata->mass, pdata->charge, dens, temp, clogab, pdata->n_species,
+					Fb, Dparab, Dperpb, Kb, nub);
+	    }
+	    for(int j = 0; j<pdata->n_species; j=j+1){
 		F = F + Fb[j];
 		Dpara = Dpara + Dparab[j];
 		Dperp = Dperp + Dperpb[j];
 	    }
 
-	    /* Evaluate collisions */		
-	    vin[0] = p->rdot[i] * cos(p->phi[i]) - (p->phidot[i]*p->r[i]) * sin(p->phi[i]);
-	    vin[1] = p->rdot[i] * sin(p->phi[i]) + (p->phidot[i]*p->r[i]) * cos(p->phi[i]);
-	    vin[2] = p->zdot[i];
-			
-	    mccc_push_foEM(F,Dpara,Dperp,h[i],&rnd[i*3],vin,vout);
+	    /* Evaluate collisions */				
+	    if(!errflag) {errflag = mccc_push_foEM(F,Dpara,Dperp,h[i],&rnd[i*3],vin,vout);}
 			
 	    /* Update particle */
 	    #if A5_CCOL_NOENERGY
@@ -304,10 +302,18 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
 		vout[1] = vin[1] * vnorm;
 		vout[2] = vin[2] * vnorm;
 	    #endif
-	    p->rdot[i] = vout[0] * cos(p->phi[i]) + vout[1] * sin(p->phi[i]);
-	    p->phidot[i] = (-vout[0] * sin(p->phi[i]) + vout[1] * cos(p->phi[i]) ) / p->r[i];
-	    p->zdot[i] = vout[2];
 
+	    if(!errflag) {
+	        p->rdot[i] = vout[0] * cos(p->phi[i]) + vout[1] * sin(p->phi[i]);
+		p->phidot[i] = (-vout[0] * sin(p->phi[i]) + vout[1] * cos(p->phi[i]) ) / p->r[i];
+		p->zdot[i] = vout[2];
+	    }
+
+	    /* Error handling */
+	    if(errflag) {
+                p->err[i]     = error_module(errflag, ERRMOD_COLLSTEP);
+                p->running[i] = 0;
+            }
 	}
     }
 }
@@ -332,73 +338,61 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
     mccc_wiener_boxmuller(rnd, 5*NSIMD);
 
     #pragma omp simd
-    //for(i = 0; i < NSIMD; i++) {
-    for(i = NSIMD-1; i >= 0; i--) {
+    for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
-	    /* Update background data */
-	    real B[3];
-	    real xiin;
+	    a5err errflag = 0;
 
-	    B[0] = p->B_r[i];
-	    B[1] = p->B_phi[i];
-	    B[2] = p->B_z[i];
-		
-	    real temp[MAX_SPECIES];
-	    real dens[MAX_SPECIES];
-		
-	    int j;
-	    plasma_1d_eval_densandtemp(p->rho[i], pdata, dens, temp);
-	    for(j = 0; j < pdata->n_species; j++) {
-		temp[j] = temp[j]*CONST_KB;
-	    }
-	        
-	    /* Evaluate coefficients */
+	    /* Gather relevant gc information */
+	    real B[3] = {p->B_r[i], p->B_phi[i], p->B_z[i]};
+	    real vin, xiin, Xin[3];
+	    real vout, xiout, Xout[3];
 	    real Bnorm = math_norm(B);
-	    
-	    real tmp = 2*p->mu[i]*Bnorm/p->mass[i];
-	    real vin = sqrt(p->vpar[i]*p->vpar[i] + tmp);
-	    xiin = p->vpar[i]/vin;
-	
-	    real clogab[MAX_SPECIES];
-	    real Dparab[MAX_SPECIES];
-	    real Kb[MAX_SPECIES];
-	    real nub[MAX_SPECIES];
-	    real DXb[MAX_SPECIES];
-	    mccc_coefs_clog(p->mass[i],p->charge[i],vin,pdata->mass,pdata->charge,dens,temp,clogab,pdata->n_species);
-	    mccc_coefs_gcfixed(p->mass[i],p->charge[i],vin,xiin,pdata->mass,pdata->charge,dens,temp,Bnorm,clogab,pdata->n_species,
-			       Dparab,DXb,Kb,nub);
+	    physlib_gc_muvpar2vxi(p->mass[i], Bnorm, p->mu[i], p->vpar[i], &vin, &xiin);
 
 	    real phi0 = p->phi[i];
 	    real R0   = p->r[i];
 	    real z0   = p->z[i];
+	    Xin[0] = p->r[i]*cos(p->phi[i]);
+	    Xin[1] = p->r[i]*sin(p->phi[i]);
+	    Xin[2] = p->z[i];
 
-	    real xiout;
-		
-	    real vout;
-	    real Xin[3];
-	    real Xout[3];
+	    /* Evaluate density and temperature */	
+	    real temp[MAX_SPECIES];
+	    real dens[MAX_SPECIES];
+	    if(!errflag) {errflag = plasma_1d_eval_densandtemp(p->rho[i], pdata, dens, temp);}
+
+	    for(int j = 0; j < pdata->n_species; j++) {
+		temp[j] = temp[j]*CONST_KB;
+	    }
 	    real cutoff = 0.1*sqrt(temp[0]/p->mass[i]);
-			
-	    real Dpara = 0;
-	    real K = 0;
-	    real nu = 0;
-	    real DX = 0;
-	    for(j=0; j<pdata->n_species; j=j+1){				
+	        
+	    /* Evaluate coefficients */
+	    real clogab[MAX_SPECIES];
+	    real Dparab[MAX_SPECIES], Dpara = 0;
+	    real Kb[MAX_SPECIES],     K     = 0;
+	    real nub[MAX_SPECIES],    nu    = 0;
+	    real DXb[MAX_SPECIES],    DX    = 0;
+	    if(!errflag) {
+		errflag = mccc_coefs_clog(p->mass[i], p->charge[i], vin,
+					  pdata->mass, pdata->charge, dens, temp, clogab, pdata->n_species);
+	    }
+	    if(!errflag) {
+		errflag = mccc_coefs_gcfixed(p->mass[i], p->charge[i], vin, xiin,
+					     pdata->mass, pdata->charge, dens, temp, Bnorm, clogab, pdata->n_species,
+					     Dparab,DXb,Kb,nub);
+	    }
+	    for(int j = 0; j<pdata->n_species; j=j+1){				
 		Dpara = Dpara + Dparab[j];
 		K = K + Kb[j];
 		nu = nu + nub[j];
 		DX = DX + DXb[j];
 	    }	        
-		        
-	    xiin = p->vpar[i]/vin;
-	    Xin[0] = p->r[i]*cos(p->phi[i]);
-	    Xin[1] = p->r[i]*sin(p->phi[i]);
-	    Xin[2] = p->z[i];
-		
 	    
 	    /* Evaluate collisions */
-	    mccc_push_gcEM(K,nu,Dpara,DX,B,h[i],&rnd[i*5], 
-			   vin,&vout,xiin,&xiout,Xin,Xout,cutoff);
+	    if(!errflag) {
+		errflag = mccc_push_gcEM(K,nu,Dpara,DX,B,h[i],&rnd[i*5], 
+					 vin,&vout,xiin,&xiout,Xin,Xout,cutoff);
+	    }
 		    
 	    /* Update particle */
 	    #if A5_CCOL_NOENERGY
@@ -412,47 +406,55 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 		Xout[1] = Xin[1];
 		Xout[2] = Xin[2];
 	    #endif
-	    
-	    p->r[i] = sqrt(Xout[0]*Xout[0] + Xout[1]*Xout[1]);
-	    p->z[i] = Xout[2];
-
-	    /* Evaluate phi and pol angles so that they are cumulative */
-	    real axis_r = B_field_get_axis_r(Bdata);
-	    real axis_z = B_field_get_axis_z(Bdata);
-	    p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
-				(R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
-	    real tphi = fmod(phi0 , CONST_2PI );
-	    if(tphi < 0){tphi = CONST_2PI+tphi;}
-	    tphi = fmod(atan2(Xout[1],Xout[0])+CONST_2PI,CONST_2PI) -  tphi;
-	    p->phi[i] = phi0 + tphi;
+		
+	    if(!errflag) {
+		p->r[i] = sqrt(Xout[0]*Xout[0] + Xout[1]*Xout[1]);
+		p->z[i] = Xout[2];
+		
+		/* Evaluate phi and pol angles so that they are cumulative */
+		real axis_r = B_field_get_axis_r(Bdata);
+		real axis_z = B_field_get_axis_z(Bdata);
+		p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
+				    (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
+		real tphi = fmod(phi0 , CONST_2PI );
+		if(tphi < 0){tphi = CONST_2PI+tphi;}
+		tphi = fmod(atan2(Xout[1],Xout[0])+CONST_2PI,CONST_2PI) -  tphi;
+		p->phi[i] = phi0 + tphi;
+	    }
 
 	    /* Evaluate magnetic field (and gradient) and rho at new position */
-	    real B_dB[12];
-	    B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);
-	    p->B_r[i]        = B_dB[0];
-	    p->B_r_dr[i]     = B_dB[1];
-	    p->B_r_dphi[i]   = B_dB[2];
-	    p->B_r_dz[i]     = B_dB[3];
+	    real B_dB[12], psi[1], rho[1];
+	    if(!errflag) {errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);}
+	    if(!errflag) {errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);}
+	    if(!errflag) {errflag = B_field_eval_rho(rho, psi[0], Bdata);}
 
-	    p->B_phi[i]      = B_dB[4];
-	    p->B_phi_dr[i]   = B_dB[5];
-	    p->B_phi_dphi[i] = B_dB[6];
-	    p->B_phi_dz[i]   = B_dB[7];
+	    if(!errflag) {
+		p->B_r[i]        = B_dB[0];
+		p->B_r_dr[i]     = B_dB[1];
+		p->B_r_dphi[i]   = B_dB[2];
+		p->B_r_dz[i]     = B_dB[3];
 
-	    p->B_z[i]        = B_dB[8];
-	    p->B_z_dr[i]     = B_dB[9];
-	    p->B_z_dphi[i]   = B_dB[10];
-	    p->B_z_dz[i]     = B_dB[11];
+		p->B_phi[i]      = B_dB[4];
+		p->B_phi_dr[i]   = B_dB[5];
+		p->B_phi_dphi[i] = B_dB[6];
+		p->B_phi_dz[i]   = B_dB[7];
 
-	    real psi[1];
-	    real rho[1];
-	    B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);
-	    B_field_eval_rho(rho, psi[0], Bdata);
-	    p->rho[i] = rho[0];
+		p->B_z[i]        = B_dB[8];
+		p->B_z_dr[i]     = B_dB[9];
+		p->B_z_dphi[i]   = B_dB[10];
+		p->B_z_dz[i]     = B_dB[11];
 
-	    Bnorm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
-	    p->mu[i] = (1-xiout*xiout)*p->mass[i]*vout*vout/(2*Bnorm);
-	    p->vpar[i] = vout*xiout;
+		p->rho[i] = rho[0];
+
+		Bnorm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
+		physlib_gc_vxi2muvpar(p->mass[i], Bnorm, vout, xiout, &p->mu[i], &p->vpar[i]);
+	    }
+
+	    /* Error handling */
+	    if(errflag) {
+                p->err[i]     = error_module(errflag, ERRMOD_COLLSTEP);
+                p->running[i] = 0;
+            }
 	}
     }
 }
@@ -507,33 +509,32 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    Xin[2] = p->z[i];
 
 	    real dW[5];
-	    mccc_wiener_generate(w[i], w[i]->time[0]+hin[i], &tindex[i], &rand5[i*MCCC_NDIM]);
-	    dW[0] = w[i]->wiener[tindex[i]*MCCC_NDIM + 0] - w[i]->wiener[0];
-	    dW[1] = w[i]->wiener[tindex[i]*MCCC_NDIM + 1] - w[i]->wiener[1];
-	    dW[2] = w[i]->wiener[tindex[i]*MCCC_NDIM + 2] - w[i]->wiener[2];
-	    dW[3] = w[i]->wiener[tindex[i]*MCCC_NDIM + 3] - w[i]->wiener[3];
-	    dW[4] = w[i]->wiener[tindex[i]*MCCC_NDIM + 4] - w[i]->wiener[4];
+	    if(!errflag) {errflag = mccc_wiener_generate(w[i], w[i]->time[0]+hin[i], &tindex[i], &rand5[i*MCCC_NDIM]);}
+	    if(!errflag) {
+		dW[0] = w[i]->wiener[tindex[i]*MCCC_NDIM + 0] - w[i]->wiener[0];
+		dW[1] = w[i]->wiener[tindex[i]*MCCC_NDIM + 1] - w[i]->wiener[1];
+		dW[2] = w[i]->wiener[tindex[i]*MCCC_NDIM + 2] - w[i]->wiener[2];
+		dW[3] = w[i]->wiener[tindex[i]*MCCC_NDIM + 3] - w[i]->wiener[3];
+		dW[4] = w[i]->wiener[tindex[i]*MCCC_NDIM + 4] - w[i]->wiener[4];
+	    }
 
 	    /* Evaluate density and temperature */	
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
-		
-	    int j;
 	    if(!errflag) {errflag = plasma_1d_eval_densandtemp(p->rho[i], pdata, dens, temp);}
-
-	    for(j = 0; j < pdata->n_species; j++) {
+	    for(int j = 0; j < pdata->n_species; j++) {
 		temp[j] = temp[j]*CONST_KB;
 	    }
 	    real cutoff = 0.1*sqrt(temp[0]/p->mass[i]);
 
 	    /* Evaluate coefficients */
 	    real clogab[MAX_SPECIES];
-	    real dQb[MAX_SPECIES],     dQ = 0;
+	    real dQb[MAX_SPECIES],     dQ     = 0;
 	    real dDparab[MAX_SPECIES], dDpara = 0;
-	    real Dparab[MAX_SPECIES],  Dpara = 0;
-	    real Kb[MAX_SPECIES],      K = 0;
-	    real nub[MAX_SPECIES],     nu = 0;
-	    real DXb[MAX_SPECIES],     DX = 0;
+	    real Dparab[MAX_SPECIES],  Dpara  = 0;
+	    real Kb[MAX_SPECIES],      K      = 0;
+	    real nub[MAX_SPECIES],     nu     = 0;
+	    real DXb[MAX_SPECIES],     DX     = 0;
 	    if(!errflag) {
 		errflag = mccc_coefs_clog(p->mass[i], p->charge[i], vin, pdata->mass, pdata->charge, 
 					  dens, temp, clogab, pdata->n_species);
@@ -543,7 +544,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 						dens,temp,Bnorm,clogab,pdata->n_species,
 						Dparab,DXb,Kb,nub,dQb,dDparab);
 	    }
-	    for(j=0; j<pdata->n_species; j=j+1){				
+	    for(int j = 0; j<pdata->n_species; j=j+1){				
 		Dpara = Dpara + Dparab[j];
 		K = K + Kb[j];
 		nu = nu + nub[j];
@@ -650,6 +651,14 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 		}
 	    }
 	    
+	    /* Error handling */
+	    if(!errflag && fabs(hout[i]) < A5_EXTREMELY_SMALL_TIMESTEP)      {errflag = error_raise(ERR_EXTREMELY_SMALL_TIMESTEP, __LINE__);}
+
+	    if(errflag) {
+                p->err[i]     = error_module(errflag, ERRMOD_COLLSTEP);
+                p->running[i] = 0; 
+                hout[i]       = hin[i];
+            }
 	}
     }
 
