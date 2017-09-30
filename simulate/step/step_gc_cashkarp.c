@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <float.h>
 #include "../../ascot5.h"
 #include "../../B_field.h"
 #include "../../math.h"
@@ -132,7 +133,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
 		    yerr = fabs(yprev[j] + 
 	                   ( (2825.0/27648)*k1[j] + (18575.0/48384)*k3[j] + (13525.0/55296)*k4[j] + (277.0/14336)*k5[j] + (1.0/4)*k6[j] )*h[i] 
 			   - yout[j]);
-		    ytol = fabs(yprev[j]) + fabs(k1[j]*h[i]);
+		    ytol = fabs(yprev[j]) + fabs(k1[j]*h[i]) + DBL_EPSILON;
 		    err = fmax(err,yerr/ytol);
                 }
 		
