@@ -8,6 +8,8 @@
 #ifndef ERROR_H
 #define ERROR_H
 
+#include <math.h>
+
 typedef unsigned long int a5err;
 
 static const unsigned int ERRMOD_REJECTED = 1;/** @brief Error arised when input marker was first transformed into a state in particle.c. */
@@ -62,6 +64,19 @@ static inline a5err error_raise(unsigned int errtype, int linenumber) {
 #pragma omp declare simd
 static inline a5err error_module(a5err err, unsigned int modnumber) {
     return err + (a5err)(modnumber*256*1024);
+}
+
+static inline int error_getmod(a5err err) {
+    return (int)(floor(err / (256*1024)));
+}
+
+static inline int error_getline(a5err err) {
+    err -= (a5err)(floor(err / (256*1024))*1024*256);
+    return  (int)(floor(err / (256)));
+}
+
+static inline int error_getmsg(a5err err) {
+    return (int) ( (err % (256*1024)) % 256 );
 }
 
 #pragma omp end declare target
