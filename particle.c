@@ -723,7 +723,7 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->B_z_dphi   = B_dB[10];
     p->B_z_dz     = B_dB[11];
 
-    if(!simerr) {err = error_module(err, ERRMOD_STATE);}
+    if(!simerr && err) {err = error_module(err, ERRMOD_STATE);}
     p->err = err;
 }
 
@@ -871,7 +871,7 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     }
     
 
-    if(!simerr) {err = error_module(err, ERRMOD_STATE);}
+    if(!simerr && err) {err = error_module(err, ERRMOD_STATE);}
     p->err = err;
 }
 
@@ -986,7 +986,7 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->B_z_dphi   = p_ml->B_z_dphi[j];
     p->B_z_dz     = p_ml->B_z_dz[j];
 
-    if(!simerr) {err = error_module(err, ERRMOD_STATE);}
+    if(!simerr && err) {err = error_module(err, ERRMOD_STATE);}
     p->err = err;
 }
 
