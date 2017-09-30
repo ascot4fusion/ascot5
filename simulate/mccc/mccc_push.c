@@ -110,9 +110,9 @@ a5err mccc_push_gcEM(real K, real nu, real Dpara, real DX, real* B, real dt, rea
 	xiout[0] = ((xiout[0] > 0) - (xiout[0] < 0))*(2-fabs(xiout[0]));
     }
 
-    if(isnan(Xout[0]) || isnan(Xout[1]) || isnan(Xout[2])) {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
-    if(!err && (isnan(vout[0]) || vout[0] < 0) )           {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
-    if(!err && (isnan(xiout[0]) || fabs(xiout[0]) >= 1) )  {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
+    if(isnan(Xout[0]) || isnan(Xout[1]) || isnan(Xout[2]))             {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
+    if(!err && (isnan(vout[0]) || vout[0] < 0 || vout[0] >= CONST_C) ) {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
+    if(!err && (isnan(xiout[0]) || fabs(xiout[0]) >= 1) )              {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
 
     return err;
 }

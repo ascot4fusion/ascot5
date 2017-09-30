@@ -86,8 +86,8 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
  * - Integrate motion due to background EM-field (orbit-following)
  * - Integrate scattering due to Coulomb collisions
  * - Advance time
- * - Check for end condition(s)
  * - Update diagnostics
+ * - Check for end condition(s)
  */
     while(n_running > 0) {
 
@@ -144,14 +144,12 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 	cputime = A5_WTIME;
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
-            if(!p.err && p.running[i]){
+            if(p.running[i]){
                 p.time[i] = p.time[i] + hin[i];
 		p.cputime[i] += cputime - cputime_last[i] ;
 		cputime_last[i] = cputime;
             }
-        }
-
-        endcond_check_fo(&p, &p0, sim);
+        }   
 
 	if(sim->record_GOasGC) {
 	    particle_simd_gc gc_f;
@@ -174,6 +172,8 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 	    diag_update_fo(&sim->diag_data, diag_strg, &p, &p0);
 	}
 
+	endcond_check_fo(&p, &p0, sim);
+
         /* Update running particles */
         n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
 
@@ -185,7 +185,6 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 		cputime_last[i] = A5_WTIME;
 	    }
 	}
-
     }
 
     diag_storage_discard(diag_strg);

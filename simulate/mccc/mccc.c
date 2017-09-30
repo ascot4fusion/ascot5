@@ -84,8 +84,6 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data* pd
 	    mccc_coefs_clog(p->mass[i],p->charge[i],va,pdata->mass,pdata->charge,dens,temp,&clogab[i*MAX_SPECIES],pdata->n_species);
 	    mccc_coefs_fo(p->mass[i],p->charge[i],va,pdata->mass,pdata->charge,dens,temp,&clogab[i*MAX_SPECIES],pdata->n_species,
 			  &F[i*MAX_SPECIES],&Dpara[i*MAX_SPECIES],&Dperp[i*MAX_SPECIES],&K[i*MAX_SPECIES],&nu[i*MAX_SPECIES]);
-
-
 	}
     }
 
@@ -250,11 +248,11 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
 	    a5err errflag = 0;
 
 	    /* Gather relevant particle data */
-	    real vin[3], vout[3];
-	    real va = sqrt(p->rdot[i]*p->rdot[i] + (p->r[i]*p->phidot[i])*(p->r[i]*p->phidot[i]) + p->zdot[i]*p->zdot[i]);
+	    real vin[3], vout[3], va;
 	    vin[0] = p->rdot[i] * cos(p->phi[i]) - (p->phidot[i]*p->r[i]) * sin(p->phi[i]);
 	    vin[1] = p->rdot[i] * sin(p->phi[i]) + (p->phidot[i]*p->r[i]) * cos(p->phi[i]);
 	    vin[2] = p->zdot[i];
+	    va = math_norm(vin);
 
 	    /* Evaluate density and temperature */
 	    real temp[MAX_SPECIES];
@@ -291,7 +289,7 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
 			
 	    /* Update particle */
 	    #if A5_CCOL_NOENERGY
-		real vnorm = va/sqrt(vout[0]*vout[0] + vout[1]*vout[1] + vout[2]*vout[2]);
+	        real vnorm = va/(math_norm(vout));
 	        vout[0] *= vnorm;
 		vout[1] *= vnorm;
 		vout[2] *= vnorm;
@@ -381,6 +379,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 					     pdata->mass, pdata->charge, dens, temp, Bnorm, clogab, pdata->n_species,
 					     Dparab,DXb,Kb,nub);
 	    }
+	    
 	    for(int j = 0; j<pdata->n_species; j=j+1){				
 		Dpara = Dpara + Dparab[j];
 		K = K + Kb[j];
@@ -416,10 +415,11 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 		real axis_z = B_field_get_axis_z(Bdata);
 		p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
 				    (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
-		real tphi = fmod(phi0 , CONST_2PI );
-		if(tphi < 0){tphi = CONST_2PI+tphi;}
-		tphi = fmod(atan2(Xout[1],Xout[0])+CONST_2PI,CONST_2PI) -  tphi;
-		p->phi[i] = phi0 + tphi;
+	        real iphi = fmod(fmod(phi0, CONST_2PI) + CONST_2PI, CONST_2PI); // Make iphi to be between [0, 2pi]
+		if(iphi > CONST_PI) {iphi = CONST_2PI - iphi;}                  // ... between [-pi, pi]
+		real fphi = atan2(Xout[1],Xout[0]);                             // Final angle in [-pi, pi]
+		real tphi = atan2(sin(fphi-iphi), cos(fphi-iphi));              // Smallest angle between iphi and fphi
+		p->phi[i] = phi0 - tphi;
 	    }
 
 	    /* Evaluate magnetic field (and gradient) and rho at new position */
@@ -591,10 +591,12 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 		real axis_z = B_field_get_axis_z(Bdata);
 		p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
 				    (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
-		real tphi = fmod(phi0 , CONST_2PI );
-		if(tphi < 0){tphi = CONST_2PI+tphi;}
-		tphi = fmod(atan2(Xout[1],Xout[0])+CONST_2PI,CONST_2PI) -  tphi;
-		p->phi[i] = phi0 + tphi;
+		real iphi = fmod(fmod(phi0, CONST_2PI) + CONST_2PI, CONST_2PI); // Make iphi to be between [0, 2pi]
+		if(iphi > CONST_PI) {iphi = CONST_2PI - iphi;}                  // ... between [-pi, pi]
+		real fphi = atan2(Xout[1],Xout[0]);                             // Final angle in [-pi, pi]
+		real tphi = atan2(sin(fphi-iphi), cos(fphi-iphi));              // Smallest angle between iphi and fphi
+		
+		p->phi[i] = phi0 - tphi;
 	    }
 
 	    /* Evaluate magnetic field (and gradient) at new position */
@@ -635,10 +637,10 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 		    hout[i] = 0.8*hin[i]/sqrt(kappa_k[i]);
 		}
 		else if(kappa_d0[i] >= kappa_k[i] && kappa_d0[i] >= kappa_d1[i]) {
-		    hout[i] = pow(0.9*fabs(hin[i])*pow(kappa_d0[i],-1.0/3),2.0);
+		    hout[i] = fabs(hin[i])*pow(0.9*pow(kappa_d0[i],-1.0/3.0),2.0);
 		}
 		else {
-		    hout[i] = pow(0.9*fabs(hin[i])*pow(kappa_d1[i],-1.0/3),2.0);
+		    hout[i] = fabs(hin[i])*pow(0.9*pow(kappa_d1[i],-1.0/3.0),2.0);
 		}
 
 		/* Negative value indicates time step was rejected*/
@@ -652,7 +654,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    }
 	    
 	    /* Error handling */
-	    if(!errflag && fabs(hout[i]) < A5_EXTREMELY_SMALL_TIMESTEP)      {errflag = error_raise(ERR_EXTREMELY_SMALL_TIMESTEP, __LINE__);}
+	    if(!errflag && (fabs(hout[i]) < A5_EXTREMELY_SMALL_TIMESTEP))      {errflag = error_raise(ERR_EXTREMELY_SMALL_TIMESTEP, __LINE__);}
 
 	    if(errflag) {
                 p->err[i]     = error_module(errflag, ERRMOD_COLLSTEP);

@@ -165,11 +165,11 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 		real axis_z = B_field_get_axis_z(Bdata);
 		p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
 	                     (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
-		real tphi = fmod(phi0 , CONST_2PI );
-		if(tphi < 0){tphi = CONST_2PI+tphi;}
-		tphi = fmod(p->phi[i]+CONST_2PI,CONST_2PI) -  tphi;
-		
-		p->phi[i] = phi0 + tphi;
+		real iphi = fmod(fmod(phi0, CONST_2PI) + CONST_2PI, CONST_2PI); // Make iphi to be between [0, 2pi]
+		if(iphi > CONST_PI) {iphi = CONST_2PI - iphi;}                  // ... between [-pi, pi]
+		real fphi = p->phi[i];
+		real tphi = atan2(sin(fphi-iphi), cos(fphi-iphi));              // Smallest angle between iphi and fphi
+		p->phi[i] = phi0 - tphi;
             }
 
 	    /* Error handling */

@@ -80,7 +80,7 @@ void simulate(int id, int n_particles, particle_state* p,
             #pragma omp parallel
             {
                 simulate_gc_adaptive(&pq, &sim);
-            }
+	    }
         }
         else {
             #pragma omp parallel

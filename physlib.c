@@ -114,7 +114,7 @@ void physlib_gc_vxi2muvpar(real mass, real Bnorm, real v, real xi, real* mu, rea
  * @param vpar  pointer to returned parallel velocity
  */
 void physlib_gc_muvpar2vxi(real mass, real Bnorm, real mu, real vpar, real* v, real* xi) {
-    real gamma2 = ( 1 + mu*Bnorm/(mass*CONST_C2) ) / (1 - vpar*vpar/CONST_C2);
+    real gamma2 = ( 1 + 2*mu*Bnorm/(mass*CONST_C2) ) / (1 - vpar*vpar/CONST_C2);
     real vperp2 = 2*mu*Bnorm/(gamma2*mass);
     
     v[0]  = sqrt(vperp2 + vpar*vpar);

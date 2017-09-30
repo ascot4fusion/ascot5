@@ -144,7 +144,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 	cputime = A5_WTIME;
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
-            if(!p.err[i] && p.running[i]) {
+            if(p.running[i]) {
                 p.time[i] = p.time[i] + hin[i];
 		p.cputime[i] += cputime - cputime_last[i];
 		cputime_last[i] = cputime;

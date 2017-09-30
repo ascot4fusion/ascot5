@@ -81,7 +81,7 @@ a5err mccc_coefs_fo(real ma, real qa, real va, real* mb,
 	nu[i] = 2*Dperp[i]/(va*va);
 
 	check += isnan(F[i]) + isnan(Dpara[i]) + isnan(Dperp[i]) + isnan(K[i]) + isnan(nu[i]);
-	check += (Dpara[i] > 0) + (Dperp[i] > 0) + (nu[i] > 0);
+	check += (Dpara[i] <= 0) + (Dperp[i] <= 0) + (nu[i] <= 0);
     }
 
 #endif
@@ -150,7 +150,7 @@ a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi,
 	DX[i] = ( (Dpara[i] - Dperp)*(1-xi*xi)/2 + Dperp )/(gyrofreq*gyrofreq);
 
 	check += isnan(Dpara[i]) + isnan(DX[i]) + isnan(K[i]) + isnan(nu[i]);
-	check += (Dpara[i] > 0) + (DX[i] > 0) + (nu[i] > 0);
+	check += (Dpara[i] <= 0) + (DX[i] <= 0) + (nu[i] <= 0);
     }
 
 #endif
@@ -224,7 +224,7 @@ a5err mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb,
 	DX[i] = ( (Dpara[i] - Dperp)*(1-xi*xi)/2 + Dperp )/(gyrofreq*gyrofreq);
 
 	check += isnan(Dpara[i]) + isnan(DX[i]) + isnan(K[i]) + isnan(nu[i]) + isnan(dQ[i]) + isnan(dDpara[i]);
-	check += (Dpara[i] > 0) + (DX[i] > 0) + (nu[i] > 0);
+	check += (Dpara[i] <= 0) + (DX[i] <= 0) + (nu[i] <= 0);
     }
 #endif
     if(check) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}

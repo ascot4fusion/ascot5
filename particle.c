@@ -394,7 +394,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	if(!err && ( isnan(p->p_gc.r) || p->p_gc.r <= 0 ))              {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 	if(!err && isnan(p->p_gc.phi))                                  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 	if(!err && isnan(p->p_gc.z))                                    {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && ( isnan(p->p_gc.pitch) || fabs(p->p_gc.pitch) < 1 )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && ( isnan(p->p_gc.pitch) || fabs(p->p_gc.pitch) > 1 )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 	if(!err && ( isnan(p->p_gc.energy) || p->p_gc.energy <= 0 ))    {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 	if(!err && isnan(p->p_gc.theta))                                {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 	if(!err && isnan(p->p_gc.time))                                 {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
@@ -998,11 +998,13 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
  * @param p_gc  gc SIMD structure where marker is transformed
  * @param Bdata pointer to magnetic field data
  */
-a5err particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc, 
-			B_field_data* Bdata) {
+int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc, 
+		      B_field_data* Bdata) {
     a5err err = p_fo->err[j];
     int simerr = 0; /* Error has already occurred */
     if(err) {simerr = 1;}
+    p_gc->id[j]      = p_fo->id[j]; 
+    p_gc->index[j]   = p_fo->index[j];
 
     real r, phi, z, gamma, ppar, mu, theta, B_dB[12];
     if(!err) {
@@ -1020,7 +1022,6 @@ a5err particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
 	p_gc->weight[j]   = p_fo->weight[j];
 	p_gc->time[j]     = p_fo->time[j];
 	p_gc->pol[j]      = p_fo->pol[j]; // This is not accurate
-	p_gc->id[j]       = p_fo->id[j]; 
 	p_gc->endcond[j]  = p_fo->endcond[j];
 	p_gc->walltile[j] = p_fo->walltile[j];
 	p_gc->cputime[j]  = p_fo->cputime[j];
@@ -1082,9 +1083,13 @@ a5err particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
 	p_gc->B_z_dr[j]     = B_dB[9];
 	p_gc->B_z_dphi[j]   = B_dB[10];
 	p_gc->B_z_dz[j]     = B_dB[11];
-	p_gc->err[j]        = 0;
     }
     if(!simerr) {err = error_module(err, ERRMOD_STATE);}
+    p_gc->err[j] = err;
+    if(p_gc->err[j]) {
+	p_gc->running[j] = 0;
+	p_gc->endcond[j] = 0;
+    }
 
-    return err;
+    return err > 0;
 }
