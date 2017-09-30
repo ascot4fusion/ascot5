@@ -100,7 +100,7 @@ typedef double real;
 #define A5_CCOL_USE_GEOBM 1
 
 /** @brief Turn off energy component of Coulomb collisions */
-#define A5_CCOL_NOENERGY 1
+#define A5_CCOL_NOENERGY 0
 
 /** @brief Turn off pitch component of Coulomb collisions */
 #define A5_CCOL_NOPITCH  0
