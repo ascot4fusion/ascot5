@@ -83,55 +83,53 @@ void dist_rzvv_update_fo(dist_rzvv_data* dist, particle_simd_fo* p_f, particle_s
 
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
-        i_r[i] = floor((p_f->r[i] - dist->min_r)
-            / ((dist->max_r - dist->min_r)/dist->n_r));
-        if(i_r[i] < 0)
-            i_r[i] = 0;
-        if(i_r[i] > dist->n_r - 1)
-            i_r[i] = dist->n_r - 1;
+	if(p_f->running[i]) {
+	    i_r[i] = floor((p_f->r[i] - dist->min_r)
+			   / ((dist->max_r - dist->min_r)/dist->n_r));
+	    if(i_r[i] < 0)
+		i_r[i] = 0;
+	    if(i_r[i] > dist->n_r - 1)
+		i_r[i] = dist->n_r - 1;
 
-        i_z[i] = floor((p_f->z[i] - dist->min_z)
-                / ((dist->max_z - dist->min_z) / dist->n_z));
-        if(i_z[i] < 0)
-            i_z[i] = 0;
-        if(i_z[i] > dist->n_z - 1)
-            i_z[i] = dist->n_z - 1;
+	    i_z[i] = floor((p_f->z[i] - dist->min_z)
+			   / ((dist->max_z - dist->min_z) / dist->n_z));
+	    if(i_z[i] < 0)
+		i_z[i] = 0;
+	    if(i_z[i] > dist->n_z - 1)
+		i_z[i] = dist->n_z - 1;
 
-	vpara[i] = (p_f->rdot[i] * p_f->B_r[i] + (p_f->phidot[i] * p_f->r[i]) * p_f->B_phi[i]
-		    + p_f->zdot[i] * p_f->B_z[i])
-	    / sqrt(p_f->B_r[i]*p_f->B_r[i]+p_f->B_phi[i]*p_f->B_phi[i]
-		   + p_f->B_z[i]*p_f->B_z[i]);
-        i_vpara[i] = floor((vpara[i] - dist->min_vpara)
-                / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
-        if(i_vpara[i] < 0)
-            i_vpara[i] = 0;
-        if(i_vpara[i] > dist->n_vpara - 1)
-            i_vpara[i] = dist->n_vpara - 1;
+	    vpara[i] = (p_f->rdot[i] * p_f->B_r[i] + (p_f->phidot[i] * p_f->r[i]) * p_f->B_phi[i]
+			+ p_f->zdot[i] * p_f->B_z[i])
+		/ sqrt(p_f->B_r[i]*p_f->B_r[i]+p_f->B_phi[i]*p_f->B_phi[i]
+		       + p_f->B_z[i]*p_f->B_z[i]);
+	    i_vpara[i] = floor((vpara[i] - dist->min_vpara)
+			       / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
+	    if(i_vpara[i] < 0)
+		i_vpara[i] = 0;
+	    if(i_vpara[i] > dist->n_vpara - 1)
+		i_vpara[i] = dist->n_vpara - 1;
 
-        vperp[i] = sqrt(p_f->rdot[i]*p_f->rdot[i] + (p_f->phidot[i]*p_f->phidot[i]*p_f->r[i]*p_f->r[i])
-                        + p_f->zdot[i]*p_f->zdot[i] - vpara[i]*vpara[i]);
-        i_vperp[i] = floor((vperp[i] - dist->min_vperp)
-                / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
-        if(i_vperp[i] < 0)
-            i_vperp[i] = 0;
-        if(i_vperp[i] > dist->n_vperp - 1)
-            i_vperp[i] = dist->n_vperp - 1;
+	    vperp[i] = sqrt(p_f->rdot[i]*p_f->rdot[i] + (p_f->phidot[i]*p_f->phidot[i]*p_f->r[i]*p_f->r[i])
+			    + p_f->zdot[i]*p_f->zdot[i] - vpara[i]*vpara[i]);
+	    i_vperp[i] = floor((vperp[i] - dist->min_vperp)
+			       / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
+	    if(i_vperp[i] < 0)
+		i_vperp[i] = 0;
+	    if(i_vperp[i] > dist->n_vperp - 1)
+		i_vperp[i] = dist->n_vperp - 1;
         
-        if(p_f->running[i]) {
-            weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
-        }
-        else {
-            weight[i] = 0;
-        }
+	    weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+	}
     }
 
     for(i = 0; i < NSIMD; i++) {
-        unsigned long index = dist_rzvv_index(i_r[i], i_z[i], i_vpara[i],
-                                              i_vperp[i], dist->n_z,
-                                              dist->n_vpara, dist->n_vperp);
-
-        #pragma omp atomic 
-        dist->histogram[index] += weight[i];
+	if(p_f->running[i]) {
+	    unsigned long index = dist_rzvv_index(i_r[i], i_z[i], i_vpara[i],
+						  i_vperp[i], dist->n_z,
+						  dist->n_vpara, dist->n_vperp);
+	    #pragma omp atomic 
+	    dist->histogram[index] += weight[i];
+	}
     }
 }
 
@@ -156,53 +154,52 @@ void dist_rzvv_update_gc(dist_rzvv_data* dist, particle_simd_gc* p_f, particle_s
 
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
-        i_r[i] = floor((p_f->r[i] - dist->min_r)
-            / ((dist->max_r - dist->min_r)/dist->n_r));
-        if(i_r[i] < 0)
-            i_r[i] = 0;
-        if(i_r[i] > dist->n_r - 1)
-            i_r[i] = dist->n_r - 1;
+	if(p_f->running[i]) {
+	    i_r[i] = floor((p_f->r[i] - dist->min_r)
+		/ ((dist->max_r - dist->min_r)/dist->n_r));
+	    if(i_r[i] < 0)
+		i_r[i] = 0;
+	    if(i_r[i] > dist->n_r - 1)
+		i_r[i] = dist->n_r - 1;
 
-        i_z[i] = floor((p_f->z[i] - dist->min_z)
+	    i_z[i] = floor((p_f->z[i] - dist->min_z)
                 / ((dist->max_z - dist->min_z) / dist->n_z));
-        if(i_z[i] < 0)
-            i_z[i] = 0;
-        if(i_z[i] > dist->n_z - 1)
-            i_z[i] = dist->n_z - 1;
+	    if(i_z[i] < 0)
+		i_z[i] = 0;
+	    if(i_z[i] > dist->n_z - 1)
+		i_z[i] = dist->n_z - 1;
 
-                   ;
-        i_vpara[i] = floor((p_f->vpar[i] - dist->min_vpara)
+	    ;
+	    i_vpara[i] = floor((p_f->vpar[i] - dist->min_vpara)
                 / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
-        if(i_vpara[i] < 0)
-            i_vpara[i] = 0;
-        if(i_vpara[i] > dist->n_vpara - 1)
-            i_vpara[i] = dist->n_vpara - 1;
+	    if(i_vpara[i] < 0)
+		i_vpara[i] = 0;
+	    if(i_vpara[i] > dist->n_vpara - 1)
+		i_vpara[i] = dist->n_vpara - 1;
 
-        vperp[i] = sqrt(2 * sqrt(p_f->B_r[i]*p_f->B_r[i]+p_f->B_phi[i]*p_f->B_phi[i]
-                               +p_f->B_z[i]*p_f->B_z[i])
-                        * p_f->mu[i] / p_f->mass[i]);
-        i_vperp[i] = floor((vperp[i] - dist->min_vperp)
+	    vperp[i] = sqrt(2 * sqrt(p_f->B_r[i]*p_f->B_r[i]+p_f->B_phi[i]*p_f->B_phi[i]
+		+p_f->B_z[i]*p_f->B_z[i])
+		* p_f->mu[i] / p_f->mass[i]);
+	    i_vperp[i] = floor((vperp[i] - dist->min_vperp)
                 / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
-        if(i_vperp[i] < 0)
-            i_vperp[i] = 0;
-        if(i_vperp[i] > dist->n_vperp - 1)
-            i_vperp[i] = dist->n_vperp - 1;
+	    if(i_vperp[i] < 0)
+		i_vperp[i] = 0;
+	    if(i_vperp[i] > dist->n_vperp - 1)
+		i_vperp[i] = dist->n_vperp - 1;
         
-        if(p_f->running[i]) {
             weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
-        }
-        else {
-            weight[i] = 0;
-        }
+	}
     }
 
     for(i = 0; i < NSIMD; i++) {
-        unsigned long index = dist_rzvv_index(i_r[i], i_z[i], i_vpara[i],
-                                              i_vperp[i], dist->n_z,
-                                              dist->n_vpara, dist->n_vperp);
-
-        #pragma omp atomic 
-        dist->histogram[index] += weight[i];
+	if(p_f->running[i]) {
+	    unsigned long index = dist_rzvv_index(i_r[i], i_z[i], i_vpara[i],
+		                                  i_vperp[i], dist->n_z,
+                                                  dist->n_vpara, dist->n_vperp);
+	    
+	    #pragma omp atomic 
+	    dist->histogram[index] += weight[i];
+	}
     }
 }
 
