@@ -151,6 +151,8 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
             }
         }   
 
+	endcond_check_fo(&p, &p0, sim);
+
 	if(sim->record_GOasGC) {
 	    particle_simd_gc gc_f;
 	    particle_simd_gc gc_i;
@@ -171,8 +173,6 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 	else {
 	    diag_update_fo(&sim->diag_data, diag_strg, &p, &p0);
 	}
-
-	endcond_check_fo(&p, &p0, sim);
 
         /* Update running particles */
         n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
