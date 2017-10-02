@@ -48,7 +48,8 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 	    if(!errflag) {errflag = B_field_eval_B(Brpz, xhalf[0], xhalf[1], xhalf[2], Bdata);}
 	    if(!errflag) {errflag = E_field_eval_E(Erpz, xhalf[0], xhalf[1], xhalf[2], Edata, Bdata);}
 	    
-	    real posxyz[3];
+	    real posxyz[3];  // xhalf in cartesian coordinates
+	    real fposxyz[3]; // final position in cartesian coordinates
 	    real vxyz[3];
 	    if(!errflag) {
                 /* Electromagnetic fields to cartesian coordinates */  
@@ -78,9 +79,9 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 		    sqrt( p->mass[i]*p->mass[i] + math_dot(pminus,pminus)/CONST_C2 );
 		real d2 = d*d;
 		
-		real Bhat[9] = {       0,  Bxyz[2], -Bxyz[1], 
-	                        -Bxyz[2],        0,  Bxyz[0], 
-	                         Bxyz[1], -Bxyz[0],       0};
+		real Bhat[9] = {       0, -Bxyz[2],  Bxyz[1], 
+	                         Bxyz[2],        0, -Bxyz[0], 
+	                        -Bxyz[1],  Bxyz[0],       0};
 		real Bhat2[9];
 		math_matmul(Bhat, Bhat, 3, 3, 3, Bhat2);
 		
@@ -112,9 +113,9 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 		vxyz[1] = pfinal[1]/(gamma*p->mass[i]);
 		vxyz[2] = pfinal[2]/(gamma*p->mass[i]);
 		
-		posxyz[0] = posxyz[0] + h[i]*vxyz[0]/2;
-		posxyz[1] = posxyz[1] + h[i]*vxyz[1]/2;
-		posxyz[2] = posxyz[2] + h[i]*vxyz[2]/2;
+		fposxyz[0] = posxyz[0] + h[i]*vxyz[0]/2;
+		fposxyz[1] = posxyz[1] + h[i]*vxyz[1]/2;
+		fposxyz[2] = posxyz[2] + h[i]*vxyz[2]/2;
             }
 	    
 	    /* Test that the results are reasonable */
@@ -125,9 +126,14 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 	    
 	    if(!errflag) {
                 /* Back to cylindrical coordinates */
-                p->r[i] = sqrt(posxyz[0]*posxyz[0]+posxyz[1]*posxyz[1]);
-		p->phi[i] = atan2(posxyz[1], posxyz[0]);
-		p->z[i] = posxyz[2];
+                p->r[i] = sqrt(fposxyz[0]*fposxyz[0]+fposxyz[1]*fposxyz[1]);
+
+		// We need to evaluate phi like this to make sure it is cumulative
+		p->phi[i] = xhalf[1] + 
+		    atan2( posxyz[0] * fposxyz[1] - posxyz[1] * fposxyz[0], 
+		    posxyz[0] * fposxyz[0] + posxyz[0] * fposxyz[0] );
+		//p->phi[i] = atan2(fposxyz[1],fposxyz[0]);
+		p->z[i] = fposxyz[2];
 		p->rdot[i] = vxyz[0] * cos(p->phi[i]) + vxyz[1] * sin(p->phi[i]);
 		p->phidot[i] = ( -vxyz[0] * sin(p->phi[i]) + vxyz[1] * cos(p->phi[i]) ) / p->r[i];
 		p->zdot[i] = vxyz[2];
@@ -165,11 +171,6 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 		real axis_z = B_field_get_axis_z(Bdata);
 		p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
 	                     (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
-		real iphi = fmod(fmod(phi0, CONST_2PI) + CONST_2PI, CONST_2PI); // Make iphi to be between [0, 2pi]
-		if(iphi > CONST_PI) {iphi = CONST_2PI - iphi;}                  // ... between [-pi, pi]
-		real fphi = p->phi[i];
-		real tphi = atan2(sin(fphi-iphi), cos(fphi-iphi));              // Smallest angle between iphi and fphi
-		p->phi[i] = phi0 - tphi;
             }
 
 	    /* Error handling */
