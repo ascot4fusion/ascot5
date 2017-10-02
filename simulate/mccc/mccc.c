@@ -415,11 +415,8 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 		real axis_z = B_field_get_axis_z(Bdata);
 		p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
 				    (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
-	        real iphi = fmod(fmod(phi0, CONST_2PI) + CONST_2PI, CONST_2PI); // Make iphi to be between [0, 2pi]
-		if(iphi > CONST_PI) {iphi = CONST_2PI - iphi;}                  // ... between [-pi, pi]
-		real fphi = atan2(Xout[1],Xout[0]);                             // Final angle in [-pi, pi]
-		real tphi = atan2(sin(fphi-iphi), cos(fphi-iphi));              // Smallest angle between iphi and fphi
-		p->phi[i] = phi0 - tphi;
+	        p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0], 
+				    Xin[0] * Xout[0] + Xin[0] * Xout[0] );
 	    }
 
 	    /* Evaluate magnetic field (and gradient) and rho at new position */
@@ -591,12 +588,8 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 		real axis_z = B_field_get_axis_z(Bdata);
 		p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
 				    (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
-		real iphi = fmod(fmod(phi0, CONST_2PI) + CONST_2PI, CONST_2PI); // Make iphi to be between [0, 2pi]
-		if(iphi > CONST_PI) {iphi = CONST_2PI - iphi;}                  // ... between [-pi, pi]
-		real fphi = atan2(Xout[1],Xout[0]);                             // Final angle in [-pi, pi]
-		real tphi = atan2(sin(fphi-iphi), cos(fphi-iphi));              // Smallest angle between iphi and fphi
-		
-		p->phi[i] = phi0 - tphi;
+		p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0], 
+				    Xin[0] * Xout[0] + Xin[0] * Xout[0] );
 	    }
 
 	    /* Evaluate magnetic field (and gradient) at new position */
