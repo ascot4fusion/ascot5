@@ -416,7 +416,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 		p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
 				    (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
 	        p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0], 
-				    Xin[0] * Xout[0] + Xin[0] * Xout[0] );
+				    Xin[0] * Xout[0] + Xin[1] * Xout[1] );
 	    }
 
 	    /* Evaluate magnetic field (and gradient) and rho at new position */
@@ -589,7 +589,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 		p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
 				    (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
 		p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0], 
-				    Xin[0] * Xout[0] + Xin[0] * Xout[0] );
+				    Xin[0] * Xout[0] + Xin[1] * Xout[1] );
 	    }
 
 	    /* Evaluate magnetic field (and gradient) at new position */

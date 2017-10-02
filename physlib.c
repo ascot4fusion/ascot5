@@ -218,9 +218,9 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
     math_unit(rho,rho_unit);
 
     real xyz[3];
-    xyz[0] = prtxyz[0] + rho[0];
-    xyz[1] = prtxyz[1] + rho[1];
-    xyz[2] = prtxyz[2] + rho[2];
+    xyz[0] = prtxyz[0] - rho[0];
+    xyz[1] = prtxyz[1] - rho[1];
+    xyz[2] = prtxyz[2] - rho[2];
 
     /* First order momentum terms */
     real perphat[3];
@@ -406,9 +406,9 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
 
     /* Make the spatial transformation */
     real xyzprt[3];
-    xyzprt[0] = xyz[0]-rho[0];
-    xyzprt[2] = xyz[1]-rho[1];
-    xyzprt[1] = xyz[2]-rho[2];
+    xyzprt[0] = xyz[0]+rho[0];
+    xyzprt[2] = xyz[1]+rho[1];
+    xyzprt[1] = xyz[2]+rho[2];
 
     real rpzprt[3];
     math_xyz2rpz(xyzprt,rpzprt);

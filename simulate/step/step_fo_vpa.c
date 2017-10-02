@@ -79,9 +79,9 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 		    sqrt( p->mass[i]*p->mass[i] + math_dot(pminus,pminus)/CONST_C2 );
 		real d2 = d*d;
 		
-		real Bhat[9] = {       0, -Bxyz[2],  Bxyz[1], 
-	                         Bxyz[2],        0, -Bxyz[0], 
-	                        -Bxyz[1],  Bxyz[0],       0};
+		real Bhat[9] = {       0,  Bxyz[2], -Bxyz[1], 
+	                        -Bxyz[2],        0,  Bxyz[0], 
+	                         Bxyz[1], -Bxyz[0],       0};
 		real Bhat2[9];
 		math_matmul(Bhat, Bhat, 3, 3, 3, Bhat2);
 		
@@ -131,7 +131,7 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 		// We need to evaluate phi like this to make sure it is cumulative
 		p->phi[i] = xhalf[1] + 
 		    atan2( posxyz[0] * fposxyz[1] - posxyz[1] * fposxyz[0], 
-		    posxyz[0] * fposxyz[0] + posxyz[0] * fposxyz[0] );
+		    posxyz[0] * fposxyz[0] + posxyz[1] * fposxyz[1] );
 		//p->phi[i] = atan2(fposxyz[1],fposxyz[0]);
 		p->z[i] = fposxyz[2];
 		p->rdot[i] = vxyz[0] * cos(p->phi[i]) + vxyz[1] * sin(p->phi[i]);
