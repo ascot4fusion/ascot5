@@ -24,6 +24,7 @@
 #include "../consts.h"
 
 #pragma omp declare target
+#pragma omp declare simd uniform(sim)
 real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i);
 #pragma omp end declare target
 

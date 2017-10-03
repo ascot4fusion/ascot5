@@ -26,6 +26,7 @@
 #include "../consts.h"
 
 #pragma omp declare target
+#pragma omp declare simd uniform(sim)
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i); 
 #pragma omp end declare target
 
@@ -195,16 +196,20 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
  * @brief Calculates time step value
  */
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
+    /* Just use some large value if no physics are defined */
+    real h = 1.0;
+
     /* Value defined directly by user */
     if(sim->fix_usrdef_use) {
-	return sim->fix_usrdef_val;
+	h = sim->fix_usrdef_val;
+    }
+    else {
+	/* Value calculated from gyrotime */
+	real B = sqrt(p->B_r[i]*p->B_r[i] + p->B_phi[i]*p->B_phi[i] + p->B_z[i]*p->B_z[i]);
+	real gamma = 1; // TODO relativistic
+	real gyrotime = fabs( CONST_2PI * p->mass[i] * gamma / ( p->charge[i] * B ) );
+	h = gyrotime/sim->fix_stepsPerGO;
     }
 
-    /* Value calculated from gyrotime */
-    real B = sqrt(p->B_r[i]*p->B_r[i] + p->B_phi[i]*p->B_phi[i] + p->B_z[i]*p->B_z[i]);
-    real gamma = 1; // TODO relativistic
-    real gyrotime = fabs( CONST_2PI * p->mass[i] * gamma / ( p->charge[i] * B ) );
-
-    return gyrotime/sim->fix_stepsPerGO;
-
+    return h;
 }

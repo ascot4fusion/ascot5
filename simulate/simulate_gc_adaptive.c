@@ -27,6 +27,7 @@
 #include "../hdf5io/hdf5_orbits.h"
 
 #pragma omp declare target
+#pragma omp declare simd uniform(sim)
 real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
 #pragma omp end declare target
 
@@ -310,26 +311,31 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
  * @brief Calculates time step value
  */
 real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
-
     /* Just use some large value if no physics are defined */
     real h = 1.0;
 
-    /* Value calculated from gyrotime */
-    if(sim->enable_orbfol) {
-	real B = sqrt(p->B_r[i]*p->B_r[i] + p->B_phi[i]*p->B_phi[i] + p->B_z[i]*p->B_z[i]);
-	real gamma = 1; // TODO relativistic
-	real gyrotime = fabs( CONST_2PI * p->mass[i] * gamma / ( p->charge[i] * B ) );
-	if(h > gyrotime) {h=gyrotime;}
+    /* Value defined directly by user */
+    if(sim->fix_usrdef_use) {
+	h =  sim->fix_usrdef_val;
+    } 
+    else {
+	/* Value calculated from gyrotime */
+	if(sim->enable_orbfol) {
+	    real B = sqrt(p->B_r[i]*p->B_r[i] + p->B_phi[i]*p->B_phi[i] + p->B_z[i]*p->B_z[i]);
+	    real gamma = 1; // TODO relativistic
+	    real gyrotime = fabs( CONST_2PI * p->mass[i] * gamma / ( p->charge[i] * B ) );
+	    if(h > gyrotime) {h=gyrotime;}
+	}
+	
+	/* Value calculated from collision frequency */
+	if(sim->enable_clmbcol) {
+	    real nu;
+	    mccc_collfreq_gc(p,&sim->B_data,&sim->plasma_data,&nu,i);
+	    /* Only small angle collisions so divide this by 100 */
+	    real colltime = 1/(100*nu);
+	    if(h > colltime) {h=colltime;}
+	}
+	return h;
     }
-
-    /* Value calculated from collision frequency */
-    if(sim->enable_clmbcol) {
-	real nu;
-	mccc_collfreq_gc(p,&sim->B_data,&sim->plasma_data,&nu,i);
-	/* Only small angle collisions so divide this by 100 */
-	real colltime = 1/(100*nu);
-	if(h > colltime) {h=colltime;}
-    }
-    return h;
 }
 
