@@ -800,40 +800,39 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     int simerr = 0; /* Error occurred during simulation */
     if(err) {simerr = 1;}
 
-    if(!err) {
-	p->r          = p_gc->r[j];
-	p->phi        = p_gc->phi[j];
-	p->z          = p_gc->z[j];
-	p->vpar       = p_gc->vpar[j];
-	p->mu         = p_gc->mu[j];
-	p->theta      = p_gc->theta[j];
+    p->r          = p_gc->r[j];
+    p->phi        = p_gc->phi[j];
+    p->z          = p_gc->z[j];
+    p->vpar       = p_gc->vpar[j];
+    p->mu         = p_gc->mu[j];
+    p->theta      = p_gc->theta[j];
 
-	p->mass       = p_gc->mass[j];
-	p->charge     = p_gc->charge[j];
-	p->time       = p_gc->time[j];
-	p->weight     = p_gc->weight[j];
-	p->id         = p_gc->id[j];
-	p->cputime    = p_gc->cputime[j];
-	p->rho        = p_gc->rho[j];
-	p->pol        = p_gc->pol[j];
-	p->endcond    = p_gc->endcond[j]; 
-	p->walltile   = p_gc->walltile[j];
+    p->mass       = p_gc->mass[j];
+    p->charge     = p_gc->charge[j];
+    p->time       = p_gc->time[j];
+    p->weight     = p_gc->weight[j];
+    p->id         = p_gc->id[j];
+    p->cputime    = p_gc->cputime[j];
+    p->rho        = p_gc->rho[j];
+    p->pol        = p_gc->pol[j];
+    p->endcond    = p_gc->endcond[j]; 
+    p->walltile   = p_gc->walltile[j];
 
-	p->B_r        = p_gc->B_r[j];
-	p->B_r_dr     = p_gc->B_r_dr[j];
-	p->B_r_dphi   = p_gc->B_r_dphi[j];
-	p->B_r_dz     = p_gc->B_r_dz[j];
+    p->B_r        = p_gc->B_r[j];
+    p->B_r_dr     = p_gc->B_r_dr[j];
+    p->B_r_dphi   = p_gc->B_r_dphi[j];
+    p->B_r_dz     = p_gc->B_r_dz[j];
 
-	p->B_phi      = p_gc->B_phi[j];
-	p->B_phi_dr   = p_gc->B_phi_dr[j];
-	p->B_phi_dphi = p_gc->B_phi_dphi[j];
-	p->B_phi_dz   = p_gc->B_phi_dz[j];
+    p->B_phi      = p_gc->B_phi[j];
+    p->B_phi_dr   = p_gc->B_phi_dr[j];
+    p->B_phi_dphi = p_gc->B_phi_dphi[j];
+    p->B_phi_dz   = p_gc->B_phi_dz[j];
 
-	p->B_z        = p_gc->B_z[j];
-	p->B_z_dr     = p_gc->B_z_dr[j];
-	p->B_z_dphi   = p_gc->B_z_dphi[j];
-	p->B_z_dz     = p_gc->B_z_dz[j];
-    }
+    p->B_z        = p_gc->B_z[j];
+    p->B_z_dr     = p_gc->B_z_dr[j];
+    p->B_z_dphi   = p_gc->B_z_dphi[j];
+    p->B_z_dz     = p_gc->B_z_dz[j];
+    
     
     /* Guiding center to particle transformation */
     real B_dB[12];
