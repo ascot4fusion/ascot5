@@ -283,53 +283,46 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
     math_rpz2xyz(rpz1, q1);
     math_rpz2xyz(rpz2, q2);
 
-    int ix = (int) floor((q2[0] - wdata->xmin)
+    int ix = (int) floor((q1[0] - wdata->xmin)
                          / ((wdata->xmax - wdata->xmin) / (wdata->ngrid)));
-    int iy = (int) floor((q2[1] - wdata->ymin)
+    int iy = (int) floor((q1[1] - wdata->ymin)
                          / ((wdata->ymax - wdata->ymin) / (wdata->ngrid)));
-    int iz = (int) floor((q2[2] - wdata->zmin)
+    int iz = (int) floor((q1[2] - wdata->zmin)
                          / ((wdata->zmax - wdata->zmin) / (wdata->ngrid)));
 
     int ilist = wdata->tree_array[ix*wdata->ngrid*wdata->ngrid
                                   + iy*wdata->ngrid + iz];
 
-    real w;
-    int j;
-    for(j = 0; j < wdata->tree_array[ilist]; j++) {
+    int hit_tri = 0;
+    for(int j = 0; j < wdata->tree_array[ilist]; j++) {
         int itri = wdata->tree_array[ilist+j+1];
-        w = wall_3d_tri_collision(q1, q2, &wdata->wall_tris[9*itri],
+        real w = wall_3d_tri_collision(q1, q2, &wdata->wall_tris[9*itri],
                 &wdata->wall_tris[9*itri+3], &wdata->wall_tris[9*itri+6]);
         if(w >= 0) {
-            break;
+            hit_tri = itri;
         }
     }
 
-    ix = (int) floor((q1[0] - wdata->xmin)
+    ix = (int) floor((q2[0] - wdata->xmin)
                          / ((wdata->xmax - wdata->xmin) / (wdata->ngrid)));
-    iy = (int) floor((q1[1] - wdata->ymin)
+    iy = (int) floor((q2[1] - wdata->ymin)
                          / ((wdata->ymax - wdata->ymin) / (wdata->ngrid)));
-    iz = (int) floor((q1[2] - wdata->zmin)
+    iz = (int) floor((q2[2] - wdata->zmin)
                          / ((wdata->zmax - wdata->zmin) / (wdata->ngrid)));
 
     ilist = wdata->tree_array[ix*wdata->ngrid*wdata->ngrid
                                   + iy*wdata->ngrid + iz];
 
-    for(j = 0; j < wdata->tree_array[ilist]; j++) {
+    for(int j = 0; j < wdata->tree_array[ilist]; j++) {
         int itri = wdata->tree_array[ilist+j+1];
-        w = wall_3d_tri_collision(q1, q2, &wdata->wall_tris[9*itri],
+        real w = wall_3d_tri_collision(q1, q2, &wdata->wall_tris[9*itri],
                 &wdata->wall_tris[9*itri+3], &wdata->wall_tris[9*itri+6]);
         if(w >= 0) {
-            break;
+            hit_tri = itri;
         }
     }
 
-
-    if(j == wdata->tree_array[ilist]) {
-        return 0;
-    }
-    else {
-        return j+1;
-    }
+    return hit_tri;
 }
 
 /**

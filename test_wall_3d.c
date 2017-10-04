@@ -5,17 +5,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ascot5.h"
-#include "wall_3d.h"
+#include "wall/wall_3d.h"
+
+#define N 100000
 
 void test_collisions(wall_3d_data wdata, real* offload_array) {
-    real xmin = -1.5;
-    real xmax = 1.5;
-    real ymin = -1.5;
-    real ymax = 1.5;
-    real zmin = -1.5;
-    real zmax = 1.5;
+    real xmin = 2;
+    real xmax = 9;
+    real ymin = -1;
+    real ymax = 1;
+    real zmin = -6;
+    real zmax = 6;
     int i;
-    for(i = 0; i < 100; i++) {
+    for(i = 0; i < N; i++) {
         real q1[3], q2[3];
         q1[0] = ((real)rand()/(real)RAND_MAX)*(xmax-xmin) + xmin;
         q2[0] = ((real)rand()/(real)RAND_MAX)*(xmax-xmin) + xmin;
@@ -74,8 +76,8 @@ int main(int argc, char** argv) {
     wall_3d_data wdata;
     wall_3d_init(&wdata, &offload_data, offload_array);
 
-    //test_collisions(wdata, offload_array);
-    test_tree(&wdata, offload_array);
+    test_collisions(wdata, offload_array);
+    //test_tree(&wdata, offload_array);
     //test_tri_in_cube();
 
     return 0;
