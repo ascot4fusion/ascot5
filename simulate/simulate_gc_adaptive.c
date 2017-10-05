@@ -10,6 +10,7 @@
 #include <immintrin.h>
 #include <math.h>
 #include "../ascot5.h"
+#include "../physlib.h"
 #include "../simulate.h"
 #include "../particle.h"
 #include "../wall.h"
