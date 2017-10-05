@@ -336,7 +336,7 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
 	    real colltime = 1/(100*nu);
 	    if(h > colltime) {h=colltime;}
 	}
-	return h;
     }
+    return h;
 }
 
