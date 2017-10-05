@@ -407,8 +407,8 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
     /* Make the spatial transformation */
     real xyzprt[3];
     xyzprt[0] = xyz[0]+rho[0];
-    xyzprt[2] = xyz[1]+rho[1];
-    xyzprt[1] = xyz[2]+rho[2];
+    xyzprt[1] = xyz[1]+rho[1];
+    xyzprt[2] = xyz[2]+rho[2];
 
     real rpzprt[3];
     math_xyz2rpz(xyzprt,rpzprt);
