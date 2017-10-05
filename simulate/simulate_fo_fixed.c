@@ -206,7 +206,7 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
     else {
 	/* Value calculated from gyrotime */
 	real B = sqrt(p->B_r[i]*p->B_r[i] + p->B_phi[i]*p->B_phi[i] + p->B_z[i]*p->B_z[i]);
-	real gamma = 1; // TODO relativistic
+	real gamma = physlib_relfactorv_fo(math_normc( p->rdot[i], p->phidot[i]*p->r[i], p->zdot[i] ));
 	real gyrotime = fabs( CONST_2PI * p->mass[i] * gamma / ( p->charge[i] * B ) );
 	h = gyrotime/sim->fix_stepsPerGO;
     }
