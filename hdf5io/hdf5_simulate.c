@@ -32,37 +32,35 @@ void hdf5_simulate(hid_t f, sim_offload_data* sim){
     err = H5LTread_dataset_int(f, "/options/ENABLE_ORBIT_FOLLOWING", &sim->enable_orbfol);
     err = H5LTread_dataset_int(f, "/options/ENABLE_COULOMB_COLLISIONS", &sim->enable_clmbcol);
 
-    
-
     /* End conditions */
     int ec;
     err = H5LTread_dataset_int(f, "/options/ENDCOND_SIMTIMELIM", &ec);
     sim->endcond_active = 0;
     if(ec){
 	sim->endcond_active = sim->endcond_active | endcond_tmax;
-	err = H5LTread_dataset_double(f, "/options/ENDCOND_MAX_SIM_TIME", &sim->endcond_maxSimTime);
     }
+    err = H5LTread_dataset_double(f, "/options/ENDCOND_MAX_SIM_TIME", &sim->endcond_maxSimTime);
 	
     err = H5LTread_dataset_int(f, "/options/ENDCOND_CPUTIMELIM", &ec);
     if(ec){
 	sim->endcond_active = sim->endcond_active | endcond_cpumax;
-	err = H5LTread_dataset_double(f, "/options/ENDCOND_MAX_CPU_TIME", &sim->endcond_maxCpuTime);
     }
+    err = H5LTread_dataset_double(f, "/options/ENDCOND_MAX_CPU_TIME", &sim->endcond_maxCpuTime);
 	
     err = H5LTread_dataset_int(f, "/options/ENDCOND_RHOLIM", &ec);
     if(ec){
 	sim->endcond_active = sim->endcond_active | endcond_rhomax | endcond_rhomin;
-	err = H5LTread_dataset_double(f, "/options/ENDCOND_MAX_RHO", &sim->endcond_maxRho);
-	err = H5LTread_dataset_double(f, "/options/ENDCOND_MIN_RHO", &sim->endcond_minRho);
     }
+    err = H5LTread_dataset_double(f, "/options/ENDCOND_MAX_RHO", &sim->endcond_maxRho);
+    err = H5LTread_dataset_double(f, "/options/ENDCOND_MIN_RHO", &sim->endcond_minRho);
 	
     err = H5LTread_dataset_int(f, "/options/ENDCOND_ENERGYLIM", &ec);
     if(ec){
 	sim->endcond_active = sim->endcond_active | endcond_emin | endcond_therm;
-	err = H5LTread_dataset_double(f, "/options/ENDCOND_MIN_ENERGY", &sim->endcond_minEkin);
-	sim->endcond_minEkin = sim->endcond_minEkin*CONST_E;
-	err = H5LTread_dataset_double(f, "/options/ENDCOND_MIN_ENERGY_TIMES_THERMAL", &sim->endcond_minEkinPerTe);
     }
+    err = H5LTread_dataset_double(f, "/options/ENDCOND_MIN_ENERGY", &sim->endcond_minEkin);
+    sim->endcond_minEkin = sim->endcond_minEkin*CONST_E;
+    err = H5LTread_dataset_double(f, "/options/ENDCOND_MIN_ENERGY_TIMES_THERMAL", &sim->endcond_minEkinPerTe);
 	
     err = H5LTread_dataset_int(f, "/options/ENDCOND_WALLHIT", &ec);
     if(ec){
@@ -72,13 +70,12 @@ void hdf5_simulate(hid_t f, sim_offload_data* sim){
     err = H5LTread_dataset_int(f, "/options/ENDCOND_MAXORBS", &ec);
     if(ec){
 	sim->endcond_active = sim->endcond_active | endcond_polmax | endcond_tormax;
-	int temp[1];
-	err = H5LTread_dataset_int(f, "/options/ENDCOND_MAX_POLOIDALORBS", temp);
-	sim->endcond_maxPolOrb = temp[0] * 2 *CONST_PI;
-
-	err = H5LTread_dataset_int(f, "/options/ENDCOND_MAX_TOROIDALORBS", temp);
-	sim->endcond_maxTorOrb = temp[0] * 2 *CONST_PI;
     }
+    int temp[1];
+    err = H5LTread_dataset_int(f, "/options/ENDCOND_MAX_POLOIDALORBS", temp);
+    sim->endcond_maxPolOrb = temp[0] * 2 *CONST_PI;
+    err = H5LTread_dataset_int(f, "/options/ENDCOND_MAX_TOROIDALORBS", temp);
+    sim->endcond_maxTorOrb = temp[0] * 2 *CONST_PI;
 
     /* Diagnostics */
     diag_offload_data* diag = &sim->diag_offload_data;

@@ -170,8 +170,9 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, sim_data* si
 
 	/* Hybrid mode */
 	if(sim->sim_mode == 3) {
-	    if(p_f->endcond[i] & endcond_rhomax) {
-		p_f->endcond[i] |= endcond_hybrid;
+	    if(p_f->rho[i] > sim->endcond_maxRho) {
+	        p_f->endcond[i] |= endcond_hybrid;
+	        p_f->running[i] = 0;
 	    }
 	}
     }

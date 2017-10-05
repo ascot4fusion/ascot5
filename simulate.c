@@ -111,6 +111,9 @@ void simulate(int id, int n_particles, particle_state* p,
 
     /* Finish simulating hybrid particles with fo */
     if(sim.sim_mode == simulate_mode_hybrid) {
+
+        /* Determine the number markers that should be run 
+	 * in fo after previous gc simulation */
         int n_new = 0;
         for(int i = 0; i < pq.n; i++) {
             if(pq.p[i]->endcond == endcond_hybrid) {
@@ -119,15 +122,19 @@ void simulate(int id, int n_particles, particle_state* p,
         }
 
         if(n_new > 0) {
+	    /* Reallocate and add "old" hybrid particles to the hybrid queue */
             particle_state** tmp = pq_hybrid.p;
             pq_hybrid.p = (particle_state**) malloc((pq_hybrid.n + n_new)
                     * sizeof(particle_state*));
             memcpy(pq_hybrid.p, tmp, pq_hybrid.n * sizeof(particle_state*));
             free(tmp);
 
+	    /* Add "new" hybrid particles and reset their end condition */
+	    pq_hybrid.n += n_new;
             for(int i = 0; i < pq.n; i++) {
                 if(pq.p[i]->endcond == endcond_hybrid) {
-                    pq_hybrid.p[pq_hybrid.next++] = &p[i];
+		    pq.p[i]->endcond = 0;
+		    pq_hybrid.p[pq_hybrid.next++] = pq.p[i];
                 }
             }
         }
