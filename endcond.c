@@ -13,12 +13,19 @@
 void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, sim_data* sim) {
     int i;
 
+    int active_tmax      = sim->endcond_active & endcond_tmax;
+    int active_wall      = sim->endcond_active & endcond_wall; 
+    int active_emin      = sim->endcond_active & endcond_emin;
+    int active_rholim    = sim->endcond_active & endcond_rhomax;
+    int active_orbitlim  = sim->endcond_active & endcond_polmax;
+    int active_cpumax    = sim->endcond_active & endcond_cpumax;
+
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
 	if(p_f->running[i]) {
 
 	    /* Max time */
-	    if(sim->endcond_active & endcond_tmax) {
+	    if(active_tmax) {
 		if(p_f->time[i] > sim->endcond_maxSimTime) {
 		    p_f->endcond[i] |= endcond_tmax;
 		    p_f->running[i] = 0;
@@ -26,7 +33,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, sim_data* si
 	    }
 
 	    /* Wall hit */
-	    if(sim->endcond_active & endcond_wall) {
+	    if(active_wall) {
 		int tile = wall_hit_wall(p_i->r[i], p_i->phi[i], p_i->z[i],
 					 p_f->r[i], p_f->phi[i], p_f->z[i], &sim->wall_data);
 		if(tile > 0) {
@@ -37,7 +44,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, sim_data* si
 	    }	
 
 	    /* Min energy */
-	    if(sim->endcond_active & endcond_emin) {
+	    if(active_emin) {
 		real vnorm = math_normc(p_f->rdot[i], p_f->phidot[i] * p_f->r[i], p_f->zdot[i]);
 		real gamma = physlib_relfactorv_fo(vnorm);
 		real ekin = CONST_C2 * p_f->mass[i] * (gamma - 1);
@@ -57,7 +64,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, sim_data* si
 	    }
 	    
 	    /* Rho lims */
-	    if((int)sim->endcond_active & (int)endcond_rhomax) {
+	    if(active_rholim) {
 		if(p_f->rho[i] > sim->endcond_maxRho) {
 		    p_f->endcond[i] |= endcond_rhomax;
 		    p_f->running[i] = 0;
@@ -69,7 +76,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, sim_data* si
 	    }
 
 	    /* Orbit lims */
-	    if((int)sim->endcond_active & (int)endcond_polmax) {
+	    if(active_orbitlim) {
 		if(fabs(p_f->phi[i]) > sim->endcond_maxTorOrb) {
 		    p_f->endcond[i] |= endcond_tormax;
 		    p_f->running[i] = 0;
@@ -81,7 +88,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, sim_data* si
 	    }
 
 	    /* CPU time lim */
-	    if((int)sim->endcond_active & (int)endcond_cpumax) {
+	    if(active_cpumax) {
 		if(p_f->cputime[i] > sim->endcond_maxCpuTime) {
 		    p_f->endcond[i] |= endcond_cpumax;
 		    p_f->running[i] = 0;
@@ -188,11 +195,17 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, sim_data* si
 void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, sim_data* sim) {
     int i;
 
+    int active_tmax      = sim->endcond_active & endcond_tmax;
+    int active_wall      = sim->endcond_active & endcond_wall; 
+    int active_rholim    = sim->endcond_active & endcond_rhomax;
+    int active_orbitlim  = sim->endcond_active & endcond_polmax;
+    int active_cpumax    = sim->endcond_active & endcond_cpumax;
+
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
 
 	/* Max time */
-	if(sim->endcond_active & endcond_tmax) {
+	if(active_tmax) {
 	    if(p_f->time[i] > sim->endcond_maxSimTime) {
 		p_f->endcond[i] |= endcond_tmax;
 		p_f->running[i] = 0;
@@ -200,7 +213,7 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, sim_data* si
 	}
 
 	/* Wall hit */
-	if(sim->endcond_active & endcond_wall) {
+	if(active_wall) {
 	    int tile = wall_hit_wall(p_i->r[i], p_i->phi[i], p_i->z[i],
 				     p_f->r[i], p_f->phi[i], p_f->z[i], &sim->wall_data);
 	    if(tile > 0) {
@@ -211,7 +224,7 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, sim_data* si
 	}	
 	    
 	/* Rho lims */
-	if(sim->endcond_active & endcond_rhomax) {
+	if(active_rholim) {
 	    if(p_f->rho[i] > sim->endcond_maxRho) {
 		p_f->endcond[i] |= endcond_rhomax;
 		p_f->running[i] = 0;
@@ -223,7 +236,7 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, sim_data* si
 	}
 
 	/* Orbit lims */
-	if(sim->endcond_active & endcond_polmax) {
+	if(active_orbitlim) {
 	    if(fabs(p_f->phi[i]) > sim->endcond_maxTorOrb) {
 		p_f->endcond[i] |= endcond_tormax;
 		p_f->running[i] = 0;
@@ -235,7 +248,7 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, sim_data* si
 	}
 
 	/* CPU time lim */
-	if(sim->endcond_active & endcond_cpumax) {
+	if(active_cpumax) {
 	    if(p_f->cputime[i] > sim->endcond_maxCpuTime) {
 		p_f->endcond[i] |= endcond_cpumax;
 		p_f->running[i] = 0;
