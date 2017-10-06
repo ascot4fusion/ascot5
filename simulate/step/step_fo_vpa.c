@@ -68,7 +68,8 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 		
 		/* Evaluate helper variable pminus */
 		real pminus[3];
-		real gamma = 1 / sqrt( 1 - math_dot(vxyz,vxyz)/CONST_C2 );
+		real vnorm = math_norm(vxyz);
+		real gamma = sqrt(1 / ( (1 - vnorm/CONST_C)*(1 + vnorm/CONST_C) ));
 		real sigma = p->charge[i]*h[i]/2;
 		pminus[0] = p->mass[i]*vxyz[0]*gamma + sigma*Exyz[0];
 		pminus[1] = p->mass[i]*vxyz[1]*gamma + sigma*Exyz[1];
@@ -92,26 +93,22 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
                     A[j] = (d*Bhat[j] + d2*Bhat2[j]) * (2.0/(1+d2*B2));
                 }
 		
-		// Add identity matrix to the mix
-		A[0] += 1;
-		A[4] += 1;
-		A[8] += 1;
-		
 		real pplus[3];
 		math_matmul(pminus, A, 1, 3, 3, pplus);
 		
 		/* Take the step */
 		real pfinal[3];
-		pfinal[0] = pplus[0] + sigma*Exyz[0];
-		pfinal[1] = pplus[1] + sigma*Exyz[1];
-		pfinal[2] = pplus[2] + sigma*Exyz[2];
+		pfinal[0] = pminus[0] + pplus[0] + sigma*Exyz[0];
+		pfinal[1] = pminus[1] + pplus[1] + sigma*Exyz[1];
+		pfinal[2] = pminus[2] + pplus[2] + sigma*Exyz[2];
 		
 		// gamma = sqrt(1+(p/mc)^2)
-		gamma = sqrt( 1 + math_dot(pfinal,pfinal)/(p->mass[i]*p->mass[i]*CONST_C2) );
+		real pnorm = math_norm(pfinal)/(p->mass[i]);
+		gamma = sqrt( 1/ (1 + pnorm*pnorm/CONST_C2 ));
 		
-		vxyz[0] = pfinal[0]/(gamma*p->mass[i]);
-		vxyz[1] = pfinal[1]/(gamma*p->mass[i]);
-		vxyz[2] = pfinal[2]/(gamma*p->mass[i]);
+		vxyz[0] = gamma*pfinal[0]/(p->mass[i]);
+		vxyz[1] = gamma*pfinal[1]/(p->mass[i]);
+		vxyz[2] = gamma*pfinal[2]/(p->mass[i]);
 		
 		fposxyz[0] = posxyz[0] + h[i]*vxyz[0]/2;
 		fposxyz[1] = posxyz[1] + h[i]*vxyz[1]/2;
