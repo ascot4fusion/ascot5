@@ -56,8 +56,8 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
                 real Bxyz[3];
 		real Exyz[3];
 	        
-		math_vec_rpz2xyz(Brpz, Bxyz, p->phi[i]);
-		math_vec_rpz2xyz(Erpz, Exyz, p->phi[i]);
+		math_vec_rpz2xyz(Brpz, Bxyz, xhalf[1]);
+		math_vec_rpz2xyz(Erpz, Exyz, xhalf[1]);
 		
 		/* Convert velocity to cartesian coordinates */
 		real vrpz[3] = {p->rdot[i], p->phidot[i]*p->r[i], p->zdot[i]};
