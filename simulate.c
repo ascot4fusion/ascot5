@@ -161,7 +161,18 @@ void simulate(int id, int n_particles, particle_state* p,
         int n_new = 0;
         for(int i = 0; i < pq.n; i++) {
             if(pq.p[i]->endcond == endcond_hybrid) {
-                n_new++;
+	        /* Check that there was no wall between
+		 * when moving from gc to fo */
+	        int tile = wall_hit_wall(pq.p[i]->r, pq.p[i]->phi, pq.p[i]->z,
+					 pq.p[i]->rprt, pq.p[i]->phiprt, pq.p[i]->zprt, 
+					 &sim.wall_data);
+		if(tile > 0) {
+		    pq.p[i]->walltile = tile;
+		    pq.p[i]->endcond |= endcond_wall;
+		}
+		else{
+		    n_new++;
+		}
             }
         }
 
@@ -180,7 +191,7 @@ void simulate(int id, int n_particles, particle_state* p,
 		    pq.p[i]->endcond = 0;
 		    pq_hybrid.p[pq_hybrid.next++] = pq.p[i];
                 }
-            }
+            }	    
         }
         pq_hybrid.next = 0;
 
