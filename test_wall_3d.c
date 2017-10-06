@@ -4,10 +4,36 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "ascot5.h"
 #include "wall/wall_3d.h"
 
-#define N 100000
+#define N 10000
+
+void test_wall_hit(wall_3d_data* wdata) {
+    srand(0);
+    real Rmin = 2;
+    real Rmax = 9;
+    real phimin = 0;
+    real phimax = 2*3.1415926;
+    real zmin = -6;
+    real zmax = 6;
+    int i;
+    for(i = 0; i < N; i++) {
+        real q1[3], q2[3];
+        q1[0] = ((real)rand()/(real)RAND_MAX)*(Rmax-Rmin) + Rmin;
+        q2[0] = ((real)rand()/(real)RAND_MAX)*(Rmax-Rmin) + Rmin;
+        q1[1] = ((real)rand()/(real)RAND_MAX)*(phimax-phimin) + phimin;
+        q2[1] = ((real)rand()/(real)RAND_MAX)*(phimax-phimin) + phimin;
+        q1[2] = ((real)rand()/(real)RAND_MAX)*(zmax-zmin) + zmin;
+        q2[2] = ((real)rand()/(real)RAND_MAX)*(zmax-zmin) + zmin;
+
+        int w = wall_3d_hit_wall(q1[0], q1[1], q1[2], q2[0], q2[1], q2[2], wdata);
+
+        printf("%lf %lf %lf %lf %lf %lf %d\n", q1[0], q1[1], q1[2],
+               q2[0], q2[1], q2[2], w);
+    }
+}
 
 void test_collisions(wall_3d_data wdata, real* offload_array) {
     real xmin = 2;
@@ -76,7 +102,8 @@ int main(int argc, char** argv) {
     wall_3d_data wdata;
     wall_3d_init(&wdata, &offload_data, offload_array);
 
-    test_collisions(wdata, offload_array);
+    test_wall_hit(&wdata);
+    //test_collisions(wdata, offload_array);
     //test_tree(&wdata, offload_array);
     //test_tri_in_cube();
 
