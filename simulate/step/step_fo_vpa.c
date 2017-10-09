@@ -54,66 +54,66 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 	    if(!errflag) {
                 /* Electromagnetic fields to cartesian coordinates */  
                 real Bxyz[3];
-		real Exyz[3];
-	        
-		math_vec_rpz2xyz(Brpz, Bxyz, xhalf[1]);
-		math_vec_rpz2xyz(Erpz, Exyz, xhalf[1]);
-		
-		/* Convert velocity to cartesian coordinates */
-		real vrpz[3] = {p->rdot[i], p->phidot[i]*p->r[i], p->zdot[i]};
-		math_vec_rpz2xyz(vrpz, vxyz, p->phi[i]);
-		
-		/* Positions to cartesian coordinates */
-		math_rpz2xyz(xhalf,posxyz);
-		
-		/* Evaluate helper variable pminus */
-		real pminus[3];
-		real vnorm = math_norm(vxyz);
-		real gamma = sqrt(1 / ( (1 - vnorm/CONST_C)*(1 + vnorm/CONST_C) ));
-		real sigma = p->charge[i]*h[i]/2;
-		pminus[0] = p->mass[i]*vxyz[0]*gamma + sigma*Exyz[0];
-		pminus[1] = p->mass[i]*vxyz[1]*gamma + sigma*Exyz[1];
-		pminus[2] = p->mass[i]*vxyz[2]*gamma + sigma*Exyz[2];
-		
-		/* Second helper variable pplus*/
-		real d = (p->charge[i]*h[i]/2) / 
-		    sqrt( p->mass[i]*p->mass[i] + math_dot(pminus,pminus)/CONST_C2 );
-		real d2 = d*d;
-		
-		real Bhat[9] = {       0,  Bxyz[2], -Bxyz[1], 
-	                        -Bxyz[2],        0,  Bxyz[0], 
-	                         Bxyz[1], -Bxyz[0],       0};
-		real Bhat2[9];
-		math_matmul(Bhat, Bhat, 3, 3, 3, Bhat2);
-		
-		real B2 = Bxyz[0]*Bxyz[0] + Bxyz[1]*Bxyz[1] + Bxyz[2]*Bxyz[2];
-	
-		real A[9];
-		for(int j=0; j<9; j++) {
-                    A[j] = (d*Bhat[j] + d2*Bhat2[j]) * (2.0/(1+d2*B2));
-                }
-		
-		real pplus[3];
-		math_matmul(pminus, A, 1, 3, 3, pplus);
-		
-		/* Take the step */
-		real pfinal[3];
-		pfinal[0] = pminus[0] + pplus[0] + sigma*Exyz[0];
-		pfinal[1] = pminus[1] + pplus[1] + sigma*Exyz[1];
-		pfinal[2] = pminus[2] + pplus[2] + sigma*Exyz[2];
-		
-		// gamma = sqrt(1+(p/mc)^2)
-		real pnorm = math_norm(pfinal)/(p->mass[i]);
-		gamma = sqrt( 1/ (1 + pnorm*pnorm/CONST_C2 ));
-		
-		vxyz[0] = gamma*pfinal[0]/(p->mass[i]);
-		vxyz[1] = gamma*pfinal[1]/(p->mass[i]);
-		vxyz[2] = gamma*pfinal[2]/(p->mass[i]);
-		
-		fposxyz[0] = posxyz[0] + h[i]*vxyz[0]/2;
-		fposxyz[1] = posxyz[1] + h[i]*vxyz[1]/2;
-		fposxyz[2] = posxyz[2] + h[i]*vxyz[2]/2;
-            }
+            real Exyz[3];
+                
+            math_vec_rpz2xyz(Brpz, Bxyz, xhalf[1]);
+            math_vec_rpz2xyz(Erpz, Exyz, xhalf[1]);
+            
+            /* Convert velocity to cartesian coordinates */
+            real vrpz[3] = {p->rdot[i], p->phidot[i]*p->r[i], p->zdot[i]};
+            math_vec_rpz2xyz(vrpz, vxyz, p->phi[i]);
+            
+            /* Positions to cartesian coordinates */
+            math_rpz2xyz(xhalf,posxyz);
+            
+            /* Evaluate helper variable pminus */
+            real pminus[3];
+            real vnorm = math_norm(vxyz);
+            real gamma = sqrt(1 / ( (1 - vnorm/CONST_C)*(1 + vnorm/CONST_C) ));
+            real sigma = p->charge[i]*h[i]/(2*p->mass[i]*CONST_C);
+            pminus[0] = vxyz[0]*gamma/CONST_C + sigma*Exyz[0];
+            pminus[1] = vxyz[1]*gamma/CONST_C + sigma*Exyz[1];
+            pminus[2] = vxyz[2]*gamma/CONST_C + sigma*Exyz[2];
+            
+            /* Second helper variable pplus*/
+            real d = (p->charge[i]*h[i]/(2*p->mass[i])) / 
+                sqrt( 1 + math_dot(pminus,pminus) );
+            real d2 = d*d;
+            
+            real Bhat[9] = {       0,  Bxyz[2], -Bxyz[1], 
+                                -Bxyz[2],        0,  Bxyz[0], 
+                                 Bxyz[1], -Bxyz[0],       0};
+            real Bhat2[9];
+            math_matmul(Bhat, Bhat, 3, 3, 3, Bhat2);
+            
+            real B2 = Bxyz[0]*Bxyz[0] + Bxyz[1]*Bxyz[1] + Bxyz[2]*Bxyz[2];
+        
+            real A[9];
+            for(int j=0; j<9; j++) {
+                        A[j] = (d*Bhat[j] + d2*Bhat2[j]) * (2.0/(1+d2*B2));
+                    }
+            
+            real pplus[3];
+            math_matmul(pminus, A, 1, 3, 3, pplus);
+            
+            /* Take the step */
+            real pfinal[3];
+            pfinal[0] = pminus[0] + pplus[0] + sigma*Exyz[0];
+            pfinal[1] = pminus[1] + pplus[1] + sigma*Exyz[1];
+            pfinal[2] = pminus[2] + pplus[2] + sigma*Exyz[2];
+            
+            // gamma = sqrt(1+(p/mc)^2)
+            real pnorm = math_norm(pfinal)/(p->mass[i]);
+            gamma = sqrt( 1/ (1 + pnorm*pnorm/CONST_C2 ));
+            
+            vxyz[0] = pfinal[0]*CONST_C/gamma;
+            vxyz[1] = pfinal[1]*CONST_C/gamma;
+            vxyz[2] = pfinal[2]*CONST_C/gamma;
+            
+            fposxyz[0] = posxyz[0] + h[i]*vxyz[0]/2;
+            fposxyz[1] = posxyz[1] + h[i]*vxyz[1]/2;
+            fposxyz[2] = posxyz[2] + h[i]*vxyz[2]/2;
+        }
 	    
 	    /* Test that the results are reasonable */
 	    if(!errflag && ( isnan(posxyz[0]) || isnan(posxyz[1]) || isnan(posxyz[2]) )) {errflag = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
