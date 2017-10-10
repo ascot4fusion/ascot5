@@ -20,7 +20,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, sim_data* si
     int active_orbitlim  = sim->endcond_active & endcond_polmax;
     int active_cpumax    = sim->endcond_active & endcond_cpumax;
 
-    #pragma omp simd
+#pragma omp simd simdlen(8)
     for(i = 0; i < NSIMD; i++) {
 	if(p_f->running[i]) {
 
@@ -108,7 +108,7 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, sim_data* si
     int active_orbitlim  = sim->endcond_active & endcond_polmax;
     int active_cpumax    = sim->endcond_active & endcond_cpumax;
     
-    #pragma omp simd
+    #pragma omp simd simdlen(8)
     for(i = 0; i < NSIMD; i++) {
 
 	/* Max time */
@@ -201,7 +201,7 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i, sim_data* si
     int active_orbitlim  = sim->endcond_active & endcond_polmax;
     int active_cpumax    = sim->endcond_active & endcond_cpumax;
 
-    #pragma omp simd
+    #pragma omp simd simdlen(8)
     for(i = 0; i < NSIMD; i++) {
 
 	/* Max time */

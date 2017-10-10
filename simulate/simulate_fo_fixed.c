@@ -94,7 +94,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
     while(n_running > 0) {
 
         /* Store marker states */
-        #pragma omp simd
+        #pragma omp simd simdlen(8)
         for(int i = 0; i < NSIMD; i++) {
             p0.r[i]          = p.r[i];
             p0.phi[i]        = p.phi[i];

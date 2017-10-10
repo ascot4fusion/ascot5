@@ -51,21 +51,21 @@ void B_3DS_free_offload(B_3DS_offload_data* offload_data, real** offload_array);
 #pragma omp declare target
 int B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
                real* offload_array);
-#pragma omp declare simd uniform(Bdata)
+#pragma omp declare simd uniform(Bdata) simdlen(8)
 a5err B_3DS_eval_psi(real psi[], real r, real phi, real z, B_3DS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
+#pragma omp declare simd uniform(Bdata) simdlen(8)
 a5err B_3DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_3DS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
+#pragma omp declare simd uniform(Bdata) simdlen(8)
 a5err B_3DS_eval_rho(real rho[], real psi, B_3DS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
+#pragma omp declare simd uniform(Bdata) simdlen(8)
 a5err B_3DS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_3DS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
+#pragma omp declare simd uniform(Bdata) simdlen(8)
 a5err B_3DS_eval_B(real B[], real r, real phi, real z, B_3DS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
+#pragma omp declare simd uniform(Bdata) simdlen(8)
 a5err B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
+#pragma omp declare simd uniform(Bdata) simdlen(8)
 real B_3DS_get_axis_r(B_3DS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
+#pragma omp declare simd uniform(Bdata) simdlen(8)
 real B_3DS_get_axis_z(B_3DS_data* Bdata);
 #pragma omp end declare target   
 #endif

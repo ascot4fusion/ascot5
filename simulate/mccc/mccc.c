@@ -242,7 +242,7 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
     real rnd[3*NSIMD];
     mccc_wiener_boxmuller(rnd, 3*NSIMD);
 
-    #pragma omp simd
+    #pragma omp simd simdlen(8)
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
 	    a5err errflag = 0;
@@ -335,7 +335,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
     real rnd[5*NSIMD];
     mccc_wiener_boxmuller(rnd, 5*NSIMD);
 
-    #pragma omp simd
+#pragma omp simd simdlen(8)
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
 	    a5err errflag = 0;
@@ -486,7 +486,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
     real dWopt0[NSIMD], dWopt1[NSIMD], alpha[NSIMD];
     int tindex[NSIMD];
 
-    #pragma omp simd
+#pragma omp simd simdlen(8)
     for(i = 0; i < NSIMD; i++) {
 	if(p->running[i]) {
 	    a5err errflag = 0;
