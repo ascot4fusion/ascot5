@@ -71,9 +71,9 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
             real vnorm = math_norm(vxyz);
             real gamma = sqrt(1 / ( (1 - vnorm/CONST_C)*(1 + vnorm/CONST_C) ));
             real sigma = p->charge[i]*h[i]/(2*p->mass[i]*CONST_C);
-            pminus[0] = vxyz[0]*gamma/CONST_C + sigma*Exyz[0];
-            pminus[1] = vxyz[1]*gamma/CONST_C + sigma*Exyz[1];
-            pminus[2] = vxyz[2]*gamma/CONST_C + sigma*Exyz[2];
+            pminus[0] = gamma*vxyz[0]/(CONST_C) + sigma*Exyz[0];
+            pminus[1] = gamma*vxyz[1]/(CONST_C) + sigma*Exyz[1];
+	    pminus[2] = gamma*vxyz[2]/(CONST_C) + sigma*Exyz[2];
             
             /* Second helper variable pplus*/
             real d = (p->charge[i]*h[i]/(2*p->mass[i])) / 
@@ -101,14 +101,14 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
             pfinal[0] = pminus[0] + pplus[0] + sigma*Exyz[0];
             pfinal[1] = pminus[1] + pplus[1] + sigma*Exyz[1];
             pfinal[2] = pminus[2] + pplus[2] + sigma*Exyz[2];
-            
+            //printf("%le %le %le\n",pminus[0],pplus[0],pfinal[0]);errflag=1;
             // gamma = sqrt(1+(p/mc)^2)
-            real pnorm = math_norm(pfinal)/(p->mass[i]);
-            gamma = sqrt( 1/ (1 + pnorm*pnorm/CONST_C2 ));
+            real pnorm = math_norm(pfinal);
+            gamma = sqrt( 1/ (1 + pnorm*pnorm ));
             
-            vxyz[0] = pfinal[0]*CONST_C/gamma;
-            vxyz[1] = pfinal[1]*CONST_C/gamma;
-            vxyz[2] = pfinal[2]*CONST_C/gamma;
+            vxyz[0] = pfinal[0]*CONST_C*gamma;
+            vxyz[1] = pfinal[1]*CONST_C*gamma;
+            vxyz[2] = pfinal[2]*CONST_C*gamma;
             
             fposxyz[0] = posxyz[0] + h[i]*vxyz[0]/2;
             fposxyz[1] = posxyz[1] + h[i]*vxyz[1]/2;
