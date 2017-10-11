@@ -54,7 +54,7 @@ class opt():
 
     FIXEDSTEP_USE_USERDEFINED     = 1
     FIXEDSTEP_USERDEFINED         = 1e-10
-    FIXEDSTEP_NSTEPS_PER_GYROTIME = 10
+    FIXEDSTEP_NSTEPS_PER_GYROTIME = 50
 
 
     ## Adaptive time-step specific options ##
@@ -64,10 +64,10 @@ class opt():
     # ADAPTIVE_TOL_CCOL == 1e-2
     # - Relative error tolerance for Coulomb collisions
     # 
-    # ADAPTIVE_MAX_DRHO == 1.0 !!TODO Not implemented!!
+    # ADAPTIVE_MAX_DRHO == 1.0
     # - Maximum allowed change in rho during one time-step
     #
-    # ADAPTIVE_MAX_DPHI == 1.0 !!TODO Not implemented!!
+    # ADAPTIVE_MAX_DPHI == 1.0
     # - Maximum allowed change in toroidal angle during
     #   one time-step
     #
@@ -103,7 +103,7 @@ class opt():
     # ENDCOND_WALLHIT == 1
     # - Terminate when marker impacts wall
     #
-    # ENDCOND_MAXORBS == 0 !!TODO Not implemented!!
+    # ENDCOND_MAXORBS == 0
     # - Terminate when marker has completed user-specified number of
     #   toroidal or poloidal orbits
     #
@@ -207,7 +207,7 @@ class opt():
 
 
     ## Orbit writing specific options ##
-    # ENABLE_ORBITWRITE == 0 or 1 !!TODO Not implemented!!
+    # ENABLE_ORBITWRITE == 0 or 1
     # - Write exact marker state
     #
     # ORBITWRITE_MODE == 0, 1, or 2
