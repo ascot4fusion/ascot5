@@ -1,6 +1,6 @@
 
 
-from pylab import *
+from scipy import *
 
 def read_magn_bkg(fn,hdrfn):
     str = dict()

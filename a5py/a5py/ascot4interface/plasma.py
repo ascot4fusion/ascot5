@@ -1,4 +1,4 @@
-from pylab import *
+from scipy import *
 import numpy as np
 
 

@@ -1,4 +1,4 @@
-from pylab import *
+
 import numpy as np
 
 def read_erad(fn):

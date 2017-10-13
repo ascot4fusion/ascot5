@@ -1,5 +1,4 @@
 import h5py
-from pylab import *
 import numpy as np
 
 # # The input file contains an integer giving the number of wall triangles
