@@ -24,8 +24,8 @@
  * @param B_dB magnetic field and derivatives at the guiding center location
  * @param E electric field at the guiding center location
  */
-#pragma omp declare simd uniform(B_dB, E)
-static inline void step_gceom(real* ydot, real* y, real mass, real charge, real* B_dB, real* E) {
+#pragma omp declare simd
+static void step_gceom(real* ydot, real* y, real mass, real charge, real* B_dB, real* E) {
 
     real B[3];
     B[0] = B_dB[0];
@@ -81,8 +81,8 @@ static inline void step_gceom(real* ydot, real* y, real mass, real charge, real*
 
 }
 
-#pragma omp declare simd uniform(B_dB, E)
-static inline void step_gceom_SIMD(int i, real ydot[][], real y[][], real mass, real charge, real B_dB[][], real E[][]) {
+#pragma omp declare simd uniform(B_dB, E, ydot, y)
+static void step_gceom_SIMD(int i, real ydot[6][NSIMD], real y[6][NSIMD], real mass, real charge, real B_dB[12][NSIMD], real E[3][NSIMD]) {
 
     real B[3];
     B[0] = B_dB[0][i];
@@ -129,12 +129,12 @@ static inline void step_gceom_SIMD(int i, real ydot[][], real y[][], real mass, 
     real EstarcrossBhat[3];
     math_cross(Estar, Bhat, EstarcrossBhat);
 
-    ydot[0] = (y[3][i]*Bstar[0]+EstarcrossBhat[0])/BhatDotBstar;
-    ydot[1] = (y[3][i]*Bstar[1]+EstarcrossBhat[1])/(y[0][i]*BhatDotBstar);
-    ydot[2] = (y[3][i]*Bstar[2]+EstarcrossBhat[2])/BhatDotBstar;
-    ydot[3] = (charge/(mass*gamma)) * math_dot(Bstar,Estar)/BhatDotBstar;
-    ydot[4] = 0;
-    ydot[5] = (charge/mass) * normB;
+    ydot[0][i] = (y[3][i]*Bstar[0]+EstarcrossBhat[0])/BhatDotBstar;
+    ydot[1][i] = (y[3][i]*Bstar[1]+EstarcrossBhat[1])/(y[0][i]*BhatDotBstar);
+    ydot[2][i] = (y[3][i]*Bstar[2]+EstarcrossBhat[2])/BhatDotBstar;
+    ydot[3][i] = (charge/(mass*gamma)) * math_dot(Bstar,Estar)/BhatDotBstar;
+    ydot[4][i] = 0;
+    ydot[5][i] = (charge/mass) * normB;
 
 }
 

@@ -29,7 +29,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
 
     int i;
     /* Following loop will be executed simultaneously for all i */
-#pragma omp simd  aligned(h : 64) simdlen(8)
+    #pragma omp simd aligned(h : 64) simdlen(8)
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
 	    a5err errflag = 0;
@@ -167,7 +167,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
 		p->running[i] = 0;
             }
         }
-    }
+}//printf("%le %le %le %le %le %le %le %le %le %le %le %le\n",B_dB[0][0],B_dB[1][0],B_dB[2][0],B_dB[3][0],B_dB[4][0],B_dB[5][0],B_dB[6][0],B_dB[7][0],B_dB[8][0],B_dB[9][0],B_dB[10][0],B_dB[11][0]);
 }
 
 
@@ -175,7 +175,7 @@ void step_gc_rk4_SIMD(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field
 
     real psi[NSIMD];
     real rho[NSIMD];
-    real E[3][NSIMD]
+    real E[3][NSIMD];
     real B_dB[12][NSIMD];
 
     int i;
@@ -227,8 +227,8 @@ void step_gc_rk4_SIMD(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field
 	    B_dB[10][i] = p->B_z_dphi[i];
 	    B_dB[11][i] = p->B_z_dz[i];
 
-	    if(!errflag) {errflag = E_field_eval_E_SIMD(i, E, yprev[0], yprev[1], yprev[2], Edata, Bdata);}
-            if(!errflag) {step_gceom(i, k1, yprev, mass, charge, B_dB, E);}
+	    if(!errflag) {errflag = E_field_eval_E_SIMD(i, E, yprev[0][i], yprev[1][i], yprev[2][i], Edata, Bdata);}
+            if(!errflag) {step_gceom_SIMD(i, k1, yprev, mass, charge, B_dB, E);}
             int j;
             /* particle coordinates for the subsequent ydot evaluations are
              * stored in tempy */
@@ -236,22 +236,22 @@ void step_gc_rk4_SIMD(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field
                 tempy[j][i] = yprev[j][i] + h[i]/2.0*k1[j][i];
             }
 
-            if(!errflag) {errflag = B_field_eval_B_dB_SIMD(i, B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
-            if(!errflag) {errflag = E_field_eval_E_SIMD(i, E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
+            if(!errflag) {errflag = B_field_eval_B_dB_SIMD(i, B_dB, tempy[0][i], tempy[1][i], tempy[2][i], Bdata);}
+            if(!errflag) {errflag = E_field_eval_E_SIMD(i, E, tempy[0][i], tempy[1][i], tempy[2][i], Edata, Bdata);}
             if(!errflag) {step_gceom_SIMD(i, k2, tempy, mass, charge, B_dB, E);}
             for(j = 0; j < 6; j++) {
                 tempy[j][i] = yprev[j][i] + h[i]/2.0*k2[j][i];
             }
 
-            if(!errflag) {errflag = B_field_eval_B_dB_SIMD(i, B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
-	    if(!errflag) {errflag = E_field_eval_E_SIMD(i, E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
+            if(!errflag) {errflag = B_field_eval_B_dB_SIMD(i, B_dB, tempy[0][i], tempy[1][i], tempy[2][i], Bdata);}
+	    if(!errflag) {errflag = E_field_eval_E_SIMD(i, E, tempy[0][i], tempy[1][i], tempy[2][i], Edata, Bdata);}
             if(!errflag) {step_gceom_SIMD(i, k3, tempy, mass, charge, B_dB, E);}
             for(j = 0; j < 6; j++) {
                 tempy[j][i] = yprev[j][i] + h[i]*k3[j][i];
             }
 
-            if(!errflag) {errflag = B_field_eval_B_dB_SIMD(i, B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
-	    if(!errflag) {errflag = E_field_eval_E_SIMD(i, E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
+            if(!errflag) {errflag = B_field_eval_B_dB_SIMD(i, B_dB, tempy[0][i], tempy[1][i], tempy[2][i], Bdata);}
+	    if(!errflag) {errflag = E_field_eval_E_SIMD(i, E, tempy[0][i], tempy[1][i], tempy[2][i], Edata, Bdata);}
             if(!errflag) {step_gceom_SIMD(i, k4, tempy, mass, charge, B_dB, E);}
             for(j = 0; j < 6; j++) {
                 y[j][i] = yprev[j][i]

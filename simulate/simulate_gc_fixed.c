@@ -136,7 +136,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         }
         
         if(sim->enable_orbfol) {
-            step_gc_rk4_SIMD(&p, hin, &sim->B_data, &sim->E_data);
+            step_gc_rk4(&p, hin, &sim->B_data, &sim->E_data);
         }
 
         if(sim->enable_clmbcol) {

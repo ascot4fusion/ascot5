@@ -227,7 +227,7 @@ void B_GS_eval_psi(real psi[], real r, real phi, real z,
 	+ C[11] * (8*z5 - 45*z*r4 - 80*z3*r2*logr + 60*z*r4*logr) );
 }
 
-void B_GS_eval_psi_SIMD(int i, real psi[], real r, real phi, real z,
+void B_GS_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z,
                    B_GS_data* Bdata) {
     /* Normalize the coordinates */
     r /= Bdata->R0;
@@ -295,7 +295,7 @@ void B_GS_eval_rho(real rho[], real psi, B_GS_data* Bdata) {
     }
 }
 
-void B_GS_eval_rho_SIMD(int i, real rho[], real psi, B_GS_data* Bdata) {
+void B_GS_eval_rho_SIMD(int i, real rho[NSIMD], real psi, B_GS_data* Bdata) {
     if(psi - Bdata->psi0 < 0) {
         rho[i] = 0;
     }
@@ -466,7 +466,7 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
     }
 }
 
-void B_GS_eval_B_dB_SIMD(int i, real B_dB[][], real r, real phi, real z,
+void B_GS_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z,
                     B_GS_data* Bdata) {
     real* C = Bdata->psi_coeff;
 

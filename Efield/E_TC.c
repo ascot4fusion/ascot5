@@ -33,7 +33,7 @@ void E_TC_eval_E(real* E, real r, real phi, real z, E_TC_data* Edata, B_field_da
     math_vec_xyz2rpz(Edata->Exyz, E, phi);
 }
 
-void E_TC_eval_E_SIMD(int i, real* E, real r, real phi, real z, E_TC_data* Edata, B_field_data* Bdata) {
+void E_TC_eval_E_SIMD(int i, real E[3][NSIMD], real r, real phi, real z, E_TC_data* Edata, B_field_data* Bdata) {
     real E0[3];
     math_vec_xyz2rpz(Edata->Exyz, E0, phi);
     E[0][i] = E0[0];

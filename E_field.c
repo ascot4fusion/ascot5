@@ -73,7 +73,7 @@ a5err E_field_eval_E(real E[], real r, real phi, real z, E_field_data* Edata, B_
     return err;
 }
 
-a5err E_field_eval_E_SIMD(int i, real E[][], real r, real phi, real z, E_field_data* Edata, B_field_data* Bdata) {
+a5err E_field_eval_E_SIMD(int i, real E[3][NSIMD], real r, real phi, real z, E_field_data* Edata, B_field_data* Bdata) {
     a5err err = 0;
 
     switch(Edata->type) {

@@ -194,13 +194,13 @@ a5err B_field_eval_psi(real psi[], real r, real phi, real z,
 }
 
 
-a5err B_field_eval_psi_SIMD(int i, real psi[], real r, real phi, real z,
+a5err B_field_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z,
                       B_field_data* Bdata) {
     a5err err = 0;
 
     switch(Bdata->type) {
         case B_field_type_GS:
-        B_GS_eval_psi(i, psi, r, phi, z, &(Bdata->BGS));
+        B_GS_eval_psi_SIMD(i, psi, r, phi, z, &(Bdata->BGS));
         break;
     }
 
@@ -299,7 +299,7 @@ a5err B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
     return err;
 }
 
-a5err B_field_eval_rho_SIMD(int i, real rho[], real psi, B_field_data* Bdata) {
+a5err B_field_eval_rho_SIMD(int i, real rho[NSIMD], real psi, B_field_data* Bdata) {
     a5err err = 0;
 
     switch(Bdata->type) {
@@ -456,7 +456,7 @@ a5err B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
  * Bphi -> B[4]  dBphi/dr -> B[5] dBphi/dphi -> B[6]  dBphi/dz -> B[7]
  * Bz   -> B[8]    dBz/dr -> B[9]   dBz/dphi -> B[10]   dBz/dz -> B[11]
  */
-a5err B_field_eval_B_dB_SIMD(int i, real B_dB[][], real r, real phi, real z,
+a5err B_field_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z,
 			B_field_data* Bdata) {
     a5err err = 0;
 
