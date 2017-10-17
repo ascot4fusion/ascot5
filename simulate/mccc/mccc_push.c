@@ -45,8 +45,7 @@ a5err mccc_push_foEM(real F, real Dpara, real Dperp, real dt, real* rnd, real* v
     vout[0] = vin[0] + k1*vhat[0] + k2*vhat[0] + k3*(dW[0] - t1*vhat[0]);
     vout[1] = vin[1] + k1*vhat[1] + k2*vhat[1] + k3*(dW[1] - t1*vhat[1]);
     vout[2] = vin[2] + k1*vhat[2] + k2*vhat[2] + k3*(dW[2] - t1*vhat[2]);
-	
-    if(isnan(vout[0]) || isnan(vout[1]) || isnan(vout[2]))                  {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
+        
     if( (vout[0]*vout[0] + vout[1]*vout[1] + vout[2]*vout[2]) >= CONST_C2 ) {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
 
     return err;
@@ -110,9 +109,8 @@ a5err mccc_push_gcEM(real K, real nu, real Dpara, real DX, real* B, real dt, rea
 	xiout[0] = ((xiout[0] > 0) - (xiout[0] < 0))*(2-fabs(xiout[0]));
     }
 
-    if(isnan(Xout[0]) || isnan(Xout[1]) || isnan(Xout[2]))             {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
-    if(!err && (isnan(vout[0]) || vout[0] < 0 || vout[0] >= CONST_C) ) {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
-    if(!err && (isnan(xiout[0]) || fabs(xiout[0]) >= 1) )              {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
+    if(!err && ( vout[0] < 0 || vout[0] >= CONST_C) ) {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
+    if(!err && fabs(xiout[0]) >= 1)              {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
 
     return err;
 }
@@ -187,10 +185,8 @@ a5err mccc_push_gcMI(real K, real nu, real Dpara, real DX, real* B, real dt, rea
     kappa_d0[0] = (1/(6*erru))*fabs(dW[3]*dW[3]*dW[3]*dDpara*dDpara/sqrt(Dpara));
     kappa_d1[0] = sqrt(1-xiin*xiin)*nu*sqrt(nu)*fabs(dW[4] + sqrt(dt/3))*dt/(2*tol);
 
-    if(isnan(Xout[0]) || isnan(Xout[1]) || isnan(Xout[2]))            {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
-    if(!err && (isnan(vout[0]) || vout[0] < 0) )                      {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
-    if(!err && (isnan(xiout[0]) || fabs(xiout[0]) >= 1) )             {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
-    if(isnan(kappa_k[0]) || isnan(kappa_d0[1]) || isnan(kappa_d1[2])) {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
+    if(!err && vout[0] < 0)                      {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
+    if(!err && fabs(xiout[0]) >= 1)              {err = error_raise(ERR_CCOL_EVAL_FAIL, __LINE__);}
 
     return err;
 }

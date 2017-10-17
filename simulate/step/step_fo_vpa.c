@@ -116,9 +116,7 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
         }
 	    
 	    /* Test that the results are reasonable */
-	    if(!errflag && ( isnan(posxyz[0]) || isnan(posxyz[1]) || isnan(posxyz[2]) )) {errflag = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
 	    if(!errflag && ( posxyz[0] == 0 && posxyz[1] == 0 && posxyz[2] == 0 ))       {errflag = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	    if(!errflag && ( isnan(vxyz[0]) || isnan(vxyz[1]) || isnan(vxyz[2]) ))       {errflag = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
 	    if(!errflag && (vxyz[0]*vxyz[0]+vxyz[1]*vxyz[1]+vxyz[2]*vxyz[2]) > CONST_C2) {errflag = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
 	    
 	    if(!errflag) {

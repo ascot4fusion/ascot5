@@ -155,12 +155,9 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
 
 	    /* Test that results are physical */
 	    if(!errflag && fabs(hnext[i]) < A5_EXTREMELY_SMALL_TIMESTEP)      {errflag = error_raise(ERR_EXTREMELY_SMALL_TIMESTEP, __LINE__);}
-	    else if(!errflag && (isnan(yout[0]) || yout[0] <= 0))             {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && isnan(yout[1]))                               {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && isnan(yout[2]))                               {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && (isnan(yout[3]) || fabs(yout[4]) >= CONST_C)) {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && (isnan(yout[4]) || yout[4] < 0))              {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && isnan(yout[5]))                               {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    else if(!errflag && yout[0] <= 0)             {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    else if(!errflag && fabs(yout[4]) >= CONST_C) {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    else if(!errflag && yout[4] < 0)              {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
 	    /* Update gc phase space position */
 	    if(!errflag) {

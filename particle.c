@@ -339,17 +339,10 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 
     if(p->type == input_particle_type_p) {
 	/* Check that input is valid */
-	if(!err && ( isnan(p->p.r) || p->p.r <= 0 ))                         {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	if(!err && isnan(p->p.phi))                                          {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	if(!err && isnan(p->p.z))                                            {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	if(!err && isnan(p->p.v_r))                                          {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	if(!err && isnan(p->p.v_phi))                                        {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	if(!err && isnan(p->p.v_z))                                          {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	if(!err && ( math_normc(p->p.v_r,p->p.v_phi,p->p.v_z) >= CONST_C2 )) {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	if(!err && isnan(p->p.time))                                         {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	if(!err && isnan(p->p.charge))                                       {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	if(!err && ( isnan(p->p.mass) || p->p.mass <= 0 ))                   {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	if(!err && ( isnan(p->p.weight) || p->p.weight <= 0 ))               {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && p->p.r <= 0)                                              {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+        if(!err && ( math_normc(p->p.v_r,p->p.v_phi,p->p.v_z) >= CONST_C2 )) {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+        if(!err && p->p.mass <= 0)                                           {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && p->p.weight <= 0)                                         {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
 	if(!err && p->p.id <= 0)                                             {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
 
 	/* Particle to state */
@@ -385,11 +378,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 			  gamma*ps->mass*p->p.v_r, gamma*ps->mass*p->p.v_phi, gamma*ps->mass*p->p.v_z,
 			  &r, &phi, &z, &mu, &ppar, &theta);
 	}
-	if(!err && ( isnan(r) || r <= 0 ))  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && isnan(phi))              {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && isnan(z))                {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && ( isnan(mu) || mu < 0 )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && isnan(theta))            {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && r <= 0)  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+        if(!err && mu < 0)  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
 	/* Update magnetic field at gc position */
 	if(!err) {err = B_field_eval_B_dB(B_dB, r, phi, z, Bdata);}
@@ -400,7 +390,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	    gamma = physlib_relfactorp_gc(ps->mass, mu, ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
 	    vpar = ppar/(ps->mass*gamma);
 	}
-	if(!err && ( isnan(vpar) || vpar >= CONST_C )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && vpar >= CONST_C) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
 	if(!err) {
 	    ps->r     = r; 
@@ -430,17 +420,12 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
     }
     else if(p->type == input_particle_type_gc) {
 	/* Check that input is valid */
-	if(!err && ( isnan(p->p_gc.r) || p->p_gc.r <= 0 ))              {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && isnan(p->p_gc.phi))                                  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && isnan(p->p_gc.z))                                    {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && ( isnan(p->p_gc.pitch) || fabs(p->p_gc.pitch) > 1 )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && ( isnan(p->p_gc.energy) || p->p_gc.energy <= 0 ))    {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && isnan(p->p_gc.theta))                                {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && isnan(p->p_gc.time))                                 {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && isnan(p->p_gc.charge))                               {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && ( isnan(p->p_gc.mass) || p->p_gc.mass <= 0 ))        {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && ( isnan(p->p_gc.weight) || p->p_gc.weight <= 0 ))    {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && p->p_gc.id <= 0)                                     {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && p->p_gc.r <= 0)          {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+        if(!err && fabs(p->p_gc.pitch) > 1) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && p->p_gc.energy <= 0)     {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+        if(!err && p->p_gc.mass <= 0)       {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && p->p_gc.weight <= 0)     {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && p->p_gc.id <= 0)         {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
         /* Guiding center to state */
 	p->type = input_particle_type_s;
@@ -481,8 +466,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	    real B_norm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
 	    physlib_gc_vxi2muvpar(p->p_gc.mass, B_norm, v, p->p_gc.pitch, &mu, &vpar);
 	}
-	if(!err && ( isnan(mu) || mu < 0 ))            {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	if(!err && ( isnan(vpar) || vpar >= CONST_C )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && mu < 0)          {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	if(!err && vpar >= CONST_C) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
 	if(!err) {
 	    ps->r          = p->p_gc.r;     
@@ -511,10 +496,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 			  &rprt, &phiprt, &zprt, &pR, &pphi, &pz);
 	    gamma = physlib_relfactorp_fo(ps->mass, math_normc(pR, pphi, pz));
 	}
-	if(!err && ( isnan(rprt) || rprt <= 0 ))  {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	if(!err && isnan(phiprt))                 {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	if(!err && isnan(zprt))                   {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-	if(!err && ( isnan(gamma) || gamma < 1 )) {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+	if(!err && rprt <= 0) {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+        if(!err && gamma < 1) {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
 	
 	if(!err) {
 	    ps->rprt   = rprt;
@@ -529,13 +512,9 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
     }
     else if(p->type == input_particle_type_ml) {
 	/* Check that input is valid */
-	if(!err && ( isnan(p->p_ml.r) || p->p_ml.r <= 0 ))           {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
-	if(!err && isnan(p->p_ml.phi))                               {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
-	if(!err && isnan(p->p_ml.z))                                 {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
-	if(!err && isnan(p->p_ml.pitch))                             {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
-	if(!err && isnan(p->p_ml.time))                              {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
-	if(!err && ( isnan(p->p_ml.weight) || p->p_ml.weight <= 0 )) {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
-	if(!err && p->p_ml.id <= 0)  
+	if(!err && p->p_ml.r <= 0)      {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
+        if(!err && p->p_ml.weight <= 0) {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
+	if(!err && p->p_ml.id <= 0)     {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);} 
 
 	/* Magnetic field line to state */
 	p->type = input_particle_type_s;
@@ -726,11 +705,8 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
 		      gamma*p->mass*vR , gamma*p->mass*vphi, gamma*p->mass*vz,
 		      &p->r, &p->phi, &p->z, &p->mu, &ppar, &p->theta);
     }
-    if(!err && ( isnan(p->r) || p->r <= 0 ))  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-    if(!err && isnan(p->phi))                 {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-    if(!err && isnan(p->z))                   {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-    if(!err && ( isnan(p->mu) || p->mu < 0 )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-    if(!err && isnan(p->theta))               {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && p->r <= 0)  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && p->mu < 0)  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
     if(!err) {err = B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);}
     if(!err) {err = B_field_eval_psi(psi, p->r, p->phi, p->z, Bdata);}
@@ -740,7 +716,7 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
 	gamma = physlib_relfactorp_gc(p->mass, p->mu, ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
 	p->vpar = ppar/(p->mass*gamma);
     }
-    if(!err && ( isnan(p->vpar) || p->vpar >= CONST_C )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && p->vpar >= CONST_C) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
     /* Normally magnetic field data at gc position is stored here
      * but, if gc transformation fails, field at particle position is
@@ -897,10 +873,8 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
 		      &p->rprt, &p->phiprt, &p->zprt, &pR, &pphi, &pz);
 	gamma = physlib_relfactorp_fo(p->mass, math_normc(pR, pphi, pz));
     }
-    if(!err && ( isnan(p->rprt) || p->rprt <= 0 )) {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-    if(!err && isnan(p->phiprt))                   {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-    if(!err && isnan(p->zprt))                     {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-    if(!err && ( isnan(gamma) || gamma < 1 ))      {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+    if(!err && p->rprt <= 0) {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+    if(!err && gamma < 1)    {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
 
     if(!err) {
 	p->rdot       = pR/(gamma*p->mass); 
@@ -1083,11 +1057,8 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
 		      gamma*mass*vR , gamma*mass*vphi, gamma*mass*vz,
 		      &r, &phi, &z, &mu, &ppar, &theta);
     }
-    if(!err && ( isnan(r) || r <= 0 ))  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-    if(!err && isnan(phi))              {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-    if(!err && isnan(z))                {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-    if(!err && ( isnan(mu) || mu < 0 )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-    if(!err && isnan(theta))            {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && r <= 0)  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && mu < 0)  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
     
     real psi[1], rho[1];
     if(!err) {err = B_field_eval_B_dB(B_dB, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);}
@@ -1096,7 +1067,7 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
     if(!err) {
 	gamma = physlib_relfactorp_gc(p_gc->mass[j], mu, ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
     }
-    if(!err && ( isnan(gamma) || gamma < 1 )) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && gamma < 1) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
     
     if(!err) {
 	p_gc->r[j]          = r;

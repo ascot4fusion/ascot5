@@ -110,12 +110,9 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             } 
 
 	    /* Test that results are physical */
-	    if(!errflag && (isnan(y[0]) || y[0] <= 0))                  {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && isnan(y[1]))                            {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && isnan(y[2]))                            {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && (isnan(y[3]) || fabs(y[4]) >= CONST_C)) {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && (isnan(y[4]) || y[4] < 0))              {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && isnan(y[5]))                            {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    if(!errflag && y[0] <= 0)                  {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    else if(!errflag && fabs(y[4]) >= CONST_C) {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    else if(!errflag && y[4] < 0)              {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
 	    /* Update gc phase space position */
 	    if(!errflag) {
@@ -259,12 +256,9 @@ void step_gc_rk4_SIMD(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field
             } 
 
 	    /* Test that results are physical */
-	    if(!errflag && (isnan(y[0][i]) || y[0][i] <= 0))                  {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && isnan(y[1][i]))                            {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && isnan(y[2][i]))                            {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && (isnan(y[3][i]) || fabs(y[4][i]) >= CONST_C)) {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && (isnan(y[4][i]) || y[4][i] < 0))              {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-	    else if(!errflag && isnan(y[5][i]))                            {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    if(!errflag && y[0][i] <= 0)                  {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    else if(!errflag && fabs(y[4][i]) >= CONST_C) {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+	    else if(!errflag && y[4][i] < 0)              {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
 
 	    /* Update gc phase space position */
 	    if(!errflag) {
