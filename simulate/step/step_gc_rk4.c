@@ -2,6 +2,7 @@
  * @file step_gc_rk4.c
  * @brief Calculate a guiding center step for a struct of particles with RK4
  **/
+#include <stdio.h>
 #include <math.h>
 #include "../../ascot5.h"
 #include "../../consts.h"
@@ -164,35 +165,35 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
 		p->running[i] = 0;
             }
         }
-}//printf("%le %le %le %le %le %le %le %le %le %le %le %le\n",B_dB[0][0],B_dB[1][0],B_dB[2][0],B_dB[3][0],B_dB[4][0],B_dB[5][0],B_dB[6][0],B_dB[7][0],B_dB[8][0],B_dB[9][0],B_dB[10][0],B_dB[11][0]);
+    }
 }
 
 
-void step_gc_rk4_SIMD(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data* Edata) {
+void step_gc_rk4_SIMD(particle_simd_gc* p, real* hin, B_field_data* Bdata, E_field_data* Edata) {
 
+    real h[NSIMD];
+    for(int k=0; k<NSIMD; k++) {h[k] = hin[k];}
     real psi[NSIMD];
     real rho[NSIMD];
     real E[3][NSIMD];
     real B_dB[12][NSIMD];
+    real k1[6][NSIMD];
+    real k2[6][NSIMD];
+    real k3[6][NSIMD];
+    real k4[6][NSIMD];
+    real tempy[6][NSIMD];
+    real yprev[6][NSIMD];
+    real y[6][NSIMD];
 
     int i;
     /* Following loop will be executed simultaneously for all i */
-#pragma omp simd  aligned(h : 64) simdlen(8)
+#pragma omp simd simdlen(8)
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
 	    a5err errflag = 0;
 
-            real k1[6][NSIMD];
-            real k2[6][NSIMD];
-            real k3[6][NSIMD];
-            real k4[6][NSIMD];
-            real tempy[6][NSIMD];
-            real yprev[6][NSIMD];
-            real y[6][NSIMD];
-
             real mass;
             real charge;
-
 
 	    real R0   = p->r[i];
 	    real z0   = p->z[i];
@@ -230,7 +231,7 @@ void step_gc_rk4_SIMD(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field
             /* particle coordinates for the subsequent ydot evaluations are
              * stored in tempy */
             for(j = 0; j < 6; j++) {
-                tempy[j][i] = yprev[j][i] + h[i]/2.0*k1[j][i];
+                tempy[j][i] = yprev[j][i] + 1e-8/2.0*k1[j][i];
             }
 
             if(!errflag) {errflag = B_field_eval_B_dB_SIMD(i, B_dB, tempy[0][i], tempy[1][i], tempy[2][i], Bdata);}
