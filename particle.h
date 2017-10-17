@@ -118,6 +118,7 @@ typedef struct {
     int n;
     particle_state** p;
     int next;
+    int finished;
 } particle_queue;
 
 typedef enum input_particle_type {

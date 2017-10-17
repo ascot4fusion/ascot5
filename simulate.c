@@ -55,6 +55,9 @@ void simulate(int id, int n_particles, particle_state* p,
     pq.p = (particle_state**) malloc(pq.n * sizeof(particle_state*));
     pq_hybrid.p = (particle_state**)malloc(pq_hybrid.n*sizeof(particle_state*));
 
+    pq.finished = 0;
+    pq_hybrid.finished = 0;
+
     pq.next = 0;
     pq_hybrid.next = 0;
     for(int i = 0; i < n_particles; i++) {
