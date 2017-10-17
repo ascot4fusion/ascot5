@@ -81,8 +81,8 @@ static void step_gceom(real* ydot, real* y, real mass, real charge, real* B_dB, 
 
 }
 
-#pragma omp declare simd simdlen(8)
-static void step_gceom_SIMD(int i, real ydot[6][NSIMD], real y[6][NSIMD], real mass, real charge, real B_dB[12][NSIMD], real E[3][NSIMD]) {
+#pragma omp declare simd linear(i) uniform(ydot, y, E, B_dB) simdlen(8) aligned(ydot,y,B_dB,E:64)
+static inline void step_gceom_SIMD(int i, real ydot[6][NSIMD], real y[6][NSIMD], real mass, real charge, real B_dB[12][NSIMD], real E[3][NSIMD]) {
 
     real B[3];
     B[0] = B_dB[0][i];

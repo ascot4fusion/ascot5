@@ -13,11 +13,11 @@ int interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
 		      real z_min, real z_max, real z_grid);
 #pragma omp declare simd uniform(str) simdlen(8)
 int interp2Dcomp_eval_B(real* B, interp2D_data* str, real r, real z);
-#pragma omp declare simd uniform(str) simdlen(8)
+#pragma omp declare simd linear(i) uniform(B, str) simdlen(8)
 int interp2Dcomp_eval_B_SIMD(int i, real B[NSIMD], interp2D_data* str, real r, real z);
 #pragma omp declare simd uniform(str) simdlen(8)
 int interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z);
-#pragma omp declare simd uniform(str) simdlen(8)
+#pragma omp declare simd linear(i) uniform(B_dB, str) simdlen(8)
 int interp2Dcomp_eval_dB_SIMD(int i, real B_dB[6][NSIMD], interp2D_data* str, real r, real z);
 void interp2Dcomp_free(interp2D_data* str);
 #pragma omp end declare target

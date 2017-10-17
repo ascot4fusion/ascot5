@@ -171,19 +171,19 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
 
 void step_gc_rk4_SIMD(particle_simd_gc* p, real* hin, B_field_data* Bdata, E_field_data* Edata) {
 
-    real h[NSIMD];
+    real h[NSIMD] __memalign__;
     for(int k=0; k<NSIMD; k++) {h[k] = hin[k];}
-    real psi[NSIMD];
-    real rho[NSIMD];
-    real E[3][NSIMD];
-    real B_dB[12][NSIMD];
-    real k1[6][NSIMD];
-    real k2[6][NSIMD];
-    real k3[6][NSIMD];
-    real k4[6][NSIMD];
-    real tempy[6][NSIMD];
-    real yprev[6][NSIMD];
-    real y[6][NSIMD];
+    real psi[NSIMD] __memalign__;
+    real rho[NSIMD] __memalign__;
+    real E[3][NSIMD] __memalign__;
+    real B_dB[12][NSIMD] __memalign__;
+    real k1[6][NSIMD] __memalign__;
+    real k2[6][NSIMD] __memalign__;
+    real k3[6][NSIMD] __memalign__;
+    real k4[6][NSIMD] __memalign__;
+    real tempy[6][NSIMD] __memalign__;
+    real yprev[6][NSIMD] __memalign__;
+    real y[6][NSIMD] __memalign__;
 
     int i;
     /* Following loop will be executed simultaneously for all i */
