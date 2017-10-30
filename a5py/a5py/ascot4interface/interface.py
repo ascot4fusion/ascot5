@@ -3,6 +3,8 @@ Converting ASCOT4 input files to ASCOT5 input HDF5.
 """
 import os.path
 
+import numpy as np
+
 from . markers import *
 from . magn_bkg import *
 from . plasma import *
@@ -67,16 +69,18 @@ def run(a4folder, h5fn, overwrite=True):
             data = read_particles(fname)
             f.close()
             if 'vphi' in data['fieldNames']:
-                # We have particles (time is set to zero)
+                # We have particles
                 data = data["fields"]
                 markers.write_hdf5_particles(h5fn, data["id"].size, data["id"], data["mass"], data["charge"], 
                                              data["Rprt"], data["phiprt"], data["zprt"], data["vR"], 
                                              data["vphi"], data["vz"], data["weight"], data["weight"]*0)
             elif 'energy' in data['fieldNames']:
-                # We have guiding centers (time and theta are set to zero)
+                # We have guiding centers (theta is random)
+                data = data["fields"]
+                theta = 2*np.pi*np.random.rand(1,data["id"].size)
                 markers.write_hdf5_guidingcenters(h5fn, data["id"].size, data["id"], data["mass"], data["charge"], data["R"], 
-                                                  data["phi"], data["z"], data["energy"], data["pitch"], data["theta"]*0, 
-                                                  data["weight"], data["weight"]*0)
+                                                  data["phi"], data["z"], data["energy"], data["pitch"], theta, 
+                                                  data["weight"], data["time"] )
             f = h5py.File(h5fn, 'r')
 
     # Magnetic field.
