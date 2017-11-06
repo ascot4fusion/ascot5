@@ -59,7 +59,7 @@ void B_GS_init_offload(B_GS_offload_data* offload_data, real** offload_array) {
  */
 void B_GS_free_offload(B_GS_offload_data* offload_data,
                        real** offload_array) {
-    _mm_free(*offload_array);
+    free(*offload_array);
     *offload_array = NULL;
 }
 
