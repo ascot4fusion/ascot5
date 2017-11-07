@@ -291,7 +291,7 @@ void B_GS_eval_rho(real rho[], real psi, B_GS_data* Bdata) {
         rho[0] = 0;
     }
     else {
-        rho[0] = sqrt((psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0));
+        rho[0] = sqrt(fabs((psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0)));
     }
 }
 

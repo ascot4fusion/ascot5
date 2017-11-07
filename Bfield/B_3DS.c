@@ -323,11 +323,11 @@ a5err B_3DS_eval_rho(real rho[], real psi, B_3DS_data* Bdata) {
     a5err err = 0;
 
     /* Check that the values seem valid */
-    if( (psi - Bdata->psi0) < 0 ) {err = error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );}
-    else {
-        /* Normalize psi to get rho */
-        rho[0] = sqrt((psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0));
-    }
+    //if( (psi - Bdata->psi0) < 0 ) {err = error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );}
+    //else {
+    /* Normalize psi to get rho */
+    rho[0] = sqrt(fabs( (psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0) ));
+    //}
 
     return err;
 }
@@ -336,11 +336,11 @@ a5err B_3DS_eval_rho_SIMD(int i, real rho[NSIMD], real psi, B_3DS_data* Bdata) {
     a5err err = 0;
 
     /* Check that the values seem valid */
-    if( (psi - Bdata->psi0) < 0 ) {err = error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );}
-    else {
-        /* Normalize psi to get rho */
-        rho[i] = sqrt((psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0));
-    }
+    //if( (psi - Bdata->psi0) < 0 ) {err = error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );}
+    //else {
+    /* Normalize psi to get rho */
+    rho[i] = sqrt(fabs( (psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0) ));
+    //}
 
     return err;
 }
@@ -376,11 +376,11 @@ a5err B_3DS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_3DS_data*
     
     /* Check that the values seem valid */
     int check = 0;
-    if(!err && (psi_dpsi[0] - Bdata->psi0) < 0) {err = error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );}
-    else if(!err) {
+    //if(!err && (psi_dpsi[0] - Bdata->psi0) < 0) {err = error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );}
+    if(!err) {
         /* Normalize psi to get rho */
         real delta = Bdata->psi1 - Bdata->psi0;
-        rho_drho[0] = sqrt((psi_dpsi[0] - Bdata->psi0) / delta);
+        rho_drho[0] = sqrt(fabs( (psi_dpsi[0] - Bdata->psi0) / delta ));
 	
 	if(rho_drho[0] == 0) {
             rho_drho[1] = psi_dpsi[1] / (2*delta*rho_drho[0]);
