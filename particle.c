@@ -124,8 +124,6 @@ void particle_to_ml_dummy(particle_simd_ml* p_ml, int j){
  */
 int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
                       B_field_data* Bdata, int* cycle) {    
-    int f1 = q->finished;
-    int f2 = 0;
 
     for(int i = 0; i < NSIMD; i++) {
 	int i_prt;
@@ -143,7 +141,7 @@ int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
 	    particle_fo_to_state(p, i, q->p[p->index[i]], Bdata);
 	    newmarker = 1;
 	    #pragma omp critical
-	    f2 = q->finished++;
+	    q->finished++;
 	}
 
 	while(newmarker) {
@@ -157,7 +155,7 @@ int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
 		}
 		else {
 		    #pragma omp critical
- 		    f2 = q->finished++;
+ 		    q->finished++;
 		}
             }
             else {
@@ -173,10 +171,6 @@ int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
     #pragma omp simd reduction(+:n_running)
     for(int i = 0; i < NSIMD; i++) {
         n_running += p->running[i];
-    }
-    
-    if(f2 > f1) {
-        printf("Progress: %d/%d %le\n", f2, q->n, ((real) f2)/q->n);
     }
 
     return n_running;
@@ -196,8 +190,6 @@ int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
  */
 int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
                       B_field_data* Bdata, int* cycle) {    
-    int f1 = q->finished;
-    int f2 = 0;
 
     for(int i = 0; i < NSIMD; i++) {
 	int i_prt;
@@ -215,7 +207,7 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
 	    particle_gc_to_state(p, i, q->p[p->index[i]], Bdata);
 	    newmarker = 1;
 	    #pragma omp critical
-	    f2 = q->finished++;
+	    q->finished++;
 	}
 
 	while(newmarker) {
@@ -229,7 +221,7 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
 		}
 		else {
 		    #pragma omp critical
-		    f2 = q->finished++;
+		    q->finished++;
 		}
             }
             else {
@@ -240,15 +232,12 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
             }
         }
     }
+    #pragma omp flush(q)
 
     int n_running = 0;
     #pragma omp simd reduction(+:n_running)
     for(int i = 0; i < NSIMD; i++) {
         n_running += p->running[i];
-    }
-
-    if(f2 > f1) {
-      printf("Progress: %d/%d %le\n", f2, q->n, ((real) f2)/q->n);
     }
     
     return n_running;
@@ -268,8 +257,6 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
  */
 int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
                       B_field_data* Bdata, int* cycle) {    
-    int f1 = q->finished;
-    int f2 = 0;
 
     for(int i = 0; i < NSIMD; i++) {
 	int i_prt;
@@ -287,7 +274,7 @@ int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
 	    particle_ml_to_state(p, i, q->p[p->index[i]], Bdata);
 	    newmarker = 1;
 	    #pragma omp critical
-	    f2 = q->finished++;
+	    q->finished++;
 	}
 
 	while(newmarker) {
@@ -301,7 +288,7 @@ int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
 		}
 		else {
 		    #pragma omp critical
-		    f2 = q->finished++;
+		    q->finished++;
 		}
             }
             else {
@@ -317,10 +304,6 @@ int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
     #pragma omp simd reduction(+:n_running)
     for(int i = 0; i < NSIMD; i++) {
         n_running += p->running[i];
-    }
-
-    if(f2 > f1) {
-      printf("Progress: %d/%d %le\n", f2, q->n, ((real) f2)/q->n);
     }
     
     return n_running;

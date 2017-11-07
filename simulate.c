@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "endcond.h"
 #include "hdf5io/hdf5_orbits.h"
 #include "offload.h"
@@ -75,41 +76,70 @@ void simulate(int id, int n_particles, particle_state* p,
     printf("All fields initialized. Simulation begins.\n");
     #endif
 
-    if(pq.n > 0 && (sim.sim_mode == simulate_mode_gc
-            || sim.sim_mode == simulate_mode_hybrid)) {
-        sim.diag_data.orbits.type = diag_orb_type_gc;
+    /* Open a file for writing simulation progress */
+    char stdout[256];
+    char temp[256];
+    sprintf(temp, "_%06d", sim_offload->mpi_rank);
+    strcpy(stdout, sim_offload->outfn);
+    strcat(stdout, temp);
+    strcat(stdout, ".stdout");
+    FILE *fstd = fopen(stdout, "w");
+    if (fstd == NULL) {
+        printf("\nError opening stdout file.\n");
+    } 
 
-        if(sim.enable_ada) {
-            #pragma omp parallel
-            {
-                simulate_gc_adaptive(&pq, &sim);
+    #pragma omp parallel sections num_threads(2) 
+    {
+        #pragma omp section
+        {
+	    if(pq.n > 0 && (sim.sim_mode == simulate_mode_gc
+	                || sim.sim_mode == simulate_mode_hybrid)) {
+                sim.diag_data.orbits.type = diag_orb_type_gc;
+		if(sim.enable_ada) {
+                    #pragma omp parallel
+	            {
+	                simulate_gc_adaptive(&pq, &sim);
+	            }
+	        }
+	        else {
+                    #pragma omp parallel
+	            {
+	                simulate_gc_fixed(&pq, &sim);
+	            }
+	        }
 	    }
-        }
-        else {
-            #pragma omp parallel
-            {
-                simulate_gc_fixed(&pq, &sim);
+            else if(pq.n > 0 && sim.sim_mode == simulate_mode_fo) {
+                if(sim.record_GOasGC) {
+                    sim.diag_data.orbits.type = diag_orb_type_gc;
+                }
+                else {
+                    sim.diag_data.orbits.type = diag_orb_type_fo;
+                }
+                #pragma omp parallel
+                {
+                    simulate_fo_fixed(&pq, &sim);
+                }
             }
-        }
-    }
-    else if(pq.n > 0 && sim.sim_mode == simulate_mode_fo) {
-        if(sim.record_GOasGC) {
-            sim.diag_data.orbits.type = diag_orb_type_gc;
-        }
-        else {
-            sim.diag_data.orbits.type = diag_orb_type_fo;
-        }
-        #pragma omp parallel
+            else if(pq.n > 0 && sim.sim_mode == simulate_mode_ml) {
+                sim.diag_data.orbits.type = diag_orb_type_ml;
+                #pragma omp parallel
+                {
+                    simulate_ml_adaptive(&pq, &sim);
+                }
+            }
+	}    
+        #pragma omp section
         {
-            simulate_fo_fixed(&pq, &sim);
-        }
-    }
-    else if(pq.n > 0 && sim.sim_mode == simulate_mode_ml) {
-        sim.diag_data.orbits.type = diag_orb_type_ml;
-        #pragma omp parallel
-        {
-            simulate_ml_adaptive(&pq, &sim);
-        }
+	    real timer = A5_WTIME;
+	    while(fstd != NULL && pq.n > pq.finished) {
+	        real fracprog = ((real) pq.finished)/pq.n + 1e-10;
+	        real timespent = (A5_WTIME)-timer;
+		fprintf(fstd, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, Estimated time to finish: %.2f h\n", 
+                              pq.finished, pq.n, 100*fracprog, timespent/3600, (1/fracprog-1)*timespent/3600);
+		fflush(fstd);
+		sleep(60);
+	    }
+	}
     }
 
     /* Finish simulating hybrid particles with fo */
@@ -145,11 +175,34 @@ void simulate(int id, int n_particles, particle_state* p,
 
 	sim.record_GOasGC = 1; // Make sure we don't collect fos in gc diagnostics
 	sim.diag_data.orbits.type = diag_orb_type_gc;
-        #pragma omp parallel
-        {
-            simulate_fo_fixed(&pq_hybrid, &sim);
-        }
+	#pragma omp parallel sections num_threads(2)
+	{
+	    #pragma omp section
+	    {
+                #pragma omp parallel
+                {
+                    simulate_fo_fixed(&pq_hybrid, &sim);
+                }
+	    }
+	    #pragma omp section
+	    {
+	        fprintf(fstd,"Switching to hybrid mode.\n");
+	        real timer = A5_WTIME;
+		while(fstd != NULL && pq_hybrid.n > pq_hybrid.finished) {
+	            real fracprog = ((real) pq_hybrid.finished)/pq_hybrid.n + 1e-10;
+		    real timespent = (A5_WTIME)-timer;
+		    fprintf(fstd, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, Estimated time to finish: %.2f h\n", 
+		                  pq_hybrid.finished, pq_hybrid.n, 100*fracprog, timespent/3600, (1/fracprog-1)*timespent/3600);
+		    fflush(fstd);
+		    sleep(60);
+	        }
+	    }
+	}
     }
+
+    /* Close progress file*/
+    fprintf(fstd,"Closed.");
+    fclose(fstd);
 
     free(pq.p);
     free(pq_hybrid.p);
