@@ -82,8 +82,17 @@ int main(int argc, char** argv) {
     MPI_Status status;
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+    if(sim.mpi_size == 0) {
+        MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+	sim.mpi_rank = mpi_rank;
+	sim.mpi_size = mpi_size;
+    }
+    else {
+        /* Use user-defined size and rank */
+        mpi_rank = sim.mpi_rank;
+        mpi_size = sim.mpi_size;
+    }
     #else
     mpi_rank = sim.mpi_rank;
     mpi_size = sim.mpi_size;
@@ -267,6 +276,8 @@ int read_options(int argc, char** argv, sim_offload_data* sim) {
 
     sim->hdf5_in[0]  = '\0';
     sim->hdf5_out[0] = '\0';
+    sim->mpi_size = 0;
+    sim->mpi_rank = 0;
 
     int c;
     while((c = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
@@ -307,6 +318,6 @@ int read_options(int argc, char** argv, sim_offload_data* sim) {
     else {
 	strcat(sim->hdf5_in, ".h5");
     }
-    
+    strcpy(sim->outfn, sim->hdf5_out);
     return 0;
 }
