@@ -80,7 +80,7 @@ def run(a4folder, h5fn, overwrite=True):
                 theta = 2*np.pi*np.random.rand(1,data["id"].size)
                 markers.write_hdf5_guidingcenters(h5fn, data["id"].size, data["id"], data["mass"], data["charge"], data["R"], 
                                                   data["phi"], data["z"], data["energy"], data["pitch"], theta, 
-                                                  data["weight"], data["time"] )
+                                                  data["weight"], data["weight"]*0 )
             f = h5py.File(h5fn, 'r')
 
     # Magnetic field.
