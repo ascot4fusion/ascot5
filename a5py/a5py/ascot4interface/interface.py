@@ -68,15 +68,21 @@ def run(a4folder, h5fn, overwrite=True):
         if (os.path.isfile(fname)):
             data = read_particles(fname)
             f.close()
+            if 'charge' not in data['fieldNames']:
+                data["fields"]['charge'] = data["fields"]['Znum'] * consts_e
+            if 'mass' not in data['fieldNames']:
+                data["fields"]['mass'] = map(guessMass, data["fields"]['Anum'], data["fields"]['Znum'], data["fields"]['charge'])
             if 'vphi' in data['fieldNames']:
                 # We have particles
                 data = data["fields"]
+                print("Warning! Forcing time to zero for all markers.")
                 markers.write_hdf5_particles(h5fn, data["id"].size, data["id"], data["mass"], data["charge"], 
                                              data["Rprt"], data["phiprt"], data["zprt"], data["vR"], 
                                              data["vphi"], data["vz"], data["weight"], data["weight"]*0)
             elif 'energy' in data['fieldNames']:
                 # We have guiding centers (theta is random)
                 data = data["fields"]
+                print("Warning! Forcing time to zero and randomizing theta for all markers.")
                 theta = 2*np.pi*np.random.rand(1,data["id"].size)
                 markers.write_hdf5_guidingcenters(h5fn, data["id"].size, data["id"], data["mass"], data["charge"], data["R"], 
                                                   data["phi"], data["z"], data["energy"], data["pitch"], theta, 
@@ -97,13 +103,13 @@ def run(a4folder, h5fn, overwrite=True):
                                 data['r'][0], data['r'][-1], data['r'].size,
                                 data['z'][0], data['z'][-1], data['z'].size,
                                 0, 2*np.pi, data['nPhi'],
-                                data['axis_r'], data['axis_z'], data['psi']/(2*np.pi), data['psi0'], data['psi1'],
+                                data['axis_r'], data['axis_z'], data['psi']/(2*np.pi), data['psi0']/(2*np.pi), data['psi1']/(2*np.pi),
                                 data['br'], data['bphi'], data['bz'])
             else:
                 B_2D.write_hdf5(h5fn,
                                 data['r'][0], data['r'][-1], data['r'].size,
                                 data['z'][0], data['z'][-1], data['z'].size,
-                                data['axis_r'], data['axis_z'], data['psi']/(2*np.pi), data['psi0'], data['psi1'],
+                                data['axis_r'], data['axis_z'], data['psi']/(2*np.pi), data['psi0']/(2*np.pi), data['psi1']/(2*np.pi),
                                 data['br']*0, data['bphi'], data['bz']*0)
 
         elif os.path.isfile(fnameh5):

@@ -1,5 +1,41 @@
 import numpy as np
 
+ITM_EV           = 1.602176565e-19              # electron volt [eV]
+ITM_AMU          = 1.660538921e-27          # atomic mass unit [kg]
+ITM_ME           = 9.10938291e-31           # electron mass [kg]
+ITM_MP           = 1.672621777e-27          # proton mass [kg]
+ITM_MD           = 3.34358348e-27           # deuteron mass [kg]
+ITM_MT           = 5.00735630e-27           # triton mass [kg]
+ITM_MA           = 6.64465675e-27           # alpha mass [kg]
+ITM_MN           = 1.674927351e-27          # neutron mass [kg]
+ITM_MASS_He_3    = 3.0160293191 * ITM_AMU   # isotope mass [kg]
+
+consts_e         = ITM_EV
+consts_amu       = ITM_AMU
+consts_mElectron = ITM_ME
+consts_mProton   = ITM_MP
+consts_mDeuteron = ITM_MD
+consts_mTriton   = ITM_MT
+consts_mAlpha    = ITM_MA
+consts_mNeutron  = ITM_MN
+consts_mHe3      = ITM_MASS_He_3
+
+consts_Aelectron = 0
+consts_AProton   = 1
+consts_ANeutron  = 1
+consts_ADeuteron = 2
+consts_ATriton   = 3
+consts_AHe3      = 3
+consts_AAlpha    = 4
+
+consts_Zelectron = -1
+consts_Zneutron  = 0
+consts_ZProton   = 1
+consts_ZDeuteron = 1
+consts_ZTriton   = 1
+consts_ZHe3      = 2
+consts_ZAlpha    = 2                                                            
+
 def read_particles(fname):
     '''
     Read ASCOT4 input.particles file
@@ -104,3 +140,44 @@ def Ekin2velocity(mass,Ekin):
     vperc = sqrt( 1-1/( 1+Ekin/(mass*physics_const.c^2) )^2 );
     val = physics_const.c*vperc;
     return val
+
+# Return the mass of element with mass number A, charge number Z and
+# a given charge. The mass is returned in [amu]
+def guessMass(A,Z,charge):
+    mass=-1.0
+    
+    if (Z == consts_Zelectron):
+        if (charge < 0.0):
+            mass = consts_mElectron
+            return mass / consts_amu
+    elif (Z == consts_Zneutron):
+        if (A == consts_Aneutron):
+            mass = consts_mNeutron
+            return mass / consts_amu
+    elif (Z == 1): # Hydrogen
+        if (A == consts_AProton):
+            mass = massPlusElectrons( consts_mProton )
+            return mass / consts_amu
+        elif (A == consts_ADeuteron):
+            mass = massPlusElectrons( consts_mDeuteron )
+            return mass / consts_amu
+        elif (A == consts_ATriton):
+            mass = massPlusElectrons( consts_mTriton )
+            return mass / consts_amu
+    elif (Z == 2): # Helium
+        if (A == consts_AHe3):
+            mass = massPlusElectrons( consts_mHe3 )
+            return mass / consts_amu
+        elif (A == consts_AAlpha):
+            mass = massPlusElectrons( consts_mAlpha )
+            return mass / consts_amu
+    # Hmm. we better just estimate with other  elements...ignoring the binding energy
+    print("Warning! Unknown marker isotope, guesstimating mass.")
+    mass = massPlusElectrons( Z*consts_mProton + (A-Z)*consts_mNeutron )
+    return mass / consts_amu
+
+def massPlusElectrons(massIn):
+    if( int(round(charge/consts_e)) == Z):
+        return massIn
+    else:
+        return massIn + consts_mElectron * (round(-charge/consts_e)-Z)
