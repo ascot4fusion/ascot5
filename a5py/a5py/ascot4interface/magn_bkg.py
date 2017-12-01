@@ -1,6 +1,5 @@
-
-
 from scipy import *
+import h5py
 
 def read_magn_bkg(fn,hdrfn):
     str = dict()

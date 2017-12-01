@@ -53,9 +53,9 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     f.create_dataset(path + "/r_max", data=Rmax, dtype="f8")
     f.create_dataset(path + "/n_r",   data=nR, dtype="i8")
 
-    f.create_dataset(path + "/phi_min", data=Rmin, dtype="f8")
-    f.create_dataset(path + "/phi_max", data=Rmax, dtype="f8")
-    f.create_dataset(path + "/n_phi",   data=nR, dtype="i8")
+    f.create_dataset(path + "/phi_min", data=phimin, dtype="f8")
+    f.create_dataset(path + "/phi_max", data=phimax, dtype="f8")
+    f.create_dataset(path + "/n_phi",   data=nphi, dtype="i8")
 
     f.create_dataset(path + "/z_min", data=zmin, dtype="f8")
     f.create_dataset(path + "/z_max", data=zmax, dtype="f8")

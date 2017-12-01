@@ -69,9 +69,11 @@ def run(a4folder, h5fn, overwrite=True):
             data = read_particles(fname)
             f.close()
             if 'charge' not in data['fieldNames']:
+                print("Converting Znum to charge.")
                 data["fields"]['charge'] = data["fields"]['Znum'] * consts_e
             if 'mass' not in data['fieldNames']:
-                data["fields"]['mass'] = map(guessMass, data["fields"]['Anum'], data["fields"]['Znum'], data["fields"]['charge'])
+                print("Converting Anum to mass.")
+                data["fields"]['mass'] = np.array(list(map(guessMass, data["fields"]['Anum'], data["fields"]['Znum'], data["fields"]['charge'])))
             if 'vphi' in data['fieldNames']:
                 # We have particles
                 data = data["fields"]
@@ -83,7 +85,7 @@ def run(a4folder, h5fn, overwrite=True):
                 # We have guiding centers (theta is random)
                 data = data["fields"]
                 print("Warning! Forcing time to zero and randomizing theta for all markers.")
-                theta = 2*np.pi*np.random.rand(1,data["id"].size)
+                theta = 2*np.pi*np.random.rand(data["id"].size,1)
                 markers.write_hdf5_guidingcenters(h5fn, data["id"].size, data["id"], data["mass"], data["charge"], data["R"], 
                                                   data["phi"], data["z"], data["energy"], data["pitch"], theta, 
                                                   data["weight"], data["weight"]*0 )
@@ -114,11 +116,13 @@ def run(a4folder, h5fn, overwrite=True):
 
         elif os.path.isfile(fnameh5):
             data = read_magn_bkg_stellarator(fnameh5)
-            B_ST.write_hdf5(h5fn,
-                           data['r'], data['phi'], data['z'],
-                           data['br'], data['bphi'], data['bz'], data['s'],
-                           data['axis_r'], data['axis_phi'], data['axis_z'],
-                           data['n_periods'])
+            B_ST.write_hdf5(h5fn, 
+                            data['r'][0], data['r'][-1], data['r'].size,
+                            data['z'][0], data['z'][-1], data['z'].size,
+                            data['phi'][0], data['phi'][-1], data['phi'].size,
+                            data['br'], data['bphi'], data['bz'], data['s'],
+                            data['n_periods'],
+                            data['axis_r'], data['axis_phi'], data['axis_z'])
         
         f = h5py.File(h5fn, 'r')
 
@@ -164,7 +168,7 @@ def run(a4folder, h5fn, overwrite=True):
                                data['y1y2y3'], data['z1z2z3'], data['id'])
 
         elif (os.path.isfile(fnameh5)):
-            data = read_wall_3d_hdf5(fname)
+            data = read_wall_3d_hdf5(fnameh5)
 
             wall_3D.write_hdf5(h5fn, data['id'].size, data['x1x2x3'], 
                                data['y1y2y3'], data['z1z2z3'], data['id'])

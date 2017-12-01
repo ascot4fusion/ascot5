@@ -156,27 +156,27 @@ def guessMass(A,Z,charge):
             return mass / consts_amu
     elif (Z == 1): # Hydrogen
         if (A == consts_AProton):
-            mass = massPlusElectrons( consts_mProton )
+            mass = massPlusElectrons( consts_mProton, Z, charge )
             return mass / consts_amu
         elif (A == consts_ADeuteron):
-            mass = massPlusElectrons( consts_mDeuteron )
+            mass = massPlusElectrons( consts_mDeuteron, Z, charge )
             return mass / consts_amu
         elif (A == consts_ATriton):
-            mass = massPlusElectrons( consts_mTriton )
+            mass = massPlusElectrons( consts_mTriton, Z, charge )
             return mass / consts_amu
     elif (Z == 2): # Helium
         if (A == consts_AHe3):
-            mass = massPlusElectrons( consts_mHe3 )
+            mass = massPlusElectrons( consts_mHe3, Z, charge )
             return mass / consts_amu
         elif (A == consts_AAlpha):
-            mass = massPlusElectrons( consts_mAlpha )
+            mass = massPlusElectrons( consts_mAlpha, Z, charge )
             return mass / consts_amu
     # Hmm. we better just estimate with other  elements...ignoring the binding energy
     print("Warning! Unknown marker isotope, guesstimating mass.")
-    mass = massPlusElectrons( Z*consts_mProton + (A-Z)*consts_mNeutron )
+    mass = massPlusElectrons( Z*consts_mProton + (A-Z)*consts_mNeutron, Z, charge )
     return mass / consts_amu
 
-def massPlusElectrons(massIn):
+def massPlusElectrons(massIn, Z, charge):
     if( int(round(charge/consts_e)) == Z):
         return massIn
     else:
