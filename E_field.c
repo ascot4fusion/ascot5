@@ -77,6 +77,10 @@ a5err E_field_eval_E_SIMD(int i, real E[3][NSIMD], real r, real phi, real z, E_f
     a5err err = 0;
 
     switch(Edata->type) {
+    case E_field_type_1D:
+        E_1D_eval_E_SIMD(i, E, r, phi, z, &(Edata->E1D), Bdata);
+        break;
+
     case E_field_type_TC:
         E_TC_eval_E_SIMD(i, E, r, phi, z, &(Edata->ETC), Bdata);
         break;
