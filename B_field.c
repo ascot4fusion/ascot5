@@ -28,7 +28,7 @@ void B_field_init_offload(B_field_offload_data* offload_data,
 	    /* offload_data->type = B_field_type_TC; */
         } else {
             /* assuming input.h5 includes stellarator bfield */
-            offload_data->type = B_field_type_ST;
+            offload_data->type = B_field_type_STS;
         }
     } else {
         /* 2D if number of sectors 0 */
@@ -73,6 +73,11 @@ void B_field_init_offload(B_field_offload_data* offload_data,
         offload_data->offload_array_length = offload_data->BST.offload_array_length;
         break;
 
+        case B_field_type_STS:
+        B_STS_init_offload(&(offload_data->BSTS), offload_array);
+        offload_data->offload_array_length = offload_data->BSTS.offload_array_length;
+        break;
+
 	case B_field_type_TC:
         B_TC_init_offload(&(offload_data->BTC), offload_array);
         offload_data->offload_array_length = offload_data->BTC.offload_array_length;
@@ -105,6 +110,10 @@ void B_field_free_offload(B_field_offload_data* offload_data,
 
         case B_field_type_ST:
         B_ST_free_offload(&(offload_data->BST), offload_array);
+        break;
+
+        case B_field_type_STS:
+        B_STS_free_offload(&(offload_data->BSTS), offload_array);
         break;
 
 	case B_field_type_TC:
@@ -140,6 +149,10 @@ int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
 
         case B_field_type_ST:
         B_ST_init(&(Bdata->BST), &(offload_data->BST), offload_array);
+        break;
+
+        case B_field_type_STS:
+        B_STS_init(&(Bdata->BSTS), &(offload_data->BSTS), offload_array);
         break;
 
 	case B_field_type_TC:
@@ -180,6 +193,10 @@ a5err B_field_eval_psi(real psi[], real r, real phi, real z,
         B_ST_eval_psi(psi, r, phi, z, &(Bdata->BST));
         break;
 
+        case B_field_type_STS:
+        B_STS_eval_psi(psi, r, phi, z, &(Bdata->BSTS));
+        break;
+
 	case B_field_type_TC:
         B_TC_eval_psi(psi, r, phi, z, &(Bdata->BTC));
         break;
@@ -209,6 +226,10 @@ a5err B_field_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z,
 
         case B_field_type_3DS:
         B_3DS_eval_psi_SIMD(i, psi, r, phi, z, &(Bdata->B3DS));
+        break;
+
+        case B_field_type_STS:
+        B_STS_eval_psi_SIMD(i, psi, r, phi, z, &(Bdata->BSTS));
         break;
     }
 
@@ -250,6 +271,10 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
 
         case B_field_type_ST:
         B_ST_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BST));
+        break;
+
+        case B_field_type_STS:
+        B_STS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BSTS));
         break;
 
 	case B_field_type_TC:
@@ -294,6 +319,10 @@ a5err B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
         B_ST_eval_rho(rho, psi, &(Bdata->BST));
         break;
 
+        case B_field_type_STS:
+        B_STS_eval_rho(rho, psi, &(Bdata->BSTS));
+        break;
+
 	case B_field_type_TC:
         B_TC_eval_rho(rho, psi, &(Bdata->BTC));
         break;
@@ -321,6 +350,10 @@ a5err B_field_eval_rho_SIMD(int i, real rho[NSIMD], real psi, B_field_data* Bdat
 
 	case B_field_type_3DS:
         B_3DS_eval_rho_SIMD(i, rho, psi, &(Bdata->B3DS));
+        break;
+
+    	case B_field_type_STS:
+        B_STS_eval_rho_SIMD(i, rho, psi, &(Bdata->BSTS));
         break;
     }
 
@@ -364,6 +397,10 @@ a5err B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
         B_ST_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BST));
         break;
 
+        case B_field_type_STS:
+        B_STS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BSTS));
+        break;
+
 	case B_field_type_TC:
         B_TC_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BTC));
         break;
@@ -404,6 +441,10 @@ a5err B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata) {
 
         case B_field_type_ST:
         B_ST_eval_B(B, r, phi, z, &(Bdata->BST));
+        break;
+
+        case B_field_type_STS:
+        B_STS_eval_B(B, r, phi, z, &(Bdata->BSTS));
         break;
 
 	case B_field_type_TC:
@@ -453,6 +494,10 @@ a5err B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
         B_ST_eval_B_dB(B_dB, r, phi, z, &(Bdata->BST));
         break;
 
+        case B_field_type_STS:
+        B_STS_eval_B_dB(B_dB, r, phi, z, &(Bdata->BSTS));
+        break;
+
 	case B_field_type_TC:
         B_TC_eval_B_dB(B_dB, r, phi, z, &(Bdata->BTC));
         break;
@@ -487,6 +532,10 @@ a5err B_field_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real
 
 	case B_field_type_3DS:
         B_3DS_eval_B_dB_SIMD(i, B_dB, r, phi, z, &(Bdata->B3DS));
+        break;
+
+	case B_field_type_STS:
+        B_STS_eval_B_dB_SIMD(i, B_dB, r, phi, z, &(Bdata->BSTS));
         break;
     }
 
@@ -526,6 +575,10 @@ real B_field_get_axis_r(B_field_data* Bdata) {
         axis_r = B_ST_get_axis_r(&(Bdata->BST));
         break;
 
+        case B_field_type_STS:
+        axis_r = B_STS_get_axis_r(&(Bdata->BSTS));
+        break;
+
 	case B_field_type_TC:
         axis_r = B_TC_get_axis_r(&(Bdata->BTC));
         break;
@@ -558,6 +611,10 @@ real B_field_get_axis_z(B_field_data* Bdata) {
 
         case B_field_type_ST:
         axis_z = B_ST_get_axis_z(&(Bdata->BST));
+        break;
+
+        case B_field_type_STS:
+        axis_z = B_STS_get_axis_z(&(Bdata->BSTS));
         break;
 
 	case B_field_type_TC:

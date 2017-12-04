@@ -117,7 +117,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
     offload_data->offload_array_length=offload_data->B3DS.offload_array_length;
 
 	#if VERBOSE > 0
-	    printf("\nLoaded 3D magnetic field (B_3D)\n");
+	    printf("\nLoaded 3D magnetic field (B_3DS)\n");
 	    printf("with parameters:\n");
 	    printf("- magnetic axis at (R,z) = (%le,%le)\n",
 		   offload_data->B3DS.axis_r,offload_data->B3DS.axis_z);
@@ -131,20 +131,20 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
         return 1;
     }
     else if (strncmp(type, "B_ST",4) == 0) {
-        hdf5_bfield_init_offload_ST(f, &(offload_data->BST), offload_array);
-	offload_data->type = B_field_type_ST;
-    offload_data->offload_array_length=offload_data->BST.offload_array_length;
+        hdf5_bfield_init_offload_STS(f, &(offload_data->BSTS), offload_array);
+	offload_data->type = B_field_type_STS;
+    offload_data->offload_array_length=offload_data->BSTS.offload_array_length;
 	#if VERBOSE > 0
-	    printf("\nLoaded stellarator magnetic field (B_ST)\n");
+	    printf("\nLoaded stellarator magnetic field (B_STS)\n");
 	    printf("with parameters:\n");
 	    printf("- number of toroidal periods = %d\n",
-		   offload_data->BST.periods);
+		   offload_data->BSTS.periods);
 	    printf("- rmin, rmax, nr = %le, %le, %d\n",
-		   offload_data->BST.r_min,offload_data->BST.r_max,offload_data->BST.n_r);
+		   offload_data->BSTS.r_min,offload_data->BSTS.r_max,offload_data->BSTS.n_r);
 	    printf("- phimin, phimax, nphi = %le, %le, %d\n",
-		   offload_data->BST.phi_min,offload_data->BST.phi_max,offload_data->BST.n_phi);
+		   offload_data->BSTS.phi_min,offload_data->BSTS.phi_max,offload_data->BSTS.n_phi);
 	    printf("- zmin, zmax, nz = %le, %le, %d\n",
-		   offload_data->BST.z_min,offload_data->BST.z_max,offload_data->BST.n_z);
+		   offload_data->BSTS.z_min,offload_data->BSTS.z_max,offload_data->BSTS.n_z);
 	#endif
         return 1;
     }
