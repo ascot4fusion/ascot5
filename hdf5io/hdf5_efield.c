@@ -41,13 +41,13 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real**
 
         return 1;
     }
-    if(strncmp(type,"erad",4) == 0) {
+    if(strncmp(type,"E_1D",4) == 0) {
         offload_data->type = E_field_type_1D;
 	hdf5_efield_init_offload_1D(f, &(offload_data->E1D), offload_array);
     offload_data->offload_array_length = offload_data->E1D.offload_array_length;
 
 	#if VERBOSE > 0
-	    printf("\nLoaded radial electric field (E_TC)\n");
+	    printf("\nLoaded radial electric field (E_1D)\n");
 	    printf("with parameters:\n");
 	    printf("(n_rho, rho_min, rho_max) = (%d, %le, %le)\n",
 		   offload_data->E1D.n_rho,offload_data->E1D.rho_min,offload_data->E1D.rho_max);
