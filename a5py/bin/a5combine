@@ -3,13 +3,24 @@
 import sys
 from a5py.ascot5io.tools import combine
 
-print("Combining files\n")
-for fn in sys.argv[2:]:
-    print(fn)
+mode = 0
+if(sys.argv[1] == "-a"):
+    mode = "add"
+elif(sys.argv[1] == "-c"):
+    mode = "continue"
+else:
+    print("Please provide a valid mode as a first argument:")
+    print("-a : add")
+    print("-c : continue")
 
-print("\nwith " + sys.argv[1] +"\n")
+if(mode != 0):
+    print("Combining files\n")
+    for fn in sys.argv[3:]:
+        print(fn)
+        
+    print("\nwith " + sys.argv[2] +"\n")
+        
+    fnt = sys.argv[2]
+    fns = sys.argv[3:]
 
-fnt = sys.argv[1]
-fns = sys.argv[2:]
-
-combine(fnt, fns, mode="add")
+    combine(fnt, fns, mode=mode)

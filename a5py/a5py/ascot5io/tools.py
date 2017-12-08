@@ -38,6 +38,28 @@ def remove(fn,runid=0):
     
     f.close()
 
+def rmgroup(fn,group):
+    """
+    Remove a group.
+
+    TODO Not compatible with new HDF5 format.
+
+    Parameters
+    ----------
+
+    fn : str
+         Full path to HDF5 file.
+    group : str
+         Group to be removed
+    """
+    f = h5py.File(fn, "a")
+    if not group in f:
+        print("Error: Source file does not contain the field to be remove")
+        return
+
+    del f[group]
+    f.close()
+
 
 def copy(fns,fnt,field,subfield):
     """
@@ -116,7 +138,7 @@ def combine(fnt, fns, mode="add"):
     for state in ["inistate", "endstate"]:
         print("Combining " + state)
 
-        target = ascot5.read_hdf5(fnt,state)
+        target = ascot5.read_hdf5(fnt,"states")
 
         # Check whether target has the desired state.
         # Init empty state if necessary.
@@ -135,18 +157,23 @@ def combine(fnt, fns, mode="add"):
                 
                 # Iterate over all fields in a state
                 for field in source:
-                    
                     # If target does not have this field, add it.
                     # Otherwise extend or replace it depending on mode.
                     if field not in target[state]:
                         target[state][field] = source[field]
-                        
                     # No need to combine unit specifiers (fields ending with "unit")
                     elif field[-4:] != "unit" and field != "N" and field != "uniqueId":
                         if mode == "add":
                             target[state][field] = np.concatenate((target[state][field],source[field]))
-                        elif mode == "continue":
-                            print("TODO")
+                        elif mode == "continue" and state != "inistate":
+                            idx = np.argsort(target[state]["id"][:])
+                            target[state]["id"][:] = target[state]["id"][idx]
+                            idx = np.argsort(source["id"][:])
+                            fld = source[field][idx]
+
+                            idx = np.isin(target[state]["id"][:], source["id"][:], assume_unique=True)
+                            target[state][field][idx] = fld[:]
+                            print(np.sum(idx==True))
 
         # Target now contains all data from combined runs, so we just need to write it.
         states.write_hdf5(fnt,target,0)

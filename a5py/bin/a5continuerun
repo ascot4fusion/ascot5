@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import a5py.postprocessing.endstate2markers as endstate2markers
+import a5py.postprocessing.state2markers as state2markers
 
 import sys
 
@@ -10,5 +10,5 @@ if len(sys.argv) < 3:
 fn = sys.argv[1]
 markertype = sys.argv[2]
 
-endstate2markers.convert(fn,markertype)
+state2markers.convert(fn,markertype,"endstate",256)
 print("Endstate converted to markers.")

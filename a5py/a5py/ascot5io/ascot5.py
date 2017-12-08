@@ -111,7 +111,7 @@ def read_hdf5(fn, groups="all"):
         out["orbits"] = orbits.read_hdf5(fn)
         
     out["states"] = {}
-    if "inistate" in f and "states" in groups:
+    if "inistate" in f and "endstate" in f and "states" in groups:
         out["states"] = states.read_hdf5(fn)
         
 
