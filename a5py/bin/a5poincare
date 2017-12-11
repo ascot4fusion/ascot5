@@ -1,3 +1,174 @@
 #!/usr/bin/env python
 
-print("You used me which means you have to implement me.")
+import sys
+import subprocess
+import copy
+import numpy as np
+import a5py.ascot5io.markers as markers
+import a5py.ascot5io.options as options
+import a5py.ascot5io.ascot5 as ascot5
+import a5py.ascot5io.tools as tools
+
+from scipy import interpolate
+
+print("\n\
+a5poincare generates Poincare plot data by tracing markers.\n\
+\n\
+Requires ascot5_main binary and input hdf5 in the folder where\n\
+the program is executed.\n\
+\n\
+Note: if simulating markers from input file then simulation options\n\
+within the input file is used. Also field line parameters are ignored.\n\
+Field lines are always initialized at outer midplane\n\
+\n\
+Flags (default values in parenthesis):\n\
+- w : trace markers to wall instead stopping at separatrix\n\
+- m : use markers from input file instead of field lines\n\
+\n\
+Parameters (default values in parenthesis):\n\
+- torb   : number of toroidal plane crossings before termination (500)\n\
+- porb   : number of poloidal plane crossings before termination (500)\n\
+- ntrace : number of field line tracers (100)\n\
+- rmin   : minimum field line tracer initial rho (0)\n\
+- rmax   : maximum field line tracer initial rho (1)\n\
+- tor0   : field line tracer initial toroidal angle (traces at random angles)\n\
+- tor    : toroidal angles of poloidal planes where Poincare is recorded (0 deg)\n\
+- pol    : poloidal angles of toroidal planes where Poincare is recorded (0 deg)\n\
+- pitch  : direction, co[=1] or counter[=-1], field lines are traced (1) \n\
+- fn     : input HDF5 file (ascot)\n\
+\n\
+Example:\n\
+a5poincare -w -torb 2000 -pol \"10 20\" -fn input\n\
+\n\
+")
+
+## Interpret parameters and flags ##
+
+# Default values
+in_w   = 0
+in_m   = 0
+torb   = 500
+porb   = 500
+ntrace = 100
+rmin   = 0
+rmax   = 1
+tor0   = "random"
+tor    = np.array([0],dtype="f8")
+pol    = np.array([0],dtype="f8")
+pitch  = 1
+fn     = "ascot"
+
+# Read user input
+for j in range(0,len(sys.argv)):
+    i = sys.argv[j]
+    if i == "-w":
+        in_w = 1
+    elif i == "-m":
+        in_m = 1
+    elif i == "-torb":
+        torb = np.fromstring(sys.argv[j+1], dtype=np.uint8,sep=' ')
+    elif i == "-porb":
+        porb = np.fromstring(sys.argv[j+1], dtype=np.uint8,sep=' ')
+    elif i == "-ntrace":
+        ntrace = np.fromstring(sys.argv[j+1], dtype=np.uint8,sep=' ')
+    elif i == "-rmin":
+        rmin = np.fromstring(sys.argv[j+1], dtype=np.float,sep=' ') 
+    elif i == "-rmax":
+        rmax = np.fromstring(sys.argv[j+1], dtype=np.float,sep=' ') 
+    elif i == "-tor0":
+        tor0 = np.fromstring(sys.argv[j+1], dtype=np.float,sep=' ') 
+    elif i == "-tor":
+        tor = np.fromstring(sys.argv[j+1], dtype=np.float,sep=' ') 
+    elif i == "-pol":
+        pol = np.fromstring(sys.argv[j+1], dtype=np.float,sep=' ') 
+    elif i == "-pitch":
+        pitch = np.fromstring(sys.argv[j+1], dtype=np.float,sep=' ') 
+    elif i == "-fn":
+        fn = sys.argv[j+1]
+
+fn = fn + ".h5"
+## Read and store actual options ##
+o = ascot5.read_hdf5(fn, "options")["options"]
+opt = copy.deepcopy(o)
+
+## Set poincare options ##
+o["ENABLE_RZVparaVperp_DIST"]  = 0*o["ENABLE_RZVparaVperp_DIST"]
+o["ENABLE_ORBITWRITE"]         = 0*o["ENABLE_ORBITWRITE"] + 1
+o["ORBITWRITE_MODE"]           = 0*o["ORBITWRITE_MODE"] + 0
+o["ENABLE_ORBIT_FOLLOWING"]    = 0*o["ENABLE_ORBIT_FOLLOWING"] + 1
+
+for i in o:
+    if i.startswith("ENDCOND"):
+        o[i] = np.array([0],dtype='i4')
+
+o["ENDCOND_MAX_TOROIDALORBS"] = 0*o["ENDCOND_MAX_TOROIDALORBS"] + torb
+o["ENDCOND_MAX_POLOIDALORBS"] = 0*o["ENDCOND_MAX_POLOIDALORBS"] + porb
+o["ENDCOND_MIN_RHO"]          = 0*o["ENDCOND_MIN_RHO"] - 1
+o["ENDCOND_MAX_RHO"]          = 0*o["ENDCOND_MAX_RHO"] + 1
+
+o["ENDCOND_MAXORBS"] = 0*o["ENDCOND_MAXORBS"] + 1
+o["ENDCOND_WALLHIT"] = 0*o["ENDCOND_WALLHIT"] + 1
+o["ENDCOND_RHOLIM"]  = 0*o["ENDCOND_RHOLIM"] + 1*in_w
+
+o["ORBITWRITE_TOROIDALANGLES"] = tor
+o["ORBITWRITE_POLOIDALANGLES"] = pol
+
+# We are tracing field lines
+if in_m == 0:
+    mrk = ascot5.read_hdf5(fn, "markers")["markers"]
+    o["SIM_MODE"] = 0*o["SIM_MODE"] + 4
+
+    if mrk:
+        tools.rmgroup(fn,"markers")
+
+    # Generate actual field lines
+    ids = np.linspace(0,ntrace,ntrace) + 1
+    rho = np.linspace(rmin,rmax,ntrace)
+    phi = 2*np.pi*np.random.rand(ntrace,1)
+    if tor0 != "random":
+        tor0 = phi*0 + tor0
+
+    pitch = phi*0 + pitch
+    weight = pitch*0 + 1
+    time = pitch*0
+
+    # Find (R,z) values that correspond to rho
+    bfield = ascot5.read_hdf5(fn, "bfield")["bfield"]
+    if "B_2D" in bfield:
+        bfield = bfield["B_2D"]
+    elif "B_3D" in bfield:
+        bfield = bfield["B_3D"]
+    else:
+        sys.exit("Unsupported bfield type. Aborting.")
+        
+
+    rhovals = np.sqrt(np.abs((bfield["psi"] - bfield["psiaxis"]) / (bfield["psiaxis"] - bfield["psisepx"]) ));
+    Rq = np.linspace(bfield["axisR"], bfield["Rmax"], 200)
+    zq = bfield["axisz"]
+    Rgrid = np.linspace(bfield["Rmin"], bfield["Rmax"], bfield["nR"])
+    zgrid = np.linspace(bfield["zmin"], bfield["zmax"], bfield["nz"])
+    f = interpolate.interp2d(zgrid, Rgrid, rhovals, kind='cubic')
+    
+    rhoq = f(zq, Rq)
+    rhoq = rhoq.flatten()
+    f = interpolate.interp1d(rhoq, Rq,bounds_error=False,kind="cubic",fill_value=bfield["axisR"])
+    r = f(rho)
+    z = r*0 + bfield["axisz"]
+
+    markers.write_hdf5_fieldlines(fn, ntrace, ids, r, phi, z, pitch, weight, time)
+
+options.write_hdf5(fn, o)
+
+# Run ascot
+print("Begin simulation\n")
+subprocess.call(["./ascot5_main", "--in="+fn[0:-3]])
+
+# Restore options
+options.write_hdf5(fn, opt)
+
+# Restore markers
+if in_m == 0 and mrk:
+    markers.write_hdf5(fn,mrk)
+
+print("Finished.")
+
