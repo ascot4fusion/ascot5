@@ -3,23 +3,61 @@
  * @brief Test program for magnetic fields
  * Output is written to standard output, redirect with test_B > output.filename
  */
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "B_field.h"
+#include <string.h>
 #include "math.h"
+#include "B_field.h"
+#include "hdf5io/hdf5_input.h"
+#include "hdf5io/hdf5_orbits.h"
+#include "hdf5io/hdf5_particlestate.h"
+#include "offload.h"
 
 int main(int argc, char** argv) {
-    if(argc < 10) {
-        printf("Usage: test_B nr rmin rmax nphi phimin phimax nz zmin zmax\n");
+
+    if(argc < 11) {
+        printf("Usage: test_B nr rmin rmax nphi phimin phimax nz zmin zmax fname\n");
         exit(1);
     }
 
-    /* Init magnetic background */
-    B_field_offload_data offload_data;
+    FILE* f = fopen(argv[10], "w");
+    
+    int err = 0;
+    sim_offload_data sim;
+    sim.mpi_rank = 0;
+    sim.mpi_size = 1;
+
+    real* B_offload_array;
+    real* E_offload_array;
+    real* plasma_offload_array;
+    real* wall_offload_array;
     real* offload_array;
-    B_field_init_offload(&offload_data, &offload_array);
+    int n;
+    input_particle* p;
+
+    /* read_options(argc, argv, &sim); */
+    strcpy(sim.hdf5_in, "ascot.h5");
+    strcpy(sim.hdf5_out, "ascot");
+    
+    err = hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
+             &wall_offload_array, &p, &n);
+
+    /* Init magnetic background */
+    offload_package offload_data;
+    offload_init_offload(&offload_data, &offload_array);
+    offload_pack(&offload_data, &offload_array, B_offload_array,
+                 sim.B_offload_data.offload_array_length);
+    offload_pack(&offload_data, &offload_array, E_offload_array,
+                 sim.E_offload_data.offload_array_length);
+    offload_pack(&offload_data, &offload_array, plasma_offload_array,
+                 sim.plasma_offload_data.offload_array_length);
+    offload_pack(&offload_data, &offload_array, wall_offload_array,
+                 sim.wall_offload_data.offload_array_length);
+
+    /* Set up particlestates on host, needs magnetic field evaluation */
     B_field_data Bdata;
-    B_field_init(&Bdata, &offload_data, offload_array);
+    B_field_init(&Bdata, &sim.B_offload_data, B_offload_array);
 
     real B[3];
     real B_dB[12];
@@ -44,9 +82,9 @@ int main(int argc, char** argv) {
     math_linspace(phi, phi_min, phi_max, n_phi);
 
     /* Write header specifying grid dimensions */
-    printf("%d %le %le ", n_r, r_min, r_max);
-    printf("%d %le %le ", n_phi, phi_min, phi_max);
-    printf("%d %le %le\n", n_z, z_min, z_max);
+    fprintf(f,"%d %le %le ", n_r, r_min, r_max);
+    fprintf(f,"%d %le %le ", n_phi, phi_min, phi_max);
+    fprintf(f,"%d %le %le\n", n_z, z_min, z_max);
     
     int i, j, k;
     for(i = 0; i < n_r; i++) {
@@ -56,13 +94,14 @@ int main(int argc, char** argv) {
                 B_field_eval_B_dB(B_dB, r[i], phi[j], z[k], &Bdata);
                 B_field_eval_psi(&psi, r[i], phi[j], z[k], &Bdata);
                 B_field_eval_rho(&rho, psi, &Bdata);
-                printf("%le %le %le ", B[0], B[1], B[2]);
-                printf("%le %le %le ", B_dB[1], B_dB[2], B_dB[3]);
-                printf("%le %le %le ", B_dB[5], B_dB[6], B_dB[7]);
-                printf("%le %le %le ", B_dB[9], B_dB[10], B_dB[11]);
-                printf("%le\n", rho);
+                fprintf(f,"%le %le %le ", B[0], B[1], B[2]);
+                fprintf(f,"%le %le %le ", B_dB[1], B_dB[2], B_dB[3]);
+                fprintf(f,"%le %le %le ", B_dB[5], B_dB[6], B_dB[7]);
+                fprintf(f,"%le %le %le ", B_dB[9], B_dB[10], B_dB[11]);
+                fprintf(f,"%le\n", rho);
             }
         }
     }
+    fclose(f);
     return 0;
 }
