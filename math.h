@@ -8,6 +8,10 @@
 
 /** @brief Pi */
 #define math_pi 3.1415926535897932384626
+/** @brief One degree in radians */
+#define math_degrad 0.0174532925199432957692
+/** @brief One radian in degrees */
+#define math_raddeg 57.295779513082320876798
 
 /** @brief Maximum recursion depth for the simpson integral rule */
 #define math_maxSimpsonDepth 20
@@ -41,6 +45,12 @@
 
 /** @brief Calculate norm from components a1, a2, a3 */
 #define math_normc(a1, a2, a3) (sqrt(a1*a1+a2*a2+a3*a3))
+
+/** @brief Convert degrees to radians */
+#define math_deg2rad(a) (a * math_degrad)
+
+/** @brief Convert radians to degrees */
+#define math_rad2deg(a) (a * math_raddeg)
 
 #pragma omp declare target
 #pragma omp declare simd simdlen(8)
