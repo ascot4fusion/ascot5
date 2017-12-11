@@ -31,9 +31,6 @@
  */
 int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real** offload_array) {
     herr_t err;
-    int version;
-    int periods;
-    hsize_t dims[3];
 
     err = H5LTfind_dataset(f, "/bfield/");
     if(err < 0) {
@@ -421,7 +418,6 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
 void hdf5_bfield_init_offload_ST(hid_t f, B_ST_offload_data* offload_data, real** offload_array) {
     herr_t err;
     int periods;
-    hsize_t dims[3];
 
     /* Number of toroidal periods */
     err = H5LTread_dataset_int(f,"/bfield/B_ST/toroidalPeriods",&periods);
@@ -607,7 +603,6 @@ void hdf5_bfield_init_offload_ST(hid_t f, B_ST_offload_data* offload_data, real*
 void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, real** offload_array) {
     herr_t err;
     int periods;
-    hsize_t dims[3];
 
     /* Number of toroidal periods */
     err = H5LTread_dataset_int(f,"/bfield/B_ST/toroidalPeriods",&periods);
@@ -628,15 +623,15 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
     offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
                            / (offload_data->n_r - 1);
     /* Note! phi data in input.h5 in deg */
-    offload_data->phi_min = offload_data->phi_min / 360.0 * 2.0 *math_pi;
-    offload_data->phi_max = offload_data->phi_max / 360.0 * 2.0 *math_pi;
+    offload_data->phi_min = math_deg2rad(offload_data->phi_min);
+    offload_data->phi_max = math_deg2rad(offload_data->phi_max);
 
     offload_data->phi_grid = (offload_data->phi_max - offload_data->phi_min)
                            / (offload_data->n_phi - 1);
 
     offload_data->z_grid = (offload_data->z_max - offload_data->z_min)
                            / (offload_data->n_z - 1);
-
+    
     /* Read the bfield data */
     /* Allocate enough space for half a period */
     int temp_B_size = offload_data->n_r*offload_data->n_z*offload_data->n_phi;
@@ -655,11 +650,10 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
      * http://dx.doi.org/10.1016/S0167-2789(97)00216-9
      * The data is expected to include half a period.
      */
-    int B_size = offload_data->n_r*offload_data->n_z*(2*(offload_data->n_phi - 1) + 1 + 3);
-    int phi_size = offload_data->n_r*offload_data->n_z;
+    int B_size = offload_data->n_r*offload_data->n_z*(2*(offload_data->n_phi - 1));
     *offload_array = (real*) malloc(4 * B_size * sizeof(real));
     offload_data->offload_array_length = 4 * B_size;
-
+    
     int i_phi;
     int i_z;
     int i_r;
@@ -681,33 +675,38 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
                 temp_ind = i_z*offload_data->n_phi*offload_data->n_r + i_phi*offload_data->n_r + i_r;
 
                 /* Index of data point in offload_array and corresponding stel.-symmetric index  */
-                off_ind = 2*phi_size + i_phi*offload_data->n_z*offload_data->n_r + i_z*offload_data->n_r + i_r;
-                sym_ind = 2*phi_size + (2*(offload_data->n_phi - 1) - i_phi)*offload_data->n_z*offload_data->n_r
+                off_ind = i_phi*offload_data->n_z*offload_data->n_r + i_z*offload_data->n_r + i_r;
+                sym_ind = (2*(offload_data->n_phi - 1) - i_phi)*offload_data->n_z*offload_data->n_r
                     + (offload_data->n_z - i_z - 1)*offload_data->n_r + i_r;
 
                 /* B_r */
                 (*offload_array)[off_ind] =  temp_B_r[temp_ind];
-                (*offload_array)[sym_ind] = -temp_B_r[temp_ind];
+                if (i_phi != 0) {
+                    (*offload_array)[sym_ind] = -temp_B_r[temp_ind];
+                }
 
                 // B_phi
                 (*offload_array)[B_size + off_ind] = temp_B_phi[temp_ind];
-                (*offload_array)[B_size + sym_ind] = temp_B_phi[temp_ind];
-
+                if (i_phi != 0) {
+                    (*offload_array)[B_size + sym_ind] = temp_B_phi[temp_ind];
+                }
                 // B_z
                 (*offload_array)[2*B_size + off_ind] = temp_B_z[temp_ind];
-                (*offload_array)[2*B_size + sym_ind] = temp_B_z[temp_ind];
-
+                if (i_phi != 0) {
+                    (*offload_array)[2*B_size + sym_ind] = temp_B_z[temp_ind];
+                }
                 // B_s
                 (*offload_array)[3*B_size + off_ind] = temp_B_s[temp_ind];
-                (*offload_array)[3*B_size + sym_ind] = temp_B_s[temp_ind];
+                if (i_phi != 0) {
+                    (*offload_array)[3*B_size + sym_ind] = temp_B_s[temp_ind];
+                }                
             }
         }
     }
-
     /* Phi data is now for one toroidal period */
     offload_data->n_phi = 2*(offload_data->n_phi - 1);
-    offload_data->phi_max = offload_data->phi_min + (offload_data->n_phi - 1)*offload_data->phi_grid;
-
+    offload_data->phi_max = 2*offload_data->phi_max;
+        
     /* Dummy values for magnetic axis */
     offload_data->axis_r = 0;
     offload_data->axis_z = 0;
