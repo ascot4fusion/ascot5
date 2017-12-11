@@ -299,3 +299,27 @@ def read_hdf5(fn):
     f.close()
 
     return out
+
+
+def write_hdf5(fn, markers):
+
+    f = h5py.File(fn, "a")
+    if "markers" in f:
+        del f["markers"]
+
+    f.close()
+    prt = markers["particle"]
+    if prt["N"] > 0:
+        write_hdf5_particles(fn, prt["N"], prt["id"], prt["mass"], prt["charge"], 
+                         prt["r"], prt["phi"], prt["z"], prt["vR"], prt["vphi"], prt["vz"], 
+                         prt["weight"], prt["time"])
+
+    prt = markers["guiding_center"]
+    if prt["N"] > 0:
+        write_hdf5_guidingcenters(fn, prt["N"], prt["id"], prt["mass"], prt["charge"], 
+                                  prt["r"], prt["phi"], prt["z"], prt["energy"], prt["pitch"], prt["theta"], 
+                                  prt["weight"], prt["time"])
+
+    prt = markers["field_line"]
+    if prt["N"] > 0:
+         write_hdf5_fieldlines(fn, prt["N"], prt["id"], prt["r"], prt["phi"], prt["z"], prt["pitch"], prt["weight"], prt["time"])

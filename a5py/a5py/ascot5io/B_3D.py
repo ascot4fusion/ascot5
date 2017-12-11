@@ -131,7 +131,7 @@ def read_hdf5(fn):
     out["zmax"] = f[path]["z_max"][:]
     out["nz"]   = f[path]["n_z"][:]
 
-    out["psiRz"] = f[path]["psiRz"][:]
+    out["psi"]   = f[path]["psi"][:]
     out["B_R"]   = f[path]["B_r"][:]
     out["B_phi"] = f[path]["B_phi"][:]
     out["B_z"]   = f[path]["B_z"][:]
