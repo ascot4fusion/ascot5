@@ -54,35 +54,6 @@ int B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
 
     /* Spline initialization and storage. */
     
-    #if INTERP_SPL_EXPL    
-    err += interp3Dexpl_init(&Bdata->B_r, offload_array,
-	offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-	offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-	offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-	offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    
-    err += interp3Dexpl_init(&Bdata->B_phi, offload_array
-	+offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-	offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-	offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-	offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-	offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    	
-    err += interp3Dexpl_init(&Bdata->B_z, offload_array
-	+2*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-	offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-	offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-	offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-	offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    
-    err += interp3Dexpl_init(&Bdata->s, offload_array
-        +3*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-        offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-	offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-	offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-	offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-
-    #else
     err += interp3Dcomp_init(&Bdata->B_r, offload_array,
 			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
 			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
@@ -109,7 +80,6 @@ int B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
 			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    #endif
     return err;
     
 }
@@ -140,11 +110,7 @@ a5err B_STS_eval_psi(real psi[], real r, real phi, real z,
         phi += 2*math_pi/Bdata->periods;
     }
 
-    #if INTERP_SPL_EXPL
-    interperr += interp3Dexpl_eval_B(&psi[0], &Bdata->s, r, phi, z);
-    #else
     interperr += interp3Dcomp_eval_B(&psi[0], &Bdata->s, r, phi, z);
-    #endif
 
     /* Test for psi interpolation error */
     if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
@@ -213,16 +179,14 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_STS_data*
  * @param Bdata pointer to magnetic field data struct
  *
  */
-/* TODO error checking */
 a5err B_STS_eval_rho(real rho[], real psi, B_STS_data* Bdata) {
     a5err err = 0;
 
     rho[0] = sqrt(psi);
-
+    
     return err;
 }
 
-/* TODO error checking */
 a5err B_STS_eval_rho_SIMD(int i, real rho[NSIMD], real psi, B_STS_data* Bdata) {
     a5err err = 0;
 
