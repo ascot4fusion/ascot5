@@ -1,154 +1,145 @@
 import numpy as np
 import subprocess
+import scipy.constants as constants
 import matplotlib.pyplot as plt
 import a5py.ascot5io.ascot5 as ascot5
 import a5py.ascot5io.options as options
 import a5py.ascot5io.B_GS as B_GS
 import a5py.ascot5io.markers as markers
+import a5py.postprocessing.disttrasnformations as disttrans
 from testcase import createbase
 
-def run():
+fn = ["elemGO.h5", "elemGCF.h5", "elemGCA.h5"]
+
+ELEMENTARY_CHARGE = constants.elementary_charge
+AMU2KG = 1.66053904e-27
+
+simtime = 2e-5
+
+mprt = 1.00727647*2
+qprt = 1*2
+
+Temp = 1e3
+dens = 1e22
+Bnorm = 5
+Eprt = 3.5e6
+
+simmode = [1, 2, 2]
+
+def init():
+
+    
 
     # Test options
-    Rmin   = 4
-    Rmax   = 8
-    nR     = 80
-    zmin   = -5
-    zmax   = 5
-    nz     = 160
-    phimin = 0
-    phimax = 360
-    nphi   = 360
+    adaptive = [0, 0, 1]
+    timestep = [5.e-9, 1e-8, 1e-8]
+    tolorb = 1e-8
+    tolcol = 1e-1
+    Nmrk = 1
 
-    mrkNR  = 3
-    mrkNz  = 3
-    mrkphi = np.array([0, 180.25, 359.5])
-    
+
+
     # Init testbase.
-    fn = "test1.h5"
-    Bxyz = np.array([1, 0, 0])
+    Bxyz = np.array([0, Bnorm, 0])
     Exyz = np.array([0, 0, 0])
-    n = 1e20
-    T = 1e3
-    createbase(fn, Bxyz, Exyz, n, T)
+    createbase(fn[0], Bxyz, Exyz, dens, Temp)
+
+    # Markers
+    ids    = np.linspace(1,Nmrk,Nmrk)
+    mass   = mprt*np.ones(ids.shape)
+    charge = -qprt*np.ones(ids.shape)
+    R      = 5*np.ones(ids.shape)
+    phi    = 45*np.ones(ids.shape)
+    z      = 0*np.ones(ids.shape)
+    theta  = np.random.rand(1,Nmrk)*2*np.pi
+    weight = 1*np.ones(ids.shape)
+    time   = 0*np.ones(ids.shape)
     
-    # We are simulating field lines for 0 seconds.
-    # Only inistate is of interest.
-    o = options.read_hdf5(fn)
-    o["SIM_MODE"]                = 0*o["SIM_MODE"] + 4
-    o["ENDCOND_SIMTIMELIM"]      = 0*o["ENDCOND_SIMTIMELIM"] + 1
-    o["ENDCOND_MAX_SIM_TIME"]    = 0*o["ENDCOND_MAX_SIM_TIME"]
-    o["ENABLE_ORBIT_FOLLOWING"]  = 0*o["ENABLE_ORBIT_FOLLOWING"] + 1
-    options.write_hdf5(fn,o)
+    energy = Eprt*np.ones(ids.shape)
+    pitch  = 0*np.ones(ids.shape)
+    markers.write_hdf5_guidingcenters(fn[0], Nmrk, ids, mass, charge, 
+                                      R, phi, z, energy, pitch, theta, weight, time)
 
-    # Clone base into four copies.
-    fn1 = fn
-    fn2 = "test2.h5"
-    fn3 = "test3.h5"
-    fn4 = "test4.h5"
-    subprocess.call(["cp",fn,fn2])
-    subprocess.call(["cp",fn,fn3])
-    subprocess.call(["cp",fn,fn4])
+    #subprocess.call(["cp", fn[0], fn[1]])
+    #subprocess.call(["cp", fn[0], fn[2]])
 
-    # Init magnetic field.
-    R0 = 6.2
-    z0 = 0
-    B_phi0 = 5.3
-    psi_mult = 200
-    psi_coeff = np.array([8.629491085780416348e-02, 3.279306587723925803e-01, 5.268677701240817024e-01, -2.366208946912087274e-01, 
-                          3.825826765593096646e-01, -3.573153147754407621e-01, -1.484166833037287025e-02, 1.506045943286430100e-01, 
-                          7.428226459414810634e-01, -4.447153105104519888e-01, -1.084640395736786167e-01, 1.281599235951017685e-02, 
-                          -0.155])
-    Nripple = 18
-    a0 = 2
-    alpha0 = 2
-    delta0 = 0.1
+    for i in range(0,3):
+        # Options
+        o = options.read_hdf5(fn[i])
+        o["SIM_MODE"]                  = 0*o["SIM_MODE"] + simmode[i]
+        o["ENABLE_ADAPTIVE"]           = 0*o["ENABLE_ADAPTIVE"] + adaptive[i]
+        o["FIXEDSTEP_USE_USERDEFINED"] = 0*o["FIXEDSTEP_USE_USERDEFINED"] + 1
+        o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + timestep[i]
+        o["ADAPTIVE_TOL_ORBIT"]        = 0*o["ADAPTIVE_TOL_ORBIT"] + tolorb
+        o["ADAPTIVE_TOL_CCOL"]         = 0*o["ADAPTIVE_TOL_CCOL"] + tolcol
+        o["ENDCOND_SIMTIMELIM"]        = 0*o["ENDCOND_SIMTIMELIM"] + 1
+        o["ENDCOND_MAX_SIM_TIME"]      = 0*o["ENDCOND_MAX_SIM_TIME"] + simtime
+        o["ENABLE_ORBIT_FOLLOWING"]    = 0*o["ENABLE_ORBIT_FOLLOWING"] + 1
+        o["ENABLE_COULOMB_COLLISIONS"] = 0*o["ENABLE_COULOMB_COLLISIONS"] + 0
+        o["ENABLE_ORBITWRITE"]         = 0*o["ENABLE_ORBITWRITE"] + 1
+        o["ORBITWRITE_MODE"]           = 0*o["ORBITWRITE_MODE"] + 1
+        o["ORBITWRITE_INTERVAL"]       = 0*o["ORBITWRITE_INTERVAL"] + simtime/1e5
+        options.write_hdf5(fn[i],o)
 
-    B_GS.write_hdf5(fn1, R0, z0, B_phi0, psi_mult, psi_coeff)
 
-    B_GS.write_hdf5_B_2D(fn2, R0, z0, B_phi0, psi_mult, psi_coeff, 
-                         Rmin, Rmax, nR, zmin, zmax, nz)
 
-    B_GS.write_hdf5(fn3, R0, z0, B_phi0, psi_mult, psi_coeff, 
-                    Nripple=Nripple, a0=a0, alpha0=alpha0, delta0=delta0)
 
-    B_GS.write_hdf5_B_3D(fn4, R0, z0, B_phi0, psi_mult, psi_coeff, 
-                         Nripple, a0, alpha0, delta0, 
-                         Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi)
+def run():
+    # Simulate. (The ascot5_momcoll is the main program "ascot5_main"
+    # but compiled by setting A5_CCOL_NOENERGY to 1 in ascot5.h. This turns off
+    # the energy part of the collisions.)
+    subprocess.call(["./ascot5_main", "--in="+fn[0][0:-3]])
+    #subprocess.call(["./ascot5_main", "--in="+fn[1][0:-3]])
+    #subprocess.call(["./ascot5_main", "--in="+fn[2][0:-3]])
 
-    # Init markers.
-    Rg = np.linspace(Rmin,Rmax,nR*mrkNR)
-    Rg = Rg[1:-1]
-    zg = np.linspace(zmin,zmax,nz*mrkNz)
-    zg = zg[1:-1]
-    R, z = np.meshgrid(Rg,zg)
-    R = R.flatten()
-    z = z.flatten()
 
-    phi    = 0*np.ones(R.shape)
-    pitch  = np.ones(R.shape)
-    weight = np.ones(R.shape)
-    time   = 0*np.ones(R.shape)
+def check(plot=False):
+
+    t, x, z = ([] for i in range(3))
+    for i in range(0,len(fn)):
+        if simmode[i] == 1:
+            orb = ascot5.read_hdf5(fn[i],"orbits")["orbits"]["fo"]
+        else:
+            orb = ascot5.read_hdf5(fn[i],"orbits")["orbits"]["gc"]
+
+        t.append(orb["time"])
+        x.append( orb["R"] * np.cos(np.deg2rad(orb["phi"])) - 5 )
+        #x.append(orb["R"])
+        z.append(orb["z"])
+
+    gamma = 1+Eprt*ELEMENTARY_CHARGE/(mprt*AMU2KG*constants.c*constants.c)
+    vperp = np.sqrt(1-0.0*0.0) * np.sqrt(1-1/(gamma*gamma)) * constants.c
     
-    N   = R.size
-    ids = np.linspace(1,N,N)
-
-    # For 2D fields.
-    markers.write_hdf5_fieldlines(fn1, N, ids, R, phi, z, pitch, weight, time)
-    markers.write_hdf5_fieldlines(fn2, N, ids, R, phi, z, pitch, weight, time)
-
-    # For 3D fields.
-    R, z = np.meshgrid(Rg,zg)
-    R = np.tile(R,(1,1,3))
-    z = np.tile(z,(1,1,3))
-    phi = np.tile(phi,(1,3))
-    phi[0:N]   = mrkphi[0];
-    phi[N:2*N] = mrkphi[1];
-    phi[2*N:]  = mrkphi[2];
-    N = 3*N
-
-    R = R.flatten()
-    z = z.flatten()
-    phi = phi.flatten()
-    pitch  = np.ones(R.shape)
-    weight = np.ones(R.shape)
-    time   = 0*np.ones(R.shape)
-
-    ids = np.linspace(1,N,N)
-
-    markers.write_hdf5_fieldlines(fn3, N, ids, R, phi, z, pitch, weight, time)
-    markers.write_hdf5_fieldlines(fn4, N, ids, R, phi, z, pitch, weight, time)
-
-    # Simulate.
-    subprocess.call(["./ascot5_main", "--in="+fn1[0:-3]])
-    subprocess.call(["./ascot5_main", "--in="+fn2[0:-3]])
-    subprocess.call(["./ascot5_main", "--in="+fn3[0:-3]])
-    subprocess.call(["./ascot5_main", "--in="+fn4[0:-3]])
-
-    # Read inistate psi, magnetic field, and gradients.
-    is1 = ascot5.read_hdf5(fn1,"states")["states"]["inistate"]
-    is2 = ascot5.read_hdf5(fn2,"states")["states"]["inistate"]
-    is3 = ascot5.read_hdf5(fn3,"states")["states"]["inistate"]
-    is4 = ascot5.read_hdf5(fn4,"states")["states"]["inistate"]
-
-    
-    R = np.unique(is1["R"])
-    z = np.unique(is1["z"])
-    
-    B0 = np.reshape(is1["rho"],(z.size,R.size)) - np.reshape(is2["rho"],(z.size,R.size))
-    
-    # Plot if needed.
-    plt.contourf(R,z,B0)
-    plt.show()
+    #gyrolen = 0.9*np.sqrt(2*mprt*AMU2KG*Eprt*ELEMENTARY_CHARGE)/(Bnorm*ELEMENTARY_CHARGE*qprt)
+    gyrolen = mprt*AMU2KG * gamma * vperp/(Bnorm*ELEMENTARY_CHARGE*np.abs(qprt))
+    aphi = np.linspace(0,2*np.pi,1000)
+    ax = gyrolen*np.cos(aphi)
+    ay = gyrolen*np.sin(aphi)
 
     # Compare.
 
+    # Plot if needed.
+    if(plot):
+        plt.figure()
+        for i in range(0,1):
+            #plt.plot(x[i],z[i],linestyle='.', linewidth=3,marker='.')
+            plt.plot(x[i],z[i],linestyle='.', linewidth=3,marker='.')
+            
+        #plt.plot(ax,ay)
+        plt.axis('equal')
+        plt.show()
 
+
+   
+
+def clean():
     # Clean.
-    subprocess.call(["rm", fn1])
-    subprocess.call(["rm", fn2])
-    subprocess.call(["rm", fn3])
-    subprocess.call(["rm", fn4])
+    for i in range(0,3):
+        subprocess.call(["rm", "-f", fn[i]])
 
 if __name__ == '__main__':
+    init()
     run()
+    check(plot=True)
+    #clean()
+
