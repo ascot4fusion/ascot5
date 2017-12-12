@@ -5,9 +5,9 @@ def read_erad(fn):
 
     f = open(fn,'r')
     str = {'comm1' : f.readline()} #Skip comment line
-    str['n_rho'] = f.readline()
+    str['n_rho'] = f.readline().split()[0]
 
-    data = loadtxt(f)
+    data = np.loadtxt(f)
 
     str['rho'] = data[:,0]
     str['dV_drho'] = data[:,1]
