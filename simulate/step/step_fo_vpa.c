@@ -33,87 +33,86 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
         if(p->running[i]) {
             a5err errflag = 0;
 	    
-	    real phi0 = p->phi[i];
 	    real R0   = p->r[i];
 	    real z0   = p->z[i];
-	    
+
+	    /* Convert velocity to cartesian coordinates */
+	    real vrpz[3] = {p->rdot[i], p->phidot[i]*p->r[i], p->zdot[i]};
+	    real vxyz[3];
+	    math_vec_rpz2xyz(vrpz, vxyz, p->phi[i]);
+
+	    real posrpz[3] = {p->r[i], p->phi[i], p->z[i]};
+	    real posxyz0[3],posxyz[3];
+	    math_rpz2xyz(posrpz,posxyz0);
+
 	    /* Take a half step and evaluate fields at that position */
-	    real xhalf[3];
-	    xhalf[0]= p->r[i] + p->rdot[i]*h[i]/2;
-	    xhalf[1]= p->phi[i] + p->phidot[i]*h[i]/2;
-	    xhalf[2]= p->z[i] + p->zdot[i]*h[i]/2;
-	    
+	    posxyz[0] = posxyz0[0] + vxyz[0]*h[i]/2;
+	    posxyz[1] = posxyz0[1] + vxyz[1]*h[i]/2;
+	    posxyz[2] = posxyz0[2] + vxyz[2]*h[i]/2;
+
+	    math_xyz2rpz(posxyz,posrpz);
+
 	    real Brpz[3];
 	    real Erpz[3];
-	    if(!errflag) {errflag = B_field_eval_B(Brpz, xhalf[0], xhalf[1], xhalf[2], Bdata);}
-	    if(!errflag) {errflag = E_field_eval_E(Erpz, xhalf[0], xhalf[1], xhalf[2], Edata, Bdata);}
+	    if(!errflag) {errflag = B_field_eval_B(Brpz, posrpz[0], posrpz[1], posrpz[2], Bdata);}
+	    if(!errflag) {errflag = E_field_eval_E(Erpz, posrpz[0], posrpz[1], posrpz[2], Edata, Bdata);}
 	    
-	    real posxyz[3];  // xhalf in cartesian coordinates
+	    
 	    real fposxyz[3]; // final position in cartesian coordinates
-	    real vxyz[3];
+	    
 	    if(!errflag) {
                 /* Electromagnetic fields to cartesian coordinates */  
                 real Bxyz[3];
-            real Exyz[3];
+		real Exyz[3];
                 
-            math_vec_rpz2xyz(Brpz, Bxyz, xhalf[1]);
-            math_vec_rpz2xyz(Erpz, Exyz, xhalf[1]);
+		math_vec_rpz2xyz(Brpz, Bxyz, posrpz[1]);
+		math_vec_rpz2xyz(Erpz, Exyz, posrpz[1]);
             
-            /* Convert velocity to cartesian coordinates */
-            real vrpz[3] = {p->rdot[i], p->phidot[i]*p->r[i], p->zdot[i]};
-            math_vec_rpz2xyz(vrpz, vxyz, p->phi[i]);
+		/* Evaluate helper variable pminus */
+		real pminus[3];
+		real vnorm = math_norm(vxyz);
+		real gamma = sqrt(1 / ( (1 - vnorm/CONST_C)*(1 + vnorm/CONST_C) ));
+		real sigma = p->charge[i]*h[i]/(2*p->mass[i]*CONST_C);
+		pminus[0] = gamma*vxyz[0]/(CONST_C) + sigma*Exyz[0];
+		pminus[1] = gamma*vxyz[1]/(CONST_C) + sigma*Exyz[1];
+		pminus[2] = gamma*vxyz[2]/(CONST_C) + sigma*Exyz[2];
             
-            /* Positions to cartesian coordinates */
-            math_rpz2xyz(xhalf,posxyz);
+		/* Second helper variable pplus*/
+		real d = (p->charge[i]*h[i]/(2*p->mass[i])) / 
+		    sqrt( 1 + math_dot(pminus,pminus) );
+		real d2 = d*d;
             
-            /* Evaluate helper variable pminus */
-            real pminus[3];
-            real vnorm = math_norm(vxyz);
-            real gamma = sqrt(1 / ( (1 - vnorm/CONST_C)*(1 + vnorm/CONST_C) ));
-            real sigma = p->charge[i]*h[i]/(2*p->mass[i]*CONST_C);
-            pminus[0] = gamma*vxyz[0]/(CONST_C) + sigma*Exyz[0];
-            pminus[1] = gamma*vxyz[1]/(CONST_C) + sigma*Exyz[1];
-	    pminus[2] = gamma*vxyz[2]/(CONST_C) + sigma*Exyz[2];
+		real Bhat[9] = {       0,  Bxyz[2], -Bxyz[1], 
+				-Bxyz[2],        0,  Bxyz[0], 
+				 Bxyz[1], -Bxyz[0],        0};
+		real Bhat2[9];
+		math_matmul(Bhat, Bhat, 3, 3, 3, Bhat2);
             
-            /* Second helper variable pplus*/
-            real d = (p->charge[i]*h[i]/(2*p->mass[i])) / 
-                sqrt( 1 + math_dot(pminus,pminus) );
-            real d2 = d*d;
-            
-            real Bhat[9] = {       0,  Bxyz[2], -Bxyz[1], 
-                                -Bxyz[2],        0,  Bxyz[0], 
-                                 Bxyz[1], -Bxyz[0],       0};
-            real Bhat2[9];
-            math_matmul(Bhat, Bhat, 3, 3, 3, Bhat2);
-            
-            real B2 = Bxyz[0]*Bxyz[0] + Bxyz[1]*Bxyz[1] + Bxyz[2]*Bxyz[2];
+		real B2 = Bxyz[0]*Bxyz[0] + Bxyz[1]*Bxyz[1] + Bxyz[2]*Bxyz[2];
         
-            real A[9];
-            for(int j=0; j<9; j++) {
-                        A[j] = (d*Bhat[j] + d2*Bhat2[j]) * (2.0/(1+d2*B2));
-                    }
+		real A[9];
+		for(int j=0; j<9; j++) {
+		    A[j] = (Bhat[j] + d*Bhat2[j]) * (2.0*d/(1+d2*B2));
+		}
             
-            real pplus[3];
-            math_matmul(pminus, A, 1, 3, 3, pplus);
+		real pplus[3];
+		math_matmul(pminus, A, 1, 3, 3, pplus);
             
-            /* Take the step */
-            real pfinal[3];
-            pfinal[0] = pminus[0] + pplus[0] + sigma*Exyz[0];
-            pfinal[1] = pminus[1] + pplus[1] + sigma*Exyz[1];
-            pfinal[2] = pminus[2] + pplus[2] + sigma*Exyz[2];
-            //printf("%le %le %le\n",pminus[0],pplus[0],pfinal[0]);errflag=1;
-            // gamma = sqrt(1+(p/mc)^2)
-            real pnorm = math_norm(pfinal);
-            gamma = sqrt( 1/ (1 + pnorm*pnorm ));
+		/* Take the step */
+		real pfinal[3];
+		pfinal[0] = pminus[0] + pplus[0] + sigma*Exyz[0];
+		pfinal[1] = pminus[1] + pplus[1] + sigma*Exyz[1];
+		pfinal[2] = pminus[2] + pplus[2] + sigma*Exyz[2];
+		gamma = sqrt(1/(1 + math_dot(pfinal,pfinal)));
+
+		vxyz[0] = pfinal[0]*CONST_C*gamma;
+		vxyz[1] = pfinal[1]*CONST_C*gamma;
+		vxyz[2] = pfinal[2]*CONST_C*gamma;
             
-            vxyz[0] = pfinal[0]*CONST_C*gamma;
-            vxyz[1] = pfinal[1]*CONST_C*gamma;
-            vxyz[2] = pfinal[2]*CONST_C*gamma;
-            
-            fposxyz[0] = posxyz[0] + h[i]*vxyz[0]/2;
-            fposxyz[1] = posxyz[1] + h[i]*vxyz[1]/2;
-            fposxyz[2] = posxyz[2] + h[i]*vxyz[2]/2;
-        }
+		fposxyz[0] = posxyz[0] + h[i]*vxyz[0]/2;
+		fposxyz[1] = posxyz[1] + h[i]*vxyz[1]/2;
+		fposxyz[2] = posxyz[2] + h[i]*vxyz[2]/2;
+	    }
 	    
 	    /* Test that the results are reasonable */
 	    if(!errflag && ( posxyz[0] == 0 && posxyz[1] == 0 && posxyz[2] == 0 ))       {errflag = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
@@ -124,16 +123,14 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
                 p->r[i] = sqrt(fposxyz[0]*fposxyz[0]+fposxyz[1]*fposxyz[1]);
 
 		// We need to evaluate phi like this to make sure it is cumulative
-		p->phi[i] = xhalf[1] + 
-		    atan2( posxyz[0] * fposxyz[1] - posxyz[1] * fposxyz[0], 
-		    posxyz[0] * fposxyz[0] + posxyz[1] * fposxyz[1] );
-		//p->phi[i] = atan2(fposxyz[1],fposxyz[0]);
+		p->phi[i] += atan2( posxyz0[0] * fposxyz[1] - posxyz0[1] * fposxyz[0], 
+				    posxyz0[0] * fposxyz[0] + posxyz0[1] * fposxyz[1] );
 		p->z[i] = fposxyz[2];
+
 		p->rdot[i] = vxyz[0] * cos(p->phi[i]) + vxyz[1] * sin(p->phi[i]);
 		p->phidot[i] = ( -vxyz[0] * sin(p->phi[i]) + vxyz[1] * cos(p->phi[i]) ) / p->r[i];
 		p->zdot[i] = vxyz[2];
             }
-        
 
 	    /* Evaluate magnetic field (and gradient) and rho at new position */
 	    real BdBrpz[12];

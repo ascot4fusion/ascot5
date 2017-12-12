@@ -49,7 +49,7 @@ def init():
     mass   = mprt*np.ones(ids.shape)
     charge = -qprt*np.ones(ids.shape)
     R      = 5*np.ones(ids.shape)
-    phi    = 45*np.ones(ids.shape)
+    phi    = 90*np.ones(ids.shape)
     z      = 0*np.ones(ids.shape)
     theta  = np.random.rand(1,Nmrk)*2*np.pi
     weight = 1*np.ones(ids.shape)
@@ -103,14 +103,12 @@ def check(plot=False):
             orb = ascot5.read_hdf5(fn[i],"orbits")["orbits"]["gc"]
 
         t.append(orb["time"])
-        x.append( orb["R"] * np.cos(np.deg2rad(orb["phi"])) - 5 )
-        #x.append(orb["R"])
+        x.append( orb["R"] * np.cos(np.deg2rad(orb["phi"])) )
         z.append(orb["z"])
 
     gamma = 1+Eprt*ELEMENTARY_CHARGE/(mprt*AMU2KG*constants.c*constants.c)
     vperp = np.sqrt(1-0.0*0.0) * np.sqrt(1-1/(gamma*gamma)) * constants.c
-    
-    #gyrolen = 0.9*np.sqrt(2*mprt*AMU2KG*Eprt*ELEMENTARY_CHARGE)/(Bnorm*ELEMENTARY_CHARGE*qprt)
+
     gyrolen = mprt*AMU2KG * gamma * vperp/(Bnorm*ELEMENTARY_CHARGE*np.abs(qprt))
     aphi = np.linspace(0,2*np.pi,1000)
     ax = gyrolen*np.cos(aphi)
@@ -122,10 +120,9 @@ def check(plot=False):
     if(plot):
         plt.figure()
         for i in range(0,1):
-            #plt.plot(x[i],z[i],linestyle='.', linewidth=3,marker='.')
             plt.plot(x[i],z[i],linestyle='.', linewidth=3,marker='.')
             
-        #plt.plot(ax,ay)
+        plt.plot(ax,ay)
         plt.axis('equal')
         plt.show()
 
