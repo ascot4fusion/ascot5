@@ -76,6 +76,9 @@ void simulate(int id, int n_particles, particle_state* p,
     printf("All fields initialized. Simulation begins.\n");
     #endif
 
+    /* Verbose clauses in this function are ugly due to OpenMP.
+     * If you modify them, pay attention to brackets! */
+#if VERBOSE > 1
     /* Open a file for writing simulation progress */
     char stdout[256];
     char temp[256];
@@ -88,10 +91,14 @@ void simulate(int id, int n_particles, particle_state* p,
         printf("\nError opening stdout file.\n");
     } 
 
+    /* Spawn two threads: one for the actual simulation and one worker
+     * for updating process. */
     #pragma omp parallel sections num_threads(2) 
     {
         #pragma omp section
         {
+#endif
+	    /* Choose simulation mode and spawn more threads that each begins simulation. */
 	    if(pq.n > 0 && (sim.sim_mode == simulate_mode_gc
 	                || sim.sim_mode == simulate_mode_hybrid)) {
                 sim.diag_data.orbits.type = diag_orb_type_gc;
@@ -127,20 +134,24 @@ void simulate(int id, int n_particles, particle_state* p,
                     simulate_ml_adaptive(&pq, &sim);
                 }
             }
+#if VERBOSE > 1
 	}    
         #pragma omp section
         {
+	    /* Update progress until simulation is complete. */
 	    real timer = A5_WTIME;
 	    while(fstd != NULL && pq.n > pq.finished) {
-	        real fracprog = ((real) pq.finished)/pq.n + 1e-10;
+	        real epsilon = 1e-10;// To avoid division by zero
+	        real fracprog = ((real) pq.finished)/pq.n;
 	        real timespent = (A5_WTIME)-timer;
 		fprintf(fstd, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, Estimated time to finish: %.2f h\n", 
-                              pq.finished, pq.n, 100*fracprog, timespent/3600, (1/fracprog-1)*timespent/3600);
+			pq.finished, pq.n, 100*fracprog, timespent/3600, (1/(fracprog+epsilon)-1)*timespent/3600);
 		fflush(fstd);
-		sleep(60);
+		sleep(A5_PRINTPROGRESSINTERVAL);
 	    }
 	}
     }
+#endif
 
     /* Finish simulating hybrid particles with fo */
     if(sim.sim_mode == simulate_mode_hybrid) {
@@ -175,34 +186,42 @@ void simulate(int id, int n_particles, particle_state* p,
 
 	sim.record_GOasGC = 1; // Make sure we don't collect fos in gc diagnostics
 	sim.diag_data.orbits.type = diag_orb_type_gc;
+
+#if VERBOSE > 1
 	#pragma omp parallel sections num_threads(2)
 	{
 	    #pragma omp section
 	    {
+#endif
                 #pragma omp parallel
                 {
                     simulate_fo_fixed(&pq_hybrid, &sim);
                 }
+#if VERBOSE > 1
 	    }
 	    #pragma omp section
 	    {
 	        fprintf(fstd,"Switching to hybrid mode.\n");
 	        real timer = A5_WTIME;
 		while(fstd != NULL && pq_hybrid.n > pq_hybrid.finished) {
-	            real fracprog = ((real) pq_hybrid.finished)/pq_hybrid.n + 1e-10;
+		    real epsilon = 1e-10; // To avoid division by zero
+	            real fracprog = ((real) pq_hybrid.finished)/pq_hybrid.n;
 		    real timespent = (A5_WTIME)-timer;
 		    fprintf(fstd, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, Estimated time to finish: %.2f h\n", 
-		                  pq_hybrid.finished, pq_hybrid.n, 100*fracprog, timespent/3600, (1/fracprog-1)*timespent/3600);
+			    pq_hybrid.finished, pq_hybrid.n, 100*fracprog, timespent/3600, (1/(fracprog+epsilon)-1)*timespent/3600);
 		    fflush(fstd);
-		    sleep(60);
+		    sleep(A5_PRINTPROGRESSINTERVAL);
 	        }
 	    }
 	}
+#endif
     }
 
+#if VERBOSE > 1
     /* Close progress file*/
     fprintf(fstd,"Closed.");
     fclose(fstd);
+#endif
 
     free(pq.p);
     free(pq_hybrid.p);
