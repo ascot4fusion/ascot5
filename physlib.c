@@ -402,7 +402,7 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
     p_perp[0] = perphat[0];
     p_perp[1] = perphat[1];
     p_perp[2] = perphat[2];
-    math_prod(p_perp,sqrt(2*mass*(mu_0-mu_1)*B_norm));
+    math_prod(p_perp,sqrt(2*mass*fabs(mu_0-mu_1)*B_norm));
 
     /* Make the spatial transformation */
     real xyzprt[3];
