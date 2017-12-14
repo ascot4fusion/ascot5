@@ -112,6 +112,9 @@ typedef double real;
 /** @brief If adaptive time step falls below this value, produce an error */
 #define A5_EXTREMELY_SMALL_TIMESTEP 1e-12
 
+/** @brief How often progress is being written (s) in the stdout file */
+#define A5_PRINTPROGRESSINTERVAL 60
+
 /** @brief Wall time */
 #ifdef _OMP
 #define A5_WTIME omp_get_wtime()
