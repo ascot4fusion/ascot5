@@ -74,6 +74,9 @@ def run(a4folder, h5fn, overwrite=True):
             if 'mass' not in data['fieldNames']:
                 print("Converting Anum to mass.")
                 data["fields"]['mass'] = np.array(list(map(guessMass, data["fields"]['Anum'], data["fields"]['Znum'], data["fields"]['charge'])))
+            if (min(data["fields"]["id"]) <= 0):
+                data["fields"]["id"][np.where(data["fields"]["id"] ==0)[0]] = max(data["fields"]["id"] ) + 1
+                print("Converting id 0 to new unique id: " + str(int(max(data["fields"]["id"]))))
             if 'vphi' in data['fieldNames']:
                 # We have particles
                 data = data["fields"]
@@ -85,7 +88,7 @@ def run(a4folder, h5fn, overwrite=True):
                 # We have guiding centers (theta is random)
                 data = data["fields"]
                 print("Warning! Forcing time to zero and randomizing theta for all markers.")
-                theta = 2*np.pi*np.random.rand(data["id"].size,1)
+                theta = 2*np.pi*np.random.rand(data["id"].size)
                 markers.write_hdf5_guidingcenters(h5fn, data["id"].size, data["id"], data["mass"], data["charge"], data["R"], 
                                                   data["phi"], data["z"], data["energy"], data["pitch"], theta, 
                                                   data["weight"], data["weight"]*0 )
