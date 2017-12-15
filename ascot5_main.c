@@ -67,55 +67,64 @@ int main(int argc, char** argv) {
                  sim.wall_offload_data.offload_array_length);
 
     #ifndef NOTARGET
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
+        diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
+        diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
     #else
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
+        diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
     #endif
     
     #if VERBOSE >= 1
-    printf("Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
+        printf("Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
     #endif
     
     int mpi_rank, mpi_size;
     #ifdef MPI
-    MPI_Status status;
-    int provided;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-    if(sim.mpi_size == 0) {
-        MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
-	sim.mpi_rank = mpi_rank;
-        sim.mpi_size = mpi_size;
-    }
-    else {
-        /* Use user-defined size and rank */
-        mpi_rank = sim.mpi_rank;
-        mpi_size = sim.mpi_size;
-    }
+        MPI_Status status;
+	int provided;
+	MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+	if(sim.mpi_size == 0) {
+	    /* Let MPI determine size and rank */
+            MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+	    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+	    sim.mpi_rank = mpi_rank;
+	    sim.mpi_size = mpi_size;
+	}
+	else {
+	    /* Use user-defined size and rank */
+	    mpi_rank = sim.mpi_rank;
+	    mpi_size = sim.mpi_size;
+	}
     #else
-    mpi_rank = sim.mpi_rank;
-    mpi_size = sim.mpi_size;
+	if(sim.mpi_size == 0) {
+            /* Use default values (single process) */
+            mpi_rank = 0;
+	    mpi_size = 1;
+        }
+	else {
+            /* Use user-defined size and rank */
+            mpi_rank = sim.mpi_rank;
+            mpi_size = sim.mpi_size;
+        }
     #endif
     
     #if VERBOSE >= 1
-    printf("Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
+        printf("Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
     #endif
 
     if(mpi_size == 1) {
-    char temp[256];
-    strcat(sim.hdf5_out, ".h5");
+        char temp[256];
+	strcat(sim.hdf5_out, ".h5");
     }
     else {
-    char temp[256];
+        char temp[256];
         sprintf(temp, "_%06d.h5", mpi_rank);
-    strcat(sim.hdf5_out, temp);
+	strcat(sim.hdf5_out, temp);
     }
     err = hdf5_checkoutput(&sim);
     if(err) {return 0;};
 
     #if VERBOSE >= 1
-    printf("Read %d particles.\n", n);
+        printf("Read %d particles.\n", n);
     #endif
 
     int start_index = mpi_rank * (n / mpi_size);
@@ -133,7 +142,7 @@ int main(int argc, char** argv) {
     B_field_init(&Bdata, &sim.B_offload_data, B_offload_array);
 
     #if VERBOSE >= 1
-    printf("Magnetic field initialization complete.\n");
+        printf("Magnetic field initialization complete.\n");
     #endif
 
     particle_state* ps = (particle_state*) malloc(n * sizeof(particle_state));
@@ -144,15 +153,15 @@ int main(int argc, char** argv) {
     hdf5_particlestate_write(sim.hdf5_out, "inistate", n, ps);
 
     #if VERBOSE >= 1
-    printf("Markers initialized and inistate written.\n");
+        printf("Markers initialized and inistate written.\n");
     #endif
 
     #ifndef NOTARGET
-    int n_mic = n / 2;
-    int n_host = 0;
+        int n_mic = n / 2;
+        int n_host = 0;
     #else
-    int n_mic = 0;
-    int n_host = n;
+        int n_mic = 0;
+        int n_host = n;
     #endif
 
     double mic0_start, mic0_end, mic1_start, mic1_end, host_start, host_end;
@@ -173,9 +182,9 @@ int main(int argc, char** argv) {
                 #endif
                 
                 #pragma omp target device(0) map( \
-        ps[0:n_mic], \
-        offload_array[0:offload_data.offload_array_length], \
-        diag_offload_array_mic0[0:sim.diag_offload_data.offload_array_length] \
+		        ps[0:n_mic],	\
+			offload_array[0:offload_data.offload_array_length], \
+			diag_offload_array_mic0[0:sim.diag_offload_data.offload_array_length] \
                 )
                 simulate(1, n_mic, ps, &sim, &offload_data, offload_array,
                          diag_offload_array_mic0);
@@ -192,9 +201,9 @@ int main(int argc, char** argv) {
                 #endif
 
                 #pragma omp target device(1) map( \
-        ps[n_mic:2*n_mic], \
-        offload_array[0:offload_data.offload_array_length], \
-        diag_offload_array_mic1[0:sim.diag_offload_data.offload_array_length] \
+                        ps[n_mic:2*n_mic], \
+			offload_array[0:offload_data.offload_array_length], \
+			diag_offload_array_mic1[0:sim.diag_offload_data.offload_array_length] \
                 )
                 simulate(2, n_mic, ps+n_mic, &sim, &offload_data, offload_array,
                          diag_offload_array_mic1);
@@ -222,15 +231,15 @@ int main(int argc, char** argv) {
     /* Code excution returns to host. */
 
     #if VERBOSE >= 1
-    printf("Writing endstate.");
+        printf("Writing endstate.");
     #endif
 
     hdf5_particlestate_write(sim.hdf5_out, "endstate", n, ps);
     //hdf5_orbits_write(&sim, sim.hdf5_out);
 
     #if VERBOSE >= 1
-    printf("mic0 %lf s, mic1 %lf s, host %lf s\n", mic0_end-mic0_start,
-           mic1_end-mic1_start, host_end-host_start);
+        printf("mic0 %lf s, mic1 %lf s, host %lf s\n", mic0_end-mic0_start,
+               mic1_end-mic1_start, host_end-host_start);
     #endif
     
     /* Combine histograms */
@@ -238,7 +247,7 @@ int main(int argc, char** argv) {
         diag_sum(&sim.diag_offload_data, diag_offload_array_mic0,diag_offload_array_mic1);
         hdf5_diag_write(&sim, diag_offload_array_mic0, sim.hdf5_out);
     #else
-    hdf5_diag_write(&sim, diag_offload_array_host, sim.hdf5_out);
+        hdf5_diag_write(&sim, diag_offload_array_host, sim.hdf5_out);
     #endif
     
 
@@ -250,10 +259,10 @@ int main(int argc, char** argv) {
     plasma_1d_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
     #ifndef NOTARGET
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
+        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
+	diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
     #else
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
+        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
     #endif
     offload_free_offload(&offload_data, &offload_array);
     
@@ -277,7 +286,7 @@ int read_options(int argc, char** argv, sim_offload_data* sim) {
     sim->hdf5_in[0]  = '\0';
     sim->hdf5_out[0] = '\0';
     sim->mpi_rank = 0;
-    sim->mpi_size = 1;
+    sim->mpi_size = 0;
 
     int c;
     while((c = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
