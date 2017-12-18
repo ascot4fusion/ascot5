@@ -88,11 +88,9 @@ int B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
  * @brief Evaluate poloidal flux psi
  *
  * This function evaluates the poloidal flux psi at the given coordinates using
- * tricubic interpolation on the stellarator 3D s data. This is a SIMD
- * function, so the values are placed in an NSIMD length struct.
+ * tricubic interpolation on the stellarator 3D s data.
  *
- * @param i index in the NSIMD struct that will be populated 
- * @param psi psi value will be stored in psi[0][i]
+ * @param psi psi value will be stored in psi[0]
  * @param r r coordinate
  * @param phi phi coordinate
  * @param z z coordinate
@@ -118,6 +116,22 @@ a5err B_STS_eval_psi(real psi[], real r, real phi, real z,
     return err;
 }
 
+/**
+ * @brief Evaluate poloidal flux psi
+ *
+ * This function evaluates the poloidal flux psi at the given coordinates using
+ * tricubic interpolation on the stellarator 3D s data. This is a SIMD
+ * function, so the values are placed in an NSIMD length struct.
+ *
+ * @param i index in the NSIMD struct that will be populated 
+ * @param psi psi value will be stored in psi[0][i]
+ * @param r r coordinate
+ * @param phi phi coordinate
+ * @param z z coordinate
+ * @param Bdata pointer to magnetic field data struct
+ *
+ * @todo Change to a scalar elemental function and compare performance
+ */
 a5err B_STS_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z,
                    B_STS_data* Bdata) {
     a5err err = 0;
@@ -154,13 +168,19 @@ a5err B_STS_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z,
 a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_STS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
+    real psi_dpsi_temp[10];
 
     phi = fmod(phi, 2*math_pi/Bdata->periods);
     if(phi < 0) {
         phi += 2*math_pi/Bdata->periods;
     }
 
-    interperr += interp3Dcomp_eval_dB(psi_dpsi, &Bdata->s, r, phi, z);
+    interperr += interp3Dcomp_eval_dB(psi_dpsi_temp, &Bdata->s, r, phi, z);
+
+    psi_dpsi[0] = psi_dpsi_temp[0];
+    psi_dpsi[1] = psi_dpsi_temp[1];
+    psi_dpsi[2] = psi_dpsi_temp[2];
+    psi_dpsi[3] = psi_dpsi_temp[3];
 
     if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
 
@@ -171,10 +191,8 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_STS_data*
  * @brief Evaluate radial coordinate rho
  *
  * This function evaluates the radial coordinate rho at the given psi value.
- * This is a SIMD function, so the values are placed in an NSIMD length struct.
  *
- * @param i index in the NSIMD struct that will be populated 
- * @param rho rho value will be stored in rho[0][i]
+ * @param rho rho value will be stored in rho[0]
  * @param psi poloidal flux value 
  * @param Bdata pointer to magnetic field data struct
  *
@@ -187,6 +205,18 @@ a5err B_STS_eval_rho(real rho[], real psi, B_STS_data* Bdata) {
     return err;
 }
 
+/**
+ * @brief Evaluate radial coordinate rho
+ *
+ * This function evaluates the radial coordinate rho at the given psi value.
+ * This is a SIMD function, so the values are placed in an NSIMD length struct.
+ *
+ * @param i index in the NSIMD struct that will be populated 
+ * @param rho rho value will be stored in rho[i]
+ * @param psi poloidal flux value 
+ * @param Bdata pointer to magnetic field data struct
+ *
+ */
 a5err B_STS_eval_rho_SIMD(int i, real rho[NSIMD], real psi, B_STS_data* Bdata) {
     a5err err = 0;
 
@@ -242,7 +272,6 @@ a5err B_STS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_STS_data*
  * @param z z coordinate
  * @param Bdata pointer to magnetic field data struct
  */
-/* TODO check the psi section */
 a5err B_STS_eval_B(real B[], real r, real phi, real z, B_STS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
