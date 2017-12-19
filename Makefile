@@ -73,7 +73,8 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	spline/interp2D.h spline/interp3D.h spline/spline1D.h \
 	spline/interp2Dexpl.h spline/interp3Dexpl.h \
 	spline/interp2Detoc.h spline/interp3Detoc.h \
-	spline/interp2Dcomp.h spline/interp3Dcomp.h spline/spline1Dcomp.h \
+	spline/interp2Dcomp.h spline/interp3Dcomp.h \
+	spline/spline1Dcomp.h spline/interp1Dcomp.h \
 
 OBJS= math.o consts.o list.o octree.o physlib.o \
      $(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -83,13 +84,14 @@ OBJS= math.o consts.o list.o octree.o physlib.o \
 	spline/interp2D.o spline/interp3D.o spline/spline1D.o \
 	spline/interp2Dexpl.o spline/interp3Dexpl.o \
 	spline/interp2Detoc.o spline/interp3Detoc.o \
-	spline/interp2Dcomp.o spline/interp3Dcomp.o spline/spline1Dcomp.o \
+	spline/interp2Dcomp.o spline/interp3Dcomp.o \
+	spline/spline1Dcomp.o spline/interp1Dcomp.o \
 
 BINS=test_math \
 	 test_wall_2d test_ascot4_interface test_plasma_1d \
 	 test_interact test_hdf5 test_wall_3d test_particle filip5 \
 	 test_B test_simulate_orbit test_offload test_E \
-	 test_mccc ascot5_main \
+	 test_mccc test_interp1Dcomp ascot5_main \
 
 all: $(BINS)
 
@@ -167,6 +169,9 @@ test_interp2Dcomp: test_interp2Dcomp.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_interp3Dcomp: test_interp3Dcomp.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_interp1Dcomp: test_interp1Dcomp.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile
