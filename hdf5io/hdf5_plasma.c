@@ -8,6 +8,7 @@
 #include <string.h>
 #include "../ascot5.h"
 #include "../plasma_1d.h"
+#include "../plasma_1DS.h"
 #include "../consts.h"
 #include "hdf5.h"
 #include "hdf5_helpers.h"
@@ -88,7 +89,6 @@ int hdf5_plasma_init_offload(hid_t f, plasma_1d_offload_data* offload_data,
     
 	/* Read actual data into array */
 	err = H5LTread_dataset_double(f,"/plasma/P_1D/rho", rho);
-	real temp_temp_e[n_rho];
 	err = H5LTread_dataset_double(f,"/plasma/P_1D/temp_e", temp_e);
 	for(i = 0; i < n_rho; i++) {
 	    temp_e[i] = temp_e[i] * CONST_E / CONST_KB;
@@ -103,8 +103,8 @@ int hdf5_plasma_init_offload(hid_t f, plasma_1d_offload_data* offload_data,
     
 	real temp_dens_i[n_ions*n_rho];
 	err = H5LTread_dataset_double(f,"/plasma/P_1D/dens_i", temp_dens_i);
-	for(i = 0; i < n_rho; i++) {
-	    for(j = 0; j < n_ions; j++) {
+        for(j = 0; j < n_ions; j++) {
+            for(i = 0; i < n_rho; i++) {
 		dens_i[j*n_rho + i] = temp_dens_i[j*n_rho + i];
 	    }
 	}
