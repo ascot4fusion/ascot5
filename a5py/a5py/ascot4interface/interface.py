@@ -131,14 +131,22 @@ def run(a4folder, h5fn, overwrite=True):
 
     # Plasma profiles.
     if overwrite or (not "plasma" in f):
-        fname = a4folder + "input.plasma_1d"
+        fname1d = a4folder + "input.plasma_1d"
+        fname2d = a4folder + "input.plasma_2d"
         f.close()
-        if (os.path.isfile(fname)):
-            data = read_plasma(fname)
+        if (os.path.isfile(fname1d)):
+            data = read_plasma(fname1d)
             dens_i = np.array([data['ni'+str(i)] for i in range(1,data['nion']+1)])
             plasma_1D.write_hdf5(h5fn, data['nrho'], data['nion'], data['znum'], data['anum'], 
                                  data['rho'], np.zeros(data['rho'].shape), np.zeros(data['rho'].shape), 
                                  data['ne'], data['te'], dens_i, data['ti1'])
+        if (os.path.isfile(fname2d)):
+            data = read_plasma(fname2d)
+            dens_i = np.array([data['ni'+str(i)] for i in range(1,data['nion']+1)])
+            print("2D plasma data not yet implemented for ASCOT4. Skipping 2D plasma input.")
+            # plasma_2D.write_hdf5(h5fn, data['nrho'], data['nion'], data['znum'], data['anum'], 
+            #                      data['rho'], np.zeros(data['rho'].shape), np.zeros(data['rho'].shape), 
+            #                      data['ne'], data['te'], dens_i, data['ti1'])
         f = h5py.File(h5fn, 'r')
 
     # Electric field.

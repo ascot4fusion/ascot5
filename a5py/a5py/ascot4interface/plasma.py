@@ -8,10 +8,10 @@ def read_plasma(fn):
     c2 = f.readline()
     c3 = f.readline()
     l = f.readline().split()
-    if(len(l) == 4 and l[3] == 'Nrad,Nion'):
+    if(fn[-2:] == '1d'):
         f.seek(0)
         return read_1d(f)
-    elif( len(l) == 8 and l[3] == 'size'):
+    elif(fn[-2:] == '2d'):
         f.seek(0)
         return read_2d(f)
     else:
