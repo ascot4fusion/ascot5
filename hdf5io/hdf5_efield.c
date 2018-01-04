@@ -11,6 +11,7 @@
 #include "../E_field.h"
 #include "../Efield/E_TC.h"
 #include "../Efield/E_1D.h"
+#include "../Efield/E_1DS.h"
 #include "hdf5_efield.h"
 
 
@@ -42,15 +43,15 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real**
         return 1;
     }
     if(strncmp(type,"E_1D",4) == 0) {
-        offload_data->type = E_field_type_1D;
-	hdf5_efield_init_offload_1D(f, &(offload_data->E1D), offload_array);
-    offload_data->offload_array_length = offload_data->E1D.offload_array_length;
+        offload_data->type = E_field_type_1DS;
+	hdf5_efield_init_offload_1DS(f, &(offload_data->E1DS), offload_array);
+    offload_data->offload_array_length = offload_data->E1DS.offload_array_length;
 
 	#if VERBOSE > 0
-	    printf("\nLoaded radial electric field (E_1D)\n");
+	    printf("\nLoaded radial electric field (E_1DS)\n");
 	    printf("with parameters:\n");
 	    printf("(n_rho, rho_min, rho_max) = (%d, %le, %le)\n",
-		   offload_data->E1D.n_rho,offload_data->E1D.rho_min,offload_data->E1D.rho_max);
+		   offload_data->E1DS.n_rho,offload_data->E1DS.rho_min,offload_data->E1DS.rho_max);
 	#endif
             
         return 1;
@@ -61,6 +62,34 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real**
 
 void hdf5_efield_init_offload_1D(hid_t f, E_1D_offload_data* offload_data, real** offload_array) {
     
+    herr_t err;
+
+    err = H5LTget_attribute_int(f, "/efield/E_1D/", "n_rho", &(offload_data->n_rho));
+    err = H5LTget_attribute_double(f, "/efield/E_1D/", "rho_min", &(offload_data->rho_min));
+    err = H5LTget_attribute_double(f, "/efield/E_1D/", "rho_max", &(offload_data->rho_max));
+    
+    /* Allocate n_rho space for both rho and dV/drho */
+    offload_data->offload_array_length = 2*offload_data->n_rho;
+    *offload_array = (real*) malloc(2*offload_data->n_rho*sizeof(real));
+
+    /* Pointers to beginning of different data series to make code more
+     * readable */
+    real* rho = &(*offload_array)[0];
+    real* dV = &(*offload_array)[offload_data->n_rho];
+    
+    err = H5LTread_dataset_double(f,"/efield/E_1D/rho",rho);
+    err = H5LTread_dataset_double(f,"/efield/E_1D/dV_drho",dV);
+
+    /* Effective minor radius */
+    real r_eff;
+    err = H5LTget_attribute_double(f, "/efield/E_1D/", "r_eff", &(r_eff));
+    /* Scale derivatives by effective minor radius */
+    for(int i = 0; i < offload_data->n_rho; i++) {
+        dV[i] = r_eff * dV[i];
+    }
+}
+
+void hdf5_efield_init_offload_1DS(hid_t f, E_1DS_offload_data* offload_data, real** offload_array) {    
     herr_t err;
 
     err = H5LTget_attribute_int(f, "/efield/E_1D/", "n_rho", &(offload_data->n_rho));

@@ -9,6 +9,7 @@
 #include "B_field.h"
 #include "Efield/E_TC.h"
 #include "Efield/E_1D.h"
+#include "Efield/E_1DS.h"
 
 void E_field_init_offload(E_field_offload_data* offload_data,
                           real** offload_array) {
@@ -18,6 +19,9 @@ void E_field_init_offload(E_field_offload_data* offload_data,
     case E_field_type_1D:
         E_1D_init_offload(&(offload_data->E1D), offload_array);
         offload_data->offload_array_length = offload_data->E1D.offload_array_length;
+        break;
+    case E_field_type_1DS:
+	// Do nothing
         break;
     case E_field_type_TC:
 	// Do nothing
@@ -31,7 +35,9 @@ void E_field_free_offload(E_field_offload_data* offload_data,
     case E_field_type_1D:
         E_1D_free_offload(&(offload_data->E1D), offload_array);
         break;
-
+    case E_field_type_1DS:
+        E_1DS_free_offload(&(offload_data->E1DS), offload_array);
+        break;
     case E_field_type_TC:
         E_TC_free_offload(&(offload_data->ETC), offload_array);
         break;
@@ -46,7 +52,9 @@ int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
     case E_field_type_1D:
         E_1D_init(&(Edata->E1D), &(offload_data->E1D), offload_array);
         break;
-
+    case E_field_type_1DS:
+        E_1DS_init(&(Edata->E1DS), &(offload_data->E1DS), offload_array);
+        break;
     case E_field_type_TC:
         E_TC_init(&(Edata->ETC), &(offload_data->ETC), offload_array);
         break;
@@ -64,7 +72,9 @@ a5err E_field_eval_E(real E[], real r, real phi, real z, E_field_data* Edata, B_
     case E_field_type_1D:
         E_1D_eval_E(E, r, phi, z, &(Edata->E1D), Bdata);
         break;
-
+    case E_field_type_1DS:
+        E_1DS_eval_E(E, r, phi, z, &(Edata->E1DS), Bdata);
+        break;
     case E_field_type_TC:
         E_TC_eval_E(E, r, phi, z, &(Edata->ETC), Bdata);
         break;
@@ -80,7 +90,9 @@ a5err E_field_eval_E_SIMD(int i, real E[3][NSIMD], real r, real phi, real z, E_f
     case E_field_type_1D:
         E_1D_eval_E_SIMD(i, E, r, phi, z, &(Edata->E1D), Bdata);
         break;
-
+    case E_field_type_1DS:
+        E_1DS_eval_E_SIMD(i, E, r, phi, z, &(Edata->E1DS), Bdata);
+        break;
     case E_field_type_TC:
         E_TC_eval_E_SIMD(i, E, r, phi, z, &(Edata->ETC), Bdata);
         break;

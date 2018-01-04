@@ -10,15 +10,17 @@
 #include "B_field.h"
 #include "Efield/E_TC.h"
 #include "Efield/E_1D.h"
+#include "Efield/E_1DS.h"
 
 typedef enum E_field_type {
-    E_field_type_TC, E_field_type_1D
+    E_field_type_TC, E_field_type_1D, E_field_type_1DS
 } E_field_type;
 
 typedef struct {
     E_field_type type;
     E_TC_offload_data ETC;
     E_1D_offload_data E1D;
+    E_1DS_offload_data E1DS;
     int offload_array_length;
 } E_field_offload_data;
 
@@ -26,6 +28,7 @@ typedef struct {
     E_field_type type;
     E_TC_data ETC;
     E_1D_data E1D;
+    E_1DS_data E1DS;
 } E_field_data;
 
 void E_field_init_offload(E_field_offload_data* offload_data,
