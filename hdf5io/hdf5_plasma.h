@@ -11,5 +11,8 @@
 
 int hdf5_plasma_init_offload(hid_t f, plasma_1d_offload_data* offload_data,
                             real** offload_array);
-    
+
+int hdf5_plasma_init_offload_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
+                            real** offload_array);
+
 #endif

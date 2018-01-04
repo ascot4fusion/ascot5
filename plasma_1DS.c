@@ -47,13 +47,35 @@ a5err plasma_1DS_init(plasma_1DS_data* plasma_data,
     real* dens = &(offload_array[offload_data->n_rho
                                   + offload_data->n_rho*offload_data->n_species]);
 
+    /* Find out if we have equispaced rho data */
+    real diff = rho[1] - rho[0];
+    real tol = diff/100000;
+    for(int i = 1; i < offload_data->n_rho; i++) {
+        if (fabs((rho[i] - rho[i-1]) - diff) > tol) {
+            if (i == offload_data->n_rho - 1) {
+                /* Last point is our only problem. Exclude it from the data */
+                #if VERBOSE > 0
+                printf("Plasma data not equispaced.\n");
+                printf("Excluding last point from plasma data.\n");
+                #endif
+                offload_data->n_rho -= 1;
+            } else {
+                #if VERBOSE > 0
+                printf("Plasma data not equispaced.\n");
+                printf("Nonuniform splines are not supported yet.\n");
+                printf("You will have problems with plasma interpolation!\n");
+                #endif
+            }
+        }
+    }
+    
     plasma_data->n_rho = offload_data->n_rho;
     plasma_data->rho_min = rho[0];
     plasma_data->rho_max = rho[plasma_data->n_rho - 1];
     plasma_data->rho_grid = (plasma_data->rho_max - plasma_data->rho_min)/(plasma_data->n_rho - 1);
     plasma_data->n_species = offload_data->n_species;
-    int i;
-    for(i = 0; i < plasma_data->n_species; i++) {
+
+    for(int i = 0; i < plasma_data->n_species; i++) {
         plasma_data->mass[i] = offload_data->mass[i];
         plasma_data->charge[i] = offload_data->charge[i];
     }
@@ -64,9 +86,9 @@ a5err plasma_1DS_init(plasma_1DS_data* plasma_data,
 			     plasma_data->n_rho, plasma_data->rho_min, plasma_data->rho_max,
                              plasma_data->rho_grid);
     plasma_data->dens = (interp1D_data*) malloc(plasma_data->n_species*sizeof(interp1D_data));
-    for(i = 0; i < plasma_data->n_species; i++) {
+    for(int i = 0; i < plasma_data->n_species; i++) {
         err += interp1Dcomp_init(&plasma_data->dens[i],
-                                 dens + i*plasma_data->n_rho,
+                                 dens + i*offload_data->n_rho,
                                  plasma_data->n_rho, plasma_data->rho_min, plasma_data->rho_max,
                                  plasma_data->rho_grid);
     }
@@ -135,7 +157,7 @@ a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho, plasma_1DS_d
     if (rho < plasma_data->rho_min){
         rho = plasma_data->rho_min;
     } else if (rho > plasma_data->rho_max) {
-        rho = plasma_data->rho_max;        
+        rho = plasma_data->rho_max;
     }
 
     /* Electrons */
