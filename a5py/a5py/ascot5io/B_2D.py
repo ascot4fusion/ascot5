@@ -117,10 +117,10 @@ def read_hdf5(fn):
     out["zmax"] = f[path]["z_max"][:]
     out["nz"]   = f[path]["n_z"][:]
 
-    out["psi"]   = f[path]["psi"][:]
-    out["B_R"]   = f[path]["B_r"][:]
-    out["B_phi"] = f[path]["B_phi"][:]
-    out["B_z"]   = f[path]["B_z"][:]
+    out["psi"]   = np.reshape(f[path]["psi"][:], (out["nz"][0], out["nR"][0]))
+    out["B_R"]   = np.reshape(f[path]["B_r"][:], (out["nz"][0], out["nR"][0]))
+    out["B_phi"] = np.reshape(f[path]["B_phi"][:], (out["nz"][0], out["nR"][0]))
+    out["B_z"]   = np.reshape(f[path]["B_z"][:], (out["nz"][0], out["nR"][0]))
 
     out["axisR"] = f[path]["axis_r"][:]
     out["axisz"] = f[path]["axis_z"][:]

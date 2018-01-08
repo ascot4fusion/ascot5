@@ -140,7 +140,7 @@ def read_hdf5(fn):
     out["etemp"] = f[path]["temp_e"][:]
     out["edens"] = f[path]["dens_e"][:]
     out["itemp"] = f[path]["temp_i"][:]
-    out["idens"] = f[path]["dens_i"][:]
+    out["idens"] = np.transpose(np.reshape(f[path]["dens_i"][:], (out["Nion"], out["Nrho"]) ))
 
     f.close()
 
