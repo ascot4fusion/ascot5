@@ -75,7 +75,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	spline/interp2Detoc.h spline/interp3Detoc.h \
 	spline/interp2Dcomp.h spline/interp3Dcomp.h \
 	spline/spline1Dcomp.h spline/interp1Dcomp.h \
-	plasma_1DS.h \
+	plasma_1DS.h random.h
 
 OBJS= math.o consts.o list.o octree.o physlib.o \
      $(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -87,13 +87,13 @@ OBJS= math.o consts.o list.o octree.o physlib.o \
 	spline/interp2Detoc.o spline/interp3Detoc.o \
 	spline/interp2Dcomp.o spline/interp3Dcomp.o \
 	spline/spline1Dcomp.o spline/interp1Dcomp.o \
-	plasma_1DS.o \
+	plasma_1DS.o random.o
 
 BINS=test_math \
 	 test_wall_2d test_ascot4_interface test_plasma_1d \
 	 test_interact test_hdf5 test_wall_3d test_particle filip5 \
 	 test_B test_simulate_orbit test_offload test_E \
-	 test_mccc test_interp1Dcomp ascot5_main \
+	 test_mccc test_interp1Dcomp ascot5_main test_random
 
 all: $(BINS)
 
@@ -177,6 +177,9 @@ test_interp1Dcomp: test_interp1Dcomp.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_plasma_1DS: test_plasma_1DS.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_random: test_random.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile
