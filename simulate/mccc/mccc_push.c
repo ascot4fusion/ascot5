@@ -5,6 +5,7 @@
  */
 #include <stdio.h>
 #include <math.h>
+#include <float.h>
 #include "../../ascot5.h"
 #include "../../math.h"
 #include "../../consts.h"
@@ -170,7 +171,7 @@ a5err mccc_push_gcMI(real K, real nu, real Dpara, real DX, real* B, real dt, rea
     }
     
     /* Error estimates for drift and diffusion limits */
-    real erru = tol*(fabs(K)*dt + sqrt(2*Dpara));
+    real erru = tol*(fabs(K)*dt + sqrt(2*Dpara*dt)) + DBL_EPSILON;
 
     k1 = (1/(2*erru))*fabs(K*dQ);
     k2 = (1/(2*tol))*fabs(xiin*nu*nu);
