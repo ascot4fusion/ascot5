@@ -11,7 +11,7 @@
 #define MCCC_NDIM 5 /* Wiener process dimension. NDIM=5 because 
 			    only guiding centers are simulated with 
 			    adaptive time step */
-#define MCCC_NSLOTS 16 /* Maximum time step reductions */
+#define MCCC_NSLOTS WIENERSLOTS /* Maximum time step reductions */
 
 /**
  * @brief Struct for storing Wiener processes. Elements of this struct should
