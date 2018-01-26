@@ -9,21 +9,32 @@
 #include "../spline/interp3D.h" /* for 3D interpolation routines */
 
 /**
- * @brief 3D magnetic field parameters that will be offloaded to target
+ * @brief 3D magnetic field parameters on the host
  */
 typedef struct {
-    int n_r;                    /**< number of r grid points */
-    int n_z;                    /**< number of z grid points */
-    int n_phi;                  /**< number of phi grid points */
-    real r_min;                 /**< minimum r coordinate in the grid */
-    real r_max;                 /**< maximum r coordinate in the grid */
-    real r_grid;                /**< r grid interval (r_max-r_min)/(n_r-1) */
-    real z_min;                 /**< minimum z coordinate in the grid */
-    real z_max;                 /**< maximum z coordinate in the grid */
-    real z_grid;                /**< z grid interval (z_max-z_min)/(n_z-1) */
-    real phi_min;               /**< minimum phi coordinate in the grid */
-    real phi_max;               /**< maximum phi coordinate in the grid */
-    real phi_grid;              /**< phi grid interval 2pi/(n_phi-1) */
+    int psigrid_n_r;            /**< number of r grid points in psi data */
+    int psigrid_n_z;            /**< number of z grid points in psi data */
+    int psigrid_n_phi;          /**< number of phi grid points in psi data */
+    real psigrid_r_min;         /**< minimum r coordinate in the grid in psi data */
+    real psigrid_r_max;         /**< maximum r coordinate in the grid in psi data */
+    real psigrid_r_grid;        /**< r grid interval (r_max-r_min)/(n_r-1) in psi data */
+    real psigrid_z_min;         /**< minimum z coordinate in the grid in psi data */
+    real psigrid_z_max;         /**< maximum z coordinate in the grid in psi data */
+    real psigrid_z_grid;        /**< z grid interval (z_max-z_min)/(n_z-1) in psi data */
+
+    int Bgrid_n_r;              /**< number of r grid points in B data */
+    int Bgrid_n_z;              /**< number of z grid points in B data */
+    int n_phi;                  /**< number of phi grid points in B data */
+    real Bgrid_r_min;           /**< minimum r coordinate in the grid in B data */
+    real Bgrid_r_max;           /**< maximum r coordinate in the grid in B data */
+    real Bgrid_r_grid;          /**< r grid interval (r_max-r_min)/(n_r-1) in B data */
+    real Bgrid_z_min;           /**< minimum z coordinate in the grid in B data */
+    real Bgrid_z_max;           /**< maximum z coordinate in the grid in B data */
+    real Bgrid_z_grid;          /**< z grid interval (z_max-z_min)/(n_z-1) in B data */
+    real phi_min;               /**< minimum phi coordinate in the grid in B data */
+    real phi_max;               /**< maximum phi coordinate in the grid in B data */
+    real phi_grid;              /**< phi grid interval 2pi/(n_phi-1) in B data */
+    
     real psi0;                  /**< sqrt(psi) value at magnetic axis */
     real psi1;                  /**< sqrt(psi) value at separatrix */
     real axis_r;                /**< r coordinate of magnetic axis */

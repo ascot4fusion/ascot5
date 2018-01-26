@@ -121,9 +121,9 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 	    printf("- psi axis = %le and psi separatrix %le\n",
 		   offload_data->B3DS.psi0,offload_data->B3DS.psi1);
 	    printf("- rmin, rmax, nr = %le, %le, %d\n",
-		   offload_data->B3DS.r_min,offload_data->B3DS.r_max,offload_data->B3DS.n_r);
+		   offload_data->B3DS.psigrid_r_min,offload_data->B3DS.psigrid_r_max,offload_data->B3DS.psigrid_n_r);
 	    printf("- zmin, zmax, nz = %le, %le, %d\n",
-		   offload_data->B3DS.z_min,offload_data->B3DS.z_max,offload_data->B3DS.n_z);
+		   offload_data->B3DS.psigrid_z_min,offload_data->B3DS.psigrid_z_max,offload_data->B3DS.psigrid_n_z);
 	#endif
         return 1;
     }
@@ -323,32 +323,54 @@ void hdf5_bfield_init_offload_3D(hid_t f, B_3D_offload_data* offload_data, real*
 
 void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, real** offload_array) {
     herr_t err;
-    
-    err = H5LTread_dataset_int(f,"/bfield/B_3D/n_r",&(offload_data->n_r));
+
+    /* Read and initialize magnetic field Rz-grid */
+    err = H5LTread_dataset_int(f,"/bfield/B_3D/n_r",&(offload_data->Bgrid_n_r));
     err = H5LTread_dataset_int(f,"/bfield/B_3D/n_phi",&(offload_data->n_phi));
-    err = H5LTread_dataset_int(f,"/bfield/B_3D/n_z",&(offload_data->n_z));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/r_min",&(offload_data->r_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/r_max",&(offload_data->r_max));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/z_min",&(offload_data->z_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/z_max",&(offload_data->z_max));
+    err = H5LTread_dataset_int(f,"/bfield/B_3D/n_z",&(offload_data->Bgrid_n_z));
+    err = H5LTread_dataset_double(f,"/bfield/B_3D/r_min",&(offload_data->Bgrid_r_min));
+    err = H5LTread_dataset_double(f,"/bfield/B_3D/r_max",&(offload_data->Bgrid_r_max));
+    err = H5LTread_dataset_double(f,"/bfield/B_3D/z_min",&(offload_data->Bgrid_z_min));
+    err = H5LTread_dataset_double(f,"/bfield/B_3D/z_max",&(offload_data->Bgrid_z_max));
 
-    offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
-                           / (offload_data->n_r - 1);
-    offload_data->z_grid = (offload_data->z_max - offload_data->z_min)
-                           / (offload_data->n_z - 1);
-    //offload_data->phi_grid = 2*math_pi / (offload_data->n_phi);
+    offload_data->Bgrid_r_grid = (offload_data->Bgrid_r_max - offload_data->Bgrid_r_min)
+                           / (offload_data->Bgrid_n_r - 1);
+    offload_data->Bgrid_z_grid = (offload_data->Bgrid_z_max - offload_data->Bgrid_z_min)
+                           / (offload_data->Bgrid_n_z - 1);
 
-    /* phi array starts from -0.5*phi_grid and ends at 0.5*phi_grid + 2pi! */
-    //offload_data->phi_min = -1.5 * offload_data->phi_grid;
-    //offload_data->phi_max = 1.5 * offload_data->phi_grid + 2*math_pi;
+    /* Read and initialize psi field Rz-grid */
+    /* TODO Now we check whether psifield has it's own coordinates but, in future, they should be 
+     * found in hdf5 always. */
+    err = H5LTread_dataset_int(f,"/bfield/B_3D/psigrid_n_r",&(offload_data->psigrid_n_r));
+    err = H5LTread_dataset_int(f,"/bfield/B_3D/psigrid_n_z",&(offload_data->psigrid_n_z));
+    err = H5LTread_dataset_double(f,"/bfield/B_3D/psigrid_r_min",&(offload_data->psigrid_r_min));
+    err = H5LTread_dataset_double(f,"/bfield/B_3D/psigrid_r_max",&(offload_data->psigrid_r_max));
+    err = H5LTread_dataset_double(f,"/bfield/B_3D/psigrid_z_min",&(offload_data->psigrid_z_min));
+    err = H5LTread_dataset_double(f,"/bfield/B_3D/psigrid_z_max",&(offload_data->psigrid_z_max));
+    if(err) {
+	offload_data->psigrid_n_r   = offload_data->Bgrid_n_r;
+	offload_data->psigrid_n_z   = offload_data->Bgrid_n_z;
+	offload_data->psigrid_r_min = offload_data->Bgrid_r_min;
+	offload_data->psigrid_r_max = offload_data->Bgrid_r_max;
+	offload_data->psigrid_z_min = offload_data->Bgrid_z_min;
+	offload_data->psigrid_z_max = offload_data->Bgrid_z_max;
+    }
 
+    offload_data->psigrid_r_grid = (offload_data->psigrid_r_max - offload_data->psigrid_r_min)
+                           / (offload_data->psigrid_n_r - 1);
+    offload_data->psigrid_z_grid = (offload_data->psigrid_z_max - offload_data->psigrid_z_min)
+                           / (offload_data->psigrid_n_z - 1);
+
+    /* Read and initialize phi grid */
+    /* TODO: these should be defined in hdf5 */
     offload_data->phi_grid = 2*math_pi / (offload_data->n_phi);
     offload_data->phi_min = 0;
     offload_data->phi_max = 2*math_pi;
 
     /* Allocate offload_array */
-    int psi_size = offload_data->n_r*offload_data->n_z;
-    int B_size = offload_data->n_r*offload_data->n_z*offload_data->n_phi;
+    int psi_size = offload_data->psigrid_n_r*offload_data->psigrid_n_z;
+    int B_size = offload_data->Bgrid_n_r*offload_data->Bgrid_n_z*offload_data->n_phi;
+    
     *offload_array = (real*) malloc((psi_size + 3 * B_size) * sizeof(real));
     offload_data->offload_array_length = psi_size + 3 * B_size;
 
@@ -356,9 +378,9 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
     err = H5LTread_dataset_double(f,"/bfield/B_3D/psi",&(*offload_array)[3*B_size]);
 
     /* Read the magnetic field */
-    real* temp_B_r = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
-    real* temp_B_phi = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
-    real* temp_B_z = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
+    real* temp_B_r = (real*) malloc(B_size*sizeof(real));
+    real* temp_B_phi = (real*) malloc(B_size*sizeof(real));
+    real* temp_B_z = (real*) malloc(B_size*sizeof(real));
 
     err = H5LTread_dataset_double(f,"/bfield/B_3D/B_r",temp_B_r);
     err = H5LTread_dataset_double(f,"/bfield/B_3D/B_phi",temp_B_phi);
@@ -368,21 +390,21 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
     int i;
     for(i = 0; i < offload_data->n_phi; i++) {
         int j;
-        for(j = 0; j < offload_data->n_z; j++) {
+        for(j = 0; j < offload_data->Bgrid_n_z; j++) {
             int k;
-            for(k = 0; k < offload_data->n_r; k++) {
-               (*offload_array)[i*offload_data->n_z*offload_data->n_r
-                          + j*offload_data->n_r + k] =
-                        temp_B_r[j*offload_data->n_phi*offload_data->n_r
-                          + i*offload_data->n_r + k];
-               (*offload_array)[i*offload_data->n_z*offload_data->n_r
-                          + j*offload_data->n_r + k + B_size] =
-                        temp_B_phi[j*offload_data->n_phi*offload_data->n_r
-                          + i*offload_data->n_r + k];
-               (*offload_array)[i*offload_data->n_z*offload_data->n_r
-                          + j*offload_data->n_r + k + 2*B_size] =
-                        temp_B_z[j*offload_data->n_phi*offload_data->n_r
-                          + i*offload_data->n_r + k];
+            for(k = 0; k < offload_data->Bgrid_n_r; k++) {
+               (*offload_array)[i*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r
+                          + j*offload_data->Bgrid_n_r + k] =
+                        temp_B_r[j*offload_data->n_phi*offload_data->Bgrid_n_r
+                          + i*offload_data->Bgrid_n_r + k];
+               (*offload_array)[i*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r
+                          + j*offload_data->Bgrid_n_r + k + B_size] =
+                        temp_B_phi[j*offload_data->n_phi*offload_data->Bgrid_n_r
+                          + i*offload_data->Bgrid_n_r + k];
+               (*offload_array)[i*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r
+                          + j*offload_data->Bgrid_n_r + k + 2*B_size] =
+                        temp_B_z[j*offload_data->n_phi*offload_data->Bgrid_n_r
+                          + i*offload_data->Bgrid_n_r + k];
             }
         }
     }

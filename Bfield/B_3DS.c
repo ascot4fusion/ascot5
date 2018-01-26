@@ -31,107 +31,8 @@
  * @param offload_array pointer to pointer to offload array
  */
 void B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) {
-    FILE* f = fopen("input.magn_bkg", "r");
-
-    /* Read phi parameters */
-    fscanf(f, "%*d %*d %d %*d %*d", &(offload_data->n_phi));
-
-    /* Read r and z parameters */
-    fscanf(f, "%lf %lf %d", &(offload_data->r_min), &(offload_data->r_max),
-                            &(offload_data->n_r));
-    fscanf(f, "%lf %lf %d", &(offload_data->z_min), &(offload_data->z_max),
-                            &(offload_data->n_z));
-
-    /* Calculate and store grid cell lengths */
-    offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
-                           / (offload_data->n_r - 1);
-    offload_data->z_grid = (offload_data->z_max - offload_data->z_min)
-                           / (offload_data->n_z - 1);
-    offload_data->phi_grid = 2*math_pi / (offload_data->n_phi);
-
-    /* phi array starts from -0.5*phi_grid and ends at 0.5*phi_grid + 2pi! */
-    offload_data->phi_min = -1.5 * offload_data->phi_grid; // ???
-    offload_data->phi_max = 1.5 * offload_data->phi_grid + 2*math_pi; // ???
-
-    /* Allocate offload_array */
-    int psi_size = offload_data->n_r*offload_data->n_z;
-    int B_size = offload_data->n_r*offload_data->n_z*offload_data->n_phi;
-    *offload_array = (real*) malloc((psi_size + 3 * B_size) * sizeof(real));
-    offload_data->offload_array_length = psi_size + 3 * B_size;
-
-    /* Skip phimaps */
-    fscanf(f, "%*f %*f");
-
-    /* Read psi */
-    int i;
-    for(i = 0; i < psi_size; i++) {
-        fscanf(f, "%lf", &(*offload_array)[i + 3*B_size]);
-    }
-
-    /* Read values to temporary arrays */
-    real* temp_B_r = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
-    real* temp_B_phi = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
-    real* temp_B_z = (real*) malloc(psi_size*offload_data->n_phi*sizeof(real));
-
-    /* Read B_r */
-    for(i = 0; i < psi_size*offload_data->n_phi; i++) {
-        fscanf(f, "%lf", &temp_B_r[i]);
-    }
-
-    /* Read B_phi */
-    for(i = 0; i < psi_size*offload_data->n_phi; i++) {
-        fscanf(f, "%lf", &temp_B_phi[i]);
-    }
-
-    /* Read B_z */
-    for(i = 0; i < psi_size*offload_data->n_phi; i++) {
-        fscanf(f, "%lf", &temp_B_z[i]);
-    }
-
-    /* permute the phi and z dimensions */
-    for(i = 0; i < offload_data->n_phi; i++) {
-        int j;
-        for(j = 0; j < offload_data->n_z; j++) {
-            int k;
-            for(k = 0; k < offload_data->n_r; k++) {
-               (*offload_array)[i*offload_data->n_z*offload_data->n_r
-                          + j*offload_data->n_r + k] =
-                        temp_B_r[j*offload_data->n_phi*offload_data->n_r
-                          + i*offload_data->n_r + k];
-               (*offload_array)[i*offload_data->n_z*offload_data->n_r
-                          + j*offload_data->n_r + k + B_size] =
-                        temp_B_phi[j*offload_data->n_phi*offload_data->n_r
-                          + i*offload_data->n_r + k];
-               (*offload_array)[i*offload_data->n_z*offload_data->n_r
-                          + j*offload_data->n_r + k + 2*B_size] =
-                        temp_B_z[j*offload_data->n_phi*offload_data->n_r
-                          + i*offload_data->n_r + k];
-            }
-        }
-    }
     
-    fclose(f);
-
-    /* Read rho parameters from input.magn_header */
-    f = fopen("input.magn_header", "r");
-
-    /* Skip first four lines */
-    while(fgetc(f) != '\n');
-    while(fgetc(f) != '\n');
-    while(fgetc(f) != '\n');
-    while(fgetc(f) != '\n');
-
-    /* Read the first two values; These are the poloidal flux (psi) values at
-     * magnetic axis and at x point (that is, separatrix). */
-    fscanf(f, "%lf %lf", &(offload_data->psi0), &(offload_data->psi1));
-
-    /* Read magnetic axis r and z coordinates */
-    while(fgetc(f) != '\n');
-    fscanf(f, "%lf", &(offload_data->axis_r));
-    while(fgetc(f) != '\n');
-    fscanf(f, "%lf", &(offload_data->axis_z));
-
-    fclose(f);
+    // The contents of this function are located in hdf5_bfield.c
 }
 
 /**
@@ -167,59 +68,55 @@ int B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
     Bdata->axis_z = offload_data->axis_z;
     /* Spline initialization and storage. */
 
+    int B_size = offload_data->n_phi*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r;
+    
     #if INTERP_SPL_EXPL
-    err += interp2Dexpl_init(&Bdata->psi, offload_array
-	+3*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-	offload_data->n_r, offload_data->n_z,
-	offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-	offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    err += interp2Dexpl_init(&Bdata->psi, offload_array + 3*B_size,
+	offload_data->psigrid_n_r, offload_data->psigrid_n_z,
+	offload_data->psigrid_r_min, offload_data->psigrid_r_max, offload_data->psigrid_r_grid,
+	offload_data->psigrid_z_min, offload_data->psigrid_z_max, offload_data->psigrid_z_grid);
     
-    err += interp3Dexpl_init(&Bdata->B_r, offload_array,
-	offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-	offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+    err += interp3Dexpl_init(&Bdata->B_r, offload_array + 0*B_size,
+	offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
+	offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 	offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-	offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+	offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
-    err += interp3Dexpl_init(&Bdata->B_phi, offload_array
-	+offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-	offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-	offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+    err += interp3Dexpl_init(&Bdata->B_phi, offload_array + 1*B_size,
+	offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
+	offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 	offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-	offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+	offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     	
-    err += interp3Dexpl_init(&Bdata->B_z, offload_array
-	+2*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-	offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-	offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+    err += interp3Dexpl_init(&Bdata->B_z, offload_array + 2*B_size,
+	offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
+	offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 	offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-	offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+	offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
     #else
-    err += interp2Dcomp_init(&Bdata->psi, offload_array
-			     +3*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-			     offload_data->n_r, offload_data->n_z,
-			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    err += interp2Dcomp_init(&Bdata->psi, offload_array + 3*B_size,
+			     offload_data->psigrid_n_r, offload_data->psigrid_n_z,
+			     offload_data->psigrid_r_min, offload_data->psigrid_r_max, offload_data->psigrid_r_grid,
+			     offload_data->psigrid_z_min, offload_data->psigrid_z_max, offload_data->psigrid_z_grid);
     
-    err += interp3Dcomp_init(&Bdata->B_r, offload_array,
-			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+    err += interp3Dcomp_init(&Bdata->B_r, offload_array + 0*B_size,
+			     offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
+			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
-    err += interp3Dcomp_init(&Bdata->B_phi, offload_array
-			     +offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+    err += interp3Dcomp_init(&Bdata->B_phi, offload_array + 1*B_size,
+			     offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
+			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
-    err += interp3Dcomp_init(&Bdata->B_z, offload_array
-			     +2*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+    err += interp3Dcomp_init(&Bdata->B_z, offload_array + 2*B_size,
+			     offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
+			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     #endif
     return err;
 }
