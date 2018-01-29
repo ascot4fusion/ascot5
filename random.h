@@ -5,9 +5,37 @@
 #ifndef RANDOM_H
 #define RANDOM_H
 
+#ifdef RANDOM_GSL
+
+#include <gsl/gsl_rng.h>
+
+typedef struct {
+    gsl_rng* r;
+} random_data;
+
+void random_gsl_init(random_data* rdata, int seed);
+double random_gsl_uniform(random_data* rdata);
+void random_gsl_uniform_simd(random_data* rdata, int n, double* r);
+
+#define random_init(data, seed) random_gsl_init(data, seed)
+#define random_uniform(data) random_gsl_uniform(data)
+#define random_uniform_simd(data, n, r) random_gsl_uniform_simd(data, n, r)
+
+
+#else /* No RNG lib defined, use drand48 */
+
+#define _XOPEN_SOURCE 500
 #include <stdlib.h>
-#define random_init(seed) srand48(seed)
-#define random_uniform() drand48()
-#define random_uniform_simd(N, r) random_drand48_uniform_simd(N, r)
+
+typedef struct {
+} random_data;
+
+void random_drand48_uniform_simd(int n, double* r);
+
+#define random_init(data, seed) srand48(seed)
+#define random_uniform(data) drand48()
+#define random_uniform_simd(data, n, r) random_drand48_uniform_simd(n, r)
+
+#endif
 
 #endif

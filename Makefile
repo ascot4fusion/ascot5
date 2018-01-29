@@ -22,6 +22,11 @@ ifeq ($(MPI),1)
 	CC=h5pcc
 endif
 
+ifeq ($(RANDOM),GSL)
+    DEFINES+=-DRANDOM_GSL
+    CFLAGS+=-lgsl -lgslcblas
+endif
+
 ifneq ($(CC),h5cc)
 	ifneq ($(CC),h5pcc)
 		CFLAGS+=-lhdf5 -lhdf5_hl
