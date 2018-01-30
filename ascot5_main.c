@@ -17,7 +17,6 @@
 #include "distributions.h"
 #include "diag.h"
 #include "B_field.h"
-#include "ascot4_interface.h"
 #include "plasma_1d.h"
 #include "interact.h"
 #include "simulate.h"
