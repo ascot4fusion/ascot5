@@ -7,60 +7,23 @@
 #include "error.h"
 #include "B_field.h"
 #include "Bfield/B_GS.h"
-#include "Bfield/B_2D.h"
 #include "Bfield/B_2DS.h"
-#include "Bfield/B_3D.h"
 #include "Bfield/B_3DS.h"
 #include "Bfield/B_ST.h"
 #include "Bfield/B_TC.h"
 
 void B_field_init_offload(B_field_offload_data* offload_data,
                           real** offload_array) {
-    FILE* f = fopen("input.magn_bkg", "r");
-
-    if(f == NULL) {
-        FILE* f = fopen("input.h5", "r");
-        if(f == NULL) {
-            /* no magnetic field input, use analytic field */
-            offload_data->type = B_field_type_GS;
-
-	    /* trivial cartesian field is only for debugging */
-	    /* offload_data->type = B_field_type_TC; */
-        } else {
-            /* assuming input.h5 includes stellarator bfield */
-            offload_data->type = B_field_type_STS;
-        }
-    } else {
-        /* 2D if number of sectors 0 */
-        int nsector;
-        fscanf(f, "%*d %d", &nsector);
-        
-        if(nsector == 0) {
-            offload_data->type = B_field_type_2DS;
-        } else {
-            offload_data->type = B_field_type_3DS;
-        }
-    }
-
+    
     switch(offload_data->type) {
         case B_field_type_GS:
         B_GS_init_offload(&(offload_data->BGS), offload_array);
         offload_data->offload_array_length = offload_data->BGS.offload_array_length;
         break;
 
-        case B_field_type_2D:
-        B_2D_init_offload(&(offload_data->B2D), offload_array);
-        offload_data->offload_array_length = offload_data->B2D.offload_array_length;
-        break;
-
         case B_field_type_2DS:
         B_2DS_init_offload(&(offload_data->B2DS), offload_array);
         offload_data->offload_array_length = offload_data->B2DS.offload_array_length;
-        break;
-
-        case B_field_type_3D:
-        B_3D_init_offload(&(offload_data->B3D), offload_array);
-        offload_data->offload_array_length = offload_data->B3D.offload_array_length;
         break;
 
         case B_field_type_3DS:
@@ -92,16 +55,8 @@ void B_field_free_offload(B_field_offload_data* offload_data,
         B_GS_free_offload(&(offload_data->BGS), offload_array);
         break;
 
-        case B_field_type_2D:
-        B_2D_free_offload(&(offload_data->B2D), offload_array);
-        break;
-
         case B_field_type_2DS:
         B_2DS_free_offload(&(offload_data->B2DS), offload_array);
-        break;
-
-        case B_field_type_3D:
-        B_3D_free_offload(&(offload_data->B3D), offload_array);
         break;
 
         case B_field_type_3DS:
@@ -131,16 +86,8 @@ int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
         B_GS_init(&(Bdata->BGS), &(offload_data->BGS), offload_array);
         break;
 
-        case B_field_type_2D:
-        B_2D_init(&(Bdata->B2D), &(offload_data->B2D), offload_array);
-        break;
-
         case B_field_type_2DS:
 	err = B_2DS_init(&(Bdata->B2DS), &(offload_data->B2DS), offload_array);
-        break;
-
-        case B_field_type_3D:
-        B_3D_init(&(Bdata->B3D), &(offload_data->B3D), offload_array);
         break;
 
         case B_field_type_3DS:
@@ -172,17 +119,9 @@ a5err B_field_eval_psi(real psi[], real r, real phi, real z,
         case B_field_type_GS:
         B_GS_eval_psi(psi, r, phi, z, &(Bdata->BGS));
         break;
-
-        case B_field_type_2D:
-        B_2D_eval_psi(psi, r, phi, z, &(Bdata->B2D));
-        break;
-
+	
         case B_field_type_2DS:
         err = B_2DS_eval_psi(psi, r, phi, z, &(Bdata->B2DS));
-        break;
-
-        case B_field_type_3D:
-        B_3D_eval_psi(psi, r, phi, z, &(Bdata->B3D));
         break;
 
         case B_field_type_3DS:
@@ -253,16 +192,8 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
         B_GS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BGS));
         break;
 
-        case B_field_type_2D:
-        B_2D_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B2D));
-        break;
-
         case B_field_type_2DS:
         err = B_2DS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B2DS));
-        break;
-
-        case B_field_type_3D:
-        B_3D_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B3D));
         break;
 
         case B_field_type_3DS:
@@ -299,16 +230,8 @@ a5err B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
         B_GS_eval_rho(rho, psi, &(Bdata->BGS));
         break;
 
-        case B_field_type_2D:
-        B_2D_eval_rho(rho, psi, &(Bdata->B2D));
-        break;
-
         case B_field_type_2DS:
         err = B_2DS_eval_rho(rho, psi, &(Bdata->B2DS));
-        break;
-
-        case B_field_type_3D:
-        B_3D_eval_rho(rho, psi, &(Bdata->B3D));
         break;
 
         case B_field_type_3DS:
@@ -377,16 +300,8 @@ a5err B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
         B_GS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BGS));
         break;
 
-        case B_field_type_2D:
-        B_2D_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B2D));
-        break;
-
         case B_field_type_2DS:
         err = B_2DS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B2DS));
-        break;
-
-        case B_field_type_3D:
-        B_3D_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B3D));
         break;
 
         case B_field_type_3DS:
@@ -423,16 +338,8 @@ a5err B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata) {
         B_GS_eval_B(B, r, phi, z, &(Bdata->BGS));
         break;
 
-        case B_field_type_2D:
-        B_2D_eval_B(B, r, phi, z, &(Bdata->B2D));
-        break;
-
         case B_field_type_2DS:
         err = B_2DS_eval_B(B, r, phi, z, &(Bdata->B2DS));
-        break;
-
-        case B_field_type_3D:
-        B_3D_eval_B(B, r, phi, z, &(Bdata->B3D));
         break;
 
         case B_field_type_3DS:
@@ -474,16 +381,8 @@ a5err B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
         B_GS_eval_B_dB(B_dB, r, phi, z, &(Bdata->BGS));
         break;
 
-        case B_field_type_2D:
-        B_2D_eval_B_dB(B_dB, r, phi, z, &(Bdata->B2D));
-        break;
-
         case B_field_type_2DS:
         err = B_2DS_eval_B_dB(B_dB, r, phi, z, &(Bdata->B2DS));
-        break;
-
-        case B_field_type_3D:
-        B_3D_eval_B_dB(B_dB, r, phi, z, &(Bdata->B3D));
         break;
 
         case B_field_type_3DS:
@@ -554,17 +453,9 @@ real B_field_get_axis_r(B_field_data* Bdata) {
         case B_field_type_GS:
         axis_r = B_GS_get_axis_r(&(Bdata->BGS));
         break;
-
-        case B_field_type_2D:
-        axis_r = B_2D_get_axis_r(&(Bdata->B2D));
-        break;
-
+	
         case B_field_type_2DS:
         axis_r = B_2DS_get_axis_r(&(Bdata->B2DS));
-        break;
-
-        case B_field_type_3D:
-        axis_r = B_3D_get_axis_r(&(Bdata->B3D));
         break;
 
         case B_field_type_3DS:
@@ -593,18 +484,10 @@ real B_field_get_axis_z(B_field_data* Bdata) {
         axis_z = B_GS_get_axis_z(&(Bdata->BGS));
         break;
 
-        case B_field_type_2D:
-        axis_z = B_2D_get_axis_z(&(Bdata->B2D));
-        break;
-
         case B_field_type_2DS:
         axis_z = B_2DS_get_axis_z(&(Bdata->B2DS));
         break;
-
-        case B_field_type_3D:
-        axis_z = B_3D_get_axis_z(&(Bdata->B3D));
-        break;
-
+	
         case B_field_type_3DS:
         axis_z = B_3DS_get_axis_z(&(Bdata->B3DS));
         break;
