@@ -18,7 +18,6 @@
 #include "diag.h"
 #include "B_field.h"
 #include "plasma.h"
-#include "interact.h"
 #include "simulate.h"
 #include "particle.h"
 #include "endcond.h"

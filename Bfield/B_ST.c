@@ -9,8 +9,8 @@
 #include "../math.h"
 #include "../ascot5.h"
 #include "B_ST.h"
-#include "B_3D.h" /* for 3D interpolation routines */
-#include "B_2D.h" /* for 2D interpolation routines */
+//#include "B_3D.h" /* for 3D interpolation routines */
+//#include "B_2D.h" /* for 2D interpolation routines */
 
 /**
  * @brief Load magnetic field data and prepare parameters
@@ -118,9 +118,9 @@ void B_ST_eval_B(real B[], real r, real phi, real z, B_ST_data* Bdata) {
     real t_phi = (phi - (Bdata->phi_min + i_phi * Bdata->phi_grid)) / Bdata->phi_grid;
     real t_z = (z - (Bdata->z_min + i_z * Bdata->z_grid)) / Bdata->z_grid;
 
-    B[0] = B_3D_tricubic(t_r, t_phi, t_z, i_r, i_phi, i_z, Bdata->n_z, Bdata->n_r, Bdata->B_r);
-    B[1] = B_3D_tricubic(t_r, t_phi, t_z, i_r, i_phi, i_z, Bdata->n_z, Bdata->n_r, Bdata->B_phi);
-    B[2] = B_3D_tricubic(t_r, t_phi, t_z, i_r, i_phi, i_z, Bdata->n_z, Bdata->n_r, Bdata->B_z);
+    //B[0] = B_3D_tricubic(t_r, t_phi, t_z, i_r, i_phi, i_z, Bdata->n_z, Bdata->n_r, Bdata->B_r);
+    //B[1] = B_3D_tricubic(t_r, t_phi, t_z, i_r, i_phi, i_z, Bdata->n_z, Bdata->n_r, Bdata->B_phi);
+    //B[2] = B_3D_tricubic(t_r, t_phi, t_z, i_r, i_phi, i_z, Bdata->n_z, Bdata->n_r, Bdata->B_z);
 }
 
 /**
@@ -167,7 +167,7 @@ void B_ST_eval_psi(real psi[], real r, real phi, real z,
     real t_phi = (phi - (Bdata->phi_min + i_phi * Bdata->phi_grid)) / Bdata->phi_grid;
     real t_z = (z - (Bdata->z_min + i_z * Bdata->z_grid)) / Bdata->z_grid;
 
-    psi[0] = B_3D_tricubic(t_r, t_phi, t_z, i_r, i_phi, i_z, Bdata->n_z, Bdata->n_r, Bdata->s);
+    //psi[0] = B_3D_tricubic(t_r, t_phi, t_z, i_r, i_phi, i_z, Bdata->n_z, Bdata->n_r, Bdata->s);
 }
 
 /**
@@ -213,9 +213,9 @@ void B_ST_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_ST_data* Bd
     real t_phi = (phi - (Bdata->phi_min + i_phi * Bdata->phi_grid)) / Bdata->phi_grid;
     real t_z = (z - (Bdata->z_min + i_z * Bdata->z_grid)) / Bdata->z_grid;
 
-    B_3D_tricubic_derivs(psi_dpsi, t_r, t_phi, t_z, i_r, i_phi, i_z,
-                         Bdata->n_r, Bdata->n_z, Bdata->r_grid, Bdata->phi_grid,
-                         Bdata->z_grid, Bdata->s);
+    //B_3D_tricubic_derivs(psi_dpsi, t_r, t_phi, t_z, i_r, i_phi, i_z,
+    //                     Bdata->n_r, Bdata->n_z, Bdata->r_grid, Bdata->phi_grid,
+    //                     Bdata->z_grid, Bdata->s);
 }
 
 /**
@@ -307,7 +307,7 @@ void B_ST_eval_B_dB(real B_dB[], real r, real phi, real z, B_ST_data* Bdata) {
     real t_r = (r - (Bdata->r_min + i_r * Bdata->r_grid)) / Bdata->r_grid;
     real t_phi = (phi - (Bdata->phi_min + i_phi * Bdata->phi_grid)) / Bdata->phi_grid;
     real t_z = (z - (Bdata->z_min + i_z * Bdata->z_grid)) / Bdata->z_grid;
-
+    /*
     B_3D_tricubic_derivs(&B_dB[0], t_r, t_phi, t_z, i_r, i_phi, i_z,
                          Bdata->n_r, Bdata->n_z, Bdata->r_grid, Bdata->phi_grid,
                          Bdata->z_grid, Bdata->B_r);
@@ -317,6 +317,7 @@ void B_ST_eval_B_dB(real B_dB[], real r, real phi, real z, B_ST_data* Bdata) {
     B_3D_tricubic_derivs(&B_dB[8], t_r, t_phi, t_z, i_r, i_phi, i_z,
                          Bdata->n_r, Bdata->n_z, Bdata->r_grid, Bdata->phi_grid,
                          Bdata->z_grid, Bdata->B_z);
+    */
 }
 
 real B_ST_get_axis_r(B_ST_data* Bdata) {
