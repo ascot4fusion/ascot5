@@ -100,7 +100,7 @@ OBJS= math.o consts.o list.o octree.o physlib.o \
 
 BINS=test_math \
 	 test_wall_2d test_plasma_1d test_random \
-	 test_interact test_hdf5 test_wall_3d test_particle filip5 \
+	 test_hdf5 test_wall_3d test_particle filip5 \
 	 test_B test_simulate_orbit test_offload test_E \
 	 test_mccc test_interp1Dcomp ascot5_main 
 
@@ -135,9 +135,6 @@ test_wall_2d: test_wall_2d.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_simulate_orbit: test_simulate_orbit.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
-test_interact: test_interact.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_offload: test_offload.o 
