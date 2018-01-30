@@ -74,10 +74,6 @@ HDF5IODIR = hdf5io/
 HDF5IOHEADERS = $(wildcard $(HDF5IODIR)hdf5*.h)
 HDF5IOOBJS = $(patsubst %.c,%.o,$(wildcard $(HDF5IODIR)hdf5*.c))
 
-UIDIR = ui/
-ASCOT4IFDIR = ascot4_interface/
-
-
 HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
 	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
@@ -103,10 +99,10 @@ OBJS= math.o consts.o list.o octree.o physlib.o \
 	random.o
 
 BINS=test_math \
-	 test_wall_2d test_plasma_1d \
-	 test_interact test_wall_3d test_particle filip5 \
+	 test_wall_2d test_plasma_1d test_random \
+	 test_interact test_hdf5 test_wall_3d test_particle filip5 \
 	 test_B test_simulate_orbit test_offload test_E \
-	 test_mccc test_interp1Dcomp ascot5_main test_random
+	 test_mccc test_interp1Dcomp ascot5_main 
 
 all: $(BINS)
 
@@ -194,6 +190,6 @@ test_random: test_random.o $(OBJS)
 
 clean:
 	rm -f *.o *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
-		$(MCCCDIR)*.o $(HDF5IODIR)*.o *.pyc $(ASCOT4IFDIR)*.pyc \
-		$(UIDIR)*.pyc $(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
-		spline/*.o
+		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o \
+		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
+		spline/*.o *.pyc
