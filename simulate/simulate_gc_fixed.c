@@ -17,7 +17,7 @@
 #include "../diag.h"
 #include "../B_field.h"
 #include "../E_field.h"
-#include "../plasma_1d.h"
+#include "../plasma.h"
 #include "simulate_gc_fixed.h"
 #include "step/step_gc_rk4.h"
 #include "mccc/mccc.h"

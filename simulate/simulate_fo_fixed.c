@@ -18,7 +18,7 @@
 #include "../diag.h"
 #include "../B_field.h"
 #include "../E_field.h"
-#include "../plasma_1d.h"
+#include "../plasma.h"
 #include "simulate_fo_fixed.h"
 #include "step/step_fo_vpa.h"
 #include "mccc/mccc.h"

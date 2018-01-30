@@ -5,11 +5,11 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include "ascot5.h"
-#include "error.h"
+#include "../ascot5.h"
+#include "../error.h"
 #include "plasma_1DS.h"
-#include "consts.h"
-#include "spline/interp1Dcomp.h"
+#include "../consts.h"
+#include "../spline/interp1Dcomp.h"
 
 /**
  * @brief Free offload array and reset parameters 

@@ -62,6 +62,10 @@ EFDIR = Efield/
 EFHEADERS = $(wildcard $(EFDIR)E_*.h)
 EFOBJS = $(patsubst %.c,%.o,$(wildcard $(EFDIR)E_*.c))
 
+PLSDIR = plasma/
+PLSHEADERS =  $(wildcard $(PLSDIR)plasma_*.h)
+PLSOBJS = $(patsubst %.c,%.o,$(wildcard $(PLSDIR)plasma_*.c))
+
 WALLDIR = wall/
 WALLHEADERS = $(wildcard $(WALLDIR)wall_*.h)
 WALLOBJS = $(patsubst %.c,%.o,$(wildcard $(WALLDIR)wall_*.c))
@@ -77,26 +81,26 @@ ASCOT4IFDIR = ascot4_interface/
 HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
 	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
-	plasma.h particle.h endcond.h B_field.h E_field.h \
+	$(PLSHEADERS) plasma.h particle.h endcond.h B_field.h E_field.h \
 	wall.h simulate.h diag.h diag_orb.h offload.h \
 	spline/interp2D.h spline/interp3D.h spline/spline1D.h \
 	spline/interp2Dexpl.h spline/interp3Dexpl.h \
 	spline/interp2Detoc.h spline/interp3Detoc.h \
 	spline/interp2Dcomp.h spline/interp3Dcomp.h \
 	spline/spline1Dcomp.h spline/interp1Dcomp.h \
-	plasma_1d.h plasma_1DS.h random.h
+	random.h
 
 OBJS= math.o consts.o list.o octree.o physlib.o \
      $(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
-	plasma.o particle.o endcond.o B_field.o E_field.o \
+	$(PLSOBJS) plasma.o particle.o endcond.o B_field.o E_field.o \
 	wall.o simulate.o diag.o diag_orb.o offload.o \
 	spline/interp2D.o spline/interp3D.o spline/spline1D.o \
 	spline/interp2Dexpl.o spline/interp3Dexpl.o \
 	spline/interp2Detoc.o spline/interp3Detoc.o \
 	spline/interp2Dcomp.o spline/interp3Dcomp.o \
 	spline/spline1Dcomp.o spline/interp1Dcomp.o \
-	plasma_1d.o plasma_1DS.o random.o
+	random.o
 
 BINS=test_math \
 	 test_wall_2d test_plasma_1d \

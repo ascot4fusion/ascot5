@@ -7,7 +7,7 @@
 //#include <mkl_vsl.h>
 #include "ascot5.h"
 #include "interact.h"
-#include "plasma_1d.h"
+#include "plasma/plasma_1D.h"
 #include "B_field.h"
 #include "math.h"
 #include "particle.h"

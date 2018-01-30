@@ -1,11 +1,11 @@
 /**
- * @file plasma_1d.h
- * @brief Header file for plasma_1d.c
+ * @file plasma_1D.h
+ * @brief Header file for plasma_1D.c
  */
 #ifndef PLASMA_1D_H
 #define PLASMA_1D_H
-#include "ascot5.h"
-#include "error.h"
+#include "../ascot5.h"
+#include "../error.h"
 
 /**
  * @brief 1D plasma parameters that will be offloaded to target

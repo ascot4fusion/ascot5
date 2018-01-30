@@ -16,7 +16,6 @@
 #include "../diag.h"
 #include "../B_field.h"
 #include "../E_field.h"
-#include "../plasma_1d.h"
 #include "simulate_ml_adaptive.h"
 #include "step/step_ml_cashkarp.h"
 #include "../endcond.h"

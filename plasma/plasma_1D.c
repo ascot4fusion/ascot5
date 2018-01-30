@@ -1,5 +1,5 @@
 /**
- * @file plasma_1d.c
+ * @file plasma_1D.c
  * @brief 1D plasma evaluation functions
  *
  * Offloading is performed with a method similar to the magnetic field offload.
@@ -7,10 +7,10 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include "ascot5.h"
-#include "error.h"
-#include "plasma_1d.h"
-#include "consts.h"
+#include "../ascot5.h"
+#include "../error.h"
+#include "plasma_1D.h"
+#include "../consts.h"
 
 /**
  * @brief Load 1D plasma data and prepare parameters

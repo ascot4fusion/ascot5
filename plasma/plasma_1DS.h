@@ -4,9 +4,9 @@
  */
 #ifndef PLASMA_1DS_H
 #define PLASMA_1DS_H
-#include "ascot5.h"
-#include "error.h"
-#include "spline/interp1Dcomp.h"
+#include "../ascot5.h"
+#include "../error.h"
+#include "../spline/interp1Dcomp.h"
 
 /**
  * @brief 1D plasma parameters that will be offloaded to target

@@ -5,7 +5,7 @@
 #ifndef INTERACT_H
 #define INTERACT_H
 #include "B_field.h"
-#include "plasma_1d.h"
+#include "plasma/plasma_1D.h"
 #include "particle.h"
 
 #pragma omp declare target

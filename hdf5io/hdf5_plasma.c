@@ -8,8 +8,8 @@
 #include <string.h>
 #include "../ascot5.h"
 #include "../plasma.h"
-#include "../plasma_1d.h"
-#include "../plasma_1DS.h"
+#include "../plasma/plasma_1D.h"
+#include "../plasma/plasma_1DS.h"
 #include "../consts.h"
 #include "hdf5.h"
 #include "hdf5_helpers.h"
