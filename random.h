@@ -5,7 +5,24 @@
 #ifndef RANDOM_H
 #define RANDOM_H
 
-#ifdef RANDOM_GSL
+#if defined(RANDOM_MKL)
+
+#include <mkl_vsl.h>
+
+typedef struct {
+    VSLStreamStatePtr r;
+} random_data;
+
+void random_mkl_init(random_data* rdata, int seed);
+double random_mkl_uniform(random_data* rdata);
+void random_mkl_uniform_simd(random_data* rdata, int n, double* r);
+
+#define random_init(data, seed) random_mkl_init(data, seed)
+#define random_uniform(data) random_mkl_uniform(data)
+#define random_uniform_simd(data, n, r) random_mkl_uniform_simd(data, n, r)
+
+
+#elif defined(RANDOM_GSL)
 
 #include <gsl/gsl_rng.h>
 

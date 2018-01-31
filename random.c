@@ -3,7 +3,26 @@
  * @brief Random number generator interface
  */
 
-#ifdef RANDOM_GSL
+#if defined(RANDOM_MKL)
+
+#include <mkl_vsl.h>
+#include "random.h"
+
+void random_mkl_init(random_data* rdata, int seed) {
+    vslNewStream(&rdata->r, VSL_BRNG_SFMT19937, seed);
+}
+
+double random_mkl_uniform(random_data* rdata) {
+    double r;
+    vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, rdata->r, 1, &r, 0.0, 1.0);
+    return r;
+}
+
+void random_mkl_uniform_simd(random_data* rdata, int n, double* r) {
+    vdRngUniform(VSL_RNG_METHOD_UNIFORM_STD, rdata->r, n, r, 0.0, 1.0);
+}
+
+#elif defined(RANDOM_GSL)
 
 #include <gsl/gsl_rng.h>
 #include "random.h"
