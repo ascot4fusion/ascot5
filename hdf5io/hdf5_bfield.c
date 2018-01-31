@@ -38,8 +38,8 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
     if(err < 0) {
         return -1;
     }
+    
     char active[11];
-
     err = H5LTget_attribute_string(f, "/bfield/", "active", active);
     if(err < 0) {
         return -1;
@@ -55,7 +55,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
     char path[256];
 	
     hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX", active, path);
-    if( hdf5_find_group(f, path) == 0) {
+    if(hdf5_find_group(f, path) == 0) {
 	hdf5_bfield_init_offload_TC(f, &(offload_data->BTC), offload_array, active);
 	offload_data->type = B_field_type_TC;
 	offload_data->offload_array_length = offload_data->BTC.offload_array_length;
