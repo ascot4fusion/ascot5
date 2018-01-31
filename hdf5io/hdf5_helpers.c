@@ -79,3 +79,23 @@ hid_t hdf5_create_group(hid_t loc, const char* path) {
 herr_t hdf5_find_group(hid_t loc, const char* path) {
     return H5Gget_objinfo (loc, path, 0, NULL);
 }
+
+/**
+ * @brief Generate a valid path from a given template and qid.
+ *
+ * Data in ASCOT5 HDF5 files is stored in groups, where each group is assigned
+ * a unique identifier. The paths are then in format such as "bfield/B_2D-0123456789".
+ * This function turns a template e.g. "bfield/B_2D-XXXXXXXXXX" to a valid path.
+ */
+char* hdf5_generate_qid_path(const char* original, char* qid, char* path) {
+    strcpy(path, original);
+    char* ptr = strstr(path,"XXXXXXXXXX");
+    
+    for(int i = 0; i < 10; i++) {
+	ptr[i] = qid[i];
+    }
+	
+    ptr[10] = '\0';
+
+    return path;
+}

@@ -13,5 +13,6 @@ hid_t hdf5_open(const char* filename);
 herr_t hdf5_close(hid_t file_id);
 hid_t hdf5_create_group(hid_t loc, const char* path);
 herr_t hdf5_find_group(hid_t loc, const char* path);
+char* hdf5_generate_qid_path(const char* original, char* qid, char* path);
 
 #endif

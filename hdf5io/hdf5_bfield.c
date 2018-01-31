@@ -6,15 +6,15 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <hdf5.h>
+#include "hdf5_hl.h"
 #include "../math.h"
 #include "../ascot5.h"
 #include "../B_field.h"
 #include "../Bfield/B_2DS.h"
 #include "../Bfield/B_3DS.h"
 #include "../Bfield/B_ST.h"
-#include "hdf5.h"
 #include "hdf5_helpers.h"
-#include "hdf5_hl.h"
 #include "hdf5_bfield.h"
 
 /**
@@ -30,21 +30,35 @@
 int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real** offload_array) {
     herr_t err;
 
-    err = H5LTfind_dataset(f, "/bfield/");
+    #if VERBOSE > 0
+        printf("Reading magnetic field input from the HDF5 file...\n");
+    #endif
+    
+    err = hdf5_find_group(f, "/bfield/");
     if(err < 0) {
         return -1;
     }
-    char type[32];
+    char active[11];
 
-    err = H5LTget_attribute_string(f, "/bfield/", "type", type);
+    err = H5LTget_attribute_string(f, "/bfield/", "active", active);
     if(err < 0) {
         return -1;
     }
-
-    if(strncmp(type,"B_TC",4) == 0) {
-	hdf5_bfield_init_offload_TC(f, &(offload_data->BTC), offload_array);
+    active[10] = '\0';
+    
+    #if VERBOSE > 0
+        printf("Active qid is %s\n", active);
+    #endif
+    
+    /* Go through all different input types and see which one the active qid corresponds to.
+     * Then read this input. */
+    char path[256];
+	
+    hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX", active, path);
+    if( hdf5_find_group(f, path) == 0) {
+	hdf5_bfield_init_offload_TC(f, &(offload_data->BTC), offload_array, active);
 	offload_data->type = B_field_type_TC;
-    offload_data->offload_array_length = offload_data->BTC.offload_array_length;
+	offload_data->offload_array_length = offload_data->BTC.offload_array_length;
 	
 	#if VERBOSE > 0
 	    printf("\nLoaded trivial cartesian magnetic field (B_TC)\n");
@@ -66,10 +80,12 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 
 	return 1;
     }
-    else if(strncmp(type,"B_GS",4) == 0) {
-	hdf5_bfield_init_offload_GS(f, &(offload_data->BGS), offload_array);
+    
+    hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX", active, path);
+    if(hdf5_find_group(f, path ) == 0) {
+	hdf5_bfield_init_offload_GS(f, &(offload_data->BGS), offload_array, active);
 	offload_data->type = B_field_type_GS;
-    offload_data->offload_array_length = offload_data->BGS.offload_array_length;
+	offload_data->offload_array_length = offload_data->BGS.offload_array_length;
 
 	#if VERBOSE > 0
 	    printf("\nLoaded analytical tokamak magnetic field (B_GS)\n");
@@ -86,8 +102,10 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 	#endif
 	return 1;
     }
-    else if(strncmp(type,"B_2DS",4) == 0) {
-        hdf5_bfield_init_offload_2DS(f, &(offload_data->B2DS), offload_array);
+
+    hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX", active, path);
+    if(hdf5_find_group(f, path) == 0) {
+        hdf5_bfield_init_offload_2DS(f, &(offload_data->B2DS), offload_array, active);
 	offload_data->type = B_field_type_2DS;
 	offload_data->offload_array_length=offload_data->B2DS.offload_array_length;
 
@@ -106,10 +124,12 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 
         return 1;
     }
-    else if (strncmp(type, "B_3DS",4) == 0) {
-        hdf5_bfield_init_offload_3DS(f, &(offload_data->B3DS), offload_array);
+    
+    hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX", active, path);
+    if(hdf5_find_group(f, path) == 0) {
+        hdf5_bfield_init_offload_3DS(f, &(offload_data->B3DS), offload_array, active);
 	offload_data->type = B_field_type_3DS;
-    offload_data->offload_array_length=offload_data->B3DS.offload_array_length;
+	offload_data->offload_array_length=offload_data->B3DS.offload_array_length;
 
 	#if VERBOSE > 0
 	    printf("\nLoaded 3D magnetic field (B_3DS)\n");
@@ -125,10 +145,12 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 	#endif
         return 1;
     }
-    else if (strncmp(type, "B_ST",4) == 0) {
-        hdf5_bfield_init_offload_STS(f, &(offload_data->BSTS), offload_array);
-	offload_data->type = B_field_type_STS;
-    offload_data->offload_array_length=offload_data->BSTS.offload_array_length;
+
+    hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX", active, path);
+    if(hdf5_find_group(f, path) == 0) {
+        hdf5_bfield_init_offload_STS(f, &(offload_data->BSTS), offload_array, active);
+        offload_data->type = B_field_type_STS;
+        offload_data->offload_array_length=offload_data->BSTS.offload_array_length;
 	#if VERBOSE > 0
 	    printf("\nLoaded stellarator magnetic field (B_STS)\n");
 	    printf("with parameters:\n");
@@ -144,19 +166,20 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
         return 1;
     }
     
-    printf("\nFailed to load magnetic field\n");
+    printf("\nFailed to load magnetic field.\n");
     return -1;
 }
 
-void hdf5_bfield_init_offload_2DS(hid_t f, B_2DS_offload_data* offload_data, real** offload_array) {
+void hdf5_bfield_init_offload_2DS(hid_t f, B_2DS_offload_data* offload_data, real** offload_array, char* qid) {
     herr_t err;
-        
-    err = H5LTread_dataset_int(f,"/bfield/B_2D/n_r",&(offload_data->n_r));
-    err = H5LTread_dataset_int(f,"/bfield/B_2D/n_z",&(offload_data->n_z));
-    err = H5LTread_dataset_double(f,"/bfield/B_2D/r_min",&(offload_data->r_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_2D/r_max",&(offload_data->r_max));
-    err = H5LTread_dataset_double(f,"/bfield/B_2D/z_min",&(offload_data->z_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_2D/z_max",&(offload_data->z_max));
+    char path[256];
+    
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/n_r", qid, path), &(offload_data->n_r));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/n_z", qid, path), &(offload_data->n_z));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/r_min", qid, path), &(offload_data->r_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/r_max", qid, path), &(offload_data->r_max));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/z_min", qid, path), &(offload_data->z_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/z_max", qid, path), &(offload_data->z_max));
 
     offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
                            / (offload_data->n_r - 1);
@@ -169,32 +192,33 @@ void hdf5_bfield_init_offload_2DS(hid_t f, B_2DS_offload_data* offload_data, rea
     *offload_array = (real*) malloc(4 * B_size * sizeof(real));
     offload_data->offload_array_length = 4 * B_size;
 
-    err = H5LTread_dataset_double(f,"/bfield/B_2D/psi",&(*offload_array)[0]);
-    err = H5LTread_dataset_double(f,"/bfield/B_2D/B_r",&(*offload_array)[B_size]);
-    err = H5LTread_dataset_double(f,"/bfield/B_2D/B_phi",&(*offload_array)[2*B_size]);
-    err = H5LTread_dataset_double(f,"/bfield/B_2D/B_z",&(*offload_array)[3*B_size]);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/psi", qid, path),   &(*offload_array)[0]);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/B_r", qid, path),   &(*offload_array)[B_size]);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/B_phi", qid, path), &(*offload_array)[2*B_size]);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/B_z", qid, path),   &(*offload_array)[3*B_size]);
 
     /* Read the first two values; These are the poloidal flux (psi) values at
      * magnetic axis and at x point (that is, separatrix). */
-    err = H5LTread_dataset_double(f,"/bfield/B_2D/psi0",&(offload_data->psi0));
-    err = H5LTread_dataset_double(f,"/bfield/B_2D/psi1",&(offload_data->psi1));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/psi0", qid, path), &(offload_data->psi0));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/psi1", qid, path), &(offload_data->psi1));
 
     /* Read magnetic axis r and z coordinates */
-    err = H5LTread_dataset_double(f,"/bfield/B_2D/axis_r",&(offload_data->axis_r));
-    err = H5LTread_dataset_double(f,"/bfield/B_2D/axis_z",&(offload_data->axis_z));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/axis_r", qid, path), &(offload_data->axis_r));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_2DS-XXXXXXXXXX/axis_z", qid, path), &(offload_data->axis_z));
 }
 
-void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, real** offload_array) {
+void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, real** offload_array, char* qid) {
     herr_t err;
+    char path[256];
 
     /* Read and initialize magnetic field Rz-grid */
-    err = H5LTread_dataset_int(f,"/bfield/B_3D/n_r",&(offload_data->Bgrid_n_r));
-    err = H5LTread_dataset_int(f,"/bfield/B_3D/n_phi",&(offload_data->n_phi));
-    err = H5LTread_dataset_int(f,"/bfield/B_3D/n_z",&(offload_data->Bgrid_n_z));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/r_min",&(offload_data->Bgrid_r_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/r_max",&(offload_data->Bgrid_r_max));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/z_min",&(offload_data->Bgrid_z_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/z_max",&(offload_data->Bgrid_z_max));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/n_r", qid, path), &(offload_data->Bgrid_n_r));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/n_phi", qid, path), &(offload_data->n_phi));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/n_z", qid, path), &(offload_data->Bgrid_n_z));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/r_min", qid, path), &(offload_data->Bgrid_r_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/r_max", qid, path), &(offload_data->Bgrid_r_max));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/z_min", qid, path), &(offload_data->Bgrid_z_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/z_max", qid, path), &(offload_data->Bgrid_z_max));
 
     offload_data->Bgrid_r_grid = (offload_data->Bgrid_r_max - offload_data->Bgrid_r_min)
                            / (offload_data->Bgrid_n_r - 1);
@@ -204,12 +228,12 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
     /* Read and initialize psi field Rz-grid */
     /* TODO Now we check whether psifield has it's own coordinates but, in future, they should be 
      * found in hdf5 always. */
-    err = H5LTread_dataset_int(f,"/bfield/B_3D/psigrid_n_r",&(offload_data->psigrid_n_r));
-    err = H5LTread_dataset_int(f,"/bfield/B_3D/psigrid_n_z",&(offload_data->psigrid_n_z));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/psigrid_r_min",&(offload_data->psigrid_r_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/psigrid_r_max",&(offload_data->psigrid_r_max));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/psigrid_z_min",&(offload_data->psigrid_z_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/psigrid_z_max",&(offload_data->psigrid_z_max));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/psigrid_n_r", qid, path), &(offload_data->psigrid_n_r));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/psigrid_n_z", qid, path), &(offload_data->psigrid_n_z));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/psigrid_r_min", qid, path), &(offload_data->psigrid_r_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/psigrid_r_max", qid, path), &(offload_data->psigrid_r_max));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/psigrid_z_min", qid, path), &(offload_data->psigrid_z_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/psigrid_z_max", qid, path), &(offload_data->psigrid_z_max));
     if(err) {
 	offload_data->psigrid_n_r   = offload_data->Bgrid_n_r;
 	offload_data->psigrid_n_z   = offload_data->Bgrid_n_z;
@@ -238,16 +262,16 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
     offload_data->offload_array_length = psi_size + 3 * B_size;
 
     /* Read psi */
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/psi",&(*offload_array)[3*B_size]);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/psi", qid, path), &(*offload_array)[3*B_size]);
 
     /* Read the magnetic field */
     real* temp_B_r = (real*) malloc(B_size*sizeof(real));
     real* temp_B_phi = (real*) malloc(B_size*sizeof(real));
     real* temp_B_z = (real*) malloc(B_size*sizeof(real));
 
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/B_r",temp_B_r);
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/B_phi",temp_B_phi);
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/B_z",temp_B_z);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/B_r", qid, path), temp_B_r);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/B_phi", qid, path), temp_B_phi);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/B_z", qid, path), temp_B_z);
 
     /* permute the phi and z dimensions */
     int i;
@@ -274,12 +298,12 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
 
     /* Read the first two values; These are the poloidal flux (psi) values at
      * magnetic axis and at x point (that is, separatrix). */
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/psi0",&(offload_data->psi0));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/psi1",&(offload_data->psi1));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/psi0", qid, path), &(offload_data->psi0));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/psi1", qid, path), &(offload_data->psi1));
 
     /* Read magnetic axis r and z coordinates */
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/axis_r",&(offload_data->axis_r));
-    err = H5LTread_dataset_double(f,"/bfield/B_3D/axis_z",&(offload_data->axis_z));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/axis_r", qid, path), &(offload_data->axis_r));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/axis_z", qid, path), &(offload_data->axis_z));
 
     free(temp_B_r);
     free(temp_B_phi);
@@ -300,25 +324,26 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void hdf5_bfield_init_offload_ST(hid_t f, B_ST_offload_data* offload_data, real** offload_array) {
+void hdf5_bfield_init_offload_ST(hid_t f, B_ST_offload_data* offload_data, real** offload_array, char* qid) {
     herr_t err;
+    char path[256];
     int periods;
 
     /* Number of toroidal periods */
-    err = H5LTread_dataset_int(f,"/bfield/B_ST/toroidalPeriods",&periods);
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/toroidalPeriods", qid, path), &periods);
     offload_data->periods = periods;
 
     /* Read the coordinate data */
  
-    err = H5LTread_dataset_int(f,"/bfield/B_ST/n_r",&(offload_data->n_r));
-    err = H5LTread_dataset_int(f,"/bfield/B_ST/n_phi",&(offload_data->n_phi));
-    err = H5LTread_dataset_int(f,"/bfield/B_ST/n_z",&(offload_data->n_z));
-    err = H5LTread_dataset_double(f,"/bfield/B_ST/r_min",&(offload_data->r_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_ST/r_max",&(offload_data->r_max));
-    err = H5LTread_dataset_double(f,"/bfield/B_ST/z_min",&(offload_data->z_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_ST/z_max",&(offload_data->z_max));
-    err = H5LTread_dataset_double(f,"/bfield/B_ST/phi_min",&(offload_data->phi_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_ST/phi_max",&(offload_data->phi_max));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/n_r", qid, path), &(offload_data->n_r));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/n_phi", qid, path), &(offload_data->n_phi));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/n_z", qid, path), &(offload_data->n_z));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/r_min", qid, path), &(offload_data->r_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/r_max", qid, path), &(offload_data->r_max));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/z_min", qid, path), &(offload_data->z_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/z_max", qid, path), &(offload_data->z_max));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/phi_min", qid, path), &(offload_data->phi_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/phi_max", qid, path), &(offload_data->phi_max));
 
     offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
                            / (offload_data->n_r - 1);
@@ -341,10 +366,10 @@ void hdf5_bfield_init_offload_ST(hid_t f, B_ST_offload_data* offload_data, real*
     real* temp_B_z   = (real*) malloc(temp_B_size*sizeof(real));
     real* temp_B_s   = (real*) malloc(temp_B_size*sizeof(real));
 
-    err = H5LTread_dataset_double(f, "/bfield/B_ST/B_r", temp_B_r);
-    err = H5LTread_dataset_double(f, "/bfield/B_ST/B_phi", temp_B_phi);
-    err = H5LTread_dataset_double(f, "/bfield/B_ST/B_z", temp_B_z);
-    err = H5LTread_dataset_double(f, "/bfield/B_ST/s", temp_B_s);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/B_r", qid, path), temp_B_r);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/B_phi", qid, path), temp_B_phi);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/B_z", qid, path), temp_B_z);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/s", qid, path), temp_B_s);
 
     /* We need to use stellarator symmetry here.
      * http://dx.doi.org/10.1016/S0167-2789(97)00216-9
@@ -485,25 +510,26 @@ void hdf5_bfield_init_offload_ST(hid_t f, B_ST_offload_data* offload_data, real*
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, real** offload_array) {
+void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, real** offload_array, char* qid) {
     herr_t err;
+    char path[256];
     int periods;
 
     /* Number of toroidal periods */
-    err = H5LTread_dataset_int(f,"/bfield/B_ST/toroidalPeriods",&periods);
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/toroidalPeriods", qid, path), &periods);
     offload_data->periods = periods;
 
     /* Read the coordinate data */
  
-    err = H5LTread_dataset_int(f,"/bfield/B_ST/n_r",&(offload_data->n_r));
-    err = H5LTread_dataset_int(f,"/bfield/B_ST/n_phi",&(offload_data->n_phi));
-    err = H5LTread_dataset_int(f,"/bfield/B_ST/n_z",&(offload_data->n_z));
-    err = H5LTread_dataset_double(f,"/bfield/B_ST/r_min",&(offload_data->r_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_ST/r_max",&(offload_data->r_max));
-    err = H5LTread_dataset_double(f,"/bfield/B_ST/z_min",&(offload_data->z_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_ST/z_max",&(offload_data->z_max));
-    err = H5LTread_dataset_double(f,"/bfield/B_ST/phi_min",&(offload_data->phi_min));
-    err = H5LTread_dataset_double(f,"/bfield/B_ST/phi_max",&(offload_data->phi_max));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/n_r", qid, path), &(offload_data->n_r));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/n_phi", qid, path), &(offload_data->n_phi));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/n_z", qid, path), &(offload_data->n_z));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/r_min", qid, path), &(offload_data->r_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/r_max", qid, path), &(offload_data->r_max));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/z_min", qid, path), &(offload_data->z_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/z_max", qid, path), &(offload_data->z_max));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/phi_min", qid, path), &(offload_data->phi_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/phi_max", qid, path), &(offload_data->phi_max));
 
     offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
                            / (offload_data->n_r - 1);
@@ -526,10 +552,10 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
     real* temp_B_z   = (real*) malloc(temp_B_size*sizeof(real));
     real* temp_B_s   = (real*) malloc(temp_B_size*sizeof(real));
 
-    err = H5LTread_dataset_double(f, "/bfield/B_ST/B_r", temp_B_r);
-    err = H5LTread_dataset_double(f, "/bfield/B_ST/B_phi", temp_B_phi);
-    err = H5LTread_dataset_double(f, "/bfield/B_ST/B_z", temp_B_z);
-    err = H5LTread_dataset_double(f, "/bfield/B_ST/s", temp_B_s);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/B_r", qid, path), temp_B_r);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/B_phi", qid, path), temp_B_phi);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/B_z", qid, path), temp_B_z);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/s", qid, path), temp_B_s);
 
     /* We need to use stellarator symmetry here.
      * http://dx.doi.org/10.1016/S0167-2789(97)00216-9
@@ -609,19 +635,20 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void hdf5_bfield_init_offload_TC(hid_t f, B_TC_offload_data* offload_data, real** offload_array) {
+void hdf5_bfield_init_offload_TC(hid_t f, B_TC_offload_data* offload_data, real** offload_array, char* qid) {
     herr_t err;
+    char path[256];
 
-    err = H5LTread_dataset_double(f,"/bfield/B_TC/axisr",&(offload_data->axisr));
-    err = H5LTread_dataset_double(f,"/bfield/B_TC/axisz",&(offload_data->axisr));
-    err = H5LTread_dataset_double(f,"/bfield/B_TC/psival",&(offload_data->psival));
-    err = H5LTread_dataset_double(f,"/bfield/B_TC/rhoval",&(offload_data->rhoval));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/axisr", qid, path), &(offload_data->axisr));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/axisz", qid, path), &(offload_data->axisr));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/psival", qid, path), &(offload_data->psival));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/rhoval", qid, path), &(offload_data->rhoval));
 
     offload_data->offload_array_length = 12;
 
     *offload_array = (real*) malloc(offload_data->offload_array_length*sizeof(real));
-    err = H5LTread_dataset_double(f,"/bfield/B_TC/Bxyz",&(*offload_array)[0]);
-    err = H5LTread_dataset_double(f,"/bfield/B_TC/gradB",&(*offload_array)[3]);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/Bxyz", qid, path), &(*offload_array)[0]);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/gradB", qid, path), &(*offload_array)[3]);
     
 
 }
@@ -633,26 +660,27 @@ void hdf5_bfield_init_offload_TC(hid_t f, B_TC_offload_data* offload_data, real*
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void hdf5_bfield_init_offload_GS(hid_t f, B_GS_offload_data* offload_data, real** offload_array) {
+void hdf5_bfield_init_offload_GS(hid_t f, B_GS_offload_data* offload_data, real** offload_array, char* qid) {
     herr_t err;
+    char path[256];
 
     /* Equilibrium */
-    err = H5LTread_dataset_double(f,"/bfield/B_GS/R0",&(offload_data->R0));
-    err = H5LTread_dataset_double(f,"/bfield/B_GS/z0",&(offload_data->z0));
-    err = H5LTread_dataset_double(f,"/bfield/B_GS/B_phi0",&(offload_data->B_phi0));
-    err = H5LTread_dataset_double(f,"/bfield/B_GS/psi0",&(offload_data->psi0));
-    err = H5LTread_dataset_double(f,"/bfield/B_GS/psi1",&(offload_data->psi1));
-    err = H5LTread_dataset_double(f,"/bfield/B_GS/psi_mult",&(offload_data->psi_mult));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/R0", qid, path), &(offload_data->R0));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/z0", qid, path), &(offload_data->z0));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/B_phi0", qid, path), &(offload_data->B_phi0));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/psi0", qid, path), &(offload_data->psi0));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/psi1", qid, path), &(offload_data->psi1));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/psi_mult", qid, path), &(offload_data->psi_mult));
 
     /* Ripple */
-    err = H5LTread_dataset_double(f,"/bfield/B_GS/delta0",&(offload_data->delta0));
-    err = H5LTread_dataset_double(f,"/bfield/B_GS/alpha0",&(offload_data->alpha0));
-    err = H5LTread_dataset_double(f,"/bfield/B_GS/a0",&(offload_data->a0));
-    err = H5LTread_dataset_int(f,"/bfield/B_GS/Nripple",&(offload_data->Nripple));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/delta0", qid, path), &(offload_data->delta0));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/alpha0", qid, path), &(offload_data->alpha0));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/a0", qid, path), &(offload_data->a0));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/Nripple", qid, path), &(offload_data->Nripple));
 
     offload_data->offload_array_length = 13;
 
     *offload_array = (real*) malloc(offload_data->offload_array_length*sizeof(real));
-    err = H5LTread_dataset_double(f,"/bfield/B_GS/psi_coeff",&(*offload_array)[0]);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/psi_coeff", qid, path), &(*offload_array)[0]);
     
 }
