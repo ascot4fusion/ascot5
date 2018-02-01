@@ -7,10 +7,10 @@
 #include "../wall/wall_2d.h"
 #include "../wall/wall_3d.h"
 
-void hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data, real** offload_array);
+int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data, real** offload_array);
 
-void hdf5_wall_init_offload_2D(hid_t f, wall_2d_offload_data* offload_data, real** offload_array);
+void hdf5_wall_init_offload_2D(hid_t f, wall_2d_offload_data* offload_data, real** offload_array, char* qid);
 
-void hdf5_wall_init_offload_3D(hid_t f, wall_3d_offload_data* offload_data, real** offload_array);
+void hdf5_wall_init_offload_3D(hid_t f, wall_3d_offload_data* offload_data, real** offload_array, char* qid);
 
 #endif
