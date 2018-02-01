@@ -10,6 +10,6 @@
 #include "../simulate.h"
 #include "hdf5.h"
 
-void hdf5_simulate(hid_t f, sim_offload_data* sim);
+int hdf5_simulate(hid_t f, sim_offload_data* sim);
 
 #endif
