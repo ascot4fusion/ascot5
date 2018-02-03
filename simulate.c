@@ -11,6 +11,11 @@
 #include "simulate/simulate_gc_fixed.h"
 #include "simulate/simulate_fo_fixed.h"
 
+#pragma omp declare target
+void sim_init(sim_data* sim, sim_offload_data* offload_data);
+void sim_monitor(FILE* f, int* n, int finished);
+#pragma omp end declare target
+
 void simulate(int id, int n_particles, particle_state* p,
         sim_offload_data* sim_offload,
         offload_package* offload_data,
@@ -80,15 +85,12 @@ void simulate(int id, int n_particles, particle_state* p,
      * If you modify them, pay attention to brackets! */
 #if VERBOSE > 1
     /* Open a file for writing simulation progress */
-    char stdout[256];
-    char temp[256];
-    sprintf(temp, "_%06d", sim_offload->mpi_rank);
-    strcpy(stdout, sim_offload->outfn);
-    strcat(stdout, temp);
-    strcat(stdout, ".stdout");
-    FILE *fstd = fopen(stdout, "w");
-    if (fstd == NULL) {
-        printf("\nError opening stdout file.\n");
+    char filename[256];
+    sprintf(filename, "%s_%06d.stdout", sim_offload->outfn,
+        sim_offload->mpi_rank);
+    FILE *f = fopen(filename, "w");
+    if (f == NULL) {
+        printf("Error opening stdout file.\n");
     } 
 
     /* Spawn two threads: one for the actual simulation and one worker
@@ -139,16 +141,7 @@ void simulate(int id, int n_particles, particle_state* p,
         #pragma omp section
         {
 	    /* Update progress until simulation is complete. */
-	    real timer = A5_WTIME;
-	    while(fstd != NULL && pq.n > pq.finished) {
-	        real epsilon = 1e-10;// To avoid division by zero
-	        real fracprog = ((real) pq.finished)/pq.n;
-	        real timespent = (A5_WTIME)-timer;
-		fprintf(fstd, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, Estimated time to finish: %.2f h\n", 
-			pq.finished, pq.n, 100*fracprog, timespent/3600, (1/(fracprog+epsilon)-1)*timespent/3600);
-		fflush(fstd);
-		sleep(A5_PRINTPROGRESSINTERVAL);
-	    }
+        sim_monitor(f, &pq.n, pq.finished);
 	}
     }
 #endif
@@ -212,17 +205,7 @@ void simulate(int id, int n_particles, particle_state* p,
 	    }
 	    #pragma omp section
 	    {
-	        fprintf(fstd,"Switching to hybrid mode.\n");
-	        real timer = A5_WTIME;
-		while(fstd != NULL && pq_hybrid.n > pq_hybrid.finished) {
-		    real epsilon = 1e-10; // To avoid division by zero
-	            real fracprog = ((real) pq_hybrid.finished)/pq_hybrid.n;
-		    real timespent = (A5_WTIME)-timer;
-		    fprintf(fstd, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, Estimated time to finish: %.2f h\n", 
-			    pq_hybrid.finished, pq_hybrid.n, 100*fracprog, timespent/3600, (1/(fracprog+epsilon)-1)*timespent/3600);
-		    fflush(fstd);
-		    sleep(A5_PRINTPROGRESSINTERVAL);
-	        }
+            sim_monitor(f, &pq_hybrid.n, pq_hybrid.finished);
 	    }
 	}
 #endif
@@ -230,8 +213,7 @@ void simulate(int id, int n_particles, particle_state* p,
 
 #if VERBOSE > 1
     /* Close progress file*/
-    fprintf(fstd,"Closed.");
-    fclose(fstd);
+    fclose(f);
 #endif
 
     free(pq.p);
@@ -272,4 +254,18 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->endcond_minEkinPerTe = offload_data->endcond_minEkinPerTe;
     sim->endcond_maxTorOrb    = offload_data->endcond_maxTorOrb;
     sim->endcond_maxPolOrb    = offload_data->endcond_maxPolOrb;
+}
+
+void sim_monitor(FILE* f, int* n, int finished) {
+    real timer = A5_WTIME;
+    while(f != NULL && *n > finished) {
+        real epsilon = 1e-10;// To avoid division by zero
+        real fracprog = ((real) finished)/(*n);
+        real timespent = (A5_WTIME)-timer;
+        fprintf(f, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, "
+            "estimated time to finish: %.2f h\n", finished, *n, 100*fracprog,
+            timespent/3600, (1/(fracprog+epsilon)-1)*timespent/3600);
+        fflush(f);
+        sleep(A5_PRINTPROGRESSINTERVAL);
+    }
 }
