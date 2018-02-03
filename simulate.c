@@ -81,8 +81,6 @@ void simulate(int id, int n_particles, particle_state* p,
     printf("All fields initialized. Simulation begins.\n");
     #endif
 
-    /* Verbose clauses in this function are ugly due to OpenMP.
-     * If you modify them, pay attention to brackets! */
 #if VERBOSE > 1
     /* Open a file for writing simulation progress */
     char filename[256];
@@ -92,6 +90,7 @@ void simulate(int id, int n_particles, particle_state* p,
     if (f == NULL) {
         printf("Error opening stdout file.\n");
     } 
+#endif
 
     /* Spawn two threads: one for the actual simulation and one worker
      * for updating process. */
@@ -99,24 +98,20 @@ void simulate(int id, int n_particles, particle_state* p,
     {
         #pragma omp section
         {
-#endif
-	    /* Choose simulation mode and spawn more threads that each begins simulation. */
-	    if(pq.n > 0 && (sim.sim_mode == simulate_mode_gc
-	                || sim.sim_mode == simulate_mode_hybrid)) {
+        /* Choose simulation mode and spawn more threads that each begins
+           simulation. */
+            if(pq.n > 0 && (sim.sim_mode == simulate_mode_gc
+                        || sim.sim_mode == simulate_mode_hybrid)) {
                 sim.diag_data.orbits.type = diag_orb_type_gc;
-		if(sim.enable_ada) {
+                if(sim.enable_ada) {
                     #pragma omp parallel
-	            {
-	                simulate_gc_adaptive(&pq, &sim);
-	            }
-	        }
-	        else {
+                    simulate_gc_adaptive(&pq, &sim);
+                }
+                else {
                     #pragma omp parallel
-	            {
-	                simulate_gc_fixed(&pq, &sim);
-	            }
-	        }
-	    }
+                    simulate_gc_fixed(&pq, &sim);
+                }
+            }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_fo) {
                 if(sim.record_GOasGC) {
                     sim.diag_data.orbits.type = diag_orb_type_gc;
@@ -124,91 +119,87 @@ void simulate(int id, int n_particles, particle_state* p,
                 else {
                     sim.diag_data.orbits.type = diag_orb_type_fo;
                 }
+
                 #pragma omp parallel
-                {
-                    simulate_fo_fixed(&pq, &sim);
-                }
+                simulate_fo_fixed(&pq, &sim);
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_ml) {
                 sim.diag_data.orbits.type = diag_orb_type_ml;
+
                 #pragma omp parallel
-                {
-                    simulate_ml_adaptive(&pq, &sim);
-                }
+                simulate_ml_adaptive(&pq, &sim);
             }
-#if VERBOSE > 1
-	}    
+        }
+
         #pragma omp section
         {
-	    /* Update progress until simulation is complete. */
-        sim_monitor(f, &pq.n, pq.finished);
-	}
-    }
+#if VERBOSE > 1
+            /* Update progress until simulation is complete. */
+            sim_monitor(f, &pq.n, pq.finished);
 #endif
+        }
+    }
 
     /* Finish simulating hybrid particles with fo */
     if(sim.sim_mode == simulate_mode_hybrid) {
 
         /* Determine the number markers that should be run 
-	 * in fo after previous gc simulation */
+     * in fo after previous gc simulation */
         int n_new = 0;
         for(int i = 0; i < pq.n; i++) {
             if(pq.p[i]->endcond == endcond_hybrid) {
-	        /* Check that there was no wall between
-		 * when moving from gc to fo */
-	        int tile = wall_hit_wall(pq.p[i]->r, pq.p[i]->phi, pq.p[i]->z,
-					 pq.p[i]->rprt, pq.p[i]->phiprt, pq.p[i]->zprt, 
-					 &sim.wall_data);
-		if(tile > 0) {
-		    pq.p[i]->walltile = tile;
-		    pq.p[i]->endcond |= endcond_wall;
-		}
-		else{
-		    n_new++;
-		}
+                /* Check that there was no wall between when moving from 
+                   gc to fo */
+                int tile = wall_hit_wall(pq.p[i]->r, pq.p[i]->phi, pq.p[i]->z,
+                        pq.p[i]->rprt, pq.p[i]->phiprt, pq.p[i]->zprt,
+                        &sim.wall_data);
+                if(tile > 0) {
+                    pq.p[i]->walltile = tile;
+                    pq.p[i]->endcond |= endcond_wall;
+                }
+                else {
+                    n_new++;
+                }
             }
         }
 
         if(n_new > 0) {
-	    /* Reallocate and add "old" hybrid particles to the hybrid queue */
+        /* Reallocate and add "old" hybrid particles to the hybrid queue */
             particle_state** tmp = pq_hybrid.p;
             pq_hybrid.p = (particle_state**) malloc((pq_hybrid.n + n_new)
                     * sizeof(particle_state*));
             memcpy(pq_hybrid.p, tmp, pq_hybrid.n * sizeof(particle_state*));
             free(tmp);
 
-	    /* Add "new" hybrid particles and reset their end condition */
-	    pq_hybrid.n += n_new;
+            /* Add "new" hybrid particles and reset their end condition */
+            pq_hybrid.n += n_new;
             for(int i = 0; i < pq.n; i++) {
                 if(pq.p[i]->endcond == endcond_hybrid) {
-		    pq.p[i]->endcond = 0;
-		    pq_hybrid.p[pq_hybrid.next++] = pq.p[i];
+                    pq.p[i]->endcond = 0;
+                    pq_hybrid.p[pq_hybrid.next++] = pq.p[i];
                 }
-            }	    
+            }
         }
         pq_hybrid.next = 0;
 
-	sim.record_GOasGC = 1; // Make sure we don't collect fos in gc diagnostics
-	sim.diag_data.orbits.type = diag_orb_type_gc;
+        sim.record_GOasGC = 1;//Make sure we don't collect fos in gc diagnostics
+        sim.diag_data.orbits.type = diag_orb_type_gc;
 
-#if VERBOSE > 1
-	#pragma omp parallel sections num_threads(2)
-	{
-	    #pragma omp section
-	    {
-#endif
+        #pragma omp parallel sections num_threads(2)
+        {
+            #pragma omp section
+            {
                 #pragma omp parallel
-                {
-                    simulate_fo_fixed(&pq_hybrid, &sim);
-                }
+                simulate_fo_fixed(&pq_hybrid, &sim);
+            }
+
+            #pragma omp section
+            {
 #if VERBOSE > 1
-	    }
-	    #pragma omp section
-	    {
-            sim_monitor(f, &pq_hybrid.n, pq_hybrid.finished);
-	    }
-	}
+                sim_monitor(f, &pq_hybrid.n, pq_hybrid.finished);
 #endif
+            }
+        }
     }
 
 #if VERBOSE > 1
