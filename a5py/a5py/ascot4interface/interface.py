@@ -74,6 +74,9 @@ def run(a4folder, h5fn, overwrite=True):
             if 'mass' not in data['fieldNames']:
                 print("Converting Anum to mass.")
                 data["fields"]['mass'] = np.array(list(map(guessMass, data["fields"]['Anum'], data["fields"]['Znum'], data["fields"]['charge'])))
+            if 'id' not in data['fieldNames']:
+                print("Generating unique ids.")
+                data["fields"]['id'] = np.array(range(1,data["fields"]['charge'].size + 1))
             if (min(data["fields"]["id"]) <= 0):
                 data["fields"]["id"][np.where(data["fields"]["id"] ==0)[0]] = max(data["fields"]["id"] ) + 1
                 print("Converting id 0 to new unique id: " + str(int(max(data["fields"]["id"]))))
