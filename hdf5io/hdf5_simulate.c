@@ -132,7 +132,7 @@ int hdf5_simulate(hid_t f, sim_offload_data* sim){
 	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/ORBITWRITE_POLOIDALANGLES", active, path), orbits->poloidalangles);
 	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/ORBITWRITE_INTERVAL", active, path), &orbits->writeInterval);
 	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/ORBITWRITE_LASTNPOINTS", active, path), &orbits->writeNlast);
-
+	
 	for(int i=0; i<orbits->ntoroidalplots; i++) {
 	    orbits->toroidalangles[i] = orbits->toroidalangles[i]*CONST_PI/180;
 	}
@@ -142,7 +142,6 @@ int hdf5_simulate(hid_t f, sim_offload_data* sim){
 
     }
     
-
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/ENABLE_DEBUGDIST", active, path), &diag->debug_collect);
 
     return 1;

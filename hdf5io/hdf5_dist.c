@@ -1,10 +1,11 @@
 #include <stdlib.h>
 #include "../ascot5.h"
 #include "hdf5_histogram.h"
+#include "hdf5_helpers.h"
 #include "../distributions.h"
 
 void hdf5_dist_write_rzvv(dist_rzvv_offload_data* dist, real* hist,
-        char* filename) {
+			  char* filename, char* qid) {
     int abscissa_dim = 6;
     int ordinate_length = 1;
 
@@ -58,10 +59,15 @@ void hdf5_dist_write_rzvv(dist_rzvv_offload_data* dist, real* hist,
     char* ordinate_names[] = { "density" };
     char* ordinate_units[] = { "s^2/m^5" };
 
+    /* Create a group for this distribution and write the data in it */
+    char path[256];
+    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/", qid, path);
+    
     int retval;
     retval =  hdf5_histogram_write_uniform_double(
-		      filename, 
-		      "rzVDist",
+		      filename,
+		      path,
+		      "r-phi-z-vpa-vpe-t-q-dist",
 		      abscissa_dim,
 		      ordinate_length,
 		      abscissa_n_slots,
@@ -71,6 +77,5 @@ void hdf5_dist_write_rzvv(dist_rzvv_offload_data* dist, real* hist,
 		      abscissa_names,
 		      ordinate_units,
 		      ordinate_names,
-              ordinate
-			         );
+		      ordinate);
 }

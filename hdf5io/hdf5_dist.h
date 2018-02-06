@@ -6,6 +6,6 @@
 #include "../distributions.h"
 
 void hdf5_dist_write_rzvv(dist_rzvv_offload_data* dist, real* hist,
-			  char* filename);
+			  char* filename, char* qid);
 
 #endif

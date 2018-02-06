@@ -17,5 +17,5 @@ int hdf5_input(sim_offload_data* sim,
                input_particle** p,
                int* n_markers);
 
-int hdf5_checkoutput(sim_offload_data* sim);
+int hdf5_initoutput(sim_offload_data* sim, char* qid);
 #endif

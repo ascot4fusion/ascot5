@@ -14,23 +14,13 @@
 #include "hdf5_markers.h"
 
 /**
- * @brief Write magnetic field component
- *
- * This function writes the magnetic field components in a hardcoded grid to
- * BR.out, Bphi.out and Bz.out for further processing with prepare_magn_bkg.m.
- *
- * @param Bdata pointer to magnetic field data struct
+ * @brief Read marker input.
  */
-void hdf5_markers_init(hid_t f, int *n, input_particle** p) {
+int hdf5_markers_init(hid_t f, int *n, input_particle** p) {
     herr_t err;
 
-    err = H5LTfind_dataset(f, "/marker/");
-    if(err < 0) {
-        return;
-    }
-
     #if VERBOSE > 0
-        printf("Reading marker input from the HDF5 file...\n");
+        printf("\nReading marker input from the HDF5 file...\n");
     #endif
     
     err = hdf5_find_group(f, "/marker/");
@@ -49,49 +39,49 @@ void hdf5_markers_init(hid_t f, int *n, input_particle** p) {
         printf("Active qid is %s\n", active);
     #endif
 
-    int n_particle;
-    int n_guiding_center;
-    int n_field_line;    
-    err = H5LTget_attribute_int(f, "/marker/", "n_particle", &n_particle);
-    err = H5LTget_attribute_int(f, "/marker/", "n_guiding_center", &n_guiding_center);
-    err = H5LTget_attribute_int(f, "/marker/", "n_field_line", &n_field_line);
-    
-    *p = (input_particle*) malloc((n_particle + n_guiding_center + n_field_line) * sizeof(input_particle));
-
-    /* Pointers to beginning of different data series to make code more
-     * readable */
-    input_particle* particle = &(*p)[0];
-    input_particle* guiding_center = &(*p)[n_particle];
-    input_particle* field_line = &(*p)[n_particle + n_guiding_center];
-
     /* Go through all different input types and see which one the active qid corresponds to.
      * Then read this input. */
     char path[256];
 	
     hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX", active, path);
     if(hdf5_find_group(f, path) == 0) {
-	hdf5_markers_init_particle(f, n_particle, particle, active);
+	hdf5_markers_init_particle(f, n, p, active);
+	#if VERBOSE > 0
+	    printf("\nLoaded %d particles.\n", *n);
+	#endif
+	return 1;
     }
     
     hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX", active, path);
     if(hdf5_find_group(f, path) == 0) {
-	hdf5_markers_init_guiding_center(f, n_guiding_center, guiding_center, active);
+	hdf5_markers_init_guiding_center(f, n, p, active);
+	#if VERBOSE > 0
+	    printf("\nLoaded %d guiding centers.\n", *n);
+	#endif
+	return 1;
     }
     
     hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX", active, path);
     if(hdf5_find_group(f, path) == 0) {
-	hdf5_markers_init_field_line(f, n_field_line, field_line, active);
+	hdf5_markers_init_field_line(f, n, p, active);
+	#if VERBOSE > 0
+	    printf("\nLoaded %d field lines.\n", *n);
+	#endif
+	return 1;
     }
 
-    *n = n_particle + n_guiding_center + n_field_line;
-
+    return -1;
 }
 
 
-void hdf5_markers_init_particle(hid_t f, int n, input_particle* p, char* qid) {
+void hdf5_markers_init_particle(hid_t f, int* nmrk, input_particle** mrk, char* qid) {
     herr_t err;
     char path[256];
     int i;
+
+    int n;
+    err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/n", qid, path), &n);
+    *nmrk = n;
     
     real* r      = malloc(n * sizeof(real));
     real* phi    = malloc(n * sizeof(real));
@@ -117,6 +107,9 @@ void hdf5_markers_init_particle(hid_t f, int n, input_particle* p, char* qid) {
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/time", qid, path), time);
     err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/id", qid, path), id);
 
+    *mrk = (input_particle*) malloc(n * sizeof(input_particle));
+    input_particle* p = *mrk;
+    
     for(i = 0; i < n; i++) {
         p[i].p.r      = r[i];
         p[i].p.phi    = phi[i] * CONST_PI / 180;
@@ -146,10 +139,14 @@ void hdf5_markers_init_particle(hid_t f, int n, input_particle* p, char* qid) {
 }
 
 
-void hdf5_markers_init_guiding_center(hid_t f, int n, input_particle* p, char* qid) {
+void hdf5_markers_init_guiding_center(hid_t f, int* nmrk, input_particle** mrk, char* qid) {
     herr_t err;
     char path[256];
     int i;
+
+    int n;
+    err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/n", qid, path), &n);
+    *nmrk = n;
     
     real* r      = malloc(n * sizeof(real));
     real* phi    = malloc(n * sizeof(real));
@@ -174,7 +171,10 @@ void hdf5_markers_init_guiding_center(hid_t f, int n, input_particle* p, char* q
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/weight", qid, path), weight);   
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/time", qid, path), time);
     err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/id", qid, path), id);
-        
+
+    *mrk = (input_particle*) malloc(n * sizeof(input_particle));
+    input_particle* p = *mrk;
+    
     for(i = 0; i < n; i++) {
         p[i].p_gc.r      = r[i];
         p[i].p_gc.phi    = phi[i] * CONST_PI / 180;
@@ -203,10 +203,14 @@ void hdf5_markers_init_guiding_center(hid_t f, int n, input_particle* p, char* q
     free(id);
 }
 
-void hdf5_markers_init_field_line(hid_t f, int n, input_particle* p, char* qid) {
+void hdf5_markers_init_field_line(hid_t f, int* nmrk, input_particle** mrk, char* qid) {
     herr_t err;
     char path[256];
     int i;
+
+    int n;
+    err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/n", qid, path), &n);
+    *nmrk = n;
     
     real* r      = malloc(n * sizeof(real));
     real* phi    = malloc(n * sizeof(real));
@@ -223,7 +227,10 @@ void hdf5_markers_init_field_line(hid_t f, int n, input_particle* p, char* qid) 
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/weight", qid, path), weight);
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/time", qid, path), time);
     err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/id", qid, path), id);
-        
+
+    *mrk = (input_particle*) malloc(n * sizeof(input_particle));
+    input_particle* p = *mrk;
+    
     for(i = 0; i < n; i++) {
         p[i].p_ml.r      = r[i];
         p[i].p_ml.phi    = phi[i] * CONST_PI / 180;

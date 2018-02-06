@@ -31,7 +31,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
     herr_t err;
 
     #if VERBOSE > 0
-        printf("Reading magnetic field input from the HDF5 file...\n");
+        printf("\nReading magnetic field input from the HDF5 file...\n");
     #endif
     
     err = hdf5_find_group(f, "/bfield/");
@@ -274,6 +274,7 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/B_z", qid, path), temp_B_z);
 
     /* permute the phi and z dimensions */
+    /*
     int i;
     for(i = 0; i < offload_data->n_phi; i++) {
         int j;
@@ -295,6 +296,7 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
             }
         }
     }
+    */
 
     /* Read the first two values; These are the poloidal flux (psi) values at
      * magnetic axis and at x point (that is, separatrix). */

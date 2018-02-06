@@ -13,13 +13,14 @@
 #include "../Efield/E_1D.h"
 #include "../Efield/E_1DS.h"
 #include "hdf5_efield.h"
+#include "hdf5_helpers.h"
 
 
 int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real** offload_array) {
     herr_t err;
 
     #if VERBOSE > 0
-        printf("Reading electric field input from the HDF5 file...\n");
+        printf("\nReading electric field input from the HDF5 file...\n");
     #endif
     
     err = hdf5_find_group(f, "/efield/");
@@ -28,7 +29,7 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real**
     }
     
     char active[11];
-    err = H5LTget_attribute_string(f, "/bfield/", "active", active);
+    err = H5LTget_attribute_string(f, "/efield/", "active", active);
     if(err < 0) {
         return -1;
     }
@@ -43,7 +44,7 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real**
     char path[256];
 
     hdf5_generate_qid_path("/efield/E_TC-XXXXXXXXXX", active, path);
-    if(hdf5_find_group(f, path) == 0) {
+    if(hdf5_find_group(f, path) == 0) {	
         offload_data->type = E_field_type_TC;
 	hdf5_efield_init_offload_TC(f, &(offload_data->ETC), offload_array, active);
 	offload_data->offload_array_length = offload_data->ETC.offload_array_length;
@@ -142,9 +143,8 @@ void hdf5_efield_init_offload_TC(hid_t f, E_TC_offload_data* offload_data, real*
     
     herr_t err;
     char path[256];
-
+    
     *offload_array = (real*) malloc(3*sizeof(real));
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_TC-XXXXXXXXXX/Exyz", qid, path), *offload_array);
-
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efieldE_TC-XXXXXXXXXX/Exyz", qid, path), *offload_array);
     offload_data->offload_array_length = 3;
 }

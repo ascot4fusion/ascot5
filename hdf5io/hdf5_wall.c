@@ -72,7 +72,7 @@ int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data, real** offl
         #endif
        return 1;
     }
-
+    
     return -1;
 }
 
@@ -81,7 +81,7 @@ void hdf5_wall_init_offload_2D(hid_t f, wall_2d_offload_data* offload_data, real
     char path[256];
 
     /* Read number of wall elements */
-    err = H5LTget_attribute_int(f, hdf5_generate_qid_path("/wall/wall_2D-XXXXXXXXXX", qid, path), "n", &(offload_data->n));
+    err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/wall/wall_2D-XXXXXXXXXX/n", qid, path), &(offload_data->n));
     offload_data->offload_array_length = 2 * offload_data->n;
     *offload_array = (real*) malloc(2 * offload_data->n * sizeof(real));
 
@@ -107,14 +107,14 @@ void hdf5_wall_init_offload_3D(hid_t f, wall_3d_offload_data* offload_data, real
     char path[256];
 
     /* Read number of wall elements */
-    err = H5LTget_attribute_int(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX", qid, path), "n_elements", &(offload_data->n));
+    err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/n", qid, path), &(offload_data->n));
 
-    H5LTget_attribute_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX", qid, path), "min_x", &(offload_data->xmin));
-    H5LTget_attribute_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX", qid, path), "max_x", &(offload_data->xmax));
-    H5LTget_attribute_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX", qid, path), "min_y", &(offload_data->ymin));
-    H5LTget_attribute_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX", qid, path), "max_y", &(offload_data->ymax));
-    H5LTget_attribute_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX", qid, path), "min_z", &(offload_data->zmin));
-    H5LTget_attribute_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX", qid, path), "max_z", &(offload_data->zmax));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/min_x", qid, path), &(offload_data->xmin));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/max_x", qid, path), &(offload_data->xmax));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/min_y", qid, path), &(offload_data->ymin));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/max_y", qid, path), &(offload_data->ymax));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/min_z", qid, path), &(offload_data->zmin));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/max_z", qid, path), &(offload_data->zmax));
 
     /* Add a little bit of padding so we don't need to worry about triangles
        clipping the edges */

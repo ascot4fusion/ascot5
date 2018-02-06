@@ -2,6 +2,7 @@
  * @file ascot5_main.c
  * @brief ASCOT5
  */
+#define _XOPEN_SOURCE
 #include <getopt.h>
 #include <math.h>
 #ifdef MPI
@@ -11,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "ascot5.h"
 #include "consts.h"
 #include "wall.h"
@@ -28,6 +30,8 @@
 #include "offload.h"
 
 int read_options(int argc, char** argv, sim_offload_data* sim);
+
+void generate_qid(char* qid);
 
 int main(int argc, char** argv) {
     /* Prepare simulation parameters and data for offload */
@@ -108,8 +112,52 @@ int main(int argc, char** argv) {
     #if VERBOSE >= 1
         printf("Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
     #endif
-    
 
+    /* Get MPI rank and set qid for the run.                                             */
+    /* qid rules: The actual random unique qid is used in MPI or single-process runs.    */
+    /* If this is a multi-process run (user-defined MPI rank and size), e.g. condor run, */
+    /* we set qid = 5 000 000 000 since 32 bit integers don't go that high. The actual   */
+    /* qid is assigned when results are combined.                                        */
+    int mpi_rank, mpi_size;
+    char qid[] = "5000000000";
+    #ifdef MPI
+        MPI_Status status;
+	int provided;
+	MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+	if(sim.mpi_size == 0) {
+	    /* Let MPI determine size and rank */
+            MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+	    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+	    sim.mpi_rank = mpi_rank;
+	    sim.mpi_size = mpi_size;
+	    generate_qid(qid);
+	}
+	else {
+	    /* Use user-defined size and rank */
+	    mpi_rank = sim.mpi_rank;
+	    mpi_size = sim.mpi_size;
+	    if(mpi_size == 1) {generate_qid(qid);};
+	}
+    #else
+	if(sim.mpi_size == 0) {
+            /* Use default values (single process) */
+            mpi_rank = 0;
+	    mpi_size = 1;
+	    generate_qid(qid);
+        }
+	else {
+            /* Use user-defined size and rank */
+            mpi_rank = sim.mpi_rank;
+            mpi_size = sim.mpi_size;
+	    if(mpi_size == 1) {generate_qid(qid);};
+        }
+    #endif
+    
+    #if VERBOSE >= 1
+        printf("Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
+    #endif
+
+    /* Set output filename for this MPI process. */
     if(mpi_size == 1) {
         char temp[256];
 	strcat(sim.hdf5_out, ".h5");
@@ -119,12 +167,10 @@ int main(int argc, char** argv) {
         sprintf(temp, "_%06d.h5", mpi_rank);
 	strcat(sim.hdf5_out, temp);
     }
-    err = hdf5_checkoutput(&sim);
-    if(err) {return 0;};
 
-    #if VERBOSE >= 1
-        printf("Read %d particles.\n", n);
-    #endif
+    err = hdf5_initoutput(&sim, qid);
+    if(err) {return 0;};
+    strcpy(sim.qid, qid);
 
     int start_index = mpi_rank * (n / mpi_size);
     p += start_index;
@@ -149,7 +195,7 @@ int main(int argc, char** argv) {
         particle_input_to_state(&p[i], &ps[i], &Bdata);
     }
     
-    hdf5_particlestate_write(sim.hdf5_out, "inistate", n, ps);
+    hdf5_particlestate_write(sim.hdf5_out, qid, "inistate", n, ps);
 
     #if VERBOSE >= 1
         printf("Markers initialized and inistate written.\n");
@@ -233,7 +279,7 @@ int main(int argc, char** argv) {
         printf("Writing endstate.");
     #endif
 
-    hdf5_particlestate_write(sim.hdf5_out, "endstate", n, ps);
+	hdf5_particlestate_write(sim.hdf5_out, qid, "endstate", n, ps);
     //hdf5_orbits_write(&sim, sim.hdf5_out);
 
     #if VERBOSE >= 1
@@ -244,9 +290,9 @@ int main(int argc, char** argv) {
     /* Combine histograms */
     #ifndef NOTARGET
         diag_sum(&sim.diag_offload_data, diag_offload_array_mic0,diag_offload_array_mic1);
-        hdf5_diag_write(&sim, diag_offload_array_mic0, sim.hdf5_out);
+        hdf5_diag_write(&sim, diag_offload_array_mic0, sim.hdf5_out, qid);
     #else
-        hdf5_diag_write(&sim, diag_offload_array_host, sim.hdf5_out);
+        hdf5_diag_write(&sim, diag_offload_array_host, sim.hdf5_out, qid);
     #endif
     
 
@@ -328,4 +374,22 @@ int read_options(int argc, char** argv, sim_offload_data* sim) {
     }
     strcpy(sim->outfn, sim->hdf5_out);
     return 0;
+}
+
+/** @brief Generate an identification muber 
+ *  
+ *  qid is a 32 bit unsigned integer, which is represented
+ *  in string format. The string is formed by 10 numbers and it
+ *  is padded with leading zeroes.
+ */
+void generate_qid(char* qid) {
+    /* Generate 32 bit random integer. */
+    srand48( time(NULL) );
+    long int qint = -1;
+    while(qint < 0) {
+        qint = mrand48();
+    }
+    
+    /* Turn it into a string */
+    sprintf(qid, "%010lu", (long unsigned int)qint);
 }

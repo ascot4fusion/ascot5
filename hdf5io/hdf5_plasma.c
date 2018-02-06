@@ -23,7 +23,7 @@ int hdf5_plasma_init_offload(hid_t f, plasma_offload_data* offload_data,
     hsize_t dims[3];
 
     #if VERBOSE > 0
-        printf("Reading plasma input from the HDF5 file...\n");
+        printf("\nReading plasma input from the HDF5 file...\n");
     #endif
     
     err = hdf5_find_group(f, "/plasma/");
@@ -51,6 +51,7 @@ int hdf5_plasma_init_offload(hid_t f, plasma_offload_data* offload_data,
 	hdf5_plasma_init_offload_1D(f, &(offload_data->plasma_1D), offload_array, active);
 	offload_data->type = plasma_type_1D;
 	offload_data->offload_array_length = offload_data->plasma_1D.offload_array_length;
+	
         return 1;
     }
 
@@ -77,10 +78,10 @@ int hdf5_plasma_init_offload_1D(hid_t f, plasma_1D_offload_data* offload_data,
     int i, j;
 
     int n_ions;
-    err = H5LTget_attribute_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX", qid, path), "n_ions", &n_ions);
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/n_ions", qid, path), &n_ions);
     offload_data->n_species = n_ions + 1; /* Include electrons */
     
-    err = H5LTget_attribute_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX", qid, path), "n_rho", &(offload_data->n_rho));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/n_rho", qid, path), &(offload_data->n_rho));
     int n_rho = offload_data->n_rho;
     
     /* Allocate space for rho + temperature for each ion species and electrons
@@ -100,21 +101,22 @@ int hdf5_plasma_init_offload_1D(hid_t f, plasma_1D_offload_data* offload_data,
 				     + n_rho*n_ions
 				     + n_rho];
 
-    /* Read Znum and calculate charge */
-    int Znum[n_ions];
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/Z_num", qid, path), Znum);
     /* Electron charge -1 */
     offload_data->charge[0] = -1 * CONST_E;
+    
+    /* Read Znum and calculate charge */
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/Z_num", qid, path), &(offload_data->charge[1]));
     for(i = 0; i < n_ions; i++) {
-	offload_data->charge[i+1] = Znum[i] * CONST_E;
+	offload_data->charge[i+1] = offload_data->charge[i+1] * CONST_E;
     }
 
-    /* Read Amass and calculate mass */
-    int Amass[n_ions];
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/A_mass", qid, path), Amass);
+    /* Electron mass */
     offload_data->mass[0] = CONST_M_E;
+
+    /* Read Amass and calculate mass */
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/A_mass", qid, path), &(offload_data->mass[1]));
     for(i = 0; i < n_ions; i++) {
-	offload_data->mass[i+1] = Amass[i] * CONST_U;
+	offload_data->mass[i+1] = offload_data->mass[i+1] * CONST_U;
     }
     
     /* Read actual data into array */
@@ -130,31 +132,26 @@ int hdf5_plasma_init_offload_1D(hid_t f, plasma_1D_offload_data* offload_data,
     for(i = 0; i < n_rho; i++) {
 	temp_i[i] = temp_i[i] * CONST_E / CONST_KB;
     }
-    
-    real temp_dens_i[n_ions*n_rho];
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/dens_i", qid, path), temp_dens_i);
-    for(j = 0; j < n_ions; j++) {
-	for(i = 0; i < n_rho; i++) {
-	    dens_i[j*n_rho + i] = temp_dens_i[j*n_rho + i];
-	}
-    }
+
+    /* Ion densities */
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/dens_i", qid, path), dens_i);
 
     #if VERBOSE > 0
-    printf("\nLoaded 1D plasma profiles (P_1D)\n");
-    printf("with parameters:\n");
-    printf("- %d number of rho values ranging from %le to %le\n",
-	   n_rho, rho[0], rho[n_rho-1]);
-    printf("- Number of ion species %d:\n",
-	   n_ions); 
-    for(int k=0; k<n_ions; k++) {
-	printf("  - Znum %d, Amass %d\n",Znum[k],Amass[k]);
-    }
-    //printf("- Number of neutral species %d, Znum %d, Anum %d\n");
-    printf("- Central electron temperature %le eV and density %le m^-3\n",
-	   temp_e[0] * CONST_KB / CONST_E, dens_e[0]);
-    printf("- Central ion temperature %le eV and densities [m^-3]\n", 
-	   temp_i[0] * CONST_KB / CONST_E);
-    for(int k=0; k<n_ions; k++) {
+        printf("\nLoaded 1D plasma profiles (P_1D)\n");
+	printf("with parameters:\n");
+	printf("- %d number of rho values ranging from %le to %le\n",
+	       n_rho, rho[0], rho[n_rho-1]);
+	printf("- Number of ion species %d:\n",
+	       n_ions); 
+	for(int k=0; k<n_ions; k++) {
+	    printf("  - Znum %d, Amass %d\n", offload_data->charge[k+1], offload_data->mass[k+1]);
+	}
+	//printf("- Number of neutral species %d, Znum %d, Anum %d\n");
+	printf("- Central electron temperature %le eV and density %le m^-3\n",
+	       temp_e[0] * CONST_KB / CONST_E, dens_e[0]);
+	printf("- Central ion temperature %le eV and densities [m^-3]\n", 
+	       temp_i[0] * CONST_KB / CONST_E);
+	for(int k=0; k<n_ions; k++) {
 	printf("  - %le\n",dens_i[k*n_rho]);
     }
     //printf("- Central neutral temperature %le and density %le\n");

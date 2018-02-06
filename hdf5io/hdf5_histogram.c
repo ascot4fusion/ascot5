@@ -42,7 +42,8 @@
 */
 
 int hdf5_histogram_write_uniform_double(
-		    const char *fileName, 
+		    const char *fileName,
+		    const char *runpath, 
 		    const char *title,
 		    int abscissaDim,
 		    int ordinateLength,
@@ -57,8 +58,8 @@ int hdf5_histogram_write_uniform_double(
 			){
   hid_t fileHandle;
   hid_t groupHandleHist,groupHandleOrdinates,groupHandleAbscissae;
-  char *name;
-  size_t nameLen = strlen(title) + 100;
+  char path[256];
+  char temp_path[256];
   herr_t retVal;
   int formatVersion = 3;
   int rank,i,j;
@@ -68,26 +69,24 @@ int hdf5_histogram_write_uniform_double(
 
   H5open();
 
-  name = (char *) malloc( nameLen * sizeof(char) );
-
   fileHandle = hdf5_open(fileName);
   if( fileHandle < 0 ) return fileHandle;
 
-  snprintf(name,nameLen,"/distributions/%s",title);
-  groupHandleHist =   hdf5_create_group(fileHandle, name);
+  strcpy(path, runpath);
+  strcat(path, "dists/");
+
+  groupHandleHist = H5Gcreate2(fileHandle, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  H5Gclose (groupHandleHist);
   if(groupHandleHist < 0) {
-    free(name);
+      return -1;
+  }
+  
+  strcat(path, title);
+  groupHandleHist = H5Gcreate2(fileHandle, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  //H5Gclose (groupHandleHist);
+  if(groupHandleHist < 0) {
     H5Fclose(fileHandle);
     return groupHandleHist;
-  }
-
-  // Add the histogram version
-  snprintf(name,nameLen,"/distributions/%s",title);
-  retVal = H5LTset_attribute_int(fileHandle,name,"ASCOT4_format_version", &formatVersion, 1);
-  if(retVal){
-    free(name);
-    H5Fclose(fileHandle);
-    return retVal;
   }
 
 
@@ -107,7 +106,6 @@ int hdf5_histogram_write_uniform_double(
   retVal = H5LTmake_dataset_double (groupHandleHist , "ordinate", rank, dims, ordinate );
   if(retVal){
     printf("%s:%d Problem with make_dataset: %d.\n",__FILE__,__LINE__,retVal);
-    free(name);
     H5Fclose(fileHandle);
     return retVal;
   }
@@ -117,7 +115,6 @@ int hdf5_histogram_write_uniform_double(
 
   retVal = H5LTset_attribute_int(groupHandleHist,"ordinate","number_of_dims", &abscissaDim, 1);
   if(retVal){
-    free(name);
     H5Fclose(fileHandle);
     return retVal;
   }
@@ -126,96 +123,89 @@ int hdf5_histogram_write_uniform_double(
   for ( i=abscissaDim;  i<6;           ++i ) slots[i] = 1;
   retVal = H5LTset_attribute_int(groupHandleHist,"ordinate","number_of_slots", slots, 6);
   if(retVal){
-    free(name);
-    H5Fclose(fileHandle);
-    return retVal;
+      H5Fclose(fileHandle);
+      return retVal;
   }
   retVal = H5LTset_attribute_int(groupHandleHist,"ordinate","vector_length", &ordinateLength, 1);
   if(retVal){
-    free(name);
-    H5Fclose(fileHandle);
-    return retVal;
+      H5Fclose(fileHandle);
+      return retVal;
   }
 
 
 
 
   // Add ordinate information
-  snprintf(name,nameLen,"/ordinates");
-  groupHandleOrdinates =  hdf5_create_group( groupHandleHist,name);
+  char path_ordinates[256];
+  strcpy(path_ordinates, path);
+  strcat(path_ordinates,"/ordinates");
+  groupHandleOrdinates =  hdf5_create_group( groupHandleHist, "ordinates");
   if(groupHandleOrdinates < 0) {
-    free(name);
-    H5Fclose(fileHandle);
-    return groupHandleOrdinates;
+      H5Fclose(fileHandle);
+      return groupHandleOrdinates;
   }
   
 
 
   for ( i=0; i<ordinateLength; ++i) {
-
-    snprintf(name,nameLen,"name_%06d",i+1);
-    retVal =  H5LTmake_dataset_string ( groupHandleOrdinates, name, ordinateNames[i] ) ;
-    if(retVal){
-      free(name);
-      H5Fclose(fileHandle);
-      return retVal;
-    }
-
-    snprintf(name,nameLen,"unit_%06d",i+1);
-    retVal =  H5LTmake_dataset_string ( groupHandleOrdinates, name, ordinateUnits[i] ) ;
-    if(retVal){
-      free(name);
-      H5Fclose(fileHandle);
-      return retVal;
-    }
-
-
+      sprintf(temp_path, "name_%06d",i+1);
+      retVal =  H5LTmake_dataset_string ( groupHandleOrdinates, temp_path, ordinateNames[i] ) ;
+      if(retVal){
+	  H5Fclose(fileHandle);
+	  return retVal;
+      }
+      sprintf(temp_path, "unit_%06d",i+1);
+      retVal =  H5LTmake_dataset_string ( groupHandleOrdinates, temp_path, ordinateUnits[i] ) ;
+      if(retVal){
+	  H5Fclose(fileHandle);
+	  return retVal;
+      }
+      
+      
   }
   H5Gclose(groupHandleOrdinates);
 
 
 
   // Add Abscissae
-
-  snprintf(name,nameLen,"/abscissae");
-  groupHandleAbscissae =  hdf5_create_group( groupHandleHist,name);
+  char path_abscissae[256];
+  strcpy(path_abscissae, path);
+  strcat(path_abscissae,"/abscissae");
+  groupHandleAbscissae =  hdf5_create_group( groupHandleHist, "abscissae");
   if(groupHandleAbscissae < 0) {
-    free(name);
-    H5Fclose(fileHandle);
-    return groupHandleAbscissae;
+      H5Fclose(fileHandle);
+      return groupHandleAbscissae;
   }
 
 
   for ( i=0; i<abscissaDim; ++i) {
 
-    snprintf(name,nameLen,"dim%d",i+1);
     rank=1;
     dims[0]=abscissaNslots[i]+1;
 
     abscissa=(double *) malloc( dims[0] * sizeof(double) );
     for( j=0; j<dims[0]; ++j) abscissa[j] = abscissaMin[i] + j * (( abscissaMax[i] - abscissaMin[i] ) /abscissaNslots[i] );
-    retVal = H5LTmake_dataset_double (groupHandleAbscissae , name, rank, dims, abscissa );
+    sprintf(temp_path, "dim_%06d",i+1);
+    retVal = H5LTmake_dataset_double (groupHandleAbscissae , temp_path, rank, dims, abscissa );
     free(abscissa);
     if(retVal){
       printf("%s:%d Problem with make_dataset: %d.\n",__FILE__,__LINE__,retVal);
-      free(name);
       H5Fclose(fileHandle);
       return retVal;
     }
 
-
-    retVal =  H5LTset_attribute_string( groupHandleAbscissae, name, "name", abscissaNames[i]  );
+    sprintf(temp_path, "name_%06d",i+1);
+    retVal =  H5LTmake_dataset_string ( groupHandleAbscissae, temp_path, abscissaNames[i] );
     if(retVal){
       printf("%s:%d Problem with attribute setting: %d.\n",__FILE__,__LINE__,retVal);
-      free(name);
       H5Fclose(fileHandle);
       return retVal;
     }
 
-    retVal =  H5LTset_attribute_string( groupHandleAbscissae, name, "unit", abscissaUnits[i]  );
+    sprintf(temp_path, "unit_%06d",i+1);
+    retVal =  H5LTmake_dataset_string ( groupHandleAbscissae, temp_path, abscissaNames[i] );
     if(retVal){
       printf("%s:%d Problem with attribute setting: %d.\n",__FILE__,__LINE__,retVal);
-      free(name);
       H5Fclose(fileHandle);
       return retVal;
     }
@@ -228,7 +218,6 @@ int hdf5_histogram_write_uniform_double(
 
   H5Fclose(fileHandle);
   H5close();
-  free(name);
 
   return 0;
 }

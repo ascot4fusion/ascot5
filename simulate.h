@@ -27,6 +27,7 @@ typedef struct {
     char hdf5_in[256];
     char hdf5_out[256];
     char outfn[256];
+    char qid[256];
 
     int mpi_rank;
     int mpi_size;

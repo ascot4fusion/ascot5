@@ -94,8 +94,6 @@ char* hdf5_generate_qid_path(const char* original, char* qid, char* path) {
     for(int i = 0; i < 10; i++) {
 	ptr[i] = qid[i];
     }
-	
-    ptr[10] = '\0';
 
     return path;
 }

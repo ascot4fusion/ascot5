@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include "../simulate.h"
-#include "hdf5.h"
+#include <hdf5.h>
 #include "hdf5_helpers.h"
 #include "hdf5_hl.h"
 #include "hdf5_input.h"
@@ -65,9 +66,9 @@ int hdf5_input(sim_offload_data* sim,
 	return -1;
     }
 
-    err = hdf5_find_group(f, "/markers/");
+    err = hdf5_find_group(f, "/marker/");
     if(err < 0) {
-	printf("\nError: Markers not found within %s.\n",sim->hdf5_in);
+	printf("\nError: Marker input not found within %s.\n",sim->hdf5_in);
 	return -1;
     }
 
@@ -118,27 +119,69 @@ int hdf5_input(sim_offload_data* sim,
     return 0;
 }
 
-int hdf5_checkoutput(sim_offload_data* sim) {
+int hdf5_initoutput(sim_offload_data* sim, char* qid) {
     
-    if(strcmp(sim->hdf5_in, sim->hdf5_out) != 0) {
-	/* Create new file for the output */
-	hid_t fout = hdf5_create(sim->hdf5_out);
-	if(fout < 0) {
-	    printf("\nError: Attempted to access output file %s.\n",sim->hdf5_out);
-	    printf("Output file already present.\n");
-	    return -1;
-	}
+    /* Create new file for the output if one does not yet exist. */
+    hid_t fout = hdf5_create(sim->hdf5_out);
+    if(fout < 0) {
+	printf("Note: Output file %s is already present.\n", sim->hdf5_out);
+    }
+    hdf5_close(fout);
+    
+    /* Open output file and create results section if one does not yet exist. */
+    fout = hdf5_open(sim->hdf5_out);
+    
+    herr_t  err = hdf5_find_group(fout, "/results/");
+    if(err) {
+	/* No results group exists so we make one */
+	hdf5_create_group(fout, "/results/");
+    }
+
+    /* Create a group for this specific run. */
+    char path[256];
+    hdf5_generate_qid_path("/results/run-XXXXXXXXXX", qid, path);
+    hid_t newgroup = H5Gcreate2(fout, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Gclose (newgroup);
+    #if VERBOSE > 0
+        printf("\nThe qid of this run is %s\n", qid);
+    #endif
+	
+    /* If a run with identical qid exists, abort. */
+    if(newgroup < 0) {
+	printf("Error: A run with qid %s already exists.\n", qid);
 	hdf5_close(fout);
+	return -1;
     }
-    else {
-	/* Output and inputs are the same */
-	hid_t f = hdf5_open(sim->hdf5_in);
-	herr_t err = hdf5_find_group(f, "/inistate/");
-	if(err == 0) {
-	    printf("\nError: %s already contains simulation results.\n",sim->hdf5_out);
-	    return -1;
-	}
-	hdf5_close(f);
-    }
+    
+    /* Read input data qids and store them here. */
+    char inputqid[11];
+    inputqid[10] = '\0';
+    
+    H5LTget_attribute_string(fout, "/options/", "active", inputqid);
+    H5LTset_attribute_string(fout, path, "qid_options", inputqid);
+
+    H5LTget_attribute_string(fout, "/bfield/", "active", inputqid);
+    H5LTset_attribute_string(fout, path, "qid_bfield", inputqid);
+
+    H5LTget_attribute_string(fout, "/efield/", "active", inputqid);
+    H5LTset_attribute_string(fout, path, "qid_efield", inputqid);
+
+    H5LTget_attribute_string(fout, "/plasma/", "active", inputqid);
+    H5LTset_attribute_string(fout, path, "qid_plasma", inputqid);
+
+    H5LTget_attribute_string(fout, "/wall/", "active", inputqid);
+    H5LTset_attribute_string(fout, path, "qid_wall", inputqid);
+
+    H5LTget_attribute_string(fout, "/marker/", "active", inputqid);
+    H5LTset_attribute_string(fout, path, "qid_marker", inputqid);
+    
+    /* Finally we set a date and close the file. */
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    char date[20];
+    sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    H5LTset_attribute_string(fout, path, "date", date);
+    hdf5_close(fout);
+    
     return 0;
 }

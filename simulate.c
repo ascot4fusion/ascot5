@@ -213,7 +213,7 @@ void simulate(int id, int n_particles, particle_state* p,
 
     // Temporary solution
 #ifdef NOTARGET
-    hdf5_orbits_write(&sim, sim_offload->hdf5_out);
+    hdf5_orbits_write(&sim, sim_offload->hdf5_out, sim_offload->qid);
 #endif
 
     diag_clean(&sim.diag_data);

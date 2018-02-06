@@ -16,7 +16,7 @@ void hdf5_orbits_writeset_fo(hid_t group, diag_orb_dat* list, int size, int* mas
 void hdf5_orbits_writeset_gc(hid_t group, diag_orb_dat* list, int size, int* mask);
 void hdf5_orbits_writeset_ml(hid_t group, diag_orb_dat* list, int size, int* mask);
 
-void hdf5_orbits_write(sim_data* sim, char* out) {
+void hdf5_orbits_write(sim_data* sim, char* out, char* qid) {
     if(sim->diag_data.diag_orb_collect == 0) {
 	/* Nothing to write.*/
 	return;
@@ -36,9 +36,19 @@ void hdf5_orbits_write(sim_data* sim, char* out) {
 	return;
     }
     hid_t file = hdf5_open(out);
-    hid_t group = hdf5_create_group(file, "orbits");
-    hid_t grp;
+
+    char path[256];
+    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/", qid, path);
+    strcat(path, "orbits");
+
+    hid_t group = H5Gcreate2(file, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     
+    if(group < 0) {
+	printf("Fail\n");
+        return;
+    }
+
+    hid_t grp;
     if(diag->mode == DIAG_ORB_ORBIT || diag->mode == DIAG_ORB_WRITELAST) {
 	
 	int* mask = malloc(size * sizeof(int));
@@ -47,16 +57,28 @@ void hdf5_orbits_write(sim_data* sim, char* out) {
 	}
 
 	if(diag->type == diag_orb_type_fo) {
-	    grp = hdf5_create_group(group, "fo"); 
+	    grp = H5Gcreate2(group, "fo", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	    if(grp < 0) {
+		return;
+	    }
 	    hdf5_orbits_writeset_fo(grp, top, size, mask);
+	    H5Gclose (grp);
 	}
 	else if(diag->type == diag_orb_type_gc) {
-	    grp = hdf5_create_group(group, "gc"); 
+	    grp = H5Gcreate2(group, "gc", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	    if(grp < 0) {
+		return;
+	    }
 	    hdf5_orbits_writeset_gc(grp, top, size, mask);
+	    H5Gclose (grp);
 	}
 	else if(diag->type == diag_orb_type_ml) {
-	    grp = hdf5_create_group(group, "ml"); 
+	    grp = H5Gcreate2(group, "ml", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	    if(grp < 0) {
+		return;
+	    }
 	    hdf5_orbits_writeset_ml(grp, top, size, mask);
+	    H5Gclose (grp);
 	}
 	free(mask);
     }
@@ -126,7 +148,7 @@ void hdf5_orbits_write(sim_data* sim, char* out) {
 	    free(mask);
 	}
     }
-
+    H5Gclose (group);
 
     hdf5_close(file);
 }
