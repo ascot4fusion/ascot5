@@ -50,6 +50,40 @@ int main(int argc, char** argv) {
 
     read_options(argc, argv, &sim);
     
+    int mpi_rank, mpi_size;
+    #ifdef MPI
+    MPI_Status status;
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+    if(sim.mpi_size == 0) {
+        /* Let MPI determine size and rank */
+        MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+        sim.mpi_rank = mpi_rank;
+        sim.mpi_size = mpi_size;
+    }
+    else {
+        /* Use user-defined size and rank */
+        mpi_rank = sim.mpi_rank;
+        mpi_size = sim.mpi_size;
+    }
+    #else
+    if(sim.mpi_size == 0) {
+        /* Use default values (single process) */
+        mpi_rank = 0;
+        mpi_size = 1;
+    }
+    else {
+        /* Use user-defined size and rank */
+        mpi_rank = sim.mpi_rank;
+        mpi_size = sim.mpi_size;
+    }
+    #endif
+    
+    #if VERBOSE >= 1
+    printf("Initialized MPI, rank %d, size %d, using %d threads.\n", mpi_rank, mpi_size, omp_get_max_threads());
+    #endif
+
     err = hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
              &wall_offload_array, &p, &n);
     if(err) {return 0;};
@@ -76,39 +110,6 @@ int main(int argc, char** argv) {
         printf("Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
     #endif
     
-    int mpi_rank, mpi_size;
-    #ifdef MPI
-        MPI_Status status;
-	int provided;
-	MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-	if(sim.mpi_size == 0) {
-	    /* Let MPI determine size and rank */
-            MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-	    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
-	    sim.mpi_rank = mpi_rank;
-	    sim.mpi_size = mpi_size;
-	}
-	else {
-	    /* Use user-defined size and rank */
-	    mpi_rank = sim.mpi_rank;
-	    mpi_size = sim.mpi_size;
-	}
-    #else
-	if(sim.mpi_size == 0) {
-            /* Use default values (single process) */
-            mpi_rank = 0;
-	    mpi_size = 1;
-        }
-	else {
-            /* Use user-defined size and rank */
-            mpi_rank = sim.mpi_rank;
-            mpi_size = sim.mpi_size;
-        }
-    #endif
-    
-    #if VERBOSE >= 1
-        printf("Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
-    #endif
 
     if(mpi_size == 1) {
         char temp[256];
