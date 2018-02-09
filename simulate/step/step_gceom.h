@@ -24,7 +24,7 @@
  * @param B_dB magnetic field and derivatives at the guiding center location
  * @param E electric field at the guiding center location
  */
-#pragma omp declare simd simdlen(8)
+#pragma omp declare simd
 static void step_gceom(real* ydot, real* y, real mass, real charge, real* B_dB, real* E) {
 
     real B[3];
@@ -81,7 +81,7 @@ static void step_gceom(real* ydot, real* y, real mass, real charge, real* B_dB, 
 
 }
 
-#pragma omp declare simd linear(i) uniform(ydot, y, E, B_dB) simdlen(8) aligned(ydot,y,B_dB,E:64)
+#pragma omp declare simd linear(i) uniform(ydot, y, E, B_dB) aligned(ydot,y,B_dB,E:64)
 static inline void step_gceom_SIMD(int i, real ydot[6][NSIMD], real y[6][NSIMD], real mass, real charge, real B_dB[12][NSIMD], real E[3][NSIMD]) {
 
     real B[3];

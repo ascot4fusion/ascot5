@@ -28,7 +28,7 @@
 #include "../hdf5io/hdf5_orbits.h"
 
 #pragma omp declare target
-#pragma omp declare simd uniform(sim) simdlen(8)
+#pragma omp declare simd uniform(sim)
 real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
 #pragma omp end declare target
 
@@ -89,7 +89,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     /* Initialize running particles */
     int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 	
-    #pragma omp simd simdlen(8)
+    #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
 	if(cycle[i] > 0) {
 	    /* Determine initial time-step */
@@ -114,7 +114,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
  * - Update diagnostics
  */
     while(n_running > 0) {
-        #pragma omp simd simdlen(8)
+        #pragma omp simd
 	for(i = 0; i < NSIMD; i++) {
 	    /* Store marker states in case time step will be rejected */
             p0.r[i]        = p.r[i];
@@ -168,7 +168,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 			     &sim->B_data, &sim->E_data);
 		
 	    /* Check whether time step was rejected */
-            #pragma omp simd simdlen(8)
+            #pragma omp simd
 	    for(i = 0; i < NSIMD; i++) {
 	        if(p.running[i] && hout_orb[i] < 0){
 	            p.running[i] = 0;
@@ -182,7 +182,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 		hin, hout_col, wienarr, tol_col);
 		
 	    /* Check whether time step was rejected */
-            #pragma omp simd simdlen(8)
+            #pragma omp simd
 	    for(i = 0; i < NSIMD; i++) {
 		if(p.running[i] && hout_col[i] < 0){
 		    p.running[i] = 0;
@@ -192,7 +192,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 	}
 		
 	cputime = A5_WTIME;
-        #pragma omp simd simdlen(8)
+        #pragma omp simd
 	for(i = 0; i < NSIMD; i++) {
 	    if(!p.err[i]) {
 		/* Check other time step limitations */
@@ -287,7 +287,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 	/* Update number of running particles */
 	n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 	    
-        #pragma omp simd simdlen(8)
+        #pragma omp simd
 	for(i = 0; i < NSIMD; i++) {
 	    if(cycle[i] > 0) {
 		/* Determine initial time-step */

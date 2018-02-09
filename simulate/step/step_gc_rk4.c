@@ -30,7 +30,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
 
     int i;
     /* Following loop will be executed simultaneously for all i */
-    #pragma omp simd aligned(h : 64) simdlen(8)
+    #pragma omp simd aligned(h : 64)
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
 	    a5err errflag = 0;
@@ -187,7 +187,7 @@ void step_gc_rk4_SIMD(particle_simd_gc* p, real* hin, B_field_data* Bdata, E_fie
 
     int i;
     /* Following loop will be executed simultaneously for all i */
-#pragma omp simd simdlen(8)
+#pragma omp simd
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
 	    a5err errflag = 0;

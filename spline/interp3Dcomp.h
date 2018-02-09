@@ -12,13 +12,13 @@ int interp3Dcomp_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
 		   real r_min, real r_max, real r_grid,
 		   real phi_min, real phi_max, real phi_grid,
 		   real z_min, real z_max, real z_grid);
-#pragma omp declare simd uniform(str) simdlen(8)
+#pragma omp declare simd uniform(str)
 int interp3Dcomp_eval_B(real* B, interp3D_data* str, real r, real phi, real z);
-#pragma omp declare simd linear(i) uniform(B, str) simdlen(8)
+#pragma omp declare simd linear(i) uniform(B, str)
 int interp3Dcomp_eval_B_SIMD(int i, real B[NSIMD], interp3D_data* str, real r, real phi, real z);
-#pragma omp declare simd uniform(str) simdlen(8)
+#pragma omp declare simd uniform(str)
 int interp3Dcomp_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z);
-#pragma omp declare simd linear(i) uniform(B_dB, str) simdlen(8)
+#pragma omp declare simd linear(i) uniform(B_dB, str)
 int interp3Dcomp_eval_dB_SIMD(int i, real B_dB[10][NSIMD], interp3D_data* str, real r, real phi, real z);
 void interp3Dcomp_free(interp3D_data* str);
 #pragma omp end declare target

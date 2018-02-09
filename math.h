@@ -53,27 +53,27 @@
 #define math_rad2deg(a) (a * math_raddeg)
 
 #pragma omp declare target
-#pragma omp declare simd simdlen(8)
+#pragma omp declare simd
 void math_unit(real* vec, real* vec_unit);
-#pragma omp declare simd simdlen(8)
+#pragma omp declare simd
 void math_xyz2rpz(real* xyz, real* rpz);
-#pragma omp declare simd simdlen(8)
+#pragma omp declare simd
 void math_rpz2xyz(real* rpz, real* xyz);
-#pragma omp declare simd simdlen(8)
+#pragma omp declare simd
 void math_vec_rpz2xyz(real* rpz, real* xyz, real phi);
-#pragma omp declare simd simdlen(8)
+#pragma omp declare simd
 void math_vec_xyz2rpz(real* xyz, real* rpz, real phi);
-#pragma omp declare simd simdlen(8)
+#pragma omp declare simd
 void math_grad_xyz2rpz(real* xyz, real* rpz, real r, real phi);
-#pragma omp declare simd simdlen(8)
+#pragma omp declare simd
 void math_grad_rpz2xyz(real* xyz, real* rpz, real r, real phi);
-#pragma omp declare simd simdlen(8)
+#pragma omp declare simd
 void math_jac_rpz2xyz(real* rpz, real* xyz, real r, real phi);
-#pragma omp declare simd simdlen(8)
+#pragma omp declare simd
 void math_jac_xyz2rpz(real* xyz, real* rpz, real r, real phi);
-#pragma omp declare simd simdlen(8)
+#pragma omp declare simd
 void math_matmul(real* matA, real* matB, int d1, int d2, int d3, real* matC);
-#pragma omp declare simd simdlen(8)
+#pragma omp declare simd
 real math_normal_rand();
 int math_ipow(int a, int p);
 double math_simpson_helper(double (*f)(double), double a, double b, double eps, double S, double fa, double fb, double fc, int bottom);
