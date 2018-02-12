@@ -27,7 +27,7 @@ class opt():
     #
     # ENABLE_ADAPTIVE == 0, 1, or 2
     # - Use adaptive time-step in guiding center and hybrid 
-    #   (only in the guiding center part) modes
+    #   (only in the guiding center part of the simulation) modes
     #   0 - Use fixed time-step
     #   1 - Use adaptive time-step
     #   2 - Use acceleration (valid only in axisymmetric fields) !!TODO Not implemented!!
@@ -158,10 +158,10 @@ class opt():
 
     ## Define what physics are included in simulations ##
     # ENABLE_ORBIT_FOLLOWING == 1
-    # - Trace particles in an electromagnetic field
+    # - Trace markers in an electromagnetic field
     #
     # ENABLE_COULOMB_COLLISIONS == 0
-    # - Particles experience Coulomb collisions with background 
+    # - Markers experience Coulomb collisions with background 
     #   plasma
     #
 
@@ -174,36 +174,97 @@ class opt():
     ###############
 
     ## Distribution specific options ##
-    # ENABLE_RZVparaVperp_DIST == 0 or 1
-    # - Enables collection of marker histogram in coordinates
-    #     R - major radius in [m]
-    #     z - z-coordinate in [m]
-    #     vpara - velocity component parallel to magnetic field [m/s]
-    #     vperp - velocity component perpendicular to magnetic field [m/s]
+    # ENABLE_R-phi-z-vpa-vpe-t-q_DIST == 0 or 1
+    # - Enables collection of marker distribution histogram in coordinates
+    #     R     - major radius in meters [m]
+    #     phi   - toroidal angle in degrees [deg]
+    #     z     - z-coordinate in meters [m]
+    #     vpara - velocity component parallel to magnetic field in meters per second [m/s]
+    #     vperp - velocity component perpendicular to magnetic field in meters per second [m/s]
+    #     t     - time in seconds [s]
+    #     q     - charge in multiples of elementary charge [e] (must be an integer value)
     #
-    # Distributions are defined with parameters
-    # MIN_X - Smallest bin edge for coordinate X
-    # MAX_X - Largest bin edge for coordinate X
-    # BIN_X - Number of bins interval [MIN_X MAX_X] is divided into
+    # ENABLE_R-phi-z-vR-vphi-vz-t-q_DIST == 0 or 1 !!TODO Not implemented!!
+    # - Enables collection of marker distribution histogram in coordinates
+    #     R     - major radius in meters [m]
+    #     phi   - toroidal angle in degrees [deg]
+    #     z     - z-coordinate in meters [m]
+    #     vR    - velocity R-component in meters per second [m/s]
+    #     vphi  - velocity phi-component in meters per second [m/s]
+    #     vz    - velocity z-component in meters per second [m/s]
+    #     t     - time in seconds [s]
+    #     q     - charge in multiples of elementary charge [e] (must be an integer value)
+    #
+    # Distribution histograms are defined with parameters
+    # MIN_X  - Smallest bin edge for coordinate X
+    # MAX_X  - Largest bin edge for coordinate X
+    # NBIN_X - Number of bins interval [MIN_X MAX_X] is divided into
     #
 
-    ENABLE_RZVparaVperp_DIST    = 1
+    ENABLE_R-phi-z-vpa-vpe-t-q_DIST   = 1
 
-    DIST_RZVparaVperp_MIN_R     = 3.0
-    DIST_RZVparaVperp_MAX_R     = 8.5
-    DIST_RZVparaVperp_BIN_R     = 20
+    DIST_R-phi-z-vpa-vpe-t-q_MIN_R    = 3.0
+    DIST_R-phi-z-vpa-vpe-t-q_MAX_R    = 8.5
+    DIST_R-phi-z-vpa-vpe-t-q_NBIN_R   = 20
 
-    DIST_RZVparaVperp_MIN_Z     = -4.25
-    DIST_RZVparaVperp_MAX_Z     = 3.6
-    DIST_RZVparaVperp_BIN_Z     = 40
+    DIST_R-phi-z-vpa-vpe-t-q_MIN_phi  = 0
+    DIST_R-phi-z-vpa-vpe-t-q_MAX_phi  = 360
+    DIST_R-phi-z-vpa-vpe-t-q_NBIN_phi = 1
 
-    DIST_RZVparaVperp_MIN_VPARA = -1.5e7
-    DIST_RZVparaVperp_MAX_VPARA = 1.5e7
-    DIST_RZVparaVperp_BIN_VPARA = 40
+    DIST_R-phi-z-vpa-vpe-t-q_MIN_z    = -4.25
+    DIST_R-phi-z-vpa-vpe-t-q_MAX_z    = 3.6
+    DIST_R-phi-z-vpa-vpe-t-q_NBIN_z   = 40
 
-    DIST_RZVparaVperp_MIN_VPERP = 0
-    DIST_RZVparaVperp_MAX_VPERP = 1.5e7
-    DIST_RZVparaVperp_BIN_VPERP = 20
+    DIST_R-phi-z-vpa-vpe-t-q_MIN_vpa  = -1.5e7
+    DIST_R-phi-z-vpa-vpe-t-q_MAX_vpa  = 1.5e7
+    DIST_R-phi-z-vpa-vpe-t-q_NBIN_vpa = 40
+
+    DIST_R-phi-z-vpa-vpe-t-q_MIN_vpe  = 0
+    DIST_R-phi-z-vpa-vpe-t-q_MAX_vpe  = 1.5e7
+    DIST_R-phi-z-vpa-vpe-t-q_NBIN_vpe = 20
+
+    DIST_R-phi-z-vpa-vpe-t-q_MIN_t    = 0
+    DIST_R-phi-z-vpa-vpe-t-q_MAX_t    = 100
+    DIST_R-phi-z-vpa-vpe-t-q_NBIN_t   = 1
+
+    DIST_R-phi-z-vpa-vpe-t-q_MIN_q    = -100
+    DIST_R-phi-z-vpa-vpe-t-q_MAX_q    = 100
+    DIST_R-phi-z-vpa-vpe-t-q_NBIN_q   = 1
+
+
+    ENABLE_R-phi-z-vR-vphi-vz-t-q_DIST    = 0
+
+    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_R     = 3.0
+    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_R     = 8.5
+    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_R    = 20
+
+    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_phi   = 0
+    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_phi   = 360
+    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_phi  = 1
+
+    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_z     = -4.25
+    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_z     = 3.6
+    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_z    = 40
+
+    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vR    = -1.5e7
+    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vR    = 1.5e7
+    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vR   = 40
+
+    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vphi  = -1.5e7
+    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vphi  = 1.5e7
+    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vphi = 40
+
+    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vz    = -1.5e7
+    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vz    = 1.5e7
+    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vz   = 40
+
+    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_t     = 0
+    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_t     = 100
+    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_t    = 1
+
+    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_q     = -100
+    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_q     = 100
+    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_q    = 1
 
 
     ## Orbit writing specific options ##
@@ -211,8 +272,8 @@ class opt():
     # - Write exact marker state
     #
     # ORBITWRITE_MODE == 0, 1, or 2
-    # - When particle state is written
-    #   0 - When particle crosses a plane (Poincare-plot)
+    # - When marker state is written
+    #   0 - When marker crosses a plane (Poincare-plot)
     #   1 - Between given time intervals
     #   2 - Keep last positions stored and write them
     #       at the end of simulation
@@ -232,7 +293,7 @@ class opt():
     #   poloidal plots are collected
     #
     # ORBITWRITE_INTERVAL == 1e-6
-    # - Time interval [s] for writing particle state
+    # - Time interval [s] for writing marker state
     #
     # ORBITWRITE_LASTNPOINTS == 100
     # - Keep last N positions stored and write them when
@@ -316,19 +377,70 @@ def generateopt():
     f["ENABLE_COULOMB_COLLISIONS"] = settype(f["ENABLE_COULOMB_COLLISIONS"],'i4')
 
     ## Distributions ##
-    f["ENABLE_RZVparaVperp_DIST"]    = settype(f["ENABLE_RZVparaVperp_DIST"],'i4')
-    f["DIST_RZVparaVperp_MIN_R"]     = settype(f["DIST_RZVparaVperp_MIN_R"],'f8')
-    f["DIST_RZVparaVperp_MAX_R"]     = settype(f["DIST_RZVparaVperp_MAX_R"],'f8')
-    f["DIST_RZVparaVperp_BIN_R"]     = settype(f["DIST_RZVparaVperp_BIN_R"],'i4')
-    f["DIST_RZVparaVperp_MIN_Z"]     = settype(f["DIST_RZVparaVperp_MIN_Z"],'f8')
-    f["DIST_RZVparaVperp_MAX_Z"]     = settype(f["DIST_RZVparaVperp_MAX_Z"],'f8')
-    f["DIST_RZVparaVperp_BIN_Z"]     = settype(f["DIST_RZVparaVperp_BIN_Z"],'i4')
-    f["DIST_RZVparaVperp_MIN_VPARA"] = settype(f["DIST_RZVparaVperp_MIN_VPARA"],'f8')
-    f["DIST_RZVparaVperp_MAX_VPARA"] = settype(f["DIST_RZVparaVperp_MAX_VPARA"],'f8')
-    f["DIST_RZVparaVperp_BIN_VPARA"] = settype(f["DIST_RZVparaVperp_BIN_VPARA"],'i4')
-    f["DIST_RZVparaVperp_MIN_VPERP"] = settype(f["DIST_RZVparaVperp_MIN_VPERP"],'f8')
-    f["DIST_RZVparaVperp_MAX_VPERP"] = settype(f["DIST_RZVparaVperp_MAX_VPERP"],'f8')
-    f["DIST_RZVparaVperp_BIN_VPERP"] = settype(f["DIST_RZVparaVperp_BIN_VPERP"],'i4')
+    f["ENABLE_R-phi-z-vpa-vpe-t-q_DIST"]   = settype(f["ENABLE_R-phi-z-vpa-vpe-t-q_DIST"],'i4')
+    
+    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_R"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_R"],'f8')
+    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_R"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_R"],'f8')
+    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_R"]   = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_R"],'i4')
+    
+    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_R"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_phi"],'f8')
+    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_R"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_phi"],'f8')
+    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_R"]   = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_phi"],'i4')
+
+    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_z"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_z"],'f8')
+    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_z"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_z"],'f8')
+    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_z"]   = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_z"],'i4')
+
+    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_vpa"]  = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_vpa"],'f8')
+    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_vpa"]  = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_vpa"],'f8')
+    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_vpa"] = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_vpa"],'i4')
+
+    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_vpe"]  = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_vpe"],'f8')
+    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_vpe"]  = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_vpe"],'f8')
+    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_vpe"] = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_vpe"],'i4')
+
+    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_t"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_t"],'f8')
+    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_t"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_t"],'f8')
+    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_t"]   = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_t"],'i4')
+
+    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_q"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_q"],'i4')
+    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_q"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_q"],'i4')
+    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_q"]   = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_q"],'i4')
+
+
+    f["ENABLE_R-phi-z-vR-vphi-vz-t-q_DIST"]    = settype(f["ENABLE_R-phi-z-vR-vphi-vz-t-q_DIST"],'i4')
+    
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_R"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_R"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_R"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_R"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_R"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_R"],'i4')
+
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_phi"]   = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_phi"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_phi"]   = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_phi"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_phi"]  = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_phi"],'i4')
+
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_z"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_z"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_z"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_z"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_z"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_z"],'i4')
+
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vR"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vR"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vR"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vR"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vR"]   = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vR"],'i4')
+
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vphi"]  = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vphi"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vphi"]  = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vphi"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vphi"] = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vphi"],'i4')
+
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vz"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vz"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vz"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vz"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vz"]   = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vz"],'i4')
+
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_t"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_t"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_t"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_t"],'f8')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_t"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_t"],'i4')
+
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_q"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_q"],'i4')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_q"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_q"],'i4')
+    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_q"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_q"],'i4')
 
     ## Orbit writing specific options ##
     f["ENABLE_ORBITWRITE"]         = settype(f["ENABLE_ORBITWRITE"],'i4')
