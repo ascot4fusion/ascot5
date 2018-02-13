@@ -6,7 +6,7 @@ import h5py
 import random
 import datetime
 
-from . ascot5group import replacegroup, setgrouptype, setmetadata
+from . ascot5group import creategroup
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                B_R, B_phi, B_z, s, n_periods,
@@ -14,7 +14,6 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     """
     Write stellarator magnetic field input in HDF5 file.
 
-    TODO Not compatible with new HDF5 format. (or old...)
     TODO fill documentation
 
     Parameters
@@ -36,15 +35,12 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         Magnetic axis Rphiz-location.
     """
 
-    group = "bfield"
-    type_ = "B_ST"
-    path = "bfield/B_ST"
+    mastergroup = "bfield"
+    subgroup    = "B_STS"
     
-    # Create group and set the type to this one.
+    # Create a group for this input.
     f = h5py.File(fn, "a")
-    setgrouptype(f, group, type_)
-    replacegroup(f, path)
-    setmetadata(f[path])
+    path = creategroup(f, mastergroup, subgroup)
 
     # TODO Check that inputs are consistent.
 

@@ -9,13 +9,11 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import replacegroup, setgrouptype, setmetadata
+from . ascot5group import creategroup
 
 def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0):
     """
     Write trivial cartesian magnetic field input in HDF5 file.
-
-    TODO Not compatible with new HDF5 format. (Or old...)
 
     Parameters
     ----------
@@ -35,28 +33,25 @@ def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0):
     axisz: real, optional
         Magnetic axis z coordinate. Default value 0.
     """
+
+    mastergroup = "bfield"
+    subgroup    = "B_TC"
     
-    group = "bfield"
-    type_ = "B_TC"
-    path = "bfield/B_TC"
-    
-    # Create group and set the type to this one.
+    # Create a group for this input.
     f = h5py.File(fn, "a")
-    setgrouptype(f, group, type_)
-    replacegroup(f, path)
-    setmetadata(f[path])
+    path = creategroup(f, mastergroup, subgroup)
 
     # TODO Check that inputs are consistent.
     if psival == 0:
         psival = rhoval
 
     # Actual data.
-    f.create_dataset(path + "/Bxyz",         data=Bxyz, dtype="f8")
-    f.create_dataset(path + "/J",            data=J, dtype="f8")
+    f.create_dataset(path + "/Bxyz",         data=Bxyz,   dtype="f8")
+    f.create_dataset(path + "/J",            data=J,      dtype="f8")
     f.create_dataset(path + "/rhoval", (1,), data=rhoval, dtype="f8")
     f.create_dataset(path + "/psival", (1,), data=psival, dtype="f8")
-    f.create_dataset(path + "/axisr", (1,),  data=axisR, dtype="f8")
-    f.create_dataset(path + "/axisz", (1,),  data=axisz, dtype="f8")
+    f.create_dataset(path + "/axisr", (1,),  data=axisR,  dtype="f8")
+    f.create_dataset(path + "/axisz", (1,),  data=axisz,  dtype="f8")
     f.close()
 
 

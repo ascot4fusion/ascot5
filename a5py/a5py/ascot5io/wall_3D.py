@@ -6,13 +6,11 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import replacegroup, setgrouptype, setmetadata
+from . ascot5group import creategroup
 
 def write_hdf5(fn, n, x1x2x3, y1y2y3, z1z2z3, flag):
     """
     Write 3D wall input in HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
@@ -27,30 +25,27 @@ def write_hdf5(fn, n, x1x2x3, y1y2y3, z1z2z3, flag):
         Indicates which part of the wall (e.g. divertor) triangle belongs to.
     """
 
-    group = "wall"
-    type_ = "3D"
-    path = "wall/3D"
-
-    # Create group and set the type to this one.
+    mastergroup = "wall"
+    subgroup    = "wall_3D"
+    
+    # Create a group for this input.
     f = h5py.File(fn, "a")
-    setgrouptype(f, group, type_)
-    replacegroup(f, path)
-    setmetadata(f[path])
+    path = creategroup(f, mastergroup, subgroup)
 
     # TODO Check that inputs are consistent.
 
     # Actual data.
-    f.create_dataset('wall/3D/x1x2x3', (n,3), dtype='f8', data=x1x2x3)
-    f.create_dataset('wall/3D/y1y2y3', (n,3), dtype='f8', data=y1y2y3)
-    f.create_dataset('wall/3D/z1z2z3', (n,3), dtype='f8', data=z1z2z3)
-    f.create_dataset('wall/3D/flag', (n,1), dtype='i4', data=flag)
-    f['wall/3D'].attrs['n_elements'] = n
-    f['wall/3D'].attrs['min_x'] = np.amin(x1x2x3)
-    f['wall/3D'].attrs['max_x'] = np.amax(x1x2x3)
-    f['wall/3D'].attrs['min_y'] = np.amin(y1y2y3)
-    f['wall/3D'].attrs['max_y'] = np.amax(y1y2y3)
-    f['wall/3D'].attrs['min_z'] = np.amin(z1z2z3)
-    f['wall/3D'].attrs['max_z'] = np.amax(z1z2z3)
+    f.create_dataset(path + '/x1x2x3', (n,3), dtype='f8', data=x1x2x3)
+    f.create_dataset(path + '/y1y2y3', (n,3), dtype='f8', data=y1y2y3)
+    f.create_dataset(path + '/z1z2z3', (n,3), dtype='f8', data=z1z2z3)
+    f.create_dataset(path + '/flag',  (n,1), dtype='i4', data=flag)
+    f.create_dataset(path + '/n',     (1,), dtype='i8', data=n)
+    f.create_dataset(path + '/min_x', (1,), dtype='f8', data=np.amin(x1x2x3))
+    f.create_dataset(path + '/max_x', (1,), dtype='f8', data=np.amax(x1x2x3))
+    f.create_dataset(path + '/min_y', (1,), dtype='f8', data=np.amin(y1y2y3))
+    f.create_dataset(path + '/max_y', (1,), dtype='f8', data=np.amax(y1y2y3))
+    f.create_dataset(path + '/min_z', (1,), dtype='f8', data=np.amin(z1z2z3))
+    f.create_dataset(path + '/max_z', (1,), dtype='f8', data=np.amax(z1z2z3))
 
     f.close()
 

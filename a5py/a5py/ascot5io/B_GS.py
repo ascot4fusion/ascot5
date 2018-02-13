@@ -9,14 +9,12 @@ import a5py.preprocessing.analyticequilibrium as psifun
 import a5py.ascot5io.B_2D as B_2D
 import a5py.ascot5io.B_3D as B_3D
 
-from . ascot5group import replacegroup, setgrouptype, setmetadata
+from . ascot5group import creategroup
 
 def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff, 
                Nripple=0, a0=2, alpha0=2, delta0=0.05):
     """
     Write analytical tokamak magnetic field input in HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
@@ -63,15 +61,12 @@ def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     not divergence free and one cannot see ripple in Poincare plots.
     """
 
-    group = "bfield"
-    type_ = "B_GS"
-    path = "bfield/B_GS"
+    mastergroup = "bfield"
+    subgroup    = "B_GS"
     
-    # Create group and set the type to this one.
+    # Create a group for this input.
     f = h5py.File(fn, "a")
-    setgrouptype(f, group, type_)
-    replacegroup(f, path)
-    setmetadata(f[path])
+    path = creategroup(f, mastergroup, subgroup)
 
     # TODO Check that inputs are consistent.
 

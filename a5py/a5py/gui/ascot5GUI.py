@@ -67,7 +67,7 @@ class ascot5GUI(tk.Tk):
         # Initialize all frames.
         self.frames = {}
         for F in (FrameMenu, FrameWIP, FrameInistate, FrameEndstate, FrameInput,\
-                  FramePlasma, FrameBfield):
+                  FramePlasma, FrameBfield, FrameBfieldripple):
 
             frame = F(container, self)
 
@@ -400,6 +400,10 @@ class FrameInput(tk.Frame):
                             command=lambda: controller.show_frame(FrameBfield))
         button.pack()
         
+        button = tk.Button(self, text="Magnetic field ripple",
+                            command=lambda: controller.show_frame(FrameBfieldripple))
+        button.pack()
+        
         button = tk.Button(self, text="Electric field",
                             command=lambda: controller.show_frame(FrameWIP))
         button.pack()
@@ -468,7 +472,7 @@ class FramePlasma(tk.Frame):
         
 class FrameBfield(tk.Frame):
     """
-    Frame for plasma input setup and analysis.
+    Frame for magnetic field input setup and analysis.
     """
 
     def __init__(self, parent, controller):
@@ -523,6 +527,65 @@ class FrameBfield(tk.Frame):
         
         a = f.add_subplot(2,3,6)
         guibfield.plotsurf(R, z, bfield["B_z"], 'B_z', ax=a, fig=f)
+        
+        f.tight_layout()
+        
+        self.canvas.show()
+        
+        
+class FrameBfieldripple(tk.Frame):
+    """
+    Frame for plasma input setup and analysis.
+    """
+
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        label = tk.Label(self, text="Magnetic field ripple", font=LARGE_FONT)
+        label.pack(pady=10,padx=10)
+
+        button = tk.Button(self, text="Back to Main",
+                            command=lambda: controller.show_frame(FrameMenu))
+        button.pack()
+        
+        button = tk.Button(self, text="Back to Inputs",
+                            command=lambda: controller.show_frame(FrameInput))
+        button.pack()
+        
+        self.a5fn = controller.a5fn
+        self.plotfig = Figure(figsize=(5,5), dpi=100)
+        
+        # Build a canvas and add a tool bar to it
+        canvas = FigureCanvasTkAgg(self.plotfig, self)
+        canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+
+        toolbar = NavigationToolbar2TkAgg(canvas, self)
+        toolbar.update()
+        canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        self.canvas = canvas
+
+    def tkraise(self):
+        super(FrameBfieldripple, self).tkraise()
+        bfield = ascot5.read_hdf5(self.a5fn, "bfield")["bfield"]["B_3D"]
+        
+        R   = np.linspace(bfield["Rmin"], bfield["Rmax"], bfield["nR"])
+        z   = np.linspace(bfield["zmin"], bfield["zmax"], bfield["nz"])
+        phi = np.linspace(bfield["phimin"], bfield["phimax"], bfield["nphi"])
+        
+        # OMP values
+        R0 = bfield["axisR"]
+        z0 = bfield["axisz"]
+        
+        Bphi = bfield["B_phi"]
+        
+        f = self.plotfig
+        f.clf()
+        
+        a = f.add_subplot(1,2,1)
+        guibfield.plotripplemap(R, z, Bphi, ax=a, fig=f)
+        
+        a = f.add_subplot(1,2,2)
+        guibfield.plotripplephi(R, z, phi, R0, z0, Bphi, ax=a, fig=f)
         
         f.tight_layout()
         

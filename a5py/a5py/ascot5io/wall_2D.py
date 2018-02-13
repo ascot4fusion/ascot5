@@ -6,13 +6,11 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import replacegroup, setgrouptype, setmetadata
+from . ascot5group import creategroup
 
 def write_hdf5(fn, n, R, z):
     """
     Write 2D wall input in HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
@@ -31,19 +29,15 @@ def write_hdf5(fn, n, R, z):
     as the wall is closed automatically. TODO check this
     """
 
-    group = "wall"
-    type_ = "2D"
-    path = "wall/2D"
-
-    # Create group and set the type to this one.
+    mastergroup = "wall"
+    subgroup    = "wall_2D"
+    
+    # Create a group for this input.
     f = h5py.File(fn, "a")
-    setgrouptype(f, group, type_)
-    replacegroup(f, path)
-    setmetadata(f[path])
+    path = creategroup(f, mastergroup, subgroup)
 
     # TODO Check that inputs are consistent.
 
-    f[path].attrs['n'] = n
     f.create_dataset(path + "/n", (1,), data=n, dtype='i4')
     f.create_dataset(path + "/r", data=R, dtype='f8')
     f.create_dataset(path + "/z", data=z, dtype='f8')

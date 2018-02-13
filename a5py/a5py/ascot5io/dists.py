@@ -59,7 +59,11 @@ def read_hdf5(fn):
         out['ntime']      = out['time'].size
 
         # In HDF5 the ordinate shape is, for some reason, (1,1,vpe,vpa,z,R,1), one of those 1's is time but we ignore that
-        out['ordinate']       = np.transpose(dists['rzVDist/ordinate'][0,0,:],(3,2,1,0,4))
+        #out['ordinate']       = np.transpose(dists['rzVDist/ordinate'][0,0,:],(3,2,1,0,4))
+        #print(dists['rzVDist/ordinate'].shape)
+        out['ordinate']       = dists['rzVDist/ordinate'][:,:,:,:,:,0]
+        #out['ordinate']       = np.transpose(dists['rzVDist/ordinate'][0,0,:],(3,2,1,0))
+        #print(out['ordinate'].shape)
         out['ordinate_names'] = ['R','z','vpa','vpe','time']
 
         temp["rzVDist"] = out
