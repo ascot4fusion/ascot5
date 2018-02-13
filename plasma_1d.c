@@ -15,90 +15,11 @@
 /**
  * @brief Load 1D plasma data and prepare parameters
  *
- * This function reads the 1D plasma data from input.plasma_1d, fills the
- * offload struct with parameters and allocates and fills the offload array.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- *
- * @todo Move reading the file to ascot4_interface
+ * Intentionally left dummy.
  */
-void plasma_1d_init_offload(plasma_1d_offload_data* offload_data,
+void plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
                             real** offload_array) {
-    int i, j;
-
-    FILE* f = fopen("input.plasma_1d", "r");
-
-    /* Skip comment lines */
-    while(fgetc(f) != '\n');
-    while(fgetc(f) != '\n');
-    while(fgetc(f) != '\n');
-
-    /* Number of ion species */
-    int n_rho, n_ions;
-    fscanf(f, "%d %d", &n_rho, &n_ions);
-    while(fgetc(f) != '\n');
-
-    /* One extra species for the electrons; they will always be species 0 */
-    offload_data->n_species = n_ions + 1;
-    offload_data->n_rho = n_rho;
-
-    /* Allocate space for rho + temperature for each ion species and electrons
-     * + density for each ion species and electrons */
-    offload_data->offload_array_length = n_rho + 2*(n_ions+1)*n_rho;
-    *offload_array = (real*) malloc(sizeof(real)
-                                    * offload_data->offload_array_length);
-    
-    /* Pointers to beginning of different data series to make code more
-     * readable */
-    real* rho = &(*offload_array)[0];
-    real* temp_e = &(*offload_array)[n_rho];
-    real* temp_i = &(*offload_array)[n_rho*2];
-    real* dens_e = &(*offload_array)[n_rho*2 + n_rho*n_ions];
-    real* dens_i = &(*offload_array)[n_rho*2 + n_rho*n_ions + n_rho];
-
-    /* Read Znum and calculate charge */
-    /* Electron charge -1 */
-    offload_data->charge[0] = -1 * CONST_E;
-    for(i = 0; i < n_ions; i++) {
-        int Znum;
-        fscanf(f, "%d", &Znum);
-        offload_data->charge[i+1] = Znum * CONST_E;
-    }
-    while(fgetc(f) != '\n');
-
-    /* Read Amass and calculate mass */
-    offload_data->mass[0] = CONST_M_E;
-    for(i = 0; i < n_ions; i++) {
-        int Amass;
-        fscanf(f, "%d", &Amass);
-        offload_data->mass[i+1] = Amass * CONST_U;
-    }
-    while(fgetc(f) != '\n');
-
-    /* Skip collision mode and header line */
-    while(fgetc(f) != '\n');
-    while(fgetc(f) != '\n');
-
-    /* Read actual data into array */
-    for(i = 0; i < n_rho; i++) {
-        fscanf(f, "%lf", &rho[i]);
-        real temp_temp_e;
-        fscanf(f, "%lf", &temp_temp_e);
-        temp_e[i] = temp_temp_e * CONST_E / CONST_KB;
-        fscanf(f, "%lf", &dens_e[i]);
-        /* Don't need Vtor_I */
-        fscanf(f, "%*f");
-        /* All ions have same temperature */
-        real temp_temp_i;
-        fscanf(f, "%lf", &temp_temp_i);
-        for(j = 0; j < n_ions; j++) {
-            temp_i[j*n_rho + i] = temp_temp_i *CONST_E / CONST_KB;
-            fscanf(f, "%lf", &dens_i[j*n_rho + i]);
-        }
-    }
-    
-    fclose(f);
+ 
 }
 
 /**
@@ -109,7 +30,7 @@ void plasma_1d_init_offload(plasma_1d_offload_data* offload_data,
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
 */
-void plasma_1d_free_offload(plasma_1d_offload_data* offload_data,
+void plasma_1D_free_offload(plasma_1D_offload_data* offload_data,
                             real** offload_array) {
     free(*offload_array);
     *offload_array = NULL;
@@ -126,23 +47,23 @@ void plasma_1d_free_offload(plasma_1d_offload_data* offload_data,
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
 */
-int plasma_1d_init(plasma_1d_data* plasma_data,
-                    plasma_1d_offload_data* offload_data,
+int plasma_1D_init(plasma_1D_data* pls_data,
+                    plasma_1D_offload_data* offload_data,
                     real* offload_array) {
 
     int err = 0;
 
-    plasma_data->n_rho = offload_data->n_rho;
-    plasma_data->n_species = offload_data->n_species;
+    pls_data->n_rho = offload_data->n_rho;
+    pls_data->n_species = offload_data->n_species;
     int i;
-    for(i = 0; i < plasma_data->n_species; i++) {
-        plasma_data->mass[i] = offload_data->mass[i];
-        plasma_data->charge[i] = offload_data->charge[i];
+    for(i = 0; i < pls_data->n_species; i++) {
+        pls_data->mass[i] = offload_data->mass[i];
+        pls_data->charge[i] = offload_data->charge[i];
     }
-    plasma_data->rho = &offload_array[0];
-    plasma_data->temp = &offload_array[plasma_data->n_rho];
-    plasma_data->dens = &offload_array[plasma_data->n_rho
-                                  + plasma_data->n_rho*plasma_data->n_species];
+    pls_data->rho = &offload_array[0];
+    pls_data->temp = &offload_array[pls_data->n_rho];
+    pls_data->dens = &offload_array[pls_data->n_rho
+                                  + pls_data->n_rho*pls_data->n_species];
 
     return err;
 }
@@ -157,29 +78,29 @@ int plasma_1d_init(plasma_1d_data* plasma_data,
  * @param species index of plasma species
  * @param plasma_data pointer to plasma data struct
  */
-real plasma_1d_eval_temp(real rho, int species, plasma_1d_data* plasma_data) {
+real plasma_1D_eval_temp(real rho, int species, plasma_1D_data* pls_data) {
     /* As the plasma data may be provided at irregular intervals, we must
      * search for the correct grid index */
     /** @todo Implement a more efficient search algorithm */
     
     real p = 0;
-    if(rho < plasma_data->rho[0]) {
-	p = plasma_data->temp[species*plasma_data->n_rho];
+    if(rho < pls_data->rho[0]) {
+	p = pls_data->temp[species*pls_data->n_rho];
     }
-    else if(rho >= plasma_data->rho[plasma_data->n_rho-1]) {
-	p = plasma_data->temp[species*plasma_data->n_rho + plasma_data->n_rho - 1];
+    else if(rho >= pls_data->rho[pls_data->n_rho-1]) {
+	p = pls_data->temp[species*pls_data->n_rho + pls_data->n_rho - 1];
     }
     else {
 	int i_rho = 0;
-	while(i_rho < plasma_data->n_rho - 1 && plasma_data->rho[i_rho] <= rho) {
+	while(i_rho < pls_data->n_rho - 1 && pls_data->rho[i_rho] <= rho) {
 	    i_rho++;
 	}
 	i_rho--;
-	real t_rho = (rho - plasma_data->rho[i_rho])
-                 / (plasma_data->rho[i_rho+1] - plasma_data->rho[i_rho]);
+	real t_rho = (rho - pls_data->rho[i_rho])
+                 / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
 
-	real p1 = plasma_data->temp[species*plasma_data->n_rho + i_rho];
-	real p2 = plasma_data->temp[species*plasma_data->n_rho + i_rho+1];
+	real p1 = pls_data->temp[species*pls_data->n_rho + i_rho];
+	real p2 = pls_data->temp[species*pls_data->n_rho + i_rho+1];
 	p = p1 + t_rho * (p2 - p1);
     }
     
@@ -191,25 +112,25 @@ real plasma_1d_eval_temp(real rho, int species, plasma_1d_data* plasma_data) {
  *
  * @see plasma_1d_eval_temp
  */
-real plasma_1d_eval_dens(real rho, int species, plasma_1d_data* plasma_data) {
+real plasma_1D_eval_dens(real rho, int species, plasma_1D_data* pls_data) {
     real p = 0;
-    if(rho < plasma_data->rho[0]) {
-	p = plasma_data->dens[species*plasma_data->n_rho];
+    if(rho < pls_data->rho[0]) {
+	p = pls_data->dens[species*pls_data->n_rho];
     }
-    else if(rho >= plasma_data->rho[plasma_data->n_rho-1]) {
-	p = plasma_data->dens[species*plasma_data->n_rho + plasma_data->n_rho - 1];
+    else if(rho >= pls_data->rho[pls_data->n_rho-1]) {
+	p = pls_data->dens[species*pls_data->n_rho + pls_data->n_rho - 1];
     }
     else {
 	int i_rho = 0;
-	while(i_rho < plasma_data->n_rho - 1 && plasma_data->rho[i_rho] <= rho) {
+	while(i_rho < pls_data->n_rho - 1 && pls_data->rho[i_rho] <= rho) {
 	    i_rho++;
 	}
 	i_rho--;
-	real t_rho = (rho - plasma_data->rho[i_rho])
-                 / (plasma_data->rho[i_rho+1] - plasma_data->rho[i_rho]);
+	real t_rho = (rho - pls_data->rho[i_rho])
+                 / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
 
-	real p1 = plasma_data->dens[species*plasma_data->n_rho + i_rho];
-	real p2 = plasma_data->dens[species*plasma_data->n_rho + i_rho+1];
+	real p1 = pls_data->dens[species*pls_data->n_rho + i_rho];
+	real p2 = pls_data->dens[species*pls_data->n_rho + i_rho+1];
 	p = p1 + t_rho * (p2 - p1);
     }
     
@@ -220,16 +141,16 @@ real plasma_1d_eval_dens(real rho, int species, plasma_1d_data* plasma_data) {
  * @brief Evaluate plasma density and temperature for all species
  *
  */
-a5err plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* dens, real* temp) {
+a5err plasma_1D_eval_densandtemp(real rho, plasma_1D_data* pls_data, real* dens, real* temp) {
     a5err err = 0;
     real p1, p2;
-    if(rho < plasma_data->rho[0]) {
-	for(int i = 0; i < plasma_data->n_species; i++) {
-	    dens[i] = plasma_data->dens[i*plasma_data->n_rho];
+    if(rho < pls_data->rho[0]) {
+	for(int i = 0; i < pls_data->n_species; i++) {
+	    dens[i] = pls_data->dens[i*pls_data->n_rho];
 
 	    if(i < 2) {
 		/* Electron and ion temperature */
-		 temp[i] = plasma_data->temp[i*plasma_data->n_rho];
+		 temp[i] = pls_data->temp[i*pls_data->n_rho];
 	    }
 	    else {
 		/* Temperature is same for all ion species */
@@ -237,13 +158,13 @@ a5err plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* de
 	    }
 	}
     }
-    else if(rho >= plasma_data->rho[plasma_data->n_rho-1]) {
-	for(int i = 0; i < plasma_data->n_species; i++) {
-	    dens[i] = plasma_data->dens[i*plasma_data->n_rho + plasma_data->n_rho - 1];
+    else if(rho >= pls_data->rho[pls_data->n_rho-1]) {
+	for(int i = 0; i < pls_data->n_species; i++) {
+	    dens[i] = pls_data->dens[i*pls_data->n_rho + pls_data->n_rho - 1];
 
 	    if(i < 2) {
 		/* Electron and ion temperature */
-		 temp[i] = plasma_data->temp[i*plasma_data->n_rho + plasma_data->n_rho - 1];
+		 temp[i] = pls_data->temp[i*pls_data->n_rho + pls_data->n_rho - 1];
 	    }
 	    else {
 		/* Temperature is same for all ion species */
@@ -253,23 +174,23 @@ a5err plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* de
     }
     else {
 	int i_rho = 0;
-	while(i_rho < plasma_data->n_rho-1 && plasma_data->rho[i_rho] <= rho) {
+	while(i_rho < pls_data->n_rho-1 && pls_data->rho[i_rho] <= rho) {
 	    i_rho++;
 	}
 	i_rho--;
 
-	real t_rho = (rho - plasma_data->rho[i_rho])
-                 / (plasma_data->rho[i_rho+1] - plasma_data->rho[i_rho]);
+	real t_rho = (rho - pls_data->rho[i_rho])
+                 / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
 
-	for(int i = 0; i < plasma_data->n_species; i++) {
-	    p1 = plasma_data->dens[i*plasma_data->n_rho + i_rho];
-	    p2 = plasma_data->dens[i*plasma_data->n_rho + i_rho+1];
+	for(int i = 0; i < pls_data->n_species; i++) {
+	    p1 = pls_data->dens[i*pls_data->n_rho + i_rho];
+	    p2 = pls_data->dens[i*pls_data->n_rho + i_rho+1];
 	    dens[i] = p1 + t_rho * (p2 - p1);
 
 	    if(i < 2) {
 		/* Electron and ion temperature */
-		p1 = plasma_data->temp[i*plasma_data->n_rho + i_rho];
-		p2 = plasma_data->temp[i*plasma_data->n_rho + i_rho+1];
+		p1 = pls_data->temp[i*pls_data->n_rho + i_rho];
+		p2 = pls_data->temp[i*pls_data->n_rho + i_rho+1];
 		temp[i] = p1 + t_rho * (p2 - p1);
 	    }
 	    else {
@@ -280,4 +201,16 @@ a5err plasma_1d_eval_densandtemp(real rho, plasma_1d_data* plasma_data, real* de
     }
 
     return err;
+}
+
+int plasma_1D_get_n_species(plasma_1D_data* pls_data) {
+    return pls_data->n_species;
+}
+
+real* plasma_1D_get_species_mass(plasma_1D_data* pls_data) {
+    return pls_data->mass;
+}
+
+real* plasma_1D_get_species_charge(plasma_1D_data* pls_data) {
+    return pls_data->charge;
 }

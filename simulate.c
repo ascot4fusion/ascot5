@@ -6,6 +6,7 @@
 #include "offload.h"
 #include "particle.h"
 #include "simulate.h"
+#include "plasma.h"
 #include "simulate/simulate_ml_adaptive.h"
 #include "simulate/simulate_gc_adaptive.h"
 #include "simulate/simulate_gc_fixed.h"
@@ -35,7 +36,7 @@ void simulate(int id, int n_particles, particle_state* p,
 
     ptr = offload_unpack(offload_data, offload_array,
             sim_offload->plasma_offload_data.offload_array_length);
-    plasma_1d_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
+    plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
 
     ptr = offload_unpack(offload_data, offload_array,
             sim_offload->wall_offload_data.offload_array_length);

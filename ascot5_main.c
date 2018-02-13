@@ -17,7 +17,7 @@
 #include "distributions.h"
 #include "diag.h"
 #include "B_field.h"
-#include "plasma_1d.h"
+#include "plasma.h"
 #include "interact.h"
 #include "simulate.h"
 #include "particle.h"
@@ -256,7 +256,7 @@ int main(int argc, char** argv) {
     #endif
 
     B_field_free_offload(&sim.B_offload_data, &B_offload_array);
-    plasma_1d_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
+    plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
     #ifndef NOTARGET
         diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);

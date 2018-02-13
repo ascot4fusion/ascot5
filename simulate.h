@@ -10,7 +10,7 @@
 #include "ascot5.h"
 #include "B_field.h"
 #include "E_field.h"
-#include "plasma_1d.h"
+#include "plasma.h"
 #include "distributions.h"
 #include "wall.h"
 #include "diag.h"
@@ -33,7 +33,7 @@ typedef struct {
 
     B_field_offload_data B_offload_data;
     E_field_offload_data E_offload_data;
-    plasma_1d_offload_data plasma_offload_data;
+    plasma_offload_data plasma_offload_data;
     wall_offload_data wall_offload_data;
     diag_offload_data diag_offload_data;
 
@@ -70,7 +70,7 @@ typedef struct {
     
     B_field_data B_data;
     E_field_data E_data;
-    plasma_1d_data plasma_data;
+    plasma_data plasma_data;
     wall_data wall_data;
     diag_data diag_data;
 

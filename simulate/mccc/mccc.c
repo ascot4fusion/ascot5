@@ -11,7 +11,7 @@
 #include "../../error.h"
 #include "../../particle.h"
 #include "../../B_field.h"
-#include "../../plasma_1d.h"
+#include "../../plasma.h"
 #include "../../math.h"
 #include "../../consts.h"
 #include "../../physlib.h"
@@ -54,7 +54,7 @@ void mccc_init(){
  * @param K pointer to array storing the evaluated friction coefficient [m/s^2]
  * @param nu pointer to array storing the evaluated pitch collision frequency [1/s]
  */
-void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data* pdata, 
+void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, 
 		    real* clogab, real* F, real* Dpara, real* Dperp, real* K, real* nu){
     int i;
     #pragma omp simd
@@ -64,26 +64,29 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data* pd
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
 
+	    int n_species = plasma_get_n_species(pdata);
+	    real* q_species = plasma_get_species_charge(pdata);
+	    real* m_species = plasma_get_species_mass(pdata);
+
 	    // Electron and ion temperature
-	    temp[0] = plasma_1d_eval_temp(p->rho[i], 0, pdata)*CONST_KB;
-	    temp[1] = plasma_1d_eval_temp(p->rho[i], 1, pdata)*CONST_KB;
+	    temp[0] = plasma_eval_temp(p->rho[i], 0, pdata)*CONST_KB;
+	    temp[1] = plasma_eval_temp(p->rho[i], 1, pdata)*CONST_KB;
 
 	    // Electron density
-	    dens[0] = plasma_1d_eval_dens(p->rho[i], 0, pdata);
+	    dens[0] = plasma_eval_dens(p->rho[i], 0, pdata);
 
 	    // Ion densities (and temperatures)
-	    int j;
-	    for(j = 1; j < pdata->n_species; j++) {
-		dens[j] = plasma_1d_eval_dens(p->rho[i], j, pdata);
+	    int j;	    
+	    for(j = 1; j < n_species; j++) {
+		dens[j] = plasma_eval_dens(p->rho[i], j, pdata);
 		temp[j] = temp[1];
 	    }
 
 	    /* Evaluate coefficients */
 	    real va = sqrt(p->rdot[i]*p->rdot[i] + (p->r[i]*p->phidot[i])*(p->r[i]*p->phidot[i]) + p->zdot[i]*p->zdot[i]);
-					        
-	    mccc_coefs_clog(p->mass[i],p->charge[i],va,pdata->mass,pdata->charge,dens,temp,&clogab[i*MAX_SPECIES],pdata->n_species);
-	    mccc_coefs_fo(p->mass[i],p->charge[i],va,pdata->mass,pdata->charge,dens,temp,&clogab[i*MAX_SPECIES],pdata->n_species,
-			  &F[i*MAX_SPECIES],&Dpara[i*MAX_SPECIES],&Dperp[i*MAX_SPECIES],&K[i*MAX_SPECIES],&nu[i*MAX_SPECIES]);
+	    mccc_coefs_clog(p->mass[i], p->charge[i], va, m_species, q_species, dens, temp, &clogab[i*MAX_SPECIES], n_species);
+	    mccc_coefs_fo(p->mass[i], p->charge[i], va, m_species, q_species, dens, temp, &clogab[i*MAX_SPECIES], n_species,
+			  &F[i*MAX_SPECIES], &Dpara[i*MAX_SPECIES], &Dperp[i*MAX_SPECIES], &K[i*MAX_SPECIES], &nu[i*MAX_SPECIES]);
 	}
     }
 
@@ -101,7 +104,7 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data* pd
  * @param nu pointer to pitch collision frequency
  * @param i index of the marker in simd array
  */
-void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pdata, 
+void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, 
 		    real* nu, int i){
 
     /* Update background data */
@@ -115,17 +118,21 @@ void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* 
     real temp[MAX_SPECIES];
     real dens[MAX_SPECIES];
 
+    int n_species = plasma_get_n_species(pdata);
+    real* q_species = plasma_get_species_charge(pdata);
+    real* m_species = plasma_get_species_mass(pdata);
+
     // Electron and ion temperature
-    temp[0] = plasma_1d_eval_temp(p->rho[i], 0, pdata)*CONST_KB;
-    temp[1] = plasma_1d_eval_temp(p->rho[i], 1, pdata)*CONST_KB;
+    temp[0] = plasma_eval_temp(p->rho[i], 0, pdata)*CONST_KB;
+    temp[1] = plasma_eval_temp(p->rho[i], 1, pdata)*CONST_KB;
 
     // Electron density
-    dens[0] = plasma_1d_eval_dens(p->rho[i], 0, pdata);
+    dens[0] = plasma_eval_dens(p->rho[i], 0, pdata);
 
     // Ion densities (and temperatures)
     int j;
-    for(j = 1; j < pdata->n_species; j++) {
-	dens[j] = plasma_1d_eval_dens(p->rho[i], j, pdata);
+    for(j = 1; j < n_species; j++) {
+	dens[j] = plasma_eval_dens(p->rho[i], j, pdata);
 	temp[j] = temp[1];
     }
 
@@ -140,12 +147,12 @@ void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* 
     real Kb[MAX_SPECIES];
     real nub[MAX_SPECIES];
     real DXb[MAX_SPECIES];
-    mccc_coefs_clog(p->mass[i],p->charge[i],va,pdata->mass,pdata->charge,dens,temp,clogab,pdata->n_species);
-    mccc_coefs_gcfixed(p->mass[i],p->charge[i],va,xi,pdata->mass,pdata->charge,dens,temp,Bnorm,clogab,pdata->n_species,
+    mccc_coefs_clog(p->mass[i], p->charge[i], va, m_species, q_species, dens, temp, clogab, n_species);
+    mccc_coefs_gcfixed(p->mass[i], p->charge[i], va, xi, m_species, q_species, dens, temp, Bnorm, clogab, n_species,
 		       Dparab,DXb,Kb,nub);
 
     *nu = 0;
-    for(j = 0; j < pdata->n_species; j++) {
+    for(j = 0; j < n_species; j++) {
         *nu += nub[j];
     }
 
@@ -176,7 +183,7 @@ void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* 
  * @param dDpara pointer to array storing the evaluated derivative dDpara/dv [m/s^2]
  *
  */
-void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pdata, 
+void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, 
 		    real* clogab, real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara){
     int i;
     #pragma omp simd
@@ -193,18 +200,21 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pd
 
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
+	    int n_species = plasma_get_n_species(pdata);
+	    real* q_species = plasma_get_species_charge(pdata);
+	    real* m_species = plasma_get_species_mass(pdata);
 
 	    // Electron and ion temperature
-	    temp[0] = plasma_1d_eval_temp(p->rho[i], 0, pdata)*CONST_KB;
-	    temp[1] = plasma_1d_eval_temp(p->rho[i], 1, pdata)*CONST_KB;
+	    temp[0] = plasma_eval_temp(p->rho[i], 0, pdata)*CONST_KB;
+	    temp[1] = plasma_eval_temp(p->rho[i], 1, pdata)*CONST_KB;
 
 	    // Electron density
-	    dens[0] = plasma_1d_eval_dens(p->rho[i], 0, pdata);
+	    dens[0] = plasma_eval_dens(p->rho[i], 0, pdata);
 
 	    // Ion densities (and temperatures)
 	    int j;
-	    for(j = 1; j < pdata->n_species; j++) {
-		dens[j] = plasma_1d_eval_dens(p->rho[i], j, pdata);
+	    for(j = 1; j < n_species; j++) {
+		dens[j] = plasma_eval_dens(p->rho[i], j, pdata);
 		temp[j] = temp[1];
 	    }
 
@@ -214,9 +224,9 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pd
 	    real va = sqrt(p->vpar[i]*p->vpar[i] + t*t);
 	    xi = p->vpar[i]/va;
 					        
-	    mccc_coefs_clog(p->mass[i],p->charge[i],va,pdata->mass,pdata->charge,dens,temp,&clogab[i*MAX_SPECIES],pdata->n_species);
-	    mccc_coefs_gcadaptive(p->mass[i],p->charge[i],va,xi,pdata->mass,pdata->charge,dens,temp,Bnorm,&clogab[i*MAX_SPECIES],pdata->n_species,
-				  &Dpara[i*MAX_SPECIES],&DX[i*MAX_SPECIES],&K[i*MAX_SPECIES],&nu[i*MAX_SPECIES],&dQ[i*MAX_SPECIES],&dDpara[i*MAX_SPECIES]);
+	    mccc_coefs_clog(p->mass[i], p->charge[i], va, m_species, q_species, dens, temp, &clogab[i*MAX_SPECIES], n_species);
+	    mccc_coefs_gcadaptive(p->mass[i], p->charge[i], va, xi, m_species, q_species, dens, temp, Bnorm, &clogab[i*MAX_SPECIES], n_species,
+				  &Dpara[i*MAX_SPECIES], &DX[i*MAX_SPECIES], &K[i*MAX_SPECIES], &nu[i*MAX_SPECIES], &dQ[i*MAX_SPECIES], &dDpara[i*MAX_SPECIES]);
 
 	}
     }
@@ -237,10 +247,14 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pd
  * @param pdata pointer to plasma data
  * @param h pointer to time step values [s]
  */
-void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data* pdata, real* h){
+void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, real* h){
     int i;
     real rnd[3*NSIMD];
     mccc_wiener_boxmuller(rnd, 3*NSIMD);
+
+    int n_species = plasma_get_n_species(pdata);
+    real* q_species = plasma_get_species_charge(pdata);
+    real* m_species = plasma_get_species_mass(pdata);
 
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
@@ -257,8 +271,8 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
 	    /* Evaluate density and temperature */
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
-	    if(!errflag) {errflag = plasma_1d_eval_densandtemp(p->rho[i], pdata, dens, temp);}
-	    for(int j = 0; j < pdata->n_species; j++) {
+	    if(!errflag) {errflag = plasma_eval_densandtemp(p->rho[i], pdata, dens, temp);}
+	    for(int j = 0; j < n_species; j++) {
 		temp[j] = temp[j]*CONST_KB;
 	    }
 	    
@@ -271,21 +285,21 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
 	    real Dperpb[MAX_SPECIES], Dperp = 0;
 	    if(!errflag) {
 		errflag = mccc_coefs_clog(p->mass[i], p->charge[i], va, 
-					  pdata->mass, pdata->charge, dens, temp, clogab, pdata->n_species);
+					  m_species, q_species, dens, temp, clogab, n_species);
 	    }
 	    if(!errflag) {
 		errflag = mccc_coefs_fo(p->mass[i], p->charge[i], va,
-					pdata->mass, pdata->charge, dens, temp, clogab, pdata->n_species,
+					m_species, q_species, dens, temp, clogab, n_species,
 					Fb, Dparab, Dperpb, Kb, nub);
 	    }
-	    for(int j = 0; j<pdata->n_species; j=j+1){
+	    for(int j = 0; j < n_species; j=j+1){
 		F = F + Fb[j];
 		Dpara = Dpara + Dparab[j];
 		Dperp = Dperp + Dperpb[j];
 	    }
 
 	    /* Evaluate collisions */				
-	    if(!errflag) {errflag = mccc_push_foEM(F,Dpara,Dperp,h[i],&rnd[i*3],vin,vout);}
+	    if(!errflag) {errflag = mccc_push_foEM(F, Dpara, Dperp, h[i], &rnd[i*3], vin, vout);}
 			
 	    /* Update particle */
 	    #if A5_CCOL_NOENERGY
@@ -330,12 +344,16 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_1d_data
  * @param pdata pointer to plasma data
  * @param h pointer to time step values [s]
  */
-void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pdata, real* h){
+void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* h){
     int i;
     real rnd[5*NSIMD];
     mccc_wiener_boxmuller(rnd, 5*NSIMD);
+    
+    int n_species = plasma_get_n_species(pdata);
+    real* q_species = plasma_get_species_charge(pdata);
+    real* m_species = plasma_get_species_mass(pdata);
 
-#pragma omp simd
+    #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
         if(p->running[i]) {
 	    a5err errflag = 0;
@@ -357,9 +375,9 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 	    /* Evaluate density and temperature */	
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
-	    if(!errflag) {errflag = plasma_1d_eval_densandtemp(p->rho[i], pdata, dens, temp);}
+	    if(!errflag) {errflag = plasma_eval_densandtemp(p->rho[i], pdata, dens, temp);}
 
-	    for(int j = 0; j < pdata->n_species; j++) {
+	    for(int j = 0; j < n_species; j++) {
 		temp[j] = temp[j]*CONST_KB;
 	    }
 	    real cutoff = 0.1*sqrt(temp[0]/p->mass[i]);
@@ -372,15 +390,15 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
 	    real DXb[MAX_SPECIES],    DX    = 0;
 	    if(!errflag) {
 		errflag = mccc_coefs_clog(p->mass[i], p->charge[i], vin,
-					  pdata->mass, pdata->charge, dens, temp, clogab, pdata->n_species);
+					  m_species, q_species, dens, temp, clogab, n_species);
 	    }
 	    if(!errflag) {
 		errflag = mccc_coefs_gcfixed(p->mass[i], p->charge[i], vin, xiin,
-					     pdata->mass, pdata->charge, dens, temp, Bnorm, clogab, pdata->n_species,
+					     m_species, q_species, dens, temp, Bnorm, clogab, n_species,
 					     Dparab,DXb,Kb,nub);
 	    }
 	    
-	    for(int j = 0; j<pdata->n_species; j=j+1){				
+	    for(int j = 0; j < n_species; j=j+1){				
 		Dpara = Dpara + Dparab[j];
 		K = K + Kb[j];
 		nu = nu + nub[j];
@@ -476,17 +494,21 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data
  *
  * @todo There is no need to check for error when collision frequency is low and other processes determine adaptive time-step
  */
-void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_data* pdata, real* hin, real* hout, mccc_wienarr** w, real tol){
+void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* hin, real* hout, mccc_wienarr** w, real tol){
     int i;
     real rand5[5*NSIMD];
     mccc_wiener_boxmuller(rand5, 5*NSIMD);
+
+    int n_species = plasma_get_n_species(pdata);
+    real* q_species = plasma_get_species_charge(pdata);
+    real* m_species = plasma_get_species_mass(pdata);
 
     /* Error estimates */
     real kappa_k[NSIMD], kappa_d0[NSIMD], kappa_d1[NSIMD];
     real dWopt0[NSIMD], dWopt1[NSIMD], alpha[NSIMD];
     int tindex[NSIMD];
 
-#pragma omp simd
+    #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
 	if(p->running[i]) {
 	    a5err errflag = 0;
@@ -518,8 +540,8 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    /* Evaluate density and temperature */	
 	    real temp[MAX_SPECIES];
 	    real dens[MAX_SPECIES];
-	    if(!errflag) {errflag = plasma_1d_eval_densandtemp(p->rho[i], pdata, dens, temp);}
-	    for(int j = 0; j < pdata->n_species; j++) {
+	    if(!errflag) {errflag = plasma_eval_densandtemp(p->rho[i], pdata, dens, temp);}
+	    for(int j = 0; j < n_species; j++) {
 		temp[j] = temp[j]*CONST_KB;
 	    }
 	    real cutoff = 0.1*sqrt(temp[0]/p->mass[i]);
@@ -533,15 +555,15 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_1d_d
 	    real nub[MAX_SPECIES],     nu     = 0;
 	    real DXb[MAX_SPECIES],     DX     = 0;
 	    if(!errflag) {
-		errflag = mccc_coefs_clog(p->mass[i], p->charge[i], vin, pdata->mass, pdata->charge, 
-					  dens, temp, clogab, pdata->n_species);
+		errflag = mccc_coefs_clog(p->mass[i], p->charge[i], vin, m_species, q_species, 
+					  dens, temp, clogab, n_species);
 	    }
 	    if(!errflag) {
-		errflag = mccc_coefs_gcadaptive(p->mass[i],p->charge[i],vin,xiin,pdata->mass,pdata->charge,
-						dens,temp,Bnorm,clogab,pdata->n_species,
-						Dparab,DXb,Kb,nub,dQb,dDparab);
+		errflag = mccc_coefs_gcadaptive(p->mass[i], p->charge[i], vin, xiin, m_species, q_species,
+						dens, temp, Bnorm, clogab, n_species,
+						Dparab, DXb, Kb, nub, dQb, dDparab);
 	    }
-	    for(int j = 0; j<pdata->n_species; j=j+1){				
+	    for(int j = 0; j < n_species; j=j+1){				
 		Dpara = Dpara + Dparab[j];
 		K = K + Kb[j];
 		nu = nu + nub[j];

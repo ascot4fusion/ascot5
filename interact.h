@@ -10,11 +10,11 @@
 
 #pragma omp declare target
 void interact_step_fo_euler(particle_simd_fo* p, real t, real h,
-                            B_field_data* Bdata, plasma_1d_data* pdata);
+                            B_field_data* Bdata, plasma_1D_data* pdata);
 void interact_step_gc_euler(particle_simd_gc* p, real t, real h,
-                            B_field_data* Bdata, plasma_1d_data* pdata);
+                            B_field_data* Bdata, plasma_1D_data* pdata);
 void interact_step_gc_euler_ascot4(particle_simd_gc* p, real t, real h,
-                            B_field_data* Bdata, plasma_1d_data* pdata);
+                            B_field_data* Bdata, plasma_1D_data* pdata);
 #pragma omp declare simd
 real interact_D_par(real v, real m, real q, real temp[MAX_SPECIES],
                     real dens[MAX_SPECIES], real charge[MAX_SPECIES],

@@ -36,18 +36,25 @@ typedef struct {
     interp1D_data* dens;                 /**< pointer to start of densities */
 } plasma_1DS_data;
 
-void plasma_1DS_free(plasma_1DS_data* plasma_data);
+void plasma_1DS_free(plasma_1DS_data* pls_data);
+
+void plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
+			     real** offload_array);
+
+void plasma_1DS_free_offload(plasma_1DS_offload_data* offload_data,
+			     real** offload_array);
 
 #pragma omp declare target
-a5err plasma_1DS_init(plasma_1DS_data* plasma_data,
+a5err plasma_1DS_init(plasma_1DS_data* pls_data,
                       plasma_1DS_offload_data* offload_data,
                       real* offload_array);
-#pragma omp declare simd uniform(plasma_data)
-a5err plasma_1DS_eval_temp(real temp[], real rho, int species, plasma_1DS_data* plasma_data);
-#pragma omp declare simd uniform(plasma_data)
-a5err plasma_1DS_eval_dens(real dens[], real rho, int species, plasma_1DS_data* plasma_data);
-#pragma omp declare simd uniform(plasma_data)
-a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho, plasma_1DS_data* plasma_data);
+
+#pragma omp declare simd uniform(pls_data)
+a5err plasma_1DS_eval_temp(real temp[], real rho, int species, plasma_1DS_data* pls_data);
+#pragma omp declare simd uniform(pls_data)
+a5err plasma_1DS_eval_dens(real dens[], real rho, int species, plasma_1DS_data* pls_data);
+#pragma omp declare simd uniform(pls_data)
+a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho, plasma_1DS_data* pls_data);
 #pragma omp end declare target
 
 #endif

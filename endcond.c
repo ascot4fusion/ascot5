@@ -9,6 +9,7 @@
 #include "physlib.h"
 #include "consts.h"
 #include "math.h"
+#include "plasma.h"
 
 void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, sim_data* sim) {
     int i;
@@ -56,7 +57,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i, sim_data* si
 		}
 
 		/* Background temperature */
-		real Te = plasma_1d_eval_temp(p_f->rho[i], 0, &sim->plasma_data) *CONST_KB;
+		real Te = plasma_eval_temp(p_f->rho[i], 0, &sim->plasma_data) *CONST_KB;
 	        if(ekin < (sim->endcond_minEkinPerTe * Te)) {
 		    p_f->endcond[i] |= endcond_therm;
 		    p_f->running[i] = 0;
@@ -143,7 +144,7 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i, sim_data* si
 	    }
 
 	    /* Background temperature */
-	    real Te = plasma_1d_eval_temp(p_f->rho[i], 0, &sim->plasma_data) *CONST_KB;
+	    real Te = plasma_eval_temp(p_f->rho[i], 0, &sim->plasma_data) *CONST_KB;
 	    if(ekin < (sim->endcond_minEkinPerTe * Te)) {
 		p_f->endcond[i] |= endcond_therm;
 		p_f->running[i] = 0;
