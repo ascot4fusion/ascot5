@@ -103,23 +103,77 @@ int hdf5_simulate(hid_t f, sim_offload_data* sim){
     diag_offload_data* diag = &sim->diag_offload_data;
     int enable;
     
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/ENABLE_RZVparaVperp_DIST", active, path), &diag->dist4D_collect);
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/ENABLE_R_phi_z_vpa_vpe_t_q_DIST", active, path), &diag->dist4D_collect);
     if(diag->dist4D_collect) {
-	dist_rzvv_offload_data* dist_rzvpavpe = &diag->dist4D;
+	dist_rzvv_offload_data* dist = &diag->dist4D;
 
-	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_RZVparaVperp_MIN_R", active, path), &dist_rzvpavpe->min_r);
-	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_RZVparaVperp_MAX_R", active, path), &dist_rzvpavpe->max_r);
-	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_RZVparaVperp_BIN_R", active, path), &dist_rzvpavpe->n_r);
-	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_RZVparaVperp_MIN_Z", active, path), &dist_rzvpavpe->min_z);
-	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_RZVparaVperp_MAX_Z", active, path), &dist_rzvpavpe->max_z);
-	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_RZVparaVperp_BIN_Z", active, path), &dist_rzvpavpe->n_z);
-	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_RZVparaVperp_MIN_VPARA", active, path), &dist_rzvpavpe->min_vpara);
-	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_RZVparaVperp_MAX_VPARA", active, path), &dist_rzvpavpe->max_vpara);
-	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_RZVparaVperp_BIN_VPARA", active, path), &dist_rzvpavpe->n_vpara);
-	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_RZVparaVperp_MIN_VPERP", active, path), &dist_rzvpavpe->min_vperp);
-	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_RZVparaVperp_MAX_VPERP", active, path), &dist_rzvpavpe->max_vperp);
-	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_RZVparaVperp_BIN_VPERP", active, path), &dist_rzvpavpe->n_vperp);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MIN_R", active, path), &dist->min_r);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MAX_R", active, path), &dist->max_r);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_NBIN_R", active, path), &dist->n_r);
+
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MIN_phi", active, path), &dist->min_phi);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MAX_phi", active, path), &dist->max_phi);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_NBIN_phi", active, path), &dist->n_phi);
+	
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MIN_z", active, path), &dist->min_z);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MAX_z", active, path), &dist->max_z);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_NBIN_z", active, path), &dist->n_z);
+	
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MIN_vpa", active, path), &dist->min_vpara);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MAX_vpa", active, path), &dist->max_vpara);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_NBIN_vpa", active, path), &dist->n_vpara);
+	
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MIN_vpe", active, path), &dist->min_vperp);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MAX_vpe", active, path), &dist->max_vperp);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_NBIN_vpe", active, path), &dist->n_vperp);
+
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MIN_t", active, path), &dist->min_time);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MAX_t", active, path), &dist->max_time);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_NBIN_t", active, path), &dist->n_time);
+
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MIN_q", active, path), &dist->min_q);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MAX_q", active, path), &dist->max_q);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_NBIN_q", active, path), &dist->n_q);
     }
+
+    /* TODO implement dist6D first and then uncomment this block
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/ENABLE_R_phi_z_vR_vphi_vz_t_q_DIST", active, path), &diag->dist6D_collect);
+    if(diag->dist6D_collect) {
+	dist_rzvv_offload_data* dist = &diag->dist6D; // TODO Implement me!!
+
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MIN_R", active, path), &dist->min_r);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MAX_R", active, path), &dist->max_r);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_R", active, path), &dist->n_r);
+
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MIN_phi", active, path), &dist->min_phi);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MAX_phi", active, path), &dist->max_phi);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_phi", active, path), &dist->n_phi);
+	
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MIN_z", active, path), &dist->min_z);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MAX_z", active, path), &dist->max_z);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_z", active, path), &dist->n_z);
+	
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MIN_vR", active, path), &dist->min_vR);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MAX_vR", active, path), &dist->max_vR);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_vR", active, path), &dist->n_vR);
+	
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MIN_vphi", active, path), &dist->min_vphi);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MAX_vphi", active, path), &dist->max_vphi);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_vphi", active, path), &dist->n_vphi);
+
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MIN_vz", active, path), &dist->min_vz);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MAX_vz", active, path), &dist->max_vz);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_vz", active, path), &dist->n_vz);
+
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MIN_t", active, path), &dist->min_time);
+	err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MAX_t", active, path), &dist->max_time);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_t", active, path), &dist->n_time);
+
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MIN_q", active, path), &dist->min_q);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_MAX_q", active, path), &dist->max_q);
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_q", active, path), &dist->n_q);
+    }
+    */
     
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/ENABLE_ORBITWRITE", active, path), &diag->orb_collect);
     if(diag->orb_collect) {

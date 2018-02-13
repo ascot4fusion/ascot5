@@ -45,18 +45,34 @@ void dist_rzvv_free_offload(dist_rzvv_offload_data* offload_data) {
 void dist_rzvv_init(dist_rzvv_data* dist_data,
                     dist_rzvv_offload_data* offload_data,
                     real* offload_array) {
-    dist_data->n_r = offload_data->n_r;
+    dist_data->n_r   = offload_data->n_r;
     dist_data->min_r = offload_data->min_r;
     dist_data->max_r = offload_data->max_r;
-    dist_data->n_z = offload_data->n_z;
+
+    dist_data->n_phi   = offload_data->n_phi;
+    dist_data->min_phi = offload_data->min_phi;
+    dist_data->max_phi = offload_data->max_phi;
+    
+    dist_data->n_z   = offload_data->n_z;
     dist_data->min_z = offload_data->min_z;
     dist_data->max_z = offload_data->max_z;
-    dist_data->n_vpara = offload_data->n_vpara;
+    
+    dist_data->n_vpara   = offload_data->n_vpara;
     dist_data->min_vpara = offload_data->min_vpara;
     dist_data->max_vpara = offload_data->max_vpara;
-    dist_data->n_vperp = offload_data->n_vperp;
+    
+    dist_data->n_vperp   = offload_data->n_vperp;
     dist_data->min_vperp = offload_data->min_vperp;
     dist_data->max_vperp = offload_data->max_vperp;
+
+    dist_data->n_time   = offload_data->n_time;
+    dist_data->min_time = offload_data->min_time;
+    dist_data->max_time = offload_data->max_time;
+
+    dist_data->n_q   = offload_data->n_q;
+    dist_data->min_q = offload_data->min_q;
+    dist_data->max_q = offload_data->max_q;
+    
     dist_data->histogram = &offload_array[0];
 }
 

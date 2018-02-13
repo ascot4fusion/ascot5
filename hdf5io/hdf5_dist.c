@@ -6,58 +6,45 @@
 
 void hdf5_dist_write_rzvv(dist_rzvv_offload_data* dist, real* hist,
 			  char* filename, char* qid) {
-    int abscissa_dim = 6;
+
+    #if VERBOSE > 0
+    printf("\nWriting distributions to HDF5 file...\n");
+    #endif
+    
+    int abscissa_dim = 7;
     int ordinate_length = 1;
-
-    /* transpose the histogram data for ascot4 rzVDist ordinate */
-    double* ordinate = (double*) malloc(dist->n_r * dist->n_z * dist->n_vpara
-                                        * dist->n_vperp * sizeof(double));
-    int i, j, k, l;
-    for(i = 0; i < dist->n_r; i++) {
-        for(j = 0; j < dist->n_z; j++) {
-            for(k = 0; k < dist->n_vpara; k++) {
-                for(l = 0; l < dist->n_vperp; l++) {
-                    ordinate[  l * (dist->n_vpara * dist->n_z * dist->n_r)
-                             + k * (dist->n_z * dist->n_r)
-                             + j * (dist->n_r)
-                             + i] =
-                    hist[  i * (dist->n_z * dist->n_vpara * dist->n_vperp)
-                         + j * (dist->n_vpara * dist->n_vperp)
-                         + k * (dist->n_vperp)
-                         + l];
-                }
-            }
-        }
-    }
-
-    int abscissa_n_slots[6];
+    
+    int abscissa_n_slots[7];
     abscissa_n_slots[0] = dist->n_r;
-    abscissa_n_slots[1] = dist->n_z;
-    abscissa_n_slots[2] = dist->n_vpara;
-    abscissa_n_slots[3] = dist->n_vperp;
-    abscissa_n_slots[5] = 1;
-    abscissa_n_slots[4] = 1;
+    abscissa_n_slots[1] = dist->n_phi;
+    abscissa_n_slots[2] = dist->n_z;
+    abscissa_n_slots[3] = dist->n_vpara;
+    abscissa_n_slots[4] = dist->n_vperp;
+    abscissa_n_slots[5] = dist->n_time;
+    abscissa_n_slots[6] = dist->n_q;
 
-    double abscissa_min[6];
+    double abscissa_min[7];
     abscissa_min[0] = dist->min_r;
-    abscissa_min[1] = dist->min_z;
-    abscissa_min[2] = dist->min_vpara;
-    abscissa_min[3] = dist->min_vperp;
-    abscissa_min[4] = 0;
-    abscissa_min[5] = 0.5;
+    abscissa_min[1] = dist->min_phi;
+    abscissa_min[2] = dist->min_z;
+    abscissa_min[3] = dist->min_vpara;
+    abscissa_min[4] = dist->min_vperp;
+    abscissa_min[5] = dist->min_time;
+    abscissa_min[6] = dist->min_q;
 
-    double abscissa_max[6];
+    double abscissa_max[7];
     abscissa_max[0] = dist->max_r;
-    abscissa_max[1] = dist->max_z;
-    abscissa_max[2] = dist->max_vpara;
-    abscissa_max[3] = dist->max_vperp;
-    abscissa_max[4] = 100;
-    abscissa_max[5] = 1.5;
+    abscissa_max[1] = dist->max_phi;
+    abscissa_max[2] = dist->max_z;
+    abscissa_max[3] = dist->max_vpara;
+    abscissa_max[4] = dist->max_vperp;
+    abscissa_max[5] = dist->max_time;
+    abscissa_max[6] = dist->max_q;
 
-    char* abscissa_names[] = { "R", "z", "vpa", "vpe", "time", "species" };
-    char* abscissa_units[] = { "m", "m", "m/s", "m/s", "s", "" };
+    char* abscissa_names[] = { "R", "phi", "z", "vpa", "vpe", "time", "charge" };
+    char* abscissa_units[] = { "m", "deg", "m", "m/s", "m/s", "s", "e" };
     char* ordinate_names[] = { "density" };
-    char* ordinate_units[] = { "s^2/m^5" };
+    char* ordinate_units[] = { "s/m^5*deg*e" };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
@@ -67,7 +54,7 @@ void hdf5_dist_write_rzvv(dist_rzvv_offload_data* dist, real* hist,
     retval =  hdf5_histogram_write_uniform_double(
 		      filename,
 		      path,
-		      "r-phi-z-vpa-vpe-t-q-dist",
+		      "R_phi_z_vpa_vpe_t_q",
 		      abscissa_dim,
 		      ordinate_length,
 		      abscissa_n_slots,
@@ -77,5 +64,9 @@ void hdf5_dist_write_rzvv(dist_rzvv_offload_data* dist, real* hist,
 		      abscissa_names,
 		      ordinate_units,
 		      ordinate_names,
-		      ordinate);
+		      hist);
+    
+    #if VERBOSE > 0
+    printf("\nDone writing distributions to HDF5 file.\n");
+    #endif
 }

@@ -161,7 +161,7 @@ a5err plasma_1D_eval_densandtemp(real rho, plasma_1D_data* pls_data, real* dens,
     else if(rho >= pls_data->rho[pls_data->n_rho-1]) {
 	for(int i = 0; i < pls_data->n_species; i++) {
 	    dens[i] = pls_data->dens[i*pls_data->n_rho + pls_data->n_rho - 1];
-
+	    
 	    if(i < 2) {
 		/* Electron and ion temperature */
 		 temp[i] = pls_data->temp[i*pls_data->n_rho + pls_data->n_rho - 1];

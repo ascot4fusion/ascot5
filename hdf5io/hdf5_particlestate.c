@@ -23,7 +23,7 @@ int hdf5_particlestate_write(char* fn, char* qid, char *state, int n, particle_s
     strcat(path, state);
 
     hid_t state_group = H5Gcreate2(file, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Gclose (state_group);
+    
     if(state_group < 0) {
         return -1;
     }

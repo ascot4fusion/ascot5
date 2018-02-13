@@ -174,7 +174,7 @@ class opt():
     ###############
 
     ## Distribution specific options ##
-    # ENABLE_R-phi-z-vpa-vpe-t-q_DIST == 0 or 1
+    # ENABLE_R_phi_z_vpa_vpe_t_q_DIST == 0 or 1
     # - Enables collection of marker distribution histogram in coordinates
     #     R     - major radius in meters [m]
     #     phi   - toroidal angle in degrees [deg]
@@ -184,7 +184,7 @@ class opt():
     #     t     - time in seconds [s]
     #     q     - charge in multiples of elementary charge [e] (must be an integer value)
     #
-    # ENABLE_R-phi-z-vR-vphi-vz-t-q_DIST == 0 or 1 !!TODO Not implemented!!
+    # ENABLE_R_phi_z_vR_vphi_vz_t_q_DIST == 0 or 1 !!TODO Not implemented!!
     # - Enables collection of marker distribution histogram in coordinates
     #     R     - major radius in meters [m]
     #     phi   - toroidal angle in degrees [deg]
@@ -201,70 +201,70 @@ class opt():
     # NBIN_X - Number of bins interval [MIN_X MAX_X] is divided into
     #
 
-    ENABLE_R-phi-z-vpa-vpe-t-q_DIST   = 1
+    ENABLE_R_phi_z_vpa_vpe_t_q_DIST   = 1
 
-    DIST_R-phi-z-vpa-vpe-t-q_MIN_R    = 3.0
-    DIST_R-phi-z-vpa-vpe-t-q_MAX_R    = 8.5
-    DIST_R-phi-z-vpa-vpe-t-q_NBIN_R   = 20
+    DIST_R_phi_z_vpa_vpe_t_q_MIN_R    = 3.0
+    DIST_R_phi_z_vpa_vpe_t_q_MAX_R    = 8.5
+    DIST_R_phi_z_vpa_vpe_t_q_NBIN_R   = 20
 
-    DIST_R-phi-z-vpa-vpe-t-q_MIN_phi  = 0
-    DIST_R-phi-z-vpa-vpe-t-q_MAX_phi  = 360
-    DIST_R-phi-z-vpa-vpe-t-q_NBIN_phi = 1
+    DIST_R_phi_z_vpa_vpe_t_q_MIN_phi  = 0
+    DIST_R_phi_z_vpa_vpe_t_q_MAX_phi  = 360
+    DIST_R_phi_z_vpa_vpe_t_q_NBIN_phi = 1
 
-    DIST_R-phi-z-vpa-vpe-t-q_MIN_z    = -4.25
-    DIST_R-phi-z-vpa-vpe-t-q_MAX_z    = 3.6
-    DIST_R-phi-z-vpa-vpe-t-q_NBIN_z   = 40
+    DIST_R_phi_z_vpa_vpe_t_q_MIN_z    = -4.25
+    DIST_R_phi_z_vpa_vpe_t_q_MAX_z    = 3.6
+    DIST_R_phi_z_vpa_vpe_t_q_NBIN_z   = 40
 
-    DIST_R-phi-z-vpa-vpe-t-q_MIN_vpa  = -1.5e7
-    DIST_R-phi-z-vpa-vpe-t-q_MAX_vpa  = 1.5e7
-    DIST_R-phi-z-vpa-vpe-t-q_NBIN_vpa = 40
+    DIST_R_phi_z_vpa_vpe_t_q_MIN_vpa  = -1.5e7
+    DIST_R_phi_z_vpa_vpe_t_q_MAX_vpa  = 1.5e7
+    DIST_R_phi_z_vpa_vpe_t_q_NBIN_vpa = 40
 
-    DIST_R-phi-z-vpa-vpe-t-q_MIN_vpe  = 0
-    DIST_R-phi-z-vpa-vpe-t-q_MAX_vpe  = 1.5e7
-    DIST_R-phi-z-vpa-vpe-t-q_NBIN_vpe = 20
+    DIST_R_phi_z_vpa_vpe_t_q_MIN_vpe  = 0
+    DIST_R_phi_z_vpa_vpe_t_q_MAX_vpe  = 1.5e7
+    DIST_R_phi_z_vpa_vpe_t_q_NBIN_vpe = 20
 
-    DIST_R-phi-z-vpa-vpe-t-q_MIN_t    = 0
-    DIST_R-phi-z-vpa-vpe-t-q_MAX_t    = 100
-    DIST_R-phi-z-vpa-vpe-t-q_NBIN_t   = 1
+    DIST_R_phi_z_vpa_vpe_t_q_MIN_t    = 0
+    DIST_R_phi_z_vpa_vpe_t_q_MAX_t    = 100
+    DIST_R_phi_z_vpa_vpe_t_q_NBIN_t   = 1
 
-    DIST_R-phi-z-vpa-vpe-t-q_MIN_q    = -100
-    DIST_R-phi-z-vpa-vpe-t-q_MAX_q    = 100
-    DIST_R-phi-z-vpa-vpe-t-q_NBIN_q   = 1
+    DIST_R_phi_z_vpa_vpe_t_q_MIN_q    = -100
+    DIST_R_phi_z_vpa_vpe_t_q_MAX_q    = 100
+    DIST_R_phi_z_vpa_vpe_t_q_NBIN_q   = 1
 
 
-    ENABLE_R-phi-z-vR-vphi-vz-t-q_DIST    = 0
+    ENABLE_R_phi_z_vR_vphi_vz_t_q_DIST    = 0
 
-    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_R     = 3.0
-    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_R     = 8.5
-    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_R    = 20
+    DIST_R_phi_z_vR_vphi_vz_t_q_MIN_R     = 3.0
+    DIST_R_phi_z_vR_vphi_vz_t_q_MAX_R     = 8.5
+    DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_R    = 20
 
-    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_phi   = 0
-    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_phi   = 360
-    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_phi  = 1
+    DIST_R_phi_z_vR_vphi_vz_t_q_MIN_phi   = 0
+    DIST_R_phi_z_vR_vphi_vz_t_q_MAX_phi   = 360
+    DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_phi  = 1
 
-    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_z     = -4.25
-    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_z     = 3.6
-    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_z    = 40
+    DIST_R_phi_z_vR_vphi_vz_t_q_MIN_z     = -4.25
+    DIST_R_phi_z_vR_vphi_vz_t_q_MAX_z     = 3.6
+    DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_z    = 40
 
-    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vR    = -1.5e7
-    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vR    = 1.5e7
-    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vR   = 40
+    DIST_R_phi_z_vR_vphi_vz_t_q_MIN_vR    = -1.5e7
+    DIST_R_phi_z_vR_vphi_vz_t_q_MAX_vR    = 1.5e7
+    DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_vR   = 40
 
-    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vphi  = -1.5e7
-    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vphi  = 1.5e7
-    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vphi = 40
+    DIST_R_phi_z_vR_vphi_vz_t_q_MIN_vphi  = -1.5e7
+    DIST_R_phi_z_vR_vphi_vz_t_q_MAX_vphi  = 1.5e7
+    DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_vphi = 40
 
-    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vz    = -1.5e7
-    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vz    = 1.5e7
-    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vz   = 40
+    DIST_R_phi_z_vR_vphi_vz_t_q_MIN_vz    = -1.5e7
+    DIST_R_phi_z_vR_vphi_vz_t_q_MAX_vz    = 1.5e7
+    DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_vz   = 40
 
-    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_t     = 0
-    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_t     = 100
-    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_t    = 1
+    DIST_R_phi_z_vR_vphi_vz_t_q_MIN_t     = 0
+    DIST_R_phi_z_vR_vphi_vz_t_q_MAX_t     = 100
+    DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_t    = 1
 
-    DIST_R-phi-z-vR-vphi-vz-t-q_MIN_q     = -100
-    DIST_R-phi-z-vR-vphi-vz-t-q_MAX_q     = 100
-    DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_q    = 1
+    DIST_R_phi_z_vR_vphi_vz_t_q_MIN_q     = -100
+    DIST_R_phi_z_vR_vphi_vz_t_q_MAX_q     = 100
+    DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_q    = 1
 
 
     ## Orbit writing specific options ##
@@ -377,70 +377,70 @@ def generateopt():
     f["ENABLE_COULOMB_COLLISIONS"] = settype(f["ENABLE_COULOMB_COLLISIONS"],'i4')
 
     ## Distributions ##
-    f["ENABLE_R-phi-z-vpa-vpe-t-q_DIST"]   = settype(f["ENABLE_R-phi-z-vpa-vpe-t-q_DIST"],'i4')
+    f["ENABLE_R_phi_z_vpa_vpe_t_q_DIST"]   = settype(f["ENABLE_R_phi_z_vpa_vpe_t_q_DIST"],'i4')
     
-    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_R"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_R"],'f8')
-    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_R"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_R"],'f8')
-    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_R"]   = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_R"],'i4')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MIN_R"]    = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MIN_R"],'f8')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MAX_R"]    = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MAX_R"],'f8')
+    f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_R"]   = settype(f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_R"],'i4')
     
-    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_R"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_phi"],'f8')
-    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_R"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_phi"],'f8')
-    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_R"]   = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_phi"],'i4')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MIN_phi"]  = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MIN_phi"],'f8')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MAX_phi"]  = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MAX_phi"],'f8')
+    f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_phi"] = settype(f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_phi"],'i4')
 
-    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_z"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_z"],'f8')
-    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_z"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_z"],'f8')
-    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_z"]   = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_z"],'i4')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MIN_z"]    = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MIN_z"],'f8')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MAX_z"]    = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MAX_z"],'f8')
+    f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_z"]   = settype(f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_z"],'i4')
 
-    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_vpa"]  = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_vpa"],'f8')
-    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_vpa"]  = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_vpa"],'f8')
-    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_vpa"] = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_vpa"],'i4')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MIN_vpa"]  = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MIN_vpa"],'f8')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MAX_vpa"]  = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MAX_vpa"],'f8')
+    f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_vpa"] = settype(f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_vpa"],'i4')
 
-    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_vpe"]  = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_vpe"],'f8')
-    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_vpe"]  = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_vpe"],'f8')
-    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_vpe"] = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_vpe"],'i4')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MIN_vpe"]  = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MIN_vpe"],'f8')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MAX_vpe"]  = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MAX_vpe"],'f8')
+    f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_vpe"] = settype(f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_vpe"],'i4')
 
-    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_t"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_t"],'f8')
-    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_t"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_t"],'f8')
-    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_t"]   = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_t"],'i4')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MIN_t"]    = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MIN_t"],'f8')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MAX_t"]    = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MAX_t"],'f8')
+    f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_t"]   = settype(f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_t"],'i4')
 
-    f["DIST_R-phi-z-vpa-vpe-t-q_MIN_q"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MIN_q"],'i4')
-    f["DIST_R-phi-z-vpa-vpe-t-q_MAX_q"]    = settype(f["DIST_R-phi-z-vpa-vpe-t-q_MAX_q"],'i4')
-    f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_q"]   = settype(f["DIST_R-phi-z-vpa-vpe-t-q_NBIN_q"],'i4')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MIN_q"]    = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MIN_q"],'i4')
+    f["DIST_R_phi_z_vpa_vpe_t_q_MAX_q"]    = settype(f["DIST_R_phi_z_vpa_vpe_t_q_MAX_q"],'i4')
+    f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_q"]   = settype(f["DIST_R_phi_z_vpa_vpe_t_q_NBIN_q"],'i4')
 
 
-    f["ENABLE_R-phi-z-vR-vphi-vz-t-q_DIST"]    = settype(f["ENABLE_R-phi-z-vR-vphi-vz-t-q_DIST"],'i4')
+    f["ENABLE_R_phi_z_vR_vphi_vz_t_q_DIST"]    = settype(f["ENABLE_R_phi_z_vR_vphi_vz_t_q_DIST"],'i4')
     
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_R"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_R"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_R"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_R"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_R"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_R"],'i4')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_R"]     = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_R"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_R"]     = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_R"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_R"]    = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_R"],'i4')
 
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_phi"]   = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_phi"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_phi"]   = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_phi"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_phi"]  = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_phi"],'i4')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_phi"]   = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_phi"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_phi"]   = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_phi"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_phi"]  = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_phi"],'i4')
 
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_z"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_z"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_z"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_z"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_z"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_z"],'i4')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_z"]     = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_z"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_z"]     = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_z"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_z"]    = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_z"],'i4')
 
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vR"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vR"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vR"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vR"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vR"]   = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vR"],'i4')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_vR"]    = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_vR"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_vR"]    = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_vR"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_vR"]   = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_vR"],'i4')
 
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vphi"]  = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vphi"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vphi"]  = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vphi"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vphi"] = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vphi"],'i4')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_vphi"]  = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_vphi"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_vphi"]  = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_vphi"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_vphi"] = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_vphi"],'i4')
 
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vz"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_vz"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vz"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_vz"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vz"]   = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_vz"],'i4')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_vz"]    = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_vz"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_vz"]    = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_vz"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_vz"]   = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_vz"],'i4')
 
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_t"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_t"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_t"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_t"],'f8')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_t"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_t"],'i4')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_t"]     = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_t"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_t"]     = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_t"],'f8')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_t"]    = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_t"],'i4')
 
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_q"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MIN_q"],'i4')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_q"]     = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_MAX_q"],'i4')
-    f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_q"]    = settype(f["DIST_R-phi-z-vR-vphi-vz-t-q_NBIN_q"],'i4')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_q"]     = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MIN_q"],'i4')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_q"]     = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_MAX_q"],'i4')
+    f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_q"]    = settype(f["DIST_R_phi_z_vR_vphi_vz_t_q_NBIN_q"],'i4')
 
     ## Orbit writing specific options ##
     f["ENABLE_ORBITWRITE"]         = settype(f["ENABLE_ORBITWRITE"],'i4')
