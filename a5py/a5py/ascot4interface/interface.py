@@ -70,7 +70,7 @@ def run(a4folder, h5fn, overwrite=True):
             f.close()
             if 'charge' not in data['fieldNames']:
                 print("Converting Znum to charge.")
-                data["fields"]['charge'] = data["fields"]['Znum'] * consts_e
+                data["fields"]['charge'] = str(data["fields"]['Znum'] * consts_e)
             if 'mass' not in data['fieldNames']:
                 print("Converting Anum to mass.")
                 data["fields"]['mass'] = np.array(list(map(guessMass, data["fields"]['Anum'], data["fields"]['Znum'], data["fields"]['charge'])))
