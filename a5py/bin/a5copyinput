@@ -2,7 +2,13 @@
 
 import sys
 import a5py.ascot5io.tools as tools
-print('Copying input ' + sys.argv[3] + ' from ' + sys.argv[1] + ' to ' + sys.argv[2])
-field = sys.argv[3].split("/")[0]
-subfield = sys.argv[3].split("/")[1]
-tools.copy(sys.argv[1],sys.argv[2],field,subfield)
+
+if len(sys.argv) < 5:
+    print("Not enough argumens.")
+    print("Usage: a5copyfield source.h5 destination.h5 field qid")
+    print("where field is bfield, efield, plasma, options, marker, wall, or results.")
+
+else:
+    print('Copying input ' + sys.argv[3] + " , qid = " + sys.argv[4]+ ', from ' + sys.argv[1] + ' to ' + sys.argv[2])
+    tools.copygroup(sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4])
+    print('Done.')

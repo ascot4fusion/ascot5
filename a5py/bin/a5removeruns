@@ -2,5 +2,10 @@
 
 import sys
 import a5py.ascot5io.tools as tools
-print('Removing runs from ' + sys.argv[1])
-tools.remove(sys.argv[1])
+
+if len(sys.argv) > 2:
+    print('Removing run ' + sys.argv[2] + ' from ' + sys.argv[1])
+    tools.removerun(sys.argv[1], sys.argv[2])
+else:
+    print('Removing all runs from ' + sys.argv[1])
+    tools.removerun(sys.argv[1])

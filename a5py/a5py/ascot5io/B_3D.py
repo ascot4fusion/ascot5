@@ -6,13 +6,14 @@ import h5py
 import random
 import datetime
 
-from . ascot5group import replacegroup, setgrouptype, setmetadata
+from . ascot5group import creategroup
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                axisR, axisz, psiRz, psiaxis, psisepx,
-               B_R, B_phi, B_z):
+               B_R, B_phi, B_z,
+               pRmin=None, pRmax=None, pnR=None, pzmin=None, pzmax=None, pnz=None):
     """
-    Write 3D magnetic field input in HDF5 file.
+    Write 3DS magnetic field input in HDF5 file.
 
     TODO Not compatible with new HDF5 format.
 
@@ -33,6 +34,8 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         Psi values at magnetic axis and separatrix
     B_R, B_phi, B_z : real R x phi x z numpy array
         Magnetic field components in Rphiz-grid.
+    pRmin, pRmax, pnR, pzmin, pzmax, pnz : opt
+        Optional parameters that define a separate grid for psi.
 
     Notes
     -------
@@ -52,22 +55,33 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     where ' notates input fields.
     """
 
-    group = "bfield"
-    type_ = "B_3D"
-    path = "bfield/B_3D"
+    mastergroup = "bfield"
+    subgroup    = "B_3DS"
     
-    # Create group and set the type to this one.
+    # Create a group for this input.
     f = h5py.File(fn, "a")
-    setgrouptype(f, group, type_)
-    replacegroup(f, path)
-    setmetadata(f[path])
+    path = creategroup(f, mastergroup, subgroup)
 
+    # Transpose grids
+    B_R = np.transpose(B_R,(1,0,2))
+    B_phi = np.transpose(B_phi,(1,0,2))
+    B_z = np.transpose(B_z,(1,0,2))
+
+    # Define psigrid to be same as Bgrid if not stated otherwise.
+    if(pRmin is None or pRmax is None or pnR is None or pzmin is None or pzmax is None or pnz is None):
+        pRmin = Rmin
+        pRmax = Rmax
+        pnR   = nR
+        pzmin = zmin
+        pzmax = zmax
+        pnz   = nz
+    
     # TODO Check that inputs are consistent.
-
+    
     # Actual data.
-    f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")
-    f.create_dataset(path + "/r_max", (1,), data=Rmax, dtype="f8")
-    f.create_dataset(path + "/n_r", (1,),   data=nR, dtype="i8")
+    f.create_dataset(path + "/R_min", (1,), data=Rmin, dtype="f8")
+    f.create_dataset(path + "/R_max", (1,), data=Rmax, dtype="f8")
+    f.create_dataset(path + "/n_R", (1,),   data=nR, dtype="i8")
 
     f.create_dataset(path + "/phi_min", (1,), data=phimin, dtype="f8")
     f.create_dataset(path + "/phi_max", (1,), data=phimax, dtype="f8")
@@ -77,12 +91,20 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
     f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
 
-    f.create_dataset(path + "/psi",   data=psiRz.flatten(order='C'), dtype="f8")
-    f.create_dataset(path + "/B_r",   data=B_R.flatten(order='C'), dtype="f8")
-    f.create_dataset(path + "/B_phi", data=B_phi.flatten(order='C'), dtype="f8")
-    f.create_dataset(path + "/B_z",   data=B_z.flatten(order='C'), dtype="f8")
+    f.create_dataset(path + "/psigrid_R_min", (1,), data=pRmin, dtype="f8")
+    f.create_dataset(path + "/psigrid_R_max", (1,), data=pRmax, dtype="f8")
+    f.create_dataset(path + "/psigrid_n_R", (1,),   data=pnR, dtype="i8")
 
-    f.create_dataset(path + "/axis_r", (1,), data=axisR, dtype="f8")
+    f.create_dataset(path + "/psigrid_z_min", (1,), data=pzmin, dtype="f8")
+    f.create_dataset(path + "/psigrid_z_max", (1,), data=pzmax, dtype="f8")
+    f.create_dataset(path + "/psigrid_n_z", (1,),   data=pnz, dtype="i8")
+
+    f.create_dataset(path + "/psi",   data=psiRz, dtype="f8")
+    f.create_dataset(path + "/B_R",   data=B_R,   dtype="f8")
+    f.create_dataset(path + "/B_phi", data=B_phi, dtype="f8")
+    f.create_dataset(path + "/B_z",   data=B_z,   dtype="f8")
+
+    f.create_dataset(path + "/axis_R", (1,), data=axisR, dtype="f8")
     f.create_dataset(path + "/axis_z", (1,), data=axisz, dtype="f8")
 
     f.create_dataset(path + "/psi0", (1,), data=psiaxis, dtype="f8")
@@ -133,9 +155,9 @@ def read_hdf5(fn):
 
     out["psi"]   = f[path]["psi"][:]
     out["B_R"]   = f[path]["B_r"][:]
-    out["B_phi"] = f[path]["B_phi"][:]
+    out["B_phi"] = np.reshape(f[path]["B_phi"][:], (out["nz"][0], out["nphi"][0], out["nR"][0]))#f[path]["B_phi"][:]
     out["B_z"]   = f[path]["B_z"][:]
-
+    
     out["axisR"] = f[path]["axis_r"][:]
     out["axisz"] = f[path]["axis_z"][:]
 

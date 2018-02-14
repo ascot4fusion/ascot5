@@ -17,6 +17,7 @@ setup(name='a5py',
         'bin/a5ascot4input',
         'bin/a5copyinput',
         'bin/a5continuerun',
+        'bin/a5setactive',
         'bin/a5GUI'
       ])
 

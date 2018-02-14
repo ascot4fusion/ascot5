@@ -4,64 +4,94 @@ Tools to modify HDF5 files.
 import numpy as np
 import h5py
 from . import ascot5
+from . import ascot5group
 from . import states
 from . import orbits
 from . import dists
 
-def remove(fn,runid=0):
+def setactivegroup(fn, mastergroup, qid):
     """
-    Remove all or specific runs.
-
-    TODO Not compatible with new HDF5 format.
+    Set a group active.
 
     Parameters
     ----------
 
     fn : str
          Full path to HDF5 file.
-    runid : int, optional
+    mastergroup : str
+         Mastergroup where the group belongs to.
+    qid: str
+         Id for the active group.
+    """
+    f = h5py.File(fn, "a")
+    path = None
+    if mastergroup in f:
+        for r in f[mastergroup]:
+            if r[-10:] == qid:
+                path = mastergroup + "/" + r
+                
+    if path == None:
+        print("Error: group not found.")
+        f.close()
+        return
+            
+    setactive(f, path)
+    f.close()
+    
+
+def removerun(fn, qid=None):
+    """
+    Remove all or specific runs.
+
+    Parameters
+    ----------
+
+    fn : str
+         Full path to HDF5 file.
+    qid : str, optional
          Id for for the run to be removed. By default all runs
          are removed.
     """
 
     f = h5py.File(fn, "a")
 
-    
-    if  "inistate" in f:
-        del f["inistate"]
-    if  "endstate" in f:
-        del f["endstate"]
-    if  "orbits" in f:
-        del f["orbits"]
-    if  "distributions" in f:
-        del f["distributions"]
+    for r in f["results"]:
+        if qid == None:
+            del f["results"][r]
+        elif r[-10:] == qid:
+            del f["results"][r]
     
     f.close()
 
-def rmgroup(fn,group):
+def removegroup(fn, mastergroup, qid):
     """
     Remove a group.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
 
     fn : str
          Full path to HDF5 file.
-    group : str
-         Group to be removed
+    mastergroup : str
+         Mastergroup where the group belongs to.
+    qid: str
+         Id for the group to be removed
     """
     f = h5py.File(fn, "a")
-    if not group in f:
-        print("Error: Source file does not contain the field to be remove")
+    if not mastergroup in f:
+        print("Error: Source file does not contain the group to be removed.")
         return
 
-    del f[group]
-    f.close()
+    for r in f[mastergroup]:
+        if r[-10:] == qid:
+            del f[mastergroup][r]
+            f.close()
+            return
+            
+    print("Error: Source file does not contain the group to be removed.")
 
 
-def copy(fns,fnt,field,subfield):
+def copygroup(fns, fnt, mastergroup, qid):
     """
     Copy input field.
 
@@ -75,44 +105,42 @@ def copy(fns,fnt,field,subfield):
           Full path to source file.
     fnt : str
           Full path to target file.
-    field : str 
-          Master field where copying is done e.g. bfield.
-    subfield : str
-          Subfield to be copied e.g. B2D.
+    mastergroup : str 
+          Mastergroup where the group belongs to.
+    qid : str
+          Id for the group to be removed.
     """
 
     # Get the target field and type from source
     fs = h5py.File(fns, "r")
-    o = fs[field]
-    types = o.attrs["type"]
     
-    if not field in fs:
-        print("Error: Source file does not contain the field to be copied")
+    if not mastergroup in fs:
+        print("Error: Source file does not contain the group to be copied")
         return
 
-    # Check if the field in target exists (otherwise it is created)
-    # Delete possible existing types and sub fields of same type as copied
-    ft = h5py.File(fnt, "a")
-    if not field in ft:
-        ot = ft.create_group(field)
-    else:
-        ot = ft[field]
-        del ot.attrs["type"]
-        if subfield in ot:
-            del ot[subfield]
+    field = None
+    for r in fs[mastergroup]:
+        if r[-10:] == qid:
+            field = r
+            break
+    if field == None:
+        print("Error: Source file does not contain the group to be copied")
+        return
 
-    # Do the copying and set the type
-    fs.copy(field + "/" + subfield, ot, name=subfield)
-    ft[field].attrs["type"] = np.string_(subfield)
-    ft[field][subfield].attrs["qid"] = fs[field][subfield].attrs["qid"]
-    ft[field][subfield].attrs["date"] = fs[field][subfield].attrs["date"]
+    # Check if the mastergroup in target exists (otherwise it is created)
+    ft = h5py.File(fnt, "a")
+    if not mastergroup in ft:
+        ft.create_group(mastergroup)
     
+    # Copy group into target
+    ft[mastergroup].attrs["active"] = qid
+    fs.copy(mastergroup + "/" + field, ft[mastergroup], name=field)    
 
     fs.close()
     ft.close()
 
 
-def combine(fnt, fns, mode="add"):
+def combineresults(fnt, fns, mode="add"):
     """
     Combine output of multiple HDF5 files into one.
 

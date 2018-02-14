@@ -8,13 +8,11 @@ import numpy as np
 import random
 import datetime
 	
-from . ascot5group import replacegroup, setgrouptype, setmetadata
+from . ascot5group import creategroup
 
 def write_hdf5(fn, Exyz):
     """
     Write trivial cartesian electric field input in HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
@@ -25,15 +23,12 @@ def write_hdf5(fn, Exyz):
         Electric field value in cartesian coordinates
     """
 
-    group = "efield"
-    type_ = "E_TC"
-    path = "efield/E_TC"
-
-    # Create group and set the type to this one.
+    mastergroup = "efield"
+    subgroup    = "E_TC"
+    
+    # Create a group for this input.
     f = h5py.File(fn, "a")
-    setgrouptype(f, group, type_)
-    replacegroup(f, path)
-    setmetadata(f[path])
+    path = creategroup(f, mastergroup, subgroup)
 
     # Check that input is a valid array with three elements.
     if Exyz.shape != (3,1) and Exyz.shape != (1,3) and Exyz.shape != (3,):

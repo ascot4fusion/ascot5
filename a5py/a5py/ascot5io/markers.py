@@ -6,15 +6,13 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import setmetadata
+from . ascot5group import creategroup
 
 def write_hdf5_particles(fn, N, ids, mass, charge, 
                          r, phi, z, vR, vphi, vz, 
                          weight, time):
     """
     Write particle marker input in hdf5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
@@ -47,34 +45,18 @@ def write_hdf5_particles(fn, N, ids, mass, charge,
         particle initial time
 
     """
-    group = "markers"
-    type_ = "particle"
-    path = "markers/particle"
 
-    # Create group and set the type to this one.
+    mastergroup = "marker"
+    subgroup    = "particle"
+    
+    # Create a group for this input.
     f = h5py.File(fn, "a")
-    if not group in f:
-        o = f.create_group(group)
-
-    # Remove group if one is already present.
-    if path in f:
-        del f[path]
-    f.create_group(path)
-
-    f[group].attrs['n_particle'] = N
-
-    if not "n_guiding_center" in f[group].attrs:
-        f[group].attrs["n_guiding_center"] = 0
-
-    if not "n_field_line" in f[group].attrs:
-        f[group].attrs["n_field_line"] = 0
+    path = creategroup(f, mastergroup, subgroup)
 
     # TODO Check that inputs are consistent.
 
-    # Metadata.
-    setmetadata(f[path])
-
     # Actual data.
+    f.create_dataset(path + "/n",      data=N, dtype='i8').attrs['unit'] = '1';
     f.create_dataset(path + "/r",      data=r, dtype='f8').attrs['unit'] = 'm';
     f.create_dataset(path + "/phi",    data=phi, dtype='f8').attrs['unit'] = 'deg';
     f.create_dataset(path + "/z",      data=z, dtype='f8').attrs['unit'] = 'm';
@@ -94,8 +76,6 @@ def write_hdf5_guidingcenters(fn, N, ids, mass, charge,
                               weight, time):
     """
     Write guiding center marker input in hdf5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
@@ -128,34 +108,17 @@ def write_hdf5_guidingcenters(fn, N, ids, mass, charge,
         guiding center initial time
 
     """
-    group = "markers"
-    type_ = "guiding_center"
-    path = "markers/guiding_center"
-
-    # Create group and set the type to this one.
+    mastergroup = "marker"
+    subgroup    = "guiding_center"
+    
+    # Create a group for this input.
     f = h5py.File(fn, "a")
-    if not group in f:
-        o = f.create_group(group)
-
-    # Remove group if one is already present.
-    if path in f:
-        del f[path]
-    f.create_group(path)
-
-    f[group].attrs['n_guiding_center'] = N
-
-    if not "n_particle" in f[group].attrs:
-        f[group].attrs["n_particle"] = 0
-
-    if not "n_field_line" in f[group].attrs:
-        f[group].attrs["n_field_line"] = 0
+    path = creategroup(f, mastergroup, subgroup)
 
     # TODO Check that inputs are consistent.
 
-    # Metadata.
-    setmetadata(f[path])
-
     # Actual data.
+    f.create_dataset(path + "/n",      data=N, dtype='i8').attrs['unit'] = '1';
     f.create_dataset(path + "/r",      data=r, dtype='f8').attrs['unit'] = 'm';
     f.create_dataset(path + "/phi",    data=phi, dtype='f8').attrs['unit'] = 'deg';
     f.create_dataset(path + "/z",      data=z, dtype='f8').attrs['unit'] = 'm';
@@ -173,8 +136,6 @@ def write_hdf5_guidingcenters(fn, N, ids, mass, charge,
 def write_hdf5_fieldlines(fn, N, ids, r, phi, z, pitch, weight, time):
     """
     Write magnetic field line marker input in hdf5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
@@ -200,34 +161,17 @@ def write_hdf5_fieldlines(fn, N, ids, r, phi, z, pitch, weight, time):
         magnetic field line initial time
 
     """
-    group = "markers"
-    type_ = "field_line"
-    path = "markers/field_line"
-
-    # Create group and set the type to this one.
+    mastergroup = "marker"
+    subgroup    = "field_line"
+    
+    # Create a group for this input.
     f = h5py.File(fn, "a")
-    if not group in f:
-        o = f.create_group(group)
-
-    # Remove group if one is already present.
-    if path in f:
-        del f[path]
-    f.create_group(path)
-
-    f[group].attrs['n_field_line'] = N
-
-    if not "n_particle" in f[group].attrs:
-        f[group].attrs["n_particle"] = 0
-
-    if not "n_guiding_center" in f[group].attrs:
-        f[group].attrs["n_guiding_center"] = 0
+    path = creategroup(f, mastergroup, subgroup)
 
     # TODO Check that inputs are consistent.
 
-    # Metadata.
-    setmetadata(f[path])
-
     # Actual data.
+    f.create_dataset(path + "/n",      data=N, dtype='i8').attrs['unit'] = '1';
     f.create_dataset(path + "/r",      data=r, dtype='f8').attrs['unit'] = 'm';
     f.create_dataset(path + "/phi",    data=phi, dtype='f8').attrs['unit'] = 'deg';
     f.create_dataset(path + "/z",      data=z, dtype='f8').attrs['unit'] = 'm';

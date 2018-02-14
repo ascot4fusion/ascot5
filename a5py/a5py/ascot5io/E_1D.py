@@ -6,13 +6,11 @@ import numpy as np
 import random
 import datetime
     
-from . ascot5group import replacegroup, setgrouptype, setmetadata
+from . ascot5group import creategroup
 
 def write_hdf5(fn, Nrho, r_eff, rhomin, rhomax, rho, dVdrho):
     """
     Write radial electric field input in HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
@@ -33,15 +31,12 @@ def write_hdf5(fn, Nrho, r_eff, rhomin, rhomax, rho, dVdrho):
         Gradient of electric potential in rho grid.
     """
 
-    group = "efield"
-    type_ = "E_1D"
-    path = "efield/E_1D"
-
-    # Create group and set the type to this one.
+    mastergroup = "efield"
+    subgroup    = "E_1D"
+    
+    # Create a group for this input.
     f = h5py.File(fn, "a")
-    setgrouptype(f, group, type_)
-    replacegroup(f, path)
-    setmetadata(f[path])
+    path = creategroup(f, mastergroup, subgroup)
 
     # TODO check that input is valid
 

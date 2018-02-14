@@ -3,18 +3,14 @@ Axisymmetric magnetic field HDF5 IO
 """
 import numpy as np
 import h5py
-import random
-import datetime
 
-from . ascot5group import replacegroup, setgrouptype, setmetadata
+from . ascot5group import creategroup
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
                axisR, axisz, psiRz, psiaxis, psisepx,
                B_R, B_phi, B_z):
     """
-    Write 2D magnetic field input in HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
+    Write 2DS magnetic field input in HDF5 file.
 
     Parameters
     ----------
@@ -46,33 +42,30 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
     where ' notates input fields.
     """
 
-    group = "bfield"
-    type_ = "B_2D"
-    path = "bfield/B_2D"
+    mastergroup = "bfield"
+    subgroup    = "B_2DS"
     
-    # Create group and set the type to this one.
+    # Create a group for this input.
     f = h5py.File(fn, "a")
-    setgrouptype(f, group, type_)
-    replacegroup(f, path)
-    setmetadata(f[path])
+    path = creategroup(f, mastergroup, subgroup)
     
     # TODO Check that inputs are consistent.
 
     # Actual data.
-    f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")
-    f.create_dataset(path + "/r_max", (1,), data=Rmax, dtype="f8")
-    f.create_dataset(path + "/n_r", (1,),   data=nR, dtype="i8")
+    f.create_dataset(path + "/R_min", (1,), data=Rmin, dtype="f8")
+    f.create_dataset(path + "/R_max", (1,), data=Rmax, dtype="f8")
+    f.create_dataset(path + "/n_R", (1,),   data=nR, dtype="i8")
 
     f.create_dataset(path + "/z_min", (1,), data=zmin, dtype="f8")
     f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
     f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
 
-    f.create_dataset(path + "/psi",   data=psiRz.flatten(order='C'), dtype="f8")
-    f.create_dataset(path + "/B_r",   data=B_R.flatten(order='C'), dtype="f8")
-    f.create_dataset(path + "/B_phi", data=B_phi.flatten(order='C'), dtype="f8")
-    f.create_dataset(path + "/B_z",   data=B_z.flatten(order='C'), dtype="f8")
+    f.create_dataset(path + "/psi",   data=psiRz, dtype="f8")
+    f.create_dataset(path + "/B_R",   data=B_R, dtype="f8")
+    f.create_dataset(path + "/B_phi", data=B_phi, dtype="f8")
+    f.create_dataset(path + "/B_z",   data=B_z, dtype="f8")
 
-    f.create_dataset(path + "/axis_r", (1,), data=axisR, dtype="f8")
+    f.create_dataset(path + "/axis_R", (1,), data=axisR, dtype="f8")
     f.create_dataset(path + "/axis_z", (1,), data=axisz, dtype="f8")
 
     f.create_dataset(path + "/psi0", (1,), data=psiaxis, dtype="f8")
@@ -98,7 +91,7 @@ def read_hdf5(fn):
     Dictionary containing magnetic field data.
     """
 
-    path = "bfield/B_2D"
+    path = "bfield/B_2DS"
 
     f = h5py.File(fn,"r")
 
