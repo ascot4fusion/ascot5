@@ -21,6 +21,15 @@ void simulate(int id, int n_particles, particle_state* p,
         offload_package* offload_data,
         real* offload_array,
         real* diag_offload_array) {
+
+    char targetname[5];
+    if(id == 0) {
+        sprintf(targetname, "host");
+    }
+    else {
+        sprintf(targetname, "mic%d", id-1);
+    }
+
     sim_data sim;
     sim_init(&sim, sim_offload);
 
@@ -78,7 +87,8 @@ void simulate(int id, int n_particles, particle_state* p,
     pq.next = 0;
 
     #if VERBOSE >= 1
-    printf("All fields initialized. Simulation begins.\n");
+    printf("%s: All fields initialized. Simulation begins, %d threads.\n",
+        targetname, omp_get_max_threads());
     #endif
 
 #if VERBOSE > 1
@@ -88,7 +98,7 @@ void simulate(int id, int n_particles, particle_state* p,
         sim_offload->mpi_rank);
     FILE *f = fopen(filename, "w");
     if (f == NULL) {
-        printf("Error opening stdout file.\n");
+        printf("%s: Error opening stdout file.\n", targetname);
     } 
 #endif
 
@@ -216,6 +226,10 @@ void simulate(int id, int n_particles, particle_state* p,
 #endif
 
     diag_clean(&sim.diag_data);
+
+    #if VERBOSE >= 1
+    printf("%s: Simulation complete.\n", targetname);
+    #endif
 }
 
 void sim_init(sim_data* sim, sim_offload_data* offload_data) {
