@@ -6,36 +6,43 @@
 #define DIAG_H
 #include "ascot5.h"
 #include "particle.h"
+#include "dist_6D.h"
 #include "distributions.h"
 #include "diag_orb.h"
 
-typedef struct{
+typedef struct {
     int orb_collect;
     int debug_collect;
     int dist4D_collect;
+    int dist6D_collect;
+
     diag_orb_offload_data orbits;
     dist_rzvv_offload_data dist4D;
+    dist_6D_offload_data dist6D;
 
     int offload_dist4D_index;
+    int offload_dist6D_index;
     int offload_array_length; /**< number of elements in offload_array */
-
 } diag_offload_data;
 
-typedef struct{
+typedef struct {
     int diag_orb_collect;
     int diag_debug_collect;
     int diag_dist4D_collect;
+    int diag_dist6D_collect;
+
     diag_orb_data orbits;
     dist_rzvv_data dist4D;
+    dist_6D_data dist6D;
 
     int offload_dist4D_index;
-
+    int offload_dist6D_index;
 } diag_data;
 
 /** @brief Struct for storing particle specific data needed exclusively for diagnostics
  *  In principle, this could be stored in diag_data struct bu we need multiple instances,
  *  one for each thread. */
-typedef struct{
+typedef struct {
     integer particleId[NSIMD];
     real prevWriteTime[NSIMD];
     int nextN[NSIMD];
@@ -65,4 +72,3 @@ void diag_clean(diag_data* d);
 #pragma omp end declare target
 
 #endif
-

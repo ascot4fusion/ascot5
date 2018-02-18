@@ -51,8 +51,8 @@ MCCCDIR = $(SIMDIR)mccc/
 MCCCHEADERS = $(wildcard $(MCCCDIR)mccc*.h)
 MCCCOBJS = $(patsubst %.c,%.o,$(wildcard $(MCCCDIR)mccc*.c))
 
-DIAGHEADERS = diag.h diag_orb.h distributions.h
-DIAGOBJS = diag.o diag_orb.o distributions.o
+DIAGHEADERS = diag.h diag_orb.h distributions.h dist_6D.h
+DIAGOBJS = diag.o diag_orb.o distributions.o dist_6D.o
 
 BFDIR = Bfield/
 BFHEADERS = $(wildcard $(BFDIR)B_*.h)
