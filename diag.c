@@ -44,7 +44,7 @@ void diag_init_offload(diag_offload_data* data, real** offload_array){
 
     if(data->dist5D_collect) {
         data->offload_dist5D_index = n;
-        n += data->dist5D.n_r * data->dist5D.n_z
+        n += data->dist5D.n_r * data->dist5D.n_phi * data->dist5D.n_z
              * data->dist5D.n_vpara * data->dist5D.n_vperp;
     }
 

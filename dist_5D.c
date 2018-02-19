@@ -91,74 +91,66 @@ void dist_5D_init(dist_5D_data* dist_data, dist_5D_offload_data* offload_data,
  */
 void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
                        particle_simd_fo* p_i) {
-    real r[NSIMD];
     real vpara[NSIMD];
     real vperp[NSIMD];
-    real weight[NSIMD];
+
     int i_r[NSIMD];
     int i_phi[NSIMD];
     int i_z[NSIMD];
     int i_vpara[NSIMD];
     int i_vperp[NSIMD];
-    int i;
+
+    int ok[NSIMD];
+    real weight[NSIMD];
 
     #pragma omp simd
-    for(i = 0; i < NSIMD; i++) {
-    if(p_f->running[i]) {
-        i_r[i] = floor((p_f->r[i] - dist->min_r)
-               / ((dist->max_r - dist->min_r)/dist->n_r));
-        if(i_r[i] < 0)
-        i_r[i] = 0;
-        if(i_r[i] > dist->n_r - 1)
-        i_r[i] = dist->n_r - 1;
+    for(int i = 0; i < NSIMD; i++) {
+        if(p_f->running[i]) {
+            i_r[i] = floor((p_f->r[i] - dist->min_r)
+                     / ((dist->max_r - dist->min_r)/dist->n_r));
+            i_phi[i] = floor((p_f->phi[i] - dist->min_phi)
+                       / ((dist->max_phi - dist->min_phi)/dist->n_phi));
+            i_z[i] = floor((p_f->z[i] - dist->min_z)
+                     / ((dist->max_z - dist->min_z) / dist->n_z));
 
-        i_phi[i] = floor((p_f->phi[i] - dist->min_phi)
-               / ((dist->max_phi - dist->min_phi)/dist->n_phi));
-        if(i_phi[i] < 0)
-        i_phi[i] = 0;
-        if(i_phi[i] > dist->n_phi - 1)
-        i_phi[i] = dist->n_phi - 1;
+            vpara[i] = (p_f->rdot[i] * p_f->B_r[i] +
+                        (p_f->phidot[i] * p_f->r[i])
+                        * p_f->B_phi[i] + p_f->zdot[i] * p_f->B_z[i])
+                       / sqrt(p_f->B_r[i]*p_f->B_r[i]
+                              +p_f->B_phi[i]*p_f->B_phi[i]
+                              + p_f->B_z[i]*p_f->B_z[i]);
+            i_vpara[i] = floor((vpara[i] - dist->min_vpara)
+                       / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
 
-        i_z[i] = floor((p_f->z[i] - dist->min_z)
-               / ((dist->max_z - dist->min_z) / dist->n_z));
-        if(i_z[i] < 0)
-        i_z[i] = 0;
-        if(i_z[i] > dist->n_z - 1)
-        i_z[i] = dist->n_z - 1;
+            vperp[i] = sqrt(p_f->rdot[i]*p_f->rdot[i] + (p_f->phidot[i]
+                                            *p_f->phidot[i]*p_f->r[i]*p_f->r[i])
+                            + p_f->zdot[i]*p_f->zdot[i] - vpara[i]*vpara[i]);
+            i_vperp[i] = floor((vperp[i] - dist->min_vperp)
+                       / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
 
-        vpara[i] = (p_f->rdot[i] * p_f->B_r[i] + (p_f->phidot[i] * p_f->r[i]) * p_f->B_phi[i]
-            + p_f->zdot[i] * p_f->B_z[i])
-        / sqrt(p_f->B_r[i]*p_f->B_r[i]+p_f->B_phi[i]*p_f->B_phi[i]
-               + p_f->B_z[i]*p_f->B_z[i]);
-        i_vpara[i] = floor((vpara[i] - dist->min_vpara)
-                   / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
-        if(i_vpara[i] < 0)
-        i_vpara[i] = 0;
-        if(i_vpara[i] > dist->n_vpara - 1)
-        i_vpara[i] = dist->n_vpara - 1;
-
-        vperp[i] = sqrt(p_f->rdot[i]*p_f->rdot[i] + (p_f->phidot[i]*p_f->phidot[i]*p_f->r[i]*p_f->r[i])
-                + p_f->zdot[i]*p_f->zdot[i] - vpara[i]*vpara[i]);
-        i_vperp[i] = floor((vperp[i] - dist->min_vperp)
-                   / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
-        if(i_vperp[i] < 0)
-        i_vperp[i] = 0;
-        if(i_vperp[i] > dist->n_vperp - 1)
-        i_vperp[i] = dist->n_vperp - 1;
-
-        weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
-    }
+            if(i_r[i] >= 0        && i_r[i] <= dist->n_r - 1
+               && i_phi[i] >= 0   && i_phi[i] <= dist->n_phi - 1
+               && i_z[i] >= 0     && i_z[i] <= dist->n_z - 1
+               && i_vpara[i] >= 0 && i_vpara[i] <= dist->n_vpara - 1
+               && i_vperp[i] >= 0 && i_vperp[i] <= dist->n_vperp - 1) {
+                ok[i] = 1;
+                weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+            }
+            else {
+                ok[i] = 0;
+            }
+        }
     }
 
-    for(i = 0; i < NSIMD; i++) {
-    if(p_f->running[i]) {
-        unsigned long index = dist_5D_index(i_r[i], i_phi[i], i_z[i],
-                                            i_vpara[i], i_vperp[i], dist->n_phi,
-                                            dist->n_z, dist->n_vpara,
-                                            dist->n_vperp);
-        #pragma omp atomic
-        dist->histogram[index] += weight[i];
-    }
+    for(int i = 0; i < NSIMD; i++) {
+        if(p_f->running[i] && ok[i]) {
+            unsigned long index = dist_5D_index(i_r[i], i_phi[i], i_z[i],
+                                                i_vpara[i], i_vperp[i],
+                                                dist->n_phi, dist->n_z,
+                                                dist->n_vpara, dist->n_vperp);
+            #pragma omp atomic
+            dist->histogram[index] += weight[i];
+        }
     }
 }
 
@@ -175,70 +167,60 @@ void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
 void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
                        particle_simd_gc* p_i) {
     real vperp[NSIMD];
-    real weight[NSIMD];
+
     int i_r[NSIMD];
     int i_phi[NSIMD];
     int i_z[NSIMD];
     int i_vpara[NSIMD];
     int i_vperp[NSIMD];
-    int i;
+
+    int ok[NSIMD];
+    real weight[NSIMD];
 
     #pragma omp simd
-    for(i = 0; i < NSIMD; i++) {
-    if(p_f->running[i]) {
-        i_r[i] = floor((p_f->r[i] - dist->min_r)
-        / ((dist->max_r - dist->min_r)/dist->n_r));
-        if(i_r[i] < 0)
-        i_r[i] = 0;
-        if(i_r[i] > dist->n_r - 1)
-        i_r[i] = dist->n_r - 1;
+    for(int i = 0; i < NSIMD; i++) {
+        if(p_f->running[i]) {
+            i_r[i] = floor((p_f->r[i] - dist->min_r)
+                     / ((dist->max_r - dist->min_r)/dist->n_r));
+            i_phi[i] = floor((p_f->phi[i] - dist->min_phi)
+                       / ((dist->max_phi - dist->min_phi)/dist->n_phi));
+            i_z[i] = floor((p_f->z[i] - dist->min_z)
+                    / ((dist->max_z - dist->min_z) / dist->n_z));
 
-        i_phi[i] = floor((p_f->phi[i] - dist->min_phi)
-               / ((dist->max_phi - dist->min_phi)/dist->n_phi));
-        if(i_phi[i] < 0)
-        i_phi[i] = 0;
-        if(i_phi[i] > dist->n_phi - 1)
-        i_phi[i] = dist->n_phi - 1;
+            i_vpara[i] = floor((p_f->vpar[i] - dist->min_vpara)
+                       / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
 
-        i_z[i] = floor((p_f->z[i] - dist->min_z)
-                / ((dist->max_z - dist->min_z) / dist->n_z));
-        if(i_z[i] < 0)
-        i_z[i] = 0;
-        if(i_z[i] > dist->n_z - 1)
-        i_z[i] = dist->n_z - 1;
+            vperp[i] = sqrt(2 * sqrt(p_f->B_r[i]*p_f->B_r[i]
+                                     +p_f->B_phi[i]*p_f->B_phi[i]
+                                     +p_f->B_z[i]*p_f->B_z[i])
+                            * p_f->mu[i] / p_f->mass[i]);
+            i_vperp[i] = floor((vperp[i] - dist->min_vperp)
+                       / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
 
-        ;
-        i_vpara[i] = floor((p_f->vpar[i] - dist->min_vpara)
-                / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
-        if(i_vpara[i] < 0)
-        i_vpara[i] = 0;
-        if(i_vpara[i] > dist->n_vpara - 1)
-        i_vpara[i] = dist->n_vpara - 1;
-
-        vperp[i] = sqrt(2 * sqrt(p_f->B_r[i]*p_f->B_r[i]+p_f->B_phi[i]*p_f->B_phi[i]
-        +p_f->B_z[i]*p_f->B_z[i])
-        * p_f->mu[i] / p_f->mass[i]);
-        i_vperp[i] = floor((vperp[i] - dist->min_vperp)
-                / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
-        if(i_vperp[i] < 0)
-        i_vperp[i] = 0;
-        if(i_vperp[i] > dist->n_vperp - 1)
-        i_vperp[i] = dist->n_vperp - 1;
-
-            weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
-    }
+            if(i_r[i] >= 0        && i_r[i] <= dist->n_r - 1
+               && i_phi[i] >= 0   && i_phi[i] <= dist->n_phi - 1
+               && i_z[i] >= 0     && i_z[i] <= dist->n_z - 1
+               && i_vpara[i] >= 0 && i_vpara[i] <= dist->n_vpara - 1
+               && i_vperp[i] >= 0 && i_vperp[i] <= dist->n_vperp - 1) {
+                ok[i] = 1;
+                weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
+            }
+            else {
+                ok[i] = 0;
+            }
+        }
     }
 
-    for(i = 0; i < NSIMD; i++) {
-    if(p_f->running[i]) {
-        unsigned long index = dist_5D_index(i_r[i], i_phi[i], i_z[i],
+    for(int i = 0; i < NSIMD; i++) {
+        if(p_f->running[i] && ok[i]) {
+            unsigned long index = dist_5D_index(i_r[i], i_phi[i], i_z[i],
                                             i_vpara[i], i_vperp[i], dist->n_phi,
                                             dist->n_z, dist->n_vpara,
                                             dist->n_vperp);
 
-        #pragma omp atomic
-        dist->histogram[index] += weight[i];
-    }
+            #pragma omp atomic
+            dist->histogram[index] += weight[i];
+        }
     }
 }
 
