@@ -11,7 +11,6 @@
 #include "B_field.h"
 #include "E_field.h"
 #include "plasma.h"
-#include "distributions.h"
 #include "wall.h"
 #include "diag.h"
 #include "offload.h"

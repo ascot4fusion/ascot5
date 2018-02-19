@@ -2,18 +2,18 @@
 #include "../ascot5.h"
 #include "hdf5_histogram.h"
 #include "hdf5_helpers.h"
-#include "../distributions.h"
+#include "../dist_5D.h"
 
-void hdf5_dist_write_rzvv(dist_rzvv_offload_data* dist, real* hist,
-			  char* filename, char* qid) {
+void hdf5_dist_write_5D(dist_5D_offload_data* dist, real* hist, char* filename,
+                        char* qid) {
 
     #if VERBOSE > 0
     printf("\nWriting distributions to HDF5 file...\n");
     #endif
-    
+
     int abscissa_dim = 7;
     int ordinate_length = 1;
-    
+
     int abscissa_n_slots[7];
     abscissa_n_slots[0] = dist->n_r;
     abscissa_n_slots[1] = dist->n_phi;
@@ -49,23 +49,23 @@ void hdf5_dist_write_rzvv(dist_rzvv_offload_data* dist, real* hist,
     /* Create a group for this distribution and write the data in it */
     char path[256];
     hdf5_generate_qid_path("/results/run-XXXXXXXXXX/", qid, path);
-    
+
     int retval;
     retval =  hdf5_histogram_write_uniform_double(
-		      filename,
-		      path,
-		      "R_phi_z_vpa_vpe_t_q",
-		      abscissa_dim,
-		      ordinate_length,
-		      abscissa_n_slots,
-		      abscissa_min,
-		      abscissa_max,
-		      abscissa_units,
-		      abscissa_names,
-		      ordinate_units,
-		      ordinate_names,
-		      hist);
-    
+              filename,
+              path,
+              "R_phi_z_vpa_vpe_t_q",
+              abscissa_dim,
+              ordinate_length,
+              abscissa_n_slots,
+              abscissa_min,
+              abscissa_max,
+              abscissa_units,
+              abscissa_names,
+              ordinate_units,
+              ordinate_names,
+              hist);
+
     #if VERBOSE > 0
     printf("\nDone writing distributions to HDF5 file.\n");
     #endif

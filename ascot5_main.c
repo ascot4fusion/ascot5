@@ -16,7 +16,6 @@
 #include "ascot5.h"
 #include "consts.h"
 #include "wall.h"
-#include "distributions.h"
 #include "diag.h"
 #include "B_field.h"
 #include "plasma.h"

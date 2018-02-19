@@ -24,7 +24,7 @@ endif
 
 ifeq ($(RANDOM),MKL)
 	DEFINES+=-DRANDOM_MKL
-    CFLAGS+=-mkl
+	CFLAGS+=-mkl
 
 else ifeq ($(RANDOM),GSL)
 	DEFINES+=-DRANDOM_GSL
@@ -51,8 +51,8 @@ MCCCDIR = $(SIMDIR)mccc/
 MCCCHEADERS = $(wildcard $(MCCCDIR)mccc*.h)
 MCCCOBJS = $(patsubst %.c,%.o,$(wildcard $(MCCCDIR)mccc*.c))
 
-DIAGHEADERS = diag.h diag_orb.h distributions.h dist_6D.h
-DIAGOBJS = diag.o diag_orb.o distributions.o dist_6D.o
+DIAGHEADERS = diag.h diag_orb.h dist_5D.h dist_6D.h
+DIAGOBJS = diag.o diag_orb.o dist_5D.o dist_6D.o
 
 BFDIR = Bfield/
 BFHEADERS = $(wildcard $(BFDIR)B_*.h)
@@ -87,7 +87,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	random.h
 
 OBJS= math.o consts.o list.o octree.o physlib.o \
-     $(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
+	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
 	$(PLSOBJS) plasma.o particle.o endcond.o B_field.o E_field.o \
 	wall.o simulate.o diag.o diag_orb.o offload.o \

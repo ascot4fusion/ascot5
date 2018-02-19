@@ -12,7 +12,6 @@
 #include "../simulate.h"
 #include "../particle.h"
 #include "../wall.h"
-#include "../distributions.h"
 #include "../diag.h"
 #include "../B_field.h"
 #include "../E_field.h"

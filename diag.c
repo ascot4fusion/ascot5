@@ -24,8 +24,8 @@
 #include "ascot5.h"
 #include "diag.h"
 #include "diag_orb.h"
+#include "dist_5D.h"
 #include "dist_6D.h"
-#include "distributions.h"
 #include "particle.h"
 
 /**
@@ -42,10 +42,10 @@ void diag_init_offload(diag_offload_data* data, real** offload_array){
     // Do nothing (for now)
     }
 
-    if(data->dist4D_collect) {
-        data->offload_dist4D_index = n;
-        n += data->dist4D.n_r * data->dist4D.n_z
-             * data->dist4D.n_vpara * data->dist4D.n_vperp;
+    if(data->dist5D_collect) {
+        data->offload_dist5D_index = n;
+        n += data->dist5D.n_r * data->dist5D.n_z
+             * data->dist5D.n_vpara * data->dist5D.n_vperp;
     }
 
     if(data->dist6D_collect) {
@@ -72,7 +72,7 @@ void diag_free_offload(diag_offload_data* data, real** offload_array) {
     if(data->orb_collect) {
     // Nothing to be freed really
     }
-    if(data->dist4D_collect) {
+    if(data->dist5D_collect) {
     // Nothing to be freed really
     }
 
@@ -88,16 +88,16 @@ void diag_init(diag_data* data, diag_offload_data* offload_data,
                real* offload_array) {
     data->diag_debug_collect = offload_data->debug_collect;
     data->diag_orb_collect = offload_data->orb_collect;
-    data->diag_dist4D_collect = offload_data->dist4D_collect;
+    data->diag_dist5D_collect = offload_data->dist5D_collect;
     data->diag_dist6D_collect = offload_data->dist6D_collect;
 
     if(data->diag_orb_collect) {
         diag_orb_init(&data->orbits, &offload_data->orbits);
     }
 
-    if(data->diag_dist4D_collect) {
-        dist_rzvv_init(&data->dist4D, &offload_data->dist4D,
-                       &offload_array[offload_data->offload_dist4D_index]);
+    if(data->diag_dist5D_collect) {
+        dist_5D_init(&data->dist5D, &offload_data->dist5D,
+                     &offload_array[offload_data->offload_dist5D_index]);
     }
 
     if(data->diag_dist6D_collect) {
@@ -119,8 +119,8 @@ void diag_update_fo(diag_data* d, diag_storage* ds, particle_simd_fo* p_f,
     if(d->diag_debug_collect) {
     }
 
-    if(d->diag_dist4D_collect) {
-        dist_rzvv_update_fo(&d->dist4D, p_f, p_i);
+    if(d->diag_dist5D_collect) {
+        dist_5D_update_fo(&d->dist5D, p_f, p_i);
     }
 
     if(d->diag_dist6D_collect) {
@@ -141,8 +141,8 @@ void diag_update_gc(diag_data* d, diag_storage* ds, particle_simd_gc* p_f,
     if(d->diag_debug_collect){
     }
 
-    if(d->diag_dist4D_collect){
-        dist_rzvv_update_gc(&d->dist4D, p_f, p_i);
+    if(d->diag_dist5D_collect){
+        dist_5D_update_gc(&d->dist5D, p_f, p_i);
     }
 
     if(d->diag_dist6D_collect){
@@ -163,7 +163,7 @@ void diag_update_ml(diag_data* d, diag_storage* ds, particle_simd_ml* p_f,
     if(d->diag_debug_collect) {
     }
 
-    if(d->diag_dist4D_collect) {
+    if(d->diag_dist5D_collect) {
     }
 }
 
@@ -180,18 +180,18 @@ void diag_sum(diag_data* d, real* array1, real* array2) {
     // Do nothing
     }
 
-    if(d->diag_dist4D_collect){
-        int start = d->offload_dist4D_index;
-        int stop = start + d->dist4D.n_r * d->dist4D.n_z
-                   * d->dist4D.n_vpara * d->dist4D.n_vperp;
-        dist_rzvv_sum(start, stop, array1, array2);
+    if(d->diag_dist5D_collect){
+        int start = d->offload_dist5D_index;
+        int stop = start + d->dist5D.n_r * d->dist5D.n_z
+                   * d->dist5D.n_vpara * d->dist5D.n_vperp;
+        dist_5D_sum(start, stop, array1, array2);
     }
 
     if(d->diag_dist6D_collect){
         int start = d->offload_dist6D_index;
         int stop = start + d->dist6D.n_r * d->dist6D.n_phi * d->dist6D.n_z
                    * d->dist6D.n_vr * d->dist6D.n_vphi * d->dist6D.n_vz;
-        dist_rzvv_sum(start, stop, array1, array2);
+        dist_6D_sum(start, stop, array1, array2);
     }
 }
 
@@ -209,7 +209,7 @@ void diag_clean(diag_data* d) {
     // Do nothing
     }
 
-    if(d->diag_dist4D_collect) {
+    if(d->diag_dist5D_collect) {
     // Do nothing
     }
 }

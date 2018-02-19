@@ -1,11 +1,12 @@
 #include <stdlib.h>
 #include "../ascot5.h"
 #include "../consts.h"
-#include "../simulate.h"
-#include "../endcond.h"
-#include "../distributions.h"
 #include "../diag.h"
 #include "../diag_orb.h"
+#include "../dist_5D.h"
+#include "../dist_6D.h"
+#include "../endcond.h"
+#include "../simulate.h"
 #include "hdf5.h"
 #include "hdf5_helpers.h"
 #include "hdf5_hl.h"
@@ -102,9 +103,9 @@ int hdf5_simulate(hid_t f, sim_offload_data* sim){
     /* Diagnostics */
     diag_offload_data* diag = &sim->diag_offload_data;
 
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/ENABLE_R_phi_z_vpa_vpe_t_q_DIST", active, path), &diag->dist4D_collect);
-    if(diag->dist4D_collect) {
-        dist_rzvv_offload_data* dist = &diag->dist4D;
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/ENABLE_R_phi_z_vpa_vpe_t_q_DIST", active, path), &diag->dist5D_collect);
+    if(diag->dist5D_collect) {
+        dist_5D_offload_data* dist = &diag->dist5D;
 
         err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MIN_R", active, path), &dist->min_r);
         err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_R_phi_z_vpa_vpe_t_q_MAX_R", active, path), &dist->max_r);

@@ -1,9 +1,9 @@
 /**
- * @file distributions.h
- * @brief Header file for distributions.c
+ * @file dist_5D.h
+ * @brief Header file for dist_5D.c
  */
-#ifndef DISTRIBUTIONS_H
-#define DISTRIBUTIONS_H
+#ifndef DIST_5D_H
+#define DIST_5D_H
 
 #include "ascot5.h"
 #include "particle.h"
@@ -39,7 +39,7 @@ typedef struct {
     int n_q;          /**< number of charge bins */ 
     real min_q;       /**< value of lowest charge bin */
     real max_q;       /**< value of highest charge bin */
-} dist_rzvv_offload_data;
+} dist_5D_offload_data;
 
 typedef struct {
     int n_r;          /**< number of r bins */ 
@@ -71,19 +71,18 @@ typedef struct {
     real max_q;       /**< value of highest r bin */
     
     real* histogram;  /**< pointer to start of histogram array */
-} dist_rzvv_data;
+} dist_5D_data;
 
-void dist_rzvv_print_rz(dist_rzvv_offload_data* dist, real* histogram);
-void dist_rzvv_print_vv(dist_rzvv_offload_data* dist, real* histogram);
-
-void dist_rzvv_sum(int start, int stop, real* array1, real* array2);
+void dist_5D_sum(int start, int stop, real* array1, real* array2);
 
 #pragma omp declare target
-void dist_rzvv_init(dist_rzvv_data* dist_data,
-                    dist_rzvv_offload_data* offload_data,
-                    real* offload_array);
-void dist_rzvv_update_fo(dist_rzvv_data* dist, particle_simd_fo* p_f, particle_simd_fo* p_i);
-void dist_rzvv_update_gc(dist_rzvv_data* dist, particle_simd_gc* p_f, particle_simd_gc* p_i);
+void dist_5D_init(dist_5D_data* dist_data,
+                  dist_5D_offload_data* offload_data,
+                  real* offload_array);
+void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
+                       particle_simd_fo* p_i);
+void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
+                       particle_simd_gc* p_i);
 #pragma omp end declare target
 
 #endif
