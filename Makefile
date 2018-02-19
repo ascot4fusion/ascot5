@@ -102,13 +102,17 @@ BINS=test_math \
 	 test_wall_2d test_plasma_1d test_random \
 	 test_hdf5 test_wall_3d test_particle \
 	 test_B test_simulate_orbit test_offload test_E \
-	 test_mccc test_interp1Dcomp ascot5_main 
+	 test_mccc test_interp1Dcomp ascot5_main
 
 all: $(BINS)
 
-ascotpy: CFLAGS+=-fPIC
-ascotpy: ascotpy.o math.o B_field.o $(HDF5IOOBJS) $(BFOBJS)
-	f2py ascotpy.pyf ascotpy.c math.o B_field.o -c $(DEFINES)
+ascotpy: ascotpy.so
+	true
+
+ascotpy.so: CFLAGS+=-shlib -fPIC -shared
+
+ascotpy.so: ascotpy.o $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
@@ -183,7 +187,7 @@ test_random: test_random.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 clean:
-	rm -f *.o *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
+	rm -f *.o *.so *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
 		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o \
 		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
 		spline/*.o *.pyc
