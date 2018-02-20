@@ -1,4 +1,4 @@
-CC=h5cc
+CC=h5pcc
 
 ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
@@ -74,10 +74,19 @@ HDF5IODIR = hdf5io/
 HDF5IOHEADERS = $(wildcard $(HDF5IODIR)hdf5*.h)
 HDF5IOOBJS = $(patsubst %.c,%.o,$(wildcard $(HDF5IODIR)hdf5*.c))
 
+N0DIR = neutral/
+N0HEADERS =  $(wildcard $(N0DIR)N0_*.h)
+N0OBJS = $(patsubst %.c,%.o,$(wildcard $(N0DIR)N0_*.c))
+
+LINTDIR = linint/
+LINTHEADERS =  $(wildcard $(LINTDIR)linint*.h)
+LINTOBJS = $(patsubst %.c,%.o,$(wildcard $(LINTDIR)linint*.c))
+
 HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
 	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
-	$(PLSHEADERS) plasma.h particle.h endcond.h B_field.h E_field.h \
+	$(PLSHEADERS) $(N0HEADERS) $(LINTHEADERS) neutral.h plasma.h \
+	particle.h endcond.h B_field.h E_field.h \
 	wall.h simulate.h diag.h diag_orb.h offload.h \
 	spline/interp2D.h spline/interp3D.h spline/spline1D.h \
 	spline/interp2Dexpl.h spline/interp3Dexpl.h \
@@ -89,7 +98,8 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 OBJS= math.o list.o octree.o physlib.o \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
-	$(PLSOBJS) plasma.o particle.o endcond.o B_field.o E_field.o \
+	$(PLSOBJS) $(N0OBJS) $(LINTOBJS) neutral.o plasma.o \
+	particle.o endcond.o B_field.o E_field.o \
 	wall.o simulate.o diag.o diag_orb.o offload.o \
 	spline/interp2D.o spline/interp3D.o spline/spline1D.o \
 	spline/interp2Dexpl.o spline/interp3Dexpl.o \
@@ -102,7 +112,8 @@ BINS=test_math \
 	 test_wall_2d test_plasma_1d test_random \
 	 test_hdf5 test_wall_3d test_particle \
 	 test_B test_simulate_orbit test_offload test_E \
-	 test_mccc test_interp1Dcomp ascot5_main
+	 test_mccc test_interp1Dcomp test_linint3D \
+	 ascot5_main
 
 all: $(BINS)
 
@@ -153,6 +164,9 @@ test_interp1Dcomp: test_interp1Dcomp.o $(OBJS)
 test_random: test_random.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
+test_linint3D: test_linint3D.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
 %.o: %.c $(HEADERS) Makefile
 	$(CC) -c -o $@ $< $(CFLAGS)
 
@@ -160,4 +174,4 @@ clean:
 	rm -f *.o *.so *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
 		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o \
 		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
-		spline/*.o *.pyc
+		$(N0DIR)*.o $(LINTDIR)*.o spline/*.o *.pyc
