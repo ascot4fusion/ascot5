@@ -15,6 +15,7 @@ from . wall_3d import *
 import a5py.ascot5io.B_2D as B_2D
 import a5py.ascot5io.B_3D as B_3D
 import a5py.ascot5io.B_ST as B_ST
+import a5py.ascot5io.N0_3D as N0_3D
 import a5py.ascot5io.plasma_1D as plasma_1D
 import a5py.ascot5io.markers as markers
 import a5py.ascot5io.E_TC as E_TC
@@ -165,6 +166,13 @@ def run(a4folder, h5fn, overwrite=True):
             E_TC.write_hdf5(h5fn, E)
         f = h5py.File(h5fn, 'r')
 
+    # Neutral density
+    if overwrite or (not "neutral" in f):
+        # No ASCOT4 neutral density
+        N0 = np.array([ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ])
+        N0_3D.write_hdf5(h5fn, -1, 1, 2, -1, 1, 2, 0, 2*pi, 2, N0)
+        f = h5py.File(h5fn, 'r')
+        
     # Wall.
     if overwrite or (not "wall" in f):
         fname = a4folder + "input.wall_2d"
