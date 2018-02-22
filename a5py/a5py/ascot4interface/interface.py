@@ -71,7 +71,7 @@ def run(a4folder, h5fn, overwrite=True):
             f.close()
             if 'charge' not in data['fieldNames']:
                 print("Converting Znum to charge.")
-                data["fields"]['charge'] = float(data["fields"]['Znum'])
+                data["fields"]['charge'] = data["fields"]['Znum'].astype('float')
             if 'mass' not in data['fieldNames']:
                 print("Converting Anum to mass.")
                 data["fields"]['mass'] = np.array(list(map(guessMass, data["fields"]['Anum'], data["fields"]['Znum'], data["fields"]['charge'])))
@@ -169,8 +169,10 @@ def run(a4folder, h5fn, overwrite=True):
     # Neutral density
     if overwrite or (not "neutral" in f):
         # No ASCOT4 neutral density
+        f.close()
         N0 = np.array([ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ])
         N0_3D.write_hdf5(h5fn, -1, 1, 2, -1, 1, 2, 0, 2*pi, 2, N0)
+
         f = h5py.File(h5fn, 'r')
         
     # Wall.
