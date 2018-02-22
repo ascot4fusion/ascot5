@@ -6,7 +6,7 @@ import h5py
 import random
 import datetime
 
-from . ascot5group import replacegroup, setgrouptype, setmetadata
+from . ascot5group import creategroup
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0):
     """
@@ -35,22 +35,20 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0):
 
     """
 
-    group = "neutral"
-    type_ = "N0_3D"
-    path = "neutral/N0_3D"
+    mastergroup = "neutral"
+    subgroup    = "N0_3D"
     
-    # Create group and set the type to this one.
+    # Create a group for this input.
     f = h5py.File(fn, "a")
-    setgrouptype(f, group, type_)
-    replacegroup(f, path)
-    setmetadata(f[path])
+    path = creategroup(f, mastergroup, subgroup)
 
-    # TODO Check that inputs are consistent.
+    # Transpose grid
+    n0 = np.transpose(n0,(1,0,2))
 
     # Actual data.
-    f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")
-    f.create_dataset(path + "/r_max", (1,), data=Rmax, dtype="f8")
-    f.create_dataset(path + "/n_r", (1,),   data=nR, dtype="i8")
+    f.create_dataset(path + "/R_min", (1,), data=Rmin, dtype="f8")
+    f.create_dataset(path + "/R_max", (1,), data=Rmax, dtype="f8")
+    f.create_dataset(path + "/n_R", (1,),   data=nR, dtype="i8")
 
     f.create_dataset(path + "/phi_min", (1,), data=phimin, dtype="f8")
     f.create_dataset(path + "/phi_max", (1,), data=phimax, dtype="f8")
@@ -91,9 +89,9 @@ def read_hdf5(fn):
     out["date"] = f[path].attrs["date"]
 
     # Actual data.
-    out["Rmin"] = f[path]["r_min"][:]
-    out["Rmax"] = f[path]["r_max"][:]
-    out["nR"]   = f[path]["n_r"][:]
+    out["Rmin"] = f[path]["R_min"][:]
+    out["Rmax"] = f[path]["R_max"][:]
+    out["nR"]   = f[path]["n_R"][:]
 
     out["phimin"] = f[path]["phi_min"][:]
     out["phimax"] = f[path]["phi_max"][:]
