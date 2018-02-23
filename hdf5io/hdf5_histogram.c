@@ -158,8 +158,11 @@ int hdf5_histogram_write_uniform_double(
   
   for (int i=0; i<abscissaDim; i++) {
 
-    double* abscissa = (double *) malloc( dims[i+1] * sizeof(double) );
-    for(int j=0; j<dims[i+1]; j++) abscissa[j] = abscissaMin[i] + j * (( abscissaMax[i] - abscissaMin[i] ) /abscissaNslots[i] );
+    double* abscissa = (double *) malloc( (dims[i+1]+1) * sizeof(double) );
+    for(int j=0; j<dims[i+1]+1; j++) {
+        abscissa[j] = abscissaMin[i] + j * ((abscissaMax[i] - abscissaMin[i])
+                                            /abscissaNslots[i]);
+    }
 
     sprintf(temp_path, "abscissa_nslot_%06d",i+1);
     size[0] = 1;
