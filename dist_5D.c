@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "ascot5.h"
+#include "consts.h"
 #include "dist_5D.h"
 #include "particle.h"
 
@@ -91,6 +92,7 @@ void dist_5D_init(dist_5D_data* dist_data, dist_5D_offload_data* offload_data,
  */
 void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
                        particle_simd_fo* p_i) {
+    real phi[NSIMD];
     real vpara[NSIMD];
     real vperp[NSIMD];
 
@@ -108,8 +110,14 @@ void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
         if(p_f->running[i]) {
             i_r[i] = floor((p_f->r[i] - dist->min_r)
                      / ((dist->max_r - dist->min_r)/dist->n_r));
-            i_phi[i] = floor((p_f->phi[i] - dist->min_phi)
+
+            phi[i] = fmod(p_f->phi[i], 2*CONST_PI);
+            if(phi[i] < 0) {
+                phi[i] = phi[i] + 2*CONST_PI;
+            }
+            i_phi[i] = floor((phi[i] - dist->min_phi)
                        / ((dist->max_phi - dist->min_phi)/dist->n_phi));
+
             i_z[i] = floor((p_f->z[i] - dist->min_z)
                      / ((dist->max_z - dist->min_z) / dist->n_z));
 
@@ -166,6 +174,7 @@ void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
  */
 void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
                        particle_simd_gc* p_i) {
+    real phi[NSIMD];
     real vperp[NSIMD];
 
     int i_r[NSIMD];
@@ -182,8 +191,14 @@ void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
         if(p_f->running[i]) {
             i_r[i] = floor((p_f->r[i] - dist->min_r)
                      / ((dist->max_r - dist->min_r)/dist->n_r));
-            i_phi[i] = floor((p_f->phi[i] - dist->min_phi)
+
+            phi[i] = fmod(p_f->phi[i], 2*CONST_PI);
+            if(phi[i] < 0) {
+                phi[i] = phi[i] + 2*CONST_PI;
+            }
+            i_phi[i] = floor((phi[i] - dist->min_phi)
                        / ((dist->max_phi - dist->min_phi)/dist->n_phi));
+
             i_z[i] = floor((p_f->z[i] - dist->min_z)
                     / ((dist->max_z - dist->min_z) / dist->n_z));
 

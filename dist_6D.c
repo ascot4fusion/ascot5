@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "ascot5.h"
+#include "consts.h"
 #include "dist_6D.h"
 #include "particle.h"
 
@@ -100,6 +101,8 @@ void dist_6D_init(dist_6D_data* dist_data, dist_6D_offload_data* offload_data,
  */
 void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
                        particle_simd_fo* p_i) {
+    real phi[NSIMD];
+
     int i_r[NSIMD];
     int i_phi[NSIMD];
     int i_z[NSIMD];
@@ -115,10 +118,17 @@ void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
         if(p_f->running[i]) {
             i_r[i] = floor((p_f->r[i] - dist->min_r)
                      / ((dist->max_r - dist->min_r)/dist->n_r));
-            i_phi[i] = floor((p_f->phi[i] - dist->min_phi)
-                       / ((dist->max_phi - dist->min_phi) / dist->n_phi));
+
+            phi[i] = fmod(p_f->phi[i], 2*CONST_PI);
+            if(phi[i] < 0) {
+                phi[i] = phi[i] + 2*CONST_PI;
+            }
+            i_phi[i] = floor((phi[i] - dist->min_phi)
+                       / ((dist->max_phi - dist->min_phi)/dist->n_phi));
+
             i_z[i] = floor((p_f->z[i] - dist->min_z)
                      / ((dist->max_z - dist->min_z) / dist->n_z));
+
             i_vr[i] = floor((p_f->rdot[i] - dist->min_vr)
                       / ((dist->max_vr - dist->min_vr) / dist->n_vr));
             i_vphi[i] = floor((p_f->phidot[i]*p_f->r[i] - dist->min_vphi)
