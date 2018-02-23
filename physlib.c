@@ -383,12 +383,12 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
     }
     a1ddotgradb *= -0.5;
 
-    real p_para1 = -p_para0*math_dot(rho,kappa)+((mass*mu_0)/charge)*(tau_B+a1ddotgradb);
+    real p_para1 = 0*(-p_para0*math_dot(rho,kappa)+((mass*mu_0)/charge)*(tau_B+a1ddotgradb));
     TEMP_S1 = pow(p_para0,2)/(mass*B_norm);
     TEMP_V1[0] = TEMP_S1 * kappa[0] + mu_0*gradB[0]/B_norm;
     TEMP_V1[1] = TEMP_S1 * kappa[1] + mu_0*gradB[1]/B_norm;
     TEMP_V1[2] = TEMP_S1 * kappa[2] + mu_0*gradB[2]/B_norm;
-    real mu_1 = math_dot(rho,TEMP_V1)-((mu_0*p_para0)/(charge*B_norm))*(tau_B+a1ddotgradb);
+    real mu_1 = 0*math_dot(rho,TEMP_V1)-((mu_0*p_para0)/(charge*B_norm))*(tau_B+a1ddotgradb);
 
     /* Calculate the parallel momentum vector */
     real p_para[3];
