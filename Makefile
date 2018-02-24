@@ -86,7 +86,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	spline/spline1Dcomp.h spline/interp1Dcomp.h \
 	random.h
 
-OBJS= math.o consts.o list.o octree.o physlib.o \
+OBJS= math.o list.o octree.o physlib.o \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
 	$(PLSOBJS) plasma.o particle.o endcond.o B_field.o E_field.o \
@@ -141,43 +141,13 @@ test_simulate_orbit: test_simulate_orbit.o $(OBJS)
 test_offload: test_offload.o 
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_diag_offload: test_diag_offload.o simulate.o $(DIAGOBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
 test_E: test_E.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_mccc: simulate/mccc/test_mccc.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_interp2D: test_interp2D.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
-test_interp3D: test_interp3D.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
-test_interp2Dexpl: test_interp2Dexpl.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
-test_interp3Dexpl: test_interp3Dexpl.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
-test_interp2Detoc: test_interp2Detoc.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
-test_interp3Detoc: test_interp3Detoc.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
-test_interp2Dcomp: test_interp2Dcomp.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
-test_interp3Dcomp: test_interp3Dcomp.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
 test_interp1Dcomp: test_interp1Dcomp.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
-test_plasma_1DS: test_plasma_1DS.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_random: test_random.o $(OBJS)
