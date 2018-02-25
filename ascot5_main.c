@@ -19,6 +19,7 @@
 #include "diag.h"
 #include "B_field.h"
 #include "plasma.h"
+#include "print.h"
 #include "simulate.h"
 #include "particle.h"
 #include "endcond.h"
@@ -83,9 +84,7 @@ int main(int argc, char** argv) {
     }
 #endif
 
-    #if VERBOSE >= 1
-        printf("Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
-    #endif
+    print_out0(VERBOSE_NORMAL, mpi_rank, "Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
 
     int err = 0;
     int n;
@@ -120,9 +119,7 @@ int main(int argc, char** argv) {
         diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
     #endif
     
-    #if VERBOSE >= 1
-        printf("Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
-    #endif
+    print_out0(VERBOSE_NORMAL, mpi_rank, "Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
 
     /* Set output filename for this MPI process. */
     if(mpi_size == 1) {
@@ -153,9 +150,7 @@ int main(int argc, char** argv) {
     B_field_data Bdata;
     B_field_init(&Bdata, &sim.B_offload_data, B_offload_array);
 
-    #if VERBOSE >= 1
-        printf("Magnetic field initialization complete.\n");
-    #endif
+    print_out0(VERBOSE_NORMAL, mpi_rank, "Magnetic field initialization complete.\n");
 
     particle_state* ps = (particle_state*) malloc(n * sizeof(particle_state));
     for(int i = 0; i < n; i++) {
@@ -164,9 +159,7 @@ int main(int argc, char** argv) {
     
     hdf5_particlestate_write(sim.hdf5_out, qid, "inistate", n, ps);
 
-    #if VERBOSE >= 1
-        printf("Markers initialized and inistate written.\n");
-    #endif
+    print_out0(VERBOSE_NORMAL, mpi_rank, "Markers initialized and inistate written.\n");
 
     #ifndef NOTARGET
         int n_mic = n / 2;
@@ -242,17 +235,13 @@ int main(int argc, char** argv) {
     }
     /* Code excution returns to host. */
 
-    #if VERBOSE >= 1
-        printf("Writing endstate.");
-    #endif
+    print_out0(VERBOSE_NORMAL, mpi_rank, "Writing endstate.");
 
 	hdf5_particlestate_write(sim.hdf5_out, qid, "endstate", n, ps);
     //hdf5_orbits_write(&sim, sim.hdf5_out);
 
-    #if VERBOSE >= 1
-        printf("mic0 %lf s, mic1 %lf s, host %lf s\n", mic0_end-mic0_start,
-               mic1_end-mic1_start, host_end-host_start);
-    #endif
+    print_out0(VERBOSE_NORMAL, mpi_rank, "mic0 %lf s, mic1 %lf s, host %lf s\n",
+        mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
     
     /* Combine histograms */
     #ifndef NOTARGET
@@ -280,9 +269,8 @@ int main(int argc, char** argv) {
     
     free(p-start_index);
 
-    
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "Done.\n");
 
-    printf("Done\n");
     return 0;
 }
 
