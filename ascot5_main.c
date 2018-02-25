@@ -29,7 +29,6 @@
 #include "offload.h"
 
 int read_options(int argc, char** argv, sim_offload_data* sim);
-
 void generate_qid(char* qid);
 
 int main(int argc, char** argv) {
@@ -37,25 +36,69 @@ int main(int argc, char** argv) {
     sim_offload_data sim;
     sim.mpi_rank = 0;
     sim.mpi_size = 1;
+
+    read_options(argc, argv, &sim);
+
+    /* Get MPI rank and set qid for the run.
+     * qid rules: The actual random unique qid is used in MPI or single-process
+     * runs. If this is a multi-process run (user-defined MPI rank and size),
+     * e.g. condor run, we set qid = 5 000 000 000 since 32 bit integers don't
+     * go that high. The actual qid is assigned when results are combined. */
+    int mpi_rank, mpi_size;
+    char qid[] = "5000000000";
+#ifdef MPI
+    MPI_Status status;
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+    if(sim.mpi_size == 0) {
+        /* Let MPI determine size and rank */
+        MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+        sim.mpi_rank = mpi_rank;
+        sim.mpi_size = mpi_size;
+        generate_qid(qid);
+    }
+    else {
+        /* Use user-defined size and rank */
+        mpi_rank = sim.mpi_rank;
+        mpi_size = sim.mpi_size;
+        if(mpi_size == 1) {
+            generate_qid(qid);
+        }
+    }
+#else
+    if(sim.mpi_size == 0) {
+        /* Use default values (single process) */
+        mpi_rank = 0;
+        mpi_size = 1;
+        generate_qid(qid);
+    }
+    else {
+        /* Use user-defined size and rank */
+        mpi_rank = sim.mpi_rank;
+        mpi_size = sim.mpi_size;
+        if(mpi_size == 1) {
+            generate_qid(qid);
+        }
+    }
+#endif
+
+    #if VERBOSE >= 1
+        printf("Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
+    #endif
+
+    int err = 0;
+    int n;
+    input_particle* p;
     real* B_offload_array;
     real* E_offload_array;
     real* plasma_offload_array;
     real* wall_offload_array;
-    real* diag_offload_array_mic0;
-    real* diag_offload_array_mic1;
-    real* diag_offload_array_host;
-    real* offload_array;
-    int n;
-    input_particle* p;
-
-    int err = 0;
-
-    read_options(argc, argv, &sim);
-
     err = hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
              &wall_offload_array, &p, &n);
     if(err) {return 0;};
 
+    real* offload_array;
     offload_package offload_data;
     offload_init_offload(&offload_data, &offload_array);
     offload_pack(&offload_data, &offload_array, B_offload_array,
@@ -67,6 +110,9 @@ int main(int argc, char** argv) {
     offload_pack(&offload_data, &offload_array, wall_offload_array,
                  sim.wall_offload_data.offload_array_length);
 
+    real* diag_offload_array_mic0;
+    real* diag_offload_array_mic1;
+    real* diag_offload_array_host;
     #ifndef NOTARGET
         diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
         diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
@@ -76,50 +122,6 @@ int main(int argc, char** argv) {
     
     #if VERBOSE >= 1
         printf("Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
-    #endif
-
-    /* Get MPI rank and set qid for the run.                                             */
-    /* qid rules: The actual random unique qid is used in MPI or single-process runs.    */
-    /* If this is a multi-process run (user-defined MPI rank and size), e.g. condor run, */
-    /* we set qid = 5 000 000 000 since 32 bit integers don't go that high. The actual   */
-    /* qid is assigned when results are combined.                                        */
-    int mpi_rank, mpi_size;
-    char qid[] = "5000000000";
-    #ifdef MPI
-        MPI_Status status;
-	int provided;
-	MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-	if(sim.mpi_size == 0) {
-	    /* Let MPI determine size and rank */
-            MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-	    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
-	    sim.mpi_rank = mpi_rank;
-	    sim.mpi_size = mpi_size;
-	    generate_qid(qid);
-	}
-	else {
-	    /* Use user-defined size and rank */
-	    mpi_rank = sim.mpi_rank;
-	    mpi_size = sim.mpi_size;
-	    if(mpi_size == 1) {generate_qid(qid);};
-	}
-    #else
-	if(sim.mpi_size == 0) {
-            /* Use default values (single process) */
-            mpi_rank = 0;
-	    mpi_size = 1;
-	    generate_qid(qid);
-        }
-	else {
-            /* Use user-defined size and rank */
-            mpi_rank = sim.mpi_rank;
-            mpi_size = sim.mpi_size;
-	    if(mpi_size == 1) {generate_qid(qid);};
-        }
-    #endif
-    
-    #if VERBOSE >= 1
-        printf("Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
     #endif
 
     /* Set output filename for this MPI process. */
