@@ -6,6 +6,7 @@
 #include "../dist_5D.h"
 #include "../dist_6D.h"
 #include "../endcond.h"
+#include "../math.h"
 #include "../simulate.h"
 #include "hdf5.h"
 #include "hdf5_helpers.h"
@@ -115,6 +116,9 @@ int hdf5_simulate(hid_t f, sim_offload_data* sim){
         err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_phi", active, path), &dist->max_phi);
         err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_phi", active, path), &dist->n_phi);
 
+        dist->min_phi = math_deg2rad(dist->min_phi);
+        dist->max_phi = math_deg2rad(dist->max_phi);
+
         err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_z", active, path), &dist->min_z);
         err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_z", active, path), &dist->max_z);
         err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_z", active, path), &dist->n_z);
@@ -147,6 +151,9 @@ int hdf5_simulate(hid_t f, sim_offload_data* sim){
         err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_phi", active, path), &dist->min_phi);
         err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_phi", active, path), &dist->max_phi);
         err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_phi", active, path), &dist->n_phi);
+
+        dist->min_phi = math_deg2rad(dist->min_phi);
+        dist->max_phi = math_deg2rad(dist->max_phi);
 
         err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_z", active, path), &dist->min_z);
         err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_z", active, path), &dist->max_z);
