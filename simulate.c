@@ -221,7 +221,7 @@ void simulate(int id, int n_particles, particle_state* p,
     free(pq_hybrid.p);
 
     // Temporary solution
-#ifdef NOTARGET
+#ifndef TARGET
     hdf5_orbits_write(&sim, sim_offload->hdf5_out);
 #endif
 

@@ -4,9 +4,8 @@ ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
 endif
 
-ifneq ($(TARGET),1)
-	DEFINES+=-DNOTARGET
-#	CFLAGS+=-qno-openmp-offload -diag-disable 3180
+ifdef TARGET
+    DEFINES+=-DTARGET=$(TARGET)
 endif
 
 ifdef VERBOSE
