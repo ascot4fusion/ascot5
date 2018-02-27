@@ -59,7 +59,7 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real**
         return 1;
     }
 
-    hdf5_generate_qid_path("/efield/E_1D-XXXXXXXXXX", active, path);
+    hdf5_generate_qid_path("/efield/E_1DS-XXXXXXXXXX", active, path);
     if(hdf5_find_group(f, path) == 0) {
         offload_data->type = E_field_type_1DS;
 	hdf5_efield_init_offload_1DS(f, &(offload_data->E1DS), offload_array, active);

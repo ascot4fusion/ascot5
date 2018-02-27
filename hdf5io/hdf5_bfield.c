@@ -537,20 +537,20 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
     int periods;
 
     /* Number of toroidal periods */
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/toroidalPeriods", qid, path), &periods);
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/toroidalPeriods", qid, path), &periods);
     offload_data->periods = periods;
 
     /* Read the coordinate data */
  
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/n_r", qid, path), &(offload_data->n_r));
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/n_phi", qid, path), &(offload_data->n_phi));
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/n_z", qid, path), &(offload_data->n_z));
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/r_min", qid, path), &(offload_data->r_min));
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/r_max", qid, path), &(offload_data->r_max));
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/z_min", qid, path), &(offload_data->z_min));
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/z_max", qid, path), &(offload_data->z_max));
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/phi_min", qid, path), &(offload_data->phi_min));
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/phi_max", qid, path), &(offload_data->phi_max));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/n_r", qid, path), &(offload_data->n_r));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/n_phi", qid, path), &(offload_data->n_phi));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/n_z", qid, path), &(offload_data->n_z));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/r_min", qid, path), &(offload_data->r_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/r_max", qid, path), &(offload_data->r_max));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/z_min", qid, path), &(offload_data->z_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/z_max", qid, path), &(offload_data->z_max));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/phi_min", qid, path), &(offload_data->phi_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/phi_max", qid, path), &(offload_data->phi_max));
 
     offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
                            / (offload_data->n_r - 1);
@@ -573,10 +573,10 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
     real* temp_B_z   = (real*) malloc(temp_B_size*sizeof(real));
     real* temp_B_s   = (real*) malloc(temp_B_size*sizeof(real));
 
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/B_r", qid, path), temp_B_r);
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/B_phi", qid, path), temp_B_phi);
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/B_z", qid, path), temp_B_z);
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_ST-XXXXXXXXXX/s", qid, path), temp_B_s);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/B_r", qid, path), temp_B_r);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/B_phi", qid, path), temp_B_phi);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/B_z", qid, path), temp_B_z);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/s", qid, path), temp_B_s);
 
     /* We need to use stellarator symmetry here.
      * http://dx.doi.org/10.1016/S0167-2789(97)00216-9
