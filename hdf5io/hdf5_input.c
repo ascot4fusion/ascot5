@@ -9,6 +9,7 @@
 #include "hdf5_simulate.h"
 #include "hdf5_bfield.h"
 #include "hdf5_plasma.h"
+#include "hdf5_neutral.h"
 #include "hdf5_efield.h"
 #include "hdf5_wall.h"
 #include "hdf5_markers.h"
@@ -17,6 +18,7 @@ int hdf5_input(sim_offload_data* sim,
 	       real** B_offload_array,
 	       real** E_offload_array,
 	       real** plasma_offload_array,
+	       real** neutral_offload_array,
 	       real** wall_offload_array,
                input_particle** p,
                int* n_markers){
@@ -94,6 +96,12 @@ int hdf5_input(sim_offload_data* sim,
     hdf5_plasma_init_offload(f,&(sim->plasma_offload_data), plasma_offload_array);
     if(err < 0) {
 	printf("\nError: Failed to initialize plasma from %s.\n",sim->hdf5_in);
+	return -1;
+    }
+
+    hdf5_neutral_init_offload(f,&(sim->neutral_offload_data), neutral_offload_array);
+    if(err < 0) {
+	printf("\nError: Failed to initialize neutral density from %s.\n",sim->hdf5_in);
 	return -1;
     }
 

@@ -39,7 +39,7 @@ static const unsigned int ERR_CCOEF_EVAL_FAIL  = 19;/** @brief Collision coeffic
 static const unsigned int ERR_CCOL_EVAL_FAIL   = 20;/** @brief Collision evaluation failed */
 static const unsigned int ERR_WIENARR_EXCEEDED = 21;/** @brief Exceeded wiener array capacity */
 static const unsigned int ERR_WIENARR_NOPROC   = 22;/** @brief Cannot clean wiener processes for t < t0 since W(t0) does not exists */
-
+static const unsigned int ERR_OUTSIDE_N0DATA   = 23;/** @brief Tried to evaluate neutral density outside the grid */
 #pragma omp declare target
 
 /**

@@ -13,6 +13,7 @@ int hdf5_input(sim_offload_data* sim,
 	       real** B_offload_array,
 	       real** E_offload_array,
 	       real** plasma_offload_array,
+	       real** neutral_offload_array,
 	       real** wall_offload_array,
                input_particle** p,
                int* n_markers);

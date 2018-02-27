@@ -11,6 +11,7 @@
 #include "B_field.h"
 #include "E_field.h"
 #include "plasma.h"
+#include "neutral.h"
 #include "wall.h"
 #include "diag.h"
 #include "offload.h"
@@ -34,6 +35,7 @@ typedef struct {
     B_field_offload_data B_offload_data;
     E_field_offload_data E_offload_data;
     plasma_offload_data plasma_offload_data;
+    neutral_offload_data neutral_offload_data;
     wall_offload_data wall_offload_data;
     diag_offload_data diag_offload_data;
 
@@ -71,6 +73,7 @@ typedef struct {
     B_field_data B_data;
     E_field_data E_data;
     plasma_data plasma_data;
+    neutral_data neutral_data;
     wall_data wall_data;
     diag_data diag_data;
 
