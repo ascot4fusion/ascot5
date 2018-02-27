@@ -38,17 +38,17 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0):
     mastergroup = "neutral"
     subgroup    = "N0_3D"
     
+    # Transpose n0 from (r, phi, z) to (phi, z, r)
+    n0 = np.transpose(n0,(1,2,0))
+    
     # Create a group for this input.
     f = h5py.File(fn, "a")
     path = creategroup(f, mastergroup, subgroup)
 
-    # Transpose grid
-    n0 = np.transpose(n0,(1,0,2))
-
     # Actual data.
-    f.create_dataset(path + "/R_min", (1,), data=Rmin, dtype="f8")
-    f.create_dataset(path + "/R_max", (1,), data=Rmax, dtype="f8")
-    f.create_dataset(path + "/n_R", (1,),   data=nR, dtype="i8")
+    f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")
+    f.create_dataset(path + "/r_max", (1,), data=Rmax, dtype="f8")
+    f.create_dataset(path + "/n_r", (1,),   data=nR, dtype="i8")
 
     f.create_dataset(path + "/phi_min", (1,), data=phimin, dtype="f8")
     f.create_dataset(path + "/phi_max", (1,), data=phimax, dtype="f8")
