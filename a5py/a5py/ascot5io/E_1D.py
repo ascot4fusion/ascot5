@@ -32,7 +32,7 @@ def write_hdf5(fn, Nrho, r_eff, rhomin, rhomax, rho, dVdrho):
     """
 
     mastergroup = "efield"
-    subgroup    = "E_1D"
+    subgroup    = "E_1DS"
     
     # Create a group for this input.
     f = h5py.File(fn, "a")
