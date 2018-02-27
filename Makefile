@@ -113,7 +113,7 @@ BINS=test_math \
 	 test_hdf5 test_wall_3d test_particle \
 	 test_B test_simulate_orbit test_offload test_E \
 	 test_mccc test_interp1Dcomp test_linint3D \
-	 ascot5_main
+	 test_N0 ascot5_main
 
 all: $(BINS)
 
@@ -165,6 +165,9 @@ test_random: test_random.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_linint3D: test_linint3D.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_N0: test_N0.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile
