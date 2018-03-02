@@ -9,7 +9,7 @@
 #include "Bfield/B_GS.h"
 #include "Bfield/B_2DS.h"
 #include "Bfield/B_3DS.h"
-#include "Bfield/B_ST.h"
+#include "Bfield/B_STS.h"
 #include "Bfield/B_TC.h"
 
 void B_field_init_offload(B_field_offload_data* offload_data,
@@ -29,11 +29,6 @@ void B_field_init_offload(B_field_offload_data* offload_data,
         case B_field_type_3DS:
         B_3DS_init_offload(&(offload_data->B3DS), offload_array);
         offload_data->offload_array_length = offload_data->B3DS.offload_array_length;
-        break;
-
-        case B_field_type_ST:
-        B_ST_init_offload(&(offload_data->BST), offload_array);
-        offload_data->offload_array_length = offload_data->BST.offload_array_length;
         break;
 
         case B_field_type_STS:
@@ -63,10 +58,6 @@ void B_field_free_offload(B_field_offload_data* offload_data,
         B_3DS_free_offload(&(offload_data->B3DS), offload_array);
         break;
 
-        case B_field_type_ST:
-        B_ST_free_offload(&(offload_data->BST), offload_array);
-        break;
-
         case B_field_type_STS:
         B_STS_free_offload(&(offload_data->BSTS), offload_array);
         break;
@@ -92,10 +83,6 @@ int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
 
         case B_field_type_3DS:
         err = B_3DS_init(&(Bdata->B3DS), &(offload_data->B3DS), offload_array);
-        break;
-
-        case B_field_type_ST:
-        B_ST_init(&(Bdata->BST), &(offload_data->BST), offload_array);
         break;
 
         case B_field_type_STS:
@@ -126,10 +113,6 @@ a5err B_field_eval_psi(real psi[], real r, real phi, real z,
 
         case B_field_type_3DS:
         err = B_3DS_eval_psi(psi, r, phi, z, &(Bdata->B3DS));
-        break;
-
-        case B_field_type_ST:
-        B_ST_eval_psi(psi, r, phi, z, &(Bdata->BST));
         break;
 
         case B_field_type_STS:
@@ -200,10 +183,6 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
         err = B_3DS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B3DS));
         break;
 
-        case B_field_type_ST:
-        B_ST_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BST));
-        break;
-
         case B_field_type_STS:
         B_STS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BSTS));
         break;
@@ -236,10 +215,6 @@ a5err B_field_eval_rho(real rho[], real psi, B_field_data* Bdata) {
 
         case B_field_type_3DS:
         err = B_3DS_eval_rho(rho, psi, &(Bdata->B3DS));
-        break;
-
-        case B_field_type_ST:
-        B_ST_eval_rho(rho, psi, &(Bdata->BST));
         break;
 
         case B_field_type_STS:
@@ -308,10 +283,6 @@ a5err B_field_eval_rho_drho(real rho_drho[], real r, real phi, real z,
         err = B_3DS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B3DS));
         break;
 
-        case B_field_type_ST:
-        B_ST_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BST));
-        break;
-
         case B_field_type_STS:
         B_STS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BSTS));
         break;
@@ -344,10 +315,6 @@ a5err B_field_eval_B(real B[], real r, real phi, real z, B_field_data* Bdata) {
 
         case B_field_type_3DS:
         err = B_3DS_eval_B(B, r, phi, z, &(Bdata->B3DS));
-        break;
-
-        case B_field_type_ST:
-        B_ST_eval_B(B, r, phi, z, &(Bdata->BST));
         break;
 
         case B_field_type_STS:
@@ -387,10 +354,6 @@ a5err B_field_eval_B_dB(real B_dB[], real r, real phi, real z,
 
         case B_field_type_3DS:
         err = B_3DS_eval_B_dB(B_dB, r, phi, z, &(Bdata->B3DS));
-        break;
-
-        case B_field_type_ST:
-        B_ST_eval_B_dB(B_dB, r, phi, z, &(Bdata->BST));
         break;
 
         case B_field_type_STS:
@@ -462,10 +425,6 @@ real B_field_get_axis_r(B_field_data* Bdata) {
         axis_r = B_3DS_get_axis_r(&(Bdata->B3DS));
         break;
 
-        case B_field_type_ST:
-        axis_r = B_ST_get_axis_r(&(Bdata->BST));
-        break;
-
         case B_field_type_STS:
         axis_r = B_STS_get_axis_r(&(Bdata->BSTS));
         break;
@@ -490,10 +449,6 @@ real B_field_get_axis_z(B_field_data* Bdata) {
 	
         case B_field_type_3DS:
         axis_z = B_3DS_get_axis_z(&(Bdata->B3DS));
-        break;
-
-        case B_field_type_ST:
-        axis_z = B_ST_get_axis_z(&(Bdata->BST));
         break;
 
         case B_field_type_STS:

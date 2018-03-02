@@ -92,9 +92,10 @@ int main(int argc, char** argv) {
     real* B_offload_array;
     real* E_offload_array;
     real* plasma_offload_array;
+    real* neutral_offload_array;
     real* wall_offload_array;
     err = hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
-             &wall_offload_array, &p, &n);
+                     &neutral_offload_array, &wall_offload_array, &p, &n);
     if(err) {return 0;};
 
     real* offload_array;
@@ -106,6 +107,8 @@ int main(int argc, char** argv) {
                  sim.E_offload_data.offload_array_length);
     offload_pack(&offload_data, &offload_array, plasma_offload_array,
                  sim.plasma_offload_data.offload_array_length);
+    offload_pack(&offload_data, &offload_array, neutral_offload_array,
+                 sim.neutral_offload_data.offload_array_length);
     offload_pack(&offload_data, &offload_array, wall_offload_array,
                  sim.wall_offload_data.offload_array_length);
 
