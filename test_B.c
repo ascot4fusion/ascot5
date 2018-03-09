@@ -31,6 +31,7 @@ int main(int argc, char** argv) {
     real* B_offload_array;
     real* E_offload_array;
     real* plasma_offload_array;
+    real* neutral_offload_array;
     real* wall_offload_array;
     real* offload_array;
     int n;
@@ -41,19 +42,13 @@ int main(int argc, char** argv) {
     strcpy(sim.hdf5_out, "ascot");
     
     err = hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
-             &wall_offload_array, &p, &n);
+                     &neutral_offload_array, &wall_offload_array, &p, &n);
 
     /* Init magnetic background */
     offload_package offload_data;
     offload_init_offload(&offload_data, &offload_array);
     offload_pack(&offload_data, &offload_array, B_offload_array,
                  sim.B_offload_data.offload_array_length);
-    offload_pack(&offload_data, &offload_array, E_offload_array,
-                 sim.E_offload_data.offload_array_length);
-    offload_pack(&offload_data, &offload_array, plasma_offload_array,
-                 sim.plasma_offload_data.offload_array_length);
-    offload_pack(&offload_data, &offload_array, wall_offload_array,
-                 sim.wall_offload_data.offload_array_length);
 
     /* Set up particlestates on host, needs magnetic field evaluation */
     B_field_data Bdata;

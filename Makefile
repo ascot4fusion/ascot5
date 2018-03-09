@@ -11,6 +11,8 @@ endif
 
 ifdef VERBOSE
 	DEFINES+=-DVERBOSE=$(VERBOSE)
+else
+	DEFINES+=-DVERBOSE=1
 endif
 
 ifeq ($(SINGLEPRECISION),1)
@@ -109,11 +111,10 @@ OBJS= math.o list.o octree.o physlib.o \
 	random.o
 
 BINS=test_math \
-	 test_wall_2d test_plasma test_random \
-	 test_hdf5 test_wall_3d test_particle \
-	 test_B test_simulate_orbit test_offload test_E \
-	 test_mccc test_interp1Dcomp \
-	 test_linint3D test_N0 ascot5_main
+	test_wall_2d test_plasma test_random \
+	test_wall_3d test_B test_offload test_E \
+	test_interp1Dcomp test_linint3D test_N0 \
+	ascot5_main
 
 all: $(BINS)
 
@@ -131,9 +132,6 @@ ascot5_main: ascot5_main.o $(OBJS)
 test_B: test_B.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_particle: test_particle.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
 test_wall_3d: test_wall_3d.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
@@ -143,16 +141,10 @@ test_math: test_math.o $(OBJS)
 test_wall_2d: test_wall_2d.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_simulate_orbit: test_simulate_orbit.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
 test_offload: test_offload.o 
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_E: test_E.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
-test_mccc: simulate/mccc/test_mccc.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_interp1Dcomp: test_interp1Dcomp.o $(OBJS)
