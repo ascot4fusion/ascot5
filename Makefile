@@ -109,10 +109,10 @@ OBJS= math.o list.o octree.o physlib.o \
 	random.o
 
 BINS=test_math \
-	 test_wall_2d test_plasma_1d test_random \
+	 test_wall_2d test_plasma test_random \
 	 test_hdf5 test_wall_3d test_particle \
 	 test_B test_simulate_orbit test_offload test_E \
-	 test_mccc test_interp1Dcomp test_plasma_1DS \
+	 test_mccc test_interp1Dcomp \
 	 test_linint3D test_N0 ascot5_main
 
 all: $(BINS)
@@ -137,9 +137,6 @@ test_particle: test_particle.o $(OBJS)
 test_wall_3d: test_wall_3d.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_plasma_1d: test_plasma_1d.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
 test_math: test_math.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
@@ -161,7 +158,7 @@ test_mccc: simulate/mccc/test_mccc.o $(OBJS)
 test_interp1Dcomp: test_interp1Dcomp.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_plasma_1DS: test_plasma_1DS.o $(OBJS)
+test_plasma: test_plasma.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_random: test_random.o $(OBJS)
