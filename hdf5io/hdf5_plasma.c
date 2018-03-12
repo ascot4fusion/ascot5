@@ -74,6 +74,7 @@ int hdf5_plasma_init_offload_1D(hid_t f, plasma_1D_offload_data* offload_data,
     herr_t err;
     char path[256];
     hsize_t dims[3];
+    int temporary_array[MAX_SPECIES]; // For reading input data for Anum and Znum
 
     int i, j;
 
@@ -105,18 +106,19 @@ int hdf5_plasma_init_offload_1D(hid_t f, plasma_1D_offload_data* offload_data,
     offload_data->charge[0] = -1 * CONST_E;
     
     /* Read Znum and calculate charge */
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/Z_num", qid, path), &(offload_data->charge[1]));
+    
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/Z_num", qid, path), temporary_array);
     for(i = 0; i < n_ions; i++) {
-	offload_data->charge[i+1] = offload_data->charge[i+1] * CONST_E;
+	offload_data->charge[i+1] = temporary_array[i] * CONST_E;
     }
 
     /* Electron mass */
     offload_data->mass[0] = CONST_M_E;
 
     /* Read Amass and calculate mass */
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/A_mass", qid, path), &(offload_data->mass[1]));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/A_mass", qid, path), temporary_array);
     for(i = 0; i < n_ions; i++) {
-	offload_data->mass[i+1] = offload_data->mass[i+1] * CONST_U;
+	offload_data->mass[i+1] = temporary_array[i] * CONST_U;
     }
     
     /* Read actual data into array */
