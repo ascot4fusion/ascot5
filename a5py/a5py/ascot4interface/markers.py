@@ -180,4 +180,4 @@ def massPlusElectrons(massIn, Z, charge):
     if( int(round(charge/consts_e)) == Z):
         return massIn
     else:
-        return massIn + consts_mElectron * (round(-charge/consts_e)-Z)
+        return massIn + consts_mElectron * (charge-Z)
