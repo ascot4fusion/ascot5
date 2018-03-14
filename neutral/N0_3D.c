@@ -1,6 +1,7 @@
 /**
  * @file N0_3D.c @brief 3D neutral density with trilinear interpolation
  */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
