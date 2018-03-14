@@ -1,6 +1,6 @@
 /**
  * @file hdf5_efield.c
- * @brief HDF5 format 1d radial electric field input
+ * @brief HDF5 format 1d radial electric field input /*should we change this?*/
  *
  */
 #include <stdio.h>

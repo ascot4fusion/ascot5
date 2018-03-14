@@ -10,10 +10,12 @@
 #include "Efield/E_TC.h"
 #include "Efield/E_1D.h"
 #include "Efield/E_1DS.h"
+#include "Efield/E_3D.h"
+
 
 void E_field_init_offload(E_field_offload_data* offload_data,
                           real** offload_array) {
-    offload_data->type = E_field_type_1D;
+  /*offload_data->type = E_field_type_1D;*/
 
     switch(offload_data->type) {
     case E_field_type_1D:
@@ -25,6 +27,10 @@ void E_field_init_offload(E_field_offload_data* offload_data,
         break;
     case E_field_type_TC:
 	// Do nothing
+        break;
+    case E_field_type_3D:
+        E_3D_init_offload(&(offload_data->E3D), offload_array);
+        offload_data->offload_array_length = offload_data->E3D.offload_array_length;
         break;
     }
 }
@@ -41,6 +47,10 @@ void E_field_free_offload(E_field_offload_data* offload_data,
     case E_field_type_TC:
         E_TC_free_offload(&(offload_data->ETC), offload_array);
         break;
+    case E_field_type_3D:
+      E_3D_free_offload(&(offload_data->E3D), offload_array);
+      break;
+
     }
 }
 
@@ -57,6 +67,9 @@ int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
         break;
     case E_field_type_TC:
         E_TC_init(&(Edata->ETC), &(offload_data->ETC), offload_array);
+        break;
+    case E_field_type_3D:
+        E_3D_init(&(Edata->E3D), &(offload_data->E3D), offload_array);
         break;
     }
     Edata->type = offload_data->type;
@@ -78,6 +91,9 @@ a5err E_field_eval_E(real E[], real r, real phi, real z, E_field_data* Edata, B_
     case E_field_type_TC:
         E_TC_eval_E(E, r, phi, z, &(Edata->ETC), Bdata);
         break;
+    case E_field_type_3D:
+        E_3D_eval_E(E, r, phi, z, &(Edata->E3D), Bdata);
+        break;
     }
 
     return err;
@@ -95,6 +111,9 @@ a5err E_field_eval_E_SIMD(int i, real E[3][NSIMD], real r, real phi, real z, E_f
         break;
     case E_field_type_TC:
         E_TC_eval_E_SIMD(i, E, r, phi, z, &(Edata->ETC), Bdata);
+        break;
+    case E_field_type_3D:
+        E_3D_eval_E_SIMD(i, E, r, phi, z, &(Edata->E3D), Bdata);
         break;
     }
 
