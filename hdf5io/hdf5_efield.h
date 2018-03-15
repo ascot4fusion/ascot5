@@ -1,3 +1,7 @@
+/**
+ * @file hdf5_efield.h
+ * @brief Header file for hdf5_efield.c
+ */
 #ifndef HDF5_EFIELD_H
 #define HDF5_EFIELD_H
 

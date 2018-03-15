@@ -1,13 +1,14 @@
 /**
  * @file hdf5_efield.c
- * @brief HDF5 format 1d radial electric field input /*should we change this?*/
+ * @brief HDF5 format 1d/3d radial electric field input
  *
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <hdf5.h>
-#include "hdf5_hl.h"
+#include "hdf5_hl.h" //should I include ascot.5h and math.h?
+#include "../math.h"
 #include "../E_field.h"
 #include "../Efield/E_TC.h"
 #include "../Efield/E_1D.h"
@@ -15,6 +16,16 @@
 #include "hdf5_efield.h"
 #include "hdf5_helpers.h"
 
+/**
+ * @brief Initialize electric field offload data from h5 file
+ *
+ * This function reads the electric field data from the input.h5 file,
+ * fills the offload struct with parameters and
+ * allocates and fills the offload array.
+ *
+ * @param offload_data pointer to offload data struct
+ * @param offload_array pointer to pointer to offload array
+ */
 
 int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real** offload_array) {
     herr_t err;
@@ -74,6 +85,27 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real**
             
         return 1;
     }
+
+    hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX", active, path);
+    if(hdf5_find_group(f, path) == 0) {
+      hdf5_efield_init_offload_3D(f, &(offload_data->E3D), offload_array, active);
+      offload_data->type = E_field_type_3D;
+      offload_data->offload_array_length=offload_data->E3D.offload_array_length;
+
+        #if VERBOSE > 0
+      printf("\nLoaded 3D electric field (E_3D)\n");
+      printf("with parameters:\n");
+      printf("- rmin, rmax, nr = %le, %le, %d\n",
+	     offload_data->E3D.r_min,offload_data->E3D.r_max,offload_data->E3D.n_r);
+      printf("- zmin, zmax, nz = %le, %le, %d\n",
+	     offload_data->E3D.z_min,offload_data->E3D.z_max,offload_data->E3D.n_z);
+      printf("- phimin, phimax, nphi = %le, %le, %d\n",
+             offload_data->E3D.phi_min,offload_data->E3D.phi_max,offload_data->E3D.n_phi);
+
+        #endif
+      return 1;
+    }
+
 
     return -1;
 }
@@ -148,3 +180,71 @@ void hdf5_efield_init_offload_TC(hid_t f, E_TC_offload_data* offload_data, real*
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efieldE_TC-XXXXXXXXXX/Exyz", qid, path), *offload_array);
     offload_data->offload_array_length = 3;
 }
+
+
+void hdf5_efield_init_offload_3D(hid_t f, E_3D_offload_data* offload_data, real** offload_array, char* qid) {
+herr_t err;
+char path[256];
+
+/* Read and initialize magnetic field Rz-grid */
+err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/n_R", qid, path), &(offload_data->n_r));
+if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+
+err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/n_phi", qid, path), &(offload_data->n_phi));
+if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+
+err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/n_z", qid, path), &(offload_data->n_z));
+if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+
+err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/R_min", qid, path), &(offload_data->r_min));
+if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+
+err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/R_max", qid, path), &(offload_data->r_max));
+if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+
+err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/phi_min", qid, path), &(offload_data->phi_min));
+if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+
+err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/phi_max", qid, path), &(offload_data->phi_max));
+if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+
+err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/z_min", qid, path), &(offload_data->z_min));
+if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+
+err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/z_max", qid, path), &(offload_data->z_max));
+if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+
+
+/* Convert degrees to radians (input must be in deg but ASCOT internally works in rads) */
+
+
+offload_data->phi_max = math_deg2rad(offload_data->phi_max);
+offload_data->phi_min = math_deg2rad(offload_data->phi_min);
+
+
+/* Calculate grid size */
+
+offload_data->r_grid = (offload_data->r_max - offload_data->r_min) / (offload_data->n_r - 1);
+offload_data->z_grid = (offload_data->z_max - offload_data->z_min) / (offload_data->n_z - 1);
+offload_data->phi_grid = (offload_data->phi_max - offload_data->phi_min) / (offload_data->n_phi - 1);
+
+
+/* Allocate offload_array */
+int E_size = offload_data->n_r*offload_data->n_z*offload_data->n_phi;
+
+*offload_array = (real*) malloc((3 * E_size) * sizeof(real));
+offload_data->offload_array_length = 3 * E_size;
+
+/* Read the magnetic field */
+ err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/E_R", qid, path), &(*offload_array)[0*E_size]);
+ if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+
+ err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/E_phi", qid, path), &(*offload_array)[1*E_size]);
+ if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+
+ err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/E_z", qid, path), &(*offload_array)[2*E_size]);
+ if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+
+}
+
+

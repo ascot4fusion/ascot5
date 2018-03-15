@@ -92,7 +92,7 @@ a5err E_field_eval_E(real E[], real r, real phi, real z, E_field_data* Edata, B_
         E_TC_eval_E(E, r, phi, z, &(Edata->ETC), Bdata);
         break;
     case E_field_type_3D:
-        E_3D_eval_E(E, r, phi, z, &(Edata->E3D), Bdata);
+        E_3D_eval_E(E, r, phi, z, &(Edata->E3D));
         break;
     }
 
@@ -113,7 +113,7 @@ a5err E_field_eval_E_SIMD(int i, real E[3][NSIMD], real r, real phi, real z, E_f
         E_TC_eval_E_SIMD(i, E, r, phi, z, &(Edata->ETC), Bdata);
         break;
     case E_field_type_3D:
-        E_3D_eval_E_SIMD(i, E, r, phi, z, &(Edata->E3D), Bdata);
+        E_3D_eval_E_SIMD(i, E, r, phi, z, &(Edata->E3D));
         break;
     }
 

@@ -1,4 +1,4 @@
-x/**
+/**
  * @file E_3D.c @brief 3D electric field with trilinear interpolation
  */
 #include <stdlib.h>
@@ -39,22 +39,22 @@ void E_3D_free_offload(E_3D_offload_data* offload_data, real** offload_array) {
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  */
-int N0_3D_init(E_3D_data* Edata, E_3D_offload_data* offload_data,
+int E_3D_init(E_3D_data* Edata, E_3D_offload_data* offload_data,
                real* offload_array) {
     int err = 0;
     
-    err += linint3D_init(&ndata->E_r, offload_array,
+    err += linint3D_init(&Edata->E_r, offload_array,
                          offload_data->n_r, offload_data->n_phi, offload_data->n_z,
                          offload_data->r_min, offload_data->r_max, offload_data->r_grid,
                          offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
                          offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    err += linint3D_init(&ndata->E_phi, offload_array,
+    err += linint3D_init(&Edata->E_phi, offload_array,
                          offload_data->n_r, offload_data->n_phi, offload_data->n_z,
                          offload_data->r_min, offload_data->r_max, offload_data->r_grid,
                          offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
                          offload_data->z_min, offload_data->z_max, offload_data->z_grid);
 
-    err += linint3D_init(&ndata->E_z, offload_array,
+    err += linint3D_init(&Edata->E_z, offload_array,
                          offload_data->n_r, offload_data->n_phi, offload_data->n_z,
                          offload_data->r_min, offload_data->r_max, offload_data->r_grid,
                          offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
