@@ -92,41 +92,41 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, iden
     f.close();
 
 
-def read_hdf5(fn):
+def read_hdf5(fn, qid):
     """
     Read 1D plasma input from HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
 
     fn : str
         Full path to the HDF5 file.
+    qid : str
+        qid of the plasma to be read.
 
     Returns
     -------
 
     Dictionary containing plasma data.
     """
-
-    group = "plasma"
-    path = "plasma/P_1D"
-
+    
+    path = "plasma" + "/plasma_1D-" + qid
+    
     f = h5py.File(fn,"r")
 
     out = {}
 
     # Metadata.
-    out["qid"]  = f[path].attrs["qid"]
+    out["qid"]  = qid
     out["date"] = f[path].attrs["date"]
+    out["description"] = f[path].attrs["description"]
 
     # Actual data.
-    out["Z_num"]    = f[group]["Z_num"][:]
-    out["A_mass"]   = f[group]["A_mass"][:]
-    out["Nion"]     = f[group].attrs['n_ions']
-    out["Nneutral"] = f[group].attrs['n_neutrals']
-    out["Nrho"]     = f[path].attrs['n_rho']
+    out["Z_num"]    = f[path]["Z_num"][:]
+    out["A_mass"]   = f[path]["A_mass"][:]
+    out["Nion"]     = f[path]['n_ions'][:]
+    out["Nneutral"] = f[path]['n_neutrals'][:]
+    out["Nrho"]     = f[path]['n_rho'][:]
 
     out["rho"] = f[path]["rho"][:]
     out["ntemp"] = f[path]["temp_0"][:]
@@ -134,7 +134,7 @@ def read_hdf5(fn):
     out["etemp"] = f[path]["temp_e"][:]
     out["edens"] = f[path]["dens_e"][:]
     out["itemp"] = f[path]["temp_i"][:]
-    out["idens"] = np.transpose(np.reshape(f[path]["dens_i"][:], (out["Nion"], out["Nrho"]) ))
+    out["idens"] = f[path]["dens_i"][:]
 
     f.close()
 

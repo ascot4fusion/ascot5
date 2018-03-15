@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import a5py.ascot5io.options as options
+import a5py.ascot5io.ascot5 as ascot5
 import numpy
 import os
 import subprocess
@@ -12,9 +13,11 @@ if len(sys.argv) > 1:
 else:
     fn = "ascot.h5"
 
-opt = options.read_hdf5(fn)
+qids,dates = ascot5.get_qids(fn, "options")
+opt = options.read_hdf5(fn, qids[0])
 opt.pop('qid')
 opt.pop('date')
+opt.pop('description')
 
 t = ""
 for k,v in sorted(opt.items()):

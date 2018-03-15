@@ -91,17 +91,17 @@ def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     f.close()
 
 
-def read_hdf5(fn):
+def read_hdf5(fn, qid):
     """
-    Read 2D magnetic field input from HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
+    Read analytic magnetic field input from HDF5 file.
 
     Parameters
     ----------
 
     fn : str
         Full path to the HDF5 file.
+    qid : str
+        qid of the bfield to be read.
 
     Returns
     -------
@@ -109,15 +109,16 @@ def read_hdf5(fn):
     Dictionary containing magnetic field data.
     """
 
-    path = "bfield/B_GS"
+    path = "bfield" + "/B_GS-" + qid
 
     f = h5py.File(fn,"r")
 
     out = {}
 
     # Metadata.
-    out["qid"]  = f[path].attrs["qid"]
+    out["qid"]  = qid
     out["date"] = f[path].attrs["date"]
+    out["description"] = f[path].attrs["description"]
 
     # Actual data.
     out["R0"]        = f[path]["R0"][:]

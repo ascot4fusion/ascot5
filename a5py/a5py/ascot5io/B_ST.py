@@ -74,17 +74,17 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     f.close()
 
 
-def read_hdf5(fn):
+def read_hdf5(fn, qid):
     """
     Read stellarator magnetic field input from HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
 
     fn : str
         Full path to the HDF5 file.
+    qid : str
+        qid of the bfield to be read.
 
     Returns
     -------
@@ -92,15 +92,16 @@ def read_hdf5(fn):
     Dictionary containing magnetic field data.
     """
 
-    path = "bfield/B_ST"
+    path = "bfield" + "/B_ST-" + qid
 
     f = h5py.File(fn,"r")
 
     out = {}
 
     # Metadata.
-    out["qid"]  = f[path].attrs["qid"]
+    out["qid"]  = qid
     out["date"] = f[path].attrs["date"]
+    out["description"] = f[path].attrs["description"]
 
     # Actual data.
     out["Rmin"] = f[path]["r_min"][:]

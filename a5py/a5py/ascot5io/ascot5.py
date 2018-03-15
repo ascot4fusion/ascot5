@@ -3,6 +3,8 @@ Main module for reading ASCOT5 HDF5 files.
 """
 import numpy as np
 import h5py
+import datetime
+
 from . import B_2D
 from . import B_3D
 from . import B_ST
@@ -32,8 +34,6 @@ def read_hdf5(fn, groups="all"):
     """
     Read all or specified data groups that are present in ASCOT5 HDF5 file.
 
-    TODO Not compatible with new HDF5 format.
-
     Parameters
     ----------
 
@@ -60,47 +60,82 @@ def read_hdf5(fn, groups="all"):
 
     out["options"] = {}
     if "options" in f and "options" in groups:
-        out["options"] = options.read_hdf5(fn)
+        qids,dates = get_qids(fn, "options")
+        for qid in qids:
+            out["options"]["opt-"+qid] = options.read_hdf5(fn,qid)
 
     out["bfield"] = {}
     if "bfield" in f and "bfield" in groups:
-        if "B_2D" in f["bfield"]:
-            out["bfield"]["B_2D"] = B_2D.read_hdf5(fn)
-        if "B_3D" in f["bfield"]:
-            out["bfield"]["B_3D"] = B_3D.read_hdf5(fn)
-        if "B_GS" in f["bfield"]:
-            out["bfield"]["B_GS"] = B_GS.read_hdf5(fn)
-        if "B_ST" in f["bfield"]:
-            out["bfield"]["B_ST"] = B_ST.read_hdf5(fn)
-        if "B_TC" in f["bfield"]:
-            out["bfield"]["B_TC"] = B_TC.read_hdf5(fn)
+        qids,dates = get_qids(fn, "bfield")
+        for qid in qids:
+            if ("B_2DS-"+qid) in f["bfield"]:
+                out["bfield"]["B_2DS-"+qid] = B_2D.read_hdf5(fn,qid)
+            if ("B_3DS-"+qid) in f["bfield"]:
+                out["bfield"]["B_3DS-"+qid] = B_3D.read_hdf5(fn,qid)
+            if ("B_TC-"+qid) in f["bfield"]:
+                out["bfield"]["B_TC-"+qid]  = B_TC.read_hdf5(fn,qid)
+            if ("B_GS-"+qid) in f["bfield"]:
+                out["bfield"]["B_GS-"+qid]  = B_GS.read_hdf5(fn,qid)
+            if ("B_ST-"+qid) in f["bfield"]:
+                out["bfield"]["B_ST-"+qid]  = B_ST.read_hdf5(fn,qid)
 
     out["efield"] = {}
     if "efield" in f and "efield" in groups:
-        if "E_1D" in f["efield"]:
-            out["efield"]["E_1D"] = E_1D.read_hdf5(fn)
-        if "E_TC" in f["efield"]:
-            out["efield"]["E_TC"] = E_TC.read_hdf5(fn)
-        if "E_3D" in f["efield"]:
-            out["efield"]["E_3D"] = E_3D.read_hdf5(fn)
+        qids,dates = get_qids(fn, "efield")
+        for qid in qids:
+            if ("E_1D-"+qid) in f["efield"]:
+                out["efield"]["E_1D-"+qid] = E_1D.read_hdf5(fn,qid)
+            if ("E_TC-"+qid) in f["efield"]:
+                out["efield"]["E_TC-"+qid] = E_TC.read_hdf5(fn,qid)
+            if ("E_3D-"+qid) in f["efield"]:
+                out["efield"]["E_3D-"+qid] = E_3D.read_hdf5(fn,qid)
 
     out["wall"] = {}
     if "wall" in f and "wall" in groups:
-        if "2D" in f["wall"]:
-            out["wall"]["2D"] = wall_2D.read_hdf5(fn)
-        if "3D" in f["wall"]:
-            out["wall"]["3D"] = wall_3D.read_hdf5(fn)
+        qids,dates = get_qids(fn, "wall")
+        for qid in qids:
+            if ("wall_2D-"+qid) in f["wall"]:
+                out["wall"]["wall_2D-"+qid] = wall_2D.read_hdf5(fn,qid)
+            if ("wall_3D-"+qid) in f["wall"]:
+                out["wall"]["wall_3D-"+qid] = wall_3D.read_hdf5(fn,qid)
 
     out["plasma"] = {}
     if "plasma" in f and "plasma" in groups:
-        
-        if "P_1D" in f["plasma"]:
-            out["plasma"] = plasma_1D.read_hdf5(fn)
+        qids,dates = get_qids(fn, "plasma")
+        for qid in qids:  
+            if ("plasma_1D-"+qid) in f["plasma"]:
+                out["plasma"]["plasma_1D-"+qid] = plasma_1D.read_hdf5(fn,qid)
 
     out["metadata"] = {}
     if "metadata" in f and "metadata" in groups:
         out["metadata"] = metadata.read_hdf5(fn)
 
+    if "results" in f:
+        qids,dates = get_qids(fn, "results")
+        for qid in qids:
+            path = "run-"+qid
+            out[path] = {}
+            
+            # Metadata.
+            out[path]["qid"]  = qid
+            out[path]["date"] = f["results"][path].attrs["date"]
+            #out[path]["description"] = f["results"][path].attrs["description"]
+
+            out[path]["qid_bfield"]  = f["results"][path].attrs["qid_bfield"]
+            out[path]["qid_efield"]  = f["results"][path].attrs["qid_efield"]
+            out[path]["qid_marker"]  = f["results"][path].attrs["qid_marker"]
+            out[path]["qid_options"] = f["results"][path].attrs["qid_options"]
+            out[path]["qid_plasma"]  = f["results"][path].attrs["qid_plasma"]
+            out[path]["qid_wall"]    = f["results"][path].attrs["qid_wall"]
+
+            # Actual data
+            if "inistate" in f["results"][path] and "states" in groups:
+                st = states.read_hdf5(fn,qid,["inistate"])
+                out[path]["inistate"] = st["inistate"]
+            if "endstate" in f["results"][path] and "states" in groups:
+                st = states.read_hdf5(fn,qid,["endstate"])
+                out[path]["endstate"] = st["endstate"]
+            
     out["markers"] = {}
     if "markers" in f and "markers" in groups:
         out["markers"] = markers.read_hdf5(fn)
@@ -143,3 +178,67 @@ def write_hdf5(fn, a5):
 
 
     f.close()
+
+    
+def get_qids(fn, group):
+    """
+    Get all qids that are present in a group.
+
+    The qids are sorted with first one being the active one,
+    and the rest are sorted by date from newest to oldest.
+
+    Parameters
+    ----------
+
+    fn : str
+        Full path to HDF5 file.
+    group : str
+        The group from which qids are extracted.
+    Return
+    ----------
+
+    qids : str array
+        Sorted qids as strings.
+    dates : str array
+        Dates associated with qids.
+    """
+
+    f = h5py.File(fn,"r")
+    group = f[group]
+    
+    # Find all qids and note the date when they were created.
+    qidsraw = []
+    datesraw = []
+    for grp in group:
+        qidsraw.append(grp[-10:])
+        datesraw.append(group[grp].attrs["date"])
+
+    #print(datetime.datetime.strptime(datesraw[0].decode('utf-8'), "%Y-%m-%d %H:%M:%S."))
+    qids  = [None]*len(qidsraw)
+    dates = [None]*len(qidsraw)
+    
+    # If qids exist, we sort them.
+    if len(qidsraw) > 0:
+        # The first qid is supposed to be the one that is active.
+        if "active" in group.attrs and group.attrs["active"].decode('utf-8') in qidsraw:
+            qids[0] = group.attrs["active"].decode('utf-8')
+            
+            # Remove associated date.
+            dates[0] = datesraw[qidsraw.index(qids[0])]
+            datesraw.remove(dates[0])
+            qidsraw.remove(qids[0])
+
+        # Sort by date
+        temp = [datetime.datetime.strptime(d.decode('utf-8')[:19], "%Y-%m-%d %H:%M:%S") for d in datesraw]
+        idx = sorted(range(len(temp)), key=lambda k: temp[k])
+
+        if "active" in group.attrs:
+            qids[1:] = [qidsraw[i] for i in idx]
+            dates[1:] = [datesraw[i] for i in idx]
+        else:
+            qids = [qidsraw[i] for i in idx]
+            dates = [datesraw[i] for i in idx]
+
+    f.close()
+    
+    return qids, dates

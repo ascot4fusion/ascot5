@@ -6,11 +6,9 @@ import h5py
 import random
 import datetime
 
-def read_hdf5(fn, read="all"):
+def read_hdf5(fn, qid, read="all"):
     """
     Read all or specified states.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
@@ -26,22 +24,25 @@ def read_hdf5(fn, read="all"):
     Dictionary storing the states that were read.
     """
 
+    path = "results/run-"+qid
+    
     f = h5py.File(fn,"r")
-    allstates = {}
-    allstates["inistate"] = f["inistate"]
-    allstates["endstate"] = f["endstate"]
 
     out = {}
     if read == "all":
-        read = allstates.keys()
+        read = ["inistate", "endstate"]
 
     # Read data from file
-    for state in read:
-        out[state] = {}
-        for field in allstates[state]:
-            out[state][field]           = f[state][field][:]
-            out[state][field + "_unit"] = f[state][field].attrs["unit"]
-        
+    for statename in read:
+        out[statename] = {}
+        if statename in f[path]:
+            for field in f[path][statename]:
+                out[statename][field]           = f[path][statename][field][:]
+                if (field + "_unit") in out[statename]:
+                    out[statename][field + "_unit"] = f[path][statename][field].attrs["unit"]
+        else:
+            print("Warning: State " + statename + " does not exists.")
+                
     # TODO Parse endconditions.
     
 

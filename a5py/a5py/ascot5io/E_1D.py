@@ -51,17 +51,17 @@ def write_hdf5(fn, Nrho, r_eff, rhomin, rhomax, rho, dVdrho):
     f.close()
 
 
-def read_hdf5(fn):
+def read_hdf5(fn, qid):
     """
     Read radial electric field input from HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
 
     fn : str
         Full path to the HDF5 file.
+    qid : str
+        qid of the efield to be read.
 
     Returns
     -------
@@ -69,15 +69,16 @@ def read_hdf5(fn):
     Dictionary containing electric field data.
     """
 
-    path = "efield/E_1D"
+    path = "efield" + "/E_1D-" + qid
 
     f = h5py.File(fn,"r")
 
     out = {}
 
     # Metadata.
-    out["qid"]  = f[path].attrs["qid"]
+    out["qid"]  = qid
     out["date"] = f[path].attrs["date"]
+    out["description"] = f[path].attrs["description"]
     
     # Actual data.
     out["Nrho"]    = f[path].attrs['n_rho']

@@ -39,7 +39,7 @@ def write_hdf5(fn, n, x1x2x3, y1y2y3, z1z2z3, flag):
     f.create_dataset(path + '/y1y2y3', (n,3), dtype='f8', data=y1y2y3)
     f.create_dataset(path + '/z1z2z3', (n,3), dtype='f8', data=z1z2z3)
     f.create_dataset(path + '/flag',  (n,1), dtype='i4', data=flag)
-    f.create_dataset(path + '/n',     (1,), dtype='i8', data=n)
+    f.create_dataset(path + '/n',     (1,), dtype='i4', data=n)
     f.create_dataset(path + '/min_x', (1,), dtype='f8', data=np.amin(x1x2x3))
     f.create_dataset(path + '/max_x', (1,), dtype='f8', data=np.amax(x1x2x3))
     f.create_dataset(path + '/min_y', (1,), dtype='f8', data=np.amin(y1y2y3))
@@ -50,17 +50,17 @@ def write_hdf5(fn, n, x1x2x3, y1y2y3, z1z2z3, flag):
     f.close()
 
 
-def read_hdf5(fn):
+def read_hdf5(fn, qid):
     """
     Read 3D wall input from HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
 
     fn : str
         Full path to the HDF5 file.
+    qid : str
+        qid of the wall to be read.
 
     Returns
     -------
@@ -68,15 +68,16 @@ def read_hdf5(fn):
     Dictionary containing wall data.
     """
 
-    path = "wall/3D"
+    path = "wall" + "/wall_3D-" + qid
 
     f = h5py.File(fn,"r")
 
     out = {}
 
     # Metadata.
-    out["qid"]  = f[path].attrs["qid"]
+    out["qid"]  = qid
     out["date"] = f[path].attrs["date"]
+    out["description"] = f[path].attrs["description"]
 
     # Actual data.
     out["n"]      = f[path]["n"][:]

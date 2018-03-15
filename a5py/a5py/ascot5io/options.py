@@ -6,7 +6,7 @@ import numpy as np
 
 from . ascot5group import creategroup
 
-def write_hdf5(fn,options):
+def write_hdf5(fn, options):
     """
     Write options.
 
@@ -38,17 +38,17 @@ def write_hdf5(fn,options):
     f.close()
 
 
-def read_hdf5(fn):
+def read_hdf5(fn, qid):
     """
     Read options from HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
 
     fn : str
         Full path to the HDF5 file.
+    qid : str
+        qid of the options to be read.
 
     Returns
     -------
@@ -56,19 +56,21 @@ def read_hdf5(fn):
     Dictionary containing options.
     """
     
-    path = "options"
+    path = "options" + "/opt-" + qid
 
     f = h5py.File(fn,"r")
 
     out = {}
 
     # Metadata.
-    out["qid"]  = f[path].attrs["qid"]
+    out["qid"]  = qid
     out["date"] = f[path].attrs["date"]
+    out["description"] = f[path].attrs["description"]
 
     # Actual data.
     for opt in f[path]:
         out[opt] = f[path][opt][:]
+        
 
     f.close()
 
