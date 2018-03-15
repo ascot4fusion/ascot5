@@ -11,6 +11,7 @@ from . import B_GS
 
 from . import E_TC
 from . import E_1D
+from . import E_3D
 
 from . import wall_2D
 from . import wall_3D
@@ -80,6 +81,8 @@ def read_hdf5(fn, groups="all"):
             out["efield"]["E_1D"] = E_1D.read_hdf5(fn)
         if "E_TC" in f["efield"]:
             out["efield"]["E_TC"] = E_TC.read_hdf5(fn)
+        if "E_3D" in f["efield"]:
+            out["efield"]["E_3D"] = E_3D.read_hdf5(fn)
 
     out["wall"] = {}
     if "wall" in f and "wall" in groups:
