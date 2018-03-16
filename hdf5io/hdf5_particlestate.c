@@ -15,7 +15,7 @@
 /**
    @brief Writes the particle state to an ASCOT5 HDF5 file.
 */
-int hdf5_particlestate_write(char* fn, char* qid, char *state, int n, particle_state* p) {
+int hdf5_particlestate_write(char* fn, char* qid, char *state, integer n, particle_state* p) {
     hid_t file = hdf5_open(fn);
 
     char path[256];
@@ -34,7 +34,7 @@ int hdf5_particlestate_write(char* fn, char* qid, char *state, int n, particle_s
     real* data = (real*) malloc(n * sizeof(real));
 
     /* Particle coordinates */
-    int i;
+    integer i;
     for(i = 0; i < n; i++) {
 	data[i] = p[i].rprt;
     }
@@ -232,13 +232,13 @@ int hdf5_particlestate_write(char* fn, char* qid, char *state, int n, particle_s
     for(i = 0; i < n; i++) {
 	intdata[i] = p[i].endcond;
     }
-    H5LTmake_dataset(state_group, "endCond", 1, dims, H5T_STD_I64LE, intdata);
+    H5LTmake_dataset(state_group, "endcond", 1, dims, H5T_STD_I64LE, intdata);
     H5LTset_attribute_string(state_group, "endcond", "unit", "1");
 
     for(i = 0; i < n; i++) {
 	intdata[i] = p[i].walltile;
     }
-    H5LTmake_dataset(state_group, "wallTile", 1, dims, H5T_STD_I64LE, intdata);
+    H5LTmake_dataset(state_group, "walltile", 1, dims, H5T_STD_I64LE, intdata);
     H5LTset_attribute_string(state_group, "walltile", "unit", "1");
 
     free(intdata);
