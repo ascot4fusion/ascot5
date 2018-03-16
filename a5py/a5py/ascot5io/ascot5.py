@@ -51,7 +51,7 @@ def read_hdf5(fn, groups="all"):
 
     if groups == "all":
         groups = ["bfield", "efield", "options", "wall", "plasma",
-                  "markers", "metadata", "states", "orbits", "dists"]
+                  "marker", "metadata", "states", "orbits", "dists"]
 
     f = h5py.File(fn, "r")
 
@@ -105,7 +105,18 @@ def read_hdf5(fn, groups="all"):
         for qid in qids:  
             if ("plasma_1D-"+qid) in f["plasma"]:
                 out["plasma"]["plasma_1D-"+qid] = plasma_1D.read_hdf5(fn,qid)
-
+                
+    out["marker"] = {}
+    if "marker" in f and "marker" in groups:
+        qids,dates = get_qids(fn, "marker")
+        for qid in qids:
+            if ("particle-"+qid) in f["marker"]:
+                out["marker"]["particle-"+qid]       = markers.read_hdf5_particles(fn, qid)
+            if ("guiding_center-"+qid) in f["marker"]:
+                out["marker"]["guiding_center-"+qid] = markers.read_hdf5_guidingcenters(fn, qid)
+            if ("field_line-"+qid) in f["marker"]:
+                out["marker"]["field_line-"+qid]     = markers.read_hdf5_fieldlines(fn, qid)
+        
     out["metadata"] = {}
     if "metadata" in f and "metadata" in groups:
         out["metadata"] = metadata.read_hdf5(fn)
@@ -119,7 +130,7 @@ def read_hdf5(fn, groups="all"):
             # Metadata.
             out[path]["qid"]  = qid
             out[path]["date"] = f["results"][path].attrs["date"]
-            #out[path]["description"] = f["results"][path].attrs["description"]
+            out[path]["description"] = f["results"][path].attrs["description"]
 
             out[path]["qid_bfield"]  = f["results"][path].attrs["qid_bfield"]
             out[path]["qid_efield"]  = f["results"][path].attrs["qid_efield"]
@@ -135,23 +146,11 @@ def read_hdf5(fn, groups="all"):
             if "endstate" in f["results"][path] and "states" in groups:
                 st = states.read_hdf5(fn,qid,["endstate"])
                 out[path]["endstate"] = st["endstate"]
-            
-    out["markers"] = {}
-    if "markers" in f and "markers" in groups:
-        out["markers"] = markers.read_hdf5(fn)
-
-    out["dists"] = {}
-    if "distributions" in f and "dists" in groups:
-        out["dists"] = dists.read_hdf5(fn)
-        
-    out["orbits"] = {}
-    if "orbits" in f and "orbits" in groups:
-        out["orbits"] = orbits.read_hdf5(fn)
-        
-    out["states"] = {}
-    if "inistate" in f and "endstate" in f and "states" in groups:
-        out["states"] = states.read_hdf5(fn)
-        
+            if "dists" in f["results"][path] and "dists" in groups:
+                out[path]["dists"] = dists.read_hdf5(fn,qid)
+            if "orbits" in f["results"][path] and "dists" in groups:
+                print("Orbit reading not yet implementd")
+                #out[path]["orbits"] = orbits.read_hdf5(fn,qid)
 
     f.close()
 
@@ -220,7 +219,7 @@ def get_qids(fn, group):
     # If qids exist, we sort them.
     if len(qidsraw) > 0:
         # The first qid is supposed to be the one that is active.
-        if "active" in group.attrs and group.attrs["active"].decode('utf-8') in qidsraw:
+        if group.attrs["active"].decode('utf-8') in qidsraw:
             qids[0] = group.attrs["active"].decode('utf-8')
             
             # Remove associated date.
@@ -232,12 +231,8 @@ def get_qids(fn, group):
         temp = [datetime.datetime.strptime(d.decode('utf-8')[:19], "%Y-%m-%d %H:%M:%S") for d in datesraw]
         idx = sorted(range(len(temp)), key=lambda k: temp[k])
 
-        if "active" in group.attrs:
-            qids[1:] = [qidsraw[i] for i in idx]
-            dates[1:] = [datesraw[i] for i in idx]
-        else:
-            qids = [qidsraw[i] for i in idx]
-            dates = [datesraw[i] for i in idx]
+        qids[1:] = [qidsraw[i] for i in idx]
+        dates[1:] = [datesraw[i] for i in idx]
 
     f.close()
     

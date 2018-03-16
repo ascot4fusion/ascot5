@@ -38,8 +38,7 @@ def read_hdf5(fn, qid, read="all"):
         if statename in f[path]:
             for field in f[path][statename]:
                 out[statename][field]           = f[path][statename][field][:]
-                if (field + "_unit") in out[statename]:
-                    out[statename][field + "_unit"] = f[path][statename][field].attrs["unit"]
+                out[statename][field + "_unit"] = f[path][statename][field].attrs["unit"]
         else:
             print("Warning: State " + statename + " does not exists.")
                 

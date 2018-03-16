@@ -56,7 +56,7 @@ def write_hdf5_particles(fn, N, ids, mass, charge,
     # TODO Check that inputs are consistent.
 
     # Actual data.
-    f.create_dataset(path + "/n",      data=N, dtype='i8').attrs['unit'] = '1';
+    f.create_dataset(path + "/n",      data=np.array([N]), dtype='i8').attrs['unit'] = '1';
     f.create_dataset(path + "/r",      data=r, dtype='f8').attrs['unit'] = 'm';
     f.create_dataset(path + "/phi",    data=phi, dtype='f8').attrs['unit'] = 'deg';
     f.create_dataset(path + "/z",      data=z, dtype='f8').attrs['unit'] = 'm';
@@ -118,7 +118,7 @@ def write_hdf5_guidingcenters(fn, N, ids, mass, charge,
     # TODO Check that inputs are consistent.
 
     # Actual data.
-    f.create_dataset(path + "/n",      data=N, dtype='i8').attrs['unit'] = '1';
+    f.create_dataset(path + "/n",      data=np.array([N]), dtype='i8').attrs['unit'] = '1';
     f.create_dataset(path + "/r",      data=r, dtype='f8').attrs['unit'] = 'm';
     f.create_dataset(path + "/phi",    data=phi, dtype='f8').attrs['unit'] = 'deg';
     f.create_dataset(path + "/z",      data=z, dtype='f8').attrs['unit'] = 'm';
@@ -171,7 +171,7 @@ def write_hdf5_fieldlines(fn, N, ids, r, phi, z, pitch, weight, time):
     # TODO Check that inputs are consistent.
 
     # Actual data.
-    f.create_dataset(path + "/n",      data=N, dtype='i8').attrs['unit'] = '1';
+    f.create_dataset(path + "/n",      data=np.array([N]), dtype='i8').attrs['unit'] = '1';
     f.create_dataset(path + "/r",      data=r, dtype='f8').attrs['unit'] = 'm';
     f.create_dataset(path + "/phi",    data=phi, dtype='f8').attrs['unit'] = 'deg';
     f.create_dataset(path + "/z",      data=z, dtype='f8').attrs['unit'] = 'm';
@@ -183,62 +183,112 @@ def write_hdf5_fieldlines(fn, N, ids, r, phi, z, pitch, weight, time):
     f.close()
 
 
-def read_hdf5(fn):
+def read_hdf5_particles(fn, qid):
     """
-    Read marker input from HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
+    Read particle input from HDF5 file.
 
     Parameters
     ----------
 
     fn : str
         Full path to the HDF5 file.
+    qid : str
+        qid of the particle data to be read.
 
     Returns
     -------
 
-    Dictionary containing marker data.
+    Dictionary containing particle data.
     """
+
     out = {}
     f = h5py.File(fn, "r")
 
-    out["particle"] = {}
-    out["particle"]["N"] = f["markers"].attrs["n_particle"]
-    out["guiding_center"] = {}
-    out["guiding_center"]["N"] = f["markers"].attrs["n_guiding_center"]
-    out["field_line"] = {}
-    out["field_line"]["N"] = f["markers"].attrs["n_field_line"]
     
-    if out["particle"]["N"] > 0:
-        path = "markers/particle"
-        # Metadata.
-        out["particle"]["qid"]  = f[path].attrs["qid"]
-        out["particle"]["date"] = f[path].attrs["date"]
+    path = "marker/particle-"+qid
+        
+    # Metadata.
+    out["qid"]  = qid
+    out["date"] = f[path].attrs["date"]
+    out["description"] = f[path].attrs["description"]
 
-        # Actual data.
-        for field in f[path]:
-            out["particle"][field] = f[path][field][:]
+    # Actual data.
+    for field in f[path]:
+        out[field] = f[path][field][:]
 
-    if out["guiding_center"]["N"] > 0:
-        path = "markers/guiding_center"
-        # Metadata.
-        out["guiding_center"]["qid"]  = f[path].attrs["qid"]
-        out["guiding_center"]["date"] = f[path].attrs["date"]
+    f.close()
 
-        # Actual data.
-        for field in f[path]:
-            out["guiding_center"][field] = f[path][field][:]
+    return out
 
-    if out["field_line"]["N"] > 0:
-        path = "markers/field_line"
-        # Metadata.
-        out["field_line"]["qid"]  = f[path].attrs["qid"]
-        out["field_line"]["date"] = f[path].attrs["date"]
+def read_hdf5_guidingcenters(fn, qid):
+    """
+    Read guiding-center input from HDF5 file.
 
-        # Actual data.
-        for field in f[path]:
-            out["field_line"][field] = f[path][field][:]
+    Parameters
+    ----------
+
+    fn : str
+        Full path to the HDF5 file.
+    qid : str
+        qid of the guiding-center data to be read.
+
+    Returns
+    -------
+
+    Dictionary containing guiding-center data.
+    """
+
+    out = {}
+    f = h5py.File(fn, "r")
+
+    
+    path = "marker/guiding_center-"+qid
+        
+    # Metadata.
+    out["qid"]  = qid
+    out["date"] = f[path].attrs["date"]
+    out["description"] = f[path].attrs["description"]
+
+    # Actual data.
+    for field in f[path]:
+        out[field] = f[path][field][:]
+
+    f.close()
+
+    return out
+
+def read_hdf5_fieldlines(fn, qid):
+    """
+    Read field-line input from HDF5 file.
+
+    Parameters
+    ----------
+
+    fn : str
+        Full path to the HDF5 file.
+    qid : str
+        qid of the field-line data to be read.
+
+    Returns
+    -------
+
+    Dictionary containing field-line data.
+    """
+
+    out = {}
+    f = h5py.File(fn, "r")
+
+    
+    path = "marker/field_line-"+qid
+        
+    # Metadata.
+    out["qid"]  = qid
+    out["date"] = f[path].attrs["date"]
+    out["description"] = f[path].attrs["description"]
+
+    # Actual data.
+    for field in f[path]:
+        out[field] = f[path][field][:]
 
     f.close()
 
@@ -246,7 +296,7 @@ def read_hdf5(fn):
 
 
 def write_hdf5(fn, markers):
-
+    # TODO move to ascot5.py
     f = h5py.File(fn, "a")
     if "markers" in f:
         del f["markers"]

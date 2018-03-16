@@ -6,17 +6,17 @@ import h5py
 import random
 import datetime
 
-def read_hdf5(fn):
+def read_hdf5(fn, qid):
     """
     Read distributions.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
 
     fn : str
         Full path to HDF5 file.
+    qid : str
+        qid of the run where distribution is read.
 
     Returns
     -------
@@ -25,49 +25,34 @@ def read_hdf5(fn):
     """
 
     f = h5py.File(fn,"r")
-    dists = f["distributions"]
+
+    path = "/results/run-"+qid+"/dists"
+    dists = f[path]
     out = {}
 
-    if "rzVDist" in dists:
-        out["rzVDist"]    = {}
-        temp = out
-        out  = temp["rzVDist"]
+    # A Short helper function to calculate grid points from grid edges.
+    def edges2grid(edges):
+        return np.linspace(0.5*(edges[0]+edges[1]), 0.5*(edges[-2]+edges[-1]), num=edges.size-1)
 
-        out['R_edges']    = dists['rzVDist/abscissae/dim1'][:]
-        out['R']          = np.linspace(0.5*(out['R_edges'][0]+out['R_edges'][1]), 0.5*(out['R_edges'][-2]+out['R_edges'][-1]), num=out['R_edges'].size-1)
-        out['R_unit']     = 'm'
-        out['nR']         = out['R'].size
+    if "R_phi_z_vpa_vpe_t_q" in dists:
+        out["R_phi_z_vpa_vpe_t_q"] = {}
+        temp = out["R_phi_z_vpa_vpe_t_q"]
+        disttemp = dists["R_phi_z_vpa_vpe_t_q"]
 
-        out['z_edges']    = dists['rzVDist/abscissae/dim2'][:]
-        out['z']          = np.linspace(0.5*(out['z_edges'][0]+out['z_edges'][1]), 0.5*(out['z_edges'][-2]+out['z_edges'][-1]), num=out['z_edges'].size-1)
-        out['z_unit']     = 'm'
-        out['nz']         = out['z'].size
+        # These could be read directly from HDF5 file, but for clarity we list them here
+        abscissae_names = ["R", "phi", "z", "vpa", "vpe", "time", "charge"]
+        abscissae_units = ["m", "deg", "m", "m/s", "m/s", "s", "e"]
+        abscissae_realnames = ["Major radius", "Toroidal angle", "Height", "Velocity parallel to magnetic field", "Velocity perpendicular to magnetic field", "Time", "Charge"]
 
-        out['vpa_edges']  = dists['rzVDist/abscissae/dim3'][:]
-        out['vpa']        = np.linspace(0.5*(out['vpa_edges'][0]+out['vpa_edges'][1]), 0.5*(out['vpa_edges'][-2]+out['vpa_edges'][-1]), num=out['vpa_edges'].size-1)
-        out['vpa_unit']   = 'm/s'
-        out['nvpa']       = out['vpa'].size
-
-        out['vpe_edges']  = dists['rzVDist/abscissae/dim4'][:]
-        out['vpe']        = np.linspace(0.5*(out['vpe_edges'][0]+out['vpe_edges'][1]), 0.5*(out['vpe_edges'][-2]+out['vpe_edges'][-1]), num=out['vpe_edges'].size-1)
-        out['vpe_unit']   = 'm/s'
-        out['nvpe']       = out['vpe'].size
-
-        out['time_edges'] = dists['rzVDist/abscissae/dim5'][:]
-        out['time']       = np.linspace(0.5*(out['time_edges'][0]+out['time_edges'][1]), 0.5*(out['time_edges'][-2]+out['time_edges'][-1]), num=out['time_edges'].size-1)
-        out['time_unit']  = 's'
-        out['ntime']      = out['time'].size
-
-        # In HDF5 the ordinate shape is, for some reason, (1,1,vpe,vpa,z,R,1), one of those 1's is time but we ignore that
-        #out['ordinate']       = np.transpose(dists['rzVDist/ordinate'][0,0,:],(3,2,1,0,4))
-        #print(dists['rzVDist/ordinate'].shape)
-        out['ordinate']       = dists['rzVDist/ordinate'][:,:,:,:,:,0]
-        #out['ordinate']       = np.transpose(dists['rzVDist/ordinate'][0,0,:],(3,2,1,0))
-        #print(out['ordinate'].shape)
-        out['ordinate_names'] = ['R','z','vpa','vpe','time']
-
-        temp["rzVDist"] = out
-        out = temp
+        for i in range(0,len(abscissae_names)):
+            name = abscissae_names[i]
+            temp[name + '_edges'] = disttemp['abscissa_vec_00000'+str(i+1)][:]
+            temp[name]            = edges2grid(temp[name + '_edges'])
+            temp[name + '_unit']  = abscissae_units[i]
+            temp['n_' + name]     = temp[name].size
+        
+        temp['ordinate']       = disttemp['ordinate'][0,:,:,:,:,:,:,:]
+        temp['ordinate_name'] = 'density'
 
     f.close()
 
