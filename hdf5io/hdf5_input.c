@@ -160,6 +160,9 @@ int hdf5_initoutput(sim_offload_data* sim, char* qid) {
 	hdf5_close(fout);
 	return -1;
     }
+
+    /* Set this run as the active result. */
+    H5LTset_attribute_string(fout, "/results", "active", qid);
     
     /* Read input data qids and store them here. */
     char inputqid[11];
@@ -183,11 +186,13 @@ int hdf5_initoutput(sim_offload_data* sim, char* qid) {
     H5LTget_attribute_string(fout, "/marker/", "active", inputqid);
     H5LTset_attribute_string(fout, path, "qid_marker", inputqid);
     
-    /* Finally we set a date and close the file. */
+    /* Finally we set a description and date, and close the file. */
+    H5LTset_attribute_string(fout, path, "description", "");
+    
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
-    char date[20];
-    sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    char date[21];
+    sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     H5LTset_attribute_string(fout, path, "date", date);
     hdf5_close(fout);
     
