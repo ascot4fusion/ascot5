@@ -81,7 +81,7 @@ void hdf5_wall_init_offload_2D(hid_t f, wall_2d_offload_data* offload_data, real
     char path[256];
 
     /* Read number of wall elements */
-    err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/wall/wall_2D-XXXXXXXXXX/n", qid, path), &(offload_data->n));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/wall/wall_2D-XXXXXXXXXX/n", qid, path), &(offload_data->n));
     offload_data->offload_array_length = 2 * offload_data->n;
     *offload_array = (real*) malloc(2 * offload_data->n * sizeof(real));
 
@@ -90,8 +90,8 @@ void hdf5_wall_init_offload_2D(hid_t f, wall_2d_offload_data* offload_data, real
     real* r = &(*offload_array)[0];
     real* z = &(*offload_array)[offload_data->n];
         
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("wall/wall_2D-XXXXXXXXXX/r", qid, path), r);
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("wall/wall_2D-XXXXXXXXXX/z", qid, path), z);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_2D-XXXXXXXXXX/r", qid, path), r);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_2D-XXXXXXXXXX/z", qid, path), z);
 
 }
 
@@ -107,7 +107,7 @@ void hdf5_wall_init_offload_3D(hid_t f, wall_3d_offload_data* offload_data, real
     char path[256];
 
     /* Read number of wall elements */
-    err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/n", qid, path), &(offload_data->n));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/n", qid, path), &(offload_data->n));
 
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/min_x", qid, path), &(offload_data->xmin));
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/max_x", qid, path), &(offload_data->xmax));
@@ -135,9 +135,9 @@ void hdf5_wall_init_offload_3D(hid_t f, wall_3d_offload_data* offload_data, real
     real* y1y2y3 = (real*)malloc(3 * offload_data->n * sizeof(real));
     real* z1z2z3 = (real*)malloc(3 * offload_data->n * sizeof(real));
     
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("wall/wall_3D-XXXXXXXXXX/x1x2x3", qid, path), x1x2x3);
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("wall/wall_3D-XXXXXXXXXX/y1y2y3", qid, path), y1y2y3);
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("wall/wall_3D-XXXXXXXXXX/z1z2z3", qid, path), z1z2z3);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/x1x2x3", qid, path), x1x2x3);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/y1y2y3", qid, path), y1y2y3);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/z1z2z3", qid, path), z1z2z3);
 
     /* The data in the offload array is to be in the format
      *  [x1 y1 z1 x2 y2 z2 x3 y3 z3; ... ]
