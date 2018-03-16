@@ -77,9 +77,9 @@ int hdf5_markers_init(hid_t f, int *n, input_particle** p) {
 void hdf5_markers_init_particle(hid_t f, int* nmrk, input_particle** mrk, char* qid) {
     herr_t err;
     char path[256];
-    int i;
+    integer i;
 
-    int n;
+    integer n;
     err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/n", qid, path), &n);
     *nmrk = n;
     
@@ -142,9 +142,9 @@ void hdf5_markers_init_particle(hid_t f, int* nmrk, input_particle** mrk, char* 
 void hdf5_markers_init_guiding_center(hid_t f, int* nmrk, input_particle** mrk, char* qid) {
     herr_t err;
     char path[256];
-    int i;
+    integer i;
 
-    int n;
+    integer n;
     err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/n", qid, path), &n);
     *nmrk = n;
     
@@ -206,9 +206,9 @@ void hdf5_markers_init_guiding_center(hid_t f, int* nmrk, input_particle** mrk, 
 void hdf5_markers_init_field_line(hid_t f, int* nmrk, input_particle** mrk, char* qid) {
     herr_t err;
     char path[256];
-    int i;
+    integer i;
 
-    int n;
+    integer n;
     err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/n", qid, path), &n);
     *nmrk = n;
     
