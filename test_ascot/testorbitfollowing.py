@@ -85,7 +85,8 @@ def init(fast):
         B_GS.write_hdf5(fn[i], R0, z0, B_phi0, psi_mult, psi_coeff)
 
         # Options
-        o = options.read_hdf5(fn[i])
+        qid,date = ascot5.get_qids(fn[i],"options")
+        o = options.read_hdf5(fn[i], qid[0])
         o["SIM_MODE"]                      = 0*o["SIM_MODE"] + simmode[i]
         o["ENABLE_ADAPTIVE"]               = 0*o["ENABLE_ADAPTIVE"] + adaptive[i]
         o["FIXEDSTEP_USE_USERDEFINED"]     = 0*o["FIXEDSTEP_USE_USERDEFINED"] + 1
@@ -114,10 +115,11 @@ def check(plot):
     # Read orbits
     ids, t, R, z, Ekin, mu, cpphi = ([] for i in range(7))
     for i in range(0,len(fn)):
+        qid,date = ascot5.get_qids(fn[i],"results")
         if simmode[i] == 1:
-            orb = ascot5.read_hdf5(fn[i],"orbits")["orbits"]["fo"]
+            orb = ascot5.read_hdf5(fn[i],"orbits")["run-"+qid[0]]["orbits"]["fo"]
         else:
-            orb = ascot5.read_hdf5(fn[i],"orbits")["orbits"]["gc"]
+            orb = ascot5.read_hdf5(fn[i],"orbits")["run-"+qid[0]]["orbits"]["gc"]
 
         ids.append(orb["id"])
         t.append(orb["time"])

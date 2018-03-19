@@ -6,6 +6,7 @@ import a5py.ascot5io.B_TC as B_TC
 import a5py.ascot5io.E_TC as E_TC
 import a5py.ascot5io.plasma_1D as plasma_1D
 import a5py.ascot5io.wall_2D as wall_2D
+import a5py.ascot5io.N0_3D as N0_3D
 import a5py.ascot5io.options as options
 
 import sys
@@ -43,7 +44,7 @@ def createbase(fn, Bxyz, Exyz, n, T):
     ntemp = 0*np.ones(rho.shape)
     edens = n*np.ones(rho.shape)
     etemp = T*np.ones(rho.shape)
-    idens = n*np.ones(rho.shape)
+    idens = n*np.ones((rho.size,1))
     itemp = T*np.ones(rho.shape)
     plasma_1D.write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, idens, itemp)
 
@@ -51,6 +52,9 @@ def createbase(fn, Bxyz, Exyz, n, T):
     R = np.array([0.1, 100, 100, 0.1])
     z = np.array([-100, -100, 100, 100])
     wall_2D.write_hdf5(fn, n, R, z)
+
+    N0 = np.array([ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ])
+    N0_3D.write_hdf5(fn, -1, 1, 2, -1, 1, 2, 0, 2*np.pi, 2, N0)
 
     o = opt.generateopt()
     o = flagsToZero(o,"ENABLE")
