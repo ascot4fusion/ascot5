@@ -14,7 +14,7 @@
 
 #pragma omp declare target
 void sim_init(sim_data* sim, sim_offload_data* offload_data);
-void sim_monitor(FILE* f, int* n, int finished);
+void sim_monitor(FILE* f, volatile int* n, volatile int* finished);
 #pragma omp end declare target
 
 void simulate(int id, int n_particles, particle_state* p,
@@ -136,7 +136,7 @@ void simulate(int id, int n_particles, particle_state* p,
         {
 #if VERBOSE > 1
             /* Update progress until simulation is complete. */
-            sim_monitor(f, &pq.n, pq.finished);
+            sim_monitor(f, &pq.n, &pq.finished);
 #endif
         }
     }
@@ -197,7 +197,7 @@ void simulate(int id, int n_particles, particle_state* p,
             #pragma omp section
             {
 #if VERBOSE > 1
-                sim_monitor(f, &pq_hybrid.n, pq_hybrid.finished);
+                sim_monitor(f, &pq_hybrid.n, &pq_hybrid.finished);
 #endif
             }
         }
@@ -248,14 +248,14 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->endcond_maxPolOrb    = offload_data->endcond_maxPolOrb;
 }
 
-void sim_monitor(FILE* f, int* n, int finished) {
+void sim_monitor(FILE* f, volatile int* n, volatile int* finished) {
     real timer = A5_WTIME;
-    while(f != NULL && *n > finished) {
+    while(f != NULL && *n > *finished) {
         real epsilon = 1e-10;// To avoid division by zero
-        real fracprog = ((real) finished)/(*n);
+        real fracprog = ((real) *finished)/(*n);
         real timespent = (A5_WTIME)-timer;
         fprintf(f, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, "
-            "estimated time to finish: %.2f h\n", finished, *n, 100*fracprog,
+            "estimated time to finish: %.2f h\n", *finished, *n, 100*fracprog,
             timespent/3600, (1/(fracprog+epsilon)-1)*timespent/3600);
         fflush(f);
         sleep(A5_PRINTPROGRESSINTERVAL);
