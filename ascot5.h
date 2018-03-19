@@ -116,11 +116,7 @@ typedef double real;
 #define A5_PRINTPROGRESSINTERVAL 60
 
 /** @brief Wall time */
-#ifdef _OMP
 #define A5_WTIME omp_get_wtime()
-#else
-#define A5_WTIME ( ((real)clock()) / CLOCKS_PER_SEC)
-#endif
 
 /** @brief Choose whether magnetic field spline interpolation is done
  *  with an explicit (1) or compact (0) way*/
