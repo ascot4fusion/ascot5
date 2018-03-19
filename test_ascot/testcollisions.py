@@ -61,7 +61,8 @@ def init(fast=False):
 
     # Common options and markers
     for i in range(0,6):
-        o = options.read_hdf5(fn[0])
+        qid,date = ascot5.get_qids(fn[0],"options")
+        o = options.read_hdf5(fn[0],qid[0])
         o["SIM_MODE"]                  = 0*o["SIM_MODE"] + simmode[i]
         o["ENABLE_ADAPTIVE"]           = 0*o["ENABLE_ADAPTIVE"] + adaptive[i]
         o["FIXEDSTEP_USE_USERDEFINED"] = 0*o["FIXEDSTEP_USE_USERDEFINED"] + 1
@@ -70,29 +71,31 @@ def init(fast=False):
         o["ADAPTIVE_TOL_CCOL"]         = 0*o["ADAPTIVE_TOL_CCOL"] + tolcol
         o["ENABLE_ORBIT_FOLLOWING"]    = 0*o["ENABLE_ORBIT_FOLLOWING"] + orbfollowing
         o["ENABLE_COULOMB_COLLISIONS"] = 0*o["ENABLE_COULOMB_COLLISIONS"] + 1
-        o["ENABLE_RZVparaVperp_DIST"]  = 0*o["ENABLE_RZVparaVperp_DIST"] + 1
-        o["DIST_RZVparaVperp_MIN_R"]   = 0*o["DIST_RZVparaVperp_MIN_R"] + 4
-        o["DIST_RZVparaVperp_MAX_R"]   = 0*o["DIST_RZVparaVperp_MAX_R"] + 8
-        o["DIST_RZVparaVperp_BIN_R"]   = 0*o["DIST_RZVparaVperp_BIN_R"] + 1
-        o["DIST_RZVparaVperp_MIN_Z"]   = 0*o["DIST_RZVparaVperp_MIN_Z"] - 5
-        o["DIST_RZVparaVperp_MAX_Z"]   = 0*o["DIST_RZVparaVperp_MAX_Z"] + 5
-        o["DIST_RZVparaVperp_BIN_Z"]   = 0*o["DIST_RZVparaVperp_BIN_Z"] + 1
+        
+        o["ENABLE_R_phi_z_vpa_vpe_t_q_DIST"]  = 0*o["ENABLE_R_phi_z_vpa_vpe_t_q_DIST"] + 1
+        o["DIST_MIN_R"]   = 0*o["DIST_MIN_R"] + 4
+        o["DIST_MAX_R"]   = 0*o["DIST_MAX_R"] + 8
+        o["DIST_NBIN_R"]  = 0*o["DIST_NBIN_R"] + 1
+        o["DIST_MIN_z"]   = 0*o["DIST_MIN_z"] - 5
+        o["DIST_MAX_z"]   = 0*o["DIST_MAX_z"] + 5
+        o["DIST_NBIN_z"]  = 0*o["DIST_NBIN_z"] + 1
         o["ENABLE_ORBITWRITE"]         = 0*o["ENABLE_ORBITWRITE"] + 0
         o["ORBITWRITE_MODE"]           = 0*o["ORBITWRITE_MODE"] + 1
         options.write_hdf5(fn[i],o)
 
     # Thermal options and markers
     for i in range(0,3):
-        o = options.read_hdf5(fn[i])
+        qid,date = ascot5.get_qids(fn[i],"options")
+        o = options.read_hdf5(fn[i],qid[0])
         o["ENDCOND_SIMTIMELIM"]          = 0*o["ENDCOND_SIMTIMELIM"] + 1
         o["ENDCOND_MAX_SIM_TIME"]        = 0*o["ENDCOND_MAX_SIM_TIME"] + 1e-3
         o["ORBITWRITE_INTERVAL"]         = 0*o["ORBITWRITE_INTERVAL"] + 1e-5
-        o["DIST_RZVparaVperp_MIN_VPARA"] = 0*o["DIST_RZVparaVperp_MIN_VPARA"] - 2e6
-        o["DIST_RZVparaVperp_MAX_VPARA"] = 0*o["DIST_RZVparaVperp_MAX_VPARA"] + 2e6
-        o["DIST_RZVparaVperp_BIN_VPARA"] = 0*o["DIST_RZVparaVperp_BIN_VPARA"] + 100
-        o["DIST_RZVparaVperp_MIN_VPERP"] = 0*o["DIST_RZVparaVperp_MIN_VPERP"] + 0
-        o["DIST_RZVparaVperp_MAX_VPERP"] = 0*o["DIST_RZVparaVperp_MAX_VPERP"] + 2e6
-        o["DIST_RZVparaVperp_BIN_VPERP"] = 0*o["DIST_RZVparaVperp_BIN_VPERP"] + 50
+        o["DIST_MIN_vpa"]  = 0*o["DIST_MIN_vpa"] - 2e6
+        o["DIST_MAX_vpa"]  = 0*o["DIST_MAX_vpa"] + 2e6
+        o["DIST_NBIN_vpa"] = 0*o["DIST_NBIN_vpa"] + 100
+        o["DIST_MIN_vpe"]  = 0*o["DIST_MIN_vpe"] + 0
+        o["DIST_MAX_vpe"]  = 0*o["DIST_MAX_vpe"] + 2e6
+        o["DIST_NBIN_vpe"] = 0*o["DIST_NBIN_vpe"] + 50
         options.write_hdf5(fn[i],o)
 
         ids    = np.linspace(1,Nmrkth,Nmrkth)
@@ -112,17 +115,18 @@ def init(fast=False):
 
     # Slowing down options and markers
     for i in range(3,6):
-        o = options.read_hdf5(fn[i])
+        qid,date = ascot5.get_qids(fn[i],"options")
+        o = options.read_hdf5(fn[i],qid[0])
         o["ENDCOND_ENERGYLIM"]                = 0*o["ENDCOND_ENERGYLIM"] + 1
         o["ENDCOND_MIN_ENERGY"]               = 0*o["ENDCOND_MIN_ENERGY"] + 1e3
         o["ENDCOND_MIN_ENERGY_TIMES_THERMAL"] = 0*o["ENDCOND_MIN_ENERGY_TIMES_THERMAL"] + 0.01
         o["ORBITWRITE_INTERVAL"]              = 0*o["ORBITWRITE_INTERVAL"] + 1e-4
-        o["DIST_RZVparaVperp_MIN_VPARA"]      = 0*o["DIST_RZVparaVperp_MIN_VPARA"] - 5e6
-        o["DIST_RZVparaVperp_MAX_VPARA"]      = 0*o["DIST_RZVparaVperp_MAX_VPARA"] + 5e6
-        o["DIST_RZVparaVperp_BIN_VPARA"]      = 0*o["DIST_RZVparaVperp_BIN_VPARA"] + 200
-        o["DIST_RZVparaVperp_MIN_VPERP"]      = 0*o["DIST_RZVparaVperp_MIN_VPERP"] + 0
-        o["DIST_RZVparaVperp_MAX_VPERP"]      = 0*o["DIST_RZVparaVperp_MAX_VPERP"] + 5e6
-        o["DIST_RZVparaVperp_BIN_VPERP"]      = 0*o["DIST_RZVparaVperp_BIN_VPERP"] + 100
+        o["DIST_MIN_vpa"]      = 0*o["DIST_MIN_vpa"] - 5e6
+        o["DIST_MAX_vpa"]      = 0*o["DIST_MAX_vpa"] + 5e6
+        o["DIST_NBIN_vpa"]     = 0*o["DIST_NBIN_vpa"] + 200
+        o["DIST_MIN_vpe"]      = 0*o["DIST_MIN_vpe"] + 0
+        o["DIST_MAX_vpe"]      = 0*o["DIST_MAX_vpe"] + 5e6
+        o["DIST_NBIN_vpe"]     = 0*o["DIST_NBIN_vpe"] + 100
     
         options.write_hdf5(fn[i],o)
 
@@ -137,7 +141,7 @@ def init(fast=False):
         time   = 0*np.ones(ids.shape)
     
         energy = E0*np.ones(ids.shape)
-        pitch  = 1-2*np.random.rand(1,Nmrksd)
+        pitch  = 1-2*np.random.rand(Nmrksd)
         markers.write_hdf5_guidingcenters(fn[i], Nmrksd, ids, mass, charge, 
                                           R, phi, z, energy, pitch, theta, weight, time)
 
@@ -161,20 +165,22 @@ def check(plot=False):
 
     # Gather thermal process data
     for i in range(0,3):
-        s = ascot5.read_hdf5(fn[i],"states")["states"]["endstate"]
-        s = gather(s)
+        qid,date = ascot5.get_qids(fn[i],"results")
+        s = ascot5.read_hdf5(fn[i],"states")["run-"+qid[0]]["endstate"]
+        gather(s)
 
         thEkin.append(np.histogram(s["Ekin"],   bins=thEgrid, density=True))
         thpitch.append(np.histogram(s["pitch"], bins=pitchgrid, density=True))
 
     for i in range(3,6):
-        s = ascot5.read_hdf5(fn[i],"states")["states"]["endstate"]
-        s = gather(s)
+        qid,date = ascot5.get_qids(fn[i],"results")
+        s = ascot5.read_hdf5(fn[i],"states")["run-"+qid[0]]["endstate"]
+        gather(s)
         
         sdpitch.append(np.histogram(s["pitch"], bins=pitchgrid, density=True))
         sdtime.append(np.histogram(s["time"], bins=sdtimegrid, density=True))
         
-        dist = ascot5.read_hdf5(fn[i],"dists")["dists"]["rzVDist"]
+        dist = ascot5.read_hdf5(fn[i],"dists")["run-"+qid[0]]["dists"]["R_phi_z_vpa_vpe_t_q"]
         vpagrid = dist["vpa"]
         vpegrid = dist["vpe"]
         sdvdist.append(np.transpose(np.squeeze(dist["ordinate"])))
