@@ -146,7 +146,7 @@ int hdf5_plasma_init_offload_1D(hid_t f, plasma_1D_offload_data* offload_data,
 	printf("- Number of ion species %d:\n",
 	       n_ions); 
 	for(int k=0; k<n_ions; k++) {
-	    printf("  - Znum %d, Amass %d\n", offload_data->charge[k+1], offload_data->mass[k+1]);
+	    printf("  - Znum %f, Amass %f\n", offload_data->charge[k+1]/CONST_E, offload_data->mass[k+1]/CONST_U);
 	}
 	//printf("- Number of neutral species %d, Znum %d, Anum %d\n");
 	printf("- Central electron temperature %le eV and density %le m^-3\n",
