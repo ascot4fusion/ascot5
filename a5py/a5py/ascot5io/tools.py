@@ -97,8 +97,6 @@ def copygroup(fns, fnt, mastergroup, qid):
 
     The copied field is set as the active field in target HDF5 file.
 
-    TODO not compatible with new HDF5 format.
-
     Parameters
     ----------
     fns : str
@@ -144,7 +142,8 @@ def combineresults(fnt, fns, mode="add"):
     """
     Combine output of multiple HDF5 files into one.
 
-    TODO Not compatible with new HDF5 format.
+    Since files can have multiple run, this function affects those
+    that are defined as being "active" or most recent in the results group.
 
     Parameters
     ----------
@@ -161,12 +160,13 @@ def combineresults(fnt, fns, mode="add"):
     """
 
     print("Combining output to " + fnt + " with mode " + "\"" + mode + "\"")
-    
+
+    target_qid = ascot5.get_qids(fnt, "results")[0]
 
     for state in ["inistate", "endstate"]:
         print("Combining " + state)
 
-        target = ascot5.read_hdf5(fnt,"states")
+        target = ascot5.read_hdf5(fnt,"states")       
 
         # Check whether target has the desired state.
         # Init empty state if necessary.

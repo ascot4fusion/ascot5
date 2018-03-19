@@ -6,17 +6,17 @@ import h5py
 import random
 import datetime
 
-def read_hdf5(fn):
+def read_hdf5(fn, qid):
     """
     Read orbits.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
 
     fn : str
         Full path to HDF5 file.
+    qid : str
+        qid of the run these orbit data correspond to.
 
     Returns
     -------
@@ -25,7 +25,7 @@ def read_hdf5(fn):
     """
 
     f = h5py.File(fn,"r")
-    orbits = f["orbits"]
+    orbits = f["/results/run-"+qid+"/orbits"]
 
     out = {}
 

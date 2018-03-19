@@ -148,9 +148,8 @@ def read_hdf5(fn, groups="all"):
                 out[path]["endstate"] = st["endstate"]
             if "dists" in f["results"][path] and "dists" in groups:
                 out[path]["dists"] = dists.read_hdf5(fn,qid)
-            if "orbits" in f["results"][path] and "dists" in groups:
-                print("Orbit reading not yet implementd")
-                #out[path]["orbits"] = orbits.read_hdf5(fn,qid)
+            if "orbits" in f["results"][path] and "orbits" in groups:
+                out[path]["orbits"] = orbits.read_hdf5(fn,qid)
 
     f.close()
 
