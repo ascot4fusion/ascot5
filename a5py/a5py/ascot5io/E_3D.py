@@ -72,17 +72,18 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     f.close()
 
 
-def read_hdf5(fn):
+def read_hdf5(fn,qid):
     """
     Read 3D electric field input from HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
 
     fn : str
         Full path to the HDF5 file.
+    qid : str
+        qid of the bfield to be read.
+    
 
     Returns
     -------
@@ -90,31 +91,32 @@ def read_hdf5(fn):
     Dictionary containing magnetic field data.
     """
 
-    path = "efield/E_3D"
+    path = "Efield" + "/E_3D-" + qid
 
     f = h5py.File(fn,"r")
 
     out = {}
 
     # Metadata.
-    out["qid"]  = f[path].attrs["qid"]
+    out["qid"] = qid
     out["date"] = f[path].attrs["date"]
-
+    out["description"] = f[path].attrs["description"]
+    
     # Actual data.
-    out["Rmin"] = f[path]["r_min"][:]
-    out["Rmax"] = f[path]["r_max"][:]
-    out["nR"]   = f[path]["n_r"][:]
+    out["R_min"] = f[path]["R_min"][:]
+    out["R_max"] = f[path]["R_max"][:]
+    out["n_R"]   = f[path]["n_R"][:]
 
-    out["phimin"] = f[path]["phi_min"][:]
-    out["phimax"] = f[path]["phi_max"][:]
-    out["nphi"]   = f[path]["n_phi"][:]
+    out["phi_min"] = f[path]["phi_min"][:]
+    out["phi_max"] = f[path]["phi_max"][:]
+    out["n_phi"]   = f[path]["n_phi"][:]
 
-    out["zmin"] = f[path]["z_min"][:]
-    out["zmax"] = f[path]["z_max"][:]
-    out["nz"]   = f[path]["n_z"][:]
+    out["z_min"] = f[path]["z_min"][:]
+    out["z_max"] = f[path]["z_max"][:]
+    out["n_z"]   = f[path]["n_z"][:]
 
-    out["E_R"]   = f[path]["E_r"][:]
-    out["E_phi"] = np.reshape(f[path]["E_phi"][:], (out["nz"][0], out["nphi"][0], out["nR"][0]))#f[path]["B_phi"][:]
+    out["E_R"]   = f[path]["E_R"][:]
+    out["E_phi"] = f[path]["E_phi"][:]
     out["E_z"]   = f[path]["E_z"][:]
     
     f.close()
