@@ -70,11 +70,11 @@ int E_3D_init(E_3D_data* Edata, E_3D_offload_data* offload_data,
  * This function evaluates the electric field at the given coordinates using
  * trilinear interpolation on the 3D electric field data.
  *
- * @param n0 n0 value will be stored in n0[0]
+ * @param E value will be stored in E[1] E[2] E[3]
  * @param r r coordinate
  * @param phi phi coordinate
  * @param z z coordinate
- * @param ndata pointer to neutral density data struct
+ * @param Edata pointer to electric field data struct
  *
  */
 a5err E_3D_eval_E(real E[], real r, real phi, real z,
