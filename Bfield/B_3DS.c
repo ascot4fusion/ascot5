@@ -1,3 +1,4 @@
+
 /**
  * @file B_3DS.c
  * @brief 3D magnetic field with cubic spline interpolation
