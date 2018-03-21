@@ -10,11 +10,12 @@
 #include "Bfield/B_GS.h"
 #include "Bfield/B_2DS.h"
 #include "Bfield/B_3DS.h"
+#include "Bfield/B_3DS_T.h"
 #include "Bfield/B_STS.h"
 #include "Bfield/B_TC.h"
 
 typedef enum B_field_type {
-    B_field_type_GS, B_field_type_2DS, B_field_type_3DS, B_field_type_STS, B_field_type_TC
+  B_field_type_GS, B_field_type_2DS, B_field_type_3DS, B_field_type_3DS_T, B_field_type_STS, B_field_type_TC
 } B_field_type;
 
 typedef struct {
@@ -22,6 +23,7 @@ typedef struct {
     B_GS_offload_data BGS;
     B_2DS_offload_data B2DS;
     B_3DS_offload_data B3DS;
+    B_3DS_T_offload_data B3DST;
     B_STS_offload_data BSTS;
     B_TC_offload_data BTC;
     int offload_array_length;
@@ -32,7 +34,7 @@ typedef struct {
     B_GS_data BGS;
     B_2DS_data B2DS;
     B_3DS_data B3DS;
-    B_3DS_T_data B3DST[10];
+    B_3DS_T_data B3DST;
     B_STS_data BSTS;
     B_TC_data BTC;
 } B_field_data;

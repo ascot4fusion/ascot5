@@ -13,8 +13,9 @@
 #include "../B_field.h"
 #include "../Bfield/B_2DS.h"
 #include "../Bfield/B_3DS.h"
+#include "../Bfield/B_3DS_T.h"
 #include "../Bfield/B_STS.h"
-#include "hdf5_helpers.h"
+##include "hdf5_helpers.h"
 #include "hdf5_bfield.h"
 
 /**
@@ -148,25 +149,25 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 
     hdf5_generate_qid_path("/bfield/B_3DS_T-XXXXXXXXXX", active, path);
     if(hdf5_find_group(f, path) == 0) {
-      hdf5_bfield_init_offload_3DS_T(f, &(offload_data->B3DS_T), offload_array, active);
+      hdf5_bfield_init_offload_3DS_T(f, &(offload_data->B3DST), offload_array, active);
       offload_data->type = B_field_type_3DS_T;
-      offload_data->offload_array_length=offload_data->B3DS_T.offload_array_length;
+      offload_data->offload_array_length=offload_data->B3DST.offload_array_length;
 
         #if VERBOSE > 0
       printf("\nLoaded 3D magnetic field (B_3DS_T) time interpolated\n");
       printf("with parameters:\n");
       printf("- %d time slices\n",
-	     offload_data->B3DS_T.n_time);
+	     offload_data->B3DST.n_time);
       printf("- t = [");
       int i = 0;
-      for (i=0;i<(offload_data->B3DS_T.n_time-1);i++){
-	printf("%le, ",offload_data->B3DS_T.time[i]);
+      for (i=0;i<(offload_data->B3DST.n_time-1);i++){
+	printf("%le, ",offload_data->B3DST.time[i]);
       }
-      printf("%le]\n",offload_data->B3DS_T.time[offload_data->B3DS_T.n_time-1]);
+      printf("%le]\n",offload_data->B3DST.time[offload_data->B3DST.n_time-1]);
       printf("- rmin, rmax, nr = %le, %le, %d\n",
-	     offload_data->B3DS.psigrid_r_min,offload_data->B3DS.psigrid_r_max,offload_data->B3DS.psigrid_n_r);
+	     offload_data->B3DST.psigrid_r_min,offload_data->B3DST.psigrid_r_max,offload_data->B3DST.psigrid_n_r);
       printf("- zmin, zmax, nz = %le, %le, %d\n",
-	     offload_data->B3DS.psigrid_z_min,offload_data->B3DS.psigrid_z_max,offload_data->B3DS.psigrid_n_z);
+	     offload_data->B3DST.psigrid_z_min,offload_data->B3DST.psigrid_z_max,offload_data->B3DST.psigrid_n_z);
       printf("with parameters:\n");
         #endif
       return 1;
@@ -373,7 +374,12 @@ void hdf5_bfield_init_offload_3DS_T(hid_t f, B_3DS_T_offload_data* offload_data,
   /* Read number of time slices */
 
   err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_3DS_T-XXXXXXXXXX/n_time", qid, path), &(offload_data->n_time));
-  if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;} //here an error should be included if >10
+  if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;} 
+  if(offload_data->n_time>N_MAX_TIME_SLICE){
+    err = 46;
+    printf("Error: n_time > N_MAX_TIME_SLICE");
+    return;
+  }
 
   err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS_T-XXXXXXXXXX/time", qid, path), &(offload_data->time));
   if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}

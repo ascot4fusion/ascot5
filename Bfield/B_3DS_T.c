@@ -73,57 +73,57 @@ int B_3DS_T_init(B_3DS_T_data* Bdata, B_3DS_T_offload_data* offload_data,
 
     for(i=0;i<offload_data->n_time;i++){
 
-      Bdata[i].time = offload_data->time[i];
+      Bdata->time[i] = offload_data->time[i];
       
-      Bdata[i].psi0 = offload_data->psi0[i];
-      Bdata[i].psi1 = offload_data->psi1[i];
-      Bdata[i].axis_r = offload_data->axis_r[i];
-      Bdata[i].axis_z = offload_data->axis_z[i];
+      Bdata->Bslice[i].psi0 = offload_data->psi0[i];
+      Bdata->Bslice[i].psi1 = offload_data->psi1[i];
+      Bdata->Bslice[i].axis_r = offload_data->axis_r[i];
+      Bdata->Bslice[i].axis_z = offload_data->axis_z[i];
       /* Spline initialization and storage. */
 
       #if INTERP_SPL_EXPL
-      err += interp2Dexpl_init(&Bdata[i].psi, offload_array + 3*B_size*offload_data->n_time + i*psi_size,
+      err += interp2Dexpl_init(&Bdata->Bslice[i].psi, offload_array + 3*B_size*offload_data->n_time + i*psi_size,
 	offload_data->psigrid_n_r, offload_data->psigrid_n_z,
 	offload_data->psigrid_r_min, offload_data->psigrid_r_max, offload_data->psigrid_r_grid,
 	offload_data->psigrid_z_min, offload_data->psigrid_z_max, offload_data->psigrid_z_grid);
     
-      err += interp3Dexpl_init(&Bdata[i].B_r, offload_array + 0*B_size*offload_data->n_time + i*B_size,
+      err += interp3Dexpl_init(&Bdata->Bslice[i].B_r, offload_array + 0*B_size*offload_data->n_time + i*B_size,
 	offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
 	offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 	offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 	offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
-      err += interp3Dexpl_init(&Bdata[i].B_phi, offload_array + 1*B_size*offload_data->n_time + i*B_size,
+      err += interp3Dexpl_init(&Bdata->Bslice[i].B_phi, offload_array + 1*B_size*offload_data->n_time + i*B_size,
 	offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
 	offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 	offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 	offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     	
-      err += interp3Dexpl_init(&Bdata[i].B_z, offload_array + 2*B_size*offload_data->n_time + i*B_size,
+      err += interp3Dexpl_init(&Bdata->Bslice[i].B_z, offload_array + 2*B_size*offload_data->n_time + i*B_size,
 	offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
 	offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 	offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 	offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
       #else
-      err += interp2Dcomp_init(&Bdata[i].psi, offload_array + 3*B_size*offload_data->n_time + i*psi_size,
+      err += interp2Dcomp_init(&Bdata->Bslice[i].psi, offload_array + 3*B_size*offload_data->n_time + i*psi_size,
 			     offload_data->psigrid_n_r, offload_data->psigrid_n_z,
 			     offload_data->psigrid_r_min, offload_data->psigrid_r_max, offload_data->psigrid_r_grid,
 			     offload_data->psigrid_z_min, offload_data->psigrid_z_max, offload_data->psigrid_z_grid);
     
-      err += interp3Dcomp_init(&Bdata[i].B_r, offload_array + 0*B_size*offload_data->n_time + i*B_size,
+      err += interp3Dcomp_init(&Bdata->Bslice[i].B_r, offload_array + 0*B_size*offload_data->n_time + i*B_size,
 			     offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
 			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
-      err += interp3Dcomp_init(&Bdata[i].B_phi, offload_array + 1*B_size*offload_data->n_time + i*B_size,
+      err += interp3Dcomp_init(&Bdata->Bslice[i].B_phi, offload_array + 1*B_size*offload_data->n_time + i*B_size,
 			     offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
 			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
-      err += interp3Dcomp_init(&Bdata[i].B_z, offload_array + 2*B_size*offload_data->n_time + i*B_size,
+      err += interp3Dcomp_init(&Bdata->Bslice[i].B_z, offload_array + 2*B_size*offload_data->n_time + i*B_size,
 			     offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
 			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
@@ -159,33 +159,33 @@ a5err B_3DS_T_eval_psi(real psi[], real r, real phi, real z, real time,
 
     int i = 0;
 
-    if(time < Bdata[0].time){      
+    if(time < Bdata->time[0]){      
     #if INTERP_SPL_EXPL
-      interperr += interp2Dexpl_eval_B(&psi[0], &Bdata[0].psi, r, z);
+      interperr += interp2Dexpl_eval_B(&psi[0], &Bdata->Bslice[0].psi, r, z);
     #else
-      interperr += interp2Dcomp_eval_B(&psi[0], &Bdata[0].psi, r, z);
+      interperr += interp2Dcomp_eval_B(&psi[0], &Bdata->Bslice[0].psi, r, z);
     #endif
     }
-    else if (time > Bdata[Bdata->n_time-1].time){
+    else if (time > Bdata->time[Bdata->n_time-1]){
     #if INTERP_SPL_EXPL
-      interperr += interp2Dexpl_eval_B(&psi[0], &Bdata[Bdata->n_time-1].psi, r, z);
+      interperr += interp2Dexpl_eval_B(&psi[0], &Bdata->Bslice[Bdata->n_time-1].psi, r, z);
     #else
-      interperr += interp2Dcomp_eval_B(&psi[0], &Bdata[Bdata->n_time-1].psi, r, z);
+      interperr += interp2Dcomp_eval_B(&psi[0], &Bdata->Bslice[Bdata->n_time-1].psi, r, z);
     #endif
     }
     else{
-      while(time > Bdata[i].time) i++;
+      while(time > Bdata->time[i]) i++;
       real psi_0;
       real psi_1;
     #if INTERP_SPL_EXPL
-      interperr += interp2Dexpl_eval_B(&psi_0, &Bdata[i-1].psi, r, z);
-      interperr += interp2Dexpl_eval_B(&psi_1, &Bdata[i].psi, r, z);
+      interperr += interp2Dexpl_eval_B(&psi_0, &Bdata->Bslice[i-1].psi, r, z);
+      interperr += interp2Dexpl_eval_B(&psi_1, &Bdata->Bslice[i].psi, r, z);
     #else
-      interperr += interp2Dcomp_eval_B(&psi_0, &Bdata[i-1].psi, r, z);
-      interperr += interp2Dcomp_eval_B(&psi_1, &Bdata[i].psi, r, z);
+      interperr += interp2Dcomp_eval_B(&psi_0, &Bdata->Bslice[i-1].psi, r, z);
+      interperr += interp2Dcomp_eval_B(&psi_1, &Bdata->Bslice[i].psi, r, z);
     #endif
 
-      interperr += linint1D_eval(&psi[0], Bdata[i-1].time, psi_0, Bdata[i].time, psi_1, time)
+      interperr += linint1D_eval(&psi[0], Bdata->time[i-1], psi_0, Bdata->time[i], psi_1, time)
     }
 
 

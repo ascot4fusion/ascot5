@@ -8,6 +8,7 @@
 #include "../B_field.h"
 #include "../Bfield/B_2DS.h"
 #include "../Bfield/B_3DS.h"
+#include "../Bfield/B_3DS_T.h"
 #include "../Bfield/B_STS.h"
 #include "../Bfield/B_GS.h"
 #include "../Bfield/B_TC.h"
