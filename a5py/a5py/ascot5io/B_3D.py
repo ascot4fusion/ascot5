@@ -23,7 +23,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     fn : str
         Full path to the HDF5 file.
     Rlim, Rmax, phimin, phimax, zmin, zmax : real
-        Edges of the uniform Rphiz-grid.
+        Edges of the uniform R x phi x z-grid [m x deg x m].
     nR, nphi, nz : int
         Number of Rphiz-grid points.
     axisR, axisz : real
