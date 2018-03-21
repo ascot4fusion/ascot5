@@ -111,7 +111,7 @@ def run(a4folder, h5fn, overwrite=True):
                 B_3D.write_hdf5(h5fn,
                                 data['r'][0], data['r'][-1], data['r'].size,
                                 data['z'][0], data['z'][-1], data['z'].size,
-                                0, 2*np.pi, data['nPhi'],
+                                0, 360, data['nPhi'],
                                 data['axis_r'], data['axis_z'], data['psi']/(2*np.pi), data['psi0']/(2*np.pi), data['psi1']/(2*np.pi),
                                 data['br'], data['bphi'], data['bz'])
             else:
