@@ -25,4 +25,6 @@ void hdf5_bfield_init_offload_TC(hid_t f, B_TC_offload_data* offload_data, real*
 
 void hdf5_bfield_init_offload_GS(hid_t f, B_GS_offload_data* offload_data, real** offload_array, char* qid);
 
+void hdf5_bfield_init_offload_3DS_T(hid_t f, B_3DS_T_offload_data* offload_data, real** offload_array, char* qid); 
+
 #endif

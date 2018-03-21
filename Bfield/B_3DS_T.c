@@ -17,6 +17,7 @@
 #include "../spline/interp3Dcomp.h" 
 #include "../spline/interp2Dexpl.h" 
 #include "../spline/interp3Dexpl.h"
+#include "../linint/linint1D.h"
 
 /**
  * @brief Load magnetic field data and prepare parameters
@@ -31,7 +32,7 @@
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) {
+void B_3DS_T_init_offload(B_3DS_T_offload_data* offload_data, real** offload_array) {
     
     // The contents of this function are located in hdf5_bfield.c
 }
@@ -44,7 +45,7 @@ void B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) 
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void B_3DS_free_offload(B_3DS_offload_data* offload_data, real** offload_array) {
+void B_3DS_T_free_offload(B_3DS_T_offload_data* offload_data, real** offload_array) {
     free(*offload_array);
     *offload_array = NULL;
 }
@@ -60,65 +61,76 @@ void B_3DS_free_offload(B_3DS_offload_data* offload_data, real** offload_array) 
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  */
-int B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
+int B_3DS_T_init(B_3DS_T_data* Bdata, B_3DS_T_offload_data* offload_data,
                real* offload_array) {
     int err = 0;
-    Bdata->psi0 = offload_data->psi0;
-    Bdata->psi1 = offload_data->psi1;
-    Bdata->axis_r = offload_data->axis_r;
-    Bdata->axis_z = offload_data->axis_z;
-    /* Spline initialization and storage. */
+    int i;
 
     int B_size = offload_data->n_phi*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r;
+    int psi_size = offload_data->psigrid_n_z*offload_data->psigrid_n_r;
     
-    #if INTERP_SPL_EXPL
-    err += interp2Dexpl_init(&Bdata->psi, offload_array + 3*B_size,
+    Bdata->n_time = offload_data->n_time;
+
+    for(i=0;i<offload_data->n_time;i++){
+
+      Bdata[i].time = offload_data->time[i];
+      
+      Bdata[i].psi0 = offload_data->psi0[i];
+      Bdata[i].psi1 = offload_data->psi1[i];
+      Bdata[i].axis_r = offload_data->axis_r[i];
+      Bdata[i].axis_z = offload_data->axis_z[i];
+      /* Spline initialization and storage. */
+
+      #if INTERP_SPL_EXPL
+      err += interp2Dexpl_init(&Bdata[i].psi, offload_array + 3*B_size*offload_data->n_time + i*psi_size,
 	offload_data->psigrid_n_r, offload_data->psigrid_n_z,
 	offload_data->psigrid_r_min, offload_data->psigrid_r_max, offload_data->psigrid_r_grid,
 	offload_data->psigrid_z_min, offload_data->psigrid_z_max, offload_data->psigrid_z_grid);
     
-    err += interp3Dexpl_init(&Bdata->B_r, offload_array + 0*B_size,
+      err += interp3Dexpl_init(&Bdata[i].B_r, offload_array + 0*B_size*offload_data->n_time + i*B_size,
 	offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
 	offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 	offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 	offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
-    err += interp3Dexpl_init(&Bdata->B_phi, offload_array + 1*B_size,
+      err += interp3Dexpl_init(&Bdata[i].B_phi, offload_array + 1*B_size*offload_data->n_time + i*B_size,
 	offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
 	offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 	offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 	offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     	
-    err += interp3Dexpl_init(&Bdata->B_z, offload_array + 2*B_size,
+      err += interp3Dexpl_init(&Bdata[i].B_z, offload_array + 2*B_size*offload_data->n_time + i*B_size,
 	offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
 	offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 	offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 	offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
-    #else
-    err += interp2Dcomp_init(&Bdata->psi, offload_array + 3*B_size,
+      #else
+      err += interp2Dcomp_init(&Bdata[i].psi, offload_array + 3*B_size*offload_data->n_time + i*psi_size,
 			     offload_data->psigrid_n_r, offload_data->psigrid_n_z,
 			     offload_data->psigrid_r_min, offload_data->psigrid_r_max, offload_data->psigrid_r_grid,
 			     offload_data->psigrid_z_min, offload_data->psigrid_z_max, offload_data->psigrid_z_grid);
     
-    err += interp3Dcomp_init(&Bdata->B_r, offload_array + 0*B_size,
+      err += interp3Dcomp_init(&Bdata[i].B_r, offload_array + 0*B_size*offload_data->n_time + i*B_size,
 			     offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
 			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
-    err += interp3Dcomp_init(&Bdata->B_phi, offload_array + 1*B_size,
+      err += interp3Dcomp_init(&Bdata[i].B_phi, offload_array + 1*B_size*offload_data->n_time + i*B_size,
 			     offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
 			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
-    err += interp3Dcomp_init(&Bdata->B_z, offload_array + 2*B_size,
+      err += interp3Dcomp_init(&Bdata[i].B_z, offload_array + 2*B_size*offload_data->n_time + i*B_size,
 			     offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
 			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
-    #endif
+      #endif
+    }
+
     return err;
 }
 
@@ -138,35 +150,51 @@ int B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
  *
  * @todo Change to a scalar elemental function and compare performance
  */
-a5err B_3DS_eval_psi(real psi[], real r, real phi, real z,
-                   B_3DS_data* Bdata) {
+a5err B_3DS_T_eval_psi(real psi[], real r, real phi, real z, real time,
+                   B_3DS_T_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
+
+    /* Check closest time slices */
+
+    int i = 0;
+
+    if(time < Bdata[0].time){      
     #if INTERP_SPL_EXPL
-    interperr += interp2Dexpl_eval_B(&psi[0], &Bdata->psi, r, z);
+      interperr += interp2Dexpl_eval_B(&psi[0], &Bdata[0].psi, r, z);
     #else
-    interperr += interp2Dcomp_eval_B(&psi[0], &Bdata->psi, r, z);
+      interperr += interp2Dcomp_eval_B(&psi[0], &Bdata[0].psi, r, z);
     #endif
+    }
+    else if (time > Bdata[Bdata->n_time-1].time){
+    #if INTERP_SPL_EXPL
+      interperr += interp2Dexpl_eval_B(&psi[0], &Bdata[Bdata->n_time-1].psi, r, z);
+    #else
+      interperr += interp2Dcomp_eval_B(&psi[0], &Bdata[Bdata->n_time-1].psi, r, z);
+    #endif
+    }
+    else{
+      while(time > Bdata[i].time) i++;
+      real psi_0;
+      real psi_1;
+    #if INTERP_SPL_EXPL
+      interperr += interp2Dexpl_eval_B(&psi_0, &Bdata[i-1].psi, r, z);
+      interperr += interp2Dexpl_eval_B(&psi_1, &Bdata[i].psi, r, z);
+    #else
+      interperr += interp2Dcomp_eval_B(&psi_0, &Bdata[i-1].psi, r, z);
+      interperr += interp2Dcomp_eval_B(&psi_1, &Bdata[i].psi, r, z);
+    #endif
+
+      interperr += linint1D_eval(&psi[0], Bdata[i-1].time, psi_0, Bdata[i].time, psi_1, time)
+    }
+
+
 
     if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
 
     return err;
 }
 
-a5err B_3DS_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z,
-			  B_3DS_data* Bdata) {
-    a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
-    #if INTERP_SPL_EXPL
-    //interperr += interp2Dexpl_eval_B(&psi[0], &Bdata->psi, r, z);
-    #else
-    interperr += interp2Dcomp_eval_B_SIMD(i, psi, &Bdata->psi, r, z);
-    #endif
-
-    if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
-
-    return err;
-}
 
 /**
  * @brief Evaluate poloidal flux psi and its derivatives

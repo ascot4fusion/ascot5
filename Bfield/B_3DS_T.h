@@ -12,6 +12,9 @@
  * @brief 3D magnetic field parameters on the host
  */
 typedef struct {
+    int n_time;
+    real time[10];
+
     int psigrid_n_r;            /**< number of r grid points in psi data */
     int psigrid_n_z;            /**< number of z grid points in psi data */
     int psigrid_n_phi;          /**< number of phi grid points in psi data */
@@ -35,17 +38,19 @@ typedef struct {
     real phi_max;               /**< maximum phi coordinate in the grid in B data */
     real phi_grid;              /**< phi grid interval 2pi/(n_phi-1) in B data */
     
-    real psi0;                  /**< sqrt(psi) value at magnetic axis */
-    real psi1;                  /**< sqrt(psi) value at separatrix */
-    real axis_r;                /**< r coordinate of magnetic axis */
-    real axis_z;                /**< z coordinate of magnetic axis */
+    real psi0[10];                  /**< sqrt(psi) value at magnetic axis */
+    real psi1[10];                  /**< sqrt(psi) value at separatrix */
+    real axis_r[10];                /**< r coordinate of magnetic axis */
+    real axis_z[10];                /**< z coordinate of magnetic axis */
     int offload_array_length;   /**< number of elements in offload_array */
-} B_3DS_offload_data;
+} B_3DS_T_offload_data;
 
 /**
  * @brief 3D magnetic field parameters on the target
  */
 typedef struct {
+    int n_time;
+    real time;
     real psi0;              /**< sqrt(psi) value at magnetic axis */
     real psi1;              /**< sqrt(psi) value at separatrix */
     real axis_r;            /**< r coordinate of magnetic axis */
@@ -54,7 +59,7 @@ typedef struct {
     interp3D_data B_r;     /**< pointer to start of B_r interpolation data struct */
     interp3D_data B_phi;   /**< pointer to start of B_phi interpolation data struct */
     interp3D_data B_z;     /**< pointer to start of B_z interpolation data struct */
-} B_3DS_data;
+} B_3DS_T_data;
 
 void B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array);
 void B_3DS_free_offload(B_3DS_offload_data* offload_data, real** offload_array);

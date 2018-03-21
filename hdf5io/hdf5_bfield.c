@@ -365,7 +365,7 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
 
 
 
-void hdf5_bfield_init_offload_3DS_T(hid_t f, B_3DS_offload_data* offload_data, real** offload_array, char* qid) {
+void hdf5_bfield_init_offload_3DS_T(hid_t f, B_3DS_T_offload_data* offload_data, real** offload_array, char* qid) {
   herr_t err;
   char path[256];
 

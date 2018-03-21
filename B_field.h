@@ -32,6 +32,7 @@ typedef struct {
     B_GS_data BGS;
     B_2DS_data B2DS;
     B_3DS_data B3DS;
+    B_3DS_T_data B3DST[10];
     B_STS_data BSTS;
     B_TC_data BTC;
 } B_field_data;
