@@ -196,22 +196,22 @@ if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE_
 err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/n_z", qid, path), &(offload_data->n_z));
 if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
-err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/R_min", qid, path), &(offload_data->r_min));
+err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/R_min", qid, path), &(offload_data->r_min));
 if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
-err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/R_max", qid, path), &(offload_data->r_max));
+err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/R_max", qid, path), &(offload_data->r_max));
 if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
-err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/phi_min", qid, path), &(offload_data->phi_min));
+err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/phi_min", qid, path), &(offload_data->phi_min));
 if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
-err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/phi_max", qid, path), &(offload_data->phi_max));
+err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/phi_max", qid, path), &(offload_data->phi_max));
 if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
-err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/z_min", qid, path), &(offload_data->z_min));
+err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/z_min", qid, path), &(offload_data->z_min));
 if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
-err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/z_max", qid, path), &(offload_data->z_max));
+err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX/z_max", qid, path), &(offload_data->z_max));
 if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
 
