@@ -17,9 +17,9 @@ def setactive(hdf5file, path):
     path : HDF5 group
         Path to the group.
     """
-    mastergroup = hdf5f[path].parent.name
+    mastergroup = hdf5file[path].parent.name
     qid = path[-10:]
-    hdf5f[mastergroup].attrs["active"] = np.string_(qid)
+    hdf5file[mastergroup].attrs["active"] = np.string_(qid)
 
 def generatemetadata():
     """

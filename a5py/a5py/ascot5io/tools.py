@@ -24,18 +24,16 @@ def setactivegroup(fn, mastergroup, qid):
          Id for the active group.
     """
     f = h5py.File(fn, "a")
-    path = None
+    exists = False
     if mastergroup in f:
         for r in f[mastergroup]:
             if r[-10:] == qid:
-                path = mastergroup + "/" + r
+                ascot5group.setactive(f, mastergroup + "/" + r)
+                exists = True
                 
-    if path == None:
+    if exists == None:
         print("Error: group not found.")
-        f.close()
-        return
-            
-    setactive(f, path)
+    
     f.close()
     
 
