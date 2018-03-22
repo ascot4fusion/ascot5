@@ -21,9 +21,9 @@ def read_plasma(fn):
 def read_1d(fh):
     pls = {'comm1' : fh.readline(),'comm2' : fh.readline(),'comm3' : fh.readline()}
     nrho,nion = list(map(int,fh.readline().split()[:2]))
-    pls['znum'] = np.array(list(map(int,fh.readline().split()[:nion])))
-    pls['anum'] = np.array(list(map(int,fh.readline().split()[:nion])))
-    pls['coll'] = np.array(list(map(int,fh.readline().split()[:nion+1])))
+    pls['znum'] = np.array(list(map(int,(map(float,fh.readline().split()[:nion])))))
+    pls['anum'] = np.array(list(map(int,(map(float,fh.readline().split()[:nion])))))
+    pls['coll'] = np.array(list(map(int,(map(float,fh.readline().split()[:nion+1])))))
     pls['nrho'] = nrho
     pls['nion'] = nion
     fh.readline() # ignore headers
