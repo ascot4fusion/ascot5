@@ -145,6 +145,6 @@ void hdf5_efield_init_offload_TC(hid_t f, E_TC_offload_data* offload_data, real*
     char path[256];
     
     *offload_array = (real*) malloc(3*sizeof(real));
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efieldE_TC-XXXXXXXXXX/Exyz", qid, path), *offload_array);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_TC-XXXXXXXXXX/Exyz", qid, path), &(*offload_array)[0]);
     offload_data->offload_array_length = 3;
 }
