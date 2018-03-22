@@ -146,6 +146,7 @@ int B_3DS_T_init(B_3DS_T_data* Bdata, B_3DS_T_offload_data* offload_data,
  * @param r r coordinate
  * @param phi phi coordinate
  * @param z z coordinate
+ * @param time time coordinate
  * @param Bdata pointer to magnetic field data struct
  *
  * @todo Change to a scalar elemental function and compare performance
@@ -155,18 +156,19 @@ a5err B_3DS_T_eval_psi(real psi[], real r, real phi, real z, real time,
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
-    /* Check closest time slices */
+    real psi_temp_0;
+    real psi_temp_1;
 
     int i = 0;
 
-    if(time < Bdata->time[0]){      
+    if(time <= Bdata->time[0]){      
     #if INTERP_SPL_EXPL
       interperr += interp2Dexpl_eval_B(&psi[0], &Bdata->Bslice[0].psi, r, z);
     #else
       interperr += interp2Dcomp_eval_B(&psi[0], &Bdata->Bslice[0].psi, r, z);
     #endif
     }
-    else if (time > Bdata->time[Bdata->n_time-1]){
+    else if (time >= Bdata->time[Bdata->n_time-1]){
     #if INTERP_SPL_EXPL
       interperr += interp2Dexpl_eval_B(&psi[0], &Bdata->Bslice[Bdata->n_time-1].psi, r, z);
     #else
@@ -175,17 +177,15 @@ a5err B_3DS_T_eval_psi(real psi[], real r, real phi, real z, real time,
     }
     else{
       while(time > Bdata->time[i]) i++;
-      real psi_0;
-      real psi_1;
     #if INTERP_SPL_EXPL
-      interperr += interp2Dexpl_eval_B(&psi_0, &Bdata->Bslice[i-1].psi, r, z);
-      interperr += interp2Dexpl_eval_B(&psi_1, &Bdata->Bslice[i].psi, r, z);
+      interperr += interp2Dexpl_eval_B(&psi_temp_0, &Bdata->Bslice[i-1].psi, r, z);
+      interperr += interp2Dexpl_eval_B(&psi_temp_1, &Bdata->Bslice[i].psi, r, z);
     #else
-      interperr += interp2Dcomp_eval_B(&psi_0, &Bdata->Bslice[i-1].psi, r, z);
-      interperr += interp2Dcomp_eval_B(&psi_1, &Bdata->Bslice[i].psi, r, z);
+      interperr += interp2Dcomp_eval_B(&psi_temp_0, &Bdata->Bslice[i-1].psi, r, z);
+      interperr += interp2Dcomp_eval_B(&psi_temp_1, &Bdata->Bslice[i].psi, r, z);
     #endif
 
-      interperr += linint1D_eval(&psi[0], Bdata->time[i-1], psi_0, Bdata->time[i], psi_1, time)
+      interperr += linint1D_eval(&psi[0], Bdata->time[i-1], psi_temp_0, Bdata->time[i], psi_temp_1, time)
     }
 
 
@@ -213,20 +213,50 @@ a5err B_3DS_T_eval_psi(real psi[], real r, real phi, real z, real time,
  *
  * @todo Change to a scalar elemental function and compare performance
  */
-a5err B_3DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
-                   B_3DS_data* Bdata) {
+a5err B_3DS_T_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, real time,
+                   B_3DS_T_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    real psi_dpsi_temp[6];
-    #if INTERP_SPL_EXPL
-    interperr += interp2Dexpl_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
-    #else
-    interperr += interp2Dcomp_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
-    #endif
-    psi_dpsi[0] = psi_dpsi_temp[0];
-    psi_dpsi[1] = psi_dpsi_temp[1];
+    real psi_dpsi_temp_0[6];
+    real psi_dpsi_temp_1[6];
+
+    int i = 0;
+ 
     psi_dpsi[2] = 0;
-    psi_dpsi[3] = psi_dpsi_temp[2];
+
+    if(time <= Bdata->time[0]){
+    #if INTERP_SPL_EXPL
+      interperr += interp2Dexpl_eval_dB(psi_dpsi_temp_0, &Bdata->Bslice[0].psi, r, z);
+    #else
+      interperr += interp2Dcomp_eval_dB(psi_dpsi_temp_0, &Bdata->Bslice[0].psi, r, z);
+    #endif
+      psi_dpsi[0] = psi_dpsi_temp_0[0];
+      psi_dpsi[1] = psi_dpsi_temp_0[1];
+      psi_dpsi[3] = psi_dpsi_temp_0[2];
+    }
+    else if (time >= Bdata->time[Bdata->n_time-1]){
+    #if INTERP_SPL_EXPL
+      interperr += interp2Dexpl_eval_dB(psi_dpsi_temp_0, &Bdata->Bslice[Bdata->n_time-1].psi, r, z);
+    #else
+      interperr += interp2Dcomp_eval_dB(psi_dpsi_temp_0, &Bdata->Bslice[Bdata->n_time-1].psi, r, z);
+    #endif
+      psi_dpsi[0] = psi_dpsi_temp_0[0];
+      psi_dpsi[1] = psi_dpsi_temp_0[1];
+      psi_dpsi[3] = psi_dpsi_temp_0[2];
+    }
+    else{
+      while(time > Bdata->time[i]) i++;
+    #if INTERP_SPL_EXPL
+      interperr += interp2Dexpl_eval_dB(psi_dpsi_temp_0, &Bdata->Bslice[i-1].psi, r, z);
+      interperr += interp2Dexpl_eval_dB(psi_dpsi_temp_1, &Bdata->Bslice[i].psi, r, z);
+    #else
+      interperr += interp2Dcomp_eval_dB(psi_dpsi_temp_0, &Bdata->Bslice[i-1].psi, r, z);
+      interperr += interp2Dcomp_eval_dB(psi_dpsi_temp_1, &Bdata->Bslice[i].psi, r, z);
+    #endif
+      interperr += linint1D_eval(&psi_dpsi[0], Bdata->time[i-1], psi_dpsi_temp_0[0], Bdata->time[i], psi_dpsi_temp_1[0], time);
+      interperr += linint1D_eval(&psi_dpsi[1], Bdata->time[i-1], psi_dpsi_temp_0[1], Bdata->time[i], psi_dpsi_temp_1[1], time);
+      interperr += linint1D_eval(&psi_dpsi[3], Bdata->time[i-1], psi_dpsi_temp_0[3], Bdata->time[i], psi_dpsi_temp_1[3], time);
+    }
 
     if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
 
@@ -245,7 +275,7 @@ a5err B_3DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
  * @param psi poloidal flux value 
  * @param Bdata pointer to magnetic field data struct
  */
-a5err B_3DS_eval_rho(real rho[], real psi, B_3DS_data* Bdata) {
+a5err B_3DS_T_eval_rho(real rho[], real psi, real time, B_3DS_T_data* Bdata) {
     a5err err = 0;
 
     /* Check that the values seem valid */
@@ -258,18 +288,6 @@ a5err B_3DS_eval_rho(real rho[], real psi, B_3DS_data* Bdata) {
     return err;
 }
 
-a5err B_3DS_eval_rho_SIMD(int i, real rho[NSIMD], real psi, B_3DS_data* Bdata) {
-    a5err err = 0;
-
-    /* Check that the values seem valid */
-    //if( (psi - Bdata->psi0) < 0 ) {err = error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );}
-    //else {
-    /* Normalize psi to get rho */
-    rho[i] = sqrt(fabs( (psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0) ));
-    //}
-
-    return err;
-}
 
 /**
  * @brief Evaluate radial coordinate rho and its derivatives
@@ -379,45 +397,6 @@ a5err B_3DS_eval_B(real B[], real r, real phi, real z, B_3DS_data* Bdata) {
     return err;
 }
 
-a5err B_3DS_eval_B_SIMD(int i, real B[3][NSIMD], real r, real phi, real z, B_3DS_data* Bdata) {
-    a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
-    #if INTERP_SPL_EXPL
-    //interperr += interp3Dexpl_eval_B(&B[0], &Bdata->B_r, r, phi, z);
-    //interperr += interp3Dexpl_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
-    //interperr += interp3Dexpl_eval_B(&B[2], &Bdata->B_z, r, phi, z);
-    #else
-    interperr += interp3Dcomp_eval_B_SIMD(i, B[0], &Bdata->B_r, r, phi, z);
-    interperr += interp3Dcomp_eval_B_SIMD(i, B[1], &Bdata->B_phi, r, phi, z);
-    interperr += interp3Dcomp_eval_B_SIMD(i, B[2], &Bdata->B_z, r, phi, z);
-    #endif
-
-    /* Test for B field interpolation error */
-    if(interperr) {err = error_raise( ERR_OUTSIDE_BFIELD, __LINE__ );}
-
-    #ifndef NOPSI
-    if(!err) {
-	real psi_dpsi[6][NSIMD];
-	#if INTERP_SPL_EXPL
-	//interperr += interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
-	#else
-	interperr += interp2Dcomp_eval_dB_SIMD(i, psi_dpsi, &Bdata->psi, r, z);
-	#endif
-	B[0][i] = B[0][i] - psi_dpsi[2][i]/r;
-	B[2][i] = B[2][i] + psi_dpsi[1][i]/r;
-
-	/* Test for psi interpolation error */
-	if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
-    }
-    #endif
-
-    /* Check that magnetic field seems valid */
-    int check = 0;
-    check += ((B[0][i]*B[0][i] + B[1][i]*B[1][i] + B[2][i]*B[2][i]) == 0);
-    if(!err && check) {err = error_raise( ERR_UNPHYSICAL_B, __LINE__ );}
-
-    return err;
-}
 
 /**
  * @brief Evaluate magnetic field and derivatives
@@ -508,76 +487,6 @@ a5err B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata) 
     return err;
 }
 
-a5err B_3DS_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z, B_3DS_data* Bdata) {
-    a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
-    real B_dB_temp[10][NSIMD];
-    #if INTERP_SPL_EXPL
-    //interperr += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
-    #else
-    interperr += interp3Dcomp_eval_dB_SIMD(i, B_dB_temp, &Bdata->B_r, r, phi, z);
-    #endif
-
-    B_dB[0][i] = B_dB_temp[0][i];
-    B_dB[1][i] = B_dB_temp[1][i];
-    B_dB[2][i] = B_dB_temp[2][i];
-    B_dB[3][i] = B_dB_temp[3][i];
-
-
-    #if INTERP_SPL_EXPL
-    //interperr += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
-    #else
-    interperr += interp3Dcomp_eval_dB_SIMD(i, B_dB_temp, &Bdata->B_phi, r, phi, z);
-    #endif
-
-    B_dB[4][i] = B_dB_temp[0][i];
-    B_dB[5][i] = B_dB_temp[1][i];
-    B_dB[6][i] = B_dB_temp[2][i];
-    B_dB[7][i] = B_dB_temp[3][i];
-
-
-    #if INTERP_SPL_EXPL
-    //interperr += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
-    #else
-    interperr += interp3Dcomp_eval_dB_SIMD(i, B_dB_temp, &Bdata->B_z, r, phi, z);
-    #endif
-
-    B_dB[8][i] = B_dB_temp[0][i];
-    B_dB[9][i] = B_dB_temp[1][i];
-    B_dB[10][i] = B_dB_temp[2][i];
-    B_dB[11][i] = B_dB_temp[3][i];
-
-    /* Test for B field interpolation error */
-    if(interperr) {err = error_raise( ERR_OUTSIDE_BFIELD, __LINE__ );}
-
-    #ifndef NOPSI
-    real psi_dpsi[6][NSIMD];
-    if(!err) {
-	#if INTERP_SPL_EXPL
-	//interperr += interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
-	#else
-	interperr += interp2Dcomp_eval_dB_SIMD(i, psi_dpsi, &Bdata->psi, r, z);
-	#endif
-
-	B_dB[0][i] = B_dB[0][i] - psi_dpsi[2][i]/r;
-	B_dB[1][i] = B_dB[1][i] + psi_dpsi[2][i]/(r*r)-psi_dpsi[5][i]/r;
-	B_dB[3][i] = B_dB[3][i] - psi_dpsi[4][i]/r;
-	B_dB[8][i] = B_dB[8][i] + psi_dpsi[1][i]/r;
-	B_dB[9][i] = B_dB[9][i] - psi_dpsi[1][i]/(r*r) + psi_dpsi[3][i]/r;
-	B_dB[11][i] = B_dB[11][i] + psi_dpsi[5][i]/r;
-
-	/* Test for psi interpolation error */
-	if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
-    }
-    #endif
-
-    /* Check that magnetic field seems valid */
-    int check = 0;
-    check += ((B_dB[0][i]*B_dB[0][i] + B_dB[4][i]*B_dB[4][i] + B_dB[8][i]*B_dB[8][i]) == 0);
-    if(!err && check) {err = error_raise( ERR_UNPHYSICAL_B, __LINE__ );}
-
-    return err;
-}
 
 real B_3DS_get_axis_r(B_3DS_data* Bdata) {
     return Bdata->axis_r;
