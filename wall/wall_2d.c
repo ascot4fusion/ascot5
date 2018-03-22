@@ -22,23 +22,7 @@
  */
 void wall_2d_init_offload(wall_2d_offload_data* offload_data,
                           real** offload_array) {
-    FILE* f = fopen("input.wall_2d", "r");
-
-    /* Read number of wall elements */
-    int wall_n;
-    fscanf(f, "%d", &wall_n);
-
-    /* Skip comment */
-    while(fgetc(f) != '\n');
-
-    offload_data->n = wall_n;
-    offload_data->offload_array_length = 2 * wall_n;
-    *offload_array = (real*) malloc(2 * wall_n * sizeof(real));
-
-    int i;
-    for(i = 0; i < wall_n; i++) {
-        fscanf(f, "%lf %lf %*f", &(*offload_array)[i], &(*offload_array)[i+wall_n]);
-    }
+    // Dummy function
 }
 
 /**

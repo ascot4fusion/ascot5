@@ -48,7 +48,6 @@ int main(int argc, char** argv) {
     int mpi_rank, mpi_size;
     char qid[] = "5000000000";
 #ifdef MPI
-    MPI_Status status;
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
     if(sim.mpi_size == 0) {
@@ -112,13 +111,13 @@ int main(int argc, char** argv) {
     offload_pack(&offload_data, &offload_array, wall_offload_array,
                  sim.wall_offload_data.offload_array_length);
 
-    real* diag_offload_array_mic0;
-    real* diag_offload_array_mic1;
-    real* diag_offload_array_host;
     #ifndef NOTARGET
+        real* diag_offload_array_mic0;
+	real* diag_offload_array_mic1;
         diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
         diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
     #else
+	real* diag_offload_array_host;
         diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
     #endif
     
@@ -126,7 +125,6 @@ int main(int argc, char** argv) {
 
     /* Set output filename for this MPI process. */
     if(mpi_size == 1) {
-        char temp[256];
 	strcat(sim.hdf5_out, ".h5");
     }
     else {
@@ -172,22 +170,18 @@ int main(int argc, char** argv) {
         int n_host = n;
     #endif
 
-    double mic0_start, mic0_end, mic1_start, mic1_end, host_start, host_end;
+    double mic0_start = 0, mic0_end=0, mic1_start=0, mic1_end=0, host_start=0, host_end=0;
     
     fflush(stdout);
 
-    #ifdef _OPENMP
     omp_set_nested(1);
-    #endif
     
     #pragma omp parallel sections num_threads(3)
     {
         #ifndef NOTARGET
             #pragma omp section
             {
-                #ifdef _OPENMP
                 mic0_start = omp_get_wtime();
-                #endif
                 
                 #pragma omp target device(0) map( \
 		        ps[0:n_mic],	\
@@ -197,16 +191,12 @@ int main(int argc, char** argv) {
                 simulate(1, n_mic, ps, &sim, &offload_data, offload_array,
                          diag_offload_array_mic0);
 
-                #ifdef _OPENMP
                 mic0_end = omp_get_wtime();
-                #endif
             }
 
             #pragma omp section
             {
-                #ifdef _OPENMP
                 mic1_start = omp_get_wtime();
-                #endif
 
                 #pragma omp target device(1) map( \
                         ps[n_mic:2*n_mic], \
@@ -216,32 +206,25 @@ int main(int argc, char** argv) {
                 simulate(2, n_mic, ps+n_mic, &sim, &offload_data, offload_array,
                          diag_offload_array_mic1);
 
-                #ifdef _OPENMP
                 mic1_end = omp_get_wtime();
-                #endif
             }
 
         #endif
             #pragma omp section
             {
-                #ifdef _OPENMP
                 host_start = omp_get_wtime();
-                #endif
         
                 simulate(0, n_host, ps+2*n_mic, &sim, &offload_data,
                          offload_array, diag_offload_array_host);
 
-                #ifdef _OPENMP
                 host_end = omp_get_wtime();
-                #endif
             }
     }
     /* Code excution returns to host. */
 
     print_out0(VERBOSE_NORMAL, mpi_rank, "Writing endstate.");
 
-	hdf5_particlestate_write(sim.hdf5_out, qid, "endstate", n, ps);
-    //hdf5_orbits_write(&sim, sim.hdf5_out);
+    hdf5_particlestate_write(sim.hdf5_out, qid, "endstate", n, ps);
 
     print_out0(VERBOSE_NORMAL, mpi_rank, "mic0 %lf s, mic1 %lf s, host %lf s\n",
         mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);

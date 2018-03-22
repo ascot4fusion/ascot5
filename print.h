@@ -13,7 +13,7 @@ enum {
     VERBOSE_MINIMAL = 0
 };
 
-const char VERBOSE_LEVEL = VERBOSE;
+extern const char VERBOSE_LEVEL;
 
 /**
  * @brief Print to standard output

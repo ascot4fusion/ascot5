@@ -4,7 +4,7 @@
  *
  * @todo Implement as macros
  */
-
+#define _XOPEN_SOURCE
 #include <math.h>
 #include <stdlib.h>
 #include "ascot5.h"
