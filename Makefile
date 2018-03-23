@@ -95,7 +95,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	spline/interp2Detoc.h spline/interp3Detoc.h \
 	spline/interp2Dcomp.h spline/interp3Dcomp.h \
 	spline/spline1Dcomp.h spline/interp1Dcomp.h \
-	random.h
+	random.h print.h
 
 OBJS= math.o list.o octree.o physlib.o \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -108,7 +108,7 @@ OBJS= math.o list.o octree.o physlib.o \
 	spline/interp2Detoc.o spline/interp3Detoc.o \
 	spline/interp2Dcomp.o spline/interp3Dcomp.o \
 	spline/spline1Dcomp.o spline/interp1Dcomp.o \
-	random.o
+	random.o print.c
 
 BINS=test_math \
 	test_wall_2d test_plasma test_random \

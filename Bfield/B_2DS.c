@@ -27,73 +27,7 @@
  * @param offload_array pointer to pointer to offload array
  */
 void B_2DS_init_offload(B_2DS_offload_data* offload_data, real** offload_array) {
-    int i;
-    FILE* f = fopen("input.magn_bkg", "r");
-
-    /* Skip first line */
-    fscanf(f, "%*d %*d %*d %*d %*d");
-
-    /* Read r and z parameters */
-    fscanf(f, "%lf %lf %d", &(offload_data->r_min), &(offload_data->r_max),
-                            &(offload_data->n_r));
-    fscanf(f, "%lf %lf %d", &(offload_data->z_min), &(offload_data->z_max),
-                            &(offload_data->n_z));
-
-    offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
-                           / (offload_data->n_r - 1);
-    offload_data->z_grid = (offload_data->z_max - offload_data->z_min)
-                           / (offload_data->n_z - 1);
-
-    /* Allocate offload_array; psi and each component (r,phi,z) is
-     * size n_r*n_z */
-    int B_size = offload_data->n_r * offload_data->n_z;
-    *offload_array = (real*) malloc(4 * B_size * sizeof(real));
-    offload_data->offload_array_length = 4 * B_size;
-    
-    /* Skip phimaps */
-    fscanf(f, "%*f %*f");
-
-    /* Read psi */
-    for(i = 0; i < B_size; i++) {
-        fscanf(f, "%lf", &(*offload_array)[i]);
-    }
-
-    /* Read B_r */
-    for(i = 0; i < B_size; i++) {
-        fscanf(f, "%lf", &(*offload_array)[i+B_size]);
-    }
-
-    /* Read B_phi */
-    for(i = 0; i < B_size; i++)
-        fscanf(f, "%lf", &(*offload_array)[i+2*B_size]);
-
-    /* Read B_z */
-    for(i = 0; i < B_size; i++) {
-        fscanf(f, "%lf", &(*offload_array)[i+3*B_size]);
-    }
-
-    fclose(f);
-
-    /* Read rho parameters from input.magn_header */
-    f = fopen("input.magn_header", "r");
-
-    /* Skip first four lines */
-    while(fgetc(f) != '\n');
-    while(fgetc(f) != '\n');
-    while(fgetc(f) != '\n');
-    while(fgetc(f) != '\n');
-
-    /* Read the first two values; These are the poloidal flux (psi) values at
-     * magnetic axis and at x point (that is, separatrix). */
-    fscanf(f, "%lf %lf", &(offload_data->psi0), &(offload_data->psi1));
-
-    /* Read magnetic axis r and z coordinates */
-    while(fgetc(f) != '\n');
-    fscanf(f, "%lf", &(offload_data->axis_r));
-    while(fgetc(f) != '\n');
-    fscanf(f, "%lf", &(offload_data->axis_z));
-
-    fclose(f);
+    // Dummy function
 }
 
 /**

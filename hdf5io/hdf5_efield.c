@@ -7,8 +7,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <hdf5.h>
+<<<<<<< HEAD
 #include "hdf5_hl.h" //should I include ascot.5h and math.h?
 #include "../math.h"
+=======
+#include "hdf5_hl.h"
+#include "../ascot5.h"
+#include "../print.h"
+>>>>>>> develop
 #include "../E_field.h"
 #include "../Efield/E_TC.h"
 #include "../Efield/E_1D.h"
@@ -116,8 +122,11 @@ void hdf5_efield_init_offload_1D(hid_t f, E_1D_offload_data* offload_data, real*
     char path[256];
 
     err = H5LTget_attribute_int(f, hdf5_generate_qid_path("/efield/E_1D-XXXXXXXXXX/", qid, path), "n_rho", &(offload_data->n_rho));
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTget_attribute_double(f, hdf5_generate_qid_path("/efield/E_1D-XXXXXXXXXX/", qid, path), "rho_min", &(offload_data->rho_min));
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTget_attribute_double(f, hdf5_generate_qid_path("/efield/E_1D-XXXXXXXXXX/", qid, path), "rho_max", &(offload_data->rho_max));
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     
     /* Allocate n_rho space for both rho and dV/drho */
     offload_data->offload_array_length = 2*offload_data->n_rho;
@@ -129,11 +138,14 @@ void hdf5_efield_init_offload_1D(hid_t f, E_1D_offload_data* offload_data, real*
     real* dV = &(*offload_array)[offload_data->n_rho];
     
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_1D-XXXXXXXXXX/rho", qid, path), rho);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_1D-XXXXXXXXXX/dV_drho", qid, path), dV);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
 
     /* Effective minor radius */
     real r_eff;
     err = H5LTget_attribute_double(f, hdf5_generate_qid_path("/efield/E_1D-XXXXXXXXXX/", qid, path), "r_eff", &(r_eff));
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     
     /* Scale derivatives by effective minor radius */
     for(int i = 0; i < offload_data->n_rho; i++) {
@@ -146,8 +158,11 @@ void hdf5_efield_init_offload_1DS(hid_t f, E_1DS_offload_data* offload_data, rea
     char path[256];
 
     err = H5LTget_attribute_int(f, hdf5_generate_qid_path("/efield/E_1DS-XXXXXXXXXX/", qid, path), "n_rho", &(offload_data->n_rho));
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTget_attribute_double(f, hdf5_generate_qid_path("/efield/E_1DS-XXXXXXXXXX/", qid, path), "rho_min", &(offload_data->rho_min));
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTget_attribute_double(f, hdf5_generate_qid_path("/efield/E_1DS-XXXXXXXXXX/", qid, path), "rho_max", &(offload_data->rho_max));
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     
     /* Allocate n_rho space for both rho and dV/drho */
     offload_data->offload_array_length = 2*offload_data->n_rho;
@@ -159,11 +174,14 @@ void hdf5_efield_init_offload_1DS(hid_t f, E_1DS_offload_data* offload_data, rea
     real* dV = &(*offload_array)[offload_data->n_rho];
     
     err = H5LTread_dataset_double(f,hdf5_generate_qid_path("/efield/E_1DS-XXXXXXXXXX/rho", qid, path),rho);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f,hdf5_generate_qid_path("/efield/E_1DS-XXXXXXXXXX/dV_drho", qid, path),dV);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
 
     /* Effective minor radius */
     real r_eff;
     err = H5LTget_attribute_double(f, hdf5_generate_qid_path("/efield/E_1DS-XXXXXXXXXX/", qid, path), "r_eff", &(r_eff));
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     
     /* Scale derivatives by effective minor radius */
     for(int i = 0; i < offload_data->n_rho; i++) {
@@ -177,7 +195,12 @@ void hdf5_efield_init_offload_TC(hid_t f, E_TC_offload_data* offload_data, real*
     char path[256];
     
     *offload_array = (real*) malloc(3*sizeof(real));
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efieldE_TC-XXXXXXXXXX/Exyz", qid, path), *offload_array);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_TC-XXXXXXXXXX/Exyz", qid, path), &(*offload_array)[0]);
+<<<<<<< HEAD
+=======
+    if(err) {print_err("Error: Failed to read dataset."); return;}
+    
+>>>>>>> develop
     offload_data->offload_array_length = 3;
 }
 

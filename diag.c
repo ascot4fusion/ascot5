@@ -222,8 +222,8 @@ void diag_storage_aquire(diag_data* data, diag_storage** ds) {
 
     /* N-last specific input */
     (*ds)->Nlist = NULL;
-    if(data->orbits.mode == DIAG_ORB_WRITELAST) {
-    (*ds)->Nlist = malloc(data->orbits.writeNlast*NSIMD*sizeof(diag_orb_dat*));
+    if(data->diag_orb_collect && data->orbits.mode == DIAG_ORB_WRITELAST) {
+	(*ds)->Nlist = malloc(data->orbits.writeNlast*NSIMD*sizeof(diag_orb_dat*));
     }
 
     /* Initialize data storage */

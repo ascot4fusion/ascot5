@@ -10,6 +10,7 @@
 #include "hdf5_helpers.h"
 #include "../particle.h"
 #include "../math.h"
+#include "../print.h"
 #include "../consts.h"
 #include "hdf5_markers.h"
 
@@ -81,6 +82,7 @@ void hdf5_markers_init_particle(hid_t f, int* nmrk, input_particle** mrk, char* 
 
     integer n;
     err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/n", qid, path), &n);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     *nmrk = n;
     
     real* r      = malloc(n * sizeof(real));
@@ -96,16 +98,27 @@ void hdf5_markers_init_particle(hid_t f, int* nmrk, input_particle** mrk, char* 
     integer* id  = malloc(n * sizeof(integer));
      
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/r", qid, path), r);
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/phi", qid, path), phi);    
+    if(err) {print_err("Error: Failed to read dataset."); return;}
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/phi", qid, path), phi);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/z", qid, path), z);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/v_r", qid, path), v_r);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/v_phi", qid, path), v_phi);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/v_z", qid, path), v_z);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/mass", qid, path), mass);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/charge", qid, path), charge);
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/weight", qid, path), weight);   
+    if(err) {print_err("Error: Failed to read dataset."); return;}
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/weight", qid, path), weight);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/time", qid, path), time);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/particle-XXXXXXXXXX/id", qid, path), id);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
 
     *mrk = (input_particle*) malloc(n * sizeof(input_particle));
     input_particle* p = *mrk;
@@ -146,6 +159,7 @@ void hdf5_markers_init_guiding_center(hid_t f, int* nmrk, input_particle** mrk, 
 
     integer n;
     err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/n", qid, path), &n);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     *nmrk = n;
     
     real* r      = malloc(n * sizeof(real));
@@ -161,16 +175,27 @@ void hdf5_markers_init_guiding_center(hid_t f, int* nmrk, input_particle** mrk, 
     integer* id  = malloc(n * sizeof(integer));
      
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/r", qid, path), r);
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/phi", qid, path), phi);    
+    if(err) {print_err("Error: Failed to read dataset."); return;}
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/phi", qid, path), phi);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/z", qid, path), z);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/energy", qid, path), energy);
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/pitch", qid, path), pitch); 
+    if(err) {print_err("Error: Failed to read dataset."); return;}
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/pitch", qid, path), pitch);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/theta", qid, path), theta);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/mass", qid, path), mass);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/charge", qid, path), charge);
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/weight", qid, path), weight);   
+    if(err) {print_err("Error: Failed to read dataset."); return;}
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/weight", qid, path), weight);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/time", qid, path), time);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX/id", qid, path), id);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
 
     *mrk = (input_particle*) malloc(n * sizeof(input_particle));
     input_particle* p = *mrk;
@@ -210,6 +235,7 @@ void hdf5_markers_init_field_line(hid_t f, int* nmrk, input_particle** mrk, char
 
     integer n;
     err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/n", qid, path), &n);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     *nmrk = n;
     
     real* r      = malloc(n * sizeof(real));
@@ -221,12 +247,19 @@ void hdf5_markers_init_field_line(hid_t f, int* nmrk, input_particle** mrk, char
     integer* id  = malloc(n * sizeof(integer));
     
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/r", qid, path), r);
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/phi", qid, path), phi);    
+    if(err) {print_err("Error: Failed to read dataset."); return;}
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/phi", qid, path), phi);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/z", qid, path), z);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/pitch", qid, path), pitch);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/weight", qid, path), weight);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/time", qid, path), time);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
     err = H5LTread_dataset_long(f, hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX/id", qid, path), id);
+    if(err) {print_err("Error: Failed to read dataset."); return;}
 
     *mrk = (input_particle*) malloc(n * sizeof(input_particle));
     input_particle* p = *mrk;

@@ -27,64 +27,7 @@
  */
 void wall_3d_init_offload(wall_3d_offload_data* offload_data,
                           real** offload_array) {
-    FILE* f = fopen("input.wall_3d", "r");
-
-    fscanf(f, "%d", &offload_data->n);
-
-    *offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
-    offload_data->offload_array_length = 9 * offload_data->n;
-
-    offload_data->xmin = 1e10;
-    offload_data->xmax = -1e10;
-    offload_data->ymin = 1e10;
-    offload_data->ymax = -1e10;
-    offload_data->zmin = 1e10;
-    offload_data->zmax = -1e10;
-
-    int i;
-    for(i = 0; i < offload_data->n*3; i++) {
-        real x, y, z;
-        fscanf(f, "%lf", &x);
-        if(x < offload_data->xmin)
-            offload_data->xmin = x;
-        if (x > offload_data->xmax)
-            offload_data->xmax = x;
-        fscanf(f, "%lf", &y);
-        if(y < offload_data->ymin)
-            offload_data->ymin = y;
-        if (y > offload_data->ymax)
-            offload_data->ymax = y;
-        fscanf(f, "%lf", &z);
-        if(z < offload_data->zmin)
-            offload_data->zmin = z;
-        if (z > offload_data->zmax)
-            offload_data->zmax = z;
-        (*offload_array)[i*3] = x;
-        (*offload_array)[i*3+1] = y;
-        (*offload_array)[i*3+2] = z;
-    }
-
-    /* Add a little bit of padding so we don't need to worry about triangles
-       clipping the edges */
-    offload_data->xmin -= 0.1;
-    offload_data->xmax += 0.1;
-    offload_data->ymin -= 0.1;
-    offload_data->ymax += 0.1;
-    offload_data->zmin -= 0.1;
-    offload_data->zmax += 0.1;
-
-    /* Depth of the octree in which the triangles are sorted */
-    offload_data->depth = 7;
-    offload_data->ngrid = 1;
-    for(i = 0; i < offload_data->depth - 1; i++) {
-        offload_data->ngrid *= 2;
-    }
-    offload_data->xgrid = (offload_data->xmax - offload_data->xmin)
-                          / offload_data->ngrid;
-    offload_data->ygrid = (offload_data->ymax - offload_data->ymin)
-                          / offload_data->ngrid;
-    offload_data->zgrid = (offload_data->zmax - offload_data->zmin)
-                          / offload_data->ngrid;
+    // Dummy function
 }
 
 /**

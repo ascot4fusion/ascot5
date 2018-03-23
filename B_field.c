@@ -153,6 +153,10 @@ a5err B_field_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z,
         case B_field_type_STS:
         B_STS_eval_psi_SIMD(i, psi, r, phi, z, &(Bdata->BSTS));
         break;
+
+	default:
+        // Do nothing
+	break;
     }
 
     if(err) {
@@ -253,6 +257,10 @@ a5err B_field_eval_rho_SIMD(int i, real rho[NSIMD], real psi, B_field_data* Bdat
     	case B_field_type_STS:
         B_STS_eval_rho_SIMD(i, rho, psi, &(Bdata->BSTS));
         break;
+
+	default:
+        // Do nothing
+	break;
     }
 
     if(err) {
@@ -383,7 +391,7 @@ a5err B_field_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real
 			B_field_data* Bdata) {
     a5err err = 0;
 
-    switch(Bdata->type) {
+    switch(Bdata->type) {	
         case B_field_type_GS:
         B_GS_eval_B_dB_SIMD(i, B_dB, r, phi, z, &(Bdata->BGS));
         break;
@@ -399,6 +407,10 @@ a5err B_field_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real
 	case B_field_type_STS:
         B_STS_eval_B_dB_SIMD(i, B_dB, r, phi, z, &(Bdata->BSTS));
         break;
+
+        default:
+        // Do nothing
+	break;
     }
 
     if(err) {
