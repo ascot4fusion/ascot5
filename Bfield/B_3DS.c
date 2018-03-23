@@ -270,9 +270,7 @@ a5err B_3DS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_3DS_data*
     #endif
 
     if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
-    
-    /* Check that the values seem valid */
-    int check = 0;
+
     //if(!err && (psi_dpsi[0] - Bdata->psi0) < 0) {err = error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );}
     if(!err) {
         /* Normalize psi to get rho */

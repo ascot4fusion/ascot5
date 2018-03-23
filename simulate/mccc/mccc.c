@@ -365,7 +365,6 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
 	    real Bnorm = math_norm(B);
 	    physlib_gc_muvpar2vxi(p->mass[i], Bnorm, p->mu[i], p->vpar[i], &vin, &xiin);
 
-	    real phi0 = p->phi[i];
 	    real R0   = p->r[i];
 	    real z0   = p->z[i];
 	    Xin[0] = p->r[i]*cos(p->phi[i]);
@@ -505,7 +504,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
 
     /* Error estimates */
     real kappa_k[NSIMD], kappa_d0[NSIMD], kappa_d1[NSIMD];
-    real dWopt0[NSIMD], dWopt1[NSIMD], alpha[NSIMD];
+    //real dWopt0[NSIMD], dWopt1[NSIMD], alpha[NSIMD]; Needed only if the accurate error-checking is used
     int tindex[NSIMD];
 
     #pragma omp simd
@@ -520,7 +519,6 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
 	    real Bnorm = math_norm(B);
 	    physlib_gc_muvpar2vxi(p->mass[i], Bnorm, p->mu[i], p->vpar[i], &vin, &xiin);
 
-	    real phi0 = p->phi[i];
 	    real R0   = p->r[i];
 	    real z0   = p->z[i];
 	    Xin[0] = p->r[i]*cos(p->phi[i]);

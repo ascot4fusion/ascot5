@@ -2,6 +2,7 @@
 #include "../ascot5.h"
 #include "../dist_5D.h"
 #include "../dist_6D.h"
+#include "../print.h"
 #include "hdf5_helpers.h"
 #include "hdf5_histogram.h"
 
@@ -67,6 +68,11 @@ void hdf5_dist_write_5D(dist_5D_offload_data* dist, real* hist, char* filename,
               ordinate_names,
               hist);
 
+    if(retval) {
+	print_err("Error: Could not write distributions.");
+	return;
+    }
+    
     #if VERBOSE > 0
     printf("\nDone writing distributions to HDF5 file.\n");
     #endif
@@ -137,6 +143,11 @@ void hdf5_dist_write_6D(dist_6D_offload_data* dist, real* hist, char* filename,
               ordinate_units,
               ordinate_names,
               hist);
+
+    if(retval) {
+	print_err("Error: Could not write distributions.");
+	return;
+    }
 
     #if VERBOSE > 0
     printf("\nDone writing distributions to HDF5 file.\n");

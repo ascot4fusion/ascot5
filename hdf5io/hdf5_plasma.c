@@ -14,13 +14,13 @@
 #include "hdf5.h"
 #include "hdf5_helpers.h"
 #include "hdf5_hl.h"
+#include "hdf5_plasma.h"
 
 
 int hdf5_plasma_init_offload(hid_t f, plasma_offload_data* offload_data,
 			     real** offload_array) {
 
     herr_t err;
-    hsize_t dims[3];
 
     #if VERBOSE > 0
         printf("\nReading plasma input from the HDF5 file...\n");
@@ -73,16 +73,17 @@ int hdf5_plasma_init_offload_1D(hid_t f, plasma_1D_offload_data* offload_data,
 				real** offload_array, char* qid) {
     herr_t err;
     char path[256];
-    hsize_t dims[3];
     int temporary_array[MAX_SPECIES]; // For reading input data for Anum and Znum
 
-    int i, j;
+    int i;
 
     int n_ions;
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/n_ions", qid, path), &n_ions);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
     offload_data->n_species = n_ions + 1; /* Include electrons */
     
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/n_rho", qid, path), &(offload_data->n_rho));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
     int n_rho = offload_data->n_rho;
     
     /* Allocate space for rho + temperature for each ion species and electrons
@@ -108,6 +109,7 @@ int hdf5_plasma_init_offload_1D(hid_t f, plasma_1D_offload_data* offload_data,
     /* Read Znum and calculate charge */
     
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/Z_num", qid, path), temporary_array);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
     for(i = 0; i < n_ions; i++) {
 	offload_data->charge[i+1] = temporary_array[i] * CONST_E;
     }
@@ -117,26 +119,32 @@ int hdf5_plasma_init_offload_1D(hid_t f, plasma_1D_offload_data* offload_data,
 
     /* Read Amass and calculate mass */
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/A_mass", qid, path), temporary_array);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
     for(i = 0; i < n_ions; i++) {
 	offload_data->mass[i+1] = temporary_array[i] * CONST_U;
     }
     
     /* Read actual data into array */
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/rho", qid, path), rho);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/temp_e", qid, path), temp_e);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
     for(i = 0; i < n_rho; i++) {
 	temp_e[i] = temp_e[i] * CONST_E / CONST_KB;
     }
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/dens_e", qid, path), dens_e);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
 
     /* All ions have same temperature */
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/temp_i", qid, path), temp_i);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
     for(i = 0; i < n_rho; i++) {
 	temp_i[i] = temp_i[i] * CONST_E / CONST_KB;
     }
 
     /* Ion densities */
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/plasma/plasma_1D-XXXXXXXXXX/dens_i", qid, path), dens_i);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
 
     #if VERBOSE > 0
         printf("\nLoaded 1D plasma profiles (P_1D)\n");
@@ -175,8 +183,7 @@ int hdf5_plasma_init_offload_1D(hid_t f, plasma_1D_offload_data* offload_data,
  */
 int hdf5_plasma_init_offload_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
                                  real** offload_array, char* qid) {
-    char path[256];
-    a5err err = 0;
+    herr_t err = 0;
     int i, j;
     err = H5LTfind_dataset(f, "/plasma/P_1D");
     
@@ -243,5 +250,5 @@ int hdf5_plasma_init_offload_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
         }
     }
     
-    return 0;
+    return err;
 }

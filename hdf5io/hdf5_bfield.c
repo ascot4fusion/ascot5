@@ -356,19 +356,29 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
 
     /* Number of toroidal periods */
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/toroidalPeriods", qid, path), &periods);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     offload_data->periods = periods;
 
     /* Read the coordinate data */
  
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/n_r", qid, path), &(offload_data->n_r));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/n_phi", qid, path), &(offload_data->n_phi));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/n_z", qid, path), &(offload_data->n_z));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/r_min", qid, path), &(offload_data->r_min));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/r_max", qid, path), &(offload_data->r_max));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/z_min", qid, path), &(offload_data->z_min));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/z_max", qid, path), &(offload_data->z_max));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/phi_min", qid, path), &(offload_data->phi_min));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/phi_max", qid, path), &(offload_data->phi_max));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
     offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
                            / (offload_data->n_r - 1);
@@ -392,9 +402,13 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
     real* temp_B_s   = (real*) malloc(temp_B_size*sizeof(real));
 
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/B_r", qid, path), temp_B_r);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/B_phi", qid, path), temp_B_phi);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/B_z", qid, path), temp_B_z);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/s", qid, path), temp_B_s);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
     /* We need to use stellarator symmetry here.
      * http://dx.doi.org/10.1016/S0167-2789(97)00216-9
@@ -479,17 +493,22 @@ void hdf5_bfield_init_offload_TC(hid_t f, B_TC_offload_data* offload_data, real*
     char path[256];
 
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/axisr", qid, path), &(offload_data->axisr));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/axisz", qid, path), &(offload_data->axisr));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/psival", qid, path), &(offload_data->psival));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/rhoval", qid, path), &(offload_data->rhoval));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
     offload_data->offload_array_length = 12;
 
     *offload_array = (real*) malloc(offload_data->offload_array_length*sizeof(real));
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/Bxyz", qid, path), &(*offload_array)[0]);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/gradB", qid, path), &(*offload_array)[3]);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     
-
 }
 
 /**
@@ -505,21 +524,32 @@ void hdf5_bfield_init_offload_GS(hid_t f, B_GS_offload_data* offload_data, real*
 
     /* Equilibrium */
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/R0", qid, path), &(offload_data->R0));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/z0", qid, path), &(offload_data->z0));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/B_phi0", qid, path), &(offload_data->B_phi0));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/psi0", qid, path), &(offload_data->psi0));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/psi1", qid, path), &(offload_data->psi1));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/psi_mult", qid, path), &(offload_data->psi_mult));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
     /* Ripple */
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/delta0", qid, path), &(offload_data->delta0));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/alpha0", qid, path), &(offload_data->alpha0));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/a0", qid, path), &(offload_data->a0));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/Nripple", qid, path), &(offload_data->Nripple));
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
     offload_data->offload_array_length = 13;
 
     *offload_array = (real*) malloc(offload_data->offload_array_length*sizeof(real));
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_GS-XXXXXXXXXX/psi_coeff", qid, path), &(*offload_array)[0]);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     
 }

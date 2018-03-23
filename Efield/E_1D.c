@@ -25,38 +25,7 @@
  */
 void E_1D_init_offload(E_1D_offload_data* offload_data, real** offload_array) {
 
-    FILE* f = fopen("input.erad", "r");
-
-    /* Skip comment line */
-    while(fgetc(f) != '\n');
-
-    /* Number of rho points */
-    int n_rho;
-    fscanf(f, "%d", &n_rho);
-    offload_data->n_rho = n_rho;
-
-    /* Allocate n_rho space for both rho and dV/drho */
-    offload_data->offload_array_length = 2*n_rho;
-    *offload_array = (real*) malloc(2*n_rho*sizeof(real));
-
-    /* Pointers to beginning of different data series to make code more
-     * readable */
-    real* rho = &(*offload_array)[0];
-    real* dV = &(*offload_array)[n_rho];
-
-    /* For data in format dV/rho, we can ignore effective minor radius */
-    real a = 1.0;
-
-    /* Read actual data into array */
-    for(int i = 0; i < n_rho; i++) {
-        fscanf(f, "%lf %lf", &rho[i], &dV[i]);
-        /* Scale derivatives by effective minor radius */
-        dV[i] = a * dV[i];
-    }
-
-    offload_data->rho_min = rho[0];
-    offload_data->rho_max = rho[n_rho-1];
-    fclose(f);
+    // Dummy function
 }
 
 /**
