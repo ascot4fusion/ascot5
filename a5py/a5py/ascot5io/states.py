@@ -56,7 +56,7 @@ def read_hdf5(fn, qid, read="all"):
 
     return out
 
-def write_hdf5(fn, states, qid):
+def write_hdf5(fn, states, qid, state=["inistate","endstate"]):
     """
     Write states.
 
@@ -77,11 +77,13 @@ def write_hdf5(fn, states, qid):
     qid : int
         Run id these states correspond to.
     """
-
+    
     f = h5py.File(fn, "a")
 
-    for state in states:
-        path = state
+    # Read data from file
+    for statename in [state]:
+
+        path = "results/run-" + qid + '/' + statename
 
         # Remove group if one is already present.
         if path in f:
@@ -89,7 +91,6 @@ def write_hdf5(fn, states, qid):
         f.create_group(path)
 
         # TODO Check that inputs are consistent.
-        
         
         # Read data from file.
         for field in states[state]:

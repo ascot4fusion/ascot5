@@ -51,7 +51,8 @@ def read_hdf5(fn, groups="all"):
 
     if groups == "all":
         groups = ["bfield", "efield", "options", "wall", "plasma",
-                  "marker", "metadata", "states", "orbits", "dists"]
+                  "marker", "metadata", "states", "orbits", "dists",
+                  "results"]
 
     f = h5py.File(fn, "r")
 
@@ -121,35 +122,36 @@ def read_hdf5(fn, groups="all"):
     if "metadata" in f and "metadata" in groups:
         out["metadata"] = metadata.read_hdf5(fn)
 
-    if "results" in f:
+    if "results" in f and "results" in groups:
         qids,dates = get_qids(fn, "results")
         for qid in qids:
             path = "run-"+qid
-            out[path] = {}
+            out["results"] = {}
+            out["results"][path] = {}
             
             # Metadata.
-            out[path]["qid"]  = qid
-            out[path]["date"] = f["results"][path].attrs["date"]
-            out[path]["description"] = f["results"][path].attrs["description"]
+            out["results"][path]["qid"]  = qid
+            out["results"][path]["date"] = f["results"][path].attrs["date"]
+            out["results"][path]["description"] = f["results"][path].attrs["description"]
 
-            out[path]["qid_bfield"]  = f["results"][path].attrs["qid_bfield"]
-            out[path]["qid_efield"]  = f["results"][path].attrs["qid_efield"]
-            out[path]["qid_marker"]  = f["results"][path].attrs["qid_marker"]
-            out[path]["qid_options"] = f["results"][path].attrs["qid_options"]
-            out[path]["qid_plasma"]  = f["results"][path].attrs["qid_plasma"]
-            out[path]["qid_wall"]    = f["results"][path].attrs["qid_wall"]
+            out["results"][path]["qid_bfield"]  = f["results"][path].attrs["qid_bfield"]
+            out["results"][path]["qid_efield"]  = f["results"][path].attrs["qid_efield"]
+            out["results"][path]["qid_marker"]  = f["results"][path].attrs["qid_marker"]
+            out["results"][path]["qid_options"] = f["results"][path].attrs["qid_options"]
+            out["results"][path]["qid_plasma"]  = f["results"][path].attrs["qid_plasma"]
+            out["results"][path]["qid_wall"]    = f["results"][path].attrs["qid_wall"]
 
             # Actual data
-            if "inistate" in f["results"][path] and "states" in groups:
+            if "inistate" in f["results"][path] and "results" in groups:
                 st = states.read_hdf5(fn,qid,["inistate"])
-                out[path]["inistate"] = st["inistate"]
-            if "endstate" in f["results"][path] and "states" in groups:
+                out["results"][path]["inistate"] = st["inistate"]
+            if "endstate" in f["results"][path] and "results" in groups:
                 st = states.read_hdf5(fn,qid,["endstate"])
-                out[path]["endstate"] = st["endstate"]
-            if "dists" in f["results"][path] and "dists" in groups:
-                out[path]["dists"] = dists.read_hdf5(fn,qid)
-            if "orbits" in f["results"][path] and "orbits" in groups:
-                out[path]["orbits"] = orbits.read_hdf5(fn,qid)
+                out["results"][path]["endstate"] = st["endstate"]
+            if "dists" in f["results"][path] and "results" in groups:
+                out["results"][path]["dists"] = dists.read_hdf5(fn,qid)
+            if "orbits" in f["results"][path] and "results" in groups:
+                out["results"][path]["orbits"] = orbits.read_hdf5(fn,qid)
 
     f.close()
 

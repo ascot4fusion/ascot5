@@ -50,9 +50,10 @@ def read_hdf5(fn, qid):
             temp[name]            = edges2grid(temp[name + '_edges'])
             temp[name + '_unit']  = abscissae_units[i]
             temp['n_' + name]     = temp[name].size
-        
+
         temp['ordinate']       = disttemp['ordinate'][0,:,:,:,:,:,:,:]
         temp['ordinate_name'] = 'density'
+        temp['ordinate_unit'] = 's/m^5*deg*e'
 
     f.close()
 
@@ -66,7 +67,7 @@ def write_hdf5(fn, dists, qid):
     Unlike most other "write" functions, this one takes dictionary
     as an argument. The dictionary should have exactly the same format
     as given by the "read" function in this module. The reason for this
-    is that this function is intended to be used only when combining 
+    is that this function is intended to be used only when combining
     different HDF5 files into one.
 
     TODO not compatible with new format
@@ -83,7 +84,7 @@ def write_hdf5(fn, dists, qid):
 
     f = h5py.File(fn, "a")
 
-    path = "distributions/"
+    path = "results/run-" + qid + "/dists/"
 
     # Remove group if one is already present.
     if path in f:
@@ -104,5 +105,28 @@ def write_hdf5(fn, dists, qid):
         f.create_dataset(path + "rzVDist/abscissae/dim5", data=dists["rzVDist"]["time_edges"])
 
         f.create_dataset(path + "rzVDist/ordinate", data=dists["rzVDist"]["ordinate"])
+
+    if "R_phi_z_vpa_vpe_t_q" in dists:
+        f.create_group(path + "R_phi_z_vpa_vpe_t_q")
+
+        abscissae_names = ["R", "phi", "z", "vpa", "vpe", "time", "charge"]
+        f.create_dataset(path + "R_phi_z_vpa_vpe_t_q/" + "abscissa_ndim", data=len(abscissae_names))
+        for i, name in enumerate(abscissae_names):
+            f.create_dataset(path + "R_phi_z_vpa_vpe_t_q/" + "abscissa_name_00000" + str(i+1),
+                             data=name)
+            f.create_dataset(path + "R_phi_z_vpa_vpe_t_q/" + "abscissa_vec_00000" + str(i+1),
+                             data=dists["R_phi_z_vpa_vpe_t_q"][name + '_edges'])
+            f.create_dataset(path + "R_phi_z_vpa_vpe_t_q/" + "abscissa_unit_00000" + str(i+1),
+                             data=dists["R_phi_z_vpa_vpe_t_q"][name + '_unit'])
+            f.create_dataset(path + "R_phi_z_vpa_vpe_t_q/" + "abscissa_nslot_00000" + str(i+1),
+                             data=dists["R_phi_z_vpa_vpe_t_q"]['n_' + name])
+
+        f.create_dataset(path + "R_phi_z_vpa_vpe_t_q/ordinate",
+                         data=np.expand_dims(dists["R_phi_z_vpa_vpe_t_q"]["ordinate"],0))
+        f.create_dataset(path + "R_phi_z_vpa_vpe_t_q/ordinate_name_000001",
+                         data=dists["R_phi_z_vpa_vpe_t_q"]["ordinate_name"])
+        f.create_dataset(path + "R_phi_z_vpa_vpe_t_q/ordinate_ndim",data=1)
+        f.create_dataset(path + "R_phi_z_vpa_vpe_t_q/ordinate_unit_000001",
+                         data=dists["R_phi_z_vpa_vpe_t_q"]["ordinate_unit"])
 
     f.close()
