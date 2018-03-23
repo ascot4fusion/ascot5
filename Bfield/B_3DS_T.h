@@ -1,6 +1,6 @@
 /**
- * @file B_3DS.h
- * @brief Header file for B_3DS.c
+ * @file B_3DS_T.h
+ * @brief Header file for B_3DS_T.c
  */
 #ifndef B_3DS_H
 #define B_3DS_H
@@ -52,40 +52,32 @@ typedef struct {
  * @brief 3D magnetic field parameters on the target
  */
 typedef struct {
-    int n_time;
-    real time[N_MAX_TIME_SLICE];
-    B_3DS_data Bslice[N_MAX_TIME_SLICE];
+    int n_time;                 /**< number of time slices in B & psi data */
+    real time[N_MAX_TIME_SLICE];/**< values of time for each time slice */
+    B_3DS_data Bslice[N_MAX_TIME_SLICE];/**< B3DS grids for each time slice */
 } B_3DS_T_data;
 
-void B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array);
-void B_3DS_free_offload(B_3DS_offload_data* offload_data, real** offload_array);
+void B_3DS_T_init_offload(B_3DS_T_offload_data* offload_data, real** offload_array);
+void B_3DS_T_free_offload(B_3DS_T_offload_data* offload_data, real** offload_array);
 
 #pragma omp declare target
-int B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
+int B_3DS_T_init(B_3DS_T_data* Bdata, B_3DS_T_offload_data* offload_data,
                real* offload_array);
 #pragma omp declare simd uniform(Bdata)
-a5err B_3DS_eval_psi(real psi[], real r, real phi, real z, B_3DS_data* Bdata);
-#pragma omp declare simd linear(i) uniform(psi, Bdata)
-a5err B_3DS_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z, B_3DS_data* Bdata);
+a5err B_3DS_T_eval_psi(real psi[], real r, real phi, real z, real time, B_3DS_T_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_3DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_3DS_data* Bdata);
+a5err B_3DS_T_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, real time, B_3DS_T_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_3DS_eval_rho(real rho[], real psi, B_3DS_data* Bdata);
-#pragma omp declare simd linear(i) uniform(rho, Bdata)
-a5err B_3DS_eval_rho_SIMD(int i, real rho[NSIMD], real psi, B_3DS_data* Bdata);
+a5err B_3DS_T_eval_rho(real rho[], real psi, real time, B_3DS_T_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_3DS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_3DS_data* Bdata);
+a5err B_3DS_T_eval_rho_drho(real rho_drho[], real r, real phi, real z, real time, B_3DS_T_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_3DS_eval_B(real B[], real r, real phi, real z, B_3DS_data* Bdata);
-#pragma omp declare simd linear(i) uniform(B, Bdata)
-a5err B_3DS_eval_B_SIMD(int i, real B[3][NSIMD], real r, real phi, real z, B_3DS_data* Bdata);
+a5err B_3DS_T_eval_B(real B[], real r, real phi, real z, real time, B_3DS_T_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_3DS_data* Bdata);
-#pragma omp declare simd linear(i) uniform(B_dB, Bdata)
-a5err B_3DS_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z, B_3DS_data* Bdata);
+a5err B_3DS_T_eval_B_dB(real B_dB[], real r, real phi, real z, real time, B_3DS_T_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-real B_3DS_get_axis_r(B_3DS_data* Bdata);
+real B_3DS_T_get_axis_r(real time, B_3DS_T_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-real B_3DS_get_axis_z(B_3DS_data* Bdata);
+real B_3DS_T_get_axis_z(real time, B_3DS_T_data* Bdata);
 #pragma omp end declare target   
 #endif
