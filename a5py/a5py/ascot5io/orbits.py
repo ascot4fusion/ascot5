@@ -77,16 +77,10 @@ def write_hdf5(fn, orbits, qid):
         Run id these orbits correspond to.
     """
 
-    group = "orbits"
-    # Create group
     f = h5py.File(fn, "a")
-    if not group in f:
-        o = f.create_group(group)
-    else:
-        o = f[group]
 
     for orbgroup in orbits:
-        path = "orbits/" + orbgroup
+        path = "results/run-" + qid + "/orbits/" + orbgroup
 
         # Remove group if one is already present.
         if path in f:
@@ -94,7 +88,6 @@ def write_hdf5(fn, orbits, qid):
         f.create_group(path)
 
         # TODO Check that inputs are consistent.
-        
         
         # Write data to file.
         for field in orbits[orbgroup]:
