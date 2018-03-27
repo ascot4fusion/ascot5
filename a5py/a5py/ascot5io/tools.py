@@ -168,12 +168,18 @@ def combineresults(fnt, fns, mode="add"):
         print("Creating 'results' field for target.")
         fs = h5py.File(fns[0])
         fs.copy("results", f)
-        for state in ["inistate","endstate"]: # f[path]:
+        for state in ["inistate","endstate"]:
             for field in f[path][state]:
                 del f[path][state][field]
                 f[path][state].create_dataset(field, (0,))
                 for a in fs[path][state][field].attrs.items():
                     f[path][state][field].attrs.create(a[0],a[1])
+        for ptype in f[path]['orbits']:
+            for field in f[path]['orbits'][ptype]:
+                del f[path]['orbits'][ptype][field]
+                f[path]['orbits'][ptype].create_dataset(field, (0,))
+                for a in fs[path]['orbits'][ptype][field].attrs.items():
+                    f[path]['orbits'][ptype][field].attrs.create(a[0],a[1])
         del f[path]["dists"]
         fs.close()
     f.close()
@@ -248,12 +254,14 @@ def combineresults(fnt, fns, mode="add"):
     f = h5py.File(fnt, "a")
     if "orbits" in f["results/" + path]:
         print("Combining orbits.")        
-        target = ascot5.read_hdf5(fnt,"orbits")["orbits"]
+        target = ascot5.read_hdf5(fnt,"results")
+        target = target["results"][path]["orbits"]
         
         # Iterate over source files
         for fn in fns:
-            source = ascot5.read_hdf5(fn,"orbits")["orbits"]
-            
+            source = ascot5.read_hdf5(fn,"results")
+            source = source["results"][path]["orbits"]
+
             # Check whether target has the desired state.
             # Init empty state if necessary.
             for orbgroup in source:
@@ -274,3 +282,5 @@ def combineresults(fnt, fns, mode="add"):
                         
         # Target now contains all data from combined runs, so we just need to write it.
         orbits.write_hdf5(fnt,target,qid)
+
+    f.close()
