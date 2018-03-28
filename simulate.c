@@ -39,6 +39,10 @@ void simulate(int id, int n_particles, particle_state* p,
     plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
 
     ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->neutral_offload_data.offload_array_length);
+    neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
             sim_offload->wall_offload_data.offload_array_length);
     wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
