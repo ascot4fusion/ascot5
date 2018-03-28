@@ -64,7 +64,8 @@ def init():
 
     for i in range(0,3):
         # Options
-        o = options.read_hdf5(fn[i])
+        qid,date = ascot5.get_qids(fn[i],"options")
+        o = options.read_hdf5(fn[i],qid[0])
         o["SIM_MODE"]                  = 0*o["SIM_MODE"] + simmode[i]
         o["ENABLE_ADAPTIVE"]           = 0*o["ENABLE_ADAPTIVE"] + adaptive[i]
         o["FIXEDSTEP_USE_USERDEFINED"] = 0*o["FIXEDSTEP_USE_USERDEFINED"] + 1
@@ -99,13 +100,14 @@ def check(plot=False):
 
     grid = np.linspace(-1,1,50)*5e-3
     for i in range(0,3):
-        state = ascot5.read_hdf5(fn[i],"states")["states"]["endstate"]
+        qid,date = ascot5.get_qids(fn[i],"results")
+        state = ascot5.read_hdf5(fn[i],"states")["run-"+qid[0]]["endstate"]
         xf = state["R"] * np.cos(np.deg2rad(state["phi"]))
         yf = state["R"] * np.sin(np.deg2rad(state["phi"]))
         zf = state["z"]
         rf = np.sqrt(np.power(xf,2) + np.power(zf,2))
 
-        state = ascot5.read_hdf5(fn[i],"states")["states"]["inistate"]
+        state = ascot5.read_hdf5(fn[i],"states")["run-"+qid[0]]["inistate"]
         xi = state["R"] * np.cos(np.deg2rad(state["phi"]))
         yi = state["R"] * np.sin(np.deg2rad(state["phi"]))
         zi = state["z"]

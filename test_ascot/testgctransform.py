@@ -20,12 +20,12 @@ def run():
     C2 = constants.c * constants.c
 
     # Test options
-    writedt = 1e-12
-    simtime = 1e-7
+    writedt = 1e-10
+    simtime = 1e-5
 
     # Proton
-    m = 1.00727647
-    q = 1
+    m = 1.00727647*4
+    q = 1*2
 
     # Init testbase.
     fn = ['GO.h5', 'GO2GC.h5', 'GC.h5']
@@ -44,7 +44,7 @@ def run():
                           3.825826765593096646e-01, -3.573153147754407621e-01, -1.484166833037287025e-02, 1.506045943286430100e-01, 
                           7.428226459414810634e-01, -4.447153105104519888e-01, -1.084640395736786167e-01, 1.281599235951017685e-02, 
                           -0.155])
-    #B_GS.write_hdf5(fn[0], R0, z0, B_phi0, psi_mult, psi_coeff)
+    B_GS.write_hdf5(fn[0], R0, z0, B_phi0, psi_mult, psi_coeff)
 
     # Markers
     Nmrk   = 1
@@ -56,15 +56,16 @@ def run():
     z      = 0*np.ones(ids.shape)
     weight = 1*np.ones(ids.shape)
     time   = 0*np.ones(ids.shape)
-    energy = 1.0e6*np.ones(ids.shape)
+    energy = 3.5e6*np.ones(ids.shape)
     pitch  = 0.5*np.ones(ids.shape)
-    theta  = 0*np.ones(ids.shape)  
+    theta  = 1*np.ones(ids.shape)  
 
     # Options
-    o = options.read_hdf5(fn[0])
+    qid,date = ascot5.get_qids(fn[0],"options")
+    o = options.read_hdf5(fn[0],qid[0])
     o["SIM_MODE"]                  = 0*o["SIM_MODE"] + 1
     o["FIXEDSTEP_USE_USERDEFINED"] = 0*o["FIXEDSTEP_USE_USERDEFINED"] + 1
-    o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + 1e-12
+    o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + 1e-10
     o["ENABLE_ORBIT_FOLLOWING"]    = 0*o["ENABLE_ORBIT_FOLLOWING"] + 1
     o["ENABLE_ORBITWRITE"]         = 0*o["ENABLE_ORBITWRITE"] + 1
     o["ORBITWRITE_MODE"]           = 0*o["ORBITWRITE_MODE"] + 1
@@ -78,16 +79,19 @@ def run():
     vR = np.sqrt(1-pitch*pitch)*v
     vphi = pitch*v
     vz = 0
-    markers.write_hdf5_particles(fn[0], Nmrk, ids, mass, charge, R, phi, z, vR, vphi, vz, weight, time)
+    #markers.write_hdf5_particles(fn[0], Nmrk, ids, mass, charge, R, phi, z, vR, vphi, vz, weight, time)
+    markers.write_hdf5_guidingcenters(fn[0], Nmrk, ids, mass, charge, R, phi, z, energy, pitch, theta, weight, time)
     
     subprocess.call(["cp", fn[0], fn[1]])
     subprocess.call(["cp", fn[0], fn[2]])
 
-    o = options.read_hdf5(fn[1])
+    qid,date = ascot5.get_qids(fn[1],"options")
+    o = options.read_hdf5(fn[1],qid[0])
     o["RECORD_GO_AS_GC"] = 0*o["RECORD_GO_AS_GC"] + 1
     options.write_hdf5(fn[1],o)
 
-    o = options.read_hdf5(fn[2])
+    qid,date = ascot5.get_qids(fn[2],"options")
+    o = options.read_hdf5(fn[2],qid[0])
     o["SIM_MODE"]                  = 0*o["SIM_MODE"] + 2
     o["FIXEDSTEP_USERDEFINED"]     = 0*o["FIXEDSTEP_USERDEFINED"] + 1e-12
     options.write_hdf5(fn[2],o)
@@ -97,10 +101,13 @@ def run():
     subprocess.call(["./ascot5_main", "--in="+fn[1][0:-3]])
     subprocess.call(["./ascot5_main", "--in="+fn[2][0:-3]])
 
-    
-    go    = ascot5.read_hdf5(fn[0],"orbits")["orbits"]["fo"]
-    go2gc = ascot5.read_hdf5(fn[1],"orbits")["orbits"]["gc"]
-    gc    = ascot5.read_hdf5(fn[2],"orbits")["orbits"]["gc"]
+
+    qid,date = ascot5.get_qids(fn[0],"results")
+    go    = ascot5.read_hdf5(fn[0],"orbits")["run-"+qid[0]]["orbits"]["fo"]
+    qid,date = ascot5.get_qids(fn[1],"results")
+    go2gc = ascot5.read_hdf5(fn[1],"orbits")["run-"+qid[0]]["orbits"]["gc"]
+    qid,date = ascot5.get_qids(fn[2],"results")
+    gc    = ascot5.read_hdf5(fn[2],"orbits")["run-"+qid[0]]["orbits"]["gc"]
 
     pitch = physlib.pitch(massamu=go["mass"], vR=go["v_R"], vphi=go["v_phi"], vz=go["v_z"],
                           BR=go["B_R"], Bphi=go["B_phi"], Bz=go["B_z"])
@@ -110,7 +117,7 @@ def run():
     gomu   = gamma*gamma*(1-pitch*pitch) * go["mass"] * AMU2KG * np.power(physlib.vecnorm(go["v_R"],go["v_phi"],go["v_z"]),2)/physlib.vecnorm(go["B_R"],go["B_phi"],go["B_z"])
     gomu   = 0.5*gomu/ELEMENTARY_CHARGE
 
-    if False:
+    if True:
         plt.figure()
         plt.plot(go["R"], go["z"])
         plt.plot(go2gc["R"], go2gc["z"])
@@ -126,7 +133,7 @@ def run():
         plt.axis('equal')
         
 
-
+    
     plt.figure()
     plt.plot(go["time"], gomu)
     plt.plot(go2gc["time"], go2gc["mu"])
@@ -136,7 +143,7 @@ def run():
     plt.plot(go["time"], govpar)
     plt.plot(go2gc["time"], go2gc["vpar"])
     plt.plot(gc["time"], gc["vpar"])
-
+    
     plt.show()
 
 def pol2cart(rho, phi):
