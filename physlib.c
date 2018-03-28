@@ -206,9 +206,9 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
     /* Make the spatial transformation */
     real rho[3];
     real pperp[3];
-    TEMP_V1[0] = p_unit[0]*(1 - B_unit[0]);
-    TEMP_V1[1] = p_unit[1]*(1 - B_unit[1]);
-    TEMP_V1[2] = p_unit[2]*(1 - B_unit[2]);
+    TEMP_V1[0] = p_unit[0]*ptot - p_para0*B_unit[0];
+    TEMP_V1[1] = p_unit[1]*ptot - p_para0*B_unit[1];
+    TEMP_V1[2] = p_unit[2]*ptot - p_para0*B_unit[2];
     math_unit(TEMP_V1,pperp);
 
     math_cross(B_unit, pperp, rho);
@@ -350,9 +350,9 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
     math_unit(a2,a2);
 
     real rho_unit[3];
-    rho_unit[0] = cos(theta)*a1[0]+sin(theta)*a2[0]; 
-    rho_unit[1] = cos(theta)*a1[1]+sin(theta)*a2[1];
-    rho_unit[2] = cos(theta)*a1[2]+sin(theta)*a2[2];
+    rho_unit[0] = cos(theta)*a2[0]+sin(theta)*a1[0]; 
+    rho_unit[1] = cos(theta)*a2[1]+sin(theta)*a1[1];
+    rho_unit[2] = cos(theta)*a2[2]+sin(theta)*a1[2];
 
     real rho[3];
     rho[0] = rho_unit[0];
@@ -364,7 +364,7 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
     real perphat[3];
     math_cross(rho_unit,B_unit,perphat); 
 
-/*    real a1ddotgradb = -0.5*(2*(rho_unit[0]*perphat[0]*nablabhat[0]+
+    real a1ddotgradb = -0.5*(2*(rho_unit[0]*perphat[0]*nablabhat[0]+
 				rho_unit[1]*perphat[1]*nablabhat[4]+
 				rho_unit[2]*perphat[2]*nablabhat[8])
 			     +(rho_unit[0]*perphat[1]+rho_unit[1]*perphat[0])*
@@ -373,22 +373,13 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
 			      (nablabhat[2]+nablabhat[6])
 			     +(rho_unit[1]*perphat[2]+rho_unit[2]*perphat[1])*
 			      (nablabhat[5]+nablabhat[7]));
-*/
-    real A1[9] = {rho_unit[0]*perphat[0], rho_unit[1]*perphat[0], rho_unit[2]*perphat[0],
-		  rho_unit[0]*perphat[1], rho_unit[1]*perphat[1], rho_unit[2]*perphat[1],
-		  rho_unit[0]*perphat[2], rho_unit[1]*perphat[2], rho_unit[2]*perphat[2]};
-    real a1ddotgradb = 0;
-    for(int i=0; i<9; i++) {
-	a1ddotgradb += A1[i]*nablabhat[i];
-    }
-    a1ddotgradb *= -0.5;
 
-    real p_para1 = 0*(-p_para0*math_dot(rho,kappa)+((mass*mu_0)/charge)*(tau_B+a1ddotgradb));
+    real p_para1 = (-p_para0*math_dot(rho,kappa)+((mass*mu_0)/charge)*(tau_B+a1ddotgradb));
     TEMP_S1 = pow(p_para0,2)/(mass*B_norm);
     TEMP_V1[0] = TEMP_S1 * kappa[0] + mu_0*gradB[0]/B_norm;
     TEMP_V1[1] = TEMP_S1 * kappa[1] + mu_0*gradB[1]/B_norm;
     TEMP_V1[2] = TEMP_S1 * kappa[2] + mu_0*gradB[2]/B_norm;
-    real mu_1 = 0*math_dot(rho,TEMP_V1)-((mu_0*p_para0)/(charge*B_norm))*(tau_B+a1ddotgradb);
+    real mu_1 = math_dot(rho,TEMP_V1)-((mu_0*p_para0)/(charge*B_norm))*(tau_B+a1ddotgradb);
 
     /* Calculate the parallel momentum vector */
     real p_para[3];
