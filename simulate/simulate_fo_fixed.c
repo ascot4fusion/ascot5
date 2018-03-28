@@ -76,9 +76,10 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
     /* Determine simulation time-step */
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
+	cputime_last[i] = A5_WTIME;
 	if(cycle[i] > 0) {
 	    hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
-	    cputime_last[i] = A5_WTIME;
+	    
 	}
     }
     
@@ -113,6 +114,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 	    p0.mass[i]       = p.mass[i];
 	    p0.charge[i]     = p.charge[i];
 
+	    p0.id[i]         = p.id[i];
             p0.running[i]    = p.running[i];
             p0.endcond[i]    = p.endcond[i];
             p0.walltile[i]   = p.walltile[i];
@@ -147,7 +149,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]){
                 p.time[i] = p.time[i] + hin[i];
-		p.cputime[i] += cputime - cputime_last[i] ;
+		p.cputime[i] += cputime - cputime_last[i];
 		cputime_last[i] = cputime;
             }
         }   
@@ -165,6 +167,9 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 		    particle_fo_to_gc(&p0, i, &gc_i, &sim->B_data);
 		}
 		else {
+		    gc_f.id[i] = p.id[i];
+		    gc_i.id[i] = p.id[i];
+		    
 		    gc_f.running[i] = 0;
 		    gc_i.running[i] = 0;
 		}
