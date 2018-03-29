@@ -258,8 +258,8 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
     // Convert to radians
-    offload_data->phi_min = offload_data->phi_min*(180.0/math_pi);
-    offload_data->phi_max = offload_data->phi_max*(180.0/math_pi);
+    offload_data->phi_min = offload_data->phi_min*(math_pi/180);
+    offload_data->phi_max = offload_data->phi_max*(math_pi/180);
     
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/z_min", qid, path), &(offload_data->Bgrid_z_min));
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
