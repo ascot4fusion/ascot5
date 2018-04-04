@@ -272,7 +272,7 @@ void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, rea
     offload_data->Bgrid_z_grid = (offload_data->Bgrid_z_max - offload_data->Bgrid_z_min)
                            / (offload_data->Bgrid_n_z - 1);
     offload_data->phi_grid = (offload_data->phi_max - offload_data->phi_min)
-                           / (offload_data->n_phi - 1);
+                           / (offload_data->n_phi);
 
     /* Read and initialize psi field Rz-grid */
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_3DS-XXXXXXXXXX/psigrid_n_R", qid, path), &(offload_data->psigrid_n_r));
