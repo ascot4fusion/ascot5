@@ -174,9 +174,10 @@ def combineresults(fnt, fns, mode="add"):
                 f[path][state].create_dataset(field, (0,))
                 for a in fs[path][state][field].attrs.items():
                     f[path][state][field].attrs.create(a[0],a[1])
-        for ptype in f[path]['orbits']:
-            for field in f[path]['orbits'][ptype]:
-                del f[path]['orbits'][ptype][field]
+        if 'orbits' in f[path]:
+            for ptype in f[path]['orbits']:
+                for field in f[path]['orbits'][ptype]:
+                    del f[path]['orbits'][ptype][field]
                 f[path]['orbits'][ptype].create_dataset(field, (0,))
                 for a in fs[path]['orbits'][ptype][field].attrs.items():
                     f[path]['orbits'][ptype][field].attrs.create(a[0],a[1])
