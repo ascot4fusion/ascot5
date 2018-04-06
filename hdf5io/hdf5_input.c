@@ -62,6 +62,12 @@ int hdf5_input(sim_offload_data* sim,
 	return -1;
     }
 
+    err = hdf5_find_group(f, "/neutral/");
+    if(err < 0) {
+	printf("\nError: Neutral density not found within %s.\n",sim->hdf5_in);
+	return -1;
+    }
+
     err = hdf5_find_group(f, "/wall/");
     if(err < 0) {
 	printf("\nError: Wall not found within %s.\n",sim->hdf5_in);
@@ -181,6 +187,9 @@ int hdf5_initoutput(sim_offload_data* sim, char* qid) {
 
     H5LTget_attribute_string(fin, "/plasma/", "active", inputqid);
     hdf5_write_string_attribute(fout, path, "qid_plasma",  inputqid);
+
+    H5LTget_attribute_string(fin, "/neutral/", "active", inputqid);
+    hdf5_write_string_attribute(fout, path, "qid_neutral",  inputqid);
 
     H5LTget_attribute_string(fin, "/wall/", "active", inputqid);
     hdf5_write_string_attribute(fout, path, "qid_wall",  inputqid);
