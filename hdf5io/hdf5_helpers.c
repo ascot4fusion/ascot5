@@ -97,3 +97,43 @@ char* hdf5_generate_qid_path(const char* original, char* qid, char* path) {
 
     return path;
 }
+
+/**
+ * @brief Write string attribute with null-padding.
+ *
+ * There is a H5LTset_attribute_string function but it writes strings as null-terminated. However, string 
+ * attributes in ASCOT5 HDF5 file are assumed to be null-padded. 
+ */
+herr_t  hdf5_write_string_attribute(hid_t loc, const char* path, const char* attrname,  const char* string) {
+    herr_t err;
+
+    hid_t grp = H5Gopen(loc, path, H5P_DEFAULT);
+    hid_t aid = H5Screate(H5S_SCALAR);
+    hid_t atype = H5Tcopy(H5T_C_S1);
+    H5Tset_size(atype, strlen(string));
+    H5Tset_strpad(atype,H5T_STR_NULLPAD);
+
+    hid_t attr = H5Aopen(grp, attrname, H5P_DEFAULT);
+    if(attr > 0) {
+	H5Adelete(grp, attrname);
+    }
+
+    attr = H5Acreate2(grp, attrname, atype, aid, H5P_DEFAULT, H5P_DEFAULT);
+    
+    err = H5Awrite(attr, atype, string);
+    if(err) {return err;}
+
+    err = H5Sclose(aid);
+    if(err) {return err;}
+    
+    err = H5Tclose(atype);
+    if(err) {return err;}
+    
+    err = H5Aclose(attr);
+    if(err) {return err;}
+
+    err = H5Gclose(grp);
+    if(err) {return err;}
+
+    return 0;
+}

@@ -162,7 +162,7 @@ int hdf5_initoutput(sim_offload_data* sim, char* qid) {
     }
 
     /* Set this run as the active result. */
-    H5LTset_attribute_string(fout, "/results", "active", qid);
+    err=hdf5_write_string_attribute(fout, "/results", "active",  qid);
     
     /* Read input data qids and store them here. */
     char inputqid[11];
@@ -171,33 +171,33 @@ int hdf5_initoutput(sim_offload_data* sim, char* qid) {
     hid_t fin = hdf5_open(sim->hdf5_in);
     
     H5LTget_attribute_string(fin, "/options/", "active", inputqid);
-    H5LTset_attribute_string(fout, path, "qid_options", inputqid);
+    hdf5_write_string_attribute(fout, path, "qid_options",  inputqid);
 
     H5LTget_attribute_string(fin, "/bfield/", "active", inputqid);
-    H5LTset_attribute_string(fout, path, "qid_bfield", inputqid);
+    hdf5_write_string_attribute(fout, path, "qid_bfield",  inputqid);
 
     H5LTget_attribute_string(fin, "/efield/", "active", inputqid);
-    H5LTset_attribute_string(fout, path, "qid_efield", inputqid);
+    hdf5_write_string_attribute(fout, path, "qid_efields",  inputqid);
 
     H5LTget_attribute_string(fin, "/plasma/", "active", inputqid);
-    H5LTset_attribute_string(fout, path, "qid_plasma", inputqid);
+    hdf5_write_string_attribute(fout, path, "qid_plasma",  inputqid);
 
     H5LTget_attribute_string(fin, "/wall/", "active", inputqid);
-    H5LTset_attribute_string(fout, path, "qid_wall", inputqid);
+    hdf5_write_string_attribute(fout, path, "qid_wall",  inputqid);
 
     H5LTget_attribute_string(fin, "/marker/", "active", inputqid);
-    H5LTset_attribute_string(fout, path, "qid_marker", inputqid);
+    hdf5_write_string_attribute(fout, path, "qid_marker",  inputqid);
 
     hdf5_close(fin);
     
     /* Finally we set a description and date, and close the file. */
-    H5LTset_attribute_string(fout, path, "description", "");
+    hdf5_write_string_attribute(fout, path, "description",  "-");
     
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     char date[21];
     sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-    H5LTset_attribute_string(fout, path, "date", date);
+    hdf5_write_string_attribute(fout, path, "date",  date);
     hdf5_close(fout);
     
     return 0;
