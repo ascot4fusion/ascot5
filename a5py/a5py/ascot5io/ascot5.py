@@ -232,8 +232,8 @@ def get_qids(fn, group):
         temp = [datetime.datetime.strptime(d.decode('utf-8')[:19], "%Y-%m-%d %H:%M:%S") for d in datesraw]
         idx = sorted(range(len(temp)), key=lambda k: temp[k])
 
-        qids[1:] = [qidsraw[i] for i in idx]
-        dates[1:] = [datesraw[i] for i in idx]
+        qids[1:] = [qidsraw[i] for i in reversed(idx)]
+        dates[1:] = [datesraw[i] for i in reversed(idx)]
 
     f.close()
     
