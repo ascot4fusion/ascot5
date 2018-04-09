@@ -183,7 +183,7 @@ int hdf5_initoutput(sim_offload_data* sim, char* qid) {
     hdf5_write_string_attribute(fout, path, "qid_bfield",  inputqid);
 
     H5LTget_attribute_string(fin, "/efield/", "active", inputqid);
-    hdf5_write_string_attribute(fout, path, "qid_efields",  inputqid);
+    hdf5_write_string_attribute(fout, path, "qid_efield",  inputqid);
 
     H5LTget_attribute_string(fin, "/plasma/", "active", inputqid);
     hdf5_write_string_attribute(fout, path, "qid_plasma",  inputqid);
