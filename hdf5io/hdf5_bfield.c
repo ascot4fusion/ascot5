@@ -506,7 +506,7 @@ void hdf5_bfield_init_offload_TC(hid_t f, B_TC_offload_data* offload_data, real*
     *offload_array = (real*) malloc(offload_data->offload_array_length*sizeof(real));
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/Bxyz", qid, path), &(*offload_array)[0]);
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/gradB", qid, path), &(*offload_array)[3]);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_TC-XXXXXXXXXX/J", qid, path), &(*offload_array)[3]);
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     
 }
