@@ -300,16 +300,15 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* p
 
 	    /* Evaluate collisions */				
 	    if(!errflag) {errflag = mccc_push_foEM(F, Dpara, Dperp, h[i], &rnd[i*3], vin, vout);}
-			
+
 	    /* Update particle */
+	    real vnorm = va/(math_norm(vout));
 	    #if A5_CCOL_NOENERGY
-	        real vnorm = va/(math_norm(vout));
 	        vout[0] *= vnorm;
 		vout[1] *= vnorm;
 		vout[2] *= vnorm;
 	    #endif
 	    #if A5_CCOL_NOPITCH
-		real vnorm = sqrt(vout[0]*vout[0] + vout[1]*vout[1] + vout[2]*vout[2])/va;
 		vout[0] = vin[0] * vnorm;
 		vout[1] = vin[1] * vnorm;
 		vout[2] = vin[2] * vnorm;
@@ -359,7 +358,9 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
 	    a5err errflag = 0;
 
 	    /* Gather relevant gc information */
-	    real B[3] = {p->B_r[i], p->B_phi[i], p->B_z[i]};
+	    real Brpz[3] = {p->B_r[i], p->B_phi[i], p->B_z[i]};
+	    real B[3];
+	    math_vec_rpz2xyz(Brpz, B, p->phi[i]);
 	    real vin, xiin, Xin[3];
 	    real vout, xiout, Xout[3];
 	    real Bnorm = math_norm(B);
@@ -513,7 +514,9 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
 	    a5err errflag = 0;
 
 	    /* Gather relevant gc information */
-	    real B[3] = {p->B_r[i], p->B_phi[i], p->B_z[i]};
+	    real Brpz[3] = {p->B_r[i], p->B_phi[i], p->B_z[i]};
+	    real B[3];
+	    math_vec_rpz2xyz(Brpz, B, p->phi[i]);
 	    real vin, xiin, Xin[3];
 	    real vout, xiout, Xout[3];
 	    real Bnorm = math_norm(B);
