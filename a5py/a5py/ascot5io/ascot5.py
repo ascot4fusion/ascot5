@@ -125,8 +125,10 @@ def read_hdf5(fn, groups="all"):
     if "results" in f and "results" in groups:
         qids,dates = get_qids(fn, "results")
         for qid in qids:
+            if not "results" in out:
+                out["results"] = {}
+            
             path = "run-"+qid
-            out["results"] = {}
             out["results"][path] = {}
             
             # Metadata.

@@ -45,7 +45,7 @@ def read_hdf5(fn, qid):
     
     for orbgroup in orbits:
         if out[orbgroup]["N"] > 0:
-            ind = np.lexsort((out[orbgroup]["id"], out[orbgroup]["time"]))
+            ind = np.lexsort((out[orbgroup]["time"], out[orbgroup]["id"]))
             for field in orbits[orbgroup]:
                 if field[-4:] != "unit":
                     out[orbgroup][field] = out[orbgroup][field][ind]
