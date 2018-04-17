@@ -83,19 +83,21 @@ def run(a4folder, h5fn, overwrite=True):
                 print("Converting id 0 to new unique id: " + str(int(max(data["fields"]["id"]))))
             if 'vphi' in data['fieldNames']:
                 # We have particles
-                data = data["fields"]
                 print("Warning! Forcing time to zero for all markers.")
-                markers.write_hdf5_particles(h5fn, data["id"].size, data["id"], data["mass"], data["charge"], 
-                                             data["Rprt"], data["phiprt"], data["zprt"], data["vR"], 
-                                             data["vphi"], data["vz"], data["weight"], data["weight"]*0)
-            elif 'energy' in data['fieldNames']:
+                markers.write_hdf5_particles(h5fn, data["fields"]["id"].size, data["fields"]["id"],
+                                             data["fields"]["mass"], data["fields"]["charge"],
+                                             data["fields"]["Rprt"], data["fields"]["phiprt"], data["fields"]["zprt"],
+                                             data["fields"]["vR"], data["fields"]["vphi"], data["fields"]["vz"],
+                                             data["fields"]["weight"], data["fields"]["weight"]*0)
+            if 'energy' in data['fieldNames']:
                 # We have guiding centers (theta is random)
-                data = data["fields"]
                 print("Warning! Forcing time to zero and randomizing theta for all markers.")
-                theta = 2*np.pi*np.random.rand(data["id"].size)
-                markers.write_hdf5_guidingcenters(h5fn, data["id"].size, data["id"], data["mass"], data["charge"], data["R"], 
-                                                  data["phi"], data["z"], data["energy"], data["pitch"], theta, 
-                                                  data["weight"], data["weight"]*0 )
+                theta = 2*np.pi*np.random.rand(data["fields"]["id"].size)
+                markers.write_hdf5_guidingcenters(h5fn, data["fields"]["id"].size, data["fields"]["id"],
+                                                  data["fields"]["mass"], data["fields"]["charge"],
+                                                  data["fields"]["R"], data["fields"]["phi"], data["fields"]["z"],
+                                                  data["fields"]["energy"], data["fields"]["pitch"], theta, 
+                                                  data["fields"]["weight"], data["fields"]["weight"]*0 )
             f = h5py.File(h5fn, 'r')
 
     # Magnetic field.
