@@ -345,9 +345,9 @@ void B_GS_eval_rho_drho(real rho_drho[], real r, real phi, real z,
  */
 void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
                     B_GS_data* Bdata) {
-    real C[12];
+    real C[13];
 
-    for(int i = 0; i < 12; i++) {
+    for(int i = 0; i < 13; i++) {
         C[i] = Bdata->psi_coeff[i];
     }
 
