@@ -345,7 +345,16 @@ void B_GS_eval_rho_drho(real rho_drho[], real r, real phi, real z,
  */
 void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
                     B_GS_data* Bdata) {
-    real* C = Bdata->psi_coeff;
+    real C[12];
+
+    for(int i = 0; i < 12; i++) {
+        C[i] = Bdata->psi_coeff[i];
+    }
+
+    real R0 = Bdata->R0;
+    real B_phi0 = Bdata->B_phi0;
+
+    real psi_mult = Bdata->psi_mult;
 
     /* Precalculated terms used in the components */
     real r2 = r*r;
@@ -356,56 +365,56 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
     real z3 = z2*z;
     real z4 = z3*z;
     real z5 = z4*z;
-    real logr = log(r/Bdata->R0);
-    real R02 = Bdata->R0*Bdata->R0;
-    real R03 = R02*Bdata->R0;
-    real R04 = R03*Bdata->R0;
-    real R05 = R04*Bdata->R0;
-    real R06 = R05*Bdata->R0;
+    real logr = log(r/R0);
+    real R02 = R0*R0;
+    real R03 = R02*R0;
+    real R04 = R03*R0;
+    real R05 = R04*R0;
+    real R06 = R05*R0;
 
     /* r field component */
-    B_dB[0] =   C[2]  * (-2*z) / R02
+    real B0 =   C[2]  * (-2*z) / R02
               + C[3]  * (-8*r2*z) / R04
               + C[4]  * (-18*r2*z - 24*r2*logr*z + 8*z3) / R04
               + C[5]  * (-24*r4*z + 32*r2*z3) / R06
               + C[6]  * (48*z5 - 560*r2*z3 - 480*r2*logr*z3 +360*r4*logr*z
                          + 150*r4*z) / R06
-              + C[7]  * (1) / Bdata->R0
+              + C[7]  * (1) / R0
               + C[8]  * (r2) / R03
               + C[9]  * (3*z2 - 3*r2*logr) / R03
               + C[10] * (3*r4 - 12*z2*r2) / R05
               + C[11] * (40*z4 - 45*r4 - 240*z2*r2*logr + 60*r4*logr) / R05;
-    B_dB[0] *= -Bdata->psi_mult / r;
-    B_dB[1] =   C[3]  * (-16*r*z) / R04
-                 + C[4]  * (-60*r*z - 48*r*logr*z) / R04
-                 + C[5]  * (-96*r3*z  + 64*r*z3) / R06
-                 + C[6]  * (-1600*r*z3 - 960*r*logr*z3 +1440*r3*logr*z
+    B0 *= -psi_mult / r;
+    real B1 =   C[3]  * (-16*r*z) / R04
+              + C[4]  * (-60*r*z - 48*r*logr*z) / R04
+              + C[5]  * (-96*r3*z  + 64*r*z3) / R06
+              + C[6]  * (-1600*r*z3 - 960*r*logr*z3 +1440*r3*logr*z
                             + 960*r3*z) / R06
-                 + C[8]  * (2*r) / R03
-                 + C[9]  * (-6*r*logr - 3*r) / R03
-                 + C[10] * (12*r3 - 24*z2*r) / R05
-                 + C[11] * (-120*r3 - 480*z2*r*logr -240*z2*r +240*r3*logr)/R05;
-    B_dB[1] = -B_dB[0] / r - B_dB[1] * Bdata->psi_mult / r;
-    B_dB[2] = 0;
-    B_dB[3] =   C[2]  * (-2) / R02
-                 + C[3]  * (-8*r2) / R04
-                 + C[4]  * (-18*r2 - 24*r2*logr + 24*z2) / R04
-                 + C[5]  * (-24*r4 + 96*r2*z2) / R06
-                 + C[6]  * (240*z4 - 1680*r2*z2 - 1440*r2*logr*z2 + 360*r4*logr
+              + C[8]  * (2*r) / R03
+              + C[9]  * (-6*r*logr - 3*r) / R03
+              + C[10] * (12*r3 - 24*z2*r) / R05
+              + C[11] * (-120*r3 - 480*z2*r*logr -240*z2*r +240*r3*logr)/R05;
+    B1 = -B0 / r - B1 * psi_mult / r;
+    real B2 = 0;
+    real B3 =   C[2]  * (-2) / R02
+              + C[3]  * (-8*r2) / R04
+              + C[4]  * (-18*r2 - 24*r2*logr + 24*z2) / R04
+              + C[5]  * (-24*r4 + 96*r2*z2) / R06
+              + C[6]  * (240*z4 - 1680*r2*z2 - 1440*r2*logr*z2 + 360*r4*logr
                             + 150*r4) / R06
-                 + C[9]  * (6*z) / R03
-                 + C[10] * (-24*z*r2) / R05
-                 + C[11] * (160*z3 - 480*z*r2*logr) / R05;
-    B_dB[3] *= -Bdata->psi_mult / r;
+              + C[9]  * (6*z) / R03
+              + C[10] * (-24*z*r2) / R05
+              + C[11] * (160*z3 - 480*z*r2*logr) / R05;
+    B3 *= -psi_mult / r;
 
     /* phi field component */
-    B_dB[4] = Bdata->B_phi0 * Bdata->R0 / r;
-    B_dB[5] = -Bdata->B_phi0 * Bdata->R0 / r2;
-    B_dB[6] = 0;
-    B_dB[7] = 0;
+    real B4 = B_phi0 * R0 / r;
+    real B5 = -B_phi0 * R0 / r2;
+    real B6 = 0;
+    real B7 = 0;
 
     /* z field component */
-    B_dB[8] = (1-C[12]) * (r3/2) / R04
+    real B8 = (1-C[12]) * (r3/2) / R04
               + C[12] * (r/2 + r*logr) / R02
               + C[1]  * (2*r) / R02
               + C[2]  * (2*r*logr + r) / R02
@@ -418,8 +427,8 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
               + C[9]  * (-6*z*r*logr - 3*z*r) / R03
               + C[10] * (12*z*r3 - 8*z3*r) / R05
               + C[11] * (-120*z*r3-160*z3*r*logr-80*z3*r+240*z*r3*logr) / R05;
-    B_dB[8] *= Bdata->psi_mult / r;
-    B_dB[9] = (1-C[12]) * (3*r2/2) / R04
+    B8 *= psi_mult / r;
+    real B9 = (1-C[12]) * (3*r2/2) / R04
                  + C[12] * (1.5 + logr) / R02
                  + C[1]  * (2) / R02
                  + C[2]  * (2*logr + 3) / R02
@@ -432,9 +441,9 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
                  + C[9]  * (-6*z*logr - 9*z) / R03
                  + C[10] * (36*z*r2 - 8*z3) / R05
                  + C[11] * (-120*z*r2 - 160*z3*logr -240*z3 +720*z*r2*logr)/R05;
-    B_dB[9] = B_dB[9] * Bdata->psi_mult / r - B_dB[8] / r;
-    B_dB[10] = 0;
-    B_dB[11] = -B_dB[1] - B_dB[0] / r;
+    B9 = B9 * psi_mult / r - B8 / r;
+    real B10 = 0;
+    real B11 = -B1 - B0 / r;
     
     /* Ripple */
     if(Bdata->Nripple > 0) {
@@ -444,10 +453,10 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
 	real delta = Bdata->delta0 * exp(-0.5*theta*theta)
 	    * pow( radius / Bdata->a0, Bdata->alpha0 );
 
-	real Bphi = B_dB[4];
+	real Bphi = B4;
 	real Bpert = Bphi * delta * cos(Bdata->Nripple * phi);
-	B_dB[4] += Bpert;
-	B_dB[6] += - Bphi * delta * Bdata->Nripple * sin(Bdata->Nripple * phi);
+	B4 += Bpert;
+	B6 += - Bphi * delta * Bdata->Nripple * sin(Bdata->Nripple * phi);
 	
         
 	real dBpertdR = Bpert * ( 
@@ -460,10 +469,23 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
 	    - ( (r - Bdata->R0) /(radius*radius) ) * theta
 	    );
 
-	B_dB[5] += B_dB[5] * Bpert / Bphi + dBpertdR;
-	B_dB[7] += dBpertdz;
+	B5 += B5 * Bpert / Bphi + dBpertdR;
+	B7 += dBpertdz;
 
     }
+
+    B_dB[0] = B0;
+    B_dB[1] = B1;
+    B_dB[2] = B2;
+    B_dB[3] = B3;
+    B_dB[4] = B4;
+    B_dB[5] = B5;
+    B_dB[6] = B6;
+    B_dB[7] = B7;
+    B_dB[8] = B8;
+    B_dB[9] = B9;
+    B_dB[10] = B10;
+    B_dB[11] = B11;
 }
 
 void B_GS_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z,
