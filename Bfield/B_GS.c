@@ -3,10 +3,10 @@
  * @brief Analytic magnetic field
  *
  * This module implements a toroidal magnetic field based on an analytical
- * solution to the Grad-Shafranov equation [1]. 
+ * solution to the Grad-Shafranov equation [1].
  *
  * [1] A.J. Cerfon, J.P. Freidberg. "One size fits all" analytic solutions to
- *     the Grad-Shafranov equation. Physics of Plasmas 17 (3) (2010) 032502. 
+ *     the Grad-Shafranov equation. Physics of Plasmas 17 (3) (2010) 032502.
  *     http://scitation.aip.org/content/aip/journal/pop/17/3/10.1063/1.3328818
  */
 #include <stdlib.h>
@@ -21,7 +21,7 @@
  *
  * This function allocates the offload array and fills it with hardcoded
  * magnetic field parameters.
- * 
+ *
  * @todo Read parameters from a file
  *
  * @param offload_data pointer to offload data struct
@@ -50,7 +50,7 @@ void B_GS_init_offload(B_GS_offload_data* offload_data, real** offload_array) {
 }
 
 /**
- * @brief Free offload array and reset parameters 
+ * @brief Free offload array and reset parameters
  *
  * This function deallocates the offload_array.
  *
@@ -64,7 +64,7 @@ void B_GS_free_offload(B_GS_offload_data* offload_data,
 }
 
 /**
- * @brief Initialize magnetic field data struct on target 
+ * @brief Initialize magnetic field data struct on target
  *
  * This function copies the magnetic field parameters from the offload struct
  * to the struct on target and sets the magnetic field data pointer.
@@ -91,12 +91,12 @@ void B_GS_init(B_GS_data* Bdata, B_GS_offload_data* offload_data,
 }
 
 /**
- * @brief Evaluate magnetic field 
+ * @brief Evaluate magnetic field
  *
  * This function evaluates the analytic magnetic field at the given coordinates.
  * This is a SIMD function, so the values are placed in an NSIMD length struct.
  *
- * @param i index in the NSIMD struct that will be populated 
+ * @param i index in the NSIMD struct that will be populated
  * @param B array where magnetic field values will be stored (Br -> B[0][i],
  *          Bphi -> B[1][i], Bz -> B[2][i]
  * @param r r coordinate
@@ -104,7 +104,7 @@ void B_GS_init(B_GS_data* Bdata, B_GS_offload_data* offload_data,
  * @param z z coordinate
  * @param Bdata pointer to magnetic field data struct
  *
- * @todo Replace the divisions by powers of R0 by setting r/=R0, z/=R0 and 
+ * @todo Replace the divisions by powers of R0 by setting r/=R0, z/=R0 and
  *       psi_mult/=R0 to reduce the number of computations.
  */
 void B_GS_eval_B(real B[], real r, real phi,
@@ -127,16 +127,16 @@ void B_GS_eval_B(real B[], real r, real phi,
     real logr = log(r);
 
     /* r field component */
-    B[0] =   C[2]  * (-2*z) 
-              + C[3]  * (-8*r2*z) 
-              + C[4]  * (-18*r2*z - 24*r2*logr*z + 8*z3) 
-              + C[5]  * (-24*r4*z + 32*r2*z3) 
+    B[0] =   C[2]  * (-2*z)
+              + C[3]  * (-8*r2*z)
+              + C[4]  * (-18*r2*z - 24*r2*logr*z + 8*z3)
+              + C[5]  * (-24*r4*z + 32*r2*z3)
               + C[6]  * (48*z5 - 560*r2*z3 - 480*r2*logr*z3 +360*r4*logr*z
-                         + 150*r4*z) 
-              + C[7]  * (1) 
-              + C[8]  * (r2) 
-              + C[9]  * (3*z2 - 3*r2*logr) 
-              + C[10] * (3*r4 - 12*z2*r2) 
+                         + 150*r4*z)
+              + C[7]  * (1)
+              + C[8]  * (r2)
+              + C[9]  * (3*z2 - 3*r2*logr)
+              + C[10] * (3*r4 - 12*z2*r2)
               + C[11] * (40*z4 - 45*r4 - 240*z2*r2*logr + 60*r4*logr);
     B[0] *= -Bdata->psi_mult / (r * Bdata->R0 * Bdata->R0);
 
@@ -161,31 +161,31 @@ void B_GS_eval_B(real B[], real r, real phi,
 
     /* Ripple */
     if(Bdata->Nripple > 0) {
-	r *= Bdata->R0;
-	z *= Bdata->R0;
-	real radius = sqrt( ( r - Bdata->R0 ) * ( r - Bdata->R0 )
-			    + ( z - Bdata->z0 ) * ( z - Bdata->z0 ));
-	real theta = atan2( z - Bdata->z0, r - Bdata->R0 );
-	real delta = Bdata->delta0 * exp(-0.5*theta*theta)
-	    * pow( radius / Bdata->a0, Bdata->alpha0 );
-	B[1] = B[1] * ( 1 + delta * cos(Bdata->Nripple * phi) );
+        r *= Bdata->R0;
+        z *= Bdata->R0;
+        real radius = sqrt( ( r - Bdata->R0 ) * ( r - Bdata->R0 )
+                      + ( z - Bdata->z0 ) * ( z - Bdata->z0 ));
+        real theta = atan2( z - Bdata->z0, r - Bdata->R0 );
+        real delta = Bdata->delta0 * exp(-0.5*theta*theta)
+                     * pow( radius / Bdata->a0, Bdata->alpha0 );
+        B[1] = B[1] * ( 1 + delta * cos(Bdata->Nripple * phi) );
     }
 }
 
 /**
  * @brief Evaluate poloidal flux psi
- * 
+ *
  * This function evaluates the poloidal flux psi at the given coordinates from
- * the analytic solution. This is a SIMD function, so the values are placed in 
+ * the analytic solution. This is a SIMD function, so the values are placed in
  * an NSIMD length struct.
- * 
- * @param i index in the NSIMD struct that will be populated 
+ *
+ * @param i index in the NSIMD struct that will be populated
  * @param psi psi value will be stored in psi[0][i]
  * @param r r coordinate
  * @param phi phi coordinate
  * @param z z coordinate
  * @param Bdata pointer to magnetic field data struct
- * 
+ *
  * @todo Change to a scalar elemental function and compare performance
  */
 void B_GS_eval_psi(real psi[], real r, real phi, real z,
@@ -210,21 +210,21 @@ void B_GS_eval_psi(real psi[], real r, real phi, real z,
     double logr = log(r);
 
     psi[0] = Bdata->psi_mult * (
-	(1-C[12]) * (r4/8)
-	+ C[12] * (r2*logr/2)
-	+ C[0]  * (1)
-	+ C[1]  * (r2)
-	+ C[2]  * (r2*logr - z2)
-	+ C[3]  * (r4 - 4*r2*z2)
-	+ C[4]  * (3*r4*logr - 9*r2*z2 - 12*r2*logr*z2 + 2*z4)
-	+ C[5]  * (r6 - 12*r4*z2 + 8*r2*z4)
-	+ C[6]  * (8*z6 - 140*r2*z4 - 120*r2*logr*z4 + 180*r4*logr*z2
-		   + 75*r4*z2 - 15*r6*logr)
-	+ C[7]  * (z)
-	+ C[8]  * (z*r2)
-	+ C[9]  * (z3 - 3*z*r2*logr)
-	+ C[10] * (3*z*r4 - 4*z3*r2)
-	+ C[11] * (8*z5 - 45*z*r4 - 80*z3*r2*logr + 60*z*r4*logr) );
+             (1-C[12]) * (r4/8)
+              + C[12] * (r2*logr/2)
+              + C[0]  * (1)
+              + C[1]  * (r2)
+              + C[2]  * (r2*logr - z2)
+              + C[3]  * (r4 - 4*r2*z2)
+              + C[4]  * (3*r4*logr - 9*r2*z2 - 12*r2*logr*z2 + 2*z4)
+              + C[5]  * (r6 - 12*r4*z2 + 8*r2*z4)
+              + C[6]  * (8*z6 - 140*r2*z4 - 120*r2*logr*z4 + 180*r4*logr*z2
+                         + 75*r4*z2 - 15*r6*logr)
+              + C[7]  * (z)
+              + C[8]  * (z*r2)
+              + C[9]  * (z3 - 3*z*r2*logr)
+              + C[10] * (3*z*r4 - 4*z3*r2)
+              + C[11] * (8*z5 - 45*z*r4 - 80*z3*r2*logr + 60*z*r4*logr) );
 }
 
 void B_GS_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z,
@@ -249,21 +249,21 @@ void B_GS_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z,
     double logr = log(r);
 
     psi[i] = Bdata->psi_mult * (
-	(1-C[12]) * (r4/8)
-	+ C[12] * (r2*logr/2)
-	+ C[0]  * (1)
-	+ C[1]  * (r2)
-	+ C[2]  * (r2*logr - z2)
-	+ C[3]  * (r4 - 4*r2*z2)
-	+ C[4]  * (3*r4*logr - 9*r2*z2 - 12*r2*logr*z2 + 2*z4)
-	+ C[5]  * (r6 - 12*r4*z2 + 8*r2*z4)
-	+ C[6]  * (8*z6 - 140*r2*z4 - 120*r2*logr*z4 + 180*r4*logr*z2
-		   + 75*r4*z2 - 15*r6*logr)
-	+ C[7]  * (z)
-	+ C[8]  * (z*r2)
-	+ C[9]  * (z3 - 3*z*r2*logr)
-	+ C[10] * (3*z*r4 - 4*z3*r2)
-	+ C[11] * (8*z5 - 45*z*r4 - 80*z3*r2*logr + 60*z*r4*logr) );
+             (1-C[12]) * (r4/8)
+              + C[12] * (r2*logr/2)
+              + C[0]  * (1)
+              + C[1]  * (r2)
+              + C[2]  * (r2*logr - z2)
+              + C[3]  * (r4 - 4*r2*z2)
+              + C[4]  * (3*r4*logr - 9*r2*z2 - 12*r2*logr*z2 + 2*z4)
+              + C[5]  * (r6 - 12*r4*z2 + 8*r2*z4)
+              + C[6]  * (8*z6 - 140*r2*z4 - 120*r2*logr*z4 + 180*r4*logr*z2
+                         + 75*r4*z2 - 15*r6*logr)
+              + C[7]  * (z)
+              + C[8]  * (z*r2)
+              + C[9]  * (z3 - 3*z*r2*logr)
+              + C[10] * (3*z*r4 - 4*z3*r2)
+              + C[11] * (8*z5 - 45*z*r4 - 80*z3*r2*logr + 60*z*r4*logr) );
 }
 
 /**
@@ -323,10 +323,10 @@ void B_GS_eval_rho_drho(real rho_drho[], real r, real phi, real z,
 }
 
 /**
- * @brief Evaluate magnetic field 
+ * @brief Evaluate magnetic field
  *
- * This function evaluates the analytic magnetic field and it's derivatives at 
- * the given coordinates. This is a SIMD function, so the values are placed in 
+ * This function evaluates the analytic magnetic field and it's derivatives at
+ * the given coordinates. This is a SIMD function, so the values are placed in
  * an NSIMD length struct.
  *
  * @param i index in the NSIMD struct that will be populated
@@ -340,7 +340,7 @@ void B_GS_eval_rho_drho(real rho_drho[], real r, real phi, real z,
  * @param z z coordinate
  * @param Bdata pointer to magnetic field data struct
  *
- * @todo Replace the divisions by powers of R0 by setting r/=R0, z/=R0 and 
+ * @todo Replace the divisions by powers of R0 by setting r/=R0, z/=R0 and
  *       psi_mult/=R0 to reduce the number of computations.
  */
 void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
@@ -352,8 +352,8 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
     }
 
     real R0 = Bdata->R0;
+    real z0 = Bdata->z0;
     real B_phi0 = Bdata->B_phi0;
-
     real psi_mult = Bdata->psi_mult;
 
     /* Precalculated terms used in the components */
@@ -444,34 +444,32 @@ void B_GS_eval_B_dB(real B_dB[], real r, real phi, real z,
     B9 = B9 * psi_mult / r - B8 / r;
     real B10 = 0;
     real B11 = -B1 - B0 / r;
-    
+
     /* Ripple */
     if(Bdata->Nripple > 0) {
-	real radius = sqrt( ( r - Bdata->R0 ) * ( r - Bdata->R0 )
-			    + ( z - Bdata->z0 ) * ( z - Bdata->z0 ));
-	real theta = atan2( z - Bdata->z0, r - Bdata->R0 );
-	real delta = Bdata->delta0 * exp(-0.5*theta*theta)
-	    * pow( radius / Bdata->a0, Bdata->alpha0 );
+        real radius = sqrt( ( r - R0 ) * ( r - R0 )
+                      + ( z - z0 ) * ( z - z0 ));
+        real theta = atan2( z - z0, r - R0 );
+        real delta = Bdata->delta0 * exp(-0.5*theta*theta)
+                     * pow( radius / Bdata->a0, Bdata->alpha0 );
 
-	real Bphi = B4;
-	real Bpert = Bphi * delta * cos(Bdata->Nripple * phi);
-	B4 += Bpert;
-	B6 += - Bphi * delta * Bdata->Nripple * sin(Bdata->Nripple * phi);
-	
-        
-	real dBpertdR = Bpert * ( 
-	    ( (r - Bdata->R0) /radius) * ( Bdata->alpha0 / radius )
-	    + ( (z - Bdata->z0) /(radius*radius) ) * theta
-	    );
+        real Bphi = B4;
+        real Bpert = Bphi * delta * cos(Bdata->Nripple * phi);
+        B4 += Bpert;
+        B6 += - Bphi * delta * Bdata->Nripple * sin(Bdata->Nripple * phi);
 
-	real dBpertdz = Bpert * ( 
-	    ( (z - Bdata->z0) /radius) * ( Bdata->alpha0 / radius )
-	    - ( (r - Bdata->R0) /(radius*radius) ) * theta
-	    );
+        real dBpertdR = Bpert * (
+                ( (r - R0) /radius) * ( Bdata->alpha0 / radius )
+                + ( (z - z0) /(radius*radius) ) * theta
+            );
 
-	B5 += B5 * Bpert / Bphi + dBpertdR;
-	B7 += dBpertdz;
+        real dBpertdz = Bpert * (
+                ( (z - z0) /radius) * ( Bdata->alpha0 / radius )
+                - ( (r - R0) /(radius*radius) ) * theta
+            );
 
+        B5 += B5 * Bpert / Bphi + dBpertdR;
+        B7 += dBpertdz;
     }
 
     B_dB[0] = B0;
@@ -580,33 +578,33 @@ void B_GS_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z,
     B_dB[9][i] = B_dB[9][i] * Bdata->psi_mult / r - B_dB[8][i] / r;
     B_dB[10][i] = 0;
     B_dB[11][i] = -B_dB[1][i] - B_dB[0][i] / r;
-    
+
     /* Ripple */
     if(Bdata->Nripple > 0) {
-	real radius = sqrt( ( r - Bdata->R0 ) * ( r - Bdata->R0 )
-			    + ( z - Bdata->z0 ) * ( z - Bdata->z0 ));
-	real theta = atan2( z - Bdata->z0, r - Bdata->R0 );
-	real delta = Bdata->delta0 * exp(-0.5*theta*theta)
-	    * pow( radius / Bdata->a0, Bdata->alpha0 );
+    real radius = sqrt( ( r - Bdata->R0 ) * ( r - Bdata->R0 )
+                + ( z - Bdata->z0 ) * ( z - Bdata->z0 ));
+    real theta = atan2( z - Bdata->z0, r - Bdata->R0 );
+    real delta = Bdata->delta0 * exp(-0.5*theta*theta)
+        * pow( radius / Bdata->a0, Bdata->alpha0 );
 
-	real Bphi = B_dB[4][i];
-	real Bpert = Bphi * delta * cos(Bdata->Nripple * phi);
-	B_dB[4][i] += Bpert;
-	B_dB[6][i] += - Bphi * delta * Bdata->Nripple * sin(Bdata->Nripple * phi);
-	
-        
-	real dBpertdR = Bpert * ( 
-	    ( (r - Bdata->R0) /radius) * ( Bdata->alpha0 / radius )
-	    + ( (z - Bdata->z0) /(radius*radius) ) * theta
-	    );
+    real Bphi = B_dB[4][i];
+    real Bpert = Bphi * delta * cos(Bdata->Nripple * phi);
+    B_dB[4][i] += Bpert;
+    B_dB[6][i] += - Bphi * delta * Bdata->Nripple * sin(Bdata->Nripple * phi);
 
-	real dBpertdz = Bpert * ( 
-	    ( (z - Bdata->z0) /radius) * ( Bdata->alpha0 / radius )
-	    - ( (r - Bdata->R0) /(radius*radius) ) * theta
-	    );
 
-	B_dB[5][i] += B_dB[5][i] * Bpert / Bphi + dBpertdR;
-	B_dB[7][i] += dBpertdz;
+    real dBpertdR = Bpert * (
+        ( (r - Bdata->R0) /radius) * ( Bdata->alpha0 / radius )
+        + ( (z - Bdata->z0) /(radius*radius) ) * theta
+        );
+
+    real dBpertdz = Bpert * (
+        ( (z - Bdata->z0) /radius) * ( Bdata->alpha0 / radius )
+        - ( (r - Bdata->R0) /(radius*radius) ) * theta
+        );
+
+    B_dB[5][i] += B_dB[5][i] * Bpert / Bphi + dBpertdR;
+    B_dB[7][i] += dBpertdz;
 
     }
 }
