@@ -45,17 +45,17 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     # TODO Check that inputs are consistent.
 
     # Actual data.
-    f.create_dataset(path + "/r_min", data=Rmin, dtype="f8")
-    f.create_dataset(path + "/r_max", data=Rmax, dtype="f8")
-    f.create_dataset(path + "/n_r",   data=nR, dtype="i8")
+    f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")
+    f.create_dataset(path + "/r_max", (1,), data=Rmax, dtype="f8")
+    f.create_dataset(path + "/n_r", (1,),   data=nR, dtype="i8")
 
-    f.create_dataset(path + "/phi_min", data=phimin, dtype="f8")
-    f.create_dataset(path + "/phi_max", data=phimax, dtype="f8")
-    f.create_dataset(path + "/n_phi",   data=nphi, dtype="i8")
+    f.create_dataset(path + "/phi_min", (1,), data=phimin, dtype="f8")
+    f.create_dataset(path + "/phi_max", (1,), data=phimax, dtype="f8")
+    f.create_dataset(path + "/n_phi", (1,),   data=nphi, dtype="i8")
 
-    f.create_dataset(path + "/z_min", data=zmin, dtype="f8")
-    f.create_dataset(path + "/z_max", data=zmax, dtype="f8")
-    f.create_dataset(path + "/n_z",   data=nz, dtype="i8")
+    f.create_dataset(path + "/z_min", (1,), data=zmin, dtype="f8")
+    f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
+    f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
 
     # Magnetic field data
     f.create_dataset(path + "/B_r",   data=B_R, dtype="f8")
@@ -69,7 +69,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     f.create_dataset(path + "/axis_z",   data=axisz, dtype="f8")
 
     # Toroidal periods
-    f.create_dataset(path + "/toroidalPeriods", data=n_periods, dtype="i4")
+    f.create_dataset(path + "/toroidalPeriods", (1,), data=n_periods, dtype="i4")
     
     f.close()
 
@@ -92,7 +92,7 @@ def read_hdf5(fn, qid):
     Dictionary containing magnetic field data.
     """
 
-    path = "bfield" + "/B_ST-" + qid
+    path = "bfield" + "/B_STS-" + qid
 
     f = h5py.File(fn,"r")
 
