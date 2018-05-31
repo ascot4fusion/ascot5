@@ -84,30 +84,26 @@ LINTDIR = linint/
 LINTHEADERS =  $(wildcard $(LINTDIR)linint*.h)
 LINTOBJS = $(patsubst %.c,%.o,$(wildcard $(LINTDIR)linint*.c))
 
+SPLINEDIR = spline/
+SPLINEHEADERS  = $(wildcard $(SPLINEDIR)spline*.h)
+SPLINEHEADERS += $(wildcard $(SPLINEDIR)interp*.h)
+SPLINEOBJS  = $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)spline*.c))
+SPLINEOBJS += $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)interp*.c))
+
 HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
 	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
-	$(PLSHEADERS) $(N0HEADERS) $(LINTHEADERS) neutral.h plasma.h \
-	particle.h endcond.h B_field.h E_field.h \
+	$(PLSHEADERS) $(N0HEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
+	neutral.h plasma.h particle.h endcond.h B_field.h E_field.h \
 	wall.h simulate.h diag.h diag_orb.h offload.h \
-	spline/interp2D.h spline/interp3D.h spline/spline1D.h \
-	spline/interp2Dexpl.h spline/interp3Dexpl.h \
-	spline/interp2Detoc.h spline/interp3Detoc.h \
-	spline/interp2Dcomp.h spline/interp3Dcomp.h \
-	spline/spline1Dcomp.h spline/interp1Dcomp.h \
 	random.h print.h
 
 OBJS= math.o list.o octree.o physlib.o \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
-	$(PLSOBJS) $(N0OBJS) $(LINTOBJS) neutral.o plasma.o \
-	particle.o endcond.o B_field.o E_field.o \
+	$(PLSOBJS) $(N0OBJS) $(LINTOBJS) $(SPLINEOBJS) \
+	neutral.o plasma.o particle.o endcond.o B_field.o E_field.o \
 	wall.o simulate.o diag.o diag_orb.o offload.o \
-	spline/interp2D.o spline/interp3D.o spline/spline1D.o \
-	spline/interp2Dexpl.o spline/interp3Dexpl.o \
-	spline/interp2Detoc.o spline/interp3Detoc.o \
-	spline/interp2Dcomp.o spline/interp3Dcomp.o \
-	spline/spline1Dcomp.o spline/interp1Dcomp.o \
 	random.o print.c
 
 BINS=test_math \
@@ -169,4 +165,4 @@ clean:
 	rm -f *.o *.so *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
 		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o \
 		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
-		$(N0DIR)*.o $(LINTDIR)*.o spline/*.o *.pyc
+		$(N0DIR)*.o $(LINTDIR)*.o $(SPLINEDIR)*.o *.pyc
