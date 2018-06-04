@@ -89,7 +89,7 @@ def run(a4folder, h5fn, overwrite=True):
                                              data["fields"]["Rprt"], data["fields"]["phiprt"], data["fields"]["zprt"],
                                              data["fields"]["vR"], data["fields"]["vphi"], data["fields"]["vz"],
                                              data["fields"]["weight"], data["fields"]["weight"]*0)
-            if 'energy' in data['fieldNames']:
+            elif 'energy' in data['fieldNames']:
                 # We have guiding centers (theta is random)
                 print("Warning! Forcing time to zero and randomizing theta for all markers.")
                 theta = 2*np.pi*np.random.rand(data["fields"]["id"].size)
