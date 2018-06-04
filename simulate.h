@@ -15,6 +15,7 @@
 #include "wall.h"
 #include "diag.h"
 #include "offload.h"
+#include "random.h"
 
 enum {
     simulate_mode_fo = 1,
@@ -103,6 +104,8 @@ typedef struct {
     real endcond_minEkinPerTe;
     real endcond_maxTorOrb;
     real endcond_maxPolOrb;
+
+    random_data random_data;
     
 } sim_data;
 

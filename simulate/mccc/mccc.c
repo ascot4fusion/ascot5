@@ -12,6 +12,7 @@
 #include "../../particle.h"
 #include "../../B_field.h"
 #include "../../plasma.h"
+#include "../../random.h"
 #include "../../math.h"
 #include "../../consts.h"
 #include "../../physlib.h"
@@ -247,10 +248,10 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata
  * @param pdata pointer to plasma data
  * @param h pointer to time step values [s]
  */
-void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, real* h){
+void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* h){
     int i;
     real rnd[3*NSIMD];
-    mccc_wiener_boxmuller(rnd, 3*NSIMD);
+    mccc_wiener_boxmuller(rdata, rnd, 3*NSIMD);
 
     int n_species = plasma_get_n_species(pdata);
     real* q_species = plasma_get_species_charge(pdata);
@@ -343,10 +344,10 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* p
  * @param pdata pointer to plasma data
  * @param h pointer to time step values [s]
  */
-void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* h){
+void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* h){
     int i;
     real rnd[5*NSIMD];
-    mccc_wiener_boxmuller(rnd, 5*NSIMD);
+    mccc_wiener_boxmuller(rdata, rnd, 5*NSIMD);
     
     int n_species = plasma_get_n_species(pdata);
     real* q_species = plasma_get_species_charge(pdata);
@@ -494,10 +495,10 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
  *
  * @todo There is no need to check for error when collision frequency is low and other processes determine adaptive time-step
  */
-void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* hin, real* hout, mccc_wienarr** w, real tol){
+void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* hin, real* hout, mccc_wienarr** w, real tol){
     int i;
     real rand5[5*NSIMD];
-    mccc_wiener_boxmuller(rand5, 5*NSIMD);
+    mccc_wiener_boxmuller(rdata, rand5, 5*NSIMD);
 
     int n_species = plasma_get_n_species(pdata);
     real* q_species = plasma_get_species_charge(pdata);
@@ -708,7 +709,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
 		if(1.5*hin[i] < dti){dti = 1.5*hin[i];}
 		kmax = 4;
 		for(ki=1; ki < kmax; ki=ki+1){
-		    mccc_wiener_boxmuller(&rand5[i*MCCC_NDIM], MCCC_NDIM);
+		    mccc_wiener_boxmuller(rdata, &rand5[i*MCCC_NDIM], MCCC_NDIM);
 		    mccc_wiener_generate(w[i], t+ki*dti/3, &windex, &rand5[i*MCCC_NDIM]);
 		    dW[0] = fabs(w[i]->wiener[3 + windex*MCCC_NDIM] 
 				 - w[i]->wiener[3 + tindex[i]*MCCC_NDIM]);
@@ -740,7 +741,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
 		}
 
 		for(ki=1; ki < kmax; ki=ki+1){
-		    mccc_wiener_boxmuller(&rand5[i*MCCC_NDIM], MCCC_NDIM);
+		    mccc_wiener_boxmuller(rdata, &rand5[i*MCCC_NDIM], MCCC_NDIM);
 		    mccc_wiener_generate(w[i], t+ki*hin[i]/3, &windex, &rand5[i*MCCC_NDIM]);
 		    dW[0] = abs(w[i]->wiener[3 + windex*MCCC_NDIM] - w[i]->wiener[3 + tindex[i]*MCCC_NDIM]);
 		    if(dW[0] > dWopt0[i]) {

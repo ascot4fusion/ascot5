@@ -1,12 +1,12 @@
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include "endcond.h"
 #include "hdf5io/hdf5_orbits.h"
 #include "offload.h"
 #include "particle.h"
-#include "simulate.h"
 #include "plasma.h"
+#include "random.h"
+#include "simulate.h"
 #include "simulate/simulate_ml_adaptive.h"
 #include "simulate/simulate_gc_adaptive.h"
 #include "simulate/simulate_gc_fixed.h"
@@ -81,6 +81,8 @@ void simulate(int id, int n_particles, particle_state* p,
 
     }
     pq.next = 0;
+
+    random_init(&sim.random_data, 0);
 
     #if VERBOSE >= 1
     printf("All fields initialized. Simulation begins.\n");

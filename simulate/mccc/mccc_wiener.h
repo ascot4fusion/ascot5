@@ -7,6 +7,7 @@
 
 #include "../../ascot5.h"
 #include "../../error.h"
+#include "../../random.h"
 
 #define MCCC_NDIM 5 /* Wiener process dimension. NDIM=5 because 
 			    only guiding centers are simulated with 
@@ -33,7 +34,7 @@ a5err mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5);
 #pragma omp declare simd
 a5err mccc_wiener_clean(mccc_wienarr* w, real t);
 
-void mccc_wiener_boxmuller(real* randVar, int Ndim);
+void mccc_wiener_boxmuller(random_data* rdata, real* randVar, int Ndim);
 
 #pragma omp end declare target
 

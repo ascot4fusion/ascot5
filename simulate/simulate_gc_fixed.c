@@ -139,7 +139,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         }
 
         if(sim->enable_clmbcol) {
-            mccc_step_gc_fixed(&p, &sim->B_data, &sim->plasma_data, hin);
+            mccc_step_gc_fixed(&p, &sim->B_data, &sim->plasma_data, &sim->random_data, hin);
         }
 
 	cputime = A5_WTIME;

@@ -179,7 +179,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
         if(sim->enable_clmbcol) {
 	    mccc_step_gc_adaptive(&p, &sim->B_data, &sim->plasma_data,
-		hin, hout_col, wienarr, tol_col);
+		&sim->random_data, hin, hout_col, wienarr, tol_col);
 		
 	    /* Check whether time step was rejected */
             #pragma omp simd

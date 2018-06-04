@@ -8,7 +8,6 @@
  * generated using the so-called Brownian bridge. This module
  * contains associated helper routines.
  */
-#define _XOPEN_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -16,6 +15,7 @@
 #include "../../ascot5.h"
 #include "../../consts.h"
 #include "../../error.h"
+#include "../../random.h"
 #include "mccc_wiener.h"
 
 const int MCCC_EMPTY = -999;
@@ -214,7 +214,7 @@ a5err mccc_wiener_clean(mccc_wienarr* w, real t){
  * @todo Move to math.h
  * @todo Implement MCCC_WIENER_USE_GBM flag
  */
-void mccc_wiener_boxmuller(real* randVar, int Ndim){
+void mccc_wiener_boxmuller(random_data* rdata, real* randVar, int Ndim){
     
     real x1, x2, w; /* Helper variables */
     int isEven = (Ndim+1) % 2; /* Indicates if even number of random numbers are requested */
@@ -224,8 +224,8 @@ void mccc_wiener_boxmuller(real* randVar, int Ndim){
     for(int i = 0; i < Ndim; i=i+2){
 	w = 2.0;
 	while( w >= 1.0 ){
-	    x1 = 2*((real)drand48())-1;
-	    x2 = 2*((real)drand48())-1;
+	    x1 = 2*((real)random_uniform(rdata))-1;
+	    x2 = 2*((real)random_uniform(rdata))-1;
 	    w = x1*x1 + x2*x2;
 	}
 	
@@ -239,8 +239,8 @@ void mccc_wiener_boxmuller(real* randVar, int Ndim){
     /* The common form */
     real s;
     for(int i = 0; i < Ndim; i=i+2){
-	x1 = ((real)drand48());
-	x2 = (drand48());
+	x1 = ((real)random_uniform(rdata));
+	x2 = ((real)random_uniform(rdata));
 	w = sqrt(-2*log(x1));
 	s = cos(CONST_2PI*x2);
 	randVar[i] = w*s;
