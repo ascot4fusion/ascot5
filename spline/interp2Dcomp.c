@@ -212,7 +212,7 @@ int interp2Dcomp_eval_B_SIMD(int i, real B[NSIMD], interp2D_data* str, real r, r
  * @param r r-coordinate
  * @param z z-coordinate
  */
-int interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
+long int interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid;                   /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
