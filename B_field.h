@@ -69,9 +69,9 @@ a5err B_field_eval_rho_SIMD(int i, real rho[NSIMD], real psi, B_field_data* Bdat
 a5err B_field_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z,
 			B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-real B_field_get_axis_r(B_field_data* Bdata);
+real B_field_get_axis_r(B_field_data* Bdata, real phi);
 #pragma omp declare simd uniform(Bdata)
-real B_field_get_axis_z(B_field_data* Bdata);
+real B_field_get_axis_z(B_field_data* Bdata, real phi);
 #pragma omp end declare target   
 
 #endif

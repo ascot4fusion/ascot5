@@ -422,7 +422,8 @@ a5err B_field_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real
     return err = 0;
 }
 
-real B_field_get_axis_r(B_field_data* Bdata) {
+real B_field_get_axis_r(B_field_data* Bdata, real phi) {
+    a5err err = 0;
     real axis_r = 0;
     switch(Bdata->type) {
         case B_field_type_GS:
@@ -438,7 +439,7 @@ real B_field_get_axis_r(B_field_data* Bdata) {
         break;
 
         case B_field_type_STS:
-        axis_r = B_STS_get_axis_r(&(Bdata->BSTS));
+        err = B_STS_get_axis_r(&axis_r, &(Bdata->BSTS), phi);
         break;
 
 	case B_field_type_TC:
@@ -448,7 +449,8 @@ real B_field_get_axis_r(B_field_data* Bdata) {
     return axis_r;
 }
 
-real B_field_get_axis_z(B_field_data* Bdata) {
+real B_field_get_axis_z(B_field_data* Bdata, real phi) {
+    a5err err = 0;
     real axis_z = 0;
     switch(Bdata->type) {
         case B_field_type_GS:
@@ -464,7 +466,7 @@ real B_field_get_axis_z(B_field_data* Bdata) {
         break;
 
         case B_field_type_STS:
-        axis_z = B_STS_get_axis_z(&(Bdata->BSTS));
+        err = B_STS_get_axis_z(&axis_z, &(Bdata->BSTS), phi);
         break;
 
 	case B_field_type_TC:

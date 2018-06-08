@@ -10,7 +10,7 @@
 #include "../ascot5.h"
 #include "../error.h"
 #include "B_STS.h"
-#include "../spline/interp2D.h" /* for 2D interpolation routines */
+#include "../spline/interp1D.h" /* for 1D interpolation routines */
 #include "../spline/interp3D.h" /* for 3D interpolation routines */
 #include "../spline/interp2Dcomp.h" 
 #include "../spline/interp3Dcomp.h" 
@@ -48,40 +48,50 @@ void B_STS_free_offload(B_STS_offload_data* offload_data, real** offload_array) 
 int B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
                real* offload_array) {
     int err = 0;
-    Bdata->axis_r = offload_data->axis_r;
-    Bdata->axis_z = offload_data->axis_z;
     Bdata->periods = offload_data->periods;
 
     /* Spline initialization and storage. */
-    
-    err += interp3Dcomp_init(&Bdata->B_r, offload_array,
+    /* Bfield */
+    err += interp3Dcomp_init(&Bdata->B_r,
+                             offload_array,
 			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
 			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
     
-    err += interp3Dcomp_init(&Bdata->B_phi, offload_array
-			     +offload_data->n_phi*offload_data->n_z*offload_data->n_r,
+    err += interp3Dcomp_init(&Bdata->B_phi,
+                             offload_array + offload_data->n_phi*offload_data->n_z*offload_data->n_r,
 			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
 			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
     
-    err += interp3Dcomp_init(&Bdata->B_z, offload_array
-			     +2*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
+    err += interp3Dcomp_init(&Bdata->B_z,
+                             offload_array + 2*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
 			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
 			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
 
-    err += interp3Dcomp_init(&Bdata->s, offload_array
-			     +3*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
+    err += interp3Dcomp_init(&Bdata->s,
+                             offload_array + 3*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
 			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
 			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    return err;
-    
+
+    /* Magnetic axis */
+    err += interp1Dcomp_init(&Bdata->axis_r,
+                             offload_array + 4*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
+			     offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
+                             offload_data->axis_grid);
+
+    err += interp1Dcomp_init(&Bdata->axis_r, offload_array
+                             + 4*offload_data->n_phi*offload_data->n_z*offload_data->n_r + offload_data->n_axis,
+			     offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
+                             offload_data->axis_grid);
+
+    return err;    
 }
 
 /**
@@ -423,12 +433,18 @@ a5err B_STS_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z
     return err;
 }
 
-real B_STS_get_axis_r(B_STS_data* Bdata) {
-    // 3D magnetic axis not implemented yet
-    return 0;
+a5err B_STS_get_axis_r(real axis_r[], B_STS_data* Bdata, real phi) {
+    a5err err = 0;
+    int interperr = 0; /* If error happened during interpolation */
+    interperr += interp1Dcomp_eval_B(axis_r, &Bdata->axis_r, phi);
+    if(interperr) {err = error_raise( ERR_OUTSIDE_AXISGRID, __LINE__ );}    
+    return err;
 }
 
-real B_STS_get_axis_z(B_STS_data* Bdata) {
-    // 3D magnetic axis not implemented yet
-    return 0;
+a5err B_STS_get_axis_z(real axis_z[], B_STS_data* Bdata, real phi) {
+    a5err err = 0;
+    int interperr = 0; /* If error happened during interpolation */
+    interperr += interp1Dcomp_eval_B(axis_z, &Bdata->axis_z, phi);
+    if(interperr) {err = error_raise( ERR_OUTSIDE_AXISGRID, __LINE__ );}
+    return err;
 }

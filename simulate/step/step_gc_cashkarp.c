@@ -195,8 +195,8 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
 		p->rho[i] = rho[0];
 		
 		/* Evaluate pol angle so that it is cumulative */
-		real axis_r = B_field_get_axis_r(Bdata);
-		real axis_z = B_field_get_axis_z(Bdata);
+		real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
+		real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
 		p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
 	                     (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
             }

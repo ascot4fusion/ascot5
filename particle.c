@@ -343,8 +343,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	    ps->charge = p->p.charge;  
 	    ps->weight = p->p.weight;    
 	    ps->time   = p->p.time; 
-	    ps->pol    = atan2(ps->zprt-B_field_get_axis_r(Bdata),
-			       ps->rprt-B_field_get_axis_z(Bdata));   
+	    ps->pol    = atan2(ps->zprt-B_field_get_axis_r(Bdata, ps->phiprt),
+			       ps->rprt-B_field_get_axis_z(Bdata, ps->phiprt));   
 	    ps->id       = id;    
 	    ps->endcond  = 0; 
 	    ps->walltile = 0;
@@ -463,8 +463,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	    ps->charge     = p->p_gc.charge;  
 	    ps->weight     = p->p_gc.weight;    
 	    ps->time       = p->p_gc.time;
-	    ps->pol        = atan2(ps->z-B_field_get_axis_z(Bdata),
-				   ps->r-B_field_get_axis_r(Bdata));   
+	    ps->pol        = atan2(ps->z-B_field_get_axis_z(Bdata, ps->phi),
+				   ps->r-B_field_get_axis_r(Bdata, ps->phi));   
 	    ps->id         = id;    
 	    ps->endcond    = 0; 
 	    ps->walltile   = 0;
@@ -521,8 +521,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data
 	    ps->weight     = p->p_ml.weight;    
 	    ps->time       = p->p_ml.time;     
 	    ps->id         = id; 
-	    ps->pol        = atan2(p->p_ml.z-B_field_get_axis_z(Bdata), 
-				   p->p_ml.r-B_field_get_axis_r(Bdata)); 
+	    ps->pol        = atan2(p->p_ml.z-B_field_get_axis_z(Bdata, ps->phiprt), 
+				   p->p_ml.r-B_field_get_axis_r(Bdata, ps->phiprt)); 
 	    ps->endcond    = 0; 
 	    ps->walltile   = 0;
 	    ps->cputime    = 0;
