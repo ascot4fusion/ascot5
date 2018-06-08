@@ -125,13 +125,16 @@ def run(a4folder, h5fn, overwrite=True):
 
         elif os.path.isfile(fnameh5):
             data = read_magn_bkg_stellarator(fnameh5)
+            if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
+                data['axis_phi'] = data['axis_phi'][0:-1] # Remove duplicated datapoint
             B_ST.write_hdf5(h5fn, 
                             data['r'][0], data['r'][-1], data['r'].size,
                             data['z'][0], data['z'][-1], data['z'].size,
                             data['phi'][0], data['phi'][-1], data['phi'].size,
                             data['br'], data['bphi'], data['bz'], data['s'],
                             data['n_periods'],
-                            data['axis_r'], data['axis_phi'], data['axis_z'])
+                            data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
+                            data['axis_r'], data['axis_z'])
         
         f = h5py.File(h5fn, 'r')
 

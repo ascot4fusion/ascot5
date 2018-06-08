@@ -10,11 +10,9 @@ from . ascot5group import creategroup
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                B_R, B_phi, B_z, s, n_periods,
-               axisR, axisphi, axisz):
+               axismin, axismax, naxis, axisR, axisz):
     """
     Write stellarator magnetic field input in HDF5 file.
-
-    TODO fill documentation
 
     Parameters
     ----------
@@ -28,11 +26,13 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     B_R, B_phi, B_z : real R x phi x z numpy array
         Magnetic field components in Rphiz-grid
     s : real
-        TODO
+        Normalized toroidal flux in Rphiz-grid
     n_periods : int
-        TODO
-    axisR, axisphi, axisz : real
-        Magnetic axis Rphiz-location.
+        Number of toroidal periods.
+    naxis : int
+        Number of axis grid points.
+    axisR, axisz : real
+        Magnetic axis R- and z-location as a function of phi.
     """
 
     mastergroup = "bfield"
@@ -63,9 +63,12 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     f.create_dataset(path + "/B_z",   data=B_z, dtype="f8")
     f.create_dataset(path + "/s",     data=s, dtype="f8")
 
-    # Magnetic axis (TODO not implemented)
+    # Magnetic axis
+    f.create_dataset(path + "/axis_min", (1,), data=axismin, dtype="f8")
+    f.create_dataset(path + "/axis_max", (1,), data=axismax, dtype="f8")
+    f.create_dataset(path + "/n_axis", (1,),   data=naxis, dtype="i8")
+
     f.create_dataset(path + "/axis_r",   data=axisR, dtype="f8")
-    f.create_dataset(path + "/axis_phi", data=axisphi, dtype="f8")
     f.create_dataset(path + "/axis_z",   data=axisz, dtype="f8")
 
     # Toroidal periods
