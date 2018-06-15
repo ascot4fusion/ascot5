@@ -175,7 +175,7 @@ int interp3Dcomp_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
  * @param phi phi-coordinate
  * @param z z-coordinate
  */
-int interp3Dcomp_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
+integer interp3Dcomp_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
     /** Make sure phi is in interval [0,2pi) */
     phi = fmod(phi,CONST_2PI);
     if(phi < 0){phi = CONST_2PI + phi;}
@@ -297,7 +297,7 @@ int interp3Dcomp_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
  * @param phi phi-coordinate
  * @param z z-coordinate
  */
-int interp3Dcomp_eval_B_SIMD(int i, real B[NSIMD], interp3D_data* str, real r, real phi, real z) {
+integer interp3Dcomp_eval_B_SIMD(int i, real B[NSIMD], interp3D_data* str, real r, real phi, real z) {
     /** Make sure phi is in interval [0,2pi) */
     phi = fmod(phi,CONST_2PI);
     if(phi < 0){phi = CONST_2PI + phi;}
@@ -420,7 +420,7 @@ int interp3Dcomp_eval_B_SIMD(int i, real B[NSIMD], interp3D_data* str, real r, r
  * @param phi phi-coordinate
  * @param z z-coordinate
  */
-int interp3Dcomp_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) {
+integer interp3Dcomp_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) {
     /** Make sure phi is in interval [0,2pi) */
     phi = fmod(phi,CONST_2PI);
     if(phi < 0){phi = CONST_2PI + phi;}
@@ -1053,7 +1053,7 @@ int interp3Dcomp_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real 
     return err;
 }
 
-int interp3Dcomp_eval_dB_SIMD(int i, real B_dB[10][NSIMD], interp3D_data* str, real r, real phi, real z) {
+integer interp3Dcomp_eval_dB_SIMD(int i, real B_dB[10][NSIMD], interp3D_data* str, real r, real phi, real z) {
     /** Make sure phi is in interval [0,2pi) */
     phi = fmod(phi,CONST_2PI);
     if(phi < 0){phi = CONST_2PI + phi;}

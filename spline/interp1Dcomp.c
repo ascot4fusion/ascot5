@@ -59,7 +59,7 @@ int interp1Dcomp_init(interp1D_data* str, real* f, int n_r,
  * @param str data struct for data interpolation
  * @param r r-coordinate
  */
-int interp1Dcomp_eval_B(real* B, interp1D_data* str, real r) {
+integer interp1Dcomp_eval_B(real* B, interp1D_data* str, real r) {
     int i_r = (r-str->r_min)/str->r_grid; /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
@@ -86,7 +86,7 @@ int interp1Dcomp_eval_B(real* B, interp1D_data* str, real r) {
     return err;
 }
 
-int interp1Dcomp_eval_B_SIMD(int i, real B[NSIMD], interp1D_data* str, real r) {
+integer interp1Dcomp_eval_B_SIMD(int i, real B[NSIMD], interp1D_data* str, real r) {
     int i_r = (r-str->r_min)/str->r_grid; /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
@@ -127,7 +127,7 @@ int interp1Dcomp_eval_B_SIMD(int i, real B[NSIMD], interp1D_data* str, real r) {
  * @param str data struct for data interpolation
  * @param r r-coordinate
  */
-int interp1Dcomp_eval_dB(real* B_dB, interp1D_data* str, real r) {
+integer interp1Dcomp_eval_dB(real* B_dB, interp1D_data* str, real r) {
     int i_r = (r-str->r_min)/str->r_grid;                   /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
@@ -169,7 +169,7 @@ int interp1Dcomp_eval_dB(real* B_dB, interp1D_data* str, real r) {
     return err;
 }
 
-int interp1Dcomp_eval_dB_SIMD(int i, real B_dB[6][NSIMD], interp1D_data* str, real r) {
+integer interp1Dcomp_eval_dB_SIMD(int i, real B_dB[6][NSIMD], interp1D_data* str, real r) {
     int i_r = (r-str->r_min)/str->r_grid;                   /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
