@@ -32,8 +32,8 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
     mastergroup = "neutral"
     subgroup    = "N0_ST"
     
-    # Transpose n0 from (r, phi, z) to (phi, z, r)
-    n0 = np.transpose(n0,(1,2,0))
+    # Transpose n0 from (r, phi, z) to (z, phi, r)
+    n0 = np.transpose(n0,(2,1,0))
     
     # Create a group for this input.
     f = h5py.File(fn, "a")
