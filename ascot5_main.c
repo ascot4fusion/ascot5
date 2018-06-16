@@ -2,7 +2,7 @@
  * @file ascot5_main.c
  * @brief ASCOT5
  */
-#define _XOPEN_SOURCE
+#define _XOPEN_SOURCE 500
 #include <getopt.h>
 #include <math.h>
 #ifdef MPI
