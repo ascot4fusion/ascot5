@@ -52,8 +52,8 @@ MCCCDIR = $(SIMDIR)mccc/
 MCCCHEADERS = $(wildcard $(MCCCDIR)mccc*.h)
 MCCCOBJS = $(patsubst %.c,%.o,$(wildcard $(MCCCDIR)mccc*.c))
 
-DIAGHEADERS = diag.h diag_orb.h dist_5D.h dist_6D.h
-DIAGOBJS = diag.o diag_orb.o dist_5D.o dist_6D.o
+DIAGHEADERS = diag.h diag_orb.h dist_5D.h dist_6D.h dist_rho6D.h dist_rho5D.h
+DIAGOBJS = diag.o diag_orb.o dist_5D.o dist_6D.o dist_rho6D.o dist_rho5D.o
 
 BFDIR = Bfield/
 BFHEADERS = $(wildcard $(BFDIR)B_*.h)
