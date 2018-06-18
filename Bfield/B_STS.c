@@ -12,6 +12,7 @@
 #include "B_STS.h"
 #include "../spline/interp1D.h" /* for 1D interpolation routines */
 #include "../spline/interp3D.h" /* for 3D interpolation routines */
+#include "../spline/interp1Dcomp.h" 
 #include "../spline/interp2Dcomp.h" 
 #include "../spline/interp3Dcomp.h" 
 #include "../spline/interp2Dexpl.h" 
@@ -436,6 +437,10 @@ a5err B_STS_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z
 a5err B_STS_get_axis_r(real axis_r[], B_STS_data* Bdata, real phi) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
+    phi = fmod(phi, 2*math_pi);
+    if(phi < 0) {
+        phi += 2*math_pi;
+    }
     interperr += interp1Dcomp_eval_B(axis_r, &Bdata->axis_r, phi);
     if(interperr) {err = error_raise( ERR_OUTSIDE_AXISGRID, __LINE__ );}    
     return err;
@@ -444,6 +449,10 @@ a5err B_STS_get_axis_r(real axis_r[], B_STS_data* Bdata, real phi) {
 a5err B_STS_get_axis_z(real axis_z[], B_STS_data* Bdata, real phi) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
+    phi = fmod(phi, 2*math_pi);
+    if(phi < 0) {
+        phi += 2*math_pi;
+    }
     interperr += interp1Dcomp_eval_B(axis_z, &Bdata->axis_z, phi);
     if(interperr) {err = error_raise( ERR_OUTSIDE_AXISGRID, __LINE__ );}
     return err;
