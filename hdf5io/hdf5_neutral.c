@@ -218,73 +218,57 @@ void hdf5_neutral_init_offload_ST(hid_t f, N0_ST_offload_data* offload_data,
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/neutral/N0_ST-XXXXXXXXXX/n0", qid, path), *offload_array);
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
 
-    /* Read the bfield data */
-
-    int make_mirror = 0;
-    if (make_mirror) {
-        /* Allocate enough space for half a period */
-        int temp_n0_size = offload_data->n_r*offload_data->n_z*offload_data->n_phi;
+    int temp_n0_size = offload_data->n_r*offload_data->n_z*offload_data->n_phi;
         
-        real* temp_n0   = (real*) malloc(temp_n0_size*sizeof(real));
+    real* temp_n0   = (real*) malloc(temp_n0_size*sizeof(real));
         
-        /* Read the neutral density */
-        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/neutral/N0_ST-XXXXXXXXXX/n0", qid, path), temp_n0);
-        if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
-        /* We need to use stellarator symmetry here.
-         * http://dx.doi.org/10.1016/S0167-2789(97)00216-9
-         * The data is expected to include half a period.
-         */
-        int n0_size = offload_data->n_r*offload_data->n_z*(2*(offload_data->n_phi - 1));
-        *offload_array = (real*) malloc(n0_size * sizeof(real));
-        offload_data->offload_array_length = n0_size;
+    /* Read the neutral density */
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/neutral/N0_ST-XXXXXXXXXX/n0", qid, path), temp_n0);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+    /* We need to use stellarator symmetry here.
+     * http://dx.doi.org/10.1016/S0167-2789(97)00216-9
+     * The data is expected to include half a period.
+     */
+    int n0_size = offload_data->n_r*offload_data->n_z*(2*(offload_data->n_phi - 1));
+    *offload_array = (real*) malloc(n0_size * sizeof(real));
+    offload_data->offload_array_length = n0_size;
     
-        int i_phi;
-        int i_z;
-        int i_r;
-        int temp_ind, off_ind, sym_ind;
-        for (i_phi = 0; i_phi < offload_data->n_phi; i_phi++) {
-            for (i_z = 0; i_z < offload_data->n_z; i_z++) {
-                for (i_r = 0; i_r < offload_data->n_r; i_r++) {
-                    /* Stellarator symmetry: i_phi        <=> 2*(n_phi-1)-i_phi
-                     *                       i_z          <=> n_z-i_z-1
-                     * So, a point at:      (i_r, i_phi, i_z)  <=> (i_r, 2*(n_phi-1)-i_phi, n_z-i_z-1)
-                     *
-                     * temp_n0 data is in the format: (i_r, i_phi, i_z) = temp_n0(i_z*n_phi*n_r + i_phi*n_r + i_r)
-                     * offload_array data -"-"-"-"-  : (i_r, i_phi, i_z) = (*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ]
-                     * => (*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ] = temp_n0(i_z*n_phi*n_r + i_phi*n_r + i_r);
-                     * The values are: Sym[B_r, B_phi, B_z] = [-B_r, B_phi, B_z]
-                     */
+    int i_phi;
+    int i_z;
+    int i_r;
+    int temp_ind, off_ind, sym_ind;
+    for (i_phi = 0; i_phi < offload_data->n_phi; i_phi++) {
+        for (i_z = 0; i_z < offload_data->n_z; i_z++) {
+            for (i_r = 0; i_r < offload_data->n_r; i_r++) {
+                /* Stellarator symmetry: i_phi        <=> 2*(n_phi-1)-i_phi
+                 *                       i_z          <=> n_z-i_z-1
+                 * So, a point at:      (i_r, i_phi, i_z)  <=> (i_r, 2*(n_phi-1)-i_phi, n_z-i_z-1)
+                 *
+                 * temp_n0 data is in the format: (i_r, i_phi, i_z) = temp_n0(i_z*n_phi*n_r + i_phi*n_r + i_r)
+                 * offload_array data -"-"-"-"-  : (i_r, i_phi, i_z) = (*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ]
+                 * => (*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ] = temp_n0(i_z*n_phi*n_r + i_phi*n_r + i_r);
+                 * The values are: Sym[B_r, B_phi, B_z] = [-B_r, B_phi, B_z]
+                 */
 
-                    /* Index of data point in temp arrays */
-                    temp_ind = i_z*offload_data->n_phi*offload_data->n_r + i_phi*offload_data->n_r + i_r;
+                /* Index of data point in temp arrays */
+                temp_ind = i_z*offload_data->n_phi*offload_data->n_r + i_phi*offload_data->n_r + i_r;
 
-                    /* Index of data point in offload_array and corresponding stel.-symmetric index  */
-                    off_ind = i_phi*offload_data->n_z*offload_data->n_r + i_z*offload_data->n_r + i_r;
-                    sym_ind = (2*(offload_data->n_phi - 1) - i_phi)*offload_data->n_z*offload_data->n_r
-                        + (offload_data->n_z - i_z - 1)*offload_data->n_r + i_r;
+                /* Index of data point in offload_array and corresponding stel.-symmetric index  */
+                off_ind = i_phi*offload_data->n_z*offload_data->n_r + i_z*offload_data->n_r + i_r;
+                sym_ind = (2*(offload_data->n_phi - 1) - i_phi)*offload_data->n_z*offload_data->n_r
+                    + (offload_data->n_z - i_z - 1)*offload_data->n_r + i_r;
 
-                    (*offload_array)[off_ind] =  temp_n0[temp_ind];
-                    if (i_phi != 0) {
-                        (*offload_array)[sym_ind] = -temp_n0[temp_ind];
-                    }
+                (*offload_array)[off_ind] =  temp_n0[temp_ind];
+                if (i_phi != 0) {
+                    (*offload_array)[sym_ind] = -temp_n0[temp_ind];
                 }
             }
         }
-        /* Phi data is now for one toroidal period */
-        offload_data->n_phi = 2*(offload_data->n_phi - 1);
-        offload_data->phi_max = 2*offload_data->phi_max;
-        free(temp_n0);
-
-    } else {
-        
-        /* We trust the interface to make the mirroring for us */
-        int n0_size = offload_data->n_r*offload_data->n_z*offload_data->n_phi;
-        *offload_array = (real*) malloc(n0_size * sizeof(real));
-        offload_data->offload_array_length = n0_size;
-            
-        /* Read the neutral density */
-        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/neutral/N0_ST-XXXXXXXXXX/n0", qid, path), *offload_array);
     }
-        
+    /* Phi data is now for one toroidal period */
+    offload_data->n_phi = 2*(offload_data->n_phi - 1);
+    offload_data->phi_max = 2*offload_data->phi_max;
+    free(temp_n0);
+    
 }
 
