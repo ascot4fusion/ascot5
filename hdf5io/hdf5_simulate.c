@@ -5,6 +5,8 @@
 #include "../diag_orb.h"
 #include "../dist_5D.h"
 #include "../dist_6D.h"
+#include "../dist_rho5D.h"
+#include "../dist_rho6D.h"
 #include "../endcond.h"
 #include "../math.h"
 #include "../simulate.h"
@@ -220,6 +222,142 @@ int hdf5_simulate(hid_t f, sim_offload_data* sim){
 	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
         err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_z", active, path), &dist->n_z);
 	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_vR", active, path), &dist->min_vr);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_vR", active, path), &dist->max_vr);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_vR", active, path), &dist->n_vr);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_vphi", active, path), &dist->min_vphi);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_vphi", active, path), &dist->max_vphi);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_vphi", active, path), &dist->n_vphi);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_vz", active, path), &dist->min_vz);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_vz", active, path), &dist->max_vz);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_vz", active, path), &dist->n_vz);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_t", active, path), &dist->min_time);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_t", active, path), &dist->max_time);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_t", active, path), &dist->n_time);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+	int charge;
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_q", active, path), &charge);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+	dist->min_q = (real)charge;
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_q", active, path), &charge);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+	dist->max_q = (real)charge;
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_q", active, path), &dist->n_q);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+    }
+
+
+	err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/ENABLE_rho_pol_phi_vpa_vpe_t_q_DIST", active, path), &diag->distrho5D_collect);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+    if(diag->distrho5D_collect) {
+        dist_rho5D_offload_data* dist = &diag->distrho5D;
+
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_rho", active, path), &dist->min_rho);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_rho", active, path), &dist->max_rho);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_rho", active, path), &dist->n_rho);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_pol", active, path), &dist->min_pol);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_pol", active, path), &dist->max_pol);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_pol", active, path), &dist->n_pol);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+        dist->min_pol = math_deg2rad(dist->min_pol);
+        dist->max_pol = math_deg2rad(dist->max_pol);
+
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_phi", active, path), &dist->min_phi);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_phi", active, path), &dist->max_phi);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_phi", active, path), &dist->n_phi);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+        dist->min_phi = math_deg2rad(dist->min_phi);
+        dist->max_phi = math_deg2rad(dist->max_phi);
+
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_vpa", active, path), &dist->min_vpara);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_vpa", active, path), &dist->max_vpara);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_vpa", active, path), &dist->n_vpara);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_vpe", active, path), &dist->min_vperp);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_vpe", active, path), &dist->max_vperp);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_vpe", active, path), &dist->n_vperp);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_t", active, path), &dist->min_time);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_t", active, path), &dist->max_time);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_t", active, path), &dist->n_time);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+	int charge;
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_q", active, path), &charge);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+	dist->min_q = (real)charge;
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_q", active, path), &charge);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+	dist->max_q = (real)charge;
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_q", active, path), &dist->n_q);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+    }
+    
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/ENABLE_rho_pol_phi_vR_vphi_vz_t_q_DIST", active, path), &diag->distrho6D_collect);
+    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+    if(diag->distrho6D_collect) {
+        dist_rho6D_offload_data* dist = &diag->distrho6D;
+
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_rho", active, path), &dist->min_rho);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_rho", active, path), &dist->max_rho);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_rho", active, path), &dist->n_rho);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_pol", active, path), &dist->min_pol);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_pol", active, path), &dist->max_pol);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_pol", active, path), &dist->n_pol);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+        dist->min_pol = math_deg2rad(dist->min_pol);
+        dist->max_pol = math_deg2rad(dist->max_pol);
+
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_phi", active, path), &dist->min_phi);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MAX_phi", active, path), &dist->max_phi);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+        err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_NBIN_phi", active, path), &dist->n_phi);
+	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
+
+        dist->min_phi = math_deg2rad(dist->min_phi);
+        dist->max_phi = math_deg2rad(dist->max_phi);
 
         err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/options/opt-XXXXXXXXXX/DIST_MIN_vR", active, path), &dist->min_vr);
 	if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return -1;}
