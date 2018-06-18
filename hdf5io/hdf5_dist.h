@@ -4,10 +4,16 @@
 #include "../ascot5.h"
 #include "../dist_5D.h"
 #include "../dist_6D.h"
+#include "../dist_rho5D.h"
+#include "../dist_rho6D.h"
 
 void hdf5_dist_write_5D(dist_5D_offload_data* dist, real* hist, char* filename,
                         char* qid);
 void hdf5_dist_write_6D(dist_6D_offload_data* dist, real* hist, char* filename,
                         char* qid);
-
+void hdf5_dist_write_rho5D(dist_rho5D_offload_data* dist, real* hist, char* filename,
+                        char* qid);
+void hdf5_dist_write_rho6D(dist_rho6D_offload_data* dist, real* hist, char* filename,
+                        char* qid);
+                        
 #endif
