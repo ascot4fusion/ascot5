@@ -13,6 +13,9 @@
 #include "../linint/linint1D.h" 
 #include "../spline/interp3Dcomp.h" 
 
+void B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
+}
+
 /**
  * @brief Free offload array and reset parameters 
  *
@@ -46,42 +49,45 @@ int B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
     /* Bfield */
     err += interp3Dcomp_init(&Bdata->B_r,
                              offload_array,
-			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+			     offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi, offload_data->Bgrid_n_z,
+			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
+			     offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max, offload_data->Bgrid_phi_grid,
+			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
     err += interp3Dcomp_init(&Bdata->B_phi,
-                             offload_array + offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+                             offload_array + offload_data->Bgrid_n_phi*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r,
+			     offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi, offload_data->Bgrid_n_z,
+			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
+			     offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max, offload_data->Bgrid_phi_grid,
+			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
     
     err += interp3Dcomp_init(&Bdata->B_z,
-                             offload_array + 2*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+                             offload_array + 2*offload_data->Bgrid_n_phi*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r,
+			     offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi, offload_data->Bgrid_n_z,
+			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
+			     offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max, offload_data->Bgrid_phi_grid,
+			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
 
     err += interp3Dcomp_init(&Bdata->psi,
-                             offload_array + 3*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+                             offload_array + 3*offload_data->Bgrid_n_phi*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r,
+			     offload_data->psigrid_n_r, offload_data->psigrid_n_phi, offload_data->psigrid_n_z,
+			     offload_data->psigrid_r_min, offload_data->psigrid_r_max, offload_data->psigrid_r_grid,
+			     offload_data->psigrid_phi_min, offload_data->psigrid_phi_max, offload_data->psigrid_phi_grid,
+			     offload_data->psigrid_z_min, offload_data->psigrid_z_max, offload_data->psigrid_z_grid);
 
     /* Magnetic axis */
     err += linint1D_init(&Bdata->axis_r,
-                         offload_array + 4*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
+                         offload_array + 3*offload_data->Bgrid_n_phi*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r
+                         + offload_data->psigrid_n_phi*offload_data->psigrid_n_z*offload_data->psigrid_n_r,
                          offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
                          offload_data->axis_grid);
 
-    err += linint1D_init(&Bdata->axis_r, offload_array
-                        + 4*offload_data->n_phi*offload_data->n_z*offload_data->n_r + offload_data->n_axis,
-                        offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
-                        offload_data->axis_grid);
+    err += linint1D_init(&Bdata->axis_r,
+                         offload_array + 3*offload_data->Bgrid_n_phi*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r
+                         + offload_data->psigrid_n_phi*offload_data->psigrid_n_z*offload_data->psigrid_n_r
+                         + offload_data->n_axis,
+                         offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
+                         offload_data->axis_grid);
 
     return err;    
 }
