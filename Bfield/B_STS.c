@@ -10,13 +10,8 @@
 #include "../ascot5.h"
 #include "../error.h"
 #include "B_STS.h"
-#include "../spline/interp1D.h" /* for 1D interpolation routines */
-#include "../spline/interp3D.h" /* for 3D interpolation routines */
-#include "../spline/interp1Dcomp.h" 
-#include "../spline/interp2Dcomp.h" 
+#include "../linint/linint1D.h" 
 #include "../spline/interp3Dcomp.h" 
-#include "../spline/interp2Dexpl.h" 
-#include "../spline/interp3Dexpl.h"
 
 void B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
     
@@ -82,15 +77,15 @@ int B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
 			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
 
     /* Magnetic axis */
-    err += interp1Dcomp_init(&Bdata->axis_r,
-                             offload_array + 4*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
-			     offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
-                             offload_data->axis_grid);
+    err += linint1D_init(&Bdata->axis_r,
+                         offload_array + 4*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
+                         offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
+                         offload_data->axis_grid);
 
-    err += interp1Dcomp_init(&Bdata->axis_r, offload_array
-                             + 4*offload_data->n_phi*offload_data->n_z*offload_data->n_r + offload_data->n_axis,
-			     offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
-                             offload_data->axis_grid);
+    err += linint1D_init(&Bdata->axis_r, offload_array
+                        + 4*offload_data->n_phi*offload_data->n_z*offload_data->n_r + offload_data->n_axis,
+                        offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
+                        offload_data->axis_grid);
 
     return err;    
 }
@@ -441,7 +436,7 @@ a5err B_STS_get_axis_r(real axis_r[], B_STS_data* Bdata, real phi) {
     if(phi < 0) {
         phi += 2*math_pi;
     }
-    interperr += interp1Dcomp_eval_B(axis_r, &Bdata->axis_r, phi);
+    interperr += linint1D_eval(axis_r, &Bdata->axis_r, phi);
     if(interperr) {err = error_raise( ERR_OUTSIDE_AXISGRID, __LINE__ );}    
     return err;
 }
@@ -453,7 +448,7 @@ a5err B_STS_get_axis_z(real axis_z[], B_STS_data* Bdata, real phi) {
     if(phi < 0) {
         phi += 2*math_pi;
     }
-    interperr += interp1Dcomp_eval_B(axis_z, &Bdata->axis_z, phi);
+    interperr += linint1D_eval(axis_z, &Bdata->axis_z, phi);
     if(interperr) {err = error_raise( ERR_OUTSIDE_AXISGRID, __LINE__ );}
     return err;
 }

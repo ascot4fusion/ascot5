@@ -5,8 +5,8 @@
 #ifndef B_STS_H
 #define B_STS_H
 #include "../ascot5.h"
-#include "../spline/interp1D.h" /* for 2D interpolation routines */
-#include "../spline/interp3D.h"     /* for 3D interpolation routines */
+#include "../linint/linint1D.h" /* for 1D interpolation routines */
+#include "../spline/interp3D.h" /* for 3D interpolation routines */
 
 /**
  * @brief stellarator magnetic field parameters that will be offloaded to target
@@ -28,7 +28,7 @@ typedef struct {
     int n_axis;                 /**< number of phi grid points for magnetic axis */
     real axis_min;              /**< minimum phi coordinate in the magnetic axis grid */
     real axis_max;              /**< maximum phi coordinate in the magnetic axis grid */
-    real axis_grid;              /**< phi grid interval 2pi/(n_phi-1) */
+    real axis_grid;             /**< phi grid interval 2pi/(n_phi-1) */
     int offload_array_length;   /**< number of elements in offload_array */
 } B_STS_offload_data;
 
@@ -37,12 +37,12 @@ typedef struct {
  */
 typedef struct {
     real periods;
-    interp1D_data axis_r;            /**< r coordinate of magnetic axis */
-    interp1D_data axis_z;            /**< z coordinate of magnetic axis */
-    interp3D_data s;     /**< pointer to start of psi interpolation data struct */
-    interp3D_data B_r;     /**< pointer to start of B_r interpolation data struct */
-    interp3D_data B_phi;   /**< pointer to start of B_phi interpolation data struct */
-    interp3D_data B_z;     /**< pointer to start of B_z interpolation data struct */
+    linint1D_data axis_r;       /**< r coordinate of magnetic axis */
+    linint1D_data axis_z;       /**< z coordinate of magnetic axis */
+    interp3D_data s;            /**< pointer to start of psi interpolation data struct */
+    interp3D_data B_r;          /**< pointer to start of B_r interpolation data struct */
+    interp3D_data B_phi;        /**< pointer to start of B_phi interpolation data struct */
+    interp3D_data B_z;          /**< pointer to start of B_z interpolation data struct */
 } B_STS_data;
 
 void B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array);
