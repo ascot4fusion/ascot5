@@ -13,10 +13,6 @@
 #include "../linint/linint1D.h" 
 #include "../spline/interp3Dcomp.h" 
 
-void B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
-    
-}
-
 /**
  * @brief Free offload array and reset parameters 
  *
@@ -69,7 +65,7 @@ int B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
 			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
 			     offload_data->z_min, offload_data->z_max, offload_data->z_grid);
 
-    err += interp3Dcomp_init(&Bdata->s,
+    err += interp3Dcomp_init(&Bdata->psi,
                              offload_array + 3*offload_data->n_phi*offload_data->n_z*offload_data->n_r,
 			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
 			     offload_data->r_min, offload_data->r_max, offload_data->r_grid,
@@ -114,7 +110,7 @@ a5err B_STS_eval_psi(real psi[], real r, real phi, real z,
         phi += 2*math_pi/Bdata->periods;
     }
 
-    interperr += interp3Dcomp_eval_B(&psi[0], &Bdata->s, r, phi, z);
+    interperr += interp3Dcomp_eval_B(&psi[0], &Bdata->psi, r, phi, z);
 
     /* Test for psi interpolation error */
     if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
@@ -148,7 +144,7 @@ a5err B_STS_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z,
         phi += 2*math_pi/Bdata->periods;
     }
 
-    interperr += interp3Dcomp_eval_B_SIMD(i, &psi[0], &Bdata->s, r, phi, z);
+    interperr += interp3Dcomp_eval_B_SIMD(i, &psi[0], &Bdata->psi, r, phi, z);
 
     /* Test for psi interpolation error */
     if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
@@ -181,7 +177,7 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_STS_data*
         phi += 2*math_pi/Bdata->periods;
     }
 
-    interperr += interp3Dcomp_eval_dB(psi_dpsi_temp, &Bdata->s, r, phi, z);
+    interperr += interp3Dcomp_eval_dB(psi_dpsi_temp, &Bdata->psi, r, phi, z);
 
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
@@ -206,8 +202,9 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_STS_data*
 a5err B_STS_eval_rho(real rho[], real psi, B_STS_data* Bdata) {
     a5err err = 0;
 
-    rho[0] = sqrt(psi);
-    
+    /* Normalize psi to get rho */
+    rho[0] = sqrt(fabs( (psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0) ));
+
     return err;
 }
 
@@ -226,7 +223,8 @@ a5err B_STS_eval_rho(real rho[], real psi, B_STS_data* Bdata) {
 a5err B_STS_eval_rho_SIMD(int i, real rho[NSIMD], real psi, B_STS_data* Bdata) {
     a5err err = 0;
 
-    rho[i] = sqrt(psi);
+    /* Normalize psi to get rho */
+    rho[i] = sqrt(fabs( (psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0) ));
 
     return err;
 }

@@ -25,6 +25,8 @@ typedef struct {
     real phi_min;               /**< minimum phi coordinate in the grid */
     real phi_max;               /**< maximum phi coordinate in the grid */
     real phi_grid;              /**< phi grid interval 2pi/(n_phi-1) */
+    real psi0;                  /**< sqrt(psi) value at magnetic axis */
+    real psi1;                  /**< sqrt(psi) value at separatrix */
     int n_axis;                 /**< number of phi grid points for magnetic axis */
     real axis_min;              /**< minimum phi coordinate in the magnetic axis grid */
     real axis_max;              /**< maximum phi coordinate in the magnetic axis grid */
@@ -36,10 +38,12 @@ typedef struct {
  * @brief stellarator magnetic field parameters on the target
  */
 typedef struct {
-    real periods;
+    real psi0;                  /**< sqrt(psi) value at magnetic axis */
+    real psi1;                  /**< sqrt(psi) value at separatrix */
+    real periods;               /**< number of toroidal periods */
     linint1D_data axis_r;       /**< r coordinate of magnetic axis */
     linint1D_data axis_z;       /**< z coordinate of magnetic axis */
-    interp3D_data s;            /**< pointer to start of psi interpolation data struct */
+    interp3D_data psi;          /**< pointer to start of psi interpolation data struct */
     interp3D_data B_r;          /**< pointer to start of B_r interpolation data struct */
     interp3D_data B_phi;        /**< pointer to start of B_phi interpolation data struct */
     interp3D_data B_z;          /**< pointer to start of B_z interpolation data struct */
