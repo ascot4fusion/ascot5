@@ -25,8 +25,10 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         Number of Rphiz-grid points.
     B_R, B_phi, B_z : real R x phi x z numpy array
         Magnetic field components in Rphiz-grid
-    s : real
+    psi : real
         Normalized toroidal flux in Rphiz-grid
+    psiaxis, psisepx : real    
+        Psi values at magnetic axis and separatrix
     n_periods : int
         Number of toroidal periods.
     naxis : int
@@ -44,6 +46,15 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
 
     # TODO Check that inputs are consistent.
 
+    # Define psigrid to be same as Bgrid if not stated otherwise.
+    if(pRmin is None or pRmax is None or pnR is None or pzmin is None or pzmax is None or pnz is None):
+        pRmin = Rmin
+        pRmax = Rmax
+        pnR   = nR
+        pzmin = zmin
+        pzmax = zmax
+        pnz   = nz
+
     # Actual data.
     f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")
     f.create_dataset(path + "/r_max", (1,), data=Rmax, dtype="f8")
@@ -57,11 +68,19 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
     f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
 
+    f.create_dataset(path + "/psigrid_R_min", (1,), data=pRmin, dtype="f8")
+    f.create_dataset(path + "/psigrid_R_max", (1,), data=pRmax, dtype="f8")
+    f.create_dataset(path + "/psigrid_n_R", (1,),   data=pnR, dtype="i8")
+
+    f.create_dataset(path + "/psigrid_z_min", (1,), data=pzmin, dtype="f8")
+    f.create_dataset(path + "/psigrid_z_max", (1,), data=pzmax, dtype="f8")
+    f.create_dataset(path + "/psigrid_n_z", (1,),   data=pnz, dtype="i8")
+
     # Magnetic field data
     f.create_dataset(path + "/B_r",   data=B_R, dtype="f8")
     f.create_dataset(path + "/B_phi", data=B_phi, dtype="f8")
     f.create_dataset(path + "/B_z",   data=B_z, dtype="f8")
-    f.create_dataset(path + "/s",     data=s, dtype="f8")
+    f.create_dataset(path + "/psi",     data=psi, dtype="f8")
 
     # Magnetic axis
     f.create_dataset(path + "/axis_min", (1,), data=axismin, dtype="f8")
@@ -70,6 +89,9 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
 
     f.create_dataset(path + "/axis_r",   data=axisR, dtype="f8")
     f.create_dataset(path + "/axis_z",   data=axisz, dtype="f8")
+
+    f.create_dataset(path + "/psi0", (1,), data=psiaxis, dtype="f8")
+    f.create_dataset(path + "/psi1", (1,), data=psisepx, dtype="f8")
 
     # Toroidal periods
     f.create_dataset(path + "/toroidalPeriods", (1,), data=n_periods, dtype="i4")
@@ -119,14 +141,20 @@ def read_hdf5(fn, qid):
     out["zmax"] = f[path]["z_max"][:]
     out["nz"]   = f[path]["n_z"][:]
 
-    out["s"]     = f[path]["s"][:]
+    out["psi"]   = f[path]["psi"][:]
     out["B_R"]   = f[path]["B_r"][:]
     out["B_phi"] = f[path]["B_phi"][:]
     out["B_z"]   = f[path]["B_z"][:]
 
-    out["axisR"]   = f[path]["axis_r"][:]
-    out["axisphi"] = f[path]["axis_phi"][:]
-    out["axisz"]   = f[path]["axis_z"][:]
+    out["psi0"] = f[path]["psi0"][:]
+    out["psi1"] = f[path]["psi1"][:]
+
+    out["axisr"] = f[path]["axis_r"][:]
+    out["axisz"] = f[path]["axis_z"][:]
+
+    out["axismin"] = f[path]["axis_min"][:]
+    out["axismax"] = f[path]["axis_max"][:]
+    out["naxis"]   = f[path]["n_axis"][:]
 
     out["n_periods"] = f[path]["toroidalPeriods"][:]
 
