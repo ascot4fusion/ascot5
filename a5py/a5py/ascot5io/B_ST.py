@@ -10,7 +10,9 @@ from . ascot5group import creategroup
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                B_R, B_phi, B_z, s, n_periods,
-               axismin, axismax, naxis, axisR, axisz):
+               axismin, axismax, naxis, axisR, axisz,
+               pRmin=None, pRmax=None, pnR=None, pzmin=None, pzmax=None, pnz=None,
+               symmetry_mode=None):
     """
     Write stellarator magnetic field input in HDF5 file.
 
@@ -35,6 +37,10 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         Number of axis grid points.
     axisR, axisz : real
         Magnetic axis R- and z-location as a function of phi.
+    pRmin, pRmax, pnR, pphimin, pphimax, pnphi, pzmin, pzmax, pnz : opt
+        Optional parameters that define a separate grid for psi.
+    symmetry_mode : opt
+        Mode of symmetry used. 0 = stellarator symmetry, 1 = toroidal periodic
     """
 
     mastergroup = "bfield"
@@ -47,13 +53,21 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     # TODO Check that inputs are consistent.
 
     # Define psigrid to be same as Bgrid if not stated otherwise.
-    if(pRmin is None or pRmax is None or pnR is None or pzmin is None or pzmax is None or pnz is None):
-        pRmin = Rmin
-        pRmax = Rmax
-        pnR   = nR
-        pzmin = zmin
-        pzmax = zmax
-        pnz   = nz
+    if(pRmin is None or pRmax is None or pnR is None
+       or pphimin is None or pphimax is None or pnphi is None 
+       or pzmin is None or pzmax is None or pnz is None):
+        pRmin   = Rmin
+        pRmax   = Rmax
+        pnR     = nR
+        pphimin = phimin
+        pphimax = phimax
+        pnphi   = nphi
+        pzmin   = zmin
+        pzmax   = zmax
+        pnz     = nz
+    # Default to stellarator symmetry mode
+    if(symmetry_mode is None):
+        symmetry_mode = 0;
 
     # Actual data.
     f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")
@@ -71,6 +85,10 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     f.create_dataset(path + "/psigrid_R_min", (1,), data=pRmin, dtype="f8")
     f.create_dataset(path + "/psigrid_R_max", (1,), data=pRmax, dtype="f8")
     f.create_dataset(path + "/psigrid_n_R", (1,),   data=pnR, dtype="i8")
+    
+    f.create_dataset(path + "/psigrid_phi_min", (1,), data=pphimin, dtype="f8")
+    f.create_dataset(path + "/psigrid_phi_max", (1,), data=pphimax, dtype="f8")
+    f.create_dataset(path + "/psigrid_n_phi", (1,),   data=pnphi, dtype="i8")
 
     f.create_dataset(path + "/psigrid_z_min", (1,), data=pzmin, dtype="f8")
     f.create_dataset(path + "/psigrid_z_max", (1,), data=pzmax, dtype="f8")
@@ -80,7 +98,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     f.create_dataset(path + "/B_r",   data=B_R, dtype="f8")
     f.create_dataset(path + "/B_phi", data=B_phi, dtype="f8")
     f.create_dataset(path + "/B_z",   data=B_z, dtype="f8")
-    f.create_dataset(path + "/psi",     data=psi, dtype="f8")
+    f.create_dataset(path + "/psi",   data=psi, dtype="f8")
 
     # Magnetic axis
     f.create_dataset(path + "/axis_min", (1,), data=axismin, dtype="f8")
@@ -95,7 +113,10 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
 
     # Toroidal periods
     f.create_dataset(path + "/toroidalPeriods", (1,), data=n_periods, dtype="i4")
-    
+
+    # Symmetry mode
+    f.create_dataset(path + "/symmetry_mode", (1,), data=symmetry_mode, dtype="i4")
+
     f.close()
 
 
