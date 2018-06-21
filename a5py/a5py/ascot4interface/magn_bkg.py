@@ -86,6 +86,7 @@ def read_magn_bkg_stellarator(fn):
     str['axis_z'] = f['bfield/stellarator/axis_z'][:]
 
     str['n_periods'] = f['bfield/stellarator/toroidalPeriods'][:]
+    str['symmetrymode'] = f['bfield/stellarator/symmetrymode'][:]
 
     f.close()
     return str

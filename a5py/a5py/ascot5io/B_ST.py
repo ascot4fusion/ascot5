@@ -9,10 +9,10 @@ import datetime
 from . ascot5group import creategroup
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
-               B_R, B_phi, B_z, s, n_periods,
+               B_R, B_phi, B_z, psi, n_periods,
                axismin, axismax, naxis, axisR, axisz,
                pRmin=None, pRmax=None, pnR=None, pzmin=None, pzmax=None, pnz=None,
-               symmetry_mode=None):
+               symmetry_mode=0, psiaxis=0, psisepx=1):
     """
     Write stellarator magnetic field input in HDF5 file.
 
@@ -29,8 +29,6 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         Magnetic field components in Rphiz-grid
     psi : real
         Normalized toroidal flux in Rphiz-grid
-    psiaxis, psisepx : real    
-        Psi values at magnetic axis and separatrix
     n_periods : int
         Number of toroidal periods.
     naxis : int
@@ -41,6 +39,8 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         Optional parameters that define a separate grid for psi.
     symmetry_mode : opt
         Mode of symmetry used. 0 = stellarator symmetry, 1 = toroidal periodic
+    psiaxis, psisepx : real    
+        Psi values at magnetic axis and separatrix
     """
 
     mastergroup = "bfield"
@@ -65,9 +65,6 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         pzmin   = zmin
         pzmax   = zmax
         pnz     = nz
-    # Default to stellarator symmetry mode
-    if(symmetry_mode is None):
-        symmetry_mode = 0;
 
     # Actual data.
     f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")

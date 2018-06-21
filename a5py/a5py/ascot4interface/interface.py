@@ -134,7 +134,9 @@ def run(a4folder, h5fn, overwrite=True):
                             data['br'], data['bphi'], data['bz'], data['s'],
                             data['n_periods'],
                             data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
-                            data['axis_r'], data['axis_z'])
+                            data['axis_r'], data['axis_z'],
+                            symmetry_mode=data['symmetrymode'],
+                            psiaxis=0, psisepx=1)
         
         f = h5py.File(h5fn, 'r')
 
