@@ -9,7 +9,7 @@
 #include "error.h"
 
 typedef enum symmetry_type {
-    symmetry_type_periodic, symmetry_type_stellarator
+    symmetry_type_none, symmetry_type_periodic, symmetry_type_stellarator
 } symmetry_type;
 
 #pragma omp declare target
