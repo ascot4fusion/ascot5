@@ -154,8 +154,8 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 	#if VERBOSE > 0
 	    printf("\nLoaded stellarator magnetic field (B_STS)\n");
 	    printf("with parameters:\n");
-	    printf("- number of toroidal periods = %d\n",
-		   offload_data->BSTS.periods);
+	    printf("- period length = %f\n",
+		   offload_data->BSTS.period_length);
 	    printf("- psi axis = %le and psi separatrix %le\n",
 		   offload_data->BSTS.psi0,offload_data->BSTS.psi1);
 	    printf("- rmin, rmax, nr = %le, %le, %d\n",
@@ -356,8 +356,10 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
     char path[256];
 
     /* Number of toroidal periods */
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/toroidalPeriods", qid, path), &(offload_data->periods));
+    int periods;
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/toroidalPeriods", qid, path), &periods);
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
+    offload_data->period_length = 2*math_pi/periods;
 
     /* Symmetry mode */
     hbool_t check_object_valid = 1;
@@ -589,7 +591,7 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
 
         /* Bfield */
         int n_r = offload_data->Bgrid_n_r;
-        int n_phi = offload_data->Bgrid_n_phi;
+        int n_phi = offload_data->Bgrid_n_phi - 1;
         int n_z = offload_data->Bgrid_n_z;
         for (i_phi = 0; i_phi < n_phi - 1; i_phi++) {
             for (i_z = 0; i_z < n_z; i_z++) {
@@ -613,7 +615,7 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
     
         /* Psi */
         n_r = offload_data->psigrid_n_r;
-        n_phi = offload_data->psigrid_n_phi;
+        n_phi = offload_data->psigrid_n_phi - 1;
         n_z = offload_data->psigrid_n_z;
         for (i_phi = 0; i_phi < n_phi; i_phi++) {
             for (i_z = 0; i_z < n_z; i_z++) {

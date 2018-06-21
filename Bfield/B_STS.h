@@ -39,7 +39,7 @@ typedef struct {
     real Bgrid_z_max;            /**< maximum z coordinate in the grid in B data */
     real Bgrid_z_grid;           /**< z grid interval (z_max-z_min)/(n_z-1) in B data */
                                  
-    int periods;                 /**< number of toroidal periods */
+    real period_length;          /**< length of one toroidal period in radians */
     symmetry_type symmetry_mode; /**< symmetry mode used */
                                  
     real psi0;                   /**< sqrt(psi) value at magnetic axis */
@@ -59,7 +59,7 @@ typedef struct {
 typedef struct {
     real psi0;                   /**< sqrt(psi) value at magnetic axis */
     real psi1;                   /**< sqrt(psi) value at separatrix */
-    real periods;                /**< number of toroidal periods */
+    real period_length;          /**< length of one toroidal period in radians */
     symmetry_type symmetry_mode; /**< symmetry mode used */
     linint1D_data axis_r;        /**< r coordinate of magnetic axis */
     linint1D_data axis_z;        /**< z coordinate of magnetic axis */
@@ -96,8 +96,8 @@ a5err B_STS_eval_B_dB(real B_dB[], real r, real phi, real z, B_STS_data* Bdata);
 #pragma omp declare simd linear(i) uniform(B_dB, Bdata)  
 a5err B_STS_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z, B_STS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)  
-a5err B_STS_get_axis_r(real axis_r[], B_STS_data* Bdata, real phi);
+a5err B_STS_get_axis_r(real* axis_r, B_STS_data* Bdata, real phi);
 #pragma omp declare simd uniform(Bdata)  
-a5err B_STS_get_axis_z(real axis_r[], B_STS_data* Bdata, real phi);
+a5err B_STS_get_axis_z(real* axis_z, B_STS_data* Bdata, real phi);
 #pragma omp end declare target   
 #endif

@@ -43,7 +43,10 @@ void B_STS_free_offload(B_STS_offload_data* offload_data, real** offload_array) 
 int B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
                real* offload_array) {
     int err = 0;
-    Bdata->periods = offload_data->periods;
+    Bdata->period_length = offload_data->period_length;
+    Bdata->symmetry_mode = offload_data->symmetry_mode;
+    Bdata->psi0 = offload_data->psi0;
+    Bdata->psi1 = offload_data->psi1;
 
     /* Spline initialization and storage. */
     /* Bfield */
@@ -111,9 +114,11 @@ a5err B_STS_eval_psi(real psi[], real r, real phi, real z,
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
-    phi = fmod(phi, 2*math_pi/Bdata->periods);
-    if(phi < 0) {
-        phi += 2*math_pi/Bdata->periods;
+    if (Bdata->symmetry_mode == symmetry_type_periodic) {
+        phi = fmod(phi, Bdata->period_length);
+        if(phi < 0) {
+            phi += Bdata->period_length;
+        }
     }
 
     interperr += interp3Dcomp_eval_B(&psi[0], &Bdata->psi, r, phi, z);
@@ -145,9 +150,11 @@ a5err B_STS_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z,
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
-    phi = fmod(phi, 2*math_pi/Bdata->periods);
-    if(phi < 0) {
-        phi += 2*math_pi/Bdata->periods;
+    if (Bdata->symmetry_mode == symmetry_type_periodic) {
+        phi = fmod(phi, Bdata->period_length);
+        if(phi < 0) {
+            phi += Bdata->period_length;
+        }
     }
 
     interperr += interp3Dcomp_eval_B_SIMD(i, &psi[0], &Bdata->psi, r, phi, z);
@@ -178,9 +185,11 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_STS_data*
     int interperr = 0; /* If error happened during interpolation */
     real psi_dpsi_temp[10];
 
-    phi = fmod(phi, 2*math_pi/Bdata->periods);
-    if(phi < 0) {
-        phi += 2*math_pi/Bdata->periods;
+    if (Bdata->symmetry_mode == symmetry_type_periodic) {
+        phi = fmod(phi, Bdata->period_length);
+        if(phi < 0) {
+            phi += Bdata->period_length;
+        }
     }
 
     interperr += interp3Dcomp_eval_dB(psi_dpsi_temp, &Bdata->psi, r, phi, z);
@@ -286,9 +295,11 @@ a5err B_STS_eval_B(real B[], real r, real phi, real z, B_STS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
-    phi = fmod(phi, 2*math_pi/Bdata->periods);
-    if(phi < 0) {
-        phi += 2*math_pi/Bdata->periods;
+    if (Bdata->symmetry_mode == symmetry_type_periodic) {
+        phi = fmod(phi, Bdata->period_length);
+        if(phi < 0) {
+            phi += Bdata->period_length;
+        }
     }
 
     interperr += interp3Dcomp_eval_B(&B[0], &Bdata->B_r, r, phi, z);
@@ -311,9 +322,11 @@ a5err B_STS_eval_B_SIMD(int i, real B[3][NSIMD], real r, real phi, real z, B_STS
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
-    phi = fmod(phi, 2*math_pi/Bdata->periods);
-    if(phi < 0) {
-        phi += 2*math_pi/Bdata->periods;
+    if (Bdata->symmetry_mode == symmetry_type_periodic) {
+        phi = fmod(phi, Bdata->period_length);
+        if(phi < 0) {
+            phi += Bdata->period_length;
+        }
     }
 
     interperr += interp3Dcomp_eval_B_SIMD(i, B[0], &Bdata->B_r, r, phi, z);
@@ -353,12 +366,14 @@ a5err B_STS_eval_B_dB(real B_dB[], real r, real phi, real z, B_STS_data* Bdata) 
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
     real B_dB_temp[10];
-   
-    phi = fmod(phi, 2*math_pi/Bdata->periods);
-    if(phi < 0) {
-        phi += 2*math_pi/Bdata->periods;
-    }
 
+    if (Bdata->symmetry_mode == symmetry_type_periodic) {
+        phi = fmod(phi, Bdata->period_length);
+        if(phi < 0) {
+            phi += Bdata->period_length;
+        }
+    }
+        
     interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
 
     B_dB[0] = B_dB_temp[0];
@@ -396,9 +411,11 @@ a5err B_STS_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z
     int interperr = 0; /* If error happened during interpolation */
     real B_dB_temp[10][NSIMD];
 
-    phi = fmod(phi, 2*math_pi/Bdata->periods);
-    if(phi < 0) {
-        phi += 2*math_pi/Bdata->periods;
+    if (Bdata->symmetry_mode == symmetry_type_periodic) {
+        phi = fmod(phi, Bdata->period_length);
+        if(phi < 0) {
+            phi += Bdata->period_length;
+        }
     }
     
     interperr += interp3Dcomp_eval_dB_SIMD(i, B_dB_temp, &Bdata->B_r, r, phi, z);
@@ -433,7 +450,7 @@ a5err B_STS_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z
     return err;
 }
 
-a5err B_STS_get_axis_r(real axis_r[], B_STS_data* Bdata, real phi) {
+a5err B_STS_get_axis_r(real* axis_r, B_STS_data* Bdata, real phi) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
     phi = fmod(phi, 2*math_pi);
@@ -445,7 +462,7 @@ a5err B_STS_get_axis_r(real axis_r[], B_STS_data* Bdata, real phi) {
     return err;
 }
 
-a5err B_STS_get_axis_z(real axis_z[], B_STS_data* Bdata, real phi) {
+a5err B_STS_get_axis_z(real* axis_z, B_STS_data* Bdata, real phi) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
     phi = fmod(phi, 2*math_pi);
