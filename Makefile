@@ -106,7 +106,7 @@ OBJS= math.o list.o octree.o physlib.o \
 	wall.o simulate.o diag.o diag_orb.o offload.o \
 	random.o print.c symmetry.o
 
-BINS=test_math \
+BINS=test_math test_nbi \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 \
@@ -156,6 +156,9 @@ test_linint3D: test_linint3D.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_N0: test_N0.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_nbi: test_nbi.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile
