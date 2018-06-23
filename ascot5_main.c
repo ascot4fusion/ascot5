@@ -111,15 +111,15 @@ int main(int argc, char** argv) {
     offload_pack(&offload_data, &offload_array, wall_offload_array,
                  sim.wall_offload_data.offload_array_length);
 
-    #ifndef NOTARGET
-        real* diag_offload_array_mic0;
-	real* diag_offload_array_mic1;
-        diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-        diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
-    #else
-	real* diag_offload_array_host;
-        diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
-    #endif
+#ifdef TARGET
+    real* diag_offload_array_mic0;
+    real* diag_offload_array_mic1;
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
+#else
+    real* diag_offload_array_host;
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
+#endif
     
     print_out0(VERBOSE_NORMAL, mpi_rank, "Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
 
@@ -162,8 +162,8 @@ int main(int argc, char** argv) {
 
     print_out0(VERBOSE_NORMAL, mpi_rank, "Markers initialized and inistate written.\n");
 
-    #ifndef NOTARGET
-        int n_mic = n / 2;
+    #ifdef TARGET
+        int n_mic = n / TARGET;
         int n_host = 0;
     #else
         int n_mic = 0;
@@ -178,47 +178,49 @@ int main(int argc, char** argv) {
     
     #pragma omp parallel sections num_threads(3)
     {
-        #ifndef NOTARGET
-            #pragma omp section
-            {
-                mic0_start = omp_get_wtime();
+#if TARGET >= 1
+        #pragma omp section
+        {
+            mic0_start = omp_get_wtime();
                 
-                #pragma omp target device(0) map( \
-		        ps[0:n_mic],	\
-			offload_array[0:offload_data.offload_array_length], \
-			diag_offload_array_mic0[0:sim.diag_offload_data.offload_array_length] \
-                )
-                simulate(1, n_mic, ps, &sim, &offload_data, offload_array,
-                         diag_offload_array_mic0);
+            #pragma omp target device(0) map( \
+                ps[0:n_mic], \
+                offload_array[0:offload_data.offload_array_length], \
+                diag_offload_array_mic0[0:sim.diag_offload_data.offload_array_length] \
+            )
+            simulate(1, n_mic, ps, &sim, &offload_data, offload_array,
+                diag_offload_array_mic0);
 
-                mic0_end = omp_get_wtime();
-            }
+            mic0_end = omp_get_wtime();
+        }
+#endif
 
-            #pragma omp section
-            {
-                mic1_start = omp_get_wtime();
+#if TARGET >= 2
+        #pragma omp section
+        {
+            mic1_start = omp_get_wtime();
 
-                #pragma omp target device(1) map( \
-                        ps[n_mic:2*n_mic], \
-			offload_array[0:offload_data.offload_array_length], \
-			diag_offload_array_mic1[0:sim.diag_offload_data.offload_array_length] \
-                )
-                simulate(2, n_mic, ps+n_mic, &sim, &offload_data, offload_array,
-                         diag_offload_array_mic1);
+            #pragma omp target device(1) map( \
+                ps[n_mic:2*n_mic], \
+                offload_array[0:offload_data.offload_array_length], \
+                diag_offload_array_mic1[0:sim.diag_offload_data.offload_array_length] \
+            )
+            simulate(2, n_mic, ps+n_mic, &sim, &offload_data, offload_array,
+                diag_offload_array_mic1);
 
-                mic1_end = omp_get_wtime();
-            }
+            mic1_end = omp_get_wtime();
+        }
+#endif
 
-        #endif
-            #pragma omp section
-            {
-                host_start = omp_get_wtime();
-        
-                simulate(0, n_host, ps+2*n_mic, &sim, &offload_data,
-                         offload_array, diag_offload_array_host);
-
-                host_end = omp_get_wtime();
-            }
+#ifndef TARGET
+        #pragma omp section
+        {
+            host_start = omp_get_wtime();
+            simulate(0, n_host, ps+2*n_mic, &sim, &offload_data,
+                offload_array, diag_offload_array_host);
+            host_end = omp_get_wtime();
+        }
+#endif
     }
     /* Code excution returns to host. */
 
@@ -230,7 +232,7 @@ int main(int argc, char** argv) {
         mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
     
     /* Combine histograms */
-    #ifndef NOTARGET
+    #ifdef TARGET
         diag_sum(&sim.diag_offload_data, diag_offload_array_mic0,diag_offload_array_mic1);
         hdf5_diag_write(&sim, diag_offload_array_mic0, sim.hdf5_out, qid);
     #else
@@ -245,7 +247,7 @@ int main(int argc, char** argv) {
     B_field_free_offload(&sim.B_offload_data, &B_offload_array);
     plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
-    #ifndef NOTARGET
+    #ifdef TARGET
         diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
 	diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
     #else
