@@ -67,9 +67,9 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         pnz     = nz
 
     # Actual data.
-    f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")
-    f.create_dataset(path + "/r_max", (1,), data=Rmax, dtype="f8")
-    f.create_dataset(path + "/n_r", (1,),   data=nR, dtype="i8")
+    f.create_dataset(path + "/R_min", (1,), data=Rmin, dtype="f8")
+    f.create_dataset(path + "/R_max", (1,), data=Rmax, dtype="f8")
+    f.create_dataset(path + "/n_R", (1,),   data=nR, dtype="i8")
 
     f.create_dataset(path + "/phi_min", (1,), data=phimin, dtype="f8")
     f.create_dataset(path + "/phi_max", (1,), data=phimax, dtype="f8")
@@ -92,7 +92,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     f.create_dataset(path + "/psigrid_n_z", (1,),   data=pnz, dtype="i8")
 
     # Magnetic field data
-    f.create_dataset(path + "/B_r",   data=B_R, dtype="f8")
+    f.create_dataset(path + "/B_R",   data=B_R, dtype="f8")
     f.create_dataset(path + "/B_phi", data=B_phi, dtype="f8")
     f.create_dataset(path + "/B_z",   data=B_z, dtype="f8")
     f.create_dataset(path + "/psi",   data=psi, dtype="f8")
@@ -102,7 +102,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     f.create_dataset(path + "/axis_max", (1,), data=axismax, dtype="f8")
     f.create_dataset(path + "/n_axis", (1,),   data=naxis, dtype="i8")
 
-    f.create_dataset(path + "/axis_r",   data=axisR, dtype="f8")
+    f.create_dataset(path + "/axis_R",   data=axisR, dtype="f8")
     f.create_dataset(path + "/axis_z",   data=axisz, dtype="f8")
 
     f.create_dataset(path + "/psi0", (1,), data=psiaxis, dtype="f8")
@@ -147,9 +147,9 @@ def read_hdf5(fn, qid):
     out["description"] = f[path].attrs["description"]
 
     # Actual data.
-    out["Rmin"] = f[path]["r_min"][:]
-    out["Rmax"] = f[path]["r_max"][:]
-    out["nR"]   = f[path]["n_r"][:]
+    out["Rmin"] = f[path]["R_min"][:]
+    out["Rmax"] = f[path]["R_max"][:]
+    out["nR"]   = f[path]["n_R"][:]
 
     out["phimin"] = f[path]["phi_min"][:]
     out["phimax"] = f[path]["phi_max"][:]
@@ -159,15 +159,15 @@ def read_hdf5(fn, qid):
     out["zmax"] = f[path]["z_max"][:]
     out["nz"]   = f[path]["n_z"][:]
 
-    out["psi"]   = f[path]["psi"][:]
-    out["B_R"]   = f[path]["B_r"][:]
+    out["B_R"]   = f[path]["B_R"][:]
     out["B_phi"] = f[path]["B_phi"][:]
     out["B_z"]   = f[path]["B_z"][:]
+    out["psi"]   = f[path]["psi"][:]
 
     out["psi0"] = f[path]["psi0"][:]
     out["psi1"] = f[path]["psi1"][:]
 
-    out["axisr"] = f[path]["axis_r"][:]
+    out["axisr"] = f[path]["axis_R"][:]
     out["axisz"] = f[path]["axis_z"][:]
 
     out["axismin"] = f[path]["axis_min"][:]
@@ -175,6 +175,8 @@ def read_hdf5(fn, qid):
     out["naxis"]   = f[path]["n_axis"][:]
 
     out["n_periods"] = f[path]["toroidalPeriods"][:]
+
+    out["symmetry_mode"] = f[path]["symmetry_mode"][:]
 
     f.close()
 
