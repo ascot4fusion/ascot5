@@ -18,7 +18,8 @@ setup(name='a5py',
         'bin/a5copyinput',
         'bin/a5continuerun',
         'bin/a5setactive',
-        'bin/a5GUI'
+        'bin/a5GUI',
+        'bin/a5ls'  
       ])
 
 

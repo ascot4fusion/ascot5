@@ -1,0 +1,217 @@
+#!/usr/bin/env python3
+
+from __future__ import unicode_literals, print_function
+import sys
+import h5py
+from prompt_toolkit import PromptSession, HTML
+from prompt_toolkit import print_formatted_text as print
+from prompt_toolkit.key_binding import KeyBindings
+from prompt_toolkit.completion import WordCompleter, Completer, Completion
+import a5py.ascot5io.tools as tools
+from a5py.ascot5io.ascot5 import get_qids
+
+# Column width
+column_width = 25
+
+# TODO complete hdf5 paths with subgroups etc.
+class H5Completer(Completer):
+    group_commands = ['cd', 'c', 'ls', 'l', 'set', 's']
+    dataset_commands = ['ls', 'l', 'print', 'p']
+    common_commands = ['help', 'h', 'quit', 'q']
+    commands = list(sorted(set(group_commands + dataset_commands + common_commands)))
+    common_groups = ['.', '..',  '/', 'a']
+
+    def __init__(self, groups, datasets):
+        self.groups = groups + self.common_groups
+        self.datasets = datasets
+
+    def set_completions(self, groups, datasets):
+        self.groups = groups + self.common_groups
+        self.datasets = datasets
+        
+    def get_completions(self, document, complete_event):
+        word_before_cursor = document.get_word_before_cursor(WORD=True).lower()
+        word_length = len(word_before_cursor)
+        line = document.text_before_cursor
+        line_length = len(line)
+        line = line.split()
+        if len(line) <= 1 and word_length == line_length:
+            # Suggest commands for first argument
+            for command in self.commands:
+                if word_before_cursor == command[:word_length]:
+                    yield Completion(command, start_position=-word_length)
+        else:
+            command = line[0].encode('ASCII')
+            if len(line) == 1:
+                last_word = ''
+            else:
+                last_word = line[-1]
+            if command in self.dataset_commands:
+                for dataset in self.datasets:
+                    if last_word in dataset[:word_length]:
+                        yield Completion(dataset, start_position=-word_length)
+            if command in self.group_commands:
+                for group in self.groups:
+                    if last_word in group[:word_length]:
+                        yield Completion(group, start_position=-word_length)
+
+def get_active_group(fname, group):
+    qids = get_qids(fname, group)
+    qid_active = qids[0][0] # Active qid is always first
+    h5file = h5py.File(fname, 'r')
+    for groupname in h5file[group]:
+        if groupname[-10:].encode('UTF-8') == qid_active:
+            return groupname
+
+def set_active_group(fname, group):
+    h5file = h5py.File(fname, 'r')
+    mastergroup = h5file[group].parent.name
+    h5file.close()
+    qid = group[-10:]
+    tools.setactivegroup(fname, mastergroup, qid)
+
+def get_groups_datasets(h5file, group):
+    groups = []
+    datasets = []
+    items = h5file[group].keys()
+    for item in items:
+        if isinstance(h5file[group][item], h5py.Group):
+            groups.append(item)
+        elif isinstance(h5file[group][item], h5py.Dataset):
+            datasets.append(item)
+    return (groups, datasets)
+
+def print_group(name, isactive):
+    if isactive:
+        print(HTML('<b>' + name.ljust(column_width) + 'Group ' + '</b>'))
+    else:
+        print(name.ljust(column_width) + 'Group ')
+
+def print_dataset(name, shape):
+    shapestr = '{' + ', '.join(map(str,shape)) + '}'
+    print(name.ljust(column_width) + 'Dataset ' + shapestr)
+
+def main():    
+    helptxt = """
+    Commands:
+    cd    (c)     Go to group
+    ls    (l)     List group contents. The active group is shown in <b>bold</b>.
+    print (p)     Print dataset contents
+    set   (s)     Set dataset as active
+    help  (h)     Print this help message
+    quit  (q)     Exit the program
+
+    Arguments:
+    . .. /        Work as in Unix shell
+    a             Perform command for <b>active</b> field
+    """
+    
+    fname = sys.argv[1]
+    h5file = h5py.File(fname, 'r')
+    current_group = '/'
+    (groups, datasets) =  get_groups_datasets(h5file, current_group)
+    session = PromptSession(completer=H5Completer(groups, datasets))
+    
+    while True:
+        try:
+            # Update autocompleter
+            (groups, datasets) =  get_groups_datasets(h5file, current_group)
+            session.completer.set_completions(groups, datasets);
+            user_input = session.prompt('> ')
+            user_input = user_input.split()
+            # Construct path if more than one string in input
+            if len(user_input) == 0:
+                continue
+            elif len(user_input) == 1:
+                command = user_input[0]
+                path = current_group
+            else:
+                command = user_input[0]
+                # Special input characters
+                if user_input[1] == '.':
+                    path = current_group;
+                elif user_input[1] == '..':
+                    if current_group == '/':
+                        path = '/'
+                    else:
+                        path = h5file[current_group].parent.name
+                elif user_input[1] == '/':
+                    path = '/'
+                elif user_input[1] == 'a':
+                    if 'active' in h5file[current_group].attrs:
+                        h5file.close()
+                        active = get_active_group(fname, current_group)
+                        h5file = h5py.File(fname, 'r')
+                        path = '/'.join([current_group, active])
+                    else:
+                        print('No attribute "active" in group ' + current_group)
+                        continue
+                else:
+                    # Process normal hdf5 path
+                    if current_group == '/':
+                        path = '/' + user_input[1]
+                    else:
+                        path = '/'.join([current_group, user_input[1]])
+                    if path not in h5file:
+                        print('"' + path + '" is not a valid group or dataset')
+                        continue
+        # Exception handling
+        except KeyboardInterrupt:
+            continue
+        except EOFError:
+            break
+        # Process the user input
+        else:
+            if command == 'cd' or command == 'c':
+                if isinstance(h5file[path], h5py.Group):
+                    current_group = path
+                else:
+                    print('"' + path + '" is not a group')
+
+            elif command == 'ls' or command == 'l':
+                if isinstance(h5file[path], h5py.Group):
+                    (groups, datasets) =  get_groups_datasets(h5file, path)
+                    active = ''
+                    if 'active' in h5file[path].attrs:
+                        # Display a marker next to the active field
+                        h5file.close()
+                        active = get_active_group(fname, path)
+                        h5file = h5py.File(fname, 'r')
+                    for groupname in groups:
+                        print_group(groupname, groupname == active)
+                    for datasetname in datasets:
+                        print_dataset(datasetname, h5file[path][datasetname].shape)
+                elif isinstance(h5file[path], h5py.Dataset):
+                    print_dataset(h5file[path].name.split('/')[-1], h5file[path].shape)
+                    
+            elif command == 'print' or command == 'p':
+                if isinstance(h5file[path], h5py.Group):
+                    print('"' + path + '" is a group')
+                elif isinstance(h5file[path], h5py.Dataset):
+                    print(h5file[path].value)
+
+            elif command == 'set' or command == 's':
+                if isinstance(h5file[path], h5py.Group):
+                    if 'active' in h5file[path].parent.attrs:
+                        h5file.close()
+                        set_active_group(fname, path)
+                        h5file = h5py.File(fname, 'r')
+                    else:
+                        print('No attribute "active" in group ' + h5file[path].parent.name)
+                elif isinstance(h5file[path], h5py.Dataset):
+                    print('"' + path + '" is not a group')
+
+            elif command == 'help' or command == 'h':
+                print(HTML(helptxt))
+
+            elif command == 'quit' or command == 'q':
+                break
+
+            else:
+                print('Unrecognized command "' + command + '"')
+                print(HTML(helptxt))
+
+    h5file.close()
+
+if __name__ == '__main__':
+    main()
