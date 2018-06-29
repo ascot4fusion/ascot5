@@ -383,15 +383,15 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
 
     /* Read the coordinate data */
     /* Bfield */
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/n_r", qid, path), &(offload_data->Bgrid_n_r));
+    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/n_R", qid, path), &(offload_data->Bgrid_n_r));
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/n_phi", qid, path), &(offload_data->Bgrid_n_phi));
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/n_z", qid, path), &(offload_data->Bgrid_n_z));
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/r_min", qid, path), &(offload_data->Bgrid_r_min));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/R_min", qid, path), &(offload_data->Bgrid_r_min));
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/r_max", qid, path), &(offload_data->Bgrid_r_max));
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/R_max", qid, path), &(offload_data->Bgrid_r_max));
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/z_min", qid, path), &(offload_data->Bgrid_z_min));
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
@@ -476,7 +476,7 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
     int temp_psi_size = offload_data->psigrid_n_r*offload_data->psigrid_n_z*offload_data->psigrid_n_phi;
     real* temp_psi   = (real*) malloc(temp_psi_size*sizeof(real));
 
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/B_r", qid, path), temp_B_r);
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/B_R", qid, path), temp_B_r);
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/B_phi", qid, path), temp_B_phi);
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
@@ -635,7 +635,7 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
     }
     
     /* Read values for magnetic axis */
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/axis_r", qid, path),
+    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/axis_R", qid, path),
                                   &(*offload_array)[4 * B_size]);
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
     err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/axis_z", qid, path),
