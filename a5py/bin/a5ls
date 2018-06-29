@@ -21,43 +21,72 @@ class H5Completer(Completer):
     commands = list(sorted(set(group_commands + dataset_commands + common_commands)))
     common_groups = ['.', '..',  '/', 'a']
 
-    def __init__(self, groups, datasets):
-        self.groups = groups + self.common_groups
-        self.datasets = datasets
+    def __init__(self, h5file, current_group):
+        self.h5file = h5file
+        self.current_group = current_group
 
-    def set_completions(self, groups, datasets):
-        self.groups = groups + self.common_groups
-        self.datasets = datasets
+    def set_completions(self, h5file, current_group):
+        self.h5file = h5file
+        self.current_group = current_group
         
     def get_completions(self, document, complete_event):
-        word_before_cursor = document.get_word_before_cursor(WORD=True).lower()
-        word_length = len(word_before_cursor)
+        word = document.get_word_before_cursor(WORD=True).lower()
+        word_length = len(word)
         line = document.text_before_cursor
         line_length = len(line)
         line = line.split()
         if len(line) <= 1 and word_length == line_length:
-            # Suggest commands for first argument
             for command in self.commands:
-                if word_before_cursor == command[:word_length]:
+                if word == command[:word_length]:
                     yield Completion(command, start_position=-word_length)
         else:
             command = line[0].encode('ASCII')
+            # Suggest a path from the HDF5 file
+            if len(line) == 1: # Suggest from current group
+                path = self.current_group
+            elif line[1][0] == '/': # Take the full written path as a base for suggestions
+                path = line[1]
+            else: # Concatenate the written path to the current group
+                path = self.current_group + '/' + line[1]
+            # Remove trailing junk to produce valid hdf5 path
+            path = get_complete_path(self.h5file, self.current_group, path)
+            (groups, datasets) = get_groups_datasets(self.h5file, path)
+            groups = groups + self.common_groups
             if len(line) == 1:
                 last_word = ''
             else:
-                last_word = line[-1]
+                last_word = line[-1].split('/')[-1]
             if command in self.dataset_commands:
-                for dataset in self.datasets:
-                    if last_word in dataset[:word_length]:
-                        yield Completion(dataset, start_position=-word_length)
+                for dataset in datasets:
+                    if last_word in dataset:
+                        yield Completion(dataset, start_position=-len(last_word))
             if command in self.group_commands:
-                for group in self.groups:
-                    if last_word in group[:word_length]:
-                        yield Completion(group, start_position=-word_length)
+                for group in groups:
+                    if last_word in group:
+                        yield Completion(group, start_position=-len(last_word))
 
+def get_complete_path(h5file, current_path, pathstr):
+    path = pathstr.split('/')
+    if not path[-1]:
+        return pathstr
+    if not path[0]:
+        basepath = '/'
+    else:
+        basepath = current_path
+    complete_path = basepath
+    for part in path:
+        if part == '':
+            continue
+        else:
+            if (complete_path + '/' + part) in h5file:
+                complete_path += '/' + part
+            else:
+                break
+    return complete_path
+                
 def get_active_group(fname, group):
     qids = get_qids(fname, group)
-    qid_active = qids[0][0] # Active qid is always first
+    qid_active = qids[0][0]
     h5file = h5py.File(fname, 'r')
     for groupname in h5file[group]:
         if groupname[-10:].encode('UTF-8') == qid_active:
@@ -70,14 +99,14 @@ def set_active_group(fname, group):
     qid = group[-10:]
     tools.setactivegroup(fname, mastergroup, qid)
 
-def get_groups_datasets(h5file, group):
+def get_groups_datasets(h5file, path):
     groups = []
     datasets = []
-    items = h5file[group].keys()
+    items = h5file[path].keys()
     for item in items:
-        if isinstance(h5file[group][item], h5py.Group):
+        if isinstance(h5file[path][item], h5py.Group):
             groups.append(item)
-        elif isinstance(h5file[group][item], h5py.Dataset):
+        elif isinstance(h5file[path][item], h5py.Dataset):
             datasets.append(item)
     return (groups, datasets)
 
@@ -109,14 +138,12 @@ def main():
     fname = sys.argv[1]
     h5file = h5py.File(fname, 'r')
     current_group = '/'
-    (groups, datasets) =  get_groups_datasets(h5file, current_group)
-    session = PromptSession(completer=H5Completer(groups, datasets))
+    session = PromptSession(completer=H5Completer(h5file, current_group))
     
     while True:
         try:
             # Update autocompleter
-            (groups, datasets) =  get_groups_datasets(h5file, current_group)
-            session.completer.set_completions(groups, datasets);
+            session.completer.set_completions(h5file, current_group);
             user_input = session.prompt('> ')
             user_input = user_input.split()
             # Construct path if more than one string in input
@@ -131,10 +158,7 @@ def main():
                 if user_input[1] == '.':
                     path = current_group;
                 elif user_input[1] == '..':
-                    if current_group == '/':
-                        path = '/'
-                    else:
-                        path = h5file[current_group].parent.name
+                    path = h5file[current_group].parent.name
                 elif user_input[1] == '/':
                     path = '/'
                 elif user_input[1] == 'a':
@@ -151,7 +175,10 @@ def main():
                     if current_group == '/':
                         path = '/' + user_input[1]
                     else:
-                        path = '/'.join([current_group, user_input[1]])
+                        if user_input[1][0] == '/':
+                            path = user_input[1]
+                        else:
+                            path = '/'.join([current_group, user_input[1]])
                     if path not in h5file:
                         print('"' + path + '" is not a valid group or dataset')
                         continue
@@ -182,7 +209,7 @@ def main():
                     for datasetname in datasets:
                         print_dataset(datasetname, h5file[path][datasetname].shape)
                 elif isinstance(h5file[path], h5py.Dataset):
-                    print_dataset(h5file[path].name.split('/')[-1], h5file[path].shape)
+                    print_dataset(path.split('/')[-1], h5file[path].shape)
                     
             elif command == 'print' or command == 'p':
                 if isinstance(h5file[path], h5py.Group):
