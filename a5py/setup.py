@@ -7,6 +7,11 @@ setup(name='a5py',
       license='LGPL',
       packages=find_packages(),
       zip_safe=False,
+      install_requires=[
+          'numpy',
+          'h5py',
+          'prompt_toolkit'
+      ],
       scripts=[
         'bin/a5removeruns',
         'bin/a5editoptions',
