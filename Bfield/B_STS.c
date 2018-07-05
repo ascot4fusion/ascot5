@@ -85,7 +85,7 @@ int B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
                          offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
                          offload_data->axis_grid);
 
-    err += linint1D_init(&Bdata->axis_r,
+    err += linint1D_init(&Bdata->axis_z,
                          offload_array + 3*offload_data->Bgrid_n_phi*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r
                          + offload_data->psigrid_n_phi*offload_data->psigrid_n_z*offload_data->psigrid_n_r
                          + offload_data->n_axis,
