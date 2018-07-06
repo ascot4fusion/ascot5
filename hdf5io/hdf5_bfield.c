@@ -575,6 +575,9 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
         /* Psi data is now for one toroidal period */
         offload_data->psigrid_n_phi = 2*(offload_data->psigrid_n_phi - 1);
         offload_data->psigrid_phi_max = 2*offload_data->psigrid_phi_max;
+        /* Since the data is now for a whole toroidal period, we can set the 
+           symmetry mode as pediodic */
+        offload_data->symmetry_mode == symmetry_type_periodic;
     }
     else if (offload_data->symmetry_mode == symmetry_type_periodic) {
         /* Remove duplicate phi point from data */
