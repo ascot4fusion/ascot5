@@ -9,6 +9,7 @@
 #include <hdf5.h>
 #include "hdf5_hl.h"
 #include "../math.h"
+#include "../symmetry.h"
 #include "../ascot5.h"
 #include "../B_field.h"
 #include "../Bfield/B_2DS.h"
@@ -154,8 +155,8 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real**
 	#if VERBOSE > 0
 	    printf("\nLoaded stellarator magnetic field (B_STS)\n");
 	    printf("with parameters:\n");
-	    printf("- period length = %f\n",
-		   offload_data->BSTS.period_length);
+	    printf("- period length = %f and symmetry_mode = %d\n",
+		   offload_data->BSTS.period_length, offload_data->BSTS.symmetry_mode);
 	    printf("- psi axis = %le and psi separatrix %le\n",
 		   offload_data->BSTS.psi0,offload_data->BSTS.psi1);
 	    printf("- rmin, rmax, nr = %le, %le, %d\n",
@@ -378,7 +379,7 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
         }
     }
     else {
-        offload_data->symmetry_mode = 0; /* Defaults to stellarator symmetry */
+        offload_data->symmetry_mode = symmetry_type_stellarator; /* Defaults to stellarator symmetry */
     }
 
     /* Read the coordinate data */
@@ -575,6 +576,9 @@ void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, rea
         /* Psi data is now for one toroidal period */
         offload_data->psigrid_n_phi = 2*(offload_data->psigrid_n_phi - 1);
         offload_data->psigrid_phi_max = 2*offload_data->psigrid_phi_max;
+        /* Since the data is now for a whole toroidal period, we can set the 
+           symmetry mode as pediodic */
+        offload_data->symmetry_mode = symmetry_type_periodic;
     }
     else if (offload_data->symmetry_mode == symmetry_type_periodic) {
         /* Remove duplicate phi point from data */
