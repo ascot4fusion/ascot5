@@ -21,7 +21,8 @@
  * @param r_grid grid size of the r axis
  */
 int linint1D_init(linint1D_data* str, real* f, int n_r,
-		       real r_min, real r_max, real r_grid) {
+		  real r_min, real r_max, real r_grid,
+		  int periodic) {
 
     int err = 0;
 
@@ -30,6 +31,9 @@ int linint1D_init(linint1D_data* str, real* f, int n_r,
     str->r_min = r_min;
     str->r_max = r_max;
     str->r_grid = r_grid;
+    if(periodic) {
+        str->r_max += str->r_grid;    /**< We can evaluate outside the last point as well */
+    }
     str->f = f;
 
     return err;
@@ -48,6 +52,10 @@ int linint1D_init(linint1D_data* str, real* f, int n_r,
 integer linint1D_eval(real* val, linint1D_data* str, real r) {
     real c0, c1;
     int i_r = (r - str->r_min)/str->r_grid;     /**< index for r variable */
+    int r1 = 1;                                 /**< Index jump one r forward */
+    if(i_r == str->n_r-1) {
+      r1 = -(str->n_r-1)*r1;                    /**< If last cell, index jump to 1st r */
+    }
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
     int err = 0;
@@ -57,7 +65,7 @@ integer linint1D_eval(real* val, linint1D_data* str, real r) {
     }
     else {
         c0 = str->f[i_r];
-        c1 = str->f[i_r + 1];
+        c1 = str->f[i_r+r1];
         val[0] = c0*(1 - dr) + c1*dr;
     }
 
@@ -78,6 +86,10 @@ integer linint1D_eval(real* val, linint1D_data* str, real r) {
 integer linint1D_eval_SIMD(int i, real val[NSIMD], linint1D_data* str, real r) {
     real c0, c1;
     int i_r = (r - str->r_min)/str->r_grid;     /**< index for r variable */
+    int r1 = 1;                                 /**< Index jump one r forward */
+    if(i_r == str->n_r-1) {
+      r1 = -(str->n_r-1)*r1;                    /**< If last cell, index jump to 1st r */
+    }
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
 							       current cell */
     int err = 0;
@@ -87,7 +99,7 @@ integer linint1D_eval_SIMD(int i, real val[NSIMD], linint1D_data* str, real r) {
     }
     else {
         c0 = str->f[i_r];
-        c1 = str->f[i_r + 1];
+        c1 = str->f[i_r+r1];
         val[i] = c0*(1 - dr) + c1*dr;
     }
 

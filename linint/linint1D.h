@@ -14,12 +14,13 @@ typedef struct {
     real r_min;               /**< minimum r coordinate in the grid */
     real r_max;               /**< r grid interval (r_max-r_min)/(n_r-1) */
     real r_grid;              /**< r grid interval (r_max-r_min)/(n_r-1) */
-    real* f;                   /**< pointer to array with function values */
+    real* f;                  /**< pointer to array with function values */
 } linint1D_data;
 
 #pragma omp declare target
 int linint1D_init(linint1D_data* str, real* f, int n_r,
-                  real r_min, real r_max, real r_grid);
+                  real r_min, real r_max, real r_grid,
+		  int periodic);
 #pragma omp declare simd uniform(str)
 integer linint1D_eval(real* f, linint1D_data* str, real r);
 #pragma omp declare simd linear(i) uniform(f, str)
