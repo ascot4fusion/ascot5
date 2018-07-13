@@ -65,7 +65,7 @@ int linint3D_init(linint3D_data* str, real* f, int n_r, int n_phi, int n_z,
  * @param phi phi-coordinate
  * @param z z-coordinate
  */
-int linint3D_eval(real* val, linint3D_data* str, real r, real phi, real z) {
+integer linint3D_eval(real* val, linint3D_data* str, real r, real phi, real z) {
     real c000, c100, c001, c101, c010, c110, c011, c111;
     real c00, c01, c10, c11;
     real c0, c1;
@@ -136,7 +136,7 @@ int linint3D_eval(real* val, linint3D_data* str, real r, real phi, real z) {
  * @param phi phi-coordinate
  * @param z z-coordinate
  */
-int linint3D_eval_SIMD(int i, real val[NSIMD], linint3D_data* str, real r, real phi, real z) {
+integer linint3D_eval_SIMD(int i, real val[NSIMD], linint3D_data* str, real r, real phi, real z) {
     real c000, c100, c001, c101, c010, c110, c011, c111;
     real c00, c01, c10, c11;
     real c0, c1;

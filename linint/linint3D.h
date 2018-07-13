@@ -31,9 +31,9 @@ int linint3D_init(linint3D_data* str, real* f, int n_r, int n_phi, int n_z,
 		   real phi_min, real phi_max, real phi_grid,
 		   real z_min, real z_max, real z_grid);
 #pragma omp declare simd uniform(str)
-int linint3D_eval(real* f, linint3D_data* str, real r, real phi, real z);
+integer linint3D_eval(real* f, linint3D_data* str, real r, real phi, real z);
 #pragma omp declare simd linear(i) uniform(f, str)
-int linint3D_eval_SIMD(int i, real f[NSIMD], linint3D_data* str, real r, real phi, real z);
+integer linint3D_eval_SIMD(int i, real f[NSIMD], linint3D_data* str, real r, real phi, real z);
 void linint3D_free(linint3D_data* str);
 #pragma omp end declare target
 #endif

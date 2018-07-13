@@ -21,9 +21,9 @@ typedef struct {
 int linint1D_init(linint1D_data* str, real* f, int n_r,
                   real r_min, real r_max, real r_grid);
 #pragma omp declare simd uniform(str)
-int linint1D_eval(real* f, linint1D_data* str, real r);
+integer linint1D_eval(real* f, linint1D_data* str, real r);
 #pragma omp declare simd linear(i) uniform(f, str)
-int linint1D_eval_SIMD(int i, real f[NSIMD], linint1D_data* str, real r);
+integer linint1D_eval_SIMD(int i, real f[NSIMD], linint1D_data* str, real r);
 void linint1D_free(linint1D_data* str);
 #pragma omp end declare target
 #endif

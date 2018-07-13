@@ -55,7 +55,7 @@ int linint2D_init(linint2D_data* str, real* f, int n_r, int n_z,
  * @param r r-coordinate
  * @param z z-coordinate
  */
-int linint2D_eval(real* val, linint2D_data* str, real r, real z) {
+integer linint2D_eval(real* val, linint2D_data* str, real r, real z) {
     real c00, c01, c10, c11;
     real c0, c1;
 
@@ -104,7 +104,7 @@ int linint2D_eval(real* val, linint2D_data* str, real r, real z) {
  * @param r r-coordinate
  * @param z z-coordinate
  */
-int linint2D_eval_SIMD(int i, real val[NSIMD], linint2D_data* str, real r, real z) {
+integer linint2D_eval_SIMD(int i, real val[NSIMD], linint2D_data* str, real r, real z) {
     real c00, c01, c10, c11;
     real c0, c1;
 

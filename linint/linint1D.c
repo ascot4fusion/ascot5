@@ -45,7 +45,7 @@ int linint1D_init(linint1D_data* str, real* f, int n_r,
  * @param str data struct for data interpolation
  * @param r r-coordinate
  */
-int linint1D_eval(real* val, linint1D_data* str, real r) {
+integer linint1D_eval(real* val, linint1D_data* str, real r) {
     real c0, c1;
     int i_r = (r - str->r_min)/str->r_grid;     /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
@@ -75,7 +75,7 @@ int linint1D_eval(real* val, linint1D_data* str, real r) {
  * @param str data struct for data interpolation
  * @param r r-coordinate
  */
-int linint1D_eval_SIMD(int i, real val[NSIMD], linint1D_data* str, real r) {
+integer linint1D_eval_SIMD(int i, real val[NSIMD], linint1D_data* str, real r) {
     real c0, c1;
     int i_r = (r - str->r_min)/str->r_grid;     /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
