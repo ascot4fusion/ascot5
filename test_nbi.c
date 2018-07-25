@@ -1,6 +1,6 @@
 /**
- * @file test_wall_3d.c
- * @brief Test program for 3D wall collision functions
+ * @file test_nbi.c
+ * @brief Test program for NBI functions
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,8 +9,16 @@
 #include "nbi.h"
 #include "hdf5io/hdf5_nbi.h"
 #include "hdf5io/hdf5_helpers.h"
+#include "suzuki.h"
 
 int main(int argc, char** argv) {
+/*    int Z[] = {1,4};
+    int A[] = {3,9};
+    real ni[] = {5e19, 1e17};
+    printf("%le\n", suzuki_sigmav(150, 5.0025e19, 5000, 2, ni, A, Z));
+
+    return 0;*/
+
     hdf5_init();
     hid_t f = hdf5_open("ascot.h5");
 
