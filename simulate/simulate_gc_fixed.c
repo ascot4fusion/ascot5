@@ -46,15 +46,12 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
  *
  * @param pq particles to be simulated
  * @param sim simulation data
- *
- * @todo See simulate_gc_adaptive.c
  */
 void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
-   
-    int cycle[NSIMD]  __memalign__;
-    real hin[NSIMD]  __memalign__;
-    real cputime_last[NSIMD]  __memalign__;
-    real cputime;
+    int cycle[NSIMD]  __memalign__; // Flag indigating whether a new marker was initialized
+    real hin[NSIMD]  __memalign__;  // Time step
+
+    real cputime, cputime_last; // Global cpu time: recent and previous record
 
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
@@ -65,6 +62,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     diag_storage* diag_strg;
     diag_storage_aquire(&sim->diag_data, &diag_strg);
 
+    /* Init dummy markers */
     for(int i=0; i< NSIMD; i++) {
 	p.id[i] = -1;
 	p.running[i] = 0;
@@ -78,9 +76,10 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     for(int i = 0; i < NSIMD; i++) {
 	if(cycle[i] > 0) {
 	    hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
-	    cputime_last[i] = A5_WTIME;
 	}
     }
+
+    cputime_last = A5_WTIME;
 
 /* MAIN SIMULATION LOOP 
  * - Store current state
@@ -133,27 +132,37 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 	    p0.B_z_dz[i]     = p.B_z_dz[i];
 
         }
-        
+
+	/*************************** Physics ***********************************************/
+
+	/* RK4 method for orbit-following */
         if(sim->enable_orbfol) {
             step_gc_rk4(&p, hin, &sim->B_data, &sim->E_data);
         }
 
+	/* Euler-Maruyama method for collisions */
         if(sim->enable_clmbcol) {
             mccc_step_gc_fixed(&p, &sim->B_data, &sim->plasma_data, &sim->random_data, hin);
         }
 
+	/***********************************************************************************/
+
+
+	/* Update simulation and cpu times */
 	cputime = A5_WTIME;
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]) {
                 p.time[i] = p.time[i] + hin[i];
-		p.cputime[i] += cputime - cputime_last[i];
-		cputime_last[i] = cputime;
+		p.cputime[i] += cputime - cputime_last;
             }
         }
-        
+	cputime_last = cputime;
+
+	/* Check possible end conditions */
         endcond_check_gc(&p, &p0, sim);
 
+	/* Update diagnostics */
         diag_update_gc(&sim->diag_data, diag_strg, &p, &p0);
 
         /* Update running particles */
@@ -164,22 +173,31 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         for(int i = 0; i < NSIMD; i++) {
 	    if(cycle[i] > 0) {
 		hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
-		cputime_last[i] = A5_WTIME;
 	    }
         }
 
     }
 
+    /* All markers simulated! */
+
+    /* Clean diagnostics struct */
     diag_storage_discard(diag_strg);
     
 }
 
 /**
  * @brief Calculates time step value
+ *
+ * The time step is calculated as a user-defined fraction of gyro time,
+ * whose formula accounts for relativity, or an user defined value
+ * is used as is depending on simulation options.
+ *
+ * @param p SIMD array of markers
+ * @param i index of marker for which time step is assessed
+ * @return Calculated time step
  */
 real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i) {
-    /* Just use some large value if no physics are defined */
-    real h = 1.0;
+    real h;
     
     /* Value defined directly by user */
     if(sim->fix_usrdef_use) {

@@ -14,10 +14,10 @@
 #include "step_gc_rk4.h"
 
 /**
- * @brief Integrate a guiding center step for a struct of particles with RK4
+ * @brief Integrate a guiding center step for a struct of markers with RK4
  *
  * This function calculates a guiding center step for a struct of NSIMD 
- * particles with RK4 simultaneously using SIMD instructions. All arrays in the 
+ * markers with RK4 simultaneously using SIMD instructions. All arrays in the 
  * function are of NSIMD length so vectorization can be performed directly 
  * without gather and scatter operations.
  *
@@ -168,7 +168,9 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
     }
 }
 
-
+/**
+ * @brief Same as step_gc_rk4 but all arrays are in SIMD format
+ */
 void step_gc_rk4_SIMD(particle_simd_gc* p, real* hin, B_field_data* Bdata, E_field_data* Edata) {
 
     real h[NSIMD] __memalign__;

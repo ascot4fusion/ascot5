@@ -42,20 +42,17 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i);
  * markers is stored in the given marker array. Other output
  * is stored in the diagnostic array.
  *
- * The time-step is user-defined either directly or as a fraction of
- * gyrotime.
+ * The time-step is user-defined: either a directly given fixed value 
+ * or a given fraction of gyrotime.
  *
  * @param pq particles to be simulated
  * @param sim simulation data struct
- *
- * @todo See simulate_gc_adaptive.c
  */
 void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
-    int cycle[NSIMD]  __memalign__;
-    real hin[NSIMD]  __memalign__;
+    int cycle[NSIMD]  __memalign__; // Flag indigating whether a new marker was initialized
+    real hin[NSIMD]  __memalign__;  // Time step
     
-    real cputime_last[NSIMD] __memalign__;
-    real cputime;
+    real cputime, cputime_last; // Global cpu time: recent and previous record
 
     particle_simd_fo p;  // This array holds current states
     particle_simd_fo p0; // This array stores previous states
@@ -65,6 +62,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
     diag_storage* diag_strg;
     diag_storage_aquire(&sim->diag_data, &diag_strg);
 
+    /* Init dummy markers */
     for(int i=0; i< NSIMD; i++) {
 	p.id[i] = -1;
 	p.running[i] = 0;
@@ -76,20 +74,21 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
     /* Determine simulation time-step */
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
-	cputime_last[i] = A5_WTIME;
 	if(cycle[i] > 0) {
 	    hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
 	    
 	}
     }
     
+    cputime_last = A5_WTIME;
+    
 /* MAIN SIMULATION LOOP 
  * - Store current state
  * - Integrate motion due to background EM-field (orbit-following)
  * - Integrate scattering due to Coulomb collisions
  * - Advance time
- * - Update diagnostics
  * - Check for end condition(s)
+ * - Update diagnostics
  */
     while(n_running > 0) {
 
@@ -136,30 +135,48 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 	    p0.B_z_dz[i]     = p.B_z_dz[i];
         }
 
+	/*************************** Physics ***********************************************/
+
+	/* Volume preserving algorithm for orbit-following */
         if(sim->enable_orbfol) {
             step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data);
         }
 
+	/* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
             mccc_step_fo_fixed(&p, &sim->B_data, &sim->plasma_data, &sim->random_data, hin);
         }
- 
+
+	/***********************************************************************************/
+
+
+	/* Update simulation and cpu times */
 	cputime = A5_WTIME;
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]){
                 p.time[i] = p.time[i] + hin[i];
-		p.cputime[i] += cputime - cputime_last[i];
-		cputime_last[i] = cputime;
+		p.cputime[i] += cputime - cputime_last;	
             }
-        }   
+        }
+	cputime_last = cputime;
 
+	/* Check possible end conditions */
 	endcond_check_fo(&p, &p0, sim);
 
-	if(sim->record_GOasGC) {
+	/* Update diagnostics */
+	if(!(sim->record_GOasGC)) {
+	    /* Record particle coordinates */
+	    diag_update_fo(&sim->diag_data, diag_strg, &p, &p0);
+	}
+	else {
+	    /* Instead of particle coordinates we record guiding center coordinates*/
+
+	    // Dummy guiding centers
 	    particle_simd_gc gc_f;
 	    particle_simd_gc gc_i;
 
+	    /* Particle to guiding center transformation */
 	    #pragma omp simd
 	    for(int i=0; i<NSIMD; i++) {
 		if(p.running[i]) {
@@ -176,34 +193,41 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 	    }
 	    diag_update_gc(&sim->diag_data, diag_strg, &gc_f, &gc_i);
 	}
-	else {
-	    diag_update_fo(&sim->diag_data, diag_strg, &p, &p0);
-	}
 
         /* Update running particles */
         n_running = particle_cycle_fo(pq, &p, &sim->B_data, cycle);
 
-	/* Determine simulation time-step */
+	/* Determine simulation time-step for new particles */
 	#pragma omp simd
 	for(int i = 0; i < NSIMD; i++) {
 	    if(cycle[i] > 0) {
 		hin[i] = simulate_fo_fixed_inidt(sim, &p, i);
-		cputime_last[i] = A5_WTIME;
 	    }
 	}
     }
 
+    /* All markers simulated! */
+
+    /* Clean diagnostics struct */
     diag_storage_discard(diag_strg);
 
 }
 
 /**
  * @brief Calculates time step value
+ *
+ * The time step is calculated as a user-defined fraction of gyro time,
+ * whose formula accounts for relativity, or an user defined value
+ * is used as is depending on simulation options.
+ *
+ * @param p SIMD array of markers
+ * @param i index of marker for which time step is assessed
+ * @return Calculated time step
  */
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
-    /* Just use some large value if no physics are defined */
-    real h = 1.0;
 
+    real h;
+    
     /* Value defined directly by user */
     if(sim->fix_usrdef_use) {
 	h = sim->fix_usrdef_val;

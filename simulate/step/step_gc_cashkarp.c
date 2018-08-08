@@ -15,17 +15,17 @@
 #include "step_gceom.h"
 
 /**
- * @brief Integrate a guiding center step for a struct of particles with adaptive Cash Karp method
+ * @brief Integrate a guiding center step for a struct of markers with adaptive Cash Karp method
  *
  * This function calculates a guiding center step for a struct of NSIMD 
- * particles with Cash-Karp (adaptive RK5) simultaneously using SIMD instructions. 
+ * markers with Cash-Karp (adaptive RK5) simultaneously using SIMD instructions. 
  * All arrays in the function are of NSIMD length so vectorization can be performed 
  * directly without gather and scatter operations. Informs whther time step was accepted or
  * rejected and provides a suggestion for the next time step.
  *
- * @param p particle struct that will be updated
+ * @param p marker struct that will be updated
  * @param h array containing time step lengths
- * @param hnext suggestion for the next time step. Sign only indicates whether current step was rejected
+ * @param hnext suggestion for the next time step. Negative sign indicates current step was rejected
  * @param tol error tolerance
  * @param Bdata pointer to magnetic field data
  * @param Edata pointer to electric field data
