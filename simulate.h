@@ -78,6 +78,8 @@ typedef struct {
     wall_data wall_data;
     diag_data diag_data;
 
+    real* coldata;
+
     int sim_mode;
     int enable_ada;
     int record_GOasGC;

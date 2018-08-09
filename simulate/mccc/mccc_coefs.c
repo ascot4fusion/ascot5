@@ -13,15 +13,30 @@
 #include "mccc_coefs.h"
 #include "mccc_special.h"
 
-const int MCCC_COEFS_EXACT = 1;
+#define MCCC_COEFS_INTERP 0
+#define MCCC_COEFS_EXACT  1
 
 /**
- * @brief Initializes lookup tables for more(?) efficient evaluation
+ * @brief Initializes lookup tables for more efficient(?) evaluation
  *
- * @todo Not implemented
  */
-void mccc_coefs_init(){
-
+void mccc_coefs_init(real* coldata){
+#if A5_CCOL_USE_TABULATED
+    
+#ifdef MCCC_RELATIVISTIC
+    // Nothing here yet
+#else
+    coldata = malloc(3*G_NSLOT*sizeof(real));
+    for(int i=0; i<G_NSLOT; i++) {
+	real fdf[3];
+	mccc_special_fo(G_STEP*i, fdf, MCCC_COEFS_EXACT);
+	coldata[i+0*G_NSLOT] = fdf[0];
+	coldata[i+1*G_NSLOT] = fdf[1];
+	coldata[i+2*G_NSLOT] = fdf[2];
+    }
+#endif
+    
+#endif
 }
 
 /**
@@ -45,7 +60,7 @@ void mccc_coefs_init(){
  * @todo Implement relativistic coefficients
  */
 a5err mccc_coefs_fo(real ma, real qa, real va, real* mb, 
-		    real* qb, real* nb, real* Tb, real* clogab, int nspec, 
+		    real* qb, real* nb, real* Tb, real* clogab, int nspec, real* coldata, 
 		    real* F, real* Dpara, real* Dperp, real* K, real* nu){
     a5err err = 0;
     int check = 0;
@@ -60,7 +75,12 @@ a5err mccc_coefs_fo(real ma, real qa, real va, real* mb,
 	cab = nb[i]*qa*qa*qb[i]*qb[i]*clogab[i]/(4*CONST_PI*CONST_E0*CONST_E0);
 	vth = sqrt(2*Tb[i]/mb[i]);
 	x = va/vth;
-	mccc_special_fo(x, fdf, MCCC_COEFS_EXACT);
+	
+	#ifdef MCCC_USE_TABULATED
+	mccc_special_fo(x, fdf, MCCC_COEFS_INTERP, coldata);
+	#else
+	mccc_special_fo(x, fdf, MCCC_COEFS_EXACT, coldata);
+	#endif
 
 	Q = -cab*fdf[0]/(ma*mb[i]*vth*vth);
 	dDpara = (cab/(2*ma*ma*va)) * (fdf[2]/vth - fdf[0]/va);
@@ -110,7 +130,7 @@ a5err mccc_coefs_fo(real ma, real qa, real va, real* mb,
  * @todo Implement relativistic coefficients
  */
 a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi, 
-			 real* mb, real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, 
+			 real* mb, real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, real* coldata, 
 			 real* Dpara, real* DX, real* K, real* nu){
     a5err err = 0;
     int check = 0;
@@ -128,7 +148,12 @@ a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi,
 	cab = nb[i]*qa*qa*qb[i]*qb[i]*clogab[i]/(4*CONST_PI*CONST_E0*CONST_E0);
 	vth = sqrt(2*Tb[i]/mb[i]);
 	x = va/vth;
-	mccc_special_fo(x, fdf, MCCC_COEFS_EXACT);
+
+	#ifdef MCCC_USE_TABULATED
+	mccc_special_fo(x, fdf, MCCC_COEFS_INTERP, coldata);
+	#else
+	mccc_special_fo(x, fdf, MCCC_COEFS_EXACT, coldata);
+	#endif
 
 	Q = -cab*fdf[0]/(ma*mb[i]*vth*vth);
 	dDpara = (cab/(2*ma*ma*va)) * (fdf[2]/vth - fdf[0]/va);
@@ -182,7 +207,7 @@ a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi,
  * @todo Implement relativistic coefficients
  */
 a5err mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb, 
-			    real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, 
+			    real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, real* coldata, 
 			    real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara){
     a5err err = 0;
     int check = 0;
@@ -200,7 +225,12 @@ a5err mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb,
 	cab = nb[i]*qa*qa*qb[i]*qb[i]*clogab[i]/(4*CONST_PI*CONST_E0*CONST_E0);
 	vth = sqrt(2*Tb[i]/mb[i]);
 	x = va/vth;
-	mccc_special_fo(x, fdf, MCCC_COEFS_EXACT);
+
+	#ifdef MCCC_USE_TABULATED
+	mccc_special_fo(x, fdf, MCCC_COEFS_INTERP, coldata);
+	#else
+	mccc_special_fo(x, fdf, MCCC_COEFS_EXACT, coldata);
+	#endif
 
 	Q = -cab*fdf[0]/(ma*mb[i]*vth*vth);
 	dQ[i] = -cab*fdf[2]/(ma*mb[i]*vth*vth);
@@ -275,5 +305,3 @@ a5err mccc_coefs_clog(real ma, real qa, real va, real* mb, real* qb, real* nb, r
     }
     return err;	
 }
-
-

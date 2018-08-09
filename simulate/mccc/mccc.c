@@ -21,18 +21,6 @@
 #include "mccc_coefs.h"
 
 /**
- * @brief Initializes mccc package
- *
- * Initializes lookup tables that provide possibly faster
- * evaluation of collision coefficients.
- * 
- * @todo Not implemented
- */
-void mccc_init(){
-
-}
-
-/**
  * @brief Evaluates collision coefficients in fo picture
  *
  * Finds the rho coordinate first and uses it to evaluate plasma parameters
@@ -49,12 +37,12 @@ void mccc_init(){
  * @param pdata pointer to plasma data
  * @param clogab pointer to array storing the evaluated Coulomb logarithms
  * @param F pointer to array storing the evaluated Fokker-Planck coefficient [m/s^2]
- * @param Dpara pointer to array the evaluated storing parallel diffusion coefficient [m^2/s^3]
- * @param Dperp pointer to array the evaluated storing perpendicular diffusion coefficient [m²/s^3]
+ * @param Dpara pointer to array storing the evaluated parallel diffusion coefficient [m^2/s^3]
+ * @param Dperp pointer to array storing the evaluated perpendicular diffusion coefficient [m²/s^3]
  * @param K pointer to array storing the evaluated friction coefficient [m/s^2]
  * @param nu pointer to array storing the evaluated pitch collision frequency [1/s]
  */
-void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, 
+void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, real* coldata, 
 		    real* clogab, real* F, real* Dpara, real* Dperp, real* K, real* nu){
     int i;
     #pragma omp simd
@@ -85,7 +73,7 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata
 	    /* Evaluate coefficients */
 	    real va = sqrt(p->rdot[i]*p->rdot[i] + (p->r[i]*p->phidot[i])*(p->r[i]*p->phidot[i]) + p->zdot[i]*p->zdot[i]);
 	    mccc_coefs_clog(p->mass[i], p->charge[i], va, m_species, q_species, dens, temp, &clogab[i*MAX_SPECIES], n_species);
-	    mccc_coefs_fo(p->mass[i], p->charge[i], va, m_species, q_species, dens, temp, &clogab[i*MAX_SPECIES], n_species,
+	    mccc_coefs_fo(p->mass[i], p->charge[i], va, m_species, q_species, dens, temp, &clogab[i*MAX_SPECIES], n_species, coldata,
 			  &F[i*MAX_SPECIES], &Dpara[i*MAX_SPECIES], &Dperp[i*MAX_SPECIES], &K[i*MAX_SPECIES], &nu[i*MAX_SPECIES]);
 	}
     }
@@ -104,7 +92,7 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata
  * @param nu pointer to pitch collision frequency
  * @param i index of the marker in simd array
  */
-void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, 
+void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* coldata, 
 		    real* nu, int i){
 
     /* Update background data */
@@ -148,7 +136,7 @@ void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pda
     real nub[MAX_SPECIES];
     real DXb[MAX_SPECIES];
     mccc_coefs_clog(p->mass[i], p->charge[i], va, m_species, q_species, dens, temp, clogab, n_species);
-    mccc_coefs_gcfixed(p->mass[i], p->charge[i], va, xi, m_species, q_species, dens, temp, Bnorm, clogab, n_species,
+    mccc_coefs_gcfixed(p->mass[i], p->charge[i], va, xi, m_species, q_species, dens, temp, Bnorm, clogab, n_species, coldata,
 		       Dparab,DXb,Kb,nub);
 
     *nu = 0;
@@ -183,7 +171,7 @@ void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pda
  * @param dDpara pointer to array storing the evaluated derivative dDpara/dv [m/s^2]
  *
  */
-void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, 
+void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* coldata, 
 		    real* clogab, real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara){
     int i;
     #pragma omp simd
@@ -225,7 +213,7 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata
 	    xi = p->vpar[i]/va;
 					        
 	    mccc_coefs_clog(p->mass[i], p->charge[i], va, m_species, q_species, dens, temp, &clogab[i*MAX_SPECIES], n_species);
-	    mccc_coefs_gcadaptive(p->mass[i], p->charge[i], va, xi, m_species, q_species, dens, temp, Bnorm, &clogab[i*MAX_SPECIES], n_species,
+	    mccc_coefs_gcadaptive(p->mass[i], p->charge[i], va, xi, m_species, q_species, dens, temp, Bnorm, &clogab[i*MAX_SPECIES], n_species, coldata,
 				  &Dpara[i*MAX_SPECIES], &DX[i*MAX_SPECIES], &K[i*MAX_SPECIES], &nu[i*MAX_SPECIES], &dQ[i*MAX_SPECIES], &dDpara[i*MAX_SPECIES]);
 
 	}
@@ -247,7 +235,7 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata
  * @param pdata pointer to plasma data
  * @param h pointer to time step values [s]
  */
-void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* h){
+void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* coldata, real* h){
     int i;
     real rnd[3*NSIMD];
     random_normal_simd(rdata, 3*NSIMD, rnd);
@@ -289,7 +277,7 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* p
 	    }
 	    if(!errflag) {
 		errflag = mccc_coefs_fo(p->mass[i], p->charge[i], va,
-					m_species, q_species, dens, temp, clogab, n_species,
+					m_species, q_species, dens, temp, clogab, n_species, coldata,
 					Fb, Dparab, Dperpb, Kb, nub);
 	    }
 	    for(int j = 0; j < n_species; j=j+1){
@@ -343,7 +331,7 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* p
  * @param pdata pointer to plasma data
  * @param h pointer to time step values [s]
  */
-void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* h){
+void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* coldata, real* h){
     int i;
     real rnd[5*NSIMD];
     random_normal_simd(rdata, 5*NSIMD, rnd);
@@ -394,7 +382,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
 	    }
 	    if(!errflag) {
 		errflag = mccc_coefs_gcfixed(p->mass[i], p->charge[i], vin, xiin,
-					     m_species, q_species, dens, temp, Bnorm, clogab, n_species,
+					     m_species, q_species, dens, temp, Bnorm, clogab, n_species, coldata,
 					     Dparab,DXb,Kb,nub);
 	    }
 	    
@@ -494,7 +482,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
  *
  * @todo There is no need to check for error when collision frequency is low and other processes determine adaptive time-step
  */
-void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* hin, real* hout, mccc_wienarr** w, real tol){
+void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* coldata, real* hin, real* hout, mccc_wienarr** w, real tol){
     int i;
     real rand5[5*NSIMD];
     random_normal_simd(rdata, 5*NSIMD, rand5);
@@ -561,7 +549,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
 	    }
 	    if(!errflag) {
 		errflag = mccc_coefs_gcadaptive(p->mass[i], p->charge[i], vin, xiin, m_species, q_species,
-						dens, temp, Bnorm, clogab, n_species,
+						dens, temp, Bnorm, clogab, n_species, coldata,
 						Dparab, DXb, Kb, nub, dQb, dDparab);
 	    }
 	    for(int j = 0; j < n_species; j=j+1){				

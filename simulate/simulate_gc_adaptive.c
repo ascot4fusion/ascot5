@@ -182,7 +182,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 	/* Milstein method for collisions */
         if(sim->enable_clmbcol) {
 	    mccc_step_gc_adaptive(&p, &sim->B_data, &sim->plasma_data,
-		&sim->random_data, hin, hout_col, wienarr, tol_col);
+		&sim->random_data, sim->coldata, hin, hout_col, wienarr, tol_col);
 		
 	    /* Check whether time step was rejected */
             #pragma omp simd
@@ -351,7 +351,7 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
 	/* Value calculated from collision frequency */
 	if(sim->enable_clmbcol) {
 	    real nu;
-	    mccc_collfreq_gc(p,&sim->B_data,&sim->plasma_data,&nu,i);
+	    mccc_collfreq_gc(p,&sim->B_data,&sim->plasma_data, sim->coldata,&nu,i);
 	    
 	    /* Only small angle collisions so divide this by 100 */
 	    real colltime = 1/(100*nu);

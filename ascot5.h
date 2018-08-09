@@ -122,4 +122,7 @@ typedef double real;
  *  with an explicit (1) or compact (0) way*/
 #define INTERP_SPL_EXPL 0
 
+/** @brief Choose whether to use tabulated values for collision coefficients */
+#define A5_CCOL_USE_TABULATED 0 
+
 #endif

@@ -11,6 +11,7 @@
 #include "simulate/simulate_gc_adaptive.h"
 #include "simulate/simulate_gc_fixed.h"
 #include "simulate/simulate_fo_fixed.h"
+#include "simulate/mccc/mccc_coefs.h"
 
 #pragma omp declare target
 void sim_init(sim_data* sim, sim_offload_data* offload_data);
@@ -57,6 +58,10 @@ void simulate(int id, int n_particles, particle_state* p,
 
     diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
             diag_offload_array);
+
+    /* Initialize collision coefficients */
+    sim.coldata = NULL;
+    mccc_coefs_init(sim.coldata);
 
     particle_queue pq;
     particle_queue pq_hybrid;
@@ -224,6 +229,7 @@ void simulate(int id, int n_particles, particle_state* p,
     fclose(f);
 #endif
 
+    free(sim.coldata);
     free(pq.p);
     free(pq_hybrid.p);
 
