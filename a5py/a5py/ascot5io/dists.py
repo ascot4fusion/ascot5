@@ -55,6 +55,27 @@ def read_hdf5(fn, qid):
         temp['ordinate_name'] = 'density'
         temp['ordinate_unit'] = 's/m^5*deg*e'
 
+    if "rho_pol_phi_vpa_vpe_t_q" in dists:
+        out["rho_pol_phi_vpa_vpe_t_q"] = {}
+        temp = out["rho_pol_phi_vpa_vpe_t_q"]
+        disttemp = dists["rho_pol_phi_vpa_vpe_t_q"]
+
+        # These could be read directly from HDF5 file, but for clarity we list them here
+        abscissae_names = ["rho", "pol", "phi", "vpa", "vpe", "time", "charge"]
+        abscissae_units = ["", "deg", "deg", "m/s", "m/s", "s", "e"]
+        abscissae_realnames = ["Radial coordinate", "Poloidal angle", "Toroidal angle", "Velocity parallel to magnetic field", "Velocity perpendicular to magnetic field", "Time", "Charge"]
+
+        for i in range(0,len(abscissae_names)):
+            name = abscissae_names[i]
+            temp[name + '_edges'] = disttemp['abscissa_vec_00000'+str(i+1)][:]
+            temp[name]            = edges2grid(temp[name + '_edges'])
+            temp[name + '_unit']  = abscissae_units[i]
+            temp['n_' + name]     = temp[name].size
+
+        temp['ordinate']       = disttemp['ordinate'][0,:,:,:,:,:,:,:]
+        temp['ordinate_name'] = 'density'
+        temp['ordinate_unit'] = 's/m^2*deg^2*e'
+        
     f.close()
 
     return out
