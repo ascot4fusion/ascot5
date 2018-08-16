@@ -50,10 +50,44 @@ int ascotpy_bfield_eval_B(int Neval, real* R, real* phi, real* z, real* BR, real
     real B[3];
 
     for(int k = 0; k < Neval; k++) {
-	B_field_eval_B(B, R[k], phi[k], z[k], &sim.B_data);
+        B_field_eval_B(B, R[k], phi[k], z[k], &sim.B_data);
 	BR[k]   = B[0];
 	Bphi[k] = B[1];
 	Bz[k]   = B[2];
+    }
+    
+    return 0;
+}
+
+int ascotpy_bfield_eval_psi(int Neval, real* R, real* phi, real* z, real* psi) {
+    real psi_val;
+
+    for(int k = 0; k < Neval; k++) {
+    B_field_eval_psi(&psi_val, R[k], phi[k], z[k], &sim.B_data);
+	psi[k] = psi_val;
+    }
+    
+    return 0;
+}
+
+int ascotpy_bfield_eval_rho(int Neval, real* R, real* phi, real* z, real* rho) {
+    real psi_val;
+    real rho_val;
+    
+    for(int k = 0; k < Neval; k++) {
+    B_field_eval_psi(&psi_val, R[k], phi[k], z[k], &sim.B_data);    
+    B_field_eval_rho(&rho_val, psi_val, &sim.B_data);
+    rho[k] = rho_val;
+    }
+    
+    return 0;
+}
+
+int ascotpy_bfield_eval_axis(int Neval, real* phi, real* R, real* z) {
+
+    for(int k = 0; k < Neval; k++) {
+        R[k] = B_field_get_axis_r(&sim.B_data, phi[k]);
+        z[k] = B_field_get_axis_z(&sim.B_data, phi[k]);
     }
     
     return 0;

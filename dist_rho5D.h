@@ -62,13 +62,13 @@ typedef struct {
     real min_vperp;   /**< value of lowest v_perpendicular bin */
     real max_vperp;   /**< value of highest v_perpendicular bin */
 
-    int n_time;       /**< number of r bins */ 
-    real min_time;    /**< value of lowest r bin */
-    real max_time;    /**< value of highest r bin */
+    int n_time;       /**< number of time bins */ 
+    real min_time;    /**< value of lowest time bin */
+    real max_time;    /**< value of highest time bin */
 
-    int n_q;          /**< number of r bins */ 
-    real min_q;       /**< value of lowest r bin */
-    real max_q;       /**< value of highest r bin */
+    int n_q;          /**< number of charge bins */ 
+    real min_q;       /**< value of lowest charge bin */
+    real max_q;       /**< value of highest charge bin */
     
     real* histogram;  /**< pointer to start of histogram array */
 } dist_rho5D_data;

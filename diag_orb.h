@@ -26,6 +26,7 @@ typedef struct{
     real charge;
     real mass;
     real rho;
+    real pol;
     real B_r;
     real B_phi;
     real B_z;
@@ -45,6 +46,7 @@ typedef struct{
     real charge;
     real mass;
     real rho;
+    real pol;
     real B_r;
     real B_phi;
     real B_z;
@@ -59,6 +61,7 @@ typedef struct{
     real z;
     real weight;
     real rho;
+    real pol;
     real B_r;
     real B_phi;
     real B_z;

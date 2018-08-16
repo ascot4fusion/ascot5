@@ -196,7 +196,7 @@ void hdf5_dist_write_rho5D(dist_rho5D_offload_data* dist, real* hist, char* file
     char* abscissa_names[] = { "rho", "pol", "phi", "vpa", "vpe", "time", "charge" };
     char* abscissa_units[] = { " ", "deg", "deg", "m/s", "m/s", "s", "e" };
     char* ordinate_names[] = { "density" };
-    char* ordinate_units[] = { " " };// MIKÄ
+    char* ordinate_units[] = { " " };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
@@ -272,7 +272,7 @@ void hdf5_dist_write_rho6D(dist_rho6D_offload_data* dist, real* hist, char* file
                                "charge" };
     char* abscissa_units[] = { " ", "deg", "deg", "m/s", "m/s", "m/s", "s", "e" };
     char* ordinate_names[] = { "density" };
-    char* ordinate_units[] = { " " };//MIKÄ
+    char* ordinate_units[] = { " " };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
