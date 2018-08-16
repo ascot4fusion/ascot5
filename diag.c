@@ -26,6 +26,8 @@
 #include "diag_orb.h"
 #include "dist_5D.h"
 #include "dist_6D.h"
+#include "dist_rho5D.h"
+#include "dist_rho6D.h"
 #include "particle.h"
 
 /**
@@ -54,7 +56,20 @@ void diag_init_offload(diag_offload_data* data, real** offload_array){
              * data->dist6D.n_vr * data->dist6D.n_vphi
              * data->dist6D.n_vz;
     }
-
+    
+    if(data->distrho5D_collect) {
+        data->offload_distrho5D_index = n;
+        n += data->distrho5D.n_rho * data->distrho5D.n_pol * data->distrho5D.n_phi
+            * data->distrho5D.n_vpara * data->distrho5D.n_vperp;
+    }
+    
+    if(data->distrho6D_collect) {
+        data->offload_distrho6D_index = n;
+        n += data->distrho6D.n_rho * data->distrho6D.n_pol * data->distrho6D.n_phi
+            * data->distrho6D.n_vr * data->distrho6D.n_vphi
+            * data->distrho6D.n_vz;
+    }
+    
     data->offload_array_length = n;
     *offload_array = malloc(n * sizeof(real));
     if(*offload_array == 0) {
@@ -90,6 +105,8 @@ void diag_init(diag_data* data, diag_offload_data* offload_data,
     data->diag_orb_collect = offload_data->orb_collect;
     data->diag_dist5D_collect = offload_data->dist5D_collect;
     data->diag_dist6D_collect = offload_data->dist6D_collect;
+    data->diag_distrho5D_collect = offload_data->distrho5D_collect;
+	data->diag_distrho6D_collect = offload_data->distrho6D_collect;
 
     if(data->diag_orb_collect) {
         diag_orb_init(&data->orbits, &offload_data->orbits);
@@ -103,6 +120,16 @@ void diag_init(diag_data* data, diag_offload_data* offload_data,
     if(data->diag_dist6D_collect) {
         dist_6D_init(&data->dist6D, &offload_data->dist6D,
                      &offload_array[offload_data->offload_dist6D_index]);
+    }
+    
+    if(data->diag_distrho5D_collect) {
+    	dist_rho5D_init(&data->distrho5D, &offload_data->distrho5D,
+    				 &offload_array[offload_data->offload_distrho5D_index]);
+    }
+    
+    if(data->diag_distrho6D_collect) {
+    	dist_rho6D_init(&data->distrho6D, &offload_data->distrho6D,
+    				 &offload_array[offload_data->offload_distrho6D_index]);
     }
 }
 
@@ -126,6 +153,14 @@ void diag_update_fo(diag_data* d, diag_storage* ds, particle_simd_fo* p_f,
     if(d->diag_dist6D_collect) {
         dist_6D_update_fo(&d->dist6D, p_f, p_i);
     }
+    
+    if(d->diag_distrho5D_collect) {
+    	dist_rho5D_update_fo(&d->distrho5D, p_f, p_i);
+    }
+    
+    if(d->diag_distrho6D_collect) {
+    	dist_rho6D_update_fo(&d->distrho6D, p_f, p_i);
+    }
 }
 
 /**
@@ -140,7 +175,7 @@ void diag_update_gc(diag_data* d, diag_storage* ds, particle_simd_gc* p_f,
 
     if(d->diag_debug_collect){
     }
-
+	
     if(d->diag_dist5D_collect){
         dist_5D_update_gc(&d->dist5D, p_f, p_i);
     }
@@ -148,6 +183,14 @@ void diag_update_gc(diag_data* d, diag_storage* ds, particle_simd_gc* p_f,
     if(d->diag_dist6D_collect){
         dist_6D_update_gc(&d->dist6D, p_f, p_i);
     }
+
+	if(d->diag_distrho5D_collect){
+		dist_rho5D_update_gc(&d->distrho5D, p_f, p_i);
+	}
+
+	if(d->diag_distrho6D_collect){
+		dist_rho6D_update_gc(&d->distrho6D, p_f, p_i);
+	}	
 }
 
 /**
@@ -192,6 +235,20 @@ void diag_sum(diag_data* d, real* array1, real* array2) {
         int stop = start + d->dist6D.n_r * d->dist6D.n_phi * d->dist6D.n_z
                    * d->dist6D.n_vr * d->dist6D.n_vphi * d->dist6D.n_vz;
         dist_6D_sum(start, stop, array1, array2);
+    }
+    
+    if(d->diag_distrho5D_collect){
+    	int start = d->offload_distrho5D_index;
+    	int stop = start + d->distrho5D.n_rho * d->distrho5D.n_pol * d->distrho5D.n_phi
+    				* d->distrho5D.n_vpara * d->distrho5D.n_vperp;
+    	dist_rho5D_sum(start, stop, array1, array2);
+    }
+    
+    if(d->diag_distrho6D_collect){
+    	int start = d->offload_distrho6D_index;
+    	int stop = start + d->distrho6D.n_rho * d->distrho6D.n_pol * d->distrho6D.n_phi
+    				* d->distrho6D.n_vr * d->distrho6D.n_vphi * d->distrho6D.n_vz;
+    	dist_rho6D_sum(start, stop, array1, array2);
     }
 }
 

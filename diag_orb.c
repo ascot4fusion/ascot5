@@ -86,6 +86,7 @@ void diag_orb_update_fo(integer* particleId, real* prevWriteTime, int* nextN, di
 		new->fo.phidot = p_f->phidot[i];
 		new->fo.zdot   = p_f->zdot[i];
 		new->fo.rho    = p_f->rho[i];
+		new->fo.pol    = p_f->pol[i];
 
 		new->fo.mass   = p_f->mass[i];
 		new->fo.charge = p_f->charge[i];
@@ -133,6 +134,7 @@ void diag_orb_update_fo(integer* particleId, real* prevWriteTime, int* nextN, di
 		new->fo.phidot = kpol[i] * p_f->phidot[i] + (1 - kpol[i]) * p_i->phidot[i];
 		new->fo.zdot   = kpol[i] * p_f->zdot[i]   + (1 - kpol[i]) * p_i->zdot[i];
 		new->fo.rho    = kpol[i] * p_f->rho[i]    + (1 - kpol[i]) * p_i->rho[i];
+		new->fo.pol    = kpol[i] * p_f->pol[i]    + (1 - kpol[i]) * p_i->pol[i];
 		new->fo.B_r    = kpol[i] * p_f->B_r[i]    + (1 - kpol[i]) * p_i->B_r[i];
 		new->fo.B_phi  = kpol[i] * p_f->B_phi[i]  + (1 - kpol[i]) * p_i->B_phi[i];
 		new->fo.B_z    = kpol[i] * p_f->B_z[i]    + (1 - kpol[i]) * p_i->B_z[i];
@@ -168,6 +170,7 @@ void diag_orb_update_fo(integer* particleId, real* prevWriteTime, int* nextN, di
 		new->fo.phidot = ktor[i] * p_f->phidot[i] + (1 - ktor[i]) * p_i->phidot[i];
 		new->fo.zdot   = ktor[i] * p_f->zdot[i]   + (1 - ktor[i]) * p_i->zdot[i];
 		new->fo.rho    = ktor[i] * p_f->rho[i]    + (1 - ktor[i]) * p_i->rho[i];
+		new->fo.pol    = ktor[i] * p_f->pol[i]    + (1 - ktor[i]) * p_i->pol[i];
 		new->fo.B_r    = ktor[i] * p_f->B_r[i]    + (1 - ktor[i]) * p_i->B_r[i];
 		new->fo.B_phi  = ktor[i] * p_f->B_phi[i]  + (1 - ktor[i]) * p_i->B_phi[i];
 		new->fo.B_z    = ktor[i] * p_f->B_z[i]    + (1 - ktor[i]) * p_i->B_z[i];
@@ -231,6 +234,7 @@ void diag_orb_update_fo(integer* particleId, real* prevWriteTime, int* nextN, di
 		new->fo.phidot = p_f->phidot[i];
 		new->fo.zdot   = p_f->zdot[i];
 		new->fo.rho    = p_f->rho[i];
+		new->fo.pol    = p_f->pol[i];
 
 		new->fo.mass   = p_f->mass[i];
 		new->fo.charge = p_f->charge[i];
@@ -276,6 +280,7 @@ void diag_orb_update_gc(integer* particleId, real* prevWriteTime, int* nextN, di
 		new->gc.vpar   = p_f->vpar[i];
 		new->gc.theta  = p_f->theta[i];
 		new->gc.rho    = p_f->rho[i];
+		new->gc.pol    = p_f->pol[i];
 
 		new->gc.mass   = p_f->mass[i];
 		new->gc.charge = p_f->charge[i];
@@ -321,6 +326,7 @@ void diag_orb_update_gc(integer* particleId, real* prevWriteTime, int* nextN, di
 		new->gc.mu     = kpol[i] * p_f->mu[i]    + (1 - kpol[i]) * p_i->mu[i];
 		new->gc.vpar   = kpol[i] * p_f->vpar[i]  + (1 - kpol[i]) * p_i->vpar[i];
 		new->gc.rho    = kpol[i] * p_f->rho[i]   + (1 - kpol[i]) * p_i->rho[i];
+		new->gc.pol    = kpol[i] * p_f->pol[i]   + (1 - kpol[i]) * p_i->pol[i];
 		new->gc.B_r    = kpol[i] * p_f->B_r[i]   + (1 - kpol[i]) * p_i->B_r[i];
 		new->gc.B_phi  = kpol[i] * p_f->B_phi[i] + (1 - kpol[i]) * p_i->B_phi[i];
 		new->gc.B_z    = kpol[i] * p_f->B_z[i]   + (1 - kpol[i]) * p_i->B_z[i];
@@ -354,7 +360,8 @@ void diag_orb_update_gc(integer* particleId, real* prevWriteTime, int* nextN, di
 		new->gc.z      = ktor[i] * p_f->z[i]     + (1 - ktor[i]) * p_i->z[i];
 		new->gc.mu     = ktor[i] * p_f->mu[i]    + (1 - ktor[i]) * p_i->mu[i];
 		new->gc.vpar   = ktor[i] * p_f->vpar[i]  + (1 - ktor[i]) * p_i->vpar[i];
-		new->gc.rho    = ktor[i] * p_f->rho[i]   + (1 - ktor[i]) * p_i->rho[i];
+	    new->gc.rho    = ktor[i] * p_f->rho[i]   + (1 - ktor[i]) * p_i->rho[i];
+		new->gc.pol    = ktor[i] * p_f->pol[i]   + (1 - ktor[i]) * p_i->pol[i];
 		new->gc.B_r    = ktor[i] * p_f->B_r[i]   + (1 - ktor[i]) * p_i->B_r[i];
 		new->gc.B_phi  = ktor[i] * p_f->B_phi[i] + (1 - ktor[i]) * p_i->B_phi[i];
 		new->gc.B_z    = ktor[i] * p_f->B_z[i]   + (1 - ktor[i]) * p_i->B_z[i];
@@ -420,6 +427,7 @@ void diag_orb_update_gc(integer* particleId, real* prevWriteTime, int* nextN, di
 		new->gc.vpar   = p_f->vpar[i];
 		new->gc.theta  = p_f->theta[i];
 		new->gc.rho    = p_f->rho[i];
+		new->gc.pol    = p_f->pol[i];
 
 		new->gc.mass   = p_f->mass[i];
 		new->gc.charge = p_f->charge[i];
@@ -462,6 +470,7 @@ void diag_orb_update_ml(integer* particleId, real* prevWriteTime, int* nextN, di
 		new->ml.phi    = p_f->phi[i];
 		new->ml.z      = p_f->z[i];
 		new->ml.rho    = p_f->rho[i];
+		new->ml.pol    = p_f->pol[i];
 		new->ml.weight = p_f->weight[i];
 		new->ml.B_r    = p_f->B_r[i];
 		new->ml.B_phi  = p_f->B_phi[i];
@@ -505,6 +514,7 @@ void diag_orb_update_ml(integer* particleId, real* prevWriteTime, int* nextN, di
 		new->ml.phi    = kpol[i] * p_f->phi[i]    + (1 - kpol[i]) * p_i->phi[i];
 		new->ml.z      = kpol[i] * p_f->z[i]      + (1 - kpol[i]) * p_i->z[i];
 		new->ml.rho    = kpol[i] * p_f->rho[i]    + (1 - kpol[i]) * p_i->rho[i];
+		new->ml.pol    = kpol[i] * p_f->pol[i]    + (1 - kpol[i]) * p_i->pol[i];
 		new->ml.weight = kpol[i] * p_f->weight[i] + (1 - kpol[i]) * p_i->weight[i];
 		new->ml.B_r    = kpol[i] * p_f->B_r[i]    + (1 - kpol[i]) * p_i->B_r[i];
 		new->ml.B_phi  = kpol[i] * p_f->B_phi[i]  + (1 - kpol[i]) * p_i->B_phi[i];
@@ -533,6 +543,7 @@ void diag_orb_update_ml(integer* particleId, real* prevWriteTime, int* nextN, di
 		new->ml.phi    = ktor[i] * p_f->phi[i]    + (1 - ktor[i]) * p_i->phi[i];
 		new->ml.z      = ktor[i] * p_f->z[i]      + (1 - ktor[i]) * p_i->z[i];
 		new->ml.rho    = ktor[i] * p_f->rho[i]    + (1 - ktor[i]) * p_i->rho[i];
+		new->ml.pol    = ktor[i] * p_f->pol[i]    + (1 - ktor[i]) * p_i->pol[i];
 		new->ml.weight = ktor[i] * p_f->weight[i] + (1 - ktor[i]) * p_i->weight[i];
 		new->ml.B_r    = ktor[i] * p_f->B_r[i]    + (1 - ktor[i]) * p_i->B_r[i];
 		new->ml.B_phi  = ktor[i] * p_f->B_phi[i]  + (1 - ktor[i]) * p_i->B_phi[i];
@@ -590,6 +601,7 @@ void diag_orb_update_ml(integer* particleId, real* prevWriteTime, int* nextN, di
 		new->ml.phi    = p_f->phi[i];
 		new->ml.z      = p_f->z[i];
 		new->ml.rho    = p_f->rho[i];
+		new->ml.pol    = p_f->pol[i];
 		new->ml.weight = p_f->weight[i];
 		new->ml.B_r    = p_f->B_r[i];
 		new->ml.B_phi  = p_f->B_phi[i];

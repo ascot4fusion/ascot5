@@ -33,7 +33,7 @@ class opt():
     #   2 - Use acceleration (valid only in axisymmetric fields) !!TODO Not implemented!!
     #
 
-    SIM_MODE        = 3
+    SIM_MODE        = 2
     ENABLE_ADAPTIVE = 1
     RECORD_GO_AS_GC = 0
 
@@ -110,10 +110,10 @@ class opt():
 
     ENDCOND_SIMTIMELIM = 1
     ENDCOND_CPUTIMELIM = 1
-    ENDCOND_RHOLIM     = 0
+    ENDCOND_RHOLIM     = 1
     ENDCOND_ENERGYLIM  = 1
-    ENDCOND_WALLHIT    = 1
-    ENDCOND_MAXORBS    = 0
+    ENDCOND_WALLHIT    = 0
+    ENDCOND_MAXORBS    = 1
 
     ## Defining values for different end conditions
     # ENDCOND_MAX_SIM_TIME == 1.0
@@ -142,13 +142,13 @@ class opt():
     # - Maximum number of poloidal orbits
     #
 
-    ENDCOND_MAX_SIM_TIME             = 1.0e0
+    ENDCOND_MAX_SIM_TIME             = 1.0e-5
     ENDCOND_MAX_CPU_TIME             = 1.0e4
     ENDCOND_MAX_RHO                  = 1.0
     ENDCOND_MIN_RHO                  = 0.0
-    ENDCOND_MIN_ENERGY               = 10.0e3
+    ENDCOND_MIN_ENERGY               = 1.0e3
     ENDCOND_MIN_ENERGY_TIMES_THERMAL = 2.0
-    ENDCOND_MAX_TOROIDALORBS         = 1000
+    ENDCOND_MAX_TOROIDALORBS         = 3
     ENDCOND_MAX_POLOIDALORBS         = 500
 
 
@@ -195,46 +195,76 @@ class opt():
     #     t     - time in seconds [s]
     #     q     - charge in multiples of elementary charge [e] (must be an integer value)
     #
+    # ENABLE_rho_pol_phi_vpa_vpe_t_q_DIST == 0 or 1
+    #- Enables collection of marker distribution histogram in coordinates
+    #     rho   - flux surface
+    #     pol   - poloidal angle in degrees [deg]
+    #     phi   - toroidal angle in degrees [deg]
+    #     vpara - velocity component parallel to magnetic field in meters per second [m/s]
+    #     vperp - velocity component perpendicular to magnetic field in meters per second [m/s]
+    #     t     - time in seconds [s]
+    #     q     - charge in multiples of elementary charge [e] (must be an integer value)
+    #
+    # ENABLE_rho_pol_phi_vR_vphi_vz_t_q_DIST == 0 or 1
+    #- Enables collection of marker distribution histogram in coordinates
+    #     rho   - flux surface
+    #     pol   - poloidal angle in degrees [deg]
+    #     phi   - toroidal angle in degrees [deg]
+    #     vR    - velocity R-component in meters per second [m/s]
+    #     vphi  - velocity phi-component in meters per second [m/s]
+    #     vz    - velocity z-component in meters per second [m/s]
+    #     t     - time in seconds [s]
+    #     q     - charge in multiples of elementary charge [e] (must be an integer value)
     # Distribution histograms are defined with parameters
     # MIN_X  - Smallest bin edge for coordinate X
     # MAX_X  - Largest bin edge for coordinate X
     # NBIN_X - Number of bins interval [MIN_X MAX_X] is divided into
     #
 
-    ENABLE_R_phi_z_vpa_vpe_t_q_DIST    = 1
+    ENABLE_R_phi_z_vpa_vpe_t_q_DIST = 1
     ENABLE_R_phi_z_vR_vphi_vz_t_q_DIST = 0
+    ENABLE_rho_pol_phi_vpa_vpe_t_q_DIST = 1
+    ENABLE_rho_pol_phi_vR_vphi_vz_t_q_DIST = 0
 
-    DIST_MIN_R    = 3.0
-    DIST_MAX_R    = 8.5
-    DIST_NBIN_R   = 20
+    DIST_MIN_R    = 4.5
+    DIST_MAX_R    = 6.5
+    DIST_NBIN_R   = 40
 
     DIST_MIN_phi  = 0
     DIST_MAX_phi  = 360
-    DIST_NBIN_phi = 1
+    DIST_NBIN_phi = 40
 
-    DIST_MIN_z    = -4.25
-    DIST_MAX_z    = 3.6
+    DIST_MIN_z    = -1.45
+    DIST_MAX_z    = 1.45
     DIST_NBIN_z   = 40
+    
+    DIST_MIN_rho  = 0
+    DIST_MAX_rho  = 1
+    DIST_NBIN_rho = 40
+    
+    DIST_MIN_pol  = 0
+    DIST_MAX_pol  = 360
+    DIST_NBIN_pol = 40
 
     DIST_MIN_vpa  = -1.5e7
     DIST_MAX_vpa  = 1.5e7
-    DIST_NBIN_vpa = 40
+    DIST_NBIN_vpa = 1
 
     DIST_MIN_vpe  = 0
     DIST_MAX_vpe  = 1.5e7
-    DIST_NBIN_vpe = 20
+    DIST_NBIN_vpe = 1
 
     DIST_MIN_vR    = -1.5e7
     DIST_MAX_vR    = 1.5e7
-    DIST_NBIN_vR   = 40
+    DIST_NBIN_vR   = 1
 
     DIST_MIN_vphi  = -1.5e7
     DIST_MAX_vphi  = 1.5e7
-    DIST_NBIN_vphi = 40
+    DIST_NBIN_vphi = 1
 
     DIST_MIN_vz    = -1.5e7
     DIST_MAX_vz    = 1.5e7
-    DIST_NBIN_vz   = 40
+    DIST_NBIN_vz   = 1
 
     DIST_MIN_t    = 0
     DIST_MAX_t    = 100
@@ -278,8 +308,8 @@ class opt():
     #   marker is terminated
     #
 
-    ENABLE_ORBITWRITE         = 0
-    ORBITWRITE_MODE           = 2
+    ENABLE_ORBITWRITE         = 1
+    ORBITWRITE_MODE           = 1
     ORBITWRITE_NTOROIDALPLOTS = 2
     ORBITWRITE_TOROIDALANGLES = [0, 180]
     ORBITWRITE_NPOLOIDALPLOTS = 2
@@ -359,6 +389,10 @@ def generateopt():
 
     f["ENABLE_R_phi_z_vR_vphi_vz_t_q_DIST"]    = settype(f["ENABLE_R_phi_z_vR_vphi_vz_t_q_DIST"],'i4')
     
+    f["ENABLE_rho_pol_phi_vpa_vpe_t_q_DIST"]   = settype(f["ENABLE_rho_pol_phi_vpa_vpe_t_q_DIST"],'i4')
+    
+    f["ENABLE_rho_pol_phi_vR_vphi_vz_t_q_DIST"]	= settype(f["ENABLE_rho_pol_phi_vR_vphi_vz_t_q_DIST"],'i4')
+    
     f["DIST_MIN_R"]    = settype(f["DIST_MIN_R"],'f8')
     f["DIST_MAX_R"]    = settype(f["DIST_MAX_R"],'f8')
     f["DIST_NBIN_R"]   = settype(f["DIST_NBIN_R"],'i4')
@@ -370,6 +404,14 @@ def generateopt():
     f["DIST_MIN_z"]    = settype(f["DIST_MIN_z"],'f8')
     f["DIST_MAX_z"]    = settype(f["DIST_MAX_z"],'f8')
     f["DIST_NBIN_z"]   = settype(f["DIST_NBIN_z"],'i4')
+    
+    f["DIST_MIN_rho"]  = settype(f["DIST_MIN_rho"],'f8')
+    f["DIST_MAX_rho"]  = settype(f["DIST_MAX_rho"],'f8')
+    f["DIST_NBIN_rho"] = settype(f["DIST_NBIN_rho"],'i4')
+    
+    f["DIST_MIN_pol"]  = settype(f["DIST_MIN_pol"],'f8')
+    f["DIST_MAX_pol"]  = settype(f["DIST_MAX_pol"],'f8')
+    f["DIST_NBIN_pol"] = settype(f["DIST_NBIN_pol"],'i4')
 
     f["DIST_MIN_vpa"]  = settype(f["DIST_MIN_vpa"],'f8')
     f["DIST_MAX_vpa"]  = settype(f["DIST_MAX_vpa"],'f8')

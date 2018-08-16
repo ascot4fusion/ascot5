@@ -21,8 +21,24 @@ class ascotpy:
         fun.argtypes = [ctypes.c_int,
                         ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
                         ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")]
-
-
+        
+        fun = self.ascotlib.ascotpy_bfield_eval_psi
+        fun.restype = None
+        fun.argtypes = [ctypes.c_int,
+                        ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+                        ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")]
+        
+        fun = self.ascotlib.ascotpy_bfield_eval_rho
+        fun.restype = None
+        fun.argtypes = [ctypes.c_int,
+                        ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"),
+                        ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")]
+        
+        fun = self.ascotlib.ascotpy_bfield_eval_axis
+        fun.restype = None
+        fun.argtypes = [ctypes.c_int,
+                        ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), ndpointer(ctypes.c_double, flags="C_CONTIGUOUS"), ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")]
+                        
     def ascotpy_init_bfield(self):
         self.ascotlib.ascotpy_init_bfield(self.ascotfn)
         self.bfield_initialized  = True
@@ -39,7 +55,7 @@ class ascotpy:
         self.ascotlib.ascotpy_init_wall(self.ascotfn)
         self.wall_initialized  = True
 
-    def ascotpy_eval_bfield(self, R, phi, z, vecB=None, jacB=None, psiB = None, axis=None):
+    def ascotpy_eval_bfield(self, R, phi, z, vecB=None, jacB=None, psiB=None, rhoB=None, axis=None):
         if(not self.bfield_initialized):
             return 0
         if(vecB is not None):
@@ -51,9 +67,31 @@ class ascotpy:
             self.ascotlib.ascotpy_bfield_eval_B(len(R),R,phi,z,BR,Bphi,Bz)
             vecB = np.squeeze(np.array([BR, Bphi, Bz]))
             
-            return vecB
+            return vecB             
+        if(psiB is not None):
         
+            psi = np.zeros((len(R),1))            
+            self.ascotlib.ascotpy_bfield_eval_psi(len(R),R,phi,z,psi)
+            psiB = psi
 
+            return psiB
+        if(rhoB is not None):
+        
+            rho = np.zeros((len(R),1))            
+            self.ascotlib.ascotpy_bfield_eval_rho(len(R),R,phi,z,rho)
+            rhoB = rho
+           
+            return rhoB
+            
+        if(axis is not None):
+        
+            R = np.zeros((len(R),1))
+            z = np.zeros((len(z),1))
+            self.ascotlib.ascotpy_bfield_eval_rho(len(R),phi,R,z)
+            axis = (R,z)
+           
+            return axis
+                  
     def ascotpy_eval_efield(self, R, phi, z, vecE=None):
         if( (not self.bfield_initialized) or (not self.efield_initialized) ):
             return
@@ -67,16 +105,20 @@ class ascotpy:
 
     def ascotpy_eval_GCccol(self, R, phi, z, species=None, temperatur=None, density=None, Anum=None, Znum=None):
         return
-        
 
-ascot = ascotpy("/l/sarkimk1/repos/ascot5/ascotpy.so","ascot.h5")
-ascot.ascotpy_init_bfield()
 
-R = np.array([6.2, 7, 8],dtype=np.float64)
-phi = np.array([0, 0, 0],dtype=np.float64)
-z = np.array([0.2, 0.2, 0.2],dtype=np.float64)
-vecB=1
-vecB = ascot.ascotpy_eval_bfield(R, phi, z, vecB=vecB)
-print(vecB)
+def main():
+    ascot = ascotpy("/l/sarkimk1/repos/ascot5/ascotpy.so","ascot.h5")
+    ascot.ascotpy_init_bfield()
+    
+    R = np.array([6.2, 7, 8],dtype=np.float64)
+    phi = np.array([0, 0, 0],dtype=np.float64)
+    z = np.array([0.2, 0.2, 0.2],dtype=np.float64)
+    vecB=1
+    vecB = ascot.ascotpy_eval_bfield(R, phi, z, vecB=vecB)
+    print(vecB)
+    
+if __name__ == '__main__':
+    main()
 
 
