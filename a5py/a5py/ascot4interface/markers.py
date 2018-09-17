@@ -1,24 +1,14 @@
 import numpy as np
 
-ITM_EV           = 1.602176565e-19              # electron volt [eV]
-ITM_AMU          = 1.660538921e-27          # atomic mass unit [kg]
-ITM_ME           = 9.10938291e-31           # electron mass [kg]
-ITM_MP           = 1.672621777e-27          # proton mass [kg]
-ITM_MD           = 3.34358348e-27           # deuteron mass [kg]
-ITM_MT           = 5.00735630e-27           # triton mass [kg]
-ITM_MA           = 6.64465675e-27           # alpha mass [kg]
-ITM_MN           = 1.674927351e-27          # neutron mass [kg]
-ITM_MASS_He_3    = 3.0160293191 * ITM_AMU   # isotope mass [kg]
-
-consts_e         = ITM_EV
-consts_amu       = ITM_AMU
-consts_mElectron = ITM_ME
-consts_mProton   = ITM_MP
-consts_mDeuteron = ITM_MD
-consts_mTriton   = ITM_MT
-consts_mAlpha    = ITM_MA
-consts_mNeutron  = ITM_MN
-consts_mHe3      = ITM_MASS_He_3
+consts_e         = 1.602176565e-19            # electron volt [eV]
+consts_amu       = 1.660538921e-27            # atomic mass unit [kg]
+consts_mElectron = 9.10938291e-31             # electron mass [kg]
+consts_mProton   = 1.672621777e-27            # proton mass [kg]
+consts_mDeuteron = 3.34358348e-27             # deuteron mass [kg]
+consts_mTriton   = 5.00735630e-27             # triton mass [kg]
+consts_mAlpha    = 6.64465675e-27             # alpha mass [kg]
+consts_mNeutron  = 1.674927351e-27            # neutron mass [kg]
+consts_mHe3      = 3.0160293191 * consts_AMU  # isotope mass [kg]
 
 consts_Aelectron = 0
 consts_AProton   = 1
