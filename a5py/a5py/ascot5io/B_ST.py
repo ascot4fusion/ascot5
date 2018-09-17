@@ -11,7 +11,9 @@ from . ascot5group import creategroup
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                B_R, B_phi, B_z, psi, n_periods,
                axismin, axismax, naxis, axisR, axisz,
-               pRmin=None, pRmax=None, pnR=None, pzmin=None, pzmax=None, pnz=None,
+               pRmin=None, pRmax=None, pnR=None,
+               pzmin=None, pzmax=None, pnz=None,
+               pphimin=None, pphimax=None, pnphi=None,
                symmetry_mode=0, psiaxis=0, psisepx=1):
     """
     Write stellarator magnetic field input in HDF5 file.
