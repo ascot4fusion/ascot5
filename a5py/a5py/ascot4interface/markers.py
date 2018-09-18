@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 
 consts_e         = 1.602176565e-19            # electron volt [eV]
@@ -8,7 +9,7 @@ consts_mDeuteron = 3.34358348e-27             # deuteron mass [kg]
 consts_mTriton   = 5.00735630e-27             # triton mass [kg]
 consts_mAlpha    = 6.64465675e-27             # alpha mass [kg]
 consts_mNeutron  = 1.674927351e-27            # neutron mass [kg]
-consts_mHe3      = 3.0160293191 * consts_AMU  # isotope mass [kg]
+consts_mHe3      = 3.0160293191 * consts_amu  # isotope mass [kg]
 
 consts_Aelectron = 0
 consts_AProton   = 1
