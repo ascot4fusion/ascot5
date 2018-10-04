@@ -150,4 +150,27 @@ def write_hdf5(fn, dists, qid):
         f.create_dataset(path + "R_phi_z_vpa_vpe_t_q/ordinate_unit_000001",
                          data=dists["R_phi_z_vpa_vpe_t_q"]["ordinate_unit"])
 
+    if "rho_pol_phi_vpa_vpe_t_q" in dists:
+        f.create_group(path + "rho_pol_phi_vpa_vpe_t_q")
+
+        abscissae_names = ["rho", "pol", "phi", "vpa", "vpe", "time", "charge"]
+        f.create_dataset(path + "rho_pol_phi_vpa_vpe_t_q/" + "abscissa_ndim", data=len(abscissae_names))
+        for i, name in enumerate(abscissae_names):
+            f.create_dataset(path + "rho_pol_phi_vpa_vpe_t_q/" + "abscissa_name_00000" + str(i+1),
+                             data=name)
+            f.create_dataset(path + "rho_pol_phi_vpa_vpe_t_q/" + "abscissa_vec_00000" + str(i+1),
+                             data=dists["rho_pol_phi_vpa_vpe_t_q"][name + '_edges'])
+            f.create_dataset(path + "rho_pol_phi_vpa_vpe_t_q/" + "abscissa_unit_00000" + str(i+1),
+                             data=dists["rho_pol_phi_vpa_vpe_t_q"][name + '_unit'])
+            f.create_dataset(path + "rho_pol_phi_vpa_vpe_t_q/" + "abscissa_nslot_00000" + str(i+1),
+                             data=dists["rho_pol_phi_vpa_vpe_t_q"]['n_' + name])
+
+        f.create_dataset(path + "rho_pol_phi_vpa_vpe_t_q/ordinate",
+                         data=np.expand_dims(dists["rho_pol_phi_vpa_vpe_t_q"]["ordinate"],0))
+        f.create_dataset(path + "rho_pol_phi_vpa_vpe_t_q/ordinate_name_000001",
+                         data=dists["rho_pol_phi_vpa_vpe_t_q"]["ordinate_name"])
+        f.create_dataset(path + "rho_pol_phi_vpa_vpe_t_q/ordinate_ndim",data=1)
+        f.create_dataset(path + "rho_pol_phi_vpa_vpe_t_q/ordinate_unit_000001",
+                         data=dists["rho_pol_phi_vpa_vpe_t_q"]["ordinate_unit"])
+
     f.close()
