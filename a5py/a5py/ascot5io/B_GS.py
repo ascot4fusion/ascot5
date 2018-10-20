@@ -12,7 +12,7 @@ import a5py.ascot5io.B_3D as B_3D
 from . ascot5group import creategroup
 
 def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff, 
-               Nripple=0, a0=2, alpha0=2, delta0=0.05):
+               Nripple=0, a0=2, alpha0=2, delta0=0.05, psi0=None):
     """
     Write analytical tokamak magnetic field input in HDF5 file.
 
@@ -71,7 +71,14 @@ def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     # TODO Check that inputs are consistent.
 
     c = psi_coeff # For shorter notation.
-    psi0 = psi_mult*psifun.psi0(R0/R0,z0/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12]) # At axis.
+
+    # search for magnetic axis if not given
+    if psi0 == None:
+        x = psifun.find_axis(R0, z0, c[0], c[1], c[2], c[3], c[4], c[5], c[6],
+            c[7], c[8], c[9], c[10], c[11], c[12])
+        psi0 = psi_mult*psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
+            c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
+
     psi1 = 0 # At separatrix always
 
     # 2D field data.
@@ -140,7 +147,7 @@ def read_hdf5(fn, qid):
 
 
 def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, 
-                    Rmin, Rmax, nR, zmin, zmax, nz):
+                    Rmin, Rmax, nR, zmin, zmax, nz, psi0=None):
     """
     Write analytical tokamak magnetic fieldd as a 2D field input in HDF5 file.
 
@@ -177,7 +184,13 @@ def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     Bz = np.zeros((nz,nR))
     Bphi = (R0/Rg)*B_phi0
 
-    psi0 = psi_mult*psifun.psi0(R0/R0,z0/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12])
+    # search for magnetic axis if not given
+    if psi0 == None:
+        x = psifun.find_axis(R0, z0, c[0], c[1], c[2], c[3], c[4], c[5], c[6],
+            c[7], c[8], c[9], c[10], c[11], c[12])
+        psi0 = psi_mult*psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
+            c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
+
     psi1 = 0
 
     B_2D.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, 
@@ -187,7 +200,8 @@ def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
 
 def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, 
                     Nripple, a0, alpha0, delta0, 
-                    Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi):
+                    Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
+                    psi0=None):
     """
     Write analytical tokamak magnetic field as a 3D field input in HDF5 file.
 
@@ -232,7 +246,13 @@ def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     Bz = np.zeros((nz, nR, nphi))
     Bphi = np.zeros((nz, nR, nphi))
 
-    psi0 = psi_mult*psifun.psi0(R0/R0,z0/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],c[7],c[8],c[9],c[10],c[11],c[12])
+    # search for magnetic axis if not given
+    if psi0 == None:
+        x = psifun.find_axis(R0, z0, c[0], c[1], c[2], c[3], c[4], c[5], c[6],
+            c[7], c[8], c[9], c[10], c[11], c[12])
+        psi0 = psi_mult*psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
+            c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
+
     psi1 = 0
 
     axisRz = np.array([R0, z0])
