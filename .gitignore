@@ -7,3 +7,4 @@ ascot5_main
 ascot.h5
 *.optrpt
 *.pyc
+*.so
