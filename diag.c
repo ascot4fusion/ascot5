@@ -41,7 +41,7 @@ void diag_init_offload(diag_offload_data* data, real** offload_array){
     int n = 0;
 
     if(data->orb_collect) {
-    // Do nothing (for now)
+        // Do nothing (for now)
     }
 
     if(data->dist5D_collect) {
@@ -85,10 +85,10 @@ void diag_init_offload(diag_offload_data* data, real** offload_array){
  */
 void diag_free_offload(diag_offload_data* data, real** offload_array) {
     if(data->orb_collect) {
-    // Nothing to be freed really
+        // Nothing to be freed really
     }
     if(data->dist5D_collect) {
-    // Nothing to be freed really
+        // Nothing to be freed really
     }
 
     free(*offload_array);
@@ -144,6 +144,7 @@ void diag_update_fo(diag_data* d, diag_storage* ds, particle_simd_fo* p_f,
     }
 
     if(d->diag_debug_collect) {
+        // Do nothing
     }
 
     if(d->diag_dist5D_collect) {
@@ -174,6 +175,7 @@ void diag_update_gc(diag_data* d, diag_storage* ds, particle_simd_gc* p_f,
     }
 
     if(d->diag_debug_collect){
+        // Do nothing
     }
 	
     if(d->diag_dist5D_collect){
@@ -184,13 +186,13 @@ void diag_update_gc(diag_data* d, diag_storage* ds, particle_simd_gc* p_f,
         dist_6D_update_gc(&d->dist6D, p_f, p_i);
     }
 
-	if(d->diag_distrho5D_collect){
-		dist_rho5D_update_gc(&d->distrho5D, p_f, p_i);
-	}
+    if(d->diag_distrho5D_collect){
+        dist_rho5D_update_gc(&d->distrho5D, p_f, p_i);
+    }
 
-	if(d->diag_distrho6D_collect){
-		dist_rho6D_update_gc(&d->distrho6D, p_f, p_i);
-	}	
+    if(d->diag_distrho6D_collect){
+        dist_rho6D_update_gc(&d->distrho6D, p_f, p_i);
+    }	
 }
 
 /**
@@ -204,9 +206,11 @@ void diag_update_ml(diag_data* d, diag_storage* ds, particle_simd_ml* p_f,
     }
 
     if(d->diag_debug_collect) {
+        // Do nothing
     }
 
     if(d->diag_dist5D_collect) {
+        // Do nothing
     }
 }
 
@@ -216,11 +220,11 @@ void diag_update_ml(diag_data* d, diag_storage* ds, particle_simd_ml* p_f,
  */
 void diag_sum(diag_data* d, real* array1, real* array2) {
     if(d->diag_orb_collect) {
-    // Do nothing
+        // Do nothing
     }
 
     if(d->diag_debug_collect) {
-    // Do nothing
+        // Do nothing
     }
 
     if(d->diag_dist5D_collect){
@@ -285,7 +289,7 @@ void diag_storage_aquire(diag_data* data, diag_storage** ds) {
 
     /* Initialize data storage */
     for(int i=0; i < NSIMD; i++) {
-    (*ds)->particleId[i] = -2;
+        (*ds)->particleId[i] = -2;
     }
 }
 
@@ -294,7 +298,7 @@ void diag_storage_aquire(diag_data* data, diag_storage** ds) {
  */
 void diag_storage_discard(diag_storage* ds) {
     if(ds->Nlist != NULL) {
-    free(ds->Nlist);
+        free(ds->Nlist);
     }
     free(ds);
 }
