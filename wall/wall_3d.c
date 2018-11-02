@@ -22,8 +22,9 @@
  * followed by a list of coordinates for the corners of each triangle
  * (x1,y1,z1,x2,y2,z2,x3,y3,z3).
  *
- * @todo Error checking
- * @todo Implement ASCOT4 input.wall_3d into ascot4_interface
+ * The reading of the ASCOT4 input.wall_3d file has been moved into
+ * ascot4_interface, so this function is now a dummy.
+ *
  */
 void wall_3d_init_offload(wall_3d_offload_data* offload_data,
                           real** offload_array) {

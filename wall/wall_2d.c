@@ -14,8 +14,8 @@
  * Read a 2D wall from input.wall_2d, store parameters in offload struct and
  * allocate and fill the offload array.
  *
- * @todo Error checking
- * @todo Move reading the file to ascot4_interface
+ * The reading of the ASCOT4 input.wall_2d file has been moved into
+ * ascot4_interface, so this function is now a dummy.
  * 
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array

@@ -14,11 +14,13 @@
 /**
  * @brief Load plasma data and prepare parameters
  *
- * @todo This is intentionally left dummy.
+ * The reading of the ASCOT4 plasma data has been moved into
+ * ascot4_interface, so this function is now a dummy.
+ *
  */
 void plasma_init_offload(plasma_offload_data* offload_data,
                             real** offload_array) {
-    
+    // Dummy function
 }
 
 
