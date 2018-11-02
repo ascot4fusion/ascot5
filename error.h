@@ -41,6 +41,7 @@ static const unsigned int ERR_WIENARR_EXCEEDED = 21;/** @brief Exceeded wiener a
 static const unsigned int ERR_WIENARR_NOPROC   = 22;/** @brief Cannot clean wiener processes for t < t0 since W(t0) does not exists */
 static const unsigned int ERR_OUTSIDE_N0DATA   = 23;/** @brief Tried to evaluate neutral density outside the grid */
 static const unsigned int ERR_OUTSIDE_AXISGRID = 24;/** @brief Tried to evaluate neutral density outside the grid */
+static const unsigned int ERR_UNKNOWN_INPUT    = 25;/** @brief Unknown input */
 #pragma omp declare target
 
 /**
