@@ -1,6 +1,49 @@
 /**
  * @file ascot5_main.c
- * @brief ASCOT5
+ * @brief ASCOT5 stand-alone program
+ *
+ * This program reads data from input HDF5 file, simulates the given markers,
+ * and writes the output data to a HDF5 file.
+ *
+ * The input and output files can be separate.
+ *
+ * Example:
+ *
+ * ascot5_main --in=in --out=out
+ *
+ * Here "in" refers to in.h5 where input data is located and "out" to out.h5
+ * where results will be stored. If no input argument is given the data is read
+ * from ascot.h5. If not output argument is given the results are stored in the
+ * input file.
+ *
+ * This program assumes that the input file contains magnetic field, electric
+ * field, plasma, wall, and neutral data along with markers and options. See
+ * hdf5_input.c for details. This program uses the input fields that are marked
+ * as active (the HDF5 file can contain multiple instances of same input types
+ * but only the active one is used here).
+ *
+ * The results are stored under /results/ group in output HDF5 file. The group
+ * is created if one does not exists. For each run a specific "run" group is
+ * created, which has the format run-XXXXXXXXXX, where "XXXXXXXXXX" is randomly
+ * generated identification number (QID). The run group holds information when
+ * the run was started, which input fields were used (referenced by their QIDs),
+ * and at least the marker initial and end states if the simulation succeeded.
+ * Also any other diagnostic data that was used is stored there.
+ *
+ * This program uses MPI by dividing the number of markers equally to all MPI
+ * processes. The markers are not suffled so user is advised to do it beforehand
+ * to ensure work is evenly distributed. A single MPI process can be simulated
+ * with:
+ *
+ * ascot5_main --mpi_size=size --mpi_rank=rank
+ *
+ * where size refers to number of MPI processes and rank is the process being
+ * run (between [0, size-1]). Running the program this way does not use MPI.
+ * This is intended to be used in Condor-like environments.
+ *
+ * In addition to output data, the simulation progress may be written in
+ * *.stdout files with each MPI process having dedicated file. See ascot5.h for
+ * details.
  */
 #define _XOPEN_SOURCE 500
 #include <getopt.h>
@@ -29,22 +72,42 @@
 #include "hdf5io/hdf5_particlestate.h"
 #include "offload.h"
 
-int read_options(int argc, char** argv, sim_offload_data* sim);
+int read_arguments(int argc, char** argv, sim_offload_data* sim);
 void generate_qid(char* qid);
 
+/**
+ * @brief Main function for ascot5_main
+ *
+ * This function calls functions that read input data from the disk, and
+ * functions that initialize the offload data structs and offload arrays.
+ * Actual simulation is done by calling simulate(). Once the simulation has been
+ * completed, offload arrays are deallocated and the results are written to the
+ * disk.
+ *
+ * MPI level parallelisation is done here as well as the offloading.
+ *
+ * @param  argc argument count of the command line arguments
+ * @param  argv argument vector of the command line arguments
+ *
+ * @return Zero if simulation was completed
+ *
+ * @todo Functions that read input and initialize the offload data should return
+ *       errors, which should be handled here. These errors should lead to
+ *       termination with error message.
+ *
+ * @todo MPI init block is ugly. Clean it.
+ */
 int main(int argc, char** argv) {
-    /* Prepare simulation parameters and data for offload */
-    sim_offload_data sim;
-    sim.mpi_rank = 0;
-    sim.mpi_size = 1;
 
-    read_options(argc, argv, &sim);
+    /* Read and parse command line arguments */
+    sim_offload_data sim;
+    read_arguments(argc, argv, &sim);
 
     /* Get MPI rank and set qid for the run.
      * qid rules: The actual random unique qid is used in MPI or single-process
      * runs. If this is a multi-process run (user-defined MPI rank and size),
      * e.g. condor run, we set qid = 5 000 000 000 since 32 bit integers don't
-     * go that high. The actual qid is assigned when results are combined. */
+     * go that high. The actual qid is assigned when results are combined.*/
     int mpi_rank, mpi_size;
     char qid[] = "5000000000";
 #ifdef MPI
@@ -83,20 +146,34 @@ int main(int argc, char** argv) {
     }
 #endif
 
-    print_out0(VERBOSE_NORMAL, mpi_rank, "Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
 
+    /* Error if something went wrong while data was read or initialized */
     int err = 0;
+    /* Number of markers to be simulated */
     int n;
+    /* Marker input struct */
     input_particle* p;
+
+    /* Offload data arrays that are allocated when input is read */
     real* B_offload_array;
     real* E_offload_array;
     real* plasma_offload_array;
     real* neutral_offload_array;
     real* wall_offload_array;
-    err = hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
-                     &neutral_offload_array, &wall_offload_array, &p, &n);
-    if(err) {return 0;};
 
+    /* Read input from the HDF5 file */
+    err = hdf5_input(&sim, &B_offload_array, &E_offload_array,
+                     &plasma_offload_array, &neutral_offload_array,
+                     &wall_offload_array, &p, &n);
+    if(err) {
+        print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "\nProblem when reading inputs. Aborting...\n");
+        return -1;
+    };
+
+    /* Pack offload data into single array */
     real* offload_array;
     offload_package offload_data;
     offload_init_offload(&offload_data, &offload_array);
@@ -111,6 +188,8 @@ int main(int argc, char** argv) {
     offload_pack(&offload_data, &offload_array, wall_offload_array,
                  sim.wall_offload_data.offload_array_length);
 
+    /* Initialize diagnostics offload data.
+     * Separate arrays for host and target */
 #ifdef TARGET
     real* diag_offload_array_mic0;
     real* diag_offload_array_mic1;
@@ -120,23 +199,30 @@ int main(int argc, char** argv) {
     real* diag_offload_array_host;
     diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
 #endif
-    
-    print_out0(VERBOSE_NORMAL, mpi_rank, "Initialized diagnostics, %.1f MB.\n", sim.diag_offload_data.offload_array_length * sizeof(real) / (1024.0*1024.0));
+
+    real diag_offload_array_size = sim.diag_offload_data.offload_array_length
+        * sizeof(real) / (1024.0*1024.0);
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "Initialized diagnostics, %.1f MB.\n", diag_offload_array_size);
 
     /* Set output filename for this MPI process. */
     if(mpi_size == 1) {
-	strcat(sim.hdf5_out, ".h5");
+        strcat(sim.hdf5_out, ".h5");
     }
     else {
         char temp[256];
         sprintf(temp, "_%06d.h5", mpi_rank);
-	strcat(sim.hdf5_out, temp);
+        strcat(sim.hdf5_out, temp);
     }
 
+    /* Initialize results fields in the output file */
     err = hdf5_initoutput(&sim, qid);
     if(err) {return 0;};
     strcpy(sim.qid, qid);
 
+    /* Choose which markers are used in this MPI process. Simply put, markers
+     * are divided into mpi_size sequential blocks and the mpi_rank:th block
+     * is chosen for this simulation. */
     int start_index = mpi_rank * (n / mpi_size);
     p += start_index;
 
@@ -151,17 +237,21 @@ int main(int argc, char** argv) {
     B_field_data Bdata;
     B_field_init(&Bdata, &sim.B_offload_data, B_offload_array);
 
-    print_out0(VERBOSE_NORMAL, mpi_rank, "Magnetic field initialization complete.\n");
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "Magnetic field initialization complete.\n");
 
     particle_state* ps = (particle_state*) malloc(n * sizeof(particle_state));
     for(int i = 0; i < n; i++) {
         particle_input_to_state(&p[i], &ps[i], &Bdata);
     }
-    
+
+    /* Write inistate */
     hdf5_particlestate_write(sim.hdf5_out, qid, "inistate", n, ps);
 
-    print_out0(VERBOSE_NORMAL, mpi_rank, "Markers initialized and inistate written.\n");
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "Markers initialized and inistate written.\n");
 
+    /* Divide markers among host and target */
     #ifdef TARGET
         int n_mic = n / TARGET;
         int n_host = 0;
@@ -170,19 +260,27 @@ int main(int argc, char** argv) {
         int n_host = n;
     #endif
 
-    double mic0_start = 0, mic0_end=0, mic1_start=0, mic1_end=0, host_start=0, host_end=0;
-    
+    double mic0_start = 0, mic0_end=0,
+        mic1_start=0, mic1_end=0,
+        host_start=0, host_end=0;
+
     fflush(stdout);
 
+    /* Allow threads to spawn threads */
     omp_set_nested(1);
-    
+
+    /* Actual marker simulation happens here. Threads are spawned which
+     * distribute the execution between target(s) and host. Both input and
+     * diagnostic offload arrays are mapped to target. Simulation is initialized
+     * at the target and completed within the simulate() function.*/
     #pragma omp parallel sections num_threads(3)
     {
+        /* Run simulation on first target */
 #if TARGET >= 1
         #pragma omp section
         {
             mic0_start = omp_get_wtime();
-                
+
             #pragma omp target device(0) map( \
                 ps[0:n_mic], \
                 offload_array[0:offload_data.offload_array_length], \
@@ -195,6 +293,7 @@ int main(int argc, char** argv) {
         }
 #endif
 
+        /* Run simulation on second target */
 #if TARGET >= 2
         #pragma omp section
         {
@@ -212,6 +311,8 @@ int main(int argc, char** argv) {
         }
 #endif
 
+        /* No target, marker simulation happens where the code execution began.
+         * Offloading is only emulated. */
 #ifndef TARGET
         #pragma omp section
         {
@@ -222,24 +323,25 @@ int main(int argc, char** argv) {
         }
 #endif
     }
+
     /* Code excution returns to host. */
-
-    print_out0(VERBOSE_NORMAL, mpi_rank, "Writing endstate.");
-
-    hdf5_particlestate_write(sim.hdf5_out, qid, "endstate", n, ps);
-
     print_out0(VERBOSE_NORMAL, mpi_rank, "mic0 %lf s, mic1 %lf s, host %lf s\n",
         mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
-    
+
+    /* Write endstate */
+    print_out0(VERBOSE_NORMAL, mpi_rank, "Writing endstate.");
+    hdf5_particlestate_write(sim.hdf5_out, qid, "endstate", n, ps);
+
     /* Combine histograms */
     #ifdef TARGET
-        diag_sum(&sim.diag_offload_data, diag_offload_array_mic0,diag_offload_array_mic1);
+        diag_sum(&sim.diag_offload_data,
+                 diag_offload_array_mic0, diag_offload_array_mic1);
         hdf5_diag_write(&sim, diag_offload_array_mic0, sim.hdf5_out, qid);
     #else
         hdf5_diag_write(&sim, diag_offload_array_host, sim.hdf5_out, qid);
     #endif
-    
 
+    /* Free offload data */
     #ifdef MPI
         MPI_Finalize();
     #endif
@@ -249,12 +351,12 @@ int main(int argc, char** argv) {
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
     #ifdef TARGET
         diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-	diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
+        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
     #else
         diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
     #endif
     offload_free_offload(&offload_data, &offload_array);
-    
+
     free(p-start_index);
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "Done.\n");
@@ -262,7 +364,32 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-int read_options(int argc, char** argv, sim_offload_data* sim) {
+/**
+ * @brief Read command line arguments and modify sim struct accordingly
+ *
+ * The command line arguments are in, out, mpi_size, and mpi_rank which
+ * correspond to input file, output file, number of MPI processes and
+ * the rank of this process. These are stored in simulation offload data struct
+ * as (default values, used if the specific argument was not given, are in
+ * parenthesis):
+ *
+ * sim->hdf5_in  = "in.h5" ("ascot.h5")
+ * sim->hdf5_out = "out.h5" (sim->hdf5_in is copied here)
+ * sim->mpi_rank = 0
+ * sim->mpi_size = 0
+ *
+ * If the arguments could not be parsed, this function returns a non-zero exit
+ * value.
+ *
+ * @param argc argument count as given to main()
+ * @param argv argument vector as given to main()
+ * @param sim pointer to offload data struct
+ *
+ * @return Zero if success
+ *
+ * @todo Replace abort with returned error value
+ */
+int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     struct option longopts[] = {
         {"in", required_argument, 0, 1},
         {"out", required_argument, 0, 2},
@@ -293,14 +420,14 @@ int read_options(int argc, char** argv, sim_offload_data* sim) {
             break;
         default:
             printf("\nUnrecognized option. The valid parameters are:\n");
-            printf("--in input file without .h5 (default: ascot)\n");
-            printf("--out output file without .h5 (default: same as input)\n");
+            printf("--in input file without .h5 extension (default: ascot)\n");
+            printf("--out output file without .h5 extension (default: same as input)\n");
             printf("--mpi_size number of independent processes\n");
             printf("--mpi_rank rank of independent process\n");
             abort();
         }
     }
-    
+
     if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] == '\0') {
         strcpy(sim->hdf5_in, "ascot.h5");
         strcpy(sim->hdf5_out, "ascot");
@@ -319,20 +446,27 @@ int read_options(int argc, char** argv, sim_offload_data* sim) {
     return 0;
 }
 
-/** @brief Generate an identification muber 
- *  
- *  qid is a 32 bit unsigned integer, which is represented
- *  in string format. The string is formed by 10 numbers and it
- *  is padded with leading zeroes.
+/**
+ * @brief Generate an identification number for a run
+ *
+ * The identification number (QID) is a 32 bit unsigned integer represented in a
+ * string format, i.e., by ten characters. QID is a random integer between 0 and
+ * 4 294 967 295, and it is padded with leading zeroes in string representation.
+ *
+ * @param a pointer to 11 chars wide array where generated QID is stored
  */
 void generate_qid(char* qid) {
-    /* Generate 32 bit random integer. */
+
+    /* Seed random number generator with current time */
     srand48( time(NULL) );
+
+    /* Generate a 32 bit random integer by generating signed 32 bit random
+     * integers with mrand48() and choosing the first one that is positive */
     long int qint = -1;
     while(qint < 0) {
         qint = mrand48();
     }
-    
-    /* Turn it into a string */
+
+    /* Convert the random number to a string format */
     sprintf(qid, "%010lu", (long unsigned int)qint);
 }
