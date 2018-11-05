@@ -34,7 +34,7 @@ typedef enum wall_type {
  * the type of the data is declared with the "type" field.
  */
 typedef struct {
-    int type;                 /**< Wall model type wrapped by this struct */
+    wall_type type;           /**< Wall model type wrapped by this struct */
     wall_2d_offload_data w2d; /**< 2D model or NULL if not active         */
     wall_3d_offload_data w3d; /**< 3D model or NULL if not active         */
     int offload_array_length; /**< Allocated offload array length         */
@@ -50,7 +50,7 @@ typedef struct {
  * the type of the data is declared with the "type" field.
  */
 typedef struct {
-    int type;         /**< Wall model type wrapped by this struct */
+    wall_type type;   /**< Wall model type wrapped by this struct */
     wall_2d_data w2d; /**< 2D model or NULL if not active         */
     wall_3d_data w3d; /**< 3D model or NULL if not active         */
 } wall_data;

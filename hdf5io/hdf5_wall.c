@@ -39,7 +39,7 @@ int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data, real** offl
     hdf5_generate_qid_path("/wall/wall_2D-XXXXXXXXXX", active, path);
     if(hdf5_find_group(f, path) == 0) {
 	
-        offload_data->type = 1;
+        offload_data->type = wall_type_2D;
         hdf5_wall_init_offload_2D(f, &(offload_data->w2d), offload_array, active);
         offload_data->offload_array_length = offload_data->w2d.offload_array_length;
 	
@@ -54,7 +54,7 @@ int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data, real** offl
 
     hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX", active, path);
     if (hdf5_find_group(f, path) == 0) {
-        offload_data->type = 3;
+        offload_data->type = wall_type_3D;
         hdf5_wall_init_offload_3D(f, &(offload_data->w3d), offload_array, active);
         offload_data->offload_array_length = offload_data->w3d.offload_array_length;
 	#if VERBOSE > 0
