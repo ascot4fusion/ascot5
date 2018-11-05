@@ -3,8 +3,8 @@
  *
  * @section intro Introduction
  *
- * ASCOT5 is a Monte Carlo orbit-following code for solving the Fokker-Planck
- * equation in tokamak plasmas.
+ * ASCOT5 is a test-particle Monte Carlo orbit-following code for solving the
+ * Fokker-Planck equation in toroidal plasmas.
  *
  * @section compilation Compilation
  *
@@ -12,12 +12,12 @@
  * 14.0 and up support all the OpenMP features used, but gcc can be used to
  * compile some test programs and the full code with limited features.
  *
- * Before compilation the necessary compiler modules need to be loaded. 
+ * Before compilation the necessary compiler modules need to be loaded.
  * The command on CSC Bull and Helios is "module load intel/<version>".
  * Available versions can be checked with "module avail".
  *
  * Due to the use of compiler flags to define code functionality, the code
- * should always be fully recompiled by calling make clean first if the 
+ * should always be fully recompiled by calling <make clean> first if the
  * parameters are changed.
  *
  * Syntax for compilation:
@@ -26,40 +26,32 @@
  *
  * Available parameters:
  *
- *  - NSIMD=n     number of particles in a group (default 16); these are 
- *                processed simultaneously by each thread
- *  -  CC=...     compiler (default icc)
- *  -  SINGLEPRECISION use single-precision variables (floats) (doesn't work)
- *  -  TARGET=1 Offload computation to Xeon Phi accelerator
- *  -  VERBOSE=n  print increasing amounts of progress information; n={1,2}
- *  -  REPORTORBIT=n output particle orbit with particle id n; -1 outputs all
- *  -  COULOMBCOLL=1 enable Coulomb collisions
- *  -  MPI=1      enable MPI
+ *  - NSIMD=n   number of particles in a group (default 16); these are
+ *              processed simultaneously by each thread
+ *  - CC=...    compiler (default icc)
+ *  - TARGET=1  Offload computation to Xeon Phi accelerator
+ *  - VERBOSE=n print increasing amounts of progress information:
+ *                0: No information except bare essentials
+ *                1: Standard information; everything happening outside
+ *                   simulation loops is printed
+ *                2: Extensive information; a record of simulation progress
+ *                   is written process-specific *.stdout files
+ *  - MPI=1     enable MPI
  *
  *  Available programs:
  *
- *   - ascot5_gc
- *   - filip5
- *   - test_ascot4_interface
- *   - test_B
- *   - test_hdf5
- *   - test_interact
- *   - test_math
- *   - test_particle
- *   - test_plasma_1d
- *   - test_wall_2d
- *   - test_wall_3d
+ *   - ascot5_main : The stand-alone ASCOT5 main program
  *
  *  Example:
  *
- *  make clean && make ascot5_gc CC=icc NSIMD=16 
+ *  make clean && make ascot5_main CC=icc NSIMD=16
  */
 
 /**
  * @file ascot-acc.h
  * @brief Main header file for ascot-acc
  *
- * This header file defines all the types and structs used by the program
+ * This header file defines general types and structs used widely by the program
  * as well as any features dependent on compiler defined macros.
  */
 #ifndef ASCOT5_H
@@ -91,12 +83,12 @@ typedef double real;
 /** @brief Maximum number of plasma species */
 #define MAX_SPECIES 8
 
-/** @brief Maximum number of Wiener processes stored (effectively number 
+/** @brief Maximum number of Wiener processes stored (effectively number
  *  of time step reductions) */
 #define WIENERSLOTS 20
 
 /** @brief Determine whether to use geometric method of Box-Muller to
- *  to generate normal random numbers. */
+ *  to generate normal random numbers */
 #define A5_CCOL_USE_GEOBM 1
 
 /** @brief Turn off energy component of Coulomb collisions */
@@ -105,7 +97,7 @@ typedef double real;
 /** @brief Turn off pitch component of Coulomb collisions */
 #define A5_CCOL_NOPITCH  0
 
-/** @brief Turn off spatial component in gc picture (classical diffusion) 
+/** @brief Turn off spatial component in gc picture (classical diffusion)
     of Coulomb collisions */
 #define A5_CCOL_NOGCDIFF 0
 
@@ -119,10 +111,10 @@ typedef double real;
 #define A5_WTIME omp_get_wtime()
 
 /** @brief Choose whether magnetic field spline interpolation is done
- *  with an explicit (1) or compact (0) way*/
+ *  with an explicit (1) or compact (0) way */
 #define INTERP_SPL_EXPL 0
 
 /** @brief Choose whether to use tabulated values for collision coefficients */
-#define A5_CCOL_USE_TABULATED 0 
+#define A5_CCOL_USE_TABULATED 0
 
 #endif
