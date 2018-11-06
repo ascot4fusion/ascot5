@@ -38,7 +38,7 @@ ifneq ($(CC),h5cc)
 	endif
 endif
 
-CFLAGS+=-lm -Wall -fopenmp -std=c99 $(DEFINES) $(FLAGS) 
+CFLAGS+=-lm -Wall -fopenmp -std=c99 $(DEFINES) $(FLAGS)
 
 SIMDIR = simulate/
 SIMHEADERS = $(wildcard $(SIMDIR)simulate*.h)
@@ -52,8 +52,9 @@ MCCCDIR = $(SIMDIR)mccc/
 MCCCHEADERS = $(wildcard $(MCCCDIR)mccc*.h)
 MCCCOBJS = $(patsubst %.c,%.o,$(wildcard $(MCCCDIR)mccc*.c))
 
-DIAGHEADERS = diag.h diag_orb.h dist_5D.h dist_6D.h dist_rho6D.h dist_rho5D.h
-DIAGOBJS = diag.o diag_orb.o dist_5D.o dist_6D.o dist_rho6D.o dist_rho5D.o
+DIAGDIR = diag/
+DIAGHEADERS = $(wildcard $(DIAGDIR)diag*.h $(DIAGDIR)dist*.h)
+DIAGOBJS = $(patsubst %.c,%.o,$(wildcard $(DIAGDIR)diag*.c $(DIAGDIR)dist*.c))
 
 BFDIR = Bfield/
 BFHEADERS = $(wildcard $(BFDIR)B_*.h)
@@ -93,16 +94,16 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
 	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
 	$(PLSHEADERS) $(N0HEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
-	neutral.h plasma.h particle.h endcond.h B_field.h E_field.h \
-	wall.h simulate.h diag.h diag_orb.h offload.h \
+	neutral.h plasma.h particle.h endcond.h B_field.h \
+	E_field.h wall.h simulate.h diag.h offload.h \
 	random.h print.h symmetry.h
 
 OBJS= math.o list.o octree.o physlib.o \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
 	$(PLSOBJS) $(N0OBJS) $(LINTOBJS) $(SPLINEOBJS) \
-	neutral.o plasma.o particle.o endcond.o B_field.o E_field.o \
-	wall.o simulate.o diag.o diag_orb.o offload.o \
+	neutral.o plasma.o particle.o endcond.o B_field.o \
+	E_field.o wall.o simulate.o diag.o offload.o \
 	random.o print.c symmetry.o
 
 BINS=test_math \
@@ -136,7 +137,7 @@ test_math: test_math.o $(OBJS)
 test_wall_2d: test_wall_2d.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_offload: test_offload.o 
+test_offload: test_offload.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_E: test_E.o $(OBJS)
@@ -162,6 +163,6 @@ test_N0: test_N0.o $(OBJS)
 
 clean:
 	rm -f *.o *.so *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
-		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o \
+		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o $(DIAGDIR)*.o \
 		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
 		$(N0DIR)*.o $(LINTDIR)*.o $(SPLINEDIR)*.o *.pyc

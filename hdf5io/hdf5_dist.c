@@ -1,9 +1,9 @@
 #include <stdlib.h>
 #include "../ascot5.h"
-#include "../dist_5D.h"
-#include "../dist_6D.h"
-#include "../dist_rho5D.h"
-#include "../dist_rho6D.h"
+#include "../diag/dist_5D.h"
+#include "../diag/dist_6D.h"
+#include "../diag/dist_rho5D.h"
+#include "../diag/dist_rho6D.h"
 #include "../print.h"
 #include "../math.h"
 #include "hdf5_helpers.h"

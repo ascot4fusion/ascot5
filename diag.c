@@ -23,11 +23,11 @@
 #include <string.h>
 #include "ascot5.h"
 #include "diag.h"
-#include "diag_orb.h"
-#include "dist_5D.h"
-#include "dist_6D.h"
-#include "dist_rho5D.h"
-#include "dist_rho6D.h"
+#include "diag/diag_orb.h"
+#include "diag/dist_5D.h"
+#include "diag/dist_6D.h"
+#include "diag/dist_rho5D.h"
+#include "diag/dist_rho6D.h"
 #include "particle.h"
 
 /**

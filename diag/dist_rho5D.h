@@ -5,8 +5,8 @@
 #ifndef DIST_RHO5D_H
 #define DIST_RHO5D_H
 
-#include "ascot5.h"
-#include "particle.h"
+#include "../ascot5.h"
+#include "../particle.h"
 
 /**
  * @brief Histogram parameters that will be offloaded to target

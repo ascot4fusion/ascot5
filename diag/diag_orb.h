@@ -6,7 +6,7 @@
 #define DIAG_ORB_H
 
 #include <stdio.h>
-#include "particle.h"
+#include "../particle.h"
 
 #define DIAG_ORB_POINCARE 0
 #define DIAG_ORB_ORBIT 1

@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "ascot5.h"
-#include "consts.h"
+#include "../ascot5.h"
+#include "../consts.h"
 #include "dist_rho6D.h"
-#include "particle.h"
+#include "../particle.h"
 
 /** @brief Internal function calculating the index in the histogram array */
 #pragma omp declare target

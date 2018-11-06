@@ -8,7 +8,7 @@
 #include "../simulate.h"
 #include "../particle.h"
 #include "../ascot5.h"
-#include "../diag_orb.h"
+#include "../diag/diag_orb.h"
 #include "../consts.h"
 
 void hdf5_orbits_writeset(hid_t group,  diag_orb_dat_type type, diag_orb_dat* list, int size, int* mask, const char* dataset);
