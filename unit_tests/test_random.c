@@ -4,8 +4,8 @@
  */
 #include <stdio.h>
 #include <omp.h>
-#include "ascot5.h"
-#include "random.h"
+#include "../ascot5.h"
+#include "../random.h"
 
 #define N 1000000
 

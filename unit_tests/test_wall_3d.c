@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "ascot5.h"
-#include "wall/wall_3d.h"
+#include "../ascot5.h"
+#include "../wall/wall_3d.h"
 
 #define N 10000
 

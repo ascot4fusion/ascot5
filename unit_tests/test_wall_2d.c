@@ -4,8 +4,8 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include "ascot5.h"
-#include "./wall/wall_2d.h"
+#include "../ascot5.h"
+#include "../wall/wall_2d.h"
 
 int main(int argc, char** argv) {
     real wall_r[] = {4.7, 6.1, 6.1, 8.4, 8.4, 7.6, 6.1, 4.8, 4.0, 4.0, 4.7,

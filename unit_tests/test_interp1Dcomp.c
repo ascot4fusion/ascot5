@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "math.h"
-#include "spline/interp1Dcomp.h"
+#include "../math.h"
+#include "../spline/interp1Dcomp.h"
 
 int main(int argc, char** argv) {
 

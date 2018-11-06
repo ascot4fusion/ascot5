@@ -90,6 +90,8 @@ SPLINEHEADERS += $(wildcard $(SPLINEDIR)interp*.h)
 SPLINEOBJS  = $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)spline*.c))
 SPLINEOBJS += $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)interp*.c))
 
+UTESTDIR = unit_tests/
+
 HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
 	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
@@ -125,37 +127,37 @@ ascotpy.so: ascotpy.o $(OBJS)
 ascot5_main: ascot5_main.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_B: test_B.o $(OBJS)
+test_B: $(UTESTDIR)test_B.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_wall_3d: test_wall_3d.o $(OBJS)
+test_wall_3d: $(UTESTDIR)test_wall_3d.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_math: test_math.o $(OBJS)
+test_math: $(UTESTDIR)test_math.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_wall_2d: test_wall_2d.o $(OBJS)
+test_wall_2d: $(UTESTDIR)test_wall_2d.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_offload: test_offload.o
+test_offload: $(UTESTDIR)test_offload.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_E: test_E.o $(OBJS)
+test_E: $(UTESTDIR)test_E.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_interp1Dcomp: test_interp1Dcomp.o $(OBJS)
+test_interp1Dcomp: $(UTESTDIR)test_interp1Dcomp.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_plasma: test_plasma.o $(OBJS)
+test_plasma: $(UTESTDIR)test_plasma.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_random: test_random.o $(OBJS)
+test_random: $(UTESTDIR)test_random.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_linint3D: test_linint3D.o $(OBJS)
+test_linint3D: $(UTESTDIR)test_linint3D.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_N0: test_N0.o $(OBJS)
+test_N0: $(UTESTDIR)test_N0.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile

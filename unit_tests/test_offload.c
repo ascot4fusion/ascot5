@@ -9,25 +9,20 @@ int main ( void ){
 
   int n;
 
+  printf("Doing something!\n");
 
-  printf("Doing something!\n"); 
-  
 #pragma omp target device(0)
   n=go_do_something();
 
 
-  printf("Did something (%d)!\n",n); 
+  printf("Did something (%d)!\n",n);
   return 0;
 }
-
-
 
 int go_do_something(void){
 
   const int m = 1000;
   int i,j,k[m];
-  
-  
 
 #pragma omp parallel for private(j)
   for (i=0;i<m;i++) {

@@ -1,28 +1,26 @@
 /**
- * @file test_B.c
+ * @file test_N0.c
  * @brief Test program for magnetic fields
- * Output is written to standard output, redirect with test_B > output.filename
  */
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "math.h"
-#include "B_field.h"
-#include "hdf5io/hdf5_input.h"
-#include "hdf5io/hdf5_orbits.h"
-#include "hdf5io/hdf5_particlestate.h"
-#include "offload.h"
+#include "../math.h"
+#include "../neutral.h"
+#include "../hdf5io/hdf5_input.h"
+#include "../hdf5io/hdf5_neutral.h"
+#include "../offload.h"
 
 int main(int argc, char** argv) {
 
     if(argc < 11) {
-        printf("Usage: test_B nr rmin rmax nphi phimin phimax nz zmin zmax fname\n");
+        printf("Usage: test_N0 nr rmin rmax nphi phimin phimax nz zmin zmax fname\n");
         exit(1);
     }
 
     FILE* f = fopen(argv[10], "w");
-    
+
     int err = 0;
     sim_offload_data sim;
     sim.mpi_rank = 0;
@@ -40,31 +38,29 @@ int main(int argc, char** argv) {
     /* read_options(argc, argv, &sim); */
     strcpy(sim.hdf5_in, "ascot.h5");
     strcpy(sim.hdf5_out, "ascot");
-    
+
     err = hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
                      &neutral_offload_array, &wall_offload_array, &p, &n);
+    if(err) {return 0;};
 
     /* Init magnetic background */
     offload_package offload_data;
     offload_init_offload(&offload_data, &offload_array);
-    offload_pack(&offload_data, &offload_array, B_offload_array,
-                 sim.B_offload_data.offload_array_length);
+    offload_pack(&offload_data, &offload_array, neutral_offload_array,
+                 sim.neutral_offload_data.offload_array_length);
 
     /* Set up particlestates on host, needs magnetic field evaluation */
-    B_field_data Bdata;
-    B_field_init(&Bdata, &sim.B_offload_data, B_offload_array);
+    neutral_data ndata;
+    neutral_init(&ndata, &sim.neutral_offload_data, neutral_offload_array);
 
-    real B[3];
-    real B_dB[12];
-    real psi;
-    real rho;
+    real n0;
 
     int n_r = atof(argv[1]);
     real r_min = atof(argv[2]);
     real r_max = atof(argv[3]);
     int n_phi = atof(argv[4]);
-    real phi_min = atof(argv[5]) / 180 * math_pi;
-    real phi_max = atof(argv[6]) / 180 * math_pi;
+    real phi_min = math_deg2rad(atof(argv[5]));
+    real phi_max = math_deg2rad(atof(argv[6]));
     int n_z = atof(argv[7]);
     real z_min =atof(argv[8]);
     real z_max = atof(argv[9]);
@@ -80,20 +76,14 @@ int main(int argc, char** argv) {
     fprintf(f,"%d %le %le ", n_r, r_min, r_max);
     fprintf(f,"%d %le %le ", n_phi, phi_min, phi_max);
     fprintf(f,"%d %le %le\n", n_z, z_min, z_max);
-    
+
     int i, j, k;
     for(i = 0; i < n_r; i++) {
         for(j = 0; j < n_phi; j++) {
             for(k = 0; k < n_z; k++) {
-                B_field_eval_B(B, r[i], phi[j], z[k], &Bdata);
-                B_field_eval_B_dB(B_dB, r[i], phi[j], z[k], &Bdata);
-                B_field_eval_psi(&psi, r[i], phi[j], z[k], &Bdata);
-                B_field_eval_rho(&rho, psi, &Bdata);
-                fprintf(f,"%le %le %le ", B[0], B[1], B[2]);
-                fprintf(f,"%le %le %le ", B_dB[1], B_dB[2], B_dB[3]);
-                fprintf(f,"%le %le %le ", B_dB[5], B_dB[6], B_dB[7]);
-                fprintf(f,"%le %le %le ", B_dB[9], B_dB[10], B_dB[11]);
-                fprintf(f,"%le\n", rho);
+                neutral_eval_n0(&n0, r[i], phi[j], z[k], &ndata);
+                fprintf(f,"%le\n", n0);
+                /* fprintf(f,"%le\n", r[i]*z[k]); */
             }
         }
     }

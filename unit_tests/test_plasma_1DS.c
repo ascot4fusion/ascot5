@@ -4,13 +4,13 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include "ascot5.h"
-#include "plasma_1DS.h"
-#include "hdf5io/hdf5_plasma.h"
-#include "hdf5.h"
-#include "hdf5io/hdf5_helpers.h"
-#include "hdf5_hl.h"
-#include "math.h"
+#include "../ascot5.h"
+#include "../plasma_1DS.h"
+#include "../hdf5io/hdf5_plasma.h"
+#include "../hdf5.h"
+#include "../hdf5io/hdf5_helpers.h"
+#include "../hdf5_hl.h"
+#include "../math.h"
 
 int main(int argc, char** argv) {
     plasma_1DS_offload_data offload_data;
