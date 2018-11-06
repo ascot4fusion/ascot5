@@ -37,7 +37,5 @@ a5err E_1DS_init(E_1DS_data* Edata, E_1DS_offload_data* offload_data,
                real* offload_array);
 #pragma omp declare simd uniform(Edata,Bdata)  
 a5err E_1DS_eval_E(real E[], real r, real phi, real z, E_1DS_data* Edata, B_field_data* Bdata);
-#pragma omp declare simd uniform(Edata,Bdata)  
-a5err E_1DS_eval_E_SIMD(int i, real E[3][NSIMD], real r, real phi, real z, E_1DS_data* Edata, B_field_data* Bdata);
-#pragma omp end declare target   
+#pragma omp end declare target
 #endif

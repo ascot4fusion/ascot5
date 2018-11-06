@@ -93,55 +93,6 @@ integer linint2D_eval(real* val, linint2D_data* str, real r, real z) {
 }
 
 /**
- * @brief Evaluate interpolated value of 2D scalar field
- *
- * This function evaluates the interpolated value of a 2D scalar field using
- * bilinear interpolation.
- * 
- * @param i index of SIMD variable
- * @param val variable in which to place the evaluated value
- * @param str data struct for data interpolation
- * @param r r-coordinate
- * @param z z-coordinate
- */
-integer linint2D_eval_SIMD(int i, real val[NSIMD], linint2D_data* str, real r, real z) {
-    real c00, c01, c10, c11;
-    real c0, c1;
-
-    int i_r = (r - str->r_min)/str->r_grid;     /**< index for r variable */
-    int i_z = (z - str->z_min)/str->z_grid;     /**< index for z variable */
-
-    real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-							       current cell */
-    real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
-							       current cell */
-
-    int z1 = str->n_r;                      /**< Index jump one z forward */
-	   
-    int err = 0;
-
-    /* Check that the point is not outside the evaluation regime */
-    if(r < str->r_min || r > str->r_max
-       || z < str->z_min || z > str->z_max) {
-	err = 1;
-    }
-    else {
-        /* Values at grid cell corners */
-        c00 = str->f[i_z*z1 + i_r];
-        c10 = str->f[i_z*z1 + (i_r + 1)];
-        c01 = str->f[(i_z + 1)*z1 + i_r];
-        c11 = str->f[(i_z + 1)*z1 + (i_r + 1)];
-        /* Interpolate along r */
-        c0 = c00*(1 - dr) + c10*dr;
-        c1 = c01*(1 - dr) + c11*dr;
-        /* Finally we interpolate these values along z */
-        val[i] = c0*(1 - dz) + c1*dz;
-    }
-
-    return err;
-}
-
-/**
  * @brief Free allocated memory in interpolation data struct
  *
  * This function frees the memory allocated for interpolation coefficients

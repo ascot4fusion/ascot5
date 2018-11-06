@@ -221,62 +221,6 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z,
 }
 
 /**
- * @brief Evaluate poloidal flux psi
- *
- * This function evaluates the poloidal flux psi at the given coordinates. The
- * psi is exactly as it appears in Grad-Shafranov equation.
- *
- * This is otherwise identical B_field_eval_psi() is except psi is a SIMD array.
- *
- * @deprecated This is not being used in the code
- * @todo Should this function be removed?
- *
- * @param i location in SIMD array for which psi is evaluated
- * @param psi pointer where psi [V*s*m^-1] value will be stored
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
- * @param Bdata pointer to magnetic field data struct
- *
- * @return Non-zero a5err value if evaluation failed, zero otherwise
- */
-a5err B_field_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z,
-                      B_field_data* Bdata) {
-    a5err err = 0;
-
-    switch(Bdata->type) {
-        case B_field_type_GS:
-            B_GS_eval_psi_SIMD(i, psi, r, phi, z, &(Bdata->BGS));
-            break;
-
-        case B_field_type_2DS:
-            B_2DS_eval_psi_SIMD(i, psi, r, phi, z, &(Bdata->B2DS));
-            break;
-
-        case B_field_type_3DS:
-            B_3DS_eval_psi_SIMD(i, psi, r, phi, z, &(Bdata->B3DS));
-            break;
-
-        case B_field_type_STS:
-            B_STS_eval_psi_SIMD(i, psi, r, phi, z, &(Bdata->BSTS));
-            break;
-
-        default:
-            /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__ );
-            break;
-    }
-
-    if(err) {
-        /* In case of error, return some reasonable value to avoid further
-           complications */
-        psi[i] = 1;
-    }
-
-    return err;
-}
-
-/**
  * @brief Evaluate poloidal flux psi and its derivatives
  *
  * This function evaluates the poloidal flux psi and its derivatives at the
@@ -392,64 +336,6 @@ a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
         /* In case of error, return some reasonable value to avoid further
            complications */
         rho[0] = 1;
-    }
-
-    return err;
-}
-
-/**
- * @brief Evaluate normalized poloidal flux rho
- *
- * This function evaluates the normalized poloidal flux rho at the given
- * coordinates. The rho is evaluated from psi as:
- * rho = sqrt( | (psi - psi_0) / (psi_1 - psi_0) | ),
- * where psi_0 is psi at magnetic axis and psi_1 is psi at separatrix.
- *
- * This is otherwise identical to B_field_eval_rho() except rho is a SIMD array.
- *
- * @deprecated This is not being used in the code
- * @todo Should this function be removed?
- *
- * @param i location in SIMD array for which rho is evaluated
- * @param rho pointer where rho value will be stored
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
- * @param Bdata pointer to magnetic field data struct
- *
- * @return Non-zero a5err value if evaluation failed, zero otherwise
- */
-a5err B_field_eval_rho_SIMD(int i, real rho[NSIMD], real psi,
-                            B_field_data* Bdata) {
-    a5err err = 0;
-
-    switch(Bdata->type) {
-        case B_field_type_GS:
-            B_GS_eval_rho_SIMD(i, rho, psi, &(Bdata->BGS));
-            break;
-
-        case B_field_type_2DS:
-            B_2DS_eval_rho_SIMD(i, rho, psi, &(Bdata->B2DS));
-            break;
-
-        case B_field_type_3DS:
-            B_3DS_eval_rho_SIMD(i, rho, psi, &(Bdata->B3DS));
-            break;
-
-        case B_field_type_STS:
-            B_STS_eval_rho_SIMD(i, rho, psi, &(Bdata->BSTS));
-            break;
-
-        default:
-            /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__ );
-            break;
-    }
-
-    if(err) {
-        /* In case of error, return some reasonable value to avoid further
-           complications */
-        rho[i] = 1;
     }
 
     return err;
@@ -646,77 +532,6 @@ a5err B_field_eval_B_dB(real B_dB[12], real r, real phi, real z,
            complications */
         B_dB[0] = 1;
         for(int k=1; k<12; k++) {B_dB[k] = 0;}
-    }
-
-    return err = 0;
-}
-
-/**
- * @brief Evaluate magnetic field and its derivatives
- *
- * This function evaluates the magnetic field and its derivatives at the given
- * coordinates.
- *
- * The values are stored in the given array as:
- * B[0]  = BR
- * B[1]  = dBR/dR
- * B[2]  = dBR/dphi
- * B[3]  = dBR/dz
- * B[4]  = Bphi
- * B[5]  = dBphi/dR
- * B[6]  = dBphi/dphi
- * B[7]  = dBphi/dz
- * B[8]  = Bz
- * B[9]  = dBz/dR
- * B[10] = dBz/dphi
- * B[11] = dBz/dz
- *
- * This is otherwise identical to B_field_eval_dB() except B_dB is a SIMD array.
- *
- * @deprecated This is not being used in the code
- * @todo Should this function be removed?
- *
- * @param i location in SIMD array for which magnetic field is evaluated
- * @param B_dB pointer to array where the field and its derivatives are stored
- * @param r R coordinate [m]
- * @param phi phi coordinate [deg]
- * @param z z coordinate [m]
- * @param Bdata pointer to magnetic field data struct
- *
- * @return Non-zero a5err value if evaluation failed, zero otherwise
- */
-a5err B_field_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi,
-                             real z, B_field_data* Bdata) {
-    a5err err = 0;
-
-    switch(Bdata->type) {
-        case B_field_type_GS:
-            B_GS_eval_B_dB_SIMD(i, B_dB, r, phi, z, &(Bdata->BGS));
-            break;
-
-        case B_field_type_2DS:
-            B_2DS_eval_B_dB_SIMD(i, B_dB, r, phi, z, &(Bdata->B2DS));
-            break;
-
-        case B_field_type_3DS:
-            B_3DS_eval_B_dB_SIMD(i, B_dB, r, phi, z, &(Bdata->B3DS));
-            break;
-
-        case B_field_type_STS:
-            B_STS_eval_B_dB_SIMD(i, B_dB, r, phi, z, &(Bdata->BSTS));
-            break;
-
-        default:
-            /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__ );
-            break;
-    }
-
-    if(err) {
-        /* In case of error, return some reasonable values to avoid further
-           complications */
-        B_dB[0][i] = 1;
-        for(int k=1; k<12; k++) {B_dB[k][i] = 0;}
     }
 
     return err = 0;

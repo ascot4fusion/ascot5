@@ -150,33 +150,3 @@ a5err neutral_eval_n0(real n0[], real r, real phi, real z,
 
     return err;
 }
-
-/**
- * @brief Evaluate neutral density
- *
- * @deprecated Same function as neutral_eval_n0() except this uses explicit SIMD
- *             arrays. Not used anywhere so this should be removed.
- *
- * @todo Remove this function.
- */
-a5err neutral_eval_n0_SIMD(int i, real n0[NSIMD], real r, real phi, real z,
-                      neutral_data* ndata) {
-    a5err err = 0;
-
-    switch(ndata->type) {
-        case neutral_type_3D:
-            N0_3D_eval_n0_SIMD(i, n0, r, phi, z, &(ndata->N03D));
-            break;
-
-        case neutral_type_ST:
-            N0_ST_eval_n0_SIMD(i, n0, r, phi, z, &(ndata->N0ST));
-            break;
-    }
-
-    if(err) {
-        /* Return some reasonable values to avoid further errors */
-        n0[i] = 0;
-    }
-
-    return err;
-}

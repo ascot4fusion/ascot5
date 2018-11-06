@@ -86,33 +86,6 @@ integer interp1Dcomp_eval_B(real* B, interp1D_data* str, real r) {
     return err;
 }
 
-integer interp1Dcomp_eval_B_SIMD(int i, real B[NSIMD], interp1D_data* str, real r) {
-    int i_r = (r-str->r_min)/str->r_grid; /**< index for r variable */
-    real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-							       current cell */
-    real dri = 1.0-dr;
-    real dri3 = dri*(dri*dri-1.0);
-    real rg2 = str->r_grid*str->r_grid;        /**< Square of cell length in r direction */
-
-    int n = i_r*2;       /**< Index jump to cell */
-    int r1 = 2;          /**< Index jump one r forward */
-
-    int err = 0;
-
-    /* Check that the point is not outside the evaluation regime */
-    if(r < str->r_min || r > str->r_max) {
-	err = 1;
-    }
-    else {
-        B[i] = (
-                dri*str->c[n] +
-                dr*str->c[n+r1] +
-                (rg2/6)*(dri3*str->c[n+1] + dri3*str->c[n+r1+1])
-                );
-    }
-    return err;
-}
-
 /**
  * @brief Evaluate interpolated value of 1D scalar field and its 1st and 2nd derivatives
  *
@@ -165,48 +138,6 @@ integer interp1Dcomp_eval_dB(real* B_dB, interp1D_data* str, real r) {
 	B_dB[2] = (
                    dri*str->c[n+1] + dr*str->c[n+r1+1]
                    );
-    }
-    return err;
-}
-
-integer interp1Dcomp_eval_dB_SIMD(int i, real B_dB[6][NSIMD], interp1D_data* str, real r) {
-    int i_r = (r-str->r_min)/str->r_grid;                   /**< index for r variable */
-    real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-							       current cell */
-    real dr3dr = 3*dr*dr-1;           /**< r-derivative of dr3, not including 1/r_grid */
-    real dri = 1.0-dr;
-    real dri3 = dri*(dri*dri-1);
-    real dri3dr = -3*dri*dri+1;       /**< r-derivative of dri3, not including 1/r_grid */
-    real rg = str->r_grid;            /**< Cell length in r direction */
-    real rg2 = rg*rg;
-    real rgi = 1.0/rg;
-
-    int n = i_r*2;     /**< Index jump to cell */
-    int r1 = 2;                       /**< Index jump one r forward */
-
-    int err = 0;
-
-    /* Check that the point is not outside the evaluation regime */
-    if(r < str->r_min || r > str->r_max) {
-	err = 1;
-    }
-    else {
-	/* f */
-	B_dB[0][i] = (
-                      dri*str->c[n] +
-                      dr*str->c[n+r1] +
-                      (rg2/6)*(dri3*str->c[n+1] + dri3*str->c[n+r1+1])
-                      );
-        
-	/* df/dr */
-        B_dB[1][i] = (rgi*(str->c[n+r1] - str->c[n])  + 
-                      (rg/6)*(dr3dr*str->c[n+r1+1] +dri3dr*str->c[n+1])
-                      ); 
-        
-	/* d2f/dr2 */
-	B_dB[2][i] = (
-                      dri*str->c[n+1] + dr*str->c[n+r1+1]
-                      );
     }
     return err;
 }

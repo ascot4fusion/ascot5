@@ -90,29 +90,3 @@ a5err E_1DS_eval_E(real E[], real r, real phi, real z, E_1DS_data* Edata, B_fiel
     
     return err;
 }
-
-a5err E_1DS_eval_E_SIMD(int i, real E[3][NSIMD], real r, real phi, real z, E_1DS_data* Edata, B_field_data* Bdata) {
-    a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
-    real rho_drho[4];
-    B_field_eval_rho_drho(rho_drho, r, phi, z, Bdata);
-    /* Convert partial derivative to gradient */
-    rho_drho[2] = rho_drho[2]/r;
-    /* We set the field to zero if outside the profile. */
-    if (rho_drho[0] < Edata->rho_min || rho_drho[0] > Edata->rho_max ) {
-        E[0][i] = 0;
-        E[1][i] = 0;
-        E[2][i] = 0;
-        return err;
-    }
-    real dV;
-    interperr += interp1Dcomp_eval_B(&dV, &Edata->dV, rho_drho[0]);
-
-    E[0][i] = dV * rho_drho[1];
-    E[1][i] = dV * rho_drho[2];
-    E[2][i] = dV * rho_drho[3];
-
-    if(interperr) {err = error_raise( ERR_OUTSIDE_PLASMA, __LINE__ );}
-    
-    return err;
-}

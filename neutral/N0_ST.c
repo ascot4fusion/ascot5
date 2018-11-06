@@ -89,27 +89,3 @@ a5err N0_ST_eval_n0(real n0[], real r, real phi, real z,
 
     return err;
 }
-
-a5err N0_ST_eval_n0_SIMD(int i, real n0[NSIMD], real r, real phi, real z,
-			  N0_ST_data* ndata) {
-    a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
-
-    phi = fmod(phi, 2*math_pi/ndata->periods);
-    /* if(phi < ndata->n0.phi_min) { */
-    if(phi < 0) {
-        phi += 2*math_pi/ndata->periods;
-    }
-    if(phi > math_pi/ndata->periods) {
-        /* Stellarator-symmetric mirroring */
-        phi = 2*math_pi/ndata->periods - phi;
-        z = -z;
-    }
-
-    interperr += linint3D_eval_SIMD(i, n0, &ndata->n0, r, phi, z);
-
-    if(interperr) {err = error_raise( ERR_OUTSIDE_N0DATA, __LINE__ );}
-
-    return err;
-}
-
