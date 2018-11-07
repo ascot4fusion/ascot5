@@ -1,3 +1,16 @@
+/**
+ * @file simulate.c
+ * @brief Simulation is initialized and run from here
+ *
+ * This module acts as an interface through which different types of simulations
+ * are initialized and run. This module handles no IO operations (with the
+ * exception of writing of progress update), no offloading (only unpacking and
+ * initialization is done here).
+ *
+ * Thread level parallelisation is done here and the threads have shared access
+ * on the data once it has been initialized. However, threads should only modify
+ * marker and diagnostic data.
+ */
 #include <string.h>
 #include <unistd.h>
 #include "endcond.h"
@@ -18,6 +31,51 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data);
 void sim_monitor(FILE* f, volatile int* n, volatile int* finished);
 #pragma omp end declare target
 
+/**
+ * @brief Execute marker simulation
+ *
+ * This simulates markers using given inputs and options. All different types of
+ * simulations are initialized and run via this function.
+ *
+ * This function proceeds as follows:
+ *
+ * 1. Input offload data is unpacked and initialized by calling respective init
+ *    functions.
+ *
+ * 2. Meta data (e.g. random number generator) is initialized.
+ *
+ * 3. Markers are put into simulation queue.
+ *
+ * 4. Threads are spawned. One thread is dedicated for monitoring progress, if
+ *    monitoring is active.
+ *
+ * 5. Other threads execute marker simulation using the mode the user has
+ *    chosen.
+ *
+ * -  Process continues once all markers have been simulated and each thread has
+ *    finished. Monitoring is also terminated.
+ *
+ * 6. (If hybrid mode is active) Markers with hybrid end condition active are
+ *    placed on a new queue, and they have their end condition deactivated and
+ *    they are simulated with simulate_fo_fixed.c until they have met some other
+ *    end condition. Threads are spawned and progress is monitored as
+ *    previously.
+ *
+ * 7. Simulation data is deallocated except for data that is mapped back to
+ *    host.
+ *
+ * 8. Execution returns to host where this function was called.
+ *
+ * @param id target id where this function is executed, zero if on host
+ * @param n_particles total number of markers to be simulated
+ * @param p pointer to array storing all marker states to be simulated
+ * @param sim_offload pointer to simulation offload data
+ * @param offload_data pointer to the rest of the offload data
+ * @param offload_array pointer to input data offload array
+ * @param diag_offload_array pointer to diagnostics offload array
+ *
+ * @todo Reorganize this function so that it conforms to documentation.
+ */
 void simulate(int id, int n_particles, particle_state* p,
         sim_offload_data* sim_offload,
         offload_package* offload_data,
@@ -31,7 +89,11 @@ void simulate(int id, int n_particles, particle_state* p,
     else {
         sprintf(targetname, "mic%d", id-1);
     }
-
+    /**************************************************************************/
+    /* 1. Input offload data is unpacked and initialized by calling           */
+    /*    respective init functions.                                          */
+    /*                                                                        */
+    /**************************************************************************/
     sim_data sim;
     sim_init(&sim, sim_offload);
 
@@ -59,10 +121,19 @@ void simulate(int id, int n_particles, particle_state* p,
     diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
             diag_offload_array);
 
+    /**************************************************************************/
+    /* 2. Meta data (e.g. random number generator) is initialized.            */
+    /*                                                                        */
+    /**************************************************************************/
+
     /* Initialize collision coefficients */
     sim.coldata = NULL;
     mccc_coefs_init(sim.coldata);
 
+    /**************************************************************************/
+    /* 3. Markers are put into simulation queue.                              */
+    /*                                                                        */
+    /**************************************************************************/
     particle_queue pq;
     particle_queue pq_hybrid;
 
@@ -111,17 +182,23 @@ void simulate(int id, int n_particles, particle_state* p,
     FILE *f = fopen(filename, "w");
     if (f == NULL) {
         printf("%s: Error opening stdout file.\n", targetname);
-    } 
+    }
 #endif
 
-    /* Spawn two threads: one for the actual simulation and one worker
-     * for updating process. */
-    #pragma omp parallel sections num_threads(2) 
+    /**************************************************************************/
+    /* 4. Threads are spawned. One thread is dedicated for monitoring         */
+    /*    progress, if monitoring is active.                                  */
+    /*                                                                        */
+    /**************************************************************************/
+    #pragma omp parallel sections num_threads(2)
     {
         #pragma omp section
         {
-        /* Choose simulation mode and spawn more threads that each begins
-           simulation. */
+            /******************************************************************/
+            /* 5. Other threads execute marker simulation using the mode the  */
+            /*    user has chosen.                                            */
+            /*                                                                */
+            /******************************************************************/
             if(pq.n > 0 && (sim.sim_mode == simulate_mode_gc
                         || sim.sim_mode == simulate_mode_hybrid)) {
                 sim.diag_data.orbits.type = diag_orb_type_gc;
@@ -162,15 +239,22 @@ void simulate(int id, int n_particles, particle_state* p,
         }
     }
 
-    /* Finish simulating hybrid particles with fo */
+    /**************************************************************************/
+    /* 6. (If hybrid mode is active) Markers with hybrid end condition active */
+    /*    are placed on a new queue, and they have their end condition        */
+    /*    deactivated and they are simulated with simulate_fo_fixed.c until   */
+    /*    they have met some other end condition. Threads are spawned and     */
+    /*    progress is monitored as previously.                                */
+    /*                                                                        */
+    /**************************************************************************/
     if(sim.sim_mode == simulate_mode_hybrid) {
 
-        /* Determine the number markers that should be run 
-     * in fo after previous gc simulation */
+        /* Determine the number markers that should be run
+         * in fo after previous gc simulation */
         int n_new = 0;
         for(int i = 0; i < pq.n; i++) {
             if(pq.p[i]->endcond == endcond_hybrid) {
-                /* Check that there was no wall between when moving from 
+                /* Check that there was no wall between when moving from
                    gc to fo */
                 int tile = wall_hit_wall(pq.p[i]->r, pq.p[i]->phi, pq.p[i]->z,
                         pq.p[i]->rprt, pq.p[i]->phiprt, pq.p[i]->zprt,
@@ -224,6 +308,11 @@ void simulate(int id, int n_particles, particle_state* p,
         }
     }
 
+    /**************************************************************************/
+    /* 7. Simulation data is deallocated except for data that is mapped back  */
+    /*    to host.                                                            */
+    /*                                                                        */
+    /**************************************************************************/
 #if VERBOSE > 1
     /* Close progress file*/
     fclose(f);
@@ -240,11 +329,24 @@ void simulate(int id, int n_particles, particle_state* p,
 
     diag_clean(&sim.diag_data);
 
+    /**************************************************************************/
+    /* 8. Execution returns to host where this function was called.           */
+    /*                                                                        */
+    /**************************************************************************/
     #if VERBOSE >= 1
     printf("%s: Simulation complete.\n", targetname);
     #endif
 }
 
+/**
+ * @brief Initialize simulation data struct on target
+ *
+ * This function copies the simulation parameters from the offload struct
+ * to the struct on the target.
+ *
+ * @param sim pointer to data struct on target
+ * @param offload_data pointer to offload data struct
+ */
 void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->sim_mode             = offload_data->sim_mode;
     sim->enable_ada           = offload_data->enable_ada;
@@ -274,15 +376,37 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->endcond_maxPolOrb    = offload_data->endcond_maxPolOrb;
 }
 
+/**
+ * @brief Monitor simulation progress
+ *
+ * This function contains a loop that is repeated until all markers have
+ * finished simulation. Loops are executed at interval defined by
+ * A5_PRINTPROGRESSINTERVAL in ascot5.h.
+ *
+ * At each loop, number of markers that have finished simulation is written
+ * to output file, along with time spent on simulation and estimated time
+ * remaining for the simulation to finish.
+ *
+ * @param f pointer to file where progress is written. File is opened and closed
+ *          outside this function
+ * @param n pointer to number of total markers in simulation queue
+ * @param finished pointer to number of finished markers in simulation queue
+ */
 void sim_monitor(FILE* f, volatile int* n, volatile int* finished) {
-    real timer = A5_WTIME;
+    real time_sim_started = A5_WTIME;
     while(f != NULL && *n > *finished) {
-        real epsilon = 1e-10;// To avoid division by zero
         real fracprog = ((real) *finished)/(*n);
-        real timespent = (A5_WTIME)-timer;
-        fprintf(f, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, "
-            "estimated time to finish: %.2f h\n", *finished, *n, 100*fracprog,
-            timespent/3600, (1/(fracprog+epsilon)-1)*timespent/3600);
+        real timespent = (A5_WTIME)-time_sim_started;
+
+        if(fracprog == 0) {
+            fprintf(f, "No marker has finished simulation yet. "
+                    "Time spent: %.2f h\n", timespent/3600);
+        }
+        else {
+            fprintf(f, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, "
+                    "estimated time to finish: %.2f h\n", *finished, *n,
+                    100*fracprog, timespent/3600, (1/fracprog-1)*timespent/3600);
+        }
         fflush(f);
         sleep(A5_PRINTPROGRESSINTERVAL);
     }
