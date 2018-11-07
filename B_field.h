@@ -93,15 +93,6 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 a5err B_field_eval_B_dB(
     real B_dB[12], real r, real phi, real z, B_field_data* Bdata);
-#pragma omp declare simd linear(i) uniform(psi, Bdata)
-a5err B_field_eval_psi_SIMD(
-    int i, real psi[NSIMD], real r, real phi, real z, B_field_data* Bdata);
-#pragma omp declare simd linear(i) uniform(rho, Bdata)
-a5err B_field_eval_rho_SIMD(
-    int i, real rho[NSIMD], real psi, B_field_data* Bdata);
-#pragma omp declare simd linear(i) uniform(B_dB, Bdata)
-a5err B_field_eval_B_dB_SIMD(
-    int i, real B_dB[12][NSIMD], real r, real phi, real z, B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 real B_field_get_axis_r(B_field_data* Bdata, real phi);
 #pragma omp declare simd uniform(Bdata)

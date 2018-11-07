@@ -73,40 +73,6 @@ integer linint1D_eval(real* val, linint1D_data* str, real r) {
 }
 
 /**
- * @brief Evaluate interpolated value of 1D scalar field
- *
- * This function evaluates the interpolated value of a 1D scalar field using
- * linear interpolation.
- * 
- * @param i index of SIMD variable
- * @param val variable in which to place the evaluated value
- * @param str data struct for data interpolation
- * @param r r-coordinate
- */
-integer linint1D_eval_SIMD(int i, real val[NSIMD], linint1D_data* str, real r) {
-    real c0, c1;
-    int i_r = (r - str->r_min)/str->r_grid;     /**< index for r variable */
-    int r1 = 1;                                 /**< Index jump one r forward */
-    if(i_r == str->n_r-1) {
-      r1 = -(str->n_r-1)*r1;                    /**< If last cell, index jump to 1st r */
-    }
-    real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-							       current cell */
-    int err = 0;
-    /* Check that the point is not outside the evaluation regime */
-    if(r < str->r_min || r > str->r_max) {
-	err = 1;
-    }
-    else {
-        c0 = str->f[i_r];
-        c1 = str->f[i_r+r1];
-        val[i] = c0*(1 - dr) + c1*dr;
-    }
-
-    return err;
-}
-
-/**
  * @brief Free allocated memory in interpolation data struct
  *
  * This function frees the memory allocated for interpolation coefficients

@@ -131,42 +131,6 @@ a5err B_STS_eval_psi(real psi[], real r, real phi, real z,
 }
 
 /**
- * @brief Evaluate poloidal flux psi
- *
- * This function evaluates the poloidal flux psi at the given coordinates using
- * tricubic interpolation on the stellarator 3D s data. This is a SIMD
- * function, so the values are placed in an NSIMD length struct.
- *
- * @param i index in the NSIMD struct that will be populated 
- * @param psi psi value will be stored in psi[0][i]
- * @param r r coordinate
- * @param phi phi coordinate
- * @param z z coordinate
- * @param Bdata pointer to magnetic field data struct
- *
- * @todo Change to a scalar elemental function and compare performance
- */
-a5err B_STS_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z,
-                   B_STS_data* Bdata) {
-    a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
-
-    if (Bdata->symmetry_mode == symmetry_type_periodic) {
-        phi = fmod(phi, Bdata->period_length);
-        if(phi < 0) {
-            phi += Bdata->period_length;
-        }
-    }
-
-    interperr += interp3Dcomp_eval_B_SIMD(i, &psi[0], &Bdata->psi, r, phi, z);
-
-    /* Test for psi interpolation error */
-    if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
-
-    return err;
-}
-
-/**
  * @brief Evaluate poloidal flux psi and derivatives
  *
  * This function evaluates the poloidal flux psi and it's derivatives at the given 
@@ -220,27 +184,6 @@ a5err B_STS_eval_rho(real rho[], real psi, B_STS_data* Bdata) {
 
     /* Normalize psi to get rho */
     rho[0] = sqrt(fabs( (psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0) ));
-
-    return err;
-}
-
-/**
- * @brief Evaluate radial coordinate rho
- *
- * This function evaluates the radial coordinate rho at the given psi value.
- * This is a SIMD function, so the values are placed in an NSIMD length struct.
- *
- * @param i index in the NSIMD struct that will be populated 
- * @param rho rho value will be stored in rho[i]
- * @param psi poloidal flux value 
- * @param Bdata pointer to magnetic field data struct
- *
- */
-a5err B_STS_eval_rho_SIMD(int i, real rho[NSIMD], real psi, B_STS_data* Bdata) {
-    a5err err = 0;
-
-    /* Normalize psi to get rho */
-    rho[i] = sqrt(fabs( (psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0) ));
 
     return err;
 }
@@ -319,32 +262,6 @@ a5err B_STS_eval_B(real B[], real r, real phi, real z, B_STS_data* Bdata) {
 
 }
 
-a5err B_STS_eval_B_SIMD(int i, real B[3][NSIMD], real r, real phi, real z, B_STS_data* Bdata) {
-    a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
-
-    if (Bdata->symmetry_mode == symmetry_type_periodic) {
-        phi = fmod(phi, Bdata->period_length);
-        if(phi < 0) {
-            phi += Bdata->period_length;
-        }
-    }
-
-    interperr += interp3Dcomp_eval_B_SIMD(i, B[0], &Bdata->B_r, r, phi, z);
-    interperr += interp3Dcomp_eval_B_SIMD(i, B[1], &Bdata->B_phi, r, phi, z);
-    interperr += interp3Dcomp_eval_B_SIMD(i, B[2], &Bdata->B_z, r, phi, z);
-
-    /* Test for B field interpolation error */
-    if(interperr) {err = error_raise( ERR_OUTSIDE_BFIELD, __LINE__ );}
-
-    /* Check that magnetic field seems valid */
-    int check = 0;
-    check += ((B[0][i]*B[0][i] + B[1][i]*B[1][i] + B[2][i]*B[2][i]) == 0);
-    if(!err && check) {err = error_raise( ERR_UNPHYSICAL_B, __LINE__ );}
-
-    return err;
-}
-
 /**
  * @brief Evaluate magnetic field and derivatives
  *
@@ -402,50 +319,6 @@ a5err B_STS_eval_B_dB(real B_dB[], real r, real phi, real z, B_STS_data* Bdata) 
     /* Check that magnetic field seems valid */
     int check = 0;
     check += ((B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]) == 0);
-    if(!err && check) {err = error_raise( ERR_UNPHYSICAL_B, __LINE__ );}
-
-    return err;
-}
-
-a5err B_STS_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z, B_STS_data* Bdata) {
-    a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
-    real B_dB_temp[10][NSIMD];
-
-    if (Bdata->symmetry_mode == symmetry_type_periodic) {
-        phi = fmod(phi, Bdata->period_length);
-        if(phi < 0) {
-            phi += Bdata->period_length;
-        }
-    }
-    
-    interperr += interp3Dcomp_eval_dB_SIMD(i, B_dB_temp, &Bdata->B_r, r, phi, z);
-
-    B_dB[0][i] = B_dB_temp[0][i];
-    B_dB[1][i] = B_dB_temp[1][i];
-    B_dB[2][i] = B_dB_temp[2][i];
-    B_dB[3][i] = B_dB_temp[3][i];
-
-    interperr += interp3Dcomp_eval_dB_SIMD(i, B_dB_temp, &Bdata->B_phi, r, phi, z);
-
-    B_dB[4][i] = B_dB_temp[0][i];
-    B_dB[5][i] = B_dB_temp[1][i];
-    B_dB[6][i] = B_dB_temp[2][i];
-    B_dB[7][i] = B_dB_temp[3][i];
-
-    interperr += interp3Dcomp_eval_dB_SIMD(i, B_dB_temp, &Bdata->B_z, r, phi, z);
-
-    B_dB[8][i] = B_dB_temp[0][i];
-    B_dB[9][i] = B_dB_temp[1][i];
-    B_dB[10][i] = B_dB_temp[2][i];
-    B_dB[11][i] = B_dB_temp[3][i];
-
-    /* Test for B field interpolation error */
-    if(interperr) {err = error_raise( ERR_OUTSIDE_BFIELD, __LINE__ );}
-
-    /* Check that magnetic field seems valid */
-    int check = 0;
-    check += ((B_dB[0][i]*B_dB[0][i] + B_dB[4][i]*B_dB[4][i] + B_dB[8][i]*B_dB[8][i]) == 0);
     if(!err && check) {err = error_raise( ERR_UNPHYSICAL_B, __LINE__ );}
 
     return err;

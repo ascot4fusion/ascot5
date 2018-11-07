@@ -41,7 +41,5 @@ int N0_3D_init(N0_3D_data* ndata, N0_3D_offload_data* offload_data,
                real* offload_array);
 #pragma omp declare simd uniform(ndata)
 a5err N0_3D_eval_n0(real n0[], real r, real phi, real z, N0_3D_data* ndata);
-#pragma omp declare simd linear(i) uniform(n0, ndata)
-a5err N0_3D_eval_n0_SIMD(int i, real n0[NSIMD], real r, real phi, real z, N0_3D_data* ndata);
-#pragma omp end declare target   
+#pragma omp end declare target
 #endif

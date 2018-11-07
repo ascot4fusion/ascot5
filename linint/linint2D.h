@@ -27,8 +27,6 @@ int linint2D_init(linint2D_data* str, real* f, int n_r, int n_z,
                   real z_min, real z_max, real z_grid);
 #pragma omp declare simd uniform(str)
 integer linint2D_eval(real* f, linint2D_data* str, real r, real z);
-#pragma omp declare simd linear(i) uniform(f, str)
-integer linint2D_eval_SIMD(int i, real f[NSIMD], linint2D_data* str, real r, real z);
 void linint2D_free(linint2D_data* str);
 #pragma omp end declare target
 #endif

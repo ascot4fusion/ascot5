@@ -23,8 +23,6 @@ int linint1D_init(linint1D_data* str, real* f, int n_r,
 		  int periodic);
 #pragma omp declare simd uniform(str)
 integer linint1D_eval(real* f, linint1D_data* str, real r);
-#pragma omp declare simd linear(i) uniform(f, str)
-integer linint1D_eval_SIMD(int i, real f[NSIMD], linint1D_data* str, real r);
 void linint1D_free(linint1D_data* str);
 #pragma omp end declare target
 #endif
