@@ -167,10 +167,81 @@ void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
 /**
  * @brief Update the histogram from guiding-center particles
  *
- * @todo To be implemented (or not)
+ * This function updates the histogram from the guiding center data. Bins are
+ * calculated as vector op and histogram is updates as an atomic operation to
+ * avoid race conditions.
+ *
+ * @param dist pointer to distribution parameter struct
+ * @param p_i pointer to SIMD GC struct at the beginning of time step
+ * @param p_f pointer to SIMD GC struct at the end of time step
  */
 void dist_6D_update_gc(dist_6D_data* dist, particle_simd_gc* p_f,
                        particle_simd_gc* p_i) {
+    real phi[NSIMD];
+
+    int i_r[NSIMD];
+    int i_phi[NSIMD];
+    int i_z[NSIMD];
+    int i_vr[NSIMD];
+    int i_vphi[NSIMD];
+    int i_vz[NSIMD];
+
+    int ok[NSIMD];
+    real weight[NSIMD];
+
+    particle_state p_s;
+
+    #pragma omp simd
+    for(int i = 0; i < NSIMD; i++) {
+        if(p_f->running[i]) {
+            particle_gc_to_state(p_f, i, &p_s, NULL);
+
+            i_r[i] = floor((p_s.r - dist->min_r)
+                     / ((dist->max_r - dist->min_r)/dist->n_r));
+
+            phi[i] = fmod(p_s.phi, 2*CONST_PI);
+            if(phi[i] < 0) {
+                phi[i] = phi[i] + 2*CONST_PI;
+            }
+            i_phi[i] = floor((phi[i] - dist->min_phi)
+                       / ((dist->max_phi - dist->min_phi)/dist->n_phi));
+
+            i_z[i] = floor((p_s.z - dist->min_z)
+                     / ((dist->max_z - dist->min_z) / dist->n_z));
+
+            i_vr[i] = floor((p_s.rdot - dist->min_vr)
+                      / ((dist->max_vr - dist->min_vr) / dist->n_vr));
+            i_vphi[i] = floor((p_s.phidot*p_s.r - dist->min_vphi)
+                        / ((dist->max_vphi - dist->min_vphi) / dist->n_vphi));
+            i_vz[i] = floor((p_s.zdot - dist->min_vz)
+                      / ((dist->max_vz - dist->min_vz) / dist->n_vz));
+
+            if(i_r[i] >= 0       && i_r[i] <= dist->n_r - 1
+               && i_phi[i] >= 0  && i_phi[i] <= dist->n_phi - 1
+               && i_z[i] >= 0    && i_z[i] <= dist->n_z - 1
+               && i_vr[i] >= 0   && i_vr[i] <= dist->n_vr - 1
+               && i_vphi[i] >= 0 && i_vphi[i] <= dist->n_vphi - 1
+               && i_vz[i] >= 0   && i_vz[i] <= dist->n_vz - 1) {
+                ok[i] = 1;
+                weight[i] = p_s.weight * (p_s.time - p_i->time[i]);
+            }
+            else {
+                ok[i] = 0;
+            }
+        }
+    }
+
+    for(int i = 0; i < NSIMD; i++) {
+        if(p_f->running[i] && ok[i]) {
+            unsigned long index = dist_6D_index(i_r[i], i_phi[i], i_z[i],
+                                                i_vr[i], i_vphi[i], i_vz[i],
+                                                dist->n_phi, dist->n_z,
+                                                dist->n_vr, dist->n_vphi,
+                                                dist->n_vz);
+            #pragma omp atomic
+            dist->histogram[index] += weight[i];
+        }
+    }
 }
 
 void dist_6D_sum(int start, int stop, real* array1, real* array2) {
@@ -180,5 +251,3 @@ void dist_6D_sum(int start, int stop, real* array1, real* array2) {
         array1[i] += array2[i];
     }
 }
-
-
