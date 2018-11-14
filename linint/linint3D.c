@@ -69,9 +69,10 @@ integer linint3D_eval(real* val, linint3D_data* str, real r, real phi, real z) {
     real c000, c100, c001, c101, c010, c110, c011, c111;
     real c00, c01, c10, c11;
     real c0, c1;
-    /** Make sure phi is in interval [0,2pi) */
-    phi = fmod(phi,CONST_2PI);
-    if(phi < 0){phi = CONST_2PI + phi;}
+    /** Make sure phi is in interval [phi_min, phi_max + phi_grid) */
+    phi_range = (str->phi_max + str->phi_grid - str->phi_min);
+    phi = fmod(phi - str->phi_min, phi_range) + str->phi_min;
+    if(phi < 0){phi = phi_range + phi;}
 
     int i_r = (r - str->r_min)/str->r_grid;     /**< index for r variable */
     int i_phi = (phi - str->phi_min)/str->phi_grid; /**< index for phi variable */
