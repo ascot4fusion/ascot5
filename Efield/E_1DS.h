@@ -30,6 +30,7 @@ typedef struct {
     interp1D_data dV;           /**< spline representation of potential derivative values */
 } E_1DS_data;
 
+void E_1DS_init_offload(E_1DS_offload_data* offload_data, real** offload_array);
 void E_1DS_free_offload(E_1DS_offload_data* offload_data, real** offload_array);
 
 #pragma omp declare target
