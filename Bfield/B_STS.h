@@ -69,7 +69,7 @@ typedef struct {
     interp3D_data B_z;           /**< pointer to start of B_z interpolation data struct */
 } B_STS_data;
 
-void B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array);
+int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array);
 void B_STS_free_offload(B_STS_offload_data* offload_data, real** offload_array);
 
 #pragma omp declare target

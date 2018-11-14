@@ -61,8 +61,8 @@ typedef struct {
     E_1DS_data E1DS;   /**< 1DS field or NULL if not active            */
 } E_field_data;
 
-void E_field_init_offload(E_field_offload_data* offload_data,
-                          real** offload_array);
+int E_field_init_offload(E_field_offload_data* offload_data,
+                         real** offload_array);
 void E_field_free_offload(E_field_offload_data* offload_data,
                           real** offload_array);
 

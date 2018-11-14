@@ -33,7 +33,7 @@ typedef struct {
     linint3D_data n0;     /**< pointer to start of neutral density interpolation data struct */
 } N0_3D_data;
 
-void N0_3D_init_offload(N0_3D_offload_data* offload_data, real** offload_array);
+int N0_3D_init_offload(N0_3D_offload_data* offload_data, real** offload_array);
 void N0_3D_free_offload(N0_3D_offload_data* offload_data, real** offload_array);
 
 #pragma omp declare target

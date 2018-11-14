@@ -1,8 +1,14 @@
 /**
  * @file wall_3d.c
  * @brief 3D wall collision checks
+ *
+ * 3D wall model where wall consists of small triangles that form a surface
+ * mesh. A wall collision happens when a marker intersects a wall triangle's
+ * plane. During initialization, the computational model is divided into
+ * smaller cell using octree, and wall triangles are divided according to
+ * which cell(s) they inhabit. Collision checks are only made with respect to
+ * triangles that are in the same cell as the marker.
  */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -11,12 +17,10 @@
 #include "../math.h"
 #include "../list.h"
 #include "../octree.h"
+#include "../print.h"
 
 /**
  * @brief Load 3D wall data and prepare parameters
- *
- * Reads a 3D wall from input.wall_3d (not the same format as ASCOT4!), stores
- * parameters in offload struct and allocates and fills the offload array.
  *
  * The input file contains an integer giving the number of wall triangles
  * followed by a list of coordinates for the corners of each triangle
@@ -26,13 +30,76 @@
  * ascot4_interface, so this function is now a dummy.
  *
  */
-void wall_3d_init_offload(wall_3d_offload_data* offload_data,
-                          real** offload_array) {
-    // Dummy function
+/**
+ * @brief Initialize 3D wall data and check inputs
+ *
+ * Before calling this function, the offload struct is expected to hold
+ * xmin, xmax, ymin, ymax, zmin, and zmax values.
+ *
+ * The offload array is expected to hold plasma data as
+ *   &(*offload_array)[0] = rho grid
+ *   &(*offload_array)[n_rho] = electron temperature
+ *   &(*offload_array)[n_rho*2] = ion temperature
+ *   &(*offload_array)[n_rho*2 + n_rho*n_ions] = electron density
+ *   &(*offload_array)[n_rho*2 + n_rho*n_ions + n_rho] = ion density
+ *
+ * This function fill rest of the offload struct and constructs the octree,
+ * while also printing some values as sanity check.
+
+ * The default octree depth is defined by macro WALL_OCTREE_DEPTH in wall_3d.h.
+ *
+ * @param offload_data pointer to offload data struct
+ * @param offload_array pointer to pointer to offload array
+ */
+int wall_3d_init_offload(wall_3d_offload_data* offload_data,
+                         real** offload_array) {
+
+    /* Add a little bit of padding so we don't need to worry about triangles
+       clipping the edges */
+    offload_data->xmin -= 0.1;
+    offload_data->xmax += 0.1;
+    offload_data->ymin -= 0.1;
+    offload_data->ymax += 0.1;
+    offload_data->zmin -= 0.1;
+    offload_data->zmax += 0.1;
+
+    /* Depth of the octree in which the triangles are sorted */
+    offload_data->depth = WALL_OCTREE_DEPTH;
+    int ngrid = 1;
+    for(int i = 0; i < offload_data->depth - 1; i++) {
+        ngrid *= 2;
+    }
+    offload_data->ngrid = ngrid;
+
+    offload_data->xgrid = (offload_data->xmax - offload_data->xmin)
+                          / offload_data->ngrid;
+    offload_data->ygrid = (offload_data->ymax - offload_data->ymin)
+                          / offload_data->ngrid;
+    offload_data->zgrid = (offload_data->zmax - offload_data->zmin)
+                          / offload_data->ngrid;
+
+    print_out(VERBOSE_IO, "\n3D wall model (wall_3D)\n");
+    print_out(VERBOSE_IO,
+              "Number of wall elements %d\n"
+              "Spanning xmin = %2.3f m, xmax = %2.3f m\n"
+              "         ymin = %2.3f m, ymax = %2.3f m\n"
+              "         zmin = %2.3f m, zmax = %2.3f m\n",
+              offload_data->n,
+              offload_data->xmin, offload_data->xmax, offload_data->ymin,
+              offload_data->ymax, offload_data->zmin, offload_data->zmax);
+
+    return 0;
 }
 
 /**
  * @brief Free offload array and reset parameters
+ *
+ * This function deallocates the offload_array.
+ *
+ * This function is host only.
+ *
+ * @param offload_data pointer to offload data struct
+ * @param offload_array pointer to pointer to offload array
  */
 void wall_3d_free_offload(wall_3d_offload_data* offload_data,
                           real** offload_array) {
@@ -41,7 +108,17 @@ void wall_3d_free_offload(wall_3d_offload_data* offload_data,
 }
 
 /**
- * @brief Initialize 3D wall data struct on target
+ * @brief Initialize wall data struct on target
+ *
+ * This function copies the wall parameters from the offload struct to the
+ * struct on target and sets the wall data pointers to correct offsets in the
+ * offload array.
+ *
+ * @param w pointer to data struct on target
+ * @param offload_data pointer to offload data struct
+ * @param offload_array offload array
+ *
+ * @return zero on success
  */
 void wall_3d_init(wall_3d_data* w, wall_3d_offload_data* offload_data,
                   real* offload_array) {
@@ -71,6 +148,9 @@ void wall_3d_init(wall_3d_data* w, wall_3d_offload_data* offload_data,
  * octree grid to identify triangles belonging to each grid cell.
  *
  * Slow, only for testing purposes.
+ *
+ * @param w pointer to wall data
+ * @param offload_array offload array
  */
 void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
     /* create a list for holding the triangle ids in each cell */
@@ -123,7 +203,7 @@ void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
     for(i = 0; i < ncell; i++) {
         list_size += list_int_size(tri_list[i]);
     }
-    
+
     w->tree_array_size = 2*ncell + list_size;
     w->tree_array = (int*) malloc((w->tree_array_size)*sizeof(int));
 
@@ -139,13 +219,16 @@ void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
         list_int_free(&tri_list[i]);
     }
     free(tri_list);
-} 
+}
 
 /**
  * @brief Construct wall octree recursively
  *
  * Constructs the octree array by iterating through all wall triangles and
- * placing them into an octree structure.
+ * placing them into an octree structure
+ *
+ * @param w pointer to wall data
+ * @param offload_array the offload array
  */
 void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
     /* construct the octree and store triangles there */
@@ -192,7 +275,7 @@ void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
     for(i = 0; i < ncell; i++) {
         list_size += list_int_size(tri_list[i]);
     }
-    
+
     w->tree_array_size = 2*ncell + list_size;
     w->tree_array = (int*) malloc((w->tree_array_size)*sizeof(int));
 
@@ -207,11 +290,21 @@ void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
         next_empty_list += w->tree_array[next_empty_list] + 1;
     }
     free(tri_list);
-} 
+}
 
 /**
  * @brief Check if trajectory from (r1, phi1, z1) to (r2, phi2, z2) intersects
  *        the wall using the octree structure
+ *
+ * @param r1 start point R coordinate [m]
+ * @param phi1 start point phi coordinate [rad]
+ * @param z1 start point z coordinate [rad]
+ * @param r2 end point R coordinate [m]
+ * @param phi2 end point phi coordinate [rad]
+ * @param z2 end point z coordinate [rad]
+ * @param w pointer to data struct on target
+ *
+ * @return wall element id if hit, zero otherwise
  */
 int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
                      real z2, wall_3d_data* wdata) {
@@ -277,6 +370,16 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
 /**
  * @brief Check if trajectory from (r1, phi1, z1) to (r2, phi2, z2) intersects
  *        the wall against all triangles
+ *
+ * @param r1 start point R coordinate [m]
+ * @param phi1 start point phi coordinate [rad]
+ * @param z1 start point z coordinate [rad]
+ * @param r2 end point R coordinate [m]
+ * @param phi2 end point phi coordinate [rad]
+ * @param z2 end point z coordinate [rad]
+ * @param w pointer to data struct on target
+ *
+ * @return wall element id if hit, zero otherwise
  */
 int wall_3d_hit_wall_full(real r1, real phi1, real z1, real r2, real phi2,
                           real z2, wall_3d_data* wdata) {
@@ -312,6 +415,14 @@ int wall_3d_hit_wall_full(real r1, real phi1, real z1, real r2, real phi2,
 
 /**
  * @brief Check if any part of a triangle is inside a box
+ *
+ * @param t1 xyz coordinates of first triangle vertex [m]
+ * @param t2 xyz coordinates of second triangle vertex [m]
+ * @param t3 xyz coordinates of third triangle vertex [m]
+ * @param bb1 bounding box minimum xyz coordinates [m]
+ * @param bb2 bounding box maximum xyz coordinates [m]
+ *
+ * @return zero if not any part of the triangle is within the box
  */
 int wall_3d_tri_in_cube(real t1[3], real t2[3], real t3[3], real bb1[3],
                            real bb2[3]) {
@@ -380,6 +491,16 @@ int wall_3d_tri_in_cube(real t1[3], real t2[3], real t3[3], real bb1[3],
 
 /**
  * @brief Check if a line segment intersects a triangle
+ *
+ * @param q1 line segment start point xyz coordinates [m]
+ * @param q2 line segment end point xyz coordinates [m]
+ * @param t1 xyz coordinates of first triangle vertex [m]
+ * @param t2 xyz coordinates of second triangle vertex [m]
+ * @param t3 xyz coordinates of third triangle vertex [m]
+ *
+ * @return A positive number w which is defined so that vector q1 + w*(q2-q1)
+ *         is the intersection point. A negative number is returned if no there
+ *         is no intersection
  */
 double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
                              real t3[3]) {
@@ -423,7 +544,8 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
 
         if(v >= 0 && u >= 0 && v+u <= 1) {
             return w;
-        } else {
+        }
+        else {
             return -1;
         }
     }
@@ -434,6 +556,15 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
 
 /**
  * @brief Check if a line segment intersects a quad (assumed planar)
+ *
+ * @param q1 line segment start point xyz coordinates [m]
+ * @param q2 line segment end point xyz coordinates [m]
+ * @param t1 xyz coordinates of first quad vertex [m]
+ * @param t2 xyz coordinates of second quad vertex [m]
+ * @param t3 xyz coordinates of third quad vertex [m]
+ * @param t3 xyz coordinates of fourth quad vertex [m]
+ *
+ * @return Zero if no intersection, positive number otherwise
  */
 int wall_3d_quad_collision(real q1[3], real q2[3], real t1[3], real t2[3],
                            real t3[3], real t4[3]) {

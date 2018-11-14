@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include "ascot5.h"
 #include "error.h"
+#include "print.h"
 #include "neutral.h"
 #include "neutral/N0_3D.h"
 #include "neutral/N0_ST.h"
@@ -37,21 +38,30 @@
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void neutral_init_offload(neutral_offload_data* offload_data,
-                          real** offload_array) {
+int neutral_init_offload(neutral_offload_data* offload_data,
+                         real** offload_array) {
+    int err = 0;
+
     switch(offload_data->type) {
         case neutral_type_3D:
-            N0_3D_init_offload(&(offload_data->N03D), offload_array);
+            err = N0_3D_init_offload(&(offload_data->N03D), offload_array);
             offload_data->offload_array_length =
                 offload_data->N03D.offload_array_length;
             break;
 
         case neutral_type_ST:
-            N0_ST_init_offload(&(offload_data->N0ST), offload_array);
+            err = N0_ST_init_offload(&(offload_data->N0ST), offload_array);
             offload_data->offload_array_length =
                 offload_data->N0ST.offload_array_length;
             break;
+        default:
+            /* Unregonized input. Produce error. */
+            print_err("Error: Unregonized neutral data type.");
+            err = 1;
+            break;
     }
+
+    return err;
 }
 
 /**

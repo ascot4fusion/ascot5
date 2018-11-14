@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include "ascot5.h"
 #include "error.h"
+#include "print.h"
 #include "E_field.h"
 #include "B_field.h"
 #include "Efield/E_TC.h"
@@ -33,41 +34,43 @@
  *
  * This function is host only.
  *
- * @todo This method should return error if initialization fails
- *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ *
+ * @return zero if initialization succeeded
  */
-void E_field_init_offload(E_field_offload_data* offload_data,
+int E_field_init_offload(E_field_offload_data* offload_data,
                           real** offload_array) {
     int err = 0;
-    offload_data->type = E_field_type_1D;
 
     switch(offload_data->type) {
 
         case E_field_type_1D:
-            E_1D_init_offload(&(offload_data->E1D), offload_array);
+            err = E_1D_init_offload(&(offload_data->E1D), offload_array);
             offload_data->offload_array_length =
                 offload_data->E1D.offload_array_length;
             break;
 
         case E_field_type_1DS:
-            E_1DS_init_offload(&(offload_data->E1DS), offload_array);
+            err = E_1DS_init_offload(&(offload_data->E1DS), offload_array);
             offload_data->offload_array_length =
                 offload_data->E1DS.offload_array_length;
             break;
 
         case E_field_type_TC:
-            E_TC_init_offload(&(offload_data->ETC), offload_array);
+            err = E_TC_init_offload(&(offload_data->ETC), offload_array);
             offload_data->offload_array_length =
                 offload_data->ETC.offload_array_length;
             break;
 
         default:
             /* Unregonized input. Produce error. */
+            print_err("Error: Unregonized electric field type.");
             err = 1;
             break;
     }
+
+    return err;
 }
 
 /**
@@ -105,15 +108,16 @@ void E_field_free_offload(E_field_offload_data* offload_data,
  * to the struct on target and sets the electric field data pointers to correct
  * offsets in the offload array.
  *
- * @todo All functions are missing return value
+ * This function returns error if the offload data has not been initialized.
+ * The instances themselves should not return an error since all they do is
+ * assign pointers and values.
  *
  * @param Edata pointer to data struct on target
  * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
+ * @param offload_array the offload array
  *
- * @return Zero if initialization succeeded
+ * @return Non-zero integer if offload was not initialized beforehand
  */
-
 int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
                   real* offload_array) {
     int err = 0;
@@ -172,15 +176,15 @@ a5err E_field_eval_E(real E[3], real r, real phi, real z, E_field_data* Edata,
     switch(Edata->type) {
 
         case E_field_type_1D:
-            E_1D_eval_E(E, r, phi, z, &(Edata->E1D), Bdata);
+            err = E_1D_eval_E(E, r, phi, z, &(Edata->E1D), Bdata);
             break;
 
         case E_field_type_1DS:
-            E_1DS_eval_E(E, r, phi, z, &(Edata->E1DS), Bdata);
+            err = E_1DS_eval_E(E, r, phi, z, &(Edata->E1DS), Bdata);
             break;
 
         case E_field_type_TC:
-            E_TC_eval_E(E, r, phi, z, &(Edata->ETC), Bdata);
+            err = E_TC_eval_E(E, r, phi, z, &(Edata->ETC), Bdata);
             break;
 
         default:
