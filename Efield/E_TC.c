@@ -38,7 +38,8 @@ int E_TC_init_offload(E_TC_offload_data* offload_data,
 
     print_out(VERBOSE_IO, "\nTrivial Cartesian electric field (E_TC)\n");
     print_out(VERBOSE_IO, "E_x = %le, E_y = %le, E_z = %le\n",
-              (*offload_array)[0],(*offload_array)[1],(*offload_array)[2]);
+              offload_data->Exyz[0], offload_data->Exyz[1],
+              offload_data->Exyz[2]);
 
     return 0;
 }
