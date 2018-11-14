@@ -49,7 +49,7 @@ int linint2D_init(linint2D_data* str, real* f, int n_r, int n_z,
  *
  * This function evaluates the interpolated value of a 2D scalar field using
  * bilinear interpolation.
- * 
+ *
  * @param val variable in which to place the evaluated value
  * @param str data struct for data interpolation
  * @param r r-coordinate
@@ -63,18 +63,18 @@ integer linint2D_eval(real* val, linint2D_data* str, real r, real z) {
     int i_z = (z - str->z_min)/str->z_grid;     /**< index for z variable */
 
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-							       current cell */
+                                                               current cell */
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
-							       current cell */
+                                                               current cell */
 
     int z1 = str->n_r;                      /**< Index jump one z forward */
-	   
+
     int err = 0;
 
     /* Check that the point is not outside the evaluation regime */
     if(r < str->r_min || r > str->r_max
        || z < str->z_min || z > str->z_max) {
-	err = 1;
+        err = 1;
     }
     else {
         /* Values at grid cell corners */
@@ -97,7 +97,7 @@ integer linint2D_eval(real* val, linint2D_data* str, real r, real z) {
  *
  * This function frees the memory allocated for interpolation coefficients
  * in the interpolation data struct
- * 
+ *
  * @todo Error checking
  *
  * @param str data struct for data interpolation

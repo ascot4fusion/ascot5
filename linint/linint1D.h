@@ -20,7 +20,7 @@ typedef struct {
 #pragma omp declare target
 int linint1D_init(linint1D_data* str, real* f, int n_r,
                   real r_min, real r_max, real r_grid,
-		  int periodic);
+                  int periodic);
 #pragma omp declare simd uniform(str)
 integer linint1D_eval(real* f, linint1D_data* str, real r);
 void linint1D_free(linint1D_data* str);

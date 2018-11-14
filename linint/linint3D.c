@@ -29,9 +29,9 @@
  * @param z_grid grid size of the z axis
  */
 int linint3D_init(linint3D_data* str, real* f, int n_r, int n_phi, int n_z,
-		       real r_min, real r_max, real r_grid,
-		       real phi_min, real phi_max, real phi_grid,
-		       real z_min, real z_max, real z_grid) {
+                       real r_min, real r_max, real r_grid,
+                       real phi_min, real phi_max, real phi_grid,
+                       real z_min, real z_max, real z_grid) {
 
     int err = 0;
 
@@ -58,7 +58,7 @@ int linint3D_init(linint3D_data* str, real* f, int n_r, int n_phi, int n_z,
  *
  * This function evaluates the interpolated value of a 3D scalar field using
  * trilinear interpolation.
- * 
+ *
  * @param val variable in which to place the evaluated value
  * @param str data struct for data interpolation
  * @param r r-coordinate
@@ -78,25 +78,25 @@ integer linint3D_eval(real* val, linint3D_data* str, real r, real phi, real z) {
     int i_z = (z - str->z_min)/str->z_grid;     /**< index for z variable */
 
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-							       current cell */
+                                                               current cell */
     real dphi = (phi-(str->phi_min+i_phi*str->phi_grid))/str->phi_grid; /**< Normalized phi
-									   coordinate in
-									   current cell */
+                                                                           coordinate in
+                                                                           current cell */
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
-							       current cell */
+                                                               current cell */
 
     int phi1 = str->n_z*str->n_r;           /**< Index jump one phi forward */
     if(i_phi==str->n_phi-1) {
-	phi1 = -(str->n_phi-1)*phi1;          /**< If last cell, index jump to 1st phi */
+        phi1 = -(str->n_phi-1)*phi1;          /**< If last cell, index jump to 1st phi */
     }
     int z1 = str->n_r;                      /**< Index jump one z forward */
-	   
+
     int err = 0;
 
     /* Check that the point is not outside the evaluation regime */
     if(r < str->r_min || r > str->r_max
-	|| z < str->z_min || z > str->z_max) {
-	err = 1;
+        || z < str->z_min || z > str->z_max) {
+        err = 1;
     }
     else {
         /* Values at grid cell corners */
@@ -128,7 +128,7 @@ integer linint3D_eval(real* val, linint3D_data* str, real r, real phi, real z) {
  *
  * This function frees the memory allocated for interpolation coefficients
  * in the interpolation data struct
- * 
+ *
  * @todo Error checking
  *
  * @param str data struct for data interpolation

@@ -27,9 +27,9 @@ typedef struct {
 
 #pragma omp declare target
 int linint3D_init(linint3D_data* str, real* f, int n_r, int n_phi, int n_z,
-		   real r_min, real r_max, real r_grid,
-		   real phi_min, real phi_max, real phi_grid,
-		   real z_min, real z_max, real z_grid);
+                  real r_min, real r_max, real r_grid,
+                  real phi_min, real phi_max, real phi_grid,
+                  real z_min, real z_max, real z_grid);
 #pragma omp declare simd uniform(str)
 integer linint3D_eval(real* f, linint3D_data* str, real r, real phi, real z);
 void linint3D_free(linint3D_data* str);

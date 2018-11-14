@@ -21,8 +21,8 @@
  * @param r_grid grid size of the r axis
  */
 int linint1D_init(linint1D_data* str, real* f, int n_r,
-		  real r_min, real r_max, real r_grid,
-		  int periodic) {
+                  real r_min, real r_max, real r_grid,
+                  int periodic) {
 
     int err = 0;
 
@@ -44,7 +44,7 @@ int linint1D_init(linint1D_data* str, real* f, int n_r,
  *
  * This function evaluates the interpolated value of a 1D scalar field using
  * linear interpolation.
- * 
+ *
  * @param val variable in which to place the evaluated value
  * @param str data struct for data interpolation
  * @param r r-coordinate
@@ -57,11 +57,11 @@ integer linint1D_eval(real* val, linint1D_data* str, real r) {
       r1 = -(str->n_r-1)*r1;                    /**< If last cell, index jump to 1st r */
     }
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-							       current cell */
+                                                               current cell */
     int err = 0;
     /* Check that the point is not outside the evaluation regime */
     if(r < str->r_min || r > str->r_max) {
-	err = 1;
+        err = 1;
     }
     else {
         c0 = str->f[i_r];
@@ -77,7 +77,7 @@ integer linint1D_eval(real* val, linint1D_data* str, real r) {
  *
  * This function frees the memory allocated for interpolation coefficients
  * in the interpolation data struct
- * 
+ *
  * @todo Error checking
  *
  * @param str data struct for data interpolation
