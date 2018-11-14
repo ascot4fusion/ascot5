@@ -14,11 +14,6 @@
 #include "../B_field.h"
 #include "E_1DS.h"
 
-void E_1DS_init_offload(E_1DS_offload_data* offload_data,
-                        real** offload_array) {
-    // redundant function
-}
-
 /**
  * @brief Load 1DS electric field data and prepare parameters
  *
