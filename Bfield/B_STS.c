@@ -10,14 +10,14 @@
 #include "../ascot5.h"
 #include "../error.h"
 #include "B_STS.h"
-#include "../linint/linint1D.h" 
-#include "../spline/interp3Dcomp.h" 
+#include "../linint/linint1D.h"
+#include "../spline/interp3Dcomp.h"
 
 void B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
 }
 
 /**
- * @brief Free offload array and reset parameters 
+ * @brief Free offload array and reset parameters
  *
  * This function deallocates the offload_array.
  *
@@ -30,7 +30,7 @@ void B_STS_free_offload(B_STS_offload_data* offload_data, real** offload_array) 
 }
 
 /**
- * @brief Initialize magnetic field data struct on target 
+ * @brief Initialize magnetic field data struct on target
  *
  * This function copies the magnetic field parameters from the offload struct
  * to the struct on target and sets the magnetic field data pointers to
@@ -52,31 +52,31 @@ int B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
     /* Bfield */
     err += interp3Dcomp_init(&Bdata->B_r,
                              offload_array,
-			     offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi, offload_data->Bgrid_n_z,
-			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
-			     offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max, offload_data->Bgrid_phi_grid,
-			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
-    
+                             offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi, offload_data->Bgrid_n_z,
+                             offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
+                             offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max, offload_data->Bgrid_phi_grid,
+                             offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
+
     err += interp3Dcomp_init(&Bdata->B_phi,
                              offload_array + offload_data->Bgrid_n_phi*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r,
-			     offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi, offload_data->Bgrid_n_z,
-			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
-			     offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max, offload_data->Bgrid_phi_grid,
-			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
-    
+                             offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi, offload_data->Bgrid_n_z,
+                             offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
+                             offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max, offload_data->Bgrid_phi_grid,
+                             offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
+
     err += interp3Dcomp_init(&Bdata->B_z,
                              offload_array + 2*offload_data->Bgrid_n_phi*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r,
-			     offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi, offload_data->Bgrid_n_z,
-			     offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
-			     offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max, offload_data->Bgrid_phi_grid,
-			     offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
+                             offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi, offload_data->Bgrid_n_z,
+                             offload_data->Bgrid_r_min, offload_data->Bgrid_r_max, offload_data->Bgrid_r_grid,
+                             offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max, offload_data->Bgrid_phi_grid,
+                             offload_data->Bgrid_z_min, offload_data->Bgrid_z_max, offload_data->Bgrid_z_grid);
 
     err += interp3Dcomp_init(&Bdata->psi,
                              offload_array + 3*offload_data->Bgrid_n_phi*offload_data->Bgrid_n_z*offload_data->Bgrid_n_r,
-			     offload_data->psigrid_n_r, offload_data->psigrid_n_phi, offload_data->psigrid_n_z,
-			     offload_data->psigrid_r_min, offload_data->psigrid_r_max, offload_data->psigrid_r_grid,
-			     offload_data->psigrid_phi_min, offload_data->psigrid_phi_max, offload_data->psigrid_phi_grid,
-			     offload_data->psigrid_z_min, offload_data->psigrid_z_max, offload_data->psigrid_z_grid);
+                             offload_data->psigrid_n_r, offload_data->psigrid_n_phi, offload_data->psigrid_n_z,
+                             offload_data->psigrid_r_min, offload_data->psigrid_r_max, offload_data->psigrid_r_grid,
+                             offload_data->psigrid_phi_min, offload_data->psigrid_phi_max, offload_data->psigrid_phi_grid,
+                             offload_data->psigrid_z_min, offload_data->psigrid_z_max, offload_data->psigrid_z_grid);
 
     /* Magnetic axis */
     int periodic = 1;
@@ -93,7 +93,7 @@ int B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
                          offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
                          offload_data->axis_grid, periodic);
 
-    return err;    
+    return err;
 }
 
 /**
@@ -133,11 +133,11 @@ a5err B_STS_eval_psi(real psi[], real r, real phi, real z,
 /**
  * @brief Evaluate poloidal flux psi and derivatives
  *
- * This function evaluates the poloidal flux psi and it's derivatives at the given 
+ * This function evaluates the poloidal flux psi and it's derivatives at the given
  * coordinates using tricubic interpolation on the stellarator magnetic field data.
  * This is a SIMD function, so the values are placed in an NSIMD length struct.
  *
- * @param i index in the NSIMD struct that will be populated 
+ * @param i index in the NSIMD struct that will be populated
  * @param psi psi values (psi   -> psi_dpsi[0][i]    dpsi/dr -> psi_dpsi[1][i]
  *        dpsi/dphi -> psi_dpsi[2][i]    dpsi/dz -> psi_dpsi[3][i])
  * @param r r coordinate
@@ -175,7 +175,7 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_STS_data*
  * This function evaluates the radial coordinate rho at the given psi value.
  *
  * @param rho rho value will be stored in rho[0]
- * @param psi poloidal flux value 
+ * @param psi poloidal flux value
  * @param Bdata pointer to magnetic field data struct
  *
  */
@@ -192,11 +192,11 @@ a5err B_STS_eval_rho(real rho[], real psi, B_STS_data* Bdata) {
  * @brief Evaluate radial coordinate rho and its derivatives
  *
  * This function evaluates the radial coordinate rho and its derivatives
- * at the given coordinates using tricubic interpolation on the 
- * stellarator magnetic field data. This is a SIMD 
+ * at the given coordinates using tricubic interpolation on the
+ * stellarator magnetic field data. This is a SIMD
  * function, so the values are placed in an NSIMD length struct.
  *
- * @param i index in the NSIMD struct that will be populated 
+ * @param i index in the NSIMD struct that will be populated
  * @param rho rho values (rho   -> rho_drho[0][i]    drho/dr -> rho_drho[1][i]
  *        drho/dphi -> rho_drho[2][i]    drho/dz -> rho_drho[3][i])
  * @param r r coordinate
@@ -227,7 +227,7 @@ a5err B_STS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_STS_data*
  * tricubic interpolation on the 3D magnetic field data. This is a SIMD
  * function, so the values are placed in an NSIMD length struct.
  *
- * @param i index in the NSIMD struct that will be populated 
+ * @param i index in the NSIMD struct that will be populated
  * @param B array where magnetic field values will be stored (Br -> B[0][i],
  *          Bphi -> B[1][i], Bz -> B[2][i]
  * @param r r coordinate
@@ -265,11 +265,11 @@ a5err B_STS_eval_B(real B[], real r, real phi, real z, B_STS_data* Bdata) {
 /**
  * @brief Evaluate magnetic field and derivatives
  *
- * This function evaluates the magnetic field and it's derivatives at the given 
+ * This function evaluates the magnetic field and it's derivatives at the given
  * coordinates using bicubic interpolation on the stellarator magnetic field data.
  * This is a SIMD function, so the values are placed in an NSIMD length struct.
  *
- * @param i index in the NSIMD struct that will be populated 
+ * @param i index in the NSIMD struct that will be populated
  * @param B_dB array where magnetic field values will be stored (Br -> B[0][i],
  *          dBr/dr -> B[1][i], dBr/dphi -> B[2][i], dBr/dz -> B[3][i],
  *          Bphi -> B[4][i], dBphi/dr -> B[5][i], dBphi/dphi -> B[6][i],
@@ -291,21 +291,21 @@ a5err B_STS_eval_B_dB(real B_dB[], real r, real phi, real z, B_STS_data* Bdata) 
             phi += Bdata->period_length;
         }
     }
-        
+
     interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
 
     B_dB[0] = B_dB_temp[0];
     B_dB[1] = B_dB_temp[1];
     B_dB[2] = B_dB_temp[2];
     B_dB[3] = B_dB_temp[3];
-    
+
     interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
 
     B_dB[4] = B_dB_temp[0];
     B_dB[5] = B_dB_temp[1];
     B_dB[6] = B_dB_temp[2];
     B_dB[7] = B_dB_temp[3];
-    
+
     interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
 
     B_dB[8] = B_dB_temp[0];
@@ -332,7 +332,7 @@ a5err B_STS_get_axis_r(real* axis_r, B_STS_data* Bdata, real phi) {
         phi += 2*math_pi;
     }
     interperr += linint1D_eval(axis_r, &Bdata->axis_r, phi);
-    if(interperr) {err = error_raise( ERR_OUTSIDE_AXISGRID, __LINE__ );}    
+    if(interperr) {err = error_raise( ERR_OUTSIDE_AXISGRID, __LINE__ );}
     return err;
 }
 
