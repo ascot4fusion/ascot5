@@ -6,11 +6,11 @@
  * user-defined values at the origo \f$(R,z) = (0,0)\f$, and constant Jacobian
  *
  * \f{bmatrix}{
- * \frac{\partial B_x}{\partial x} & \frac{\partial B_x}{\partial y} &
+   \frac{\partial B_x}{\partial x} & \frac{\partial B_x}{\partial y} &
    \frac{\partial B_x}{\partial z} \\
- * \frac{\partial B_y}{\partial x} & \frac{\partial B_y}{\partial y} &
+   \frac{\partial B_y}{\partial x} & \frac{\partial B_y}{\partial y} &
    \frac{\partial B_y}{\partial z} \\
- * \frac{\partial B_z}{\partial x} & \frac{\partial B_z}{\partial y} &
+   \frac{\partial B_z}{\partial x} & \frac{\partial B_z}{\partial y} &
    \frac{\partial B_z}{\partial z}
  * \f}
  *
