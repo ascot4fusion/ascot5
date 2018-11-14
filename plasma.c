@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include "ascot5.h"
 #include "error.h"
+#include "print.h"
 #include "plasma.h"
 #include "plasma/plasma_1D.h"
 #include "plasma/plasma_1DS.h"
@@ -47,14 +48,30 @@
  *
  * This function is host only.
  *
- * @todo Implement this
- *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void plasma_init_offload(plasma_offload_data* offload_data,
-                            real** offload_array) {
+int plasma_init_offload(plasma_offload_data* offload_data,
+                        real** offload_array) {
+    int err = 0;
 
+    switch(offload_data->type) {
+
+        case plasma_type_1D:
+            err = plasma_1D_init_offload(&(offload_data->plasma_1D),
+                                         offload_array);
+            offload_data->offload_array_length =
+                offload_data->plasma_1D.offload_array_length;
+            break;
+
+        default:
+            /* Unregonized input. Produce error. */
+            print_err("Error: Unregonized plasma data type.");
+            err = 1;
+            break;
+    }
+
+    return err;
 }
 
 /**
@@ -214,7 +231,7 @@ a5err plasma_eval_densandtemp(real rho, plasma_data* pls_data,
     if(err) {
         /* In case of error, return some reasonable values to avoid further
            complications */
-        for(int i; i++; i<MAX_SPECIES) {
+        for(int i=0; i<MAX_SPECIES; i++) {
             dens[i] = 1e20;
             temp[i] = 1e3;
         }

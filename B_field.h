@@ -68,8 +68,8 @@ typedef struct {
     B_TC_data BTC;     /**< TC field or NULL if not active             */
 } B_field_data;
 
-void B_field_init_offload(B_field_offload_data* offload_data,
-                          real** offload_array);
+int B_field_init_offload(B_field_offload_data* offload_data,
+                         real** offload_array);
 void B_field_free_offload(B_field_offload_data* offload_data,
                           real** offload_array);
 

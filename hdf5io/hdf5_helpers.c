@@ -7,6 +7,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <hdf5.h>
+#include <hdf5_hl.h>
+#include "../ascot5.h"
+#include "../print.h"
 
 /**
  * @brief Initialize hdf5, right now just disables automatic error messages.
@@ -90,12 +93,135 @@ herr_t hdf5_find_group(hid_t loc, const char* path) {
 char* hdf5_generate_qid_path(const char* original, char* qid, char* path) {
     strcpy(path, original);
     char* ptr = strstr(path,"XXXXXXXXXX");
-    
+
     for(int i = 0; i < 10; i++) {
-	ptr[i] = qid[i];
+        ptr[i] = qid[i];
     }
 
     return path;
+}
+
+/**
+ * @brief Generate a valid path from a given template and qid.
+ *
+ * Data in ASCOT5 HDF5 files is stored in groups, where each group is assigned
+ * a unique identifier. The paths are then in format such as "bfield/B_2D-0123456789".
+ * This function turns a template e.g. "bfield/B_2D-XXXXXXXXXX" to a valid path.
+ */
+char* hdf5_gen_path(const char* original, char* qid, char* path) {
+    strcpy(path, original);
+    char* ptr = strstr(path,"XXXXXXXXXX");
+
+    for(int i = 0; i < 10; i++) {
+        ptr[i] = qid[i];
+    }
+
+    return path;
+}
+
+/**
+ * @brief Read double-valued data from ASCOT5 HDF5 file.
+ *
+ * Datasets in ASCOT5 are located in the HDF5 file at paths that look like this:
+ * "/options/opt-XXXXXXXXXX/dataset", where X's is the QID value that is used
+ * differentiate between inputs of same type. This function constructs the path
+ * for a given dummy path, dataset, and qid, reads the dataset, and writes error
+ * message if the dataset could not be read.
+ *
+ * This function reads data that has type double.
+ *
+ * The file is opened and closed outside of this function.
+ *
+ * @param var "dummy" (otherwise valid but with X's) path to variable
+ * @param ptr pointer where data will be stored
+ * @param file HDF5 file
+ * @param qid QID value
+ * @param errfile use macro __FILE__ here to indicate the file this function
+ *        was called
+ * @param errline use macro __LINE__ here to indicate the line this function
+ *        was called
+ *
+ * @return zero if success
+ */
+int hdf5_read_double(const char* var, real* ptr, hid_t file, char* qid,
+                     const char* errfile, int errline) {
+    char temp[256];
+    if( H5LTread_dataset_double(file, hdf5_gen_path(var, qid, temp), ptr) < 0 ){
+        print_err("Error: could not read HDF5 dataset %s FILE %s LINE %d\n",
+                  temp, errfile, errline);
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ * @brief Read int-valued data from ASCOT5 HDF5 file.
+ *
+ * Datasets in ASCOT5 are located in the HDF5 file at paths that look like this:
+ * "/options/opt-XXXXXXXXXX/dataset", where X's is the QID value that is used
+ * differentiate between inputs of same type. This function constructs the path
+ * for a given dummy path, dataset, and qid, reads the dataset, and writes error
+ * message if the dataset could not be read.
+ *
+ * This function reads data that has type double.
+ *
+ * The file is opened and closed outside of this function.
+ *
+ * @param var "dummy" (otherwise valid but with X's) path to variable
+ * @param ptr pointer where data will be stored
+ * @param file HDF5 file
+ * @param qid QID value
+ * @param errfile use macro __FILE__ here to indicate the file this function
+ *        was called
+ * @param errline use macro __LINE__ here to indicate the line this function
+ *        was called
+ *
+ * @return zero if success
+ */
+int hdf5_read_int(const char* var, int* ptr, hid_t file, char* qid,
+                  const char* errfile, int errline) {
+    char temp[256];
+    if( H5LTread_dataset_int(file, hdf5_gen_path(var, qid, temp), ptr) < 0 ){
+        print_err("Error: could not read HDF5 dataset %s FILE %s LINE %d\n",
+                  temp, errfile, errline);
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ * @brief Read long-valued data from ASCOT5 HDF5 file.
+ *
+ * Datasets in ASCOT5 are located in the HDF5 file at paths that look like this:
+ * "/options/opt-XXXXXXXXXX/dataset", where X's is the QID value that is used
+ * differentiate between inputs of same type. This function constructs the path
+ * for a given dummy path, dataset, and qid, reads the dataset, and writes error
+ * message if the dataset could not be read.
+ *
+ * This function reads data that has type double.
+ *
+ * The file is opened and closed outside of this function.
+ *
+ * @param var "dummy" (otherwise valid but with X's) path to variable
+ * @param ptr pointer where data will be stored
+ * @param file HDF5 file
+ * @param qid QID value
+ * @param errfile use macro __FILE__ here to indicate the file this function
+ *        was called
+ * @param errline use macro __LINE__ here to indicate the line this function
+ *        was called
+ *
+ * @return zero if success
+ */
+int hdf5_read_long(const char* var, long* ptr, hid_t file, char* qid,
+                   const char* errfile, int errline) {
+    char temp[256];
+    if( H5LTread_dataset_long(file, hdf5_gen_path(var, qid, temp), ptr) < 0 ){
+        print_err("Error: could not read HDF5 dataset %s FILE %s LINE %d\n",
+                  temp, errfile, errline);
+        return 1;
+    }
+    return 0;
 }
 
 /**

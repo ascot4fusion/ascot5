@@ -56,8 +56,8 @@ typedef struct {
     N0_ST_data N0ST;   /**< ST field or NULL if not active           */
 } neutral_data;
 
-void neutral_init_offload(neutral_offload_data* offload_data,
-                          real** offload_array);
+int neutral_init_offload(neutral_offload_data* offload_data,
+                         real** offload_array);
 void neutral_free_offload(neutral_offload_data* offload_data,
                           real** offload_array);
 

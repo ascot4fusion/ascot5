@@ -67,7 +67,7 @@
 #include "particle.h"
 #include "endcond.h"
 #include "hdf5io/hdf5_diag.h"
-#include "hdf5io/hdf5_input.h"
+#include "hdf5_interface.h"
 #include "hdf5io/hdf5_orbits.h"
 #include "hdf5io/hdf5_particlestate.h"
 #include "offload.h"
@@ -164,13 +164,16 @@ int main(int argc, char** argv) {
     real* wall_offload_array;
 
     /* Read input from the HDF5 file */
-    err = hdf5_input(&sim, &B_offload_array, &E_offload_array,
-                     &plasma_offload_array, &neutral_offload_array,
-                     &wall_offload_array, &p, &n);
-    if(err) {
+    if( hdf5_interface_read_input(&sim, &B_offload_array, &E_offload_array,
+                                  &plasma_offload_array, &neutral_offload_array,
+                                  &wall_offload_array, &p, &n) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\nProblem when reading inputs. Aborting...\n");
-        return -1;
+                   "\n"
+                   "Input reading or initializing failed.\n"
+                   "See stderr for details.\n\n"
+                   "ABORTING"
+                   "\n");
+        return 1;
     };
 
     /* Pack offload data into single array */

@@ -1,5 +1,6 @@
 /**
- * @file N0_3D.c @brief 3D neutral density with trilinear interpolation
+ * @file N0_3D.c
+ * @brief 3D neutral density with trilinear interpolation
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -8,47 +9,76 @@
 #include "../math.h"
 #include "../ascot5.h"
 #include "../error.h"
+#include "../print.h"
 #include "N0_3D.h"
-#include "../linint/linint3D.h" /* for 3D interpolation routines */
+#include "../linint/linint3D.h"
 
-void N0_3D_init_offload(N0_3D_offload_data* offload_data, real** offload_array) {
-    /* In hdf5 directory */
+int N0_3D_init_offload(N0_3D_offload_data* offload_data,
+                        real** offload_array) {
+
+    offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
+        / (offload_data->n_r - 1);
+    offload_data->z_grid = (offload_data->z_max - offload_data->z_min)
+        / (offload_data->n_z - 1);
+    offload_data->phi_grid = (offload_data->phi_max - offload_data->phi_min)
+        / (offload_data->n_phi - 1);
+
+    offload_data->offload_array_length =
+        offload_data->n_r * offload_data->n_phi * offload_data->n_z;
+
+    print_out(VERBOSE_IO, "\n3D neutral density (N0_3D)\n");
+    print_out(VERBOSE_IO, "Grid: nR = %4.d Rmin = %3.3f Rmax = %3.3f\n",
+              offload_data->n_r,
+              offload_data->r_min, offload_data->r_max);
+    print_out(VERBOSE_IO, "      nz = %4.d zmin = %3.3f zmax = %3.3f\n",
+              offload_data->n_z,
+              offload_data->z_min, offload_data->z_max);
+    print_out(VERBOSE_IO, "     nphi = %4.d phimin = %3.3f phimax = %3.3f\n",
+              offload_data->n_phi,
+              offload_data->phi_min, offload_data->phi_max);
+
+    return 0;
 }
 
 /**
- * @brief Free offload array and reset parameters 
+ * @brief Free offload array and reset parameters
  *
  * This function deallocates the offload_array.
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void N0_3D_free_offload(N0_3D_offload_data* offload_data, real** offload_array) {
+void N0_3D_free_offload(N0_3D_offload_data* offload_data,
+                        real** offload_array) {
     free(*offload_array);
     *offload_array = NULL;
 }
 
 /**
- * @brief Initialize magnetic field data struct on target 
+ * @brief Initialize neutral data on target
  *
- * This function copies the magnetic field parameters from the offload struct
- * to the struct on target and sets the magnetic field data pointers to
- * correct offsets in the offload array.
+ * This function copies parameters from the offload struct to the struct on
+ * target and sets the data pointers on target struct to correct offsets in
+ * the offload array.
  *
- * @param BData pointer to data struct on target
+ * Any initialization that requires any computations must have been done already
+ * when the offload struct was initialized.
+ *
+ * @param ndata pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  */
 int N0_3D_init(N0_3D_data* ndata, N0_3D_offload_data* offload_data,
                real* offload_array) {
     int err = 0;
-    
-    err += linint3D_init(&ndata->n0, offload_array,
-                         offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-                         offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-                         offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-                         offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    
+
+    err += linint3D_init(
+        &ndata->n0, offload_array,
+        offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+        offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+        offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
+        offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+
     return err;
 }
 

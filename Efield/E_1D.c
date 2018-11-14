@@ -3,13 +3,13 @@
  * @file E_1D.c
  * @brief 1D electric field evaluation functions
  *
- * Offloading is performed with a method similar to the magnetic field offload.
- * @see B_field.h
+ * Radial electric field calculated from 1D potential.
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include "../ascot5.h"
 #include "../B_field.h"
+#include "../error.h"
 #include "E_1D.h"
 
 /**
@@ -23,8 +23,8 @@
  *
  * @todo read data from input.h5 file
  */
-void E_1D_init_offload(E_1D_offload_data* offload_data, real** offload_array) {
-
+int E_1D_init_offload(E_1D_offload_data* offload_data, real** offload_array) {
+    return 0;
     // Dummy function
 }
 
@@ -70,6 +70,8 @@ void E_1D_init(E_1D_data* Edata,
  * radial coordinate using linear interpolation, and then calculates the
  * radial electric field by multiplying that with the rho-gradient.
  *
+ * @todo Actual error checking
+ *
  * @param E array where the electric field will be stored (E_r -> E[1],
  *        E_phi -> E[1], E_z -> E[2])
  * @param rho_drho array where rho and components of gradrho a are stored
@@ -77,7 +79,9 @@ void E_1D_init(E_1D_data* Edata,
  *          [gradrho]_z -> rho_drho[3])
  * @param Edata pointer to electric field data
  */
-void E_1D_eval_E(real E[], real r, real phi, real z, E_1D_data* Edata, B_field_data* Bdata) {
+a5err E_1D_eval_E(real E[], real r, real phi, real z, E_1D_data* Edata, B_field_data* Bdata) {
+
+    a5err err = 0;
 
     real rho_drho[4];
     B_field_eval_rho_drho(rho_drho, r, phi, z, Bdata);
@@ -89,7 +93,7 @@ void E_1D_eval_E(real E[], real r, real phi, real z, E_1D_data* Edata, B_field_d
         E[0] = 0;
         E[1] = 0;
         E[2] = 0;
-        return;
+        return 0;
     }
 
     /* As the erad data may be provided at irregular intervals, we must
@@ -111,4 +115,6 @@ void E_1D_eval_E(real E[], real r, real phi, real z, E_1D_data* Edata, B_field_d
     E[0] = dV * rho_drho[1];
     E[1] = dV * rho_drho[2];
     E[2] = dV * rho_drho[3];
+
+    return err;
 }

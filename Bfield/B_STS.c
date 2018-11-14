@@ -13,7 +13,21 @@
 #include "../linint/linint1D.h"
 #include "../spline/interp3Dcomp.h"
 
-void B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
+int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
+    printf("\nStellarator magnetic field (B_STS)\n");
+    printf("with parameters:\n");
+    printf("- period length = %f and symmetry_mode = %d\n",
+           offload_data->period_length, offload_data->symmetry_mode);
+    printf("- psi axis = %le and psi separatrix %le\n",
+           offload_data->psi0,offload_data->psi1);
+    printf("- rmin, rmax, nr = %le, %le, %d\n",
+           offload_data->psigrid_r_min,offload_data->psigrid_r_max,offload_data->psigrid_n_r);
+    printf("- zmin, zmax, nz = %le, %le, %d\n",
+           offload_data->psigrid_z_min,offload_data->psigrid_z_max,offload_data->psigrid_n_z);
+    printf("- axismin, axismax, naxis = %le, %le, %d\n",
+           offload_data->axis_min,offload_data->axis_max,offload_data->n_axis);
+
+    return 0;
 }
 
 /**

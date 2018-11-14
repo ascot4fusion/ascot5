@@ -14,6 +14,9 @@
  * argument, and calls the relevant function for that instance.
  */
 #include <stdio.h>
+#include <math.h>
+#include "ascot5.h"
+#include "print.h"
 #include "wall.h"
 #include "wall/wall_2d.h"
 #include "wall/wall_3d.h"
@@ -35,29 +38,32 @@
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void wall_init_offload(wall_offload_data* offload_data, real** offload_array) {
-    FILE* f = fopen("input.wall_3d", "r");
-    if(f != NULL) {
-        /* 3d wall input found */
-        offload_data->type = wall_type_3D;
-    } else {
-        /* no 3d wall input, assume 2d wall */
-        offload_data->type = wall_type_2D;
-    }
+int wall_init_offload(wall_offload_data* offload_data, real** offload_array) {
+
+    int err = 0;
 
     switch(offload_data->type) {
+
         case wall_type_2D:
-        wall_2d_init_offload(&(offload_data->w2d), offload_array);
-        offload_data->offload_array_length =
-            offload_data->w2d.offload_array_length;
-        break;
+            err = wall_2d_init_offload(&(offload_data->w2d), offload_array);
+            offload_data->offload_array_length =
+                offload_data->w2d.offload_array_length;
+            break;
 
         case wall_type_3D:
-        wall_3d_init_offload(&(offload_data->w3d), offload_array);
-        offload_data->offload_array_length =
-            offload_data->w3d.offload_array_length;
-        break;
+            err = wall_3d_init_offload(&(offload_data->w3d), offload_array);
+            offload_data->offload_array_length =
+                offload_data->w3d.offload_array_length;
+            break;
+
+        default:
+            /* Unregonized input. Produce error. */
+            print_err("Error: Unregonized electric field type.");
+            err = 1;
+            break;
     }
+
+    return err;
 }
 
 /**
@@ -93,9 +99,11 @@ void wall_free_offload(wall_offload_data* offload_data, real** offload_array) {
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  *
+ * @return zero on success
  */
-void wall_init(wall_data* w, wall_offload_data* offload_data,
-                  real* offload_array) {
+int wall_init(wall_data* w, wall_offload_data* offload_data,
+              real* offload_array) {
+    int err = 0;
     switch(offload_data->type) {
         case wall_type_2D:
             wall_2d_init(&(w->w2d), &(offload_data->w2d), offload_array);
@@ -104,8 +112,14 @@ void wall_init(wall_data* w, wall_offload_data* offload_data,
         case wall_type_3D:
             wall_3d_init(&(w->w3d), &(offload_data->w3d), offload_array);
             break;
+        default:
+            /* Unregonized input. Produce error. */
+            err = 1;
+            break;
     }
     w->type = offload_data->type;
+
+    return err;
 }
 
 /**

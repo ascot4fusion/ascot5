@@ -60,8 +60,8 @@ typedef struct {
     plasma_1DS_data plasma_1DS; /**< 1DS data or NULL if not active          */
 } plasma_data;
 
-void plasma_init_offload(plasma_offload_data* offload_data,
-                          real** offload_array);
+int plasma_init_offload(plasma_offload_data* offload_data,
+                        real** offload_array);
 void plasma_free_offload(plasma_offload_data* offload_data,
                           real** offload_array);
 

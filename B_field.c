@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include "ascot5.h"
 #include "error.h"
+#include "print.h"
 #include "B_field.h"
 #include "Bfield/B_GS.h"
 #include "Bfield/B_2DS.h"
@@ -35,46 +36,58 @@
  *
  * This function is host only.
  *
- * @todo This method should return error if initialization fails
- *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void B_field_init_offload(B_field_offload_data* offload_data,
-                          real** offload_array) {
-
+int B_field_init_offload(B_field_offload_data* offload_data,
+                         real** offload_array) {
+    int err = 0;
     switch(offload_data->type) {
 
         case B_field_type_GS:
-            B_GS_init_offload(&(offload_data->BGS), offload_array);
+            err = B_GS_init_offload(&(offload_data->BGS), offload_array);
             offload_data->offload_array_length =
                 offload_data->BGS.offload_array_length;
             break;
 
         case B_field_type_2DS:
-            B_2DS_init_offload(&(offload_data->B2DS), offload_array);
+            err = B_2DS_init_offload(&(offload_data->B2DS), offload_array);
             offload_data->offload_array_length =
                 offload_data->B2DS.offload_array_length;
             break;
 
         case B_field_type_3DS:
-            B_3DS_init_offload(&(offload_data->B3DS), offload_array);
+            err = B_3DS_init_offload(&(offload_data->B3DS), offload_array);
             offload_data->offload_array_length =
                 offload_data->B3DS.offload_array_length;
             break;
 
         case B_field_type_STS:
-            B_STS_init_offload(&(offload_data->BSTS), offload_array);
+            err = B_STS_init_offload(&(offload_data->BSTS), offload_array);
             offload_data->offload_array_length =
                 offload_data->BSTS.offload_array_length;
             break;
 
         case B_field_type_TC:
-            B_TC_init_offload(&(offload_data->BTC), offload_array);
+            err = B_TC_init_offload(&(offload_data->BTC), offload_array);
             offload_data->offload_array_length =
                 offload_data->BTC.offload_array_length;
             break;
+
+        default:
+            /* Unregonized input. Produce error. */
+            print_err("Error: Unregonized magnetic field type.");
+            err = 1;
+            break;
     }
+
+    if(!err) {
+        print_out(VERBOSE_IO, "Estimated memory usage %.1f MB\n",
+                  offload_data->offload_array_length
+                  * sizeof(real) / (1024.0*1024.0) );
+    }
+
+    return err;
 }
 
 /**
@@ -119,13 +132,9 @@ void B_field_free_offload(B_field_offload_data* offload_data,
  * to the struct on target and sets the magnetic field data pointers to correct
  * offsets in the offload array.
  *
- * @todo Some of the functions are missing return value
- *
  * @param Bdata pointer to data struct on target
  * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
- *
- * @return Zero if initialization succeeded
+ * @param offload_array offload array
  */
 int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
                   real* offload_array) {
@@ -138,12 +147,12 @@ int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
             break;
 
         case B_field_type_2DS:
-            err = B_2DS_init(
+            B_2DS_init(
                 &(Bdata->B2DS), &(offload_data->B2DS), offload_array);
             break;
 
         case B_field_type_3DS:
-            err = B_3DS_init(
+            B_3DS_init(
                 &(Bdata->B3DS), &(offload_data->B3DS), offload_array);
             break;
 
@@ -155,6 +164,12 @@ int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
         case B_field_type_TC:
             B_TC_init(
                 &(Bdata->BTC), &(offload_data->BTC), offload_array);
+            break;
+
+        default:
+            /* Unregonized input. Produce error. */
+            print_err("Error: Unregonized magnetic field type.");
+            err = 1;
             break;
     }
     Bdata->type = offload_data->type;
@@ -177,8 +192,6 @@ int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
- *
- * @todo Change to a scalar elemental function and compare performance
  */
 a5err B_field_eval_psi(real* psi, real r, real phi, real z,
                       B_field_data* Bdata) {
@@ -186,7 +199,7 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z,
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            B_GS_eval_psi(psi, r, phi, z, &(Bdata->BGS));
+            err = B_GS_eval_psi(psi, r, phi, z, &(Bdata->BGS));
             break;
 
         case B_field_type_2DS:
@@ -202,7 +215,7 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z,
             break;
 
         case B_field_type_TC:
-            B_TC_eval_psi(psi, r, phi, z, &(Bdata->BTC));
+            err = B_TC_eval_psi(psi, r, phi, z, &(Bdata->BTC));
             break;
 
         default:
@@ -228,10 +241,10 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z,
  * equation.
  *
  * The values are stored in the given array as:
- * psi_dpsi[0] = psi
- * psi_dpsi[1] = dpsi/dr
- * psi_dpsi[2] = dpsi/dphi
- * psi_dpsi[3] = dpsi/dz
+ * - psi_dpsi[0] = psi
+ * - psi_dpsi[1] = dpsi/dr
+ * - psi_dpsi[2] = dpsi/dphi
+ * - psi_dpsi[3] = dpsi/dz
  *
  * This is a SIMD function.
  *
@@ -249,7 +262,7 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            B_GS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BGS));
+            err = B_GS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BGS));
             break;
 
         case B_field_type_2DS:
@@ -265,7 +278,7 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
             break;
 
         case B_field_type_TC:
-            B_TC_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BTC));
+            err = B_TC_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BTC));
             break;
 
         default:
@@ -289,7 +302,7 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
  *
  * This function evaluates the normalized poloidal flux rho at the given
  * coordinates. The rho is evaluated from psi as:
- * rho = sqrt( | (psi - psi_0) / (psi_1 - psi_0) | ),
+ * rho = sqrt( (psi - psi_0) / (psi_1 - psi_0) ),
  * where psi_0 is psi at magnetic axis and psi_1 is psi at separatrix.
  *
  * This is a SIMD function.
@@ -307,7 +320,7 @@ a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            B_GS_eval_rho(rho, psi, &(Bdata->BGS));
+            err = B_GS_eval_rho(rho, psi, &(Bdata->BGS));
             break;
 
         case B_field_type_2DS:
@@ -323,7 +336,7 @@ a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
             break;
 
         case B_field_type_TC:
-            B_TC_eval_rho(rho, psi, &(Bdata->BTC));
+            err = B_TC_eval_rho(rho, psi, &(Bdata->BTC));
             break;
 
         default:
@@ -346,14 +359,14 @@ a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
  *
  * This function evaluates the normalized poloidal flux rho at the given
  * coordinates. The rho is evaluated from psi as:
- * rho = sqrt( | (psi - psi_0) / (psi_1 - psi_0) | ),
+ * rho = sqrt( (psi - psi_0) / (psi_1 - psi_0) ),
  * where psi_0 is psi at magnetic axis and psi_1 is psi at separatrix.
  *
  * The values are stored in the given array as:
- * rho_drho[0] = rho
- * rho_drho[1] = drho/dr
- * rho_drho[2] = drho/dphi
- * rho_drho[3] = drho/dz
+ * - rho_drho[0] = rho
+ * - rho_drho[1] = drho/dr
+ * - rho_drho[2] = drho/dphi
+ * - rho_drho[3] = drho/dz
  *
  * This is a SIMD function.
  *
@@ -371,7 +384,7 @@ a5err B_field_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            B_GS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BGS));
+            err = B_GS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BGS));
             break;
 
         case B_field_type_2DS:
@@ -387,7 +400,7 @@ a5err B_field_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
             break;
 
         case B_field_type_TC:
-            B_TC_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BTC));
+            err = B_TC_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BTC));
             break;
 
         default:
@@ -412,9 +425,9 @@ a5err B_field_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
  * This function evaluates the magnetic field at the given coordinates.
  *
  * The values are stored in the given array as:
- * B[0] = BR
- * B[1] = Bphi
- * B[2] = Bz
+ * - B[0] = BR
+ * - B[1] = Bphi
+ * - B[2] = Bz
  *
  * This is a SIMD function.
  *
@@ -431,7 +444,7 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            B_GS_eval_B(B, r, phi, z, &(Bdata->BGS));
+            err = B_GS_eval_B(B, r, phi, z, &(Bdata->BGS));
             break;
 
         case B_field_type_2DS:
@@ -447,7 +460,7 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
             break;
 
         case B_field_type_TC:
-            B_TC_eval_B(B, r, phi, z, &(Bdata->BTC));
+            err = B_TC_eval_B(B, r, phi, z, &(Bdata->BTC));
             break;
 
         default:
@@ -473,18 +486,18 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
  * coordinates.
  *
  * The values are stored in the given array as:
- * B[0]  = BR
- * B[1]  = dBR/dR
- * B[2]  = dBR/dphi
- * B[3]  = dBR/dz
- * B[4]  = Bphi
- * B[5]  = dBphi/dR
- * B[6]  = dBphi/dphi
- * B[7]  = dBphi/dz
- * B[8]  = Bz
- * B[9]  = dBz/dR
- * B[10] = dBz/dphi
- * B[11] = dBz/dz
+ * - B[0]  = BR
+ * - B[1]  = dBR/dR
+ * - B[2]  = dBR/dphi
+ * - B[3]  = dBR/dz
+ * - B[4]  = Bphi
+ * - B[5]  = dBphi/dR
+ * - B[6]  = dBphi/dphi
+ * - B[7]  = dBphi/dz
+ * - B[8]  = Bz
+ * - B[9]  = dBz/dR
+ * - B[10] = dBz/dphi
+ * - B[11] = dBz/dz
  *
  * This is a SIMD function.
  *
@@ -502,7 +515,7 @@ a5err B_field_eval_B_dB(real B_dB[12], real r, real phi, real z,
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            B_GS_eval_B_dB(B_dB, r, phi, z, &(Bdata->BGS));
+            err = B_GS_eval_B_dB(B_dB, r, phi, z, &(Bdata->BGS));
             break;
 
         case B_field_type_2DS:
@@ -518,7 +531,7 @@ a5err B_field_eval_B_dB(real B_dB[12], real r, real phi, real z,
             break;
 
         case B_field_type_TC:
-            B_TC_eval_B_dB(B_dB, r, phi, z, &(Bdata->BTC));
+            err = B_TC_eval_B_dB(B_dB, r, phi, z, &(Bdata->BTC));
             break;
 
         default:

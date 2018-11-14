@@ -9,6 +9,7 @@
 #ifndef WALL_H
 #define WALL_H
 
+#include "ascot5.h"
 #include "wall/wall_2d.h"
 #include "wall/wall_3d.h"
 
@@ -55,12 +56,12 @@ typedef struct {
     wall_3d_data w3d; /**< 3D model or NULL if not active         */
 } wall_data;
 
-void wall_init_offload(wall_offload_data* offload_data, real** offload_array);
+int wall_init_offload(wall_offload_data* offload_data, real** offload_array);
 void wall_free_offload(wall_offload_data* offload_data, real** offload_array);
 
 #pragma omp declare target
-void wall_init(wall_data* w, wall_offload_data* offload_data,
-               real* offload_array);
+int wall_init(wall_data* w, wall_offload_data* offload_data,
+              real* offload_array);
 #pragma omp declare simd uniform(w)
 int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
                   wall_data* w);
