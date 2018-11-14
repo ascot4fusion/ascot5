@@ -15,17 +15,17 @@
  * This function calculates the bicubic spline interpolation coefficients for
  * the given data and stores them in the data struct. Compact  cofficients are
  * calculated directly.
- * 
+ *
  * @todo Error checking
  *
  * @param str data struct for data interpolation
  * @param f 1D data to be interpolated
- * @param n_r number of data points in the r direction 
+ * @param n_r number of data points in the r direction
  * @param r_min minimum value of the r axis
  * @param r_max maximum value of the r axis
  */
 int interp1Dcomp_init(interp1D_data* str, real* f, int n_r,
-		      real r_min, real r_max, real r_grid) {
+                      real r_min, real r_max, real r_grid) {
     int err = 0;
 
     /* Initialize and fill the data struct */
@@ -36,7 +36,7 @@ int interp1Dcomp_init(interp1D_data* str, real* f, int n_r,
     str->c = malloc(n_r*2*sizeof(real));
 
     if(str->c == NULL) {
-	err = 1;
+        err = 1;
     }
     else {
         /* Note! Explicitly using non-periodic boundary conditions. */
@@ -51,7 +51,7 @@ int interp1Dcomp_init(interp1D_data* str, real* f, int n_r,
  *
  * This function evaluates the interpolated value of a 1D scalar field using
  * bicubic spline interpolation coefficients of the compact form.
- * 
+ *
  * @todo Check discrepency to ascot4 and explicit version
  * @todo Error checking
  *
@@ -62,7 +62,7 @@ int interp1Dcomp_init(interp1D_data* str, real* f, int n_r,
 integer interp1Dcomp_eval_B(real* B, interp1D_data* str, real r) {
     int i_r = (r-str->r_min)/str->r_grid; /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-							       current cell */
+                                                               current cell */
     real dri = 1.0-dr;
     real dri3 = dri*(dri*dri-1.0);
     real rg2 = str->r_grid*str->r_grid;        /**< Square of cell length in r direction */
@@ -74,7 +74,7 @@ integer interp1Dcomp_eval_B(real* B, interp1D_data* str, real r) {
 
     /* Check that the point is not outside the evaluation regime */
     if(r < str->r_min || r > str->r_max) {
-	err = 1;
+        err = 1;
     }
     else {
         *B = (
@@ -92,7 +92,7 @@ integer interp1Dcomp_eval_B(real* B, interp1D_data* str, real r) {
  * This function evaluates the interpolated value of a 1D scalar field and
  * its 1st and 2nd derivatives using bicubic spline interpolation coefficients
  * of the compact form.
- * 
+ *
  * @todo Check discrepency to ascot4 and explicit version
  * @todo Error checking
  *
@@ -103,7 +103,7 @@ integer interp1Dcomp_eval_B(real* B, interp1D_data* str, real r) {
 integer interp1Dcomp_eval_dB(real* B_dB, interp1D_data* str, real r) {
     int i_r = (r-str->r_min)/str->r_grid;                   /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-							       current cell */
+                                                               current cell */
     real dr3dr = 3*dr*dr-1;           /**< r-derivative of dr3, not including 1/r_grid */
     real dri = 1.0-dr;
     real dri3 = dri*(dri*dri-1);
@@ -119,23 +119,23 @@ integer interp1Dcomp_eval_dB(real* B_dB, interp1D_data* str, real r) {
 
     /* Check that the point is not outside the evaluation regime */
     if(r < str->r_min || r > str->r_max) {
-	err = 1;
+        err = 1;
     }
     else {
-	/* f */
-	B_dB[0] = (
+        /* f */
+        B_dB[0] = (
                    dri*str->c[n] +
                    dr*str->c[n+r1] +
                    (rg2/6)*(dri3*str->c[n+1] + dri3*str->c[n+r1+1])
                    );
-        
-	/* df/dr */
-        B_dB[1] = (rgi*(str->c[n+r1] - str->c[n])  + 
+
+        /* df/dr */
+        B_dB[1] = (rgi*(str->c[n+r1] - str->c[n])  +
                    (rg/6)*(dr3dr*str->c[n+r1+1] +dri3dr*str->c[n+1])
-                   ); 
-        
-	/* d2f/dr2 */
-	B_dB[2] = (
+                   );
+
+        /* d2f/dr2 */
+        B_dB[2] = (
                    dri*str->c[n+1] + dr*str->c[n+r1+1]
                    );
     }
@@ -147,7 +147,7 @@ integer interp1Dcomp_eval_dB(real* B_dB, interp1D_data* str, real r) {
  *
  * This function frees the memory allocated for interpolation coefficients
  * in the interpolation data struct
- * 
+ *
  * @todo Error checking
  *
  * @param str data struct for data interpolation

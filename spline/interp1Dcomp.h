@@ -9,7 +9,7 @@
 
 #pragma omp declare target
 int interp1Dcomp_init(interp1D_data* str, real* f, int n_r,
-		      real r_min, real r_max, real r_grid);
+                      real r_min, real r_max, real r_grid);
 #pragma omp declare simd uniform(str)
 integer interp1Dcomp_eval_B(real* B, interp1D_data* str, real r);
 #pragma omp declare simd uniform(str)

@@ -14,7 +14,7 @@
  * This function calculates the bicubic spline interpolation coefficients for
  * the given data and stores them in the data struct. Compact  cofficients are
  * calculated directly.
- * 
+ *
  * @todo Error checking
  *
  * @param str data struct for data interpolation
@@ -27,8 +27,8 @@
  * @param z_max maximum value of the z axis
  */
 int interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
-		      real r_min, real r_max, real r_grid,
-		      real z_min, real z_max, real z_grid) {
+                      real r_min, real r_max, real r_grid,
+                      real z_min, real z_max, real z_grid) {
     int err = 0;
 
     /* Initialize and fill the data struct */
@@ -51,41 +51,41 @@ int interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
     real* c_z = malloc(n_z*2*sizeof(real));  /**< Temp array for coefficients along z */
 
     if(f_r == NULL || f_z == NULL || c_r == NULL || c_z == NULL) {
-	err = 1;
+        err = 1;
     }
     else {
-	/* Bicubic spline surface over rz-grid. Note how we account for normalized grid. */
-	/* Cubic spline along r for each z to get frr */
-	for(i_z=0; i_z<n_z; i_z++) {
-	    for(i_r=0; i_r<n_r; i_r++) {
-		f_r[i_r] = f[i_z*n_r+i_r];
-	    }
-	    spline1Dcomp(f_r,n_r,0,c_r);
-	    for(i_r=0; i_r<n_r; i_r++) {
-		str->c[i_z*n_r*4+i_r*4] = c_r[i_r*2];
-		str->c[i_z*n_r*4+i_r*4+1] = c_r[i_r*2+1]/(r_grid*r_grid);
-	    }
-	}
+        /* Bicubic spline surface over rz-grid. Note how we account for normalized grid. */
+        /* Cubic spline along r for each z to get frr */
+        for(i_z=0; i_z<n_z; i_z++) {
+            for(i_r=0; i_r<n_r; i_r++) {
+                f_r[i_r] = f[i_z*n_r+i_r];
+            }
+            spline1Dcomp(f_r,n_r,0,c_r);
+            for(i_r=0; i_r<n_r; i_r++) {
+                str->c[i_z*n_r*4+i_r*4] = c_r[i_r*2];
+                str->c[i_z*n_r*4+i_r*4+1] = c_r[i_r*2+1]/(r_grid*r_grid);
+            }
+        }
 
-	/* Two cubic splines along z for each r using f and frr */
-	for(i_r=0; i_r<n_r; i_r++) {
-	    /* fzz */
-	    for(i_z=0; i_z<n_z; i_z++) {
-		f_z[i_z] =  f[i_z*n_r+i_r];
-	    }
-	    spline1Dcomp(f_z,n_z,0,c_z);
-	    for(i_z=0; i_z<n_z; i_z++) {
-		str->c[i_z*n_r*4+i_r*4+2] = c_z[i_z*2+1]/(z_grid*z_grid);
-	    }
-	    /* frrzz */
-	    for(i_z=0; i_z<n_z; i_z++) {
-		f_z[i_z] =  str->c[i_z*n_r*4+i_r*4+1];
-	    }
-	    spline1Dcomp(f_z,n_z,0,c_z);
-	    for(i_z=0; i_z<n_z; i_z++) {
-		str->c[i_z*n_r*4+i_r*4+3] = c_z[i_z*2+1]/(z_grid*z_grid);
-	    }
-	}
+        /* Two cubic splines along z for each r using f and frr */
+        for(i_r=0; i_r<n_r; i_r++) {
+            /* fzz */
+            for(i_z=0; i_z<n_z; i_z++) {
+                f_z[i_z] =  f[i_z*n_r+i_r];
+            }
+            spline1Dcomp(f_z,n_z,0,c_z);
+            for(i_z=0; i_z<n_z; i_z++) {
+                str->c[i_z*n_r*4+i_r*4+2] = c_z[i_z*2+1]/(z_grid*z_grid);
+            }
+            /* frrzz */
+            for(i_z=0; i_z<n_z; i_z++) {
+                f_z[i_z] =  str->c[i_z*n_r*4+i_r*4+1];
+            }
+            spline1Dcomp(f_z,n_z,0,c_z);
+            for(i_z=0; i_z<n_z; i_z++) {
+                str->c[i_z*n_r*4+i_r*4+3] = c_z[i_z*2+1]/(z_grid*z_grid);
+            }
+        }
     }
 
     /* Free allocated memory */
@@ -102,7 +102,7 @@ int interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
  *
  * This function evaluates the interpolated value of a 2D scalar field using
  * bicubic spline interpolation coefficients of the compact form.
- * 
+ *
  * @todo Check discrepency to ascot4 and explicit version
  * @todo Error checking
  *
@@ -114,14 +114,14 @@ int interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
 integer interp2Dcomp_eval_B(real* B, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid; /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-							       current cell */
+                                                               current cell */
     real dr3 = dr*(dr*dr-1.0);
     real dri = 1.0-dr;
     real dri3 = dri*(dri*dri-1.0);
     real rg2 = str->r_grid*str->r_grid;        /**< Square of cell length in r direction */
     int i_z = (z-str->z_min)/str->z_grid;                   /**< index for z variable */
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
-							       current cell */
+                                                               current cell */
     real dz3 = dz*(dz*dz-1.0);
     real dzi = 1.0-dz;
     real dzi3 = dzi*(dzi*dzi-1.0);
@@ -134,22 +134,22 @@ integer interp2Dcomp_eval_B(real* B, interp2D_data* str, real r, real z) {
 
     /* Check that the point is not outside the evaluation regime */
     if(r < str->r_min || r > str->r_max
-	|| z < str->z_min || z > str->z_max) {
-	err = 1;
+        || z < str->z_min || z > str->z_max) {
+        err = 1;
     }
     else {
-	*B = (
-	    dri*(dzi*str->c[n]   +dz*str->c[n+z1])+
-	    dr*(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
-	    +rg2/6.0*(
-		dri3*(dzi*str->c[n+1]   +dz*str->c[n+z1+1])+
-		dr3*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
-	    +zg2/6.0*(
-		dri*(dzi3*str->c[n+2]   +dz3*str->c[n+z1+2])+
-		dr*(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
-	    +rg2*zg2/36.0*(
-		dri3*(dzi3*str->c[n+3]   +dz3*str->c[n+z1+3])+
-		dr3*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
+        *B = (
+            dri*(dzi*str->c[n]   +dz*str->c[n+z1])+
+            dr*(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
+            +rg2/6.0*(
+                dri3*(dzi*str->c[n+1]   +dz*str->c[n+z1+1])+
+                dr3*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
+            +zg2/6.0*(
+                dri*(dzi3*str->c[n+2]   +dz3*str->c[n+z1+2])+
+                dr*(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
+            +rg2*zg2/36.0*(
+                dri3*(dzi3*str->c[n+3]   +dz3*str->c[n+z1+3])+
+                dr3*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
     }
     return err;
 }
@@ -160,7 +160,7 @@ integer interp2Dcomp_eval_B(real* B, interp2D_data* str, real r, real z) {
  * This function evaluates the interpolated value of a 2D scalar field and
  * its 1st and 2nd derivatives using bicubic spline interpolation coefficients
  * of the compact form.
- * 
+ *
  * @todo Check discrepency to ascot4 and explicit version
  * @todo Error checking
  *
@@ -172,7 +172,7 @@ integer interp2Dcomp_eval_B(real* B, interp2D_data* str, real r, real z) {
 integer interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid;                   /**< index for r variable */
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-							       current cell */
+                                                               current cell */
     real dr3 = dr*(dr*dr-1);
     real dr3dr = 3*dr*dr-1;           /**< r-derivative of dr3, not including 1/r_grid */
     real dri = 1.0-dr;
@@ -183,7 +183,7 @@ integer interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     real rgi = 1.0/rg;
     int i_z = (z-str->z_min)/str->z_grid; /**< index for z variable */
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
-							       current cell */
+                                                               current cell */
     real dz3 = dz*(dz*dz-1);
     real dz3dz = 3*dz*dz-1;           /**< z-derivative of dz3, not including 1/z_grid */
     real dzi = 1.0-dz;
@@ -200,81 +200,81 @@ integer interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
 
     /* Check that the point is not outside the evaluation regime */
     if(r < str->r_min || r > str->r_max
-	|| z < str->z_min || z > str->z_max) {
-	err = 1;
+        || z < str->z_min || z > str->z_max) {
+        err = 1;
     }
     else {
-	/* f */
-	B_dB[0] = (
-	    dri*(dzi*str->c[n]+dz*str->c[n+z1])+
-	    dr*(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
-	    +(rg2/6)*(
-		dri3*(dzi*str->c[n+1] + dz*str->c[n+z1+1])+
-		dr3*(dzi*str->c[n+r1+1] + dz*str->c[n+z1+r1+1]))
-	    +(zg2/6)*(
-		dri*(dzi3*str->c[n+2]+dz3*str->c[n+z1+2])+
-		dr*(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
-	    +(rg2*zg2/36)*(
-		dri3*(dzi3*str->c[n+3]+dz3*str->c[n+z1+3])+
-		dr3*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
+        /* f */
+        B_dB[0] = (
+            dri*(dzi*str->c[n]+dz*str->c[n+z1])+
+            dr*(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
+            +(rg2/6)*(
+                dri3*(dzi*str->c[n+1] + dz*str->c[n+z1+1])+
+                dr3*(dzi*str->c[n+r1+1] + dz*str->c[n+z1+r1+1]))
+            +(zg2/6)*(
+                dri*(dzi3*str->c[n+2]+dz3*str->c[n+z1+2])+
+                dr*(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
+            +(rg2*zg2/36)*(
+                dri3*(dzi3*str->c[n+3]+dz3*str->c[n+z1+3])+
+                dr3*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
 
-	/* df/dr */
-	B_dB[1] = rgi*(
-	    -(dzi*str->c[n]  +dz*str->c[n+z1])
-	    +(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
-	    +(rg/6)*(
-		dri3dr*(dzi*str->c[n+1]  +dz*str->c[n+z1+1])+
-		dr3dr*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
-	    +(rgi*zg2/6)*(
-		-(dzi3*str->c[n+2]  +dz3*str->c[n+z1+2])
-		+(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
-	    +(rg*zg2/36)*(
-		dri3dr*(dzi3*str->c[n+3]  +dz3*str->c[n+z1+3])+
-		dr3dr*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
+        /* df/dr */
+        B_dB[1] = rgi*(
+            -(dzi*str->c[n]  +dz*str->c[n+z1])
+            +(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
+            +(rg/6)*(
+                dri3dr*(dzi*str->c[n+1]  +dz*str->c[n+z1+1])+
+                dr3dr*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
+            +(rgi*zg2/6)*(
+                -(dzi3*str->c[n+2]  +dz3*str->c[n+z1+2])
+                +(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
+            +(rg*zg2/36)*(
+                dri3dr*(dzi3*str->c[n+3]  +dz3*str->c[n+z1+3])+
+                dr3dr*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
 
-	/* df/dz */
-	B_dB[2] = zgi*(
-	    dri*(-str->c[n]  +str->c[n+z1])+
-	    dr*(-str->c[n+r1]+str->c[n+z1+r1]))
-	    +(rg2*zgi/6)*(
-		dri3*(-str->c[n+1]  +str->c[n+z1+1])+
-		dr3*(-str->c[n+r1+1]+str->c[n+z1+r1+1]))
-	    +(zg/6)*(
-		dri*(dzi3dz*str->c[n+2]  +dz3dz*str->c[n+z1+2])+
-		dr*(dzi3dz*str->c[n+r1+2]+dz3dz*str->c[n+z1+r1+2]))
-	    +(rg2*zg/36)*(
-		dri3*(dzi3dz*str->c[n+3]  +dz3dz*str->c[n+z1+3])+
-		dr3*(dzi3dz*str->c[n+r1+3]+dz3dz*str->c[n+z1+r1+3]));
+        /* df/dz */
+        B_dB[2] = zgi*(
+            dri*(-str->c[n]  +str->c[n+z1])+
+            dr*(-str->c[n+r1]+str->c[n+z1+r1]))
+            +(rg2*zgi/6)*(
+                dri3*(-str->c[n+1]  +str->c[n+z1+1])+
+                dr3*(-str->c[n+r1+1]+str->c[n+z1+r1+1]))
+            +(zg/6)*(
+                dri*(dzi3dz*str->c[n+2]  +dz3dz*str->c[n+z1+2])+
+                dr*(dzi3dz*str->c[n+r1+2]+dz3dz*str->c[n+z1+r1+2]))
+            +(rg2*zg/36)*(
+                dri3*(dzi3dz*str->c[n+3]  +dz3dz*str->c[n+z1+3])+
+                dr3*(dzi3dz*str->c[n+r1+3]+dz3dz*str->c[n+z1+r1+3]));
 
-	/* d2f/dr2 */
-	B_dB[3] = (
-	    dri*(dzi*str->c[n+1]  +dz*str->c[n+z1+1])+
-	    dr*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
-	    +(zg2/6)*(
-		dri*(dzi3*str->c[n+3]  +dz3*str->c[n+z1+3])+
-		dr*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
+        /* d2f/dr2 */
+        B_dB[3] = (
+            dri*(dzi*str->c[n+1]  +dz*str->c[n+z1+1])+
+            dr*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
+            +(zg2/6)*(
+                dri*(dzi3*str->c[n+3]  +dz3*str->c[n+z1+3])+
+                dr*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
 
-	/* d2f/dz2 */
-	B_dB[4] = (
-	      dri*(dzi*str->c[n+2]  +dz*str->c[n+z1+2])+
-	      dr*(dzi*str->c[n+r1+2]+dz*str->c[n+z1+r1+2]))
-	+rg2/6*(
-	    dri3*(dzi*str->c[n+3]  +dz*str->c[n+z1+3])+
-	    dr3*(dzi*str->c[n+r1+3]+dz*str->c[n+z1+r1+3]));
+        /* d2f/dz2 */
+        B_dB[4] = (
+              dri*(dzi*str->c[n+2]  +dz*str->c[n+z1+2])+
+              dr*(dzi*str->c[n+r1+2]+dz*str->c[n+z1+r1+2]))
+        +rg2/6*(
+            dri3*(dzi*str->c[n+3]  +dz*str->c[n+z1+3])+
+            dr3*(dzi*str->c[n+r1+3]+dz*str->c[n+z1+r1+3]));
 
-	/* d2f/dzdr */
-	B_dB[5] = rgi*zgi*(
-	    str->c[n]  -str->c[n+z1]
-	    -str->c[n+r1]+str->c[n+z1+r1])
-	    +(rg/6*zgi)*(
-		dri3dr*(-str->c[n+1]  +str->c[n+z1+1])+
-		dr3dr*(-str->c[n+r1+1]+str->c[n+z1+r1+1]))
-	    +(rgi/6*zg)*(
-		-(dzi3dz*str->c[n+2]  +dz3dz*str->c[n+z1+2])
-		+(dzi3dz*str->c[n+r1+2]+dz3dz*str->c[n+z1+r1+2]))
-	    +(rg*zg/36)*(
-		dri3dr*(dzi3dz*str->c[n+3]  +dz3dz*str->c[n+z1+3])+
-		dr3dr*(dzi3dz*str->c[n+r1+3]+dz3dz*str->c[n+z1+r1+3]));
+        /* d2f/dzdr */
+        B_dB[5] = rgi*zgi*(
+            str->c[n]  -str->c[n+z1]
+            -str->c[n+r1]+str->c[n+z1+r1])
+            +(rg/6*zgi)*(
+                dri3dr*(-str->c[n+1]  +str->c[n+z1+1])+
+                dr3dr*(-str->c[n+r1+1]+str->c[n+z1+r1+1]))
+            +(rgi/6*zg)*(
+                -(dzi3dz*str->c[n+2]  +dz3dz*str->c[n+z1+2])
+                +(dzi3dz*str->c[n+r1+2]+dz3dz*str->c[n+z1+r1+2]))
+            +(rg*zg/36)*(
+                dri3dr*(dzi3dz*str->c[n+3]  +dz3dz*str->c[n+z1+3])+
+                dr3dr*(dzi3dz*str->c[n+r1+3]+dz3dz*str->c[n+z1+r1+3]));
     }
     return err;
 }
@@ -284,7 +284,7 @@ integer interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
  *
  * This function frees the memory allocated for interpolation coefficients
  * in the interpolation data struct
- * 
+ *
  * @todo Error checking
  *
  * @param str data struct for data interpolation
