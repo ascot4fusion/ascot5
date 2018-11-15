@@ -25,7 +25,7 @@ typedef struct {
     real psigrid_z_min;          /**< minimum z coordinate in the grid in psi data */
     real psigrid_z_max;          /**< maximum z coordinate in the grid in psi data */
     real psigrid_z_grid;         /**< z grid interval (z_max-z_min)/(n_z-1) in psi data */
-                                 
+
     int Bgrid_n_r;               /**< number of r grid points in B data */
     int Bgrid_n_phi;             /**< number of phi grid points in B data */
     int Bgrid_n_z;               /**< number of z grid points in B data */
@@ -38,18 +38,18 @@ typedef struct {
     real Bgrid_z_min;            /**< minimum z coordinate in the grid in B data */
     real Bgrid_z_max;            /**< maximum z coordinate in the grid in B data */
     real Bgrid_z_grid;           /**< z grid interval (z_max-z_min)/(n_z-1) in B data */
-                                 
+
     real period_length;          /**< length of one toroidal period in radians */
     symmetry_type symmetry_mode; /**< symmetry mode used */
-                                 
+
     real psi0;                   /**< sqrt(psi) value at magnetic axis */
     real psi1;                   /**< sqrt(psi) value at separatrix */
-                                 
+
     int n_axis;                  /**< number of phi grid points for magnetic axis */
     real axis_min;               /**< minimum phi coordinate in the magnetic axis grid */
     real axis_max;               /**< maximum phi coordinate in the magnetic axis grid */
     real axis_grid;              /**< phi grid interval 2pi/(n_phi-1) */
-                                 
+
     int offload_array_length;    /**< number of elements in offload_array */
 } B_STS_offload_data;
 
@@ -75,21 +75,21 @@ void B_STS_free_offload(B_STS_offload_data* offload_data, real** offload_array);
 #pragma omp declare target
 int B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
                real* offload_array);
-#pragma omp declare simd uniform(Bdata)  
+#pragma omp declare simd uniform(Bdata)
 a5err B_STS_eval_psi(real psi[], real r, real phi, real z, B_STS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)  
+#pragma omp declare simd uniform(Bdata)
 a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_STS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)  
+#pragma omp declare simd uniform(Bdata)
 a5err B_STS_eval_rho(real rho[], real psi, B_STS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)  
+#pragma omp declare simd uniform(Bdata)
 a5err B_STS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_STS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)  
+#pragma omp declare simd uniform(Bdata)
 a5err B_STS_eval_B(real B[], real r, real phi, real z, B_STS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 a5err B_STS_eval_B_dB(real B_dB[], real r, real phi, real z, B_STS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)  
+#pragma omp declare simd uniform(Bdata)
 a5err B_STS_get_axis_r(real* axis_r, B_STS_data* Bdata, real phi);
-#pragma omp declare simd uniform(Bdata)  
+#pragma omp declare simd uniform(Bdata)
 a5err B_STS_get_axis_z(real* axis_z, B_STS_data* Bdata, real phi);
-#pragma omp end declare target   
+#pragma omp end declare target
 #endif

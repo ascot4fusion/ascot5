@@ -10,7 +10,9 @@
 #include "dist_rho6D.h"
 #include "../particle.h"
 
-/** @brief Internal function calculating the index in the histogram array */
+/**
+ * @brief Internal function calculating the index in the histogram array
+ */
 #pragma omp declare target
 unsigned long dist_rho6D_index(int i_rho, int i_pol, int i_phi, int i_vr, int i_vphi,
                                int i_vz, int n_pol, int n_phi, int n_vr, int n_vphi,

@@ -15,5 +15,5 @@ void hdf5_dist_write_rho5D(dist_rho5D_offload_data* dist, real* hist, char* file
                         char* qid);
 void hdf5_dist_write_rho6D(dist_rho6D_offload_data* dist, real* hist, char* filename,
                         char* qid);
-                        
+
 #endif

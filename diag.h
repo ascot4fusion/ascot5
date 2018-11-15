@@ -18,7 +18,7 @@ typedef struct {
     int dist5D_collect;
     int dist6D_collect;
     int distrho5D_collect;
-	int distrho6D_collect;
+    int distrho6D_collect;
 
     diag_orb_offload_data orbits;
     dist_5D_offload_data dist5D;
@@ -28,8 +28,8 @@ typedef struct {
 
     int offload_dist5D_index;
     int offload_dist6D_index;
-	int offload_distrho5D_index;
-	int offload_distrho6D_index;
+    int offload_distrho5D_index;
+    int offload_distrho6D_index;
     int offload_array_length; /**< number of elements in offload_array */
 } diag_offload_data;
 
@@ -46,7 +46,7 @@ typedef struct {
     dist_6D_data dist6D;
     dist_rho5D_data distrho5D;
     dist_rho6D_data distrho6D;
-    
+
     int offload_dist5D_index;
     int offload_dist6D_index;
     int offload_distrho5D_index;

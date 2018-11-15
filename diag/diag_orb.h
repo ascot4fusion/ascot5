@@ -13,7 +13,7 @@
 #define DIAG_ORB_WRITELAST 2
 #define DIAG_ORB_MAXPOINCARES 30
 
-typedef struct{ 
+typedef struct{
     integer id;
     real time;
     real r;
@@ -33,7 +33,7 @@ typedef struct{
 
 } diag_orb_dat_fo;
 
-typedef struct{ 
+typedef struct{
     integer id;
     real time;
     real r;
@@ -53,7 +53,7 @@ typedef struct{
 
 } diag_orb_dat_gc;
 
-typedef struct{ 
+typedef struct{
     integer id;
     real time;
     real r;
@@ -75,9 +75,9 @@ typedef enum diag_orb_dat_type {
 
 typedef struct diag_orb_dat {
     union {
-	diag_orb_dat_fo fo;
-	diag_orb_dat_gc gc;
-	diag_orb_dat_ml ml;
+        diag_orb_dat_fo fo;
+        diag_orb_dat_gc gc;
+        diag_orb_dat_ml ml;
     };
 
     struct diag_orb_dat* prev;
@@ -115,7 +115,7 @@ typedef struct{
     int npoloidalplots;
     real poloidalangles[DIAG_ORB_MAXPOINCARES];
     int writeNlast;
-    
+
 }diag_orb_data;
 
 #pragma omp declare target
@@ -124,14 +124,14 @@ void diag_orb_init_offload(diag_orb_offload_data* data);
 
 void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data);
 
-void diag_orb_update_fo(integer* particleId, real* prevWriteTime, int* nextN, diag_orb_dat** Nlist, 
-			diag_orb_data* data, particle_simd_fo* p_f, particle_simd_fo* p_i);
+void diag_orb_update_fo(integer* particleId, real* prevWriteTime, int* nextN, diag_orb_dat** Nlist,
+                        diag_orb_data* data, particle_simd_fo* p_f, particle_simd_fo* p_i);
 
 void diag_orb_update_gc(integer* particleId, real* prevWriteTime, int* nextN, diag_orb_dat** Nlist,
-			diag_orb_data* data, particle_simd_gc* p_f, particle_simd_gc* p_i);
+                        diag_orb_data* data, particle_simd_gc* p_f, particle_simd_gc* p_i);
 
 void diag_orb_update_ml(integer* particleId, real* prevWriteTime, int* nextN, diag_orb_dat** Nlist,
-			diag_orb_data* data, particle_simd_ml* p_f, particle_simd_ml* p_i);
+                        diag_orb_data* data, particle_simd_ml* p_f, particle_simd_ml* p_i);
 
 void diag_orb_clean(diag_orb_data* data);
 #pragma omp end declare target

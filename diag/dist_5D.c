@@ -10,7 +10,9 @@
 #include "dist_5D.h"
 #include "../particle.h"
 
-/** @brief Internal function calculating the index in the histogram array */
+/**
+ * @brief Internal function calculating the index in the histogram array
+ */
 #pragma omp declare target
 unsigned long dist_5D_index(int i_r, int i_phi, int i_z, int i_vpara,
                             int i_vperp, int n_phi, int n_z, int n_vpara,

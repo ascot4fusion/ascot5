@@ -72,10 +72,10 @@ void hdf5_dist_write_5D(dist_5D_offload_data* dist, real* hist, char* filename,
               hist);
 
     if(retval) {
-	print_err("Error: Could not write distributions.");
-	return;
+        print_err("Error: Could not write distributions.");
+        return;
     }
-    
+
     #if VERBOSE > 0
     printf("\nDone writing distributions to HDF5 file.\n");
     #endif
@@ -148,8 +148,8 @@ void hdf5_dist_write_6D(dist_6D_offload_data* dist, real* hist, char* filename,
               hist);
 
     if(retval) {
-	print_err("Error: Could not write distributions.");
-	return;
+        print_err("Error: Could not write distributions.");
+        return;
     }
 
     #if VERBOSE > 0
@@ -220,10 +220,10 @@ void hdf5_dist_write_rho5D(dist_rho5D_offload_data* dist, real* hist, char* file
               hist);
 
     if(retval) {
-	print_err("Error: Could not write distributions.");
-	return;
+        print_err("Error: Could not write distributions.");
+        return;
     }
-    
+
     #if VERBOSE > 0
     printf("\nDone writing distributions to HDF5 file.\n");
     #endif
@@ -296,12 +296,11 @@ void hdf5_dist_write_rho6D(dist_rho6D_offload_data* dist, real* hist, char* file
               hist);
 
     if(retval) {
-	print_err("Error: Could not write distributions.");
-	return;
+        print_err("Error: Could not write distributions.");
+        return;
     }
 
     #if VERBOSE > 0
     printf("\nDone writing distributions to HDF5 file.\n");
     #endif
 }
-

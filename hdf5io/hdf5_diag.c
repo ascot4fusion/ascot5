@@ -18,4 +18,3 @@ void hdf5_diag_write(sim_offload_data* sim, real* diag_offload_array, char* out,
         hdf5_dist_write_rho6D(&sim->diag_offload_data.distrho6D, &diag_offload_array[sim->diag_offload_data.offload_distrho6D_index], out, qid);
     }
 }
-

@@ -1,8 +1,8 @@
 /**
  * @file error.h
- * @brief Error module for ASCOT5. 
+ * @brief Error module for ASCOT5.
  *
- * Contains error codes, their interpretation, 
+ * Contains error codes, their interpretation,
  * and functions to raise errors.
  */
 #ifndef ERROR_H
@@ -30,9 +30,9 @@ static const unsigned int ERR_UNPHYSICAL_NE    = 10;/** @brief Electron density 
 static const unsigned int ERR_UNPHYSICAL_NI    = 11;/** @brief Ion density is non-positive or NaN */
 static const unsigned int ERR_UNPHYSICAL_NN    = 12;/** @brief Neutral density is negative or NaN */
 static const unsigned int ERR_OUTSIDE_PLASMA   = 13;/** @brief Tried to evaluate plasma profiles at outside the grid */
-static const unsigned int ERR_UNPHYSICAL_FO    = 14;/** @brief R <= 0 or vtot > c or at least one fo parameter is NaN */ 
-static const unsigned int ERR_UNPHYSICAL_GC    = 15;/** @brief R <= 0 or vpar > c or mu < 0 or at least one gc parameter is NaN */ 
-static const unsigned int ERR_UNPHYSICAL_ML    = 16;/** @brief R <= 0 or pitch == 0 or at least one ml parameter is NaN */ 
+static const unsigned int ERR_UNPHYSICAL_FO    = 14;/** @brief R <= 0 or vtot > c or at least one fo parameter is NaN */
+static const unsigned int ERR_UNPHYSICAL_GC    = 15;/** @brief R <= 0 or vpar > c or mu < 0 or at least one gc parameter is NaN */
+static const unsigned int ERR_UNPHYSICAL_ML    = 16;/** @brief R <= 0 or pitch == 0 or at least one ml parameter is NaN */
 static const unsigned int ERR_EXTREMELY_SMALL_TIMESTEP = 17;/** @brief Time step smaller than the A5_EXTREMELY_SMALL_TIMESTEP defined in ascot5.h */
 static const unsigned int ERR_TIMESTEP_ZERO_OR_NAN = 18;/** @brief Time step is zero or NaN. */
 static const unsigned int ERR_CCOEF_EVAL_FAIL  = 19;/** @brief Collision coefficient evaluation failed */
@@ -46,7 +46,7 @@ static const unsigned int ERR_UNKNOWN_INPUT    = 25;/** @brief Unknown input */
 
 /**
  * @brief Raise a new error
- * 
+ *
  * @param errtype type of error as defined in error.h
  * @param linenumber line where this function was called
  */
@@ -59,8 +59,8 @@ static inline a5err error_raise(unsigned int errtype, int linenumber) {
 
 /**
  * @brief Define from which module error appears
- * 
- * @param a5err a raised error 
+ *
+ * @param a5err a raised error
  * @param modnumber module identifier as defined in error.h
  */
 #pragma omp declare simd
