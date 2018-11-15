@@ -162,8 +162,8 @@ int interp3Dexpl_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
  * @param z z-coordinate
  */
 int interp3Dexpl_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
-    /** Make sure phi is in interval [phi_min, phi_max + phi_grid) */
-    real phi_range = (str->phi_max + str->phi_grid - str->phi_min);
+    /** Make sure phi is in interval [phi_min, phi_max) */
+    real phi_range = str->phi_max - str->phi_min;
     phi = fmod(phi - str->phi_min, phi_range) + str->phi_min;
     if(phi < 0){phi = phi_range + phi;}
 
@@ -233,8 +233,8 @@ int interp3Dexpl_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
  * @param z z-coordinate
  */
 int interp3Dexpl_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) {
-    /** Make sure phi is in interval [phi_min, phi_max + phi_grid) */
-    real phi_range = (str->phi_max + str->phi_grid - str->phi_min);
+    /** Make sure phi is in interval [phi_min, phi_max) */
+    real phi_range = str->phi_max - str->phi_min;
     phi = fmod(phi - str->phi_min, phi_range) + str->phi_min;
     if(phi < 0){phi = phi_range + phi;}
 
