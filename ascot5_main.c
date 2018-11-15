@@ -109,41 +109,31 @@ int main(int argc, char** argv) {
      * go that high. The actual qid is assigned when results are combined.*/
     int mpi_rank, mpi_size;
     char qid[] = "5000000000";
-#ifdef MPI
-    int provided;
-    MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+
     if(sim.mpi_size == 0) {
-        /* Let MPI determine size and rank */
+#ifdef MPI
+        /* MPI run */
+        int provided;
+        MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
         MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
         MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
         sim.mpi_rank = mpi_rank;
         sim.mpi_size = mpi_size;
         generate_qid(qid);
-    }
-    else {
-        /* Use user-defined size and rank */
-        mpi_rank = sim.mpi_rank;
-        mpi_size = sim.mpi_size;
-        if(mpi_size == 1) {
-            generate_qid(qid);
-        }
-    }
 #else
-    if(sim.mpi_size == 0) {
-        /* Use default values (single process) */
+        /* MPI was not included while compiling       */
+        /* Give warning  and run a single process run */
         mpi_rank = 0;
         mpi_size = 1;
         generate_qid(qid);
+#endif
     }
     else {
-        /* Use user-defined size and rank */
+        /* Emulate MPI run (Condor-like run) */
+        /* Use user-defined size and rank    */
         mpi_rank = sim.mpi_rank;
         mpi_size = sim.mpi_size;
-        if(mpi_size == 1) {
-            generate_qid(qid);
-        }
     }
-#endif
 
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
@@ -254,13 +244,13 @@ int main(int argc, char** argv) {
                "Markers initialized and inistate written.\n");
 
     /* Divide markers among host and target */
-    #ifdef TARGET
-        int n_mic = n / TARGET;
-        int n_host = 0;
-    #else
-        int n_mic = 0;
-        int n_host = n;
-    #endif
+#ifdef TARGET
+    int n_mic = n / TARGET;
+    int n_host = 0;
+#else
+    int n_mic = 0;
+    int n_host = n;
+#endif
 
     double mic0_start = 0, mic0_end=0,
         mic1_start=0, mic1_end=0,
@@ -335,28 +325,28 @@ int main(int argc, char** argv) {
     hdf5_particlestate_write(sim.hdf5_out, qid, "endstate", n, ps);
 
     /* Combine histograms */
-    #ifdef TARGET
-        diag_sum(&sim.diag_offload_data,
-                 diag_offload_array_mic0, diag_offload_array_mic1);
-        hdf5_diag_write(&sim, diag_offload_array_mic0, sim.hdf5_out, qid);
-    #else
-        hdf5_diag_write(&sim, diag_offload_array_host, sim.hdf5_out, qid);
-    #endif
+#ifdef TARGET
+    diag_sum(&sim.diag_offload_data,
+             diag_offload_array_mic0, diag_offload_array_mic1);
+    hdf5_diag_write(&sim, diag_offload_array_mic0, sim.hdf5_out, qid);
+#else
+    hdf5_diag_write(&sim, diag_offload_array_host, sim.hdf5_out, qid);
+#endif
 
     /* Free offload data */
-    #ifdef MPI
-        MPI_Finalize();
-    #endif
+#ifdef MPI
+    MPI_Finalize();
+#endif
 
     B_field_free_offload(&sim.B_offload_data, &B_offload_array);
     plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
-    #ifdef TARGET
-        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
-    #else
-        diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
-    #endif
+#ifdef TARGET
+    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
+    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
+#else
+    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
+#endif
     offload_free_offload(&offload_data, &offload_array);
 
     free(p-start_index);
