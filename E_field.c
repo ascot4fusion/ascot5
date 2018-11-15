@@ -9,9 +9,9 @@
  * implemented and called from this interface, and that E_field.h contains enum
  * type for the new instance.
  *
- * The interface checks which instance given data corresponds to from the
- * "type"-field in E_field_offload_data or E_field_data that is given as an
- * argument, and calls the relevant function for that instance.
+ * The interface checks which instance given data corresponds to from
+ * E_field_offload_data.type and E_field_data.type from the struct that is given
+ * as an argument, and calls the relevant function for that instance.
  */
 #include <stdio.h>
 #include "ascot5.h"
@@ -68,6 +68,12 @@ int E_field_init_offload(E_field_offload_data* offload_data,
             print_err("Error: Unregonized electric field type.");
             err = 1;
             break;
+    }
+
+    if(!err) {
+        print_out(VERBOSE_IO, "Estimated memory usage %.1f MB\n",
+                  offload_data->offload_array_length
+                  * sizeof(real) / (1024.0*1024.0) );
     }
 
     return err;
@@ -138,6 +144,7 @@ int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
 
         default:
             /* Unregonized input. Produce error. */
+            print_err("Error: Unregonized electric field type.\n");
             err = 1;
             break;
     }
@@ -154,9 +161,10 @@ int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
  * a flux quantity.
  *
  * The values are stored in the given array as:
- * E[0] = ER
- * E[1] = Ephi
- * E[2] = Ez
+ *
+ * - E[0] = ER
+ * - E[1] = Ephi
+ * - E[2] = Ez
  *
  * This is a SIMD function.
  *
@@ -164,7 +172,7 @@ int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
  * @param r R coordinate [m]
  * @param phi phi coordinate [deg]
  * @param z z coordinate [m]
- * @param Edata pointer to magnetic field data struct
+ * @param Edata pointer to electric field data struct
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise

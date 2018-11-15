@@ -9,7 +9,7 @@
  *
  * Example:
  *
- * ascot5_main --in=in --out=out
+ *     ascot5_main --in=in --out=out
  *
  * Here "in" refers to in.h5 where input data is located and "out" to out.h5
  * where results will be stored. If no input argument is given the data is read
@@ -35,7 +35,7 @@
  * to ensure work is evenly distributed. A single MPI process can be simulated
  * with:
  *
- * ascot5_main --mpi_size=size --mpi_rank=rank
+ *     ascot5_main --mpi_size=size --mpi_rank=rank
  *
  * where size refers to number of MPI processes and rank is the process being
  * run (between [0, size-1]). Running the program this way does not use MPI.
@@ -363,10 +363,10 @@ int main(int argc, char** argv) {
  * as (default values, used if the specific argument was not given, are in
  * parenthesis):
  *
- * sim->hdf5_in  = "in.h5" ("ascot.h5")
- * sim->hdf5_out = "out.h5" (sim->hdf5_in is copied here)
- * sim->mpi_rank = 0
- * sim->mpi_size = 0
+ * - sim->hdf5_in  = "in.h5" ("ascot.h5")
+ * - sim->hdf5_out = "out.h5" (sim->hdf5_in is copied here)
+ * - sim->mpi_rank = 0
+ * - sim->mpi_size = 0
  *
  * If the arguments could not be parsed, this function returns a non-zero exit
  * value.

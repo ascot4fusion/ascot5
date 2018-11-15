@@ -9,9 +9,9 @@
  * implemented and called from this interface, and that B_field.h contains enum
  * type for the new instance.
  *
- * The interface checks which instance given data corresponds to from the
- * "type"-field in B_field_offload_data or B_field_data that is given as an
- * argument, and calls the relevant function for that instance.
+ * The interface checks which instance given data corresponds to from
+ * B_field_offload_data.type and B_field_data.type from the structure that is
+ * given as an argument, and calls the relevant function for that instance.
  */
 #include <stdio.h>
 #include "ascot5.h"
@@ -38,6 +38,8 @@
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ *
+ * @return Zero if initialization succeeded
  */
 int B_field_init_offload(B_field_offload_data* offload_data,
                          real** offload_array) {
@@ -99,6 +101,8 @@ int B_field_init_offload(B_field_offload_data* offload_data,
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ *
+ * @return Zero if initialization succeeded
  */
 void B_field_free_offload(B_field_offload_data* offload_data,
                           real** offload_array) {
@@ -135,6 +139,8 @@ void B_field_free_offload(B_field_offload_data* offload_data,
  * @param Bdata pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array offload array
+ *
+ * @return Zero if initialization succeeded
  */
 int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
                   real* offload_array) {
@@ -168,7 +174,7 @@ int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
 
         default:
             /* Unregonized input. Produce error. */
-            print_err("Error: Unregonized magnetic field type.");
+            print_err("Error: Unregonized magnetic field type.\n");
             err = 1;
             break;
     }
@@ -302,8 +308,13 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
  *
  * This function evaluates the normalized poloidal flux rho at the given
  * coordinates. The rho is evaluated from psi as:
- * rho = sqrt( (psi - psi_0) / (psi_1 - psi_0) ),
- * where psi_0 is psi at magnetic axis and psi_1 is psi at separatrix.
+ *
+ * \f{equation*}{
+ * \rho = \sqrt{ \frac{\psi - \psi_0}{\psi_1 - \psi_0} },
+ * \f}
+ *
+ * where \f$\psi_0\f$ is psi at magnetic axis and \f$\psi_1\f$ is psi at
+ * separatrix.
  *
  * This is a SIMD function.
  *
@@ -359,8 +370,13 @@ a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
  *
  * This function evaluates the normalized poloidal flux rho at the given
  * coordinates. The rho is evaluated from psi as:
- * rho = sqrt( (psi - psi_0) / (psi_1 - psi_0) ),
- * where psi_0 is psi at magnetic axis and psi_1 is psi at separatrix.
+ *
+ * \f{equation*}{
+ * \rho = \sqrt{ \frac{\psi - \psi_0}{\psi_1 - \psi_0} },
+ * \f}
+ *
+ * where \f$\psi_0\f$ is psi at magnetic axis and \f$\psi_1\f$ is psi at
+ * separatrix.
  *
  * The values are stored in the given array as:
  * - rho_drho[0] = rho
