@@ -91,17 +91,16 @@ void generate_qid(char* qid);
  *
  * @return Zero if simulation was completed
  *
- * @todo Functions that read input and initialize the offload data should return
- *       errors, which should be handled here. These errors should lead to
- *       termination with error message.
- *
  * @todo MPI init block is ugly. Clean it.
  */
 int main(int argc, char** argv) {
 
     /* Read and parse command line arguments */
     sim_offload_data sim;
-    read_arguments(argc, argv, &sim);
+    if( read_arguments(argc, argv, &sim) ) {
+        abort();
+        return 1;
+    }
 
     /* Get MPI rank and set qid for the run.
      * qid rules: The actual random unique qid is used in MPI or single-process
@@ -171,8 +170,8 @@ int main(int argc, char** argv) {
                    "\n"
                    "Input reading or initializing failed.\n"
                    "See stderr for details.\n\n"
-                   "ABORTING"
                    "\n");
+        abort();
         return 1;
     };
 
@@ -389,8 +388,6 @@ int main(int argc, char** argv) {
  * @param sim pointer to offload data struct
  *
  * @return Zero if success
- *
- * @todo Replace abort with returned error value
  */
 int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     struct option longopts[] = {
@@ -423,7 +420,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
             break;
         default:
             print_out(VERBOSE_MINIMAL,
-                      "\nUnrecognized option. The valid parameters are:\n");
+                      "\nUnrecognized argument. The valid arguments are:\n");
             print_out(VERBOSE_MINIMAL,
                       "--in input file without .h5 extension (default: ascot)\n");
             print_out(VERBOSE_MINIMAL,
@@ -432,7 +429,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
                       "--mpi_size number of independent processes\n");
             print_out(VERBOSE_MINIMAL,
                       "--mpi_rank rank of independent process\n");
-            abort();
+            return 1;
         }
     }
 
