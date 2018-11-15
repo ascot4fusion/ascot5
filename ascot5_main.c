@@ -90,8 +90,6 @@ void generate_qid(char* qid);
  * @param  argv argument vector of the command line arguments
  *
  * @return Zero if simulation was completed
- *
- * @todo MPI init block is ugly. Clean it.
  */
 int main(int argc, char** argv) {
 
