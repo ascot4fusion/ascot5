@@ -422,11 +422,16 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
             sim->mpi_rank = atoi(optarg);
             break;
         default:
-            printf("\nUnrecognized option. The valid parameters are:\n");
-            printf("--in input file without .h5 extension (default: ascot)\n");
-            printf("--out output file without .h5 extension (default: same as input)\n");
-            printf("--mpi_size number of independent processes\n");
-            printf("--mpi_rank rank of independent process\n");
+            print_out(VERBOSE_MINIMAL,
+                      "\nUnrecognized option. The valid parameters are:\n");
+            print_out(VERBOSE_MINIMAL,
+                      "--in input file without .h5 extension (default: ascot)\n");
+            print_out(VERBOSE_MINIMAL,
+                      "--out output file without .h5 extension (default: same as input)\n");
+            print_out(VERBOSE_MINIMAL,
+                      "--mpi_size number of independent processes\n");
+            print_out(VERBOSE_MINIMAL,
+                      "--mpi_rank rank of independent process\n");
             abort();
         }
     }
