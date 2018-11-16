@@ -33,10 +33,10 @@
  *
  * This function is host only.
  *
- * @todo This method should return error if initialization fails
- *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ *
+ * @return Zero if evaluation succeeded
  */
 int neutral_init_offload(neutral_offload_data* offload_data,
                          real** offload_array) {
@@ -114,6 +114,11 @@ int neutral_init(neutral_data* ndata, neutral_offload_data* offload_data,
             err = N0_ST_init(&(ndata->N0ST),
                              &(offload_data->N0ST), offload_array);
             break;
+        default:
+            /* Unregonized input. Produce error. */
+            print_err("Error: Unregonized neutral data type.\n");
+            err = 1;
+            break;
     }
     ndata->type = offload_data->type;
 
@@ -133,6 +138,7 @@ int neutral_init(neutral_data* ndata, neutral_offload_data* offload_data,
  * @param z z coordinate [m]
  * @param ndata pointer to neutral density data struct
  *
+ * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err neutral_eval_n0(real n0[], real r, real phi, real z,
                       neutral_data* ndata) {
