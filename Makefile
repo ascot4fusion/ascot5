@@ -90,6 +90,7 @@ SPLINEOBJS  = $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)spline*.c \
 						$(SPLINEDIR)interp*.c))
 
 UTESTDIR = unit_tests/
+DOCDIR = doc/
 
 HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
@@ -125,6 +126,9 @@ ascotpy.so: ascotpy.o $(OBJS)
 
 ascot5_main: ascot5_main.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
+
+doc:
+	doxygen Doxyfile
 
 test_B: $(UTESTDIR)test_B.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
@@ -167,3 +171,4 @@ clean:
 		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o $(DIAGDIR)*.o \
 		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
 		$(N0DIR)*.o $(LINTDIR)*.o $(SPLINEDIR)*.o *.pyc
+	rm -rf $(DOCDIR)

@@ -8,3 +8,4 @@ ascot.h5
 *.optrpt
 *.pyc
 *.so
+doc/
