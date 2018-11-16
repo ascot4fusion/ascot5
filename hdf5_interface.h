@@ -21,4 +21,7 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid);
 
 int hdf5_interface_write_state(char* fn, char* state, integer n,
                                particle_state* p);
+
+int hdf5_interface_write_diagnostics(sim_offload_data* sim,
+                                     real* diag_offload_array, char* out);
 #endif
