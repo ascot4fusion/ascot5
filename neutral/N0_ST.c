@@ -6,6 +6,7 @@
 #include <math.h>
 #include <string.h>
 #include "../math.h"
+#include "../consts.h"
 #include "../ascot5.h"
 #include "../error.h"
 #include "../print.h"
@@ -135,14 +136,14 @@ a5err N0_ST_eval_n0(real n0[], real r, real phi, real z,
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
-    phi = fmod(phi, 2*math_pi/ndata->periods);
+    phi = fmod(phi, 2*CONST_PI/ndata->periods);
     /* if(phi < ndata->n0.phi_min) { */
     if(phi < 0) {
-        phi += 2*math_pi/ndata->periods;
+        phi += 2*CONST_PI/ndata->periods;
     }
-    if(phi > math_pi/ndata->periods) {
+    if(phi > CONST_PI/ndata->periods) {
         /* Stellarator-symmetric mirroring */
-        phi = 2*math_pi/ndata->periods - phi;
+        phi = 2*CONST_PI/ndata->periods - phi;
         z = -z;
     }
 

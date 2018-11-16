@@ -21,6 +21,7 @@
 #include <hdf5_hl.h>
 #include "../ascot5.h"
 #include "../math.h"
+#include "../consts.h"
 #include "../symmetry.h"
 #include "../B_field.h"
 #include "../Bfield/B_2DS.h"
@@ -356,7 +357,7 @@ int hdf5_bfield_read_STS(hid_t f, B_STS_offload_data* offload_data,
     int periods;
     err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX/toroidalPeriods", qid, path), &periods);
     if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return 1;}
-    offload_data->period_length = 2*math_pi/periods;
+    offload_data->period_length = 2*CONST_PI/periods;
 
     /* Symmetry mode */
     hbool_t check_object_valid = 1;

@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     real r_grid = (r_max - r_min)/(n_r-1);
     int n_phi = 4;
     real phi_min = 0.0;
-    real phi_max = 2*math_pi;
+    real phi_max = 2*CONST_PI;
     real phi_grid = (phi_max - phi_min)/(n_phi-1);
     int n_z = 70;
     real z_min = -2.0;

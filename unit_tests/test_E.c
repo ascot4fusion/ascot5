@@ -69,8 +69,8 @@ int main(int argc, char** argv) {
     real r_min = atof(argv[2]);
     real r_max = atof(argv[3]);
     int n_phi = atof(argv[4]);
-    real phi_min = atof(argv[5]) / 180 * math_pi;
-    real phi_max = atof(argv[6]) / 180 * math_pi;
+    real phi_min = atof(argv[5]) / 180 * CONST_PI;
+    real phi_max = atof(argv[6]) / 180 * CONST_PI;
     int n_z = atof(argv[7]);
     real z_min = atof(argv[8]);
     real z_max = atof(argv[9]);

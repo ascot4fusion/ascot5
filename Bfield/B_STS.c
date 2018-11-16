@@ -9,6 +9,7 @@
 #include "../math.h"
 #include "../ascot5.h"
 #include "../error.h"
+#include "../consts.h"
 #include "B_STS.h"
 #include "../linint/linint1D.h"
 #include "../spline/interp3Dcomp.h"
@@ -313,9 +314,9 @@ a5err B_STS_eval_B_dB(real B_dB[], real r, real phi, real z, B_STS_data* Bdata) 
 a5err B_STS_get_axis_r(real* axis_r, B_STS_data* Bdata, real phi) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    phi = fmod(phi, 2*math_pi);
+    phi = fmod(phi, 2*CONST_PI);
     if(phi < 0) {
-        phi += 2*math_pi;
+        phi += 2*CONST_PI;
     }
     interperr += linint1D_eval(axis_r, &Bdata->axis_r, phi);
     if(interperr) {err = error_raise( ERR_OUTSIDE_AXISGRID, __LINE__ );}
@@ -325,9 +326,9 @@ a5err B_STS_get_axis_r(real* axis_r, B_STS_data* Bdata, real phi) {
 a5err B_STS_get_axis_z(real* axis_z, B_STS_data* Bdata, real phi) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    phi = fmod(phi, 2*math_pi);
+    phi = fmod(phi, 2*CONST_PI);
     if(phi < 0) {
-        phi += 2*math_pi;
+        phi += 2*CONST_PI;
     }
     interperr += linint1D_eval(axis_z, &Bdata->axis_z, phi);
     if(interperr) {err = error_raise( ERR_OUTSIDE_AXISGRID, __LINE__ );}
