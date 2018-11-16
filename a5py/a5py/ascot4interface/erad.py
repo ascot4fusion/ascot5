@@ -1,4 +1,3 @@
-
 import numpy as np
 
 def read_erad(fn):
@@ -12,5 +11,5 @@ def read_erad(fn):
     str['rho'] = data[:,0]
     str['dV_drho'] = data[:,1]
     # For data in format dV/rho, we can ignore effective minor radius
-    
+
     return str

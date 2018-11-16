@@ -5,10 +5,10 @@ import h5py
 import numpy as np
 import random
 import datetime
-    
+
 from . ascot5group import creategroup
 
-def write_hdf5(fn, Nrho, r_eff, rhomin, rhomax, rho, dVdrho):
+def write_hdf5(fn, n_rho, rho_min, rho_max, dV_drho, r_eff):
     """
     Write radial electric field input in HDF5 file.
 
@@ -17,23 +17,23 @@ def write_hdf5(fn, Nrho, r_eff, rhomin, rhomax, rho, dVdrho):
 
     fn : str
         Full path to the HDF5 file.
-    Nrho : int
+    n_rho : int
         Number of rho slots in data.
     r_eff : real
         Number of rho slots in data.
-    rhomin : real
+    rho_min : real
         Minimum rho value.
-    rhomax : real
+    rho_max : real
         Maximum rho value.
-    rho : real Nrho x 1 numpy array
+    rho : real n_rho x 1 numpy array
         rho grid.
-    dVdrho : real Nrho x 1 numpy array
+    dV_drho : real n_rho x 1 numpy array
         Gradient of electric potential in rho grid.
     """
 
     mastergroup = "efield"
     subgroup    = "E_1DS"
-    
+
     # Create a group for this input.
     f = h5py.File(fn, "a")
     path = creategroup(f, mastergroup, subgroup)
@@ -41,12 +41,11 @@ def write_hdf5(fn, Nrho, r_eff, rhomin, rhomax, rho, dVdrho):
     # TODO check that input is valid
 
     # Actual data.
-    f[path].attrs['n_rho']   = Nrho
-    f[path].attrs['r_eff']   = r_eff
-    f[path].attrs['rho_min'] = rhomin
-    f[path].attrs['rho_max'] = rhomax
-    f.create_dataset(path + '/rho', data=rho, dtype='f8')
-    f.create_dataset(path + '/dV_drho', data=dVdrho, dtype='f8')
+    f.create_dataset(path + '/n_rho', data=n_rho, dtype='i8')
+    f.create_dataset(path + '/rho_min', data=rho_min, dtype='f8')
+    f.create_dataset(path + '/rho_max', data=rho_max, dtype='f8')
+    f.create_dataset(path + '/dV_drho', data=dV_drho, dtype='f8')
+    f.create_dataset(path + '/r_eff', data=r_eff, dtype='f8')
 
     f.close()
 
@@ -79,14 +78,13 @@ def read_hdf5(fn, qid):
     out["qid"]  = qid
     out["date"] = f[path].attrs["date"]
     out["description"] = f[path].attrs["description"]
-    
+
     # Actual data.
-    out["Nrho"]    = f[path].attrs['n_rho']
-    out["r_eff"]   = f[path].attrs['r_eff']
-    out["rho_min"] = f[path].attrs['rho_min']
-    out["rho_max"] = f[path].attrs['rho_max']
-    out["rho"]     = f[path + '/rho'][:]
-    out["dVdrho"]  = f[path + '/dV_drho'][:]
+    out["n_rho"]    = f[path + 'n_rho']
+    out["rho_min"] = f[path + 'rho_min'][:]
+    out["rho_max"] = f[path + 'rho_max'][:]
+    out["dV_drho"]  = f[path + '/dV_drho'][:]
+    out["r_eff"]   = f[path + 'r_eff'][:]
 
     f.close()
 

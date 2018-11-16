@@ -173,8 +173,18 @@ def run(a4folder, h5fn, overwrite=True):
         f.close()
         if (os.path.isfile(fname)):
             data = read_erad(fname)
-            E_1D.write_hdf5(h5fn, int(data['n_rho']), 1.0, np.amin(data['rho']), 
-                            np.amax(data['rho']), data['rho'], data['dV_drho'])
+            # Make sure the input is linearly spaced. If not, interpolate
+            tol = 5
+            if ( max(np.diff(data['rho'])) > tol*min(np.diff(data['rho'])) ):
+                print("Warning! Interpolating dV_drho to uniform grid")
+                new_rho = np.linspace(np.amin(data['rho']),
+                                      np.amax(data['rho']),
+                                      data['n_rho'])
+                data['dV_drho'] = np.interp(new_rho, data['rho'],
+                                            data['dV_drho'])
+                data['rho'] = new_rho
+            E_1D.write_hdf5(h5fn, int(data['n_rho']), np.amin(data['rho']),
+                            np.amax(data['rho']), data['dV_drho'], 1.0)
         else:
             E = np.array([0, 0, 0])
             E_TC.write_hdf5(h5fn, E)
