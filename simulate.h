@@ -90,7 +90,7 @@ typedef struct {
     real endcond_maxCpuTime;   /**< Maximum wall-clock time [s]               */
     real endcond_minRho;       /**< Minimum rho limit                         */
     real endcond_maxRho;       /**< Maximum rho limit                         */
-    real endcond_minEkin;      /**< Fixed minimum kinetic energy limit [eV]   */
+    real endcond_minEkin;      /**< Fixed minimum kinetic energy limit [J]    */
     real endcond_minEkinPerTe; /**< Thermal minimum energy limit is this
                                     parameter times local thermal energy      */
     real endcond_maxTorOrb;    /**< Maximum limit for toroidal distance [rad] */
@@ -158,7 +158,7 @@ typedef struct {
     real endcond_maxCpuTime;   /**< Maximum wall-clock time [s]               */
     real endcond_minRho;       /**< Minimum rho limit                         */
     real endcond_maxRho;       /**< Maximum rho limit                         */
-    real endcond_minEkin;      /**< Fixed minimum kinetic energy limit [eV]   */
+    real endcond_minEkin;      /**< Fixed minimum kinetic energy limit [J]    */
     real endcond_minEkinPerTe; /**< Thermal minimum energy limit is this
                                     parameter times local thermal energy      */
     real endcond_maxTorOrb;    /**< Maximum limit for toroidal distance [rad] */
