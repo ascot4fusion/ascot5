@@ -5,6 +5,7 @@
 #ifndef HDF5_INTERFACE_H5
 #define HDF5_INTERFACE_H5
 
+#include "ascot5.h"
 #include "simulate.h"
 
 int hdf5_interface_read_input(sim_offload_data* sim,
@@ -16,5 +17,5 @@ int hdf5_interface_read_input(sim_offload_data* sim,
                               input_particle** p,
                               int* n_markers);
 
-int hdf5_initoutput(sim_offload_data* sim, char* qid);
+int hdf5_interface_init_results(sim_offload_data* sim, char* qid);
 #endif

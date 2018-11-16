@@ -136,8 +136,6 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
 
-    /* Error if something went wrong while data was read or initialized */
-    int err = 0;
     /* Number of markers to be simulated */
     int n;
     /* Marker input struct */
@@ -205,11 +203,6 @@ int main(int argc, char** argv) {
         strcat(sim.hdf5_out, temp);
     }
 
-    /* Initialize results fields in the output file */
-    err = hdf5_initoutput(&sim, qid);
-    if(err) {return 0;};
-    strcpy(sim.qid, qid);
-
     /* Choose which markers are used in this MPI process. Simply put, markers
      * are divided into mpi_size sequential blocks and the mpi_rank:th block
      * is chosen for this simulation. */
@@ -226,20 +219,29 @@ int main(int argc, char** argv) {
     /* Set up particlestates on host, needs magnetic field evaluation */
     B_field_data Bdata;
     B_field_init(&Bdata, &sim.B_offload_data, B_offload_array);
-
-    print_out0(VERBOSE_NORMAL, mpi_rank,
-               "Magnetic field initialization complete.\n");
-
     particle_state* ps = (particle_state*) malloc(n * sizeof(particle_state));
     for(int i = 0; i < n; i++) {
         particle_input_to_state(&p[i], &ps[i], &Bdata);
     }
 
+    /* Initialize results group in the output file */
+    print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
+    if( hdf5_interface_init_results(&sim, qid) ) {
+        print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "\n"
+                   "Initializing output failed.\n"
+                   "See stderr for details.\n\n"
+                   "\n");
+        /* Free offload data and terminate */
+        goto CLEANUP_FAILURE;
+    };
+    strcpy(sim.qid, qid);
+
     /* Write inistate */
     hdf5_particlestate_write(sim.hdf5_out, qid, "inistate", n, ps);
 
     print_out0(VERBOSE_NORMAL, mpi_rank,
-               "Markers initialized and inistate written.\n");
+               "Marker states initialized and inistate written.\n");
 
     /* Divide markers among host and target */
 #ifdef TARGET
@@ -332,19 +334,27 @@ int main(int argc, char** argv) {
 #endif
 
     /* Free offload data */
+    goto CLEANUP_SUCCESS;
+
+CLEANUP_SUCCESS:
+
 #ifdef MPI
     MPI_Finalize();
 #endif
 
     B_field_free_offload(&sim.B_offload_data, &B_offload_array);
+    E_field_free_offload(&sim.E_offload_data, &E_offload_array);
     plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
+    neutral_free_offload(&sim.neutral_offload_data, &neutral_offload_array);
+
 #ifdef TARGET
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
 #else
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
 #endif
+
     offload_free_offload(&offload_data, &offload_array);
 
     free(p-start_index);
@@ -352,6 +362,32 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_MINIMAL, mpi_rank, "Done.\n");
 
     return 0;
+
+CLEANUP_FAILURE:
+
+#ifdef MPI
+    MPI_Finalize();
+#endif
+
+    B_field_free_offload(&sim.B_offload_data, &B_offload_array);
+    E_field_free_offload(&sim.E_offload_data, &E_offload_array);
+    plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
+    wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
+    neutral_free_offload(&sim.neutral_offload_data, &neutral_offload_array);
+
+#ifdef TARGET
+    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
+    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
+#else
+    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
+#endif
+
+    offload_free_offload(&offload_data, &offload_array);
+
+    free(p-start_index);
+
+    abort();
+    return 1;
 }
 
 /**

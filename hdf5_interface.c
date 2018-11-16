@@ -2,14 +2,17 @@
  * @file hdf5_interface.c
  * @brief HDF5 operations are accessed through here
  *
+ * This module handles IO operations to HDF5 file. Accessing HDF5 files
+ * from the main program should be done using this module.
  */
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include "simulate.h"
-#include "print.h"
 #include <hdf5.h>
 #include <hdf5_hl.h>
+#include "ascot5.h"
+#include "simulate.h"
+#include "print.h"
 #include "hdf5_interface.h"
 #include "hdf5io/hdf5_helpers.h"
 #include "hdf5io/hdf5_options.h"
@@ -20,7 +23,7 @@
 #include "hdf5io/hdf5_wall.h"
 #include "hdf5io/hdf5_markers.h"
 
-herr_t hdf5_get_active_qid(hid_t f, const char* group, char* qid);
+int hdf5_get_active_qid(hid_t f, const char* group, char* qid);
 
 /**
  * @brief Read and initialize input data
@@ -209,49 +212,61 @@ int hdf5_interface_read_input(sim_offload_data* sim,
     return 0;
 }
 
-int hdf5_initoutput(sim_offload_data* sim, char* qid) {
-    
+/**
+ * @brief Initialize run group
+ *
+ * This functions creates results group (if one does not already exist) and
+ * creates run group corresponding to this run. Run group is named as
+ * /results/run-XXXXXXXXXX/ where X's are the qid of current run.
+ *
+ * The group is initialized by writing qids of all used inputs as string
+ * attributes in the run group. Also the date and empty "details" fields
+ * are written.
+ *
+ * @param sim pointer to simulation offload struct
+ * @param qid qid of this run
+ */
+int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
+
     /* Create new file for the output if one does not yet exist. */
     hid_t fout = hdf5_create(sim->hdf5_out);
     if(fout < 0) {
-	printf("Note: Output file %s is already present.\n", sim->hdf5_out);
+        print_out(VERBOSE_IO, "Note: Output file %s is already present.\n",
+                  sim->hdf5_out);
     }
     hdf5_close(fout);
-    
+
     /* Open output file and create results section if one does not yet exist. */
     fout = hdf5_open(sim->hdf5_out);
-    
-    herr_t  err = hdf5_find_group(fout, "/results/");
-    if(err) {
-	/* No results group exists so we make one */
-	hdf5_create_group(fout, "/results/");
+
+    if( hdf5_find_group(fout, "/results/") ) {
+        hdf5_create_group(fout, "/results/");
     }
 
-    /* Create a group for this specific run. */
+    /* Create a run group for this specific run. */
     char path[256];
-    hdf5_generate_qid_path("/results/run-XXXXXXXXXX", qid, path);
-    hid_t newgroup = H5Gcreate2(fout, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hdf5_gen_path("/results/run-XXXXXXXXXX", qid, path);
+    hid_t newgroup = H5Gcreate2(fout, path,
+                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     H5Gclose (newgroup);
-    #if VERBOSE > 0
-        printf("\nThe qid of this run is %s\n", qid);
-    #endif
-	
+    print_out(VERBOSE_IO, "\nThe qid of this run is %s\n", qid);
+
     /* If a run with identical qid exists, abort. */
     if(newgroup < 0) {
-	printf("Error: A run with qid %s already exists.\n", qid);
-	hdf5_close(fout);
-	return -1;
+        print_err("Error: A run with qid %s already exists.\n", qid);
+        hdf5_close(fout);
+        return 1;
     }
 
-    /* Set this run as the active result. */
-    err=hdf5_write_string_attribute(fout, "/results", "active",  qid);
-    
+    /* Set this run as the active run. */
+    hdf5_write_string_attribute(fout, "/results", "active",  qid);
+
     /* Read input data qids and store them here. */
     char inputqid[11];
     inputqid[10] = '\0';
 
     hid_t fin = hdf5_open(sim->hdf5_in);
-    
+
     H5LTget_attribute_string(fin, "/options/", "active", inputqid);
     hdf5_write_string_attribute(fout, path, "qid_options",  inputqid);
 
@@ -274,23 +289,41 @@ int hdf5_initoutput(sim_offload_data* sim, char* qid) {
     hdf5_write_string_attribute(fout, path, "qid_marker",  inputqid);
 
     hdf5_close(fin);
-    
+
     /* Finally we set a description and date, and close the file. */
     hdf5_write_string_attribute(fout, path, "description",  "-");
-    
+
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     char date[21];
-    sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900,
+            tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     hdf5_write_string_attribute(fout, path, "date",  date);
     hdf5_close(fout);
-    
+
     return 0;
 }
 
-herr_t hdf5_get_active_qid(hid_t f, const char* group, char* qid) {
-    herr_t err = H5LTget_attribute_string(f, group, "active", qid);
+/**
+ * @brief Fetch active qid within the given group
+ *
+ * Each input group (/bfield/, /options/, etc.) has qid string indicating which
+ * of the subgroups is active, i.e., meant to be used within this simulation.
+ *
+ * This function fetches the active qid assuming the file is opened and closed
+ * outside of this function.
+ *
+ * @param f HDF5 file identifier
+ * @param group group string including the "/"s on both sides e.g. /bfield/
+ * @param qid array where qid will be stored
+ *
+ * @return Zero on success
+ */
+int hdf5_get_active_qid(hid_t f, const char* group, char qid[11]) {
+    if( H5LTget_attribute_string(f, group, "active", qid) ) {
+        return 1;
+    }
     qid[10] = '\0';
 
-    return err;
+    return 0;
 }
