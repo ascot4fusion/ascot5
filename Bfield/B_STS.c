@@ -129,13 +129,6 @@ a5err B_STS_eval_psi(real psi[], real r, real phi, real z,
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
-    if (Bdata->symmetry_mode == symmetry_type_periodic) {
-        phi = fmod(phi, Bdata->period_length);
-        if(phi < 0) {
-            phi += Bdata->period_length;
-        }
-    }
-
     interperr += interp3Dcomp_eval_B(&psi[0], &Bdata->psi, r, phi, z);
 
     /* Test for psi interpolation error */
@@ -163,13 +156,6 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_STS_data*
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
     real psi_dpsi_temp[10];
-
-    if (Bdata->symmetry_mode == symmetry_type_periodic) {
-        phi = fmod(phi, Bdata->period_length);
-        if(phi < 0) {
-            phi += Bdata->period_length;
-        }
-    }
 
     interperr += interp3Dcomp_eval_dB(psi_dpsi_temp, &Bdata->psi, r, phi, z);
 
@@ -253,13 +239,6 @@ a5err B_STS_eval_B(real B[], real r, real phi, real z, B_STS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
-    if (Bdata->symmetry_mode == symmetry_type_periodic) {
-        phi = fmod(phi, Bdata->period_length);
-        if(phi < 0) {
-            phi += Bdata->period_length;
-        }
-    }
-
     interperr += interp3Dcomp_eval_B(&B[0], &Bdata->B_r, r, phi, z);
     interperr += interp3Dcomp_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
     interperr += interp3Dcomp_eval_B(&B[2], &Bdata->B_z, r, phi, z);
@@ -298,13 +277,6 @@ a5err B_STS_eval_B_dB(real B_dB[], real r, real phi, real z, B_STS_data* Bdata) 
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
     real B_dB_temp[10];
-
-    if (Bdata->symmetry_mode == symmetry_type_periodic) {
-        phi = fmod(phi, Bdata->period_length);
-        if(phi < 0) {
-            phi += Bdata->period_length;
-        }
-    }
 
     interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
 
