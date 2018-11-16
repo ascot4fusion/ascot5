@@ -153,10 +153,8 @@ int main(int argc, char** argv) {
                                   &plasma_offload_array, &neutral_offload_array,
                                   &wall_offload_array, &p, &n) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\n"
-                   "Input reading or initializing failed.\n"
-                   "See stderr for details.\n\n"
-                   "\n");
+                   "\nInput reading or initializing failed.\n"
+                   "See stderr for details.\n");
         abort();
         return 1;
     };
@@ -223,25 +221,32 @@ int main(int argc, char** argv) {
     for(int i = 0; i < n; i++) {
         particle_input_to_state(&p[i], &ps[i], &Bdata);
     }
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "Marker states initialized.\n");
 
     /* Initialize results group in the output file */
     print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
     if( hdf5_interface_init_results(&sim, qid) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\n"
-                   "Initializing output failed.\n"
-                   "See stderr for details.\n\n"
-                   "\n");
+                   "\nInitializing output failed.\n"
+                   "See stderr for details.\n");
         /* Free offload data and terminate */
         goto CLEANUP_FAILURE;
     };
     strcpy(sim.qid, qid);
 
     /* Write inistate */
-    hdf5_particlestate_write(sim.hdf5_out, qid, "inistate", n, ps);
-
+    if( hdf5_interface_write_state(sim.hdf5_out, "inistate", n, ps) ) {
+        print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "\n"
+                   "Writing inistate failed.\n"
+                   "See stderr for details.\n"
+                   "\n");
+        /* Free offload data and terminate */
+        goto CLEANUP_FAILURE;
+    }
     print_out0(VERBOSE_NORMAL, mpi_rank,
-               "Marker states initialized and inistate written.\n");
+               "\nInistate written.\n");
 
     /* Divide markers among host and target */
 #ifdef TARGET
@@ -321,8 +326,17 @@ int main(int argc, char** argv) {
         mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
 
     /* Write endstate */
-    print_out0(VERBOSE_NORMAL, mpi_rank, "Writing endstate.");
-    hdf5_particlestate_write(sim.hdf5_out, qid, "endstate", n, ps);
+    if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n, ps) ) {
+        print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "\n"
+                   "Writing endstate failed.\n"
+                   "See stderr for details.\n"
+                   "\n");
+        /* Free offload data and terminate */
+        goto CLEANUP_FAILURE;
+    }
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "Endstate written.\n");
 
     /* Combine histograms */
 #ifdef TARGET

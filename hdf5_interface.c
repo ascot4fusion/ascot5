@@ -22,6 +22,7 @@
 #include "hdf5io/hdf5_efield.h"
 #include "hdf5io/hdf5_wall.h"
 #include "hdf5io/hdf5_markers.h"
+#include "hdf5io/hdf5_particlestate.h"
 
 int hdf5_get_active_qid(hid_t f, const char* group, char* qid);
 
@@ -301,6 +302,32 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     hdf5_write_string_attribute(fout, path, "date",  date);
     hdf5_close(fout);
 
+    return 0;
+}
+
+
+int hdf5_interface_write_state(char* fn, char* state, integer n,
+                             particle_state* p) {
+    hid_t f = hdf5_open(fn);
+    if(f < 0) {
+        print_err("Error: File not found.\n");
+        return 1;
+    }
+
+    char qid[11];
+    if( hdf5_get_active_qid(f, "/results/", qid) ) {
+        print_err("Error: Active QID was not written to results group.\n");
+        hdf5_close(f);
+        return 1;
+    }
+
+    if( hdf5_particlestate_write(f, qid, state, n, p) ) {
+        print_err("Error: State could not be written.\n");
+        hdf5_close(f);
+        return 1;
+    }
+
+    hdf5_close(f);
     return 0;
 }
 

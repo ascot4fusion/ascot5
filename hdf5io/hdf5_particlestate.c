@@ -1,6 +1,6 @@
 /**
  * @file hdf5_particlestate.c
- * @brief HDF5 particle state IO
+ * @brief Module for writing marker state to HDF5 file
  */
 #include <string.h>
 #include <stdlib.h>
@@ -8,24 +8,39 @@
 #include <hdf5_hl.h>
 #include "../ascot5.h"
 #include "../consts.h"
-#include "../error.h"
-#include "hdf5_helpers.h"
 #include "../particle.h"
+#include "hdf5_helpers.h"
 
 /**
-   @brief Writes the particle state to an ASCOT5 HDF5 file.
+ * @brief Writes marker state to an ASCOT5 HDF5 file.
+ *
+ * Markers are written in /results/run-XXXXXXXXXX/state/ group where X's are
+ * the QID.
+ *
+ * All fields in particle_state struct are written. Fields are written as they
+ * are except some unit conversions. Each field is written as n length array
+ * (the order is same between all fields) and each dataset includes string
+ * attribute that indicates the unit of the stored quantity.
+ *
+ * @param fn output HDF5 file id
+ * @param qid QID of the run group
+ * @param state name of the state
+ * @param n number of markers in state array
+ * @param p array holding marker states
+ *
+ * @return Zero on success
 */
-int hdf5_particlestate_write(char* fn, char* qid, char *state, integer n, particle_state* p) {
-    hid_t file = hdf5_open(fn);
+int hdf5_particlestate_write(hid_t f, char* qid, char* state, integer n,
+                             particle_state* p) {
 
     char path[256];
-    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/", qid, path);
+    hdf5_gen_path("/results/run-XXXXXXXXXX/", qid, path);
     strcat(path, state);
 
-    hid_t state_group = H5Gcreate2(file, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
+    hid_t state_group = H5Gcreate2(f, path, H5P_DEFAULT, H5P_DEFAULT,
+                                   H5P_DEFAULT);
     if(state_group < 0) {
-        return -1;
+        return 1;
     }
 
     hsize_t dims[1];
@@ -272,6 +287,6 @@ int hdf5_particlestate_write(char* fn, char* qid, char *state, integer n, partic
     free(intdata32);
 
     H5Gclose(state_group);
-    hdf5_close(file);
-    return 1;
+
+    return 0;
 }
