@@ -155,18 +155,10 @@ int hdf5_efield_read_1DS(hid_t f, E_1DS_offload_data* offload_data,
     if( hdf5_read_double(EPATH "rho_max", &(offload_data->rho_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    /* Allocate n_rho space for both rho and dV/drho */
-    offload_data->offload_array_length = 2*offload_data->n_rho;
-    *offload_array = (real*) malloc(2*offload_data->n_rho*sizeof(real));
+    /* Allocate n_rho space for dV/drho */
+    *offload_array = (real*) malloc(offload_data->n_rho*sizeof(real));
 
-    /* Pointers to beginning of different data series to make code more
-     * readable */
-    real* rho = &(*offload_array)[0];
-    real* dV = &(*offload_array)[offload_data->n_rho];
-
-    if( hdf5_read_double(EPATH "rho", rho,
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(EPATH "dV_drho", dV,
+    if( hdf5_read_double(EPATH "dV_drho", *offload_array,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Effective minor radius */
@@ -176,7 +168,7 @@ int hdf5_efield_read_1DS(hid_t f, E_1DS_offload_data* offload_data,
 
     /* Scale derivatives by effective minor radius */
     for(int i = 0; i < offload_data->n_rho; i++) {
-        dV[i] = r_eff * dV[i];
+        (*offload_array)[i] = r_eff * (*offload_array)[i];
     }
 
     return 0;

@@ -15,22 +15,65 @@
 #include "E_1DS.h"
 
 /**
- * @brief Load 1DS electric field data and prepare parameters
+ * @brief Initialize 1DS electric field data
  *
- * This function reads the 1D electric field data from input.erad, fills the
- * offload struct with parameters and allocates and fills the offload array.
+ * This function takes pre-initialized offload data struct and offload array as
+ * inputs. The data is used to fill rest of the offload struct and to construct
+ * a cubic spline whose coefficients are stored in re-allocated offload array.
+ *
+ * The offload data struct must have the following fields initialized:
+ * - E_1DS_offload_data.n_rho
+ * - E_1DS_offload_data.rho_min
+ * - E_1DS_offload_data.rho_max
+ *
+ * E_1DS_offload_data.offload_array_length is set here.
+ *
+ * The offload array must contain the following data:
+ * - offload_array[i] = dV_drho(rho_i)   [V]
+ *
+ * Sanity checks are printed if data was initialized succesfully.
  *
  * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
+ * @param offload_array pointer to offload array which is reallocated here
  *
- * @todo move spline initialization here
+ * @return zero if initialization succeeded
  */
 int E_1DS_init_offload(E_1DS_offload_data* offload_data, real** offload_array) {
+    /* Fill rest of the offload data struct */
+    offload_data->rho_grid = (offload_data->rho_max - offload_data->rho_min)
+        / (offload_data->n_rho - 1);
+
+    /* Spline initialization. Use spline structs for temporary storage */
+    int err = 0;
+    int splinesize = 2 * offload_data->n_rho;
+    interp1D_data dV_drho;
+    err += interp1Dcomp_init(&dV_drho, *offload_array,
+                             offload_data->n_rho, offload_data->rho_min,
+                             offload_data->rho_max, offload_data->rho_grid);
+    if(err) {
+        print_err("Error: Failed to initialize splines.\n");
+        return err;
+    }
+
+    /* Re-allocate the offload array and store the spline coefficients there */
+    free(*offload_array);
+
+    offload_data->offload_array_length = splinesize;
+    *offload_array =
+        (real*) malloc( offload_data->offload_array_length * sizeof(real) );
+
+    for(int i = 0; i < splinesize; i++) {
+        (*offload_array)[i] = dV_drho.c[i];
+    }
+
+    interp1Dcomp_free(&dV_drho);
+
+    /* Print some sanity check on data */
     print_out(VERBOSE_IO, "\nRadial electric field (E_1DS)");
     print_out(VERBOSE, "(n_rho, rho_min, rho_max) = (%d, %le, %le)\n",
               offload_data->n_rho,offload_data->rho_min,
               offload_data->rho_max);
-    return 0;
+    return err;
 }
 
 /**
@@ -62,14 +105,11 @@ void E_1DS_free_offload(E_1DS_offload_data* offload_data,
  */
 void E_1DS_init(E_1DS_data* Edata, E_1DS_offload_data* offload_data,
                real* offload_array) {
-
-    Edata->n_rho = offload_data->n_rho;
-    Edata->rho_min = offload_data->rho_min;
-    Edata->rho_max = offload_data->rho_max;
-    Edata->rho_grid = (Edata->rho_max - Edata->rho_min)/(Edata->n_rho - 1);
-    interp1Dcomp_init(&Edata->dV, &offload_array[Edata->n_rho],
-                      Edata->n_rho, Edata->rho_min, Edata->rho_max,
-                      Edata->rho_grid);
+    Edata->dV.n_r    = offload_data->n_rho;
+    Edata->dV.r_min  = offload_data->rho_min;
+    Edata->dV.r_max  = offload_data->rho_max;
+    Edata->dV.r_grid = offload_data->rho_grid;
+    Edata->dV.c      = offload_array;
 }
 
 /**
@@ -86,6 +126,8 @@ void E_1DS_init(E_1DS_data* Edata, E_1DS_offload_data* offload_data,
  *          [gradrho]_phi -> rho_drho[2],
  *          [gradrho]_z -> rho_drho[3])
  * @param Edata pointer to electric field data
+ *
+ * @return zero if evaluation succeeded
  */
 a5err E_1DS_eval_E(real E[], real r, real phi, real z, E_1DS_data* Edata,
                    B_field_data* Bdata) {
@@ -96,7 +138,7 @@ a5err E_1DS_eval_E(real E[], real r, real phi, real z, E_1DS_data* Edata,
     /* Convert partial derivative to gradient */
     rho_drho[2] = rho_drho[2]/r;
     /* We set the field to zero if outside the profile. */
-    if (rho_drho[0] < Edata->rho_min || rho_drho[0] > Edata->rho_max ) {
+    if (rho_drho[0] < Edata->dV.r_min || rho_drho[0] > Edata->dV.r_max ) {
         E[0] = 0;
         E[1] = 0;
         E[2] = 0;
