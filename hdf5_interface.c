@@ -23,6 +23,7 @@
 #include "hdf5io/hdf5_wall.h"
 #include "hdf5io/hdf5_markers.h"
 #include "hdf5io/hdf5_particlestate.h"
+#include "hdf5io/hdf5_dist.h"
 
 int hdf5_get_active_qid(hid_t f, const char* group, char* qid);
 
@@ -226,6 +227,8 @@ int hdf5_interface_read_input(sim_offload_data* sim,
  *
  * @param sim pointer to simulation offload struct
  * @param qid qid of this run
+ *
+ * @return Zero if initialization succeeded
  */
 int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
 
@@ -305,7 +308,16 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     return 0;
 }
 
-
+/**
+ * @brief Write marker state to HDF5 output
+ *
+ * @param fn HDF5 output filename
+ * @param state name of the state to be written
+ * @param n number of markers in marker array
+ * @param p array of markers to be written
+ *
+ * @results Zero if state was written succesfully
+ */
 int hdf5_interface_write_state(char* fn, char* state, integer n,
                              particle_state* p) {
     hid_t f = hdf5_open(fn);
@@ -328,6 +340,61 @@ int hdf5_interface_write_state(char* fn, char* state, integer n,
     }
 
     hdf5_close(f);
+    return 0;
+}
+
+/**
+ * @brief Write diagnostics to HDF5 output
+ *
+ * @param sim pointer to simulation offload data
+ * @param diag_offload_array diagnostics offload array
+ * @param out HDF5 output filename
+ *
+ * @return Zero if diagnostics were written succesfully
+ */
+int hdf5_interface_write_diagnostics(sim_offload_data* sim,
+                                     real* diag_offload_array, char* out) {
+    hid_t f = hdf5_open(out);
+    if(f < 0) {
+        print_err("Error: File not found.\n");
+        return 1;
+    }
+
+    char qid[11];
+    if( hdf5_get_active_qid(f, "/results/", qid) ) {
+        print_err("Error: Active QID was not written to results group.\n");
+        hdf5_close(f);
+        return 1;
+    }
+    hdf5_close(f);
+
+    if(sim->diag_offload_data.dist5D_collect) {
+        hdf5_dist_write_5D(
+            &sim->diag_offload_data.dist5D,
+            &diag_offload_array[sim->diag_offload_data.offload_dist5D_index],
+            out, qid);
+    }
+
+    if(sim->diag_offload_data.dist6D_collect) {
+        hdf5_dist_write_6D(
+            &sim->diag_offload_data.dist6D,
+            &diag_offload_array[sim->diag_offload_data.offload_dist6D_index],
+            out, qid);
+    }
+    if(sim->diag_offload_data.distrho5D_collect) {
+        hdf5_dist_write_rho5D(
+            &sim->diag_offload_data.distrho5D,
+            &diag_offload_array[sim->diag_offload_data.offload_distrho5D_index],
+            out, qid);
+    }
+
+    if(sim->diag_offload_data.distrho6D_collect) {
+        hdf5_dist_write_rho6D(
+            &sim->diag_offload_data.distrho6D,
+            &diag_offload_array[sim->diag_offload_data.offload_distrho6D_index],
+            out, qid);
+    }
+
     return 0;
 }
 

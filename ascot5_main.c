@@ -66,10 +66,7 @@
 #include "simulate.h"
 #include "particle.h"
 #include "endcond.h"
-#include "hdf5io/hdf5_diag.h"
 #include "hdf5_interface.h"
-#include "hdf5io/hdf5_orbits.h"
-#include "hdf5io/hdf5_particlestate.h"
 #include "offload.h"
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
@@ -321,31 +318,45 @@ int main(int argc, char** argv) {
 #endif
     }
 
-    /* Code excution returns to host. */
+    /* Code execution returns to host. */
     print_out0(VERBOSE_NORMAL, mpi_rank, "mic0 %lf s, mic1 %lf s, host %lf s\n",
         mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
 
     /* Write endstate */
     if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n, ps) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\n"
-                   "Writing endstate failed.\n"
-                   "See stderr for details.\n"
-                   "\n");
+                   "\nWriting endstate failed.\n"
+                   "See stderr for details.\n");
         /* Free offload data and terminate */
         goto CLEANUP_FAILURE;
     }
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Endstate written.\n");
 
-    /* Combine histograms */
+    /* Combine diagnostic data and write it to HDF5 file */
+    print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "\nCombining and writing diagnostics.\n");
+    int err_writediag = 0;
 #ifdef TARGET
     diag_sum(&sim.diag_offload_data,
              diag_offload_array_mic0, diag_offload_array_mic1);
-    hdf5_diag_write(&sim, diag_offload_array_mic0, sim.hdf5_out, qid);
+    err_writediag = hdf5_interface_write_diagnostics(
+        &sim, diag_offload_array_mic0, sim.hdf5_out);
 #else
-    hdf5_diag_write(&sim, diag_offload_array_host, sim.hdf5_out, qid);
+    err_writediag = hdf5_interface_write_diagnostics(
+        &sim, diag_offload_array_host, sim.hdf5_out);
 #endif
+    if(err_writediag) {
+        print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "\nWriting diagnostics failed.\n"
+                   "See stderr for details.\n");
+        /* Free offload data and terminate */
+        goto CLEANUP_FAILURE;
+    }
+    else {
+        print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "Diagnostics written.\n");
+    }
 
     /* Free offload data */
     goto CLEANUP_SUCCESS;
