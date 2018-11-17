@@ -5,14 +5,16 @@
  * Magnetic field whose Cartesian components \f$(B_x, B_y, B_z)\f$ have
  * user-defined values at the origo \f$(R,z) = (0,0)\f$, and constant Jacobian
  *
- * \f{bmatrix}{
-   \frac{\partial B_x}{\partial x} & \frac{\partial B_x}{\partial y} &
-   \frac{\partial B_x}{\partial z} \\
-   \frac{\partial B_y}{\partial x} & \frac{\partial B_y}{\partial y} &
-   \frac{\partial B_y}{\partial z} \\
-   \frac{\partial B_z}{\partial x} & \frac{\partial B_z}{\partial y} &
-   \frac{\partial B_z}{\partial z}
- * \f}
+ * \f[
+ * \begin{bmatrix}
+ * \frac{\partial B_x}{\partial x}, &\frac{\partial B_x}{\partial y},
+ * &\frac{\partial B_x}{\partial z} \\
+ * \frac{\partial B_y}{\partial x}, &\frac{\partial B_y}{\partial y},
+ * &\frac{\partial B_y}{\partial z} \\
+ * \frac{\partial B_z}{\partial x}, &\frac{\partial B_z}{\partial y},
+ * &\frac{\partial B_z}{\partial z}
+ * \end{bmatrix}
+ * \f]
  *
  * This magnetic field is intended to serve debugging and testing purposes.
  * Other values \f$\psi\f$, \f$\rho\f$ and magnetic axis coordinates have

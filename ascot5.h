@@ -48,8 +48,8 @@
  */
 
 /**
- * @file ascot-acc.h
- * @brief Main header file for ascot-acc
+ * @file ascot5.h
+ * @brief Main header file for ASCOT5
  *
  * This header file defines general types and structs used widely by the program
  * as well as any features dependent on compiler defined macros.
