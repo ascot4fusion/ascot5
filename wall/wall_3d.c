@@ -114,6 +114,8 @@ void wall_3d_free_offload(wall_3d_offload_data* offload_data,
  * struct on target and sets the wall data pointers to correct offsets in the
  * offload array.
  *
+ * @todo move init_octree to init_offload
+ *
  * @param w pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array offload array
@@ -290,6 +292,7 @@ void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
         next_empty_list += w->tree_array[next_empty_list] + 1;
     }
     free(tri_list);
+    octree_free(&tree);
 }
 
 /**

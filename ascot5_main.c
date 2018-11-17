@@ -220,6 +220,7 @@ int main(int argc, char** argv) {
     for(int i = 0; i < n; i++) {
         particle_input_to_state(&p[i], &ps[i], &Bdata);
     }
+    free(p-start_index); // Input markers are no longer required
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Estimated memory usage %.1f MB.\n",
                (sizeof(real) * n) / (1024.0*1024.0));
@@ -387,7 +388,7 @@ CLEANUP_SUCCESS:
 
     offload_free_offload(&offload_data, &offload_array);
 
-    free(p-start_index);
+    free(ps);
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "Done.\n");
 
@@ -414,7 +415,7 @@ CLEANUP_FAILURE:
 
     offload_free_offload(&offload_data, &offload_array);
 
-    free(p-start_index);
+    free(ps);
 
     abort();
     return 1;

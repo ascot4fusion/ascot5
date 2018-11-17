@@ -81,7 +81,29 @@ void octree_create(octree_node** node, real x_min, real x_max, real y_min,
     }
 }
 
+/**
+ * @brief Free octree node and all its child nodes
+ *
+ * Deallocates node and its child node recursively. Linked lists are also freed.
+ *
+ * @param node pointer to octree node
+ */
 void octree_free(octree_node** node) {
+    if((*node)->n000 != NULL) {
+        octree_free( &((*node)->n000) );
+        octree_free( &((*node)->n100) );
+        octree_free( &((*node)->n010) );
+        octree_free( &((*node)->n110) );
+        octree_free( &((*node)->n001) );
+        octree_free( &((*node)->n101) );
+        octree_free( &((*node)->n011) );
+        octree_free( &((*node)->n111) );
+    }
+    else {
+        list_int_free( &((*node)->list) );
+    }
+    free(*node);
+    *node = NULL;
 }
 
 /**
