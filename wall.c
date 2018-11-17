@@ -33,10 +33,10 @@
  *
  * This function is host only.
  *
- * @todo This method should return error if initialization fails
- *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ *
+ * @return zero if initialization succeeded
  */
 int wall_init_offload(wall_offload_data* offload_data, real** offload_array) {
 
@@ -61,6 +61,11 @@ int wall_init_offload(wall_offload_data* offload_data, real** offload_array) {
             print_err("Error: Unregonized electric field type.");
             err = 1;
             break;
+    }
+    if(!err) {
+        print_out(VERBOSE_IO, "Estimated memory usage %.1f MB\n",
+                  offload_data->offload_array_length
+                  * sizeof(real) / (1024.0*1024.0) );
     }
 
     return err;

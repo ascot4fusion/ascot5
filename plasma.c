@@ -20,7 +20,7 @@
  *
  * Maximum number of plasma species is defined by MAX_SPECIES in ascot5.h.
  *
- * @todo Is P1D implemented? All its function calls are commented here...
+ * @todo Is P1DS implemented? All its function calls are commented here...
  * @todo Do we need separate evaluate temperature and density functions in
  *       addition to the one that evaluates both?
  * @todo Some functions are returning values instead of error message
@@ -50,6 +50,8 @@
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ *
+ * @return zero if initialization succeeded
  */
 int plasma_init_offload(plasma_offload_data* offload_data,
                         real** offload_array) {
@@ -69,6 +71,11 @@ int plasma_init_offload(plasma_offload_data* offload_data,
             print_err("Error: Unregonized plasma data type.");
             err = 1;
             break;
+    }
+    if(!err) {
+        print_out(VERBOSE_IO, "Estimated memory usage %.1f MB\n",
+                  offload_data->offload_array_length
+                  * sizeof(real) / (1024.0*1024.0) );
     }
 
     return err;
@@ -106,8 +113,6 @@ void plasma_free_offload(plasma_offload_data* offload_data,
  * struct on target and sets the plasma data pointers to correct offsets in the
  * offload array.
  *
- * @todo Some of the functions are missing return value
- *
  * @param pls_data pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
@@ -126,6 +131,12 @@ int plasma_init(plasma_data* pls_data, plasma_offload_data* offload_data,
         case plasma_type_1DS:
             //plasma_1DS_init(&(pls_data->plasma_1DS),
             //                &(offload_data->plasma_1DS), offload_array);
+            break;
+
+        default:
+            /* Unregonized input. Produce error. */
+            print_err("Error: Unregonized plasma data type.");
+            err = 1;
             break;
     }
     pls_data->type = offload_data->type;

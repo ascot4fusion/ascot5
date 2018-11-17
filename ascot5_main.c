@@ -212,12 +212,17 @@ int main(int argc, char** argv) {
     }
 
     /* Set up particlestates on host, needs magnetic field evaluation */
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "\nInitializing marker states.\n");
     B_field_data Bdata;
     B_field_init(&Bdata, &sim.B_offload_data, B_offload_array);
     particle_state* ps = (particle_state*) malloc(n * sizeof(particle_state));
     for(int i = 0; i < n; i++) {
         particle_input_to_state(&p[i], &ps[i], &Bdata);
     }
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "Estimated memory usage %.1f MB.\n",
+               (sizeof(real) * n) / (1024.0*1024.0));
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Marker states initialized.\n");
 

@@ -36,7 +36,7 @@
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  *
- * @return Zero if evaluation succeeded
+ * @return Zero if initialization succeeded
  */
 int neutral_init_offload(neutral_offload_data* offload_data,
                          real** offload_array) {
@@ -59,6 +59,11 @@ int neutral_init_offload(neutral_offload_data* offload_data,
             print_err("Error: Unregonized neutral data type.");
             err = 1;
             break;
+    }
+    if(!err) {
+        print_out(VERBOSE_IO, "Estimated memory usage %.1f MB\n",
+                  offload_data->offload_array_length
+                  * sizeof(real) / (1024.0*1024.0) );
     }
 
     return err;
