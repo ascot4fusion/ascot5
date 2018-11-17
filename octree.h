@@ -8,17 +8,24 @@
 #include "ascot5.h"
 #include "list.h"
 
+/**
+ * @brief Struct representing single octree node
+ *
+ * Stores eight child nodes, bounding box of the volume this node encloses, and
+ * a linked list containing IDs of triangles belonging to this node.
+ */
 typedef struct octree_node {
-    struct octree_node* n000;
-    struct octree_node* n100;
-    struct octree_node* n010;
-    struct octree_node* n110;
-    struct octree_node* n001;
-    struct octree_node* n101;
-    struct octree_node* n011;
-    struct octree_node* n111;
-    real bb1[3], bb2[3];
-    list_int_node* list;
+    struct octree_node* n000; /**< [xmin, ymin, zmin] child node        */
+    struct octree_node* n100; /**< [xmax, ymin, zmin] child node        */
+    struct octree_node* n010; /**< [xmin, ymax, zmin] child node        */
+    struct octree_node* n110; /**< [xmax, ymax, zmin] child node        */
+    struct octree_node* n001; /**< [xmin, ymin, zmax] child node        */
+    struct octree_node* n101; /**< [xmax, ymin, zmax] child node        */
+    struct octree_node* n011; /**< [xmin, ymax, zmax] child node        */
+    struct octree_node* n111; /**< [xmax, ymax, zmax] child node        */
+    real bb1[3];              /**< Bounding box xyz minimum limit       */
+    real bb2[3];              /**< Bounding box xyz maximum limit       */
+    list_int_node* list;      /**< Linked list for storing triangle IDs */
 } octree_node;
 
 #pragma omp declare target
