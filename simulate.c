@@ -11,6 +11,7 @@
  * on the data once it has been initialized. However, threads should only modify
  * marker and diagnostic data.
  */
+#define _XOPEN_SOURCE
 #include <string.h>
 #include <unistd.h>
 #include "endcond.h"

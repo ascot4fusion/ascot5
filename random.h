@@ -49,7 +49,7 @@ void random_gsl_normal_simd(random_data* rdata, int n, double* r);
 
 #else /* No RNG lib defined, use drand48 */
 
-#define _XOPEN_SOURCE 500
+//#define _XOPEN_SOURCE 500
 #include <stdlib.h>
 
 typedef struct {
