@@ -30,10 +30,6 @@
  * - hybrid: Not an end condition per se but used to notate that the guiding
  *   center simulation will be resumed as a gyro-orbit simulation
  *
- * Note: emin and therm, rhomin and rhomax, and polmax and tormax are pairs
- * where both members are either active at the same time or neither is i.e.,
- * they cannot be toggled separately.
- *
  * As magnetic field lines have no energy, emin and therm are never checked for
  * them. Guiding centers are the only markers for which hybrid is checked.
  *
@@ -111,7 +107,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
 
             /* Evaluate marker energy, and check if it is below the minimum
              * energy limit or local thermal energy limit */
-            if(active_emin | active_therm) {
+            if(active_emin || active_therm) {
                 real vnorm = math_normc(
                     p_f->rdot[i], p_f->phidot[i] * p_f->r[i], p_f->zdot[i]);
                 real gamma = physlib_relfactorv_fo(vnorm);
@@ -119,11 +115,11 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                 real Te = plasma_eval_temp(p_f->rho[i], 0, &sim->plasma_data)
                     * CONST_KB;
 
-                if( active_emin & (ekin < sim->endcond_minEkin) ) {
+                if( active_emin && (ekin < sim->endcond_minEkin) ) {
                     p_f->endcond[i] |= endcond_emin;
                     p_f->running[i] = 0;
                 }
-                if( active_therm & (ekin < (sim->endcond_minEkinPerTe * Te)) ) {
+                if( active_therm && (ekin < (sim->endcond_minEkinPerTe * Te)) ) {
                     p_f->endcond[i] |= endcond_therm;
                     p_f->running[i] = 0;
                 }
@@ -222,7 +218,7 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
 
         /* Evaluate marker energy, and check if it is below the minimum
          * energy limit or local thermal energy limit */
-        if(active_emin | active_therm) {
+        if(active_emin || active_therm) {
             real Bnorm = math_normc(p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]);
             real gamma = physlib_relfactorv_gc(
                 p_f->mass[i], p_f->mu[i], p_f->vpar[i], Bnorm);
@@ -230,11 +226,11 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
             real Te = plasma_eval_temp(p_f->rho[i], 0, &sim->plasma_data)
                 * CONST_KB;
 
-            if(active_emin & (ekin < sim->endcond_minEkin) ) {
+            if(active_emin && (ekin < sim->endcond_minEkin) ) {
                 p_f->endcond[i] |= endcond_emin;
                 p_f->running[i] = 0;
             }
-            if( active_therm & (ekin < (sim->endcond_minEkinPerTe * Te)) ) {
+            if( active_therm && (ekin < (sim->endcond_minEkinPerTe * Te)) ) {
                 p_f->endcond[i] |= endcond_therm;
                 p_f->running[i] = 0;
             }
