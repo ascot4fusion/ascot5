@@ -1,8 +1,6 @@
 /**
  * @file math.c
  * @brief Mathematical utility functions
- *
- * @todo Implement as macros
  */
 #define _XOPEN_SOURCE 500
 #include <math.h>
@@ -10,108 +8,9 @@
 #include "ascot5.h"
 #include "math.h"
 
-/**
- * @brief Return unit vector of a given 3D vector
- *
- * @param vec      3-length array
- * @param vec_unit corresponding unit vector
- */
-void math_unit(real* vec, real* vec_unit) {
-    real n = math_norm(vec);
-    vec_unit[0] = vec[0]/n;
-    vec_unit[1] = vec[1]/n;
-    vec_unit[2] = vec[2]/n;
-}
-
-/**
- * @brief Convert cartesian to cylindrical coordinates
- *
- * @param xyz input xyz coordinates in a 3-length array
- * @param rpz output rpz coordinates in a 3-length array
- */
-void math_xyz2rpz(real* xyz, real* rpz) {
-    rpz[0] = sqrt(xyz[0]*xyz[0]+xyz[1]*xyz[1]);
-    rpz[1] = atan2(xyz[1], xyz[0]);
-    rpz[2] = xyz[2];
-}
-
-/**
- * @brief Convert cylindrical to cartesian coordinates
- *
- * @param rpz input rpz coordinates in a 3-length array
- * @param xyz output xyz coordinates in a 3-length array
- */
-void math_rpz2xyz(real* rpz, real* xyz) {
-    xyz[0] = rpz[0] * cos(rpz[1]);
-    xyz[1] = rpz[0] * sin(rpz[1]);
-    xyz[2] = rpz[2];
-}
-
-/**
- * @brief Convert a vector from cylindrical to cartesian coordinates
- *
- * This function converts a vector located at angle phi from cylindrical
- * to cartesian coordinates.
- *
- * @param rpz input rpz coordinates in a 3-length array
- * @param xyz output xyz coordinates in a 3-length array
- * @param phi phi coordinate of the vector
- */
-void math_vec_rpz2xyz(real* rpz, real* xyz, real phi) {
-    xyz[0] = rpz[0] * cos(phi) - rpz[1] * sin(phi);
-    xyz[1] = rpz[0] * sin(phi) + rpz[1] * cos(phi);
-    xyz[2] = rpz[2];
-}
-
-/**
- * @brief Convert a vector from cartesian to cylindrical coordinates
- *
- * This function converts a vector located at angle phi from cartesian
- * to cylindrical coordinates.
- *
- * @param xyz input xyz coordinates in a 3-length array
- * @param rpz output rpz coordinates in a 3-length array
- * @param phi phi coordinate of the vector
- */
-void math_vec_xyz2rpz(real* xyz, real* rpz, real phi) {
-    rpz[0] = xyz[0] * cos(phi) + xyz[1] * sin(phi);
-    rpz[1] = -xyz[0] * sin(phi) + xyz[1] * cos(phi);
-    rpz[2] = xyz[2];
-}
-
-/**
- * @brief Convert a gradient from cylindrical to cartesian coordinates
- *
- * This function converts a gradient located at angle phi from cylindrical
- * to cartesian coordinates.
- *
- * @param rpz input rpz coordinates in a 3-length array
- * @param xyz output xyz coordinates in a 3-length array
- * @param r   r coordinate of the gradient
- * @param phi phi coordinate of the gradient
- */
-void math_grad_rpz2xyz(real* rpz, real* xyz, real r, real phi) {
-    xyz[0] = rpz[0] * cos(phi) - rpz[1] * sin(phi) / r;
-    xyz[1] = rpz[0] * sin(phi) + rpz[1] * cos(phi) / r;
-    xyz[2] = rpz[2];
-}
-
-/**
- * @brief Convert a gradient from cartesian to cylindrical coordinates
- *
- * This function converts a gradient located at radius r and angle phi
- * from cartesian to cylindrical coordinates.
- *
- * @param xyz input xyz coordinates in a 3-length array
- * @param rpz output rpz coordinates in a 3-length array
- * @param r   r coordinate of the gradient
- * @param phi phi coordinate of the gradient
- */
-void math_grad_xyz2rpz(real* xyz, real* rpz, real r, real phi) {
-    rpz[0] = xyz[0] * cos(phi) + xyz[1] * sin(phi);
-    rpz[1] = (-xyz[0] * sin(phi) + xyz[1] * cos(phi)) / r;
-    rpz[2] = xyz[2];
-}
+double math_simpson_helper(double (*f)(double), double a, double b, double eps,
+                           double S, double fa, double fb, double fc,
+                           int bottom);
 
 /**
  * @brief Convert a Jacobian from cylindrical to cartesian coordinates
@@ -247,14 +146,11 @@ void math_jac_xyz2rpz(real* xyz, real* rpz, real r, real phi) {
  * @param matC output array representing a d1 x d3 matrix
  */
 void math_matmul(real* matA, real* matB, int d1, int d2, int d3, real* matC) {
-    int i;
-    int j;
-    int k;
     real sum;
-    for (i = 0; i < d1; i=i+1) {
-        for (j = 0; j < d3; j=j+1) {
+    for (int i = 0; i < d1; i=i+1) {
+        for (int j = 0; j < d3; j=j+1) {
             sum = 0.0;
-            for (k = 0; k < d2; k=k+1){
+            for (int k = 0; k < d2; k=k+1){
                 sum = sum + matA[k * d1 + i]*matB[j * d2 + k];
             }
             matC[i * d3 + j] = sum;
@@ -292,36 +188,20 @@ real math_normal_rand(void) {
     return X;
 }
 
-int math_ipow(int a, int p) {
-    int i;
-    if(p == 0) {
-        return 0;
-    } else {
-        int pow = a;
-        for(i = 0; i < p-1; i++) {
-            pow *= a;
-        }
-        return pow;
-    }
-}
-
 /**
- * @brief Helper routine for "math_simpson"
+ * @brief Calculate a^p where both a and p are integers (p >= 0)
+ *
+ * @param a argument
+ * @param p power
+ *
+ * @return a^b
  */
-double math_simpson_helper(double (*f)(double), double a, double b, double eps,
-                           double S, double fa, double fb, double fc,
-                           int bottom) {
-    double c = (a + b)/2, h = b - a;
-    double d = (a + c)/2, e = (c + b)/2;
-    double fd = f(d), fe = f(e);
-    double Sleft = (h/12)*(fa + 4*fd + fc);
-    double Sright = (h/12)*(fc + 4*fe + fb);
-    double S2 = Sleft + Sright;
-    if (bottom <= 0 || fabs(S2 - S) <= eps*fabs(S)) {
-        return  S2 + (S2 - S)/15;
+int math_ipow(int a, int p) {
+    int pow = 1;
+    for(int i = 0; i < p; i++) {
+        pow *= a;
     }
-    return math_simpson_helper(f, a, c, eps, Sleft,  fa, fc, fd, bottom-1)
-        +math_simpson_helper(f, c, b, eps, Sright, fc, fb, fe, bottom-1);
+    return pow;
 }
 
 /**
@@ -347,6 +227,17 @@ double math_simpson(double (*f)(double), double a, double b, double eps) {
                                math_maxSimpsonDepth);
 }
 
+/**
+ * @brief Generate linearly spaced vector
+ *
+ * Generates linearly space vector with n elements whose end points are a and b.
+ * If n = 1, return b.
+ *
+ * @param vec n length array where result is stored
+ * @param a start point
+ * @param b end point
+ * @param n number of elements
+ */
 void math_linspace(real* vec, real a, real b, int n) {
     if(n == 1) {
         vec[0] = b;
@@ -357,4 +248,23 @@ void math_linspace(real* vec, real a, real b, int n) {
             vec[i] = a+i*d;
         }
     }
+}
+
+/**
+ * @brief Helper routine for "math_simpson"
+ */
+double math_simpson_helper(double (*f)(double), double a, double b, double eps,
+                           double S, double fa, double fb, double fc,
+                           int bottom) {
+    double c = (a + b)/2, h = b - a;
+    double d = (a + c)/2, e = (c + b)/2;
+    double fd = f(d), fe = f(e);
+    double Sleft = (h/12)*(fa + 4*fd + fc);
+    double Sright = (h/12)*(fc + 4*fe + fb);
+    double S2 = Sleft + Sright;
+    if (bottom <= 0 || fabs(S2 - S) <= eps*fabs(S)) {
+        return  S2 + (S2 - S)/15;
+    }
+    return math_simpson_helper(f, a, c, eps, Sleft,  fa, fc, fd, bottom-1)
+        +math_simpson_helper(f, c, b, eps, Sright, fc, fb, fe, bottom-1);
 }
