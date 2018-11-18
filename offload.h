@@ -6,9 +6,9 @@
 #define OFFLOAD_H
 
 typedef struct {
-    size_t pack_array_length; /* Total length of the common offload array   */
-    size_t unpack_pos;        /* Position of the beginning of the next data
-                               * pack that will be unpacked                 */
+    size_t offload_array_length; /* Total length of the common offload array  */
+    size_t unpack_pos;           /* Position of the beginning of the next
+                                  * data pack that will be unpacked           */
 } offload_package;
 
 void offload_init_offload(offload_package* o, real** pack_array);

@@ -57,20 +57,20 @@ void offload_free_offload(offload_package* o, real** offload_array) {
 void offload_pack(offload_package* o, real** offload_array, real* pack_array,
                   size_t pack_length) {
 
-    size_t new_length = o->pack_array_length + pack_length;
+    size_t new_length = o->offload_array_length + pack_length;
     real* new_array = (real*) malloc(new_length * sizeof(real));
 
-    if(o->pack_array_length > 0) {
-        memcpy(new_array, *offload_array, o->pack_array_length*sizeof(real));
+    if(o->offload_array_length > 0) {
+        memcpy(new_array, *offload_array, o->offload_array_length*sizeof(real));
     }
 
-    memcpy(new_array+o->pack_array_length, pack_array,
+    memcpy(new_array+o->offload_array_length, pack_array,
            pack_length*sizeof(real));
 
     free(*offload_array);
 
     *offload_array = new_array;
-    o->pack_array_length = new_length;
+    o->offload_array_length = new_length;
 }
 
 /**
