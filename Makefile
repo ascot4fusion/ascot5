@@ -100,7 +100,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	E_field.h wall.h simulate.h diag.h offload.h \
 	random.h print.h symmetry.h hdf5_interface.h
 
-OBJS= math.o list.o octree.o physlib.o \
+OBJS= math.o list.o octree.o physlib.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
 	$(PLSOBJS) $(N0OBJS) $(LINTOBJS) $(SPLINEOBJS) \
