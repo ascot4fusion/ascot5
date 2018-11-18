@@ -1,5 +1,4 @@
 /**
- * @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
  * @file mccc.c
  * @brief Interface for using mccc package within ascot5
  */
@@ -25,7 +24,7 @@
  *
  * Finds the rho coordinate first and uses it to evaluate plasma parameters
  * that are then used to evaluate Coulomb logarithm and collision coefficients.
- *
+ * 
  * The coefficients are returned in arrays whose format is D_is = D[i*s] where
  * i is the particle SIMD position and s is species (maximum is MAX_SPECIES
  * defined in ascot5.h).
@@ -42,8 +41,8 @@
  * @param K pointer to array storing the evaluated friction coefficient [m/s^2]
  * @param nu pointer to array storing the evaluated pitch collision frequency [1/s]
  */
-void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, real* coldata,
-                    real* clogab, real* F, real* Dpara, real* Dperp, real* K, real* nu){
+void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, real* coldata, 
+		    real* clogab, real* F, real* Dpara, real* Dperp, real* K, real* nu){
     int i;
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
@@ -64,7 +63,7 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata
             dens[0] = plasma_eval_dens(p->rho[i], 0, pdata);
 
             // Ion densities (and temperatures)
-            int j;
+            int j;	    
             for(j = 1; j < n_species; j++) {
                 dens[j] = plasma_eval_dens(p->rho[i], j, pdata);
                 temp[j] = temp[1];
@@ -74,10 +73,9 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata
             real va = sqrt(p->rdot[i]*p->rdot[i] + (p->r[i]*p->phidot[i])*(p->r[i]*p->phidot[i]) + p->zdot[i]*p->zdot[i]);
             mccc_coefs_clog(p->mass[i], p->charge[i], va, m_species, q_species, dens, temp, &clogab[i*MAX_SPECIES], n_species);
             mccc_coefs_fo(p->mass[i], p->charge[i], va, m_species, q_species, dens, temp, &clogab[i*MAX_SPECIES], n_species, coldata,
-                          &F[i*MAX_SPECIES], &Dpara[i*MAX_SPECIES], &Dperp[i*MAX_SPECIES], &K[i*MAX_SPECIES], &nu[i*MAX_SPECIES]);
+			  &F[i*MAX_SPECIES], &Dpara[i*MAX_SPECIES], &Dperp[i*MAX_SPECIES], &K[i*MAX_SPECIES], &nu[i*MAX_SPECIES]);
         }
     }
-
 }
 
 /**
@@ -92,8 +90,8 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata
  * @param nu pointer to pitch collision frequency
  * @param i index of the marker in simd array
  */
-void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* coldata,
-                    real* nu, int i){
+void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* coldata, 
+		    real* nu, int i){
 
     /* Update background data */
     real B[3];
@@ -137,7 +135,7 @@ void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pda
     real DXb[MAX_SPECIES];
     mccc_coefs_clog(p->mass[i], p->charge[i], va, m_species, q_species, dens, temp, clogab, n_species);
     mccc_coefs_gcfixed(p->mass[i], p->charge[i], va, xi, m_species, q_species, dens, temp, Bnorm, clogab, n_species, coldata,
-                       Dparab,DXb,Kb,nub);
+		       Dparab,DXb,Kb,nub);
 
     *nu = 0;
     for(j = 0; j < n_species; j++) {
@@ -152,7 +150,7 @@ void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pda
  *
  * Finds the rho coordinate first and uses it to evaluate plasma parameters
  * that are then used to evaluate Coulomb logarithm and collision coefficients.
- *
+ * 
  * The coefficients are returned in arrays whose format is D_is = D[i*s] where
  * i is the particle SIMD position and s is species (maximum is MAX_SPECIES
  * defined in ascot5.h).
@@ -171,8 +169,8 @@ void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pda
  * @param dDpara pointer to array storing the evaluated derivative dDpara/dv [m/s^2]
  *
  */
-void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* coldata,
-                    real* clogab, real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara){
+void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* coldata, 
+		    real* clogab, real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara){
     int i;
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
@@ -211,14 +209,12 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata
             real t = 2*p->mu[i]*Bnorm*p->mass[i];
             real va = sqrt(p->vpar[i]*p->vpar[i] + t*t);
             xi = p->vpar[i]/va;
-
+     
             mccc_coefs_clog(p->mass[i], p->charge[i], va, m_species, q_species, dens, temp, &clogab[i*MAX_SPECIES], n_species);
             mccc_coefs_gcadaptive(p->mass[i], p->charge[i], va, xi, m_species, q_species, dens, temp, Bnorm, &clogab[i*MAX_SPECIES], n_species, coldata,
-                                  &Dpara[i*MAX_SPECIES], &DX[i*MAX_SPECIES], &K[i*MAX_SPECIES], &nu[i*MAX_SPECIES], &dQ[i*MAX_SPECIES], &dDpara[i*MAX_SPECIES]);
-
-        }
+            &Dpara[i*MAX_SPECIES], &DX[i*MAX_SPECIES], &K[i*MAX_SPECIES], &nu[i*MAX_SPECIES], &dQ[i*MAX_SPECIES], &dDpara[i*MAX_SPECIES]);
+        }       
     }
-
 }
 
 /**
@@ -272,13 +268,13 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* p
             real Dparab[MAX_SPECIES], Dpara = 0;
             real Dperpb[MAX_SPECIES], Dperp = 0;
             if(!errflag) {
-                errflag = mccc_coefs_clog(p->mass[i], p->charge[i], va,
-                                          m_species, q_species, dens, temp, clogab, n_species);
+                errflag = mccc_coefs_clog(p->mass[i], p->charge[i], va, 
+					  m_species, q_species, dens, temp, clogab, n_species);
             }
             if(!errflag) {
                 errflag = mccc_coefs_fo(p->mass[i], p->charge[i], va,
-                                        m_species, q_species, dens, temp, clogab, n_species, coldata,
-                                        Fb, Dparab, Dperpb, Kb, nub);
+					m_species, q_species, dens, temp, clogab, n_species, coldata,
+                Fb, Dparab, Dperpb, Kb, nub);
             }
             for(int j = 0; j < n_species; j=j+1){
                 F = F + Fb[j];
@@ -291,16 +287,16 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* p
 
             /* Update particle */
             real vnorm = va/(math_norm(vout));
-            #if A5_CCOL_NOENERGY
-                vout[0] *= vnorm;
-                vout[1] *= vnorm;
-                vout[2] *= vnorm;
-            #endif
-            #if A5_CCOL_NOPITCH
-                vout[0] = vin[0] * vnorm;
-                vout[1] = vin[1] * vnorm;
-                vout[2] = vin[2] * vnorm;
-            #endif
+#if A5_CCOL_NOENERGY
+            vout[0] *= vnorm;
+            vout[1] *= vnorm;
+            vout[2] *= vnorm;
+#endif
+#if A5_CCOL_NOPITCH
+            vout[0] = vin[0] * vnorm;
+            vout[1] = vin[1] * vnorm;
+            vout[2] = vin[2] * vnorm;
+#endif
 
             if(!errflag) {
                 p->rdot[i] = vout[0] * cos(p->phi[i]) + vout[1] * sin(p->phi[i]);
@@ -310,7 +306,7 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* p
 
             /* Error handling */
             if(errflag) {
-                p->err[i]     = error_module(errflag, ERRMOD_COLLSTEP);
+                p->err[i]     = errflag;
                 p->running[i] = 0;
             }
         }
@@ -335,7 +331,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
     int i;
     real rnd[5*NSIMD];
     random_normal_simd(rdata, 5*NSIMD, rnd);
-
+    
     int n_species = plasma_get_n_species(pdata);
     real* q_species = plasma_get_species_charge(pdata);
     real* m_species = plasma_get_species_mass(pdata);
@@ -378,12 +374,12 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
             real DXb[MAX_SPECIES],    DX    = 0;
             if(!errflag) {
                 errflag = mccc_coefs_clog(p->mass[i], p->charge[i], vin,
-                                          m_species, q_species, dens, temp, clogab, n_species);
+                        m_species, q_species, dens, temp, clogab, n_species);
             }
             if(!errflag) {
                 errflag = mccc_coefs_gcfixed(p->mass[i], p->charge[i], vin, xiin,
-                                             m_species, q_species, dens, temp, Bnorm, clogab, n_species, coldata,
-                                             Dparab,DXb,Kb,nub);
+                            m_species, q_species, dens, temp, Bnorm, clogab, n_species, coldata,
+                            Dparab,DXb,Kb,nub);
             }
 
             for(int j = 0; j < n_species; j=j+1){
@@ -395,34 +391,33 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
 
             /* Evaluate collisions */
             if(!errflag) {
-                errflag = mccc_push_gcEM(K,nu,Dpara,DX,B,h[i],&rnd[i*5],
-                                         vin,&vout,xiin,&xiout,Xin,Xout,cutoff);
+                errflag = mccc_push_gcEM(K,nu,Dpara,DX,B,h[i],&rnd[i*5], 
+                        vin,&vout,xiin,&xiout,Xin,Xout,cutoff);
             }
 
             /* Update particle */
-            #if A5_CCOL_NOENERGY
-                vout = vin;
-            #endif
-            #if A5_CCOL_NOPITCH
-                xiout = xiin;
-            #endif
-            #if A5_CCOL_NOGCDIFF
-                Xout[0] = Xin[0];
-                Xout[1] = Xin[1];
-                Xout[2] = Xin[2];
-            #endif
+#if A5_CCOL_NOENERGY
+            vout = vin;
+#endif
+#if A5_CCOL_NOPITCH
+            xiout = xiin;
+#endif
+#if A5_CCOL_NOGCDIFF
+            Xout[0] = Xin[0];
+            Xout[1] = Xin[1];
+            Xout[2] = Xin[2];
+#endif
 
             if(!errflag) {
                 p->r[i] = sqrt(Xout[0]*Xout[0] + Xout[1]*Xout[1]);
                 p->z[i] = Xout[2];
-
                 /* Evaluate phi and pol angles so that they are cumulative */
                 real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
                 real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r),
-                                    (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
-                p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0],
-                                    Xin[0] * Xout[0] + Xin[1] * Xout[1] );
+                p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
+                        (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
+                p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0], 
+                    Xin[0] * Xout[0] + Xin[1] * Xout[1] );
             }
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
@@ -455,7 +450,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
 
             /* Error handling */
             if(errflag) {
-                p->err[i]     = error_module(errflag, ERRMOD_COLLSTEP);
+                p->err[i]     = errflag;
                 p->running[i] = 0;
             }
         }
@@ -477,7 +472,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
  * @param pdata pointer to plasma data
  * @param hin pointer to values for current time-step [s]
  * @param hout pointer to values for next time-step [s]
- * @param w NSIMD array of pointers to Wiener structs
+ * @param w NSIMD array of pointers to Wiener structs 
  * @param tol integration error tolerance
  *
  * @todo There is no need to check for error when collision frequency is low and other processes determine adaptive time-step
@@ -526,7 +521,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
                 dW[4] = w[i]->wiener[tindex[i]*MCCC_NDIM + 4] - w[i]->wiener[4];
             }
 
-            /* Evaluate density and temperature */
+            /* Evaluate density and temperature */	
             real temp[MAX_SPECIES];
             real dens[MAX_SPECIES];
             if(!errflag) {errflag = plasma_eval_densandtemp(p->rho[i], pdata, dens, temp);}
@@ -544,15 +539,15 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
             real nub[MAX_SPECIES],     nu     = 0;
             real DXb[MAX_SPECIES],     DX     = 0;
             if(!errflag) {
-                errflag = mccc_coefs_clog(p->mass[i], p->charge[i], vin, m_species, q_species,
-                                          dens, temp, clogab, n_species);
+                errflag = mccc_coefs_clog(p->mass[i], p->charge[i], vin, m_species, q_species, 
+                        dens, temp, clogab, n_species);
             }
             if(!errflag) {
                 errflag = mccc_coefs_gcadaptive(p->mass[i], p->charge[i], vin, xiin, m_species, q_species,
-                                                dens, temp, Bnorm, clogab, n_species, coldata,
-                                                Dparab, DXb, Kb, nub, dQb, dDparab);
+                            dens, temp, Bnorm, clogab, n_species, coldata,
+                            Dparab, DXb, Kb, nub, dQb, dDparab);
             }
-            for(int j = 0; j < n_species; j=j+1){
+            for(int j = 0; j < n_species; j=j+1){				
                 Dpara = Dpara + Dparab[j];
                 K = K + Kb[j];
                 nu = nu + nub[j];
@@ -563,9 +558,9 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
 
             /* Evaluate collisions */
             if(!errflag) {
-                errflag = mccc_push_gcMI(K,nu,Dpara,DX,B,hin[i],dW,dQ,dDpara,
-                                         vin,&vout,xiin,&xiout,Xin,Xout,cutoff,tol,
-                                         &kappa_k[i], &kappa_d0[i], &kappa_d1[i]);
+                errflag = mccc_push_gcMI(K,nu,Dpara,DX,B,hin[i],dW,dQ,dDpara, 
+                        vin,&vout,xiin,&xiout,Xin,Xout,cutoff,tol, 
+                        &kappa_k[i], &kappa_d0[i], &kappa_d1[i]);
             }
 
             /* Needed for finding the next time step (for the old method, see end of function)*/
@@ -573,22 +568,22 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
             dWopt1[i] = 0.9*fabs(dW[4])*pow(kappa_d1[i],-1.0/3);
             alpha[i]  = fabs(dW[3]);
             if(alpha[i] < fabs(dW[4])) {
-                alpha[i] = fabs(dW[4]);
+            alpha[i] = fabs(dW[4]);
             }
             alpha[i] = alpha[i]/sqrt(hin[i]);*/
 
             /* Update particle */
-            #if A5_CCOL_NOENERGY
-                vout = vin;
-            #endif
-            #if A5_CCOL_NOPITCH
-                xiout = xiin;
-            #endif
-            #if A5_CCOL_NOGCDIFF
-                Xout[0] = Xin[0];
-                Xout[1] = Xin[1];
-                Xout[2] = Xin[2];
-            #endif
+#if A5_CCOL_NOENERGY
+            vout = vin;
+#endif
+#if A5_CCOL_NOPITCH
+            xiout = xiin;
+#endif
+#if A5_CCOL_NOGCDIFF
+            Xout[0] = Xin[0];
+            Xout[1] = Xin[1];
+            Xout[2] = Xin[2];
+#endif
 
             if(!errflag) {
                 p->r[i] = sqrt(Xout[0]*Xout[0] + Xout[1]*Xout[1]);
@@ -597,10 +592,10 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
                 /* Evaluate phi and pol angles so that they are cumulative */
                 real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
                 real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r),
-                                    (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
-                p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0],
-                                    Xin[0] * Xout[0] + Xin[1] * Xout[1] );
+                p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
+                        (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
+                p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0], 
+                        Xin[0] * Xout[0] + Xin[1] * Xout[1] );
             }
 
             /* Evaluate magnetic field (and gradient) at new position */
@@ -658,103 +653,103 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
             }
 
             /* Error handling */
-            if(!errflag && (fabs(hout[i]) < A5_EXTREMELY_SMALL_TIMESTEP))      {errflag = error_raise(ERR_EXTREMELY_SMALL_TIMESTEP, __LINE__);}
+            if(!errflag && (fabs(hout[i]) < A5_EXTREMELY_SMALL_TIMESTEP))      {errflag = error_raise(ERR_INVALID_TIMESTEP, __LINE__, EF_MCCC);}
 
             if(errflag) {
-                p->err[i]     = error_module(errflag, ERRMOD_COLLSTEP);
-                p->running[i] = 0;
+                p->err[i]     = errflag;
+                p->running[i] = 0; 
                 hout[i]       = hin[i];
             }
         }
     }
 
     // This is not currently defined anywhere...
-    #ifdef MCCC_MORE_ACCURATE_DT_GUESS
+#ifdef MCCC_MORE_ACCURATE_DT_GUESS
     // More accurate but probably less efficient method below
-    /* Choose next time step (This loop can be vectorized if there is a
+    /* Choose next time step (This loop can be vectorized if there is a 
        suitable tool for drawing random numbers) */
     for(i = 0; i < NSIMD; i++) {
-        if(p->running[i]) {
-            real t = w[i]->time[0];
+	if(p->running[i]) {
+	    real t = w[i]->time[0];
 
-            /* Check whether time step was accepted and find value for the next time-step */
-            int rejected = 0;
-            if(kappa_k[i] > 1 || kappa_d0[i] > 1 || kappa_d1[i] > 1) {
-                rejected = 1;
-                tindex[i]=0;
-            }
+	    /* Check whether time step was accepted and find value for the next time-step */
+	    int rejected = 0;
+	    if(kappa_k[i] > 1 || kappa_d0[i] > 1 || kappa_d1[i] > 1) {
+		rejected = 1;
+		tindex[i]=0;
+	    }
+		
+	    /* Different time step estimates are used depending which error estimate dominates
+	     * This scheme automatically takes care of time step reduction (increase) when 
+	     * time step is rejected (accepted) */
+	    int ki, kmax;
+	    int windex;
+	    real dW[2];
 
-            /* Different time step estimates are used depending which error estimate dominates
-             * This scheme automatically takes care of time step reduction (increase) when
-             * time step is rejected (accepted) */
-            int ki, kmax;
-            int windex;
-            real dW[2];
-
-            if(kappa_k[i] > kappa_d0[i] || kappa_k[i] > kappa_d1[i]) {
-                real dti = 0.8*hin[i]/sqrt(kappa_k[i]);
-                if(1.5*hin[i] < dti){dti = 1.5*hin[i];}
-                kmax = 4;
-                for(ki=1; ki < kmax; ki=ki+1){
+	    if(kappa_k[i] > kappa_d0[i] || kappa_k[i] > kappa_d1[i]) {
+		real dti = 0.8*hin[i]/sqrt(kappa_k[i]);
+		if(1.5*hin[i] < dti){dti = 1.5*hin[i];}
+		kmax = 4;
+		for(ki=1; ki < kmax; ki=ki+1){
             random_normal_simd(rdata, MCCC_NDIM, &rand5[i*MCCC_NDIM]);
-                    mccc_wiener_generate(w[i], t+ki*dti/3, &windex, &rand5[i*MCCC_NDIM]);
-                    dW[0] = fabs(w[i]->wiener[3 + windex*MCCC_NDIM]
-                                 - w[i]->wiener[3 + tindex[i]*MCCC_NDIM]);
-                    if(dW[0] > dWopt0[i]) {
-                        kmax = 0; // Exit loop
-                    }
-                    else {
-                        dW[1] = fabs(w[i]->wiener[4 + windex*MCCC_NDIM]
-                                     - w[i]->wiener[4 + tindex[i]*MCCC_NDIM]);
-                        if(dW[1] > dWopt1[i]) {
-                            kmax = 0; // Exit loop
-                        }
-                    }
-                }
-                if(ki == 1){
-                    hout[i] = (dti/3);
-                }
-                else{
-                    hout[i] = (ki-1)*(dti/3);
-                }
-            }
-            else{
-                kmax = 6;
-                if (rejected) {
-                    kmax = 2;
-                }
-                else if (alpha[i] > 2) {
-                    kmax = 4;
-                }
+		    mccc_wiener_generate(w[i], t+ki*dti/3, &windex, &rand5[i*MCCC_NDIM]);
+		    dW[0] = fabs(w[i]->wiener[3 + windex*MCCC_NDIM] 
+				 - w[i]->wiener[3 + tindex[i]*MCCC_NDIM]);
+		    if(dW[0] > dWopt0[i]) {
+			kmax = 0; // Exit loop
+		    }
+		    else {
+			dW[1] = fabs(w[i]->wiener[4 + windex*MCCC_NDIM] 
+				     - w[i]->wiener[4 + tindex[i]*MCCC_NDIM]);
+			if(dW[1] > dWopt1[i]) {
+			    kmax = 0; // Exit loop
+			}
+		    }
+		}
+		if(ki == 1){
+		    hout[i] = (dti/3);
+		}
+		else{
+		    hout[i] = (ki-1)*(dti/3);
+		}
+	    }
+	    else{
+		kmax = 6;
+		if (rejected) {
+		    kmax = 2;
+		}
+		else if (alpha[i] > 2) {
+		    kmax = 4;
+		}
 
-                for(ki=1; ki < kmax; ki=ki+1){
+		for(ki=1; ki < kmax; ki=ki+1){
             random_normal_simd(rdata, MCCC_NDIM, &rand5[i*MCCC_NDIM]);
-                    mccc_wiener_generate(w[i], t+ki*hin[i]/3, &windex, &rand5[i*MCCC_NDIM]);
-                    dW[0] = abs(w[i]->wiener[3 + windex*MCCC_NDIM] - w[i]->wiener[3 + tindex[i]*MCCC_NDIM]);
-                    if(dW[0] > dWopt0[i]) {
-                        kmax = 0; // Exit loop
-                    }
-                    else{
-                        dW[1] = abs(w[i]->wiener[4 + windex*MCCC_NDIM] - w[i]->wiener[4 + tindex[i]*MCCC_NDIM]);
-                        if(dW[1] > dWopt1[i]) {
-                            kmax = 0; // Exit loop
-                        }
-                    }
-
-                }
-                if(ki == 1){
-                    hout[i] = (hin[i]/3);
-                }
-                else{
-                    hout[i] = (ki-1)*(hin[i]/3);
-                }
-            }
-
-            /* Negative value indicates time step was rejected*/
-            if(rejected){
-                hout[i] = -hout[i];
-            }
-        }
+		    mccc_wiener_generate(w[i], t+ki*hin[i]/3, &windex, &rand5[i*MCCC_NDIM]);
+		    dW[0] = abs(w[i]->wiener[3 + windex*MCCC_NDIM] - w[i]->wiener[3 + tindex[i]*MCCC_NDIM]);
+		    if(dW[0] > dWopt0[i]) {
+			kmax = 0; // Exit loop
+		    }
+		    else{
+			dW[1] = abs(w[i]->wiener[4 + windex*MCCC_NDIM] - w[i]->wiener[4 + tindex[i]*MCCC_NDIM]);
+			if(dW[1] > dWopt1[i]) {
+			    kmax = 0; // Exit loop
+			}
+		    }
+		    
+		}
+		if(ki == 1){
+		    hout[i] = (hin[i]/3);
+		}
+		else{
+		    hout[i] = (ki-1)*(hin[i]/3);
+		}
+	    }
+		
+	    /* Negative value indicates time step was rejected*/
+	    if(rejected){
+		hout[i] = -hout[i];
+	    }
+	}
     }
-    #endif
+#endif
 }

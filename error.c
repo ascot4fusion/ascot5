@@ -66,8 +66,36 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
     /* Find the error message */
     switch(msg_i) {
 
-        case ERR_INTERPOLATION_FAILED:
-            sprintf(msg, "Interpolation failed");
+        case ERR_INPUT_EVALUATION:
+            sprintf(msg, "Input evaluation failed "
+                    "(marker could be outside input data grid)");
+            break;
+
+        case ERR_UNKNOWN_INPUT:
+            sprintf(msg, "Input was not regonized "
+                    "(offload or target data could be uninitialized)");
+            break;
+
+        case ERR_INPUT_UNPHYSICAL:
+            sprintf(msg, "Input evaluation yields unphysical results "
+                    "(something could be wrong with the input)");
+            break;
+
+        case ERR_MARKER_UNPHYSICAL:
+            sprintf(msg, "One or more of marker's fields are unphysical or "
+                    "inconsistent (marker input could be corrupted)");
+            break;
+
+        case ERR_INVALID_TIMESTEP:
+            sprintf(msg, "Time step is zero, NaN, or smaller than MIN_ALLOWED"
+                    "_TIME_STEP in ascot5.h (time step limits could be too "
+                    "conservative)");
+            break;
+
+        case ERR_WIENER_ARRAY_FULL:
+            sprintf(msg, "Wiener array is full of rejected steps or  "
+                    "limits could be too conservative or initial step too "
+                    "large)");
             break;
 
         default:
@@ -83,6 +111,18 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
 
         case EF_MCCC_WIENER:
             sprintf(file, "mccc_wiener.c");
+            break;
+
+        case EF_MCCC_PUSH:
+            sprintf(file, "mccc_push.c");
+            break;
+
+        case EF_MCCC_COEFS:
+            sprintf(file, "mccc_coefs.c");
+            break;
+
+        case EF_MCCC:
+            sprintf(file, "mccc.c");
             break;
 
         default:

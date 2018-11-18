@@ -22,7 +22,7 @@
  */
 void mccc_coefs_init(real* coldata){
 #if A5_CCOL_USE_TABULATED
-
+    
 #ifdef MCCC_RELATIVISTIC
     // Nothing here yet
 #else
@@ -35,13 +35,13 @@ void mccc_coefs_init(real* coldata){
         coldata[i+2*G_NSLOT] = fdf[2];
     }
 #endif
-
+    
 #endif
 }
 
 /**
  * @brief Evaluates coefficients in particle picture
- *
+ * 
  * @param ma test particle mass [kg]
  * @param qa test particle charge [C]
  * @param va test particle velocity [m/s]
@@ -52,16 +52,16 @@ void mccc_coefs_init(real* coldata){
  * @param clogab pointer to array storing the evaluated Coulomb logarithms
  * @param nspec number of background species
  * @param F pointer to array storing the evaluated Fokker-Planck coefficient [m/s^2]
- * @param Dpara pointer to array the evaluated storing parallel diffusion coefficient [m^2/s^3]
+ * @param Dpara pointer to array the evaluated storing parallel diffusion coefficient [m^2/s^3] 
  * @param Dperp pointer to array the evaluated storing perpendicular diffusion coefficient [m²/s^3]
  * @param K pointer to array storing the evaluated friction coefficient [m/s^2]
  * @param nu pointer to array storing the evaluated pitch collision frequency [1/s]
  *
  * @todo Implement relativistic coefficients
  */
-a5err mccc_coefs_fo(real ma, real qa, real va, real* mb,
-                    real* qb, real* nb, real* Tb, real* clogab, int nspec, real* coldata,
-                    real* F, real* Dpara, real* Dperp, real* K, real* nu){
+a5err mccc_coefs_fo(real ma, real qa, real va, real* mb, 
+                real* qb, real* nb, real* Tb, real* clogab, int nspec, real* coldata, 
+                real* F, real* Dpara, real* Dperp, real* K, real* nu){
     a5err err = 0;
     int check = 0;
     real Q, dDpara;
@@ -76,25 +76,24 @@ a5err mccc_coefs_fo(real ma, real qa, real va, real* mb,
         vth = sqrt(2*Tb[i]/mb[i]);
         x = va/vth;
 
-        #ifdef MCCC_USE_TABULATED
+#ifdef MCCC_USE_TABULATED
         mccc_special_fo(x, fdf, MCCC_COEFS_INTERP, coldata);
-        #else
+#else
         mccc_special_fo(x, fdf, MCCC_COEFS_EXACT, coldata);
-        #endif
+#endif
 
         Q = -cab*fdf[0]/(ma*mb[i]*vth*vth);
         dDpara = (cab/(2*ma*ma*va)) * (fdf[2]/vth - fdf[0]/va);
 
-        if(va == 0){
+        if(va == 0) {
             F[i] = 0;
             Dpara[i] = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
             Dperp[i] = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
         }
-        else{
+        else {
             F[i] = (1+mb[i]/ma)*Q;
             Dpara[i] = cab*fdf[0]/(2*ma*ma*va);
             Dperp[i] = cab*fdf[1]/(2*ma*ma*va);
-
         }
 
         K[i] = Q + dDpara + 2*Dpara[i]/va;
@@ -104,13 +103,13 @@ a5err mccc_coefs_fo(real ma, real qa, real va, real* mb,
     }
 
 #endif
-    if(check) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
+    if(check) {err = error_raise(ERR_INTEGRATION, __LINE__, EF_MCCC_COEFS);}
     return err;
 }
 
 /**
  * @brief Evaluates coefficients in guiding center picture for fixed scheme
- *
+ * 
  * @param ma guiding center mass [kg]
  * @param qa guiding center charge [C]
  * @param va guiding center velocity [m/s]
@@ -129,9 +128,9 @@ a5err mccc_coefs_fo(real ma, real qa, real va, real* mb,
  *
  * @todo Implement relativistic coefficients
  */
-a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi,
-                         real* mb, real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, real* coldata,
-                         real* Dpara, real* DX, real* K, real* nu){
+a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi, 
+			 real* mb, real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, real* coldata, 
+			 real* Dpara, real* DX, real* K, real* nu){
     a5err err = 0;
     int check = 0;
     real Q, dDpara, Dperp;
@@ -149,15 +148,13 @@ a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi,
         vth = sqrt(2*Tb[i]/mb[i]);
         x = va/vth;
 
-        #ifdef MCCC_USE_TABULATED
+#ifdef MCCC_USE_TABULATED
         mccc_special_fo(x, fdf, MCCC_COEFS_INTERP, coldata);
-        #else
+#else
         mccc_special_fo(x, fdf, MCCC_COEFS_EXACT, coldata);
-        #endif
-
+#endif
         Q = -cab*fdf[0]/(ma*mb[i]*vth*vth);
         dDpara = (cab/(2*ma*ma*va)) * (fdf[2]/vth - fdf[0]/va);
-
 
         if(va == 0){
             Dpara[i] = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
@@ -166,7 +163,6 @@ a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi,
         else{
             Dpara[i] = cab*fdf[0]/(2*ma*ma*va);
             Dperp = cab*fdf[1]/(2*ma*ma*va);
-
         }
 
         K[i] = Q + dDpara + 2*Dpara[i]/va;
@@ -175,17 +171,15 @@ a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi,
 
         check += (Dpara[i] <= 0) + (DX[i] <= 0) + (nu[i] <= 0);
     }
-
 #endif
-
-    if(check) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
-    return err;
+    if(check) {err = error_raise(ERR_INTEGRATION, __LINE__, EF_MCCC_COEFS);}
+    return err;	
 }
 
-
+   
 /**
  * @brief Evaluates coefficients in guiding center picture for adaptive scheme
- *
+ * 
  * @param ma guiding center mass [kg]
  * @param qa guiding center charge [C]
  * @param va guiding center velocity [m/s]
@@ -206,9 +200,9 @@ a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi,
  *
  * @todo Implement relativistic coefficients
  */
-a5err mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb,
-                            real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, real* coldata,
-                            real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara){
+a5err mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb, 
+                    real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, real* coldata, 
+                    real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara){
     a5err err = 0;
     int check = 0;
     real Q, Dperp;
@@ -226,16 +220,15 @@ a5err mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb,
         vth = sqrt(2*Tb[i]/mb[i]);
         x = va/vth;
 
-        #ifdef MCCC_USE_TABULATED
+#ifdef MCCC_USE_TABULATED
         mccc_special_fo(x, fdf, MCCC_COEFS_INTERP, coldata);
-        #else
+#else
         mccc_special_fo(x, fdf, MCCC_COEFS_EXACT, coldata);
-        #endif
+#endif
 
         Q = -cab*fdf[0]/(ma*mb[i]*vth*vth);
         dQ[i] = -cab*fdf[2]/(ma*mb[i]*vth*vth);
         dDpara[i] = (cab/(2*ma*ma*va)) * (fdf[2]/vth - fdf[0]/va);
-
 
         if(va == 0){
             Dpara[i] = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
@@ -244,7 +237,6 @@ a5err mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb,
         else{
             Dpara[i] = cab*fdf[0]/(2*ma*ma*va);
             Dperp = cab*fdf[1]/(2*ma*ma*va);
-
         }
 
         K[i] = Q + dDpara[i] + 2*Dpara[i]/va;
@@ -254,11 +246,9 @@ a5err mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb,
         check += (Dpara[i] <= 0) + (DX[i] <= 0) + (nu[i] <= 0);
     }
 #endif
-    if(check) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
-    return err;
+    if(check) {err = error_raise(ERR_INTEGRATION, __LINE__, EF_MCCC_COEFS);}
+    return err;	
 }
-
-
 
 /**
  * @brief Evaluate Coulomb logarithm
@@ -282,7 +272,7 @@ a5err mccc_coefs_clog(real ma, real qa, real va, real* mb, real* qb, real* nb, r
         s = s + (nb[i] * qb[i] * qb[i])/(Tb[i]);
         vbar[i] = va*va + 2*Tb[i]/mb[i];
     }
-    if(!err && s <= 0) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
+    if(!err && s <= 0) {err = error_raise(ERR_INTEGRATION, __LINE__, EF_MCCC_COEFS);}
 
     if(!err) {
         int check = 0;
@@ -301,7 +291,7 @@ a5err mccc_coefs_clog(real ma, real qa, real va, real* mb, real* qb, real* nb, r
             }
             check += clogab[i] <= 0;
         }
-        if(check) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
+        if(check) {err = error_raise(ERR_INTEGRATION, __LINE__, EF_MCCC_COEFS);}
     }
-    return err;
+    return err;	
 }
