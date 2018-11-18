@@ -92,7 +92,7 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
                     "conservative)");
             break;
 
-        case ERR_WIENER_ARRAY_FULL:
+        case ERR_WIENER_ARRAY:
             sprintf(msg, "Wiener array is full of rejected steps or  "
                     "limits could be too conservative or initial step too "
                     "large)");
@@ -123,6 +123,18 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
 
         case EF_MCCC:
             sprintf(file, "mccc.c");
+            break;
+
+        case EF_STEP_FO_VPA:
+            sprintf(file, "step_fo_vpa.c");
+            break;
+
+        case EF_STEP_GC_RK4:
+            sprintf(file, "step_gc_rk4.c");
+            break;
+
+        case EF_STEP_GC_CASHKARP:
+            sprintf(file, "step_gc_cashkarp.c");
             break;
 
         default:

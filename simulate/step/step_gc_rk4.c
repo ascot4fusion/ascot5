@@ -10,15 +10,16 @@
 #include "../../E_field.h"
 #include "../../math.h"
 #include "../../particle.h"
+#include "../../error.h"
 #include "step_gceom.h"
 #include "step_gc_rk4.h"
 
 /**
  * @brief Integrate a guiding center step for a struct of markers with RK4
  *
- * This function calculates a guiding center step for a struct of NSIMD
- * markers with RK4 simultaneously using SIMD instructions. All arrays in the
- * function are of NSIMD length so vectorization can be performed directly
+ * This function calculates a guiding center step for a struct of NSIMD 
+ * markers with RK4 simultaneously using SIMD instructions. All arrays in the 
+ * function are of NSIMD length so vectorization can be performed directly 
  * without gather and scatter operations.
  *
  * @param p simd_gc struct that will be updated
@@ -52,7 +53,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             real R0   = p->r[i];
             real z0   = p->z[i];
 
-            /* Coordinates are copied from the struct into an array to make
+            /* Coordinates are copied from the struct into an array to make 
              * passing parameters easier */
             yprev[0] = p->r[i];
             yprev[1] = p->phi[i];
@@ -108,12 +109,12 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             for(j = 0; j < 6; j++) {
                 y[j] = yprev[j]
                     + h[i]/6.0 * (k1[j] + 2*k2[j] + 2*k3[j] + k4[j]);
-            }
+            } 
 
             /* Test that results are physical */
-            if(!errflag && y[0] <= 0)                  {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-            else if(!errflag && fabs(y[4]) >= CONST_C) {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-            else if(!errflag && y[4] < 0)              {errflag = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+            if(!errflag && y[0] <= 0)                  {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);}
+            else if(!errflag && fabs(y[4]) >= CONST_C) {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);}
+            else if(!errflag && y[4] < 0)              {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);}
 
             /* Update gc phase space position */
             if(!errflag) {
@@ -151,17 +152,16 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
 
                 p->rho[i] = rho[0];
 
-
                 /* Evaluate pol angle so that it is cumulative */
                 real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
                 real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r),
-                                  (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
+                p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
+                (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
             }
 
             /* Error handling */
             if(errflag) {
-                p->err[i]     = error_module(errflag, ERRMOD_ORBSTEP);
+                p->err[i]     = errflag;
                 p->running[i] = 0;
             }
         }
