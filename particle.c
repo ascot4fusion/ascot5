@@ -487,19 +487,19 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
     if(p->type == input_particle_type_p) {
         /* Check that input is valid */
         if(!err && p->p.r <= 0) {
-            err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);
+            err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
         }
         if(!err && ( math_normc(p->p.v_r,p->p.v_phi,p->p.v_z) >= CONST_C2 )) {
-            err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);
+            err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
         }
         if(!err && p->p.mass <= 0) {
-            err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);
+            err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
         }
         if(!err && p->p.weight <= 0) {
-            err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);
+            err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
         }
         if(!err && p->p.id <= 0) {
-            err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);
+            err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
         }
 
         /* Particle to state */
@@ -535,8 +535,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
                           gamma*ps->mass*p->p.v_r, gamma*ps->mass*p->p.v_phi, gamma*ps->mass*p->p.v_z,
                           &r, &phi, &z, &mu, &ppar, &theta);
         }
-        if(!err && r <= 0)  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-        if(!err && mu < 0)  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+        if(!err && r <= 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+        if(!err && mu < 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
         /* Update magnetic field at gc position */
         if(!err) {err = B_field_eval_B_dB(B_dB, r, phi, z, Bdata);}
@@ -547,7 +547,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             gamma = physlib_relfactorp_gc(ps->mass, mu, ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
             vpar = ppar/(ps->mass*gamma);
         }
-        if(!err && vpar >= CONST_C) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+        if(!err && vpar >= CONST_C) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
         if(!err) {
             ps->r     = r;
@@ -577,12 +577,12 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
     }
     else if(p->type == input_particle_type_gc) {
         /* Check that input is valid */
-        if(!err && p->p_gc.r <= 0)          {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-        if(!err && fabs(p->p_gc.pitch) > 1) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-        if(!err && p->p_gc.energy <= 0)     {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-        if(!err && p->p_gc.mass <= 0)       {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-        if(!err && p->p_gc.weight <= 0)     {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-        if(!err && p->p_gc.id <= 0)         {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+        if(!err && p->p_gc.r <= 0)          {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+        if(!err && fabs(p->p_gc.pitch) > 1) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+        if(!err && p->p_gc.energy <= 0)     {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+        if(!err && p->p_gc.mass <= 0)       {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+        if(!err && p->p_gc.weight <= 0)     {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+        if(!err && p->p_gc.id <= 0)         {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
         /* Guiding center to state */
         p->type = input_particle_type_s;
@@ -623,8 +623,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             real B_norm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
             physlib_gc_vxi2muvpar(p->p_gc.mass, B_norm, v, p->p_gc.pitch, &mu, &vpar);
         }
-        if(!err && mu < 0)          {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-        if(!err && vpar >= CONST_C) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+        if(!err && mu < 0)          {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+        if(!err && vpar >= CONST_C) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
         if(!err) {
             ps->r          = p->p_gc.r;
@@ -653,8 +653,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
                           &rprt, &phiprt, &zprt, &pR, &pphi, &pz);
             gamma = physlib_relfactorp_fo(ps->mass, math_normc(pR, pphi, pz));
         }
-        if(!err && rprt <= 0) {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-        if(!err && gamma < 1) {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+        if(!err && rprt <= 0) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+        if(!err && gamma < 1) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
         if(!err) {
             ps->rprt   = rprt;
@@ -669,9 +669,9 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
     }
     else if(p->type == input_particle_type_ml) {
         /* Check that input is valid */
-        if(!err && p->p_ml.r <= 0)      {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
-        if(!err && p->p_ml.weight <= 0) {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);}
-        if(!err && p->p_ml.id <= 0)     {err = error_raise(ERR_UNPHYSICAL_ML, __LINE__);} 
+        if(!err && p->p_ml.r <= 0)      {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+        if(!err && p->p_ml.weight <= 0) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+        if(!err && p->p_ml.id <= 0)     {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);} 
 
         /* Magnetic field line to state */
         p->type = input_particle_type_s;
@@ -732,7 +732,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
     if(err) {
         ps->id      = id;
         ps->endcond = 0;
-        ps->err     = error_module(err, ERRMOD_REJECTED);
+        ps->err     = err;
     }
 }
 
@@ -888,8 +888,8 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
                       gamma*p->mass*vR , gamma*p->mass*vphi, gamma*p->mass*vz,
                       &p->r, &p->phi, &p->z, &p->mu, &ppar, &p->theta);
     }
-    if(!err && p->r <= 0)  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-    if(!err && p->mu < 0)  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && p->r <= 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+    if(!err && p->mu < 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
     if(!err) {err = B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);}
     if(!err) {err = B_field_eval_psi(psi, p->r, p->phi, p->z, Bdata);}
@@ -901,7 +901,7 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
         p->vpar = ppar/(p->mass*gamma);
     }
     if(!err && p->vpar >= CONST_C) {
-        err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);
+        err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
     }
 
     /* Normally magnetic field data at gc position is stored here
@@ -924,7 +924,7 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->B_z_dphi   = B_dB[10];
     p->B_z_dz     = B_dB[11];
 
-    if(!simerr && err) {err = error_module(err, ERRMOD_STATE);}
+    if(!simerr && err) {err = err;}
     p->err = err;
 }
 
@@ -1079,8 +1079,8 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
                       &p->rprt, &p->phiprt, &p->zprt, &pR, &pphi, &pz);
         gamma = physlib_relfactorp_fo(p->mass, math_normc(pR, pphi, pz));
     }
-    if(!err && p->rprt <= 0) {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
-    if(!err && gamma < 1)    {err = error_raise(ERR_UNPHYSICAL_FO, __LINE__);}
+    if(!err && p->rprt <= 0) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+    if(!err && gamma < 1)    {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
     if(!err) {
         p->rdot       = pR/(gamma*p->mass);
@@ -1088,7 +1088,7 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
         p->zdot       = pz/(gamma*p->mass);
     }
 
-    if(!simerr && err) {err = error_module(err, ERRMOD_STATE);}
+    if(!simerr && err) {err = err;}
     p->err = err;
 }
 
@@ -1232,7 +1232,7 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->B_z_dphi   = p_ml->B_z_dphi[j];
     p->B_z_dz     = p_ml->B_z_dz[j];
 
-    if(!simerr && err) {err = error_module(err, ERRMOD_STATE);}
+    if(!simerr && err) {err = err;}
     p->err = err;
 }
 
@@ -1294,8 +1294,8 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
                       gamma*mass*vR , gamma*mass*vphi, gamma*mass*vz,
                       &r, &phi, &z, &mu, &ppar, &theta);
     }
-    if(!err && r <= 0)  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
-    if(!err && mu < 0)  {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && r <= 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+    if(!err && mu < 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
     real psi[1], rho[1];
     if(!err) {
@@ -1313,7 +1313,7 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
         gamma = physlib_relfactorp_gc(
             p_gc->mass[j], mu, ppar, math_normc(B_dB[0], B_dB[4], B_dB[8]));
     }
-    if(!err && gamma < 1) {err = error_raise(ERR_UNPHYSICAL_GC, __LINE__);}
+    if(!err && gamma < 1) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
     if(!err) {
         p_gc->r[j]          = r;
@@ -1339,7 +1339,7 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
         p_gc->B_z_dphi[j]   = B_dB[10];
         p_gc->B_z_dz[j]     = B_dB[11];
     }
-    if(!simerr) {err = error_module(err, ERRMOD_STATE);}
+    if(!simerr) {err = err;}
     p_gc->err[j] = err;
     if(p_gc->err[j]) {
         p_gc->running[j] = 0;

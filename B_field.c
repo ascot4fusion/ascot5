@@ -226,7 +226,7 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z,
 
         default:
             /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__ );
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_B_FIELD );
             break;
     }
 
@@ -289,7 +289,7 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
 
         default:
             /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__ );
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_B_FIELD );
             break;
     }
 
@@ -352,7 +352,7 @@ a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
 
         default:
             /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__ );
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_B_FIELD );
             break;
     }
 
@@ -421,7 +421,7 @@ a5err B_field_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
 
         default:
             /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__ );
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_B_FIELD );
             break;
     }
 
@@ -481,7 +481,7 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
 
         default:
             /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__ );
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_B_FIELD );
             break;
     }
 
@@ -552,7 +552,7 @@ a5err B_field_eval_B_dB(real B_dB[12], real r, real phi, real z,
 
         default:
             /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__ );
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_B_FIELD );
             break;
     }
 

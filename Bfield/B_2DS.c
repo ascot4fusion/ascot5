@@ -294,7 +294,7 @@ a5err B_2DS_eval_psi(real psi[1], real r, real phi, real z, B_2DS_data* Bdata) {
     interperr += interp2Dcomp_eval_B(&psi[0], &Bdata->psi, r, z);
 #endif
 
-    if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
+    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_2DS );}
 
     return err;
 }
@@ -326,7 +326,7 @@ a5err B_2DS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
     psi_dpsi[2] = 0;
     psi_dpsi[3] = psi_dpsi_temp[2];
 
-    if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
+    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_2DS );}
 
     return err;
 }
@@ -347,7 +347,7 @@ a5err B_2DS_eval_rho(real rho[1], real psi, B_2DS_data* Bdata) {
     /* Check that the values seem valid */
     real delta = (Bdata->psi1 - Bdata->psi0);
     if( (psi - Bdata->psi0) / delta < 0 ) {
-         return error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );
+         return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_2DS );
     }
 
     rho[0] = sqrt( (psi - Bdata->psi0) / delta );
@@ -377,13 +377,13 @@ a5err B_2DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
 #endif
 
     if(interperr) {
-        return error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );
+        return error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_2DS );
     }
 
     /* Check that the values seem valid */
     real delta = Bdata->psi1 - Bdata->psi0;
     if( (rho_drho[0] - Bdata->psi0) / delta < 0 ) {
-         return error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );
+         return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_2DS );
     }
 
     /* Normalize psi to get rho */
@@ -422,7 +422,7 @@ a5err B_2DS_eval_B(real B[3], real r, real phi, real z, B_2DS_data* Bdata) {
 #endif
 
     /* Test for B field interpolation error */
-    if(interperr) {err = error_raise( ERR_OUTSIDE_BFIELD, __LINE__ );}
+    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_2DS );}
 
 #ifndef NOPSI
     if(!err) {
@@ -436,14 +436,14 @@ a5err B_2DS_eval_B(real B[3], real r, real phi, real z, B_2DS_data* Bdata) {
         B[2] = B[2] + psi_dpsi[1]/r;
 
         /* Test for psi interpolation error */
-        if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
+        if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_2DS );}
     }
 #endif
 
     /* Check that magnetic field seems valid */
     int check = 0;
     check += ((B[0]*B[0] + B[1]*B[1] + B[2]*B[2]) == 0);
-    if(!err && check) {err = error_raise( ERR_UNPHYSICAL_B, __LINE__ );}
+    if(!err && check) {err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_2DS );}
 
     return err;
 }
@@ -499,7 +499,7 @@ a5err B_2DS_eval_B_dB(real B_dB[12], real r, real phi, real z,
     B_dB[11] = B_dB_temp[2];
 
     /* Test for B field interpolation error */
-    if(interperr) {err = error_raise( ERR_OUTSIDE_BFIELD, __LINE__ );}
+    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_2DS );}
 
 
 #ifndef NOPSI
@@ -520,14 +520,14 @@ a5err B_2DS_eval_B_dB(real B_dB[12], real r, real phi, real z,
         B_dB[11] = B_dB[11] + psi_dpsi[5]/r;
 
         /* Test for psi interpolation error */
-        if(interperr) {err = error_raise( ERR_OUTSIDE_PSIFIELD, __LINE__ );}
+        if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_2DS );}
     }
 #endif
 
     /* Check that magnetic field seems valid */
     int check = 0;
     check += ((B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]) == 0);
-    if(!err && check) {err = error_raise( ERR_UNPHYSICAL_B, __LINE__ );}
+    if(!err && check) {err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_2DS );}
 
     return err;
 }

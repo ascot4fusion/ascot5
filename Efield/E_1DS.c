@@ -151,7 +151,7 @@ a5err E_1DS_eval_E(real E[], real r, real phi, real z, E_1DS_data* Edata,
     E[1] = dV * rho_drho[2];
     E[2] = dV * rho_drho[3];
 
-    if(interperr) {err = error_raise( ERR_OUTSIDE_PLASMA, __LINE__ );}
+    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_1DS );}
 
     return err;
 }

@@ -137,6 +137,58 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
             sprintf(file, "step_gc_cashkarp.c");
             break;
 
+        case EF_PLASMA:
+            sprintf(file, "plasma.c");
+            break;
+
+        case EF_PLASMA_1DS:
+            sprintf(file, "plasma_1DS.c");
+            break;
+
+        case EF_E_FIELD:
+            sprintf(file, "E_field.c");
+            break;
+
+        case EF_E_1DS:
+            sprintf(file, "E_1DS.c");
+            break;
+
+        case EF_NEUTRAL:
+            sprintf(file, "neutral.c");
+            break;
+
+        case EF_N0_3D:
+            sprintf(file, "N0_3D.c");
+            break;
+
+        case EF_N0_ST:
+            sprintf(file, "N0_ST.c");
+            break;
+
+        case EF_B_FIELD:
+            sprintf(file, "B_field.c");
+            break;
+
+        case EF_B_GS:
+            sprintf(file, "B_GS.c");
+            break;
+
+        case EF_B_STS:
+            sprintf(file, "B_STS.c");
+            break;
+
+        case EF_B_2DS:
+            sprintf(file, "B_2DS.c");
+            break;
+
+        case EF_B_3DS:
+            sprintf(file, "B_3DS.c");
+            break;
+
+        case EF_PARTICLE:
+            sprintf(file, "particle.c");
+            break;
+
         default:
             sprintf(file, "unknown file");
             break;

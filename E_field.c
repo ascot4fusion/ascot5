@@ -197,7 +197,7 @@ a5err E_field_eval_E(real E[3], real r, real phi, real z, E_field_data* Edata,
 
         default:
             /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__ );
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_E_FIELD );
             break;
     }
 

@@ -27,7 +27,7 @@
    \f}
  *
  * where \f$c_i\f$ and \f$A\f$ are pre-calculated coefficients which can be
- * chosen so that realistic equilibriums resembling different machines are
+ * chosen so that realistic equilibria resembling different machines are
  * produced. The equilibrium can be non-symmetric with respect to magnetic
  * plane, and can have zero, one, or two X-points. \f$\psi_c\f$ is a scaling
  * constant, and \f$r = R/R_0\f$ \f$z = Z/R_0\f$. From \f$\psi\f$ the poloidal
@@ -295,7 +295,7 @@ a5err B_GS_eval_rho(real rho[1], real psi, B_GS_data* Bdata) {
     /* Check that the values seem valid */
     real delta = Bdata->psi1 - Bdata->psi0;
     if( (psi - Bdata->psi0) / delta < 0 ) {
-         return error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );
+         return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_GS );
     }
 
     rho[0] = sqrt( (psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0) );
@@ -322,7 +322,7 @@ a5err B_GS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
     /* Check that the values seem valid */
     real delta = Bdata->psi1 - Bdata->psi0;
     if( (rho_drho[0] - Bdata->psi0) / delta < 0 ) {
-         return error_raise( ERR_UNPHYSICAL_PSI, __LINE__ );
+         return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_GS );
     }
 
     rho_drho[0] = sqrt( (rho_drho[0] - Bdata->psi0) / delta );

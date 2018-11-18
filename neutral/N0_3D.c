@@ -101,7 +101,7 @@ a5err N0_3D_eval_n0(real n0[], real r, real phi, real z,
     int interperr = 0; /* If error happened during interpolation */
     interperr += linint3D_eval(&n0[0], &ndata->n0, r, phi, z);
 
-    if(interperr) {err = error_raise( ERR_OUTSIDE_N0DATA, __LINE__ );}
+    if(interperr) {err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_N0_3D);}
 
     return err;
 }

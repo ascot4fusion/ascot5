@@ -160,7 +160,7 @@ a5err neutral_eval_n0(real n0[], real r, real phi, real z,
 
         default:
             /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__ );
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_NEUTRAL);
             break;
     }
 

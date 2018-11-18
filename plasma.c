@@ -235,7 +235,7 @@ a5err plasma_eval_densandtemp(real rho, plasma_data* pls_data,
 
         default:
             /* Unregonized input. Produce error. */
-            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__ );
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_PLASMA );
             break;
     }
 
