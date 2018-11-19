@@ -52,12 +52,12 @@
   #include <mpi.h>
 #endif
 #include <omp.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include "ascot5.h"
 #include "consts.h"
+#include "math.h"
 #include "wall.h"
 #include "diag.h"
 #include "B_field.h"
@@ -71,6 +71,7 @@
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
 void generate_qid(char* qid);
+void marker_summary(particle_state* p, int n);
 
 /**
  * @brief Main function for ascot5_main
@@ -388,6 +389,7 @@ CLEANUP_SUCCESS:
 
     offload_free_offload(&offload_data, &offload_array);
 
+    marker_summary(ps, n);
     free(ps);
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "Done.\n");
@@ -529,4 +531,45 @@ void generate_qid(char* qid) {
 
     /* Convert the random number to a string format */
     sprintf(qid, "%010lu", (long unsigned int)qint);
+}
+
+void marker_summary(particle_state* ps, int n) {
+
+    print_out(VERBOSE_MINIMAL, "\nSummary of results:\n")
+
+    int* temp = (int*)malloc(n*sizeof(int));
+    int* unique = (int*)malloc(n*sizeof(int));
+    int* count = (int*)malloc(n*sizeof(int));
+
+    for(int i=0; i<n; i++) {
+        temp[i] = ps[i].endcond;
+    }
+    math_uniquecount(temp, unique, count, n);
+
+    int i = 0;
+    while(count[i]) {
+        print_out(VERBOSE_MINIMAL, "%9d markers had end condition %d\n",
+                  count[i], unique[i]);
+        i++;
+    }
+
+    for(int i=0; i<n; i++) {
+        temp[i] = (int)(ps[i].err);
+    }
+    math_uniquecount(temp, unique, count, n);
+
+    print_out(VERBOSE_MINIMAL, "\n");
+    i = 0;
+    while(unique[i] > 0) {
+        print_out(VERBOSE_MINIMAL, "%9d markers were aborted with error %d\n",
+                  count[i], unique[i]);
+        i++;
+    }
+    if(count[0] == n) {
+        print_out(VERBOSE_MINIMAL, "No markers were aborted.\n");
+    }
+
+    free(temp);
+    free(unique);
+    free(count);
 }
