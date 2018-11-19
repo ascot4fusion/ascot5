@@ -95,6 +95,7 @@ real math_normal_rand();
 int math_ipow(int a, int p);
 double math_simpson(double (*f)(double), double a, double b, double epsilon);
 void math_linspace(real* vec, real a, real b, int n);
+void math_uniquecount(int* in, int* unique, int* count, int n);
 #pragma omp end declare target
 
 

@@ -251,6 +251,46 @@ void math_linspace(real* vec, real a, real b, int n) {
 }
 
 /**
+ * @brief Find unique numbers and their frequency in given array
+ *
+ * All argument arrays are assumed to have the same length as the array holding
+ * the input numbers. If not all numbers are unique, the remaining entries in
+ * unique and count arguments are zero.
+ *
+ * @param in input array of length n
+ * @param unique array where unique numbers are stored, must be of length n
+ * @param count count[i] is how many times unique[i] appears in array in,
+ *        must be of length n
+ * @param n length of the argument arrays
+ */
+void math_uniquecount(int* in, int* unique, int* count, int n) {
+
+    for(int i=0; i<n; i++) {
+        unique[i] = 0;
+        count[i] = 0;
+    }
+
+    int n_unique = 0;
+    for(int i=0; i<n; i++) {
+
+        int test = in[i];
+        int isunique = 1;
+        for(int j=0; j<n_unique; j++) {
+            if(test == unique[j]) {
+                isunique = 0;
+                count[j] += 1;
+            }
+        }
+
+        if(isunique) {
+            unique[n_unique] = test;
+            count[n_unique] = 1;
+            n_unique++;
+        }
+    }
+}
+
+/**
  * @brief Helper routine for "math_simpson"
  */
 double math_simpson_helper(double (*f)(double), double a, double b, double eps,
