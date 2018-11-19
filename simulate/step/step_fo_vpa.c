@@ -60,29 +60,29 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
             real fposxyz[3]; // final position in cartesian coordinates
 
             if(!errflag) {
-                /* Electromagnetic fields to cartesian coordinates */  
+                /* Electromagnetic fields to cartesian coordinates */
                 real Bxyz[3];
                 real Exyz[3];
 
                 math_vec_rpz2xyz(Brpz, Bxyz, posrpz[1]);
                 math_vec_rpz2xyz(Erpz, Exyz, posrpz[1]);
-            
+
                 /* Evaluate helper variable pminus */
                 real pminus[3];
                 real vnorm = math_norm(vxyz);
                 real gamma = sqrt(1 / ( (1 - vnorm/CONST_C)*(1 + vnorm/CONST_C) ));
                 real sigma = p->charge[i]*h[i]/(2*p->mass[i]*CONST_C);
                 pminus[0] = gamma*vxyz[0]/(CONST_C) + sigma*Exyz[0];
-                11pminus[1] = gamma*vxyz[1]/(CONST_C) + sigma*Exyz[1];
+                pminus[1] = gamma*vxyz[1]/(CONST_C) + sigma*Exyz[1];
                 pminus[2] = gamma*vxyz[2]/(CONST_C) + sigma*Exyz[2];
-            
+
                 /* Second helper variable pplus*/
-                real d = (p->charge[i]*h[i]/(2*p->mass[i])) / 
+                real d = (p->charge[i]*h[i]/(2*p->mass[i])) /
                     sqrt( 1 + math_dot(pminus,pminus) );
                 real d2 = d*d;
-            
-                real Bhat[9] = {       0,  Bxyz[2], -Bxyz[1], 
-                                -Bxyz[2],        0,  Bxyz[0], 
+
+                real Bhat[9] = {       0,  Bxyz[2], -Bxyz[1],
+                                -Bxyz[2],        0,  Bxyz[0],
                         Bxyz[1], -Bxyz[0],        0};
                 real Bhat2[9];
                 math_matmul(Bhat, Bhat, 3, 3, 3, Bhat2);

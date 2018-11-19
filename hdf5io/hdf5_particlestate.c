@@ -266,20 +266,21 @@ int hdf5_particlestate_write(hid_t f, char* qid, char* state, integer n,
     H5LTset_attribute_string(state_group, "charge", "unit", "e");
 
     /* Error data */
+    int d1, d2;// Dummies
     for(i = 0; i < n; i++) {
-        intdata32[i] = (int)(error_getmsg(p[i].err));
+        error_parse(p[i].err, &(intdata32[i]), &d1, &d2);
     }
     H5LTmake_dataset(state_group, "errormsg", 1, dims, H5T_STD_I32LE, intdata32);
     H5LTset_attribute_string(state_group, "errormsg", "unit", "1");
 
     for(i = 0; i < n; i++) {
-        intdata32[i] = (int)(error_getline(p[i].err));
+        error_parse(p[i].err, &d1, &(intdata32[i]), &d2);
     }
     H5LTmake_dataset(state_group, "errorline", 1, dims, H5T_STD_I32LE, intdata32);
     H5LTset_attribute_string(state_group, "errorline", "unit", "1");
 
     for(i = 0; i < n; i++) {
-        intdata32[i] = (int)(error_getmod(p[i].err));
+        error_parse(p[i].err, &d1, &d2, &(intdata32[i]));
     }
     H5LTmake_dataset(state_group, "errormod", 1, dims, H5T_STD_I32LE, intdata32);
     H5LTset_attribute_string(state_group, "errormod", "unit", "1");
