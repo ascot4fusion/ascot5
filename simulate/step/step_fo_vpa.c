@@ -16,7 +16,7 @@
 /**
  * @brief Integrate a full orbit step for a struct of particles with VPA
  *
- * The integration is performed for a struct of NSIMD particles using the 
+ * The integration is performed for a struct of NSIMD particles using the
  * volume preserving algorithm (Boris method for relativistic particles) see Zhang 2015.
  *
  * @param p particle_simd_fo struct that will be updated

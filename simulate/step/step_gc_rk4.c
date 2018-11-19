@@ -17,9 +17,9 @@
 /**
  * @brief Integrate a guiding center step for a struct of markers with RK4
  *
- * This function calculates a guiding center step for a struct of NSIMD 
- * markers with RK4 simultaneously using SIMD instructions. All arrays in the 
- * function are of NSIMD length so vectorization can be performed directly 
+ * This function calculates a guiding center step for a struct of NSIMD
+ * markers with RK4 simultaneously using SIMD instructions. All arrays in the
+ * function are of NSIMD length so vectorization can be performed directly
  * without gather and scatter operations.
  *
  * @param p simd_gc struct that will be updated
@@ -53,7 +53,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             real R0   = p->r[i];
             real z0   = p->z[i];
 
-            /* Coordinates are copied from the struct into an array to make 
+            /* Coordinates are copied from the struct into an array to make
              * passing parameters easier */
             yprev[0] = p->r[i];
             yprev[1] = p->phi[i];
@@ -109,7 +109,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             for(j = 0; j < 6; j++) {
                 y[j] = yprev[j]
                     + h[i]/6.0 * (k1[j] + 2*k2[j] + 2*k3[j] + k4[j]);
-            } 
+            }
 
             /* Test that results are physical */
             if(!errflag && y[0] <= 0)                  {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);}

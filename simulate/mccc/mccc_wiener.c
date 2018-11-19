@@ -123,7 +123,7 @@ a5err mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5){
             else{
                 /* A Wiener process for tp > t exist. Generate a new process using the rules
                  * set by the Brownian bridge. The rules are:
-                 *  
+                 *
                  * mean = W(tm) + ( W(ip)-W(im) )*(t-tm)/(tp-tm)
                  * variance = (t-tm)*(tp-t)/(tp-tm) */
                 w->time[eidx] = t;
@@ -145,9 +145,9 @@ a5err mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5){
 
 /**
  * @brief Removes Wiener processes from the array that are no longer required.
- *  
- * Processes W(t') are redundant if t' <  t, where t is the current simulation 
- * time. Note that W(t) should exist before W(t') are removed. This routine 
+ *
+ * Processes W(t') are redundant if t' <  t, where t is the current simulation
+ * time. Note that W(t) should exist before W(t') are removed. This routine
  * should be called each time when simulation time is advanced.
  *
  * @param w array that stores the Wiener processes
@@ -195,11 +195,10 @@ a5err mccc_wiener_clean(mccc_wienarr* w, real t){
 
     return err;
 }
-  
-  
+
 /**
- * @brief Generates standard normally distributed random numbers 
- * 
+ * @brief Generates standard normally distributed random numbers
+ *
  * Random numbers are created using the Box-Muller method.
  *
  * Compiler flag  A5_CCOL_USE_GEOBM in ascot5.h determines whether geometric
@@ -212,45 +211,44 @@ a5err mccc_wiener_clean(mccc_wienarr* w, real t){
  * @todo Implement MCCC_WIENER_USE_GBM flag
  */
 void mccc_wiener_boxmuller(random_data* rdata, real* randVar, int Ndim){
-    
+
     real x1, x2, w; /* Helper variables */
     int isEven = (Ndim+1) % 2; /* Indicates if even number of random numbers are requested */
-    
+
 #if A5_CCOL_USE_GEOBM == 1
     /* The geometric form */
     for(int i = 0; i < Ndim; i=i+2){
-	w = 2.0;
-	while( w >= 1.0 ){
-	    x1 = 2*((real)random_uniform(rdata))-1;
-	    x2 = 2*((real)random_uniform(rdata))-1;
-	    w = x1*x1 + x2*x2;
-	}
-	
-	w = sqrt( (-2 * log( w ) ) / w );
-	randVar[i] = x1 * w;
-	if((i < Ndim-2) || (isEven > 0)) {
-	    randVar[i+1] = x2 * w;
-	}
+        w = 2.0;
+        while( w >= 1.0 ){
+            x1 = 2*((real)random_uniform(rdata))-1;
+            x2 = 2*((real)random_uniform(rdata))-1;
+            w = x1*x1 + x2*x2;
+        }
+
+        w = sqrt( (-2 * log( w ) ) / w );
+        randVar[i] = x1 * w;
+        if((i < Ndim-2) || (isEven > 0)) {
+            randVar[i+1] = x2 * w;
+        }
     }
 #else
     /* The common form */
     real s;
     for(int i = 0; i < Ndim; i=i+2){
-	x1 = ((real)random_uniform(rdata));
-	x2 = ((real)random_uniform(rdata));
-	w = sqrt(-2*log(x1));
-	s = cos(CONST_2PI*x2);
-	randVar[i] = w*s;
-	if((i < Ndim-2) || (isEven > 0) ){
-	    if(x2 < 0.5){
-		randVar[i+1] = w*sqrt(1-s*s);
-	    }
-	    else{
-		randVar[i+1] = -w*sqrt(1-s*s);
-	    }
-	}
+        x1 = ((real)random_uniform(rdata));
+        x2 = ((real)random_uniform(rdata));
+        w = sqrt(-2*log(x1));
+        s = cos(CONST_2PI*x2);
+        randVar[i] = w*s;
+        if((i < Ndim-2) || (isEven > 0) ){
+            if(x2 < 0.5){
+                randVar[i+1] = w*sqrt(1-s*s);
+            }
+            else{
+                randVar[i+1] = -w*sqrt(1-s*s);
+            }
+        }
     }
 #endif
 
 }
-

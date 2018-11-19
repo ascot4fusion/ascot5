@@ -169,13 +169,8 @@ a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho, plasma_1DS_d
         temp[i] = temp_temp_i;
         interperr += interp1Dcomp_eval_B(&dens[i], &plasma_data->dens[i], rho);
     }
-<<<<<<< 5b76943532f92b8799f1bba04d922f8c3dc10054
 
-    if(interperr) {err = error_raise( ERR_OUTSIDE_PLASMA, __LINE__ );}
-=======
-    
     if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );}
->>>>>>> Replaced old err_raises with new ones in inputs and particle module. Wont compile.
 
     return err;
 }

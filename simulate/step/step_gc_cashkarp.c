@@ -18,7 +18,7 @@
 /**
  * @brief Integrate a guiding center step for a struct of markers with adaptive Cash Karp method
  *
- * This function calculates a guiding center step for a struct of NSIMD 
+ * This function calculates a guiding center step for a struct of NSIMD
  * markers with Cash-Karp (adaptive RK5) simultaneously using SIMD instructions. 
  * All arrays in the function are of NSIMD length so vectorization can be performed 
  * directly without gather and scatter operations. Informs whther time step was accepted or
@@ -58,7 +58,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
             real R0   = p->r[i];
             real z0   = p->z[i];
 
-            /* Coordinates are copied from the struct into an array to make 
+            /* Coordinates are copied from the struct into an array to make
              * passing parameters easier */
             yprev[0] = p->r[i];
             yprev[1] = p->phi[i];
@@ -131,7 +131,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
                 real err = 0.0;
                 for(int j = 0; j < 6; j++) {
                     yout[j] = yprev[j] + ( (37.0/378)*k1[j] + (250.0/621)*k3[j] + (125.0/594)*k4[j] + (512.0/1771)*k6[j] )*h[i] ;
-                    yerr = fabs(yprev[j] + 
+                    yerr = fabs(yprev[j] +
                         ( (2825.0/27648)*k1[j] + (18575.0/48384)*k3[j] + (13525.0/55296)*k4[j] + (277.0/14336)*k5[j] + (1.0/4)*k6[j] )*h[i] 
                     - yout[j]);
                     ytol = fabs(yprev[j]) + fabs(k1[j]*h[i]) + DBL_EPSILON;
@@ -205,7 +205,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol, B_fie
             /* Error handling */
             if(errflag) {
                 p->err[i]     = errflag;
-                p->running[i] = 0; 
+                p->running[i] = 0;
                 hnext[i]      = h[i];
             }
         }

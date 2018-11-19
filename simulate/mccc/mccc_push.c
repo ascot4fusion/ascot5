@@ -34,7 +34,7 @@ a5err mccc_push_foEM(real F, real Dpara, real Dperp, real dt, real* rnd, real* v
     dW[0]=sdt*rnd[0];
     dW[1]=sdt*rnd[1];
     dW[2]=sdt*rnd[2];
-    
+
     math_unit(vin,vhat);
 
     /* Use Euler-Maruyama method to get vout */
@@ -45,7 +45,7 @@ a5err mccc_push_foEM(real F, real Dpara, real Dperp, real dt, real* rnd, real* v
     vout[0] = vin[0] + k1*vhat[0] + k2*vhat[0] + k3*(dW[0] - t1*vhat[0]);
     vout[1] = vin[1] + k1*vhat[1] + k2*vhat[1] + k3*(dW[1] - t1*vhat[1]);
     vout[2] = vin[2] + k1*vhat[2] + k2*vhat[2] + k3*(dW[2] - t1*vhat[2]);
-        
+
     if( (vout[0]*vout[0] + vout[1]*vout[1] + vout[2]*vout[2]) >= CONST_C2 ) {err = error_raise(ERR_INTEGRATION, __LINE__, EF_MCCC_PUSH);}
 
     return err;
@@ -66,14 +66,14 @@ a5err mccc_push_foEM(real F, real Dpara, real Dperp, real dt, real* rnd, real* v
  * @param rnd three element array of normally distributed random numbers
  * @param vin pointer to guiding center velocity vector before collisions
  * @param vout pointer to guiding center velocity vector after collisions
- * @param xiin pointer to guiding center pitch before collisions 
- * @param xiout pointer to guiding center pitch after collisions 
- * @param Xin pointer to Cartesian guiding center position before collisions 
- * @param Xout pointer to Cartesian guiding center position after collisions 
+ * @param xiin pointer to guiding center pitch before collisions
+ * @param xiout pointer to guiding center pitch after collisions
+ * @param Xin pointer to Cartesian guiding center position before collisions
+ * @param Xout pointer to Cartesian guiding center position after collisions
  * @param cutoff value below which particle velocity is mirrored
  */
 a5err mccc_push_gcEM(real K, real nu, real Dpara, real DX, real* B, real dt, real* rnd, 
-		     real vin, real* vout, real xiin, real* xiout, real* Xin, real* Xout, real cutoff){
+                     real vin, real* vout, real xiin, real* xiout, real* Xin, real* Xout, real cutoff){
     a5err err = 0;
     real dW[5], bhat[3];
 
@@ -102,11 +102,11 @@ a5err mccc_push_gcEM(real K, real nu, real Dpara, real DX, real* B, real dt, rea
 
     /* Enforce boundary conditions */
     if(vout[0] < cutoff){
-	vout[0] = 2*cutoff-(vout[0]);
+        vout[0] = 2*cutoff-(vout[0]);
     }
 
     if(fabs(xiout[0]) > 1){
-	xiout[0] = ((xiout[0] > 0) - (xiout[0] < 0))*(2-fabs(xiout[0]));
+        xiout[0] = ((xiout[0] > 0) - (xiout[0] < 0))*(2-fabs(xiout[0]));
     }
 
     if(!err && ( vout[0] < 0 || vout[0] >= CONST_C) ) {err = error_raise(ERR_INTEGRATION, __LINE__, EF_MCCC_PUSH);}
@@ -132,10 +132,10 @@ a5err mccc_push_gcEM(real K, real nu, real Dpara, real DX, real* B, real dt, rea
  * @param dDpara derivate of coefficient Dpara with respect to velocity
  * @param vin pointer to guiding center velocity vector before collisions
  * @param vout pointer to guiding center velocity vector after collisions
- * @param xiin pointer to guiding center pitch before collisions 
- * @param xiout pointer to guiding center pitch after collisions 
- * @param Xin pointer to Cartesian guiding center position before collisions 
- * @param Xout pointer to Cartesian guiding center position after collisions 
+ * @param xiin pointer to guiding center pitch before collisions
+ * @param xiout pointer to guiding center pitch after collisions
+ * @param Xin pointer to Cartesian guiding center position before collisions
+ * @param Xout pointer to Cartesian guiding center position after collisions
  * @param cutoff value below which particle velocity is mirrored
  * @param tol error tolerance
  * @param kappa_k pointer to drift part of the error estimate
@@ -168,7 +168,7 @@ a5err mccc_push_gcMI(real K, real nu, real Dpara, real DX, real* B, real dt, rea
     if(fabs(xiout[0]) > 1){
         xiout[0] = ((xiout[0] > 0) - (xiout[0] < 0))*(2 - fabs(xiout[0]));
     }
-    
+
     /* Error estimates for drift and diffusion limits */
     real erru = tol*(fabs(K)*dt + sqrt(2*Dpara*dt)) + DBL_EPSILON;
 
