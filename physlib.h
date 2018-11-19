@@ -34,13 +34,13 @@ void physlib_gc_muvpar2vxi(real mass, real Bnorm, real mu, real vpar, real* v, r
 
 #pragma omp declare simd
 void physlib_fo2gc(real mass, real charge, real* B_dB,
-		   real Rprt, real phiprt, real zprt, real pR, real pphi, real pz,
-		   real* R, real* phi, real* z, real* mu, real* ppar, real* theta);
+                   real Rprt, real phiprt, real zprt, real pR, real pphi, real pz,
+                   real* R, real* phi, real* z, real* mu, real* ppar, real* theta);
 
 #pragma omp declare simd
 void physlib_gc2fo(real mass, real charge, real* B_dB,
-		   real R, real phi, real z, real mu, real ppar, real theta,
-		   real* Rprt, real* phiprt, real* zprt, real* pR, real* pphi, real* pz);
+                   real R, real phi, real z, real mu, real ppar, real theta,
+                   real* Rprt, real* phiprt, real* zprt, real* pR, real* pphi, real* pz);
 #pragma omp end declare target
 
 #endif

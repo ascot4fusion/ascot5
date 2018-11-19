@@ -35,7 +35,7 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
  * The simulation includes:
  * - orbit-following with RK4 method
  * - Coulomb collisions with Euler-Maruyama method
- * 
+ *
  * The simulation is carried until all markers have met some
  * end condition or are aborted/rejected. The final state of the
  * markers is stored in the given marker array. Other output
@@ -57,15 +57,15 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     particle_simd_gc p0; // This array stores previous states
 
 
-    // This is diagnostic specific data which is declared 
+    // This is diagnostic specific data which is declared
     // here to make it thread safe
     diag_storage* diag_strg;
     diag_storage_aquire(&sim->diag_data, &diag_strg);
 
     /* Init dummy markers */
     for(int i=0; i< NSIMD; i++) {
-	p.id[i] = -1;
-	p.running[i] = 0;
+        p.id[i] = -1;
+        p.running[i] = 0;
     }
 
     /* Initialize running particles */
@@ -74,14 +74,14 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     /* Determine simulation time-step */
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
-	if(cycle[i] > 0) {
-	    hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
-	}
+        if(cycle[i] > 0) {
+            hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
+        }
     }
 
     cputime_last = A5_WTIME;
 
-/* MAIN SIMULATION LOOP 
+/* MAIN SIMULATION LOOP
  * - Store current state
  * - Integrate motion due to bacgkround EM-field (orbit-following)
  * - Integrate scattering due to Coulomb collisions
@@ -101,68 +101,68 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
             p0.theta[i]    = p.theta[i];
 
             p0.time[i]       = p.time[i];
-	    p0.cputime[i]    = p.cputime[i];
-	    p0.rho[i]        = p.rho[i];
-	    p0.weight[i]     = p.weight[i];
-	    p0.cputime[i]    = p.cputime[i]; 
-	    p0.rho[i]        = p.rho[i];      
-	    p0.pol[i]        = p.pol[i]; 
+            p0.cputime[i]    = p.cputime[i];
+            p0.rho[i]        = p.rho[i];
+            p0.weight[i]     = p.weight[i];
+            p0.cputime[i]    = p.cputime[i];
+            p0.rho[i]        = p.rho[i];
+            p0.pol[i]        = p.pol[i];
 
-	    p0.mass[i]       = p.mass[i];
-	    p0.charge[i]     = p.charge[i];
+            p0.mass[i]       = p.mass[i];
+            p0.charge[i]     = p.charge[i];
 
             p0.running[i]    = p.running[i];
             p0.endcond[i]    = p.endcond[i];
             p0.walltile[i]   = p.walltile[i];
 
-	    p0.B_r[i]        = p.B_r[i];
-	    p0.B_phi[i]      = p.B_phi[i];
-	    p0.B_z[i]        = p.B_z[i];
+            p0.B_r[i]        = p.B_r[i];
+            p0.B_phi[i]      = p.B_phi[i];
+            p0.B_z[i]        = p.B_z[i];
 
-	    p0.B_r_dr[i]     = p.B_r_dr[i];
-	    p0.B_r_dphi[i]   = p.B_r_dphi[i];
-	    p0.B_r_dz[i]     = p.B_r_dz[i];
+            p0.B_r_dr[i]     = p.B_r_dr[i];
+            p0.B_r_dphi[i]   = p.B_r_dphi[i];
+            p0.B_r_dz[i]     = p.B_r_dz[i];
 
-	    p0.B_phi_dr[i]   = p.B_phi_dr[i];
-	    p0.B_phi_dphi[i] = p.B_phi_dphi[i];
-	    p0.B_phi_dz[i]   = p.B_phi_dz[i];
+            p0.B_phi_dr[i]   = p.B_phi_dr[i];
+            p0.B_phi_dphi[i] = p.B_phi_dphi[i];
+            p0.B_phi_dz[i]   = p.B_phi_dz[i];
 
-	    p0.B_z_dr[i]     = p.B_z_dr[i];
-	    p0.B_z_dphi[i]   = p.B_z_dphi[i];
-	    p0.B_z_dz[i]     = p.B_z_dz[i];
+            p0.B_z_dr[i]     = p.B_z_dr[i];
+            p0.B_z_dphi[i]   = p.B_z_dphi[i];
+            p0.B_z_dz[i]     = p.B_z_dz[i];
 
         }
 
-	/*************************** Physics ***********************************************/
+        /*************************** Physics ***********************************************/
 
-	/* RK4 method for orbit-following */
+        /* RK4 method for orbit-following */
         if(sim->enable_orbfol) {
             step_gc_rk4(&p, hin, &sim->B_data, &sim->E_data);
         }
 
-	/* Euler-Maruyama method for collisions */
+        /* Euler-Maruyama method for collisions */
         if(sim->enable_clmbcol) {
             mccc_step_gc_fixed(&p, &sim->B_data, &sim->plasma_data, &sim->random_data, sim->coldata, hin);
         }
 
-	/***********************************************************************************/
+        /***********************************************************************************/
 
 
-	/* Update simulation and cpu times */
-	cputime = A5_WTIME;
+        /* Update simulation and cpu times */
+        cputime = A5_WTIME;
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]) {
                 p.time[i] = p.time[i] + hin[i];
-		p.cputime[i] += cputime - cputime_last;
+                p.cputime[i] += cputime - cputime_last;
             }
         }
-	cputime_last = cputime;
+        cputime_last = cputime;
 
-	/* Check possible end conditions */
+        /* Check possible end conditions */
         endcond_check_gc(&p, &p0, sim);
 
-	/* Update diagnostics */
+        /* Update diagnostics */
         diag_update_gc(&sim->diag_data, diag_strg, &p, &p0);
 
         /* Update running particles */
@@ -171,9 +171,9 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         /* Determine simulation time-step */
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
-	    if(cycle[i] > 0) {
-		hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
-	    }
+            if(cycle[i] > 0) {
+                hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
+            }
         }
 
     }
@@ -182,7 +182,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
     /* Clean diagnostics struct */
     diag_storage_discard(diag_strg);
-    
+
 }
 
 /**
@@ -198,17 +198,17 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
  */
 real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i) {
     real h;
-    
+
     /* Value defined directly by user */
     if(sim->fix_usrdef_use) {
-	h = sim->fix_usrdef_val;
+        h = sim->fix_usrdef_val;
     }
     else {
-	/* Value calculated from gyrotime */
-	real B = sqrt(p->B_r[i]*p->B_r[i] + p->B_phi[i]*p->B_phi[i] + p->B_z[i]*p->B_z[i]);
-	real gamma = physlib_relfactorv_gc(p->mass[i], p->mu[i], p->vpar[i], B);
-	real gyrotime = fabs( CONST_2PI * p->mass[i] * gamma / ( p->charge[i] * B ) );
-	h = gyrotime/sim->fix_stepsPerGO;
+        /* Value calculated from gyrotime */
+        real B = sqrt(p->B_r[i]*p->B_r[i] + p->B_phi[i]*p->B_phi[i] + p->B_z[i]*p->B_z[i]);
+        real gamma = physlib_relfactorv_gc(p->mass[i], p->mu[i], p->vpar[i], B);
+        real gyrotime = fabs( CONST_2PI * p->mass[i] * gamma / ( p->charge[i] * B ) );
+        h = gyrotime/sim->fix_stepsPerGO;
     }
 
     return h;

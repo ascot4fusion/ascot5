@@ -17,6 +17,6 @@ a5err symmetry_apply_scalar(real r_phi_z[], real r0, real phi0, real z0,
                             symmetry_type type, real period_length);
 a5err symmetry_apply_vector(real r_phi_z[], real scaling[], real r0, real phi0, real z0,
                             symmetry_type type, real period_length);
-#pragma omp end declare target   
+#pragma omp end declare target
 
 #endif

@@ -116,7 +116,7 @@ void physlib_gc_vxi2muvpar(real mass, real Bnorm, real v, real xi, real* mu, rea
 void physlib_gc_muvpar2vxi(real mass, real Bnorm, real mu, real vpar, real* v, real* xi) {
     real gamma2 = ( 1 + 2*mu*Bnorm/(mass*CONST_C2) ) / (1 - vpar*vpar/CONST_C2);
     real vperp2 = 2*mu*Bnorm/(gamma2*mass);
-    
+
     v[0]  = sqrt(vperp2 + vpar*vpar);
     xi[0] = vpar/v[0];
 }
@@ -134,9 +134,9 @@ void physlib_gc_muvpar2vxi(real mass, real Bnorm, real mu, real vpar, real* v, r
  *        parallel momentum and gyroangle
  */
 void physlib_fo2gc(real mass, real charge, real* B_dB,
-		   real Rprt, real phiprt, real zprt, real pR, real pphi, real pz,
-		   real* R, real* phi, real* z, real* mu, real* ppar, real* theta) {
-    
+                   real Rprt, real phiprt, real zprt, real pR, real pphi, real pz,
+                   real* R, real* phi, real* z, real* mu, real* ppar, real* theta) {
+
     /* Temporary re-used variables */
     real TEMP_S1;
     real TEMP_V1[3];
@@ -152,7 +152,7 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
     prpz[1] = pphi;
     prpz[2] = pz;
     real ptot  = math_norm(prpz);
-    
+
 
     /* Transform into the cartesian system */
     real prtxyz[3];
@@ -167,8 +167,8 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
     real B_dBc[12];
     math_jac_rpz2xyz(B_dB, B_dBc, Rprt, phiprt);
     real jacB[9] = {B_dBc[1], B_dBc[2], B_dBc[3],
-		    B_dBc[5], B_dBc[6], B_dBc[7],
-		    B_dBc[9], B_dBc[10], B_dBc[11]};
+                    B_dBc[5], B_dBc[6], B_dBc[7],
+                    B_dBc[9], B_dBc[10], B_dBc[11]};
     real B[3] = {B_dBc[0], B_dBc[4], B_dBc[8]};
     real B_norm = math_norm(B);
     real B_unit[3];
@@ -194,11 +194,11 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
     nablabhat[5]=(jacB[5] - gradB[1]*B_unit[2])/B_norm;
     nablabhat[6]=(jacB[6] - gradB[2]*B_unit[0])/B_norm;
     nablabhat[7]=(jacB[7] - gradB[2]*B_unit[1])/B_norm;
-    nablabhat[8]=(jacB[8] - gradB[2]*B_unit[2])/B_norm; 
+    nablabhat[8]=(jacB[8] - gradB[2]*B_unit[2])/B_norm;
 
     real kappa[3];
     math_matmul(nablabhat,B_unit,3,3,1,kappa);
-    
+
     /* Zeroth order momentum terms */
     real p_para0 = pitch*ptot;
     real mu_0 = ( 1 - pitch*pitch )*(ptot*ptot)/(2*mass*B_norm);
@@ -227,14 +227,14 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
     math_cross(rho_unit, B_unit, perphat);
 
     real a1ddotgradb = -0.5*(2*(rho_unit[0]*perphat[0]*nablabhat[0]+
-				rho_unit[1]*perphat[1]*nablabhat[4]+
-				rho_unit[2]*perphat[2]*nablabhat[8])
-			     +(rho_unit[0]*perphat[1]+rho_unit[1]*perphat[0])*
-			     (nablabhat[1]+nablabhat[3])
-			     +(rho_unit[0]*perphat[2]+rho_unit[2]*perphat[0])*
-			     (nablabhat[2]+nablabhat[6])
-			     +(rho_unit[1]*perphat[2]+rho_unit[2]*perphat[1])*
-			     (nablabhat[5]+nablabhat[7]));
+                                rho_unit[1]*perphat[1]*nablabhat[4]+
+                                rho_unit[2]*perphat[2]*nablabhat[8])
+                             +(rho_unit[0]*perphat[1]+rho_unit[1]*perphat[0])*
+                             (nablabhat[1]+nablabhat[3])
+                             +(rho_unit[0]*perphat[2]+rho_unit[2]*perphat[0])*
+                             (nablabhat[2]+nablabhat[6])
+                             +(rho_unit[1]*perphat[2]+rho_unit[2]*perphat[1])*
+                             (nablabhat[5]+nablabhat[7]));
 
     real p_para1 = -p_para0*math_dot(rho,kappa)+((mass*mu_0)/charge)*(tau_B+a1ddotgradb);
     TEMP_S1 = pow(p_para0,2)/(mass*B_norm);
@@ -284,8 +284,8 @@ void physlib_fo2gc(real mass, real charge, real* B_dB,
  * @param pR, pphi, pz pointers to returned particle momentum components
  */
 void physlib_gc2fo(real mass, real charge, real* B_dB,
-		   real R, real phi, real z, real mu, real ppar, real theta,
-		   real* Rprt, real* phiprt, real* zprt, real* pR, real* pphi, real* pz) {
+                   real R, real phi, real z, real mu, real ppar, real theta,
+                   real* Rprt, real* phiprt, real* zprt, real* pR, real* pphi, real* pz) {
      /* Temporary re-used variables */
     real TEMP_S1;
     real TEMP_V1[3];
@@ -304,8 +304,8 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
 
     /* Magnetic field jacobian, gradient and curl in cartesian coordinates */
     real jacB[9] = {B_dBc[1], B_dBc[2],  B_dBc[3],
-		    B_dBc[5], B_dBc[6],  B_dBc[7],
-		    B_dBc[9], B_dBc[10], B_dBc[11]};
+                    B_dBc[5], B_dBc[6],  B_dBc[7],
+                    B_dBc[9], B_dBc[10], B_dBc[11]};
 
     real gradB[3];
     gradB[0] = B_unit[0]*jacB[0] + B_unit[0]*jacB[3] + B_unit[0]*jacB[6];
@@ -325,7 +325,7 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
     nablabhat[5]=(jacB[5] - gradB[1]*B_unit[2])/B_norm;
     nablabhat[6]=(jacB[6] - gradB[2]*B_unit[0])/B_norm;
     nablabhat[7]=(jacB[7] - gradB[2]*B_unit[1])/B_norm;
-    nablabhat[8]=(jacB[8] - gradB[2]*B_unit[2])/B_norm; 
+    nablabhat[8]=(jacB[8] - gradB[2]*B_unit[2])/B_norm;
 
     real kappa[3];
     math_matmul(nablabhat,B_unit,3,3,1,kappa);
@@ -350,7 +350,7 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
     math_unit(a2,a2);
 
     real rho_unit[3];
-    rho_unit[0] = cos(theta)*a2[0]+sin(theta)*a1[0]; 
+    rho_unit[0] = cos(theta)*a2[0]+sin(theta)*a1[0];
     rho_unit[1] = cos(theta)*a2[1]+sin(theta)*a1[1];
     rho_unit[2] = cos(theta)*a2[2]+sin(theta)*a1[2];
 
@@ -362,17 +362,17 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
 
     /* First order momentum terms */
     real perphat[3];
-    math_cross(rho_unit,B_unit,perphat); 
+    math_cross(rho_unit,B_unit,perphat);
 
     real a1ddotgradb = -0.5*(2*(rho_unit[0]*perphat[0]*nablabhat[0]+
-				rho_unit[1]*perphat[1]*nablabhat[4]+
-				rho_unit[2]*perphat[2]*nablabhat[8])
-			     +(rho_unit[0]*perphat[1]+rho_unit[1]*perphat[0])*
-			      (nablabhat[1]+nablabhat[3])
-			     +(rho_unit[0]*perphat[2]+rho_unit[2]*perphat[0])*
-			      (nablabhat[2]+nablabhat[6])
-			     +(rho_unit[1]*perphat[2]+rho_unit[2]*perphat[1])*
-			      (nablabhat[5]+nablabhat[7]));
+                                rho_unit[1]*perphat[1]*nablabhat[4]+
+                                rho_unit[2]*perphat[2]*nablabhat[8])
+                             +(rho_unit[0]*perphat[1]+rho_unit[1]*perphat[0])*
+                              (nablabhat[1]+nablabhat[3])
+                             +(rho_unit[0]*perphat[2]+rho_unit[2]*perphat[0])*
+                              (nablabhat[2]+nablabhat[6])
+                             +(rho_unit[1]*perphat[2]+rho_unit[2]*perphat[1])*
+                              (nablabhat[5]+nablabhat[7]));
 
     real p_para1 = (-p_para0*math_dot(rho,kappa)+((mass*mu_0)/charge)*(tau_B+a1ddotgradb));
     TEMP_S1 = pow(p_para0,2)/(mass*B_norm);
@@ -412,7 +412,7 @@ void physlib_gc2fo(real mass, real charge, real* B_dB,
     pxyz[0]   = p_para[0]+p_perp[0];
     pxyz[1]   = p_para[1]+p_perp[1];
     pxyz[2]   = p_para[2]+p_perp[2];
-    
+
     real prpz[3];
     math_vec_xyz2rpz(pxyz,prpz,phiprt[0]);
     pR[0]   = prpz[0];

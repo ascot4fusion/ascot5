@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     }
 
     FILE* f = fopen(argv[1], "w");
-    
+
     real B = 0;
     real B_dB[3];
 
@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     real r_min = 0.0;
     real r_max = 3.0;
     real r_grid = (r_max - r_min)/(n_r-1);
-    
+
     real* r = (real*) malloc(n_r * sizeof(real));
     math_linspace(r, r_min, r_max, n_r);
 
@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
     interp1Dcomp_init(&str, fn, n_r, r_min, r_max, r_grid);
 
     for (int i = 0; i < n_r; i++) {
-        interp1Dcomp_eval_B(&B, &str, r[i]); 
+        interp1Dcomp_eval_B(&B, &str, r[i]);
         interp1Dcomp_eval_dB(B_dB, &str, r[i]);
         fprintf(f,"%le %le ", r[i], r[i]*r[i]);
         /* fprintf(f,"%le %le \n", str.c[i*2], str.c[i*2+1]); */

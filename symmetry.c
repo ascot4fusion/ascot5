@@ -11,10 +11,10 @@ a5err symmetry_stellarator_apply_scalar(real r_phi_z[], real r0, real phi0, real
     a5err err = 0;
 
     r_phi_z[0] = r0;
-    
+
     /* We need to use the stellarator symmetry here. */
     /* http://dx.doi.org/10.1016/S0167-2789(97)00216-9 */
-    
+
     r_phi_z[1] = fmod(phi0, period_length);
     if ( 2*r_phi_z[1] > period_length) {
         r_phi_z[1] = period_length - r_phi_z[1];
@@ -43,7 +43,7 @@ a5err symmetry_stellarator_apply_vector(real r_phi_z[], real scaling[], real r0,
     a5err err = 0;
 
     r_phi_z[0] = r0;
-    
+
     /* We need to use the stellarator symmetry here. */
     /* http://dx.doi.org/10.1016/S0167-2789(97)00216-9 */
 
@@ -100,25 +100,25 @@ a5err symmetry_apply_scalar(real r_phi_z[], real r0, real phi0, real z0,
 
     switch(type) {
     case symmetry_type_none:
-	r_phi_z[0] = r0;
-	r_phi_z[1] = phi0;
-	r_phi_z[2] = z0;
+        r_phi_z[0] = r0;
+        r_phi_z[1] = phi0;
+        r_phi_z[2] = z0;
         break;
 
     case symmetry_type_periodic:
         err = symmetry_periodic_apply_scalar(r_phi_z, r0, phi0, z0, period_length);
         break;
-	
+
     case symmetry_type_stellarator:
         err = symmetry_stellarator_apply_scalar(r_phi_z, r0, phi0, z0, period_length);
         break;
     }
 
     if(err) {
-	/* Return some reasonable values to avoid further errors */
-	r_phi_z[0] = r0;
-	r_phi_z[1] = phi0;
-	r_phi_z[2] = z0;
+        /* Return some reasonable values to avoid further errors */
+        r_phi_z[0] = r0;
+        r_phi_z[1] = phi0;
+        r_phi_z[2] = z0;
     }
 
     return err;
@@ -145,31 +145,31 @@ a5err symmetry_apply_vector(real r_phi_z[], real scaling[], real r0, real phi0, 
 
     switch(type) {
     case symmetry_type_none:
-	r_phi_z[0] = r0;
-	r_phi_z[1] = phi0;
-	r_phi_z[2] = z0;
-	scaling[0] = 1;
-	scaling[1] = 1;
-	scaling[2] = 1;
+        r_phi_z[0] = r0;
+        r_phi_z[1] = phi0;
+        r_phi_z[2] = z0;
+        scaling[0] = 1;
+        scaling[1] = 1;
+        scaling[2] = 1;
         break;
-        
+
     case symmetry_type_periodic:
         err = symmetry_periodic_apply_vector(r_phi_z, scaling, r0, phi0, z0, period_length);
         break;
-	
+
     case symmetry_type_stellarator:
         err = symmetry_stellarator_apply_vector(r_phi_z, scaling, r0, phi0, z0, period_length);
         break;
     }
 
     if(err) {
-	/* Return some reasonable values to avoid further errors */
-	r_phi_z[0] = r0;
-	r_phi_z[1] = phi0;
-	r_phi_z[2] = z0;
-	scaling[0] = 1;
-	scaling[1] = 1;
-	scaling[2] = 1;
+        /* Return some reasonable values to avoid further errors */
+        r_phi_z[0] = r0;
+        r_phi_z[1] = phi0;
+        r_phi_z[2] = z0;
+        scaling[0] = 1;
+        scaling[1] = 1;
+        scaling[2] = 1;
     }
 
     return err;

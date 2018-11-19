@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     }
 
     FILE* f = fopen(argv[1], "w");
-    
+
     real val;
 
     int n_r = 14;
@@ -32,14 +32,14 @@ int main(int argc, char** argv) {
     real z_min = -2.0;
     real z_max = 2.0;
     real z_grid = (z_max - z_min)/(n_z-1);
-    
+
     real* r = (real*) malloc(n_r*10 * sizeof(real));
     math_linspace(r, r_min, r_max, n_r*10);
     real* phi = (real*) malloc(n_phi*10 * sizeof(real));
     math_linspace(phi, phi_min, phi_max, n_phi*10);
     real* z = (real*) malloc(n_z*10 * sizeof(real));
     math_linspace(z, z_min, z_max, n_z*10);
-    
+
     /* Initialize test data */
     real* fn = (real*) malloc(n_r * n_z * n_phi * sizeof(real));
     for (int k = 0; k < n_phi; k++) {
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     for (int k = 0; k < n_phi*10; k++) {
         for (int j = 0; j < n_z*10; j++) {
             for (int i = 0; i < n_r*10; i++) {
-                linint3D_eval(&val, &str, r[i], phi[k], z[j]); 
+                linint3D_eval(&val, &str, r[i], phi[k], z[j]);
                 fprintf(f,"%le %le %le %le\n", r[i], z[j], phi[k], val);
             }
         }

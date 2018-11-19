@@ -39,10 +39,10 @@ typedef struct {
 void plasma_1DS_free(plasma_1DS_data* pls_data);
 
 void plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
-			     real** offload_array);
+                             real** offload_array);
 
 void plasma_1DS_free_offload(plasma_1DS_offload_data* offload_data,
-			     real** offload_array);
+                             real** offload_array);
 
 #pragma omp declare target
 a5err plasma_1DS_init(plasma_1DS_data* pls_data,

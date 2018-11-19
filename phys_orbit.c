@@ -7,7 +7,7 @@
 #include "phys_orbit.h"
 
 /**
- * @brief Transforms particle to guiding center phase space 
+ * @brief Transforms particle to guiding center phase space
  *
  * The transformation is done between coordinates [r,phi,z,p_r,p_phi,p_z]
  * and [R,Phi,Z,p_para,mu]. The transformation is done up to first order.
@@ -23,8 +23,8 @@
  * @param B_dB   magnetic field and jacobian at (r,phi,z)
  * @param gcpos  resulting guiding center [R,Phi,Z,p_para,mu,theta] position
  */
-void phys_prttogc(real mass, real charge, real r, real phi, real z, 
-		  real p_r, real p_phi, real p_z, real* B_dB, real* gcpos){
+void phys_prttogc(real mass, real charge, real r, real phi, real z,
+                  real p_r, real p_phi, real p_z, real* B_dB, real* gcpos){
     /* Temporary re-used variables */
     real TEMP_S1;
     real TEMP_V1[3];
@@ -45,8 +45,8 @@ void phys_prttogc(real mass, real charge, real r, real phi, real z,
 
     /* Magnetic field jacobian, gradient and curl in cylindrical coordinates */
     real jacB[9] = {B_dB[1], B_dB[2]/r, B_dB[3],
-		    B_dB[5], B_dB[6]/r, B_dB[7],
-		    B_dB[9], B_dB[10]/r, B_dB[11]};
+                    B_dB[5], B_dB[6]/r, B_dB[7],
+                    B_dB[9], B_dB[10]/r, B_dB[11]};
 
     real gradB[3];
     gradB[0] = B_unit[0]*jacB[0] + B_unit[0]*jacB[3] + B_unit[0]*jacB[6];
@@ -66,11 +66,11 @@ void phys_prttogc(real mass, real charge, real r, real phi, real z,
     nablabhat[5]=(jacB[5] - gradB[1]*B_unit[2])/B_norm;
     nablabhat[6]=(jacB[6] - gradB[2]*B_unit[0])/B_norm;
     nablabhat[7]=(jacB[7] - gradB[2]*B_unit[1])/B_norm;
-    nablabhat[8]=(jacB[8] - gradB[2]*B_unit[2])/B_norm; 
+    nablabhat[8]=(jacB[8] - gradB[2]*B_unit[2])/B_norm;
 
     real kappa[3];
     math_matmul(nablabhat,B_unit,3,3,1,kappa);
-    
+
     /* Zeroth order momentum terms */
     real p_para0 = pitch*momentum;
     real mu_0 = ( 1 - pow(pitch,2) )*pow(momentum,2)/(2*mass*B_norm);
@@ -93,14 +93,14 @@ void phys_prttogc(real mass, real charge, real r, real phi, real z,
     math_cross(rho_unit, B_unit, perphat); /* Does this hold for ions and elecs? */
 
     real a1ddotgradb = -0.5*(2*(rho_unit[0]*perphat[0]*nablabhat[0]+
-				rho_unit[1]*perphat[1]*nablabhat[4]+
-				rho_unit[2]*perphat[2]*nablabhat[8])
-			     +(rho_unit[0]*perphat[1]+rho_unit[1]*perphat[0])*
-			      (nablabhat[1]+nablabhat[3])
-			     +(rho_unit[0]*perphat[2]+rho_unit[2]*perphat[0])*
-			      (nablabhat[2]+nablabhat[6])
-			     +(rho_unit[1]*perphat[2]+rho_unit[2]*perphat[1])*
-			      (nablabhat[5]+nablabhat[7]));
+                                rho_unit[1]*perphat[1]*nablabhat[4]+
+                                rho_unit[2]*perphat[2]*nablabhat[8])
+                             +(rho_unit[0]*perphat[1]+rho_unit[1]*perphat[0])*
+                              (nablabhat[1]+nablabhat[3])
+                             +(rho_unit[0]*perphat[2]+rho_unit[2]*perphat[0])*
+                              (nablabhat[2]+nablabhat[6])
+                             +(rho_unit[1]*perphat[2]+rho_unit[2]*perphat[1])*
+                              (nablabhat[5]+nablabhat[7]));
 
     real p_para1 = -p_para0*math_dot(rho,kappa)+((mass*mu_0)/charge)*(tau_B+a1ddotgradb);
     TEMP_S1 = pow(p_para0,2)/(mass*B_norm);
@@ -112,7 +112,7 @@ void phys_prttogc(real mass, real charge, real r, real phi, real z,
     /* Make the momentum transformation */
     gcpos[3] = p_para0 + p_para1;
     gcpos[4] = mu_0 + mu_1;
-    
+
     /* Calculate gyroangle */
     real a1[3];
     real z_unit[3];
@@ -131,7 +131,7 @@ void phys_prttogc(real mass, real charge, real r, real phi, real z,
 }
 
 /**
- * @brief Transforms guiding center to particle phase space 
+ * @brief Transforms guiding center to particle phase space
  *
  * The transformation is done between coordinates [R,Phi,Z,p_para,mu]
  * and [r,phi,z,p_r,p_phi,p_z]. The transformation is done up to first order.
@@ -148,7 +148,7 @@ void phys_prttogc(real mass, real charge, real r, real phi, real z,
  * @param prtpos resulting particle [r,phi,z,p_r,p_phi,p_z] position
  */
 void phys_gctoprt(real mass, real charge, real R, real Phi, real Z,
-		  real v_para, real mu, real theta, real* B_dB, real* prtpos){
+                  real v_para, real mu, real theta, real* B_dB, real* prtpos){
     /* Temporary re-used variables */
     real TEMP_S1;
     real TEMP_V1[3];
@@ -163,8 +163,8 @@ void phys_gctoprt(real mass, real charge, real R, real Phi, real Z,
 
     /* Magnetic field jacobian, gradient and curl in cylindrical coordinates */
     real jacB[9] = {B_dB[1], B_dB[2]/R, B_dB[3],
-		    B_dB[5], B_dB[6]/R, B_dB[7],
-		    B_dB[9], B_dB[10]/R, B_dB[11]};
+                    B_dB[5], B_dB[6]/R, B_dB[7],
+                    B_dB[9], B_dB[10]/R, B_dB[11]};
 
     real gradB[3];
     gradB[0] = B_unit[0]*jacB[0] + B_unit[0]*jacB[3] + B_unit[0]*jacB[6];
@@ -184,7 +184,7 @@ void phys_gctoprt(real mass, real charge, real R, real Phi, real Z,
     nablabhat[5]=(jacB[5] - gradB[1]*B_unit[2])/B_norm;
     nablabhat[6]=(jacB[6] - gradB[2]*B_unit[0])/B_norm;
     nablabhat[7]=(jacB[7] - gradB[2]*B_unit[1])/B_norm;
-    nablabhat[8]=(jacB[8] - gradB[2]*B_unit[2])/B_norm; 
+    nablabhat[8]=(jacB[8] - gradB[2]*B_unit[2])/B_norm;
 
     real kappa[3];
     math_matmul(nablabhat,B_unit,3,3,1,kappa);
@@ -218,7 +218,7 @@ void phys_gctoprt(real mass, real charge, real R, real Phi, real Z,
     rho[1] = rho_unit[1];
     rho[2] = rho_unit[2];
     math_prod(rho,sqrt(2*pow(gamma,2)*mass*mu_0/(pow(charge,2)*B_norm))); /* Is the Lorentz
-							       factor used correctly? */
+                                                               factor used correctly? */
 
     /* Make the spatial transformation */
     prtpos[0] = R+rho[0];
@@ -230,14 +230,14 @@ void phys_gctoprt(real mass, real charge, real R, real Phi, real Z,
     math_cross(rho_unit,B_unit,perphat); /* Does this hold for ions and elecs? */
 
     real a1ddotgradb = -0.5*(2*(rho_unit[0]*perphat[0]*nablabhat[0]+
-				rho_unit[1]*perphat[1]*nablabhat[4]+
-				rho_unit[2]*perphat[2]*nablabhat[8])
-			     +(rho_unit[0]*perphat[1]+rho_unit[1]*perphat[0])*
-			      (nablabhat[1]+nablabhat[3])
-			     +(rho_unit[0]*perphat[2]+rho_unit[2]*perphat[0])*
-			      (nablabhat[2]+nablabhat[6])
-			     +(rho_unit[1]*perphat[2]+rho_unit[2]*perphat[1])*
-			      (nablabhat[5]+nablabhat[7]));
+                                rho_unit[1]*perphat[1]*nablabhat[4]+
+                                rho_unit[2]*perphat[2]*nablabhat[8])
+                             +(rho_unit[0]*perphat[1]+rho_unit[1]*perphat[0])*
+                              (nablabhat[1]+nablabhat[3])
+                             +(rho_unit[0]*perphat[2]+rho_unit[2]*perphat[0])*
+                              (nablabhat[2]+nablabhat[6])
+                             +(rho_unit[1]*perphat[2]+rho_unit[2]*perphat[1])*
+                              (nablabhat[5]+nablabhat[7]));
 
     real p_para1 = -p_para0*math_dot(rho,kappa)+((mass*mu_0)/charge)*(tau_B+a1ddotgradb);
     TEMP_S1 = pow(p_para0,2)/(mass*B_norm);
@@ -273,7 +273,7 @@ void phys_gctoprt(real mass, real charge, real R, real Phi, real Z,
  * @param ydot output right hand side of the equations of motion in a
  *             5-length array (rdot, phidot, zdot, vpardot, mudot)
  * @param yprev input coordinates in a 5-length array (r, phi, z, vpar, mu)
- * @param mass mass 
+ * @param mass mass
  * @param charge charge
  * @param B_dB magnetic field and derivatives at the guiding center location
  * @param E electric field at the guiding center location
@@ -334,7 +334,7 @@ inline void phys_eomgc(real* ydot, real* y, real mass, real charge, real* B_dB, 
 }
 
 /**
- * @brief Transforms particle to guiding center phase space 
+ * @brief Transforms particle to guiding center phase space
  *
  * The transformation is done between coordinates [r,phi,z,p_r,p_phi,p_z]
  * and [R,Phi,Z,p_para,mu]. The transformation is done up to first order.

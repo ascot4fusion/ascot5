@@ -19,7 +19,7 @@
  * @param ydot output right hand side of the equations of motion in a
  *             5-length array (rdot, phidot, zdot, vpardot, mudot)
  * @param y input coordinates in a 5-length array (r, phi, z, vpar, mu)
- * @param mass mass 
+ * @param mass mass
  * @param charge charge
  * @param B_dB magnetic field and derivatives at the guiding center location
  * @param E electric field at the guiding center location

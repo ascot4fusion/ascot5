@@ -40,13 +40,13 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
  * The simulation includes:
  * - orbit-following with Cash-Karp method
  * - Coulomb collisions with Milstein method
- * 
+ *
  * The simulation is carried until all marker have met some
  * end condition or are aborted/rejected. The final state of the
  * markers is stored in the given marker array. Other output
  * is stored in the diagnostic array.
  *
- * The adaptive time-step is determined by integrator error 
+ * The adaptive time-step is determined by integrator error
  * tolerances as well as user-defined limits for how much
  * marker state can change during a single time-step.
  *
@@ -55,11 +55,11 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
  *
  */
 void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
-    
+
     /* Wiener arrays needed for the adaptive time step */
     mccc_wienarr* wienarr[NSIMD];
     for(int i=0; i < NSIMD; i++) {
-	wienarr[i] = malloc(sizeof(mccc_wienarr));
+        wienarr[i] = malloc(sizeof(mccc_wienarr));
     }
 
     real hin[NSIMD] __memalign__;       // Current time step
@@ -67,7 +67,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     real hout_col[NSIMD]  __memalign__; // Same as above but for collisions
     real hnext[NSIMD] __memalign__;     // Next time step
     int cycle[NSIMD] __memalign__;      // Flag indigating whether a new marker was initialized
-    
+
     real tol_col = sim->ada_tol_clmbcol;
     real tol_orb = sim->ada_tol_orbfol;
     int i;
@@ -77,39 +77,39 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
 
-    // This is diagnostic specific data which is declared 
+    // This is diagnostic specific data which is declared
     // here to make it thread safe
     diag_storage* diag_strg;
     diag_storage_aquire(&sim->diag_data, &diag_strg);
 
     for(int i=0; i< NSIMD; i++) {
-	p.id[i] = -1;
-	p.running[i] = 0;
+        p.id[i] = -1;
+        p.running[i] = 0;
     }
-    
+
     /* Initialize running particles */
     int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
-	
+
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
-	if(cycle[i] > 0) {
-	    /* Determine initial time-step */
-	    hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
-	    if(sim->enable_clmbcol) {
-		/* Allocate array storing the Wiener processes */
-		mccc_wiener_initialize(wienarr[i],p.time[i]);
-	    }
-	}
+        if(cycle[i] > 0) {
+            /* Determine initial time-step */
+            hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
+            if(sim->enable_clmbcol) {
+                /* Allocate array storing the Wiener processes */
+                mccc_wiener_initialize(wienarr[i],p.time[i]);
+            }
+        }
     }
 
     cputime_last = A5_WTIME;
 
-/* MAIN SIMULATION LOOP 
+/* MAIN SIMULATION LOOP
  * - Store current state
  * - Integrate motion due to bacgkround EM-field (orbit-following)
  * - Integrate scattering due to Coulomb collisions
  * - Check whether time step was accepted
- *   - NO:  revert to initial state and ignore the end of the loop 
+ *   - NO:  revert to initial state and ignore the end of the loop
  *          (except CPU_TIME_MAX end condition if this is implemented)
  *   - YES: update particle time, clean redundant Wiener processes, and proceed
  * - Check for end condition(s)
@@ -117,8 +117,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
  */
     while(n_running > 0) {
         #pragma omp simd
-	for(i = 0; i < NSIMD; i++) {
-	    /* Store marker states in case time step will be rejected */
+        for(i = 0; i < NSIMD; i++) {
+            /* Store marker states in case time step will be rejected */
             p0.r[i]        = p.r[i];
             p0.phi[i]      = p.phi[i];
             p0.z[i]        = p.z[i];
@@ -127,188 +127,188 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             p0.theta[i]    = p.theta[i];
 
             p0.time[i]       = p.time[i];
-	    p0.cputime[i]    = p.cputime[i];
-	    p0.rho[i]        = p.rho[i];
-	    p0.weight[i]     = p.weight[i];
-	    p0.cputime[i]    = p.cputime[i]; 
-	    p0.rho[i]        = p.rho[i];      
-	    p0.pol[i]        = p.pol[i]; 
+            p0.cputime[i]    = p.cputime[i];
+            p0.rho[i]        = p.rho[i];
+            p0.weight[i]     = p.weight[i];
+            p0.cputime[i]    = p.cputime[i];
+            p0.rho[i]        = p.rho[i];
+            p0.pol[i]        = p.pol[i];
 
-	    p0.mass[i]       = p.mass[i];
-	    p0.charge[i]     = p.charge[i];
+            p0.mass[i]       = p.mass[i];
+            p0.charge[i]     = p.charge[i];
 
             p0.running[i]    = p.running[i];
             p0.endcond[i]    = p.endcond[i];
             p0.walltile[i]   = p.walltile[i];
 
-	    p0.B_r[i]        = p.B_r[i];
-	    p0.B_phi[i]      = p.B_phi[i];
-	    p0.B_z[i]        = p.B_z[i];
+            p0.B_r[i]        = p.B_r[i];
+            p0.B_phi[i]      = p.B_phi[i];
+            p0.B_z[i]        = p.B_z[i];
 
-	    p0.B_r_dr[i]     = p.B_r_dr[i];
-	    p0.B_r_dphi[i]   = p.B_r_dphi[i];
-	    p0.B_r_dz[i]     = p.B_r_dz[i];
+            p0.B_r_dr[i]     = p.B_r_dr[i];
+            p0.B_r_dphi[i]   = p.B_r_dphi[i];
+            p0.B_r_dz[i]     = p.B_r_dz[i];
 
-	    p0.B_phi_dr[i]   = p.B_phi_dr[i];
-	    p0.B_phi_dphi[i] = p.B_phi_dphi[i];
-	    p0.B_phi_dz[i]   = p.B_phi_dz[i];
+            p0.B_phi_dr[i]   = p.B_phi_dr[i];
+            p0.B_phi_dphi[i] = p.B_phi_dphi[i];
+            p0.B_phi_dz[i]   = p.B_phi_dz[i];
 
-	    p0.B_z_dr[i]     = p.B_z_dr[i];
-	    p0.B_z_dphi[i]   = p.B_z_dphi[i];
-	    p0.B_z_dz[i]     = p.B_z_dz[i];
+            p0.B_z_dr[i]     = p.B_z_dr[i];
+            p0.B_z_dphi[i]   = p.B_z_dphi[i];
+            p0.B_z_dz[i]     = p.B_z_dz[i];
 
-	    hout_orb[i] = DUMMY_TIMESTEP_VAL;
-	    hout_col[i] = DUMMY_TIMESTEP_VAL;
-	    hnext[i]    = DUMMY_TIMESTEP_VAL; 
-	}
+            hout_orb[i] = DUMMY_TIMESTEP_VAL;
+            hout_col[i] = DUMMY_TIMESTEP_VAL;
+            hnext[i]    = DUMMY_TIMESTEP_VAL;
+        }
 
-	/*************************** Physics ***********************************************/
+        /*************************** Physics ***********************************************/
 
-	/* Cash-Karp method for orbit-following */
-	if(sim->enable_orbfol) {
-	    step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
-			     &sim->B_data, &sim->E_data);
-		
-	    /* Check whether time step was rejected */
+        /* Cash-Karp method for orbit-following */
+        if(sim->enable_orbfol) {
+            step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
+                             &sim->B_data, &sim->E_data);
+
+            /* Check whether time step was rejected */
             #pragma omp simd
-	    for(i = 0; i < NSIMD; i++) {
-	        if(p.running[i] && hout_orb[i] < 0){
-	            p.running[i] = 0;
-	            hnext[i] = hout_orb[i];
-	        }
-	    }
-	}
+            for(i = 0; i < NSIMD; i++) {
+                if(p.running[i] && hout_orb[i] < 0){
+                    p.running[i] = 0;
+                    hnext[i] = hout_orb[i];
+                }
+            }
+        }
 
-	/* Milstein method for collisions */
+        /* Milstein method for collisions */
         if(sim->enable_clmbcol) {
-	    mccc_step_gc_adaptive(&p, &sim->B_data, &sim->plasma_data,
-		&sim->random_data, sim->coldata, hin, hout_col, wienarr, tol_col);
-		
-	    /* Check whether time step was rejected */
+            mccc_step_gc_adaptive(&p, &sim->B_data, &sim->plasma_data,
+                &sim->random_data, sim->coldata, hin, hout_col, wienarr, tol_col);
+
+            /* Check whether time step was rejected */
             #pragma omp simd
-	    for(i = 0; i < NSIMD; i++) {
-		if(p.running[i] && hout_col[i] < 0){
-		    p.running[i] = 0;
-		    hnext[i] = hout_col[i];
-		}
-	    }
-	}
+            for(i = 0; i < NSIMD; i++) {
+                if(p.running[i] && hout_col[i] < 0){
+                    p.running[i] = 0;
+                    hnext[i] = hout_col[i];
+                }
+            }
+        }
 
-	/***********************************************************************************/
-		
-	cputime = A5_WTIME;
+        /***********************************************************************************/
+
+        cputime = A5_WTIME;
         #pragma omp simd
-	for(i = 0; i < NSIMD; i++) {
-	    if(!p.err[i]) {
-		/* Check other time step limitations */
-		if(hnext[i] > 0) {
-		    real dphi = fabs(p0.phi[i]-p.phi[i]) / sim->ada_max_dphi;
-		    real drho = fabs(p0.rho[i]-p.rho[i]) / sim->ada_max_drho;
+        for(i = 0; i < NSIMD; i++) {
+            if(!p.err[i]) {
+                /* Check other time step limitations */
+                if(hnext[i] > 0) {
+                    real dphi = fabs(p0.phi[i]-p.phi[i]) / sim->ada_max_dphi;
+                    real drho = fabs(p0.rho[i]-p.rho[i]) / sim->ada_max_drho;
 
-		    if(dphi > 1 && dphi > drho) {
-			hnext[i] = -hin[i]/dphi;
-		    }
-		    else if(drho > 1 && drho > dphi) {
-			hnext[i] = -hin[i]/drho;
-		    }
-		}
-		
-		/* Retrieve marker states in case time step was rejected */
-		if(hnext[i] < 0){
-		    p.r[i]        = p0.r[i];
-		    p.phi[i]      = p0.phi[i];
-		    p.z[i]        = p0.z[i];
-		    p.vpar[i]     = p0.vpar[i];
-		    p.mu[i]       = p0.mu[i];
-		    p.theta[i]    = p0.theta[i];
+                    if(dphi > 1 && dphi > drho) {
+                        hnext[i] = -hin[i]/dphi;
+                    }
+                    else if(drho > 1 && drho > dphi) {
+                        hnext[i] = -hin[i]/drho;
+                    }
+                }
 
-		    p.time[i]       = p0.time[i];
-		    p.rho[i]        = p0.rho[i];
-		    p.weight[i]     = p0.weight[i];
-		    p.rho[i]        = p0.rho[i];      
-		    p.pol[i]        = p0.pol[i]; 
+                /* Retrieve marker states in case time step was rejected */
+                if(hnext[i] < 0){
+                    p.r[i]        = p0.r[i];
+                    p.phi[i]      = p0.phi[i];
+                    p.z[i]        = p0.z[i];
+                    p.vpar[i]     = p0.vpar[i];
+                    p.mu[i]       = p0.mu[i];
+                    p.theta[i]    = p0.theta[i];
 
-		    p.mass[i]       = p0.mass[i];
-		    p.charge[i]     = p0.charge[i];
+                    p.time[i]       = p0.time[i];
+                    p.rho[i]        = p0.rho[i];
+                    p.weight[i]     = p0.weight[i];
+                    p.rho[i]        = p0.rho[i];
+                    p.pol[i]        = p0.pol[i];
 
-		    p.running[i]    = p0.running[i];
-		    p.endcond[i]    = p0.endcond[i];
-		    p.walltile[i]   = p0.walltile[i];
+                    p.mass[i]       = p0.mass[i];
+                    p.charge[i]     = p0.charge[i];
 
-		    p.B_r[i]        = p0.B_r[i];
-		    p.B_phi[i]      = p0.B_phi[i];
-		    p.B_z[i]        = p0.B_z[i];
+                    p.running[i]    = p0.running[i];
+                    p.endcond[i]    = p0.endcond[i];
+                    p.walltile[i]   = p0.walltile[i];
 
-		    p.B_r_dr[i]     = p0.B_r_dr[i];
-		    p.B_r_dphi[i]   = p0.B_r_dphi[i];
-		    p.B_r_dz[i]     = p0.B_r_dz[i];
+                    p.B_r[i]        = p0.B_r[i];
+                    p.B_phi[i]      = p0.B_phi[i];
+                    p.B_z[i]        = p0.B_z[i];
 
-		    p.B_phi_dr[i]   = p0.B_phi_dr[i];
-		    p.B_phi_dphi[i] = p0.B_phi_dphi[i];
-		    p.B_phi_dz[i]   = p0.B_phi_dz[i];
+                    p.B_r_dr[i]     = p0.B_r_dr[i];
+                    p.B_r_dphi[i]   = p0.B_r_dphi[i];
+                    p.B_r_dz[i]     = p0.B_r_dz[i];
 
-		    p.B_z_dr[i]     = p0.B_z_dr[i];
-		    p.B_z_dphi[i]   = p0.B_z_dphi[i];
-		    p.B_z_dz[i]     = p0.B_z_dz[i];
+                    p.B_phi_dr[i]   = p0.B_phi_dr[i];
+                    p.B_phi_dphi[i] = p0.B_phi_dphi[i];
+                    p.B_phi_dz[i]   = p0.B_phi_dz[i];
 
-		    hin[i] = -hnext[i];
-		    
-		}
-		if(p.running[i]){
+                    p.B_z_dr[i]     = p0.B_z_dr[i];
+                    p.B_z_dphi[i]   = p0.B_z_dphi[i];
+                    p.B_z_dz[i]     = p0.B_z_dz[i];
 
-		    /* Advance time (if time step was accepted) and determine next time step */
-		    if(hnext[i] < 0){
-			/* Time step was rejected, use the suggestion given by integrator */
-			hin[i] = -hnext[i];
-		    }
-		    else {
-			p.time[i] = p.time[i] + hin[i];
-			
-			if(hnext[i] > hout_orb[i]) {
-			    /* Use time step suggested by the orbit-following integrator */
-			    hnext[i] = hout_orb[i];
-			}
-			if(hnext[i] > hout_col[i]) {
-			    /* Use time step suggested by the collision integrator */
-			    hnext[i] = hout_col[i];
-			}
-			if(hnext[i] == 1.0) {
-			    /* Time step is unchanged (happens when no physics are enabled) */
-			    hnext[i] = hin[i];
-			}
-			hin[i] = hnext[i];
-			if(sim->enable_clmbcol) {
-			    /* Clear wiener processes */
-			    mccc_wiener_clean(wienarr[i], p.time[i]);
-			}
-		    }
+                    hin[i] = -hnext[i];
 
-		    p.cputime[i] += cputime - cputime_last;
-		}
-	    }
-	}
-	cputime_last = cputime;
+                }
+                if(p.running[i]){
 
-	/* Check possible end conditions */
-	endcond_check_gc(&p, &p0, sim);
+                    /* Advance time (if time step was accepted) and determine next time step */
+                    if(hnext[i] < 0){
+                        /* Time step was rejected, use the suggestion given by integrator */
+                        hin[i] = -hnext[i];
+                    }
+                    else {
+                        p.time[i] = p.time[i] + hin[i];
 
-	/* Update diagnostics */
-	diag_update_gc(&sim->diag_data, diag_strg, &p, &p0);
-	    
-	/* Update number of running particles */
-	n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+                        if(hnext[i] > hout_orb[i]) {
+                            /* Use time step suggested by the orbit-following integrator */
+                            hnext[i] = hout_orb[i];
+                        }
+                        if(hnext[i] > hout_col[i]) {
+                            /* Use time step suggested by the collision integrator */
+                            hnext[i] = hout_col[i];
+                        }
+                        if(hnext[i] == 1.0) {
+                            /* Time step is unchanged (happens when no physics are enabled) */
+                            hnext[i] = hin[i];
+                        }
+                        hin[i] = hnext[i];
+                        if(sim->enable_clmbcol) {
+                            /* Clear wiener processes */
+                            mccc_wiener_clean(wienarr[i], p.time[i]);
+                        }
+                    }
 
-	/* Determine simulation time-step for new particles */
+                    p.cputime[i] += cputime - cputime_last;
+                }
+            }
+        }
+        cputime_last = cputime;
+
+        /* Check possible end conditions */
+        endcond_check_gc(&p, &p0, sim);
+
+        /* Update diagnostics */
+        diag_update_gc(&sim->diag_data, diag_strg, &p, &p0);
+
+        /* Update number of running particles */
+        n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
+
+        /* Determine simulation time-step for new particles */
         #pragma omp simd
-	for(i = 0; i < NSIMD; i++) {
-	    if(cycle[i] > 0) {
-		hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
-		if(sim->enable_clmbcol) {
-		    /* Re-allocate array storing the Wiener processes */
-		    mccc_wiener_initialize(wienarr[i],p.time[i]);
-		}
-	    }
-	}
+        for(i = 0; i < NSIMD; i++) {
+            if(cycle[i] > 0) {
+                hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
+                if(sim->enable_clmbcol) {
+                    /* Re-allocate array storing the Wiener processes */
+                    mccc_wiener_initialize(wienarr[i],p.time[i]);
+                }
+            }
+        }
     }
 
     /* All markers simulated! */
@@ -316,9 +316,9 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     /* Clean diagnostics struct and Wiener arrays */
     diag_storage_discard(diag_strg);
     for(int i=0; i < NSIMD; i++) {
-	free(wienarr[i]);
+        free(wienarr[i]);
     }
-        
+
 }
 
 /**
@@ -337,27 +337,26 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
 
     /* Value defined directly by user */
     if(sim->fix_usrdef_use) {
-	h =  sim->fix_usrdef_val;
-    } 
+        h =  sim->fix_usrdef_val;
+    }
     else {
-	/* Value calculated from gyrotime */
-	if(sim->enable_orbfol) {
-	    real B = sqrt(p->B_r[i]*p->B_r[i] + p->B_phi[i]*p->B_phi[i] + p->B_z[i]*p->B_z[i]);
-	    real gamma = physlib_relfactorv_gc(p->mass[i], p->mu[i], p->vpar[i], B);
-	    real gyrotime = fabs( CONST_2PI * p->mass[i] * gamma / ( p->charge[i] * B ) );
-	    if(h > gyrotime) {h=gyrotime;}
-	}
-	
-	/* Value calculated from collision frequency */
-	if(sim->enable_clmbcol) {
-	    real nu;
-	    mccc_collfreq_gc(p,&sim->B_data,&sim->plasma_data, sim->coldata,&nu,i);
-	    
-	    /* Only small angle collisions so divide this by 100 */
-	    real colltime = 1/(100*nu);
-	    if(h > colltime) {h=colltime;}
-	}
+        /* Value calculated from gyrotime */
+        if(sim->enable_orbfol) {
+            real B = sqrt(p->B_r[i]*p->B_r[i] + p->B_phi[i]*p->B_phi[i] + p->B_z[i]*p->B_z[i]);
+            real gamma = physlib_relfactorv_gc(p->mass[i], p->mu[i], p->vpar[i], B);
+            real gyrotime = fabs( CONST_2PI * p->mass[i] * gamma / ( p->charge[i] * B ) );
+            if(h > gyrotime) {h=gyrotime;}
+        }
+
+        /* Value calculated from collision frequency */
+        if(sim->enable_clmbcol) {
+            real nu;
+            mccc_collfreq_gc(p,&sim->B_data,&sim->plasma_data, sim->coldata,&nu,i);
+
+            /* Only small angle collisions so divide this by 100 */
+            real colltime = 1/(100*nu);
+            if(h > colltime) {h=colltime;}
+        }
     }
     return h;
 }
-
