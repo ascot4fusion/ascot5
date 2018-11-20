@@ -595,6 +595,11 @@ real B_field_get_axis_r(B_field_data* Bdata, real phi) {
 
         case B_field_type_STS:
             err = B_STS_get_axis_r(&axis_r, &(Bdata->BSTS), phi);
+            if(err) {
+                /* In case of error, return some reasonable value to avoid
+                   further complications */
+                axis_r = 5;
+            }
             break;
 
         case B_field_type_TC:
@@ -634,6 +639,11 @@ real B_field_get_axis_z(B_field_data* Bdata, real phi) {
 
         case B_field_type_STS:
             err = B_STS_get_axis_z(&axis_z, &(Bdata->BSTS), phi);
+            if(err) {
+                /* In case of error, return some reasonable value to avoid
+                   further complications */
+                axis_z = 0;
+            }
             break;
 
         case B_field_type_TC:
