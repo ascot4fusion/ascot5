@@ -39,7 +39,10 @@ int linint2D_init(linint2D_data* str, real* f, int n_r, int n_z,
     str->z_min = z_min;
     str->z_max = z_max;
     str->z_grid = z_grid;
-    str->f = f;
+    str->f = malloc(n_r*n_z*sizeof(real));
+    for(int i = 0; i < n_r*n_z; i++) {
+        str->f[i] = f[i];
+    }
 
     return err;
 }

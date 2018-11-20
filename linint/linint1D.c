@@ -34,7 +34,10 @@ int linint1D_init(linint1D_data* str, real* f, int n_r,
     if(periodic) {
         str->r_max += str->r_grid;    /**< We can evaluate outside the last point as well */
     }
-    str->f = f;
+    str->f = malloc(n_r*sizeof(real));
+    for(int i = 0; i < n_r; i++) {
+        str->f[i] = f[i];
+    }
 
     return err;
 }
