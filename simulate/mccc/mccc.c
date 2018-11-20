@@ -63,7 +63,7 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata
             dens[0] = plasma_eval_dens(p->rho[i], 0, pdata);
 
             // Ion densities (and temperatures)
-            int j
+            int j;
             for(j = 1; j < n_species; j++) {
                 dens[j] = plasma_eval_dens(p->rho[i], j, pdata);
                 temp[j] = temp[1];
