@@ -129,7 +129,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
     print_out(VERBOSE_IO, "Active QID is %s\n", qid);
     if( hdf5_bfield_init_offload(f, &(sim->B_offload_data),
                                  B_offload_array, qid) ) {
-        print_err("Error: Failed to initialize options.\n");
+        print_err("Error: Failed to initialize magnetic field.\n");
         return 1;
     }
     print_out(VERBOSE_IO, "Magnetic field read and initialized.\n");
@@ -143,7 +143,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
     print_out(VERBOSE_IO, "Active QID is %s\n", qid);
     if( hdf5_efield_init_offload(f, &(sim->E_offload_data),
                                  E_offload_array, qid) ) {
-        print_err("Error: Failed to initialize options.\n");
+        print_err("Error: Failed to initialize electric field.\n");
         return 1;
     }
     print_out(VERBOSE_IO, "Electric field read and initialized.\n");
