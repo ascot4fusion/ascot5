@@ -95,7 +95,7 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
     /* Read the wall polygon */
     if( hdf5_read_double(WPATH "r", r,
         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(WPATH "r", z,
+    if( hdf5_read_double(WPATH "z", z,
         f, qid, __FILE__, __LINE__) ) {return 1;}
 
     return 0;
