@@ -407,8 +407,8 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
         (*offload_array)[3*B_size + i] = psi.c[i];
     }
     for(int i = 0; i < axis_size; i++) {
-        (*offload_array)[3*B_size + psi_size + i] = axis_r.f[i];
-        (*offload_array)[3*B_size + psi_size + axis_size + i] = axis_z.f[i];
+        (*offload_array)[3*B_size + psi_size + i] = axis_r.c[i];
+        (*offload_array)[3*B_size + psi_size + axis_size + i] = axis_z.c[i];
     }
 
     interp3D_free(&psi);
@@ -577,13 +577,13 @@ void B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
     Bdata->axis_r.r_min   = offload_data->axis_min;
     Bdata->axis_r.r_max   = offload_data->axis_max;
     Bdata->axis_r.r_grid  = offload_data->axis_grid;
-    Bdata->axis_r.f       = &(offload_array[3*B_size + psi_size]);
+    Bdata->axis_r.c       = &(offload_array[3*B_size + psi_size]);
 
     Bdata->axis_z.n_r     = offload_data->n_axis;
     Bdata->axis_z.r_min   = offload_data->axis_min;
     Bdata->axis_z.r_max   = offload_data->axis_max;
     Bdata->axis_z.r_grid  = offload_data->axis_grid;
-    Bdata->axis_z.f       = &(offload_array[3*B_size + psi_size + axis_size]);
+    Bdata->axis_z.c       = &(offload_array[3*B_size + psi_size + axis_size]);
 }
 
 /**
