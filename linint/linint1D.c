@@ -34,9 +34,9 @@ int linint1D_init(linint1D_data* str, real* f, int n_r,
     if(periodic) {
         str->r_max += str->r_grid;    /**< We can evaluate outside the last point as well */
     }
-    str->f = malloc(n_r*sizeof(real));
+    str->c = malloc(n_r*sizeof(real));
     for(int i = 0; i < n_r; i++) {
-        str->f[i] = f[i];
+        str->c[i] = f[i];
     }
 
     return err;
@@ -67,8 +67,8 @@ integer linint1D_eval(real* val, linint1D_data* str, real r) {
         err = 1;
     }
     else {
-        c0 = str->f[i_r];
-        c1 = str->f[i_r+r1];
+        c0 = str->c[i_r];
+        c1 = str->c[i_r+r1];
         val[0] = c0*(1 - dr) + c1*dr;
     }
 
@@ -86,5 +86,5 @@ integer linint1D_eval(real* val, linint1D_data* str, real r) {
  * @param str data struct for data interpolation
  */
 void linint1D_free(linint1D_data* str) {
-    free(str->f);
+    free(str->c);
 }

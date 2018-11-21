@@ -18,7 +18,7 @@ typedef struct {
     real z_min;               /**< minimum z coordinate in the grid */
     real z_max;               /**< z grid interval (z_max-z_min)/(n_z-1) */
     real z_grid;              /**< z grid interval (z_max-z_min)/(n_z-1) */
-    real* f;                   /**< pointer to array with function values */
+    real* c;                   /**< pointer to array with function values */
 } linint2D_data;
 
 #pragma omp declare target

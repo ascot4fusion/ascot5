@@ -48,9 +48,9 @@ int linint3D_init(linint3D_data* str, real* f, int n_r, int n_phi, int n_z,
     str->z_min = z_min;
     str->z_max = z_max;
     str->z_grid = z_grid;
-    str->f = malloc(n_r*n_phi*n_z*sizeof(real));
+    str->c = malloc(n_r*n_phi*n_z*sizeof(real));
     for(int i = 0; i < n_r*n_phi*n_z; i++) {
-        str->f[i] = f[i];
+        str->c[i] = f[i];
     }
 
     return err;
@@ -104,14 +104,14 @@ integer linint3D_eval(real* val, linint3D_data* str, real r, real phi, real z) {
     }
     else {
         /* Values at grid cell corners */
-        c000 = str->f[i_phi*phi1 + i_z*z1 + i_r];
-        c100 = str->f[i_phi*phi1 + i_z*z1 + (i_r + 1)];
-        c001 = str->f[(i_phi + 1)*phi1 + i_z*z1 + i_r];
-        c101 = str->f[(i_phi + 1)*phi1 + i_z*z1 + (i_r + 1)];
-        c010 = str->f[i_phi*phi1 + (i_z + 1)*z1 + i_r];
-        c110 = str->f[i_phi*phi1 + (i_z + 1)*z1 + (i_r + 1)];
-        c011 = str->f[(i_phi + 1)*phi1 + (i_z + 1)*z1 + i_r];
-        c111 = str->f[(i_phi + 1)*phi1 + (i_z + 1)*z1 + (i_r + 1)];
+        c000 = str->c[i_phi*phi1 + i_z*z1 + i_r];
+        c100 = str->c[i_phi*phi1 + i_z*z1 + (i_r + 1)];
+        c001 = str->c[(i_phi + 1)*phi1 + i_z*z1 + i_r];
+        c101 = str->c[(i_phi + 1)*phi1 + i_z*z1 + (i_r + 1)];
+        c010 = str->c[i_phi*phi1 + (i_z + 1)*z1 + i_r];
+        c110 = str->c[i_phi*phi1 + (i_z + 1)*z1 + (i_r + 1)];
+        c011 = str->c[(i_phi + 1)*phi1 + (i_z + 1)*z1 + i_r];
+        c111 = str->c[(i_phi + 1)*phi1 + (i_z + 1)*z1 + (i_r + 1)];
         /* Interpolate along r */
         c00 = c000*(1 - dr) + c100*dr;
         c01 = c001*(1 - dr) + c101*dr;
@@ -138,5 +138,5 @@ integer linint3D_eval(real* val, linint3D_data* str, real r, real phi, real z) {
  * @param str data struct for data interpolation
  */
 void linint3D_free(linint3D_data* str) {
-    free(str->f);
+    free(str->c);
 }

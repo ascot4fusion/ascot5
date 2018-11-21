@@ -22,7 +22,7 @@ typedef struct {
     real phi_min;             /**< minimum phi coordinate in the grid */
     real phi_max;             /**< z coordinate of magnetic axis */
     real phi_grid;            /**< phi grid interval 2pi/(n_phi-1) */
-    real* f;                   /**< pointer to array with function values */
+    real* c;                   /**< pointer to array with function values */
 } linint3D_data;
 
 #pragma omp declare target
