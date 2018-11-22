@@ -24,7 +24,6 @@ setup(name='a5py',
         'bin/a5continuerun',
         'bin/a5setactive',
         'bin/a5GUI',
-        'bin/a5ls'  
+        'bin/a5ls',
+        'bin/a5vol'
       ])
-
-
