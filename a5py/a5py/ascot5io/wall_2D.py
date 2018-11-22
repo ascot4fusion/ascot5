@@ -7,6 +7,7 @@ import random
 import datetime
 
 from . ascot5group import creategroup
+from . import wall_3D
 
 def write_hdf5(fn, n, R, z):
     """
@@ -24,14 +25,14 @@ def write_hdf5(fn, n, R, z):
 
     Notes
     -----
-    
+
     First (R,z) point doesn't have to correspond to last point
     as the wall is closed automatically. TODO check this
     """
 
     mastergroup = "wall"
     subgroup    = "wall_2D"
-    
+
     # Create a group for this input.
     f = h5py.File(fn, "a")
     path = creategroup(f, mastergroup, subgroup)
@@ -78,7 +79,35 @@ def read_hdf5(fn, qid):
     out["n"] = f[path]["n"][:]
     out["R"] = f[path]["r"][:]
     out["z"] = f[path]["z"][:]
-    
+
     f.close()
 
     return out
+
+def write_hdf5_3D(fn, n, R, z, nphi):
+
+    x1x2x3 = np.ones((2*n*nphi, 3))
+    y1y2y3 = np.ones((2*n*nphi, 3))
+    r1r2r3 = np.ones((2*n*nphi, 3))
+    p1p2p3 = np.ones((2*n*nphi, 3))
+    z1z2z3 = np.ones((2*n*nphi, 3))
+    flag   = np.ones((2*n*nphi, 1))
+
+    def pol2cart(rho, phi):
+        x = rho * np.cos(phi)
+        y = rho * np.sin(phi)
+        return(x, y)
+
+    pv = np.linspace(0, 2*np.pi, nphi+1)
+    for i in range(1,nphi):
+        for j in range(1,n-1):
+            r1r2r3[i-1 + 2*(j-1),:] = [ R[j], R[j], R[j-1] ]
+            p1p2p3[i-1 + 2*(j-1),:] = [ pv[i-1], pv[i], pv[i] ]
+            z1z2z3[i-1 + 2*(j-1),:] = [ z[j], z[j], z[j-1] ]
+
+            r1r2r3[i-1 + 2*(j-1) + 1,:] = [ R[j], R[j-1], R[j-1] ]
+            p1p2p3[i-1 + 2*(j-1) + 1,:] = [ pv[i-1], pv[i-1], pv[i] ]
+            z1z2z3[i-1 + 2*(j-1) + 1,:] = [ z[j], z[j-1], z[j-1] ]
+
+    x1x2x3,y1y2y3 = pol2cart(p1p2p3, r1r2r3)
+    wall_3D.write_hdf5(fn, 2*n*nphi, x1x2x3, y1y2y3, z1z2z3, flag)
