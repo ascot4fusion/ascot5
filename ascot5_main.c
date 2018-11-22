@@ -41,6 +41,12 @@
  * run (between [0, size-1]). Running the program this way does not use MPI.
  * This is intended to be used in Condor-like environments.
  *
+ * You can add a description of the simulation as:
+ *
+ * ascot5_main --d="This is a test run"
+ *
+ * which is written in HDF5 file at the run group specific to this simulation.
+ *
  * In addition to output data, the simulation progress may be written in
  * *.stdout files with each MPI process having dedicated file. See ascot5.h for
  * details.
@@ -432,10 +438,11 @@ CLEANUP_FAILURE:
  * as (default values, used if the specific argument was not given, are in
  * parenthesis):
  *
- * - sim->hdf5_in  = "in.h5" ("ascot.h5")
- * - sim->hdf5_out = "out.h5" (sim->hdf5_in is copied here)
- * - sim->mpi_rank = 0
- * - sim->mpi_size = 0
+ * - sim->hdf5_in     = "in.h5" ("ascot.h5")
+ * - sim->hdf5_out    = "out" (sim->hdf5_in is copied here)
+ * - sim->mpi_rank    = 0
+ * - sim->mpi_size    = 0
+ * - sim->description = "-"
  *
  * If the arguments could not be parsed, this function returns a non-zero exit
  * value.
@@ -452,56 +459,74 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
         {"out", required_argument, 0, 2},
         {"mpi_size", required_argument, 0, 3},
         {"mpi_rank", required_argument, 0, 4},
+        {"d", required_argument, 0, 5},
         {0, 0, 0, 0}
     };
 
-    sim->hdf5_in[0]  = '\0';
-    sim->hdf5_out[0] = '\0';
-    sim->mpi_rank = 0;
-    sim->mpi_size = 0;
+    // Initialize default values
+    sim->hdf5_in[0]     = '\0';
+    sim->hdf5_out[0]    = '\0';
+    sim->mpi_rank       = 0;
+    sim->mpi_size       = 0;
+    sim->description[0] = '-';  // Simple \0 won't work with HDF5,
+    sim->description[1] = '\0'; // don't know why.
 
+    // Read user input
     int c;
     while((c = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch(c) {
-        case 1:
-            strcpy(sim->hdf5_in, optarg);
-            break;
-        case 2:
-            strcpy(sim->hdf5_out, optarg);
-            break;
-        case 3:
-            sim->mpi_size = atoi(optarg);
-            break;
-        case 4:
-            sim->mpi_rank = atoi(optarg);
-            break;
-        default:
-            print_out(VERBOSE_MINIMAL,
-                      "\nUnrecognized argument. The valid arguments are:\n");
-            print_out(VERBOSE_MINIMAL,
-                      "--in input file without .h5 extension (default: ascot)\n");
-            print_out(VERBOSE_MINIMAL,
-                      "--out output file without .h5 extension (default: same as input)\n");
-            print_out(VERBOSE_MINIMAL,
-                      "--mpi_size number of independent processes\n");
-            print_out(VERBOSE_MINIMAL,
-                      "--mpi_rank rank of independent process\n");
-            return 1;
+            case 1:
+                strcpy(sim->hdf5_in, optarg);
+                break;
+            case 2:
+                strcpy(sim->hdf5_out, optarg);
+                break;
+            case 3:
+                sim->mpi_size = atoi(optarg);
+                break;
+            case 4:
+                sim->mpi_rank = atoi(optarg);
+                break;
+            case 5:
+                strcpy(sim->description, optarg);
+                break;
+            default:
+                // Unregonizable argument(s). Tell user how to run ascot5_main
+                print_out(VERBOSE_MINIMAL,
+                          "\nUnrecognized argument. The valid arguments are:\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--in input file without .h5 extension (default: ascot)\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--out output file without .h5 extension (default: same as input)\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--mpi_size number of independent processes\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--mpi_rank rank of independent process\n");
+                print_out(VERBOSE_MINIMAL,
+                          "--d run description maximum of 250 characters\n");
+                return 1;
         }
     }
 
+    /* Default value for input file is ascot.h5, and for output same as input
+     * file. Adujust hdf5_in and hdf5_out accordingly. For output file, we don't
+     * add the .h5 extension here. */
     if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] == '\0') {
+        // No input, use default values for both
         strcpy(sim->hdf5_in, "ascot.h5");
         strcpy(sim->hdf5_out, "ascot");
     }
     else if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] != '\0') {
+        // Output file is given but the input file is not
         strcpy(sim->hdf5_in, "ascot.h5");
     }
     else if(sim->hdf5_in[0] != '\0' && sim->hdf5_out[0] == '\0') {
+        // Input file is given but the output is not
         strcpy(sim->hdf5_out, sim->hdf5_in);
         strcat(sim->hdf5_in, ".h5");
     }
     else {
+        // Both input and output files are given
         strcat(sim->hdf5_in, ".h5");
     }
     strcpy(sim->outfn, sim->hdf5_out);

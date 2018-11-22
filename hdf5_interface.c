@@ -295,7 +295,7 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     hdf5_close(fin);
 
     /* Finally we set a description and date, and close the file. */
-    hdf5_write_string_attribute(fout, path, "description",  "-");
+    hdf5_write_string_attribute(fout, path, "description",  sim->description);
 
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
