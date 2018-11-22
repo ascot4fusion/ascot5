@@ -308,7 +308,6 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
 
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
-
         /* Check if the marker time exceeds simulation time */
         if(active_tmax) {
             if(p_f->time[i] > sim->endcond_maxSimTime) {
@@ -366,5 +365,77 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
                 p_f->running[i] = 0;
             }
         }
+    }
+}
+
+/**
+ * @brief Split endcond to an array of end conditions
+ *
+ * This function splits the bit array end condition to an array
+ * where the active end conditions are presented by numbers.
+ * Number for each end condition are defined in this function.
+ *
+ * @param endcond bit array representing marker end conditions
+ * @paran endconds integer array large enough to hold all end conditions
+ */
+void endcond_parse(int endcond, int* endconds) {
+    int i = 0;
+
+    if(endcond & endcond_tmax)   {endconds[i++] =  1;};
+    if(endcond & endcond_emin)   {endconds[i++] =  2;};
+    if(endcond & endcond_therm)  {endconds[i++] =  3;};
+    if(endcond & endcond_wall)   {endconds[i++] =  4;};
+    if(endcond & endcond_rhomin) {endconds[i++] =  5;};
+    if(endcond & endcond_rhomax) {endconds[i++] =  6;};
+    if(endcond & endcond_polmax) {endconds[i++] =  7;};
+    if(endcond & endcond_tormax) {endconds[i++] =  8;};
+    if(endcond & endcond_cpumax) {endconds[i++] =  9;};
+    if(endcond & endcond_hybrid) {endconds[i++] = 10;};
+}
+
+/**
+ * @brief Represent end condition in human-readable format
+ *
+ * This function takes end condition represented as integer, as given by
+ * endcond_parse().
+ *
+ * @param endcond end condition integer representation
+ * @param str end condition as human-readable string
+ */
+void endcond_parse2str(int endcond, char* str) {
+    int endconds[32];
+    endcond_parse(endcond, endconds);
+
+    switch(1) {
+        case 1:
+            sprintf(str, "Max sim time");
+            break;
+        case 2:
+            sprintf(str, "Min energy");
+            break;
+        case 3:
+            sprintf(str, "Thermalization");
+            break;
+        case 4:
+            sprintf(str, "Wall collision");
+            break;
+        case 5:
+            sprintf(str, "Min rho");
+            break;
+        case 6:
+            sprintf(str, "Max rho");
+            break;
+        case 7:
+            sprintf(str, "Max poloidal orbits");
+            break;
+        case 8:
+            sprintf(str, "Max toroidal orbits");
+            break;
+        case 9:
+            sprintf(str, "CPU time exceeded");
+            break;
+        case 10:
+            sprintf(str, "Hybrid condition");
+            break;
     }
 }
