@@ -128,8 +128,10 @@ def copygroup(fns, fnt, mastergroup, qid):
         ft.create_group(mastergroup)
 
     # Copy group into target
-    setactivegroup(fnt, mastergroup, qid)
     fs.copy(mastergroup + "/" + field, ft[mastergroup], name=field)
+    ft.close()
+
+    setactivegroup(fnt, mastergroup, qid)
 
     fs.close()
     ft.close()
