@@ -8,7 +8,7 @@ import datetime
 
 from . ascot5group import creategroup
 
-def write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, idens, itemp):
+def write_hdf5(fn, Nrho, Nion, znum, anum, rho, edens, etemp, idens, itemp):
     """
     Write 1D plasma input in HDF5 file.
 
@@ -27,14 +27,10 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, iden
         Ion mass number
     rho : int Nrho x 1 numpy array
         rho grid array
-    ndens : real Nrho x 1 numpy array
-        neutral density (1/m^3) NOT IMPLEMNTED
-    ntemp : real Nrho x 1 numpy array
-        neutral temperature (eV) NOT IMPLEMENTED
     edens : real Nrho x 1 numpy array
         electron density (1/m^3)
-    etemp : real Nrho x 1 numpy array  
-        electron temperature (eV) 
+    etemp : real Nrho x 1 numpy array
+        electron temperature (eV)
     idens : real Nrho x Nion numpy array
         ion density (1/m^3)
     itemp : real Nrho x 1 numpy array
@@ -43,16 +39,11 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, iden
 
     mastergroup = "plasma"
     subgroup    = "plasma_1D"
-    
+
     # Create a group for this input.
     f = h5py.File(fn, "a")
     path = creategroup(f, mastergroup, subgroup)
-    
-    # Neutrals are currently not implemented
-    Nneutral = 1
-    ndens = np.zeros((Nrho,Nneutral))
-    ntemp = np.zeros((Nrho,1))
-    
+
     # Check that input is valid
     if anum.size != Nion or znum.size != Nion:
         raise Exception('Number of ions in input not consistent')
@@ -66,7 +57,7 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, iden
             raise Exception('Ion density data is not consisten with Nrho and Nion')
 
     idens = np.transpose(idens)
-        
+
     if etemp[0] < 1 or etemp[0] > 1e5 or itemp[0] < 1 or itemp[0] >1e5:
         print("Warning: Check that temperature is given in eV")
 
@@ -74,7 +65,6 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, iden
     # TODO Check that inputs are consistent.
 
     f.create_dataset(path + '/n_ions', (1,1), dtype='i4', data=Nion)
-    f.create_dataset(path + '/n_neutrals', (1,1), dtype='i4', data=Nneutral)
 
     f.create_dataset(path + '/Z_num', (Nion,1), dtype='i4', data=znum)
     f.create_dataset(path + '/A_mass', (Nion,1), dtype='i4', data=anum)
@@ -82,13 +72,11 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, iden
 
     # 1D plasma properties
     f.create_dataset(path + '/rho', (Nrho,1), dtype='f8', data=rho)
-    f.create_dataset(path + '/temp_0', (Nrho,1), dtype='f8', data=ntemp)
-    f.create_dataset(path + '/dens_0', dtype='f8', data=ndens)
     f.create_dataset(path + '/temp_e', (Nrho,1), dtype='f8', data=etemp)
     f.create_dataset(path + '/dens_e', (Nrho,1), dtype='f8', data=edens)
     f.create_dataset(path + '/temp_i', (Nrho,1), dtype='f8', data=itemp)
     f.create_dataset(path + '/dens_i', dtype='f8', data=idens)
-    
+
     f.close();
 
 
@@ -109,9 +97,9 @@ def read_hdf5(fn, qid):
 
     Dictionary containing plasma data.
     """
-    
+
     path = "plasma" + "/plasma_1D-" + qid
-    
+
     f = h5py.File(fn,"r")
 
     out = {}
@@ -125,12 +113,9 @@ def read_hdf5(fn, qid):
     out["Z_num"]    = f[path]["Z_num"][:]
     out["A_mass"]   = f[path]["A_mass"][:]
     out["Nion"]     = f[path]['n_ions'][:]
-    out["Nneutral"] = f[path]['n_neutrals'][:]
     out["Nrho"]     = f[path]['n_rho'][:]
 
     out["rho"] = f[path]["rho"][:]
-    out["ntemp"] = f[path]["temp_0"][:]
-    out["ndens"] = f[path]["dens_0"][:]
     out["etemp"] = f[path]["temp_e"][:]
     out["edens"] = f[path]["dens_e"][:]
     out["itemp"] = f[path]["temp_i"][:]

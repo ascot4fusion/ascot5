@@ -157,8 +157,7 @@ def run(a4folder, h5fn, overwrite=True):
             data = read_plasma(fname1d)
             dens_i = np.array([data['ni'+str(i)] for i in range(1,data['nion']+1)])
             plasma_1D.write_hdf5(h5fn, data['nrho'], data['nion'], data['znum'], data['anum'], 
-                                 data['rho'], np.zeros(data['rho'].shape), np.zeros(data['rho'].shape), 
-                                 data['ne'], data['te'], dens_i, data['ti1'])
+                                 data['rho'], data['ne'], data['te'], dens_i, data['ti1'])
         if (os.path.isfile(fname2d)):
             data = read_plasma(fname2d)
             dens_i = np.array([data['ni'+str(i)] for i in range(1,data['nion']+1)])
