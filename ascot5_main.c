@@ -392,7 +392,7 @@ CLEANUP_SUCCESS:
     marker_summary(ps, n);
     free(ps);
 
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "Done.\n");
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone.\n");
 
     return 0;
 
@@ -533,42 +533,103 @@ void generate_qid(char* qid) {
     sprintf(qid, "%010lu", (long unsigned int)qint);
 }
 
+/**
+ * @brief Writes a summary of what happened to the markers during simulation
+ *
+ * This function writes a summary of marker end conditions and possible
+ * simulation-time errors. Since simulation can have billions and billions of
+ * markers, we only show how many markers had specific error or end condition.
+ *
+ * End conditions and errors are plotted in human-readable format.
+ *
+ * @param ps array of marker states after simulation has finished
+ * @param n number of markers in the array
+ */
 void marker_summary(particle_state* ps, int n) {
 
-    print_out(VERBOSE_MINIMAL, "\nSummary of results:\n")
+    print_out(VERBOSE_MINIMAL, "\nSummary of results:\n");
 
+    /* Temporary arrays that are needed to store unique end conditions and
+     * errors. We can have at most n different values. */
     int* temp = (int*)malloc(n*sizeof(int));
     int* unique = (int*)malloc(n*sizeof(int));
     int* count = (int*)malloc(n*sizeof(int));
 
+    /* First we find out what the end conditions are */
     for(int i=0; i<n; i++) {
         temp[i] = ps[i].endcond;
     }
     math_uniquecount(temp, unique, count, n);
 
+    /* Print the end conditions, if marker has multiple end conditions, separate
+     * those with "and". */
     int i = 0;
-    while(count[i]) {
-        print_out(VERBOSE_MINIMAL, "%9d markers had end condition %d\n",
-                  count[i], unique[i]);
+    while(count[i] > 0) {
+        // Initialize
+        int endconds[32];
+        for(int j=0; j<32;j++) {
+            endconds[j] = 0;
+        }
+        char endcondstr[256];
+        endcondstr[0] = '\0';
+
+        // Represent all end conditions with a single string and print it
+        int j = 0;
+        endcond_parse(unique[i], endconds);
+        while(endconds[j]) {
+            if(j>0) {
+                strcat(endcondstr, " and ");
+            }
+            char temp[256];
+            endcond_parse2str(endconds[j], temp);
+            strcat(endcondstr, temp);
+            j++;
+        }
+        if(j == 0) {
+            sprintf(endcondstr, "Aborted");
+        }
+        print_out(VERBOSE_MINIMAL, "%9d markers had end condition %s\n",
+                  count[i], endcondstr);
         i++;
     }
 
+    // Empty line between end conditions and errors
+    print_out(VERBOSE_MINIMAL, "\n");
+
+    // Find all errors
     for(int i=0; i<n; i++) {
         temp[i] = (int)(ps[i].err);
     }
     math_uniquecount(temp, unique, count, n);
 
-    print_out(VERBOSE_MINIMAL, "\n");
+    // Go through each unique error and represent is a string
     i = 0;
-    while(unique[i] > 0) {
-        print_out(VERBOSE_MINIMAL, "%9d markers were aborted with error %d\n",
-                  count[i], unique[i]);
+    while(count[i] > 0) {
+        if(unique[i] == 0) {
+            // Value 0 indicates no error occurred so skip that
+            i++;
+            continue;
+        }
+        char msg[256];
+        char line[256];
+        char file[256];
+        error_parse2str(unique[i], msg, line, file);
+        print_out(VERBOSE_MINIMAL,
+                  "%9d markers were aborted with an error message:\n"
+                  "          %s\n"
+                  "          at line %s in %s\n",
+                  count[i], msg, line, file);
         i++;
     }
-    if(count[0] == n) {
-        print_out(VERBOSE_MINIMAL, "No markers were aborted.\n");
+
+    // If count[0] equals to number of markers and their error field is zero,
+    // we have no markers that were aborted.
+    if(count[0] == n && unique[0] == 0) {
+        print_out(VERBOSE_MINIMAL,
+                  "          No markers were aborted.\n");
     }
 
+    // Free temporary arrays
     free(temp);
     free(unique);
     free(count);

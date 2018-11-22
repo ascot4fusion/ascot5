@@ -409,7 +409,7 @@ void endcond_parse2str(int endcond, char* str) {
     int endconds[32];
     endcond_parse(endcond, endconds);
 
-    switch(1) {
+    switch(endcond) {
         case 1:
             sprintf(str, "Max sim time");
             break;
