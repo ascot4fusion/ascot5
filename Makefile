@@ -170,8 +170,8 @@ test_bsearch: $(UTESTDIR)test_bsearch.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 clean:
-	rm -f *.o *.so *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
+	@rm -f *.o *.so *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
 		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o $(DIAGDIR)*.o \
 		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
 		$(N0DIR)*.o $(LINTDIR)*.o $(SPLINEDIR)*.o *.pyc
-	rm -rf $(DOCDIR)
+	@rm -rf $(DOCDIR)
