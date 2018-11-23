@@ -108,7 +108,7 @@ OBJS= math.o list.o octree.o physlib.o error.c \
 	E_field.o wall.o simulate.o diag.o offload.o \
 	random.o print.c symmetry.o hdf5_interface.o
 
-BINS=test_math \
+BINS=test_math test_bsearch \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 \
@@ -161,6 +161,9 @@ test_linint3D: $(UTESTDIR)test_linint3D.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_N0: $(UTESTDIR)test_N0.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_bsearch: $(UTESTDIR)test_bsearch.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile

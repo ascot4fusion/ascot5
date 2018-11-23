@@ -96,9 +96,7 @@ int math_ipow(int a, int p);
 double math_simpson(double (*f)(double), double a, double b, double epsilon);
 void math_linspace(real* vec, real a, real b, int n);
 void math_uniquecount(int* in, int* unique, int* count, int n);
-int rcompare(const void* a, const void* b);
 real* math_rsearch(const real key, const real* base, int num);
-int* math_isearch(const int key, const int* base, int num);
 #pragma omp end declare target
 
 

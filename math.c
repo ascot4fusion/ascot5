@@ -309,97 +309,17 @@ double math_simpson_helper(double (*f)(double), double a, double b, double eps,
         +math_simpson_helper(f, c, b, eps, Sright, fc, fb, fe, bottom-1);
 }
 
-/**
- * Implementation for index searching using binary search. Adapted from
- * a generic implementation of binary search for the Linux kernel
- *
- * Copyright (C) 2008-2009 Ksplice, Inc.
- * Author: Tim Abbott <tabbott@ksplice.com>
- *
- * This function does a binary search on the given array.  The
- * contents of the array should already be in ascending sorted order
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; version 2.
- *
- * @param key pointer to item being searched for
- * @param base pointer to first element to search
- * @param num number of elements
- *
- * @return pointer to array element precedenting the key value
- *
- */
-real* math_rsearch(const real key, const real* base, int num) {
-    if( (key < *base) || (key > *(base + (num - 1))) ) {
-        return NULL;
-    }
+int rcomp(const void* a, const void* b) {
+    real a_val = *((real*) a);
+    real b_val = *((real*) b);
+    real c_val = *((real*) b + 1);
 
-    const real* pivot;
-    while(num > 0) {
-        pivot = base + (num >> 1);
-        if( *pivot > key ) {
-            if( *(pivot - 1) <= key ) {
-                return (real*)(pivot - 1);
-            }
-        }
-        else{
-            if( *(pivot + 1) >= key ) {
-                return (real*)pivot;
-            }
-            base = pivot;
-            num--;
-        }
-        num = (num >> 1) + 1;
+    if (a_val >= b_val && a_val < c_val) {
+        return 0;
     }
-    return NULL;
+    return a_val > b_val ? 1 : -1;
 }
 
-/**
- * Implementation for index searching using binary search. Adapted from
- * a generic implementation of binary search for the Linux kernel
- *
- * Copyright (C) 2008-2009 Ksplice, Inc.
- * Author: Tim Abbott <tabbott@ksplice.com>
- *
- * This function does a binary search on the given array.  The
- * contents of the array should already be in ascending sorted order
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; version 2.
- *
- * @param key pointer to item being searched for
- * @param base pointer to first element to search
- * @param num number of elements
- *
- * @return pointer to array element precedenting the key value
- *
- */
-int* math_isearch(const int key, const int* base, int num) {
-    if( (key < *base) || (key > *(base + (num - 1))) ) {
-        return NULL;
-    }
-
-    const int* pivot;
-    while(num > 0) {
-        pivot = base + (num >> 1);
-        if(*pivot == key) {
-            return (int*)pivot;
-        }
-        else if( *pivot > key ) {
-            if( *(pivot - 1) <= key ) {
-                return (int*)(pivot - 1);
-            }
-        }
-        else{
-            if( *(pivot + 1) >= key ) {
-                return (int*)pivot;
-            }
-            base = pivot;
-            num--;
-        }
-        num = (num >> 1) + 1;
-    }
-    return NULL;
+real* math_rsearch(const real key, const real* base, int num) {
+    return (real*) bsearch(&key, base, num-1, sizeof(real), rcomp);
 }
