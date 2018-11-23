@@ -170,10 +170,8 @@ void simulate(int id, int n_particles, particle_state* p,
 
     random_init(&sim.random_data, 0);
 
-    #if VERBOSE >= 1
-    printf("%s: All fields initialized. Simulation begins, %d threads.\n",
-        targetname, omp_get_max_threads());
-    #endif
+    print_out(VERBOSE_NORMAL,"%s: All fields initialized. Simulation begins, %d threads.\n",
+              targetname, omp_get_max_threads());
 
 #if VERBOSE > 1
     /* Open a file for writing simulation progress */
@@ -182,7 +180,8 @@ void simulate(int id, int n_particles, particle_state* p,
         sim_offload->mpi_rank);
     FILE *f = fopen(filename, "w");
     if (f == NULL) {
-        printf("%s: Error opening stdout file.\n", targetname);
+        print_out(VERBOSE_DEBUG,
+                  "%Warning. % could not be opened for progress updates.\n", targetname);
     }
 #endif
 
@@ -334,9 +333,7 @@ void simulate(int id, int n_particles, particle_state* p,
     /* 8. Execution returns to host where this function was called.           */
     /*                                                                        */
     /**************************************************************************/
-    #if VERBOSE >= 1
-    printf("%s: Simulation complete.\n", targetname);
-    #endif
+    print_out(VERBOSE_NORMAL, "%s: Simulation complete.\n", targetname);
 }
 
 /**
