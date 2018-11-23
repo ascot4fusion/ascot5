@@ -21,6 +21,7 @@
 #include "plasma.h"
 #include "random.h"
 #include "simulate.h"
+#include "print.h"
 #include "simulate/simulate_ml_adaptive.h"
 #include "simulate/simulate_gc_adaptive.h"
 #include "simulate/simulate_gc_fixed.h"
@@ -29,7 +30,7 @@
 
 #pragma omp declare target
 void sim_init(sim_data* sim, sim_offload_data* offload_data);
-void sim_monitor(FILE* f, volatile int* n, volatile int* finished);
+void sim_monitor(char* filename, volatile int* n, volatile int* finished);
 #pragma omp end declare target
 
 /**
@@ -296,7 +297,7 @@ void simulate(int id, int n_particles, particle_state* p,
                 char filename[256];
                 sprintf(filename, "%s_%06d.stdout", sim_offload->outfn,
                         sim_offload->mpi_rank);
-                sim_monitor(f, &pq_hybrid.n, &pq_hybrid.finished);
+                sim_monitor(filename, &pq_hybrid.n, &pq_hybrid.finished);
 #endif
             }
         }
@@ -384,17 +385,22 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
     FILE *f = fopen(filename, "w");
     if (f == NULL) {
         print_out(VERBOSE_DEBUG,
-                  "%Warning. % could not be opened for progress updates.\n", targetname);
+                  "Warning. %s could not be opened for progress updates.\n",
+                  filename);
         return;
     }
 
     real time_sim_started = A5_WTIME;
-    real stopflag = 1; // This flag ensures progress is written one last time when it is 100%
+    int stopflag = 1; /* Flag ensures progress is written one last time at 100% */
+    int n_temp, finished_temp; /* Use these to store volatile variables so that
+                                  their value does not change during one loop */
     while(stopflag) {
-        real fracprog = ((real) *finished)/(*n);
+        n_temp = *n;
+        finished_temp = *finished;
+        real fracprog = ((real) finished_temp)/n_temp;
         real timespent = (A5_WTIME)-time_sim_started;
 
-        if(*n > *finished) {
+        if(n_temp == finished_temp) {
             stopflag = 0;
         }
 
@@ -404,13 +410,13 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
         }
         else {
             fprintf(f, "Progress: %d/%d, %.2f %%. Time spent: %.2f h, "
-                    "estimated time to finish: %.2f h\n", *finished, *n,
+                    "estimated time to finish: %.2f h\n", finished_temp, n_temp,
                     100*fracprog, timespent/3600, (1/fracprog-1)*timespent/3600);
         }
         fflush(f);
         sleep(A5_PRINTPROGRESSINTERVAL);
     }
-    
+
     fprintf(f, "Simulation finished.\n");
     fclose(f);
 }

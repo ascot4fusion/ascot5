@@ -105,7 +105,7 @@ typedef double real;
 #define A5_EXTREMELY_SMALL_TIMESTEP 1e-12
 
 /** @brief How often progress is being written (s) in the stdout file */
-#define A5_PRINTPROGRESSINTERVAL 60
+#define A5_PRINTPROGRESSINTERVAL 20
 
 /** @brief Wall time */
 #define A5_WTIME omp_get_wtime()
