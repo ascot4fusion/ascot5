@@ -173,18 +173,6 @@ void simulate(int id, int n_particles, particle_state* p,
     print_out(VERBOSE_NORMAL,"%s: All fields initialized. Simulation begins, %d threads.\n",
               targetname, omp_get_max_threads());
 
-#if VERBOSE > 1
-    /* Open a file for writing simulation progress */
-    char filename[256];
-    sprintf(filename, "%s_%06d.stdout", sim_offload->outfn,
-        sim_offload->mpi_rank);
-    FILE *f = fopen(filename, "w");
-    if (f == NULL) {
-        print_out(VERBOSE_DEBUG,
-                  "%Warning. % could not be opened for progress updates.\n", targetname);
-    }
-#endif
-
     /**************************************************************************/
     /* 4. Threads are spawned. One thread is dedicated for monitoring         */
     /*    progress, if monitoring is active.                                  */
@@ -234,7 +222,10 @@ void simulate(int id, int n_particles, particle_state* p,
         {
 #if VERBOSE > 1
             /* Update progress until simulation is complete. */
-            sim_monitor(f, &pq.n, &pq.finished);
+            char filename[256];
+            sprintf(filename, "%s_%06d.stdout", sim_offload->outfn,
+                    sim_offload->mpi_rank);
+            sim_monitor(filename, &pq.n, &pq.finished);
 #endif
         }
     }
@@ -302,6 +293,9 @@ void simulate(int id, int n_particles, particle_state* p,
             #pragma omp section
             {
 #if VERBOSE > 1
+                char filename[256];
+                sprintf(filename, "%s_%06d.stdout", sim_offload->outfn,
+                        sim_offload->mpi_rank);
                 sim_monitor(f, &pq_hybrid.n, &pq_hybrid.finished);
 #endif
             }
@@ -313,11 +307,6 @@ void simulate(int id, int n_particles, particle_state* p,
     /*    to host.                                                            */
     /*                                                                        */
     /**************************************************************************/
-#if VERBOSE > 1
-    /* Close progress file*/
-    fclose(f);
-#endif
-
     free(sim.coldata);
     free(pq.p);
     free(pq_hybrid.p);
@@ -390,11 +379,24 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
  * @param n pointer to number of total markers in simulation queue
  * @param finished pointer to number of finished markers in simulation queue
  */
-void sim_monitor(FILE* f, volatile int* n, volatile int* finished) {
+void sim_monitor(char* filename, volatile int* n, volatile int* finished) {
+    /* Open a file for writing simulation progress */
+    FILE *f = fopen(filename, "w");
+    if (f == NULL) {
+        print_out(VERBOSE_DEBUG,
+                  "%Warning. % could not be opened for progress updates.\n", targetname);
+        return;
+    }
+
     real time_sim_started = A5_WTIME;
-    while(f != NULL && *n > *finished) {
+    real stopflag = 1; // This flag ensures progress is written one last time when it is 100%
+    while(stopflag) {
         real fracprog = ((real) *finished)/(*n);
         real timespent = (A5_WTIME)-time_sim_started;
+
+        if(*n > *finished) {
+            stopflag = 0;
+        }
 
         if(fracprog == 0) {
             fprintf(f, "No marker has finished simulation yet. "
@@ -408,4 +410,7 @@ void sim_monitor(FILE* f, volatile int* n, volatile int* finished) {
         fflush(f);
         sleep(A5_PRINTPROGRESSINTERVAL);
     }
+    
+    fprintf(f, "Simulation finished.\n");
+    fclose(f);
 }
