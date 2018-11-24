@@ -74,6 +74,7 @@
 #include "endcond.h"
 #include "hdf5_interface.h"
 #include "offload.h"
+#include "gitver.h"
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
 void generate_qid(char* qid);
@@ -136,6 +137,17 @@ int main(int argc, char** argv) {
         mpi_rank = sim.mpi_rank;
         mpi_size = sim.mpi_size;
     }
+
+    print_out0(VERBOSE_MINIMAL, mpi_rank,
+               "ASCOT5_MAIN\n");
+
+#ifdef GIT_VERSION
+    print_out0(VERBOSE_MINIMAL, mpi_rank,
+               "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
+#else
+    print_out0(VERBOSE_MINIMAL, mpi_rank,
+               "Not under version control\n\n");
+#endif
 
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);

@@ -9,3 +9,4 @@ ascot.h5
 *.pyc
 *.so
 doc/
+gitver.h

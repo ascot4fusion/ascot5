@@ -37,6 +37,8 @@
  *                2: Extensive information; a record of simulation progress
  *                   is written process-specific *.stdout files
  *  - MPI=1     enable MPI
+ *  - NOGIT=1   disable recording of repository status which is printed in
+ *              runtime (disable if Git is not available)
  *
  *  Available programs:
  *

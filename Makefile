@@ -98,7 +98,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(PLSHEADERS) $(N0HEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
 	neutral.h plasma.h particle.h endcond.h B_field.h \
 	E_field.h wall.h simulate.h diag.h offload.h \
-	random.h print.h symmetry.h hdf5_interface.h
+	random.h print.h symmetry.h hdf5_interface.h aaa.h
 
 OBJS= math.o list.o octree.o physlib.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -113,6 +113,12 @@ BINS=test_math test_bsearch \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 \
 	ascot5_main
+
+ifdef NOGIT
+	DUMMY_GIT_INFO := $(shell touch gitver.h)
+else
+	GET_GIT_INFO := $(shell bash gitver.sh)
+endif
 
 all: $(BINS)
 
@@ -175,3 +181,4 @@ clean:
 		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
 		$(N0DIR)*.o $(LINTDIR)*.o $(SPLINEDIR)*.o *.pyc
 	@rm -rf $(DOCDIR)
+	@rm -f gitver.h

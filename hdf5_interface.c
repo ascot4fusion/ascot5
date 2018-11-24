@@ -13,6 +13,7 @@
 #include "ascot5.h"
 #include "simulate.h"
 #include "print.h"
+#include "gitver.h"
 #include "hdf5_interface.h"
 #include "hdf5io/hdf5_helpers.h"
 #include "hdf5io/hdf5_options.h"
@@ -294,8 +295,17 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
 
     hdf5_close(fin);
 
-    /* Finally we set a description and date, and close the file. */
+    /* Set a description, repository status, and date; close the file. */
     hdf5_write_string_attribute(fout, path, "description",  sim->description);
+
+#ifdef GIT_VERSION
+    char git[256];
+    sprintf(git, "Tag %s Branch %s", GIT_VERSION, GIT_BRANCH);
+    hdf5_write_string_attribute(fout, path, "repository", git);
+#else
+    hdf5_write_string_attribute(fout, path, "repository",
+                                "Not under version control");
+#endif
 
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
