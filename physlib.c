@@ -1,125 +1,14 @@
 /**
+ * @file physlib.c
  * @brief Physics library
  *
- * Contains elementary quantities and coordinate transformations.
+ * Functions to evaluate elementary physical quantities.
  */
 #include <math.h>
 #include "ascot5.h"
 #include "physlib.h"
 #include "consts.h"
 #include "math.h"
-
-/**
- * @brief Lorentz factor
- *
- * gamma = sqrt(1 / (1 - v^2/c^2) )
- *
- * @param vnorm particle velocity norm
- */
-real physlib_relfactorv_fo(real vnorm) {
-    return sqrt( 1.0 / (1 - (vnorm * vnorm) / CONST_C2) );
-}
-
-/**
- * @brief Lorentz factor
- *
- * gamma = sqrt(1 + (p/mc)^2 )
- *
- * @param mass  particle mass
- * @param pnorm particle momentum norm
- */
-real physlib_relfactorp_fo(real mass, real pnorm) {
-    return sqrt( 1 + pow( pnorm/mass ,2) / CONST_C2 );
-}
-
-/**
- * @brief Lorentz factor
- *
- * gamma = sqrt( (1 + 2*mu*B/mc^2) / (1 - vpar^2/c^2) )
- *
- * @param mass  guiding center mass
- * @param mu    guiding center magnetic moment
- * @param vpar  guiding center parallel velocity
- * @param Bnorm magnetic field norm
- */
-real physlib_relfactorv_gc(real mass, real mu, real vpar, real Bnorm) {
-    return sqrt( ( 1 + 2*mu*Bnorm/(mass*CONST_C2) ) / (1 - vpar*vpar/CONST_C2) );
-}
-
-/**
- * @brief Lorentz factor
- *
- * gamma = sqrt(1 + 2*mu*B/mc^2 + (ppar/mc)^2 )
- *
- * @param mass  guiding center mass
- * @param mu    guiding center magnetic moment
- * @param ppar  guiding center parallel momentum
- * @param Bnorm magnetic field norm
- */
-real physlib_relfactorp_gc(real mass, real mu, real ppar, real Bnorm) {
-    return sqrt( 1 + 2*mu*Bnorm/(mass*CONST_C2) + pow(ppar/mass,2)/CONST_C2 );
-}
-
-/**
- * @brief Kinetic energy
- *
- * Ekin = (gamma - 1) * mc^2
- *
- * @param mass  particle mass
- * @param vnorm particle velocity norm
- */
-real physlib_Ekin_fo(real mass, real vnorm) {
-    return (physlib_relfactorv_fo(vnorm) - 1) * mass*CONST_C2;
-}
-
-/**
- * @brief Kinetic energy
- *
- * Ekin = (gamma - 1) * mc^2
- *
- * @param mass  guiding center mass
- * @param mu    guiding center magnetic moment
- * @param vpar  guiding center parallel velocity
- * @param Bnorm magnetic field norm
- */
-real physlib_Ekin_gc(real mass, real mu, real vpar, real Bnorm) {
-    return (physlib_relfactorv_gc(mass, mu, vpar, Bnorm) - 1) * mass*CONST_C2;
-}
-
-/**
- * @brief Transform guiding center (v, xi) coordinates to (mu, vpar)
- *
- * @param mass  guiding center mass
- * @param Bnorm magnetic field norm
- * @param v     guiding center total velocity
- * @param xi    guiding center pitch
- * @param mu    pointer to returned magnetic moment
- * @param vpar  pointer to returned parallel velocity
- */
-void physlib_gc_vxi2muvpar(real mass, real Bnorm, real v, real xi, real* mu, real* vpar) {
-    vpar[0] = xi*v;
-    real v2 = v * v;
-    real gamma2 = ( 1.0 / (1 - v2 / CONST_C2) );
-    mu[0] = mass * gamma2 * v2 * (1 - xi*xi) / (2*Bnorm);
-}
-
-/**
- * @brief Transform guiding center (v, xi) coordinates to (mu, vpar)
- *
- * @param mass  guiding center mass
- * @param Bnorm magnetic field norm
- * @param v     guiding center total velocity
- * @param xi    guiding center pitch
- * @param mu    pointer to returned magnetic moment
- * @param vpar  pointer to returned parallel velocity
- */
-void physlib_gc_muvpar2vxi(real mass, real Bnorm, real mu, real vpar, real* v, real* xi) {
-    real gamma2 = ( 1 + 2*mu*Bnorm/(mass*CONST_C2) ) / (1 - vpar*vpar/CONST_C2);
-    real vperp2 = 2*mu*Bnorm/(gamma2*mass);
-
-    v[0]  = sqrt(vperp2 + vpar*vpar);
-    xi[0] = vpar/v[0];
-}
 
 /**
  * @brief First order guiding center transformation from fo to gc

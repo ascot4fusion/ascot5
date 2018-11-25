@@ -1,3 +1,9 @@
+/**
+ * @file gctransform.c
+ * @brief Module for performing guiding center transformations
+ *
+ *
+ */
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -7,24 +13,30 @@
 #include "phys_orbit.h"
 
 /**
- * @brief Transforms particle to guiding center phase space
+ * @brief Transform particle to guiding center  phase space
  *
- * The transformation is done between coordinates [r,phi,z,p_r,p_phi,p_z]
- * and [R,Phi,Z,p_para,mu]. The transformation is done up to first order.
+ * The transformation is done from coordinates [r, phi, z, vr , vphi, vz] to
+ * [R, Phi, Z, vpar, mu]. The transformation is done to first order
  *
- * @param mass   mass
- * @param charge charge
- * @param r      particle r-coordinate
- * @param phi    particle phi-coordinate
- * @param z      particle z-coordinate
- * @param p_r    particle momentum r-component
- * @param p_phi  particle momentum phi-component
- * @param p_z    particle momentum z-component
- * @param B_dB   magnetic field and jacobian at (r,phi,z)
- * @param gcpos  resulting guiding center [R,Phi,Z,p_para,mu,theta] position
+ * @param mass   mass [kg]
+ * @param charge charge [C]
+ * @param B_dB   magnetic field and Jacobian as given by B_field_eval_BdB()
+ * @param r      particle R coordinate [m]
+ * @param phi    particle phi coordinate [rad]
+ * @param z      particle z coordinate [m]
+ * @param vr     particle velocity R component [m/s]
+ * @param vphi   particle velocity phi component [m/s]
+ * @param vz     particle velocity z component [m/s]
+ * @param R      pointer to guiding center R coordinate [m]
+ * @param Phi    pointer to guiding center Phi coordinate [rad]
+ * @param Z      pointer to guiding center Z coordinate [m]
+ * @param vpar   pointer to guiding center parallel velocity [m/s]
+ * @param mu     pointer to guiding center magnetic moment [J/T]
+ * @param theta  pointer to guiding center gyroangle [rad]
  */
-void phys_prttogc(real mass, real charge, real r, real phi, real z,
-                  real p_r, real p_phi, real p_z, real* B_dB, real* gcpos){
+void gctransform_prt2gc(real mass, real charge, real* B_dB,
+                        real r, real phi, real z, real vr, real vphi, real vz,
+                        real* R, real* Phi, real* Z, real* vpar, real* mu, real* theta);
     /* Temporary re-used variables */
     real TEMP_S1;
     real TEMP_V1[3];
@@ -131,24 +143,30 @@ void phys_prttogc(real mass, real charge, real r, real phi, real z,
 }
 
 /**
- * @brief Transforms guiding center to particle phase space
+ * @brief Transform guiding center to particle phase space
  *
- * The transformation is done between coordinates [R,Phi,Z,p_para,mu]
- * and [r,phi,z,p_r,p_phi,p_z]. The transformation is done up to first order.
+ * The transformation is done from coordinates [R, Phi, Z, vpar, mu] to
+ * [r, phi, z, vr , vphi, vz]. The transformation is done to first order.
  *
- * @param mass   mass
- * @param charge charge
- * @param R      guiding center R-coordinate
- * @param Phi    guiding center Phi-coordinate
- * @param Z      guiding center Z-coordinate
- * @param v_para guiding center parallel velocity
- * @param mu     guiding center magnetic moment
- * @param theta  guiding center gyroangel
- * @param B_dB   magnetic field and jacobian at (R,Phi,Z)
- * @param prtpos resulting particle [r,phi,z,p_r,p_phi,p_z] position
+ * @param mass   mass [kg]
+ * @param charge charge [C]
+ * @param B_dB   magnetic field and Jacobian as given by B_field_eval_BdB()
+ * @param R      guiding center R coordinate [m]
+ * @param Phi    guiding center Phi coordinate [rad]
+ * @param Z      guiding center Z coordinate [m]
+ * @param vpar   guiding center parallel velocity [m/s]
+ * @param mu     guiding center magnetic moment [J/T]
+ * @param theta  guiding center gyroangle [rad]
+ * @param r      pointer to particle R coordinate [m]
+ * @param phi    pointer to particle phi coordinate [rad]
+ * @param z      pointer to particle z coordinate [m]
+ * @param vr     pointer to particle velocity R component [m/s]
+ * @param vphi   pointer to particle velocity phi component [m/s]
+ * @param vz     pointer to particle velocity z component [m/s]
  */
-void phys_gctoprt(real mass, real charge, real R, real Phi, real Z,
-                  real v_para, real mu, real theta, real* B_dB, real* prtpos){
+void gctransform_gc2prt(real mass, real charge, real* B_dB,
+                        real R, real Phi, real Z, real vpar, real mu, real theta,
+                        real* r, real* phi, real* z, real* vr, real* vphi, real* vz);
     /* Temporary re-used variables */
     real TEMP_S1;
     real TEMP_V1[3];
@@ -264,89 +282,4 @@ void phys_gctoprt(real mass, real charge, real R, real Phi, real Z,
     prtpos[3] = p_para[0]+p_perp[0];
     prtpos[4] = p_para[1]+p_perp[1];
     prtpos[5] = p_para[2]+p_perp[2];
-}
-
-/**
- * @brief Calculate guiding center equations of motion for a single particle
- *
- * @param i particle index that is calculated
- * @param ydot output right hand side of the equations of motion in a
- *             5-length array (rdot, phidot, zdot, vpardot, mudot)
- * @param yprev input coordinates in a 5-length array (r, phi, z, vpar, mu)
- * @param mass mass
- * @param charge charge
- * @param B_dB magnetic field and derivatives at the guiding center location
- * @param E electric field at the guiding center location
- */
-inline void phys_eomgc(real* ydot, real* y, real mass, real charge, real* B_dB, real* E) {
-
-    real gamma = phys_gammagcv(mass,y[3],y[4]);
-    real B[3];
-    B[0] = B_dB[0];
-    B[1] = B_dB[4];
-    B[2] = B_dB[8];
-
-    real normB = sqrt(math_dot(B, B));
-
-    real gradB[3];
-    gradB[0] = (B[0]*B_dB[1] + B[1]*B_dB[5] + B[2]*B_dB[9]) / normB;
-    gradB[1] = (B[0]*B_dB[2] + B[1]*B_dB[6] + B[2]*B_dB[10])
-               / (normB * y[0]);
-    gradB[2] = (B[0]*B_dB[3] + B[1]*B_dB[7] + B[2]*B_dB[11]) / normB;
-
-    real gradBcrossB[3];
-    math_cross(gradB, B, gradBcrossB);
-
-    real curlB[3];
-    curlB[0] = B_dB[10] / y[0] - B_dB[7];
-    curlB[1] = B_dB[3] - B_dB[9];
-    curlB[2] = (B[1] - B_dB[2]) / y[0] + B_dB[5];
-
-    real Bstar[3];
-    Bstar[0] = B[0] + (mass * y[3] * gamma / charge)
-                      * (curlB[0] / normB - gradBcrossB[0] / (normB*normB));
-    Bstar[1] = B[1] + (mass * y[3] * gamma / charge)
-                      * (curlB[1] / normB - gradBcrossB[1] / (normB*normB));
-    Bstar[2] = B[2] + (mass * y[3] * gamma / charge)
-                      * (curlB[2] / normB - gradBcrossB[2] / (normB*normB));
-
-    real Estar[3];
-    Estar[0] = E[0] - y[4] * gradB[0] / (charge * gamma);
-    Estar[1] = E[1] - y[4] * gradB[1] / (charge * gamma);
-    Estar[2] = E[2] - y[4] * gradB[2] / (charge * gamma);
-
-    real Bhat[3];
-    Bhat[0] = B[0] / normB;
-    Bhat[1] = B[1] / normB;
-    Bhat[2] = B[2] / normB;
-
-    real BhatDotBstar = math_dot(Bhat, Bstar);
-
-    real EstarcrossBhat[3];
-    math_cross(Estar, Bhat, EstarcrossBhat);
-
-    ydot[0] = (y[3]*Bstar[0]+EstarcrossBhat[0])/BhatDotBstar;
-    ydot[1] = (y[3]*Bstar[1]+EstarcrossBhat[1])/(y[0]*BhatDotBstar);
-    ydot[2] = (y[3]*Bstar[2]+EstarcrossBhat[2])/BhatDotBstar;
-    ydot[3] = (charge/mass) * math_dot(Bstar,Estar)/BhatDotBstar;
-    ydot[4] = 0;
-    ydot[5] = (charge/mass) * normB;
-}
-
-/**
- * @brief Transforms particle to guiding center phase space
- *
- * The transformation is done between coordinates [r,phi,z,p_r,p_phi,p_z]
- * and [R,Phi,Z,p_para,mu]. The transformation is done up to first order.
- *
- * @param mass   mass
- * @param E      particle kinetic energy
- * @param pitch  particle pitch angle
- * @param v      resulting [v_para,v_perp] velocity
- */
-void phys_Epitchtovparaperp(real mass, real E, real pitch, real* v) {
-    real magnv;
-    magnv = phys_Ekintovelocity(mass,E);
-    v[0] = magnv*pitch;
-    v[1] = magnv*sqrt( 1 - pow(pitch,2) );
 }
