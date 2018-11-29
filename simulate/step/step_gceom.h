@@ -78,55 +78,7 @@ static void step_gceom(real* ydot, real* y, real mass, real charge,
     ydot[2] = (y[3]*Bstar[2]+EstarcrossBhat[2])/BhatDotBstar;
     ydot[3] = (charge/(mass*gamma)) * math_dot(Bstar,Estar)/BhatDotBstar;
     ydot[4] = 0;
-
-    real B_dBxyz[12];
-    math_jac_rpz2xyz(B_dB, B_dBxyz, y[0], y[1]);
-
-    /* bhat = Unit vector of B */
-    real bhat[3]  = { B_dBxyz[0]/normB, B_dBxyz[4]/normB, B_dBxyz[8]/normB };
-
-        /* Magnetic field norm gradient */
-    gradB[0] = (bhat[0]*B_dBxyz[1] + bhat[1]*B_dBxyz[5] + bhat[2]*B_dBxyz[9]);
-    gradB[1] = (bhat[0]*B_dBxyz[2] + bhat[1]*B_dBxyz[6] + bhat[2]*B_dBxyz[10]);
-    gradB[2] = (bhat[0]*B_dBxyz[3] + bhat[1]*B_dBxyz[7] + bhat[2]*B_dBxyz[11]);
-    real tau = (bhat[0]*(B_dBxyz[10]-B_dBxyz[7])+
-                bhat[1]*(B_dBxyz[3]-B_dBxyz[9])+
-                bhat[1]*(B_dBxyz[5]-B_dBxyz[2]))/normB;
-
-    real nablabhat[9];
-    nablabhat[0] = (B_dBxyz[1]  - gradB[0] * bhat[0]) / normB;
-    nablabhat[1] = (B_dBxyz[2]  - gradB[0] * bhat[1]) / normB;
-    nablabhat[2] = (B_dBxyz[3]  - gradB[0] * bhat[2]) / normB;
-    nablabhat[3] = (B_dBxyz[5]  - gradB[1] * bhat[0]) / normB;
-    nablabhat[4] = (B_dBxyz[6]  - gradB[1] * bhat[1]) / normB;
-    nablabhat[5] = (B_dBxyz[7]  - gradB[1] * bhat[2]) / normB;
-    nablabhat[6] = (B_dBxyz[9]  - gradB[2] * bhat[0]) / normB;
-    nablabhat[7] = (B_dBxyz[10] - gradB[2] * bhat[1]) / normB;
-    nablabhat[8] = (B_dBxyz[11] - gradB[2] * bhat[2]) / normB;
-
-    real bx2by2 = bhat[0] * bhat[0] + bhat[1] * bhat[1];
-    real b1x = -bhat[0]*bhat[2]/bx2by2;
-    real b2x = -bhat[1]/(bx2by2*bx2by2);
-    real b1y = -bhat[1]*bhat[2]/bx2by2;
-    real b2y = -bhat[0]/(bx2by2*bx2by2);
-    real Rvec[3];
-    Rvec[0] =
-        b1x * ( nablabhat[1] + b2x * ( nablabhat[0] + nablabhat[1] ) ) +
-        b1y * ( nablabhat[0] + b2y * ( nablabhat[0] + nablabhat[1] ) ) +
-        tau*bhat[0];
-    Rvec[1] =
-        b1x * ( nablabhat[4] + b2x * ( nablabhat[3] + nablabhat[4] ) ) +
-        b1y * ( nablabhat[3] + b2y * ( nablabhat[3] + nablabhat[4] ) ) +
-        tau*bhat[1];
-    Rvec[2] =
-        b1x * ( nablabhat[7] + b2x * ( nablabhat[6] + nablabhat[7] ) ) +
-        b1y * ( nablabhat[6] + b2y * ( nablabhat[6] + nablabhat[7] ) ) +
-        tau*bhat[2];
-
-    real Rvec2[3];
-    math_vec_xyz2rpz(Rvec, Rvec2, y[1]);
-    ydot[5] = -1*(charge * normB/(gamma*mass) +
-                  (ydot[0]*Rvec2[0] + y[1]*ydot[1]*Rvec2[1] + ydot[2]*Rvec2[2]));
+    ydot[5] = charge * normB/(gamma*mass);
 
 }
 
