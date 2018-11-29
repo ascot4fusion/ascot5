@@ -2,7 +2,32 @@
  * @file gctransform.c
  * @brief Module for performing guiding center transformations
  *
+ * The guiding center transformation is done both ways between particle
+ * phase-space [r, phi, z, vr, vphi, vz] and guiding center phase-space
+ * [R, Phi, Z, vpar, mu] to first order (both in spatial and velocity space
+ * coordinates).
  *
+ * The guiding genter motion is defined from a basis {bhat, e1, e2}, where bhat
+ * is magnetic field unit vector. e1 and e2 are chosen so that
+ * e1 = (bhat x z) / |bhat x z| and bhat x e1 = e2. Thus we are assuming that
+ * magnetic field is *never* parallel to z axis.
+ *
+ * This module works as follows:
+ *
+ * - particle to guiding center transformation is accomplished by calling
+ *   gctransform_particle2guidingcenter()
+ *
+ * - guiding center to particle transformation is accomplished by calling
+ *   gctransform_guidingcenter2particle() which gives [r, phi, z, vpar, mu,
+ *   theta] in particle coordinates. To obtain [r, phi, z, vr, vphi, vz],
+ *   first evaluate magnetic field at particle position and then call
+ *   gctransform_vparmutheta2vRvphivz().
+ *
+ * The transformation is relativistic.
+ *
+ * Reference: "Guiding-center transformation of the radiation-reaction force in
+ * a nonuniform magnetic field", E. Hirvijoki et. al.
+ * https://arxiv.org/pdf/1412.1966.pdf
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,17 +35,18 @@
 #include "ascot5.h"
 #include "math.h"
 #include "consts.h"
-#include "phys_orbit.h"
+#include "physlib.h"
+#include "gctransform.h"
 
 /**
  * @brief Transform particle to guiding center  phase space
  *
- * The transformation is done from coordinates [r, phi, z, vr , vphi, vz] to
- * [R, Phi, Z, vpar, mu]. The transformation is done to first order
+ * The transformation is done from coordinates [r, phi, z, vr, vphi, vz] to
+ * [R, Phi, Z, vpar, mu, theta].
  *
  * @param mass   mass [kg]
  * @param charge charge [C]
- * @param B_dB   magnetic field and Jacobian as given by B_field_eval_BdB()
+ * @param B_dB   gradient of magnetic field vector at particle position
  * @param r      particle R coordinate [m]
  * @param phi    particle phi coordinate [rad]
  * @param z      particle z coordinate [m]
@@ -28,258 +54,514 @@
  * @param vphi   particle velocity phi component [m/s]
  * @param vz     particle velocity z component [m/s]
  * @param R      pointer to guiding center R coordinate [m]
- * @param Phi    pointer to guiding center Phi coordinate [rad]
- * @param Z      pointer to guiding center Z coordinate [m]
+ * @param Phi    pointer to guiding center phi coordinate [rad]
+ * @param Z      pointer to guiding center z coordinate [m]
  * @param vpar   pointer to guiding center parallel velocity [m/s]
  * @param mu     pointer to guiding center magnetic moment [J/T]
  * @param theta  pointer to guiding center gyroangle [rad]
  */
-void gctransform_prt2gc(real mass, real charge, real* B_dB,
-                        real r, real phi, real z, real vr, real vphi, real vz,
-                        real* R, real* Phi, real* Z, real* vpar, real* mu, real* theta);
-    /* Temporary re-used variables */
-    real TEMP_S1;
-    real TEMP_V1[3];
+void gctransform_particle2guidingcenter(
+    real mass, real charge, real* B_dB,
+    real r, real phi, real z, real vr, real vphi, real vz,
+    real* R, real* Phi, real* Z, real* vpar, real* mu, real* theta) {
 
-    /* Helper variables */
-    real p_vec [3] = {p_r, p_phi, p_z};
-    real p_unit[3];
-    math_unit(p_vec, p_unit);
-    real momentum = math_norm(p_vec);
-    real gamma = phys_gammaprtp(mass, momentum);
+    int firstorder = 1;
 
-    real B_vec[3]  = {B_dB[0], B_dB[4], B_dB[8]};
-    real B_norm = math_norm(B_vec);
-    real B_unit[3];
-    math_unit(B_vec, B_unit);
+    /* |v|^2 */
+    real vnorm2  = vr*vr + vphi*vphi + vz*vz;
+    /* |v| */
+    real vnorm   = sqrt(vnorm2);
+    /* gamma (Lorentz factor) */
+    real gamma   = physlib_gamma_vnorm(vnorm);
+    /* |B| */
+    real Bnorm   = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
 
-    real pitch = math_dot(p_unit,B_unit);
+    /* Guiding center transformation is more easily done in cartesian
+     * coordinates so we switch to using those */
+    real rpz[3] = {r, phi, z};
+    real vrpz[3] = {vr, vphi, vz};
+    real xyz[3];
+    real vxyz[3];
+    real B_dBxyz[12];
+    math_rpz2xyz(rpz, xyz);
+    math_vec_rpz2xyz(vrpz, vxyz, phi);
+    math_jac_rpz2xyz(B_dB, B_dBxyz, r, phi);
 
-    /* Magnetic field jacobian, gradient and curl in cylindrical coordinates */
-    real jacB[9] = {B_dB[1], B_dB[2]/r, B_dB[3],
-                    B_dB[5], B_dB[6]/r, B_dB[7],
-                    B_dB[9], B_dB[10]/r, B_dB[11]};
+    /* bhat = Unit vector of B */
+    real bhat[3] = { B_dBxyz[0]/Bnorm, B_dBxyz[4]/Bnorm, B_dBxyz[8]/Bnorm };
 
+    /* Magnetic field norm gradient */
     real gradB[3];
-    gradB[0] = B_unit[0]*jacB[0] + B_unit[0]*jacB[3] + B_unit[0]*jacB[6];
-    gradB[1] = B_unit[1]*jacB[1] + B_unit[1]*jacB[4] + B_unit[1]*jacB[7];
-    gradB[2] = B_unit[2]*jacB[2] + B_unit[2]*jacB[5] + B_unit[2]*jacB[8];
-    math_matmul(jacB,B_unit,3,3,1,gradB);
+    gradB[0] = (bhat[0]*B_dBxyz[1] + bhat[1]*B_dBxyz[5] + bhat[2]*B_dBxyz[9]);
+    gradB[1] = (bhat[0]*B_dBxyz[2] + bhat[1]*B_dBxyz[6] + bhat[2]*B_dBxyz[10]);
+    gradB[2] = (bhat[0]*B_dBxyz[3] + bhat[1]*B_dBxyz[7] + bhat[2]*B_dBxyz[11]);
 
-    real curlB[3] = {jacB[7]-jacB[5], jacB[2]-jacB[6], jacB[3]+B_vec[1]/r-jacB[1]};
+    /* nabla x |B| */
+    real curlB[3] = {B_dBxyz[10]-B_dBxyz[7],
+                     B_dBxyz[3]-B_dBxyz[9],
+                     B_dBxyz[5]-B_dBxyz[2]};
 
-    real tau_B = math_dot(B_unit, curlB)/B_norm;
+    /* Magnetic field torsion = bhat dot ( nabla X bhat ) which is equivalent to
+       bhat dot ( nabla x |B| ) / |B|
+       because nabla x |B| = |B| nabla x bhat + (nabla |B|) x bhat */
+    real tau = math_dot(bhat, curlB)/Bnorm;
+
+    /* Gradient of magnetic field unit vector */
     real nablabhat[9];
-    nablabhat[0]=(jacB[0] - gradB[0]*B_unit[0])/B_norm;
-    nablabhat[1]=(jacB[1] - gradB[0]*B_unit[1])/B_norm;
-    nablabhat[2]=(jacB[2] - gradB[0]*B_unit[2])/B_norm;
-    nablabhat[3]=(jacB[3] - gradB[1]*B_unit[0])/B_norm;
-    nablabhat[4]=(jacB[4] - gradB[1]*B_unit[1])/B_norm;
-    nablabhat[5]=(jacB[5] - gradB[1]*B_unit[2])/B_norm;
-    nablabhat[6]=(jacB[6] - gradB[2]*B_unit[0])/B_norm;
-    nablabhat[7]=(jacB[7] - gradB[2]*B_unit[1])/B_norm;
-    nablabhat[8]=(jacB[8] - gradB[2]*B_unit[2])/B_norm;
+    nablabhat[0] = (B_dBxyz[1]  - gradB[0] * bhat[0]) / Bnorm;
+    nablabhat[1] = (B_dBxyz[2]  - gradB[0] * bhat[1]) / Bnorm;
+    nablabhat[2] = (B_dBxyz[3]  - gradB[0] * bhat[2]) / Bnorm;
+    nablabhat[3] = (B_dBxyz[5]  - gradB[1] * bhat[0]) / Bnorm;
+    nablabhat[4] = (B_dBxyz[6]  - gradB[1] * bhat[1]) / Bnorm;
+    nablabhat[5] = (B_dBxyz[7]  - gradB[1] * bhat[2]) / Bnorm;
+    nablabhat[6] = (B_dBxyz[9]  - gradB[2] * bhat[0]) / Bnorm;
+    nablabhat[7] = (B_dBxyz[10] - gradB[2] * bhat[1]) / Bnorm;
+    nablabhat[8] = (B_dBxyz[11] - gradB[2] * bhat[2]) / Bnorm;
 
+    /* Magnetic field curvature vector = bhat dot nablabhat.
+       Note that nabla x bhat = tau bhat + bhat x kappa */
     real kappa[3];
-    math_matmul(nablabhat,B_unit,3,3,1,kappa);
+    kappa[0] =
+        ( bhat[0] * B_dBxyz[1]  +
+          bhat[1] * B_dBxyz[5]  +
+          bhat[2] * B_dBxyz[9]  - math_dot(bhat, gradB) * bhat[0] ) / Bnorm;
+    kappa[1] =
+        ( bhat[0] * B_dBxyz[2]  +
+          bhat[1] * B_dBxyz[6]  +
+          bhat[2] * B_dBxyz[10] - math_dot(bhat, gradB) * bhat[1] ) / Bnorm;
+    kappa[2] =
+        ( bhat[0] * B_dBxyz[3]  +
+          bhat[1] * B_dBxyz[7]  +
+          bhat[2] * B_dBxyz[11] - math_dot(bhat, gradB) * bhat[2] ) / Bnorm;
 
-    /* Zeroth order momentum terms */
-    real p_para0 = pitch*momentum;
-    real mu_0 = ( 1 - pow(pitch,2) )*pow(momentum,2)/(2*mass*B_norm);
+    /* Zeroth order mu and vpar */
+    real vpar0  =
+        vxyz[0] * bhat[0] + vxyz[1] * bhat[1] + vxyz[2] * bhat[2];
 
-    /* Make the spatial transformation */
-    real rho[3];
-    math_cross(B_unit,p_unit,rho);
-    math_prod(rho,momentum/(charge*B_norm));
-
-    real rho_unit[3];
-    math_unit(rho,rho_unit);
-    real rho_norm = math_norm(rho);
-
-    gcpos[0] = r - rho[0];
-    gcpos[1] = phi - rho[1];
-    gcpos[2] = z - rho[2];
-
-    /* First order momentum terms */
+    /* Gyrovector rhohat = bhat X perphat */
+    real vperp[3] = {vxyz[0] - vpar0 * bhat[0],
+                     vxyz[1] - vpar0 * bhat[1],
+                     vxyz[2] - vpar0 * bhat[2]};
+    real mu0    =
+        mass * gamma * gamma * math_dot(vperp, vperp) / ( 2 * Bnorm );
     real perphat[3];
-    math_cross(rho_unit, B_unit, perphat); /* Does this hold for ions and elecs? */
+    math_unit(vperp, perphat);
+    if( charge < 0 ) {
+        perphat[0] = - perphat[0];
+        perphat[1] = - perphat[1];
+        perphat[2] = - perphat[2];
+    }
+    real rhohat[3];
+    math_cross(bhat, perphat, rhohat);
 
-    real a1ddotgradb = -0.5*(2*(rho_unit[0]*perphat[0]*nablabhat[0]+
-                                rho_unit[1]*perphat[1]*nablabhat[4]+
-                                rho_unit[2]*perphat[2]*nablabhat[8])
-                             +(rho_unit[0]*perphat[1]+rho_unit[1]*perphat[0])*
-                              (nablabhat[1]+nablabhat[3])
-                             +(rho_unit[0]*perphat[2]+rho_unit[2]*perphat[0])*
-                              (nablabhat[2]+nablabhat[6])
-                             +(rho_unit[1]*perphat[2]+rho_unit[2]*perphat[1])*
-                              (nablabhat[5]+nablabhat[7]));
+    /* Double product of dyadic a1 = -(1/2) * (rhohat perphat + perphat rhohat)
+       and gradb (gradient of magnetic field unit vector) */
+    real a1ddotgradb =
+        -0.5 * ( 2 * ( rhohat[0] * perphat[0] * nablabhat[0] +
+                       rhohat[1] * perphat[1] * nablabhat[4] +
+                       rhohat[2] * perphat[2] * nablabhat[8] ) +
+                 ( rhohat[0] * perphat[1] + rhohat[1] * perphat[0] ) *
+                 ( nablabhat[1] + nablabhat[3] ) +
+                 ( rhohat[0] * perphat[2] + rhohat[2] * perphat[0] ) *
+                 ( nablabhat[2] + nablabhat[6] ) +
+                 ( rhohat[1] * perphat[2] + rhohat[2] * perphat[1] ) *
+                 ( nablabhat[5] + nablabhat[7] ) );
 
-    real p_para1 = -p_para0*math_dot(rho,kappa)+((mass*mu_0)/charge)*(tau_B+a1ddotgradb);
-    TEMP_S1 = pow(p_para0,2)/(mass*B_norm);
-    TEMP_V1[0] = TEMP_S1 * kappa[0] + mu_0*gradB[0]/B_norm;
-    TEMP_V1[1] = TEMP_S1 * kappa[1] + mu_0*gradB[1]/B_norm;
-    TEMP_V1[2] = TEMP_S1 * kappa[2] + mu_0*gradB[2]/B_norm;
-    real mu_1 = math_dot(rho,TEMP_V1)-((mu_0*p_para0)/(charge*B_norm))*(tau_B+a1ddotgradb);
+    /* Double product of dyadic a2 = (1/4) * (perphat perphat - rhohat rhohat)
+       and gradb (gradient of magnetic field unit vector) */
+    real a2ddotgradb =
+        0.25 * (
+            perphat[0] * perphat[0] * nablabhat[0] +
+            perphat[1] * perphat[0] * nablabhat[3] +
+            perphat[2] * perphat[0] * nablabhat[6] +
+            perphat[0] * perphat[1] * nablabhat[1] +
+            perphat[1] * perphat[1] * nablabhat[4] +
+            perphat[2] * perphat[1] * nablabhat[7] +
+            perphat[0] * perphat[2] * nablabhat[2] +
+            perphat[1] * perphat[2] * nablabhat[5] +
+            perphat[2] * perphat[2] * nablabhat[8]
+            )
+        -0.25 * (
+            rhohat[0] * rhohat[0] * nablabhat[0] +
+            rhohat[0] * rhohat[1] * nablabhat[3] +
+            rhohat[0] * rhohat[2] * nablabhat[6] +
+            rhohat[1] * rhohat[0] * nablabhat[1] +
+            rhohat[1] * rhohat[1] * nablabhat[4] +
+            rhohat[1] * rhohat[2] * nablabhat[7] +
+            rhohat[2] * rhohat[0] * nablabhat[2] +
+            rhohat[2] * rhohat[1] * nablabhat[5] +
+            rhohat[2] * rhohat[2] * nablabhat[8]
+            );
 
-    /* Make the momentum transformation */
-    gcpos[3] = p_para0 + p_para1;
-    gcpos[4] = mu_0 + mu_1;
+    /* Choose a fixed basis so that e2 = bhat x e1. We choose e1 = bhat x z */
+    real e1[3] = {0, 0, 1};
+    real e2[3];
+    math_cross(bhat, e1, e2);
+    math_unit(e2, e1);
+    math_cross(bhat, e1, e2);
 
-    /* Calculate gyroangle */
-    real a1[3];
-    real z_unit[3];
-    z_unit[0] = 0.0;
-    z_unit[1] = 0.0;
-    z_unit[2] = 1.0;
-    math_cross(B_unit,z_unit,a1);
-    math_unit(a1,a1);
+    /* Gyrolength */
+    real rho0 = sqrt( ( 2* mass * mu0 ) / Bnorm ) / fabs(charge);
 
-    real a2[3];
-    math_cross(a1,B_unit,a2);
-    math_unit(a2,a2);
+    /* First order position */
+    real XYZ[3];
+    XYZ[0] = xyz[0] - rho0 * rhohat[0];
+    XYZ[1] = xyz[1] - rho0 * rhohat[1];
+    XYZ[2] = xyz[2] - rho0 * rhohat[2];
 
-    gcpos[5] = atan2(math_dot(rho_unit,a2),math_dot(rho_unit,a1));
-    gcpos[5] = fmod(gcpos[5] + CONST_2PI, CONST_2PI); /* theta is in interval 0 to 2PI */
+    real RPZ[3];
+    math_xyz2rpz(XYZ, RPZ);
+    *R     = RPZ[0];
+    *Phi   = RPZ[1];
+    *Z     = RPZ[2];
+
+    /* Zeroth order gyroangle is directly defined from basis {e1, e2} and
+       gyrovector as tan(theta) = -rhohat dot e2 / rhohat dot e1 */
+    real theta0 =
+        atan2( -math_dot(rhohat, e2), math_dot(rhohat, e1) );
+
+    /* First order velocity terms vpar, mu1, and theta1 */
+    real vpar1 =
+        -vpar0 * rho0 * math_dot(rhohat, kappa) +
+        ( mu0 / ( gamma * charge ) ) * ( tau + a1ddotgradb );
+
+    real gammavpar2 = gamma * gamma * vpar0 * vpar0;
+    real temp[3] = { mu0 * gradB[0] + mass * gammavpar2 * kappa[0],
+                     mu0 * gradB[1] + mass * gammavpar2 * kappa[1],
+                     mu0 * gradB[2] + mass * gammavpar2 * kappa[2] };
+    real mu1 =
+        ( rho0 / Bnorm ) * math_dot(rhohat, temp) -
+        ( mass * gamma * vpar0 * mu0 / ( charge * Bnorm ) ) *
+        ( tau + a1ddotgradb );
+
+    /* This monster is Littlejohn's gyro gauge vector (nabla e1) dot e2 */
+    real bx2by2 = bhat[0] * bhat[0] + bhat[1] * bhat[1];
+    real b1x = -bhat[0]*bhat[2]/bx2by2;
+    real b2x = -bhat[1]/(bx2by2*bx2by2);
+    real b1y = -bhat[1]*bhat[2]/bx2by2;
+    real b2y = -bhat[0]/(bx2by2*bx2by2);
+    real Rvec[3];
+    Rvec[0] =
+        b1x * ( nablabhat[1] + b2x * ( nablabhat[0] + nablabhat[1] ) ) +
+        b1y * ( nablabhat[0] + b2y * ( nablabhat[0] + nablabhat[1] ) );
+    Rvec[1] =
+        b1x * ( nablabhat[4] + b2x * ( nablabhat[3] + nablabhat[4] ) ) +
+        b1y * ( nablabhat[3] + b2y * ( nablabhat[3] + nablabhat[4] ) );
+    Rvec[2] =
+        b1x * ( nablabhat[7] + b2x * ( nablabhat[6] + nablabhat[7] ) ) +
+        b1y * ( nablabhat[6] + b2y * ( nablabhat[6] + nablabhat[7] ) );
+
+    temp[0] = gradB[0] + kappa[0] * ( mass * gammavpar2 ) / (2 * mu0);
+    temp[1] = gradB[1] + kappa[1] * ( mass * gammavpar2 ) / (2 * mu0);
+    temp[2] = gradB[2] + kappa[2] * ( mass * gammavpar2 ) / (2 * mu0);
+    real theta1 =
+        -rho0 * math_dot(rhohat, Rvec) +
+        ( mass * gamma * vpar0 / ( charge * Bnorm ) ) * a2ddotgradb +
+        ( rho0 / Bnorm ) * math_dot(perphat, temp);
+
+    /* Choose whether to use first order transformation in velocity space */
+    if(firstorder) {
+        *vpar  = vpar0 + vpar1;
+        *mu    = mu0 + mu1;
+        *theta = theta0 + theta1;
+    }
+    else {
+        *vpar  = vpar0;
+        *mu    = mu0;
+        *theta = theta0;
+    }
+
+    /* theta is defined to be in interval [0, 2pi] */
+    *theta = fmod(CONST_2PI + (*theta), CONST_2PI);
 }
 
 /**
  * @brief Transform guiding center to particle phase space
  *
  * The transformation is done from coordinates [R, Phi, Z, vpar, mu] to
- * [r, phi, z, vr , vphi, vz]. The transformation is done to first order.
+ * [r, phi, z, vpar_prt, mu_prt, theta_prt].
+ *
+ * @param mass     mass [kg]
+ * @param charge   charge [C]
+ * @param B_dB     gradient of magnetic field vector at guiding center position
+ * @param R        guiding center R coordinate [m]
+ * @param Phi      guiding center phi coordinate [rad]
+ * @param Z        guiding center z coordinate [m]
+ * @param vpar     guiding center parallel velocity [m/s]
+ * @param mu       guiding center magnetic moment [J/T]
+ * @param theta    guiding center gyroangle [rad]
+ * @param r        pointer to particle R coordinate [m]
+ * @param phi      pointer to particle phi coordinate [rad]
+ * @param z        pointer to particle z coordinate [m]
+ * @param vparprt  pointer to particle parallel velocity [m/s]
+ * @param muprt    pointer to particle magnetic moment [J/T]
+ * @param thetaprt pointer to particle gyroangle [rad]
+ */
+void gctransform_guidingcenter2particle(
+    real mass, real charge, real* B_dB,
+    real R, real Phi, real Z, real vpar, real mu, real theta,
+    real* r, real* phi, real* z, real* vparprt, real* muprt, real* thetaprt) {
+
+    int firstorder = 1;
+
+    /* |B| */
+    real Bnorm   = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
+    /* gamma (Lorentz factor) */
+    real gamma   = physlib_gamma_vpar(mass, mu, vpar, Bnorm);
+
+    /* Guiding center transformation is more easily done in cartesian
+     * coordinates so we switch to using those */
+    real RPZ[3] = {R, Phi, Z};
+    real XYZ[3];
+    real B_dBxyz[12];
+    math_rpz2xyz(RPZ, XYZ);
+    math_jac_rpz2xyz(B_dB, B_dBxyz, R, Phi);
+
+    /* bhat = Unit vector of B */
+    real bhat[3] = { B_dBxyz[0]/Bnorm, B_dBxyz[4]/Bnorm, B_dBxyz[8]/Bnorm };
+
+        /* Magnetic field norm gradient */
+    real gradB[3];
+    gradB[0] = (bhat[0]*B_dBxyz[1] + bhat[1]*B_dBxyz[5] + bhat[2]*B_dBxyz[9]);
+    gradB[1] = (bhat[0]*B_dBxyz[2] + bhat[1]*B_dBxyz[6] + bhat[2]*B_dBxyz[10]);
+    gradB[2] = (bhat[0]*B_dBxyz[3] + bhat[1]*B_dBxyz[7] + bhat[2]*B_dBxyz[11]);
+
+    /* nabla x |B| */
+    real curlB[3] = {B_dBxyz[10]-B_dBxyz[7],
+                     B_dBxyz[3]-B_dBxyz[9],
+                     B_dBxyz[5]-B_dBxyz[2]};
+
+    /* Magnetic field torsion = bhat dot ( nabla X bhat ) which is equivalent to
+       bhat dot ( nabla x |B| ) / |B|
+       because nabla x |B| = |B| nabla x bhat + (nabla |B|) x bhat */
+    real tau = math_dot(bhat, curlB)/Bnorm;
+
+    /* Gradient of magnetic field unit vector */
+    real nablabhat[9];
+    nablabhat[0] = (B_dBxyz[1]  - gradB[0] * bhat[0]) / Bnorm;
+    nablabhat[1] = (B_dBxyz[2]  - gradB[0] * bhat[1]) / Bnorm;
+    nablabhat[2] = (B_dBxyz[3]  - gradB[0] * bhat[2]) / Bnorm;
+    nablabhat[3] = (B_dBxyz[5]  - gradB[1] * bhat[0]) / Bnorm;
+    nablabhat[4] = (B_dBxyz[6]  - gradB[1] * bhat[1]) / Bnorm;
+    nablabhat[5] = (B_dBxyz[7]  - gradB[1] * bhat[2]) / Bnorm;
+    nablabhat[6] = (B_dBxyz[9]  - gradB[2] * bhat[0]) / Bnorm;
+    nablabhat[7] = (B_dBxyz[10] - gradB[2] * bhat[1]) / Bnorm;
+    nablabhat[8] = (B_dBxyz[11] - gradB[2] * bhat[2]) / Bnorm;
+
+    /* Magnetic field curvature vector = bhat dot nablabhat.
+       Note that nabla x bhat = tau bhat + bhat x kappa */
+    real kappa[3];
+    kappa[0] =
+        ( bhat[0] * B_dBxyz[1]  +
+          bhat[1] * B_dBxyz[5]  +
+          bhat[2] * B_dBxyz[9]  - math_dot(bhat, gradB) * bhat[0] ) / Bnorm;
+    kappa[1] =
+        ( bhat[0] * B_dBxyz[2]  +
+          bhat[1] * B_dBxyz[6]  +
+          bhat[2] * B_dBxyz[10] - math_dot(bhat, gradB) * bhat[1] ) / Bnorm;
+    kappa[2] =
+        ( bhat[0] * B_dBxyz[3]  +
+          bhat[1] * B_dBxyz[7]  +
+          bhat[2] * B_dBxyz[11] - math_dot(bhat, gradB) * bhat[2] ) / Bnorm;
+
+    /* Choose a fixed basis so that e2 = bhat x e1. We choose e1 = bhat x z */
+    real e1[3] = {0, 0, 1};
+    real e2[3];
+    math_cross(bhat, e1, e2);
+    math_unit(e2, e1);
+    math_cross(bhat, e1, e2);
+
+    /* Gyrolength */
+    real rho0 = sqrt( ( 2* mass * mu ) / Bnorm ) / fabs(charge);
+
+    /* Gyrovector rhohat and vperphat*/
+    real rhohat[3];
+    real perphat[3];
+    real c = cos(theta);
+    real s = sin(theta);
+
+    rhohat[0] = c * e1[0] - s * e2[0];
+    rhohat[1] = c * e1[1] - s * e2[1];
+    rhohat[2] = c * e1[2] - s * e2[2];
+
+    perphat[0] = -s * e1[0] - c * e2[0];
+    perphat[1] = -s * e1[1] - c * e2[1];
+    perphat[2] = -s * e1[2] - c * e2[2];
+
+    /* Double product of dyadic a1 = -(1/2) * (rhohat perphat + perphat rhohat)
+       and gradb (gradient of magnetic field unit vector) */
+    real a1ddotgradb =
+        -0.5 * ( 2 * ( rhohat[0] * perphat[0] * nablabhat[0] +
+                       rhohat[1] * perphat[1] * nablabhat[4] +
+                       rhohat[2] * perphat[2] * nablabhat[8] ) +
+                 ( rhohat[0] * perphat[1] + rhohat[1] * perphat[0] ) *
+                 ( nablabhat[1] + nablabhat[3] ) +
+                 ( rhohat[0] * perphat[2] + rhohat[2] * perphat[0] ) *
+                 ( nablabhat[2] + nablabhat[6] ) +
+                 ( rhohat[1] * perphat[2] + rhohat[2] * perphat[1] ) *
+                 ( nablabhat[5] + nablabhat[7] ) );
+
+    /* Double product of dyadic a2 = (1/4) * (perphat perphat - rhohat rhohat)
+       and gradb (gradient of magnetic field unit vector) */
+    real a2ddotgradb =
+        0.25 * (
+            perphat[0] * perphat[0] * nablabhat[0] +
+            perphat[1] * perphat[0] * nablabhat[3] +
+            perphat[2] * perphat[0] * nablabhat[6] +
+            perphat[0] * perphat[1] * nablabhat[1] +
+            perphat[1] * perphat[1] * nablabhat[4] +
+            perphat[2] * perphat[1] * nablabhat[7] +
+            perphat[0] * perphat[2] * nablabhat[2] +
+            perphat[1] * perphat[2] * nablabhat[5] +
+            perphat[2] * perphat[2] * nablabhat[8]
+            )
+        -0.25 * (
+            rhohat[0] * rhohat[0] * nablabhat[0] +
+            rhohat[0] * rhohat[1] * nablabhat[3] +
+            rhohat[0] * rhohat[2] * nablabhat[6] +
+            rhohat[1] * rhohat[0] * nablabhat[1] +
+            rhohat[1] * rhohat[1] * nablabhat[4] +
+            rhohat[1] * rhohat[2] * nablabhat[7] +
+            rhohat[2] * rhohat[0] * nablabhat[2] +
+            rhohat[2] * rhohat[1] * nablabhat[5] +
+            rhohat[2] * rhohat[2] * nablabhat[8]
+            );
+
+    /* First order terms */
+    real vpar1 =
+        -vpar * rho0 * math_dot(rhohat, kappa) +
+        ( mu / ( gamma * charge ) ) * ( tau + a1ddotgradb );
+
+    real gammavpar2 = gamma * gamma * vpar * vpar;
+    real temp[3] =
+        { mu * gradB[0] + mass * gammavpar2 * kappa[0],
+          mu * gradB[1] + mass * gammavpar2 * kappa[1],
+          mu * gradB[2] + mass * gammavpar2 * kappa[2] };
+    real mu1 =
+        ( rho0 / Bnorm ) * math_dot(rhohat, temp) -
+        ( mass * gamma * vpar * mu / ( charge * Bnorm ) ) *
+        ( tau + a1ddotgradb );
+
+    temp[0] = gradB[0] + kappa[0] * mass * gammavpar2 / (2 * mu);
+    temp[1] = gradB[1] + kappa[1] * mass * gammavpar2 / (2 * mu);
+    temp[2] = gradB[2] + kappa[2] * mass * gammavpar2 / (2 * mu);
+
+    /* This monster is Littlejohn's gyro gauge vector (nabla e1) dot e2 */
+    real bx2by2 = bhat[0] * bhat[0] + bhat[1] * bhat[1];
+    real b1x = -bhat[0]*bhat[2]/bx2by2;
+    real b2x = -bhat[1]/(bx2by2*bx2by2);
+    real b1y = -bhat[1]*bhat[2]/bx2by2;
+    real b2y = -bhat[0]/(bx2by2*bx2by2);
+    real Rvec[3];
+    Rvec[0] =
+        b1x * ( nablabhat[1] + b2x * ( nablabhat[0] + nablabhat[1] ) ) +
+        b1y * ( nablabhat[0] + b2y * ( nablabhat[0] + nablabhat[1] ) );
+    Rvec[1] =
+        b1x * ( nablabhat[4] + b2x * ( nablabhat[3] + nablabhat[4] ) ) +
+        b1y * ( nablabhat[3] + b2y * ( nablabhat[3] + nablabhat[4] ) );
+    Rvec[2] =
+        b1x * ( nablabhat[7] + b2x * ( nablabhat[6] + nablabhat[7] ) ) +
+        b1y * ( nablabhat[6] + b2y * ( nablabhat[6] + nablabhat[7] ) );
+    real theta1 =
+        -rho0 * math_dot(rhohat, Rvec) +
+        ( mass * gamma * vpar / ( charge * Bnorm ) ) * a2ddotgradb +
+        ( rho0 / Bnorm ) * math_dot(perphat, temp);
+
+    /* Choose whether to use first or zeroth order velocity transform */
+
+    if(firstorder) {
+        mu    -= mu1;
+        vpar  -= vpar1;
+        theta -= theta1;
+
+        /* Calculate new unit vector for position */
+        c = cos(theta);
+        s = sin(theta);
+
+        rhohat[0] = c * e1[0] - s * e2[0];
+        rhohat[1] = c * e1[1] - s * e2[1];
+        rhohat[2] = c * e1[2] - s * e2[2];
+    }
+
+    /* First order position */
+    real xyz[3];
+    xyz[0] = XYZ[0] + rho0 * rhohat[0];
+    xyz[1] = XYZ[1] + rho0 * rhohat[1];
+    xyz[2] = XYZ[2] + rho0 * rhohat[2];
+
+    real rpz[3];
+    math_xyz2rpz(xyz, rpz);
+
+    *r        = rpz[0];
+    *phi      = rpz[1];
+    *z        = rpz[2];
+    *vparprt  = vpar;
+    *muprt    = mu;
+    *thetaprt = theta;
+}
+
+/**
+ * @brief Transform particle vpar, mu, and theta to velocity vector.
+ *
+ * The transformation is done from coordinates [R, Phi, Z, vpar, mu] to
+ * [r, phi, z, vr, vphi, vz]. The transformation is done to first order.
  *
  * @param mass   mass [kg]
  * @param charge charge [C]
- * @param B_dB   magnetic field and Jacobian as given by B_field_eval_BdB()
- * @param R      guiding center R coordinate [m]
- * @param Phi    guiding center Phi coordinate [rad]
- * @param Z      guiding center Z coordinate [m]
- * @param vpar   guiding center parallel velocity [m/s]
- * @param mu     guiding center magnetic moment [J/T]
- * @param theta  guiding center gyroangle [rad]
- * @param r      pointer to particle R coordinate [m]
- * @param phi    pointer to particle phi coordinate [rad]
- * @param z      pointer to particle z coordinate [m]
- * @param vr     pointer to particle velocity R component [m/s]
- * @param vphi   pointer to particle velocity phi component [m/s]
- * @param vz     pointer to particle velocity z component [m/s]
+ * @param B_dB   gradient of magnetic field vector at particle position
+ * @param phi    particle phi coordinate [rad]
+ * @param vpar   particle parallel velocity [m/s]
+ * @param mu     particle magnetic moment [J/T]
+ * @param theta  particle gyroangle [rad]
+ * @param vr     pointer to particle velocity R-component [m/s]
+ * @param vphi   pointer to particle velocity phi-component [m/s]
+ * @param vz     pointer to particle velocity z-component [m/s]
  */
-void gctransform_gc2prt(real mass, real charge, real* B_dB,
-                        real R, real Phi, real Z, real vpar, real mu, real theta,
-                        real* r, real* phi, real* z, real* vr, real* vphi, real* vz);
-    /* Temporary re-used variables */
-    real TEMP_S1;
-    real TEMP_V1[3];
+void gctransform_vparmutheta2vRvphivz(real mass, real charge, real* B_dB,
+                                      real phi, real vpar, real mu, real theta,
+                                      real* vr, real* vphi, real* vz) {
+    /* Find magnetic field norm and unit vector */
+    real Brpz[3] = {B_dB[0], B_dB[4], B_dB[8]};
+    real Bxyz[3];
+    math_vec_rpz2xyz(Brpz, Bxyz, phi);
 
-    /* Helper variables */
-    real B_vec[3]  = {B_dB[0], B_dB[4], B_dB[8]};
-    real B_norm = math_norm(B_vec);
-    real B_unit[3];
-    math_unit(B_vec, B_unit);
+    real bhat[3];
+    math_unit(Bxyz, bhat);
+    real Bnorm = math_norm(Bxyz);
+    real gamma   = physlib_gamma_vpar(mass, mu, vpar, Bnorm);
 
-    real gamma = phys_gammagcv(mass,v_para,mu);
+    /* Find the basis vectors e1 and e2 */
+    real e1[3] = {0, 0, 1};
+    real e2[3];
+    math_cross(bhat, e1, e2);
+    math_unit(e2, e1);
+    math_cross(bhat, e1, e2);
 
-    /* Magnetic field jacobian, gradient and curl in cylindrical coordinates */
-    real jacB[9] = {B_dB[1], B_dB[2]/R, B_dB[3],
-                    B_dB[5], B_dB[6]/R, B_dB[7],
-                    B_dB[9], B_dB[10]/R, B_dB[11]};
-
-    real gradB[3];
-    gradB[0] = B_unit[0]*jacB[0] + B_unit[0]*jacB[3] + B_unit[0]*jacB[6];
-    gradB[1] = B_unit[1]*jacB[1] + B_unit[1]*jacB[4] + B_unit[1]*jacB[7];
-    gradB[2] = B_unit[2]*jacB[2] + B_unit[2]*jacB[5] + B_unit[2]*jacB[8];
-    math_matmul(jacB,B_unit,3,3,1,gradB);
-
-    real curlB[3] = {jacB[7]-jacB[5], jacB[2]-jacB[6], jacB[3]+B_vec[1]/R-jacB[1]};
-
-    real tau_B = math_dot(B_unit, curlB)/B_norm;
-    real nablabhat[9];
-    nablabhat[0]=(jacB[0] - gradB[0]*B_unit[0])/B_norm;
-    nablabhat[1]=(jacB[1] - gradB[0]*B_unit[1])/B_norm;
-    nablabhat[2]=(jacB[2] - gradB[0]*B_unit[2])/B_norm;
-    nablabhat[3]=(jacB[3] - gradB[1]*B_unit[0])/B_norm;
-    nablabhat[4]=(jacB[4] - gradB[1]*B_unit[1])/B_norm;
-    nablabhat[5]=(jacB[5] - gradB[1]*B_unit[2])/B_norm;
-    nablabhat[6]=(jacB[6] - gradB[2]*B_unit[0])/B_norm;
-    nablabhat[7]=(jacB[7] - gradB[2]*B_unit[1])/B_norm;
-    nablabhat[8]=(jacB[8] - gradB[2]*B_unit[2])/B_norm;
-
-    real kappa[3];
-    math_matmul(nablabhat,B_unit,3,3,1,kappa);
-
-    /* Zeroth order momentum terms */
-    real p_para0 = gamma*mass*v_para;
-    real mu_0 = mu;
-
-    /* Calculate gyroradius and its unit vector. Choose basis vectors a1,
-       which is perpendicular to B and z (since we always have Bphi),
-       and a2 which is perpendicular to a1 and B */
-    real a1[3];
-    real z_unit[3];
-    z_unit[0] = 0.0;
-    z_unit[1] = 0.0;
-    z_unit[2] = 1.0;
-    math_cross(B_unit,z_unit,a1);
-    math_unit(a1,a1);
-
-    real a2[3];
-    math_cross(a1,B_unit,a2);
-    math_unit(a2,a2);
-
-    real rho_unit[3];
-    rho_unit[0] = cos(theta)*a1[0]+sin(theta)*a2[0]; /* theta + for ions, - for elecs */
-    rho_unit[1] = cos(theta)*a1[1]+sin(theta)*a2[1];
-    rho_unit[2] = cos(theta)*a1[2]+sin(theta)*a2[2];
-
-    real rho[3];
-    rho[0] = rho_unit[0];
-    rho[1] = rho_unit[1];
-    rho[2] = rho_unit[2];
-    math_prod(rho,sqrt(2*pow(gamma,2)*mass*mu_0/(pow(charge,2)*B_norm))); /* Is the Lorentz
-                                                               factor used correctly? */
-
-    /* Make the spatial transformation */
-    prtpos[0] = R+rho[0];
-    prtpos[1] = Phi+rho[1];
-    prtpos[2] = Z+rho[2];
-
-    /* First order momentum terms */
+    /* Perpendicular basis vector */
+    real c = cos(theta);
+    real s = sin(theta);
     real perphat[3];
-    math_cross(rho_unit,B_unit,perphat); /* Does this hold for ions and elecs? */
+    perphat[0] = -s * e1[0] - c * e2[0];
+    perphat[1] = -s * e1[1] - c * e2[1];
+    perphat[2] = -s * e1[2] - c * e2[2];
 
-    real a1ddotgradb = -0.5*(2*(rho_unit[0]*perphat[0]*nablabhat[0]+
-                                rho_unit[1]*perphat[1]*nablabhat[4]+
-                                rho_unit[2]*perphat[2]*nablabhat[8])
-                             +(rho_unit[0]*perphat[1]+rho_unit[1]*perphat[0])*
-                              (nablabhat[1]+nablabhat[3])
-                             +(rho_unit[0]*perphat[2]+rho_unit[2]*perphat[0])*
-                              (nablabhat[2]+nablabhat[6])
-                             +(rho_unit[1]*perphat[2]+rho_unit[2]*perphat[1])*
-                              (nablabhat[5]+nablabhat[7]));
+    /* Perpendicular velocity, negative particles travel opposite to perphat */
+    real vperp = sqrt((2.0 * Bnorm * mu) / ( mass * gamma * gamma ) );
+    if( charge <  0 ) {
+        vperp = -vperp;
+    }
 
-    real p_para1 = -p_para0*math_dot(rho,kappa)+((mass*mu_0)/charge)*(tau_B+a1ddotgradb);
-    TEMP_S1 = pow(p_para0,2)/(mass*B_norm);
-    TEMP_V1[0] = TEMP_S1 * kappa[0] + mu_0*gradB[0]/B_norm;
-    TEMP_V1[1] = TEMP_S1 * kappa[1] + mu_0*gradB[1]/B_norm;
-    TEMP_V1[2] = TEMP_S1 * kappa[2] + mu_0*gradB[2]/B_norm;
-    real mu_1 = math_dot(rho,TEMP_V1)-((mu_0*p_para0)/(charge*B_norm))*(tau_B+a1ddotgradb);
+    /* Evaluate the velocity from vpar and vperp */
+    real vxyz[3];
+    vxyz[0] = vpar * bhat[0] + vperp * perphat[0];
+    vxyz[1] = vpar * bhat[1] + vperp * perphat[1];
+    vxyz[2] = vpar * bhat[2] + vperp * perphat[2];
 
-    /* Calculate the parallel momentum vector */
-    real p_para[3];
-    p_para[0] = B_unit[0];
-    p_para[1] = B_unit[1];
-    p_para[2] = B_unit[2];
-    math_prod(p_para,p_para0-p_para1);
+    /* Back to cylindrical coordinates */
+    real vrpz[3];
+    math_vec_xyz2rpz(vxyz, vrpz, phi);
 
-    /* Calculate perpendicular momentum vector. */
-    real p_perp[3];
-    p_perp[0] = perphat[0];
-    p_perp[1] = perphat[1];
-    p_perp[2] = perphat[2];
-    math_prod(p_perp,sqrt(2*mass*(mu_0-mu_1)*B_norm));
-
-    /* Calculate the momentum vector */
-    prtpos[3] = p_para[0]+p_perp[0];
-    prtpos[4] = p_para[1]+p_perp[1];
-    prtpos[5] = p_para[2]+p_perp[2];
+    *vr    = vrpz[0];
+    *vphi  = vrpz[1];
+    *vz    = vrpz[2];
 }
