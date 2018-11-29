@@ -24,8 +24,8 @@ def setactive(hdf5file, path):
 def generatemetadata():
     """
     Generate metadata
-    
-    Metdata consists of unique (not quaranteed but almost 
+
+    Metdata consists of unique (not quaranteed but almost
     certainly) id and date when field was created.
 
     """
@@ -41,17 +41,17 @@ def generatemetadata():
 
     # Last digits are milliseconds which we don't need
     date = date[0:20]
-    
+
     return (qid, date)
 
-    
+
 def removegroup(hdf5file, path):
     """
     Remove a subgroup.
 
     Parameters
     ----------
-    
+
     hdf5file : HDF5 file
         Target HDF5 file.
     path : str
@@ -99,7 +99,7 @@ def setdescription(hdf5file, path, desc):
     desc : str
         Description.
     """
-    hdf5file[path].attrs["description"] = np.string_(desc)   
+    hdf5file[path].attrs["description"] = np.string_(desc)
 
 
 def creategroup(hdf5file, mastergroup, subgroup, desc="-"):
@@ -114,7 +114,7 @@ def creategroup(hdf5file, mastergroup, subgroup, desc="-"):
 
     Parameters
     ----------
-    
+
     hdf5file : HDF5 file
         Target HDF5 file from h5py.File().
     mastergroup : str
@@ -151,5 +151,5 @@ def creategroup(hdf5file, mastergroup, subgroup, desc="-"):
 
     # Set description.
     setdescription(hdf5file, path, desc)
-    
+
     return path

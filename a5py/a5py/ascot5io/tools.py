@@ -23,18 +23,16 @@ def setactivegroup(fn, mastergroup, qid):
     qid: str
          Id for the active group.
     """
-    f = h5py.File(fn, "a")
-    exists = False
-    if mastergroup in f:
-        for r in f[mastergroup]:
-            if r[-10:] == qid:
-                ascot5group.setactive(f, mastergroup + "/" + r)
-                exists = True
+    with h5py.File(fn, "a") as f:
+        exists = False
+        if mastergroup in f:
+            for r in f[mastergroup]:
+                if r[-10:] == qid:
+                    ascot5group.setactive(f, mastergroup + "/" + r)
+                    exists = True
 
-    if exists == None:
-        print("Error: group not found.")
-
-    f.close()
+        if exists == None:
+            print("Error: group not found.")
 
 def removerun(fn, qid=None):
     """
@@ -50,15 +48,13 @@ def removerun(fn, qid=None):
          are removed.
     """
 
-    f = h5py.File(fn, "a")
+    with h5py.File(fn, "a") as f:
 
-    for r in f["results"]:
-        if qid == None:
-            del f["results"][r]
-        elif r[-10:] == qid:
-            del f["results"][r]
-
-    f.close()
+        for r in f["results"]:
+            if qid == None:
+                del f["results"][r]
+            elif r[-10:] == qid:
+                del f["results"][r]
 
 def removegroup(fn, mastergroup, qid):
     """
@@ -74,18 +70,18 @@ def removegroup(fn, mastergroup, qid):
     qid: str
          Id for the group to be removed
     """
-    f = h5py.File(fn, "a")
-    if not mastergroup in f:
-        print("Error: Source file does not contain the group to be removed.")
-        return
-
-    for r in f[mastergroup]:
-        if r[-10:] == qid:
-            del f[mastergroup][r]
-            f.close()
+    with h5py.File(fn, "a") as f:
+        if not mastergroup in f:
+            print("Error: Source file does not contain the group to be removed.")
             return
 
-    print("Error: Source file does not contain the group to be removed.")
+        for r in f[mastergroup]:
+            if r[-10:] == qid:
+                del f[mastergroup][r]
+                f.close()
+                return
+
+        print("Error: Source file does not contain the group to be removed.")
 
 
 def copygroup(fns, fnt, mastergroup, qid):
@@ -107,34 +103,30 @@ def copygroup(fns, fnt, mastergroup, qid):
     """
 
     # Get the target field and type from source
-    fs = h5py.File(fns, "r")
+    with h5py.File(fns, "r") as fs:
 
-    if not mastergroup in fs:
-        print("Error: Source file does not contain the group to be copied")
-        return
+        if not mastergroup in fs:
+            print("Error: Source file does not contain the group to be copied")
+            return
 
-    field = None
-    for r in fs[mastergroup]:
-        if r[-10:] == qid:
-            field = r
-            break
-    if field == None:
-        print("Error: Source file does not contain the group to be copied")
-        return
+        field = None
+        for r in fs[mastergroup]:
+            if r[-10:] == qid:
+                field = r
+                break
+        if field == None:
+            print("Error: Source file does not contain the group to be copied")
+            return
 
-    # Check if the mastergroup in target exists (otherwise it is created)
-    ft = h5py.File(fnt, "a")
-    if not mastergroup in ft:
-        ft.create_group(mastergroup)
+        # Check if the mastergroup in target exists (otherwise it is created)
+        with h5py.File(fnt, "a") as ft:
+            if not mastergroup in ft:
+                ft.create_group(mastergroup)
 
-    # Copy group into target
-    fs.copy(mastergroup + "/" + field, ft[mastergroup], name=field)
-    ft.close()
+            # Copy group into target
+            fs.copy(mastergroup + "/" + field, ft[mastergroup], name=field)
 
-    setactivegroup(fnt, mastergroup, qid)
-
-    fs.close()
-    ft.close()
+            setactivegroup(fnt, mastergroup, qid)
 
 
 def combineresults(fnt, fns, mode="add"):
@@ -160,31 +152,29 @@ def combineresults(fnt, fns, mode="add"):
 
     print("Combining output to " + fnt + " with mode " + "\"" + mode + "\"")
 
-    f = h5py.File(fnt, "a")
-    # If target does not have results, we get them from the first
-    # source file.
-    if "results" not in f:
-        qid = ascot5.get_qids(fns[0], "results")[0][0]
-        path = "results/run-" + qid
-        print("Creating 'results' field for target.")
-        fs = h5py.File(fns[0])
-        fs.copy("results", f)
-        for state in ["inistate","endstate"]:
-            for field in f[path][state]:
-                del f[path][state][field]
-                f[path][state].create_dataset(field, (0,))
-                for a in fs[path][state][field].attrs.items():
-                    f[path][state][field].attrs.create(a[0],a[1])
-        if 'orbits' in f[path]:
-            for ptype in f[path]['orbits']:
-                for field in f[path]['orbits'][ptype]:
-                    del f[path]['orbits'][ptype][field]
-                f[path]['orbits'][ptype].create_dataset(field, (0,))
-                for a in fs[path]['orbits'][ptype][field].attrs.items():
-                    f[path]['orbits'][ptype][field].attrs.create(a[0],a[1])
-        del f[path]["dists"]
-        fs.close()
-    f.close()
+    with h5py.File(fnt, "a") as f:
+        # If target does not have results, we get them from the first
+        # source file.
+        if "results" not in f:
+            qid = ascot5.get_qids(fns[0], "results")[0][0]
+            path = "results/run-" + qid
+            print("Creating 'results' field for target.")
+            with h5py.File(fns[0]) as fs:
+                fs.copy("results", f)
+                for state in ["inistate","endstate"]:
+                    for field in f[path][state]:
+                        del f[path][state][field]
+                        f[path][state].create_dataset(field, (0,))
+                        for a in fs[path][state][field].attrs.items():
+                            f[path][state][field].attrs.create(a[0],a[1])
+                if 'orbits' in f[path]:
+                    for ptype in f[path]['orbits']:
+                        for field in f[path]['orbits'][ptype]:
+                            del f[path]['orbits'][ptype][field]
+                        f[path]['orbits'][ptype].create_dataset(field, (0,))
+                        for a in fs[path]['orbits'][ptype][field].attrs.items():
+                            f[path]['orbits'][ptype][field].attrs.create(a[0],a[1])
+                del f[path]["dists"]
 
     qid = ascot5.get_qids(fnt, "results")[0][0]
     path = "run-" + qid
@@ -253,36 +243,34 @@ def combineresults(fnt, fns, mode="add"):
 
     dists.write_hdf5(fnt,target["results"][path]["dists"],qid)
 
-    f = h5py.File(fnt, "a")
-    if "orbits" in f["results/" + path]:
-        print("Combining orbits.")
-        target = ascot5.read_hdf5(fnt,"results")
-        target = target["results"][path]["orbits"]
+    with h5py.File(fnt, "a") as f:
+        if "orbits" in f["results/" + path]:
+            print("Combining orbits.")
+            target = ascot5.read_hdf5(fnt,"results")
+            target = target["results"][path]["orbits"]
 
-        # Iterate over source files
-        for fn in fns:
-            source = ascot5.read_hdf5(fn,"results")
-            source = source["results"][path]["orbits"]
+            # Iterate over source files
+            for fn in fns:
+                source = ascot5.read_hdf5(fn,"results")
+                source = source["results"][path]["orbits"]
 
-            # Check whether target has the desired state.
-            # Init empty state if necessary.
-            for orbgroup in source:
-                if orbgroup not in target:
-                    target[orbgroup] = {}
+                # Check whether target has the desired state.
+                # Init empty state if necessary.
+                for orbgroup in source:
+                    if orbgroup not in target:
+                        target[orbgroup] = {}
 
-                # Iterate over all fields in a orbit
-                for field in source[orbgroup]:
+                    # Iterate over all fields in a orbit
+                    for field in source[orbgroup]:
 
-                    # If target does not have this field, add it.
-                    # Otherwise extend it.
-                    if field not in target[orbgroup]:
-                        target[orbgroup][field] = source[orbgroup][field]
+                        # If target does not have this field, add it.
+                        # Otherwise extend it.
+                        if field not in target[orbgroup]:
+                            target[orbgroup][field] = source[orbgroup][field]
 
-                    # No need to combine unit specifiers (fields ending with "unit")
-                    elif field[-4:] != "unit" and field != "N" and field != "uniqueId":
-                        target[orbgroup][field] = np.concatenate((target[orbgroup][field],source[orbgroup][field]))
+                        # No need to combine unit specifiers (fields ending with "unit")
+                        elif field[-4:] != "unit" and field != "N" and field != "uniqueId":
+                            target[orbgroup][field] = np.concatenate((target[orbgroup][field],source[orbgroup][field]))
 
-        # Target now contains all data from combined runs, so we just need to write it.
-        orbits.write_hdf5(fnt,target,qid)
-
-    f.close()
+            # Target now contains all data from combined runs, so we just need to write it.
+            orbits.write_hdf5(fnt,target,qid)

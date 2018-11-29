@@ -35,19 +35,17 @@ def write_hdf5(fn, n_rho, rho_min, rho_max, dV_drho, r_eff):
     subgroup    = "E_1DS"
 
     # Create a group for this input.
-    f = h5py.File(fn, "a")
-    path = creategroup(f, mastergroup, subgroup)
+    with h5py.File(fn, "a") as f:
+        path = creategroup(f, mastergroup, subgroup)
 
-    # TODO check that input is valid
+        # TODO check that input is valid
 
-    # Actual data.
-    f.create_dataset(path + '/n_rho', data=n_rho, dtype='i8')
-    f.create_dataset(path + '/rho_min', data=rho_min, dtype='f8')
-    f.create_dataset(path + '/rho_max', data=rho_max, dtype='f8')
-    f.create_dataset(path + '/dV_drho', data=dV_drho, dtype='f8')
-    f.create_dataset(path + '/r_eff', data=r_eff, dtype='f8')
-
-    f.close()
+        # Actual data.
+        f.create_dataset(path + '/n_rho', data=n_rho, dtype='i8')
+        f.create_dataset(path + '/rho_min', data=rho_min, dtype='f8')
+        f.create_dataset(path + '/rho_max', data=rho_max, dtype='f8')
+        f.create_dataset(path + '/dV_drho', data=dV_drho, dtype='f8')
+        f.create_dataset(path + '/r_eff', data=r_eff, dtype='f8')
 
 
 def read_hdf5(fn, qid):
@@ -70,22 +68,19 @@ def read_hdf5(fn, qid):
 
     path = "efield" + "/E_1D-" + qid
 
-    f = h5py.File(fn,"r")
+    with h5py.File(fn,"r") as f:
+        out = {}
 
-    out = {}
+        # Metadata.
+        out["qid"]  = qid
+        out["date"] = f[path].attrs["date"]
+        out["description"] = f[path].attrs["description"]
 
-    # Metadata.
-    out["qid"]  = qid
-    out["date"] = f[path].attrs["date"]
-    out["description"] = f[path].attrs["description"]
-
-    # Actual data.
-    out["n_rho"]    = f[path + 'n_rho']
-    out["rho_min"] = f[path + 'rho_min'][:]
-    out["rho_max"] = f[path + 'rho_max'][:]
-    out["dV_drho"]  = f[path + '/dV_drho'][:]
-    out["r_eff"]   = f[path + 'r_eff'][:]
-
-    f.close()
+        # Actual data.
+        out["n_rho"]    = f[path + 'n_rho']
+        out["rho_min"] = f[path + 'rho_min'][:]
+        out["rho_max"] = f[path + 'rho_max'][:]
+        out["dV_drho"]  = f[path + '/dV_drho'][:]
+        out["r_eff"]   = f[path + 'r_eff'][:]
 
     return out

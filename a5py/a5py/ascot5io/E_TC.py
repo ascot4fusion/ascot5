@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 import random
 import datetime
-	
+
 from . ascot5group import creategroup
 
 def write_hdf5(fn, Exyz):
@@ -25,19 +25,18 @@ def write_hdf5(fn, Exyz):
 
     mastergroup = "efield"
     subgroup    = "E_TC"
-    
+
     # Create a group for this input.
-    f = h5py.File(fn, "a")
-    path = creategroup(f, mastergroup, subgroup)
+    with h5py.File(fn, "a") as f:
+        path = creategroup(f, mastergroup, subgroup)
 
-    # Check that input is a valid array with three elements.
-    if Exyz.shape != (3,1) and Exyz.shape != (1,3) and Exyz.shape != (3,):
-        raise Exception('Exyz has invalid format.')
+        # Check that input is a valid array with three elements.
+        if Exyz.shape != (3,1) and Exyz.shape != (1,3) and Exyz.shape != (3,):
+            raise Exception('Exyz has invalid format.')
 
-    # Actual data.
-    f.create_dataset(path + "/Exyz", (3,1), data = Exyz, dtype="f8")
-    f.close()
-    
+        # Actual data.
+        f.create_dataset(path + "/Exyz", (3,1), data = Exyz, dtype="f8")
+
 
 def read_hdf5(fn, qid):
     """
@@ -59,18 +58,15 @@ def read_hdf5(fn, qid):
 
     path = "efield" + "/E_TC-" + qid
 
-    f = h5py.File(fn,"r")
+    with h5py.File(fn,"r") as f:
+        out = {}
 
-    out = {}
+        # Metadata.
+        out["qid"]  = qid
+        out["date"] = f[path].attrs["date"]
+        out["description"] = f[path].attrs["description"]
 
-    # Metadata.
-    out["qid"]  = qid
-    out["date"] = f[path].attrs["date"]
-    out["description"] = f[path].attrs["description"]
-    
-    # Actual data.
-    out["Exyz"] = f[path]["Exyz"][:]
-
-    f.close()
+        # Actual data.
+        out["Exyz"] = f[path]["Exyz"][:]
 
     return out

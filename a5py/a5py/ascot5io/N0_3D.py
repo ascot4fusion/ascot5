@@ -26,7 +26,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0):
 
     Notes
     -------
-    
+
     Rphiz coordinates form a right-handed cylindrical coordinates.
     phi is in degrees and is considered as a periodic coordinate.
     phimin is where the period begins and phimax is the last data point,
@@ -37,29 +37,28 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0):
 
     mastergroup = "neutral"
     subgroup    = "N0_3D"
-    
+
     # Transpose n0 from (r, phi, z) to (phi, z, r)
     n0 = np.transpose(n0,(1,2,0))
-    
+
     # Create a group for this input.
-    f = h5py.File(fn, "a")
-    path = creategroup(f, mastergroup, subgroup)
+    with h5py.File(fn, "a") as f:
+        path = creategroup(f, mastergroup, subgroup)
 
-    # Actual data.
-    f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")
-    f.create_dataset(path + "/r_max", (1,), data=Rmax, dtype="f8")
-    f.create_dataset(path + "/n_r", (1,),   data=nR, dtype="i8")
+        # Actual data.
+        f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")
+        f.create_dataset(path + "/r_max", (1,), data=Rmax, dtype="f8")
+        f.create_dataset(path + "/n_r", (1,),   data=nR, dtype="i8")
 
-    f.create_dataset(path + "/phi_min", (1,), data=phimin, dtype="f8")
-    f.create_dataset(path + "/phi_max", (1,), data=phimax, dtype="f8")
-    f.create_dataset(path + "/n_phi", (1,),   data=nphi, dtype="i8")
+        f.create_dataset(path + "/phi_min", (1,), data=phimin, dtype="f8")
+        f.create_dataset(path + "/phi_max", (1,), data=phimax, dtype="f8")
+        f.create_dataset(path + "/n_phi", (1,),   data=nphi, dtype="i8")
 
-    f.create_dataset(path + "/z_min", (1,), data=zmin, dtype="f8")
-    f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
-    f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
+        f.create_dataset(path + "/z_min", (1,), data=zmin, dtype="f8")
+        f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
+        f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
 
-    f.create_dataset(path + "/n0",   data=n0, dtype="f8")
-    f.close()
+        f.create_dataset(path + "/n0",   data=n0, dtype="f8")
 
 
 def read_hdf5(fn):
@@ -80,29 +79,26 @@ def read_hdf5(fn):
 
     path = "neutral/N0_3D"
 
-    f = h5py.File(fn,"r")
+    with h5py.File(fn,"r") as f:
+        out = {}
 
-    out = {}
+        # Metadata.
+        out["qid"]  = f[path].attrs["qid"]
+        out["date"] = f[path].attrs["date"]
 
-    # Metadata.
-    out["qid"]  = f[path].attrs["qid"]
-    out["date"] = f[path].attrs["date"]
+        # Actual data.
+        out["Rmin"] = f[path]["R_min"][:]
+        out["Rmax"] = f[path]["R_max"][:]
+        out["nR"]   = f[path]["n_R"][:]
 
-    # Actual data.
-    out["Rmin"] = f[path]["R_min"][:]
-    out["Rmax"] = f[path]["R_max"][:]
-    out["nR"]   = f[path]["n_R"][:]
+        out["phimin"] = f[path]["phi_min"][:]
+        out["phimax"] = f[path]["phi_max"][:]
+        out["nphi"]   = f[path]["n_phi"][:]
 
-    out["phimin"] = f[path]["phi_min"][:]
-    out["phimax"] = f[path]["phi_max"][:]
-    out["nphi"]   = f[path]["n_phi"][:]
+        out["zmin"] = f[path]["z_min"][:]
+        out["zmax"] = f[path]["z_max"][:]
+        out["nz"]   = f[path]["n_z"][:]
 
-    out["zmin"] = f[path]["z_min"][:]
-    out["zmax"] = f[path]["z_max"][:]
-    out["nz"]   = f[path]["n_z"][:]
-
-    out["n0"]   = f[path]["n0"]
-
-    f.close()
+        out["n0"]   = f[path]["n0"]
 
     return out

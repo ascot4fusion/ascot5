@@ -1,22 +1,9 @@
 import h5py
 import numpy as np
 
-# # The input file contains an integer giving the number of wall triangles
-# # followed by a list of coordinates for the corners of each triangle
-# # (x1,y1,z1,x2,y2,z2,x3,y3,z3).
-# def read_wall_3d(fn):
-
-#     f = open(fn,'r')
-
-#     str = {'n' : f.readline()}
-#     data = loadtxt(f)
-#     f.close()
-
-#     str['x1x2x3'] = [data[:,0], data[:,3], data[:,6]]
-#     str['y1y2y3'] = [data[:,1], data[:,4], data[:,7]]
-#     str['z1z2z3'] = [data[:,2], data[:,5], data[:,8]]
-
-#     return str
+# The input file contains an integer giving the number of wall triangles
+# followed by a list of coordinates for the corners of each triangle
+# (x1,y1,z1,x2,y2,z2,x3,y3,z3).
 
 def read_wall_3d(fn):
 

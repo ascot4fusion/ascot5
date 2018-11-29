@@ -34,16 +34,14 @@ def write_hdf5(fn, n, R, z):
     subgroup    = "wall_2D"
 
     # Create a group for this input.
-    f = h5py.File(fn, "a")
-    path = creategroup(f, mastergroup, subgroup)
+    with h5py.File(fn, "a") as f:
+        path = creategroup(f, mastergroup, subgroup)
 
-    # TODO Check that inputs are consistent.
+        # TODO Check that inputs are consistent.
 
-    f.create_dataset(path + "/n", (1,1), data=n, dtype='i4')
-    f.create_dataset(path + "/r", data=R, dtype='f8')
-    f.create_dataset(path + "/z", data=z, dtype='f8')
-
-    f.close()
+        f.create_dataset(path + "/n", (1,1), data=n, dtype='i4')
+        f.create_dataset(path + "/r", data=R, dtype='f8')
+        f.create_dataset(path + "/z", data=z, dtype='f8')
 
 
 def read_hdf5(fn, qid):
@@ -66,21 +64,18 @@ def read_hdf5(fn, qid):
 
     path = "wall" + "/wall_2D-" + qid
 
-    f = h5py.File(fn,"r")
+    with h5py.File(fn,"r") as f:
+        out = {}
 
-    out = {}
+        # Metadata.
+        out["qid"]  = qid
+        out["date"] = f[path].attrs["date"]
+        out["description"] = f[path].attrs["description"]
 
-    # Metadata.
-    out["qid"]  = qid
-    out["date"] = f[path].attrs["date"]
-    out["description"] = f[path].attrs["description"]
-
-    # Actual data.
-    out["n"] = f[path]["n"][:]
-    out["R"] = f[path]["r"][:]
-    out["z"] = f[path]["z"][:]
-
-    f.close()
+        # Actual data.
+        out["n"] = f[path]["n"][:]
+        out["R"] = f[path]["r"][:]
+        out["z"] = f[path]["z"][:]
 
     return out
 

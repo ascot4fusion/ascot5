@@ -226,8 +226,8 @@ def run(a4folder, h5fn, overwrite=True):
     """
 
     if not os.path.isfile(h5fn):
-        f = h5py.File(h5fn, 'a')
-        f.close()
+        with h5py.File(h5fn, 'a') as f:
+            pass
 
     if a4folder[-1] != "/":
         a4folder += "/"
