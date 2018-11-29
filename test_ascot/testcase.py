@@ -46,7 +46,7 @@ def createbase(fn, Bxyz, Exyz, n, T):
     etemp = T*np.ones(rho.shape)
     idens = n*np.ones((rho.size,1))
     itemp = T*np.ones(rho.shape)
-    plasma_1D.write_hdf5(fn, Nrho, Nion, znum, anum, rho, ndens, ntemp, edens, etemp, idens, itemp)
+    plasma_1D.write_hdf5(fn, Nrho, Nion, znum, anum, rho, edens, etemp, idens, itemp)
 
     n = 4
     R = np.array([0.1, 100, 100, 0.1])

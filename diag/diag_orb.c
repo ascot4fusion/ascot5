@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include "../ascot5.h"
 #include "../consts.h"
-#include "../phys_orbit.h"
+#include "../gctransform.h"
 #include "../particle.h"
 #include "../B_field.h"
 #include "diag_orb.h"
