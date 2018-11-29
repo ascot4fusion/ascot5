@@ -95,11 +95,9 @@ def a4bfield(a4folder, h5fn):
                 data['br']*0, data['bphi'], data['bz']*0)
 
     elif os.path.isfile(fnameh5):
-        f = h5py.File(fnameh5, 'r')
-        if (not "/bfield" in f):
-            f.close()
-            return
-        f.close()
+        with h5py.File(fnameh5, 'r') as f:
+            if (not "/bfield" in f):
+                return
         data = read_magn_bkg_stellarator(fnameh5)
         if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
             # Remove duplicated datapoint
@@ -188,11 +186,9 @@ def a4wall(a4folder, h5fn):
             h5fn, data['id'].size, data['x1x2x3'],
             data['y1y2y3'], data['z1z2z3'], data['id'])
     elif (os.path.isfile(fnameh5)):
-        f = h5py.File(fnameh5, 'r')
-        if (not "/wall" in f):
-            f.close()
-            return
-        f.close()
+        with h5py.File(fnameh5, 'r') as f:
+            if (not "/wall" in f):
+                return
         data = read_wall_3d_hdf5(fnameh5)
         wall_3D.write_hdf5(
             h5fn, data['id'].size, data['x1x2x3'],
