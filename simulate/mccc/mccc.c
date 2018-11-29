@@ -348,7 +348,8 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
             real vin, xiin, Xin[3];
             real vout, xiout, Xout[3];
             real Bnorm = math_norm(B);
-            physlib_gc_muvpar2vxi(p->mass[i], Bnorm, p->mu[i], p->vpar[i], &vin, &xiin);
+            vin = physlib_gc_v(p->mass[i], p->mu[i], p->vpar[i], Bnorm);
+            xiin = physlib_gc_xi(p->mass[i], p->mu[i], p->vpar[i], Bnorm);
 
             real R0   = p->r[i];
             real z0   = p->z[i];
@@ -391,7 +392,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
 
             /* Evaluate collisions */
             if(!errflag) {
-                errflag = mccc_push_gcEM(K,nu,Dpara,DX,B,h[i],&rnd[i*5], 
+                errflag = mccc_push_gcEM(K,nu,Dpara,DX,B,h[i],&rnd[i*5],
                         vin,&vout,xiin,&xiout,Xin,Xout,cutoff);
             }
 
@@ -416,7 +417,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
                 real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
                 p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
                         (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
-                p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0], 
+                p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0],
                     Xin[0] * Xout[0] + Xin[1] * Xout[1] );
             }
 
@@ -445,7 +446,8 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
                 p->rho[i] = rho[0];
 
                 Bnorm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
-                physlib_gc_vxi2muvpar(p->mass[i], Bnorm, vout, xiout, &p->mu[i], &p->vpar[i]);
+                p->vpar[i] = physlib_gc_vpar(vout, xiout);
+                p->mu[i]   = physlib_gc_mu(p->mass[i], vout, xiout, Bnorm);
             }
 
             /* Error handling */
@@ -472,7 +474,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
  * @param pdata pointer to plasma data
  * @param hin pointer to values for current time-step [s]
  * @param hout pointer to values for next time-step [s]
- * @param w NSIMD array of pointers to Wiener structs 
+ * @param w NSIMD array of pointers to Wiener structs
  * @param tol integration error tolerance
  *
  * @todo There is no need to check for error when collision frequency is low and other processes determine adaptive time-step
@@ -503,7 +505,8 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
             real vin, xiin, Xin[3];
             real vout, xiout, Xout[3];
             real Bnorm = math_norm(B);
-            physlib_gc_muvpar2vxi(p->mass[i], Bnorm, p->mu[i], p->vpar[i], &vin, &xiin);
+            vin = physlib_gc_v(p->mass[i], p->mu[i], p->vpar[i], Bnorm);
+            xiin = physlib_gc_xi(p->mass[i], p->mu[i], p->vpar[i], Bnorm);
 
             real R0   = p->r[i];
             real z0   = p->z[i];
@@ -594,7 +597,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
                 real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
                 p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
                         (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
-                p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0], 
+                p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0],
                         Xin[0] * Xout[0] + Xin[1] * Xout[1] );
             }
 
@@ -623,7 +626,8 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
                 p->rho[i] = rho[0];
 
                 Bnorm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
-                physlib_gc_vxi2muvpar(p->mass[i], Bnorm, vout, xiout, &p->mu[i], &p->vpar[i]);
+                p->vpar[i] = physlib_gc_vpar(vout, xiout);
+                p->mu[i]   = physlib_gc_mu(p->mass[i], vout, xiout, Bnorm);
 
                 /* Test whether timestep was rejected and suggest next time step */
                 int rejected = 0;
