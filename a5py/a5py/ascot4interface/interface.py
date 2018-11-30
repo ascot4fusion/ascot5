@@ -24,6 +24,8 @@ import a5py.ascot5io.E_1D as E_1D
 import a5py.ascot5io.wall_2D as wall_2D
 import a5py.ascot5io.wall_3D as wall_3D
 
+from a5py.postprocessing.physicslib import guessMass
+
 def read_markers(a4folder, h5fn):
     fname = a4folder + "input.particles"
     if (os.path.isfile(fname)):

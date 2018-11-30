@@ -1,34 +1,5 @@
 import numpy as np
 
-'''
-@todo move these to a common python constants file
-'''
-consts_e         = 1.602176565e-19            # electron volt [eV]
-consts_amu       = 1.660538921e-27            # atomic mass unit [kg]
-consts_mElectron = 9.10938291e-31             # electron mass [kg]
-consts_mProton   = 1.672621777e-27            # proton mass [kg]
-consts_mDeuteron = 3.34358348e-27             # deuteron mass [kg]
-consts_mTriton   = 5.00735630e-27             # triton mass [kg]
-consts_mAlpha    = 6.64465675e-27             # alpha mass [kg]
-consts_mNeutron  = 1.674927351e-27            # neutron mass [kg]
-consts_mHe3      = 3.0160293191 * consts_amu  # isotope mass [kg]
-
-consts_Aelectron = 0
-consts_AProton   = 1
-consts_ANeutron  = 1
-consts_ADeuteron = 2
-consts_ATriton   = 3
-consts_AHe3      = 3
-consts_AAlpha    = 4
-
-consts_Zelectron = -1
-consts_Zneutron  = 0
-consts_ZProton   = 1
-consts_ZDeuteron = 1
-consts_ZTriton   = 1
-consts_ZHe3      = 2
-consts_ZAlpha    = 2
-
 def read_particles(fname):
     '''
     Read ASCOT4 input.particles file
@@ -108,64 +79,3 @@ def read_particles(fname):
             data['fields'][data['fieldNames'][j]][i] = columns[i,j]
 
     return data
-
-def magneticMoment(Ekin,pitch,mass,B):
-    v = Epitch2vparaperp(mass,Ekin,pitch)
-    gammar = physics_eval.lorentzfactor(sqrt(v(1)^2+ v(2)^2))
-    pperp = gammar*v(2)*mass
-    val = pperp^2/(2*mass*B)
-    return val
-
-def Epitch2vparaperp(mass,Ekin,pitch):
-    # (E,pitch) as (v_para,v_perp)
-    magnv = physics_eval.Ekin2velocity(mass,Ekin);
-    v_para = magnv*pitch;
-    v_perp = magnv*sqrt(1-pitch^2);
-    return (v_para, v_perp)
-
-def Ekin2velocity(mass,Ekin):
-    # Kinetic energy as velocity: v = sqrt( 1-1/( 1+E_kin/mc^2 )^2 )
-    vperc = sqrt( 1-1/( 1+Ekin/(mass*physics_const.c^2) )^2 );
-    val = physics_const.c*vperc;
-    return val
-
-# Return the mass of element with mass number A, charge number Z and
-# a given charge. The mass is returned in [amu]
-def guessMass(A,Z,charge):
-    mass=-1.0
-
-    if (Z == consts_Zelectron):
-        if (charge < 0.0):
-            mass = consts_mElectron
-            return mass / consts_amu
-    elif (Z == consts_Zneutron):
-        if (A == consts_Aneutron):
-            mass = consts_mNeutron
-            return mass / consts_amu
-    elif (Z == 1): # Hydrogen
-        if (A == consts_AProton):
-            mass = massPlusElectrons( consts_mProton, Z, charge )
-            return mass / consts_amu
-        elif (A == consts_ADeuteron):
-            mass = massPlusElectrons( consts_mDeuteron, Z, charge )
-            return mass / consts_amu
-        elif (A == consts_ATriton):
-            mass = massPlusElectrons( consts_mTriton, Z, charge )
-            return mass / consts_amu
-    elif (Z == 2): # Helium
-        if (A == consts_AHe3):
-            mass = massPlusElectrons( consts_mHe3, Z, charge )
-            return mass / consts_amu
-        elif (A == consts_AAlpha):
-            mass = massPlusElectrons( consts_mAlpha, Z, charge )
-            return mass / consts_amu
-    # Hmm. we better just estimate with other  elements...ignoring the binding energy
-    print("Warning! Unknown marker isotope, guesstimating mass.")
-    mass = massPlusElectrons( Z*consts_mProton + (A-Z)*consts_mNeutron, Z, charge )
-    return mass / consts_amu
-
-def massPlusElectrons(massIn, Z, charge):
-    if( int(round(charge/consts_e)) == Z):
-        return massIn
-    else:
-        return massIn + consts_mElectron * (charge-Z)
