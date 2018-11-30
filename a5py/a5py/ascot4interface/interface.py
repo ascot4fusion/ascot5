@@ -4,13 +4,14 @@ Converting ASCOT4 input files to ASCOT5 input HDF5.
 import os.path
 
 import numpy as np
+import h5py
 
-from . markers import *
-from . magn_bkg import *
-from . plasma import *
-from . erad import *
-from . wall_2d import *
-from . wall_3d import *
+import a5py.ascot4interface.markers as a4markers
+import a5py.ascot4interface.magn_bkg as a4magn_bkg
+import a5py.ascot4interface.plasma as a4plasma
+import a5py.ascot4interface.erad as a4erad
+import a5py.ascot4interface.wall_2d as a4wall_2d
+import a5py.ascot4interface.wall_3d as a4wall_3d
 
 import a5py.ascot5io.B_2D as B_2D
 import a5py.ascot5io.B_3D as B_3D
@@ -23,10 +24,10 @@ import a5py.ascot5io.E_1D as E_1D
 import a5py.ascot5io.wall_2D as wall_2D
 import a5py.ascot5io.wall_3D as wall_3D
 
-def a4markers(a4folder, h5fn):
+def read_markers(a4folder, h5fn):
     fname = a4folder + "input.particles"
     if (os.path.isfile(fname)):
-        data = read_particles(fname)
+        data = a4markers.read_particles(fname)
         if 'charge' not in data['fieldNames']:
             print("Converting Znum to charge.")
             data["fields"]['charge'] = data["fields"]['Znum'].astype('float')
@@ -70,12 +71,12 @@ def a4markers(a4folder, h5fn):
                 data["fields"]["energy"], data["fields"]["pitch"], theta,
                 data["fields"]["weight"], data["fields"]["weight"]*0 )
 
-def a4bfield(a4folder, h5fn):
+def read_bfield(a4folder, h5fn):
     fnamebkg = a4folder + "input.magn_bkg"
     fnamehdr = a4folder + "input.magn_header"
     fnameh5  = a4folder + "input.h5"
     if (os.path.isfile(fnamebkg)) and (os.path.isfile(fnamehdr)):
-        data = read_magn_bkg(fnamebkg, fnamehdr)
+        data = a4magn_bkg.read_magn_bkg(fnamebkg, fnamehdr)
         if data["nPhi"] > 1:
             B_3D.write_hdf5(
                 h5fn,
@@ -98,7 +99,7 @@ def a4bfield(a4folder, h5fn):
         with h5py.File(fnameh5, 'r') as f:
             if (not "/bfield" in f):
                 return
-        data = read_magn_bkg_stellarator(fnameh5)
+        data = a4magn_bkg.read_magn_bkg_stellarator(fnameh5)
         if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
             # Remove duplicated datapoint
             data['axis_r'] = data['axis_r'][0:-1]
@@ -116,11 +117,11 @@ def a4bfield(a4folder, h5fn):
             symmetry_mode=data['symmetrymode'],
             psiaxis=0, psisepx=1)
 
-def a4plasma(a4folder, h5fn):
+def read_plasma(a4folder, h5fn):
     fname1d = a4folder + "input.plasma_1d"
     fname2d = a4folder + "input.plasma_2d"
     if (os.path.isfile(fname1d)):
-        data = read_plasma(fname1d)
+        data = a4plasma.read_plasma(fname1d)
         # Make sure the input is linearly spaced. If not, interpolate
         tol = 1.0001
         diff = np.diff(data['rho'])
@@ -141,7 +142,7 @@ def a4plasma(a4folder, h5fn):
             h5fn, data['nrho'], data['nion'], data['znum'], data['anum'],
             data['rho'], data['ne'], data['te'], dens_i, data['ti1'])
     if (os.path.isfile(fname2d)):
-        data = read_plasma(fname2d)
+        data = a4plasma.read_plasma(fname2d)
         dens_i = np.array([data['ni'+str(i)] for i in range(1,data['nion']+1)])
         print("2D plasma data not yet implemented for ASCOT4. "
               "Skipping 2D plasma input.")
@@ -151,10 +152,10 @@ def a4plasma(a4folder, h5fn):
         #                      np.zeros(data['rho'].shape),
         #                      data['ne'], data['te'], dens_i, data['ti1'])
 
-def a4erad(a4folder, h5fn):
+def read_erad(a4folder, h5fn):
     fname = a4folder + "input.erad"
     if (os.path.isfile(fname)):
-        data = read_erad(fname)
+        data = a4erad.read_erad(fname)
         # Make sure the input is linearly spaced. If not, interpolate
         tol = 1.0001
         diff = np.diff(data['rho'])
@@ -173,15 +174,15 @@ def a4erad(a4folder, h5fn):
         E = np.array([0, 0, 0])
         E_TC.write_hdf5(h5fn, E)
 
-def a4wall(a4folder, h5fn):
+def read_wall(a4folder, h5fn):
     fname = a4folder + "input.wall_2d"
     if (os.path.isfile(fname)):
-        data = read_wall_2d(fname)
+        data = a4wall_2d.read_wall_2d(fname)
         wall_2D.write_hdf5(h5fn, data['r'].size, data['r'], data['z'])
     fname   = a4folder + "input.wall_3d"
     fnameh5 = a4folder + "input.h5"
     if (os.path.isfile(fname)):
-        data = read_wall_3d(fname)
+        data = a4wall_3d.read_wall_3d(fname)
         wall_3D.write_hdf5(
             h5fn, data['id'].size, data['x1x2x3'],
             data['y1y2y3'], data['z1z2z3'], data['id'])
@@ -189,7 +190,7 @@ def a4wall(a4folder, h5fn):
         with h5py.File(fnameh5, 'r') as f:
             if (not "/wall" in f):
                 return
-        data = read_wall_3d_hdf5(fnameh5)
+        data = a4wall_3d.read_wall_3d_hdf5(fnameh5)
         wall_3D.write_hdf5(
             h5fn, data['id'].size, data['x1x2x3'],
             data['y1y2y3'], data['z1z2z3'], data['id'])
@@ -236,26 +237,26 @@ def run(a4folder, h5fn, overwrite=True):
         groups = f.keys()
 
     if overwrite or (not "markers" in groups):
-        a4markers(a4folder, h5fn)
+        read_markers(a4folder, h5fn)
 
     # Magnetic field.
     if overwrite or (not "bfield" in groups):
-        a4bfield(a4folder, h5fn)
+        read_bfield(a4folder, h5fn)
 
     # Plasma profiles.
     if overwrite or (not "plasma" in groups):
-        a4plasma(a4folder, h5fn)
+        read_plasma(a4folder, h5fn)
 
     # Electric field.
     if overwrite or (not "efield" in groups):
-        a4erad(a4folder, h5fn)
+        read_erad(a4folder, h5fn)
 
     # Neutral density
     if overwrite or (not "neutral" in groups):
         # No ASCOT4 neutral density
         N0 = np.array([ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ])
-        N0_3D.write_hdf5(h5fn, -1, 1, 2, -1, 1, 2, 0, 2*pi, 2, N0)
+        N0_3D.write_hdf5(h5fn, -1, 1, 2, -1, 1, 2, 0, 2*np.pi, 2, N0)
 
     # Wall.
     if overwrite or (not "wall" in groups):
-        a4wall(a4folder, h5fn)
+        read_wall(a4folder, h5fn)

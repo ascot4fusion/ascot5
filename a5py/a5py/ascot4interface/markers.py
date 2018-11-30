@@ -1,4 +1,3 @@
-from __future__ import print_function
 import numpy as np
 
 '''
@@ -61,7 +60,6 @@ def read_particles(fname):
         line = f.readline()
         headerLength += 1
         nComments = int(line.split()[0])
-        #print nComments
 
         comments=[]
         for i in range(0,nComments):
@@ -75,7 +73,6 @@ def read_particles(fname):
         line = f.readline()
         headerLength += 1
         nParticles = int(line.split()[0])
-        #print nParticles
 
         line = f.readline()
         headerLength += 1
@@ -83,7 +80,6 @@ def read_particles(fname):
         line = f.readline()
         headerLength += 1
         nFields = int(line.split()[0])
-        #print nFields
 
         fields = []
         for i in range(0,nFields):
@@ -93,8 +89,6 @@ def read_particles(fname):
 
         line = f.readline()
         headerLength += 1
-
-        #print headerLength
 
     # Read the actual data table
     # --------------------------

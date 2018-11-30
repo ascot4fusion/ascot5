@@ -1,6 +1,4 @@
-from scipy import *
 import numpy as np
-
 
 def read_plasma(fn):
     with open(fn,'r') as f:
@@ -27,7 +25,7 @@ def read_1d(fh):
     pls['nrho'] = nrho
     pls['nion'] = nion
     fh.readline() # ignore headers
-    data = loadtxt(fh)
+    data = np.loadtxt(fh)
     pls['rho'] = np.array(data[:,0])
     pls['te'] = np.array(data[:,1])
     pls['ne'] = np.array(data[:,2])
