@@ -348,7 +348,6 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->ada_tol_clmbcol      = offload_data->ada_tol_clmbcol;
     sim->ada_max_drho         = offload_data->ada_max_drho;
     sim->ada_max_dphi         = offload_data->ada_max_dphi;
-    sim->ada_max_acc          = offload_data->ada_max_acc;
 
     sim->enable_orbfol        = offload_data->enable_orbfol;
     sim->enable_clmbcol       = offload_data->enable_clmbcol;

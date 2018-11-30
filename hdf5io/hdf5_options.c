@@ -74,8 +74,6 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "ADAPTIVE_MAX_DPHI", &sim->ada_max_dphi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "ADAPTIVE_MAX_ACC", &sim->ada_max_acc,
-                         file, qid, __FILE__, __LINE__) ) {return 1;}
 
 
     if( hdf5_read_int(OPTPATH "ENABLE_ORBIT_FOLLOWING", &sim->enable_orbfol,
@@ -156,8 +154,6 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
                       &diag->distrho6D_collect,
                       file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(OPTPATH "ENABLE_ORBITWRITE", &diag->orb_collect,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "ENABLE_DEBUGDIST", &diag->debug_collect,
                       file, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Read individual diagnostics data */

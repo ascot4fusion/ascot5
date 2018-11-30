@@ -78,7 +78,6 @@ typedef struct {
                                     travel during single adaptive time-step   */
     real ada_max_dphi;         /**< Maximum phi distance marker is allowed to
                                     travel during single adaptive time-step   */
-    real ada_max_acc;          /**< Maximum acceleration factor               */
 
     /* Options - physics */
     int enable_orbfol;         /**< Is orbit-following enabled                */
@@ -147,7 +146,6 @@ typedef struct {
                                     travel during single adaptive time-step   */
     real ada_max_dphi;         /**< Maximum phi distance marker is allowed to
                                     travel during single adaptive time-step   */
-    real ada_max_acc;          /**< Maximum acceleration factor               */
 
     /* Options - physics */
     int enable_orbfol;         /**< Is orbit-following enabled                */

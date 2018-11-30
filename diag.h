@@ -14,7 +14,6 @@
 
 typedef struct {
     int orb_collect;
-    int debug_collect;
     int dist5D_collect;
     int dist6D_collect;
     int distrho5D_collect;
@@ -35,7 +34,6 @@ typedef struct {
 
 typedef struct {
     int diag_orb_collect;
-    int diag_debug_collect;
     int diag_dist5D_collect;
     int diag_dist6D_collect;
     int diag_distrho5D_collect;

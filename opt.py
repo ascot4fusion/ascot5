@@ -90,13 +90,6 @@ class opt():
     ADAPTIVE_MAX_DPHI = 1.0
 
 
-    ## Maximum acceleration factor
-    #
-    # @todo Not implemented
-    #
-    ADAPTIVE_MAX_ACC = 10.0
-
-
     #**************************************************************************#
     #*                             END CONDITIONS                             *#
     #*                                                                        *#
@@ -423,14 +416,6 @@ class opt():
     ORBITWRITE_LASTNPOINTS    = 100
 
 
-    ## Collect debug histograms:
-    #   - time-step distribution
-    #   - reason for time-step rejection distribution
-    #   - acceleration factor distribution
-    # @todo Not implemented
-    #
-    ENABLE_DEBUGDIST = 0
-
 def generateopt():
     """
     Converts options class to python dictionary.
@@ -463,7 +448,6 @@ def generateopt():
     f["ADAPTIVE_TOL_CCOL"]  = settype(f["ADAPTIVE_TOL_CCOL"],'f8')
     f["ADAPTIVE_MAX_DRHO"]  = settype(f["ADAPTIVE_MAX_DRHO"],'f8')
     f["ADAPTIVE_MAX_DPHI"]  = settype(f["ADAPTIVE_MAX_DPHI"],'f8')
-    f["ADAPTIVE_MAX_ACC"]   = settype(f["ADAPTIVE_MAX_ACC"],'f8')
 
     ## End conditions ##
     f["ENDCOND_SIMTIMELIM"] = settype(f["ENDCOND_SIMTIMELIM"],'i4')
@@ -552,9 +536,6 @@ def generateopt():
     f["ORBITWRITE_POLOIDALANGLES"] = settype(f["ORBITWRITE_POLOIDALANGLES"],'f8')
     f["ORBITWRITE_INTERVAL"]       = settype(f["ORBITWRITE_INTERVAL"],'f8')
     f["ORBITWRITE_LASTNPOINTS"]    = settype(f["ORBITWRITE_LASTNPOINTS"],'i4')
-
-    ## Debug options ##
-    f["ENABLE_DEBUGDIST"] = settype(f["ENABLE_DEBUGDIST"],'i4')
 
     return f
 

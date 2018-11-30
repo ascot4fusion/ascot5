@@ -101,7 +101,6 @@ void diag_free_offload(diag_offload_data* data, real** offload_array) {
  */
 void diag_init(diag_data* data, diag_offload_data* offload_data,
                real* offload_array) {
-    data->diag_debug_collect = offload_data->debug_collect;
     data->diag_orb_collect = offload_data->orb_collect;
     data->diag_dist5D_collect = offload_data->dist5D_collect;
     data->diag_dist6D_collect = offload_data->dist6D_collect;
@@ -143,10 +142,6 @@ void diag_update_fo(diag_data* d, diag_storage* ds, particle_simd_fo* p_f,
                            ds->Nlist, &d->orbits, p_f, p_i);
     }
 
-    if(d->diag_debug_collect) {
-        // Do nothing
-    }
-
     if(d->diag_dist5D_collect) {
         dist_5D_update_fo(&d->dist5D, p_f, p_i);
     }
@@ -172,10 +167,6 @@ void diag_update_gc(diag_data* d, diag_storage* ds, particle_simd_gc* p_f,
     if(d->diag_orb_collect) {
         diag_orb_update_gc(ds->particleId, ds->prevWriteTime, ds->nextN,
                            ds->Nlist, &d->orbits, p_f, p_i);
-    }
-
-    if(d->diag_debug_collect){
-        // Do nothing
     }
 
     if(d->diag_dist5D_collect){
@@ -205,10 +196,6 @@ void diag_update_ml(diag_data* d, diag_storage* ds, particle_simd_ml* p_f,
                            ds->Nlist, &d->orbits, p_f, p_i);
     }
 
-    if(d->diag_debug_collect) {
-        // Do nothing
-    }
-
     if(d->diag_dist5D_collect) {
         // Do nothing
     }
@@ -220,10 +207,6 @@ void diag_update_ml(diag_data* d, diag_storage* ds, particle_simd_ml* p_f,
  */
 void diag_sum(diag_data* d, real* array1, real* array2) {
     if(d->diag_orb_collect) {
-        // Do nothing
-    }
-
-    if(d->diag_debug_collect) {
         // Do nothing
     }
 
@@ -264,10 +247,6 @@ void diag_sum(diag_data* d, real* array1, real* array2) {
 void diag_clean(diag_data* d) {
     if(d->diag_orb_collect) {
         diag_orb_clean(&d->orbits);
-    }
-
-    if(d->diag_debug_collect) {
-    // Do nothing
     }
 
     if(d->diag_dist5D_collect) {
