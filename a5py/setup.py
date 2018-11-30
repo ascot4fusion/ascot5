@@ -25,5 +25,6 @@ setup(name='a5py',
         'bin/a5setactive',
         'bin/a5GUI',
         'bin/a5ls',
-        'bin/a5vol'
+        'bin/a5vol',
+        'bin/a5doxygen'
       ])
