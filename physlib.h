@@ -77,7 +77,7 @@
 * - \$fv\$f is velocity norm [m/s]
 */
 #define physlib_Ekin_vnorm(m, v) (                              \
-        ( physlib_gamma_vpar(v) - 1.0 ) * m * CONST_C2 )
+        ( physlib_gamma_vnorm(v) - 1.0 ) * m * CONST_C2 )
 
 /**
 * @brief Evaluate kinetic energy [J] from parallel velocity
@@ -90,7 +90,7 @@
 * - \$fv\$f is velocity norm [m/s]
 */
 #define physlib_Ekin_vpar(m, mu, vpar, B) (                             \
-        ( physlib_relfactor_vpar(m, mu, vpar, B) - 1.0 ) * m * CONST_C2 )
+        ( physlib_gamma_vpar(m, mu, vpar, B) - 1.0 ) * m * CONST_C2 )
 
 /**
 * @brief Evaluate guiding center parallel velocity [m/s] from velocity norm and pitch
@@ -133,7 +133,7 @@
 * - \$fB\$f is magnetic field norm [T]
 */
 #define physlib_gc_v(m, mu, vpar, B) ( sqrt( vpar * vpar +              \
-        2 * mu * B / ( m * physlib_gamma_vpar(m, mu, vpar, B) ) ) )
+        2 * mu * B / ( m * pow( physlib_gamma_vpar(m, mu, vpar, B), 2) ) ) )
 
 /**
 * @brief Evaluate guiding center pitch from parallel velocity and magnetic moment
@@ -150,7 +150,7 @@
 */
 #define physlib_gc_xi(m, mu, vpar, B) (                                 \
         vpar / sqrt( vpar * vpar +                                      \
-                     2 * mu * B / ( m * physlib_gamma_vpar(m, mu, vpar, B) ) ) )
+        2 * mu * B / ( m * pow( physlib_gamma_vpar(m, mu, vpar, B), 2 ) ) ) )
 
 /**
  * @brief Evaluate gyroradius [m] from velocity norm
