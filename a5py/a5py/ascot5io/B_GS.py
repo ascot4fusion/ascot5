@@ -12,7 +12,7 @@ import a5py.ascot5io.B_3D as B_3D
 from . ascot5group import creategroup
 
 def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
-               Nripple=0, a0=2, alpha0=2, delta0=0.05, psi0=None):
+               Nripple=0, a0=2, alpha0=2, delta0=0.05, psi0=None, desc=None):
     """
     Write analytical tokamak magnetic field input in HDF5 file.
 
@@ -66,7 +66,7 @@ def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = creategroup(f, mastergroup, subgroup, desc=desc)
 
         # TODO Check that inputs are consistent.
 
@@ -143,7 +143,7 @@ def read_hdf5(fn, qid):
 
 
 def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
-                    Rmin, Rmax, nR, zmin, zmax, nz, psi0=None):
+                    Rmin, Rmax, nR, zmin, zmax, nz, psi0=None, desc=None):
     """
     Write analytical tokamak magnetic fieldd as a 2D field input in HDF5 file.
 
@@ -191,13 +191,13 @@ def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
 
     B_2D.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
                     R0, z0, psiRz, psi0, psi1,
-                    Br, Bphi, Bz)
+                    Br, Bphi, Bz, desc=desc)
 
 
 def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
                     Nripple, a0, alpha0, delta0,
                     Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
-                    psi0=None):
+                    psi0=None, desc=None):
     """
     Write analytical tokamak magnetic field as a 3D field input in HDF5 file.
 
@@ -271,4 +271,4 @@ def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
 
     B_3D.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                     R0, z0, psiRz, psi0, psi1,
-                    Br, Bphi, Bz)
+                    Br, Bphi, Bz, desc=desc)

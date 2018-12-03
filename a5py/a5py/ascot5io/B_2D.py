@@ -8,7 +8,7 @@ from . ascot5group import creategroup
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
                axisR, axisz, psiRz, psiaxis, psisepx,
-               B_R, B_phi, B_z):
+               B_R, B_phi, B_z, desc=None):
     """
     Write 2DS magnetic field input in HDF5 file.
 
@@ -47,7 +47,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = creategroup(f, mastergroup, subgroup, desc=desc)
 
         # TODO Check that inputs are consistent.
 

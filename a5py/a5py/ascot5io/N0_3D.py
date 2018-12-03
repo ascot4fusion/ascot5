@@ -6,9 +6,10 @@ import h5py
 import random
 import datetime
 
-from . ascot5group import creategroup
+from . ascot5group import creategroup, setdescription
 
-def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0):
+def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0,
+               desc=None):
     """
     Write 3D neutral density input in HDF5 file.
 
@@ -43,7 +44,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0):
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = creategroup(f, mastergroup, subgroup, desc=desc)
 
         # Actual data.
         f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")
@@ -59,6 +60,8 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0):
         f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
 
         f.create_dataset(path + "/n0",   data=n0, dtype="f8")
+
+        setdescription(f, mastergroup, desc)
 
 
 def read_hdf5(fn):

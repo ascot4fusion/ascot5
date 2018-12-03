@@ -11,7 +11,8 @@ from . ascot5group import creategroup
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                axisR, axisz, psiRz, psiaxis, psisepx,
                B_R, B_phi, B_z,
-               pRmin=None, pRmax=None, pnR=None, pzmin=None, pzmax=None, pnz=None):
+               pRmin=None, pRmax=None, pnR=None, pzmin=None, pzmax=None,
+               pnz=None, desc=None):
     """
     Write 3DS magnetic field input in HDF5 file.
 
@@ -60,7 +61,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = creategroup(f, mastergroup, subgroup, desc=desc)
 
         # Transpose grids
         B_R = np.transpose(B_R,(1,0,2))

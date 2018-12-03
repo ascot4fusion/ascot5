@@ -21,6 +21,12 @@ def setactive(hdf5file, path):
     qid = path[-10:]
     hdf5file[mastergroup].attrs["active"] = np.string_(qid)
 
+def setactiveqid(hdf5file, mastergroup, qid):
+    """
+    Set given qid as active.
+    """
+    hdf5file[mastergroup].attrs["active"] = np.string_(qid)
+
 def generatemetadata():
     """
     Generate metadata
@@ -101,8 +107,7 @@ def setdescription(hdf5file, path, desc):
     """
     hdf5file[path].attrs["description"] = np.string_(desc)
 
-
-def creategroup(hdf5file, mastergroup, subgroup, desc="-"):
+def creategroup(hdf5file, mastergroup, subgroup, desc=None):
     """
     Create a new subgroup.
 
@@ -150,6 +155,9 @@ def creategroup(hdf5file, mastergroup, subgroup, desc="-"):
     hdf5file[path].attrs["date"] = np.string_(date)
 
     # Set description.
-    setdescription(hdf5file, path, desc)
+    if desc:
+        setdescription(hdf5file, path, desc)
+    else:
+        setdescription(hdf5file, path, "-")
 
     return path

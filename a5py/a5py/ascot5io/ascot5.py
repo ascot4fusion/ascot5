@@ -5,6 +5,8 @@ import numpy as np
 import h5py
 import datetime
 
+from . import ascot5group
+
 from . import B_2D
 from . import B_3D
 from . import B_ST
@@ -179,7 +181,7 @@ def write_hdf5(fn, a5):
 
 def get_qids(fn, group):
     """
-    Get all qids that are present in a group.
+    Get all qids that are present in a mastergroup.
 
     The qids are sorted with first one being the active one,
     and the rest are sorted by date from newest to oldest.
@@ -233,3 +235,28 @@ def get_qids(fn, group):
             dates[1:] = [datesraw[i] for i in reversed(idx)]
 
     return qids, dates
+
+def set_active(fn, mastergroup, qid):
+    """
+    Set given qid active in the qiven mastergroup
+    """
+    with h5py.File(fn,"a") as f:
+        ascot5group.setactiveqid(f, mastergroup, qid)
+
+def get_description(fn, mastergroup, qid):
+    """
+    Get description of a group.
+
+    Args:
+        fn:          str Name of the HDF5 file
+        mastergroup: str Master group where the requested group resides
+        qid        : str QID of group whose description is requested
+
+    Return:
+        str Description of a group
+    """
+    with h5py.File(fn,"r") as f:
+        for group in f[mastergroup]:
+            groupqid = group[-10:]
+            if groupqid == qid:
+                return "%s" % f[mastergroup][group].attrs["description"].decode('utf-8')

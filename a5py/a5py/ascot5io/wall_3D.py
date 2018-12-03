@@ -8,7 +8,7 @@ import datetime
 
 from . ascot5group import creategroup
 
-def write_hdf5(fn, n, x1x2x3, y1y2y3, z1z2z3, flag):
+def write_hdf5(fn, n, x1x2x3, y1y2y3, z1z2z3, flag, desc=None):
     """
     Write 3D wall input in HDF5 file.
 
@@ -30,7 +30,7 @@ def write_hdf5(fn, n, x1x2x3, y1y2y3, z1z2z3, flag):
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = creategroup(f, mastergroup, subgroup, desc=desc)
 
         # TODO Check that inputs are consistent.
 

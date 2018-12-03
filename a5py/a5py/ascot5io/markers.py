@@ -6,11 +6,11 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import creategroup
+from . ascot5group import creategroup, setdescription
 
 def write_hdf5_particles(fn, N, ids, mass, charge,
                          r, phi, z, vR, vphi, vz,
-                         weight, time):
+                         weight, time, desc=""):
     """
     Write particle marker input in hdf5 file.
 
@@ -69,10 +69,12 @@ def write_hdf5_particles(fn, N, ids, mass, charge,
         f.create_dataset(path + "/time",   data=time, dtype='f8').attrs['unit'] = 's';
         f.create_dataset(path + "/id",     data=ids, dtype='i8').attrs['unit'] = '1';
 
+        setdescription(f, mastergroup, desc)
+
 
 def write_hdf5_guidingcenters(fn, N, ids, mass, charge,
                               r, phi, z, energy, pitch, theta,
-                              weight, time):
+                              weight, time, desc=""):
     """
     Write guiding center marker input in hdf5 file.
 
@@ -130,8 +132,10 @@ def write_hdf5_guidingcenters(fn, N, ids, mass, charge,
         f.create_dataset(path + "/time",   data=time, dtype='f8').attrs['unit'] = 's';
         f.create_dataset(path + "/id",     data=ids, dtype='i8').attrs['unit'] = '1';
 
+        setdescription(f, mastergroup, desc)
 
-def write_hdf5_fieldlines(fn, N, ids, r, phi, z, pitch, weight, time):
+
+def write_hdf5_fieldlines(fn, N, ids, r, phi, z, pitch, weight, time, desc=""):
     """
     Write magnetic field line marker input in hdf5 file.
 
@@ -177,6 +181,8 @@ def write_hdf5_fieldlines(fn, N, ids, r, phi, z, pitch, weight, time):
         f.create_dataset(path + "/weight", data=weight, dtype='f8').attrs['unit'] = 'markers/s';
         f.create_dataset(path + "/time",   data=time, dtype='f8').attrs['unit'] = 's';
         f.create_dataset(path + "/id",     data=ids, dtype='i8').attrs['unit'] = '1';
+
+        setdescription(f, mastergroup, desc)
 
 
 def read_hdf5_particles(fn, qid):

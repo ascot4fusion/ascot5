@@ -4,9 +4,9 @@ Options IO.
 import h5py
 import numpy as np
 
-from . ascot5group import creategroup
+from . ascot5group import creategroup, setdescription
 
-def write_hdf5(fn, options):
+def write_hdf5(fn, options, desc=None):
     """
     Write options.
 
@@ -27,14 +27,15 @@ def write_hdf5(fn, options):
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = creategroup(f, mastergroup, subgroup, desc=desc)
 
         # TODO Check that inputs are consistent.
 
         # Actual data.
         for opt in options:
             if opt != "qid" and opt != "date" and opt != "description":
-                f.create_dataset(path + "/" + opt, (options[opt].size,), data=options[opt])
+                f.create_dataset(path + "/" + opt,
+                                 (options[opt].size,), data=options[opt])
 
 
 def read_hdf5(fn, qid):

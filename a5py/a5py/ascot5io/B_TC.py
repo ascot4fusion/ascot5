@@ -9,9 +9,9 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import creategroup
+from . ascot5group import creategroup, setdescription
 
-def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0):
+def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0, desc=None):
     """
     Write trivial cartesian magnetic field input in HDF5 file.
 
@@ -39,7 +39,7 @@ def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0):
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = creategroup(f, mastergroup, subgroup, desc=desc)
 
         # TODO Check that inputs are consistent.
         if psival == 0:

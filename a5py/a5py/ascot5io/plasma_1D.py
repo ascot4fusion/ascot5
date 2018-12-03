@@ -6,9 +6,10 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import creategroup
+from . ascot5group import creategroup, setdescription
 
-def write_hdf5(fn, Nrho, Nion, znum, anum, rho, edens, etemp, idens, itemp):
+def write_hdf5(fn, Nrho, Nion, znum, anum, rho, edens, etemp, idens, itemp,
+               desc=None):
     """
     Write 1D plasma input in HDF5 file.
 
@@ -42,7 +43,7 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rho, edens, etemp, idens, itemp):
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = creategroup(f, mastergroup, subgroup, desc=desc)
 
         # Check that input is valid
         if anum.size != Nion or znum.size != Nion:
