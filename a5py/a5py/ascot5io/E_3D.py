@@ -29,7 +29,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
 
     Notes
     -------
-    
+
     Rphiz coordinates form a right-handed cylindrical coordinates.
     phi is in degrees and is considered as a periodic coordinate.
     phimin is where the period begins and phimax is the last data point,
@@ -40,36 +40,34 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
 
     mastergroup = "efield"
     subgroup    = "E_3D"
-    
+
     # Create a group for this input.
-    f = h5py.File(fn, "a")
-    path = creategroup(f, mastergroup, subgroup)
+    with h5py.File(fn, "a") as f:
+        path = creategroup(f, mastergroup, subgroup)
 
-    # Transpose grids
-    E_R = np.transpose(E_R,(1,0,2))
-    E_phi = np.transpose(E_phi,(1,0,2))
-    E_z = np.transpose(E_z,(1,0,2))
-    
-    # TODO Check that inputs are consistent.
-    
-    # Actual data.
-    f.create_dataset(path + "/R_min", (1,), data=Rmin, dtype="f8")
-    f.create_dataset(path + "/R_max", (1,), data=Rmax, dtype="f8")
-    f.create_dataset(path + "/n_R", (1,),   data=nR, dtype="i8")
+        # Transpose grids
+        E_R = np.transpose(E_R,(1,0,2))
+        E_phi = np.transpose(E_phi,(1,0,2))
+        E_z = np.transpose(E_z,(1,0,2))
 
-    f.create_dataset(path + "/phi_min", (1,), data=phimin, dtype="f8")
-    f.create_dataset(path + "/phi_max", (1,), data=phimax, dtype="f8")
-    f.create_dataset(path + "/n_phi", (1,),   data=nphi, dtype="i8")
+        # TODO Check that inputs are consistent.
 
-    f.create_dataset(path + "/z_min", (1,), data=zmin, dtype="f8")
-    f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
-    f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
+        # Actual data.
+        f.create_dataset(path + "/R_min", (1,), data=Rmin, dtype="f8")
+        f.create_dataset(path + "/R_max", (1,), data=Rmax, dtype="f8")
+        f.create_dataset(path + "/n_R", (1,),   data=nR, dtype="i8")
 
-    f.create_dataset(path + "/E_R",   data=E_R,   dtype="f8")
-    f.create_dataset(path + "/E_phi", data=E_phi, dtype="f8")
-    f.create_dataset(path + "/E_z",   data=E_z,   dtype="f8")
+        f.create_dataset(path + "/phi_min", (1,), data=phimin, dtype="f8")
+        f.create_dataset(path + "/phi_max", (1,), data=phimax, dtype="f8")
+        f.create_dataset(path + "/n_phi", (1,),   data=nphi, dtype="i8")
 
-    f.close()
+        f.create_dataset(path + "/z_min", (1,), data=zmin, dtype="f8")
+        f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
+        f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
+
+        f.create_dataset(path + "/E_R",   data=E_R,   dtype="f8")
+        f.create_dataset(path + "/E_phi", data=E_phi, dtype="f8")
+        f.create_dataset(path + "/E_z",   data=E_z,   dtype="f8")
 
 
 def read_hdf5(fn,qid):
@@ -83,7 +81,7 @@ def read_hdf5(fn,qid):
         Full path to the HDF5 file.
     qid : str
         qid of the bfield to be read.
-    
+
 
     Returns
     -------
@@ -93,32 +91,29 @@ def read_hdf5(fn,qid):
 
     path = "efield" + "/E_3D-" + qid
 
-    f = h5py.File(fn,"r")
+    with h5py.File(fn,"r") as f:
+        out = {}
 
-    out = {}
+        # Metadata.
+        out["qid"] = qid
+        out["date"] = f[path].attrs["date"]
+        out["description"] = f[path].attrs["description"]
 
-    # Metadata.
-    out["qid"] = qid
-    out["date"] = f[path].attrs["date"]
-    out["description"] = f[path].attrs["description"]
-    
-    # Actual data.
-    out["R_min"] = f[path]["R_min"][:]
-    out["R_max"] = f[path]["R_max"][:]
-    out["n_R"]   = f[path]["n_R"][:]
+        # Actual data.
+        out["R_min"] = f[path]["R_min"][:]
+        out["R_max"] = f[path]["R_max"][:]
+        out["n_R"]   = f[path]["n_R"][:]
 
-    out["phi_min"] = f[path]["phi_min"][:]
-    out["phi_max"] = f[path]["phi_max"][:]
-    out["n_phi"]   = f[path]["n_phi"][:]
+        out["phi_min"] = f[path]["phi_min"][:]
+        out["phi_max"] = f[path]["phi_max"][:]
+        out["n_phi"]   = f[path]["n_phi"][:]
 
-    out["z_min"] = f[path]["z_min"][:]
-    out["z_max"] = f[path]["z_max"][:]
-    out["n_z"]   = f[path]["n_z"][:]
+        out["z_min"] = f[path]["z_min"][:]
+        out["z_max"] = f[path]["z_max"][:]
+        out["n_z"]   = f[path]["n_z"][:]
 
-    out["E_R"]   = f[path]["E_R"][:]
-    out["E_phi"] = f[path]["E_phi"][:]
-    out["E_z"]   = f[path]["E_z"][:]
-    
-    f.close()
+        out["E_R"]   = f[path]["E_R"][:]
+        out["E_phi"] = f[path]["E_phi"][:]
+        out["E_z"]   = f[path]["E_z"][:]
 
     return out

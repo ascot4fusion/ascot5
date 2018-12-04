@@ -18,16 +18,14 @@ def write_hdf5(fn, meta):
     """
     path = "metadata/"
 
-    f = h5py.File(fn,"a")
-        
-    # Remove group if one is already present.
-    if path in f:
-        del f[path]
-    f.create_group(path)
+    with h5py.File(fn,"a") as f:
+        # Remove group if one is already present.
+        if path in f:
+            del f[path]
+        f.create_group(path)
 
-    f.create_dataset(path + "meta", data=meta, dtype="S10")
+        f.create_dataset(path + "meta", data=meta, dtype="S10")
 
-    f.close()
 
 def read_hdf5(fn):
     """
@@ -44,14 +42,11 @@ def read_hdf5(fn):
 
     Dictionary containing metadata.
     """
-    
+
     path = "metadata/"
 
-    f = h5py.File(fn,"r")
-
-    out = {}
-    out["meta"] = f[path + "meta"][:]
-
-    f.close()
+    with h5py.File(fn,"r") as f:
+        out = {}
+        out["meta"] = f[path + "meta"][:]
 
     return out

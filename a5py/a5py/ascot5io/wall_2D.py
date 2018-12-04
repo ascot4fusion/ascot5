@@ -6,10 +6,10 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import creategroup
+from . ascot5group import creategroup, setdescription
 from . import wall_3D
 
-def write_hdf5(fn, n, R, z):
+def write_hdf5(fn, n, R, z, desc=None):
     """
     Write 2D wall input in HDF5 file.
 
@@ -34,16 +34,16 @@ def write_hdf5(fn, n, R, z):
     subgroup    = "wall_2D"
 
     # Create a group for this input.
-    f = h5py.File(fn, "a")
-    path = creategroup(f, mastergroup, subgroup)
+    with h5py.File(fn, "a") as f:
+        path = creategroup(f, mastergroup, subgroup, desc=desc)
 
-    # TODO Check that inputs are consistent.
+        # TODO Check that inputs are consistent.
 
-    f.create_dataset(path + "/n", (1,1), data=n, dtype='i4')
-    f.create_dataset(path + "/r", data=R, dtype='f8')
-    f.create_dataset(path + "/z", data=z, dtype='f8')
+        f.create_dataset(path + "/n", (1,1), data=n, dtype='i4')
+        f.create_dataset(path + "/r", data=R, dtype='f8')
+        f.create_dataset(path + "/z", data=z, dtype='f8')
 
-    f.close()
+        setdescription(f, mastergroup, desc)
 
 
 def read_hdf5(fn, qid):
@@ -66,25 +66,22 @@ def read_hdf5(fn, qid):
 
     path = "wall" + "/wall_2D-" + qid
 
-    f = h5py.File(fn,"r")
+    with h5py.File(fn,"r") as f:
+        out = {}
 
-    out = {}
+        # Metadata.
+        out["qid"]  = qid
+        out["date"] = f[path].attrs["date"]
+        out["description"] = f[path].attrs["description"]
 
-    # Metadata.
-    out["qid"]  = qid
-    out["date"] = f[path].attrs["date"]
-    out["description"] = f[path].attrs["description"]
-
-    # Actual data.
-    out["n"] = f[path]["n"][:]
-    out["R"] = f[path]["r"][:]
-    out["z"] = f[path]["z"][:]
-
-    f.close()
+        # Actual data.
+        out["n"] = f[path]["n"][:]
+        out["R"] = f[path]["r"][:]
+        out["z"] = f[path]["z"][:]
 
     return out
 
-def write_hdf5_3D(fn, n, R, z, nphi):
+def write_hdf5_3D(fn, n, R, z, nphi, desc=None):
 
     x1x2x3 = np.ones((2*n*nphi, 3))
     y1y2y3 = np.ones((2*n*nphi, 3))
@@ -110,4 +107,4 @@ def write_hdf5_3D(fn, n, R, z, nphi):
             z1z2z3[i-1 + 2*(j-1) + 1,:] = [ z[j], z[j-1], z[j-1] ]
 
     x1x2x3,y1y2y3 = pol2cart(p1p2p3, r1r2r3)
-    wall_3D.write_hdf5(fn, 2*n*nphi, x1x2x3, y1y2y3, z1z2z3, flag)
+    wall_3D.write_hdf5(fn, 2*n*nphi, x1x2x3, y1y2y3, z1z2z3, flag, desc=desc)

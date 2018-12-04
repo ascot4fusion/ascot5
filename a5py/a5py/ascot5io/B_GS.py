@@ -11,8 +11,8 @@ import a5py.ascot5io.B_3D as B_3D
 
 from . ascot5group import creategroup
 
-def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff, 
-               Nripple=0, a0=2, alpha0=2, delta0=0.05, psi0=None):
+def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
+               Nripple=0, a0=2, alpha0=2, delta0=0.05, psi0=None, desc=None):
     """
     Write analytical tokamak magnetic field input in HDF5 file.
 
@@ -40,7 +40,7 @@ def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
 
     Notes
     -------
-    
+
     For details of 2D field, see a5py.preprocessing.analyticfield.
 
     3D field consists of toroidal field ripple with Nripple toroidal
@@ -63,39 +63,38 @@ def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
 
     mastergroup = "bfield"
     subgroup    = "B_GS"
-    
+
     # Create a group for this input.
-    f = h5py.File(fn, "a")
-    path = creategroup(f, mastergroup, subgroup)
+    with h5py.File(fn, "a") as f:
+        path = creategroup(f, mastergroup, subgroup, desc=desc)
 
-    # TODO Check that inputs are consistent.
+        # TODO Check that inputs are consistent.
 
-    c = psi_coeff # For shorter notation.
+        c = psi_coeff # For shorter notation.
 
-    # search for magnetic axis if not given
-    if psi0 == None:
-        x = psifun.find_axis(R0, z0, c[0], c[1], c[2], c[3], c[4], c[5], c[6],
-            c[7], c[8], c[9], c[10], c[11], c[12])
-        psi0 = psi_mult*psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
-            c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
+        # search for magnetic axis if not given
+        if psi0 == None:
+            x = psifun.find_axis(R0, z0, c[0], c[1], c[2], c[3], c[4], c[5], c[6],
+                c[7], c[8], c[9], c[10], c[11], c[12])
+            psi0 = psi_mult*psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
+                c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
 
-    psi1 = 0 # At separatrix always
+        psi1 = 0 # At separatrix always
 
-    # 2D field data.
-    f.create_dataset(path + "/R0", (1,),        data=R0, dtype='f8')
-    f.create_dataset(path + "/z0", (1,),        data=z0, dtype='f8')
-    f.create_dataset(path + "/B_phi0", (1,),    data=B_phi0, dtype='f8')
-    f.create_dataset(path + "/psi0", (1,),      data=psi0, dtype='f8')
-    f.create_dataset(path + "/psi1", (1,),      data=psi1, dtype='f8')
-    f.create_dataset(path + "/psi_mult", (1,),  data=psi_mult, dtype='f8')
-    f.create_dataset(path + "/psi_coeff",       data=psi_coeff, dtype='f8')
+        # 2D field data.
+        f.create_dataset(path + "/R0", (1,),        data=R0, dtype='f8')
+        f.create_dataset(path + "/z0", (1,),        data=z0, dtype='f8')
+        f.create_dataset(path + "/B_phi0", (1,),    data=B_phi0, dtype='f8')
+        f.create_dataset(path + "/psi0", (1,),      data=psi0, dtype='f8')
+        f.create_dataset(path + "/psi1", (1,),      data=psi1, dtype='f8')
+        f.create_dataset(path + "/psi_mult", (1,),  data=psi_mult, dtype='f8')
+        f.create_dataset(path + "/psi_coeff",       data=psi_coeff, dtype='f8')
 
-    # 3D field data.
-    f.create_dataset(path + "/Nripple", (1,), data=Nripple, dtype='i8')
-    f.create_dataset(path + "/a0", (1,),      data=a0, dtype='f8')
-    f.create_dataset(path + "/alpha0", (1,),  data=alpha0, dtype='f8')
-    f.create_dataset(path + "/delta0", (1,),  data=delta0, dtype='f8')
-    f.close()
+        # 3D field data.
+        f.create_dataset(path + "/Nripple", (1,), data=Nripple, dtype='i8')
+        f.create_dataset(path + "/a0", (1,),      data=a0, dtype='f8')
+        f.create_dataset(path + "/alpha0", (1,),  data=alpha0, dtype='f8')
+        f.create_dataset(path + "/delta0", (1,),  data=delta0, dtype='f8')
 
 
 def read_hdf5(fn, qid):
@@ -118,36 +117,33 @@ def read_hdf5(fn, qid):
 
     path = "bfield" + "/B_GS-" + qid
 
-    f = h5py.File(fn,"r")
+    with h5py.File(fn,"r") as f:
+        out = {}
 
-    out = {}
+        # Metadata.
+        out["qid"]  = qid
+        out["date"] = f[path].attrs["date"]
+        out["description"] = f[path].attrs["description"]
 
-    # Metadata.
-    out["qid"]  = qid
-    out["date"] = f[path].attrs["date"]
-    out["description"] = f[path].attrs["description"]
+        # Actual data.
+        out["R0"]        = f[path]["R0"][:]
+        out["z0"]        = f[path]["z0"][:]
+        out["B_phi0"]    = f[path]["B_phi0"][:]
+        out["psi0"]      = f[path]["psi0"][:]
+        out["psi1"]      = f[path]["psi1"][:]
+        out["psi_mult"]  = f[path]["psi_mult"][:]
+        out["psi_coeff"] = f[path]["psi_coeff"][:]
 
-    # Actual data.
-    out["R0"]        = f[path]["R0"][:]
-    out["z0"]        = f[path]["z0"][:]
-    out["B_phi0"]    = f[path]["B_phi0"][:]
-    out["psi0"]      = f[path]["psi0"][:]
-    out["psi1"]      = f[path]["psi1"][:]
-    out["psi_mult"]  = f[path]["psi_mult"][:]
-    out["psi_coeff"] = f[path]["psi_coeff"][:]
-
-    out["Nripple"] = f[path]["Nripple"][:]
-    out["a0"]      = f[path]["a0"][:]
-    out["alpha0"]  = f[path]["alpha0"][:]
-    out["delta0"]  = f[path]["delta0"][:]
-
-    f.close()
+        out["Nripple"] = f[path]["Nripple"][:]
+        out["a0"]      = f[path]["a0"][:]
+        out["alpha0"]  = f[path]["alpha0"][:]
+        out["delta0"]  = f[path]["delta0"][:]
 
     return out
 
 
-def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, 
-                    Rmin, Rmax, nR, zmin, zmax, nz, psi0=None):
+def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
+                    Rmin, Rmax, nR, zmin, zmax, nz, psi0=None, desc=None):
     """
     Write analytical tokamak magnetic fieldd as a 2D field input in HDF5 file.
 
@@ -193,15 +189,15 @@ def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
 
     psi1 = 0
 
-    B_2D.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, 
-                    R0, z0, psiRz, psi0, psi1, 
-                    Br, Bphi, Bz)
+    B_2D.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
+                    R0, z0, psiRz, psi0, psi1,
+                    Br, Bphi, Bz, desc=desc)
 
 
-def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff, 
-                    Nripple, a0, alpha0, delta0, 
+def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
+                    Nripple, a0, alpha0, delta0,
                     Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
-                    psi0=None):
+                    psi0=None, desc=None):
     """
     Write analytical tokamak magnetic field as a 3D field input in HDF5 file.
 
@@ -273,8 +269,6 @@ def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     Bphi = np.transpose(Bphi,(0,2,1))
     Bz = np.transpose(Bz,(0,2,1))
 
-    B_3D.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, 
-                    R0, z0, psiRz, psi0, psi1, 
-                    Br, Bphi, Bz)
-    
-    
+    B_3D.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
+                    R0, z0, psiRz, psi0, psi1,
+                    Br, Bphi, Bz, desc=desc)

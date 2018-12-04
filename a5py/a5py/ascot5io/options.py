@@ -4,9 +4,9 @@ Options IO.
 import h5py
 import numpy as np
 
-from . ascot5group import creategroup
+from . ascot5group import creategroup, setdescription
 
-def write_hdf5(fn, options):
+def write_hdf5(fn, options, desc=None):
     """
     Write options.
 
@@ -24,19 +24,18 @@ def write_hdf5(fn, options):
 
     mastergroup = "options"
     subgroup    = "opt"
-    
-    # Create a group for this input.
-    f = h5py.File(fn, "a")
-    path = creategroup(f, mastergroup, subgroup)
-    
-    # TODO Check that inputs are consistent.
 
-    # Actual data.
-    for opt in options:
-        if opt != "qid" and opt != "date" and opt != "description":
-            f.create_dataset(path + "/" + opt, (options[opt].size,), data=options[opt])
-    
-    f.close()
+    # Create a group for this input.
+    with h5py.File(fn, "a") as f:
+        path = creategroup(f, mastergroup, subgroup, desc=desc)
+
+        # TODO Check that inputs are consistent.
+
+        # Actual data.
+        for opt in options:
+            if opt != "qid" and opt != "date" and opt != "description":
+                f.create_dataset(path + "/" + opt,
+                                 (options[opt].size,), data=options[opt])
 
 
 def read_hdf5(fn, qid):
@@ -56,23 +55,19 @@ def read_hdf5(fn, qid):
 
     Dictionary containing options.
     """
-    
+
     path = "options" + "/opt-" + qid
 
-    f = h5py.File(fn,"r")
+    with h5py.File(fn,"r") as f:
+        out = {}
 
-    out = {}
+        # Metadata.
+        out["qid"]  = qid
+        out["date"] = f[path].attrs["date"]
+        out["description"] = f[path].attrs["description"]
 
-    # Metadata.
-    out["qid"]  = qid
-    out["date"] = f[path].attrs["date"]
-    out["description"] = f[path].attrs["description"]
-
-    # Actual data.
-    for opt in f[path]:
-        out[opt] = f[path][opt][:]
-        
-
-    f.close()
+        # Actual data.
+        for opt in f[path]:
+            out[opt] = f[path][opt][:]
 
     return out

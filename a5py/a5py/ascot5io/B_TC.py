@@ -9,9 +9,9 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import creategroup
+from . ascot5group import creategroup, setdescription
 
-def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0):
+def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0, desc=None):
     """
     Write trivial cartesian magnetic field input in HDF5 file.
 
@@ -36,23 +36,22 @@ def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0):
 
     mastergroup = "bfield"
     subgroup    = "B_TC"
-    
+
     # Create a group for this input.
-    f = h5py.File(fn, "a")
-    path = creategroup(f, mastergroup, subgroup)
+    with h5py.File(fn, "a") as f:
+        path = creategroup(f, mastergroup, subgroup, desc=desc)
 
-    # TODO Check that inputs are consistent.
-    if psival == 0:
-        psival = rhoval
+        # TODO Check that inputs are consistent.
+        if psival == 0:
+            psival = rhoval
 
-    # Actual data.
-    f.create_dataset(path + "/Bxyz",         data=Bxyz,   dtype="f8")
-    f.create_dataset(path + "/J",            data=J,      dtype="f8")
-    f.create_dataset(path + "/rhoval", (1,), data=rhoval, dtype="f8")
-    f.create_dataset(path + "/psival", (1,), data=psival, dtype="f8")
-    f.create_dataset(path + "/axisr", (1,),  data=axisR,  dtype="f8")
-    f.create_dataset(path + "/axisz", (1,),  data=axisz,  dtype="f8")
-    f.close()
+        # Actual data.
+        f.create_dataset(path + "/Bxyz",         data=Bxyz,   dtype="f8")
+        f.create_dataset(path + "/J",            data=J,      dtype="f8")
+        f.create_dataset(path + "/rhoval", (1,), data=rhoval, dtype="f8")
+        f.create_dataset(path + "/psival", (1,), data=psival, dtype="f8")
+        f.create_dataset(path + "/axisr", (1,),  data=axisR,  dtype="f8")
+        f.create_dataset(path + "/axisz", (1,),  data=axisz,  dtype="f8")
 
 
 def read_hdf5(fn, qid):
@@ -75,23 +74,20 @@ def read_hdf5(fn, qid):
 
     path = "bfield" + "/B_TC-" + qid
 
-    f = h5py.File(fn,"r")
+    with h5py.File(fn,"r") as f:
+        out = {}
 
-    out = {}
+        # Metadata.
+        out["qid"]  = qid
+        out["date"] = f[path].attrs["date"]
+        out["description"] = f[path].attrs["description"]
 
-    # Metadata.
-    out["qid"]  = qid
-    out["date"] = f[path].attrs["date"]
-    out["description"] = f[path].attrs["description"]
-
-    # Actual data.
-    out["Bxyz"]   = f[path]["Bxyz"][:]
-    out["J"]      = f[path]["J"][:]
-    out["rhoval"] = f[path]["rhoval"][:]
-    out["psival"] = f[path]["psival"][:]
-    out["axisR"]  = f[path]["axisr"][:]
-    out["axisz"]  = f[path]["axisz"][:]
-
-    f.close()
+        # Actual data.
+        out["Bxyz"]   = f[path]["Bxyz"][:]
+        out["J"]      = f[path]["J"][:]
+        out["rhoval"] = f[path]["rhoval"][:]
+        out["psival"] = f[path]["psival"][:]
+        out["axisR"]  = f[path]["axisr"][:]
+        out["axisz"]  = f[path]["axisz"][:]
 
     return out
