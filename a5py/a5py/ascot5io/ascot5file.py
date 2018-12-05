@@ -74,11 +74,17 @@ def set_active(f, group):
     Raise:
         ValueError if the group or its parent does not exist.
     """
-    mastergroup = hdf5file[path].parent.name
-    qid = path[-10:]
-    hdf5file[mastergroup].attrs["active"] = np.string_(qid)
 
-    raise ValueError("Requested group does not exist.")
+    if(str(group) == group):
+        qid = get_qid(group)
+        grp = get_group(f, qid)
+        if grp is None:
+            raise ValueError("Could not find group" + group)
+        else:
+            group = grp
+
+    qid = get_qid(group)
+    group.parent.attrs["active"] = np.string_(qid)
 
 def get_active(f, parent):
     """
@@ -95,7 +101,19 @@ def get_active(f, parent):
         ValueError if the parent or the active group does not exist.
     """
 
-    raise ValueError("Requested group does not exist.")
+    if str(parent) == parent:
+        if parent in f:
+            parent = f[parent]
+        else:
+            raise ValueError("Parent " + parent + " does not exist.")
+
+    qid = parent.attrs["active"].decode('utf-8')
+    group = get_group(f, qid)
+
+    if group == None:
+        raise ValueError("Active group does not exist.")
+    else:
+        return group
 
 def set_activeqid(f, qid):
     """
@@ -103,14 +121,14 @@ def set_activeqid(f, qid):
 
     Args:
         f: h5py file.
-        parent: Parent's name.
+        qid: Group's QID.
 
     Raise:
         ValueError if a group with given QID does not exist.
     """
-    hdf5file[mastergroup].attrs["active"] = np.string_(qid)
 
-    raise ValueError("Requested group does not exist.")
+    group = get_group(f, qid)
+    set_active(f, group)
 
 def get_activeqid(f, parent):
     """
@@ -127,7 +145,16 @@ def get_activeqid(f, parent):
         ValueError if parent or active group does not exist.
     """
 
-    raise ValueError("Requested group does not exist.")
+    # Check the group exists and access it.
+    if(str(group) == group):
+        qid = get_qid(group)
+        grp = get_group(f, qid)
+        if grp is None:
+            raise ValueError("Could not find group" + group)
+        else:
+            group = grp
+
+    return group.attrs["description"].decode('utf-8')
 
 
 def set_desc(f, group, desc):
@@ -142,7 +169,16 @@ def set_desc(f, group, desc):
     Raise:
         ValueError if group does not exist.
     """
-    hdf5file[path].attrs["description"] = np.string_(desc)
+    # Check the group exists and access it.
+    if(str(group) == group):
+        qid = get_qid(group)
+        grp = get_group(f, qid)
+        if grp is None:
+            raise ValueError("Could not find group" + group)
+        else:
+            group = grp
+
+    group.attrs["description"] = np.string_(desc)
 
 def get_desc(f, group):
     """
@@ -159,6 +195,43 @@ def get_desc(f, group):
         ValueError if group does not exist.
     """
 
+    # Check the group exists and access it.
+    if(str(group) == group):
+        qid = get_qid(group)
+        grp = get_group(f, qid)
+        if grp is None:
+            raise ValueError("Could not find group" + group)
+        else:
+            group = grp
+
+    return group.attrs["description"].decode('utf-8')
+
+def _set_date(f, group, date):
+    """
+    Set group date.
+
+    Note that this function should only be called when the group is created.
+
+    Args:
+        f: h5py file.
+        group: Either the group's name or its h5py group.
+        date: Date as a string in a YYYY-MM-DD hh:mm:ss format.
+
+    Raise:
+        ValueError if group does not exist.
+    """
+
+    # Check the group exists and access it.
+    if(str(group) == group):
+        qid = get_qid(group)
+        grp = get_group(f, qid)
+        if grp is None:
+            raise ValueError("Could not find group" + group)
+        else:
+            group = grp
+
+    group.attrs["date"] = np.string_(date)
+
 def get_date(f, group):
     """
     Get date (as a string) in a YYYY-MM-DD hh:mm:ss format.
@@ -174,6 +247,17 @@ def get_date(f, group):
         ValueError if group does not exist.
     """
 
+    # Check the group exists and access it.
+    if(str(group) == group):
+        qid = get_qid(group)
+        grp = get_group(f, qid)
+        if grp is None:
+            raise ValueError("Could not find group" + group)
+        else:
+            group = grp
+
+    return group.attrs["date"].decode('utf-8')
+
 def get_qid(group):
     """
     Get QID from a given group or from its name.
@@ -187,6 +271,79 @@ def get_qid(group):
     Raise:
         ValueError if group does not have a valid QID.
     """
+    if(str(group) != group):
+        group = group.name
+
+    if len(group) > 10:
+        qid = group[-10:]
+        if qid.isdigit():
+            # Seems like a valid QID
+            return qid
+
+    # Not a valid QID
+    raise ValueError(group + " is not a valid QID.")
+
+def get_group(f, qid):
+    """
+    Scan the file and return the group the QID correspons to.
+
+    Args:
+        f: h5py file.
+        qid: QID string.
+
+    Returns:
+        h5py group or None if the group was not present.
+    """
+
+    for parent in f.keys():
+        for group in f[parent].keys():
+            if qid in group:
+                return f[parent][group]
+
+    return None
+
+def get_inputqids(f, rungroup):
+    """
+    Get all QIDs that tell which input was used in the given run group.
+
+    The QIDs are returned as list, where the order is
+
+    0. options
+    1. bfield
+    2. efield
+    3. marker
+    4. plasma
+    5. neutral
+    6. wall
+
+    Args:
+        f: h5py file.
+        rungroup: Either the run group's name or its h5py group.
+    Returns:
+        A list of QID strings.
+    Raise:
+        ValueError if run group does not exist.
+    """
+
+    # Check the group exists and access it.
+    if(str(rungroup) == rungroup):
+        qid = get_qid(rungroup)
+        grp = get_group(f, qid)
+        if grp is None:
+            raise ValueError("Could not find group" + rungroup)
+        else:
+            rungroup = grp
+
+    qids = [];
+    qids.append( rungroup.attrs["qid_options"].decode('utf-8') )
+    qids.append( rungroup.attrs["qid_bfield"].decode('utf-8')  )
+    qids.append( rungroup.attrs["qid_efield"].decode('utf-8')  )
+    qids.append( rungroup.attrs["qid_marker"].decode('utf-8')  )
+    qids.append( rungroup.attrs["qid_plasma"].decode('utf-8')  )
+    qids.append( rungroup.attrs["qid_neutral"].decode('utf-8') )
+    qids.append( rungroup.attrs["qid_wall"].decode('utf-8')    )
+
+    return qids
 
 def add_group(f, parent, group, desc=None):
     """
@@ -197,38 +354,34 @@ def add_group(f, parent, group, desc=None):
     Args:
         f: h5py file.
         parent: Either the parent's name or its h5py group.
-        group: Name of the group.
+        group: Name of the group (without QID of course).
         desc: optional, Description for the group.
 
-    Raise:
-        ValueError if group does not have a valid QID.
+    Returns:
+        h5py group of the new group.
     """
 
-    # Crete a mastergroup if one does not exists yet.
-    if not mastergroup in hdf5file:
-        hdf5file.create_group(mastergroup)
+    # Create a parent if one does not exists yet.
+    if str(parent) == parent:
+        parent = f.require_group(parent)
 
-    # Generate metadata and include qid in subgroup's name.
-    qid, date = generatemetadata()
-    subgroup = subgroup + "-" + qid
+    # Generate metadata and include qid in group's name.
+    qid, date, defdesc = _generate_meta()
+    group = group + "-" + qid
+    if desc == None:
+        desc = defdesc
 
-    # Create subgroup and set it as the active group
-    hdf5file[mastergroup].create_group(subgroup)
-    hdf5file[mastergroup].attrs["active"] = np.string_(qid)
+    # Create group and set it as the active group if it is the only group.
+    # Also set date and description.
+    parent.create_group(group)
+    set_desc(f, group, desc)
+    _set_date(f, group, date)
 
-    # Path to new group.
-    path = mastergroup + "/" + subgroup
+    if len(parent.keys()) == 1:
+        set_active(f, parent, qid)
 
-    # Set date.
-    hdf5file[path].attrs["date"] = np.string_(date)
+    return get_group(f, qid)
 
-    # Set description.
-    if desc:
-        setdescription(hdf5file, path, desc)
-    else:
-        setdescription(hdf5file, path, "-")
-
-    return path
 
 def remove_group(f, group):
     """
@@ -245,18 +398,44 @@ def remove_group(f, group):
         group: Either the group's name or its h5py group.
 
     Raise:
-        ValueError if group does not have a valid QID.
+        ValueError if group could not be found.
     """
 
-    if path in hdf5file:
-        del hdf5file[path]
+    # Check the group exists and access it.
+    if(str(group) == group):
+        qid = get_qid(group)
+        grp = get_group(f, qid)
+        if grp is None:
+            raise ValueError("Could not find group " + group)
+        else:
+            group = grp
+
+    # Remove the group
+    parent = group.parent
+    was_active = get_active(f, parent) == group
+    del f[group.name]
+
+    # Set next group active (if removed group was) or remove the parent if no
+    # other groups exist
+    if was_active:
+        if len(parent.keys()) == 0:
+            del f[parent.name]
+        else:
+            date = "0"
+            for grp in parent:
+                grpdate = get_date(f, grp)
+                if grpdate > date:
+                    date  = grpdate
+                    group = grp
+
+            set_active(f, group)
 
 def copy_group(fs, ft, group):
     """
     Copy group from one file to another. A parent is also created if need be.
 
     The new group is set as active if the parent on the target file has no other
-    groups.
+    groups. The copied group retains its original QID and date of creation.
 
     Args:
         fs: h5py file from which group is copied.
@@ -264,19 +443,30 @@ def copy_group(fs, ft, group):
         group: Either the group's name or its h5py group.
 
     Raise:
-        ValueError if group does not have a valid QID.
+        ValueError if group cannot be found or if it exists on the target file.
     """
 
-    # Create target mastergroup if none exists.
-    mastergroup = hdf5fs[path].parent.name
-    group_id = hdf5ft.require_group(mastergroup)
+    # Check the group exists and access it.
+    if(str(group) == group):
+        qid = get_qid(group)
+        grp = get_group(fs, qid)
+        if grp is None:
+            raise ValueError("Could not find group " + group)
+        else:
+            group = grp
 
-    # Copy
-    hdf5fs.copy(path, group_id)
+    # Create target parent if none exists.
+    parentname = group.parent.name
 
-    # Set as active
-    qid = path[-10:]
-    hdf5fs[mastergroup].attrs["active"] = np.string_(qid)
+    if group in ft:
+        raise ValueError("Target already has the group " + group)
+
+    newparent  = ft.require_group(parentname)
+
+    # Copy and set active
+    fs.copy(group.name, newparent)
+    if(len(newparent)) == 1:
+        set_active(ft, group.name)
 
 def _generate_meta():
     """
@@ -299,7 +489,7 @@ def _generate_meta():
     date = str(datetime.datetime.now())
 
     # Last digits are milliseconds which we don't need
-    date = date[0:20]
+    date = date[0:19]
 
     desc = "No description."
 
