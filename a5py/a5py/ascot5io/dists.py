@@ -1,5 +1,7 @@
 """
 Distribution HDF5 IO module.
+
+File: dists.py
 """
 import numpy as np
 import h5py

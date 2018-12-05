@@ -1,5 +1,7 @@
 """
 Non-axisymmetric tokamak magnetic field HDF5 IO
+
+File: E_3D.py
 """
 import numpy as np
 import h5py

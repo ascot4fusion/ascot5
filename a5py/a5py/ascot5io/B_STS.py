@@ -1,5 +1,7 @@
 """
 Stellarator magnetic field IO.
+
+File: B_STS.py
 """
 import numpy as np
 import h5py

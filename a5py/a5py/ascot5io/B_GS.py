@@ -1,5 +1,7 @@
 """
 Analytic tokamak field HDF5 IO.
+
+File: B_GS.py
 """
 import numpy as np
 import h5py

@@ -1,7 +1,10 @@
 """
 Trivial cartesian electric field IO.
+
 The trivial cartesian electric field is a constant
 electric field defined in cartesian coordinates.
+
+File: E_TC.py
 """
 import h5py
 import numpy as np

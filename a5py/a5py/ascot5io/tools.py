@@ -1,5 +1,7 @@
 """
 Tools to modify HDF5 files.
+
+File: tools.py
 """
 import numpy as np
 import h5py

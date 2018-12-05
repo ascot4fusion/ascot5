@@ -1,5 +1,7 @@
 """
 Options IO.
+
+File: options.py
 """
 import h5py
 import numpy as np

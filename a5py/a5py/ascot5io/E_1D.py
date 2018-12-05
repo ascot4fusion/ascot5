@@ -1,5 +1,7 @@
 """
 Radial electric field IO.
+
+File: E_1D.py
 """
 import h5py
 import numpy as np

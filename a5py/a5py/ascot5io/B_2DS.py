@@ -1,5 +1,7 @@
 """
 Axisymmetric magnetic field HDF5 IO
+
+File: B_2DS.py
 """
 import numpy as np
 import h5py

@@ -1,5 +1,7 @@
 """
 Plasma 1DS IO.
+
+File: plasma_1DS.py
 """
 import h5py
 import numpy as np

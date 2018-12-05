@@ -1,8 +1,11 @@
 """
 Trivial Cartesian magnetic field HDF5 IO.
+
 TC is magnetic field with constant Jacobian matrix. The field is
 defined in terms of cartesian coordinates so it does not support
 all ASCOT5 features, and is only intended for debugging.
+
+File: B_TC.py
 """
 import h5py
 import numpy as np

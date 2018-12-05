@@ -1,262 +1,499 @@
 """
 Main module for reading ASCOT5 HDF5 files.
+
+To use this module, initialize an Ascot object as
+>a5 = ascot5.Ascot("/path/to/ascot_hdf5_file.h5")
+
+This object acts as an container object or Matlab-like struct, meaning one can
+use it to inspect the Ascot HDF5 file e.g. as
+>a5.bfield.B_2D_1234567890
+
+or, equivalently,
+>a5["bfield"]["B_2D_1234567890"]
+
+One can also access the simulation results e.g. as
+>a5.run_1234567890["orbits"]
+
+The lowest level objects in the hierarchy are objects that represents that
+specific type of input or output, each with their own methods. These methods can
+be used e.g. as
+>a5["bfield"]["B_2D_1234567890"].plot_fluxsurfaces()
+
+or
+>a5.run_1234567890["orbits"].plot_2D("R", "z", endstate="wall")
+
+The lowest level objects contain no data, but they can read the data that is
+stored in the HDF5 file. To read the data into a Python dictionary, call
+>a5.run_1234567890["inistate"].read()
+
+The intermediate and top level objects (i.e. a5, a5.bfield, a5.run_1234567890 in
+the examples above) are node-objects that are only used to navigate the HDF5
+file. As such they only contain metadata and have no access to the HDF5 file
+once the ascot5.Ascot object has been initialized.
+
+The top level node contains input master groups (bfield, efield, options,
+neutral, marker, plasma, and wall) and the run groups that hold simulation
+results.
+
+There are several ways to use the ascot5.Ascot object to navigate. One can refer
+to the active run as
+>a5.active
+
+or active input field as
+>a5.bfield.active
+
+These examples also work with dictionary-like reference but here we use only the
+attribute-like referencing for brevity.
+
+To get the input field that was active in the given run:
+>a5.active.bfield
+
+QID of the active field
+>a5.bfield.activeqid
+
+Use QID as a reference to the field
+>a5.bfield.q1234567890
+
+List of QIDs of all fields
+>a5.bfield.qids
+
+The list is ordered so that the first item is active qid and the rest are sorted
+by date they were created from newest to oldest. You can use the index at which
+the field appears in this list to reference it, so you can e.g. refer to the
+active field as
+>a5.bfield[0]
+
+You can even use field description to refer to it
+>a5.That_PRL_run
+
+However, there are few rules to this:
+- If the description is over 20 characters long, only the first 20 characters
+  are used in referencing.
+- Spaces and hyphens are turned to underscores and dots are removed. Avoid using
+  any special characters.
+- If two or more fields have identical descriptions (like the default _), there
+  is no quarantee to which one the description refers to.
+
+Finally, you can print the contents of a node with
+>a5.ls
+
+Note: Methods and functions in this module cannot be used to modify the data in
+the HDF5 file. You can (if you try hard enough) modify the object and its
+attributes but then you are modifying only the object and not the HDF5 file. If
+you do modify the attributes, then the functionality of this module is no longer
+quaranteed. However, you can always re-initialize the object from the HDF5 file.
+
+File: ascot5.py
 """
-import numpy as np
+
 import h5py
-import datetime
 
-from . import ascot5group
+from . ascot5file import get_qid, get_activeqid, get_desc, get_date
 
-from . import B_2D
-from . import B_3D
-from . import B_ST
-from . import B_TC
-from . import B_GS
+## How many characters are used in description based reference
+__MAX_DESC = 0
 
-from . import E_TC
-from . import E_1D
-from . import E_3D
+class AscotData():
 
-from . import wall_2D
-from . import wall_3D
+    def __init__():
+        self._file = hdf5.filename
+        self._path = hdf5.path
+        self._open = 0
 
-from . import plasma_1D
-
-from . import metadata
-
-from . import markers
-
-from . import options
-
-from . import orbits
-from . import dists
-from . import states
-
-def read_hdf5(fn, groups="all"):
-    """
-    Read all or specified data groups that are present in ASCOT5 HDF5 file.
-
-    Parameters
-    ----------
-
-    fn : str
-        Full path to the HDF5 file to be read.
-    groups: str list, optional
-        List of groups to be read. Default is all.
-
-    Returns
-    -------
-
-    Dictionary filled with data. Structure is similar as
-    the HDF5 file.
-    """
-
-    if groups == "all":
-        groups = ["bfield", "efield", "options", "wall", "plasma",
-                  "marker", "metadata", "states", "orbits", "dists",
-                  "results"]
-
-    with h5py.File(fn, "r") as f:
-        # Read the requested input if present.
-        out = {}
-
-        out["options"] = {}
-        if "options" in f and "options" in groups:
-            qids,dates = get_qids(fn, "options")
-            for qid in qids:
-                out["options"]["opt-"+qid] = options.read_hdf5(fn,qid)
-
-        out["bfield"] = {}
-        if "bfield" in f and "bfield" in groups:
-            qids,dates = get_qids(fn, "bfield")
-            for qid in qids:
-                if ("B_2DS-"+qid) in f["bfield"]:
-                    out["bfield"]["B_2DS-"+qid] = B_2D.read_hdf5(fn,qid)
-                if ("B_3DS-"+qid) in f["bfield"]:
-                    out["bfield"]["B_3DS-"+qid] = B_3D.read_hdf5(fn,qid)
-                if ("B_TC-"+qid) in f["bfield"]:
-                    out["bfield"]["B_TC-"+qid]  = B_TC.read_hdf5(fn,qid)
-                if ("B_GS-"+qid) in f["bfield"]:
-                    out["bfield"]["B_GS-"+qid]  = B_GS.read_hdf5(fn,qid)
-                if ("B_ST-"+qid) in f["bfield"]:
-                    out["bfield"]["B_ST-"+qid]  = B_ST.read_hdf5(fn,qid)
-
-        out["efield"] = {}
-        if "efield" in f and "efield" in groups:
-            qids,dates = get_qids(fn, "efield")
-            for qid in qids:
-                if ("E_1D-"+qid) in f["efield"]:
-                    out["efield"]["E_1D-"+qid] = E_1D.read_hdf5(fn,qid)
-                if ("E_TC-"+qid) in f["efield"]:
-                    out["efield"]["E_TC-"+qid] = E_TC.read_hdf5(fn,qid)
-                if ("E_3D-"+qid) in f["efield"]:
-                    out["efield"]["E_3D-"+qid] = E_3D.read_hdf5(fn,qid)
-
-        out["wall"] = {}
-        if "wall" in f and "wall" in groups:
-            qids,dates = get_qids(fn, "wall")
-            for qid in qids:
-                if ("wall_2D-"+qid) in f["wall"]:
-                    out["wall"]["wall_2D-"+qid] = wall_2D.read_hdf5(fn,qid)
-                if ("wall_3D-"+qid) in f["wall"]:
-                    out["wall"]["wall_3D-"+qid] = wall_3D.read_hdf5(fn,qid)
-
-        out["plasma"] = {}
-        if "plasma" in f and "plasma" in groups:
-            qids,dates = get_qids(fn, "plasma")
-            for qid in qids:
-                if ("plasma_1D-"+qid) in f["plasma"]:
-                    out["plasma"]["plasma_1D-"+qid] = plasma_1D.read_hdf5(fn,qid)
-
-        out["marker"] = {}
-        if "marker" in f and "marker" in groups:
-            qids,dates = get_qids(fn, "marker")
-            for qid in qids:
-                if ("particle-"+qid) in f["marker"]:
-                    out["marker"]["particle-"+qid]       = markers.read_hdf5_particles(fn, qid)
-                if ("guiding_center-"+qid) in f["marker"]:
-                    out["marker"]["guiding_center-"+qid] = markers.read_hdf5_guidingcenters(fn, qid)
-                if ("field_line-"+qid) in f["marker"]:
-                    out["marker"]["field_line-"+qid]     = markers.read_hdf5_fieldlines(fn, qid)
-
-        out["metadata"] = {}
-        if "metadata" in f and "metadata" in groups:
-            out["metadata"] = metadata.read_hdf5(fn)
-
-        if "results" in f and "results" in groups:
-            qids,dates = get_qids(fn, "results")
-            for qid in qids:
-                if not "results" in out:
-                    out["results"] = {}
-
-                path = "run-"+qid
-                out["results"][path] = {}
-
-                # Metadata.
-                out["results"][path]["qid"]  = qid
-                out["results"][path]["date"] = f["results"][path].attrs["date"]
-                out["results"][path]["description"] = f["results"][path].attrs["description"]
-
-                out["results"][path]["qid_bfield"]  = f["results"][path].attrs["qid_bfield"]
-                out["results"][path]["qid_efield"]  = f["results"][path].attrs["qid_efield"]
-                out["results"][path]["qid_marker"]  = f["results"][path].attrs["qid_marker"]
-                out["results"][path]["qid_options"] = f["results"][path].attrs["qid_options"]
-                out["results"][path]["qid_plasma"]  = f["results"][path].attrs["qid_plasma"]
-                out["results"][path]["qid_wall"]    = f["results"][path].attrs["qid_wall"]
-
-                # Actual data
-                if "inistate" in f["results"][path] and "results" in groups:
-                    st = states.read_hdf5(fn,qid,["inistate"])
-                    out["results"][path]["inistate"] = st["inistate"]
-                if "endstate" in f["results"][path] and "results" in groups:
-                    st = states.read_hdf5(fn,qid,["endstate"])
-                    out["results"][path]["endstate"] = st["endstate"]
-                if "dists" in f["results"][path] and "results" in groups:
-                    out["results"][path]["dists"] = dists.read_hdf5(fn,qid)
-                if "orbits" in f["results"][path] and "results" in groups:
-                    out["results"][path]["orbits"] = orbits.read_hdf5(fn,qid)
-
-    return out
-
-
-def write_hdf5(fn, a5):
-    """
-    Generate ASCOT5 HDF5 file.
-
-    TODO implement
-
-    Parameters
-    ----------
-
-    fn : str
-        Full path to HDF5 file.
-    a5 : dictionary
-        ASCOT5 HDF5 file in dictionary format (as given by the
-        read_hdf5 function).
-    """
-
-    with h5py.File(fn,"a") as f:
+    def get_desc():
         pass
 
+    def get_qid():
+        pass
 
-def get_qids(fn, group):
+    def access():
+        pass
+
+    def _open():
+        pass
+
+    def _close():
+        pass
+
+def _create_input_group(type_, group):
     """
-    Get all qids that are present in a mastergroup.
+    Create an instance that represents the given input data.
 
-    The qids are sorted with first one being the active one,
-    and the rest are sorted by date from newest to oldest.
-
-    Parameters
-    ----------
-
-    fn : str
-        Full path to HDF5 file.
-    group : str
-        The group from which qids are extracted.
-    Return
-    ----------
-
-    qids : str array
-        Sorted qids as strings.
-    dates : str array
-        Dates associated with qids.
-    """
-
-    with h5py.File(fn,"r") as f:
-        group = f[group]
-
-        # Find all qids and note the date when they were created.
-        qidsraw = []
-        datesraw = []
-        for grp in group:
-            qidsraw.append(grp[-10:])
-            datesraw.append(group[grp].attrs["date"])
-
-        #print(datetime.datetime.strptime(datesraw[0].decode('utf-8'), "%Y-%m-%d %H:%M:%S."))
-        qids  = [None]*len(qidsraw)
-        dates = [None]*len(qidsraw)
-
-        # If qids exist, we sort them.
-        if len(qidsraw) > 0:
-            # The first qid is supposed to be the one that is active.
-            if group.attrs["active"].decode('utf-8') in qidsraw:
-                qids[0] = group.attrs["active"].decode('utf-8')
-
-                # Remove associated date.
-                dates[0] = datesraw[qidsraw.index(qids[0])]
-                datesraw.remove(dates[0])
-                qidsraw.remove(qids[0])
-
-            # Sort by date
-            temp = [datetime.datetime.strptime(d.decode('utf-8')[:19], "%Y-%m-%d %H:%M:%S") for d in datesraw]
-            idx = sorted(range(len(temp)), key=lambda k: temp[k])
-
-            qids[1:] = [qidsraw[i] for i in reversed(idx)]
-            dates[1:] = [datesraw[i] for i in reversed(idx)]
-
-    return qids, dates
-
-def set_active(fn, mastergroup, qid):
-    """
-    Set given qid active in the qiven mastergroup
-    """
-    with h5py.File(fn,"a") as f:
-        ascot5group.setactiveqid(f, mastergroup, qid)
-
-def get_description(fn, mastergroup, qid):
-    """
-    Get description of a group.
+    This function is called for all input fields when ascot5.Ascot object is
+    initialized. These objects should be light-weight when they are initialized
+    and all actual input data reading should be left to be done once the methods
+    of these objects are called.
 
     Args:
-        fn:          str Name of the HDF5 file
-        mastergroup: str Master group where the requested group resides
-        qid        : str QID of group whose description is requested
+        type_: String from which the type of the input data is recognized
+        group: HDF5 stuff
 
-    Return:
-        str Description of a group
+    Returns:
+        AscotData object representing the given input data.
     """
-    with h5py.File(fn,"r") as f:
-        for group in f[mastergroup]:
-            groupqid = group[-10:]
-            if groupqid == qid:
-                return "%s" % f[mastergroup][group].attrs["description"].decode('utf-8')
+
+    # We simply determine the type of the input data, initialize corresponding
+    # object and return.
+    inputobj = None
+    if type_ == "B_TC":
+        inputobj = None
+
+    if type_ == "B_GS":
+        inputobj = None
+
+    if type_ == "B_2DS":
+        inputobj = None
+
+    if type_ == "B_3DS":
+        inputobj = None
+
+    if type_ == "E_TC":
+        inputobj = None
+
+    if type_ == "B_3D":
+        inputobj = None
+
+    if type_ == "wall_2D":
+        inputobj = None
+
+    if type_ == "wall_3D":
+        inputobj = None
+
+    if type_ == "plasma_1D":
+        inputobj = None
+
+    if type_ == "N0_3D":
+        inputobj = None
+
+    if type_ == "options":
+        inputobj = None
+
+    return inputobj
+
+def _create_run_group(hdf5group):
+    """
+    Create an instance that represents the given run group data.
+
+    This function is called for all run groups when ascot5.Ascot object is
+    initialized. These objects should be light-weight when they are initialized
+    and all actual output data reading should be left to be done once the
+    methods of these objects are called.
+
+    This is different to ascot5._create_input_group() because that only
+    initializes a single data object while this one initializes all objects
+    (whose data is present in the run group) and returns a node containing
+    them. The reason is that input fields have QIDs and other metadata
+    while the groups within the run group doesn't.
+
+    Args:
+        group: HDF5 stuff
+
+    Returns:
+        ascot5._StandardNode object representing the given run group data.
+    """
+
+    # Make a new node instance and unfreeze it so that we can put some data in
+    rungroup = _StandardNode()
+    rungroup._unfreeze()
+
+    # rungroup is a node where each node is different type of output data object
+    for key in hdf5group:
+        if key == "inistate":
+            rungroup[key] = None
+
+        if key == "endstate":
+            rungroup[key] = None
+
+        if key == "orbits":
+            rungroup[key] = None
+
+        if key == "dists":
+            rungroup[key] = None
+
+    # Freeze and return
+    rungroup._freeze()
+    return rungroup
+
+class _StandardNode():
+    """
+    Class which lets its attributes be accessed in a dictionary-like manner.
+
+    Instances of this class can be made (almost) immutable.
+    """
+
+    def __init__(self):
+        """
+        Initialize a mutable node.
+        """
+        self._frozen = False
+
+    def _freeze(self):
+        """
+        Make this node immutable.
+        """
+        self._frozen = True
+
+    def _unfreeze(self):
+        """
+        Make this node mutable.
+        """
+        self._frozen = False
+
+    def __setitem__(self, key, value):
+        """
+        Add a new attribute this node in dictionary style.
+
+        Args:
+            key: Name of the attribute
+            value: Value of the attribute
+        """
+        if self._frozen:
+            print("Frozen. No new entries can be added manually.")
+            return
+
+        cleankey =_remove_illegal_chars(key)
+        setattr(self, cleankey, value)
+
+    def __setattr__(self, key, value):
+        """
+        Add a new attribute this node.
+
+        Args:
+            key: Name of the attribute
+            value: Value of the attribute
+        """
+        if hasattr(self, "_frozen") and self._frozen:
+            print("Frozen. No new entries can be added manually.")
+
+        else:
+            cleankey =_remove_illegal_chars(key)
+            super().__setattr__(cleankey, value)
+
+    def __getitem__(self, key):
+        """
+        Access attributes in a dictionary style.
+
+        Args:
+            key: Name of the attribute to be fetched
+        """
+        return getattr(self, key)
+
+    def ls(self):
+        """
+        Print a string representation of this node.
+        """
+        print(str(self))
+
+class _InputNode(_StandardNode):
+    """
+    Node for accessing input data.
+    """
+
+    def __init__(self, mastergroup):
+        """
+        Initialize this node by initializing input objects and storing them.
+        """
+        super().__init__()
+        self.qids  = []
+        self.descs = []
+        self.dates = []
+        self.types = []
+
+        for key in mastergroup.keys():
+            qid = get_qid(key)
+            self.qids.append("q" + qid)
+            self.descs.append( get_desc(mastergroup[key]) )
+            self.dates.append( get_date(mastergroup[key]) )
+            self.types.append( get_type(key) )
+
+            cleankey =_remove_illegal_chars(key)
+            self[cleankey] = _create_input_group(self.types[-1],
+                                                 mastergroup[key])
+            self[qid] = self[cleankey]
+
+            # Make sure reference by description is not too long
+            max_ind = min( len(self.descs[-1]), __MAX_DESC )
+            self[ self.descs[-1][:max_ind] ] = self[cleankey]
+
+        self.activeqid = "q" + get_activeqid(mastergroup)
+        self.active = self[self.activeqid]
+
+        # Organize qids, descriptions, dates and field names by active status
+        # and date (active one first, then sorted by date from newest to oldest)
+        index       = self.qids.index( self.activeqid )
+        sortedqids  = [ self.qids.pop(index)  ]
+        sorteddates = [ self.dates.pop(index) ]
+        sortedtypes = [ self.types.pop(index) ]
+        sorteddescs = [ self.descs.pop(index) ]
+
+        if len(self.qids) > 0:
+            # This sorts elements in y by sorted x
+            sortedqids += \
+                    [x for _, x in sorted(zip(self.dates, self.qids))]
+            sortedfieldtypes += \
+                    [x for _, x in sorted(zip(self.dates, self.fieldtypes))]
+            sorteddescriptions += \
+                    [x for _, x in sorted(zip(self.dates, self.descriptions))]
+            sorteddates += sorted(self.dates)
+
+        self.qids  = sortedqids
+        self.dates = sorteddates
+        self.types = sortedtypes
+        self.descs = sorteddescs
+
+        self._freeze()
+
+    def __getitem__(self, key):
+        """
+        Allows accessing attributes dictionary-like and by index.
+
+        Args:
+            key: Attribute name or index
+        Returns:
+            Attribute value or None if not found or invalid index
+        """
+
+        # Is item a direct reference or reference by index?
+        if type(key) is str:
+            # Direct reference
+            return super().__getitem__(key)
+        else:
+            if key >= len(self.qids):
+                print("Index out of bounds. Maximum index is "
+                      + len(self.qids))
+                return None
+
+            return super().__getitem__(self.qids[key])
+
+    def __str__(self):
+        """
+        Get a table showing fields, qids, dates, and descriptions as a string.
+        """
+        string = ""
+        for i in range(0, len(self.qids)):
+            string += self.types[i] + " " + self.qids[i][1:] + " " + \
+                      self.dates[i] + "\n" + self.descs[i]
+            if i < ( len(self.qids) - 1 ) :
+                string += "\n"
+
+        return string
+
+
+class Ascot(_StandardNode):
+    """
+    Top node used for exploring the HDF5 file.
+    """
+
+    def __init__(self, fn):
+        """
+        Initialize the whole node structure recursively and create data objects.
+        """
+        super().__init__()
+        self._hdf5fn = fn
+        self.qids    = []
+        self.descs   = []
+        self.dates   = []
+
+        with h5py.File(self._hdf5fn, "r") as h5:
+
+            for key in h5.keys():
+                if( key == "bfield" or key == "efield" or key == "options" or \
+                    key == "marker" or key == "neutral" or key == "plasma" or \
+                    key == "wall" ):
+                    self[key] = _InputNode(h5[key])
+
+            if "results" in h5:
+                for key in h5["results"].keys():
+                    qid = get_qid(key)
+                    self.qids.append("q" + qid)
+                    self.descs.append( get_desc(h5["results"][key]) )
+                    self.dates.append( get_date(h5["results"][key]) )
+
+                    cleankey =_remove_illegal_chars(key)
+                    self[cleankey] = _create_run_group(h5["results"][key])
+                    self["q" + qid]  = self[key]
+
+                    # Make sure reference by description is not too long
+                    max_ind = min( len(self.descs[-1]), __MAX_DESC )
+                    self[ self.descs[-1][:max_ind] ] = self[key]
+
+                self.activeqid = "q" + get_activeqid(h5["results"])
+                self.active = self[self.activeqid]
+
+                # Organize qids, descriptions, dates and field names by active
+                # status and date (active one first, then sorted by date from
+                # newest to oldest)
+                index       = self.qids.index( self.activeqid )
+                sortedqids  = [ self.qids.pop(index)         ]
+                sorteddates = [ self.dates.pop(index)        ]
+                sorteddescs = [ self.descs.pop(index) ]
+
+                if len(self.qids) > 0:
+                    # This sorts elements in y by sorted x
+                    sortedqids += \
+                        [x for _, x in sorted(zip(self.dates, self.qids))]
+                    sorteddescriptions += \
+                        [x for _, x in sorted(zip(self.dates, self.descs))]
+                    sorteddates += sorted(self.dates)
+
+                self.qids  = sortedqids
+                self.dates = sorteddates
+                self.descs = sorteddescs
+
+        self._freeze()
+
+    def __getitem__(self, key):
+        """
+        Allows accessing attributes dictionary-like and by index.
+
+        Args:
+            key: Attribute name or index
+        Returns:
+            Attribute value or None if not found or invalid index
+        """
+        # Is item a direct reference or reference by index?
+        if type(key) is str:
+            # Direct reference
+            return super().__getitem__(key)
+        else:
+            if key >= len(self.qids):
+                print("Index out of bounds. Maximum index is "
+                      + len(self.qids))
+                return None
+
+            return super().__getitem__(self.qids[key])
+
+    def __str__(self):
+        """
+        Overview of inputs and results in the HDF5 file in a string format.
+        """
+        string = "Inputs:\n"
+        if(hasattr(self, "options")): string += "options\n"
+        if(hasattr(self, "bfield" )): string += "bfield\n"
+        if(hasattr(self, "efield" )): string += "efield\n"
+        if(hasattr(self, "plasma" )): string += "plasma\n"
+        if(hasattr(self, "neutral")): string += "neutral\n"
+        if(hasattr(self, "wall"   )): string += "wall\n"
+
+        string += "\nResults:\n"
+        for i in range(0, len(self.qids)):
+            string += "run" + " " + self.qids[i][1:] + " " + \
+                      self.dates[i] + "\n" + self.descs[i]
+            if i < ( len(self.qids) - 1 ) :
+                string += "\n"
+
+        return string
+
+def _remove_illegal_chars(key):
+    """
+    Remove illegal characters from argument so it can be used as an attribute.
+
+    Args:
+        String to be cleaned
+    Returns:
+        String from which illegal characters are replaced or removed
+    """
+    key = key.replace(" ", "_")
+    key = key.replace("-", "_")
+    key = key.string.replace(".","")
+    return key
