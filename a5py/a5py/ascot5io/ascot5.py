@@ -91,22 +91,26 @@ import h5py
 from . ascot5file import get_qid, get_activeqid, get_desc, get_date, get_type
 from . ascot5file import get_inputqids
 
-from a5py.ascot5io.B_TC      import B_TC
-from a5py.ascot5io.B_GS      import B_GS
-from a5py.ascot5io.B_2DS     import B_2DS
-from a5py.ascot5io.B_3DS     import B_3DS
-from a5py.ascot5io.E_TC      import E_TC
-from a5py.ascot5io.mrk_prt   import mrk_prt
-from a5py.ascot5io.mrk_gc    import mrk_gc
-from a5py.ascot5io.mrk_fl    import mrk_fl
-from a5py.ascot5io.wall_2D   import wall_2D
-from a5py.ascot5io.wall_3D   import wall_3D
-from a5py.ascot5io.plasma_1D import plasma_1D
-from a5py.ascot5io.N0_3D     import N0_3D
-from a5py.ascot5io.options   import options
+from a5py.ascot5io.B_TC       import B_TC
+from a5py.ascot5io.B_GS       import B_GS
+from a5py.ascot5io.B_2DS      import B_2DS
+from a5py.ascot5io.B_3DS      import B_3DS
+from a5py.ascot5io.E_TC       import E_TC
+from a5py.ascot5io.mrk_prt    import mrk_prt
+from a5py.ascot5io.mrk_gc     import mrk_gc
+from a5py.ascot5io.mrk_fl     import mrk_fl
+from a5py.ascot5io.wall_2D    import wall_2D
+from a5py.ascot5io.wall_3D    import wall_3D
+from a5py.ascot5io.plasma_1D  import plasma_1D
+from a5py.ascot5io.N0_3D      import N0_3D
+from a5py.ascot5io.options    import options
 
-from a5py.ascot5io.state     import State
-from a5py.ascot5io.orbits    import Orbits
+from a5py.ascot5io.state      import State
+from a5py.ascot5io.orbits     import Orbits
+from a5py.ascot5io.dist_5D    import Dist_5D
+from a5py.ascot5io.dist_6D    import Dist_6D
+from a5py.ascot5io.dist_rho5D import Dist_rho5D
+from a5py.ascot5io.dist_rho6D import Dist_rho6D
 
 def _create_input_group(type_, h5pygroup):
     """
@@ -205,6 +209,16 @@ def _create_run_group(h5pygroup):
 
         if key == "orbits":
             rungroup[key] = Orbits(h5pygroup["orbits"])
+        if key == "dists":
+            for d in h5pygroup["dists"]:
+                if d == "dist_5D":
+                    rungroup[d] = Dist_5D(h5pygroup[key][d])
+                if d == "dist_6D":
+                    rungroup[d] = Dist_5D(h5pygroup[key][d])
+                if d == "dist_rho5D":
+                    rungroup[d] = Dist_rho5D(h5pygroup[key][d])
+                if d == "dist_rho6D":
+                    rungroup[d] = Dist_rho6D(h5pygroup[key][d])
 
 
     # Put references to the input data, these qids are replaced with actual
