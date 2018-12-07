@@ -96,6 +96,9 @@ from a5py.ascot5io.B_GS      import B_GS
 from a5py.ascot5io.B_2DS     import B_2DS
 from a5py.ascot5io.B_3DS     import B_3DS
 from a5py.ascot5io.E_TC      import E_TC
+from a5py.ascot5io.mrk_prt   import mrk_prt
+from a5py.ascot5io.mrk_gc    import mrk_gc
+from a5py.ascot5io.mrk_fl    import mrk_fl
 from a5py.ascot5io.wall_2D   import wall_2D
 from a5py.ascot5io.wall_3D   import wall_3D
 from a5py.ascot5io.plasma_1D import plasma_1D
@@ -136,6 +139,15 @@ def _create_input_group(type_, h5pygroup):
 
     if type_ == "E_TC":
         inputobj = E_TC(h5pygroup)
+
+    if type_ == "particle":
+        inputobj = mrk_prt(h5pygroup)
+
+    if type_ == "guiding_center":
+        inputobj = mrk_gc(h5pygroup)
+
+    if type_ == "field_line":
+        inputobj = mrk_fl(h5pygroup)
 
     if type_ == "wall_2D":
         inputobj = wall_2D(h5pygroup)
