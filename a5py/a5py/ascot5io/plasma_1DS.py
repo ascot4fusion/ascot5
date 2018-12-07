@@ -8,7 +8,7 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import creategroup
+from . ascot5file import add_group
 
 def write_hdf5(fn, Nrho, Nion, znum, anum, rhomin, rhomax,
                ndens, ntemp, edens, etemp, idens, itemp):
@@ -44,12 +44,12 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rhomin, rhomax,
         Ion temperature (eV)
     """
 
-    mastergroup = "plasma"
-    subgroup    = "plasma_1DS"
+    parent = "plasma"
+    group  = "plasma_1DS"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = add_group(f, parent, group)
 
         # Neutrals are currently not implemented
         Nneutral = 1

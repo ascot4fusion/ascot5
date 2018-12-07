@@ -145,16 +145,8 @@ def get_activeqid(f, parent):
         ValueError if parent or active group does not exist.
     """
 
-    # Check the group exists and access it.
-    if(str(group) == group):
-        qid = get_qid(group)
-        grp = get_group(f, qid)
-        if grp is None:
-            raise ValueError("Could not find group" + group)
-        else:
-            group = grp
-
-    return group.attrs["description"].decode('utf-8')
+    group = get_active(f, parent)
+    return group.parent.attrs["active"].decode('utf-8')
 
 
 def set_desc(f, group, desc):
@@ -282,6 +274,31 @@ def get_qid(group):
 
     # Not a valid QID
     raise ValueError(group + " is not a valid QID.")
+
+def get_type(group):
+    """
+    Get type from a given group or from its name.
+
+    Args:
+        group: Either the group's name or its h5py group.
+
+    Returns:
+        Type string.
+
+    Raise:
+        ValueError if group does not have a valid type.
+    """
+    if(str(group) != group):
+        group = group.name
+
+    if len(group) > 12:
+        type_ = group[:-11]
+        if not type_.isdigit():
+            # Seems like a valid QID
+            return type_
+
+    # Not a valid type
+    raise ValueError(group + " does not contain a valid type.")
 
 def get_group(f, qid):
     """

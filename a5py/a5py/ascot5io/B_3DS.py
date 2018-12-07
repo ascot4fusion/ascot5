@@ -8,7 +8,8 @@ import h5py
 import random
 import datetime
 
-from . ascot5group import creategroup
+from . ascot5file import add_group
+from a5py.ascot5io.base import AscotInput
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                axisR, axisz, psiRz, psiaxis, psisepx,
@@ -58,12 +59,12 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     where ' notates input fields.
     """
 
-    mastergroup = "bfield"
-    subgroup    = "B_3DS"
+    parent = "bfield"
+    group  = "B_3DS"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup, desc=desc)
+        path = add_group(f, parent, group, desc=desc)
 
         # Transpose grids
         B_R = np.transpose(B_R,(1,0,2))
@@ -71,7 +72,8 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         B_z = np.transpose(B_z,(1,0,2))
 
         # Define psigrid to be same as Bgrid if not stated otherwise.
-        if(pRmin is None or pRmax is None or pnR is None or pzmin is None or pzmax is None or pnz is None):
+        if(pRmin is None or pRmax is None or pnR is None or pzmin is None or
+           pzmax is None or pnz is None):
             pRmin = Rmin
             pRmax = Rmax
             pnR   = nR
@@ -82,36 +84,36 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         # TODO Check that inputs are consistent.
 
         # Actual data.
-        f.create_dataset(path + "/R_min", (1,), data=Rmin, dtype="f8")
-        f.create_dataset(path + "/R_max", (1,), data=Rmax, dtype="f8")
-        f.create_dataset(path + "/n_R", (1,),   data=nR, dtype="i8")
+        f.create_dataset(path + "/R_min",         (1,), data=Rmin,   dtype="f8")
+        f.create_dataset(path + "/R_max",         (1,), data=Rmax,   dtype="f8")
+        f.create_dataset(path + "/n_R",           (1,), data=nR,     dtype="i8")
 
-        f.create_dataset(path + "/phi_min", (1,), data=phimin, dtype="f8")
-        f.create_dataset(path + "/phi_max", (1,), data=phimax, dtype="f8")
-        f.create_dataset(path + "/n_phi", (1,),   data=nphi, dtype="i8")
+        f.create_dataset(path + "/phi_min",       (1,), data=phimin, dtype="f8")
+        f.create_dataset(path + "/phi_max",       (1,), data=phimax, dtype="f8")
+        f.create_dataset(path + "/n_phi",         (1,), data=nphi,   dtype="i8")
 
-        f.create_dataset(path + "/z_min", (1,), data=zmin, dtype="f8")
-        f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
-        f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
+        f.create_dataset(path + "/z_min",         (1,), data=zmin,   dtype="f8")
+        f.create_dataset(path + "/z_max",         (1,), data=zmax,   dtype="f8")
+        f.create_dataset(path + "/n_z",           (1,), data=nz,     dtype="i8")
 
-        f.create_dataset(path + "/psigrid_R_min", (1,), data=pRmin, dtype="f8")
-        f.create_dataset(path + "/psigrid_R_max", (1,), data=pRmax, dtype="f8")
-        f.create_dataset(path + "/psigrid_n_R", (1,),   data=pnR, dtype="i8")
+        f.create_dataset(path + "/psigrid_R_min", (1,), data=pRmin,  dtype="f8")
+        f.create_dataset(path + "/psigrid_R_max", (1,), data=pRmax,  dtype="f8")
+        f.create_dataset(path + "/psigrid_n_R",   (1,), data=pnR,    dtype="i8")
 
-        f.create_dataset(path + "/psigrid_z_min", (1,), data=pzmin, dtype="f8")
-        f.create_dataset(path + "/psigrid_z_max", (1,), data=pzmax, dtype="f8")
-        f.create_dataset(path + "/psigrid_n_z", (1,),   data=pnz, dtype="i8")
+        f.create_dataset(path + "/psigrid_z_min", (1,), data=pzmin,  dtype="f8")
+        f.create_dataset(path + "/psigrid_z_max", (1,), data=pzmax,  dtype="f8")
+        f.create_dataset(path + "/psigrid_n_z",   (1,), data=pnz,    dtype="i8")
 
-        f.create_dataset(path + "/psi",   data=psiRz, dtype="f8")
-        f.create_dataset(path + "/B_R",   data=B_R,   dtype="f8")
-        f.create_dataset(path + "/B_phi", data=B_phi, dtype="f8")
-        f.create_dataset(path + "/B_z",   data=B_z,   dtype="f8")
+        f.create_dataset(path + "/psi",                 data=psiRz,  dtype="f8")
+        f.create_dataset(path + "/B_R",                 data=B_R,    dtype="f8")
+        f.create_dataset(path + "/B_phi",               data=B_phi,  dtype="f8")
+        f.create_dataset(path + "/B_z",                 data=B_z,    dtype="f8")
 
-        f.create_dataset(path + "/axis_R", (1,), data=axisR, dtype="f8")
-        f.create_dataset(path + "/axis_z", (1,), data=axisz, dtype="f8")
+        f.create_dataset(path + "/axis_R",        (1,), data=axisR,  dtype="f8")
+        f.create_dataset(path + "/axis_z",        (1,), data=axisz,  dtype="f8")
 
-        f.create_dataset(path + "/psi0", (1,), data=psiaxis, dtype="f8")
-        f.create_dataset(path + "/psi1", (1,), data=psisepx, dtype="f8")
+        f.create_dataset(path + "/psi0",         (1,), data=psiaxis, dtype="f8")
+        f.create_dataset(path + "/psi1",         (1,), data=psisepx, dtype="f8")
 
 
 def read_hdf5(fn, qid):
@@ -167,3 +169,8 @@ def read_hdf5(fn, qid):
         out["psisepx"] = f[path]["psi1"][:]
 
     return out
+
+class B_3DS(AscotInput):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

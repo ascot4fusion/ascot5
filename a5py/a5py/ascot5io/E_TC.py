@@ -11,7 +11,8 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import creategroup, setdescription
+from . ascot5file import add_group
+from a5py.ascot5io.base import AscotInput
 
 def write_hdf5(fn, Exyz, desc=None):
     """
@@ -26,12 +27,12 @@ def write_hdf5(fn, Exyz, desc=None):
         Electric field value in cartesian coordinates
     """
 
-    mastergroup = "efield"
-    subgroup    = "E_TC"
+    parent = "efield"
+    group  = "E_TC"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup, desc=desc)
+        path = add_group(f, parent, group, desc=desc)
 
         # Check that input is a valid array with three elements.
         if Exyz.shape != (3,1) and Exyz.shape != (1,3) and Exyz.shape != (3,):
@@ -73,3 +74,8 @@ def read_hdf5(fn, qid):
         out["Exyz"] = f[path]["Exyz"][:]
 
     return out
+
+class E_TC(AscotInput):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

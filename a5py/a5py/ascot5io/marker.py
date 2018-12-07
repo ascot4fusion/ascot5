@@ -8,11 +8,12 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import creategroup, setdescription
+from . ascot5file import add_group
+from a5py.ascot5io.base import AscotInput
 
-def write_hdf5_particles(fn, N, ids, mass, charge,
-                         r, phi, z, vR, vphi, vz,
-                         weight, time, desc=""):
+def write_hdf5_particle(fn, N, ids, mass, charge,
+                        r, phi, z, vR, vphi, vz,
+                        weight, time, desc=""):
     """
     Write particle marker input in hdf5 file.
 
@@ -48,35 +49,33 @@ def write_hdf5_particles(fn, N, ids, mass, charge,
 
     """
 
-    mastergroup = "marker"
-    subgroup    = "particle"
+    parent = "marker"
+    group  = "particle"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = add_group(f, parent, group)
 
         # TODO Check that inputs are consistent.
 
         # Actual data.
         f.create_dataset(path + "/n",      data=np.array([N]), dtype='i8').attrs['unit'] = '1';
-        f.create_dataset(path + "/r",      data=r, dtype='f8').attrs['unit'] = 'm';
-        f.create_dataset(path + "/phi",    data=phi, dtype='f8').attrs['unit'] = 'deg';
-        f.create_dataset(path + "/z",      data=z, dtype='f8').attrs['unit'] = 'm';
-        f.create_dataset(path + "/v_r",    data=vR, dtype='f8').attrs['unit'] = 'm/s';
-        f.create_dataset(path + "/v_phi",  data=vphi, dtype='f8').attrs['unit'] = 'm/s';
-        f.create_dataset(path + "/v_z",    data=vz, dtype='f8').attrs['unit'] = 'm/s';
-        f.create_dataset(path + "/mass",   data=mass, dtype='f8').attrs['unit'] = 'amu';
-        f.create_dataset(path + "/charge", data=charge, dtype='i4').attrs['unit'] = 'e';
-        f.create_dataset(path + "/weight", data=weight, dtype='f8').attrs['unit'] = 'markers/s';
-        f.create_dataset(path + "/time",   data=time, dtype='f8').attrs['unit'] = 's';
-        f.create_dataset(path + "/id",     data=ids, dtype='i8').attrs['unit'] = '1';
-
-        setdescription(f, mastergroup, desc)
+        f.create_dataset(path + "/r",      data=r,             dtype='f8').attrs['unit'] = 'm';
+        f.create_dataset(path + "/phi",    data=phi,           dtype='f8').attrs['unit'] = 'deg';
+        f.create_dataset(path + "/z",      data=z,             dtype='f8').attrs['unit'] = 'm';
+        f.create_dataset(path + "/v_r",    data=vR,            dtype='f8').attrs['unit'] = 'm/s';
+        f.create_dataset(path + "/v_phi",  data=vphi,          dtype='f8').attrs['unit'] = 'm/s';
+        f.create_dataset(path + "/v_z",    data=vz,            dtype='f8').attrs['unit'] = 'm/s';
+        f.create_dataset(path + "/mass",   data=mass,          dtype='f8').attrs['unit'] = 'amu';
+        f.create_dataset(path + "/charge", data=charge,        dtype='i4').attrs['unit'] = 'e';
+        f.create_dataset(path + "/weight", data=weight,        dtype='f8').attrs['unit'] = 'markers/s';
+        f.create_dataset(path + "/time",   data=time,          dtype='f8').attrs['unit'] = 's';
+        f.create_dataset(path + "/id",     data=ids,           dtype='i8').attrs['unit'] = '1';
 
 
-def write_hdf5_guidingcenters(fn, N, ids, mass, charge,
-                              r, phi, z, energy, pitch, theta,
-                              weight, time, desc=""):
+def write_hdf5_guidingcenter(fn, N, ids, mass, charge,
+                             r, phi, z, energy, pitch, theta,
+                             weight, time, desc=""):
     """
     Write guiding center marker input in hdf5 file.
 
@@ -111,33 +110,31 @@ def write_hdf5_guidingcenters(fn, N, ids, mass, charge,
         guiding center initial time
 
     """
-    mastergroup = "marker"
-    subgroup    = "guiding_center"
+    parent = "marker"
+    group  = "guiding_center"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = add_group(f, parent, group)
 
         # TODO Check that inputs are consistent.
 
         # Actual data.
         f.create_dataset(path + "/n",      data=np.array([N]), dtype='i8').attrs['unit'] = '1';
-        f.create_dataset(path + "/r",      data=r, dtype='f8').attrs['unit'] = 'm';
-        f.create_dataset(path + "/phi",    data=phi, dtype='f8').attrs['unit'] = 'deg';
-        f.create_dataset(path + "/z",      data=z, dtype='f8').attrs['unit'] = 'm';
-        f.create_dataset(path + "/energy", data=energy, dtype='f8').attrs['unit'] = 'ev';
-        f.create_dataset(path + "/pitch",  data=pitch, dtype='f8').attrs['unit'] = '1';
-        f.create_dataset(path + "/theta",  data=theta, dtype='f8').attrs['unit'] = 'rad';
-        f.create_dataset(path + "/mass",   data=mass, dtype='f8').attrs['unit'] = 'amu';
-        f.create_dataset(path + "/charge", data=charge, dtype='i4').attrs['unit'] = 'e';
-        f.create_dataset(path + "/weight", data=weight, dtype='f8').attrs['unit'] = 'markers/s';
-        f.create_dataset(path + "/time",   data=time, dtype='f8').attrs['unit'] = 's';
-        f.create_dataset(path + "/id",     data=ids, dtype='i8').attrs['unit'] = '1';
-
-        setdescription(f, mastergroup, desc)
+        f.create_dataset(path + "/r",      data=r,             dtype='f8').attrs['unit'] = 'm';
+        f.create_dataset(path + "/phi",    data=phi,           dtype='f8').attrs['unit'] = 'deg';
+        f.create_dataset(path + "/z",      data=z,             dtype='f8').attrs['unit'] = 'm';
+        f.create_dataset(path + "/energy", data=energy,        dtype='f8').attrs['unit'] = 'ev';
+        f.create_dataset(path + "/pitch",  data=pitch,         dtype='f8').attrs['unit'] = '1';
+        f.create_dataset(path + "/theta",  data=theta,         dtype='f8').attrs['unit'] = 'rad';
+        f.create_dataset(path + "/mass",   data=mass,          dtype='f8').attrs['unit'] = 'amu';
+        f.create_dataset(path + "/charge", data=charge,        dtype='i4').attrs['unit'] = 'e';
+        f.create_dataset(path + "/weight", data=weight,        dtype='f8').attrs['unit'] = 'markers/s';
+        f.create_dataset(path + "/time",   data=time,          dtype='f8').attrs['unit'] = 's';
+        f.create_dataset(path + "/id",     data=ids,           dtype='i8').attrs['unit'] = '1';
 
 
-def write_hdf5_fieldlines(fn, N, ids, r, phi, z, pitch, weight, time, desc=""):
+def write_hdf5_fieldline(fn, N, ids, r, phi, z, pitch, weight, time, desc=""):
     """
     Write magnetic field line marker input in hdf5 file.
 
@@ -165,29 +162,27 @@ def write_hdf5_fieldlines(fn, N, ids, r, phi, z, pitch, weight, time, desc=""):
         magnetic field line initial time
 
     """
-    mastergroup = "marker"
-    subgroup    = "field_line"
+    parent = "marker"
+    group  = "field_line"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = add_group(f, parent, group)
 
         # TODO Check that inputs are consistent.
 
         # Actual data.
         f.create_dataset(path + "/n",      data=np.array([N]), dtype='i8').attrs['unit'] = '1';
-        f.create_dataset(path + "/r",      data=r, dtype='f8').attrs['unit'] = 'm';
-        f.create_dataset(path + "/phi",    data=phi, dtype='f8').attrs['unit'] = 'deg';
-        f.create_dataset(path + "/z",      data=z, dtype='f8').attrs['unit'] = 'm';
-        f.create_dataset(path + "/pitch",  data=pitch, dtype='f8').attrs['unit'] = '1';
-        f.create_dataset(path + "/weight", data=weight, dtype='f8').attrs['unit'] = 'markers/s';
-        f.create_dataset(path + "/time",   data=time, dtype='f8').attrs['unit'] = 's';
-        f.create_dataset(path + "/id",     data=ids, dtype='i8').attrs['unit'] = '1';
-
-        setdescription(f, mastergroup, desc)
+        f.create_dataset(path + "/r",      data=r,             dtype='f8').attrs['unit'] = 'm';
+        f.create_dataset(path + "/phi",    data=phi,           dtype='f8').attrs['unit'] = 'deg';
+        f.create_dataset(path + "/z",      data=z,             dtype='f8').attrs['unit'] = 'm';
+        f.create_dataset(path + "/pitch",  data=pitch,         dtype='f8').attrs['unit'] = '1';
+        f.create_dataset(path + "/weight", data=weight,        dtype='f8').attrs['unit'] = 'markers/s';
+        f.create_dataset(path + "/time",   data=time,          dtype='f8').attrs['unit'] = 's';
+        f.create_dataset(path + "/id",     data=ids,           dtype='i8').attrs['unit'] = '1';
 
 
-def read_hdf5_particles(fn, qid):
+def read_hdf5_particle(fn, qid):
     """
     Read particle input from HDF5 file.
 
@@ -220,7 +215,7 @@ def read_hdf5_particles(fn, qid):
 
     return out
 
-def read_hdf5_guidingcenters(fn, qid):
+def read_hdf5_guidingcenter(fn, qid):
     """
     Read guiding-center input from HDF5 file.
 
@@ -253,7 +248,7 @@ def read_hdf5_guidingcenters(fn, qid):
 
     return out
 
-def read_hdf5_fieldlines(fn, qid):
+def read_hdf5_fieldline(fn, qid):
     """
     Read field-line input from HDF5 file.
 
@@ -288,7 +283,6 @@ def read_hdf5_fieldlines(fn, qid):
 
 
 def write_hdf5(fn, markers):
-    # TODO move to ascot5.py
     with h5py.File(fn, "a") as f:
         if "markers" in f:
             del f["markers"]
@@ -310,3 +304,19 @@ def write_hdf5(fn, markers):
     if prt["N"] > 0:
          write_hdf5_fieldlines(fn, prt["N"], prt["id"], prt["r"], prt["phi"],
                                prt["z"], prt["pitch"], prt["weight"], prt["time"])
+
+
+class particle(AscotInput):
+
+    def read(self):
+        return read_hdf5_particle(self._file, self.get_qid())
+
+class guiding_center(AscotInput):
+
+    def read(self):
+        return read_hdf5_guidingcenter(self._file, self.get_qid())
+
+class field_line(AscotInput):
+
+    def read(self):
+        return read_hdf5_fieldline(self._file, self.get_qid())

@@ -6,7 +6,9 @@ File: B_2DS.py
 import numpy as np
 import h5py
 
-from . ascot5group import creategroup
+from . ascot5file import add_group
+
+from a5py.ascot5io.base import AscotInput
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
                axisR, axisz, psiRz, psiaxis, psisepx,
@@ -44,28 +46,28 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
     where ' notates input fields.
     """
 
-    mastergroup = "bfield"
-    subgroup    = "B_2DS"
+    parent = "bfield"
+    group  = "B_2DS"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup, desc=desc)
+        path = add_group(f, parent, group, desc=desc)
 
         # TODO Check that inputs are consistent.
 
         # Actual data.
         f.create_dataset(path + "/R_min", (1,), data=Rmin, dtype="f8")
         f.create_dataset(path + "/R_max", (1,), data=Rmax, dtype="f8")
-        f.create_dataset(path + "/n_R", (1,),   data=nR, dtype="i8")
+        f.create_dataset(path + "/n_R",   (1,), data=nR,   dtype="i8")
 
         f.create_dataset(path + "/z_min", (1,), data=zmin, dtype="f8")
         f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
-        f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
+        f.create_dataset(path + "/n_z",   (1,), data=nz,   dtype="i8")
 
         f.create_dataset(path + "/psi",   data=psiRz, dtype="f8")
-        f.create_dataset(path + "/B_R",   data=B_R, dtype="f8")
+        f.create_dataset(path + "/B_R",   data=B_R,   dtype="f8")
         f.create_dataset(path + "/B_phi", data=B_phi, dtype="f8")
-        f.create_dataset(path + "/B_z",   data=B_z, dtype="f8")
+        f.create_dataset(path + "/B_z",   data=B_z,   dtype="f8")
 
         f.create_dataset(path + "/axis_R", (1,), data=axisR, dtype="f8")
         f.create_dataset(path + "/axis_z", (1,), data=axisz, dtype="f8")
@@ -123,3 +125,8 @@ def read_hdf5(fn, qid):
         out["psisepx"] = f[path]["psi1"][:]
 
     return out
+
+class B_2DS(AscotInput):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

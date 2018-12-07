@@ -8,7 +8,9 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import creategroup, setdescription
+from . ascot5file import add_group
+from a5py.ascot5io.base import AscotInput
+
 from . import wall_3D
 
 def write_hdf5(fn, n, R, z, desc=None):
@@ -32,12 +34,12 @@ def write_hdf5(fn, n, R, z, desc=None):
     as the wall is closed automatically. TODO check this
     """
 
-    mastergroup = "wall"
-    subgroup    = "wall_2D"
+    parent = "wall"
+    group  = "wall_2D"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup, desc=desc)
+        path = add_group(f, parent, group, desc=desc)
 
         # TODO Check that inputs are consistent.
 
@@ -110,3 +112,8 @@ def write_hdf5_3D(fn, n, R, z, nphi, desc=None):
 
     x1x2x3,y1y2y3 = pol2cart(p1p2p3, r1r2r3)
     wall_3D.write_hdf5(fn, 2*n*nphi, x1x2x3, y1y2y3, z1z2z3, flag, desc=desc)
+
+class wall_2D(AscotInput):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

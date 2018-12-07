@@ -8,7 +8,7 @@ import h5py
 import random
 import datetime
 
-from . ascot5group import creategroup
+from . ascot5file import add_group
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                E_R, E_phi, E_z):
@@ -40,12 +40,12 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
 
     """
 
-    mastergroup = "efield"
-    subgroup    = "E_3D"
+    parent = "efield"
+    group    = "E_3D"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = add_group(f, parent, group)
 
         # Transpose grids
         E_R = np.transpose(E_R,(1,0,2))

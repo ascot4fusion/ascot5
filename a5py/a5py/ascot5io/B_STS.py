@@ -8,7 +8,7 @@ import h5py
 import random
 import datetime
 
-from . ascot5group import creategroup
+from . ascot5file import add_group
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                B_R, B_phi, B_z, psi, n_periods,
@@ -47,12 +47,12 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         Psi values at magnetic axis and separatrix
     """
 
-    mastergroup = "bfield"
-    subgroup    = "B_STS"
+    parent = "bfield"
+    group  = "B_STS"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = add_group(f, parent, group)
 
         # TODO Check that inputs are consistent.
 

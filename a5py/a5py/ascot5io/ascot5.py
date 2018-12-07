@@ -31,7 +31,7 @@ the examples above) are node-objects that are only used to navigate the HDF5
 file. As such they only contain metadata and have no access to the HDF5 file
 once the ascot5.Ascot object has been initialized.
 
-The top level node contains input master groups (bfield, efield, options,
+The top level node contains input parent groups (bfield, efield, options,
 neutral, marker, plasma, and wall) and the run groups that hold simulation
 results.
 
@@ -88,34 +88,21 @@ File: ascot5.py
 
 import h5py
 
-from . ascot5file import get_qid, get_activeqid, get_desc, get_date
+from . ascot5file import get_qid, get_activeqid, get_desc, get_date, get_type
+from . ascot5file import get_inputqids
 
-## How many characters are used in description based reference
-__MAX_DESC = 0
+from a5py.ascot5io.B_TC      import B_TC
+from a5py.ascot5io.B_GS      import B_GS
+from a5py.ascot5io.B_2DS     import B_2DS
+from a5py.ascot5io.B_3DS     import B_3DS
+from a5py.ascot5io.E_TC      import E_TC
+from a5py.ascot5io.wall_2D   import wall_2D
+from a5py.ascot5io.wall_3D   import wall_3D
+from a5py.ascot5io.plasma_1D import plasma_1D
+from a5py.ascot5io.N0_3D     import N0_3D
+from a5py.ascot5io.options   import options
 
-class AscotData():
-
-    def __init__():
-        self._file = hdf5.filename
-        self._path = hdf5.path
-        self._open = 0
-
-    def get_desc():
-        pass
-
-    def get_qid():
-        pass
-
-    def access():
-        pass
-
-    def _open():
-        pass
-
-    def _close():
-        pass
-
-def _create_input_group(type_, group):
+def _create_input_group(type_, h5pygroup):
     """
     Create an instance that represents the given input data.
 
@@ -126,7 +113,7 @@ def _create_input_group(type_, group):
 
     Args:
         type_: String from which the type of the input data is recognized
-        group: HDF5 stuff
+        h5pygroup: Input data's h5py group.
 
     Returns:
         AscotData object representing the given input data.
@@ -136,41 +123,38 @@ def _create_input_group(type_, group):
     # object and return.
     inputobj = None
     if type_ == "B_TC":
-        inputobj = None
+        inputobj = B_TC(h5pygroup)
 
     if type_ == "B_GS":
-        inputobj = None
+        inputobj = B_GS(h5pygroup)
 
     if type_ == "B_2DS":
-        inputobj = None
+        inputobj = B_2DS(h5pygroup)
 
     if type_ == "B_3DS":
-        inputobj = None
+        inputobj = B_3DS(h5pygroup)
 
     if type_ == "E_TC":
-        inputobj = None
-
-    if type_ == "B_3D":
-        inputobj = None
+        inputobj = E_TC(h5pygroup)
 
     if type_ == "wall_2D":
-        inputobj = None
+        inputobj = wall_2D(h5pygroup)
 
     if type_ == "wall_3D":
-        inputobj = None
+        inputobj = wall_3D(h5pygroup)
 
     if type_ == "plasma_1D":
-        inputobj = None
+        inputobj = plasma_1D(h5pygroup)
 
     if type_ == "N0_3D":
-        inputobj = None
+        inputobj = N0_3D(h5pygroup)
 
     if type_ == "options":
-        inputobj = None
+        inputobj = options(h5pygroup)
 
     return inputobj
 
-def _create_run_group(hdf5group):
+def _create_run_group(h5pygroup):
     """
     Create an instance that represents the given run group data.
 
@@ -186,7 +170,7 @@ def _create_run_group(hdf5group):
     while the groups within the run group doesn't.
 
     Args:
-        group: HDF5 stuff
+        h5pygroup: HDF5 stuff
 
     Returns:
         ascot5._StandardNode object representing the given run group data.
@@ -197,7 +181,7 @@ def _create_run_group(hdf5group):
     rungroup._unfreeze()
 
     # rungroup is a node where each node is different type of output data object
-    for key in hdf5group:
+    for key in h5pygroup:
         if key == "inistate":
             rungroup[key] = None
 
@@ -210,6 +194,17 @@ def _create_run_group(hdf5group):
         if key == "dists":
             rungroup[key] = None
 
+    # Put references to the input data, these qids are replaced with actual
+    # references where this function was called from.
+    qids = get_inputqids(h5pygroup.file, h5pygroup)
+    rungroup["options"] = "q" + qids[0]
+    rungroup["bfield"]  = "q" + qids[1]
+    rungroup["efield"]  = "q" + qids[2]
+    rungroup["marker"]  = "q" + qids[3]
+    rungroup["plasma"]  = "q" + qids[4]
+    rungroup["neutral"] = "q" + qids[5]
+    rungroup["wall"]    = "q" + qids[6]
+
     # Freeze and return
     rungroup._freeze()
     return rungroup
@@ -220,6 +215,9 @@ class _StandardNode():
 
     Instances of this class can be made (almost) immutable.
     """
+
+    ## How many characters are used in description based reference
+    _MAX_DESC = 0
 
     def __init__(self):
         """
@@ -262,7 +260,7 @@ class _StandardNode():
             key: Name of the attribute
             value: Value of the attribute
         """
-        if hasattr(self, "_frozen") and self._frozen:
+        if key != "_frozen" and self._frozen:
             print("Frozen. No new entries can be added manually.")
 
         else:
@@ -289,7 +287,7 @@ class _InputNode(_StandardNode):
     Node for accessing input data.
     """
 
-    def __init__(self, mastergroup):
+    def __init__(self, parent):
         """
         Initialize this node by initializing input objects and storing them.
         """
@@ -299,23 +297,23 @@ class _InputNode(_StandardNode):
         self.dates = []
         self.types = []
 
-        for key in mastergroup.keys():
+        for key in parent.keys():
             qid = get_qid(key)
             self.qids.append("q" + qid)
-            self.descs.append( get_desc(mastergroup[key]) )
-            self.dates.append( get_date(mastergroup[key]) )
+            self.descs.append( get_desc(parent.file, parent[key]) )
+            self.dates.append( get_date(parent.file, parent[key]) )
             self.types.append( get_type(key) )
 
             cleankey =_remove_illegal_chars(key)
             self[cleankey] = _create_input_group(self.types[-1],
-                                                 mastergroup[key])
-            self[qid] = self[cleankey]
+                                                 parent[key])
+            self["q" + qid] = self[cleankey]
 
             # Make sure reference by description is not too long
-            max_ind = min( len(self.descs[-1]), __MAX_DESC )
+            max_ind = min( len(self.descs[-1]), self._MAX_DESC )
             self[ self.descs[-1][:max_ind] ] = self[cleankey]
 
-        self.activeqid = "q" + get_activeqid(mastergroup)
+        self.activeqid = "q" + get_activeqid(parent.file, parent)
         self.active = self[self.activeqid]
 
         # Organize qids, descriptions, dates and field names by active status
@@ -328,12 +326,12 @@ class _InputNode(_StandardNode):
 
         if len(self.qids) > 0:
             # This sorts elements in y by sorted x
-            sortedqids += \
+            sortedqids  += \
                     [x for _, x in sorted(zip(self.dates, self.qids))]
-            sortedfieldtypes += \
-                    [x for _, x in sorted(zip(self.dates, self.fieldtypes))]
-            sorteddescriptions += \
-                    [x for _, x in sorted(zip(self.dates, self.descriptions))]
+            sortedtypes += \
+                    [x for _, x in sorted(zip(self.dates, self.types))]
+            sorteddescs += \
+                    [x for _, x in sorted(zip(self.dates, self.descs))]
             sorteddates += sorted(self.dates)
 
         self.qids  = sortedqids
@@ -406,33 +404,40 @@ class Ascot(_StandardNode):
                 for key in h5["results"].keys():
                     qid = get_qid(key)
                     self.qids.append("q" + qid)
-                    self.descs.append( get_desc(h5["results"][key]) )
-                    self.dates.append( get_date(h5["results"][key]) )
+                    self.descs.append( get_desc(h5, h5["results"][key]) )
+                    self.dates.append( get_date(h5, h5["results"][key]) )
 
                     cleankey =_remove_illegal_chars(key)
                     self[cleankey] = _create_run_group(h5["results"][key])
-                    self["q" + qid]  = self[key]
+                    self["q" + qid]  = self[cleankey]
+
+                    # Convert stored qids as references in rungroup
+                    for i in ["options", "bfield", "efield", "marker", "plasma",
+                              "neutral", "wall"]:
+                        self[cleankey]._unfreeze()
+                        self[cleankey][i] = self[i][self[cleankey][i]]
+                        self[cleankey]._freeze()
 
                     # Make sure reference by description is not too long
-                    max_ind = min( len(self.descs[-1]), __MAX_DESC )
-                    self[ self.descs[-1][:max_ind] ] = self[key]
+                    max_ind = min( len(self.descs[-1]), self._MAX_DESC )
+                    self[ self.descs[-1][:max_ind] ] = self[cleankey]
 
-                self.activeqid = "q" + get_activeqid(h5["results"])
+                self.activeqid = "q" + get_activeqid(h5, h5["results"])
                 self.active = self[self.activeqid]
 
                 # Organize qids, descriptions, dates and field names by active
                 # status and date (active one first, then sorted by date from
                 # newest to oldest)
                 index       = self.qids.index( self.activeqid )
-                sortedqids  = [ self.qids.pop(index)         ]
-                sorteddates = [ self.dates.pop(index)        ]
+                sortedqids  = [ self.qids.pop(index)  ]
+                sorteddates = [ self.dates.pop(index) ]
                 sorteddescs = [ self.descs.pop(index) ]
 
                 if len(self.qids) > 0:
                     # This sorts elements in y by sorted x
-                    sortedqids += \
+                    sortedqids  += \
                         [x for _, x in sorted(zip(self.dates, self.qids))]
-                    sorteddescriptions += \
+                    sorteddescs += \
                         [x for _, x in sorted(zip(self.dates, self.descs))]
                     sorteddates += sorted(self.dates)
 
@@ -495,5 +500,5 @@ def _remove_illegal_chars(key):
     """
     key = key.replace(" ", "_")
     key = key.replace("-", "_")
-    key = key.string.replace(".","")
+    key = key.replace(".","")
     return key

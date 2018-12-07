@@ -12,7 +12,8 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import creategroup, setdescription
+from . ascot5file import add_group
+from a5py.ascot5io.base import AscotInput
 
 def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0, desc=None):
     """
@@ -37,12 +38,12 @@ def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0, desc=None):
         Magnetic axis z coordinate. Default value 0.
     """
 
-    mastergroup = "bfield"
-    subgroup    = "B_TC"
+    parent = "bfield"
+    group  = "B_TC"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup, desc=desc)
+        path = add_group(f, parent, group, desc=desc)
 
         # TODO Check that inputs are consistent.
         if psival == 0:
@@ -94,3 +95,8 @@ def read_hdf5(fn, qid):
         out["axisz"]  = f[path]["axisz"][:]
 
     return out
+
+class B_TC(AscotInput):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

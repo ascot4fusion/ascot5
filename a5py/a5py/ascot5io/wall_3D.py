@@ -8,7 +8,8 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import creategroup
+from . ascot5file import add_group
+from a5py.ascot5io.base import AscotInput
 
 def write_hdf5(fn, n, x1x2x3, y1y2y3, z1z2z3, flag, desc=None):
     """
@@ -27,12 +28,12 @@ def write_hdf5(fn, n, x1x2x3, y1y2y3, z1z2z3, flag, desc=None):
         Indicates which part of the wall (e.g. divertor) triangle belongs to.
     """
 
-    mastergroup = "wall"
-    subgroup    = "wall_3D"
+    parent = "wall"
+    group  = "wall_3D"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup, desc=desc)
+        path = add_group(f, parent, group, desc=desc)
 
         # TODO Check that inputs are consistent.
 
@@ -86,3 +87,8 @@ def read_hdf5(fn, qid):
         out["flag"]   = f[path]["flag"][:]
 
     return out
+
+class wall_3D(AscotInput):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

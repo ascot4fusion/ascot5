@@ -8,7 +8,7 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import creategroup
+from . ascot5file import add_group
 
 def write_hdf5(fn, n_rho, rho_min, rho_max, dV_drho, r_eff):
     """
@@ -33,12 +33,12 @@ def write_hdf5(fn, n_rho, rho_min, rho_max, dV_drho, r_eff):
         Gradient of electric potential in rho grid.
     """
 
-    mastergroup = "efield"
-    subgroup    = "E_1DS"
+    parent = "efield"
+    group  = "E_1DS"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = add_group(f, parent, group)
 
         # TODO check that input is valid
 

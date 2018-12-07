@@ -8,7 +8,7 @@ import h5py
 import random
 import datetime
 
-from . ascot5group import creategroup
+from . ascot5file import add_group
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
                phimin, phimax, nphi, n_periods, n0):
@@ -31,15 +31,15 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
 
     """
 
-    mastergroup = "neutral"
-    subgroup    = "N0_ST"
+    parent = "neutral"
+    group  = "N0_ST"
 
     # Transpose n0 from (r, phi, z) to (z, phi, r)
     n0 = np.transpose(n0,(2,1,0))
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        path = add_group(f, parent, group)
 
         # Actual data.
         f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")

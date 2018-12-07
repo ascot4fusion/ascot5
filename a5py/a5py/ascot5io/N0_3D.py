@@ -8,7 +8,8 @@ import h5py
 import random
 import datetime
 
-from . ascot5group import creategroup, setdescription
+from . ascot5file import add_group
+from a5py.ascot5io.base import AscotInput
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0,
                desc=None):
@@ -38,32 +39,30 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0,
 
     """
 
-    mastergroup = "neutral"
-    subgroup    = "N0_3D"
+    parent = "neutral"
+    group  = "N0_3D"
 
     # Transpose n0 from (r, phi, z) to (phi, z, r)
     n0 = np.transpose(n0,(1,2,0))
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup, desc=desc)
+        path = add_group(f, parent, group, desc=desc)
 
         # Actual data.
-        f.create_dataset(path + "/r_min", (1,), data=Rmin, dtype="f8")
-        f.create_dataset(path + "/r_max", (1,), data=Rmax, dtype="f8")
-        f.create_dataset(path + "/n_r", (1,),   data=nR, dtype="i8")
+        f.create_dataset(path + "/r_min",   (1,), data=Rmin,   dtype="f8")
+        f.create_dataset(path + "/r_max",   (1,), data=Rmax,   dtype="f8")
+        f.create_dataset(path + "/n_r",     (1,), data=nR,     dtype="i8")
 
         f.create_dataset(path + "/phi_min", (1,), data=phimin, dtype="f8")
         f.create_dataset(path + "/phi_max", (1,), data=phimax, dtype="f8")
-        f.create_dataset(path + "/n_phi", (1,),   data=nphi, dtype="i8")
+        f.create_dataset(path + "/n_phi",   (1,), data=nphi,   dtype="i8")
 
-        f.create_dataset(path + "/z_min", (1,), data=zmin, dtype="f8")
-        f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
-        f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
+        f.create_dataset(path + "/z_min",   (1,), data=zmin,   dtype="f8")
+        f.create_dataset(path + "/z_max",   (1,), data=zmax,   dtype="f8")
+        f.create_dataset(path + "/n_z",     (1,), data=nz,     dtype="i8")
 
-        f.create_dataset(path + "/n0",   data=n0, dtype="f8")
-
-        setdescription(f, mastergroup, desc)
+        f.create_dataset(path + "/n0",            data=n0,     dtype="f8")
 
 
 def read_hdf5(fn):
@@ -107,3 +106,8 @@ def read_hdf5(fn):
         out["n0"]   = f[path]["n0"]
 
     return out
+
+class N0_3D(AscotInput):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

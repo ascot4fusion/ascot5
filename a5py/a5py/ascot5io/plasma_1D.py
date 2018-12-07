@@ -8,7 +8,8 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5group import creategroup, setdescription
+from . ascot5file import add_group
+from a5py.ascot5io.base import AscotInput
 
 def write_hdf5(fn, Nrho, Nion, znum, anum, rho, edens, etemp, idens, itemp,
                desc=None):
@@ -40,12 +41,12 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rho, edens, etemp, idens, itemp,
         ion temperature (eV)
     """
 
-    mastergroup = "plasma"
-    subgroup    = "plasma_1D"
+    parent = "plasma"
+    group  = "plasma_1D"
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup, desc=desc)
+        path = add_group(f, parent, group, desc=desc)
 
         # Check that input is valid
         if anum.size != Nion or znum.size != Nion:
@@ -67,18 +68,18 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rho, edens, etemp, idens, itemp,
 
         # TODO Check that inputs are consistent.
 
-        f.create_dataset(path + '/n_ions', (1,1), dtype='i4', data=Nion)
+        f.create_dataset(path + '/n_ions', (1,1),    dtype='i4', data=Nion)
 
-        f.create_dataset(path + '/Z_num', (Nion,1), dtype='i4', data=znum)
+        f.create_dataset(path + '/Z_num',  (Nion,1), dtype='i4', data=znum)
         f.create_dataset(path + '/A_mass', (Nion,1), dtype='i4', data=anum)
-        f.create_dataset(path + '/n_rho', (1,1), dtype='i4', data=Nrho)
+        f.create_dataset(path + '/n_rho',  (1,1),    dtype='i4', data=Nrho)
 
         # 1D plasma properties
-        f.create_dataset(path + '/rho', (Nrho,1), dtype='f8', data=rho)
+        f.create_dataset(path + '/rho',    (Nrho,1), dtype='f8', data=rho)
         f.create_dataset(path + '/temp_e', (Nrho,1), dtype='f8', data=etemp)
         f.create_dataset(path + '/dens_e', (Nrho,1), dtype='f8', data=edens)
         f.create_dataset(path + '/temp_i', (Nrho,1), dtype='f8', data=itemp)
-        f.create_dataset(path + '/dens_i', dtype='f8', data=idens)
+        f.create_dataset(path + '/dens_i',           dtype='f8', data=idens)
 
 
 def read_hdf5(fn, qid):
@@ -122,3 +123,8 @@ def read_hdf5(fn, qid):
         out["idens"] = f[path]["dens_i"][:]
 
     return out
+
+class plasma_1D(AscotInput):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())
