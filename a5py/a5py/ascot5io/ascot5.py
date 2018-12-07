@@ -396,8 +396,10 @@ class _InputNode(_StandardNode):
         """
         string = ""
         for i in range(0, len(self.qids)):
-            string += self.types[i] + " " + self.qids[i][1:] + " " + \
-                      self.dates[i] + "\n" + self.descs[i]
+            string += self.types[i]    + " "  + \
+                      self.qids[i][1:] + " "  + \ # Without the 'q' prefix.
+                      self.dates[i]    + "\n" + \
+                      self.descs[i]
             if i < ( len(self.qids) - 1 ) :
                 string += "\n"
 

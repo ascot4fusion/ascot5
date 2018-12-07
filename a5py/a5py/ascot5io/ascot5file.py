@@ -395,7 +395,7 @@ def add_group(f, parent, group, desc=None):
     _set_date(f, group, date)
 
     if len(parent.keys()) == 1:
-        set_active(f, parent, qid)
+        set_active(f, group)
 
     return get_group(f, qid)
 

@@ -86,7 +86,7 @@ def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
         psi1 = 0 # At separatrix always
 
         # 2D field data.
-        f.create_dataset(path + "/R0",       (1,), data=R0,        dtype='f8')
+        path.create_dataset("/R0",       (1,), data=R0,        dtype='f8')
         f.create_dataset(path + "/z0",       (1,), data=z0,        dtype='f8')
         f.create_dataset(path + "/B_phi0",   (1,), data=B_phi0,    dtype='f8')
         f.create_dataset(path + "/psi0",     (1,), data=psi0,      dtype='f8')
