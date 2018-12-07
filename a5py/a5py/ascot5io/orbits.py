@@ -5,8 +5,8 @@ File: orbits.py
 """
 import numpy as np
 import h5py
-import random
-import datetime
+
+from a5py.ascot5io.base import AscotOutput
 
 def read_hdf5(fn, qid):
     """
@@ -94,3 +94,8 @@ def write_hdf5(fn, orbits, qid):
                 if field[-4:] != "unit" and field != "N" and field != "uniqueId":
                     d = f.create_dataset(path + "/" + field, data=orbits[orbgroup][field])
                     d.attrs["unit"] = orbits[orbgroup][field + "_unit"]
+
+class Orbits(AscotOutput):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

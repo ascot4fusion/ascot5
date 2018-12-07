@@ -105,6 +105,9 @@ from a5py.ascot5io.plasma_1D import plasma_1D
 from a5py.ascot5io.N0_3D     import N0_3D
 from a5py.ascot5io.options   import options
 
+from a5py.ascot5io.state     import State
+from a5py.ascot5io.orbits    import Orbits
+
 def _create_input_group(type_, h5pygroup):
     """
     Create an instance that represents the given input data.
@@ -182,7 +185,7 @@ def _create_run_group(h5pygroup):
     while the groups within the run group doesn't.
 
     Args:
-        h5pygroup: HDF5 stuff
+        h5pygroup: Run group's h5py group.
 
     Returns:
         ascot5._StandardNode object representing the given run group data.
@@ -195,16 +198,14 @@ def _create_run_group(h5pygroup):
     # rungroup is a node where each node is different type of output data object
     for key in h5pygroup:
         if key == "inistate":
-            rungroup[key] = None
+            rungroup[key] = State(h5pygroup["inistate"])
 
         if key == "endstate":
-            rungroup[key] = None
+            rungroup[key] = State(h5pygroup["endstate"])
 
         if key == "orbits":
-            rungroup[key] = None
+            rungroup[key] = Orbits(h5pygroup["orbits"])
 
-        if key == "dists":
-            rungroup[key] = None
 
     # Put references to the input data, these qids are replaced with actual
     # references where this function was called from.
@@ -229,7 +230,7 @@ class _StandardNode():
     """
 
     ## How many characters are used in description based reference
-    _MAX_DESC = 0
+    _MAX_DESC = 20
 
     def __init__(self):
         """
