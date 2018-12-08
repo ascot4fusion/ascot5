@@ -9,8 +9,6 @@ File: B_TC.py
 """
 import h5py
 import numpy as np
-import random
-import datetime
 
 from . ascot5file import add_group
 from a5py.ascot5io.base import AscotInput

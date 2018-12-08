@@ -9,9 +9,10 @@ import random
 import datetime
 
 from . ascot5file import add_group
+from . ascot5data import AscotInput
 
 def write_hdf5(fn, Nrho, Nion, znum, anum, rhomin, rhomax,
-               ndens, ntemp, edens, etemp, idens, itemp):
+               ndens, ntemp, edens, etemp, idens, itemp, desc=None):
     """
     Write 1DS plasma input in HDF5 file.
 
@@ -47,53 +48,39 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rhomin, rhomax,
     parent = "plasma"
     group  = "plasma_1DS"
 
-    # Create a group for this input.
-    with h5py.File(fn, "a") as f:
-        path = add_group(f, parent, group)
+    # Check that input is valid
+    if anum.size != Nion or znum.size != Nion:
+        raise Exception('Number of ions in input not consistent')
 
-        # Neutrals are currently not implemented
-        Nneutral = 1
-        ndens = np.zeros((Nrho,Nneutral))
-        ntemp = np.zeros((Nrho,1))
+    if (rho.size != Nrho or edens.size != Nrho
+        or etemp.size != Nrho or itemp.size != Nrho):
+        raise Exception('Number of rho grid points in input not consistent')
 
-        # Check that input is valid
-        if anum.size != Nion or znum.size != Nion:
-            raise Exception('Number of ions in input not consistent')
-
-        if (rho.size != Nrho or edens.size != Nrho
-            or etemp.size != Nrho or itemp.size != Nrho):
-            raise Exception('Number of rho grid points in input not consistent')
-
-        if Nrho != idens.shape[0] or Nion != idens.shape[1]:
-            idens = np.transpose(idens)
-            if Nrho != idens.shape[0] or Nion != idens.shape[1]:
-                raise Exception('Ion density data is not consistent'
-                                'with Nrho and Nion')
-
+    if Nrho != idens.shape[0] or Nion != idens.shape[1]:
         idens = np.transpose(idens)
+        if Nrho != idens.shape[0] or Nion != idens.shape[1]:
+            raise Exception('Ion density data is not consistent'
+                            'with Nrho and Nion')
 
-        if etemp[0] < 1 or etemp[0] > 1e5 or itemp[0] < 1 or itemp[0] >1e5:
-            print("Warning: Check that temperature is given in eV")
+    idens = np.transpose(idens)
+
+    if etemp[0] < 1 or etemp[0] > 1e5 or itemp[0] < 1 or itemp[0] >1e5:
+        print("Warning: Check that temperature is given in eV")
 
 
-        # TODO Check that inputs are consistent.
+    with h5py.File(fn, "a") as f:
+        g = add_group(f, parent, group, desc=desc)
 
-        f.create_dataset(path + '/n_ions', (1,1), dtype='i4', data=Nion)
-        f.create_dataset(path + '/n_neutrals', (1,1), dtype='i4', data=Nneutral)
-
-        f.create_dataset(path + '/Z_num', (Nion,1), dtype='i4', data=znum)
-        f.create_dataset(path + '/A_mass', (Nion,1), dtype='i4', data=anum)
-        f.create_dataset(path + '/n_rho', (1,1), dtype='i4', data=Nrho)
-        f.create_dataset(path + '/rho_min', (1,1), dtype='f8', data=rhomin)
-        f.create_dataset(path + '/rho_max', (1,1), dtype='f8', data=rhomax)
-
-        # 1DS plasma properties
-        f.create_dataset(path + '/temp_0', (Nrho,1), dtype='f8', data=ntemp)
-        f.create_dataset(path + '/dens_0', dtype='f8', data=ndens)
-        f.create_dataset(path + '/temp_e', (Nrho,1), dtype='f8', data=etemp)
-        f.create_dataset(path + '/dens_e', (Nrho,1), dtype='f8', data=edens)
-        f.create_dataset(path + '/temp_i', (Nrho,1), dtype='f8', data=itemp)
-        f.create_dataset(path + '/dens_i', dtype='f8', data=idens)
+        g.create_dataset('n_ions',  (1,1),    data=Nion,     dtype='i4')
+        g.create_dataset('Z_num',   (Nion,1), data=znum,     dtype='i4')
+        g.create_dataset('A_mass',  (Nion,1), data=anum,     dtype='i4')
+        g.create_dataset('n_rho',   (1,1),    data=Nrho,     dtype='i4')
+        g.create_dataset('rho_min', (1,1),    data=rhomin,   dtype='f8')
+        g.create_dataset('rho_max', (1,1),    data=rhomax,   dtype='f8')
+        g.create_dataset('temp_e',  (Nrho,1), data=etemp,    dtype='f8')
+        g.create_dataset('dens_e',  (Nrho,1), data=edens,    dtype='f8')
+        g.create_dataset('temp_i',  (Nrho,1), data=itemp,    dtype='f8')
+        g.create_dataset('dens_i',            data=idens,    dtype='f8')
 
 
 def read_hdf5(fn, qid):

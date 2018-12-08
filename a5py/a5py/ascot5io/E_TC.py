@@ -8,11 +8,9 @@ File: E_TC.py
 """
 import h5py
 import numpy as np
-import random
-import datetime
 
 from . ascot5file import add_group
-from a5py.ascot5io.base import AscotInput
+from . ascot5data import AscotInput
 
 def write_hdf5(fn, Exyz, desc=None):
     """
@@ -30,16 +28,14 @@ def write_hdf5(fn, Exyz, desc=None):
     parent = "efield"
     group  = "E_TC"
 
-    # Create a group for this input.
+    # Check that input is a valid array with three elements.
+    if Exyz.shape != (3,1) and Exyz.shape != (1,3) and Exyz.shape != (3,):
+        raise Exception('Exyz has invalid format.')
+
     with h5py.File(fn, "a") as f:
-        path = add_group(f, parent, group, desc=desc)
+        g = add_group(f, parent, group, desc=desc)
 
-        # Check that input is a valid array with three elements.
-        if Exyz.shape != (3,1) and Exyz.shape != (1,3) and Exyz.shape != (3,):
-            raise Exception('Exyz has invalid format.')
-
-        # Actual data.
-        f.create_dataset(path + "/Exyz", (3,1), data = Exyz, dtype="f8")
+        g.create_dataset("Exyz", (3,1), data = Exyz, dtype="f8")
 
 
 def read_hdf5(fn, qid):

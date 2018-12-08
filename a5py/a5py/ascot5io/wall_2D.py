@@ -5,11 +5,9 @@ File: wall_2D.py
 """
 import h5py
 import numpy as np
-import random
-import datetime
 
 from . ascot5file import add_group
-from a5py.ascot5io.base import AscotInput
+from a5py.ascot5io.ascot5data import AscotInput
 
 from . import wall_3D
 
@@ -37,17 +35,12 @@ def write_hdf5(fn, n, R, z, desc=None):
     parent = "wall"
     group  = "wall_2D"
 
-    # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = add_group(f, parent, group, desc=desc)
+        g = add_group(f, parent, group, desc=desc)
 
-        # TODO Check that inputs are consistent.
-
-        f.create_dataset(path + "/n", (1,1), data=n, dtype='i4')
-        f.create_dataset(path + "/r", data=R, dtype='f8')
-        f.create_dataset(path + "/z", data=z, dtype='f8')
-
-        setdescription(f, mastergroup, desc)
+        g.create_dataset("n", (1,1), data=n, dtype='i4')
+        g.create_dataset("r",        data=R, dtype='f8')
+        g.create_dataset("z",        data=z, dtype='f8')
 
 
 def read_hdf5(fn, qid):

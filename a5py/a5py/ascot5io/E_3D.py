@@ -5,17 +5,14 @@ File: E_3D.py
 """
 import numpy as np
 import h5py
-import random
-import datetime
 
 from . ascot5file import add_group
+from . ascot5data import AscotInput
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
-               E_R, E_phi, E_z):
+               E_R, E_phi, E_z, desc=None):
     """
     Write 3D electric field input in HDF5 file for trilinear interpolation.
-
-    TODO Not compatible with new HDF5 format.
 
     Parameters
     ----------
@@ -41,35 +38,28 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     """
 
     parent = "efield"
-    group    = "E_3D"
+    group  = "E_3D"
+
+    E_R = np.transpose(E_R,(1,0,2))
+    E_phi = np.transpose(E_phi,(1,0,2))
+    E_z = np.transpose(E_z,(1,0,2))
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = add_group(f, parent, group)
+        g = add_group(f, parent, group, desc=desc)
 
-        # Transpose grids
-        E_R = np.transpose(E_R,(1,0,2))
-        E_phi = np.transpose(E_phi,(1,0,2))
-        E_z = np.transpose(E_z,(1,0,2))
-
-        # TODO Check that inputs are consistent.
-
-        # Actual data.
-        f.create_dataset(path + "/R_min", (1,), data=Rmin, dtype="f8")
-        f.create_dataset(path + "/R_max", (1,), data=Rmax, dtype="f8")
-        f.create_dataset(path + "/n_R", (1,),   data=nR, dtype="i8")
-
-        f.create_dataset(path + "/phi_min", (1,), data=phimin, dtype="f8")
-        f.create_dataset(path + "/phi_max", (1,), data=phimax, dtype="f8")
-        f.create_dataset(path + "/n_phi", (1,),   data=nphi, dtype="i8")
-
-        f.create_dataset(path + "/z_min", (1,), data=zmin, dtype="f8")
-        f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
-        f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
-
-        f.create_dataset(path + "/E_R",   data=E_R,   dtype="f8")
-        f.create_dataset(path + "/E_phi", data=E_phi, dtype="f8")
-        f.create_dataset(path + "/E_z",   data=E_z,   dtype="f8")
+        g.create_dataset("R_min",   (1,), data=Rmin,   dtype="f8")
+        g.create_dataset("R_max",   (1,), data=Rmax,   dtype="f8")
+        g.create_dataset("n_R",     (1,), data=nR,     dtype="i8")
+        g.create_dataset("phi_min", (1,), data=phimin, dtype="f8")
+        g.create_dataset("phi_max", (1,), data=phimax, dtype="f8")
+        g.create_dataset("n_phi",   (1,), data=nphi,   dtype="i8")
+        g.create_dataset("z_min",   (1,), data=zmin,   dtype="f8")
+        g.create_dataset("z_max",   (1,), data=zmax,   dtype="f8")
+        g.create_dataset("n_z",     (1,), data=nz,     dtype="i8")
+        g.create_dataset("E_R",           data=E_R,    dtype="f8")
+        g.create_dataset("E_phi",         data=E_phi,  dtype="f8")
+        g.create_dataset("E_z",           data=E_z,    dtype="f8")
 
 
 def read_hdf5(fn,qid):
@@ -119,3 +109,8 @@ def read_hdf5(fn,qid):
         out["E_z"]   = f[path]["E_z"][:]
 
     return out
+
+class E_3D(AscotInput):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

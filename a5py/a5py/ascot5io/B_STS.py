@@ -5,10 +5,9 @@ File: B_STS.py
 """
 import numpy as np
 import h5py
-import random
-import datetime
 
 from . ascot5file import add_group
+from . ascot5data import AscotInput
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                B_R, B_phi, B_z, psi, n_periods,
@@ -16,7 +15,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                pRmin=None, pRmax=None, pnR=None,
                pzmin=None, pzmax=None, pnz=None,
                pphimin=None, pphimax=None, pnphi=None,
-               symmetry_mode=0, psiaxis=0, psisepx=1):
+               sym_mode=0, psiaxis=0, psisepx=1, desc=None):
     """
     Write stellarator magnetic field input in HDF5 file.
 
@@ -41,7 +40,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         Magnetic axis R- and z-location as a function of phi.
     pRmin, pRmax, pnR, pphimin, pphimax, pnphi, pzmin, pzmax, pnz : opt
         Optional parameters that define a separate grid for psi.
-    symmetry_mode : opt
+    sym_mode : opt
         Mode of symmetry used. 0 = stellarator symmetry, 1 = toroidal periodic
     psiaxis, psisepx : real
         Psi values at magnetic axis and separatrix
@@ -50,74 +49,55 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     parent = "bfield"
     group  = "B_STS"
 
+    # Define psigrid to be same as Bgrid if not stated otherwise.
+    if(pRmin is None or pRmax is None or pnR is None
+       or pphimin is None or pphimax is None or pnphi is None
+       or pzmin is None or pzmax is None or pnz is None):
+        pRmin   = Rmin
+        pRmax   = Rmax
+        pnR     = nR
+        pphimin = phimin
+        pphimax = phimax
+        pnphi   = nphi
+        pzmin   = zmin
+        pzmax   = zmax
+        pnz     = nz
+
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = add_group(f, parent, group)
+        g = add_group(f, parent, group, desc=desc)
 
-        # TODO Check that inputs are consistent.
-
-        # Define psigrid to be same as Bgrid if not stated otherwise.
-        if(pRmin is None or pRmax is None or pnR is None
-           or pphimin is None or pphimax is None or pnphi is None
-           or pzmin is None or pzmax is None or pnz is None):
-            pRmin   = Rmin
-            pRmax   = Rmax
-            pnR     = nR
-            pphimin = phimin
-            pphimax = phimax
-            pnphi   = nphi
-            pzmin   = zmin
-            pzmax   = zmax
-            pnz     = nz
-
-        # Actual data.
-        f.create_dataset(path + "/R_min", (1,), data=Rmin, dtype="f8")
-        f.create_dataset(path + "/R_max", (1,), data=Rmax, dtype="f8")
-        f.create_dataset(path + "/n_R", (1,),   data=nR, dtype="i8")
-
-        f.create_dataset(path + "/phi_min", (1,), data=phimin, dtype="f8")
-        f.create_dataset(path + "/phi_max", (1,), data=phimax, dtype="f8")
-        f.create_dataset(path + "/n_phi", (1,),   data=nphi, dtype="i8")
-
-        f.create_dataset(path + "/z_min", (1,), data=zmin, dtype="f8")
-        f.create_dataset(path + "/z_max", (1,), data=zmax, dtype="f8")
-        f.create_dataset(path + "/n_z", (1,),   data=nz, dtype="i8")
-
-        f.create_dataset(path + "/psigrid_R_min", (1,), data=pRmin, dtype="f8")
-        f.create_dataset(path + "/psigrid_R_max", (1,), data=pRmax, dtype="f8")
-        f.create_dataset(path + "/psigrid_n_R", (1,),   data=pnR, dtype="i8")
-
-        f.create_dataset(path + "/psigrid_phi_min", (1,), data=pphimin, dtype="f8")
-        f.create_dataset(path + "/psigrid_phi_max", (1,), data=pphimax, dtype="f8")
-        f.create_dataset(path + "/psigrid_n_phi", (1,),   data=pnphi, dtype="i8")
-
-        f.create_dataset(path + "/psigrid_z_min", (1,), data=pzmin, dtype="f8")
-        f.create_dataset(path + "/psigrid_z_max", (1,), data=pzmax, dtype="f8")
-        f.create_dataset(path + "/psigrid_n_z", (1,),   data=pnz, dtype="i8")
-
-        # Magnetic field data
-        f.create_dataset(path + "/B_R",   data=B_R, dtype="f8")
-        f.create_dataset(path + "/B_phi", data=B_phi, dtype="f8")
-        f.create_dataset(path + "/B_z",   data=B_z, dtype="f8")
-        f.create_dataset(path + "/psi",   data=psi, dtype="f8")
-
-        # Magnetic axis
-        f.create_dataset(path + "/axis_min", (1,), data=axismin, dtype="f8")
-        f.create_dataset(path + "/axis_max", (1,), data=axismax, dtype="f8")
-        f.create_dataset(path + "/n_axis", (1,),   data=naxis, dtype="i8")
-
-        f.create_dataset(path + "/axis_R",   data=axisR, dtype="f8")
-        f.create_dataset(path + "/axis_z",   data=axisz, dtype="f8")
-
-        f.create_dataset(path + "/psi0", (1,), data=psiaxis, dtype="f8")
-        f.create_dataset(path + "/psi1", (1,), data=psisepx, dtype="f8")
-
-        # Toroidal periods
-        f.create_dataset(path + "/toroidalPeriods", (1,), data=n_periods, dtype="i4")
-
-        # Symmetry mode
-        f.create_dataset(path + "/symmetry_mode", (1,), data=symmetry_mode, dtype="i4")
-
+        g.create_dataset("R_min",           (1,), data=Rmin,       dtype="f8")
+        g.create_dataset("R_max",           (1,), data=Rmax,       dtype="f8")
+        g.create_dataset("n_R",             (1,), data=nR,         dtype="i8")
+        g.create_dataset("phi_min",         (1,), data=phimin,     dtype="f8")
+        g.create_dataset("phi_max",         (1,), data=phimax,     dtype="f8")
+        g.create_dataset("n_phi",           (1,), data=nphi,       dtype="i8")
+        g.create_dataset("z_min",           (1,), data=zmin,       dtype="f8")
+        g.create_dataset("z_max",           (1,), data=zmax,       dtype="f8")
+        g.create_dataset("n_z",             (1,), data=nz,         dtype="i8")
+        g.create_dataset("psigrid_R_min",   (1,), data=pRmin,      dtype="f8")
+        g.create_dataset("psigrid_R_max",   (1,), data=pRmax,      dtype="f8")
+        g.create_dataset("psigrid_n_R",     (1,), data=pnR,        dtype="i8")
+        g.create_dataset("psigrid_phi_min", (1,), data=pphimin,    dtype="f8")
+        g.create_dataset("psigrid_phi_max", (1,), data=pphimax,    dtype="f8")
+        g.create_dataset("psigrid_n_phi",   (1,), data=pnphi,      dtype="i8")
+        g.create_dataset("psigrid_z_min",   (1,), data=pzmin,      dtype="f8")
+        g.create_dataset("psigrid_z_max",   (1,), data=pzmax,      dtype="f8")
+        g.create_dataset("psigrid_n_z",     (1,), data=pnz,        dtype="i8")
+        g.create_dataset("B_R",                   data=B_R,        dtype="f8")
+        g.create_dataset("B_phi",                 data=B_phi,      dtype="f8")
+        g.create_dataset("B_z",                   data=B_z,        dtype="f8")
+        g.create_dataset("psi",                   data=psi,        dtype="f8")
+        g.create_dataset("axis_min",        (1,), data=axismin,    dtype="f8")
+        g.create_dataset("axis_max",        (1,), data=axismax,    dtype="f8")
+        g.create_dataset("n_axis",          (1,), data=naxis,      dtype="i8")
+        g.create_dataset("axis_R",                data=axisR,      dtype="f8")
+        g.create_dataset("axis_z",                data=axisz,      dtype="f8")
+        g.create_dataset("psi0",            (1,), data=psiaxis,    dtype="f8")
+        g.create_dataset("psi1",            (1,), data=psisepx,    dtype="f8")
+        g.create_dataset("toroidalPeriods", (1,), data=n_periods,  dtype="i4")
+        g.create_dataset("symmetry_mode",   (1,), data=sym_mode,   dtype="i4")
 
 def read_hdf5(fn, qid):
     """
@@ -180,3 +160,8 @@ def read_hdf5(fn, qid):
         out["symmetry_mode"] = f[path]["symmetry_mode"][:]
 
     return out
+
+class B_STS(AscotInput):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

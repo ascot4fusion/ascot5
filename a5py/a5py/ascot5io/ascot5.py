@@ -103,7 +103,7 @@ from a5py.ascot5io.wall_2D    import wall_2D
 from a5py.ascot5io.wall_3D    import wall_3D
 from a5py.ascot5io.plasma_1D  import plasma_1D
 from a5py.ascot5io.N0_3D      import N0_3D
-from a5py.ascot5io.options    import options
+from a5py.ascot5io.options    import Opt
 
 from a5py.ascot5io.state      import State
 from a5py.ascot5io.orbits     import Orbits
@@ -154,7 +154,7 @@ def _create_input_group(type_, h5pygroup):
         inputobj = mrk_gc(h5pygroup)
 
     if type_ == "field_line":
-        inputobj = mrk_fl(h5pygroup)
+        inputobj = Mrk_fl(h5pygroup)
 
     if type_ == "wall_2D":
         inputobj = wall_2D(h5pygroup)
@@ -168,8 +168,8 @@ def _create_input_group(type_, h5pygroup):
     if type_ == "N0_3D":
         inputobj = N0_3D(h5pygroup)
 
-    if type_ == "options":
-        inputobj = options(h5pygroup)
+    if type_ == "opt":
+        inputobj = Opt(h5pygroup)
 
     return inputobj
 
@@ -211,13 +211,13 @@ def _create_run_group(h5pygroup):
             rungroup[key] = Orbits(h5pygroup["orbits"])
         if key == "dists":
             for d in h5pygroup["dists"]:
-                if d == "dist_5D":
+                if d == "R_phi_z_vpa_vpe_t_q":
                     rungroup[d] = Dist_5D(h5pygroup[key][d])
-                if d == "dist_6D":
+                if d == "R_phi_z_vr_vphi_vz_t_q":
                     rungroup[d] = Dist_5D(h5pygroup[key][d])
-                if d == "dist_rho5D":
+                if d == "rho_pol_phi_vpa_vpe_t_q":
                     rungroup[d] = Dist_rho5D(h5pygroup[key][d])
-                if d == "dist_rho6D":
+                if d == "rho_pol_phi_vr_vphi_vz_t_q":
                     rungroup[d] = Dist_rho6D(h5pygroup[key][d])
 
 
@@ -397,7 +397,7 @@ class _InputNode(_StandardNode):
         string = ""
         for i in range(0, len(self.qids)):
             string += self.types[i]    + " "  + \
-                      self.qids[i][1:] + " "  + \ # Without the 'q' prefix.
+                      self.qids[i][1:] + " "  + \
                       self.dates[i]    + "\n" + \
                       self.descs[i]
             if i < ( len(self.qids) - 1 ) :

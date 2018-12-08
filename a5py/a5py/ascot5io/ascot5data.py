@@ -1,73 +1,40 @@
 """
-Declarations of base classes from which input and output classes are derived.
+Parent class for input and output classes and common methods for those.
 
-File: base.py
+File: ascot5data.py
 """
 
 import h5py
 
-from . ascot5file import get_desc, get_qid, get_date
+from . import ascot5file
 
-class AscotInput():
-
-    def __init__(self, hdf5):
-        self._file   = hdf5.file.filename
-        self._path   = hdf5.name
-        self._isopen = False
-
-    def desc(self):
-        f = self._open()
-        val = get_desc(f.file, f)
-        self._close(f)
-        return val
-
-    def date(self):
-        f   = self._open()
-        val = get_date(f.file, f)
-        self._close(f)
-        return val
-
-    def qid(self):
-        return get_qid(self._path)
-
-    def type(self):
-        return get_type(self._path)
-
-    def _open(self):
-        if self._isopen == True:
-            return None
-
-        self._isopen = True
-        return h5py.File(self._file, "r")[self._path]
-
-    def _close(self, f):
-        self._isopen = False
-        f.file.close()
-
-class AscotOutput():
+class AscotData():
+    """
+    Abstract class for ASCOT5 input and output data.
+    """
 
     def __init__(self, hdf5):
         self._file   = hdf5.file.filename
-        self._run    = hdf5.parent.name
+        self._group  = hdf5.name.split("/")[2]
         self._path   = hdf5.name
         self._isopen = False
 
-    def desc(self):
+    def get_desc(self):
         f = self._open()
-        val = get_desc(f.file, f.parent)
+        val = ascot5file.get_desc(f.file, self._group)
         self._close(f)
         return val
 
-    def date(self):
+    def get_date(self):
         f = self._open()
-        val = get_date(f.file, f.parent)
+        val = ascot5file.get_date(f.file, self._group)
         self._close(f)
         return val
 
-    def qid(self):
-        return get_qid(self._run)
+    def get_qid(self):
+        return ascot5file.get_qid(self._group)
 
-    def type(self):
+    def get_type(self):
         return self._run.split("/")[-1]
 
     def _open(self):

@@ -7,9 +7,9 @@ import h5py
 import numpy as np
 
 from . ascot5file import add_group
-from a5py.ascot5io.base import AscotInput
+from a5py.ascot5io.ascot5data import AscotInput
 
-def write_hdf5(fn, N, ids, mass, charge,
+def write_hdf5(fn, n, ids, mass, charge,
                r, phi, z, energy, pitch, theta,
                weight, time, desc=None):
     """
@@ -49,25 +49,21 @@ def write_hdf5(fn, N, ids, mass, charge,
     parent = "marker"
     group  = "guiding_center"
 
-    # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = add_group(f, parent, group, desc=desc)
+        g = add_group(f, parent, group, desc=desc)
 
-        # TODO Check that inputs are consistent.
-
-        # Actual data.
-        f.create_dataset(path + "/n",      data=np.array([N]), dtype='i8').attrs['unit'] = '1';
-        f.create_dataset(path + "/r",      data=r,             dtype='f8').attrs['unit'] = 'm';
-        f.create_dataset(path + "/phi",    data=phi,           dtype='f8').attrs['unit'] = 'deg';
-        f.create_dataset(path + "/z",      data=z,             dtype='f8').attrs['unit'] = 'm';
-        f.create_dataset(path + "/energy", data=energy,        dtype='f8').attrs['unit'] = 'ev';
-        f.create_dataset(path + "/pitch",  data=pitch,         dtype='f8').attrs['unit'] = '1';
-        f.create_dataset(path + "/theta",  data=theta,         dtype='f8').attrs['unit'] = 'rad';
-        f.create_dataset(path + "/mass",   data=mass,          dtype='f8').attrs['unit'] = 'amu';
-        f.create_dataset(path + "/charge", data=charge,        dtype='i4').attrs['unit'] = 'e';
-        f.create_dataset(path + "/weight", data=weight,        dtype='f8').attrs['unit'] = 'markers/s';
-        f.create_dataset(path + "/time",   data=time,          dtype='f8').attrs['unit'] = 's';
-        f.create_dataset(path + "/id",     data=ids,           dtype='i8').attrs['unit'] = '1';
+        g.create_dataset("n",      (1,1), data=n,      dtype='i8').attrs['unit'] = '1';
+        g.create_dataset("r",             data=r,      dtype='f8').attrs['unit'] = 'm';
+        g.create_dataset("phi",           data=phi,    dtype='f8').attrs['unit'] = 'deg';
+        g.create_dataset("z",             data=z,      dtype='f8').attrs['unit'] = 'm';
+        g.create_dataset("energy",        data=energy, dtype='f8').attrs['unit'] = 'ev';
+        g.create_dataset("pitch",         data=pitch,  dtype='f8').attrs['unit'] = '1';
+        g.create_dataset("theta",         data=theta,  dtype='f8').attrs['unit'] = 'rad';
+        g.create_dataset("mass",          data=mass,   dtype='f8').attrs['unit'] = 'amu';
+        g.create_dataset("charge",        data=charge, dtype='i4').attrs['unit'] = 'e';
+        g.create_dataset("weight",        data=weight, dtype='f8').attrs['unit'] = 'markers/s';
+        g.create_dataset("time",          data=time,   dtype='f8').attrs['unit'] = 's';
+        g.create_dataset("id",            data=ids,    dtype='i8').attrs['unit'] = '1';
 
 def read_hdf5(fn, qid):
     """
