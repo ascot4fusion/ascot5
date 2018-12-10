@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 
 from . ascot5file import add_group
-from a5py.ascot5io.ascot5data import AscotInput
+from a5py.ascot5io.ascot5data import AscotData
 
 from . import wall_3D
 
@@ -106,7 +106,7 @@ def write_hdf5_3D(fn, n, R, z, nphi, desc=None):
     x1x2x3,y1y2y3 = pol2cart(p1p2p3, r1r2r3)
     wall_3D.write_hdf5(fn, 2*n*nphi, x1x2x3, y1y2y3, z1z2z3, flag, desc=desc)
 
-class wall_2D(AscotInput):
+class wall_2D(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())

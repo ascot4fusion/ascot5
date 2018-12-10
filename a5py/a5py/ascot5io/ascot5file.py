@@ -63,6 +63,10 @@ import h5py
 import random
 import datetime
 
+## Names of input parent groups.
+INPUT_PARENTS = ["options", "bfield", "efield", "marker", "plasma", "neutral",
+                 "wall"]
+
 def set_active(f, group):
     """
     Set given group as active.
@@ -291,6 +295,7 @@ def get_type(group):
     if(str(group) != group):
         group = group.name
 
+    group = group.split("/")[-1]
     if len(group) > 12:
         type_ = group[:-11]
         if not type_.isdigit():
@@ -323,15 +328,8 @@ def get_inputqids(f, rungroup):
     """
     Get all QIDs that tell which input was used in the given run group.
 
-    The QIDs are returned as list, where the order is
-
-    0. options
-    1. bfield
-    2. efield
-    3. marker
-    4. plasma
-    5. neutral
-    6. wall
+    The QIDs are returned as list, where the order is same as in
+    ascot5file.INPUT_PARENTS.
 
     Args:
         f: h5py file.
@@ -352,13 +350,9 @@ def get_inputqids(f, rungroup):
             rungroup = grp
 
     qids = [];
-    qids.append( rungroup.attrs["qid_options"].decode('utf-8') )
-    qids.append( rungroup.attrs["qid_bfield"].decode('utf-8')  )
-    qids.append( rungroup.attrs["qid_efield"].decode('utf-8')  )
-    qids.append( rungroup.attrs["qid_marker"].decode('utf-8')  )
-    qids.append( rungroup.attrs["qid_plasma"].decode('utf-8')  )
-    qids.append( rungroup.attrs["qid_neutral"].decode('utf-8') )
-    qids.append( rungroup.attrs["qid_wall"].decode('utf-8')    )
+    for inp in range(0, len(INPUT_PARENTS)):
+        qid = rungroup.attrs["qid_" + INPUT_PARENTS[inp]].decode('utf-8')
+        qids.append(qid)
 
     return qids
 

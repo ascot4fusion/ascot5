@@ -35,7 +35,7 @@ class AscotData():
         return ascot5file.get_qid(self._group)
 
     def get_type(self):
-        return self._run.split("/")[-1]
+        return self._path.split("/")[-1].split("-")[0]
 
     def _open(self):
         if self._isopen == True:

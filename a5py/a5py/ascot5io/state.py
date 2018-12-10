@@ -7,7 +7,7 @@ File: state.py
 import numpy as np
 import h5py
 
-from a5py.ascot5io.ascot5data import AscotOutput
+from a5py.ascot5io.ascot5data import AscotData
 
 def read_hdf5(fn, qid, read="all"):
     """
@@ -96,7 +96,7 @@ def write_hdf5(fn, states, qid, state=["inistate","endstate"]):
                     d = f.create_dataset(path + "/" + field, data=states[state][field])
                     d.attrs["unit"] = states[state][field + "_unit"]
 
-class State(AscotOutput):
+class State(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())

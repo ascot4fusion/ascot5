@@ -13,7 +13,7 @@ import a5py.ascot5io.B_3D as B_3D
 
 from . ascot5file import add_group
 
-from a5py.ascot5io.ascot5data import AscotInput
+from a5py.ascot5io.ascot5data import AscotData
 
 def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
                Nripple=0, a0=2, alpha0=2, delta0=0.05, psi0=None, desc=None):
@@ -273,7 +273,7 @@ def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
                     Br, Bphi, Bz, desc=desc)
 
 
-class B_GS(AscotInput):
+class B_GS(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())

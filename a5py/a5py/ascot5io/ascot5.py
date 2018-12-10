@@ -112,139 +112,38 @@ from a5py.ascot5io.dist_6D    import Dist_6D
 from a5py.ascot5io.dist_rho5D import Dist_rho5D
 from a5py.ascot5io.dist_rho6D import Dist_rho6D
 
-def _create_input_group(type_, h5pygroup):
-    """
-    Create an instance that represents the given input data.
-
-    This function is called for all input fields when ascot5.Ascot object is
-    initialized. These objects should be light-weight when they are initialized
-    and all actual input data reading should be left to be done once the methods
-    of these objects are called.
-
-    Args:
-        type_: String from which the type of the input data is recognized
-        h5pygroup: Input data's h5py group.
-
-    Returns:
-        AscotData object representing the given input data.
-    """
-
-    # We simply determine the type of the input data, initialize corresponding
-    # object and return.
-    inputobj = None
-    if type_ == "B_TC":
-        inputobj = B_TC(h5pygroup)
-
-    if type_ == "B_GS":
-        inputobj = B_GS(h5pygroup)
-
-    if type_ == "B_2DS":
-        inputobj = B_2DS(h5pygroup)
-
-    if type_ == "B_3DS":
-        inputobj = B_3DS(h5pygroup)
-
-    if type_ == "E_TC":
-        inputobj = E_TC(h5pygroup)
-
-    if type_ == "particle":
-        inputobj = mrk_prt(h5pygroup)
-
-    if type_ == "guiding_center":
-        inputobj = mrk_gc(h5pygroup)
-
-    if type_ == "field_line":
-        inputobj = Mrk_fl(h5pygroup)
-
-    if type_ == "wall_2D":
-        inputobj = wall_2D(h5pygroup)
-
-    if type_ == "wall_3D":
-        inputobj = wall_3D(h5pygroup)
-
-    if type_ == "plasma_1D":
-        inputobj = plasma_1D(h5pygroup)
-
-    if type_ == "N0_3D":
-        inputobj = N0_3D(h5pygroup)
-
-    if type_ == "opt":
-        inputobj = Opt(h5pygroup)
-
-    return inputobj
-
-def _create_run_group(h5pygroup):
-    """
-    Create an instance that represents the given run group data.
-
-    This function is called for all run groups when ascot5.Ascot object is
-    initialized. These objects should be light-weight when they are initialized
-    and all actual output data reading should be left to be done once the
-    methods of these objects are called.
-
-    This is different to ascot5._create_input_group() because that only
-    initializes a single data object while this one initializes all objects
-    (whose data is present in the run group) and returns a node containing
-    them. The reason is that input fields have QIDs and other metadata
-    while the groups within the run group doesn't.
-
-    Args:
-        h5pygroup: Run group's h5py group.
-
-    Returns:
-        ascot5._StandardNode object representing the given run group data.
-    """
-
-    # Make a new node instance and unfreeze it so that we can put some data in
-    rungroup = _StandardNode()
-    rungroup._unfreeze()
-
-    # rungroup is a node where each node is different type of output data object
-    for key in h5pygroup:
-        if key == "inistate":
-            rungroup[key] = State(h5pygroup["inistate"])
-
-        if key == "endstate":
-            rungroup[key] = State(h5pygroup["endstate"])
-
-        if key == "orbits":
-            rungroup[key] = Orbits(h5pygroup["orbits"])
-        if key == "dists":
-            for d in h5pygroup["dists"]:
-                if d == "R_phi_z_vpa_vpe_t_q":
-                    rungroup[d] = Dist_5D(h5pygroup[key][d])
-                if d == "R_phi_z_vr_vphi_vz_t_q":
-                    rungroup[d] = Dist_5D(h5pygroup[key][d])
-                if d == "rho_pol_phi_vpa_vpe_t_q":
-                    rungroup[d] = Dist_rho5D(h5pygroup[key][d])
-                if d == "rho_pol_phi_vr_vphi_vz_t_q":
-                    rungroup[d] = Dist_rho6D(h5pygroup[key][d])
+from a5py.ascot5io.ascot5file import INPUT_PARENTS
 
 
-    # Put references to the input data, these qids are replaced with actual
-    # references where this function was called from.
-    qids = get_inputqids(h5pygroup.file, h5pygroup)
-    rungroup["options"] = "q" + qids[0]
-    rungroup["bfield"]  = "q" + qids[1]
-    rungroup["efield"]  = "q" + qids[2]
-    rungroup["marker"]  = "q" + qids[3]
-    rungroup["plasma"]  = "q" + qids[4]
-    rungroup["neutral"] = "q" + qids[5]
-    rungroup["wall"]    = "q" + qids[6]
+class textcolor:
+    reset='\033[0m'
+    bold='\033[01m'
+    underline='\033[04m'
+    black='\033[30m'
+    red='\033[31m'
+    green='\033[32m'
+    orange='\033[33m'
+    blue='\033[34m'
+    purple='\033[35m'
+    cyan='\033[36m'
+    lightgrey='\033[37m'
+    darkgrey='\033[90m'
+    lightred='\033[91m'
+    lightgreen='\033[92m'
+    yellow='\033[93m'
+    lightblue='\033[94m'
+    pink='\033[95m'
+    lightcyan='\033[96m'
+    title  = bold + underline + purple
+    header = bold
+    active = green
 
-    # Freeze and return
-    rungroup._freeze()
-    return rungroup
-
-class _StandardNode():
+class _Node():
     """
     Class which lets its attributes be accessed in a dictionary-like manner.
 
     Instances of this class can be made (almost) immutable.
     """
-
-    ## How many characters are used in description based reference
-    _MAX_DESC = 20
 
     def __init__(self):
         """
@@ -273,10 +172,10 @@ class _StandardNode():
             value: Value of the attribute
         """
         if self._frozen:
-            print("Frozen. No new entries can be added manually.")
+            print("Frozen - new entries are not accepted.")
             return
 
-        cleankey =_remove_illegal_chars(key)
+        cleankey = self._remove_illegal_chars(key)
         setattr(self, cleankey, value)
 
     def __setattr__(self, key, value):
@@ -288,20 +187,11 @@ class _StandardNode():
             value: Value of the attribute
         """
         if key != "_frozen" and self._frozen:
-            print("Frozen. No new entries can be added manually.")
+            print("Frozen - new entries are not accepted.")
 
         else:
-            cleankey =_remove_illegal_chars(key)
+            cleankey = self._remove_illegal_chars(key)
             super().__setattr__(cleankey, value)
-
-    def __getitem__(self, key):
-        """
-        Access attributes in a dictionary style.
-
-        Args:
-            key: Name of the attribute to be fetched
-        """
-        return getattr(self, key)
 
     def ls(self):
         """
@@ -309,64 +199,46 @@ class _StandardNode():
         """
         print(str(self))
 
-class _InputNode(_StandardNode):
-    """
-    Node for accessing input data.
-    """
-
-    def __init__(self, parent):
+    def __getitem__(self, key):
         """
-        Initialize this node by initializing input objects and storing them.
+        Allows accessing attributes dictionary-like and by index.
+
+        Args:
+            key: Attribute name or index
+        Returns:
+            Attribute value or None if not found or invalid index
+        """
+
+        return getattr(self, key)
+
+    @staticmethod
+    def _remove_illegal_chars(key):
+        """
+        Remove illegal characters from argument so it becomes a valid attribute
+
+        Args:
+            String to be cleaned
+        Returns:
+            String from which illegal characters are replaced or removed
+        """
+        key = key.replace(" ", "_")
+        key = key.replace("-", "_")
+        key = key.replace(".","")
+        return key
+
+class _ParentNode(_Node):
+
+    _MAX_DESC = 20
+
+    def __init__(self):
+        """
+        Initialize a mutable node.
         """
         super().__init__()
-        self.qids  = []
-        self.descs = []
-        self.dates = []
-        self.types = []
-
-        for key in parent.keys():
-            qid = get_qid(key)
-            self.qids.append("q" + qid)
-            self.descs.append( get_desc(parent.file, parent[key]) )
-            self.dates.append( get_date(parent.file, parent[key]) )
-            self.types.append( get_type(key) )
-
-            cleankey =_remove_illegal_chars(key)
-            self[cleankey] = _create_input_group(self.types[-1],
-                                                 parent[key])
-            self["q" + qid] = self[cleankey]
-
-            # Make sure reference by description is not too long
-            max_ind = min( len(self.descs[-1]), self._MAX_DESC )
-            self[ self.descs[-1][:max_ind] ] = self[cleankey]
-
-        self.activeqid = "q" + get_activeqid(parent.file, parent)
-        self.active = self[self.activeqid]
-
-        # Organize qids, descriptions, dates and field names by active status
-        # and date (active one first, then sorted by date from newest to oldest)
-        index       = self.qids.index( self.activeqid )
-        sortedqids  = [ self.qids.pop(index)  ]
-        sorteddates = [ self.dates.pop(index) ]
-        sortedtypes = [ self.types.pop(index) ]
-        sorteddescs = [ self.descs.pop(index) ]
-
-        if len(self.qids) > 0:
-            # This sorts elements in y by sorted x
-            sortedqids  += \
-                    [x for _, x in sorted(zip(self.dates, self.qids))]
-            sortedtypes += \
-                    [x for _, x in sorted(zip(self.dates, self.types))]
-            sorteddescs += \
-                    [x for _, x in sorted(zip(self.dates, self.descs))]
-            sorteddates += sorted(self.dates)
-
-        self.qids  = sortedqids
-        self.dates = sorteddates
-        self.types = sortedtypes
-        self.descs = sorteddescs
-
-        self._freeze()
+        self._qids  = []
+        self._descs = []
+        self._dates = []
+        self._types = []
 
     def __getitem__(self, key):
         """
@@ -383,30 +255,239 @@ class _InputNode(_StandardNode):
             # Direct reference
             return super().__getitem__(key)
         else:
-            if key >= len(self.qids):
+            if key >= len(self._qids):
                 print("Index out of bounds. Maximum index is "
-                      + len(self.qids))
+                      + len(self._qids))
                 return None
 
-            return super().__getitem__(self.qids[key])
+            return super().__getitem__(self._qids[key])
+
+    def _init_store_qidgroup(self, h5file, h5group, dataobject):
+        groupname = h5group.name.split("/")[-1]
+        qid = get_qid(groupname)
+        self._qids.append("q" + qid)
+        self._descs.append( get_desc(h5file, h5group) )
+        self._dates.append( get_date(h5file, h5group) )
+        self._types.append( get_type(h5group) )
+
+        # Make sure reference by description is not too long
+        max_ind = min( len(self._descs[-1]), self._MAX_DESC )
+
+        referencename = self._remove_illegal_chars(groupname)
+        descreference = self._descs[-1][:max_ind]
+
+        self[referencename] = dataobject
+        self["q" + qid]     = dataobject
+
+        if descreference != "No description.":
+            self[descreference] = dataobject
+
+    def _init_store_activegroup(self, h5file, parent):
+        self.activeqid = "q" + get_activeqid(h5file, parent)
+        self.active    = self[self.activeqid]
+
+    def _init_organize(self):
+        # Organize qids, descriptions, dates and field names by active status
+        # and date (active one first, then sorted by date from newest to oldest)
+        index = self._qids.index(self.activeqid)
+
+        sortedqids  = [ self._qids.pop(index)  ]
+        sorteddates = [ self._dates.pop(index) ]
+        sortedtypes = [ self._types.pop(index) ]
+        sorteddescs = [ self._descs.pop(index) ]
+
+        if len(self._qids) > 0:
+            # This sorts elements in y by sorted x
+            sortedqids  += \
+                    [x for _, x in sorted(zip(self._dates, self._qids))]
+            sortedtypes += \
+                    [x for _, x in sorted(zip(self._dates, self._types))]
+            sorteddescs += \
+                    [x for _, x in sorted(zip(self._dates, self._descs))]
+            sorteddates += sorted(self._dates)
+
+        self._qids  = sortedqids
+        self._dates = sorteddates
+        self._types = sortedtypes
+        self._descs = sorteddescs
+
+class _InputNode(_ParentNode):
+    """
+    Node for accessing input data.
+
+        Create an instance that represents the given input data.
+
+        This function is called for all input fields when ascot5.Ascot object is
+        initialized. These objects should be light-weight when they are
+        initialized and all actual input data reading should be left to be done
+        once the methods of these objects are called.
+
+        Args:
+            type_: String from which the type of the input data is recognized
+            h5pygroup: Input data's h5py group.
+
+        Returns:
+    AscotData object representing the given input data.
+    """
+
+    def __init__(self, parent):
+        """
+        Initialize this node by initializing input objects and storing them.
+        """
+        super().__init__()
+
+        for key in parent.keys():
+            inputobj = None
+            type_ = get_type(parent[key].name.split("/")[-1])
+            if type_ == "B_TC":
+                inputobj = B_TC(parent[key])
+
+            if type_ == "B_GS":
+                inputobj = B_GS(parent[key])
+
+            if type_ == "B_2DS":
+                inputobj = B_2DS(parent[key])
+
+            if type_ == "B_3DS":
+                inputobj = B_3DS(parent[key])
+
+            if type_ == "E_TC":
+                inputobj = E_TC(parent[key])
+
+            if type_ == "particle":
+                inputobj = mrk_prt(parent[key])
+
+            if type_ == "guiding_center":
+                inputobj = mrk_gc(parent[key])
+
+            if type_ == "field_line":
+                inputobj = mrk_fl(parent[key])
+
+            if type_ == "wall_2D":
+                inputobj = wall_2D(parent[key])
+
+            if type_ == "wall_3D":
+                inputobj = wall_3D(parent[key])
+
+            if type_ == "plasma_1D":
+                inputobj = plasma_1D(parent[key])
+
+            if type_ == "N0_3D":
+                inputobj = N0_3D(parent[key])
+
+            if type_ == "opt":
+                inputobj = Opt(parent[key])
+
+            self._init_store_qidgroup(parent.file, parent[key], inputobj)
+
+        self._init_store_activegroup(parent.file, parent)
+
+        self._init_organize()
+
+        self._freeze()
 
     def __str__(self):
         """
         Get a table showing fields, qids, dates, and descriptions as a string.
         """
         string = ""
-        for i in range(0, len(self.qids)):
-            string += self.types[i]    + " "  + \
-                      self.qids[i][1:] + " "  + \
-                      self.dates[i]    + "\n" + \
-                      self.descs[i]
-            if i < ( len(self.qids) - 1 ) :
+        for i in range(0, len(self._qids)):
+            string += textcolor.header + self._types[i].ljust(10) + " "  + \
+                      self._qids[i][1:] + textcolor.reset + " "  +       \
+                      self._dates[i]
+            if i == 0:
+                string += textcolor.active + "  [active]" + textcolor.reset
+
+            string += "\n" + self._descs[i]
+            if i < ( len(self._qids) - 1 ) :
                 string += "\n"
 
         return string
 
+class _RunNode(_Node):
+    """
+        Create an instance that represents the given run group data.
 
-class Ascot(_StandardNode):
+        This function is called for all run groups when ascot5.Ascot object is
+        initialized. These objects should be light-weight when they are initialized
+        and all actual output data reading should be left to be done once the
+        methods of these objects are called.
+
+        This is different to ascot5._create_input_group() because that only
+        initializes a single data object while this one initializes all objects
+        (whose data is present in the run group) and returns a node containing
+        them. The reason is that input fields have QIDs and other metadata
+        while the groups within the run group doesn't.
+
+        Args:
+            h5pygroup: Run group's h5py group.
+
+        Returns:
+            ascot5._StandardNode object representing the given run group data.
+    """
+
+    def __init__(self, rungroup, inputgroups):
+        super().__init__()
+
+        self._qid  = get_qid(rungroup)
+        self._date = get_date(rungroup.file, rungroup)
+        self._desc = get_desc(rungroup.file, rungroup)
+
+        # Put references to the input data
+        for inp in range(0, len(INPUT_PARENTS)):
+            self[INPUT_PARENTS[inp]] = inputgroups[inp]
+
+        for key in rungroup:
+            key = rungroup[key].name.split("/")[-1]
+            if key == "inistate":
+                self[key] = State(rungroup[key])
+
+            if key == "endstate":
+                self[key] = State(rungroup[key])
+
+            if key == "orbits":
+                for d in rungroup[key]:
+                    self[d] = Orbits(rungroup[key][d])
+            if key == "dists":
+                for d in rungroup[key]:
+                    if d == "R_phi_z_vpa_vpe_t_q":
+                        self[d] = Dist_5D(rungroup[key][d])
+                    if d == "R_phi_z_vr_vphi_vz_t_q":
+                        self[d] = Dist_5D(rungroup[key][d])
+                    if d == "rho_pol_phi_vpa_vpe_t_q":
+                        self[d] = Dist_rho5D(rungroup[key][d])
+                    if d == "rho_pol_phi_vr_vphi_vz_t_q":
+                        self[d] = Dist_rho6D(rungroup[key][d])
+
+        self._freeze()
+
+    def __str__(self):
+        string = textcolor.title + "Run:\n"  \
+                 + textcolor.reset + textcolor.header \
+                 + "        " + self._qid + textcolor.reset + " " \
+                 + self._date + "\n" \
+                 + "        " + self._desc + "\n"
+
+        string += textcolor.title + "\nInput:\n" \
+                  + textcolor.reset
+        for inp in INPUT_PARENTS:
+            string += textcolor.active + inp.ljust(8) + textcolor.reset  \
+                      + textcolor.header + self[inp].get_type().ljust(10) \
+                      + " " + self[inp].get_qid() +  textcolor.reset    \
+                      + "    " + self[inp].get_date()  \
+                      + "\n        "                   \
+                      + self[inp].get_desc() + "\n"
+
+        string += textcolor.title + "\nOutput:\n" \
+                  + textcolor.reset
+        for key in vars(self):
+            if key not in INPUT_PARENTS and key[0] != "_":
+                string += key + "\n"
+
+        return string
+
+
+class Ascot(_ParentNode):
     """
     Top node used for exploring the HDF5 file.
     """
@@ -417,117 +498,65 @@ class Ascot(_StandardNode):
         """
         super().__init__()
         self._hdf5fn = fn
-        self.qids    = []
-        self.descs   = []
-        self.dates   = []
-
-        with h5py.File(self._hdf5fn, "r") as h5:
-
-            for key in h5.keys():
-                if( key == "bfield" or key == "efield" or key == "options" or \
-                    key == "marker" or key == "neutral" or key == "plasma" or \
-                    key == "wall" ):
-                    self[key] = _InputNode(h5[key])
-
-            if "results" in h5:
-                for key in h5["results"].keys():
-                    qid = get_qid(key)
-                    self.qids.append("q" + qid)
-                    self.descs.append( get_desc(h5, h5["results"][key]) )
-                    self.dates.append( get_date(h5, h5["results"][key]) )
-
-                    cleankey =_remove_illegal_chars(key)
-                    self[cleankey] = _create_run_group(h5["results"][key])
-                    self["q" + qid]  = self[cleankey]
-
-                    # Convert stored qids as references in rungroup
-                    for i in ["options", "bfield", "efield", "marker", "plasma",
-                              "neutral", "wall"]:
-                        self[cleankey]._unfreeze()
-                        self[cleankey][i] = self[i][self[cleankey][i]]
-                        self[cleankey]._freeze()
-
-                    # Make sure reference by description is not too long
-                    max_ind = min( len(self.descs[-1]), self._MAX_DESC )
-                    self[ self.descs[-1][:max_ind] ] = self[cleankey]
-
-                self.activeqid = "q" + get_activeqid(h5, h5["results"])
-                self.active = self[self.activeqid]
-
-                # Organize qids, descriptions, dates and field names by active
-                # status and date (active one first, then sorted by date from
-                # newest to oldest)
-                index       = self.qids.index( self.activeqid )
-                sortedqids  = [ self.qids.pop(index)  ]
-                sorteddates = [ self.dates.pop(index) ]
-                sorteddescs = [ self.descs.pop(index) ]
-
-                if len(self.qids) > 0:
-                    # This sorts elements in y by sorted x
-                    sortedqids  += \
-                        [x for _, x in sorted(zip(self.dates, self.qids))]
-                    sorteddescs += \
-                        [x for _, x in sorted(zip(self.dates, self.descs))]
-                    sorteddates += sorted(self.dates)
-
-                self.qids  = sortedqids
-                self.dates = sorteddates
-                self.descs = sorteddescs
-
-        self._freeze()
-
-    def __getitem__(self, key):
-        """
-        Allows accessing attributes dictionary-like and by index.
-
-        Args:
-            key: Attribute name or index
-        Returns:
-            Attribute value or None if not found or invalid index
-        """
-        # Is item a direct reference or reference by index?
-        if type(key) is str:
-            # Direct reference
-            return super().__getitem__(key)
-        else:
-            if key >= len(self.qids):
-                print("Index out of bounds. Maximum index is "
-                      + len(self.qids))
-                return None
-
-            return super().__getitem__(self.qids[key])
+        self.reload()
 
     def __str__(self):
         """
         Overview of inputs and results in the HDF5 file in a string format.
         """
-        string = "Inputs:\n"
-        if(hasattr(self, "options")): string += "options\n"
-        if(hasattr(self, "bfield" )): string += "bfield\n"
-        if(hasattr(self, "efield" )): string += "efield\n"
-        if(hasattr(self, "plasma" )): string += "plasma\n"
-        if(hasattr(self, "neutral")): string += "neutral\n"
-        if(hasattr(self, "wall"   )): string += "wall\n"
+        string = textcolor.title + "Inputs:\n" \
+                 + textcolor.reset
+        for inp in INPUT_PARENTS:
+            if(hasattr(self, inp)):
+                g = self[inp]
+                string += textcolor.active + inp.ljust(8) + textcolor.reset \
+                          + textcolor.header + g._types[0].ljust(10) + " "   \
+                          + g._qids[0][1:] + textcolor.reset + " " \
+                          + g._dates[0] \
+                          + "\n        " + g._descs[0] + "\n"
 
-        string += "\nResults:\n"
-        for i in range(0, len(self.qids)):
-            string += "run" + " " + self.qids[i][1:] + " " + \
-                      self.dates[i] + "\n" + self.descs[i]
-            if i < ( len(self.qids) - 1 ) :
+        string += textcolor.title + "\nResults:\n" \
+                  + textcolor.reset
+        for i in range(0, len(self._qids)):
+            string += textcolor.header + "run" + " " + self._qids[i][1:] + " " \
+                      + textcolor.reset + self._dates[i] + "\n" + self._descs[i]
+            if i < ( len(self._qids) - 1 ) :
                 string += "\n"
 
         return string
 
-def _remove_illegal_chars(key):
-    """
-    Remove illegal characters from argument so it can be used as an attribute.
+    def reload(self):
+        fn = self._hdf5fn
+        for v in list(vars(self)):
+            delattr(self, v)
 
-    Args:
-        String to be cleaned
-    Returns:
-        String from which illegal characters are replaced or removed
-    """
-    key = key.replace(" ", "_")
-    key = key.replace("-", "_")
-    key = key.replace(".","")
-    return key
+        super().__init__()
+        self._hdf5fn = fn
+
+        with h5py.File(self._hdf5fn, "r") as h5:
+
+            # Initialize input groups.
+            for inp in h5.keys():
+                if( inp in INPUT_PARENTS ):
+                    self[inp] = _InputNode(h5[inp])
+
+            if "results" in h5:
+                for run in h5["results"].keys():
+
+                    # Fetch those input groups that correspond to this run.
+                    inputqids   = get_inputqids(h5["results"][run].file,
+                                                h5["results"][run])
+
+                    inputgroups = []
+                    for inp in range(0, len(INPUT_PARENTS)):
+                        groups = getattr(self, INPUT_PARENTS[inp])
+                        inputgroups.append(groups["q" + inputqids[inp]])
+
+                    # Make a run node and store it.
+                    runnode = _RunNode(h5["results"][run], inputgroups)
+                    self._init_store_qidgroup(h5, h5["results"][run], runnode)
+
+                self._init_store_activegroup(h5, h5["results"])
+                self._init_organize()
+
+        self._freeze()

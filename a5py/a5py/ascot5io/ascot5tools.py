@@ -1,7 +1,7 @@
 """
 Tools to modify HDF5 files.
 
-File: tools.py
+File: ascot5tools.py
 """
 import numpy as np
 import h5py

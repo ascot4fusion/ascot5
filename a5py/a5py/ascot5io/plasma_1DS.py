@@ -9,7 +9,7 @@ import random
 import datetime
 
 from . ascot5file import add_group
-from . ascot5data import AscotInput
+from . ascot5data import AscotData
 
 def write_hdf5(fn, Nrho, Nion, znum, anum, rhomin, rhomax,
                ndens, ntemp, edens, etemp, idens, itemp, desc=None):

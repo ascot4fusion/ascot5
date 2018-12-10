@@ -10,7 +10,7 @@ import h5py
 import numpy as np
 
 from . ascot5file import add_group
-from . ascot5data import AscotInput
+from . ascot5data import AscotData
 
 def write_hdf5(fn, Exyz, desc=None):
     """
@@ -71,7 +71,7 @@ def read_hdf5(fn, qid):
 
     return out
 
-class E_TC(AscotInput):
+class E_TC(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())

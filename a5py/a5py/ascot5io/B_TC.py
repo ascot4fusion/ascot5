@@ -11,7 +11,7 @@ import h5py
 import numpy as np
 
 from . ascot5file import add_group
-from a5py.ascot5io.base import AscotInput
+from a5py.ascot5io.ascot5data import AscotData
 
 def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0, desc=None):
     """
@@ -94,7 +94,7 @@ def read_hdf5(fn, qid):
 
     return out
 
-class B_TC(AscotInput):
+class B_TC(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
