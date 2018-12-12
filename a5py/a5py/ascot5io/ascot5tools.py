@@ -6,12 +6,9 @@ File: ascot5tools.py
 import numpy as np
 import h5py
 from . import ascot5
-from . import ascot5group
-from . import states
-from . import orbits
-from . import dists
+from . import ascot5file
 
-def setactivegroup(fn, mastergroup, qid):
+def set_active(fn, qid):
     """
     Set a group active.
 
@@ -20,21 +17,11 @@ def setactivegroup(fn, mastergroup, qid):
 
     fn : str
          Full path to HDF5 file.
-    mastergroup : str
-         Mastergroup where the group belongs to.
     qid: str
          Id for the active group.
     """
     with h5py.File(fn, "a") as f:
-        exists = False
-        if mastergroup in f:
-            for r in f[mastergroup]:
-                if r[-10:] == qid:
-                    ascot5group.setactive(f, mastergroup + "/" + r)
-                    exists = True
-
-        if exists == None:
-            print("Error: group not found.")
+        ascot5file.set_activeqid(f, qid)
 
 def removerun(fn, qid=None):
     """

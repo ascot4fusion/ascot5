@@ -13,7 +13,7 @@ import numpy as np
 from . ascot5file import add_group
 from a5py.ascot5io.ascot5data import AscotData
 
-def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0, desc=None):
+def write_hdf5(fn, Bxyz, J, rhoval, psival=None, axisR=1, axisz=0, desc=None):
     """
     Write trivial cartesian magnetic field input in HDF5 file.
 
@@ -39,21 +39,21 @@ def write_hdf5(fn, Bxyz, J, rhoval, psival=0, axisR=1, axisz=0, desc=None):
     parent = "bfield"
     group  = "B_TC"
 
+    # TODO Check that inputs are consistent.
+    if psival == None:
+        psival = rhoval
+
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = add_group(f, parent, group, desc=desc)
-
-        # TODO Check that inputs are consistent.
-        if psival == 0:
-            psival = rhoval
+        g = add_group(f, parent, group, desc=desc)
 
         # Actual data.
-        f.create_dataset(path + "/Bxyz",         data=Bxyz,   dtype="f8")
-        f.create_dataset(path + "/J",            data=J,      dtype="f8")
-        f.create_dataset(path + "/rhoval", (1,), data=rhoval, dtype="f8")
-        f.create_dataset(path + "/psival", (1,), data=psival, dtype="f8")
-        f.create_dataset(path + "/axisr", (1,),  data=axisR,  dtype="f8")
-        f.create_dataset(path + "/axisz", (1,),  data=axisz,  dtype="f8")
+        g.create_dataset("Bxyz",         data=Bxyz,   dtype="f8")
+        g.create_dataset("J",            data=J,      dtype="f8")
+        g.create_dataset("rhoval", (1,), data=rhoval, dtype="f8")
+        g.create_dataset("psival", (1,), data=psival, dtype="f8")
+        g.create_dataset("axisr",  (1,), data=axisR,  dtype="f8")
+        g.create_dataset("axisz",  (1,), data=axisz,  dtype="f8")
 
 
 def read_hdf5(fn, qid):

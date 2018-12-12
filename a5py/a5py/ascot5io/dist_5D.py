@@ -8,6 +8,8 @@ import h5py
 
 from a5py.ascot5io.ascot5data import AscotData
 
+from a5py.postprocessing.disttrasnformations import vpavpe2Epitch
+
 def read_hdf5(fn, qid):
     """
     Read distributions.
@@ -121,3 +123,6 @@ class Dist_5D(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
+
+    def get_energypitchdist(self, E_edges, xi_edges, masskg):
+        return vpavpe2Epitch(self.read(), E_edges, xi_edges, masskg)
