@@ -96,6 +96,8 @@ from a5py.ascot5io.B_GS       import B_GS
 from a5py.ascot5io.B_2DS      import B_2DS
 from a5py.ascot5io.B_3DS      import B_3DS
 from a5py.ascot5io.E_TC       import E_TC
+from a5py.ascot5io.E_3D       import E_3D
+from a5py.ascot5io.E_3DPOT    import E_3DPOT
 from a5py.ascot5io.mrk_prt    import mrk_prt
 from a5py.ascot5io.mrk_gc     import mrk_gc
 from a5py.ascot5io.mrk_fl     import mrk_fl
@@ -353,6 +355,12 @@ class _InputNode(_ParentNode):
 
             if type_ == "E_TC":
                 inputobj = E_TC(parent[key])
+
+            if type_ == "E_3D":
+                inputobj = E_3D(parent[key])
+
+            if type_ == "E_3DPOT":
+                inputobj = E_3DPOT(parent[key])
 
             if type_ == "particle":
                 inputobj = mrk_prt(parent[key])
