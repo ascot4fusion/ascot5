@@ -1,14 +1,16 @@
 """
 Trivial cartesian electric field IO.
+
 The trivial cartesian electric field is a constant
 electric field defined in cartesian coordinates.
+
+File: E_TC.py
 """
 import h5py
 import numpy as np
-import random
-import datetime
 
-from . ascot5group import creategroup, setdescription
+from . ascot5file import add_group
+from . ascot5data import AscotData
 
 def write_hdf5(fn, Exyz, desc=None):
     """
@@ -23,19 +25,17 @@ def write_hdf5(fn, Exyz, desc=None):
         Electric field value in cartesian coordinates
     """
 
-    mastergroup = "efield"
-    subgroup    = "E_TC"
+    parent = "efield"
+    group  = "E_TC"
 
-    # Create a group for this input.
+    # Check that input is a valid array with three elements.
+    if Exyz.shape != (3,1) and Exyz.shape != (1,3) and Exyz.shape != (3,):
+        raise Exception('Exyz has invalid format.')
+
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup, desc=desc)
+        g = add_group(f, parent, group, desc=desc)
 
-        # Check that input is a valid array with three elements.
-        if Exyz.shape != (3,1) and Exyz.shape != (1,3) and Exyz.shape != (3,):
-            raise Exception('Exyz has invalid format.')
-
-        # Actual data.
-        f.create_dataset(path + "/Exyz", (3,1), data = Exyz, dtype="f8")
+        g.create_dataset("Exyz", (3,1), data = Exyz, dtype="f8")
 
 
 def read_hdf5(fn, qid):
@@ -70,3 +70,8 @@ def read_hdf5(fn, qid):
         out["Exyz"] = f[path]["Exyz"][:]
 
     return out
+
+class E_TC(AscotData):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

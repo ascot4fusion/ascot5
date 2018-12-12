@@ -1,12 +1,16 @@
 """
 Orbits HDF5 IO module.
+
+File: orbits.py
 """
 import numpy as np
 import h5py
-import random
-import datetime
+import scipy.constants as constants
 
-def read_hdf5(fn, qid):
+from a5py.ascot5io.ascot5data import AscotData
+import a5py.postprocessing.markereval as meval
+
+def read_hdf5(fn, qid, name):
     """
     Read orbits.
 
@@ -25,30 +29,25 @@ def read_hdf5(fn, qid):
     """
 
     with h5py.File(fn,"r") as f:
-        orbits = f["/results/run-"+qid+"/orbits"]
+        orbits = f["/results/run-"+qid+"/orbits/" + name]
 
         out = {}
 
         # Read data from file.
-        for orbgroup in orbits:
-            out[orbgroup] = {}
-            for field in orbits[orbgroup]:
-                out[orbgroup][field]           = orbits[orbgroup][field][:]
-                out[orbgroup][field + "_unit"] = orbits[orbgroup][field].attrs["unit"]
+        for field in orbits:
+            out[field]           = orbits[field][:]
+            out[field + "_unit"] = orbits[field].attrs["unit"]
 
         # Find how many markers we have and their ids.
-        for orbgroup in orbits:
-            out[orbgroup]["N"]        = (np.unique(orbits[orbgroup]["id"][:])).size
-            out[orbgroup]["uniqueId"] = np.unique(orbits[orbgroup]["id"][:])
+        out["N"]        = (np.unique(orbits["id"][:])).size
+        out["uniqueId"] = np.unique(orbits["id"][:])
 
         # Sort fields by id (major) and time (minor), both ascending.
-
-        for orbgroup in orbits:
-            if out[orbgroup]["N"] > 0:
-                ind = np.lexsort((out[orbgroup]["time"], out[orbgroup]["id"]))
-                for field in orbits[orbgroup]:
-                    if field[-4:] != "unit":
-                        out[orbgroup][field] = out[orbgroup][field][ind]
+        if out["N"] > 0:
+            ind = np.lexsort((out["time"], out["id"]))
+            for field in orbits:
+                if field[-4:] != "unit":
+                    out[field] = out[field][ind]
 
     return out
 
@@ -92,3 +91,15 @@ def write_hdf5(fn, orbits, qid):
                 if field[-4:] != "unit" and field != "N" and field != "uniqueId":
                     d = f.create_dataset(path + "/" + field, data=orbits[orbgroup][field])
                     d.attrs["unit"] = orbits[orbgroup][field + "_unit"]
+
+class Orbits(AscotData):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid(), self.get_type())
+
+    def __getitem__(self, key):
+        mode = self.get_type()
+        h5 = self._open()
+        item = meval.evaluate(h5, key, mode)
+        self._close(h5)
+        return item

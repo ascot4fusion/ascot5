@@ -1,12 +1,16 @@
 """
 State HDF5 IO module.
+
+File: state.py
 """
+
 import numpy as np
 import h5py
-import random
-import datetime
 
-def read_hdf5(fn, qid, read="all"):
+from a5py.ascot5io.ascot5data import AscotData
+import a5py.postprocessing.markereval as meval
+
+def read_hdf5(fn, qid, name):
     """
     Read all or specified states.
 
@@ -24,31 +28,22 @@ def read_hdf5(fn, qid, read="all"):
     Dictionary storing the states that were read.
     """
 
-    path = "results/run-"+qid
+    path = "results/run-" + qid + "/" + name
 
     with h5py.File(fn,"r") as f:
         out = {}
-        if read == "all":
-            read = ["inistate", "endstate"]
 
-        # Read data from file
-        for statename in read:
-            out[statename] = {}
-            if statename in f[path]:
-                for field in f[path][statename]:
-                    out[statename][field]           = f[path][statename][field][:]
-                    out[statename][field + "_unit"] = f[path][statename][field].attrs["unit"]
-            else:
-                print("Warning: State " + statename + " does not exists.")
+        for field in f[path]:
+            out[field]           = f[path][field][:]
+            out[field + "_unit"] = f[path][field].attrs["unit"]
 
         # TODO Parse endconditions.
 
         # Find number of markers and check that no markers share same id
         # (which they shouldn't).
-        for state in out:
-            out[state]["N"] = np.unique(out[state]["id"]).size
-            if out[state]["N"] != out[state]["id"].size:
-                print("Warning: Markers don't have unique Id.")
+        out["N"] = np.unique(out["id"]).size
+        if out["N"] != out["id"].size:
+            print("Warning: Markers don't have unique Id.")
 
     return out
 
@@ -92,3 +87,15 @@ def write_hdf5(fn, states, qid, state=["inistate","endstate"]):
                 if field[-4:] != "unit" and field != "N" and field != "uniqueId":
                     d = f.create_dataset(path + "/" + field, data=states[state][field])
                     d.attrs["unit"] = states[state][field + "_unit"]
+
+class State(AscotData):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid(), self.get_type())
+
+    def __getitem__(self, key):
+        mode = "gc"
+        h5   = self._open()
+        item = meval.evaluate(h5, key, mode)
+        self._close(h5)
+        return item

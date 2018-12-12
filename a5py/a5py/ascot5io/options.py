@@ -1,10 +1,13 @@
 """
 Options IO.
+
+File: options.py
 """
 import h5py
 import numpy as np
 
-from . ascot5group import creategroup, setdescription
+from . ascot5file import add_group
+from a5py.ascot5io.ascot5data import AscotData
 
 def write_hdf5(fn, options, desc=None):
     """
@@ -22,20 +25,15 @@ def write_hdf5(fn, options, desc=None):
         Options to be written in dictionary format.
     """
 
-    mastergroup = "options"
-    subgroup    = "opt"
+    parent = "options"
+    group  = "opt"
 
-    # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup, desc=desc)
+        g = add_group(f, parent, group, desc=desc)
 
-        # TODO Check that inputs are consistent.
-
-        # Actual data.
         for opt in options:
             if opt != "qid" and opt != "date" and opt != "description":
-                f.create_dataset(path + "/" + opt,
-                                 (options[opt].size,), data=options[opt])
+                g.create_dataset(opt, (options[opt].size,), data=options[opt])
 
 
 def read_hdf5(fn, qid):
@@ -71,3 +69,8 @@ def read_hdf5(fn, qid):
             out[opt] = f[path][opt][:]
 
     return out
+
+class Opt(AscotData):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

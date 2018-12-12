@@ -1,5 +1,7 @@
 """
 Analytic tokamak field HDF5 IO.
+
+File: B_GS.py
 """
 import numpy as np
 import h5py
@@ -9,7 +11,9 @@ import a5py.preprocessing.analyticequilibrium as psifun
 import a5py.ascot5io.B_2D as B_2D
 import a5py.ascot5io.B_3D as B_3D
 
-from . ascot5group import creategroup
+from . ascot5file import add_group
+
+from a5py.ascot5io.ascot5data import AscotData
 
 def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
                Nripple=0, a0=2, alpha0=2, delta0=0.05, psi0=None, desc=None):
@@ -61,40 +65,35 @@ def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     not divergence free and one cannot see ripple in Poincare plots.
     """
 
-    mastergroup = "bfield"
-    subgroup    = "B_GS"
+    parent = "bfield"
+    group  = "B_GS"
 
-    # Create a group for this input.
+    c = psi_coeff # For shorter notation.
+
+    # Search for magnetic axis if not given.
+    if psi0 == None:
+        x = psifun.find_axis(R0, z0, c[0], c[1], c[2], c[3], c[4], c[5], c[6],
+                             c[7], c[8], c[9], c[10], c[11], c[12])
+        psi0 = psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
+                           c[5], c[6], c[7], c[8], c[9], c[10], c[11],
+                           c[12]) * psi_mult
+
+    psi1 = 0 # Always true at the separatrix
+
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup, desc=desc)
+        g = add_group(f, parent, group, desc=desc)
 
-        # TODO Check that inputs are consistent.
-
-        c = psi_coeff # For shorter notation.
-
-        # search for magnetic axis if not given
-        if psi0 == None:
-            x = psifun.find_axis(R0, z0, c[0], c[1], c[2], c[3], c[4], c[5], c[6],
-                c[7], c[8], c[9], c[10], c[11], c[12])
-            psi0 = psi_mult*psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
-                c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
-
-        psi1 = 0 # At separatrix always
-
-        # 2D field data.
-        f.create_dataset(path + "/R0", (1,),        data=R0, dtype='f8')
-        f.create_dataset(path + "/z0", (1,),        data=z0, dtype='f8')
-        f.create_dataset(path + "/B_phi0", (1,),    data=B_phi0, dtype='f8')
-        f.create_dataset(path + "/psi0", (1,),      data=psi0, dtype='f8')
-        f.create_dataset(path + "/psi1", (1,),      data=psi1, dtype='f8')
-        f.create_dataset(path + "/psi_mult", (1,),  data=psi_mult, dtype='f8')
-        f.create_dataset(path + "/psi_coeff",       data=psi_coeff, dtype='f8')
-
-        # 3D field data.
-        f.create_dataset(path + "/Nripple", (1,), data=Nripple, dtype='i8')
-        f.create_dataset(path + "/a0", (1,),      data=a0, dtype='f8')
-        f.create_dataset(path + "/alpha0", (1,),  data=alpha0, dtype='f8')
-        f.create_dataset(path + "/delta0", (1,),  data=delta0, dtype='f8')
+        g.create_dataset("R0",        (1,), data=R0,        dtype='f8')
+        g.create_dataset("z0",        (1,), data=z0,        dtype='f8')
+        g.create_dataset("B_phi0",    (1,), data=B_phi0,    dtype='f8')
+        g.create_dataset("psi0",      (1,), data=psi0,      dtype='f8')
+        g.create_dataset("psi1",      (1,), data=psi1,      dtype='f8')
+        g.create_dataset("psi_mult",  (1,), data=psi_mult,  dtype='f8')
+        g.create_dataset("psi_coeff",       data=psi_coeff, dtype='f8')
+        g.create_dataset("Nripple",   (1,), data=Nripple,   dtype='i8')
+        g.create_dataset("a0",        (1,), data=a0,        dtype='f8')
+        g.create_dataset("alpha0",    (1,), data=alpha0,    dtype='f8')
+        g.create_dataset("delta0",    (1,), data=delta0,    dtype='f8')
 
 
 def read_hdf5(fn, qid):
@@ -272,3 +271,9 @@ def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     B_3D.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                     R0, z0, psiRz, psi0, psi1,
                     Br, Bphi, Bz, desc=desc)
+
+
+class B_GS(AscotData):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

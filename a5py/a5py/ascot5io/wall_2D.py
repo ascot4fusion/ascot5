@@ -1,12 +1,14 @@
 """
 2D wall IO.
+
+File: wall_2D.py
 """
 import h5py
 import numpy as np
-import random
-import datetime
 
-from . ascot5group import creategroup, setdescription
+from . ascot5file import add_group
+from a5py.ascot5io.ascot5data import AscotData
+
 from . import wall_3D
 
 def write_hdf5(fn, n, R, z, desc=None):
@@ -30,20 +32,15 @@ def write_hdf5(fn, n, R, z, desc=None):
     as the wall is closed automatically. TODO check this
     """
 
-    mastergroup = "wall"
-    subgroup    = "wall_2D"
+    parent = "wall"
+    group  = "wall_2D"
 
-    # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup, desc=desc)
+        g = add_group(f, parent, group, desc=desc)
 
-        # TODO Check that inputs are consistent.
-
-        f.create_dataset(path + "/n", (1,1), data=n, dtype='i4')
-        f.create_dataset(path + "/r", data=R, dtype='f8')
-        f.create_dataset(path + "/z", data=z, dtype='f8')
-
-        setdescription(f, mastergroup, desc)
+        g.create_dataset("n", (1,1), data=n, dtype='i4')
+        g.create_dataset("r",        data=R, dtype='f8')
+        g.create_dataset("z",        data=z, dtype='f8')
 
 
 def read_hdf5(fn, qid):
@@ -108,3 +105,8 @@ def write_hdf5_3D(fn, n, R, z, nphi, desc=None):
 
     x1x2x3,y1y2y3 = pol2cart(p1p2p3, r1r2r3)
     wall_3D.write_hdf5(fn, 2*n*nphi, x1x2x3, y1y2y3, z1z2z3, flag, desc=desc)
+
+class wall_2D(AscotData):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

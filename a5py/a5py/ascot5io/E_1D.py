@@ -1,14 +1,15 @@
 """
 Radial electric field IO.
+
+File: E_1D.py
 """
 import h5py
 import numpy as np
-import random
-import datetime
 
-from . ascot5group import creategroup
+from . ascot5file import add_group
+from . ascot5data import AscotData
 
-def write_hdf5(fn, n_rho, rho_min, rho_max, dV_drho, r_eff):
+def write_hdf5(fn, n_rho, rho_min, rho_max, dV_drho, r_eff, desc=None):
     """
     Write radial electric field input in HDF5 file.
 
@@ -31,21 +32,17 @@ def write_hdf5(fn, n_rho, rho_min, rho_max, dV_drho, r_eff):
         Gradient of electric potential in rho grid.
     """
 
-    mastergroup = "efield"
-    subgroup    = "E_1DS"
+    parent = "efield"
+    group  = "E_1DS"
 
-    # Create a group for this input.
     with h5py.File(fn, "a") as f:
-        path = creategroup(f, mastergroup, subgroup)
+        g = add_group(f, parent, group, desc)
 
-        # TODO check that input is valid
-
-        # Actual data.
-        f.create_dataset(path + '/n_rho', data=n_rho, dtype='i8')
-        f.create_dataset(path + '/rho_min', data=rho_min, dtype='f8')
-        f.create_dataset(path + '/rho_max', data=rho_max, dtype='f8')
-        f.create_dataset(path + '/dV_drho', data=dV_drho, dtype='f8')
-        f.create_dataset(path + '/r_eff', data=r_eff, dtype='f8')
+        g.create_dataset('n_rho',   data=n_rho,   dtype='i8')
+        g.create_dataset('rho_min', data=rho_min, dtype='f8')
+        g.create_dataset('rho_max', data=rho_max, dtype='f8')
+        g.create_dataset('dV_drho', data=dV_drho, dtype='f8')
+        g.create_dataset('r_eff',   data=r_eff,   dtype='f8')
 
 
 def read_hdf5(fn, qid):
@@ -84,3 +81,8 @@ def read_hdf5(fn, qid):
         out["r_eff"]   = f[path + 'r_eff'][:]
 
     return out
+
+class E_1D(AscotData):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())
