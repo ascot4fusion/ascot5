@@ -431,7 +431,31 @@ def generateopt():
     """
 
     # This ugly thing converts class variables into dictionary
-    f = {key:value for key, value in opt.__dict__.items() if not key.startswith('__') and not callable(key)}
+    f = {key:value for key, value in opt.__dict__.items() if
+         not key.startswith('__') and not callable(key)}
+
+    f = settypes(f)
+    return f
+
+def settypes(f):
+    """
+    Convert option parameters in dictionary to correct format
+
+    This is a helper routine for generateopt() but can also be called if the
+    option parameters in dictionary were modified after the options dictionary
+    was produced by generateopt() (if in case a plain number was assigned
+    instead of proper numpy array). This function makes sure all parameters are
+    numpy arrays of correct type.
+
+    Args:
+        f: Option dictionary
+    Returns:
+        Same dictionary but with all parameters ensured to be in correct format
+    """
+
+    for i in f:
+        if type(f[i]) is not np.array:
+            f[i] = np.array(f[i])
 
     ## Simulation mode ##
     f["SIM_MODE"]        = settype(f["SIM_MODE"],'i4')
