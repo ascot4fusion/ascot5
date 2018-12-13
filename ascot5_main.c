@@ -590,13 +590,14 @@ void marker_summary(particle_state* ps, int n) {
      * errors. We can have at most n different values. */
     int* temp = (int*)malloc(n*sizeof(int));
     int* unique = (int*)malloc(n*sizeof(int));
-    int* count = (int*)malloc(n*sizeof(int));
+    int* count = (int*)malloc((n+1)*sizeof(int));
 
     /* First we find out what the end conditions are */
     for(int i=0; i<n; i++) {
         temp[i] = ps[i].endcond;
     }
     math_uniquecount(temp, unique, count, n);
+    count[n] = 0; // This ensures the following while loops are terminated.
 
     /* Print the end conditions, if marker has multiple end conditions, separate
      * those with "and". */
