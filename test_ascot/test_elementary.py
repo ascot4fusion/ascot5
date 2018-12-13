@@ -91,9 +91,9 @@ def init():
 
     odict["SIM_MODE"]                  = 1
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
-    odict["FIXEDSTEP_USERDEFINED"]     = 1e-11
+    odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 1e-8
+    odict["ENDCOND_MAX_SIM_TIME"]      = 1e-7
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
@@ -114,7 +114,7 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-9
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 1e-8
+    odict["ENDCOND_MAX_SIM_TIME"]      = 1e-7
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
@@ -137,7 +137,7 @@ def init():
     R      = 5       * np.array([1, 1])
     phi    = 90      * np.array([1, 1])
     z      = 0       * np.array([1, 1])
-    theta  = 2       * np.array([1, 1])
+    theta  = 0       * np.array([1, 1])
     energy = 100e6   * np.array([1, 1])
     pitch  = 0.5     * np.array([1, 1])
     mrk.write_hdf5(test_ascot.testfn, Nmrk, ids, mass, charge,
@@ -178,7 +178,7 @@ def init():
     B_TC.write_hdf5(test_ascot.testfn, Bxyz, gradB, rhoval, desc="EXB_GO")
     B_TC.write_hdf5(test_ascot.testfn, Bxyz, gradB, rhoval, desc="EXB_GC")
 
-    Exyz   = np.array([0, 5e8, 0])
+    Exyz   = np.array([0, 1e6, 0])
     E_TC.write_hdf5(test_ascot.testfn, Exyz, desc="EXB_GO")
     E_TC.write_hdf5(test_ascot.testfn, Exyz, desc="EXB_GC")
 
@@ -187,7 +187,7 @@ def init():
     #*                                                                         #
     #**************************************************************************#
     Bxyz   = np.array([5, 0, 0])
-    gradB  = np.array([0,0,10,0,0,0,0,0,0])
+    gradB  = np.array([0,0,0.1,0,0,0,0,0,0])
     rhoval = 1.5
     B_TC.write_hdf5(test_ascot.testfn, Bxyz, gradB, rhoval, desc="GRADB_GO")
     B_TC.write_hdf5(test_ascot.testfn, Bxyz, gradB, rhoval, desc="GRADB_GC")
@@ -267,7 +267,7 @@ def run():
     for test in ["GYROMOTION", "EXB_GO", "EXB_GC", "GRADB_GO", "GRADB_GC"]:
         test_ascot.set_and_run(test)
 
-def check(plot=False):
+def check():
     """
     Plot the results of these tests.
 
@@ -275,6 +275,7 @@ def check(plot=False):
     - One that shows gyromotion viewed from above (to chect test GYROMOTION)
     - Two that shows gyromotion viewed from side (to show drifts in EXB-GO,
       EXB_GC, GRADB-GO, and GRADB-GC)
+    - Also the analytical an numerical values are shown
     """
     a5 = ascot5.Ascot(test_ascot.testfn)
 
@@ -294,11 +295,24 @@ def check(plot=False):
     # Pitch, magnetic field strength and gradient, electric field, and velocity
     xi    = 0.5
     B     = 5
-    gradB = 10
-    E     = 1e8
+    gradB = 0.1
+    E     = 1e6
     v     = np.sqrt(1.0 - 1.0 / ( gamma * gamma ) ) * c
 
-    plt.figure()
+    f = plt.figure(figsize=(11.9/2.54, 8/2.54))
+    plt.rc('xtick', labelsize=10)
+    plt.rc('ytick', labelsize=10)
+    plt.rcParams['mathtext.fontset'] = 'stix'
+    plt.rcParams['font.family'] = 'STIXGeneral'
+
+    h1 = f.add_subplot(1,3,1)
+    h1.set_position([0.12, 0.24, 0.26, 1], which='both')
+
+    h2 = f.add_subplot(1,3,2)
+    h2.set_position([0.52, 0.27, 0.42, 1], which='both')
+
+    h3 = f.add_subplot(1,3,3)
+    h3.set_position([0.52, -0.13, 0.42, 1], which='both')
 
     #**************************************************************************#
     #*                           Check GYROMOTION                              #
@@ -310,13 +324,18 @@ def check(plot=False):
     omegag = e * B / ( gamma * m_e)
 
     # Numerical values
-    ang = GYROMOTION["GO"]["phi"] * np.pi / 180
-    x = GYROMOTION["GO"]["R"] * np.sin(ang)
-    y = GYROMOTION["GO"]["z"]
-    print(str(rhog))
+    ang  = GYROMOTION["GO"]["phi"] * np.pi / 180
+    igo  = GYROMOTION["GO"]["id"]
+    x    = GYROMOTION["GO"]["R"] * np.sin(ang)
+    y    = GYROMOTION["GO"]["z"]
+    time = GYROMOTION["GO"]["time"][igo==1]
+
+    rho   = np.max( np.sqrt((x-5)*(x-5) + y*y) )
+    zero_crossings = np.where(np.diff(np.sign(x[igo==1])))[0].size
+    omega = zero_crossings * np.pi * 2 / time[-1]
 
     # Plot
-    #plt.plot(x, y)
+    h1.plot(x[igo==1] - 5, y[igo==1])
 
     #**************************************************************************#
     #*                           Check EXB                                     #
@@ -332,16 +351,31 @@ def check(plot=False):
     xgo = EXB["GO"]["R"] * np.sin(ang)
     ygo = EXB["GO"]["z"]
 
+    igo0  = a5["EXB_GO"]["inistate"].read()["id"]
+    time  = a5["EXB_GO"]["endstate"].read()["time"]
+    ang   = a5["EXB_GO"]["inistate"].read()["phi"] * np.pi / 180
+    xgo0  = a5["EXB_GO"]["inistate"].read()["R"] * np.sin(ang)
+    ygo0  = a5["EXB_GO"]["inistate"].read()["z"]
+    ang   = a5["EXB_GO"]["endstate"].read()["phi"] * np.pi / 180
+    xgo1  = a5["EXB_GO"]["endstate"].read()["R"] * np.sin(ang)
+    ygo1  = a5["EXB_GO"]["endstate"].read()["z"]
+
     ang = EXB["GC"]["phi"] * np.pi / 180
     igc = EXB["GC"]["id"]
     xgc = EXB["GC"]["R"] * np.sin(ang)
     ygc = EXB["GC"]["z"]
 
+    vgo1_ExB = ((ygo1[igo0==1] - ygo0[igo0==1]) / (time[igo0==1]))[0]
+
+    y          = ygc[igc==1]
+    t          = GRADB["GC"]["time"][igc==1]
+    vgc1_ExB = (y[-1] - y[0]) / (t[-1] - t[0])
+
     # Plot
-    #plt.plot(xgo[igo==1], ygo[igo==1])
-    #plt.plot(xgo[igo==2], ygo[igo==2])
-    #plt.plot(xgc[igc==1], ygc[igc==1])
-    #plt.plot(xgc[igc==2], ygc[igc==2])
+    h2.plot(xgo[igo==1] - 0.07 - 5, ygo[igo==1])
+    h2.plot(xgo[igo==2] + 0.07 - 5, ygo[igo==2])
+    h2.plot(xgc[igc==1] - 0.07 - 5, ygc[igc==1], color="red")
+    h2.plot(xgc[igc==2] + 0.07 - 5, ygc[igc==2], color="red")
 
     #**************************************************************************#
     #*                           Check GRADB                                   #
@@ -357,40 +391,84 @@ def check(plot=False):
     xgo = GRADB["GO"]["R"] * np.sin(ang)
     ygo = GRADB["GO"]["z"]
 
+    igo0  = a5["GRADB_GO"]["inistate"].read()["id"]
+    time  = a5["GRADB_GO"]["endstate"].read()["time"]
+    ang   = a5["GRADB_GO"]["inistate"].read()["phi"] * np.pi / 180
+    xgo0  = a5["GRADB_GO"]["inistate"].read()["R"] * np.sin(ang)
+    zgo0  = a5["GRADB_GO"]["inistate"].read()["z"]
+    ang   = a5["GRADB_GO"]["endstate"].read()["phi"] * np.pi / 180
+    xgo0  = a5["GRADB_GO"]["endstate"].read()["R"] * np.sin(ang)
+    ygo0  = a5["GRADB_GO"]["endstate"].read()["z"]
+
     ang = GRADB["GC"]["phi"] * np.pi / 180
     igc = GRADB["GC"]["id"]
     xgc = GRADB["GC"]["R"] * np.sin(ang)
     ygc = GRADB["GC"]["z"]
 
-    x          = xgo[igo==1]
-    t          = GRADB["GO"]["time"][igo==1]
-    vgo1_gradB = (x[-1] - x[0]) / (t[-1] - t[0])
-
-    x          = xgo[igo==2]
-    t          = GRADB["GO"]["time"][igo==2]
-    vgo2_gradB = (x[-1] - x[0]) / (t[-1] - t[0])
+    vgo1_gradB = ((xgo0[igo0==1] - xgo1[igo0==1]) / (time[igo0==1]))[0]
 
     x          = xgc[igc==1]
     t          = GRADB["GC"]["time"][igc==1]
     vgc1_gradB = (x[-1] - x[0]) / (t[-1] - t[0])
 
-    x          = xgc[igc==2]
-    t          = GRADB["GC"]["time"][igc==2]
-    vgc2_gradB = (x[-1] - x[0]) / (t[-1] - t[0])
-
-    print(str(v_gradB))
-    print(str(vgo1_gradB))
-    print(str(vgo2_gradB))
-    print(str(vgc1_gradB))
-    print(str(vgc2_gradB))
-
     # Plot
-    plt.plot(xgo[igo==1], ygo[igo==1])
-    plt.plot(xgo[igo==2], ygo[igo==2])
-    plt.plot(xgc[igc==1], ygc[igc==1])
-    plt.plot(xgc[igc==2], ygc[igc==2])
+    h3.plot(ygo[igo==1] - 0.07, xgo[igo==1] - 5)
+    h3.plot(ygo[igo==2] + 0.07, xgo[igo==2] - 5)
+    h3.plot(ygc[igc==1] - 0.07, xgc[igc==1] - 5, color="red")
+    h3.plot(ygc[igc==2] + 0.07, xgc[igc==2] - 5, color="red")
 
+    # Print analytical values
+    text1  = r"$\rho_{g}$ = %2.3f cm" % (rhog*100)
+    text1 += r" (%2.3f cm)" % (rho*100)
+    text1 += "\n"+ r"$\omega_{g}$ = " + latex_float(omegag) + r" Hz "
+    text1 += r"(" + latex_float(omegag) + r" Hz)"
+    text1 += "\n" + r"$v_{E \times B}$ = " + latex_float(v_ExB) + r" m/s"
+    text1 += "\n" + r"(" + latex_float(-vgo1_ExB) + r" m/s, "
+    text1 += latex_float(-vgc1_ExB) + r" m/s)" + "\n"
+    text1 += r"$v_{\nabla B}$ = " + latex_float(v_gradB) + r" m/s"
+    text1 += "\n" + r"(" + latex_float(-vgo1_gradB) + r" m/s, "
+    text1 += latex_float(-vgc1_gradB) + r" m/s)" + "\n"
+    h1.text(-0.1, -0.24, text1, fontsize=9)
+
+    #**************************************************************************#
+    #*                           Finalize                                      #
+    #*                                                                         #
+    #**************************************************************************#
+
+    # Decorate all plots
+    h1.axis('scaled')
+    h1.xaxis.set(ticks=[-0.06, 0, 0.06], ticklabels=[-6, 0, 6])
+    h1.yaxis.set(ticks=[-0.06, 0, 0.06], ticklabels=[-6, 0, 6])
+    h1.tick_params(axis='y', direction='out')
+    h1.tick_params(axis='x', direction='out')
+    h1.set(xlabel="$x$ [cm]", ylabel="$y$ [cm]")
+
+    h2.axis('scaled')
+    h2.set(xlim=[-0.15, 0.15], ylim=[-0.08, 0.08])
+    h2.xaxis.set(ticklabels=[])
+    h2.yaxis.set(ticks=[-0.08, 0, 0.08], ticklabels=[-8, 0, 8])
+    h2.tick_params(axis='y', direction='out')
+    h2.tick_params(axis='x', direction='out')
+    h2.set(ylabel="$y$ [cm]")
+
+    h3.axis('scaled')
+    h3.set(xlim=[-0.15, 0.15], ylim=[-0.08, 0.08])
+    h3.xaxis.set(ticks=[-0.15, 0, 0.15], ticklabels=[-15, 0, 15])
+    h3.yaxis.set(ticks=[-0.08, 0, 0.08], ticklabels=[-8, 0, 8])
+    h3.tick_params(axis='y', direction='out')
+    h3.tick_params(axis='x', direction='out')
+    h3.set(xlabel="$x$ [cm]", ylabel="$y$ [cm]")
+
+    plt.savefig("test_elementary.png", dpi=72)
     plt.show()
+
+def latex_float(f):
+    float_str = "{0:.4g}".format(f)
+    if "e" in float_str:
+        base, exponent = float_str.split("e")
+        return r"${0} \times 10^{{{1}}}$".format(base, int(exponent))
+    else:
+        return float_str
 
 if __name__ == '__main__':
     if( len(sys.argv) == 1 ):

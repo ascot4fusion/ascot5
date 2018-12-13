@@ -58,6 +58,9 @@ Bphi0     = 5.3
 psi_coeff = np.array([ 8.629e-02,  3.279e-01,  5.268e-01, -2.366e-01,
                        3.825e-01, -3.573e-01, -1.484e-02,  1.506e-01,
                        7.428e-01, -4.447e-01, -1.084e-01,  1.281e-02, -0.155])
+psi_coeff = np.array([ 2.218e-02, -1.288e-01, -4.177e-02, -6.227e-02,
+                       6.200e-03, -1.205e-03, -3.701e-05,  0,
+                       0,          0,          0,          0,         -0.155])
 
 # Change this if you wish to use spline-interpolated magnetic field instead
 use_spline = True
@@ -86,7 +89,7 @@ def init():
 
     odict["SIM_MODE"]                  = 1
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
-    odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
+    odict["FIXEDSTEP_USERDEFINED"]     = 1e-11
     odict["ENDCOND_SIMTIMELIM"]        = 1
     odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
@@ -106,7 +109,7 @@ def init():
 
     odict["SIM_MODE"]                  = 2
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
-    odict["FIXEDSTEP_USERDEFINED"]     = 1e-9
+    odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
     odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
@@ -126,7 +129,7 @@ def init():
 
     odict["SIM_MODE"]                  = 2
     odict["ENABLE_ADAPTIVE"]           = 1
-    odict["ADAPTIVE_TOL_ORBIT"]        = 1e-9
+    odict["ADAPTIVE_TOL_ORBIT"]        = 1e-10
     odict["ADAPTIVE_MAX_DRHO"]         = 0.1
     odict["ADAPTIVE_MAX_DPHI"]         = 10
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
@@ -265,6 +268,31 @@ def check():
     """
     a5 = ascot5.Ascot(test_ascot.testfn)
 
+    f = plt.figure(figsize=(11.9/2.54, 8/2.54))
+    plt.rc('xtick', labelsize=10)
+    plt.rc('ytick', labelsize=10)
+    plt.rc('axes', labelsize=10)
+    plt.rcParams['mathtext.fontset'] = 'stix'
+    plt.rcParams['font.family'] = 'STIXGeneral'
+
+    h1 = f.add_subplot(1,4,1)
+    h1.set_position([0.12, 0.72, 0.4, 0.25], which='both')
+
+    h2 = f.add_subplot(1,4,2)
+    h2.set_position([0.12, 0.44, 0.4, 0.25], which='both')
+
+    h3 = f.add_subplot(1,4,3)
+    h3.set_position([0.12, 0.155, 0.4, 0.25], which='both')
+
+    h4 = f.add_subplot(1,4,4)
+    h4.set_position([0.6, 0.3, 0.45, 0.45], which='both')
+
+    colors = ["#373e02", "#0a481e", "#03719c", "#0165fc", "#7e1e9c", "#cea2fd"]
+
+    #**************************************************************************#
+    #*     Evaluate and plot conservation quantities for ORBFOL_GO             #
+    #*                                                                         #
+    #**************************************************************************#
     ORBFOL = {}
     ORBFOL["GO"] = {}
     orb = a5["ORBFOL_GO"]["fo"].read()
@@ -286,7 +314,6 @@ def check():
 
     gamma = np.sqrt(1 / ( 1 - vnorm * vnorm / (c * c) ) )
 
-
     ORBFOL["GO"]["time"] = orb["time"]
     ORBFOL["GO"]["id"]   = orb["id"]
     ORBFOL["GO"]["R"]    = orb["R"]
@@ -297,6 +324,29 @@ def check():
     ORBFOL["GO"]["ctor"] = gamma * m_e * orb["R"] * orb["v_phi"] + \
                            orb["charge"] * e * psi
 
+    id1 = ORBFOL["GO"]["id"] == 1
+    id2 = ORBFOL["GO"]["id"] == 2
+    plot_relerr(h1, ORBFOL["GO"]["time"][id1], ORBFOL["GO"]["Ekin"][id1],
+                colors[0])
+    plot_relerr(h1, ORBFOL["GO"]["time"][id2], ORBFOL["GO"]["Ekin"][id2],
+                colors[1])
+    plot_relerr(h2, ORBFOL["GO"]["time"][id2], ORBFOL["GO"]["mu"][id2],
+                colors[0])
+    plot_relerr(h2, ORBFOL["GO"]["time"][id1], ORBFOL["GO"]["mu"][id1],
+                colors[1])
+    plot_relerr(h3, ORBFOL["GO"]["time"][id1], ORBFOL["GO"]["ctor"][id1],
+                colors[0])
+    plot_relerr(h3, ORBFOL["GO"]["time"][id2], ORBFOL["GO"]["ctor"][id2],
+                colors[1])
+    h4.plot(        ORBFOL["GO"]["R"][id1],    ORBFOL["GO"]["z"][id1],
+                    colors[0])
+    h4.plot(        ORBFOL["GO"]["R"][id2],    ORBFOL["GO"]["z"][id2],
+                    colors[1])
+
+    #**************************************************************************#
+    #*     Evaluate and plot conservation quantities for ORBFOL_GCF            #
+    #*                                                                         #
+    #**************************************************************************#
     ORBFOL["GCF"] = {}
     orb = a5["ORBFOL_GCF"]["gc"].read()
 
@@ -321,6 +371,29 @@ def check():
     ORBFOL["GCF"]["ctor"] = gamma * m_e * orb["R"] * orb["vpar"] + \
                             orb["charge"] * e * psi
 
+    id1 = ORBFOL["GCF"]["id"] == 1
+    id2 = ORBFOL["GCF"]["id"] == 2
+    plot_relerr(h1, ORBFOL["GCF"]["time"][id1], ORBFOL["GCF"]["Ekin"][id1],
+                colors[2])
+    plot_relerr(h1, ORBFOL["GCF"]["time"][id2], ORBFOL["GCF"]["Ekin"][id2],
+                colors[3])
+    plot_relerr(h2, ORBFOL["GCF"]["time"][id1], ORBFOL["GCF"]["mu"][id1],
+                colors[2])
+    plot_relerr(h2, ORBFOL["GCF"]["time"][id2], ORBFOL["GCF"]["mu"][id2],
+                colors[3])
+    plot_relerr(h3, ORBFOL["GCF"]["time"][id1], ORBFOL["GCF"]["ctor"][id1],
+                colors[2])
+    plot_relerr(h3, ORBFOL["GCF"]["time"][id2], ORBFOL["GCF"]["ctor"][id2],
+                colors[3])
+    h4.plot(        ORBFOL["GCF"]["R"][id1],    ORBFOL["GCF"]["z"][id1],
+                colors[2])
+    h4.plot(        ORBFOL["GCF"]["R"][id2],    ORBFOL["GCF"]["z"][id2],
+                colors[3])
+
+    #**************************************************************************#
+    #*     Evaluate and plot conservation quantities for ORBFOL_GCA            #
+    #*                                                                         #
+    #**************************************************************************#
     ORBFOL["GCA"] = {}
     orb = a5["ORBFOL_GCA"]["gc"].read()
 
@@ -345,14 +418,85 @@ def check():
     ORBFOL["GCA"]["ctor"] = gamma * m_e * orb["R"] * orb["vpar"] + \
                             orb["charge"] * e * psi
 
-    plt.figure()
-    plt.plot(ORBFOL["GO"]["R"],  ORBFOL["GO"]["z"])
-    plt.plot(ORBFOL["GCF"]["R"], ORBFOL["GCF"]["z"])
-    plt.plot(ORBFOL["GCA"]["R"], ORBFOL["GCA"]["z"])
-    #plt.plot(ORBFOL["GO"]["time"],  ORBFOL["GO"]["Ekin"])
-    #plt.plot(ORBFOL["GCF"]["time"], ORBFOL["GCF"]["Ekin"])
-    #plt.plot(ORBFOL["GCA"]["time"], ORBFOL["GCA"]["Ekin"])
+    id1 = ORBFOL["GCA"]["id"] == 1
+    id2 = ORBFOL["GCA"]["id"] == 2
+    plot_relerr(h1, ORBFOL["GCA"]["time"][id1], ORBFOL["GCA"]["Ekin"][id1],
+                colors[4])
+    plot_relerr(h1, ORBFOL["GCA"]["time"][id2], ORBFOL["GCA"]["Ekin"][id2],
+                colors[5])
+    plot_relerr(h2, ORBFOL["GCA"]["time"][id1], ORBFOL["GCA"]["mu"][id1],
+                colors[4])
+    plot_relerr(h2, ORBFOL["GCA"]["time"][id2], ORBFOL["GCA"]["mu"][id2],
+                colors[5])
+    plot_relerr(h3, ORBFOL["GCA"]["time"][id1], ORBFOL["GCA"]["ctor"][id1],
+                colors[4])
+    plot_relerr(h3, ORBFOL["GCA"]["time"][id2], ORBFOL["GCA"]["ctor"][id2],
+                colors[5])
+    h4.plot(        ORBFOL["GCA"]["R"][id1],    ORBFOL["GCA"]["z"][id1],
+                colors[4])
+    h4.plot(        ORBFOL["GCA"]["R"][id2],    ORBFOL["GCA"]["z"][id2],
+                colors[5])
+
+    #**************************************************************************#
+    #*                 Finalize and print and show the figure                  #
+    #*                                                                         #
+    #**************************************************************************#
+
+    h1.set_xlim(0, 5e-6)
+    h1.xaxis.set(ticks=[0, 5e-6], ticklabels=[])
+    h1.yaxis.set(ticks=np.array([-6,-4, -2, 0, 2])*1e-11,
+                 ticklabels=[-6, '', '', 0, 2])
+    h1.tick_params(axis='y', direction='out')
+    h1.tick_params(axis='x', direction='out')
+    h1.spines['right'].set_visible(False)
+    h1.spines['top'].set_visible(False)
+    h1.yaxis.set_ticks_position('left')
+    h1.xaxis.set_ticks_position('bottom')
+    h1.set(ylabel=r"$\times 10^{-11}$")
+
+    h2.set_xlim(0, 5e-6)
+    h2.xaxis.set(ticks=[0, 5e-6], ticklabels=[])
+    h2.yaxis.set(ticks=np.array([-4, 0, 4])*1e-3, ticklabels=[-4, 0, 4])
+    h2.tick_params(axis='y', direction='out')
+    h2.tick_params(axis='x', direction='out')
+    h2.spines['right'].set_visible(False)
+    h2.spines['top'].set_visible(False)
+    h2.spines['bottom'].set_visible(False)
+    h2.yaxis.set_ticks_position('left')
+    h2.xaxis.set_ticks_position('bottom')
+    h2.set(ylabel=r"$\times 10^{-3}$")
+
+    h3.set_xlim(0, 5e-6)
+    h3.xaxis.set(ticks=[0, 5e-6], ticklabels=[0, 5])
+    h3.yaxis.set(ticks=np.array([-6, 0, 6])*1e-4, ticklabels=[-6, 0, 6])
+    h3.tick_params(axis='y', direction='out')
+    h3.tick_params(axis='x', direction='out')
+    h3.spines['right'].set_visible(False)
+    h3.spines['top'].set_visible(False)
+    h3.yaxis.set_ticks_position('left')
+    h3.xaxis.set_ticks_position('bottom')
+    h3.set(ylabel=r"$\times 10^{-4}$", xlabel=r"Time [$10^{-6}$ s]")
+
+    h4.axis('scaled')
+    h4.xaxis.set(ticks=[5, 6.5, 8])
+    h4.yaxis.set(ticks=[-1.5, 0, 1.5])
+    h4.tick_params(axis='y', direction='out')
+    h4.tick_params(axis='x', direction='out')
+    h4.set(xlabel="$R$ [m]", ylabel="$z$ [m]")
+
+    legend = [r"GO-p", r"GCF-p", r"GCA-p", r"GO-b", r"GCF-b", r"GCA-b"]
+    h4.text(5.0, 2.5, legend[0], fontsize=9, color=colors[0])
+    h4.text(6.0, 2.5, legend[1], fontsize=9, color=colors[1])
+    h4.text(7.0, 2.5, legend[2], fontsize=9, color=colors[2])
+    h4.text(5.0, 2.0, legend[3], fontsize=9, color=colors[3])
+    h4.text(6.0, 2.0, legend[4], fontsize=9, color=colors[4])
+    h4.text(7.0, 2.0, legend[5], fontsize=9, color=colors[5])
+
+    plt.savefig("test_orbitfollowing.png", dpi=72)
     plt.show()
+
+def plot_relerr(axis, x, y, color):
+    axis.plot(x, y/y[0] - 1, color)
 
 
 if __name__ == '__main__':
