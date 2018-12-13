@@ -1307,11 +1307,11 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
     real psi[1], rho[1];
     if(!err) {
         err = B_field_eval_B_dB(
-            B_dB, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);
+            B_dB, r, phi, z, Bdata);
     }
     if(!err) {
         err = B_field_eval_psi(
-            psi, p_gc->r[j], p_gc->phi[j], p_gc->z[j], Bdata);
+            psi, r, phi, z, Bdata);
     }
     if(!err) {
         err = B_field_eval_rho(rho, psi[0], Bdata);
