@@ -81,6 +81,9 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_int(OPTPATH "ENABLE_COULOMB_COLLISIONS",
                       &sim->enable_clmbcol,
                       file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(OPTPATH "DISABLE_FIRSTORDER_GCTRANS",
+                      &sim->disable_gctransform,
+                      file, qid, __FILE__, __LINE__) ) {return 1;}
 
     int ec;
     sim->endcond_active = 0;

@@ -38,6 +38,20 @@
 #include "physlib.h"
 #include "gctransform.h"
 
+#pragma omp declare target
+/** Order to which guiding center transformation is done in velocity space. */
+static int GCTRANSFORM_ORDER = 1;
+#pragma omp end declare target
+
+/**
+ * @brief Set the order of the transformation.
+ *
+ * @param order order which is either zero or one
+ */
+void gctransform_setorder(int order) {
+    GCTRANSFORM_ORDER = order;
+}
+
 /**
  * @brief Transform particle to guiding center  phase space
  *
@@ -64,8 +78,6 @@ void gctransform_particle2guidingcenter(
     real mass, real charge, real* B_dB,
     real r, real phi, real z, real vr, real vphi, real vz,
     real* R, real* Phi, real* Z, real* vpar, real* mu, real* theta) {
-
-    int firstorder = 1;
 
     /* |v|^2 */
     real vnorm2  = vr*vr + vphi*vphi + vz*vz;
@@ -260,7 +272,7 @@ void gctransform_particle2guidingcenter(
         ( rho0 / Bnorm ) * math_dot(perphat, temp);
 
     /* Choose whether to use first order transformation in velocity space */
-    if(firstorder) {
+    if(GCTRANSFORM_ORDER) {
         *vpar  = vpar0 + vpar1;
         *mu    = mu0 + mu1;
         *theta = theta0 + theta1;
@@ -301,8 +313,6 @@ void gctransform_guidingcenter2particle(
     real mass, real charge, real* B_dB,
     real R, real Phi, real Z, real vpar, real mu, real theta,
     real* r, real* phi, real* z, real* vparprt, real* muprt, real* thetaprt) {
-
-    int firstorder = 1;
 
     /* |B| */
     real Bnorm   = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
@@ -469,7 +479,7 @@ void gctransform_guidingcenter2particle(
 
     /* Choose whether to use first or zeroth order velocity transform */
 
-    if(firstorder) {
+    if(GCTRANSFORM_ORDER) {
         mu    -= mu1;
         vpar  -= vpar1;
         theta -= theta1;

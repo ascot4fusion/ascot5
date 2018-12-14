@@ -82,6 +82,8 @@ typedef struct {
     /* Options - physics */
     int enable_orbfol;         /**< Is orbit-following enabled                */
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
+    int disable_gctransform;   /**< Disables first order velocity terms in
+                                    guiding center transformation             */
 
     /* Options - end conditions */
     int endcond_active;        /**< Bit array notating active end conditions  */
@@ -150,6 +152,8 @@ typedef struct {
     /* Options - physics */
     int enable_orbfol;         /**< Is orbit-following enabled                */
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
+    int disable_gctransform;   /**< Disables first order velocity terms in
+                                    guiding center transformation             */
 
     /* Options - end conditions */
     int endcond_active;        /**< Bit array notating active end conditions  */

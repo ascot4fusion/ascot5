@@ -182,6 +182,9 @@ class opt():
     ## Markers experience Coulomb collisions with background plasma
     ENABLE_COULOMB_COLLISIONS = 1
 
+    ## Disable first order guiding center transformation in velocity space
+    DISABLE_FIRSTORDER_GCTRANS = 0
+
 
     #**************************************************************************#
     #*                            DISTRIBUTIONS                               *#
@@ -491,8 +494,9 @@ def settypes(f):
     f["ENDCOND_MAX_POLOIDALORBS"]         = settype(f["ENDCOND_MAX_POLOIDALORBS"],'i4')
 
     ## Physics ##
-    f["ENABLE_ORBIT_FOLLOWING"]    = settype(f["ENABLE_ORBIT_FOLLOWING"],'i4')
-    f["ENABLE_COULOMB_COLLISIONS"] = settype(f["ENABLE_COULOMB_COLLISIONS"],'i4')
+    f["ENABLE_ORBIT_FOLLOWING"]     = settype(f["ENABLE_ORBIT_FOLLOWING"],'i4')
+    f["ENABLE_COULOMB_COLLISIONS"]  = settype(f["ENABLE_COULOMB_COLLISIONS"],'i4')
+    f["DISABLE_FIRSTORDER_GCTRANS"] = settype(f["DISABLE_FIRSTORDER_GCTRANS"],'i4')
 
     ## Distributions ##
     f["ENABLE_R_phi_z_vpa_vpe_t_q_DIST"]        = settype(f["ENABLE_R_phi_z_vpa_vpe_t_q_DIST"],'i4')

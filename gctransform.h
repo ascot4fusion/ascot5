@@ -9,6 +9,8 @@
 
 #pragma omp declare target
 
+void gctransform_setorder(int order);
+
 #pragma omp declare simd
 void gctransform_particle2guidingcenter(
     real mass, real charge, real* B_dB,
