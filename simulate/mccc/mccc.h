@@ -13,6 +13,8 @@
 #include "mccc_wiener.h"
 
 #pragma omp declare target
+void mccc_setoperator(int include_energy, int include_pitch,
+                      int include_gcdiff);
 void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, real* coldata, 
                     real* clogab, real* F, real* Dpara, real* Dperp, real* K, real* nu);
 void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* coldata,

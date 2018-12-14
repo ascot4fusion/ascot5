@@ -93,16 +93,6 @@ typedef double real;
  *  to generate normal random numbers */
 #define A5_CCOL_USE_GEOBM 1
 
-/** @brief Turn off energy component of Coulomb collisions */
-#define A5_CCOL_NOENERGY 0
-
-/** @brief Turn off pitch component of Coulomb collisions */
-#define A5_CCOL_NOPITCH  0
-
-/** @brief Turn off spatial component in gc picture (classical diffusion)
-    of Coulomb collisions */
-#define A5_CCOL_NOGCDIFF 0
-
 /** @brief If adaptive time step falls below this value, produce an error */
 #define A5_EXTREMELY_SMALL_TIMESTEP 1e-12
 

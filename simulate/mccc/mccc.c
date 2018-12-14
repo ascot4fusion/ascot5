@@ -19,6 +19,32 @@
 #include "mccc_push.h"
 #include "mccc_coefs.h"
 
+#pragma omp declare target
+/** Let collisions change energy */
+static int MCCC_INCLUDE_ENERGY = 1;
+
+/** Let collisions change pitch */
+static int MCCC_INCLUDE_PITCH = 1;
+
+/** Let collisions change guiding center position */
+static int MCCC_INCLUDE_GCDIFF = 1;
+#pragma omp end declare target
+
+/**
+ * @brief Set which quantities are affected by the collisions.
+ *
+ * @param include_energy can collisions change marker energy, either 0 or 1
+ * @param include_pitch  can collisions change marker pitch, either 0 or 1
+ * @param include_gcdiff can collisions change GC position, either 0 or 1
+ */
+void mccc_setoperator(int include_energy, int include_pitch,
+                      int include_gcdiff) {
+    MCCC_INCLUDE_ENERGY = include_energy;
+    MCCC_INCLUDE_PITCH  = include_pitch;
+    MCCC_INCLUDE_GCDIFF = include_gcdiff;
+}
+
+
 /**
  * @brief Evaluates collision coefficients in fo picture
  *
@@ -287,16 +313,16 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* p
 
             /* Update particle */
             real vnorm = va/(math_norm(vout));
-#if A5_CCOL_NOENERGY
-            vout[0] *= vnorm;
-            vout[1] *= vnorm;
-            vout[2] *= vnorm;
-#endif
-#if A5_CCOL_NOPITCH
-            vout[0] = vin[0] * vnorm;
-            vout[1] = vin[1] * vnorm;
-            vout[2] = vin[2] * vnorm;
-#endif
+            if(!MCCC_INCLUDE_ENERGY) {
+                vout[0] *= vnorm;
+                vout[1] *= vnorm;
+                vout[2] *= vnorm;
+            }
+            if(!MCCC_INCLUDE_PITCH) {
+                vout[0] = vin[0] * vnorm;
+                vout[1] = vin[1] * vnorm;
+                vout[2] = vin[2] * vnorm;
+            }
 
             if(!errflag) {
                 p->rdot[i] = vout[0] * cos(p->phi[i]) + vout[1] * sin(p->phi[i]);
@@ -393,21 +419,21 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
             /* Evaluate collisions */
             if(!errflag) {
                 errflag = mccc_push_gcEM(K,nu,Dpara,DX,B,h[i],&rnd[i*5],
-                        vin,&vout,xiin,&xiout,Xin,Xout,cutoff);
+                                         vin,&vout,xiin,&xiout,Xin,Xout,cutoff);
             }
 
             /* Update particle */
-#if A5_CCOL_NOENERGY
-            vout = vin;
-#endif
-#if A5_CCOL_NOPITCH
-            xiout = xiin;
-#endif
-#if A5_CCOL_NOGCDIFF
-            Xout[0] = Xin[0];
-            Xout[1] = Xin[1];
-            Xout[2] = Xin[2];
-#endif
+            if(!MCCC_INCLUDE_ENERGY) {
+                vout = vin;
+            }
+            if(!MCCC_INCLUDE_PITCH) {
+                xiout = xiin;
+            }
+            if(!MCCC_INCLUDE_GCDIFF) {
+                Xout[0] = Xin[0];
+                Xout[1] = Xin[1];
+                Xout[2] = Xin[2];
+            }
 
             if(!errflag) {
                 p->r[i] = sqrt(Xout[0]*Xout[0] + Xout[1]*Xout[1]);
@@ -576,17 +602,17 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
             alpha[i] = alpha[i]/sqrt(hin[i]);*/
 
             /* Update particle */
-#if A5_CCOL_NOENERGY
-            vout = vin;
-#endif
-#if A5_CCOL_NOPITCH
-            xiout = xiin;
-#endif
-#if A5_CCOL_NOGCDIFF
-            Xout[0] = Xin[0];
-            Xout[1] = Xin[1];
-            Xout[2] = Xin[2];
-#endif
+            if(!MCCC_INCLUDE_ENERGY) {
+                vout = vin;
+            }
+            if(!MCCC_INCLUDE_PITCH) {
+                xiout = xiin;
+            }
+            if(!MCCC_INCLUDE_GCDIFF) {
+                Xout[0] = Xin[0];
+                Xout[1] = Xin[1];
+                Xout[2] = Xin[2];
+            }
 
             if(!errflag) {
                 p->r[i] = sqrt(Xout[0]*Xout[0] + Xout[1]*Xout[1]);

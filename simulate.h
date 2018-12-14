@@ -84,6 +84,12 @@ typedef struct {
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
+    int disable_energyccoll;   /**< Disables energy component from Coulomb
+                                    collisions */
+    int disable_pitchccoll;    /**< Disables pitch component from Coulomb
+                                    collisions */
+    int disable_gcdiffccoll;   /**< Disables guiding center spatial diffusion
+                                    from Coulomb collisions */
 
     /* Options - end conditions */
     int endcond_active;        /**< Bit array notating active end conditions  */
@@ -154,6 +160,12 @@ typedef struct {
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
+    int disable_energyccoll;   /**< Disables energy component from Coulomb
+                                    collisions */
+    int disable_pitchccoll;    /**< Disables pitch component from Coulomb
+                                    collisions */
+    int disable_gcdiffccoll;   /**< Disables guiding center spatial diffusion
+                                    from Coulomb collisions */
 
     /* Options - end conditions */
     int endcond_active;        /**< Bit array notating active end conditions  */

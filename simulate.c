@@ -27,6 +27,7 @@
 #include "simulate/simulate_gc_fixed.h"
 #include "simulate/simulate_fo_fixed.h"
 #include "simulate/mccc/mccc_coefs.h"
+#include "simulate/mccc/mccc.h"
 #include "gctransform.h"
 
 #pragma omp declare target
@@ -353,6 +354,9 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->enable_orbfol        = offload_data->enable_orbfol;
     sim->enable_clmbcol       = offload_data->enable_clmbcol;
     sim->disable_gctransform  = offload_data->disable_gctransform;
+    sim->disable_energyccoll  = offload_data->disable_energyccoll;
+    sim->disable_pitchccoll   = offload_data->disable_pitchccoll;
+    sim->disable_gcdiffccoll  = offload_data->disable_gcdiffccoll;
 
     sim->endcond_active       = offload_data->endcond_active;
     sim->endcond_maxSimTime   = offload_data->endcond_maxSimTime;
@@ -364,8 +368,15 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->endcond_maxTorOrb    = offload_data->endcond_maxTorOrb;
     sim->endcond_maxPolOrb    = offload_data->endcond_maxPolOrb;
 
+    /* Adjust physics */
     if(sim->disable_gctransform) {
         gctransform_setorder(0);
+    }
+    if(sim->disable_energyccoll || sim->disable_pitchccoll
+       || sim->disable_gcdiffccoll) {
+        mccc_setoperator(!sim->disable_energyccoll,
+                         !sim->disable_pitchccoll,
+                         !sim->disable_gcdiffccoll);
     }
 }
 

@@ -84,6 +84,15 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_int(OPTPATH "DISABLE_FIRSTORDER_GCTRANS",
                       &sim->disable_gctransform,
                       file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(OPTPATH "DISABLE_ENERGY_CCOLL",
+                      &sim->disable_energyccoll,
+                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(OPTPATH "DISABLE_PITCH_CCOLL",
+                      &sim->disable_pitchccoll,
+                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(OPTPATH "DISABLE_GCDIFF_CCOLL",
+                      &sim->disable_gcdiffccoll,
+                      file, qid, __FILE__, __LINE__) ) {return 1;}
 
     int ec;
     sim->endcond_active = 0;
