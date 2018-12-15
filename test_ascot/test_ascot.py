@@ -76,6 +76,8 @@ def clean_opt(odict):
             odict[o] = np.array([0],dtype='i4')
         if o.startswith("ENDCOND"):
             odict[o] = np.array([0],dtype='i4')
+        if o.startswith("DISABLE"):
+            odict[o] = np.array([0],dtype='i4')
 
 def set_correct_input(parent, test):
     """

@@ -329,6 +329,27 @@ void simulate(int id, int n_particles, particle_state* p,
 }
 
 /**
+ * @brief Initializes simulation settings
+ *
+ * This function adjusts simulation settings, e.g. how physics are included,
+ * according to the given simulation data. This function should only be called
+ * once right after input data has been read.
+ *
+ * @param sim simulation offload struct which has all fields initialized
+ */
+void simulate_init_offload(sim_offload_data* sim) {
+    if(sim->disable_gctransform) {
+        gctransform_setorder(0);
+    }
+    if(sim->disable_energyccoll || sim->disable_pitchccoll
+       || sim->disable_gcdiffccoll) {
+        mccc_setoperator(!sim->disable_energyccoll,
+                         !sim->disable_pitchccoll,
+                         !sim->disable_gcdiffccoll);
+    }
+}
+
+/**
  * @brief Initialize simulation data struct on target
  *
  * This function copies the simulation parameters from the offload struct
@@ -367,17 +388,6 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->endcond_minEkinPerTe = offload_data->endcond_minEkinPerTe;
     sim->endcond_maxTorOrb    = offload_data->endcond_maxTorOrb;
     sim->endcond_maxPolOrb    = offload_data->endcond_maxPolOrb;
-
-    /* Adjust physics */
-    if(sim->disable_gctransform) {
-        gctransform_setorder(0);
-    }
-    if(sim->disable_energyccoll || sim->disable_pitchccoll
-       || sim->disable_gcdiffccoll) {
-        mccc_setoperator(!sim->disable_energyccoll,
-                         !sim->disable_pitchccoll,
-                         !sim->disable_gcdiffccoll);
-    }
 }
 
 /**

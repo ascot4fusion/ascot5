@@ -174,6 +174,7 @@ int main(int argc, char** argv) {
         abort();
         return 1;
     };
+    simulate_init_offload(&sim);
 
     /* Pack offload data into single array */
     real* offload_array;
