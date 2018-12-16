@@ -39,29 +39,31 @@ import test_ascot
 e       = constants.elementary_charge
 m_p_AMU = constants.physical_constants["proton mass in u"][0]
 m_p     = constants.physical_constants["proton mass"][0]
+m_e     = constants.physical_constants["electron mass"][0]
+eps0    = constants.physical_constants["electric constant"][0]
 c       = constants.physical_constants["speed of light in vacuum"][0]
 
 Te   = 1e3
 ne   = 1e22
 Bmin = 1
 Bmax = 10
-nB   = 5
+nB   = 6
 
 # Number of markers. Adjust to change the time it takes to simulate tests.
-Nmrk = 100
+Nmrk = 2000
 
 def init():
     """
     Initialize tests
 
     This function initializes parameter scan for three test cases:
-    - CLASS-GO tests gyro-orbit scheme
-    - CLASS-GCF tests guiding center fixed-scheme
-    - CLASS-GCA tests guiding center adaptive scheme
+    - CLASS_GO tests gyro-orbit scheme
+    - CLASS_GCF tests guiding center fixed-scheme
+    - CLASS_GCA tests guiding center adaptive scheme
 
     Each test case is initialized nB times; each with an decreasing value for
     the magnetic field strength. The test cases are named with running index on
-    their prefix e.g. CLASS-GO1, CLASS-GO2, and so on.
+    their prefix e.g. CLASS_GO1, CLASS_GO2, and so on.
 
     All cases are run without energy collisions.
 
@@ -83,10 +85,7 @@ def init():
     odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
-    odict["DISABLE_CLMBCOL_ENERGY"]    = 1
-    odict["ENABLE_ORBITWRITE"]         = 1
-    odict["ORBITWRITE_MODE"]           = 1
-    odict["ORBITWRITE_INTERVAL"]       = 1e-10
+    odict["DISABLE_ENERGY_CCOL"]       = 1
 
     opt.settypes(odict)
     for i in range(1, nB+1):
@@ -106,10 +105,7 @@ def init():
     odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
-    odict["DISABLE_CLMBCOL_ENERGY"]    = 1
-    odict["ENABLE_ORBITWRITE"]         = 1
-    odict["ORBITWRITE_MODE"]           = 1
-    odict["ORBITWRITE_INTERVAL"]       = 1e-8
+    odict["DISABLE_ENERGY_CCOL"]       = 1
 
     opt.settypes(odict)
     for i in range(1, nB+1):
@@ -124,7 +120,7 @@ def init():
 
     odict["SIM_MODE"]                  = 2
     odict["ENABLE_ADAPTIVE"]           = 1
-    odict["ADAPTIVE_TOL_ORBIT"]        = 1e-9
+    odict["ADAPTIVE_TOL_ORBIT"]        = 1e-8
     odict["ADAPTIVE_TOL_COL"]          = 1e-1
     odict["ADAPTIVE_MAX_DRHO"]         = 0.1
     odict["ADAPTIVE_MAX_DPHI"]         = 10
@@ -134,10 +130,7 @@ def init():
     odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
-    odict["DISABLE_CLMBCOL_ENERGY"]    = 1
-    odict["ENABLE_ORBITWRITE"]         = 1
-    odict["ORBITWRITE_MODE"]           = 1
-    odict["ORBITWRITE_INTERVAL"]       = 1e-8
+    odict["DISABLE_ENERGY_CCOL"]       = 1
 
     opt.settypes(odict)
     for i in range(1, nB+1):
@@ -153,7 +146,7 @@ def init():
     charge = 1       * np.ones(ids.shape)
     time   = 0       * np.ones(ids.shape)
     R      = 5       * np.ones(ids.shape)
-    phi    = 90      * np.ones(ids.shape)
+    phi    = 0       * np.ones(ids.shape)
     z      = 0       * np.ones(ids.shape)
     energy = 1e3     * np.ones(ids.shape)
     theta  = 2 * np.pi * np.random.rand(1,Nmrk)
@@ -267,15 +260,21 @@ def check():
     """
     Plot the results of these tests.
 
-    This function makes four plots.
-    - One that shows conservation of energy for all cases
-    - One that shows conservation of magnetic moment for all cases
-    - One that shows conservation of toroidal canonical momentum for all cases
-    - And one that shows trajectories on a Rz plane for all cases
+    This function makes one plot that shows how diffusion coefficient evaluated
+    numerically with different modes scales with magnetic field strength, and
+    compares that to the classical diffusion coefficient.
     """
     a5 = ascot5.Ascot(test_ascot.testfn)
 
-    DATA = {}
+    # Diffusion occurs on a 2D plane
+    ndim = 2
+
+    # Evaluate diffusion coefficient according to equation
+    # D = var(Delta x) / (2 * ndim * Delta t)
+    # Because E[Delta x] = 0, var[Delta x] = E[(Delta x)^2]
+    DGO  = np.zeros(nB)
+    DGCF = np.zeros(nB)
+    DGCA = np.zeros(nB)
     for i in range(1, nB+1):
         inistate = a5["CLASS_GO" + str(i)].inistate.read()
         yi = inistate["R"] * np.sin( inistate["phi"] * np.pi / 180 )
@@ -288,7 +287,7 @@ def check():
         te = endstate["time"]
 
         dr2 = ( yi - ye ) * ( yi - ye ) + ( zi - ze ) * ( zi - ze )
-        DATA["GO" + str(i)] = np.mean( dr2 / ( te - ti ) )
+        DGO[i-1] = np.mean( dr2 / ( te - ti ) ) / (2*ndim)
 
         inistate = a5["CLASS_GCF" + str(i)].inistate.read()
         yi = inistate["R"] * np.sin( inistate["phi"] * np.pi / 180 )
@@ -301,7 +300,7 @@ def check():
         te = endstate["time"]
 
         dr2 = ( yi - ye ) * ( yi - ye ) + ( zi - ze ) * ( zi - ze )
-        DATA["GCF" + str(i)] = np.mean( dr2 / ( te - ti ) )
+        DGCF[i-1] = np.mean( dr2 / ( te - ti ) ) / (2*ndim)
 
         inistate = a5["CLASS_GCA" + str(i)].inistate.read()
         yi = inistate["R"] * np.sin( inistate["phi"] * np.pi / 180 )
@@ -314,31 +313,61 @@ def check():
         te = endstate["time"]
 
         dr2 = ( yi - ye ) * ( yi - ye ) + ( zi - ze ) * ( zi - ze )
-        DATA["GCA" + str(i)] = np.mean( dr2 / ( te - ti ) )
+        DGCA[i-1] = np.mean( dr2 / ( te - ti ) ) / (2*ndim)
 
-    DGO  = np.zeros( (nB, 1) )
-    DGCF = np.zeros( (nB, 1) )
-    DGCA = np.zeros( (nB, 1) )
-    for i in range(1, nB+1):
-        DGO[i-1]  = DATA["GO" + str(i)]
-        DGCF[i-1] = DATA["GCF" + str(i)]
-        DGCA[i-1] = DATA["GCA" + str(i)]
+    #**************************************************************************#
+    #*                  Evaluate the analytical estimate                       #
+    #*                                                                         #
+    #**************************************************************************#
+
+    clog     = 13.4
+    collfreq = (m_e/m_p) * (np.sqrt(2/np.pi)/3) \
+               * np.power(e*e/(4*np.pi*eps0), 2) \
+               * (4*np.pi / np.sqrt(m_e*np.power(Te*e,3) ) ) * ne * clog
 
     xvals    = np.linspace( 1 / ( Bmax * Bmax ), 1 / ( Bmin * Bmin ), nB )
     Bvals    = 1 / np.sqrt(xvals)
+    gamma  = 1 + 1e3*e / ( m_p * c * c )
+    v      = np.sqrt(1.0 - 1.0 / ( gamma * gamma ) ) * c
+    rhog   = gamma * m_p * v / (Bvals * e)
+    Dclass = collfreq * rhog * rhog / 2
 
-    clog     = 14.7
-    collfreq = 4.8e-14 * ne * np.power( Te, -3.0 / 2 ) * clog
-    gyrolen  = np.sqrt( 2 * m_p * 1e3 * e ) / ( e * Bvals )
-    Dclass   = collfreq * gyrolen * gyrolen
+    #**************************************************************************#
+    #*                            Plot                                         #
+    #*                                                                         #
+    #**************************************************************************#
 
-    print(Dclass / DGO)
+    f = plt.figure(figsize=(11.9/2.54, 5/2.54))
+    plt.rc('xtick', labelsize=10)
+    plt.rc('ytick', labelsize=10)
+    plt.rc('axes', labelsize=10)
+    plt.rcParams['mathtext.fontset'] = 'stix'
+    plt.rcParams['font.family'] = 'STIXGeneral'
 
-    plt.figure()
-    plt.plot(xvals, DGO)
-    plt.plot(xvals, DGCF)
-    plt.plot(xvals, DGCA)
-    plt.plot(xvals, Dclass)
+    h = plt.gca()
+    h.set_position([0.12, 0.25, 0.85, 0.7], which='both')
+
+    scaling = 100
+    h.plot(xvals, Dclass * scaling, 'black', linewidth=3, linestyle='--',
+           label='Analytical')
+    h.plot(xvals, DGO * scaling, linestyle='none', marker='*', markersize=12,
+           alpha=0.5, label='GO')
+    h.plot(xvals, DGCF * scaling, linestyle='none', marker='.', markersize=10,
+           alpha=0.5, label='GCF')
+    h.plot(xvals, DGCA * scaling, linestyle='none', marker='^', markersize=6,
+           alpha=0.5, label='GCA')
+
+    h.tick_params(axis='y', direction='out')
+    h.tick_params(axis='x', direction='out')
+    h.xaxis.set(ticks=np.linspace(0,1,11),
+                ticklabels=[0, '', '', '', '', 5, '', '', '', '', 10])
+    h.yaxis.set(ticks=np.linspace(0,8,9),
+                ticklabels=[0, '', 2, '',  4, '', 6, '', 8])
+    h.set(xlabel="$1/B^2$ [T$^{-2}$]", ylabel="$D$ [m$^2$/s]")
+
+    h.legend(loc='upper left', frameon=False, fontsize=10, numpoints=1)
+
+    plt.savefig("test_classicaltransport.png", dpi=72)
     plt.show()
 
 
