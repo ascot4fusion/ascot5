@@ -53,17 +53,17 @@ def write_hdf5(fn, n, ids, mass, charge,
         g = add_group(f, parent, group, desc=desc)
 
         g.create_dataset("n",      (1,1), data=n,      dtype='i8').attrs['unit'] = '1';
-        g.create_dataset("r",             data=r,      dtype='f8').attrs['unit'] = 'm';
-        g.create_dataset("phi",           data=phi,    dtype='f8').attrs['unit'] = 'deg';
-        g.create_dataset("z",             data=z,      dtype='f8').attrs['unit'] = 'm';
-        g.create_dataset("energy",        data=energy, dtype='f8').attrs['unit'] = 'ev';
-        g.create_dataset("pitch",         data=pitch,  dtype='f8').attrs['unit'] = '1';
-        g.create_dataset("theta",         data=theta,  dtype='f8').attrs['unit'] = 'rad';
-        g.create_dataset("mass",          data=mass,   dtype='f8').attrs['unit'] = 'amu';
-        g.create_dataset("charge",        data=charge, dtype='i4').attrs['unit'] = 'e';
-        g.create_dataset("weight",        data=weight, dtype='f8').attrs['unit'] = 'markers/s';
-        g.create_dataset("time",          data=time,   dtype='f8').attrs['unit'] = 's';
-        g.create_dataset("id",            data=ids,    dtype='i8').attrs['unit'] = '1';
+        g.create_dataset("r",      (n,1), data=r,      dtype='f8').attrs['unit'] = 'm';
+        g.create_dataset("phi",    (n,1), data=phi,    dtype='f8').attrs['unit'] = 'deg';
+        g.create_dataset("z",      (n,1), data=z,      dtype='f8').attrs['unit'] = 'm';
+        g.create_dataset("energy", (n,1), data=energy, dtype='f8').attrs['unit'] = 'ev';
+        g.create_dataset("pitch",  (n,1), data=pitch,  dtype='f8').attrs['unit'] = '1';
+        g.create_dataset("theta",  (n,1), data=theta,  dtype='f8').attrs['unit'] = 'rad';
+        g.create_dataset("mass",   (n,1), data=mass,   dtype='f8').attrs['unit'] = 'amu';
+        g.create_dataset("charge", (n,1), data=charge, dtype='i4').attrs['unit'] = 'e';
+        g.create_dataset("weight", (n,1), data=weight, dtype='f8').attrs['unit'] = 'markers/s';
+        g.create_dataset("time",   (n,1), data=time,   dtype='f8').attrs['unit'] = 's';
+        g.create_dataset("id",     (n,1), data=ids,    dtype='i8').attrs['unit'] = '1';
 
 def read_hdf5(fn, qid):
     """
