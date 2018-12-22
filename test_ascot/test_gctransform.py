@@ -18,9 +18,9 @@ implements, instead we:
 Ideally, the actual guiding center trajectory should be close to the GC
 trajectory and the former should have almost eliminated the gyroangle
 dependency. Do note that the guiding center transformation is not an exact but
-done to the first order. Also note that because magnetic moment is not an exact 
-invariant, the actual guiding center and GC trajectories never match completely. 
-Test particle is a energetic electron so this test verifies that the 
+done to the first order. Also note that because magnetic moment is not an exact
+invariant, the actual guiding center and GC trajectories never match completely.
+Test particle is a energetic electron so this test verifies that the
 transformation is valid also in the relativstic regime.
 
 This test also shows the difference in first and zeroth order velocity space*
@@ -71,6 +71,8 @@ psi_mult  = 200
 R0        = 6.2
 z0        = 0
 Bphi0     = 5.3
+
+# ITER-like equilibrium
 psi_coeff = np.array([ 8.629e-02,  3.279e-01,  5.268e-01, -2.366e-01,
                        3.825e-01, -3.573e-01, -1.484e-02,  1.506e-01,
                        7.428e-01, -4.447e-01, -1.084e-01,  1.281e-02, -0.155])

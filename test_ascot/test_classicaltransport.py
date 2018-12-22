@@ -345,7 +345,7 @@ def check():
     plt.rcParams['font.family'] = 'STIXGeneral'
 
     h = plt.gca()
-    h.set_position([0.12, 0.25, 0.85, 0.7], which='both')
+    h.set_position([0.15, 0.25, 0.82, 0.7], which='both')
 
     scaling = 100
     h.plot(xvals, Dclass * scaling, 'black', linewidth=3, linestyle='--',

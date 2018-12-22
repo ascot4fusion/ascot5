@@ -2,7 +2,7 @@
 Test collisional transport in tokamak magnetic field.
 
 This file initializes, runs, and plots test case for checking that ASCOT5
-reproduces collsional transport in tokamak magnetic field, i.e., the
+reproduces collisional transport in tokamak magnetic field, i.e., the
 so-called neoclassical transport, correctly. This transport is diffusive
 with the diffusion coefficient being determined by the ratio between
 orbit bounce frequency and collision frequency. If collision frequency is a
@@ -46,36 +46,40 @@ from a5py.preprocessing.analyticequilibrium import psi0 as psifun
 e       = constants.elementary_charge
 m_e_AMU = constants.physical_constants["electron mass in u"][0]
 m_e     = constants.physical_constants["electron mass"][0]
+m_p     = constants.physical_constants["proton mass"][0]
 c       = constants.physical_constants["speed of light in vacuum"][0]
+eps0    = constants.physical_constants["electric constant"][0]
 
-Nmrk  = 10
-nscan = 3
+Nmrk  = 200
+nscan = 20
 
-Temp = 1e3
-dens = np.power( 10, np.linspace(21.5, 23.5, nscan) )
+Ti   = 1e3
+ni   = np.power( 10, np.linspace(18.5, 22.5, nscan) )
+Ekin = 1e3
 
 R0 = 6.2
+r0 = 1.8
 z0 = 0
-Bphi0 = 5.3
+B0 = 5.3
 psi_mult = 200
+
 # ITER-like but circular equilibrium
-psi_coeff = np.array([2.21808016e-02,  -1.28841781e-01,  -4.17718173e-02,
-                      -6.22680280e-02,   6.20083978e-03,  -1.20524711e-03,
-                      -3.70147050e-05,   0.00000000e+00,   0.00000000e+00,
-                      0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
-                      -0.155])
+psi_coeff = np.array([ 2.218e-02, -1.288e-01, -4.177e-02, -6.227e-02,
+                       6.200e-03, -1.205e-03, -3.701e-05,  0,
+                       0,          0,          0,          0,         -0.155])
+
 def init():
     """
     Initialize tests
 
     This function initializes parameter scan for three test cases:
-    - CLASS-GO tests gyro-orbit scheme
-    - CLASS-GCF tests guiding center fixed-scheme
-    - CLASS-GCA tests guiding center adaptive scheme
+    - NEOCLASS-GO tests gyro-orbit scheme
+    - NEOCLASS-GCF tests guiding center fixed-scheme
+    - NEOCLASS-GCA tests guiding center adaptive scheme
 
-    Each test case is initialized nB times; each with an decreasing value for
-    the magnetic field strength. The test cases are named with running index on
-    their prefix e.g. CLASS-GO1, CLASS-GO2, and so on.
+    Each test case is initialized nscan times; each with a increasing value for
+    the plasma density. The test cases are named with running index on their
+    prefix e.g. NEOCLASS-GO1, NEOCLASS-GO2, and so on.
 
     All cases are run without energy collisions.
 
@@ -84,7 +88,7 @@ def init():
     """
 
     #**************************************************************************#
-    #*                     Generate options for CLASS-GO                       #
+    #*                  Generate options for NEOCLASS-GO                       #
     #*                                                                         #
     #**************************************************************************#
     odict = opt.generateopt()
@@ -92,15 +96,12 @@ def init():
 
     odict["SIM_MODE"]                  = 1
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
-    odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
+    odict["FIXEDSTEP_USERDEFINED"]     = 3e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
     odict["ENDCOND_MAX_SIM_TIME"]      = 5e-4
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
-    odict["DISABLE_CLMBCOL_ENERGY"]    = 1
-    odict["ENABLE_ORBITWRITE"]         = 1
-    odict["ORBITWRITE_MODE"]           = 1
-    odict["ORBITWRITE_INTERVAL"]       = 1e-10
+    odict["DISABLE_ENERGY_CCOLL"]      = 1
 
     opt.settypes(odict)
     for i in range(1, nscan+1):
@@ -108,7 +109,7 @@ def init():
                            desc="NEOCLASS_GO" + str(i))
 
     #**************************************************************************#
-    #*                     Generate options for CLASS-GCF                      #
+    #*                  Generate options for NEOCLASS-GCF                      #
     #*                                                                         #
     #**************************************************************************#
     odict = opt.generateopt()
@@ -116,15 +117,12 @@ def init():
 
     odict["SIM_MODE"]                  = 2
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
-    odict["FIXEDSTEP_USERDEFINED"]     = 1e-9
+    odict["FIXEDSTEP_USERDEFINED"]     = 5e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
     odict["ENDCOND_MAX_SIM_TIME"]      = 5e-4
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
-    odict["DISABLE_CLMBCOL_ENERGY"]    = 1
-    odict["ENABLE_ORBITWRITE"]         = 1
-    odict["ORBITWRITE_MODE"]           = 1
-    odict["ORBITWRITE_INTERVAL"]       = 1e-8
+    odict["DISABLE_ENERGY_CCOLL"]      = 1
 
     opt.settypes(odict)
     for i in range(1, nscan+1):
@@ -132,7 +130,7 @@ def init():
                            desc="NEOCLASS_GCF" + str(i))
 
     #**************************************************************************#
-    #*                     Generate options for CLASS-GCA                      #
+    #*                  Generate options for NEOCLASS-GCA                      #
     #*                                                                         #
     #**************************************************************************#
     odict = opt.generateopt()
@@ -141,7 +139,7 @@ def init():
     odict["SIM_MODE"]                  = 2
     odict["ENABLE_ADAPTIVE"]           = 1
     odict["ADAPTIVE_TOL_ORBIT"]        = 5e-9
-    odict["ADAPTIVE_TOL_COL"]          = 1e-1
+    odict["ADAPTIVE_TOL_COL"]          = 9e-1
     odict["ADAPTIVE_MAX_DRHO"]         = 0.1
     odict["ADAPTIVE_MAX_DPHI"]         = 10
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
@@ -150,10 +148,7 @@ def init():
     odict["ENDCOND_MAX_SIM_TIME"]      = 5e-4
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
-    odict["DISABLE_CLMBCOL_ENERGY"]    = 1
-    odict["ENABLE_ORBITWRITE"]         = 1
-    odict["ORBITWRITE_MODE"]           = 1
-    odict["ORBITWRITE_INTERVAL"]       = 1e-8
+    odict["DISABLE_ENERGY_CCOLL"]      = 1
 
     opt.settypes(odict)
     for i in range(1, nscan+1):
@@ -169,10 +164,10 @@ def init():
     mass   = m_e_AMU * np.ones(ids.shape)
     charge = 1       * np.ones(ids.shape)
     time   = 0       * np.ones(ids.shape)
-    R      = 8       * np.ones(ids.shape)
+    R      = (R0+r0) * np.ones(ids.shape)
     phi    = 90      * np.ones(ids.shape)
     z      = 0       * np.ones(ids.shape)
-    energy = 1e3     * np.ones(ids.shape)
+    energy = Ekin    * np.ones(ids.shape)
     theta  = 2 * np.pi * np.random.rand(1,Nmrk)
     pitch  = 1 - 2 * np.random.rand(1,Nmrk)
     for i in range(1, nscan+1):
@@ -190,19 +185,19 @@ def init():
                        desc="NEOCLASS_GCA" + str(i))
 
     #**************************************************************************#
-    #*     Uniform magnetic field with values scanned from Bmin to Bmax        #
+    #*             Analytical ITER-like but circular magnetic field            #
     #*                                                                         #
     #**************************************************************************#
     for i in range(1, nscan+1):
-        B_GS.write_hdf5(test_ascot.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+        B_GS.write_hdf5(test_ascot.testfn, R0, z0, B0, psi_mult, psi_coeff,
                         desc="NEOCLASS_GO" + str(i))
-        B_GS.write_hdf5(test_ascot.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+        B_GS.write_hdf5(test_ascot.testfn, R0, z0, B0, psi_mult, psi_coeff,
                         desc="NEOCLASS_GCF" + str(i))
-        B_GS.write_hdf5(test_ascot.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+        B_GS.write_hdf5(test_ascot.testfn, R0, z0, B0, psi_mult, psi_coeff,
                         desc="NEOCLASS_GCA" + str(i))
 
     #**************************************************************************#
-    #* Plasma consisting of protons only (to avoid e-e collisions)             #
+    #*     Plasma consisting of protons only (to avoid e-e collisions)         #
     #*                                                                         #
     #**************************************************************************#
     Nrho  = 3
@@ -211,10 +206,10 @@ def init():
     anum  = np.array([1])
     rho   = np.array([0, 0.5, 100])
     edens = 1    * np.ones(rho.shape)
-    etemp = Temp * np.ones(rho.shape)
-    itemp = 1e3  * np.ones(rho.shape)
+    etemp = Ti * np.ones(rho.shape)
+    itemp = Ti  * np.ones(rho.shape)
     for i in range(1, nscan+1):
-        idens = dens[i-1] * np.ones((rho.size, Nion))
+        idens = ni[i-1] * np.ones((rho.size, Nion))
         P_1D.write_hdf5(test_ascot.testfn, Nrho, Nion, znum, anum, rho,
                         edens, etemp, idens, itemp,
                         desc="NEOCLASS_GO" + str(i))
@@ -284,15 +279,16 @@ def check():
     """
     Plot the results of these tests.
 
-    This function makes four plots.
-    - One that shows conservation of energy for all cases
-    - One that shows conservation of magnetic moment for all cases
-    - One that shows conservation of toroidal canonical momentum for all cases
-    - And one that shows trajectories on a Rz plane for all cases
+    This function makes a one plot that shows numerically evaluated diffusion
+    coefficients for all modes as a function of effective collision frequency
+    (collision frequency divided by orbit transit frequency). For comparison,
+    the analytical results for different regimes are also shown and also
+    the boundaries of the regimes themselves.
     """
 
     a5 = ascot5.Ascot(test_ascot.testfn)
 
+    # Map rho values to R outer mid-plane values
     R_omp    = np.linspace(6.2,8.2,1000)
     z_omp    = 0*np.ones(R_omp.shape)
     psi_omp  = psifun(R_omp/R0, z_omp/R0, psi_coeff[0], psi_coeff[1],
@@ -305,7 +301,13 @@ def check():
                       psi_coeff[10], psi_coeff[11], psi_coeff[12]) * psi_mult
     rho_omp  = np.sqrt(np.absolute( (psi_omp - psi_axis) / psi_axis ))
 
-    DATA = {}
+    #**************************************************************************#
+    #*               Evaluate the numerical diffusion coefficients             #
+    #*                                                                         #
+    #**************************************************************************#
+    DGO  = np.zeros(nscan)
+    DGCF = np.zeros(nscan)
+    DGCA = np.zeros(nscan)
     for i in range(1, nscan+1):
         inistate = a5["NEOCLASS_GO" + str(i)].inistate.read()
         endstate = a5["NEOCLASS_GO" + str(i)].endstate.read()
@@ -313,7 +315,7 @@ def check():
         rf = np.interp(endstate["rho"], rho_omp, R_omp)
         t  = endstate["time"]
 
-        DATA["GO" + str(i)] = np.mean( np.power(ri - rf, 2) / t )
+        DGO[i-1] = np.mean( np.power(ri - rf, 2) / (t) )
 
         inistate = a5["NEOCLASS_GCF" + str(i)].inistate.read()
         endstate = a5["NEOCLASS_GCF" + str(i)].endstate.read()
@@ -321,7 +323,7 @@ def check():
         rf = np.interp(endstate["rho"], rho_omp, R_omp)
         t  = endstate["time"]
 
-        DATA["GCF" + str(i)] = np.mean( np.power(ri - rf, 2) / t )
+        DGCF[i-1] = np.mean( np.power(ri - rf, 2) / (t) )
 
         inistate = a5["NEOCLASS_GCA" + str(i)].inistate.read()
         endstate = a5["NEOCLASS_GCA" + str(i)].endstate.read()
@@ -329,37 +331,95 @@ def check():
         rf = np.interp(endstate["rho"], rho_omp, R_omp)
         t  = endstate["time"]
 
-        DATA["GCA" + str(i)] = np.mean( np.power(ri - rf, 2) / t )
+        DGCA[i-1] = np.mean( np.power(ri - rf, 2) / (t) )
 
-    DGO  = np.zeros( (nscan, 1) )
-    DGCF = np.zeros( (nscan, 1) )
-    DGCA = np.zeros( (nscan, 1) )
-    Dps  = np.zeros( (nscan, 1) )
-    Dp   = np.zeros( (nscan, 1) )
-    Db   = np.zeros( (nscan, 1) )
-    for i in range(1, nscan+1):
-        DGO[i-1]  = DATA["GO" + str(i)]
-        DGCF[i-1] = DATA["GCF" + str(i)]
-        DGCA[i-1] = DATA["GCA" + str(i)]
+    #**************************************************************************#
+    #*                  Evaluate the analytical estimate                       #
+    #*                                                                         #
+    #**************************************************************************#
 
-        clog     = 14.7
-        collfreq = 4.8e-14 * dens[i-1] * np.power(Temp,-3.0/2) * clog
-        gyrolen  = np.sqrt(2 * m_e * 1e3 * e) / ( Bphi0 * e )
-        eps      = np.power(1.8/6.2, 3.0/2.0)
-        q        = 2.2
-        v        = np.sqrt(2 * 1e3 * e / m_e)
-        Dclass   = q * np.power(gyrolen, 2) * v / 6.2
-        Dps[i-1] = collfreq * np.power(gyrolen,2)
-        Dp[i-1]  = q * q * Dps[i-1] * 2 * 2 * 2 * 2
-        Db[i-1]  = np.power(6.2/1.9, 3.0/2.0) * Dp[i-1]
+    eps = r0 / R0
+    q   = 2.2 # This is verified numerically
+    B   = 5.3
 
-    plt.figure()
-    plt.plot(np.log10(dens), np.log10(DGO))
-    plt.plot(np.log10(dens), np.log10(DGCF))
-    plt.plot(np.log10(dens), np.log10(DGCA))
-    plt.plot(np.log10(dens), np.log10(Dps))
-    plt.plot(np.log10(dens), np.log10(Dp))
-    plt.plot(np.log10(dens), np.log10(Db))
+    gamma  = 1 + Ekin * e / ( m_e * c * c )
+    v      = np.sqrt(1.0 - 1.0 / ( gamma * gamma ) ) * c
+    omegat = (v / (q * R0))
+    rhog   = gamma * m_e * v / (B * e)
+
+    clog     = 14.5
+    density  = np.power( 10, np.linspace(np.log10(ni[0]) - 1,
+                                         np.log10(ni[-1] + 1), 50) )
+    collfreq = (np.sqrt(2/np.pi) / 3) \
+               * np.power(e*e / ( 4*np.pi*eps0 ), 2) \
+               * ( 4*np.pi / np.sqrt( m_e*np.power(Ti*e, 3) ) ) * density * clog
+    veff = collfreq/omegat
+    # Add values needed for plotting a continuous curve
+    veff = np.append(veff, [1, np.power(eps, 3.0/2.0)])
+    veff.sort()
+
+    Dps = q * q * veff * omegat * np.power(rhog, 2) / 2
+    Dp  = q * q * rhog * rhog * omegat \
+          * np.ones(veff.shape) / 2
+    Db  = np.power(eps, -3.0/2.0) * Dps
+
+    # x coordinate for plotting the numerical coefficients
+    collfreq = (np.sqrt(2/np.pi) / 3) \
+               * np.power(e*e / ( 4*np.pi*eps0 ), 2) \
+               * ( 4*np.pi / np.sqrt( m_e*np.power(Ti*e, 3) ) ) * ni * clog
+    veff_x   = collfreq/omegat
+
+    #**************************************************************************#
+    #*                                  Plot                                   #
+    #*                                                                         #
+    #**************************************************************************#
+
+    f = plt.figure(figsize=(11.9/2.54, 5/2.54))
+    plt.rc('xtick', labelsize=10)
+    plt.rc('ytick', labelsize=10)
+    plt.rc('axes', labelsize=10)
+    plt.rcParams['mathtext.fontset'] = 'stix'
+    plt.rcParams['font.family'] = 'STIXGeneral'
+
+    h = plt.gca()
+    h.set_position([0.15, 0.25, 0.82, 0.7], which='both')
+
+    h.plot(np.log10(np.power([eps, eps], 3.0/2.0)), np.array([-6, 0]), 'black')
+    h.plot(np.log10(np.array([1, 1])), np.array([-6, 0]), 'grey')
+
+    h.plot(np.log10(veff_x), np.log10(DGO), linestyle='none', marker='*',
+           markersize=12, alpha=0.5)
+    h.plot(np.log10(veff_x), np.log10(DGCF), linestyle='none', marker='.',
+           markersize=10, alpha=0.5)
+    h.plot(np.log10(veff_x), np.log10(DGCA), linestyle='none', marker='^',
+           markersize=6, alpha=0.5)
+
+    ind = veff >= 1
+    h.plot(np.log10(veff[ind]), np.log10(Dps[ind]), 'black')
+    ind = np.logical_and(veff >= np.power(eps, 3.0/2.0), veff <= 1)
+    h.plot(np.log10(veff[ind]), np.log10(Dp[ind]), 'black')
+    ind = veff <= np.power(eps, 3.0/2.0)
+    h.plot(np.log10(veff[ind]), np.log10(Db[ind]), 'black')
+
+    h.set_xlim(-2, 1)
+    h.set_ylim(-5, -1)
+    h.tick_params(axis='y', direction='out')
+    h.tick_params(axis='x', direction='out')
+    h.xaxis.set(ticks=np.linspace(-2, 1, 4))
+    h.yaxis.set(ticks=np.linspace(-5, -1, 5),
+                ticklabels=['$10^{-5}$', '$10^{-4}$', '$10^{-3}$', '$10^{-2}$',
+                            '$10^{-1}$'])
+    h.set(xlabel=r"$\log_{10}\nu^*$", ylabel=r"$D$ [m$^2$/s]")
+
+    h.text(-0.98, -4.9, r"$\nu^*=\epsilon^{3/2}$", fontsize=10,
+           bbox={'facecolor':'white', 'edgecolor':'none', 'pad':0})
+    h.text(-0.17, -4.9, r"$\nu^*=1$", fontsize=10,
+           bbox={'facecolor':'white', 'edgecolor':'none', 'pad':0})
+    h.text(-1.5, -3.4, r"$D_{B}$", fontsize=10)
+    h.text(-0.5, -3, r"$D_{P}$", fontsize=10)
+    h.text(0.4, -2.1, r"$D_{PS}$", fontsize=10)
+
+    plt.savefig("test_neoclassicaltransport.png", dpi=72)
     plt.show()
 
 if __name__ == '__main__':
