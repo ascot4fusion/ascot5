@@ -16,11 +16,11 @@ def read_magn_bkg(fn,hdrfn):
         z1,z2,nz = [float(number) for number in fh.readline().split()]
         nz = int(nz)
 
-        str['r'] = linspace(r1,r2,nr)
-        str['z'] = linspace(z1,z2,nz)
+        str['r'] = np.linspace(r1,r2,nr)
+        str['z'] = np.linspace(z1,z2,nz)
         if(str['nPhi'] > 1):
             dphi = 360.0 / ( str['nSector'] * str['nPhi'] )
-            str['phi'] = ( linspace( str['phi0'] + dphi * 0.5,
+            str['phi'] = ( np.linspace( str['phi0'] + dphi * 0.5,
                                      str['phi0'] + 360.0 / str['nSector'] - dphi * 0.5,
                                      str['nPhi'] ) )
 
@@ -32,7 +32,7 @@ def read_magn_bkg(fn,hdrfn):
         sz2d = nr*nz
         sz3d = nr*nz*str['nPhi']
         str['psi']  = data[:sz2d].reshape(nz,nr)
-        print(shape(data),nz,str['nPhi'],nr,sz2d,sz3d)
+        print(np.shape(data),nz,str['nPhi'],nr,sz2d,sz3d)
         str['br']   = data[sz2d+0*sz3d:sz2d+1*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
         str['bphi'] = data[sz2d+1*sz3d:sz2d+2*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
         str['bz']   = data[sz2d+2*sz3d:sz2d+3*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
