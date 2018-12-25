@@ -16,7 +16,7 @@
 #pragma omp declare target
 unsigned long dist_6D_index(int i_r, int i_phi, int i_z, int i_vr, int i_vphi,
                             int i_vz, int i_time, int i_q, int n_phi, int n_z,
-                            int n_vr, int n_vphi, int n_vz, int n_time, 
+                            int n_vr, int n_vphi, int n_vz, int n_time,
                             int n_q) {
     return i_r    * (n_phi * n_z * n_vr * n_vphi * n_vz * n_time * n_q)
         + i_phi  * (n_z * n_vr * n_vphi * n_vz * n_time * n_q)
@@ -114,7 +114,7 @@ void dist_6D_update_fo(dist_6D_data* dist, particle_simd_fo* p_f,
     int i_vr[NSIMD];
     int i_vphi[NSIMD];
     int i_vz[NSIMD];
-    int i_time[NSIDM];
+    int i_time[NSIMD];
     int i_q[NSIMD];
 
     int ok[NSIMD];

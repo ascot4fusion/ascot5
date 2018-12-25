@@ -24,7 +24,7 @@ unsigned long dist_rho5D_index(int i_rho, int i_pol, int i_phi, int i_vpara,
         + i_vpara * (n_vperp * n_time * n_q)
         + i_vperp * (n_time * n_q)
         + i_time  * (n_q)
-        + i_q
+        + i_q;
 
 }
 #pragma omp end declare target
@@ -143,13 +143,16 @@ void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
                        +p_f->B_phi[i]*p_f->B_phi[i]
                        + p_f->B_z[i]*p_f->B_z[i]);
             i_vpara[i] = floor((vpara[i] - dist->min_vpara)
-                               / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
+                               / ((dist->max_vpara - dist->min_vpara)
+                                  / dist->n_vpara));
 
             vperp[i] = sqrt(p_f->rdot[i]*p_f->rdot[i] + (p_f->phidot[i]
-                                                         *p_f->phidot[i]*p_f->r[i]*p_f->r[i])
+                                                         * p_f->phidot[i]
+                                                         * p_f->r[i]*p_f->r[i])
                             + p_f->zdot[i]*p_f->zdot[i] - vpara[i]*vpara[i]);
             i_vperp[i] = floor((vperp[i] - dist->min_vperp)
-                               / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
+                               / ((dist->max_vperp - dist->min_vperp)
+                                  / dist->n_vperp));
 
             i_time[i] = floor((p_f->time[i] - dist->min_time)
                           / ((dist->max_time - dist->min_time) / dist->n_time));
@@ -179,7 +182,7 @@ void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
                                                    i_vpara[i], i_vperp[i],
                                                    i_time[i], i_q[i],
                                                    dist->n_pol, dist->n_phi,
-                                                   dist->n_vpara, dist->n_vperp
+                                                   dist->n_vpara, dist->n_vperp,
                                                    dist->n_time, dist->n_q);
             #pragma omp atomic
             dist->histogram[index] += weight[i];
@@ -208,6 +211,8 @@ void dist_rho5D_update_gc(dist_rho5D_data* dist, particle_simd_gc* p_f,
     int i_pol[NSIMD];
     int i_vpara[NSIMD];
     int i_vperp[NSIMD];
+    int i_time[NSIMD];
+    int i_q[NSIMD];
 
     int ok[NSIMD];
     real weight[NSIMD];
@@ -233,14 +238,16 @@ void dist_rho5D_update_gc(dist_rho5D_data* dist, particle_simd_gc* p_f,
                              / ((dist->max_pol - dist->min_pol) / dist->n_pol));
 
             i_vpara[i] = floor((p_f->vpar[i] - dist->min_vpara)
-                               / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
+                               / ((dist->max_vpara - dist->min_vpara)
+                                  / dist->n_vpara));
 
             vperp[i] = sqrt(2 * sqrt(p_f->B_r[i]*p_f->B_r[i]
                                      +p_f->B_phi[i]*p_f->B_phi[i]
                                      +p_f->B_z[i]*p_f->B_z[i])
                             * p_f->mu[i] / p_f->mass[i]);
             i_vperp[i] = floor((vperp[i] - dist->min_vperp)
-                               / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
+                               / ((dist->max_vperp - dist->min_vperp)
+                                  / dist->n_vperp));
 
             i_time[i] = floor((p_f->time[i] - dist->min_time)
                           / ((dist->max_time - dist->min_time) / dist->n_time));
@@ -268,7 +275,7 @@ void dist_rho5D_update_gc(dist_rho5D_data* dist, particle_simd_gc* p_f,
         if(p_f->running[i] && ok[i]) {
             unsigned long index = dist_rho5D_index(i_rho[i], i_pol[i], i_phi[i],
                                                    i_vpara[i], i_vperp[i],
-                                                   i_time[i], i_q[i], 
+                                                   i_time[i], i_q[i],
                                                    dist->n_pol, dist->n_phi,
                                                    dist->n_vpara, dist->n_vperp,
                                                    dist->n_time, dist->n_q);
