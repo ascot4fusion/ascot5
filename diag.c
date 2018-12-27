@@ -48,19 +48,21 @@ void diag_init_offload(diag_offload_data* data, real** offload_array){
         data->offload_dist6D_index = n;
         n += data->dist6D.n_r * data->dist6D.n_phi * data->dist6D.n_z
              * data->dist6D.n_vr * data->dist6D.n_vphi
-             * data->dist6D.n_vz * data->dist6D.n_time * data->dist6D-n_q;
+             * data->dist6D.n_vz * data->dist6D.n_time * data->dist6D.n_q;
     }
 
     if(data->distrho5D_collect) {
         data->offload_distrho5D_index = n;
-        n += data->distrho5D.n_rho * data->distrho5D.n_pol * data->distrho5D.n_phi
+        n += data->distrho5D.n_rho * data->distrho5D.n_pol
+            * data->distrho5D.n_phi
             * data->distrho5D.n_vpara * data->distrho5D.n_vperp
             * data->distrho5D.n_time * data->distrho5D.n_q;
     }
 
     if(data->distrho6D_collect) {
         data->offload_distrho6D_index = n;
-        n += data->distrho6D.n_rho * data->distrho6D.n_pol * data->distrho6D.n_phi
+        n += data->distrho6D.n_rho * data->distrho6D.n_pol
+            * data->distrho6D.n_phi
             * data->distrho6D.n_vr * data->distrho6D.n_vphi
             * data->distrho6D.n_vz * data->distrho6D.n_time
             * data->distrho6D.n_q;
