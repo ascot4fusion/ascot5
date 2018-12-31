@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import a5py.ascot5io.options as options
+import a5py.ascot5io.ascot5tools as tools
+import a5py.ascot5io.options     as options
 
 import sys
 sys.path.append('.')
@@ -11,6 +12,7 @@ if len(sys.argv) > 1:
 else:
     fn = "ascot.h5"
 
-o = opt.generateopt()
-options.write_hdf5(fn, o)
-print("Options set.")
+o   = opt.generateopt()
+qid = options.write_hdf5(fn, o)
+tools.set_active(fn, qid)
+print("Options set and set as active.")
