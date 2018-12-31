@@ -302,17 +302,18 @@ def check():
     f = plt.figure(figsize=(11.9/2.54, 8/2.54))
     plt.rc('xtick', labelsize=10)
     plt.rc('ytick', labelsize=10)
+    plt.rc('axes', labelsize=10)
     plt.rcParams['mathtext.fontset'] = 'stix'
     plt.rcParams['font.family'] = 'STIXGeneral'
 
     h1 = f.add_subplot(1,3,1)
-    h1.set_position([0.12, 0.24, 0.26, 1], which='both')
+    h1.set_position([0.12, 0.27, 0.26, 1], which='both')
 
     h2 = f.add_subplot(1,3,2)
-    h2.set_position([0.52, 0.27, 0.42, 1], which='both')
+    h2.set_position([0.56, 0.30, 0.42, 1], which='both')
 
     h3 = f.add_subplot(1,3,3)
-    h3.set_position([0.52, -0.13, 0.42, 1], which='both')
+    h3.set_position([0.56, -0.13, 0.42, 1], which='both')
 
     #**************************************************************************#
     #*                           Check GYROMOTION                              #

@@ -350,7 +350,7 @@ def check():
     scaling = 100
     h.plot(xvals, Dclass * scaling, 'black', linewidth=3, linestyle='--',
            label='Analytical')
-    h.plot(xvals, DGO * scaling, linestyle='none', marker='*', markersize=12,
+    h.plot(xvals, DGO * scaling, linestyle='none', marker='*', markersize=11,
            alpha=0.5, label='GO')
     h.plot(xvals, DGCF * scaling, linestyle='none', marker='.', markersize=10,
            alpha=0.5, label='GCF')

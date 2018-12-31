@@ -286,7 +286,8 @@ def check():
     h4 = f.add_subplot(1,4,4)
     h4.set_position([0.6, 0.3, 0.45, 0.45], which='both')
 
-    colors = ["#373e02", "#0a481e", "#03719c", "#0165fc", "#7e1e9c", "#cea2fd"]
+    #colors = ["#373e02", "#0a481e", "#03719c", "#0165fc", "#7e1e9c", "#cea2fd"]
+    colors = ["b", "dodgerblue", "darkgreen", "forestgreen", "r", "tomato"]
 
     #**************************************************************************#
     #*     Evaluate and plot conservation quantities for ORBFOL_GO             #
@@ -485,10 +486,10 @@ def check():
 
     legend = [r"GO-p", r"GCF-p", r"GCA-p", r"GO-b", r"GCF-b", r"GCA-b"]
     h4.text(5.0, 2.5, legend[0], fontsize=9, color=colors[0])
-    h4.text(6.0, 2.5, legend[1], fontsize=9, color=colors[1])
-    h4.text(7.0, 2.5, legend[2], fontsize=9, color=colors[2])
-    h4.text(5.0, 2.0, legend[3], fontsize=9, color=colors[3])
-    h4.text(6.0, 2.0, legend[4], fontsize=9, color=colors[4])
+    h4.text(6.0, 2.5, legend[1], fontsize=9, color=colors[2])
+    h4.text(7.0, 2.5, legend[2], fontsize=9, color=colors[4])
+    h4.text(5.0, 2.0, legend[3], fontsize=9, color=colors[1])
+    h4.text(6.0, 2.0, legend[4], fontsize=9, color=colors[3])
     h4.text(7.0, 2.0, legend[5], fontsize=9, color=colors[5])
 
     plt.savefig("test_orbitfollowing.png", dpi=72)

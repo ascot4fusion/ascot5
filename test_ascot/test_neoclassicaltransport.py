@@ -50,15 +50,15 @@ m_p     = constants.physical_constants["proton mass"][0]
 c       = constants.physical_constants["speed of light in vacuum"][0]
 eps0    = constants.physical_constants["electric constant"][0]
 
-Nmrk  = 200
-nscan = 20
+Nmrk  = 100
+nscan = 20 #20
 
 Ti   = 1e3
-ni   = np.power( 10, np.linspace(18.5, 22.5, nscan) )
+ni   = np.power( 10, np.linspace(17.5, 22.0, nscan) )
 Ekin = 1e3
 
 R0 = 6.2
-r0 = 1.8
+r0 = 1.0
 z0 = 0
 B0 = 5.3
 psi_mult = 200
@@ -98,13 +98,16 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 3e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 5e-4
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
     odict["DISABLE_ENERGY_CCOLL"]      = 1
 
-    opt.settypes(odict)
     for i in range(1, nscan+1):
+        odict["ENDCOND_MAX_SIM_TIME"]  = np.maximum( 1e-4,
+                                                     1e-2 / (ni[i-1]/ni[0]) )
+        odict["FIXEDSTEP_USERDEFINED"] = np.minimum( 2e-9,
+                                                     3e-10 / (ni[i-1]/ni[-1]) )
+        opt.settypes(odict)
         options.write_hdf5(test_ascot.testfn, odict,
                            desc="NEOCLASS_GO" + str(i))
 
@@ -117,15 +120,17 @@ def init():
 
     odict["SIM_MODE"]                  = 2
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
-    odict["FIXEDSTEP_USERDEFINED"]     = 5e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 5e-4
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
     odict["DISABLE_ENERGY_CCOLL"]      = 1
 
-    opt.settypes(odict)
     for i in range(1, nscan+1):
+        odict["ENDCOND_MAX_SIM_TIME"]  = np.maximum( 1e-4,
+                                                     1e-2 / (ni[i-1]/ni[0]) )
+        odict["FIXEDSTEP_USERDEFINED"] = np.minimum( 2e-8,
+                                                     5e-10 / (ni[i-1]/ni[-1]) )
+        opt.settypes(odict)
         options.write_hdf5(test_ascot.testfn, odict,
                            desc="NEOCLASS_GCF" + str(i))
 
@@ -145,13 +150,14 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 5e-4
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
     odict["DISABLE_ENERGY_CCOLL"]      = 1
 
-    opt.settypes(odict)
     for i in range(1, nscan+1):
+        odict["ENDCOND_MAX_SIM_TIME"]  = np.maximum( 1e-4,
+                                                     1e-2 / (ni[i-1]/ni[0]) )
+        opt.settypes(odict)
         options.write_hdf5(test_ascot.testfn, odict,
                            desc="NEOCLASS_GCA" + str(i))
 
@@ -315,7 +321,7 @@ def check():
         rf = np.interp(endstate["rho"], rho_omp, R_omp)
         t  = endstate["time"]
 
-        DGO[i-1] = np.mean( np.power(ri - rf, 2) / (t) )
+        DGO[i-1] = np.mean( np.power(ri - rf, 2) / (2*t) )
 
         inistate = a5["NEOCLASS_GCF" + str(i)].inistate.read()
         endstate = a5["NEOCLASS_GCF" + str(i)].endstate.read()
@@ -323,7 +329,7 @@ def check():
         rf = np.interp(endstate["rho"], rho_omp, R_omp)
         t  = endstate["time"]
 
-        DGCF[i-1] = np.mean( np.power(ri - rf, 2) / (t) )
+        DGCF[i-1] = np.mean( np.power(ri - rf, 2) / (2*t) )
 
         inistate = a5["NEOCLASS_GCA" + str(i)].inistate.read()
         endstate = a5["NEOCLASS_GCA" + str(i)].endstate.read()
@@ -331,7 +337,7 @@ def check():
         rf = np.interp(endstate["rho"], rho_omp, R_omp)
         t  = endstate["time"]
 
-        DGCA[i-1] = np.mean( np.power(ri - rf, 2) / (t) )
+        DGCA[i-1] = np.mean( np.power(ri - rf, 2) / (2*t) )
 
     #**************************************************************************#
     #*                  Evaluate the analytical estimate                       #
@@ -339,17 +345,17 @@ def check():
     #**************************************************************************#
 
     eps = r0 / R0
-    q   = 2.2 # This is verified numerically
+    q   = 1.7 # This was verified numerically
     B   = 5.3
 
     gamma  = 1 + Ekin * e / ( m_e * c * c )
     v      = np.sqrt(1.0 - 1.0 / ( gamma * gamma ) ) * c
-    omegat = (v / (q * R0))
+    omegat = (v / (q * R0)) * np.sqrt(0.5*eps)
     rhog   = gamma * m_e * v / (B * e)
 
-    clog     = 14.5
+    clog     = 15
     density  = np.power( 10, np.linspace(np.log10(ni[0]) - 1,
-                                         np.log10(ni[-1] + 1), 50) )
+                                         np.log10(ni[-1]) + 1, 50) )
     collfreq = (np.sqrt(2/np.pi) / 3) \
                * np.power(e*e / ( 4*np.pi*eps0 ), 2) \
                * ( 4*np.pi / np.sqrt( m_e*np.power(Ti*e, 3) ) ) * density * clog
@@ -388,11 +394,11 @@ def check():
     h.plot(np.log10(np.array([1, 1])), np.array([-6, 0]), 'grey')
 
     h.plot(np.log10(veff_x), np.log10(DGO), linestyle='none', marker='*',
-           markersize=12, alpha=0.5)
+           markersize=12, alpha=0.5, label='GO')
     h.plot(np.log10(veff_x), np.log10(DGCF), linestyle='none', marker='.',
-           markersize=10, alpha=0.5)
+           markersize=10, alpha=0.5, label='GCF')
     h.plot(np.log10(veff_x), np.log10(DGCA), linestyle='none', marker='^',
-           markersize=6, alpha=0.5)
+           markersize=6, alpha=0.5, label='GCA')
 
     ind = veff >= 1
     h.plot(np.log10(veff[ind]), np.log10(Dps[ind]), 'black')
@@ -401,23 +407,25 @@ def check():
     ind = veff <= np.power(eps, 3.0/2.0)
     h.plot(np.log10(veff[ind]), np.log10(Db[ind]), 'black')
 
-    h.set_xlim(-2, 1)
-    h.set_ylim(-5, -1)
+    h.set_xlim(-3, 2)
+    h.set_ylim(-6, -2)
     h.tick_params(axis='y', direction='out')
     h.tick_params(axis='x', direction='out')
-    h.xaxis.set(ticks=np.linspace(-2, 1, 4))
-    h.yaxis.set(ticks=np.linspace(-5, -1, 5),
-                ticklabels=['$10^{-5}$', '$10^{-4}$', '$10^{-3}$', '$10^{-2}$',
-                            '$10^{-1}$'])
+    h.xaxis.set(ticks=np.linspace(-3, 2, 6))
+    h.yaxis.set(ticks=np.linspace(-6, -1, 6),
+                ticklabels=['$10^{-6}$', '$10^{-5}$', '$10^{-4}$', '$10^{-3}$',
+                            '$10^{-2}$', '$10^{-1}$'])
     h.set(xlabel=r"$\log_{10}\nu^*$", ylabel=r"$D$ [m$^2$/s]")
 
-    h.text(-0.98, -4.9, r"$\nu^*=\epsilon^{3/2}$", fontsize=10,
+    h.text(-1.32, -5.7, r"$\nu^*=\epsilon^{3/2}$", fontsize=10,
            bbox={'facecolor':'white', 'edgecolor':'none', 'pad':0})
-    h.text(-0.17, -4.9, r"$\nu^*=1$", fontsize=10,
+    h.text(-0.17, -5.7, r"$\nu^*=1$", fontsize=10,
            bbox={'facecolor':'white', 'edgecolor':'none', 'pad':0})
-    h.text(-1.5, -3.4, r"$D_{B}$", fontsize=10)
-    h.text(-0.5, -3, r"$D_{P}$", fontsize=10)
+    h.text(-2.5, -4, r"$D_{B}$", fontsize=10)
+    h.text(-0.8, -3, r"$D_{P}$", fontsize=10)
     h.text(0.4, -2.1, r"$D_{PS}$", fontsize=10)
+
+    h.legend(loc='upper left', frameon=False, fontsize=10, numpoints=1)
 
     plt.savefig("test_neoclassicaltransport.png", dpi=72)
     plt.show()

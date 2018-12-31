@@ -43,6 +43,7 @@ import sys
 import numpy                   as np
 import scipy.constants         as constants
 import matplotlib.pyplot       as plt
+import matplotlib.lines        as mlines
 
 import a5py.ascot5io.ascot5    as ascot5
 import a5py.ascot5io.orbits    as orbits
@@ -86,7 +87,7 @@ def init():
     This function initializes four test cases:
     - GCTRANSFORM_GC initializes a guiding center marker and simulates it in GC
       mode.
-    - GCTRANSFORM_GO initializes  aguiding center marker and simulates it in FO
+    - GCTRANSFORM_GO initializes a guiding center marker and simulates it in FO
       mode.
     - GCTRANSFORM_GO2GC is same as GO but guiding center transformation is done
       at each
@@ -390,9 +391,9 @@ def check():
         id0 = a5["GCTRANSFORM_ZEROTH"]["gc"]["id"]
         id1 = a5["GCTRANSFORM_FIRST"]["gc"]["id"]
         h4.plot(a5["GCTRANSFORM_ZEROTH"]["gc"]["R"][id0==i+1],
-                a5["GCTRANSFORM_ZEROTH"]["gc"]["z"][id0==i+1], 'orange')
+                a5["GCTRANSFORM_ZEROTH"]["gc"]["z"][id0==i+1], 'darkorchid')
         h4.plot(a5["GCTRANSFORM_FIRST"]["gc"]["R"][id1==i+1],
-                a5["GCTRANSFORM_FIRST"]["gc"]["z"][id1==i+1], 'black')
+                a5["GCTRANSFORM_FIRST"]["gc"]["z"][id1==i+1], 'darkgreen')
 
     h4.plot(a5["GCTRANSFORM_GO2GC"]["gc"]["R"],
             a5["GCTRANSFORM_GO2GC"]["gc"]["z"], 'red')
@@ -448,6 +449,20 @@ def check():
     h4.tick_params(axis='x', direction='out')
     h4.xaxis.set(ticks=[6.2, 6.4, 6.6])
     h4.yaxis.set(ticks=[1.7, 1.9, 2.1, 2.3, 2.5], ticklabels=[])
+
+    l1 = mlines.Line2D([], [], color='r', linestyle='-', label='GC',    axes=h3)
+    l2 = mlines.Line2D([], [], color='b', linestyle='-', label='GO',    axes=h3)
+    l3 = mlines.Line2D([], [], color='g', linestyle='-', label='GO2GC', axes=h3)
+    h3.legend(handles=[l1, l2, l3], loc='lower left', frameon=False,
+              fontsize=9)
+
+    l1 = mlines.Line2D([], [], color='r', linestyle='-', label='GC',    axes=h4)
+    l2 = mlines.Line2D([], [], color='darkorchid', linestyle='-',
+                       label=r'0$^\circ$ order GC', axes=h4)
+    l3 = mlines.Line2D([], [], color='darkgreen', linestyle='-',
+                       label=r'1$^\circ$ order GC', axes=h4)
+    h4.legend(handles=[l1, l2, l3], loc='lower left', frameon=False,
+              fontsize=9)
 
     plt.savefig("test_gctransform.png", dpi=72)
     plt.show()

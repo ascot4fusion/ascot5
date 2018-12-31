@@ -29,11 +29,12 @@ File: test_ascot.py
 import sys
 import subprocess
 import os.path
+from time import perf_counter as timer
 from time import sleep
 
 import numpy as np
 
-import a5py.ascot5io.ascot5 as ascot5
+import a5py.ascot5io.ascot5      as ascot5
 import a5py.ascot5io.ascot5tools as tools
 
 sys.path.insert(0, '../')
@@ -51,17 +52,17 @@ testbin = "ascot5_main"
 # You can specify here which tests to run
 
 ## Test test_elementary.py
-dotest_elementary            = False
+dotest_elementary            = True
 ## Test test_orbitfollowing.py
-dotest_orbitfollowing        = False
+dotest_orbitfollowing        = True
 ## Test test_gctransform.py
-dotest_gctransform           = False
+dotest_gctransform           = True
 ## Test test_coulombcollisions.py
 dotest_coulombcollisions     = True
 ## Test test_classicaltransport.py
-dotest_classicaltransport    = False
+dotest_classicaltransport    = True
 ## Test test_neoclassicaltransport.py
-dotest_neoclassicaltransport = False
+dotest_neoclassicaltransport = True
 
 def clean_opt(odict):
     """
@@ -107,10 +108,13 @@ def set_and_run(test):
     set_correct_input("wall",    test)
     set_correct_input("options", test)
 
-    sleep(1.01)
+    sleep(1.01) # Sleep for one second so that each run gets unique QID
+
+    frm   = lambda x: "%.3f s" % x
+    start = timer()
     subprocess.call(["./"+testbin, "--in="+testfn[:-3], "--d="+test],
                     stdout=subprocess.DEVNULL)
-    print("Completed test " + test)
+    print("Completed test " + test + " in " + frm(timer() - start))
 
 def init():
     """
@@ -164,29 +168,53 @@ def run():
         print("Aborting runs.")
         sys.exit()
 
+    frm   = lambda x: "%.3f s" % x
+    start = timer()
+    inter = start
+
     if dotest_elementary:
         print("Running test_elementary.")
         test_elementary.run()
+        print("Elapsed time is " + frm(timer() - inter))
+        print("")
+        inter = timer()
 
     if dotest_orbitfollowing:
         print("Running test_orbitfollowing.")
         test_orbitfollowing.run()
+        print("Elapsed time is " + frm(timer() - inter))
+        print("")
+        inter = timer()
 
     if dotest_gctransform:
         print("Running test_gctransform.")
         test_gctransform.run()
+        print("Elapsed time is " + frm(timer() - inter))
+        print("")
+        inter = timer()
 
     if dotest_coulombcollisions:
         print("Running test_coulombcollisions.")
         test_coulombcollisions.run()
+        print("Elapsed time is " + frm(timer() - inter))
+        print("")
+        inter = timer()
 
     if dotest_classicaltransport:
         print("Running test_classicaltransport.")
         test_classicaltransport.run()
+        print("Elapsed time is " + frm(timer() - inter))
+        print("")
+        inter = timer()
 
     if dotest_neoclassicaltransport:
         print("Running test_neoclassicaltransport.")
         test_neoclassicaltransport.run()
+        print("Elapsed time is " + frm(timer() - inter))
+        print("")
+        inter = timer()
+
+    print("Total elapsed time is " + frm(timer() - start))
 
 
 def check():
