@@ -123,7 +123,7 @@ def init():
     odict["SIM_MODE"]                  = 2
     odict["ENABLE_ADAPTIVE"]           = 1
     odict["ADAPTIVE_TOL_ORBIT"]        = 1e-6
-    odict["ADAPTIVE_TOL_COL"]          = 20e0
+    odict["ADAPTIVE_TOL_COL"]          = 1e-2
     odict["ADAPTIVE_MAX_DRHO"]         = 0.1
     odict["ADAPTIVE_MAX_DPHI"]         = 10
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
@@ -177,7 +177,7 @@ def init():
     odict["SIM_MODE"]                  = 2
     odict["ENABLE_ADAPTIVE"]           = 1
     odict["ADAPTIVE_TOL_ORBIT"]        = 1e-6
-    odict["ADAPTIVE_TOL_COL"]          = 20e0
+    odict["ADAPTIVE_TOL_COL"]          = 1e-2
     odict["ADAPTIVE_MAX_DRHO"]         = 0.1
     odict["ADAPTIVE_MAX_DPHI"]         = 10
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1

@@ -141,7 +141,7 @@ a5err mccc_push_gcEM(real K, real nu, real Dpara, real DX, real* B, real dt, rea
  * @param kappa_k pointer to drift part of the error estimate
  * @param kappa_d pointer to diffusion part of the error estimate
  */
-a5err mccc_push_gcMI(real K, real nu, real Dpara, real DX, real* B, real dt, real* dW, real dQ, real dDpara, real vin, real* vout, 
+a5err mccc_push_gcMI(real K, real nu, real Dpara, real DX, real* B, real dt, real* dW, real dQ, real dDpara, real vin, real* vout,
                      real xiin, real* xiout, real* Xin, real* Xout, real cutoff, real tol, real* kappa_k, real* kappa_d0, real* kappa_d1){
     a5err err = 0;
     real bhat[3];
@@ -170,7 +170,7 @@ a5err mccc_push_gcMI(real K, real nu, real Dpara, real DX, real* B, real dt, rea
     }
 
     /* Error estimates for drift and diffusion limits */
-    real erru = tol*(fabs(K)*dt + sqrt(2*Dpara*dt)) + DBL_EPSILON;
+    real erru = tol*(vin + fabs(K)*dt + sqrt(2*Dpara*dt)) + DBL_EPSILON;
 
     k1 = (1/(2*erru))*fabs(K*dQ);
     k2 = (1/(2*tol))*fabs(xiin*nu*nu);
