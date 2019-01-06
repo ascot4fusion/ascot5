@@ -1,34 +1,27 @@
 """
-Distribution HDF5 IO module.
+5D distribution module.
 
 File: dist_5D.py
 """
 import numpy as np
 import h5py
-import copy
+
+import a5py.dist as distmod
 
 from a5py.ascot5io.ascot5data import AscotData
-import scipy.constants as constants
-from scipy.interpolate import griddata, RectBivariateSpline
-
-from a5py.postprocessing.disttrasnformations import vpavpe2Epitch
 
 def read_hdf5(fn, qid):
     """
-    Read distributions.
+    Read 5D distribution from a HDF5 file to a dictionary.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            HDF5 file filename.
+        qid : str <br>
+            QID of the run whose distribution is read.
 
-    fn : str
-        Full path to HDF5 file.
-    qid : str
-        qid of the run where distribution is read.
-
-    Returns
-    -------
-
-    Dictionary storing the distributions that were read.
+    Returns:
+        Distribution dictionary.
     """
 
     with h5py.File(fn,"r") as f:
@@ -47,7 +40,6 @@ def read_hdf5(fn, qid):
             name = out["abscissae"][i]
             out[name + '_edges'] = dist['abscissa_vec_00000'+str(i+1)][:]
             out[name]            = edges2grid(out[name + '_edges'])
-            #out[name + '_unit']  = abscissae_units[i]
             out['n_' + name]     = out[name].size
 
         out['histogram']      = np.squeeze(dist['ordinate'][:], axis=0)
@@ -57,13 +49,7 @@ def read_hdf5(fn, qid):
 
 def write_hdf5(fn, dists, qid):
     """
-    Write distributions.
-
-    Unlike most other "write" functions, this one takes dictionary
-    as an argument. The dictionary should have exactly the same format
-    as given by the "read" function in this module. The reason for this
-    is that this function is intended to be used only when combining
-    different HDF5 files into one.
+    Write 5D distribution to a HDF5 file.
 
     TODO not compatible with new format
 
@@ -115,111 +101,158 @@ def write_hdf5(fn, dists, qid):
 class Dist_5D(AscotData):
 
     def read(self):
+        """
+        Read distribution data from HDF5 file to a dictionary.
+
+        Returns:
+            Distribution dictionary.
+        """
         return read_hdf5(self._file, self.get_qid())
 
-    def histogram2dist(self, dist):
-        vol = 1
-        for coord in dist["abscissae"]:
-            edges = dist[coord + '_edges']
-            #dv = (edges[0:-1] + edges[1:]) / 2
-            dv = (edges[1:] - edges[0:-1])
-            vol = np.multiply.outer(vol, dv)
+    def get_dist(self, dist=None, **kwargs):
+        """
+        Return distribution dictionary.
 
-        dist["density"] = dist["histogram"] / vol
-        del dist["histogram"]
+        The ordinate is density which is integrated over the dimensions which
+        are given in kwargs.
+
+        Args:
+            dist : dict_like, optional <br>
+               Give input distribution explicitly instead of reading one from
+               HDF5 file.
+            kwargs : Name(s) (R, phi, z, vpa, vpe, time, charge) of those
+               dimensions along which the distribution is either sliced or
+               integrated over. Names are given as keyword value pairs where
+               a tuple value (a, b) are indices for slicing and array [a, b]
+               are indices for integration. A scalar zero means whole
+               dimension is integrated.
+
+        Returns:
+            Distribution dictionary.
+        """
+        if not dist:
+            dist = distmod.histogram2density(self.read())
+        distmod.squeeze(dist, **kwargs)
+
         return dist
 
-    def integrate(self, dist, coord, slices=None):
-        dim = dist["abscissae"].index(coord)
-        edges = dist[coord + '_edges']
-        weights = (edges[1:] - edges[0:-1])
+    def get_E_xi_dist(self, masskg, E_edges=None, xi_edges=None, dist=None,
+                      **kwargs):
+        """
+        Return distribution dictionary where (vpa, vpe) is converted to (E, xi).
 
-        if slices is not None:
-            mask = np.zeros(weights.shape)
-            mask[slices] = 1
-            weights = weights*mask
+        This is otherwise same function as Dist_5D.get_dist() except velocity
+        components (vpa, vpe) are converted to Energy and pitch (E, xi). Energy
+        is in electronvolts and pitch is vpa/(vpa^2 + vpe^2)^0.5.
 
-        dist["density"],s = np.average(dist["density"],
-                                       axis=dim, weights=weights,
-                                       returned=True)
-        dist["density"] *= s
-        del dist[coord]
-        del dist[coord + '_edges']
-        #del dist[coord + '_unit']
-        del dist['n_' + coord]
-        del dist["abscissae"][dim]
-        return dist
+        Args:
+            masskg : float <br>
+                Mass of the species (required for energy conversion) in kg. Note
+                that distribution is assumed to consist of markers with equal
+                mass.
+            E_edges : array  (optional) Energy grid edges in the new distribution.
+            xi_edges (optional) Pitch grid edges in the new distribution.
+            dist     (optional) Use this distribution instead of reading one
+                     from HDF5 file.
+            kwargs   Name(s) (R, phi, z, vpa, vpe, time, charge) of those
+                     dimensions along which the distribution is either sliced or
+                     integrated over. Names are given as keyword value pairs
+                     where a tuple value (a, b) are indices for slicing and
+                     array [a, b]are indices for integration. A scalar zero
+                     means whole dimension is integrated.
 
-    def get_E_xi_dist(self, E_edges, xi_edges, masskg):
+        Returns:
+            Distribution dictionary.
+        """
 
-        ## Create E-xi distribution ##
-        dist = self.histogram2dist(self.read())
-        Exidist = copy.deepcopy(dist)
+        if not dist:
+            dist = distmod.histogram2density(self.read())
 
-        # Remove vpa and vpe components
-        del Exidist["density"]
-        Exidist["abscissae"].remove("vpa")
-        Exidist["abscissae"].remove("vpe")
-        for k in list(Exidist):
-            if "vpa" in k or "vpe" in k:
-                del Exidist[k]
-
-        # Add E and xi abscissae and initialize a new density
-        Exidist["abscissae"].insert(3, "E")
-        Exidist["abscissae"].insert(4, "xi")
-
-        Exidist["E"]        = (E_edges[0:-1] + E_edges[1:]) / 2
-        Exidist["E_edges"]  = E_edges
-        Exidist["n_E"]      = Exidist["E"].size
-
-        Exidist["xi"]       = (xi_edges[0:-1] + xi_edges[1:]) / 2
-        Exidist["xi_edges"] = xi_edges
-        Exidist["n_xi"]     = Exidist["xi"].size
-
-        Exidist["density"]  = np.zeros((Exidist['n_R'],
-                                        Exidist['n_phi'],
-                                        Exidist['n_z'],
-                                        Exidist["n_E"],
-                                        Exidist["n_xi"],
-                                        Exidist['n_time'],
-                                        Exidist['n_charge']))
-
-        # Transform E-xi grid to points in (vpa,vpa) space that are used in
-        # interpolation.
-        xig, Eg = np.meshgrid(Exidist["xi"], Exidist["E"])
-        vpag = ( xig * np.sqrt( 2*Eg*constants.e/masskg ) ).ravel()
-        vpeg = (np.sqrt(1 - xig*xig) * np.sqrt(2*Eg*constants.e/masskg)).ravel()
-
-        # Coordinate transform Jacobian: dvpa dvpe = |jac| dE dxi
-        # Jacobian for transform (vpa, vpe) -> (v, xi) is v / sqrt(1-xi^2)
-        # because jac = dvpa / dv  = xi, dvpe / dv  = sqrt(1-xi^2)
-        #               dvpa / dxi = v,  dvpe / dxi = -xi v / sqrt(1-xi^2),
-        # and the Jacobian for (v, xi) -> (E, xi) is e / (mass*v) when
-        # E is in electronvolts. Therefore the combined Jacobian is
-        # (e/mass) / sqrt(1-xi*xi).
-        jac = (constants.e/masskg) / np.sqrt(1 - xig*xig)
-
-        # Interpolate.
-        for iR in range(0, dist['n_R']):
-            for iphi in range(0, dist['n_phi']):
-                for iz in range(0, dist['n_z']):
-                    for itime in range(0, dist['n_time']):
-                        for iq in range(0, dist['n_charge']):
-                            f = RectBivariateSpline(
-                                dist['vpa'], dist['vpe'],
-                                np.squeeze(dist['density'][iR,iphi,iz,:,:,itime,iq]),
-                                kx=1, ky=1)
-                            Exidist["density"][iR,iphi,iz,:,:,itime,iq] = \
-                                np.reshape(f.ev(vpag, vpeg), (Exidist["n_E"], Exidist["n_xi"])) * jac
+        Exidist = distmod.convert_vpavpe_to_Exi(dist, masskg, E_edges, xi_edges)
+        distmod.squeeze(Exidist, **kwargs)
 
         return Exidist
 
-    def get_E_dist(self, E_edges, xi_edges, masskg):
-        dist = self.get_E_xi_dist(E_edges, xi_edges, masskg)
-        return np.sum(np.squeeze(dist["density"]), 1) \
-            * (xi_edges[1] - xi_edges[0])
+    def plot_dist(self, *args, axes=None, dist=None):
+        """
+        Plot distribution.
 
-    def get_xi_dist(self, E_edges, xi_edges, masskg):
-        dist = self.get_E_xi_dist(E_edges, xi_edges, masskg)
-        return np.sum(np.squeeze(dist["density"]), 0) \
-            * (E_edges[1] - E_edges[0])
+        Either makes a 1D or a 2D plot depending on number of input arguments.
+
+        Args:
+            args : str, str <br>
+                Name of the x-coordinate, and optionally y-coordinate if a 2D
+                plot is desired.
+            axes : Axes, optional <br>
+                Axes where plotting happens. If None, a new figure will be
+                created.
+            dist : dict_like, optional <br>
+               Give input distribution explicitly instead of reading one from
+               HDF5 file. Dimensions that are not x or y are integrated over.
+        """
+        abscissae = {"R" : 0, "phi" : 0, "z" : 0, "vpa" : 0,
+                     "vpe" : 0, "time" : 0, "charge" : 0}
+
+        x = args[0]
+        del abscissae[x]
+        y = None
+        if len(args) > 1:
+            y = args[1]
+            del abscissae[y]
+
+        if not dist:
+            dist = self.get_dist()
+
+        for k in abscissae.keys():
+            if k not in dist["abscissae"]:
+                del abscissae[k]
+
+        distmod.squeeze(dist, **abscissae)
+
+        if not y:
+            distmod.plot_dist_1D(dist, axes=axes)
+        else:
+            distmod.plot_dist_2D(dist, x, y, axes=axes)
+
+    def plot_E_xi_dist(self, masskg, *args, E_edges=None, xi_edges=None,
+                       axes=None, dist=None):
+        """
+        Convert (vpa, vpe) to (E, xi) and plot the distribution.
+
+        Either makes a 1D or a 2D plot depending on number of input arguments.
+
+        Args:
+            args : str, str <br>
+                Name of the x-coordinate, and optionally y-coordinate if a 2D
+                plot is desired.
+            axes : Axes, optional <br>
+                Axes where plotting happens. If None, a new figure will be
+                created.
+            dist : dict_like, optional <br>
+               Give input distribution explicitly instead of reading one from
+               HDF5 file. Dimensions that are not x or y are integrated over.
+        """
+        abscissae = {"R" : 0, "phi" : 0, "z" : 0, "E" : 0,
+                     "xi" : 0, "time" : 0, "charge" : 0}
+
+        x = args[0]
+        del abscissae[x]
+        y = None
+        if len(args) > 1:
+            y = args[1]
+            del abscissae[y]
+
+        if not dist:
+            dist = self.get_E_xi_dist(masskg,
+                                      E_edges=E_edges, xi_edges=xi_edges)
+
+        for k in abscissae.keys():
+            if k not in dist["abscissae"]:
+                del abscissae[k]
+
+        distmod.squeeze(dist, **abscissae)
+
+        if not y:
+            distmod.plot_dist_1D(dist, axes=axes)
+        else:
+            distmod.plot_dist_2D(dist, x, y, axes=axes)
