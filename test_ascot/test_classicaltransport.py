@@ -348,7 +348,7 @@ def check():
     h.set_position([0.15, 0.25, 0.82, 0.7], which='both')
 
     scaling = 100
-    h.plot(xvals, Dclass * scaling, 'black', linewidth=3, linestyle='--',
+    h.plot(xvals, Dclass * scaling, 'black', linewidth=1, linestyle='-',
            label='Analytical')
     h.plot(xvals, DGO * scaling, linestyle='none', marker='*', markersize=11,
            alpha=0.5, label='GO')

@@ -443,7 +443,7 @@ def check():
     #**************************************************************************#
 
     h1.set_xlim(0, 5e-6)
-    h1.xaxis.set(ticks=[0, 5e-6], ticklabels=[])
+    h1.xaxis.set(ticks=[0, 1e-6, 2e-6, 3e-6, 4e-6, 5e-6], ticklabels=[])
     h1.yaxis.set(ticks=np.array([-6,-4, -2, 0, 2])*1e-11,
                  ticklabels=[-6, '', '', 0, 2])
     h1.tick_params(axis='y', direction='out')
@@ -452,22 +452,22 @@ def check():
     h1.spines['top'].set_visible(False)
     h1.yaxis.set_ticks_position('left')
     h1.xaxis.set_ticks_position('bottom')
-    h1.set(ylabel=r"$\times 10^{-11}$")
+    h1.set(ylabel=r"$\Delta E/E_0\;[10^{-11}]$")
 
     h2.set_xlim(0, 5e-6)
-    h2.xaxis.set(ticks=[0, 5e-6], ticklabels=[])
+    h2.xaxis.set(ticks=[0, 1e-6, 2e-6, 3e-6, 4e-6, 5e-6], ticklabels=[])
     h2.yaxis.set(ticks=np.array([-4, 0, 4])*1e-3, ticklabels=[-4, 0, 4])
     h2.tick_params(axis='y', direction='out')
     h2.tick_params(axis='x', direction='out')
     h2.spines['right'].set_visible(False)
     h2.spines['top'].set_visible(False)
-    h2.spines['bottom'].set_visible(False)
     h2.yaxis.set_ticks_position('left')
     h2.xaxis.set_ticks_position('bottom')
-    h2.set(ylabel=r"$\times 10^{-3}$")
+    h2.set(ylabel=r"$\Delta \mu/\mu_0\;[10^{-3}]$")
 
     h3.set_xlim(0, 5e-6)
-    h3.xaxis.set(ticks=[0, 5e-6], ticklabels=[0, 5])
+    h3.xaxis.set(ticks=[0, 1e-6, 2e-6, 3e-6, 4e-6, 5e-6],
+                 ticklabels=[0, 1, 2, 3, 4, 5])
     h3.yaxis.set(ticks=np.array([-6, 0, 6])*1e-4, ticklabels=[-6, 0, 6])
     h3.tick_params(axis='y', direction='out')
     h3.tick_params(axis='x', direction='out')
@@ -475,7 +475,7 @@ def check():
     h3.spines['top'].set_visible(False)
     h3.yaxis.set_ticks_position('left')
     h3.xaxis.set_ticks_position('bottom')
-    h3.set(ylabel=r"$\times 10^{-4}$", xlabel=r"Time [$10^{-6}$ s]")
+    h3.set(ylabel=r"$\Delta P/P_0\;[10^{-4}]$", xlabel=r"Time [$10^{-6}$ s]")
 
     h4.axis('scaled')
     h4.xaxis.set(ticks=[5, 6.5, 8])
