@@ -492,7 +492,7 @@ def check():
     h4.text(6.0, 2.0, legend[4], fontsize=9, color=colors[3])
     h4.text(7.0, 2.0, legend[5], fontsize=9, color=colors[5])
 
-    plt.savefig("test_orbitfollowing.png", dpi=72)
+    plt.savefig("test_orbitfollowing.png", dpi=300)
     plt.show()
 
 def plot_relerr(axis, x, y, color):

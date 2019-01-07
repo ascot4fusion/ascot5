@@ -427,7 +427,7 @@ def check():
 
     h.legend(loc='upper left', frameon=False, fontsize=10, numpoints=1)
 
-    plt.savefig("test_neoclassicaltransport.png", dpi=72)
+    plt.savefig("test_neoclassicaltransport.png", dpi=300)
     plt.show()
 
 if __name__ == '__main__':

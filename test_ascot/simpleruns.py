@@ -215,49 +215,49 @@ def make_ascot5_slowingdownrun(fn, settings):
     o["ENABLE_rho_pol_phi_vpa_vpe_t_q_DIST"]    = 1
     o["ENABLE_rho_pol_phi_vR_vphi_vz_t_q_DIST"] = 1
 
-    o["DIST_MIN_R"]    = 4.5
-    o["DIST_MAX_R"]    = 6.5
-    o["DIST_NBIN_R"]   = 40
+    o["DIST_MIN_R"]    = 3.5
+    o["DIST_MAX_R"]    = 8.5
+    o["DIST_NBIN_R"]   = 12
 
     o["DIST_MIN_phi"]  = 0
     o["DIST_MAX_phi"]  = 360
-    o["DIST_NBIN_phi"] = 40
+    o["DIST_NBIN_phi"] = 20
 
-    o["DIST_MIN_z"]    = -1.45
-    o["DIST_MAX_z"]    = 1.45
-    o["DIST_NBIN_z"]   = 40
+    o["DIST_MIN_z"]    = -2.45
+    o["DIST_MAX_z"]    = 2.45
+    o["DIST_NBIN_z"]   = 24
 
     o["DIST_MIN_rho"]  = 0
     o["DIST_MAX_rho"]  = 1
-    o["DIST_NBIN_rho"] = 40
+    o["DIST_NBIN_rho"] = 11
 
     o["DIST_MIN_pol"]  = 0
     o["DIST_MAX_pol"]  = 360
-    o["DIST_NBIN_pol"] = 40
+    o["DIST_NBIN_pol"] = 13
 
     o["DIST_MIN_vpa"]  = -1.5e7
     o["DIST_MAX_vpa"]  = 1.5e7
-    o["DIST_NBIN_vpa"] = 1
+    o["DIST_NBIN_vpa"] = 36
 
     o["DIST_MIN_vpe"]  = 0
     o["DIST_MAX_vpe"]  = 1.5e7
-    o["DIST_NBIN_vpe"] = 1
+    o["DIST_NBIN_vpe"] = 18
 
     o["DIST_MIN_vR"]    = -1.5e7
     o["DIST_MAX_vR"]    = 1.5e7
-    o["DIST_NBIN_vR"]   = 1
+    o["DIST_NBIN_vR"]   = 14
 
     o["DIST_MIN_vphi"]  = -1.5e7
     o["DIST_MAX_vphi"]  = 1.5e7
-    o["DIST_NBIN_vphi"] = 1
+    o["DIST_NBIN_vphi"] = 15
 
     o["DIST_MIN_vz"]    = -1.5e7
     o["DIST_MAX_vz"]    = 1.5e7
-    o["DIST_NBIN_vz"]   = 1
+    o["DIST_NBIN_vz"]   = 16
 
     o["DIST_MIN_t"]    = 0
-    o["DIST_MAX_t"]    = 100
-    o["DIST_NBIN_t"]   = 1
+    o["DIST_MAX_t"]    = 3e-2
+    o["DIST_NBIN_t"]   = 2
 
     o["DIST_MIN_q"]    = -100
     o["DIST_MAX_q"]    = 100

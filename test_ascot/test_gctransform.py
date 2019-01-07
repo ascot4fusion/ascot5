@@ -464,7 +464,7 @@ def check():
     h4.legend(handles=[l1, l2, l3], loc='lower left', frameon=False,
               fontsize=9)
 
-    plt.savefig("test_gctransform.png", dpi=72)
+    plt.savefig("test_gctransform.png", dpi=300)
     plt.show()
 
 if __name__ == '__main__':

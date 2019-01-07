@@ -367,7 +367,7 @@ def check():
 
     h.legend(loc='upper left', frameon=False, fontsize=10, numpoints=1)
 
-    plt.savefig("test_classicaltransport.png", dpi=72)
+    plt.savefig("test_classicaltransport.png", dpi=300)
     plt.show()
 
 

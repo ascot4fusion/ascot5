@@ -460,7 +460,7 @@ def check():
     h3.tick_params(axis='x', direction='out')
     h3.set(xlabel="$x$ [cm]", ylabel="$y$ [cm]")
 
-    plt.savefig("test_elementary.png", dpi=72)
+    plt.savefig("test_elementary.png", dpi=300)
     plt.show()
 
 def latex_float(f):

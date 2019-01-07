@@ -198,7 +198,7 @@ def init():
     phi    = 90      * np.ones(ids.shape)
     theta  = 2 * np.pi * np.random.rand(1,Nmrk)
     energy = Eth     * np.ones(ids.shape)
-    pitch  = 0.9     * np.ones(ids.shape)
+    pitch  = 0.5     * np.ones(ids.shape)
 
     pol    = 2*np.pi*np.random.rand(1, Nmrk)
     R      = 6.2 + 0.8 * np.cos(pol)
@@ -428,29 +428,15 @@ def check():
 
     for mode in ["GO", "GCF", "GCA"]:
         distobj = a5["THERMAL_" + mode]["R_phi_z_vpa_vpe_t_q"]
-        dist = distobj.histogram2dist(distobj.read())
-        distobj.integrate(dist, 'R')
-        distobj.integrate(dist, 'phi')
-        distobj.integrate(dist, 'z')
-        distobj.integrate(dist, 'charge')
-        distobj.integrate(dist, 'time', slices=[1])
-        distobj.integrate(dist, 'vpa')
-        distobj.integrate(dist, 'vpe')
+        Exidist = distobj.get_E_xi_dist(m_p,
+                                        E_edges=THERMAL["Egrid"],
+                                        xi_edges=THERMAL["xigrid"],
+                                        R=0, phi=0, z=0, charge=0, time=[1, 2])
 
-        Exidist = distobj.get_E_xi_dist(THERMAL["Egrid"],
-                                        THERMAL["xigrid"], m_p)
-        distobj.integrate(Exidist, 'R')
-        distobj.integrate(Exidist, 'phi')
-        distobj.integrate(Exidist, 'z')
-        distobj.integrate(Exidist, 'charge')
-        distobj.integrate(Exidist, 'time', slices=[1])
-
-        Edist  = copy.deepcopy(Exidist)
+        Edist  = Exidist
         xidist = copy.deepcopy(Exidist)
-        distobj.integrate(Edist, 'xi')
-        distobj.integrate(xidist, 'E')
-        distobj.integrate(Exidist, 'E')
-        distobj.integrate(Exidist, 'xi')
+        distobj.get_dist(dist=Edist, xi=0)
+        distobj.get_dist(dist=xidist, E=0)
 
         THERMAL[mode + "_Edist"]  = Edist["density"]
         THERMAL[mode + "_xidist"] = xidist["density"]
@@ -465,25 +451,15 @@ def check():
     for mode in ["GO", "GCF", "GCA"]:
         distobj = a5["SLOWING_" + mode]["R_phi_z_vpa_vpe_t_q"]
 
-        dist = distobj.histogram2dist(distobj.read())
-        distobj.integrate(dist, 'R')
-        distobj.integrate(dist, 'phi')
-        distobj.integrate(dist, 'z')
-        distobj.integrate(dist, 'charge')
-        distobj.integrate(dist, 'time')
+        Exidist = distobj.get_E_xi_dist(m_a,
+                                        E_edges=SLOWING["Egrid"],
+                                        xi_edges=SLOWING["xigrid"],
+                                        R=0, phi=0, z=0, charge=0, time=0)
 
-        Exidist = distobj.get_E_xi_dist(SLOWING["Egrid"],
-                                        SLOWING["xigrid"], m_a)
-        distobj.integrate(Exidist, 'R')
-        distobj.integrate(Exidist, 'phi')
-        distobj.integrate(Exidist, 'z')
-        distobj.integrate(Exidist, 'charge')
-        distobj.integrate(Exidist, 'time')
-
-        Edist  = copy.deepcopy(Exidist)
+        Edist  = Exidist
         xidist = copy.deepcopy(Exidist)
-        distobj.integrate(Edist, 'xi')
-        distobj.integrate(xidist, 'E')
+        distobj.get_dist(dist=Edist, xi=0)
+        distobj.get_dist(dist=xidist, E=0)
 
         SLOWING[mode + "_Edist"]  = Edist["density"]
         SLOWING[mode + "_xidist"] = xidist["density"]
@@ -627,7 +603,7 @@ def check():
            + "GCA: " + frm(ts_GCA)
     h3.text(2e6, 3e-8, text, fontsize=9)
 
-    plt.savefig("test_coulombcollisions.png", dpi=72)
+    plt.savefig("test_coulombcollisions.png", dpi=300)
     plt.show()
 
 if __name__ == '__main__':
