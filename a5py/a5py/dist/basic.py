@@ -5,13 +5,6 @@ File: basic.py
 """
 
 import numpy     as np
-import importlib
-
-plt = importlib.util.find_spec("matplotlib")
-if plt:
-    import matplotlib.pyplot as plt
-
-from scipy.interpolate import griddata, RectBivariateSpline
 
 def histogram2density(dist):
     """

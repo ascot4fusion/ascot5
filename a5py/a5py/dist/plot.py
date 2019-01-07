@@ -4,9 +4,9 @@ Routines for plotting distributions.
 File: plot.py
 """
 import numpy as np
-import importlib
+import importlib.util as util
 
-plt = importlib.util.find_spec("matplotlib")
+plt = util.find_spec("matplotlib")
 if plt:
     import matplotlib.pyplot as plt
 
