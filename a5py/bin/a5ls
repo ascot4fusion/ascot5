@@ -7,7 +7,7 @@ from prompt_toolkit import PromptSession, HTML
 from prompt_toolkit import print_formatted_text as print
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.completion import WordCompleter, Completer, Completion
-import a5py.ascot5io.tools as tools
+import a5py.ascot5io.ascot5tools as tools
 from a5py.ascot5io.ascot5 import get_qids
 
 # Column width
