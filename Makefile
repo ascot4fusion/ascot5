@@ -98,7 +98,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(PLSHEADERS) $(N0HEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h \
-	random.h print.h symmetry.h hdf5_interface.h
+	random.h print.h symmetry.h hdf5_interface.h mpi_interface.h
 
 OBJS= math.o list.o octree.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -106,7 +106,7 @@ OBJS= math.o list.o octree.o error.c \
 	$(PLSOBJS) $(N0OBJS) $(LINTOBJS) $(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o offload.o \
-	random.o print.c symmetry.o hdf5_interface.o
+	random.o print.c symmetry.o hdf5_interface.o mpi_interface.c
 
 BINS=test_math test_bsearch \
 	test_wall_2d test_plasma test_random \
