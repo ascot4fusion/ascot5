@@ -1,11 +1,42 @@
 #!/usr/bin/env python
 
-import sys
-import a5py.ascot5io.tools as tools
+"""
+This script removes data and parent groups from HDF5 file.
+"""
 
-if len(sys.argv) > 2:
-    print('Removing run ' + sys.argv[2] + ' from ' + sys.argv[1])
-    tools.removerun(sys.argv[1], sys.argv[2])
+import sys
+import subprocess
+import a5py.ascot5io.ascot5tools as tools
+
+if len(sys.argv) == 3:
+    print("Removing group " + sys.argv[2] + " from " + sys.argv[1])
+    try:
+        tools.removegroup(sys.argv[1], sys.argv[2])
+        print("Repacking the HDF5 file")
+        subprocess.call(["h5repack", sys.argv[1], "repack_" + sys.argv[1]])
+        subprocess.call(["mv", "repack_" + sys.argv[1], sys.argv[1]])
+        print("Done.")
+    except RuntimeError:
+        rm = input(
+                "The group to be removed has been used as an input.\n"
+                "Really remove? (y/n)\n")
+        while True:
+            if rm is "y":
+                print("Removing group " + sys.argv[2] + " from " + sys.argv[1])
+                tools.removegroup(sys.argv[1], sys.argv[2], force=True)
+                print("Repacking the HDF5 file")
+                subprocess.call(["h5repack", sys.argv[1],
+                                 "repack_" + sys.argv[1]])
+                subprocess.call(["mv", "repack_" + sys.argv[1], sys.argv[1]])
+                print("Done.")
+                break
+            elif rm is "n":
+                print("Group " + sys.argv[2] + " was not removed.")
+                break
+            else:
+                rm = input("Yes (y) or no (n)?\n")
 else:
-    print('Removing all runs from ' + sys.argv[1])
-    tools.removerun(sys.argv[1])
+    print("Removes a parent or a data group from HDF5 file.\n")
+    print("Usage:\n\n"
+          + "a5removegroup input.h5 bfield\n"
+          + "a5removegroup input.h5 B_2D-1234567890\n")

@@ -324,6 +324,33 @@ def get_group(f, qid):
 
     return None
 
+def get_qids(f, parent):
+    """
+    Get QIDs of all the groups that a given parent contains.
+
+    The QIDs are returned as list of no specific order.
+
+    Args:
+        f: h5py file
+        parent Either the parent's name or its h5py group.
+    Returns:
+        A list of QID strings.
+    Raise:
+        ValueError if parent group does not exist.
+    """
+
+    # Check the parent exists and access it
+    if(str(parent) == parent):
+        if not parent in f:
+            raise ValueError("Could not find parent " + parent)
+        parent = f[parent]
+
+    qids = []
+    for group in parent:
+        qids.append(get_qid(group))
+
+    return qids
+
 def get_inputqids(f, rungroup):
     """
     Get all QIDs that tell which input was used in the given run group.
@@ -345,7 +372,7 @@ def get_inputqids(f, rungroup):
         qid = get_qid(rungroup)
         grp = get_group(f, qid)
         if grp is None:
-            raise ValueError("Could not find group" + rungroup)
+            raise ValueError("Could not find group " + rungroup)
         else:
             rungroup = grp
 
@@ -469,10 +496,9 @@ def copy_group(fs, ft, group):
     # Create target parent if none exists.
     parentname = group.parent.name
 
-    if group in ft:
-        raise ValueError("Target already has the group " + group)
-
     newparent  = ft.require_group(parentname)
+    if group.name in newparent:
+        raise ValueError("Target already has the group " + group.name)
 
     # Copy and set active
     fs.copy(group.name, newparent)

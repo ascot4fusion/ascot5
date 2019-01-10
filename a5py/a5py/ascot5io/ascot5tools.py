@@ -8,121 +8,133 @@ import h5py
 from . import ascot5
 from . import ascot5file
 
-def set_active(fn, qid):
+def set_active(fn, group):
     """
-    Set a group active.
+    Set group as active.
 
-    Parameters
-    ----------
-
-    fn : str
-         Full path to HDF5 file.
-    qid: str
-         Id for the active group.
+    Args:
+        fn : str <br>
+            Full path to HDF5 file.
+        group: str <br>
+            Name of the group to be set as active.
     """
     with h5py.File(fn, "a") as f:
+        qid = ascot5file.get_qid(group)
         ascot5file.set_activeqid(f, qid)
 
-def removerun(fn, qid=None):
+
+def removegroup(fn, group, force=False):
     """
-    Remove all or specific runs.
+    Remove a group or a parent.
 
-    Parameters
-    ----------
+    Tries to remove a group. If the group to be removed is an input group which
+    has been used as an input in some of the run groups, the group won't be
+    removed and exception is raised.
 
-    fn : str
-         Full path to HDF5 file.
-    qid : str, optional
-         Id for for the run to be removed. By default all runs
-         are removed.
-    """
+    Note that to reclaim the disk space which the group occupied, one needs
+    to call h5repack in a terminal.
 
-    with h5py.File(fn, "a") as f:
-
-        for r in f["results"]:
-            if qid == None:
-                del f["results"][r]
-            elif r[-10:] == qid:
-                del f["results"][r]
-
-def removegroup(fn, mastergroup, qid):
-    """
-    Remove a group.
-
-    Parameters
-    ----------
-
-    fn : str
-         Full path to HDF5 file.
-    mastergroup : str
-         Mastergroup where the group belongs to.
-    qid: str
-         Id for the group to be removed
+    Args:
+        fn : str <br>
+            Full path to HDF5 file.
+        group: str <br>
+            Name of the group to be removed.
+        force: bool, optional <br>
+            Remove group and don't raise an exception even if the group has been
+            used as an input. Default is false.
+    Raise:
+        RuntimeError if the group has been used as an input.
     """
     with h5py.File(fn, "a") as f:
-        if not mastergroup in f:
-            print("Error: Source file does not contain the group to be removed.")
-            return
 
-        for r in f[mastergroup]:
-            if r[-10:] == qid:
-                del f[mastergroup][r]
-                f.close()
+        try:
+            # This will raise an exception if group is not a data group.
+            qid = ascot5file.get_qid(group)
+
+            # This is a data group. If it is a run group or removal is forced,
+            # we can remove it directly.
+            if force or ascot5file.get_type(group) is "run":
+                ascot5file.remove_group(f, group)
                 return
 
-        print("Error: Source file does not contain the group to be removed.")
+            # For input data groups we have to check if any run group refers to
+            # it.
+            runqids = ascot5file.get_qids(f, "results")
+
+            for runqid in runqids:
+                rungroup = ascot5file.get_group(f, runqid)
+                inqids   = ascot5file.get_inputqids(f, rungroup)
+                if qid in inqids:
+                    raise RuntimeError("Run " + runqid
+                                       + " has used group " + qid
+                                       + " as an input. Removal aborted.")
+
+            # No references, the group can be removed.
+            ascot5file.remove_group(f, group)
+
+        except ValueError:
+            # The group is a parent group. If it is a results group or removal
+            # is forced, we can remove it directly.
+            if force or group is "results":
+                del f[group]
+                return
+
+            # For input parent  groups we have to check if any run group refers
+            # to any of its data groups.
+            runqids  = ascot5file.get_qids(f, "results")
+            dataqids = ascot5file.get_qids(f, group)
+
+            for dataqid in dataqids:
+                for runqid in runqids:
+                    rungroup = ascot5file.get_group(f, runqid)
+                    inqids   = ascot5file.get_inputqids(f, rungroup)
+                    if dataqid in inqids:
+                        raise RuntimeError("Run " + runqid
+                                           + " has used group " + dataqid
+                                           + " as an input. Removal aborted.")
+
+            # No references, the group can be removed.
+            del f[group]
 
 
-def copygroup(fns, fnt, mastergroup, qid):
+def copygroup(fns, fnt, group):
     """
-    Copy input field.
+    Copy a group or a parent to a different HDF5 file.
 
-    The copied field is set as the active field in target HDF5 file.
+    The copied field is set as the active field in target HDF5 file. The copied
+    group retains it qid and description.
 
-    Parameters
-    ----------
-    fns : str
-          Full path to source file.
-    fnt : str
-          Full path to target file.
-    mastergroup : str
-          Mastergroup where the group belongs to.
-    qid : str
-          Id for the group to be removed.
+    Args:
+        fns : str
+            Full path to source file.
+        fnt : str
+            Full path to target file.
+        group : str
+            Name of the group to be copied.
     """
 
     # Get the target field and type from source
-    with h5py.File(fns, "r") as fs:
+    with h5py.File(fns, "r") as fs, h5py.File(fnt, "a") as ft:
 
-        if not mastergroup in fs:
-            print("Error: Source file does not contain the group to be copied")
-            return
+        try:
+            # This will raise exception if group is not a data group
+            ascot5file.get_qid(group)
 
-        field = None
-        for r in fs[mastergroup]:
-            if r[-10:] == qid:
-                field = r
-                break
-        if field == None:
-            print("Error: Source file does not contain the group to be copied")
-            return
-
-        # Check if the mastergroup in target exists (otherwise it is created)
-        with h5py.File(fnt, "a") as ft:
-            if not mastergroup in ft:
-                ft.create_group(mastergroup)
-
-            # Copy group into target
-            fs.copy(mastergroup + "/" + field, ft[mastergroup], name=field)
-
-            setactivegroup(fnt, mastergroup, qid)
+            # This is a data group
+            ascot5file.copy_group(fs, ft, group)
+        except ValueError:
+            # This is a parent group
+            qids = ascot5file.get_qids(fs, group)
+            for qid in qids:
+                grp = ascot5file.get_group(fs, qid)
+                ascot5file.copy_group(fs, ft, grp)
 
 
 def combineresults(fnt, fns, mode="add"):
     """
     Combine output of multiple HDF5 files into one.
 
-    Since files can have multiple run, this function affects lthose
+    Since files can have multiple runs, this function affects lthose
     that are defined as being "active" or most recent in the results group.
 
     Parameters

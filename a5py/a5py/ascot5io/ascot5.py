@@ -2,25 +2,22 @@
 Main module for reading ASCOT5 HDF5 files.
 
 To use this module, initialize an Ascot object as
->a5 = ascot5.Ascot("/path/to/ascot_hdf5_file.h5")
-
+<pre>a5 = ascot5.Ascot("/path/to/ascot_hdf5_file.h5")</pre>
 This object acts as an container object or Matlab-like struct, meaning one can
 use it to inspect the Ascot HDF5 file e.g. as
->a5.bfield.B_2D_1234567890
-
+<pre>a5.bfield.B_2D_1234567890</pre>
 or, equivalently,
->a5["bfield"]["B_2D_1234567890"]
+<pre>a5["bfield"]["B_2D_1234567890"]</pre>
 
 One can also access the simulation results e.g. as
->a5.run_1234567890["orbits"]
+<pre>a5.run_1234567890["orbits"]</pre>
 
 The lowest level objects in the hierarchy are objects that represents that
 specific type of input or output, each with their own methods. These methods can
 be used e.g. as
->a5["bfield"]["B_2D_1234567890"].plot_fluxsurfaces()
-
+<pre>a5["bfield"]["B_2D_1234567890"].plot_fluxsurfaces()</pre>
 or
->a5.run_1234567890["orbits"].plot_2D("R", "z", endstate="wall")
+<pre>a5.run_1234567890["orbits"].plot_2D("R", "z", endstate="wall")</pre>
 
 The lowest level objects contain no data, but they can read the data that is
 stored in the HDF5 file. To read the data into a Python dictionary, call
@@ -37,35 +34,21 @@ results.
 
 There are several ways to use the ascot5.Ascot object to navigate. One can refer
 to the active run as
->a5.active
-
+<pre>a5.active</pre>
 or active input field as
->a5.bfield.active
+<pre>a5.bfield.active</pre>
+To get the input field that was active in the given run:
+<pre>a5.active.bfield</pre>
+QID of the active field
+<pre>a5.bfield.activeqid</pre>
+Use QID as a reference to the field
+<pre>a5.bfield.q1234567890</pre>
 
 These examples also work with dictionary-like reference but here we use only the
 attribute-like referencing for brevity.
 
-To get the input field that was active in the given run:
->a5.active.bfield
-
-QID of the active field
->a5.bfield.activeqid
-
-Use QID as a reference to the field
->a5.bfield.q1234567890
-
-List of QIDs of all fields
->a5.bfield.qids
-
-The list is ordered so that the first item is active qid and the rest are sorted
-by date they were created from newest to oldest. You can use the index at which
-the field appears in this list to reference it, so you can e.g. refer to the
-active field as
->a5.bfield[0]
-
 You can even use field description to refer to it
->a5.That_PRL_run
-
+<pre>a5.That_PRL_run</pre>
 However, there are few rules to this:
 - If the description is over 20 characters long, only the first 20 characters
   are used in referencing.
@@ -75,7 +58,12 @@ However, there are few rules to this:
   is no quarantee to which one the description refers to.
 
 Finally, you can print the contents of a node with
->a5.ls
+<pre>a5.ls()</pre>
+The list is ordered so that the first item is active qid and the rest are sorted
+by date they were created from newest to oldest. You can use the index at which
+the field appears in this list to reference it, so you can e.g. refer to the
+active field as
+<pre>a5.bfield[0]</pre>
 
 Note: Methods and functions in this module cannot be used to modify the data in
 the HDF5 file. You can (if you try hard enough) modify the object and its
@@ -118,6 +106,9 @@ from a5py.ascot5io.ascot5file import INPUT_PARENTS
 
 
 class textcolor:
+    """
+    Colors for making the ls command easier to read.
+    """
     reset='\033[0m'
     bold='\033[01m'
     underline='\033[04m'
@@ -203,7 +194,7 @@ class _Node():
 
     def __getitem__(self, key):
         """
-        Allows accessing attributes dictionary-like and by index.
+        Allows accessing attributes dictionary-like.
 
         Args:
             key: Attribute name or index
@@ -228,7 +219,10 @@ class _Node():
         key = key.replace(".","")
         return key
 
-class _ParentNode(_Node):
+class _ContainerNode(_Node):
+    """
+    Node from which contents can be accessed via QID or description.
+    """
 
     _MAX_DESC = 20
 
@@ -313,23 +307,23 @@ class _ParentNode(_Node):
         self._types = sortedtypes
         self._descs = sorteddescs
 
-class _InputNode(_ParentNode):
+class _InputNode(_ContainerNode):
     """
-    Node for accessing input data.
+    Node that represents an input parent group.
 
-        Create an instance that represents the given input data.
+    Create an instance that represents the given input data.
 
-        This function is called for all input fields when ascot5.Ascot object is
-        initialized. These objects should be light-weight when they are
-        initialized and all actual input data reading should be left to be done
-        once the methods of these objects are called.
+    This function is called for all input fields when ascot5.Ascot object is
+    initialized. These objects should be light-weight when they are
+    initialized and all actual input data reading should be left to be done
+    once the methods of these objects are called.
 
-        Args:
-            type_: String from which the type of the input data is recognized
-            h5pygroup: Input data's h5py group.
+    Args:
+        type_: String from which the type of the input data is recognized
+        h5pygroup: Input data's h5py group.
 
-        Returns:
-    AscotData object representing the given input data.
+    Returns:
+        AscotData object representing the given input data.
     """
 
     def __init__(self, parent):
@@ -414,24 +408,24 @@ class _InputNode(_ParentNode):
 
 class _RunNode(_Node):
     """
-        Create an instance that represents the given run group data.
+    Create an instance that represents the given run group data.
 
-        This function is called for all run groups when ascot5.Ascot object is
-        initialized. These objects should be light-weight when they are initialized
-        and all actual output data reading should be left to be done once the
-        methods of these objects are called.
+    This function is called for all run groups when ascot5.Ascot object is
+    initialized. These objects should be light-weight when they are initialized
+    and all actual output data reading should be left to be done once the
+    methods of these objects are called.
 
-        This is different to ascot5._create_input_group() because that only
-        initializes a single data object while this one initializes all objects
-        (whose data is present in the run group) and returns a node containing
-        them. The reason is that input fields have QIDs and other metadata
-        while the groups within the run group doesn't.
+    This is different to ascot5._create_input_group() because that only
+    initializes a single data object while this one initializes all objects
+    (whose data is present in the run group) and returns a node containing
+    them. The reason is that input fields have QIDs and other metadata
+    while the groups within the run group doesn't.
 
-        Args:
-            h5pygroup: Run group's h5py group.
+    Args:
+        h5pygroup: Run group's h5py group.
 
-        Returns:
-            ascot5._StandardNode object representing the given run group data.
+    Returns:
+        ascot5._StandardNode object representing the given run group data.
     """
 
     def __init__(self, rungroup, inputgroups):
@@ -495,9 +489,13 @@ class _RunNode(_Node):
         return string
 
 
-class Ascot(_ParentNode):
+class Ascot(_ContainerNode):
     """
     Top node used for exploring the HDF5 file.
+
+    This node holds all input nodes and run nodes. Different run nodes (i.e.
+    run groups) can be accessed by their QID or description whereas input nodes
+    can only be accessed by their name e.g. bfield.
     """
 
     def __init__(self, fn):
