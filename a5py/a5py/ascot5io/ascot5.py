@@ -422,7 +422,8 @@ class _RunNode(_Node):
     while the groups within the run group doesn't.
 
     Args:
-        h5pygroup: Run group's h5py group.
+        rungroup : Run group's h5py group.
+        inputgroups : tuple inputgroups' names and h5pygroups
 
     Returns:
         ascot5._StandardNode object representing the given run group data.
@@ -436,8 +437,8 @@ class _RunNode(_Node):
         self._desc = get_desc(rungroup.file, rungroup)
 
         # Put references to the input data
-        for inp in range(0, len(INPUT_PARENTS)):
-            self[INPUT_PARENTS[inp]] = inputgroups[inp]
+        for inp in range(0, len(inputgroups)):
+            self[inputgroups[inp][0]] = inputgroups[inp][1]
 
         for key in rungroup:
             key = rungroup[key].name.split("/")[-1]
@@ -555,8 +556,10 @@ class Ascot(_ContainerNode):
 
                     inputgroups = []
                     for inp in range(0, len(INPUT_PARENTS)):
-                        groups = getattr(self, INPUT_PARENTS[inp])
-                        inputgroups.append(groups["q" + inputqids[inp]])
+                        if hasattr(self, INPUT_PARENTS[inp]):
+                            groups = getattr(self, INPUT_PARENTS[inp])
+                            inputgroups.append((INPUT_PARENTS[inp],
+                                                groups["q" + inputqids[inp]]))
 
                     # Make a run node and store it.
                     runnode = _RunNode(h5["results"][run], inputgroups)

@@ -1,26 +1,48 @@
 #!/usr/bin/env python
 
+"""
+This script combines output of HDF5 files.
+"""
+
 import sys
-from a5py.ascot5io.tools import combineresults
+import subprocess
+import a5py.ascot5io.ascot5tools as tools
+import a5py.ascot5io.ascot5      as ascot5
 
-mode = 0
-if(sys.argv[1] == "-a"):
-    mode = "add"
-elif(sys.argv[1] == "-c"):
-    mode = "continue"
+mode = ""
+if len(sys.argv) > 1:
+    mode = sys.argv[1]
+
+if mode == "add" and len(sys.argv) >= 4:
+
+    targetfile  = sys.argv[2]
+    sourcefiles = sys.argv[3:]
+
+    # Check if the target file contains the results group. Copy it from the
+    # first source file if not.
+    a5 = ascot5.Ascot(targetfile)
+    if not hasattr(a5, "active"):
+        subprocess.call(["a5copygroup", sourcefiles[0], targetfile, "results"])
+        del sourcefiles[0]
+
+    for i in range(len(sourcefiles)):
+        print("Combining " + sourcefiles[i] + " to " + targetfile)
+        tools.combineoutput(targetfile, addfns=sourcefiles[i])
+
+    print("Combine complete.")
+
+elif mode == "continue" and len(sys.argv) == 4:
+    targetfile = sys.argv[2]
+    sourcefile = sys.argv[3]
+
+    print("Combining " + sourcefile + " to " + targetfile)
+    tools.combineoutput(targetfile, contfns=sourcefile)
+    print("Combine complete.")
+
 else:
-    print("Please provide a valid mode as a first argument:")
-    print("-a : add")
-    print("-c : continue")
-
-if(mode != 0):
-    print("Combining files\n")
-    for fn in sys.argv[3:]:
-        print(fn)
-        
-    print("\nwith " + sys.argv[2] +"\n")
-        
-    fnt = sys.argv[2]
-    fns = sys.argv[3:]
-
-    combineresults(fnt, fns, mode=mode)
+    print("Combines output of HDF5 files. Two modes are available.\n")
+    print("Add results of several files to a single file:\n"
+          + "a5combine add target.h5 several.h5 files.h5 ...\n")
+    print("Combine results of two runs where the second run continued the first"
+          + " run (results are gathered to the first run):\n"
+          + "a5combine continue firstrun.h5 secondrun.h5\n")

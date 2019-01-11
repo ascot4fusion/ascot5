@@ -307,7 +307,7 @@ def get_type(group):
 
 def get_group(f, qid):
     """
-    Scan the file and return the group the QID correspons to.
+    Scan the file and return the group the QID corresponds to.
 
     Args:
         f: h5py file.

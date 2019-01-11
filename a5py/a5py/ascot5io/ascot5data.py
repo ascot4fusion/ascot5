@@ -17,7 +17,13 @@ class AscotData():
         self._file   = hdf5.file.filename
         self._group  = hdf5.name.split("/")[2]
         self._path   = hdf5.name
-        self._isopen = False
+        self._opened = None
+
+    def __enter__(self):
+        return self._open()
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        self._close()
 
     def get_desc(self):
         f = self._open()
@@ -38,12 +44,12 @@ class AscotData():
         return self._path.split("/")[-1].split("-")[0]
 
     def _open(self):
-        if self._isopen == True:
+        if self._opened is not None:
             return None
 
-        self._isopen = True
-        return h5py.File(self._file, "r")[self._path]
+        self._opened = h5py.File(self._file, "a")[self._path]
+        return self._opened
 
-    def _close(self, f):
-        self._isopen = False
-        f.file.close()
+    def _close(self):
+        self._opened.file.close()
+        self._opened = None

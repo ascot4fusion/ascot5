@@ -8,19 +8,32 @@ import h5py
 from . import ascot5
 from . import ascot5file
 
-def set_active(fn, group):
+def call_ascot5file(fn, method, *args):
     """
-    Set group as active.
+    Wrapper for calling ascot4file methods.
+
+    This wrapper handles opening and closing of HDF5 file.
 
     Args:
         fn : str <br>
             Full path to HDF5 file.
-        group: str <br>
-            Name of the group to be set as active.
+        method: str <br>
+            Name of the method to be called.
+        *args: <br>
+            Arguments the called method requires.
+
+    Returns:
+        The value the called method returns.
+
+    Raise:
+        ValueError if the method does not exist.
     """
-    with h5py.File(fn, "a") as f:
-        qid = ascot5file.get_qid(group)
-        ascot5file.set_activeqid(f, qid)
+    if hasattr(ascot5file, method):
+        method_to_call = getattr(ascot5file, method)
+        with h5py.File(fn, "a") as f:
+            return ascot5file.method(f, *args)
+    else:
+        raise ValueError(method + " is not a valid method.")
 
 
 def removegroup(fn, group, force=False):
@@ -105,11 +118,11 @@ def copygroup(fns, fnt, group):
     group retains it qid and description.
 
     Args:
-        fns : str
+        fns : str <br>
             Full path to source file.
-        fnt : str
+        fnt : str <br>
             Full path to target file.
-        group : str
+        group : str <br>
             Name of the group to be copied.
     """
 
@@ -130,148 +143,89 @@ def copygroup(fns, fnt, group):
                 ascot5file.copy_group(fs, ft, grp)
 
 
-def combineresults(fnt, fns, mode="add"):
+def combineoutput(fnt, addfns=None, contfns=None):
     """
-    Combine output of multiple HDF5 files into one.
+    Combine outputs of two HDF5 files.
 
-    Since files can have multiple runs, this function affects lthose
-    that are defined as being "active" or most recent in the results group.
+    Depending on which argument is given, this either combines the output by
+    assuming fnt and addfns are both part of a larger simulation ("add"), or
+    markers in contfns were initialized from the endstate of fnt ("continue").
 
-    Parameters
-    ----------
+    The combined outputs will be stored on fnt on a run group that is active.
+    The outputs are read from addfns (or contfns) from the group that is active.
 
-    fnt : str
-        Full path to HDF5 file where combined output is added.
-    fns: str list
-        List of HDF5 filenames from which the output is read.
-    mode, str=["add", "continue"]
-        Specifies how output is combined.
-        "add" adds the output assuming "fnt" and "fns" are independent
-        simulations.
-        "continue" assumes "fns" is continued simulation of "fnt".
+    Args:
+        fnt : str <br>
+            Full path to HDF5 file where combined output will be stored.
+        addfns : str, optional <br>
+            Name of the HDF5 file where results are read if "add" mode is being
+            used.
+        contfns : str, optional <br>
+            Name of the HDF5 file where results are read if "continue" mode is
+            being used.
     """
 
-    print("Combining output to " + fnt + " with mode " + "\"" + mode + "\"")
+    if addfns is not None:
+        fns = addfns
+    elif contfns is not None:
+        fns = contfns
+    else:
+        return
 
-    with h5py.File(fnt, "a") as f:
-        # If target does not have results, we get them from the first
-        # source file.
-        if "results" not in f:
-            qid = ascot5.get_qids(fns[0], "results")[0][0]
-            path = "results/run-" + qid
-            print("Creating 'results' field for target.")
-            with h5py.File(fns[0]) as fs:
-                fs.copy("results", f)
-                for state in ["inistate","endstate"]:
-                    for field in f[path][state]:
-                        del f[path][state][field]
-                        f[path][state].create_dataset(field, (0,))
-                        for a in fs[path][state][field].attrs.items():
-                            f[path][state][field].attrs.create(a[0],a[1])
-                if 'orbits' in f[path]:
-                    for ptype in f[path]['orbits']:
-                        for field in f[path]['orbits'][ptype]:
-                            del f[path]['orbits'][ptype][field]
-                        f[path]['orbits'][ptype].create_dataset(field, (0,))
-                        for a in fs[path]['orbits'][ptype][field].attrs.items():
-                            f[path]['orbits'][ptype][field].attrs.create(a[0],a[1])
-                del f[path]["dists"]
+    # Find the active groups
+    source = (ascot5.Ascot(fns)).active
+    target = (ascot5.Ascot(fnt)).active
 
-    qid = ascot5.get_qids(fnt, "results")[0][0]
-    path = "run-" + qid
+    # Combine states
+    if addfns is not None:
+        if hasattr(target, "inistate") and hasattr(source, "inistate"):
+            with target.inistate as tdata, source.inistate as sdata:
+                for field in tdata:
+                    tsize = tdata[field].size
+                    ssize = sdata[field].size
 
-    for state in ["inistate", "endstate"]:
-        print("Combining " + state)
+                    tdata[field].resize((tsize+ssize, ))
+                    tdata[field][tsize:] = sdata[field][:]
 
-        target = ascot5.read_hdf5(fnt,"results")
-        # Check whether target has the desired state.
-        # Init empty state if necessary.
-        if state not in target["results"][path]:
-            target["results"][path][state] = {}
+        if hasattr(target, "endstate") and hasattr(source, "endstate"):
+            with target.endstate as tdata, source.endstate as sdata:
+                for field in tdata:
+                    tsize = tdata[field].size
+                    ssize = sdata[field].size
 
-        target = target["results"][path]
+                    tdata[field].resize((tsize+ssize, ))
+                    tdata[field][tsize:] = sdata[field][:]
+    else:
+        pass
 
-        # Iterate over source files
-        for fnind, fn in enumerate(fns):
+    # Combine dists
+    if hasattr(target, "R_phi_z_vpa_vpe_t_q") and \
+       hasattr(source, "R_phi_z_vpa_vpe_t_q"):
+        with target.R_phi_z_vpa_vpe_t_q as tdata, \
+             source.R_phi_z_vpa_vpe_t_q as sdata:
+            tdata["ordinate"][:] += sdata["ordinate"][:]
 
-            source = ascot5.read_hdf5(fn,"results")
+    if hasattr(target, "R_phi_z_vr_vphi_vz_t_q") and \
+       hasattr(source, "R_phi_z_vr_vphi_vz_t_q"):
+        with target.R_phi_z_vr_vphi_vz_t_q as tdata, \
+             source.R_phi_z_vr_vphi_vz_t_q as sdata:
+            tdata["ordinate"][:] += sdata["ordinate"][:]
 
-            # Check that source contains the state
-            if state in source["results"][path]:
-                source = source["results"][path][state]
-                # Iterate over all fields in a state
-                for field in source:
-                    # If target does not have this field, add it.
-                    # Otherwise extend or replace it depending on mode.
-                    if field not in target[state]:
-                        target[state][field] = source[field]
-                    # No need to combine unit specifiers (fields ending with "unit")
-                    elif field[-4:] != "unit" and field != "N" and field != "uniqueId":
-                        if mode == "add":
-                            target[state][field] = np.concatenate((target[state][field],source[field]))
-                        elif mode == "continue" and state != "inistate":
-                            idx = np.argsort(target[state]["id"][:])
-                            target[state]["id"][:] = target[state]["id"][idx]
-                            idx = np.argsort(source["id"][:])
-                            fld = source[field][idx]
+    if hasattr(target, "rho_pol_phi_vpa_vpe_t_q") and \
+       hasattr(source, "rho_pol_phi_vpa_vpe_t_q"):
+        with target.rho_pol_phi_vpa_vpe_t_q as tdata, \
+             source.rho_pol_phi_vpa_vpe_t_q as sdata:
+            tdata["ordinate"][:] += sdata["ordinate"][:]
 
-                            idx = np.isin(target[state]["id"][:], source["id"][:], assume_unique=True)
-                            target[state][field][idx] = fld[:]
-                            print(np.sum(idx==True))
+    if hasattr(target, "rho_pol_phi_vr_vphi_vz_t_q") and \
+       hasattr(source, "rho_pol_phi_vr_vphi_vz_t_q"):
+        with target.rho_pol_phi_vr_vphi_vz_t_q as tdata, \
+             source.rho_pol_phi_vr_vphi_vz_t_q as sdata:
+            tdata["ordinate"][:] += sdata["ordinate"][:]
 
-        # Target now contains all data from combined runs, so we just need to write it.
-        states.write_hdf5(fnt,target,qid,state)
-
-    print("Combining distributions.")
-
-    target = ascot5.read_hdf5(fnt,"results")
-
-    # If target does not have distributions, we get them from the first
-    # source file.
-    source = ascot5.read_hdf5(fns[0],"results")
-    for dist in source["results"][path]["dists"]:
-        if not "dists" in target["results"][path]:
-            target["results"][path]["dists"] = {}
-        if not dist in target["results"][path]["dists"]:
-            target["results"][path]["dists"][dist] = source["results"][path]["dists"][dist]
-            target["results"][path]["dists"][dist]["ordinate"] = target["results"][path]["dists"][dist]["ordinate"] * 0
-
-    # Sum ordinates in all distributions (same for both modes)
-    for fn in fns:
-        source = ascot5.read_hdf5(fn,"results")
-        for dist in source["results"][path]["dists"]:
-            target["results"][path]["dists"][dist]["ordinate"] += source["results"][path]["dists"][dist]["ordinate"]
-
-    dists.write_hdf5(fnt,target["results"][path]["dists"],qid)
-
-    with h5py.File(fnt, "a") as f:
-        if "orbits" in f["results/" + path]:
-            print("Combining orbits.")
-            target = ascot5.read_hdf5(fnt,"results")
-            target = target["results"][path]["orbits"]
-
-            # Iterate over source files
-            for fn in fns:
-                source = ascot5.read_hdf5(fn,"results")
-                source = source["results"][path]["orbits"]
-
-                # Check whether target has the desired state.
-                # Init empty state if necessary.
-                for orbgroup in source:
-                    if orbgroup not in target:
-                        target[orbgroup] = {}
-
-                    # Iterate over all fields in a orbit
-                    for field in source[orbgroup]:
-
-                        # If target does not have this field, add it.
-                        # Otherwise extend it.
-                        if field not in target[orbgroup]:
-                            target[orbgroup][field] = source[orbgroup][field]
-
-                        # No need to combine unit specifiers (fields ending with "unit")
-                        elif field[-4:] != "unit" and field != "N" and field != "uniqueId":
-                            target[orbgroup][field] = np.concatenate((target[orbgroup][field],source[orbgroup][field]))
-
-            # Target now contains all data from combined runs, so we just need to write it.
-            orbits.write_hdf5(fnt,target,qid)
+    # Combine orbits
+    if addfns is not None:
+        with target.inistate as tdata, source.inistate as sdata:
+            pass
+    else:
+        pass
