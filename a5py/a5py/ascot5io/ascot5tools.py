@@ -196,7 +196,19 @@ def combineoutput(fnt, addfns=None, contfns=None):
                     tdata[field].resize((tsize+ssize, ))
                     tdata[field][tsize:] = sdata[field][:]
     else:
-        pass
+        # Sort target inistate by id.
+        if hasattr(target, "inistate"):
+            with target.inistate as tdata:
+                idx = np.argsort(tdata["id"][:])
+                for field in tdata:
+                    tdata[field][:] = tdata[field][:][idx]
+
+        # Replace target endstate with sorted by id source endstate.
+        if hasattr(target, "endstate") and hasattr(source, "endstate"):
+            with target.endstate as tdata, source.endstate as sdata:
+                idx = np.argsort(sdata["id"][:])
+                for field in tdata:
+                    tdata[field][:] = sdata[field][:][idx]
 
     # Combine dists
     if hasattr(target, "R_phi_z_vpa_vpe_t_q") and \
