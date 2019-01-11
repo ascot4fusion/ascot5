@@ -12,7 +12,7 @@ if len(sys.argv) > 1:
 else:
     fn = "ascot.h5"
 
-o   = opt.generateopt()
-qid = options.write_hdf5(fn, o)
-tools.set_active(fn, qid)
+o     = opt.generateopt()
+group = options.write_hdf5(fn, o)
+tools.call_ascot5file(fn, "set_active", group)
 print("Options set and set as active.")

@@ -30,14 +30,14 @@ def write_hdf5(fn, options, desc=None):
     qid    = None
 
     with h5py.File(fn, "a") as f:
-        g   = add_group(f, parent, group, desc=desc)
-        qid = get_qid(g)
+        g    = add_group(f, parent, group, desc=desc)
+        name = g.name
 
         for opt in options:
             if opt != "qid" and opt != "date" and opt != "description":
                 g.create_dataset(opt, (options[opt].size,), data=options[opt])
 
-    return qid
+    return name
 
 
 def read_hdf5(fn, qid):

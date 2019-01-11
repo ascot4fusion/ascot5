@@ -31,7 +31,7 @@ def call_ascot5file(fn, method, *args):
     if hasattr(ascot5file, method):
         method_to_call = getattr(ascot5file, method)
         with h5py.File(fn, "a") as f:
-            return ascot5file.method(f, *args)
+            return method_to_call(f, *args)
     else:
         raise ValueError(method + " is not a valid method.")
 
