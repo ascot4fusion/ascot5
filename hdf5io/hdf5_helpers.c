@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "../ascot5.h"
@@ -76,8 +77,8 @@ hid_t hdf5_create_group(hid_t loc, const char* path) {
 }
 
 /**
- * @brief Checks if given group exists within given hdf5 file. Negative value is returned
- * if the group doesn't exist.
+ * @brief Checks if given group exists within given hdf5 file. Negative value is
+ * returned if the group doesn't exist.
  */
 herr_t hdf5_find_group(hid_t loc, const char* path) {
     return H5Gget_objinfo (loc, path, 0, NULL);
@@ -230,7 +231,7 @@ int hdf5_read_long(const char* var, long* ptr, hid_t file, char* qid,
  * There is a H5LTset_attribute_string function but it writes strings as null-terminated. However, string
  * attributes in ASCOT5 HDF5 file are assumed to be null-padded.
  */
-herr_t  hdf5_write_string_attribute(hid_t loc, const char* path, const char* attrname,  const char* string) {
+herr_t hdf5_write_string_attribute(hid_t loc, const char* path, const char* attrname,  const char* string) {
     herr_t err;
 
     hid_t grp = H5Gopen(loc, path, H5P_DEFAULT);
@@ -261,5 +262,87 @@ herr_t  hdf5_write_string_attribute(hid_t loc, const char* path, const char* att
     err = H5Gclose(grp);
     if(err) {return err;}
 
+    return 0;
+}
+
+/**
+ * @brief Create and write to an extendible dataset for double data.
+ */
+herr_t hdf5_write_extendible_dataset_double(hid_t group,
+                                            const char* datasetname,
+                                            int length, double* data) {
+    /* Create the data space with unlimited dimensions. */
+    hsize_t dim[1]    = {length};
+    hsize_t maxdim[1] = {H5S_UNLIMITED};
+    hid_t dataspace   = H5Screate_simple(1, dim, maxdim);
+
+    /* Modify dataset creation properties, i.e. enable chunking  */
+    hsize_t chunk_dim[1] = {(int)ceil(length/2)};
+    hid_t prop   = H5Pcreate(H5P_DATASET_CREATE);
+    H5Pset_chunk (prop, 1, chunk_dim);
+
+    /* Create a new dataset within the file using chunk creation properties. */
+    hid_t dataset = H5Dcreate2(group, datasetname, H5T_IEEE_F64LE, dataspace,
+                               H5P_DEFAULT, prop, H5P_DEFAULT);
+
+    /* Write data to dataset */
+    if(H5Dwrite(dataset, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data)) {
+        return -1;
+    }
+    return 0;
+}
+
+
+/**
+ * @brief Create and write to an extendible dataset for long data.
+ */
+herr_t hdf5_write_extendible_dataset_long(hid_t group,
+                                          const char* datasetname,
+                                          int length, long* data) {
+    /* Create the data space with unlimited dimensions. */
+    hsize_t dim[1]    = {length};
+    hsize_t maxdim[1] = {H5S_UNLIMITED};
+    hid_t dataspace   = H5Screate_simple(1, dim, maxdim);
+
+    /* Modify dataset creation properties, i.e. enable chunking  */
+    hsize_t chunk_dim[1] = {(int)ceil(length/2)};
+    hid_t prop   = H5Pcreate(H5P_DATASET_CREATE);
+    H5Pset_chunk (prop, 1, chunk_dim);
+
+    /* Create a new dataset within the file using chunk creation properties. */
+    hid_t dataset = H5Dcreate2(group, datasetname, H5T_STD_I64LE, dataspace,
+                               H5P_DEFAULT, prop, H5P_DEFAULT);
+
+    /* Write data to dataset */
+    if(H5Dwrite(dataset, H5T_STD_I64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data)) {
+        return -1;
+    }
+    return 0;
+}
+
+/**
+ * @brief Create and write to an extendible dataset int data.
+ */
+herr_t hdf5_write_extendible_dataset_int(hid_t group,
+                                         const char* datasetname,
+                                         int length, int* data) {
+    /* Create the data space with unlimited dimensions. */
+    hsize_t dim[1]    = {length};
+    hsize_t maxdim[1] = {H5S_UNLIMITED};
+    hid_t dataspace   = H5Screate_simple(1, dim, maxdim);
+
+    /* Modify dataset creation properties, i.e. enable chunking  */
+    hsize_t chunk_dim[1] = {(int)ceil(length/2)};
+    hid_t prop   = H5Pcreate(H5P_DATASET_CREATE);
+    H5Pset_chunk (prop, 1, chunk_dim);
+
+    /* Create a new dataset within the file using chunk creation properties. */
+    hid_t dataset = H5Dcreate2(group, datasetname, H5T_STD_I32LE, dataspace,
+                               H5P_DEFAULT, prop, H5P_DEFAULT);
+
+    /* Write data to dataset */
+    if(H5Dwrite(dataset, H5T_STD_I32LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data)) {
+        return -1;
+    }
     return 0;
 }

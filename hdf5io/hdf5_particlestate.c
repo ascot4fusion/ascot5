@@ -43,9 +43,6 @@ int hdf5_particlestate_write(hid_t f, char* qid, char* state, integer n,
         return 1;
     }
 
-    hsize_t dims[1];
-    dims[0] = n;
-
     real* data = (real*) malloc(n * sizeof(real));
 
     /* Particle coordinates */
@@ -53,184 +50,184 @@ int hdf5_particlestate_write(hid_t f, char* qid, char* state, integer n,
     for(i = 0; i < n; i++) {
         data[i] = p[i].rprt;
     }
-    H5LTmake_dataset(state_group, "Rprt", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "Rprt", n, data);
     H5LTset_attribute_string(state_group, "Rprt", "unit", "m");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].phiprt*(180/CONST_PI);
     }
-    H5LTmake_dataset(state_group, "phiprt", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "phiprt", n, data);
     H5LTset_attribute_string(state_group, "phiprt", "unit", "deg");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].zprt;
     }
-    H5LTmake_dataset(state_group, "zprt", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "zprt", n, data);
     H5LTset_attribute_string(state_group, "zprt", "unit", "m");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].rdot;
     }
-    H5LTmake_dataset(state_group, "vR", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "vR", n, data);
     H5LTset_attribute_string(state_group, "vR", "unit", "m/s");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].phidot * p[i].rprt;
     }
-    H5LTmake_dataset(state_group, "vphi", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "vphi", n, data);
     H5LTset_attribute_string(state_group, "vphi", "unit", "m/s");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].zdot;
     }
-    H5LTmake_dataset(state_group, "vz", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "vz", n, data);
     H5LTset_attribute_string(state_group, "vz", "unit", "m/s");
 
     /* Guiding center coordinates */
     for(i = 0; i < n; i++) {
         data[i] = p[i].r;
     }
-    H5LTmake_dataset(state_group, "R", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "R", n, data);
     H5LTset_attribute_string(state_group, "R", "unit", "m");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].phi*(180/CONST_PI);
     }
-    H5LTmake_dataset(state_group, "phi", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "phi", n, data);
     H5LTset_attribute_string(state_group, "phi", "unit", "deg");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].z;
     }
-    H5LTmake_dataset(state_group, "z", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "z", n, data);
     H5LTset_attribute_string(state_group, "z", "unit", "m");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].vpar;
     }
-    H5LTmake_dataset(state_group, "vpar", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "vpar", n, data);
     H5LTset_attribute_string(state_group, "vpar", "unit", "m/s");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].mu/CONST_E;
     }
-    H5LTmake_dataset(state_group, "mu", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "mu", n, data);
     H5LTset_attribute_string(state_group, "mu", "unit", "eV/T");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].theta;
     }
-    H5LTmake_dataset(state_group, "theta", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "theta", n, data);
     H5LTset_attribute_string(state_group, "theta", "unit", "rad");
 
     /* Common */
     for(i = 0; i < n; i++) {
         data[i] = p[i].weight;
     }
-    H5LTmake_dataset(state_group, "weight", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "weight", n, data);
     H5LTset_attribute_string(state_group, "weight", "unit", "markers/s");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].time;
     }
-    H5LTmake_dataset(state_group, "time", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "time", n, data);
     H5LTset_attribute_string(state_group, "time", "unit", "s");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].cputime;
     }
-    H5LTmake_dataset(state_group, "cputime", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "cputime", n, data);
     H5LTset_attribute_string(state_group, "cputime", "unit", "s");
 
-   for(i = 0; i < n; i++) {
+    for(i = 0; i < n; i++) {
         data[i] = p[i].rho;
     }
-    H5LTmake_dataset(state_group, "rho", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "rho", n, data);
     H5LTset_attribute_string(state_group, "rho", "unit", "1");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].pol*(180/CONST_PI);
     }
-    H5LTmake_dataset(state_group, "pol", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "pol", n, data);
     H5LTset_attribute_string(state_group, "pol", "unit", "deg");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].mass/CONST_U;
     }
-    H5LTmake_dataset(state_group, "mass", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "mass", n, data);
     H5LTset_attribute_string(state_group, "mass", "unit", "amu");
 
     /* Magnetic field */
     for(i = 0; i < n; i++) {
         data[i] = p[i].B_r;
     }
-    H5LTmake_dataset(state_group, "B_R", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "B_R", n, data);
     H5LTset_attribute_string(state_group, "B_R", "unit", "T");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].B_phi;
     }
-    H5LTmake_dataset(state_group, "B_phi", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "B_phi", n, data);
     H5LTset_attribute_string(state_group, "B_phi", "unit", "T");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].B_z;
     }
-    H5LTmake_dataset(state_group, "B_z", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "B_z", n, data);
     H5LTset_attribute_string(state_group, "B_z", "unit", "T");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].B_r_dr;
     }
-    H5LTmake_dataset(state_group, "B_R_dR", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "B_R_dR", n, data);
     H5LTset_attribute_string(state_group, "B_R_dR", "unit", "T/m");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].B_r_dphi/p[i].r;
     }
-    H5LTmake_dataset(state_group, "B_R_dphi", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "B_R_dphi", n, data);
     H5LTset_attribute_string(state_group, "B_R_dphi", "unit", "T/m");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].B_r_dz;
     }
-    H5LTmake_dataset(state_group, "B_R_dz", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "B_R_dz", n, data);
     H5LTset_attribute_string(state_group, "B_R_dz", "unit", "T/m");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].B_phi_dr;
     }
-    H5LTmake_dataset(state_group, "B_phi_dR", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "B_phi_dR", n, data);
     H5LTset_attribute_string(state_group, "B_phi_dR", "unit", "T/m");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].B_phi_dphi/p[i].r;
     }
-    H5LTmake_dataset(state_group, "B_phi_dphi", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "B_phi_dphi", n, data);
     H5LTset_attribute_string(state_group, "B_phi_dphi", "unit", "T/m");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].B_phi_dz;
     }
-    H5LTmake_dataset(state_group, "B_phi_dz", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "B_phi_dz", n, data);
     H5LTset_attribute_string(state_group, "B_phi_dz", "unit", "T/m");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].B_z_dr;
     }
-    H5LTmake_dataset(state_group, "B_z_dR", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "B_z_dR", n, data);
     H5LTset_attribute_string(state_group, "B_z_dR", "unit", "T/m");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].B_z_dphi/p[i].r;
     }
-    H5LTmake_dataset(state_group, "B_z_dphi", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "B_z_dphi", n, data);
     H5LTset_attribute_string(state_group, "B_z_dphi", "unit", "T/m");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].B_z_dz;
     }
-    H5LTmake_dataset(state_group, "B_z_dz", 1, dims, H5T_IEEE_F64LE, data);
+    hdf5_write_extendible_dataset_double(state_group, "B_z_dz", n, data);
     H5LTset_attribute_string(state_group, "B_z_dz", "unit", "T/m");
 
     free(data);
@@ -241,19 +238,19 @@ int hdf5_particlestate_write(hid_t f, char* qid, char* state, integer n,
     for(i = 0; i < n; i++) {
         intdata[i] = p[i].id;
     }
-    H5LTmake_dataset(state_group, "id", 1, dims, H5T_STD_I64LE, intdata);
+    hdf5_write_extendible_dataset_long(state_group, "id", n, intdata);
     H5LTset_attribute_string(state_group, "id", "unit", "1");
 
     for(i = 0; i < n; i++) {
         intdata[i] = p[i].endcond;
     }
-    H5LTmake_dataset(state_group, "endcond", 1, dims, H5T_STD_I64LE, intdata);
+    hdf5_write_extendible_dataset_long(state_group, "endcond", n, intdata);
     H5LTset_attribute_string(state_group, "endcond", "unit", "1");
 
     for(i = 0; i < n; i++) {
         intdata[i] = p[i].walltile;
     }
-    H5LTmake_dataset(state_group, "walltile", 1, dims, H5T_STD_I64LE, intdata);
+    hdf5_write_extendible_dataset_long(state_group, "walltile", n, intdata);
     H5LTset_attribute_string(state_group, "walltile", "unit", "1");
 
     free(intdata);
@@ -262,7 +259,7 @@ int hdf5_particlestate_write(hid_t f, char* qid, char* state, integer n,
     for(i = 0; i < n; i++) {
         intdata32[i] = (int)(p[i].charge/CONST_E);
     }
-    H5LTmake_dataset(state_group, "charge", 1, dims, H5T_STD_I32LE, intdata32);
+    hdf5_write_extendible_dataset_int(state_group, "charge", n, intdata32);
     H5LTset_attribute_string(state_group, "charge", "unit", "e");
 
     /* Error data */
@@ -270,19 +267,19 @@ int hdf5_particlestate_write(hid_t f, char* qid, char* state, integer n,
     for(i = 0; i < n; i++) {
         error_parse(p[i].err, &(intdata32[i]), &d1, &d2);
     }
-    H5LTmake_dataset(state_group, "errormsg", 1, dims, H5T_STD_I32LE, intdata32);
+    hdf5_write_extendible_dataset_int(state_group, "errormsg", n, intdata32);
     H5LTset_attribute_string(state_group, "errormsg", "unit", "1");
 
     for(i = 0; i < n; i++) {
         error_parse(p[i].err, &d1, &(intdata32[i]), &d2);
     }
-    H5LTmake_dataset(state_group, "errorline", 1, dims, H5T_STD_I32LE, intdata32);
+    hdf5_write_extendible_dataset_int(state_group, "errorline", n, intdata32);
     H5LTset_attribute_string(state_group, "errorline", "unit", "1");
 
     for(i = 0; i < n; i++) {
         error_parse(p[i].err, &d1, &d2, &(intdata32[i]));
     }
-    H5LTmake_dataset(state_group, "errormod", 1, dims, H5T_STD_I32LE, intdata32);
+    hdf5_write_extendible_dataset_int(state_group, "errormod", n, intdata32);
     H5LTset_attribute_string(state_group, "errormod", "unit", "1");
 
     free(intdata32);
