@@ -89,8 +89,10 @@ def set_correct_input(parent, test):
         test:   str Name of the tests
     """
     a5 = ascot5.Ascot(testfn)
+    typ = a5[parent][test].get_type()
     qid = a5[parent][test].get_qid()
-    tools.set_active(testfn, qid)
+    group = typ + "-" + qid
+    tools.call_ascot5file(testfn, "set_active", group)
 
 def set_and_run(test):
     """
