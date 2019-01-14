@@ -1,11 +1,6 @@
 /**
-<<<<<<< HEAD
- * @file linint3D.h
- * @brief Header file for linint3D.c
-=======
  * @file linint1D.h
  * @brief Header file for linint1D.c
->>>>>>> develop
  */
 #ifndef LININT1D_H
 #define LININT1D_H
