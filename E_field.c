@@ -43,25 +43,6 @@
  */
 int E_field_init_offload(E_field_offload_data* offload_data,
                           real** offload_array) {
-<<<<<<< HEAD
-  /*offload_data->type = E_field_type_1D;*/
-
-    switch(offload_data->type) {
-    case E_field_type_1D:
-        E_1D_init_offload(&(offload_data->E1D), offload_array);
-        offload_data->offload_array_length = offload_data->E1D.offload_array_length;
-        break;
-    case E_field_type_1DS:
-	// Do nothing
-        break;
-    case E_field_type_TC:
-	// Do nothing
-        break;
-    case E_field_type_3D:
-        E_3D_init_offload(&(offload_data->E3D), offload_array);
-        offload_data->offload_array_length = offload_data->E3D.offload_array_length;
-        break;
-=======
     int err = 0;
 
     switch(offload_data->type) {
@@ -84,12 +65,17 @@ int E_field_init_offload(E_field_offload_data* offload_data,
                 offload_data->ETC.offload_array_length;
             break;
 
+       case E_field_type_3D:
+	    err = E_3D_init_offload(&(offload_data->E3D), offload_array);
+	    offload_data->offload_array_length = 
+	        offload_data->E3D.offload_array_length;
+	    break;
+
         default:
             /* Unregonized input. Produce error. */
             print_err("Error: Unregonized electric field type.");
             err = 1;
             break;
->>>>>>> develop
     }
 
     if(!err) {
@@ -114,21 +100,6 @@ int E_field_init_offload(E_field_offload_data* offload_data,
 void E_field_free_offload(E_field_offload_data* offload_data,
                           real** offload_array) {
     switch(offload_data->type) {
-<<<<<<< HEAD
-    case E_field_type_1D:
-        E_1D_free_offload(&(offload_data->E1D), offload_array);
-        break;
-    case E_field_type_1DS:
-        E_1DS_free_offload(&(offload_data->E1DS), offload_array);
-        break;
-    case E_field_type_TC:
-        E_TC_free_offload(&(offload_data->ETC), offload_array);
-        break;
-    case E_field_type_3D:
-      E_3D_free_offload(&(offload_data->E3D), offload_array);
-      break;
-
-=======
 
         case E_field_type_1D:
             E_1D_free_offload(&(offload_data->E1D), offload_array);
@@ -141,7 +112,11 @@ void E_field_free_offload(E_field_offload_data* offload_data,
         case E_field_type_TC:
             E_TC_free_offload(&(offload_data->ETC), offload_array);
             break;
->>>>>>> develop
+
+        case E_field_type_3D:
+            E_3D_free_offload(&(offload_data->E3D), offload_array);
+	    break;
+
     }
 }
 
@@ -167,20 +142,6 @@ int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
     int err = 0;
 
     switch(offload_data->type) {
-<<<<<<< HEAD
-    case E_field_type_1D:
-        E_1D_init(&(Edata->E1D), &(offload_data->E1D), offload_array);
-        break;
-    case E_field_type_1DS:
-        E_1DS_init(&(Edata->E1DS), &(offload_data->E1DS), offload_array);
-        break;
-    case E_field_type_TC:
-        E_TC_init(&(Edata->ETC), &(offload_data->ETC), offload_array);
-        break;
-    case E_field_type_3D:
-        E_3D_init(&(Edata->E3D), &(offload_data->E3D), offload_array);
-        break;
-=======
 
         case E_field_type_1D:
             E_1D_init(&(Edata->E1D), &(offload_data->E1D), offload_array);
@@ -194,12 +155,15 @@ int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
             E_TC_init(&(Edata->ETC), &(offload_data->ETC), offload_array);
             break;
 
+        case E_field_type_3D:
+            E_3D_init(&(Edata->E3D), &(offload_data->E3D), offload_array);
+	    break;
+
         default:
             /* Unregonized input. Produce error. */
             print_err("Error: Unregonized electric field type.\n");
             err = 1;
             break;
->>>>>>> develop
     }
     Edata->type = offload_data->type;
 
@@ -235,22 +199,6 @@ a5err E_field_eval_E(real E[3], real r, real phi, real z, E_field_data* Edata,
     a5err err = 0;
 
     switch(Edata->type) {
-<<<<<<< HEAD
-    case E_field_type_1D:
-        E_1D_eval_E(E, r, phi, z, &(Edata->E1D), Bdata);
-        break;
-    case E_field_type_1DS:
-        E_1DS_eval_E(E, r, phi, z, &(Edata->E1DS), Bdata);
-        break;
-    case E_field_type_TC:
-        E_TC_eval_E(E, r, phi, z, &(Edata->ETC), Bdata);
-        break;
-    case E_field_type_3D:
-        E_3D_eval_E(E, r, phi, z, &(Edata->E3D));
-        break;
-    }
-=======
->>>>>>> develop
 
         case E_field_type_1D:
             err = E_1D_eval_E(E, r, phi, z, &(Edata->E1D), Bdata);
@@ -260,30 +208,18 @@ a5err E_field_eval_E(real E[3], real r, real phi, real z, E_field_data* Edata,
             err = E_1DS_eval_E(E, r, phi, z, &(Edata->E1DS), Bdata);
             break;
 
-<<<<<<< HEAD
-    switch(Edata->type) {
-    case E_field_type_1D:
-        E_1D_eval_E_SIMD(i, E, r, phi, z, &(Edata->E1D), Bdata);
-        break;
-    case E_field_type_1DS:
-        E_1DS_eval_E_SIMD(i, E, r, phi, z, &(Edata->E1DS), Bdata);
-        break;
-    case E_field_type_TC:
-        E_TC_eval_E_SIMD(i, E, r, phi, z, &(Edata->ETC), Bdata);
-        break;
-    case E_field_type_3D:
-        E_3D_eval_E_SIMD(i, E, r, phi, z, &(Edata->E3D));
-        break;
-=======
         case E_field_type_TC:
             err = E_TC_eval_E(E, r, phi, z, &(Edata->ETC), Bdata);
             break;
+
+        case E_field_type_3D:
+	    err = E_3D_eval_E(E, r, phi, z, &(Edata->E3D), Bdata);
+	    break;
 
         default:
             /* Unregonized input. Produce error. */
             err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_E_FIELD );
             break;
->>>>>>> develop
     }
 
     return err;

@@ -24,14 +24,10 @@
  * field instance must have a corresponding type.
  */
 typedef enum E_field_type {
-<<<<<<< HEAD
-    E_field_type_TC, E_field_type_1D, E_field_type_1DS, E_field_type_3D
-=======
     E_field_type_TC, /**< Trivial Cartesian electric field */
     E_field_type_1D, /**< Radial electric field */
     E_field_type_1DS /**< Spline-interpolated radial electric field */
-
->>>>>>> develop
+    E_field_type_3D  /**< Linear-interpolated tridimensional electric field */
 } E_field_type;
 
 /**
@@ -44,20 +40,12 @@ typedef enum E_field_type {
  * the type of the data is declared with the "type" field.
  */
 typedef struct {
-<<<<<<< HEAD
-    E_field_type type;
-    E_TC_offload_data ETC;
-    E_1D_offload_data E1D;
-    E_1DS_offload_data E1DS;
-    E_3D_offload_data E3D;
-    int offload_array_length;
-=======
     E_field_type type;        /**< Electric field type wrapped by this struct */
     E_TC_offload_data ETC;    /**< TC field or NULL if not active             */
     E_1D_offload_data E1D;    /**< 1D field or NULL if not active             */
     E_1DS_offload_data E1DS;  /**< 1DS field or NULL if not active            */
+    E_3D_offload_data E3D;    /**< 3D fiel or NULL if not active              */
     int offload_array_length; /**< Allocated offload array length             */
->>>>>>> develop
 } E_field_offload_data;
 
 /**
@@ -70,18 +58,11 @@ typedef struct {
  * the type of the data is declared with the "type" field.
  */
 typedef struct {
-<<<<<<< HEAD
-    E_field_type type;
-    E_TC_data ETC;
-    E_1D_data E1D;
-    E_1DS_data E1DS;
-    E_3D_data E3D;
-=======
     E_field_type type; /**< Electric field type wrapped by this struct */
     E_TC_data ETC;     /**< TC field or NULL if not active             */
     E_1D_data E1D;     /**< 1D field or NULL if not active             */
     E_1DS_data E1DS;   /**< 1DS field or NULL if not active            */
->>>>>>> develop
+    E_3D_data E3D;     /**< 3D field or NULL if not active             */
 } E_field_data;
 
 int E_field_init_offload(E_field_offload_data* offload_data,
