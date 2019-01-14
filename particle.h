@@ -1,6 +1,20 @@
 /**
  * @file particle.h
  * @brief Header file for particle.c
+ *
+ * The relationship between the seven different marker structs is:
+ *
+ *    particle >--+            +--> particle_simd_fo
+ *                |            |
+ * particle_gc >--particle_state--> particle_simd_gc
+ *                |            |
+ * particle_ml >--+            +--> particle_simd_ml
+ *
+ * which is explained in particle.c. This file contains the definitions
+ * of these structs as well as input_particle and particle_queue structs. Former
+ * is a wrapper for particle, particle_gc, particle_ml, and particle_state
+ * structs while latter is a queue from where markers are chosen when simulation
+ * begins and updated when simulation ends.
  */
 #ifndef PARTICLE_H
 #define PARTICLE_H
@@ -10,273 +24,356 @@
 #include "E_field.h"
 #include "error.h"
 
-/** @brief Struct the physical state of the particle. Includes self-consistent
- *         full-orbit and guiding-center coordinates.
+/**
+ * @brief General representation of a marker
  *
- * Convention: whenever one particle property is changed, it is the
- * responsibility of the function performing the change to make sure all
- * parameters are consistent (for example, update magnetic field when position
- * changes.
+ * This struct is a self-consistent representation of a marker which can be
+ * constructed from any input and from which any simulation marker struct can
+ * be constructed. This structure is not intended to be used during the
+ * simulation, but before and after for storing marker data, and making it easy
+ * to switch between different marker types and construct markers from inputs.
  *
+ * Whenever marker properties are changed, it is the responsibility of the
+ * function performing the change to make sure all parameters remain consistent.
+ * For example, magnetic field must be updated when marker position changes.
  */
 typedef struct {
-    real r;           /**< guiding center r coordinate */
-    real phi;         /**< guiding center phi coordinate */
-    real z;           /**< guiding center z coordinate */
-    real vpar;        /**< parallel velocity */
-    real mu;          /**< magnetic moment */
-    real theta;       /**< gyroangle */
-    real rprt;        /**< particle r coordinate */
-    real phiprt;      /**< particle phi coordinate */
-    real zprt;        /**< particle z coordinate */
-    real rdot;        /**< dr/dt */
-    real phidot;      /**< dphi/dt */
-    real zdot;        /**< dz/dt */
-    real mass;        /**< mass */
-    real charge;      /**< charge */
-    real weight;      /**< test particle weight */
-    real time;        /**< particle simulation time */
-    real cputime;     /**< test particle cputime */
-    real rho;         /**< test particle rho coordinate */
-    real pol;         /**< test particle poloidal coordinate */
-    integer id;       /**< arbitrary id for the particle */
-    integer endcond;  /**< particle end condition */
-    integer walltile; /**< id of walltile if particle hit
-                                               the wall */
-    real B_r;         /**< magnetic field r component at
-                                            particle position */
-    real B_phi;       /**< magnetic field phi component at
-                                            particle position */
-    real B_z;         /**< magnetic field z component at
-                                            particle position */
-    real B_r_dr;      /**< gradient of B_r with respect to r*/
-    real B_phi_dr;    /**< gradient of B_phi with respect to r*/
-    real B_z_dr;      /**< gradient of B_z with respect to r*/
-    real B_r_dphi;    /**< gradient of B_r with respect to phi*/
-    real B_phi_dphi;  /**< gradient of B_phi with respect to phi*/
-    real B_z_dphi;    /**< gradient of B_z with respect to phi*/
-    real B_r_dz;      /**< gradient of B_r with respect to z*/
-    real B_phi_dz;    /**< gradient of B_phi with respect to z*/
-    real B_z_dz;      /**< gradient of B_z with respect to z*/
-    
+    real r;           /**< Guiding center R coordinate [m]                 */
+    real phi;         /**< Guiding center phi coordinate [rad]             */
+    real z;           /**< Guiding center z coordinate [m]                 */
+    real vpar;        /**< Parallel velocity [m/s]                         */
+    real mu;          /**< Magnetic moment [J/T]                           */
+    real theta;       /**< Gyroangle [rad]                                 */
+    real rprt;        /**< Particle R coordinate [m]                       */
+    real phiprt;      /**< Particle phi coordinate [phi]                   */
+    real zprt;        /**< Particle z coordinate [m]                       */
+    real rdot;        /**< dr/dt [m/s]                                     */
+    real phidot;      /**< dphi/dt [rad/s]                                 */
+    real zdot;        /**< dz/dt [m/s]                                     */
+    real mass;        /**< Mass [kg]                                       */
+    real charge;      /**< Charge [e]                                      */
+    real weight;      /**< Marker weight                                   */
+    real time;        /**< Marker simulation time [s]                      */
+    real cputime;     /**< Marker wall-clock time [s]                      */
+    real rho;         /**< Marker rho coordinate                           */
+    real pol;         /**< Marker poloidal coordinate [rad]                */
+    integer id;       /**< Arbitrary but unique ID for the marker          */
+    integer endcond;  /**< Marker end condition                            */
+    integer walltile; /**< ID of walltile if marker has hit the wall       */
+    real B_r;         /**< Magnetic field R component at (r, phi, z) [T]   */
+    real B_phi;       /**< Magnetic field phi component at (r, phi, z) [T] */
+    real B_z;         /**< Magnetic field z component at (r, phi, z) [T]   */
+    real B_r_dr;      /**< dB_R/dR at (r, phi, z) [T/m]                    */
+    real B_phi_dr;    /**< dB_phi/dR at (r, phi, z) [T/m]                  */
+    real B_z_dr;      /**< dB_z/dR at (r, phi, z) [T/m]                    */
+    real B_r_dphi;    /**< dB_R/dphi at (r, phi, z) [T/m]                  */
+    real B_phi_dphi;  /**< dB_phi/dphi at (r, phi, z) [T/m]                */
+    real B_z_dphi;    /**< dB_z/dphi at (r, phi, z) [T/m]                  */
+    real B_r_dz;      /**< dB_R/dz at (r, phi, z) [T/m]                    */
+    real B_phi_dz;    /**< dB_phi/dz at (r, phi, z) [T/m]                  */
+    real B_z_dz;      /**< dB_z/dz at (r, phi, z) [T/m]                    */
+
     a5err err;        /**< error flag */
 } particle_state;
 
-/** @brief Struct representing a single physical particle in cylindrical
- *         coordinates.
+/**
+ * @brief Particle input
  *
- * This is primarily used for particle initialization, this will be converted
- * into SIMD structs in appropriate coordinates for the simulation.
- *
- * @todo rdot,phidot, and zdot to v_r, v_phi and v_z? (Only affects phidot)
+ * When particle marker data is read, this struct is created and filled. This
+ * struct is then converted to a particle_state struct.
  */
 typedef struct {
-    real r;        /**< r coordinate */
-    real phi;      /**< phi coordinate */
-    real z;        /**< z coordinate */
-    real v_r;     /**< r velocity */
-    real v_phi;   /**< phi velocity */
-    real v_z;     /**< z velocity */
-    real mass;     /**< mass */
-    real charge;   /**< charge */
-    real weight;   /**< test particle weight */
-    real time;     /**< particle simulation time */
-    integer id;        /**< arbitrary id for the particle */
+    real r;      /**< R coordinate [m]                    */
+    real phi;    /**< phi coordinate [rad]                */
+    real z;      /**< z coordinate [m]                    */
+    real v_r;    /**< Velocity R-component [m/s]          */
+    real v_phi;  /**< Velocity phi-component [m/s]        */
+    real v_z;    /**< Velocity z-component [m/s]          */
+    real mass;   /**< Mass [kg]                           */
+    real charge; /**< Charge [e]                          */
+    real weight; /**< Particle marker weight              */
+    real time;   /**< Particle marker simulation time [s] */
+    integer id;  /**< Unique ID for the particle marker   */
 } particle;
 
-/** @brief Struct representing a single guiding center in cylindrical
- *         coordinates
+/**
+ * @brief Guiding center input
+ *
+ * When guiding center marker data is read, this struct is created and filled.
+ * This struct is then converted to a particle_state struct.
  */
 typedef struct {
-    real r;        /**< r coordinate */
-    real phi;      /**< phi coordinate */
-    real z;        /**< z coordinate */
-    real energy;   /**< kinetic energy */
-    real pitch;    /**< pitch angle */
-    real theta;    /**< gyroangle */
-    real mass;     /**< mass */
-    real charge;   /**< charge */
-    real weight;   /**< test particle weight */
-    real time;     /**< particle simulation time */
-    integer id;        /**< arbitrary id for the particle */
+    real r;      /**< R coordinate [m]                          */
+    real phi;    /**< phi coordinate [rad]                      */
+    real z;      /**< z coordinate [m]                          */
+    real energy; /**< Kinetic energy [J]                        */
+    real pitch;  /**< Pitch                                     */
+    real theta;  /**< Gyroangle [rad]                           */
+    real mass;   /**< Mass [kg]                                 */
+    real charge; /**< Charge [e]                                */
+    real weight; /**< Guiding center marker weight              */
+    real time;   /**< Guiding center marker simulation time [s] */
+    integer id;  /**< Unique ID for the guiding center marker   */
 } particle_gc;
 
-/** @brief Struct representing a single magnetic field line in cylindrical
- *         coordinates
+/**
+ * @brief Field line input
+ *
+ * When field line marker data is read, this struct is created and filled. This
+ * struct is then converted to a particle_state struct.
  */
 typedef struct {
-    real r;        /**< r coordinate */
-    real phi;      /**< phi coordinate */
-    real z;        /**< z coordinate */
-    real pitch;    /**< pitch angle */
-    real weight;   /**< test particle weight */
-    real time;     /**< particle simulation time */
-    integer id;    /**< arbitrary id for the particle */
+    real r;      /**< R coordinate [m]                      */
+    real phi;    /**< phi coordinate [rad]                  */
+    real z;      /**< z coordinate [m]                      */
+    real pitch;  /**< Direction                             */
+    real weight; /**< Field line marker weight              */
+    real time;   /**< Field line marker simulation time [s] */
+    integer id;  /**< Unique ID for the field line marker   */
 } particle_ml;
 
+/**
+ * @brief Marker queue
+ *
+ * Each time a marker has finished simulation, a new marker is chosen from this
+ * queue and the old marker's data is updated. Markers are never removed from
+ * the queue but an index is kept to mark where the next not yet simulated
+ * marker is found. Markers are represented by particle_state struct when they
+ * are stored in the queue.
+ *
+ * Note: The queue can and is accessed by several threads, so make sure each
+ * access is thread-safe.
+ */
 typedef struct {
-    int n;
-    particle_state** p;
-    volatile int next;
-    volatile int finished;
+    int n;                 /**< Total number of markers in this queue        */
+    particle_state** p;    /**< Pointer to an array storing pointers to all
+                                markers within this queue.                   */
+    volatile int next;     /**< Index where next unsimulated marker is found */
+    volatile int finished; /**< Number of markers who have finished
+                                simulation                                   */
 } particle_queue;
 
+/**
+ * @brief Marker types enum
+ *
+ * Used to indicate what marker type is stored in input_particle wrapper.
+ */
 typedef enum input_particle_type {
-    input_particle_type_p, input_particle_type_gc, input_particle_type_ml, input_particle_type_s
+    input_particle_type_p,  /**< Type corresponding to particle struct       */
+    input_particle_type_gc, /**< Type corresponding to particle_gc struct    */
+    input_particle_type_ml, /**< Type corresponding to particle_ml struct    */
+    input_particle_type_s   /**< Type corresponding to particle_state struct */
 } input_particle_type;
 
-/** @brief Struct representing either a particle or guiding center, including
- *         its type.
+/**
+ * @brief Wrapper for marker structs
+ *
+ * This struct wraps particle_state struct and all input structs. Reason is
+ * because input data can have several marker types and with this wrapper only
+ * a single array is required to store them. The same array can be used when
+ * the input markers are turned into marker states.
+ *
+ * Only a single type is stored here indicated by the "type" field. Storing a
+ * a new marker struct removes the old marker struct.
  */
 typedef struct {
     input_particle_type type;
     union {
         particle p;
         particle_gc p_gc;
-	particle_ml p_ml;
-	particle_state p_s;
+        particle_ml p_ml;
+        particle_state p_s;
     };
 } input_particle;
 
-/** @brief Struct representing a group of NSIMD particles in full orbit
- *         cylindrical coordinates.
+/**
+ * @brief Struct representing NSIMD particle markers
  *
- * Convention: whenever one particle property is changed, it is the
- * responsibility of the function performing the change to make sure all
- * parameters are consistent (for example, update magnetic field when position
- * changes.
+ * This struct is used in simulation when the simulation loop in
+ * simulate_fo_fixed.c is used.
  *
+ * It contains physical and simulation parameters necessary for the simulation
+ * If a function makes changes to any of these parameters, it is that function's
+ * responsibility to make sure all fields remain consistent, i.e., if position
+ * changes then the magnetic field should be updated. Each field is a memory
+ * aligned array with length NSIMD, so this struct represents NSIMD markers
+ * (they can be dummy or markers whose simulation has been terminated) and so it
+ * can be used within SIMD loops.
+ *
+ * The fields are aligned to 64 bit with __memalign__ (see ascot5.h).
  */
 typedef struct {
-    real r[NSIMD] __memalign__;        /**< r coordinate */
-    real phi[NSIMD] __memalign__;      /**< phi coordinate */
-    real z[NSIMD] __memalign__;        /**< z coordinate */
-    real rdot[NSIMD] __memalign__;     /**< dr/dt */
-    real phidot[NSIMD] __memalign__;   /**< dphi/dt */
-    real zdot[NSIMD] __memalign__;     /**< dz/dt */
-    real mass[NSIMD] __memalign__;     /**< mass */
-    real charge[NSIMD] __memalign__;   /**< charge */
-    real weight[NSIMD] __memalign__;   /**< test particle weight */
-    real time[NSIMD] __memalign__;     /**< particle simulation time */
-    real cputime[NSIMD] __memalign__;  /**< particle cpu time */
-    real rho[NSIMD] __memalign__;      /**< particle rho coordinate */
-    real pol[NSIMD] __memalign__;      /**< particle poloidal coordinate */
-    integer id[NSIMD] __memalign__;       /**< arbitrary id for the particle */
-    integer running[NSIMD] __memalign__;
-    integer endcond[NSIMD] __memalign__;  /**< particle end condition */
-    integer walltile[NSIMD] __memalign__; /**< id of walltile if particle hit
-                                               the wall */
-    real B_r[NSIMD] __memalign__;      /**< magnetic field r component at
-                                            particle position */
-    real B_phi[NSIMD] __memalign__;    /**< magnetic field phi component at
-                                            particle position */
-    real B_z[NSIMD] __memalign__;      /**< magnetic field z component at
-                                            particle position */
+    /* Physical coordinates and parameters */
+    real r[NSIMD] __memalign__;       /**< Particle R coordinate [m]          */
+    real phi[NSIMD] __memalign__;     /**< Particle phi coordinate [phi]      */
+    real z[NSIMD] __memalign__;       /**< Particle z coordinate [m]          */
+    real rdot[NSIMD] __memalign__;    /**< dr/dt [m/s]                        */
+    real phidot[NSIMD] __memalign__;  /**< dphi/dt [rad/s]                    */
+    real zdot[NSIMD] __memalign__;    /**< dz/dt [m/s]                        */
+    real mass[NSIMD] __memalign__;    /**< Mass [kg]                          */
+    real charge[NSIMD] __memalign__;  /**< Charge [e]                         */
+    real time[NSIMD] __memalign__;    /**< Marker simulation time [s]         */
 
-    real B_r_dr[NSIMD] __memalign__;      /**< gradient of B_r with respect to r*/
-    real B_phi_dr[NSIMD] __memalign__;    /**< gradient of B_phi with respect to r*/
-    real B_z_dr[NSIMD] __memalign__;      /**< gradient of B_z with respect to r*/
-    real B_r_dphi[NSIMD] __memalign__;    /**< gradient of B_r with respect to phi*/
-    real B_phi_dphi[NSIMD] __memalign__;  /**< gradient of B_phi with respect to phi*/
-    real B_z_dphi[NSIMD] __memalign__;    /**< gradient of B_z with respect to phi*/
-    real B_r_dz[NSIMD] __memalign__;      /**< gradient of B_r with respect to z*/
-    real B_phi_dz[NSIMD] __memalign__;    /**< gradient of B_phi with respect to z*/
-    real B_z_dz[NSIMD] __memalign__;      /**< gradient of B_z with respect to z*/
+    /* Magnetic field data */
+    real B_r[NSIMD] __memalign__;        /**< Magnetic field R component at
+                                              marker position [T]             */
+    real B_phi[NSIMD] __memalign__;      /**< Magnetic field phi component at
+                                              marker position [T]             */
+    real B_z[NSIMD] __memalign__;        /**< Magnetic field z component at
+                                              marker position [T]             */
 
-    a5err err[NSIMD] __memalign__;        /**< error flag */
+    real B_r_dr[NSIMD] __memalign__;     /**< dB_R/dR at marker position [T/m]     */
+    real B_phi_dr[NSIMD] __memalign__;   /**< dB_phi/dR at marker position [T/m]   */
+    real B_z_dr[NSIMD] __memalign__;     /**< dB_z/dR at marker position [T/m]     */
+    real B_r_dphi[NSIMD] __memalign__;   /**< dB_R/dphi at marker position [T/m]   */
+    real B_phi_dphi[NSIMD] __memalign__; /**< dB_phi/dphi at marker position [T/m] */
+    real B_z_dphi[NSIMD] __memalign__;   /**< dB_z/dphi at marker position [T/m]   */
+    real B_r_dz[NSIMD] __memalign__;     /**< dB_R/dz at marker position [T/m]     */
+    real B_phi_dz[NSIMD] __memalign__;   /**< dB_phi/dz at marker position [T/m]   */
+    real B_z_dz[NSIMD] __memalign__;     /**< dB_z/dz at marker position [T/m]     */
 
-    integer index[NSIMD] __memalign__;
+    /* Quantities used in diagnostics */
+    real weight[NSIMD] __memalign__;  /**< Marker weight                      */
+    real cputime[NSIMD] __memalign__; /**< Marker wall-clock time [s]         */
+    real rho[NSIMD] __memalign__;     /**< Marker rho coordinate              */
+    real pol[NSIMD] __memalign__;     /**< Marker poloidal coordinate [rad]   */
+
+    integer id[NSIMD] __memalign__;       /**< Unique ID for the marker       */
+    integer endcond[NSIMD] __memalign__;  /**< Marker end condition           */
+    integer walltile[NSIMD] __memalign__; /**< ID of walltile if marker has
+                                               hit the wall                   */
+
+    /* Meta data */
+    integer running[NSIMD] __memalign__; /**< Indicates whether this marker is
+                                              currently simulated (1) or not  */
+    a5err err[NSIMD] __memalign__;       /**< Error flag, zero if no error    */
+    integer index[NSIMD] __memalign__;   /**< Marker index at marker queue    */
 } particle_simd_fo;
 
-/** @brief Struct representing a group of NSIMD particles in guiding center 
- *         polar coordinates.
- 
- * Convention: whenever one particle property is changed, it is the
- * responsibility of the function performing the change to make sure all
- * parameters are consistent (for example, update magnetic field when position
- * changes.
+/**
+ * @brief Struct representing NSIMD guiding center markers
+ *
+ * This struct is used in simulation when the simulation loop in
+ * simulate_gc_fixed.c or simulate_gc_adaptive.c is used.
+ *
+ * It contains physical and simulation parameters necessary for the simulation
+ * If a function makes changes to any of these parameters, it is that function's
+ * responsibility to make sure all fields remain consistent, i.e., if position
+ * changes then the magnetic field should be updated. Each field is a memory
+ * aligned array with length NSIMD, so this struct represents NSIMD markers
+ * (they can be dummy or markers whose simulation has been terminated) and so it
+ * can be used within SIMD loops.
+ *
+ * The fields are aligned to 64 bit with __memalign__ (see ascot5.h).
  */
 typedef struct {
-    real r[NSIMD] __memalign__;        /**< r coordinate */
-    real phi[NSIMD] __memalign__;      /**< phi coordinate */
-    real z[NSIMD] __memalign__;        /**< z coordinate */
-    real vpar[NSIMD] __memalign__;     /**< parallel velocity */
-    real mu[NSIMD] __memalign__;       /**< magnetic moment */
-    real theta[NSIMD] __memalign__;    /**< gyroangle */
-    real mass[NSIMD] __memalign__;     /**< mass */
-    real charge[NSIMD] __memalign__;   /**< charge */
-    real weight[NSIMD] __memalign__;   /**< test particle weight */
-    real time[NSIMD] __memalign__;     /**< particle simulation time */
-    real cputime[NSIMD] __memalign__;  /**< particle cpu time */
-    real rho[NSIMD] __memalign__;      /**< particle rho coordinate */
-    real pol[NSIMD] __memalign__;      /**< particle poloidal coordinate */
-    integer id[NSIMD] __memalign__;       /**< arbitrary id for the particle */
-    integer running[NSIMD] __memalign__; /**< 1 if the particle has hit the
-                                               wall */
-    integer endcond[NSIMD] __memalign__;  /**< particle end condition */
-    integer walltile[NSIMD] __memalign__; /**< id of walltile if particle hit
-                                               the wall */
-    real B_r[NSIMD] __memalign__;      /**< magnetic field r component at
-                                            particle position */
-    real B_phi[NSIMD] __memalign__;    /**< magnetic field phi component at
-                                            particle position */
-    real B_z[NSIMD] __memalign__;      /**< magnetic field z component at
-                                            particle position */
-    real B_r_dr[NSIMD] __memalign__;      /**< gradient of B_r with respect to r*/
-    real B_phi_dr[NSIMD] __memalign__;    /**< gradient of B_phi with respect to r*/
-    real B_z_dr[NSIMD] __memalign__;      /**< gradient of B_z with respect to r*/
-    real B_r_dphi[NSIMD] __memalign__;    /**< gradient of B_r with respect to phi*/
-    real B_phi_dphi[NSIMD] __memalign__;  /**< gradient of B_phi with respect to phi*/
-    real B_z_dphi[NSIMD] __memalign__;    /**< gradient of B_z with respect to phi*/
-    real B_r_dz[NSIMD] __memalign__;      /**< gradient of B_r with respect to z*/
-    real B_phi_dz[NSIMD] __memalign__;    /**< gradient of B_phi with respect to z*/
-    real B_z_dz[NSIMD] __memalign__;      /**< gradient of B_z with respect to z*/
+    /* Physical coordinates and parameters */
+    real r[NSIMD] __memalign__;      /**< Guiding center R coordinate [m]     */
+    real phi[NSIMD] __memalign__;    /**< Guiding center phi coordinate [phi] */
+    real z[NSIMD] __memalign__;      /**< Guiding center z coordinate [m]     */
+    real vpar[NSIMD] __memalign__;   /**< Parallel velocity [m/s]             */
+    real mu[NSIMD] __memalign__;     /**< Magnetic moment [J/T]               */
+    real theta[NSIMD] __memalign__;  /**< Gyroangle [rad]                     */
+    real mass[NSIMD] __memalign__;   /**< Mass [kg]                           */
+    real charge[NSIMD] __memalign__; /**< Charge [e]                          */
+    real time[NSIMD] __memalign__;   /**< Marker simulation time [s]          */
 
-    a5err err[NSIMD] __memalign__;        /**< error flag */
+    /* Magnetic field data */
+    real B_r[NSIMD] __memalign__;        /**< Magnetic field R component at
+                                              marker position [T]             */
+    real B_phi[NSIMD] __memalign__;      /**< Magnetic field phi component at
+                                              marker position [T]             */
+    real B_z[NSIMD] __memalign__;        /**< Magnetic field z component at
+                                              marker position [T]             */
 
-    integer index[NSIMD] __memalign__;
+    real B_r_dr[NSIMD] __memalign__;     /**< dB_R/dR at marker position [T/m]     */
+    real B_phi_dr[NSIMD] __memalign__;   /**< dB_phi/dR at marker position [T/m]   */
+    real B_z_dr[NSIMD] __memalign__;     /**< dB_z/dR at marker position [T/m]     */
+    real B_r_dphi[NSIMD] __memalign__;   /**< dB_R/dphi at marker position [T/m]   */
+    real B_phi_dphi[NSIMD] __memalign__; /**< dB_phi/dphi at marker position [T/m] */
+    real B_z_dphi[NSIMD] __memalign__;   /**< dB_z/dphi at marker position [T/m]   */
+    real B_r_dz[NSIMD] __memalign__;     /**< dB_R/dz at marker position [T/m]     */
+    real B_phi_dz[NSIMD] __memalign__;   /**< dB_phi/dz at marker position [T/m]   */
+    real B_z_dz[NSIMD] __memalign__;     /**< dB_z/dz at marker position [T/m]     */
+
+    /* Quantities used in diagnostics */
+    real weight[NSIMD] __memalign__;  /**< Marker weight                      */
+    real cputime[NSIMD] __memalign__; /**< Marker wall-clock time [s]         */
+    real rho[NSIMD] __memalign__;     /**< Marker rho coordinate              */
+    real pol[NSIMD] __memalign__;     /**< Marker poloidal coordinate [rad]   */
+
+    integer id[NSIMD] __memalign__;       /**< Unique ID for the marker       */
+    integer endcond[NSIMD] __memalign__;  /**< Marker end condition           */
+    integer walltile[NSIMD] __memalign__; /**< ID of walltile if marker has
+                                               hit the wall                   */
+
+    /* Meta data */
+    integer running[NSIMD] __memalign__; /**< Indicates whether this marker is
+                                              currently simulated (1) or not  */
+    a5err err[NSIMD] __memalign__;       /**< Error flag, zero if no error    */
+    integer index[NSIMD] __memalign__;   /**< Marker index at marker queue    */
 } particle_simd_gc;
 
-/** @brief Struct representing a group of NSIMD magnetic field lines in 
- *         cylinder coordinates.
+/**
+ * @brief Struct representing NSIMD field line markers
  *
+ * This struct is used in simulation when the simulation loop in
+ * simulate_ml_adaptive.c is used.
+ *
+ * It contains physical and simulation parameters necessary for the simulation
+ * If a function makes changes to any of these parameters, it is that function's
+ * responsibility to make sure all fields remain consistent, i.e., if position
+ * changes then the magnetic field should be updated. Each field is a memory
+ * aligned array with length NSIMD, so this struct represents NSIMD markers
+ * (they can be dummy or markers whose simulation has been terminated) and so it
+ * can be used within SIMD loops.
+ *
+ * The fields are aligned to 64 bit with __memalign__ (see ascot5.h).
  */
 typedef struct {
-    real r[NSIMD] __memalign__;        /**< r coordinate */
-    real phi[NSIMD] __memalign__;      /**< phi coordinate */
-    real z[NSIMD] __memalign__;        /**< z coordinate */
-    real pitch[NSIMD] __memalign__;     /**< pitc = +1 */
-    real weight[NSIMD] __memalign__;   /**< test particle weight */
-    real time[NSIMD] __memalign__;     /**< field line simulation "time" i.e. distance/c */
-    real cputime[NSIMD] __memalign__;  /**< particle cpu time */
-    real rho[NSIMD] __memalign__;      /**< particle rho coordinate */
-    real pol[NSIMD] __memalign__;      /**< particle poloidal coordinate */
-    integer id[NSIMD] __memalign__;       /**< arbitrary id for the field line */
-    integer running[NSIMD] __memalign__; /**< 1 if the field line has hit the
-                                               wall */
-    integer endcond[NSIMD] __memalign__;  /**< particle end condition */
-    integer walltile[NSIMD] __memalign__; /**< id of walltile if particle hit
-                                               the wall */
-    real B_r[NSIMD] __memalign__;      /**< magnetic field r component at
-                                            particle position */
-    real B_phi[NSIMD] __memalign__;    /**< magnetic field phi component at
-                                            particle position */
-    real B_z[NSIMD] __memalign__;      /**< magnetic field z component at
-                                            particle position */
-  
-    real B_r_dr[NSIMD] __memalign__;      /**< gradient of B_r with respect to r*/
-    real B_phi_dr[NSIMD] __memalign__;    /**< gradient of B_phi with respect to r*/
-    real B_z_dr[NSIMD] __memalign__;      /**< gradient of B_z with respect to r*/
-    real B_r_dphi[NSIMD] __memalign__;    /**< gradient of B_r with respect to phi*/
-    real B_phi_dphi[NSIMD] __memalign__;  /**< gradient of B_phi with respect to phi*/
-    real B_z_dphi[NSIMD] __memalign__;    /**< gradient of B_z with respect to phi*/
-    real B_r_dz[NSIMD] __memalign__;      /**< gradient of B_r with respect to z*/
-    real B_phi_dz[NSIMD] __memalign__;    /**< gradient of B_phi with respect to z*/
-    real B_z_dz[NSIMD] __memalign__;      /**< gradient of B_z with respect to z*/
+    /* Physical coordinates and parameters */
+    real r[NSIMD] __memalign__;     /**< Field line R coordinate [m]          */
+    real phi[NSIMD] __memalign__;   /**< Field line phi coordinate [phi]      */
+    real z[NSIMD] __memalign__;     /**< Field line z coordinate [m]          */
+    real pitch[NSIMD] __memalign__; /**< Field line direction: along (1) or
+                                         against (-1) magnetic field vector   */
+    real time[NSIMD] __memalign__;  /**< Field line simulation "time" i.e.
+                                         (distance / speed of light) [m]      */
 
-    a5err err[NSIMD] __memalign__;        /**< error flag */
+    /* Magnetic field data */
+    real B_r[NSIMD] __memalign__;        /**< Magnetic field R component at
+                                              marker position [T]             */
+    real B_phi[NSIMD] __memalign__;      /**< Magnetic field phi component at
+                                              marker position [T]             */
+    real B_z[NSIMD] __memalign__;        /**< Magnetic field z component at
+                                              marker position [T]             */
 
-    integer index[NSIMD] __memalign__;
+    real B_r_dr[NSIMD] __memalign__;     /**< dB_R/dR at marker position [T/m]     */
+    real B_phi_dr[NSIMD] __memalign__;   /**< dB_phi/dR at marker position [T/m]   */
+    real B_z_dr[NSIMD] __memalign__;     /**< dB_z/dR at marker position [T/m]     */
+    real B_r_dphi[NSIMD] __memalign__;   /**< dB_R/dphi at marker position [T/m]   */
+    real B_phi_dphi[NSIMD] __memalign__; /**< dB_phi/dphi at marker position [T/m] */
+    real B_z_dphi[NSIMD] __memalign__;   /**< dB_z/dphi at marker position [T/m]   */
+    real B_r_dz[NSIMD] __memalign__;     /**< dB_R/dz at marker position [T/m]     */
+    real B_phi_dz[NSIMD] __memalign__;   /**< dB_phi/dz at marker position [T/m]   */
+    real B_z_dz[NSIMD] __memalign__;     /**< dB_z/dz at marker position [T/m]     */
+
+    /* Quantities used in diagnostics */
+    real weight[NSIMD] __memalign__;  /**< Marker weight                      */
+    real cputime[NSIMD] __memalign__; /**< Marker wall-clock time [s]         */
+    real rho[NSIMD] __memalign__;     /**< Marker rho coordinate              */
+    real pol[NSIMD] __memalign__;     /**< Marker poloidal coordinate [rad]   */
+
+    integer id[NSIMD] __memalign__;       /**< Unique ID for the marker       */
+    integer endcond[NSIMD] __memalign__;  /**< Marker end condition           */
+    integer walltile[NSIMD] __memalign__; /**< ID of walltile if marker has
+                                               hit the wall                   */
+
+    /* Meta data */
+    integer running[NSIMD] __memalign__; /**< Indicates whether this marker is
+                                              currently simulated (1) or not  */
+    a5err err[NSIMD] __memalign__;       /**< Error flag, zero if no error    */
+    integer index[NSIMD] __memalign__;   /**< Marker index at marker queue    */
 } particle_simd_ml;
 
 
@@ -294,22 +391,30 @@ int particle_cycle_gc(particle_queue* q, particle_simd_gc* p,
 int particle_cycle_ml(particle_queue* q, particle_simd_ml* p,
                       B_field_data* Bdata, int* cycle);
 
-void particle_input_to_state(input_particle* p, particle_state* ps, B_field_data* Bdata);
+void particle_input_to_state(input_particle* p, particle_state* ps,
+                             B_field_data* Bdata);
 
 #pragma omp declare simd uniform(Bdata)
-a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo, int j, B_field_data* Bdata);
+a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
+                           int j, B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p, B_field_data* Bdata);
+void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
+                          B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc, int j, B_field_data* Bdata);
+a5err particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc,
+                           int j, B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p, B_field_data* Bdata);
+void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
+                          B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml, int j, B_field_data* Bdata);
+a5err particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml,
+                           int j, B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p, B_field_data* Bdata);
+void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
+                          B_field_data* Bdata);
 #pragma omp declare simd uniform(p_fo,Bdata)
-int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc, B_field_data* Bdata);
+int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
+                      B_field_data* Bdata);
 #pragma omp end declare target
 
 #endif

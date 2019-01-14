@@ -5,73 +5,91 @@
 #ifndef B_STS_H
 #define B_STS_H
 #include "../ascot5.h"
-#include "../spline/interp2D.h" /* for 2D interpolation routines */
-#include "../spline/interp3D.h" /* for 3D interpolation routines */
+#include "../symmetry.h"
+#include "../linint/linint1D.h"
+#include "../spline/interp3D.h"
 
 /**
- * @brief stellarator magnetic field parameters that will be offloaded to target
+ * @brief stellarator magnetic field parameters on the host
  */
 typedef struct {
-    int n_r;                    /**< number of r grid points */
-    int n_z;                    /**< number of z grid points */
-    int n_phi;                  /**< number of phi grid points */
-    int periods;                /**< number of toroidal periods */
-    real r_min;                 /**< minimum r coordinate in the grid */
-    real r_max;                 /**< maximum r coordinate in the grid */
-    real r_grid;                /**< r grid interval (r_max-r_min)/(n_r-1) */
-    real z_min;                 /**< minimum z coordinate in the grid */
-    real z_max;                 /**< maximum z coordinate in the grid */
-    real z_grid;                /**< z grid interval (z_max-z_min)/(n_z-1) */
-    real phi_min;               /**< minimum phi coordinate in the grid */
-    real phi_max;               /**< maximum phi coordinate in the grid */
-    real phi_grid;              /**< phi grid interval 2pi/(n_phi-1) */
-    real axis_r;                /**< r coordinate of magnetic axis */
-    real axis_z;                /**< z coordinate of magnetic axis */
-    int offload_array_length;   /**< number of elements in offload_array */
+    int psigrid_n_r;       /**< Number of R grid points in psi data           */
+    int psigrid_n_z;       /**< Number of z grid points in psi data           */
+    int psigrid_n_phi;     /**< Number of phi grid points in psi data         */
+    real psigrid_r_min;    /**< Minimum R grid point in psi data [m]          */
+    real psigrid_r_max;    /**< Maximum R grid point in psi data [m]          */
+    real psigrid_r_grid;   /**< R grid interval in psi data [m]               */
+    real psigrid_z_min;    /**< Minimum z grid point in psi data [m]          */
+    real psigrid_z_max;    /**< Maximum z grid point in psi data [m]          */
+    real psigrid_z_grid;   /**< z grid interval in psi data [m]               */
+    real psigrid_phi_min;  /**< Minimum phi grid point in psi data [rad]      */
+    real psigrid_phi_max;  /**< Maximum phi grid point in psi data [rad]      */
+    real psigrid_phi_grid; /**< phi grid interval in psi data [rad]           */
+
+    int Bgrid_n_r;       /**< Number of R grid points in B data               */
+    int Bgrid_n_z;       /**< Number of z grid points in B data               */
+    int Bgrid_n_phi;     /**< Number of phi grid points in B data             */
+    real Bgrid_r_min;    /**< Minimum R coordinate in the grid in B data [m]  */
+    real Bgrid_r_max;    /**< Maximum R coordinate in the grid in B data [m]  */
+    real Bgrid_r_grid;   /**< R grid interval in B data [m]                   */
+    real Bgrid_z_min;    /**< Minimum z coordinate in the grid in B data [m]  */
+    real Bgrid_z_max;    /**< Maximum z coordinate in the grid in B data [m]  */
+    real Bgrid_z_grid;   /**< z grid interval in B data [m]                   */
+    real Bgrid_phi_min;  /**< Minimum phi grid point in B data [rad]          */
+    real Bgrid_phi_max;  /**< Maximum phi grid point in B data [rad]          */
+    real Bgrid_phi_grid; /**< phi grid interval in B data [rad]               */
+
+    real psi0;           /**< Poloidal flux value at magnetic axis [V*s*m^-1] */
+    real psi1;           /**< Poloidal flux value at separatrix [V*s*m^-1]    */
+    int offload_array_length; /**< Number of elements in offload_array        */
+
+    int n_periods;       /**< Number of toroidal periods                      */
+    real period_length;  /**< Length of one toroidal period [rad]             */
+    symmetry_type symmetry_mode; /**< Symmetry mode used                      */
+
+    int n_axis;          /**< Number of phi grid points in axis data          */
+    real axis_min;       /**< Minimum phi grid point in axis data [rad]       */
+    real axis_max;       /**< Maximum phi grid point in axis data [rad]       */
+    real axis_grid;      /**< phi grid interval in axis data [rad]            */
 } B_STS_offload_data;
 
 /**
  * @brief stellarator magnetic field parameters on the target
  */
 typedef struct {
-    real axis_r;            /**< r coordinate of magnetic axis */
-    real axis_z;            /**< z coordinate of magnetic axis */
-    real periods;
-    interp3D_data s;     /**< pointer to start of psi interpolation data struct */
-    interp3D_data B_r;     /**< pointer to start of B_r interpolation data struct */
-    interp3D_data B_phi;   /**< pointer to start of B_phi interpolation data struct */
-    interp3D_data B_z;     /**< pointer to start of B_z interpolation data struct */
+    real psi0;           /**< Poloidal flux value at magnetic axis [v*s*m^-1] */
+    real psi1;           /**< Poloidal flux value at separatrix [V*s*m^-1]    */
+    real period_length;  /**< Length of one toroidal period [rad]             */
+    symmetry_type symmetry_mode; /**< Symmetry mode used                      */
+    linint1D_data axis_r;/**< 1D axis r-value interpolation data struct       */
+    linint1D_data axis_z;/**< 1D axis z-value interpolation data struct       */
+    interp3D_data psi;   /**< 3D psi interpolation data struct                */
+    interp3D_data B_r;   /**< 3D B_r interpolation data struct                */
+    interp3D_data B_phi ;/**< 3D B_phi interpolation data struct              */
+    interp3D_data B_z;   /**< 3D B_z interpolation data struct                */
 } B_STS_data;
 
-void B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array);
+int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array);
 void B_STS_free_offload(B_STS_offload_data* offload_data, real** offload_array);
 
 #pragma omp declare target
-int B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
+void B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
                real* offload_array);
-#pragma omp declare simd uniform(Bdata)  
+#pragma omp declare simd uniform(Bdata)
 a5err B_STS_eval_psi(real psi[], real r, real phi, real z, B_STS_data* Bdata);
-#pragma omp declare simd linear(i) uniform(psi, Bdata)  
-a5err B_STS_eval_psi_SIMD(int i, real psi[NSIMD], real r, real phi, real z, B_STS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)  
+#pragma omp declare simd uniform(Bdata)
 a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z, B_STS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)  
+#pragma omp declare simd uniform(Bdata)
 a5err B_STS_eval_rho(real rho[], real psi, B_STS_data* Bdata);
-#pragma omp declare simd linear(i) uniform(rho, Bdata)  
-a5err B_STS_eval_rho_SIMD(int i, real rho[NSIMD], real psi, B_STS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)  
+#pragma omp declare simd uniform(Bdata)
 a5err B_STS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_STS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)  
+#pragma omp declare simd uniform(Bdata)
 a5err B_STS_eval_B(real B[], real r, real phi, real z, B_STS_data* Bdata);
-#pragma omp declare simd linear(i) uniform(B, Bdata)
-a5err B_STS_eval_B_SIMD(int i, real B[3][NSIMD], real r, real phi, real z, B_STS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 a5err B_STS_eval_B_dB(real B_dB[], real r, real phi, real z, B_STS_data* Bdata);
-#pragma omp declare simd linear(i) uniform(B_dB, Bdata)  
-a5err B_STS_eval_B_dB_SIMD(int i, real B_dB[12][NSIMD], real r, real phi, real z, B_STS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)  
-real B_STS_get_axis_r(B_STS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)  
-real B_STS_get_axis_z(B_STS_data* Bdata);
-#pragma omp end declare target   
+#pragma omp declare simd uniform(Bdata)
+a5err B_STS_get_axis_r(real* axis_r, B_STS_data* Bdata, real phi);
+#pragma omp declare simd uniform(Bdata)
+a5err B_STS_get_axis_z(real* axis_z, B_STS_data* Bdata, real phi);
+#pragma omp end declare target
 #endif

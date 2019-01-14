@@ -13,20 +13,35 @@
 #include "mccc_coefs.h"
 #include "mccc_special.h"
 
-const int MCCC_COEFS_EXACT = 1;
+#define MCCC_COEFS_INTERP 0
+#define MCCC_COEFS_EXACT  1
 
 /**
- * @brief Initializes lookup tables for more(?) efficient evaluation
+ * @brief Initializes lookup tables for more efficient(?) evaluation
  *
- * @todo Not implemented
  */
-void mccc_coefs_init(){
+void mccc_coefs_init(real* coldata){
+#if A5_CCOL_USE_TABULATED
 
+#ifdef MCCC_RELATIVISTIC
+    // Nothing here yet
+#else
+    coldata = malloc(3*G_NSLOT*sizeof(real));
+    for(int i=0; i<G_NSLOT; i++) {
+        real fdf[3];
+        mccc_special_fo(G_STEP*i, fdf, MCCC_COEFS_EXACT);
+        coldata[i+0*G_NSLOT] = fdf[0];
+        coldata[i+1*G_NSLOT] = fdf[1];
+        coldata[i+2*G_NSLOT] = fdf[2];
+    }
+#endif
+
+#endif
 }
 
 /**
  * @brief Evaluates coefficients in particle picture
- * 
+ *
  * @param ma test particle mass [kg]
  * @param qa test particle charge [C]
  * @param va test particle velocity [m/s]
@@ -44,9 +59,9 @@ void mccc_coefs_init(){
  *
  * @todo Implement relativistic coefficients
  */
-a5err mccc_coefs_fo(real ma, real qa, real va, real* mb, 
-		    real* qb, real* nb, real* Tb, real* clogab, int nspec, 
-		    real* F, real* Dpara, real* Dperp, real* K, real* nu){
+a5err mccc_coefs_fo(real ma, real qa, real va, real* mb,
+                real* qb, real* nb, real* Tb, real* clogab, int nspec, real* coldata, 
+                real* F, real* Dpara, real* Dperp, real* K, real* nu){
     a5err err = 0;
     int check = 0;
     real Q, dDpara;
@@ -57,40 +72,44 @@ a5err mccc_coefs_fo(real ma, real qa, real va, real* mb,
 #else
     real fdf[3];
     for(int i = 0; i < nspec; i=i+1){
-	cab = nb[i]*qa*qa*qb[i]*qb[i]*clogab[i]/(4*CONST_PI*CONST_E0*CONST_E0);
-	vth = sqrt(2*Tb[i]/mb[i]);
-	x = va/vth;
-	mccc_special_fo(x, fdf, MCCC_COEFS_EXACT);
+        cab = nb[i]*qa*qa*qb[i]*qb[i]*clogab[i]/(4*CONST_PI*CONST_E0*CONST_E0);
+        vth = sqrt(2*Tb[i]/mb[i]);
+        x = va/vth;
 
-	Q = -cab*fdf[0]/(ma*mb[i]*vth*vth);
-	dDpara = (cab/(2*ma*ma*va)) * (fdf[2]/vth - fdf[0]/va);
-	
-	if(va == 0){
-	    F[i] = 0;
-	    Dpara[i] = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
-	    Dperp[i] = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
-	}
-	else{
-	    F[i] = (1+mb[i]/ma)*Q;
-	    Dpara[i] = cab*fdf[0]/(2*ma*ma*va);
-	    Dperp[i] = cab*fdf[1]/(2*ma*ma*va);
+#ifdef MCCC_USE_TABULATED
+        mccc_special_fo(x, fdf, MCCC_COEFS_INTERP, coldata);
+#else
+        mccc_special_fo(x, fdf, MCCC_COEFS_EXACT, coldata);
+#endif
 
-	}
+        Q = -cab*fdf[0]/(ma*mb[i]*vth*vth);
+        dDpara = (cab/(2*ma*ma*va)) * (fdf[2]/vth - fdf[0]/va);
 
-	K[i] = Q + dDpara + 2*Dpara[i]/va;
-	nu[i] = 2*Dperp[i]/(va*va);
+        if(va == 0) {
+            F[i] = 0;
+            Dpara[i] = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
+            Dperp[i] = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
+        }
+        else {
+            F[i] = (1+mb[i]/ma)*Q;
+            Dpara[i] = cab*fdf[0]/(2*ma*ma*va);
+            Dperp[i] = cab*fdf[1]/(2*ma*ma*va);
+        }
 
-	check += (Dpara[i] <= 0) + (Dperp[i] <= 0) + (nu[i] <= 0);
+        K[i] = Q + dDpara + 2*Dpara[i]/va;
+        nu[i] = 2*Dperp[i]/(va*va);
+
+        check += (Dpara[i] <= 0) + (Dperp[i] <= 0) + (nu[i] <= 0);
     }
 
 #endif
-    if(check) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
+    if(check) {err = error_raise(ERR_INTEGRATION, __LINE__, EF_MCCC_COEFS);}
     return err;
 }
 
 /**
  * @brief Evaluates coefficients in guiding center picture for fixed scheme
- * 
+ *
  * @param ma guiding center mass [kg]
  * @param qa guiding center charge [C]
  * @param va guiding center velocity [m/s]
@@ -109,9 +128,9 @@ a5err mccc_coefs_fo(real ma, real qa, real va, real* mb,
  *
  * @todo Implement relativistic coefficients
  */
-a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi, 
-			 real* mb, real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, 
-			 real* Dpara, real* DX, real* K, real* nu){
+a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi,
+                         real* mb, real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, real* coldata, 
+                         real* Dpara, real* DX, real* K, real* nu){
     a5err err = 0;
     int check = 0;
     real Q, dDpara, Dperp;
@@ -125,42 +144,41 @@ a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi,
     gyrofreq = qa*B/(gamma*ma);
 
     for(int i = 0; i < nspec; i=i+1){
-	cab = nb[i]*qa*qa*qb[i]*qb[i]*clogab[i]/(4*CONST_PI*CONST_E0*CONST_E0);
-	vth = sqrt(2*Tb[i]/mb[i]);
-	x = va/vth;
-	mccc_special_fo(x, fdf, MCCC_COEFS_EXACT);
+        cab = nb[i]*qa*qa*qb[i]*qb[i]*clogab[i]/(4*CONST_PI*CONST_E0*CONST_E0);
+        vth = sqrt(2*Tb[i]/mb[i]);
+        x = va/vth;
 
-	Q = -cab*fdf[0]/(ma*mb[i]*vth*vth);
-	dDpara = (cab/(2*ma*ma*va)) * (fdf[2]/vth - fdf[0]/va);
-	
-	
-	if(va == 0){
-	    Dpara[i] = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
-	    Dperp = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
-	}
-	else{
-	    Dpara[i] = cab*fdf[0]/(2*ma*ma*va);
-	    Dperp = cab*fdf[1]/(2*ma*ma*va);
-
-	}
-
-	K[i] = Q + dDpara + 2*Dpara[i]/va;
-	nu[i] = 2*Dperp/(va*va);
-	DX[i] = ( (Dpara[i] - Dperp)*(1-xi*xi)/2 + Dperp )/(gyrofreq*gyrofreq);
-
-	check += (Dpara[i] <= 0) + (DX[i] <= 0) + (nu[i] <= 0);
-    }
-
+#ifdef MCCC_USE_TABULATED
+        mccc_special_fo(x, fdf, MCCC_COEFS_INTERP, coldata);
+#else
+        mccc_special_fo(x, fdf, MCCC_COEFS_EXACT, coldata);
 #endif
+        Q = -cab*fdf[0]/(ma*mb[i]*vth*vth);
+        dDpara = (cab/(2*ma*ma*va)) * (fdf[2]/vth - fdf[0]/va);
 
-    if(check) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
-    return err;	
+        if(va == 0){
+            Dpara[i] = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
+            Dperp = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
+        }
+        else{
+            Dpara[i] = cab*fdf[0]/(2*ma*ma*va);
+            Dperp = cab*fdf[1]/(2*ma*ma*va);
+        }
+
+        K[i] = Q + dDpara + 2*Dpara[i]/va;
+        nu[i] = 2*Dperp/(va*va);
+        DX[i] = ( (Dpara[i] - Dperp)*(1-xi*xi)/2 + Dperp )/(gyrofreq*gyrofreq);
+
+        check += (Dpara[i] <= 0) + (DX[i] <= 0) + (nu[i] <= 0);
+    }
+#endif
+    if(check) {err = error_raise(ERR_INTEGRATION, __LINE__, EF_MCCC_COEFS);}
+    return err;
 }
 
-   
 /**
  * @brief Evaluates coefficients in guiding center picture for adaptive scheme
- * 
+ *
  * @param ma guiding center mass [kg]
  * @param qa guiding center charge [C]
  * @param va guiding center velocity [m/s]
@@ -181,9 +199,9 @@ a5err mccc_coefs_gcfixed(real ma, real qa, real va, real xi,
  *
  * @todo Implement relativistic coefficients
  */
-a5err mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb, 
-			    real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, 
-			    real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara){
+a5err mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb,
+                    real* qb, real* nb, real* Tb, real B, real* clogab, int nspec, real* coldata, 
+                    real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara){
     a5err err = 0;
     int check = 0;
     real Q, Dperp;
@@ -197,38 +215,39 @@ a5err mccc_coefs_gcadaptive(real ma, real qa, real va, real xi, real* mb,
     gyrofreq = qa*B/(gamma*ma);
 
     for(int i = 0; i < nspec; i=i+1){
-	cab = nb[i]*qa*qa*qb[i]*qb[i]*clogab[i]/(4*CONST_PI*CONST_E0*CONST_E0);
-	vth = sqrt(2*Tb[i]/mb[i]);
-	x = va/vth;
-	mccc_special_fo(x, fdf, MCCC_COEFS_EXACT);
+        cab = nb[i]*qa*qa*qb[i]*qb[i]*clogab[i]/(4*CONST_PI*CONST_E0*CONST_E0);
+        vth = sqrt(2*Tb[i]/mb[i]);
+        x = va/vth;
 
-	Q = -cab*fdf[0]/(ma*mb[i]*vth*vth);
-	dQ[i] = -cab*fdf[2]/(ma*mb[i]*vth*vth);
-	dDpara[i] = (cab/(2*ma*ma*va)) * (fdf[2]/vth - fdf[0]/va);
-	
-	
-	if(va == 0){
-	    Dpara[i] = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
-	    Dperp = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
-	}
-	else{
-	    Dpara[i] = cab*fdf[0]/(2*ma*ma*va);
-	    Dperp = cab*fdf[1]/(2*ma*ma*va);
+#ifdef MCCC_USE_TABULATED
+        mccc_special_fo(x, fdf, MCCC_COEFS_INTERP, coldata);
+#else
+        mccc_special_fo(x, fdf, MCCC_COEFS_EXACT, coldata);
+#endif
 
-	}
+        Q = -cab*fdf[0]/(ma*mb[i]*vth*vth);
+        dQ[i] = -cab*fdf[2]/(ma*mb[i]*vth*vth);
+        dDpara[i] = (cab/(2*ma*ma*va)) * (fdf[2]/vth - fdf[0]/va);
 
-	K[i] = Q + dDpara[i] + 2*Dpara[i]/va;
-	nu[i] = 2*Dperp/(va*va);
-	DX[i] = ( (Dpara[i] - Dperp)*(1-xi*xi)/2 + Dperp )/(gyrofreq*gyrofreq);
+        if(va == 0){
+            Dpara[i] = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
+            Dperp = (cab/(2*ma*ma))*4/(3*sqrt(CONST_PI)*vth);
+        }
+        else{
+            Dpara[i] = cab*fdf[0]/(2*ma*ma*va);
+            Dperp = cab*fdf[1]/(2*ma*ma*va);
+        }
 
-	check += (Dpara[i] <= 0) + (DX[i] <= 0) + (nu[i] <= 0);
+        K[i] = Q + dDpara[i] + 2*Dpara[i]/va;
+        nu[i] = 2*Dperp/(va*va);
+        DX[i] = ( (Dpara[i] - Dperp)*(1-xi*xi)/2 + Dperp )/(gyrofreq*gyrofreq);
+
+        check += (Dpara[i] <= 0) + (DX[i] <= 0) + (nu[i] <= 0);
     }
 #endif
-    if(check) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
-    return err;	
+    if(check) {err = error_raise(ERR_INTEGRATION, __LINE__, EF_MCCC_COEFS);}
+    return err;
 }
-
-
 
 /**
  * @brief Evaluate Coulomb logarithm
@@ -249,31 +268,29 @@ a5err mccc_coefs_clog(real ma, real qa, real va, real* mb, real* qb, real* nb, r
     real vbar[MAX_SPECIES];
     real s = 0;
     for(int i = 0; i < nspec; i=i+1){
-	s = s + (nb[i] * qb[i] * qb[i])/(Tb[i]);
-	vbar[i] = va*va + 2*Tb[i]/mb[i];
+        s = s + (nb[i] * qb[i] * qb[i])/(Tb[i]);
+        vbar[i] = va*va + 2*Tb[i]/mb[i];
     }
-    if(!err && s <= 0) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
+    if(!err && s <= 0) {err = error_raise(ERR_INTEGRATION, __LINE__, EF_MCCC_COEFS);}
 
     if(!err) {
-	int check = 0;
-	real debyeLength = sqrt(CONST_E0/s);
-	real mr, bcl, bqm;
-	for(int i=0; i < nspec; i=i+1){
-	    mr = ma*mb[i]/(ma+mb[i]);
-	    bcl = fabs(qa*qb[i]/(4 * CONST_PI * CONST_E0 * mr * vbar[i]));
-	    bqm = fabs(CONST_HBAR/(2*mr*sqrt(vbar[i])));
-       
-	    if(bcl > bqm){
-		clogab[i] = log(debyeLength/bcl);
-	    }
-	    else{
-		clogab[i] = log(debyeLength/bqm);
-	    }
-	    check += clogab[i] <= 0;
-	}
-	if(check) {err = error_raise(ERR_CCOEF_EVAL_FAIL, __LINE__);}
+        int check = 0;
+        real debyeLength = sqrt(CONST_E0/s);
+        real mr, bcl, bqm;
+        for(int i=0; i < nspec; i=i+1){
+            mr = ma*mb[i]/(ma+mb[i]);
+            bcl = fabs(qa*qb[i]/(4 * CONST_PI * CONST_E0 * mr * vbar[i]));
+            bqm = fabs(CONST_HBAR/(2*mr*sqrt(vbar[i])));
+
+            if(bcl > bqm){
+                clogab[i] = log(debyeLength/bcl);
+            }
+            else{
+                clogab[i] = log(debyeLength/bqm);
+            }
+            check += clogab[i] <= 0;
+        }
+        if(check) {err = error_raise(ERR_INTEGRATION, __LINE__, EF_MCCC_COEFS);}
     }
-    return err;	
+    return err;
 }
-
-

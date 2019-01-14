@@ -29,9 +29,9 @@
  * @param z_grid grid size of the z axis
  */
 int linint3D_init(linint3D_data* str, real* f, int n_r, int n_phi, int n_z,
-		       real r_min, real r_max, real r_grid,
-		       real phi_min, real phi_max, real phi_grid,
-		       real z_min, real z_max, real z_grid) {
+                       real r_min, real r_max, real r_grid,
+                       real phi_min, real phi_max, real phi_grid,
+                       real z_min, real z_max, real z_grid) {
 
     int err = 0;
 
@@ -48,7 +48,10 @@ int linint3D_init(linint3D_data* str, real* f, int n_r, int n_phi, int n_z,
     str->z_min = z_min;
     str->z_max = z_max;
     str->z_grid = z_grid;
-    str->f = f;
+    str->c = malloc(n_r*n_phi*n_z*sizeof(real));
+    for(int i = 0; i < n_r*n_phi*n_z; i++) {
+        str->c[i] = f[i];
+    }
 
     return err;
 }
@@ -58,56 +61,57 @@ int linint3D_init(linint3D_data* str, real* f, int n_r, int n_phi, int n_z,
  *
  * This function evaluates the interpolated value of a 3D scalar field using
  * trilinear interpolation.
- * 
+ *
  * @param val variable in which to place the evaluated value
  * @param str data struct for data interpolation
  * @param r r-coordinate
  * @param phi phi-coordinate
  * @param z z-coordinate
  */
-int linint3D_eval(real* val, linint3D_data* str, real r, real phi, real z) {
+integer linint3D_eval(real* val, linint3D_data* str, real r, real phi, real z) {
     real c000, c100, c001, c101, c010, c110, c011, c111;
     real c00, c01, c10, c11;
     real c0, c1;
-    /** Make sure phi is in interval [0,2pi) */
-    phi = fmod(phi,CONST_2PI);
-    if(phi < 0){phi = CONST_2PI + phi;}
+    /** Make sure phi is in interval [phi_min, phi_max) */
+    real phi_range = str->phi_max - str->phi_min;
+    phi = fmod(phi - str->phi_min, phi_range) + str->phi_min;
+    if(phi < 0){phi = phi_range + phi;}
 
     int i_r = (r - str->r_min)/str->r_grid;     /**< index for r variable */
     int i_phi = (phi - str->phi_min)/str->phi_grid; /**< index for phi variable */
     int i_z = (z - str->z_min)/str->z_grid;     /**< index for z variable */
 
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-							       current cell */
+                                                               current cell */
     real dphi = (phi-(str->phi_min+i_phi*str->phi_grid))/str->phi_grid; /**< Normalized phi
-									   coordinate in
-									   current cell */
+                                                                           coordinate in
+                                                                           current cell */
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
-							       current cell */
+                                                               current cell */
 
     int phi1 = str->n_z*str->n_r;           /**< Index jump one phi forward */
     if(i_phi==str->n_phi-1) {
-	phi1 = -(str->n_phi-1)*phi1;          /**< If last cell, index jump to 1st phi */
+        phi1 = -(str->n_phi-1)*phi1;          /**< If last cell, index jump to 1st phi */
     }
     int z1 = str->n_r;                      /**< Index jump one z forward */
-	   
+
     int err = 0;
 
     /* Check that the point is not outside the evaluation regime */
     if(r < str->r_min || r > str->r_max
-	|| z < str->z_min || z > str->z_max) {
-	err = 1;
+        || z < str->z_min || z > str->z_max) {
+        err = 1;
     }
     else {
         /* Values at grid cell corners */
-        c000 = str->f[i_phi*phi1 + i_z*z1 + i_r];
-        c100 = str->f[i_phi*phi1 + i_z*z1 + (i_r + 1)];
-        c001 = str->f[(i_phi + 1)*phi1 + i_z*z1 + i_r];
-        c101 = str->f[(i_phi + 1)*phi1 + i_z*z1 + (i_r + 1)];
-        c010 = str->f[i_phi*phi1 + (i_z + 1)*z1 + i_r];
-        c110 = str->f[i_phi*phi1 + (i_z + 1)*z1 + (i_r + 1)];
-        c011 = str->f[(i_phi + 1)*phi1 + (i_z + 1)*z1 + i_r];
-        c111 = str->f[(i_phi + 1)*phi1 + (i_z + 1)*z1 + (i_r + 1)];
+        c000 = str->c[i_phi*phi1 + i_z*z1 + i_r];
+        c100 = str->c[i_phi*phi1 + i_z*z1 + (i_r + 1)];
+        c001 = str->c[(i_phi + 1)*phi1 + i_z*z1 + i_r];
+        c101 = str->c[(i_phi + 1)*phi1 + i_z*z1 + (i_r + 1)];
+        c010 = str->c[i_phi*phi1 + (i_z + 1)*z1 + i_r];
+        c110 = str->c[i_phi*phi1 + (i_z + 1)*z1 + (i_r + 1)];
+        c011 = str->c[(i_phi + 1)*phi1 + (i_z + 1)*z1 + i_r];
+        c111 = str->c[(i_phi + 1)*phi1 + (i_z + 1)*z1 + (i_r + 1)];
         /* Interpolate along r */
         c00 = c000*(1 - dr) + c100*dr;
         c01 = c001*(1 - dr) + c101*dr;
@@ -124,86 +128,15 @@ int linint3D_eval(real* val, linint3D_data* str, real r, real phi, real z) {
 }
 
 /**
- * @brief Evaluate interpolated value of 3D scalar field
- *
- * This function evaluates the interpolated value of a 3D scalar field using
- * tricubic spline interpolation coefficients of the compact form.
- * 
- * @param i index of SIMD variable
- * @param val variable in which to place the evaluated value
- * @param str data struct for data interpolation
- * @param r r-coordinate
- * @param phi phi-coordinate
- * @param z z-coordinate
- */
-int linint3D_eval_SIMD(int i, real val[NSIMD], linint3D_data* str, real r, real phi, real z) {
-    real c000, c100, c001, c101, c010, c110, c011, c111;
-    real c00, c01, c10, c11;
-    real c0, c1;
-    /** Make sure phi is in interval [0,2pi) */
-    phi = fmod(phi,CONST_2PI);
-    if(phi < 0){phi = CONST_2PI + phi;}
-
-    int i_r   = (r - str->r_min)/str->r_grid;     /**< index for r variable */
-    int i_phi = (phi - str->phi_min)/str->phi_grid; /**< index for phi variable */
-    int i_z   = (z - str->z_min)/str->z_grid;     /**< index for z variable */
-    
-    real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-							       current cell */
-    real dphi = (phi-(str->phi_min+i_phi*str->phi_grid))/str->phi_grid; /**< Normalized phi
-									   coordinate in
-									   current cell */
-    real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
-							       current cell */
-    
-    int phi1 = str->n_z*str->n_r;           /**< Index jump one phi forward */
-    if(i_phi==str->n_phi-1) {
-	phi1 = -(str->n_phi-1)*phi1;          /**< If last cell, index jump to 1st phi */
-    }
-    int z1 = str->n_r;                      /**< Index jump one z forward */
-    
-    int err = 0;
-    
-    /* Check that the point is not outside the evaluation regime */
-    if(r < str->r_min || r > str->r_max
-       || z < str->z_min || z > str->z_max) {
-	err = 1;
-    }
-    else {
-        /* Values at grid cell corners */
-        c000 = str->f[i_phi*phi1 + i_z*z1 + i_r];
-        c100 = str->f[i_phi*phi1 + i_z*z1 + (i_r + 1)];
-        c001 = str->f[(i_phi + 1)*phi1 + i_z*z1 + i_r];
-        c101 = str->f[(i_phi + 1)*phi1 + i_z*z1 + (i_r + 1)];
-        c010 = str->f[i_phi*phi1 + (i_z + 1)*z1 + i_r];
-        c110 = str->f[i_phi*phi1 + (i_z + 1)*z1 + (i_r + 1)];
-        c011 = str->f[(i_phi + 1)*phi1 + (i_z + 1)*z1 + i_r];
-        c111 = str->f[(i_phi + 1)*phi1 + (i_z + 1)*z1 + (i_r + 1)];
-        /* Interpolate along r */
-        c00 = c000*(1 - dr) + c100*dr;
-        c01 = c001*(1 - dr) + c101*dr;
-        c10 = c010*(1 - dr) + c110*dr;
-        c11 = c011*(1 - dr) + c111*dr;
-        /* Interpolate these values along phi */
-        c0 = c00*(1 - dphi) + c10*dphi;
-        c1 = c01*(1 - dphi) + c11*dphi;
-        /* Finally we interpolate these values along z */
-        val[i] = c0*(1 - dz) + c1*dz;
-    }
-
-    return err;
-}
-
-/**
  * @brief Free allocated memory in interpolation data struct
  *
  * This function frees the memory allocated for interpolation coefficients
  * in the interpolation data struct
- * 
+ *
  * @todo Error checking
  *
  * @param str data struct for data interpolation
  */
 void linint3D_free(linint3D_data* str) {
-    free(str->f);
+    free(str->c);
 }

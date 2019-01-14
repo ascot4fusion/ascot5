@@ -35,7 +35,7 @@ typedef struct {
     linint3D_data n0;     /**< pointer to start of neutral density interpolation data struct */
 } N0_ST_data;
 
-void N0_ST_init_offload(N0_ST_offload_data* offload_data, real** offload_array);
+int N0_ST_init_offload(N0_ST_offload_data* offload_data, real** offload_array);
 void N0_ST_free_offload(N0_ST_offload_data* offload_data, real** offload_array);
 
 #pragma omp declare target
@@ -43,7 +43,5 @@ int N0_ST_init(N0_ST_data* ndata, N0_ST_offload_data* offload_data,
                real* offload_array);
 #pragma omp declare simd uniform(ndata)
 a5err N0_ST_eval_n0(real n0[], real r, real phi, real z, N0_ST_data* ndata);
-#pragma omp declare simd linear(i) uniform(n0, ndata)
-a5err N0_ST_eval_n0_SIMD(int i, real n0[NSIMD], real r, real phi, real z, N0_ST_data* ndata);
-#pragma omp end declare target   
+#pragma omp end declare target
 #endif

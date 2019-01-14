@@ -1,6 +1,10 @@
 /**
  * @file hdf5_efield.h
+<<<<<<< HEAD
  * @brief Header file for hdf5_efield.c
+=======
+ * @brief Header file for hdf5_efielc.c
+>>>>>>> develop
  */
 #ifndef HDF5_EFIELD_H
 #define HDF5_EFIELD_H
@@ -13,6 +17,7 @@
 #include "../Efield/E_3D.h"
 
 
+<<<<<<< HEAD
 
 int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real** offload_array);
 
@@ -25,4 +30,8 @@ void hdf5_efield_init_offload_TC(hid_t f, E_TC_offload_data* offload_data, real*
 void hdf5_efield_init_offload_3D(hid_t f, E_3D_offload_data* offload_data, real** offload_array, char* qid);
 
 
+=======
+int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data,
+                             real** offload_array, char* qid);
+>>>>>>> develop
 #endif

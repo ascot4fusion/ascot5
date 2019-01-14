@@ -12,10 +12,10 @@
 #include "../spline/interp1Dcomp.h"
 
 /**
- * @brief Free offload array and reset parameters 
+ * @brief Free offload array and reset parameters
  *
  *This function deallocates the offload_array.
- 
+
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
@@ -24,7 +24,7 @@ void plasma_1DS_free(plasma_1DS_data* plasma_data) {
 }
 
 /**
- * @brief Initialize magnetic field data struct on target 
+ * @brief Initialize magnetic field data struct on target
  *
  * This function copies the magnetic field parameters from the offload struct
  * to the struct on target and sets the plasma data pointers to
@@ -68,7 +68,7 @@ a5err plasma_1DS_init(plasma_1DS_data* plasma_data,
             }
         }
     }
-    
+
     plasma_data->n_rho = offload_data->n_rho;
     plasma_data->rho_min = rho[0];
     plasma_data->rho_max = rho[plasma_data->n_rho - 1];
@@ -80,10 +80,10 @@ a5err plasma_1DS_init(plasma_1DS_data* plasma_data,
         plasma_data->charge[i] = offload_data->charge[i];
     }
     err += interp1Dcomp_init(&plasma_data->temp[0], temp_e,
-			     plasma_data->n_rho, plasma_data->rho_min, plasma_data->rho_max,
+                             plasma_data->n_rho, plasma_data->rho_min, plasma_data->rho_max,
                              plasma_data->rho_grid);
     err += interp1Dcomp_init(&plasma_data->temp[1], temp_i,
-			     plasma_data->n_rho, plasma_data->rho_min, plasma_data->rho_max,
+                             plasma_data->n_rho, plasma_data->rho_min, plasma_data->rho_max,
                              plasma_data->rho_grid);
     plasma_data->dens = (interp1D_data*) malloc(plasma_data->n_species*sizeof(interp1D_data));
     for(int i = 0; i < plasma_data->n_species; i++) {
@@ -112,7 +112,7 @@ a5err plasma_1DS_eval_temp(real temp[], real rho, int species, plasma_1DS_data* 
     if (rho < plasma_data->rho_min){
         rho = plasma_data->rho_min;
     } else if (rho > plasma_data->rho_max) {
-        rho = plasma_data->rho_max;        
+        rho = plasma_data->rho_max;
     }
 
     if (species == 0) {
@@ -121,8 +121,7 @@ a5err plasma_1DS_eval_temp(real temp[], real rho, int species, plasma_1DS_data* 
         interperr += interp1Dcomp_eval_B(&temp[0], &plasma_data->temp[1], rho);
     }
 
-    if(interperr) {err = error_raise( ERR_OUTSIDE_PLASMA, __LINE__ );}
-    
+    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );}
     return err;
 }
 
@@ -137,13 +136,13 @@ a5err plasma_1DS_eval_dens(real dens[], real rho, int species, plasma_1DS_data* 
     if (rho < plasma_data->rho_min){
         rho = plasma_data->rho_min;
     } else if (rho > plasma_data->rho_max) {
-        rho = plasma_data->rho_max;        
+        rho = plasma_data->rho_max;
     }
 
     interperr += interp1Dcomp_eval_B(&dens[0], &plasma_data->dens[species], rho);
 
-    if(interperr) {err = error_raise( ERR_OUTSIDE_PLASMA, __LINE__ );}
-    
+    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );}
+
     return err;
 }
 
@@ -170,8 +169,8 @@ a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho, plasma_1DS_d
         temp[i] = temp_temp_i;
         interperr += interp1Dcomp_eval_B(&dens[i], &plasma_data->dens[i], rho);
     }
-    
-    if(interperr) {err = error_raise( ERR_OUTSIDE_PLASMA, __LINE__ );}
+
+    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );}
 
     return err;
 }

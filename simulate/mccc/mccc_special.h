@@ -14,7 +14,7 @@ void mccc_special_G(real x, real* G, int exact);
 void mccc_special_GdG(real x, real* GdG, int exact);
 
 #pragma omp declare simd
-void mccc_special_fo(real x, real* fdf, int exact);
+void mccc_special_fo(real x, real* fdf, int exact, real* coldata);
 
 #pragma omp declare simd
 void mccc_special_mu(real u, real th, real* mu, int exact);

@@ -6,37 +6,49 @@
 #define DIAG_H
 #include "ascot5.h"
 #include "particle.h"
-#include "dist_5D.h"
-#include "dist_6D.h"
-#include "diag_orb.h"
+#include "diag/dist_5D.h"
+#include "diag/dist_6D.h"
+#include "diag/dist_rho5D.h"
+#include "diag/dist_rho6D.h"
+#include "diag/diag_orb.h"
 
 typedef struct {
     int orb_collect;
-    int debug_collect;
     int dist5D_collect;
     int dist6D_collect;
+    int distrho5D_collect;
+    int distrho6D_collect;
 
     diag_orb_offload_data orbits;
     dist_5D_offload_data dist5D;
     dist_6D_offload_data dist6D;
+    dist_rho5D_offload_data distrho5D;
+    dist_rho6D_offload_data distrho6D;
 
     int offload_dist5D_index;
     int offload_dist6D_index;
+    int offload_distrho5D_index;
+    int offload_distrho6D_index;
     int offload_array_length; /**< number of elements in offload_array */
 } diag_offload_data;
 
 typedef struct {
     int diag_orb_collect;
-    int diag_debug_collect;
     int diag_dist5D_collect;
     int diag_dist6D_collect;
+    int diag_distrho5D_collect;
+    int diag_distrho6D_collect;
 
     diag_orb_data orbits;
     dist_5D_data dist5D;
     dist_6D_data dist6D;
+    dist_rho5D_data distrho5D;
+    dist_rho6D_data distrho6D;
 
     int offload_dist5D_index;
     int offload_dist6D_index;
+    int offload_distrho5D_index;
+    int offload_distrho6D_index;
 } diag_data;
 
 /** @brief Struct for storing particle specific data needed exclusively for diagnostics

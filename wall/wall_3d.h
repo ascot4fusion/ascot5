@@ -6,45 +6,54 @@
 #define WALL_3D_H
 #include "../ascot5.h"
 
+/* Default depth of octree struct */
+#define WALL_OCTREE_DEPTH 7
+
+/**
+ * @brief 3D wall offload data
+ */
 typedef struct {
-    int n;
-    real xmin;
-    real xmax;
-    real xgrid;
-    real ymin;
-    real ymax;
-    real ygrid;
-    real zmin;
-    real zmax;
-    real zgrid;
-    int depth;
-    int ngrid;
-    int offload_array_length;
+    int n;                    /**< Number of wall triangles                   */
+    real xmin;                /**< Minimum extend on x-direction [m]          */
+    real xmax;                /**< Maximum extend on x-direction [m]          */
+    real xgrid;               /**< Octree cell width in x-direction [m]       */
+    real ymin;                /**< Minimum extend on y-direction [m]          */
+    real ymax;                /**< Maximum extend on y-direction [m]          */
+    real ygrid;               /**< Octree cell width in y-direction [m]       */
+    real zmin;                /**< Minimum extend on z-direction [m]          */
+    real zmax;                /**< Maximum extend on z-direction [m]          */
+    real zgrid;               /**< Octree cell width in z-direction [m]       */
+    int depth;                /**< Depth of the octree                        */
+    int ngrid;                /**< Number of cells computational volume is
+                                   divided to in each direction.
+                                   ngrid = 2^(depth-1)                        */
+    int offload_array_length; /**< Length of the offload array                */
 } wall_3d_offload_data;
 
 /**
  * @brief 3D wall data parameters
  */
 typedef struct {
-    int n;          /**< number of points in the wall polygon */
-    real xmin;
-    real xmax;
-    real xgrid;
-    real ymin;
-    real ymax;
-    real ygrid;
-    real zmin;
-    real zmax;
-    real zgrid;
-    int depth;
-    int ngrid;
-    real* wall_tris;
-    int tree_array_size;
-    int* tree_array;
+    int n;               /**< Number of wall triangles                        */
+    real xmin;           /**< Minimum extend on x-direction [m]               */
+    real xmax;           /**< Maximum extend on x-direction [m]               */
+    real xgrid;          /**< Octree cell width in x-direction [m]            */
+    real ymin;           /**< Minimum extend on y-direction [m]               */
+    real ymax;           /**< Maximum extend on y-direction [m]               */
+    real ygrid;          /**<  Octree cell width in y-direction [m]           */
+    real zmin;           /**< Minimum extend on z-direction [m]               */
+    real zmax;           /**< Maximum extend on z-direction [m]               */
+    real zgrid;          /**< Octree cell width in z-direction [m]            */
+    int depth;           /**< Depth of the octree                             */
+    int ngrid;           /**< Number of cells computational volume is divided
+                              to in each direction. ngrid = 2^(depth-1)       */
+    real* wall_tris;     /**<  */
+    int tree_array_size; /**<  */
+    int* tree_array;     /**<  */
 } wall_3d_data;
 
-void wall_3d_init_offload(wall_3d_offload_data* offload_data,
-                          real** offload_array);
+int wall_3d_init_offload(wall_3d_offload_data* offload_data,
+                         real** offload_array);
 void wall_3d_free_offload(wall_3d_offload_data* offload_data,
                           real** offload_array);
 

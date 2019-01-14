@@ -1,7 +1,10 @@
 /**
  * @file E_field.h
  * @brief Header file for E_field.c
-*/
+ *
+ * Contains a list declaring all E_field_types, and declaration of
+ * E_field_offload_data and E_field_data structs.
+ */
 #ifndef E_FIELD_H
 #define E_FIELD_H
 
@@ -13,39 +16,85 @@
 #include "Efield/E_1DS.h"
 #include "Efield/E_3D.h"
 
+/**
+ * @brief Electric field types
+ *
+ * Electric field types are used in the electric field interface (E_field.c) to
+ * direct function calls to correct electric field instances. Each electric
+ * field instance must have a corresponding type.
+ */
 typedef enum E_field_type {
+<<<<<<< HEAD
     E_field_type_TC, E_field_type_1D, E_field_type_1DS, E_field_type_3D
+=======
+    E_field_type_TC, /**< Trivial Cartesian electric field */
+    E_field_type_1D, /**< Radial electric field */
+    E_field_type_1DS /**< Spline-interpolated radial electric field */
+
+>>>>>>> develop
 } E_field_type;
 
+/**
+ * @brief Electric field offload data
+ *
+ * This struct holds data necessary for offloading. The struct is initialized in
+ * E_field_init_offload().
+ *
+ * The intended usage is that only single offload data is used at the time, and
+ * the type of the data is declared with the "type" field.
+ */
 typedef struct {
+<<<<<<< HEAD
     E_field_type type;
     E_TC_offload_data ETC;
     E_1D_offload_data E1D;
     E_1DS_offload_data E1DS;
     E_3D_offload_data E3D;
     int offload_array_length;
+=======
+    E_field_type type;        /**< Electric field type wrapped by this struct */
+    E_TC_offload_data ETC;    /**< TC field or NULL if not active             */
+    E_1D_offload_data E1D;    /**< 1D field or NULL if not active             */
+    E_1DS_offload_data E1DS;  /**< 1DS field or NULL if not active            */
+    int offload_array_length; /**< Allocated offload array length             */
+>>>>>>> develop
 } E_field_offload_data;
 
+/**
+ * @brief Electric field simulation data
+ *
+ * This struct holds data necessary for simulation. The struct is initialized
+ * from the E_field_offload_data in E_field_init().
+ *
+ * The intended usage is that only single E_field_data is used at the time, and
+ * the type of the data is declared with the "type" field.
+ */
 typedef struct {
+<<<<<<< HEAD
     E_field_type type;
     E_TC_data ETC;
     E_1D_data E1D;
     E_1DS_data E1DS;
     E_3D_data E3D;
+=======
+    E_field_type type; /**< Electric field type wrapped by this struct */
+    E_TC_data ETC;     /**< TC field or NULL if not active             */
+    E_1D_data E1D;     /**< 1D field or NULL if not active             */
+    E_1DS_data E1DS;   /**< 1DS field or NULL if not active            */
+>>>>>>> develop
 } E_field_data;
 
-void E_field_init_offload(E_field_offload_data* offload_data,
-                          real** offload_array);
+int E_field_init_offload(E_field_offload_data* offload_data,
+                         real** offload_array);
 void E_field_free_offload(E_field_offload_data* offload_data,
                           real** offload_array);
 
 #pragma omp declare target
 int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
-		 real* offload_array);
+                 real* offload_array);
 #pragma omp declare simd uniform(Edata, Bdata)
-a5err E_field_eval_E(real* E, real r, real phi, real z, E_field_data* Edata, B_field_data* Bdata);
-#pragma omp declare simd uniform(Edata, Bdata)
-a5err E_field_eval_E_SIMD(int i, real E[3][NSIMD], real r, real phi, real z, E_field_data* Edata, B_field_data* Bdata);
+a5err E_field_eval_E(real* E, real r, real phi, real z,
+                     E_field_data* Edata, B_field_data* Bdata);
 #pragma omp end declare target
 
 #endif
