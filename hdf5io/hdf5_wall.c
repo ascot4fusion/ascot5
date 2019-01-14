@@ -66,14 +66,6 @@ int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data,
     return err;
 }
 
-<<<<<<< HEAD
-    /* Read number of wall elements */
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/wall/wall_2D-XXXXXXXXXX/n", qid, path), &(offload_data->n));
-<<<<<<< HEAD
-=======
-    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
->>>>>>> develop
-=======
 /**
  * @brief Read 2D wall data from HDF5 file
  *
@@ -92,7 +84,6 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
     /* Read number of wall elements and allocate offload array */
     if( hdf5_read_int(WPATH "n", &(offload_data->n),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
->>>>>>> develop
     offload_data->offload_array_length = 2 * offload_data->n;
     *offload_array = (real*) malloc(2 * offload_data->n * sizeof(real));
 
@@ -100,18 +91,6 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
      * readable */
     real* r = &(*offload_array)[0];
     real* z = &(*offload_array)[offload_data->n];
-<<<<<<< HEAD
-        
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_2D-XXXXXXXXXX/r", qid, path), r);
-<<<<<<< HEAD
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_2D-XXXXXXXXXX/z", qid, path), z);
-=======
-    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_2D-XXXXXXXXXX/z", qid, path), z);
-    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
->>>>>>> develop
-=======
->>>>>>> develop
 
     /* Read the wall polygon */
     if( hdf5_read_double(WPATH "r", r,
@@ -132,43 +111,6 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
  *
  * @return Zero if reading succeeded
  */
-<<<<<<< HEAD
-void hdf5_wall_init_offload_3D(hid_t f, wall_3d_offload_data* offload_data, real** offload_array, char* qid) {    
-    herr_t err;
-    char path[256];
-
-    /* Read number of wall elements */
-    err = H5LTread_dataset_int(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/n", qid, path), &(offload_data->n));
-<<<<<<< HEAD
-=======
-    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
->>>>>>> develop
-
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/min_x", qid, path), &(offload_data->xmin));
-    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/max_x", qid, path), &(offload_data->xmax));
-    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/min_y", qid, path), &(offload_data->ymin));
-    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/max_y", qid, path), &(offload_data->ymax));
-    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/min_z", qid, path), &(offload_data->zmin));
-    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/max_z", qid, path), &(offload_data->zmax));
-    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
-
-    /* Add a little bit of padding so we don't need to worry about triangles
-       clipping the edges */
-    offload_data->xmin -= 0.1;
-    offload_data->xmax += 0.1;
-    offload_data->ymin -= 0.1;
-    offload_data->ymax += 0.1;
-    offload_data->zmin -= 0.1;
-    offload_data->zmax += 0.1;
-
-    /* Allocate space for x1x2x3, y1y2y3, z1z2z3 for each element */
-
-=======
 int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
                       real** offload_array, char* qid) {
     #undef WPATH
@@ -178,7 +120,6 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
        store n 3D triangles */
     if( hdf5_read_int(WPATH "n", &(offload_data->n),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
->>>>>>> develop
     offload_data->offload_array_length = 9 * offload_data->n;
     *offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
 
@@ -199,20 +140,6 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
     real* x1x2x3 = (real*)malloc(3 * offload_data->n * sizeof(real));
     real* y1y2y3 = (real*)malloc(3 * offload_data->n * sizeof(real));
     real* z1z2z3 = (real*)malloc(3 * offload_data->n * sizeof(real));
-<<<<<<< HEAD
-    
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/x1x2x3", qid, path), x1x2x3);
-<<<<<<< HEAD
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/y1y2y3", qid, path), y1y2y3);
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/z1z2z3", qid, path), z1z2z3);
-=======
-    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/y1y2y3", qid, path), y1y2y3);
-    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/wall/wall_3D-XXXXXXXXXX/z1z2z3", qid, path), z1z2z3);
-    if(err) {printf("Error while reading HDF5 data at %s line %d", __FILE__, __LINE__); return;}
->>>>>>> develop
-=======
 
     if( hdf5_read_double(WPATH "x1x2x3", x1x2x3,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
@@ -220,7 +147,6 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(WPATH "z1z2z3", z1z2z3,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
->>>>>>> develop
 
     /* The data in the offload array is to be in the format
      *  [x1 y1 z1 x2 y2 z2 x3 y3 z3; ... ]

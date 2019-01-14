@@ -1,10 +1,6 @@
 /**
  * @file hdf5_efield.c
-<<<<<<< HEAD
- * @brief HDF5 format 1d/3d radial electric field input
-=======
  * @brief Module for reading electric field data from HDF5 file
->>>>>>> develop
  *
  * Electric field  must be read by calling hdf5_efield_init_offload() contained
  * in this module. This module contains reading routines for all electric field
@@ -21,71 +17,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <hdf5.h>
-<<<<<<< HEAD
-<<<<<<< HEAD
-#include "hdf5_hl.h" //should I include ascot.5h and math.h?
-#include "../math.h"
-=======
-#include "hdf5_hl.h"
-#include "../ascot5.h"
-#include "../print.h"
->>>>>>> develop
-=======
 #include <hdf5_hl.h>
 #include "../ascot5.h"
->>>>>>> develop
 #include "../E_field.h"
 #include "../Efield/E_TC.h"
 #include "../Efield/E_1D.h"
 #include "../Efield/E_1DS.h"
+#include "../Efield/E_3D.h"
 #include "../print.h"
 #include "hdf5_helpers.h"
 #include "hdf5_efield.h"
 
-<<<<<<< HEAD
-/**
- * @brief Initialize electric field offload data from h5 file
- *
- * This function reads the electric field data from the input.h5 file,
- * fills the offload struct with parameters and
- * allocates and fills the offload array.
- *
- * @param offload_data pointer to offload data struct
- * @param offload_array pointer to pointer to offload array
- */
-
-int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data, real** offload_array) {
-    herr_t err;
-
-    #if VERBOSE > 0
-        printf("\nReading electric field input from the HDF5 file...\n");
-    #endif
-    
-    err = hdf5_find_group(f, "/efield/");
-    if(err < 0) {
-        return -1;
-    }
-    
-    char active[11];
-    err = H5LTget_attribute_string(f, "/efield/", "active", active);
-    if(err < 0) {
-        return -1;
-    }
-    active[10] = '\0';
-
-    #if VERBOSE > 0
-        printf("Active qid is %s\n", active);
-    #endif
-
-    /* Go through all different input types and see which one the active qid corresponds to.
-     * Then read this input. */
-=======
 int hdf5_efield_read_1D(hid_t f, E_1D_offload_data* offload_data,
                         real** offload_array, char* qid);
 int hdf5_efield_read_1DS(hid_t f, E_1DS_offload_data* offload_data,
                          real** offload_array, char* qid);
 int hdf5_efield_read_TC(hid_t f, E_TC_offload_data* offload_data,
                         real** offload_array, char* qid);
+int hdf5_efield_read_3D(hid_t f, E_3D_offload_data* offload_data,
+                        real** offload_array, char* qid);
+
 /**
  * @brief Read electric field data from HDF5 file
  *
@@ -109,7 +60,6 @@ int hdf5_efield_read_TC(hid_t f, E_TC_offload_data* offload_data,
  */
 int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data,
                              real** offload_array, char* qid) {
->>>>>>> develop
     char path[256];
     int err = 1;
 
@@ -134,7 +84,7 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data,
         err = E_field_init_offload(offload_data, offload_array);
     }
 
-<<<<<<< HEAD
+    /*
     hdf5_generate_qid_path("/efield/E_3D-XXXXXXXXXX", active, path);
     if(hdf5_find_group(f, path) == 0) {
       hdf5_efield_init_offload_3D(f, &(offload_data->E3D), offload_array, active);
@@ -153,13 +103,8 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data,
 
         #endif
       return 1;
-    }
-
-
-    return -1;
-=======
+      }*/ // we must change this to hdf5_gen_path
     return err;
->>>>>>> develop
 }
 
 /**
@@ -253,21 +198,6 @@ int hdf5_efield_read_1DS(hid_t f, E_1DS_offload_data* offload_data,
     return 0;
 }
 
-<<<<<<< HEAD
-void hdf5_efield_init_offload_TC(hid_t f, E_TC_offload_data* offload_data, real** offload_array, char* qid) {
-    
-    herr_t err;
-    char path[256];
-    
-    *offload_array = (real*) malloc(3*sizeof(real));
-    err = H5LTread_dataset_double(f, hdf5_generate_qid_path("/efield/E_TC-XXXXXXXXXX/Exyz", qid, path), &(*offload_array)[0]);
-<<<<<<< HEAD
-=======
-    if(err) {print_err("Error: Failed to read dataset."); return;}
-    
->>>>>>> develop
-    offload_data->offload_array_length = 3;
-=======
 /**
  * @brief Read magnetic field data of type E_TC
  *
@@ -298,11 +228,10 @@ int hdf5_efield_read_TC(hid_t f, E_TC_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     return 0;
->>>>>>> develop
 }
 
 
-void hdf5_efield_init_offload_3D(hid_t f, E_3D_offload_data* offload_data, real** offload_array, char* qid) {
+void hdf5_efield_init_offload_3D(hid_t f, E_3D_offload_data* offload_data, real** offload_array, char* qid) { //consider changing this to hdf5_efield_read_3D
 herr_t err;
 char path[256];
 

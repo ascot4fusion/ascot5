@@ -29,13 +29,9 @@
 #include "../Bfield/B_3DS.h"
 #include "../Bfield/B_3DS_T.h"
 #include "../Bfield/B_STS.h"
-<<<<<<< HEAD
-##include "hdf5_helpers.h"
-=======
 #include "../Bfield/B_TC.h"
 #include "../Bfield/B_GS.h"
 #include "hdf5_helpers.h"
->>>>>>> develop
 #include "hdf5_bfield.h"
 
 int hdf5_bfield_read_2DS(hid_t f, B_2DS_offload_data* offload_data,
@@ -106,8 +102,7 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data,
                                    offload_array, qid);
     }
 
-<<<<<<< HEAD
-    hdf5_generate_qid_path("/bfield/B_3DS_T-XXXXXXXXXX", active, path);
+	  /**	  hdf5_generate_qid_path("/bfield/B_3DS_T-XXXXXXXXXX", active, path); //This must be cha
     if(hdf5_find_group(f, path) == 0) {
       hdf5_bfield_init_offload_3DS_T(f, &(offload_data->B3DST), offload_array, active);
       offload_data->type = B_field_type_3DS_T;
@@ -131,15 +126,10 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data,
       printf("with parameters:\n");
         #endif
       return 1;
-    }
+      }*/ //This must be changed to the new functions
 
-    hdf5_generate_qid_path("/bfield/B_STS-XXXXXXXXXX", active, path);
-    if(hdf5_find_group(f, path) == 0) {
-        hdf5_bfield_init_offload_STS(f, &(offload_data->BSTS), offload_array, active);
-=======
     hdf5_gen_path("/bfield/B_STS-XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
->>>>>>> develop
         offload_data->type = B_field_type_STS;
         err = hdf5_bfield_read_STS(f, &(offload_data->BSTS),
                                    offload_array, qid);
