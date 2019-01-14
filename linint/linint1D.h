@@ -11,9 +11,6 @@
 #define LININT1D_H
 #include "../ascot5.h"
 
-<<<<<<< HEAD
-int linint1D_eval(real* val, real x0, real y0, real x1, real y1, real x);
-=======
 /**
  * @brief 1D linear interpolation struct
  */
@@ -34,4 +31,3 @@ integer linint1D_eval(real* f, linint1D_data* str, real r);
 void linint1D_free(linint1D_data* str);
 #pragma omp end declare target
 #endif
->>>>>>> develop
