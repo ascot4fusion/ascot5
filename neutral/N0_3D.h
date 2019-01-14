@@ -2,7 +2,6 @@
  * @file N0_3D.h
  * @brief Header file for N0_3D.c
  */
-
 #ifndef N0_3D_H
 #define N0_3D_H
 #include "../ascot5.h"

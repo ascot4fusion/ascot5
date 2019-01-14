@@ -2,7 +2,6 @@
  * @file N0_3D.c
  * @brief 3D neutral density with trilinear interpolation
  */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -56,15 +55,6 @@ void N0_3D_free_offload(N0_3D_offload_data* offload_data,
 }
 
 /**
-<<<<<<< HEAD
- * @brief Initialize neutral density data struct on target 
- *
- * This function copies the neutral density parameters from the offload struct
- * to the struct on target and sets the magnetic field data pointers to
- * correct offsets in the offload array.
- *
- * @param nData pointer to data struct on target
-=======
  * @brief Initialize neutral data on target
  *
  * This function copies parameters from the offload struct to the struct on
@@ -75,7 +65,6 @@ void N0_3D_free_offload(N0_3D_offload_data* offload_data,
  * when the offload struct was initialized.
  *
  * @param ndata pointer to data struct on target
->>>>>>> develop
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  */
