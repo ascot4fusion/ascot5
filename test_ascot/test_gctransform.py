@@ -119,6 +119,7 @@ def init():
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 2e-10
+    odict["ORBITWRITE_MAXPOINTS"]      = 75002
 
     opt.settypes(odict)
     options.write_hdf5(test_ascot.testfn, odict, desc="GCTRANSFORM_GC")
@@ -143,6 +144,7 @@ def init():
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 2e-10
+    odict["ORBITWRITE_MAXPOINTS"]      = 75002
 
     opt.settypes(odict)
     options.write_hdf5(test_ascot.testfn, odict, desc="GCTRANSFORM_GO")
@@ -164,6 +166,7 @@ def init():
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 2e-10
+    odict["ORBITWRITE_MAXPOINTS"]      = 75002
 
     opt.settypes(odict)
     options.write_hdf5(test_ascot.testfn, odict, desc="GCTRANSFORM_GO2GC")
@@ -310,13 +313,13 @@ def run():
     weight = 1       * np.ones(ids.shape)
     mass   = m_a_AMU * np.ones(ids.shape)
     charge = 2       * np.ones(ids.shape)
-    time   = np.flip(a5["GCTRANSFORM_GO"]["fo"]["time"])[0:Nmrk*dt:dt]
-    R      = np.flip(a5["GCTRANSFORM_GO"]["fo"]["R"])[0:Nmrk*dt:dt]
-    phi    = np.flip(a5["GCTRANSFORM_GO"]["fo"]["phi"])[0:Nmrk*dt:dt]
-    z      = np.flip(a5["GCTRANSFORM_GO"]["fo"]["z"])[0:Nmrk*dt:dt]
-    vR     = np.flip(a5["GCTRANSFORM_GO"]["fo"]["v_R"])[0:Nmrk*dt:dt]
-    vphi   = np.flip(a5["GCTRANSFORM_GO"]["fo"]["v_phi"])[0:Nmrk*dt:dt]
-    vz     = np.flip(a5["GCTRANSFORM_GO"]["fo"]["v_z"])[0:Nmrk*dt:dt]
+    time   = a5["GCTRANSFORM_GO"]["orbits"]["time"][0:Nmrk*dt:dt]
+    R      = a5["GCTRANSFORM_GO"]["orbits"]["R"][0:Nmrk*dt:dt]
+    phi    = a5["GCTRANSFORM_GO"]["orbits"]["phi"][0:Nmrk*dt:dt]
+    z      = a5["GCTRANSFORM_GO"]["orbits"]["z"][0:Nmrk*dt:dt]
+    vR     = a5["GCTRANSFORM_GO"]["orbits"]["v_R"][0:Nmrk*dt:dt]
+    vphi   = a5["GCTRANSFORM_GO"]["orbits"]["v_phi"][0:Nmrk*dt:dt]
+    vz     = a5["GCTRANSFORM_GO"]["orbits"]["v_z"][0:Nmrk*dt:dt]
     prt.write_hdf5(test_ascot.testfn, Nmrk, ids, mass, charge,
                    R, phi, z, vR, vphi, vz,
                    weight, time, desc="GCTRANSFORM_ZEROTH")
@@ -366,37 +369,37 @@ def check():
     # Make plots, scale the plotted quantities.
     # For some reason GCTRANSFORM_GO2GC GCTRANSFORM_GC are not equal in length
     # and we need to have [:-1]?
-    h1.plot(a5["GCTRANSFORM_GO"]["fo"]["time"]*1e6,
-            ( a5["GCTRANSFORM_GO"]["fo"]["mu"]/e
-              - a5["GCTRANSFORM_GC"]["gc"]["mu"] ) / 1e4 )
-    h1.plot(a5["GCTRANSFORM_GO2GC"]["gc"]["time"]*1e6,
-            ( a5["GCTRANSFORM_GO2GC"]["gc"]["mu"]
-              - a5["GCTRANSFORM_GC"]["gc"]["mu"][:-1] ) / 1e4 )
+    #h1.plot(a5["GCTRANSFORM_GO"]["orbits"]["time"]*1e6, # TODO Enable this once mu can be read again
+    #        ( a5["GCTRANSFORM_GO"]["orbits"]["mu"]/e
+    #          - a5["GCTRANSFORM_GC"]["orbits"]["mu"] ) / 1e4 )
+    h1.plot(a5["GCTRANSFORM_GO2GC"]["orbits"]["time"]*1e6,
+            ( a5["GCTRANSFORM_GO2GC"]["orbits"]["mu"]
+              - a5["GCTRANSFORM_GC"]["orbits"]["mu"][:-1] ) / 1e4 )
 
-    h2.plot(a5["GCTRANSFORM_GO"]["fo"]["time"]*1e6,
-            ( a5["GCTRANSFORM_GO"]["fo"]["vpar"]
-              - a5["GCTRANSFORM_GC"]["gc"]["vpar"] ) / 1e5 )
-    h2.plot(a5["GCTRANSFORM_GO2GC"]["gc"]["time"]*1e6,
-            ( a5["GCTRANSFORM_GO2GC"]["gc"]["vpar"]
-              - a5["GCTRANSFORM_GC"]["gc"]["vpar"][:-1] ) / 1e5 )
+    h2.plot(a5["GCTRANSFORM_GO"]["orbits"]["time"]*1e6,
+            ( a5["GCTRANSFORM_GO"]["orbits"]["vpar"]
+              - a5["GCTRANSFORM_GC"]["orbits"]["vpar"] ) / 1e5 )
+    h2.plot(a5["GCTRANSFORM_GO2GC"]["orbits"]["time"]*1e6,
+            ( a5["GCTRANSFORM_GO2GC"]["orbits"]["vpar"]
+              - a5["GCTRANSFORM_GC"]["orbits"]["vpar"][:-1] ) / 1e5 )
 
-    h3.plot(a5["GCTRANSFORM_GO"]["fo"]["R"],
-            a5["GCTRANSFORM_GO"]["fo"]["z"])
-    h3.plot(a5["GCTRANSFORM_GO2GC"]["gc"]["R"],
-            a5["GCTRANSFORM_GO2GC"]["gc"]["z"])
-    h3.plot(a5["GCTRANSFORM_GC"]["gc"]["R"],
-            a5["GCTRANSFORM_GC"]["gc"]["z"])
+    h3.plot(a5["GCTRANSFORM_GO"]["orbits"]["R"],
+            a5["GCTRANSFORM_GO"]["orbits"]["z"])
+    h3.plot(a5["GCTRANSFORM_GO2GC"]["orbits"]["R"],
+            a5["GCTRANSFORM_GO2GC"]["orbits"]["z"])
+    h3.plot(a5["GCTRANSFORM_GC"]["orbits"]["R"],
+            a5["GCTRANSFORM_GC"]["orbits"]["z"])
 
     for i in range(0, nrep):
-        id0 = a5["GCTRANSFORM_ZEROTH"]["gc"]["id"]
-        id1 = a5["GCTRANSFORM_FIRST"]["gc"]["id"]
-        h4.plot(a5["GCTRANSFORM_ZEROTH"]["gc"]["R"][id0==i+1],
-                a5["GCTRANSFORM_ZEROTH"]["gc"]["z"][id0==i+1], 'darkorchid')
-        h4.plot(a5["GCTRANSFORM_FIRST"]["gc"]["R"][id1==i+1],
-                a5["GCTRANSFORM_FIRST"]["gc"]["z"][id1==i+1], 'darkgreen')
+        id0 = a5["GCTRANSFORM_ZEROTH"]["orbits"]["id"]
+        id1 = a5["GCTRANSFORM_FIRST"]["orbits"]["id"]
+        h4.plot(a5["GCTRANSFORM_ZEROTH"]["orbits"]["R"][id0==i+1],
+                a5["GCTRANSFORM_ZEROTH"]["orbits"]["z"][id0==i+1], 'darkorchid')
+        h4.plot(a5["GCTRANSFORM_FIRST"]["orbits"]["R"][id1==i+1],
+                a5["GCTRANSFORM_FIRST"]["orbits"]["z"][id1==i+1], 'darkgreen')
 
-    h4.plot(a5["GCTRANSFORM_GO2GC"]["gc"]["R"],
-            a5["GCTRANSFORM_GO2GC"]["gc"]["z"], 'red')
+    h4.plot(a5["GCTRANSFORM_GO2GC"]["orbits"]["R"],
+            a5["GCTRANSFORM_GO2GC"]["orbits"]["z"], 'red')
 
     #**************************************************************************#
     #*                 Finalize and print and show the figure                  #
