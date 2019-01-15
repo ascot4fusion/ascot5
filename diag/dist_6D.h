@@ -81,8 +81,6 @@ typedef struct {
     real* histogram;  /**< pointer to start of histogram array */
 } dist_6D_data;
 
-void dist_6D_sum(int start, int stop, real* array1, real* array2);
-
 #pragma omp declare target
 void dist_6D_init(dist_6D_data* dist_data, dist_6D_offload_data* offload_data,
                   real* offload_array);

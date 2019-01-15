@@ -286,11 +286,3 @@ void dist_rho6D_update_gc(dist_rho6D_data* dist, particle_simd_gc* p_f,
         }
     }
 }
-
-void dist_rho6D_sum(int start, int stop, real* array1, real* array2) {
-    int i;
-
-    for(i=start; i < stop; i++) {
-        array1[i] += array2[i];
-    }
-}

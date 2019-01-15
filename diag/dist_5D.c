@@ -267,10 +267,3 @@ void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
         }
     }
 }
-
-
-void dist_5D_sum(int start, int stop, real* array1, real* array2) {
-    for(int i = start; i < stop; i++) {
-        array1[i] += array2[i];
-    }
-}
