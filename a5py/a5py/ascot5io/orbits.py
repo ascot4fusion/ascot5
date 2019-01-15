@@ -10,7 +10,7 @@ import scipy.constants as constants
 from a5py.ascot5io.ascot5data import AscotData
 import a5py.postprocessing.markereval as meval
 
-def read_hdf5(fn, qid, name):
+def read_hdf5(fn, qid):
     """
     Read orbits.
 
@@ -29,7 +29,7 @@ def read_hdf5(fn, qid, name):
     """
 
     with h5py.File(fn,"r") as f:
-        orbits = f["/results/run-"+qid+"/orbits/" + name]
+        orbits = f["/results/run-"+qid+"/orbits"]
 
         out = {}
 
@@ -95,11 +95,11 @@ def write_hdf5(fn, orbits, qid):
 class Orbits(AscotData):
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid(), self.get_type())
+        return read_hdf5(self._file, self.get_qid())
 
     def __getitem__(self, key):
         mode = self.get_type()
         h5 = self._open()
         item = meval.evaluate(h5, key, mode)
-        self._close(h5)
+        self._close()
         return item
