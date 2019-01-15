@@ -168,16 +168,16 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     /* See which diagnostics are active */
     diag_offload_data* diag = &sim->diag_offload_data;
 
-    if( hdf5_read_double(OPTPATH "ENABLE_5D_DIST", &tempfloat,
+    if( hdf5_read_double(OPTPATH "ENABLE_DIST_5D", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     diag->dist5D_collect = (int)tempfloat;
-    if( hdf5_read_double(OPTPATH "ENABLE_6D_DIST", &tempfloat,
+    if( hdf5_read_double(OPTPATH "ENABLE_DIST_6D", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     diag->dist6D_collect = (int)tempfloat;
-    if( hdf5_read_double(OPTPATH "ENABLE_rho5D_DIST", &tempfloat,
+    if( hdf5_read_double(OPTPATH "ENABLE_DIST_rho5D", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     diag->distrho5D_collect = (int)tempfloat;
-    if( hdf5_read_double(OPTPATH "ENABLE_rho6D_DIST", &tempfloat,
+    if( hdf5_read_double(OPTPATH "ENABLE_DIST_rho6D", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     diag->distrho6D_collect = (int)tempfloat;
     if( hdf5_read_double(OPTPATH "ENABLE_ORBITWRITE", &tempfloat,

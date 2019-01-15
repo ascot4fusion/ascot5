@@ -210,7 +210,7 @@ class opt():
     # - t   time
     # - q   charge
     #
-    ENABLE_5D_DIST = 1
+    ENABLE_DIST_5D = 1
 
 
     ## Collect distribution histogram in [R, phi, z, vR, vphi, vz, t, q]
@@ -225,7 +225,7 @@ class opt():
     # - t    time
     # - q    charge
     #
-    ENABLE_6D_DIST = 0
+    ENABLE_DIST_6D = 0
 
 
     ## Collect distribution histogram in [rho, pol, phi, vpa, vpe, t, q]
@@ -240,8 +240,7 @@ class opt():
     # - t    time
     # - q    charge
     #
-    ENABLE_rho5D_DIST = 1
-
+    ENABLE_DIST_rho5D = 1
 
 
     ## Collect distribution histogram in [rho, pol, phi, vR, vphi, vz, t, q]
@@ -257,7 +256,7 @@ class opt():
     # - t    time
     # - q    charge
     #
-    ENABLE_rho6D_DIST = 0
+    ENABLE_DIST_rho6D = 0
 
 
     ## Minimum bin edge for major R coordinate [m]

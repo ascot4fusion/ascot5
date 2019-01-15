@@ -83,11 +83,11 @@ def init():
     odict = opt.generateopt()
     test_ascot.clean_opt(odict)
 
-    odict["ENDCOND_SIMTIMELIM"]              = 1
-    odict["ENDCOND_MAX_SIM_TIME"]            = simtime_th
-    odict["ENABLE_ORBIT_FOLLOWING"]          = 1
-    odict["ENABLE_COULOMB_COLLISIONS"]       = 1
-    odict["ENABLE_R_phi_z_vpa_vpe_t_q_DIST"] = 1
+    odict["ENDCOND_SIMTIMELIM"]        = 1
+    odict["ENDCOND_MAX_SIM_TIME"]      = simtime_th
+    odict["ENABLE_ORBIT_FOLLOWING"]    = 1
+    odict["ENABLE_COULOMB_COLLISIONS"] = 1
+    odict["ENABLE_DIST_5D"]            = 1
 
     odict["DIST_MIN_R"]    = 4
     odict["DIST_MAX_R"]    = 10
@@ -144,7 +144,7 @@ def init():
     odict["ENDCOND_MIN_ENERGY_TIMES_THERMAL"] = 0
     odict["ENABLE_ORBIT_FOLLOWING"]           = 1
     odict["ENABLE_COULOMB_COLLISIONS"]        = 1
-    odict["ENABLE_R_phi_z_vpa_vpe_t_q_DIST"]  = 1
+    odict["ENABLE_DIST_5D"]                   = 1
 
     odict["DIST_MIN_R"]    = 4
     odict["DIST_MAX_R"]    = 10
