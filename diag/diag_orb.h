@@ -1,6 +1,8 @@
 /**
- * @file orbit_write.h
- * @brief Functions to write particle and guiding center information.
+ * @file diag_orb.h
+ * @brief Header file for diag_orb.c.
+ *
+ * This file also contains definitions for orbit diagnostics data structures.
  */
 #ifndef DIAG_ORB_H
 #define DIAG_ORB_H
@@ -9,131 +11,92 @@
 #include "../particle.h"
 
 #define DIAG_ORB_POINCARE 0
-#define DIAG_ORB_ORBIT 1
-#define DIAG_ORB_WRITELAST 2
+#define DIAG_ORB_INTERVAL 1
 #define DIAG_ORB_MAXPOINCARES 30
 
+#define DIAG_ORB_FOFIELDS     15
+#define DIAG_ORB_GCFIELDS     15
+#define DIAG_ORB_MLFIELDS     10
+#define DIAG_ORB_HYBRIDFIELDS 18
+
+/**
+ * @brief Orbit diagnostics offload data struct.
+ */
 typedef struct{
-    integer id;
-    real time;
-    real r;
-    real phi;
-    real z;
-    real rdot;
-    real phidot;
-    real zdot;
-    real weight;
-    real charge;
-    real mass;
-    real rho;
-    real pol;
-    real B_r;
-    real B_phi;
-    real B_z;
-
-} diag_orb_dat_fo;
-
-typedef struct{
-    integer id;
-    real time;
-    real r;
-    real phi;
-    real z;
-    real vpar;
-    real mu;
-    real theta;
-    real weight;
-    real charge;
-    real mass;
-    real rho;
-    real pol;
-    real B_r;
-    real B_phi;
-    real B_z;
-
-} diag_orb_dat_gc;
-
-typedef struct{
-    integer id;
-    real time;
-    real r;
-    real phi;
-    real z;
-    real weight;
-    real rho;
-    real pol;
-    real B_r;
-    real B_phi;
-    real B_z;
-
-} diag_orb_dat_ml;
-
-typedef enum diag_orb_dat_type {
-    diag_orb_type_fo, diag_orb_type_gc, diag_orb_type_ml
-} diag_orb_dat_type;
-
-
-typedef struct diag_orb_dat {
-    union {
-        diag_orb_dat_fo fo;
-        diag_orb_dat_gc gc;
-        diag_orb_dat_ml ml;
-    };
-
-    struct diag_orb_dat* prev;
-    struct diag_orb_dat* next;
-
-    int poincareId;
-} diag_orb_dat;
-
-
-typedef struct{
-
-    /* Options */
-    real writeInterval;
-    int mode;
-    int ntoroidalplots;
-    real toroidalangles[DIAG_ORB_MAXPOINCARES];
-    int npoloidalplots;
-    real poloidalangles[DIAG_ORB_MAXPOINCARES];
-    int writeNlast;
+    int record_mode;    /**< Defines what fields are initialized           */
+    int mode;           /**< Defines condition for recording markers       */
+    int Npnt;           /**< Maximum number of points to keep recorded     */
+    int Nmrk;           /**< Number of markers to record                   */
+    int Nfld;           /**< Number of fields the record contains          */
+    real writeInterval; /**< Interval at which markers are recorded        */
+    int ntoroidalplots; /**< Number of toroidal Poincare planes            */
+    int npoloidalplots; /**< Number of toroidal Poincare planes            */
+    real toroidalangles[DIAG_ORB_MAXPOINCARES]; /**< Toroidal plane angles */
+    real poloidalangles[DIAG_ORB_MAXPOINCARES]; /**< Poloidal plane angles */
 
 }diag_orb_offload_data;
 
+/**
+ * @brief Orbit diagnostics data struct.
+ *
+ * The pointers are asssigned to the offload array but only those pointers
+ * are used which corresponds to the simulation mode (e.g. GC simulation).
+ *
+ * The marker orbit data are stored in maxpoints length chunks in the
+ * offload array. The chuncks are in no particular order. Once chunk is
+ * filled and the marker is still recording, new points replace the old
+ * ones from the start.
+ */
 typedef struct{
 
-    /* Data storage */
-    diag_orb_dat* writelist;
-    int size;
-    diag_orb_dat_type type;
+    real* id;     /**< Marker ID                                            */
+    real* time;   /**< Marker time [s]                                      */
+    real* r;      /**< Marker R coordinate [m]                              */
+    real* phi;    /**< Marker phi coordinate [rad]                          */
+    real* z;      /**< Marker z coordiante [m]                              */
+    real* rdot;   /**< Particle dR/dt [m/s]                                 */
+    real* phidot; /**< Particle dphi/dt [rad]                               */
+    real* zdot;   /**< Particle dz/dt [m/s]                                 */
+    real* vpar;   /**< Guiding center parallel velocity [m/s]               */
+    real* mu;     /**< Guiding center magnetic moment [J/T]                 */
+    real* theta;  /**< Guiding center gyroangle [rad]                       */
+    real* weight; /**< Marker weight [1]                                    */
+    real* charge; /**< Marker charge [e]                                    */
+    real* rho;    /**< Normalized poloidal flux at marker position [1]      */
+    real* pol;    /**< Marker poloidal angle [rad]                          */
+    real* B_r;    /**< Magnetic field R component at marker position [T]    */
+    real* B_phi;  /**< Magnetic field phi component at marker position [T]  */
+    real* B_z;    /**< Magnetic field z component at marker position [T]    */
+    real* pncrid; /**< Id for the poincare plot a point corresponds to      */
 
-    /* Options */
-    real writeInterval;
-    int mode;
-    int ntoroidalplots;
-    real toroidalangles[DIAG_ORB_MAXPOINCARES];
-    int npoloidalplots;
-    real poloidalangles[DIAG_ORB_MAXPOINCARES];
-    int writeNlast;
+    integer* mrk_pnt;     /**< Index of the last recorded point             */
+    real* mrk_recorded;   /**< Last time (in seconds) a marker was updated  */
+
+    int mode;           /**< Defines condition for recording markers        */
+    int Npnt;           /**< Maximum number of points to keep recorded      */
+    int Nmrk;           /**< Number of markers to record                    */
+    real writeInterval; /**< Interval at which markers are recorded         */
+    int ntoroidalplots; /**< Number of toroidal Poincare planes             */
+    int npoloidalplots; /**< Number of toroidal Poincare planes             */
+    real toroidalangles[DIAG_ORB_MAXPOINCARES]; /**< Toroidal plane angles  */
+    real poloidalangles[DIAG_ORB_MAXPOINCARES]; /**< Poloidal plane angles  */
 
 }diag_orb_data;
 
 #pragma omp declare target
+void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
+                   real* offload_array);
 
-void diag_orb_init_offload(diag_orb_offload_data* data);
+void diag_orb_free(diag_orb_data* data);
 
-void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data);
+void diag_orb_update_fo(diag_orb_data* data,
+                        particle_simd_fo* p_f, particle_simd_fo* p_i);
 
-void diag_orb_update_fo(integer* particleId, real* prevWriteTime, int* nextN, diag_orb_dat** Nlist,
-                        diag_orb_data* data, particle_simd_fo* p_f, particle_simd_fo* p_i);
+void diag_orb_update_gc(diag_orb_data* data,
+                        particle_simd_gc* p_f, particle_simd_gc* p_i);
 
-void diag_orb_update_gc(integer* particleId, real* prevWriteTime, int* nextN, diag_orb_dat** Nlist,
-                        diag_orb_data* data, particle_simd_gc* p_f, particle_simd_gc* p_i);
-
-void diag_orb_update_ml(integer* particleId, real* prevWriteTime, int* nextN, diag_orb_dat** Nlist,
-                        diag_orb_data* data, particle_simd_ml* p_f, particle_simd_ml* p_i);
-
-void diag_orb_clean(diag_orb_data* data);
+void diag_orb_update_ml(diag_orb_data* data,
+                        particle_simd_ml* p_f, particle_simd_ml* p_i);
 #pragma omp end declare target
 
 #endif

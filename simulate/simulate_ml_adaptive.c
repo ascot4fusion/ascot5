@@ -67,11 +67,6 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
     particle_simd_ml p;  // This array holds current states
     particle_simd_ml p0; // This array stores previous states
 
-    // This is diagnostic specific data which is declared
-    // here to make it thread safe
-    diag_storage* diag_strg = NULL;
-    diag_storage_aquire(&sim->diag_data, &diag_strg);
-
     for(i=0; i< NSIMD; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
@@ -91,17 +86,17 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 
     cputime_last = A5_WTIME;
 
-/* MAIN SIMULATION LOOP
- * - Store current state
- * - Integrate motion due to bacgkround EM-field (orbit-following)
- * - Check whether time step was accepted
- *   - NO:  revert to initial state and ignore the end of the loop
- *          (except CPU_TIME_MAX end condition if this is implemented)
- *   - YES: update particle time, clean redundant Wiener processes, and proceed
- * - Check for end condition(s)
- * - Update diagnostics
- * - Check for end condition(s)
- * */
+    /* MAIN SIMULATION LOOP
+     * - Store current state
+     * - Integrate motion due to bacgkround EM-field (orbit-following)
+     * - Check whether time step was accepted
+     *   - NO:  revert to initial state and ignore the end of the loop
+     *          (except CPU_TIME_MAX end condition if this is implemented)
+     *   - YES: update particle time, clean redundant Wiener processes, and proceed
+     * - Check for end condition(s)
+     * - Update diagnostics
+     * - Check for end condition(s)
+     */
     while(n_running > 0) {
         #pragma omp simd
         for(i = 0; i < NSIMD; i++) {
@@ -117,6 +112,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
             p0.weight[i]     = p.weight[i];
             p0.pol[i]        = p.pol[i];
 
+            p0.id[i]         = p.id[i];
             p0.running[i]    = p.running[i];
             p0.endcond[i]    = p.endcond[i];
             p0.walltile[i]   = p.walltile[i];
@@ -142,7 +138,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
             hnext[i] = DUMMY_TIMESTEP_VAL;
         }
 
-        /*************************** Physics ***********************************************/
+        /*************************** Physics **********************************/
 
         /* Cash-Karp method for orbit-following */
         if(sim->enable_orbfol) {
@@ -157,7 +153,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
             }
         }
 
-        /***********************************************************************************/
+        /**********************************************************************/
 
 
         cputime = A5_WTIME;
@@ -242,7 +238,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
         endcond_check_ml(&p, &p0, sim);
 
         /* Update diagnostics */
-        diag_update_ml(&sim->diag_data, diag_strg, &p, &p0);
+        diag_update_ml(&sim->diag_data, &p, &p0);
 
         /* Update running particles */
         n_running = particle_cycle_ml(pq, &p, &sim->B_data, cycle);
@@ -257,9 +253,6 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
     }
 
     /* All markers simulated! */
-
-    /* Clean diagnostics struct */
-    diag_storage_discard(diag_strg);
 
 }
 

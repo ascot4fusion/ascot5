@@ -27,8 +27,8 @@ int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_offload_data* dist,
                                 char* qid);
 int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
                                 char* qid);
-int hdf5_options_read_orbits(hid_t file, diag_orb_offload_data* orbits,
-                             char* qid);
+int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
+                              char* qid);
 
 /**
  * @brief Read options and diagnostics settings from HDF5 file
@@ -49,21 +49,27 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     #undef OPTPATH
     #define OPTPATH "/options/opt-XXXXXXXXXX/"
 
-    if( hdf5_read_int(OPTPATH "SIM_MODE", &sim->sim_mode,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "ENABLE_ADAPTIVE", &sim->enable_ada,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "RECORD_GO_AS_GC", &sim->record_GOasGC,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    real tempfloat; // For reading float data that is converted to int.
+
+    if( hdf5_read_double(OPTPATH "SIM_MODE", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->sim_mode = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_ADAPTIVE", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->enable_ada = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "RECORD_GO_AS_GC", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->record_GOasGC = (int)tempfloat;
 
 
-    if( hdf5_read_int(OPTPATH "FIXEDSTEP_USE_USERDEFINED", &sim->fix_usrdef_use,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "FIXEDSTEP_USE_USERDEFINED", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->fix_usrdef_use = (int)tempfloat;
     if( hdf5_read_double(OPTPATH "FIXEDSTEP_USERDEFINED", &sim->fix_usrdef_val,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "FIXEDSTEP_NSTEPS_PER_GYROTIME",
-                      &sim->fix_stepsPerGO,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "FIXEDSTEP_NSTEPS_PER_GYROTIME", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->fix_stepsPerGO = (int)tempfloat;
 
 
     if( hdf5_read_double(OPTPATH "ADAPTIVE_TOL_ORBIT", &sim->ada_tol_orbfol,
@@ -76,46 +82,53 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
                          file, qid, __FILE__, __LINE__) ) {return 1;}
 
 
-    if( hdf5_read_int(OPTPATH "ENABLE_ORBIT_FOLLOWING", &sim->enable_orbfol,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "ENABLE_COULOMB_COLLISIONS",
-                      &sim->enable_clmbcol,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DISABLE_FIRSTORDER_GCTRANS",
-                      &sim->disable_gctransform,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DISABLE_ENERGY_CCOLL",
-                      &sim->disable_energyccoll,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DISABLE_PITCH_CCOLL",
-                      &sim->disable_pitchccoll,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DISABLE_GCDIFF_CCOLL",
-                      &sim->disable_gcdiffccoll,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "ENABLE_ORBIT_FOLLOWING", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->enable_orbfol = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_COULOMB_COLLISIONS", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->enable_clmbcol = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "DISABLE_FIRSTORDER_GCTRANS", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->disable_gctransform = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "DISABLE_ENERGY_CCOLL", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->disable_energyccoll = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "DISABLE_PITCH_CCOLL", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->disable_pitchccoll = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "DISABLE_GCDIFF_CCOLL", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->disable_gcdiffccoll = (int)tempfloat;
 
     int ec;
     sim->endcond_active = 0;
 
-    if( hdf5_read_int(OPTPATH "ENDCOND_SIMTIMELIM", &ec,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "ENDCOND_SIMTIMELIM", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    ec = (int)tempfloat;
     sim->endcond_active = sim->endcond_active | endcond_tmax * (ec > 0);
-    if( hdf5_read_int(OPTPATH "ENDCOND_CPUTIMELIM", &ec,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "ENDCOND_CPUTIMELIM", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    ec = (int)tempfloat;
     sim->endcond_active = sim->endcond_active | endcond_cpumax * (ec > 0);
-    if( hdf5_read_int(OPTPATH "ENDCOND_RHOLIM", &ec,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "ENDCOND_RHOLIM", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    ec = (int)tempfloat;
     sim->endcond_active = sim->endcond_active | endcond_rhomin * (ec > 0);
     sim->endcond_active = sim->endcond_active | endcond_rhomax * (ec > 0);
-    if( hdf5_read_int(OPTPATH "ENDCOND_ENERGYLIM", &ec,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "ENDCOND_ENERGYLIM", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    ec = (int)tempfloat;
     sim->endcond_active = sim->endcond_active | endcond_emin * (ec > 0);
     sim->endcond_active = sim->endcond_active | endcond_therm * (ec > 0);
-    if( hdf5_read_int(OPTPATH "ENDCOND_WALLHIT", &ec,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "ENDCOND_WALLHIT", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    ec = (int)tempfloat;
     sim->endcond_active = sim->endcond_active | endcond_wall * (ec > 0);
-    if( hdf5_read_int(OPTPATH "ENDCOND_MAXORBS", &ec,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "ENDCOND_MAXORBS", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    ec = (int)tempfloat;
     sim->endcond_active = sim->endcond_active | endcond_polmax * (ec > 0);
     sim->endcond_active = sim->endcond_active | endcond_tormax * (ec > 0);
 
@@ -141,32 +154,35 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     sim->endcond_minEkin *= CONST_E; // eV -> J
 
     int temp;
-    if( hdf5_read_int(OPTPATH "ENDCOND_MAX_POLOIDALORBS", &temp,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "ENDCOND_MAX_POLOIDALORBS", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    temp = (int)tempfloat;
     sim->endcond_maxPolOrb = temp * 2 *CONST_PI;
 
-    if( hdf5_read_int(OPTPATH "ENDCOND_MAX_TOROIDALORBS", &temp,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "ENDCOND_MAX_TOROIDALORBS", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    temp = (int)tempfloat;
     sim->endcond_maxTorOrb = temp * 2 *CONST_PI;
 
 
     /* See which diagnostics are active */
     diag_offload_data* diag = &sim->diag_offload_data;
 
-    if( hdf5_read_int(OPTPATH "ENABLE_R_phi_z_vpa_vpe_t_q_DIST",
-                      &diag->dist5D_collect,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "ENABLE_R_phi_z_vR_vphi_vz_t_q_DIST",
-                      &diag->dist6D_collect,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "ENABLE_rho_pol_phi_vpa_vpe_t_q_DIST",
-                      &diag->distrho5D_collect,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "ENABLE_rho_pol_phi_vR_vphi_vz_t_q_DIST",
-                      &diag->distrho6D_collect,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "ENABLE_ORBITWRITE", &diag->orb_collect,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "ENABLE_5D_DIST", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diag->dist5D_collect = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_6D_DIST", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diag->dist6D_collect = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_rho5D_DIST", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diag->distrho5D_collect = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_rho6D_DIST", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diag->distrho6D_collect = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_ORBITWRITE", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diag->diagorb_collect = (int)tempfloat;
 
     /* Read individual diagnostics data */
     if(diag->dist5D_collect) {
@@ -189,8 +205,14 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
             return 1;
         }
     }
-    if(diag->orb_collect) {
-        if( hdf5_options_read_orbits(file, &diag->orbits, qid) ) {
+    if(diag->diagorb_collect) {
+        diag->diagorb.record_mode = sim->sim_mode;
+        if(sim->record_GOasGC && (sim->sim_mode == simulate_mode_fo ||
+                                  sim->sim_mode == simulate_mode_hybrid) ) {
+            diag->diagorb.record_mode = simulate_mode_gc;
+        }
+
+        if( hdf5_options_read_diagorb(file, &diag->diagorb, qid) ) {
             return 1;
         }
     }
@@ -212,19 +234,23 @@ int hdf5_options_read_dist5D(hid_t file, dist_5D_offload_data* dist,
     #undef OPTPATH
     #define OPTPATH "/options/opt-XXXXXXXXXX/"
 
+    real tempfloat;
+
     if( hdf5_read_double(OPTPATH "DIST_MIN_R", &dist->min_r,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_R", &dist->max_r,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_R", &dist->n_r,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_R", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_r = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_phi", &dist->min_phi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_phi", &dist->max_phi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_phi", &dist->n_phi,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_phi", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_phi = (int)tempfloat;
     dist->min_phi = math_deg2rad(dist->min_phi);
     dist->max_phi = math_deg2rad(dist->max_phi);
 
@@ -232,39 +258,41 @@ int hdf5_options_read_dist5D(hid_t file, dist_5D_offload_data* dist,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_z", &dist->max_z,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_z", &dist->n_z,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_z", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_z = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_vpa", &dist->min_vpara,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_vpa", &dist->max_vpara,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_vpa", &dist->n_vpara,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_vpa", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_vpara = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_vpe", &dist->min_vperp,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_vpe", &dist->max_vperp,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_vpe", &dist->n_vperp,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_vpe", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_vperp = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_t", &dist->min_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_t", &dist->max_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_t", &dist->n_time,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_t", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_time = (int)tempfloat;
 
-    int charge;
-    if( hdf5_read_int(OPTPATH "DIST_MIN_q", &charge,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_q", &dist->min_q,
                       file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->min_q = (real)charge;
-    if( hdf5_read_int(OPTPATH "DIST_MAX_q", &charge,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_q", &dist->max_q,
                       file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->max_q = (real)charge;
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_q", &dist->n_q,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_q", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_q = (int)tempfloat;
 
     return 0;
 }
@@ -283,19 +311,23 @@ int hdf5_options_read_dist6D(hid_t file, dist_6D_offload_data* dist,
     #undef OPTPATH
     #define OPTPATH "/options/opt-XXXXXXXXXX/"
 
+    real tempfloat;
+
     if( hdf5_read_double(OPTPATH "DIST_MIN_R", &dist->min_r,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_R", &dist->max_r,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_R", &dist->n_r,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_R", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_r = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_phi", &dist->min_phi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_phi", &dist->max_phi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_phi", &dist->n_phi,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_phi", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_phi = (int)tempfloat;
     dist->min_phi = math_deg2rad(dist->min_phi);
     dist->max_phi = math_deg2rad(dist->max_phi);
 
@@ -303,46 +335,49 @@ int hdf5_options_read_dist6D(hid_t file, dist_6D_offload_data* dist,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_z", &dist->max_z,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_z", &dist->n_z,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_z", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_z = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_vR", &dist->min_vr,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_vR", &dist->max_vr,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_vR", &dist->n_vr,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_vR", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_vr = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_vphi", &dist->min_vphi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_vphi", &dist->max_vphi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_vphi", &dist->n_vphi,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_vphi", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_vphi = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_vz", &dist->min_vz,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_vz", &dist->max_vz,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_vz", &dist->n_vz,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_vz", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_vz = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_t", &dist->min_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_t", &dist->max_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_t", &dist->n_time,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_t", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_time = (int)tempfloat;
 
-    int charge;
-    if( hdf5_read_int(OPTPATH "DIST_MIN_q", &charge,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_q", &dist->min_q,
                       file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->min_q = (real)charge;
-    if( hdf5_read_int(OPTPATH "DIST_MAX_q", &charge,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_q", &dist->max_q,
                       file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->max_q = (real)charge;
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_q", &dist->n_q,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_q", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_q = (int)tempfloat;
 
     return 0;
 }
@@ -361,19 +396,23 @@ int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_offload_data* dist,
     #undef OPTPATH
     #define OPTPATH "/options/opt-XXXXXXXXXX/"
 
+    real tempfloat;
+
     if( hdf5_read_double(OPTPATH "DIST_MIN_rho", &dist->min_rho,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_rho", &dist->max_rho,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_rho", &dist->n_rho,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_rho", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_rho = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_phi", &dist->min_phi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_phi", &dist->max_phi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_phi", &dist->n_phi,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_phi", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_phi = (int)tempfloat;
     dist->min_phi = math_deg2rad(dist->min_phi);
     dist->max_phi = math_deg2rad(dist->max_phi);
 
@@ -381,8 +420,9 @@ int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_offload_data* dist,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_pol", &dist->max_pol,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_pol", &dist->n_pol,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_pol", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_pol = (int)tempfloat;
     dist->min_pol = math_deg2rad(dist->min_pol);
     dist->max_pol = math_deg2rad(dist->max_pol);
 
@@ -390,32 +430,33 @@ int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_offload_data* dist,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_vpa", &dist->max_vpara,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_vpa", &dist->n_vpara,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_vpa", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_vpara = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_vpe", &dist->min_vperp,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_vpe", &dist->max_vperp,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_vpe", &dist->n_vperp,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_vpe", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_vperp = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_t", &dist->min_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_t", &dist->max_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_t", &dist->n_time,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_t", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_time = (int)tempfloat;
 
-    int charge;
-    if( hdf5_read_int(OPTPATH "DIST_MIN_q", &charge,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_q", &dist->min_q,
                       file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->min_q = (real)charge;
-    if( hdf5_read_int(OPTPATH "DIST_MAX_q", &charge,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_q", &dist->max_q,
                       file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->max_q = (real)charge;
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_q", &dist->n_q,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_q", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_q = (int)tempfloat;
 
     return 0;
 }
@@ -434,19 +475,23 @@ int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
     #undef OPTPATH
     #define OPTPATH "/options/opt-XXXXXXXXXX/"
 
+    real tempfloat;
+
     if( hdf5_read_double(OPTPATH "DIST_MIN_rho", &dist->min_rho,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_rho", &dist->max_rho,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_rho", &dist->n_rho,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_rho", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_rho = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_phi", &dist->min_phi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_phi", &dist->max_phi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_phi", &dist->n_phi,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_phi", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_phi = (int)tempfloat;
     dist->min_phi = math_deg2rad(dist->min_phi);
     dist->max_phi = math_deg2rad(dist->max_phi);
 
@@ -454,8 +499,9 @@ int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_pol", &dist->max_pol,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_pol", &dist->n_pol,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_pol", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_pol = (int)tempfloat;
     dist->min_pol = math_deg2rad(dist->min_pol);
     dist->max_pol = math_deg2rad(dist->max_pol);
 
@@ -463,39 +509,41 @@ int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_vR", &dist->max_vr,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_vR", &dist->n_vr,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_vR", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_vr = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_vphi", &dist->min_vphi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_vphi", &dist->max_vphi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_vphi", &dist->n_vphi,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_vphi", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_vphi = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_vz", &dist->min_vz,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_vz", &dist->max_vz,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_vz", &dist->n_vz,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_vz", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_vz = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_t", &dist->min_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_t", &dist->max_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_t", &dist->n_time,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_t", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_time = (int)tempfloat;
 
-    int charge;
-    if( hdf5_read_int(OPTPATH "DIST_MIN_q", &charge,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_q", &dist->min_q,
                       file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->min_q = (real)charge;
-    if( hdf5_read_int(OPTPATH "DIST_MAX_q", &charge,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_q", &dist->max_q,
                       file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->max_q = (real)charge;
-    if( hdf5_read_int(OPTPATH "DIST_NBIN_q", &dist->n_q,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_q", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    dist->n_q = (int)tempfloat;
 
     return 0;
 }
@@ -509,38 +557,54 @@ int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
  *
  * @return zero if reading succeeded.
  */
-int hdf5_options_read_orbits(hid_t file, diag_orb_offload_data* orbits,
-                             char* qid) {
+int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
+                              char* qid) {
     #undef OPTPATH
     #define OPTPATH "/options/opt-XXXXXXXXXX/"
 
-    if( hdf5_read_int(OPTPATH "ORBITWRITE_MODE",
-                      &(orbits->mode),
+    real tempfloat;
+
+    if( hdf5_read_double(OPTPATH "ORBITWRITE_MODE", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diagorb->mode = (int)tempfloat;
+
+    if( hdf5_read_double(OPTPATH "ORBITWRITE_MAXPOINTS", &tempfloat,
                       file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "ORBITWRITE_NTOROIDALPLOTS",
-                      &(orbits->ntoroidalplots),
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    diagorb->Npnt = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ORBITWRITE_INTERVAL",
+                         &(diagorb->writeInterval),
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+
+    for(int i=0; i < DIAG_ORB_MAXPOINCARES; i++) {
+        diagorb->toroidalangles[i] = 361;
+        diagorb->poloidalangles[i] = 361;
+    }
+
     if( hdf5_read_double(OPTPATH "ORBITWRITE_TOROIDALANGLES",
-                         (orbits->toroidalangles),
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "ORBITWRITE_NPOLOIDALPLOTS",
-                      &(orbits->npoloidalplots),
+                         (diagorb->toroidalangles),
                       file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "ORBITWRITE_POLOIDALANGLES",
-                         (orbits->poloidalangles),
+                         (diagorb->poloidalangles),
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "ORBITWRITE_INTERVAL",
-                         &(orbits->writeInterval),
-                         file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(OPTPATH "ORBITWRITE_LASTNPOINTS",
-                      &(orbits->writeNlast),
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
 
-    for(int i=0; i<orbits->ntoroidalplots; i++) {
-        orbits->toroidalangles[i] = orbits->toroidalangles[i]*CONST_PI/180;
+    for(int i=0; i < DIAG_ORB_MAXPOINCARES; i++) {
+        if(diagorb->toroidalangles[i] == 361){
+            diagorb->ntoroidalplots = i;
+            break;
+        }
     }
-    for(int i=0; i<orbits->npoloidalplots; i++) {
-        orbits->poloidalangles[i] = orbits->poloidalangles[i]*CONST_PI/180;
+    for(int i=0; i < DIAG_ORB_MAXPOINCARES; i++) {
+        if(diagorb->poloidalangles[i] == 361){
+            diagorb->npoloidalplots = i;
+            break;
+        }
+    }
+
+    for(int i=0; i < diagorb->ntoroidalplots; i++) {
+        diagorb->toroidalangles[i] = diagorb->toroidalangles[i]*CONST_PI/180;
+    }
+    for(int i=0; i < diagorb->npoloidalplots; i++) {
+        diagorb->poloidalangles[i] = diagorb->poloidalangles[i]*CONST_PI/180;
     }
 
     return 0;

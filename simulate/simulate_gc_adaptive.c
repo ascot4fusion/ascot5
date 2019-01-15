@@ -1,5 +1,4 @@
 /**
- * @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
  * @file simulate_gc_adaptive.c
  * @brief Simulate guiding centers using adaptive time-step
  */
@@ -77,11 +76,6 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     particle_simd_gc p;  // This array holds current states
     particle_simd_gc p0; // This array stores previous states
 
-    // This is diagnostic specific data which is declared
-    // here to make it thread safe
-    diag_storage* diag_strg;
-    diag_storage_aquire(&sim->diag_data, &diag_strg);
-
     for(int i=0; i< NSIMD; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
@@ -104,17 +98,17 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
     cputime_last = A5_WTIME;
 
-/* MAIN SIMULATION LOOP
- * - Store current state
- * - Integrate motion due to bacgkround EM-field (orbit-following)
- * - Integrate scattering due to Coulomb collisions
- * - Check whether time step was accepted
- *   - NO:  revert to initial state and ignore the end of the loop
- *          (except CPU_TIME_MAX end condition if this is implemented)
- *   - YES: update particle time, clean redundant Wiener processes, and proceed
- * - Check for end condition(s)
- * - Update diagnostics
- */
+    /* MAIN SIMULATION LOOP
+     * - Store current state
+     * - Integrate motion due to bacgkround EM-field (orbit-following)
+     * - Integrate scattering due to Coulomb collisions
+     * - Check whether time step was accepted
+     *   - NO:  revert to initial state and ignore the end of the loop
+     *          (except CPU_TIME_MAX end condition if this is implemented)
+     *   - YES: update particle time, clean redundant Wiener processes, and proceed
+     * - Check for end condition(s)
+     * - Update diagnostics
+     */
     while(n_running > 0) {
         #pragma omp simd
         for(i = 0; i < NSIMD; i++) {
@@ -137,6 +131,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             p0.mass[i]       = p.mass[i];
             p0.charge[i]     = p.charge[i];
 
+            p0.id[i]         = p.id[i];
             p0.running[i]    = p.running[i];
             p0.endcond[i]    = p.endcond[i];
             p0.walltile[i]   = p.walltile[i];
@@ -162,7 +157,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             hnext[i]    = DUMMY_TIMESTEP_VAL;
         }
 
-        /*************************** Physics ***********************************************/
+        /*************************** Physics **********************************/
 
         /* Cash-Karp method for orbit-following */
         if(sim->enable_orbfol) {
@@ -194,7 +189,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             }
         }
 
-        /***********************************************************************************/
+        /**********************************************************************/
 
         cputime = A5_WTIME;
         #pragma omp simd
@@ -293,7 +288,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         endcond_check_gc(&p, &p0, sim);
 
         /* Update diagnostics */
-        diag_update_gc(&sim->diag_data, diag_strg, &p, &p0);
+        diag_update_gc(&sim->diag_data, &p, &p0);
 
         /* Update number of running particles */
         n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
@@ -312,12 +307,6 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     }
 
     /* All markers simulated! */
-
-    /* Clean diagnostics struct and Wiener arrays */
-    diag_storage_discard(diag_strg);
-    for(int i=0; i < NSIMD; i++) {
-        free(wienarr[i]);
-    }
 
 }
 

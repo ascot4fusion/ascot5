@@ -57,11 +57,6 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
     particle_simd_fo p;  // This array holds current states
     particle_simd_fo p0; // This array stores previous states
 
-    // This is diagnostic specific data which is declared
-    // here to make it thread safe
-    diag_storage* diag_strg;
-    diag_storage_aquire(&sim->diag_data, &diag_strg);
-
     /* Init dummy markers */
     for(int i=0; i< NSIMD; i++) {
         p.id[i] = -1;
@@ -82,14 +77,14 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 
     cputime_last = A5_WTIME;
 
-/* MAIN SIMULATION LOOP
- * - Store current state
- * - Integrate motion due to background EM-field (orbit-following)
- * - Integrate scattering due to Coulomb collisions
- * - Advance time
- * - Check for end condition(s)
- * - Update diagnostics
- */
+    /* MAIN SIMULATION LOOP
+     * - Store current state
+     * - Integrate motion due to background EM-field (orbit-following)
+     * - Integrate scattering due to Coulomb collisions
+     * - Advance time
+     * - Check for end condition(s)
+     * - Update diagnostics
+     */
     while(n_running > 0) {
 
         /* Store marker states */
@@ -135,7 +130,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
             p0.B_z_dz[i]     = p.B_z_dz[i];
         }
 
-        /*************************** Physics ***********************************************/
+        /*************************** Physics **********************************/
 
         /* Volume preserving algorithm for orbit-following */
         if(sim->enable_orbfol) {
@@ -144,10 +139,11 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
-            mccc_step_fo_fixed(&p, &sim->B_data, &sim->plasma_data, &sim->random_data, sim->coldata, hin);
+            mccc_step_fo_fixed(&p, &sim->B_data, &sim->plasma_data,
+                               &sim->random_data, sim->coldata, hin);
         }
 
-        /***********************************************************************************/
+        /**********************************************************************/
 
 
         /* Update simulation and cpu times */
@@ -167,10 +163,10 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         /* Update diagnostics */
         if(!(sim->record_GOasGC)) {
             /* Record particle coordinates */
-            diag_update_fo(&sim->diag_data, diag_strg, &p, &p0);
+            diag_update_fo(&sim->diag_data, &p, &p0);
         }
         else {
-            /* Instead of particle coordinates we record guiding center coordinates*/
+            /* Instead of particle coordinates we record guiding center */
 
             // Dummy guiding centers
             particle_simd_gc gc_f;
@@ -191,7 +187,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
                     gc_i.running[i] = 0;
                 }
             }
-            diag_update_gc(&sim->diag_data, diag_strg, &gc_f, &gc_i);
+            diag_update_gc(&sim->diag_data, &gc_f, &gc_i);
         }
 
         /* Update running particles */
@@ -207,9 +203,6 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
     }
 
     /* All markers simulated! */
-
-    /* Clean diagnostics struct */
-    diag_storage_discard(diag_strg);
 
 }
 

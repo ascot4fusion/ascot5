@@ -25,6 +25,7 @@
 #include "hdf5io/hdf5_markers.h"
 #include "hdf5io/hdf5_particlestate.h"
 #include "hdf5io/hdf5_dist.h"
+#include "hdf5io/hdf5_orbits.h"
 
 int hdf5_get_active_qid(hid_t f, const char* group, char* qid);
 
@@ -364,6 +365,9 @@ int hdf5_interface_write_state(char* fn, char* state, integer n,
  */
 int hdf5_interface_write_diagnostics(sim_offload_data* sim,
                                      real* diag_offload_array, char* out) {
+
+    print_out(VERBOSE_IO, "\nWriting diagnostics output.\n");
+
     hid_t f = hdf5_open(out);
     if(f < 0) {
         print_err("Error: File not found.\n");
@@ -404,6 +408,20 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
             &diag_offload_array[sim->diag_offload_data.offload_distrho6D_index],
             out, qid);
     }
+
+    if(sim->diag_offload_data.diagorb_collect) {
+        hid_t f = hdf5_open(out);
+        print_out(VERBOSE_IO, "Writing orbit diagnostics.\n");
+
+        int idx = sim->diag_offload_data.offload_diagorb_index;
+        if( hdf5_orbits_write(f, qid, &sim->diag_offload_data.diagorb,
+                              &diag_offload_array[idx]) ) {
+            print_err("Warning: Orbit diagnostics could not be written.\n");
+        }
+        hdf5_close(f);
+    }
+
+    print_out(VERBOSE_IO, "\nDiagnostics output written.\n");
 
     return 0;
 }

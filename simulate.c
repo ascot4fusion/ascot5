@@ -123,7 +123,7 @@ void simulate(int id, int n_particles, particle_state* p,
     wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
     diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
-            diag_offload_array);
+              diag_offload_array);
 
     /**************************************************************************/
     /* 2. Meta data (e.g. random number generator) is initialized.            */
@@ -192,7 +192,6 @@ void simulate(int id, int n_particles, particle_state* p,
             /******************************************************************/
             if(pq.n > 0 && (sim.sim_mode == simulate_mode_gc
                         || sim.sim_mode == simulate_mode_hybrid)) {
-                sim.diag_data.orbits.type = diag_orb_type_gc;
                 if(sim.enable_ada) {
                     #pragma omp parallel
                     simulate_gc_adaptive(&pq, &sim);
@@ -203,18 +202,11 @@ void simulate(int id, int n_particles, particle_state* p,
                 }
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_fo) {
-                if(sim.record_GOasGC) {
-                    sim.diag_data.orbits.type = diag_orb_type_gc;
-                }
-                else {
-                    sim.diag_data.orbits.type = diag_orb_type_fo;
-                }
 
                 #pragma omp parallel
                 simulate_fo_fixed(&pq, &sim);
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_ml) {
-                sim.diag_data.orbits.type = diag_orb_type_ml;
 
                 #pragma omp parallel
                 simulate_ml_adaptive(&pq, &sim);
@@ -283,7 +275,6 @@ void simulate(int id, int n_particles, particle_state* p,
         pq_hybrid.next = 0;
 
         sim.record_GOasGC = 1;//Make sure we don't collect fos in gc diagnostics
-        sim.diag_data.orbits.type = diag_orb_type_gc;
 
         #pragma omp parallel sections num_threads(2)
         {
@@ -313,13 +304,7 @@ void simulate(int id, int n_particles, particle_state* p,
     free(sim.coldata);
     free(pq.p);
     free(pq_hybrid.p);
-
-    // Temporary solution
-#ifndef TARGET
-    hdf5_orbits_write(&sim, sim_offload->hdf5_out, sim_offload->qid);
-#endif
-
-    diag_clean(&sim.diag_data);
+    diag_free(&sim.diag_data);
 
     /**************************************************************************/
     /* 8. Execution returns to host where this function was called.           */
