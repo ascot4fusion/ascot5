@@ -97,7 +97,8 @@ def make_ascot5_slowingdownrun(fn, settings):
             B_GS.write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
                                  N_TFcoils, minor_radius,
                                  ripple_penetration, ripple_strength,
-                                 Rmin, Rmax, nR, zmin, zmax, nz, pmin, pmax, nph)
+                                 Rmin, Rmax, nR, zmin,
+                                 zmax, nz, pmin, pmax, nph)
 
     # Electric field that is zero everywhere
     Exyz = np.array([0, 0, 0])
@@ -156,12 +157,15 @@ def make_ascot5_slowingdownrun(fn, settings):
     pitch  = 0.999-1.999*rand(ids.shape)
     theta  = 2*np.pi*rand(ids.shape)
 
-    gamma = 1+energy*const["elementary charge"][0]/(const["alpha particle mass"][0] * np.power(const["speed of light in vacuum"][0],2))
+    gamma = 1 + energy * const["elementary charge"][0] \
+            / ( const["alpha particle mass"][0] \
+                * np.power(const["speed of light in vacuum"][0],2) )
     v = np.sqrt(1-1/(gamma*gamma))*const["speed of light in vacuum"][0]
     vR = np.sqrt(1-pitch*pitch)*v
     vphi = pitch*v
     vz = 0*v
-    mrk_prt.write_hdf5(fn, Nmrk, ids, mass, charge, R, phi, z, vR, vphi, vz, weight, time)
+    mrk_prt.write_hdf5(fn, Nmrk, ids, mass, charge, R, phi, z, vR, vphi, vz,
+                       weight, time)
 
     # Set options to null state
     o = opt.generateopt()
@@ -210,10 +214,10 @@ def make_ascot5_slowingdownrun(fn, settings):
     o["ENABLE_COULOMB_COLLISIONS"] = 1
 
     # All distributions on
-    o["ENABLE_R_phi_z_vpa_vpe_t_q_DIST"]        = 1
-    o["ENABLE_R_phi_z_vR_vphi_vz_t_q_DIST"]     = 1
-    o["ENABLE_rho_pol_phi_vpa_vpe_t_q_DIST"]    = 1
-    o["ENABLE_rho_pol_phi_vR_vphi_vz_t_q_DIST"] = 1
+    o["ENABLE_DIST_5D"]    = 1
+    o["ENABLE_DIST_6D"]    = 1
+    o["ENABLE_DIST_rho5D"] = 1
+    o["ENABLE_DIST_rho6D"] = 1
 
     o["DIST_MIN_R"]    = 3.5
     o["DIST_MAX_R"]    = 8.5
@@ -263,8 +267,10 @@ def make_ascot5_slowingdownrun(fn, settings):
     o["DIST_MAX_q"]    = 100
     o["DIST_NBIN_q"]   = 1
 
-    o["ENABLE_ORBITWRITE"] = 0
-    o["ORBITWRITE_MODE"]   = 1
+    o["ENABLE_ORBITWRITE"]    = 1
+    o["ORBITWRITE_MODE"]      = 1
+    o["ORBITWRITE_MAXORBITS"] = 100
+    o["ORBITWRITE_INTERVAL"]  = 0
 
     opt.settypes(o)
     options.write_hdf5(fn, o)
