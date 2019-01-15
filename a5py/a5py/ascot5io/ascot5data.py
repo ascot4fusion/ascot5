@@ -28,13 +28,13 @@ class AscotData():
     def get_desc(self):
         f = self._open()
         val = ascot5file.get_desc(f.file, self._group)
-        self._close(f)
+        self._close()
         return val
 
     def get_date(self):
         f = self._open()
         val = ascot5file.get_date(f.file, self._group)
-        self._close(f)
+        self._close()
         return val
 
     def get_qid(self):

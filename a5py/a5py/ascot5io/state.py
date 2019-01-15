@@ -97,5 +97,5 @@ class State(AscotData):
         mode = "gc"
         h5   = self._open()
         item = meval.evaluate(h5, key, mode)
-        self._close(h5)
+        self._close()
         return item
