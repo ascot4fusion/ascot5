@@ -23,6 +23,7 @@
 #include "Efield/E_1D.h"
 #include "Efield/E_1DS.h"
 #include "Efield/E_3D.h"
+#include "Efield/E_3DS.h"
 
 
 /**
@@ -70,6 +71,12 @@ int E_field_init_offload(E_field_offload_data* offload_data,
 	    offload_data->offload_array_length = 
 	        offload_data->E3D.offload_array_length;
 	    break;
+       case E_field_type_3DS:
+            err = E_3DS_init_offload(&(offload_data->E3DS), offload_array);
+            offload_data->offload_array_length =
+	        offload_data->E3DS.offload_array_length;
+            break;
+
 
         default:
             /* Unregonized input. Produce error. */
@@ -117,6 +124,11 @@ void E_field_free_offload(E_field_offload_data* offload_data,
             E_3D_free_offload(&(offload_data->E3D), offload_array);
 	    break;
 
+        case E_field_type_3DS:
+            E_3DS_free_offload(&(offload_data->E3DS), offload_array);
+            break;
+
+
     }
 }
 
@@ -158,6 +170,10 @@ int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
         case E_field_type_3D:
             E_3D_init(&(Edata->E3D), &(offload_data->E3D), offload_array);
 	    break;
+
+        case E_field_type_3DS:
+            E_3DS_init(&(Edata->E3DS), &(offload_data->E3DS), offload_array);
+            break;
 
         default:
             /* Unregonized input. Produce error. */
@@ -215,6 +231,10 @@ a5err E_field_eval_E(real E[3], real r, real phi, real z, E_field_data* Edata,
         case E_field_type_3D:
 	    err = E_3D_eval_E(E, r, phi, z, &(Edata->E3D), Bdata);
 	    break;
+    
+        case E_field_type_3DS:
+            err = E_3DS_eval_E(E, r, phi, z, &(Edata->E3DS), Bdata);
+            break;
 
         default:
             /* Unregonized input. Produce error. */
