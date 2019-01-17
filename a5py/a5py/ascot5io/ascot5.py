@@ -449,7 +449,7 @@ class _RunNode(_Node):
                 self[key] = State(rungroup[key])
 
             if key == "orbits":
-                self[key] = Orbits(rungroup[key])
+                self[key] = Orbits(rungroup[key], self)
             if key == "dists":
                 for d in rungroup[key]:
                     if d == "R_phi_z_vpa_vpe_t_q":
