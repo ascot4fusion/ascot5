@@ -8,8 +8,8 @@ import h5py
 import random
 import datetime
 import a5py.preprocessing.analyticequilibrium as psifun
-import a5py.ascot5io.B_2D as B_2D
-import a5py.ascot5io.B_3D as B_3D
+import a5py.ascot5io.B_2DS as B_2DS
+import a5py.ascot5io.B_3DS as B_3DS
 
 from . ascot5file import add_group
 
@@ -188,7 +188,7 @@ def write_hdf5_B_2D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
 
     psi1 = 0
 
-    B_2D.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
+    B_2DS.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
                     R0, z0, psiRz, psi0, psi1,
                     Br, Bphi, Bz, desc=desc)
 
@@ -268,7 +268,7 @@ def write_hdf5_B_3D(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     Bphi = np.transpose(Bphi,(0,2,1))
     Bz = np.transpose(Bz,(0,2,1))
 
-    B_3D.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
+    B_3DS.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                     R0, z0, psiRz, psi0, psi1,
                     Br, Bphi, Bz, desc=desc)
 
