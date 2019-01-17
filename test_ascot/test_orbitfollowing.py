@@ -95,6 +95,7 @@ def init():
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 1e-10
+    odict["ORBITWRITE_MAXPOINTS"]      = 50002
 
     opt.settypes(odict)
     options.write_hdf5(test_ascot.testfn, odict, desc="ORBFOL_GO")
@@ -115,6 +116,7 @@ def init():
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 1e-8
+    odict["ORBITWRITE_MAXPOINTS"]      = 502
 
     opt.settypes(odict)
     options.write_hdf5(test_ascot.testfn, odict, desc="ORBFOL_GCF")
@@ -139,6 +141,7 @@ def init():
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 1e-8
+    odict["ORBITWRITE_MAXPOINTS"]      = 502
 
     opt.settypes(odict)
     options.write_hdf5(test_ascot.testfn, odict, desc="ORBFOL_GCA")
@@ -295,7 +298,7 @@ def check():
     #**************************************************************************#
     ORBFOL = {}
     ORBFOL["GO"] = {}
-    orb = a5["ORBFOL_GO"]["fo"].read()
+    orb = a5["ORBFOL_GO"]["orbits"].read()
 
     B = np.sqrt( orb["B_R"] * orb["B_R"] + orb["B_phi"] * orb["B_phi"] +
                  orb["B_z"] * orb["B_z"] )
@@ -348,7 +351,7 @@ def check():
     #*                                                                         #
     #**************************************************************************#
     ORBFOL["GCF"] = {}
-    orb = a5["ORBFOL_GCF"]["gc"].read()
+    orb = a5["ORBFOL_GCF"]["orbits"].read()
 
     B = np.sqrt(np.power(orb["B_R"],2) + np.power(orb["B_phi"],2) +
                 np.power(orb["B_z"],2))
@@ -395,7 +398,7 @@ def check():
     #*                                                                         #
     #**************************************************************************#
     ORBFOL["GCA"] = {}
-    orb = a5["ORBFOL_GCA"]["gc"].read()
+    orb = a5["ORBFOL_GCA"]["orbits"].read()
 
     B = np.sqrt(np.power(orb["B_R"],2) + np.power(orb["B_phi"],2) +
                 np.power(orb["B_z"],2))

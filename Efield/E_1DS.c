@@ -70,7 +70,7 @@ int E_1DS_init_offload(E_1DS_offload_data* offload_data, real** offload_array) {
 
     /* Print some sanity check on data */
     print_out(VERBOSE_IO, "\nRadial electric field (E_1DS)");
-    print_out(VERBOSE, "(n_rho, rho_min, rho_max) = (%d, %le, %le)\n",
+    print_out(VERBOSE_IO, "(n_rho, rho_min, rho_max) = (%d, %le, %le)\n",
               offload_data->n_rho,offload_data->rho_min,
               offload_data->rho_max);
     return err;

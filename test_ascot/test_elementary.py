@@ -78,6 +78,7 @@ def init():
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 1e-11
+    odict["ORBITWRITE_MAXPOINTS"]      = 202
 
     opt.settypes(odict)
     options.write_hdf5(test_ascot.testfn, odict, desc="GYROMOTION")
@@ -98,6 +99,7 @@ def init():
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 1e-11
+    odict["ORBITWRITE_MAXPOINTS"]      = 10002
 
     opt.settypes(odict)
     options.write_hdf5(test_ascot.testfn, odict, desc="EXB_GO")
@@ -119,6 +121,7 @@ def init():
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 1e-9
+    odict["ORBITWRITE_MAXPOINTS"]      = 102
 
     opt.settypes(odict)
     options.write_hdf5(test_ascot.testfn, odict, desc="EXB_GC")
@@ -282,11 +285,11 @@ def check():
     GYROMOTION = {}
     EXB        = {}
     GRADB      = {}
-    GYROMOTION["GO"] = a5["GYROMOTION"]["fo"].read()
-    EXB["GO"]        = a5["EXB_GO"]["fo"].read()
-    EXB["GC"]        = a5["EXB_GC"]["gc"].read()
-    GRADB["GO"]      = a5["GRADB_GO"]["fo"].read()
-    GRADB["GC"]      = a5["GRADB_GC"]["gc"].read()
+    GYROMOTION["GO"] = a5["GYROMOTION"]["orbits"].read()
+    EXB["GO"]        = a5["EXB_GO"]["orbits"].read()
+    EXB["GC"]        = a5["EXB_GC"]["orbits"].read()
+    GRADB["GO"]      = a5["GRADB_GO"]["orbits"].read()
+    GRADB["GC"]      = a5["GRADB_GC"]["orbits"].read()
 
     # Electron energy in Joules
     E = 100e6 * e
@@ -369,7 +372,7 @@ def check():
     vgo1_ExB = ((ygo1[igo0==1] - ygo0[igo0==1]) / (time[igo0==1]))[0]
 
     y          = ygc[igc==1]
-    t          = GRADB["GC"]["time"][igc==1]
+    t          = EXB["GC"]["time"][igc==1]
     vgc1_ExB = (y[-1] - y[0]) / (t[-1] - t[0])
 
     # Plot
@@ -384,7 +387,8 @@ def check():
     #**************************************************************************#
 
     # Analytical values
-    v_gradB = B * gradB * rhog * np.sqrt( 1.0 - xi * xi ) * v / ( 2 * B * B )
+    v_gradB = ( gamma * m_e * (1.0 - xi*xi) * v * v / ( 2 * e * B) ) \
+              * gradB * B / (B*B)
 
     # Numerical values
     ang = GRADB["GO"]["phi"] * np.pi / 180

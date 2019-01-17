@@ -81,7 +81,7 @@ int hdf5_neutral_read_3D(hid_t f, N0_3D_offload_data* offload_data,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(NPATH "r_min", &(offload_data->r_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "r_max", &(offload_data->r_min),
+    if( hdf5_read_double(NPATH "r_max", &(offload_data->r_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(NPATH "phi_min", &(offload_data->phi_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}

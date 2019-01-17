@@ -83,11 +83,11 @@ def init():
     odict = opt.generateopt()
     test_ascot.clean_opt(odict)
 
-    odict["ENDCOND_SIMTIMELIM"]              = 1
-    odict["ENDCOND_MAX_SIM_TIME"]            = simtime_th
-    odict["ENABLE_ORBIT_FOLLOWING"]          = 1
-    odict["ENABLE_COULOMB_COLLISIONS"]       = 1
-    odict["ENABLE_R_phi_z_vpa_vpe_t_q_DIST"] = 1
+    odict["ENDCOND_SIMTIMELIM"]        = 1
+    odict["ENDCOND_MAX_SIM_TIME"]      = simtime_th
+    odict["ENABLE_ORBIT_FOLLOWING"]    = 1
+    odict["ENABLE_COULOMB_COLLISIONS"] = 1
+    odict["ENABLE_DIST_5D"]            = 1
 
     odict["DIST_MIN_R"]    = 4
     odict["DIST_MAX_R"]    = 10
@@ -144,7 +144,7 @@ def init():
     odict["ENDCOND_MIN_ENERGY_TIMES_THERMAL"] = 0
     odict["ENABLE_ORBIT_FOLLOWING"]           = 1
     odict["ENABLE_COULOMB_COLLISIONS"]        = 1
-    odict["ENABLE_R_phi_z_vpa_vpe_t_q_DIST"]  = 1
+    odict["ENABLE_DIST_5D"]                   = 1
 
     odict["DIST_MIN_R"]    = 4
     odict["DIST_MAX_R"]    = 10
@@ -396,30 +396,27 @@ def check():
     THERMAL["Egrid"] = np.linspace( 0,   4e4, 200)
     THERMAL["xigrid"]  = np.linspace(-1,     1, 50)
     SLOWING = {}
-    SLOWING["Egrid"] = np.linspace( 0, 4.0e6, 250)
+    SLOWING["Egrid"] = np.linspace( 1, 4.0e6, 250)
     SLOWING["xigrid"]  = np.linspace(-1,     1, 20)
 
     alphaZ = 2
     clog   = 16
-    v0     = np.sqrt(2*Esd*e / m_a)
-    vgrid  = np.sqrt(2*SLOWING["Egrid"]*e / m_a)
     vth    = np.sqrt(2*Te*e / m_e)
-    vthi   = np.sqrt(2*50*Te*e / m_a)
     vcrit  = vth * np.power( (3.0*np.sqrt(np.pi)/4.0) * (m_e / m_p) , 1/3.0)
+    Ecrit  = 0.5 * m_a * vcrit * vcrit / e
     ts     = 3 * np.sqrt( np.power(2*np.pi * Te * e, 3) / m_e ) * eps0 * eps0 \
              * m_a /( alphaZ * alphaZ * np.power(e, 4) * ne * clog)
 
-    ts *= np.log(v0/vthi)
-
-    heaviside = np.logical_and(vgrid <= v0, vgrid >= vthi)
+    heaviside = np.logical_and(SLOWING["Egrid"] <= Esd,
+                               SLOWING["Egrid"] >= 50*Te)
 
     THERMAL["analytical"]  = 2 * np.sqrt(THERMAL["Egrid"]/np.pi) \
                              * np.power(Te,-3.0/2) \
                              * np.exp(-THERMAL["Egrid"]/Te)
     THERMAL["analytical"] *= (simtime_th/2)
-    SLOWING["analytical"]  = ( 1 / ( np.power(vcrit, 3)+np.power(vgrid, 3) ) ) \
-                              * 3* ts * heaviside \
-                              * (vgrid/ np.log(1+np.power(v0/vcrit,3)) ) * e/m_a
+    SLOWING["analytical"] = heaviside * ts \
+                            / ( ( 1 + np.power(Ecrit/SLOWING["Egrid"], 3.0/2) )\
+                                * 2 * SLOWING["Egrid"] )
 
     #**************************************************************************#
     #*            Evaluate thermal distributions in energy and pitch           #

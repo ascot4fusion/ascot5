@@ -196,11 +196,11 @@ int main(int argc, char** argv) {
 #ifdef TARGET
     real* diag_offload_array_mic0;
     real* diag_offload_array_mic1;
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0, n);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1, n);
 #else
     real* diag_offload_array_host;
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host, n);
 #endif
 
     real diag_offload_array_size = sim.diag_offload_data.offload_array_length

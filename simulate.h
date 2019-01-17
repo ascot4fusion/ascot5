@@ -22,8 +22,6 @@
  * @brief Simulaton modes
  *
  * These enums are used to determine which simulation mode will be executed.
- *
- * @todo Make these real enums.
  */
 enum {
     /** Models markers as particles using particle_simd_fo struct and

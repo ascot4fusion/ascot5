@@ -210,7 +210,7 @@ class opt():
     # - t   time
     # - q   charge
     #
-    ENABLE_R_phi_z_vpa_vpe_t_q_DIST = 1
+    ENABLE_DIST_5D = 1
 
 
     ## Collect distribution histogram in [R, phi, z, vR, vphi, vz, t, q]
@@ -225,7 +225,7 @@ class opt():
     # - t    time
     # - q    charge
     #
-    ENABLE_R_phi_z_vR_vphi_vz_t_q_DIST = 0
+    ENABLE_DIST_6D = 0
 
 
     ## Collect distribution histogram in [rho, pol, phi, vpa, vpe, t, q]
@@ -240,8 +240,7 @@ class opt():
     # - t    time
     # - q    charge
     #
-    ENABLE_rho_pol_phi_vpa_vpe_t_q_DIST = 1
-
+    ENABLE_DIST_rho5D = 1
 
 
     ## Collect distribution histogram in [rho, pol, phi, vR, vphi, vz, t, q]
@@ -257,7 +256,7 @@ class opt():
     # - t    time
     # - q    charge
     #
-    ENABLE_rho_pol_phi_vR_vphi_vz_t_q_DIST = 0
+    ENABLE_DIST_rho6D = 0
 
 
     ## Minimum bin edge for major R coordinate [m]
@@ -374,41 +373,29 @@ class opt():
     # These are only used if opt.opt.ENABLE_ORBITWRITE is active.
     # - 0 When marker crosses a plane (Poincare-plot)
     # - 1 Between given time intervals
-    # - 2 Write the last
     #
     ORBITWRITE_MODE           = 1
 
-
-    ## Number of toroidal plots collected
+    ## Maximum number of points (per marker) to be written
     #
-    # Used when opt.opt.ENABLE_ORBITWRITE = 1 and opt.opt.ORBITWRITE_MODE = 0.
-    # This number must be the same as the number of elements in
-    # opt.opt.ORBITWRITE_TOROIDALANGLES
+    # If this number is exceeded when marker is being simulated, the oldest
+    # points will be replaced as long as the simulation continues. Thus, this
+    # parameter is effectively the number of marker's last positions that are
+    # stored.
     #
-    ORBITWRITE_NTOROIDALPLOTS = 2
+    ORBITWRITE_MAXPOINTS    = 100
 
 
     ## Poloidal angles of the toroidal planes where toroidal plots are collected
     #
     # Used when opt.opt.ENABLE_ORBITWRITE = 1 and opt.opt.ORBITWRITE_MODE = 0.
-    # Number of elements must be equal to opt.opt.ORBITWRITE_NTOROIDALPLOTS.
     #
     ORBITWRITE_TOROIDALANGLES = [0, 180]
-
-
-    ## Number of poloidal plots collected
-    #
-    # Used when opt.opt.ENABLE_ORBITWRITE = 1 and opt.opt.ORBITWRITE_MODE = 0.
-    # This number must be the same as the number of elements in
-    # opt.opt.ORBITWRITE_POLOIDALANGLES
-    #
-    ORBITWRITE_NPOLOIDALPLOTS = 2
 
 
     ## Toroidal angles of the poloidal planes where poloidal plots are collected
     #
     # Used when opt.opt.ENABLE_ORBITWRITE = 1 and opt.opt.ORBITWRITE_MODE = 0.
-    # Number of elements must be equal to opt.opt.ORBITWRITE_NPOLOIDALPLOTS.
     #
     ORBITWRITE_POLOIDALANGLES = [0, 180]
 
@@ -418,13 +405,6 @@ class opt():
     # Used when opt.opt.ENABLE_ORBITWRITE = 1 and opt.opt.ORBITWRITE_MODE = 1.
     #
     ORBITWRITE_INTERVAL       = 1e-9
-
-
-    ## Number of last positions to write
-    #
-    # Used when opt.opt.ENABLE_ORBITWRITE = 1 and opt.opt.ORBITWRITE_MODE = 2.
-    #
-    ORBITWRITE_LASTNPOINTS    = 100
 
 
 def generateopt():
@@ -468,129 +448,6 @@ def settypes(f):
         if type(f[i]) is not np.array:
             f[i] = np.array(f[i])
 
-    ## Simulation mode ##
-    f["SIM_MODE"]        = settype(f["SIM_MODE"],'i4')
-    f["ENABLE_ADAPTIVE"] = settype(f["ENABLE_ADAPTIVE"],'i4')
-    f["RECORD_GO_AS_GC"] = settype(f["RECORD_GO_AS_GC"],'i4')
-
-    ## Fixed time-step specific options ##
-    f["FIXEDSTEP_USE_USERDEFINED"]     = settype(f["FIXEDSTEP_USE_USERDEFINED"],'i4')
-    f["FIXEDSTEP_USERDEFINED"]         = settype(f["FIXEDSTEP_USERDEFINED"],'f8')
-    f["FIXEDSTEP_NSTEPS_PER_GYROTIME"] = settype(f["FIXEDSTEP_NSTEPS_PER_GYROTIME"],'i4')
-
-    ## Adaptive time-step specific options ##
-    f["ADAPTIVE_TOL_ORBIT"] = settype(f["ADAPTIVE_TOL_ORBIT"],'f8')
-    f["ADAPTIVE_TOL_CCOL"]  = settype(f["ADAPTIVE_TOL_CCOL"],'f8')
-    f["ADAPTIVE_MAX_DRHO"]  = settype(f["ADAPTIVE_MAX_DRHO"],'f8')
-    f["ADAPTIVE_MAX_DPHI"]  = settype(f["ADAPTIVE_MAX_DPHI"],'f8')
-
-    ## End conditions ##
-    f["ENDCOND_SIMTIMELIM"] = settype(f["ENDCOND_SIMTIMELIM"],'i4')
-    f["ENDCOND_CPUTIMELIM"] = settype(f["ENDCOND_CPUTIMELIM"],'i4')
-    f["ENDCOND_RHOLIM"]     = settype(f["ENDCOND_RHOLIM"],'i4')
-    f["ENDCOND_ENERGYLIM"]  = settype(f["ENDCOND_ENERGYLIM"],'i4')
-    f["ENDCOND_WALLHIT"]    = settype(f["ENDCOND_WALLHIT"],'i4')
-    f["ENDCOND_MAXORBS"]    = settype(f["ENDCOND_MAXORBS"],'i4')
-
-    f["ENDCOND_MAX_SIM_TIME"]             = settype(f["ENDCOND_MAX_SIM_TIME"],'f8')
-    f["ENDCOND_MAX_CPU_TIME"]             = settype(f["ENDCOND_MAX_CPU_TIME"],'f8')
-    f["ENDCOND_MAX_RHO"]                  = settype(f["ENDCOND_MAX_RHO"],'f8')
-    f["ENDCOND_MIN_RHO"]                  = settype(f["ENDCOND_MIN_RHO"],'f8')
-    f["ENDCOND_MIN_ENERGY"]               = settype(f["ENDCOND_MIN_ENERGY"],'f8')
-    f["ENDCOND_MIN_ENERGY_TIMES_THERMAL"] = settype(f["ENDCOND_MIN_ENERGY_TIMES_THERMAL"],'f8')
-    f["ENDCOND_MAX_TOROIDALORBS"]         = settype(f["ENDCOND_MAX_TOROIDALORBS"],'i4')
-    f["ENDCOND_MAX_POLOIDALORBS"]         = settype(f["ENDCOND_MAX_POLOIDALORBS"],'i4')
-
-    ## Physics ##
-    f["ENABLE_ORBIT_FOLLOWING"]     = settype(f["ENABLE_ORBIT_FOLLOWING"],'i4')
-    f["ENABLE_COULOMB_COLLISIONS"]  = settype(f["ENABLE_COULOMB_COLLISIONS"],'i4')
-    f["DISABLE_FIRSTORDER_GCTRANS"] = settype(f["DISABLE_FIRSTORDER_GCTRANS"],'i4')
-    f["DISABLE_ENERGY_CCOLL"]       = settype(f["DISABLE_ENERGY_CCOLL"],'i4')
-    f["DISABLE_PITCH_CCOLL"]        = settype(f["DISABLE_PITCH_CCOLL"],'i4')
-    f["DISABLE_GCDIFF_CCOLL"]       = settype(f["DISABLE_GCDIFF_CCOLL"],'i4')
-
-    ## Distributions ##
-    f["ENABLE_R_phi_z_vpa_vpe_t_q_DIST"]        = settype(f["ENABLE_R_phi_z_vpa_vpe_t_q_DIST"],'i4')
-
-    f["ENABLE_R_phi_z_vR_vphi_vz_t_q_DIST"]     = settype(f["ENABLE_R_phi_z_vR_vphi_vz_t_q_DIST"],'i4')
-
-    f["ENABLE_rho_pol_phi_vpa_vpe_t_q_DIST"]    = settype(f["ENABLE_rho_pol_phi_vpa_vpe_t_q_DIST"],'i4')
-
-    f["ENABLE_rho_pol_phi_vR_vphi_vz_t_q_DIST"] = settype(f["ENABLE_rho_pol_phi_vR_vphi_vz_t_q_DIST"],'i4')
-
-    f["DIST_MIN_R"]     = settype(f["DIST_MIN_R"],'f8')
-    f["DIST_MAX_R"]     = settype(f["DIST_MAX_R"],'f8')
-    f["DIST_NBIN_R"]    = settype(f["DIST_NBIN_R"],'i4')
-
-    f["DIST_MIN_phi"]   = settype(f["DIST_MIN_phi"],'f8')
-    f["DIST_MAX_phi"]   = settype(f["DIST_MAX_phi"],'f8')
-    f["DIST_NBIN_phi"]  = settype(f["DIST_NBIN_phi"],'i4')
-
-    f["DIST_MIN_z"]     = settype(f["DIST_MIN_z"],'f8')
-    f["DIST_MAX_z"]     = settype(f["DIST_MAX_z"],'f8')
-    f["DIST_NBIN_z"]    = settype(f["DIST_NBIN_z"],'i4')
-
-    f["DIST_MIN_rho"]   = settype(f["DIST_MIN_rho"],'f8')
-    f["DIST_MAX_rho"]   = settype(f["DIST_MAX_rho"],'f8')
-    f["DIST_NBIN_rho"]  = settype(f["DIST_NBIN_rho"],'i4')
-
-    f["DIST_MIN_pol"]   = settype(f["DIST_MIN_pol"],'f8')
-    f["DIST_MAX_pol"]   = settype(f["DIST_MAX_pol"],'f8')
-    f["DIST_NBIN_pol"]  = settype(f["DIST_NBIN_pol"],'i4')
-
-    f["DIST_MIN_vpa"]   = settype(f["DIST_MIN_vpa"],'f8')
-    f["DIST_MAX_vpa"]   = settype(f["DIST_MAX_vpa"],'f8')
-    f["DIST_NBIN_vpa"]  = settype(f["DIST_NBIN_vpa"],'i4')
-
-    f["DIST_MIN_vpe"]   = settype(f["DIST_MIN_vpe"],'f8')
-    f["DIST_MAX_vpe"]   = settype(f["DIST_MAX_vpe"],'f8')
-    f["DIST_NBIN_vpe"]  = settype(f["DIST_NBIN_vpe"],'i4')
-
-    f["DIST_MIN_t"]     = settype(f["DIST_MIN_t"],'f8')
-    f["DIST_MAX_t"]     = settype(f["DIST_MAX_t"],'f8')
-    f["DIST_NBIN_t"]    = settype(f["DIST_NBIN_t"],'i4')
-
-    f["DIST_MIN_q"]     = settype(f["DIST_MIN_q"],'i4')
-    f["DIST_MAX_q"]     = settype(f["DIST_MAX_q"],'i4')
-    f["DIST_NBIN_q"]    = settype(f["DIST_NBIN_q"],'i4')
-
-    f["DIST_MIN_vR"]    = settype(f["DIST_MIN_vR"],'f8')
-    f["DIST_MAX_vR"]    = settype(f["DIST_MAX_vR"],'f8')
-    f["DIST_NBIN_vR"]   = settype(f["DIST_NBIN_vR"],'i4')
-
-    f["DIST_MIN_vphi"]  = settype(f["DIST_MIN_vphi"],'f8')
-    f["DIST_MAX_vphi"]  = settype(f["DIST_MAX_vphi"],'f8')
-    f["DIST_NBIN_vphi"] = settype(f["DIST_NBIN_vphi"],'i4')
-
-    f["DIST_MIN_vz"]    = settype(f["DIST_MIN_vz"],'f8')
-    f["DIST_MAX_vz"]    = settype(f["DIST_MAX_vz"],'f8')
-    f["DIST_NBIN_vz"]   = settype(f["DIST_NBIN_vz"],'i4')
-
-    ## Orbit writing specific options ##
-    f["ENABLE_ORBITWRITE"]         = settype(f["ENABLE_ORBITWRITE"],'i4')
-    f["ORBITWRITE_MODE"]           = settype(f["ORBITWRITE_MODE"],'i4')
-    f["ORBITWRITE_NTOROIDALPLOTS"] = settype(f["ORBITWRITE_NTOROIDALPLOTS"],'i4')
-    f["ORBITWRITE_TOROIDALANGLES"] = settype(f["ORBITWRITE_TOROIDALANGLES"],'f8')
-    f["ORBITWRITE_NPOLOIDALPLOTS"] = settype(f["ORBITWRITE_NPOLOIDALPLOTS"],'i4')
-    f["ORBITWRITE_POLOIDALANGLES"] = settype(f["ORBITWRITE_POLOIDALANGLES"],'f8')
-    f["ORBITWRITE_INTERVAL"]       = settype(f["ORBITWRITE_INTERVAL"],'f8')
-    f["ORBITWRITE_LASTNPOINTS"]    = settype(f["ORBITWRITE_LASTNPOINTS"],'i4')
+        f[i] =f[i].astype("f8")
 
     return f
-
-def settype(data, type_):
-    """
-    Converts input into numpy arrays of given type.
-
-    This is a helper routine for generateopt().
-
-    Args:
-        data : Input data, can be a scalar or array
-        type_: Numpy array type the data is converted to e.g. 'f8'
-
-    Returns:
-        Numpy array storing given data as a given type.
-    """
-    data = np.array(data)
-    data = data.astype(type_)
-    return data
