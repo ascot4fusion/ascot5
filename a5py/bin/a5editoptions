@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-import a5py.ascot5io.options as options
-import a5py.ascot5io.ascot5 as ascot5
+
+import a5py.ascot5io.options     as options
+import a5py.ascot5io.ascot5      as ascot5
+import a5py.ascot5io.ascot5tools as tools
 import numpy
 import os
 import subprocess
@@ -13,8 +15,8 @@ if len(sys.argv) > 1:
 else:
     fn = "ascot.h5"
 
-qids,dates = ascot5.get_qids(fn, "options")
-opt = options.read_hdf5(fn, qids[0])
+qids = tools.call_ascot5file(fn, "get_qids", "options")
+opt  = options.read_hdf5(fn, qids[0])
 opt.pop('qid')
 opt.pop('date')
 opt.pop('description')
@@ -31,8 +33,8 @@ f=os.fdopen(f,'w')
 f.write(t)
 f.close()
 
-ed=os.environ.get('EDITOR','vi')
-subprocess.call([ed,tmpfn]) 
+ed=os.environ.get('EDITOR','vim')
+subprocess.call([ed,tmpfn])
 
 f=open(tmpfn)
 lines=f.readlines()
@@ -45,5 +47,6 @@ for line in lines:
     if(len(p)==2):
         opt[p[0].strip()] = numpy.fromstring(p[1].strip(),sep=",")
 
-options.write_hdf5(fn, opt)
-print("Options set.")
+group = options.write_hdf5(fn, opt)
+tools.call_ascot5file(fn, "set_active", group)
+print("Options set and set as active.")
