@@ -277,7 +277,7 @@ herr_t hdf5_write_extendible_dataset_double(hid_t group,
     hid_t dataspace   = H5Screate_simple(1, dim, maxdim);
 
     /* Modify dataset creation properties, i.e. enable chunking  */
-    hsize_t chunk_dim[1] = {(int)ceil(length/2)};
+    hsize_t chunk_dim[1] = {(int)ceil(length/2.0)};
     hid_t prop   = H5Pcreate(H5P_DATASET_CREATE);
     H5Pset_chunk (prop, 1, chunk_dim);
 
@@ -305,7 +305,7 @@ herr_t hdf5_write_extendible_dataset_long(hid_t group,
     hid_t dataspace   = H5Screate_simple(1, dim, maxdim);
 
     /* Modify dataset creation properties, i.e. enable chunking  */
-    hsize_t chunk_dim[1] = {(int)ceil(length/2)};
+    hsize_t chunk_dim[1] = {(int)ceil(length/2.0)};
     hid_t prop   = H5Pcreate(H5P_DATASET_CREATE);
     H5Pset_chunk (prop, 1, chunk_dim);
 
@@ -332,7 +332,7 @@ herr_t hdf5_write_extendible_dataset_int(hid_t group,
     hid_t dataspace   = H5Screate_simple(1, dim, maxdim);
 
     /* Modify dataset creation properties, i.e. enable chunking  */
-    hsize_t chunk_dim[1] = {(int)ceil(length/2)};
+    hsize_t chunk_dim[1] = {(int)ceil(length/2.0)};
     hid_t prop   = H5Pcreate(H5P_DATASET_CREATE);
     H5Pset_chunk (prop, 1, chunk_dim);
 
