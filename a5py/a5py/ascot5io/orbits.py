@@ -80,7 +80,12 @@ class Orbits(AscotData):
             if unit is not None:
                 unit   = cleankey(unit)
 
-            if "mu" in h5keys:
+            # See if the field can be read directly and without conversions
+            if key in h5keys and key not in ["m", "mass", "q", "charge" ,"phi"]:
+                dirtykey = list(h5.keys())[h5keys.index(key)]
+                item = h5[dirtykey][:]
+
+            elif "mu" in h5keys:
                 # This contains guiding center data
 
                 # Take mass from inistate
@@ -102,16 +107,14 @@ class Orbits(AscotData):
                     item = charge
                 elif key is "phi":
                     item = phi
-                elif key in h5keys:
-                    dirtykey = list(h5.keys())[h5keys.index(key)]
-                    item = h5[dirtykey][:]
                 else:
                     item = marker.eval_guidingcenter(
                         key, mass=mass, charge=charge,
                         R=h5["R"][:], phi=h5["phi"][:], z=h5["z"][:],
                         mu=h5["mu"][:], vpar=h5["vpar"][:],
                         theta=h5["theta"][:],
-                        BR=h5["B_R"][:], Bphi=h5["B_phi"][:], Bz=h5["B_z"][:])
+                        BR=h5["B_R"][:], Bphi=h5["B_phi"][:],
+                        Bz=h5["B_z"][:])
 
             elif "charge" in h5keys:
                 # This contains particle data
@@ -135,9 +138,6 @@ class Orbits(AscotData):
                     item = charge
                 elif key is "phi":
                     item = phi
-                elif key in h5keys:
-                    dirtykey = list(h5.keys())[h5keys.index(key)]
-                    item = h5[dirtykey][:]
                 else:
                     item = marker.eval_particle(
                         key, mass=mass, charge=charge,
@@ -150,9 +150,6 @@ class Orbits(AscotData):
 
                 if key is "phi":
                     item = h5["phi"][:] * np.pi/180
-                elif key in h5keys:
-                    dirtykey = list(h5.keys())[h5keys.index(key)]
-                    item = h5[dirtykey][:]
                 else:
                     # We only need Bnorm which we can get e.g. from this method
                     item = marker.eval_particle(key, BR=h5["B_R"][:],
