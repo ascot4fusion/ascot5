@@ -1,15 +1,14 @@
-
-
 ASCOT5 Python library
 =====================
 
-`a5py` is a python library for pre- and postprocessing `ASCOT5` relevant 
-data. The library contains tools to access and modify `HDF5` files used for 
-`ASCOT5` input and output. Some higher level scripts for running `ASCOT5` are 
+`a5py` is a python library for pre- and postprocessing `ASCOT5` relevant
+data. The library contains tools to access and modify `HDF5` files used for
+`ASCOT5` input and output. Some higher level scripts for running `ASCOT5` are
 also provided.
 
-This package is compatible with Python 3.X. Required libraries are `numpy`, `scipy`, 
-`h5py`.
+This package is compatible with Python 3.X. Required libraries are `numpy`,
+`scipy`, `h5py`. Additionally, `matplotlib` is required for plotting routines
+and `doxypypy` is needed for generating Doxygen documentation.
 
 Websites
 --------
@@ -20,70 +19,90 @@ Websites
 Installation
 ------------
 
-Make sure you have `pip` and `virtualenv` installed first (and `python3`). 
+Make sure you have `pip` and `virtualenv` installed first (and `python3`).
 Begin by creating your own virtual environment:
 
->> virtualenv -p python3 --system-site-packages ascot
->> source ascot/bin/activate
+<pre>virtualenv -p python3 --system-site-packages ascot</pre>
+<pre>source ascot/bin/activate</pre>
 
-Flag --system-site-packages makes your virtual environment inherit packages already
-present in your system. This is necessary if you wish to do any plotting as installing
-`matplotlib` is painful with pip.
+Flag --system-site-packages makes your virtual environment inherit packages
+already present in your system. This is necessary if you wish to do any plotting
+as installing `matplotlib` is not possible with just `pip`.
 
-Now you have your very own virtual environment. See what packages are present with:
+Now you have your very own virtual environment. See what packages are present
+with:
 
->> pip list
+<pre>pip list</pre>
 
 If necessary, install the required packages:
 
->> pip install numpy
->> pip install scipy
->> pip install h5py
+<pre>pip install numpy</pre>
+<pre>pip install scipy</pre>
+<pre>pip install h5py</pre>
 
 and then you can install `a5py`:
 
->> pip install /path/to/a5py
+<pre>pip install /path/to/a5py</pre>
 
-You can now import `a5py` as any library. Note that `a5py` contains scripts that can
-be used directly from command line after the installation e.g.:
+You can now import `a5py` as any library. Note that `a5py` contains scripts that
+can be used directly from command line after the installation e.g.:
 
->> a5removeruns ascot.h5
-   (removes all results from ascot.h5)
+<pre>a5gui ascot.h5</pre>
+(Open GUI on ascot.h5)
 
 To exit your virtualenvironment, type
 
->> deactivate
+<pre>deactivate</pre>
 
-For developers
+Updating a5py
 --------------
 
-Everytime you modify the source code, you need to re-install `a5py`. You can 
-do this with
+Everytime the source code is modified, e.g. by pulling a new version from git
 
->> pip install --ignore-installed path/to/a5py
+<pre>git pull --rebase</pre>
+
+or if you modify the source locally, `a5py` needs to be reinstalled. You can do
+this with
+
+<pre>pip install --ignore-installed path/to/a5py</pre>
 
 or
 
->> pip install -I path/to/a5py
+<pre>pip install -I path/to/a5py</pre>
+
+Note that if a file was removed from a5py, it still lingers in virtualenv. This
+can be fixed by creating a new virtualenv.
 
 Subpackages
 -----------
 
-- preprocessing   -- Generate input data from other formats
-                     such as `EQDSK`.
+- ascot5io        -- Read and write `ASCOT5` `HDF5` file. Modify existing
+                     HDF5 files (copy input fields etc.) Use this module for
+                     generating input and accessing output.
 
-- ascot5io        -- Read and write `ASCOT5` `HDF5` file. Modify existing 
-                     HDF5 files (copy input fields etc.)
+- marker          -- Module for evaluating marker specific quantities and
+                     plotting markers. This module is mostly used by State
+                     and Orbit objects from Ascot output.
 
-- posprocessing   -- Generate plots and analyze data
+- dist            -- Module for evaluating and plotting distributions. Used
+                     by Ascot distribution output.
 
-- ascot4interface -- Produce `ASCOT5` input from `ASCOT4` data
+- gui             -- Graphical user interface for accessing Ascot5 HDF5 file.
+                     In GUI, one can e.g. set descriptions and which inputs are
+                     active. Also some tools for plotting input and output are
+                     available.
+
+- preprocessing   -- Generate input data from other formats such as `EQDSK`.
+
+- postprocessing  -- Higher level data-analysis.
+
+- ascot4interface -- Produce `ASCOT5` input from `ASCOT4` data.
 
 Scripts
 -------
 
 Higher level scripts for running and preparing `ASCOT5` are found in a5py/bin.
-To add a new script, place it in the folder and add the script name setup.py
+To add a new script, place it in the folder and add the script name to setup.py
 inside scripts=[] brackets.
 
-By convention, each script should begin with a "a5".
+By convention, each script should begin with an "a5".
