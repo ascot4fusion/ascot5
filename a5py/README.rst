@@ -20,55 +20,55 @@ Installation
 ------------
 
 Make sure you have `pip` and `virtualenv` installed first (and `python3`).
-Begin by creating your own virtual environment:
+Begin by creating your own virtual environment:::
 
-<pre>virtualenv -p python3 --system-site-packages ascot</pre>
-<pre>source ascot/bin/activate</pre>
+    virtualenv -p python3 --system-site-packages ascot
+    source ascot/bin/activate
 
 Flag --system-site-packages makes your virtual environment inherit packages
 already present in your system. This is necessary if you wish to do any plotting
 as installing `matplotlib` is not possible with just `pip`.
 
 Now you have your very own virtual environment. See what packages are present
-with:
+with:::
 
-<pre>pip list</pre>
+    pip list
 
-If necessary, install the required packages:
+If necessary, install the required packages:::
 
-<pre>pip install numpy</pre>
-<pre>pip install scipy</pre>
-<pre>pip install h5py</pre>
+    pip install numpy
+    pip install scipy
+    pip install h5py
 
-and then you can install `a5py`:
+and then you can install `a5py`:::
 
-<pre>pip install /path/to/a5py</pre>
+    pip install /path/to/a5py
 
 You can now import `a5py` as any library. Note that `a5py` contains scripts that
-can be used directly from command line after the installation e.g.:
+can be used directly from command line after the installation e.g.:::
 
-<pre>a5gui ascot.h5</pre>
-(Open GUI on ascot.h5)
+    a5gui ascot.h5
+    (Open GUI on ascot.h5)
 
-To exit your virtualenvironment, type
+To exit your virtualenvironment, type::
 
-<pre>deactivate</pre>
+    deactivate
 
 Updating a5py
 --------------
 
-Everytime the source code is modified, e.g. by pulling a new version from git
+Everytime the source code is modified, e.g. by pulling a new version from git::
 
-<pre>git pull --rebase</pre>
+    git pull --rebase
 
 or if you modify the source locally, `a5py` needs to be reinstalled. You can do
-this with
+this with::
 
-<pre>pip install --ignore-installed path/to/a5py</pre>
+    pip install --ignore-installed path/to/a5py
 
-or
+or::
 
-<pre>pip install -I path/to/a5py</pre>
+    pip install -I path/to/a5py
 
 Note that if a file was removed from a5py, it still lingers in virtualenv. This
 can be fixed by creating a new virtualenv.
