@@ -437,6 +437,7 @@ def remove_group(f, group):
 
     Raise:
         ValueError if group could not be found.
+
     """
 
     # Check the group exists and access it.
@@ -468,7 +469,7 @@ def remove_group(f, group):
 
             set_active(f, group)
 
-def copy_group(fs, ft, group):
+def copy_group(fs, ft, group, newgroup=False):
     """
     Copy group from one file to another. A parent is also created if need be.
 
@@ -479,6 +480,11 @@ def copy_group(fs, ft, group):
         fs: h5py file from which group is copied.
         ft: h5py file to which group is copied.
         group: Either the group's name or its h5py group.
+        newgroup : bool, optional Flag indicating if copied group should be
+        given new QID and creation date. Default is false.
+
+    Returns:
+        h5py group of the copied group.
 
     Raise:
         ValueError if group cannot be found or if it exists on the target file.
@@ -500,10 +506,21 @@ def copy_group(fs, ft, group):
     if group.name in newparent:
         raise ValueError("Target already has the group " + group.name)
 
-    # Copy and set active
-    fs.copy(group.name, newparent)
+    # Copy
+    if newgroup:
+        qid, date, defdesc = _generate_meta()
+        newname = group.name[:-11] + "-" + qid
+        fs.copy(group, newparent, name=newname)
+        _set_date(ft, newname, date)
+        newgroupobj = ft[parentname][newname]
+    else:
+        fs.copy(group, newparent)
+        newgroupobj = ft[parentname][group.name]
+
     if(len(newparent)) == 1:
-        set_active(ft, group.name)
+        set_active(ft, newgroupobj)
+
+    return newgroupobj
 
 def _generate_meta():
     """

@@ -110,7 +110,7 @@ def removegroup(fn, group, force=False):
             del f[group]
 
 
-def copygroup(fns, fnt, group):
+def copygroup(fns, fnt, group, newgroup=False):
     """
     Copy a group or a parent to a different HDF5 file.
 
@@ -124,6 +124,12 @@ def copygroup(fns, fnt, group):
             Full path to target file.
         group : str <br>
             Name of the group to be copied.
+        newgroup : bool, optional <br>
+            Flag indicating if copied group should be given new QID and creation
+            date. Default is false.
+
+    Returns:
+        Name of the copied group or none if the group was parent.
     """
 
     # Get the target field and type from source
@@ -134,13 +140,14 @@ def copygroup(fns, fnt, group):
             ascot5file.get_qid(group)
 
             # This is a data group
-            ascot5file.copy_group(fs, ft, group)
+            grp = ascot5file.copy_group(fs, ft, group, newgroup=newgroup)
+            return grp.name
         except ValueError:
             # This is a parent group
             qids = ascot5file.get_qids(fs, group)
             for qid in qids:
                 grp = ascot5file.get_group(fs, qid)
-                ascot5file.copy_group(fs, ft, grp)
+                ascot5file.copy_group(fs, ft, grp, newgroup=newgroup)
 
 
 def combineoutput(fnt, addfns=None, contfns=None):
