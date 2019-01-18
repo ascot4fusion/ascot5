@@ -32,6 +32,10 @@ class GUI:
         sw = self._root.winfo_screenwidth()
         sh = self._root.winfo_screenheight()
 
+        # This is ugly, but makes window work if there is a dual monitor
+        if sw > 2000:
+            sw = 2000
+
         w = sw*3/4
         h = sh*3/4
         x = (sw/2) - (w/2)
@@ -81,6 +85,7 @@ class GUI:
 
 
 if __name__ == '__main__':
-    gui = GUI("a.h5")
-    #gui = GUI()
+    # Make this script callable for development purposes.
+    import sys
+    gui = GUI(sys.argv[1])
     gui.launch()
