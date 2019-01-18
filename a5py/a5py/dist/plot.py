@@ -1,7 +1,7 @@
 """
 Routines for plotting distributions.
 
-File: plot.py
+File: dist/plot.py
 """
 import numpy as np
 import importlib.util as util

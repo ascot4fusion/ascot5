@@ -1,7 +1,7 @@
 """
 Routines for plotting markers.
 
-File: plot.py
+File: marker/plot.py
 """
 import numpy as np
 import importlib.util as util
