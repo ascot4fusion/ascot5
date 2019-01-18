@@ -8,7 +8,7 @@ from prompt_toolkit import print_formatted_text as print
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.completion import WordCompleter, Completer, Completion
 import a5py.ascot5io.ascot5tools as tools
-from a5py.ascot5io.ascot5 import get_qids
+from a5py.ascot5io.ascot5file import get_qids
 
 # Column width
 column_width = 25
@@ -97,7 +97,7 @@ def get_active_group(h5file, group):
 def set_active_group(h5file, group):
     mastergroup = h5file[group].parent.name
     qid = group[-10:]
-    tools.setactivegroup(h5file.filename, mastergroup, qid)
+    tools.call_ascot5file(fn, "set_active", group.name)
 
 def get_groups_datasets(h5file, path):
     groups = []
