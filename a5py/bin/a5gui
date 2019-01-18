@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-import a5py.gui.core as a5GUI
+import a5py.gui.gui as a5gui
 
 import sys
 if len(sys.argv) > 1:
-    gui = a5GUI.GUI(sys.argv[1])
+    gui = a5gui.GUI(sys.argv[1])
 else:
-    gui = a5GUI.GUI()
+    gui = a5gui.GUI()
 
 gui.launch()

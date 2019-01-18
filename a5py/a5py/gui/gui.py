@@ -1,7 +1,7 @@
 """
 GUI main module.
 
-File core.py
+File gui.py
 """
 
 import os
