@@ -80,6 +80,11 @@ def read_magn_bkg_stellarator(fn):
         str['axis_z'] = f['bfield/stellarator/axis_z'][:]
 
         str['n_periods'] = f['bfield/stellarator/toroidalPeriods'][:]
-        str['symmetrymode'] = f['bfield/stellarator/symmetrymode'][:]
+        try:
+            str['symmetrymode'] = f['bfield/stellarator/symmetrymode'][:]
+        except KeyError:
+            print("Warning! No symmetry mode specified in input.h5/bfield")
+            print("Defaulting to stellarator symmetry")
+            str['symmetrymode'] = 0
 
     return str
