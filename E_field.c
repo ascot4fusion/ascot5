@@ -229,11 +229,11 @@ a5err E_field_eval_E(real E[3], real r, real phi, real z, E_field_data* Edata,
             break;
 
         case E_field_type_3D:
-	    err = E_3D_eval_E(E, r, phi, z, &(Edata->E3D), Bdata);
+	    err = E_3D_eval_E(E, r, phi, z, &(Edata->E3D));
 	    break;
     
         case E_field_type_3DS:
-            err = E_3DS_eval_E(E, r, phi, z, &(Edata->E3DS), Bdata);
+            err = E_3DS_eval_E(E, r, phi, z, &(Edata->E3DS));
             break;
 
         default:

@@ -66,7 +66,7 @@ typedef struct {
     E_1D_data E1D;     /**< 1D field or NULL if not active             */
     E_1DS_data E1DS;   /**< 1DS field or NULL if not active            */
     E_3D_data E3D;     /**< 3D field or NULL if not active             */
-    E_3D_data E3DS;    /**< 3DS field or NULL if not active             */
+    E_3DS_data E3DS;    /**< 3DS field or NULL if not active             */
 
 } E_field_data;
 

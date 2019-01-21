@@ -1,12 +1,12 @@
 /**
- * @file E_3D.h
- * @brief Header file for E_3D.c
+ * @file E_3DS.h
+ * @brief Header file for E_3DS.c
  */
-#ifndef E_3D_H
-#define E_3D_H
+#ifndef E_3DS_H
+#define E_3DS_H
 #include "../ascot5.h"
 #include "../error.h"
-#include "../linint/linint3D.h" /* for 3D interpolation routines */
+#include "../spline/interp3D.h"
 
 /**
  * @brief 3D electric field parameters on the host
@@ -25,25 +25,25 @@ typedef struct {
     real phi_max;               /**< maximum phi coordinate in the grid in electric field data */
     real phi_grid;              /**< phi grid interval 2pi/(n_phi-1) in electric field data */
     int offload_array_length;   /**< number of elements in offload_array */
-} E_3D_offload_data;
+} E_3DS_offload_data;
 
 /**
  * @brief 3D electric field parameters on the target
  */
 typedef struct {
-    linint3D_data E_r;     /**< pointer to start of E_r interpolation data struct */
-    linint3D_data E_phi;     /**< pointer to start of E_phi interpolation data struct */
-    linint3D_data E_z;     /**< pointer to start of E_z interpolation data struct */
+    interp3D_data E_r;     /**< pointer to start of E_r interpolation data struct */
+    interp3D_data E_phi;     /**< pointer to start of E_phi interpolation data struct */
+    interp3D_data E_z;     /**< pointer to start of E_z interpolation data struct */
 
-} E_3D_data;
+} E_3DS_data;
 
-int E_3D_init_offload(E_3D_offload_data* offload_data, real** offload_array);
-void E_3D_free_offload(E_3D_offload_data* offload_data, real** offload_array);
+int E_3DS_init_offload(E_3DS_offload_data* offload_data, real** offload_array);
+void E_3DS_free_offload(E_3DS_offload_data* offload_data, real** offload_array);
 
 #pragma omp declare target
-void E_3D_init(E_3D_data* Edata, E_3D_offload_data* offload_data,
+void E_3DS_init(E_3DS_data* Edata, E_3DS_offload_data* offload_data,
                real* offload_array);
 #pragma omp declare simd uniform(Edata)
-a5err E_3D_eval_E(real E[3], real r, real phi, real z, E_3D_data* Edata);
+a5err E_3DS_eval_E(real E[3], real r, real phi, real z, E_3DS_data* Edata);
 #pragma omp end declare target   
 #endif
