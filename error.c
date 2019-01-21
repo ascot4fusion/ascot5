@@ -152,6 +152,10 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
         case EF_E_1DS:
             sprintf(file, "E_1DS.c");
             break;
+       
+        case EF_E_3DS:
+            sprintf(file, "E_3DS.c");
+            break;
 
         case EF_NEUTRAL:
             sprintf(file, "neutral.c");
