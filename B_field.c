@@ -65,6 +65,12 @@ int B_field_init_offload(B_field_offload_data* offload_data,
                 offload_data->B3DS.offload_array_length;
             break;
 
+        case B_field_type_3DST:
+            err = B_3DST_init_offload(&(offload_data->B3DST), offload_array);
+            offload_data->offload_array_length =
+	        offload_data->B3DST.offload_array_length;
+            break;
+
         case B_field_type_STS:
             err = B_STS_init_offload(&(offload_data->BSTS), offload_array);
             offload_data->offload_array_length =
@@ -120,6 +126,10 @@ void B_field_free_offload(B_field_offload_data* offload_data,
             B_3DS_free_offload(&(offload_data->B3DS), offload_array);
             break;
 
+        case B_field_type_3DST:
+           B_3DST_free_offload(&(offload_data->B3DST), offload_array);
+           break;
+
         case B_field_type_STS:
             B_STS_free_offload(&(offload_data->BSTS), offload_array);
             break;
@@ -162,6 +172,11 @@ int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
             B_3DS_init(
                 &(Bdata->B3DS), &(offload_data->B3DS), offload_array);
             break;
+    
+        case B_field_type_3DST:
+	    B_3DST_init(
+	        &(Bdata->B3DST), &(offload_data->B3DST), offload_array);
+	    break;
 
         case B_field_type_STS:
             B_STS_init(
@@ -216,6 +231,11 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z,
         case B_field_type_3DS:
             err = B_3DS_eval_psi(psi, r, phi, z, &(Bdata->B3DS));
             break;
+       
+        case B_field_type_3DST:
+            err = B_3DST_eval_psi(psi, r, phi, z, &(Bdata->B3DST));
+            break;
+
 
         case B_field_type_STS:
             B_STS_eval_psi(psi, r, phi, z, &(Bdata->BSTS));
@@ -280,6 +300,10 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
             err = B_3DS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B3DS));
             break;
 
+        case B_field_type_3DST:
+            err = B_3DST_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->B3DST));
+            break;
+
         case B_field_type_STS:
             B_STS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BSTS));
             break;
@@ -341,6 +365,10 @@ a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
 
         case B_field_type_3DS:
             err = B_3DS_eval_rho(rho, psi, &(Bdata->B3DS));
+            break;
+
+        case B_field_type_3DST:
+            err = B_3DST_eval_rho(rho, psi, &(Bdata->B3DST));
             break;
 
         case B_field_type_STS:
@@ -412,6 +440,10 @@ a5err B_field_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
             err = B_3DS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B3DS));
             break;
 
+        case B_field_type_3DST:
+            err = B_3DST_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->B3DST));
+            break;
+
         case B_field_type_STS:
             B_STS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BSTS));
             break;
@@ -470,6 +502,10 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
 
         case B_field_type_3DS:
             err = B_3DS_eval_B(B, r, phi, z, &(Bdata->B3DS));
+            break;
+
+        case B_field_type_3DST:
+            err = B_3DST_eval_B(B, r, phi, z, &(Bdata->B3DST));
             break;
 
         case B_field_type_STS:
@@ -543,6 +579,10 @@ a5err B_field_eval_B_dB(real B_dB[12], real r, real phi, real z,
             err = B_3DS_eval_B_dB(B_dB, r, phi, z, &(Bdata->B3DS));
             break;
 
+        case B_field_type_3DST:
+            err = B_3DST_eval_B_dB(B_dB, r, phi, z, &(Bdata->B3DST));
+            break;
+
         case B_field_type_STS:
             B_STS_eval_B_dB(B_dB, r, phi, z, &(Bdata->BSTS));
             break;
@@ -594,6 +634,10 @@ real B_field_get_axis_r(B_field_data* Bdata, real phi) {
             axis_r = B_3DS_get_axis_r(&(Bdata->B3DS));
             break;
 
+        case B_field_type_3DST:
+            axis_r = B_3DST_get_axis_r(&(Bdata->B3DST));
+            break;
+
         case B_field_type_STS:
             err = B_STS_get_axis_r(&axis_r, &(Bdata->BSTS), phi);
             if(err) {
@@ -636,6 +680,10 @@ real B_field_get_axis_z(B_field_data* Bdata, real phi) {
 
         case B_field_type_3DS:
             axis_z = B_3DS_get_axis_z(&(Bdata->B3DS));
+            break;
+    
+        case B_field_type_3DST:
+            axis_z = B_3DST_get_axis_z(&(Bdata->B3DST));
             break;
 
         case B_field_type_STS:
