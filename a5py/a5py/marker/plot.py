@@ -36,7 +36,7 @@ def plot_line(x, y=None, z=None, ids=None, mask=None, equal=False,
 
         axes : Axes, optional <br>
             Axes where plot is plotted. If None, a new figure is created.
-    
+
     Returns:
         Axes where plot is plotted.
     """
@@ -45,7 +45,7 @@ def plot_line(x, y=None, z=None, ids=None, mask=None, equal=False,
         plt.figure()
         axes = plt.gca()
 
-    if y=None:
+    if y is None:
         y = np.linspace(0, x.size, x.size)
 
     if mask is not None:
@@ -54,7 +54,9 @@ def plot_line(x, y=None, z=None, ids=None, mask=None, equal=False,
     if ids is not None:
         uids = np.unique(ids)
         for i in uids:
-            axes.plot(x[i==ids and mask], y[i==ids and mask])
+            idx = np.where( (i==ids) & (i==ids) )[0]
+            print(idx)
+            axes.plot(x, y)
     else:
         axes.plot(x[mask], y[mask])
 
@@ -66,7 +68,7 @@ def plot_line(x, y=None, z=None, ids=None, mask=None, equal=False,
 
     return axes
 
-def plot_histogram(x, bins=None, weights=None, logy=None, xlabel=None, 
+def plot_histogram(x, bins=None, weights=None, logy=None, xlabel=None,
                    axes=None):
     """
     Plot histogram.
@@ -84,7 +86,7 @@ def plot_histogram(x, bins=None, weights=None, logy=None, xlabel=None,
             x axis label.
         axes : Axes, optional <br>
             Axes where plot is plotted. If None, a new figure is created.
-    
+
     Returns:
         Axes where plot is plotted.
     """
@@ -93,20 +95,20 @@ def plot_histogram(x, bins=None, weights=None, logy=None, xlabel=None,
         plt.figure()
         axes = plt.gca()
 
-    if bins=None:
+    if bins is None:
         bins = np.amax(10, np.floor(x.size / 10))
         bins = np.amin(100, bins)
 
-    axes.hist(x, bins, normed=True, stacked=True, log=logy, 
+    axes.hist(x, bins, normed=True, stacked=True, log=logy,
               weights=weights, rwidth=1)
-    
+
     if xlabel is not None:
         axes.set_xlabel(xlabel)
     if weights is not None:
         axes.set_ylabel("Particles per bin")
     else:
         axes.set_ylabel("Markers per bin")
-    
+
     if not logy:
         axes.ticklabel_format(style="sci", axis="y", scilimits=(0,0))
 
@@ -115,7 +117,7 @@ def plot_histogram(x, bins=None, weights=None, logy=None, xlabel=None,
 
     return axes
 
-def plot_scatter(x, y=None, z=None, equal=None, xlabel=None, ylabel=None, 
+def plot_scatter(x, y=None, z=None, equal=None, xlabel=None, ylabel=None,
                  axes=None):
     """
     Plot a scatter plot.
@@ -140,7 +142,7 @@ def plot_scatter(x, y=None, z=None, equal=None, xlabel=None, ylabel=None,
         zlabel : str, optional <br>
         axes : Axes, optional <br>
             Axes where plot is plotted. If None, a new figure is created.
-    
+
     Returns:
         Axes where plot is plotted.
     """

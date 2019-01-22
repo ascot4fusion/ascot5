@@ -85,11 +85,11 @@ class Orbits(AscotData):
                 dirtykey = list(h5.keys())[h5keys.index(key)]
                 item = h5[dirtykey][:]
 
-            elif key is in endcond.endconds:
-                inistatemass = self._runnode.inistate["mass"]
-                inistateid   = self._runnode.inistate["id"]
-                f    = lambda x: inistatemass[inistateid == x]
-                mass = np.array([f(x) for x in h5["id"][:]])
+            #elif key is in endcond.endconds:
+            #    inistatemass = self._runnode.inistate["mass"]
+            #    inistateid   = self._runnode.inistate["id"]
+            #    f    = lambda x: inistatemass[inistateid == x]
+            #    mass = np.array([f(x) for x in h5["id"][:]])
             elif "mu" in h5keys:
                 # This contains guiding center data
 
@@ -184,28 +184,30 @@ class Orbits(AscotData):
 
             return item[idx]
 
-    def plot(self, x, y=None, z=None, filter=None, equal=False):
-        if x is in ["mu", "e"]:
+    def plot(self, x, y=None, z=None, filter=None, equal=False, axes=None):
+        if x in ["mu", "e"]:
             x = (x, "ev")
 
         x = self[x]
 
         if y is not None:
-            if y is in ["mu", "e"]:
+            if y in ["mu", "e"]:
                 y = (y, "ev")
-            elif y is in ["phi"]:
-            y = self[y]
+            elif y in ["phi"]:
+                y = self[y]
+            else:
+                y = self[y]
         if z is not None:
             z = self[z]
 
         ids = self["id"]
 
         mask = None
-        if filter is not None:
-            if filter is in endcond.endconds:
-                filter = endcond.endcond(filter)
+        #if filter is not None:
+         #   if filter is in endcond.endconds:
+          #      filter = endcond.endcond(filter)
 
-        plot.plot_orbit(x, y=y, z=z, ids=ids, mask=None, equal=equal)
+        plot.plot_line(x, y=y, z=z, ids=ids, mask=None, equal=equal, axes=axes)
 
     def plot_histogram():
         pass

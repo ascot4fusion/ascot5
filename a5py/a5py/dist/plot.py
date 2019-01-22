@@ -46,7 +46,7 @@ def plot_dist_1D(dist, axes=None):
     if newfig:
         plt.show(block=False)
 
-def plot_dist_2D(dist, *args, axes=None):
+def plot_dist_2D(dist, *args, equal=False, axes=None):
     """
     Plot distribution as a 2D plot (pcolormesh).
 
@@ -89,6 +89,13 @@ def plot_dist_2D(dist, *args, axes=None):
     axes.set_ylabel(y);
     axes.tick_params(axis='x', direction='out')
     axes.tick_params(axis='y', direction='out')
+
+    if equal:
+        axes.axis("image")
+        #axes.set_aspect("scaled")
+    else:
+        axes.axis("tight")
+        #axes.autoscale(enable=True, axis="both", tight=True)
 
     if newfig:
         plt.show(block=False)

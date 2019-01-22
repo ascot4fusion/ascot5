@@ -14,6 +14,10 @@ from .indexframe import IndexFrame
 class GUI:
     """
     GUI object that controls the window and has direct access to the Ascot data.
+
+    The ascot file is kept constantly open, so whenever the data in HDF5 file
+    has changed, GUI.reload() must be called which reads the file and
+    re-initializes GUI.
     """
 
     def __init__(self, h5fn=None):
@@ -48,13 +52,31 @@ class GUI:
         self._root.title("ASCOT5 GUI")
 
         if h5fn is None:
-            h5fn = askopenfilename(title="Choose a file to open.")
-            self._h5fn  = os.path.abspath(h5fn)
-            self._ascot = ascot5.Ascot(self._h5fn)
+            self.ask_openfile()
 
         else:
             self._h5fn  = os.path.abspath(h5fn)
             self._ascot = ascot5.Ascot(self._h5fn)
+
+        self._root.protocol("WM_DELETE_WINDOW", self.close)
+
+    def get_ascotobject(self):
+        """
+        Get Ascot object of the currently opened HDF5 file.
+        """
+        return self._ascot
+
+    def get_ascotfilename(self):
+        """
+        Get filename of currently opened HDF5 file.
+        """
+        return self._h5fn
+
+    def get_root(self):
+        """
+        Get root windonw for displaying frames.
+        """
+        return self._root
 
     def launch(self):
         """
@@ -67,6 +89,10 @@ class GUI:
     def displayframe(self, newframe):
         """
         Display a new frame and delete the old one.
+
+        Args:
+            newframe : Frame <br>
+                The frame to be displayed.
         """
         if self._current is not None:
             self._current.pack_forget()
@@ -76,6 +102,15 @@ class GUI:
         self._current.pack_propagate(0)
         self._current.pack(fill=tkinter.BOTH, expand=1)
 
+    def ask_openfile(self):
+        """
+        Open dialog for opening filename and open it.
+        """
+        fn = askopenfilename( title="Select file",
+                              filetypes = [("HDF5 files","*.h5")] )
+        self._h5fn  = os.path.abspath(fn)
+        self._ascot = ascot5.Ascot(self._h5fn)
+
     def reload(self):
         """
         Reinitializes GUI (if Ascot data has changed or different file opened).
@@ -83,9 +118,9 @@ class GUI:
         self._ascot = ascot5.Ascot(self._h5fn)
         self.displayframe( IndexFrame(self) )
 
-
-if __name__ == '__main__':
-    # Make this script callable for development purposes.
-    import sys
-    gui = GUI(sys.argv[1])
-    gui.launch()
+    def close(self):
+        """
+        Close the gui and terminate the program.
+        """
+        self._root.destroy()
+        exit()

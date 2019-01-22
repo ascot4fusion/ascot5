@@ -15,12 +15,15 @@ class StateFrame(PlotFrame):
     File: indexframe.py
     """
 
-    def __init__(self, gui):
+    def __init__(self, gui, inistate, endstate=None):
         """
-        Initialize index frame.
+        Initialize
+        """
+        super().__init__(gui)
+        self._inistate = inistate
+        self._endstate = endstate
 
-        Index frame contains text panel showing the path to the current file and
-        a button to browse and load a new file. For each input parent a small
-        panel is displayed, see function make_inputactivationframe().
-        """
-        super().__init__(gui._root, gui)
+        self._plot_inistate()
+
+    def _plot_inistate(self):
+        pass

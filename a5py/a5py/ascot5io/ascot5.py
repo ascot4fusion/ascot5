@@ -453,13 +453,13 @@ class _RunNode(_Node):
             if key == "dists":
                 for d in rungroup[key]:
                     if d == "R_phi_z_vpa_vpe_t_q":
-                        self[d] = Dist_5D(rungroup[key][d])
+                        self["dist5d"] = Dist_5D(rungroup[key][d])
                     if d == "R_phi_z_vr_vphi_vz_t_q":
-                        self[d] = Dist_5D(rungroup[key][d])
+                        self["dist6d"] = Dist_6D(rungroup[key][d])
                     if d == "rho_pol_phi_vpa_vpe_t_q":
-                        self[d] = Dist_rho5D(rungroup[key][d])
+                        self["distrho5d"] = Dist_rho5D(rungroup[key][d])
                     if d == "rho_pol_phi_vr_vphi_vz_t_q":
-                        self[d] = Dist_rho6D(rungroup[key][d])
+                        self["distrho6d"] = Dist_rho6D(rungroup[key][d])
 
         self._freeze()
 
@@ -487,6 +487,15 @@ class _RunNode(_Node):
                 string += key + "\n"
 
         return string
+
+    def get_date(self):
+        return self._date
+
+    def get_qid(self):
+        return self._qid
+
+    def get_desc(self):
+        return self._desc
 
 
 class Ascot(_ContainerNode):

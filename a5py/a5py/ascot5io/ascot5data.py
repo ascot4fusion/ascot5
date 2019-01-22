@@ -43,6 +43,9 @@ class AscotData():
     def get_type(self):
         return self._path.split("/")[-1].split("-")[0]
 
+    def get_name(self):
+        return self._group
+
     def _open(self):
         if self._opened is not None:
             return None
