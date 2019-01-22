@@ -369,9 +369,9 @@ def check():
     # Make plots, scale the plotted quantities.
     # For some reason GCTRANSFORM_GO2GC GCTRANSFORM_GC are not equal in length
     # and we need to have [:-1]?
-    #h1.plot(a5["GCTRANSFORM_GO"]["orbits"]["time"]*1e6, # TODO Enable this once mu can be read again
-    #        ( a5["GCTRANSFORM_GO"]["orbits"]["mu"]/e
-    #          - a5["GCTRANSFORM_GC"]["orbits"]["mu"] ) / 1e4 )
+    h1.plot(a5["GCTRANSFORM_GO"]["orbits"]["time"]*1e6,
+            ( a5["GCTRANSFORM_GO"]["orbits"]["mu"]/e
+              - a5["GCTRANSFORM_GC"]["orbits"]["mu"] ) / 1e4 )
     h1.plot(a5["GCTRANSFORM_GO2GC"]["orbits"]["time"]*1e6,
             ( a5["GCTRANSFORM_GO2GC"]["orbits"]["mu"]
               - a5["GCTRANSFORM_GC"]["orbits"]["mu"][:-1] ) / 1e4 )
