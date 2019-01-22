@@ -10,7 +10,7 @@ from . import ascot5file
 
 def call_ascot5file(fn, method, *args):
     """
-    Wrapper for calling ascot4file methods.
+    Wrapper for calling ascot5file methods.
 
     This wrapper handles opening and closing of HDF5 file.
 
