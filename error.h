@@ -41,8 +41,8 @@ typedef enum error_file {
     EF_NEUTRAL           =  17, /**< Error is from neutral.c                  */
     EF_E_1DS             =  18, /**< Error is from E_1DS.c                    */
     EF_B_FIELD           =  19, /**< Error is from B_field.c                  */
-    EF_PARTICLE          =  20  /**< Error is from particle.c                 */
-    EF_E_3DS             =  21, /**< Error is from B_3DS.c                    */
+    EF_PARTICLE          =  20,  /**< Error is from particle.c                 */
+    EF_E_3DS             =  21 /**< Error is from B_3DS.c                    */
 }error_file;
 
 /**
