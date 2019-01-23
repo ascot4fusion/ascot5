@@ -11,6 +11,8 @@ from a5py.ascot5io.ascot5data import AscotData
 
 from . import wall_3D
 
+import a5py.wall.plot as plot
+
 def write_hdf5(fn, n, R, z, desc=None):
     """
     Write 2D wall input in HDF5 file.
@@ -110,3 +112,7 @@ class wall_2D(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
+
+    def plot_segments(self, axes=None):
+        w = self.read()
+        plot.plot_segments(w["R"], w["z"], axes=axes)

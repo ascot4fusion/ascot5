@@ -7,6 +7,7 @@ import numpy as np
 import h5py
 
 import a5py.dist as distmod
+import a5py.marker.interpret as interpret
 
 from a5py.ascot5io.ascot5data import AscotData
 
@@ -19,7 +20,6 @@ def read_hdf5(fn, qid):
             HDF5 file filename.
         qid : str <br>
             QID of the run whose distribution is read.
-
     Returns:
         Distribution dictionary.
     """
@@ -47,58 +47,17 @@ def read_hdf5(fn, qid):
     return out
 
 
-def write_hdf5(fn, dists, qid):
-    """
-    Write 5D distribution to a HDF5 file.
-
-    TODO not compatible with new format
-
-    Parameters
-    ----------
-    fn : str
-        Full path to HDF5 file.
-    orbits : dictionary
-        Distributions data to be written in dictionary format.
-    qid : int
-        Run id these distributions correspond to.
-    """
-
-    with h5py.File(fn, "a") as f:
-
-        path = "results/run-" + qid + "/dists/R_phi_z_vpa_vpe_t_q/"
-
-        # Remove group if one is already present.
-        if path in f:
-            del f[path]
-            f.create_group(path)
-
-        # TODO Check that inputs are consistent.
-
-        # Write data to file.
-
-        f.create_group(path)
-
-        abscissae_names = ["R", "phi", "z", "vpa", "vpe", "time", "charge"]
-        f.create_dataset(path + "abscissa_ndim", data=len(abscissae_names))
-        for i, name in enumerate(abscissae_names):
-            f.create_dataset(path + "abscissa_name_00000" + str(i+1),
-                             data=name)
-            f.create_dataset(path +  "abscissa_vec_00000" + str(i+1),
-                             data=dist[name + '_edges'])
-            f.create_dataset(path + "abscissa_unit_00000" + str(i+1),
-                             data=dist[name + '_unit'])
-            f.create_dataset(path + "abscissa_nslot_00000" + str(i+1),
-                             data=dist['n_' + name])
-
-        f.create_dataset(path + "ordinate",
-                         data=np.expand_dims(dists["ordinate"],0))
-        f.create_dataset(path + "ordinate_name_000001",
-                         data=dist["ordinate_name"])
-        f.create_dataset(path + "ordinate_ndim",data=1)
-        f.create_dataset(path + "ordinate_unit_000001",
-                         data=dists["ordinate_unit"])
-
 class Dist_5D(AscotData):
+    """
+    Object representing 5D distribution data.
+    """
+
+    def __init__(self, hdf5, runnode):
+        """
+        Object representing orbit data.
+        """
+        self._runnode = runnode
+        super().__init__(hdf5)
 
     def read(self):
         """
@@ -136,7 +95,7 @@ class Dist_5D(AscotData):
 
         return dist
 
-    def get_E_xi_dist(self, masskg, E_edges=None, xi_edges=None, dist=None,
+    def get_E_xi_dist(self, E_edges=None, xi_edges=None, dist=None,
                       **kwargs):
         """
         Return distribution dictionary where (vpa, vpe) is converted to (E, xi).
@@ -146,20 +105,18 @@ class Dist_5D(AscotData):
         is in electronvolts and pitch is vpa/(vpa^2 + vpe^2)^0.5.
 
         Args:
-            masskg : float <br>
-                Mass of the species (required for energy conversion) in kg. Note
-                that distribution is assumed to consist of markers with equal
-                mass.
-            E_edges : array  (optional) Energy grid edges in the new distribution.
-            xi_edges (optional) Pitch grid edges in the new distribution.
-            dist     (optional) Use this distribution instead of reading one
-                     from HDF5 file.
-            kwargs   Name(s) (R, phi, z, vpa, vpe, time, charge) of those
-                     dimensions along which the distribution is either sliced or
-                     integrated over. Names are given as keyword value pairs
-                     where a tuple value (a, b) are indices for slicing and
-                     array [a, b]are indices for integration. A scalar zero
-                     means whole dimension is integrated.
+            E_edges : array  (optional) <br>
+                Energy grid edges in the new distribution.
+            xi_edges : (optional) <br>
+                Pitch grid edges in the new distribution.
+            dist :(optional) <br>
+                Use this distribution instead of reading one from HDF5 file.
+            kwargs : <br>
+                Name(s) (R, phi, z, vpa, vpe, time, charge) of those dimensions
+                along which the distribution is either sliced or integrated
+                over. Names are given as keyword value pairs where a tuple value
+                (a, b) are indices for slicing and array [a, b]are indices for
+                integration. A scalar zero means whole dimension is integrated.
 
         Returns:
             Distribution dictionary.
@@ -167,6 +124,9 @@ class Dist_5D(AscotData):
 
         if not dist:
             dist = distmod.histogram2density(self.read())
+
+        # Mass from inistate.
+        masskg = interpret.mass_kg(self._runnode.inistate["mass"][0])
 
         Exidist = distmod.convert_vpavpe_to_Exi(dist, masskg, E_edges, xi_edges)
         distmod.squeeze(Exidist, **kwargs)
@@ -183,6 +143,8 @@ class Dist_5D(AscotData):
             args : str, str <br>
                 Name of the x-coordinate, and optionally y-coordinate if a 2D
                 plot is desired.
+            equal : bool, optional <br>
+                Make axes equal.
             axes : Axes, optional <br>
                 Axes where plotting happens. If None, a new figure will be
                 created.
@@ -214,7 +176,7 @@ class Dist_5D(AscotData):
         else:
             distmod.plot_dist_2D(dist, x, y, equal=equal, axes=axes)
 
-    def plot_E_xi_dist(self, masskg, *args, E_edges=None, xi_edges=None,
+    def plot_E_xi_dist(self, *args, E_edges=None, xi_edges=None,
                        equal=False, axes=None, dist=None):
         """
         Convert (vpa, vpe) to (E, xi) and plot the distribution.
@@ -228,6 +190,8 @@ class Dist_5D(AscotData):
             axes : Axes, optional <br>
                 Axes where plotting happens. If None, a new figure will be
                 created.
+            equal : bool, optional <br>
+                Make axes equal.
             dist : dict_like, optional <br>
                Give input distribution explicitly instead of reading one from
                HDF5 file. Dimensions that are not x or y are integrated over.
@@ -243,8 +207,7 @@ class Dist_5D(AscotData):
             del abscissae[y]
 
         if not dist:
-            dist = self.get_E_xi_dist(masskg,
-                                      E_edges=E_edges, xi_edges=xi_edges)
+            dist = self.get_E_xi_dist(E_edges=E_edges, xi_edges=xi_edges)
 
         for k in abscissae.keys():
             if k not in dist["abscissae"]:

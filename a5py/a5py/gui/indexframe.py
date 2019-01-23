@@ -257,9 +257,9 @@ class RunInfoPanel(tkinter.Frame):
         topbuttonframe   = tkinter.Frame(self)
         self._selectionmenu   = ttk.Combobox(topbuttonframe, width=25,
                                              textvariable=self._runselection)
-        self._activebutton    = tkinter.Button(topbuttonframe, text="Set active")
-        self._inputsbutton    = tkinter.Button(topbuttonframe, text="Show inputs")
-        self._savebutton      = tkinter.Button(topbuttonframe, text="Save description")
+        self._activebutton    = tkinter.Button(topbuttonframe, text="Set active", bg="sky blue")
+        self._inputsbutton    = tkinter.Button(topbuttonframe, text="Show inputs", bg="sky blue")
+        self._savebutton      = tkinter.Button(topbuttonframe, text="Save description", bg="sky blue")
         botbuttonframe   = tkinter.Frame(self)
         self._statebutton     = tkinter.Button(botbuttonframe, text="Ini/Endstate")
         self._dist5dbutton    = tkinter.Button(botbuttonframe, text="Dist 5D")

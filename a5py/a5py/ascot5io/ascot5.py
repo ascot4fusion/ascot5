@@ -453,7 +453,7 @@ class _RunNode(_Node):
             if key == "dists":
                 for d in rungroup[key]:
                     if d == "R_phi_z_vpa_vpe_t_q":
-                        self["dist5d"] = Dist_5D(rungroup[key][d])
+                        self["dist5d"] = Dist_5D(rungroup[key][d], self)
                     if d == "R_phi_z_vr_vphi_vz_t_q":
                         self["dist6d"] = Dist_6D(rungroup[key][d])
                     if d == "rho_pol_phi_vpa_vpe_t_q":

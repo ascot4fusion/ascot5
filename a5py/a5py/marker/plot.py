@@ -10,30 +10,29 @@ plt = util.find_spec("matplotlib")
 if plt:
     import matplotlib.pyplot as plt
 
-def plot_line(x, y=None, z=None, ids=None, mask=None, equal=False,
-              xlabel=None, ylabel=None, axes=None):
+def plot_line(x, y=None, z=None, ids=None, equal=False,
+              xlabel=None, ylabel=None, zlabel=None, axes=None):
     """
     Plot continuous line f(x).
 
     Args:
         x : array_like <br>
-            
+            x data
         y : array_like, optional <br>
-            
+            y data
         z : array_like, optional <br>
-        
+            z data, in which case plot will be 3D
         ids : array_like, optional <br>
-
-        mask : array_like, optional <br>
-            
+            Array with same shape as input data containing marker ID for each
+            point. If this is provided, each marker is plotted individually.
         equal : bool, optional <br>
-            
+            Flag for making axes equal.
         xlabel : str, optional <br>
-
+            Label on x axis.
         ylabel : str, optional <br>
-
+            Label on y axis.
         zlabel : str, optional <br>
-
+            Label on z axis.
         axes : Axes, optional <br>
             Axes where plot is plotted. If None, a new figure is created.
 
@@ -48,20 +47,33 @@ def plot_line(x, y=None, z=None, ids=None, mask=None, equal=False,
     if y is None:
         y = np.linspace(0, x.size, x.size)
 
-    if mask is not None:
-        mask = np.ones(x.shape) == 1
-
+    # If markers are separated by their ids, call this function recursively
+    # for each marker.
     if ids is not None:
         uids = np.unique(ids)
         for i in uids:
-            idx = np.where( (i==ids) & (i==ids) )[0]
-            print(idx)
-            axes.plot(x, y)
+            if z is None:
+                plot_line(x[i==ids], y[i==ids], equal=equal, xlabel=xlabel,
+                          ylabel=ylabel, axes=axes)
+            else:
+                plot_line(x[i==ids], y[i==ids], z[i==ids], equal=equal,
+                          xlabel=xlabel, ylabel=ylabel, zlabel=zlabel,
+                          axes=axes)
     else:
-        axes.plot(x[mask], y[mask])
+        if z is None:
+            axes.plot(x, y)
+        else:
+            axes.plot(x, y, z)
 
     if equal:
         axes.axis("scaled")
+
+    if xlabel is not None:
+        axes.set_xlabel(xlabel)
+    if ylabel is not None:
+        axes.set_ylabel(ylabel)
+    if z is not None and zlabel is not None:
+        axes.set_zlabel(zlabel)
 
     if newfig:
         plt.show(block=False)
