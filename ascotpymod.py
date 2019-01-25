@@ -17,7 +17,7 @@ class Ascotpy:
     An object representing a running ascot5 process.
     """
 
-    def __init__(self, libpath, ascotfn):
+    def __init__(self, libpath, h5fn):
         """
         Initialize and start Ascot5 process using given HDF5 file as an input.
 
@@ -26,7 +26,7 @@ class Ascotpy:
         explicitly (because C uses strong typing whereas Python does not).
         """
         self.ascotlib = ctypes.CDLL(libpath)
-        self.ascotfn = ascotfn.encode('UTF-8')
+        self.h5fn = h5fn.encode('UTF-8')
 
         self.bfield_initialized  = False
         self.efield_initialized  = False
@@ -89,6 +89,17 @@ class Ascotpy:
         fun.restype  = ctypes.c_int
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p]
 
+    def ascotpy_reload(self, h5fn):
+        """
+        Change HDF5 file and free resources from old one.
+        """
+        self.ascotpy_free(bfield=self.bfield_initialized,
+                          efield=self.efield_initialized,
+                          plasma=self.plasma_initialized,
+                          wall=self.wall_initialized,
+                          neutral=self.neutral_initialized)
+        self.h5fn = h5fn.encode('UTF-8')
+
 
     def ascotpy_init(self, bfield=False, efield=False, plasma=False, wall=False,
                      neutral=False):
@@ -111,31 +122,31 @@ class Ascotpy:
             RuntimeError if initialization failed.
         """
         if bfield:
-            if self.ascotlib.ascotpy_init(self.ascotfn, 1, 0, 0, 0, 0) :
+            if self.ascotlib.ascotpy_init(self.h5fn, 1, 0, 0, 0, 0) :
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.bfield_initialized  = True
 
         if efield:
-            if self.ascotlib.ascotpy_init(self.ascotfn, 0, 1, 0, 0, 0) :
+            if self.ascotlib.ascotpy_init(self.h5fn, 0, 1, 0, 0, 0) :
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.efield_initialized  = True
 
         if plasma:
-            if self.ascotlib.ascotpy_init(self.ascotfn, 0, 0, 1, 0, 0) :
+            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 1, 0, 0) :
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.plasma_initialized  = True
 
         if wall:
-            if self.ascotlib.ascotpy_init(self.ascotfn, 0, 0, 0, 1, 0) :
+            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 0, 1, 0) :
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.wall_initialized  = True
 
         if neutral:
-            if self.ascotlib.ascotpy_init(self.ascotfn, 0, 0, 0, 0, 1) :
+            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 0, 0, 1) :
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.neutral_initialized  = True
