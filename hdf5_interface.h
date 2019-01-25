@@ -5,6 +5,8 @@
 #ifndef HDF5_INTERFACE_H5
 #define HDF5_INTERFACE_H5
 
+#include <hdf5.h>
+
 #include "ascot5.h"
 #include "simulate.h"
 
