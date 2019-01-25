@@ -17,11 +17,11 @@ def plot_line(x, y=None, z=None, ids=None, equal=False,
 
     Args:
         x : array_like <br>
-            x data
+            x data.
         y : array_like, optional <br>
-            y data
+            y data.
         z : array_like, optional <br>
-            z data, in which case plot will be 3D
+            z data, in which case plot will be 3D.
         ids : array_like, optional <br>
             Array with same shape as input data containing marker ID for each
             point. If this is provided, each marker is plotted individually.
@@ -129,31 +129,19 @@ def plot_histogram(x, bins=None, weights=None, logy=None, xlabel=None,
 
     return axes
 
-def plot_scatter(x, y=None, z=None, equal=None, xlabel=None, ylabel=None,
-                 axes=None):
+def plot_scatter(x, y=None, z=None, **kwargs):
     """
     Plot a scatter plot.
 
     Args:
         x : array_like <br>
-            
+            x data.
         y : array_like, optional <br>
-            
+            y data.
         z : array_like, optional <br>
-        
-        ids : array_like, optional <br>
-
-        mask : array_like, optional <br>
-            
-        equal : bool, optional <br>
-            
-        xlabel : str, optional <br>
-
-        ylabel : str, optional <br>
-
-        zlabel : str, optional <br>
-        axes : Axes, optional <br>
-            Axes where plot is plotted. If None, a new figure is created.
+            z data.
+        kwargs : <br>
+            Same arguments as in plot_line.
 
     Returns:
         Axes where plot is plotted.
@@ -162,6 +150,8 @@ def plot_scatter(x, y=None, z=None, equal=None, xlabel=None, ylabel=None,
     if newfig:
         plt.figure()
         axes = plt.gca()
+
+    #.scatter(x, y, s=None, c=None
 
     if equal:
         axes.axis("scaled")

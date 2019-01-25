@@ -7,8 +7,10 @@ File: state.py
 import numpy as np
 import h5py
 
+from a5py.marker.alias import get as alias
+import a5py.marker.interpret as interpret
+
 from a5py.ascot5io.ascot5data import AscotData
-import a5py.postprocessing.markereval as meval
 
 def read_hdf5(fn, qid, name):
     """
@@ -47,55 +49,101 @@ def read_hdf5(fn, qid, name):
 
     return out
 
-def write_hdf5(fn, states, qid, state=["inistate","endstate"]):
-    """
-    Write states.
-
-    Unlike most other "write" functions, this one takes dictionary
-    as an argument. The dictionary should have exactly the same format
-    as given by the "read" function in this module. The reason for this
-    is that this function is intended to be used only when combining
-    different HDF5 files into one.
-
-    TODO not compatible with new format
-
-    Parameters
-    ----------
-    fn : str
-        Full path to HDF5 file.
-    states : dictionary
-        State data to be written in dictionary format.
-    qid : int
-        Run id these states correspond to.
-    """
-
-    with h5py.File(fn, "a") as f:
-        # Read data from file
-        for statename in [state]:
-
-            path = "results/run-" + qid + '/' + statename
-
-            # Remove group if one is already present.
-            if path in f:
-                del f[path]
-            f.create_group(path)
-
-            # TODO Check that inputs are consistent.
-
-            # Read data from file.
-            for field in states[state]:
-                if field[-4:] != "unit" and field != "N" and field != "uniqueId":
-                    d = f.create_dataset(path + "/" + field, data=states[state][field])
-                    d.attrs["unit"] = states[state][field + "_unit"]
 
 class State(AscotData):
+    """
+    """
+
+    def __init__(self, hdf5, runnode):
+        """
+        Initialize state object from given HDF5 file to given RunNode.
+        """
+        self._runnode = runnode
+        super().__init__(hdf5)
+
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid(), self.get_type())
+        """
+        Read orbit data to dictionary.
+        """
+        return read_hdf5(self._file, self.get_qid())
+
 
     def __getitem__(self, key):
-        mode = "gc"
-        h5   = self._open()
-        item = meval.evaluate(h5, key, mode)
-        self._close()
-        return item
+        """
+        Return queried quantity.
+
+        The quantity is returned as a single numpy array ordered by id and time.
+        Internally, this method first sees if the quantity can be read directly
+        from HDF5. If not, then it tries to see if it is present in endstate and
+        can be copied from there (e.g. mass). If not, then quantity is evaluated
+        by first determining if the stored orbit type is field line (has no
+        charge), guiding center (has magnetic moment), or particle.
+
+        Args:
+            key : str <br>
+                Name of the quantity (see alias.py for a complete list).
+        Returns:
+            The quantity in SI units ordered by id and time.
+        """
+        with self as h5:
+
+            key  = alias(key)
+            item = None
+
+            # See if the field can be read directly and without conversions
+            h5keys = list(h5.keys())
+            h5keys_cleaned = [alias(x) for x in h5keys]
+            for i in range(len(h5keys)):
+                if h5keys_cleaned[i] == key:
+                    item = h5[h5keys[i]][:]
+
+                    # Unit conversions
+                    if key == "charge":
+                        f    = lambda x: interpret.charge_C(x)
+                        item = np.array([f(x) for x in item]).ravel()
+                    if key == "mu":
+                        f    = lambda x: interpret.energy_J(x)
+                        item = np.array([f(x) for x in item]).ravel()
+                    if key == "phi":
+                        item = item * np.pi/180
+                    if key == "mass":
+                        f    = lambda x: interpret.mass_kg(x)
+                        item = np.array([f(x) for x in item]).ravel()
+                    break
+
+            if item is None:
+
+                # Convert guiding-center quantities to SI units
+                f      = lambda x: interpret.mass_kg(x)
+                mass   = np.array([f(x) for x in h5["mass"][:]]).ravel()
+                f      = lambda x: interpret.charge_C(x)
+                charge = np.array([f(x) for x in h5["charge"][:]]).ravel()
+                f      = lambda x: interpret.energy_J(x)
+                mu     = np.array([f(x) for x in h5["mu"][:]]).ravel()
+                phi    = h5["phi"][:] * np.pi/180
+
+                try:
+                    item = marker.eval_guidingcenter(
+                        key, mass=mass, charge=charge,
+                        R=h5["R"][:], phi=phi, z=h5["z"][:],
+                        mu=mu, vpar=h5["vpar"][:],
+                        theta=h5["theta"][:],
+                        BR=h5["B_R"][:], Bphi=h5["B_phi"][:],
+                        Bz=h5["B_z"][:])
+                except ValueError:
+                    pass
+
+                if item is None:
+                    item = marker.eval_particle(
+                        key, mass=mass, charge=charge,
+                        R=h5["R"][:], phi=phi, z=h5["z"][:],
+                        vR=h5["v_R"][:], vphi=h5["v_phi"][:], vz=h5["v_z"][:],
+                        BR=h5["B_R"][:], Bphi=h5["B_phi"][:], Bz=h5["B_z"][:])
+
+            # Order by id
+            ids  = h5["id"][:]
+            time = h5["time"][:]
+            idx  = np.lexsort((time, ids))
+
+            return item[idx]

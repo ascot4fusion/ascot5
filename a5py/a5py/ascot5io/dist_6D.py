@@ -6,6 +6,9 @@ File: dist_6D.py
 import numpy as np
 import h5py
 
+import a5py.dist as distmod
+import a5py.marker.interpret as interpret
+
 from a5py.ascot5io.ascot5data import AscotData
 
 def read_hdf5(fn, qid):
@@ -41,87 +44,115 @@ def read_hdf5(fn, qid):
 
         # These could be read directly from HDF5 file, but for clarity
         # we list them here
-        abscissae_names = ["R", "phi", "z", "vr", "vphi", "vz", "time", "charge"]
+        abscissae = ["R", "phi", "z", "vr", "vphi", "vz", "time", "charge"]
         abscissae_units = ["m", "deg", "m", "m/s", "m/s", "m/s", "s", "e"]
         abscissae_realnames = ["Major radius", "Toroidal angle", "Height",
                                "Velocity R component", "Velocity phi component",
                                "Velocity z component",
                                "Time", "Charge"]
 
-        for i in range(0,len(abscissae_names)):
-            name = abscissae_names[i]
+        for i in range(0,len(abscissae)):
+            name = abscissae[i]
             out[name + '_edges'] = dist['abscissa_vec_00000'+str(i+1)][:]
             out[name]            = edges2grid(out[name + '_edges'])
             out[name + '_unit']  = abscissae_units[i]
             out['n_' + name]     = out[name].size
 
-        out['ordinate']      = dist['ordinate'][0,:,:,:,:,:,:,:,:]
+        out["abscissae"] = abscissae
+        out['histogram']      = dist['ordinate'][0,:,:,:,:,:,:,:,:]
         out['ordinate_name'] = 'density'
         out['ordinate_unit'] = 's/m^6*deg*e'
 
     return out
 
 
-def write_hdf5(fn, dists, qid):
-    """
-    Write distributions.
-
-    Unlike most other "write" functions, this one takes dictionary
-    as an argument. The dictionary should have exactly the same format
-    as given by the "read" function in this module. The reason for this
-    is that this function is intended to be used only when combining
-    different HDF5 files into one.
-
-    TODO not compatible with new format
-
-    Parameters
-    ----------
-    fn : str
-        Full path to HDF5 file.
-    orbits : dictionary
-        Distributions data to be written in dictionary format.
-    qid : int
-        Run id these distributions correspond to.
-    """
-
-    with h5py.File(fn, "a") as f:
-
-        path = "results/run-" + qid + "/dists/"
-
-        # Remove group if one is already present.
-        if path in f:
-            del f[path]
-            f.create_group(path)
-
-        # TODO Check that inputs are consistent.
-
-        # Write data to file.
-
-        if "R_phi_z_vpa_vpe_t_q" in dists:
-            path = path + "R_phi_z_vr_vphi_vz_t_q/"
-            f.create_group(path)
-
-            abscissae_names = ["R", "phi", "z", "vr", "vphi", "vz", "time", "charge"]
-            f.create_dataset(path + "abscissa_ndim", data=len(abscissae_names))
-            for i, name in enumerate(abscissae_names):
-                f.create_dataset(path + "abscissa_name_00000" + str(i+1),
-                                 data=name)
-                f.create_dataset(path + "abscissa_vec_00000" + str(i+1),
-                                 data=dist[name + '_edges'])
-                f.create_dataset(path + "abscissa_unit_00000" + str(i+1),
-                                 data=dist[name + '_unit'])
-                f.create_dataset(path + "abscissa_nslot_00000" + str(i+1),
-                                 data=dist['n_' + name])
-
-            f.create_dataset(path + "ordinate",
-                             data=np.expand_dims(dist["ordinate"],0))
-            f.create_dataset(path + "ordinate_name_000001",
-                             data=dist["ordinate_name"])
-            f.create_dataset(path + "ordinate_ndim",data=1)
-            f.create_dataset(path + "ordinate_unit_000001",
-                             data=dist["ordinate_unit"])
-
 class Dist_6D(AscotData):
 
+    def __init__(self, hdf5, runnode):
+        """
+        Object representing orbit data.
+        """
+        self._runnode = runnode
+        super().__init__(hdf5)
+
+
     def read(self):
+        """
+        Read distribution data from HDF5 file to a dictionary.
+
+        Returns:
+            Distribution dictionary.
+        """
         return read_hdf5(self._file, self.get_qid())
+
+
+    def get_dist(self, dist=None, **kwargs):
+        """
+        Return distribution dictionary.
+
+        The ordinate is density which is integrated over the dimensions which
+        are given in kwargs.
+
+        Args:
+            dist : dict_like, optional <br>
+               Give input distribution explicitly instead of reading one from
+               HDF5 file.
+            kwargs : Name(s) (R, phi, z, vpa, vpe, time, charge) of those
+               dimensions along which the distribution is either sliced or
+               integrated over. Names are given as keyword value pairs where
+               a tuple value (a, b) are indices for slicing and array [a, b]
+               are indices for integration. A scalar zero means whole
+               dimension is integrated.
+
+        Returns:
+            Distribution dictionary.
+        """
+        if not dist:
+            dist = distmod.histogram2density(self.read())
+        distmod.squeeze(dist, **kwargs)
+
+        return dist
+
+
+    def plot_dist(self, *args, equal=False, axes=None, dist=None):
+        """
+        Plot distribution.
+
+        Either makes a 1D or a 2D plot depending on number of input arguments.
+
+        Args:
+            args : str, str <br>
+                Name of the x-coordinate, and optionally y-coordinate if a 2D
+                plot is desired.
+            equal : bool, optional <br>
+                Make axes equal.
+            axes : Axes, optional <br>
+                Axes where plotting happens. If None, a new figure will be
+                created.
+            dist : dict_like, optional <br>
+               Give input distribution explicitly instead of reading one from
+               HDF5 file. Dimensions that are not x or y are integrated over.
+        """
+        abscissae = {"R" : 0, "phi" : 0, "z" : 0, "vr" : 0,
+                     "vphi" : 0, "vz" : 0, "time" : 0, "charge" : 0}
+
+        x = args[0]
+        del abscissae[x]
+        y = None
+        if len(args) > 1:
+            y = args[1]
+            del abscissae[y]
+
+        if not dist:
+            dist = self.get_dist()
+
+        for k in abscissae.keys():
+            if k not in dist["abscissae"]:
+                del abscissae[k]
+
+        distmod.squeeze(dist, **abscissae)
+
+        if not y:
+            distmod.plot_dist_1D(dist, axes=axes)
+        else:
+            distmod.plot_dist_2D(dist, x, y, equal=equal, axes=axes)

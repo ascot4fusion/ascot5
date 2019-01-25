@@ -33,24 +33,37 @@ class IndexFrame(tkinter.Frame):
         self._gui = gui
 
         # Create filename panel and its contents.
-        self._fnpanel = tkinter.Frame(self, width=440, height=40)
-        self._fnbox   = tkinter.Text(self._fnpanel, width=50, height=1)
-        self._fnlabel = tkinter.Label(self._fnpanel, text="ASCOT5 file:",
-                                      anchor="w")
-        self._fnbrowsebutton = tkinter.Button(self._fnpanel, text="Browse...",
-                                              command=self._browse, anchor="e")
-        self._fnlabel.grid(row=0, column=0)
-        self._fnbox.grid(  row=1, column=0, columnspan=2)
-        self._fnbrowsebutton.grid(row=0, column=1)
+        fnpanel = tkinter.Frame(self, width=440, height=80)
+        fnbox   = tkinter.Text(fnpanel, width=50, height=1)
+        fnlabel = tkinter.Label(fnpanel, text="ASCOT5 file:", anchor="w")
+        fnbrowsebutton = tkinter.Button(fnpanel, text="Browse...",
+                                        command=self._browse, anchor="e")
+        fnlabel.grid(row=0, column=0)
+        fnbox.grid(  row=1, column=0, columnspan=2)
+        fnbrowsebutton.grid(row=0, column=1)
 
-        # Initialize filename panel.
-        self._fnbox.configure(state="normal")
-        self._fnbox.delete("1.0", tkinter.END)
-        self._fnbox.insert("end", gui.get_ascotfilename())
-        self._fnbox.configure(state="disabled")
+        fnbox.configure(state="normal")
+        fnbox.delete("1.0", tkinter.END)
+        fnbox.insert("end", gui.get_ascotfilename())
+        fnbox.configure(state="disabled")
 
-        #self._fnpanel.place(x=10, y=0, width=400, height=100)
-        self._fnpanel.grid(row=0, column=1)
+        fnpanel.grid(row=0, column=1)
+
+        fnpanel = tkinter.Frame(fnpanel, width=440, height=40)
+        fnbox   = tkinter.Text(fnpanel, width=50, height=1)
+        fnlabel = tkinter.Label(fnpanel, text="ASCOT5 folder:", anchor="w")
+        fnbrowsebutton = tkinter.Button(fnpanel, text="Browse...",
+                                        command=self._browsefolder, anchor="e")
+        fnlabel.grid(row=0, column=0)
+        fnbox.grid(  row=1, column=0, columnspan=2)
+        fnbrowsebutton.grid(row=0, column=1)
+
+        fnbox.configure(state="normal")
+        fnbox.delete("1.0", tkinter.END)
+        fnbox.insert("end", gui.get_ascotfolder())
+        fnbox.configure(state="disabled")
+
+        fnpanel.grid(row=2, column=0, rowspan=2, columnspan=2)
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(3, weight=1)
@@ -91,6 +104,10 @@ class IndexFrame(tkinter.Frame):
 
     def _browse(self):
         self._gui.ask_openfile()
+        self._gui.reload()
+
+    def _browsefolder(self):
+        self._gui.ask_openfolder()
         self._gui.reload()
 
     def select_inputs(self, options=None, bfield=None, efield=None, plasma=None,
@@ -392,10 +409,10 @@ class RunInfoPanel(tkinter.Frame):
         if outputtype == "dist5d":
             self._gui.displayframe(Dist5DFrame(self._gui, run.dist5d))
         if outputtype == "dist6d":
-            self._gui.displayframe(Dist6DFrame(self._gui, run.dist6d))
+            self._gui.displayframe(Dist5DFrame(self._gui, run.dist6d))
         if outputtype == "distrho5d":
-            self._gui.displayframe(DistRho5DFrame(self._gui, run.distrho5d))
+            self._gui.displayframe(Dist5DFrame(self._gui, run.distrho5d))
         if outputtype == "distrho6d":
-            self._gui.displayframe(DistRho6DFrame(self._gui, run.distrho6d))
+            self._gui.displayframe(Dist5DFrame(self._gui, run.distrho6d))
         if outputtype == "orbits":
             self._gui.displayframe(OrbitFrame(self._gui, run.orbits))

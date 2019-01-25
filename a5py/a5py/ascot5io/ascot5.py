@@ -443,10 +443,10 @@ class _RunNode(_Node):
         for key in rungroup:
             key = rungroup[key].name.split("/")[-1]
             if key == "inistate":
-                self[key] = State(rungroup[key])
+                self[key] = State(rungroup[key], self)
 
             if key == "endstate":
-                self[key] = State(rungroup[key])
+                self[key] = State(rungroup[key], self)
 
             if key == "orbits":
                 self[key] = Orbits(rungroup[key], self)
@@ -455,11 +455,11 @@ class _RunNode(_Node):
                     if d == "R_phi_z_vpa_vpe_t_q":
                         self["dist5d"] = Dist_5D(rungroup[key][d], self)
                     if d == "R_phi_z_vr_vphi_vz_t_q":
-                        self["dist6d"] = Dist_6D(rungroup[key][d])
+                        self["dist6d"] = Dist_6D(rungroup[key][d], self)
                     if d == "rho_pol_phi_vpa_vpe_t_q":
-                        self["distrho5d"] = Dist_rho5D(rungroup[key][d])
+                        self["distrho5d"] = Dist_rho5D(rungroup[key][d], self)
                     if d == "rho_pol_phi_vr_vphi_vz_t_q":
-                        self["distrho6d"] = Dist_rho6D(rungroup[key][d])
+                        self["distrho6d"] = Dist_rho6D(rungroup[key][d], self)
 
         self._freeze()
 

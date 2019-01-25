@@ -5,8 +5,9 @@ File gui.py
 """
 
 import os
+import sys
 import tkinter
-from tkinter.filedialog import askopenfilename
+from tkinter.filedialog import askopenfilename, askdirectory
 import a5py.ascot5io.ascot5 as ascot5
 
 from .indexframe import IndexFrame
@@ -60,6 +61,9 @@ class GUI:
 
         self._root.protocol("WM_DELETE_WINDOW", self.close)
 
+        self._ascotfolder = ""
+        self._ascotpy     = None
+
     def get_ascotobject(self):
         """
         Get Ascot object of the currently opened HDF5 file.
@@ -71,6 +75,18 @@ class GUI:
         Get filename of currently opened HDF5 file.
         """
         return self._h5fn
+
+    def get_ascotfolder(self):
+        """
+        Get filename of currently opened HDF5 file.
+        """
+        return self._ascotfolder
+
+    def get_ascotpy(self):
+        """
+        Get interface to a running Ascot process.
+        """
+        return self._ascotpy
 
     def get_root(self):
         """
@@ -111,11 +127,23 @@ class GUI:
         self._h5fn  = os.path.abspath(fn)
         self._ascot = ascot5.Ascot(self._h5fn)
 
+    def ask_openfolder(self):
+        """
+        Open dialog for opening a folder where Ascot source code is.
+        """
+        fn = os.path.abspath(askdirectory(title="Select folder"))
+        sys.path.insert(0, fn)
+        from ascotpymod import Ascotpy
+        self._ascotfolder = fn
+        self._ascotpy = Ascotpy(fn + "/ascotpy.so", self._h5fn)
+
     def reload(self):
         """
         Reinitializes GUI (if Ascot data has changed or different file opened).
         """
         self._ascot = ascot5.Ascot(self._h5fn)
+        if self._ascotpy is not None:
+            self._ascotpy.ascotpy_reload(self._h5fn)
         self.displayframe( IndexFrame(self) )
 
     def close(self):

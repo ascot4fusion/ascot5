@@ -45,7 +45,7 @@ class OrbitFrame(PlotFrame):
         # will be removed.
         coords = ["R", "phimod", "z", "time", "energy", "pitch", "vnorm",
                   "Bnorm", "vR", "vphi", "vz", "BR", "Bphi", "Bz", "mu", "vpar",
-                  "charge", "id", "x", "y", "phi", "None"]
+                  "charge", "id", "x", "y", "phi", "rho", "pol", "None"]
         clist = copy.copy(coords)
         clist.remove("None")
         for c in clist:
