@@ -10,7 +10,7 @@ import tkinter.ttk as ttk
 from .plotframe import PlotFrame
 
 
-class Dist5DFrame(PlotFrame):
+class DistFrame(PlotFrame):
     """
     A frame for plotting 5D distribution interactively.
 

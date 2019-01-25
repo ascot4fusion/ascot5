@@ -8,6 +8,7 @@ import os
 import sys
 import tkinter
 from tkinter.filedialog import askopenfilename, askdirectory
+from tkinter import messagebox
 import a5py.ascot5io.ascot5 as ascot5
 
 from .indexframe import IndexFrame
@@ -124,18 +125,32 @@ class GUI:
         """
         fn = askopenfilename( title="Select file",
                               filetypes = [("HDF5 files","*.h5")] )
-        self._h5fn  = os.path.abspath(fn)
-        self._ascot = ascot5.Ascot(self._h5fn)
+        if len(fn) == 0:
+            pass
+        else:
+            self._h5fn  = os.path.abspath(fn)
+            self._ascot = ascot5.Ascot(self._h5fn)
 
     def ask_openfolder(self):
         """
         Open dialog for opening a folder where Ascot source code is.
         """
-        fn = os.path.abspath(askdirectory(title="Select folder"))
-        sys.path.insert(0, fn)
-        from ascotpymod import Ascotpy
-        self._ascotfolder = fn
-        self._ascotpy = Ascotpy(fn + "/ascotpy.so", self._h5fn)
+        fn = askdirectory(title="Select folder")
+
+        if (len(fn) == 0) :
+            pass
+
+        elif not os.path.isfile(fn + "/ascotpy.so") or \
+             not os.path.isfile(fn + "/ascotpymod.py"):
+            messagebox.showerror("Failed to open folder",
+                                 "Folder does not contain ascotpy.so "
+                                 + "or ascotpymod.py")
+        else:
+            fn = os.path.abspath(fn)
+            sys.path.insert(0, fn)
+            from ascotpymod import Ascotpy
+            self._ascotfolder = fn
+            self._ascotpy = Ascotpy(fn + "/ascotpy.so", self._h5fn)
 
     def reload(self):
         """
