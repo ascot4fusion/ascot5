@@ -178,9 +178,11 @@ class opt():
     ## Trace markers in an electromagnetic field
     ENABLE_ORBIT_FOLLOWING    = 1
 
-
     ## Markers experience Coulomb collisions with background plasma
     ENABLE_COULOMB_COLLISIONS = 1
+
+    ## Markers interact with MHD modes
+    ENABLE_MHD = 1
 
     ## Disable first order guiding center transformation in velocity space
     DISABLE_FIRSTORDER_GCTRANS = 0

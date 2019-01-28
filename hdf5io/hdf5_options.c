@@ -88,6 +88,9 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENABLE_COULOMB_COLLISIONS", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->enable_clmbcol = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_MHD", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->enable_mhd = (int)tempfloat;
     if( hdf5_read_double(OPTPATH "DISABLE_FIRSTORDER_GCTRANS", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->disable_gctransform = (int)tempfloat;
