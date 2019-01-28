@@ -605,7 +605,9 @@ a5err B_STS_eval_psi(real psi[], real r, real phi, real z,
     interperr += interp3Dcomp_eval_B(&psi[0], &Bdata->psi, r, phi, z);
 
     /* Test for psi interpolation error */
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );}
+    if(interperr) {
+        return error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );
+    }
 
     return err;
 }
@@ -634,7 +636,9 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
     psi_dpsi[2] = psi_dpsi_temp[2];
     psi_dpsi[3] = psi_dpsi_temp[3];
 
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );}
+    if(interperr) {
+        return error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );
+    }
 
     return err;
 }
@@ -651,8 +655,13 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
 a5err B_STS_eval_rho(real rho[], real psi, B_STS_data* Bdata) {
     a5err err = 0;
 
-    /* Normalize psi to get rho */
-    rho[0] = sqrt(fabs( (psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0) ));
+    /* Check that the values seem valid */
+    real delta = (Bdata->psi1 - Bdata->psi0);
+    if( (psi - Bdata->psi0) / delta < 0 ) {
+         return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_STS );
+    }
+
+    rho[0] = sqrt( (psi - Bdata->psi0) / delta );
 
     return err;
 }
@@ -670,15 +679,22 @@ a5err B_STS_eval_rho(real rho[], real psi, B_STS_data* Bdata) {
  */
 a5err B_STS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_STS_data* Bdata) {
     a5err err = 0;
-    real rho;
+    real psi_dpsi[4];
 
-    B_STS_eval_psi_dpsi(rho_drho, r, phi, z, Bdata);
-    /* Convert: rho = sqrt(psi), drho = dpsi/(2 * sqrt(psi)) */
-    rho = sqrt(rho_drho[0]);
-    rho_drho[0] = rho;
-    rho_drho[1] = rho_drho[1] / (2*rho);
-    rho_drho[2] = rho_drho[2] / (2*rho);
-    rho_drho[3] = rho_drho[3] / (2*rho);
+    B_STS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
+
+    /* Check that the values seem valid */
+    real delta = Bdata->psi1 - Bdata->psi0;
+    if( (psi_dpsi[0] - Bdata->psi0) / delta < 0 ) {
+         return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_STS );
+    }
+
+    /* Normalize psi to get rho */
+    rho_drho[0] = sqrt( (psi_dpsi[0] - Bdata->psi0) / delta );
+
+    rho_drho[1] = psi_dpsi[1] / (2*delta*rho_drho[0]);
+    rho_drho[2] = psi_dpsi[2] / (2*delta*rho_drho[0]);
+    rho_drho[3] = psi_dpsi[3] / (2*delta*rho_drho[0]);
 
     return err;
 }
@@ -703,12 +719,16 @@ a5err B_STS_eval_B(real B[], real r, real phi, real z, B_STS_data* Bdata) {
     interperr += interp3Dcomp_eval_B(&B[2], &Bdata->B_z, r, phi, z);
 
     /* Test for B field interpolation error */
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );}
+    if(interperr) {
+        return error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );
+    }
 
     /* Check that magnetic field seems valid */
     int check = 0;
     check += ((B[0]*B[0] + B[1]*B[1] + B[2]*B[2]) == 0);
-    if(!err && check) {err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_STS );}
+    if(!err && check) {
+        return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_STS );
+    }
 
     return err;
 
@@ -752,14 +772,18 @@ a5err B_STS_eval_B_dB(real B_dB[], real r, real phi, real z, B_STS_data* Bdata) 
     B_dB[11] = B_dB_temp[3];
 
     /* Test for B field interpolation error */
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );}
+    if(interperr) {
+        return error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );
+    }
 
     /* Check that magnetic field seems valid */
     int check = 0;
     check += ((B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]) == 0);
-    if(!err && check) {err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_STS );}
+    if(!err && check) {
+        return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_STS );
+    }
 
-    return err;
+    return 0;
 }
 
 /**
@@ -779,7 +803,9 @@ a5err B_STS_get_axis_r(real* axis_r, B_STS_data* Bdata, real phi) {
         phi += 2*CONST_PI;
     }
     interperr += linint1D_eval(axis_r, &Bdata->axis_r, phi);
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );}
+    if(interperr) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );
+    }
     return err;
 }
 
@@ -800,6 +826,8 @@ a5err B_STS_get_axis_z(real* axis_z, B_STS_data* Bdata, real phi) {
         phi += 2*CONST_PI;
     }
     interperr += linint1D_eval(axis_z, &Bdata->axis_z, phi);
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );}
+    if(interperr) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );
+    }
     return err;
 }
