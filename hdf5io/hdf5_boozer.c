@@ -22,10 +22,60 @@
  * @param qid QID of the data that is to be read
  *
  * @return zero if reading and initialization succeeded
- *
- * @todo Konsta will write this.
  */
 int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
                              real** offload_array, char* qid) {
+
+    #undef BOOZERPATH
+    #define BOOZERPATH "/boozer/Boozer-XXXXXXXXXX/"
+
+    /* Read data the QID corresponds to */
+    char path[256];
+    hdf5_gen_path(BOOZERPATH, qid, path);
+    if( hdf5_find_group(f, path) ) {
+        return 1;
+    }
+
+    /* Read parameters. */
+    if( hdf5_read_int(BOOZERPATH "nR", &(offload_data->nR),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(BOOZERPATH "nz", &(offload_data->nz),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(BOOZERPATH "npsi", &(offload_data->npsi),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(BOOZERPATH "ntheta_geo", &(offload_data->ntheta_geo),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(BOOZERPATH "ntheta_bzr", &(offload_data->ntheta_bzr),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    /* Allocate offload array */
+    int npsi       = offload_data->npsi;
+    int ntheta_geo = offload_data->ntheta_geo;
+    int ntheta_bzr = offload_data->ntheta_bzr;
+    int Rzgridsize = offload_data->nR * offload_data->nR;
+    offload_data->offload_array_length =
+        npsi * (3 + ntheta_geo + 2*ntheta_bzr) + Rzgridsize;
+    *offload_array = (real*) malloc( offload_data->offload_array_length
+                                     * sizeof(real) );
+
+    /* Read data to offload array */
+    if( hdf5_read_double(BOOZERPATH "g", &(*offload_array)[0],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BOOZERPATH "q", &(*offload_array)[npsi],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BOOZERPATH "I", &(*offload_array)[2*npsi],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BOOZERPATH "delta", &(*offload_array)[3*npsi],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BOOZERPATH "nu",
+                         &(*offload_array)[npsi*(3+ntheta_bzr)],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BOOZERPATH "theta_bzr",
+                         &(*offload_array)[npsi*(3+2*ntheta_bzr)],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BOOZERPATH "theta_geo",
+                         &(*offload_array)[npsi*(3+2*ntheta_bzr+ntheta_geo)],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
     return 0;
 }

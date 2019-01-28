@@ -15,7 +15,7 @@
  */
 typedef struct {
 
-    int N_modes; /**< Number of modes                                         */
+    int n_modes; /**< Number of modes                                         */
     int npsi;    /**< Number of psi grid points                               */
     int nmode[MHD_MAXIMUM_NUMBER_OF_MODES]; /**< Toroidal mode numbers        */
     int mmode[MHD_MAXIMUM_NUMBER_OF_MODES]; /**< Poloidal mode numbers        */
@@ -27,7 +27,7 @@ typedef struct {
  * @brief MHD parameters on the target
  */
 typedef struct {
-    int N_modes; /**< Number of modes                                         */
+    int n_modes; /**< Number of modes                                         */
     int npsi;    /**< Number of psi grid points                               */
     int nmode[MHD_MAXIMUM_NUMBER_OF_MODES]; /**< Toroidal mode numbers        */
     int mmode[MHD_MAXIMUM_NUMBER_OF_MODES]; /**< Poloidal mode numbers        */
