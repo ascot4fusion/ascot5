@@ -133,7 +133,8 @@ class Dist_5D(AscotData):
 
         return Exidist
 
-    def plot_dist(self, *args, equal=False, axes=None, dist=None):
+    def plot_dist(self, *args, logscale=False, equal=False, axes=None,
+                  dist=None):
         """
         Plot distribution.
 
@@ -172,12 +173,13 @@ class Dist_5D(AscotData):
         distmod.squeeze(dist, **abscissae)
 
         if not y:
-            distmod.plot_dist_1D(dist, axes=axes)
+            distmod.plot_dist_1D(dist, logscale=logscale, axes=axes)
         else:
-            distmod.plot_dist_2D(dist, x, y, equal=equal, axes=axes)
+            distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal,
+                                 axes=axes)
 
     def plot_E_xi_dist(self, *args, E_edges=None, xi_edges=None,
-                       equal=False, axes=None, dist=None):
+                       logscale=False, equal=False, axes=None, dist=None):
         """
         Convert (vpa, vpe) to (E, xi) and plot the distribution.
 
@@ -216,6 +218,6 @@ class Dist_5D(AscotData):
         distmod.squeeze(dist, **abscissae)
 
         if not y:
-            distmod.plot_dist_1D(dist, axes=axes)
+            distmod.plot_dist_1D(dist, logscale=logscale, axes=axes)
         else:
-            distmod.plot_dist_2D(dist, x, y, equal=equal, axes=axes)
+            distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal, axes=axes)

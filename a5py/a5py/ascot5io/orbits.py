@@ -112,6 +112,10 @@ class Orbits(AscotData):
                         item = item * np.pi/180
                     break
 
+            # Is it modulus of poloidal angle.
+            if (item is None) and (key == "polmod"):
+                item = (np.mod(h5["pol"][:] + 360, 360) - 180) * np.pi/180
+
             # See if it is supposed to be read from inistate instead.
             if (item is None) and (key == "mass"):
                 item = self._read_from_inistate("mass", h5)
@@ -176,7 +180,7 @@ class Orbits(AscotData):
             return item[idx]
 
 
-    def get(self, key, ids=None, endcond=None, SI=True):
+    def get(self, key, ids=None, endcond=None, pncrid=None, SI=True):
         """
         Same as __getitem__ but with option to filter which points are returned.
 
@@ -186,13 +190,17 @@ class Orbits(AscotData):
             ids : int, array_like, optional <br>
                 Id or a list of ids whose data points are returned.
             endcond : str, array_like, optional <br>
-                Endcond or a list of endconds. Only data points of those markers
-                whose simulation terminated with the given end conditions are
-                returned.
+                Endcond of those  markers which are returned.
+            pncrid : str, array_like, optional <br>
+                Poincare ID of those  markers which are returned.
+            SI : bool, optional <br>
+                Wheter to return quantity in SI units or Ascot units.
         Returns:
-            The quantity in SI units.
+            The quantity.
         """
         val = self[key]
+
+        idx = np.ones(val.shape, dtype=bool)
 
         if endcond is not None:
             with self as h5:
@@ -201,11 +209,13 @@ class Orbits(AscotData):
 
             endcondlist = [Endcond(ec[i], er[i]) for i in range(ec.size)]
 
-            idx = np.zeros(val.shape, dtype=bool)
             for i in range(idx.size):
-                idx[i] = endcondlist[i] == endcond
+                idx[i] = np.logical_and(idx[i], endcondlist[i] == endcond)
 
-            val = val[idx]
+        if pncrid is not None:
+            idx = np.logical_and(idx, self["pncrid"] == pncrid)
+
+        val = val[idx]
 
         if not SI:
             key = alias(key)
@@ -214,7 +224,7 @@ class Orbits(AscotData):
                 f      = lambda x: interpret.energy_eV(x)
                 val   = np.array([f(x) for x in val]).ravel()
 
-            if key in ["phi", "phimod"]:
+            if key in ["phi", "phimod", "pol", "polmod"]:
                 val = val*180/np.pi
 
             if key in ["mass"]:
@@ -228,8 +238,8 @@ class Orbits(AscotData):
         return val
 
 
-    def plot(self, x=None, y=None, z=None, endcond=None, equal=False,
-             log=False, axes=None):
+    def plot(self, x=None, y=None, z=None, endcond=None, pncrid=None,
+             equal=False, log=False, axes=None):
         """
         Plot orbits as a continuous line.
         """
@@ -237,15 +247,15 @@ class Orbits(AscotData):
 
         xc = np.linspace(0, ids.size, ids.size)
         if x is not None:
-            xc = self.get(x, endcond=endcond, SI=False)
+            xc = self.get(x, endcond=endcond, pncrid=pncrid, SI=False)
 
         yc = None
         if y is not None:
-            yc = self.get(y, endcond=endcond, SI=False)
+            yc = self.get(y, endcond=endcond, pncrid=pncrid, SI=False)
 
         zc = None
         if z is not None:
-            zc = self.get(z, endcond=endcond, SI=False)
+            zc = self.get(z, endcond=endcond, pncrid=pncrid, SI=False)
 
         if isinstance(log, tuple):
             if log[0]:
@@ -264,20 +274,84 @@ class Orbits(AscotData):
                        xlabel=x, ylabel=y, zlabel=z, axes=axes)
 
 
-    def poincare(self, pncrids=None, subplots=False, **kwargs):
+    def scatter(self, x=None, y=None, z=None, c=None, endcond=None, pncrid=None,
+                sepid=False, equal=False, log=False, axes=None):
         """
-        Make Poincare plot.
+        Make scatter plot.
+        """
+        ids = self.get("id", endcond=endcond, pncrid=pncrid)
 
-        Args:
-            pncrids : int, array_like, optional <br>
-                Id or list of ids for which poincare plot is constructed.
-            subplots : bool, optional <br>
-                Plot poincares in subplots insted of plotting them to axis or
-                new figure.
-            **kwargs : dict_like <br>
-                All arguments accepted by plot().
+        xc = np.linspace(0, ids.size, ids.size)
+        if x is not None:
+            xc = self.get(x, endcond=endcond, pncrid=pncrid, SI=False)
+
+        yc = None
+        if y is not None:
+            yc = self.get(y, endcond=endcond, pncrid=pncrid, SI=False)
+
+        zc = None
+        if z is not None:
+            zc = self.get(z, endcond=endcond, pncrid=pncrid, SI=False)
+
+        cc = None
+        if c is not None:
+            cc = self.get(c, endcond=endcond, pncrid=pncrid, SI=False)
+
+        if not sepid:
+            ids = None
+
+        if isinstance(log, tuple):
+            if log[0]:
+                xc = np.log10(np.absolute(xc))
+            if log[1]:
+                yc = np.log10(np.absolute(yc))
+            if z is not None and log[2]:
+                zc = np.log10(np.absolute(zc))
+            if c is not None and log[3]:
+                cc = np.log10(np.absolute(cc))
+        elif log:
+            xc = np.log10(np.absolute(xc))
+            yc = np.log10(np.absolute(yc))
+            if z is not None:
+                zc = np.log10(np.absolute(zc))
+            if c is not None:
+                cc = np.log10(np.absolute(cc))
+
+        plot.plot_scatter(x=xc, y=yc, z=zc, c=cc, equal=equal,
+                          ids=ids, xlabel=x, ylabel=y, zlabel=z, axes=axes)
+
+
+    def poincare(self, *args, log=False, endcond=None, equal=False,
+                 axes=None):
         """
-        pass
+        Make a Poincare plot.
+        """
+
+        ids = False
+        z   = None
+        if len(args) == 1:
+            x = "rho"
+            y = "phimod"
+            pncrid = args[0]
+            ids = True
+
+        elif len(args) == 3:
+            x = args[0]
+            y = args[1]
+            pncrid = args[2]
+            ids = True
+
+        if len(args) == 4:
+            x = args[0]
+            y = args[1]
+            z = args[2]
+            pncrid = args[3]
+            if log:
+                log = (0, 0, 1, 0)
+
+        self.scatter(x=x, y=y, c=z, pncrid=pncrid, endcond=endcond,
+                     sepid=ids, log=log, axes=axes)
+
 
 
     def _read_from_inistate(self, key, h5):
@@ -285,6 +359,7 @@ class Orbits(AscotData):
         isid  = self._runnode.inistate["id"]
         f     = lambda x: isval[isid == x]
         return np.array([f(x) for x in h5["id"][:]])
+
 
     def _read_from_endstate(self, key, h5):
         esval = self._runnode.endstate[key]

@@ -59,7 +59,7 @@ def read_hdf5(fn, qid):
             out['n_' + name]     = out[name].size
 
         out["abscissae"] = abscissae
-        out['histogram']      = dist['ordinate'][0,:,:,:,:,:,:,:,:]
+        out['histogram']     = dist['ordinate'][0,:,:,:,:,:,:,:,:]
         out['ordinate_name'] = 'density'
         out['ordinate_unit'] = 's/m^6*deg*e'
 
@@ -114,7 +114,8 @@ class Dist_6D(AscotData):
         return dist
 
 
-    def plot_dist(self, *args, equal=False, axes=None, dist=None):
+    def plot_dist(self, *args, logscale=False, equal=False, axes=None,
+                  dist=None):
         """
         Plot distribution.
 
@@ -153,6 +154,6 @@ class Dist_6D(AscotData):
         distmod.squeeze(dist, **abscissae)
 
         if not y:
-            distmod.plot_dist_1D(dist, axes=axes)
+            distmod.plot_dist_1D(dist, logscale=logscale, axes=axes)
         else:
-            distmod.plot_dist_2D(dist, x, y, equal=equal, axes=axes)
+            distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal, axes=axes)

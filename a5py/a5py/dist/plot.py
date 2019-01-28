@@ -10,7 +10,7 @@ plt = util.find_spec("matplotlib")
 if plt:
     import matplotlib.pyplot as plt
 
-def plot_dist_1D(dist, axes=None):
+def plot_dist_1D(dist, logscale=False, axes=None):
     """
     Plot distribution as a 1D plot.
 
@@ -38,6 +38,9 @@ def plot_dist_1D(dist, axes=None):
 
     x = dist["abscissae"][0]
 
+    if logscale:
+        ordinate = np.log10(ordinate)
+
     axes.plot(dist[x], ordinate)
     axes.set_xlabel(x);
     axes.tick_params(axis='x', direction='out')
@@ -46,7 +49,7 @@ def plot_dist_1D(dist, axes=None):
     if newfig:
         plt.show(block=False)
 
-def plot_dist_2D(dist, *args, equal=False, axes=None):
+def plot_dist_2D(dist, *args, logscale=False, equal=False, axes=None):
     """
     Plot distribution as a 2D plot (pcolormesh).
 
@@ -84,7 +87,18 @@ def plot_dist_2D(dist, *args, equal=False, axes=None):
     if ordinate.shape[0] == dist[x].size:
         ordinate = np.transpose(ordinate)
 
-    axes.pcolormesh(dist[x + "_edges"], dist[y + "_edges"], ordinate)
+    if logscale:
+        ordinate = np.log10(ordinate)
+
+    ordinate = np.ma.masked_invalid(ordinate)
+    mesh = axes.pcolormesh(ordinate, cmap=plt.cm.plasma,
+                           vmin=np.nanmin(ordinate), vmax=np.nanmax(ordinate))
+
+    # https://stackoverflow.com/a/16125413/190597 (Joe Kington)
+    # and https://stackoverflow.com/a/35905483
+    axes.patch.set(hatch='x', edgecolor='black')
+    plt.colorbar(mesh, ax=axes)
+
     axes.set_xlabel(x);
     axes.set_ylabel(y);
     axes.tick_params(axis='x', direction='out')
@@ -92,10 +106,8 @@ def plot_dist_2D(dist, *args, equal=False, axes=None):
 
     if equal:
         axes.axis("image")
-        #axes.set_aspect("scaled")
     else:
         axes.axis("tight")
-        #axes.autoscale(enable=True, axis="both", tight=True)
 
     if newfig:
         plt.show(block=False)

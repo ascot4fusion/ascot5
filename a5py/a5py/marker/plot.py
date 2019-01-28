@@ -4,6 +4,7 @@ Routines for plotting markers.
 File: marker/plot.py
 """
 import numpy as np
+from numpy.random import randint
 import importlib.util as util
 
 plt = util.find_spec("matplotlib")
@@ -80,7 +81,7 @@ def plot_line(x, y=None, z=None, ids=None, equal=False,
 
     return axes
 
-def plot_histogram(x, bins=None, weights=None, logy=None, xlabel=None,
+def plot_histogram(x, bins=None, weights=None, logy=False, xlabel=None,
                    axes=None):
     """
     Plot histogram.
@@ -108,10 +109,11 @@ def plot_histogram(x, bins=None, weights=None, logy=None, xlabel=None,
         axes = plt.gca()
 
     if bins is None:
-        bins = np.amax(10, np.floor(x.size / 10))
-        bins = np.amin(100, bins)
+        bins = 10
+        #bins = np.amax(10, np.floor(x.size / 10))
+        #bins = np.amin(100, bins)
 
-    axes.hist(x, bins, normed=True, stacked=True, log=logy,
+    axes.hist(x, bins, normed=False, stacked=True, log=logy,
               weights=weights, rwidth=1)
 
     if xlabel is not None:
@@ -129,7 +131,8 @@ def plot_histogram(x, bins=None, weights=None, logy=None, xlabel=None,
 
     return axes
 
-def plot_scatter(x, y=None, z=None, **kwargs):
+def plot_scatter(x, y=None, z=None, c=None, equal=False, ids=None,
+                 xlabel=None, ylabel=None, zlabel=None, axes=None):
     """
     Plot a scatter plot.
 
@@ -139,7 +142,9 @@ def plot_scatter(x, y=None, z=None, **kwargs):
         y : array_like, optional <br>
             y data.
         z : array_like, optional <br>
-            z data.
+            z data. If None, scatter will be plotted in 2D.
+        c : array_like, optional <br>
+            Color data.
         kwargs : <br>
             Same arguments as in plot_line.
 
@@ -148,13 +153,59 @@ def plot_scatter(x, y=None, z=None, **kwargs):
     """
     newfig = axes is None
     if newfig:
-        plt.figure()
+        axes = plt.figure()
         axes = plt.gca()
 
-    #.scatter(x, y, s=None, c=None
+    cmap = plt.cm.get_cmap("hsv", 10)
+    if z is None and c is None:
+        if ids is not None:
+            uids = np.unique(ids)
+            for i in uids:
+                k = randint(0, 10)
+                h = axes.scatter(x[ids==i], y[ids==i], c=cmap(k), edgecolors="none")
+        else:
+            h = axes.scatter(x, y)
+
+    elif z is not None and c is None:
+        if ids is not None:
+            uids = np.unique(ids)
+            for i in uids:
+                h = axes.scatter(x[ids==i], y[ids==i], zs=z[ids==i])
+
+        else:
+            h = axes.scatter(x, y, zs=z)
+
+    elif z is None and c is not None:
+        if ids is not None:
+            uids = np.unique(ids)
+            for i in uids:
+                h = axes.scatter(x[ids==i], y[ids==i], c=c[ids==i])
+
+        else:
+            h = axes.scatter(x, y, c=c)
+            plt.colorbar(h, ax=axes)
+    else:
+        if ids is not None:
+            uids = np.unique(ids)
+            for i in uids:
+                h = axes.scatter(x[ids==i], y[ids==i], zs=z[ids==i],
+                                 c=c[ids==i])
+
+        else:
+            h = axes.scatter(x, y, zs=z, c=c)
+            plt.colorbar(h, ax=axes)
 
     if equal:
         axes.axis("scaled")
+
+    axes.set_xlabel(xlabel);
+    axes.set_ylabel(ylabel);
+    axes.tick_params(axis='x', direction='out')
+    axes.tick_params(axis='y', direction='out')
+
+    if z is not None:
+        axes.set_zlabel(zlabel);
+        axes.tick_params(axis='z', direction='out')
 
     if newfig:
         plt.show(block=False)

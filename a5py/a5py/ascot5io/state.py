@@ -9,6 +9,10 @@ import h5py
 
 from a5py.marker.alias import get as alias
 import a5py.marker.interpret as interpret
+import a5py.marker as marker
+import a5py.marker.plot as plot
+from a5py.marker.alias import get as alias
+from a5py.marker.endcond import Endcond
 
 from a5py.ascot5io.ascot5data import AscotData
 
@@ -147,3 +151,137 @@ class State(AscotData):
             idx  = np.lexsort((time, ids))
 
             return item[idx]
+
+
+    def get(self, key, ids=None, endcond=None, pncrid=None, SI=True):
+        """
+        Same as __getitem__ but with option to filter which points are returned.
+
+        Args:
+            key : str <br>
+                Name of the quantity (see alias.py for a complete list).
+            ids : int, array_like, optional <br>
+                Id or a list of ids whose data points are returned.
+            endcond : str, array_like, optional <br>
+                Endcond of those  markers which are returned.
+            pncrid : str, array_like, optional <br>
+                Poincare ID of those  markers which are returned.
+            SI : bool, optional <br>
+                Wheter to return quantity in SI units or Ascot units.
+        Returns:
+            The quantity.
+        """
+        val = self[key]
+
+        idx = np.ones(val.shape, dtype=bool)
+
+        if endcond is not None:
+            with self as h5:
+                ec = self._read_from_endstate("endcond", h5)
+                er = self._read_from_endstate("errormsg", h5)
+
+            endcondlist = [Endcond(ec[i], er[i]) for i in range(ec.size)]
+
+            for i in range(idx.size):
+                idx[i] = idx & endcondlist[i] == endcond
+
+        if pncrid is not None:
+            idx = idx & self["pncrid"] == pncrid
+
+        val = val[idx]
+
+        if not SI:
+            key = alias(key)
+
+            if key in ["energy", "mu"]:
+                f      = lambda x: interpret.energy_eV(x)
+                val   = np.array([f(x) for x in val]).ravel()
+
+            if key in ["phi", "phimod"]:
+                val = val*180/np.pi
+
+            if key in ["mass"]:
+                f      = lambda x: interpret.mass_amu(x)
+                val   = np.array([f(x) for x in val]).ravel()
+
+            if key in ["charge"]:
+                f      = lambda x: interpret.charge_e(x)
+                val   = np.array([f(x) for x in val]).ravel()
+
+        return val
+
+
+    def scatter(self, x=None, y=None, z=None, c=None, endcond=None, pncrid=None,
+                equal=False, log=False, axes=None):
+        """
+        Make scatter plot.
+
+        """
+        ids = self.get("id", endcond=endcond, pncrid=pncrid)
+
+        xc = np.linspace(0, ids.size, ids.size)
+        if x is not None:
+            xc = self.get(x, endcond=endcond, pncrid=pncrid, SI=False)
+
+        yc = None
+        if y is not None:
+            yc = self.get(y, endcond=endcond, pncrid=pncrid, SI=False)
+
+        zc = None
+        if z is not None:
+            zc = self.get(z, endcond=endcond, pncrid=pncrid, SI=False)
+
+        cc = None
+        if c is not None:
+            cc = self.get(c, endcond=endcond, pncrid=pncrid, SI=False)
+
+        if isinstance(log, tuple):
+            if log[0]:
+                xc = np.log10(np.absolute(xc))
+            if log[1]:
+                yc = np.log10(np.absolute(yc))
+            if z is not None and log[2]:
+                zc = np.log10(np.absolute(zc))
+            if c is not None and log[2]:
+                cc = np.log10(np.absolute(cc))
+        elif log:
+            xc = np.log10(np.absolute(xc))
+            yc = np.log10(np.absolute(yc))
+            if z is not None:
+                zc = np.log10(np.absolute(zc))
+            if c is not None:
+                cc = np.log10(np.absolute(cc))
+
+        plot.plot_scatter(x=xc, y=yc, z=zc, c=cc, equal=equal,
+                          xlabel=x, ylabel=y, zlabel=z, axes=axes)
+
+
+    def histogram(self, x, y=None, bins=None, weights=None,
+                  logx=False, logy=False, logscale=False, xlabel=None,
+                  axes=None):
+        """
+        Make scatter plot.
+
+        """
+        ids = self.get("id")
+
+        xc = np.linspace(0, ids.size, ids.size)
+        if x is not None:
+            xc = self.get(x, SI=False)
+
+        yc = None
+        if y is not None:
+            yc = self.get(y, SI=False)
+
+        if isinstance(logx, tuple):
+            if logx:
+                xc = np.log10(np.absolute(xc))
+            if logy and y is not None:
+                yc = np.log10(np.absolute(yc))
+        elif logx:
+            xc = np.log10(np.absolute(xc))
+            if y is not None:
+                yc = np.log10(np.absolute(yc))
+
+        plot.plot_histogram(x=xc, bins=None, weights=None, logy=False, xlabel=None,
+                            axes=axes)

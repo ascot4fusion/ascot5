@@ -9,8 +9,9 @@ import numpy as np
 from .alias import get as alias
 
 endconds = {
-    "none"    : 0,
-    "aborted" : -1,
+    "none"    : -1,
+    "aborted" : -2,
+    "tmax"    : 0,
     "emin"    : 1,
     "therm"   : 2,
     "wall"    : 3,
@@ -41,6 +42,7 @@ class Endcond():
 
         if rawendcond == 0:
             self._endconds.append(endconds["none"])
+            return
 
         ec = rawendcond - np.power(2, endconds["cpumax"])
         if ec >= 0:
@@ -81,6 +83,11 @@ class Endcond():
         if ec >= 0:
             rawendcond = ec
             self._endconds.append(endconds["emin"])
+
+        ec = rawendcond - np.power(2, endconds["tmax"])
+        if ec >= 0:
+            rawendcond = ec
+            self._endconds.append(endconds["tmax"])
 
 
     def __eq__(self, other):

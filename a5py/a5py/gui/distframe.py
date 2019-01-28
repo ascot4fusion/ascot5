@@ -33,6 +33,7 @@ class DistFrame(PlotFrame):
         self._xchoice   = tkinter.StringVar(self)
         self._ychoice   = tkinter.StringVar(self)
         self._equalaxis = tkinter.IntVar(self)
+        self._logscale  = tkinter.IntVar(self)
 
         self._xchoice.trace('w', self._set_xcoord)
         self._ychoice.trace('w', self._set_ycoord)
@@ -46,17 +47,23 @@ class DistFrame(PlotFrame):
         buttonb = tkinter.Radiobutton(top, text="2D (vpa, vpe)",
                                       variable=self._plottype, value="2d",
                                       command=self._update_sidepanel)
-        buttonc = tkinter.Radiobutton(top, text="1D (E, xi)",
-                                      variable=self._plottype, value="1dexi",
-                                      command=self._update_sidepanel)
-        buttond = tkinter.Radiobutton(top, text="2D (E, xi)",
-                                      variable=self._plottype, value="2dexi",
-                                      command=self._update_sidepanel)
 
         buttona.pack(side="left")
         buttonb.pack(side="left")
-        buttonc.pack(side="left")
-        buttond.pack(side="left")
+
+        # 6D dists have no E-xi dist yet.
+        if hasattr(dist, "get_E_xi_dist"):
+            buttonc = tkinter.Radiobutton(top, text="1D (E, xi)",
+                                          variable=self._plottype,
+                                          value="1dexi",
+                                          command=self._update_sidepanel)
+            buttond = tkinter.Radiobutton(top, text="2D (E, xi)",
+                                          variable=self._plottype,
+                                          value="2dexi",
+                                          command=self._update_sidepanel)
+
+            buttonc.pack(side="left")
+            buttond.pack(side="left")
 
         self._plottype.set("2d")
         self._update_sidepanel()
@@ -97,17 +104,22 @@ class DistFrame(PlotFrame):
         plotbutton = tkinter.Button(panel, text="Plot", command=self._plot)
 
         xinput = ttk.Combobox(panel, width=6, textvariable=self._xchoice)
-
-        xinput.bind("<<ComboboxSelected>>", self._set_xcoord)
         xinput["values"] = self._coords
 
+        ticklog = tkinter.Checkbutton(panel, text="Log scale",
+                                      variable=self._logscale,
+                                      onvalue=1, offvalue=0,
+                                      height=1, width=8)
+
         xinput.pack()
+        ticklog.pack()
         plotbutton.pack()
 
         self._plotbutton = plotbutton
 
         self._xchoice.set(coords[0])
         self._ychoice.set(coords[0])
+        self._logscale.set(0)
 
         del data
 
@@ -131,17 +143,22 @@ class DistFrame(PlotFrame):
         plotbutton = tkinter.Button(panel, text="Plot", command=self._plot)
 
         xinput = ttk.Combobox(panel, width=6, textvariable=self._xchoice)
-
-        xinput.bind("<<ComboboxSelected>>", self._set_xcoord)
         xinput["values"] = self._coords
 
+        ticklog = tkinter.Checkbutton(panel, text="Log scale",
+                                      variable=self._logscale,
+                                      onvalue=1, offvalue=0,
+                                      height=1, width=8)
+
         xinput.pack()
+        ticklog.pack()
         plotbutton.pack()
 
         self._plotbutton = plotbutton
 
         self._xchoice.set(coords[0])
         self._ychoice.set(coords[0])
+        self._logscale.set(0)
 
         del data
 
@@ -168,22 +185,26 @@ class DistFrame(PlotFrame):
         xinput = ttk.Combobox(panel1, width=6, textvariable=self._xchoice)
         yinput = ttk.Combobox(panel1, width=6, textvariable=self._ychoice)
 
-        tickequal = tkinter.Checkbutton(panel, text="Axis equal",
+        panel2 = tkinter.Frame(panel)
+        tickequal = tkinter.Checkbutton(panel2, text="Axis equal",
                                         variable=self._equalaxis,
                                         onvalue=1, offvalue=0,
                                         height=1, width=8)
+        ticklog = tkinter.Checkbutton(panel2, text="Log scale",
+                                      variable=self._logscale,
+                                      onvalue=1, offvalue=0,
+                                      height=1, width=8)
 
-        xinput.bind("<<ComboboxSelected>>", self._set_xcoord)
         xinput["values"] = self._coords
-
-        yinput.bind("<<ComboboxSelected>>", self._set_ycoord)
         yinput["values"] = self._coords
 
         xinput.pack(side="left")
         yinput.pack(side="left")
 
         panel1.pack()
-        tickequal.pack()
+        tickequal.pack(side="left")
+        ticklog.pack(side="left")
+        panel2.pack()
         plotbutton.pack()
 
         self._plotbutton = plotbutton
@@ -191,6 +212,7 @@ class DistFrame(PlotFrame):
         self._xchoice.set(coords[0])
         self._ychoice.set(coords[2])
         self._equalaxis.set(1)
+        self._logscale.set(0)
 
         del data
 
@@ -216,22 +238,26 @@ class DistFrame(PlotFrame):
         xinput = ttk.Combobox(panel1, width=6, textvariable=self._xchoice)
         yinput = ttk.Combobox(panel1, width=6, textvariable=self._ychoice)
 
-        tickequal = tkinter.Checkbutton(panel, text="Axis equal",
+        panel2 = tkinter.Frame(panel)
+        tickequal = tkinter.Checkbutton(panel2, text="Axis equal",
                                         variable=self._equalaxis,
                                         onvalue=1, offvalue=0,
                                         height=1, width=8)
+        ticklog = tkinter.Checkbutton(panel2, text="Log scale",
+                                      variable=self._logscale,
+                                      onvalue=1, offvalue=0,
+                                      height=1, width=8)
 
-        xinput.bind("<<ComboboxSelected>>", self._set_xcoord)
         xinput["values"] = self._coords
-
-        yinput.bind("<<ComboboxSelected>>", self._set_ycoord)
         yinput["values"] = self._coords
 
         xinput.pack(side="left")
         yinput.pack(side="left")
 
         panel1.pack()
-        tickequal.pack()
+        tickequal.pack(side="left")
+        ticklog.pack(side="left")
+        panel2.pack()
         plotbutton.pack()
 
         self._plotbutton = plotbutton
@@ -239,6 +265,7 @@ class DistFrame(PlotFrame):
         self._xchoice.set(coords[0])
         self._ychoice.set(coords[2])
         self._equalaxis.set(1)
+        self._logscale.set(0)
 
         del data
 
@@ -278,21 +305,24 @@ class DistFrame(PlotFrame):
         """
         fig = self.get_fig()
         ax = fig.add_subplot(1,1,1)
+        logscale = self._logscale.get() == 1
 
         if(self._plottype.get() == "1d"):
-            self._dist.plot_dist(self._xcoord, axes=ax)
+            self._dist.plot_dist(self._xcoord, logscale=logscale,
+                                 axes=ax)
 
         if(self._plottype.get() == "1dexi"):
-            self._dist.plot_E_xi_dist(self._xcoord, axes=ax)
+            self._dist.plot_E_xi_dist(self._xcoord, logscale=logscale,
+                                      axes=ax)
 
         elif(self._plottype.get() == "2d"):
             equal = self._equalaxis.get() == 1
             self._dist.plot_dist(self._xcoord, self._ycoord, equal=equal,
-                                 axes=ax)
+                                 logscale=logscale, axes=ax)
 
         elif(self._plottype.get() == "2dexi"):
             equal = self._equalaxis.get() == 1
             self._dist.plot_E_xi_dist(self._xcoord, self._ycoord, equal=equal,
-                                      axes=ax)
+                                      logscale=logscale, axes=ax)
 
         self.draw()

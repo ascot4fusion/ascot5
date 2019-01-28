@@ -42,7 +42,7 @@ def read_hdf5(fn, qid):
 
         # These could be read directly from HDF5 file, but for clarity
         # we list them here
-        abscissae_names = ["rho", "pol", "phi", "vpa", "vpe", "time", "charge"]
+        abscissae = ["rho", "pol", "phi", "vpa", "vpe", "time", "charge"]
         abscissae_units = ["", "deg", "deg", "m/s", "m/s", "s", "e"]
         abscissae_realnames = ["Radial coordinate", "Poloidal angle",
                                "Toroidal angle",
@@ -50,14 +50,15 @@ def read_hdf5(fn, qid):
                                "Velocity perpendicular to magnetic field",
                                "Time", "Charge"]
 
-        for i in range(0,len(abscissae_names)):
-            name = abscissae_names[i]
+        for i in range(0,len(abscissae)):
+            name = abscissae[i]
             out[name + '_edges'] = dist['abscissa_vec_00000'+str(i+1)][:]
             out[name]            = edges2grid(out[name + '_edges'])
             out[name + '_unit']  = abscissae_units[i]
             out['n_' + name]     = out[name].size
 
-        out['ordinate']       = dist['ordinate'][0,:,:,:,:,:,:,:]
+        out["abscissae"] = abscissae
+        out['histogram']     = dist['ordinate'][0,:,:,:,:,:,:,:]
         out['ordinate_name'] = 'density'
         out['ordinate_unit'] = 's/m^2*deg^2*e'
 
@@ -149,7 +150,8 @@ class Dist_rho5D(AscotData):
 
         return Exidist
 
-    def plot_dist(self, *args, equal=False, axes=None, dist=None):
+    def plot_dist(self, *args, logscale=False, equal=False, axes=None,
+                  dist=None):
         """
         Plot distribution.
 
@@ -188,12 +190,13 @@ class Dist_rho5D(AscotData):
         distmod.squeeze(dist, **abscissae)
 
         if not y:
-            distmod.plot_dist_1D(dist, axes=axes)
+            distmod.plot_dist_1D(dist, logscale=logscale, axes=axes)
         else:
-            distmod.plot_dist_2D(dist, x, y, equal=equal, axes=axes)
+            distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal,
+                                 axes=axes)
 
     def plot_E_xi_dist(self, *args, E_edges=None, xi_edges=None,
-                       equal=False, axes=None, dist=None):
+                       logscale=False, equal=False, axes=None, dist=None):
         """
         Convert (vpa, vpe) to (E, xi) and plot the distribution.
 
@@ -232,6 +235,7 @@ class Dist_rho5D(AscotData):
         distmod.squeeze(dist, **abscissae)
 
         if not y:
-            distmod.plot_dist_1D(dist, axes=axes)
+            distmod.plot_dist_1D(dist, logscale=logscale, axes=axes)
         else:
-            distmod.plot_dist_2D(dist, x, y, equal=equal, axes=axes)
+            distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal,
+                                 axes=axes)
