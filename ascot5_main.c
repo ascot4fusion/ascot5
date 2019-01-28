@@ -197,6 +197,8 @@ int main(int argc, char** argv) {
                  sim.boozer_offload_data.offload_array_length);
     offload_pack(&offload_data, &offload_array, mhd_offload_array,
                  sim.mhd_offload_data.offload_array_length);
+    offload_pack(&offload_data, &offload_array, mhd_offload_array,
+                 sim.mhd_offload_data.offload_array_length);
 
     /* Initialize diagnostics offload data.
      * Separate arrays for host and target */

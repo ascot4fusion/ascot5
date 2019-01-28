@@ -8,6 +8,8 @@
 #include "../../consts.h"
 #include "../../B_field.h"
 #include "../../E_field.h"
+#include "../../boozer.h"
+#include "../../mhd.h"
 #include "../../math.h"
 #include "../../particle.h"
 #include "../../error.h"
@@ -27,7 +29,8 @@
  * @param Bdata pointer to magnetic field data
  * @param Edata pointer to electric field data
  */
-void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data* Edata) {
+void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
+                 E_field_data* Edata) {
 
     int i;
     /* Following loop will be executed simultaneously for all i */
@@ -166,4 +169,20 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             }
         }
     }
+}
+
+/**
+ * @brief Integrate a guiding center step with RK4 with MHD modes present.
+ *
+ * @param p simd_gc struct that will be updated
+ * @param h pointer to array containing time steps
+ * @param Bdata pointer to magnetic field data
+ * @param Edata pointer to electric field data
+ * @param boozer pointer to boozer data
+ * @param mhd pointer to MHD data
+ *
+ * @todo implement me!
+ */
+void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
+                     E_field_data* Edata, boozer_data* boozer, mhd_data* mhd) {
 }
