@@ -482,7 +482,7 @@ a5err B_3DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
 
     /* Check that the values seem valid */
     real delta = Bdata->psi1 - Bdata->psi0;
-    if( (rho_drho[0] - Bdata->psi0) / delta < 0 ) {
+    if( (psi_dpsi[0] - Bdata->psi0) / delta < 0 ) {
          return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_3DS );
     }
 
