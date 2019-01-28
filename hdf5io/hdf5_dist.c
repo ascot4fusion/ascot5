@@ -178,8 +178,8 @@ void hdf5_dist_write_rho5D(dist_rho5D_offload_data* dist, real* hist, char* file
 
     double abscissa_min[7];
     abscissa_min[0] = dist->min_rho;
-    abscissa_min[1] = dist->min_pol;
-    abscissa_min[2] = dist->min_phi;
+    abscissa_min[1] = math_rad2deg(dist->min_pol);
+    abscissa_min[2] = math_rad2deg(dist->min_phi);
     abscissa_min[3] = dist->min_vpara;
     abscissa_min[4] = dist->min_vperp;
     abscissa_min[5] = dist->min_time;
@@ -187,8 +187,8 @@ void hdf5_dist_write_rho5D(dist_rho5D_offload_data* dist, real* hist, char* file
 
     double abscissa_max[7];
     abscissa_max[0] = dist->max_rho;
-    abscissa_max[1] = dist->max_pol;
-    abscissa_max[2] = dist->max_phi;
+    abscissa_max[1] = math_rad2deg(dist->max_pol);
+    abscissa_max[2] = math_rad2deg(dist->max_phi);
     abscissa_max[3] = dist->max_vpara;
     abscissa_max[4] = dist->max_vperp;
     abscissa_max[5] = dist->max_time;
@@ -251,8 +251,8 @@ void hdf5_dist_write_rho6D(dist_rho6D_offload_data* dist, real* hist, char* file
 
     double abscissa_min[8];
     abscissa_min[0] = dist->min_rho;
-    abscissa_min[1] = dist->min_pol;
-    abscissa_min[2] = dist->min_phi;
+    abscissa_min[1] = math_rad2deg(dist->min_pol);
+    abscissa_min[2] = math_rad2deg(dist->min_phi);
     abscissa_min[3] = dist->min_vr;
     abscissa_min[4] = dist->min_vphi;
     abscissa_min[5] = dist->min_vz;
@@ -261,8 +261,8 @@ void hdf5_dist_write_rho6D(dist_rho6D_offload_data* dist, real* hist, char* file
 
     double abscissa_max[8];
     abscissa_max[0] = dist->max_rho;
-    abscissa_max[1] = dist->max_pol;
-    abscissa_max[2] = dist->max_phi;
+    abscissa_max[1] = math_rad2deg(dist->max_pol);
+    abscissa_max[2] = math_rad2deg(dist->max_phi);
     abscissa_max[3] = dist->max_vr;
     abscissa_max[4] = dist->max_vphi;
     abscissa_max[5] = dist->max_vz;
