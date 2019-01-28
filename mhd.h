@@ -8,10 +8,18 @@
 #include "ascot5.h"
 #include "error.h"
 
+#define MHD_MAXIMUM_NUMBER_OF_MODES 20
+
 /**
  * @brief MHD parameters that will be offloaded to target
  */
 typedef struct {
+
+    int N_modes; /**< Number of modes                                         */
+    int npsi;    /**< Number of psi grid points                               */
+    int nmode[MHD_MAXIMUM_NUMBER_OF_MODES]; /**< Toroidal mode numbers        */
+    int mmode[MHD_MAXIMUM_NUMBER_OF_MODES]; /**< Poloidal mode numbers        */
+
     int offload_array_length; /**< Number of elements in offload_array        */
 } mhd_offload_data;
 
@@ -19,6 +27,15 @@ typedef struct {
  * @brief MHD parameters on the target
  */
 typedef struct {
+    int N_modes; /**< Number of modes                                         */
+    int npsi;    /**< Number of psi grid points                               */
+    int nmode[MHD_MAXIMUM_NUMBER_OF_MODES]; /**< Toroidal mode numbers        */
+    int mmode[MHD_MAXIMUM_NUMBER_OF_MODES]; /**< Poloidal mode numbers        */
+
+    real* alpha_nm;     /**< Radial profile of alpha_nm                       */
+    real* phi_nm;       /**< Radial profile of phi_nm                         */
+    real* amplitude_nm; /**< Amplitude of each mode                           */
+    real* omega_nm;     /**< Toroidal rotation frequency of each mode [rad/s] */
 } mhd_data;
 
 int mhd_init_offload(mhd_offload_data* offload_data,
