@@ -163,11 +163,14 @@ int main(int argc, char** argv) {
     real* plasma_offload_array;
     real* neutral_offload_array;
     real* wall_offload_array;
+    real* boozer_offload_array;
+    real* mhd_offload_array;
 
     /* Read input from the HDF5 file */
     if( hdf5_interface_read_input(&sim, &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
-                                  &wall_offload_array, &p, &n) ) {
+                                  &wall_offload_array, &boozer_offload_array,
+                                  &mhd_offload_array, &p, &n) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nInput reading or initializing failed.\n"
                    "See stderr for details.\n");
@@ -190,6 +193,10 @@ int main(int argc, char** argv) {
                  sim.neutral_offload_data.offload_array_length);
     offload_pack(&offload_data, &offload_array, wall_offload_array,
                  sim.wall_offload_data.offload_array_length);
+    offload_pack(&offload_data, &offload_array, boozer_offload_array,
+                 sim.boozer_offload_data.offload_array_length);
+    offload_pack(&offload_data, &offload_array, mhd_offload_array,
+                 sim.mhd_offload_data.offload_array_length);
 
     /* Initialize diagnostics offload data.
      * Separate arrays for host and target */

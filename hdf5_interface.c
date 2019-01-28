@@ -23,6 +23,8 @@
 #include "hdf5io/hdf5_efield.h"
 #include "hdf5io/hdf5_wall.h"
 #include "hdf5io/hdf5_markers.h"
+#include "hdf5io/hdf5_boozer.h"
+#include "hdf5io/hdf5_mhd.h"
 #include "hdf5io/hdf5_particlestate.h"
 #include "hdf5io/hdf5_dist.h"
 #include "hdf5io/hdf5_orbits.h"
@@ -39,6 +41,8 @@
  * @param plasma_offload_array pointer to plasma data offload array
  * @param neutral_offload_array pointer to neutral data offload array
  * @param wall_offload_array pointer to wall offload array
+ * @param boozer_offload_array pointer to boozer offload array
+ * @param mhd_offload_array pointer to mhd offload array
  * @param p pointer to marker offload data
  * @param n_markers pointer to integer notating how many markers were read
  *
@@ -50,6 +54,8 @@ int hdf5_interface_read_input(sim_offload_data* sim,
                               real** plasma_offload_array,
                               real** neutral_offload_array,
                               real** wall_offload_array,
+                              real** boozer_offload_array,
+                              real** mhd_offload_array,
                               input_particle** p,
                               int* n_markers){
 
@@ -96,6 +102,16 @@ int hdf5_interface_read_input(sim_offload_data* sim,
 
     if(hdf5_find_group(f, "/wall/")) {
         print_err("Error: No wall data in input file.");
+        return 1;
+    }
+
+    if(hdf5_find_group(f, "/boozer/")) {
+        print_err("Error: No boozer data in input file.");
+        return 1;
+    }
+
+    if(hdf5_find_group(f, "/mhd/")) {
+        print_err("Error: No MHD data in input file.");
         return 1;
     }
 
@@ -189,6 +205,34 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         return 1;
     }
     print_out(VERBOSE_IO, "Wall data read and initialized.\n");
+
+
+    print_out(VERBOSE_IO, "\nReading boozer input.\n");
+    if( hdf5_get_active_qid(f, "/boozer/", qid) ) {
+        print_err("Error: Active QID not declared.");
+        return 1;
+    }
+    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+    if( hdf5_boozer_init_offload(f, &(sim->boozer_offload_data),
+                                 boozer_offload_array, qid) ) {
+        print_err("Error: Failed to read boozer input.\n");
+        return 1;
+    }
+    print_out(VERBOSE_IO, "Boozer data read and initialized.\n");
+
+
+    print_out(VERBOSE_IO, "\nReading MHD input.\n");
+    if( hdf5_get_active_qid(f, "/mhd/", qid) ) {
+        print_err("Error: Active QID not declared.");
+        return 1;
+    }
+    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+    if( hdf5_mhd_init_offload(f, &(sim->mhd_offload_data),
+                              mhd_offload_array, qid) ) {
+        print_err("Error: Failed to read MHD input.\n");
+        return 1;
+    }
+    print_out(VERBOSE_IO, "MHD data read and initialized.\n");
 
 
     print_out(VERBOSE_IO, "\nReading marker input.\n");

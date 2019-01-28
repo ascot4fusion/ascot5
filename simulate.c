@@ -122,6 +122,14 @@ void simulate(int id, int n_particles, particle_state* p,
             sim_offload->wall_offload_data.offload_array_length);
     wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->boozer_offload_data.offload_array_length);
+    boozer_init(&sim.boozer_data, &sim_offload->boozer_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->mhd_offload_data.offload_array_length);
+    mhd_init(&sim.mhd_data, &sim_offload->mhd_offload_data, ptr);
+
     diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
               diag_offload_array);
 

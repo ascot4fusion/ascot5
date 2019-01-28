@@ -4,6 +4,7 @@
  *
  */
 #include <stdlib.h>
+#include <stdio.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "../ascot5.h"
@@ -52,7 +53,7 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
     int npsi       = offload_data->npsi;
     int ntheta_geo = offload_data->ntheta_geo;
     int ntheta_bzr = offload_data->ntheta_bzr;
-    int Rzgridsize = offload_data->nR * offload_data->nR;
+    int Rzgridsize = offload_data->nR * offload_data->nz;
     offload_data->offload_array_length =
         npsi * (3 + ntheta_geo + 2*ntheta_bzr) + Rzgridsize;
     *offload_array = (real*) malloc( offload_data->offload_array_length
@@ -76,6 +77,11 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
     if( hdf5_read_double(BOOZERPATH "theta_geo",
                          &(*offload_array)[npsi*(3+2*ntheta_bzr+ntheta_geo)],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    /* Initialize the data */
+    if( boozer_init_offload(offload_data, offload_array) ) {
+        return 1;
+    }
 
     return 0;
 }

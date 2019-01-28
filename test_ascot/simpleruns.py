@@ -13,6 +13,8 @@ import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.options   as options
 import a5py.ascot5io.mrk_prt   as mrk_prt
 import a5py.ascot5io.mrk_gc    as mrk_gc
+import a5py.ascot5io.boozer    as boozer
+import a5py.ascot5io.mhd       as mhd
 
 from numpy.random import random as rand
 from scipy.constants import physical_constants as const
@@ -142,6 +144,10 @@ def make_ascot5_slowingdownrun(fn, settings):
     # Dummy neutral data
     N0 = np.array([ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ])
     N0_3D.write_hdf5(fn, -1, 1, 2, -1, 1, 2, 0, 2*np.pi, 2, N0)
+
+    # Dummy boozer and mhd data
+    boozer.write_hdf5_dummy(fn)
+    mhd.write_hdf5_dummy(fn)
 
     # Particle input
     Nmrk   = settings["markers"]
