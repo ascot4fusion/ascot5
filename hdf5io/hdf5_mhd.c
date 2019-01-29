@@ -40,27 +40,36 @@ int hdf5_mhd_init_offload(hid_t f, mhd_offload_data* offload_data,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(MHDPATH "npsi", &(offload_data->npsi),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(MHDPATH "psimin", &(offload_data->psimin),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(MHDPATH "psimax", &(offload_data->psimax),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(MHDPATH "nmode", offload_data->nmode,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(MHDPATH "mmode", offload_data->mmode,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(MHDPATH "amplitude_nm", offload_data->amplitude_nm,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(MHDPATH "omega_nm", offload_data->omega_nm,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Allocate offload array */
     int npsi    = offload_data->npsi;
     int n_modes = offload_data->n_modes;
-    offload_data->offload_array_length = n_modes * (2 + 2 * npsi );
+    offload_data->offload_array_length = 2* n_modes * npsi;
     *offload_array = (real*) malloc( offload_data->offload_array_length
                                      * sizeof(real) );
 
     /* Read data to offload array */
-    if( hdf5_read_double(MHDPATH "amplitude_nm", &(*offload_array)[0],
+    if( hdf5_read_double(MHDPATH "alpha_nm", &(*offload_array)[0],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "omega_nm", &(*offload_array)[n_modes],
+    if( hdf5_read_double(MHDPATH "phi_nm", &(*offload_array)[npsi],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "alpha_nm", &(*offload_array)[2*n_modes],
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "phi_nm", &(*offload_array)[2*n_modes + npsi],
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    /* Initialize the data */
+    if( mhd_init_offload(offload_data, offload_array) ) {
+        return 1;
+    }
 
     return 0;
 }

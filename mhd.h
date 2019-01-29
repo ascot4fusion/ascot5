@@ -7,18 +7,25 @@
 
 #include "ascot5.h"
 #include "error.h"
+#include "spline/interp1Dcomp.h"
 
-#define MHD_MAXIMUM_NUMBER_OF_MODES 20
+#define MHD_MODES_MAX_NUM 20
 
 /**
  * @brief MHD parameters that will be offloaded to target
  */
 typedef struct {
 
-    int n_modes; /**< Number of modes                                         */
-    int npsi;    /**< Number of psi grid points                               */
-    int nmode[MHD_MAXIMUM_NUMBER_OF_MODES]; /**< Toroidal mode numbers        */
-    int mmode[MHD_MAXIMUM_NUMBER_OF_MODES]; /**< Poloidal mode numbers        */
+    int n_modes;  /**< Number of modes                                        */
+    int npsi;     /**< Number of psi grid points                              */
+    real psimin;  /**< psi grid minimum value                                 */
+    real psimax;  /**< psi grid maximum value                                 */
+    real psigrid; /**< psi grid interval                                      */
+    int nmode[MHD_MODES_MAX_NUM];         /**< Toroidal mode numbers          */
+    int mmode[MHD_MODES_MAX_NUM];         /**< Poloidal mode numbers          */
+    real amplitude_nm[MHD_MODES_MAX_NUM]; /**< Amplitude of each mode         */
+    real omega_nm[MHD_MODES_MAX_NUM];     /**< Toroidal rotation frequency of
+                                               each mode [rad/s]              */
 
     int offload_array_length; /**< Number of elements in offload_array        */
 } mhd_offload_data;
@@ -28,14 +35,18 @@ typedef struct {
  */
 typedef struct {
     int n_modes; /**< Number of modes                                         */
-    int npsi;    /**< Number of psi grid points                               */
-    int nmode[MHD_MAXIMUM_NUMBER_OF_MODES]; /**< Toroidal mode numbers        */
-    int mmode[MHD_MAXIMUM_NUMBER_OF_MODES]; /**< Poloidal mode numbers        */
+    int nmode[MHD_MODES_MAX_NUM];         /**< Toroidal mode numbers          */
+    int mmode[MHD_MODES_MAX_NUM];         /**< Poloidal mode numbers          */
+    real amplitude_nm[MHD_MODES_MAX_NUM]; /**< Amplitude of each mode         */
+    real omega_nm[MHD_MODES_MAX_NUM];     /**< Toroidal rotation frequency of
+                                               each mode [rad/s]              */
 
-    real* alpha_nm;     /**< Radial profile of alpha_nm                       */
-    real* phi_nm;       /**< Radial profile of phi_nm                         */
-    real* amplitude_nm; /**< Amplitude of each mode                           */
-    real* omega_nm;     /**< Toroidal rotation frequency of each mode [rad/s] */
+    interp1D_data alpha_nm[MHD_MODES_MAX_NUM]; /**< 1D splines for each mode
+                                                    representing radial
+                                                    profile of alpha_nm       */
+    interp1D_data phi_nm[MHD_MODES_MAX_NUM];   /**< 1D splines for each mode
+                                                    representing radial
+                                                    profile of phi_nm         */
 } mhd_data;
 
 int mhd_init_offload(mhd_offload_data* offload_data,
