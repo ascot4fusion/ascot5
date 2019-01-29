@@ -52,6 +52,9 @@ typedef struct {
 int mhd_init_offload(mhd_offload_data* offload_data,
                      real** offload_array);
 
+void mhd_free_offload(mhd_offload_data* offload_data,
+                      real** offload_array);
+
 #pragma omp declare target
 void mhd_init(mhd_data* MHDdata, mhd_offload_data* offload_data,
               real* offload_array);

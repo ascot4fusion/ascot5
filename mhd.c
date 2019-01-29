@@ -50,26 +50,28 @@ int mhd_init_offload(mhd_offload_data* offload_data,
     int n_modes = offload_data->n_modes;
     for(int j=0; j<offload_data->n_modes; j++) {
         interp1D_data spline;
-        err += interp1Dcomp_init(&spline, (offload_array[j*npsi]),
+        err += interp1Dcomp_init(&spline,
+                                 &(*offload_array)[j*npsi],
                                  offload_data->npsi, offload_data->psimin,
                                  offload_data->psimax,
                                  offload_data->psigrid);
-        for(int i=0; i<cpernode*npsi; i++) {
+        for(int i=0; i < cpernode*npsi; i++) {
             coeff_array[j*cpernode*npsi + i] = spline.c[i];
         }
         interp1Dcomp_free(&spline);
 
-        err += interp1Dcomp_init(&spline, (offload_array[npsi*n_modes+j*npsi]),
+        err += interp1Dcomp_init(&spline,
+                                 &(*offload_array)[npsi*n_modes+j*npsi],
                                  offload_data->npsi, offload_data->psimin,
                                  offload_data->psimax,
                                  offload_data->psigrid);
-        for(int i=0; i<cpernode*npsi; i++) {
-            coeff_array[cpernode*npsi*n_modes + j*cpernode*npsi + i] = spline.c[i];
+        for(int i=0; i < cpernode*npsi; i++) {
+            coeff_array[cpernode * npsi * (n_modes + j) + i] = spline.c[i];
         }
         interp1Dcomp_free(&spline);
     }
 
-    free(offload_array);
+    free(*offload_array);
     *offload_array = coeff_array;
     offload_data->offload_array_length = n_modes*npsi*cpernode;
 
@@ -81,12 +83,24 @@ int mhd_init_offload(mhd_offload_data* offload_data,
 
     print_out(VERBOSE_IO, "\nModes:\n");
     for(int j=0; j<n_modes; j++) {
-        print_out(VERBOSE_IO, "(n,m) = (%2.d,%2.d) Amplitude = %3.3g Frequency = %3.3g\n",
+        print_out(VERBOSE_IO,
+                  "(n,m) = (%2.d,%2.d) Amplitude = %3.3g Frequency = %3.3g\n",
                   offload_data->nmode[j], offload_data->mmode[j],
                   offload_data->amplitude_nm[j], offload_data->omega_nm[j]);
     }
 
     return err;
+}
+
+/**
+ * @brief Free offload array
+ *
+ * @param offload_data pointer to offload data struct
+ * @param offload_array pointer to pointer to offload array
+ */
+void mhd_free_offload(mhd_offload_data* offload_data,
+                          real** offload_array) {
+    free(*offload_array);
 }
 
 /**

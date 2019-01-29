@@ -407,6 +407,7 @@ CLEANUP_SUCCESS:
     plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
     neutral_free_offload(&sim.neutral_offload_data, &neutral_offload_array);
+    mhd_free_offload(&sim.mhd_offload_data, &mhd_offload_array);
 
 #ifdef TARGET
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
@@ -435,6 +436,7 @@ CLEANUP_FAILURE:
     plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
     neutral_free_offload(&sim.neutral_offload_data, &neutral_offload_array);
+    mhd_free_offload(&sim.mhd_offload_data, &mhd_offload_array);
 
 #ifdef TARGET
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
