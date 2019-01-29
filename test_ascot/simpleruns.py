@@ -39,7 +39,7 @@ def make_ascot5_hello_world():
     settings["wall_make_3D"] = False
 
     # Simulate guiding centers (GC) (if false, simulate gyro-orbits (GO))
-    settings["sim_gc_mode"] = False
+    settings["sim_gc_mode"] = True
 
     # If this is a guiding center simulation, do we use adaptive step?
     settings["sim_use_adaptivestep"] = False
@@ -124,7 +124,7 @@ def make_ascot5_slowingdownrun(fn, settings):
                          etemp, idens, itemp)
 
     # Square wall around the plasma
-    wall_nseg = 41
+    wall_nseg = 40
     wall_R    = np.concatenate( (np.linspace(4.1, 8.4, 10),
                                  np.linspace(8.4, 8.4, 10),
                                  np.linspace(8.1, 4.1, 10),
@@ -209,7 +209,7 @@ def make_ascot5_slowingdownrun(fn, settings):
     o["ENDCOND_ENERGYLIM"]  = 1
     o["ENDCOND_WALLHIT"]    = 1
 
-    o["ENDCOND_MAX_SIM_TIME"]             = 2.7e-2
+    o["ENDCOND_MAX_SIM_TIME"]             = 2.7e-6
     o["ENDCOND_MAX_CPU_TIME"]             = 1.0e3
     o["ENDCOND_MAX_RHO"]                  = 10.0
     o["ENDCOND_MIN_RHO"]                  = 0.7
@@ -218,12 +218,13 @@ def make_ascot5_slowingdownrun(fn, settings):
 
     o["ENABLE_ORBIT_FOLLOWING"]    = 1
     o["ENABLE_COULOMB_COLLISIONS"] = 1
+    o["ENABLE_MHD"]                = 1
 
     # All distributions on
     o["ENABLE_DIST_5D"]    = 1
-    o["ENABLE_DIST_6D"]    = 1
+    o["ENABLE_DIST_6D"]    = 0
     o["ENABLE_DIST_rho5D"] = 1
-    o["ENABLE_DIST_rho6D"] = 1
+    o["ENABLE_DIST_rho6D"] = 0
 
     o["DIST_MIN_R"]    = 3.5
     o["DIST_MAX_R"]    = 8.5
