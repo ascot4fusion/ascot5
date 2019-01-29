@@ -43,11 +43,9 @@
 #include "../error.h"
 #include "../print.h"
 #include "B_3DS.h"
-#include "../spline/interp2D.h"
 #include "../spline/interp3D.h"
 #include "../spline/interp2Dcomp.h"
 #include "../spline/interp3Dcomp.h"
-#include "../spline/interp2Dexpl.h"
 #include "../spline/interp3Dexpl.h"
 
 /**
@@ -125,7 +123,7 @@ int B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) {
     int B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
         * offload_data->n_phi;
 
-    interp2D_data psi;
+    real* psi = malloc(4*psi_size*sizeof(real));
     interp3D_data B_r;
     interp3D_data B_phi;
     interp3D_data B_z;
@@ -172,13 +170,12 @@ int B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) {
     B_size *= 64;
 
 #else
-    err += interp2Dcomp_init(
-        &psi, *offload_array + 3*B_size,
+    err += interp2Dcomp_init_coeff(
+        psi, *offload_array + 3*B_size,
         offload_data->psigrid_n_r, offload_data->psigrid_n_z,
+        NATURALBC, NATURALBC,
         offload_data->psigrid_r_min, offload_data->psigrid_r_max,
-        offload_data->psigrid_r_grid,
-        offload_data->psigrid_z_min, offload_data->psigrid_z_max,
-        offload_data->psigrid_z_grid);
+        offload_data->psigrid_z_min, offload_data->psigrid_z_max);
 
     err += interp3Dcomp_init(
         &B_r, *offload_array + 0*B_size,
@@ -230,10 +227,10 @@ int B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) {
         (*offload_array)[2*B_size + i] = B_z.c[i];
     }
     for(int i = 0; i < psi_size; i++) {
-        (*offload_array)[3*B_size + i] = psi.c[i];
+        (*offload_array)[3*B_size + i] = psi[i];
     }
 
-    interp2D_free(&psi);
+    free(psi);
     interp3D_free(&B_r);
     interp3D_free(&B_phi);
     interp3D_free(&B_z);
@@ -360,15 +357,14 @@ void B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
     Bdata->B_z.phi_grid   = offload_data->phi_grid;
     Bdata->B_z.c          = &(offload_array[2*B_size]);
 
-    Bdata->psi.n_r        = offload_data->psigrid_n_r;
-    Bdata->psi.r_min      = offload_data->psigrid_r_min;
-    Bdata->psi.r_max      = offload_data->psigrid_r_max;
-    Bdata->psi.r_grid     = offload_data->psigrid_r_grid;
-    Bdata->psi.n_z        = offload_data->psigrid_n_z;
-    Bdata->psi.z_min      = offload_data->psigrid_z_min;
-    Bdata->psi.z_max      = offload_data->psigrid_z_max;
-    Bdata->psi.z_grid     = offload_data->psigrid_z_grid;
-    Bdata->psi.c          = &(offload_array[3*B_size]);
+    interp2Dcomp_init_spline(&Bdata->psi, &(offload_array[3*B_size]),
+                             offload_data->psigrid_n_r,
+                             offload_data->psigrid_n_z,
+                             NATURALBC, NATURALBC,
+                             offload_data->psigrid_r_min,
+                             offload_data->psigrid_r_max,
+                             offload_data->psigrid_z_min,
+                             offload_data->psigrid_z_max);
 }
 
 /**
@@ -389,7 +385,7 @@ a5err B_3DS_eval_psi(real psi[1], real r, real phi, real z,
 #if INTERP_SPL_EXPL
     interperr += interp2Dexpl_eval_B(&psi[0], &Bdata->psi, r, z);
 #else
-    interperr += interp2Dcomp_eval_B(&psi[0], &Bdata->psi, r, z);
+    interperr += interp2Dcomp_eval_f(&psi[0], &Bdata->psi, r, z);
 #endif
 
     if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );}
@@ -416,7 +412,7 @@ a5err B_3DS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
 #if INTERP_SPL_EXPL
     interperr += interp2Dexpl_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
 #else
-    interperr += interp2Dcomp_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
+    interperr += interp2Dcomp_eval_df(psi_dpsi_temp, &Bdata->psi, r, z);
 #endif
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
@@ -473,7 +469,7 @@ a5err B_3DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
 #if INTERP_SPL_EXPL
     interperr += interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
 #else
-    interperr += interp2Dcomp_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+    interperr += interp2Dcomp_eval_df(psi_dpsi, &Bdata->psi, r, z);
 #endif
 
     if(interperr) {
@@ -529,7 +525,7 @@ a5err B_3DS_eval_B(real B[3], real r, real phi, real z, B_3DS_data* Bdata) {
 #if INTERP_SPL_EXPL
         interperr += interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
 #else
-        interperr += interp2Dcomp_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+        interperr += interp2Dcomp_eval_df(psi_dpsi, &Bdata->psi, r, z);
 #endif
         B[0] = B[0] - psi_dpsi[2]/r;
         B[2] = B[2] + psi_dpsi[1]/r;
@@ -607,7 +603,7 @@ a5err B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z,
 #if INTERP_SPL_EXPL
         interperr += interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
 #else
-        interperr += interp2Dcomp_eval_dB(psi_dpsi, &Bdata->psi, r, z);
+        interperr += interp2Dcomp_eval_df(psi_dpsi, &Bdata->psi, r, z);
 #endif
 
         B_dB[0] = B_dB[0] - psi_dpsi[2]/r;
