@@ -39,10 +39,57 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
 }
 
 /**
- * @brief Boozer magic here.
+ * @brief Transform cylindrical coordinates to Boozer coordinates.
  *
  * @todo This is just a dummy.
+ *
+ * @param ptz Boozer coordinates as [psi, theta, zeta].
+ *
+ * @return zero on success
  */
-a5err boozer_eval(boozer_data* boozerdata) {
+a5err boozer_cyl2booz(real ptz[3], real r, real phi, real z,
+                      boozer_data* boozerdata) {
+    return 0;
+}
+
+/**
+ * @brief Transform Boozer coordinates to cylindrical coordinates.
+ *
+ * @todo This is just a dummy.
+ *
+ * @param rz cylindrical coordinates as [R, z].
+ *
+ * @return zero on success
+ */
+a5err boozer_booz2cyl(real rz[2], real psi, real theta, real zeta,
+                      boozer_data* boozerdata) {
+    return 0;
+}
+
+/**
+ * @brief Evaluate Boozer coordinates and gradients on a given location.
+ *
+ * @todo This is just a dummy.
+ *
+ * The values are stored in the given array as:
+ * - ptz_dptz[0]  = psi
+ * - ptz_dptz[1]  = dpsi/dR
+ * - ptz_dptz[2]  = dpsi/dphi
+ * - ptz_dptz[3]  = dpsi/dz
+ * - ptz_dptz[4]  = theta
+ * - ptz_dptz[5]  = dtheta/dR
+ * - ptz_dptz[6]  = dtheta/dphi
+ * - ptz_dptz[7]  = dtheta/dz
+ * - ptz_dptz[8]  = zeta
+ * - ptz_dptz[9]  = dzeta/dR
+ * - ptz_dptz[10] = dzeta/dphi
+ * - ptz_dptz[11] = dzeta/dz
+ *
+ * @param ptz_dptz evaluated Boozer coordinates and their gradients.
+ *
+ * @return zero on success
+ */
+a5err boozer_eval_gradients(real ptz_dptz[12], real r, real phi, real z,
+                            boozer_data* boozerdata) {
     return 0;
 }
