@@ -10,7 +10,7 @@ from . ascot5file import add_group
 from . ascot5data import AscotData
 
 def write_hdf5(fn, nmodes, mmodes, amplitude, omega, alpha, phi,
-               desc=None):
+               psimin, psimax, desc=None):
     """
     Write MHD input to HDF5 file.
 
@@ -32,6 +32,8 @@ def write_hdf5(fn, nmodes, mmodes, amplitude, omega, alpha, phi,
 
         g.create_dataset("n_modes", (1,), data=n_modes, dtype="i8")
         g.create_dataset("npsi",    (1,), data=npsi,    dtype="i8")
+        g.create_dataset("psimin",  (1,), data=psimin,  dtype="f8")
+        g.create_dataset("psimax",  (1,), data=psimax,  dtype="f8")
 
         g.create_dataset("nmode", (n_modes,), data=nmodes, dtype="i8")
         g.create_dataset("mmode", (n_modes,), data=mmodes, dtype="i8")
@@ -89,5 +91,7 @@ def write_hdf5_dummy(fn):
     omega     = np.array([1, 1.5])
     alpha     = np.ones((n_modes,npsi))
     phi       = np.ones((n_modes,npsi))
-    write_hdf5(fn, nmodes, mmodes, amplitude, omega, alpha, phi,
+    psimin    = 0
+    psimax    = 1
+    write_hdf5(fn, nmodes, mmodes, amplitude, omega, alpha, phi, psimin, psimax,
                desc="Dummy")
