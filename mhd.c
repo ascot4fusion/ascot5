@@ -139,8 +139,7 @@ void mhd_init(mhd_data* MHDdata, mhd_offload_data* offload_data,
 }
 
 /**
- * @brief MHD magic here.
- *
+ * @brief Evaluate the needed quantities from MHD mode for orbit following, i.e. alpha, phi, grad alpha, grad phi, partial t alpha, partial t phi
  * @todo This is just a dummy.
  */
 a5err mhd_eval(mhd_data* mhddata) {
