@@ -2,9 +2,13 @@
  * @file boozer.c
  * @brief Module for transforming between cylindrical and Boozer coordinates.
  */
+#include <stdlib.h>
 #include "ascot5.h"
+#include "consts.h"
 #include "error.h"
 #include "boozer.h"
+#include "spline/interp1D.h"
+#include "spline/interp1Dcomp.h"
 
 /**
  * @brief Load Boozer data and prepare parameters for offload.
@@ -12,16 +16,112 @@
  * This function fills the boozer offload struct with parameters and allocates
  * and fills the offload array. Sets offload array length in the offload struct.
  *
+ * The offload data struct should be fully initialized before calling this
+ * function and offload array should hold the input data in order
+ * [g, q, I, delta, nu, theta_bzr, theta_geo]. This function fits splines to
+ * input data, reallocates the offload array and stores spline coefficients
+ * there.
+ *
+ * Multidimensional arrays must be stored as
+ * - delta(psi_i, thetabzr_j)     = array[j*npsi + i]
+ * - nu(psi_i, thetabzr_j)        = array[j*npsi + i]
+ * - theta_bzr(psi_i, thetageo_j) = array[j*npsi + i]
+ * - theta_geo(R_i, z_j)          = array[j*nR + i]
+ *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  *
  * @return zero if initialization succeeded.
- *
- * @todo Konsta will write this.
  */
 int boozer_init_offload(boozer_offload_data* offload_data,
                         real** offload_array) {
-    return 0;
+
+    int err = 0;
+
+    real psi_grid = (offload_data->psi_max - offload_data->psi_min)
+        / (offload_data->npsi - 1);
+    int npsi       = offload_data->npsi;
+    int nR         = offload_data->nR;
+    int nz         = offload_data->nz;
+    int ntheta_bzr = offload_data->ntheta_bzr;
+    int ntheta_geo = offload_data->ntheta_geo;
+
+    /* Allocate array for storing coefficients (which later replaces the
+       offload array) */
+    offload_data->offload_array_length =
+        npsi * (3*2 + 4*ntheta_geo + 4*2*ntheta_bzr) + 4*nR*nz;
+    real* coeff_array = (real*)malloc(offload_data->offload_array_length
+                                      * sizeof(real));
+
+    int cpernode = 2; // Number of coefficients in one node.
+    /* Initialize spline for g and copy the coefficients */
+    interp1D_data spline1D;
+    err += interp1Dcomp_init(&spline1D,
+                             &(*offload_array)[0],
+                             offload_data->npsi, offload_data->psi_min,
+                             offload_data->psi_max,
+                             psi_grid);
+
+    for(int i=0; i < cpernode*npsi; i++) {
+        coeff_array[i] = spline1D.c[i];
+    }
+    interp1Dcomp_free(&spline1D);
+
+    /* Initialize spline for q and copy the coefficients */
+    err += interp1Dcomp_init(&spline1D,
+                             &(*offload_array)[npsi],
+                             offload_data->npsi, offload_data->psi_min,
+                             offload_data->psi_max,
+                             psi_grid);
+
+    for(int i=0; i < cpernode*npsi; i++) {
+        coeff_array[cpernode*npsi + i] = spline1D.c[i];
+    }
+    interp1Dcomp_free(&spline1D);
+
+    /* Initialize spline for I and copy the coefficients */
+    err += interp1Dcomp_init(&spline1D,
+                             &(*offload_array)[2*npsi],
+                             offload_data->npsi, offload_data->psi_min,
+                             offload_data->psi_max,
+                             psi_grid);
+
+    for(int i=0; i < cpernode*npsi; i++) {
+        coeff_array[2*cpernode*npsi + i] = spline1D.c[i];
+    }
+    interp1Dcomp_free(&spline1D);
+
+    /* Initialize spline for delta and copy the coefficients */
+    err += interp2Dcomp_init_coeff(&(coeff_array[(3 + 2*ntheta_bzr)*cpernode*npsi]),
+                                   &(*offload_array)[3*npsi],
+                                   offload_data->npsi, offload_data->ntheta_bzr,
+                                   NATURALBC, PERIODICBC,
+                                   offload_data->psi_min,
+                                   offload_data->psi_max,
+                                   0, CONST_2PI);
+
+    /* Initialize spline for nu and copy the coefficients */
+    err += interp2Dcomp_init_coeff(&(coeff_array[(3 + 2*ntheta_bzr)*cpernode*npsi]),
+                                   &(*offload_array)[(3 + ntheta_bzr)*npsi],
+                                   offload_data->npsi, offload_data->ntheta_bzr,
+                                   NATURALBC, PERIODICBC,
+                                   offload_data->psi_min,
+                                   offload_data->psi_max,
+                                   0, CONST_2PI);
+
+    /* Initialize spline for theta_bzr and copy the coefficients */
+    err += interp2Dcomp_init_coeff(&(coeff_array[(3 + 2*ntheta_bzr)*cpernode*npsi]),
+                                   &(*offload_array)[(3 + 2*ntheta_bzr)*npsi],
+                                   offload_data->npsi, offload_data->ntheta_geo,
+                                   NATURALBC, NATURALBC,
+                                   offload_data->R_min,
+                                   offload_data->R_max,
+                                   offload_data->z_min,
+                                   offload_data->z_max);
+
+    /* Initialize spline for theta_geo and copy the coefficients */
+
+    return err;
 }
 
 /**
@@ -30,12 +130,46 @@ int boozer_init_offload(boozer_offload_data* offload_data,
  * @param boozerdata pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
- *
- * @todo Konsta will write this.
  */
 void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
-                     real* offload_array) {
+                 real* offload_array) {
 
+    interp2Dcomp_init_spline(&boozerdata->delta,
+                             &(offload_array[0]),
+                             offload_data->npsi,
+                             offload_data->ntheta_bzr,
+                             NATURALBC, PERIODICBC,
+                             offload_data->psi_min,
+                             offload_data->psi_max,
+                             0, CONST_2PI);
+
+    interp2Dcomp_init_spline(&boozerdata->nu,
+                             &(offload_array[0]),
+                             offload_data->npsi,
+                             offload_data->ntheta_bzr,
+                             NATURALBC, PERIODICBC,
+                             offload_data->psi_min,
+                             offload_data->psi_max,
+                             0, CONST_2PI);
+
+    interp2Dcomp_init_spline(&boozerdata->theta_bzr,
+                             &(offload_array[0]),
+                             offload_data->npsi,
+                             offload_data->ntheta_geo,
+                             NATURALBC, PERIODICBC,
+                             offload_data->psi_min,
+                             offload_data->psi_max,
+                             0, CONST_2PI);
+
+    interp2Dcomp_init_spline(&boozerdata->theta_geo,
+                             &(offload_array[0]),
+                             offload_data->nR,
+                             offload_data->nz,
+                             NATURALBC, NATURALBC,
+                             offload_data->R_min,
+                             offload_data->R_max,
+                             offload_data->z_min,
+                             offload_data->z_max);
 }
 
 /**

@@ -7,18 +7,30 @@
 
 #include "ascot5.h"
 #include "error.h"
+#include "spline/interp1D.h"
+#include "spline/interp1Dcomp.h"
+#include "spline/interp2Dcomp.h"
 
 /**
  * @brief Boozer parameters that will be offloaded to target
+ *
+ * The actual data consists of g(psi), q(psi), I(psi), delta(psi, theta_bzr),
+ * nu(psi, theta_bzr), theta_bzr(psi, theta_geo), and theta_geo(R, z)values.
+ * This struct holds enough information to construct the grids where data is
+ * given.
  */
 typedef struct {
-    int nR;         /**< Number of major radius points for the psi_pol(R,z)
-                         map                                                  */
-    int nz;         /**< Number of major radius points for the psi_pol(R,z)
-                         map                                                  */
-    int npsi;       /**< Number of psi_pol values for the coordinate grids    */
-    int ntheta_geo; /**< Number of geometric theta angle values               */
-    int ntheta_bzr; /**< Number of the Boozer theta values                    */
+    int nR;         /**< Number R grid points               */
+    real R_min;     /**< Minimum R grid point               */
+    real R_max;     /**< Maximum R grid point               */
+    int nz;         /**< Number z grid points               */
+    real z_min;     /**< Minimum R grid point               */
+    real z_max;     /**< Minimum R grid point               */
+    int npsi;       /**< Number psi grid points             */
+    real psi_min;   /**< Minimum psi grid point             */
+    real psi_max;   /**< Maximum psi grid point             */
+    int ntheta_geo; /**< Number of geometric theta points   */
+    int ntheta_bzr; /**< Number of boozer theta grid points */
 
     int offload_array_length; /**< Number of elements in offload_array        */
 } boozer_offload_data;
@@ -27,22 +39,14 @@ typedef struct {
  * @brief Boozer parameters on the target
  */
 typedef struct {
-    int nR;          /**< Number of major radius points for the psi_pol(R,z)
-                          map                                                 */
-    int nz;          /**< Number of major radius points for the psi_pol(R,z)
-                          map                                                 */
-    int npsi;        /**< Number of psi_pol values for the coordinate grids   */
-    int ntheta_geo;  /**< Number of geometric theta angle values              */
-    int ntheta_bzr;  /**< Number of the Boozer theta values                   */
-
-    real* theta_geo; /**< Geometric theta angle                               */
-    real* theta_bzr; /**< Boozer theta angle                                  */
-    real* g;         /**< Toroidal covariant component of the magnetic field  */
-    real* q;         /**< q-profile                                           */
-    real* I;         /**< poloidal covariant component of the magnetic field  */
-    real* delta;     /**< radial covariant component of the magnetic field    */
-    real* nu;        /**< the nu-function, phi=zeta+nu(psi,theta),
-                          phi the cylindrical angle                           */
+    interp2D_data theta_geo; /**< Geometric theta angle                       */
+    interp2D_data theta_bzr; /**< Boozer theta angle                          */
+    interp1D_data g; /**< Toroidal covariant component of the magnetic field  */
+    interp1D_data q; /**< q-profile                                           */
+    interp1D_data I; /**< poloidal covariant component of the magnetic field  */
+    interp2D_data delta; /**< radial covariant component of the magnetic field*/
+    interp2D_data nu;    /**< the nu-function, phi=zeta+nu(psi,theta),
+                              phi the cylindrical angle                       */
 } boozer_data;
 
 int boozer_init_offload(boozer_offload_data* offload_data,

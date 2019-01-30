@@ -40,10 +40,25 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
     /* Read parameters. */
     if( hdf5_read_int(BOOZERPATH "nR", &(offload_data->nR),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BOOZERPATH "R_min", &(offload_data->R_min),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BOOZERPATH "R_max", &(offload_data->R_max),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
     if( hdf5_read_int(BOOZERPATH "nz", &(offload_data->nz),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BOOZERPATH "z_min", &(offload_data->z_min),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BOOZERPATH "z_max", &(offload_data->z_max),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
     if( hdf5_read_int(BOOZERPATH "npsi", &(offload_data->npsi),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BOOZERPATH "psi_min", &(offload_data->psi_min),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BOOZERPATH "psi_max", &(offload_data->psi_max),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
     if( hdf5_read_int(BOOZERPATH "ntheta_geo", &(offload_data->ntheta_geo),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(BOOZERPATH "ntheta_bzr", &(offload_data->ntheta_bzr),

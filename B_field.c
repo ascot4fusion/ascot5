@@ -217,7 +217,7 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z,
             break;
 
         case B_field_type_STS:
-            B_STS_eval_psi(psi, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_psi(psi, r, phi, z, &(Bdata->BSTS));
             break;
 
         case B_field_type_TC:
@@ -280,7 +280,7 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
             break;
 
         case B_field_type_STS:
-            B_STS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BSTS));
             break;
 
         case B_field_type_TC:
@@ -343,7 +343,7 @@ a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
             break;
 
         case B_field_type_STS:
-            B_STS_eval_rho(rho, psi, &(Bdata->BSTS));
+            err = B_STS_eval_rho(rho, psi, &(Bdata->BSTS));
             break;
 
         case B_field_type_TC:
@@ -412,7 +412,7 @@ a5err B_field_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
             break;
 
         case B_field_type_STS:
-            B_STS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BSTS));
             break;
 
         case B_field_type_TC:
@@ -472,7 +472,7 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
             break;
 
         case B_field_type_STS:
-            B_STS_eval_B(B, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_B(B, r, phi, z, &(Bdata->BSTS));
             break;
 
         case B_field_type_TC:
@@ -543,7 +543,7 @@ a5err B_field_eval_B_dB(real B_dB[12], real r, real phi, real z,
             break;
 
         case B_field_type_STS:
-            B_STS_eval_B_dB(B_dB, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_B_dB(B_dB, r, phi, z, &(Bdata->BSTS));
             break;
 
         case B_field_type_TC:
