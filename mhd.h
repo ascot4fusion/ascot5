@@ -7,6 +7,7 @@
 
 #include "ascot5.h"
 #include "error.h"
+#include "boozer.h"
 #include "spline/interp1Dcomp.h"
 
 #define MHD_MODES_MAX_NUM 20
@@ -60,7 +61,7 @@ void mhd_init(mhd_data* MHDdata, mhd_offload_data* offload_data,
               real* offload_array);
 
 #pragma omp declare simd uniform(MHDdata)
-a5err mhd_eval(real mhd_dmhd[8], real phase, real r, real phi, real z, boozer_data* boozerdata, mhd_data* mhddata);
+a5err mhd_eval(real mhd_dmhd[8], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* MHDdata);
 
 #pragma omp end declare target
 
