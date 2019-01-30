@@ -141,7 +141,21 @@ void mhd_init(mhd_data* MHDdata, mhd_offload_data* offload_data,
 /**
  * @brief Evaluate the needed quantities from MHD mode for orbit following, i.e. alpha, phi, grad alpha, grad phi, partial t alpha, partial t phi
  * @todo This is just a dummy.
+ * @return Non-zero a5err value if evaluation failed, zero otherwise 
+ * The values are stored in the given array as:
+ * - mhd_dmhd[0] = alpha 
+ * - mhd_dmhd[1] = dalpha/dt
+ * - mhd_dmhd[2] = grad alpha, r component
+ * - mhd_dmhd[3] = grad alpha, phi component
+ * - mhd_dmhd[4] = grad alpha, z component
+ * - mhd_dmhd[5] = phi
+ * - mhd_dmhd[6] = dphi/dt
+ * - mhd_dmhd[7] = grad phi, r component
+ * - mhd_dmhd[6] = grad phi, phi component
+ * - mhd_dmhd[7] = grad phi, z component
  */
-a5err mhd_eval(mhd_data* mhddata) {
-    return 0;
+a5err mhd_eval(real mhd_dmhd[8], real phase, real r, real phi, real z, boozer_data* boozerdata, mhd_data* mhddata) {
+    a5err err = 0;
+    
+    return err;
 }
