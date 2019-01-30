@@ -511,9 +511,9 @@ a5err B_3DS_eval_B(real B[3], real r, real phi, real z, B_3DS_data* Bdata) {
     interperr += interp3Dexpl_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
     interperr += interp3Dexpl_eval_B(&B[2], &Bdata->B_z, r, phi, z);
 #else
-    interperr += interp3Dcomp_eval_B(&B[0], &Bdata->B_r, r, phi, z);
-    interperr += interp3Dcomp_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
-    interperr += interp3Dcomp_eval_B(&B[2], &Bdata->B_z, r, phi, z);
+    interperr += interp3Dcomp_eval_f(&B[0], &Bdata->B_r, r, phi, z);
+    interperr += interp3Dcomp_eval_f(&B[1], &Bdata->B_phi, r, phi, z);
+    interperr += interp3Dcomp_eval_f(&B[2], &Bdata->B_z, r, phi, z);
 #endif
 
     /* Test for B field interpolation error */
@@ -562,7 +562,7 @@ a5err B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z,
 #if INTERP_SPL_EXPL
     interperr += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
 #else
-    interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
+    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r, phi, z);
 #endif
 
     B_dB[0] = B_dB_temp[0];
@@ -574,7 +574,7 @@ a5err B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z,
 #if INTERP_SPL_EXPL
     interperr += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
 #else
-    interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
+    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_phi, r, phi, z);
 #endif
 
     B_dB[4] = B_dB_temp[0];
@@ -586,7 +586,7 @@ a5err B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z,
 #if INTERP_SPL_EXPL
     interperr += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
 #else
-    interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
+    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_z, r, phi, z);
 #endif
 
     B_dB[8] = B_dB_temp[0];

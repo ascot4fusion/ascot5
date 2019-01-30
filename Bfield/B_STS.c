@@ -602,7 +602,7 @@ a5err B_STS_eval_psi(real psi[], real r, real phi, real z,
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
-    interperr += interp3Dcomp_eval_B(&psi[0], &Bdata->psi, r, phi, z);
+    interperr += interp3Dcomp_eval_f(&psi[0], &Bdata->psi, r, phi, z);
 
     /* Test for psi interpolation error */
     if(interperr) {
@@ -629,7 +629,7 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
     int interperr = 0; /* If error happened during interpolation */
     real psi_dpsi_temp[10];
 
-    interperr += interp3Dcomp_eval_dB(psi_dpsi_temp, &Bdata->psi, r, phi, z);
+    interperr += interp3Dcomp_eval_df(psi_dpsi_temp, &Bdata->psi, r, phi, z);
 
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
@@ -714,9 +714,9 @@ a5err B_STS_eval_B(real B[], real r, real phi, real z, B_STS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
-    interperr += interp3Dcomp_eval_B(&B[0], &Bdata->B_r, r, phi, z);
-    interperr += interp3Dcomp_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
-    interperr += interp3Dcomp_eval_B(&B[2], &Bdata->B_z, r, phi, z);
+    interperr += interp3Dcomp_eval_f(&B[0], &Bdata->B_r, r, phi, z);
+    interperr += interp3Dcomp_eval_f(&B[1], &Bdata->B_phi, r, phi, z);
+    interperr += interp3Dcomp_eval_f(&B[2], &Bdata->B_z, r, phi, z);
 
     /* Test for B field interpolation error */
     if(interperr) {
@@ -750,21 +750,21 @@ a5err B_STS_eval_B_dB(real B_dB[], real r, real phi, real z, B_STS_data* Bdata) 
     int interperr = 0; /* If error happened during interpolation */
     real B_dB_temp[10];
 
-    interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
+    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r, phi, z);
 
     B_dB[0] = B_dB_temp[0];
     B_dB[1] = B_dB_temp[1];
     B_dB[2] = B_dB_temp[2];
     B_dB[3] = B_dB_temp[3];
 
-    interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
+    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_phi, r, phi, z);
 
     B_dB[4] = B_dB_temp[0];
     B_dB[5] = B_dB_temp[1];
     B_dB[6] = B_dB_temp[2];
     B_dB[7] = B_dB_temp[3];
 
-    interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
+    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_z, r, phi, z);
 
     B_dB[8] = B_dB_temp[0];
     B_dB[9] = B_dB_temp[1];
