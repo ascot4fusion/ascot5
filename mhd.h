@@ -61,7 +61,7 @@ void mhd_init(mhd_data* MHDdata, mhd_offload_data* offload_data,
               real* offload_array);
 
 #pragma omp declare simd uniform(MHDdata)
-a5err mhd_eval(real mhd_dmhd[8], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* MHDdata);
+a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* MHDdata);
 
 #pragma omp end declare target
 
