@@ -10,7 +10,7 @@ from . ascot5file import add_group
 from . ascot5data import AscotData
 
 def write_hdf5(fn, gprof, qprof, Iprof, delta, nu, theta_bzr, theta_geo,
-               desc=None):
+               psimin, psimax, Rmin, Rmax, zmin, zmax, desc=None):
     """
     Write boozer input to HDF5 file.
 
@@ -34,8 +34,14 @@ def write_hdf5(fn, gprof, qprof, Iprof, delta, nu, theta_bzr, theta_geo,
         g = add_group(f, parent, group, desc=desc)
 
         g.create_dataset("nR",         (1,), data=nR,         dtype="i8")
+        g.create_dataset("Rmin",       (1,), data=Rmin,       dtype="f8")
+        g.create_dataset("Rmax",       (1,), data=Rmax,       dtype="f8")
         g.create_dataset("nz",         (1,), data=nz,         dtype="i8")
+        g.create_dataset("zmin",       (1,), data=zmin,       dtype="f8")
+        g.create_dataset("zmax",       (1,), data=zmax,       dtype="f8")
         g.create_dataset("npsi",       (1,), data=npsi,       dtype="i8")
+        g.create_dataset("psimin",     (1,), data=psimin,     dtype="f8")
+        g.create_dataset("psimax",     (1,), data=psimax,     dtype="f8")
         g.create_dataset("ntheta_geo", (1,), data=ntheta_geo, dtype="i8")
         g.create_dataset("ntheta_bzr", (1,), data=ntheta_bzr, dtype="i8")
 
@@ -90,8 +96,14 @@ def write_hdf5_dummy(fn):
             Full path to the HDF5 file.
     """
     npsi       = 6
+    psimin     = 0
+    psimax     = 1
     nR         = 5
+    Rmin       = 0.1
+    Rmax       = 100
     nz         = 10
+    zmin       = -100
+    zmax       = 100
     ntheta_bzr = 8
     ntheta_geo = 12
 
@@ -103,4 +115,4 @@ def write_hdf5_dummy(fn):
     theta_bzr = np.ones((npsi,ntheta_geo))
     theta_geo = np.ones((nR,nz))
     write_hdf5(fn, gprof, qprof, Iprof, delta, nu, theta_bzr, theta_geo,
-               desc="Dummy")
+               psimin, psimax, Rmin, Rmax, zmin, zmax, desc="Dummy")
