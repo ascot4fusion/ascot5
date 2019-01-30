@@ -152,10 +152,10 @@ void mhd_init(mhd_data* MHDdata, mhd_offload_data* offload_data,
  * - mhd_dmhd[5] = phi
  * - mhd_dmhd[6] = dphi/dt
  * - mhd_dmhd[7] = grad phi, r component
- * - mhd_dmhd[6] = grad phi, phi component
- * - mhd_dmhd[7] = grad phi, z component
+ * - mhd_dmhd[8] = grad phi, phi component
+ * - mhd_dmhd[9] = grad phi, z component
  */
-a5err mhd_eval(real mhd_dmhd[8], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* MHDdata) {
+a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* MHDdata) {
     a5err err = 0;
     real ptz_dptz[12];
     boozer_eval_gradients(ptz_dptz, r, phi, z, boozerdata);
@@ -175,8 +175,31 @@ a5err mhd_eval(real mhd_dmhd[8], real phase, real r, real phi, real z, real t, b
 	/*possible normalization errors*/
         
         mhd_dmhd[0] += a_da[0]*(MHDdata->amplitude_nm[i])*sin(mhdarg);
- 
         mhd_dmhd[5] += phi_dphi[0]*(MHDdata->amplitude_nm[i])*sin(mhdarg);
-    }
+
+	/*time derivs */
+
+	mhd_dmhd[1] += -1*a_da[0]*(MHDdata->amplitude_nm[i])*(MHDdata->omega_nm[i])*cos(mhdarg);
+	mhd_dmhd[6] += -1*phi_dphi[0]*(MHDdata->amplitude_nm[i])*(MHDdata->omega_nm[i])*cos(mhdarg);
+	/*following code could be written better*/
+	/*r component of gradients */
+
+	mhd_dmhd[2] += (MHDdata->amplitude_nm[i])*(a_da[1]*ptz_dptz[1]*sin(mhdarg) + -1*a_da[0]*(MHDdata->mmode[i])*ptz_dptz[5]*cos(mhdarg) + a_da[0]*(MHDdata->nmode[i])*ptz_dptz[9]*cos(mhdarg));
+
+
+	mhd_dmhd[7] += (MHDdata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[1]*sin(mhdarg) + -1*phi_dphi[0]*(MHDdata->mmode[i])*ptz_dptz[5]*cos(mhdarg) + phi_dphi[0]*(MHDdata->nmode[i])*ptz_dptz[9]*cos(mhdarg));
+
+	/*phi component of gradients */
+
+	mhd_dmhd[3] += (MHDdata->amplitude_nm[i])*(a_da[1]*ptz_dptz[2]*sin(mhdarg) + -1*a_da[0]*(MHDdata->mmode[i])*ptz_dptz[6]*cos(mhdarg) + a_da[0]*(MHDdata->nmode[i])*ptz_dptz[10]*cos(mhdarg));
+
+	mhd_dmhd[8] += (MHDdata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[2]*sin(mhdarg) + -1*phi_dphi[0]*(MHDdata->mmode[i])*ptz_dptz[6]*cos(mhdarg) + phi_dphi[0]*(MHDdata->nmode[i])*ptz_dptz[10]*cos(mhdarg));
+
+	/*z component of gradients */
+
+	mhd_dmhd[4] += (MHDdata->amplitude_nm[i])*(a_da[1]*ptz_dptz[3]*sin(mhdarg) + -1*a_da[0]*(MHDdata->mmode[i])*ptz_dptz[7]*cos(mhdarg) + a_da[0]*(MHDdata->nmode[i])*ptz_dptz[11]*cos(mhdarg)); 
+ 
+	mhd_dmhd[9] += (MHDdata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[3]*sin(mhdarg) + -1*phi_dphi[0]*(MHDdata->mmode[i])*ptz_dptz[7]*cos(mhdarg) + phi_dphi[0]*(MHDdata->nmode[i])*ptz_dptz[11]*cos(mhdarg));
+     }
     return err;
 }
