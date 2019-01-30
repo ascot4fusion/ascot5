@@ -7,6 +7,7 @@
 #include "print.h"
 #include "error.h"
 #include "mhd.h"
+#include "boozer.h"
 #include "spline/interp1D.h"
 #include "spline/interp1Dcomp.h"
 
@@ -154,8 +155,28 @@ void mhd_init(mhd_data* MHDdata, mhd_offload_data* offload_data,
  * - mhd_dmhd[6] = grad phi, phi component
  * - mhd_dmhd[7] = grad phi, z component
  */
-a5err mhd_eval(real mhd_dmhd[8], real phase, real r, real phi, real z, boozer_data* boozerdata, mhd_data* mhddata) {
+a5err mhd_eval(real mhd_dmhd[8], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* MHDdata) {
     a5err err = 0;
-    
+    real ptz_dptz[12];
+    boozer_eval_gradients(ptz_dptz, r, phi, z, boozerdata);
+    int i; 
+    for(i = 0; i <  MHDdata->n_modes; i++){
+	/*get interpolated values */
+        real a_da[3];
+        interp1Dcomp_eval_dB(a_da, &(MHDdata->alpha_nm[i]),r);
+
+        real phi_dphi[3];
+	interp1Dcomp_eval_dB(phi_dphi,&(MHDdata->alpha_nm[i]),r);
+        
+        /*this is used frequently, so define here*/
+        real mhdarg = (MHDdata->nmode[i])* ptz_dptz[8]-(MHDdata->mmode[i])*ptz_dptz[4]-(MHDdata->omega_nm[i])*t +phase;
+
+        /*sum over modes to get alpha, phi */
+	/*possible normalization errors*/
+        
+        mhd_dmhd[0] += a_da[0]*(MHDdata->amplitude_nm[i])*sin(mhdarg);
+ 
+        mhd_dmhd[5] += phi_dphi[0]*(MHDdata->amplitude_nm[i])*sin(mhdarg);
+    }
     return err;
 }
