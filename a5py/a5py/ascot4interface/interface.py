@@ -13,12 +13,13 @@ import a5py.ascot4interface.erad as a4erad
 import a5py.ascot4interface.wall_2d as a4wall_2d
 import a5py.ascot4interface.wall_3d as a4wall_3d
 
-import a5py.ascot5io.B_2D as B_2D
-import a5py.ascot5io.B_3D as B_3D
-import a5py.ascot5io.B_ST as B_ST
+import a5py.ascot5io.B_2DS as B_2DS
+import a5py.ascot5io.B_3DS as B_3DS
+import a5py.ascot5io.B_STS as B_STS
 import a5py.ascot5io.N0_3D as N0_3D
 import a5py.ascot5io.plasma_1D as plasma_1D
-import a5py.ascot5io.markers as markers
+import a5py.ascot5io.mrk_prt as mrk_prt
+import a5py.ascot5io.mrk_gc as mrk_gc
 import a5py.ascot5io.E_TC as E_TC
 import a5py.ascot5io.E_1D as E_1D
 import a5py.ascot5io.wall_2D as wall_2D
@@ -52,7 +53,7 @@ def read_markers(a4folder, h5fn):
         if 'vphi' in data['fieldNames']:
             # We have particles
             print("Warning! Forcing time to zero for all markers.")
-            markers.write_hdf5_particles(
+            mrk_prt.write_hdf5(
                 h5fn, data["fields"]["id"].size, data["fields"]["id"],
                 data["fields"]["mass"], data["fields"]["charge"],
                 data["fields"]["Rprt"], data["fields"]["phiprt"],
@@ -65,7 +66,7 @@ def read_markers(a4folder, h5fn):
             print("Warning! Forcing time to zero and "
                   "randomizing theta for all markers.")
             theta = 2*np.pi*np.random.rand(data["fields"]["id"].size)
-            markers.write_hdf5_guidingcenters(
+            mrk_gc.write_hdf5(
                 h5fn, data["fields"]["id"].size, data["fields"]["id"],
                 data["fields"]["mass"], data["fields"]["charge"],
                 data["fields"]["R"], data["fields"]["phi"],
@@ -80,7 +81,7 @@ def read_bfield(a4folder, h5fn):
     if (os.path.isfile(fnamebkg)) and (os.path.isfile(fnamehdr)):
         data = a4magn_bkg.read_magn_bkg(fnamebkg, fnamehdr)
         if data["nPhi"] > 1:
-            B_3D.write_hdf5(
+            B_3DS.write_hdf5(
                 h5fn,
                 data['r'][0], data['r'][-1], data['r'].size,
                 data['z'][0], data['z'][-1], data['z'].size,
@@ -89,7 +90,7 @@ def read_bfield(a4folder, h5fn):
                 data['psi0']/(2*np.pi), data['psi1']/(2*np.pi),
                 data['br'], data['bphi'], data['bz'])
         else:
-            B_2D.write_hdf5(
+            B_2DS.write_hdf5(
                 h5fn,
                 data['r'][0], data['r'][-1], data['r'].size,
                 data['z'][0], data['z'][-1], data['z'].size,
@@ -104,10 +105,11 @@ def read_bfield(a4folder, h5fn):
         data = a4magn_bkg.read_magn_bkg_stellarator(fnameh5)
         if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
             # Remove duplicated datapoint
+            print("Warning! Removing duplicated axis datapoint.")
             data['axis_r'] = data['axis_r'][0:-1]
             data['axis_phi'] = data['axis_phi'][0:-1]
             data['axis_z'] = data['axis_z'][0:-1]
-        B_ST.write_hdf5(
+        B_STS.write_hdf5(
             h5fn,
             data['r'][0], data['r'][-1], data['r'].size,
             data['z'][0], data['z'][-1], data['z'].size,
@@ -116,7 +118,7 @@ def read_bfield(a4folder, h5fn):
             data['n_periods'],
             data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
             data['axis_r'], data['axis_z'],
-            symmetry_mode=data['symmetrymode'],
+            sym_mode=data['symmetrymode'],
             psiaxis=0, psisepx=1)
 
 def read_plasma(a4folder, h5fn):
