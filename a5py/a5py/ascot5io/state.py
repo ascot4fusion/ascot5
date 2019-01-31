@@ -13,6 +13,7 @@ import a5py.marker as marker
 import a5py.marker.plot as plot
 from a5py.marker.alias import get as alias
 from a5py.marker.endcond import Endcond
+from a5py.marker.endcond import endconds
 
 from a5py.ascot5io.ascot5data import AscotData
 
@@ -70,7 +71,7 @@ class State(AscotData):
         """
         Read orbit data to dictionary.
         """
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._file, self.get_qid(), self._path.split("/")[-1])
 
 
     def __getitem__(self, key):
@@ -176,17 +177,15 @@ class State(AscotData):
         idx = np.ones(val.shape, dtype=bool)
 
         if endcond is not None:
-            with self as h5:
-                ec = self._read_from_endstate("endcond", h5)
-                er = self._read_from_endstate("errormsg", h5)
+            ec = self["endcond"]
+            er = self["errormsg"]
 
             endcondlist = [Endcond(ec[i], er[i]) for i in range(ec.size)]
-
             for i in range(idx.size):
-                idx[i] = idx & endcondlist[i] == endcond
+                idx[i] = np.logical_and(idx[i], endcondlist[i] == endcond)
 
         if pncrid is not None:
-            idx = idx & self["pncrid"] == pncrid
+            idx = np.logical_and(idx, self["pncrid"] == pncrid)
 
         val = val[idx]
 
@@ -256,32 +255,50 @@ class State(AscotData):
                           xlabel=x, ylabel=y, zlabel=z, axes=axes)
 
 
-    def histogram(self, x, y=None, bins=None, weights=None,
-                  logx=False, logy=False, logscale=False, xlabel=None,
+    def histogram(self, x=None, y=None, xbins=None, ybins=None, weight=False,
+                  logx=False, logy=False, logscale=False, endcond=None,
                   axes=None):
         """
-        Make scatter plot.
+        Make histogram plot.
 
         """
-        ids = self.get("id")
+        if endcond is None and y is None:
+            # Repeat 1D histogram for all endconds so we get a stacked histogram
+            for ec in endconds.keys():
+                self.histogram(x, y=None, xbins=xbins, ybins=None,
+                               weight=weight, logx=logx, logy=False,
+                               logscale=logscale, endcond=ec, axes=axes)
+
+            return
+
+        ids = self.get("id", endcond=endcond)
 
         xc = np.linspace(0, ids.size, ids.size)
         if x is not None:
-            xc = self.get(x, SI=False)
+            xc = self.get(x, endcond=endcond, SI=False)
 
         yc = None
         if y is not None:
-            yc = self.get(y, SI=False)
+            yc = self.get(y, endcond=endcond, SI=False)
 
-        if isinstance(logx, tuple):
-            if logx:
-                xc = np.log10(np.absolute(xc))
-            if logy and y is not None:
-                yc = np.log10(np.absolute(yc))
-        elif logx:
+        if logx:
             xc = np.log10(np.absolute(xc))
-            if y is not None:
-                yc = np.log10(np.absolute(yc))
+            xbins = np.linspace(np.log10(xbins[0]), np.log10(xbins[1]),
+                                xbins[2])
+        else:
+            xbins = np.linspace(xbins[0], xbins[1], xbins[2])
 
-        plot.plot_histogram(x=xc, bins=None, weights=None, logy=False, xlabel=None,
-                            axes=axes)
+        if logy and y is not None:
+            yc = np.log10(np.absolute(yc))
+            ybins = np.linspace(np.log10(ybins[0]), np.log10(ybins[1]),
+                                ybins[2])
+        elif y is not None:
+            ybins = np.linspace(ybins[0], ybins[1], ybins[2])
+
+        weights=None
+        if weight:
+            weights = self.get("weight", endcond=endcond)
+
+        plot.plot_histogram(x=xc, y=yc, xbins=xbins, ybins=ybins,
+                            weights=weights, logscale=logscale,
+                            xlabel=x, ylabel=y, axes=axes)

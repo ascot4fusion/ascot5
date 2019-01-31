@@ -59,6 +59,7 @@ class StateFrame(PlotFrame):
         self._binymaxchoice = tkinter.IntVar(self)
         self._nbinychoice   = tkinter.IntVar(self)
         self._binzlogchoice = tkinter.IntVar(self)
+        self._weightchoice  = tkinter.IntVar(self)
 
         # These are needed by both.
         self._endcondchoice = tkinter.StringVar(self)
@@ -95,6 +96,7 @@ class StateFrame(PlotFrame):
         self._binymaxchoice.set(2)
         self._nbinychoice.set(10)
         self._binzlogchoice.set(0)
+        self._weightchoice.set(0)
         self._endcondchoice.set("all")
         self._statechoice.set("inistate")
         self._plottype.set("scatter")
@@ -123,8 +125,26 @@ class StateFrame(PlotFrame):
                                       variable=self._plottype,
                                       value="histogram",
                                       command=self._showhistogrampanel)
+
+        # Ini/endstate toggle
+        if endstate is not  None:
+            temppanel = tkinter.Frame(top)
+            inibutton = tkinter.Radiobutton(temppanel, text="Inistate",
+                                            variable=self._statechoice,
+                                            value="inistate",
+                                            command=self._plot)
+            endbutton = tkinter.Radiobutton(temppanel, text="Endstate",
+                                            variable=self._statechoice,
+                                            value="endstate",
+                                            command=self._plot)
+            inibutton.pack(anchor="w")
+            endbutton.pack(anchor="w")
+            temppanel.pack(side="left")
+
+
         buttona.pack(side="left")
         buttonb.pack(side="left")
+
         self._showscatterpanel()
 
 
@@ -202,7 +222,117 @@ class StateFrame(PlotFrame):
 
 
     def _showhistogrampanel(self):
-        pass
+        panel = self.get_sidepanel()
+
+        xpanel = tkinter.Frame(panel)
+        xlabel = tkinter.Label(xpanel, text="x: ")
+        xinput = ttk.Combobox(xpanel, width=6, textvariable=self._binxchoice)
+        xltick = tkinter.Checkbutton(xpanel, text="log10", onvalue=1,
+                                     offvalue=0, variable=self._binxlogchoice,
+                                     height=1, width=5)
+
+        ypanel = tkinter.Frame(panel)
+        ylabel = tkinter.Label(ypanel, text="y: ")
+        yinput = ttk.Combobox(ypanel, width=6, textvariable=self._binychoice)
+        yltick = tkinter.Checkbutton(ypanel, text="log10", onvalue=1,
+                                     offvalue=0, variable=self._binylogchoice,
+                                     height=1, width=5)
+
+        zltick = tkinter.Checkbutton(panel, text="log10 z", onvalue=1,
+                                     offvalue=0, variable=self._binzlogchoice,
+                                     height=1, width=5)
+
+        weighttick = tkinter.Checkbutton(panel, text="weight", onvalue=1,
+                                         offvalue=0,
+                                         variable=self._weightchoice,
+                                         height=1, width=5)
+
+        ecpanel = tkinter.Frame(panel)
+        eclabel = tkinter.Label(ecpanel, text="Endcond: ")
+        endcondinput = ttk.Combobox(ecpanel, width=6,
+                                    textvariable=self._endcondchoice)
+
+        xinput["values"] = self._coords
+        yinput["values"] = self._coords
+        endcondinput["values"] = self._endconds
+
+        vcmd = (self.register(self._validate),
+                '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
+
+        binpanel   = tkinter.Frame(panel)
+        xminlabel  = tkinter.Label(binpanel, text="x min ")
+        xmaxlabel  = tkinter.Label(binpanel, text="x max ")
+        nxlabel    = tkinter.Label(binpanel, text="x nbin")
+        minxentry  = tkinter.Entry(binpanel, validate = 'key',
+                                   validatecommand = vcmd, width=6,
+                                   textvariable=self._binxminchoice)
+        maxxentry  = tkinter.Entry(binpanel, validate = 'key',
+                                   validatecommand = vcmd, width=6,
+                                   textvariable=self._binxmaxchoice)
+        nxentry    = tkinter.Entry(binpanel, validate = 'key',
+                                   validatecommand = vcmd, width=6,
+                                   textvariable=self._nbinxchoice)
+
+        yminlabel   = tkinter.Label(binpanel, text="y min ")
+        ymaxlabel   = tkinter.Label(binpanel, text="y max ")
+        nylabel     = tkinter.Label(binpanel, text="y nbin")
+        minyentry   = tkinter.Entry(binpanel, validate = 'key',
+                                    validatecommand = vcmd, width=6,
+                                    textvariable=self._binyminchoice)
+        maxyentry   = tkinter.Entry(binpanel, validate = 'key',
+                                    validatecommand = vcmd, width=6,
+                                    textvariable=self._binymaxchoice)
+        nyentry     = tkinter.Entry(binpanel, validate = 'key',
+                                    validatecommand = vcmd, width=6,
+                                    textvariable=self._nbinychoice)
+
+        xlabel.pack(side="left")
+        xinput.pack(side="left")
+        xltick.pack(side="left")
+        ylabel.pack(side="left")
+        yinput.pack(side="left")
+        yltick.pack(side="left")
+
+        eclabel.pack(side="left")
+        endcondinput.pack(side="left")
+
+        xminlabel.grid(row=0, column=0)
+        minxentry.grid(row=0, column=1)
+        xmaxlabel.grid(row=1, column=0)
+        maxxentry.grid(row=1, column=1)
+        nxlabel.grid(  row=2, column=0)
+        nxentry.grid(  row=2, column=1)
+
+        yminlabel.grid(row=0, column=2)
+        minyentry.grid(row=0, column=3)
+        ymaxlabel.grid(row=1, column=2)
+        maxyentry.grid(row=1, column=3)
+        nylabel.grid(  row=2, column=2)
+        nyentry.grid(  row=2, column=3)
+
+        xpanel.pack()
+        ypanel.pack()
+        zltick.pack()
+        weighttick.pack()
+        ecpanel.pack()
+        binpanel.pack()
+        tkinter.Button(panel, text="Plot", command=self._plot).pack()
+
+        self._plot()
+
+
+    def _validate(self, action, index, value_if_allowed,
+                  prior_value, text, validation_type, trigger_type,
+                  widget_name):
+        if action == "1":
+            if text in "e0123456789.-+":
+                try:
+                    float(value_if_allowed)
+                    return True
+                except ValueError:
+                    return False
+            else:
+                return False
 
 
     def _plot(self, *args):
@@ -253,6 +383,33 @@ class StateFrame(PlotFrame):
                               endcond=endcond, axes=axes)
 
         else:
-            pass
+            xcoord  = self._binxchoice.get()
+            ycoord  = self._binychoice.get()
+            if xcoord == "None":
+                xcoord = None
+            if ycoord == "None":
+                ycoord = None
+
+            endcond = self._endcondchoice.get()
+            if endcond == "all":
+                endcond = None
+
+            logx     = self._binxlogchoice.get()
+            logy     = self._binylogchoice.get()
+            logscale = self._binzlogchoice.get()
+
+            xbins = [float( self._binxminchoice.get() ),
+                     float( self._binxmaxchoice.get() ),
+                     int(   self._nbinxchoice.get() ) ]
+            ybins = [float( self._binyminchoice.get() ),
+                     float( self._binymaxchoice.get() ),
+                     int(   self._nbinychoice.get() ) ]
+
+            weight = self._weightchoice.get()
+
+            axes = fig.add_subplot(1,1,1)
+            state.histogram(x=xcoord, y=ycoord, xbins=xbins, ybins=ybins,
+                            weight=weight, logx=logx, logy=logy,
+                            logscale=logscale, endcond=endcond, axes=axes)
 
         self.draw()

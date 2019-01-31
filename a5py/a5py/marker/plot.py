@@ -81,8 +81,8 @@ def plot_line(x, y=None, z=None, ids=None, equal=False,
 
     return axes
 
-def plot_histogram(x, bins=None, weights=None, logy=False, xlabel=None,
-                   axes=None):
+def plot_histogram(x, xbins=None, y=None, ybins=None, weights=None,
+                   logscale=False, xlabel=None, ylabel=None, axes=None):
     """
     Plot histogram.
 
@@ -108,23 +108,27 @@ def plot_histogram(x, bins=None, weights=None, logy=False, xlabel=None,
         plt.figure()
         axes = plt.gca()
 
-    if bins is None:
-        bins = 10
+    if xbins is None:
+        xbins = 10
         #bins = np.amax(10, np.floor(x.size / 10))
         #bins = np.amin(100, bins)
 
-    axes.hist(x, bins, normed=False, stacked=True, log=logy,
+    if y is None:
+        axes.hist(x, xbins, normed=False, stacked=True, log=logscale,
               weights=weights, rwidth=1)
 
-    if xlabel is not None:
-        axes.set_xlabel(xlabel)
-    if weights is not None:
-        axes.set_ylabel("Particles per bin")
-    else:
-        axes.set_ylabel("Markers per bin")
+        if xlabel is not None:
+            axes.set_xlabel(xlabel)
+        if weights is not None:
+            axes.set_ylabel("Particles per bin")
+        else:
+            axes.set_ylabel("Markers per bin")
 
-    if not logy:
-        axes.ticklabel_format(style="sci", axis="y", scilimits=(0,0))
+        if not logscale:
+            axes.ticklabel_format(style="sci", axis="y", scilimits=(0,0))
+
+    else:
+        axes.hist2d(x, y)
 
     if newfig:
         plt.show(block=False)

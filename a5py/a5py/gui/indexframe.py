@@ -7,9 +7,11 @@ import tkinter
 import tkinter.ttk as ttk
 import a5py.ascot5io.ascot5tools as tools
 
-from .stateframe import StateFrame
-from .orbitframe import OrbitFrame
-from .distframe import DistFrame
+from .bfieldframe import BfieldFrame
+from .stateframe  import StateFrame
+from .orbitframe  import OrbitFrame
+from .distframe   import DistFrame
+from .debugframe  import DebugFrame
 
 ## Input fields for which plot frames exist (so we can disable those others).
 __AVAILABLE_INPUTS__ = ["B_2DS", "B_3DS", "B_GS", "plasma_1D", "wall_2D",
@@ -48,7 +50,7 @@ class IndexFrame(tkinter.Frame):
         fnbox.configure(state="disabled")
 
         fnlabel.grid(       row=0, column=0)
-        fnbox.grid(         row=1, column=0, columnspan=2)
+        fnbox.grid(         row=1, column=0, columnspan=3)
         fnbrowsebutton.grid(row=0, column=1)
         fnpanel.grid(row=0, column=1)
 
@@ -58,15 +60,18 @@ class IndexFrame(tkinter.Frame):
         fnlabel = tkinter.Label(fnpanel, text="ASCOT5 folder:", anchor="w")
         fnbrowsebutton = tkinter.Button(fnpanel, text="Browse...",
                                         command=self._browsefolder, anchor="e")
+        debugbutton    = tkinter.Button(fnpanel, text="Debug",
+                                        command=self._opendebug, anchor="e")
         fnbox.configure(state="normal")
         fnbox.delete("1.0", tkinter.END)
         fnbox.insert("end", gui.get_ascotfolder())
         fnbox.configure(state="disabled")
 
         fnlabel.grid(       row=0, column=0)
-        fnbox.grid(         row=1, column=0, columnspan=2)
+        fnbox.grid(         row=1, column=0, columnspan=3)
         fnbrowsebutton.grid(row=0, column=1)
-        fnpanel.grid(       row=2, column=0, rowspan=2, columnspan=2)
+        debugbutton.grid(   row=0, column=2)
+        fnpanel.grid(       row=2, column=0, rowspan=2, columnspan=3)
 
         self.grid_columnconfigure(1, weight=1)
         self.grid_columnconfigure(2, weight=1)
@@ -94,6 +99,7 @@ class IndexFrame(tkinter.Frame):
             self._panels["results"] = RunInfoPanel(gui, self)
             self._panels["results"].grid(row=0, column=2, padx=10, pady=10)
 
+
     def _browsefile(self):
         """
         Browse a new HDF5 file.
@@ -101,12 +107,33 @@ class IndexFrame(tkinter.Frame):
         self._gui.ask_openfile()
         self._gui.reload()
 
+
     def _browsefolder(self):
         """
         Browse a new ascot folder.
         """
         self._gui.ask_openfolder()
         self._gui.reload()
+
+
+    def _opendebug(self):
+        """
+        Open debugframe.
+        """
+        if self._gui.get_ascotpy() is not None:
+            self._gui.displayframe(DebugFrame( self._gui,
+                                               self._gui.get_ascotpy() ))
+
+
+    def viewinput(self, inputtype):
+        ascotpy = self._gui.get_ascotpy()
+
+        if ascotpy is None:
+            return
+
+        if inputtype in ["B_GS", "B_2DS", "B_3DS", "BSTS", "B_TC"]:
+            self._gui.displayframe(BfieldFrame(self._gui, ascotpy))
+
 
     def select_inputs(self, options=None, bfield=None, efield=None, plasma=None,
                       marker=None, neutral=None, wall=None):
@@ -172,6 +199,7 @@ class InputInfoPanel(ttk.LabelFrame):
         selectionmenu["values"] = self._inputs
         activebutton.config(command=self._set_active)
         savebutton.config(command=self._set_desc)
+        viewbutton.config(command=self._view)
 
         # Place widgets.
         selectionmenu.pack(side="left")
@@ -190,9 +218,11 @@ class InputInfoPanel(ttk.LabelFrame):
         self._datelabel     = datelabel
         self._change_selection()
 
+
     def select(self, group):
         self._inputselection.set(group)
         self._change_selection()
+
 
     def _change_selection(self, *args):
         group = self._inputselection.get()
@@ -203,11 +233,13 @@ class InputInfoPanel(ttk.LabelFrame):
         self._descbox.insert("end", desc)
         self._datelabel.config(text="Created: " + date)
 
+
     def _set_active(self):
         group = self._inputselection.get()
         tools.call_ascot5file(self._gui.get_ascotfilename(), "set_active",
                               group)
         self._gui.reload()
+
 
     def _set_desc(self):
         group = self._inputselection.get()
@@ -216,23 +248,12 @@ class InputInfoPanel(ttk.LabelFrame):
                               desc)
         self._gui.reload()
 
+
     def _view(self):
         group = self._inputselection.get()
-        group = self._gui.get_ascotobject()[name][group]
-        inputtype = self._gui.get_ascotobject()[name][group].get_type()
-        print(inputtype)
-        if inputtype == "B_GS":
-            self._gui.displayframe(BGSFrame(gui))
-        if inputtype == "B_2DS":
-            self._gui.displayframe(B2DSFrame)
-        if inputtype == "B_3DS":
-            self._gui.displayframe(B3DSFrame)
-        if inputtype == "P_1D":
-            self._gui.displayframe(Plasma1DFrame)
-        if inputtype == "wall_2D":
-            self._gui.displayframe(Wall2DFrame)
-        if inputtype == "wall_3D":
-            self._gui.displayframe(Wall3DFrame)
+        group = self._gui.get_ascotobject()[self._name][group]
+        inputtype = group.get_type()
+        self._indexframe.viewinput(inputtype)
 
 class RunInfoPanel(ttk.LabelFrame):
     """
