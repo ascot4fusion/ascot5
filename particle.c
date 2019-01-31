@@ -843,9 +843,7 @@ a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
  */
 void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
                           B_field_data* Bdata) {
-    a5err err = p_fo->err[j];
-    int simerr = 0; /* Error occurred during simulation */
-    if(err) {simerr = 1;}
+    a5err err = 0;
 
     p->rprt       = p_fo->r[j];
     p->phiprt     = p_fo->phi[j];
@@ -926,8 +924,14 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->B_z_dphi   = B_dB[10];
     p->B_z_dz     = B_dB[11];
 
-    if(!simerr && err) {err = err;}
-    p->err = err;
+    /* If marker already has error flag, make sure it is not overwritten here */
+    a5err simerr  = p_fo->err[j];
+    if(simerr) {
+        p->err = simerr;
+    }
+    else {
+        p->err = err;
+    }
 }
 
 /**
@@ -1020,9 +1024,7 @@ a5err particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc,
  */
 void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
                           B_field_data* Bdata) {
-    a5err err  = p_gc->err[j];
-    int simerr = 0; /* Error occurred during simulation */
-    if(err) {simerr = 1;}
+    a5err err = 0;
 
     p->r          = p_gc->r[j];
     p->phi        = p_gc->phi[j];
@@ -1092,11 +1094,17 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     if(!err) {
         p->rdot       = vR;
         p->phidot     = vphi/p->rprt;
-        p->zdot       = vz/p->mass;
+        p->zdot       = vz;
     }
 
-    if(!simerr && err) {err = err;}
-    p->err = err;
+    /* If marker already has error flag, make sure it is not overwritten here */
+    a5err simerr  = p_gc->err[j];
+    if(simerr) {
+        p->err = simerr;
+    }
+    else {
+        p->err = err;
+    }
 }
 
 /**
@@ -1195,9 +1203,7 @@ a5err particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml,
  */
 void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
                           B_field_data* Bdata) {
-    a5err err = p_ml->err[j];
-    int simerr = 0; /* Error occurred during simulation */
-    if(err) {simerr = 1;}
+    a5err err = 0;
 
     p->rprt       = p_ml->r[j];
     p->phiprt     = p_ml->phi[j];
@@ -1239,6 +1245,14 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->B_z_dphi   = p_ml->B_z_dphi[j];
     p->B_z_dz     = p_ml->B_z_dz[j];
 
+    /* If marker already has error flag, make sure it is not overwritten here */
+    a5err simerr  = p_ml->err[j];
+    if(simerr) {
+        p->err = simerr;
+    }
+    else {
+        p->err = err;
+    }
     if(!simerr && err) {err = err;}
     p->err = err;
 }
