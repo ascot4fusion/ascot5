@@ -97,14 +97,14 @@ int B_2DS_init_offload(B_2DS_offload_data* offload_data,
         offload_data->z_min, offload_data->z_max);
 
     err += interp2Dcomp_init_coeff(
-        B_phi, *offload_array + 1*datasize,
+        B_phi, *offload_array + 2*datasize,
         offload_data->n_r, offload_data->n_z,
         NATURALBC, NATURALBC,
         offload_data->r_min, offload_data->r_max,
         offload_data->z_min, offload_data->z_max);
 
     err += interp2Dcomp_init_coeff(
-        B_z, *offload_array + 2*datasize,
+        B_z, *offload_array + 3*datasize,
         offload_data->n_r, offload_data->n_z,
         NATURALBC, NATURALBC,
         offload_data->r_min, offload_data->r_max,

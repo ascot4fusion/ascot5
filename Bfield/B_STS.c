@@ -326,7 +326,7 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
     real* psi   = &(coeff_array[3*B_size*NSIZE_COMP3D]);
 
     err += interp3Dcomp_init_coeff(
-        psi, temp_array + 4*B_size,
+        psi, temp_array + 3*B_size,
         offload_data->psigrid_n_r, offload_data->psigrid_n_phi,
         offload_data->psigrid_n_z,
         NATURALBC, PERIODICBC, NATURALBC,
