@@ -14,6 +14,11 @@
 #include "../B_field.h"
 #include "diag_orb.h"
 
+#pragma omp declare target
+#pragma omp declare simd uniform(ang0)
+real diag_orb_check_plane_crossing(real fang, real iang, real ang0);
+#pragma omp end declare target
+
 /**
  * @brief Initializes orbit diagnostics offload data.
  *
@@ -226,7 +231,83 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
         }
     }
     else if(data->mode == DIAG_ORB_POINCARE) {
+        #pragma omp simd
+        for(int i= 0; i < NSIMD; i++) {
+            /* Mask dummy markers and thosw whose time-step was rejected. */
+            if( p_f->id[i] > 0 && (p_f->time[i] != p_i->time[i]) ) {
 
+                real k;
+                integer imrk   = p_f->index[i];
+                integer ipoint = data->mrk_pnt[imrk];
+                integer idx    = imrk * data->Npnt + ipoint;
+
+                /* Check and store toroidal crossings. */
+                for(int j=0; j < data->ntoroidalplots; j++) {
+                    k = diag_orb_check_plane_crossing(p_f->phi[i], p_i->phi[i],
+                                                      data->toroidalangles[j]);
+                    if(k) {
+                        real d = 1-k;
+                        idx = imrk * data->Npnt + ipoint;
+                        data->id[idx]     = (real)p_f->id[i];
+                        data->time[idx]   = k*p_f->time[i]   + d*p_i->time[i];
+                        data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
+                        data->rdot[idx]   = k*p_f->rdot[i]   + d*p_i->rdot[i];
+                        data->phidot[idx] = k*p_f->phidot[i] + d*p_i->phidot[i];
+                        data->zdot[idx]   = k*p_f->zdot[i]   + d*p_i->zdot[i];
+                        data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
+                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
+                        data->pol[idx]    = k*p_f->pol[i]    + d*p_i->pol[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
+                        data->pncrid[idx] = j;
+
+                        ipoint++;
+                        if(ipoint == data->Npnt) {
+                            ipoint = 0;
+                        }
+                        data->mrk_pnt[imrk]      = ipoint;
+                        data->mrk_recorded[imrk] = p_f->time[i];
+                    }
+                }
+
+                /* Check and store poloidal crossings. */
+                for(int j=0; j < data->npoloidalplots; j++) {
+                    k = diag_orb_check_plane_crossing(p_f->pol[i], p_i->pol[i],
+                                                      data->poloidalangles[j]);
+                    if(k) {
+                        real d = 1-k;
+                        idx = imrk * data->Npnt + ipoint;
+                        data->id[idx]     = (real)p_f->id[i];
+                        data->time[idx]   = k*p_f->time[i]   + d*p_i->time[i];
+                        data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
+                        data->rdot[idx]   = k*p_f->rdot[i]   + d*p_i->rdot[i];
+                        data->phidot[idx] = k*p_f->phidot[i] + d*p_i->phidot[i];
+                        data->zdot[idx]   = k*p_f->zdot[i]   + d*p_i->zdot[i];
+                        data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
+                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
+                        data->pol[idx]    = k*p_f->pol[i]    + d*p_i->pol[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
+                        data->pncrid[idx] = j + data->ntoroidalplots;
+
+                        ipoint++;
+                        if(ipoint == data->Npnt) {
+                            ipoint = 0;
+                        }
+                        data->mrk_pnt[imrk]      = ipoint;
+                        data->mrk_recorded[imrk] = p_f->time[i];
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -312,7 +393,83 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
         }
     }
     else if(data->mode == DIAG_ORB_POINCARE) {
+        #pragma omp simd
+        for(int i= 0; i < NSIMD; i++) {
+            /* Mask dummy markers and thosw whose time-step was rejected. */
+            if( p_f->id[i] > 0 && (p_f->time[i] != p_i->time[i]) ) {
 
+                real k;
+                integer imrk   = p_f->index[i];
+                integer ipoint = data->mrk_pnt[imrk];
+                integer idx    = imrk * data->Npnt + ipoint;
+
+                /* Check and store toroidal crossings. */
+                for(int j=0; j < data->ntoroidalplots; j++) {
+                    k = diag_orb_check_plane_crossing(p_f->phi[i], p_i->phi[i],
+                                                      data->toroidalangles[j]);
+                    if(k) {
+                        real d = 1-k;
+                        idx = imrk * data->Npnt + ipoint;
+                        data->id[idx]     = (real)p_f->id[i];
+                        data->time[idx]   = k*p_f->time[i]   + d*p_i->time[i];
+                        data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
+                        data->vpar[idx]   = k*p_f->vpar[i]   + d*p_i->vpar[i];
+                        data->mu[idx]     = k*p_f->mu[i]     + d*p_i->mu[i];
+                        data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
+                        data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
+                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
+                        data->pol[idx]    = k*p_f->pol[i]    + d*p_i->pol[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
+                        data->pncrid[idx] = j;
+
+                        ipoint++;
+                        if(ipoint == data->Npnt) {
+                            ipoint = 0;
+                        }
+                        data->mrk_pnt[imrk]      = ipoint;
+                        data->mrk_recorded[imrk] = p_f->time[i];
+                    }
+                }
+
+                /* Check and store poloidal crossings. */
+                for(int j=0; j < data->npoloidalplots; j++) {
+                    k = diag_orb_check_plane_crossing(p_f->pol[i], p_i->pol[i],
+                                                      data->poloidalangles[j]);
+                    if(k) {
+                        real d = 1-k;
+                        idx = imrk * data->Npnt + ipoint;
+                        data->id[idx]     = (real)p_f->id[i];
+                        data->time[idx]   = k*p_f->time[i]   + d*p_i->time[i];
+                        data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
+                        data->vpar[idx]   = k*p_f->vpar[i]   + d*p_i->vpar[i];
+                        data->mu[idx]     = k*p_f->mu[i]     + d*p_i->mu[i];
+                        data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
+                        data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
+                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
+                        data->pol[idx]    = k*p_f->pol[i]    + d*p_i->pol[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
+                        data->pncrid[idx] = j + data->ntoroidalplots;
+
+                        ipoint++;
+                        if(ipoint == data->Npnt) {
+                            ipoint = 0;
+                        }
+                        data->mrk_pnt[imrk]      = ipoint;
+                        data->mrk_recorded[imrk] = p_f->time[i];
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -388,79 +545,105 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
         }
     }
     else if(data->mode == DIAG_ORB_POINCARE) {
-        
-    }
-}
+        #pragma omp simd
+        for(int i= 0; i < NSIMD; i++) {
+            /* Mask dummy markers and thosw whose time-step was rejected. */
+            if( p_f->id[i] > 0 && (p_f->time[i] != p_i->time[i]) ) {
 
-/**
- * @brief Check whether a marker qualifies for Poincare-mode writing
- *
- * The marker qualifies if following conditions are met:
- * - It is not a dummy marker
- * - The time step was accepted
- * - Marker has crossed one of the specified poloidal or toroidal planes
- *
- * Marker is assumed to cross only maximum of one poloidal and one toroidal
- * plane. Other crosses are ignored.
- * The phi coordinate we use is "unmodulated", i.e., it is not limited to interval [0,2pi).
- * We can then find whether this poloidal plane was crossed by adding that plane's toroidal
- * coordinate on marker initial and final position, and see if the division with 2pi gives the
- * same value (no crossing) or not (marker has crossed the plane)
- *
- * Checks are done for NSIMD markers simultaneously.
- */
-void diag_orb_poincareTrigger(diag_orb_data* data, int* pol, int* tor,
-                              real* ftime, real* fpol, real* fphi,
-                              real* itime, real* ipol, real* iphi,
-                              real* kpol, real* ktor, integer* id){
-    #pragma omp simd
-    for(int i= 0; i < NSIMD; i++) {
-        pol[i] = -1;
-        tor[i] = -1;
+                real k;
+                integer imrk   = p_f->index[i];
+                integer ipoint = data->mrk_pnt[imrk];
+                integer idx    = imrk * data->Npnt + ipoint;
 
-        /* Dummy markers and those whose time-step was rejected are not
-           accepted*/
-        if( (id[i] != -1) && (ftime[i] != itime[i]) ) {
+                /* Check and store toroidal crossings. */
+                for(int j=0; j < data->ntoroidalplots; j++) {
+                    k = diag_orb_check_plane_crossing(p_f->phi[i], p_i->phi[i],
+                                                      data->toroidalangles[j]);
+                    if(k) {
+                        real d = 1-k;
+                        idx = imrk * data->Npnt + ipoint;
+                        data->id[idx]     = (real)p_f->id[i];
+                        data->time[idx]   = k*p_f->time[i]  + d*p_i->time[i];
+                        data->r[idx]      = k*p_f->r[i]     + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]   + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]     + d*p_i->z[i];
+                        data->rho[idx]    = k*p_f->rho[i]   + d*p_i->rho[i];
+                        data->pol[idx]    = k*p_f->pol[i]   + d*p_i->pol[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]   + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i] + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]   + d*p_i->B_z[i];
+                        data->pncrid[idx] = j;
 
-            /* Check if the particle has crossed one of the poloidal planes */
-            for(int ip = 0; ip < data->npoloidalplots; ip++) {
-
-                if( floor( (fphi[i] + data->poloidalangles[ip])/CONST_2PI ) !=
-                    floor( (iphi[i] + data->poloidalangles[ip])/CONST_2PI )
-                    ) {
-                    pol[i] = ip;
-
-                    /* Angles to interval [0, 2pi] */
-                    real a = fmod(iphi[i], CONST_2PI);
-                    if(a < 0){a = CONST_2PI + a;}
-
-                    a = fabs(data->poloidalangles[ip] - a);
-                    if(a > CONST_PI){a = CONST_2PI - a;}
-                    kpol[i] = fabs(a / (fphi[i] - iphi[i]));
-                    break;
+                        ipoint++;
+                        if(ipoint == data->Npnt) {
+                            ipoint = 0;
+                        }
+                        data->mrk_pnt[imrk]      = ipoint;
+                        data->mrk_recorded[imrk] = p_f->time[i];
+                    }
                 }
-            }
 
-            /* Check if the particle has crossed one of the toroidal planes */
-            for(int ip = 0; ip < data->ntoroidalplots; ip++) {
+                /* Check and store poloidal crossings. */
+                for(int j=0; j < data->npoloidalplots; j++) {
+                    k = diag_orb_check_plane_crossing(p_f->pol[i], p_i->pol[i],
+                                                      data->poloidalangles[j]);
+                    if(k) {
+                        real d = 1-k;
+                        idx = imrk * data->Npnt + ipoint;
+                        data->id[idx]     = (real)p_f->id[i];
+                        data->time[idx]   = k*p_f->time[i]  + d*p_i->time[i];
+                        data->r[idx]      = k*p_f->r[i]     + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]   + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]     + d*p_i->z[i];
+                        data->rho[idx]    = k*p_f->rho[i]   + d*p_i->rho[i];
+                        data->pol[idx]    = k*p_f->pol[i]   + d*p_i->pol[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]   + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i] + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]   + d*p_i->B_z[i];
+                        data->pncrid[idx] = j + data->ntoroidalplots;
 
-                if( floor( (fpol[i] + data->toroidalangles[ip])/CONST_2PI ) !=
-                    floor( (ipol[i] + data->toroidalangles[ip])/CONST_2PI )
-                    ) {
-                    tor[i] = ip;
-
-                    /* Angles to interval [0, 2pi] */
-                    real a = fmod(ipol[i], CONST_2PI);
-                    if(a < 0){a = CONST_2PI + a;}
-
-                    a = fabs(data->toroidalangles[ip] - a);
-                    if(a > CONST_PI){a = CONST_2PI -a;}
-                    ktor[i] = fabs(a / (fpol[i] - ipol[i]));
-                    break;
+                        ipoint++;
+                        if(ipoint == data->Npnt) {
+                            ipoint = 0;
+                        }
+                        data->mrk_pnt[imrk]      = ipoint;
+                        data->mrk_recorded[imrk] = p_f->time[i];
+                    }
                 }
             }
         }
     }
+}
 
+/**
+ * @brief Check if marker has crossed a plane.
+ *
+ * This helper function checks whether the angle, either toroidal or poloidal,
+ * that defines a Poincare plane is between marker's initial and final angles
+ * (of single timestep).
+ *
+ * @param fang marker initial angle in radians.
+ * @param iang marker initial angle in radians.
+ * @param ang0 Poincare plane angle.
+ *
+ * @return zero if no-crossing, number k, ang0 = k + (fang - iang), otherwise.
+ */
+real diag_orb_check_plane_crossing(real fang, real iang, real ang0){
 
+    real k = 0;
+    if( floor( (fang + ang0)/CONST_2PI ) != floor( (iang + ang0)/CONST_2PI ) ) {
+
+        real a = fmod(iang, CONST_2PI);
+        if(a < 0){
+            a = CONST_2PI + a;
+        }
+
+        a = fabs(ang0 - a);
+        if(a > CONST_PI) {
+            a = CONST_2PI - a;
+        }
+        k = fabs(a / (fang - iang));
+    }
+
+    return k;
 }

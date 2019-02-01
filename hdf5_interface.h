@@ -5,6 +5,8 @@
 #ifndef HDF5_INTERFACE_H5
 #define HDF5_INTERFACE_H5
 
+#include <hdf5.h>
+
 #include "ascot5.h"
 #include "simulate.h"
 
@@ -24,4 +26,6 @@ int hdf5_interface_write_state(char* fn, char* state, integer n,
 
 int hdf5_interface_write_diagnostics(sim_offload_data* sim,
                                      real* diag_offload_array, char* out);
+
+int hdf5_get_active_qid(hid_t f, const char* group, char* qid);
 #endif

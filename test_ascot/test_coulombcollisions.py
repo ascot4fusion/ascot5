@@ -417,6 +417,9 @@ def check():
     SLOWING["analytical"] = heaviside * ts \
                             / ( ( 1 + np.power(Ecrit/SLOWING["Egrid"], 3.0/2) )\
                                 * 2 * SLOWING["Egrid"] )
+    # ts is slowing down rate which gives the slowing down time as
+    # t_sd = ts*log(v_0 / v_th) = 0.5*ts*log(E_0/E_th)
+    slowingdowntime = 0.5*ts*np.log(Esd/(50*Te))
 
     #**************************************************************************#
     #*            Evaluate thermal distributions in energy and pitch           #
@@ -424,9 +427,8 @@ def check():
     #**************************************************************************#
 
     for mode in ["GO", "GCF", "GCA"]:
-        distobj = a5["THERMAL_" + mode]["R_phi_z_vpa_vpe_t_q"]
-        Exidist = distobj.get_E_xi_dist(m_p,
-                                        E_edges=THERMAL["Egrid"],
+        distobj = a5["THERMAL_" + mode]["dist5d"]
+        Exidist = distobj.get_E_xi_dist(E_edges=THERMAL["Egrid"],
                                         xi_edges=THERMAL["xigrid"],
                                         R=0, phi=0, z=0, charge=0, time=[1, 2])
 
@@ -446,10 +448,9 @@ def check():
     #**************************************************************************#
 
     for mode in ["GO", "GCF", "GCA"]:
-        distobj = a5["SLOWING_" + mode]["R_phi_z_vpa_vpe_t_q"]
+        distobj = a5["SLOWING_" + mode]["dist5d"]
 
-        Exidist = distobj.get_E_xi_dist(m_a,
-                                        E_edges=SLOWING["Egrid"],
+        Exidist = distobj.get_E_xi_dist(E_edges=SLOWING["Egrid"],
                                         xi_edges=SLOWING["xigrid"],
                                         R=0, phi=0, z=0, charge=0, time=0)
 
@@ -516,7 +517,7 @@ def check():
     h3.plot(SLOWING["E"][dense:], SLOWING["GCA_Edist"][dense:], marker='^',
             markersize=5, markevery=20, linestyle='none', alpha=0.5, color="r")
 
-    h4.plot(np.array([-1, 1]), np.array([0.5, 0.5])*ts, 'black')
+    h4.plot(np.array([-1, 1]), np.array([0.5, 0.5])*slowingdowntime, 'black')
     h4.plot(SLOWING["xi"], SLOWING["GO_xidist"], alpha=0.5)
     h4.plot(SLOWING["xi"], SLOWING["GCF_xidist"], alpha=0.5)
     h4.plot(SLOWING["xi"], SLOWING["GCA_xidist"], alpha=0.5)

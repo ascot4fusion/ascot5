@@ -316,19 +316,21 @@ a5err B_GS_eval_rho(real rho[1], real psi, B_GS_data* Bdata) {
  */
 a5err B_GS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
                          B_GS_data* Bdata) {
+    real psi_dpsi[4];
 
-    B_GS_eval_psi_dpsi(rho_drho, r, phi, z, Bdata);
+    B_GS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
 
     /* Check that the values seem valid */
     real delta = Bdata->psi1 - Bdata->psi0;
-    if( (rho_drho[0] - Bdata->psi0) / delta < 0 ) {
+    if( (psi_dpsi[0] - Bdata->psi0) / delta < 0 ) {
          return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_GS );
     }
 
-    rho_drho[0] = sqrt( (rho_drho[0] - Bdata->psi0) / delta );
-    rho_drho[1] = rho_drho[1] / (2*delta*rho_drho[0]);
+    rho_drho[0] = sqrt( (psi_dpsi[0] - Bdata->psi0) / delta );
+    
+    rho_drho[1] = psi_dpsi[1] / (2*delta*rho_drho[0]);
     rho_drho[2] = 0;
-    rho_drho[3] = rho_drho[3] / (2*delta*rho_drho[0]);
+    rho_drho[3] = psi_dpsi[3] / (2*delta*rho_drho[0]);
 
     return 0;
 }
