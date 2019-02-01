@@ -6,8 +6,7 @@
 #define B_3DS_H
 #include "../ascot5.h"
 #include "../error.h"
-#include "../spline/interp2Dcomp.h"
-#include "../spline/interp3D.h"
+#include "../spline/interp.h"
 
 /**
  * @brief 3D magnetic field parameters on the host
@@ -30,10 +29,10 @@ typedef struct {
     real Bgrid_z_min;    /**< Minimum z coordinate in the grid in B data [m]  */
     real Bgrid_z_max;    /**< Maximum z coordinate in the grid in B data [m]  */
     real Bgrid_z_grid;   /**< z grid interval in B data [m]                   */
-    int n_phi;           /**< Number of phi grid points in B data             */
-    real phi_min;        /**< Minimum phi grid point in B data [rad]          */
-    real phi_max;        /**< Maximum phi grid point in B data [rad]          */
-    real phi_grid;       /**< phi grid interval in B data [rad]               */
+    int Bgrid_n_phi;     /**< Number of phi grid points in B data             */
+    real Bgrid_phi_min;  /**< Minimum phi grid point in B data [rad]          */
+    real Bgrid_phi_max;  /**< Maximum phi grid point in B data [rad]          */
+    real Bgrid_phi_grid; /**< phi grid interval in B data [rad]               */
 
     real psi0;           /**< Poloidal flux value at magnetic axis [V*s*m^-1] */
     real psi1;           /**< Poloidal flux value at separatrix [V*s*m^-1]    */
