@@ -370,11 +370,11 @@ def check():
     # For some reason GCTRANSFORM_GO2GC GCTRANSFORM_GC are not equal in length
     # and we need to have [:-1]?
     h1.plot(a5["GCTRANSFORM_GO"]["orbits"]["time"]*1e6,
-            ( a5["GCTRANSFORM_GO"]["orbits"]["mu"]/e
-              - a5["GCTRANSFORM_GC"]["orbits"]["mu"] ) / 1e4 )
+            ( a5["GCTRANSFORM_GO"]["orbits"]["mu"]
+              - a5["GCTRANSFORM_GC"]["orbits"]["mu"] ) / (1e4*e) )
     h1.plot(a5["GCTRANSFORM_GO2GC"]["orbits"]["time"]*1e6,
             ( a5["GCTRANSFORM_GO2GC"]["orbits"]["mu"]
-              - a5["GCTRANSFORM_GC"]["orbits"]["mu"][:-1] ) / 1e4 )
+              - a5["GCTRANSFORM_GC"]["orbits"]["mu"][:-1] ) / (1e4*e) )
 
     h2.plot(a5["GCTRANSFORM_GO"]["orbits"]["time"]*1e6,
             ( a5["GCTRANSFORM_GO"]["orbits"]["vpar"]
