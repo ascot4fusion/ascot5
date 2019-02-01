@@ -7,8 +7,6 @@
 #include <math.h>
 #include "../ascot5.h"
 #include "../consts.h"
-#include "interp3Dexpl.h"
-#include "interp.h"
 #include "spline.h"
 
 /**

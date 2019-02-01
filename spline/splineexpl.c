@@ -105,7 +105,7 @@ void spline(real* f, int n, int bc, real* c) {
     }
 
     /* Derive spline coefficients from solved derivatives */
-    for(i=0; i<n-1; i++) {
+    for(int i=0; i<n-1; i++) {
         c[i*4]   = f[i];
         c[i*4+1] = D[i];
         c[i*4+2] = 3*(f[i+1]-f[i])-2*D[i]-D[i+1];

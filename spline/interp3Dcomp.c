@@ -7,7 +7,7 @@
 #include "../ascot5.h"
 #include "../consts.h"
 #include "interp.h"
-#include "splinecomp.h"
+#include "spline.h"
 
 /**
  * @brief Calculate tricubic spline interpolation coefficients for 3D data

@@ -55,7 +55,7 @@ void splinecomp(real* f, int n, int bc, real* c) {
             D[i] = Y[i] - p[i] * D[i+1];
         }
     }
-    else if(bc == PERIODIC) {
+    else if(bc == PERIODICBC) {
         /** PERIODIC **/
 
         /* Value that starts from lower left corner and moves right */

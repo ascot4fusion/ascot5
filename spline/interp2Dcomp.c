@@ -6,7 +6,7 @@
 #include <math.h>
 #include "../ascot5.h"
 #include "interp.h"
-#include "splinecomp.h"
+#include "spline.h"
 
 /**
  * @brief Calculate bicubic spline interpolation coefficients for scalar 2D data
