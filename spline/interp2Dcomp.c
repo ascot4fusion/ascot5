@@ -6,7 +6,7 @@
 #include <math.h>
 #include "../ascot5.h"
 #include "interp.h"
-#include "spline1Dcomp.h"
+#include "splinecomp.h"
 
 /**
  * @brief Calculate bicubic spline interpolation coefficients for scalar 2D data
@@ -69,7 +69,7 @@ int interp2Dcomp_init_coeff(real* c, real* f,
         for(int i_x=0; i_x<n_x; i_x++) {
             f_x[i_x] = f[i_y*n_x+i_x];
         }
-        spline1Dcomp(f_x, n_x, bc_x, c_x);
+        splinecomp(f_x, n_x, bc_x, c_x);
         for(int i_x=0; i_x<n_x; i_x++) {
             c[i_y*n_x*4 + i_x*4    ] = c_x[i_x*2];
             c[i_y*n_x*4 + i_x*4 + 1] = c_x[i_x*2+1] / (x_grid*x_grid);
@@ -83,7 +83,7 @@ int interp2Dcomp_init_coeff(real* c, real* f,
         for(int i_y=0; i_y<n_y; i_y++) {
             f_y[i_y] =  f[i_y*n_x + i_x];
         }
-        spline1Dcomp(f_y, n_y, bc_y, c_y);
+        splinecomp(f_y, n_y, bc_y, c_y);
         for(int i_y=0; i_y<n_y; i_y++) {
             c[i_y*n_x*4+i_x*4+2] = c_y[i_y*2+1]/(y_grid*y_grid);
         }
@@ -92,7 +92,7 @@ int interp2Dcomp_init_coeff(real* c, real* f,
         for(int i_y=0; i_y<n_y; i_y++) {
             f_y[i_y] =  c[i_y*n_x*4 + i_x*4 + 1];
         }
-        spline1Dcomp(f_y, n_y, bc_y, c_y);
+        splinecomp(f_y, n_y, bc_y, c_y);
         for(int i_y=0; i_y<n_y; i_y++) {
             c[i_y*n_x*4 + i_x*4 + 3] = c_y[i_y*2 + 1] / (y_grid*y_grid);
         }

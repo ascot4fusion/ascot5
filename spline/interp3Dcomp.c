@@ -7,7 +7,7 @@
 #include "../ascot5.h"
 #include "../consts.h"
 #include "interp.h"
-#include "spline1Dcomp.h"
+#include "splinecomp.h"
 
 /**
  * @brief Calculate tricubic spline interpolation coefficients for 3D data
@@ -90,7 +90,7 @@ int interp3Dcomp_init_coeff(real* c, real* f,
             for(int i_x=0; i_x<n_x; i_x++) {
                 f_x[i_x] = f[i_y*n_z*n_x + i_z*n_x + i_x];
             }
-            spline1Dcomp(f_x, n_x, bc_x, c_x);
+            splinecomp(f_x, n_x, bc_x, c_x);
             for(int i_x=0; i_x<n_x; i_x++) {
                 c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8    ] = c_x[i_x*2];
                 c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 1] = c_x[i_x*2 + 1]
@@ -104,7 +104,7 @@ int interp3Dcomp_init_coeff(real* c, real* f,
             for(int i_z=0; i_z<n_z; i_z++) {
                 f_z[i_z] = f[i_y*n_z*n_x + i_z*n_x + i_x];
             }
-            spline1Dcomp(f_z, n_z, bc_z, c_z);
+            splinecomp(f_z, n_z, bc_z, c_z);
             for(int i_z=0; i_z<n_z; i_z++) {
                 c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 3] = c_z[i_z*2 + 1]
                                                            / (z_grid*z_grid);
@@ -113,7 +113,7 @@ int interp3Dcomp_init_coeff(real* c, real* f,
             for(int i_z=0; i_z<n_z; i_z++) {
                 f_z[i_z] = c[i_y*n_z*n_x*8 + i_z*n_x*8+i_x*8 + 1];
             }
-            spline1Dcomp(f_z, n_z, bc_z, c_z);
+            splinecomp(f_z, n_z, bc_z, c_z);
             for(int i_z=0; i_z<n_z; i_z++) {
                 c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 5] = c_z[i_z*2+1]
                                                            / (z_grid*z_grid);
@@ -130,7 +130,7 @@ int interp3Dcomp_init_coeff(real* c, real* f,
             for(int i_y=0; i_y<n_y; i_y++) {
                 f_y[i_y] = f[i_y*n_z*n_x + i_z*n_x + i_x];
             }
-            spline1Dcomp(f_y, n_y, bc_y, c_y);
+            splinecomp(f_y, n_y, bc_y, c_y);
             for(int i_y=0; i_y<n_y; i_y++) {
                 c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 2] = c_y[i_y*2 + 1]
                                                            / (y_grid*y_grid);
@@ -139,7 +139,7 @@ int interp3Dcomp_init_coeff(real* c, real* f,
             for(int i_y=0; i_y<n_y; i_y++) {
                 f_y[i_y] = c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 1];
             }
-            spline1Dcomp(f_y, n_y, bc_y, c_y);
+            splinecomp(f_y, n_y, bc_y, c_y);
             for(int i_y=0; i_y<n_y; i_y++) {
                 c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 4] = c_y[i_y*2 + 1]
                                                            / (y_grid*y_grid);
@@ -148,7 +148,7 @@ int interp3Dcomp_init_coeff(real* c, real* f,
             for(int i_y=0; i_y<n_y; i_y++) {
                 f_y[i_y] = c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 3];
             }
-            spline1Dcomp(f_y, n_y, bc_y, c_y);
+            splinecomp(f_y, n_y, bc_y, c_y);
             for(int i_y=0; i_y<n_y; i_y++) {
                 c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 6] = c_y[i_y*2+1]
                                                            / (y_grid*y_grid);
@@ -157,7 +157,7 @@ int interp3Dcomp_init_coeff(real* c, real* f,
             for(int i_y=0; i_y<n_y; i_y++) {
                 f_y[i_y] = c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 5];
             }
-            spline1Dcomp(f_y, n_y, bc_y, c_y);
+            splinecomp(f_y, n_y, bc_y, c_y);
             for(int i_y=0; i_y<n_y; i_y++) {
                 c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 7] = c_y[i_y*2+1]
                                                            / (y_grid*y_grid);

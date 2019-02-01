@@ -6,7 +6,7 @@
 #include <math.h>
 #include "../ascot5.h"
 #include "interp.h"
-#include "spline1Dcomp.h"
+#include "spline.h"
 
 /**
  * @brief Calculate cubic spline interpolation coefficients for scalar 1D data
@@ -37,7 +37,7 @@ int interp1Dcomp_init_coeff(real* c, real* f, int n_x, int bc_x,
     if(c == NULL) {
         return 1;
     }
-    spline1Dcomp(f, n_x, bc_x, c);
+    splinecomp(f, n_x, bc_x, c);
     for(int i_x=0; i_x<n_x; i_x++) {
         c[i_x*2]     = c[i_x*2];
         c[i_x*2 + 1] = c[i_x*2+1] / (x_grid*x_grid);

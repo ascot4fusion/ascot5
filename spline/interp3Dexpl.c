@@ -8,8 +8,8 @@
 #include "../ascot5.h"
 #include "../consts.h"
 #include "interp3Dexpl.h"
-#include "interp3D.h"
-#include "spline1D.h"
+#include "interp.h"
+#include "spline.h"
 
 /**
  * @brief Calculate tricubic spline interpolation coefficients for scalar 3D data
@@ -82,7 +82,7 @@ int interp3Dexpl_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
                 for(i_r=0; i_r<n_r; i_r++) {
                     f_r[i_r] = f[i_phi*n_z*n_r+i_z*n_r+i_r];
                 }
-                spline1D(f_r,n_r,0,c_r);
+                spline(f_r,n_r,0,c_r);
                 for(i_r=0; i_r<n_r-1; i_r++) {
                     for(i_c=0; i_c<4; i_c++) {
                         i_ct = i_c;
@@ -98,7 +98,7 @@ int interp3Dexpl_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
                     for(i_z=0; i_z<n_z; i_z++) {
                         f_z[i_z] = str->c[i_phi*n_z*n_r*64+i_z*n_r*64+i_r*64+i_s];
                     }
-                    spline1D(f_z,n_z,0,c_z);
+                    spline(f_z,n_z,0,c_z);
                     for(i_z=0; i_z<n_z-1; i_z++) {
                         i_ct = 0;
                         for(i_c=i_s; i_c<16; i_c=i_c+4) {
@@ -120,7 +120,7 @@ int interp3Dexpl_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
                             f_phi[i_phi] = str->c[i_phi*n_z*n_r*64+i_z*n_r*64
                                                   +i_r*64+(i_ss*4+i_s)];
                         }
-                        spline1D(f_phi,n_phi,1,c_phi);
+                        spline(f_phi,n_phi,1,c_phi);
                         for(i_phi=0; i_phi<n_phi; i_phi++) {
                             i_ct = 0;
                             for(i_c=4*i_ss+i_s; i_c<64; i_c=i_c+16) {

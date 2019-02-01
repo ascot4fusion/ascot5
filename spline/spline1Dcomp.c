@@ -1,10 +1,11 @@
 /**
- * @file spline1Dcomp.c
+ * @file splinecomp.c
  * @brief Cubic spline interpolation of a 1D data set, compact form
  */
 #include <stdlib.h>
 #include "../ascot5.h"
-#include "spline1Dcomp.h"
+#include "spline.h"
+#include "interp.h"
 
 /**
  * @brief Calculate compact tricubic spline interpolation coefficients in 1D
@@ -15,10 +16,10 @@
  *
  * @param f 1D data to be interpolated
  * @param n number of data points
- * @param bc boundary condition flag (0) natural, (1) periodic
+ * @param bc boundary condition flag
  * @param c array for coefficient storage with length 2*n
  */
-void spline1Dcomp(real* f, int n, int bc, real* c) {
+void splinecomp(real* f, int n, int bc, real* c) {
 
     /* Array for RHS of matrix equation         */
     real* Y = malloc(n*sizeof(real));
@@ -27,7 +28,7 @@ void spline1Dcomp(real* f, int n, int bc, real* c) {
     /* Array for 2nd derivative vector to solve */
     real* D = malloc(n*sizeof(real));
 
-    if(bc==0) {
+    if(bc == NATURALBC) {
         /** NATURAL (second derivative is zero) **/
 
         /* Initialize RHS of equation */
@@ -54,7 +55,7 @@ void spline1Dcomp(real* f, int n, int bc, real* c) {
             D[i] = Y[i] - p[i] * D[i+1];
         }
     }
-    else if(bc==1) {
+    else if(bc == PERIODIC) {
         /** PERIODIC **/
 
         /* Value that starts from lower left corner and moves right */
