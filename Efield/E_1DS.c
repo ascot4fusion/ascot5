@@ -57,7 +57,7 @@ int E_1DS_init_offload(E_1DS_offload_data* offload_data, real** offload_array) {
 
     /* Free the offload array and replace it with the coefficient array */
     free(*offload_array);
-    dV_drho = ;
+    *offload_array = dV_drho;
     offload_data->offload_array_length = NSIZE_COMP1D * offload_data->n_rho;
 
     /* Print some sanity check on data */
@@ -130,14 +130,14 @@ a5err E_1DS_eval_E(real E[], real r, real phi, real z, E_1DS_data* Edata,
     /* Convert partial derivative to gradient */
     rho_drho[2] = rho_drho[2]/r;
     /* We set the field to zero if outside the profile. */
-    if (rho_drho[0] < Edata->dV.r_min || rho_drho[0] > Edata->dV.r_max ) {
+    if (rho_drho[0] < Edata->dV.x_min || rho_drho[0] > Edata->dV.x_max ) {
         E[0] = 0;
         E[1] = 0;
         E[2] = 0;
         return err;
     }
     real dV;
-    interperr += interp1Dcomp_eval_B(&dV, &Edata->dV, rho_drho[0]);
+    interperr += interp1Dcomp_eval_f(&dV, &Edata->dV, rho_drho[0]);
 
     E[0] = dV * rho_drho[1];
     E[1] = dV * rho_drho[2];

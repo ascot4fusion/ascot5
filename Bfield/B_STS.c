@@ -313,61 +313,57 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
             offload_data->psigrid_phi_max - offload_data->psigrid_phi_grid;
     }
 
-    /* Spline initialization. Use spline structs for temporary storage */
+    /* Spline initialization. */
     int err = 0;
 
-    interp3D_data psi;
-    interp3D_data B_r;
-    interp3D_data B_phi;
-    interp3D_data B_z;
-    linint1D_data axis_r;
-    linint1D_data axis_z;
+    /* Allocate enough space to store four 3D arrays and axis data */
+    real* coeff_array = (real*) malloc( (3*NSIZE_COMP3D*B_size
+                                         + NSIZE_COMP3D*psi_size
+                                         + 2*axis_size)*sizeof(real));
+    real* B_r   = &(coeff_array[0*B_size*NSIZE_COMP3D]);
+    real* B_phi = &(coeff_array[1*B_size*NSIZE_COMP3D]);
+    real* B_z   = &(coeff_array[2*B_size*NSIZE_COMP3D]);
+    real* psi   = &(coeff_array[3*B_size*NSIZE_COMP3D]);
 
-    err += interp3Dcomp_init(
-        &psi, temp_array + 3*B_size,
+    err += interp3Dcomp_init_coeff(
+        psi, temp_array + 4*B_size,
         offload_data->psigrid_n_r, offload_data->psigrid_n_phi,
         offload_data->psigrid_n_z,
-        offload_data->psigrid_r_min, offload_data->psigrid_r_max,
-        offload_data->psigrid_r_grid,
+        NATURALBC, PERIODICBC, NATURALBC,
+        offload_data->psigrid_r_min,   offload_data->psigrid_r_max,
         offload_data->psigrid_phi_min, offload_data->psigrid_phi_max,
-        offload_data->psigrid_phi_grid,
-        offload_data->psigrid_z_min, offload_data->psigrid_z_max,
-        offload_data->psigrid_z_grid);
+        offload_data->psigrid_z_min,   offload_data->psigrid_z_max);
 
-    err += interp3Dcomp_init(
-        &B_r, temp_array + 0*B_size,
+    err += interp3Dcomp_init_coeff(
+        B_r, temp_array + 0*B_size,
         offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
         offload_data->Bgrid_n_z,
-        offload_data->Bgrid_r_min, offload_data->Bgrid_r_max,
-        offload_data->Bgrid_r_grid,
+        NATURALBC, PERIODICBC, NATURALBC,
+        offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
         offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
-        offload_data->Bgrid_phi_grid,
-        offload_data->Bgrid_z_min, offload_data->Bgrid_z_max,
-        offload_data->Bgrid_z_grid);
+        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max);
 
-    err += interp3Dcomp_init(
-        &B_phi, temp_array + 1*B_size,
+    err += interp3Dcomp_init_coeff(
+        B_phi, temp_array + 1*B_size,
         offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
         offload_data->Bgrid_n_z,
-        offload_data->Bgrid_r_min, offload_data->Bgrid_r_max,
-        offload_data->Bgrid_r_grid,
+        NATURALBC, PERIODICBC, NATURALBC,
+        offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
         offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
-        offload_data->Bgrid_phi_grid,
-        offload_data->Bgrid_z_min, offload_data->Bgrid_z_max,
-        offload_data->Bgrid_z_grid);
+        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max);
 
-    err += interp3Dcomp_init(
-        &B_z, temp_array + 2*B_size,
+    err += interp3Dcomp_init_coeff(
+        B_z, temp_array + 2*B_size,
         offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
         offload_data->Bgrid_n_z,
-        offload_data->Bgrid_r_min, offload_data->Bgrid_r_max,
-        offload_data->Bgrid_r_grid,
+        NATURALBC, PERIODICBC, NATURALBC,
+        offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
         offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
-        offload_data->Bgrid_phi_grid,
-        offload_data->Bgrid_z_min, offload_data->Bgrid_z_max,
-        offload_data->Bgrid_z_grid);
+        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max);
 
     /* Magnetic axis */
+    linint1D_data axis_r;
+    linint1D_data axis_z;
     int periodic = 1;
     err += linint1D_init(
         &axis_r,
@@ -381,11 +377,6 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
         offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
         offload_data->axis_grid, periodic);
 
-    /* The data is now presented with splines, each data point has
-     * 8 spline coefficients in 3D */
-    psi_size *= 8;
-    B_size *= 8;
-
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
         return err;
@@ -393,28 +384,17 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
 
     /* Re-allocate the offload array and store spline coefficients there */
     free(*offload_array);
+    *offload_array = coeff_array;
+    offload_data->offload_array_length = 3*NSIZE_COMP3D*B_size
+                                         + NSIZE_COMP3D*psi_size
+                                         + 2*axis_size;
 
-    offload_data->offload_array_length = psi_size + B_size*3 + 2*axis_size;
-    *offload_array =
-        (real*) malloc( offload_data->offload_array_length * sizeof(real) );
-
-    for(int i = 0; i < B_size; i++) {
-        (*offload_array)[0*B_size + i] = B_r.c[i];
-        (*offload_array)[1*B_size + i] = B_phi.c[i];
-        (*offload_array)[2*B_size + i] = B_z.c[i];
-    }
-    for(int i = 0; i < psi_size; i++) {
-        (*offload_array)[3*B_size + i] = psi.c[i];
-    }
     for(int i = 0; i < axis_size; i++) {
-        (*offload_array)[3*B_size + psi_size + i] = axis_r.c[i];
-        (*offload_array)[3*B_size + psi_size + axis_size + i] = axis_z.c[i];
+        (*offload_array)[(3*B_size + psi_size)*NSIZE_COMP3D + i] = axis_r.c[i];
+        (*offload_array)[(3*B_size + psi_size)*NSIZE_COMP3D + axis_size + i] =
+            axis_z.c[i];
     }
 
-    interp3D_free(&psi);
-    interp3D_free(&B_r);
-    interp3D_free(&B_phi);
-    interp3D_free(&B_z);
     linint1D_free(&axis_r);
     linint1D_free(&axis_z);
 
@@ -501,13 +481,10 @@ void B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
                real* offload_array) {
 
     int B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
-        * offload_data->Bgrid_n_phi ;
+        * offload_data->Bgrid_n_phi*NSIZE_COMP3D;
     int psi_size = offload_data->psigrid_n_r * offload_data->psigrid_n_z
-        * offload_data->psigrid_n_phi;
+        * offload_data->psigrid_n_phi*NSIZE_COMP3D;
     int axis_size = offload_data->n_axis;
-
-    B_size   *= 8;
-    psi_size *= 8;
 
     /* Initialize target data struct */
     Bdata->period_length = offload_data->period_length;
@@ -515,63 +492,55 @@ void B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
     Bdata->psi0 = offload_data->psi0;
     Bdata->psi1 = offload_data->psi1;
 
-    /* Copy parameters and assign pointers to offload array to initialize the
-       spline structs */
-    Bdata->B_r.n_r        = offload_data->Bgrid_n_r;
-    Bdata->B_r.r_min      = offload_data->Bgrid_r_min;
-    Bdata->B_r.r_max      = offload_data->Bgrid_r_max;
-    Bdata->B_r.r_grid     = offload_data->Bgrid_r_grid;
-    Bdata->B_r.n_z        = offload_data->Bgrid_n_z;
-    Bdata->B_r.z_min      = offload_data->Bgrid_z_min;
-    Bdata->B_r.z_max      = offload_data->Bgrid_z_max;
-    Bdata->B_r.z_grid     = offload_data->Bgrid_z_grid;
-    Bdata->B_r.n_phi      = offload_data->Bgrid_n_phi;
-    Bdata->B_r.phi_min    = offload_data->Bgrid_phi_min;
-    Bdata->B_r.phi_max    = offload_data->Bgrid_phi_max;
-    Bdata->B_r.phi_grid   = offload_data->Bgrid_phi_grid;
-    Bdata->B_r.c          = &(offload_array[0*B_size]);
 
-    Bdata->B_phi.n_r      = offload_data->Bgrid_n_r;
-    Bdata->B_phi.r_min    = offload_data->Bgrid_r_min;
-    Bdata->B_phi.r_max    = offload_data->Bgrid_r_max;
-    Bdata->B_phi.r_grid   = offload_data->Bgrid_r_grid;
-    Bdata->B_phi.n_z      = offload_data->Bgrid_n_z;
-    Bdata->B_phi.z_min    = offload_data->Bgrid_z_min;
-    Bdata->B_phi.z_max    = offload_data->Bgrid_z_max;
-    Bdata->B_phi.z_grid   = offload_data->Bgrid_z_grid;
-    Bdata->B_phi.n_phi    = offload_data->Bgrid_n_phi;
-    Bdata->B_phi.phi_min  = offload_data->Bgrid_phi_min;
-    Bdata->B_phi.phi_max  = offload_data->Bgrid_phi_max;
-    Bdata->B_phi.phi_grid = offload_data->Bgrid_phi_grid;
-    Bdata->B_phi.c        = &(offload_array[1*B_size]);
+    /* Initialize spline structs from the coefficients */
+    interp3Dcomp_init_spline(&Bdata->B_r, &(offload_array[0*B_size]),
+                             offload_data->Bgrid_n_r,
+                             offload_data->Bgrid_n_phi,
+                             offload_data->Bgrid_n_z,
+                             NATURALBC, PERIODICBC, NATURALBC,
+                             offload_data->Bgrid_r_min,
+                             offload_data->Bgrid_r_max,
+                             offload_data->Bgrid_phi_min,
+                             offload_data->Bgrid_phi_max,
+                             offload_data->Bgrid_z_min,
+                             offload_data->Bgrid_z_max);
 
-    Bdata->B_z.n_r        = offload_data->Bgrid_n_r;
-    Bdata->B_z.r_min      = offload_data->Bgrid_r_min;
-    Bdata->B_z.r_max      = offload_data->Bgrid_r_max;
-    Bdata->B_z.r_grid     = offload_data->Bgrid_r_grid;
-    Bdata->B_z.n_z        = offload_data->Bgrid_n_z;
-    Bdata->B_z.z_min      = offload_data->Bgrid_z_min;
-    Bdata->B_z.z_max      = offload_data->Bgrid_z_max;
-    Bdata->B_z.z_grid     = offload_data->Bgrid_z_grid;
-    Bdata->B_z.n_phi      = offload_data->Bgrid_n_phi;
-    Bdata->B_z.phi_min    = offload_data->Bgrid_phi_min;
-    Bdata->B_z.phi_max    = offload_data->Bgrid_phi_max;
-    Bdata->B_z.phi_grid   = offload_data->Bgrid_phi_grid;
-    Bdata->B_z.c          = &(offload_array[2*B_size]);
+    interp3Dcomp_init_spline(&Bdata->B_phi, &(offload_array[1*B_size]),
+                             offload_data->Bgrid_n_r,
+                             offload_data->Bgrid_n_phi,
+                             offload_data->Bgrid_n_z,
+                             NATURALBC, PERIODICBC, NATURALBC,
+                             offload_data->Bgrid_r_min,
+                             offload_data->Bgrid_r_max,
+                             offload_data->Bgrid_phi_min,
+                             offload_data->Bgrid_phi_max,
+                             offload_data->Bgrid_z_min,
+                             offload_data->Bgrid_z_max);
 
-    Bdata->psi.n_r        = offload_data->psigrid_n_r;
-    Bdata->psi.r_min      = offload_data->psigrid_r_min;
-    Bdata->psi.r_max      = offload_data->psigrid_r_max;
-    Bdata->psi.r_grid     = offload_data->psigrid_r_grid;
-    Bdata->psi.n_z        = offload_data->psigrid_n_z;
-    Bdata->psi.z_min      = offload_data->psigrid_z_min;
-    Bdata->psi.z_max      = offload_data->psigrid_z_max;
-    Bdata->psi.z_grid     = offload_data->psigrid_z_grid;
-    Bdata->psi.n_phi      = offload_data->psigrid_n_phi;
-    Bdata->psi.phi_min    = offload_data->psigrid_phi_min;
-    Bdata->psi.phi_max    = offload_data->psigrid_phi_max;
-    Bdata->psi.phi_grid   = offload_data->psigrid_phi_grid;
-    Bdata->psi.c          = &(offload_array[3*B_size]);
+    interp3Dcomp_init_spline(&Bdata->B_z, &(offload_array[2*B_size]),
+                             offload_data->Bgrid_n_r,
+                             offload_data->Bgrid_n_phi,
+                             offload_data->Bgrid_n_z,
+                             NATURALBC, PERIODICBC, NATURALBC,
+                             offload_data->Bgrid_r_min,
+                             offload_data->Bgrid_r_max,
+                             offload_data->Bgrid_phi_min,
+                             offload_data->Bgrid_phi_max,
+                             offload_data->Bgrid_z_min,
+                             offload_data->Bgrid_z_max);
+
+    interp3Dcomp_init_spline(&Bdata->psi, &(offload_array[3*B_size]),
+                             offload_data->psigrid_n_r,
+                             offload_data->psigrid_n_phi,
+                             offload_data->psigrid_n_z,
+                             NATURALBC, PERIODICBC, NATURALBC,
+                             offload_data->psigrid_r_min,
+                             offload_data->psigrid_r_max,
+                             offload_data->psigrid_phi_min,
+                             offload_data->psigrid_phi_max,
+                             offload_data->psigrid_z_min,
+                             offload_data->psigrid_z_max);
 
     Bdata->axis_r.n_r     = offload_data->n_axis;
     Bdata->axis_r.r_min   = offload_data->axis_min;

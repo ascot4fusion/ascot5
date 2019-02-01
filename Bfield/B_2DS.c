@@ -104,7 +104,7 @@ int B_2DS_init_offload(B_2DS_offload_data* offload_data,
         offload_data->z_min, offload_data->z_max);
 
     err += interp2Dcomp_init_coeff(
-        B_z, *offload_array + 2*datasize*offload_array,
+        B_z, *offload_array + 2*datasize,
         offload_data->n_r, offload_data->n_z,
         NATURALBC, NATURALBC,
         offload_data->r_min, offload_data->r_max,
@@ -325,7 +325,7 @@ a5err B_2DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
 
     /* Check that the values seem valid */
     real delta = Bdata->psi1 - Bdata->psi0;
-    if( !err %% (psi_dpsi[0] - Bdata->psi0) / delta < 0 ) {
+    if( !err && (psi_dpsi[0] - Bdata->psi0) / delta < 0 ) {
          err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_2DS );
     }
 

@@ -272,16 +272,16 @@ int hdf5_bfield_read_3DS(hid_t f, B_3DS_offload_data* offload_data,
     if( hdf5_read_double(BPATH "z_max", &(offload_data->Bgrid_z_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    if( hdf5_read_int(BPATH "n_phi", &(offload_data->n_phi),
+    if( hdf5_read_int(BPATH "n_phi", &(offload_data->Bgrid_n_phi),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "phi_min", &(offload_data->phi_min),
+    if( hdf5_read_double(BPATH "phi_min", &(offload_data->Bgrid_phi_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "phi_max", &(offload_data->phi_max),
+    if( hdf5_read_double(BPATH "phi_max", &(offload_data->Bgrid_phi_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     // Convert to radians
-    offload_data->phi_min = math_deg2rad(offload_data->phi_min);
-    offload_data->phi_max = math_deg2rad(offload_data->phi_max);
+    offload_data->Bgrid_phi_min = math_deg2rad(offload_data->Bgrid_phi_min);
+    offload_data->Bgrid_phi_max = math_deg2rad(offload_data->Bgrid_phi_max);
 
     /* Read and initialize psi field Rz-grid */
     if( hdf5_read_int(BPATH "psigrid_n_R", &(offload_data->psigrid_n_r),
@@ -300,7 +300,7 @@ int hdf5_bfield_read_3DS(hid_t f, B_3DS_offload_data* offload_data,
     /* Allocate offload_array storing psi and the three components of B */
     int psi_size = offload_data->psigrid_n_r*offload_data->psigrid_n_z;
     int B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
-        * offload_data->n_phi;
+        * offload_data->Bgrid_n_phi;
 
     *offload_array = (real*) malloc((psi_size + 3 * B_size) * sizeof(real));
     offload_data->offload_array_length = psi_size + 3 * B_size;

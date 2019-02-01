@@ -96,9 +96,9 @@ int B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) {
     int err = 0;
     int psi_size = offload_data->psigrid_n_r * offload_data->psigrid_n_z;
     int B_size   = offload_data->Bgrid_n_r   * offload_data->Bgrid_n_z
-                   * offload_data->n_phi;
+                   * offload_data->Bgrid_n_phi;
 
-    /* Allocate enough space to store four 2D arrays */
+    /* Allocate enough space to store three 3D arrays and one 2D array */
     real* coeff_array = (real*) malloc( (3*NSIZE_COMP3D*B_size
                                          + NSIZE_COMP2D*psi_size)*sizeof(real));
     real* B_r   = &(coeff_array[0*B_size*NSIZE_COMP3D]);
@@ -115,27 +115,30 @@ int B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) {
 
     err += interp3Dcomp_init_coeff(
         B_r, *offload_array + 0*B_size,
-        offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
+        offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
+        offload_data->Bgrid_n_z,
         NATURALBC, PERIODICBC, NATURALBC,
-        offload_data->Bgrid_r_min, offload_data->Bgrid_r_max,
-        offload_data->phi_min, offload_data->phi_max,
-        offload_data->Bgrid_z_min, offload_data->Bgrid_z_max);
+        offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
+        offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
+        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max);
 
     err += interp3Dcomp_init_coeff(
         B_phi, *offload_array + 1*B_size,
-        offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
+        offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
+        offload_data->Bgrid_n_z,
         NATURALBC, PERIODICBC, NATURALBC,
-        offload_data->Bgrid_r_min, offload_data->Bgrid_r_max,
-        offload_data->phi_min, offload_data->phi_max,
-        offload_data->Bgrid_z_min, offload_data->Bgrid_z_max);
+        offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
+        offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
+        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max);
 
     err += interp3Dcomp_init_coeff(
         B_z, *offload_array + 2*B_size,
-        offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
+        offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
+        offload_data->Bgrid_n_z,
         NATURALBC, PERIODICBC, NATURALBC,
-        offload_data->Bgrid_r_min, offload_data->Bgrid_r_max,
-        offload_data->phi_min, offload_data->phi_max,
-        offload_data->Bgrid_z_min, offload_data->Bgrid_z_max);
+        offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
+        offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
+        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max);
 
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
@@ -176,9 +179,9 @@ int B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) {
               offload_data->Bgrid_n_z,
               offload_data->Bgrid_z_min, offload_data->Bgrid_z_max);
     print_out(VERBOSE_IO, "nphi = %4.d phimin = %3.3f deg phimax = %3.3f deg\n",
-              offload_data->n_phi,
-              math_rad2deg(offload_data->phi_min),
-              math_rad2deg(offload_data->phi_max));
+              offload_data->Bgrid_n_phi,
+              math_rad2deg(offload_data->Bgrid_phi_min),
+              math_rad2deg(offload_data->Bgrid_phi_max));
     print_out(VERBOSE_IO, "Psi at magnetic axis (%1.3f m, %1.3f m)\n",
               offload_data->axis_r, offload_data->axis_z);
     print_out(VERBOSE_IO, "%3.3f (evaluated)\n%3.3f (given)\n",
@@ -213,7 +216,7 @@ void B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
                 real* offload_array) {
 
     int B_size = NSIZE_COMP3D * offload_data->Bgrid_n_r
-                 * offload_data->Bgrid_n_z * offload_data->n_phi;
+                 * offload_data->Bgrid_n_z * offload_data->Bgrid_n_phi;
 
     /* Initialize target data struct */
     Bdata->psi0 = offload_data->psi0;

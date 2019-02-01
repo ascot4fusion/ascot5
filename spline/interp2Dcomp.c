@@ -37,14 +37,14 @@ int interp2Dcomp_init_coeff(real* c, real* f,
     /* Check boundary conditions and evaluate grid interval */
     real x_grid, y_grid;
     if(bc_x == PERIODICBC || bc_x == NATURALBC) {
-        x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == 0) );
+        x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
     }
     else {
         return 1;
     }
 
     if(bc_y == PERIODICBC || bc_y == NATURALBC) {
-        y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == 0) );
+        y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
     }
     else {
         return 1;
@@ -125,8 +125,8 @@ void interp2Dcomp_init_spline(interp2D_data* str, real* c,
                               int n_x, int n_y, int bc_x, int bc_y,
                               real x_min, real x_max, real y_min, real y_max) {
 
-    real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == 0) );
-    real y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == 0) );
+    real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
+    real y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
 
     str->n_x    = n_x;
     str->n_y    = n_y;
