@@ -12,6 +12,7 @@
 #include "../error.h"
 #include "../print.h"
 #include "../B_field.h"
+#include "../spline/interp.h"
 #include "E_1DS.h"
 
 /**
@@ -39,34 +40,25 @@
  * @return zero if initialization succeeded
  */
 int E_1DS_init_offload(E_1DS_offload_data* offload_data, real** offload_array) {
-    /* Fill rest of the offload data struct */
-    offload_data->rho_grid = (offload_data->rho_max - offload_data->rho_min)
-        / (offload_data->n_rho - 1);
 
-    /* Spline initialization. Use spline structs for temporary storage */
+    /* Spline initialization. */
     int err = 0;
-    int splinesize = 2 * offload_data->n_rho;
-    interp1D_data dV_drho;
-    err += interp1Dcomp_init(&dV_drho, *offload_array,
-                             offload_data->n_rho, offload_data->rho_min,
-                             offload_data->rho_max, offload_data->rho_grid);
+    real* dV_drho = (real*) malloc(NSIZE_COMP1D * offload_data->n_rho
+                                   * sizeof(real));
+    err += interp1Dcomp_init_coeff(dV_drho, *offload_array,
+                                   offload_data->n_rho,
+                                   NATURALBC,
+                                   offload_data->rho_min,
+                                   offload_data->rho_max);
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
         return err;
     }
 
-    /* Re-allocate the offload array and store the spline coefficients there */
+    /* Free the offload array and replace it with the coefficient array */
     free(*offload_array);
-
-    offload_data->offload_array_length = splinesize;
-    *offload_array =
-        (real*) malloc( offload_data->offload_array_length * sizeof(real) );
-
-    for(int i = 0; i < splinesize; i++) {
-        (*offload_array)[i] = dV_drho.c[i];
-    }
-
-    interp1Dcomp_free(&dV_drho);
+    dV_drho = ;
+    offload_data->offload_array_length = NSIZE_COMP1D * offload_data->n_rho;
 
     /* Print some sanity check on data */
     print_out(VERBOSE_IO, "\nRadial electric field (E_1DS)");
@@ -105,11 +97,11 @@ void E_1DS_free_offload(E_1DS_offload_data* offload_data,
  */
 void E_1DS_init(E_1DS_data* Edata, E_1DS_offload_data* offload_data,
                real* offload_array) {
-    Edata->dV.n_r    = offload_data->n_rho;
-    Edata->dV.r_min  = offload_data->rho_min;
-    Edata->dV.r_max  = offload_data->rho_max;
-    Edata->dV.r_grid = offload_data->rho_grid;
-    Edata->dV.c      = offload_array;
+    interp1Dcomp_init_spline(&Edata->dV, offload_array,
+                             offload_data->n_rho,
+                             NATURALBC,
+                             offload_data->rho_min,
+                             offload_data->rho_max);
 }
 
 /**

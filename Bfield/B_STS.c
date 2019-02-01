@@ -25,7 +25,7 @@
  * and \f$n_\phi = 360\f$, then \f$\phi_\mathrm{max}=359\f$ if periodicity is
  * \f$N=0\f$.
  *
- * @see B_field.c B_2DS.c B_3DS.c interp3Dexpl.c interp3Dcomp.c linint1D.c
+ * @see B_field.c linint1D.c
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,7 +38,7 @@
 #include "../consts.h"
 #include "B_STS.h"
 #include "../linint/linint1D.h"
-#include "../spline/interp3Dcomp.h"
+#include "../spline/interp.h"
 
 /**
  * @brief Initialize magnetic field offload data

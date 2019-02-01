@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "../ascot5.h"
-#include "interp2Dcomp.h"
+#include "interp.h"
 #include "spline1Dcomp.h"
 
 /**
@@ -17,7 +17,7 @@
  *
  * For each data point four coefficients are stored for spline-interpolation.
  *
- * @param c allocated array of length n_y*n_x*4 where coefficients are stored
+ * @param c allocated array of length n_y*n_x*4 to store the coefficients
  * @param f 2D data to be interpolated
  * @param n_x number of data points in the x direction
  * @param n_y number of data points in the y direction
@@ -36,14 +36,14 @@ int interp2Dcomp_init_coeff(real* c, real* f,
 
     /* Check boundary conditions and evaluate grid interval */
     real x_grid, y_grid;
-    if(bc_x == 0 || bc_x == 1) {
+    if(bc_x == PERIODICBC || bc_x == NATURALBC) {
         x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == 0) );
     }
     else {
         return 1;
     }
 
-    if(bc_y == 0 || bc_y == 1) {
+    if(bc_y == PERIODICBC || bc_y == NATURALBC) {
         y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == 0) );
     }
     else {
@@ -108,11 +108,10 @@ int interp2Dcomp_init_coeff(real* c, real* f,
 }
 
 /**
- * @brief Initialize a 2D bicubic spline
+ * @brief Initialize a bicubic spline
  *
  * @param str pointer to spline to be initialized
  * @param c array where coefficients are stored
- * @param f 2D data to be interpolated
  * @param n_x number of data points in the x direction
  * @param n_y number of data points in the y direction
  * @param bc_x boundary condition for x axis
@@ -150,8 +149,8 @@ void interp2Dcomp_init_spline(interp2D_data* str, real* c,
  *
  * @param f variable in which to place the evaluated value
  * @param str data struct for data interpolation
- * @param r r-coordinate
- * @param z z-coordinate
+ * @param x x-coordinate
+ * @param y y-coordinate
  *
  * @return zero on success and one if (x,y) point is outside the grid.
  */
@@ -159,11 +158,11 @@ int interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y) {
 
 
     /* Make sure periodic coordinates are within [max, min] region. */
-    if(str->bc_x) {
+    if(str->bc_x == PERIODICBC) {
         x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
         x = x + (x < str->x_min) * (str->x_max - str->x_min);
     }
-    if(str->bc_y) {
+    if(str->bc_y == PERIODICBC) {
         y = fmod(y - str->y_min, str->y_max - str->y_min) + str->y_min;
         y = y + (y < str->y_min) * (str->y_max - str->y_min);
     }
@@ -186,23 +185,23 @@ int interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y) {
     real dyi3 = dyi * (dyi*dyi - 1.0);
     real yg2  = str->y_grid*str->y_grid;
 
-    int n  = i_y*str->n_x*4+i_x*4; /**< Index jump to cell       */
-    int x1 = 4;                    /**< Index jump one x forward */
-    int y1 = str->n_x*4;           /**< Index jump one y forward */
+    int n  = i_y*str->n_x*4+i_x*4; /* Index jump to cell       */
+    int x1 = 4;                    /* Index jump one x forward */
+    int y1 = str->n_x*4;           /* Index jump one y forward */
 
     int err = 0;
 
     /* Enforce periodic BC or check that the coordinate is within the grid. */
-    if( str->bc_x && i_x == str->n_x-1 ) {
+    if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
         x1 = -(str->n_x-1)*x1;
     }
-    else if( !str->bc_x && (x < str->x_min || x > str->x_max) ) {
+    else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
         err = 1;
     }
-    if( str->bc_y && i_y == str->n_y-1 ) {
+    if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
         y1 = -(str->n_y-1)*y1;
     }
-    else if( !str->bc_y && (y < str->y_min || y > str->y_max) ) {
+    else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
         err = 1;
     }
 
@@ -249,11 +248,11 @@ int interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y) {
 int interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y) {
 
     /* Make sure periodic coordinates are within [max, min] region. */
-    if(str->bc_x) {
+    if(str->bc_x == PERIODICBC) {
         x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
         x = x + (x < str->x_min) * (str->x_max - str->x_min);
     }
-    if(str->bc_y) {
+    if(str->bc_y == PERIODICBC) {
         y = fmod(y - str->y_min, str->y_max - str->y_min) + str->y_min;
         y = y + (y < str->y_min) * (str->y_max - str->y_min);
     }
@@ -291,16 +290,16 @@ int interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y) {
     int err = 0;
 
     /* Enforce periodic BC or check that the coordinate is within the grid. */
-    if( str->bc_x && i_x == str->n_x-1 ) {
+    if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
         x1 = -(str->n_x-1)*x1;
     }
-    else if( !str->bc_x && (x < str->x_min || x > str->x_max) ) {
+    else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
         err = 1;
     }
-    if( str->bc_y && i_y == str->n_y-1 ) {
+    if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
         y1 = -(str->n_y-1)*y1;
     }
-    else if( !str->bc_y && (y < str->y_min || y > str->y_max) ) {
+    else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
         err = 1;
     }
 

@@ -6,8 +6,7 @@
 #define B_3DS_H
 #include "../ascot5.h"
 #include "../error.h"
-#include "../spline/interp2Dcomp.h"
-#include "../spline/interp3D.h"
+#include "../spline/interp.h"
 
 /**
  * @brief 3D magnetic field parameters on the host

@@ -3,147 +3,164 @@
  * @brief Tricubic spline interpolation in compact form
  */
 #include <stdlib.h>
-#include <stdio.h> /* Needed for printf debugging purposes */
 #include <math.h>
 #include "../ascot5.h"
 #include "../consts.h"
-#include "interp3Dcomp.h"
+#include "interp.h"
 #include "spline1Dcomp.h"
 
 /**
- * @brief Calculate tricubic spline interpolation coefficients for scalar 3D data
+ * @brief Calculate tricubic spline interpolation coefficients for 3D data
  *
  * This function calculates the tricubic spline interpolation coefficients for
- * the given data and stores them in the data struct. Compact  cofficients are
+ * the given data and stores them in an array. Compact  cofficients are
  * calculated directly.
  *
- * @todo Error checking
- *
- * @param str data struct for data interpolation
+ * @param c allocated array of length n_z*n_y*n_x*16 to store the coefficients
  * @param f 3D data to be interpolated
  * @param n_x number of data points in the x direction
  * @param n_y number of data points in the y direction
  * @param n_z number of data points in the z direction
+ * @param bc_x boundary condition for x axis
+ * @param bc_y boundary condition for y axis
+ * @param bc_z boundary condition for z axis
  * @param x_min minimum value of the x axis
  * @param x_max maximum value of the x axis
  * @param y_min minimum value of the y axis
  * @param y_max maximum value of the y axis
  * @param z_min minimum value of the z axis
  * @param z_max maximum value of the z axis
+ *
+ * @return zero if initialization succeeded
  */
-int interp3Dcomp_init(interp3D_data* str, real* f, int n_x, int n_y, int n_z,
-                       real x_min, real x_max, real x_grid,
-                       real y_min, real y_max, real y_grid,
-                       real z_min, real z_max, real z_grid) {
+int interp3Dcomp_init_coeff(real* c, real* f,
+                            int n_x, int n_y, int n_z,
+                            int bc_x, int bc_y, int bc_z,
+                            real x_min, real x_max,
+                            real y_min, real y_max,
+                            real z_min, real z_max) {
 
-    int err = 0;
-
-    /* Initialize and fill the data struct */
-    str->n_x = n_x;
-    str->n_y = n_y;
-    str->n_z = n_z;
-    str->x_min = x_min;
-    str->x_max = x_max;
-    str->x_grid = x_grid;
-    str->y_min = y_min;
-    str->y_max = y_max;
-    str->y_grid = y_grid;
-    str->z_min = z_min;
-    str->z_max = z_max;
-    str->z_grid = z_grid;
-    str->c = malloc(n_y*n_z*n_x*8*sizeof(real));
-
-    /* Declare and allocate the needed variables */
-    int i_x;                                    /**< index for x variable */
-    int i_y;                                  /**< index for y variable */
-    int i_z;                                    /**< index for z variable */
-    real* f_x = malloc(n_x*sizeof(real));       /**< Temporary array for data along x */
-    real* f_y = malloc(n_y*sizeof(real));   /**< Temp array for data along y */
-    real* f_z = malloc(n_z*sizeof(real));       /**< Temp array for data along z */
-    real* c_x = malloc(n_x*2*sizeof(real));     /**< Temp array for coefficients along x */
-    real* c_y = malloc(n_y*2*sizeof(real)); /**< Temp array for coefs along y */
-    real* c_z = malloc(n_z*2*sizeof(real));     /**< Temp array for coefficients along z */
-
-    if(f_x == NULL || f_z == NULL || c_x == NULL || c_z == NULL) {
-        err = 1;
+    /* For periodic boundary condition, grid maximum value and the last data
+       point are not the same. Take this into account in grid interval       */
+    real x_grid, y_grid, z_grid;
+    if(bc_x == NATURALBC || bc_x == PERIODICBC) {
+        x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
     }
     else {
+        return 1;
+    }
 
-        /* Tricubic spline volume coefficients: For i_x, i_y and i_z the 8 coefficients
-           are [f, fxx, fyy, fzz, fxxyy, fxxzz, fyyzz, fxxyyzz].
-           Note how we account for normalized grid. */
-        /* Bicubic spline surface over xz-grid for each y */
-        for(i_y=0; i_y<n_y; i_y++) {
-            /* Cubic spline along x for each z to get fxx */
-            for(i_z=0; i_z<n_z; i_z++) {
-                for(i_x=0; i_x<n_x; i_x++) {
-                    f_x[i_x] = f[i_y*n_z*n_x+i_z*n_x+i_x];
-                }
-                spline1Dcomp(f_x,n_x,0,c_x);
-                for(i_x=0; i_x<n_x; i_x++) {
-                    str->c[i_y*n_z*n_x*8+i_z*n_x*8+i_x*8] = c_x[i_x*2];
-                    str->c[i_y*n_z*n_x*8+i_z*n_x*8+i_x*8+1] = c_x[i_x*2+1]/(x_grid*x_grid);
-                }
+    if(bc_y == NATURALBC || bc_y == PERIODICBC) {
+        y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
+    }
+    else {
+        return 1;
+    }
+
+    if(bc_z == NATURALBC || bc_z == PERIODICBC) {
+        z_grid = (z_max - z_min) / ( n_z - 1 * (bc_z == NATURALBC) );
+    }
+    else {
+        return 1;
+    }
+
+
+    /* Allocate helper quantities */
+    real* f_x = malloc(n_x*sizeof(real));
+    real* f_y = malloc(n_y*sizeof(real));
+    real* f_z = malloc(n_z*sizeof(real));
+    real* c_x = malloc(n_x*2*sizeof(real));
+    real* c_y = malloc(n_y*2*sizeof(real));
+    real* c_z = malloc(n_z*2*sizeof(real));
+
+    if(f_x == NULL || f_y == NULL || f_z == NULL ||
+       c_x == NULL || c_y == NULL || c_z == NULL) {
+        return 1;
+    }
+
+    /* Tricubic spline volume coefficients: For i_x, i_y and i_z the 8
+       coefficients are [f, fxx, fyy, fzz, fxxyy, fxxzz, fyyzz, fxxyyzz].
+       Note how we account for normalized grid. */
+
+    /* Bicubic spline surface over xz-grid for each y */
+    for(int i_y=0; i_y<n_y; i_y++) {
+
+        /* Cubic spline along x for each z to get fxx */
+        for(int i_z=0; i_z<n_z; i_z++) {
+            for(int i_x=0; i_x<n_x; i_x++) {
+                f_x[i_x] = f[i_y*n_z*n_x + i_z*n_x + i_x];
             }
-
-            /* Two cubic splines along z for each x using f and fxx */
-            for(i_x=0; i_x<n_x; i_x++) {
-                /* fzz */
-                for(i_z=0; i_z<n_z; i_z++) {
-                    f_z[i_z] =  f[i_y*n_z*n_x+i_z*n_x+i_x];
-                }
-                spline1Dcomp(f_z,n_z,0,c_z);
-                for(i_z=0; i_z<n_z; i_z++) {
-                    str->c[i_y*n_z*n_x*8+i_z*n_x*8+i_x*8+3] = c_z[i_z*2+1]/(z_grid*z_grid);
-                }
-                /* fxxzz */
-                for(i_z=0; i_z<n_z; i_z++) {
-                    f_z[i_z] = str->c[i_y*n_z*n_x*8+i_z*n_x*8+i_x*8+1];
-                }
-                spline1Dcomp(f_z,n_z,0,c_z);
-                for(i_z=0; i_z<n_z; i_z++) {
-                    str->c[i_y*n_z*n_x*8+i_z*n_x*8+i_x*8+5] = c_z[i_z*2+1]/(z_grid*z_grid);
-                }
+            spline1Dcomp(f_x, n_x, bc_x, c_x);
+            for(int i_x=0; i_x<n_x; i_x++) {
+                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8    ] = c_x[i_x*2];
+                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 1] = c_x[i_x*2 + 1]
+                                                           / (x_grid*x_grid);
             }
-
         }
 
-        /* Cubic spline along y for each xz-pair to find the compact coefficients
-           of the tricubic spline volume */
-        for(i_z=0; i_z<n_z; i_z++) {
-            for(i_x=0; i_x<n_x; i_x++) {
-                /* fyy */
-                for(i_y=0; i_y<n_y; i_y++) {
-                    f_y[i_y] = f[i_y*n_z*n_x+i_z*n_x+i_x];
-                }
-                spline1Dcomp(f_y,n_y,1,c_y);
-                for(i_y=0; i_y<n_y; i_y++) {
-                    str->c[i_y*n_z*n_x*8+i_z*n_x*8+i_x*8+2] = c_y[i_y*2+1]/(y_grid*y_grid);
-                }
-                /* fxxyy */
-                for(i_y=0; i_y<n_y; i_y++) {
-                    f_y[i_y] = str->c[i_y*n_z*n_x*8+i_z*n_x*8+i_x*8+1];
-                }
-                spline1Dcomp(f_y,n_y,1,c_y);
-                for(i_y=0; i_y<n_y; i_y++) {
-                    str->c[i_y*n_z*n_x*8+i_z*n_x*8+i_x*8+4] = c_y[i_y*2+1]/(y_grid*y_grid);
-                }
-                /* fyyzz */
-                for(i_y=0; i_y<n_y; i_y++) {
-                    f_y[i_y] = str->c[i_y*n_z*n_x*8+i_z*n_x*8+i_x*8+3];
-                }
-                spline1Dcomp(f_y,n_y,1,c_y);
-                for(i_y=0; i_y<n_y; i_y++) {
-                    str->c[i_y*n_z*n_x*8+i_z*n_x*8+i_x*8+6] = c_y[i_y*2+1]/(y_grid*y_grid);
-                }
-                /* fxxyyzz */
-                for(i_y=0; i_y<n_y; i_y++) {
-                    f_y[i_y] = str->c[i_y*n_z*n_x*8+i_z*n_x*8+i_x*8+5];
-                }
-                spline1Dcomp(f_y,n_y,1,c_y);
-                for(i_y=0; i_y<n_y; i_y++) {
-                    str->c[i_y*n_z*n_x*8+i_z*n_x*8+i_x*8+7] = c_y[i_y*2+1]/(y_grid*y_grid);
-                }
+        /* Two cubic splines along z for each x using f and fxx */
+        for(int i_x=0; i_x<n_x; i_x++) {
+            /* fzz */
+            for(int i_z=0; i_z<n_z; i_z++) {
+                f_z[i_z] = f[i_y*n_z*n_x + i_z*n_x + i_x];
+            }
+            spline1Dcomp(f_z, n_z, bc_z, c_z);
+            for(int i_z=0; i_z<n_z; i_z++) {
+                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 3] = c_z[i_z*2 + 1]
+                                                           / (z_grid*z_grid);
+            }
+            /* fxxzz */
+            for(int i_z=0; i_z<n_z; i_z++) {
+                f_z[i_z] = c[i_y*n_z*n_x*8 + i_z*n_x*8+i_x*8 + 1];
+            }
+            spline1Dcomp(f_z, n_z, bc_z, c_z);
+            for(int i_z=0; i_z<n_z; i_z++) {
+                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 5] = c_z[i_z*2+1]
+                                                           / (z_grid*z_grid);
+            }
+        }
+
+    }
+
+    /* Cubic spline along y for each xz-pair to find the compact coefficients
+       of the tricubic spline volume */
+    for(int i_z=0; i_z<n_z; i_z++) {
+        for(int i_x=0; i_x<n_x; i_x++) {
+            /* fyy */
+            for(int i_y=0; i_y<n_y; i_y++) {
+                f_y[i_y] = f[i_y*n_z*n_x + i_z*n_x + i_x];
+            }
+            spline1Dcomp(f_y, n_y, bc_y, c_y);
+            for(int i_y=0; i_y<n_y; i_y++) {
+                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 2] = c_y[i_y*2 + 1]
+                                                           / (y_grid*y_grid);
+            }
+            /* fxxyy */
+            for(int i_y=0; i_y<n_y; i_y++) {
+                f_y[i_y] = c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 1];
+            }
+            spline1Dcomp(f_y, n_y, bc_y, c_y);
+            for(int i_y=0; i_y<n_y; i_y++) {
+                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 4] = c_y[i_y*2 + 1]
+                                                           / (y_grid*y_grid);
+            }
+            /* fyyzz */
+            for(int i_y=0; i_y<n_y; i_y++) {
+                f_y[i_y] = c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 3];
+            }
+            spline1Dcomp(f_y, n_y, bc_y, c_y);
+            for(int i_y=0; i_y<n_y; i_y++) {
+                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 6] = c_y[i_y*2+1]
+                                                           / (y_grid*y_grid);
+            }
+            /* fxxyyzz */
+            for(int i_y=0; i_y<n_y; i_y++) {
+                f_y[i_y] = c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 5];
+            }
+            spline1Dcomp(f_y, n_y, bc_y, c_y);
+            for(int i_y=0; i_y<n_y; i_y++) {
+                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 7] = c_y[i_y*2+1]
+                                                           / (y_grid*y_grid);
             }
         }
     }
@@ -156,7 +173,54 @@ int interp3Dcomp_init(interp3D_data* str, real* f, int n_x, int n_y, int n_z,
     free(c_y);
     free(c_z);
 
-    return err;
+    return 0;
+}
+
+/**
+ * @brief Initialize a tricubic spline
+ *
+ * @param str pointer to spline to be initialized
+ * @param c array where coefficients are stored
+ * @param n_x number of data points in the x direction
+ * @param n_y number of data points in the y direction
+ * @param n_z number of data points in the z direction
+ * @param bc_x boundary condition for x axis
+ * @param bc_y boundary condition for y axis
+ * @param bc_y boundary condition for z axis
+ * @param x_min minimum value of the x axis
+ * @param x_max maximum value of the x axis
+ * @param y_min minimum value of the y axis
+ * @param y_max maximum value of the y axis
+ * @param z_min minimum value of the z axis
+ * @param z_max maximum value of the z axis
+ */
+void interp3Dcomp_init_spline(interp3D_data* str, real* c,
+                              int n_x, int n_y, int n_z,
+                              int bc_x, int bc_y, int bc_z,
+                              real x_min, real x_max,
+                              real y_min, real y_max,
+                              real z_min, real z_max) {
+
+    real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
+    real y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
+    real z_grid = (z_max - z_min) / ( n_z - 1 * (bc_z == NATURALBC) );
+
+    str->n_x    = n_x;
+    str->n_y    = n_y;
+    str->n_z    = n_z;
+    str->bc_x   = bc_x;
+    str->bc_y   = bc_y;
+    str->bc_z   = bc_z;
+    str->x_min  = x_min;
+    str->x_max  = x_max;
+    str->x_grid = x_grid;
+    str->y_min  = y_min;
+    str->y_max  = y_max;
+    str->y_grid = y_grid;
+    str->z_min  = z_min;
+    str->z_max  = z_max;
+    str->z_grid = z_grid;
+    str->c      = c;
 }
 
 /**
@@ -165,61 +229,88 @@ int interp3Dcomp_init(interp3D_data* str, real* f, int n_x, int n_y, int n_z,
  * This function evaluates the interpolated value of a 3D scalar field using
  * tricubic spline interpolation coefficients of the compact form.
  *
- * @todo Seg fault if in last y-sector becaause of compact eval +1-coefs
- * @todo Check discrepency to ascot4 and explicit version
- * @todo Error checking
- *
  * @param f variable in which to place the evaluated value
  * @param str data struct for data interpolation
  * @param x x-coordinate
  * @param y y-coordinate
  * @param z z-coordinate
+ *
+ * @return zero on success and one if (x,y,z) point is outside the grid.
  */
-integer interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
-    /** Make sure y is in interval [y_min, y_max) */
-    real y_range = str->y_max - str->y_min;
-    y = fmod(y - str->y_min, y_range) + str->y_min;
-    if(y < 0){y = y_range + y;}
+int interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
 
-    int i_x = (x-str->x_min)/str->x_grid;     /**< index for x variable */
-    real dx = (x-(str->x_min+i_x*str->x_grid))/str->x_grid; /**< Normalized x coordinate in
-                                                               current cell */
-    real dxi = 1.0-dx;
-    real dx3 = dx*dx*dx-dx;
-    real dxi3 = (1.0-dx)*(1.0-dx)*(1.0-dx)-(1.0-dx);
-    real xg2 = str->x_grid*str->x_grid;       /**< Square of cell length in x direction */
-    int i_y = (y-str->y_min)/str->y_grid; /**< index for y variable */
-    real dy = (y-(str->y_min+i_y*str->y_grid))/str->y_grid; /**< Normalized y
-                                                                           coordinate in
-                                                                           current cell */
-    real dyi = 1.0-dy;
-    real dy3 = dy*dy*dy-dy;
-    real dyi3 = (1.0-dy)*(1.0-dy)*(1.0-dy)-(1.0-dy);
-    real yg2 = str->y_grid*str->y_grid; /**< Square of cell length in y dir */
-    int i_z = (z-str->z_min)/str->z_grid;     /**< index for z variable */
-    real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
-                                                               current cell */
-    real dzi = 1.0-dz;
-    real dz3 = dz*dz*dz-dz;
-    real dzi3 = (1.0-dz)*(1.0-dz)*(1.0-dz)-(1.0-dz);
-    real zg2 = str->z_grid*str->z_grid;       /**< Square of cell length in z direction */
-    int n = i_y*str->n_z*str->n_x*8+i_z*str->n_x*8+i_x*8; /**< Index jump to cell */
-    int x1 = 8;                               /**< Index jump one x forward */
-    int y1 = str->n_z*str->n_x*8;           /**< Index jump one y forward */
-    if(i_y==str->n_y-1) {
-        y1 = -(str->n_y-1)*y1;          /**< If last cell, index jump to 1st y */
+    /* Make sure periodic coordinates are within [max, min] region. */
+    if(str->bc_x == PERIODICBC) {
+        x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
+        x = x + (x < str->x_min) * (str->x_max - str->x_min);
     }
-    int z1 = str->n_x*8;                      /**< Index jump one z forward */
+    if(str->bc_y == PERIODICBC) {
+        y = fmod(y - str->y_min, str->y_max - str->y_min) + str->y_min;
+        y = y + (y < str->y_min) * (str->y_max - str->y_min);
+    }
+    if(str->bc_z == PERIODICBC) {
+        z = fmod(z - str->z_min, str->z_max - str->z_min) + str->z_min;
+        z = z + (z < str->z_min) * (str->z_max - str->z_min);
+    }
+
+    /* index for x variable */
+    int i_x   = (x - str->x_min) / str->x_grid;
+    /* Normalized x coordinate in current cell */
+    real dx   = (x - (str->x_min + i_x*str->x_grid)) / str->x_grid;
+    real dxi  = 1.0 - dx;
+    real dx3  = dx*dx*dx - dx;
+    real dxi3 = (1.0 - dx) * (1.0 - dx) * (1.0 - dx) - (1.0 - dx);
+    real xg2  = str->x_grid*str->x_grid;
+
+    /* index for y variable */
+    int i_y   = (y - str->y_min) / str->y_grid;
+    /* Normalized y coordinate in current cell */
+    real dy   = (y - (str->y_min + i_y*str->y_grid)) / str->y_grid;
+    real dyi  = 1.0 - dy;
+    real dy3  = dy*dy*dy - dy;
+    real dyi3 = (1.0 - dy) * (1.0 - dy) * (1.0 - dy) - (1.0 - dy);
+    real yg2  = str->y_grid*str->y_grid;
+
+    /* index for z variable */
+    int i_z   = (z - str->z_min) / str->z_grid;
+    /* Normalized z coordinate in current cell */
+    real dz   = (z - (str->z_min + i_z*str->z_grid)) / str->z_grid;
+    real dzi  = 1.0 - dz;
+    real dz3  = dz*dz*dz - dz;
+    real dzi3 = (1.0 - dz) * (1.0 - dz) * (1.0 - dz) - (1.0-dz);
+    real zg2  = str->z_grid*str->z_grid;
+
+    /**< Index jump to cell */
+    int n  = i_y*str->n_z*str->n_x*8 + i_z*str->n_x*8 + i_x*8;
+    int x1 = 8;                   /* Index jump one x forward */
+    int y1 = str->n_z*str->n_x*8; /* Index jump one y forward */
+    int z1 = str->n_x*8;          /* Index jump one z forward */
 
     int err = 0;
 
-    /* Check that the point is not outside the evaluation regime */
-    if(x < str->x_min || x > str->x_max
-        || z < str->z_min || z > str->z_max) {
+    /* Enforce periodic BC or check that the coordinate is within the grid. */
+    if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
+        x1 = -(str->n_x-1)*x1;
+    }
+    else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
         err = 1;
     }
-    else {
+    if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
+        y1 = -(str->n_y-1)*y1;
+    }
+    else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+        err = 1;
+    }
+    if( str->bc_z == PERIODICBC && i_z == str->n_z-1 ) {
+        z1 = -(str->n_z-1)*z1;
+    }
+    else if( str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max) ) {
+        err = 1;
+    }
 
+    if(!err) {
+
+        /* Evaluate splines */
         *f = (
             dzi*(
                 dxi*(dyi*str->c[n+0]+dy*str->c[n+y1+0])+
@@ -283,7 +374,7 @@ integer interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z)
 }
 
 /**
- * @brief Evaluate interpolated value of 3D scalar field and its 1st and 2nd derivatives
+ * @brief Evaluate interpolated value of 3D field and 1st and 2nd derivatives
  *
  * This function evaluates the interpolated value of a 3D scalar field and
  * its 1st and 2nd derivatives using bicubic spline interpolation coefficients
@@ -301,76 +392,104 @@ integer interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z)
  * - f_df[8] = f_xz
  * - f_df[9] = f_yz
  *
- * @todo Seg fault if in last y-sector becaause of compact eval +1-coefs
- * @todo Check discrepency to ascot4 and explicit version
- * @todo Error checking
- *
- * @param B_dB array in which to place the evaluated values
+ * @param f_df array in which to place the evaluated values
  * @param str data struct for data interpolation
  * @param x x-coordinate
  * @param y y-coordinate
  * @param z z-coordinate
+ *
+ * @return zero on success and one if (x,y,z) point is outside the grid.
  */
-integer interp3Dcomp_eval_df(real* f_df, interp3D_data* str, real x, real y, real z) {
-    /** Make sure y is in interval [y_min, y_max) */
-    real y_range = str->y_max - str->y_min;
-    y = fmod(y - str->y_min, y_range) + str->y_min;
-    if(y < 0){y = y_range + y;}
+int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
+                         real x, real y, real z) {
 
-    int i_x = (x-str->x_min)/str->x_grid;       /**< index for x variable */
-    real dx = (x-(str->x_min+i_x*str->x_grid))/str->x_grid; /**< Normalized x coordinate in
-                                                               current cell */
-    real dx3 = dx*dx*dx-dx;
-    real dx3dx = 3*dx*dx-1.0;           /**< x-derivative of dx3, not including 1/x_grid */
-    real dxi = 1.0-dx;
-    real dxi3 = dxi*dxi*dxi-dxi;
-    real dxi3dx = -3*dxi*dxi+1.0;      /**< x-derivative of dxi3, not including 1/x_grid */
-    real xg = str->x_grid;                      /**< Cell length in x direction */
-    real xg2 = xg*xg;
-    real xgi = 1.0/xg;
-    int i_y = (y-str->y_min)/str->y_grid; /**< index for y variable */
-    real dy = (y-(str->y_min+i_y*str->y_grid))/str->y_grid; /**< Normalized y
-                                                                           coordinate in
-                                                                           current cell */
-    real dy3 = dy*dy*dy-dy;
-    real dy3dy = 3*dy*dy-1.0; /**< y-derivative of dy3,
-                                         not including 1/y_grid */
-    real dyi = 1.0-dy;
-    real dyi3 = dyi*dyi*dyi-dyi;
-    real dyi3dy = -3*dyi*dyi+1.0; /**< y-derivative of dyi3,
-                                             not including 1/y_grid */
-    real yg = str->y_grid;                  /**< Cell length in y direction */
-    real yg2 = yg*yg;
-    real ygi = 1.0/yg;
-    int i_z = (z-str->z_min)/str->z_grid;       /**< index for z variable */
-    real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
-                                                               current cell */
-    real dz3 = dz*dz*dz-dz;
-    real dz3dz = 3*dz*dz-1.0;          /**< z-derivative of dz3, not including 1/z_grid */
-    real dzi = 1.0-dz;
-    real dzi3 = dzi*dzi*dzi-dzi;
-    real dzi3dz = -3*dzi*dzi+1.0;      /**< z-derivative of dzi3, not including 1/z_grid */
-    real zg = str->z_grid;                      /**< Cell length in z direction */
-    real zg2 = zg*zg;
-    real zgi = 1.0/zg;
-    int n = i_y*str->n_z*str->n_x*8+i_z*str->n_x*8+i_x*8; /**< Index jump to cell */
-    int x1 = 8;                                 /**< Index jump one x forward */
-    int y1 = str->n_z*str->n_x*8;             /**< Index jump one y forward */
-    if(i_y==str->n_y-1) {
-        y1 = -(str->n_y-1)*y1;            /**< If last cell, index jump to 1st y */
+    /* Make sure periodic coordinates are within [max, min] region. */
+    if(str->bc_x == PERIODICBC) {
+        x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
+        x = x + (x < str->x_min) * (str->x_max - str->x_min);
     }
-    int z1 = str->n_x*8;                        /**< Index jump one z forward */
+    if(str->bc_y == PERIODICBC) {
+        y = fmod(y - str->y_min, str->y_max - str->y_min) + str->y_min;
+        y = y + (y < str->y_min) * (str->y_max - str->y_min);
+    }
+    if(str->bc_z == PERIODICBC) {
+        z = fmod(z - str->z_min, str->z_max - str->z_min) + str->z_min;
+        z = z + (z < str->z_min) * (str->z_max - str->z_min);
+    }
+
+    /* index for x variable */
+    int i_x     = (x - str->x_min) / str->x_grid;
+    /* Normalized x coordinate in current cell */
+    real dx     = ( x - (str->x_min + i_x*str->x_grid) ) / str->x_grid;
+    real dx3    = dx*dx*dx - dx;
+    real dx3dx  = 3*dx*dx - 1.0;
+    real dxi    = 1.0 - dx;
+    real dxi3   = dxi*dxi*dxi - dxi;
+    real dxi3dx = -3*dxi*dxi + 1.0;
+    real xg     = str->x_grid;
+    real xg2    = xg*xg;
+    real xgi    = 1.0 / xg;
+
+    /* index for y variable */
+    int i_y     = (y - str->y_min) / str->y_grid;
+    /* Normalized y coordinate in current cell */
+    real dy     = ( y - (str->y_min + i_y*str->y_grid) ) / str->y_grid;
+    real dy3    = dy*dy*dy-dy;
+    real dy3dy  = 3*dy*dy - 1.0;
+    real dyi    = 1.0 - dy;
+    real dyi3   = dyi*dyi*dyi - dyi;
+    real dyi3dy = -3*dyi*dyi + 1.0;
+    real yg     = str->y_grid;
+    real yg2    = yg*yg;
+    real ygi    = 1.0 / yg;
+
+    /* index for z variable */
+    int i_z     = (z - str->z_min) / str->z_grid;
+    /* Normalized z coordinate in current cell */
+    real dz     = ( z - (str->z_min + i_z*str->z_grid) ) / str->z_grid;
+    real dz3    = dz*dz*dz - dz;
+    real dz3dz  = 3*dz*dz - 1.0;
+    real dzi    = 1.0 - dz;
+    real dzi3   = dzi*dzi*dzi - dzi;
+    real dzi3dz = -3*dzi*dzi + 1.0;
+    real zg     = str->z_grid;
+    real zg2    = zg*zg;
+    real zgi    = 1.0 / zg;
+
+    /* Index jump to cell */
+    int n  = i_y*str->n_z*str->n_x*8 + i_z*str->n_x*8 + i_x*8;
+    int x1 = 8;                   /* Index jump one x forward */
+    int y1 = str->n_z*str->n_x*8; /* Index jump one y forward */
+    int z1 = str->n_x*8;          /* Index jump one z forward */
 
 
     int err = 0;
 
-    /* Check that the point is not outside the evaluation regime */
-    if(x < str->x_min || x > str->x_max
-        || z < str->z_min || z > str->z_max) {
+    /* Jump to first cell if last cell and BC is periodic. If BC is natural,
+       check that the queried point is within the grid                       */
+    if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
+        x1 = -(str->n_x-1)*x1;
+    }
+    else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
         err = 1;
     }
-    else {
+    if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
+        y1 = -(str->n_y-1)*y1;
+    }
+    else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+        err = 1;
+    }
+    if( str->bc_z == PERIODICBC && i_z == str->n_z-1 ) {
+        z1 = -(str->n_z-1)*z1;
+    }
+    else if( str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max) ) {
+        err = 1;
+    }
 
+    if(!err) {
+
+        /* Fetch coefficients explicitly to fetch those that are adjacent
+           subsequently */
         real c0000 = str->c[n+0];
         real c0001 = str->c[n+1];
         real c0002 = str->c[n+2];
@@ -443,6 +562,7 @@ integer interp3Dcomp_eval_df(real* f_df, interp3D_data* str, real x, real y, rea
         real c1116 = str->c[n+x1+y1+z1+6];
         real c1117 = str->c[n+x1+y1+z1+7];
 
+        /* Evaluate splines */
 
         /* f */
         f_df[0] = (
@@ -943,18 +1063,4 @@ integer interp3Dcomp_eval_df(real* f_df, interp3D_data* str, real x, real y, rea
     }
 
     return err;
-}
-
-/**
- * @brief Free allocated memory in interpolation data struct
- *
- * This function frees the memory allocated for interpolation coefficients
- * in the interpolation data struct
- *
- * @todo Error checking
- *
- * @param str data struct for data interpolation
- */
-void interp3Dcomp_free(interp3D_data* str) {
-    free(str->c);
 }

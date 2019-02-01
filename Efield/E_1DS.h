@@ -10,7 +10,7 @@
 #define E_1DS_H
 #include "../ascot5.h"
 #include "../error.h"
-#include "../spline/interp1Dcomp.h"
+#include "../spline/interp.h"
 #include "../B_field.h"
 
 /**
@@ -20,7 +20,6 @@ typedef struct {
     int n_rho;                /**< Number of rho grid points           */
     real rho_min;             /**< Minimum rho value in the grid       */
     real rho_max;             /**< Maximum rho value in the grid       */
-    real rho_grid;            /**< Rho grid interval                   */
     int offload_array_length; /**< Number of elements in offload_array */
 } E_1DS_offload_data;
 
@@ -38,6 +37,7 @@ void E_1DS_free_offload(E_1DS_offload_data* offload_data, real** offload_array);
 void E_1DS_init(E_1DS_data* Edata, E_1DS_offload_data* offload_data,
                 real* offload_array);
 #pragma omp declare simd uniform(Edata,Bdata)
-a5err E_1DS_eval_E(real E[], real r, real phi, real z, E_1DS_data* Edata, B_field_data* Bdata);
+a5err E_1DS_eval_E(real E[], real r, real phi, real z, E_1DS_data* Edata,
+                   B_field_data* Bdata);
 #pragma omp end declare target
 #endif

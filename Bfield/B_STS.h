@@ -7,7 +7,7 @@
 #include "../ascot5.h"
 #include "../symmetry.h"
 #include "../linint/linint1D.h"
-#include "../spline/interp3D.h"
+#include "../spline/interp.h"
 
 /**
  * @brief stellarator magnetic field parameters on the host
