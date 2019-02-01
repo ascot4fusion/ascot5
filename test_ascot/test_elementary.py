@@ -355,14 +355,14 @@ def check():
     xgo = EXB["GO"]["R"] * np.sin(ang)
     ygo = EXB["GO"]["z"]
 
-    igo0  = a5["EXB_GO"]["inistate"].read()["id"]
-    time  = a5["EXB_GO"]["endstate"].read()["time"]
-    ang   = a5["EXB_GO"]["inistate"].read()["phi"] * np.pi / 180
-    xgo0  = a5["EXB_GO"]["inistate"].read()["R"] * np.sin(ang)
-    ygo0  = a5["EXB_GO"]["inistate"].read()["z"]
-    ang   = a5["EXB_GO"]["endstate"].read()["phi"] * np.pi / 180
-    xgo1  = a5["EXB_GO"]["endstate"].read()["R"] * np.sin(ang)
-    ygo1  = a5["EXB_GO"]["endstate"].read()["z"]
+    igo0  = a5["EXB_GO"]["inistate"]["id"]
+    time  = a5["EXB_GO"]["endstate"]["time"]
+    ang   = a5["EXB_GO"]["inistate"]["phi"] * np.pi / 180
+    xgo0  = a5["EXB_GO"]["inistate"]["R"] * np.sin(ang)
+    ygo0  = a5["EXB_GO"]["inistate"]["z"]
+    ang   = a5["EXB_GO"]["endstate"]["phi"] * np.pi / 180
+    xgo1  = a5["EXB_GO"]["endstate"]["R"] * np.sin(ang)
+    ygo1  = a5["EXB_GO"]["endstate"]["z"]
 
     ang = EXB["GC"]["phi"] * np.pi / 180
     igc = EXB["GC"]["id"]
@@ -396,14 +396,14 @@ def check():
     xgo = GRADB["GO"]["R"] * np.sin(ang)
     ygo = GRADB["GO"]["z"]
 
-    igo0  = a5["GRADB_GO"]["inistate"].read()["id"]
-    time  = a5["GRADB_GO"]["endstate"].read()["time"]
-    ang   = a5["GRADB_GO"]["inistate"].read()["phi"] * np.pi / 180
-    xgo0  = a5["GRADB_GO"]["inistate"].read()["R"] * np.sin(ang)
-    zgo0  = a5["GRADB_GO"]["inistate"].read()["z"]
-    ang   = a5["GRADB_GO"]["endstate"].read()["phi"] * np.pi / 180
-    xgo0  = a5["GRADB_GO"]["endstate"].read()["R"] * np.sin(ang)
-    ygo0  = a5["GRADB_GO"]["endstate"].read()["z"]
+    igo0  = a5["GRADB_GO"]["inistate"]["id"]
+    time  = a5["GRADB_GO"]["endstate"]["time"]
+    ang   = a5["GRADB_GO"]["inistate"]["phi"] * np.pi / 180
+    xgo0  = a5["GRADB_GO"]["inistate"]["R"] * np.sin(ang)
+    zgo0  = a5["GRADB_GO"]["inistate"]["z"]
+    ang   = a5["GRADB_GO"]["endstate"]["phi"] * np.pi / 180
+    xgo0  = a5["GRADB_GO"]["endstate"]["R"] * np.sin(ang)
+    ygo0  = a5["GRADB_GO"]["endstate"]["z"]
 
     ang = GRADB["GC"]["phi"] * np.pi / 180
     igc = GRADB["GC"]["id"]

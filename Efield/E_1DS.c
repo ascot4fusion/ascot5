@@ -126,7 +126,10 @@ a5err E_1DS_eval_E(real E[], real r, real phi, real z, E_1DS_data* Edata,
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
     real rho_drho[4];
-    B_field_eval_rho_drho(rho_drho, r, phi, z, Bdata);
+    err = B_field_eval_rho_drho(rho_drho, r, phi, z, Bdata);
+    if(err) {
+        return error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_1DS );
+    }
     /* Convert partial derivative to gradient */
     rho_drho[2] = rho_drho[2]/r;
     /* We set the field to zero if outside the profile. */
@@ -143,7 +146,9 @@ a5err E_1DS_eval_E(real E[], real r, real phi, real z, E_1DS_data* Edata,
     E[1] = dV * rho_drho[2];
     E[2] = dV * rho_drho[3];
 
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_1DS );}
+    if(interperr) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_1DS );
+    }
 
     return err;
 }
