@@ -14,7 +14,6 @@
  * @brief 3D magnetic field parameters on the host
  */
 typedef struct {
-    real time[N_MAX_TIME_SLICE];
 
     int psigrid_n_r;            /**< number of r grid points in psi data */
     int psigrid_n_z;            /**< number of z grid points in psi data */
