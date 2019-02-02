@@ -8,7 +8,7 @@
 #include "ascot5.h"
 #include "error.h"
 #include "boozer.h"
-#include "spline/interp1Dcomp.h"
+#include "spline/interp.h"
 
 #define MHD_MODES_MAX_NUM 20
 
@@ -17,11 +17,13 @@
  */
 typedef struct {
 
-    int n_modes;  /**< Number of modes                                        */
-    int npsi;     /**< Number of psi grid points                              */
-    real psimin;  /**< psi grid minimum value                                 */
-    real psimax;  /**< psi grid maximum value                                 */
-    real psigrid; /**< psi grid interval                                      */
+    int n_modes;   /**< Number of modes                                       */
+    int npsi;      /**< Number of psi grid points                             */
+    real psi_min;  /**< psi grid minimum value                                */
+    real psi_max;  /**< psi grid maximum value                                */
+    int ntime;     /**< Number of time grid points                            */
+    real t_min;    /**< time grid minimum value                               */
+    real t_max;    /**< time grid maximum value                               */
     int nmode[MHD_MODES_MAX_NUM];         /**< Toroidal mode numbers          */
     int mmode[MHD_MODES_MAX_NUM];         /**< Poloidal mode numbers          */
     real amplitude_nm[MHD_MODES_MAX_NUM]; /**< Amplitude of each mode         */
@@ -35,19 +37,17 @@ typedef struct {
  * @brief MHD parameters on the target
  */
 typedef struct {
-    int n_modes; /**< Number of modes                                         */
+    int n_modes;                          /**< Number of modes                */
     int nmode[MHD_MODES_MAX_NUM];         /**< Toroidal mode numbers          */
     int mmode[MHD_MODES_MAX_NUM];         /**< Poloidal mode numbers          */
     real amplitude_nm[MHD_MODES_MAX_NUM]; /**< Amplitude of each mode         */
     real omega_nm[MHD_MODES_MAX_NUM];     /**< Toroidal rotation frequency of
                                                each mode [rad/s]              */
 
-    interp1D_data alpha_nm[MHD_MODES_MAX_NUM]; /**< 1D splines for each mode
-                                                    representing radial
-                                                    profile of alpha_nm       */
-    interp1D_data phi_nm[MHD_MODES_MAX_NUM];   /**< 1D splines for each mode
-                                                    representing radial
-                                                    profile of phi_nm         */
+    /**< 2D splines (psi,time) for each mode's alpha_nm */
+    interp2D_data alpha_nm[MHD_MODES_MAX_NUM];
+    /**< 2D splines (psi,time) for each mode's phi_nm */
+    interp2D_data phi_nm[MHD_MODES_MAX_NUM];
 } mhd_data;
 
 int mhd_init_offload(mhd_offload_data* offload_data,
@@ -60,8 +60,9 @@ void mhd_free_offload(mhd_offload_data* offload_data,
 void mhd_init(mhd_data* MHDdata, mhd_offload_data* offload_data,
               real* offload_array);
 
-#pragma omp declare simd uniform(MHDdata)
-a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* MHDdata);
+#pragma omp declare simd uniform(boozerdata, mhddata)
+a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t,
+               boozer_data* boozerdata, mhd_data* mhddata);
 
 #pragma omp end declare target
 

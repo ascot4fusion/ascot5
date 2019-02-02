@@ -7,9 +7,7 @@
 
 #include "ascot5.h"
 #include "error.h"
-#include "spline/interp1D.h"
-#include "spline/interp1Dcomp.h"
-#include "spline/interp2Dcomp.h"
+#include "spline/interp.h"
 
 /**
  * @brief Boozer parameters that will be offloaded to target
@@ -20,12 +18,12 @@
  * given.
  */
 typedef struct {
-    int nR;         /**< Number R grid points               */
-    real R_min;     /**< Minimum R grid point               */
-    real R_max;     /**< Maximum R grid point               */
+    int nr;         /**< Number R grid points               */
+    real r_min;     /**< Minimum R grid point               */
+    real r_max;     /**< Maximum R grid point               */
     int nz;         /**< Number z grid points               */
-    real z_min;     /**< Minimum R grid point               */
-    real z_max;     /**< Minimum R grid point               */
+    real z_min;     /**< Minimum z grid point               */
+    real z_max;     /**< Maximum z grid point               */
     int npsi;       /**< Number psi grid points             */
     real psi_min;   /**< Minimum psi grid point             */
     real psi_max;   /**< Maximum psi grid point             */
@@ -39,11 +37,11 @@ typedef struct {
  * @brief Boozer parameters on the target
  */
 typedef struct {
-    interp2D_data theta_geo; /**< Geometric theta angle                       */
-    interp2D_data theta_bzr; /**< Boozer theta angle                          */
     interp1D_data g; /**< Toroidal covariant component of the magnetic field  */
     interp1D_data q; /**< q-profile                                           */
     interp1D_data I; /**< poloidal covariant component of the magnetic field  */
+    interp2D_data theta_geo; /**< Geometric theta angle                       */
+    interp2D_data theta_bzr; /**< Boozer theta angle                          */
     interp2D_data delta; /**< radial covariant component of the magnetic field*/
     interp2D_data nu;    /**< the nu-function, phi=zeta+nu(psi,theta),
                               phi the cylindrical angle                       */
@@ -51,17 +49,19 @@ typedef struct {
 
 int boozer_init_offload(boozer_offload_data* offload_data,
                         real** offload_array);
+void boozer_free_offload(boozer_offload_data* offload_data,
+                         real** offload_array);
 
 #pragma omp declare target
 void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                  real* offload_array);
 
 #pragma omp declare simd uniform(boozerdata)
-a5err boozer_cyl2booz(real ptz[3], real r, real phi, real z,
-                      boozer_data* boozerdata);
+a5err boozer_rpz2boozer(real ptz[3], real r, real phi, real z,
+                        boozer_data* boozerdata);
 #pragma omp declare simd uniform(boozerdata)
-a5err boozer_booz2cyl(real rz[2], real psi, real theta, real zeta,
-                      boozer_data* boozerdata);
+a5err boozer_boozer2rpz(real rz[2], real psi, real theta, real zeta,
+                        boozer_data* boozerdata);
 #pragma omp declare simd uniform(boozerdata)
 a5err boozer_eval_gradients(real ptz_dptz[12], real r, real phi, real z,
                             boozer_data* boozerdata);

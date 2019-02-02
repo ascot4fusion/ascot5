@@ -8,8 +8,7 @@
 #include "error.h"
 #include "mhd.h"
 #include "boozer.h"
-#include "spline/interp1D.h"
-#include "spline/interp1Dcomp.h"
+#include "spline/interp.h"
 
 /**
  * @brief Load MHD data and prepare parameters for offload.
@@ -35,52 +34,55 @@
 int mhd_init_offload(mhd_offload_data* offload_data,
                      real** offload_array) {
 
-    offload_data->psigrid = (offload_data->psimax - offload_data->psimin)
-        / (offload_data->npsi - 1);
+    /* Allocate array for storing 2D spline coefficients for two quantities
+     * for each mode                                                         */
+    real* coeff_array = (real*)malloc(2 * NSIZE_COMP2D * offload_data->n_modes
+                                      * offload_data->npsi * offload_data->ntime
+                                      * sizeof(real));
 
-    /* Allocate array for storing coefficients (which later replaces the
-       offload array) */
-    int cpernode = 2; // Number of coefficients in one node.
-    real* coeff_array = (real*)malloc(2 * cpernode * offload_data->n_modes
-                                      * offload_data->npsi * sizeof(real));
-
-    /* Go through all modes, initialize splines for each, copy coefficients
-       and free splines. */
-    int err     = 0;
-    int npsi    = offload_data->npsi;
-    int n_modes = offload_data->n_modes;
+    /* Go through all modes, and evaluate and store coefficients for each */
+    int err      = 0;
+    int datasize = offload_data->npsi * offload_data->ntime;
+    int n_modes  = offload_data->n_modes;
     for(int j=0; j<offload_data->n_modes; j++) {
-        interp1D_data spline;
-        err += interp1Dcomp_init(&spline,
-                                 &(*offload_array)[j*npsi],
-                                 offload_data->npsi, offload_data->psimin,
-                                 offload_data->psimax,
-                                 offload_data->psigrid);
-        for(int i=0; i < cpernode*npsi; i++) {
-            coeff_array[j*cpernode*npsi + i] = spline.c[i];
-        }
-        interp1Dcomp_free(&spline);
 
-        err += interp1Dcomp_init(&spline,
-                                 &(*offload_array)[npsi*n_modes+j*npsi],
-                                 offload_data->npsi, offload_data->psimin,
-                                 offload_data->psimax,
-                                 offload_data->psigrid);
-        for(int i=0; i < cpernode*npsi; i++) {
-            coeff_array[cpernode * npsi * (n_modes + j) + i] = spline.c[i];
-        }
-        interp1Dcomp_free(&spline);
+        /* alpha_nm */
+        err += interp2Dcomp_init_coeff(
+            &coeff_array[NSIZE_COMP2D * datasize * j],
+            &(*offload_array)[j*datasize],
+            offload_data->npsi, offload_data->ntime,
+            NATURALBC, NATURALBC,
+            offload_data->psi_min,
+            offload_data->psi_max,
+            offload_data->t_min,
+            offload_data->t_max);
+
+        /* omega_nm */
+        err += interp2Dcomp_init_coeff(
+            &coeff_array[NSIZE_COMP2D * datasize * (n_modes + j)],
+            &(*offload_array)[j*datasize],
+            offload_data->npsi,
+            offload_data->ntime,
+            NATURALBC, NATURALBC,
+            offload_data->psi_min,
+            offload_data->psi_max,
+            offload_data->t_min,
+            offload_data->t_max);
     }
 
     free(*offload_array);
     *offload_array = coeff_array;
-    offload_data->offload_array_length = n_modes*npsi*cpernode;
+    offload_data->offload_array_length = 2 * NSIZE_COMP2D
+        * offload_data->n_modes * offload_data->npsi * offload_data->ntime;
 
     /* Print some sanity check on data */
     print_out(VERBOSE_IO, "\nMHD input\n");
     print_out(VERBOSE_IO, "Grid: npsi = %4.d psimin = %3.3f psimax = %3.3f\n",
               offload_data->npsi,
-              offload_data->psimin, offload_data->psimax);
+              offload_data->psi_min, offload_data->psi_max);
+    print_out(VERBOSE_IO, "      ntime = %4.d tmin = %3.3f tmax = %3.3f\n",
+              offload_data->ntime,
+              offload_data->t_min, offload_data->t_max);
 
     print_out(VERBOSE_IO, "\nModes:\n");
     for(int j=0; j<n_modes; j++) {
@@ -111,31 +113,33 @@ void mhd_free_offload(mhd_offload_data* offload_data,
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  */
-void mhd_init(mhd_data* MHDdata, mhd_offload_data* offload_data,
+void mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
               real* offload_array) {
-    MHDdata->n_modes = offload_data->n_modes;
 
-    int npsi     = offload_data->npsi;
+    mhddata->n_modes = offload_data->n_modes;
+
     int n_modes  = offload_data->n_modes;
-    int cpernode = 2;
-    for(int j=0; j<MHDdata->n_modes; j++) {
-        MHDdata->nmode[j]        = offload_data->nmode[j];
-        MHDdata->mmode[j]        = offload_data->mmode[j];
-        MHDdata->amplitude_nm[j] = offload_data->amplitude_nm[j];
-        MHDdata->omega_nm[j]     = offload_data->omega_nm[j];
+    int datasize = NSIZE_COMP2D * offload_data->npsi * offload_data->ntime;
 
-        MHDdata->alpha_nm[j].n_r    = offload_data->npsi;
-        MHDdata->alpha_nm[j].r_min  = offload_data->psimin;
-        MHDdata->alpha_nm[j].r_max  = offload_data->psimax;
-        MHDdata->alpha_nm[j].r_grid = offload_data->psigrid;
-        MHDdata->alpha_nm[j].c      = &(offload_array[j*npsi]);
+    for(int j=0; j<mhddata->n_modes; j++) {
+        mhddata->nmode[j]        = offload_data->nmode[j];
+        mhddata->mmode[j]        = offload_data->mmode[j];
+        mhddata->amplitude_nm[j] = offload_data->amplitude_nm[j];
+        mhddata->omega_nm[j]     = offload_data->omega_nm[j];
 
-        MHDdata->phi_nm[j].n_r    = offload_data->npsi;
-        MHDdata->phi_nm[j].r_min  = offload_data->psimin;
-        MHDdata->phi_nm[j].r_max  = offload_data->psimax;
-        MHDdata->phi_nm[j].r_grid = offload_data->psigrid;
-        MHDdata->phi_nm[j].c      =
-            &(offload_array[cpernode*npsi*n_modes + j*cpernode*npsi]);
+        interp2Dcomp_init_spline(&(mhddata->alpha_nm[j]),
+                                 &(offload_array[j*datasize]),
+                                 offload_data->npsi, offload_data->ntime,
+                                 NATURALBC, NATURALBC,
+                                 offload_data->psi_min, offload_data->psi_max,
+                                 offload_data->t_min,   offload_data->t_max);
+
+        interp2Dcomp_init_spline(&(mhddata->phi_nm[j]),
+                                 &(offload_array[(n_modes + j)*datasize]),
+                                 offload_data->npsi, offload_data->ntime,
+                                 NATURALBC, NATURALBC,
+                                 offload_data->psi_min, offload_data->psi_max,
+                                 offload_data->t_min,   offload_data->t_max);
     }
 }
 
@@ -162,11 +166,11 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, 
     int i; 
     for(i = 0; i <  MHDdata->n_modes; i++){
 	/*get interpolated values */
-        real a_da[3];
-        interp1Dcomp_eval_dB(a_da, &(MHDdata->alpha_nm[i]),r);
+        real a_da[6];
+        interp2Dcomp_eval_df(a_da, &(MHDdata->alpha_nm[i]),r,t);
 
-        real phi_dphi[3];
-	interp1Dcomp_eval_dB(phi_dphi,&(MHDdata->alpha_nm[i]),r);
+        real phi_dphi[6];
+	interp2Dcomp_eval_df(phi_dphi,&(MHDdata->alpha_nm[i]),r,t);
         
         /*this is used frequently, so define here*/
         real mhdarg = (MHDdata->nmode[i])* ptz_dptz[8]-(MHDdata->mmode[i])*ptz_dptz[4]-(MHDdata->omega_nm[i])*t +phase;
