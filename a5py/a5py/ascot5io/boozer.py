@@ -33,15 +33,15 @@ def write_hdf5(fn, gprof, qprof, Iprof, delta, nu, theta_bzr, theta_geo,
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
-        g.create_dataset("nR",         (1,), data=nR,         dtype="i8")
-        g.create_dataset("Rmin",       (1,), data=Rmin,       dtype="f8")
-        g.create_dataset("Rmax",       (1,), data=Rmax,       dtype="f8")
+        g.create_dataset("nr",         (1,), data=nR,         dtype="i8")
+        g.create_dataset("r_min",      (1,), data=Rmin,       dtype="f8")
+        g.create_dataset("r_max",      (1,), data=Rmax,       dtype="f8")
         g.create_dataset("nz",         (1,), data=nz,         dtype="i8")
-        g.create_dataset("zmin",       (1,), data=zmin,       dtype="f8")
-        g.create_dataset("zmax",       (1,), data=zmax,       dtype="f8")
+        g.create_dataset("z_min",      (1,), data=zmin,       dtype="f8")
+        g.create_dataset("z_max",      (1,), data=zmax,       dtype="f8")
         g.create_dataset("npsi",       (1,), data=npsi,       dtype="i8")
-        g.create_dataset("psimin",     (1,), data=psimin,     dtype="f8")
-        g.create_dataset("psimax",     (1,), data=psimax,     dtype="f8")
+        g.create_dataset("psi_min",    (1,), data=psimin,     dtype="f8")
+        g.create_dataset("psi_max",    (1,), data=psimax,     dtype="f8")
         g.create_dataset("ntheta_geo", (1,), data=ntheta_geo, dtype="i8")
         g.create_dataset("ntheta_bzr", (1,), data=ntheta_bzr, dtype="i8")
 
