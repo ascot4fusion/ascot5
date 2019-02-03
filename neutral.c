@@ -141,11 +141,12 @@ int neutral_init(neutral_data* ndata, neutral_offload_data* offload_data,
  * @param r R coordinate [m]
  * @param phi phi coordinate [deg]
  * @param z z coordinate [m]
+ * @param t time coordinate [s]
  * @param ndata pointer to neutral density data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err neutral_eval_n0(real n0[], real r, real phi, real z,
+a5err neutral_eval_n0(real n0[], real r, real phi, real z, real t,
                       neutral_data* ndata) {
     a5err err = 0;
 

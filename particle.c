@@ -527,8 +527,11 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         }
 
         /* Guiding center transformation */
-        real B_dB[12], r, phi, z, vpar, mu, theta, psi[1], rho[1];
-        if(!err) {err = B_field_eval_B_dB(B_dB, ps->rprt, ps->phiprt, ps->zprt, Bdata);}
+        real B_dB[15], r, phi, z, vpar, mu, theta, psi[1], rho[1];
+        if(!err) {
+            err = B_field_eval_B_dB(B_dB, ps->rprt, ps->phiprt, ps->zprt,
+                                    ps->time, Bdata);
+        }
 
         if(!err) {
             gctransform_particle2guidingcenter(
@@ -540,9 +543,15 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         if(!err && mu < 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
         /* Update magnetic field at gc position */
-        if(!err) {err = B_field_eval_B_dB(B_dB, r, phi, z, Bdata);}
-        if(!err) {err = B_field_eval_psi(psi, r, phi, z, Bdata);}
-        if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
+        if(!err) {
+            err = B_field_eval_B_dB(B_dB, r, phi, z, ps->time, Bdata);
+        }
+        if(!err) {
+            err = B_field_eval_psi(psi, r, phi, z, Bdata);
+        }
+        if(!err) {
+            err = B_field_eval_rho(rho, psi[0], Bdata);
+        }
         if(!err && vpar >= CONST_C) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
         if(!err) {
@@ -584,10 +593,18 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         p->type = input_particle_type_s;
         id = p->p_gc.id;
 
-        real B_dB[12], psi[1], rho[1];
-        if(!err) {err = B_field_eval_B_dB(B_dB, p->p_gc.r, p->p_gc.phi, p->p_gc.z, Bdata);}
-        if(!err) {err = B_field_eval_psi(psi, p->p_gc.r, p->p_gc.phi, p->p_gc.z, Bdata);}
-        if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
+        real B_dB[15], psi[1], rho[1];
+        if(!err) {
+            err = B_field_eval_B_dB(B_dB, p->p_gc.r, p->p_gc.phi, p->p_gc.z,
+                                    p->p_gc.time, Bdata);
+        }
+        if(!err) {
+            err = B_field_eval_psi(psi, p->p_gc.r, p->p_gc.phi, p->p_gc.z,
+                                   Bdata);
+        }
+        if(!err) {
+            err = B_field_eval_rho(rho, psi[0], Bdata);
+        }
 
         if(!err) {
             ps->rho        = rho[0];
@@ -651,7 +668,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
                 ps->r, ps->phi, ps->z, ps->vpar, ps->mu, ps->theta,
                 &rprt, &phiprt, &zprt, &vparprt, &muprt, &thetaprt);
 
-            B_field_eval_B_dB(B_dB, rprt, phiprt, zprt, Bdata);
+            B_field_eval_B_dB(B_dB, rprt, phiprt, zprt, ps->time, Bdata);
 
             gctransform_vparmutheta2vRvphivz(
                 ps->mass, ps->charge, B_dB,
@@ -681,9 +698,10 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         p->type = input_particle_type_s;
         id = p->p_ml.id;
 
-        real B_dB[12], psi[1], rho[1];
+        real B_dB[15], psi[1], rho[1];
         if(!err) {
-            err = B_field_eval_B_dB(B_dB, p->p_ml.r, p->p_ml.phi, p->p_ml.z, Bdata);
+            err = B_field_eval_B_dB(B_dB, p->p_ml.r, p->p_ml.phi, p->p_ml.z,
+                                    p->p_ml.time, Bdata);
         }
         if(!err) {err = B_field_eval_psi(psi, p->p_ml.r, p->p_ml.phi, p->p_ml.z, Bdata);}
         if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
@@ -789,12 +807,17 @@ a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
     }
 
     /* Magnetic field stored in state is for the gc position */
-    real B_dB[12], psi[1], rho[1];
+    real B_dB[15], psi[1], rho[1];
     if(!err) {
-        err = B_field_eval_B_dB(B_dB, p->rprt, p->phiprt, p->zprt, Bdata);
+        err = B_field_eval_B_dB(B_dB, p->rprt, p->phiprt, p->zprt, p->time,
+                                Bdata);
     }
-    if(!err) {err = B_field_eval_psi(psi, p->rprt, p->phiprt, p->zprt, Bdata);}
-    if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
+    if(!err) {
+        err = B_field_eval_psi(psi, p->rprt, p->phiprt, p->zprt, Bdata);
+    }
+    if(!err) {
+        err = B_field_eval_rho(rho, psi[0], Bdata);
+    }
 
     if(!err) {
         p_fo->rho[j]        = rho[0];
@@ -863,7 +886,7 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->cputime    = p_fo->cputime[j];
 
     /* Particle to guiding center */
-    real B_dB[12], psi[1], rho[1];
+    real B_dB[15], psi[1], rho[1];
     rho[0]        = p_fo->rho[j];
     B_dB[0]       = p_fo->B_r[j];
     B_dB[1]       = p_fo->B_r_dr[j];
@@ -893,9 +916,15 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     if(!err && p->r <= 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
     if(!err && p->mu < 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
-    if(!err) {err = B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, Bdata);}
-    if(!err) {err = B_field_eval_psi(psi, p->r, p->phi, p->z, Bdata);}
-    if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
+    if(!err) {
+        err = B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, p->time, Bdata);
+    }
+    if(!err) {
+        err = B_field_eval_psi(psi, p->r, p->phi, p->z, Bdata);
+    }
+    if(!err) {
+        err = B_field_eval_rho(rho, psi[0], Bdata);
+    }
 
     if(!err) {
         p->vpar = vpar;
@@ -1060,7 +1089,7 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     p->B_z_dz     = p_gc->B_z_dz[j];
 
     /* Guiding center to particle transformation */
-    real B_dB[12];
+    real B_dB[15];
     B_dB[0]       = p->B_r;
     B_dB[1]       = p->B_r_dr;
     B_dB[2]       = p->B_r_dphi;
@@ -1082,7 +1111,7 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
             p->r, p->phi, p->z, p->vpar, p->mu, p->theta,
             &p->rprt, &p->phiprt, &p->zprt, &vparprt, &muprt, &thetaprt);
 
-        B_field_eval_B_dB(B_dB, p->rprt, p->phiprt, p->zprt, Bdata);
+        B_field_eval_B_dB(B_dB, p->rprt, p->phiprt, p->zprt, p->time, Bdata);
 
         gctransform_vparmutheta2vRvphivz(
             p->mass, p->charge, B_dB,
@@ -1276,7 +1305,7 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
     p_gc->id[j]      = p_fo->id[j];
     p_gc->index[j]   = p_fo->index[j];
 
-    real r, phi, z, vpar, mu, theta, B_dB[12];
+    real r, phi, z, vpar, mu, theta, B_dB[15];
     if(!err) {
         real Rprt   = p_fo->r[j];
         real phiprt = p_fo->phi[j];
@@ -1321,7 +1350,7 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
     real psi[1], rho[1];
     if(!err) {
         err = B_field_eval_B_dB(
-            B_dB, r, phi, z, Bdata);
+            B_dB, r, phi, z, p_fo->time[j], Bdata);
     }
     if(!err) {
         err = B_field_eval_psi(

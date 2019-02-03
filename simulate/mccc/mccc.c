@@ -353,7 +353,9 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* p
  * @param pdata pointer to plasma data
  * @param h pointer to time step values [s]
  */
-void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* coldata, real* h){
+void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata,
+                        plasma_data* pdata, random_data* rdata, real* coldata,
+                        real* h){
     int i;
     real rnd[5*NSIMD];
     random_normal_simd(rdata, 5*NSIMD, rnd);
@@ -448,8 +450,10 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
             }
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
-            real B_dB[12], psi[1], rho[1];
-            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);}
+            real B_dB[15], psi[1], rho[1];
+            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i],
+                                                      p->z[i], p->time[i] + h[i],
+                                                      Bdata);}
             if(!errflag) {errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);}
             if(!errflag) {errflag = B_field_eval_rho(rho, psi[0], Bdata);}
 
@@ -628,8 +632,10 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
             }
 
             /* Evaluate magnetic field (and gradient) at new position */
-            real B_dB[12], psi[1], rho[1];
-            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);}
+            real B_dB[15], psi[1], rho[1];
+            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i],
+                                                      p->z[i], p->time[i] + hin[i],
+                                                      Bdata);}
             if(!errflag) {errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);}
             if(!errflag) {errflag = B_field_eval_rho(rho, psi[0], Bdata);}
 
