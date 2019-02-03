@@ -451,11 +451,13 @@ a5err B_field_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
  * @param r R coordinate [m]
  * @param phi phi coordinate [deg]
  * @param z z coordinate [m]
+ * @param t time coordinate [s]
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
+a5err B_field_eval_B(real B[3], real r, real phi, real z, real t,
+                     B_field_data* Bdata) {
     a5err err = 0;
 
     switch(Bdata->type) {
@@ -514,6 +516,9 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
  * - B[9]  = dBz/dR
  * - B[10] = dBz/dphi
  * - B[11] = dBz/dz
+ * - B[12] = dBR/dt
+ * - B[13] = dBphi/dt
+ * - B[14] = dBz/dt
  *
  * This is a SIMD function.
  *
@@ -521,11 +526,12 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
  * @param r R coordinate [m]
  * @param phi phi coordinate [deg]
  * @param z z coordinate [m]
+ * @param t time coordinate [s]
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_field_eval_B_dB(real B_dB[12], real r, real phi, real z,
+a5err B_field_eval_B_dB(real B_dB[15], real r, real phi, real z, real t,
                         B_field_data* Bdata) {
     a5err err = 0;
 
