@@ -79,7 +79,7 @@ void E_field_free_offload(E_field_offload_data* offload_data,
 int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
                  real* offload_array);
 #pragma omp declare simd uniform(Edata, Bdata)
-a5err E_field_eval_E(real* E, real r, real phi, real z,
+a5err E_field_eval_E(real* E, real r, real phi, real z, real t,
                      E_field_data* Edata, B_field_data* Bdata);
 #pragma omp end declare target
 

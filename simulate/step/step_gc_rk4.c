@@ -1,6 +1,6 @@
 /**
  * @file step_gc_rk4.c
- * @brief Calculate a guiding center step for a struct of particles with RK4
+ * @brief Guiding center integration with RK4
  **/
 #include <stdio.h>
 #include <math.h>
@@ -27,7 +27,8 @@
  * @param Bdata pointer to magnetic field data
  * @param Edata pointer to electric field data
  */
-void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data* Edata) {
+void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
+                 E_field_data* Edata) {
 
     int i;
     /* Following loop will be executed simultaneously for all i */
@@ -36,22 +37,20 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
         if(p->running[i]) {
             a5err errflag = 0;
 
-            real k1[6];
-            real k2[6];
-            real k3[6];
-            real k4[6];
+            real k1[6], k2[6], k3[6], k4[6];
             real tempy[6];
             real yprev[6];
             real y[6];
 
-            real mass;
-            real charge;
+            real mass   = p->mass[i];
+            real charge = p->charge[i];
 
-            real B_dB[12];
+            real B_dB[15];
             real E[3];
 
             real R0   = p->r[i];
             real z0   = p->z[i];
+            real t0   = p->time[i];
 
             /* Coordinates are copied from the struct into an array to make
              * passing parameters easier */
@@ -61,8 +60,6 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             yprev[3] = p->vpar[i];
             yprev[4] = p->mu[i];
             yprev[5] = p->theta[i];
-            mass     = p->mass[i];
-            charge   = p->charge[i];
 
             /* Magnetic field at initial position already known */
             B_dB[0]  = p->B_r[i];
@@ -80,41 +77,79 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             B_dB[10] = p->B_z_dphi[i];
             B_dB[11] = p->B_z_dz[i];
 
-            if(!errflag) {errflag = E_field_eval_E(E, yprev[0], yprev[1], yprev[2], Edata, Bdata);}
-            if(!errflag) {step_gceom(k1, yprev, mass, charge, B_dB, E);}
-            int j;
+            if(!errflag) {
+                errflag = E_field_eval_E(E, yprev[0], yprev[1], yprev[2],
+                                         t0, Edata, Bdata);
+            }
+            if(!errflag) {
+                step_gceom(k1, yprev, mass, charge, B_dB, E);
+            }
+
+
             /* particle coordinates for the subsequent ydot evaluations are
              * stored in tempy */
-            for(j = 0; j < 6; j++) {
-                tempy[j] = yprev[j] + h[i]/2.0*k1[j];
+            for(int j = 0; j < 6; j++) {
+                tempy[j] = yprev[j] + h[i]*k1[j]/2.0;
             }
 
-            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
-            if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
-            if(!errflag) {step_gceom(k2, tempy, mass, charge, B_dB, E);}
-            for(j = 0; j < 6; j++) {
-                tempy[j] = yprev[j] + h[i]/2.0*k2[j];
+
+            if(!errflag) {
+                errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2],
+                                            t0 + h[i]/2.0, Bdata);
+            }
+            if(!errflag) {
+                errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
+                                         t0 + h[i]/2.0, Edata, Bdata);
+            }
+            if(!errflag) {
+                step_gceom(k2, tempy, mass, charge, B_dB, E);
+            }
+            for(int j = 0; j < 6; j++) {
+                tempy[j] = yprev[j] + h[i]*k2[j]/2.0;
             }
 
-            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
-            if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
-            if(!errflag) {step_gceom(k3, tempy, mass, charge, B_dB, E);}
-            for(j = 0; j < 6; j++) {
+
+            if(!errflag) {
+                errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2],
+                                            t0 + h[i]/2.0, Bdata);
+            }
+            if(!errflag) {
+                errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
+                                         t0 + h[i]/2.0, Edata, Bdata);
+            }
+            if(!errflag) {
+                step_gceom(k3, tempy, mass, charge, B_dB, E);
+            }
+            for(int j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]*k3[j];
             }
 
-            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
-            if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
-            if(!errflag) {step_gceom(k4, tempy, mass, charge, B_dB, E);}
-            for(j = 0; j < 6; j++) {
+
+            if(!errflag) {
+                errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2],
+                                            t0 + h[i], Bdata);
+            }
+            if(!errflag) {
+                errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
+                                         t0 + h[i], Edata, Bdata);}
+            if(!errflag) {step_gceom(k4, tempy, mass, charge, B_dB, E);
+            }
+            for(int j = 0; j < 6; j++) {
                 y[j] = yprev[j]
                     + h[i]/6.0 * (k1[j] + 2*k2[j] + 2*k3[j] + k4[j]);
             }
 
+
             /* Test that results are physical */
-            if(!errflag && y[0] <= 0)                  {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);}
-            else if(!errflag && fabs(y[4]) >= CONST_C) {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);}
-            else if(!errflag && y[4] < 0)              {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);}
+            if(!errflag && y[0] <= 0) {
+                errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
+            }
+            if(!errflag && fabs(y[4]) >= CONST_C) {
+                errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
+            }
+            if(!errflag && y[4] < 0) {
+                errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
+            }
 
             /* Update gc phase space position */
             if(!errflag) {
@@ -130,9 +165,17 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
             /* Evaluate magnetic field (and gradient) and rho at new position */
             real psi[1];
             real rho[1];
-            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);}
-            if(!errflag) {errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);}
-            if(!errflag) {errflag = B_field_eval_rho(rho, psi[0], Bdata);}
+            if(!errflag) {
+                errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i],
+                                            t0 + h[i], Bdata);
+            }
+            if(!errflag) {
+                errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i],
+                                           t0 + h[i], Bdata);
+            }
+            if(!errflag) {
+                errflag = B_field_eval_rho(rho, psi[0], Bdata);
+            }
 
             if(!errflag) {
                 p->B_r[i]        = B_dB[0];
@@ -155,8 +198,10 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata, E_field_data
                 /* Evaluate pol angle so that it is cumulative */
                 real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
                 real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
-                (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
+                p->pol[i] += atan2(   (R0-axis_r) * (p->z[i]-axis_z)
+                                    - (z0-axis_z) * (p->r[i]-axis_r),
+                                      (R0-axis_r) * (p->r[i]-axis_r)
+                                    + (z0-axis_z) * (p->z[i]-axis_z) );
             }
 
             /* Error handling */

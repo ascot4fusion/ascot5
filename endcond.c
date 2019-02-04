@@ -112,7 +112,8 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                     p_f->rdot[i], p_f->phidot[i] * p_f->r[i], p_f->zdot[i]);
                 real gamma = physlib_gamma_vnorm(vnorm);
                 real ekin = CONST_C2 * p_f->mass[i] * (gamma - 1);
-                real Te = plasma_eval_temp(p_f->rho[i], 0, &sim->plasma_data)
+                real Te = plasma_eval_temp(p_f->rho[i], p_f->time[i], 0,
+                                           &sim->plasma_data)
                     * CONST_KB;
 
                 if( active_emin && (ekin < sim->endcond_minEkin) ) {
@@ -223,7 +224,8 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                 real gamma = physlib_gamma_vpar(
                     p_f->mass[i], p_f->mu[i], p_f->vpar[i], Bnorm);
                 real ekin = CONST_C2 * p_f->mass[i] * (gamma - 1);
-                real Te = plasma_eval_temp(p_f->rho[i], 0, &sim->plasma_data)
+                real Te = plasma_eval_temp(p_f->rho[i], p_f->time[i], 0,
+                                           &sim->plasma_data)
                     * CONST_KB;
 
                 if(active_emin && (ekin < sim->endcond_minEkin) ) {

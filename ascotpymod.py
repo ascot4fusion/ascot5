@@ -50,17 +50,17 @@ class Ascotpy:
         # B field functions.
         fun = self.ascotlib.ascotpy_B_field_eval_B_dB
         fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p,
+        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
                         real_p, real_p, real_p, real_p, real_p, real_p,
                         real_p, real_p, real_p, real_p, real_p, real_p]
 
         fun = self.ascotlib.ascotpy_B_field_eval_psi
         fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p]
+        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
         fun = self.ascotlib.ascotpy_B_field_eval_rho
         fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p]
+        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
         fun = self.ascotlib.ascotpy_B_field_get_axis
         fun.restype  = None
@@ -69,7 +69,7 @@ class Ascotpy:
         # E field functions.
         fun = self.ascotlib.ascotpy_E_field_eval_E
         fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p,
+        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
                         real_p, real_p, real_p]
 
         # Plasma functions.
@@ -82,12 +82,13 @@ class Ascotpy:
 
         fun = self.ascotlib.ascotpy_plasma_eval_background
         fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
+        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p,
+                        real_p]
 
         # Neutral functions.
         fun = self.ascotlib.ascotpy_neutral_eval_density
         fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p]
+        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
     def ascotpy_reload(self, h5fn):
         """
@@ -223,6 +224,7 @@ class Ascotpy:
         R   = R.astype(dtype="f8")
         phi = phi.astype(dtype="f8")
         z   = z.astype(dtype="f8")
+        t   = z*0
 
         Neval = R.size
         out = {}
@@ -242,7 +244,7 @@ class Ascotpy:
             out["bzdz"]     = np.zeros(R.shape, dtype="f8")
 
             self.ascotlib.ascotpy_B_field_eval_B_dB(
-                Neval, R, phi, z,
+                Neval, R, phi, z, t,
                 out["br"], out["bphi"], out["bz"],
                 out["brdr"], out["brdphi"], out["brdz"],
                 out["bphidr"], out["bphidphi"], out["bphidz"],
@@ -250,11 +252,13 @@ class Ascotpy:
 
         if evalpsi:
             out["psi"] = np.zeros(R.shape, dtype="f8")
-            self.ascotlib.ascotpy_B_field_eval_psi(Neval, R, phi, z,out["psi"])
+            self.ascotlib.ascotpy_B_field_eval_psi(Neval, R, phi, z, t,
+                                                   out["psi"])
 
         if evalrho:
             out["rho"] = np.zeros(R.shape, dtype="f8")
-            self.ascotlib.ascotpy_B_field_eval_rho(Neval, R, phi, z,out["rho"])
+            self.ascotlib.ascotpy_B_field_eval_rho(Neval, R, phi, z, t,
+                                                   out["rho"])
 
         if evalaxis:
             out["axisr"] = np.zeros(R.shape, dtype="f8")
@@ -291,6 +295,7 @@ class Ascotpy:
         R   = R.astype(dtype="f8")
         phi = phi.astype(dtype="f8")
         z   = z.astype(dtype="f8")
+        t   = z*0
 
         Neval = R.size
         out = {}
@@ -299,7 +304,7 @@ class Ascotpy:
         out["ez"]   = np.zeros(R.shape, dtype="f8")
 
         self.ascotlib.ascotpy_E_field_eval_E(
-                Neval, R, phi, z, out["er"], out["ephi"], out["ez"])
+                Neval, R, phi, z, t, out["er"], out["ephi"], out["ez"])
 
         return out
 
@@ -330,6 +335,7 @@ class Ascotpy:
         R   = R.astype(dtype="f8")
         phi = phi.astype(dtype="f8")
         z   = z.astype(dtype="f8")
+        t   = z*0
 
         # First get background species info.
         out = {}
@@ -346,7 +352,7 @@ class Ascotpy:
         rawtemp = np.zeros((Neval*(out["n_species"]),), dtype="f8")
 
         self.ascotlib.ascotpy_plasma_eval_background(
-                Neval, R, phi, z, rawdens, rawtemp)
+                Neval, R, phi, z, t, rawdens, rawtemp)
 
         out["ne"] = rawdens[0:Neval]
         out["Te"] = rawtemp[0:Neval]
@@ -380,12 +386,14 @@ class Ascotpy:
         R   = R.astype(dtype="f8")
         phi = phi.astype(dtype="f8")
         z   = z.astype(dtype="f8")
+        t   = z*0
 
         Neval = R.size
         out = {}
         out["n0"]   = np.zeros(R.shape, dtype="f8")
 
-        self.ascotlib.ascotpy_neutral_eval_density(Neval, R, phi, z, out["n0"])
+        self.ascotlib.ascotpy_neutral_eval_density(Neval, R, phi, z, t,
+                                                   out["n0"])
 
         return out
 

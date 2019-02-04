@@ -205,13 +205,14 @@ int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
  * @param r R coordinate [m]
  * @param phi phi coordinate [deg]
  * @param z z coordinate [m]
+ * @param t time coordinate [s]
  * @param Edata pointer to electric field data struct
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err E_field_eval_E(real E[3], real r, real phi, real z, E_field_data* Edata,
-                     B_field_data* Bdata) {
+a5err E_field_eval_E(real E[3], real r, real phi, real z, real t,
+                     E_field_data* Edata, B_field_data* Bdata) {
     a5err err = 0;
 
     switch(Edata->type) {

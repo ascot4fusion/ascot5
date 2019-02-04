@@ -82,16 +82,16 @@ void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata
             real* m_species = plasma_get_species_mass(pdata);
 
             // Electron and ion temperature
-            temp[0] = plasma_eval_temp(p->rho[i], 0, pdata)*CONST_KB;
-            temp[1] = plasma_eval_temp(p->rho[i], 1, pdata)*CONST_KB;
+            temp[0] = plasma_eval_temp(p->rho[i], p->time[i], 0, pdata)*CONST_KB;
+            temp[1] = plasma_eval_temp(p->rho[i], p->time[i], 1, pdata)*CONST_KB;
 
             // Electron density
-            dens[0] = plasma_eval_dens(p->rho[i], 0, pdata);
+            dens[0] = plasma_eval_dens(p->rho[i], p->time[i], 0, pdata);
 
             // Ion densities (and temperatures)
             int j;
             for(j = 1; j < n_species; j++) {
-                dens[j] = plasma_eval_dens(p->rho[i], j, pdata);
+                dens[j] = plasma_eval_dens(p->rho[i], p->time[i], j, pdata);
                 temp[j] = temp[1];
             }
 
@@ -135,16 +135,16 @@ void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pda
     real* m_species = plasma_get_species_mass(pdata);
 
     // Electron and ion temperature
-    temp[0] = plasma_eval_temp(p->rho[i], 0, pdata)*CONST_KB;
-    temp[1] = plasma_eval_temp(p->rho[i], 1, pdata)*CONST_KB;
+    temp[0] = plasma_eval_temp(p->rho[i], p->time[i], 0, pdata)*CONST_KB;
+    temp[1] = plasma_eval_temp(p->rho[i], p->time[i], 1, pdata)*CONST_KB;
 
     // Electron density
-    dens[0] = plasma_eval_dens(p->rho[i], 0, pdata);
+    dens[0] = plasma_eval_dens(p->rho[i], p->time[i], 0, pdata);
 
     // Ion densities (and temperatures)
     int j;
     for(j = 1; j < n_species; j++) {
-        dens[j] = plasma_eval_dens(p->rho[i], j, pdata);
+        dens[j] = plasma_eval_dens(p->rho[i], p->time[i], j, pdata);
         temp[j] = temp[1];
     }
 
@@ -217,16 +217,16 @@ void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata
             real* m_species = plasma_get_species_mass(pdata);
 
             // Electron and ion temperature
-            temp[0] = plasma_eval_temp(p->rho[i], 0, pdata)*CONST_KB;
-            temp[1] = plasma_eval_temp(p->rho[i], 1, pdata)*CONST_KB;
+            temp[0] = plasma_eval_temp(p->rho[i], p->time[i], 0, pdata)*CONST_KB;
+            temp[1] = plasma_eval_temp(p->rho[i], p->time[i], 1, pdata)*CONST_KB;
 
             // Electron density
-            dens[0] = plasma_eval_dens(p->rho[i], 0, pdata);
+            dens[0] = plasma_eval_dens(p->rho[i], p->time[i], 0, pdata);
 
             // Ion densities (and temperatures)
             int j;
             for(j = 1; j < n_species; j++) {
-                dens[j] = plasma_eval_dens(p->rho[i], j, pdata);
+                dens[j] = plasma_eval_dens(p->rho[i], p->time[i], j, pdata);
                 temp[j] = temp[1];
             }
 
@@ -281,7 +281,7 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* p
             /* Evaluate density and temperature */
             real temp[MAX_SPECIES];
             real dens[MAX_SPECIES];
-            if(!errflag) {errflag = plasma_eval_densandtemp(p->rho[i], pdata, dens, temp);}
+            if(!errflag) {errflag = plasma_eval_densandtemp(p->rho[i], p->time[i], pdata, dens, temp);}
             for(int j = 0; j < n_species; j++) {
                 temp[j] = temp[j]*CONST_KB;
             }
@@ -294,7 +294,7 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* p
             real Dparab[MAX_SPECIES], Dpara = 0;
             real Dperpb[MAX_SPECIES], Dperp = 0;
             if(!errflag) {
-                errflag = mccc_coefs_clog(p->mass[i], p->charge[i], va, 
+                errflag = mccc_coefs_clog(p->mass[i], p->charge[i], va,
                                           m_species, q_species, dens, temp, clogab, n_species);
             }
             if(!errflag) {
@@ -353,7 +353,9 @@ void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* p
  * @param pdata pointer to plasma data
  * @param h pointer to time step values [s]
  */
-void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* coldata, real* h){
+void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata,
+                        plasma_data* pdata, random_data* rdata, real* coldata,
+                        real* h){
     int i;
     real rnd[5*NSIMD];
     random_normal_simd(rdata, 5*NSIMD, rnd);
@@ -386,7 +388,7 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
             /* Evaluate density and temperature */
             real temp[MAX_SPECIES];
             real dens[MAX_SPECIES];
-            if(!errflag) {errflag = plasma_eval_densandtemp(p->rho[i], pdata, dens, temp);}
+            if(!errflag) {errflag = plasma_eval_densandtemp(p->rho[i], p->time[i], pdata, dens, temp);}
 
             for(int j = 0; j < n_species; j++) {
                 temp[j] = temp[j]*CONST_KB;
@@ -441,17 +443,27 @@ void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* p
                 /* Evaluate phi and pol angles so that they are cumulative */
                 real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
                 real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
-                        (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
+                p->pol[i] += atan2(   (R0-axis_r) * (p->z[i]-axis_z)
+                                    - (z0-axis_z) * (p->r[i]-axis_r),
+                                      (R0-axis_r) * (p->r[i]-axis_r)
+                                    + (z0-axis_z) * (p->z[i]-axis_z) );
                 p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0],
                     Xin[0] * Xout[0] + Xin[1] * Xout[1] );
             }
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
-            real B_dB[12], psi[1], rho[1];
-            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);}
-            if(!errflag) {errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);}
-            if(!errflag) {errflag = B_field_eval_rho(rho, psi[0], Bdata);}
+            real B_dB[15], psi[1], rho[1];
+            if(!errflag) {
+                errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i],
+                                            p->time[i] + h[i], Bdata);
+            }
+            if(!errflag) {
+                errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i],
+                                           p->time[i] + h[i], Bdata);
+            }
+            if(!errflag) {
+                errflag = B_field_eval_rho(rho, psi[0], Bdata);
+            }
 
             if(!errflag) {
                 p->B_r[i]        = B_dB[0];
@@ -553,7 +565,7 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
             /* Evaluate density and temperature */
             real temp[MAX_SPECIES];
             real dens[MAX_SPECIES];
-            if(!errflag) {errflag = plasma_eval_densandtemp(p->rho[i], pdata, dens, temp);}
+            if(!errflag) {errflag = plasma_eval_densandtemp(p->rho[i], p->time[i], pdata, dens, temp);}
             for(int j = 0; j < n_species; j++) {
                 temp[j] = temp[j]*CONST_KB;
             }
@@ -621,17 +633,26 @@ void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data
                 /* Evaluate phi and pol angles so that they are cumulative */
                 real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
                 real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
-                        (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
+                p->pol[i] += atan2(   (R0-axis_r) * (p->z[i]-axis_z)
+                                    - (z0-axis_z) * (p->r[i]-axis_r),
+                                      (R0-axis_r) * (p->r[i]-axis_r)
+                                    + (z0-axis_z) * (p->z[i]-axis_z) );
                 p->phi[i] += atan2( Xin[0] * Xout[1] - Xin[1] * Xout[0],
                         Xin[0] * Xout[0] + Xin[1] * Xout[1] );
             }
 
             /* Evaluate magnetic field (and gradient) at new position */
-            real B_dB[12], psi[1], rho[1];
-            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);}
-            if(!errflag) {errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);}
-            if(!errflag) {errflag = B_field_eval_rho(rho, psi[0], Bdata);}
+            real B_dB[15], psi[1], rho[1];
+            if(!errflag) {
+                errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i],
+                                            p->time[i] + hin[i], Bdata);}
+            if(!errflag) {
+                errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i],
+                                           p->time[i] + hin[i], Bdata);
+            }
+            if(!errflag) {
+                errflag = B_field_eval_rho(rho, psi[0], Bdata);
+            }
 
             if(!errflag) {
                 p->B_r[i]        = B_dB[0];
