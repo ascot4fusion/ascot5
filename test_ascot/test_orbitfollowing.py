@@ -38,6 +38,8 @@ import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
 import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
+import a5py.ascot5io.boozer    as boozer
+import a5py.ascot5io.mhd       as mhd
 
 from a5py.preprocessing.analyticequilibrium import psi0 as psifun
 
@@ -250,6 +252,13 @@ def init():
     P_1D.write_hdf5(test_ascot.testfn, Nrho, Nion, znum, anum, rho,
                     edens, etemp, idens, itemp, desc="ORBFOL_GCA")
 
+    # Dummy boozer and mhd data
+    boozer.write_hdf5_dummy(test_ascot.testfn, desc="ORBFOL_GO")
+    boozer.write_hdf5_dummy(test_ascot.testfn, desc="ORBFOL_GCF")
+    boozer.write_hdf5_dummy(test_ascot.testfn, desc="ORBFOL_GCA")
+    mhd.write_hdf5_dummy(test_ascot.testfn, desc="ORBFOL_GO")
+    mhd.write_hdf5_dummy(test_ascot.testfn, desc="ORBFOL_GCF")
+    mhd.write_hdf5_dummy(test_ascot.testfn, desc="ORBFOL_GCA")
 
 def run():
     """

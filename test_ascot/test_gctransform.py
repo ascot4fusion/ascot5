@@ -55,6 +55,8 @@ import a5py.ascot5io.wall_2D   as W_2D
 import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 import a5py.ascot5io.mrk_prt   as prt
+import a5py.ascot5io.boozer    as boozer
+import a5py.ascot5io.mhd       as mhd
 
 from a5py.preprocessing.analyticequilibrium import psi0 as psifun
 
@@ -293,6 +295,18 @@ def init():
                     edens, etemp, idens, itemp, desc="GCTRANSFORM_ZEROTH")
     P_1D.write_hdf5(test_ascot.testfn, Nrho, Nion, znum, anum, rho,
                     edens, etemp, idens, itemp, desc="GCTRANSFORM_FIRST")
+    # Dummy boozer and mhd data
+    boozer.write_hdf5_dummy(test_ascot.testfn, desc="GCTRANSFORM_GC")
+    boozer.write_hdf5_dummy(test_ascot.testfn, desc="GCTRANSFORM_GO")
+    boozer.write_hdf5_dummy(test_ascot.testfn, desc="GCTRANSFORM_GO2GC")
+    boozer.write_hdf5_dummy(test_ascot.testfn, desc="GCTRANSFORM_ZEROTH")
+    boozer.write_hdf5_dummy(test_ascot.testfn, desc="GCTRANSFORM_FIRST")
+    mhd.write_hdf5_dummy(test_ascot.testfn, desc="GCTRANSFORM_GC")
+    mhd.write_hdf5_dummy(test_ascot.testfn, desc="GCTRANSFORM_GO")
+    mhd.write_hdf5_dummy(test_ascot.testfn, desc="GCTRANSFORM_GO2GC")
+    mhd.write_hdf5_dummy(test_ascot.testfn, desc="GCTRANSFORM_ZEROTH")
+    mhd.write_hdf5_dummy(test_ascot.testfn, desc="GCTRANSFORM_FIRST")
+
 
 def run():
     """
@@ -329,6 +343,7 @@ def run():
 
     for test in ["GCTRANSFORM_ZEROTH", "GCTRANSFORM_FIRST"]:
         test_ascot.set_and_run(test)
+
 
 def check():
     """
@@ -469,6 +484,7 @@ def check():
 
     plt.savefig("test_gctransform.png", dpi=300)
     plt.show()
+
 
 if __name__ == '__main__':
     if( len(sys.argv) == 1 ):

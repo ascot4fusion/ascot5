@@ -36,6 +36,8 @@ import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
 import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
+import a5py.ascot5io.boozer    as boozer
+import a5py.ascot5io.mhd       as mhd
 
 sys.path.insert(0, '../')
 sys.path.insert(0, '.')
@@ -262,6 +264,18 @@ def init():
                     edens, etemp, idens, itemp, desc="GRADB_GO")
     P_1D.write_hdf5(test_ascot.testfn, Nrho, Nion, znum, anum, rho,
                     edens, etemp, idens, itemp, desc="GRADB_GC")
+
+    # Dummy boozer and mhd data
+    boozer.write_hdf5_dummy(test_ascot.testfn, desc="GYROMOTION")
+    boozer.write_hdf5_dummy(test_ascot.testfn, desc="EXB_GO")
+    boozer.write_hdf5_dummy(test_ascot.testfn, desc="EXB_GC")
+    boozer.write_hdf5_dummy(test_ascot.testfn, desc="GRADB_GO")
+    boozer.write_hdf5_dummy(test_ascot.testfn, desc="GRADB_GC")
+    mhd.write_hdf5_dummy(test_ascot.testfn, desc="GYROMOTION")
+    mhd.write_hdf5_dummy(test_ascot.testfn, desc="EXB_GO")
+    mhd.write_hdf5_dummy(test_ascot.testfn, desc="EXB_GC")
+    mhd.write_hdf5_dummy(test_ascot.testfn, desc="GRADB_GO")
+    mhd.write_hdf5_dummy(test_ascot.testfn, desc="GRADB_GC")
 
 def run():
     """

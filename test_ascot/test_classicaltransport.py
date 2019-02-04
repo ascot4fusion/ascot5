@@ -30,6 +30,8 @@ import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
 import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
+import a5py.ascot5io.boozer    as boozer
+import a5py.ascot5io.mhd       as mhd
 
 sys.path.insert(0, '../')
 sys.path.insert(0, '.')
@@ -245,6 +247,13 @@ def init():
                          N0zmin, N0zmax, N0nz,
                          N0pmin, N0pmax, N0np, N0dens,
                          desc="CLASS_GCA" + str(i))
+
+        boozer.write_hdf5_dummy(test_ascot.testfn, desc="CLASS_GO"  + str(i))
+        boozer.write_hdf5_dummy(test_ascot.testfn, desc="CLASS_GCF" + str(i))
+        boozer.write_hdf5_dummy(test_ascot.testfn, desc="CLASS_GCA" + str(i))
+        mhd.write_hdf5_dummy(test_ascot.testfn, desc="CLASS_GO"  + str(i))
+        mhd.write_hdf5_dummy(test_ascot.testfn, desc="CLASS_GCF" + str(i))
+        mhd.write_hdf5_dummy(test_ascot.testfn, desc="CLASS_GCA" + str(i))
 
 
 def run():
