@@ -22,7 +22,8 @@
  *
  * - 1D compact  2, explicit 4
  * - 2D compact  4, explicit 16
- * - 3D compact 16, explicit 64
+ * - 3D compact  8, explicit 64
+ * - 4D compact 16, explicit(NS)
  */
 #ifndef INTERP_H
 #define INTERP_H
@@ -42,7 +43,8 @@ enum boundaryCondition {
 enum splinesize {
     NSIZE_COMP1D =  2,
     NSIZE_COMP2D =  4,
-    NSIZE_COMP3D = 16,
+    NSIZE_COMP3D =  8,
+    NSIZE_COMP4D = 16,
     NSIZE_EXPL1D =  4,
     NSIZE_EXPL2D = 16,
     NSIZE_EXPL3D = 64
@@ -99,6 +101,34 @@ typedef struct {
     real* c;     /**< pointer to array with spline coefficients      */
 } interp3D_data;
 
+/**
+ * @brief 4D cubic interpolation struct.
+ */
+typedef struct {
+    int n_x;     /**< number of x grid points                        */
+    int n_y;     /**< number of y grid points                        */
+    int n_z;     /**< number of z grid points                        */
+    int n_t;     /**< number of t grid points                        */
+    int bc_x;    /**< boundary condition for x coordinate            */
+    int bc_y;    /**< boundary condition for y coordinate            */
+    int bc_z;    /**< boundary condition for z coordinate            */
+    int bc_t;    /**< boundary condition for t coordinate            */
+    real x_min;  /**< minimum x coordinate in the grid               */
+    real x_max;  /**< maximum x coordinate in the grid               */
+    real x_grid; /**< interval between two adjacent points in x grid */
+    real y_min;  /**< minimum y coordinate in the grid               */
+    real y_max;  /**< maximum y coordinate in the grid               */
+    real y_grid; /**< interval between two adjacent points in y grid */
+    real z_min;  /**< minimum z coordinate in the grid               */
+    real z_max;  /**< maximum z coordinate in the grid               */
+    real z_grid; /**< interval between two adjacent points in z grid */
+    real t_min;  /**< minimum z coordinate in the grid               */
+    real t_max;  /**< maximum z coordinate in the grid               */
+    real t_grid; /**< interval between two adjacent points in z grid */
+    real* c;     /**< pointer to array with spline coefficients      */
+} interp4D_data;
+
+
 int interp1Dcomp_init_coeff(real* c, real* f,
                             int n_x, int bc_x,
                             real x_min, real x_max);
@@ -114,6 +144,14 @@ int interp3Dcomp_init_coeff(real* c, real* f,
                             real x_min, real x_max,
                             real y_min, real y_max,
                             real z_min, real z_max);
+
+int interp4Dcomp_init_coeff(real* c, real* f,
+                            int n_x, int n_y, int n_z, int n_t,
+                            int bc_x, int bc_y, int bc_z, int bc_t,
+                            real x_min, real x_max,
+                            real y_min, real y_max,
+                            real z_min, real z_max,
+			    real t_min, real t_max);
 
 int interp1Dexpl_init_coeff(real* c, real* f,
                             int n_x, int bc_x,
@@ -148,6 +186,14 @@ void interp3Dcomp_init_spline(interp3D_data* str, real* c,
                               real y_min, real y_max,
                               real z_min, real z_max);
 
+void interp4Dcomp_init_spline(interp4D_data* str, real* c,
+                              int n_x, int n_y, int n_z, int n_t,
+                              int bc_x, int bc_y, int bc_z, int bc_t,
+                              real x_min, real x_max,
+                              real y_min, real y_max,
+                              real z_min, real z_max,
+			      real t_min, real t_max);
+
 void interp1Dexpl_init_spline(interp1D_data* str, real* c,
                               int n_x, int bc_x,
                               real x_min, real x_max);
@@ -171,6 +217,10 @@ int interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y);
 #pragma omp declare simd uniform(str)
 int interp3Dcomp_eval_f(real* f, interp3D_data* str,
                          real x, real y, real z);
+#pragma omp declare simd uniform(str)
+int interp4Dcomp_eval_f(real* f, interp4D_data* str,
+			real x, real y, real z, real t);
+
 
 #pragma omp declare simd uniform(str)
 int interp1Dexpl_eval_f(real* f, interp1D_data* str, real x);
@@ -187,6 +237,9 @@ int interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y);
 #pragma omp declare simd uniform(str)
 int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
                          real x, real y, real z);
+#pragma omp declare simd uniform(str)
+int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
+                         real x, real y, real z, real t);
 
 #pragma omp declare simd uniform(str)
 int interp1Dexpl_eval_df(real* f_df, interp1D_data* str, real x);
