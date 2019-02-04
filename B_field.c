@@ -508,7 +508,7 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, real t,
             break;
 
         case B_field_type_3DST:
-            err = B_3DST_eval_B(B, r, phi, z, time, &(Bdata->B3DST));
+            err = B_3DST_eval_B(B, r, phi, z, t, &(Bdata->B3DST));
             break;
 
         case B_field_type_STS:
@@ -587,7 +587,7 @@ a5err B_field_eval_B_dB(real B_dB[15], real r, real phi, real z, real t,
             break;
 
         case B_field_type_3DST:
-            err = B_3DST_eval_B_dB(B_dB, r, phi, z, time, &(Bdata->B3DST));
+            err = B_3DST_eval_B_dB(B_dB, r, phi, z, t, &(Bdata->B3DST));
             break;
 
         case B_field_type_STS:

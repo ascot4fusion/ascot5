@@ -2,7 +2,7 @@
  * @file B_3DST.c
  * @brief Time dependent 3D magnetic field with 4D spline interpolation
  *
- * This module represents a magnetic field where data is given in \f$R\phi z time\f$-
+ * This module represents a magnetic field where data is given in \f$R\phi z t\f$-
  * grid from which it is interpolated with 4-parameters cubic splines.
  *
  * The magnetic field is evaluated from magnetic field strength \f$\mathbf{B}\f$
@@ -67,9 +67,9 @@
  * - B_3DST_offload_data.Bgrid_n_phi
  * - B_3DST_offload_data.Bgrid_phi_min
  * - B_3DST_offload_data.Bgrid_phi_max
- * - B_3DST_offload_data.Bgrid_n_time
- * - B_3DST_offload_data.Bgrid_time_min
- * - B_3DST_offload_data.Bgrid_time_max
+ * - B_3DST_offload_data.Bgrid_n_t
+ * - B_3DST_offload_data.Bgrid_t_min
+ * - B_3DST_offload_data.Bgrid_t_max
  *
  * - B_3DST_offload_data.psi0
  * - B_3DST_offload_data.psi1
@@ -80,12 +80,12 @@
  *
  * The offload array must contain the following data:
  * - offload_array[                           l*Bn_r*Bn_z*Bn_phi + k*Bn_r*Bn_z + j*Bn_r + i]
- *   = B_R(R_i, phi_k, z_j, time_l)   [T]
- * - offload_array[Bn_r*Bn_z*Bn_phi*Bn_time + l*Bn_r*Bn_z*Bn_phi + k*Bn_r*Bn_z + j*Bn_r + i]
- *   = B_phi(R_i, phi_k, z_j, time_l)   [T]
- * - offload_array[2*Bn_r*Bn_z*Bn_phi*Bn_time + l*Bn_r*Bn_z*Bn_phi + k*Bn_r*Bn_z + j*Bn_r + i]
- *   = B_z(R_i, phi_k, z_j, time_l)   [T]
- * - offload_array[3*Bn_r*Bn_z*Bn_phi*Bn_time + j*n_r + i]
+ *   = B_R(R_i, phi_k, z_j, t_l)   [T]
+ * - offload_array[Bn_r*Bn_z*Bn_phi*Bn_t + l*Bn_r*Bn_z*Bn_phi + k*Bn_r*Bn_z + j*Bn_r + i]
+ *   = B_phi(R_i, phi_k, z_j, t_l)   [T]
+ * - offload_array[2*Bn_r*Bn_z*Bn_phi*Bn_t + l*Bn_r*Bn_z*Bn_phi + k*Bn_r*Bn_z + j*Bn_r + i]
+ *   = B_z(R_i, phi_k, z_j, t_l)   [T]
+ * - offload_array[3*Bn_r*Bn_z*Bn_phi*Bn_t + j*n_r + i]
  *   = psi(R_i, z_j)   [V*s*m^-1]
  *
  * Sanity checks are printed if data was initialized succesfully.
@@ -101,7 +101,7 @@ int B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array)
     int err = 0;
     int psi_size = offload_data->psigrid_n_r * offload_data->psigrid_n_z;
     int B_size   = offload_data->Bgrid_n_r   * offload_data->Bgrid_n_z
-                   * offload_data->Bgrid_n_phi * offload_data->Bgrid_n_time;
+                   * offload_data->Bgrid_n_phi * offload_data->Bgrid_n_t;
 
     /* Allocate enough space to store three 3D arrays and one 2D array */
     real* coeff_array = (real*) malloc( (3*NSIZE_COMP4D*B_size
@@ -121,32 +121,32 @@ int B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array)
     err += interp4Dcomp_init_coeff(
         B_r, *offload_array + 0*B_size,
         offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
-        offload_data->Bgrid_n_z, offload_data->Bgrid_n_time,
+        offload_data->Bgrid_n_z, offload_data->Bgrid_n_t,
         NATURALBC, PERIODICBC, NATURALBC,
         offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
         offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
         offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max
-        offload_data->Bgrid_time_min,   offload_data->Bgrid_time_max);
+        offload_data->Bgrid_t_min,   offload_data->Bgrid_t_max);
 
     err += interp4Dcomp_init_coeff(
         B_phi, *offload_array + 1*B_size,
         offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
-        offload_data->Bgrid_n_z, offload_data->Bgrid_n_time,
+        offload_data->Bgrid_n_z, offload_data->Bgrid_n_t,
         NATURALBC, PERIODICBC, NATURALBC,
         offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
         offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
         offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max
-        offload_data->Bgrid_time_min,   offload_data->Bgrid_time_max);
+        offload_data->Bgrid_t_min,   offload_data->Bgrid_t_max);
 
     err += interp4Dcomp_init_coeff(
         B_z, *offload_array + 2*B_size,
         offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
-        offload_data->Bgrid_n_z, offload_data->Bgrid_n_time,
+        offload_data->Bgrid_n_z, offload_data->Bgrid_n_t,
         NATURALBC, PERIODICBC, NATURALBC,
         offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
         offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
         offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max
-        offload_data->Bgrid_time_min,   offload_data->Bgrid_time_max);
+        offload_data->Bgrid_t_min,   offload_data->Bgrid_t_max);
 
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
@@ -191,9 +191,9 @@ int B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array)
               math_rad2deg(offload_data->Bgrid_phi_min),
               math_rad2deg(offload_data->Bgrid_phi_max));
     print_out(VERBOSE_IO, "ntime = %4.d timemin = %3.3f s timemax = %3.3f deg\n",
-              offload_data->Bgrid_n_time,
-              offload_data->Bgrid_time_min,
-              offload_data->Bgrid_time_max);
+              offload_data->Bgrid_n_t,
+              offload_data->Bgrid_t_min,
+              offload_data->Bgrid_t_max);
     print_out(VERBOSE_IO, "Psi at magnetic axis (%1.3f m, %1.3f m)\n",
               offload_data->axis_r, offload_data->axis_z);
     print_out(VERBOSE_IO, "%3.3f (evaluated)\n%3.3f (given)\n",
@@ -229,7 +229,7 @@ void B_3DST_init(B_3DST_data* Bdata, B_3DST_offload_data* offload_data,
 
     int B_size = NSIZE_COMP4D * offload_data->Bgrid_n_r
                  * offload_data->Bgrid_n_z * offload_data->Bgrid_n_phi
-	         * offload_data->Bgrid_n_time;
+	         * offload_data->Bgrid_n_t;
 
     /* Initialize target data struct */
     Bdata->psi0 = offload_data->psi0;
@@ -242,7 +242,7 @@ void B_3DST_init(B_3DST_data* Bdata, B_3DST_offload_data* offload_data,
                              offload_data->Bgrid_n_r,
                              offload_data->Bgrid_n_phi,
                              offload_data->Bgrid_n_z,
-                             offload_data->Bgrid_n_time,
+                             offload_data->Bgrid_n_t,
                              NATURALBC, PERIODICBC, NATURALBC,
                              offload_data->Bgrid_r_min,
                              offload_data->Bgrid_r_max,
@@ -250,14 +250,14 @@ void B_3DST_init(B_3DST_data* Bdata, B_3DST_offload_data* offload_data,
                              offload_data->Bgrid_phi_max,
                              offload_data->Bgrid_z_min,
                              offload_data->Bgrid_z_max,
-                             offload_data->Bgrid_time_min,
-                             offload_data->Bgrid_time_max);
+                             offload_data->Bgrid_t_min,
+                             offload_data->Bgrid_t_max);
 
     interp4Dcomp_init_spline(&Bdata->B_phi, &(offload_array[1*B_size]),
                              offload_data->Bgrid_n_r,
                              offload_data->Bgrid_n_phi,
                              offload_data->Bgrid_n_z,
-                             offload_data->Bgrid_n_time,
+                             offload_data->Bgrid_n_t,
                              NATURALBC, PERIODICBC, NATURALBC,
                              offload_data->Bgrid_r_min,
                              offload_data->Bgrid_r_max,
@@ -265,14 +265,14 @@ void B_3DST_init(B_3DST_data* Bdata, B_3DST_offload_data* offload_data,
                              offload_data->Bgrid_phi_max,
                              offload_data->Bgrid_z_min,
                              offload_data->Bgrid_z_max,
-                             offload_data->Bgrid_time_min,
-                             offload_data->Bgrid_time_max);
+                             offload_data->Bgrid_t_min,
+                             offload_data->Bgrid_t_max);
 
     interp4Dcomp_init_spline(&Bdata->B_z, &(offload_array[2*B_size]),
                              offload_data->Bgrid_n_r,
                              offload_data->Bgrid_n_phi,
                              offload_data->Bgrid_n_z,
-                             offload_data->Bgrid_n_time,
+                             offload_data->Bgrid_n_t,
                              NATURALBC, PERIODICBC, NATURALBC,
                              offload_data->Bgrid_r_min,
                              offload_data->Bgrid_r_max,
@@ -280,8 +280,8 @@ void B_3DST_init(B_3DST_data* Bdata, B_3DST_offload_data* offload_data,
                              offload_data->Bgrid_phi_max,
                              offload_data->Bgrid_z_min,
                              offload_data->Bgrid_z_max,
-                             offload_data->Bgrid_time_min,
-                             offload_data->Bgrid_time_max);
+                             offload_data->Bgrid_t_min,
+                             offload_data->Bgrid_t_max);
     
     interp2Dcomp_init_spline(&Bdata->psi, &(offload_array[3*B_size]),
 			     offload_data->psigrid_n_r,
@@ -424,13 +424,13 @@ a5err B_3DST_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_3DST_eval_B(real B[3], real r, real phi, real z, real time, B_3DST_data* Bdata) {
+a5err B_3DST_eval_B(real B[3], real r, real phi, real z, real t, B_3DST_data* Bdata) {
     a5err err = 0;
     int interperr = 0;
 
-    interperr += interp4Dcomp_eval_f(&B[0], &Bdata->B_r, r, phi, z, time);
-    interperr += interp4Dcomp_eval_f(&B[1], &Bdata->B_phi, r, phi, z, time);
-    interperr += interp4Dcomp_eval_f(&B[2], &Bdata->B_z, r, phi, z, time);
+    interperr += interp4Dcomp_eval_f(&B[0], &Bdata->B_r, r, phi, z, t);
+    interperr += interp4Dcomp_eval_f(&B[1], &Bdata->B_phi, r, phi, z, t);
+    interperr += interp4Dcomp_eval_f(&B[2], &Bdata->B_z, r, phi, z, t);
 
     /* Test for B field interpolation error */
     if(interperr) {
@@ -471,25 +471,25 @@ a5err B_3DST_eval_B(real B[3], real r, real phi, real z, real time, B_3DST_data*
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_3DST_eval_B_dB(real B_dB[], real r, real phi, real z, real time,
+a5err B_3DST_eval_B_dB(real B_dB[], real r, real phi, real z, real t,
                       B_3DST_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
     real B_dB_temp[10];
 
-    interperr += interp4Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r, phi, z, time);
+    interperr += interp4Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r, phi, z, t);
     B_dB[0] = B_dB_temp[0];
     B_dB[1] = B_dB_temp[1];
     B_dB[2] = B_dB_temp[2];
     B_dB[3] = B_dB_temp[3];
 
-    interperr += interp4Dcomp_eval_df(B_dB_temp, &Bdata->B_phi, r, phi, z, time);
+    interperr += interp4Dcomp_eval_df(B_dB_temp, &Bdata->B_phi, r, phi, z, t);
     B_dB[4] = B_dB_temp[0];
     B_dB[5] = B_dB_temp[1];
     B_dB[6] = B_dB_temp[2];
     B_dB[7] = B_dB_temp[3];
 
-    interperr += interp4Dcomp_eval_df(B_dB_temp, &Bdata->B_z, r, phi, z, time);
+    interperr += interp4Dcomp_eval_df(B_dB_temp, &Bdata->B_z, r, phi, z, t);
     B_dB[8] = B_dB_temp[0];
     B_dB[9] = B_dB_temp[1];
     B_dB[10] = B_dB_temp[2];
