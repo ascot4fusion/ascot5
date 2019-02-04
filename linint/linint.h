@@ -69,9 +69,6 @@ typedef struct {
 void linint1D_init(linint1D_data* str, real* c,
                    int n_x, int bc_x,
                    real x_min, real x_max);
-/* void linint1D_init(linint1D_data* str, real* c, */
-/*                    int n_x, int bc_x, */
-/*                    real x_min, real x_max); */
 
 void linint2D_init(linint2D_data* str, real* c,
                    int n_x, int n_y, int bc_x, int bc_y,
