@@ -9,7 +9,8 @@
 #include "mhd.h"
 #include "boozer.h"
 #include "spline/interp.h"
-
+#include "B_field.h"
+#include "math.h"
 /**
  * @brief Load MHD data and prepare parameters for offload.
  *
@@ -194,9 +195,9 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, 
 
 	/*phi component of gradients */
 
-	mhd_dmhd[3] += (mhddata->amplitude_nm[i])*(a_da[1]*ptz_dptz[2]*sin(mhdarg) + -1*a_da[0]*(mhddata->mmode[i])*ptz_dptz[6]*cos(mhdarg) + a_da[0]*(mhddata->nmode[i])*ptz_dptz[10]*cos(mhdarg));
+	mhd_dmhd[3] += (1/r)*(mhddata->amplitude_nm[i])*(a_da[1]*ptz_dptz[2]*sin(mhdarg) + -1*a_da[0]*(mhddata->mmode[i])*ptz_dptz[6]*cos(mhdarg) + a_da[0]*(mhddata->nmode[i])*ptz_dptz[10]*cos(mhdarg));
 
-	mhd_dmhd[8] += (mhddata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[2]*sin(mhdarg) + -1*phi_dphi[0]*(mhddata->mmode[i])*ptz_dptz[6]*cos(mhdarg) + phi_dphi[0]*(mhddata->nmode[i])*ptz_dptz[10]*cos(mhdarg));
+	mhd_dmhd[8] += (1/r)*(mhddata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[2]*sin(mhdarg) + -1*phi_dphi[0]*(mhddata->mmode[i])*ptz_dptz[6]*cos(mhdarg) + phi_dphi[0]*(mhddata->nmode[i])*ptz_dptz[10]*cos(mhdarg));
 
 	/*z component of gradients */
 
@@ -218,7 +219,42 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, 
 * - pert_field[4] = EtildePhi
 * - pert_field[5] = EtildeZ
 */
-a5err mhd_perturbations(real pert_field[6], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* mhddata){
+a5err mhd_perturbations(real pert_field[6], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* mhddata,B_field_data* Bdata){
     a5err err = 0;
+    real mhd_dmhd[10];
+    mhd_eval(mhd_dmhd, phase, r, phi, z, t, boozerdata, mhddata);
+
+    /*  see example of curl evaluation in step_gc_rk4.c, ydot_gc*/
+    real B_dB[12];
+    B_field_eval_B_dB(B_dB, r, phi, z, Bdata); 
+    
+    real B[3];
+    B[0] = B_dB[0];
+    B[1] = B_dB[4];
+    B[2] = B_dB[8];
+
+    real curlB[3];
+    curlB[0] = B_dB[10]/r - B_dB[7];
+    curlB[1] = B_dB[3] - B_dB[9];
+    curlB[2] = (B[1] - B_dB[2])/r + B_dB[5];
+
+    real gradalpha[3];
+    gradalpha[0] = mhd_dmhd[2];
+    gradalpha[1] = mhd_dmhd[3];
+    gradalpha[2] = mhd_dmhd[4];
+
+
+    real gradalphacrossB[3];
+
+    math_cross(gradalpha, B, gradalphacrossB);
+    
+    pert_field[0] = mhd_dmhd[0]*curlB[0] + gradalphacrossB[0]; 
+    pert_field[1] = mhd_dmhd[0]*curlB[1] + gradalphacrossB[1];
+    pert_field[2] = mhd_dmhd[0]*curlB[2] + gradalphacrossB[2];
+
+    pert_field[3] = -1*mhd_dmhd[7] + -1*B[0]*mhd_dmhd[1];
+    pert_field[4] = -1*mhd_dmhd[8] + -1*B[1]*mhd_dmhd[1];
+    pert_field[5] = -1*mhd_dmhd[9] + -1*B[2]*mhd_dmhd[1];
+
     return err;
 }
