@@ -64,6 +64,9 @@ void mhd_init(mhd_data* MHDdata, mhd_offload_data* offload_data,
 a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t,
                boozer_data* boozerdata, mhd_data* mhddata);
 
+#pragma omp declare simd uniform(boozerdata, mhddata)
+a5err mhd_perturbations(real pert_field[6], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* mhddata);
+
 #pragma omp end declare target
 
 #endif
