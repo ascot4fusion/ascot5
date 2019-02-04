@@ -236,7 +236,6 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z,
             err = B_3DST_eval_psi(psi, r, phi, z, &(Bdata->B3DST));
             break;
 
-
         case B_field_type_STS:
             err = B_STS_eval_psi(psi, r, phi, z, &(Bdata->BSTS));
             break;
@@ -505,7 +504,7 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
             break;
 
         case B_field_type_3DST:
-            err = B_3DST_eval_B(B, r, phi, z, &(Bdata->B3DST));
+            err = B_3DST_eval_B(B, r, phi, z, time, &(Bdata->B3DST));
             break;
 
         case B_field_type_STS:
@@ -580,7 +579,7 @@ a5err B_field_eval_B_dB(real B_dB[12], real r, real phi, real z,
             break;
 
         case B_field_type_3DST:
-            err = B_3DST_eval_B_dB(B_dB, r, phi, z, &(Bdata->B3DST));
+            err = B_3DST_eval_B_dB(B_dB, r, phi, z, time, &(Bdata->B3DST));
             break;
 
         case B_field_type_STS:

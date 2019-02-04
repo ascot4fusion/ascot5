@@ -6,7 +6,7 @@
 #define E_3DS_H
 #include "../ascot5.h"
 #include "../error.h"
-#include "../spline/interp3D.h"
+#include "../spline/interp.h"
 
 /**
  * @brief 3D electric field parameters on the host
@@ -17,13 +17,12 @@ typedef struct {
     int n_phi;            /**< number of phi grid points in electric field data */
     real r_min;           /**< minimum r coordinate in the grid in electric field data */
     real r_max;           /**< maximum r coordinate in the grid in electric field data */
-    real r_grid;          /**< r grid interval (r_max-r_min)/(n_r-1) in electric field data */
+
     real z_min;           /**< minimum z coordinate in the grid in electric field data */
     real z_max;           /**< maximum z coordinate in the grid in electric field data */
-    real z_grid;          /**< z grid interval (z_max-z_min)/(n_z-1) in electric field data */
+
     real phi_min;               /**< minimum phi coordinate in the grid in electric field data */
     real phi_max;               /**< maximum phi coordinate in the grid in electric field data */
-    real phi_grid;              /**< phi grid interval 2pi/(n_phi-1) in electric field data */
     int offload_array_length;   /**< number of elements in offload_array */
 } E_3DS_offload_data;
 

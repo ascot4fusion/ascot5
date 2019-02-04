@@ -14,11 +14,7 @@
  * and \f$n_\phi = 360\f$, then \f$\phi_\mathrm{max}=359\f$ if periodicity is
  * \f$N=0\f$.
  *
- * The splines may either have compact or explicit forms which is toggled by
- * INTERP_SPL_EXPL in ascot5.h. Compact forms require 1/8 th of memory (in 3D)
- * but require more floating point operations.
- *
- * @see E_field.c linint3D.c
+ * @see E_field.c
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,9 +24,7 @@
 #include "../ascot5.h"
 #include "../error.h"
 #include "E_3DS.h"
-#include "../spline/interp3D.h"
-#include "../spline/interp3Dcomp.h"
-#include "../spline/interp3Dexpl.h"
+#include "../spline/interp.h"
 
 /**
  * @brief Initialize electric field offload data
@@ -68,88 +62,44 @@
  */
 int E_3DS_init_offload(E_3DS_offload_data* offload_data, real** offload_array) {
     
-    /* Fill rest of the offload data struct */
-    offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
-	/ (offload_data->n_r - 1);
-    offload_data->z_grid = (offload_data->z_max - offload_data->z_min)
-	/ (offload_data->n_z - 1);
-    offload_data->phi_grid = (offload_data->phi_max - offload_data->phi_min)
-	/ (offload_data->n_phi - 1);
-
-    /* Spline initialization. Use spline structs for temporary storage */
+    /* Spline initialization. */
     int err = 0;
     int E_size = offload_data->n_r * offload_data->n_z
       * offload_data->n_phi;
 
-    interp3D_data E_r;
-    interp3D_data E_phi;
-    interp3D_data E_z;
+    /* Allocate enough space to store three 3D arrays and one 2D array */
+    real* coeff_array = (real*) malloc( (3*NSIZE_COMP3D*E_size)*sizeof(real));
+    real* E_r   = &(coeff_array[0*E_size*NSIZE_COMP3D]);
+    real* E_phi = &(coeff_array[1*E_size*NSIZE_COMP3D]);
+    real* E_z   = &(coeff_array[2*E_size*NSIZE_COMP3D]);
 
-#if INTERP_SPL_EXPL
-    err += interp3Dexpl_init(
-			     &E_r, *offload_array + 0*E_size,
-			     offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-			     offload_data->r_min, offload_data->r_max,
-			     offload_data->r_grid,
-			     offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-			     offload_data->z_min, offload_data->z_max,
-			     offload_data->z_grid);
+    err += interp3Dcomp_init_coeff(
+				   E_r, *offload_array + 0*E_size,
+				   offload_data->n_r, offload_data->n_phi,
+				   offload_data->n_z,
+				   NATURALBC, PERIODICBC, NATURALBC,
+				   offload_data->r_min,   offload_data->r_max,
+				   offload_data->phi_min, offload_data->phi_max,
+				   offload_data->z_min,   offload_data->z_max);
 
-    err += interp3Dexpl_init(
-			     &E_phi, *offload_array + 1*E_size,
-                             offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-                             offload_data->r_min, offload_data->r_max,
-                             offload_data->r_grid,
-                             offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-                             offload_data->z_min, offload_data->z_max,
-                             offload_data->z_grid);
+    err += interp3Dcomp_init_coeff(
+				   E_phi, *offload_array + 1*E_size,
+				   offload_data->n_r, offload_data->n_phi,
+				   offload_data->n_z,
+				   NATURALBC, PERIODICBC, NATURALBC,
+				   offload_data->r_min,   offload_data->r_max,
+				   offload_data->phi_min, offload_data->phi_max,
+				   offload_data->z_min,   offload_data->z_max);
 
-    err += interp3Dexpl_init(
-			     &E_z, *offload_array + 2*E_size,
-                             offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-                             offload_data->r_min, offload_data->r_max,
-                             offload_data->r_grid,
-                             offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-                             offload_data->z_min, offload_data->z_max,
-                             offload_data->z_grid);
-
-    /* The data is now presented with splines, each data point has
-     * 64 spline coefficients in 3D */
-    E_size *= 64;
-
-#else
-    err += interp3Dcomp_init(
-                             &E_r, *offload_array + 0*E_size,
-                             offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-                             offload_data->r_min, offload_data->r_max,
-                             offload_data->r_grid,
-                             offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-                             offload_data->z_min, offload_data->z_max,
-                             offload_data->z_grid);
-
-    err += interp3Dcomp_init(
-                             &E_phi, *offload_array + 1*E_size,
-                             offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-                             offload_data->r_min, offload_data->r_max,
-                             offload_data->r_grid,
-                             offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-                             offload_data->z_min, offload_data->z_max,
-                             offload_data->z_grid);
-
-    err += interp3Dcomp_init(
-                             &E_z, *offload_array + 2*E_size,
-                             offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-                             offload_data->r_min, offload_data->r_max,
-                             offload_data->r_grid,
-                             offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-                             offload_data->z_min, offload_data->z_max,
-                             offload_data->z_grid);
-
-    /* The data is now presented with splines, each data point has
-     * 8 spline coefficients in 3D */
-    E_size *= 8;
-
-#endif
+    err += interp3Dcomp_init_coeff(
+				   E_z, *offload_array + 2*E_size,
+				   offload_data->n_r, offload_data->n_phi,
+				   offload_data->n_z,
+				   NATURALBC, PERIODICBC, NATURALBC,
+				   offload_data->r_min,   offload_data->r_max,
+				   offload_data->phi_min, offload_data->phi_max,
+				   offload_data->z_min,   offload_data->z_max);
+    
     if(err) {
       print_err("Error: Failed to initialize splines.\n");
       return err;
@@ -158,19 +108,8 @@ int E_3DS_init_offload(E_3DS_offload_data* offload_data, real** offload_array) {
     /* Re-allocate the offload array and store spline coefficients there */
     free(*offload_array);
 
-    offload_data->offload_array_length = 3*E_size;
-    *offload_array =
-      (real*) malloc( offload_data->offload_array_length * sizeof(real) );
-
-    for(int i = 0; i < E_size; i++) {
-      (*offload_array)[0*E_size + i] = E_r.c[i];
-      (*offload_array)[1*E_size + i] = E_phi.c[i];
-      (*offload_array)[2*E_size + i] = E_z.c[i];
-    }
-
-    interp3D_free(&E_r);
-    interp3D_free(&E_phi);
-    interp3D_free(&E_z);
+    *offload_array = coeff_array;
+        offload_data->offload_array_length = NSIZE_COMP3D*E_size*3;
 
     /* Print some sanity check on data */
     print_out(VERBOSE_IO, "\3D electric field, tricubic interpolation (E_3DS)\n");
@@ -216,58 +155,46 @@ void E_3DS_free_offload(E_3DS_offload_data* offload_data, real** offload_array) 
 void E_3DS_init(E_3DS_data* Edata, E_3DS_offload_data* offload_data,
                real* offload_array) {
 
-    int E_size = offload_data->n_r * offload_data->n_z
-      * offload_data->n_phi ;
-#if INTERP_SPL_EXPL
-    E_size   *= 64;
-#else
-    E_size   *= 8;
-#endif
+    int E_size = NSIZE_COMP3D * offload_data->n_r
+	* offload_data->n_z * offload_data->n_phi;
+    
+    /* Initialize spline structs from the coefficients */
+    interp3Dcomp_init_spline(&Edata->E_r, &(offload_array[0*E_size]),
+			     offload_data->n_r,
+			     offload_data->n_phi,
+			     offload_data->n_z,
+			     NATURALBC, PERIODICBC, NATURALBC,
+			     offload_data->r_min,
+			     offload_data->r_max,
+			     offload_data->phi_min,
+			     offload_data->phi_max,
+			     offload_data->z_min,
+			     offload_data->z_max);
 
-    /* Copy parameters and assign pointers to offload array to initialize the
-       spline structs */
-    Edata->E_r.n_r        = offload_data->n_r;
-    Edata->E_r.r_min      = offload_data->r_min;
-    Edata->E_r.r_max      = offload_data->r_max;
-    Edata->E_r.r_grid     = offload_data->r_grid;
-    Edata->E_r.n_z        = offload_data->n_z;
-    Edata->E_r.z_min      = offload_data->z_min;
-    Edata->E_r.z_max      = offload_data->z_max;
-    Edata->E_r.z_grid     = offload_data->z_grid;
-    Edata->E_r.n_phi      = offload_data->n_phi;
-    Edata->E_r.phi_min    = offload_data->phi_min;
-    Edata->E_r.phi_max    = offload_data->phi_max;
-    Edata->E_r.phi_grid   = offload_data->phi_grid;
-    Edata->E_r.c          = &(offload_array[0*E_size]);
+    interp3Dcomp_init_spline(&Edata->E_phi, &(offload_array[1*E_size]),
+			     offload_data->n_r,
+			     offload_data->n_phi,
+			     offload_data->n_z,
+			     NATURALBC, PERIODICBC, NATURALBC,
+			     offload_data->r_min,
+			     offload_data->r_max,
+			     offload_data->phi_min,
+			     offload_data->phi_max,
+			     offload_data->z_min,
+			     offload_data->z_max);
 
-    Edata->E_phi.n_r      = offload_data->n_r;
-    Edata->E_phi.r_min    = offload_data->r_min;
-    Edata->E_phi.r_max    = offload_data->r_max;
-    Edata->E_phi.r_grid   = offload_data->r_grid;
-    Edata->E_phi.n_z      = offload_data->n_z;
-    Edata->E_phi.z_min    = offload_data->z_min;
-    Edata->E_phi.z_max    = offload_data->z_max;
-    Edata->E_phi.z_grid   = offload_data->z_grid;
-    Edata->E_phi.n_phi    = offload_data->n_phi;
-    Edata->E_phi.phi_min  = offload_data->phi_min;
-    Edata->E_phi.phi_max  = offload_data->phi_max;
-    Edata->E_phi.phi_grid = offload_data->phi_grid;
-    Edata->E_phi.c        = &(offload_array[1*E_size]);
-
-    Edata->E_z.n_r        = offload_data->n_r;
-    Edata->E_z.r_min      = offload_data->r_min;
-    Edata->E_z.r_max      = offload_data->r_max;
-    Edata->E_z.r_grid     = offload_data->r_grid;
-    Edata->E_z.n_z        = offload_data->n_z;
-    Edata->E_z.z_min      = offload_data->z_min;
-    Edata->E_z.z_max      = offload_data->z_max;
-    Edata->E_z.z_grid     = offload_data->z_grid;
-    Edata->E_z.n_phi      = offload_data->n_phi;
-    Edata->E_z.phi_min    = offload_data->phi_min;
-    Edata->E_z.phi_max    = offload_data->phi_max;
-    Edata->E_z.phi_grid   = offload_data->phi_grid;
-    Edata->E_z.c          = &(offload_array[2*E_size]);
-
+    interp3Dcomp_init_spline(&Edata->E_z, &(offload_array[2*E_size]),
+			     offload_data->n_r,
+			     offload_data->n_phi,
+			     offload_data->n_z,
+			     NATURALBC, PERIODICBC, NATURALBC,
+			     offload_data->r_min,
+			     offload_data->r_max,
+			     offload_data->phi_min,
+			     offload_data->phi_max,
+			     offload_data->z_min,
+			     offload_data->z_max);
+    
 }
 
 /**
@@ -287,15 +214,10 @@ a5err E_3DS_eval_E(real E[3], real r, real phi, real z,
                    E_3DS_data* Edata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-#if INTERP_SPL_EXPL
-    interperr += interp3Dexpl_eval_B(&E[0], &Edata->E_r, r, phi, z);
-    interperr += interp3Dexpl_eval_B(&E[1], &Edata->E_phi, r, phi, z);
-    interperr += interp3Dexpl_eval_B(&E[2], &Edata->E_z, r, phi, z);
-#else
-    interperr += interp3Dcomp_eval_B(&E[0], &Edata->E_r, r, phi, z);
-    interperr += interp3Dcomp_eval_B(&E[1], &Edata->E_phi, r, phi, z);
-    interperr += interp3Dcomp_eval_B(&E[2], &Edata->E_z, r, phi, z);
-#endif
+
+    interperr += interp3Dcomp_eval_f(&E[0], &Edata->E_r, r, phi, z);
+    interperr += interp3Dcomp_eval_f(&E[1], &Edata->E_phi, r, phi, z);
+    interperr += interp3Dcomp_eval_f(&E[2], &Edata->E_z, r, phi, z);
 
     /* Test for E field interpolation error */
     if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_3DS );}
