@@ -5,7 +5,7 @@
 #ifndef N0_3D_H
 #define N0_3D_H
 #include "../ascot5.h"
-#include "../linint/linint3D.h" /* for 3D interpolation routines */
+#include "../linint/linint.h" /* for 3D interpolation routines */
 
 /**
  * @brief 3D neutral density parameters on the host

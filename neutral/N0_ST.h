@@ -5,7 +5,7 @@
 #ifndef N0_ST_H
 #define N0_ST_H
 #include "../ascot5.h"
-#include "../linint/linint3D.h" /* for 3D interpolation routines */
+#include "../linint/linint.h" /* for 3D interpolation routines */
 
 /**
  * @brief Stellarator neutral density parameters on the host
