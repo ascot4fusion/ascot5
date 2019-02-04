@@ -42,7 +42,7 @@ enum boundaryCondition {
 enum splinesize {
     NSIZE_COMP1D =  2,
     NSIZE_COMP2D =  4,
-    NSIZE_COMP3D = 16,
+    NSIZE_COMP3D =  8,
     NSIZE_EXPL1D =  4,
     NSIZE_EXPL2D = 16,
     NSIZE_EXPL3D = 64
