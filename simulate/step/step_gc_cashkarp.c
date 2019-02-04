@@ -82,7 +82,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
 
             if(!errflag) {
                 errflag = E_field_eval_E(E, yprev[0], yprev[1], yprev[2],
-                                         Edata, Bdata);
+                                         t0, Edata, Bdata);
             }
             if(!errflag) {
                 step_gceom(k1, yprev, mass, charge, B_dB, E);
@@ -100,7 +100,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
-                                         Edata, Bdata);
+                                         t0 + (1.0/5)*h[i], Edata, Bdata);
             }
             if(!errflag) {
                 step_gceom(k2, tempy, mass, charge, B_dB, E);
@@ -119,7 +119,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
-                                         Edata, Bdata);
+                                         t0 + (3.0/10)*h[i], Edata, Bdata);
             }
             if(!errflag) {
                 step_gceom(k3, tempy, mass, charge, B_dB, E);
@@ -139,7 +139,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
-                                         Edata, Bdata);
+                                         t0 + (3.0/5)*h[i], Edata, Bdata);
             }
             if(!errflag) {
                 step_gceom(k4, tempy, mass, charge, B_dB, E);
@@ -160,7 +160,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
-                                         Edata, Bdata);
+                                         t0 + h[i], Edata, Bdata);
             }
             if(!errflag) {
                 step_gceom(k5, tempy, mass, charge, B_dB, E);
@@ -182,7 +182,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
-                                         Edata, Bdata);
+                                         t0 + (7.0/8)*h[i], Edata, Bdata);
             }
             if(!errflag) {
                 step_gceom(k6, tempy, mass, charge, B_dB, E);
@@ -256,7 +256,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i],
-                                           Bdata);
+                                           p->time[i] + h[i], Bdata);
             }
             if(!errflag) {
                 errflag = B_field_eval_rho(rho, psi[0], Bdata);

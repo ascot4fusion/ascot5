@@ -79,10 +79,10 @@ int B_field_init(
     real* offload_array);
 #pragma omp declare simd uniform(Bdata)
 a5err B_field_eval_psi(
-    real* psi, real r, real phi, real z, B_field_data* Bdata);
+    real* psi, real r, real phi, real z, real t, B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 a5err B_field_eval_psi_dpsi(
-    real psi_dpsi[4], real r, real phi, real z, B_field_data* Bdata);
+    real psi_dpsi[4], real r, real phi, real z, real t, B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata);
 #pragma omp declare simd uniform(Bdata)

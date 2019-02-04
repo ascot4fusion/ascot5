@@ -195,11 +195,12 @@ int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
+ * @param t time coordinate [s]
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_field_eval_psi(real* psi, real r, real phi, real z,
+a5err B_field_eval_psi(real* psi, real r, real phi, real z, real t,
                       B_field_data* Bdata) {
     a5err err = 0;
 
@@ -258,11 +259,12 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z,
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
+ * @param t time coordinate [s]
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
+a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z, real t,
                        B_field_data* Bdata) {
     a5err err = 0;
 

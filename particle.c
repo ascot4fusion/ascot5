@@ -547,7 +547,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             err = B_field_eval_B_dB(B_dB, r, phi, z, ps->time, Bdata);
         }
         if(!err) {
-            err = B_field_eval_psi(psi, r, phi, z, Bdata);
+            err = B_field_eval_psi(psi, r, phi, z, ps->time, Bdata);
         }
         if(!err) {
             err = B_field_eval_rho(rho, psi[0], Bdata);
@@ -600,7 +600,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         }
         if(!err) {
             err = B_field_eval_psi(psi, p->p_gc.r, p->p_gc.phi, p->p_gc.z,
-                                   Bdata);
+                                   p->p_gc.time, Bdata);
         }
         if(!err) {
             err = B_field_eval_rho(rho, psi[0], Bdata);
@@ -703,8 +703,13 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             err = B_field_eval_B_dB(B_dB, p->p_ml.r, p->p_ml.phi, p->p_ml.z,
                                     p->p_ml.time, Bdata);
         }
-        if(!err) {err = B_field_eval_psi(psi, p->p_ml.r, p->p_ml.phi, p->p_ml.z, Bdata);}
-        if(!err) {err = B_field_eval_rho(rho, psi[0], Bdata);}
+        if(!err) {
+            err = B_field_eval_psi(psi, p->p_ml.r, p->p_ml.phi, p->p_ml.z,
+                                   p->p_ml.time, Bdata);
+        }
+        if(!err) {
+            err = B_field_eval_rho(rho, psi[0], Bdata);
+        }
 
         if(!err) {
             ps->rprt       = p->p_ml.r;
@@ -813,7 +818,8 @@ a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
                                 Bdata);
     }
     if(!err) {
-        err = B_field_eval_psi(psi, p->rprt, p->phiprt, p->zprt, Bdata);
+        err = B_field_eval_psi(psi, p->rprt, p->phiprt, p->zprt, p->time,
+                               Bdata);
     }
     if(!err) {
         err = B_field_eval_rho(rho, psi[0], Bdata);
@@ -920,7 +926,7 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
         err = B_field_eval_B_dB(B_dB, p->r, p->phi, p->z, p->time, Bdata);
     }
     if(!err) {
-        err = B_field_eval_psi(psi, p->r, p->phi, p->z, Bdata);
+        err = B_field_eval_psi(psi, p->r, p->phi, p->z, p->time, Bdata);
     }
     if(!err) {
         err = B_field_eval_rho(rho, psi[0], Bdata);
@@ -1354,7 +1360,7 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
     }
     if(!err) {
         err = B_field_eval_psi(
-            psi, r, phi, z, Bdata);
+            psi, r, phi, z, p_fo->time[j], Bdata);
     }
     if(!err) {
         err = B_field_eval_rho(rho, psi[0], Bdata);
