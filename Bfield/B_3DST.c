@@ -43,11 +43,9 @@
 #include "../error.h"
 #include "../print.h"
 #include "B_3DST.h"
-#include "../spline/interp2D.h"
 #include "../spline/interp3D.h"
 #include "../spline/interp2Dcomp.h"
-#include "../spline/interp3Dcomp.h"
-#include "../spline/interp2Dexpl.h"
+#include "../spline/interp3Dcomp.h" //are they going to be needed? I don't think so
 #include "../spline/interp3Dexpl.h"
 
 /**
