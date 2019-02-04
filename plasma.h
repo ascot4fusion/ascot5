@@ -69,12 +69,12 @@ void plasma_free_offload(plasma_offload_data* offload_data,
 int plasma_init(plasma_data* plasma_data, plasma_offload_data* offload_data,
                 real* offload_array);
 #pragma omp declare simd uniform(pls_data)
-real plasma_eval_temp(real rho, int species, plasma_data* pls_data);
+real plasma_eval_temp(real rho, real t, int species, plasma_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
-real plasma_eval_dens(real rho, int species, plasma_data* pls_data);
+real plasma_eval_dens(real rho, real t, int species, plasma_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
 a5err plasma_eval_densandtemp(
-    real rho, plasma_data* pls_data, real* dens, real* temp);
+    real rho, real t, plasma_data* pls_data, real* dens, real* temp);
 #pragma omp declare simd uniform(pls_data)
 int plasma_get_n_species(plasma_data* pls_data);
 #pragma omp declare simd uniform(pls_data)

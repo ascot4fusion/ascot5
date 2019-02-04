@@ -153,12 +153,13 @@ int plasma_init(plasma_data* pls_data, plasma_offload_data* offload_data,
  * This is a SIMD function.
  *
  * @param rho normalized poloidal flux coordinate
+ * @param t time coordinate [s]
  * @param species index of plasma species, 1 refers to electrons
  * @param pls_data pointer to plasma data struct
  *
  * @return Temperature [eV]
  */
-real plasma_eval_temp(real rho, int species, plasma_data* pls_data) {
+real plasma_eval_temp(real rho, real t, int species, plasma_data* pls_data) {
     real p = 0;
 
     switch(pls_data->type) {
@@ -183,12 +184,13 @@ real plasma_eval_temp(real rho, int species, plasma_data* pls_data) {
  * This is a SIMD function.
  *
  * @param rho normalized poloidal flux coordinate
+ * @param t time coordinate [s]
  * @param species index of plasma species, 1 refers to electrons
  * @param pls_data pointer to plasma data struct
  *
  * @return Density [m^-3]
  */
-real plasma_eval_dens(real rho, int species, plasma_data* pls_data) {
+real plasma_eval_dens(real rho, real t, int species, plasma_data* pls_data) {
     real p = 0;
     switch(pls_data->type) {
         case plasma_type_1D:
@@ -211,6 +213,7 @@ real plasma_eval_dens(real rho, int species, plasma_data* pls_data) {
  * This is a SIMD function.
  *
  * @param rho normalized poloidal flux coordinate
+ * @param t time coordinate [s]
  * @param species index of plasma species
  * @param pls_data pointer to plasma data struct
  * @param dens pointer where density [m^-3] will be stored
@@ -218,7 +221,7 @@ real plasma_eval_dens(real rho, int species, plasma_data* pls_data) {
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err plasma_eval_densandtemp(real rho, plasma_data* pls_data,
+a5err plasma_eval_densandtemp(real rho, real t, plasma_data* pls_data,
                               real* dens, real* temp) {
     a5err err = 0;
 

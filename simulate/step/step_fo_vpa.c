@@ -63,7 +63,7 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 errflag = E_field_eval_E(Erpz, posrpz[0], posrpz[1], posrpz[2],
-                                         Edata, Bdata);
+                                         t0 + h[i]/2, Edata, Bdata);
             }
 
             real fposxyz[3]; // final position in cartesian coordinates
@@ -150,7 +150,7 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i],
-                                           Bdata);
+                                           t0 + h[i], Bdata);
             }
             if(!errflag) {
                 errflag = B_field_eval_rho(rho, psi[0], Bdata);
