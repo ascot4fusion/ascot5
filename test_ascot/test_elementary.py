@@ -398,19 +398,19 @@ def check():
 
     igo0  = a5["GRADB_GO"]["inistate"]["id"]
     time  = a5["GRADB_GO"]["endstate"]["time"]
-    ang   = a5["GRADB_GO"]["inistate"]["phi"] * np.pi / 180
+    ang   = a5["GRADB_GO"]["inistate"]["phi"]
     xgo0  = a5["GRADB_GO"]["inistate"]["R"] * np.sin(ang)
     zgo0  = a5["GRADB_GO"]["inistate"]["z"]
-    ang   = a5["GRADB_GO"]["endstate"]["phi"] * np.pi / 180
-    xgo0  = a5["GRADB_GO"]["endstate"]["R"] * np.sin(ang)
-    ygo0  = a5["GRADB_GO"]["endstate"]["z"]
+    ang   = a5["GRADB_GO"]["endstate"]["phi"]
+    xgo1  = a5["GRADB_GO"]["endstate"]["R"] * np.sin(ang)
+    ygo1  = a5["GRADB_GO"]["endstate"]["z"]
 
     ang = GRADB["GC"]["phi"] * np.pi / 180
     igc = GRADB["GC"]["id"]
     xgc = GRADB["GC"]["R"] * np.sin(ang)
     ygc = GRADB["GC"]["z"]
 
-    vgo1_gradB = ((xgo0[igo0==1] - xgo1[igo0==1]) / (time[igo0==1]))[0]
+    vgo1_gradB = ((xgo1[igo0==1] - xgo0[igo0==1]) / (time[igo0==1]))[0]
 
     x          = xgc[igc==1]
     t          = GRADB["GC"]["time"][igc==1]
