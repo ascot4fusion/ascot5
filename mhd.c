@@ -170,7 +170,7 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, 
         interp2Dcomp_eval_df(a_da, &(MHDdata->alpha_nm[i]),r,t);
 
         real phi_dphi[6];
-	interp2Dcomp_eval_df(phi_dphi,&(MHDdata->alpha_nm[i]),r,t);
+	interp2Dcomp_eval_df(phi_dphi,&(MHDdata->phi_nm[i]),r,t);
         
         /*this is used frequently, so define here*/
         real mhdarg = (MHDdata->nmode[i])* ptz_dptz[8]-(MHDdata->mmode[i])*ptz_dptz[4]-(MHDdata->omega_nm[i])*t +phase;
@@ -183,8 +183,8 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, 
 
 	/*time derivs */
 
-	mhd_dmhd[1] += -1*a_da[0]*(MHDdata->amplitude_nm[i])*(MHDdata->omega_nm[i])*cos(mhdarg);
-	mhd_dmhd[6] += -1*phi_dphi[0]*(MHDdata->amplitude_nm[i])*(MHDdata->omega_nm[i])*cos(mhdarg);
+	mhd_dmhd[1] += -1*a_da[0]*(MHDdata->amplitude_nm[i])*(MHDdata->omega_nm[i])*cos(mhdarg) + (MHDdata -> amplitude_nm[i])*a_da[2]*sin(mhdarg);
+	mhd_dmhd[6] += -1*phi_dphi[0]*(MHDdata->amplitude_nm[i])*(MHDdata->omega_nm[i])*cos(mhdarg)+ (MHDdata -> amplitude_nm[i])*phi_dphi[2]*sin(mhdarg);
 	/*following code could be written better*/
 	/*r component of gradients */
 
