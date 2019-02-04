@@ -6,7 +6,7 @@
 #define PLASMA_1DS_H
 #include "../ascot5.h"
 #include "../error.h"
-#include "../spline/interp1Dcomp.h"
+#include "../spline/interp.h"
 
 /**
  * @brief 1D plasma parameters that will be offloaded to target
@@ -27,7 +27,6 @@ typedef struct {
     int n_rho;                  /**< number of rho values in the data */
     real rho_min;                /**< number of rho values in the data */
     real rho_max;                /**< number of rho values in the data */
-    real rho_grid;                /**< number of rho values in the data */
     int n_species;              /**< number of plasma species; first is
                                      electrons, then ions */
     real mass[MAX_SPECIES];     /**< plasma species masses (kg) */

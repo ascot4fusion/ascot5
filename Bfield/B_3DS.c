@@ -29,11 +29,7 @@
  * and \f$n_\phi = 360\f$, then \f$\phi_\mathrm{max}=359\f$ if periodicity is
  * \f$N=0\f$.
  *
- * The splines may either have compact or explicit forms which is toggled by
- * INTERP_SPL_EXPL in ascot5.h. Compact forms require 1/8 th of memory (in 3D)
- * but require more floating point operations.
- *
- * @see B_field.c B_2DS.c interp3Dexpl.c interp3Dcomp.c
+ * @see B_field.c
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -43,10 +39,7 @@
 #include "../error.h"
 #include "../print.h"
 #include "B_3DS.h"
-#include "../spline/interp3D.h"
-#include "../spline/interp2Dcomp.h"
-#include "../spline/interp3Dcomp.h"
-#include "../spline/interp3Dexpl.h"
+#include "../spline/interp.h"
 
 /**
  * @brief Initialize magnetic field offload data
@@ -99,77 +92,20 @@
  */
 int B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) {
 
-    /* Fill rest of the offload data struct */
-    offload_data->psigrid_r_grid =
-        (offload_data->psigrid_r_max - offload_data->psigrid_r_min)
-        / (offload_data->psigrid_n_r - 1);
-    offload_data->psigrid_z_grid =
-        (offload_data->psigrid_z_max - offload_data->psigrid_z_min)
-        / (offload_data->psigrid_n_z - 1);
-
-    offload_data->Bgrid_r_grid =
-        (offload_data->Bgrid_r_max - offload_data->Bgrid_r_min)
-        / (offload_data->Bgrid_n_r - 1);
-    offload_data->Bgrid_z_grid =
-        (offload_data->Bgrid_z_max - offload_data->Bgrid_z_min)
-        / (offload_data->Bgrid_n_z - 1);
-    offload_data->phi_grid =
-        (offload_data->phi_max - offload_data->phi_min)
-        / (offload_data->n_phi);// phi_max is not the last but second last point
-
-    /* Spline initialization. Use spline structs for temporary storage */
+    /* Spline initialization. */
     int err = 0;
     int psi_size = offload_data->psigrid_n_r * offload_data->psigrid_n_z;
-    int B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
-        * offload_data->n_phi;
+    int B_size   = offload_data->Bgrid_n_r   * offload_data->Bgrid_n_z
+                   * offload_data->Bgrid_n_phi;
 
-    real* psi = malloc(4*psi_size*sizeof(real));
-    interp3D_data B_r;
-    interp3D_data B_phi;
-    interp3D_data B_z;
+    /* Allocate enough space to store three 3D arrays and one 2D array */
+    real* coeff_array = (real*) malloc( (3*NSIZE_COMP3D*B_size
+                                         + NSIZE_COMP2D*psi_size)*sizeof(real));
+    real* B_r   = &(coeff_array[0*B_size*NSIZE_COMP3D]);
+    real* B_phi = &(coeff_array[1*B_size*NSIZE_COMP3D]);
+    real* B_z   = &(coeff_array[2*B_size*NSIZE_COMP3D]);
+    real* psi   = &(coeff_array[3*B_size*NSIZE_COMP3D]);
 
-#if INTERP_SPL_EXPL
-    err += interp2Dexpl_init(
-        &psi, *offload_array + 3*B_size,
-        offload_data->psigrid_n_r, offload_data->psigrid_n_z,
-        offload_data->psigrid_r_min, offload_data->psigrid_r_max,
-        offload_data->psigrid_r_grid,
-        offload_data->psigrid_z_min, offload_data->psigrid_z_max,
-        offload_data->psigrid_z_grid);
-
-    err += interp3Dexpl_init(
-        &B_r, *offload_array + 0*B_size,
-        offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
-        offload_data->Bgrid_r_min, offload_data->Bgrid_r_max,
-        offload_data->Bgrid_r_grid,
-        offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-        offload_data->Bgrid_z_min, offload_data->Bgrid_z_max,
-        offload_data->Bgrid_z_grid);
-
-    err += interp3Dexpl_init(
-        &B_phi, *offload_array + 1*B_size,
-        offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
-        offload_data->Bgrid_r_min, offload_data->Bgrid_r_max,
-        offload_data->Bgrid_r_grid,
-        offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-        offload_data->Bgrid_z_min, offload_data->Bgrid_z_max,
-        offload_data->Bgrid_z_grid);
-
-    err += interp3Dexpl_init(
-        &B_z, *offload_array + 2*B_size,
-        offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
-        offload_data->Bgrid_r_min, offload_data->Bgrid_r_max,
-        offload_data->Bgrid_r_grid,
-        offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-        offload_data->Bgrid_z_min, offload_data->Bgrid_z_max,
-        offload_data->Bgrid_z_grid);
-
-    /* The data is now presented with splines, each data point has
-     * 64 spline coefficients in 3D and 16 in 2D */
-    psi_size *= 16;
-    B_size *= 64;
-
-#else
     err += interp2Dcomp_init_coeff(
         psi, *offload_array + 3*B_size,
         offload_data->psigrid_n_r, offload_data->psigrid_n_z,
@@ -177,38 +113,33 @@ int B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) {
         offload_data->psigrid_r_min, offload_data->psigrid_r_max,
         offload_data->psigrid_z_min, offload_data->psigrid_z_max);
 
-    err += interp3Dcomp_init(
-        &B_r, *offload_array + 0*B_size,
-        offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
-        offload_data->Bgrid_r_min, offload_data->Bgrid_r_max,
-        offload_data->Bgrid_r_grid,
-        offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-        offload_data->Bgrid_z_min, offload_data->Bgrid_z_max,
-        offload_data->Bgrid_z_grid);
+    err += interp3Dcomp_init_coeff(
+        B_r, *offload_array + 0*B_size,
+        offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
+        offload_data->Bgrid_n_z,
+        NATURALBC, PERIODICBC, NATURALBC,
+        offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
+        offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
+        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max);
 
-    err += interp3Dcomp_init(
-        &B_phi, *offload_array + 1*B_size,
-        offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
-        offload_data->Bgrid_r_min, offload_data->Bgrid_r_max,
-        offload_data->Bgrid_r_grid,
-        offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-        offload_data->Bgrid_z_min, offload_data->Bgrid_z_max,
-        offload_data->Bgrid_z_grid);
+    err += interp3Dcomp_init_coeff(
+        B_phi, *offload_array + 1*B_size,
+        offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
+        offload_data->Bgrid_n_z,
+        NATURALBC, PERIODICBC, NATURALBC,
+        offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
+        offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
+        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max);
 
-    err += interp3Dcomp_init(
-        &B_z, *offload_array + 2*B_size,
-        offload_data->Bgrid_n_r, offload_data->n_phi, offload_data->Bgrid_n_z,
-        offload_data->Bgrid_r_min, offload_data->Bgrid_r_max,
-        offload_data->Bgrid_r_grid,
-        offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-        offload_data->Bgrid_z_min, offload_data->Bgrid_z_max,
-        offload_data->Bgrid_z_grid);
+    err += interp3Dcomp_init_coeff(
+        B_z, *offload_array + 2*B_size,
+        offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
+        offload_data->Bgrid_n_z,
+        NATURALBC, PERIODICBC, NATURALBC,
+        offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
+        offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
+        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max);
 
-    /* The data is now presented with splines, each data point has
-     * 16 spline coefficients in 3D and 4 in 2D */
-    psi_size *= 4;
-    B_size *= 8;
-#endif
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
         return err;
@@ -216,24 +147,9 @@ int B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) {
 
     /* Re-allocate the offload array and store spline coefficients there */
     free(*offload_array);
-
-    offload_data->offload_array_length = psi_size + B_size*3;
-    *offload_array =
-        (real*) malloc( offload_data->offload_array_length * sizeof(real) );
-
-    for(int i = 0; i < B_size; i++) {
-        (*offload_array)[0*B_size + i] = B_r.c[i];
-        (*offload_array)[1*B_size + i] = B_phi.c[i];
-        (*offload_array)[2*B_size + i] = B_z.c[i];
-    }
-    for(int i = 0; i < psi_size; i++) {
-        (*offload_array)[3*B_size + i] = psi[i];
-    }
-
-    free(psi);
-    interp3D_free(&B_r);
-    interp3D_free(&B_phi);
-    interp3D_free(&B_z);
+    *offload_array = coeff_array;
+    offload_data->offload_array_length = NSIZE_COMP2D*psi_size
+                                       + NSIZE_COMP3D*B_size*3;
 
     /* Evaluate psi and magnetic field on axis for checks */
     B_3DS_data Bdata;
@@ -263,9 +179,9 @@ int B_3DS_init_offload(B_3DS_offload_data* offload_data, real** offload_array) {
               offload_data->Bgrid_n_z,
               offload_data->Bgrid_z_min, offload_data->Bgrid_z_max);
     print_out(VERBOSE_IO, "nphi = %4.d phimin = %3.3f deg phimax = %3.3f deg\n",
-              offload_data->n_phi,
-              math_rad2deg(offload_data->phi_min),
-              math_rad2deg(offload_data->phi_max));
+              offload_data->Bgrid_n_phi,
+              math_rad2deg(offload_data->Bgrid_phi_min),
+              math_rad2deg(offload_data->Bgrid_phi_max));
     print_out(VERBOSE_IO, "Psi at magnetic axis (%1.3f m, %1.3f m)\n",
               offload_data->axis_r, offload_data->axis_z);
     print_out(VERBOSE_IO, "%3.3f (evaluated)\n%3.3f (given)\n",
@@ -299,13 +215,8 @@ void B_3DS_free_offload(B_3DS_offload_data* offload_data,
 void B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
                 real* offload_array) {
 
-    int B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
-        * offload_data->n_phi ;
-#if INTERP_SPL_EXPL
-    B_size   *= 64;
-#else
-    B_size   *= 8;
-#endif
+    int B_size = NSIZE_COMP3D * offload_data->Bgrid_n_r
+                 * offload_data->Bgrid_n_z * offload_data->Bgrid_n_phi;
 
     /* Initialize target data struct */
     Bdata->psi0 = offload_data->psi0;
@@ -313,49 +224,42 @@ void B_3DS_init(B_3DS_data* Bdata, B_3DS_offload_data* offload_data,
     Bdata->axis_r = offload_data->axis_r;
     Bdata->axis_z = offload_data->axis_z;
 
-    /* Copy parameters and assign pointers to offload array to initialize the
-       spline structs */
-    Bdata->B_r.n_r        = offload_data->Bgrid_n_r;
-    Bdata->B_r.r_min      = offload_data->Bgrid_r_min;
-    Bdata->B_r.r_max      = offload_data->Bgrid_r_max;
-    Bdata->B_r.r_grid     = offload_data->Bgrid_r_grid;
-    Bdata->B_r.n_z        = offload_data->Bgrid_n_z;
-    Bdata->B_r.z_min      = offload_data->Bgrid_z_min;
-    Bdata->B_r.z_max      = offload_data->Bgrid_z_max;
-    Bdata->B_r.z_grid     = offload_data->Bgrid_z_grid;
-    Bdata->B_r.n_phi      = offload_data->n_phi;
-    Bdata->B_r.phi_min    = offload_data->phi_min;
-    Bdata->B_r.phi_max    = offload_data->phi_max;
-    Bdata->B_r.phi_grid   = offload_data->phi_grid;
-    Bdata->B_r.c          = &(offload_array[0*B_size]);
+    /* Initialize spline structs from the coefficients */
+    interp3Dcomp_init_spline(&Bdata->B_r, &(offload_array[0*B_size]),
+                             offload_data->Bgrid_n_r,
+                             offload_data->Bgrid_n_phi,
+                             offload_data->Bgrid_n_z,
+                             NATURALBC, PERIODICBC, NATURALBC,
+                             offload_data->Bgrid_r_min,
+                             offload_data->Bgrid_r_max,
+                             offload_data->Bgrid_phi_min,
+                             offload_data->Bgrid_phi_max,
+                             offload_data->Bgrid_z_min,
+                             offload_data->Bgrid_z_max);
 
-    Bdata->B_phi.n_r      = offload_data->Bgrid_n_r;
-    Bdata->B_phi.r_min    = offload_data->Bgrid_r_min;
-    Bdata->B_phi.r_max    = offload_data->Bgrid_r_max;
-    Bdata->B_phi.r_grid   = offload_data->Bgrid_r_grid;
-    Bdata->B_phi.n_z      = offload_data->Bgrid_n_z;
-    Bdata->B_phi.z_min    = offload_data->Bgrid_z_min;
-    Bdata->B_phi.z_max    = offload_data->Bgrid_z_max;
-    Bdata->B_phi.z_grid   = offload_data->Bgrid_z_grid;
-    Bdata->B_phi.n_phi    = offload_data->n_phi;
-    Bdata->B_phi.phi_min  = offload_data->phi_min;
-    Bdata->B_phi.phi_max  = offload_data->phi_max;
-    Bdata->B_phi.phi_grid = offload_data->phi_grid;
-    Bdata->B_phi.c        = &(offload_array[1*B_size]);
+    interp3Dcomp_init_spline(&Bdata->B_phi, &(offload_array[1*B_size]),
+                             offload_data->Bgrid_n_r,
+                             offload_data->Bgrid_n_phi,
+                             offload_data->Bgrid_n_z,
+                             NATURALBC, PERIODICBC, NATURALBC,
+                             offload_data->Bgrid_r_min,
+                             offload_data->Bgrid_r_max,
+                             offload_data->Bgrid_phi_min,
+                             offload_data->Bgrid_phi_max,
+                             offload_data->Bgrid_z_min,
+                             offload_data->Bgrid_z_max);
 
-    Bdata->B_z.n_r        = offload_data->Bgrid_n_r;
-    Bdata->B_z.r_min      = offload_data->Bgrid_r_min;
-    Bdata->B_z.r_max      = offload_data->Bgrid_r_max;
-    Bdata->B_z.r_grid     = offload_data->Bgrid_r_grid;
-    Bdata->B_z.n_z        = offload_data->Bgrid_n_z;
-    Bdata->B_z.z_min      = offload_data->Bgrid_z_min;
-    Bdata->B_z.z_max      = offload_data->Bgrid_z_max;
-    Bdata->B_z.z_grid     = offload_data->Bgrid_z_grid;
-    Bdata->B_z.n_phi      = offload_data->n_phi;
-    Bdata->B_z.phi_min    = offload_data->phi_min;
-    Bdata->B_z.phi_max    = offload_data->phi_max;
-    Bdata->B_z.phi_grid   = offload_data->phi_grid;
-    Bdata->B_z.c          = &(offload_array[2*B_size]);
+    interp3Dcomp_init_spline(&Bdata->B_z, &(offload_array[2*B_size]),
+                             offload_data->Bgrid_n_r,
+                             offload_data->Bgrid_n_phi,
+                             offload_data->Bgrid_n_z,
+                             NATURALBC, PERIODICBC, NATURALBC,
+                             offload_data->Bgrid_r_min,
+                             offload_data->Bgrid_r_max,
+                             offload_data->Bgrid_phi_min,
+                             offload_data->Bgrid_phi_max,
+                             offload_data->Bgrid_z_min,
+                             offload_data->Bgrid_z_max);
 
     interp2Dcomp_init_spline(&Bdata->psi, &(offload_array[3*B_size]),
                              offload_data->psigrid_n_r,
@@ -382,13 +286,11 @@ a5err B_3DS_eval_psi(real psi[1], real r, real phi, real z,
                    B_3DS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-#if INTERP_SPL_EXPL
-    interperr += interp2Dexpl_eval_B(&psi[0], &Bdata->psi, r, z);
-#else
     interperr += interp2Dcomp_eval_f(&psi[0], &Bdata->psi, r, z);
-#endif
 
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );}
+    if(interperr) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );
+    }
 
     return err;
 }
@@ -407,19 +309,19 @@ a5err B_3DS_eval_psi(real psi[1], real r, real phi, real z,
 a5err B_3DS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
                    B_3DS_data* Bdata) {
     a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
+    int interperr = 0;
     real psi_dpsi_temp[6];
-#if INTERP_SPL_EXPL
-    interperr += interp2Dexpl_eval_dB(psi_dpsi_temp, &Bdata->psi, r, z);
-#else
+
     interperr += interp2Dcomp_eval_df(psi_dpsi_temp, &Bdata->psi, r, z);
-#endif
+
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
     psi_dpsi[2] = 0;
     psi_dpsi[3] = psi_dpsi_temp[2];
 
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );}
+    if(interperr) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );
+    }
 
     return err;
 }
@@ -466,11 +368,7 @@ a5err B_3DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
     int interperr = 0; /* If error happened during interpolation */
     real psi_dpsi[6];
 
-#if INTERP_SPL_EXPL
-    interperr += interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
-#else
     interperr += interp2Dcomp_eval_df(psi_dpsi, &Bdata->psi, r, z);
-#endif
 
     if(interperr) {
         return error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );
@@ -505,40 +403,36 @@ a5err B_3DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
  */
 a5err B_3DS_eval_B(real B[3], real r, real phi, real z, B_3DS_data* Bdata) {
     a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
-#if INTERP_SPL_EXPL
-    interperr += interp3Dexpl_eval_B(&B[0], &Bdata->B_r, r, phi, z);
-    interperr += interp3Dexpl_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
-    interperr += interp3Dexpl_eval_B(&B[2], &Bdata->B_z, r, phi, z);
-#else
-    interperr += interp3Dcomp_eval_B(&B[0], &Bdata->B_r, r, phi, z);
-    interperr += interp3Dcomp_eval_B(&B[1], &Bdata->B_phi, r, phi, z);
-    interperr += interp3Dcomp_eval_B(&B[2], &Bdata->B_z, r, phi, z);
-#endif
+    int interperr = 0;
+
+    interperr += interp3Dcomp_eval_f(&B[0], &Bdata->B_r, r, phi, z);
+    interperr += interp3Dcomp_eval_f(&B[1], &Bdata->B_phi, r, phi, z);
+    interperr += interp3Dcomp_eval_f(&B[2], &Bdata->B_z, r, phi, z);
 
     /* Test for B field interpolation error */
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );}
+    if(interperr) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );
+    }
 
-#ifndef NOPSI
     if(!err) {
         real psi_dpsi[6];
-#if INTERP_SPL_EXPL
-        interperr += interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
-#else
         interperr += interp2Dcomp_eval_df(psi_dpsi, &Bdata->psi, r, z);
-#endif
+
         B[0] = B[0] - psi_dpsi[2]/r;
         B[2] = B[2] + psi_dpsi[1]/r;
 
         /* Test for psi interpolation error */
-        if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );}
+        if(interperr) {
+            err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );
+        }
     }
-#endif
 
     /* Check that magnetic field seems valid */
     int check = 0;
     check += ((B[0]*B[0] + B[1]*B[1] + B[2]*B[2]) == 0);
-    if(!err && check) {err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_3DS );}
+    if(!err && check) {
+        err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_3DS );
+    }
 
     return err;
 }
@@ -559,52 +453,33 @@ a5err B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z,
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
     real B_dB_temp[10];
-#if INTERP_SPL_EXPL
-    interperr += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
-#else
-    interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_r, r, phi, z);
-#endif
 
+    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_r, r, phi, z);
     B_dB[0] = B_dB_temp[0];
     B_dB[1] = B_dB_temp[1];
     B_dB[2] = B_dB_temp[2];
     B_dB[3] = B_dB_temp[3];
 
-
-#if INTERP_SPL_EXPL
-    interperr += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
-#else
-    interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_phi, r, phi, z);
-#endif
-
+    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_phi, r, phi, z);
     B_dB[4] = B_dB_temp[0];
     B_dB[5] = B_dB_temp[1];
     B_dB[6] = B_dB_temp[2];
     B_dB[7] = B_dB_temp[3];
 
-
-#if INTERP_SPL_EXPL
-    interperr += interp3Dexpl_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
-#else
-    interperr += interp3Dcomp_eval_dB(B_dB_temp, &Bdata->B_z, r, phi, z);
-#endif
-
+    interperr += interp3Dcomp_eval_df(B_dB_temp, &Bdata->B_z, r, phi, z);
     B_dB[8] = B_dB_temp[0];
     B_dB[9] = B_dB_temp[1];
     B_dB[10] = B_dB_temp[2];
     B_dB[11] = B_dB_temp[3];
 
     /* Test for B field interpolation error */
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );}
+    if(interperr) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );
+    }
 
-#ifndef NOPSI
     if(!err) {
         real psi_dpsi[6];
-#if INTERP_SPL_EXPL
-        interperr += interp2Dexpl_eval_dB(psi_dpsi, &Bdata->psi, r, z);
-#else
         interperr += interp2Dcomp_eval_df(psi_dpsi, &Bdata->psi, r, z);
-#endif
 
         B_dB[0] = B_dB[0] - psi_dpsi[2]/r;
         B_dB[1] = B_dB[1] + psi_dpsi[2]/(r*r)-psi_dpsi[5]/r;
@@ -614,14 +489,17 @@ a5err B_3DS_eval_B_dB(real B_dB[], real r, real phi, real z,
         B_dB[11] = B_dB[11] + psi_dpsi[5]/r;
 
         /* Test for psi interpolation error */
-        if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );}
+        if(interperr) {
+            err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_3DS );
+        }
     }
-#endif
 
     /* Check that magnetic field seems valid */
     int check = 0;
     check += ((B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]) == 0);
-    if(!err && check) {err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_3DS );}
+    if(!err && check) {
+        err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_3DS );
+    }
 
     return err;
 }
