@@ -145,7 +145,6 @@ void mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
 
 /**
  * @brief Evaluate the needed quantities from MHD mode for orbit following, i.e. alpha, phi, grad alpha, grad phi, partial t alpha, partial t phi
- * @todo This is just a dummy.
  * @return Non-zero a5err value if evaluation failed, zero otherwise 
  * The values are stored in the given array as:
  * - mhd_dmhd[0] = alpha 
@@ -159,51 +158,67 @@ void mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
  * - mhd_dmhd[8] = grad phi, phi component
  * - mhd_dmhd[9] = grad phi, z component
  */
-a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* MHDdata) {
+a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* mhddata) {
     a5err err = 0;
     real ptz_dptz[12];
     boozer_eval_gradients(ptz_dptz, r, phi, z, boozerdata);
     int i; 
-    for(i = 0; i <  MHDdata->n_modes; i++){
+    for(i = 0; i <  mhddata->n_modes; i++){
 	/*get interpolated values */
         real a_da[6];
-        interp2Dcomp_eval_df(a_da, &(MHDdata->alpha_nm[i]),r,t);
+        interp2Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]),r,t);
 
         real phi_dphi[6];
-	interp2Dcomp_eval_df(phi_dphi,&(MHDdata->phi_nm[i]),r,t);
+	interp2Dcomp_eval_df(phi_dphi,&(mhddata->phi_nm[i]),r,t);
         
         /*this is used frequently, so define here*/
-        real mhdarg = (MHDdata->nmode[i])* ptz_dptz[8]-(MHDdata->mmode[i])*ptz_dptz[4]-(MHDdata->omega_nm[i])*t +phase;
+        real mhdarg = (mhddata->nmode[i])* ptz_dptz[8]-(mhddata->mmode[i])*ptz_dptz[4]-(mhddata->omega_nm[i])*t +phase;
 
         /*sum over modes to get alpha, phi */
 	/*possible normalization errors*/
         
-        mhd_dmhd[0] += a_da[0]*(MHDdata->amplitude_nm[i])*sin(mhdarg);
-        mhd_dmhd[5] += phi_dphi[0]*(MHDdata->amplitude_nm[i])*sin(mhdarg);
+        mhd_dmhd[0] += a_da[0]*(mhddata->amplitude_nm[i])*sin(mhdarg);
+        mhd_dmhd[5] += phi_dphi[0]*(mhddata->amplitude_nm[i])*sin(mhdarg);
 
 	/*time derivs */
 
-	mhd_dmhd[1] += -1*a_da[0]*(MHDdata->amplitude_nm[i])*(MHDdata->omega_nm[i])*cos(mhdarg) + (MHDdata -> amplitude_nm[i])*a_da[2]*sin(mhdarg);
-	mhd_dmhd[6] += -1*phi_dphi[0]*(MHDdata->amplitude_nm[i])*(MHDdata->omega_nm[i])*cos(mhdarg)+ (MHDdata -> amplitude_nm[i])*phi_dphi[2]*sin(mhdarg);
+	mhd_dmhd[1] += -1*a_da[0]*(mhddata->amplitude_nm[i])*(mhddata->omega_nm[i])*cos(mhdarg) + (mhddata -> amplitude_nm[i])*a_da[2]*sin(mhdarg);
+	mhd_dmhd[6] += -1*phi_dphi[0]*(mhddata->amplitude_nm[i])*(mhddata->omega_nm[i])*cos(mhdarg)+ (mhddata -> amplitude_nm[i])*phi_dphi[2]*sin(mhdarg);
 	/*following code could be written better*/
 	/*r component of gradients */
 
-	mhd_dmhd[2] += (MHDdata->amplitude_nm[i])*(a_da[1]*ptz_dptz[1]*sin(mhdarg) + -1*a_da[0]*(MHDdata->mmode[i])*ptz_dptz[5]*cos(mhdarg) + a_da[0]*(MHDdata->nmode[i])*ptz_dptz[9]*cos(mhdarg));
+	mhd_dmhd[2] += (mhddata->amplitude_nm[i])*(a_da[1]*ptz_dptz[1]*sin(mhdarg) + -1*a_da[0]*(mhddata->mmode[i])*ptz_dptz[5]*cos(mhdarg) + a_da[0]*(mhddata->nmode[i])*ptz_dptz[9]*cos(mhdarg));
 
 
-	mhd_dmhd[7] += (MHDdata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[1]*sin(mhdarg) + -1*phi_dphi[0]*(MHDdata->mmode[i])*ptz_dptz[5]*cos(mhdarg) + phi_dphi[0]*(MHDdata->nmode[i])*ptz_dptz[9]*cos(mhdarg));
+	mhd_dmhd[7] += (mhddata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[1]*sin(mhdarg) + -1*phi_dphi[0]*(mhddata->mmode[i])*ptz_dptz[5]*cos(mhdarg) + phi_dphi[0]*(mhddata->nmode[i])*ptz_dptz[9]*cos(mhdarg));
 
 	/*phi component of gradients */
 
-	mhd_dmhd[3] += (MHDdata->amplitude_nm[i])*(a_da[1]*ptz_dptz[2]*sin(mhdarg) + -1*a_da[0]*(MHDdata->mmode[i])*ptz_dptz[6]*cos(mhdarg) + a_da[0]*(MHDdata->nmode[i])*ptz_dptz[10]*cos(mhdarg));
+	mhd_dmhd[3] += (mhddata->amplitude_nm[i])*(a_da[1]*ptz_dptz[2]*sin(mhdarg) + -1*a_da[0]*(mhddata->mmode[i])*ptz_dptz[6]*cos(mhdarg) + a_da[0]*(mhddata->nmode[i])*ptz_dptz[10]*cos(mhdarg));
 
-	mhd_dmhd[8] += (MHDdata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[2]*sin(mhdarg) + -1*phi_dphi[0]*(MHDdata->mmode[i])*ptz_dptz[6]*cos(mhdarg) + phi_dphi[0]*(MHDdata->nmode[i])*ptz_dptz[10]*cos(mhdarg));
+	mhd_dmhd[8] += (mhddata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[2]*sin(mhdarg) + -1*phi_dphi[0]*(mhddata->mmode[i])*ptz_dptz[6]*cos(mhdarg) + phi_dphi[0]*(mhddata->nmode[i])*ptz_dptz[10]*cos(mhdarg));
 
 	/*z component of gradients */
 
-	mhd_dmhd[4] += (MHDdata->amplitude_nm[i])*(a_da[1]*ptz_dptz[3]*sin(mhdarg) + -1*a_da[0]*(MHDdata->mmode[i])*ptz_dptz[7]*cos(mhdarg) + a_da[0]*(MHDdata->nmode[i])*ptz_dptz[11]*cos(mhdarg)); 
+	mhd_dmhd[4] += (mhddata->amplitude_nm[i])*(a_da[1]*ptz_dptz[3]*sin(mhdarg) + -1*a_da[0]*(mhddata->mmode[i])*ptz_dptz[7]*cos(mhdarg) + a_da[0]*(mhddata->nmode[i])*ptz_dptz[11]*cos(mhdarg)); 
  
-	mhd_dmhd[9] += (MHDdata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[3]*sin(mhdarg) + -1*phi_dphi[0]*(MHDdata->mmode[i])*ptz_dptz[7]*cos(mhdarg) + phi_dphi[0]*(MHDdata->nmode[i])*ptz_dptz[11]*cos(mhdarg));
+	mhd_dmhd[9] += (mhddata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[3]*sin(mhdarg) + -1*phi_dphi[0]*(mhddata->mmode[i])*ptz_dptz[7]*cos(mhdarg) + phi_dphi[0]*(mhddata->nmode[i])*ptz_dptz[11]*cos(mhdarg));
      }
+    return err;
+}
+
+/**
+*@ brief Evaluate mhd perturbed fields Btilde, Etilde for full orbit and testing/debugging/tuningi
+*@ return Non-zero a5err value if evaluation failed, zero otherwise
+* the values are stored in the given array as 
+* - pert_field[0] = BtildeR
+* - pert_field[1] = BtildePhi
+* - pert_field[2] = BtildeZ
+* - pert_field[3] = EtildeR
+* - pert_field[4] = EtildePhi
+* - pert_field[5] = EtildeZ
+*/
+a5err mhd_perturbations(real pert_field[6], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* mhddata){
+    a5err err = 0;
     return err;
 }
