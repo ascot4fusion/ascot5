@@ -16,23 +16,18 @@ typedef struct {
     int psigrid_n_z;     /**< Number of z grid points in psi data             */
     real psigrid_r_min;  /**< Minimum R grid point in psi data [m]            */
     real psigrid_r_max;  /**< Maximum R grid point in psi data [m]            */
-    real psigrid_r_grid; /**< R grid interval in psi data [m]                 */
     real psigrid_z_min;  /**< Minimum z grid point in psi data [m]            */
     real psigrid_z_max;  /**< Maximum z grid point in psi data [m]            */
-    real psigrid_z_grid; /**< z grid interval in psi data [m]                 */
 
     int Bgrid_n_r;       /**< Number of R grid points in B data               */
     int Bgrid_n_z;       /**< Number of z grid points in B data               */
     real Bgrid_r_min;    /**< Minimum R coordinate in the grid in B data [m]  */
     real Bgrid_r_max;    /**< Maximum R coordinate in the grid in B data [m]  */
-    real Bgrid_r_grid;   /**< R grid interval in B data [m]                   */
     real Bgrid_z_min;    /**< Minimum z coordinate in the grid in B data [m]  */
     real Bgrid_z_max;    /**< Maximum z coordinate in the grid in B data [m]  */
-    real Bgrid_z_grid;   /**< z grid interval in B data [m]                   */
     int Bgrid_n_phi;     /**< Number of phi grid points in B data             */
     real Bgrid_phi_min;  /**< Minimum phi grid point in B data [rad]          */
     real Bgrid_phi_max;  /**< Maximum phi grid point in B data [rad]          */
-    real Bgrid_phi_grid; /**< phi grid interval in B data [rad]               */
 
     real psi0;           /**< Poloidal flux value at magnetic axis [V*s*m^-1] */
     real psi1;           /**< Poloidal flux value at separatrix [V*s*m^-1]    */
