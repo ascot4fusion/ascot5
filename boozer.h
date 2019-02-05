@@ -57,14 +57,8 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                  real* offload_array);
 
 #pragma omp declare simd uniform(boozerdata)
-a5err boozer_rpz2boozer(real ptz[3], real r, real phi, real z,
-                        boozer_data* boozerdata);
-#pragma omp declare simd uniform(boozerdata)
-a5err boozer_boozer2rpz(real rz[2], real psi, real theta, real zeta,
-                        boozer_data* boozerdata);
-#pragma omp declare simd uniform(boozerdata)
-a5err boozer_eval_gradients(real ptz_dptz[12], real r, real phi, real z,
-                            boozer_data* boozerdata);
+a5err boozer_eval_thetazeta(real thetazeta[8], real r, real phi, real z,
+                            real psi_dpsi[4], boozer_data* boozerdata);
 
 #pragma omp end declare target
 

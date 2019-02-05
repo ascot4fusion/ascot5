@@ -3,6 +3,7 @@
  * @brief Module for transforming between cylindrical and Boozer coordinates.
  */
 #include <stdlib.h>
+#include <math.h>
 #include "ascot5.h"
 #include "consts.h"
 #include "error.h"
@@ -216,57 +217,52 @@ void boozer_free_offload(boozer_offload_data* offload_data,
 }
 
 /**
- * @brief Transform cylindrical coordinates to Boozer coordinates.
- *
- * @todo This is just a dummy.
- *
- * @param ptz Boozer coordinates as [psi, theta, zeta].
- *
- * @return zero on success
- */
-a5err boozer_rpz2boozer(real ptz[3], real r, real phi, real z,
-                        boozer_data* boozerdata) {
-    return 0;
-}
-
-/**
- * @brief Transform Boozer coordinates to cylindrical coordinates.
- *
- * @todo This is just a dummy.
- *
- * @param rz cylindrical coordinates as [R, z].
- *
- * @return zero on success
- */
-a5err boozer_boozer2rpz(real rz[2], real psi, real theta, real zeta,
-                        boozer_data* boozerdata) {
-    return 0;
-}
-
-/**
- * @brief Evaluate Boozer coordinates and gradients on a given location.
- *
- * @todo This is just a dummy.
+ * @brief Evaluate Boozer angular coordinates and partial derivatives.
  *
  * The values are stored in the given array as:
- * - ptz_dptz[0]  = psi
- * - ptz_dptz[1]  = dpsi/dR
- * - ptz_dptz[2]  = dpsi/dphi
- * - ptz_dptz[3]  = dpsi/dz
- * - ptz_dptz[4]  = theta
- * - ptz_dptz[5]  = dtheta/dR
- * - ptz_dptz[6]  = dtheta/dphi
- * - ptz_dptz[7]  = dtheta/dz
- * - ptz_dptz[8]  = zeta
- * - ptz_dptz[9]  = dzeta/dR
- * - ptz_dptz[10] = dzeta/dphi
- * - ptz_dptz[11] = dzeta/dz
+ * - ptz_dptz[0] = theta
+ * - ptz_dptz[1] = dtheta/dR
+ * - ptz_dptz[2] = dtheta/dphi
+ * - ptz_dptz[3] = dtheta/dz
+ * - ptz_dptz[4] = zeta
+ * - ptz_dptz[5] = dzeta/dR
+ * - ptz_dptz[6] = dzeta/dphi
+ * - ptz_dptz[7] = dzeta/dz
  *
- * @param ptz_dptz evaluated Boozer coordinates and their gradients.
+ * @param thetazeta evaluated Boozer angular coordinates and their gradients.
  *
  * @return zero on success
  */
-a5err boozer_eval_gradients(real ptz_dptz[12], real r, real phi, real z,
-                            boozer_data* boozerdata) {
-    return 0;
+a5err boozer_eval_thetazeta(real thetazeta[8], real r, real phi, real z,
+                            real psi_dpsi[4], boozer_data* boozerdata) {
+    a5err err = 0;
+    int interperr = 0;
+
+    /* geometrical theta and derivatives as helper variables */
+    real thgeo[6];
+    interperr += interp2Dcomp_eval_df(thgeo, &boozerdata->theta_geo, r, z);
+
+    /* theta and derivatives */
+    real theta[6];
+    interperr += interp2Dcomp_eval_df(theta, &boozerdata->theta_bzr,
+                                      psi_dpsi[0], thgeo[0]);
+    thetazeta[0] = theta[0];
+    thetazeta[1] = psi_dpsi[1] * theta[1] + thgeo[1] * theta[2];
+    thetazeta[2] = 0;
+    thetazeta[3] = psi_dpsi[3] * theta[1] + thgeo[3] * theta[2];
+
+    /* zeta and derivatives */
+    real q[3];
+    interperr += interp1Dcomp_eval_df(q, &boozerdata->q, psi_dpsi[0]);
+
+    thetazeta[4] = fmod(phi + theta[0]*q[0], CONST_2PI);
+    thetazeta[5] = thetazeta[1]*q[0] + theta[0]*q[1]*psi_dpsi[1];
+    thetazeta[6] = 1;
+    thetazeta[7] = thetazeta[3]*q[0] + theta[0]*q[1]*psi_dpsi[3];
+
+    if(interperr) {
+        err = 1;
+    }
+
+    return err;
 }
