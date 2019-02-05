@@ -37,7 +37,7 @@
 #include "../print.h"
 #include "../consts.h"
 #include "B_STS.h"
-#include "../linint/linint1D.h"
+#include "../linint/linint.h"
 #include "../spline/interp.h"
 
 /**
@@ -361,25 +361,16 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
         offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
         offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max);
 
-    /* Magnetic axis */
-    linint1D_data axis_r;
-    linint1D_data axis_z;
-    int periodic = 1;
-    err += linint1D_init(
-        &axis_r,
-        *offload_array + 3*offload_B_size + offload_psi_size,
-        offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
-        offload_data->axis_grid, periodic);
-
-    err += linint1D_init(
-        &axis_z,
-        *offload_array + 3*offload_B_size + offload_psi_size + axis_size,
-        offload_data->n_axis, offload_data->axis_min, offload_data->axis_max,
-        offload_data->axis_grid, periodic);
-
     if(err) {
         print_err("Error: Failed to initialize splines.\n");
         return err;
+    }
+
+    for(int i = 0; i < axis_size; i++) {
+        coeff_array[(3*B_size + psi_size)*NSIZE_COMP3D + i] =
+            (*offload_array)[3*offload_B_size + offload_psi_size + i];
+        coeff_array[(3*B_size + psi_size)*NSIZE_COMP3D + axis_size + i] =
+            (*offload_array)[3*offload_B_size + offload_psi_size + axis_size + i];
     }
 
     /* Re-allocate the offload array and store spline coefficients there */
@@ -388,15 +379,6 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
     offload_data->offload_array_length = 3*NSIZE_COMP3D*B_size
                                          + NSIZE_COMP3D*psi_size
                                          + 2*axis_size;
-
-    for(int i = 0; i < axis_size; i++) {
-        (*offload_array)[(3*B_size + psi_size)*NSIZE_COMP3D + i] = axis_r.c[i];
-        (*offload_array)[(3*B_size + psi_size)*NSIZE_COMP3D + axis_size + i] =
-            axis_z.c[i];
-    }
-
-    linint1D_free(&axis_r);
-    linint1D_free(&axis_z);
 
     /* Evaluate psi and magnetic field on axis for checks */
     B_STS_data Bdata;
@@ -414,6 +396,7 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
     }
     err = B_STS_eval_psi(psival, axis[0], 0, axis[1],
                          &Bdata);
+
     if(err) {
         print_err("Error: psi evaluation failed.\n");
         return err;
@@ -542,17 +525,15 @@ void B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
                              offload_data->psigrid_z_min,
                              offload_data->psigrid_z_max);
 
-    Bdata->axis_r.n_r     = offload_data->n_axis;
-    Bdata->axis_r.r_min   = offload_data->axis_min;
-    Bdata->axis_r.r_max   = offload_data->axis_max;
-    Bdata->axis_r.r_grid  = offload_data->axis_grid;
-    Bdata->axis_r.c       = &(offload_array[3*B_size + psi_size]);
+    linint1D_init(&Bdata->axis_r,
+                  &(offload_array[3*B_size + psi_size]),
+                  offload_data->n_axis, PERIODICBC,
+                  offload_data->axis_min, offload_data->axis_max);
 
-    Bdata->axis_z.n_r     = offload_data->n_axis;
-    Bdata->axis_z.r_min   = offload_data->axis_min;
-    Bdata->axis_z.r_max   = offload_data->axis_max;
-    Bdata->axis_z.r_grid  = offload_data->axis_grid;
-    Bdata->axis_z.c       = &(offload_array[3*B_size + psi_size + axis_size]);
+    linint1D_init(&Bdata->axis_z,
+                  &(offload_array[3*B_size + psi_size + axis_size]),
+                  offload_data->n_axis, PERIODICBC,
+                  offload_data->axis_min, offload_data->axis_max);
 }
 
 /**
@@ -767,11 +748,7 @@ a5err B_STS_eval_B_dB(real B_dB[], real r, real phi, real z, B_STS_data* Bdata) 
 a5err B_STS_get_axis_r(real* axis_r, B_STS_data* Bdata, real phi) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    phi = fmod(phi, 2*CONST_PI);
-    if(phi < 0) {
-        phi += 2*CONST_PI;
-    }
-    interperr += linint1D_eval(axis_r, &Bdata->axis_r, phi);
+    interperr += linint1D_eval_f(axis_r, &Bdata->axis_r, phi);
     if(interperr) {
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );
     }
@@ -790,11 +767,7 @@ a5err B_STS_get_axis_r(real* axis_r, B_STS_data* Bdata, real phi) {
 a5err B_STS_get_axis_z(real* axis_z, B_STS_data* Bdata, real phi) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    phi = fmod(phi, 2*CONST_PI);
-    if(phi < 0) {
-        phi += 2*CONST_PI;
-    }
-    interperr += linint1D_eval(axis_z, &Bdata->axis_z, phi);
+    interperr += linint1D_eval_f(axis_z, &Bdata->axis_z, phi);
     if(interperr) {
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );
     }

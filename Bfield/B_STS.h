@@ -6,7 +6,7 @@
 #define B_STS_H
 #include "../ascot5.h"
 #include "../symmetry.h"
-#include "../linint/linint1D.h"
+#include "../linint/linint.h"
 #include "../spline/interp.h"
 
 /**
