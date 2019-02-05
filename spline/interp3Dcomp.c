@@ -16,7 +16,7 @@
  * the given data and stores them in an array. Compact  cofficients are
  * calculated directly.
  *
- * @param c allocated array of length n_z*n_y*n_x*16 to store the coefficients
+ * @param c allocated array of length n_z*n_y*n_x*8 to store the coefficients
  * @param f 3D data to be interpolated
  * @param n_x number of data points in the x direction
  * @param n_y number of data points in the y direction
