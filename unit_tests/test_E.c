@@ -88,13 +88,14 @@ int main(int argc, char** argv) {
     fprintf(f,"%d %le %le\n", n_z, z_min, z_max);
 
     int i, j, k;
+    real time = 0;
     for(i = 0; i < n_r; i++) {
         for(j = 0; j < n_phi; j++) {
             for(k = 0; k < n_z; k++) {
                 B_field_eval_rho_drho(rho, r[i], phi[j], z[k], &Bdata);
                 /* Correct Jacobian */
                 rho[2] = rho[2]/r[i];
-                E_field_eval_E(E, r[i], phi[j], z[k], 0, &Edata, &Bdata);
+                E_field_eval_E(E, r[i], phi[j], z[k], time, &Edata, &Bdata);
                 fprintf(f,"%le %le %le %le ", rho[0], rho[1], rho[2], rho[3]);
                 fprintf(f,"%le %le %le\n", E[0], E[1], E[2]);
             }
