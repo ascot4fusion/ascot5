@@ -22,7 +22,7 @@
  *
  * - 1D compact  2, explicit 4
  * - 2D compact  4, explicit 16
- * - 3D compact 16, explicit 64
+ * - 3D compact  8, explicit 64
  */
 #ifndef INTERP_H
 #define INTERP_H
