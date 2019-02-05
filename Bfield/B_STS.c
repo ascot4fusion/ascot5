@@ -366,19 +366,19 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
         return err;
     }
 
+    for(int i = 0; i < axis_size; i++) {
+        coeff_array[(3*B_size + psi_size)*NSIZE_COMP3D + i] =
+            (*offload_array)[3*offload_B_size + offload_psi_size + i];
+        coeff_array[(3*B_size + psi_size)*NSIZE_COMP3D + axis_size + i] =
+            (*offload_array)[3*offload_B_size + offload_psi_size + axis_size + i];
+    }
+
     /* Re-allocate the offload array and store spline coefficients there */
     free(*offload_array);
     *offload_array = coeff_array;
     offload_data->offload_array_length = 3*NSIZE_COMP3D*B_size
                                          + NSIZE_COMP3D*psi_size
                                          + 2*axis_size;
-
-    for(int i = 0; i < axis_size; i++) {
-        (*offload_array)[(3*B_size + psi_size)*NSIZE_COMP3D + i] =
-            (*offload_array)[3*offload_B_size + offload_psi_size + i];
-        (*offload_array)[(3*B_size + psi_size)*NSIZE_COMP3D + axis_size + i] =
-            (*offload_array)[3*offload_B_size + offload_psi_size + axis_size + i];
-    }
 
     /* Evaluate psi and magnetic field on axis for checks */
     B_STS_data Bdata;
@@ -396,6 +396,7 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
     }
     err = B_STS_eval_psi(psival, axis[0], 0, axis[1],
                          &Bdata);
+
     if(err) {
         print_err("Error: psi evaluation failed.\n");
         return err;
@@ -524,17 +525,15 @@ void B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
                              offload_data->psigrid_z_min,
                              offload_data->psigrid_z_max);
 
-    linint1D_init(
-        &Bdata->axis_r,
-        &(offload_array[3*B_size + psi_size]),
-        offload_data->n_axis, PERIODICBC,
-        offload_data->axis_min, offload_data->axis_max);
+    linint1D_init(&Bdata->axis_r,
+                  &(offload_array[3*B_size + psi_size]),
+                  offload_data->n_axis, PERIODICBC,
+                  offload_data->axis_min, offload_data->axis_max);
 
-    linint1D_init(
-        &Bdata->axis_z,
-        &(offload_array[3*B_size + psi_size + axis_size]),
-        offload_data->n_axis, PERIODICBC,
-        offload_data->axis_min, offload_data->axis_max);
+    linint1D_init(&Bdata->axis_z,
+                  &(offload_array[3*B_size + psi_size + axis_size]),
+                  offload_data->n_axis, PERIODICBC,
+                  offload_data->axis_min, offload_data->axis_max);
 }
 
 /**
