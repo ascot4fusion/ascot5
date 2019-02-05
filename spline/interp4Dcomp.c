@@ -94,22 +94,59 @@ int interp4Dcomp_init_coeff(real* c, real* f,
         return 1;
     }
 
-    /* 4D cubic spline volume coefficients: For i_x, i_y and i_z the 8
-       coefficients are [f, fxx, fyy, fzz, fxxyy, fxxzz, fyyzz, fxxyyzz].
+    /* 4D cubic spline volume coefficients: For i_x, k_y, j_z, m_t the 16
+       coefficients are:
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 0] = D1111 = f;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 1] = D2111 = fxx;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 2] = D1211 = fzz;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 3] = D2211 = fxxzz;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 4] = D1121 = fyy;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 5] = D2121 = fxxyy;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 6] = D1221 = fzzyy;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 7] = D2221 = fxxzzyy;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 8] = D1112 = ftt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 9] = D2112 = fxxtt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) +10] = D1212 = fzztt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) +11] = D2212 = fxxzztt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) +12] = D1122 = fyytt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) +13] = D2122 = fxxyytt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) +14] = D1222 = fzzyytt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) +15] = D2222 = fxxzzyytt;
        Note how we account for normalized grid. */
 
+    for(int m_t=0; m_t<n_t; m_t++) {
+	for(int k_y=0; k_y<n_z; k_y++) {
+	    for(int j_z=0; j_z<n_y; j_z) {		
+		/* Cubic spline along x to get fxx (for each j_z,k_y,m_t) */
+		for(int i_x=0; i_x<n_x; j_x) {
+		    f_x[i_x] = f[m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x];
+		}
+		splinecomp(f_x, n_x, bc_x, c_x);
+		for(int i_x=0; i_x<n_x; i_x++) {
+		    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 0] = 
+			c_x[i_x*2];
+                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 1] =
+                        c_x[i_x*2 + 1]/(x_grid*x_grid);
+		}
+		
+
+		/* */
+	    }
+	}
+    }
+
     /* Bicubic spline surface over xz-grid for each y */
-    for(int i_y=0; i_y<n_y; i_y++) {
+    for(int k_y=0; k_y<n_y; k_y++) {
 
         /* Cubic spline along x for each z to get fxx */
-        for(int i_z=0; i_z<n_z; i_z++) {
+        for(int j_z=0; j_z<n_z; j_z++) {
             for(int i_x=0; i_x<n_x; i_x++) {
-                f_x[i_x] = f[i_y*n_z*n_x + i_z*n_x + i_x];
+                f_x[i_x] = f[k_y*n_z*n_x + j_z*n_x + i_x];
             }
             splinecomp(f_x, n_x, bc_x, c_x);
             for(int i_x=0; i_x<n_x; i_x++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8    ] = c_x[i_x*2];
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 1] = c_x[i_x*2 + 1]
+                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8    ] = c_x[i_x*2];
+                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 1] = c_x[i_x*2 + 1]
                                                            / (x_grid*x_grid);
             }
         }
@@ -117,21 +154,21 @@ int interp4Dcomp_init_coeff(real* c, real* f,
         /* Two cubic splines along z for each x using f and fxx */
         for(int i_x=0; i_x<n_x; i_x++) {
             /* fzz */
-            for(int i_z=0; i_z<n_z; i_z++) {
-                f_z[i_z] = f[i_y*n_z*n_x + i_z*n_x + i_x];
+            for(int j_z=0; j_z<n_z; j_z++) {
+                f_z[j_z] = f[k_y*n_z*n_x + j_z*n_x + i_x];
             }
             splinecomp(f_z, n_z, bc_z, c_z);
-            for(int i_z=0; i_z<n_z; i_z++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 3] = c_z[i_z*2 + 1]
+            for(int j_z=0; j_z<n_z; j_z++) {
+                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 3] = c_z[j_z*2 + 1]
                                                            / (z_grid*z_grid);
             }
             /* fxxzz */
-            for(int i_z=0; i_z<n_z; i_z++) {
-                f_z[i_z] = c[i_y*n_z*n_x*8 + i_z*n_x*8+i_x*8 + 1];
+            for(int j_z=0; j_z<n_z; j_z++) {
+                f_z[j_z] = c[k_y*n_z*n_x*8 + j_z*n_x*8+i_x*8 + 1];
             }
             splinecomp(f_z, n_z, bc_z, c_z);
-            for(int i_z=0; i_z<n_z; i_z++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 5] = c_z[i_z*2+1]
+            for(int j_z=0; j_z<n_z; j_z++) {
+                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 5] = c_z[j_z*2+1]
                                                            / (z_grid*z_grid);
             }
         }
@@ -140,42 +177,42 @@ int interp4Dcomp_init_coeff(real* c, real* f,
 
     /* Cubic spline along y for each xz-pair to find the compact coefficients
        of the tricubic spline volume */
-    for(int i_z=0; i_z<n_z; i_z++) {
+    for(int j_z=0; j_z<n_z; j_z++) {
         for(int i_x=0; i_x<n_x; i_x++) {
             /* fyy */
-            for(int i_y=0; i_y<n_y; i_y++) {
-                f_y[i_y] = f[i_y*n_z*n_x + i_z*n_x + i_x];
+            for(int k_y=0; k_y<n_y; k_y++) {
+                f_y[k_y] = f[k_y*n_z*n_x + j_z*n_x + i_x];
             }
             splinecomp(f_y, n_y, bc_y, c_y);
-            for(int i_y=0; i_y<n_y; i_y++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 2] = c_y[i_y*2 + 1]
+            for(int k_y=0; k_y<n_y; k_y++) {
+                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 2] = c_y[k_y*2 + 1]
                                                            / (y_grid*y_grid);
             }
             /* fxxyy */
-            for(int i_y=0; i_y<n_y; i_y++) {
-                f_y[i_y] = c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 1];
+            for(int k_y=0; k_y<n_y; k_y++) {
+                f_y[k_y] = c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 1];
             }
             splinecomp(f_y, n_y, bc_y, c_y);
-            for(int i_y=0; i_y<n_y; i_y++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 4] = c_y[i_y*2 + 1]
+            for(int k_y=0; k_y<n_y; k_y++) {
+                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 4] = c_y[k_y*2 + 1]
                                                            / (y_grid*y_grid);
             }
             /* fyyzz */
-            for(int i_y=0; i_y<n_y; i_y++) {
-                f_y[i_y] = c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 3];
+            for(int k_y=0; k_y<n_y; k_y++) {
+                f_y[k_y] = c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 3];
             }
             splinecomp(f_y, n_y, bc_y, c_y);
-            for(int i_y=0; i_y<n_y; i_y++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 6] = c_y[i_y*2+1]
+            for(int k_y=0; k_y<n_y; k_y++) {
+                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 6] = c_y[k_y*2+1]
                                                            / (y_grid*y_grid);
             }
             /* fxxyyzz */
-            for(int i_y=0; i_y<n_y; i_y++) {
-                f_y[i_y] = c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 5];
+            for(int k_y=0; k_y<n_y; k_y++) {
+                f_y[k_y] = c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 5];
             }
             splinecomp(f_y, n_y, bc_y, c_y);
-            for(int i_y=0; i_y<n_y; i_y++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 7] = c_y[i_y*2+1]
+            for(int k_y=0; k_y<n_y; k_y++) {
+                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 7] = c_y[k_y*2+1]
                                                            / (y_grid*y_grid);
             }
         }
@@ -279,25 +316,25 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z) {
     real xg2  = str->x_grid*str->x_grid;
 
     /* index for y variable */
-    int i_y   = (y - str->y_min) / str->y_grid;
+    int k_y   = (y - str->y_min) / str->y_grid;
     /* Normalized y coordinate in current cell */
-    real dy   = (y - (str->y_min + i_y*str->y_grid)) / str->y_grid;
+    real dy   = (y - (str->y_min + k_y*str->y_grid)) / str->y_grid;
     real dyi  = 1.0 - dy;
     real dy3  = dy*dy*dy - dy;
     real dyi3 = (1.0 - dy) * (1.0 - dy) * (1.0 - dy) - (1.0 - dy);
     real yg2  = str->y_grid*str->y_grid;
 
     /* index for z variable */
-    int i_z   = (z - str->z_min) / str->z_grid;
+    int j_z   = (z - str->z_min) / str->z_grid;
     /* Normalized z coordinate in current cell */
-    real dz   = (z - (str->z_min + i_z*str->z_grid)) / str->z_grid;
+    real dz   = (z - (str->z_min + j_z*str->z_grid)) / str->z_grid;
     real dzi  = 1.0 - dz;
     real dz3  = dz*dz*dz - dz;
     real dzi3 = (1.0 - dz) * (1.0 - dz) * (1.0 - dz) - (1.0-dz);
     real zg2  = str->z_grid*str->z_grid;
 
     /**< Index jump to cell */
-    int n  = i_y*str->n_z*str->n_x*8 + i_z*str->n_x*8 + i_x*8;
+    int n  = k_y*str->n_z*str->n_x*8 + j_z*str->n_x*8 + i_x*8;
     int x1 = 8;                   /* Index jump one x forward */
     int y1 = str->n_z*str->n_x*8; /* Index jump one y forward */
     int z1 = str->n_x*8;          /* Index jump one z forward */
@@ -311,13 +348,13 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z) {
     else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
         err = 1;
     }
-    if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
+    if( str->bc_y == PERIODICBC && k_y == str->n_y-1 ) {
         y1 = -(str->n_y-1)*y1;
     }
     else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
         err = 1;
     }
-    if( str->bc_z == PERIODICBC && i_z == str->n_z-1 ) {
+    if( str->bc_z == PERIODICBC && j_z == str->n_z-1 ) {
         z1 = -(str->n_z-1)*z1;
     }
     else if( str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max) ) {
@@ -447,9 +484,9 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     real xgi    = 1.0 / xg;
 
     /* index for y variable */
-    int i_y     = (y - str->y_min) / str->y_grid;
+    int k_y     = (y - str->y_min) / str->y_grid;
     /* Normalized y coordinate in current cell */
-    real dy     = ( y - (str->y_min + i_y*str->y_grid) ) / str->y_grid;
+    real dy     = ( y - (str->y_min + k_y*str->y_grid) ) / str->y_grid;
     real dy3    = dy*dy*dy-dy;
     real dy3dy  = 3*dy*dy - 1.0;
     real dyi    = 1.0 - dy;
@@ -460,9 +497,9 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     real ygi    = 1.0 / yg;
 
     /* index for z variable */
-    int i_z     = (z - str->z_min) / str->z_grid;
+    int j_z     = (z - str->z_min) / str->z_grid;
     /* Normalized z coordinate in current cell */
-    real dz     = ( z - (str->z_min + i_z*str->z_grid) ) / str->z_grid;
+    real dz     = ( z - (str->z_min + j_z*str->z_grid) ) / str->z_grid;
     real dz3    = dz*dz*dz - dz;
     real dz3dz  = 3*dz*dz - 1.0;
     real dzi    = 1.0 - dz;
@@ -473,7 +510,7 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     real zgi    = 1.0 / zg;
 
     /* Index jump to cell */
-    int n  = i_y*str->n_z*str->n_x*8 + i_z*str->n_x*8 + i_x*8;
+    int n  = k_y*str->n_z*str->n_x*8 + j_z*str->n_x*8 + i_x*8;
     int x1 = 8;                   /* Index jump one x forward */
     int y1 = str->n_z*str->n_x*8; /* Index jump one y forward */
     int z1 = str->n_x*8;          /* Index jump one z forward */
@@ -489,13 +526,13 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
         err = 1;
     }
-    if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
+    if( str->bc_y == PERIODICBC && k_y == str->n_y-1 ) {
         y1 = -(str->n_y-1)*y1;
     }
     else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
         err = 1;
     }
-    if( str->bc_z == PERIODICBC && i_z == str->n_z-1 ) {
+    if( str->bc_z == PERIODICBC && j_z == str->n_z-1 ) {
         z1 = -(str->n_z-1)*z1;
     }
     else if( str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max) ) {

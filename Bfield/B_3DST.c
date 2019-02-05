@@ -79,12 +79,12 @@
  * B_3DST_offload_data.offload_array_length is set here.
  *
  * The offload array must contain the following data:
- * - offload_array[                           l*Bn_r*Bn_z*Bn_phi + k*Bn_r*Bn_z + j*Bn_r + i]
- *   = B_R(R_i, phi_k, z_j, t_l)   [T]
- * - offload_array[Bn_r*Bn_z*Bn_phi*Bn_t + l*Bn_r*Bn_z*Bn_phi + k*Bn_r*Bn_z + j*Bn_r + i]
- *   = B_phi(R_i, phi_k, z_j, t_l)   [T]
- * - offload_array[2*Bn_r*Bn_z*Bn_phi*Bn_t + l*Bn_r*Bn_z*Bn_phi + k*Bn_r*Bn_z + j*Bn_r + i]
- *   = B_z(R_i, phi_k, z_j, t_l)   [T]
+ * - offload_array[                           m*Bn_r*Bn_z*Bn_phi + k*Bn_r*Bn_z + j*Bn_r + i]
+ *   = B_R(R_i, phi_k, z_j, t_m)   [T]
+ * - offload_array[Bn_r*Bn_z*Bn_phi*Bn_t + m*Bn_r*Bn_z*Bn_phi + k*Bn_r*Bn_z + j*Bn_r + i]
+ *   = B_phi(R_i, phi_k, z_j, t_m)   [T]
+ * - offload_array[2*Bn_r*Bn_z*Bn_phi*Bn_t + m*Bn_r*Bn_z*Bn_phi + k*Bn_r*Bn_z + j*Bn_r + i]
+ *   = B_z(R_i, phi_k, z_j, t_m)   [T]
  * - offload_array[3*Bn_r*Bn_z*Bn_phi*Bn_t + j*n_r + i]
  *   = psi(R_i, z_j)   [V*s*m^-1]
  *
