@@ -335,39 +335,58 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
         z = fmod(z - str->z_min, str->z_max - str->z_min) + str->z_min;
         z = z + (z < str->z_min) * (str->z_max - str->z_min);
     }
+    if(str->bc_t == PERIODICBC) {
+        t = fmod(t - str->t_min, str->t_max - str->t_min) + str->t_min;
+        t = t + (t < str->t_min) * (str->t_max - str->t_min);
+    }
 
     /* index for x variable */
     int i_x   = (x - str->x_min) / str->x_grid;
-    /* Normalized x coordinate in current cell */
-    real dx   = (x - (str->x_min + i_x*str->x_grid)) / str->x_grid;
-    real dxi  = 1.0 - dx;
-    real dx3  = dx*dx*dx - dx;
-    real dxi3 = (1.0 - dx) * (1.0 - dx) * (1.0 - dx) - (1.0 - dx);
-    real xg2  = str->x_grid*str->x_grid;
+    /* Normalized x coordinate in current cell 
+       (the order facilitates the evaluation)*/
+    real dx[4];
+    dx[2] = (x - (str->x_min + i_x*str->x_grid)) / str->x_grid; /* p_x */
+    dx[0] = 1.0 - dx[2];                                        /* q_x */
+    dx[1] = dx[0]*(dx[0]*dx[0]-1)*str->x_grid*str_x_grid/6.0;   /* s_x */
+    dx[3] = dx[2]*(dx[2]*dx[2]-1)*str->x_grid*str_x_grid/6.0;   /* r_x */
 
     /* index for y variable */
     int k_y   = (y - str->y_min) / str->y_grid;
-    /* Normalized y coordinate in current cell */
-    real dy   = (y - (str->y_min + k_y*str->y_grid)) / str->y_grid;
-    real dyi  = 1.0 - dy;
-    real dy3  = dy*dy*dy - dy;
-    real dyi3 = (1.0 - dy) * (1.0 - dy) * (1.0 - dy) - (1.0 - dy);
-    real yg2  = str->y_grid*str->y_grid;
+   /* Normalized y coordinate in current cell                                                       
+       (the order facilitates the evaluation)*/
+    real dy[4];
+    dy[2] = (y - (str->y_min + k_y*str->y_grid)) / str->y_grid; /* p_y */
+    dy[0] = 1.0 - dy[3];                                        /* q_y */
+    dy[1] = dy[0]*(dy[0]*dy[0]-1)*str->y_grid*str_y_grid/6.0;   /* s_y */
+    dy[3] = dy[2]*(dy[2]*dy[2]-1)*str->y_grid*str_y_grid/6.0;   /* r_y */
 
     /* index for z variable */
     int j_z   = (z - str->z_min) / str->z_grid;
-    /* Normalized z coordinate in current cell */
-    real dz   = (z - (str->z_min + j_z*str->z_grid)) / str->z_grid;
-    real dzi  = 1.0 - dz;
-    real dz3  = dz*dz*dz - dz;
-    real dzi3 = (1.0 - dz) * (1.0 - dz) * (1.0 - dz) - (1.0-dz);
-    real zg2  = str->z_grid*str->z_grid;
+   /* Normalized z coordinate in current cell                                                       
+       (the order facilitates the evaluation)*/
+    real dz[4];
+    dz[2] = (z - (str->z_min + j_z*str->z_grid)) / str->z_grid; /* p_z */
+    dz[0] = 1.0 - dz[3];                                        /* q_z */
+    dz[1] = dz[0]*(dz[0]*dz[0]-1)*str->z_grid*str_z_grid/6.0;   /* s_z */
+    dz[3] = dz[2]*(dz[2]*dz[2]-1)*str->z_grid*str_z_grid/6.0;   /* r_z */
+
+    /* index for t variable */
+    int m_t   = (t - str->t_min) / str->t_grid;
+   /* Normalized t coordinate in current cell                                                       
+       (the order facilitates the evaluation)*/
+    real dt[4];
+    dt[2] = (t - (str->t_min + m_t*str->t_grid)) / str->t_grid; /* p_t */
+    dt[0] = 1.0 - dt[3];                                        /* q_t */
+    dt[1] = dt[0]*(dt[0]*dt[0]-1)*str->t_grid*str_t_grid/6.0;   /* s_t */
+    dt[3] = dt[2]*(dt[2]*dt[2]-1)*str->t_grid*str_t_grid/6.0;   /* r_t */
 
     /**< Index jump to cell */
-    int n  = k_y*str->n_z*str->n_x*8 + j_z*str->n_x*8 + i_x*8;
-    int x1 = 8;                   /* Index jump one x forward */
-    int y1 = str->n_z*str->n_x*8; /* Index jump one y forward */
-    int z1 = str->n_x*8;          /* Index jump one z forward */
+    int n  = NSIZE_COMP4D*
+        (m_t*str->n_x*str->n_z*str->n_y + k_y*str->n_x*str->n_z + j_z*str->n_x + i_x);
+    int x1 = NSIZE_COMP4D;                           /* Index jump one x forward */
+    int y1 = NSIZE_COMP4D*str->n_z*str->n_x;         /* Index jump one y forward */
+    int z1 = NSIZE_COMP4D*str->n_x;                  /* Index jump one z forward */
+    int t1 = NSIZE_COMP4D*str->n_x*str->n_z*str->n_y;/* Index jump one z forward */
 
     int err = 0;
 
@@ -390,67 +409,45 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
     else if( str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max) ) {
         err = 1;
     }
+    if( str->bc_t == PERIODICBC && m_t == str->n_t-1 ) {
+        t1 = -(str->n_t-1)*t1;
+    }
+    else if( str->bc_t == NATURALBC && (t < str->t_min || t > str->t_max) ) {
+        err = 1;
+    }
 
     if(!err) {
 
         /* Evaluate splines */
-        *f = (
-            dzi*(
-                dxi*(dyi*str->c[n+0]+dy*str->c[n+y1+0])+
-                dx*(dyi*str->c[n+x1+0]+dy*str->c[n+y1+x1+0]))
-            +dz*(
-                dxi*(dyi*str->c[n+z1+0]+dy*str->c[n+y1+z1+0])+
-                dx*(dyi*str->c[n+x1+z1+0]+dy*str->c[n+y1+z1+x1+0])))
-            +xg2/6*(
-                dzi*(
-                    dxi3*(dyi*str->c[n+1]+dy*str->c[n+y1+1])+
-                    dx3*(dyi*str->c[n+x1+1]+dy*str->c[n+y1+x1+1]))
-                +dz*(
-                    dxi3*(dyi*str->c[n+z1+1]+dy*str->c[n+y1+z1+1])+
-                    dx3*(dyi*str->c[n+x1+z1+1]+dy*str->c[n+y1+z1+x1+1])))
-            +yg2/6*(
-                dzi*(
-                    dxi*(dyi3*str->c[n+2]+dy3*str->c[n+y1+2])+
-                    dx*(dyi3*str->c[n+x1+2]+dy3*str->c[n+y1+x1+2]))
-                +dz*(
-                    dxi*(dyi3*str->c[n+z1+2]+dy3*str->c[n+y1+z1+2])+
-                    dx*(dyi3*str->c[n+x1+z1+2]+dy3*str->c[n+y1+z1+x1+2])))
-            +zg2/6*(
-                dzi3*(
-                    dxi*(dyi*str->c[n+3]+dy*str->c[n+y1+3])+
-                    dx*(dyi*str->c[n+x1+3]+dy*str->c[n+y1+x1+3]))
-                +dz3*(
-                    dxi*(dyi*str->c[n+z1+3]+dy*str->c[n+y1+z1+3])+
-                    dx*(dyi*str->c[n+x1+z1+3]+dy*str->c[n+y1+z1+x1+3])))
-            +xg2*yg2/36*(
-                dzi*(
-                    dxi3*(dyi3*str->c[n+4]+dy3*str->c[n+y1+4])+
-                    dx3*(dyi3*str->c[n+x1+4]+dy3*str->c[n+y1+x1+4]))
-                +dz*(
-                    dxi3*(dyi3*str->c[n+z1+4]+dy3*str->c[n+y1+z1+4])+
-                    dx3*(dyi3*str->c[n+x1+z1+4]+dy3*str->c[n+y1+z1+x1+4])))
-            +xg2*zg2/36*(
-                dzi3*(
-                    dxi3*(dyi*str->c[n+5]+dy*str->c[n+y1+5])+
-                    dx3*(dyi*str->c[n+x1+5]+dy*str->c[n+y1+x1+5]))
-                +dz3*(
-                    dxi3*(dyi*str->c[n+z1+5]+dy*str->c[n+y1+z1+5])+
-                    dx3*(dyi*str->c[n+x1+z1+5]+dy*str->c[n+y1+z1+x1+5])))
-            +yg2*zg2/36*(
-                dzi3*(
-                    dxi*(dyi3*str->c[n+6]+dy3*str->c[n+y1+6])+
-                    dx*(dyi3*str->c[n+x1+6]+dy3*str->c[n+y1+x1+6]))
-                +dz3*(
-                    dxi*(dyi3*str->c[n+z1+6]+dy3*str->c[n+y1+z1+6])+
-                    dx*(dyi3*str->c[n+x1+z1+6]+dy3*str->c[n+y1+z1+x1+6])))
-            +xg2*yg2*zg2/216*(
-                dzi3*(
-                    dxi3*(dyi3*str->c[n+7]+dy3*str->c[n+y1+7])+
-                    dx3*(dyi3*str->c[n+x1+7]+dy3*str->c[n+y1+x1+7]))
-                +dz3*(
-                    dxi3*(dyi3*str->c[n+z1+7]+dy3*str->c[n+y1+z1+7])+
-                    dx3*(dyi3*str->c[n+x1+z1+7]+dy3*str->c[n+y1+z1+x1+7])));
-
+        real d_aux1, d_aux2; /**< Auxiliary normalized coordinates */
+        *f = 0;
+        /* loops to move through the nodes */
+        for(int i_node_x=0; i_node_x<2; i_node_x++) {
+            for(int i_node_z=0; i_node_z<2; i_node_z++) {
+                for(int i_node_y=0; i_node_y<2; i_node_y++) {
+                    for(int i_node_t=0; i_node_t<2; i_node_t++) {
+                        /* loops to move through the coefficients */
+                        for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
+                            for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
+                                d_aux1 = dt[i_node_t*2+i_coef_t]*dy[i_node_y*2+i_coef_y];
+                                for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
+                                    d_aux2 = d_aux1*dz[i_node_z*2+i_coef_z];
+                                    for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
+                                        *f +=
+                                            str->c[n +
+                                                   i_node_x*x1 + i_node_z*z1 +
+                                                   i_node_y*y1 + i_node_t*t1 +
+                                                   i_coef_t*8 + i_coef_y*4 +
+                                                   i_coef_z*2 + i_coef_x]*
+                                            d_aux2*dx[i_node_x*2+i_coef_x];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     return err;
