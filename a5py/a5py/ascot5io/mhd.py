@@ -127,7 +127,7 @@ def read_hdf5(fn, qid):
 
     return out
 
-def write_hdf5_dummy(fn):
+def write_hdf5_dummy(fn, desc="Dummy"):
     """
     Write dummy MHD input.
 
@@ -147,4 +147,4 @@ def write_hdf5_dummy(fn):
     psimin    = 0
     psimax    = 1
     write_hdf5(fn, nmodes, mmodes, amplitude, omega, alpha, phi, psimin, psimax,
-               desc="Dummy")
+               desc=desc)

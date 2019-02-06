@@ -87,7 +87,7 @@ def read_hdf5(fn, qid):
 
     return out
 
-def write_hdf5_dummy(fn):
+def write_hdf5_dummy(fn, desc="Dummy"):
     """
     Write dummy boozer input.
 
@@ -115,4 +115,4 @@ def write_hdf5_dummy(fn):
     theta_bzr = np.ones((npsi,ntheta_geo))
     theta_geo = np.ones((nR,nz))
     write_hdf5(fn, gprof, qprof, Iprof, delta, nu, theta_bzr, theta_geo,
-               psimin, psimax, Rmin, Rmax, zmin, zmax, desc="Dummy")
+               psimin, psimax, Rmin, Rmax, zmin, zmax, desc=desc)
