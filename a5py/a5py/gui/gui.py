@@ -158,7 +158,7 @@ class GUI:
         """
         self._ascot = ascot5.Ascot(self._h5fn)
         if self._ascotpy is not None:
-            self._ascotpy.ascotpy_reload(self._h5fn)
+            self._ascotpy.reload(self._h5fn)
         self.displayframe( IndexFrame(self) )
 
     def close(self):

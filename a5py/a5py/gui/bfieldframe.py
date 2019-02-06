@@ -26,12 +26,12 @@ class BfieldFrame(PlotFrame):
         self.ascotpy = ascotpy
 
         self._binxlogchoice = tkinter.IntVar(self)
-        self._binxminchoice = tkinter.IntVar(self)
-        self._binxmaxchoice = tkinter.IntVar(self)
+        self._binxminchoice = tkinter.DoubleVar(self)
+        self._binxmaxchoice = tkinter.DoubleVar(self)
         self._nbinxchoice   = tkinter.IntVar(self)
         self._binylogchoice = tkinter.IntVar(self)
-        self._binyminchoice = tkinter.IntVar(self)
-        self._binymaxchoice = tkinter.IntVar(self)
+        self._binyminchoice = tkinter.DoubleVar(self)
+        self._binymaxchoice = tkinter.DoubleVar(self)
         self._nbinychoice   = tkinter.IntVar(self)
 
         # Set default values for the variables.
@@ -43,7 +43,7 @@ class BfieldFrame(PlotFrame):
         self._binymaxchoice.set(10)
         self._nbinychoice.set(100)
 
-        self.ascotpy.ascotpy_init(bfield=True)
+        self.ascotpy.init(bfield=True)
 
         self._show2dpanel()
 
@@ -101,7 +101,7 @@ class BfieldFrame(PlotFrame):
         self._plot()
 
     def _backtoindex(self):
-        self.ascotpy.ascotpy_free(bfield=True)
+        self.ascotpy.free(bfield=True)
         super()._backtoindex()
 
 
@@ -138,7 +138,7 @@ class BfieldFrame(PlotFrame):
         Z = Z.ravel()
         Phi = np.zeros(R.shape)
 
-        out = self.ascotpy.ascotpy_eval_bfield(R, Phi, Z, evalpsi=True)
+        out = self.ascotpy.eval_bfield(R, Phi, Z, evalpsi=True)
 
         out["psi"] = np.reshape(out["psi"], (r.size, z.size))
 

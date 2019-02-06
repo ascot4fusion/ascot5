@@ -19,7 +19,7 @@ class DebugFrame(tkinter.Frame):
         self._gui     = gui
         self._ascotpy = ascotpy
 
-        self._ascotpy.ascotpy_init(bfield=True)
+        self._ascotpy.init(bfield=True)
 
         indexpanel = tkinter.Frame(self, width=200, height=100)
         toppanel   = tkinter.Frame(self, width=gui.width-100, height=100)
@@ -80,7 +80,7 @@ class DebugFrame(tkinter.Frame):
 
 
     def _backtoindex(self):
-        self._ascotpy.ascotpy_free(bfield=True)
+        self._ascotpy.free(bfield=True)
         from .indexframe import IndexFrame
         self._gui.displayframe(IndexFrame(self._gui))
 
@@ -90,8 +90,8 @@ class DebugFrame(tkinter.Frame):
         phi = np.array([ float(self._phichoice.get()) * np.pi / 180 ])
         z   = np.array([ float(self._zchoice.get()) ])
 
-        bdata = self._ascotpy.ascotpy_eval_bfield(r, phi, z, evalrho=True,
-                                                  evalpsi=True)
+        bdata = self._ascotpy.eval_bfield(r, phi, z, evalrho=True,
+                                          evalpsi=True)
 
         out = ""
         out += "rho : " + str(bdata["rho"]) + "\n"
