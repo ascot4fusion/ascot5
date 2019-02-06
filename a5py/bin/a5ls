@@ -2,6 +2,7 @@
 
 import sys
 import h5py
+import numpy as np
 from prompt_toolkit import PromptSession, HTML
 from prompt_toolkit import print_formatted_text as print
 from prompt_toolkit.completion import WordCompleter, Completer, Completion
@@ -91,9 +92,8 @@ def get_active_group(h5file, group):
             return groupname
 
 def set_active_group(h5file, group):
-    mastergroup = h5file[group].parent.name
-    qid = group[-10:].encode() # To unicode
-    h5file[mastergroup].attrs["active"] = qid
+    qid = group[-10:].encode('utf-8')
+    h5file[group].parent.attrs["active"] = np.string_(qid)
 
 def get_groups_datasets(h5file, path):
     groups = []
