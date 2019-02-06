@@ -131,7 +131,7 @@ class IndexFrame(tkinter.Frame):
         if ascotpy is None:
             return
 
-        if inputtype in ["B_GS", "B_2DS", "B_3DS", "BSTS", "B_TC"]:
+        if inputtype in ["B_GS", "B_2DS", "B_3DS", "B_STS", "B_TC"]:
             self._gui.displayframe(BfieldFrame(self._gui, ascotpy))
 
 
