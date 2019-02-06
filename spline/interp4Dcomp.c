@@ -43,7 +43,7 @@ int interp4Dcomp_init_coeff(real* c, real* f,
                             real x_min, real x_max,
                             real y_min, real y_max,
                             real z_min, real z_max,
-                            real t_min, real t_max)) {
+                            real t_min, real t_max) {
 
     /* For periodic boundary condition, grid maximum value and the last data
        point are not the same. Take this into account in grid interval       */
@@ -115,105 +115,121 @@ int interp4Dcomp_init_coeff(real* c, real* f,
        Note how we account for normalized grid. */
 
     for(int m_t=0; m_t<n_t; m_t++) {
-	for(int k_y=0; k_y<n_z; k_y++) {
-	    for(int j_z=0; j_z<n_y; j_z) {		
-		/* Cubic spline along x to get fxx (for each j_z,k_y,m_t) */
-		for(int i_x=0; i_x<n_x; j_x) {
-		    f_x[i_x] = f[m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x];
-		}
-		splinecomp(f_x, n_x, bc_x, c_x);
-		for(int i_x=0; i_x<n_x; i_x++) {
-		    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 0] = 
-			c_x[i_x*2];
+        for(int k_y=0; k_y<n_z; k_y++) {
+            for(int j_z=0; j_z<n_y; j_z) {
+                /* Cubic spline of f along x
+                   to get fxx (for each j_z,k_y,m_t) */
+                for(int i_x=0; i_x<n_x; j_x) {
+                    f_x[i_x] = f[m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x];
+                }
+                splinecomp(f_x, n_x, bc_x, c_x);
+                for(int i_x=0; i_x<n_x; i_x++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 0] =
+                        c_x[i_x*2];
                     c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 1] =
                         c_x[i_x*2 + 1]/(x_grid*x_grid);
-		}
-		
-
-		/* */
-	    }
-	}
-    }
-
-    /* Bicubic spline surface over xz-grid for each y */
-    for(int k_y=0; k_y<n_y; k_y++) {
-
-        /* Cubic spline along x for each z to get fxx */
+                }
+            }
+            /* Cubic spline of f, fxx along z
+               to get fzz, fxxzz (for each i_x,k_y,m_t) */
+            for(int i_x=0; i_x<n_x; i_x++) {
+                /* fzz */
+                for(int j_z=0; j_z<n_z; j_z++) {
+                    f_z[j_z] = f[m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x];
+                }
+                splinecomp(f_z, n_z, bc_z, c_z);
+                for(int j_z=0; j_z<n_z; j_z++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 2] =
+                        c_z[j_z*2 + 1]/(z_grid*z_grid);
+                }
+                /* fxxzz */
+                for(int j_z=0; j_z<n_z; j_z++) {
+                    f_z[j_z] =
+                        c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 1];
+                }
+                splinecomp(f_z, n_z, bc_z, c_z);
+                for(int j_z=0; j_z<n_z; j_z++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 3] =
+                        c_z[j_z*2 + 1]/(z_grid*z_grid);
+                }
+            }
+        }
+        /* Cubic spline of f, fxx, fzz, fxxzz along y
+           to get fyy, fxxyy, fzzyy, fxxzzyy (for each i_x,j_z,m_t) */
         for(int j_z=0; j_z<n_z; j_z++) {
             for(int i_x=0; i_x<n_x; i_x++) {
-                f_x[i_x] = f[k_y*n_z*n_x + j_z*n_x + i_x];
-            }
-            splinecomp(f_x, n_x, bc_x, c_x);
-            for(int i_x=0; i_x<n_x; i_x++) {
-                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8    ] = c_x[i_x*2];
-                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 1] = c_x[i_x*2 + 1]
-                                                           / (x_grid*x_grid);
+                /* fyy */
+                for(int k_y=0; k_y<n_y; k_y++) {
+                    f_y[k_y] = f[m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x];
+                }
+                splinecomp(f_y, n_y, bc_y, c_y);
+                for(int k_y=0; k_y<n_y; k_y++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 4] =
+                        c_y[k_y*2 + 1]/(y_grid*y_grid);
+                }
+                /* fxxyy */
+                for(int k_y=0; k_y<n_y; k_y++) {
+                    f_y[k_y] =
+                        c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 1];
+                }
+                splinecomp(f_y, n_y, bc_y, c_y);
+                for(int k_y=0; k_y<n_y; k_y++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 5] =
+                        c_y[k_y*2 + 1]/(y_grid*y_grid);
+                }
+                /* fzzyy */
+                for(int k_y=0; k_y<n_y; k_y++) {
+                    f_y[k_y] =
+                        c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 2];
+                }
+                splinecomp(f_y, n_y, bc_y, c_y);
+                for(int k_y=0; k_y<n_y; k_y++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 6] =
+                        c_y[k_y*2 + 1]/(y_grid*y_grid);
+                }
+                /* fxxzzyy */
+                for(int k_y=0; k_y<n_y; k_y++) {
+                    f_y[k_y] =
+                        c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 3];
+                }
+                splinecomp(f_y, n_y, bc_y, c_y);
+                for(int k_y=0; k_y<n_y; k_y++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 7] =
+                        c_y[k_y*2 + 1]/(y_grid*y_grid);
+                }
             }
         }
-
-        /* Two cubic splines along z for each x using f and fxx */
-        for(int i_x=0; i_x<n_x; i_x++) {
-            /* fzz */
-            for(int j_z=0; j_z<n_z; j_z++) {
-                f_z[j_z] = f[k_y*n_z*n_x + j_z*n_x + i_x];
-            }
-            splinecomp(f_z, n_z, bc_z, c_z);
-            for(int j_z=0; j_z<n_z; j_z++) {
-                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 3] = c_z[j_z*2 + 1]
-                                                           / (z_grid*z_grid);
-            }
-            /* fxxzz */
-            for(int j_z=0; j_z<n_z; j_z++) {
-                f_z[j_z] = c[k_y*n_z*n_x*8 + j_z*n_x*8+i_x*8 + 1];
-            }
-            splinecomp(f_z, n_z, bc_z, c_z);
-            for(int j_z=0; j_z<n_z; j_z++) {
-                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 5] = c_z[j_z*2+1]
-                                                           / (z_grid*z_grid);
-            }
-        }
-
     }
+    /* Cubic spline of f, fxx, fzz, fxxzz, fyy, fxxyy, fzzyy, fxxzzyy along t
+       to get ftt, fxxtt, fzztt, fxxzztt, fyytt, fxxyytt, fzzyytt, fxxzzyytt
+       (for each i_x,j_z,k_y) */
 
     /* Cubic spline along y for each xz-pair to find the compact coefficients
        of the tricubic spline volume */
-    for(int j_z=0; j_z<n_z; j_z++) {
-        for(int i_x=0; i_x<n_x; i_x++) {
-            /* fyy */
-            for(int k_y=0; k_y<n_y; k_y++) {
-                f_y[k_y] = f[k_y*n_z*n_x + j_z*n_x + i_x];
-            }
-            splinecomp(f_y, n_y, bc_y, c_y);
-            for(int k_y=0; k_y<n_y; k_y++) {
-                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 2] = c_y[k_y*2 + 1]
-                                                           / (y_grid*y_grid);
-            }
-            /* fxxyy */
-            for(int k_y=0; k_y<n_y; k_y++) {
-                f_y[k_y] = c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 1];
-            }
-            splinecomp(f_y, n_y, bc_y, c_y);
-            for(int k_y=0; k_y<n_y; k_y++) {
-                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 4] = c_y[k_y*2 + 1]
-                                                           / (y_grid*y_grid);
-            }
-            /* fyyzz */
-            for(int k_y=0; k_y<n_y; k_y++) {
-                f_y[k_y] = c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 3];
-            }
-            splinecomp(f_y, n_y, bc_y, c_y);
-            for(int k_y=0; k_y<n_y; k_y++) {
-                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 6] = c_y[k_y*2+1]
-                                                           / (y_grid*y_grid);
-            }
-            /* fxxyyzz */
-            for(int k_y=0; k_y<n_y; k_y++) {
-                f_y[k_y] = c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 5];
-            }
-            splinecomp(f_y, n_y, bc_y, c_y);
-            for(int k_y=0; k_y<n_y; k_y++) {
-                c[k_y*n_z*n_x*8 + j_z*n_x*8 + i_x*8 + 7] = c_y[k_y*2+1]
-                                                           / (y_grid*y_grid);
+    for(int k_y=0; k_y<n_y; k_y++) {
+        for(int j_z=0; j_z<n_z; j_z++) {
+            for(int i_x=0; i_x<n_x; i_x++) {
+                /* ftt */
+                for(int m_t=0; m_t<n_t; m_t++) {
+                    f_t[m_t] = f[m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x];
+                }
+                splinecomp(f_t, n_t, bc_t, c_t);
+                for(int m_t=0; m_t<n_t; m_t++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 8] =
+                        c_t[m_t*2 + 1]/(t_grid*t_grid);
+                }
+                /* c[9:15] are calculated from c[1:7] in a loop */
+                for(int i_c=1; i_c<8; i_c++) {
+                    for(int m_t=0; m_t<n_t; m_t++) {
+                        f_t[m_t] =
+                            c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + i_c];
+                    }
+                    splinecomp(f_t, n_t, bc_t, c_t);
+                    for(int m_t=0; m_t<n_t; m_t++) {
+                        c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + i_c + 8] =
+                            c_t[m_t*2 + 1]/(t_grid*t_grid);
+                    }
+                }
             }
         }
     }
@@ -222,48 +238,60 @@ int interp4Dcomp_init_coeff(real* c, real* f,
     free(f_x);
     free(f_y);
     free(f_z);
+    free(f_t);
     free(c_x);
     free(c_y);
     free(c_z);
+    free(c_t);
+
 
     return 0;
 }
 
 /**
- * @brief Initialize a tricubic spline
+ * @brief Initialize a 4D cubic spline
  *
  * @param str pointer to spline to be initialized
  * @param c array where coefficients are stored
  * @param n_x number of data points in the x direction
  * @param n_y number of data points in the y direction
  * @param n_z number of data points in the z direction
+ * @param n_t number of data points in the t direction
  * @param bc_x boundary condition for x axis
  * @param bc_y boundary condition for y axis
- * @param bc_y boundary condition for z axis
+ * @param bc_z boundary condition for z axis
+ * @param bc_t boundary condition for t axis
  * @param x_min minimum value of the x axis
  * @param x_max maximum value of the x axis
  * @param y_min minimum value of the y axis
  * @param y_max maximum value of the y axis
  * @param z_min minimum value of the z axis
  * @param z_max maximum value of the z axis
+ * @param t_min minimum value of the t axis
+ * @param t_max maximum value of the t axis
  */
 void interp4Dcomp_init_spline(interp4D_data* str, real* c,
-                              int n_x, int n_y, int n_z,
-                              int bc_x, int bc_y, int bc_z,
+                              int n_x, int n_y, int n_z, int n_t,
+                              int bc_x, int bc_y, int bc_z, int bc_t,
                               real x_min, real x_max,
                               real y_min, real y_max,
-                              real z_min, real z_max) {
+                              real z_min, real z_max,
+                              real t_min, real t_max) {
 
     real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
     real y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
     real z_grid = (z_max - z_min) / ( n_z - 1 * (bc_z == NATURALBC) );
+    real t_grid = (t_max - t_min) / ( n_t - 1 * (bc_t == NATURALBC) );
+
 
     str->n_x    = n_x;
     str->n_y    = n_y;
     str->n_z    = n_z;
+    str->n_t    = n_t;
     str->bc_x   = bc_x;
     str->bc_y   = bc_y;
     str->bc_z   = bc_z;
+    str->bc_t   = bc_t;
     str->x_min  = x_min;
     str->x_max  = x_max;
     str->x_grid = x_grid;
@@ -273,6 +301,9 @@ void interp4Dcomp_init_spline(interp4D_data* str, real* c,
     str->z_min  = z_min;
     str->z_max  = z_max;
     str->z_grid = z_grid;
+    str->t_min  = t_min;
+    str->t_max  = t_max;
+    str->t_grid = t_grid;
     str->c      = c;
 }
 
