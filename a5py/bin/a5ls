@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 
-from __future__ import unicode_literals, print_function
 import sys
 import h5py
 from prompt_toolkit import PromptSession, HTML
 from prompt_toolkit import print_formatted_text as print
-from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.completion import WordCompleter, Completer, Completion
-import a5py.ascot5io.ascot5tools as tools
-from a5py.ascot5io.ascot5file import get_qids
 
 # Column width
 column_width = 25
 
 # TODO complete hdf5 paths with subgroups etc.
+# TODO completer does not work for empty strings for some reason
 class H5Completer(Completer):
     group_commands = ['cd', 'c', 'ls', 'l', 'set', 's']
     dataset_commands = ['ls', 'l', 'print', 'p']
@@ -30,7 +27,7 @@ class H5Completer(Completer):
         self.current_group = current_group
 
     def get_completions(self, document, complete_event):
-        word = document.get_word_before_cursor(WORD=True).lower()
+        word = document.get_word_before_cursor(WORD=True).strip().lower()
         word_length = len(word)
         line = document.text_before_cursor
         line_length = len(line)
@@ -88,16 +85,15 @@ def get_complete_path(h5file, current_path, pathstr):
     return complete_path
 
 def get_active_group(h5file, group):
-    qids, dates = get_qids(h5file.filename, group)
-    qid_active = qids[0]
+    qid_active = h5file[group].attrs["active"].decode()
     for groupname in h5file[group]:
         if groupname[-10:] == qid_active:
             return groupname
 
 def set_active_group(h5file, group):
     mastergroup = h5file[group].parent.name
-    qid = group[-10:]
-    tools.call_ascot5file(fn, "set_active", group.name)
+    qid = group[-10:].encode() # To unicode
+    h5file[mastergroup].attrs["active"] = qid
 
 def get_groups_datasets(h5file, path):
     groups = []
@@ -136,7 +132,7 @@ def main():
     """
 
     fname = sys.argv[1]
-    with h5py.File(fname, 'r') as h5file:
+    with h5py.File(fname, 'a') as h5file:
         current_group = '/'
         session = PromptSession(completer=H5Completer(h5file, current_group))
 
@@ -211,7 +207,7 @@ def main():
                     if isinstance(h5file[path], h5py.Group):
                         print('"' + path + '" is a group')
                     elif isinstance(h5file[path], h5py.Dataset):
-                        print(h5file[path].value)
+                        print(h5file[path][:])
 
                 elif command == 'set' or command == 's':
                     if isinstance(h5file[path], h5py.Group):
@@ -231,7 +227,6 @@ def main():
                 else:
                     print('Unrecognized command "' + command + '"')
                     print(HTML(helptxt))
-
 
 if __name__ == '__main__':
     main()
