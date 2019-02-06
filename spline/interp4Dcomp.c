@@ -76,8 +76,6 @@ int interp4Dcomp_init_coeff(real* c, real* f,
         return 1;
     }
 
-
-
     /* Allocate helper quantities */
     real* f_x = malloc(n_x*sizeof(real));
     real* f_y = malloc(n_y*sizeof(real));
@@ -311,17 +309,18 @@ void interp4Dcomp_init_spline(interp4D_data* str, real* c,
  * @brief Evaluate interpolated value of 4D scalar field
  *
  * This function evaluates the interpolated value of a 4D scalar field using
- * tricubic spline interpolation coefficients of the compact form.
+ * 4D cubic spline interpolation coefficients of the compact form.
  *
  * @param f variable in which to place the evaluated value
  * @param str data struct for data interpolation
  * @param x x-coordinate
  * @param y y-coordinate
  * @param z z-coordinate
+ * @param t t-coordinate 
  *
- * @return zero on success and one if (x,y,z) point is outside the grid.
+ * @return zero on success and one if (x,y,z,t) point is outside the grid.
  */
-int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z) {
+int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, real t) {
 
     /* Make sure periodic coordinates are within [max, min] region. */
     if(str->bc_x == PERIODICBC) {
