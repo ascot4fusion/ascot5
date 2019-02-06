@@ -21,7 +21,7 @@ import a5py.ascot5io.plasma_1D as plasma_1D
 import a5py.ascot5io.mrk_prt as mrk_prt
 import a5py.ascot5io.mrk_gc as mrk_gc
 import a5py.ascot5io.E_TC as E_TC
-import a5py.ascot5io.E_1D as E_1D
+import a5py.ascot5io.E_1DS as E_1DS
 import a5py.ascot5io.wall_2D as wall_2D
 import a5py.ascot5io.wall_3D as wall_3D
 
@@ -171,7 +171,7 @@ def read_erad(a4folder, h5fn):
             data['dV_drho'] = np.interp(new_rho, data['rho'],
                                         data['dV_drho'])
             data['rho'] = new_rho
-        E_1D.write_hdf5(
+        E_1DS.write_hdf5(
             h5fn, int(data['n_rho']), np.amin(data['rho']),
             np.amax(data['rho']), data['dV_drho'], 1.0)
     else:

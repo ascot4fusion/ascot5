@@ -83,7 +83,9 @@ from a5py.ascot5io.B_TC       import B_TC
 from a5py.ascot5io.B_GS       import B_GS
 from a5py.ascot5io.B_2DS      import B_2DS
 from a5py.ascot5io.B_3DS      import B_3DS
+from a5py.ascot5io.B_STS      import B_STS
 from a5py.ascot5io.E_TC       import E_TC
+from a5py.ascot5io.E_1DS      import E_1DS
 from a5py.ascot5io.E_3D       import E_3D
 from a5py.ascot5io.E_3DPOT    import E_3DPOT
 from a5py.ascot5io.mrk_prt    import mrk_prt
@@ -191,6 +193,13 @@ class _Node():
         Print a string representation of this node.
         """
         print(str(self))
+
+    def __contains__(self, key):
+        try:
+            getattr(self, key)
+            return True
+        except AttributeError:
+            return False
 
     def __getitem__(self, key):
         """
@@ -347,8 +356,14 @@ class _InputNode(_ContainerNode):
             if type_ == "B_3DS":
                 inputobj = B_3DS(parent[key])
 
+            if type_ == "B_STS":
+                inputobj = B_STS(parent[key])
+
             if type_ == "E_TC":
                 inputobj = E_TC(parent[key])
+
+            if type_ == "E_1DS":
+                inputobj = E_1DS(parent[key])
 
             if type_ == "E_3D":
                 inputobj = E_3D(parent[key])
@@ -514,6 +529,12 @@ class Ascot(_ContainerNode):
         super().__init__()
         self._hdf5fn = fn
         self.reload()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        return
 
     def __str__(self):
         """

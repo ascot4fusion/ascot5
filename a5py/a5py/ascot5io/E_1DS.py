@@ -1,7 +1,7 @@
 """
-Radial electric field IO.
+Spline radial electric field IO.
 
-File: E_1D.py
+File: E_1DS.py
 """
 import h5py
 import numpy as np
@@ -63,7 +63,7 @@ def read_hdf5(fn, qid):
     Dictionary containing electric field data.
     """
 
-    path = "efield" + "/E_1D-" + qid
+    path = "efield" + "/E_1DS-" + qid
 
     with h5py.File(fn,"r") as f:
         out = {}
@@ -82,7 +82,7 @@ def read_hdf5(fn, qid):
 
     return out
 
-class E_1D(AscotData):
+class E_1DS(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
