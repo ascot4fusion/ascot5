@@ -196,10 +196,8 @@ int ascotpy_free(int bfield, int efield, int plasma, int wall, int neutral) {
  * @param Bz_dR output array [T].
  * @param Bz_dphi output array [T].
  * @param Bz_dz output array [T].
- *
- * @return zero if evaluation succeeded.
  */
-int ascotpy_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z, real* t,
+void ascotpy_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z, real* t,
                               real* BR, real* Bphi, real* Bz,
                               real* BR_dR, real* BR_dphi, real* BR_dz,
                               real* Bphi_dR, real* Bphi_dphi, real* Bphi_dz,
@@ -207,7 +205,7 @@ int ascotpy_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z, real* t,
     real B[12];
     for(int k = 0; k < Neval; k++) {
         if( B_field_eval_B_dB(B, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
-            return 1;
+            continue;
         }
         BR[k]        = B[0];
         Bphi[k]      = B[4];
@@ -222,7 +220,6 @@ int ascotpy_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z, real* t,
         Bz_dphi[k]   = B[10];
         Bz_dz[k]     = B[11];
     }
-    return 0;
 }
 
 /**
@@ -234,19 +231,16 @@ int ascotpy_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z, real* t,
  * @param z z coordinates of the evaluation points [m].
  * @param t time coordinates of the evaluation points [s].
  * @param psi output array.
- *
- * @return zero if evaluation succeeded.
  */
-int ascotpy_B_field_eval_psi(int Neval, real* R, real* phi, real* z, real* t,
+void ascotpy_B_field_eval_psi(int Neval, real* R, real* phi, real* z, real* t,
                              real* psi) {
     real psival[1];
     for(int k = 0; k < Neval; k++) {
         if( B_field_eval_psi(psival, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
-            return 1;
+            continue;
         }
         psi[k] = psival[0];
     }
-    return 0;
 }
 
 /**
@@ -258,23 +252,20 @@ int ascotpy_B_field_eval_psi(int Neval, real* R, real* phi, real* z, real* t,
  * @param z z coordinates of the evaluation points [m].
  * @param t time coordinates of the evaluation points [s].
  * @param psi output array.
- *
- * @return zero if evaluation succeeded.
  */
-int ascotpy_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
+void ascotpy_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
                              real* rho) {
     real rhoval[1];
     real psival[1];
     for(int k = 0; k < Neval; k++) {
         if( B_field_eval_psi(psival, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
-            return 1;
+            continue;
         }
         if( B_field_eval_rho(rhoval, psival[0], &sim.B_data) ) {
-            return 1;
+            continue;
         }
         rho[k] = rhoval[0];
     }
-    return 0;
 }
 
 /**
