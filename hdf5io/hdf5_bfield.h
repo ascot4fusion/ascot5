@@ -8,7 +8,7 @@
 #include "../B_field.h"
 #include "../Bfield/B_2DS.h"
 #include "../Bfield/B_3DS.h"
-#include "../Bfield/B_3DS_T.h"
+#include "../Bfield/B_3DST.h"
 #include "../Bfield/B_STS.h"
 #include "../Bfield/B_GS.h"
 #include "../Bfield/B_TC.h"
@@ -16,7 +16,5 @@
 
 int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data,
                              real** offload_array, char* qid);
-
-void hdf5_bfield_init_offload_3DS_T(hid_t f, B_3DS_T_offload_data* offload_data, real** offload_array, char* qid); 
 
 #endif
