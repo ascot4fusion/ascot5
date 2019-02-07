@@ -159,10 +159,12 @@ void mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
  * - mhd_dmhd[8] = grad phi, phi component
  * - mhd_dmhd[9] = grad phi, z component
  */
-a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* mhddata) {
+a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* mhddata, B_field_data* Bdata) {
     a5err err = 0;
-    real ptz_dptz[12];
-    boozer_eval_gradients(ptz_dptz, r, phi, z, boozerdata);
+    real psi_dpsi[4];
+    real thetazeta[12];
+    B_field_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
+    boozer_eval_thetazeta(thetazeta, r, phi, z, psi_dpsi,boozerdata);
     int i; 
     for(i = 0; i <  mhddata->n_modes; i++){
 	/*get interpolated values */
@@ -173,7 +175,7 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, 
 	interp2Dcomp_eval_df(phi_dphi,&(mhddata->phi_nm[i]),r,t);
         
         /*this is used frequently, so define here*/
-        real mhdarg = (mhddata->nmode[i])* ptz_dptz[8]-(mhddata->mmode[i])*ptz_dptz[4]-(mhddata->omega_nm[i])*t +phase;
+        real mhdarg = (mhddata->nmode[i])* thetazeta[4]-(mhddata->mmode[i])*thetazeta[0]-(mhddata->omega_nm[i])*t +phase;
 
         /*sum over modes to get alpha, phi */
 	/*possible normalization errors*/
@@ -188,22 +190,22 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, 
 	/*following code could be written better*/
 	/*r component of gradients */
 
-	mhd_dmhd[2] += (mhddata->amplitude_nm[i])*(a_da[1]*ptz_dptz[1]*sin(mhdarg) + -1*a_da[0]*(mhddata->mmode[i])*ptz_dptz[5]*cos(mhdarg) + a_da[0]*(mhddata->nmode[i])*ptz_dptz[9]*cos(mhdarg));
+	mhd_dmhd[2] += (mhddata->amplitude_nm[i])*(a_da[1]*psi_dpsi[1]*sin(mhdarg) + -1*a_da[0]*(mhddata->mmode[i])*thetazeta[1]*cos(mhdarg) + a_da[0]*(mhddata->nmode[i])*thetazeta[5]*cos(mhdarg));
 
 
-	mhd_dmhd[7] += (mhddata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[1]*sin(mhdarg) + -1*phi_dphi[0]*(mhddata->mmode[i])*ptz_dptz[5]*cos(mhdarg) + phi_dphi[0]*(mhddata->nmode[i])*ptz_dptz[9]*cos(mhdarg));
+	mhd_dmhd[7] += (mhddata->amplitude_nm[i])*(phi_dphi[1]*psi_dpsi[1]*sin(mhdarg) + -1*phi_dphi[0]*(mhddata->mmode[i])*thetazeta[1]*cos(mhdarg) + phi_dphi[0]*(mhddata->nmode[i])*thetazeta[5]*cos(mhdarg));
 
 	/*phi component of gradients */
 
-	mhd_dmhd[3] += (1/r)*(mhddata->amplitude_nm[i])*(a_da[1]*ptz_dptz[2]*sin(mhdarg) + -1*a_da[0]*(mhddata->mmode[i])*ptz_dptz[6]*cos(mhdarg) + a_da[0]*(mhddata->nmode[i])*ptz_dptz[10]*cos(mhdarg));
+	mhd_dmhd[3] += (1/r)*(mhddata->amplitude_nm[i])*(a_da[1]*psi_dpsi[2]*sin(mhdarg) + -1*a_da[0]*(mhddata->mmode[i])*thetazeta[2]*cos(mhdarg) + a_da[0]*(mhddata->nmode[i])*thetazeta[6]*cos(mhdarg));
 
-	mhd_dmhd[8] += (1/r)*(mhddata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[2]*sin(mhdarg) + -1*phi_dphi[0]*(mhddata->mmode[i])*ptz_dptz[6]*cos(mhdarg) + phi_dphi[0]*(mhddata->nmode[i])*ptz_dptz[10]*cos(mhdarg));
+	mhd_dmhd[8] += (1/r)*(mhddata->amplitude_nm[i])*(phi_dphi[1]*psi_dpsi[2]*sin(mhdarg) + -1*phi_dphi[0]*(mhddata->mmode[i])*thetazeta[2]*cos(mhdarg) + phi_dphi[0]*(mhddata->nmode[i])*thetazeta[6]*cos(mhdarg));
 
 	/*z component of gradients */
 
-	mhd_dmhd[4] += (mhddata->amplitude_nm[i])*(a_da[1]*ptz_dptz[3]*sin(mhdarg) + -1*a_da[0]*(mhddata->mmode[i])*ptz_dptz[7]*cos(mhdarg) + a_da[0]*(mhddata->nmode[i])*ptz_dptz[11]*cos(mhdarg)); 
+	mhd_dmhd[4] += (mhddata->amplitude_nm[i])*(a_da[1]*psi_dpsi[3]*sin(mhdarg) + -1*a_da[0]*(mhddata->mmode[i])*thetazeta[3]*cos(mhdarg) + a_da[0]*(mhddata->nmode[i])*thetazeta[7]*cos(mhdarg)); 
  
-	mhd_dmhd[9] += (mhddata->amplitude_nm[i])*(phi_dphi[1]*ptz_dptz[3]*sin(mhdarg) + -1*phi_dphi[0]*(mhddata->mmode[i])*ptz_dptz[7]*cos(mhdarg) + phi_dphi[0]*(mhddata->nmode[i])*ptz_dptz[11]*cos(mhdarg));
+	mhd_dmhd[9] += (mhddata->amplitude_nm[i])*(phi_dphi[1]*psi_dpsi[3]*sin(mhdarg) + -1*phi_dphi[0]*(mhddata->mmode[i])*thetazeta[3]*cos(mhdarg) + phi_dphi[0]*(mhddata->nmode[i])*thetazeta[7]*cos(mhdarg));
      }
     return err;
 }
@@ -222,7 +224,7 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t, 
 a5err mhd_perturbations(real pert_field[6], real phase, real r, real phi, real z, real t, boozer_data* boozerdata, mhd_data* mhddata,B_field_data* Bdata){
     a5err err = 0;
     real mhd_dmhd[10];
-    mhd_eval(mhd_dmhd, phase, r, phi, z, t, boozerdata, mhddata);
+    mhd_eval(mhd_dmhd, phase, r, phi, z, t, boozerdata, mhddata,Bdata);
 
     /*  see example of curl evaluation in step_gc_rk4.c, ydot_gc*/
     real B_dB[12];
