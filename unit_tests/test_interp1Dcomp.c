@@ -7,12 +7,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../math.h"
-#include "../spline/interp1Dcomp.h"
+#include "../spline/interp.h"
 
 int main(int argc, char** argv) {
 
     if(argc < 2) {
-        printf("Usage: test_spline fname\n");
+        printf("Usage: test_interp1Dcomp fname\n");
         exit(1);
     }
 
@@ -34,13 +34,16 @@ int main(int argc, char** argv) {
     for (int i = 0; i < n_r; i++) {
         fn[i] = r[i]*r[i];
     }
-
+    /* Natural boundary conditions */
+    int bc_r = 0;
+    real* c = malloc(n_r * NSIZE_COMP1D * sizeof(real));
+    interp1Dcomp_init_coeff(c, fn, n_r, bc_r, r_min, r_max);
     interp1D_data str;
-    interp1Dcomp_init(&str, fn, n_r, r_min, r_max, r_grid);
+    interp1Dcomp_init_spline(&str, c, n_r, bc_r, r_min, r_max);
 
     for (int i = 0; i < n_r; i++) {
-        interp1Dcomp_eval_B(&B, &str, r[i]);
-        interp1Dcomp_eval_dB(B_dB, &str, r[i]);
+        interp1Dcomp_eval_f(&B, &str, r[i]);
+        interp1Dcomp_eval_df(B_dB, &str, r[i]);
         fprintf(f,"%le %le ", r[i], r[i]*r[i]);
         /* fprintf(f,"%le %le \n", str.c[i*2], str.c[i*2+1]); */
         fprintf(f,"%le %le %le %le\n", B, B_dB[0], B_dB[1], B_dB[2]);

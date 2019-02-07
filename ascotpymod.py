@@ -49,17 +49,17 @@ class Ascotpy:
 
         # B field functions.
         fun = self.ascotlib.ascotpy_B_field_eval_B_dB
-        fun.restype  = ctypes.c_int
+        fun.restype  = None
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
                         real_p, real_p, real_p, real_p, real_p, real_p,
                         real_p, real_p, real_p, real_p, real_p, real_p]
 
         fun = self.ascotlib.ascotpy_B_field_eval_psi
-        fun.restype  = ctypes.c_int
+        fun.restype  = None
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
         fun = self.ascotlib.ascotpy_B_field_eval_rho
-        fun.restype  = ctypes.c_int
+        fun.restype  = None
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
         fun = self.ascotlib.ascotpy_B_field_get_axis
@@ -90,20 +90,20 @@ class Ascotpy:
         fun.restype  = ctypes.c_int
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
-    def ascotpy_reload(self, h5fn):
+    def reload(self, h5fn):
         """
         Change HDF5 file and free resources from old one.
         """
-        self.ascotpy_free(bfield=self.bfield_initialized,
-                          efield=self.efield_initialized,
-                          plasma=self.plasma_initialized,
-                          wall=self.wall_initialized,
-                          neutral=self.neutral_initialized)
+        self.free(bfield=self.bfield_initialized,
+                  efield=self.efield_initialized,
+                  plasma=self.plasma_initialized,
+                  wall=self.wall_initialized,
+                  neutral=self.neutral_initialized)
         self.h5fn = h5fn.encode('UTF-8')
 
 
-    def ascotpy_init(self, bfield=False, efield=False, plasma=False, wall=False,
-                     neutral=False):
+    def init(self, bfield=False, efield=False, plasma=False, wall=False,
+             neutral=False):
         """
         Initialize input data.
 
@@ -153,8 +153,8 @@ class Ascotpy:
             self.neutral_initialized  = True
 
 
-    def ascotpy_free(self, bfield=False, efield=False, plasma=False, wall=False,
-                     neutral=False):
+    def free(self, bfield=False, efield=False, plasma=False, wall=False,
+             neutral=False):
         """
         Free input data.
 
@@ -191,8 +191,8 @@ class Ascotpy:
             self.bfield_initialized  = False
 
 
-    def ascotpy_eval_bfield(self, R, phi, z, evalb=False, evalpsi=False,
-                            evalrho=False, evalaxis=False):
+    def eval_bfield(self, R, phi, z, evalb=False, evalpsi=False,
+                    evalrho=False, evalaxis=False):
         """
         Evaluate magnetic field quantities at given coordinates.
 
@@ -230,18 +230,18 @@ class Ascotpy:
         out = {}
 
         if evalb:
-            out["br"]       = np.zeros(R.shape, dtype="f8")
-            out["bphi"]     = np.zeros(R.shape, dtype="f8")
-            out["bz"]       = np.zeros(R.shape, dtype="f8")
-            out["brdr"]     = np.zeros(R.shape, dtype="f8")
-            out["brdphi"]   = np.zeros(R.shape, dtype="f8")
-            out["brdz"]     = np.zeros(R.shape, dtype="f8")
-            out["bphidr"]   = np.zeros(R.shape, dtype="f8")
-            out["bphidphi"] = np.zeros(R.shape, dtype="f8")
-            out["bphidz"]   = np.zeros(R.shape, dtype="f8")
-            out["bzdr"]     = np.zeros(R.shape, dtype="f8")
-            out["bzdphi"]   = np.zeros(R.shape, dtype="f8")
-            out["bzdz"]     = np.zeros(R.shape, dtype="f8")
+            out["br"]       = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bphi"]     = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bz"]       = np.zeros(R.shape, dtype="f8") + np.nan
+            out["brdr"]     = np.zeros(R.shape, dtype="f8") + np.nan
+            out["brdphi"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["brdz"]     = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bphidr"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bphidphi"] = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bphidz"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bzdr"]     = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bzdphi"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bzdz"]     = np.zeros(R.shape, dtype="f8") + np.nan
 
             self.ascotlib.ascotpy_B_field_eval_B_dB(
                 Neval, R, phi, z, t,
@@ -251,25 +251,25 @@ class Ascotpy:
                 out["bzdr"], out["bzdphi"], out["bzdz"])
 
         if evalpsi:
-            out["psi"] = np.zeros(R.shape, dtype="f8")
+            out["psi"] = np.zeros(R.shape, dtype="f8") + np.nan
             self.ascotlib.ascotpy_B_field_eval_psi(Neval, R, phi, z, t,
                                                    out["psi"])
 
         if evalrho:
-            out["rho"] = np.zeros(R.shape, dtype="f8")
+            out["rho"] = np.zeros(R.shape, dtype="f8") + np.nan
             self.ascotlib.ascotpy_B_field_eval_rho(Neval, R, phi, z, t,
                                                    out["rho"])
 
         if evalaxis:
-            out["axisr"] = np.zeros(R.shape, dtype="f8")
-            out["axisz"] = np.zeros(R.shape, dtype="f8")
+            out["axisr"] = np.zeros(R.shape, dtype="f8") + np.nan
+            out["axisz"] = np.zeros(R.shape, dtype="f8") + np.nan
             self.ascotlib.ascotpy_B_field_get_axis(Neval, phi, out["axisr"],
                                                    out["axisz"])
 
         return out
 
 
-    def ascotpy_eval_efield(self, R, phi, z):
+    def eval_efield(self, R, phi, z):
         """
         Evaluate electric field quantities at given coordinates.
 
@@ -309,7 +309,7 @@ class Ascotpy:
         return out
 
 
-    def ascotpy_eval_plasma(self, R, phi, z):
+    def eval_plasma(self, R, phi, z):
         """
         Evaluate plasma quantities at given coordinates.
 
@@ -362,7 +362,7 @@ class Ascotpy:
 
         return out
 
-    def ascotpy_eval_neutral(self, R, phi, z):
+    def eval_neutral(self, R, phi, z):
         """
         Evaluate plasma quantities at given coordinates.
 
@@ -401,20 +401,20 @@ if __name__ == '__main__':
     # For testing purposes.
     import os
     ascot = Ascotpy(os.path.abspath("ascotpy.so"), "ascot.h5")
-    ascot.ascotpy_init(bfield=True, efield=True, plasma=True, wall=True,
-                       neutral=True)
+    ascot.init(bfield=True, efield=True, plasma=True, wall=True,
+               neutral=True)
 
     R   = np.array([6.2,   7, 8])
     phi = np.array([  0,   0, 0])
     z   = np.array([0.0, 0.2, 0.2])
 
-    bvals       = ascot.ascotpy_eval_bfield(R, phi, z, evalb=True, evalpsi=True,
+    bvals       = ascot.eval_bfield(R, phi, z, evalb=True, evalpsi=True,
                                             evalrho=True, evalaxis=True)
-    evals       = ascot.ascotpy_eval_efield(R, phi, z)
-    plasmavals  = ascot.ascotpy_eval_plasma(R, phi, z)
-    neutralvals = ascot.ascotpy_eval_neutral(R, phi, z)
+    evals       = ascot.eval_efield(R, phi, z)
+    plasmavals  = ascot.eval_plasma(R, phi, z)
+    neutralvals = ascot.eval_neutral(R, phi, z)
 
     print(bvals)
 
-    ascot.ascotpy_free(bfield=True, efield=True, plasma=True, wall=True,
-                       neutral=True)
+    ascot.free(bfield=True, efield=True, plasma=True, wall=True,
+               neutral=True)

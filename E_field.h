@@ -12,7 +12,6 @@
 #include "error.h"
 #include "B_field.h"
 #include "Efield/E_TC.h"
-#include "Efield/E_1D.h"
 #include "Efield/E_1DS.h"
 #include "Efield/E_3D.h"
 #include "Efield/E_3DS.h"
@@ -26,7 +25,6 @@
  */
 typedef enum E_field_type {
     E_field_type_TC, /**< Trivial Cartesian electric field */
-    E_field_type_1D, /**< Radial electric field */
     E_field_type_1DS, /**< Spline-interpolated radial electric field */
     E_field_type_3D,  /**< Linear-interpolated 3D electric field */
     E_field_type_3DS  /**< Spline-interpolated 3D electric field */
@@ -44,7 +42,6 @@ typedef enum E_field_type {
 typedef struct {
     E_field_type type;        /**< Electric field type wrapped by this struct */
     E_TC_offload_data ETC;    /**< TC field or NULL if not active             */
-    E_1D_offload_data E1D;    /**< 1D field or NULL if not active             */
     E_1DS_offload_data E1DS;  /**< 1DS field or NULL if not active            */
     E_3D_offload_data E3D;    /**< 3D fiel or NULL if not active              */
     E_3DS_offload_data E3DS;  /**< 3DS fiel or NULL if not active              */
@@ -63,7 +60,6 @@ typedef struct {
 typedef struct {
     E_field_type type; /**< Electric field type wrapped by this struct */
     E_TC_data ETC;     /**< TC field or NULL if not active             */
-    E_1D_data E1D;     /**< 1D field or NULL if not active             */
     E_1DS_data E1DS;   /**< 1DS field or NULL if not active            */
     E_3D_data E3D;     /**< 3D field or NULL if not active             */
     E_3DS_data E3DS;    /**< 3DS field or NULL if not active             */

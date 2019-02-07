@@ -7,14 +7,14 @@
 #include <math.h>
 #include "../ascot5.h"
 #include "../consts.h"
+#include "../gctransform.h"
 #include "dist_rho6D.h"
-#include "../particle.h"
 
 /**
  * @brief Internal function calculating the index in the histogram array
  */
 #pragma omp declare target
-unsigned long dist_rho6D_index(int i_rho, int i_pol, int i_phi, int i_vr, 
+unsigned long dist_rho6D_index(int i_rho, int i_pol, int i_phi, int i_vr,
                                int i_vphi, int i_vz, int i_time, int i_q,
                                int n_pol, int n_phi, int n_vr, int n_vphi,
                                int n_vz, int n_time, int n_q) {
@@ -56,7 +56,8 @@ void dist_rho6D_free_offload(dist_rho6D_offload_data* offload_data) {
 /**
  * @brief Initializes distribution from offload data
  */
-void dist_rho6D_init(dist_rho6D_data* dist_data, dist_rho6D_offload_data* offload_data,
+void dist_rho6D_init(dist_rho6D_data* dist_data,
+                     dist_rho6D_offload_data* offload_data,
                      real* offload_array) {
     dist_data->n_rho = offload_data->n_rho;
     dist_data->min_rho = offload_data->min_rho;
@@ -145,7 +146,8 @@ void dist_rho6D_update_fo(dist_rho6D_data* dist, particle_simd_fo* p_f,
                             / ((dist->max_vr - dist->min_vr) / dist->n_vr));
 
             i_vphi[i] = floor((p_f->phidot[i]*p_f->r[i] - dist->min_vphi)
-                              / ((dist->max_vphi - dist->min_vphi) / dist->n_vphi));
+                              / ((dist->max_vphi - dist->min_vphi)
+                                 / dist->n_vphi));
 
             i_vz[i] = floor((p_f->zdot[i] - dist->min_vz)
                             / ((dist->max_vz - dist->min_vz) / dist->n_vz));
@@ -177,7 +179,7 @@ void dist_rho6D_update_fo(dist_rho6D_data* dist, particle_simd_fo* p_f,
         if(p_f->running[i] && ok[i]) {
             unsigned long index = dist_rho6D_index(i_rho[i], i_pol[i], i_phi[i],
                                                    i_vr[i], i_vphi[i], i_vz[i],
-                                                   i_time[i], i_q[i], 
+                                                   i_time[i], i_q[i],
                                                    dist->n_pol, dist->n_phi,
                                                    dist->n_vr, dist->n_vphi,
                                                    dist->n_vz, dist->n_time,
@@ -216,37 +218,52 @@ void dist_rho6D_update_gc(dist_rho6D_data* dist, particle_simd_gc* p_f,
     int ok[NSIMD];
     real weight[NSIMD];
 
-    particle_state p_s;
-
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
-            particle_gc_to_state(p_f, i, &p_s, NULL);
+            real vr, vphi, vz;
+            real B_dB[12] = {p_f->B_r[i],
+                             p_f->B_r_dr[i],
+                             p_f->B_r_dphi[i],
+                             p_f->B_r_dz[i],
+                             p_f->B_phi[i],
+                             p_f->B_phi_dr[i],
+                             p_f->B_phi_dphi[i],
+                             p_f->B_phi_dz[i],
+                             p_f->B_z[i],
+                             p_f->B_z_dr[i],
+                             p_f->B_z_dphi[i],
+                             p_f->B_z_dz[i]};
+            gctransform_vparmutheta2vRvphivz(p_f->mass[i], p_f->charge[i], B_dB,
+                                             p_f->phi[i], p_f->vpar[i],
+                                             p_f->mu[i], p_f->theta[i],
+                                             &vr, &vphi, &vz);
 
-            i_rho[i] = floor((p_s.rho - dist->min_rho)
+            i_rho[i] = floor((p_f->rho[i] - dist->min_rho)
                              / ((dist->max_rho - dist->min_rho)/dist->n_rho));
 
-            phi[i] = fmod(p_s.phi, 2*CONST_PI);
+            phi[i] = fmod(p_f->phi[i], 2*CONST_PI);
             if(phi[i] < 0) {
                 phi[i] = phi[i] + 2*CONST_PI;
             }
             i_phi[i] = floor((phi[i] - dist->min_phi)
                              / ((dist->max_phi - dist->min_phi)/dist->n_phi));
 
-            pol[i] = fmod(p_s.pol, 2*CONST_PI);
+            pol[i] = fmod(p_f->pol[i], 2*CONST_PI);
             if(pol[i] < 0) {
                 pol[i] = pol[i] + 2*CONST_PI;
             }
             i_pol[i] = floor((pol[i] - dist->min_pol)
                              / ((dist->max_pol - dist->min_pol) / dist->n_pol));
 
-            i_vr[i] = floor((p_s.rdot - dist->min_vr)
+            i_vr[i] = floor((vr - dist->min_vr)
                             / ((dist->max_vr - dist->min_vr) / dist->n_vr));
 
-            i_vphi[i] = floor((p_s.phidot*p_s.r - dist->min_vphi)
-                              / ((dist->max_vphi - dist->min_vphi) / dist->n_vphi));
+            i_vphi[i] = floor((vphi - dist->min_vphi)
+                              / ((dist->max_vphi - dist->min_vphi)
+                                 / dist->n_vphi));
 
-            i_vz[i] = floor((p_s.zdot - dist->min_vz)
+            i_vz[i] = floor((vz - dist->min_vz)
                             / ((dist->max_vz - dist->min_vz) / dist->n_vz));
 
             i_time[i] = floor((p_f->time[i] - dist->min_time)
@@ -264,7 +281,7 @@ void dist_rho6D_update_gc(dist_rho6D_data* dist, particle_simd_gc* p_f,
                i_time[i] >= 0 && i_time[i] <= dist->n_time - 1 &&
                i_q[i]    >= 0 && i_q[i]    <= dist->n_q - 1      ) {
                 ok[i] = 1;
-                weight[i] = p_s.weight * (p_s.time - p_i->time[i]);
+                weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
             }
             else {
                 ok[i] = 0;
@@ -275,7 +292,7 @@ void dist_rho6D_update_gc(dist_rho6D_data* dist, particle_simd_gc* p_f,
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i] && ok[i]) {
             unsigned long index = dist_rho6D_index(i_rho[i], i_pol[i], i_phi[i],
-                                                   i_vr[i], i_vphi[i], i_vz[i], 
+                                                   i_vr[i], i_vphi[i], i_vz[i],
                                                    i_time[i], i_q[i],
                                                    dist->n_pol, dist->n_phi,
                                                    dist->n_vr, dist->n_vphi,

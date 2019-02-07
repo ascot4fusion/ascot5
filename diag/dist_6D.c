@@ -8,7 +8,7 @@
 #include "../ascot5.h"
 #include "../consts.h"
 #include "dist_6D.h"
-#include "../particle.h"
+#include "../gctransform.h"
 
 /**
  * @brief Internal function calculating the index in the histogram array
@@ -210,33 +210,47 @@ void dist_6D_update_gc(dist_6D_data* dist, particle_simd_gc* p_f,
     int ok[NSIMD];
     real weight[NSIMD];
 
-    particle_state p_s;
-
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
-            particle_gc_to_state(p_f, i, &p_s, NULL);
+            real vr, vphi, vz;
+            real B_dB[12] = {p_f->B_r[i],
+                             p_f->B_r_dr[i],
+                             p_f->B_r_dphi[i],
+                             p_f->B_r_dz[i],
+                             p_f->B_phi[i],
+                             p_f->B_phi_dr[i],
+                             p_f->B_phi_dphi[i],
+                             p_f->B_phi_dz[i],
+                             p_f->B_z[i],
+                             p_f->B_z_dr[i],
+                             p_f->B_z_dphi[i],
+                             p_f->B_z_dz[i]};
+            gctransform_vparmutheta2vRvphivz(p_f->mass[i], p_f->charge[i], B_dB,
+                                             p_f->phi[i], p_f->vpar[i],
+                                             p_f->mu[i], p_f->theta[i],
+                                             &vr, &vphi, &vz);
 
-            i_r[i] = floor((p_s.r - dist->min_r)
+            i_r[i] = floor((p_f->r[i] - dist->min_r)
                      / ((dist->max_r - dist->min_r)/dist->n_r));
 
-            phi[i] = fmod(p_s.phi, 2*CONST_PI);
+            phi[i] = fmod(p_f->phi[i], 2*CONST_PI);
             if(phi[i] < 0) {
                 phi[i] = phi[i] + 2*CONST_PI;
             }
             i_phi[i] = floor((phi[i] - dist->min_phi)
                        / ((dist->max_phi - dist->min_phi)/dist->n_phi));
 
-            i_z[i] = floor((p_s.z - dist->min_z)
+            i_z[i] = floor((p_f->z[i] - dist->min_z)
                      / ((dist->max_z - dist->min_z) / dist->n_z));
 
-            i_vr[i] = floor((p_s.rdot - dist->min_vr)
+            i_vr[i] = floor((vr - dist->min_vr)
                       / ((dist->max_vr - dist->min_vr) / dist->n_vr));
 
-            i_vphi[i] = floor((p_s.phidot*p_s.r - dist->min_vphi)
+            i_vphi[i] = floor((vphi - dist->min_vphi)
                         / ((dist->max_vphi - dist->min_vphi) / dist->n_vphi));
 
-            i_vz[i] = floor((p_s.zdot - dist->min_vz)
+            i_vz[i] = floor((vz - dist->min_vz)
                       / ((dist->max_vz - dist->min_vz) / dist->n_vz));
 
             i_time[i] = floor((p_f->time[i] - dist->min_time)
@@ -254,7 +268,7 @@ void dist_6D_update_gc(dist_6D_data* dist, particle_simd_gc* p_f,
                i_time[i] >= 0 && i_time[i] <= dist->n_time - 1 &&
                i_q[i]    >= 0 && i_q[i]    <= dist->n_q - 1      ) {
                 ok[i] = 1;
-                weight[i] = p_s.weight * (p_s.time - p_i->time[i]);
+                weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
             }
             else {
                 ok[i] = 0;
