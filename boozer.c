@@ -216,8 +216,12 @@ void boozer_free_offload(boozer_offload_data* offload_data,
     free(*offload_array);
 }
 
+a5err boozer_ingrid
+
 /**
- * @brief Evaluate Boozer angular coordinates and partial derivatives.
+ * @brief Evaluate Boozer angular coordinates and partial derivatives if within the corresponding grid.
+ *
+ * - isinside == 1 and the values have a meaning, otherwise (r,phi,z) is outside the grid.
  *
  * The values are stored in the given array as:
  * - ptz_dptz[0] = theta
@@ -233,32 +237,66 @@ void boozer_free_offload(boozer_offload_data* offload_data,
  *
  * @return zero on success
  */
-a5err boozer_eval_thetazeta(real thetazeta[8], real r, real phi, real z,
-                            real psi_dpsi[4], boozer_data* boozerdata) {
+a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside, real r, real phi, real z,
+			       boozer_data* boozerdata) {
     a5err err = 0;
     int interperr = 0;
 
-    /* geometrical theta and derivatives as helper variables */
-    real thgeo[6];
-    interperr += interp2Dcomp_eval_df(thgeo, &boozerdata->theta_geo, r, z);
 
-    /* theta and derivatives */
-    real theta[6];
-    interperr += interp2Dcomp_eval_df(theta, &boozerdata->theta_bzr,
-                                      psi_dpsi[0], thgeo[0]);
-    thetazeta[0] = theta[0];
-    thetazeta[1] = psi_dpsi[1] * theta[1] + thgeo[1] * theta[2];
-    thetazeta[2] = 0;
-    thetazeta[3] = psi_dpsi[3] * theta[1] + thgeo[3] * theta[2];
+    // APPLY A WINDING NUMBER TEST HERE with boozerdata->rs,zs vs r,z
+    if(math_winding_number(r, z, boozerdata->rs, boozerdata->zs, int n);
+    
+    /* get the psi value and check that it is within the grid */ 
+    real psi[6]; /* (psi,dpsi_dr,dpsi_dz,...) */
+    interperr += interp2Dcomp_eval_df(psi, &boozerdata->psi_rz,r,z);
+    if(psi[0] >= boozerdata->psimin && psi[0] <= boozerdata->psimax) {
 
-    /* zeta and derivatives */
-    real q[3];
-    interperr += interp1Dcomp_eval_df(q, &boozerdata->q, psi_dpsi[0]);
+	isinside[0]=1;
 
-    thetazeta[4] = fmod(phi + theta[0]*q[0], CONST_2PI);
-    thetazeta[5] = thetazeta[1]*q[0] + theta[0]*q[1]*psi_dpsi[1];
-    thetazeta[6] = 1;
-    thetazeta[7] = thetazeta[3]*q[0] + theta[0]*q[1]*psi_dpsi[3];
+	/* geometrical theta */
+	real thgeo;
+	thgeo=fmod(atan2(z-boozerdata->z0,r-boozerdata->r0),CONSTANT_2PI);
+
+	/* boozer theta and derivatives */
+	real theta[6]; 
+	interperr += interp2Dcomp_eval_df(theta,&boozerdata->theta_psithetageom,psi[0],thgeo);
+
+	/* boozer nu function and derivatives */
+	real nu[6];
+	interperr += interp2dcomp_eval_df(nu,&boozerdata->nu_psitheta,psi[0],theta[0]);
+
+	/* set up data for return */
+
+	/* psi and derivatives */
+	psithetazeta[0]=psi[0]; /* psi */
+	psithetazeta[1]=psi[1]; /* dpsi_dr */
+	psithetazeta[2]=0; /* dpsi_dphi */
+	psithetazeta[3]=psi[2]; /* dpsi_dz */
+
+	/* helpers */
+	real asq; 
+	asq=(r-boozerdata->r0)*(r-boozerdata->r0)+(z-boozerdata->z0)*(z-boozerdata->z0);
+	real dthgeo_dr;
+	dthgeo_dr=-(z-boozerdata->z0)/asq;
+	real dthgeo_dz;
+	dthgeo_dz=(r-boozerdata->r0)/asq;
+
+	/* theta and derivatives */
+	psithetazeta[4]=theta[0]; /* theta */
+	psithetazeta[5]=theta[1]*psi[1]+theta[2]*dthgeo_dr; /* dtheta_dr */
+	psithetazeta[6]=0; /* dtheta_dphi */
+	psithetazeta[7]=theta[1]*psi[2]+theta[2]*dthgeo_dz; /* dtheta_dz */
+
+	/* zeta and derivatives */
+	psithetazeta[8]=phi-nu[0]; /* zeta */
+	psithetazeta[9]=-nu[1]*psi[1]-nu[2]*psithetazeta[5]; /* dzeta_dR */
+	psithetazeta[10]=1.0; /* dzeta_dphi */
+	psithetazeta[11]=-nu[1]*psi[2]-nu[2]*psithetazeta[7]; /* dzeta_dz */
+    }
+    else {
+	isinside[0]=0;
+    }
+
 
     if(interperr) {
         err = 1;

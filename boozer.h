@@ -10,41 +10,52 @@
 #include "spline/interp.h"
 
 /**
- * @brief Boozer parameters that will be offloaded to target
+ * @brief offload data for coordinate maps for moving from (R,phi,z) to 
+ *        boozer (psi,theta,zeta)
  *
- * The actual data consists of g(psi), q(psi), I(psi), delta(psi, theta_bzr),
- * nu(psi, theta_bzr), theta_bzr(psi, theta_geo), and theta_geo(R, z)values.
- * This struct holds enough information to construct the grids where data is
- * given.
  */
 typedef struct {
-    int nr;         /**< Number R grid points               */
-    real r_min;     /**< Minimum R grid point               */
-    real r_max;     /**< Maximum R grid point               */
-    int nz;         /**< Number z grid points               */
-    real z_min;     /**< Minimum z grid point               */
-    real z_max;     /**< Maximum z grid point               */
-    int npsi;       /**< Number psi grid points             */
-    real psi_min;   /**< Minimum psi grid point             */
-    real psi_max;   /**< Maximum psi grid point             */
-    int ntheta_geo; /**< Number of geometric theta points   */
-    int ntheta_bzr; /**< Number of boozer theta grid points */
-
-    int offload_array_length; /**< Number of elements in offload_array        */
+    int  nr;       /**< Number of R grid points for psi_rz                    */
+    real rmin;     /**< Minimum R for psi_rz                                  */
+    real rmax;     /**< Maximum R for psi_rz                                  */
+    int  nz;       /**< Number of z grid points for psi_rz                    */
+    real zmin;     /**< Minimum z for psi_rz                                  */
+    real zmax;     /**< Maximum z for psi_rz                                  */
+    int  npsi;     /**< Number of psi grid points for other fields            */
+    real psimin;   /**< Minimum psi in other fields                           */
+    real psimax;   /**< Maximum psi in other fields                           */
+    int  ntheta;   /**< number of theta angles (both boozer and geometric)    */
+    real thetamin; /**< minimum theta (both the boozer and geometric)         */
+    real thetamax; /**< maximum theta (both the boozer and geometric)         */
+    real r0;       /**< R location of the axis for defining geometric theta   */
+    real z0;       /**< z location of the axis for defining geometric theta   */
+    int  nrzs;     /**< number of elements in rs and zs                       */
+    int  offload_array_length; /**< Number of elements in offload_array       */
 } boozer_offload_data;
 
 /**
  * @brief Boozer parameters on the target
  */
 typedef struct {
-    interp1D_data g; /**< Toroidal covariant component of the magnetic field  */
-    interp1D_data q; /**< q-profile                                           */
-    interp1D_data I; /**< poloidal covariant component of the magnetic field  */
-    interp2D_data theta_geo; /**< Geometric theta angle                       */
-    interp2D_data theta_bzr; /**< Boozer theta angle                          */
-    interp2D_data delta; /**< radial covariant component of the magnetic field*/
-    interp2D_data nu;    /**< the nu-function, phi=zeta+nu(psi,theta),
-                              phi the cylindrical angle                       */
+    real rmin;     /**< Minimum R for psi_rz */
+    real rmax;     /**< Maximum R for psi_rz */
+    real zmin;     /**< Minimum z for psi_rz */
+    real zmax;     /**< Maximum z for psi_rz */
+    real psimin;   /**< Minimum psi in other fields */
+    real psimax;   /**< Maximum psi in other fields */
+    real thetamin; /**< minimum theta (both the boozer and geometric) */
+    real thetamax; /**< maximum theta (both the boozer and geometric) */
+    real r0;       /**< R location of the axis for defining geometric theta */
+    real z0;       /**< z location of the axis for defining geometric theta */
+    real* rs;      /**< R points of outermost poloidal psi-surface contour,
+		        nrzs elements, the first and last points are the same */
+    real* zs;      /**< z points of outermost poloidal psi-surface contour,
+		        nrzs elements, the first and last points are the same */
+    int  nrzs;     /**< number of elements in rs and zs */
+    interp2D_data nu_psitheta; /**< the nu-function, phi=zeta+nu(psi,theta),
+                                    with phi the cylindrical angle            */
+    interp2D_data theta_psithetageom; /**< boozer_theta(psi,theta_geometric)  */
+    interp2D_data psi_rz; /**< psi(R,z) */
 } boozer_data;
 
 int boozer_init_offload(boozer_offload_data* offload_data,
@@ -57,8 +68,8 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                  real* offload_array);
 
 #pragma omp declare simd uniform(boozerdata)
-a5err boozer_eval_thetazeta(real thetazeta[8], real r, real phi, real z,
-                            real psi_dpsi[4], boozer_data* boozerdata);
+a5err boozer_eval_psithetazeta(real psithetazeta[12], real r, real phi, real z,
+			       boozer_data* boozerdata);
 
 #pragma omp end declare target
 
