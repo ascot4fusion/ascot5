@@ -65,7 +65,7 @@ void B_3DST_init(B_3DST_data* Bdata, B_3DST_offload_data* offload_data,
 a5err B_3DST_eval_psi(real psi[1], real r, real phi, real z, B_3DST_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 a5err B_3DST_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
-			   B_3DST_data* Bdata); //this is not used really
+                           B_3DST_data* Bdata); //this is not used really
 #pragma omp declare simd uniform(Bdata)
 a5err B_3DST_eval_rho(real rho[1], real psi, B_3DST_data* Bdata);
 #pragma omp declare simd uniform(Bdata)

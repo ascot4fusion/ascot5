@@ -110,31 +110,6 @@ int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data,
         err = hdf5_bfield_read_3DST(f, &(offload_data->B3DST),
                                    offload_array, qid);
     }
-	  /**  hdf5_generate_qid_path("/bfield/B_3DS_T-XXXXXXXXXX", active, path); //This must be cha
-    if(hdf5_find_group(f, path) == 0) {
-      hdf5_bfield_init_offload_3DS_T(f, &(offload_data->B3DST), offload_array, active);
-      offload_data->type = B_field_type_3DS_T;
-      offload_data->offload_array_length=offload_data->B3DST.offload_array_length;
-
-        #if VERBOSE > 0
-      printf("\nLoaded 3D magnetic field (B_3DS_T) time interpolated\n");
-      printf("with parameters:\n");
-      printf("- %d time slices\n",
-	     offload_data->B3DST.n_time);
-      printf("- t = [");
-      int i = 0;
-      for (i=0;i<(offload_data->B3DST.n_time-1);i++){
-	printf("%le, ",offload_data->B3DST.time[i]);
-      }
-      printf("%le]\n",offload_data->B3DST.time[offload_data->B3DST.n_time-1]);
-      printf("- rmin, rmax, nr = %le, %le, %d\n",
-	     offload_data->B3DST.psigrid_r_min,offload_data->B3DST.psigrid_r_max,offload_data->B3DST.psigrid_n_r);
-      printf("- zmin, zmax, nz = %le, %le, %d\n",
-	     offload_data->B3DST.psigrid_z_min,offload_data->B3DST.psigrid_z_max,offload_data->B3DST.psigrid_n_z);
-      printf("with parameters:\n");
-        #endif
-      return 1;
-      }*/ //This must be changed to the new functions
 
     hdf5_gen_path("/bfield/B_STS-XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {

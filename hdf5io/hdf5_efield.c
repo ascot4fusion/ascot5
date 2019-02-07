@@ -85,14 +85,14 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data,
     if(hdf5_find_group(f, path) == 0) {
       offload_data->type = E_field_type_3D;
       err = hdf5_efield_read_3D(f, &(offload_data->E3D),
-				 offload_array, qid);
+                                offload_array, qid);
     }
 
     hdf5_gen_path("/efield/E_3DS-XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
       offload_data->type = E_field_type_3DS;
       err = hdf5_efield_read_3DS(f, &(offload_data->E3DS),
-				 offload_array, qid);
+                                 offload_array, qid);
     }
 
     /* Initialize if data was read succesfully */
@@ -270,24 +270,24 @@ int hdf5_efield_read_3D(hid_t f, E_3D_offload_data* offload_data,
 
   /* Read and initialize magnetic field Rpz-grid */
   if( hdf5_read_int(EPATH "n_R", &(offload_data->n_r),
-		    f, qid, __FILE__, __LINE__) ) {return 1;}
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
   if( hdf5_read_int(EPATH "n_z", &(offload_data->n_z),
-		    f, qid, __FILE__, __LINE__) ) {return 1;}
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
   if( hdf5_read_double(EPATH "R_min", &(offload_data->r_min),
-		       f, qid, __FILE__, __LINE__) ) {return 1;}
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
   if( hdf5_read_double(EPATH "R_max", &(offload_data->r_max),
-		       f, qid, __FILE__, __LINE__) ) {return 1;}
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
   if( hdf5_read_double(EPATH "z_min", &(offload_data->z_min),
-		       f, qid, __FILE__, __LINE__) ) {return 1;}
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
   if( hdf5_read_double(EPATH "z_max", &(offload_data->z_max),
-		       f, qid, __FILE__, __LINE__) ) {return 1;}
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
 
   if( hdf5_read_int(EPATH "n_phi", &(offload_data->n_phi),
-		    f, qid, __FILE__, __LINE__) ) {return 1;}
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
   if( hdf5_read_double(EPATH "phi_min", &(offload_data->phi_min),
-		       f, qid, __FILE__, __LINE__) ) {return 1;}
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
   if( hdf5_read_double(EPATH "phi_max", &(offload_data->phi_max),
-		       f, qid, __FILE__, __LINE__) ) {return 1;}
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
 
   // Convert to radians
   offload_data->phi_min = math_deg2rad(offload_data->phi_min);
@@ -355,7 +355,7 @@ int hdf5_efield_read_3D(hid_t f, E_3D_offload_data* offload_data,
  * @return zero if reading succeeded
  */
 int hdf5_efield_read_3DS(hid_t f, E_3DS_offload_data* offload_data,
-			real** offload_array, char* qid) {
+                         real** offload_array, char* qid) {
     #undef EPATH
     #define EPATH "/efield/E_3DS-XXXXXXXXXX/"
 
