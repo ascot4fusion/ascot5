@@ -151,7 +151,7 @@ int interp4Dcomp_init_coeff(real* c, real* f,
                             real x_min, real x_max,
                             real y_min, real y_max,
                             real z_min, real z_max,
-			    real t_min, real t_max);
+                            real t_min, real t_max);
 
 int interp1Dexpl_init_coeff(real* c, real* f,
                             int n_x, int bc_x,
@@ -192,7 +192,7 @@ void interp4Dcomp_init_spline(interp4D_data* str, real* c,
                               real x_min, real x_max,
                               real y_min, real y_max,
                               real z_min, real z_max,
-			      real t_min, real t_max);
+                              real t_min, real t_max);
 
 void interp1Dexpl_init_spline(interp1D_data* str, real* c,
                               int n_x, int bc_x,
@@ -219,7 +219,7 @@ int interp3Dcomp_eval_f(real* f, interp3D_data* str,
                          real x, real y, real z);
 #pragma omp declare simd uniform(str)
 int interp4Dcomp_eval_f(real* f, interp4D_data* str,
-			real x, real y, real z, real t);
+                        real x, real y, real z, real t);
 
 
 #pragma omp declare simd uniform(str)

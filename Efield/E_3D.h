@@ -6,7 +6,7 @@
 #define E_3D_H
 #include "../ascot5.h"
 #include "../error.h"
-#include "../linint/linint3D.h" /* for 3D interpolation routines */
+#include "../linint/linint.h" /* for 3D interpolation routines */
 
 /**
  * @brief 3D electric field parameters on the host
@@ -45,5 +45,5 @@ void E_3D_init(E_3D_data* Edata, E_3D_offload_data* offload_data,
                real* offload_array);
 #pragma omp declare simd uniform(Edata)
 a5err E_3D_eval_E(real E[3], real r, real phi, real z, E_3D_data* Edata);
-#pragma omp end declare target   
+#pragma omp end declare target
 #endif

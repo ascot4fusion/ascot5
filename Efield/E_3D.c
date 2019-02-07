@@ -24,7 +24,7 @@
 #include "../ascot5.h"
 #include "../error.h"
 #include "E_3D.h"
-#include "../linint/linint3D.h"
+#include "../linint/linint.h"
 
 /**
  * @brief Initialize electric field offload data
@@ -53,14 +53,14 @@
  * @return zero if initialization succeeded
  */
 int E_3D_init_offload(E_3D_offload_data* offload_data, real** offload_array) {
-    
+
     /* Fill rest of the offload data struct */
     offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
-	/ (offload_data->n_r - 1);
+        / (offload_data->n_r - 1);
     offload_data->z_grid = (offload_data->z_max - offload_data->z_min)
-	/ (offload_data->n_z - 1);
+        / (offload_data->n_z - 1);
     offload_data->phi_grid = (offload_data->phi_max - offload_data->phi_min)
-	/ (offload_data->n_phi - 1);
+        / (offload_data->n_phi - 1);
 
     offload_data->offload_array_length =
         3*offload_data->n_r * offload_data->n_phi * offload_data->n_z;
@@ -75,14 +75,14 @@ int E_3D_init_offload(E_3D_offload_data* offload_data, real** offload_array) {
     print_out(VERBOSE_IO, "     nphi = %4.d phimin = %3.3f phimax = %3.3f\n",
               offload_data->n_phi,
               offload_data->phi_min, offload_data->phi_max);
-    
+
     return 0;
 
 
 }
 
 /**
- * @brief Free offload array and reset parameters 
+ * @brief Free offload array and reset parameters
  *
  * This function deallocates the offload_array.
  *
@@ -95,7 +95,7 @@ void E_3D_free_offload(E_3D_offload_data* offload_data, real** offload_array) {
 }
 
 /**
- * @brief Initialize electric field data struct on target 
+ * @brief Initialize electric field data struct on target
  *
  * This function copies the electric field parameters from the offload struct
  * to the struct on target and sets the electric field data pointers to
@@ -119,30 +119,27 @@ void E_3D_free_offload(E_3D_offload_data* offload_data, real** offload_array) {
  */
 void E_3D_init(E_3D_data* Edata, E_3D_offload_data* offload_data,
                real* offload_array) {
-    int err = 0;
-
     int E_size = offload_data->n_r * offload_data->n_z
         * offload_data->n_phi;
-    
-    err += linint3D_init(&Edata->E_r, &offload_array[E_size*0],
-                         offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-                         offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-                         offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-                         offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-    err += linint3D_init(&Edata->E_phi, &offload_array[E_size*1],
-                         offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-                         offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-                         offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-                         offload_data->z_min, offload_data->z_max, offload_data->z_grid);
 
-    err += linint3D_init(&Edata->E_z, &offload_array[E_size*2],
-                         offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-                         offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-                         offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-                         offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    linint3D_init(&Edata->E_r, &offload_array[E_size*0],
+                  offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+                  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+                  offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
+                  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+    linint3D_init(&Edata->E_phi, &offload_array[E_size*1],
+                  offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+                  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+                  offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
+                  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
 
+    linint3D_init(&Edata->E_z, &offload_array[E_size*2],
+                  offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+                  offload_data->r_min, offload_data->r_max, offload_data->r_grid,
+                  offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
+                  offload_data->z_min, offload_data->z_max, offload_data->z_grid);
 
-    return err;
+    return 0;
 }
 
 /**
@@ -162,13 +159,12 @@ a5err E_3D_eval_E(real E[3], real r, real phi, real z,
                    E_3D_data* Edata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    interperr += linint3D_eval(&E[0], &Edata->E_r, r, phi, z);
-    interperr += linint3D_eval(&E[1], &Edata->E_phi, r, phi, z);
-    interperr += linint3D_eval(&E[2], &Edata->E_z, r, phi, z);
+    interperr += linint3D_eval_f(&E[0], &Edata->E_r, r, phi, z);
+    interperr += linint3D_eval_f(&E[1], &Edata->E_phi, r, phi, z);
+    interperr += linint3D_eval_f(&E[2], &Edata->E_z, r, phi, z);
 
 
     if(interperr) {err = error_raise( ERR_OUTSIDE_N0DATA, __LINE__ );}
 
     return err;
 }
-
