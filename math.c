@@ -323,3 +323,41 @@ int rcomp(const void* a, const void* b) {
 real* math_rsearch(const real key, const real* base, int num) {
     return (real*) bsearch(&key, base, num-1, sizeof(real), rcomp);
 }
+
+/**
+ * @brief Check if coordinates are within polygon
+ *
+ * This function checks if the given coordinates are within a 2D polygon using 
+ * a modified axis crossing method [1]. Origin is moved to the coordinates and
+ * the number of wall segments crossing the positive r-axis are calculated. If
+ * this is odd, the point is inside the polygon.
+ *
+ * [1] D.G. Alciatore, R. Miranda. A Winding Number and Point-in-Polygon
+ *     Algorithm. Technical report, Colorado State University, 1995.
+ *     http://www.engr.colostate.edu/~dga/dga/papers/point_in_polygon.pdf
+ *
+ * @param r r coordinate
+ * @param z z coordinate
+ * @param rv array of r points for the polygon
+ * @param zv array of z points for the polygon
+ * @param n number of points in the polygon
+ */
+int math_point_in_polygon(real r, real z, real* rv, real* zv, int n) {
+    int hits = 0;
+
+    int i;
+    for(i = 0; i < n - 1; i++) {
+        real z1 = zv[i] - z;
+        real z2 = zv[i+1] - z;
+        real r1 = rv[i] - r;
+        real r2 = rv[i+1] - r;
+        if(z1 * z2 < 0) {
+            real ri = r1 + (z1*(r2-r1)) / (z1-z2);
+            if(ri > 0) {
+                hits++;
+            }
+        }
+    }
+    return hits % 2;
+}
+
