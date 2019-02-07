@@ -9,8 +9,9 @@ import numpy as np
 from . ascot5file import add_group
 from . ascot5data import AscotData
 
-def write_hdf5(fn, gprof, qprof, Iprof, delta, nu, theta_bzr, theta_geo,
-               psimin, psimax, Rmin, Rmax, zmin, zmax, desc=None):
+def write_hdf5(fn, psimin, psimax, npsi, thetamin, thetamax, ntheta, rmin,
+               rmax, nr, zmin, zmax, nz, r0, z0, psi_rz, theta_psithetageom,
+               nu_psitheta, desc=None):
     """
     Write boozer input to HDF5 file.
 
@@ -24,38 +25,30 @@ def write_hdf5(fn, gprof, qprof, Iprof, delta, nu, theta_bzr, theta_geo,
     parent = "boozer"
     group  = "Boozer"
 
-    npsi       = qprof.shape[0]
-    nR         = theta_geo.shape[0]
-    nz         = theta_geo.shape[1]
-    ntheta_bzr = delta.shape[1]
-    ntheta_geo = theta_bzr.shape[1]
-
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
-        g.create_dataset("nr",         (1,), data=nR,         dtype="i8")
-        g.create_dataset("r_min",      (1,), data=Rmin,       dtype="f8")
-        g.create_dataset("r_max",      (1,), data=Rmax,       dtype="f8")
-        g.create_dataset("nz",         (1,), data=nz,         dtype="i8")
-        g.create_dataset("z_min",      (1,), data=zmin,       dtype="f8")
-        g.create_dataset("z_max",      (1,), data=zmax,       dtype="f8")
+        # grid specifications
+        g.create_dataset("psimin",     (1,), data=psimin,     dtype="f8")
+        g.create_dataset("psimax",     (1,), data=psimax,     dtype="f8")
         g.create_dataset("npsi",       (1,), data=npsi,       dtype="i8")
-        g.create_dataset("psi_min",    (1,), data=psimin,     dtype="f8")
-        g.create_dataset("psi_max",    (1,), data=psimax,     dtype="f8")
-        g.create_dataset("ntheta_geo", (1,), data=ntheta_geo, dtype="i8")
-        g.create_dataset("ntheta_bzr", (1,), data=ntheta_bzr, dtype="i8")
-
-        g.create_dataset("g",         (npsi,),           data=gprof, dtype="f8")
-        g.create_dataset("q",         (npsi,),           data=qprof, dtype="f8")
-        g.create_dataset("I",         (npsi,),           data=Iprof, dtype="f8")
-        g.create_dataset("delta",     (npsi,ntheta_bzr), data=delta, dtype="f8")
-        g.create_dataset("nu",        (npsi,ntheta_bzr), data=nu,    dtype="f8")
-
-        g.create_dataset("theta_bzr", (npsi,ntheta_geo), data=theta_bzr,
-                         dtype="f8")
-        g.create_dataset("theta_geo", (nR,nz),           data=theta_geo,
-                         dtype="f8")
-
+        g.create_dataset("thetamin",   (1,), data=thetamin,   dtype="f8")
+        g.create_dataset("thetamax",   (1,), data=thetamax,   dtype="f8")
+        g.create_dataset("ntheta",     (1,), data=ntheta,     dtype="i8")
+        g.create_dataset("rmin",       (1,), data=rmin,       dtype="f8")
+        g.create_dataset("rmax",       (1,), data=rmax,       dtype="f8")
+        g.create_dataset("nr",         (1,), data=nr,         dtype="i8")
+        g.create_dataset("zmin",       (1,), data=zmin,       dtype="f8")
+        g.create_dataset("zmax",       (1,), data=zmax,       dtype="f8")
+        g.create_dataset("nz",         (1,), data=nz,         dtype="i8")
+        g.create_dataset("r0",         (1,), data=r0,         dtype="f8")
+        g.create_dataset("z0",         (1,), data=z0,         dtype="f8")
+        
+        # tabulated coordinates maps
+        g.create_dataset("psi_rz", (nr,nz), data=psi_rz, dtype="f8")
+        g.create_dataset("theta_psithetageom", (npsi,ntheta), data=theta_psithetageom, dtype="f8")
+        g.create_dataset("nu_psitheta", (npsi,ntheta), data=nu_psitheta, dtype="f8")
+        
 
 def read_hdf5(fn, qid):
     """
@@ -95,24 +88,28 @@ def write_hdf5_dummy(fn, desc="Dummy"):
         fn : str <br>
             Full path to the HDF5 file.
     """
-    npsi       = 6
+
     psimin     = 0
     psimax     = 1
-    nR         = 5
-    Rmin       = 0.1
-    Rmax       = 100
+    npsi       = 6
+    thetamin   = 0.0
+    thetamax   = 2*np.math.pi
+    ntheta     = 10
+    rmin       = 0.1
+    rmax       = 10.0
+    nr         = 5
+    zmin       = -10.0
+    zmax       = 10.0
     nz         = 10
-    zmin       = -100
-    zmax       = 100
-    ntheta_bzr = 8
-    ntheta_geo = 12
+    r0         = (rmax+rmin)/2.0
+    z0         = (zmin+zmax)/2.0
+    
+    psi_rz    = np.ones((nr,nz))
+    theta_psithetageom = np.ones((npsi,ntheta))
+    nu_psitheta = np.ones((npsi,ntheta))
+    
+    write_hdf5(fn, psimin, psimax, npsi, thetamin, thetamax, ntheta, rmin,
+               rmax, nr, zmin, zmax, nz, r0, z0, psi_rz, theta_psithetageom,
+               nu_psitheta, desc=desc)
+    
 
-    gprof     = np.ones((npsi,))
-    qprof     = np.ones((npsi,))
-    Iprof     = np.ones((npsi,))
-    delta     = np.ones((npsi,ntheta_bzr))
-    nu        = np.ones((npsi,ntheta_bzr))
-    theta_bzr = np.ones((npsi,ntheta_geo))
-    theta_geo = np.ones((nR,nz))
-    write_hdf5(fn, gprof, qprof, Iprof, delta, nu, theta_bzr, theta_geo,
-               psimin, psimax, Rmin, Rmax, zmin, zmax, desc=desc)
