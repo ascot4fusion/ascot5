@@ -9,9 +9,11 @@ import numpy as np
 from . ascot5file import add_group
 from . ascot5data import AscotData
 
+## ADD COMMENTS AND SIZE DEFINITIONS OF THE DATA FIELDS
+
 def write_hdf5(fn, psimin, psimax, npsi, thetamin, thetamax, ntheta, rmin,
                rmax, nr, zmin, zmax, nz, r0, z0, psi_rz, theta_psithetageom,
-               nu_psitheta, desc=None):
+               nu_psitheta, rs, zs, nrzs, desc=None):
     """
     Write boozer input to HDF5 file.
 
@@ -43,6 +45,11 @@ def write_hdf5(fn, psimin, psimax, npsi, thetamin, thetamax, ntheta, rmin,
         g.create_dataset("nz",         (1,), data=nz,         dtype="i8")
         g.create_dataset("r0",         (1,), data=r0,         dtype="f8")
         g.create_dataset("z0",         (1,), data=z0,         dtype="f8")
+        g.create_dataset("nrzs",       (1,), data=nrzs,       dtype="i8")
+
+        # the outermost poloidal psi-surface contour
+        g.create_dataset("rs", (nrzs,), data=rs, dtype="f8")
+        g.create_dataset("zs", (nrzs,), data=zs, dtype="f8")
         
         # tabulated coordinates maps
         g.create_dataset("psi_rz", (nr,nz), data=psi_rz, dtype="f8")
@@ -103,6 +110,10 @@ def write_hdf5_dummy(fn, desc="Dummy"):
     nz         = 10
     r0         = (rmax+rmin)/2.0
     z0         = (zmin+zmax)/2.0
+    nrzs       = ntheta
+    
+    rs = np.cos(np.linspace(0,2*np.math.pi,ntheta))
+    zs = np.sin(np.linspace(0,2*np.math.pi,ntheta))
     
     psi_rz    = np.ones((nr,nz))
     theta_psithetageom = np.ones((npsi,ntheta))
@@ -110,6 +121,6 @@ def write_hdf5_dummy(fn, desc="Dummy"):
     
     write_hdf5(fn, psimin, psimax, npsi, thetamin, thetamax, ntheta, rmin,
                rmax, nr, zmin, zmax, nz, r0, z0, psi_rz, theta_psithetageom,
-               nu_psitheta, desc=desc)
+               nu_psitheta, rs, zs, nrzs, desc=desc)
     
 
