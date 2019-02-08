@@ -1,26 +1,85 @@
 /**
  * @file plasma_1DS.c
  * @brief 1D spline plasma evaluation functions
- *
  */
-#include <stdio.h>
 #include <stdlib.h>
 #include "../ascot5.h"
+#include "../print.h"
 #include "../error.h"
-#include "plasma_1DS.h"
 #include "../consts.h"
 #include "../spline/interp.h"
+#include "plasma_1DS.h"
+
+/**
+ * @brief Initialize 1DS plasma data and check inputs
+ *
+ * Before calling this function, the offload struct is expected to be fully
+ * initialized.
+ *
+ * The offload array is expected to hold plasma data as
+ *   &(*offload_array)[n_rho*0] = electron temperature
+ *   &(*offload_array)[n_rho*1] = ion temperature
+ *   &(*offload_array)[n_rho*2] = electron density
+ *   &(*offload_array)[n_rho*3] = ion density
+ *
+ * This function initializes splines to plasma profiles and prints some values
+ * as sanity checks.
+ *
+ * @param offload_data pointer to offload data struct
+ * @param offload_array pointer to pointer to offload array
+ *
+ * @return zero if initialization succeeded
+ */
+int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
+                            real** offload_array) {
+
+    /* Spline initialization */
+    int err = 0;
+    int n_rho     = offload_data->n_rho;
+    int n_species = offload_data->n_species;
+
+    /* Allocate enough space for two temperature and n_species density arrays */
+    real* coeff_array = (real*) malloc((2 + n_species) * NSIZE_COMP1D
+                                       * n_rho * sizeof(real));
+
+    /* Evaluate spline coefficients */
+
+    /* Te */
+    err += interp1Dcomp_init_coeff(
+        coeff_array + 0*n_rho*NSIZE_COMP1D,
+        *offload_array + 0*n_rho,
+        offload_data->n_rho, NATURALBC,
+        offload_data->rho_min, offload_data->rho_max);
+
+    /* Ti */
+    err += interp1Dcomp_init_coeff(
+        coeff_array + 1*n_rho*NSIZE_COMP1D,
+        *offload_array + 1*n_rho,
+        offload_data->n_rho, NATURALBC,
+        offload_data->rho_min, offload_data->rho_max);
+
+    /* Densities */
+    for(int i=0; i < n_species; i++) {
+        err += interp1Dcomp_init_coeff(
+            coeff_array + (2 +i)*n_rho*NSIZE_COMP1D,
+            *offload_array + (2 + i)*n_rho,
+            offload_data->n_rho, NATURALBC,
+            offload_data->rho_min, offload_data->rho_max);
+    }
+
+    return err;
+}
 
 /**
  * @brief Free offload array and reset parameters
  *
- *This function deallocates the offload_array.
- * @todo Should free offload array
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void plasma_1DS_free(plasma_1DS_data* plasma_data) {
-    //should free offload array here
+void plasma_1DS_free_offload(plasma_1DS_offload_data* plasma_data,
+                             real** offload_array) {
+    free(*offload_array);
+    *offload_array = NULL;
 }
 
 /**
@@ -33,120 +92,80 @@ void plasma_1DS_free(plasma_1DS_data* plasma_data) {
  * @param plasma_data pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
-*/
-a5err plasma_1DS_init(plasma_1DS_data* plasma_data,
-                    plasma_1DS_offload_data* offload_data,
-                    real* offload_array) {
-
-    a5err err = 0;
-    /* Pointers to beginning of different data series to make code more
-     * readable */
-    real* rho = &(offload_array[0]);
-    real* temp_e = &(offload_array[offload_data->n_rho]);
-    real* temp_i = &(offload_array[offload_data->n_rho*2]);
-    real* dens = &(offload_array[offload_data->n_rho
-                                  + offload_data->n_rho*offload_data->n_species]);
-
-    /* Find out if we have equispaced rho data */
-    real diff = rho[1] - rho[0];
-    real tol = diff/100000;
-    for(int i = 1; i < offload_data->n_rho; i++) {
-        if (fabs((rho[i] - rho[i-1]) - diff) > tol) {
-            if (i == offload_data->n_rho - 1) {
-                /* Last point is our only problem. Exclude it from the data */
-                #if VERBOSE > 0
-                printf("Plasma data not equispaced.\n");
-                printf("Excluding last point from plasma data.\n");
-                #endif
-                offload_data->n_rho -= 1;
-            } else {
-                #if VERBOSE > 0
-                printf("Plasma data not equispaced.\n");
-                printf("Nonuniform splines are not supported yet.\n");
-                printf("You will have problems with plasma interpolation!\n");
-                #endif
-            }
-        }
-    }
-
-    plasma_data->n_rho = offload_data->n_rho;
-    plasma_data->rho_min = rho[0];
-    plasma_data->rho_max = rho[plasma_data->n_rho - 1];
+ */
+void plasma_1DS_init(plasma_1DS_data* plasma_data,
+                     plasma_1DS_offload_data* offload_data,
+                     real* offload_array) {
     plasma_data->n_species = offload_data->n_species;
 
-    /*
     for(int i = 0; i < plasma_data->n_species; i++) {
-        plasma_data->mass[i] = offload_data->mass[i];
+        plasma_data->mass[i]   = offload_data->mass[i];
         plasma_data->charge[i] = offload_data->charge[i];
     }
-    err += interp1Dcomp_init_coeff(&plasma_data->temp[0], temp_e,
-                                   plasma_data->n_rho,
-                                   plasma_data->rho_min, plasma_data->rho_max);
-    err += interp1Dcomp_init_coeff(&plasma_data->temp[1], temp_i,
-                                   plasma_data->n_rho,
-                                   plasma_data->rho_min, plasma_data->rho_max);
-    plasma_data->dens = (interp1D_data*) malloc(plasma_data->n_species*sizeof(interp1D_data));
-    for(int i = 0; i < plasma_data->n_species; i++) {
-        err += interp1Dcomp_init(&plasma_data->dens[i],
-                                 dens + i*offload_data->n_rho,
-                                 plasma_data->n_rho,
-                                 plasma_data->rho_min, plasma_data->rho_max);
+
+    int n_rho = offload_data->n_rho;
+    interp1Dcomp_init_spline(&plasma_data->temp[0],
+                             &(offload_array[0*n_rho]),
+                             offload_data->n_rho, NATURALBC,
+                             offload_data->rho_min,
+                             offload_data->rho_max);
+    interp1Dcomp_init_spline(&plasma_data->temp[1],
+                             &(offload_array[1*n_rho]),
+                             offload_data->n_rho, NATURALBC,
+                             offload_data->rho_min,
+                             offload_data->rho_max);
+
+    for(int i=0; i<n_rho; i++) {
+        interp1Dcomp_init_spline(&plasma_data->dens[i],
+                                 &(offload_array[(2+i)*n_rho]),
+                                 offload_data->n_rho, NATURALBC,
+                                 offload_data->rho_min,
+                                 offload_data->rho_max);
     }
-    */
-    return err;
 }
 
 /**
  * @brief Evaluate plasma temperature
  *
- * This function evaluates the temperature of a plasma species at the given
- * radial coordinate using linear interpolation.
- *
  * @param temp temperature value will be stored in temp[0]
  * @param rho radial coordinate
  * @param species index of plasma species
  * @param plasma_data pointer to plasma data struct
+ *
+ * @return zero if evaluation succeeded
  */
-a5err plasma_1DS_eval_temp(real temp[], real rho, int species, plasma_1DS_data* plasma_data) {
+a5err plasma_1DS_eval_temp(real* temp, real rho, int species,
+                           plasma_1DS_data* plasma_data) {
+    int interperr = 0;
+    interperr += interp1Dcomp_eval_f(temp, &plasma_data->temp[species>0], rho);
+
     a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
-    /*
-    if (rho < plasma_data->rho_min){
-        rho = plasma_data->rho_min;
-    } else if (rho > plasma_data->rho_max) {
-        rho = plasma_data->rho_max;
+    if(interperr) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );
     }
-
-    if (species == 0) {
-        interperr += interp1Dcomp_eval_B(&temp[0], &plasma_data->temp[0], rho);
-    } else {
-        interperr += interp1Dcomp_eval_B(&temp[0], &plasma_data->temp[1], rho);
-    }
-
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );}
-    */
     return err;
 }
 
 /**
  * @brief Evaluate plasma density
  *
- * @see plasma_1DS_eval_temp
+ * @param dens density value will be stored in dens[0]
+ * @param rho radial coordinate
+ * @param species index of plasma species
+ * @param plasma_data pointer to plasma data struct
+ *
+ * @return zero if evaluation succeeded
  */
-a5err plasma_1DS_eval_dens(real dens[], real rho, int species, plasma_1DS_data* plasma_data) {
+a5err plasma_1DS_eval_dens(real* dens, real rho, int species,
+                           plasma_1DS_data* plasma_data) {
+
+    int interperr = 0;
+    interperr += interp1Dcomp_eval_f(dens, &plasma_data->dens[species], rho);
+
     a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
-    if (rho < plasma_data->rho_min){
-        rho = plasma_data->rho_min;
-    } else if (rho > plasma_data->rho_max) {
-        rho = plasma_data->rho_max;
+    if(interperr) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );
     }
-
-    /*
-    interperr += interp1Dcomp_eval_B(&dens[0], &plasma_data->dens[species], rho);
-
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );}
-    */
     return err;
 }
 
@@ -154,27 +173,57 @@ a5err plasma_1DS_eval_dens(real dens[], real rho, int species, plasma_1DS_data* 
  * @brief Evaluate plasma density and temperature for all species
  *
  */
-a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho, plasma_1DS_data* plasma_data) {
+a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho,
+                                  plasma_1DS_data* plasma_data) {
+    int interperr = 0;
+
+    /* Evaluate electron temperature and density */
+    interperr += interp1Dcomp_eval_f(&temp[0], &plasma_data->temp[0], rho);
+    interperr += interp1Dcomp_eval_f(&dens[0], &plasma_data->dens[0], rho);
+
+    /* Evaluate ion temperature (same for all ions) and densities */
+    interperr += interp1Dcomp_eval_f(&temp[1], &plasma_data->temp[1], rho);
+    for(int i=1; i<plasma_data->n_species; i++) {
+        temp[i] = temp[1];
+        interperr += interp1Dcomp_eval_f(&dens[i], &plasma_data->dens[i], rho);
+    }
+
     a5err err = 0;
-    int interperr = 0; /* If error happened during interpolation */
-    if (rho < plasma_data->rho_min){
-        rho = plasma_data->rho_min;
-    } else if (rho > plasma_data->rho_max) {
-        rho = plasma_data->rho_max;
+    if(interperr) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );
     }
-
-    /* Electrons */
-    //interperr += interp1Dcomp_eval_B(&temp[0], &plasma_data->temp[0], rho);
-    //interperr += interp1Dcomp_eval_B(&dens[0], &plasma_data->dens[0], rho);
-    /* Ions, all have the same temperature */
-    real temp_temp_i;
-    //interperr += interp1Dcomp_eval_B(&temp_temp_i, &plasma_data->temp[1], rho);
-    for(int i = 1; i < plasma_data->n_species; i++) {
-        temp[i] = temp_temp_i;
-        //interperr += interp1Dcomp_eval_B(&dens[i], &plasma_data->dens[i], rho);
-    }
-
-    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );}
-
     return err;
+}
+
+/**
+ * @brief Return number of plasma species
+ *
+ * @param pls_data pointer to plasma data
+ *
+ * @return number of plasma species
+ */
+int plasma_1DS_get_n_species(plasma_1DS_data* pls_data) {
+    return pls_data->n_species;
+}
+
+/**
+ * @brief Return pointer to array storing species mass
+ *
+ * @param pls_data pointer to plasma data
+ *
+ * @return pointer to immutable MAX_SPECIES length array containing masses
+ */
+const real* plasma_1DS_get_species_mass(plasma_1DS_data* pls_data) {
+    return pls_data->mass;
+}
+
+/**
+ * @brief Return pointer to array storing species charge
+ *
+ * @param pls_data pointer to plasma data
+ *
+ * @return pointer to immutable MAX_SPECIES length array containing charges
+ */
+const real* plasma_1DS_get_species_charge(plasma_1DS_data* pls_data) {
+    return pls_data->charge;
 }

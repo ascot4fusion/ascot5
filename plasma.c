@@ -19,12 +19,6 @@
  * invariant and consistent across all functions.
  *
  * Maximum number of plasma species is defined by MAX_SPECIES in ascot5.h.
- *
- * @todo Is P1DS implemented? All its function calls are commented here...
- * @todo Do we need separate evaluate temperature and density functions in
- *       addition to the one that evaluates both?
- * @todo Some functions are returning values instead of error message
- * @todo This interface supports only 1D profiles which should be fixed
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,6 +60,13 @@ int plasma_init_offload(plasma_offload_data* offload_data,
                 offload_data->plasma_1D.offload_array_length;
             break;
 
+        case plasma_type_1DS:
+            err = plasma_1DS_init_offload(&(offload_data->plasma_1DS),
+                                          offload_array);
+            offload_data->offload_array_length =
+                offload_data->plasma_1DS.offload_array_length;
+            break;
+
         default:
             /* Unregonized input. Produce error. */
             print_err("Error: Unregonized plasma data type.");
@@ -100,8 +101,8 @@ void plasma_free_offload(plasma_offload_data* offload_data,
             break;
 
         case plasma_type_1DS:
-            //plasma_1DS_free_offload(
-            //    &(offload_data->plasma_1DS), offload_array);
+            plasma_1DS_free_offload(
+                &(offload_data->plasma_1DS), offload_array);
             break;
     }
 }
@@ -116,11 +117,9 @@ void plasma_free_offload(plasma_offload_data* offload_data,
  * @param pls_data pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
- *
- * @return Zero if initialization succeeded
  */
 int plasma_init(plasma_data* pls_data, plasma_offload_data* offload_data,
-                    real* offload_array) {
+                real* offload_array) {
     int err = 0;
     switch(offload_data->type) {
         case plasma_type_1D:
@@ -129,8 +128,8 @@ int plasma_init(plasma_data* pls_data, plasma_offload_data* offload_data,
             break;
 
         case plasma_type_1DS:
-            //plasma_1DS_init(&(pls_data->plasma_1DS),
-            //                &(offload_data->plasma_1DS), offload_array);
+            plasma_1DS_init(&(pls_data->plasma_1DS),
+                            &(offload_data->plasma_1DS), offload_array);
             break;
 
         default:
@@ -147,32 +146,44 @@ int plasma_init(plasma_data* pls_data, plasma_offload_data* offload_data,
 /**
  * @brief Evaluate plasma temperature
  *
- * This function evaluates the temperature of a plasma species at the given
- * radial coordinate.
+ * This function evaluates the temperature of a given plasma species at the
+ * given position.
  *
  * This is a SIMD function.
  *
+ * @param where evaluated temperature [eV] is stored
  * @param rho normalized poloidal flux coordinate
+ * @param r R-coordinate [m]
+ * @param phi phi-coordinate [rad]
+ * @param z z-coordinate [m]
  * @param t time coordinate [s]
  * @param species index of plasma species, 1 refers to electrons
  * @param pls_data pointer to plasma data struct
  *
- * @return Temperature [eV]
+ * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-real plasma_eval_temp(real rho, real t, int species, plasma_data* pls_data) {
-    real p = 0;
+a5err plasma_eval_temp(real* temp, real rho, real r, real phi, real z, real t,
+                       int species, plasma_data* pls_data) {
+    a5err err = 0;
 
     switch(pls_data->type) {
         case plasma_type_1D:
-            p = plasma_1D_eval_temp(rho, species, &(pls_data->plasma_1D));
+            err = plasma_1D_eval_temp(temp, rho, species,
+                                      &(pls_data->plasma_1D));
             break;
 
         case plasma_type_1DS:
-            //p = plasma_1DS_eval_temp(rho, species, &(pls_data->plasma_1DS));
+            err = plasma_1DS_eval_temp(temp, rho, species,
+                                       &(pls_data->plasma_1DS));
             break;
     }
+    if(err) {
+        /* In case of error, return some reasonable value to avoid further
+           complications */
+        temp[0] = 1e20;
+    }
 
-    return p;
+    return err;
 }
 
 /**
@@ -184,24 +195,38 @@ real plasma_eval_temp(real rho, real t, int species, plasma_data* pls_data) {
  * This is a SIMD function.
  *
  * @param rho normalized poloidal flux coordinate
+ * @param r R-coordinate [m]
+ * @param phi phi-coordinate [rad]
+ * @param z z-coordinate [m]
  * @param t time coordinate [s]
  * @param species index of plasma species, 1 refers to electrons
  * @param pls_data pointer to plasma data struct
  *
  * @return Density [m^-3]
+ * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-real plasma_eval_dens(real rho, real t, int species, plasma_data* pls_data) {
-    real p = 0;
+a5err plasma_eval_dens(real* dens, real rho, real r, real phi, real z, real t,
+                       int species, plasma_data* pls_data) {
+    a5err err = 0;
+
     switch(pls_data->type) {
         case plasma_type_1D:
-            p = plasma_1D_eval_dens(rho, species, &(pls_data->plasma_1D));
+            err = plasma_1D_eval_dens(dens, rho, species,
+                                      &(pls_data->plasma_1D));
             break;
 
         case plasma_type_1DS:
-            //p = plasma_1DS_eval_dens(rho, species, &(pls_data->plasma_1DS));
+            err = plasma_1DS_eval_dens(dens, rho, species,
+                                       &(pls_data->plasma_1DS));
             break;
     }
-    return p;
+
+    if(err) {
+        /* In case of error, return some reasonable value to avoid further
+           complications */
+        dens[0] = 1e20;
+    }
+    return err;
 }
 
 /**
@@ -212,28 +237,32 @@ real plasma_eval_dens(real rho, real t, int species, plasma_data* pls_data) {
  *
  * This is a SIMD function.
  *
+ * @param dens pointer where density [m^-3] will be stored
+ * @param temp pointer where temperature [eV] will be stored
  * @param rho normalized poloidal flux coordinate
+ * @param r R-coordinate [m]
+ * @param phi phi-coordinate [rad]
+ * @param z z-coordinate [m]
  * @param t time coordinate [s]
  * @param species index of plasma species
  * @param pls_data pointer to plasma data struct
- * @param dens pointer where density [m^-3] will be stored
- * @param temp pointer where temperature [eV] will be stored
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err plasma_eval_densandtemp(real rho, real t, plasma_data* pls_data,
-                              real* dens, real* temp) {
+a5err plasma_eval_densandtemp(real* dens, real* temp, real rho,
+                              real r, real phi, real z, real t,
+                              plasma_data* pls_data) {
     a5err err = 0;
 
     switch(pls_data->type) {
         case plasma_type_1D:
-            plasma_1D_eval_densandtemp(
-                rho, &(pls_data->plasma_1D), dens, temp);
+            err = plasma_1D_eval_densandtemp(dens, temp,
+                                             rho, &(pls_data->plasma_1D));
             break;
 
         case plasma_type_1DS:
-            //plasma_1DS_eval_densandtemp(
-            //    rho, &(pls_data->plasma_1DS), dens, temp);
+            err = plasma_1DS_eval_densandtemp(dens, temp,
+                                              rho, &(pls_data->plasma_1DS));
             break;
 
         default:
@@ -274,7 +303,7 @@ int plasma_get_n_species(plasma_data* pls_data) {
             break;
 
         case plasma_type_1DS:
-            //n = plasma_1DS_get_n_species(&(pls_data->plasma_1DS));
+            n = plasma_1DS_get_n_species(&(pls_data->plasma_1DS));
             break;
     }
 
@@ -288,21 +317,19 @@ int plasma_get_n_species(plasma_data* pls_data) {
  *
  * This is a SIMD function.
  *
- * @todo Make so that this does not return pointer to the actual data!
- *
  * @param pls_data pointer to plasma data struct
  *
  * @return Pointer to array containing the requested mass values [kg]
  */
-real* plasma_get_species_mass(plasma_data* pls_data) {
-    real* mass = NULL;
+const real* plasma_get_species_mass(plasma_data* pls_data) {
+    const real* mass = NULL;
     switch(pls_data->type) {
         case plasma_type_1D:
-            mass = plasma_1D_get_species_mass(&(pls_data->plasma_1D));
+            mass = plasma_1D_get_species_mass( &(pls_data->plasma_1D) );
             break;
 
         case plasma_type_1DS:
-            //mass = plasma_1DS_get_species_mass(&(plasma_data->plasma_1DS));
+            mass = plasma_1DS_get_species_mass( &(pls_data->plasma_1DS) );
             break;
     }
 
@@ -316,23 +343,19 @@ real* plasma_get_species_mass(plasma_data* pls_data) {
  *
  * This is a SIMD function.
  *
- * @todo Make so that this does not return pointer to the actual data!
- *
  * @param pls_data pointer to plasma data struct
  *
  * @return Pointer to array containing the requested charge values [e]
  */
-real* plasma_get_species_charge(plasma_data* pls_data) {
-    real* charge = NULL;
+const real* plasma_get_species_charge(plasma_data* pls_data) {
+    const real* charge = NULL;
     switch(pls_data->type) {
         case plasma_type_1D:
-            charge = plasma_1D_get_species_charge(
-                &(pls_data->plasma_1D));
+            charge = plasma_1D_get_species_charge(&(pls_data->plasma_1D));
             break;
 
         case plasma_type_1DS:
-            //charge = plasma_1DS_get_species_charge(
-            //    &(plasma_data->plasma_1DS));
+            charge = plasma_1DS_get_species_charge(&(pls_data->plasma_1DS));
             break;
     }
 
