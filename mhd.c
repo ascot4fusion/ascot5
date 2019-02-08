@@ -180,12 +180,18 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t,
                B_field_data* Bdata) {
 
     a5err err = 0;
-    real psi_dpsi[4];
-    real thetazeta[12];
-    B_field_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
-    boozer_eval_thetazeta(thetazeta, r, phi, z, psi_dpsi,boozerdata);
 
-    for(int i = 0; i <  mhddata->n_modes; i++){
+    real ptz[12];
+    int isinside;
+    boozer_eval_psithetazeta(ptz, &isinside, r, phi, z, boozerdata);
+
+    // TODO If marker is not inside boozer grid, return null values or something
+    int iterations = mhddata->n_modes;
+    if(!isinside) {
+        iterations = 0;
+    }
+
+    for(int i = 0; i < iterations; i++){
         /*get interpolated values */
         real a_da[6];
         interp2Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]),r,t);
@@ -194,11 +200,11 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t,
         interp2Dcomp_eval_df(phi_dphi,&(mhddata->phi_nm[i]),r,t);
 
         /* These are used frequently, so store them in separate variables */
-        real mhdarg = mhddata->nmode[i] * thetazeta[4]
-                    - mhddata->mmode[i] * thetazeta[0]
+        real mhdarg = mhddata->nmode[i] * ptz[8]
+                    - mhddata->mmode[i] * ptz[4]
                     - mhddata->omega_nm[i] * t + phase;
-        real sinmhd = sin(mhd);
-        real cosmhd = cos(mhd);
+        real sinmhd = sin(mhdarg);
+        real cosmhd = cos(mhdarg);
 
         /*sum over modes to get alpha, phi */
         /*possible normalization errors*/
@@ -219,40 +225,40 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t,
         /*r component of gradients */
 
         mhd_dmhd[2] += mhddata->amplitude_nm[i]
-            * (  a_da[1] * psi_dpsi[1] * sinmhd
-               - a_da[0] * mhddata->mmode[i] * thetazeta[1] * cosmhd
-               + a_da[0] * mhddata->nmode[i] * thetazeta[5] * cosmhd);
+            * (  a_da[1] * ptz[1] * sinmhd
+               - a_da[0] * mhddata->mmode[i] * ptz[5] * cosmhd
+               + a_da[0] * mhddata->nmode[i] * ptz[9] * cosmhd);
 
 
         mhd_dmhd[7] += mhddata->amplitude_nm[i]
-            * (   phi_dphi[1] * psi_dpsi[1] * sinmhd
-                - phi_dphi[0] * mhddata->mmode[i] * thetazeta[1] * cosmhd
-                + phi_dphi[0] * mhddata->nmode[i] * thetazeta[5] * cosmhd);
+            * (   phi_dphi[1] * ptz[1] * sinmhd
+                - phi_dphi[0] * mhddata->mmode[i] * ptz[5] * cosmhd
+                + phi_dphi[0] * mhddata->nmode[i] * ptz[9] * cosmhd);
 
         /*phi component of gradients */
 
         mhd_dmhd[3] += (1/r) * mhddata->amplitude_nm[i]
-            * (  a_da[1] * psi_dpsi[2] * sinmhd
-               - a_da[0] * mhddata->mmode[i] * thetazeta[2] * cosmhd
-               + a_da[0] * mhddata->nmode[i] * thetazeta[6] * cosmhd);
+            * (  a_da[1] * ptz[2] * sinmhd
+               - a_da[0] * mhddata->mmode[i] * ptz[6]  * cosmhd
+               + a_da[0] * mhddata->nmode[i] * ptz[10] * cosmhd);
 
         mhd_dmhd[8] += (1/r) * mhddata->amplitude_nm[i]
-            * (   phi_dphi[1] * psi_dpsi[2] * sinmhd
-                - phi_dphi[0] * mhddata->mmode[i] * thetazeta[2] * cosmhd
-                + phi_dphi[0] * mhddata->nmode[i] * thetazeta[6] * cosmhd);
+            * (   phi_dphi[1] * ptz[2] * sinmhd
+                - phi_dphi[0] * mhddata->mmode[i] * ptz[6]  * cosmhd
+                + phi_dphi[0] * mhddata->nmode[i] * ptz[10] * cosmhd);
 
         /*z component of gradients */
 
         mhd_dmhd[4] += mhddata->amplitude_nm[i]
-            * (   a_da[1] * psi_dpsi[3] * sinmhd
-                - a_da[0] * mhddata->mmode[i] * thetazeta[3] * cosmhd
-                + a_da[0] * mhddata->nmode[i] * thetazeta[7] * cosmhd);
+            * (   a_da[1] * ptz[3] * sinmhd
+                - a_da[0] * mhddata->mmode[i] * ptz[7]  * cosmhd
+                + a_da[0] * mhddata->nmode[i] * ptz[11] * cosmhd);
 
         mhd_dmhd[9] += mhddata->amplitude_nm[i]
-            * (   phi_dphi[1] * psi_dpsi[3] * sinmhd
-                - phi_dphi[0] * mhddata->mmode[i] * thetazeta[3] * cosmhd
-                + phi_dphi[0] * mhddata->nmode[i] * thetazeta[7] * cosmhd);
-     }
+            * (   phi_dphi[1] * ptz[3] * sinmhd
+                - phi_dphi[0] * mhddata->mmode[i] * ptz[7]  * cosmhd
+                + phi_dphi[0] * mhddata->nmode[i] * ptz[11] * cosmhd);
+    }
     return err;
 }
 

@@ -58,39 +58,47 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BOOZERPATH "psi_max",    &(offload_data->psi_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    if( hdf5_read_int(   BOOZERPATH "ntheta_geo", &(offload_data->ntheta_geo),
+    if( hdf5_read_double(BOOZERPATH "psi_inner",    &(offload_data->psi_inner),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(   BOOZERPATH "ntheta_bzr", &(offload_data->ntheta_bzr),
+    if( hdf5_read_double(BOOZERPATH "psi_outer",    &(offload_data->psi_outer),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    if( hdf5_read_int(   BOOZERPATH "ntheta", &(offload_data->ntheta),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    if( hdf5_read_double(BOOZERPATH "r0",      &(offload_data->r0),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BOOZERPATH "z0",      &(offload_data->z0),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    if( hdf5_read_int(   BOOZERPATH "nrzs", &(offload_data->nrzs),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Size of 1D and 2D input data arrays */
-    int psisize   = offload_data->npsi;
-    int thgeosize = offload_data->nr   * offload_data->nz;
-    int thbzrsize = offload_data->npsi * offload_data->ntheta_geo;
-    int psithsize = offload_data->npsi * offload_data->ntheta_bzr;
+    int rzsize       = offload_data->nr   * offload_data->nz;
+    int psithetasize = offload_data->npsi * offload_data->ntheta;
+    int contoursize  = offload_data->nrzs;
 
     /* Allocate offload array */
-    *offload_array = (real*) malloc( (3 * psisize + 2 * psithsize + thbzrsize
-                                      + thgeosize) * sizeof(real) );
+    *offload_array = (real*) malloc( (rzsize + 2 * psithetasize
+                                      + 2 * contoursize) * sizeof(real) );
 
     /* Read data to offload array */
-    if( hdf5_read_double(BOOZERPATH "g",     &(*offload_array)[0],
+    if( hdf5_read_double(BOOZERPATH "psi_rz",
+                         &(*offload_array)[0],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "q",     &(*offload_array)[psisize],
+    if( hdf5_read_double(BOOZERPATH "nu_psitheta",
+                         &(*offload_array)[rzsize],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "I",     &(*offload_array)[2*psisize],
+    if( hdf5_read_double(BOOZERPATH "theta_psithetageom",
+                         &(*offload_array)[rzsize + psithetasize],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "delta", &(*offload_array)[3*psisize],
+    if( hdf5_read_double(BOOZERPATH "rs",
+                         &(*offload_array)[rzsize + 2*psithetasize],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "nu",
-                         &(*offload_array)[3*psisize + psithsize],
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "theta_bzr",
-                         &(*offload_array)[3*psisize + 2*psithsize],
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "theta_geo",
-                         &(*offload_array)[3*psisize + 2*psithsize + thbzrsize],
+    if( hdf5_read_double(BOOZERPATH "zs",
+                         &(*offload_array)[rzsize + 2*psithetasize
+                                           + contoursize],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Initialize the data */

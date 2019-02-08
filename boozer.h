@@ -60,8 +60,8 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                  real* offload_array);
 
 #pragma omp declare simd uniform(boozerdata)
-a5err boozer_eval_psithetazeta(real psithetazeta[12], real r, real phi, real z,
-                               boozer_data* boozerdata);
+a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside, real r,
+                               real phi, real z, boozer_data* boozerdata);
 
 #pragma omp declare simd uniform(boozerdata)
 a5err boozer_eval_psinormalized(real psi[4], real psin[4],
