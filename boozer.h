@@ -24,6 +24,8 @@ typedef struct {
     int  npsi;     /**< Number of psi grid points for other fields            */
     real psimin;   /**< Minimum psi in other fields                           */
     real psimax;   /**< Maximum psi in other fields                           */
+    real psi_inner;/**< psi at the inner edge (center of plasma) of the grid  */
+    real psi_outer;/**< psi at the outer edge (~separatrix) of the grid       */
     int  ntheta;   /**< number of theta angles (both boozer and geometric)    */
     real thetamin; /**< minimum theta (both the boozer and geometric)         */
     real thetamax; /**< maximum theta (both the boozer and geometric)         */
@@ -43,6 +45,8 @@ typedef struct {
     real zmax;     /**< Maximum z for psi_rz */
     real psimin;   /**< Minimum psi in other fields */
     real psimax;   /**< Maximum psi in other fields */
+    real psi_inner;/**< psi at the inner edge (center of plasma) of the grid  */
+    real psi_outer;/**< psi at the outer edge (~separatrix) of the grid       */
     real thetamin; /**< minimum theta (both the boozer and geometric) */
     real thetamax; /**< maximum theta (both the boozer and geometric) */
     real r0;       /**< R location of the axis for defining geometric theta */
@@ -70,6 +74,10 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
 #pragma omp declare simd uniform(boozerdata)
 a5err boozer_eval_psithetazeta(real psithetazeta[12], real r, real phi, real z,
 			       boozer_data* boozerdata);
+
+#pragma omp declare simd uniform(boozerdata)
+a5err boozer_eval_psinormalized(real psi[4], real psin[4],
+				boozer_data* boozerdata);
 
 #pragma omp end declare target
 
