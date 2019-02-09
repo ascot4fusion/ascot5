@@ -205,7 +205,7 @@ static void mccc_coefs_clog(real* clogab, real ma, real qa, real va, int nspec,
     /* Evaluate Debye length */
     real sum = 0;
     for(int i = 0; i < nspec; i++){
-        sum += (nb[i] * qb[i] * qb[i])/(Tb[i]);
+        sum += nb[i] * qb[i] * qb[i] / Tb[i];
     }
     real debyeLength = sqrt(CONST_E0/sum);
 

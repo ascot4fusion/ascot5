@@ -12,8 +12,8 @@
 #include "../../random.h"
 
 #pragma omp declare target
-void mccc_step_fo_fixed(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                        plasma_data* pdata, random_data* rdata, real* coldata);
+void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
+                   plasma_data* pdata, random_data* rdata, real* coldata);
 
 #pragma omp end declare target
 

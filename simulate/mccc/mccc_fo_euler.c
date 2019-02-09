@@ -16,7 +16,7 @@
 
 #pragma omp declare target
 /** Let collisions change energy */
-static int MCCC_INCLUDE_ENERGY = 1;
+static int MCCC_INCLUDE_ENERGY = 0;
 
 /** Let collisions change pitch */
 static int MCCC_INCLUDE_PITCH = 1;
@@ -25,6 +25,17 @@ static int MCCC_INCLUDE_PITCH = 1;
 static int MCCC_INCLUDE_GCDIFF = 1;
 #pragma omp end declare target
 
+/**
+ * @brief Integrate collisions for one time-step
+ *
+ * @param p fo struct
+ * @param h time-steps for NSIMD markers
+ * @param Bdata pointer to magnetic field
+ * @param pdata pointer to plasma data
+ * @param rdata pointer to random-generator data
+ * @param coldata pointer collision coefficient data for interpolation or NULL
+ *        if coefficients are evaluated exactly
+ */
 void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
                    plasma_data* pdata, random_data* rdata, real* coldata) {
 
@@ -36,6 +47,7 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
     int n_species  = plasma_get_n_species(pdata);
     const real* qb = plasma_get_species_charge(pdata);
     const real* mb = plasma_get_species_mass(pdata);
+    coldata = NULL;
 
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
@@ -73,25 +85,25 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
              * species                                               */
             real F = 0, Dpara = 0, Dperp = 0;
             for(int j = 0; j < n_species; j++) {
-                real vb = sqrt(2*Tb[i]/mb[i]);
+                real vb = sqrt( 2 * Tb[j] / mb[j] );
                 real x  = vin / vb;
                 real mufun[3];
                 mccc_coefs_mufun(mufun, x, coldata);
 
-                F     += mccc_coefs_F(p->mass[i], p->charge[i], mb[i], qb[i],
-                                      nb[i], vb, clogab[i], mufun[0]);
-                Dpara += mccc_coefs_Dpara(p->mass[i], p->charge[i], vin, qb[i],
-                                          nb[i], vb, clogab[i], mufun[0]);
-                Dperp += mccc_coefs_Dperp(p->mass[i], p->charge[i], vin, qb[i],
-                                          nb[i], vb, clogab[i], mufun[1]);
+                F     += mccc_coefs_F(p->mass[i], p->charge[i], mb[j], qb[j],
+                                      nb[j], vb, clogab[j], mufun[0]);
+                Dpara += mccc_coefs_Dpara(p->mass[i], p->charge[i], vin, qb[j],
+                                          nb[j], vb, clogab[j], mufun[0]);
+                Dperp += mccc_coefs_Dperp(p->mass[i], p->charge[i], vin, qb[j],
+                                          nb[j], vb, clogab[j], mufun[1]);
             }
 
             /* Evaluate collisions */
             real sdt = sqrt(h[i]);
             real dW[3];
-            dW[0] = sdt * rnd[0];
-            dW[1] = sdt * rnd[1];
-            dW[2] = sdt * rnd[2];
+            dW[0] = sdt * rnd[0*NSIMD];
+            dW[1] = sdt * rnd[1*NSIMD];
+            dW[2] = sdt * rnd[2*NSIMD];
 
             real vhat[3];
             math_unit(vin_xyz, vhat);
