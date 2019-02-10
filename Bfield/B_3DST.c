@@ -28,7 +28,7 @@
  * However, do note that in this module \f$\phi_\mathrm{max}\f$ is not the
  * "last" grid point but the second last, e.g. if \f$\phi_\mathrm{min}=0\f$
  * and \f$n_\phi = 360\f$, then \f$\phi_\mathrm{max}=359\f$ if periodicity is
- * \f$N=0\f$. This module does not extrapolate in the time domain so an error 
+ * \f$N=0\f$. This module does not extrapolate in the time domain so an error
  * will be thrown or the marker will be stopped.
  *
  * @see B_field.c
