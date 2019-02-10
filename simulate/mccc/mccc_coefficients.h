@@ -57,7 +57,7 @@
  * - \$f\ln\Lambda_{ab}\$f is Coulomb logarithm.
  */
 #define mccc_coefs_dQ(ma, qa, mb, qb, nb, vb, clogab, dmu0) (           \
-        -mccc_coefs_cab(qa, qb, nb, clogab) * dmu0 / ( ma * mb * vth*vth ) )
+        -mccc_coefs_cab(qa, qb, nb, clogab) * dmu0 / ( ma * mb * vb*vb ) )
 
 /**
  * @brief Evaluate non-relativistic friction coefficient
@@ -157,22 +157,38 @@
  * where
  *
  * - \$fv_a\$f is test particle velocity [m/s]
- * - \$fQ\$f is  [C]
- * - \$D_parallel\$f is  [m^-3]
+ * - \$fQ\$f is  []
+ * - \$D_parallel\$f is  []
  */
 #define mccc_coefs_K(va, Dpara, dDpara, Q) (    \
         Q + dDpara + 2*Dpara / va )
 
 /**
- * @brief Evaluate pitch collision frequency
+ * @brief Evaluate pitch collision frequency [1/s]
+ *
+ *\$f\nu = 2D_\perp/v_a^2\$f
+ *
+ * where
+ *
+ * - \$fv_a\$f is test particle velocity [m/s]
+ * - \$D_perp\$f is  []
  */
  #define mccc_coefs_nu(va, Dperp) (             \
         2 * Dperp / ( va * va ) )
 
 /**
- * @brief Evaluate spatial diffusion coefficient
+ * @brief Evaluate spatial diffusion coefficient []
+ *
+ *\$fD_X = (\frac{1}{2}(D_\parallel-D_\perp)(1-\xi^2) + D_\perp)/\omega_g^2\$f
+ *
+ * where
+ *
+ * - \$fxi\$f is test particle pitch
+ * - \$fD_\parallel\$f is parallel diffusion coefficient []
+ * - \$D_perp\$f is perpendicular diffusion coefficient []
+ * - \$\omega_g\$f is gyrofrequency [1/s]
  */
-#define mccc_coefs_Dx(xi, Dpara, Dperp, gyrofreq) (              \
+#define mccc_coefs_DX(xi, Dpara, Dperp, gyrofreq) (              \
         ( 0.5 * ( Dpara - Dperp ) * ( 1 - xi*xi ) + Dperp )      \
         / (gyrofreq*gyrofreq) )
 

@@ -16,7 +16,7 @@
 
 #pragma omp declare target
 /** Let collisions change energy */
-static int MCCC_INCLUDE_ENERGY = 0;
+static int MCCC_INCLUDE_ENERGY = 1;
 
 /** Let collisions change pitch */
 static int MCCC_INCLUDE_PITCH = 1;
@@ -101,9 +101,9 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
             /* Evaluate collisions */
             real sdt = sqrt(h[i]);
             real dW[3];
-            dW[0] = sdt * rnd[0*NSIMD];
-            dW[1] = sdt * rnd[1*NSIMD];
-            dW[2] = sdt * rnd[2*NSIMD];
+            dW[0] = sdt * rnd[0*NSIMD + i];
+            dW[1] = sdt * rnd[1*NSIMD + i];
+            dW[2] = sdt * rnd[2*NSIMD + i];
 
             real vhat[3];
             math_unit(vin_xyz, vhat);
@@ -121,8 +121,8 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
             vout_xyz[2] = vin_xyz[2] + k1*vhat[2] + k2*vhat[2]
                         + k3*(dW[2]  - t1*vhat[2]);
 
-            /* Remove energy or pitch change from the results and transform *
-             * back to cylindrical coordinates.                             */
+            /* Remove energy or pitch change from the results if that is *
+             * requested and transform back to cylindrical coordinates.  */
             if(!MCCC_INCLUDE_ENERGY) {
                 real vinpervout = vin / math_norm(vout_xyz);
                 vout_xyz[0] *= vinpervout;
