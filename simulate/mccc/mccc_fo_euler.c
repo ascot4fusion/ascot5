@@ -11,8 +11,8 @@
 #include "../../B_field.h"
 #include "../../plasma.h"
 #include "../../random.h"
-#include "mccc_coefficients.h"
-#include "mccc_fo_euler.h"
+#include "mccc_coefs.h"
+#include "mccc.h"
 
 #pragma omp declare target
 /** Let collisions change energy */

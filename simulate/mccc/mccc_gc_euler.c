@@ -12,8 +12,8 @@
 #include "../../B_field.h"
 #include "../../plasma.h"
 #include "../../random.h"
-#include "mccc_coefficients.h"
-#include "mccc_gc_euler.h"
+#include "mccc_coefs.h"
+#include "mccc.h"
 
 #define MCCC_CUTOFF 0.1
 
