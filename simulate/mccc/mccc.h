@@ -1,7 +1,7 @@
 /**
  * @file mccc.h
- * @brief Header file for mccc.c
-*/
+ * @brief Header file for mccc package
+ */
 #ifndef MCCC_H
 #define MCCC_H
 
@@ -15,16 +15,16 @@
 #pragma omp declare target
 void mccc_setoperator(int include_energy, int include_pitch,
                       int include_gcdiff);
-void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, real* coldata, 
-                    real* clogab, real* F, real* Dpara, real* Dperp, real* K, real* nu);
-void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* coldata,
-                    real* clogab, real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara);
-void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* coldata, 
-                      real* nu, int i);
-void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* coldata, real* h);
-void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* coldata, real* h);
-void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* coldata, real* hin, real* hout, mccc_wienarr** w, real tol);
-void mccc_printerror(int err);
+void mccc_eval_coefs(real m, real q, real r, real phi, real z, real t, real v,
+                     int nv, plasma_data* pdata, real* F, real* Dpara,
+                     real* Dperp, real* K, real* nu, int* err);
+void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
+                   plasma_data* pdata, random_data* rdata, real* coldata);
+void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
+                   plasma_data* pdata, random_data* rdata, real* coldata);
+void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
+                      mccc_wienarr** wienarr, B_field_data* Bdata,
+                      plasma_data* pdata, random_data* rdata, real* coldata);
 #pragma omp end declare target
 
 #endif
