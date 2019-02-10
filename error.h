@@ -35,14 +35,14 @@ typedef enum error_file {
     EF_B_2DS             =  11, /**< Error is from B_2DS.c                    */
     EF_B_STS             =  12, /**< Error is from B_STS.c                    */
     EF_B_GS              =  13, /**< Error is from B_GS.c                     */
-    EF_PLASMA_1DS        =  14, /**< Error is from plasma_1DS.c               */
-    EF_PLASMA            =  15, /**< Error is from plasma.c                   */
-    EF_E_FIELD           =  16, /**< Error is from E_field.c                  */
-    EF_NEUTRAL           =  17, /**< Error is from neutral.c                  */
-    EF_E_1DS             =  18, /**< Error is from E_1DS.c                    */
-    EF_B_FIELD           =  19, /**< Error is from B_field.c                  */
-    EF_PARTICLE          =  20,  /**< Error is from particle.c                 */
-    EF_E_3DS             =  21 /**< Error is from B_3DS.c                    */
+    EF_PLASMA_1D         =  14, /**< Error is from plasma_1DS.c               */
+    EF_PLASMA_1DS        =  15, /**< Error is from plasma_1DS.c               */
+    EF_PLASMA            =  16, /**< Error is from plasma.c                   */
+    EF_E_FIELD           =  17, /**< Error is from E_field.c                  */
+    EF_NEUTRAL           =  18, /**< Error is from neutral.c                  */
+    EF_E_1DS             =  19, /**< Error is from E_1DS.c                    */
+    EF_B_FIELD           =  20, /**< Error is from B_field.c                  */
+    EF_PARTICLE          =  21  /**< Error is from particle.c                 */
 }error_file;
 
 /**
@@ -58,7 +58,7 @@ typedef enum error_type {
     ERR_MARKER_UNPHYSICAL =   4, /**< Some of marker fields are unphysical   */
     ERR_INVALID_TIMESTEP  =   5, /**< Time step is zero, NaN or too small    */
     ERR_WIENER_ARRAY      =   6, /**< Wiener array is full or inconsistent   */
-    ERR_INTEGRATION       =   7  /**< Integrating marker coordinates yield   
+    ERR_INTEGRATION       =   7  /**< Integrating marker coordinates yield
                                       unphysical results                     */
 }error_type;
 

@@ -36,13 +36,10 @@ typedef enum plasma_type {
  * the type of the data is declared with the "type" field.
  */
 typedef struct {
-    plasma_type
-    type;                     /**< Plasma data type wrapped by this struct */
-    plasma_1D_offload_data
-    plasma_1D;                /**< 1D data or NULL if not active           */
-    plasma_1DS_offload_data
-    plasma_1DS;               /**< 1DS data or NULL if not active          */
-    int offload_array_length; /**< Allocated offload array length          */
+    plasma_type type;         /**< Plasma data type wrapped by this struct    */
+    plasma_1D_offload_data plasma_1D;   /**< 1D data or NULL if not active    */
+    plasma_1DS_offload_data plasma_1DS; /**< 1DS data or NULL if not active   */
+    int offload_array_length; /**< Allocated offload array length             */
 } plasma_offload_data;
 
 /**
@@ -69,18 +66,21 @@ void plasma_free_offload(plasma_offload_data* offload_data,
 int plasma_init(plasma_data* plasma_data, plasma_offload_data* offload_data,
                 real* offload_array);
 #pragma omp declare simd uniform(pls_data)
-real plasma_eval_temp(real rho, real t, int species, plasma_data* pls_data);
+a5err plasma_eval_temp(real* temp, real rho, real r, real phi, real z, real t,
+                       int species, plasma_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
-real plasma_eval_dens(real rho, real t, int species, plasma_data* pls_data);
+a5err plasma_eval_dens(real* dens, real rho, real r, real phi, real z, real t,
+                       int species, plasma_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
-a5err plasma_eval_densandtemp(
-    real rho, real t, plasma_data* pls_data, real* dens, real* temp);
+a5err plasma_eval_densandtemp(real* dens, real* temp, real rho,
+                              real r, real phi, real z, real t,
+                              plasma_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
 int plasma_get_n_species(plasma_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
-real* plasma_get_species_mass(plasma_data* pls_data);
+const real* plasma_get_species_mass(plasma_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
-real* plasma_get_species_charge(plasma_data* pls_data);
+const real* plasma_get_species_charge(plasma_data* pls_data);
 #pragma omp end declare target
 
 #endif
