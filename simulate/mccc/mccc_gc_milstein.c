@@ -237,7 +237,7 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
                 Bnorm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
 
                 p->r[i]    = Xout_rpz[0];
-                p->z[i]    = Xout_rpz[1];
+                p->z[i]    = Xout_rpz[2];
                 p->vpar[i] = physlib_gc_vpar(vout, xiout);
                 p->mu[i]   = physlib_gc_mu(p->mass[i], vout, xiout, Bnorm);
 
