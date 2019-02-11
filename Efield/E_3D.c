@@ -65,7 +65,7 @@ int E_3D_init_offload(E_3D_offload_data* offload_data, real** offload_array) {
     offload_data->offload_array_length =
         3*offload_data->n_r * offload_data->n_phi * offload_data->n_z;
 
-    print_out(VERBOSE_IO, "\3D electric field, trilinear interpolation (E_3D)\n");
+    print_out(VERBOSE_IO, "\n3D electric field, trilinear interpolation (E_3D)\n");
     print_out(VERBOSE_IO, "Grid: nR = %4.d Rmin = %3.3f Rmax = %3.3f\n",
               offload_data->n_r,
               offload_data->r_min, offload_data->r_max);

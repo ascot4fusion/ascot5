@@ -24,6 +24,7 @@
 #include "../Efield/E_1DS.h"
 #include "../Efield/E_3D.h"
 #include "../Efield/E_3DS.h"
+#include "../Efield/E_3DST.h"
 #include "../print.h"
 #include "hdf5_helpers.h"
 #include "hdf5_efield.h"
@@ -35,6 +36,8 @@ int hdf5_efield_read_TC(hid_t f, E_TC_offload_data* offload_data,
 int hdf5_efield_read_3D(hid_t f, E_3D_offload_data* offload_data,
                         real** offload_array, char* qid);
 int hdf5_efield_read_3DS(hid_t f, E_3DS_offload_data* offload_data,
+                         real** offload_array, char* qid);
+int hdf5_efield_read_3DST(hid_t f, E_3DST_offload_data* offload_data,
                          real** offload_array, char* qid);
 /**
  * @brief Read electric field data from HDF5 file
@@ -89,6 +92,13 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data,
     if(hdf5_find_group(f, path) == 0) {
       offload_data->type = E_field_type_3DS;
       err = hdf5_efield_read_3DS(f, &(offload_data->E3DS),
+                                 offload_array, qid);
+    }
+
+    hdf5_gen_path("/efield/E_3DST-XXXXXXXXXX", qid, path);
+    if(hdf5_find_group(f, path) == 0) {
+      offload_data->type = E_field_type_3DST;
+      err = hdf5_efield_read_3DST(f, &(offload_data->E3DST),
                                  offload_array, qid);
     }
 
@@ -335,6 +345,101 @@ int hdf5_efield_read_3DS(hid_t f, E_3DS_offload_data* offload_data,
   /* Allocate offload_array storing the three components of E */
     int E_size = offload_data->n_r * offload_data->n_z
       * offload_data->n_phi;
+
+    *offload_array = (real*) malloc((3 * E_size) * sizeof(real));
+    offload_data->offload_array_length =  3 * E_size;
+
+    /* Read the magnetic field */
+    if( hdf5_read_double(EPATH "E_R", &(*offload_array)[0*E_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(EPATH "E_phi", &(*offload_array)[1*E_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(EPATH "E_z", &(*offload_array)[2*E_size],
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    return 0;
+}
+
+/**
+ * @brief Read electric field data of type E_3DST
+ *
+ * The E_3DST data is stored in HDF5 file under the group
+ * /efield/E_3DST-XXXXXXXXXX/ where X's mark the QID.
+ *
+ * This function assumes the group holds the following datasets:
+ * (E data refers to \f$E_R\f$, \f$E_phi\f$, and \f$E_z\f$
+ *
+ * - int n_R Number of R grid points in the E data grid
+ * - int n_phi Number of phi grid points in the E data grid
+ * - int n_z Number of z grid points in the E data grid
+ * - int n_t Number of t grid points in the E data grid
+ * - double R_min Minimum value in E data R grid [m]
+ * - double R_max Maximum value in E data R grid [m]
+ * - double phi_min Minimum value in E data phi grid [deg]
+ * - double phi_max Maximum value in E data phi grid [deg]
+ * - double z_min Minimum value in E data z grid [m]
+ * - double z_max Maximum value in E data z grid [m]
+ * - double t_min Minimum value in E data t grid [s]
+ * - double t_max Maximum value in E data t grid [s]
+ *
+ * - double E_R   Electric field R component on the Rzphit-grid as
+ *                a {nt, nphi, nz, nR} matrix [T]
+ * - double E_phi Electric field phi component on the Rzphit-grid as
+ *                a {nt, nphi, nz, nR} matrix [T]
+ * - double E_z   Electric field z component on the Rzphit-grid as
+ *                a {nt, nphi, nz, nR} matrix [T]
+ *
+ * @param f HDF5 file identifier for a file which is opened and closed outside
+ *          of this function
+ * @param offload_data pointer to offload data struct which is allocated here
+ * @param offload_array pointer to offload array which is allocated here and
+ *                      used to store E_R, E_phi, and E_z values as
+ *                      required by E_3DST_init_offload()
+ * @param qid QID of the E_3DST field that is to be read
+ *
+ * @return zero if reading succeeded
+ */
+int hdf5_efield_read_3DST(hid_t f, E_3DST_offload_data* offload_data,
+                         real** offload_array, char* qid) {
+    #undef EPATH
+    #define EPATH "/efield/E_3DST-XXXXXXXXXX/"
+
+  /* Read and initialize magnetic field Rpz-grid */
+  if( hdf5_read_int(EPATH "n_R", &(offload_data->n_r),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_int(EPATH "n_z", &(offload_data->n_z),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "R_min", &(offload_data->r_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "R_max", &(offload_data->r_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "z_min", &(offload_data->z_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "z_max", &(offload_data->z_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+
+  if( hdf5_read_int(EPATH "n_phi", &(offload_data->n_phi),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "phi_min", &(offload_data->phi_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "phi_max", &(offload_data->phi_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+
+  if( hdf5_read_int(EPATH "n_t", &(offload_data->n_t),
+                    f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "t_min", &(offload_data->t_min),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+  if( hdf5_read_double(EPATH "t_max", &(offload_data->t_max),
+                       f, qid, __FILE__, __LINE__) ) {return 1;}
+
+
+  // Convert to radians
+  offload_data->phi_min = math_deg2rad(offload_data->phi_min);
+  offload_data->phi_max = math_deg2rad(offload_data->phi_max);
+
+  /* Allocate offload_array storing the three components of E */
+    int E_size = offload_data->n_r * offload_data->n_z
+      * offload_data->n_phi * offload_data->n_t;
 
     *offload_array = (real*) malloc((3 * E_size) * sizeof(real));
     offload_data->offload_array_length =  3 * E_size;

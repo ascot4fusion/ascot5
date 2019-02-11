@@ -28,7 +28,7 @@ typedef enum B_field_type {
     B_field_type_GS,  /**< Analytic magnetic field                          */
     B_field_type_2DS, /**< Spline-interpolated axisymmetric  magnetic field */
     B_field_type_3DS, /**< Spline-interpolated 3D magnetic field            */
-    B_field_type_3DST,/**<3D time-dependent magnetic field                  */
+    B_field_type_3DST,/**< 3D time-dependent magnetic field                 */
     B_field_type_STS, /**< Spline-interpolated stellarator magnetic field   */
     B_field_type_TC   /**< Trivial Cartesian magnetic field                 */
 } B_field_type;

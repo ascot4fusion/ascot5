@@ -15,6 +15,7 @@
 #include "Efield/E_1DS.h"
 #include "Efield/E_3D.h"
 #include "Efield/E_3DS.h"
+#include "Efield/E_3DST.h"
 
 /**
  * @brief Electric field types
@@ -24,10 +25,11 @@
  * field instance must have a corresponding type.
  */
 typedef enum E_field_type {
-    E_field_type_TC, /**< Trivial Cartesian electric field */
-    E_field_type_1DS, /**< Spline-interpolated radial electric field */
-    E_field_type_3D,  /**< Linear-interpolated 3D electric field */
-    E_field_type_3DS  /**< Spline-interpolated 3D electric field */
+    E_field_type_TC,   /**< Trivial Cartesian electric field          */
+    E_field_type_1DS,  /**< Spline-interpolated radial electric field */
+    E_field_type_3D,   /**< Linear-interpolated 3D electric field     */
+    E_field_type_3DS,  /**< Spline-interpolated 3D electric field     */
+    E_field_type_3DST  /**< 3D time-dependent electric field          */
 } E_field_type;
 
 /**
@@ -44,7 +46,8 @@ typedef struct {
     E_TC_offload_data ETC;    /**< TC field or NULL if not active             */
     E_1DS_offload_data E1DS;  /**< 1DS field or NULL if not active            */
     E_3D_offload_data E3D;    /**< 3D fiel or NULL if not active              */
-    E_3DS_offload_data E3DS;  /**< 3DS fiel or NULL if not active              */
+    E_3DS_offload_data E3DS;  /**< 3DS fiel or NULL if not active             */
+    E_3DST_offload_data E3DST;/**< 3DST fiel or NULL if not active            */
     int offload_array_length; /**< Allocated offload array length             */
 } E_field_offload_data;
 
@@ -58,11 +61,12 @@ typedef struct {
  * the type of the data is declared with the "type" field.
  */
 typedef struct {
-    E_field_type type; /**< Electric field type wrapped by this struct */
-    E_TC_data ETC;     /**< TC field or NULL if not active             */
-    E_1DS_data E1DS;   /**< 1DS field or NULL if not active            */
-    E_3D_data E3D;     /**< 3D field or NULL if not active             */
-    E_3DS_data E3DS;    /**< 3DS field or NULL if not active             */
+    E_field_type type; /**< Electric field type wrapped by this struct  */
+    E_TC_data ETC;     /**< TC field or NULL if not active              */
+    E_1DS_data E1DS;   /**< 1DS field or NULL if not active             */
+    E_3D_data E3D;     /**< 3D field or NULL if not active              */
+    E_3DS_data E3DS;   /**< 3DS field or NULL if not active             */
+    E_3DS_data E3DST;  /**< 3DST field or NULL if not active             */
 
 } E_field_data;
 

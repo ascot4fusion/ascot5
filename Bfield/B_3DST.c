@@ -190,7 +190,7 @@ int B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array)
               offload_data->Bgrid_n_phi,
               math_rad2deg(offload_data->Bgrid_phi_min),
               math_rad2deg(offload_data->Bgrid_phi_max));
-    print_out(VERBOSE_IO, "ntime = %4.d timemin = %3.3f s timemax = %3.3f deg\n",
+    print_out(VERBOSE_IO, "ntime = %4.d tmin = %3.3f s tmax = %3.3f deg\n",
               offload_data->Bgrid_n_t,
               offload_data->Bgrid_t_min,
               offload_data->Bgrid_t_max);
@@ -228,8 +228,7 @@ void B_3DST_init(B_3DST_data* Bdata, B_3DST_offload_data* offload_data,
                 real* offload_array) {
 
     int B_size = NSIZE_COMP4D * offload_data->Bgrid_n_r
-                 * offload_data->Bgrid_n_z * offload_data->Bgrid_n_phi
-	         * offload_data->Bgrid_n_t;
+        * offload_data->Bgrid_n_z * offload_data->Bgrid_n_phi * offload_data->Bgrid_n_t;
 
     /* Initialize target data struct */
     Bdata->psi0 = offload_data->psi0;
@@ -282,16 +281,16 @@ void B_3DST_init(B_3DST_data* Bdata, B_3DST_offload_data* offload_data,
                              offload_data->Bgrid_z_max,
                              offload_data->Bgrid_t_min,
                              offload_data->Bgrid_t_max);
-    
+
     interp2Dcomp_init_spline(&Bdata->psi, &(offload_array[3*B_size]),
-			     offload_data->psigrid_n_r,
-			     offload_data->psigrid_n_z,
-			     NATURALBC, NATURALBC,
-			     offload_data->psigrid_r_min,
-			     offload_data->psigrid_r_max,
-			     offload_data->psigrid_z_min,
-			     offload_data->psigrid_z_max);
-    
+                             offload_data->psigrid_n_r,
+                             offload_data->psigrid_n_z,
+                             NATURALBC, NATURALBC,
+                             offload_data->psigrid_r_min,
+                             offload_data->psigrid_r_max,
+                             offload_data->psigrid_z_min,
+                             offload_data->psigrid_z_max);
+
 }
 
 /**
