@@ -82,9 +82,6 @@ int mccc_eval_coefs(real ma, real qa, real r, real phi, real z, real t,
     if( plasma_eval_densandtemp(nb, Tb, rho, r, phi, z, t, pdata) ) {
         return 1;
     }
-    for(int j = 0; j < n_species; j++) {
-        Tb[j] = Tb[j]*CONST_KB; // TODO remove me
-    }
 
     /* Loop through all plasma species */
     for(int ib=0; ib<n_species; ib++) {

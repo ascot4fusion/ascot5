@@ -60,9 +60,6 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
                                                   p->r[i], p->phi[i], p->z[i],
                                                   p->time[i], pdata);
             }
-            for(int j = 0; j < n_species; j++) {
-                Tb[j] = Tb[j]*CONST_KB; // TODO remove me
-            }
 
             /* Coulomb logarithm */
             real clogab[MAX_SPECIES];
