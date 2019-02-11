@@ -329,8 +329,8 @@ int ascotpy_plasma_get_n_species() {
 void ascotpy_plasma_get_species_mass_and_charge(real* mass, real* charge) {
 
     int n_species = plasma_get_n_species(&sim.plasma_data);
-    real* m = plasma_get_species_mass(&sim.plasma_data);
-    real* q = plasma_get_species_charge(&sim.plasma_data);
+    const real* m = plasma_get_species_mass(&sim.plasma_data);
+    const real* q = plasma_get_species_charge(&sim.plasma_data);
     for(int i=0; i<n_species; i++) {
         mass[i]   = m[i];
         charge[i] = q[i];
@@ -365,7 +365,8 @@ int ascotpy_plasma_eval_background(int Neval, real* R, real* phi, real* z,
         if( B_field_eval_rho(rho, psi[0], &sim.B_data) ) {
             return 1;
         }
-        if( plasma_eval_densandtemp(rho[0], t[k], &sim.plasma_data, n, T) ) {
+        if( plasma_eval_densandtemp(n, T, rho[0], R[k], phi[k], z[k], t[k],
+                                    &sim.plasma_data) ) {
             return 1;
         }
         for(int i=0; i<n_species; i++) {
