@@ -90,6 +90,13 @@ class Ascotpy:
         fun.restype  = ctypes.c_int
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
+        # Collision coefficients.
+        fun = self.ascotlib.ascotpy_eval_coefs
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [ctypes.c_double, ctypes.c_double, real_p, real_p,
+                        real_p, real_p, real_p, ctypes.c_int, real_p]
+
+
     def reload(self, h5fn):
         """
         Change HDF5 file and free resources from old one.
@@ -396,6 +403,25 @@ class Ascotpy:
                                                    out["n0"])
 
         return out
+
+    def eval_collcoefs(self, ma, qa, R, phi, z, va):
+        ma  = float(ma)
+        qa  = float(qa)
+        R   = R.astype(dtype="f8")
+        phi = phi.astype(dtype="f8")
+        z   = z.astype(dtype="f8")
+        t   = z*0
+        va  = va.astype(dtype="f8")
+        nv  = va.size
+
+        n_species = self.ascotlib.ascotpy_plasma_get_n_species()
+
+        out = {}
+        out["K"] = np.zeros((n_species,va.size), dtype="f8")
+        self.ascotlib.ascotpy_eval_coefs(ma, qa, R, phi, z, t, va, nv, out["K"])
+
+        return out
+
 
 if __name__ == '__main__':
     # For testing purposes.
