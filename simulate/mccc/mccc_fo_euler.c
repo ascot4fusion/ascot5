@@ -14,17 +14,6 @@
 #include "mccc_coefs.h"
 #include "mccc.h"
 
-#pragma omp declare target
-/** Let collisions change energy */
-static int MCCC_INCLUDE_ENERGY = 1;
-
-/** Let collisions change pitch */
-static int MCCC_INCLUDE_PITCH = 1;
-
-/** Let collisions change guiding center position */
-static int MCCC_INCLUDE_GCDIFF = 1;
-#pragma omp end declare target
-
 /**
  * @brief Integrate collisions for one time-step
  *
@@ -37,7 +26,7 @@ static int MCCC_INCLUDE_GCDIFF = 1;
  *        if coefficients are evaluated exactly
  */
 void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                   plasma_data* pdata, random_data* rdata, real* coldata) {
+                   plasma_data* pdata, random_data* rdata, mccc_data* mdata) {
 
     /* Generate random numbers and get plasma information before going to the *
      * SIMD loop                                                              */
@@ -47,7 +36,6 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
     int n_species  = plasma_get_n_species(pdata);
     const real* qb = plasma_get_species_charge(pdata);
     const real* mb = plasma_get_species_mass(pdata);
-    coldata = NULL;
 
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
@@ -88,7 +76,7 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
                 real vb = sqrt( 2 * Tb[j] / mb[j] );
                 real x  = vin / vb;
                 real mufun[3];
-                mccc_coefs_mufun(mufun, x, coldata);
+                mccc_coefs_mufun(mufun, x, mdata);
 
                 F     += mccc_coefs_F(p->mass[i], p->charge[i], mb[j], qb[j],
                                       nb[j], vb, clogab[j], mufun[0]);
@@ -123,13 +111,13 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
 
             /* Remove energy or pitch change from the results if that is *
              * requested and transform back to cylindrical coordinates.  */
-            if(!MCCC_INCLUDE_ENERGY) {
+            if(!mdata->include_energy) {
                 real vinpervout = vin / math_norm(vout_xyz);
                 vout_xyz[0] *= vinpervout;
                 vout_xyz[1] *= vinpervout;
                 vout_xyz[2] *= vinpervout;
             }
-            if(!MCCC_INCLUDE_PITCH) {
+            if(!mdata->include_pitch) {
                 real vinpervout = vin / math_norm(vout_xyz);
                 vout_xyz[0] = vin_xyz[0] / vinpervout;
                 vout_xyz[1] = vin_xyz[1] / vinpervout;

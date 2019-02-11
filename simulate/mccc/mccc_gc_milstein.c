@@ -19,17 +19,6 @@
 
 #define MCCC_CUTOFF 0.1
 
-#pragma omp declare target
-/** Let collisions change energy */
-static int MCCC_INCLUDE_ENERGY = 1;
-
-/** Let collisions change pitch */
-static int MCCC_INCLUDE_PITCH = 1;
-
-/** Let collisions change guiding center position */
-static int MCCC_INCLUDE_GCDIFF = 1;
-#pragma omp end declare target
-
 /**
  * @brief Integrate collisions for one time-step
  *
@@ -43,7 +32,8 @@ static int MCCC_INCLUDE_GCDIFF = 1;
  */
 void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
                       mccc_wienarr** w, B_field_data* Bdata,
-                      plasma_data* pdata, random_data* rdata, real* coldata) {
+                      plasma_data* pdata, random_data* rdata,
+                      mccc_data* mdata) {
 
     /* Generate random numbers and get plasma information before going to the *
      * SIMD loop                                                              */
@@ -53,7 +43,6 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
     int n_species  = plasma_get_n_species(pdata);
     const real* qb = plasma_get_species_charge(pdata);
     const real* mb = plasma_get_species_mass(pdata);
-    coldata = NULL;
 
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
@@ -101,7 +90,7 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
                 real vb = sqrt( 2 * Tb[j] / mb[j] );
                 real x  = vin / vb;
                 real mufun[3];
-                mccc_coefs_mufun(mufun, x, coldata);
+                mccc_coefs_mufun(mufun, x, mdata);
 
                 real Qb      = mccc_coefs_Q(p->mass[i], p->charge[i], mb[j],
                                             qb[j], nb[j], vb, clogab[j],
@@ -194,13 +183,13 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
 
             /* Remove energy or pitch change or spatial diffusion from the    *
              * results if that is requested                                   */
-            if(!MCCC_INCLUDE_ENERGY) {
+            if(!mdata->include_energy) {
                 vout = vin;
             }
-            if(!MCCC_INCLUDE_PITCH) {
+            if(!mdata->include_pitch) {
                 xiout = xiin;
             }
-            if(!MCCC_INCLUDE_GCDIFF) {
+            if(!mdata->include_gcdiff) {
                 Xout_xyz[0] = Xin_xyz[0];
                 Xout_xyz[1] = Xin_xyz[1];
                 Xout_xyz[2] = Xin_xyz[2];

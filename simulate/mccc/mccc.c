@@ -16,32 +16,23 @@
 #include "../../physlib.h"
 #include "mccc.h"
 #include "mccc_wiener.h"
-#include "mccc_push.h"
 #include "mccc_coefs.h"
 
-#pragma omp declare target
-/** Let collisions change energy */
-static int MCCC_INCLUDE_ENERGY = 1;
-
-/** Let collisions change pitch */
-static int MCCC_INCLUDE_PITCH = 1;
-
-/** Let collisions change guiding center position */
-static int MCCC_INCLUDE_GCDIFF = 1;
-#pragma omp end declare target
-
 /**
- * @brief Set which quantities are affected by the collisions.
+ * @brief Set collision operator data.
  *
+ * @param mdata pointer to collision operator data struct
  * @param include_energy can collisions change marker energy, either 0 or 1
  * @param include_pitch  can collisions change marker pitch, either 0 or 1
  * @param include_gcdiff can collisions change GC position, either 0 or 1
  */
-void mccc_setoperator(int include_energy, int include_pitch,
-                      int include_gcdiff) {
-    MCCC_INCLUDE_ENERGY = include_energy;
-    MCCC_INCLUDE_PITCH  = include_pitch;
-    MCCC_INCLUDE_GCDIFF = include_gcdiff;
+void mccc_init(mccc_data* mdata, int include_energy, int include_pitch,
+               int include_gcdiff) {
+    mdata->include_energy = include_energy;
+    mdata->include_pitch  = include_pitch;
+    mdata->include_gcdiff = include_gcdiff;
+
+    mdata->usetabulated = 0;
 }
 
 /**
@@ -49,11 +40,12 @@ void mccc_setoperator(int include_energy, int include_pitch,
  *
  * This function is not called during the simulation but is used as a way
  * to get easy access to collision coefficients. Coefficients are evaluated
- * for plasma parameters found on given coordinates for an array of given
+ * for plasma parameters found on given coordinates, for an array of given
  * velocities.
  *
- * Evaluated coefficients are stored in the given arrays as:
- * [nv*i_species + i_v].
+ * Evaluated coefficients are stored in the given arrays as
+ * [nv*i_species + i_v]. If a NULL pointer is given, then that coefficient is
+ * not evaluated.
  *
  * @param m particle mass [kg]
  * @param q particle charge [C]
@@ -75,5 +67,14 @@ void mccc_setoperator(int include_energy, int include_pitch,
 void mccc_eval_coefs(real m, real q, real r, real phi, real z, real t, real v,
                      int nv, plasma_data* pdata, real* F, real* Dpara,
                      real* Dperp, real* K, real* nu, int* err) {
+    /* Evaluate plasma parameters */
 
+    /* Evaluate coefficients for different velocities */
+    for(int iv=0; iv<nv; iv++) {
+
+        /* Store requested quantities */
+        if(F != NULL) {
+            //F[nv*i_b + iv] = Fb;
+        }
+    }
 }

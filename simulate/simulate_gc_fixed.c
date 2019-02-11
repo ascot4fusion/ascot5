@@ -22,7 +22,6 @@
 #include "simulate_gc_fixed.h"
 #include "step/step_gc_rk4.h"
 #include "mccc/mccc.h"
-#include "mccc/mccc_gc_euler.h"
 
 #pragma omp declare target
 #pragma omp declare simd uniform(sim)
@@ -138,7 +137,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         /* Euler-Maruyama method for collisions */
         if(sim->enable_clmbcol) {
             mccc_gc_euler(&p, hin, &sim->B_data, &sim->plasma_data,
-                          &sim->random_data, sim->coldata);
+                          &sim->random_data, &sim->mccc_data);
         }
 
         /**********************************************************************/

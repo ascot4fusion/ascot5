@@ -24,7 +24,6 @@
 #include "step/step_gc_cashkarp.h"
 #include "mccc/mccc.h"
 #include "mccc/mccc_wiener.h"
-#include "mccc/mccc_gc_milstein.h"
 
 #pragma omp declare target
 #pragma omp declare simd uniform(sim)
@@ -178,7 +177,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         if(sim->enable_clmbcol) {
             mccc_gc_milstein(&p, hin, hout_col, tol_col, wienarr, &sim->B_data,
                              &sim->plasma_data, &sim->random_data,
-                             sim->coldata);
+                             &sim->mccc_data);
 
             /* Check whether time step was rejected */
             #pragma omp simd

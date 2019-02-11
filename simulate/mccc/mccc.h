@@ -12,19 +12,27 @@
 #include "../../random.h"
 #include "mccc_wiener.h"
 
+typedef struct {
+    int usetabulated;   /**< Use tabulated values for special functions    */
+    int include_energy; /**< Let collisions change energy                  */
+    int include_pitch;  /**< Let collisions change pitch                   */
+    int include_gcdiff; /**< Let collisions change guiding center position */
+} mccc_data;
+
 #pragma omp declare target
-void mccc_setoperator(int include_energy, int include_pitch,
-                      int include_gcdiff);
+
+void mccc_init(mccc_data* mdata, int include_energy, int include_pitch,
+               int include_gcdiff);
 void mccc_eval_coefs(real m, real q, real r, real phi, real z, real t, real v,
                      int nv, plasma_data* pdata, real* F, real* Dpara,
                      real* Dperp, real* K, real* nu, int* err);
 void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                   plasma_data* pdata, random_data* rdata, real* coldata);
+                   plasma_data* pdata, random_data* rdata, mccc_data* mdata);
 void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
-                   plasma_data* pdata, random_data* rdata, real* coldata);
+                   plasma_data* pdata, random_data* rdata, mccc_data* mdata);
 void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
                       mccc_wienarr** wienarr, B_field_data* Bdata,
-                      plasma_data* pdata, random_data* rdata, real* coldata);
+                      plasma_data* pdata, random_data* rdata, mccc_data* mdata);
 #pragma omp end declare target
 
 #endif

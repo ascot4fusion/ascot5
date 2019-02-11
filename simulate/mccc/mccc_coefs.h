@@ -1,12 +1,14 @@
 /**
- * @file mccc_coefficients.h
+ * @file mccc_coefs.h
  * @brief Routines to evaluate coefficients needed to evaluate collisions.
  */
-#ifndef MCCC_COEFFICIENTS_H
-#define MCCC_COEFFICIENTS_H
+#ifndef MCCC_COEFS_H
+#define MCCC_COEFS_H
 
 #include <math.h>
 #include "../../ascot5.h"
+#include "../../consts.h"
+#include "mccc.h"
 
 /**
  * @brief Evaluate collision parameter
@@ -157,8 +159,8 @@
  * where
  *
  * - \$fv_a\$f is test particle velocity [m/s]
- * - \$fQ\$f is  []
  * - \$D_parallel\$f is  []
+ * - \$fQ\$f is  []
  */
 #define mccc_coefs_K(va, Dpara, dDpara, Q) (    \
         Q + dDpara + 2*Dpara / va )
@@ -213,7 +215,7 @@
  * @param nb plasma species densities [m^-3]
  * @param Tb plasma species temperatures [J]
  */
-#pragma omp declare simd
+#pragma omp declare simd uniform(nspec, mb, qb, nb, Tb)
 static void mccc_coefs_clog(real* clogab, real ma, real qa, real va, int nspec,
                             const real* mb, const real* qb, const real* nb,
                             const real* Tb) {
@@ -242,10 +244,27 @@ static void mccc_coefs_clog(real* clogab, real ma, real qa, real va, int nspec,
     }
 }
 
-#pragma omp declare simd
-static void mccc_coefs_mufun(real mufun[3], real x, real* coldata) {
+/**
+ * @brief Evaluate special functions needed by collision coefficients
+ *
+ * This function either evaluates the special functions directly or interpolates
+ * them from look-up table which should be initialized with mccc_init() before
+ * calling this function.
+ *
+ * Special functions are
+ *
+ * - mufun[0] = \$f\mu_0(x) = (\erf(x) -2 x \pi^{-1/2} e^{-x^2})/x^2\$f
+ * - mufun[1] = \$f\mu_1(x) = \erf(x) - \frac{1}{2}\mu_0(x)\$f
+ * - mufun[2] = \$f\mu_0'(x)\$f
+ *
+ * @param mufun pointer to array where values are stored
+ * @param x argument for the special functions
+ * @param mdata pointer to mccc data
+ */
+#pragma omp declare simd uniform(mdata)
+static void mccc_coefs_mufun(real mufun[3], real x, mccc_data* mdata) {
 
-    if(coldata == NULL && x!= 0) {
+    if(!mdata->usetabulated && x!= 0) {
         real expm2x = exp(-x*x);
         real erfx   = erf(x);
 
@@ -253,7 +272,7 @@ static void mccc_coefs_mufun(real mufun[3], real x, real* coldata) {
         mufun[1] = erfx - 0.5 * mufun[0];
         mufun[2] = 4 * expm2x / CONST_SQRTPI - 2 * mufun[0] / x;
     }
-    else if(coldata != NULL && x != 0) {
+    else if(mdata->usetabulated && x != 0) {
         // TODO implement me
     }
     else {
