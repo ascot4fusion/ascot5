@@ -85,7 +85,7 @@ def init():
     odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
-    odict["DISABLE_ENERGY_CCOL"]       = 1
+    odict["DISABLE_ENERGY_CCOLL"]      = 1
 
     opt.settypes(odict)
     for i in range(1, nB+1):
@@ -105,7 +105,7 @@ def init():
     odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
-    odict["DISABLE_ENERGY_CCOL"]       = 1
+    odict["DISABLE_ENERGY_CCOLL"]      = 1
 
     opt.settypes(odict)
     for i in range(1, nB+1):
@@ -130,7 +130,7 @@ def init():
     odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
-    odict["DISABLE_ENERGY_CCOL"]       = 1
+    odict["DISABLE_ENERGY_CCOLL"]      = 1
 
     opt.settypes(odict)
     for i in range(1, nB+1):
