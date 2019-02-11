@@ -164,7 +164,6 @@ void mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
  * - mhd_dmhd[9] = grad phi, z component
  *
  * @param mhd_dmhd
- * @param phase
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
@@ -175,7 +174,7 @@ void mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t,
+a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
                boozer_data* boozerdata, mhd_data* mhddata,
                B_field_data* Bdata) {
 
@@ -202,7 +201,7 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t,
         /* These are used frequently, so store them in separate variables */
         real mhdarg = mhddata->nmode[i] * ptz[8]
                     - mhddata->mmode[i] * ptz[4]
-                    - mhddata->omega_nm[i] * t + phase;
+                    - mhddata->omega_nm[i] * t;
         real sinmhd = sin(mhdarg);
         real cosmhd = cos(mhdarg);
 
@@ -274,7 +273,6 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t,
  * - pert_field[5] = EtildeZ
  *
  * @param pert_field perturbation field components
- * @param phase
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
@@ -285,12 +283,12 @@ a5err mhd_eval(real mhd_dmhd[10], real phase, real r, real phi, real z, real t,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err mhd_perturbations(real pert_field[6], real phase, real r, real phi,
+a5err mhd_perturbations(real pert_field[6], real r, real phi,
                         real z, real t, boozer_data* boozerdata,
                         mhd_data* mhddata, B_field_data* Bdata){
     a5err err = 0;
     real mhd_dmhd[10];
-    mhd_eval(mhd_dmhd, phase, r, phi, z, t, boozerdata, mhddata,Bdata);
+    mhd_eval(mhd_dmhd, r, phi, z, t, boozerdata, mhddata,Bdata);
 
     /*  see example of curl evaluation in step_gc_rk4.c, ydot_gc*/
     real B_dB[12];
