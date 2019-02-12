@@ -91,10 +91,11 @@ class Ascotpy:
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
         # Collision coefficients.
-        fun = self.ascotlib.ascotpy_eval_coefs
+        fun = self.ascotlib.ascotpy_eval_collcoefs
         fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_double, ctypes.c_double, real_p, real_p,
-                        real_p, real_p, real_p, ctypes.c_int, real_p]
+        fun.argtypes = [ctypes.c_int, real_p, ctypes.c_double, ctypes.c_double,
+                        ctypes.c_double, ctypes.c_double, ctypes.c_double,
+                        ctypes.c_double, real_p, real_p, real_p, real_p, real_p]
 
 
     def reload(self, h5fn):
@@ -412,13 +413,20 @@ class Ascotpy:
         z   = z.astype(dtype="f8")
         t   = z*0
         va  = va.astype(dtype="f8")
-        nv  = va.size
+        Neval = va.size
 
         n_species = self.ascotlib.ascotpy_plasma_get_n_species()
 
         out = {}
-        out["K"] = np.zeros((n_species,va.size), dtype="f8")
-        self.ascotlib.ascotpy_eval_coefs(ma, qa, R, phi, z, t, va, nv, out["K"])
+        out["F"]     = np.zeros((n_species,va.size), dtype="f8")
+        out["Dpara"] = np.zeros((n_species,va.size), dtype="f8")
+        out["Dperp"] = np.zeros((n_species,va.size), dtype="f8")
+        out["K"]     = np.zeros((n_species,va.size), dtype="f8")
+        out["nu"]    = np.zeros((n_species,va.size), dtype="f8")
+        self.ascotlib.ascotpy_eval_collcoefs(Neval, va, R[0], phi[0], z[0],
+                                             t[0], ma, qa, out["F"],
+                                             out["Dpara"], out["Dperp"],
+                                             out["K"], out["nu"])
 
         return out
 

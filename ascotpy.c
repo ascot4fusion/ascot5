@@ -407,14 +407,12 @@ int ascotpy_neutral_eval_density(int Neval, real* R, real* phi, real* z,
 /**
  * @brief Evaluate collision coefficients.
  */
-int ascotpy_eval_coefs(real ma, real qa, real* R, real* phi, real* z, real* t,
-                       real* va, int nv, real* K) {
+int ascotpy_eval_collcoefs(int Neval, real* va, real R, real phi, real z,
+                           real t, real ma, real qa, real* F, real* Dpara,
+                           real* Dperp, real* K, real* nu) {
 
-    if( mccc_eval_coefs(ma, qa, R[0], phi[0], z[0], t[0], va, nv,
-                        &sim.plasma_data, &sim.B_data, NULL, NULL, NULL, K,
-                        NULL) ) {
-        return 1;
-    }
 
-    return 0;
+    return mccc_eval_coefs(ma, qa, R, phi, z, t, va, Neval,
+                           &sim.plasma_data, &sim.B_data,
+                           F, Dpara, Dperp, K, nu);
 }
