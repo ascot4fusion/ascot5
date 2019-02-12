@@ -100,7 +100,6 @@ def init():
     odict["ENDCOND_SIMTIMELIM"]        = 1
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
-    odict["DISABLE_ENERGY_CCOLL"]      = 1
 
     for i in range(1, nscan+1):
         odict["ENDCOND_MAX_SIM_TIME"]  = np.maximum( 1e-4,
@@ -123,7 +122,6 @@ def init():
     odict["ENDCOND_SIMTIMELIM"]        = 1
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
-    odict["DISABLE_ENERGY_CCOLL"]      = 1
 
     for i in range(1, nscan+1):
         odict["ENDCOND_MAX_SIM_TIME"]  = np.maximum( 1e-4,
@@ -152,7 +150,6 @@ def init():
     odict["ENDCOND_SIMTIMELIM"]        = 1
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
-    odict["DISABLE_ENERGY_CCOLL"]      = 1
 
     for i in range(1, nscan+1):
         odict["ENDCOND_MAX_SIM_TIME"]  = np.maximum( 1e-4,

@@ -370,11 +370,11 @@ def check():
     # For some reason GCTRANSFORM_GO2GC GCTRANSFORM_GC are not equal in length
     # and we need to have [:-1]?
     h1.plot(a5["GCTRANSFORM_GO"]["orbits"]["time"]*1e6,
-            ( a5["GCTRANSFORM_GO"]["orbits"]["mu"]/e
-              - a5["GCTRANSFORM_GC"]["orbits"]["mu"] ) / 1e4 )
+            ( a5["GCTRANSFORM_GO"]["orbits"]["mu"]
+              - a5["GCTRANSFORM_GC"]["orbits"]["mu"] )/e / 1e4 )
     h1.plot(a5["GCTRANSFORM_GO2GC"]["orbits"]["time"]*1e6,
             ( a5["GCTRANSFORM_GO2GC"]["orbits"]["mu"]
-              - a5["GCTRANSFORM_GC"]["orbits"]["mu"][:-1] ) / 1e4 )
+              - a5["GCTRANSFORM_GC"]["orbits"]["mu"][:-1] )/e / 1e4 )
 
     h2.plot(a5["GCTRANSFORM_GO"]["orbits"]["time"]*1e6,
             ( a5["GCTRANSFORM_GO"]["orbits"]["vpar"]
@@ -442,7 +442,7 @@ def check():
     h3.xaxis.set(ticks=[6.2, 6.4, 6.6])
     h3.yaxis.set(ticks=[1.7, 1.9, 2.1, 2.3, 2.5],
                  ticklabels=[1.7, '', 2.1, '', 2.5])
-    h3.set(ylabel=r"$z$ [m]")#, xlabel=r"$R$ [m]")
+    h3.set(ylabel=r"$z$ [m]")
     h3.set_xlabel(r"$R$ [m]", position=[1,0,1,1]);
 
     h4.axis('scaled')

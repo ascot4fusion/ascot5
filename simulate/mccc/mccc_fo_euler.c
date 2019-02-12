@@ -106,20 +106,7 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
             vout_xyz[2] = vin_xyz[2] + k1*vhat[2] + k2*vhat[2]
                         + k3*(dW[2]  - t1*vhat[2]);
 
-            /* Remove energy or pitch change from the results if that is *
-             * requested and transform back to cylindrical coordinates.  */
-            if(!mdata->include_energy) {
-                real vinpervout = vin / math_norm(vout_xyz);
-                vout_xyz[0] *= vinpervout;
-                vout_xyz[1] *= vinpervout;
-                vout_xyz[2] *= vinpervout;
-            }
-            if(!mdata->include_pitch) {
-                real vinpervout = vin / math_norm(vout_xyz);
-                vout_xyz[0] = vin_xyz[0] / vinpervout;
-                vout_xyz[1] = vin_xyz[1] / vinpervout;
-                vout_xyz[2] = vin_xyz[2] / vinpervout;
-            }
+            /* Transform back to cylindrical coordinates.  */
 
             if(!errflag) {
                 p->rdot[i]   =    vout_xyz[0] * cosphi + vout_xyz[1] * sinphi;
