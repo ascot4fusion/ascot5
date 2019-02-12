@@ -118,7 +118,6 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                     plasma_eval_temp(&Te, p_f->rho[i], p_f->r[i], p_f->phi[i],
                                      p_f->z[i], p_f->time[i], 0,
                                      &sim->plasma_data);
-                Te *= CONST_KB;
 
                 /* Error handling */
                 if(errflag) {
@@ -247,7 +246,6 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                     plasma_eval_temp(&Te, p_f->rho[i], p_f->r[i], p_f->phi[i],
                                      p_f->z[i], p_f->time[i], 0,
                                      &sim->plasma_data);
-                Te *= CONST_KB;
 
                 /* Error handling */
                 if(errflag) {

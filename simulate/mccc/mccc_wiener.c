@@ -1,12 +1,10 @@
 /**
- * @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
  * @file mccc_wiener.c
  * @brief A module for handling Wiener processes
  *
- * A module for handling Wiener processes. When adaptive time 
- * step is used (and steps are rejected), Wiener processes are
- * generated using the so-called Brownian bridge. This module
- * contains associated helper routines.
+ * A module for handling Wiener processes. When adaptive time step is used (and
+ * steps are rejected), Wiener processes are generated using the so-called
+ * Brownian bridge. This module contains associated helper routines.
  */
 #define _XOPEN_SOURCE
 #include <stdlib.h>

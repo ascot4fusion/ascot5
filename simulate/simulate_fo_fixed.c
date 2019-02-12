@@ -1,5 +1,4 @@
 /**
- * @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
  * @file simulate_fo_fixed.c
  * @brief Simulate particles using fixed time-step
  */
@@ -18,12 +17,12 @@
 #include "../B_field.h"
 #include "../E_field.h"
 #include "../plasma.h"
-#include "simulate_fo_fixed.h"
-#include "step/step_fo_vpa.h"
-#include "mccc/mccc.h"
 #include "../endcond.h"
 #include "../math.h"
 #include "../consts.h"
+#include "simulate_fo_fixed.h"
+#include "step/step_fo_vpa.h"
+#include "mccc/mccc.h"
 
 #pragma omp declare target
 #pragma omp declare simd uniform(sim)
@@ -139,8 +138,8 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
-            mccc_step_fo_fixed(&p, &sim->B_data, &sim->plasma_data,
-                               &sim->random_data, sim->coldata, hin);
+            mccc_fo_euler(&p, hin, &sim->B_data, &sim->plasma_data,
+                          &sim->random_data, &sim->mccc_data);
         }
 
         /**********************************************************************/

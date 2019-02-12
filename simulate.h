@@ -17,6 +17,7 @@
 #include "diag.h"
 #include "offload.h"
 #include "random.h"
+#include "simulate/mccc/mccc.h"
 
 /**
  * @brief Simulaton modes
@@ -132,6 +133,11 @@ typedef struct {
     wall_data wall_data;       /**< Wall data interface                       */
     diag_data diag_data;       /**< Diagnostics data interface                */
 
+    /* Metadata */
+    random_data random_data;   /**< Random number generator                   */
+    mccc_data mccc_data;       /**< Tabulated special functions and collision
+                                    operator parameters                       */
+
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */
     int enable_ada;      /**< Is adaptive time-step used                      */
@@ -177,11 +183,6 @@ typedef struct {
     real endcond_maxTorOrb;    /**< Maximum limit for toroidal distance [rad] */
     real endcond_maxPolOrb;    /**< Maximum limit for poloidal distance [rad] */
 
-    /* Metadata */
-    random_data random_data;   /**< Random number generator                   */
-    real* coldata;             /**< Look-up tables for collision operator if
-                                    collision coefficients are interpolated
-                                    and not calculated run-time               */
 } sim_data;
 
 void simulate_init_offload(sim_offload_data* sim);

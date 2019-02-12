@@ -151,7 +151,7 @@ int plasma_init(plasma_data* pls_data, plasma_offload_data* offload_data,
  *
  * This is a SIMD function.
  *
- * @param where evaluated temperature [eV] is stored
+ * @param where evaluated temperature [J] is stored
  * @param rho normalized poloidal flux coordinate
  * @param r R-coordinate [m]
  * @param phi phi-coordinate [rad]
@@ -238,7 +238,7 @@ a5err plasma_eval_dens(real* dens, real rho, real r, real phi, real z, real t,
  * This is a SIMD function.
  *
  * @param dens pointer where density [m^-3] will be stored
- * @param temp pointer where temperature [eV] will be stored
+ * @param temp pointer where temperature [J] will be stored
  * @param rho normalized poloidal flux coordinate
  * @param r R-coordinate [m]
  * @param phi phi-coordinate [rad]

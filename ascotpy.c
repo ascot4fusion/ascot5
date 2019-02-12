@@ -18,6 +18,8 @@
 #include "wall.h"
 #include "neutral.h"
 
+#include "simulate/mccc/mccc.h"
+
 #include "hdf5_interface.h"
 #include "hdf5io/hdf5_helpers.h"
 #include "hdf5io/hdf5_bfield.h"
@@ -399,5 +401,18 @@ int ascotpy_neutral_eval_density(int Neval, real* R, real* phi, real* z,
         }
         dens[k] = n0[0];
     }
-    return 1;
+    return 0;
+}
+
+/**
+ * @brief Evaluate collision coefficients.
+ */
+int ascotpy_eval_collcoefs(int Neval, real* va, real R, real phi, real z,
+                           real t, real ma, real qa, real* F, real* Dpara,
+                           real* Dperp, real* K, real* nu) {
+
+
+    return mccc_eval_coefs(ma, qa, R, phi, z, t, va, Neval,
+                           &sim.plasma_data, &sim.B_data,
+                           F, Dpara, Dperp, K, nu);
 }

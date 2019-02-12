@@ -417,6 +417,7 @@ def check():
     SLOWING["analytical"] = heaviside * ts \
                             / ( ( 1 + np.power(Ecrit/SLOWING["Egrid"], 3.0/2) )\
                                 * 2 * SLOWING["Egrid"] )
+
     # ts is slowing down rate which gives the slowing down time as
     # t_sd = ts*log(v_0 / v_th) = 0.5*ts*log(E_0/E_th)
     slowingdowntime = 0.5*ts*np.log(Esd/(50*Te))
@@ -595,7 +596,7 @@ def check():
               fontsize=8)
 
     frm  = lambda x: "%3.0f ms" % (x*1e3)
-    text = r"$\tau_s$:      " + frm(ts) + "\n" \
+    text = r"$\tau_s$:      " + frm(slowingdowntime) + "\n" \
            + "GO:    " + frm(ts_GO) + "\n" \
            + "GCF:  " + frm(ts_GCF) + "\n" \
            + "GCA: " + frm(ts_GCA)

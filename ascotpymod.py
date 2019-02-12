@@ -90,6 +90,14 @@ class Ascotpy:
         fun.restype  = ctypes.c_int
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
+        # Collision coefficients.
+        fun = self.ascotlib.ascotpy_eval_collcoefs
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [ctypes.c_int, real_p, ctypes.c_double, ctypes.c_double,
+                        ctypes.c_double, ctypes.c_double, ctypes.c_double,
+                        ctypes.c_double, real_p, real_p, real_p, real_p, real_p]
+
+
     def reload(self, h5fn):
         """
         Change HDF5 file and free resources from old one.
@@ -396,6 +404,32 @@ class Ascotpy:
                                                    out["n0"])
 
         return out
+
+    def eval_collcoefs(self, ma, qa, R, phi, z, va):
+        ma  = float(ma)
+        qa  = float(qa)
+        R   = R.astype(dtype="f8")
+        phi = phi.astype(dtype="f8")
+        z   = z.astype(dtype="f8")
+        t   = z*0
+        va  = va.astype(dtype="f8")
+        Neval = va.size
+
+        n_species = self.ascotlib.ascotpy_plasma_get_n_species()
+
+        out = {}
+        out["F"]     = np.zeros((n_species,va.size), dtype="f8")
+        out["Dpara"] = np.zeros((n_species,va.size), dtype="f8")
+        out["Dperp"] = np.zeros((n_species,va.size), dtype="f8")
+        out["K"]     = np.zeros((n_species,va.size), dtype="f8")
+        out["nu"]    = np.zeros((n_species,va.size), dtype="f8")
+        self.ascotlib.ascotpy_eval_collcoefs(Neval, va, R[0], phi[0], z[0],
+                                             t[0], ma, qa, out["F"],
+                                             out["Dpara"], out["Dperp"],
+                                             out["K"], out["nu"])
+
+        return out
+
 
 if __name__ == '__main__':
     # For testing purposes.
