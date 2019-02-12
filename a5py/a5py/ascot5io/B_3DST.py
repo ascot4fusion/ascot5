@@ -1,7 +1,7 @@
 """
-Non-axisymmetric tokamak magnetic field HDF5 IO
+Time-dependent Non-axisymmetric tokamak magnetic field HDF5 IO
 
-File: B_3DS.py
+File: B_3DST.py
 """
 import numpy as np
 import h5py
@@ -10,12 +10,13 @@ from . ascot5file import add_group
 from a5py.ascot5io.ascot5data import AscotData
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
+               tmin, tmax, ntime,
                axisR, axisz, psiRz, psiaxis, psisepx,
                B_R, B_phi, B_z,
                pRmin=None, pRmax=None, pnR=None, pzmin=None, pzmax=None,
                pnz=None, desc=None):
     """
-    Write 3DS magnetic field input in HDF5 file.
+    Write 3DST magnetic field input in HDF5 file.
 
     TODO Not compatible with new HDF5 format.
 
@@ -24,18 +25,18 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
 
     fn : str
         Full path to the HDF5 file.
-    Rmin, Rmax, phimin, phimax, zmin, zmax : real
-        Edges of the uniform R x phi x z-grid [m x deg x m].
-    nR, nphi, nz : int
-        Number of Rphiz-grid points.
+    Rlim, Rmax, phimin, phimax, zmin, zmax, tmin, tmax : real
+        Edges of the uniform R x phi x z x time-grid [m x deg x m x s].
+    nR, nphi, nz, ntime : int
+        Number of Rphizt-grid points.
     axisR, axisz : real
         Magnetic axis Rz-location.
     psiRz : real R x z numpy array
         Psi values in the Rz-grid.
     psiaxis, psisepx : real
         Psi values at magnetic axis and separatrix
-    B_R, B_phi, B_z : real R x phi x z numpy array
-        Magnetic field components in Rphiz-grid.
+    B_R, B_phi, B_z : real R x phi x z x t numpy array
+        Magnetic field components in Rphizt-grid.
     pRmin, pRmax, pnR, pzmin, pzmax, pnz : opt
         Optional parameters that define a separate grid for psi.
     desc : brief description of the input.
@@ -59,7 +60,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     """
 
     parent = "bfield"
-    group  = "B_3DS"
+    group  = "B_3DST"
 
     # Define psigrid to be same as Bgrid if not stated otherwise.
     if(pRmin is None or pRmax is None or pnR is None or pzmin is None or
@@ -71,9 +72,9 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         pzmax = zmax
         pnz   = nz
 
-    B_R = np.transpose(B_R,(1,0,2))
-    B_phi = np.transpose(B_phi,(1,0,2))
-    B_z = np.transpose(B_z,(1,0,2))
+    B_R = np.transpose(B_R,(0,2,1,3))
+    B_phi = np.transpose(B_phi,(0,2,1,3))
+    B_z = np.transpose(B_z,(0,2,1,3))
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
@@ -87,6 +88,9 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         g.create_dataset("z_min",         (1,), data=zmin,    dtype="f8")
         g.create_dataset("z_max",         (1,), data=zmax,    dtype="f8")
         g.create_dataset("n_z",           (1,), data=nz,      dtype="i8")
+        g.create_dataset("t_min",         (1,), data=tmin,    dtype="f8")
+        g.create_dataset("t_max",         (1,), data=tmax,    dtype="f8")
+        g.create_dataset("n_t",           (1,), data=ntime,   dtype="i8")
         g.create_dataset("psigrid_R_min", (1,), data=pRmin,   dtype="f8")
         g.create_dataset("psigrid_R_max", (1,), data=pRmax,   dtype="f8")
         g.create_dataset("psigrid_n_R",   (1,), data=pnR,     dtype="i8")
@@ -121,7 +125,7 @@ def read_hdf5(fn, qid):
     Dictionary containing magnetic field data.
     """
 
-    path = "bfield" + "/B_3DS-" + qid
+    path = "bfield" + "/B_3DST-" + qid
 
     with h5py.File(fn,"r") as f:
         out = {}
@@ -144,6 +148,10 @@ def read_hdf5(fn, qid):
         out["z_max"] = f[path]["z_max"][:]
         out["n_z"]   = f[path]["n_z"][:]
 
+        out["t_min"] = f[path]["t_min"][:]
+        out["t_max"] = f[path]["t_max"][:]
+        out["n_t"]   = f[path]["n_t"][:]
+
         out["psi"]   = f[path]["psi"][:]
         out["B_R"]   = f[path]["B_R"][:]
         out["B_phi"] = f[path]["B_phi"][:]
@@ -157,7 +165,7 @@ def read_hdf5(fn, qid):
 
     return out
 
-class B_3DS(AscotData):
+class B_3DST(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())

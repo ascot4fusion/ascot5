@@ -1,7 +1,7 @@
 """
 Non-axisymmetric tokamak electric field HDF5 IO
 
-File: E_3D.py
+File: E_3DS.py
 """
 import numpy as np
 import h5py
@@ -12,7 +12,7 @@ from . ascot5data import AscotData
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
                E_R, E_phi, E_z, desc=None):
     """
-    Write 3D electric field input in HDF5 file for trilinear interpolation.
+    Write 3D electric field input in HDF5 file for tricubic interpolation.
 
     Parameters
     ----------
@@ -39,7 +39,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     """
 
     parent = "efield"
-    group  = "E_3D"
+    group  = "E_3DS"
 
     E_R = np.transpose(E_R,(1,0,2))
     E_phi = np.transpose(E_phi,(1,0,2))
@@ -82,7 +82,7 @@ def read_hdf5(fn,qid):
     Dictionary containing magnetic field data.
     """
 
-    path = "efield" + "/E_3D-" + qid
+    path = "efield" + "/E_3DS-" + qid
 
     with h5py.File(fn,"r") as f:
         out = {}
@@ -111,7 +111,7 @@ def read_hdf5(fn,qid):
 
     return out
 
-class E_3D(AscotData):
+class E_3DS(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
