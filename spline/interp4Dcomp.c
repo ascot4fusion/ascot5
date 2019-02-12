@@ -113,11 +113,11 @@ int interp4Dcomp_init_coeff(real* c, real* f,
        Note how we account for normalized grid. */
 
     for(int m_t=0; m_t<n_t; m_t++) {
-        for(int k_y=0; k_y<n_z; k_y++) {
-            for(int j_z=0; j_z<n_y; j_z) {
+        for(int k_y=0; k_y<n_y; k_y++) {
+            for(int j_z=0; j_z<n_z; j_z++) {
                 /* Cubic spline of f along x
                    to get fxx (for each j_z,k_y,m_t) */
-                for(int i_x=0; i_x<n_x; j_x) {
+                for(int i_x=0; i_x<n_x; i_x++) {
                     f_x[i_x] = f[m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x];
                 }
                 splinecomp(f_x, n_x, bc_x, c_x);
@@ -347,8 +347,8 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
     real dx[4];
     dx[2] = (x - (str->x_min + i_x*str->x_grid)) / str->x_grid; /* p_x */
     dx[0] = 1.0 - dx[2];                                        /* q_x */
-    dx[1] = dx[0]*(dx[0]*dx[0]-1)*str->x_grid*str_x_grid/6.0;   /* s_x */
-    dx[3] = dx[2]*(dx[2]*dx[2]-1)*str->x_grid*str_x_grid/6.0;   /* r_x */
+    dx[1] = dx[0]*(dx[0]*dx[0]-1)*str->x_grid*str->x_grid/6.0;   /* s_x */
+    dx[3] = dx[2]*(dx[2]*dx[2]-1)*str->x_grid*str->x_grid/6.0;   /* r_x */
 
     /* index for y variable */
     int k_y   = (y - str->y_min) / str->y_grid;
@@ -356,9 +356,9 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
        (the order facilitates the evaluation)*/
     real dy[4];
     dy[2] = (y - (str->y_min + k_y*str->y_grid)) / str->y_grid; /* p_y */
-    dy[0] = 1.0 - dy[3];                                        /* q_y */
-    dy[1] = dy[0]*(dy[0]*dy[0]-1)*str->y_grid*str_y_grid/6.0;   /* s_y */
-    dy[3] = dy[2]*(dy[2]*dy[2]-1)*str->y_grid*str_y_grid/6.0;   /* r_y */
+    dy[0] = 1.0 - dy[2];                                        /* q_y */
+    dy[1] = dy[0]*(dy[0]*dy[0]-1)*str->y_grid*str->y_grid/6.0;   /* s_y */
+    dy[3] = dy[2]*(dy[2]*dy[2]-1)*str->y_grid*str->y_grid/6.0;   /* r_y */
 
     /* index for z variable */
     int j_z   = (z - str->z_min) / str->z_grid;
@@ -366,9 +366,9 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
        (the order facilitates the evaluation)*/
     real dz[4];
     dz[2] = (z - (str->z_min + j_z*str->z_grid)) / str->z_grid; /* p_z */
-    dz[0] = 1.0 - dz[3];                                        /* q_z */
-    dz[1] = dz[0]*(dz[0]*dz[0]-1)*str->z_grid*str_z_grid/6.0;   /* s_z */
-    dz[3] = dz[2]*(dz[2]*dz[2]-1)*str->z_grid*str_z_grid/6.0;   /* r_z */
+    dz[0] = 1.0 - dz[2];                                        /* q_z */
+    dz[1] = dz[0]*(dz[0]*dz[0]-1)*str->z_grid*str->z_grid/6.0;   /* s_z */
+    dz[3] = dz[2]*(dz[2]*dz[2]-1)*str->z_grid*str->z_grid/6.0;   /* r_z */
 
     /* index for t variable */
     int m_t   = (t - str->t_min) / str->t_grid;
@@ -376,9 +376,9 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
        (the order facilitates the evaluation)*/
     real dt[4];
     dt[2] = (t - (str->t_min + m_t*str->t_grid)) / str->t_grid; /* p_t */
-    dt[0] = 1.0 - dt[3];                                        /* q_t */
-    dt[1] = dt[0]*(dt[0]*dt[0]-1)*str->t_grid*str_t_grid/6.0;   /* s_t */
-    dt[3] = dt[2]*(dt[2]*dt[2]-1)*str->t_grid*str_t_grid/6.0;   /* r_t */
+    dt[0] = 1.0 - dt[2];                                        /* q_t */
+    dt[1] = dt[0]*(dt[0]*dt[0]-1)*str->t_grid*str->t_grid/6.0;   /* s_t */
+    dt[3] = dt[2]*(dt[2]*dt[2]-1)*str->t_grid*str->t_grid/6.0;   /* r_t */
 
     /**< Index jump to cell */
     int n  = NSIZE_COMP4D*
@@ -419,7 +419,7 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
     if(!err) {
 
         /* Evaluate splines */
-        real d_aux1, d_aux2; /**< Auxiliary normalized coordinates */
+        real d_aux1, d_aux2; /* Auxiliary normalized coordinates */
         *f = 0;
         /* loops to move through the nodes */
         for(int i_node_x=0; i_node_x<2; i_node_x++) {
@@ -508,8 +508,8 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     real dx[4];
     dx[2] = (x - (str->x_min + i_x*str->x_grid)) / str->x_grid; /* p_x */
     dx[0] = 1.0 - dx[2];                                        /* q_x */
-    dx[1] = dx[0]*(dx[0]*dx[0]-1)*str->x_grid*str_x_grid/6.0;   /* s_x */
-    dx[3] = dx[2]*(dx[2]*dx[2]-1)*str->x_grid*str_x_grid/6.0;   /* r_x */
+    dx[1] = dx[0]*(dx[0]*dx[0]-1)*str->x_grid*str->x_grid/6.0;   /* s_x */
+    dx[3] = dx[2]*(dx[2]*dx[2]-1)*str->x_grid*str->x_grid/6.0;   /* r_x */
     /* Normalized x coordinate 1st derivates in current cell
        (the order facilitates the evaluation)*/
     real d_dx[4];
@@ -531,9 +531,9 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
        (the order facilitates the evaluation)*/
     real dy[4];
     dy[2] = (y - (str->y_min + k_y*str->y_grid)) / str->y_grid; /* p_y */
-    dy[0] = 1.0 - dy[3];                                        /* q_y */
-    dy[1] = dy[0]*(dy[0]*dy[0]-1)*str->y_grid*str_y_grid/6.0;   /* s_y */
-    dy[3] = dy[2]*(dy[2]*dy[2]-1)*str->y_grid*str_y_grid/6.0;   /* r_y */
+    dy[0] = 1.0 - dy[2];                                        /* q_y */
+    dy[1] = dy[0]*(dy[0]*dy[0]-1)*str->y_grid*str->y_grid/6.0;   /* s_y */
+    dy[3] = dy[2]*(dy[2]*dy[2]-1)*str->y_grid*str->y_grid/6.0;   /* r_y */
     /* Normalized y coordinate 1st derivates in current cell
        (the order facilitates the evaluation)*/
     real d_dy[4];
@@ -555,9 +555,9 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
        (the order facilitates the evaluation)*/
     real dz[4];
     dz[2] = (z - (str->z_min + j_z*str->z_grid)) / str->z_grid; /* p_z */
-    dz[0] = 1.0 - dz[3];                                        /* q_z */
-    dz[1] = dz[0]*(dz[0]*dz[0]-1)*str->z_grid*str_z_grid/6.0;   /* s_z */
-    dz[3] = dz[2]*(dz[2]*dz[2]-1)*str->z_grid*str_z_grid/6.0;   /* r_z */
+    dz[0] = 1.0 - dz[2];                                        /* q_z */
+    dz[1] = dz[0]*(dz[0]*dz[0]-1)*str->z_grid*str->z_grid/6.0;   /* s_z */
+    dz[3] = dz[2]*(dz[2]*dz[2]-1)*str->z_grid*str->z_grid/6.0;   /* r_z */
     /* Normalized z coordinate 1st derivates in current cell
        (the order facilitates the evaluation)*/
     real d_dz[4];
@@ -579,9 +579,9 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
        (the order facilitates the evaluation)*/
     real dt[4];
     dt[2] = (t - (str->t_min + m_t*str->t_grid)) / str->t_grid; /* p_t */
-    dt[0] = 1.0 - dt[3];                                        /* q_t */
-    dt[1] = dt[0]*(dt[0]*dt[0]-1)*str->t_grid*str_t_grid/6.0;   /* s_t */
-    dt[3] = dt[2]*(dt[2]*dt[2]-1)*str->t_grid*str_t_grid/6.0;   /* r_t */
+    dt[0] = 1.0 - dt[2];                                        /* q_t */
+    dt[1] = dt[0]*(dt[0]*dt[0]-1)*str->t_grid*str->t_grid/6.0;   /* s_t */
+    dt[3] = dt[2]*(dt[2]*dt[2]-1)*str->t_grid*str->t_grid/6.0;   /* r_t */
 
     /**< Index jump to cell */
     int n  = NSIZE_COMP4D*
@@ -622,7 +622,7 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     if(!err) {
 
         /* Evaluate splines */
-        real d_aux1, d_aux2; /**< Auxiliary normalized coordinates */
+        real d_aux1, d_aux2; /* Auxiliary normalized coordinates */
 
         /* f */
         f_df[0] = 0;

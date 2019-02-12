@@ -125,7 +125,7 @@ int B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array)
         NATURALBC, PERIODICBC, NATURALBC, NATURALBC,
         offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
         offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
-        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max
+        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max,
         offload_data->Bgrid_t_min,   offload_data->Bgrid_t_max);
 
     err += interp4Dcomp_init_coeff(
@@ -135,7 +135,7 @@ int B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array)
         NATURALBC, PERIODICBC, NATURALBC, NATURALBC,
         offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
         offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
-        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max
+        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max,
         offload_data->Bgrid_t_min,   offload_data->Bgrid_t_max);
 
     err += interp4Dcomp_init_coeff(
@@ -145,7 +145,7 @@ int B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array)
         NATURALBC, PERIODICBC, NATURALBC, NATURALBC,
         offload_data->Bgrid_r_min,   offload_data->Bgrid_r_max,
         offload_data->Bgrid_phi_min, offload_data->Bgrid_phi_max,
-        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max
+        offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max,
         offload_data->Bgrid_t_min,   offload_data->Bgrid_t_max);
 
     if(err) {
@@ -160,13 +160,14 @@ int B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array)
                                        + NSIZE_COMP4D*B_size*3;
 
     /* Evaluate psi and magnetic field on axis for checks */
+
     B_3DST_data Bdata;
     B_3DST_init(&Bdata, offload_data, *offload_array);
     real psival[1], Bval[3];
     err = B_3DST_eval_psi(psival, offload_data->axis_r, 0, offload_data->axis_z,
-                         &Bdata);
+                          &Bdata);
     err = B_3DST_eval_B(Bval, offload_data->axis_r, 0, offload_data->axis_z,
-                       &Bdata);
+                        offload_data->Bgrid_t_min, &Bdata);
     if(err) {
         print_err("Error: Initialization failed.\n");
         return err;

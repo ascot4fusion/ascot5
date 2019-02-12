@@ -36,9 +36,9 @@ typedef struct {
  * @brief 3D electric field parameters on the target
  */
 typedef struct {
-    interp3D_data E_r;     /**< pointer to start of E_r interpolation data struct */
-    interp3D_data E_phi;     /**< pointer to start of E_phi interpolation data struct */
-    interp3D_data E_z;     /**< pointer to start of E_z interpolation data struct */
+    interp4D_data E_r;     /**< pointer to start of E_r interpolation data struct */
+    interp4D_data E_phi;     /**< pointer to start of E_phi interpolation data struct */
+    interp4D_data E_z;     /**< pointer to start of E_z interpolation data struct */
 
 } E_3DST_data;
 

@@ -23,6 +23,7 @@
 #include "../math.h"
 #include "../ascot5.h"
 #include "../error.h"
+#include "../print.h"
 #include "E_3D.h"
 #include "../linint/linint.h"
 
@@ -139,7 +140,7 @@ void E_3D_init(E_3D_data* Edata, E_3D_offload_data* offload_data,
                   offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
                   offload_data->z_min, offload_data->z_max, offload_data->z_grid);
 
-    return 0;
+    return;
 }
 
 /**
@@ -164,7 +165,7 @@ a5err E_3D_eval_E(real E[3], real r, real phi, real z,
     interperr += linint3D_eval_f(&E[2], &Edata->E_z, r, phi, z);
 
 
-    if(interperr) {err = error_raise( ERR_OUTSIDE_N0DATA, __LINE__ );}
+    if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_3D);}
 
     return err;
 }

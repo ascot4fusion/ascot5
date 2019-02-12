@@ -55,7 +55,7 @@ typedef struct {
     interp4D_data B_z;   /**< 3D B_z interpolation data struct                */
 } B_3DST_data;
 
-void B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array);
+int B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array);
 void B_3DST_free_offload(B_3DST_offload_data* offload_data, real** offload_array);
 
 #pragma omp declare target

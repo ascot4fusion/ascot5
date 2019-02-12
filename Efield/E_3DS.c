@@ -23,6 +23,7 @@
 #include "../math.h"
 #include "../ascot5.h"
 #include "../error.h"
+#include "../print.h"
 #include "E_3DS.h"
 #include "../spline/interp.h"
 
@@ -122,14 +123,14 @@ int E_3DS_init_offload(E_3DS_offload_data* offload_data, real** offload_array) {
     print_out(VERBOSE_IO, "     nphi = %4.d phimin = %3.3f phimax = %3.3f\n",
               offload_data->n_phi,
               offload_data->phi_min, offload_data->phi_max);
-    
+
     return err;
 
 
 }
 
 /**
- * @brief Free offload array and reset parameters 
+ * @brief Free offload array and reset parameters
  *
  * This function deallocates the offload_array.
  *
@@ -142,7 +143,7 @@ void E_3DS_free_offload(E_3DS_offload_data* offload_data, real** offload_array) 
 }
 
 /**
- * @brief Initialize electric field data struct on target 
+ * @brief Initialize electric field data struct on target
  *
  * This function copies the electric field parameters from the offload struct
  * to the struct on target and sets the electric field data pointers to

@@ -24,6 +24,7 @@
 #include "../math.h"
 #include "../ascot5.h"
 #include "../error.h"
+#include "../print.h"
 #include "E_3DST.h"
 #include "../spline/interp.h"
 
@@ -235,9 +236,9 @@ a5err E_3DST_eval_E(real E[3], real r, real phi, real z, real t,
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
-    interperr += interp3Dcomp_eval_f(&E[0], &Edata->E_r, r, phi, z, t);
-    interperr += interp3Dcomp_eval_f(&E[1], &Edata->E_phi, r, phi, z, t);
-    interperr += interp3Dcomp_eval_f(&E[2], &Edata->E_z, r, phi, z, t);
+    interperr += interp4Dcomp_eval_f(&E[0], &Edata->E_r, r, phi, z, t);
+    interperr += interp4Dcomp_eval_f(&E[1], &Edata->E_phi, r, phi, z, t);
+    interperr += interp4Dcomp_eval_f(&E[2], &Edata->E_z, r, phi, z, t);
 
     /* Test for E field interpolation error */
     if(interperr) {err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_3DST );}
