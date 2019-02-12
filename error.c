@@ -141,6 +141,10 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
             sprintf(file, "plasma.c");
             break;
 
+        case EF_PLASMA_1D:
+            sprintf(file, "plasma_1D.c");
+            break;
+
         case EF_PLASMA_1DS:
             sprintf(file, "plasma_1DS.c");
             break;

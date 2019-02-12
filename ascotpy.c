@@ -18,6 +18,8 @@
 #include "wall.h"
 #include "neutral.h"
 
+#include "simulate/mccc/mccc.h"
+
 #include "hdf5_interface.h"
 #include "hdf5io/hdf5_helpers.h"
 #include "hdf5io/hdf5_bfield.h"
@@ -183,6 +185,7 @@ int ascotpy_free(int bfield, int efield, int plasma, int wall, int neutral) {
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
  * @param BR output array [T].
  * @param Bphi output array [T].
  * @param Bz output array [T].
@@ -195,18 +198,16 @@ int ascotpy_free(int bfield, int efield, int plasma, int wall, int neutral) {
  * @param Bz_dR output array [T].
  * @param Bz_dphi output array [T].
  * @param Bz_dz output array [T].
- *
- * @return zero if evaluation succeeded.
  */
-int ascotpy_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z,
+void ascotpy_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z, real* t,
                               real* BR, real* Bphi, real* Bz,
                               real* BR_dR, real* BR_dphi, real* BR_dz,
                               real* Bphi_dR, real* Bphi_dphi, real* Bphi_dz,
                               real* Bz_dR, real* Bz_dphi, real* Bz_dz) {
     real B[12];
     for(int k = 0; k < Neval; k++) {
-        if( B_field_eval_B_dB(B, R[k], phi[k], z[k], &sim.B_data) ) {
-            return 1;
+        if( B_field_eval_B_dB(B, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
+            continue;
         }
         BR[k]        = B[0];
         Bphi[k]      = B[4];
@@ -221,7 +222,6 @@ int ascotpy_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z,
         Bz_dphi[k]   = B[10];
         Bz_dz[k]     = B[11];
     }
-    return 0;
 }
 
 /**
@@ -231,20 +231,18 @@ int ascotpy_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z,
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
  * @param psi output array.
- *
- * @return zero if evaluation succeeded.
  */
-int ascotpy_B_field_eval_psi(int Neval, real* R, real* phi, real* z,
+void ascotpy_B_field_eval_psi(int Neval, real* R, real* phi, real* z, real* t,
                              real* psi) {
     real psival[1];
     for(int k = 0; k < Neval; k++) {
-        if( B_field_eval_psi(psival, R[k], phi[k], z[k], &sim.B_data) ) {
-            return 1;
+        if( B_field_eval_psi(psival, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
+            continue;
         }
         psi[k] = psival[0];
     }
-    return 0;
 }
 
 /**
@@ -254,24 +252,22 @@ int ascotpy_B_field_eval_psi(int Neval, real* R, real* phi, real* z,
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
  * @param psi output array.
- *
- * @return zero if evaluation succeeded.
  */
-int ascotpy_B_field_eval_rho(int Neval, real* R, real* phi, real* z,
+void ascotpy_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
                              real* rho) {
     real rhoval[1];
     real psival[1];
     for(int k = 0; k < Neval; k++) {
-        if( B_field_eval_psi(psival, R[k], phi[k], z[k], &sim.B_data) ) {
-            return 1;
+        if( B_field_eval_psi(psival, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
+            continue;
         }
         if( B_field_eval_rho(rhoval, psival[0], &sim.B_data) ) {
-            return 1;
+            continue;
         }
         rho[k] = rhoval[0];
     }
-    return 0;
 }
 
 /**
@@ -296,16 +292,18 @@ void ascotpy_B_field_get_axis(int Neval, real* phi, real* Raxis, real* zaxis) {
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
  * @param ER output array [V/m].
  * @param Ephi output array [V/m].
  * @param Ez output array [V/m].
  */
-int ascotpy_E_field_eval_E(int Neval, real* R, real* phi, real* z,
+int ascotpy_E_field_eval_E(int Neval, real* R, real* phi, real* z, real* t,
                            real* ER, real* Ephi, real* Ez) {
 
     real E[3];
     for(int k = 0; k < Neval; k++) {
-        if( E_field_eval_E(E, R[k], phi[k], z[k], &sim.E_data, &sim.B_data) ) {
+        if( E_field_eval_E(E, R[k], phi[k], z[k], t[k],
+                           &sim.E_data, &sim.B_data) ) {
             return 1;
         }
         ER[k]   = E[0];
@@ -333,8 +331,8 @@ int ascotpy_plasma_get_n_species() {
 void ascotpy_plasma_get_species_mass_and_charge(real* mass, real* charge) {
 
     int n_species = plasma_get_n_species(&sim.plasma_data);
-    real* m = plasma_get_species_mass(&sim.plasma_data);
-    real* q = plasma_get_species_charge(&sim.plasma_data);
+    const real* m = plasma_get_species_mass(&sim.plasma_data);
+    const real* q = plasma_get_species_charge(&sim.plasma_data);
     for(int i=0; i<n_species; i++) {
         mass[i]   = m[i];
         charge[i] = q[i];
@@ -348,13 +346,14 @@ void ascotpy_plasma_get_species_mass_and_charge(real* mass, real* charge) {
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
  * @param dens output array [m^-3].
  * @param temp output array [eV].
  *
  * @return zero if evaluation succeeded.
  */
 int ascotpy_plasma_eval_background(int Neval, real* R, real* phi, real* z,
-                                   real* dens, real* temp) {
+                                   real* t, real* dens, real* temp) {
 
     int n_species = plasma_get_n_species(&sim.plasma_data);
     real psi[1];
@@ -362,13 +361,14 @@ int ascotpy_plasma_eval_background(int Neval, real* R, real* phi, real* z,
     real n[n_species];
     real T[n_species];
     for(int k = 0; k < Neval; k++) {
-        if( B_field_eval_psi(psi, R[k], phi[k], z[k], &sim.B_data) ) {
+        if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
             return 1;
         }
         if( B_field_eval_rho(rho, psi[0], &sim.B_data) ) {
             return 1;
         }
-        if( plasma_eval_densandtemp(rho[0], &sim.plasma_data, n, T) ) {
+        if( plasma_eval_densandtemp(n, T, rho[0], R[k], phi[k], z[k], t[k],
+                                    &sim.plasma_data) ) {
             return 1;
         }
         for(int i=0; i<n_species; i++) {
@@ -386,19 +386,33 @@ int ascotpy_plasma_eval_background(int Neval, real* R, real* phi, real* z,
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
  * @param dens output array [m^-3].
  *
  * @return zero if evaluation succeeded.
  */
 int ascotpy_neutral_eval_density(int Neval, real* R, real* phi, real* z,
-                                 real* dens) {
+                                 real* t, real* dens) {
 
     real n0[1];
     for(int k = 0; k < Neval; k++) {
-        if( neutral_eval_n0(n0, R[k], phi[k], z[k], &sim.neutral_data) ) {
+        if( neutral_eval_n0(n0, R[k], phi[k], z[k], t[k], &sim.neutral_data) ) {
             return 1;
         }
         dens[k] = n0[0];
     }
-    return 1;
+    return 0;
+}
+
+/**
+ * @brief Evaluate collision coefficients.
+ */
+int ascotpy_eval_collcoefs(int Neval, real* va, real R, real phi, real z,
+                           real t, real ma, real qa, real* F, real* Dpara,
+                           real* Dperp, real* K, real* nu) {
+
+
+    return mccc_eval_coefs(ma, qa, R, phi, z, t, va, Neval,
+                           &sim.plasma_data, &sim.B_data,
+                           F, Dpara, Dperp, K, nu);
 }

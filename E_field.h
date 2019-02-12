@@ -12,7 +12,6 @@
 #include "error.h"
 #include "B_field.h"
 #include "Efield/E_TC.h"
-#include "Efield/E_1D.h"
 #include "Efield/E_1DS.h"
 
 /**
@@ -24,7 +23,6 @@
  */
 typedef enum E_field_type {
     E_field_type_TC, /**< Trivial Cartesian electric field */
-    E_field_type_1D, /**< Radial electric field */
     E_field_type_1DS /**< Spline-interpolated radial electric field */
 } E_field_type;
 
@@ -40,7 +38,6 @@ typedef enum E_field_type {
 typedef struct {
     E_field_type type;        /**< Electric field type wrapped by this struct */
     E_TC_offload_data ETC;    /**< TC field or NULL if not active             */
-    E_1D_offload_data E1D;    /**< 1D field or NULL if not active             */
     E_1DS_offload_data E1DS;  /**< 1DS field or NULL if not active            */
     int offload_array_length; /**< Allocated offload array length             */
 } E_field_offload_data;
@@ -57,7 +54,6 @@ typedef struct {
 typedef struct {
     E_field_type type; /**< Electric field type wrapped by this struct */
     E_TC_data ETC;     /**< TC field or NULL if not active             */
-    E_1D_data E1D;     /**< 1D field or NULL if not active             */
     E_1DS_data E1DS;   /**< 1DS field or NULL if not active            */
 } E_field_data;
 
@@ -70,7 +66,7 @@ void E_field_free_offload(E_field_offload_data* offload_data,
 int E_field_init(E_field_data* Edata, E_field_offload_data* offload_data,
                  real* offload_array);
 #pragma omp declare simd uniform(Edata, Bdata)
-a5err E_field_eval_E(real* E, real r, real phi, real z,
+a5err E_field_eval_E(real* E, real r, real phi, real z, real t,
                      E_field_data* Edata, B_field_data* Bdata);
 #pragma omp end declare target
 

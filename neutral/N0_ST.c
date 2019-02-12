@@ -11,7 +11,7 @@
 #include "../error.h"
 #include "../print.h"
 #include "N0_ST.h"
-#include "../linint/linint3D.h" /* for 3D interpolation routines */
+#include "../linint/linint.h"
 
 int N0_ST_init_offload(N0_ST_offload_data* offload_data,
                         real** offload_array) {
@@ -108,12 +108,13 @@ int N0_ST_init(N0_ST_data* ndata, N0_ST_offload_data* offload_data,
 
     ndata->periods = offload_data->periods;
 
-    err += linint3D_init(
+    linint3D_init(
         &ndata->n0, offload_array,
         offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-        offload_data->r_min, offload_data->r_max, offload_data->r_grid,
-        offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
-        offload_data->z_min, offload_data->z_max, offload_data->z_grid);
+        NATURALBC, PERIODICBC, NATURALBC,
+        offload_data->r_min, offload_data->r_max,
+        offload_data->phi_min, offload_data->phi_max,
+        offload_data->z_min, offload_data->z_max);
 
     return err;
 }
@@ -147,7 +148,7 @@ a5err N0_ST_eval_n0(real n0[], real r, real phi, real z,
         z = -z;
     }
 
-    interperr += linint3D_eval(&n0[0], &ndata->n0, r, phi, z);
+    interperr += linint3D_eval_f(&n0[0], &ndata->n0, r, phi, z);
 
     if(interperr) {err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_N0_ST);}
 

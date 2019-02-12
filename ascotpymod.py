@@ -49,18 +49,18 @@ class Ascotpy:
 
         # B field functions.
         fun = self.ascotlib.ascotpy_B_field_eval_B_dB
-        fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p,
+        fun.restype  = None
+        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
                         real_p, real_p, real_p, real_p, real_p, real_p,
                         real_p, real_p, real_p, real_p, real_p, real_p]
 
         fun = self.ascotlib.ascotpy_B_field_eval_psi
-        fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p]
+        fun.restype  = None
+        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
         fun = self.ascotlib.ascotpy_B_field_eval_rho
-        fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p]
+        fun.restype  = None
+        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
         fun = self.ascotlib.ascotpy_B_field_get_axis
         fun.restype  = None
@@ -69,7 +69,7 @@ class Ascotpy:
         # E field functions.
         fun = self.ascotlib.ascotpy_E_field_eval_E
         fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p,
+        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
                         real_p, real_p, real_p]
 
         # Plasma functions.
@@ -82,27 +82,36 @@ class Ascotpy:
 
         fun = self.ascotlib.ascotpy_plasma_eval_background
         fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
+        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p,
+                        real_p]
 
         # Neutral functions.
         fun = self.ascotlib.ascotpy_neutral_eval_density
         fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p]
+        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
-    def ascotpy_reload(self, h5fn):
+        # Collision coefficients.
+        fun = self.ascotlib.ascotpy_eval_collcoefs
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [ctypes.c_int, real_p, ctypes.c_double, ctypes.c_double,
+                        ctypes.c_double, ctypes.c_double, ctypes.c_double,
+                        ctypes.c_double, real_p, real_p, real_p, real_p, real_p]
+
+
+    def reload(self, h5fn):
         """
         Change HDF5 file and free resources from old one.
         """
-        self.ascotpy_free(bfield=self.bfield_initialized,
-                          efield=self.efield_initialized,
-                          plasma=self.plasma_initialized,
-                          wall=self.wall_initialized,
-                          neutral=self.neutral_initialized)
+        self.free(bfield=self.bfield_initialized,
+                  efield=self.efield_initialized,
+                  plasma=self.plasma_initialized,
+                  wall=self.wall_initialized,
+                  neutral=self.neutral_initialized)
         self.h5fn = h5fn.encode('UTF-8')
 
 
-    def ascotpy_init(self, bfield=False, efield=False, plasma=False, wall=False,
-                     neutral=False):
+    def init(self, bfield=False, efield=False, plasma=False, wall=False,
+             neutral=False):
         """
         Initialize input data.
 
@@ -152,8 +161,8 @@ class Ascotpy:
             self.neutral_initialized  = True
 
 
-    def ascotpy_free(self, bfield=False, efield=False, plasma=False, wall=False,
-                     neutral=False):
+    def free(self, bfield=False, efield=False, plasma=False, wall=False,
+             neutral=False):
         """
         Free input data.
 
@@ -190,8 +199,8 @@ class Ascotpy:
             self.bfield_initialized  = False
 
 
-    def ascotpy_eval_bfield(self, R, phi, z, evalb=False, evalpsi=False,
-                            evalrho=False, evalaxis=False):
+    def eval_bfield(self, R, phi, z, evalb=False, evalpsi=False,
+                    evalrho=False, evalaxis=False):
         """
         Evaluate magnetic field quantities at given coordinates.
 
@@ -223,49 +232,52 @@ class Ascotpy:
         R   = R.astype(dtype="f8")
         phi = phi.astype(dtype="f8")
         z   = z.astype(dtype="f8")
+        t   = z*0
 
         Neval = R.size
         out = {}
 
         if evalb:
-            out["br"]       = np.zeros(R.shape, dtype="f8")
-            out["bphi"]     = np.zeros(R.shape, dtype="f8")
-            out["bz"]       = np.zeros(R.shape, dtype="f8")
-            out["brdr"]     = np.zeros(R.shape, dtype="f8")
-            out["brdphi"]   = np.zeros(R.shape, dtype="f8")
-            out["brdz"]     = np.zeros(R.shape, dtype="f8")
-            out["bphidr"]   = np.zeros(R.shape, dtype="f8")
-            out["bphidphi"] = np.zeros(R.shape, dtype="f8")
-            out["bphidz"]   = np.zeros(R.shape, dtype="f8")
-            out["bzdr"]     = np.zeros(R.shape, dtype="f8")
-            out["bzdphi"]   = np.zeros(R.shape, dtype="f8")
-            out["bzdz"]     = np.zeros(R.shape, dtype="f8")
+            out["br"]       = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bphi"]     = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bz"]       = np.zeros(R.shape, dtype="f8") + np.nan
+            out["brdr"]     = np.zeros(R.shape, dtype="f8") + np.nan
+            out["brdphi"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["brdz"]     = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bphidr"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bphidphi"] = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bphidz"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bzdr"]     = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bzdphi"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["bzdz"]     = np.zeros(R.shape, dtype="f8") + np.nan
 
             self.ascotlib.ascotpy_B_field_eval_B_dB(
-                Neval, R, phi, z,
+                Neval, R, phi, z, t,
                 out["br"], out["bphi"], out["bz"],
                 out["brdr"], out["brdphi"], out["brdz"],
                 out["bphidr"], out["bphidphi"], out["bphidz"],
                 out["bzdr"], out["bzdphi"], out["bzdz"])
 
         if evalpsi:
-            out["psi"] = np.zeros(R.shape, dtype="f8")
-            self.ascotlib.ascotpy_B_field_eval_psi(Neval, R, phi, z,out["psi"])
+            out["psi"] = np.zeros(R.shape, dtype="f8") + np.nan
+            self.ascotlib.ascotpy_B_field_eval_psi(Neval, R, phi, z, t,
+                                                   out["psi"])
 
         if evalrho:
-            out["rho"] = np.zeros(R.shape, dtype="f8")
-            self.ascotlib.ascotpy_B_field_eval_rho(Neval, R, phi, z,out["rho"])
+            out["rho"] = np.zeros(R.shape, dtype="f8") + np.nan
+            self.ascotlib.ascotpy_B_field_eval_rho(Neval, R, phi, z, t,
+                                                   out["rho"])
 
         if evalaxis:
-            out["axisr"] = np.zeros(R.shape, dtype="f8")
-            out["axisz"] = np.zeros(R.shape, dtype="f8")
+            out["axisr"] = np.zeros(R.shape, dtype="f8") + np.nan
+            out["axisz"] = np.zeros(R.shape, dtype="f8") + np.nan
             self.ascotlib.ascotpy_B_field_get_axis(Neval, phi, out["axisr"],
                                                    out["axisz"])
 
         return out
 
 
-    def ascotpy_eval_efield(self, R, phi, z):
+    def eval_efield(self, R, phi, z):
         """
         Evaluate electric field quantities at given coordinates.
 
@@ -291,6 +303,7 @@ class Ascotpy:
         R   = R.astype(dtype="f8")
         phi = phi.astype(dtype="f8")
         z   = z.astype(dtype="f8")
+        t   = z*0
 
         Neval = R.size
         out = {}
@@ -299,12 +312,12 @@ class Ascotpy:
         out["ez"]   = np.zeros(R.shape, dtype="f8")
 
         self.ascotlib.ascotpy_E_field_eval_E(
-                Neval, R, phi, z, out["er"], out["ephi"], out["ez"])
+                Neval, R, phi, z, t, out["er"], out["ephi"], out["ez"])
 
         return out
 
 
-    def ascotpy_eval_plasma(self, R, phi, z):
+    def eval_plasma(self, R, phi, z):
         """
         Evaluate plasma quantities at given coordinates.
 
@@ -330,6 +343,7 @@ class Ascotpy:
         R   = R.astype(dtype="f8")
         phi = phi.astype(dtype="f8")
         z   = z.astype(dtype="f8")
+        t   = z*0
 
         # First get background species info.
         out = {}
@@ -346,7 +360,7 @@ class Ascotpy:
         rawtemp = np.zeros((Neval*(out["n_species"]),), dtype="f8")
 
         self.ascotlib.ascotpy_plasma_eval_background(
-                Neval, R, phi, z, rawdens, rawtemp)
+                Neval, R, phi, z, t, rawdens, rawtemp)
 
         out["ne"] = rawdens[0:Neval]
         out["Te"] = rawtemp[0:Neval]
@@ -356,7 +370,7 @@ class Ascotpy:
 
         return out
 
-    def ascotpy_eval_neutral(self, R, phi, z):
+    def eval_neutral(self, R, phi, z):
         """
         Evaluate plasma quantities at given coordinates.
 
@@ -380,33 +394,61 @@ class Ascotpy:
         R   = R.astype(dtype="f8")
         phi = phi.astype(dtype="f8")
         z   = z.astype(dtype="f8")
+        t   = z*0
 
         Neval = R.size
         out = {}
         out["n0"]   = np.zeros(R.shape, dtype="f8")
 
-        self.ascotlib.ascotpy_neutral_eval_density(Neval, R, phi, z, out["n0"])
+        self.ascotlib.ascotpy_neutral_eval_density(Neval, R, phi, z, t,
+                                                   out["n0"])
 
         return out
+
+    def eval_collcoefs(self, ma, qa, R, phi, z, va):
+        ma  = float(ma)
+        qa  = float(qa)
+        R   = R.astype(dtype="f8")
+        phi = phi.astype(dtype="f8")
+        z   = z.astype(dtype="f8")
+        t   = z*0
+        va  = va.astype(dtype="f8")
+        Neval = va.size
+
+        n_species = self.ascotlib.ascotpy_plasma_get_n_species()
+
+        out = {}
+        out["F"]     = np.zeros((n_species,va.size), dtype="f8")
+        out["Dpara"] = np.zeros((n_species,va.size), dtype="f8")
+        out["Dperp"] = np.zeros((n_species,va.size), dtype="f8")
+        out["K"]     = np.zeros((n_species,va.size), dtype="f8")
+        out["nu"]    = np.zeros((n_species,va.size), dtype="f8")
+        self.ascotlib.ascotpy_eval_collcoefs(Neval, va, R[0], phi[0], z[0],
+                                             t[0], ma, qa, out["F"],
+                                             out["Dpara"], out["Dperp"],
+                                             out["K"], out["nu"])
+
+        return out
+
 
 if __name__ == '__main__':
     # For testing purposes.
     import os
     ascot = Ascotpy(os.path.abspath("ascotpy.so"), "ascot.h5")
-    ascot.ascotpy_init(bfield=True, efield=True, plasma=True, wall=True,
-                       neutral=True)
+    ascot.init(bfield=True, efield=True, plasma=True, wall=True,
+               neutral=True)
 
     R   = np.array([6.2,   7, 8])
     phi = np.array([  0,   0, 0])
     z   = np.array([0.0, 0.2, 0.2])
 
-    bvals       = ascot.ascotpy_eval_bfield(R, phi, z, evalb=True, evalpsi=True,
+    bvals       = ascot.eval_bfield(R, phi, z, evalb=True, evalpsi=True,
                                             evalrho=True, evalaxis=True)
-    evals       = ascot.ascotpy_eval_efield(R, phi, z)
-    plasmavals  = ascot.ascotpy_eval_plasma(R, phi, z)
-    neutralvals = ascot.ascotpy_eval_neutral(R, phi, z)
+    evals       = ascot.eval_efield(R, phi, z)
+    plasmavals  = ascot.eval_plasma(R, phi, z)
+    neutralvals = ascot.eval_neutral(R, phi, z)
 
     print(bvals)
 
-    ascot.ascotpy_free(bfield=True, efield=True, plasma=True, wall=True,
-                       neutral=True)
+    ascot.free(bfield=True, efield=True, plasma=True, wall=True,
+               neutral=True)

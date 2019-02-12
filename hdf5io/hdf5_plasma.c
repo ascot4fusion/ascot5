@@ -51,6 +51,13 @@ int hdf5_plasma_init_offload(hid_t f, plasma_offload_data* offload_data,
                                   offload_array, qid);
     }
 
+    hdf5_gen_path("/plasma/plasma_1DS-XXXXXXXXXX", qid, path);
+    if(hdf5_find_group(f, path) == 0) {
+        offload_data->type = plasma_type_1DS;
+        err = hdf5_plasma_read_1DS(f, &(offload_data->plasma_1DS),
+                                   offload_array, qid);
+    }
+
     /* Initialize if data was read succesfully */
     if(!err) {
         err = plasma_init_offload(offload_data, offload_array);
@@ -75,18 +82,19 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
     #define PLSPATH "/plasma/plasma_1D-XXXXXXXXXX/"
 
     /* Read rhogrid size and number of species */
-    int n_ions;
+    int n_rho, n_ions;
     if( hdf5_read_int(PLSPATH "n_ions", &n_ions,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    offload_data->n_species = n_ions + 1; /* Include electrons */
-
-    int n_rho;
-    if( hdf5_read_int(PLSPATH "n_rho", &n_rho,
+    if( hdf5_read_int(PLSPATH "n_rho",  &n_rho,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    offload_data->n_species = n_ions + 1; /* Include electrons */
     offload_data->n_rho = n_rho;
 
-    /* Read Znum and calculate charge */
-    int temparr[MAX_SPECIES]; // A temporary array
+
+    /* Read species information */
+    int temparr[MAX_SPECIES];
+
     if( hdf5_read_int(PLSPATH "Z_num", temparr,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     for(int i = 0; i < n_ions; i++) {
@@ -135,8 +143,8 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     for(int i = 0; i < n_rho; i++) {
-        temp_e[i] = temp_e[i] * CONST_E / CONST_KB;
-        temp_i[i] = temp_i[i] * CONST_E / CONST_KB;
+        temp_e[i] = temp_e[i] * CONST_E;
+        temp_i[i] = temp_i[i] * CONST_E;
     }
 
     return 0;
@@ -155,6 +163,9 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
  */
 int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
                          real** offload_array, char* qid) {
+
+    #undef PLSPATH
+    #define PLSPATH "/plasma/plasma_1DS-XXXXXXXXXX/"
     herr_t err = 0;
     int i, j;
     err = H5LTfind_dataset(f, "/plasma/P_1D");
@@ -204,14 +215,14 @@ int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
     err = H5LTread_dataset_double(f,"/plasma/P_1D/rho", rho);
     err = H5LTread_dataset_double(f,"/plasma/P_1D/temp_e", temp_e);
     for(i = 0; i < n_rho; i++) {
-        temp_e[i] = temp_e[i] * CONST_E / CONST_KB;
+        temp_e[i] = temp_e[i] * CONST_E;
     }
     err = H5LTread_dataset_double(f,"/plasma/P_1D/dens_e", dens_e);
 
     /* All ions have same temperature */
     err = H5LTread_dataset_double(f,"/plasma/P_1D/temp_i", temp_i);
     for(i = 0; i < n_rho; i++) {
-        temp_i[i] = temp_i[i] * CONST_E / CONST_KB;
+        temp_i[i] = temp_i[i] * CONST_E;
     }
 
     real temp_dens_i[n_ions*n_rho];

@@ -457,7 +457,7 @@ def check():
     h3.xaxis.set(ticks=[6.2, 6.4, 6.6])
     h3.yaxis.set(ticks=[1.7, 1.9, 2.1, 2.3, 2.5],
                  ticklabels=[1.7, '', 2.1, '', 2.5])
-    h3.set(ylabel=r"$z$ [m]")#, xlabel=r"$R$ [m]")
+    h3.set(ylabel=r"$z$ [m]")
     h3.set_xlabel(r"$R$ [m]", position=[1,0,1,1]);
 
     h4.axis('scaled')

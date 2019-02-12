@@ -38,7 +38,7 @@ ifneq ($(CC),h5cc)
 	endif
 endif
 
-CFLAGS+=-lm -Wall -fopenmp -std=c99 $(DEFINES) $(FLAGS)
+CFLAGS+=-lm -Wall -fopenmp -fPIC -std=c99 $(DEFINES) $(FLAGS)
 
 SIMDIR = simulate/
 SIMHEADERS = $(wildcard $(SIMDIR)simulate*.h)

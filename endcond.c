@@ -111,9 +111,20 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                 real vnorm = math_normc(
                     p_f->rdot[i], p_f->phidot[i] * p_f->r[i], p_f->zdot[i]);
                 real gamma = physlib_gamma_vnorm(vnorm);
-                real ekin = CONST_C2 * p_f->mass[i] * (gamma - 1);
-                real Te = plasma_eval_temp(p_f->rho[i], 0, &sim->plasma_data)
-                    * CONST_KB;
+                real ekin  = CONST_C2 * p_f->mass[i] * (gamma - 1);
+
+                real Te;
+                a5err errflag =
+                    plasma_eval_temp(&Te, p_f->rho[i], p_f->r[i], p_f->phi[i],
+                                     p_f->z[i], p_f->time[i], 0,
+                                     &sim->plasma_data);
+
+                /* Error handling */
+                if(errflag) {
+                    p_f->err[i]     = errflag;
+                    p_f->running[i] = 0;
+                    Te = 0;
+                }
 
                 if( active_emin && (ekin < sim->endcond_minEkin) ) {
                     p_f->endcond[i] |= endcond_emin;
@@ -160,6 +171,11 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                     p_f->endcond[i] |= endcond_cpumax;
                     p_f->running[i] = 0;
                 }
+            }
+
+            /* Zero end condition if error happened in this function */
+            if(p_f->err[i]) {
+                p_f->endcond[i] = 0;
             }
         }
     }
@@ -223,8 +239,20 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                 real gamma = physlib_gamma_vpar(
                     p_f->mass[i], p_f->mu[i], p_f->vpar[i], Bnorm);
                 real ekin = CONST_C2 * p_f->mass[i] * (gamma - 1);
-                real Te = plasma_eval_temp(p_f->rho[i], 0, &sim->plasma_data)
-                    * CONST_KB;
+
+
+                real Te;
+                a5err  errflag =
+                    plasma_eval_temp(&Te, p_f->rho[i], p_f->r[i], p_f->phi[i],
+                                     p_f->z[i], p_f->time[i], 0,
+                                     &sim->plasma_data);
+
+                /* Error handling */
+                if(errflag) {
+                    p_f->err[i]     = errflag;
+                    p_f->running[i] = 0;
+                    Te = 0;
+                }
 
                 if(active_emin && (ekin < sim->endcond_minEkin) ) {
                     p_f->endcond[i] |= endcond_emin;
@@ -280,6 +308,11 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                     p_f->endcond[i] |= endcond_hybrid;
                     p_f->running[i] = 0;
                 }
+            }
+
+            /* Zero end condition if error happened in this function */
+            if(p_f->err[i]) {
+                p_f->endcond[i] = 0;
             }
         }
     }

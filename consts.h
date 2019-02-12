@@ -8,10 +8,13 @@
 #include "ascot5.h"
 
 /** @brief pi                                                                 */
-#define CONST_PI  3.1415926535897932384626
+#define CONST_PI     3.1415926535897932384626
 
 /** @brief 2*pi                                                               */
-#define CONST_2PI 6.2831853071795862319959
+#define CONST_2PI    6.2831853071795862319959
+
+/** @brief sqrt(pi)                                                           */
+#define CONST_SQRTPI 1.7724538509055160272982
 
 /** @brief Speed of light [m/s]                                               */
 #define CONST_C  299792458.0
