@@ -434,7 +434,7 @@ class Ascotpy:
 if __name__ == '__main__':
     # For testing purposes.
     import os
-    ascot = Ascotpy(os.path.abspath("ascotpy.so"), "ascot.h5")
+    ascot = Ascotpy(os.path.abspath("libascotpy.so"), "ascot.h5")
     ascot.init(bfield=True, efield=True, plasma=True, wall=True,
                neutral=True)
 
