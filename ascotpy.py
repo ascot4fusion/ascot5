@@ -423,8 +423,8 @@ class Ascotpy:
         out["Dperp"] = np.zeros((n_species,va.size), dtype="f8")
         out["K"]     = np.zeros((n_species,va.size), dtype="f8")
         out["nu"]    = np.zeros((n_species,va.size), dtype="f8")
-        self.ascotlib.ascotpy_eval_collcoefs(Neval, va, R[0], phi[0], z[0],
-                                             t[0], ma, qa, out["F"],
+        self.ascotlib.ascotpy_eval_collcoefs(Neval, va, R, phi, z,
+                                             t, ma, qa, out["F"],
                                              out["Dpara"], out["Dperp"],
                                              out["K"], out["nu"])
 
