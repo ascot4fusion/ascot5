@@ -218,28 +218,28 @@ def combineoutput(fnt, addfns=None, contfns=None):
                     tdata[field][:] = sdata[field][:][idx]
 
     # Combine dists
-    if hasattr(target, "R_phi_z_vpa_vpe_t_q") and \
-       hasattr(source, "R_phi_z_vpa_vpe_t_q"):
-        with target.R_phi_z_vpa_vpe_t_q as tdata, \
-             source.R_phi_z_vpa_vpe_t_q as sdata:
+    if hasattr(target, "dist5d") and \
+       hasattr(source, "dist5d"):
+        with target.dist5d as tdata, \
+             source.dist5d as sdata:
             tdata["ordinate"][:] += sdata["ordinate"][:]
 
-    if hasattr(target, "R_phi_z_vr_vphi_vz_t_q") and \
-       hasattr(source, "R_phi_z_vr_vphi_vz_t_q"):
-        with target.R_phi_z_vr_vphi_vz_t_q as tdata, \
-             source.R_phi_z_vr_vphi_vz_t_q as sdata:
+    if hasattr(target, "dist6d") and \
+       hasattr(source, "dist6d"):
+        with target.dist6d as tdata, \
+             source.dist6d as sdata:
             tdata["ordinate"][:] += sdata["ordinate"][:]
 
-    if hasattr(target, "rho_pol_phi_vpa_vpe_t_q") and \
-       hasattr(source, "rho_pol_phi_vpa_vpe_t_q"):
-        with target.rho_pol_phi_vpa_vpe_t_q as tdata, \
-             source.rho_pol_phi_vpa_vpe_t_q as sdata:
+    if hasattr(target, "distrho5d") and \
+       hasattr(source, "distrho5d"):
+        with target.distrho5d as tdata, \
+             source.distrho5d as sdata:
             tdata["ordinate"][:] += sdata["ordinate"][:]
 
-    if hasattr(target, "rho_pol_phi_vr_vphi_vz_t_q") and \
-       hasattr(source, "rho_pol_phi_vr_vphi_vz_t_q"):
-        with target.rho_pol_phi_vr_vphi_vz_t_q as tdata, \
-             source.rho_pol_phi_vr_vphi_vz_t_q as sdata:
+    if hasattr(target, "distrho6d") and \
+       hasattr(source, "distrho6d"):
+        with target.distrho6d as tdata, \
+             source.distrho6d as sdata:
             tdata["ordinate"][:] += sdata["ordinate"][:]
 
     # Combine orbits
