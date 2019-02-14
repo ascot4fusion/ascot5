@@ -13,6 +13,15 @@
 #include "mccc_wiener.h"
 
 /**
+ * @brief Defines minimum energy boundary condition
+ *
+ * This times local electron temperature is minimum energy boundary. If guiding
+ * center energy goes below this, it is mirrored to prevent collision
+ * coefficients from diverging.
+ */
+#define MCCC_CUTOFF 0.1
+
+/**
  * @brief Parameters and data required to evaluate Coulomb collisions
  */
 typedef struct {

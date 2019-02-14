@@ -105,7 +105,7 @@ void plasma_1D_free_offload(plasma_1D_offload_data* offload_data,
  * to the struct on target and sets the plasma data pointers to
  * correct offsets in the offload array.
  *
- * @param plasma_data pointer to data struct on target
+ * @param pls_data pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
 */
@@ -135,7 +135,7 @@ void plasma_1D_init(plasma_1D_data* pls_data,
  * @param temp pointer to where evaluated temperature [J] is stored
  * @param rho radial coordinate
  * @param species index of plasma species
- * @param plasma_data pointer to plasma data struct
+ * @param pls_data pointer to plasma data struct
  *
  * @return zero if evaluation succeeded
  */
@@ -175,7 +175,7 @@ a5err plasma_1D_eval_temp(real* temp, real rho, int species,
  * @param dens pointer to where evaluated density [m^-3] is stored
  * @param rho radial coordinate
  * @param species index of plasma species
- * @param plasma_data pointer to plasma data struct
+ * @param pls_data pointer to plasma data struct
  *
  * @return zero if evaluation succeeded
  */
@@ -215,8 +215,7 @@ a5err plasma_1D_eval_dens(real* dens, real rho, int species,
  * @param dens pointer to where interpolated densities [m^-3] are stored
  * @param temp pointer to where interpolated temperatures [J] are stored
  * @param rho radial coordinate
- * @param species index of plasma species
- * @param plasma_data pointer to plasma data struct
+ * @param pls_data pointer to plasma data struct
  *
  * @return zero if evaluation succeeded
  */

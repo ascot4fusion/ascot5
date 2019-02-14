@@ -17,12 +17,12 @@
  * Available versions can be checked with "module avail".
  *
  * Due to the use of compiler flags to define code functionality, the code
- * should always be fully recompiled by calling <make clean> first if the
+ * should always be fully recompiled by calling <pre>make clean</pre> first if the
  * parameters are changed.
  *
  * Syntax for compilation:
  *
- * make clean && make <program_name> <parameters>
+ * make clean && make \<program_name\> \<parameters\>
  *
  * Available parameters:
  *

@@ -111,13 +111,13 @@ int neutral_init(neutral_data* ndata, neutral_offload_data* offload_data,
 
     switch(offload_data->type) {
         case neutral_type_3D:
-            err = N0_3D_init(&(ndata->N03D),
-                             &(offload_data->N03D), offload_array);
+            N0_3D_init(&(ndata->N03D),
+                       &(offload_data->N03D), offload_array);
             break;
 
         case neutral_type_ST:
-            err = N0_ST_init(&(ndata->N0ST),
-                             &(offload_data->N0ST), offload_array);
+            N0_ST_init(&(ndata->N0ST),
+                       &(offload_data->N0ST), offload_array);
             break;
         default:
             /* Unregonized input. Produce error. */
@@ -146,7 +146,7 @@ int neutral_init(neutral_data* ndata, neutral_offload_data* offload_data,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err neutral_eval_n0(real n0[], real r, real phi, real z, real t,
+a5err neutral_eval_n0(real* n0, real r, real phi, real z, real t,
                       neutral_data* ndata) {
     a5err err = 0;
 
