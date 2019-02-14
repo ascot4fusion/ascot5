@@ -542,7 +542,6 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
         // Both input and output files are given
         strcat(sim->hdf5_in, ".h5");
     }
-    strcpy(sim->outfn, sim->hdf5_out);
     return 0;
 }
 

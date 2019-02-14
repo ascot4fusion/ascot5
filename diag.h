@@ -28,12 +28,13 @@ typedef struct {
     dist_rho5D_offload_data distrho5D; /**< 5D rho distribution offload data */
     dist_rho6D_offload_data distrho6D; /**< 6D rho distribution offload data */
 
-    int offload_dist5D_index;    /** Index for 5D dist in offload array      */
-    int offload_dist6D_index;    /** Index for 5D dist in offload array      */
-    int offload_distrho5D_index; /** Index for 5D dist in offload array      */
-    int offload_distrho6D_index; /** Index for 6D rho dist in offload array  */
-    int offload_diagorb_index;   /** Index for orbit data in offload array   */
+    int offload_dist5D_index;    /**< Index for 5D dist in offload array     */
+    int offload_dist6D_index;    /**< Index for 5D dist in offload array     */
+    int offload_distrho5D_index; /**< Index for 5D dist in offload array     */
+    int offload_distrho6D_index; /**< Index for 6D rho dist in offload array */
+    int offload_diagorb_index;   /**< Index for orbit data in offload array  */
     int offload_array_length;    /**< Number of elements in offload_array    */
+
 } diag_offload_data;
 
 /**

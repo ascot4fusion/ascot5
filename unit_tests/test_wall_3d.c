@@ -8,8 +8,11 @@
 #include "../ascot5.h"
 #include "../wall/wall_3d.h"
 
-#define N 10000
+#define N 10000 /**< Number of repetitions in each test */
 
+/**
+ * Guess two random points and see if the line between them intersects a wall.
+ */
 void test_wall_hit(wall_3d_data* wdata) {
     srand(0);
     real Rmin = 2;
@@ -34,6 +37,7 @@ void test_wall_hit(wall_3d_data* wdata) {
                q2[0], q2[1], q2[2], w);
     }
 }
+
 
 void test_collisions(wall_3d_data wdata, real* offload_array) {
     real xmin = 2;

@@ -30,7 +30,7 @@
 real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
 #pragma omp end declare target
 
-#define DUMMY_TIMESTEP_VAL 1.0 // Dummy time step val, just use value large enough not to be encountered in actual simulations
+#define DUMMY_TIMESTEP_VAL 1.0 /**< Dummy time step value */
 
 /**
  * @brief Simulates guiding centers using adaptive time-step
@@ -316,8 +316,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
  * The returned time step is either directly user-defined, 1/100th of collision frequency
  * or user-defined fraction of gyro-motion.
  *
+ * @param sim pointer to simulation data struct
  * @param p SIMD array of markers
  * @param i index of marker for which time step is assessed
+ *
  * @return Calculated time step
  */
 real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {

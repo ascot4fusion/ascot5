@@ -212,8 +212,10 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
  * whose formula accounts for relativity, or an user defined value
  * is used as is depending on simulation options.
  *
+ * @param sim pointer to simulation data struct
  * @param p SIMD array of markers
  * @param i index of marker for which time step is assessed
+ *
  * @return Calculated time step
  */
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {

@@ -22,12 +22,10 @@
  * time step.
  *
  * @param p marker struct that will be integrated
- * @param t array containting time values
- * @param h array containing time step lengths
+ * @param h NSIMD length array containing time step lengths
  * @param hnext suggestion for the next time step. Negative if rejected.
  * @param tol error tolerance
  * @param Bdata pointer to magnetic field data
- * @param Edata pointer to electric field data
  */
 void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol,
                       B_field_data* Bdata) {
