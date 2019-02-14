@@ -14,33 +14,33 @@
    @brief Writes a histogram (ASCOT4 style, version 3) to a hdf5 file.
 
    The slot edges would be generated in matlab thus:
-      linspace(abscissaMin(i),abscissaMax(i),abscissaNslots(i)+1)
-
-   @param fileName hdf5 file to write to
-   @param title Histogram title
-   @param abscissaDim number of dimensions of the abscissa
-   @param ordinateLength Number of different quantities that are in this histogram
-   @param abscissaNslots how many slots in each abscissa dimension (integer array, length abscissaDim)
-   @param abscissaMin the lowest abscissa edge for each abscissa dimension (double array, length abscissaDim)
-   @param abscissaMax the highest abscissa edge for each abscissa dimension (double array, length abscissaDim)
-   @param abscissaNames a vector of strings (abscissaDim) defining name for each abscissa dimension
-   @param abscissaUnits a vector of strings (abscissaDim) defining unit for each abscissa dimension
-   @param ordinateNames a vector of strings (ordinateLength) defining name for each ordinate
-   @param ordinateUnits a vector of strings (ordinateLength) defining unit for each ordinate
-   @param ordinate, a double vector, size = ordinateLength * product(absicssaNslots)
+     linspace(abscissaMin(i),abscissaMax(i),abscissaNslots(i)+1)
 
    Here is an example of the expected order of indexing in ordinate. (The Fortran/matlab order, I guess)
    ordinate = (double*) malloc(abscissaNslots[0] * abscissaNslots[1] * ordinateLength * sizeof(double) );
    for (iDim2 = 0; iDim2 < abscissaNslots[1]; iDim2++ )
-    for ( iDim1 = 0; iDim1 < abscissaNslots[0]; iDim1++)
-     for ( iOrd = 0; iOrd< ordinateLength; iOrd++)
-      ordinate[ iDim2 * ordinateLength * abscissaNslots[0]  +
-                iDim1 * ordinateLength +
-                iOrd         ]  =  100*(1+iOrd) + 10 * (1+iDim1) +iDim2 +1;
+     for ( iDim1 = 0; iDim1 < abscissaNslots[0]; iDim1++)
+       for ( iOrd = 0; iOrd< ordinateLength; iOrd++)
+         ordinate[ iDim2 * ordinateLength * abscissaNslots[0]  +
+           iDim1 * ordinateLength +
+           iOrd         ]  =  100*(1+iOrd) + 10 * (1+iDim1) +iDim2 +1;
+
+   @param fileName hdf5 file to write to
+   @param runpath path to run group histogram being written belongs to
+   @param title histogram title
+   @param abscissaDim number of dimensions of the abscissa
+   @param ordinateDim number of different quantities that are in this histogram
+   @param abscissaNslots how many slots in each abscissa dimension (integer array, length abscissaDim)
+   @param abscissaMin the lowest abscissa edge for each abscissa dimension (double array, length abscissaDim)
+   @param abscissaMax the highest abscissa edge for each abscissa dimension (double array, length abscissaDim)
+   @param abscissaUnits a vector of strings (abscissaDim) defining unit for each abscissa dimension
+   @param abscissaNames a vector of strings (abscissaDim) defining name for each abscissa dimension
+   @param ordinateUnits a vector of strings (ordinateLength) defining unit for each ordinate
+   @param ordinateNames vector of strings (ordinateLength) defining name for each ordinate
+   @param ordinate a double vector, size = ordinateLength * product(absicssaNslots)
 
    @return end status, zero on success
 */
-
 int hdf5_histogram_write_uniform_double(
                     const char *fileName,
                     const char *runpath,
@@ -54,8 +54,8 @@ int hdf5_histogram_write_uniform_double(
                     char **abscissaNames,
                     char **ordinateUnits,
                     char **ordinateNames,
-                    double *ordinate
-                        ){
+                    double *ordinate) {
+
     hid_t fileHandle;
     hid_t groupHandleHist;
     char path[256];

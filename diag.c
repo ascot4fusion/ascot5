@@ -30,7 +30,7 @@ void diag_arraysum(int start, int stop, real* array1, real* array2);
  *
  * @param data diagnostics offload data
  * @param offload_array pointer to offload array  which is allocated here
- * @param Nrmk number of markers that will be simulated
+ * @param Nmrk number of markers that will be simulated
  *
  * @return zero if initialization succeeded
  */
@@ -211,7 +211,7 @@ void diag_update_fo(diag_data* data, particle_simd_fo* p_f,
 /**
  * @brief Collects diagnostics when marker represents a guiding center
  *
- * @param data diagnostics data struct
+ * @param data pointer to diagnostics data struct
  * @param p_f pointer to SIMD struct storing marker states at the end of current
  *        time-step
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
@@ -245,7 +245,7 @@ void diag_update_gc(diag_data* data, particle_simd_gc* p_f,
  *
  * Distributions are not updated for magnetic field lines.
  *
- * @param d diagnostics data struct
+ * @param data pointer to diagnostics data struct
  * @param p_f pointer to SIMD struct storing marker states at the end of current
  *        time-step
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
@@ -266,7 +266,7 @@ void diag_update_ml(diag_data* data, particle_simd_ml* p_f,
  * trivially. For orbits the first array already have space for appending the
  * orbit data from the second array, so we only need to move those elements.
  *
- * @param d diagnostics data
+ * @param data pointer to diagnostics data struct
  * @param array1 the array to which array2 is summed
  * @param array2 the array which is to be summed
  */

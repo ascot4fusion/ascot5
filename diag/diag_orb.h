@@ -10,14 +10,14 @@
 #include <stdio.h>
 #include "../particle.h"
 
-#define DIAG_ORB_POINCARE 0
-#define DIAG_ORB_INTERVAL 1
-#define DIAG_ORB_MAXPOINCARES 30
+#define DIAG_ORB_POINCARE 0      /**< Poincare mode flag                 */
+#define DIAG_ORB_INTERVAL 1      /**< Interval mode flag                 */
+#define DIAG_ORB_MAXPOINCARES 30 /**< Maximum number of Poincare planes  */
 
-#define DIAG_ORB_FOFIELDS     15
-#define DIAG_ORB_GCFIELDS     15
-#define DIAG_ORB_MLFIELDS     10
-#define DIAG_ORB_HYBRIDFIELDS 18
+#define DIAG_ORB_FOFIELDS     15 /**< Number of coordinates in FO output     */
+#define DIAG_ORB_GCFIELDS     15 /**< Number of coordinates in GC output     */
+#define DIAG_ORB_MLFIELDS     10 /**< Number of coordinates in ML output     */
+#define DIAG_ORB_HYBRIDFIELDS 18 /**< Number of coordinates in hybrid output */
 
 /**
  * @brief Orbit diagnostics offload data struct.

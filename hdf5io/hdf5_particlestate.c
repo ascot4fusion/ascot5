@@ -22,7 +22,7 @@
  * (the order is same between all fields) and each dataset includes string
  * attribute that indicates the unit of the stored quantity.
  *
- * @param fn output HDF5 file id
+ * @param f output HDF5 file id
  * @param qid QID of the run group
  * @param state name of the state
  * @param n number of markers in state array

@@ -83,7 +83,7 @@ void E_TC_init(E_TC_data* Edata, E_TC_offload_data* offload_data,
  *
  * @return Zero to indicate success
  */
-a5err E_TC_eval_E(real* E, real r, real phi, real z, E_TC_data* Edata,
+a5err E_TC_eval_E(real E[3], real r, real phi, real z, E_TC_data* Edata,
                   B_field_data* Bdata) {
     math_vec_xyz2rpz(Edata->Exyz, E, phi);
 

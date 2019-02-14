@@ -9,15 +9,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <hdf5.h>
+#include <hdf5_hl.h>
 #include "../ascot5.h"
 #include "../neutral.h"
 #include "../neutral/N0_3D.h"
 #include "../consts.h"
 #include "../math.h"
 #include "hdf5_neutral.h"
-#include <hdf5.h>
 #include "hdf5_helpers.h"
-#include <hdf5_hl.h>
+
+#define NPATH /**< Macro that is used to store paths to data groups */
 
 int hdf5_neutral_read_3D(hid_t f, N0_3D_offload_data* offload_data,
                          real** offload_array, char* qid);
@@ -25,7 +27,18 @@ int hdf5_neutral_read_3D(hid_t f, N0_3D_offload_data* offload_data,
 int hdf5_neutral_read_ST(hid_t f, N0_ST_offload_data* offload_data,
                          real** offload_array, char* qid);
 
-
+/**
+ * @brief Initialize neutral data from HDF5 file
+ *
+ * @param f HDF5 file identifier for a file which is opened and closed outside
+ *          of this function
+ * @param offload_data pointer to offload data struct which is initialized here
+ * @param offload_array pointer to offload array which is allocated and
+ *                      initialized here
+ * @param qid QID of the data that is to be read
+ *
+ * @return zero if reading and initialization succeeded
+ */
 int hdf5_neutral_init_offload(hid_t f, neutral_offload_data* offload_data,
                               real** offload_array, char* qid) {
 
@@ -41,10 +54,10 @@ int hdf5_neutral_init_offload(hid_t f, neutral_offload_data* offload_data,
                                    offload_array, qid);
     }
 
-    hdf5_gen_path("/neutral/N0_3D-XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/neutral/N0_ST-XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
         offload_data->type = neutral_type_3D;
-        err = hdf5_neutral_read_3D(f, &(offload_data->N03D),
+        err = hdf5_neutral_read_ST(f, &(offload_data->N0ST),
                                    offload_array, qid);
     }
 
@@ -65,7 +78,9 @@ int hdf5_neutral_init_offload(hid_t f, neutral_offload_data* offload_data,
  * @param f hdf5 file identifier
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ * @param qid QID of the data that is to be read
  *
+ * @return zero on success
  */
 int hdf5_neutral_read_3D(hid_t f, N0_3D_offload_data* offload_data,
                          real** offload_array, char* qid) {
@@ -114,7 +129,9 @@ int hdf5_neutral_read_3D(hid_t f, N0_3D_offload_data* offload_data,
  * @param f hdf5 file identifier
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ * @param qid QID of the data that is to be read
  *
+ * @return zero on success
  */
 int hdf5_neutral_read_ST(hid_t f, N0_ST_offload_data* offload_data,
                          real** offload_array, char* qid) {

@@ -6,7 +6,7 @@ Ascot5 functions (written in C) directly. The callable functions are defined in
 library module ascotpy.c which must be compiled first with make ascotpy. This
 module acts as a wrapper for those functions.
 
-File: ascotpymod.py
+File: ascotpy.py
 """
 import ctypes
 import numpy as np

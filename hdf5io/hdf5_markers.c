@@ -17,6 +17,8 @@
 #include "../consts.h"
 #include "hdf5_markers.h"
 
+#define MRKPATH /**< Macro that is used to store paths to data groups */
+
 int hdf5_markers_read_particle(hid_t f, int* nmrk, input_particle** p,
                                char* qid);
 int hdf5_markers_read_guiding_center(hid_t f, int* nmrk, input_particle** p,
