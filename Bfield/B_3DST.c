@@ -166,7 +166,7 @@ int B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array)
     real psival[1], Bval[3];
     err = B_3DST_eval_psi(psival, offload_data->axis_r, 0, offload_data->axis_z,
                           &Bdata);
-    err = B_3DST_eval_B(Bval, offload_data->axis_r, 0, offload_data->axis_z,
+    err = B_3DST_eval_B(Bval, offload_data->axis_r, 149.5, offload_data->axis_z,
                         offload_data->Bgrid_t_min, &Bdata);
     if(err) {
         print_err("Error: Initialization failed.\n");
@@ -191,7 +191,7 @@ int B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array)
               offload_data->Bgrid_n_phi,
               math_rad2deg(offload_data->Bgrid_phi_min),
               math_rad2deg(offload_data->Bgrid_phi_max));
-    print_out(VERBOSE_IO, "ntime = %4.d tmin = %3.3f s tmax = %3.3f deg\n",
+    print_out(VERBOSE_IO, "ntime = %4.d tmin = %3.3f s tmax = %3.3f s\n",
               offload_data->Bgrid_n_t,
               offload_data->Bgrid_t_min,
               offload_data->Bgrid_t_max);
