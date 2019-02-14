@@ -1,6 +1,6 @@
 /**
- * @file distributions.c
- * @brief Distribution collecting and processing functions.
+ * @file dist_5D.c
+ * @brief 5D distribution collecting and processing functions.
  */
 #include <stdio.h>
 #include <stdlib.h>

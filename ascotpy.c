@@ -253,7 +253,7 @@ void ascotpy_B_field_eval_psi(int Neval, real* R, real* phi, real* z, real* t,
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
  * @param t time coordinates of the evaluation points [s].
- * @param psi output array.
+ * @param rho output array.
  */
 void ascotpy_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
                              real* rho) {
@@ -275,7 +275,8 @@ void ascotpy_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
  *
  * @param Neval number of evaluation points.
  * @param phi phi coordinates of the evaluation points [rad].
- * @param psi output array.
+ * @param Raxis output array for axis R coordinates.
+ * @param zaxis output array for axis z coordinates.
  */
 void ascotpy_B_field_get_axis(int Neval, real* phi, real* Raxis, real* zaxis) {
 

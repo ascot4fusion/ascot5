@@ -45,6 +45,9 @@ typedef struct {
     real max_q;       /**< value of highest charge bin */
 } dist_rho6D_offload_data;
 
+/**
+ * @brief Histogram parameters on target
+ */
 typedef struct {
     int n_rho;        /**< number of rho bins */
     real min_rho;     /**< value of lowest rho bin */

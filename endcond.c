@@ -64,6 +64,7 @@
  *        time-step
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
+ * @param sim pointer to simulation data struct
  */
 void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                       sim_data* sim) {
@@ -190,6 +191,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
  *        time-step
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
+ * @param sim pointer to simulation data struct
  *
  * @todo Hybrid condition checks whether marker is over maximum rho limit. More
  *       smarter check is required.
@@ -327,6 +329,7 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
  *        time-step
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
+ * @param sim pointer to simulation data struct
  */
 void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
                       sim_data* sim) {
@@ -412,7 +415,7 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
  * Number for each end condition are defined in this function.
  *
  * @param endcond bit array representing marker end conditions
- * @paran endconds integer array large enough to hold all end conditions
+ * @param endconds integer array large enough to hold all end conditions
  */
 void endcond_parse(int endcond, int* endconds) {
     int i = 0;

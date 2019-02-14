@@ -51,7 +51,7 @@
  * *.stdout files with each MPI process having dedicated file. See ascot5.h for
  * details.
  */
-#define _XOPEN_SOURCE 500
+#define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
 #include <getopt.h>
 #include <math.h>
 #ifdef MPI
@@ -553,7 +553,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
  * string format, i.e., by ten characters. QID is a random integer between 0 and
  * 4 294 967 295, and it is padded with leading zeroes in string representation.
  *
- * @param a pointer to 11 chars wide array where generated QID is stored
+ * @param qid a pointer to 11 chars wide array where generated QID is stored
  */
 void generate_qid(char* qid) {
 

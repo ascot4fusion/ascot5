@@ -461,7 +461,7 @@ void B_STS_free_offload(B_STS_offload_data* offload_data, real** offload_array) 
  * @param offload_array offload array
  */
 void B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
-               real* offload_array) {
+                real* offload_array) {
 
     int B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
         * offload_data->Bgrid_n_phi*NSIZE_COMP3D;
@@ -547,8 +547,8 @@ void B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_STS_eval_psi(real psi[], real r, real phi, real z,
-                   B_STS_data* Bdata) {
+a5err B_STS_eval_psi(real* psi, real r, real phi, real z,
+                     B_STS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
@@ -565,7 +565,7 @@ a5err B_STS_eval_psi(real psi[], real r, real phi, real z,
 /**
  * @brief Evaluate poloidal flux psi and its derivatives
  *
- * @param psi pointer where psi [V*s*m^-1] and its derivatives will be stored
+ * @param psi_dpsi pointer for storing psi [V*s*m^-1] and its derivatives
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
@@ -573,7 +573,7 @@ a5err B_STS_eval_psi(real psi[], real r, real phi, real z,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
+a5err B_STS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
                           B_STS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
@@ -602,7 +602,7 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_STS_eval_rho(real rho[], real psi, B_STS_data* Bdata) {
+a5err B_STS_eval_rho(real* rho, real psi, B_STS_data* Bdata) {
     a5err err = 0;
 
     /* Check that the values seem valid */
@@ -619,7 +619,7 @@ a5err B_STS_eval_rho(real rho[], real psi, B_STS_data* Bdata) {
 /**
  * @brief Evaluate normalized poloidal flux rho and its derivatives
  *
- * @param rho pointer where rho and its derivatives will be stored
+ * @param rho_drho pointer where rho and its derivatives will be stored
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
@@ -627,7 +627,8 @@ a5err B_STS_eval_rho(real rho[], real psi, B_STS_data* Bdata) {
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_STS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_STS_data* Bdata) {
+a5err B_STS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
+                          B_STS_data* Bdata) {
     a5err err = 0;
     real psi_dpsi[4];
 
@@ -660,7 +661,7 @@ a5err B_STS_eval_rho_drho(real rho_drho[], real r, real phi, real z, B_STS_data*
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_STS_eval_B(real B[], real r, real phi, real z, B_STS_data* Bdata) {
+a5err B_STS_eval_B(real B[3], real r, real phi, real z, B_STS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
@@ -695,7 +696,8 @@ a5err B_STS_eval_B(real B[], real r, real phi, real z, B_STS_data* Bdata) {
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_STS_eval_B_dB(real B_dB[], real r, real phi, real z, B_STS_data* Bdata) {
+a5err B_STS_eval_B_dB(real B_dB[12], real r, real phi, real z,
+                      B_STS_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
     real B_dB_temp[10];

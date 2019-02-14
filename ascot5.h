@@ -69,11 +69,11 @@
 /** We use a custom type real to represent floating point numbers; precision
  * can be defined compile-time. */
 #if defined SINGLEPRECISION
-typedef int integer;
-typedef float real;
+typedef int integer;  /**< Single precision integer */
+typedef float real;   /**< Singe precision float    */
 #else
-typedef long integer;
-typedef double real;
+typedef long integer; /**< Double precision integer */
+typedef double real;  /**< Double precision float   */
 #endif
 
 /** @brief Number of particles simulated simultaneously in a particle group

@@ -12,6 +12,9 @@
 #include "../../random.h"
 #include "mccc_wiener.h"
 
+/**
+ * @brief Parameters and data required to evaluate Coulomb collisions
+ */
 typedef struct {
     int usetabulated;   /**< Use tabulated values for special functions    */
     int include_energy; /**< Let collisions change energy                  */

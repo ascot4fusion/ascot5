@@ -168,7 +168,7 @@ void B_GS_init(B_GS_data* Bdata, B_GS_offload_data* offload_data,
  *
  * @return zero to indicate success
  */
-a5err B_GS_eval_psi(real psi[1], real r, real phi, real z,
+a5err B_GS_eval_psi(real* psi, real r, real phi, real z,
                     B_GS_data* Bdata) {
     /* Normalize the coordinates */
     z -= Bdata->z0;
@@ -213,7 +213,7 @@ a5err B_GS_eval_psi(real psi[1], real r, real phi, real z,
 /**
  * @brief Evaluate poloidal flux psi and its derivatives
  *
- * @param psi pointer where psi [V*s*m^-1] and its derivatives will be stored
+ * @param psi_dpsi pointer for storing psi [V*s*m^-1] and its derivatives
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
@@ -283,14 +283,12 @@ a5err B_GS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
  * @brief Evaluate normalized poloidal flux rho
  *
  * @param rho pointer where rho value will be stored
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
+ * @param psi poloidal flux from which rho is evaluated
  * @param Bdata pointer to magnetic field data struct
  *
  * @return zero to indicate success
  */
-a5err B_GS_eval_rho(real rho[1], real psi, B_GS_data* Bdata) {
+a5err B_GS_eval_rho(real* rho, real psi, B_GS_data* Bdata) {
 
     /* Check that the values seem valid */
     real delta = Bdata->psi1 - Bdata->psi0;
@@ -306,7 +304,7 @@ a5err B_GS_eval_rho(real rho[1], real psi, B_GS_data* Bdata) {
 /**
  * @brief Evaluate normalized poloidal flux rho and its derivatives
  *
- * @param rho pointer where rho and its derivatives will be stored
+ * @param rho_drho pointer where rho and its derivatives will be stored
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
@@ -327,7 +325,6 @@ a5err B_GS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
     }
 
     rho_drho[0] = sqrt( (psi_dpsi[0] - Bdata->psi0) / delta );
-    
     rho_drho[1] = psi_dpsi[1] / (2*delta*rho_drho[0]);
     rho_drho[2] = 0;
     rho_drho[3] = psi_dpsi[3] / (2*delta*rho_drho[0]);

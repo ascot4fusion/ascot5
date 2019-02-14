@@ -430,9 +430,10 @@ class Ascotpy:
 
         return out
 
-
-if __name__ == '__main__':
-    # For testing purposes.
+def test():
+    """
+    For testing purposes.
+    """
     import os
     ascot = Ascotpy(os.path.abspath("libascotpy.so"), "ascot.h5")
     ascot.init(bfield=True, efield=True, plasma=True, wall=True,
@@ -452,3 +453,7 @@ if __name__ == '__main__':
 
     ascot.free(bfield=True, efield=True, plasma=True, wall=True,
                neutral=True)
+
+
+if __name__ == '__main__':
+    test()
