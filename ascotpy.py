@@ -33,19 +33,23 @@ class Ascotpy:
         self.plasma_initialized  = False
         self.neutral_initialized = False
         self.wall_initialized    = False
+        self.boozer_initialized  = False
+        self.mhd_initialized     = False
 
+        # This type is used to pass numpy arrays of type f8 as real*
         real_p = ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")
 
         # Init and free functions.
         fun = self.ascotlib.ascotpy_init
         fun.restype  = ctypes.c_int
         fun.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int,
-                        ctypes.c_int, ctypes.c_int, ctypes.c_int]
+                        ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                        ctypes.c_int]
 
         fun = self.ascotlib.ascotpy_free
         fun.restype  = None
-        fun.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                        ctypes.c_int, ctypes.c_int]
+        fun.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                        ctypes.c_int, ctypes.c_int, ctypes.c_int]
 
         # B field functions.
         fun = self.ascotlib.ascotpy_B_field_eval_B_dB
@@ -90,6 +94,12 @@ class Ascotpy:
         fun.restype  = ctypes.c_int
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
+        # MHD functions.
+        fun = self.ascotlib.ascotpy_mhd_eval_perturbation
+        fun.restype  = None
+        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                        real_p, real_p, real_p, real_p, real_p, real_p]
+
         # Collision coefficients.
         fun = self.ascotlib.ascotpy_eval_collcoefs
         fun.restype  = ctypes.c_int
@@ -106,12 +116,14 @@ class Ascotpy:
                   efield=self.efield_initialized,
                   plasma=self.plasma_initialized,
                   wall=self.wall_initialized,
-                  neutral=self.neutral_initialized)
+                  neutral=self.neutral_initialized,
+                  boozer=self.boozer_initialized,
+                  mhd=self.mhd_initialized)
         self.h5fn = h5fn.encode('UTF-8')
 
 
     def init(self, bfield=False, efield=False, plasma=False, wall=False,
-             neutral=False):
+             neutral=False, boozer=False, mhd=False):
         """
         Initialize input data.
 
@@ -126,43 +138,59 @@ class Ascotpy:
                 Flag for initializing wall data.
             neutral : bool, optional <br>
                 Flag for initializing neutral data.
+            boozer : bool, optional <br>
+                Flag for initializing boozer data.
+            mhd : bool, optional <br>
+                Flag for initializing mhd data.
 
         Raises:
             RuntimeError if initialization failed.
         """
         if bfield:
-            if self.ascotlib.ascotpy_init(self.h5fn, 1, 0, 0, 0, 0) :
+            if self.ascotlib.ascotpy_init(self.h5fn, 1, 0, 0, 0, 0, 0, 0) :
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.bfield_initialized  = True
 
         if efield:
-            if self.ascotlib.ascotpy_init(self.h5fn, 0, 1, 0, 0, 0) :
-                raise RuntimeError("Failed to initialize magnetic field")
+            if self.ascotlib.ascotpy_init(self.h5fn, 0, 1, 0, 0, 0, 0, 0) :
+                raise RuntimeError("Failed to initialize electric field")
 
             self.efield_initialized  = True
 
         if plasma:
-            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 1, 0, 0) :
-                raise RuntimeError("Failed to initialize magnetic field")
+            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 1, 0, 0, 0, 0) :
+                raise RuntimeError("Failed to initialize plasma data")
 
             self.plasma_initialized  = True
 
         if wall:
-            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 0, 1, 0) :
-                raise RuntimeError("Failed to initialize magnetic field")
+            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 0, 1, 0, 0, 0) :
+                raise RuntimeError("Failed to initialize wall data")
 
             self.wall_initialized  = True
 
         if neutral:
-            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 0, 0, 1) :
-                raise RuntimeError("Failed to initialize magnetic field")
+            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 0, 0, 1, 0, 0) :
+                raise RuntimeError("Failed to initialize neutral data")
 
             self.neutral_initialized  = True
 
+        if boozer:
+            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 0, 0, 0, 1, 0) :
+                raise RuntimeError("Failed to initialize boozer data")
+
+            self.boozer_initialized  = True
+
+        if mhd:
+            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 0, 0, 0, 0, 1) :
+                raise RuntimeError("Failed to initialize mhd data")
+
+            self.mhd_initialized  = True
+
 
     def free(self, bfield=False, efield=False, plasma=False, wall=False,
-             neutral=False):
+             neutral=False, boozer=False, mhd=False):
         """
         Free input data.
 
@@ -177,26 +205,38 @@ class Ascotpy:
                 Flag for freeing wall data.
             neutral : bool, optional <br>
                 Flag for freeing neutral data.
+            boozer : bool, optional <br>
+                Flag for freeing boozer data.
+            mhd : bool, optional <br>
+                Flag for freeing mhd data.
         """
         if bfield:
-            self.ascotlib.ascotpy_free(1, 0, 0, 0, 0)
+            self.ascotlib.ascotpy_free(1, 0, 0, 0, 0, 0, 0)
             self.bfield_initialized  = False
 
         if efield:
-            self.ascotlib.ascotpy_free(0, 1, 0, 0, 0)
+            self.ascotlib.ascotpy_free(0, 1, 0, 0, 0, 0, 0)
             self.bfield_initialized  = False
 
         if plasma:
-            self.ascotlib.ascotpy_free(0, 0, 1, 0, 0)
+            self.ascotlib.ascotpy_free(0, 0, 1, 0, 0, 0, 0)
             self.bfield_initialized  = False
 
         if wall:
-            self.ascotlib.ascotpy_free(0, 0, 0, 1, 0)
+            self.ascotlib.ascotpy_free(0, 0, 0, 1, 0, 0, 0)
             self.bfield_initialized  = False
 
         if neutral:
-            self.ascotlib.ascotpy_free(0, 0, 0, 0, 1)
+            self.ascotlib.ascotpy_free(0, 0, 0, 0, 1, 0, 0)
             self.bfield_initialized  = False
+
+        if boozer:
+            self.ascotlib.ascotpy_free(0, 0, 0, 0, 0, 1, 0)
+            self.boozer_initialized  = False
+
+        if mhd:
+            self.ascotlib.ascotpy_free(0, 0, 0, 0, 0, 0, 1)
+            self.mhd_initialized  = False
 
 
     def eval_bfield(self, R, phi, z, evalb=False, evalpsi=False,
@@ -405,6 +445,47 @@ class Ascotpy:
 
         return out
 
+    def eval_mhd(self, R, phi, z, t):
+        """
+        Evaluate MHd perturbation at given coordinates.
+
+        Args:
+            R : array_like <br>
+                Vector of R coordinates where data is evaluated [m].
+            phi : array_like <br>
+                Vector of phi coordinates where data is evaluated [rad].
+            z : array_like <br>
+                Vector of z coordinates where data is evaluated [m].
+            t : array_like <br>
+                Vector of time coordinates where data is evaluated [s].
+
+        Returns:
+            Dictionary containing evaluated quantities.
+
+        Raises:
+            AssertionError if this is called data uninitialized.
+            RuntimeError if evaluation failed.
+        """
+        R   = R.astype(dtype="f8")
+        phi = phi.astype(dtype="f8")
+        z   = z.astype(dtype="f8")
+        t   = t.astype(dtype="f8")
+
+        Neval = R.size
+        out = {}
+        out["br"]   = np.zeros(R.shape, dtype="f8")
+        out["bphi"] = np.zeros(R.shape, dtype="f8")
+        out["bz"]   = np.zeros(R.shape, dtype="f8")
+        out["er"]   = np.zeros(R.shape, dtype="f8")
+        out["ephi"] = np.zeros(R.shape, dtype="f8")
+        out["ez"]   = np.zeros(R.shape, dtype="f8")
+
+        self.ascotlib.ascotpy_mhd_eval_perturbation(Neval, R, phi, z, t,
+                                                    out["br"], out["bphi"],
+                                                    out["bz"], out["er"],
+                                                    out["ephi"], out["ez"])
+        return out
+
     def eval_collcoefs(self, ma, qa, R, phi, z, va):
         ma  = float(ma)
         qa  = float(qa)
@@ -437,7 +518,7 @@ def test():
     import os
     ascot = Ascotpy(os.path.abspath("libascotpy.so"), "ascot.h5")
     ascot.init(bfield=True, efield=True, plasma=True, wall=True,
-               neutral=True)
+               neutral=True, boozer=True, mhd=True)
 
     R   = np.array([6.2,   7, 8])
     phi = np.array([  0,   0, 0])

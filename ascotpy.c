@@ -17,6 +17,8 @@
 #include "plasma.h"
 #include "wall.h"
 #include "neutral.h"
+#include "boozer.h"
+#include "mhd.h"
 
 #include "simulate/mccc/mccc.h"
 
@@ -27,6 +29,8 @@
 #include "hdf5io/hdf5_plasma.h"
 #include "hdf5io/hdf5_wall.h"
 #include "hdf5io/hdf5_neutral.h"
+#include "hdf5io/hdf5_boozer.h"
+#include "hdf5io/hdf5_mhd.h"
 
 /** Simulation offload struct for holding offload data structs. */
 static sim_offload_data sim_offload;
@@ -39,6 +43,8 @@ static real* Edata;       /**< Electric field data (i.e. offload array) */
 static real* plasmadata;  /**< Plasma data (i.e. offload array)         */
 static real* walldata;    /**< Wall data (i.e. offload array)           */
 static real* neutraldata; /**< Neutral data (i.e. offload array)        */
+static real* boozerdata;  /**< Boozer data (i.e. offload array)         */
+static real* mhddata;     /**< MHD data (i.e. offload array)            */
 
 /**
  * @brief Initialize input data.
@@ -48,16 +54,18 @@ static real* neutraldata; /**< Neutral data (i.e. offload array)        */
  * initialize same data twice.
  *
  * @param fn name of the HDF5 file.
- * @param bfield flag for initializing magnetic field.
- * @param efield flag for initializing electric field.
- * @param plasma flag for initializing plasma data.
- * @param wall flag for initializing wall data.
+ * @param bfield  flag for initializing magnetic field.
+ * @param efield  flag for initializing electric field.
+ * @param plasma  flag for initializing plasma data.
+ * @param wall    flag for initializing wall data.
  * @param neutral flag for initializing neutral data.
+ * @param boozer  flag for initializing boozer data.
+ * @param mhd     flag for initializing mhd data.
  *
  * @return zero if initialization succeeded.
  */
 int ascotpy_init(char* fn, int bfield, int efield, int plasma, int wall,
-                 int neutral) {
+                 int neutral, int boozer, int mhd) {
     hdf5_init();
     hid_t f = hdf5_open(fn);
     if(f < 0) {
@@ -144,6 +152,38 @@ int ascotpy_init(char* fn, int bfield, int efield, int plasma, int wall,
                 neutraldata);
     }
 
+    /* Initialize boozer data if requested. */
+    if(boozer) {
+        if( hdf5_find_group(f, "/boozer/") ) {
+            return 1;
+        }
+        if( hdf5_get_active_qid(f, "/boozer/", qid) ) {
+            return 1;
+        }
+        if( hdf5_boozer_init_offload(f, &sim_offload.boozer_offload_data,
+                &boozerdata, qid) ) {
+            return 1;
+        }
+        boozer_init(&sim.boozer_data, &sim_offload.boozer_offload_data,
+                    boozerdata);
+    }
+
+    /* Initialize mhd data if requested. */
+    if(mhd) {
+        if( hdf5_find_group(f, "/mhd/") ) {
+            return 1;
+        }
+        if( hdf5_get_active_qid(f, "/mhd/", qid) ) {
+            return 1;
+        }
+        if( hdf5_mhd_init_offload(f, &sim_offload.mhd_offload_data,
+                &mhddata, qid) ) {
+            return 1;
+        }
+        mhd_init(&sim.mhd_data, &sim_offload.mhd_offload_data,
+                 mhddata);
+    }
+
     if(hdf5_close(f)) {
         return 1;
     }
@@ -153,13 +193,16 @@ int ascotpy_init(char* fn, int bfield, int efield, int plasma, int wall,
 /**
  * @brief Free input data.
  *
- * @param bfield flag for initializing magnetic field.
- * @param efield flag for initializing electric field.
- * @param plasma flag for initializing plasma data.
- * @param wall flag for initializing wall data.
+ * @param bfield  flag for initializing magnetic field.
+ * @param efield  flag for initializing electric field.
+ * @param plasma  flag for initializing plasma data.
+ * @param wall    flag for initializing wall data.
  * @param neutral flag for initializing neutral data.
+ * @param boozer  flag for initializing boozer data.
+ * @param mhd     flag for initializing mhd data.
  */
-int ascotpy_free(int bfield, int efield, int plasma, int wall, int neutral) {
+int ascotpy_free(int bfield, int efield, int plasma, int wall, int neutral,
+                 int boozer, int mhd) {
     if(bfield) {
         free(Bdata);
     }
@@ -174,6 +217,12 @@ int ascotpy_free(int bfield, int efield, int plasma, int wall, int neutral) {
     }
     if(neutral) {
         free(neutraldata);
+    }
+    if(boozer) {
+        free(boozerdata);
+    }
+    if(mhd) {
+        free(mhddata);
     }
     return 0;
 }
@@ -401,6 +450,20 @@ int ascotpy_neutral_eval_density(int Neval, real* R, real* phi, real* z,
             return 1;
         }
         dens[k] = n0[0];
+    }
+    return 0;
+}
+
+int ascotpy_mhd_eval_perturbation(int Neval, real* R, real* phi, real* z,
+                                  real* t, real* br, real* bphi, real* bz,
+                                  real* er, real* ephi, real* ez) {
+
+    real n0[1];
+    for(int k = 0; k < Neval; k++) {
+        //if( neutral_eval_n0(n0, R[k], phi[k], z[k], t[k], &sim.neutral_data) ) {
+        //    return 1;
+        //}
+        //br[k] = n0[0];
     }
     return 0;
 }
