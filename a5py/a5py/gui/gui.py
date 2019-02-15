@@ -140,15 +140,15 @@ class GUI:
         if (len(fn) == 0) :
             pass
 
-        elif not os.path.isfile(fn + "/ascotpy.so") or \
-             not os.path.isfile(fn + "/ascotpymod.py"):
+        elif not os.path.isfile(fn + "/libascotpy.so") or \
+             not os.path.isfile(fn + "/ascotpy.py"):
             messagebox.showerror("Failed to open folder",
-                                 "Folder does not contain ascotpy.so "
-                                 + "or ascotpymod.py")
+                                 "Folder does not contain libascotpy.so "
+                                 + "or ascotpy.py")
         else:
             fn = os.path.abspath(fn)
             sys.path.insert(0, fn)
-            from ascotpymod import Ascotpy
+            from ascotpy import Ascotpy
             self._ascotfolder = fn
             self._ascotpy = Ascotpy(fn + "/ascotpy.so", self._h5fn)
 
