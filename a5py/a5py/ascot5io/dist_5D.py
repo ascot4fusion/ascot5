@@ -211,7 +211,7 @@ class Dist_5D(AscotData):
         if not dist:
             dist = self.get_E_xi_dist(E_edges=E_edges, xi_edges=xi_edges)
 
-        for k in abscissae.keys():
+        for k in list(abscissae.keys()):
             if k not in dist["abscissae"]:
                 del abscissae[k]
 
