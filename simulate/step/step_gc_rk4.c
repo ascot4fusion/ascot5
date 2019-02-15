@@ -220,7 +220,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
  * @brief Integrate a guiding center step with RK4 with MHD modes present.
  *
  * Same as previous function but with MHD present
- * 
+ *
  * @param p simd_gc struct that will be updated
  * @param h pointer to array containing time steps
  * @param Bdata pointer to magnetic field data
@@ -228,7 +228,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
  * @param boozer pointer to boozer data
  * @param mhd pointer to MHD data
  *
- * 
+ *
  */
 void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
                      E_field_data* Edata, boozer_data* boozer, mhd_data* mhd) {
@@ -287,15 +287,13 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             B_dB[10] = p->B_z_dphi[i];
             B_dB[11] = p->B_z_dz[i];
 
-	
 
-
-            if(!errflag) {errflag = E_field_eval_E(E, yprev[0], yprev[1], yprev[2], Edata, Bdata);}   
+            if(!errflag) {errflag = E_field_eval_E(E, yprev[0], yprev[1], yprev[2], time, Edata, Bdata);}   
             if(!errflag) {errflag = mhd_eval(mhd_dmhd, yprev[0], yprev[1],
-yprev[2], time, boozer, mhd,
-Bdata);}
+                                             yprev[2], time, boozer, mhd,
+                                             Bdata);}
             if(!errflag) {step_gceom_mhd(k2, tempy, mass, charge, B_dB, E,
-mhd_dmhd);}
+                                         mhd_dmhd);}
 
             int j;
             /* particle coordinates for the subsequent ydot evaluations are
@@ -304,35 +302,35 @@ mhd_dmhd);}
                 tempy[j] = yprev[j] + h[i]/2.0*k1[j];
             }
 
-            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
-            if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
+            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], time + h[i]/2.0, Bdata);}
+            if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], time + h[i]/2.0, Edata, Bdata);}
             if(!errflag) {errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1],
-tempy[2], time + h[i]/2.0, boozer, mhd,
-Bdata);}
+                                             tempy[2], time + h[i]/2.0, boozer, mhd,
+                                             Bdata);}
             if(!errflag) {step_gceom_mhd(k2, tempy, mass, charge, B_dB, E,
-mhd_dmhd);}
+                                         mhd_dmhd);}
             for(j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]/2.0*k2[j];
             }
 
-            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
-            if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
+            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], time + h[i]/2.0, Bdata);}
+            if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], time + h[i]/2.0, Edata, Bdata);}
             if(!errflag) {errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1],
-tempy[2], time + h[i]/2.0, boozer, mhd,
-Bdata);} 
+                                             tempy[2], time + h[i]/2.0, boozer, mhd,
+                                             Bdata);}
             if(!errflag) {step_gceom_mhd(k3, tempy, mass, charge, B_dB,
-E,mhd_dmhd);}
+                                         E,mhd_dmhd);}
             for(j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]*k3[j];
             }
 
-            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], Bdata);}
-            if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], Edata, Bdata);}
+            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2], time + h[i], Bdata);}
+            if(!errflag) {errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2], time + h[i], Edata, Bdata);}
             if(!errflag) {errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1],
-tempy[2], time + h[i], boozer, mhd,
-Bdata);}
+                                             tempy[2], time + h[i], boozer, mhd,
+                                             Bdata);}
             if(!errflag) {step_gceom_mhd(k4, tempy, mass, charge, B_dB, E,
-mhd_dmhd);}
+                                         mhd_dmhd);}
             for(j = 0; j < 6; j++) {
                 y[j] = yprev[j]
                     + h[i]/6.0 * (k1[j] + 2*k2[j] + 2*k3[j] + k4[j]);
@@ -357,8 +355,8 @@ mhd_dmhd);}
             /* Evaluate magnetic field (and gradient) and rho at new position */
             real psi[1];
             real rho[1];
-            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], Bdata);}
-            if(!errflag) {errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);}
+            if(!errflag) {errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i], time + h[i], Bdata);}
+            if(!errflag) {errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], time + h[i], Bdata);}
             if(!errflag) {errflag = B_field_eval_rho(rho, psi[0], Bdata);}
 
             if(!errflag) {

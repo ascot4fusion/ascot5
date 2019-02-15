@@ -292,7 +292,7 @@ a5err mhd_perturbations(real pert_field[6], real r, real phi,
 
     /*  see example of curl evaluation in step_gc_rk4.c, ydot_gc*/
     real B_dB[12];
-    B_field_eval_B_dB(B_dB, r, phi, z, Bdata);
+    B_field_eval_B_dB(B_dB, r, phi, z, t, Bdata);
 
     real B[3];
     B[0] = B_dB[0];
