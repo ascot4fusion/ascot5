@@ -33,6 +33,8 @@
 #include "hdf5_helpers.h"
 #include "hdf5_bfield.h"
 
+#define BPATH /**< Macro that is used to store paths to data groups */
+
 int hdf5_bfield_read_2DS(hid_t f, B_2DS_offload_data* offload_data,
                          real** offload_array, char* qid);
 int hdf5_bfield_read_3DS(hid_t f, B_3DS_offload_data* offload_data,

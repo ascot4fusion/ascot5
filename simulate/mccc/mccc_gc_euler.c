@@ -15,8 +15,6 @@
 #include "mccc_coefs.h"
 #include "mccc.h"
 
-#define MCCC_CUTOFF 0.1
-
 /**
  * @brief Integrate collisions for one time-step
  *
@@ -25,8 +23,7 @@
  * @param Bdata pointer to magnetic field
  * @param pdata pointer to plasma data
  * @param rdata pointer to random-generator data
- * @param coldata pointer collision coefficient data for interpolation or NULL
- *        if coefficients are evaluated exactly
+ * @param mdata pointer to collision data struct
  */
 void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
                    plasma_data* pdata, random_data* rdata, mccc_data* mdata) {

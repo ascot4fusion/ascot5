@@ -13,8 +13,16 @@
 #include "N0_3D.h"
 #include "../linint/linint.h"
 
+/**
+ * @brief Initialize offload data
+ *
+ * @param offload_data pointer to offload data struct
+ * @param offload_array pointer to offload data array
+ *
+ * @return zero if initialization succeeded
+ */
 int N0_3D_init_offload(N0_3D_offload_data* offload_data,
-                        real** offload_array) {
+                       real** offload_array) {
 
     offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
         / (offload_data->n_r - 1);
@@ -68,16 +76,14 @@ void N0_3D_free_offload(N0_3D_offload_data* offload_data,
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  */
-int N0_3D_init(N0_3D_data* ndata, N0_3D_offload_data* offload_data,
-               real* offload_array) {
+void N0_3D_init(N0_3D_data* ndata, N0_3D_offload_data* offload_data,
+                real* offload_array) {
     linint3D_init(
         &ndata->n0, offload_array,
         offload_data->n_r, offload_data->n_phi, offload_data->n_z,
         offload_data->r_min, offload_data->r_max, offload_data->r_grid,
         offload_data->phi_min, offload_data->phi_max, offload_data->phi_grid,
         offload_data->z_min, offload_data->z_max, offload_data->z_grid);
-
-    return 0;
 }
 
 /**
@@ -92,8 +98,9 @@ int N0_3D_init(N0_3D_data* ndata, N0_3D_offload_data* offload_data,
  * @param z z coordinate
  * @param ndata pointer to neutral density data struct
  *
+ * @return zero if evaluation succeeded
  */
-a5err N0_3D_eval_n0(real n0[], real r, real phi, real z,
+a5err N0_3D_eval_n0(real* n0, real r, real phi, real z,
                    N0_3D_data* ndata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */

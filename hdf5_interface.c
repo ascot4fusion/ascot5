@@ -369,7 +369,7 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
  * @param n number of markers in marker array
  * @param p array of markers to be written
  *
- * @results Zero if state was written succesfully
+ * @return Zero if state was written succesfully
  */
 int hdf5_interface_write_state(char* fn, char* state, integer n,
                              particle_state* p) {

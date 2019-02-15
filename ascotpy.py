@@ -6,7 +6,7 @@ Ascot5 functions (written in C) directly. The callable functions are defined in
 library module ascotpy.c which must be compiled first with make ascotpy. This
 module acts as a wrapper for those functions.
 
-File: ascotpymod.py
+File: ascotpy.py
 """
 import ctypes
 import numpy as np
@@ -423,18 +423,19 @@ class Ascotpy:
         out["Dperp"] = np.zeros((n_species,va.size), dtype="f8")
         out["K"]     = np.zeros((n_species,va.size), dtype="f8")
         out["nu"]    = np.zeros((n_species,va.size), dtype="f8")
-        self.ascotlib.ascotpy_eval_collcoefs(Neval, va, R[0], phi[0], z[0],
-                                             t[0], ma, qa, out["F"],
+        self.ascotlib.ascotpy_eval_collcoefs(Neval, va, R, phi, z,
+                                             t, ma, qa, out["F"],
                                              out["Dpara"], out["Dperp"],
                                              out["K"], out["nu"])
 
         return out
 
-
-if __name__ == '__main__':
-    # For testing purposes.
+def test():
+    """
+    For testing purposes.
+    """
     import os
-    ascot = Ascotpy(os.path.abspath("ascotpy.so"), "ascot.h5")
+    ascot = Ascotpy(os.path.abspath("libascotpy.so"), "ascot.h5")
     ascot.init(bfield=True, efield=True, plasma=True, wall=True,
                neutral=True)
 
@@ -452,3 +453,7 @@ if __name__ == '__main__':
 
     ascot.free(bfield=True, efield=True, plasma=True, wall=True,
                neutral=True)
+
+
+if __name__ == '__main__':
+    test()

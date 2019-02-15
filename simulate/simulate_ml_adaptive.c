@@ -27,8 +27,8 @@ real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i);
 #pragma omp end declare target
 
 
-#define MAGNETIC_FIELD_LINE_INISTEP 1.0e-2 // Initial step size in meters
-#define DUMMY_TIMESTEP_VAL 100.0             // Dummy time step val (in meters), just use value large enough not to be encountered in actual simulations
+#define MAGNETIC_FIELD_LINE_INISTEP 1.0e-2 /**< Initial step size in meters   */
+#define DUMMY_TIMESTEP_VAL 100.0           /**< Dummy time step val in meters */
 
 /**
  * @brief Simulates magnetic field-lines using adaptive time-step
@@ -262,8 +262,10 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
  * The time step value (in units of meters) is defined
  * by MAGNETIC_FIELD_LINE_INISTEP
  *
+ * @param sim pointer to simulation data struct
  * @param p SIMD array of markers
  * @param i index of marker for which time step is assessed
+ *
  * @return Calculated time step
  */
 real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i) {

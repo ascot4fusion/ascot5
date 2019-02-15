@@ -76,7 +76,7 @@ int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void plasma_1DS_free_offload(plasma_1DS_offload_data* plasma_data,
+void plasma_1DS_free_offload(plasma_1DS_offload_data* offload_data,
                              real** offload_array) {
     free(*offload_array);
     *offload_array = NULL;
@@ -172,6 +172,15 @@ a5err plasma_1DS_eval_dens(real* dens, real rho, int species,
 /**
  * @brief Evaluate plasma density and temperature for all species
  *
+ * This function evaluates the density and temperature of all plasma species at
+ * the given radial coordinate using spline interpolation.
+ *
+ * @param dens pointer to where interpolated densities [m^-3] are stored
+ * @param temp pointer to where interpolated temperatures [J] are stored
+ * @param rho radial coordinate
+ * @param plasma_data pointer to plasma data struct
+ *
+ * @return zero if evaluation succeeded
  */
 a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho,
                                   plasma_1DS_data* plasma_data) {

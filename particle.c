@@ -990,7 +990,7 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
  *
  * @param p pointer to a state being converted
  * @param i index of this state in the marker queue
- * @param p_fo pointer to SIMD structure where marker is being stored
+ * @param p_gc pointer to SIMD structure where marker is being stored
  * @param j index where in the SIMD structure marker is stored
  * @param Bdata pointer to magnetic field data
  */
@@ -1168,7 +1168,7 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
  *
  * @param p pointer to a state being converted
  * @param i index of this state in the marker queue
- * @param p_fo pointer to SIMD structure where marker is being stored
+ * @param p_ml pointer to SIMD structure where marker is being stored
  * @param j index where in the SIMD structure marker is stored
  * @param Bdata pointer to magnetic field data
  */

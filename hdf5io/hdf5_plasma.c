@@ -18,6 +18,8 @@
 #include "hdf5_helpers.h"
 #include "hdf5_plasma.h"
 
+#define PLSPATH /**< Macro that is used to store paths to data groups */
+
 int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
                         real** offload_array, char* qid);
 int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
@@ -159,7 +161,9 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
  * @param f hdf5 file identifier
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ * @param qid QID of the data
  *
+ * @return zero on success
  */
 int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
                          real** offload_array, char* qid) {

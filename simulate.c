@@ -387,8 +387,8 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
  * to output file, along with time spent on simulation and estimated time
  * remaining for the simulation to finish.
  *
- * @param f pointer to file where progress is written. File is opened and closed
- *          outside this function
+ * @param filename pointer to file where progress is written. File is opened and
+ *        closed outside this function
  * @param n pointer to number of total markers in simulation queue
  * @param finished pointer to number of finished markers in simulation queue
  */

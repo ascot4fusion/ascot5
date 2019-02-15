@@ -17,6 +17,8 @@
 #include "hdf5_wall.h"
 #include "hdf5_helpers.h"
 
+#define WPATH /**< Macro that is used to store paths to data groups */
+
 int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
                       real** offload_array, char* qid);
 int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,

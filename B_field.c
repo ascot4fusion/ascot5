@@ -255,7 +255,7 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z, real t,
  *
  * This is a SIMD function.
  *
- * @param psi pointer where psi [V*s*m^-1] and its derivatives will be stored
+ * @param psi_dpsi pointer for storing psi [V*s*m^-1] and its derivatives
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
@@ -265,7 +265,7 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z, real t,
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z, real t,
-                       B_field_data* Bdata) {
+                            B_field_data* Bdata) {
     a5err err = 0;
 
     switch(Bdata->type) {
@@ -321,9 +321,7 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z, real t,
  * This is a SIMD function.
  *
  * @param rho pointer where rho value will be stored
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
+ * @param psi poloidal flux from which rho is evaluated
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
@@ -388,7 +386,7 @@ a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
  *
  * This is a SIMD function.
  *
- * @param rho pointer where rho and its derivatives will be stored
+ * @param rho_drho pointer where rho and its derivatives will be stored
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]

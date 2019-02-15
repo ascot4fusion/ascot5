@@ -13,14 +13,14 @@
 /**
  * @brief Evaluate collision parameter
  *
- *\$fc_{ab} = \frac{n_b q_a^2q_b^2 \ln\Lambda_{ab}}{4\pi\epsilon_0^2}\$f
+ *\f$c_{ab} = \frac{n_b q_a^2q_b^2 \ln\Lambda_{ab}}{4\pi\epsilon_0^2}\f$
  *
  * where
  *
- * - \$fq_a\$f is test particle charge [C]
- * - \$fq_b\$f is plasma species charge [C]
- * - \$fn_b\$f is plasma species density [m^-3]
- * - \$f\ln\Lambda_{ab}\$f is Coulomb logarithm.
+ * - \f$q_a\f$ is test particle charge [C]
+ * - \f$q_b\f$ is plasma species charge [C]
+ * - \f$n_b\f$ is plasma species density [m^-3]
+ * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
 #define mccc_coefs_cab(qa, qb, nb, clogab) (                            \
         nb * qa*qa * qb*qb * clogab / ( 4 * CONST_PI * CONST_E0*CONST_E0 ) )
@@ -28,17 +28,17 @@
 /**
  * @brief Evaluate non-relativistic drag coefficient []
  *
- *\$fQ =-c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\mu_0(v_a/v_b) / (m_a m_b v_b^2)\$f
+ *\f$Q =-c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\mu_0(v_a/v_b) / (m_a m_b v_b^2)\f$
  *
  * where
  *
- * - \$fm_a\$f is test particle mass [kg]
- * - \$fq_a\$f is test particle charge [C]
- * - \$fm_b\$f is plasma species mass [kg]
- * - \$fq_b\$f is plasma species charge [C]
- * - \$fn_b\$f is plasma species density [m^-3]
- * - \$fv_b\$f is plasma species thermal velocity [m/s]
- * - \$f\ln\Lambda_{ab}\$f is Coulomb logarithm.
+ * - \f$m_a\f$ is test particle mass [kg]
+ * - \f$q_a\f$ is test particle charge [C]
+ * - \f$m_b\f$ is plasma species mass [kg]
+ * - \f$q_b\f$ is plasma species charge [C]
+ * - \f$n_b\f$ is plasma species density [m^-3]
+ * - \f$v_b\f$ is plasma species thermal velocity [m/s]
+ * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
 #define mccc_coefs_Q(ma, qa, mb, qb, nb, vb, clogab, mu0) (           \
         -mccc_coefs_cab(qa, qb, nb, clogab) * mu0 / ( ma * mb * vb*vb ) )
@@ -46,17 +46,17 @@
 /**
  * @brief Evaluate derivative of non-relativistic drag coefficient []
  *
- *\$fQ'=-c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\mu_0'(v_a/v_b) / (m_a m_b v_b^2)\$f
+ *\f$Q'=-c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\mu_0'(v_a/v_b) / (m_a m_b v_b^2)\f$
  *
  * where
  *
- * - \$fm_a\$f is test particle mass [kg]
- * - \$fq_a\$f is test particle charge [C]
- * - \$fm_b\$f is plasma species mass [kg]
- * - \$fq_b\$f is plasma species charge [C]
- * - \$fn_b\$f is plasma species density [m^-3]
- * - \$fv_b\$f is plasma species thermal velocity [m/s]
- * - \$f\ln\Lambda_{ab}\$f is Coulomb logarithm.
+ * - \f$m_a\f$ is test particle mass [kg]
+ * - \f$q_a\f$ is test particle charge [C]
+ * - \f$m_b\f$ is plasma species mass [kg]
+ * - \f$q_b\f$ is plasma species charge [C]
+ * - \f$n_b\f$ is plasma species density [m^-3]
+ * - \f$v_b\f$ is plasma species thermal velocity [m/s]
+ * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
 #define mccc_coefs_dQ(ma, qa, mb, qb, nb, vb, clogab, dmu0) (           \
         -mccc_coefs_cab(qa, qb, nb, clogab) * dmu0 / ( ma * mb * vb*vb ) )
@@ -64,18 +64,18 @@
 /**
  * @brief Evaluate non-relativistic friction coefficient
  *
- *\$fF = -c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\left(m_a^{-1} + m_b^{-1}\right)
-  \mu0(v_a/v_b) / (m_a v_b^2)\$f
+ *\f$F = -c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\left(m_a^{-1} + m_b^{-1}\right)
+  \mu0(v_a/v_b) / (m_a v_b^2)\f$
  *
  * where
  *
- * - \$fm_a\$f is test particle mass [kg]
- * - \$fq_a\$f is test particle charge [C]
- * - \$fm_b\$f is plasma species mass [kg]
- * - \$fq_b\$f is plasma species charge [C]
- * - \$fn_b\$f is plasma species density [m^-3]
- * - \$fv_b\$f is plasma species thermal velocity [m/s]
- * - \$f\ln\Lambda_{ab}\$f is Coulomb logarithm.
+ * - \f$m_a\f$ is test particle mass [kg]
+ * - \f$q_a\f$ is test particle charge [C]
+ * - \f$m_b\f$ is plasma species mass [kg]
+ * - \f$q_b\f$ is plasma species charge [C]
+ * - \f$n_b\f$ is plasma species density [m^-3]
+ * - \f$v_b\f$ is plasma species thermal velocity [m/s]
+ * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
 #define mccc_coefs_F(ma, qa, mb, qb, nb, vb, clogab, mu0) (             \
         -( 1/mb + 1/ma ) * mccc_coefs_cab(qa, qb, nb, clogab) * mu0     \
@@ -84,21 +84,21 @@
 /**
  * @brief Evaluate non-relativistic parallel diffusion coefficient []
  *
- *\$fD_\parallel=c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\mu_0(v_a/v_b)
-  /(2m_a^2v_a)\$f
+ *\f$D_\parallel=c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\mu_0(v_a/v_b)
+  /(2m_a^2v_a)\f$
  *
- * or $fD_\parallel = 4c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})/(6\sqrt{\pi}m_a^2vb)
-      \;\mathrm{when}\; v_a=0\$f
+ * or \f$D_\parallel = 4c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})/(6\sqrt{\pi}m_a^2vb)
+      \;\mathrm{when}\; v_a=0\f$
  *
  * where
  *
- * - \$fm_a\$f is test particle mass [kg]
- * - \$fq_a\$f is test particle charge [C]
- * - \$fv_a\$f is test particle velocity [m/s]
- * - \$fq_b\$f is plasma species charge [C]
- * - \$fn_b\$f is plasma species density [m^-3]
- * - \$fv_b\$f is plasma species thermal velocity [m/s]
- * - \$f\ln\Lambda_{ab}\$f is Coulomb logarithm.
+ * - \f$m_a\f$ is test particle mass [kg]
+ * - \f$q_a\f$ is test particle charge [C]
+ * - \f$v_a\f$ is test particle velocity [m/s]
+ * - \f$q_b\f$ is plasma species charge [C]
+ * - \f$n_b\f$ is plasma species density [m^-3]
+ * - \f$v_b\f$ is plasma species thermal velocity [m/s]
+ * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
 #define mccc_coefs_Dpara(ma, qa, va, qb, nb, vb, clogab, mu0) (         \
         ( va > 0 ) ?                                                    \
@@ -109,18 +109,18 @@
 /**
  * @brief Evaluate non-relativistic parallel diffusion coefficient []
  *
- * \$fD_\parallel'=c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})(\mu_0'(v_a/v_b)/v_b
-  - \mu(v_a/v_b)/v_a)/(2m_a^2v_a)\$f
+ * \f$D_\parallel'=c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})(\mu_0'(v_a/v_b)/v_b
+  - \mu(v_a/v_b)/v_a)/(2m_a^2v_a)\f$
  *
  * where
  *
- * - \$fm_a\$f is test particle mass [kg]
- * - \$fq_a\$f is test particle charge [C]
- * - \$fv_a\$f is test particle velocity [m/s]
- * - \$fq_b\$f is plasma species charge [C]
- * - \$fn_b\$f is plasma species density [m^-3]
- * - \$fv_b\$f is plasma species thermal velocity [m/s]
- * - \$f\ln\Lambda_{ab}\$f is Coulomb logarithm.
+ * - \f$m_a\f$ is test particle mass [kg]
+ * - \f$q_a\f$ is test particle charge [C]
+ * - \f$v_a\f$ is test particle velocity [m/s]
+ * - \f$q_b\f$ is plasma species charge [C]
+ * - \f$n_b\f$ is plasma species density [m^-3]
+ * - \f$v_b\f$ is plasma species thermal velocity [m/s]
+ * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
 #define mccc_coefs_dDpara(ma, qa, va, qb, nb, vb, clogab, mu0, dmu0) (  \
         mccc_coefs_cab(qa, qb, nb, clogab) * ( dmu0/vb - mu0/va )       \
@@ -129,21 +129,21 @@
 /**
  * @brief Evaluate non-relativistic perpendicular diffusion coefficient []
  *
- *\$fD_\perp=c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\mu_1(v_a/v_b)
-  /(2m_a^2v_a)\$f
+ *\f$D_\perp=c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\mu_1(v_a/v_b)
+  /(2m_a^2v_a)\f$
  *
- * or $fD_\perp = 4c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})/(6\sqrt{\pi}m_a^2vb)
-      \;\mathrm{when}\; v_a=0\$f
+ * or \f$D_\perp = 4c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})/(6\sqrt{\pi}m_a^2vb)
+      \;\mathrm{when}\; v_a=0\f$
  *
  * where
  *
- * - \$fm_a\$f is test particle mass [kg]
- * - \$fq_a\$f is test particle charge [C]
- * - \$fv_a\$f is test particle velocity [m/s]
- * - \$fq_b\$f is plasma species charge [C]
- * - \$fn_b\$f is plasma species density [m^-3]
- * - \$fv_b\$f is plasma species thermal velocity [m/s]
- * - \$f\ln\Lambda_{ab}\$f is Coulomb logarithm.
+ * - \f$m_a\f$ is test particle mass [kg]
+ * - \f$q_a\f$ is test particle charge [C]
+ * - \f$v_a\f$ is test particle velocity [m/s]
+ * - \f$q_b\f$ is plasma species charge [C]
+ * - \f$n_b\f$ is plasma species density [m^-3]
+ * - \f$v_b\f$ is plasma species thermal velocity [m/s]
+ * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
 #define mccc_coefs_Dperp(ma, qa, va, qb, nb, vb, clogab, mu1) (         \
         ( va > 0 ) ?                                                    \
@@ -154,13 +154,13 @@
 /**
  * @brief Evaluate guiding center drag coefficient []
  *
- *\$fK = Q + D_\parallel' + 2D_\parallel/va\$f
+ *\f$K = Q + D_\parallel' + 2D_\parallel/va\f$
  *
  * where
  *
- * - \$fv_a\$f is test particle velocity [m/s]
- * - \$D_parallel\$f is  []
- * - \$fQ\$f is  []
+ * - \f$v_a\f$ is test particle velocity [m/s]
+ * - \f$D_parallel\f$ is  []
+ * - \f$Q\f$ is  []
  */
 #define mccc_coefs_K(va, Dpara, dDpara, Q) (    \
         Q + dDpara + 2*Dpara / va )
@@ -168,12 +168,12 @@
 /**
  * @brief Evaluate pitch collision frequency [1/s]
  *
- *\$f\nu = 2D_\perp/v_a^2\$f
+ *\f$\nu = 2D_\perp/v_a^2\f$
  *
  * where
  *
- * - \$fv_a\$f is test particle velocity [m/s]
- * - \$D_perp\$f is  []
+ * - \f$v_a\f$ is test particle velocity [m/s]
+ * - \f$D_perp\f$ is  []
  */
  #define mccc_coefs_nu(va, Dperp) (             \
         2 * Dperp / ( va * va ) )
@@ -181,14 +181,14 @@
 /**
  * @brief Evaluate spatial diffusion coefficient []
  *
- *\$fD_X = (\frac{1}{2}(D_\parallel-D_\perp)(1-\xi^2) + D_\perp)/\omega_g^2\$f
+ *\f$D_X = (\frac{1}{2}(D_\parallel-D_\perp)(1-\xi^2) + D_\perp)/\omega_g^2\f$
  *
  * where
  *
- * - \$fxi\$f is test particle pitch
- * - \$fD_\parallel\$f is parallel diffusion coefficient []
- * - \$D_perp\$f is perpendicular diffusion coefficient []
- * - \$\omega_g\$f is gyrofrequency [1/s]
+ * - \f$xi\f$ is test particle pitch
+ * - \f$D_\parallel\f$ is parallel diffusion coefficient []
+ * - \f$D_perp\f$ is perpendicular diffusion coefficient []
+ * - \f$\omega_g\f$ is gyrofrequency [1/s]
  */
 #define mccc_coefs_DX(xi, Dpara, Dperp, gyrofreq) (              \
         ( 0.5 * ( Dpara - Dperp ) * ( 1 - xi*xi ) + Dperp )      \
@@ -253,9 +253,9 @@ static void mccc_coefs_clog(real* clogab, real ma, real qa, real va, int nspec,
  *
  * Special functions are
  *
- * - mufun[0] = \$f\mu_0(x) = (\erf(x) -2 x \pi^{-1/2} e^{-x^2})/x^2\$f
- * - mufun[1] = \$f\mu_1(x) = \erf(x) - \frac{1}{2}\mu_0(x)\$f
- * - mufun[2] = \$f\mu_0'(x)\$f
+ * - mufun[0] = \f$\mu_0(x) = (\mathrm{erf}(x) -2 x \pi^{-1/2} e^{-x^2})/x^2\f$
+ * - mufun[1] = \f$\mu_1(x) = \mathrm{erf}(x) - \frac{1}{2}\mu_0(x)\f$
+ * - mufun[2] = \f$\mu_0'(x)\f$
  *
  * @param mufun pointer to array where values are stored
  * @param x argument for the special functions

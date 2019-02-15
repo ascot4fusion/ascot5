@@ -17,18 +17,18 @@
 #include "mccc_coefs.h"
 #include "mccc.h"
 
-#define MCCC_CUTOFF 0.1
-
 /**
  * @brief Integrate collisions for one time-step
  *
- * @param p gc struct
- * @param h time-steps for NSIMD markers
- * @param Bdata pointer to magnetic field
+ * @param p pointer to gc simd struct
+ * @param hin time-steps for NSIMD markers
+ * @param hout suggestions for the next timesteps for NSIMD markers
+ * @param tol relative error tolerance
+ * @param w array holding pointers to wiener arrays
+ * @param Bdata pointer to magnetic field data
  * @param pdata pointer to plasma data
  * @param rdata pointer to random-generator data
- * @param coldata pointer collision coefficient data for interpolation or NULL
- *        if coefficients are evaluated exactly
+ * @param mdata pointer to collision data struct
  */
 void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
                       mccc_wienarr** w, B_field_data* Bdata,

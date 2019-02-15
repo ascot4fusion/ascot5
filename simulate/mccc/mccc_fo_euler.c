@@ -22,8 +22,7 @@
  * @param Bdata pointer to magnetic field
  * @param pdata pointer to plasma data
  * @param rdata pointer to random-generator data
- * @param coldata pointer collision coefficient data for interpolation or NULL
- *        if coefficients are evaluated exactly
+ * @param mdata pointer collision data struct
  */
 void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
                    plasma_data* pdata, random_data* rdata, mccc_data* mdata) {

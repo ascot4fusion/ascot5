@@ -1,5 +1,4 @@
 /**
- * @author Joona Kontula joona.kontula@aalto.fi
  * @file E_1DS.c
  * @brief 1D spline electric field evaluation functions
  *
@@ -89,8 +88,6 @@ void E_1DS_free_offload(E_1DS_offload_data* offload_data,
  * struct to the struct on target and sets the 1D spline electric field data
  * pointers to correct offsets in the offload array.
  *
- * @todo Move spline initialization to offload
- *
  * @param Edata pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
@@ -109,19 +106,20 @@ void E_1DS_init(E_1DS_data* Edata, E_1DS_offload_data* offload_data,
  *
  * This function evaluates the 1D spline potential gradient of the plasma at the
  * given radial coordinate using linear interpolation, and then calculates the
- * radial electric field by multiplying that with the rho-gradient.
+ * radial electric field by multiplying that with the rho-gradient. Gradient of
+ * rho is obtained via magnetic field module.
  *
  * @param E array where the electric field will be stored (E_r -> E[1],
  *        E_phi -> E[1], E_z -> E[2])
- * @param rho_drho array where rho and components of gradrho a are stored
- *          (rho -> rho_drho[0], [gradrho]_r -> rho_drho[1],
- *          [gradrho]_phi -> rho_drho[2],
- *          [gradrho]_z -> rho_drho[3])
+ * @param r R-coordiante [m]
+ * @param phi phi-coordinate [rad]
+ * @param z z-coordiante [m]
  * @param Edata pointer to electric field data
+ * @param Bdata pointer to magnetic field data
  *
  * @return zero if evaluation succeeded
  */
-a5err E_1DS_eval_E(real E[], real r, real phi, real z, E_1DS_data* Edata,
+a5err E_1DS_eval_E(real E[3], real r, real phi, real z, E_1DS_data* Edata,
                    B_field_data* Bdata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */

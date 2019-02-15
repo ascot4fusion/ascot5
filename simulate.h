@@ -108,14 +108,13 @@ typedef struct {
     real endcond_maxPolOrb;    /**< Maximum limit for poloidal distance [rad] */
 
     /* Metadata */
-    char hdf5_in[256];
-    char hdf5_out[256];
-    char outfn[256];
-    char qid[256];
-    char description[256];
+    char hdf5_in[256];     /**< Name of the input HDF5 file  */
+    char hdf5_out[256];    /**< Name of the output HDF5 file */
+    char qid[256];         /**< QID of current run           */
+    char description[256]; /**< Current run's description    */
 
-    int mpi_rank;
-    int mpi_size;
+    int mpi_rank; /**< Rank of this MPI process      */
+    int mpi_size; /**< Total number of MPI processes */
 
 } sim_offload_data;
 
