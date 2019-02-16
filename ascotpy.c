@@ -454,18 +454,26 @@ int ascotpy_neutral_eval_density(int Neval, real* R, real* phi, real* z,
     return 0;
 }
 
-int ascotpy_mhd_eval_perturbation(int Neval, real* R, real* phi, real* z,
-                                  real* t, real* br, real* bphi, real* bz,
-                                  real* er, real* ephi, real* ez) {
+/**
+ * @brief Evaluate MHD perturbation EM-field components
+ */
+void ascotpy_mhd_eval_perturbation(int Neval, real* R, real* phi, real* z,
+                                   real* t, real* br, real* bphi, real* bz,
+                                   real* er, real* ephi, real* ez) {
 
-    real n0[1];
+    real pert_field[6];
     for(int k = 0; k < Neval; k++) {
-        //if( neutral_eval_n0(n0, R[k], phi[k], z[k], t[k], &sim.neutral_data) ) {
-        //    return 1;
-        //}
-        //br[k] = n0[0];
+        if( mhd_perturbations(pert_field, R[k], phi[k], z[k], t[k],
+                              &sim.boozer_data, &sim.mhd_data, &sim.B_data) ) {
+            continue;
+        }
+        br[k]   = pert_field[0];
+        bphi[k] = pert_field[1];
+        bz[k]   = pert_field[2];
+        er[k]   = pert_field[3];
+        ephi[k] = pert_field[4];
+        ez[k]   = pert_field[5];
     }
-    return 0;
 }
 
 /**

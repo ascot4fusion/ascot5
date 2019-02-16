@@ -523,12 +523,14 @@ def test():
     R   = np.array([6.2,   7, 8])
     phi = np.array([  0,   0, 0])
     z   = np.array([0.0, 0.2, 0.2])
+    t   = np.array([0, 0, 0])
 
     bvals       = ascot.eval_bfield(R, phi, z, evalb=True, evalpsi=True,
                                             evalrho=True, evalaxis=True)
     evals       = ascot.eval_efield(R, phi, z)
     plasmavals  = ascot.eval_plasma(R, phi, z)
     neutralvals = ascot.eval_neutral(R, phi, z)
+    mhdvals     = ascot.eval_mhd(R, phi, z, t)
 
     print(bvals)
 
