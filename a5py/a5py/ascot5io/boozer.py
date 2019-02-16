@@ -12,8 +12,8 @@ from . ascot5data import AscotData
 ## ADD COMMENTS AND SIZE DEFINITIONS OF THE DATA FIELDS
 
 def write_hdf5(fn, psimin, psimax, npsi, thetamin, thetamax, ntheta, rmin,
-               rmax, nr, zmin, zmax, nz, r0, z0, psi_rz, theta_psithetageom,
-               nu_psitheta, rs, zs, nrzs, desc=None):
+               rmax, nr, zmin, zmax, nz, r0, z0, psiin, psiout, psi_rz,
+               theta_psithetageom, nu_psitheta, rs, zs, nrzs, desc=None):
     """
     Write boozer input to HDF5 file.
 
@@ -31,17 +31,17 @@ def write_hdf5(fn, psimin, psimax, npsi, thetamin, thetamax, ntheta, rmin,
         g = add_group(f, parent, group, desc=desc)
 
         # grid specifications
-        g.create_dataset("psimin",     (1,), data=psimin,     dtype="f8")
-        g.create_dataset("psimax",     (1,), data=psimax,     dtype="f8")
+        g.create_dataset("psi_min",    (1,), data=psimin,     dtype="f8")
+        g.create_dataset("psi_max",    (1,), data=psimax,     dtype="f8")
         g.create_dataset("npsi",       (1,), data=npsi,       dtype="i8")
         g.create_dataset("thetamin",   (1,), data=thetamin,   dtype="f8")
         g.create_dataset("thetamax",   (1,), data=thetamax,   dtype="f8")
         g.create_dataset("ntheta",     (1,), data=ntheta,     dtype="i8")
-        g.create_dataset("rmin",       (1,), data=rmin,       dtype="f8")
-        g.create_dataset("rmax",       (1,), data=rmax,       dtype="f8")
+        g.create_dataset("r_min",      (1,), data=rmin,       dtype="f8")
+        g.create_dataset("r_max",      (1,), data=rmax,       dtype="f8")
         g.create_dataset("nr",         (1,), data=nr,         dtype="i8")
-        g.create_dataset("zmin",       (1,), data=zmin,       dtype="f8")
-        g.create_dataset("zmax",       (1,), data=zmax,       dtype="f8")
+        g.create_dataset("z_min",      (1,), data=zmin,       dtype="f8")
+        g.create_dataset("z_max",      (1,), data=zmax,       dtype="f8")
         g.create_dataset("nz",         (1,), data=nz,         dtype="i8")
         g.create_dataset("r0",         (1,), data=r0,         dtype="f8")
         g.create_dataset("z0",         (1,), data=z0,         dtype="f8")
@@ -50,12 +50,16 @@ def write_hdf5(fn, psimin, psimax, npsi, thetamin, thetamax, ntheta, rmin,
         # the outermost poloidal psi-surface contour
         g.create_dataset("rs", (nrzs,), data=rs, dtype="f8")
         g.create_dataset("zs", (nrzs,), data=zs, dtype="f8")
-        
+
+        # psi data min and max values
+        g.create_dataset("psi_inner", (1,), data=psiin,  dtype="f8")
+        g.create_dataset("psi_outer", (1,), data=psiout, dtype="f8")
+
         # tabulated coordinates maps
         g.create_dataset("psi_rz", (nr,nz), data=psi_rz, dtype="f8")
         g.create_dataset("theta_psithetageom", (npsi,ntheta), data=theta_psithetageom, dtype="f8")
         g.create_dataset("nu_psitheta", (npsi,ntheta), data=nu_psitheta, dtype="f8")
-        
+
 
 def read_hdf5(fn, qid):
     """
@@ -110,17 +114,17 @@ def write_hdf5_dummy(fn, desc="Dummy"):
     nz         = 10
     r0         = (rmax+rmin)/2.0
     z0         = (zmin+zmax)/2.0
+    psiin      = 0
+    psiout     = 1
     nrzs       = ntheta
-    
+
     rs = np.cos(np.linspace(0,2*np.math.pi,ntheta))
     zs = np.sin(np.linspace(0,2*np.math.pi,ntheta))
-    
+
     psi_rz    = np.ones((nr,nz))
     theta_psithetageom = np.ones((npsi,ntheta))
     nu_psitheta = np.ones((npsi,ntheta))
-    
-    write_hdf5(fn, psimin, psimax, npsi, thetamin, thetamax, ntheta, rmin,
-               rmax, nr, zmin, zmax, nz, r0, z0, psi_rz, theta_psithetageom,
-               nu_psitheta, rs, zs, nrzs, desc=desc)
-    
 
+    write_hdf5(fn, psimin, psimax, npsi, thetamin, thetamax, ntheta, rmin,
+               rmax, nr, zmin, zmax, nz, r0, z0, psiin, psiout, psi_rz,
+               theta_psithetageom, nu_psitheta, rs, zs, nrzs, desc=desc)
