@@ -9,7 +9,9 @@ module acts as a wrapper for those functions.
 File: ascotpy.py
 """
 import ctypes
+import os
 import numpy as np
+
 from numpy.ctypeslib import ndpointer
 
 class Ascotpy:
@@ -17,14 +19,28 @@ class Ascotpy:
     An object representing a running ascot5 process.
     """
 
-    def __init__(self, libpath, h5fn):
+    def __init__(self, libpath=None, h5fn=None):
         """
         Initialize and start Ascot5 process using given HDF5 file as an input.
 
         This function starts the process but does not read or initialize any
         data yet. All flags are set to False and function arguments are defined
         explicitly (because C uses strong typing whereas Python does not).
+
+        Args:
+            libpath : str, optional <br>
+                Path to libascotpy.so library file. Default is to assume it
+                is in the same folder as this file.
+            h5fn : str, optional <br>
+                Path to HDF5 from which inputs are read. Default is "ascot.h5"
+                in same folder this file is located.
         """
+        if libpath is None:
+            libpath = os.path.join(os.path.dirname(__file__), "libascotpy.so")
+
+        if h5fn is None:
+            h5fn = os.path.join(os.path.dirname(__file__), "ascot.h5")
+
         self.ascotlib = ctypes.CDLL(libpath)
         self.h5fn = h5fn.encode('UTF-8')
 
@@ -370,6 +386,7 @@ class Ascotpy:
 
         return out
 
+
     def eval_neutral(self, R, phi, z, t):
         """
         Evaluate plasma quantities at given coordinates.
@@ -405,30 +422,74 @@ class Ascotpy:
 
         return out
 
+
     def eval_collcoefs(self, ma, qa, R, phi, z, t, va):
+        """
+        Evaluate Coulomb collision coefficients for given particle and coords.
+
+        Collision coefficients are evaluated by interpolating the plasma
+        parameters on given coordinates, and using those and given test particle
+        mass and charge to evaluate the coefficients as a function of test
+        particle velocity.
+
+        Args:
+            ma : float <br>
+                Test particle mass [kg].
+            qa : float <br>
+                Test particle charge [C].
+            R : array_like <br>
+                Vector of R coordinates where data is evaluated [m].
+            phi : array_like <br>
+                Vector of phi coordinates where data is evaluated [rad].
+            z : array_like <br>
+                Vector of z coordinates where data is evaluated [m].
+            t : array_like <br>
+                Vector of time coordinates where data is evaluated [s].
+            va : array_like <br>
+                Test particle velocities [m/s].
+
+        Returns:
+            Dictionary with collision coefficients as shape
+            (R.size, n_species, va.size).
+        """
+        assert(self.plasma_initialized and self.bfield_initialized)
+
+
         ma  = float(ma)
         qa  = float(qa)
         R   = R.astype(dtype="f8")
         phi = phi.astype(dtype="f8")
         z   = z.astype(dtype="f8")
-        t   = z*0
+        t   = t.astype(dtype="f8")
         va  = va.astype(dtype="f8")
         Neval = va.size
 
         n_species = self.ascotlib.ascotpy_plasma_get_n_species()
 
         out = {}
-        out["F"]     = np.zeros((n_species,va.size), dtype="f8")
-        out["Dpara"] = np.zeros((n_species,va.size), dtype="f8")
-        out["Dperp"] = np.zeros((n_species,va.size), dtype="f8")
-        out["K"]     = np.zeros((n_species,va.size), dtype="f8")
-        out["nu"]    = np.zeros((n_species,va.size), dtype="f8")
-        self.ascotlib.ascotpy_eval_collcoefs(Neval, va, R, phi, z,
-                                             t, ma, qa, out["F"],
-                                             out["Dpara"], out["Dperp"],
-                                             out["K"], out["nu"])
+        out["F"]     = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["Dpara"] = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["Dperp"] = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["K"]     = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["nu"]    = np.zeros((R.size, n_species, va.size), dtype="f8")
+
+        for i in range(R.size):
+            F     = np.zeros((n_species, va.size), dtype="f8")
+            Dpara = np.zeros((n_species, va.size), dtype="f8")
+            Dperp = np.zeros((n_species, va.size), dtype="f8")
+            K     = np.zeros((n_species, va.size), dtype="f8")
+            nu    = np.zeros((n_species, va.size), dtype="f8")
+            self.ascotlib.ascotpy_eval_collcoefs(Neval, va, R[i], phi[i], z[i],
+                                                 t[i], ma, qa, F, Dpara, Dperp,
+                                                 K, nu)
+            out["F"][i,:,:]     = F[:,:]
+            out["Dpara"][i,:,:] = Dpara[:,:]
+            out["Dperp"][i,:,:] = Dperp[:,:]
+            out["K"][i,:,:]     = K[:,:]
+            out["nu"][i,:,:]    = nu[:,:]
 
         return out
+
 
 def test():
     """
