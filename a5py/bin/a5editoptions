@@ -15,8 +15,9 @@ if len(sys.argv) > 1:
 else:
     fn = "ascot.h5"
 
-qids = tools.call_ascot5file(fn, "get_qids", "options")
-opt  = options.read_hdf5(fn, qids[0])
+qid = tools.call_ascot5file(fn, "get_activeqid", "options")
+print(qid)
+opt = options.read_hdf5(fn, qid)
 opt.pop('qid')
 opt.pop('date')
 opt.pop('description')
