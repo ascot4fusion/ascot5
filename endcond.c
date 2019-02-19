@@ -246,7 +246,7 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                 real Ti;
                 a5err  errflag =
                     plasma_eval_temp(&Ti, p_f->rho[i], p_f->r[i], p_f->phi[i],
-                                     p_f->z[i], p_f->time[i], 0,
+                                     p_f->z[i], p_f->time[i], 1,
                                      &sim->plasma_data);
 
                 /* Error handling */
