@@ -199,7 +199,7 @@ class Ascotpy:
             self.bfield_initialized  = False
 
 
-    def eval_bfield(self, R, phi, z, evalb=False, evalpsi=False,
+    def eval_bfield(self, R, phi, z, t, evalb=False, evalpsi=False,
                     evalrho=False, evalaxis=False):
         """
         Evaluate magnetic field quantities at given coordinates.
@@ -277,7 +277,7 @@ class Ascotpy:
         return out
 
 
-    def eval_efield(self, R, phi, z):
+    def eval_efield(self, R, phi, z, t):
         """
         Evaluate electric field quantities at given coordinates.
 
@@ -317,7 +317,7 @@ class Ascotpy:
         return out
 
 
-    def eval_plasma(self, R, phi, z):
+    def eval_plasma(self, R, phi, z, t):
         """
         Evaluate plasma quantities at given coordinates.
 
@@ -370,7 +370,7 @@ class Ascotpy:
 
         return out
 
-    def eval_neutral(self, R, phi, z):
+    def eval_neutral(self, R, phi, z, t):
         """
         Evaluate plasma quantities at given coordinates.
 
@@ -405,7 +405,7 @@ class Ascotpy:
 
         return out
 
-    def eval_collcoefs(self, ma, qa, R, phi, z, va):
+    def eval_collcoefs(self, ma, qa, R, phi, z, t, va):
         ma  = float(ma)
         qa  = float(qa)
         R   = R.astype(dtype="f8")
@@ -442,12 +442,13 @@ def test():
     R   = np.array([6.2,   7, 8])
     phi = np.array([  0,   0, 0])
     z   = np.array([0.0, 0.2, 0.2])
+    t   = np.array([0.0])
 
-    bvals       = ascot.eval_bfield(R, phi, z, evalb=True, evalpsi=True,
+    bvals       = ascot.eval_bfield(R, phi, z, t, evalb=True, evalpsi=True,
                                             evalrho=True, evalaxis=True)
-    evals       = ascot.eval_efield(R, phi, z)
-    plasmavals  = ascot.eval_plasma(R, phi, z)
-    neutralvals = ascot.eval_neutral(R, phi, z)
+    evals       = ascot.eval_efield(R, phi, z, t)
+    plasmavals  = ascot.eval_plasma(R, phi, z, t)
+    neutralvals = ascot.eval_neutral(R, phi, z, t)
 
     print(bvals)
 
