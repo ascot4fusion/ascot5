@@ -358,7 +358,7 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->endcond_minRho       = offload_data->endcond_minRho;
     sim->endcond_maxRho       = offload_data->endcond_maxRho;
     sim->endcond_minEkin      = offload_data->endcond_minEkin;
-    sim->endcond_minEkinPerTe = offload_data->endcond_minEkinPerTe;
+    sim->endcond_minEkinPerTi = offload_data->endcond_minEkinPerTi;
     sim->endcond_maxTorOrb    = offload_data->endcond_maxTorOrb;
     sim->endcond_maxPolOrb    = offload_data->endcond_maxPolOrb;
 

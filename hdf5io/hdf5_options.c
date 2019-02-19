@@ -151,7 +151,7 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
                          &sim->endcond_minEkin,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "ENDCOND_MIN_ENERGY_TIMES_THERMAL",
-                         &sim->endcond_minEkinPerTe,
+                         &sim->endcond_minEkinPerTi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->endcond_minEkin *= CONST_E; // eV -> J
 
