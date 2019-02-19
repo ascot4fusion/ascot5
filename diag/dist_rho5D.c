@@ -15,8 +15,8 @@
  */
 #pragma omp declare target
 unsigned long dist_rho5D_index(int i_rho, int i_pol, int i_phi, int i_vpara,
-                               int i_vperp, int i_time, int i_q, int n_phi,
-                               int n_pol, int n_vpara, int n_vperp, int n_time,
+                               int i_vperp, int i_time, int i_q, int n_pol,
+                               int n_phi, int n_vpara, int n_vperp, int n_time,
                                int n_q) {
     return i_rho   * (n_pol * n_phi * n_vpara * n_vperp * n_time * n_q)
         + i_pol   * (n_phi * n_vpara * n_vperp * n_time * n_q)
