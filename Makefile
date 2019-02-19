@@ -122,12 +122,12 @@ endif
 
 all: $(BINS)
 
-ascotpy: libascotpy.so
+libascot: libascot.so
 	true
 
-libascotpy.so: CFLAGS+=-shlib -fPIC -shared
+libascot.so: CFLAGS+=-shlib -fPIC -shared
 
-libascotpy.so: ascotpy.o $(OBJS)
+libascot.so: libascot.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)
