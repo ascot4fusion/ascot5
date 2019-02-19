@@ -105,7 +105,6 @@ typedef struct {
     /* Metadata */
     char hdf5_in[256];     /**< Name of the input HDF5 file  */
     char hdf5_out[256];    /**< Name of the output HDF5 file */
-    char outfn[256];
     char qid[256];         /**< QID of current run           */
     char description[256]; /**< Current run's description    */
 
