@@ -234,7 +234,7 @@ void B_2DS_init(B_2DS_data* Bdata, B_2DS_offload_data* offload_data,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_2DS_eval_psi(real psi[1], real r, real phi, real z, B_2DS_data* Bdata) {
+a5err B_2DS_eval_psi(real* psi, real r, real phi, real z, B_2DS_data* Bdata) {
 
     int interperr = 0;
     interperr += interp2Dcomp_eval_f(&psi[0], &Bdata->psi, r, z);
@@ -249,7 +249,7 @@ a5err B_2DS_eval_psi(real psi[1], real r, real phi, real z, B_2DS_data* Bdata) {
 /**
  * @brief Evaluate poloidal flux psi and its derivatives
  *
- * @param psi pointer where psi [V*s*m^-1] and its derivatives will be stored
+ * @param psi_dpsi pointer for storing psi [V*s*m^-1] and its derivatives
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
@@ -281,14 +281,12 @@ a5err B_2DS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
  * @brief Evaluate normalized poloidal flux rho
  *
  * @param rho pointer where rho value will be stored
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
+ * @param psi poloidal flux value from which rho is evaluated
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_2DS_eval_rho(real rho[1], real psi, B_2DS_data* Bdata) {
+a5err B_2DS_eval_rho(real* rho, real psi, B_2DS_data* Bdata) {
 
     /* Check that the values seem valid */
     real delta = (Bdata->psi1 - Bdata->psi0);
@@ -303,7 +301,7 @@ a5err B_2DS_eval_rho(real rho[1], real psi, B_2DS_data* Bdata) {
 /**
  * @brief Evaluate normalized poloidal flux rho and its derivatives
  *
- * @param rho pointer where rho and its derivatives will be stored
+ * @param rho_drho pointer where rho and its derivatives will be stored
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]

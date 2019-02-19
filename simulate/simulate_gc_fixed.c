@@ -1,5 +1,4 @@
 /**
- * @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
  * @file simulate_gc_fixed.c
  * @brief Simulate guiding centers using fixed time-step
  */
@@ -9,6 +8,9 @@
 #include <immintrin.h>
 #include <math.h>
 #include "../ascot5.h"
+#include "../endcond.h"
+#include "../math.h"
+#include "../consts.h"
 #include "../physlib.h"
 #include "../simulate.h"
 #include "../particle.h"
@@ -20,9 +22,6 @@
 #include "simulate_gc_fixed.h"
 #include "step/step_gc_rk4.h"
 #include "mccc/mccc.h"
-#include "../endcond.h"
-#include "../math.h"
-#include "../consts.h"
 
 #pragma omp declare target
 #pragma omp declare simd uniform(sim)
@@ -137,8 +136,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Euler-Maruyama method for collisions */
         if(sim->enable_clmbcol) {
-            mccc_step_gc_fixed(&p, &sim->B_data, &sim->plasma_data,
-                               &sim->random_data, sim->coldata, hin);
+            mccc_gc_euler(&p, hin, &sim->B_data, &sim->plasma_data,
+                          &sim->random_data, &sim->mccc_data);
         }
 
         /**********************************************************************/
@@ -185,8 +184,10 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
  * whose formula accounts for relativity, or an user defined value
  * is used as is depending on simulation options.
  *
+ * @param sim pointer to simulation data struct
  * @param p SIMD array of markers
  * @param i index of marker for which time step is assessed
+ *
  * @return Calculated time step
  */
 real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i) {

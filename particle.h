@@ -177,12 +177,12 @@ typedef enum input_particle_type {
  * a new marker struct removes the old marker struct.
  */
 typedef struct {
-    input_particle_type type;
+    input_particle_type type; /**< Type of data currently stored */
     union {
-        particle p;
-        particle_gc p_gc;
-        particle_ml p_ml;
-        particle_state p_s;
+        particle p;           /**< Particle input                */
+        particle_gc p_gc;     /**< Guiding center input          */
+        particle_ml p_ml;     /**< Field line tracer input       */
+        particle_state p_s;   /**< Marker state                  */
     };
 } input_particle;
 

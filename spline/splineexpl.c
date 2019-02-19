@@ -1,5 +1,5 @@
 /**
- * @file spline1D.c
+ * @file splineexpl.c
  * @brief Cubic spline interpolation of a 1D data set
  */
 #include <stdlib.h>

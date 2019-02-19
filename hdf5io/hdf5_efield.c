@@ -31,6 +31,8 @@
 #include "hdf5_helpers.h"
 #include "hdf5_efield.h"
 
+#define EPATH /**< Macro that is used to store paths to data groups */
+
 int hdf5_efield_read_1DS(hid_t f, E_1DS_offload_data* offload_data,
                          real** offload_array, char* qid);
 int hdf5_efield_read_TC(hid_t f, E_TC_offload_data* offload_data,
@@ -41,6 +43,7 @@ int hdf5_efield_read_3DS(hid_t f, E_3DS_offload_data* offload_data,
                          real** offload_array, char* qid);
 int hdf5_efield_read_3DST(hid_t f, E_3DST_offload_data* offload_data,
                          real** offload_array, char* qid);
+
 /**
  * @brief Read electric field data from HDF5 file
  *

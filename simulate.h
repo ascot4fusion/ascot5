@@ -17,6 +17,7 @@
 #include "diag.h"
 #include "offload.h"
 #include "random.h"
+#include "simulate/mccc/mccc.h"
 
 /**
  * @brief Simulaton modes
@@ -102,14 +103,14 @@ typedef struct {
     real endcond_maxPolOrb;    /**< Maximum limit for poloidal distance [rad] */
 
     /* Metadata */
-    char hdf5_in[256];
-    char hdf5_out[256];
+    char hdf5_in[256];     /**< Name of the input HDF5 file  */
+    char hdf5_out[256];    /**< Name of the output HDF5 file */
     char outfn[256];
-    char qid[256];
-    char description[256];
+    char qid[256];         /**< QID of current run           */
+    char description[256]; /**< Current run's description    */
 
-    int mpi_rank;
-    int mpi_size;
+    int mpi_rank; /**< Rank of this MPI process      */
+    int mpi_size; /**< Total number of MPI processes */
 
 } sim_offload_data;
 
@@ -131,6 +132,11 @@ typedef struct {
     neutral_data neutral_data; /**< Neutral data interface                    */
     wall_data wall_data;       /**< Wall data interface                       */
     diag_data diag_data;       /**< Diagnostics data interface                */
+
+    /* Metadata */
+    random_data random_data;   /**< Random number generator                   */
+    mccc_data mccc_data;       /**< Tabulated special functions and collision
+                                    operator parameters                       */
 
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */
@@ -177,11 +183,6 @@ typedef struct {
     real endcond_maxTorOrb;    /**< Maximum limit for toroidal distance [rad] */
     real endcond_maxPolOrb;    /**< Maximum limit for poloidal distance [rad] */
 
-    /* Metadata */
-    random_data random_data;   /**< Random number generator                   */
-    real* coldata;             /**< Look-up tables for collision operator if
-                                    collision coefficients are interpolated
-                                    and not calculated run-time               */
 } sim_data;
 
 void simulate_init_offload(sim_offload_data* sim);

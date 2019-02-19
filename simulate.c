@@ -26,7 +26,6 @@
 #include "simulate/simulate_gc_adaptive.h"
 #include "simulate/simulate_gc_fixed.h"
 #include "simulate/simulate_fo_fixed.h"
-#include "simulate/mccc/mccc_coefs.h"
 #include "simulate/mccc/mccc.h"
 #include "gctransform.h"
 
@@ -129,10 +128,6 @@ void simulate(int id, int n_particles, particle_state* p,
     /* 2. Meta data (e.g. random number generator) is initialized.            */
     /*                                                                        */
     /**************************************************************************/
-
-    /* Initialize collision coefficients */
-    sim.coldata = NULL;
-    mccc_coefs_init(sim.coldata);
 
     /**************************************************************************/
     /* 3. Markers are put into simulation queue.                              */
@@ -301,7 +296,6 @@ void simulate(int id, int n_particles, particle_state* p,
     /*    to host.                                                            */
     /*                                                                        */
     /**************************************************************************/
-    free(sim.coldata);
     free(pq.p);
     free(pq_hybrid.p);
     diag_free(&sim.diag_data);
@@ -325,12 +319,6 @@ void simulate(int id, int n_particles, particle_state* p,
 void simulate_init_offload(sim_offload_data* sim) {
     if(sim->disable_gctransform) {
         gctransform_setorder(0);
-    }
-    if(sim->disable_energyccoll || sim->disable_pitchccoll
-       || sim->disable_gcdiffccoll) {
-        mccc_setoperator(!sim->disable_energyccoll,
-                         !sim->disable_pitchccoll,
-                         !sim->disable_gcdiffccoll);
     }
 }
 
@@ -373,6 +361,10 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->endcond_minEkinPerTe = offload_data->endcond_minEkinPerTe;
     sim->endcond_maxTorOrb    = offload_data->endcond_maxTorOrb;
     sim->endcond_maxPolOrb    = offload_data->endcond_maxPolOrb;
+
+    mccc_init(&sim->mccc_data, !sim->disable_energyccoll,
+              !sim->disable_pitchccoll, !sim->disable_gcdiffccoll);
+
 }
 
 /**
@@ -386,8 +378,8 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
  * to output file, along with time spent on simulation and estimated time
  * remaining for the simulation to finish.
  *
- * @param f pointer to file where progress is written. File is opened and closed
- *          outside this function
+ * @param filename pointer to file where progress is written. File is opened and
+ *        closed outside this function
  * @param n pointer to number of total markers in simulation queue
  * @param finished pointer to number of finished markers in simulation queue
  */

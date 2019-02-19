@@ -2,7 +2,7 @@
  * @file math.c
  * @brief Mathematical utility functions
  */
-#define _XOPEN_SOURCE 500
+#define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
 #include <math.h>
 #include <stdlib.h>
 #include "ascot5.h"
@@ -211,11 +211,10 @@ int math_ipow(int a, int p) {
  * until either maximum number of intervals is reached or
  * given relative error tolerance is obtained
  *
- * @param f: pointer to the integrand function (of one variable)
- * @param a: lower limit for the interval
- * @param b: upper limit for the interval
- * @param eps: absolute tolerance
- * @param maxDepth: maximum number of splits for the interval
+ * @param f pointer to the integrand function (of one variable)
+ * @param a lower limit for the interval
+ * @param b upper limit for the interval
+ * @param eps absolute tolerance
  *
  * @bug Probably does not work with SIMD
  */
@@ -291,24 +290,17 @@ void math_uniquecount(int* in, int* unique, int* count, int n) {
 }
 
 /**
- * @brief Helper routine for "math_simpson"
+ * @brief Helper comparison routine for "math_rsearch"
+ *
+ * This function checks if a key value is between two consecutive values in a
+ * real array. The array to be searched has to be in ascending sorted order.
+ *
+ * @param a first comparison value (key)
+ * @param b first value in array
+ *
+ * @return 0 if key is between the consecutive values, 1 if key is greater than
+ * the first value, and -1 if key is smaller than the first value.
  */
-double math_simpson_helper(double (*f)(double), double a, double b, double eps,
-                           double S, double fa, double fb, double fc,
-                           int bottom) {
-    double c = (a + b)/2, h = b - a;
-    double d = (a + c)/2, e = (c + b)/2;
-    double fd = f(d), fe = f(e);
-    double Sleft = (h/12)*(fa + 4*fd + fc);
-    double Sright = (h/12)*(fc + 4*fe + fb);
-    double S2 = Sleft + Sright;
-    if (bottom <= 0 || fabs(S2 - S) <= eps*fabs(S)) {
-        return  S2 + (S2 - S)/15;
-    }
-    return math_simpson_helper(f, a, c, eps, Sleft,  fa, fc, fd, bottom-1)
-        +math_simpson_helper(f, c, b, eps, Sright, fc, fb, fe, bottom-1);
-}
-
 int rcomp(const void* a, const void* b) {
     real a_val = *((real*) a);
     real b_val = *((real*) b);
@@ -320,6 +312,19 @@ int rcomp(const void* a, const void* b) {
     return a_val > b_val ? 1 : -1;
 }
 
+/**
+ * @brief Search for array element preceding a key value
+ *
+ * This function takes an array of real values and a key value, and finds the
+ * array element which precedes the key value. The array to be searched has to
+ * be in ascending sorted order (according to comparison function rcomp).
+ *
+ * @param key real value that serves as key for the search
+ * @param base pointer to the first object of the array to be searched
+ * @param num number of elements in array
+ *
+ * @return pointer to array element preceding the key, or NULL if search failed
+ */
 real* math_rsearch(const real key, const real* base, int num) {
     return (real*) bsearch(&key, base, num-1, sizeof(real), rcomp);
 }
@@ -327,7 +332,7 @@ real* math_rsearch(const real key, const real* base, int num) {
 /**
  * @brief Check if coordinates are within polygon
  *
- * This function checks if the given coordinates are within a 2D polygon using 
+ * This function checks if the given coordinates are within a 2D polygon using
  * a modified axis crossing method [1]. Origin is moved to the coordinates and
  * the number of wall segments crossing the positive r-axis are calculated. If
  * this is odd, the point is inside the polygon.
@@ -361,3 +366,21 @@ int math_point_in_polygon(real r, real z, real* rv, real* zv, int n) {
     return hits % 2;
 }
 
+/**
+ * @brief Helper routine for "math_simpson"
+ */
+double math_simpson_helper(double (*f)(double), double a, double b, double eps,
+                           double S, double fa, double fb, double fc,
+                           int bottom) {
+    double c = (a + b)/2, h = b - a;
+    double d = (a + c)/2, e = (c + b)/2;
+    double fd = f(d), fe = f(e);
+    double Sleft = (h/12)*(fa + 4*fd + fc);
+    double Sright = (h/12)*(fc + 4*fe + fb);
+    double S2 = Sleft + Sright;
+    if (bottom <= 0 || fabs(S2 - S) <= eps*fabs(S)) {
+        return  S2 + (S2 - S)/15;
+    }
+    return math_simpson_helper(f, a, c, eps, Sleft,  fa, fc, fd, bottom-1)
+        +math_simpson_helper(f, c, b, eps, Sright, fc, fb, fe, bottom-1);
+}

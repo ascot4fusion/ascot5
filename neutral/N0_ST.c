@@ -1,5 +1,6 @@
 /**
- * @file N0_ST.c @brief Stellarator neutral density with trilinear interpolation
+ * @file N0_ST.c
+ * @brief Stellarator neutral density with trilinear interpolation
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,6 +14,14 @@
 #include "N0_ST.h"
 #include "../linint/linint.h"
 
+/**
+ * @brief Initialize offload data
+ *
+ * @param offload_data pointer to offload data struct
+ * @param offload_array pointer to offload data array
+ *
+ * @return zero if initialization succeeded
+ */
 int N0_ST_init_offload(N0_ST_offload_data* offload_data,
                         real** offload_array) {
 
@@ -98,13 +107,12 @@ void N0_ST_free_offload(N0_ST_offload_data* offload_data,
  * to the struct on target and sets the magnetic field data pointers to
  * correct offsets in the offload array.
  *
- * @param BData pointer to data struct on target
+ * @param ndata pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
  */
-int N0_ST_init(N0_ST_data* ndata, N0_ST_offload_data* offload_data,
-               real* offload_array) {
-    int err = 0;
+void N0_ST_init(N0_ST_data* ndata, N0_ST_offload_data* offload_data,
+                real* offload_array) {
 
     ndata->periods = offload_data->periods;
 
@@ -116,7 +124,6 @@ int N0_ST_init(N0_ST_data* ndata, N0_ST_offload_data* offload_data,
         offload_data->phi_min, offload_data->phi_max,
         offload_data->z_min, offload_data->z_max);
 
-    return err;
 }
 
 /**
@@ -131,8 +138,9 @@ int N0_ST_init(N0_ST_data* ndata, N0_ST_offload_data* offload_data,
  * @param z z coordinate
  * @param ndata pointer to neutral density data struct
  *
+ * @return zero if evaluation succeeded
  */
-a5err N0_ST_eval_n0(real n0[], real r, real phi, real z,
+a5err N0_ST_eval_n0(real* n0, real r, real phi, real z,
                    N0_ST_data* ndata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */

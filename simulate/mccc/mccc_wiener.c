@@ -1,12 +1,10 @@
 /**
- * @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
  * @file mccc_wiener.c
  * @brief A module for handling Wiener processes
  *
- * A module for handling Wiener processes. When adaptive time 
- * step is used (and steps are rejected), Wiener processes are
- * generated using the so-called Brownian bridge. This module
- * contains associated helper routines.
+ * A module for handling Wiener processes. When adaptive time step is used (and
+ * steps are rejected), Wiener processes are generated using the so-called
+ * Brownian bridge. This module contains associated helper routines.
  */
 #define _XOPEN_SOURCE
 #include <stdlib.h>
@@ -19,7 +17,7 @@
 #include "../../random.h"
 #include "mccc_wiener.h"
 
-const int MCCC_EMPTY = -999;
+const int MCCC_EMPTY = -999; /**< Indicates an empty slot in wiener array */
 
 /**
  * @brief Initializes a struct that will be used to store generated Wiener processes 
@@ -55,7 +53,8 @@ void mccc_wiener_initialize(mccc_wienarr* w, real initime){
  * @param t time for which the new process will be generated
  * @param windex index of the generated Wiener process in the Wiener array
  * @param rand5 array of 5 normal distributed random numbers
- * @param err error flag, negative indicates something went wrong
+ *
+ * @return zero if generation succeeded
  */
 a5err mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5){
     a5err err = 0;
@@ -152,7 +151,8 @@ a5err mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5){
  *
  * @param w array that stores the Wiener processes
  * @param t time for which the new process will be generated
- * @param err error flag, negative indicates something went wrong
+ *
+ * @return zero if cleaning succeeded
  */
 a5err mccc_wiener_clean(mccc_wienarr* w, real t){
     a5err err = 0;
@@ -204,6 +204,7 @@ a5err mccc_wiener_clean(mccc_wienarr* w, real t){
  * Compiler flag  A5_CCOL_USE_GEOBM in ascot5.h determines whether geometric
  * or common form is used.
  *
+ * @param rdata pointer to random data
  * @param randVar pointer to array to be populated with random numbers
  * @param Ndim dimension of the array
  *

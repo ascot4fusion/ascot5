@@ -39,9 +39,9 @@ int N0_ST_init_offload(N0_ST_offload_data* offload_data, real** offload_array);
 void N0_ST_free_offload(N0_ST_offload_data* offload_data, real** offload_array);
 
 #pragma omp declare target
-int N0_ST_init(N0_ST_data* ndata, N0_ST_offload_data* offload_data,
-               real* offload_array);
+void N0_ST_init(N0_ST_data* ndata, N0_ST_offload_data* offload_data,
+                real* offload_array);
 #pragma omp declare simd uniform(ndata)
-a5err N0_ST_eval_n0(real n0[], real r, real phi, real z, N0_ST_data* ndata);
+a5err N0_ST_eval_n0(real* n0, real r, real phi, real z, N0_ST_data* ndata);
 #pragma omp end declare target
 #endif

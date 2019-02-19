@@ -10,6 +10,9 @@
 #include "../consts.h"
 #include "../linint/linint.h"
 
+/**
+ * Main function for the test program.
+ */
 int main(int argc, char** argv) {
 
     if(argc < 2) {

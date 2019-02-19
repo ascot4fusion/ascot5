@@ -3,6 +3,8 @@
  * @brief Read options from HDF5 file
  */
 #include <stdlib.h>
+#include <hdf5.h>
+#include <hdf5_hl.h>
 #include "../ascot5.h"
 #include "../consts.h"
 #include "../diag.h"
@@ -14,10 +16,10 @@
 #include "../endcond.h"
 #include "../math.h"
 #include "../simulate.h"
-#include <hdf5.h>
 #include "hdf5_helpers.h"
-#include <hdf5_hl.h>
 #include "hdf5_options.h"
+
+#define OPTPATH /**< Macro that is used to store paths to data groups */
 
 int hdf5_options_read_dist5D(hid_t file, dist_5D_offload_data* dist,
                              char* qid);
@@ -38,7 +40,7 @@ int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
  *
  * The options are read directly to simulation offload data.
  *
- * @param f the file where data is read
+ * @param file the file where data is read
  * @param sim pointer to simulation offload data
  * @param qid QID of the options to be read
  *
@@ -223,7 +225,7 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
 /**
  * @brief Helper function to read dist5D settings from HDF5 file
  *
- * @param f the file where settings are read
+ * @param file the file where settings are read
  * @param dist pointer to dist5D diagnostics offload data
  * @param qid QID of the options to be read
  *
@@ -300,7 +302,7 @@ int hdf5_options_read_dist5D(hid_t file, dist_5D_offload_data* dist,
 /**
  * @brief Helper function to read dist6D settings from HDF5 file
  *
- * @param f the file where settings are read
+ * @param file the file where settings are read
  * @param dist pointer to dist6D diagnostics offload data
  * @param qid QID of the options to be read
  *
@@ -385,7 +387,7 @@ int hdf5_options_read_dist6D(hid_t file, dist_6D_offload_data* dist,
 /**
  * @brief Helper function to read distrho5D settings from HDF5 file
  *
- * @param f the file where settings are read
+ * @param file the file where settings are read
  * @param dist pointer to distrho5D diagnostics offload data
  * @param qid QID of the options to be read
  *
@@ -464,7 +466,7 @@ int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_offload_data* dist,
 /**
  * @brief Helper function to read dist5D settings from HDF5 file
  *
- * @param f the file where settings are read
+ * @param file the file where settings are read
  * @param dist pointer to distrho6D diagnostics offload data
  * @param qid QID of the options to be read
  *
@@ -551,8 +553,8 @@ int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
 /**
  * @brief Helper function to read orbit diagnostics settings from HDF5 file
  *
- * @param f the file where settings are read
- * @param dist pointer to orbit diagnostics offload data
+ * @param file the file where settings are read
+ * @param diagorb pointer to orbit diagnostics offload data
  * @param qid QID of the options to be read
  *
  * @return zero if reading succeeded.

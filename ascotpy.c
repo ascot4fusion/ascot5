@@ -18,6 +18,8 @@
 #include "wall.h"
 #include "neutral.h"
 
+#include "simulate/mccc/mccc.h"
+
 #include "hdf5_interface.h"
 #include "hdf5io/hdf5_helpers.h"
 #include "hdf5io/hdf5_bfield.h"
@@ -251,7 +253,7 @@ void ascotpy_B_field_eval_psi(int Neval, real* R, real* phi, real* z, real* t,
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
  * @param t time coordinates of the evaluation points [s].
- * @param psi output array.
+ * @param rho output array.
  */
 void ascotpy_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
                              real* rho) {
@@ -273,7 +275,8 @@ void ascotpy_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
  *
  * @param Neval number of evaluation points.
  * @param phi phi coordinates of the evaluation points [rad].
- * @param psi output array.
+ * @param Raxis output array for axis R coordinates.
+ * @param zaxis output array for axis z coordinates.
  */
 void ascotpy_B_field_get_axis(int Neval, real* phi, real* Raxis, real* zaxis) {
 
@@ -329,8 +332,8 @@ int ascotpy_plasma_get_n_species() {
 void ascotpy_plasma_get_species_mass_and_charge(real* mass, real* charge) {
 
     int n_species = plasma_get_n_species(&sim.plasma_data);
-    real* m = plasma_get_species_mass(&sim.plasma_data);
-    real* q = plasma_get_species_charge(&sim.plasma_data);
+    const real* m = plasma_get_species_mass(&sim.plasma_data);
+    const real* q = plasma_get_species_charge(&sim.plasma_data);
     for(int i=0; i<n_species; i++) {
         mass[i]   = m[i];
         charge[i] = q[i];
@@ -365,7 +368,8 @@ int ascotpy_plasma_eval_background(int Neval, real* R, real* phi, real* z,
         if( B_field_eval_rho(rho, psi[0], &sim.B_data) ) {
             return 1;
         }
-        if( plasma_eval_densandtemp(rho[0], t[k], &sim.plasma_data, n, T) ) {
+        if( plasma_eval_densandtemp(n, T, rho[0], R[k], phi[k], z[k], t[k],
+                                    &sim.plasma_data) ) {
             return 1;
         }
         for(int i=0; i<n_species; i++) {
@@ -398,5 +402,18 @@ int ascotpy_neutral_eval_density(int Neval, real* R, real* phi, real* z,
         }
         dens[k] = n0[0];
     }
-    return 1;
+    return 0;
+}
+
+/**
+ * @brief Evaluate collision coefficients.
+ */
+int ascotpy_eval_collcoefs(int Neval, real* va, real R, real phi, real z,
+                           real t, real ma, real qa, real* F, real* Dpara,
+                           real* Dperp, real* K, real* nu) {
+
+
+    return mccc_eval_coefs(ma, qa, R, phi, z, t, va, Neval,
+                           &sim.plasma_data, &sim.B_data,
+                           F, Dpara, Dperp, K, nu);
 }

@@ -1,6 +1,6 @@
 /**
- * @file step_fo_lf.c
- * @brief Calculate a full orbit step for a struct of particles with leap-frog
+ * @file step_fo_vpa.c
+ * @brief Calculate a full orbit step for a struct of particles with VPA
  **/
 #include <math.h>
 #include <stdio.h>

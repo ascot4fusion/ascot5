@@ -11,6 +11,9 @@
 #include "../hdf5_interface.h"
 #include "../offload.h"
 
+/**
+ * Main function for the test program.
+ */
 int main(int argc, char** argv) {
 
     if(argc < 11) {

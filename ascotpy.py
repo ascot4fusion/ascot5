@@ -6,7 +6,7 @@ Ascot5 functions (written in C) directly. The callable functions are defined in
 library module ascotpy.c which must be compiled first with make ascotpy. This
 module acts as a wrapper for those functions.
 
-File: ascotpymod.py
+File: ascotpy.py
 """
 import ctypes
 import numpy as np
@@ -89,6 +89,14 @@ class Ascotpy:
         fun = self.ascotlib.ascotpy_neutral_eval_density
         fun.restype  = ctypes.c_int
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
+
+        # Collision coefficients.
+        fun = self.ascotlib.ascotpy_eval_collcoefs
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [ctypes.c_int, real_p, ctypes.c_double, ctypes.c_double,
+                        ctypes.c_double, ctypes.c_double, ctypes.c_double,
+                        ctypes.c_double, real_p, real_p, real_p, real_p, real_p]
+
 
     def reload(self, h5fn):
         """
@@ -191,7 +199,7 @@ class Ascotpy:
             self.bfield_initialized  = False
 
 
-    def eval_bfield(self, R, phi, z, evalb=False, evalpsi=False,
+    def eval_bfield(self, R, phi, z, t, evalb=False, evalpsi=False,
                     evalrho=False, evalaxis=False):
         """
         Evaluate magnetic field quantities at given coordinates.
@@ -269,7 +277,7 @@ class Ascotpy:
         return out
 
 
-    def eval_efield(self, R, phi, z):
+    def eval_efield(self, R, phi, z, t):
         """
         Evaluate electric field quantities at given coordinates.
 
@@ -309,7 +317,7 @@ class Ascotpy:
         return out
 
 
-    def eval_plasma(self, R, phi, z):
+    def eval_plasma(self, R, phi, z, t):
         """
         Evaluate plasma quantities at given coordinates.
 
@@ -362,7 +370,7 @@ class Ascotpy:
 
         return out
 
-    def eval_neutral(self, R, phi, z):
+    def eval_neutral(self, R, phi, z, t):
         """
         Evaluate plasma quantities at given coordinates.
 
@@ -397,24 +405,56 @@ class Ascotpy:
 
         return out
 
-if __name__ == '__main__':
-    # For testing purposes.
+    def eval_collcoefs(self, ma, qa, R, phi, z, t, va):
+        ma  = float(ma)
+        qa  = float(qa)
+        R   = R.astype(dtype="f8")
+        phi = phi.astype(dtype="f8")
+        z   = z.astype(dtype="f8")
+        t   = z*0
+        va  = va.astype(dtype="f8")
+        Neval = va.size
+
+        n_species = self.ascotlib.ascotpy_plasma_get_n_species()
+
+        out = {}
+        out["F"]     = np.zeros((n_species,va.size), dtype="f8")
+        out["Dpara"] = np.zeros((n_species,va.size), dtype="f8")
+        out["Dperp"] = np.zeros((n_species,va.size), dtype="f8")
+        out["K"]     = np.zeros((n_species,va.size), dtype="f8")
+        out["nu"]    = np.zeros((n_species,va.size), dtype="f8")
+        self.ascotlib.ascotpy_eval_collcoefs(Neval, va, R, phi, z,
+                                             t, ma, qa, out["F"],
+                                             out["Dpara"], out["Dperp"],
+                                             out["K"], out["nu"])
+
+        return out
+
+def test():
+    """
+    For testing purposes.
+    """
     import os
-    ascot = Ascotpy(os.path.abspath("ascotpy.so"), "ascot.h5")
+    ascot = Ascotpy(os.path.abspath("libascotpy.so"), "ascot.h5")
     ascot.init(bfield=True, efield=True, plasma=True, wall=True,
                neutral=True)
 
     R   = np.array([6.2,   7, 8])
     phi = np.array([  0,   0, 0])
     z   = np.array([0.0, 0.2, 0.2])
+    t   = np.array([0.0])
 
-    bvals       = ascot.eval_bfield(R, phi, z, evalb=True, evalpsi=True,
+    bvals       = ascot.eval_bfield(R, phi, z, t, evalb=True, evalpsi=True,
                                             evalrho=True, evalaxis=True)
-    evals       = ascot.eval_efield(R, phi, z)
-    plasmavals  = ascot.eval_plasma(R, phi, z)
-    neutralvals = ascot.eval_neutral(R, phi, z)
+    evals       = ascot.eval_efield(R, phi, z, t)
+    plasmavals  = ascot.eval_plasma(R, phi, z, t)
+    neutralvals = ascot.eval_neutral(R, phi, z, t)
 
     print(bvals)
 
     ascot.free(bfield=True, efield=True, plasma=True, wall=True,
                neutral=True)
+
+
+if __name__ == '__main__':
+    test()

@@ -18,6 +18,8 @@
 #include "hdf5_helpers.h"
 #include "hdf5_plasma.h"
 
+#define PLSPATH /**< Macro that is used to store paths to data groups */
+
 int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
                         real** offload_array, char* qid);
 int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
@@ -143,8 +145,8 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     for(int i = 0; i < n_rho; i++) {
-        temp_e[i] = temp_e[i] * CONST_E / CONST_KB;
-        temp_i[i] = temp_i[i] * CONST_E / CONST_KB;
+        temp_e[i] = temp_e[i] * CONST_E;
+        temp_i[i] = temp_i[i] * CONST_E;
     }
 
     return 0;
@@ -159,7 +161,9 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
  * @param f hdf5 file identifier
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ * @param qid QID of the data
  *
+ * @return zero on success
  */
 int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
                          real** offload_array, char* qid) {
@@ -215,14 +219,14 @@ int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
     err = H5LTread_dataset_double(f,"/plasma/P_1D/rho", rho);
     err = H5LTread_dataset_double(f,"/plasma/P_1D/temp_e", temp_e);
     for(i = 0; i < n_rho; i++) {
-        temp_e[i] = temp_e[i] * CONST_E / CONST_KB;
+        temp_e[i] = temp_e[i] * CONST_E;
     }
     err = H5LTread_dataset_double(f,"/plasma/P_1D/dens_e", dens_e);
 
     /* All ions have same temperature */
     err = H5LTread_dataset_double(f,"/plasma/P_1D/temp_i", temp_i);
     for(i = 0; i < n_rho; i++) {
-        temp_i[i] = temp_i[i] * CONST_E / CONST_KB;
+        temp_i[i] = temp_i[i] * CONST_E;
     }
 
     real temp_dens_i[n_ions*n_rho];

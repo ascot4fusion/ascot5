@@ -117,6 +117,8 @@ void plasma_free_offload(plasma_offload_data* offload_data,
  * @param pls_data pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
+ *
+ * @return zero if initialization succeeded
  */
 int plasma_init(plasma_data* pls_data, plasma_offload_data* offload_data,
                 real* offload_array) {
@@ -151,7 +153,7 @@ int plasma_init(plasma_data* pls_data, plasma_offload_data* offload_data,
  *
  * This is a SIMD function.
  *
- * @param where evaluated temperature [eV] is stored
+ * @param temp array where evaluated temperature [J] is stored
  * @param rho normalized poloidal flux coordinate
  * @param r R-coordinate [m]
  * @param phi phi-coordinate [rad]
@@ -194,6 +196,7 @@ a5err plasma_eval_temp(real* temp, real rho, real r, real phi, real z, real t,
  *
  * This is a SIMD function.
  *
+ * @param dens array where evaluated density will be stored
  * @param rho normalized poloidal flux coordinate
  * @param r R-coordinate [m]
  * @param phi phi-coordinate [rad]
@@ -202,7 +205,6 @@ a5err plasma_eval_temp(real* temp, real rho, real r, real phi, real z, real t,
  * @param species index of plasma species, 1 refers to electrons
  * @param pls_data pointer to plasma data struct
  *
- * @return Density [m^-3]
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err plasma_eval_dens(real* dens, real rho, real r, real phi, real z, real t,
@@ -238,13 +240,12 @@ a5err plasma_eval_dens(real* dens, real rho, real r, real phi, real z, real t,
  * This is a SIMD function.
  *
  * @param dens pointer where density [m^-3] will be stored
- * @param temp pointer where temperature [eV] will be stored
+ * @param temp pointer where temperature [J] will be stored
  * @param rho normalized poloidal flux coordinate
  * @param r R-coordinate [m]
  * @param phi phi-coordinate [rad]
  * @param z z-coordinate [m]
  * @param t time coordinate [s]
- * @param species index of plasma species
  * @param pls_data pointer to plasma data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise

@@ -7,8 +7,11 @@
 #include "../ascot5.h"
 #include "../random.h"
 
-#define N 1000000
+#define N 1000000 /**< Number of random numbers to be genrated */
 
+/**
+ * Main function for the test program
+ */
 int main(int argc, char** argv) {
     random_data rdata;
 

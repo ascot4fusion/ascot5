@@ -17,7 +17,7 @@
  * @param n_z number of data points in the z direction
  * @param bc_x boundary condition for x axis
  * @param bc_y boundary condition for y axis
- * @param bc_y boundary condition for z axis
+ * @param bc_z boundary condition for z axis
  * @param x_min minimum value of the x axis
  * @param x_max maximum value of the x axis
  * @param y_min minimum value of the y axis

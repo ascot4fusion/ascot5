@@ -9,6 +9,9 @@
 #include <immintrin.h>
 #include <math.h>
 #include "../ascot5.h"
+#include "../endcond.h"
+#include "../math.h"
+#include "../consts.h"
 #include "../physlib.h"
 #include "../simulate.h"
 #include "../particle.h"
@@ -21,17 +24,13 @@
 #include "step/step_gc_cashkarp.h"
 #include "mccc/mccc.h"
 #include "mccc/mccc_wiener.h"
-#include "../endcond.h"
-#include "../math.h"
-#include "../consts.h"
-#include "../hdf5io/hdf5_orbits.h"
 
 #pragma omp declare target
 #pragma omp declare simd uniform(sim)
 real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
 #pragma omp end declare target
 
-#define DUMMY_TIMESTEP_VAL 1.0 // Dummy time step val, just use value large enough not to be encountered in actual simulations
+#define DUMMY_TIMESTEP_VAL 1.0 /**< Dummy time step value */
 
 /**
  * @brief Simulates guiding centers using adaptive time-step
@@ -176,8 +175,9 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
         /* Milstein method for collisions */
         if(sim->enable_clmbcol) {
-            mccc_step_gc_adaptive(&p, &sim->B_data, &sim->plasma_data,
-                &sim->random_data, sim->coldata, hin, hout_col, wienarr, tol_col);
+            mccc_gc_milstein(&p, hin, hout_col, tol_col, wienarr, &sim->B_data,
+                             &sim->plasma_data, &sim->random_data,
+                             &sim->mccc_data);
 
             /* Check whether time step was rejected */
             #pragma omp simd
@@ -316,8 +316,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
  * The returned time step is either directly user-defined, 1/100th of collision frequency
  * or user-defined fraction of gyro-motion.
  *
+ * @param sim pointer to simulation data struct
  * @param p SIMD array of markers
  * @param i index of marker for which time step is assessed
+ *
  * @return Calculated time step
  */
 real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
@@ -341,8 +343,8 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
 
         /* Value calculated from collision frequency */
         if(sim->enable_clmbcol) {
-            real nu;
-            mccc_collfreq_gc(p,&sim->B_data,&sim->plasma_data, sim->coldata,&nu,i);
+            real nu = 1;
+            //mccc_collfreq_gc(p,&sim->B_data,&sim->plasma_data, sim->coldata,&nu,i);
 
             /* Only small angle collisions so divide this by 100 */
             real colltime = 1/(100*nu);

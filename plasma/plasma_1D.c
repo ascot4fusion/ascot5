@@ -21,11 +21,11 @@
  * initialized.
  *
  * The offload array is expected to hold plasma data as
- *   &(*offload_array)[0] = rho grid
- *   &(*offload_array)[n_rho] = electron temperature
- *   &(*offload_array)[n_rho*2] = ion temperature
- *   &(*offload_array)[n_rho*2 + n_rho*n_ions] = electron density
- *   &(*offload_array)[n_rho*2 + n_rho*n_ions + n_rho] = ion density
+ *   -                              [0] = rho grid
+ *   -                          [n_rho] = electron temperature [J]
+ *   -                        [n_rho*2] = ion temperature [J]
+ *   -         [n_rho*2 + n_rho*n_ions] = electron density [m^-3]
+ *   - [n_rho*2 + n_rho*n_ions + n_rho] = ion density [m^-3]
  *
  * Since this data requires no initialization, the only thing this function does
  * is that it prints some values as sanity check.
@@ -54,8 +54,8 @@ int plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
               "        %1.2le/%1.2le       \n",
               (*offload_array)[n_rho*2 + n_rho*n_ions],
               (*offload_array)[n_rho*3 + n_rho*n_ions - 1],
-              (*offload_array)[n_rho] * CONST_KB / CONST_E,
-              (*offload_array)[n_rho*2-1] * CONST_KB / CONST_E);
+              (*offload_array)[n_rho] / CONST_E,
+              (*offload_array)[n_rho*2-1] / CONST_E);
     for(int i=0; i < n_ions; i++) {
         print_out(VERBOSE_IO,
                   "      %3d/%3d               %1.2le/%1.2le     "
@@ -64,8 +64,8 @@ int plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
                   (int)(offload_data->mass[i+1]/CONST_U),
                   (*offload_array)[n_rho*(3+i) + n_rho*n_ions],
                   (*offload_array)[n_rho*(4+i) + n_rho*n_ions - 1],
-                  (*offload_array)[n_rho*2] * CONST_KB / CONST_E,
-                  (*offload_array)[n_rho*3-1] * CONST_KB / CONST_E);
+                  (*offload_array)[n_rho*2] / CONST_E,
+                  (*offload_array)[n_rho*3-1] / CONST_E);
     }
     real quasineutrality = 0;
     for(int k = 0; k <n_rho; k++) {
@@ -105,7 +105,7 @@ void plasma_1D_free_offload(plasma_1D_offload_data* offload_data,
  * to the struct on target and sets the plasma data pointers to
  * correct offsets in the offload array.
  *
- * @param plasma_data pointer to data struct on target
+ * @param pls_data pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
 */
@@ -132,10 +132,10 @@ void plasma_1D_init(plasma_1D_data* pls_data,
  * This function evaluates the temperature of a plasma species at the given
  * radial coordinate using linear interpolation.
  *
- * @param temp pointer to where evaluated temperature [eV] is stored
+ * @param temp pointer to where evaluated temperature [J] is stored
  * @param rho radial coordinate
  * @param species index of plasma species
- * @param plasma_data pointer to plasma data struct
+ * @param pls_data pointer to plasma data struct
  *
  * @return zero if evaluation succeeded
  */
@@ -175,7 +175,7 @@ a5err plasma_1D_eval_temp(real* temp, real rho, int species,
  * @param dens pointer to where evaluated density [m^-3] is stored
  * @param rho radial coordinate
  * @param species index of plasma species
- * @param plasma_data pointer to plasma data struct
+ * @param pls_data pointer to plasma data struct
  *
  * @return zero if evaluation succeeded
  */
@@ -212,11 +212,10 @@ a5err plasma_1D_eval_dens(real* dens, real rho, int species,
  * This function evaluates the density and temperature of all plasma species at
  * the given radial coordinate using linear interpolation.
  *
- * @param dens pointer to where interpolates densities [m^-3] are stored
- * @param temp pointer to where interpolates temperatures [eV] are stored
+ * @param dens pointer to where interpolated densities [m^-3] are stored
+ * @param temp pointer to where interpolated temperatures [J] are stored
  * @param rho radial coordinate
- * @param species index of plasma species
- * @param plasma_data pointer to plasma data struct
+ * @param pls_data pointer to plasma data struct
  *
  * @return zero if evaluation succeeded
  */
