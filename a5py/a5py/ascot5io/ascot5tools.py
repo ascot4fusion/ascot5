@@ -92,19 +92,24 @@ def removegroup(fn, group, force=False):
                 del f[group]
                 return
 
-            # For input parent  groups we have to check if any run group refers
-            # to any of its data groups.
-            runqids  = ascot5file.get_qids(f, "results")
-            dataqids = ascot5file.get_qids(f, group)
+            try:
+                runqids  = ascot5file.get_qids(f, "results")
+            except ValueError:
+                # There is no results group, so we can safely remove the group
+                pass
+            else:
+                # For input parent groups we have to check if any run group
+                # refers to any of its data groups.
+                dataqids = ascot5file.get_qids(f, group)
 
-            for dataqid in dataqids:
-                for runqid in runqids:
-                    rungroup = ascot5file.get_group(f, runqid)
-                    inqids   = ascot5file.get_inputqids(f, rungroup)
-                    if dataqid in inqids:
-                        raise RuntimeError("Run " + runqid
-                                           + " has used group " + dataqid
-                                           + " as an input. Removal aborted.")
+                for dataqid in dataqids:
+                    for runqid in runqids:
+                        rungroup = ascot5file.get_group(f, runqid)
+                        inqids   = ascot5file.get_inputqids(f, rungroup)
+                        if dataqid in inqids:
+                            raise RuntimeError("Run " + runqid
+                                               + " has used group " + dataqid
+                                               + " as an input. Removal aborted.")
 
             # No references, the group can be removed.
             del f[group]
