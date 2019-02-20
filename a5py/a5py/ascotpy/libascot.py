@@ -1,20 +1,25 @@
 """
 Python side of the interactive Python interface.
 
-This module defines Ascotpy class whose methods can be used in Python to call
+This module defines LibAscot class whose methods can be used in Python to call
 Ascot5 functions (written in C) directly. The callable functions are defined in
-library module ascotpy.c which must be compiled first with make ascotpy. This
-module acts as a wrapper for those functions.
+library module libascot.c which must be compiled first with make libascot. This
+module acts as a wrapper for those functions. More advanced functionality should
+be implemented in other modules.
 
-File: ascotpy.py
+File: libascot.py
 """
 import ctypes
+import sys
 import os
+import warnings
 import numpy as np
 
+from ctypes.util import find_library
 from numpy.ctypeslib import ndpointer
+from a5py.ascot5io.ascot5 import Ascot
 
-class Ascotpy:
+class LibAscot:
     """
     An object representing a running ascot5 process.
     """
@@ -29,85 +34,99 @@ class Ascotpy:
 
         Args:
             libpath : str, optional <br>
-                Path to libascotpy.so library file. Default is to assume it
+                Path to libascot.so library file. Default is to assume it
                 is in the same folder as this file.
             h5fn : str, optional <br>
                 Path to HDF5 from which inputs are read. Default is "ascot.h5"
                 in same folder this file is located.
         """
         if libpath is None:
-            libpath = os.path.join(os.path.dirname(__file__), "libascotpy.so")
+            libpath = ("libascot.so")
 
         if h5fn is None:
             h5fn = os.path.join(os.path.dirname(__file__), "ascot.h5")
 
-        self.ascotlib = ctypes.CDLL(libpath)
-        self.h5fn = h5fn.encode('UTF-8')
+        # Open library
+        try:
+            self.libascot = ctypes.CDLL("libascot.so")
+        except Exception as e:
+            msg = "\nCould not locate libascot.so. Try " \
+                + "export LD_LIBRARY_PATH=/spam/ascot5 " \
+                + "or "                                  \
+                + "export LD_LIBRARY_PATH=/spam/ascot5:$LD_LIBRARY_PATH"
+            raise type(e)(str(e) + msg).with_traceback(sys.exc_info()[2])
 
+        # Check that the HDF5 file exists
+        self.h5fn = h5fn.encode('UTF-8')
+        Ascot(self.h5fn)
+
+        # Initialize attributes
         self.bfield_initialized  = False
         self.efield_initialized  = False
         self.plasma_initialized  = False
         self.neutral_initialized = False
         self.wall_initialized    = False
 
+        # Declare functions found in libascot
+
         real_p = ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")
 
         # Init and free functions.
-        fun = self.ascotlib.ascotpy_init
+        fun = self.libascot.libascot_init
         fun.restype  = ctypes.c_int
         fun.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int,
                         ctypes.c_int, ctypes.c_int, ctypes.c_int]
 
-        fun = self.ascotlib.ascotpy_free
+        fun = self.libascot.libascot_free
         fun.restype  = None
         fun.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
                         ctypes.c_int, ctypes.c_int]
 
         # B field functions.
-        fun = self.ascotlib.ascotpy_B_field_eval_B_dB
+        fun = self.libascot.libascot_B_field_eval_B_dB
         fun.restype  = None
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
                         real_p, real_p, real_p, real_p, real_p, real_p,
                         real_p, real_p, real_p, real_p, real_p, real_p]
 
-        fun = self.ascotlib.ascotpy_B_field_eval_psi
+        fun = self.libascot.libascot_B_field_eval_psi
         fun.restype  = None
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
-        fun = self.ascotlib.ascotpy_B_field_eval_rho
+        fun = self.libascot.libascot_B_field_eval_rho
         fun.restype  = None
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
-        fun = self.ascotlib.ascotpy_B_field_get_axis
+        fun = self.libascot.libascot_B_field_get_axis
         fun.restype  = None
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p]
 
         # E field functions.
-        fun = self.ascotlib.ascotpy_E_field_eval_E
+        fun = self.libascot.libascot_E_field_eval_E
         fun.restype  = ctypes.c_int
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
                         real_p, real_p, real_p]
 
         # Plasma functions.
-        fun = self.ascotlib.ascotpy_plasma_get_n_species
+        fun = self.libascot.libascot_plasma_get_n_species
         fun.restype  = ctypes.c_int
 
-        fun = self.ascotlib.ascotpy_plasma_get_species_mass_and_charge
+        fun = self.libascot.libascot_plasma_get_species_mass_and_charge
         fun.restype  = None
         fun.argtypes = [real_p, real_p]
 
-        fun = self.ascotlib.ascotpy_plasma_eval_background
+        fun = self.libascot.libascot_plasma_eval_background
         fun.restype  = ctypes.c_int
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p,
                         real_p]
 
         # Neutral functions.
-        fun = self.ascotlib.ascotpy_neutral_eval_density
+        fun = self.libascot.libascot_neutral_eval_density
         fun.restype  = ctypes.c_int
         fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
 
         # Collision coefficients.
-        fun = self.ascotlib.ascotpy_eval_collcoefs
+        fun = self.libascot.libascot_eval_collcoefs
         fun.restype  = ctypes.c_int
         fun.argtypes = [ctypes.c_int, real_p, ctypes.c_double, ctypes.c_double,
                         ctypes.c_double, ctypes.c_double, ctypes.c_double,
@@ -146,32 +165,34 @@ class Ascotpy:
         Raises:
             RuntimeError if initialization failed.
         """
-        if bfield:
-            if self.ascotlib.ascotpy_init(self.h5fn, 1, 0, 0, 0, 0) :
+        if bfield and self.bfield_initialized:
+            warnings.warn("Magnetic field already initialized.", Warning)
+        else:
+            if self.libascot.libascot_init(self.h5fn, 1, 0, 0, 0, 0) :
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.bfield_initialized  = True
 
         if efield:
-            if self.ascotlib.ascotpy_init(self.h5fn, 0, 1, 0, 0, 0) :
+            if self.libascot.libascot_init(self.h5fn, 0, 1, 0, 0, 0) :
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.efield_initialized  = True
 
         if plasma:
-            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 1, 0, 0) :
+            if self.libascot.libascot_init(self.h5fn, 0, 0, 1, 0, 0) :
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.plasma_initialized  = True
 
         if wall:
-            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 0, 1, 0) :
+            if self.libascot.libascot_init(self.h5fn, 0, 0, 0, 1, 0) :
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.wall_initialized  = True
 
         if neutral:
-            if self.ascotlib.ascotpy_init(self.h5fn, 0, 0, 0, 0, 1) :
+            if self.libascot.libascot_init(self.h5fn, 0, 0, 0, 0, 1) :
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.neutral_initialized  = True
@@ -195,23 +216,23 @@ class Ascotpy:
                 Flag for freeing neutral data.
         """
         if bfield:
-            self.ascotlib.ascotpy_free(1, 0, 0, 0, 0)
+            self.libascot.libascot_free(1, 0, 0, 0, 0)
             self.bfield_initialized  = False
 
         if efield:
-            self.ascotlib.ascotpy_free(0, 1, 0, 0, 0)
+            self.libascot.libascot_free(0, 1, 0, 0, 0)
             self.bfield_initialized  = False
 
         if plasma:
-            self.ascotlib.ascotpy_free(0, 0, 1, 0, 0)
+            self.libascot.libascot_free(0, 0, 1, 0, 0)
             self.bfield_initialized  = False
 
         if wall:
-            self.ascotlib.ascotpy_free(0, 0, 0, 1, 0)
+            self.libascot.libascot_free(0, 0, 0, 1, 0)
             self.bfield_initialized  = False
 
         if neutral:
-            self.ascotlib.ascotpy_free(0, 0, 0, 0, 1)
+            self.libascot.libascot_free(0, 0, 0, 0, 1)
             self.bfield_initialized  = False
 
 
@@ -267,7 +288,7 @@ class Ascotpy:
             out["bzdphi"]   = np.zeros(R.shape, dtype="f8") + np.nan
             out["bzdz"]     = np.zeros(R.shape, dtype="f8") + np.nan
 
-            self.ascotlib.ascotpy_B_field_eval_B_dB(
+            self.libascot.libascot_B_field_eval_B_dB(
                 Neval, R, phi, z, t,
                 out["br"], out["bphi"], out["bz"],
                 out["brdr"], out["brdphi"], out["brdz"],
@@ -276,19 +297,19 @@ class Ascotpy:
 
         if evalpsi:
             out["psi"] = np.zeros(R.shape, dtype="f8") + np.nan
-            self.ascotlib.ascotpy_B_field_eval_psi(Neval, R, phi, z, t,
-                                                   out["psi"])
+            self.libascot.libascot_B_field_eval_psi(Neval, R, phi, z, t,
+                                                    out["psi"])
 
         if evalrho:
             out["rho"] = np.zeros(R.shape, dtype="f8") + np.nan
-            self.ascotlib.ascotpy_B_field_eval_rho(Neval, R, phi, z, t,
-                                                   out["rho"])
+            self.libascot.libascot_B_field_eval_rho(Neval, R, phi, z, t,
+                                                    out["rho"])
 
         if evalaxis:
             out["axisr"] = np.zeros(R.shape, dtype="f8") + np.nan
             out["axisz"] = np.zeros(R.shape, dtype="f8") + np.nan
-            self.ascotlib.ascotpy_B_field_get_axis(Neval, phi, out["axisr"],
-                                                   out["axisz"])
+            self.libascot.libascot_B_field_get_axis(Neval, phi, out["axisr"],
+                                                    out["axisz"])
 
         return out
 
@@ -327,8 +348,8 @@ class Ascotpy:
         out["ephi"] = np.zeros(R.shape, dtype="f8")
         out["ez"]   = np.zeros(R.shape, dtype="f8")
 
-        self.ascotlib.ascotpy_E_field_eval_E(
-                Neval, R, phi, z, t, out["er"], out["ephi"], out["ez"])
+        self.libascot.libascot_E_field_eval_E(
+            Neval, R, phi, z, t, out["er"], out["ephi"], out["ez"])
 
         return out
 
@@ -363,10 +384,10 @@ class Ascotpy:
 
         # First get background species info.
         out = {}
-        out["n_species"] = self.ascotlib.ascotpy_plasma_get_n_species()
+        out["n_species"] = self.libascot.libascot_plasma_get_n_species()
         out["mass"]      = np.zeros((out["n_species"],), dtype="f8")
         out["charge"]    = np.zeros((out["n_species"],), dtype="f8")
-        self.ascotlib.ascotpy_plasma_get_species_mass_and_charge(
+        self.libascot.libascot_plasma_get_species_mass_and_charge(
             out["mass"], out["charge"])
 
         Neval = R.size
@@ -375,8 +396,8 @@ class Ascotpy:
         rawdens = np.zeros((Neval*(out["n_species"]),), dtype="f8")
         rawtemp = np.zeros((Neval*(out["n_species"]),), dtype="f8")
 
-        self.ascotlib.ascotpy_plasma_eval_background(
-                Neval, R, phi, z, t, rawdens, rawtemp)
+        self.libascot.libascot_plasma_eval_background(
+            Neval, R, phi, z, t, rawdens, rawtemp)
 
         out["ne"] = rawdens[0:Neval]
         out["Te"] = rawtemp[0:Neval]
@@ -417,8 +438,8 @@ class Ascotpy:
         out = {}
         out["n0"]   = np.zeros(R.shape, dtype="f8")
 
-        self.ascotlib.ascotpy_neutral_eval_density(Neval, R, phi, z, t,
-                                                   out["n0"])
+        self.libascot.libascot_neutral_eval_density(Neval, R, phi, z, t,
+                                                    out["n0"])
 
         return out
 
@@ -464,7 +485,7 @@ class Ascotpy:
         va  = va.astype(dtype="f8")
         Neval = va.size
 
-        n_species = self.ascotlib.ascotpy_plasma_get_n_species()
+        n_species = self.libascot.libascot_plasma_get_n_species()
 
         out = {}
         out["F"]     = np.zeros((R.size, n_species, va.size), dtype="f8")
@@ -479,9 +500,9 @@ class Ascotpy:
             Dperp = np.zeros((n_species, va.size), dtype="f8")
             K     = np.zeros((n_species, va.size), dtype="f8")
             nu    = np.zeros((n_species, va.size), dtype="f8")
-            self.ascotlib.ascotpy_eval_collcoefs(Neval, va, R[i], phi[i], z[i],
-                                                 t[i], ma, qa, F, Dpara, Dperp,
-                                                 K, nu)
+            self.libascot.libascot_eval_collcoefs(Neval, va, R[i], phi[i], z[i],
+                                                  t[i], ma, qa, F, Dpara, Dperp,
+                                                  K, nu)
             out["F"][i,:,:]     = F[:,:]
             out["Dpara"][i,:,:] = Dpara[:,:]
             out["Dperp"][i,:,:] = Dperp[:,:]
@@ -496,7 +517,7 @@ def test():
     For testing purposes.
     """
     import os
-    ascot = Ascotpy(os.path.abspath("libascotpy.so"), "ascot.h5")
+    ascot = LibAscot(h5fn="ascot.h5")
     ascot.init(bfield=True, efield=True, plasma=True, wall=True,
                neutral=True)
 

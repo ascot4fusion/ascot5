@@ -1,8 +1,8 @@
 import numpy as np
 
-from ascotpy import Ascotpy
+from a5py.ascotpy.libascot import LibAscot
 
-class AscotpyBfield(Ascotpy):
+class LibBfield(LibAscot):
 
     def evaluate(self, R, phi, z, t, quantity, grid=False,
                  squeeze=[None, None, None, None]):

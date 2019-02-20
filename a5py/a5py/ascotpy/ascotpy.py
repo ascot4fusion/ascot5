@@ -1,4 +1,9 @@
-from a5py.ascotpy.bfield import AscotpyBfield
+"""
+Python interface to ascot library.
 
-class AdvancedAscotpy(AscotpyBfield):
+This
+"""
+from a5py.ascotpy.libbfield import LibBfield
+
+class Ascotpy(LibBfield):
     pass
