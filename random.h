@@ -52,8 +52,7 @@ void random_gsl_normal_simd(random_data* rdata, int n, double* r);
 //#define _XOPEN_SOURCE 500
 #include <stdlib.h>
 
-typedef struct {
-} random_data;
+typedef void* random_data;
 
 double random_drand48_normal();
 void random_drand48_uniform_simd(int n, double* r);
