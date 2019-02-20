@@ -1,9 +1,9 @@
 /**
- * @file ascotpy.c
- * @brief C side of the interactive Python interface.
+ * @file libascot.c
+ * @brief Library of Ascot5 functions for external use.
  *
- * Functions in this file can be called from Python directly via ascotpy
- * module.
+ * Functions in this file allows to evaluate input data and quantities using
+ * the same methods as is used in actual simulation.
  */
 #include <stdlib.h>
 #include <stdio.h>
@@ -56,8 +56,8 @@ static real* neutraldata; /**< Neutral data (i.e. offload array)        */
  *
  * @return zero if initialization succeeded.
  */
-int ascotpy_init(char* fn, int bfield, int efield, int plasma, int wall,
-                 int neutral) {
+int libascot_init(char* fn, int bfield, int efield, int plasma, int wall,
+                  int neutral) {
     hdf5_init();
     hid_t f = hdf5_open(fn);
     if(f < 0) {
@@ -159,7 +159,7 @@ int ascotpy_init(char* fn, int bfield, int efield, int plasma, int wall,
  * @param wall flag for initializing wall data.
  * @param neutral flag for initializing neutral data.
  */
-int ascotpy_free(int bfield, int efield, int plasma, int wall, int neutral) {
+int libascot_free(int bfield, int efield, int plasma, int wall, int neutral) {
     if(bfield) {
         free(Bdata);
     }
@@ -199,11 +199,11 @@ int ascotpy_free(int bfield, int efield, int plasma, int wall, int neutral) {
  * @param Bz_dphi output array [T].
  * @param Bz_dz output array [T].
  */
-void ascotpy_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z, real* t,
-                              real* BR, real* Bphi, real* Bz,
-                              real* BR_dR, real* BR_dphi, real* BR_dz,
-                              real* Bphi_dR, real* Bphi_dphi, real* Bphi_dz,
-                              real* Bz_dR, real* Bz_dphi, real* Bz_dz) {
+void libascot_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z, real* t,
+                                real* BR, real* Bphi, real* Bz,
+                                real* BR_dR, real* BR_dphi, real* BR_dz,
+                                real* Bphi_dR, real* Bphi_dphi, real* Bphi_dz,
+                                real* Bz_dR, real* Bz_dphi, real* Bz_dz) {
     real B[12];
     for(int k = 0; k < Neval; k++) {
         if( B_field_eval_B_dB(B, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
@@ -234,8 +234,8 @@ void ascotpy_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z, real* t,
  * @param t time coordinates of the evaluation points [s].
  * @param psi output array.
  */
-void ascotpy_B_field_eval_psi(int Neval, real* R, real* phi, real* z, real* t,
-                             real* psi) {
+void libascot_B_field_eval_psi(int Neval, real* R, real* phi, real* z, real* t,
+                               real* psi) {
     real psival[1];
     for(int k = 0; k < Neval; k++) {
         if( B_field_eval_psi(psival, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
@@ -255,8 +255,8 @@ void ascotpy_B_field_eval_psi(int Neval, real* R, real* phi, real* z, real* t,
  * @param t time coordinates of the evaluation points [s].
  * @param rho output array.
  */
-void ascotpy_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
-                             real* rho) {
+void libascot_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
+                               real* rho) {
     real rhoval[1];
     real psival[1];
     for(int k = 0; k < Neval; k++) {
@@ -278,7 +278,7 @@ void ascotpy_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
  * @param Raxis output array for axis R coordinates.
  * @param zaxis output array for axis z coordinates.
  */
-void ascotpy_B_field_get_axis(int Neval, real* phi, real* Raxis, real* zaxis) {
+void libascot_B_field_get_axis(int Neval, real* phi, real* Raxis, real* zaxis) {
 
     for(int k = 0; k < Neval; k++) {
         Raxis[k] = B_field_get_axis_r(&sim.B_data, phi[k]);
@@ -298,8 +298,8 @@ void ascotpy_B_field_get_axis(int Neval, real* phi, real* Raxis, real* zaxis) {
  * @param Ephi output array [V/m].
  * @param Ez output array [V/m].
  */
-int ascotpy_E_field_eval_E(int Neval, real* R, real* phi, real* z, real* t,
-                           real* ER, real* Ephi, real* Ez) {
+int libascot_E_field_eval_E(int Neval, real* R, real* phi, real* z, real* t,
+                            real* ER, real* Ephi, real* Ez) {
 
     real E[3];
     for(int k = 0; k < Neval; k++) {
@@ -319,7 +319,7 @@ int ascotpy_E_field_eval_E(int Neval, real* R, real* phi, real* z, real* t,
  *
  * @return number of plasma species.
  */
-int ascotpy_plasma_get_n_species() {
+int libascot_plasma_get_n_species() {
     return plasma_get_n_species(&sim.plasma_data);
 }
 
@@ -329,7 +329,7 @@ int ascotpy_plasma_get_n_species() {
  * @param mass output array [kg].
  * @param charge output array [C].
  */
-void ascotpy_plasma_get_species_mass_and_charge(real* mass, real* charge) {
+void libascot_plasma_get_species_mass_and_charge(real* mass, real* charge) {
 
     int n_species = plasma_get_n_species(&sim.plasma_data);
     const real* m = plasma_get_species_mass(&sim.plasma_data);
@@ -353,8 +353,8 @@ void ascotpy_plasma_get_species_mass_and_charge(real* mass, real* charge) {
  *
  * @return zero if evaluation succeeded.
  */
-int ascotpy_plasma_eval_background(int Neval, real* R, real* phi, real* z,
-                                   real* t, real* dens, real* temp) {
+int libascot_plasma_eval_background(int Neval, real* R, real* phi, real* z,
+                                    real* t, real* dens, real* temp) {
 
     int n_species = plasma_get_n_species(&sim.plasma_data);
     real psi[1];
@@ -392,8 +392,8 @@ int ascotpy_plasma_eval_background(int Neval, real* R, real* phi, real* z,
  *
  * @return zero if evaluation succeeded.
  */
-int ascotpy_neutral_eval_density(int Neval, real* R, real* phi, real* z,
-                                 real* t, real* dens) {
+int libascot_neutral_eval_density(int Neval, real* R, real* phi, real* z,
+                                  real* t, real* dens) {
 
     real n0[1];
     for(int k = 0; k < Neval; k++) {
@@ -408,9 +408,9 @@ int ascotpy_neutral_eval_density(int Neval, real* R, real* phi, real* z,
 /**
  * @brief Evaluate collision coefficients.
  */
-int ascotpy_eval_collcoefs(int Neval, real* va, real R, real phi, real z,
-                           real t, real ma, real qa, real* F, real* Dpara,
-                           real* Dperp, real* K, real* nu) {
+int libascot_eval_collcoefs(int Neval, real* va, real R, real phi, real z,
+                            real t, real ma, real qa, real* F, real* Dpara,
+                            real* Dperp, real* K, real* nu) {
 
 
     return mccc_eval_coefs(ma, qa, R, phi, z, t, va, Neval,
