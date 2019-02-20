@@ -35,20 +35,20 @@ class LibAscot:
         Args:
             libpath : str, optional <br>
                 Path to libascot.so library file. Default is to assume it
-                is in the same folder as this file.
+                is in the LD_LIBRARY_PATH.
             h5fn : str, optional <br>
                 Path to HDF5 from which inputs are read. Default is "ascot.h5"
-                in same folder this file is located.
+                in same folder the script is executed.
         """
         if libpath is None:
-            libpath = ("libascot.so")
+            libpath = "libascot.so"
 
         if h5fn is None:
-            h5fn = os.path.join(os.path.dirname(__file__), "ascot.h5")
+            h5fn = "ascot.h5"
 
         # Open library
         try:
-            self.libascot = ctypes.CDLL("libascot.so")
+            self.libascot = ctypes.CDLL(libpath)
         except Exception as e:
             msg = "\nCould not locate libascot.so. Try " \
                 + "export LD_LIBRARY_PATH=/spam/ascot5 " \
@@ -143,6 +143,7 @@ class LibAscot:
                   wall=self.wall_initialized,
                   neutral=self.neutral_initialized)
         self.h5fn = h5fn.encode('UTF-8')
+        Ascot(self.h5fn)
 
 
     def init(self, bfield=False, efield=False, plasma=False, wall=False,
@@ -516,7 +517,6 @@ def test():
     """
     For testing purposes.
     """
-    import os
     ascot = LibAscot(h5fn="ascot.h5")
     ascot.init(bfield=True, efield=True, plasma=True, wall=True,
                neutral=True)
