@@ -1,3 +1,8 @@
+"""
+Methods to evaluate quantities from magnetic field data.
+
+File: libbfield.py
+"""
 import numpy as np
 
 from a5py.ascotpy.libascot import LibAscot

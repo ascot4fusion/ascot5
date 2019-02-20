@@ -72,70 +72,128 @@ class LibAscot:
         real_p = ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")
 
         # Init and free functions.
-        fun = self.libascot.libascot_init
-        fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int,
-                        ctypes.c_int, ctypes.c_int, ctypes.c_int]
+        try:
+            fun = self.libascot.libascot_init
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int,
+                            ctypes.c_int, ctypes.c_int, ctypes.c_int]
+        except AttributeError:
+            warnings.warn("libascot_init not found", Warning)
+            pass
 
-        fun = self.libascot.libascot_free
-        fun.restype  = None
-        fun.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                        ctypes.c_int, ctypes.c_int]
+        try:
+            fun = self.libascot.libascot_free
+            fun.restype  = None
+            fun.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                            ctypes.c_int, ctypes.c_int]
+        except AttributeError:
+            warnings.warn("libascot_free not found", Warning)
+            pass
 
         # B field functions.
-        fun = self.libascot.libascot_B_field_eval_B_dB
-        fun.restype  = None
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                        real_p, real_p, real_p, real_p, real_p, real_p,
-                        real_p, real_p, real_p, real_p, real_p, real_p]
+        try:
+            fun = self.libascot.libascot_B_field_eval_B_dB
+            fun.restype  = None
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p, real_p, real_p, real_p]
+        except AttributeError:
+            warnings.warn("libascot_B_field_eval_B_dB not found", Warning)
+            pass
 
-        fun = self.libascot.libascot_B_field_eval_psi
-        fun.restype  = None
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
+        try:
+            fun = self.libascot.libascot_B_field_eval_psi
+            fun.restype  = None
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p]
+        except AttributeError:
+            warnings.warn("libascot_B_field_eval_psi not found", Warning)
+            pass
 
-        fun = self.libascot.libascot_B_field_eval_rho
-        fun.restype  = None
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
+        try:
+            fun = self.libascot.libascot_B_field_eval_rho
+            fun.restype  = None
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p]
+        except AttributeError:
+            warnings.warn("libascot_B_field_eval_rho not found", Warning)
+            pass
 
-        fun = self.libascot.libascot_B_field_get_axis
-        fun.restype  = None
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p]
+        try:
+            fun = self.libascot.libascot_B_field_get_axis
+            fun.restype  = None
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p]
+        except AttributeError:
+            warnings.warn("libascot_B_field_get_axis not found", Warning)
+            pass
 
         # E field functions.
-        fun = self.libascot.libascot_E_field_eval_E
-        fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                        real_p, real_p, real_p]
+        try:
+            fun = self.libascot.libascot_E_field_eval_E
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p]
+        except AttributeError:
+            warnings.warn("libascot_E_field_eval_E not found", Warning)
+            pass
 
         # Plasma functions.
-        fun = self.libascot.libascot_plasma_get_n_species
-        fun.restype  = ctypes.c_int
+        try:
+            fun = self.libascot.libascot_plasma_get_n_species
+            fun.restype  = ctypes.c_int
+        except AttributeError:
+            warnings.warn("libascot_plasma_get_n_species not found", Warning)
+            pass
 
-        fun = self.libascot.libascot_plasma_get_species_mass_and_charge
-        fun.restype  = None
-        fun.argtypes = [real_p, real_p]
+        try:
+            fun = self.libascot.libascot_plasma_get_species_mass_and_charge
+            fun.restype  = None
+            fun.argtypes = [real_p, real_p]
+        except AttributeError:
+            warnings.warn(
+                "libascot_plasma_get_species_mass_and_charge not found",
+                Warning)
+            pass
 
-        fun = self.libascot.libascot_plasma_eval_background
-        fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p,
-                        real_p]
+        try:
+            fun = self.libascot.libascot_plasma_eval_background
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p, real_p]
+        except AttributeError:
+            warnings.warn("libascot_plasma_eval_background not found", Warning)
+            pass
 
         # Neutral functions.
-        fun = self.libascot.libascot_neutral_eval_density
-        fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p, real_p]
+        try:
+            fun = self.libascot.libascot_neutral_eval_density
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p]
+        except AttributeError:
+            warnings.warn("libascot_neutral_eval_density not found", Warning)
+            pass
 
         # Collision coefficients.
-        fun = self.libascot.libascot_eval_collcoefs
-        fun.restype  = ctypes.c_int
-        fun.argtypes = [ctypes.c_int, real_p, ctypes.c_double, ctypes.c_double,
-                        ctypes.c_double, ctypes.c_double, ctypes.c_double,
-                        ctypes.c_double, real_p, real_p, real_p, real_p, real_p]
+        try:
+            fun = self.libascot.libascot_eval_collcoefs
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [ctypes.c_int, real_p, ctypes.c_double,
+                            ctypes.c_double, ctypes.c_double, ctypes.c_double,
+                            ctypes.c_double, ctypes.c_double, real_p, real_p,
+                            real_p, real_p, real_p]
+        except AttributeError:
+            warnings.warn("libascot_eval_collcoefs not found", Warning)
+            pass
 
 
     def reload(self, h5fn):
         """
         Change HDF5 file and free resources from old one.
+
+        Args:
+            h5fn : str <br>
+                Name of the new HDF5 file.
         """
         self.free(bfield=self.bfield_initialized,
                   efield=self.efield_initialized,
@@ -168,35 +226,43 @@ class LibAscot:
         """
         if bfield and self.bfield_initialized:
             warnings.warn("Magnetic field already initialized.", Warning)
-        else:
+        elif bfield:
             if self.libascot.libascot_init(self.h5fn, 1, 0, 0, 0, 0) :
                 raise RuntimeError("Failed to initialize magnetic field")
 
-            self.bfield_initialized  = True
+            self.bfield_initialized = True
 
-        if efield:
+        if efield and self.efield_initialized:
+            warnings.warn("Electric field already initialized.", Warning)
+        elif efield:
             if self.libascot.libascot_init(self.h5fn, 0, 1, 0, 0, 0) :
-                raise RuntimeError("Failed to initialize magnetic field")
+                raise RuntimeError("Failed to initialize electric field")
 
-            self.efield_initialized  = True
+            self.efield_initialized = True
 
-        if plasma:
+        if plasma and self.plasma_initialized:
+            warnings.warn("Plasma already initialized.", Warning)
+        elif plasma:
             if self.libascot.libascot_init(self.h5fn, 0, 0, 1, 0, 0) :
-                raise RuntimeError("Failed to initialize magnetic field")
+                raise RuntimeError("Failed to initialize plasma")
 
-            self.plasma_initialized  = True
+            self.plasma_initialized = True
 
-        if wall:
+        if wall and self.wall_initialized:
+            warnings.warn("Wall already initialized.", Warning)
+        elif wall:
             if self.libascot.libascot_init(self.h5fn, 0, 0, 0, 1, 0) :
-                raise RuntimeError("Failed to initialize magnetic field")
+                raise RuntimeError("Failed to initialize wall")
 
-            self.wall_initialized  = True
+            self.wall_initialized = True
 
+        if neutral and self.neutral_initialized:
+            warnings.warn("Neutral data already initialized.", Warning)
         if neutral:
             if self.libascot.libascot_init(self.h5fn, 0, 0, 0, 0, 1) :
-                raise RuntimeError("Failed to initialize magnetic field")
+                raise RuntimeError("Failed to initialize neutral data")
 
-            self.neutral_initialized  = True
+            self.neutral_initialized = True
 
 
     def free(self, bfield=False, efield=False, plasma=False, wall=False,
@@ -216,25 +282,25 @@ class LibAscot:
             neutral : bool, optional <br>
                 Flag for freeing neutral data.
         """
-        if bfield:
+        if bfield and self.bfield_initialized:
             self.libascot.libascot_free(1, 0, 0, 0, 0)
-            self.bfield_initialized  = False
+            self.bfield_initialized = False
 
-        if efield:
+        if efield and self.efield_initialized:
             self.libascot.libascot_free(0, 1, 0, 0, 0)
-            self.bfield_initialized  = False
+            self.efield_initialized = False
 
-        if plasma:
+        if plasma and self.plasma_initialized:
             self.libascot.libascot_free(0, 0, 1, 0, 0)
-            self.bfield_initialized  = False
+            self.plasma_initialized = False
 
-        if wall:
+        if wall and self.wall_initialized:
             self.libascot.libascot_free(0, 0, 0, 1, 0)
-            self.bfield_initialized  = False
+            self.wall_initialized = False
 
-        if neutral:
+        if neutral and self.neutral_initialized:
             self.libascot.libascot_free(0, 0, 0, 0, 1)
-            self.bfield_initialized  = False
+            self.neutral_initialized = False
 
 
     def eval_bfield(self, R, phi, z, t, evalb=False, evalpsi=False,
@@ -244,11 +310,13 @@ class LibAscot:
 
         Args:
             R : array_like <br>
-                Vector of R coordinates where field is evaluated [m].
+                R coordinates where data is evaluated [m].
             phi : array_like <br>
-                Vector of phi coordinates where field is evaluated [rad].
+                phi coordinates where data is evaluated [rad].
             z : array_like <br>
-                Vector of z coordinates where field is evaluated [m].
+                z coordinates where data is evaluated [m].
+            t : array_like <br>
+                time coordinates where data is evaluated [s].
             evalb : bool, optional <br>
                 Evaluate magnetic field vector and derivatives.
             evalpsi : bool, optional <br>
@@ -265,12 +333,12 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert(self.bfield_initialized)
+        assert self.bfield_initialized, "Magnetic field not initialized"
 
-        R   = R.astype(dtype="f8")
-        phi = phi.astype(dtype="f8")
-        z   = z.astype(dtype="f8")
-        t   = z*0
+        R   = np.asarray(R).ravel().astype(dtype="f8")
+        phi = np.asarray(phi).ravel().astype(dtype="f8")
+        z   = np.asarray(z).ravel().astype(dtype="f8")
+        t   = np.asarray(t).ravel().astype(dtype="f8")
 
         Neval = R.size
         out = {}
@@ -323,11 +391,13 @@ class LibAscot:
 
         Args:
             R : array_like <br>
-                Vector of R coordinates where field is evaluated [m].
+                R coordinates where data is evaluated [m].
             phi : array_like <br>
-                Vector of phi coordinates where field is evaluated [rad].
+                phi coordinates where data is evaluated [rad].
             z : array_like <br>
-                Vector of z coordinates where field is evaluated [m].
+                z coordinates where data is evaluated [m].
+            t : array_like <br>
+                time coordinates where data is evaluated [s].
 
         Returns:
             Dictionary containing evaluated quantities.
@@ -336,12 +406,13 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert(self.bfield_initialized and self.efield_initialized)
+        assert self.bfield_initialized, "Magnetic field not initialized"
+        assert self.efield_initialized, "Electric field not initialized"
 
-        R   = R.astype(dtype="f8")
-        phi = phi.astype(dtype="f8")
-        z   = z.astype(dtype="f8")
-        t   = z*0
+        R   = np.asarray(R).ravel().astype(dtype="f8")
+        phi = np.asarray(phi).ravel().astype(dtype="f8")
+        z   = np.asarray(z).ravel().astype(dtype="f8")
+        t   = np.asarray(t).ravel().astype(dtype="f8")
 
         Neval = R.size
         out = {}
@@ -363,11 +434,13 @@ class LibAscot:
 
         Args:
             R : array_like <br>
-                Vector of R coordinates where data is evaluated [m].
+                R coordinates where data is evaluated [m].
             phi : array_like <br>
-                Vector of phi coordinates where data is evaluated [rad].
+                phi coordinates where data is evaluated [rad].
             z : array_like <br>
-                Vector of z coordinates where data is evaluated [m].
+                z coordinates where data is evaluated [m].
+            t : array_like <br>
+                time coordinates where data is evaluated [s].
 
         Returns:
             Dictionary containing evaluated quantities.
@@ -376,12 +449,13 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert(self.bfield_initialized and self.plasma_initialized)
+        assert self.bfield_initialized, "Magnetic field not initialized"
+        assert self.plasma_initialized, "Plasma not initialized"
 
-        R   = R.astype(dtype="f8")
-        phi = phi.astype(dtype="f8")
-        z   = z.astype(dtype="f8")
-        t   = z*0
+        R   = np.asarray(R).ravel().astype(dtype="f8")
+        phi = np.asarray(phi).ravel().astype(dtype="f8")
+        z   = np.asarray(z).ravel().astype(dtype="f8")
+        t   = np.asarray(t).ravel().astype(dtype="f8")
 
         # First get background species info.
         out = {}
@@ -415,11 +489,13 @@ class LibAscot:
 
         Args:
             R : array_like <br>
-                Vector of R coordinates where data is evaluated [m].
+                R coordinates where data is evaluated [m].
             phi : array_like <br>
-                Vector of phi coordinates where data is evaluated [rad].
+                phi coordinates where data is evaluated [rad].
             z : array_like <br>
-                Vector of z coordinates where data is evaluated [m].
+                z coordinates where data is evaluated [m].
+            t : array_like <br>
+                time coordinates where data is evaluated [s].
 
         Returns:
             Dictionary containing evaluated quantities.
@@ -428,12 +504,12 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert(self.neutral_initialized)
+        assert self.neutral_initialized, "Neutral data not initialized"
 
-        R   = R.astype(dtype="f8")
-        phi = phi.astype(dtype="f8")
-        z   = z.astype(dtype="f8")
-        t   = z*0
+        R   = np.asarray(R).ravel().astype(dtype="f8")
+        phi = np.asarray(phi).ravel().astype(dtype="f8")
+        z   = np.asarray(z).ravel().astype(dtype="f8")
+        t   = np.asarray(t).ravel().astype(dtype="f8")
 
         Neval = R.size
         out = {}
@@ -460,30 +536,31 @@ class LibAscot:
             qa : float <br>
                 Test particle charge [C].
             R : array_like <br>
-                Vector of R coordinates where data is evaluated [m].
+                R coordinates where data is evaluated [m].
             phi : array_like <br>
-                Vector of phi coordinates where data is evaluated [rad].
+                phi coordinates where data is evaluated [rad].
             z : array_like <br>
-                Vector of z coordinates where data is evaluated [m].
+                z coordinates where data is evaluated [m].
             t : array_like <br>
-                Vector of time coordinates where data is evaluated [s].
+                Time coordinates where data is evaluated [s].
             va : array_like <br>
                 Test particle velocities [m/s].
 
         Returns:
-            Dictionary with collision coefficients as shape
+            Dictionary with collision coefficients of shape
             (R.size, n_species, va.size).
         """
-        assert(self.plasma_initialized and self.bfield_initialized)
+        assert self.bfield_initialized, "Magnetic field not initialized"
+        assert self.plasma_initialized, "Plasma not initialized"
 
 
         ma  = float(ma)
         qa  = float(qa)
-        R   = R.astype(dtype="f8")
-        phi = phi.astype(dtype="f8")
-        z   = z.astype(dtype="f8")
-        t   = t.astype(dtype="f8")
-        va  = va.astype(dtype="f8")
+        R   = np.asarray(R).ravel().astype(dtype="f8")
+        phi = np.asarray(phi).ravel().astype(dtype="f8")
+        z   = np.asarray(z).ravel().astype(dtype="f8")
+        t   = np.asarray(t).ravel().astype(dtype="f8")
+        va  = np.asarray(va).ravel().astype(dtype="f8")
         Neval = va.size
 
         n_species = self.libascot.libascot_plasma_get_n_species()
