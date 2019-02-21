@@ -4,7 +4,7 @@
 import a5py.ascot5io.options     as options
 import a5py.ascot5io.ascot5      as ascot5
 import a5py.ascot5io.ascot5tools as tools
-import numpy
+import numpy as np
 import os
 import subprocess
 import sys
@@ -16,26 +16,48 @@ else:
     fn = "ascot.h5"
 
 qid = tools.call_ascot5file(fn, "get_activeqid", "options")
-print(qid)
-opt = options.read_hdf5(fn, qid)
+opt, info = options.read_hdf5(fn, qid, True)
 opt.pop('qid')
 opt.pop('date')
 opt.pop('description')
 
+def trim(val):
+    if np.abs(val) >= 1e4 or (np.abs(val) <=1e-4 and val != 0):
+        return np.format_float_scientific(val, trim="-", exp_digits=0)
+    else:
+        return "{0:g}".format(val)
+
 t = ""
-for k,v in sorted(opt.items()):
+for i in info:
+    if len(i) == 1:
+        t = "\n" + t + i[0] + "\n\n"
+        continue
+
+    k = i[0]
+    d = i[1]
+    v = opt[k]
+    t = t + d
     if(len(v) == 1):
-        t = t + k + "=" + str(v[0]) + "\n"
+        t = t + k + "=" + trim(v[0]) + "\n\n"
     elif(len(v) > 1):
-        t = t + k + "=" + ",".join([str(vv) for vv in v]) + "\n"
+        t = t + k + "=" \
+            + ",".join([trim(vv) for vv in v]) \
+            + "\n"
+
+# Remove empty lines from beginning and end
+t = t[5:-2]
 
 f,tmpfn = tempfile.mkstemp()
 f=os.fdopen(f,'w')
 f.write(t)
 f.close()
 
+# Get default text editor, use -nw for emacs
 ed=os.environ.get('EDITOR','vim')
-subprocess.call([ed,tmpfn])
+if "emacs" in ed:
+    subprocess.call([ed,"-nw",tmpfn])
+else:
+    subprocess.call([ed,tmpfn])
 
 f=open(tmpfn)
 lines=f.readlines()
@@ -44,9 +66,12 @@ os.remove(tmpfn)
 
 opt.clear()
 for line in lines:
+    if not line.strip() or line[0] == "#":
+        continue
+
     p = line.split("=")
     if(len(p)==2):
-        opt[p[0].strip()] = numpy.fromstring(p[1].strip(),sep=",")
+        opt[p[0].strip()] = np.fromstring(p[1].strip(),sep=",")
 
 group = options.write_hdf5(fn, opt)
 tools.call_ascot5file(fn, "set_active", group)
