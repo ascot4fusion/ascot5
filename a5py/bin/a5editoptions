@@ -15,6 +15,26 @@ if len(sys.argv) > 1:
 else:
     fn = "ascot.h5"
 
+try:
+    qid = tools.call_ascot5file(fn, "get_activeqid", "options")
+except ValueError:
+
+    while True:
+        makeopt = input("Options does not exist. Make one? (y/n): ")
+
+        if makeopt == "y":
+            defopt = options.get_default()
+            opt = {}
+            for namecmtval in defopt:
+                if len(namecmtval) == 3:
+                    opt[namecmtval[0]] = namecmtval[2]
+
+            options.write_hdf5(fn, opt)
+            break
+
+        if makeopt == "n":
+            exit()
+
 qid = tools.call_ascot5file(fn, "get_activeqid", "options")
 opt, info = options.read_hdf5(fn, qid, True)
 opt.pop('qid')
@@ -73,6 +93,12 @@ for line in lines:
     if(len(p)==2):
         opt[p[0].strip()] = np.fromstring(p[1].strip(),sep=",")
 
-group = options.write_hdf5(fn, opt)
-tools.call_ascot5file(fn, "set_active", group)
-print("Options set and set as active.")
+desc = input("Give description"
+             + " (leave empty if you don't want to save changes):\n")
+
+if len(desc) == 0:
+    print("Options closed")
+else:
+    group = options.write_hdf5(fn, opt, desc=desc)
+    tools.call_ascot5file(fn, "set_active", group)
+    print("Options set and set as active.")
