@@ -793,7 +793,6 @@ def get_default():
                         textwrap.dedent(namecmtval[1]),
                         namecmtval[2]))
 
-    print(cleaned)
     return cleaned
 
 

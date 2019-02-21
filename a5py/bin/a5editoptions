@@ -23,7 +23,7 @@ opt.pop('description')
 
 def trim(val):
     if np.abs(val) >= 1e4 or (np.abs(val) <=1e-4 and val != 0):
-        return np.format_float_scientific(val, trim="-", exp_digits=0)
+        return "{0:e}".format(val)
     else:
         return "{0:g}".format(val)
 
