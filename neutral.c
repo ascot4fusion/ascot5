@@ -152,11 +152,11 @@ a5err neutral_eval_n0(real* n0, real r, real phi, real z, real t,
 
     switch(ndata->type) {
         case neutral_type_3D:
-            err = N0_3D_eval_n0(n0, r, phi, z, &(ndata->N03D));
+            err = N0_3D_eval_n0(n0, r, phi, z, 0, &(ndata->N03D));
             break;
 
         case neutral_type_ST:
-            err = N0_ST_eval_n0(n0, r, phi, z, &(ndata->N0ST));
+            err = N0_ST_eval_n0(n0, r, phi, z, 0, &(ndata->N0ST));
             break;
 
         default:

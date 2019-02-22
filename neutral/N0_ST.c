@@ -70,7 +70,7 @@ int N0_ST_init_offload(N0_ST_offload_data* offload_data,
     offload_data->n_phi = 2*(offload_data->n_phi - 1);
     offload_data->phi_max = 2*offload_data->phi_max;
 
-    print_out(VERBOSE_IO, "\n3D neutral density (N0_3D)\n");
+    print_out(VERBOSE_IO, "\nStellarator neutral density (N0_ST)\n");
     print_out(VERBOSE_IO, "Grid: nR = %4.d Rmin = %3.3f Rmax = %3.3f\n",
               offload_data->n_r,
               offload_data->r_min, offload_data->r_max);
@@ -116,14 +116,17 @@ void N0_ST_init(N0_ST_data* ndata, N0_ST_offload_data* offload_data,
 
     ndata->periods = offload_data->periods;
 
-    linint3D_init(
-        &ndata->n0, offload_array,
-        offload_data->n_r, offload_data->n_phi, offload_data->n_z,
-        NATURALBC, PERIODICBC, NATURALBC,
-        offload_data->r_min, offload_data->r_max,
-        offload_data->phi_min, offload_data->phi_max,
-        offload_data->z_min, offload_data->z_max);
-
+    int N0_size = offload_data->n_r * offload_data->n_phi * offload_data->n_z;
+    ndata->n_species = offload_data->n_species;
+    for(int species = 0; species < offload_data->n_species; species++) {
+        linint3D_init(
+            &ndata->n0[species], &offload_array[species * N0_size],
+            offload_data->n_r, offload_data->n_phi, offload_data->n_z,
+            NATURALBC, PERIODICBC, NATURALBC,
+            offload_data->r_min, offload_data->r_max,
+            offload_data->phi_min, offload_data->phi_max,
+            offload_data->z_min, offload_data->z_max);
+    }
 }
 
 /**
@@ -140,8 +143,8 @@ void N0_ST_init(N0_ST_data* ndata, N0_ST_offload_data* offload_data,
  *
  * @return zero if evaluation succeeded
  */
-a5err N0_ST_eval_n0(real* n0, real r, real phi, real z,
-                   N0_ST_data* ndata) {
+a5err N0_ST_eval_n0(real* n0, real r, real phi, real z, int species,
+                    N0_ST_data* ndata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
 
@@ -156,7 +159,7 @@ a5err N0_ST_eval_n0(real* n0, real r, real phi, real z,
         z = -z;
     }
 
-    interperr += linint3D_eval_f(&n0[0], &ndata->n0, r, phi, z);
+    interperr += linint3D_eval_f(&n0[0], &ndata->n0[species], r, phi, z);
 
     if(interperr) {err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_N0_ST);}
 

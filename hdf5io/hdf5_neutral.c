@@ -111,8 +111,12 @@ int hdf5_neutral_read_3D(hid_t f, N0_3D_offload_data* offload_data,
     offload_data->phi_max = math_deg2rad(offload_data->phi_max);
     offload_data->phi_min = math_deg2rad(offload_data->phi_min);
 
-    *offload_array = (real*) malloc(offload_data->n_r * offload_data->n_phi
-                                    * offload_data->n_z * sizeof(real));
+    /* Assume n_species = 1 (temporary solution) */
+    offload_data->n_species = 1;
+
+    *offload_array = (real*) malloc(offload_data->n_species * offload_data->n_r
+                                    * offload_data->n_phi * offload_data->n_z
+                                    * sizeof(real));
 
     /* Read the neutral density */
     if( hdf5_read_double(NPATH "n0", *offload_array,
@@ -165,8 +169,12 @@ int hdf5_neutral_read_ST(hid_t f, N0_ST_offload_data* offload_data,
     offload_data->phi_max = math_deg2rad(offload_data->phi_max);
     offload_data->phi_min = math_deg2rad(offload_data->phi_min);
 
-    *offload_array = (real*) malloc(offload_data->n_r * offload_data->n_phi
-                                    * offload_data->n_z * sizeof(real));
+    /* Assume n_species = 1 (temporary solution) */
+    offload_data->n_species = 1;
+
+    *offload_array = (real*) malloc(offload_data->n_species * offload_data->n_r
+                                    * offload_data->n_phi * offload_data->n_z
+                                    * sizeof(real));
 
     /* Read the neutral density */
     if( hdf5_read_double(NPATH "n0", *offload_array,
