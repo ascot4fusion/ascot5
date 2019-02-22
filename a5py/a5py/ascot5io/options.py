@@ -796,6 +796,19 @@ def get_default():
     return cleaned
 
 
+def generateopt():
+    """
+    Get default option parameter names and values as a dictionary
+    """
+    defopt = get_default()
+    opt = {}
+    for namecmtval in defopt:
+        if len(namecmtval) == 3:
+            opt[namecmtval[0]] = namecmtval[2]
+
+    return opt
+
+
 class Opt(AscotData):
 
     def read(self):

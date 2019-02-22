@@ -23,12 +23,7 @@ except ValueError:
         makeopt = input("Options does not exist. Make one? (y/n): ")
 
         if makeopt == "y":
-            defopt = options.get_default()
-            opt = {}
-            for namecmtval in defopt:
-                if len(namecmtval) == 3:
-                    opt[namecmtval[0]] = namecmtval[2]
-
+            opt = options.generateopt()
             options.write_hdf5(fn, opt)
             break
 
