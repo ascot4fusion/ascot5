@@ -12,57 +12,39 @@ from . ascot5file import add_group
 from . ascot5data import AscotData
 
 def write_hdf5(fn, Nrho, Nion, znum, anum, rhomin, rhomax,
-               ndens, ntemp, edens, etemp, idens, itemp, desc=None):
+               edens, etemp, idens, itemp, desc=None):
     """
     Write 1DS plasma input in HDF5 file.
 
-    Parameters
-    ----------
-
-    fn : str
-        Full path to the HDF5 file.
-    Nrho : int
-        Number of rho grid points.
-    Nion : int
-        Number of ions.
-    znum : int Nion x 1 numpy array
-        Ion charge numbers.
-    anum : int Nion x 1 numpy array
-        Ion mass numbers.
-    rhomin, rhomax : real
-        Edges of the uniform rho-grid.
-    ndens : real Nrho x 1 numpy array
-        Neutral density (1/m^3) NOT IMPLEMNTED
-    ntemp : real Nrho x 1 numpy array
-        Neutral temperature (eV) NOT IMPLEMENTED
-    edens : real Nrho x 1 numpy array
-        Electron density (1/m^3).
-    etemp : real Nrho x 1 numpy array
-        Electron temperature (eV).
-    idens : real Nrho x Nion numpy array
-        Ion density (1/m^3).
-    itemp : real Nrho x 1 numpy array
-        Ion temperature (eV)
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        Nrho : int <br>
+            Number of rho grid points.
+        Nion : int <br>
+            Number of ions.
+        znum : int, array_like (Nion,) <br>
+            Ion charge numbers.
+        anum : int, array_like (Nion,) <br>
+            Ion mass numbers.
+        rhomin : real <br>
+            Minimum rho grid edge value.
+        rhomax : real <br>
+            Maximum rho grid edge value.
+        edens : real array_like (Nrho,)
+            Electron density [1/m^3].
+        etemp : real array_like (Nrho,)
+            Electron temperature [eV].
+        idens : real array_like (Nrho, Nion)
+            Ion density [1/m^3].
+        itemp : real array_like (Nrho,)
+            Ion temperature [eV]
     """
 
     parent = "plasma"
     group  = "plasma_1DS"
 
-    # Check that input is valid
-    if anum.size != Nion or znum.size != Nion:
-        raise Exception('Number of ions in input not consistent')
-
-    if (rho.size != Nrho or edens.size != Nrho
-        or etemp.size != Nrho or itemp.size != Nrho):
-        raise Exception('Number of rho grid points in input not consistent')
-
-    if Nrho != idens.shape[0] or Nion != idens.shape[1]:
-        idens = np.transpose(idens)
-        if Nrho != idens.shape[0] or Nion != idens.shape[1]:
-            raise Exception('Ion density data is not consistent'
-                            'with Nrho and Nion')
-
-    idens = np.transpose(idens)
+    #idens = np.transpose(idens)
 
     if etemp[0] < 1 or etemp[0] > 1e5 or itemp[0] < 1 or itemp[0] >1e5:
         print("Warning: Check that temperature is given in eV")
@@ -71,16 +53,16 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rhomin, rhomax,
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
-        g.create_dataset('n_ions',  (1,1),    data=Nion,     dtype='i4')
-        g.create_dataset('Z_num',   (Nion,1), data=znum,     dtype='i4')
-        g.create_dataset('A_mass',  (Nion,1), data=anum,     dtype='i4')
-        g.create_dataset('n_rho',   (1,1),    data=Nrho,     dtype='i4')
-        g.create_dataset('rho_min', (1,1),    data=rhomin,   dtype='f8')
-        g.create_dataset('rho_max', (1,1),    data=rhomax,   dtype='f8')
-        g.create_dataset('temp_e',  (Nrho,1), data=etemp,    dtype='f8')
-        g.create_dataset('dens_e',  (Nrho,1), data=edens,    dtype='f8')
-        g.create_dataset('temp_i',  (Nrho,1), data=itemp,    dtype='f8')
-        g.create_dataset('dens_i',            data=idens,    dtype='f8')
+        g.create_dataset('n_ions',  (1,1),       data=Nion,   dtype='i4')
+        g.create_dataset('Z_num',   (Nion,1),    data=znum,   dtype='i4')
+        g.create_dataset('A_mass',  (Nion,1),    data=anum,   dtype='i4')
+        g.create_dataset('n_rho',   (1,1),       data=Nrho,   dtype='i4')
+        g.create_dataset('rho_min', (1,1),       data=rhomin, dtype='f8')
+        g.create_dataset('rho_max', (1,1),       data=rhomax, dtype='f8')
+        g.create_dataset('temp_e',  (Nrho,1),    data=etemp,  dtype='f8')
+        g.create_dataset('dens_e',  (Nrho,1),    data=edens,  dtype='f8')
+        g.create_dataset('temp_i',  (Nrho,1),    data=itemp,  dtype='f8')
+        g.create_dataset('dens_i',  (Nrho,Nion), data=idens,  dtype='f8')
 
 
 def read_hdf5(fn, qid):
@@ -128,3 +110,9 @@ def read_hdf5(fn, qid):
         out["idens"] = f[path]["dens_i"][:]
 
     return out
+
+
+class plasma_1DS(AscotData):
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())

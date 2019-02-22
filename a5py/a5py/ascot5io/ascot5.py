@@ -97,6 +97,7 @@ from a5py.ascot5io.mrk_fl     import mrk_fl
 from a5py.ascot5io.wall_2D    import wall_2D
 from a5py.ascot5io.wall_3D    import wall_3D
 from a5py.ascot5io.plasma_1D  import plasma_1D
+from a5py.ascot5io.plasma_1DS import plasma_1DS
 from a5py.ascot5io.N0_3D      import N0_3D
 from a5py.ascot5io.options    import Opt
 
@@ -400,6 +401,9 @@ class _InputNode(_ContainerNode):
 
             if type_ == "plasma_1D":
                 inputobj = plasma_1D(parent[key])
+
+            if type_ == "plasma_1DS":
+                inputobj = plasma_1DS(parent[key])
 
             if type_ == "N0_3D":
                 inputobj = N0_3D(parent[key])
