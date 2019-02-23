@@ -410,10 +410,13 @@ int libascot_neutral_eval_density(int Neval, real* R, real* phi, real* z,
  */
 int libascot_eval_collcoefs(int Neval, real* va, real R, real phi, real z,
                             real t, real ma, real qa, real* F, real* Dpara,
-                            real* Dperp, real* K, real* nu) {
+                            real* Dperp, real* K, real* nu, real* Q, real* dQ,
+                            real* dDpara, real* clog, real* mu0, real* mu1,
+                            real* dmu0) {
 
 
     return mccc_eval_coefs(ma, qa, R, phi, z, t, va, Neval,
                            &sim.plasma_data, &sim.B_data,
-                           F, Dpara, Dperp, K, nu);
+                           F, Dpara, Dperp, K, nu, Q, dQ, dDpara, clog,
+                           mu0, mu1, dmu0);
 }
