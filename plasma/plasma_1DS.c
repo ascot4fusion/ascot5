@@ -67,7 +67,24 @@ int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
             offload_data->rho_min, offload_data->rho_max);
     }
 
-    return err;
+    free(*offload_array);
+    *offload_array = coeff_array;
+    offload_data->offload_array_length = (2 + n_species) * NSIZE_COMP1D * n_rho;
+
+    if(err) {
+        return err;
+    }
+
+    print_out(VERBOSE_IO,
+              "\n1D plasma profiles (P_1D)\n"
+              " Min/Max rho               = %1.2le / %1.2le\n"
+              " Number of rho grid points = %d\n"
+              " Number of ion species     = %d\n",
+              offload_data->rho_min, offload_data->rho_max,
+              n_rho,
+              n_species-1);
+
+    return 0;
 }
 
 /**
@@ -104,20 +121,20 @@ void plasma_1DS_init(plasma_1DS_data* plasma_data,
     }
 
     int n_rho = offload_data->n_rho;
-    interp1Dcomp_init_spline(&plasma_data->temp[0],
+    interp1Dcomp_init_spline(&(plasma_data->temp[0]),
                              &(offload_array[0*n_rho]),
                              offload_data->n_rho, NATURALBC,
                              offload_data->rho_min,
                              offload_data->rho_max);
-    interp1Dcomp_init_spline(&plasma_data->temp[1],
-                             &(offload_array[1*n_rho]),
+    interp1Dcomp_init_spline(&(plasma_data->temp[1]),
+                             &(offload_array[1*n_rho*NSIZE_COMP1D]),
                              offload_data->n_rho, NATURALBC,
                              offload_data->rho_min,
                              offload_data->rho_max);
 
-    for(int i=0; i<n_rho; i++) {
-        interp1Dcomp_init_spline(&plasma_data->dens[i],
-                                 &(offload_array[(2+i)*n_rho]),
+    for(int i=0; i<offload_data->n_species; i++) {
+        interp1Dcomp_init_spline(&(plasma_data->dens[i]),
+                                 &(offload_array[(2+i)*n_rho*NSIZE_COMP1D]),
                                  offload_data->n_rho, NATURALBC,
                                  offload_data->rho_min,
                                  offload_data->rho_max);
