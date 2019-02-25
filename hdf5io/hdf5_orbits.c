@@ -62,14 +62,14 @@ int hdf5_orbits_write(hid_t f, char* qid, diag_orb_offload_data* data,
                              mask, datasize, &orbits[arraylength*0]);
         hdf5_orbits_writeset(group,  "time", "s", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*1]);
-        hdf5_orbits_writeset(group,  "R", "m", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "r", "m", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*2]);
         hdf5_orbits_writeset(group,  "phi", "deg", dtypef64, arraylength,
                              180.0/CONST_PI,
                              mask, datasize, &orbits[arraylength*3]);
         hdf5_orbits_writeset(group,  "z", "m", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*4]);
-        hdf5_orbits_writeset(group,  "v_R", "m/s", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "vr", "m/s", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*5]);
 
         // v_phi is stored by orbits contain phidot -> multiply it with R.
@@ -78,7 +78,7 @@ int hdf5_orbits_write(hid_t f, char* qid, diag_orb_offload_data* data,
                 orbits[arraylength*6 + i] *= orbits[arraylength*2 + i];
             }
         }
-        hdf5_orbits_writeset(group,  "v_phi", "m/s", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "vphi", "m/s", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*6]);
         for(integer i=0; i < arraylength; i++) {
             if(mask[i]) {
@@ -86,7 +86,7 @@ int hdf5_orbits_write(hid_t f, char* qid, diag_orb_offload_data* data,
             }
         }
 
-        hdf5_orbits_writeset(group,  "v_z", "m/s", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "vz", "m/s", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*7]);
         hdf5_orbits_writeset(group,  "weight", "1", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*8]);
@@ -95,14 +95,14 @@ int hdf5_orbits_write(hid_t f, char* qid, diag_orb_offload_data* data,
                              mask, datasize, &orbits[arraylength*9]);
         hdf5_orbits_writeset(group,  "rho", "1", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*10]);
-        hdf5_orbits_writeset(group,  "pol", "deg", dtypef64, arraylength,
+        hdf5_orbits_writeset(group,  "theta", "deg", dtypef64, arraylength,
                              180.0/CONST_PI,
                              mask, datasize, &orbits[arraylength*11]);
-        hdf5_orbits_writeset(group,  "B_R", "T", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "br", "T", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*12]);
-        hdf5_orbits_writeset(group,  "B_phi", "T", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "bphi", "T", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*13]);
-        hdf5_orbits_writeset(group,  "B_z", "T", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*14]);
 
     }
@@ -112,7 +112,7 @@ int hdf5_orbits_write(hid_t f, char* qid, diag_orb_offload_data* data,
                              mask, datasize, &orbits[arraylength*0]);
         hdf5_orbits_writeset(group,  "time", "s", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*1]);
-        hdf5_orbits_writeset(group,  "R", "m", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "r", "m", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*2]);
         hdf5_orbits_writeset(group,  "phi", "deg", dtypef64, arraylength,
                              180.0/CONST_PI,
@@ -124,7 +124,7 @@ int hdf5_orbits_write(hid_t f, char* qid, diag_orb_offload_data* data,
         hdf5_orbits_writeset(group,  "mu", "ev/T", dtypef64, arraylength,
                              1.0/CONST_E,
                              mask, datasize, &orbits[arraylength*6]);
-        hdf5_orbits_writeset(group,  "theta", "rad", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "zeta", "rad", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*7]);
         hdf5_orbits_writeset(group,  "weight", "1", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*8]);
@@ -133,14 +133,14 @@ int hdf5_orbits_write(hid_t f, char* qid, diag_orb_offload_data* data,
                              mask, datasize, &orbits[arraylength*9]);
         hdf5_orbits_writeset(group,  "rho", "1", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*10]);
-        hdf5_orbits_writeset(group,  "pol", "deg", dtypef64, arraylength,
+        hdf5_orbits_writeset(group,  "theta", "deg", dtypef64, arraylength,
                              180.0/CONST_PI,
                              mask, datasize, &orbits[arraylength*11]);
-        hdf5_orbits_writeset(group,  "B_R", "T", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "br", "T", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*12]);
-        hdf5_orbits_writeset(group,  "B_phi", "T", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "bphi", "T", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*13]);
-        hdf5_orbits_writeset(group,  "B_z", "T", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*14]);
     }
 
@@ -149,7 +149,7 @@ int hdf5_orbits_write(hid_t f, char* qid, diag_orb_offload_data* data,
                              mask, datasize, &orbits[arraylength*0]);
         hdf5_orbits_writeset(group,  "time", "s", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*1]);
-        hdf5_orbits_writeset(group,  "R", "m", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "r", "m", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*2]);
         hdf5_orbits_writeset(group,  "phi", "deg", dtypef64, arraylength,
                              180.0/CONST_PI,
@@ -158,14 +158,14 @@ int hdf5_orbits_write(hid_t f, char* qid, diag_orb_offload_data* data,
                              mask, datasize, &orbits[arraylength*4]);
         hdf5_orbits_writeset(group,  "rho", "1", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*5]);
-        hdf5_orbits_writeset(group,  "pol", "deg", dtypef64, arraylength,
+        hdf5_orbits_writeset(group,  "theta", "deg", dtypef64, arraylength,
                              180.0/CONST_PI,
                              mask, datasize, &orbits[arraylength*6]);
-        hdf5_orbits_writeset(group,  "B_R", "T", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "br", "T", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*7]);
-        hdf5_orbits_writeset(group,  "B_phi", "T", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "bphi", "T", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*8]);
-        hdf5_orbits_writeset(group,  "B_z", "T", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*9]);
     }
 
@@ -174,14 +174,14 @@ int hdf5_orbits_write(hid_t f, char* qid, diag_orb_offload_data* data,
                              mask, datasize, &orbits[arraylength*0]);
         hdf5_orbits_writeset(group,  "time", "s", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*1]);
-        hdf5_orbits_writeset(group,  "R", "m", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "r", "m", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*2]);
         hdf5_orbits_writeset(group,  "phi", "deg", dtypef64, arraylength,
                              180.0/CONST_PI,
                              mask, datasize, &orbits[arraylength*3]);
         hdf5_orbits_writeset(group,  "z", "m", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*4]);
-        hdf5_orbits_writeset(group,  "v_R", "m/s", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "vr", "m/s", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*5]);
 
         // v_phi is stored by orbits contain phidot -> multiply it with R.
@@ -190,7 +190,7 @@ int hdf5_orbits_write(hid_t f, char* qid, diag_orb_offload_data* data,
                 orbits[arraylength*6 + i] *= orbits[arraylength*2 + i];
             }
         }
-        hdf5_orbits_writeset(group,  "v_phi", "m/s", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "vphi", "m/s", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*6]);
         for(integer i=0; i < arraylength; i++) {
             if(mask[i]) {
@@ -198,14 +198,14 @@ int hdf5_orbits_write(hid_t f, char* qid, diag_orb_offload_data* data,
             }
         }
 
-        hdf5_orbits_writeset(group,  "v_z", "m/s", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "vz", "m/s", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*7]);
         hdf5_orbits_writeset(group,  "vpar", "m/s", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*8]);
         hdf5_orbits_writeset(group,  "mu", "ev/T", dtypef64, arraylength,
                              1.0/CONST_E,
                              mask, datasize, &orbits[arraylength*9]);
-        hdf5_orbits_writeset(group,  "theta", "rad", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "zeta", "rad", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*10]);
         hdf5_orbits_writeset(group,  "weight", "1", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*11]);
@@ -214,14 +214,14 @@ int hdf5_orbits_write(hid_t f, char* qid, diag_orb_offload_data* data,
                              mask, datasize, &orbits[arraylength*12]);
         hdf5_orbits_writeset(group,  "rho", "1", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*13]);
-        hdf5_orbits_writeset(group,  "pol", "deg", dtypef64, arraylength,
+        hdf5_orbits_writeset(group,  "theta", "deg", dtypef64, arraylength,
                              180.0/CONST_PI,
                              mask, datasize, &orbits[arraylength*14]);
-        hdf5_orbits_writeset(group,  "B_R", "T", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "br", "T", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*15]);
-        hdf5_orbits_writeset(group,  "B_phi", "T", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "bphi", "T", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*16]);
-        hdf5_orbits_writeset(group,  "B_z", "T", dtypef64, arraylength, 1,
+        hdf5_orbits_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
                              mask, datasize, &orbits[arraylength*17]);
 
     }
