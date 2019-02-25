@@ -112,11 +112,11 @@ int hdf5_markers_read_particle(hid_t f, int* nmrk, input_particle** mrk,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(MRKPATH "z", z,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MRKPATH "v_r", v_r,
+    if( hdf5_read_double(MRKPATH "vr", v_r,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MRKPATH "v_phi", v_phi,
+    if( hdf5_read_double(MRKPATH "vphi", v_phi,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MRKPATH "v_z", v_z,
+    if( hdf5_read_double(MRKPATH "vz", v_z,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(MRKPATH "mass", mass,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
@@ -189,7 +189,7 @@ int hdf5_markers_read_guiding_center(hid_t f, int* nmrk, input_particle** mrk,
     real* z      = malloc(n * sizeof(real));
     real* energy = malloc(n * sizeof(real));
     real* pitch  = malloc(n * sizeof(real));
-    real* theta  = malloc(n * sizeof(real));
+    real* zeta   = malloc(n * sizeof(real));
     real* mass   = malloc(n * sizeof(real));
     int* charge  = malloc(n * sizeof(int));
     real* weight = malloc(n * sizeof(real));
@@ -206,7 +206,7 @@ int hdf5_markers_read_guiding_center(hid_t f, int* nmrk, input_particle** mrk,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(MRKPATH "pitch", pitch,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MRKPATH "theta", theta,
+    if( hdf5_read_double(MRKPATH "zeta", zeta,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(MRKPATH "mass", mass,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
@@ -228,7 +228,7 @@ int hdf5_markers_read_guiding_center(hid_t f, int* nmrk, input_particle** mrk,
         p[i].p_gc.z      = z[i];
         p[i].p_gc.energy = energy[i] * CONST_E;
         p[i].p_gc.pitch  = pitch[i];
-        p[i].p_gc.theta  = theta[i];
+        p[i].p_gc.zeta   = zeta[i];
         p[i].p_gc.mass   = mass[i] * CONST_U;
         p[i].p_gc.charge = charge[i] * CONST_E;
         p[i].p_gc.weight = weight[i];
@@ -242,7 +242,7 @@ int hdf5_markers_read_guiding_center(hid_t f, int* nmrk, input_particle** mrk,
     free(z);
     free(energy);
     free(pitch);
-    free(theta);
+    free(zeta);
     free(mass);
     free(charge);
     free(weight);

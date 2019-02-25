@@ -94,12 +94,10 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
             p0.theta[i]    = p.theta[i];
 
             p0.time[i]       = p.time[i];
-            p0.cputime[i]    = p.cputime[i];
-            p0.rho[i]        = p.rho[i];
             p0.weight[i]     = p.weight[i];
             p0.cputime[i]    = p.cputime[i];
             p0.rho[i]        = p.rho[i];
-            p0.pol[i]        = p.pol[i];
+            p0.theta[i]      = p.theta[i];
 
             p0.mass[i]       = p.mass[i];
             p0.charge[i]     = p.charge[i];

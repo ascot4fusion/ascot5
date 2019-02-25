@@ -418,15 +418,15 @@ int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_offload_data* dist,
     dist->min_phi = math_deg2rad(dist->min_phi);
     dist->max_phi = math_deg2rad(dist->max_phi);
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_pol", &dist->min_pol,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_theta", &dist->min_theta,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_pol", &dist->max_pol,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_theta", &dist->max_theta,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_pol", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_theta", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_pol = (int)tempfloat;
-    dist->min_pol = math_deg2rad(dist->min_pol);
-    dist->max_pol = math_deg2rad(dist->max_pol);
+    dist->n_theta = (int)tempfloat;
+    dist->min_theta = math_deg2rad(dist->min_theta);
+    dist->max_theta = math_deg2rad(dist->max_theta);
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_vpa", &dist->min_vpara,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
@@ -497,15 +497,15 @@ int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
     dist->min_phi = math_deg2rad(dist->min_phi);
     dist->max_phi = math_deg2rad(dist->max_phi);
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_pol", &dist->min_pol,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_theta", &dist->min_theta,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_pol", &dist->max_pol,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_theta", &dist->max_theta,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_pol", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_theta", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_pol = (int)tempfloat;
-    dist->min_pol = math_deg2rad(dist->min_pol);
-    dist->max_pol = math_deg2rad(dist->max_pol);
+    dist->n_theta = (int)tempfloat;
+    dist->min_theta = math_deg2rad(dist->min_theta);
+    dist->max_theta = math_deg2rad(dist->max_theta);
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_vR", &dist->min_vr,
                          file, qid, __FILE__, __LINE__) ) {return 1;}

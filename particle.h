@@ -43,7 +43,7 @@ typedef struct {
     real z;           /**< Guiding center z coordinate [m]                 */
     real vpar;        /**< Parallel velocity [m/s]                         */
     real mu;          /**< Magnetic moment [J/T]                           */
-    real theta;       /**< Gyroangle [rad]                                 */
+    real zeta;        /**< Gyroangle [rad]                                 */
     real rprt;        /**< Particle R coordinate [m]                       */
     real phiprt;      /**< Particle phi coordinate [phi]                   */
     real zprt;        /**< Particle z coordinate [m]                       */
@@ -56,7 +56,7 @@ typedef struct {
     real time;        /**< Marker simulation time [s]                      */
     real cputime;     /**< Marker wall-clock time [s]                      */
     real rho;         /**< Marker rho coordinate                           */
-    real pol;         /**< Marker poloidal coordinate [rad]                */
+    real theta;       /**< Marker poloidal coordinate [rad]                */
     integer id;       /**< Arbitrary but unique ID for the marker          */
     integer endcond;  /**< Marker end condition                            */
     integer walltile; /**< ID of walltile if marker has hit the wall       */
@@ -108,7 +108,7 @@ typedef struct {
     real z;      /**< z coordinate [m]                          */
     real energy; /**< Kinetic energy [J]                        */
     real pitch;  /**< Pitch                                     */
-    real theta;  /**< Gyroangle [rad]                           */
+    real zeta;   /**< Gyroangle [rad]                           */
     real mass;   /**< Mass [kg]                                 */
     real charge; /**< Charge [e]                                */
     real weight; /**< Guiding center marker weight              */
@@ -236,7 +236,7 @@ typedef struct {
     real weight[NSIMD] __memalign__;  /**< Marker weight                      */
     real cputime[NSIMD] __memalign__; /**< Marker wall-clock time [s]         */
     real rho[NSIMD] __memalign__;     /**< Marker rho coordinate              */
-    real pol[NSIMD] __memalign__;     /**< Marker poloidal coordinate [rad]   */
+    real theta[NSIMD] __memalign__;   /**< Marker poloidal coordinate [rad]   */
 
     integer id[NSIMD] __memalign__;       /**< Unique ID for the marker       */
     integer endcond[NSIMD] __memalign__;  /**< Marker end condition           */
@@ -273,7 +273,7 @@ typedef struct {
     real z[NSIMD] __memalign__;      /**< Guiding center z coordinate [m]     */
     real vpar[NSIMD] __memalign__;   /**< Parallel velocity [m/s]             */
     real mu[NSIMD] __memalign__;     /**< Magnetic moment [J/T]               */
-    real theta[NSIMD] __memalign__;  /**< Gyroangle [rad]                     */
+    real zeta[NSIMD] __memalign__;   /**< Gyroangle [rad]                     */
     real mass[NSIMD] __memalign__;   /**< Mass [kg]                           */
     real charge[NSIMD] __memalign__; /**< Charge [e]                          */
     real time[NSIMD] __memalign__;   /**< Marker simulation time [s]          */
@@ -300,7 +300,7 @@ typedef struct {
     real weight[NSIMD] __memalign__;  /**< Marker weight                      */
     real cputime[NSIMD] __memalign__; /**< Marker wall-clock time [s]         */
     real rho[NSIMD] __memalign__;     /**< Marker rho coordinate              */
-    real pol[NSIMD] __memalign__;     /**< Marker poloidal coordinate [rad]   */
+    real theta[NSIMD] __memalign__;   /**< Marker poloidal coordinate [rad]   */
 
     integer id[NSIMD] __memalign__;       /**< Unique ID for the marker       */
     integer endcond[NSIMD] __memalign__;  /**< Marker end condition           */
@@ -362,7 +362,7 @@ typedef struct {
     real weight[NSIMD] __memalign__;  /**< Marker weight                      */
     real cputime[NSIMD] __memalign__; /**< Marker wall-clock time [s]         */
     real rho[NSIMD] __memalign__;     /**< Marker rho coordinate              */
-    real pol[NSIMD] __memalign__;     /**< Marker poloidal coordinate [rad]   */
+    real theta[NSIMD] __memalign__;   /**< Marker poloidal coordinate [rad]   */
 
     integer id[NSIMD] __memalign__;       /**< Unique ID for the marker       */
     integer endcond[NSIMD] __memalign__;  /**< Marker end condition           */

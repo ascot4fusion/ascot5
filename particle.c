@@ -518,7 +518,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->charge = p->p.charge;
             ps->weight = p->p.weight;
             ps->time   = p->p.time;
-            ps->pol    = atan2(ps->zprt-B_field_get_axis_r(Bdata, ps->phiprt),
+            ps->theta  = atan2(ps->zprt-B_field_get_axis_r(Bdata, ps->phiprt),
                                ps->rprt-B_field_get_axis_z(Bdata, ps->phiprt));
             ps->id       = id;
             ps->endcond  = 0;
@@ -651,7 +651,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->charge   = p->p_gc.charge;
             ps->weight   = p->p_gc.weight;
             ps->time     = p->p_gc.time;
-            ps->pol      = atan2(ps->z-B_field_get_axis_z(Bdata, ps->phi),
+            ps->theta    = atan2(ps->z-B_field_get_axis_z(Bdata, ps->phi),
                                  ps->r-B_field_get_axis_r(Bdata, ps->phi));
             ps->id       = id;
             ps->endcond  = 0;
@@ -724,8 +724,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->weight     = p->p_ml.weight;
             ps->time       = p->p_ml.time;
             ps->id         = id;
-            ps->pol        = atan2(p->p_ml.z-B_field_get_axis_z(Bdata, ps->phiprt), 
-                                   p->p_ml.r-B_field_get_axis_r(Bdata, ps->phiprt)); 
+            ps->theta      = atan2(p->p_ml.z - B_field_get_axis_z(Bdata, ps->phiprt),
+                                   p->p_ml.r - B_field_get_axis_r(Bdata, ps->phiprt));
             ps->endcond    = 0;
             ps->walltile   = 0;
             ps->cputime    = 0;
@@ -805,7 +805,7 @@ a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
         p_fo->charge[j]     = p->charge;
         p_fo->weight[j]     = p->weight;
         p_fo->time[j]       = p->time;
-        p_fo->pol[j]        = p->pol;
+        p_fo->theta[j]      = p->theta;
         p_fo->id[j]         = p->id;
         p_fo->endcond[j]    = p->endcond;
         p_fo->walltile[j]   = p->walltile;
@@ -885,7 +885,7 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->charge     = p_fo->charge[j];
     p->weight     = p_fo->weight[j];
     p->time       = p_fo->time[j];
-    p->pol        = p_fo->pol[j];
+    p->theta      = p_fo->theta[j];
     p->id         = p_fo->id[j];
     p->endcond    = p_fo->endcond[j];
     p->walltile   = p_fo->walltile[j];
@@ -1011,7 +1011,7 @@ a5err particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc,
         p_gc->time[j]       = p->time;
         p_gc->weight[j]     = p->weight;
         p_gc->rho[j]        = p->rho;
-        p_gc->pol[j]        = p->pol;
+        p_gc->theta[j]      = p->theta;
         p_gc->id[j]         = p->id;
         p_gc->endcond[j]    = p->endcond;
         p_gc->walltile[j]   = p->walltile;
@@ -1075,7 +1075,7 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     p->id         = p_gc->id[j];
     p->cputime    = p_gc->cputime[j];
     p->rho        = p_gc->rho[j];
-    p->pol        = p_gc->pol[j];
+    p->theta      = p_gc->theta[j];
     p->endcond    = p_gc->endcond[j];
     p->walltile   = p_gc->walltile[j];
 
@@ -1187,7 +1187,7 @@ a5err particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml,
         p_ml->id[j]         = p->id;
         p_ml->cputime[j]    = p->cputime;
         p_ml->rho[j]        = p->rho;
-        p_ml->pol[j]        = p->pol;
+        p_ml->theta[j]      = p->theta;
         p_ml->endcond[j]    = p->endcond;
         p_ml->walltile[j]   = p->walltile;
 
@@ -1260,7 +1260,7 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->id         = p_ml->id[j];
     p->cputime    = p_ml->cputime[j];
     p->rho        = p_ml->rho[j];
-    p->pol        = p_ml->pol[j];
+    p->theta      = p_ml->theta[j];
     p->endcond    = p_ml->endcond[j];
     p->walltile   = p_ml->walltile[j];
     p->err        = p_ml->err[j];
@@ -1373,7 +1373,15 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
         p_gc->zeta[j]       = zeta;
         p_gc->vpar[j]       = vpar;
         p_gc->rho[j]        = rho[0];
-        p_gc->pol[j]      = p_fo->pol[j]; // This is not accurate
+
+        /* Evaluate pol angle so that it is cumulative and at gc position */
+        real axis_r = B_field_get_axis_r(Bdata, p_gc->phi[j]);
+        real axis_z = B_field_get_axis_z(Bdata, p_gc->phi[j]);
+        p_gc->theta[j]  = p_fo->theta[j];
+        p_gc->theta[j] += atan2(   (p_fo->r[j]-axis_r) * (p_gc->z[j]-axis_z)
+                                 - (p_fo->z[j]-axis_z) * (p_gc->r[j]-axis_r),
+                                   (p_fo->r[j]-axis_r) * (p_gc->r[j]-axis_r)
+                                 + (p_fo->z[j]-axis_z) * (p_gc->z[j]-axis_z) );
 
         p_gc->B_r[j]        = B_dB[0];
         p_gc->B_r_dr[j]     = B_dB[1];

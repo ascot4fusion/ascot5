@@ -72,7 +72,7 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
             data->weight = &(offload_array[step*8]);
             data->charge = &(offload_array[step*9]);
             data->rho    = &(offload_array[step*10]);
-            data->pol    = &(offload_array[step*11]);
+            data->theta  = &(offload_array[step*11]);
             data->B_r    = &(offload_array[step*12]);
             data->B_phi  = &(offload_array[step*13]);
             data->B_z    = &(offload_array[step*14]);
@@ -86,11 +86,11 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
             data->z      = &(offload_array[step*4]);
             data->vpar   = &(offload_array[step*5]);
             data->mu     = &(offload_array[step*6]);
-            data->theta  = &(offload_array[step*7]);
+            data->zeta   = &(offload_array[step*7]);
             data->weight = &(offload_array[step*8]);
             data->charge = &(offload_array[step*9]);
             data->rho    = &(offload_array[step*10]);
-            data->pol    = &(offload_array[step*11]);
+            data->theta  = &(offload_array[step*11]);
             data->B_r    = &(offload_array[step*12]);
             data->B_phi  = &(offload_array[step*13]);
             data->B_z    = &(offload_array[step*14]);
@@ -103,7 +103,7 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
             data->phi    = &(offload_array[step*3]);
             data->z      = &(offload_array[step*4]);
             data->rho    = &(offload_array[step*5]);
-            data->pol    = &(offload_array[step*6]);
+            data->theta  = &(offload_array[step*6]);
             data->B_r    = &(offload_array[step*7]);
             data->B_phi  = &(offload_array[step*8]);
             data->B_z    = &(offload_array[step*9]);
@@ -120,11 +120,11 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
             data->zdot   = &(offload_array[step*7]);
             data->vpar   = &(offload_array[step*8]);
             data->mu     = &(offload_array[step*9]);
-            data->theta  = &(offload_array[step*10]);
+            data->zeta   = &(offload_array[step*10]);
             data->weight = &(offload_array[step*11]);
             data->charge = &(offload_array[step*12]);
             data->rho    = &(offload_array[step*13]);
-            data->pol    = &(offload_array[step*14]);
+            data->theta  = &(offload_array[step*14]);
             data->B_r    = &(offload_array[step*15]);
             data->B_phi  = &(offload_array[step*16]);
             data->B_z    = &(offload_array[step*17]);
@@ -184,7 +184,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                     data->weight[idx] = p_i->weight[i];
                     data->charge[idx] = p_i->charge[i];
                     data->rho[idx]    = p_i->rho[i];
-                    data->pol[idx]    = p_i->pol[i];
+                    data->theta[idx]  = p_i->theta[i];
                     data->B_r[idx]    = p_i->B_r[i];
                     data->B_phi[idx]  = p_i->B_phi[i];
                     data->B_z[idx]    = p_i->B_z[i];
@@ -215,7 +215,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                     data->weight[idx] = p_f->weight[i];
                     data->charge[idx] = p_f->charge[i];
                     data->rho[idx]    = p_f->rho[i];
-                    data->pol[idx]    = p_f->pol[i];
+                    data->theta[idx]  = p_f->theta[i];
                     data->B_r[idx]    = p_f->B_r[i];
                     data->B_phi[idx]  = p_f->B_phi[i];
                     data->B_z[idx]    = p_f->B_z[i];
@@ -259,7 +259,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
                         data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
-                        data->pol[idx]    = k*p_f->pol[i]    + d*p_i->pol[i];
+                        data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
@@ -276,7 +276,8 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
 
                 /* Check and store poloidal crossings. */
                 for(int j=0; j < data->npoloidalplots; j++) {
-                    k = diag_orb_check_plane_crossing(p_f->pol[i], p_i->pol[i],
+                    k = diag_orb_check_plane_crossing(p_f->theta[i],
+                                                      p_i->theta[i],
                                                       data->poloidalangles[j]);
                     if(k) {
                         real d = 1-k;
@@ -292,7 +293,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
                         data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
-                        data->pol[idx]    = k*p_f->pol[i]    + d*p_i->pol[i];
+                        data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
@@ -342,11 +343,11 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                     data->z[idx]      = p_i->z[i];
                     data->vpar[idx]   = p_i->vpar[i];
                     data->mu[idx]     = p_i->mu[i];
-                    data->theta[idx]  = p_i->theta[i];
+                    data->zeta[idx]   = p_i->zeta[i];
                     data->weight[idx] = p_i->weight[i];
                     data->charge[idx] = p_i->charge[i];
                     data->rho[idx]    = p_i->rho[i];
-                    data->pol[idx]    = p_i->pol[i];
+                    data->theta[idx]  = p_i->theta[i];
                     data->B_r[idx]    = p_i->B_r[i];
                     data->B_phi[idx]  = p_i->B_phi[i];
                     data->B_z[idx]    = p_i->B_z[i];
@@ -374,11 +375,11 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                     data->z[idx]      = p_f->z[i];
                     data->vpar[idx]   = p_f->vpar[i];
                     data->mu[idx]     = p_f->mu[i];
-                    data->theta[idx]  = p_f->theta[i];
+                    data->zeta[idx]   = p_f->zeta[i];
                     data->weight[idx] = p_f->weight[i];
                     data->charge[idx] = p_f->charge[i];
                     data->rho[idx]    = p_f->rho[i];
-                    data->pol[idx]    = p_f->pol[i];
+                    data->theta[idx]  = p_f->theta[i];
                     data->B_r[idx]    = p_f->B_r[i];
                     data->B_phi[idx]  = p_f->B_phi[i];
                     data->B_z[idx]    = p_f->B_z[i];
@@ -417,11 +418,11 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
                         data->vpar[idx]   = k*p_f->vpar[i]   + d*p_i->vpar[i];
                         data->mu[idx]     = k*p_f->mu[i]     + d*p_i->mu[i];
-                        data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
+                        data->zeta[idx]   = k*p_f->zeta[i]   + d*p_i->zeta[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
                         data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
-                        data->pol[idx]    = k*p_f->pol[i]    + d*p_i->pol[i];
+                        data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
@@ -438,7 +439,8 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
 
                 /* Check and store poloidal crossings. */
                 for(int j=0; j < data->npoloidalplots; j++) {
-                    k = diag_orb_check_plane_crossing(p_f->pol[i], p_i->pol[i],
+                    k = diag_orb_check_plane_crossing(p_f->theta[i],
+                                                      p_i->theta[i],
                                                       data->poloidalangles[j]);
                     if(k) {
                         real d = 1-k;
@@ -450,11 +452,11 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
                         data->vpar[idx]   = k*p_f->vpar[i]   + d*p_i->vpar[i];
                         data->mu[idx]     = k*p_f->mu[i]     + d*p_i->mu[i];
-                        data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
+                        data->zeta[idx]   = k*p_f->zeta[i]   + d*p_i->zeta[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
                         data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
-                        data->pol[idx]    = k*p_f->pol[i]    + d*p_i->pol[i];
+                        data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
@@ -504,7 +506,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                     data->phi[idx]   = p_i->phi[i];
                     data->z[idx]     = p_i->z[i];
                     data->rho[idx]   = p_i->rho[i];
-                    data->pol[idx]   = p_i->pol[i];
+                    data->theta[idx] = p_i->theta[i];
                     data->B_r[idx]   = p_i->B_r[i];
                     data->B_phi[idx] = p_i->B_phi[i];
                     data->B_z[idx]   = p_i->B_z[i];
@@ -529,7 +531,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                     data->phi[idx]   = p_f->phi[i];
                     data->z[idx]     = p_f->z[i];
                     data->rho[idx]   = p_f->rho[i];
-                    data->pol[idx]   = p_f->pol[i];
+                    data->theta[idx] = p_f->theta[i];
                     data->B_r[idx]   = p_f->B_r[i];
                     data->B_phi[idx] = p_f->B_phi[i];
                     data->B_z[idx]   = p_f->B_z[i];
@@ -568,7 +570,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         data->phi[idx]    = k*p_f->phi[i]   + d*p_i->phi[i];
                         data->z[idx]      = k*p_f->z[i]     + d*p_i->z[i];
                         data->rho[idx]    = k*p_f->rho[i]   + d*p_i->rho[i];
-                        data->pol[idx]    = k*p_f->pol[i]   + d*p_i->pol[i];
+                        data->theta[idx]  = k*p_f->theta[i] + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]   + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i] + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]   + d*p_i->B_z[i];
@@ -585,7 +587,8 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
 
                 /* Check and store poloidal crossings. */
                 for(int j=0; j < data->npoloidalplots; j++) {
-                    k = diag_orb_check_plane_crossing(p_f->pol[i], p_i->pol[i],
+                    k = diag_orb_check_plane_crossing(p_f->theta[i],
+                                                      p_i->theta[i],
                                                       data->poloidalangles[j]);
                     if(k) {
                         real d = 1-k;
@@ -596,7 +599,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         data->phi[idx]    = k*p_f->phi[i]   + d*p_i->phi[i];
                         data->z[idx]      = k*p_f->z[i]     + d*p_i->z[i];
                         data->rho[idx]    = k*p_f->rho[i]   + d*p_i->rho[i];
-                        data->pol[idx]    = k*p_f->pol[i]   + d*p_i->pol[i];
+                        data->theta[idx]  = k*p_f->theta[i] + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]   + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i] + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]   + d*p_i->B_z[i];

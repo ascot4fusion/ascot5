@@ -159,7 +159,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                 }
             }
             if(active_polmax) {
-                if(fabs(p_f->pol[i]) > sim->endcond_maxPolOrb) {
+                if(fabs(p_f->theta[i]) > sim->endcond_maxPolOrb) {
                     p_f->endcond[i] |= endcond_polmax;
                     p_f->running[i] = 0;
                 }
@@ -288,7 +288,7 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                 }
             }
             if(active_polmax) {
-                if(fabs(p_f->pol[i]) > sim->endcond_maxPolOrb) {
+                if(fabs(p_f->theta[i]) > sim->endcond_maxPolOrb) {
                     p_f->endcond[i] |= endcond_polmax;
                     p_f->running[i] = 0;
                 }
@@ -389,7 +389,7 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
                 }
             }
             if(active_polmax) {
-                if(fabs(p_f->pol[i]) > sim->endcond_maxPolOrb) {
+                if(fabs(p_f->theta[i]) > sim->endcond_maxPolOrb) {
                     p_f->endcond[i] |= endcond_polmax;
                     p_f->running[i] = 0;
                 }

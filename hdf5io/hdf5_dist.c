@@ -169,7 +169,7 @@ void hdf5_dist_write_rho5D(dist_rho5D_offload_data* dist, real* hist, char* file
 
     int abscissa_n_slots[7];
     abscissa_n_slots[0] = dist->n_rho;
-    abscissa_n_slots[1] = dist->n_pol;
+    abscissa_n_slots[1] = dist->n_theta;
     abscissa_n_slots[2] = dist->n_phi;
     abscissa_n_slots[3] = dist->n_vpara;
     abscissa_n_slots[4] = dist->n_vperp;
@@ -178,7 +178,7 @@ void hdf5_dist_write_rho5D(dist_rho5D_offload_data* dist, real* hist, char* file
 
     double abscissa_min[7];
     abscissa_min[0] = dist->min_rho;
-    abscissa_min[1] = math_rad2deg(dist->min_pol);
+    abscissa_min[1] = math_rad2deg(dist->min_theta);
     abscissa_min[2] = math_rad2deg(dist->min_phi);
     abscissa_min[3] = dist->min_vpara;
     abscissa_min[4] = dist->min_vperp;
@@ -187,14 +187,14 @@ void hdf5_dist_write_rho5D(dist_rho5D_offload_data* dist, real* hist, char* file
 
     double abscissa_max[7];
     abscissa_max[0] = dist->max_rho;
-    abscissa_max[1] = math_rad2deg(dist->max_pol);
+    abscissa_max[1] = math_rad2deg(dist->max_theta);
     abscissa_max[2] = math_rad2deg(dist->max_phi);
     abscissa_max[3] = dist->max_vpara;
     abscissa_max[4] = dist->max_vperp;
     abscissa_max[5] = dist->max_time;
     abscissa_max[6] = dist->max_q;
 
-    char* abscissa_names[] = { "rho", "pol", "phi", "vpa", "vpe", "time", "charge" };
+    char* abscissa_names[] = { "rho", "theta", "phi", "vpa", "vpe", "time", "charge" };
     char* abscissa_units[] = { " ", "deg", "deg", "m/s", "m/s", "s", "e" };
     char* ordinate_names[] = { "density" };
     char* ordinate_units[] = { " " };
@@ -207,7 +207,7 @@ void hdf5_dist_write_rho5D(dist_rho5D_offload_data* dist, real* hist, char* file
     retval =  hdf5_histogram_write_uniform_double(
               filename,
               path,
-              "rho_pol_phi_vpa_vpe_t_q",
+              "rho_theta_phi_vpa_vpe_t_q",
               abscissa_dim,
               ordinate_length,
               abscissa_n_slots,
@@ -241,7 +241,7 @@ void hdf5_dist_write_rho6D(dist_rho6D_offload_data* dist, real* hist, char* file
 
     int abscissa_n_slots[8];
     abscissa_n_slots[0] = dist->n_rho;
-    abscissa_n_slots[1] = dist->n_pol;
+    abscissa_n_slots[1] = dist->n_theta;
     abscissa_n_slots[2] = dist->n_phi;
     abscissa_n_slots[3] = dist->n_vr;
     abscissa_n_slots[4] = dist->n_vphi;
@@ -251,7 +251,7 @@ void hdf5_dist_write_rho6D(dist_rho6D_offload_data* dist, real* hist, char* file
 
     double abscissa_min[8];
     abscissa_min[0] = dist->min_rho;
-    abscissa_min[1] = math_rad2deg(dist->min_pol);
+    abscissa_min[1] = math_rad2deg(dist->min_theta);
     abscissa_min[2] = math_rad2deg(dist->min_phi);
     abscissa_min[3] = dist->min_vr;
     abscissa_min[4] = dist->min_vphi;
@@ -261,7 +261,7 @@ void hdf5_dist_write_rho6D(dist_rho6D_offload_data* dist, real* hist, char* file
 
     double abscissa_max[8];
     abscissa_max[0] = dist->max_rho;
-    abscissa_max[1] = math_rad2deg(dist->max_pol);
+    abscissa_max[1] = math_rad2deg(dist->max_theta);
     abscissa_max[2] = math_rad2deg(dist->max_phi);
     abscissa_max[3] = dist->max_vr;
     abscissa_max[4] = dist->max_vphi;
@@ -269,7 +269,7 @@ void hdf5_dist_write_rho6D(dist_rho6D_offload_data* dist, real* hist, char* file
     abscissa_max[6] = dist->max_time;
     abscissa_max[7] = dist->max_q;
 
-    char* abscissa_names[] = { "rho", "pol", "phi", "vr", "vphi", "vz", "time",
+    char* abscissa_names[] = { "rho", "theta", "phi", "vr", "vphi", "vz", "time",
                                "charge" };
     char* abscissa_units[] = { " ", "deg", "deg", "m/s", "m/s", "m/s", "s", "e" };
     char* ordinate_names[] = { "density" };
@@ -283,7 +283,7 @@ void hdf5_dist_write_rho6D(dist_rho6D_offload_data* dist, real* hist, char* file
     retval =  hdf5_histogram_write_uniform_double(
               filename,
               path,
-              "rho_pol_phi_vr_vphi_vz_t_q",
+              "rho_theta_phi_vr_vphi_vz_t_q",
               abscissa_dim,
               ordinate_length,
               abscissa_n_slots,

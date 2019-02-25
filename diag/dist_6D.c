@@ -226,10 +226,10 @@ void dist_6D_update_gc(dist_6D_data* dist, particle_simd_gc* p_f,
                              p_f->B_z_dr[i],
                              p_f->B_z_dphi[i],
                              p_f->B_z_dz[i]};
-            gctransform_vparmutheta2vRvphivz(p_f->mass[i], p_f->charge[i], B_dB,
-                                             p_f->phi[i], p_f->vpar[i],
-                                             p_f->mu[i], p_f->theta[i],
-                                             &vr, &vphi, &vz);
+            gctransform_vparmuzeta2vRvphivz(p_f->mass[i], p_f->charge[i], B_dB,
+                                            p_f->phi[i], p_f->vpar[i],
+                                            p_f->mu[i], p_f->zeta[i],
+                                            &vr, &vphi, &vz);
 
             i_r[i] = floor((p_f->r[i] - dist->min_r)
                      / ((dist->max_r - dist->min_r)/dist->n_r));
