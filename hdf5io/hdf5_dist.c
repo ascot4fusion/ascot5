@@ -1,23 +1,32 @@
+/**
+ * @file hdf5_dist.c
+ * @brief Distribution HDF5 IO
+ */
 #include <stdlib.h>
+#include <hdf5.h>
 #include "../ascot5.h"
 #include "../diag/dist_5D.h"
 #include "../diag/dist_6D.h"
 #include "../diag/dist_rho5D.h"
 #include "../diag/dist_rho6D.h"
-#include "../print.h"
 #include "../math.h"
-#include "hdf5_helpers.h"
 #include "hdf5_histogram.h"
+#include "hdf5_helpers.h"
+#include "hdf5_dist.h"
 
-void hdf5_dist_write_5D(dist_5D_offload_data* dist, real* hist, char* filename,
-                        char* qid) {
-
-    #if VERBOSE > 0
-    printf("\nWriting distributions to HDF5 file...\n");
-    #endif
+/**
+ * @brief Write 5D distribution to an existing result group
+ *
+ * @param f HDF5 file id
+ * @param qid run QID where distribution is written
+ * @param dist pointer to distribution data struct
+ * @param hist pointer to distribution data
+ */
+int hdf5_dist_write_5D(hid_t f, char* qid, dist_5D_offload_data* dist,
+                       real* hist) {
 
     int abscissa_dim = 7;
-    int ordinate_length = 1;
+    int ordinate_dim = 1;
 
     int abscissa_n_slots[7];
     abscissa_n_slots[0] = dist->n_r;
@@ -53,43 +62,35 @@ void hdf5_dist_write_5D(dist_5D_offload_data* dist, real* hist, char* filename,
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
-    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/", qid, path);
+    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/dist5d", qid, path);
 
-    int retval;
-    retval =  hdf5_histogram_write_uniform_double(
-              filename,
-              path,
-              "dist5d",
-              abscissa_dim,
-              ordinate_length,
-              abscissa_n_slots,
-              abscissa_min,
-              abscissa_max,
-              abscissa_units,
-              abscissa_names,
-              ordinate_units,
-              ordinate_names,
-              hist);
+    int retval = hdf5_histogram_write_uniform_double(f, path,
+                                                     abscissa_dim, ordinate_dim,
+                                                     abscissa_n_slots,
+                                                     abscissa_min,
+                                                     abscissa_max,
+                                                     abscissa_units,
+                                                     abscissa_names,
+                                                     ordinate_units,
+                                                     ordinate_names,
+                                                     hist);
 
-    if(retval) {
-        print_err("Error: Could not write distributions.");
-        return;
-    }
-
-    #if VERBOSE > 0
-    printf("\nDone writing distributions to HDF5 file.\n");
-    #endif
+    return retval;
 }
 
-void hdf5_dist_write_6D(dist_6D_offload_data* dist, real* hist, char* filename,
-                        char* qid) {
-
-    #if VERBOSE > 0
-    printf("\nWriting distributions to HDF5 file...\n");
-    #endif
+/**
+ * @brief Write 6D distribution to an existing result group
+ *
+ * @param f HDF5 file id
+ * @param qid run QID where distribution is written
+ * @param dist pointer to distribution data struct
+ * @param hist pointer to distribution data
+ */
+int hdf5_dist_write_6D(hid_t f, char* qid, dist_6D_offload_data* dist,
+                       real* hist) {
 
     int abscissa_dim = 8;
-    int ordinate_length = 1;
+    int ordinate_dim = 1;
 
     int abscissa_n_slots[8];
     abscissa_n_slots[0] = dist->n_r;
@@ -129,43 +130,35 @@ void hdf5_dist_write_6D(dist_6D_offload_data* dist, real* hist, char* filename,
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
-    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/", qid, path);
+    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/dist6d", qid, path);
 
-    int retval;
-    retval =  hdf5_histogram_write_uniform_double(
-              filename,
-              path,
-              "dist6d",
-              abscissa_dim,
-              ordinate_length,
-              abscissa_n_slots,
-              abscissa_min,
-              abscissa_max,
-              abscissa_units,
-              abscissa_names,
-              ordinate_units,
-              ordinate_names,
-              hist);
+    int retval = hdf5_histogram_write_uniform_double(f, path,
+                                                     abscissa_dim, ordinate_dim,
+                                                     abscissa_n_slots,
+                                                     abscissa_min,
+                                                     abscissa_max,
+                                                     abscissa_units,
+                                                     abscissa_names,
+                                                     ordinate_units,
+                                                     ordinate_names,
+                                                     hist);
 
-    if(retval) {
-        print_err("Error: Could not write distributions.");
-        return;
-    }
-
-    #if VERBOSE > 0
-    printf("\nDone writing distributions to HDF5 file.\n");
-    #endif
+    return retval;
 }
 
-void hdf5_dist_write_rho5D(dist_rho5D_offload_data* dist, real* hist, char* filename,
-                        char* qid) {
-
-    #if VERBOSE > 0
-    printf("\nWriting distributions to HDF5 file...\n");
-    #endif
+/**
+ * @brief Write rho 5D distribution to an existing result group
+ *
+ * @param f HDF5 file id
+ * @param qid run QID where distribution is written
+ * @param dist pointer to distribution data struct
+ * @param hist pointer to distribution data
+ */
+int hdf5_dist_write_rho5D(hid_t f, char* qid, dist_rho5D_offload_data* dist,
+                          real* hist) {
 
     int abscissa_dim = 7;
-    int ordinate_length = 1;
+    int ordinate_dim = 1;
 
     int abscissa_n_slots[7];
     abscissa_n_slots[0] = dist->n_rho;
@@ -195,49 +188,41 @@ void hdf5_dist_write_rho5D(dist_rho5D_offload_data* dist, real* hist, char* file
     abscissa_max[6] = dist->max_q;
 
     char* abscissa_names[] = { "rho", "theta", "phi", "vpa", "vpe", "time", "charge" };
-    char* abscissa_units[] = { " ", "deg", "deg", "m/s", "m/s", "s", "e" };
+    char* abscissa_units[] = { "1", "deg", "deg", "m/s", "m/s", "s", "e" };
     char* ordinate_names[] = { "density" };
     char* ordinate_units[] = { " " };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
-    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/", qid, path);
+    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/distrho5d", qid, path);
 
-    int retval;
-    retval =  hdf5_histogram_write_uniform_double(
-              filename,
-              path,
-              "distrho5d",
-              abscissa_dim,
-              ordinate_length,
-              abscissa_n_slots,
-              abscissa_min,
-              abscissa_max,
-              abscissa_units,
-              abscissa_names,
-              ordinate_units,
-              ordinate_names,
-              hist);
+    int retval = hdf5_histogram_write_uniform_double(f, path,
+                                                     abscissa_dim, ordinate_dim,
+                                                     abscissa_n_slots,
+                                                     abscissa_min,
+                                                     abscissa_max,
+                                                     abscissa_units,
+                                                     abscissa_names,
+                                                     ordinate_units,
+                                                     ordinate_names,
+                                                     hist);
 
-    if(retval) {
-        print_err("Error: Could not write distributions.");
-        return;
-    }
-
-    #if VERBOSE > 0
-    printf("\nDone writing distributions to HDF5 file.\n");
-    #endif
+    return retval;
 }
 
-void hdf5_dist_write_rho6D(dist_rho6D_offload_data* dist, real* hist, char* filename,
-                        char* qid) {
-
-    #if VERBOSE > 0
-    printf("\nWriting distributions to HDF5 file...\n");
-    #endif
+/**
+ * @brief Write rho 6D distribution to an existing result group
+ *
+ * @param f HDF5 file id
+ * @param qid run QID where distribution is written
+ * @param dist pointer to distribution data struct
+ * @param hist pointer to distribution data
+ */
+int hdf5_dist_write_rho6D(hid_t f, char* qid, dist_rho6D_offload_data* dist,
+                          real* hist) {
 
     int abscissa_dim = 8;
-    int ordinate_length = 1;
+    int ordinate_dim = 1;
 
     int abscissa_n_slots[8];
     abscissa_n_slots[0] = dist->n_rho;
@@ -271,36 +256,24 @@ void hdf5_dist_write_rho6D(dist_rho6D_offload_data* dist, real* hist, char* file
 
     char* abscissa_names[] = { "rho", "theta", "phi", "vr", "vphi", "vz", "time",
                                "charge" };
-    char* abscissa_units[] = { " ", "deg", "deg", "m/s", "m/s", "m/s", "s", "e" };
+    char* abscissa_units[] = { "1", "deg", "deg", "m/s", "m/s", "m/s", "s", "e" };
     char* ordinate_names[] = { "density" };
     char* ordinate_units[] = { " " };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
-    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/", qid, path);
+    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/distrho6d", qid, path);
 
-    int retval;
-    retval =  hdf5_histogram_write_uniform_double(
-              filename,
-              path,
-              "distrho6d",
-              abscissa_dim,
-              ordinate_length,
-              abscissa_n_slots,
-              abscissa_min,
-              abscissa_max,
-              abscissa_units,
-              abscissa_names,
-              ordinate_units,
-              ordinate_names,
-              hist);
+    int retval = hdf5_histogram_write_uniform_double(f, path,
+                                                     abscissa_dim, ordinate_dim,
+                                                     abscissa_n_slots,
+                                                     abscissa_min,
+                                                     abscissa_max,
+                                                     abscissa_units,
+                                                     abscissa_names,
+                                                     ordinate_units,
+                                                     ordinate_names,
+                                                     hist);
 
-    if(retval) {
-        print_err("Error: Could not write distributions.");
-        return;
-    }
-
-    #if VERBOSE > 0
-    printf("\nDone writing distributions to HDF5 file.\n");
-    #endif
+    return retval;
 }

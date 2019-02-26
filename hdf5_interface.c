@@ -378,37 +378,43 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
         hdf5_close(f);
         return 1;
     }
-    hdf5_close(f);
 
     if(sim->diag_offload_data.dist5D_collect) {
-        hdf5_dist_write_5D(
-            &sim->diag_offload_data.dist5D,
-            &diag_offload_array[sim->diag_offload_data.offload_dist5D_index],
-            out, qid);
+        print_out(VERBOSE_IO, "\nWriting 5D distribution.\n");
+        int idx = sim->diag_offload_data.offload_dist5D_index;
+        if( hdf5_dist_write_5D(f, qid, &sim->diag_offload_data.dist5D,
+                               &diag_offload_array[idx]) ) {
+            print_err("Warning: 5D distribution could not be written.\n");
+        }
     }
 
     if(sim->diag_offload_data.dist6D_collect) {
-        hdf5_dist_write_6D(
-            &sim->diag_offload_data.dist6D,
-            &diag_offload_array[sim->diag_offload_data.offload_dist6D_index],
-            out, qid);
+        print_out(VERBOSE_IO, "\nWriting 6D distribution.\n");
+        int idx = sim->diag_offload_data.offload_dist6D_index;
+        if( hdf5_dist_write_6D(f, qid, &sim->diag_offload_data.dist6D,
+                               &diag_offload_array[idx]) ) {
+            print_err("Warning: Orbit diagnostics could not be written.\n");
+        }
     }
     if(sim->diag_offload_data.distrho5D_collect) {
-        hdf5_dist_write_rho5D(
-            &sim->diag_offload_data.distrho5D,
-            &diag_offload_array[sim->diag_offload_data.offload_distrho5D_index],
-            out, qid);
+        print_out(VERBOSE_IO, "\nWriting rho 5D distribution.\n");
+        int idx = sim->diag_offload_data.offload_distrho5D_index;
+        if( hdf5_dist_write_rho5D(f, qid, &sim->diag_offload_data.distrho5D,
+                                  &diag_offload_array[idx]) ) {
+            print_err("Warning: rho 5D distribution could not be written.\n");
+        }
     }
 
     if(sim->diag_offload_data.distrho6D_collect) {
-        hdf5_dist_write_rho6D(
-            &sim->diag_offload_data.distrho6D,
-            &diag_offload_array[sim->diag_offload_data.offload_distrho6D_index],
-            out, qid);
+        print_out(VERBOSE_IO, "\nWriting rho 6D distribution.\n");
+        int idx = sim->diag_offload_data.offload_distrho6D_index;
+        if( hdf5_dist_write_rho6D( f, qid, &sim->diag_offload_data.distrho6D,
+                                   &diag_offload_array[idx]) ) {
+            print_err("Warning: rho 6D distribution could not be written.\n");
+        }
     }
 
     if(sim->diag_offload_data.diagorb_collect) {
-        hid_t f = hdf5_open(out);
         print_out(VERBOSE_IO, "Writing orbit diagnostics.\n");
 
         int idx = sim->diag_offload_data.offload_diagorb_index;
@@ -416,8 +422,9 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
                               &diag_offload_array[idx]) ) {
             print_err("Warning: Orbit diagnostics could not be written.\n");
         }
-        hdf5_close(f);
     }
+
+    hdf5_close(f);
 
     print_out(VERBOSE_IO, "\nDiagnostics output written.\n");
 
