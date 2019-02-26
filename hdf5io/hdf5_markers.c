@@ -102,6 +102,8 @@ int hdf5_markers_read_particle(hid_t f, int* nmrk, input_particle** mrk,
     real* v_z    = malloc(n * sizeof(real));
     real* mass   = malloc(n * sizeof(real));
     int* charge  = malloc(n * sizeof(int));
+    int* anum    = malloc(n * sizeof(int));
+    int* znum    = malloc(n * sizeof(int));
     real* weight = malloc(n * sizeof(real));
     real* time   = malloc(n * sizeof(real));
     integer* id  = malloc(n * sizeof(integer));
@@ -121,6 +123,10 @@ int hdf5_markers_read_particle(hid_t f, int* nmrk, input_particle** mrk,
     if( hdf5_read_double(MRKPATH "mass", mass,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(MRKPATH "charge", charge,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(MRKPATH "anum", anum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(MRKPATH "znum", znum,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(MRKPATH "weight", weight,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
@@ -155,6 +161,8 @@ int hdf5_markers_read_particle(hid_t f, int* nmrk, input_particle** mrk,
     free(v_z);
     free(mass);
     free(charge);
+    free(anum);
+    free(znum);
     free(weight);
     free(time);
     free(id);
@@ -192,6 +200,8 @@ int hdf5_markers_read_guiding_center(hid_t f, int* nmrk, input_particle** mrk,
     real* zeta   = malloc(n * sizeof(real));
     real* mass   = malloc(n * sizeof(real));
     int* charge  = malloc(n * sizeof(int));
+    int* anum    = malloc(n * sizeof(int));
+    int* znum    = malloc(n * sizeof(int));
     real* weight = malloc(n * sizeof(real));
     real* time   = malloc(n * sizeof(real));
     integer* id  = malloc(n * sizeof(integer));
@@ -211,6 +221,10 @@ int hdf5_markers_read_guiding_center(hid_t f, int* nmrk, input_particle** mrk,
     if( hdf5_read_double(MRKPATH "mass", mass,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(MRKPATH "charge", charge,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(MRKPATH "anum", anum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(MRKPATH "znum", znum,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(MRKPATH "weight", weight,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
@@ -245,6 +259,8 @@ int hdf5_markers_read_guiding_center(hid_t f, int* nmrk, input_particle** mrk,
     free(zeta);
     free(mass);
     free(charge);
+    free(anum);
+    free(znum);
     free(weight);
     free(time);
     free(id);
