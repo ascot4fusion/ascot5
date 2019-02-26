@@ -150,7 +150,7 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENDCOND_MIN_ENERGY",
                          &sim->endcond_min_ekin,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "ENDCOND_LIM_THERMAL",
+    if( hdf5_read_double(OPTPATH "ENDCOND_MIN_THERMAL",
                          &sim->endcond_min_thermal,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->endcond_min_thermal *= CONST_E; // eV -> J
@@ -209,8 +209,8 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     }
     if(diag->diagorb_collect) {
         diag->diagorb.record_mode = sim->sim_mode;
-        if(sim->record_GOasGC && (sim->sim_mode == simulate_mode_fo ||
-                                  sim->sim_mode == simulate_mode_hybrid) ) {
+        if(sim->record_mode && (sim->sim_mode == simulate_mode_fo ||
+                                sim->sim_mode == simulate_mode_hybrid) ) {
             diag->diagorb.record_mode = simulate_mode_gc;
         }
 

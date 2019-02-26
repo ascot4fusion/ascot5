@@ -160,7 +160,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         endcond_check_fo(&p, &p0, sim);
 
         /* Update diagnostics */
-        if(!(sim->record_GOasGC)) {
+        if(!(sim->record_mode)) {
             /* Record particle coordinates */
             diag_update_fo(&sim->diag_data, &p, &p0);
         }
@@ -232,7 +232,7 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
         real vnorm = math_normc( p->rdot[i], p->phidot[i]*p->r[i], p->zdot[i] );
         real gyrotime = CONST_2PI/
             phys_gyrofreq_vnorm(p->mass[i], p->charge[i], vnorm, Bnorm);
-        h = gyrotime/sim->fix_stepsPerGO;
+        h = gyrotime/sim->fix_gyrodef_nstep;
     }
 
     return h;
