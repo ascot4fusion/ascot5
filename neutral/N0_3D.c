@@ -44,6 +44,17 @@ int N0_3D_init_offload(N0_3D_offload_data* offload_data,
     print_out(VERBOSE_IO, "     nphi = %4.d phimin = %3.3f phimax = %3.3f\n",
               offload_data->n_phi,
               offload_data->phi_min, offload_data->phi_max);
+    print_out(VERBOSE_IO,
+              " Number of neutral species = %d\n",
+              offload_data->n_species);
+    print_out(VERBOSE_IO,
+              "Species Z/A\n");
+    for(int i=0; i < offload_data->n_species; i++) {
+        print_out(VERBOSE_IO,
+                  "      %3d/%3d     \n",
+                  (int)(offload_data->znum[i]),
+                  (int)(offload_data->anum[i]));
+    }
 
     return 0;
 }
@@ -111,7 +122,9 @@ a5err N0_3D_eval_n0(real* n0, real r, real phi, real z, int species,
     int interperr = 0; /* If error happened during interpolation */
     interperr += linint3D_eval_f(&n0[0], &ndata->n0[species], r, phi, z);
 
-    if(interperr) {err = error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_N0_3D);}
+    if(interperr) {
+        return error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_N0_3D);
+    }
 
     return err;
 }

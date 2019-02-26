@@ -101,8 +101,13 @@ int hdf5_neutral_read_3D(hid_t f, N0_3D_offload_data* offload_data,
     offload_data->phi_max = math_deg2rad(offload_data->phi_max);
     offload_data->phi_min = math_deg2rad(offload_data->phi_min);
 
-    /* Assume n_species = 1 (temporary solution) */
-    offload_data->n_species = 1;
+    /* Read n_species, anum and znum */
+    if( hdf5_read_int(NPATH "n_species", &(offload_data->n_species),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(NPATH "anum", offload_data->anum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(NPATH "znum", offload_data->znum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
 
     *offload_array = (real*) malloc(offload_data->n_species * offload_data->n_r
                                     * offload_data->n_phi * offload_data->n_z

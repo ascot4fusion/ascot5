@@ -24,9 +24,8 @@ typedef struct {
     real phi_max;   /**< maximum phi coordinate in the grid in the data       */
     real phi_grid;  /**< phi grid interval 2pi/(n_phi-1) in the data          */
     int n_species;              /**< number of neutral species                */
-    real mass[MAX_SPECIES];     /**< neutral species masses [kg]              */
-    real anum[MAX_SPECIES];     /**< neutral species mass number []           */
-    real znum[MAX_SPECIES];     /**< neutral species charge number []         */
+    int anum[MAX_SPECIES];      /**< neutral species mass number []           */
+    int znum[MAX_SPECIES];      /**< neutral species charge number []         */
     int offload_array_length;   /**< number of elements in offload_array      */
 } N0_3D_offload_data;
 
@@ -35,9 +34,8 @@ typedef struct {
  */
 typedef struct {
     int n_species;                 /**< number of neutral species             */
-    real mass[MAX_SPECIES];        /**< neutral species masses [kg]           */
-    real anum[MAX_SPECIES];        /**< neutral species mass number []        */
-    real znum[MAX_SPECIES];        /**< neutral species charge number []      */
+    int anum[MAX_SPECIES];         /**< neutral species mass number []        */
+    int znum[MAX_SPECIES];         /**< neutral species charge number []      */
     linint3D_data n0[MAX_SPECIES]; /**< pointer to start of neutral density
                                       interpolation data struct array         */
 } N0_3D_data;
