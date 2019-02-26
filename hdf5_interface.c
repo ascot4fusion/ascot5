@@ -25,7 +25,7 @@
 #include "hdf5io/hdf5_marker.h"
 #include "hdf5io/hdf5_state.h"
 #include "hdf5io/hdf5_dist.h"
-#include "hdf5io/hdf5_orbits.h"
+#include "hdf5io/hdf5_orbit.h"
 
 /**
  * @brief Read and initialize input data
@@ -219,7 +219,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
  *
  * This functions creates results group (if one does not already exist) and
  * creates run group corresponding to this run. Run group is named as
- * /results/run-XXXXXXXXXX/ where X's are the qid of current run.
+ * /results/run_XXXXXXXXXX/ where X's are the qid of current run.
  *
  * The group is initialized by writing qids of all used inputs as string
  * attributes in the run group. Also the date and empty "details" fields
@@ -249,7 +249,7 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
 
     /* Create a run group for this specific run. */
     char path[256];
-    hdf5_gen_path("/results/run-XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/results/run_XXXXXXXXXX", qid, path);
     hid_t newgroup = H5Gcreate2(fout, path,
                                 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     H5Gclose (newgroup);
@@ -393,7 +393,7 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
         int idx = sim->diag_offload_data.offload_dist6D_index;
         if( hdf5_dist_write_6D(f, qid, &sim->diag_offload_data.dist6D,
                                &diag_offload_array[idx]) ) {
-            print_err("Warning: Orbit diagnostics could not be written.\n");
+            print_err("Warning: 6D distribution could not be written.\n");
         }
     }
     if(sim->diag_offload_data.distrho5D_collect) {
@@ -418,8 +418,8 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
         print_out(VERBOSE_IO, "Writing orbit diagnostics.\n");
 
         int idx = sim->diag_offload_data.offload_diagorb_index;
-        if( hdf5_orbits_write(f, qid, &sim->diag_offload_data.diagorb,
-                              &diag_offload_array[idx]) ) {
+        if( hdf5_orbit_write(f, qid, &sim->diag_offload_data.diagorb,
+                             &diag_offload_array[idx]) ) {
             print_err("Warning: Orbit diagnostics could not be written.\n");
         }
     }
