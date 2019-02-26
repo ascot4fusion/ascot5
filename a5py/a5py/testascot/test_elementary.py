@@ -34,7 +34,6 @@ import a5py.ascot5io.B_TC      as B_TC
 import a5py.ascot5io.E_TC      as E_TC
 import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
-import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 
 import a5py.testascot.helpers as helpers
@@ -206,36 +205,11 @@ def init():
     W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall, desc="GRADB_GO")
     W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall, desc="GRADB_GC")
 
-    N0Rmin = 0
-    N0Rmax = 100
-    N0nR   = 2
-    N0zmin = -100
-    N0zmax = 100
-    N0nz   = 2
-    N0pmin = 0
-    N0pmax = 2*np.pi
-    N0np   = 2
-    N0dens = np.array([ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ])
-    N0_3D.write_hdf5(helpers.testfn,
-                     N0Rmin, N0Rmax, N0nR,
-                     N0zmin, N0zmax, N0nz,
-                     N0pmin, N0pmax, N0np, N0dens, desc="GYROMOTION")
-    N0_3D.write_hdf5(helpers.testfn,
-                     N0Rmin, N0Rmax, N0nR,
-                     N0zmin, N0zmax, N0nz,
-                     N0pmin, N0pmax, N0np, N0dens, desc="EXB_GO")
-    N0_3D.write_hdf5(helpers.testfn,
-                     N0Rmin, N0Rmax, N0nR,
-                     N0zmin, N0zmax, N0nz,
-                     N0pmin, N0pmax, N0np, N0dens, desc="EXB_GC")
-    N0_3D.write_hdf5(helpers.testfn,
-                     N0Rmin, N0Rmax, N0nR,
-                     N0zmin, N0zmax, N0nz,
-                     N0pmin, N0pmax, N0np, N0dens, desc="GRADB_GO")
-    N0_3D.write_hdf5(helpers.testfn,
-                     N0Rmin, N0Rmax, N0nR,
-                     N0zmin, N0zmax, N0nz,
-                     N0pmin, N0pmax, N0np, N0dens, desc="GRADB_GC")
+    helpers.write_N0_3D_dummy(helpers.testfn, desc="GYROMOTION")
+    helpers.write_N0_3D_dummy(helpers.testfn, desc="EXB_GO")
+    helpers.write_N0_3D_dummy(helpers.testfn, desc="EXB_GC")
+    helpers.write_N0_3D_dummy(helpers.testfn, desc="GRADB_GO")
+    helpers.write_N0_3D_dummy(helpers.testfn, desc="GRADB_GC")
 
     Nrho  = 3
     Nion  = 1

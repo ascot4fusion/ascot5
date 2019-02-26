@@ -9,8 +9,8 @@ import h5py
 from . ascot5file import add_group
 from a5py.ascot5io.ascot5data import AscotData
 
-def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0,
-               desc=None):
+def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
+               n_species, anum, znum, n0, desc=None):
     """
     Write 3D neutral density input in HDF5 file.
 
@@ -23,7 +23,11 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0,
         Edges of the uniform Rphiz-grid.
     nR, nphi, nz : int
         Number of Rphiz-grid points.
-    n0 : real R x phi x z numpy array
+    n_species : int
+        Number of neutral species.
+    Anum, Znum : int n_species numpy array
+        Mass number and charge number for the different species
+    n0 : real R x phi x z x n_species numpy array
         Neutral density in Rphiz-grid.
 
     Notes
@@ -40,23 +44,25 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0,
     parent = "neutral"
     group  = "N0_3D"
 
-    # Transpose n0 from (r, phi, z) to (phi, z, r)
-    n0 = np.transpose(n0,(1,2,0))
+    # Transpose n0 from (species, r, phi, z) to (species, phi, z, r)
+    n0 = np.transpose(n0,(0,2,3,1))
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
-        g.create_dataset("r_min",   (1,), data=Rmin,   dtype="f8")
-        g.create_dataset("r_max",   (1,), data=Rmax,   dtype="f8")
-        g.create_dataset("n_r",     (1,), data=nR,     dtype="i8")
-        g.create_dataset("phi_min", (1,), data=phimin, dtype="f8")
-        g.create_dataset("phi_max", (1,), data=phimax, dtype="f8")
-        g.create_dataset("n_phi",   (1,), data=nphi,   dtype="i8")
-        g.create_dataset("z_min",   (1,), data=zmin,   dtype="f8")
-        g.create_dataset("z_max",   (1,), data=zmax,   dtype="f8")
-        g.create_dataset("n_z",     (1,), data=nz,     dtype="i8")
-        g.create_dataset("n0",            data=n0,     dtype="f8")
-
+        g.create_dataset("r_min",     (1,),         data=Rmin,      dtype="f8")
+        g.create_dataset("r_max",     (1,),         data=Rmax,      dtype="f8")
+        g.create_dataset("n_r",       (1,),         data=nR,        dtype="i8")
+        g.create_dataset("phi_min",   (1,),         data=phimin,    dtype="f8")
+        g.create_dataset("phi_max",   (1,),         data=phimax,    dtype="f8")
+        g.create_dataset("n_phi",     (1,),         data=nphi,      dtype="i8")
+        g.create_dataset("z_min",     (1,),         data=zmin,      dtype="f8")
+        g.create_dataset("z_max",     (1,),         data=zmax,      dtype="f8")
+        g.create_dataset("n_z",       (1,),         data=nz,        dtype="i8")
+        g.create_dataset("n_species", (1,),         data=n_species, dtype="i8")
+        g.create_dataset("anum",      (n_species,), data=anum,      dtype="i8")
+        g.create_dataset("znum",      (n_species,), data=znum,      dtype="i8")
+        g.create_dataset("n0",                      data=n0,        dtype="f8")
 
 def read_hdf5(fn, qid):
     """
@@ -96,6 +102,11 @@ def read_hdf5(fn, qid):
         out["zmin"] = f[path]["z_min"][:]
         out["zmax"] = f[path]["z_max"][:]
         out["nz"]   = f[path]["n_z"][:]
+
+        out["n_species"] = f[path]["n_species"][:]
+
+        out["Anum"] = f[path]["Anum"][:]
+        out["Znum"] = f[path]["Znum"][:]
 
         out["n0"]   = f[path]["n0"]
 
