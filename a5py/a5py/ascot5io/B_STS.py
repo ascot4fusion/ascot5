@@ -10,12 +10,12 @@ from . ascot5file import add_group
 from . ascot5data import AscotData
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
-               B_R, B_phi, B_z, psi, n_periods,
+               B_R, B_phi, B_z, psi,
                axismin, axismax, naxis, axisR, axisz,
                pRmin=None, pRmax=None, pnR=None,
                pzmin=None, pzmax=None, pnz=None,
                pphimin=None, pphimax=None, pnphi=None,
-               sym_mode=0, psiaxis=0, psisepx=1, desc=None):
+               psiaxis=0, psisepx=1, desc=None):
     """
     Write stellarator magnetic field input in HDF5 file.
 
@@ -32,16 +32,12 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         Magnetic field components in Rphiz-grid
     psi : real
         Normalized toroidal flux in Rphiz-grid
-    n_periods : int
-        Number of toroidal periods.
     naxis : int
         Number of axis grid points.
     axisR, axisz : real
         Magnetic axis R- and z-location as a function of phi.
     pRmin, pRmax, pnR, pphimin, pphimax, pnphi, pzmin, pzmax, pnz : opt
         Optional parameters that define a separate grid for psi.
-    sym_mode : opt
-        Mode of symmetry used. 0 = stellarator symmetry, 1 = toroidal periodic
     psiaxis, psisepx : real
         Psi values at magnetic axis and separatrix
     """
@@ -96,8 +92,6 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         g.create_dataset("axis_z",                data=axisz,      dtype="f8")
         g.create_dataset("psi0",            (1,), data=psiaxis,    dtype="f8")
         g.create_dataset("psi1",            (1,), data=psisepx,    dtype="f8")
-        g.create_dataset("toroidalPeriods", (1,), data=n_periods,  dtype="i4")
-        g.create_dataset("symmetry_mode",   (1,), data=sym_mode,   dtype="i4")
 
 def read_hdf5(fn, qid):
     """
@@ -154,10 +148,6 @@ def read_hdf5(fn, qid):
         out["axismin"] = f[path]["axis_min"][:]
         out["axismax"] = f[path]["axis_max"][:]
         out["naxis"]   = f[path]["n_axis"][:]
-
-        out["n_periods"] = f[path]["toroidalPeriods"][:]
-
-        out["symmetry_mode"] = f[path]["symmetry_mode"][:]
 
     return out
 

@@ -107,7 +107,7 @@ def stellarator_bfield_sector2full(data):
     # bz
     bz = data['bz'][:, :-1, :]
     bz_sym = data['bz'][:, -1::-1, -1::-1]
-    bz_period = np.concatenate((bz, bz_sym),1)
+    out['bz'] = np.concatenate((bz, bz_sym),1)
     # s
     s = data['s'][:, :-1, :]
     s_sym = data['s'][:, -1::-1, -1::-1]

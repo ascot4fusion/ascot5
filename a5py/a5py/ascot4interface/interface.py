@@ -121,10 +121,8 @@ def read_bfield(a4folder, h5fn):
             data['z'][0], data['z'][-1], data['z'].size,
             data['phi'][0], data['phi'][-1], data['phi'].size,
             data['br'], data['bphi'], data['bz'], data['s'],
-            data['n_periods'],
             data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
             data['axis_r'], data['axis_z'],
-            sym_mode=data['symmetrymode'],
             psiaxis=psilims[0], psisepx=psilims[1])
 
 def read_plasma(a4folder, h5fn):
