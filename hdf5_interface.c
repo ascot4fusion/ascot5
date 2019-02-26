@@ -22,8 +22,8 @@
 #include "hdf5io/hdf5_neutral.h"
 #include "hdf5io/hdf5_efield.h"
 #include "hdf5io/hdf5_wall.h"
-#include "hdf5io/hdf5_markers.h"
-#include "hdf5io/hdf5_particlestate.h"
+#include "hdf5io/hdf5_marker.h"
+#include "hdf5io/hdf5_state.h"
 #include "hdf5io/hdf5_dist.h"
 #include "hdf5io/hdf5_orbits.h"
 
@@ -197,7 +197,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         return 1;
     }
     print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_markers_read(f, n_markers, p, qid) ) {
+    if( hdf5_marker_read(f, n_markers, p, qid) ) {
         print_err("Error: Failed to read markers.\n");
         return 1;
     }
@@ -342,7 +342,7 @@ int hdf5_interface_write_state(char* fn, char* state, integer n,
         return 1;
     }
 
-    if( hdf5_particlestate_write(f, qid, state, n, p) ) {
+    if( hdf5_state_write(f, qid, state, n, p) ) {
         print_err("Error: State could not be written.\n");
         hdf5_close(f);
         return 1;

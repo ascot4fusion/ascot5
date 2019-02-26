@@ -1,5 +1,5 @@
 /**
- * @file hdf5_particlestate.c
+ * @file hdf5_state.c
  * @brief Module for writing marker state to HDF5 file
  */
 #include <string.h>
@@ -10,6 +10,7 @@
 #include "../consts.h"
 #include "../particle.h"
 #include "hdf5_helpers.h"
+#include "hdf5_state.h"
 
 /**
  * @brief Writes marker state to an ASCOT5 HDF5 file.
@@ -30,8 +31,8 @@
  *
  * @return Zero on success
 */
-int hdf5_particlestate_write(hid_t f, char* qid, char* state, integer n,
-                             particle_state* p) {
+int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
+                     particle_state* p) {
 
     char path[256];
     hdf5_gen_path("/results/run-XXXXXXXXXX/", qid, path);

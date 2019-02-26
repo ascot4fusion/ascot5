@@ -2,7 +2,7 @@
  * @file hdf5_markers.c
  * @brief Read markers from HDF5 file
  *
- * Markers must be read by calling hdf5_markers_init() contained in this module
+ * Markers must be read by calling hdf5_marker_init() contained in this module
  * This module contains reading routines for all marker types.
  */
 #include <stdio.h>
@@ -15,16 +15,16 @@
 #include "../math.h"
 #include "../print.h"
 #include "../consts.h"
-#include "hdf5_markers.h"
+#include "hdf5_marker.h"
 
 #define MRKPATH /**< Macro that is used to store paths to data groups */
 
-int hdf5_markers_read_particle(hid_t f, int* nmrk, input_particle** p,
-                               char* qid);
-int hdf5_markers_read_guiding_center(hid_t f, int* nmrk, input_particle** p,
-                                     char* qid);
-int hdf5_markers_read_field_line(hid_t f, int* nmrk, input_particle** p,
-                                 char* qid);
+int hdf5_marker_read_particle(hid_t f, int* nmrk, input_particle** p,
+                              char* qid);
+int hdf5_marker_read_guiding_center(hid_t f, int* nmrk, input_particle** p,
+                                    char* qid);
+int hdf5_marker_read_field_line(hid_t f, int* nmrk, input_particle** p,
+                                char* qid);
 
 /**
  * @brief Read marker input.
@@ -38,7 +38,7 @@ int hdf5_markers_read_field_line(hid_t f, int* nmrk, input_particle** p,
  *
  * @return zero on success
  */
-int hdf5_markers_read(hid_t f, int *n, input_particle** p, char* qid) {
+int hdf5_marker_read(hid_t f, int *n, input_particle** p, char* qid) {
 
     char path[256];
     int err = 1;
@@ -47,7 +47,7 @@ int hdf5_markers_read(hid_t f, int *n, input_particle** p, char* qid) {
 
     hdf5_gen_path("/marker/prt-XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
-        if( !hdf5_markers_read_particle(f, n, p, qid) ) {
+        if( !hdf5_marker_read_particle(f, n, p, qid) ) {
             print_out(VERBOSE_IO,"\nLoaded %d particles.\n", *n);
             err = 0;
         }
@@ -55,7 +55,7 @@ int hdf5_markers_read(hid_t f, int *n, input_particle** p, char* qid) {
 
     hdf5_generate_qid_path("/marker/gc-XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
-        if( !hdf5_markers_read_guiding_center(f, n, p, qid) ) {
+        if( !hdf5_marker_read_guiding_center(f, n, p, qid) ) {
             print_out(VERBOSE_IO,"\nLoaded %d guiding centers.\n", *n);
             err = 0;
         }
@@ -63,7 +63,7 @@ int hdf5_markers_read(hid_t f, int *n, input_particle** p, char* qid) {
 
     hdf5_generate_qid_path("/marker/fl-XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
-        if( !hdf5_markers_read_field_line(f, n, p, qid) ) {
+        if( !hdf5_marker_read_field_line(f, n, p, qid) ) {
             print_out(VERBOSE_IO,"\nLoaded %d field lines.\n", *n);
             err = 0;
         }
@@ -84,8 +84,8 @@ int hdf5_markers_read(hid_t f, int *n, input_particle** p, char* qid) {
  *
  * @return zero on success
  */
-int hdf5_markers_read_particle(hid_t f, int* nmrk, input_particle** mrk,
-                               char* qid) {
+int hdf5_marker_read_particle(hid_t f, int* nmrk, input_particle** mrk,
+                              char* qid) {
     #undef MRKPATH
     #define MRKPATH "/marker/prt-XXXXXXXXXX/"
 
@@ -182,8 +182,8 @@ int hdf5_markers_read_particle(hid_t f, int* nmrk, input_particle** mrk,
  *
  * @return zero on success
  */
-int hdf5_markers_read_guiding_center(hid_t f, int* nmrk, input_particle** mrk,
-                                     char* qid) {
+int hdf5_marker_read_guiding_center(hid_t f, int* nmrk, input_particle** mrk,
+                                    char* qid) {
     #undef MRKPATH
     #define MRKPATH "/marker/gc-XXXXXXXXXX/"
 
@@ -280,8 +280,8 @@ int hdf5_markers_read_guiding_center(hid_t f, int* nmrk, input_particle** mrk,
  *
  * @return zero on success
  */
-int hdf5_markers_read_field_line(hid_t f, int* nmrk, input_particle** mrk,
-                                 char* qid) {
+int hdf5_marker_read_field_line(hid_t f, int* nmrk, input_particle** mrk,
+                                char* qid) {
     #undef MRKPATH
     #define MRKPATH "/marker/fl-XXXXXXXXXX/"
 
