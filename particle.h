@@ -52,6 +52,8 @@ typedef struct {
     real zdot;        /**< dz/dt [m/s]                                     */
     real mass;        /**< Mass [kg]                                       */
     real charge;      /**< Charge [e]                                      */
+    int  anum;        /**< Atomic mass number of marker species            */
+    int  znum;        /**< Charge number of marker species                 */
     real weight;      /**< Marker weight                                   */
     real time;        /**< Marker simulation time [s]                      */
     real cputime;     /**< Marker wall-clock time [s]                      */

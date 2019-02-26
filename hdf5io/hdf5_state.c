@@ -263,6 +263,18 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     hdf5_write_extendible_dataset_int(state_group, "charge", n, intdata32);
     H5LTset_attribute_string(state_group, "charge", "unit", "e");
 
+    for(i = 0; i < n; i++) {
+        intdata32[i] = p[i].anum;
+    }
+    hdf5_write_extendible_dataset_int(state_group, "anum", n, intdata32);
+    H5LTset_attribute_string(state_group, "anum", "unit", "1");
+
+    for(i = 0; i < n; i++) {
+        intdata32[i] = p[i].znum;
+    }
+    hdf5_write_extendible_dataset_int(state_group, "znum", n, intdata32);
+    H5LTset_attribute_string(state_group, "znum", "unit", "1");
+
     /* Error data */
     int d1, d2;// Dummies
     for(i = 0; i < n; i++) {
