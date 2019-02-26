@@ -105,13 +105,10 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    /* Get MPI rank and set qid for the run.
-     * qid rules: The actual random unique qid is used in MPI or single-process
-     * runs. If this is a multi-process run (user-defined MPI rank and size),
-     * e.g. condor run, we set qid = 5 000 000 000 since 32 bit integers don't
-     * go that high. The actual qid is assigned when results are combined.*/
+    /* Get MPI rank and set qid for the run*/
     int mpi_rank, mpi_size;
-    char qid[] = "5000000000";
+    char qid[11];
+    generate_qid(qid);
 
     if(sim.mpi_size == 0) {
 #ifdef MPI
@@ -122,13 +119,14 @@ int main(int argc, char** argv) {
         MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
         sim.mpi_rank = mpi_rank;
         sim.mpi_size = mpi_size;
-        generate_qid(qid);
 #else
         /* MPI was not included while compiling       */
         /* Give warning  and run a single process run */
         mpi_rank = 0;
         mpi_size = 1;
-        generate_qid(qid);
+        print_out(VERBOSE_MINIMAL,
+                  "Warning: compiled with MPI=0."
+                  "Proceeding as single process");
 #endif
     }
     else {
