@@ -453,7 +453,7 @@ CLEANUP_FAILURE:
  * - sim->hdf5_out    = "out" (sim->hdf5_in is copied here)
  * - sim->mpi_rank    = 0
  * - sim->mpi_size    = 0
- * - sim->description = "-"
+ * - sim->desc        = "No description"
  *
  * If the arguments could not be parsed, this function returns a non-zero exit
  * value.
@@ -479,8 +479,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     sim->hdf5_out[0]    = '\0';
     sim->mpi_rank       = 0;
     sim->mpi_size       = 0;
-    sim->description[0] = '-';  // Simple \0 won't work with HDF5,
-    sim->description[1] = '\0'; // don't know why.
+    strcpy(sim->description, "No description");
 
     // Read user input
     int c;
