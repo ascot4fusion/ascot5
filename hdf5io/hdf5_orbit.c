@@ -34,8 +34,8 @@ void hdf5_orbit_writeset(hid_t group,  const char* name, const char* unit,
 int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
                      real* orbits) {
     char path[256];
-    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/", qid, path);
-    strcat(path, "orbits");
+    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/", qid, path);
+    strcat(path, "orbit");
 
     hid_t group = H5Gcreate2(f, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 

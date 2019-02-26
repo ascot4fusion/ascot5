@@ -15,7 +15,7 @@
 /**
  * @brief Writes marker state to an ASCOT5 HDF5 file.
  *
- * Markers are written in /results/run-XXXXXXXXXX/state/ group where X's are
+ * Markers are written in /results/run_XXXXXXXXXX/state/ group where X's are
  * the QID.
  *
  * All fields in particle_state struct are written. Fields are written as they
@@ -35,7 +35,7 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
                      particle_state* p) {
 
     char path[256];
-    hdf5_gen_path("/results/run-XXXXXXXXXX/", qid, path);
+    hdf5_gen_path("/results/run_XXXXXXXXXX/", qid, path);
     strcat(path, state);
 
     hid_t state_group = H5Gcreate2(f, path, H5P_DEFAULT, H5P_DEFAULT,

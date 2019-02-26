@@ -57,12 +57,12 @@ int hdf5_dist_write_5D(hid_t f, char* qid, dist_5D_offload_data* dist,
 
     char* abscissa_names[] = { "R", "phi", "z", "vpa", "vpe", "time", "charge" };
     char* abscissa_units[] = { "m", "deg", "m", "m/s", "m/s", "s", "e" };
-    char* ordinate_names[] = { "density" };
+    char* ordinate_names[] = { "distribution" };
     char* ordinate_units[] = { "s/m^5*deg*e" };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
-    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/dist5d", qid, path);
+    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/dist5d", qid, path);
 
     int retval = hdf5_histogram_write_uniform_double(f, path,
                                                      abscissa_dim, ordinate_dim,
@@ -125,12 +125,12 @@ int hdf5_dist_write_6D(hid_t f, char* qid, dist_6D_offload_data* dist,
     char* abscissa_names[] = { "R", "phi", "z", "vr", "vphi", "vz", "time",
                                "charge" };
     char* abscissa_units[] = { "m", "deg", "m", "m/s", "m/s", "m/s", "s", "e" };
-    char* ordinate_names[] = { "density" };
+    char* ordinate_names[] = { "distribution" };
     char* ordinate_units[] = { "s/m^6*deg*e" };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
-    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/dist6d", qid, path);
+    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/dist6d", qid, path);
 
     int retval = hdf5_histogram_write_uniform_double(f, path,
                                                      abscissa_dim, ordinate_dim,
@@ -187,14 +187,15 @@ int hdf5_dist_write_rho5D(hid_t f, char* qid, dist_rho5D_offload_data* dist,
     abscissa_max[5] = dist->max_time;
     abscissa_max[6] = dist->max_q;
 
-    char* abscissa_names[] = { "rho", "theta", "phi", "vpa", "vpe", "time", "charge" };
+    char* abscissa_names[] = { "rho", "theta", "phi", "vpa", "vpe", "time",
+                               "charge" };
     char* abscissa_units[] = { "1", "deg", "deg", "m/s", "m/s", "s", "e" };
-    char* ordinate_names[] = { "density" };
-    char* ordinate_units[] = { " " };
+    char* ordinate_names[] = { "distribution" };
+    char* ordinate_units[] = { "s/m^2*deg^2e" };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
-    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/distrho5d", qid, path);
+    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/distrho5d", qid, path);
 
     int retval = hdf5_histogram_write_uniform_double(f, path,
                                                      abscissa_dim, ordinate_dim,
@@ -257,12 +258,12 @@ int hdf5_dist_write_rho6D(hid_t f, char* qid, dist_rho6D_offload_data* dist,
     char* abscissa_names[] = { "rho", "theta", "phi", "vr", "vphi", "vz", "time",
                                "charge" };
     char* abscissa_units[] = { "1", "deg", "deg", "m/s", "m/s", "m/s", "s", "e" };
-    char* ordinate_names[] = { "density" };
-    char* ordinate_units[] = { " " };
+    char* ordinate_names[] = { "distribution" };
+    char* ordinate_units[] = { "s^2/m^3*deg^2*e" };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
-    hdf5_generate_qid_path("/results/run-XXXXXXXXXX/distrho6d", qid, path);
+    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/distrho6d", qid, path);
 
     int retval = hdf5_histogram_write_uniform_double(f, path,
                                                      abscissa_dim, ordinate_dim,

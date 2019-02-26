@@ -47,7 +47,7 @@ int hdf5_neutral_init_offload(hid_t f, neutral_offload_data* offload_data,
 
     /* Read data the QID corresponds to */
 
-    hdf5_gen_path("/neutral/N0_3D-XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/neutral/N0_3D_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
         offload_data->type = neutral_type_3D;
         err = hdf5_neutral_read_3D(f, &(offload_data->N03D),
@@ -85,26 +85,26 @@ int hdf5_neutral_init_offload(hid_t f, neutral_offload_data* offload_data,
 int hdf5_neutral_read_3D(hid_t f, N0_3D_offload_data* offload_data,
                          real** offload_array, char* qid) {
     #undef NPATH
-    #define NPATH "/neutral/N0_3D-XXXXXXXXXX/"
+    #define NPATH "/neutral/N0_3D_XXXXXXXXXX/"
 
     /* Read and initialize Rpz-grid */
-    if( hdf5_read_int(NPATH "n_r", &(offload_data->n_r),
+    if( hdf5_read_int(NPATH "nr", &(offload_data->n_r),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(NPATH "n_phi", &(offload_data->n_phi),
+    if( hdf5_read_int(NPATH "nphi", &(offload_data->n_phi),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(NPATH "n_z", &(offload_data->n_z),
+    if( hdf5_read_int(NPATH "nz", &(offload_data->n_z),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "r_min", &(offload_data->r_min),
+    if( hdf5_read_double(NPATH "rmin", &(offload_data->r_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "r_max", &(offload_data->r_max),
+    if( hdf5_read_double(NPATH "rmax", &(offload_data->r_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "phi_min", &(offload_data->phi_min),
+    if( hdf5_read_double(NPATH "phimin", &(offload_data->phi_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "phi_max", &(offload_data->phi_max),
+    if( hdf5_read_double(NPATH "phimax", &(offload_data->phi_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "z_min", &(offload_data->z_min),
+    if( hdf5_read_double(NPATH "zmin", &(offload_data->z_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(NPATH "z_max", &(offload_data->z_max),
+    if( hdf5_read_double(NPATH "zmax", &(offload_data->z_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     // Convert to radians
@@ -115,7 +115,7 @@ int hdf5_neutral_read_3D(hid_t f, N0_3D_offload_data* offload_data,
                                     * offload_data->n_z * sizeof(real));
 
     /* Read the neutral density */
-    if( hdf5_read_double(NPATH "n0", *offload_array,
+    if( hdf5_read_double(NPATH "density", *offload_array,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     return 0;
 }
