@@ -45,7 +45,7 @@ int hdf5_markers_read(hid_t f, int *n, input_particle** p, char* qid) {
 
     /* Read data the QID corresponds to */
 
-    hdf5_gen_path("/marker/particle-XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/marker/prt-XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
         if( !hdf5_markers_read_particle(f, n, p, qid) ) {
             print_out(VERBOSE_IO,"\nLoaded %d particles.\n", *n);
@@ -53,7 +53,7 @@ int hdf5_markers_read(hid_t f, int *n, input_particle** p, char* qid) {
         }
     }
 
-    hdf5_generate_qid_path("/marker/guiding_center-XXXXXXXXXX", qid, path);
+    hdf5_generate_qid_path("/marker/gc-XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
         if( !hdf5_markers_read_guiding_center(f, n, p, qid) ) {
             print_out(VERBOSE_IO,"\nLoaded %d guiding centers.\n", *n);
@@ -61,7 +61,7 @@ int hdf5_markers_read(hid_t f, int *n, input_particle** p, char* qid) {
         }
     }
 
-    hdf5_generate_qid_path("/marker/field_line-XXXXXXXXXX", qid, path);
+    hdf5_generate_qid_path("/marker/fl-XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
         if( !hdf5_markers_read_field_line(f, n, p, qid) ) {
             print_out(VERBOSE_IO,"\nLoaded %d field lines.\n", *n);
@@ -87,7 +87,7 @@ int hdf5_markers_read(hid_t f, int *n, input_particle** p, char* qid) {
 int hdf5_markers_read_particle(hid_t f, int* nmrk, input_particle** mrk,
                                char* qid) {
     #undef MRKPATH
-    #define MRKPATH "/marker/particle-XXXXXXXXXX/"
+    #define MRKPATH "/marker/prt-XXXXXXXXXX/"
 
     integer n;
     if( hdf5_read_long(MRKPATH "n", &n,
@@ -177,7 +177,7 @@ int hdf5_markers_read_particle(hid_t f, int* nmrk, input_particle** mrk,
 int hdf5_markers_read_guiding_center(hid_t f, int* nmrk, input_particle** mrk,
                                      char* qid) {
     #undef MRKPATH
-    #define MRKPATH "/marker/guiding_center-XXXXXXXXXX/"
+    #define MRKPATH "/marker/gc-XXXXXXXXXX/"
 
     integer n;
     if( hdf5_read_long(MRKPATH "n", &n,
@@ -267,7 +267,7 @@ int hdf5_markers_read_guiding_center(hid_t f, int* nmrk, input_particle** mrk,
 int hdf5_markers_read_field_line(hid_t f, int* nmrk, input_particle** mrk,
                                  char* qid) {
     #undef MRKPATH
-    #define MRKPATH "/marker/field_line-XXXXXXXXXX/"
+    #define MRKPATH "/marker/fl-XXXXXXXXXX/"
 
     integer n;
     if( hdf5_read_long(MRKPATH "n", &n,
