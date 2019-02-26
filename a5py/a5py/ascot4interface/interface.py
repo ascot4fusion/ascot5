@@ -103,12 +103,18 @@ def read_bfield(a4folder, h5fn):
             if (not "/bfield" in f):
                 return
         data = a4magn_bkg.read_magn_bkg_stellarator(fnameh5)
+        if(data['symmetrymode'] == 0):
+            print("Converting stellarator symmetric input to periodic.")
+            data = a4magn_bkg.stellarator_bfield_sector2full(data)
         if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
-            # Remove duplicated datapoint
             print("Warning! Removing duplicated axis datapoint.")
             data['axis_r'] = data['axis_r'][0:-1]
             data['axis_phi'] = data['axis_phi'][0:-1]
             data['axis_z'] = data['axis_z'][0:-1]
+        print("Calculating interpolated limits for psiaxis and psisepx.")
+        print("This might take a while...")
+        psilims = a4magn_bkg.stellarator_psi_lims(data)
+        print("New limits: [" + str(psilims[0]) + ", " + str(psilims[1]) + "]")
         B_STS.write_hdf5(
             h5fn,
             data['r'][0], data['r'][-1], data['r'].size,
@@ -119,7 +125,7 @@ def read_bfield(a4folder, h5fn):
             data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
             data['axis_r'], data['axis_z'],
             sym_mode=data['symmetrymode'],
-            psiaxis=0, psisepx=1)
+            psiaxis=psilims[0], psisepx=psilims[1])
 
 def read_plasma(a4folder, h5fn):
     fname1d = a4folder + "input.plasma_1d"

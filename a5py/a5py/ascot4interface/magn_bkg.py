@@ -1,5 +1,6 @@
 import numpy as np
 import h5py
+from scipy.interpolate import RegularGridInterpolator as rgi
 
 def read_magn_bkg(fn,hdrfn):
     str = dict()
@@ -88,3 +89,53 @@ def read_magn_bkg_stellarator(fn):
             str['symmetrymode'] = 0
 
     return str
+
+def stellarator_bfield_sector2full(data):
+    out = data
+    # Data is in the format (r, phi, z)
+    out['r'] = data['r']
+    out['z'] = data['z']
+    out['phi'] = np.concatenate((data['phi'][:-1], data['phi'] + data['phi'][-1]))
+    # br
+    br = data['br'][:, :-1, :]
+    br_sym = -data['br'][:, -1::-1, -1::-1]
+    out['br'] = np.concatenate((br, br_sym),1)
+    # bphi
+    bphi = data['bphi'][:, :-1, :]
+    bphi_sym = data['bphi'][:, -1::-1, -1::-1]
+    out['bphi'] = np.concatenate((bphi, bphi_sym),1)
+    # bz
+    bz = data['bz'][:, :-1, :]
+    bz_sym = data['bz'][:, -1::-1, -1::-1]
+    bz_period = np.concatenate((bz, bz_sym),1)
+    # s
+    s = data['s'][:, :-1, :]
+    s_sym = data['s'][:, -1::-1, -1::-1]
+    out['s'] = np.concatenate((s, s_sym),1)
+    out['symmetrymode'] == 1
+
+    return out
+
+def stellarator_psi_lims(data):
+    ndense = 3;
+    rvec   = np.linspace(data['r'][0], data['r'][-1],
+                         ndense * data['r'].size)
+    phivec = np.linspace(data['phi'][0], data['phi'][-1],
+                         ndense * data['phi'].size)
+    zvec   = np.linspace(data['z'][0], data['z'][-1],
+                         ndense * data['z'].size)
+    psi_int = rgi((data['r'].flatten(), data['phi'].flatten(),
+                   data['z'].flatten()),
+                  data['s'])
+
+    min_psi = np.amin(data['s'])
+    max_psi = np.amax(data['s'])
+    rgrid, phigrid, zgrid = np.meshgrid(rvec, phivec, zvec)
+    for r in rvec:
+        for phi in phivec:
+            psi = psi_int(np.array([r * np.ones(zvec.shape),
+                                    phi * np.ones(zvec.shape),
+                                    zvec]).T)
+            min_psi = np.amin([min_psi, np.amin(psi)])
+            max_psi = np.amax([max_psi, np.amax(psi)])
+    return min_psi, max_psi
