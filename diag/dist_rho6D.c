@@ -155,7 +155,7 @@ void dist_rho6D_update_fo(dist_rho6D_data* dist, particle_simd_fo* p_f,
             i_time[i] = floor((p_f->time[i] - dist->min_time)
                           / ((dist->max_time - dist->min_time) / dist->n_time));
 
-            i_q[i] = floor((p_f->charge[i] - dist->min_q)
+            i_q[i] = floor((p_f->charge[i]/CONST_E - dist->min_q)
                            / ((dist->max_q - dist->min_q) / dist->n_q));
 
             if(i_rho[i]  >= 0 && i_rho[i]  <= dist->n_rho - 1  &&
@@ -269,7 +269,7 @@ void dist_rho6D_update_gc(dist_rho6D_data* dist, particle_simd_gc* p_f,
             i_time[i] = floor((p_f->time[i] - dist->min_time)
                           / ((dist->max_time - dist->min_time) / dist->n_time));
 
-            i_q[i] = floor((p_f->charge[i] - dist->min_q)
+            i_q[i] = floor((p_f->charge[i]/CONST_E - dist->min_q)
                            / ((dist->max_q - dist->min_q) / dist->n_q));
 
             if(i_rho[i]  >= 0 && i_rho[i]  <= dist->n_rho - 1  &&
