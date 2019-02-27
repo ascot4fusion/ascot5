@@ -48,12 +48,12 @@ def write_hdf5(fn, Bxyz, J, rhoval, psival=None, axisR=1, axisz=0, desc=None):
         g = add_group(f, parent, group, desc=desc)
 
         # Actual data.
-        g.create_dataset("Bxyz",         data=Bxyz,   dtype="f8")
-        g.create_dataset("J",            data=J,      dtype="f8")
-        g.create_dataset("rhoval", (1,), data=rhoval, dtype="f8")
-        g.create_dataset("psival", (1,), data=psival, dtype="f8")
-        g.create_dataset("axisr",  (1,), data=axisR,  dtype="f8")
-        g.create_dataset("axisz",  (1,), data=axisz,  dtype="f8")
+        g.create_dataset("bxyz",     (3,1), data=Bxyz,   dtype="f8")
+        g.create_dataset("jacobian", (3,3), data=J,      dtype="f8")
+        g.create_dataset("rhoval",   (1,),  data=rhoval, dtype="f8")
+        g.create_dataset("psival",   (1,),  data=psival, dtype="f8")
+        g.create_dataset("axisr",    (1,),  data=axisR,  dtype="f8")
+        g.create_dataset("axisz",    (1,),  data=axisz,  dtype="f8")
 
 
 def read_hdf5(fn, qid):

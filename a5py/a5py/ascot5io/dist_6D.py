@@ -31,7 +31,7 @@ def read_hdf5(fn, qid):
 
     with h5py.File(fn,"r") as f:
 
-        path = "/results/run-"+qid+"/dists/R_phi_z_vr_vphi_vz_t_q"
+        path = "/results/run-"+qid+"/dist6d/"
         dist = f[path]
         out = {}
 
@@ -53,7 +53,7 @@ def read_hdf5(fn, qid):
 
         for i in range(0,len(abscissae)):
             name = abscissae[i]
-            out[name + '_edges'] = dist['abscissa_vec_00000'+str(i+1)][:]
+            out[name + '_edges'] = dist['abscissa_vec_0'+str(i+1)][:]
             out[name]            = edges2grid(out[name + '_edges'])
             out[name + '_unit']  = abscissae_units[i]
             out['n_' + name]     = out[name].size

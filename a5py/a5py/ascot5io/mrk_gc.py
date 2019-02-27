@@ -11,7 +11,7 @@ from a5py.ascot5io.ascot5data import AscotData
 
 def write_hdf5(fn, n, ids, mass, charge,
                r, phi, z, energy, pitch, theta,
-               weight, time, desc=None):
+               anum, znum, weight, time, desc=None):
     """
     Write guiding center marker input in hdf5 file.
 
@@ -47,7 +47,7 @@ def write_hdf5(fn, n, ids, mass, charge,
 
     """
     parent = "marker"
-    group  = "guiding_center"
+    group  = "gc"
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
@@ -61,9 +61,12 @@ def write_hdf5(fn, n, ids, mass, charge,
         g.create_dataset("theta",  (n,1), data=theta,  dtype='f8').attrs['unit'] = 'rad';
         g.create_dataset("mass",   (n,1), data=mass,   dtype='f8').attrs['unit'] = 'amu';
         g.create_dataset("charge", (n,1), data=charge, dtype='i4').attrs['unit'] = 'e';
+        g.create_dataset("anum",   (n,1), data=anum,   dtype='i4').attrs['unit'] = '1';
+        g.create_dataset("znum",   (n,1), data=znum,   dtype='i4').attrs['unit'] = '1';
         g.create_dataset("weight", (n,1), data=weight, dtype='f8').attrs['unit'] = 'markers/s';
         g.create_dataset("time",   (n,1), data=time,   dtype='f8').attrs['unit'] = 's';
         g.create_dataset("id",     (n,1), data=ids,    dtype='i8').attrs['unit'] = '1';
+
 
 def read_hdf5(fn, qid):
     """

@@ -35,7 +35,7 @@ def write_hdf5(fn, Exyz, desc=None):
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
-        g.create_dataset("Exyz", (3,1), data = Exyz, dtype="f8")
+        g.create_dataset("exyz", (3,1), data=Exyz, dtype="f8")
 
 
 def read_hdf5(fn, qid):

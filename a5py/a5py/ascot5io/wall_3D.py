@@ -32,17 +32,17 @@ def write_hdf5(fn, n, x1x2x3, y1y2y3, z1z2z3, flag, desc=None):
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
-        g.create_dataset('x1x2x3', (n,3), data=x1x2x3,          dtype='f8')
-        g.create_dataset('y1y2y3', (n,3), data=y1y2y3,          dtype='f8')
-        g.create_dataset('z1z2z3', (n,3), data=z1z2z3,          dtype='f8')
-        g.create_dataset('flag',   (n,1), data=flag,            dtype='i4')
-        g.create_dataset('n',      (1,),  data=n,               dtype='i4')
-        g.create_dataset('min_x',  (1,),  data=np.amin(x1x2x3), dtype='f8')
-        g.create_dataset('max_x',  (1,),  data=np.amax(x1x2x3), dtype='f8')
-        g.create_dataset('min_y',  (1,),  data=np.amin(y1y2y3), dtype='f8')
-        g.create_dataset('max_y',  (1,),  data=np.amax(y1y2y3), dtype='f8')
-        g.create_dataset('min_z',  (1,),  data=np.amin(z1z2z3), dtype='f8')
-        g.create_dataset('max_z',  (1,),  data=np.amax(z1z2z3), dtype='f8')
+        g.create_dataset('x1x2x3',    (n,3), data=x1x2x3,          dtype='f8')
+        g.create_dataset('y1y2y3',    (n,3), data=y1y2y3,          dtype='f8')
+        g.create_dataset('z1z2z3',    (n,3), data=z1z2z3,          dtype='f8')
+        g.create_dataset('flag',      (n,1), data=flag,            dtype='i4')
+        g.create_dataset('nelements', (1,),  data=n,               dtype='i4')
+        g.create_dataset('xmin',      (1,),  data=np.amin(x1x2x3), dtype='f8')
+        g.create_dataset('xmax',      (1,),  data=np.amax(x1x2x3), dtype='f8')
+        g.create_dataset('ymin',      (1,),  data=np.amin(y1y2y3), dtype='f8')
+        g.create_dataset('ymax',      (1,),  data=np.amax(y1y2y3), dtype='f8')
+        g.create_dataset('zmin',      (1,),  data=np.amin(z1z2z3), dtype='f8')
+        g.create_dataset('zmax',      (1,),  data=np.amax(z1z2z3), dtype='f8')
 
 
 def read_hdf5(fn, qid):

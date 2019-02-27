@@ -41,7 +41,7 @@ class AscotData():
         return ascot5file.get_qid(self._group)
 
     def get_type(self):
-        return self._path.split("/")[-1].split("-")[0]
+        return self._path.split("/")[-1].split("_")[0]
 
     def get_name(self):
         return self._group

@@ -405,7 +405,7 @@ def add_group(f, parent, group, desc=None):
 
     # Generate metadata and include qid in group's name.
     qid, date, defdesc = _generate_meta()
-    group = group + "-" + qid
+    group = group + "_" + qid
     if desc == None:
         desc = defdesc
 
@@ -509,7 +509,7 @@ def copy_group(fs, ft, group, newgroup=False):
     # Copy
     if newgroup:
         qid, date, defdesc = _generate_meta()
-        newname = group.name[:-11] + "-" + qid
+        newname = group.name[:-11] + "_" + qid
         fs.copy(group, newparent, name=newname)
         _set_date(ft, newname, date)
         newgroupobj = ft[parentname][newname]

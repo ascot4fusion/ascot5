@@ -35,7 +35,7 @@ def read_hdf5(fn, qid, name):
     Dictionary storing the states that were read.
     """
 
-    path = "results/run-" + qid + "/" + name
+    path = "results/run_" + qid + "/" + name
 
     with h5py.File(fn,"r") as f:
         out = {}

@@ -40,9 +40,9 @@ def write_hdf5(fn, n, R, z, desc=None):
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
-        g.create_dataset("n", (1,1), data=n, dtype='i4')
-        g.create_dataset("r",        data=R, dtype='f8')
-        g.create_dataset("z",        data=z, dtype='f8')
+        g.create_dataset("nelements", (1,1), data=n, dtype='i4')
+        g.create_dataset("r",         (n,1), data=R, dtype='f8')
+        g.create_dataset("z",         (n,1), data=z, dtype='f8')
 
 
 def read_hdf5(fn, qid):

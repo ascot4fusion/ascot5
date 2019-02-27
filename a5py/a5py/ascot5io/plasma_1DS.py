@@ -11,7 +11,7 @@ import datetime
 from . ascot5file import add_group
 from . ascot5data import AscotData
 
-def write_hdf5(fn, Nrho, Nion, znum, anum, rhomin, rhomax,
+def write_hdf5(fn, Nrho, Nion, anum, znum, mass, charge, rhomin, rhomax,
                edens, etemp, idens, itemp, desc=None):
     """
     Write 1DS plasma input in HDF5 file.
@@ -53,16 +53,20 @@ def write_hdf5(fn, Nrho, Nion, znum, anum, rhomin, rhomax,
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
-        g.create_dataset('n_ions',  (1,1),       data=Nion,   dtype='i4')
-        g.create_dataset('Z_num',   (Nion,1),    data=znum,   dtype='i4')
-        g.create_dataset('A_mass',  (Nion,1),    data=anum,   dtype='i4')
-        g.create_dataset('n_rho',   (1,1),       data=Nrho,   dtype='i4')
-        g.create_dataset('rho_min', (1,1),       data=rhomin, dtype='f8')
-        g.create_dataset('rho_max', (1,1),       data=rhomax, dtype='f8')
-        g.create_dataset('temp_e',  (Nrho,1),    data=etemp,  dtype='f8')
-        g.create_dataset('dens_e',  (Nrho,1),    data=edens,  dtype='f8')
-        g.create_dataset('temp_i',  (Nrho,1),    data=itemp,  dtype='f8')
-        g.create_dataset('dens_i',  (Nrho,Nion), data=idens,  dtype='f8')
+        g.create_dataset('nion',   (1,1),    data=Nion,   dtype='i4')
+        g.create_dataset('znum',   (Nion,1), data=znum,   dtype='i4')
+        g.create_dataset('anum',   (Nion,1), data=anum,   dtype='i4')
+        g.create_dataset('charge', (Nion,1), data=charge, dtype='i4')
+        g.create_dataset('mass',   (Nion,1), data=mass,   dtype='f8')
+        g.create_dataset('nrho',   (1,1),    data=Nrho,   dtype='i4')
+        g.create_dataset('rhomin', (1,1),    data=rhomin, dtype='f8')
+        g.create_dataset('rhomax', (1,1),    data=rhomax, dtype='f8')
+        g.create_dataset('rho',    (Nrho,1), data=rho,    dtype='f8')
+
+        g.create_dataset('etemperature',   (Nrho,1),    data=etemp, dtype='f8')
+        g.create_dataset('edensity',       (Nrho,1),    data=edens, dtype='f8')
+        g.create_dataset('iontemperature', (Nrho,1),    data=itemp, dtype='f8')
+        g.create_dataset('iondensity',     (Nrho,Nion), data=idens, dtype='f8')
 
 
 def read_hdf5(fn, qid):

@@ -83,17 +83,17 @@ def write_hdf5(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
-        g.create_dataset("R0",        (1,), data=R0,        dtype='f8')
-        g.create_dataset("z0",        (1,), data=z0,        dtype='f8')
-        g.create_dataset("B_phi0",    (1,), data=B_phi0,    dtype='f8')
-        g.create_dataset("psi0",      (1,), data=psi0,      dtype='f8')
-        g.create_dataset("psi1",      (1,), data=psi1,      dtype='f8')
-        g.create_dataset("psi_mult",  (1,), data=psi_mult,  dtype='f8')
-        g.create_dataset("psi_coeff",       data=psi_coeff, dtype='f8')
-        g.create_dataset("Nripple",   (1,), data=Nripple,   dtype='i8')
-        g.create_dataset("a0",        (1,), data=a0,        dtype='f8')
-        g.create_dataset("alpha0",    (1,), data=alpha0,    dtype='f8')
-        g.create_dataset("delta0",    (1,), data=delta0,    dtype='f8')
+        g.create_dataset("r0",           (1,),   data=R0,        dtype='f8')
+        g.create_dataset("z0",           (1,),   data=z0,        dtype='f8')
+        g.create_dataset("bphi0",        (1,),   data=B_phi0,    dtype='f8')
+        g.create_dataset("psi0",         (1,),   data=psi0,      dtype='f8')
+        g.create_dataset("psi1",         (1,),   data=psi1,      dtype='f8')
+        g.create_dataset("psi_mult",     (1,),   data=psi_mult,  dtype='f8')
+        g.create_dataset("coefficients", (13,1), data=psi_coeff, dtype='f8')
+        g.create_dataset("nripple",      (1,),   data=Nripple,   dtype='i8')
+        g.create_dataset("a0",           (1,),   data=a0,        dtype='f8')
+        g.create_dataset("alpha0",       (1,),   data=alpha0,    dtype='f8')
+        g.create_dataset("delta0",       (1,),   data=delta0,    dtype='f8')
 
 
 def read_hdf5(fn, qid):

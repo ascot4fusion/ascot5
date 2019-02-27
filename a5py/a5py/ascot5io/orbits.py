@@ -29,7 +29,7 @@ def read_hdf5(fn, qid):
     """
 
     with h5py.File(fn,"r") as f:
-        orbits = f["/results/run-"+qid+"/orbits"]
+        orbits = f["/results/run_"+qid+"/orbits"]
 
         out = {}
 

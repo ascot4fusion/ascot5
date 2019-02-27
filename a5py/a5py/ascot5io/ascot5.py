@@ -384,13 +384,13 @@ class _InputNode(_ContainerNode):
             if type_ == "E_3DPOT":
                 inputobj = E_3DPOT(parent[key])
 
-            if type_ == "particle":
+            if type_ == "prt":
                 inputobj = mrk_prt(parent[key])
 
-            if type_ == "guiding_center":
+            if type_ == "gc":
                 inputobj = mrk_gc(parent[key])
 
-            if type_ == "field_line":
+            if type_ == "fl":
                 inputobj = mrk_fl(parent[key])
 
             if type_ == "wall_2D":
@@ -479,18 +479,20 @@ class _RunNode(_Node):
             if key == "endstate":
                 self[key] = State(rungroup[key], self)
 
-            if key == "orbits":
+            if key == "orbit":
                 self[key] = Orbits(rungroup[key], self)
-            if key == "dists":
-                for d in rungroup[key]:
-                    if d == "R_phi_z_vpa_vpe_t_q":
-                        self["dist5d"] = Dist_5D(rungroup[key][d], self)
-                    if d == "R_phi_z_vr_vphi_vz_t_q":
-                        self["dist6d"] = Dist_6D(rungroup[key][d], self)
-                    if d == "rho_pol_phi_vpa_vpe_t_q":
-                        self["distrho5d"] = Dist_rho5D(rungroup[key][d], self)
-                    if d == "rho_pol_phi_vr_vphi_vz_t_q":
-                        self["distrho6d"] = Dist_rho6D(rungroup[key][d], self)
+
+            if key == "dist5d":
+                self["dist5d"] = Dist_5D(rungroup[key], self)
+
+            if key == "dist6d":
+                self["dist6d"] = Dist_6D(rungroup[key], self)
+
+            if key == "distrho5d":
+                self["distrho5d"] = Dist_rho5D(rungroup[key], self)
+
+            if key == "distrho6d":
+                self["distrho6d"] = Dist_rho6D(rungroup[key], self)
 
         self._freeze()
 

@@ -38,11 +38,11 @@ def write_hdf5(fn, n_rho, rho_min, rho_max, dV_drho, r_eff, desc=None):
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc)
 
-        g.create_dataset('n_rho',   data=n_rho,   dtype='i8')
-        g.create_dataset('rho_min', data=rho_min, dtype='f8')
-        g.create_dataset('rho_max', data=rho_max, dtype='f8')
-        g.create_dataset('dV_drho', data=dV_drho, dtype='f8')
-        g.create_dataset('r_eff',   data=r_eff,   dtype='f8')
+        g.create_dataset('nrho',   (1,),       data=n_rho,   dtype='i8')
+        g.create_dataset('rhomin', (1,),       data=rho_min, dtype='f8')
+        g.create_dataset('rhomax', (1,),       data=rho_max, dtype='f8')
+        g.create_dataset('dvdrho', (n_rho, 1), data=dV_drho, dtype='f8')
+        g.create_dataset('reff',   (1,),       data=r_eff,   dtype='f8')
 
 
 def read_hdf5(fn, qid):

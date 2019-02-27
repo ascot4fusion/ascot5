@@ -11,7 +11,7 @@ from a5py.ascot5io.ascot5data import AscotData
 
 def write_hdf5(fn, n, ids, mass, charge,
                r, phi, z, vR, vphi, vz,
-               weight, time, desc=None):
+               anum, znum, weight, time, desc=None):
     """
     Write particle marker input in hdf5 file.
 
@@ -48,23 +48,26 @@ def write_hdf5(fn, n, ids, mass, charge,
     """
 
     parent = "marker"
-    group  = "particle"
+    group  = "prt"
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
         g.create_dataset("n",      (1,1), data=n,      dtype='i8').attrs['unit'] = '1';
-        g.create_dataset("r",             data=r,      dtype='f8').attrs['unit'] = 'm';
-        g.create_dataset("phi",           data=phi,    dtype='f8').attrs['unit'] = 'deg';
-        g.create_dataset("z",             data=z,      dtype='f8').attrs['unit'] = 'm';
-        g.create_dataset("v_r",           data=vR,     dtype='f8').attrs['unit'] = 'm/s';
-        g.create_dataset("v_phi",         data=vphi,   dtype='f8').attrs['unit'] = 'm/s';
-        g.create_dataset("v_z",           data=vz,     dtype='f8').attrs['unit'] = 'm/s';
-        g.create_dataset("mass",          data=mass,   dtype='f8').attrs['unit'] = 'amu';
-        g.create_dataset("charge",        data=charge, dtype='i4').attrs['unit'] = 'e';
-        g.create_dataset("weight",        data=weight, dtype='f8').attrs['unit'] = 'markers/s';
-        g.create_dataset("time",          data=time,   dtype='f8').attrs['unit'] = 's';
-        g.create_dataset("id",            data=ids,    dtype='i8').attrs['unit'] = '1';
+        g.create_dataset("r",      (n,1), data=r,      dtype='f8').attrs['unit'] = 'm';
+        g.create_dataset("phi",    (n,1), data=phi,    dtype='f8').attrs['unit'] = 'deg';
+        g.create_dataset("z",      (n,1), data=z,      dtype='f8').attrs['unit'] = 'm';
+        g.create_dataset("vr",     (n,1), data=vR,     dtype='f8').attrs['unit'] = 'm/s';
+        g.create_dataset("vphi",   (n,1), data=vphi,   dtype='f8').attrs['unit'] = 'm/s';
+        g.create_dataset("vz",     (n,1), data=vz,     dtype='f8').attrs['unit'] = 'm/s';
+        g.create_dataset("mass",   (n,1), data=mass,   dtype='f8').attrs['unit'] = 'amu';
+        g.create_dataset("charge", (n,1), data=charge, dtype='i4').attrs['unit'] = 'e';
+        g.create_dataset("anum",   (n,1), data=anum,   dtype='i4').attrs['unit'] = '1';
+        g.create_dataset("znum",   (n,1), data=znum,   dtype='i4').attrs['unit'] = '1';
+        g.create_dataset("weight", (n,1), data=weight, dtype='f8').attrs['unit'] = 'markers/s';
+        g.create_dataset("time",   (n,1), data=time,   dtype='f8').attrs['unit'] = 's';
+        g.create_dataset("id",     (n,1), data=ids,    dtype='i8').attrs['unit'] = '1';
+
 
 def read_hdf5(fn, qid):
     """

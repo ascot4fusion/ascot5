@@ -46,16 +46,16 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi, n0,
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
-        g.create_dataset("r_min",   (1,), data=Rmin,   dtype="f8")
-        g.create_dataset("r_max",   (1,), data=Rmax,   dtype="f8")
-        g.create_dataset("n_r",     (1,), data=nR,     dtype="i8")
-        g.create_dataset("phi_min", (1,), data=phimin, dtype="f8")
-        g.create_dataset("phi_max", (1,), data=phimax, dtype="f8")
-        g.create_dataset("n_phi",   (1,), data=nphi,   dtype="i8")
-        g.create_dataset("z_min",   (1,), data=zmin,   dtype="f8")
-        g.create_dataset("z_max",   (1,), data=zmax,   dtype="f8")
-        g.create_dataset("n_z",     (1,), data=nz,     dtype="i8")
-        g.create_dataset("n0",            data=n0,     dtype="f8")
+        g.create_dataset("rmin",    (1,),         data=Rmin,   dtype="f8")
+        g.create_dataset("rmax",    (1,),         data=Rmax,   dtype="f8")
+        g.create_dataset("nr",      (1,),         data=nR,     dtype="i8")
+        g.create_dataset("phimin",  (1,),         data=phimin, dtype="f8")
+        g.create_dataset("phimax",  (1,),         data=phimax, dtype="f8")
+        g.create_dataset("nphi",    (1,),         data=nphi,   dtype="i8")
+        g.create_dataset("zmin",    (1,),         data=zmin,   dtype="f8")
+        g.create_dataset("zmax",    (1,),         data=zmax,   dtype="f8")
+        g.create_dataset("nz",      (1,),         data=nz,     dtype="i8")
+        g.create_dataset("density", (nphi,nz,nR), data=n0,     dtype="f8")
 
 
 def read_hdf5(fn, qid):

@@ -55,20 +55,21 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
         # TODO Check that inputs are consistent.
 
         # Actual data.
-        g.create_dataset("R_min",  (1,), data=Rmin,    dtype="f8")
-        g.create_dataset("R_max",  (1,), data=Rmax,    dtype="f8")
-        g.create_dataset("n_R",    (1,), data=nR,      dtype="i8")
-        g.create_dataset("z_min",  (1,), data=zmin,    dtype="f8")
-        g.create_dataset("z_max",  (1,), data=zmax,    dtype="f8")
-        g.create_dataset("n_z",    (1,), data=nz,      dtype="i8")
-        g.create_dataset("psi",          data=psiRz,   dtype="f8")
-        g.create_dataset("B_R",          data=B_R,     dtype="f8")
-        g.create_dataset("B_phi",        data=B_phi,   dtype="f8")
-        g.create_dataset("B_z",          data=B_z,     dtype="f8")
-        g.create_dataset("axis_R", (1,), data=axisR,   dtype="f8")
-        g.create_dataset("axis_z", (1,), data=axisz,   dtype="f8")
-        g.create_dataset("psi0",   (1,), data=psiaxis, dtype="f8")
-        g.create_dataset("psi1",   (1,), data=psisepx, dtype="f8")
+        g.create_dataset("rmin",  (1,), data=Rmin,    dtype="f8")
+        g.create_dataset("rmax",  (1,), data=Rmax,    dtype="f8")
+        g.create_dataset("nr",    (1,), data=nR,      dtype="i8")
+        g.create_dataset("zmin",  (1,), data=zmin,    dtype="f8")
+        g.create_dataset("zmax",  (1,), data=zmax,    dtype="f8")
+        g.create_dataset("nz",    (1,), data=nz,      dtype="i8")
+        g.create_dataset("axisr", (1,), data=axisR,   dtype="f8")
+        g.create_dataset("axisz", (1,), data=axisz,   dtype="f8")
+        g.create_dataset("psi0",  (1,), data=psiaxis, dtype="f8")
+        g.create_dataset("psi1",  (1,), data=psisepx, dtype="f8")
+
+        g.create_dataset("psi",  (nz, nR), data=psiRz, dtype="f8")
+        g.create_dataset("bR",   (nz, nR), data=B_R,   dtype="f8")
+        g.create_dataset("bphi", (nz, nR), data=B_phi, dtype="f8")
+        g.create_dataset("bz",   (nz, nR), data=B_z,   dtype="f8")
 
 
 def read_hdf5(fn, qid):
