@@ -516,6 +516,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->zdot   = p->p.v_z;
             ps->mass   = p->p.mass;
             ps->charge = p->p.charge;
+            ps->anum   = p->p.anum;
+            ps->znum   = p->p.znum;
             ps->weight = p->p.weight;
             ps->time   = p->p.time;
             ps->theta  = atan2(ps->zprt-B_field_get_axis_r(Bdata, ps->phiprt),
@@ -649,6 +651,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->zeta     = p->p_gc.zeta;
             ps->mass     = p->p_gc.mass;
             ps->charge   = p->p_gc.charge;
+            ps->anum     = p->p_gc.anum;
+            ps->znum     = p->p_gc.znum;
             ps->weight   = p->p_gc.weight;
             ps->time     = p->p_gc.time;
             ps->theta    = atan2(ps->z-B_field_get_axis_z(Bdata, ps->phi),
@@ -721,6 +725,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
 
             ps->mass       = 0;
             ps->charge     = 0;
+            ps->anum       = 0;
+            ps->znum       = 0;
             ps->weight     = p->p_ml.weight;
             ps->time       = p->p_ml.time;
             ps->id         = id;

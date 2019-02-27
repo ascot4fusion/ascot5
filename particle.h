@@ -93,6 +93,8 @@ typedef struct {
     real v_z;    /**< Velocity z-component [m/s]          */
     real mass;   /**< Mass [kg]                           */
     real charge; /**< Charge [e]                          */
+    int  anum;   /**< Atomic mass number [1]              */
+    int  znum;   /**< Charge number [1]                   */
     real weight; /**< Particle marker weight              */
     real time;   /**< Particle marker simulation time [s] */
     integer id;  /**< Unique ID for the particle marker   */
@@ -113,6 +115,8 @@ typedef struct {
     real zeta;   /**< Gyroangle [rad]                           */
     real mass;   /**< Mass [kg]                                 */
     real charge; /**< Charge [e]                                */
+    int  anum;   /**< Atomic mass number [1]                    */
+    int  znum;   /**< Charge number [1]                         */
     real weight; /**< Guiding center marker weight              */
     real time;   /**< Guiding center marker simulation time [s] */
     integer id;  /**< Unique ID for the guiding center marker   */

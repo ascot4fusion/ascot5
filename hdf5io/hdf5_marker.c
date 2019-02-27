@@ -147,6 +147,8 @@ int hdf5_marker_read_particle(hid_t f, int* nmrk, input_particle** mrk,
         p[i].p.v_z    = v_z[i];
         p[i].p.mass   = mass[i] * CONST_U;
         p[i].p.charge = charge[i] * CONST_E;
+        p[i].p.anum   = anum[i];
+        p[i].p.znum   = znum[i];
         p[i].p.weight = weight[i];
         p[i].p.time   = time[i];
         p[i].p.id     = (integer) id[i];
@@ -245,6 +247,8 @@ int hdf5_marker_read_guiding_center(hid_t f, int* nmrk, input_particle** mrk,
         p[i].p_gc.zeta   = zeta[i];
         p[i].p_gc.mass   = mass[i] * CONST_U;
         p[i].p_gc.charge = charge[i] * CONST_E;
+        p[i].p_gc.anum   = anum[i];
+        p[i].p_gc.znum   = znum[i];
         p[i].p_gc.weight = weight[i];
         p[i].p_gc.time   = time[i];
         p[i].p_gc.id     = (integer) id[i];

@@ -132,10 +132,10 @@ int hdf5_histogram_write_uniform_double(hid_t f, const char *path,
         /* Name and unit */
         sprintf(temppath, "name_%02d", i);
         H5LTset_attribute_string(histogram, abscissapath, temppath,
-                                 ordinateNames[i]);
+                                 abscissaNames[i]);
         sprintf(temppath, "unit_%02d", i);
         H5LTset_attribute_string(histogram, abscissapath, temppath,
-                                 ordinateUnits[i]);
+                                 abscissaUnits[i]);
 
     }
 

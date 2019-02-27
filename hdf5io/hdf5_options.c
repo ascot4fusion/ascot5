@@ -49,7 +49,7 @@ int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
 int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
 
     #undef OPTPATH
-    #define OPTPATH "/options/opt-XXXXXXXXXX/"
+    #define OPTPATH "/options/opt_XXXXXXXXXX/"
 
     real tempfloat; // For reading float data that is converted to int.
 
@@ -135,10 +135,10 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     sim->endcond_active = sim->endcond_active | endcond_tormax * (ec > 0);
 
 
-    if( hdf5_read_double(OPTPATH "ENDCOND_MAX_SIM_TIME",
+    if( hdf5_read_double(OPTPATH "ENDCOND_MAX_SIMTIME",
                          &sim->endcond_max_simtime,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "ENDCOND_MAX_CPU_TIME",
+    if( hdf5_read_double(OPTPATH "ENDCOND_MAX_CPUTIME",
                          &sim->endcond_max_cputime,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "ENDCOND_MAX_RHO",
@@ -234,7 +234,7 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
 int hdf5_options_read_dist5D(hid_t file, dist_5D_offload_data* dist,
                              char* qid) {
     #undef OPTPATH
-    #define OPTPATH "/options/opt-XXXXXXXXXX/"
+    #define OPTPATH "/options/opt_XXXXXXXXXX/"
 
     real tempfloat;
 
@@ -311,7 +311,7 @@ int hdf5_options_read_dist5D(hid_t file, dist_5D_offload_data* dist,
 int hdf5_options_read_dist6D(hid_t file, dist_6D_offload_data* dist,
                              char* qid) {
     #undef OPTPATH
-    #define OPTPATH "/options/opt-XXXXXXXXXX/"
+    #define OPTPATH "/options/opt_XXXXXXXXXX/"
 
     real tempfloat;
 
@@ -396,7 +396,7 @@ int hdf5_options_read_dist6D(hid_t file, dist_6D_offload_data* dist,
 int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_offload_data* dist,
                                 char* qid) {
     #undef OPTPATH
-    #define OPTPATH "/options/opt-XXXXXXXXXX/"
+    #define OPTPATH "/options/opt_XXXXXXXXXX/"
 
     real tempfloat;
 
@@ -475,7 +475,7 @@ int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_offload_data* dist,
 int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
                                 char* qid) {
     #undef OPTPATH
-    #define OPTPATH "/options/opt-XXXXXXXXXX/"
+    #define OPTPATH "/options/opt_XXXXXXXXXX/"
 
     real tempfloat;
 
@@ -562,7 +562,7 @@ int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
 int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
                               char* qid) {
     #undef OPTPATH
-    #define OPTPATH "/options/opt-XXXXXXXXXX/"
+    #define OPTPATH "/options/opt_XXXXXXXXXX/"
 
     real tempfloat;
 
@@ -570,8 +570,8 @@ int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     diagorb->mode = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "ORBITWRITE_NPOINTS", &tempfloat,
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "ORBITWRITE_NPOINT", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
     diagorb->Npnt = (int)tempfloat;
     if( hdf5_read_double(OPTPATH "ORBITWRITE_INTERVAL",
                          &(diagorb->writeInterval),

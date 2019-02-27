@@ -479,7 +479,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     sim->hdf5_out[0]    = '\0';
     sim->mpi_rank       = 0;
     sim->mpi_size       = 0;
-    strcpy(sim->description, "No description");
+    strcpy(sim->description, "No description.");
 
     // Read user input
     int c;

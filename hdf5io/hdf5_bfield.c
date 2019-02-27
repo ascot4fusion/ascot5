@@ -337,7 +337,7 @@ int hdf5_bfield_read_3DS(hid_t f, B_3DS_offload_data* offload_data,
  * @brief Read magnetic field data of type B_STS
  *
  * The B_STS data is stored in HDF5 file under the group
- * /bfield/B_STS-XXXXXXXXXX/ where X's mark the QID.
+ * /bfield/B_STS_XXXXXXXXXX/ where X's mark the QID.
  *
  * This function assumes the group holds the following datasets:
  * (B data refers to \f$B_R\f$, \f$B_phi\f$, and \f$B_z\f$ and psi data to
@@ -581,7 +581,7 @@ int hdf5_bfield_read_TC(hid_t f, B_TC_offload_data* offload_data,
  * @brief Read magnetic field data of type B_GS
  *
  * The B_GS data is stored in HDF5 file under the group
- * /bfield/B_GS-XXXXXXXXXX/ where X's mark the QID.
+ * /bfield/B_GS_XXXXXXXXXX/ where X's mark the QID.
  *
  * This function assumes the group holds the following datasets:
  *
