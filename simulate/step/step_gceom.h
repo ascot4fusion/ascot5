@@ -72,12 +72,12 @@ static void step_gceom(real* ydot, real* y, real mass, real charge,
     real EstarcrossBhat[3];
     math_cross(Estar, Bhat, EstarcrossBhat);
 
-    ydot[0] = (y[3]*Bstar[0]+EstarcrossBhat[0])/BhatDotBstar;
-    ydot[1] = (y[3]*Bstar[1]+EstarcrossBhat[1])/(y[0]*BhatDotBstar);
-    ydot[2] = (y[3]*Bstar[2]+EstarcrossBhat[2])/BhatDotBstar;
-    ydot[3] = (charge/(mass*gamma)) * math_dot(Bstar,Estar)/BhatDotBstar;
+    ydot[0] = (y[3] * Bstar[0] + EstarcrossBhat[0]) / BhatDotBstar;
+    ydot[1] = (y[3] * Bstar[1] + EstarcrossBhat[1]) / (y[0]*BhatDotBstar);
+    ydot[2] = (y[3] * Bstar[2] + EstarcrossBhat[2]) / BhatDotBstar;
+    ydot[3] = (charge/(mass*gamma)) * math_dot(Bstar,Estar) / BhatDotBstar;
     ydot[4] = 0;
-    ydot[5] = charge * normB/(gamma*mass);
+    ydot[5] = charge * normB / (gamma*mass);
 
 }
 
