@@ -290,10 +290,16 @@ void math_uniquecount(int* in, int* unique, int* count, int n) {
 }
 
 /**
- * @brief Compare
+ * @brief Helper comparison routine for "math_rsearch"
  *
- * @param a
- * @param b
+ * This function checks if a key value is between two consecutive values in a
+ * real array. The array to be searched has to be in ascending sorted order.
+ *
+ * @param a first comparison value (key)
+ * @param b first value in array
+ *
+ * @return 0 if key is between the consecutive values, 1 if key is greater than
+ * the first value, and -1 if key is smaller than the first value.
  */
 int rcomp(const void* a, const void* b) {
     real a_val = *((real*) a);
@@ -307,13 +313,17 @@ int rcomp(const void* a, const void* b) {
 }
 
 /**
- * @brief Rsearch
+ * @brief Search for array element preceding a key value
  *
- * @param key
- * @param base
- * @param num
+ * This function takes an array of real values and a key value, and finds the
+ * array element which precedes the key value. The array to be searched has to
+ * be in ascending sorted order (according to comparison function rcomp).
  *
- * @return pointer
+ * @param key real value that serves as key for the search
+ * @param base pointer to the first object of the array to be searched
+ * @param num number of elements in array
+ *
+ * @return pointer to array element preceding the key, or NULL if search failed
  */
 real* math_rsearch(const real key, const real* base, int num) {
     return (real*) bsearch(&key, base, num-1, sizeof(real), rcomp);

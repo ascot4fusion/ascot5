@@ -19,7 +19,6 @@
 #include "print.h"
 #include "neutral.h"
 #include "neutral/N0_3D.h"
-#include "neutral/N0_ST.h"
 
 /**
  * @brief Load neutral data and prepare parameters
@@ -47,12 +46,6 @@ int neutral_init_offload(neutral_offload_data* offload_data,
             err = N0_3D_init_offload(&(offload_data->N03D), offload_array);
             offload_data->offload_array_length =
                 offload_data->N03D.offload_array_length;
-            break;
-
-        case neutral_type_ST:
-            err = N0_ST_init_offload(&(offload_data->N0ST), offload_array);
-            offload_data->offload_array_length =
-                offload_data->N0ST.offload_array_length;
             break;
         default:
             /* Unregonized input. Produce error. */
@@ -85,10 +78,6 @@ void neutral_free_offload(neutral_offload_data* offload_data,
         case neutral_type_3D:
             N0_3D_free_offload(&(offload_data->N03D), offload_array);
             break;
-
-        case neutral_type_ST:
-            N0_ST_free_offload(&(offload_data->N0ST), offload_array);
-            break;
     }
 }
 
@@ -113,11 +102,6 @@ int neutral_init(neutral_data* ndata, neutral_offload_data* offload_data,
         case neutral_type_3D:
             N0_3D_init(&(ndata->N03D),
                        &(offload_data->N03D), offload_array);
-            break;
-
-        case neutral_type_ST:
-            N0_ST_init(&(ndata->N0ST),
-                       &(offload_data->N0ST), offload_array);
             break;
         default:
             /* Unregonized input. Produce error. */
@@ -154,11 +138,6 @@ a5err neutral_eval_n0(real* n0, real r, real phi, real z, real t,
         case neutral_type_3D:
             err = N0_3D_eval_n0(n0, r, phi, z, &(ndata->N03D));
             break;
-
-        case neutral_type_ST:
-            err = N0_ST_eval_n0(n0, r, phi, z, &(ndata->N0ST));
-            break;
-
         default:
             /* Unregonized input. Produce error. */
             err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_NEUTRAL);

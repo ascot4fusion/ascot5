@@ -102,7 +102,7 @@ typedef struct {
     real endcond_minRho;       /**< Minimum rho limit                         */
     real endcond_maxRho;       /**< Maximum rho limit                         */
     real endcond_minEkin;      /**< Fixed minimum kinetic energy limit [J]    */
-    real endcond_minEkinPerTe; /**< Thermal minimum energy limit is this
+    real endcond_minEkinPerTi; /**< Thermal minimum energy limit is this
                                     parameter times local thermal energy      */
     real endcond_maxTorOrb;    /**< Maximum limit for toroidal distance [rad] */
     real endcond_maxPolOrb;    /**< Maximum limit for poloidal distance [rad] */
@@ -185,7 +185,7 @@ typedef struct {
     real endcond_minRho;       /**< Minimum rho limit                         */
     real endcond_maxRho;       /**< Maximum rho limit                         */
     real endcond_minEkin;      /**< Fixed minimum kinetic energy limit [J]    */
-    real endcond_minEkinPerTe; /**< Thermal minimum energy limit is this
+    real endcond_minEkinPerTi; /**< Thermal minimum energy limit is this
                                     parameter times local thermal energy      */
     real endcond_maxTorOrb;    /**< Maximum limit for toroidal distance [rad] */
     real endcond_maxPolOrb;    /**< Maximum limit for poloidal distance [rad] */

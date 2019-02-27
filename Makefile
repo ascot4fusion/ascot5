@@ -38,7 +38,7 @@ ifneq ($(CC),h5cc)
 	endif
 endif
 
-CFLAGS+=-lm -Wall -fopenmp -fPIC -std=c99 $(DEFINES) $(FLAGS)
+CFLAGS+=-lm -Wall -fopenmp -fPIC -std=c11 $(DEFINES) $(FLAGS)
 
 SIMDIR = simulate/
 SIMHEADERS = $(wildcard $(SIMDIR)simulate*.h)
@@ -98,7 +98,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(PLSHEADERS) $(N0HEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
-	random.h print.h symmetry.h hdf5_interface.h
+	random.h print.h hdf5_interface.h
 
 OBJS= math.o list.o octree.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -106,7 +106,7 @@ OBJS= math.o list.o octree.o error.c \
 	$(PLSOBJS) $(N0OBJS) $(LINTOBJS) $(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o offload.o boozer.o mhd.o \
-	random.o print.c symmetry.o hdf5_interface.o
+	random.o print.c hdf5_interface.o
 
 BINS=test_math test_bsearch \
 	test_wall_2d test_plasma test_random \
@@ -122,12 +122,12 @@ endif
 
 all: $(BINS)
 
-ascotpy: libascotpy.so
+libascot: libascot.so
 	true
 
-libascotpy.so: CFLAGS+=-shlib -fPIC -shared
+libascot.so: CFLAGS+=-shlib -fPIC -shared
 
-libascotpy.so: ascotpy.o $(OBJS)
+libascot.so: libascot.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)

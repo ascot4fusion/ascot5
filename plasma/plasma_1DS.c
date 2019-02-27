@@ -3,12 +3,35 @@
  * @brief 1D spline plasma evaluation functions
  */
 #include <stdlib.h>
+#include <math.h>
+#include <float.h>
 #include "../ascot5.h"
 #include "../print.h"
 #include "../error.h"
 #include "../consts.h"
 #include "../spline/interp.h"
 #include "plasma_1DS.h"
+
+/**
+ * @brief Flag to determine method to prevent negative values in interpolation
+ *
+ * It is possible that interpolating function f(x) with splines yield negative
+ * values which would be unphysical if f is density or temperature. To prevent
+ * this, one can either interpolate sqrt(f(x)) or log(f(x)) instead because
+ * inverse of these functions are always positive.
+ *
+ * Set this parameter to
+ *  - 0 : Do nothing
+ *  - 1 : Take logarithm before interpolating
+ *  - 2 : Take square root before interpolating
+ */
+#define PLASMA_1DS_NONEG 1
+
+/** Logarithm flag */
+#define PLASMA_1DS_LOG 1
+
+/** Square root flag */
+#define PLASMA_1DS_SQRT 2
 
 /**
  * @brief Initialize 1DS plasma data and check inputs
@@ -42,6 +65,15 @@ int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
     real* coeff_array = (real*) malloc((2 + n_species) * NSIZE_COMP1D
                                        * n_rho * sizeof(real));
 
+    for(int i=0; i< ((2 + n_species)*n_rho); i++) {
+        if(PLASMA_1DS_NONEG == PLASMA_1DS_LOG) {
+            (*offload_array)[i] = log( (*offload_array)[i] + DBL_EPSILON);
+        }
+        if(PLASMA_1DS_NONEG == PLASMA_1DS_SQRT) {
+            (*offload_array)[i] = sqrt( (*offload_array)[i] );
+        }
+    }
+
     /* Evaluate spline coefficients */
 
     /* Te */
@@ -67,7 +99,24 @@ int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
             offload_data->rho_min, offload_data->rho_max);
     }
 
-    return err;
+    free(*offload_array);
+    *offload_array = coeff_array;
+    offload_data->offload_array_length = (2 + n_species) * NSIZE_COMP1D * n_rho;
+
+    if(err) {
+        return err;
+    }
+
+    print_out(VERBOSE_IO,
+              "\n1D plasma profiles (P_1D)\n"
+              " Min/Max rho               = %1.2le / %1.2le\n"
+              " Number of rho grid points = %d\n"
+              " Number of ion species     = %d\n",
+              offload_data->rho_min, offload_data->rho_max,
+              n_rho,
+              n_species-1);
+
+    return 0;
 }
 
 /**
@@ -104,20 +153,20 @@ void plasma_1DS_init(plasma_1DS_data* plasma_data,
     }
 
     int n_rho = offload_data->n_rho;
-    interp1Dcomp_init_spline(&plasma_data->temp[0],
+    interp1Dcomp_init_spline(&(plasma_data->temp[0]),
                              &(offload_array[0*n_rho]),
                              offload_data->n_rho, NATURALBC,
                              offload_data->rho_min,
                              offload_data->rho_max);
-    interp1Dcomp_init_spline(&plasma_data->temp[1],
-                             &(offload_array[1*n_rho]),
+    interp1Dcomp_init_spline(&(plasma_data->temp[1]),
+                             &(offload_array[1*n_rho*NSIZE_COMP1D]),
                              offload_data->n_rho, NATURALBC,
                              offload_data->rho_min,
                              offload_data->rho_max);
 
-    for(int i=0; i<n_rho; i++) {
-        interp1Dcomp_init_spline(&plasma_data->dens[i],
-                                 &(offload_array[(2+i)*n_rho]),
+    for(int i=0; i<offload_data->n_species; i++) {
+        interp1Dcomp_init_spline(&(plasma_data->dens[i]),
+                                 &(offload_array[(2+i)*n_rho*NSIZE_COMP1D]),
                                  offload_data->n_rho, NATURALBC,
                                  offload_data->rho_min,
                                  offload_data->rho_max);
@@ -143,6 +192,17 @@ a5err plasma_1DS_eval_temp(real* temp, real rho, int species,
     if(interperr) {
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );
     }
+
+    if(PLASMA_1DS_NONEG == PLASMA_1DS_LOG) {
+        *temp = exp(*temp);
+    }
+    else if(PLASMA_1DS_NONEG == PLASMA_1DS_SQRT) {
+        *temp = (*temp) * (*temp);
+    }
+    else if(!err && *temp < 0){
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );
+    }
+
     return err;
 }
 
@@ -166,6 +226,17 @@ a5err plasma_1DS_eval_dens(real* dens, real rho, int species,
     if(interperr) {
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );
     }
+
+    if(PLASMA_1DS_NONEG == PLASMA_1DS_LOG) {
+        *dens = exp(*dens);
+    }
+    else if(PLASMA_1DS_NONEG == PLASMA_1DS_SQRT) {
+        *dens = (*dens) * (*dens);
+    }
+    else if(!err && *dens < 0){
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );
+    }
+
     return err;
 }
 
@@ -193,7 +264,7 @@ a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho,
     /* Evaluate ion temperature (same for all ions) and densities */
     interperr += interp1Dcomp_eval_f(&temp[1], &plasma_data->temp[1], rho);
     for(int i=1; i<plasma_data->n_species; i++) {
-        temp[i] = temp[1];
+        temp[i]    = temp[1];
         interperr += interp1Dcomp_eval_f(&dens[i], &plasma_data->dens[i], rho);
     }
 
@@ -201,6 +272,28 @@ a5err plasma_1DS_eval_densandtemp(real* dens, real* temp, real rho,
     if(interperr) {
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1DS );
     }
+
+    if(PLASMA_1DS_NONEG == PLASMA_1DS_LOG) {
+        for(int i=0; i<plasma_data->n_species; i++) {
+            dens[i] = exp(dens[i]);
+            temp[i] = exp(temp[i]);
+        }
+    }
+    else if(PLASMA_1DS_NONEG == PLASMA_1DS_SQRT) {
+        for(int i=0; i<plasma_data->n_species; i++) {
+            dens[i] = dens[i]*dens[i];
+            temp[i] = temp[i]*temp[i];
+        }
+    }
+    else {
+        for(int i=0; i<plasma_data->n_species; i++) {
+            if(!err && (dens[i] < 0 || temp[i] < 0) ) {
+                err = error_raise( ERR_INPUT_EVALUATION, __LINE__,
+                                   EF_PLASMA_1DS );
+            }
+        }
+    }
+
     return err;
 }
 

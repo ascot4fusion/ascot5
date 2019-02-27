@@ -5,7 +5,6 @@
 #ifndef B_STS_H
 #define B_STS_H
 #include "../ascot5.h"
-#include "../symmetry.h"
 #include "../linint/linint.h"
 #include "../spline/interp.h"
 
@@ -43,10 +42,6 @@ typedef struct {
     real psi1;           /**< Poloidal flux value at separatrix [V*s*m^-1]    */
     int offload_array_length; /**< Number of elements in offload_array        */
 
-    int n_periods;       /**< Number of toroidal periods                      */
-    real period_length;  /**< Length of one toroidal period [rad]             */
-    symmetry_type symmetry_mode; /**< Symmetry mode used                      */
-
     int n_axis;          /**< Number of phi grid points in axis data          */
     real axis_min;       /**< Minimum phi grid point in axis data [rad]       */
     real axis_max;       /**< Maximum phi grid point in axis data [rad]       */
@@ -59,8 +54,6 @@ typedef struct {
 typedef struct {
     real psi0;           /**< Poloidal flux value at magnetic axis [v*s*m^-1] */
     real psi1;           /**< Poloidal flux value at separatrix [V*s*m^-1]    */
-    real period_length;  /**< Length of one toroidal period [rad]             */
-    symmetry_type symmetry_mode; /**< Symmetry mode used                      */
     linint1D_data axis_r;/**< 1D axis r-value interpolation data struct       */
     linint1D_data axis_z;/**< 1D axis z-value interpolation data struct       */
     interp3D_data psi;   /**< 3D psi interpolation data struct                */

@@ -37,13 +37,15 @@ void mccc_init(mccc_data* mdata, int include_energy, int include_pitch,
                int include_gcdiff);
 int mccc_eval_coefs(real ma, real qa, real r, real phi, real z, real t,
                     real* va, int nv, plasma_data* pdata, B_field_data* Bdata,
-                    real* F, real* Dpara, real* Dperp, real* K, real* nu);
+                    real* F, real* Dpara, real* Dperp, real* K, real* nu,
+                    real* Q, real* dQ, real* dDpara, real* clog, real* mu0,
+                    real* mu1, real* dmu0);
 void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
                    plasma_data* pdata, random_data* rdata, mccc_data* mdata);
 void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
                    plasma_data* pdata, random_data* rdata, mccc_data* mdata);
 void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
-                      mccc_wienarr** wienarr, B_field_data* Bdata,
+                      mccc_wienarr* wienarr, B_field_data* Bdata,
                       plasma_data* pdata, random_data* rdata, mccc_data* mdata);
 #pragma omp end declare target
 
