@@ -211,10 +211,12 @@ void simulate(int id, int n_particles, particle_state* p,
         #pragma omp section
         {
 #if VERBOSE > 1
-            /* Update progress until simulation is complete. */
-            char filename[256];
-            sprintf(filename, "%s_%06d.stdout", sim_offload->outfn,
-                    sim_offload->mpi_rank);
+            /* Update progress until simulation is complete.             */
+            /* Trim .h5 from filename and replace it with _??????.stdout */
+            char filename[256], outfn[256];
+            strcpy(outfn, sim_offload->hdf5_out);
+            outfn[strlen(outfn)-3] = '\0';
+            sprintf(filename, "%s.stdout", outfn);
             sim_monitor(filename, &pq.n, &pq.finished);
 #endif
         }
@@ -228,11 +230,11 @@ void simulate(int id, int n_particles, particle_state* p,
     /*    progress is monitored as previously.                                */
     /*                                                                        */
     /**************************************************************************/
+    int n_new = 0;
     if(sim.sim_mode == simulate_mode_hybrid) {
 
         /* Determine the number markers that should be run
          * in fo after previous gc simulation */
-        int n_new = 0;
         for(int i = 0; i < pq.n; i++) {
             if(pq.p[i]->endcond == endcond_hybrid) {
                 /* Check that there was no wall between when moving from
@@ -250,21 +252,22 @@ void simulate(int id, int n_particles, particle_state* p,
             }
         }
 
-        if(n_new > 0) {
-        /* Reallocate and add "old" hybrid particles to the hybrid queue */
-            particle_state** tmp = pq_hybrid.p;
-            pq_hybrid.p = (particle_state**) malloc((pq_hybrid.n + n_new)
-                    * sizeof(particle_state*));
-            memcpy(pq_hybrid.p, tmp, pq_hybrid.n * sizeof(particle_state*));
-            free(tmp);
+    }
 
-            /* Add "new" hybrid particles and reset their end condition */
-            pq_hybrid.n += n_new;
-            for(int i = 0; i < pq.n; i++) {
-                if(pq.p[i]->endcond == endcond_hybrid) {
-                    pq.p[i]->endcond = 0;
-                    pq_hybrid.p[pq_hybrid.next++] = pq.p[i];
-                }
+    if(n_new > 0) {
+        /* Reallocate and add "old" hybrid particles to the hybrid queue */
+        particle_state** tmp = pq_hybrid.p;
+        pq_hybrid.p = (particle_state**) malloc((pq_hybrid.n + n_new)
+                                                * sizeof(particle_state*));
+        memcpy(pq_hybrid.p, tmp, pq_hybrid.n * sizeof(particle_state*));
+        free(tmp);
+
+        /* Add "new" hybrid particles and reset their end condition */
+        pq_hybrid.n += n_new;
+        for(int i = 0; i < pq.n; i++) {
+            if(pq.p[i]->endcond == endcond_hybrid) {
+                pq.p[i]->endcond = 0;
+                pq_hybrid.p[pq_hybrid.next++] = pq.p[i];
             }
         }
         pq_hybrid.next = 0;
@@ -282,9 +285,11 @@ void simulate(int id, int n_particles, particle_state* p,
             #pragma omp section
             {
 #if VERBOSE > 1
-                char filename[256];
-                sprintf(filename, "%s_%06d.stdout", sim_offload->outfn,
-                        sim_offload->mpi_rank);
+                /* Trim .h5 from filename and replace it with _??????.stdout */
+                char filename[256], outfn[256];
+                strcpy(outfn, sim_offload->hdf5_out);
+                outfn[strlen(outfn)-3] = '\0';
+                sprintf(filename, "%s.stdout", outfn);
                 sim_monitor(filename, &pq_hybrid.n, &pq_hybrid.finished);
 #endif
             }
@@ -358,7 +363,7 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->endcond_minRho       = offload_data->endcond_minRho;
     sim->endcond_maxRho       = offload_data->endcond_maxRho;
     sim->endcond_minEkin      = offload_data->endcond_minEkin;
-    sim->endcond_minEkinPerTe = offload_data->endcond_minEkinPerTe;
+    sim->endcond_minEkinPerTi = offload_data->endcond_minEkinPerTi;
     sim->endcond_maxTorOrb    = offload_data->endcond_maxTorOrb;
     sim->endcond_maxPolOrb    = offload_data->endcond_maxPolOrb;
 

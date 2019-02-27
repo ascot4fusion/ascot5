@@ -7,7 +7,6 @@
 
 #include "../../ascot5.h"
 #include "../../error.h"
-#include "../../random.h"
 
 /**
  * Wiener process dimension. NDIM=5 because only guiding centers are simulated
@@ -33,7 +32,7 @@ typedef struct {
                                     to itself if it is the last element       */
     real time[MCCC_NSLOTS];    /**< Time instances for different Wiener
                                     processes                                 */
-    real wiener[MCCC_NDIM*MCCC_NSLOTS]; /**< Ndim x Nslot 1D array of Wiener
+    real wiener[MCCC_NDIM*MCCC_NSLOTS]; /**< Ndim x Nslot array of Wiener
                                              process values                   */
 } mccc_wienarr;
 
@@ -44,8 +43,6 @@ void mccc_wiener_initialize(mccc_wienarr* w, real initime);
 a5err mccc_wiener_generate(mccc_wienarr* w, real t, int* windex, real* rand5);
 #pragma omp declare simd
 a5err mccc_wiener_clean(mccc_wienarr* w, real t);
-
-void mccc_wiener_boxmuller(random_data* rdata, real* randVar, int Ndim);
 
 #pragma omp end declare target
 

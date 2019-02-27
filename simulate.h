@@ -97,7 +97,7 @@ typedef struct {
     real endcond_minRho;       /**< Minimum rho limit                         */
     real endcond_maxRho;       /**< Maximum rho limit                         */
     real endcond_minEkin;      /**< Fixed minimum kinetic energy limit [J]    */
-    real endcond_minEkinPerTe; /**< Thermal minimum energy limit is this
+    real endcond_minEkinPerTi; /**< Thermal minimum energy limit is this
                                     parameter times local thermal energy      */
     real endcond_maxTorOrb;    /**< Maximum limit for toroidal distance [rad] */
     real endcond_maxPolOrb;    /**< Maximum limit for poloidal distance [rad] */
@@ -105,7 +105,6 @@ typedef struct {
     /* Metadata */
     char hdf5_in[256];     /**< Name of the input HDF5 file  */
     char hdf5_out[256];    /**< Name of the output HDF5 file */
-    char outfn[256];
     char qid[256];         /**< QID of current run           */
     char description[256]; /**< Current run's description    */
 
@@ -178,7 +177,7 @@ typedef struct {
     real endcond_minRho;       /**< Minimum rho limit                         */
     real endcond_maxRho;       /**< Maximum rho limit                         */
     real endcond_minEkin;      /**< Fixed minimum kinetic energy limit [J]    */
-    real endcond_minEkinPerTe; /**< Thermal minimum energy limit is this
+    real endcond_minEkinPerTi; /**< Thermal minimum energy limit is this
                                     parameter times local thermal energy      */
     real endcond_maxTorOrb;    /**< Maximum limit for toroidal distance [rad] */
     real endcond_maxPolOrb;    /**< Maximum limit for poloidal distance [rad] */

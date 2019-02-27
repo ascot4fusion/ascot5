@@ -114,24 +114,24 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                 real gamma = physlib_gamma_vnorm(vnorm);
                 real ekin  = CONST_C2 * p_f->mass[i] * (gamma - 1);
 
-                real Te;
+                real Ti;
                 a5err errflag =
-                    plasma_eval_temp(&Te, p_f->rho[i], p_f->r[i], p_f->phi[i],
-                                     p_f->z[i], p_f->time[i], 0,
+                    plasma_eval_temp(&Ti, p_f->rho[i], p_f->r[i], p_f->phi[i],
+                                     p_f->z[i], p_f->time[i], 1,
                                      &sim->plasma_data);
 
                 /* Error handling */
                 if(errflag) {
                     p_f->err[i]     = errflag;
                     p_f->running[i] = 0;
-                    Te = 0;
+                    Ti = 0;
                 }
 
                 if( active_emin && (ekin < sim->endcond_minEkin) ) {
                     p_f->endcond[i] |= endcond_emin;
                     p_f->running[i] = 0;
                 }
-                if( active_therm && (ekin < (sim->endcond_minEkinPerTe * Te)) ) {
+                if( active_therm && (ekin < (sim->endcond_minEkinPerTi * Ti)) ) {
                     p_f->endcond[i] |= endcond_therm;
                     p_f->running[i] = 0;
                 }
@@ -243,24 +243,24 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                 real ekin = CONST_C2 * p_f->mass[i] * (gamma - 1);
 
 
-                real Te;
+                real Ti;
                 a5err  errflag =
-                    plasma_eval_temp(&Te, p_f->rho[i], p_f->r[i], p_f->phi[i],
-                                     p_f->z[i], p_f->time[i], 0,
+                    plasma_eval_temp(&Ti, p_f->rho[i], p_f->r[i], p_f->phi[i],
+                                     p_f->z[i], p_f->time[i], 1,
                                      &sim->plasma_data);
 
                 /* Error handling */
                 if(errflag) {
                     p_f->err[i]     = errflag;
                     p_f->running[i] = 0;
-                    Te = 0;
+                    Ti = 0;
                 }
 
                 if(active_emin && (ekin < sim->endcond_minEkin) ) {
                     p_f->endcond[i] |= endcond_emin;
                     p_f->running[i] = 0;
                 }
-                if( active_therm && (ekin < (sim->endcond_minEkinPerTe * Te)) ) {
+                if( active_therm && (ekin < (sim->endcond_minEkinPerTi * Ti)) ) {
                     p_f->endcond[i] |= endcond_therm;
                     p_f->running[i] = 0;
                 }

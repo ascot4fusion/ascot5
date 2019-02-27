@@ -51,7 +51,7 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
             data->toroidalangles[i] = offload_data->toroidalangles[i];
         }
         data->npoloidalplots = offload_data->npoloidalplots;
-        for(int i=0; i<data->ntoroidalplots; i++) {
+        for(int i=0; i<data->npoloidalplots; i++) {
             data->poloidalangles[i] = offload_data->poloidalangles[i];
         }
 
@@ -231,6 +231,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
         }
     }
     else if(data->mode == DIAG_ORB_POINCARE) {
+
         #pragma omp simd
         for(int i= 0; i < NSIMD; i++) {
             /* Mask dummy markers and thosw whose time-step was rejected. */

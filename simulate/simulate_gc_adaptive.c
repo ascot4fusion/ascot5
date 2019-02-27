@@ -55,20 +55,20 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i);
 void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
     /* Wiener arrays needed for the adaptive time step */
-    mccc_wienarr* wienarr[NSIMD];
-    for(int i=0; i < NSIMD; i++) {
-        wienarr[i] = malloc(sizeof(mccc_wienarr));
-    }
+    mccc_wienarr wienarr[NSIMD];
 
-    real hin[NSIMD] __memalign__;       // Current time step
-    real hout_orb[NSIMD] __memalign__;  // Suggestion for next time step by orbit-following, negative value indicates rejected step
-    real hout_col[NSIMD]  __memalign__; // Same as above but for collisions
-    real hnext[NSIMD] __memalign__;     // Next time step
-    int cycle[NSIMD] __memalign__;      // Flag indigating whether a new marker was initialized
+    /* Current time step, suggestions for the next time step and next time
+     * step                                                                */
+    real hin[NSIMD]      __memalign__;
+    real hout_orb[NSIMD] __memalign__;
+    real hout_col[NSIMD] __memalign__;
+    real hnext[NSIMD]    __memalign__;
+
+    /* Flag indicateing whether a new marker was initialized */
+    int cycle[NSIMD]     __memalign__;
 
     real tol_col = sim->ada_tol_clmbcol;
     real tol_orb = sim->ada_tol_orbfol;
-    int i;
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
@@ -84,13 +84,13 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
     int n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);
 
     #pragma omp simd
-    for(i = 0; i < NSIMD; i++) {
+    for(int i = 0; i < NSIMD; i++) {
         if(cycle[i] > 0) {
             /* Determine initial time-step */
             hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
             if(sim->enable_clmbcol) {
                 /* Allocate array storing the Wiener processes */
-                mccc_wiener_initialize(wienarr[i],p.time[i]);
+                mccc_wiener_initialize(&(wienarr[i]), p.time[i]);
             }
         }
     }
@@ -110,7 +110,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
      */
     while(n_running > 0) {
         #pragma omp simd
-        for(i = 0; i < NSIMD; i++) {
+        for(int i = 0; i < NSIMD; i++) {
             /* Store marker states in case time step will be rejected */
             p0.r[i]        = p.r[i];
             p0.phi[i]      = p.phi[i];
@@ -165,7 +165,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
             /* Check whether time step was rejected */
             #pragma omp simd
-            for(i = 0; i < NSIMD; i++) {
+            for(int i = 0; i < NSIMD; i++) {
                 if(p.running[i] && hout_orb[i] < 0){
                     p.running[i] = 0;
                     hnext[i] = hout_orb[i];
@@ -181,7 +181,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
             /* Check whether time step was rejected */
             #pragma omp simd
-            for(i = 0; i < NSIMD; i++) {
+            for(int i = 0; i < NSIMD; i++) {
                 if(p.running[i] && hout_col[i] < 0){
                     p.running[i] = 0;
                     hnext[i] = hout_col[i];
@@ -193,7 +193,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
         cputime = A5_WTIME;
         #pragma omp simd
-        for(i = 0; i < NSIMD; i++) {
+        for(int i = 0; i < NSIMD; i++) {
             if(!p.err[i]) {
                 /* Check other time step limitations */
                 if(hnext[i] > 0) {
@@ -251,30 +251,35 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                 }
                 if(p.running[i]){
 
-                    /* Advance time (if time step was accepted) and determine next time step */
+                    /* Advance time (if time step was accepted) and determine
+                       next time step */
                     if(hnext[i] < 0){
-                        /* Time step was rejected, use the suggestion given by integrator */
+                        /* Time step was rejected, use the suggestion given by
+                           integrator */
                         hin[i] = -hnext[i];
                     }
                     else {
                         p.time[i] = p.time[i] + hin[i];
 
                         if(hnext[i] > hout_orb[i]) {
-                            /* Use time step suggested by the orbit-following integrator */
+                            /* Use time step suggested by the orbit-following
+                               integrator */
                             hnext[i] = hout_orb[i];
                         }
                         if(hnext[i] > hout_col[i]) {
-                            /* Use time step suggested by the collision integrator */
+                            /* Use time step suggested by the collision
+                               integrator */
                             hnext[i] = hout_col[i];
                         }
                         if(hnext[i] == 1.0) {
-                            /* Time step is unchanged (happens when no physics are enabled) */
+                            /* Time step is unchanged (happens when no physics
+                               are enabled) */
                             hnext[i] = hin[i];
                         }
                         hin[i] = hnext[i];
                         if(sim->enable_clmbcol) {
                             /* Clear wiener processes */
-                            mccc_wiener_clean(wienarr[i], p.time[i]);
+                            mccc_wiener_clean(&(wienarr[i]), p.time[i]);
                         }
                     }
 
@@ -295,12 +300,12 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
         /* Determine simulation time-step for new particles */
         #pragma omp simd
-        for(i = 0; i < NSIMD; i++) {
+        for(int i = 0; i < NSIMD; i++) {
             if(cycle[i] > 0) {
                 hin[i] = simulate_gc_adaptive_inidt(sim, &p, i);
                 if(sim->enable_clmbcol) {
                     /* Re-allocate array storing the Wiener processes */
-                    mccc_wiener_initialize(wienarr[i],p.time[i]);
+                    mccc_wiener_initialize(&(wienarr[i]), p.time[i]);
                 }
             }
         }
@@ -313,8 +318,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 /**
  * @brief Calculates time step value
  *
- * The returned time step is either directly user-defined, 1/100th of collision frequency
- * or user-defined fraction of gyro-motion.
+ * The returned time step is either directly user-defined, 1/100th of collision
+ * frequency or user-defined fraction of gyro-motion.
  *
  * @param sim pointer to simulation data struct
  * @param p SIMD array of markers
@@ -335,7 +340,8 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
         if(sim->enable_orbfol) {
             real Bnorm = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
             real gyrotime = CONST_2PI /
-                phys_gyrofreq_vpar(p->mass[i], p->charge[i], p->mu[i], p->vpar[i], Bnorm);
+                phys_gyrofreq_vpar(p->mass[i], p->charge[i], p->mu[i],
+                                   p->vpar[i], Bnorm);
             if(h > gyrotime) {
                 h = gyrotime;
             }
@@ -343,6 +349,11 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
 
         /* Value calculated from collision frequency */
         if(sim->enable_clmbcol) {
+            int mccc_eval_coefs(real ma, real qa, real r, real phi, real z, real t,
+                    real* va, int nv, plasma_data* pdata, B_field_data* Bdata,
+                    real* F, real* Dpara, real* Dperp, real* K, real* nu,
+                    real* Q, real* dQ, real* dDpara, real* clog, real* mu0,
+                    real* mu1, real* dmu0);
             real nu = 1;
             //mccc_collfreq_gc(p,&sim->B_data,&sim->plasma_data, sim->coldata,&nu,i);
 

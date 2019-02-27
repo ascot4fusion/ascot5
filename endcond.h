@@ -11,21 +11,21 @@
 #include "simulate.h"
 
 /**
- * @brief Marker end condition masks
+ * @brief Marker end condition bit masks
  *
- * These masks are used to mark specific end condition as being active.
+ * These bit masks are used to mark specific end condition as being active.
  */
 enum {
-    endcond_tmax   = 0b1, /**< Maximum simulation time */
-    endcond_emin   = 0b10, /**< Minimum energy */
-    endcond_therm  = 0b100, /**< Thermalized */
-    endcond_wall   = 0b1000, /**< Wall collision */
-    endcond_rhomin = 0b10000, /**< Minimum rho */
-    endcond_rhomax = 0b100000, /**< Maximum rho */
-    endcond_polmax = 0b1000000, /**< Poloidal limit */
-    endcond_tormax = 0b10000000, /**< Toroidal limit */
-    endcond_cpumax = 0b100000000, /**< Wall time exceeded */
-    endcond_hybrid = 0b1000000000 /**< Hybrid mode condition */
+    endcond_tmax   = 0x1,   /**< Maximum simulation time */
+    endcond_emin   = 0x2,   /**< Minimum energy          */
+    endcond_therm  = 0x4,   /**< Thermalized             */
+    endcond_wall   = 0x8,   /**< Wall collision          */
+    endcond_rhomin = 0x10,  /**< Minimum rho             */
+    endcond_rhomax = 0x20,  /**< Maximum rho             */
+    endcond_polmax = 0x40,  /**< Poloidal limit          */
+    endcond_tormax = 0x80,  /**< Toroidal limit          */
+    endcond_cpumax = 0x100, /**< Wall time exceeded      */
+    endcond_hybrid = 0x200  /**< Hybrid mode condition   */
 };
 
 #pragma omp declare target
