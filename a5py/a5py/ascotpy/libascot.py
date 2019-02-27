@@ -181,7 +181,8 @@ class LibAscot:
             fun.argtypes = [ctypes.c_int, real_p, ctypes.c_double,
                             ctypes.c_double, ctypes.c_double, ctypes.c_double,
                             ctypes.c_double, ctypes.c_double, real_p, real_p,
-                            real_p, real_p, real_p]
+                            real_p, real_p, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p, real_p]
         except AttributeError:
             warnings.warn("libascot_eval_collcoefs not found", Warning)
             pass
@@ -566,26 +567,48 @@ class LibAscot:
         n_species = self.libascot.libascot_plasma_get_n_species()
 
         out = {}
-        out["F"]     = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["Dpara"] = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["Dperp"] = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["K"]     = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["nu"]    = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["F"]      = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["Dpara"]  = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["Dperp"]  = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["K"]      = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["nu"]     = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["Q"]      = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["dQ"]     = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["dDpara"] = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["clog"]   = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["mu0"]    = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["mu1"]    = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["dmu0"]   = np.zeros((R.size, n_species, va.size), dtype="f8")
 
         for i in range(R.size):
-            F     = np.zeros((n_species, va.size), dtype="f8")
-            Dpara = np.zeros((n_species, va.size), dtype="f8")
-            Dperp = np.zeros((n_species, va.size), dtype="f8")
-            K     = np.zeros((n_species, va.size), dtype="f8")
-            nu    = np.zeros((n_species, va.size), dtype="f8")
+            F      = np.zeros((n_species, va.size), dtype="f8")
+            Dpara  = np.zeros((n_species, va.size), dtype="f8")
+            Dperp  = np.zeros((n_species, va.size), dtype="f8")
+            K      = np.zeros((n_species, va.size), dtype="f8")
+            nu     = np.zeros((n_species, va.size), dtype="f8")
+            Q      = np.zeros((n_species, va.size), dtype="f8")
+            dQ     = np.zeros((n_species, va.size), dtype="f8")
+            dDpara = np.zeros((n_species, va.size), dtype="f8")
+            clog   = np.zeros((n_species, va.size), dtype="f8")
+            mu0    = np.zeros((n_species, va.size), dtype="f8")
+            mu1    = np.zeros((n_species, va.size), dtype="f8")
+            dmu0   = np.zeros((n_species, va.size), dtype="f8")
             self.libascot.libascot_eval_collcoefs(Neval, va, R[i], phi[i], z[i],
                                                   t[i], ma, qa, F, Dpara, Dperp,
-                                                  K, nu)
-            out["F"][i,:,:]     = F[:,:]
-            out["Dpara"][i,:,:] = Dpara[:,:]
-            out["Dperp"][i,:,:] = Dperp[:,:]
-            out["K"][i,:,:]     = K[:,:]
-            out["nu"][i,:,:]    = nu[:,:]
+                                                  K, nu, Q, dQ, dDpara, clog,
+                                                  mu0, mu1, dmu0)
+            out["F"][i,:,:]      = F[:,:]
+            out["Dpara"][i,:,:]  = Dpara[:,:]
+            out["Dperp"][i,:,:]  = Dperp[:,:]
+            out["K"][i,:,:]      = K[:,:]
+            out["nu"][i,:,:]     = nu[:,:]
+            out["Q"][i,:,:]      = Q[:,:]
+            out["dQ"][i,:,:]     = dQ[:,:]
+            out["dDpara"][i,:,:] = dDpara[:,:]
+            out["clog"][i,:,:]   = clog[:,:]
+            out["mu0"][i,:,:]    = mu0[:,:]
+            out["mu1"][i,:,:]    = mu1[:,:]
+            out["dmu0"][i,:,:]   = dmu0[:,:]
 
         return out
 
