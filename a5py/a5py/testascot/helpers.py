@@ -11,6 +11,7 @@ from time import perf_counter as timer
 
 import a5py.ascot5io.ascot5      as ascot5
 import a5py.ascot5io.ascot5tools as tools
+import a5py.ascot5io.N0_3D       as N0_3D
 
 ## Name of the test HDF5 file
 testfn = "test_ascot.h5"
