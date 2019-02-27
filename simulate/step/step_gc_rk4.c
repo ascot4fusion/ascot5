@@ -243,9 +243,9 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             real yprev[6];
             real y[6];
 
-            real mass  = p->mass[i];
-            real charg = p->charge[i]e;
-            real time  = p->time[i];
+            real mass   = p->mass[i];
+            real charge = p->charge[i];
+            real time   = p->time[i];
 
             real B_dB[15];
             real E[3];
