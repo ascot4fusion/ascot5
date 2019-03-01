@@ -1,5 +1,5 @@
 """
-Non-axisymmetric tokamak neutral density HDF5 IO
+Non-axisymmetric tokamak neutral HDF5 IO
 
 File: N0_3D.py
 """
@@ -10,9 +10,9 @@ from . ascot5file import add_group
 from a5py.ascot5io.ascot5data import AscotData
 
 def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
-               n_species, anum, znum, n0, desc=None):
+               n_species, anum, znum, n0, t0, desc=None, maxwellian=1):
     """
-    Write 3D neutral density input in HDF5 file.
+    Write 3D neutral input in HDF5 file.
 
     Parameters
     ----------
@@ -25,10 +25,14 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         Number of Rphiz-grid points.
     n_species : int
         Number of neutral species.
-    Anum, Znum : int n_species numpy array
+    anum, znum : int n_species numpy array
         Mass number and charge number for the different species
     n0 : real R x phi x z x n_species numpy array
         Neutral density in Rphiz-grid.
+    t0 : real R x phi x z x n_species numpy array
+        Neutral temperature in Rphiz-grid.
+    maxwellian : int n_species numpy array
+        Whether species distribution is Maxwellian of monoenergetic
 
     Notes
     -------
@@ -44,29 +48,32 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     parent = "neutral"
     group  = "N0_3D"
 
-    # Transpose n0 from (species, r, phi, z) to (species, phi, z, r)
+    # Transpose n0 and t0 from (spec, r, phi, z) to (spec, phi, z, r)
     n0 = np.transpose(n0,(0,2,3,1))
+    t0 = np.transpose(t0,(0,2,3,1))
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
-        g.create_dataset("r_min",     (1,),         data=Rmin,      dtype="f8")
-        g.create_dataset("r_max",     (1,),         data=Rmax,      dtype="f8")
-        g.create_dataset("n_r",       (1,),         data=nR,        dtype="i8")
-        g.create_dataset("phi_min",   (1,),         data=phimin,    dtype="f8")
-        g.create_dataset("phi_max",   (1,),         data=phimax,    dtype="f8")
-        g.create_dataset("n_phi",     (1,),         data=nphi,      dtype="i8")
-        g.create_dataset("z_min",     (1,),         data=zmin,      dtype="f8")
-        g.create_dataset("z_max",     (1,),         data=zmax,      dtype="f8")
-        g.create_dataset("n_z",       (1,),         data=nz,        dtype="i8")
-        g.create_dataset("n_species", (1,),         data=n_species, dtype="i8")
-        g.create_dataset("anum",      (n_species,), data=anum,      dtype="i8")
-        g.create_dataset("znum",      (n_species,), data=znum,      dtype="i8")
-        g.create_dataset("n0",                      data=n0,        dtype="f8")
+        g.create_dataset("r_min",      (1,),      data=Rmin,       dtype="f8")
+        g.create_dataset("r_max",      (1,),      data=Rmax,       dtype="f8")
+        g.create_dataset("n_r",        (1,),      data=nR,         dtype="i8")
+        g.create_dataset("phi_min",    (1,),      data=phimin,     dtype="f8")
+        g.create_dataset("phi_max",    (1,),      data=phimax,     dtype="f8")
+        g.create_dataset("n_phi",      (1,),      data=nphi,       dtype="i8")
+        g.create_dataset("z_min",      (1,),      data=zmin,       dtype="f8")
+        g.create_dataset("z_max",      (1,),      data=zmax,       dtype="f8")
+        g.create_dataset("n_z",        (1,),      data=nz,         dtype="i8")
+        g.create_dataset("n_species",  (1,),      data=n_species,  dtype="i8")
+        g.create_dataset("anum",       (n_species,), data=anum,    dtype="i8")
+        g.create_dataset("znum",       (n_species,), data=znum,    dtype="i8")
+        g.create_dataset("maxwellian", (n_species,), data=maxwellian,dtype="i8")
+        g.create_dataset("n0",                    data=n0,         dtype="f8")
+        g.create_dataset("t0",                    data=t0,         dtype="f8")
 
 def read_hdf5(fn, qid):
     """
-    Read 3D neutral density input from HDF5 file.
+    Read 3D neutral input from HDF5 file.
 
     Parameters
     ----------
@@ -77,7 +84,7 @@ def read_hdf5(fn, qid):
     Returns
     -------
 
-    Dictionary containing neutral density data.
+    Dictionary containing neutral data.
     """
 
     path = "neutral/N0_3D-" + qid
@@ -105,8 +112,9 @@ def read_hdf5(fn, qid):
 
         out["n_species"] = f[path]["n_species"][:]
 
-        out["Anum"] = f[path]["Anum"][:]
-        out["Znum"] = f[path]["Znum"][:]
+        out["anum"] = f[path]["anum"][:]
+        out["znum"] = f[path]["znum"][:]
+        out["maxwellian"] = f[path]["znum"][:]
 
         out["n0"]   = f[path]["n0"]
 

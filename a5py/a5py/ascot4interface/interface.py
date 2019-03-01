@@ -263,7 +263,9 @@ def run(a4folder, h5fn, overwrite=True):
     if overwrite or (not "neutral" in groups):
         # No ASCOT4 neutral density
         N0 = np.array([ [ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ] ])
-        N0_3D.write_hdf5(h5fn, -1, 1, 2, -1, 1, 2, 0, 2*np.pi, 2, 1, 1, 1, N0)
+        T0 = np.array([ [ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ] ])
+        N0_3D.write_hdf5(h5fn, -1, 1, 2, -1, 1, 2, 0,
+                         2*np.pi, 2, 1, 1, 1, N0, T0)
 
     # Wall.
     if overwrite or (not "wall" in groups):

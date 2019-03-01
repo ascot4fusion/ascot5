@@ -87,9 +87,11 @@ def write_N0_3D_dummy(h5fn, desc):
     N0anum = 1
     N0znum = 1
     N0dens = np.array([ [ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ] ])
+    N0temp = np.array([ [ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ] ])
     N0_3D.write_hdf5(h5fn,
                      N0Rmin, N0Rmax, N0nR,
                      N0zmin, N0zmax, N0nz,
                      N0pmin, N0pmax, N0np,
-                     N0spec, N0anum, N0znum, N0dens,
+                     N0spec, N0anum, N0znum,
+                     N0dens, N0temp
                      desc=desc)
