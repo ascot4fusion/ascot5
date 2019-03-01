@@ -52,8 +52,8 @@ int plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
     print_out(VERBOSE_IO,
               "     Electrons              %1.2le/%1.2le          "
               "        %1.2le/%1.2le       \n",
-              (*offload_array)[n_rho*2 + n_rho*n_ions],
-              (*offload_array)[n_rho*3 + n_rho*n_ions - 1],
+              (*offload_array)[n_rho*3],
+              (*offload_array)[n_rho*4 - 1],
               (*offload_array)[n_rho] / CONST_E,
               (*offload_array)[n_rho*2-1] / CONST_E);
     for(int i=0; i < n_ions; i++) {
@@ -62,19 +62,18 @@ int plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
                   "             %1.2le/%1.2le       \n",
                   (int)(offload_data->charge[i+1]/CONST_E),
                   (int)(offload_data->mass[i+1]/CONST_U),
-                  (*offload_array)[n_rho*(3+i) + n_rho*n_ions],
-                  (*offload_array)[n_rho*(4+i) + n_rho*n_ions - 1],
+                  (*offload_array)[n_rho*(4+i)],
+                  (*offload_array)[n_rho*(5+i) - 1],
                   (*offload_array)[n_rho*2] / CONST_E,
                   (*offload_array)[n_rho*3-1] / CONST_E);
     }
     real quasineutrality = 0;
     for(int k = 0; k <n_rho; k++) {
-        real ele_qdens = (*offload_array)[n_rho*2 + n_rho*n_ions + k] * CONST_E;
+        real ele_qdens = (*offload_array)[n_rho*3 + k] * CONST_E;
         real ion_qdens = 0;
         for(int i=0; i < n_ions; i++) {
             ion_qdens +=
-                (*offload_array)[n_rho*(3+i) + n_rho*n_ions + k]
-                * offload_data->charge[i+1];
+                (*offload_array)[n_rho*(4+i) + k] * offload_data->charge[i+1];
         }
         quasineutrality = fmax( quasineutrality,
                                 fabs( 1 - ion_qdens / ele_qdens ) );
@@ -122,8 +121,7 @@ void plasma_1D_init(plasma_1D_data* pls_data,
     }
     pls_data->rho  = &offload_array[0];
     pls_data->temp = &offload_array[pls_data->n_rho];
-    pls_data->dens = &offload_array[pls_data->n_rho
-                                    + pls_data->n_rho*pls_data->n_species];
+    pls_data->dens = &offload_array[pls_data->n_rho*3];
 }
 
 /**
