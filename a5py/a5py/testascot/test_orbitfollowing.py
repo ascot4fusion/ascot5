@@ -87,12 +87,12 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-11
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
+    odict["ENDCOND_MAX_SIMTIME"]       = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 1e-10
-    odict["ORBITWRITE_MAXPOINTS"]      = 50002
+    odict["ORBITWRITE_NPOINT"]         = 50002
 
     options.write_hdf5(helpers.testfn, odict, desc="ORBFOL_GO")
 
@@ -107,12 +107,12 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
+    odict["ENDCOND_MAX_SIMTIME"]       = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 1e-8
-    odict["ORBITWRITE_MAXPOINTS"]      = 502
+    odict["ORBITWRITE_NPOINT"]         = 502
 
     options.write_hdf5(helpers.testfn, odict, desc="ORBFOL_GCF")
 
@@ -131,12 +131,12 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-8
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
+    odict["ENDCOND_MAX_SIMTIME"]       = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 1e-8
-    odict["ORBITWRITE_MAXPOINTS"]      = 502
+    odict["ORBITWRITE_NPOINT"]         = 502
 
     options.write_hdf5(helpers.testfn, odict, desc="ORBFOL_GCA")
 
@@ -150,21 +150,23 @@ def init():
     pitch  = np.array([0.4, 0.9])
     mass   = m_e_AMU * np.array([1, 1])
     charge = 1       * np.array([1,-1])
+    anum   = 1       * np.array([1, 0])
+    znum   = 1       * np.array([1, 0])
     time   = 0       * np.array([1, 1])
     R      = 7.6     * np.array([1, 1])
     phi    = 90      * np.array([1, 1])
     z      = 0       * np.array([1, 1])
-    theta  = 2       * np.array([1, 1])
+    zeta   = 2       * np.array([1, 1])
     energy = 10e6    * np.array([1, 1])
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
-                   R, phi, z, energy, pitch, theta,
-                   weight, time, desc="ORBFOL_GO")
+                   R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="ORBFOL_GO")
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
-                   R, phi, z, energy, pitch, theta,
-                   weight, time, desc="ORBFOL_GCF")
+                   R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="ORBFOL_GCF")
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
-                   R, phi, z, energy, pitch, theta,
-                   weight, time, desc="ORBFOL_GCA")
+                   R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="ORBFOL_GCA")
 
     #**************************************************************************#
     #*                     Construct ITER-like magnetic field                  #
@@ -228,20 +230,22 @@ def init():
                      N0zmin, N0zmax, N0nz,
                      N0pmin, N0pmax, N0np, N0dens, desc="ORBFOL_GCA")
 
-    Nrho  = 3
-    Nion  = 1
-    znum  = np.array([1])
-    anum  = np.array([1])
-    rho   = np.array([0, 0.5, 100])
-    edens = 1e20 * np.ones(rho.shape)
-    etemp = 1e3  * np.ones(rho.shape)
-    idens = 1e20 * np.ones((rho.size, Nion))
-    itemp = 1e3  * np.ones(rho.shape)
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    Nrho   = 3
+    Nion   = 1
+    znum   = np.array([1])
+    anum   = np.array([1])
+    mass   = np.array([1])
+    charge = np.array([1])
+    rho    = np.array([0, 0.5, 100])
+    edens  = 1e20 * np.ones(rho.shape)
+    etemp  = 1e3  * np.ones(rho.shape)
+    idens  = 1e20 * np.ones((rho.size, Nion))
+    itemp  = 1e3  * np.ones(rho.shape)
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="ORBFOL_GO")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="ORBFOL_GCF")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="ORBFOL_GCA")
 
 
@@ -292,40 +296,40 @@ def check():
     #**************************************************************************#
     ORBFOL = {}
     ORBFOL["GO"] = {}
-    orb = a5["ORBFOL_GO"]["orbits"].read()
+    orb = a5["ORBFOL_GO"]["orbit"].read()
 
-    B = np.sqrt( orb["B_R"] * orb["B_R"] + orb["B_phi"] * orb["B_phi"] +
-                 orb["B_z"] * orb["B_z"] )
+    B = np.sqrt( orb["br"] * orb["br"] + orb["bphi"] * orb["bphi"] +
+                 orb["bz"] * orb["bz"] )
 
-    psi = psifun(orb["R"]/R0, orb["z"]/R0, psi_coeff[0], psi_coeff[1],
+    psi = psifun(orb["r"]/R0, orb["z"]/R0, psi_coeff[0], psi_coeff[1],
                  psi_coeff[2], psi_coeff[3], psi_coeff[4], psi_coeff[5],
                  psi_coeff[6], psi_coeff[7], psi_coeff[8], psi_coeff[9],
                  psi_coeff[10], psi_coeff[11], psi_coeff[12]) * psi_mult
 
-    vnorm = np.sqrt( orb["v_R"]   * orb["v_R"] +
-                     orb["v_phi"] * orb["v_phi"] +
-                     orb["v_z"]   * orb["v_z"] )
+    vnorm = np.sqrt( orb["vr"]   * orb["vr"] +
+                     orb["vphi"] * orb["vphi"] +
+                     orb["vz"]   * orb["vz"] )
 
-    vpar  = ( orb["v_R"] * orb["B_R"] + orb["v_phi"] * orb["B_phi"] +
-              orb["v_z"] * orb["B_z"] ) / B
+    vpar  = ( orb["vr"] * orb["br"] + orb["vphi"] * orb["bphi"] +
+              orb["vz"] * orb["bz"] ) / B
 
     gamma = np.sqrt(1 / ( 1 - vnorm * vnorm / (c * c) ) )
 
     ORBFOL["GO"]["time"] = orb["time"]
     ORBFOL["GO"]["id"]   = orb["id"]
-    ORBFOL["GO"]["R"]    = orb["R"]
+    ORBFOL["GO"]["r"]    = orb["r"]
     ORBFOL["GO"]["z"]    = orb["z"]
-    ORBFOL["GO"]["Ekin"] = (gamma - 1) * m_e * c * c
+    ORBFOL["GO"]["ekin"] = (gamma - 1) * m_e * c * c
     ORBFOL["GO"]["mu"]   = ( ( m_e * gamma * gamma ) / ( 2 * B ) ) * \
                            ( vnorm * vnorm - vpar * vpar )
-    ORBFOL["GO"]["ctor"] = gamma * m_e * orb["R"] * orb["v_phi"] + \
+    ORBFOL["GO"]["ctor"] = gamma * m_e * orb["r"] * orb["vphi"] + \
                            orb["charge"] * e * psi
 
     id1 = ORBFOL["GO"]["id"] == 1
     id2 = ORBFOL["GO"]["id"] == 2
-    plot_relerr(h1, ORBFOL["GO"]["time"][id1], ORBFOL["GO"]["Ekin"][id1],
+    plot_relerr(h1, ORBFOL["GO"]["time"][id1], ORBFOL["GO"]["ekin"][id1],
                 colors[0])
-    plot_relerr(h1, ORBFOL["GO"]["time"][id2], ORBFOL["GO"]["Ekin"][id2],
+    plot_relerr(h1, ORBFOL["GO"]["time"][id2], ORBFOL["GO"]["ekin"][id2],
                 colors[1])
     plot_relerr(h2, ORBFOL["GO"]["time"][id2], ORBFOL["GO"]["mu"][id2],
                 colors[0])
@@ -335,9 +339,9 @@ def check():
                 colors[0])
     plot_relerr(h3, ORBFOL["GO"]["time"][id2], ORBFOL["GO"]["ctor"][id2],
                 colors[1])
-    h4.plot(        ORBFOL["GO"]["R"][id1],    ORBFOL["GO"]["z"][id1],
+    h4.plot(        ORBFOL["GO"]["r"][id1],    ORBFOL["GO"]["z"][id1],
                     colors[0])
-    h4.plot(        ORBFOL["GO"]["R"][id2],    ORBFOL["GO"]["z"][id2],
+    h4.plot(        ORBFOL["GO"]["r"][id2],    ORBFOL["GO"]["z"][id2],
                     colors[1])
 
     #**************************************************************************#
@@ -345,12 +349,12 @@ def check():
     #*                                                                         #
     #**************************************************************************#
     ORBFOL["GCF"] = {}
-    orb = a5["ORBFOL_GCF"]["orbits"].read()
+    orb = a5["ORBFOL_GCF"]["orbit"].read()
 
-    B = np.sqrt(np.power(orb["B_R"],2) + np.power(orb["B_phi"],2) +
-                np.power(orb["B_z"],2))
+    B = np.sqrt(np.power(orb["br"],2) + np.power(orb["bphi"],2) +
+                np.power(orb["bz"],2))
 
-    psi = psifun(orb["R"]/R0, orb["z"]/R0, psi_coeff[0], psi_coeff[1],
+    psi = psifun(orb["r"]/R0, orb["z"]/R0, psi_coeff[0], psi_coeff[1],
                  psi_coeff[2], psi_coeff[3], psi_coeff[4], psi_coeff[5],
                  psi_coeff[6], psi_coeff[7], psi_coeff[8], psi_coeff[9],
                  psi_coeff[10], psi_coeff[11], psi_coeff[12]) * psi_mult
@@ -361,18 +365,18 @@ def check():
 
     ORBFOL["GCF"]["time"] = orb["time"]
     ORBFOL["GCF"]["id"]   = orb["id"]
-    ORBFOL["GCF"]["R"]    = orb["R"]
+    ORBFOL["GCF"]["r"]    = orb["r"]
     ORBFOL["GCF"]["z"]    = orb["z"]
-    ORBFOL["GCF"]["Ekin"] = (gamma - 1) * m_e * c * c
+    ORBFOL["GCF"]["ekin"] = (gamma - 1) * m_e * c * c
     ORBFOL["GCF"]["mu"]   = orb["mu"] * e
-    ORBFOL["GCF"]["ctor"] = gamma * m_e * orb["R"] * orb["vpar"] + \
+    ORBFOL["GCF"]["ctor"] = gamma * m_e * orb["r"] * orb["vpar"] + \
                             orb["charge"] * e * psi
 
     id1 = ORBFOL["GCF"]["id"] == 1
     id2 = ORBFOL["GCF"]["id"] == 2
-    plot_relerr(h1, ORBFOL["GCF"]["time"][id1], ORBFOL["GCF"]["Ekin"][id1],
+    plot_relerr(h1, ORBFOL["GCF"]["time"][id1], ORBFOL["GCF"]["ekin"][id1],
                 colors[2])
-    plot_relerr(h1, ORBFOL["GCF"]["time"][id2], ORBFOL["GCF"]["Ekin"][id2],
+    plot_relerr(h1, ORBFOL["GCF"]["time"][id2], ORBFOL["GCF"]["ekin"][id2],
                 colors[3])
     plot_relerr(h2, ORBFOL["GCF"]["time"][id1], ORBFOL["GCF"]["mu"][id1],
                 colors[2])
@@ -382,9 +386,9 @@ def check():
                 colors[2])
     plot_relerr(h3, ORBFOL["GCF"]["time"][id2], ORBFOL["GCF"]["ctor"][id2],
                 colors[3])
-    h4.plot(        ORBFOL["GCF"]["R"][id1],    ORBFOL["GCF"]["z"][id1],
+    h4.plot(        ORBFOL["GCF"]["r"][id1],    ORBFOL["GCF"]["z"][id1],
                 colors[2])
-    h4.plot(        ORBFOL["GCF"]["R"][id2],    ORBFOL["GCF"]["z"][id2],
+    h4.plot(        ORBFOL["GCF"]["r"][id2],    ORBFOL["GCF"]["z"][id2],
                 colors[3])
 
     #**************************************************************************#
@@ -392,12 +396,12 @@ def check():
     #*                                                                         #
     #**************************************************************************#
     ORBFOL["GCA"] = {}
-    orb = a5["ORBFOL_GCA"]["orbits"].read()
+    orb = a5["ORBFOL_GCA"]["orbit"].read()
 
-    B = np.sqrt(np.power(orb["B_R"],2) + np.power(orb["B_phi"],2) +
-                np.power(orb["B_z"],2))
+    B = np.sqrt(np.power(orb["br"],2) + np.power(orb["bphi"],2) +
+                np.power(orb["bz"],2))
 
-    psi = psifun(orb["R"]/R0, orb["z"]/R0, psi_coeff[0], psi_coeff[1],
+    psi = psifun(orb["r"]/R0, orb["z"]/R0, psi_coeff[0], psi_coeff[1],
                  psi_coeff[2], psi_coeff[3], psi_coeff[4], psi_coeff[5],
                  psi_coeff[6], psi_coeff[7], psi_coeff[8], psi_coeff[9],
                  psi_coeff[10], psi_coeff[11], psi_coeff[12]) * psi_mult
@@ -408,18 +412,18 @@ def check():
 
     ORBFOL["GCA"]["time"] = orb["time"]
     ORBFOL["GCA"]["id"]   = orb["id"]
-    ORBFOL["GCA"]["R"]    = orb["R"]
+    ORBFOL["GCA"]["r"]    = orb["r"]
     ORBFOL["GCA"]["z"]    = orb["z"]
-    ORBFOL["GCA"]["Ekin"] = (gamma - 1) * m_e * c * c
+    ORBFOL["GCA"]["ekin"] = (gamma - 1) * m_e * c * c
     ORBFOL["GCA"]["mu"]   = orb["mu"] * e
-    ORBFOL["GCA"]["ctor"] = gamma * m_e * orb["R"] * orb["vpar"] + \
+    ORBFOL["GCA"]["ctor"] = gamma * m_e * orb["r"] * orb["vpar"] + \
                             orb["charge"] * e * psi
 
     id1 = ORBFOL["GCA"]["id"] == 1
     id2 = ORBFOL["GCA"]["id"] == 2
-    plot_relerr(h1, ORBFOL["GCA"]["time"][id1], ORBFOL["GCA"]["Ekin"][id1],
+    plot_relerr(h1, ORBFOL["GCA"]["time"][id1], ORBFOL["GCA"]["ekin"][id1],
                 colors[4])
-    plot_relerr(h1, ORBFOL["GCA"]["time"][id2], ORBFOL["GCA"]["Ekin"][id2],
+    plot_relerr(h1, ORBFOL["GCA"]["time"][id2], ORBFOL["GCA"]["ekin"][id2],
                 colors[5])
     plot_relerr(h2, ORBFOL["GCA"]["time"][id1], ORBFOL["GCA"]["mu"][id1],
                 colors[4])
@@ -429,9 +433,9 @@ def check():
                 colors[4])
     plot_relerr(h3, ORBFOL["GCA"]["time"][id2], ORBFOL["GCA"]["ctor"][id2],
                 colors[5])
-    h4.plot(        ORBFOL["GCA"]["R"][id1],    ORBFOL["GCA"]["z"][id1],
+    h4.plot(        ORBFOL["GCA"]["r"][id1],    ORBFOL["GCA"]["z"][id1],
                 colors[4])
-    h4.plot(        ORBFOL["GCA"]["R"][id2],    ORBFOL["GCA"]["z"][id2],
+    h4.plot(        ORBFOL["GCA"]["r"][id2],    ORBFOL["GCA"]["z"][id2],
                 colors[5])
 
     #**************************************************************************#

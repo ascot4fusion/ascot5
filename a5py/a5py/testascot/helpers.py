@@ -25,7 +25,7 @@ def clean_opt(odict):
     Args:
         odict: dict Options dictionary
     """
-    odict["RECORD_GO_AS_GC"] = np.array([0],dtype='i4')
+    odict["RECORD_MODE"] = np.array([0],dtype='i4')
     for o in odict:
         if o.startswith("ENABLE"):
             odict[o] = np.array([0],dtype='i4')

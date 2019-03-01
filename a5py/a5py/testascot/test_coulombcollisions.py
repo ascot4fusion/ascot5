@@ -55,6 +55,7 @@ R0 = 6.2
 z0 = 0
 Bphi0 = 5.3
 psi_mult = 200
+
 # ITER-like but circular equilibrium
 psi_coeff = np.array([ 8.629e-02,  3.279e-01,  5.268e-01, -2.366e-01,
                        3.825e-01, -3.573e-01, -1.484e-02,  1.506e-01,
@@ -81,29 +82,29 @@ def init():
     helpers.clean_opt(odict)
 
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = simtime_th
+    odict["ENDCOND_MAX_SIMTIME"]       = simtime_th
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
     odict["ENABLE_DIST_5D"]            = 1
 
-    odict["DIST_MIN_R"]    = 4
-    odict["DIST_MAX_R"]    = 10
-    odict["DIST_NBIN_R"]   = 1
-    odict["DIST_MIN_phi"]  = 0
-    odict["DIST_MAX_phi"]  = 360
-    odict["DIST_NBIN_phi"] = 1
-    odict["DIST_MIN_z"]    = -5
-    odict["DIST_MAX_z"]    = 5
-    odict["DIST_NBIN_z"]   = 1
-    odict["DIST_MIN_vpa"]  = -1.5e6
-    odict["DIST_MAX_vpa"]  =  1.5e6
-    odict["DIST_NBIN_vpa"] = 140
-    odict["DIST_MIN_vpe"]  = 0
-    odict["DIST_MAX_vpe"]  = 1.5e6
-    odict["DIST_NBIN_vpe"] = 80
-    odict["DIST_MIN_t"]    = 0
-    odict["DIST_MAX_t"]    = simtime_th
-    odict["DIST_NBIN_t"]   = 2
+    odict["DIST_MIN_R"]     = 4
+    odict["DIST_MAX_R"]     = 10
+    odict["DIST_NBIN_R"]    = 1
+    odict["DIST_MIN_PHI"]   = 0
+    odict["DIST_MAX_PHI"]   = 360
+    odict["DIST_NBIN_PHI"]  = 1
+    odict["DIST_MIN_Z"]     = -5
+    odict["DIST_MAX_Z"]     = 5
+    odict["DIST_NBIN_Z"]    = 1
+    odict["DIST_MIN_VPA"]   = -1.5e6
+    odict["DIST_MAX_VPA"]   =  1.5e6
+    odict["DIST_NBIN_VPA"]  = 140
+    odict["DIST_MIN_VPE"]   = 0
+    odict["DIST_MAX_VPE"]   = 1.5e6
+    odict["DIST_NBIN_VPE"]  = 80
+    odict["DIST_MIN_TIME"]  = 0
+    odict["DIST_MAX_TIME"]  = simtime_th
+    odict["DIST_NBIN_TIME"] = 2
 
     odict["SIM_MODE"]                  = 1
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
@@ -133,28 +134,28 @@ def init():
     odict = options.generateopt()
     helpers.clean_opt(odict)
 
-    odict["ENDCOND_ENERGYLIM"]                = 1
-    odict["ENDCOND_MIN_ENERGY"]               = 50e3
-    odict["ENDCOND_MIN_ENERGY_TIMES_THERMAL"] = 0
-    odict["ENABLE_ORBIT_FOLLOWING"]           = 1
-    odict["ENABLE_COULOMB_COLLISIONS"]        = 1
-    odict["ENABLE_DIST_5D"]                   = 1
+    odict["ENDCOND_ENERGYLIM"]         = 1
+    odict["ENDCOND_MIN_ENERGY"]        = 50e3
+    odict["ENDCOND_MIN_THERMAL"]       = 0
+    odict["ENABLE_ORBIT_FOLLOWING"]    = 1
+    odict["ENABLE_COULOMB_COLLISIONS"] = 1
+    odict["ENABLE_DIST_5D"]            = 1
 
     odict["DIST_MIN_R"]    = 4
     odict["DIST_MAX_R"]    = 10
     odict["DIST_NBIN_R"]   = 1
-    odict["DIST_MIN_phi"]  = 0
-    odict["DIST_MAX_phi"]  = 360
-    odict["DIST_NBIN_phi"] = 1
-    odict["DIST_MIN_z"]    = -5
-    odict["DIST_MAX_z"]    = 5
-    odict["DIST_NBIN_z"]   = 1
-    odict["DIST_MIN_vpa"]  = -2e7
-    odict["DIST_MAX_vpa"]  =  2e7
-    odict["DIST_NBIN_vpa"] = 200
-    odict["DIST_MIN_vpe"]  = 0
-    odict["DIST_MAX_vpe"]  = 2e7
-    odict["DIST_NBIN_vpe"] = 100
+    odict["DIST_MIN_PHI"]  = 0
+    odict["DIST_MAX_PHI"]  = 360
+    odict["DIST_NBIN_PHI"] = 1
+    odict["DIST_MIN_Z"]    = -5
+    odict["DIST_MAX_Z"]    = 5
+    odict["DIST_NBIN_Z"]   = 1
+    odict["DIST_MIN_VPA"]  = -2e7
+    odict["DIST_MAX_VPA"]  =  2e7
+    odict["DIST_NBIN_VPA"] = 200
+    odict["DIST_MIN_VPE"]  = 0
+    odict["DIST_MAX_VPE"]  = 2e7
+    odict["DIST_NBIN_VPE"] = 100
 
     odict["SIM_MODE"]                  = 1
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
@@ -185,9 +186,11 @@ def init():
     weight = (1/Nmrk)* np.ones(ids.shape)
     mass   = m_p_AMU * np.ones(ids.shape)
     charge = 1       * np.ones(ids.shape)
+    anum   = 1       * np.ones(ids.shape)
+    znum   = 1       * np.ones(ids.shape)
     time   = 0       * np.ones(ids.shape)
     phi    = 90      * np.ones(ids.shape)
-    theta  = 2 * np.pi * np.random.rand(1,Nmrk)
+    zeta   = 2 * np.pi * np.random.rand(1,Nmrk)
     energy = Eth     * np.ones(ids.shape)
     pitch  = 0.5     * np.ones(ids.shape)
 
@@ -195,31 +198,33 @@ def init():
     R      = 6.2 + 0.8 * np.cos(pol)
     z      = 0.8 * np.sin(pol)
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass,
-                   charge, R, phi, z, energy, pitch, theta,
-                   weight, time, desc="THERMAL_GO")
+                   charge, R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="THERMAL_GO")
 
     pol    = 2*np.pi*np.random.rand(1, Nmrk)
     R      = 6.2 + 0.8 * np.cos(pol)
     z      = 0.8 * np.sin(pol)
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass,
-                   charge, R, phi, z, energy, pitch, theta,
-                   weight, time, desc="THERMAL_GCF")
+                   charge, R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="THERMAL_GCF")
 
     pol    = 2*np.pi*np.random.rand(1, Nmrk)
     R      = 6.2 + 0.8 * np.cos(pol)
     z      = 0.8 * np.sin(pol)
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass,
-                   charge, R, phi, z, energy, pitch, theta,
-                   weight, time, desc="THERMAL_GCA")
+                   charge, R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="THERMAL_GCA")
 
     Nmrk   = 200
     ids    = np.linspace(1,Nmrk,Nmrk)
     weight = (1/Nmrk)* np.ones(ids.shape)
     mass   = m_a_AMU * np.ones(ids.shape)
     charge = 2       * np.ones(ids.shape)
+    anum   = 4       * np.ones(ids.shape)
+    znum   = 2       * np.ones(ids.shape)
     time   = 0       * np.ones(ids.shape)
     phi    = 90      * np.ones(ids.shape)
-    theta  = 2 * np.pi * np.random.rand(1,Nmrk)
+    zeta   = 2 * np.pi * np.random.rand(1,Nmrk)
     energy = Esd * np.ones(ids.shape)
 
     pol    = 2*np.pi*np.random.rand(1, Nmrk)
@@ -227,24 +232,24 @@ def init():
     z      = 0.8 * np.sin(pol)
     pitch  = 1 - 2 * np.random.rand(1,Nmrk)
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass,
-                   charge, R, phi, z, energy, pitch, theta,
-                   weight, time, desc="SLOWING_GO")
+                   charge, R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="SLOWING_GO")
 
     pol    = 2*np.pi*np.random.rand(1, Nmrk)
     R      = 6.2 + 0.8 * np.cos(pol)
     z      = 0.8 * np.sin(pol)
     pitch  = 1 - 2 * np.random.rand(1,Nmrk)
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass,
-                   charge, R, phi, z, energy, pitch, theta,
-                   weight, time, desc="SLOWING_GCF")
+                   charge, R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="SLOWING_GCF")
 
     pol    = 2*np.pi*np.random.rand(1, Nmrk)
     R      = 6.2 + 0.8 * np.cos(pol)
     z      = 0.8 * np.sin(pol)
     pitch  = 1 - 2 * np.random.rand(1,Nmrk)
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass,
-                   charge, R, phi, z, energy, pitch, theta,
-                   weight, time, desc="SLOWING_GCA")
+                   charge, R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="SLOWING_GCA")
 
     #**************************************************************************#
     #*                 Analytical ITER-like magnetic field                     #
@@ -267,26 +272,28 @@ def init():
     #*                               Plasma                                    #
     #*                                                                         #
     #**************************************************************************#
-    Nrho  = 3
-    Nion  = 1
-    znum  = np.array([1])
-    anum  = np.array([1])
-    rho   = np.array([0, 0.5, 100])
-    edens = ne  * np.ones(rho.shape)
-    etemp = Te  * np.ones(rho.shape)
-    idens = ne  * np.ones((rho.size, Nion))
-    itemp = 1e3 * np.ones(rho.shape)
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    Nrho   = 3
+    Nion   = 1
+    znum   = np.array([1])
+    anum   = np.array([1])
+    mass   = np.array([1])
+    charge = np.array([1])
+    rho    = np.array([0, 0.5, 100])
+    edens  = ne  * np.ones(rho.shape)
+    etemp  = Te  * np.ones(rho.shape)
+    idens  = ne  * np.ones((rho.size, Nion))
+    itemp  = 1e3 * np.ones(rho.shape)
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="THERMAL_GO")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="THERMAL_GCF")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="THERMAL_GCA")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="SLOWING_GO")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="SLOWING_GCF")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="SLOWING_GCA")
 
     #**************************************************************************#

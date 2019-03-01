@@ -67,7 +67,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
         g.create_dataset("psi1",  (1,), data=psisepx, dtype="f8")
 
         g.create_dataset("psi",  (nz, nR), data=psiRz, dtype="f8")
-        g.create_dataset("bR",   (nz, nR), data=B_R,   dtype="f8")
+        g.create_dataset("br",   (nz, nR), data=B_R,   dtype="f8")
         g.create_dataset("bphi", (nz, nR), data=B_phi, dtype="f8")
         g.create_dataset("bz",   (nz, nR), data=B_z,   dtype="f8")
 

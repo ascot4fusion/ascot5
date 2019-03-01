@@ -10,7 +10,7 @@ from . ascot5file import add_group
 from a5py.ascot5io.ascot5data import AscotData
 
 def write_hdf5(fn, n, ids, mass, charge,
-               r, phi, z, energy, pitch, theta,
+               r, phi, z, energy, pitch, zeta,
                anum, znum, weight, time, desc=None):
     """
     Write guiding center marker input in hdf5 file.
@@ -38,7 +38,7 @@ def write_hdf5(fn, n, ids, mass, charge,
         guiding center energy (eV)
     pitch : real N x 1 numpy array
         guiding center pitch (v_para/v_tot)
-    theta : real N x 1 numpy array
+    zeta : real N x 1 numpy array
         guiding center gyroangle (rad)
     weight : real N x 1 numpy array
         guiding center weight (markers/s)
@@ -58,7 +58,7 @@ def write_hdf5(fn, n, ids, mass, charge,
         g.create_dataset("z",      (n,1), data=z,      dtype='f8').attrs['unit'] = 'm';
         g.create_dataset("energy", (n,1), data=energy, dtype='f8').attrs['unit'] = 'ev';
         g.create_dataset("pitch",  (n,1), data=pitch,  dtype='f8').attrs['unit'] = '1';
-        g.create_dataset("theta",  (n,1), data=theta,  dtype='f8').attrs['unit'] = 'rad';
+        g.create_dataset("zeta",   (n,1), data=zeta,   dtype='f8').attrs['unit'] = 'rad';
         g.create_dataset("mass",   (n,1), data=mass,   dtype='f8').attrs['unit'] = 'amu';
         g.create_dataset("charge", (n,1), data=charge, dtype='i4').attrs['unit'] = 'e';
         g.create_dataset("anum",   (n,1), data=anum,   dtype='i4').attrs['unit'] = '1';
