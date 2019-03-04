@@ -24,7 +24,7 @@ class LibAscot:
     An object representing a running ascot5 process.
     """
 
-    def __init__(self, libpath=None, h5fn=None):
+    def __init__(self, h5fn="ascot.h5", libpath="libascot.so"):
         """
         Initialize and start Ascot5 process using given HDF5 file as an input.
 
@@ -40,11 +40,6 @@ class LibAscot:
                 Path to HDF5 from which inputs are read. Default is "ascot.h5"
                 in same folder the script is executed.
         """
-        if libpath is None:
-            libpath = "libascot.so"
-
-        if h5fn is None:
-            h5fn = "ascot.h5"
 
         # Open library
         try:

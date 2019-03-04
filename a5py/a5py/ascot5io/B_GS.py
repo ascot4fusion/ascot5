@@ -114,7 +114,7 @@ def read_hdf5(fn, qid):
     Dictionary containing magnetic field data.
     """
 
-    path = "bfield" + "/B_GS-" + qid
+    path = "bfield" + "/B_GS_" + qid
 
     with h5py.File(fn,"r") as f:
         out = {}

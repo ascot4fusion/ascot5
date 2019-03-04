@@ -9,11 +9,81 @@ import h5py
 from . ascot5file import add_group
 from a5py.ascot5io.ascot5data import AscotData
 
-def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
-               axisR, axisz, psiRz, psiaxis, psisepx,
-               B_R, B_phi, B_z,
-               pRmin=None, pRmax=None, pnR=None, pzmin=None, pzmax=None,
-               pnz=None, desc=None):
+def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
+               b_phimin, b_phimax, b_nphi,
+               axisr, axisz, psi0, psi1, psi, br, bphi, bz,
+               psi_rmin=None, psi_rmax=None, psi_nr=None,
+               psi_zmin=None, psi_zmax=None, psi_nz=None, desc=None):
+    """
+    Write 3DS magnetic field input in HDF5 file.
+
+    Note that br and bz should not include the equilibrium component of the
+    magnetic field as that is calculated from psi by ASCOT5 during the
+    simulation.
+
+    It is possible to use different Rz grids for psi and magnetic field
+    components by giving Rz grid for psi separately.
+
+    The toroidal angle phi is treated as a periodic coordinate meaning that
+    B(phi) = B(phi + n*(b_phimax - b_phimin)). Do note that to avoid dublicate
+    data, the last points in phi axis in B data are not at b_phimax, i.e.
+    br(-1,:,:) != BR(phi=b_phimax).
+
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        b_rmin : float <br>
+            Magnetic field data R grid min edge [m].
+        b_rmax : float <br>
+            Magnetic field data R grid max edge [m].
+        b_nr : int <br>
+            Number of R grid points in magnetic field data.
+        b_zmin : float <br>
+            Magnetic field data z grid min edge [m].
+        b_zmax : float <br>
+            Magnetic field data z grid max edge [m].
+        b_nz : int <br>
+            Number of z grid points in magnetic field data.
+        b_phimin : float <br>
+            Magnetic field data phi grid min edge [deg].
+        b_phimax : float <br>
+            Magnetic field data phi grid max edge [deg].
+        b_nphi : int <br>
+            Number of phi grid points in magnetic field data.
+        axisr : float <br>
+            Magnetic axis R coordinate [m].
+        axisz : float <br>
+            Magnetic axis z coordinate [m].
+        psi0 : float <br>
+            On-axis poloidal flux value [Vs/m].
+        psi1 : float <br>
+            Separatrix poloidal flux value [Vs/m].
+        psi : array_like (nz, nr) <br>
+            Poloidal flux values on the Rz grid [Vs/m].
+        br : array_like (nz,nr) <br>
+            Magnetic field R component (excl. equilibrium comp.) on Rz grid [T].
+        bphi : array_like (nz,nr) <br>
+            Magnetic field phi component on Rz grid [T].
+        bz : array_like (nz,nr) <br>
+            Magnetic field z component (excl. equilibrium comp.) onRz grid [T].
+        psi_rmin : float, optional <br>
+            Psi data R grid min edge [m].
+        psi_rmax : float, optional <br>
+            Psi data R grid max edge [m].
+        psi_nr : int, optional <br>
+            Number of R grid points in psi data.
+        psi_zmin : float, optional <br>
+            Psi data z grid min edge [m].
+        psi_zmax : float, optional <br>
+            Psi data z grid max edge [m].
+        psi_nz : int, optional <br>
+            Number of z grid points in psi data.
+        desc : str, optional <br>
+            Input description.
+
+    Returns:
+        QID of the new input that was written.
+    """
     """
     Write 3DS magnetic field input in HDF5 file.
 
@@ -44,10 +114,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
     -------
 
     Rphiz coordinates form a right-handed cylindrical coordinates.
-    phi is in degrees and is considered as a periodic coordinate.
-    phimin is where the period begins and phimax is the last data point,
-    i.e. not the end of period. E.g if you have a n = 2 symmetric system
-    with nphi = 180 deg and phimin = 0 deg, then phimax should be 179 deg.
+    
 
     Within ASCOT5, the magnetic field is evaluated as:
 
@@ -122,7 +189,7 @@ def read_hdf5(fn, qid):
     Dictionary containing magnetic field data.
     """
 
-    path = "bfield" + "/B_3DS-" + qid
+    path = "bfield" + "/B_3DS_" + qid
 
     with h5py.File(fn,"r") as f:
         out = {}
