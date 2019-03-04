@@ -101,11 +101,37 @@ int hdf5_neutral_read_3D(hid_t f, N0_3D_offload_data* offload_data,
     offload_data->phi_max = math_deg2rad(offload_data->phi_max);
     offload_data->phi_min = math_deg2rad(offload_data->phi_min);
 
-    *offload_array = (real*) malloc(offload_data->n_r * offload_data->n_phi
-                                    * offload_data->n_z * sizeof(real));
+    /* Read n_species, anum, znum and distribution type */
+    if( hdf5_read_int(NPATH "n_species", &(offload_data->n_species),
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(NPATH "anum", offload_data->anum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(NPATH "znum", offload_data->znum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(NPATH "maxwellian", offload_data->maxwellian,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    int N0_size = offload_data->n_r * offload_data->n_phi * offload_data->n_z;
+    int T0_size = offload_data->n_r * offload_data->n_phi * offload_data->n_z;
+
+    *offload_array = (real*) malloc(offload_data->n_species
+                                    * (N0_size + T0_size)
+                                    * sizeof(real));
+    /* Pointers to beginning of different data series to make code more
+     * readable */
+    real* n0 = &(*offload_array)[0];
+    real* t0 = &(*offload_array)[offload_data->n_species * N0_size];
 
     /* Read the neutral density */
-    if( hdf5_read_double(NPATH "n0", *offload_array,
+    if( hdf5_read_double(NPATH "n0", n0,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
+    /* Read the neutral temperature */
+    if( hdf5_read_double(NPATH "t0", t0,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    for(int i = 0; i < offload_data->n_species * T0_size; i++) {
+        t0[i] = t0[i] * CONST_E;
+    }
+
     return 0;
 }

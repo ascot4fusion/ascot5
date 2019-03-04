@@ -63,5 +63,8 @@ int neutral_init(neutral_data* ndata, neutral_offload_data* offload_data,
 #pragma omp declare simd uniform(ndata)
 a5err neutral_eval_n0(real* n0, real r, real phi, real z, real t,
                       neutral_data* ndata);
+#pragma omp declare simd uniform(ndata)
+a5err neutral_eval_t0(real* t0, real r, real phi, real z, real t,
+                      neutral_data* ndata);
 #pragma omp end declare target
 #endif
