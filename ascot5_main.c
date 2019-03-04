@@ -176,20 +176,29 @@ int main(int argc, char** argv) {
     };
     simulate_init_offload(&sim);
 
-    /* Pack offload data into single array */
+    /* Pack offload data into single array and free individual offload arrays */
     real* offload_array;
     offload_package offload_data;
     offload_init_offload(&offload_data, &offload_array);
     offload_pack(&offload_data, &offload_array, B_offload_array,
                  sim.B_offload_data.offload_array_length);
+    B_field_free_offload(&sim.B_offload_data, &B_offload_array);
+
     offload_pack(&offload_data, &offload_array, E_offload_array,
                  sim.E_offload_data.offload_array_length);
+    E_field_free_offload(&sim.E_offload_data, &E_offload_array);
+
     offload_pack(&offload_data, &offload_array, plasma_offload_array,
                  sim.plasma_offload_data.offload_array_length);
+    plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
+
     offload_pack(&offload_data, &offload_array, neutral_offload_array,
                  sim.neutral_offload_data.offload_array_length);
+    neutral_free_offload(&sim.neutral_offload_data, &neutral_offload_array);
+
     offload_pack(&offload_data, &offload_array, wall_offload_array,
                  sim.wall_offload_data.offload_array_length);
+    wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
 
     /* Initialize diagnostics offload data.
      * Separate arrays for host and target */
@@ -348,6 +357,9 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_NORMAL, mpi_rank, "mic0 %lf s, mic1 %lf s, host %lf s\n",
         mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
 
+    /* Free input data */
+    offload_free_offload(&offload_data, &offload_array);
+
     /* Write endstate */
     if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n, ps) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
@@ -385,19 +397,10 @@ int main(int argc, char** argv) {
     }
 
     /* Free offload data */
-    goto CLEANUP_SUCCESS;
-
-CLEANUP_SUCCESS:
 
 #ifdef MPI
     MPI_Finalize();
 #endif
-
-    B_field_free_offload(&sim.B_offload_data, &B_offload_array);
-    E_field_free_offload(&sim.E_offload_data, &E_offload_array);
-    plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
-    wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
-    neutral_free_offload(&sim.neutral_offload_data, &neutral_offload_array);
 
 #ifdef TARGET
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
@@ -406,8 +409,6 @@ CLEANUP_SUCCESS:
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
 #endif
 
-    offload_free_offload(&offload_data, &offload_array);
-
     marker_summary(ps, n);
     free(ps);
 
@@ -415,17 +416,13 @@ CLEANUP_SUCCESS:
 
     return 0;
 
+
+/* Free resources in case simulation crashes */
 CLEANUP_FAILURE:
 
 #ifdef MPI
     MPI_Finalize();
 #endif
-
-    B_field_free_offload(&sim.B_offload_data, &B_offload_array);
-    E_field_free_offload(&sim.E_offload_data, &E_offload_array);
-    plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
-    wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
-    neutral_free_offload(&sim.neutral_offload_data, &neutral_offload_array);
 
 #ifdef TARGET
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
