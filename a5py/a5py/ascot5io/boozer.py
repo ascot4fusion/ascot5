@@ -9,9 +9,9 @@ import numpy as np
 from . ascot5file import add_group
 from . ascot5data import AscotData
 
-def write_hdf5(fn, psimin, psimax, npsi, thetamin, thetamax, ntheta, rmin,
-               rmax, nr, zmin, zmax, nz, r0, z0, psiin, psiout, psi_rz,
-               theta_psithetageom, nu_psitheta, rs, zs, nrzs, desc=None):
+def write_hdf5(fn, psimin, psimax, npsi, ntheta, rmin, rmax, nr, zmin, zmax, nz,
+               r0, z0, psi0, psi1, psi_rz, theta_psithetageom, nu_psitheta,
+               nrzs, rs, zs, desc=None):
     """
     Write boozer input to HDF5 file.
 
@@ -75,8 +75,6 @@ def write_hdf5(fn, psimin, psimax, npsi, thetamin, thetamax, ntheta, rmin,
         g.create_dataset("psimin",   (1,), data=psimin,   dtype="f8")
         g.create_dataset("psimax",   (1,), data=psimax,   dtype="f8")
         g.create_dataset("npsi",     (1,), data=npsi,     dtype="i8")
-        g.create_dataset("thetamin", (1,), data=thetamin, dtype="f8")
-        g.create_dataset("thetamax", (1,), data=thetamax, dtype="f8")
         g.create_dataset("ntheta",   (1,), data=ntheta,   dtype="i8")
         g.create_dataset("rmin",     (1,), data=rmin,     dtype="f8")
         g.create_dataset("rmax",     (1,), data=rmax,     dtype="f8")
@@ -93,8 +91,8 @@ def write_hdf5(fn, psimin, psimax, npsi, thetamin, thetamax, ntheta, rmin,
         g.create_dataset("zs", (nrzs,), data=zs, dtype="f8")
 
         # psi data min and max values
-        g.create_dataset("psi_inner", (1,), data=psiin,  dtype="f8")
-        g.create_dataset("psi_outer", (1,), data=psiout, dtype="f8")
+        g.create_dataset("psi_inner", (1,), data=psi0, dtype="f8")
+        g.create_dataset("psi_outer", (1,), data=psi1, dtype="f8")
 
         # tabulated coordinates maps
         g.create_dataset("psi_rz", (nr,nz), data=psi_rz, dtype="f8")
