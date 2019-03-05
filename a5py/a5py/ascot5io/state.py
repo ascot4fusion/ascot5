@@ -98,24 +98,21 @@ class State(AscotData):
 
             # See if the field can be read directly and without conversions
             h5keys = list(h5.keys())
-            h5keys_cleaned = [alias(x) for x in h5keys]
-            for i in range(len(h5keys)):
-                if h5keys_cleaned[i] == key:
-                    item = h5[h5keys[i]][:]
+            if key in h5keys:
+                item = h5[key][:]
 
-                    # Unit conversions
-                    if key == "charge":
-                        f    = lambda x: interpret.charge_C(x)
-                        item = np.array([f(x) for x in item]).ravel()
-                    if key == "mu":
-                        f    = lambda x: interpret.energy_J(x)
-                        item = np.array([f(x) for x in item]).ravel()
-                    if key == "phi":
-                        item = item * np.pi/180
-                    if key == "mass":
-                        f    = lambda x: interpret.mass_kg(x)
-                        item = np.array([f(x) for x in item]).ravel()
-                    break
+                # Unit conversions
+                if key == "charge":
+                    f    = lambda x: interpret.charge_C(x)
+                    item = np.array([f(x) for x in item]).ravel()
+                if key == "mu":
+                    f    = lambda x: interpret.energy_J(x)
+                    item = np.array([f(x) for x in item]).ravel()
+                if key == "phi":
+                    item = item * np.pi/180
+                if key == "mass":
+                    f    = lambda x: interpret.mass_kg(x)
+                    item = np.array([f(x) for x in item]).ravel()
 
             if item is None:
 
@@ -131,20 +128,20 @@ class State(AscotData):
                 try:
                     item = marker.eval_guidingcenter(
                         key, mass=mass, charge=charge,
-                        R=h5["R"][:], phi=phi, z=h5["z"][:],
+                        R=h5["r"][:], phi=phi, z=h5["z"][:],
                         mu=mu, vpar=h5["vpar"][:],
                         theta=h5["theta"][:],
-                        BR=h5["B_R"][:], Bphi=h5["B_phi"][:],
-                        Bz=h5["B_z"][:])
+                        BR=h5["br"][:], Bphi=h5["bphi"][:],
+                        Bz=h5["bz"][:])
                 except ValueError:
                     pass
 
                 if item is None:
                     item = marker.eval_particle(
                         key, mass=mass, charge=charge,
-                        R=h5["R"][:], phi=phi, z=h5["z"][:],
-                        vR=h5["v_R"][:], vphi=h5["v_phi"][:], vz=h5["v_z"][:],
-                        BR=h5["B_R"][:], Bphi=h5["B_phi"][:], Bz=h5["B_z"][:])
+                        R=h5["r"][:], phi=phi, z=h5["z"][:],
+                        vR=h5["vr"][:], vphi=h5["vphi"][:], vz=h5["vz"][:],
+                        BR=h5["br"][:], Bphi=h5["bphi"][:], Bz=h5["bz"][:])
 
             # Order by id
             ids  = h5["id"][:]
