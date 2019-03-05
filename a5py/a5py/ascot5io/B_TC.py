@@ -9,7 +9,7 @@ import numpy as np
 from . ascot5file import add_group
 from a5py.ascot5io.ascot5data import AscotData
 
-def write_hdf5(fn, bxyz, jacobian, rhoval, psival=rhoval, axisr=1, axisz=0,
+def write_hdf5(fn, bxyz, jacobian, rhoval, psival=None, axisr=1, axisz=0,
                desc=None):
     """
     Write trivial cartesian magnetic field input to HDF5 file.
@@ -24,7 +24,7 @@ def write_hdf5(fn, bxyz, jacobian, rhoval, psival=rhoval, axisr=1, axisz=0,
         rhoval: float <br>
             Constant rho value.
         psival: float, optional <br>
-            Constant psi value.
+            Constant psi value. If None, same as rhoval.
         axisr: float, optional <br>
             Magnetic axis R coordinate.
         axisz: real, optional <br>
@@ -38,6 +38,9 @@ def write_hdf5(fn, bxyz, jacobian, rhoval, psival=rhoval, axisr=1, axisz=0,
 
     parent = "bfield"
     group  = "B_TC"
+
+    if psival is None:
+        psival = rhoval
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
