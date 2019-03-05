@@ -1,4 +1,4 @@
-"""
+ co"""
 MHD input IO.
 
 File: mhd.py
@@ -51,13 +51,13 @@ def write_hdf5(fn, nmodes, mmodes, amplitude, omega, alpha, phi,
             Input's description.
     """
 
-    assert(alpha.ndim == 2 or alpha.ndim == 3, "Input data has incorrect shape")
-    n_modes = alpha.shape[0]
-    npsi    = alpha.shape[1]
+    assert alpha.ndim == 2 or alpha.ndim == 3), "Input data has incorrect shape"
+    nmodes = alpha.shape[0]
+    npsi   = alpha.shape[1]
 
-    assert(nmodes.size    == n_modes and mmodes.size == n_modes and
-           amplitude.size == n_modes and omega.size  == n_modes and
-           phi.shape == alpha.shape, "Input data has incorrect shape")
+    assert (nmodes.size    == n_modes and mmodes.size == n_modes and
+            amplitude.size == n_modes and omega.size  == n_modes and
+            phi.shape == alpha.shape), "Input data has incorrect shape"
 
     if alpha.ndim == 2:
         if tmin is None:
@@ -78,54 +78,25 @@ def write_hdf5(fn, nmodes, mmodes, amplitude, omega, alpha, phi,
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
-        g.create_dataset("n_modes", (1,), data=n_modes, dtype="i8")
-        g.create_dataset("npsi",    (1,), data=npsi,    dtype="i8")
-        g.create_dataset("psi_min", (1,), data=psimin,  dtype="f8")
-        g.create_dataset("psi_max", (1,), data=psimax,  dtype="f8")
-        g.create_dataset("ntime",   (1,), data=ntime,   dtype="i8")
-        g.create_dataset("t_min",   (1,), data=tmin,    dtype="f8")
-        g.create_dataset("t_max",   (1,), data=tmax,    dtype="f8")
+        g.create_dataset("nmode",  (1,), data=nmode,  dtype="i8")
+        g.create_dataset("npsi",   (1,), data=npsi,   dtype="i8")
+        g.create_dataset("psimin", (1,), data=psimin, dtype="f8")
+        g.create_dataset("psimax", (1,), data=psimax, dtype="f8")
+        g.create_dataset("ntime",  (1,), data=ntime,  dtype="i8")
+        g.create_dataset("tmin",   (1,), data=tmin,   dtype="f8")
+        g.create_dataset("tmax",   (1,), data=tmax,   dtype="f8")
 
-        g.create_dataset("nmode", (n_modes,), data=nmodes, dtype="i8")
-        g.create_dataset("mmode", (n_modes,), data=mmodes, dtype="i8")
+        g.create_dataset("nmodes", (nmode,), data=nmodes, dtype="i8")
+        g.create_dataset("mmodes", (nmode,), data=mmodes, dtype="i8")
 
-        g.create_dataset("amplitude_nm", (n_modes,), data=amplitude, dtype="f8")
-        g.create_dataset("omega_nm",     (n_modes,), data=omega,     dtype="f8")
+        g.create_dataset("amplitude", (nmode,), data=amplitude, dtype="f8")
+        g.create_dataset("omega",     (nmode,), data=omega,     dtype="f8")
 
-        g.create_dataset("alpha_nm", (n_modes,npsi,ntime), data=alpha,
-                         dtype="f8")
-        g.create_dataset("phi_nm",   (n_modes,npsi,ntime), data=phi,
-                         dtype="f8")
+        g.create_dataset("alpha", (nmode,ntime,npsi), data=alpha, dtype="f8")
+        g.create_dataset("phi",   (nmode,ntime,npsi), data=phi, dtype="f8")
 
+    return g.name
 
-def read_hdf5(fn, qid):
-    """
-    Read MHD input from HDF5 file.
-
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        qid : str <br>
-            qid of the efield to be read.
-
-    Returns:
-        Dictionary containing MHD data.
-    """
-
-    path = "mhd" + "/MHD-" + qid
-
-    with h5py.File(fn,"r") as f:
-        out = {}
-        # Metadata.
-        out["qid"]  = qid
-        out["date"] = f[path].attrs["date"]
-        out["desc"] = f[path].attrs["desc"]
-
-        # Actual data.
-        for k in f[path].keys():
-            out[k] = f[path][k][:]
-
-    return out
 
 def write_hdf5_dummy(fn, desc="Dummy"):
     """
@@ -148,3 +119,36 @@ def write_hdf5_dummy(fn, desc="Dummy"):
     psimax    = 1
     write_hdf5(fn, nmodes, mmodes, amplitude, omega, alpha, phi, psimin, psimax,
                desc=desc)
+
+
+def read_hdf5(fn, qid):
+    """
+    Read MHD input from HDF5 file.
+
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        qid : str <br>
+            QID of the data to be read.
+
+    Returns:
+        Dictionary containing input data.
+    """
+
+    path = "mhd/MHD_" + qid
+
+    out = {}
+    with h5py.File(fn,"r") as f:
+        for key in f[path]:
+            out[key] = f[path][key][:]
+
+    return out
+
+
+class MHD(AscotData):
+    """
+    Object representing MHD data.
+    """
+
+    def read(self):
+        return read_hdf5(self._file, self.get_qid())
