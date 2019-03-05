@@ -36,27 +36,27 @@ int hdf5_mhd_init_offload(hid_t f, mhd_offload_data* offload_data,
     }
 
     /* Read parameters. */
-    if( hdf5_read_int(   MHDPATH "n_modes",    &(offload_data->n_modes),
+    if( hdf5_read_int(   MHDPATH "nmode",      &(offload_data->n_modes),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(   MHDPATH "npsi",       &(offload_data->npsi),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "psi_min",    &(offload_data->psi_min),
+    if( hdf5_read_double(MHDPATH "psimin",     &(offload_data->psi_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "psi_max",    &(offload_data->psi_max),
+    if( hdf5_read_double(MHDPATH "psimax",     &(offload_data->psi_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(   MHDPATH "ntime",      &(offload_data->ntime),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "t_min",      &(offload_data->t_min),
+    if( hdf5_read_double(MHDPATH "tmin",       &(offload_data->t_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "t_max",      &(offload_data->t_max),
+    if( hdf5_read_double(MHDPATH "tmax",       &(offload_data->t_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(   MHDPATH "nmode",        offload_data->nmode,
+    if( hdf5_read_int(   MHDPATH "nmodes",       offload_data->nmode,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(   MHDPATH "mmode",        offload_data->mmode,
+    if( hdf5_read_int(   MHDPATH "mmodes",       offload_data->mmode,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "amplitude_nm", offload_data->amplitude_nm,
+    if( hdf5_read_double(MHDPATH "amplitude",    offload_data->amplitude_nm,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "omega_nm",     offload_data->omega_nm,
+    if( hdf5_read_double(MHDPATH "omega",        offload_data->omega_nm,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Allocate offload array */
@@ -65,9 +65,9 @@ int hdf5_mhd_init_offload(hid_t f, mhd_offload_data* offload_data,
     *offload_array = (real*) malloc( 2 * datasize * sizeof(real) );
 
     /* Read data to offload array */
-    if( hdf5_read_double(MHDPATH "alpha_nm", &(*offload_array)[0],
+    if( hdf5_read_double(MHDPATH "alpha", &(*offload_array)[0],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "phi_nm",   &(*offload_array)[datasize],
+    if( hdf5_read_double(MHDPATH "phi",   &(*offload_array)[datasize],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Initialize the data */

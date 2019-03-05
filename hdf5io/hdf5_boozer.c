@@ -40,27 +40,27 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
     /* Read parameters. */
     if( hdf5_read_int(   BOOZERPATH "nr",         &(offload_data->nr),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "r_min",      &(offload_data->r_min),
+    if( hdf5_read_double(BOOZERPATH "rmin",      &(offload_data->r_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "r_max",      &(offload_data->r_max),
+    if( hdf5_read_double(BOOZERPATH "rmax",      &(offload_data->r_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     if( hdf5_read_int(   BOOZERPATH "nz",         &(offload_data->nz),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "z_min",      &(offload_data->z_min),
+    if( hdf5_read_double(BOOZERPATH "zmin",      &(offload_data->z_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "z_max",      &(offload_data->z_max),
+    if( hdf5_read_double(BOOZERPATH "zmax",      &(offload_data->z_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     if( hdf5_read_int(   BOOZERPATH "npsi",       &(offload_data->npsi),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "psi_min",    &(offload_data->psi_min),
+    if( hdf5_read_double(BOOZERPATH "psimin",    &(offload_data->psi_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "psi_max",    &(offload_data->psi_max),
+    if( hdf5_read_double(BOOZERPATH "psimax",    &(offload_data->psi_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "psi_inner",    &(offload_data->psi_inner),
+    if( hdf5_read_double(BOOZERPATH "psi0",    &(offload_data->psi_inner),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "psi_outer",    &(offload_data->psi_outer),
+    if( hdf5_read_double(BOOZERPATH "psi1",    &(offload_data->psi_outer),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     if( hdf5_read_int(   BOOZERPATH "ntheta", &(offload_data->ntheta),
