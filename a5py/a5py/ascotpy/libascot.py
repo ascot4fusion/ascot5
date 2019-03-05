@@ -61,6 +61,8 @@ class LibAscot:
         self.plasma_initialized  = False
         self.neutral_initialized = False
         self.wall_initialized    = False
+        self.boozer_initialized  = False
+        self.mhd_initialized     = False
 
         # Declare functions found in libascot
 
@@ -71,7 +73,8 @@ class LibAscot:
             fun = self.libascot.libascot_init
             fun.restype  = ctypes.c_int
             fun.argtypes = [ctypes.c_char_p, ctypes.c_int, ctypes.c_int,
-                            ctypes.c_int, ctypes.c_int, ctypes.c_int]
+                            ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                            ctypes.c_int, ctypes.c_int]
         except AttributeError:
             warnings.warn("libascot_init not found", Warning)
             pass
@@ -80,7 +83,8 @@ class LibAscot:
             fun = self.libascot.libascot_free
             fun.restype  = None
             fun.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                            ctypes.c_int, ctypes.c_int]
+                            ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                            ctypes.c_int]
         except AttributeError:
             warnings.warn("libascot_free not found", Warning)
             pass
@@ -167,6 +171,26 @@ class LibAscot:
                             real_p]
         except AttributeError:
             warnings.warn("libascot_neutral_eval_density not found", Warning)
+            pass
+
+        # Boozer and MHD functions.
+        try:
+            fun = self.libascot.libascot_boozer_eval_psithetazeta
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p, real_p, real_p, real_p]
+        except AttributeError:
+            warnings.warn("libascot_boozer_eval_psithetazeta not found", Warning)
+            pass
+
+        try:
+            fun = self.libascot.libascot_mhd_eval_perturbation
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p, real_p, real_p, real_p]
+        except AttributeError:
+            warnings.warn("libascot_mhd_eval_perturbation not found", Warning)
             pass
 
         # Collision coefficients.
@@ -513,6 +537,105 @@ class LibAscot:
 
         self.libascot.libascot_neutral_eval_density(Neval, R, phi, z, t,
                                                     out["n0"])
+
+        return out
+
+
+    def eval_boozer(self, R, phi, z, t):
+        """
+        Evaluate boozer quantities at given coordinates.
+
+        Args:
+            R : array_like <br>
+                R coordinates where data is evaluated [m].
+            phi : array_like <br>
+                phi coordinates where data is evaluated [rad].
+            z : array_like <br>
+                z coordinates where data is evaluated [m].
+            t : array_like <br>
+                time coordinates where data is evaluated [s].
+
+        Returns:
+            Dictionary containing evaluated quantities.
+
+        Raises:
+            AssertionError if this is called data uninitialized.
+            RuntimeError if evaluation failed.
+        """
+        assert self.boozer_initialized, "Boozer data not initialized"
+
+        R   = np.asarray(R).ravel().astype(dtype="f8")
+        phi = np.asarray(phi).ravel().astype(dtype="f8")
+        z   = np.asarray(z).ravel().astype(dtype="f8")
+        t   = np.asarray(t).ravel().astype(dtype="f8")
+
+        Neval = R.size
+        out = {}
+        out["psi"]        = np.zeros(R.shape, dtype="f8")
+        out["theta"]      = np.zeros(R.shape, dtype="f8")
+        out["zeta"]       = np.zeros(R.shape, dtype="f8")
+        out["dpsidr"]     = np.zeros(R.shape, dtype="f8")
+        out["dpsidphi"]   = np.zeros(R.shape, dtype="f8")
+        out["dpsidz"]     = np.zeros(R.shape, dtype="f8")
+        out["dthetadr"]   = np.zeros(R.shape, dtype="f8")
+        out["dthetadphi"] = np.zeros(R.shape, dtype="f8")
+        out["dthetadz"]   = np.zeros(R.shape, dtype="f8")
+        out["dzetadr"]    = np.zeros(R.shape, dtype="f8")
+        out["dzetadphi"]  = np.zeros(R.shape, dtype="f8")
+        out["dzetadz"]    = np.zeros(R.shape, dtype="f8")
+
+        self.libascot.libascot_boozer_eval_psithetazeta(
+            Neval, R, phi, z, t, out["psi"], out["theta"], out["zeta"],
+            out["dpsidr"], out["dpsidphi"], out["dpsidz"],
+            out["dthetadr"], out["dthetadphi"], out["dthetadz"],
+            out["dzetadr"], out["dzetadphi"], out["dzetadz"])
+
+        return out
+
+
+    def eval_mhd(self, R, phi, z, t):
+        """
+        Evaluate mhd perturbation EM components at given coordinates.
+
+        Args:
+            R : array_like <br>
+                R coordinates where data is evaluated [m].
+            phi : array_like <br>
+                phi coordinates where data is evaluated [rad].
+            z : array_like <br>
+                z coordinates where data is evaluated [m].
+            t : array_like <br>
+                time coordinates where data is evaluated [s].
+
+        Returns:
+            Dictionary containing evaluated quantities.
+
+        Raises:
+            AssertionError if this is called data uninitialized.
+            RuntimeError if evaluation failed.
+        """
+        assert self.bfield_initialized, "Magnetic field not initialized"
+        assert self.boozer_initialized, "Boozer data not initialized"
+        assert self.mhd_initialized,    "MHD data not initialized"
+
+        R   = np.asarray(R).ravel().astype(dtype="f8")
+        phi = np.asarray(phi).ravel().astype(dtype="f8")
+        z   = np.asarray(z).ravel().astype(dtype="f8")
+        t   = np.asarray(t).ravel().astype(dtype="f8")
+
+        Neval = R.size
+        out = {}
+        out["br"]   = np.zeros(R.shape, dtype="f8")
+        out["bphi"] = np.zeros(R.shape, dtype="f8")
+        out["bz"]   = np.zeros(R.shape, dtype="f8")
+        out["er"]   = np.zeros(R.shape, dtype="f8")
+        out["ephi"] = np.zeros(R.shape, dtype="f8")
+        out["ez"]   = np.zeros(R.shape, dtype="f8")
+
+        self.libascot.libascot_mhd_eval_perturbation(Neval, R, phi, z, t,
+                                                     out["br"],   out["bphi"],
+                                                     out["bz"],   out["er"],
+                                                     out["ephi"], out["ez"])
 
         return out
 
