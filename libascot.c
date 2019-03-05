@@ -455,6 +455,38 @@ int libascot_neutral_eval_density(int Neval, real* R, real* phi, real* z,
 }
 
 /**
+ * @brief Evaluate boozer coordinates and derivatives.
+ */
+void ascotpy_boozer_eval_psithetazeta(int Neval, real* r, real* phi, real* z,
+                                      real* t, real* psi, real* theta,
+                                      real* zeta, real* dpsidr, real* dpsidphi,
+                                      real* dpsidz, real* dthetadr,
+                                      real* dthetadphi, real* dthetadz,
+                                      real* dzetadr, real* dzetadphi,
+                                      real* dzetadz) {
+    real psithetazeta[12];
+    int isinside;
+    for(int k = 0; k < Neval; k++) {
+        if( boozer_eval_psithetazeta(psithetazeta, &isinside, r[k], phi[k],
+                                     z[k], &sim.boozer_data) ) {
+            continue;
+        }
+        psi[k]        = psithetazeta[0];
+        theta[k]      = psithetazeta[4];
+        zeta[k]       = psithetazeta[8];
+        dpsidr[k]     = psithetazeta[1];
+        dpsidphi[k]   = psithetazeta[2];
+        dpsidz[k]     = psithetazeta[3];
+        dthetadr[k]   = psithetazeta[5];
+        dthetadphi[k] = psithetazeta[6];
+        dthetadz[k]   = psithetazeta[7];
+        dzetadr[k]    = psithetazeta[9];
+        dzetadphi[k]  = psithetazeta[10];
+        dzetadz[k]    = psithetazeta[11];
+    }
+}
+
+/**
  * @brief Evaluate MHD perturbation EM-field components
  */
 void ascotpy_mhd_eval_perturbation(int Neval, real* R, real* phi, real* z,
