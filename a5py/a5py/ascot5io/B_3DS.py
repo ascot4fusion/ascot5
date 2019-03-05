@@ -84,46 +84,6 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
     Returns:
         QID of the new input that was written.
     """
-    """
-    Write 3DS magnetic field input in HDF5 file.
-
-    TODO Not compatible with new HDF5 format.
-
-    Parameters
-    ----------
-
-    fn : str
-        Full path to the HDF5 file.
-    Rmin, Rmax, phimin, phimax, zmin, zmax : real
-        Edges of the uniform R x phi x z-grid [m x deg x m].
-    nR, nphi, nz : int
-        Number of Rphiz-grid points.
-    axisR, axisz : real
-        Magnetic axis Rz-location.
-    psiRz : real R x z numpy array
-        Psi values in the Rz-grid.
-    psiaxis, psisepx : real
-        Psi values at magnetic axis and separatrix
-    B_R, B_phi, B_z : real R x phi x z numpy array
-        Magnetic field components in Rphiz-grid.
-    pRmin, pRmax, pnR, pzmin, pzmax, pnz : opt
-        Optional parameters that define a separate grid for psi.
-    desc : brief description of the input.
-
-    Notes
-    -------
-
-    Rphiz coordinates form a right-handed cylindrical coordinates.
-    
-
-    Within ASCOT5, the magnetic field is evaluated as:
-
-    B_R = B_R' + dPsi/dz,
-    B_phi = B_phi',
-    B_z = B_z' + dPsi/dR,
-
-    where ' notates input fields.
-    """
 
     parent = "bfield"
     group  = "B_3DS"
@@ -138,9 +98,11 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
         pzmax = zmax
         pnz   = nz
 
+    print(B_R.shape)
     B_R = np.transpose(B_R,(1,0,2))
     B_phi = np.transpose(B_phi,(1,0,2))
     B_z = np.transpose(B_z,(1,0,2))
+    print(B_R.shape)
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
@@ -175,57 +137,30 @@ def read_hdf5(fn, qid):
     """
     Read 3D magnetic field input from HDF5 file.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        qid : str <br>
+            QID of the data to be read.
 
-    fn : str
-        Full path to the HDF5 file.
-    qid : str
-        qid of the bfield to be read.
-
-    Returns
-    -------
-
-    Dictionary containing magnetic field data.
+    Returns:
+        Dictionary containing input data.
     """
 
-    path = "bfield" + "/B_3DS_" + qid
+    path = "bfield/B_3DS_" + qid
 
+    out = {}
     with h5py.File(fn,"r") as f:
-        out = {}
-
-        # Metadata.
-        out["qid"]  = qid
-        out["date"] = f[path].attrs["date"]
-        out["description"] = f[path].attrs["description"]
-
-        # Actual data.
-        out["R_min"] = f[path]["R_min"][:]
-        out["R_max"] = f[path]["R_max"][:]
-        out["n_R"]   = f[path]["n_R"][:]
-
-        out["phi_min"] = f[path]["phi_min"][:]
-        out["phi_max"] = f[path]["phi_max"][:]
-        out["n_phi"]   = f[path]["n_phi"][:]
-
-        out["z_min"] = f[path]["z_min"][:]
-        out["z_max"] = f[path]["z_max"][:]
-        out["n_z"]   = f[path]["n_z"][:]
-
-        out["psi"]   = f[path]["psi"][:]
-        out["B_R"]   = f[path]["B_R"][:]
-        out["B_phi"] = f[path]["B_phi"][:]
-        out["B_z"]   = f[path]["B_z"][:]
-
-        out["axis_R"] = f[path]["axis_R"][:]
-        out["axis_z"] = f[path]["axis_z"][:]
-
-        out["psiaxis"] = f[path]["psi0"][:]
-        out["psisepx"] = f[path]["psi1"][:]
+        for key in f[path]:
+            out[key] = f[path][key][:]
 
     return out
 
+
 class B_3DS(AscotData):
+    """
+    Object representing B_3DS data.
+    """
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())

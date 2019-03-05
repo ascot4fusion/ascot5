@@ -1,9 +1,6 @@
 """
 Trivial cartesian electric field IO.
 
-The trivial cartesian electric field is a constant
-electric field defined in cartesian coordinates.
-
 File: E_TC.py
 """
 import h5py
@@ -12,66 +9,61 @@ import numpy as np
 from . ascot5file import add_group
 from . ascot5data import AscotData
 
-def write_hdf5(fn, Exyz, desc=None):
+def write_hdf5(fn, exyz, desc=None):
     """
     Write trivial cartesian electric field input in HDF5 file.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        exyz : array_like (3,1) <br>
+            Electric field value in cartesian coordinates
+        desc : str, optional <br>
+            Input description.
 
-    fn : str
-        Full path to the HDF5 file.
-    Exyz : real 3 x 1 numpy array
-        Electric field value in cartesian coordinates
+    Returns:
+        Name of the new input that was written.
     """
 
     parent = "efield"
     group  = "E_TC"
 
-    # Check that input is a valid array with three elements.
-    if Exyz.shape != (3,1) and Exyz.shape != (1,3) and Exyz.shape != (3,):
-        raise Exception('Exyz has invalid format.')
-
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
-        g.create_dataset("exyz", (3,1), data=Exyz, dtype="f8")
+        g.create_dataset("exyz", (3,1), data=exyz, dtype="f8")
+
+    return g.name
 
 
 def read_hdf5(fn, qid):
     """
-    Read trivial cartesian electric field input from HDF5 file.
+    Read Cartesian electric field input from HDF5 file.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        qid : str <br>
+            QID of the data to be read.
 
-    fn : str
-        Full path to the HDF5 file.
-    qid : str
-        qid of the efield to be read.
-
-    Returns
-    -------
-
-    Dictionary containing electric field data.
+    Returns:
+        Dictionary containing input data.
     """
 
-    path = "efield" + "/E_TC-" + qid
+    path = "efield/E_TC_" + qid
 
+    out = {}
     with h5py.File(fn,"r") as f:
-        out = {}
-
-        # Metadata.
-        out["qid"]  = qid
-        out["date"] = f[path].attrs["date"]
-        out["description"] = f[path].attrs["description"]
-
-        # Actual data.
-        out["Exyz"] = f[path]["Exyz"][:]
+        for key in f[path]:
+            out[key] = f[path][key][:]
 
     return out
 
+
 class E_TC(AscotData):
+    """
+    Object representing E_TC data.
+    """
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
