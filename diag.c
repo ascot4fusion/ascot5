@@ -54,7 +54,7 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
 
     if(data->distrho5D_collect) {
         data->offload_distrho5D_index = n;
-        n += data->distrho5D.n_rho * data->distrho5D.n_pol
+        n += data->distrho5D.n_rho * data->distrho5D.n_theta
             * data->distrho5D.n_phi
             * data->distrho5D.n_vpara * data->distrho5D.n_vperp
             * data->distrho5D.n_time * data->distrho5D.n_q;
@@ -62,7 +62,7 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
 
     if(data->distrho6D_collect) {
         data->offload_distrho6D_index = n;
-        n += data->distrho6D.n_rho * data->distrho6D.n_pol
+        n += data->distrho6D.n_rho * data->distrho6D.n_theta
             * data->distrho6D.n_phi
             * data->distrho6D.n_vr * data->distrho6D.n_vphi
             * data->distrho6D.n_vz * data->distrho6D.n_time
@@ -299,7 +299,7 @@ void diag_sum(diag_offload_data* data, real* array1, real* array2) {
 
     if(data->distrho5D_collect){
         int start = data->offload_distrho5D_index;
-        int stop = start + data->distrho5D.n_rho * data->distrho5D.n_pol
+        int stop = start + data->distrho5D.n_rho * data->distrho5D.n_theta
             * data->distrho5D.n_phi * data->distrho5D.n_vpara
             * data->distrho5D.n_vperp * data->distrho5D.n_time
             * data->distrho5D.n_q;
@@ -308,7 +308,7 @@ void diag_sum(diag_offload_data* data, real* array1, real* array2) {
 
     if(data->distrho6D_collect){
         int start = data->offload_distrho6D_index;
-        int stop = start + data->distrho6D.n_rho * data->distrho6D.n_pol
+        int stop = start + data->distrho6D.n_rho * data->distrho6D.n_theta
             * data->distrho6D.n_phi * data->distrho6D.n_vr
             * data->distrho6D.n_vphi * data->distrho6D.n_vz
             * data->distrho6D.n_time * data->distrho6D.n_q;

@@ -62,7 +62,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
             yprev[2] = p->z[i];
             yprev[3] = p->vpar[i];
             yprev[4] = p->mu[i];
-            yprev[5] = p->theta[i];
+            yprev[5] = p->zeta[i];
 
             /* Magnetic field at initial position already known */
             B_dB[0]  = p->B_r[i];
@@ -161,8 +161,10 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
                 p->z[i] = y[2];
                 p->vpar[i] = y[3];
                 p->mu[i] = y[4];
-                p->theta[i] = fmod(y[5],CONST_2PI);
-                if(p->theta[i]<0){p->theta[i] = CONST_2PI + p->theta[i];}
+                p->zeta[i] = fmod(y[5],CONST_2PI);
+                if(p->zeta[i]<0) {
+                    p->zeta[i] = CONST_2PI + p->zeta[i];
+                }
             }
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
@@ -198,13 +200,13 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
                 p->rho[i] = rho[0];
 
-                /* Evaluate pol angle so that it is cumulative */
+                /* Evaluate theta angle so that it is cumulative */
                 real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
                 real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->pol[i] += atan2(   (R0-axis_r) * (p->z[i]-axis_z)
-                                    - (z0-axis_z) * (p->r[i]-axis_r),
-                                      (R0-axis_r) * (p->r[i]-axis_r)
-                                    + (z0-axis_z) * (p->z[i]-axis_z) );
+                p->theta[i] += atan2(   (R0-axis_r) * (p->z[i]-axis_z)
+                                      - (z0-axis_z) * (p->r[i]-axis_r),
+                                        (R0-axis_r) * (p->r[i]-axis_r)
+                                      + (z0-axis_z) * (p->z[i]-axis_z) );
             }
 
             /* Error handling */

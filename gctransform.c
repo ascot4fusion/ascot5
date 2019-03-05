@@ -4,8 +4,8 @@
  *
  * The guiding center transformation is done both ways between particle
  * phase-space [r, phi, z, vr, vphi, vz] and guiding center phase-space
- * [R, Phi, Z, vpar, mu] to first order (both in spatial and velocity space
- * coordinates).
+ * [R, Phi, Z, vpar, mu, zeta] to first order (both in spatial and velocity
+ * space coordinates).
  *
  * The guiding genter motion is defined from a basis {bhat, e1, e2}, where bhat
  * is magnetic field unit vector. e1 and e2 are chosen so that
@@ -19,9 +19,9 @@
  *
  * - guiding center to particle transformation is accomplished by calling
  *   gctransform_guidingcenter2particle() which gives [r, phi, z, vpar, mu,
- *   theta] in particle coordinates. To obtain [r, phi, z, vr, vphi, vz],
+ *   zeta] in particle coordinates. To obtain [r, phi, z, vr, vphi, vz],
  *   first evaluate magnetic field at particle position and then call
- *   gctransform_vparmutheta2vRvphivz().
+ *   gctransform_vparmuzeta2vRvphivz().
  *
  * The transformation is relativistic.
  *
@@ -56,7 +56,7 @@ void gctransform_setorder(int order) {
  * @brief Transform particle to guiding center  phase space
  *
  * The transformation is done from coordinates [r, phi, z, vr, vphi, vz] to
- * [R, Phi, Z, vpar, mu, theta].
+ * [R, Phi, Z, vpar, mu, zeta].
  *
  * @param mass   mass [kg]
  * @param charge charge [C]
@@ -72,12 +72,12 @@ void gctransform_setorder(int order) {
  * @param Z      pointer to guiding center z coordinate [m]
  * @param vpar   pointer to guiding center parallel velocity [m/s]
  * @param mu     pointer to guiding center magnetic moment [J/T]
- * @param theta  pointer to guiding center gyroangle [rad]
+ * @param zeta   pointer to guiding center gyroangle [rad]
  */
 void gctransform_particle2guidingcenter(
     real mass, real charge, real* B_dB,
     real r, real phi, real z, real vr, real vphi, real vz,
-    real* R, real* Phi, real* Z, real* vpar, real* mu, real* theta) {
+    real* R, real* Phi, real* Z, real* vpar, real* mu, real* zeta) {
 
     /* |v|^2 */
     real vnorm2  = vr*vr + vphi*vphi + vz*vz;
@@ -228,11 +228,11 @@ void gctransform_particle2guidingcenter(
     *Z     = RPZ[2];
 
     /* Zeroth order gyroangle is directly defined from basis {e1, e2} and
-       gyrovector as tan(theta) = -rhohat dot e2 / rhohat dot e1 */
-    real theta0 =
+       gyrovector as tan(zeta) = -rhohat dot e2 / rhohat dot e1 */
+    real zeta0 =
         atan2( -math_dot(rhohat, e2), math_dot(rhohat, e1) );
 
-    /* First order velocity terms vpar, mu1, and theta1 */
+    /* First order velocity terms vpar, mu1, and zeta1 */
     real vpar1 =
         -vpar0 * rho0 * math_dot(rhohat, kappa) +
         ( mu0 / ( gamma * charge ) ) * ( tau + a1ddotgradb );
@@ -266,7 +266,7 @@ void gctransform_particle2guidingcenter(
     temp[0] = gradB[0] + kappa[0] * ( mass * gammavpar2 ) / (2 * mu0);
     temp[1] = gradB[1] + kappa[1] * ( mass * gammavpar2 ) / (2 * mu0);
     temp[2] = gradB[2] + kappa[2] * ( mass * gammavpar2 ) / (2 * mu0);
-    real theta1 =
+    real zeta1 =
         -rho0 * math_dot(rhohat, Rvec) +
         ( mass * gamma * vpar0 / ( charge * Bnorm ) ) * a2ddotgradb +
         ( rho0 / Bnorm ) * math_dot(perphat, temp);
@@ -275,23 +275,23 @@ void gctransform_particle2guidingcenter(
     if(GCTRANSFORM_ORDER) {
         *vpar  = vpar0 + vpar1;
         *mu    = mu0 + mu1;
-        *theta = theta0 + theta1;
+        *zeta  = zeta0 + zeta1;
     }
     else {
         *vpar  = vpar0;
         *mu    = mu0;
-        *theta = theta0;
+        *zeta = zeta0;
     }
 
-    /* theta is defined to be in interval [0, 2pi] */
-    *theta = fmod(CONST_2PI + (*theta), CONST_2PI);
+    /* zeta is defined to be in interval [0, 2pi] */
+    *zeta = fmod(CONST_2PI + (*zeta), CONST_2PI);
 }
 
 /**
  * @brief Transform guiding center to particle phase space
  *
  * The transformation is done from coordinates [R, Phi, Z, vpar, mu] to
- * [r, phi, z, vpar_prt, mu_prt, theta_prt].
+ * [r, phi, z, vpar_prt, mu_prt, zeta_prt].
  *
  * @param mass     mass [kg]
  * @param charge   charge [C]
@@ -301,18 +301,18 @@ void gctransform_particle2guidingcenter(
  * @param Z        guiding center z coordinate [m]
  * @param vpar     guiding center parallel velocity [m/s]
  * @param mu       guiding center magnetic moment [J/T]
- * @param theta    guiding center gyroangle [rad]
+ * @param zeta     guiding center gyroangle [rad]
  * @param r        pointer to particle R coordinate [m]
  * @param phi      pointer to particle phi coordinate [rad]
  * @param z        pointer to particle z coordinate [m]
  * @param vparprt  pointer to particle parallel velocity [m/s]
  * @param muprt    pointer to particle magnetic moment [J/T]
- * @param thetaprt pointer to particle gyroangle [rad]
+ * @param zetaprt  pointer to particle gyroangle [rad]
  */
 void gctransform_guidingcenter2particle(
     real mass, real charge, real* B_dB,
-    real R, real Phi, real Z, real vpar, real mu, real theta,
-    real* r, real* phi, real* z, real* vparprt, real* muprt, real* thetaprt) {
+    real R, real Phi, real Z, real vpar, real mu, real zeta,
+    real* r, real* phi, real* z, real* vparprt, real* muprt, real* zetaprt) {
 
     /* |B| */
     real Bnorm   = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
@@ -387,8 +387,8 @@ void gctransform_guidingcenter2particle(
     /* Gyrovector rhohat and vperphat*/
     real rhohat[3];
     real perphat[3];
-    real c = cos(theta);
-    real s = sin(theta);
+    real c = cos(zeta);
+    real s = sin(zeta);
 
     rhohat[0] = c * e1[0] - s * e2[0];
     rhohat[1] = c * e1[1] - s * e2[1];
@@ -472,7 +472,7 @@ void gctransform_guidingcenter2particle(
     Rvec[2] =
         b1x * ( nablabhat[7] + b2x * ( nablabhat[6] + nablabhat[7] ) ) +
         b1y * ( nablabhat[6] + b2y * ( nablabhat[6] + nablabhat[7] ) );
-    real theta1 =
+    real zeta1 =
         -rho0 * math_dot(rhohat, Rvec) +
         ( mass * gamma * vpar / ( charge * Bnorm ) ) * a2ddotgradb +
         ( rho0 / Bnorm ) * math_dot(perphat, temp);
@@ -480,13 +480,13 @@ void gctransform_guidingcenter2particle(
     /* Choose whether to use first or zeroth order velocity transform */
 
     if(GCTRANSFORM_ORDER) {
-        mu    -= mu1;
-        vpar  -= vpar1;
-        theta -= theta1;
+        mu   -= mu1;
+        vpar -= vpar1;
+        zeta -= zeta1;
 
         /* Calculate new unit vector for position */
-        c = cos(theta);
-        s = sin(theta);
+        c = cos(zeta);
+        s = sin(zeta);
 
         rhohat[0] = c * e1[0] - s * e2[0];
         rhohat[1] = c * e1[1] - s * e2[1];
@@ -507,11 +507,11 @@ void gctransform_guidingcenter2particle(
     *z        = rpz[2];
     *vparprt  = vpar;
     *muprt    = mu;
-    *thetaprt = theta;
+    *zetaprt = zeta;
 }
 
 /**
- * @brief Transform particle vpar, mu, and theta to velocity vector.
+ * @brief Transform particle vpar, mu, and zeta to velocity vector.
  *
  * The transformation is done from coordinates [R, Phi, Z, vpar, mu] to
  * [r, phi, z, vr, vphi, vz]. The transformation is done to first order.
@@ -522,14 +522,14 @@ void gctransform_guidingcenter2particle(
  * @param phi    particle phi coordinate [rad]
  * @param vpar   particle parallel velocity [m/s]
  * @param mu     particle magnetic moment [J/T]
- * @param theta  particle gyroangle [rad]
+ * @param zeta   particle gyroangle [rad]
  * @param vr     pointer to particle velocity R-component [m/s]
  * @param vphi   pointer to particle velocity phi-component [m/s]
  * @param vz     pointer to particle velocity z-component [m/s]
  */
-void gctransform_vparmutheta2vRvphivz(real mass, real charge, real* B_dB,
-                                      real phi, real vpar, real mu, real theta,
-                                      real* vr, real* vphi, real* vz) {
+void gctransform_vparmuzeta2vRvphivz(real mass, real charge, real* B_dB,
+                                     real phi, real vpar, real mu, real zeta,
+                                     real* vr, real* vphi, real* vz) {
     /* Find magnetic field norm and unit vector */
     real Brpz[3] = {B_dB[0], B_dB[4], B_dB[8]};
     real Bxyz[3];
@@ -548,8 +548,8 @@ void gctransform_vparmutheta2vRvphivz(real mass, real charge, real* B_dB,
     math_cross(bhat, e1, e2);
 
     /* Perpendicular basis vector */
-    real c = cos(theta);
-    real s = sin(theta);
+    real c = cos(zeta);
+    real s = sin(zeta);
     real perphat[3];
     perphat[0] = -s * e1[0] - c * e2[0];
     perphat[1] = -s * e1[1] - c * e2[1];

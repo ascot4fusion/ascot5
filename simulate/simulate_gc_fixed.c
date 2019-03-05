@@ -94,12 +94,10 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
             p0.theta[i]    = p.theta[i];
 
             p0.time[i]       = p.time[i];
-            p0.cputime[i]    = p.cputime[i];
-            p0.rho[i]        = p.rho[i];
             p0.weight[i]     = p.weight[i];
             p0.cputime[i]    = p.cputime[i];
             p0.rho[i]        = p.rho[i];
-            p0.pol[i]        = p.pol[i];
+            p0.theta[i]      = p.theta[i];
 
             p0.mass[i]       = p.mass[i];
             p0.charge[i]     = p.charge[i];
@@ -208,7 +206,7 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i) {
         real Bnorm = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
         real gyrotime = CONST_2PI /
             phys_gyrofreq_vpar(p->mass[i], p->charge[i], p->mu[i], p->vpar[i], Bnorm);
-        h = gyrotime/sim->fix_stepsPerGO;
+        h = gyrotime/sim->fix_gyrodef_nstep;
     }
 
     return h;

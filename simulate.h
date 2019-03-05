@@ -64,13 +64,13 @@ typedef struct {
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */
     int enable_ada;      /**< Is adaptive time-step used                      */
-    int record_GOasGC;   /**< Is particles GC coordinates used in diagnostics */
+    int record_mode;     /**< Which record mode is used                       */
 
     /* Options - fixed time-step */
-    int fix_usrdef_use;  /**< Use user defined value for (initial) time-step  */
-    real fix_usrdef_val; /**< User defined time-step value                    */
-    int fix_stepsPerGO;  /**< Time-step = gyrotime/fix_stepsPerGO if not
-                              explicitly user defined                         */
+    int fix_usrdef_use;    /**< Use user defined value for (initial) time-step*/
+    real fix_usrdef_val;   /**< User defined time-step value                  */
+    int fix_gyrodef_nstep; /**< Time-step = gyrotime/fix_gyrodef_nstep if not
+                                explicitly user defined                       */
 
     /* Options - adaptive time-step */
     real ada_tol_orbfol;       /**< Tolerance for relative error in
@@ -97,15 +97,15 @@ typedef struct {
 
     /* Options - end conditions */
     int endcond_active;        /**< Bit array notating active end conditions  */
-    real endcond_maxSimTime;   /**< Maximum simulation time [s]               */
-    real endcond_maxCpuTime;   /**< Maximum wall-clock time [s]               */
-    real endcond_minRho;       /**< Minimum rho limit                         */
-    real endcond_maxRho;       /**< Maximum rho limit                         */
-    real endcond_minEkin;      /**< Fixed minimum kinetic energy limit [J]    */
-    real endcond_minEkinPerTi; /**< Thermal minimum energy limit is this
+    real endcond_max_simtime;  /**< Maximum simulation time [s]               */
+    real endcond_max_cputime;  /**< Maximum wall-clock time [s]               */
+    real endcond_min_rho;      /**< Minimum rho limit                         */
+    real endcond_max_rho;      /**< Maximum rho limit                         */
+    real endcond_min_ekin;     /**< Fixed minimum kinetic energy limit [J]    */
+    real endcond_min_thermal;  /**< Thermal minimum energy limit is this
                                     parameter times local thermal energy      */
-    real endcond_maxTorOrb;    /**< Maximum limit for toroidal distance [rad] */
-    real endcond_maxPolOrb;    /**< Maximum limit for poloidal distance [rad] */
+    real endcond_max_tororb;   /**< Maximum limit for toroidal distance [rad] */
+    real endcond_max_polorb;   /**< Maximum limit for poloidal distance [rad] */
 
     /* Metadata */
     char hdf5_in[256];     /**< Name of the input HDF5 file  */
@@ -147,13 +147,13 @@ typedef struct {
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */
     int enable_ada;      /**< Is adaptive time-step used                      */
-    int record_GOasGC;   /**< Is particles GC coordinates used in diagnostics */
+    int record_mode;     /**< Which record mode is used                       */
 
     /* Options - fixed time-step */
-    int fix_usrdef_use;  /**< Use user defined value for (initial) time-step  */
-    real fix_usrdef_val; /**< User defined time-step value                    */
-    int fix_stepsPerGO;  /**< Time-step = gyrotime/fix_stepsPerGO if not
-                              explicitly user defined                         */
+    int fix_usrdef_use;    /**< Use user defined value for (initial) time-step*/
+    real fix_usrdef_val;   /**< User defined time-step value                  */
+    int fix_gyrodef_nstep; /**< Time-step = gyrotime/fix_stepsPerGO if not
+                                explicitly user defined                       */
 
     /* Options - adaptive time-step */
     real ada_tol_orbfol;       /**< Tolerance for relative error in
@@ -179,16 +179,16 @@ typedef struct {
                                     from Coulomb collisions */
 
     /* Options - end conditions */
-    int endcond_active;        /**< Bit array notating active end conditions  */
-    real endcond_maxSimTime;   /**< Maximum simulation time [s]               */
-    real endcond_maxCpuTime;   /**< Maximum wall-clock time [s]               */
-    real endcond_minRho;       /**< Minimum rho limit                         */
-    real endcond_maxRho;       /**< Maximum rho limit                         */
-    real endcond_minEkin;      /**< Fixed minimum kinetic energy limit [J]    */
-    real endcond_minEkinPerTi; /**< Thermal minimum energy limit is this
-                                    parameter times local thermal energy      */
-    real endcond_maxTorOrb;    /**< Maximum limit for toroidal distance [rad] */
-    real endcond_maxPolOrb;    /**< Maximum limit for poloidal distance [rad] */
+    int endcond_active;       /**< Bit array notating active end conditions  */
+    real endcond_max_simtime; /**< Maximum simulation time [s]               */
+    real endcond_max_cputime; /**< Maximum wall-clock time [s]               */
+    real endcond_min_rho;     /**< Minimum rho limit                         */
+    real endcond_max_rho;     /**< Maximum rho limit                         */
+    real endcond_min_ekin;    /**< Fixed minimum kinetic energy limit [J]    */
+    real endcond_min_thermal; /**< Thermal minimum energy limit is this
+                                   parameter times local thermal energy      */
+    real endcond_max_tororb;  /**< Maximum limit for toroidal distance [rad] */
+    real endcond_max_polorb;  /**< Maximum limit for poloidal distance [rad] */
 
 } sim_data;
 

@@ -46,14 +46,14 @@ int hdf5_plasma_init_offload(hid_t f, plasma_offload_data* offload_data,
 
     /* Read data the QID corresponds to */
 
-    hdf5_gen_path("/plasma/plasma_1D-XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/plasma/plasma_1D_XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
         offload_data->type = plasma_type_1D;
         err = hdf5_plasma_read_1D(f, &(offload_data->plasma_1D),
                                   offload_array, qid);
     }
 
-    hdf5_gen_path("/plasma/plasma_1DS-XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/plasma/plasma_1DS_XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
         offload_data->type = plasma_type_1DS;
         err = hdf5_plasma_read_1DS(f, &(offload_data->plasma_1DS),
@@ -81,43 +81,46 @@ int hdf5_plasma_init_offload(hid_t f, plasma_offload_data* offload_data,
 int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
                         real** offload_array, char* qid) {
     #undef PLSPATH
-    #define PLSPATH "/plasma/plasma_1D-XXXXXXXXXX/"
+    #define PLSPATH "/plasma/plasma_1D_XXXXXXXXXX/"
 
     /* Read rhogrid size and number of species */
     int n_rho, n_ions;
-    if( hdf5_read_int(PLSPATH "n_ions", &n_ions,
+    if( hdf5_read_int(PLSPATH "nion", &n_ions,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(PLSPATH "n_rho",  &n_rho,
+    if( hdf5_read_int(PLSPATH "nrho",  &n_rho,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
 
     offload_data->n_species = n_ions + 1; /* Include electrons */
-    offload_data->n_rho = n_rho;
+    offload_data->n_rho     = n_rho;
 
+    /* Electron charge and mass */
+    offload_data->charge[0] = -1 * CONST_E;
+    offload_data->mass[0]   = CONST_M_E;
 
-    /* Read species information */
+    /* Read ion species information */
     int temparr[MAX_SPECIES];
 
-    if( hdf5_read_int(PLSPATH "Z_num", temparr,
+    if( hdf5_read_int(PLSPATH "znum", offload_data->znum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(PLSPATH "anum", offload_data->anum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    if( hdf5_read_int(PLSPATH "charge", temparr,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     for(int i = 0; i < n_ions; i++) {
         offload_data->charge[i+1] = temparr[i] * CONST_E;
     }
-    /* Electron charge -1 */
-    offload_data->charge[0] = -1 * CONST_E;
 
-    /* Read Amass and calculate mass */
-    if( hdf5_read_int(PLSPATH "A_mass", temparr,
+    if( hdf5_read_int(PLSPATH "mass", temparr,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     for(int i = 0; i < n_ions; i++) {
         offload_data->mass[i+1] = temparr[i] * CONST_U;
     }
-    /* Electron mass */
-    offload_data->mass[0] = CONST_M_E;
 
     /* Allocate space for rhogrid, density (for each species) and
        temperature (for electrons and ions - all ions have same temperature) */
     offload_data->offload_array_length =
-        n_rho + 2 * offload_data->n_species*n_rho;
+        3*n_rho + offload_data->n_species*n_rho;
     *offload_array = (real*) malloc(sizeof(real)
                                     * offload_data->offload_array_length);
 
@@ -126,22 +129,19 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
     real* rho = &(*offload_array)[0];
     real* temp_e = &(*offload_array)[n_rho];
     real* temp_i = &(*offload_array)[n_rho*2];
-    real* dens_e = &(*offload_array)[n_rho*2
-                                     + n_rho*n_ions];
-    real* dens_i = &(*offload_array)[n_rho*2
-                                     + n_rho*n_ions
-                                     + n_rho];
+    real* dens_e = &(*offload_array)[n_rho*3];
+    real* dens_i = &(*offload_array)[n_rho*4];
 
     /* Read rhogrid, densities, and temperatures into allocated array */
     if( hdf5_read_double(PLSPATH "rho", rho,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "temp_e", temp_e,
+    if( hdf5_read_double(PLSPATH "etemperature", temp_e,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "dens_e", dens_e,
+    if( hdf5_read_double(PLSPATH "edensity", dens_e,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "temp_i", temp_i,
+    if( hdf5_read_double(PLSPATH "iontemperature", temp_i,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "dens_i", dens_i,
+    if( hdf5_read_double(PLSPATH "iondensity", dens_i,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     for(int i = 0; i < n_rho; i++) {
@@ -169,42 +169,46 @@ int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
                          real** offload_array, char* qid) {
 
     #undef PLSPATH
-    #define PLSPATH "/plasma/plasma_1DS-XXXXXXXXXX/"
+    #define PLSPATH "/plasma/plasma_1DS_XXXXXXXXXX/"
 
     /* Read rhogrid and number of species */
     int n_rho, n_ions;
-    if( hdf5_read_int(PLSPATH "n_ions", &n_ions,
+    if( hdf5_read_int(PLSPATH "nion", &n_ions,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(PLSPATH "n_rho",  &offload_data->n_rho,
+    if( hdf5_read_int(PLSPATH "nrho",  &offload_data->n_rho,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "rho_min",  &offload_data->rho_min,
+    if( hdf5_read_double(PLSPATH "rhomin",  &offload_data->rho_min,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "rho_max",  &offload_data->rho_max,
+    if( hdf5_read_double(PLSPATH "rhomax",  &offload_data->rho_max,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     offload_data->n_species = n_ions + 1; /* Include electrons */
     n_rho = offload_data->n_rho;
 
 
-    /* Read species information */
+    /* Electron charge and mass */
+    offload_data->charge[0] = -1 * CONST_E;
+    offload_data->mass[0]   = CONST_M_E;
+
+    /* Read ion species information */
     int temparr[MAX_SPECIES];
 
-    if( hdf5_read_int(PLSPATH "Z_num", temparr,
+    if( hdf5_read_int(PLSPATH "znum", offload_data->znum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(PLSPATH "anum", offload_data->anum,
+                      f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    if( hdf5_read_int(PLSPATH "charge", temparr,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     for(int i = 0; i < n_ions; i++) {
         offload_data->charge[i+1] = temparr[i] * CONST_E;
     }
-    /* Electron charge -1 */
-    offload_data->charge[0] = -1 * CONST_E;
 
-    /* Read Amass and calculate mass */
-    if( hdf5_read_int(PLSPATH "A_mass", temparr,
+    if( hdf5_read_int(PLSPATH "mass", temparr,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     for(int i = 0; i < n_ions; i++) {
         offload_data->mass[i+1] = temparr[i] * CONST_U;
     }
-    /* Electron mass */
-    offload_data->mass[0] = CONST_M_E;
 
     /* Allocate space for density (for each species) and
        temperature (for electrons and ions - all ions have same temperature) */
@@ -221,13 +225,13 @@ int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
     real* dens_i = &(*offload_array)[n_rho*3];
 
     /* Read densities, and temperatures into allocated array */
-    if( hdf5_read_double(PLSPATH "temp_e", temp_e,
+    if( hdf5_read_double(PLSPATH "etemperature", temp_e,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "dens_e", dens_e,
+    if( hdf5_read_double(PLSPATH "edensity", dens_e,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "temp_i", temp_i,
+    if( hdf5_read_double(PLSPATH "iontemperature", temp_i,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "dens_i", dens_i,
+    if( hdf5_read_double(PLSPATH "iondensity", dens_i,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     for(int i = 0; i < n_rho; i++) {

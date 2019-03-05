@@ -110,7 +110,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
             p0.cputime[i]    = p.cputime[i];
             p0.rho[i]        = p.rho[i];
             p0.weight[i]     = p.weight[i];
-            p0.pol[i]        = p.pol[i];
+            p0.theta[i]      = p.theta[i];
 
             p0.id[i]         = p.id[i];
             p0.running[i]    = p.running[i];
@@ -183,7 +183,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
                     p.time[i]       = p0.time[i];
                     p.rho[i]        = p0.rho[i];
                     p.weight[i]     = p0.weight[i];
-                    p.pol[i]        = p0.pol[i];
+                    p.theta[i]      = p0.theta[i];
 
                     p.running[i]    = p0.running[i];
                     p.endcond[i]    = p0.endcond[i];
