@@ -24,14 +24,14 @@
  * @param hin time-steps for NSIMD markers
  * @param hout suggestions for the next timesteps for NSIMD markers
  * @param tol relative error tolerance
- * @param w array holding pointers to wiener arrays
+ * @param w array holding wiener structs for NSIMD markers
  * @param Bdata pointer to magnetic field data
  * @param pdata pointer to plasma data
  * @param rdata pointer to random-generator data
  * @param mdata pointer to collision data struct
  */
 void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
-                      mccc_wienarr** w, B_field_data* Bdata,
+                      mccc_wienarr* w, B_field_data* Bdata,
                       plasma_data* pdata, random_data* rdata,
                       mccc_data* mdata) {
 
@@ -114,16 +114,16 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
             /* Generate Wiener process for this step */
             int tindex;
             if(!errflag) {
-                errflag = mccc_wiener_generate(w[i], w[i]->time[0]+hin[i],
+                errflag = mccc_wiener_generate(&w[i], w[i].time[0]+hin[i],
                                                &tindex, &rnd[i*5]);
             }
             real dW[5] = {0, 0, 0, 0, 0};
             if(!errflag) {
-                dW[0] = w[i]->wiener[tindex*5 + 0] - w[i]->wiener[0]; // For X_1
-                dW[1] = w[i]->wiener[tindex*5 + 1] - w[i]->wiener[1]; // For X_2
-                dW[2] = w[i]->wiener[tindex*5 + 2] - w[i]->wiener[2]; // For X_3
-                dW[3] = w[i]->wiener[tindex*5 + 3] - w[i]->wiener[3]; // For v
-                dW[4] = w[i]->wiener[tindex*5 + 4] - w[i]->wiener[4]; // For xi
+                dW[0] = w[i].wiener[tindex*5 + 0] - w[i].wiener[0]; // For X_1
+                dW[1] = w[i].wiener[tindex*5 + 1] - w[i].wiener[1]; // For X_2
+                dW[2] = w[i].wiener[tindex*5 + 2] - w[i].wiener[2]; // For X_3
+                dW[3] = w[i].wiener[tindex*5 + 3] - w[i].wiener[3]; // For v
+                dW[4] = w[i].wiener[tindex*5 + 4] - w[i].wiener[4]; // For xi
             }
 
             /* Evaluate collisions */

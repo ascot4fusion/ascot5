@@ -14,16 +14,14 @@
  * and is evaluated using linear interpolation.
  *
  * This module does no extrapolation so if queried value is outside the
- * \f$Rz\f$-grid an error is thrown. For \f$\phi\f$-grid, the input can be
- * either stellarator-symmetric or periodic. The stellarator symmetric field is
- * convertedto periodic during initialization. Periodic boundary conditions are
- * used but it is user's responsibility to provide input whose \f$\phi\f$-grid
- * makes sense (in that it actually represents a periodic field), i.e.,
- * \f$\phi_\mathrm{max}-\phi_\mathrm{min} = 2\pi/(N+1)\f$.
- * However, do note that in this module \f$\phi_\mathrm{max}\f$ is not the
- * "last" grid point but the second last, e.g. if \f$\phi_\mathrm{min}=0\f$
- * and \f$n_\phi = 360\f$, then \f$\phi_\mathrm{max}=359\f$ if periodicity is
- * \f$N=0\f$.
+ * \f$Rz\f$-grid an error is thrown. The \f$\phi\f$-grid is assumed to be
+ * periodic. Periodic boundary conditions are used but it is user's
+ * responsibility to provide input whose \f$\phi\f$-grid makes sense (in that it
+ * actually represents a periodic field), i.e.,
+ * \f$\phi_\mathrm{max}-\phi_\mathrm{min} = 2\pi/(N+1)\f$.  However, do note
+ * that in this module \f$\phi_\mathrm{max}\f$ is not the "last" grid point but
+ * the second last, e.g. if \f$\phi_\mathrm{min}=0\f$ and \f$n_\phi = 360\f$,
+ * then \f$\phi_\mathrm{max}=359\f$ if periodicity is \f$N=0\f$.
  *
  * @see B_field.c linint1D.c
  */
@@ -74,9 +72,6 @@
  * - B_STS_offload_data.axis_r
  * - B_STS_offload_data.axis_z
  *
- * - B_STS_offload_data.n_periods
- * - B_STS_offload_data.symmetry_mode
- *
  * B_STS_offload_data.offload_array_length is set here.
  *
  * The offload array must contain the following data:
@@ -126,8 +121,6 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
     offload_data->axis_grid = (offload_data->axis_max - offload_data->axis_min)
         / (offload_data->n_axis - 1);
 
-    offload_data->period_length = CONST_2PI/offload_data->n_periods;
-
     int offload_B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
         * offload_data->Bgrid_n_phi;
     int offload_psi_size = offload_data->psigrid_n_r * offload_data->psigrid_n_z
@@ -141,177 +134,69 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
     int B_size = 0;
     int psi_size = 0;
     int axis_size = offload_data->n_axis;
-    if (offload_data->symmetry_mode == symmetry_type_stellarator) {
-        /* We need to use stellarator symmetry here.
-         * http://dx.doi.org/10.1016/S0167-2789(97)00216-9
-         * The data is expected to include half a period.
-         * Stellarator symmetry: i_phi        <=> 2*(n_phi-1)-i_phi
-         *                       i_z          <=> n_z-i_z-1
-         * So, a point at:
-         *     (i_r, i_phi, i_z)  <=> (i_r, 2*(n_phi-1)-i_phi, n_z-i_z-1)
-         *
-         * temp_B_x data is in the format:
-         *     (i_r, i_phi, i_z) = temp_B_x(i_z*n_phi*n_r + i_phi*n_r + i_r)
-         * offload_array data -"-"-"-"-  :
-         *     (i_r, i_phi, i_z) =
-         *                    (*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ]
-         * => (*offload_array)[i_phi*n_z*n_r + i_z*n_r + i_r ] =
-         *                           temp_B_x(i_z*n_phi*n_r + i_phi*n_r + i_r);
-         * The values are: Sym[B_r, B_phi, B_z] = [-B_r, B_phi, B_z]
-         */
-        B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
-            * (2 * (offload_data->Bgrid_n_phi - 1));
-        psi_size = offload_data->psigrid_n_r * offload_data->psigrid_n_z
-            * (2 * (offload_data->psigrid_n_phi - 1));
-        temp_array = (real*) malloc((3 * B_size + psi_size) * sizeof(real));
+    /* Remove duplicate phi point from data */
+    B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
+        * (offload_data->Bgrid_n_phi - 1);
+    psi_size = offload_data->psigrid_n_r * offload_data->psigrid_n_z
+        * (offload_data->psigrid_n_phi - 1);
+    temp_array = (real*) malloc((3 * B_size + psi_size)
+                                * sizeof(real));
 
-        int i_phi;
-        int i_z;
-        int i_r;
-        int temp_ind, off_ind, sym_ind;
+    int i_phi;
+    int i_z;
+    int i_r;
+    int temp_ind, off_ind;
 
-        /* Bfield */
-        int n_r = offload_data->Bgrid_n_r;
-        int n_phi = offload_data->Bgrid_n_phi;
-        int n_z = offload_data->Bgrid_n_z;
-        for (i_phi = 0; i_phi < n_phi; i_phi++) {
-            for (i_z = 0; i_z < n_z; i_z++) {
-                for (i_r = 0; i_r < n_r; i_r++) {
-                    /* Index of data point in temp arrays */
-                    temp_ind = i_z*n_phi*n_r + i_phi*n_r + i_r;
-
-                    /* Index of data point in offload_array and
-                       corresponding stel.-symmetric index  */
-                    off_ind = i_phi*n_z*n_r + i_z*n_r + i_r;
-                    sym_ind = (2*(n_phi - 1) - i_phi)*n_z*n_r
-                        + (n_z - i_z - 1)*n_r + i_r;
-
-                    /* B_r */
-                    temp_array[off_ind] =
-                        offload_B_r[temp_ind];
-                    if (i_phi != 0) {
-                        temp_array[sym_ind] =
-                            - offload_B_r[temp_ind];
-                    }
-                    // B_phi
-                    temp_array[B_size + off_ind] =
-                        offload_B_phi[temp_ind];
-                    if (i_phi != 0) {
-                        temp_array[B_size + sym_ind] =
-                            offload_B_phi[temp_ind];
-                    }
-                    // B_z
-                    temp_array[2*B_size + off_ind] =
-                        offload_B_z[temp_ind];
-                    if (i_phi != 0) {
-                        temp_array[2*B_size + sym_ind] =
-                            offload_B_z[temp_ind];
-                    }
-                }
+    /* Bfield */
+    int n_r = offload_data->Bgrid_n_r;
+    int n_phi = offload_data->Bgrid_n_phi - 1;
+    int n_z = offload_data->Bgrid_n_z;
+    for (i_phi = 0; i_phi < n_phi - 1; i_phi++) {
+        for (i_z = 0; i_z < n_z; i_z++) {
+            for (i_r = 0; i_r < n_r; i_r++) {
+                /* Index of data point in temp arrays */
+                temp_ind = i_z*n_phi*n_r + i_phi*n_r + i_r;
+                /* Index of data point in offload_array */
+                off_ind = i_phi*n_z*n_r + i_z*n_r + i_r;
+                /* B_r */
+                temp_array[off_ind] =
+                    offload_B_r[temp_ind];
+                // B_phi
+                temp_array[B_size + off_ind] =
+                    offload_B_phi[temp_ind];
+                // B_z
+                temp_array[2*B_size + off_ind] =
+                    offload_B_z[temp_ind];
             }
         }
-        /* Bfield data is now for one toroidal period */
-        offload_data->Bgrid_n_phi = 2*(offload_data->Bgrid_n_phi - 1);
-        offload_data->Bgrid_phi_max = 2*offload_data->Bgrid_phi_max;
-
-        /* Psi */
-        n_r = offload_data->psigrid_n_r;
-        n_phi = offload_data->psigrid_n_phi;
-        n_z = offload_data->psigrid_n_z;
-        for (i_phi = 0; i_phi < n_phi; i_phi++) {
-            for (i_z = 0; i_z < n_z; i_z++) {
-                for (i_r = 0; i_r < n_r; i_r++) {
-                    /* Index of data point in temp arrays */
-                    temp_ind = i_z*n_phi*n_r + i_phi*n_r + i_r;
-
-                    /* Index of data point in offload_array and
-                       corresponding stel.-symmetric index  */
-                    off_ind = i_phi*n_z*n_r + i_z*n_r + i_r;
-                    sym_ind = (2*(n_phi - 1) - i_phi)*n_z*n_r
-                        + (n_z - i_z - 1)*n_r + i_r;
-
-                    // psi
-                    temp_array[3*B_size + off_ind] =
-                        offload_psi[temp_ind];
-                    if (i_phi != 0) {
-                        temp_array[3*B_size + sym_ind] =
-                            offload_psi[temp_ind];
-                    }
-                }
-            }
-        }
-        /* Psi data is now for one toroidal period */
-        offload_data->psigrid_n_phi = 2*(offload_data->psigrid_n_phi - 1);
-        offload_data->psigrid_phi_max = 2*offload_data->psigrid_phi_max;
-        /* Since the data is now for a whole toroidal period, we can set the
-           symmetry mode as pediodic */
-        offload_data->symmetry_mode = symmetry_type_periodic;
     }
-    else if (offload_data->symmetry_mode == symmetry_type_periodic) {
-        /* Remove duplicate phi point from data */
-        B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
-            * (offload_data->Bgrid_n_phi - 1);
-        psi_size = offload_data->psigrid_n_r * offload_data->psigrid_n_z
-            * (offload_data->psigrid_n_phi - 1);
-        temp_array = (real*) malloc((3 * B_size + psi_size)
-                                        * sizeof(real));
+    /* Bfield data is now for one point less */
+    offload_data->Bgrid_n_phi = offload_data->Bgrid_n_phi - 1;
+    offload_data->Bgrid_phi_max =
+        offload_data->Bgrid_phi_max - offload_data->Bgrid_phi_grid;
 
-        int i_phi;
-        int i_z;
-        int i_r;
-        int temp_ind, off_ind;
-
-        /* Bfield */
-        int n_r = offload_data->Bgrid_n_r;
-        int n_phi = offload_data->Bgrid_n_phi - 1;
-        int n_z = offload_data->Bgrid_n_z;
-        for (i_phi = 0; i_phi < n_phi - 1; i_phi++) {
-            for (i_z = 0; i_z < n_z; i_z++) {
-                for (i_r = 0; i_r < n_r; i_r++) {
-                    /* Index of data point in temp arrays */
-                    temp_ind = i_z*n_phi*n_r + i_phi*n_r + i_r;
-                    /* Index of data point in offload_array */
-                    off_ind = i_phi*n_z*n_r + i_z*n_r + i_r;
-                    /* B_r */
-                    temp_array[off_ind] =
-                        offload_B_r[temp_ind];
-                    // B_phi
-                    temp_array[B_size + off_ind] =
-                        offload_B_phi[temp_ind];
-                    // B_z
-                    temp_array[2*B_size + off_ind] =
-                        offload_B_z[temp_ind];
-                }
+    /* Psi */
+    n_r = offload_data->psigrid_n_r;
+    n_phi = offload_data->psigrid_n_phi - 1;
+    n_z = offload_data->psigrid_n_z;
+    for (i_phi = 0; i_phi < n_phi; i_phi++) {
+        for (i_z = 0; i_z < n_z; i_z++) {
+            for (i_r = 0; i_r < n_r; i_r++) {
+                /* Index of data point in temp arrays */
+                temp_ind = i_z*n_phi*n_r + i_phi*n_r + i_r;
+                /* Index of data point in offload_array and
+                   corresponding stel.-symmetric index  */
+                off_ind = i_phi*n_z*n_r + i_z*n_r + i_r;
+                // psi
+                temp_array[3*B_size + off_ind] =
+                    offload_psi[temp_ind];
             }
         }
-        /* Bfield data is now for one point less */
-        offload_data->Bgrid_n_phi = offload_data->Bgrid_n_phi - 1;
-        offload_data->Bgrid_phi_max =
-            offload_data->Bgrid_phi_max - offload_data->Bgrid_phi_grid;
-
-        /* Psi */
-        n_r = offload_data->psigrid_n_r;
-        n_phi = offload_data->psigrid_n_phi - 1;
-        n_z = offload_data->psigrid_n_z;
-        for (i_phi = 0; i_phi < n_phi; i_phi++) {
-            for (i_z = 0; i_z < n_z; i_z++) {
-                for (i_r = 0; i_r < n_r; i_r++) {
-                    /* Index of data point in temp arrays */
-                    temp_ind = i_z*n_phi*n_r + i_phi*n_r + i_r;
-                    /* Index of data point in offload_array and
-                       corresponding stel.-symmetric index  */
-                    off_ind = i_phi*n_z*n_r + i_z*n_r + i_r;
-                    // psi
-                    temp_array[3*B_size + off_ind] =
-                        offload_psi[temp_ind];
-                }
-            }
-        }
-        /* Psi data is now for one point less */
-        offload_data->psigrid_n_phi = offload_data->psigrid_n_phi - 1;
-        offload_data->psigrid_phi_max =
-            offload_data->psigrid_phi_max - offload_data->psigrid_phi_grid;
     }
+    /* Psi data is now for one point less */
+    offload_data->psigrid_n_phi = offload_data->psigrid_n_phi - 1;
+    offload_data->psigrid_phi_max =
+        offload_data->psigrid_phi_max - offload_data->psigrid_phi_grid;
 
     /* Spline initialization. */
     int err = 0;
@@ -436,8 +321,6 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
     print_out(VERBOSE_IO, "Magnetic field on axis:\n"
               "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n",
               Bval[0], Bval[1], Bval[2]);
-    print_out(VERBOSE_IO, "period length = %1.3f rad, symmetry_mode = %4.d\n",
-              offload_data->period_length, offload_data->symmetry_mode);
 
     return 0;
 }
@@ -470,8 +353,6 @@ void B_STS_init(B_STS_data* Bdata, B_STS_offload_data* offload_data,
     int axis_size = offload_data->n_axis;
 
     /* Initialize target data struct */
-    Bdata->period_length = offload_data->period_length;
-    Bdata->symmetry_mode = offload_data->symmetry_mode;
     Bdata->psi0 = offload_data->psi0;
     Bdata->psi1 = offload_data->psi1;
 

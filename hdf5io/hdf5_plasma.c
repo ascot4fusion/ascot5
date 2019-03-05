@@ -120,7 +120,7 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
     /* Allocate space for rhogrid, density (for each species) and
        temperature (for electrons and ions - all ions have same temperature) */
     offload_data->offload_array_length =
-        n_rho + 2 * offload_data->n_species*n_rho;
+        3*n_rho + offload_data->n_species*n_rho;
     *offload_array = (real*) malloc(sizeof(real)
                                     * offload_data->offload_array_length);
 
@@ -129,11 +129,8 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
     real* rho = &(*offload_array)[0];
     real* temp_e = &(*offload_array)[n_rho];
     real* temp_i = &(*offload_array)[n_rho*2];
-    real* dens_e = &(*offload_array)[n_rho*2
-                                     + n_rho*n_ions];
-    real* dens_i = &(*offload_array)[n_rho*2
-                                     + n_rho*n_ions
-                                     + n_rho];
+    real* dens_e = &(*offload_array)[n_rho*3];
+    real* dens_i = &(*offload_array)[n_rho*4];
 
     /* Read rhogrid, densities, and temperatures into allocated array */
     if( hdf5_read_double(PLSPATH "rho", rho,

@@ -23,7 +23,6 @@
 #include "../math.h"
 #include "../print.h"
 #include "../consts.h"
-#include "../symmetry.h"
 #include "../B_field.h"
 #include "../Bfield/B_2DS.h"
 #include "../Bfield/B_3DS.h"
@@ -382,8 +381,6 @@ int hdf5_bfield_read_3DS(hid_t f, B_3DS_offload_data* offload_data,
  * - double axis_z  Magnetic axis R location as a {n_axis} vector [m]
  *
  * - int toroidalPeriods  Fraction of the device the data represents.
- * - int symmetry_mode    Symmetry type of the data.
- *                (0 = stellarator symmetric, 1 = periodic)
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
@@ -500,28 +497,6 @@ int hdf5_bfield_read_STS(hid_t f, B_STS_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BPATH "psi1", &(offload_data->psi1),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    /* Number of toroidal periods */
-    if( hdf5_read_int(BPATH "toroidalPeriods", &(offload_data->n_periods),
-                      f, qid, __FILE__, __LINE__) ) {return 1;}
-    /* Symmetry mode */
-    int symmetry_mode;
-    if( hdf5_read_int(BPATH "symmetry_mode", &symmetry_mode,
-                         f, qid, __FILE__, __LINE__) ) {
-        /* If error, default to stellarator symmetry */
-        symmetry_mode = 0;
-    }
-    switch(symmetry_mode) {
-        case 0:
-            offload_data->symmetry_mode = symmetry_type_stellarator;
-            break;
-        case 1:
-            offload_data->symmetry_mode = symmetry_type_periodic;
-            break;
-        default:
-            return 1;
-            break;
-    }
 
     return 0;
 }

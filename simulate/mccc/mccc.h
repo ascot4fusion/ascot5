@@ -45,7 +45,7 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
 void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
                    plasma_data* pdata, random_data* rdata, mccc_data* mdata);
 void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
-                      mccc_wienarr** wienarr, B_field_data* Bdata,
+                      mccc_wienarr* wienarr, B_field_data* Bdata,
                       plasma_data* pdata, random_data* rdata, mccc_data* mdata);
 #pragma omp end declare target
 
