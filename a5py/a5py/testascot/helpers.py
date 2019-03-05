@@ -11,6 +11,7 @@ from time import perf_counter as timer
 
 import a5py.ascot5io.ascot5      as ascot5
 import a5py.ascot5io.ascot5tools as tools
+import a5py.ascot5io.N0_3D       as N0_3D
 
 ## Name of the test HDF5 file
 testfn = "test_ascot.h5"
@@ -71,3 +72,26 @@ def set_and_run(test):
     subprocess.call(["./"+testbin, "--in="+testfn[:-3], "--d="+test],
                     stdout=subprocess.DEVNULL)
     print("Completed test " + test + " in " + frm(timer() - start))
+
+def write_N0_3D_dummy(h5fn, desc):
+    N0Rmin = 0
+    N0Rmax = 100
+    N0nR   = 2
+    N0zmin = -100
+    N0zmax = 100
+    N0nz   = 2
+    N0pmin = 0
+    N0pmax = 2*np.pi
+    N0np   = 2
+    N0spec = 1
+    N0anum = 1
+    N0znum = 1
+    N0dens = np.array([ [ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ] ])
+    N0temp = np.array([ [ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ] ])
+    N0_3D.write_hdf5(h5fn,
+                     N0Rmin, N0Rmax, N0nR,
+                     N0zmin, N0zmax, N0nz,
+                     N0pmin, N0pmax, N0np,
+                     N0spec, N0anum, N0znum,
+                     N0dens, N0temp
+                     desc=desc)
