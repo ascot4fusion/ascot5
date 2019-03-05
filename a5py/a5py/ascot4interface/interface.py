@@ -24,7 +24,9 @@ import a5py.ascot5io.E_TC as E_TC
 import a5py.ascot5io.E_1DS as E_1DS
 import a5py.ascot5io.wall_2D as wall_2D
 import a5py.ascot5io.wall_3D as wall_3D
+import a5py.ascot5io.boozer as boozer
 
+from a5py.preprocessing.boozermaps import Boozermaps
 from a5py.postprocessing.physicslib import guessMass
 
 def read_markers(a4folder, h5fn):
@@ -203,6 +205,16 @@ def read_wall(a4folder, h5fn):
             h5fn, data['id'].size, data['x1x2x3'],
             data['y1y2y3'], data['z1z2z3'], data['id'])
 
+
+def read_boozer(a4folder, h5fn):
+    fname = a4folder + "boozer_maps.out"
+    if (os.path.isfile(fname)):
+        b = Boozermaps(fname)
+        b.write_hdf5(h5fn)
+    else:
+        boozer.write_hdf5_dummy(h5fn)
+
+
 def run(a4folder, h5fn, overwrite=True):
     """
     Convert ASCOT4 input files to ASCOT5 input HDF5 file.
@@ -266,6 +278,10 @@ def run(a4folder, h5fn, overwrite=True):
         T0 = np.array([ [ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ] ])
         N0_3D.write_hdf5(h5fn, -1, 1, 2, -1, 1, 2, 0,
                          2*np.pi, 2, 1, 1, 1, N0, T0)
+
+    # Boozer data
+    if overwrite or (not "boozer" in groups):
+        read_boozer(a4folder, h5fn)
 
     # Wall.
     if overwrite or (not "wall" in groups):
