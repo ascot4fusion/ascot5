@@ -225,7 +225,7 @@ class LibAscot:
 
 
     def init(self, bfield=False, efield=False, plasma=False, wall=False,
-             neutral=False):
+             neutral=False, boozer=False, mhd=False):
         """
         Initialize input data.
 
@@ -240,6 +240,10 @@ class LibAscot:
                 Flag for initializing wall data.
             neutral : bool, optional <br>
                 Flag for initializing neutral data.
+            boozer : bool, optional <br>
+                Flag for initializing boozer data.
+            mhd : bool, optional <br>
+                Flag for initializing mhd data.
 
         Raises:
             RuntimeError if initialization failed.
@@ -247,7 +251,7 @@ class LibAscot:
         if bfield and self.bfield_initialized:
             warnings.warn("Magnetic field already initialized.", Warning)
         elif bfield:
-            if self.libascot.libascot_init(self.h5fn, 1, 0, 0, 0, 0) :
+            if self.libascot.libascot_init(self.h5fn, 1, 0, 0, 0, 0, 0, 0) :
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.bfield_initialized = True
@@ -255,7 +259,7 @@ class LibAscot:
         if efield and self.efield_initialized:
             warnings.warn("Electric field already initialized.", Warning)
         elif efield:
-            if self.libascot.libascot_init(self.h5fn, 0, 1, 0, 0, 0) :
+            if self.libascot.libascot_init(self.h5fn, 0, 1, 0, 0, 0, 0, 0) :
                 raise RuntimeError("Failed to initialize electric field")
 
             self.efield_initialized = True
@@ -263,7 +267,7 @@ class LibAscot:
         if plasma and self.plasma_initialized:
             warnings.warn("Plasma already initialized.", Warning)
         elif plasma:
-            if self.libascot.libascot_init(self.h5fn, 0, 0, 1, 0, 0) :
+            if self.libascot.libascot_init(self.h5fn, 0, 0, 1, 0, 0, 0, 0) :
                 raise RuntimeError("Failed to initialize plasma")
 
             self.plasma_initialized = True
@@ -271,7 +275,7 @@ class LibAscot:
         if wall and self.wall_initialized:
             warnings.warn("Wall already initialized.", Warning)
         elif wall:
-            if self.libascot.libascot_init(self.h5fn, 0, 0, 0, 1, 0) :
+            if self.libascot.libascot_init(self.h5fn, 0, 0, 0, 1, 0, 0, 0) :
                 raise RuntimeError("Failed to initialize wall")
 
             self.wall_initialized = True
@@ -279,14 +283,30 @@ class LibAscot:
         if neutral and self.neutral_initialized:
             warnings.warn("Neutral data already initialized.", Warning)
         if neutral:
-            if self.libascot.libascot_init(self.h5fn, 0, 0, 0, 0, 1) :
+            if self.libascot.libascot_init(self.h5fn, 0, 0, 0, 0, 1, 0, 0) :
                 raise RuntimeError("Failed to initialize neutral data")
 
             self.neutral_initialized = True
 
+        if boozer and self.boozer_initialized:
+            warnings.warn("Boozer data already initialized.", Warning)
+        if boozer:
+            if self.libascot.libascot_init(self.h5fn, 0, 0, 0, 0, 0, 1, 0) :
+                raise RuntimeError("Failed to initialize boozer data")
+
+            self.boozer_initialized = True
+
+        if mhd and self.mhd_initialized:
+            warnings.warn("Neutral data already initialized.", Warning)
+        if mhd:
+            if self.libascot.libascot_init(self.h5fn, 0, 0, 0, 0, 0, 0, 1) :
+                raise RuntimeError("Failed to initialize mhd data")
+
+            self.mhd_initialized = True
+
 
     def free(self, bfield=False, efield=False, plasma=False, wall=False,
-             neutral=False):
+             neutral=False, boozer=False, mhd=False):
         """
         Free input data.
 
@@ -301,26 +321,38 @@ class LibAscot:
                 Flag for freeing wall data.
             neutral : bool, optional <br>
                 Flag for freeing neutral data.
+            boozer : bool, optional <br>
+                Flag for freeing boozer data.
+            mhd : bool, optional <br>
+                Flag for freeing mhd data.
         """
         if bfield and self.bfield_initialized:
-            self.libascot.libascot_free(1, 0, 0, 0, 0)
+            self.libascot.libascot_free(1, 0, 0, 0, 0, 0, 0)
             self.bfield_initialized = False
 
         if efield and self.efield_initialized:
-            self.libascot.libascot_free(0, 1, 0, 0, 0)
+            self.libascot.libascot_free(0, 1, 0, 0, 0, 0, 0)
             self.efield_initialized = False
 
         if plasma and self.plasma_initialized:
-            self.libascot.libascot_free(0, 0, 1, 0, 0)
+            self.libascot.libascot_free(0, 0, 1, 0, 0, 0, 0)
             self.plasma_initialized = False
 
         if wall and self.wall_initialized:
-            self.libascot.libascot_free(0, 0, 0, 1, 0)
+            self.libascot.libascot_free(0, 0, 0, 1, 0, 0, 0)
             self.wall_initialized = False
 
         if neutral and self.neutral_initialized:
-            self.libascot.libascot_free(0, 0, 0, 0, 1)
+            self.libascot.libascot_free(0, 0, 0, 0, 1, 0, 0)
             self.neutral_initialized = False
+
+        if boozer and self.boozer_initialized:
+            self.libascot.libascot_free(0, 0, 0, 0, 0, 1, 0)
+            self.boozer_initialized = False
+
+        if mhd and self.mhd_initialized:
+            self.libascot.libascot_free(0, 0, 0, 0, 0, 0, 1)
+            self.mhd_initialized = False
 
 
     def eval_bfield(self, R, phi, z, t, evalb=False, evalpsi=False,
