@@ -30,7 +30,7 @@ def write_hdf5(fn, nrho, rhomin, rhomax, dvdrho, reff, desc=None):
             Input description.
 
     Returns:
-        QID of the new input that was written.
+        Name of the new input that was written.
     """
 
     parent = "efield"

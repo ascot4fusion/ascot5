@@ -54,7 +54,7 @@ def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz,
             Input description.
 
     Returns:
-        QID of the new input that was written.
+        Name of the new input that was written.
     """
 
     parent = "bfield"
@@ -65,10 +65,10 @@ def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz,
 
         g.create_dataset("rmin",  (1,), data=rmin,  dtype="f8")
         g.create_dataset("rmax",  (1,), data=rmax,  dtype="f8")
-        g.create_dataset("nr",    (1,), data=nr,    dtype="i8")
+        g.create_dataset("nr",    (1,), data=nr,    dtype="i4")
         g.create_dataset("zmin",  (1,), data=zmin,  dtype="f8")
         g.create_dataset("zmax",  (1,), data=zmax,  dtype="f8")
-        g.create_dataset("nz",    (1,), data=nz,    dtype="i8")
+        g.create_dataset("nz",    (1,), data=nz,    dtype="i4")
         g.create_dataset("axisr", (1,), data=axisr, dtype="f8")
         g.create_dataset("axisz", (1,), data=axisz, dtype="f8")
         g.create_dataset("psi0",  (1,), data=psi0,  dtype="f8")

@@ -45,7 +45,7 @@ def write_hdf5(fn, r0, z0, bphi0, psimult, psicoeff,
             Input description.
 
     Returns:
-        QID of the new input that was written.
+        Name of the new input that was written.
     """
 
     parent = "bfield"

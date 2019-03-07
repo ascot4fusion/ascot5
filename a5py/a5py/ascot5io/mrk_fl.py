@@ -13,29 +13,30 @@ def write_hdf5(fn, n, ids, r, phi, z, pitch, weight, time, desc=None):
     """
     Write magnetic field line marker input in hdf5 file.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        n : int <br>
+            Number of markers.
+        ids : array_like (n,1) <br>
+            Unique identifier for each marker (must be a positive integer).
+        r : array_like (n,1) <br>
+            Magnetic field line R coordinate [m].
+        phi : array_like (n,1) <br>
+            Magnetic field line phi coordinate [deg].
+        z : array_like (n,1) <br>
+            Magnetic field line z coordinate [m].
+        pitch : array_like (n,1) <br>
+            Sign which defines the direction field line is traced, + is parallel
+        weight : array_like (n,1) <br>
+            Magnetic field line weight [markers/s].
+        time : array_like (n,1) <br>
+            Magnetic field line initial time [s].
+        desc : str, optional <br>
+            Input description.
 
-    fn : str
-        Full path to the HDF5 file.
-    N : int
-        Number of markers
-    ids : int N x 1 numpy array
-        unique identifier for each marker (positive integer)
-    r : real N x 1 numpy array
-        magnetic field line R coordinate
-    phi : real N x 1 numpy array
-        magnetic field line phi coordinate [deg]
-    z : real N x 1 numpy array
-        magnetic field line z coordinate
-    pitch : real N x 1 numpy array
-        magnetic field line pitch whose sign defines
-        the direction field line is traced
-    weight : real N x 1 numpy array
-        magnetic field line weight (markers/s)
-    time : real N x 1 numpy array
-        magnetic field line initial time
-
+    Returns:
+        Name of the new input that was written.
     """
     parent = "marker"
     group  = "fl"
@@ -52,40 +53,37 @@ def write_hdf5(fn, n, ids, r, phi, z, pitch, weight, time, desc=None):
         g.create_dataset("time",   (n,1), data=time,   dtype='f8').attrs['unit'] = 's';
         g.create_dataset("id",     (n,1), data=ids,    dtype='i8').attrs['unit'] = '1';
 
+    return g.name
+
+
 def read_hdf5(fn, qid):
     """
-    Read field-line input from HDF5 file.
+    Read field line marker input from HDF5 file.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        qid : str <br>
+            QID of the data to be read.
 
-    fn : str
-        Full path to the HDF5 file.
-    qid : str
-        qid of the field-line data to be read.
-
-    Returns
-    -------
-
-    Dictionary containing field-line data.
+    Returns:
+        Dictionary containing input data.
     """
 
+    path = "marker/mrk_fl_" + qid
+
     out = {}
-    with h5py.File(fn, "r") as f:
-        path = "marker/field_line-"+qid
-
-        # Metadata.
-        out["qid"]  = qid
-        out["date"] = f[path].attrs["date"]
-        out["description"] = f[path].attrs["description"]
-
-        # Actual data.
-        for field in f[path]:
-            out[field] = f[path][field][:]
+    with h5py.File(fn,"r") as f:
+        for key in f[path]:
+            out[key] = f[path][key][:]
 
     return out
 
+
 class mrk_fl(AscotData):
+    """
+    Object representing field line marker data.
+    """
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())

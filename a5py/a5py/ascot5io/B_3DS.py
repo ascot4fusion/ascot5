@@ -82,7 +82,7 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
             Input description.
 
     Returns:
-        QID of the new input that was written.
+        Name of the new input that was written.
     """
 
     parent = "bfield"
@@ -109,19 +109,19 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
 
         g.create_dataset("b_rmin",   (1,), data=Rmin,    dtype="f8")
         g.create_dataset("b_rmax",   (1,), data=Rmax,    dtype="f8")
-        g.create_dataset("b_nr",     (1,), data=nR,      dtype="i8")
+        g.create_dataset("b_nr",     (1,), data=nR,      dtype="i4")
         g.create_dataset("b_phimin", (1,), data=phimin,  dtype="f8")
         g.create_dataset("b_phimax", (1,), data=phimax,  dtype="f8")
-        g.create_dataset("b_nphi",   (1,), data=nphi,    dtype="i8")
+        g.create_dataset("b_nphi",   (1,), data=nphi,    dtype="i4")
         g.create_dataset("b_zmin",   (1,), data=zmin,    dtype="f8")
         g.create_dataset("b_zmax",   (1,), data=zmax,    dtype="f8")
-        g.create_dataset("b_nz",     (1,), data=nz,      dtype="i8")
+        g.create_dataset("b_nz",     (1,), data=nz,      dtype="i4")
         g.create_dataset("psi_rmin", (1,), data=pRmin,   dtype="f8")
         g.create_dataset("psi_rmax", (1,), data=pRmax,   dtype="f8")
-        g.create_dataset("psi_nr",   (1,), data=pnR,     dtype="i8")
+        g.create_dataset("psi_nr",   (1,), data=pnR,     dtype="i4")
         g.create_dataset("psi_zmin", (1,), data=pzmin,   dtype="f8")
         g.create_dataset("psi_zmax", (1,), data=pzmax,   dtype="f8")
-        g.create_dataset("psi_nz",   (1,), data=pnz,     dtype="i8")
+        g.create_dataset("psi_nz",   (1,), data=pnz,     dtype="i4")
         g.create_dataset("axisr",    (1,), data=axisR,   dtype="f8")
         g.create_dataset("axisz",    (1,), data=axisz,   dtype="f8")
         g.create_dataset("psi0",     (1,), data=psiaxis, dtype="f8")

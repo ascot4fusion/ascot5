@@ -15,36 +15,42 @@ def write_hdf5(fn, n, ids, mass, charge,
     """
     Write guiding center marker input in hdf5 file.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        n : int <br>
+            Number of markers.
+        ids : array_like (n,1) <br>
+            Unique identifier for each marker (must be a positive integer).
+        charge : array_like (n,1) <br>
+            Charge [e].
+        mass : array_like (n,1) <br>
+            Mass [amu].
+        r : array_like (n,1) <br>
+            Guiding center R coordinate [m].
+        phi : array_like (n,1) <br>
+            Guiding center phi coordinate [deg].
+        z : array_like (n,1) <br>
+            Guiding center z coordinate [m].
+        energy : array_like (n,1) <br>
+            Guiding center energy [eV].
+        pitch : array_like (n,1) <br>
+            Guiding center pitch (v_para/v_tot).
+        zeta : array_like (n,1) <br>
+            Guiding center gyroangle [rad].
+        anum : array_like (n,1) <br>
+            Marker species atomic mass number.
+        znum : array_like (n,1) <br>
+            Marker species charge number.
+        weight : array_like (n,1) <br>
+            Guiding center weight [markers/s].
+        time : array_like (n,1) <br>
+            Guiding center initial time [s].
+        desc : str, optional <br>
+            Input description.
 
-    fn : str
-        Full path to the HDF5 file.
-    N : int
-        Number of markers
-    ids : int N x 1 numpy array
-        unique identifier for each marker (positive integer)
-    charge : int
-        charge (e)
-    mass : real
-        mass (amu)
-    r : real N x 1 numpy array
-        guiding center R coordinate
-    phi : real N x 1 numpy array
-        guiding center phi coordinate [deg]
-    z : real N x 1 numpy array
-        guiding center z coordinate
-    energy : real N x 1 numpy array
-        guiding center energy (eV)
-    pitch : real N x 1 numpy array
-        guiding center pitch (v_para/v_tot)
-    zeta : real N x 1 numpy array
-        guiding center gyroangle (rad)
-    weight : real N x 1 numpy array
-        guiding center weight (markers/s)
-    time : real N x 1 numpy array
-        guiding center initial time
-
+    Returns:
+        Name of the new input that was written.
     """
     parent = "marker"
     group  = "gc"
@@ -67,41 +73,37 @@ def write_hdf5(fn, n, ids, mass, charge,
         g.create_dataset("time",   (n,1), data=time,   dtype='f8').attrs['unit'] = 's';
         g.create_dataset("id",     (n,1), data=ids,    dtype='i8').attrs['unit'] = '1';
 
+    return g.name
+
 
 def read_hdf5(fn, qid):
     """
-    Read guiding-center input from HDF5 file.
+    Read guiding center marker input from HDF5 file.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        qid : str <br>
+            QID of the data to be read.
 
-    fn : str
-        Full path to the HDF5 file.
-    qid : str
-        qid of the guiding-center data to be read.
-
-    Returns
-    -------
-
-    Dictionary containing guiding-center data.
+    Returns:
+        Dictionary containing input data.
     """
 
+    path = "marker/mrk_gc_" + qid
+
     out = {}
-    with h5py.File(fn, "r") as f:
-        path = "marker/guiding_center-"+qid
-
-        # Metadata.
-        out["qid"]  = qid
-        out["date"] = f[path].attrs["date"]
-        out["description"] = f[path].attrs["description"]
-
-        # Actual data.
-        for field in f[path]:
-            out[field] = f[path][field][:]
+    with h5py.File(fn,"r") as f:
+        for key in f[path]:
+            out[key] = f[path][key][:]
 
     return out
 
+
 class mrk_gc(AscotData):
+    """
+    Object representing guiding center marker data.
+    """
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())

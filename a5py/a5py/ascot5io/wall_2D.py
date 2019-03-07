@@ -13,25 +13,27 @@ from . import wall_3D
 
 import a5py.wall.plot as plot
 
-def write_hdf5(fn, n, R, z, desc=None):
+def write_hdf5(fn, nelements, R, z, desc=None):
     """
     Write 2D wall input in HDF5 file.
 
-    Parameters
-    ----------
+    First vertice shouldn't correspond to the last vertice, i.e., don't give
+    (R,z) coordinates that make a closed loop.
 
-    fn : str
-        Full path to the HDF5 file.
-    n : int
-        Number of wall segments
-    R, z : real n x 1 numpy array
-        Wall segment vertices' R and z coordinates
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        nelements : int <br>
+            Number of wall segments.
+        R : array_like (n,1) <br>
+            R coordinates of wall segment vertices [m].
+        z : array_like (n,1) <br>
+            z coordinates of wall segment vertices [m].
+        desc : str, optional <br>
+            Input description.
 
-    Notes
-    -----
-
-    First (R,z) point doesn't have to correspond to last point
-    as the wall is closed automatically. TODO check this
+    Returns:
+        Name of the new input that was written.
     """
 
     parent = "wall"
@@ -44,41 +46,32 @@ def write_hdf5(fn, n, R, z, desc=None):
         g.create_dataset("r",         (n,1), data=R, dtype='f8')
         g.create_dataset("z",         (n,1), data=z, dtype='f8')
 
+    return g.name
+
 
 def read_hdf5(fn, qid):
     """
     Read 2D wall input from HDF5 file.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        qid : str <br>
+            QID of the data to be read.
 
-    fn : str
-        Full path to the HDF5 file.
-    qid : str
-        qid of the wall to be read.
-
-    Returns
-    -------
-
-    Dictionary containing wall data.
+    Returns:
+        Dictionary containing input data.
     """
 
-    path = "wall" + "/wall_2D-" + qid
+    path = "wall/wall_2D_" + qid
 
+    out = {}
     with h5py.File(fn,"r") as f:
-        out = {}
-
-        # Metadata.
-        out["qid"]  = qid
-        out["date"] = f[path].attrs["date"]
-        out["description"] = f[path].attrs["description"]
-
-        # Actual data.
-        out["n"] = f[path]["n"][:]
-        out["R"] = f[path]["r"][:]
-        out["z"] = f[path]["z"][:]
+        for key in f[path]:
+            out[key] = f[path][key][:]
 
     return out
+
 
 def write_hdf5_3D(fn, n, R, z, nphi, desc=None):
 
@@ -109,6 +102,9 @@ def write_hdf5_3D(fn, n, R, z, nphi, desc=None):
     wall_3D.write_hdf5(fn, 2*n*nphi, x1x2x3, y1y2y3, z1z2z3, flag, desc=desc)
 
 class wall_2D(AscotData):
+    """
+    Object representing wall_2D data.
+    """
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
