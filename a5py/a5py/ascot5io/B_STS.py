@@ -59,7 +59,10 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         pzmax   = zmax
         pnz     = nz
 
-    # Create a group for this input.
+    B_R = np.transpose(B_R,(1,0,2))
+    B_phi = np.transpose(B_phi,(1,0,2))
+    B_z = np.transpose(B_z,(1,0,2))
+
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
 
