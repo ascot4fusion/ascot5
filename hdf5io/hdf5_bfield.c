@@ -458,7 +458,7 @@ int hdf5_bfield_read_STS(hid_t f, B_STS_offload_data* offload_data,
     if( hdf5_read_double(BPATH "axis_max", &(offload_data->axis_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    /* Note! phi data for magnetic axis in deg */
+    // Convert to radians
     offload_data->axis_min = math_deg2rad(offload_data->axis_min);
     offload_data->axis_max = math_deg2rad(offload_data->axis_max);
 
