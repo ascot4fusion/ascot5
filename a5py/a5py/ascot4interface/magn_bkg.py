@@ -144,7 +144,7 @@ def stellarator_psi_lims(data):
 
 def bfield_psi_lims(data, h5fn):
     try:
-        a5 = Ascotpy(h5fn=h5f)
+        a5 = Ascotpy(h5fn=h5fn)
         a5.init(bfield=1)
     except OSError as err:
         raise err
