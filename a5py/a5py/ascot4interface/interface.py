@@ -111,9 +111,25 @@ def read_bfield(a4folder, h5fn):
             data['axis_r'] = data['axis_r'][0:-1]
             data['axis_phi'] = data['axis_phi'][0:-1]
             data['axis_z'] = data['axis_z'][0:-1]
-        print("Calculating interpolated limits for psiaxis and psisepx.")
-        print("This might take a while...")
-        psilims = a4magn_bkg.stellarator_psi_lims(data)
+        psilims = [0, 1]
+        B_STS.write_hdf5(
+            h5fn,
+            data['r'][0], data['r'][-1], data['r'].size,
+            data['z'][0], data['z'][-1], data['z'].size,
+            data['phi'][0], data['phi'][-1], data['phi'].size,
+            data['br'], data['bphi'], data['bz'], data['s'],
+            data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
+            data['axis_r'], data['axis_z'],
+            psiaxis=psilims[0], psisepx=psilims[1])
+        print("Searching for psiaxis and psisepx.")
+        try:
+            psilims = a4magn_bkg.bfield_psi_lims(data, h5fn)
+        except OSError:
+            print("Error: Ascotpy initialization failed. "
+                  "Is libascot.so is in current folder?")
+            print("Calculating interpolated limits for psiaxis and psisepx.")
+            print("This might take a while...")
+            psilims = a4magn_bkg.stellarator_psi_lims(data)
         print("New limits: [" + str(psilims[0]) + ", " + str(psilims[1]) + "]")
         B_STS.write_hdf5(
             h5fn,

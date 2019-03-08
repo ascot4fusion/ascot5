@@ -1,6 +1,8 @@
 import numpy as np
 import h5py
 from scipy.interpolate import RegularGridInterpolator as rgi
+from a5py.ascotpy import Ascotpy
+from scipy.optimize import fmin
 
 def read_magn_bkg(fn,hdrfn):
     str = dict()
@@ -139,3 +141,28 @@ def stellarator_psi_lims(data):
             min_psi = np.amin([min_psi, np.amin(psi)])
             max_psi = np.amax([max_psi, np.amax(psi)])
     return min_psi, max_psi
+
+def bfield_psi_lims(data, h5fn):
+    try:
+        a5 = Ascotpy(h5fn=h5f)
+        a5.init(bfield=1)
+    except OSError as err:
+        raise err
+    # Initial guess for psi0
+    psi0 = np.amin(data['s'])
+    for i in range(data['axis_phi'].size):
+        psii = fmin(
+            lambda x: a5.eval_bfield(x[0],x[1],x[2],0,evalpsi=1)['psi'],
+            [data['axis_r'][i], data['axis_phi'][i], data['axis_z'][i]],
+            disp=0, full_output=1)[1]
+        psi0 = np.amin([psi0, psii])
+    # Initial guess for psi1
+    psi1 = np.amax(data['s'])
+    for i in range(data['axis_phi'].size):
+        psii = fmin(
+            lambda x: -a5.eval_bfield(x[0],x[1],x[2],0,evalpsi=1)['psi'],
+            [data['axis_r'][i], data['axis_phi'][i], data['axis_z'][i]],
+            disp=0, full_output=1)[1]
+        psii = -psii            # Back to a positive value
+        psi1 = np.amax([psi1, psii])
+    return psi0, psi1
