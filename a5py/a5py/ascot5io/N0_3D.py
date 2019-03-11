@@ -127,7 +127,7 @@ def read_hdf5(fn, qid):
     return out
 
 
-def write_hdf5_dummy(fn, desc):
+def write_hdf5_dummy(fn, desc="Dummy"):
     N0Rmin = 0
     N0Rmax = 100
     N0nR   = 2

@@ -6,24 +6,24 @@ import os.path
 import numpy as np
 import h5py
 
-import a5py.ascot4interface.markers as a4markers
+import a5py.ascot4interface.markers  as a4markers
 import a5py.ascot4interface.magn_bkg as a4magn_bkg
-import a5py.ascot4interface.plasma as a4plasma
-import a5py.ascot4interface.erad as a4erad
-import a5py.ascot4interface.wall_2d as a4wall_2d
-import a5py.ascot4interface.wall_3d as a4wall_3d
+import a5py.ascot4interface.plasma   as a4plasma
+import a5py.ascot4interface.erad     as a4erad
+import a5py.ascot4interface.wall_2d  as a4wall_2d
+import a5py.ascot4interface.wall_3d  as a4wall_3d
 
-import a5py.ascot5io.B_2DS as B_2DS
-import a5py.ascot5io.B_3DS as B_3DS
-import a5py.ascot5io.B_STS as B_STS
-import a5py.ascot5io.N0_3D as N0_3D
+import a5py.ascot5io.B_2DS     as B_2DS
+import a5py.ascot5io.B_3DS     as B_3DS
+import a5py.ascot5io.B_STS     as B_STS
+import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.plasma_1D as plasma_1D
-import a5py.ascot5io.mrk_prt as mrk_prt
-import a5py.ascot5io.mrk_gc as mrk_gc
-import a5py.ascot5io.E_TC as E_TC
-import a5py.ascot5io.E_1DS as E_1DS
-import a5py.ascot5io.wall_2D as wall_2D
-import a5py.ascot5io.wall_3D as wall_3D
+import a5py.ascot5io.mrk_prt   as mrk_prt
+import a5py.ascot5io.mrk_gc    as mrk_gc
+import a5py.ascot5io.E_TC      as E_TC
+import a5py.ascot5io.E_1DS     as E_1DS
+import a5py.ascot5io.wall_2D   as wall_2D
+import a5py.ascot5io.wall_3D   as wall_3D
 
 from a5py.postprocessing.physicslib import guessMass
 
@@ -60,18 +60,20 @@ def read_markers(a4folder, h5fn):
                 data["fields"]["zprt"],
                 data["fields"]["vR"], data["fields"]["vphi"],
                 data["fields"]["vz"],
+                data["fields"]['Anum'], data["fields"]['Znum'],
                 data["fields"]["weight"], data["fields"]["weight"]*0)
         elif 'energy' in data['fieldNames']:
             # We have guiding centers (theta is random)
             print("Warning! Forcing time to zero and "
-                  "randomizing theta for all markers.")
-            theta = 2*np.pi*np.random.rand(data["fields"]["id"].size)
+                  "randomizing zeta for all markers.")
+            zeta = 2*np.pi*np.random.rand(data["fields"]["id"].size)
             mrk_gc.write_hdf5(
                 h5fn, data["fields"]["id"].size, data["fields"]["id"],
                 data["fields"]["mass"], data["fields"]["charge"],
                 data["fields"]["R"], data["fields"]["phi"],
                 data["fields"]["z"],
-                data["fields"]["energy"], data["fields"]["pitch"], theta,
+                data["fields"]["energy"], data["fields"]["pitch"], zeta,
+                data["fields"]['Anum'], data["fields"]['Znum'],
                 data["fields"]["weight"], data["fields"]["weight"]*0 )
 
 def read_bfield(a4folder, h5fn):
