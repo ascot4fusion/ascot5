@@ -110,7 +110,10 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
     bphi = np.transpose(bphi, (1,2,0))
     bz   = np.transpose(bz,   (1,2,0))
 
-    # Create a group for this input.
+    B_R = np.transpose(B_R,(1,0,2))
+    B_phi = np.transpose(B_phi,(1,0,2))
+    B_z = np.transpose(B_z,(1,0,2))
+
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
         gname = g.name.split("/")[-1]
