@@ -35,15 +35,19 @@ def write_hdf5(fn, nrho, rhomin, rhomax, dvdrho, reff, desc=None):
 
     parent = "efield"
     group  = "E_1DS"
+    gname  = ""
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc)
+        gname = g.name.split("/")[-1]
 
         g.create_dataset('nrho',   (1,),     data=nrho,   dtype='i8')
         g.create_dataset('rhomin', (1,),     data=rhomin, dtype='f8')
         g.create_dataset('rhomax', (1,),     data=rhomax, dtype='f8')
         g.create_dataset('dvdrho', (nrho,1), data=dvdrho, dtype='f8')
         g.create_dataset('reff',   (1,),     data=reff,   dtype='f8')
+
+    return gname
 
 
 def read_hdf5(fn, qid):

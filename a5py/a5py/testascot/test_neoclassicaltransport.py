@@ -33,6 +33,7 @@ import a5py.ascot5io.B_GS      as B_GS
 import a5py.ascot5io.E_TC      as E_TC
 import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
+import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 
 import a5py.testascot.helpers as helpers
@@ -240,9 +241,9 @@ def init():
         W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall,
                         desc="NEOCLASS_GCA" + str(i))
 
-        helpers.write_N0_3D_dummy(helpers.testfn, desc="NEOCLASS_GO" + str(i))
-        helpers.write_N0_3D_dummy(helpers.testfn, desc="NEOCLASS_GCF" + str(i))
-        helpers.write_N0_3D_dummy(helpers.testfn, desc="NEOCLASS_GCA" + str(i))
+        N0_3D.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GO" + str(i))
+        N0_3D.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GCF" + str(i))
+        N0_3D.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GCA" + str(i))
 
 def run():
     """

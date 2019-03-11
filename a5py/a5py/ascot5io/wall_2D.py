@@ -13,7 +13,7 @@ from . import wall_3D
 
 import a5py.wall.plot as plot
 
-def write_hdf5(fn, nelements, R, z, desc=None):
+def write_hdf5(fn, nelements, r, z, desc=None):
     """
     Write 2D wall input in HDF5 file.
 
@@ -25,7 +25,7 @@ def write_hdf5(fn, nelements, R, z, desc=None):
             Full path to the HDF5 file.
         nelements : int <br>
             Number of wall segments.
-        R : array_like (n,1) <br>
+        r : array_like (n,1) <br>
             R coordinates of wall segment vertices [m].
         z : array_like (n,1) <br>
             z coordinates of wall segment vertices [m].
@@ -35,18 +35,22 @@ def write_hdf5(fn, nelements, R, z, desc=None):
     Returns:
         Name of the new input that was written.
     """
+    assert r.size == nelements
+    assert z.size == nelements
 
     parent = "wall"
     group  = "wall_2D"
+    gname  = ""
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
+        gname = g.name.split("/")[-1]
 
-        g.create_dataset("nelements", (1,1), data=n, dtype='i4')
-        g.create_dataset("r",         (n,1), data=R, dtype='f8')
-        g.create_dataset("z",         (n,1), data=z, dtype='f8')
+        g.create_dataset("nelements", (1,1),         data=nelements, dtype='i4')
+        g.create_dataset("r",         (nelements,1), data=r,         dtype='f8')
+        g.create_dataset("z",         (nelements,1), data=z,         dtype='f8')
 
-    return g.name
+    return gname
 
 
 def read_hdf5(fn, qid):

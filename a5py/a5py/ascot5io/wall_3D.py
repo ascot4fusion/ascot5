@@ -30,19 +30,24 @@ def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None):
     Returns:
         Name of the new input that was written.
     """
+    assert x1x2x3.shape == (nelements,3)
+    assert y1y2y3.shape == (nelements,3)
+    assert z1z2z3.shape == (nelements,3)
 
     parent = "wall"
     group  = "wall_3D"
+    gname  = ""
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
+        gname = g.name.split("/")[-1]
 
         g.create_dataset('x1x2x3',    (nelements,3), data=x1x2x3,    dtype='f8')
         g.create_dataset('y1y2y3',    (nelements,3), data=y1y2y3,    dtype='f8')
         g.create_dataset('z1z2z3',    (nelements,3), data=z1z2z3,    dtype='f8')
-        g.create_dataset('nelements', (1,),          data=nelements, dtype='i4')
+        g.create_dataset('nelements', (1,1),         data=nelements, dtype='i4')
 
-    return g.name
+    return gname
 
 
 def read_hdf5(fn, qid):

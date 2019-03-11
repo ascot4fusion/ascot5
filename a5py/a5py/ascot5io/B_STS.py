@@ -84,6 +84,7 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
 
     parent = "bfield"
     group  = "B_STS"
+    gname  = ""
 
     # Define psigrid to be same as Bgrid if not stated otherwise.
     if(psi_rmin is None or psi_rmax is None or psi_nr is None
@@ -99,9 +100,20 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
         psi_zmax   = b_zmax
         psi_nz     = b_nz
 
+    assert psi.shape  == (psi_nr,psi_nphi,psi_nz)
+    assert br.shape   == (b_nr,b_nphi,b_nz)
+    assert bphi.shape == (b_nr,b_nphi,b_nz)
+    assert bz.shape   == (b_nr,b_nphi,b_nz)
+
+    psi  = np.transpose(psi,  (1,2,0))
+    br   = np.transpose(br,   (1,2,0))
+    bphi = np.transpose(bphi, (1,2,0))
+    bz   = np.transpose(bz,   (1,2,0))
+
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
+        gname = g.name.split("/")[-1]
 
         g.create_dataset("b_rmin",      (1,),     data=b_rmin,      dtype="f8")
         g.create_dataset("b_rmax",      (1,),     data=b_rmax,      dtype="f8")
@@ -139,7 +151,7 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
         g.create_dataset("psi",        (psi_nphi,psi_nz,psi_nr), data=psi,
                          dtype="f8")
 
-    return g.name
+    return gname
 
 
 def read_hdf5(fn, qid):
@@ -163,7 +175,12 @@ def read_hdf5(fn, qid):
         for key in f[path]:
             out[key] = f[path][key][:]
 
+    out["psi"]  = np.transpose(out["psi"],  (2,0,1))
+    out["br"]   = np.transpose(out["br"],   (2,0,1))
+    out["bphi"] = np.transpose(out["bphi"], (2,0,1))
+    out["bz"]   = np.transpose(out["bz"],   (2,0,1))
     return out
+
 
 class B_STS(AscotData):
     """

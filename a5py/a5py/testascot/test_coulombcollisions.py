@@ -27,6 +27,7 @@ import a5py.ascot5io.B_GS      as B_GS
 import a5py.ascot5io.E_TC      as E_TC
 import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
+import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 
 import a5py.testascot.helpers as helpers
@@ -317,12 +318,12 @@ def init():
     W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall, desc="SLOWING_GCF")
     W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall, desc="SLOWING_GCA")
 
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="THERMAL_GO")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="THERMAL_GCF")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="THERMAL_GCA")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="SLOWING_GO")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="SLOWING_GCF")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="SLOWING_GCA")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="THERMAL_GO")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="THERMAL_GCF")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="THERMAL_GCA")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="SLOWING_GO")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="SLOWING_GCF")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="SLOWING_GCA")
 
 def run():
     """

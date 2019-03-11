@@ -35,7 +35,7 @@ def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho,
             Electron density [m^-3].
         etemperature : array_like (nrho,1) <br>
             Electron temperature [eV].
-        idensity : array_like (nion,nrho) <br>
+        idensity : array_like (nrho,nion) <br>
             Ion density [m^-3].
         itemperature : array_like (nrho,1) <br>
             Ion temperature [ev].
@@ -45,31 +45,39 @@ def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho,
     Returns:
         Name of the new input that was written.
     """
+    assert etemperature.size == nrho
+    assert itemperature.size == nrho
+    assert edensity.size  == nrho
+    assert idensity.shape == (nrho,nion)
+
+    idensity = np.transpose(idensity)
 
     parent = "plasma"
     group  = "plasma_1D"
+    gname  = ""
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
+        gname = g.name.split("/")[-1]
 
         g.create_dataset('nion',   (1,1),    data=nion, dtype='i4')
         g.create_dataset('nrho',   (1,1),    data=nrho, dtype='i4')
-        g.create_dataset('znum',   (Nion,1), data=znum, dtype='i4')
-        g.create_dataset('anum',   (Nion,1), data=anum, dtype='i4')
-        g.create_dataset('charge', (Nion,1), data=znum, dtype='i4')
-        g.create_dataset('mass',   (Nion,1), data=anum, dtype='f8')
-        g.create_dataset('rho',    (Nrho,1), data=rho,  dtype='f8')
+        g.create_dataset('znum',   (nion,1), data=znum, dtype='i4')
+        g.create_dataset('anum',   (nion,1), data=anum, dtype='i4')
+        g.create_dataset('charge', (nion,1), data=znum, dtype='i4')
+        g.create_dataset('mass',   (nion,1), data=anum, dtype='f8')
+        g.create_dataset('rho',    (nrho,1), data=rho,  dtype='f8')
 
-        g.create_dataset('etemperature',   (nrho,1),    data=etemperature,
+        g.create_dataset('etemperature', (nrho,1),    data=etemperature,
                          dtype='f8')
-        g.create_dataset('edensity',       (nrho,1),    data=edensity,
+        g.create_dataset('edensity',     (nrho,1),    data=edensity,
                          dtype='f8')
-        g.create_dataset('iontemperature', (nrho,1),    data=itemperature,
+        g.create_dataset('itemperature', (nrho,1),    data=itemperature,
                          dtype='f8')
-        g.create_dataset('iondensity',     (nion,nrho), data=idensity,
+        g.create_dataset('idensity',     (nion,nrho), data=idensity,
                          dtype='f8')
 
-    return g.name
+    return gname
 
 
 def read_hdf5(fn, qid):
@@ -93,6 +101,7 @@ def read_hdf5(fn, qid):
         for key in f[path]:
             out[key] = f[path][key][:]
 
+    out["idensity"] = np.transpose(out["idensity"])
     return out
 
 class plasma_1D(AscotData):

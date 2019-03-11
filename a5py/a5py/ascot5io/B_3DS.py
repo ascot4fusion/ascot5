@@ -11,7 +11,7 @@ from a5py.ascot5io.ascot5data import AscotData
 
 def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
                b_phimin, b_phimax, b_nphi,
-               axisr, axisz, psi0, psi1, psi, br, bphi, bz,
+               axisr, axisz, psi, psi0, psi1, br, bphi, bz,
                psi_rmin=None, psi_rmax=None, psi_nr=None,
                psi_zmin=None, psi_zmax=None, psi_nz=None, desc=None):
     """
@@ -27,7 +27,7 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
     The toroidal angle phi is treated as a periodic coordinate meaning that
     B(phi) = B(phi + n*(b_phimax - b_phimin)). Do note that to avoid dublicate
     data, the last points in phi axis in B data are not at b_phimax, i.e.
-    br(-1,:,:) != BR(phi=b_phimax).
+    br[:,:,-1] != BR(phi=b_phimax).
 
     Args:
         fn : str <br>
@@ -58,13 +58,13 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
             On-axis poloidal flux value [Vs/m].
         psi1 : float <br>
             Separatrix poloidal flux value [Vs/m].
-        psi : array_like (nz, nr) <br>
+        psi : array_like (nr, nz) <br>
             Poloidal flux values on the Rz grid [Vs/m].
-        br : array_like (nz,nr) <br>
+        br : array_like (nr,nphi,nz) <br>
             Magnetic field R component (excl. equilibrium comp.) on Rz grid [T].
-        bphi : array_like (nz,nr) <br>
+        bphi : array_like (nr,nphi,nz) <br>
             Magnetic field phi component on Rz grid [T].
-        bz : array_like (nz,nr) <br>
+        bz : array_like (nr,nphi,nz) <br>
             Magnetic field z component (excl. equilibrium comp.) onRz grid [T].
         psi_rmin : float, optional <br>
             Psi data R grid min edge [m].
@@ -87,50 +87,58 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
 
     parent = "bfield"
     group  = "B_3DS"
+    gname  = ""
 
     # Define psigrid to be same as Bgrid if not stated otherwise.
-    if(pRmin is None or pRmax is None or pnR is None or pzmin is None or
-       pzmax is None or pnz is None):
-        pRmin = Rmin
-        pRmax = Rmax
-        pnR   = nR
-        pzmin = zmin
-        pzmax = zmax
-        pnz   = nz
+    if(psi_rmin is None or psi_rmax is None or psi_nr is None or
+       psi_zmin is None or psi_zmax is None or psi_nz is None):
+        psi_rmin = b_rmin
+        psi_rmax = b_rmax
+        psi_nr   = b_nr
+        psi_zmin = b_zmin
+        psi_zmax = b_zmax
+        psi_nz   = b_nz
 
-    print(B_R.shape)
-    B_R = np.transpose(B_R,(1,0,2))
-    B_phi = np.transpose(B_phi,(1,0,2))
-    B_z = np.transpose(B_z,(1,0,2))
-    print(B_R.shape)
+    assert psi.shape  == (psi_nr,psi_nz)
+    assert br.shape   == (b_nr,b_nphi,b_nz)
+    assert bphi.shape == (b_nr,b_nphi,b_nz)
+    assert bz.shape   == (b_nr,b_nphi,b_nz)
+
+    psi  = np.transpose(psi)
+    br   = np.transpose(br,   (1,2,0))
+    bphi = np.transpose(bphi, (1,2,0))
+    bz   = np.transpose(bz,   (1,2,0))
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
+        gname = g.name.split("/")[-1]
 
-        g.create_dataset("b_rmin",   (1,), data=Rmin,    dtype="f8")
-        g.create_dataset("b_rmax",   (1,), data=Rmax,    dtype="f8")
-        g.create_dataset("b_nr",     (1,), data=nR,      dtype="i4")
-        g.create_dataset("b_phimin", (1,), data=phimin,  dtype="f8")
-        g.create_dataset("b_phimax", (1,), data=phimax,  dtype="f8")
-        g.create_dataset("b_nphi",   (1,), data=nphi,    dtype="i4")
-        g.create_dataset("b_zmin",   (1,), data=zmin,    dtype="f8")
-        g.create_dataset("b_zmax",   (1,), data=zmax,    dtype="f8")
-        g.create_dataset("b_nz",     (1,), data=nz,      dtype="i4")
-        g.create_dataset("psi_rmin", (1,), data=pRmin,   dtype="f8")
-        g.create_dataset("psi_rmax", (1,), data=pRmax,   dtype="f8")
-        g.create_dataset("psi_nr",   (1,), data=pnR,     dtype="i4")
-        g.create_dataset("psi_zmin", (1,), data=pzmin,   dtype="f8")
-        g.create_dataset("psi_zmax", (1,), data=pzmax,   dtype="f8")
-        g.create_dataset("psi_nz",   (1,), data=pnz,     dtype="i4")
-        g.create_dataset("axisr",    (1,), data=axisR,   dtype="f8")
-        g.create_dataset("axisz",    (1,), data=axisz,   dtype="f8")
-        g.create_dataset("psi0",     (1,), data=psiaxis, dtype="f8")
-        g.create_dataset("psi1",     (1,), data=psisepx, dtype="f8")
+        g.create_dataset("b_rmin",   (1,), data=b_rmin,   dtype="f8")
+        g.create_dataset("b_rmax",   (1,), data=b_rmax,   dtype="f8")
+        g.create_dataset("b_nr",     (1,), data=b_nr,     dtype="i4")
+        g.create_dataset("b_phimin", (1,), data=b_phimin, dtype="f8")
+        g.create_dataset("b_phimax", (1,), data=b_phimax, dtype="f8")
+        g.create_dataset("b_nphi",   (1,), data=b_nphi,   dtype="i4")
+        g.create_dataset("b_zmin",   (1,), data=b_zmin,   dtype="f8")
+        g.create_dataset("b_zmax",   (1,), data=b_zmax,   dtype="f8")
+        g.create_dataset("b_nz",     (1,), data=b_nz,     dtype="i4")
+        g.create_dataset("psi_rmin", (1,), data=psi_rmin, dtype="f8")
+        g.create_dataset("psi_rmax", (1,), data=psi_rmax, dtype="f8")
+        g.create_dataset("psi_nr",   (1,), data=psi_nr,   dtype="i4")
+        g.create_dataset("psi_zmin", (1,), data=psi_zmin, dtype="f8")
+        g.create_dataset("psi_zmax", (1,), data=psi_zmax, dtype="f8")
+        g.create_dataset("psi_nz",   (1,), data=psi_nz,   dtype="i4")
+        g.create_dataset("axisr",    (1,), data=axisr,    dtype="f8")
+        g.create_dataset("axisz",    (1,), data=axisz,    dtype="f8")
+        g.create_dataset("psi0",     (1,), data=psi0,     dtype="f8")
+        g.create_dataset("psi1",     (1,), data=psi1,     dtype="f8")
 
-        g.create_dataset("psi",  (pnz, pnR),     data=psiRz, dtype="f8")
-        g.create_dataset("br",   (nphi, nz, nR), data=B_R,   dtype="f8")
-        g.create_dataset("bphi", (nphi, nz, nR), data=B_phi, dtype="f8")
-        g.create_dataset("bz",   (nphi, nz, nR), data=B_z,   dtype="f8")
+        g.create_dataset("psi",  (psi_nz, psi_nr),     data=psi,  dtype="f8")
+        g.create_dataset("br",   (b_nphi, b_nz, b_nr), data=br,   dtype="f8")
+        g.create_dataset("bphi", (b_nphi, b_nz, b_nr), data=bphi, dtype="f8")
+        g.create_dataset("bz",   (b_nphi, b_nz, b_nr), data=bz,   dtype="f8")
+
+    return gname
 
 
 def read_hdf5(fn, qid):
@@ -154,7 +162,16 @@ def read_hdf5(fn, qid):
         for key in f[path]:
             out[key] = f[path][key][:]
 
+    out["psi"]  = np.transpose(out["psi"])
+    out["br"]   = np.transpose(out["br"],   (2,0,1))
+    out["bphi"] = np.transpose(out["bphi"], (2,0,1))
+    out["bz"]   = np.transpose(out["bz"],   (2,0,1))
     return out
+
+
+def write_hdf5_dummy(fn, desc="Dummy"):
+    import a5py.ascot5io.B_GS as B_GS
+    return B_GS.write_hdf5_dummy(fn, kind="3DS", desc=desc)
 
 
 class B_3DS(AscotData):

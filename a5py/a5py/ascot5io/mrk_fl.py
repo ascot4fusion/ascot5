@@ -38,11 +38,21 @@ def write_hdf5(fn, n, ids, r, phi, z, pitch, weight, time, desc=None):
     Returns:
         Name of the new input that was written.
     """
+    assert ids.size    == n
+    assert r.size      == n
+    assert phi.size    == n
+    assert z.size      == n
+    assert pitch.size  == n
+    assert weight.size == n
+    assert time.size   == n
+
     parent = "marker"
     group  = "fl"
+    gname  = ""
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
+        gname = g.name.split("/")[-1]
 
         g.create_dataset("n",      (1,1), data=n,      dtype='i8').attrs['unit'] = '1';
         g.create_dataset("r",      (n,1), data=r,      dtype='f8').attrs['unit'] = 'm';
@@ -53,7 +63,7 @@ def write_hdf5(fn, n, ids, r, phi, z, pitch, weight, time, desc=None):
         g.create_dataset("time",   (n,1), data=time,   dtype='f8').attrs['unit'] = 's';
         g.create_dataset("id",     (n,1), data=ids,    dtype='i8').attrs['unit'] = '1';
 
-    return g.name
+    return gname
 
 
 def read_hdf5(fn, qid):
