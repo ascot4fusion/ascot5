@@ -24,7 +24,6 @@
  * @see B_field.c
  */
 #include <stdlib.h>
-#include <stdio.h>
 #include <math.h>
 #include "../math.h"
 #include "../ascot5.h"
@@ -136,19 +135,20 @@ int B_2DS_init_offload(B_2DS_offload_data* offload_data,
     }
 
     /* Print some sanity check on data */
-    printf("\n2D magnetic field (B_2DS)\n");
-    print_out(VERBOSE_IO, "Grid: nR = %4.d Rmin = %3.3f Rmax = %3.3f\n",
-              offload_data->n_r,
-              offload_data->r_min, offload_data->r_max);
-    print_out(VERBOSE_IO, "      nz = %4.d zmin = %3.3f zmax = %3.3f\n",
-              offload_data->n_z,
-              offload_data->z_min, offload_data->z_max);
-    print_out(VERBOSE_IO, "Psi at magnetic axis (%1.3f m, %1.3f m)\n",
-              offload_data->axis_r, offload_data->axis_z);
-    print_out(VERBOSE_IO, "%3.3f (evaluated)\n%3.3f (given)\n",
-              psival[0], offload_data->psi0);
-    print_out(VERBOSE_IO, "Magnetic field on axis:\n"
+    print_out(VERBOSE_IO,
+              "\n2D magnetic field (B_2DS)\n"
+              "Grid: nR = %4.d Rmin = %3.3f Rmax = %3.3f\n"
+              "      nz = %4.d zmin = %3.3f zmax = %3.3f\n"
+              "Psi at magnetic axis (%1.3f m, %1.3f m)\n"
+              "%3.3f (evaluated)\n%3.3f (given)\n"
+              "Magnetic field on axis:\n"
               "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n",
+              offload_data->n_r,
+              offload_data->r_min, offload_data->r_max,
+              offload_data->n_z,
+              offload_data->z_min, offload_data->z_max,
+              offload_data->axis_r, offload_data->axis_z,
+              psival[0], offload_data->psi0,
               Bval[0], Bval[1], Bval[2]);
 
     return err;

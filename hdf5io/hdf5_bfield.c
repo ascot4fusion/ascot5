@@ -450,11 +450,11 @@ int hdf5_bfield_read_STS(hid_t f, B_STS_offload_data* offload_data,
     offload_data->psigrid_phi_max = math_deg2rad(offload_data->psigrid_phi_max);
 
     /* Read and initialize magnetic axis phi-grid */
-    if( hdf5_read_int(BPATH "naxis", &(offload_data->n_axis),
+    if( hdf5_read_int(BPATH "axis_nphi", &(offload_data->n_axis),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "axismin", &(offload_data->axis_min),
+    if( hdf5_read_double(BPATH "axis_phimin", &(offload_data->axis_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "axismax", &(offload_data->axis_max),
+    if( hdf5_read_double(BPATH "axis_phimax", &(offload_data->axis_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Note! phi data for magnetic axis in deg */
@@ -597,7 +597,7 @@ int hdf5_bfield_read_GS(hid_t f, B_GS_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BPATH "psi1", &(offload_data->psi1),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BPATH "psi_mult", &(offload_data->psi_mult),
+    if( hdf5_read_double(BPATH "psimult", &(offload_data->psi_mult),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BPATH "coefficients", offload_data->psi_coeff,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
