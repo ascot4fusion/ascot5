@@ -175,12 +175,12 @@ int main(int argc, char** argv) {
     simulate_init_offload(&sim);
 
     /* Pack offload data into single array and free individual offload arrays */
+    /* B_offload_array is needed for marker evaluation and is freed later */
     real* offload_array;
     offload_package offload_data;
     offload_init_offload(&offload_data, &offload_array);
     offload_pack(&offload_data, &offload_array, B_offload_array,
                  sim.B_offload_data.offload_array_length);
-    B_field_free_offload(&sim.B_offload_data, &B_offload_array);
 
     offload_pack(&offload_data, &offload_array, E_offload_array,
                  sim.E_offload_data.offload_array_length);
@@ -247,6 +247,8 @@ int main(int argc, char** argv) {
     for(int i = 0; i < n; i++) {
         particle_input_to_state(&p[i], &ps[i], &Bdata);
     }
+    /* We can now free the Bfield offload array */
+    B_field_free_offload(&sim.B_offload_data, &B_offload_array);
     free(p-start_index); // Input markers are no longer required
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Estimated memory usage %.1f MB.\n",
