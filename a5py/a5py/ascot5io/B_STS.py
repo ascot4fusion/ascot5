@@ -30,7 +30,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         Number of Rphiz-grid points.
     B_R, B_phi, B_z : real R x phi x z numpy array
         Magnetic field components in Rphiz-grid
-    psi : real
+    psi : real R x phi x z numpy array
         Normalized toroidal flux in Rphiz-grid
     naxis : int
         Number of axis grid points.
@@ -59,9 +59,10 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         pzmax   = zmax
         pnz     = nz
 
-    B_R = np.transpose(B_R,(1,0,2))
-    B_phi = np.transpose(B_phi,(1,0,2))
-    B_z = np.transpose(B_z,(1,0,2))
+    B_R   = np.transpose(B_R,   (1,0,2))
+    B_phi = np.transpose(B_phi, (1,0,2))
+    B_z   = np.transpose(B_z,   (1,0,2))
+    psi   = np.transpose(psi,   (1,0,2))
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
