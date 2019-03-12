@@ -10,8 +10,8 @@ from . ascot5file import add_group
 from a5py.ascot5io.ascot5data import AscotData
 
 def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz,
-               axisr, axisz, psi0, psi1,
-               psi, br, bphi, bz, desc=None):
+               axisr, axisz, psi, psi0, psi1,
+               br, bphi, bz, desc=None):
     """
     Write 2DS magnetic field input in HDF5 file.
 
@@ -42,44 +42,56 @@ def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz,
             On-axis poloidal flux value [Vs/m].
         psi1 : float <br>
             Separatrix poloidal flux value [Vs/m].
-        psi : array_like (nz, nr) <br>
+        psi : array_like (nr, nz) <br>
             Poloidal flux values on the Rz grid [Vs/m].
-        br : array_like (nz,nr) <br>
+        br : array_like (nr,nz) <br>
             Magnetic field R component (excl. equilibrium comp.) on Rz grid [T].
-        bphi : array_like (nz,nr) <br>
+        bphi : array_like (nr,nz) <br>
             Magnetic field phi component on Rz grid [T].
-        bz : array_like (nz,nr) <br>
+        bz : array_like (nr,nz) <br>
             Magnetic field z component (excl. equilibrium comp.) onRz grid [T].
         desc : str, optional <br>
             Input description.
 
     Returns:
-        QID of the new input that was written.
+        Name of the new input that was written.
     """
+
+    assert psi.shape  == (nr,nz)
+    assert br.shape   == (nr,nz)
+    assert bphi.shape == (nr,nz)
+    assert bz.shape   == (nr,nz)
+
+    psi  = np.transpose(psi)
+    br   = np.transpose(br)
+    bphi = np.transpose(bphi)
+    bz   = np.transpose(bz)
 
     parent = "bfield"
     group  = "B_2DS"
+    gname  = ""
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
+        gname = g.name.split("/")[-1]
 
         g.create_dataset("rmin",  (1,), data=rmin,  dtype="f8")
         g.create_dataset("rmax",  (1,), data=rmax,  dtype="f8")
-        g.create_dataset("nr",    (1,), data=nr,    dtype="i8")
+        g.create_dataset("nr",    (1,), data=nr,    dtype="i4")
         g.create_dataset("zmin",  (1,), data=zmin,  dtype="f8")
         g.create_dataset("zmax",  (1,), data=zmax,  dtype="f8")
-        g.create_dataset("nz",    (1,), data=nz,    dtype="i8")
+        g.create_dataset("nz",    (1,), data=nz,    dtype="i4")
         g.create_dataset("axisr", (1,), data=axisr, dtype="f8")
         g.create_dataset("axisz", (1,), data=axisz, dtype="f8")
         g.create_dataset("psi0",  (1,), data=psi0,  dtype="f8")
         g.create_dataset("psi1",  (1,), data=psi1,  dtype="f8")
 
-        g.create_dataset("psi",  (nz, nR), data=psi,  dtype="f8")
-        g.create_dataset("br",   (nz, nR), data=br,   dtype="f8")
-        g.create_dataset("bphi", (nz, nR), data=bphi, dtype="f8")
-        g.create_dataset("bz",   (nz, nR), data=bz,   dtype="f8")
+        g.create_dataset("psi",  (nz, nr), data=psi,  dtype="f8")
+        g.create_dataset("br",   (nz, nr), data=br,   dtype="f8")
+        g.create_dataset("bphi", (nz, nr), data=bphi, dtype="f8")
+        g.create_dataset("bz",   (nz, nr), data=bz,   dtype="f8")
 
-    return g.name
+    return gname
 
 
 def read_hdf5(fn, qid):
@@ -103,7 +115,16 @@ def read_hdf5(fn, qid):
         for key in f[path]:
             out[key] = f[path][key][:]
 
+    out["psi"]  = np.transpose(out["psi"])
+    out["br"]   = np.transpose(out["br"])
+    out["bphi"] = np.transpose(out["bphi"])
+    out["bz"]   = np.transpose(out["bz"])
     return out
+
+
+def write_hdf5_dummy(fn, desc="Dummy"):
+    import a5py.ascot5io.B_GS as B_GS
+    return B_GS.write_hdf5_dummy(fn, kind="2DS", desc=desc)
 
 
 class B_2DS(AscotData):

@@ -1,6 +1,8 @@
 import numpy as np
 import h5py
 from scipy.interpolate import RegularGridInterpolator as rgi
+from a5py.ascotpy import Ascotpy
+from scipy.optimize import fmin
 
 def read_magn_bkg(fn,hdrfn):
     str = dict()
@@ -37,6 +39,11 @@ def read_magn_bkg(fn,hdrfn):
         str['br']   = data[sz2d+0*sz3d:sz2d+1*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
         str['bphi'] = data[sz2d+1*sz3d:sz2d+2*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
         str['bz']   = data[sz2d+2*sz3d:sz2d+3*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
+
+        str['psi']  = np.transpose(str['psi'])
+        str['br']   = np.transpose(str['br'])
+        str['bphi'] = np.transpose(str['bphi'])
+        str['bz']   = np.transpose(str['bz'])
 
     read_magn_header(hdrfn,str)
     return str
@@ -95,25 +102,34 @@ def stellarator_bfield_sector2full(data):
     # Data is in the format (r, phi, z)
     out['r'] = data['r']
     out['z'] = data['z']
-    out['phi'] = np.concatenate((data['phi'][:-1], data['phi'] + data['phi'][-1]))
+    out['phi'] = np.concatenate( (data['phi'][:-1],
+                                  data['phi'][:-1] + data['phi'][-1]))
     # br
     br = data['br'][:, :-1, :]
-    br_sym = -data['br'][:, -1::-1, -1::-1]
+    br_sym = - data['br'][:, -1:0:-1, -1::-1]
     out['br'] = np.concatenate((br, br_sym),1)
     # bphi
     bphi = data['bphi'][:, :-1, :]
-    bphi_sym = data['bphi'][:, -1::-1, -1::-1]
+    bphi_sym = data['bphi'][:, -1:0:-1, -1::-1]
     out['bphi'] = np.concatenate((bphi, bphi_sym),1)
     # bz
     bz = data['bz'][:, :-1, :]
-    bz_sym = data['bz'][:, -1::-1, -1::-1]
+    bz_sym = data['bz'][:, -1:0:-1, -1::-1]
     out['bz'] = np.concatenate((bz, bz_sym),1)
     # s
     s = data['s'][:, :-1, :]
-    s_sym = data['s'][:, -1::-1, -1::-1]
+    s_sym = data['s'][:, -1:0:-1, -1::-1]
     out['s'] = np.concatenate((s, s_sym),1)
     out['symmetrymode'] == 1
+    return out
 
+def bfield_remove_duplicate_phi(data):
+    out = data
+    out['phi'] = data['phi'][:-1]
+    out['br'] = data['br'][:, :-1, :]
+    out['bphi'] = data['bphi'][:, :-1, :]
+    out['bz'] = data['bz'][:, :-1, :]
+    out['s'] = data['s'][:, :-1, :]
     return out
 
 def stellarator_psi_lims(data):
@@ -139,3 +155,28 @@ def stellarator_psi_lims(data):
             min_psi = np.amin([min_psi, np.amin(psi)])
             max_psi = np.amax([max_psi, np.amax(psi)])
     return min_psi, max_psi
+
+def bfield_psi_lims(data, h5fn):
+    try:
+        a5 = Ascotpy(h5fn=h5fn)
+        a5.init(bfield=1)
+    except OSError as err:
+        raise err
+    # Initial guess for psi0
+    psi0 = np.amin(data['s'])
+    for i in range(data['axis_phi'].size):
+        psii = fmin(
+            lambda x: a5.eval_bfield(x[0],x[1],x[2],0,evalpsi=1)['psi'],
+            [data['axis_r'][i], data['axis_phi'][i], data['axis_z'][i]],
+            disp=0, full_output=1)[1]
+        psi0 = np.amin([psi0, psii])
+    # Initial guess for psi1
+    psi1 = np.amax(data['s'])
+    for i in range(data['axis_phi'].size):
+        psii = fmin(
+            lambda x: -a5.eval_bfield(x[0],x[1],x[2],0,evalpsi=1)['psi'],
+            [data['axis_r'][i], data['axis_phi'][i], data['axis_z'][i]],
+            disp=0, full_output=1)[1]
+        psii = -psii            # Back to a positive value
+        psi1 = np.amax([psi1, psii])
+    return psi0, psi1

@@ -9,118 +9,105 @@ import numpy as np
 from . ascot5file import add_group
 from a5py.ascot5io.ascot5data import AscotData
 
-def write_hdf5(fn, Nrho, Nion, anum, znum, mass, charge, rho, edens, etemp,
-               idens, itemp, desc=None):
+def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho,
+               edensity, etemperature, idensity, itemperature, desc=None):
     """
     Write 1D plasma input in HDF5 file.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            Path to hdf5 file.
+        nrho : int <br>
+            Number of rho grid points.
+        nion : int <br>
+            Number of ion species.
+        anum : array_like (nion,1) <br>
+            Ion species atomic mass number
+        znum : array_like (nion,1) <br>
+            Ion species charge number.
+        mass : array_like (nion,1) <br>
+            Ion species mass [amu].
+        charge : array_like (nion,1) <br>
+            Ion species charge [e].
+        rho : array_like (nrho,1) <br>
+            rho grid, doesn't have to be uniform.
+        edensity : array_like (nrho,1) <br>
+            Electron density [m^-3].
+        etemperature : array_like (nrho,1) <br>
+            Electron temperature [eV].
+        idensity : array_like (nrho,nion) <br>
+            Ion density [m^-3].
+        itemperature : array_like (nrho,1) <br>
+            Ion temperature [ev].
+        desc : str, optional <br>
+            Input description.
 
-    fn : str
-        path to hdf5 file
-    Nrho : int
-        Number of rho grid points
-    Nion : int
-        Number of ions
-    znum : int Nion x 1 numpy array
-        Ion charge number
-    anum : int Nion x 1 numpy array
-        Ion mass number
-    rho : int Nrho x 1 numpy array
-        rho grid array
-    edens : real Nrho x 1 numpy array
-        electron density (1/m^3)
-    etemp : real Nrho x 1 numpy array
-        electron temperature (eV)
-    idens : real Nrho x Nion numpy array
-        ion density (1/m^3)
-    itemp : real Nrho x 1 numpy array
-        ion temperature (eV)
+    Returns:
+        Name of the new input that was written.
     """
+    assert etemperature.size == nrho
+    assert itemperature.size == nrho
+    assert edensity.size  == nrho
+    assert idensity.shape == (nrho,nion)
+
+    idensity = np.transpose(idensity)
 
     parent = "plasma"
     group  = "plasma_1D"
-
-
-    # Check that input is valid
-    if anum.size != Nion or znum.size != Nion:
-        raise Exception('Number of ions in input not consistent')
-
-    if rho.size != Nrho or edens.size != Nrho or etemp.size != Nrho or itemp.size != Nrho:
-        raise Exception('Number of rho grid points in input not consistent')
-
-    if Nrho != idens.shape[0] or Nion != idens.shape[1]:
-        idens = np.transpose(idens)
-        if Nrho != idens.shape[0] or Nion != idens.shape[1]:
-            raise Exception('Ion density data is not consisten with Nrho and Nion')
-
-    idens = np.transpose(idens)
-
-    if etemp[0] < 1 or etemp[0] > 1e5 or itemp[0] < 1 or itemp[0] >1e5:
-        print("Warning: Check that temperature is given in eV")
-
+    gname  = ""
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
+        gname = g.name.split("/")[-1]
 
-        g.create_dataset('nion',   (1,1),    data=Nion,  dtype='i4')
-        g.create_dataset('znum',   (Nion,1), data=znum,  dtype='i4')
-        g.create_dataset('anum',   (Nion,1), data=anum,  dtype='i4')
-        g.create_dataset('charge', (Nion,1), data=znum,  dtype='i4')
-        g.create_dataset('mass',   (Nion,1), data=anum,  dtype='f8')
-        g.create_dataset('nrho',   (1,1),    data=Nrho,  dtype='i4')
-        g.create_dataset('rho',    (Nrho,1), data=rho,   dtype='f8')
+        g.create_dataset('nion',   (1,1),    data=nion, dtype='i4')
+        g.create_dataset('nrho',   (1,1),    data=nrho, dtype='i4')
+        g.create_dataset('znum',   (nion,1), data=znum, dtype='i4')
+        g.create_dataset('anum',   (nion,1), data=anum, dtype='i4')
+        g.create_dataset('charge', (nion,1), data=znum, dtype='i4')
+        g.create_dataset('mass',   (nion,1), data=anum, dtype='f8')
+        g.create_dataset('rho',    (nrho,1), data=rho,  dtype='f8')
 
-        g.create_dataset('etemperature',   (Nrho,1),    data=etemp, dtype='f8')
-        g.create_dataset('edensity',       (Nrho,1),    data=edens, dtype='f8')
-        g.create_dataset('iontemperature', (Nrho,1),    data=itemp, dtype='f8')
-        g.create_dataset('iondensity',     (Nrho,Nion), data=idens, dtype='f8')
+        g.create_dataset('etemperature', (nrho,1),    data=etemperature,
+                         dtype='f8')
+        g.create_dataset('edensity',     (nrho,1),    data=edensity,
+                         dtype='f8')
+        g.create_dataset('itemperature', (nrho,1),    data=itemperature,
+                         dtype='f8')
+        g.create_dataset('idensity',     (nion,nrho), data=idensity,
+                         dtype='f8')
+
+    return gname
 
 
 def read_hdf5(fn, qid):
     """
-    Read 1D plasma input from HDF5 file.
+    Read P_1D input from HDF5 file.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        qid : str <br>
+            QID of the data to be read.
 
-    fn : str
-        Full path to the HDF5 file.
-    qid : str
-        qid of the plasma to be read.
-
-    Returns
-    -------
-
-    Dictionary containing plasma data.
+    Returns:
+        Dictionary containing input data.
     """
 
-    path = "plasma" + "/plasma_1D-" + qid
+    path = "plasma/plasma_1D_" + qid
 
+    out = {}
     with h5py.File(fn,"r") as f:
-        out = {}
+        for key in f[path]:
+            out[key] = f[path][key][:]
 
-        # Metadata.
-        out["qid"]  = qid
-        out["date"] = f[path].attrs["date"]
-        out["description"] = f[path].attrs["description"]
-
-        # Actual data.
-        out["Z_num"]    = f[path]["Z_num"][:]
-        out["A_mass"]   = f[path]["A_mass"][:]
-        out["Nion"]     = f[path]['n_ions'][:]
-        out["Nrho"]     = f[path]['n_rho'][:]
-
-        out["rho"] = f[path]["rho"][:]
-        out["etemp"] = f[path]["temp_e"][:]
-        out["edens"] = f[path]["dens_e"][:]
-        out["itemp"] = f[path]["temp_i"][:]
-        out["idens"] = f[path]["dens_i"][:]
-
+    out["idensity"] = np.transpose(out["idensity"])
     return out
 
 class plasma_1D(AscotData):
+    """
+    Object representing P_1D data.
+    """
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())

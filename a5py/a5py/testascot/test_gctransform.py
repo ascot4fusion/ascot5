@@ -52,6 +52,7 @@ import a5py.ascot5io.B_GS      as B_GS
 import a5py.ascot5io.E_TC      as E_TC
 import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
+import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 import a5py.ascot5io.mrk_prt   as prt
 
@@ -169,19 +170,19 @@ def init():
     #*                                                                         #
     #**************************************************************************#
     Nmrk   = 1
-    ids    = 1
-    weight = 1
-    pitch  = 0.4
-    mass   = m_a_AMU
-    charge = 2
-    anum   = 4
-    znum   = 2
-    time   = 0
-    R      = 7.6
-    phi    = 90
-    z      = 0
-    zeta   = 2
-    energy = 10e6
+    ids    = np.array([1])
+    weight = 1       * np.ones(ids.shape)
+    pitch  = 0.4     * np.ones(ids.shape)
+    mass   = m_a_AMU * np.ones(ids.shape)
+    charge = 2       * np.ones(ids.shape)
+    anum   = 4       * np.ones(ids.shape)
+    znum   = 2       * np.ones(ids.shape)
+    time   = 0       * np.ones(ids.shape)
+    R      = 7.6     * np.ones(ids.shape)
+    phi    = 90      * np.ones(ids.shape)
+    z      = 0       * np.ones(ids.shape)
+    zeta   = 2       * np.ones(ids.shape)
+    energy = 10e6    * np.ones(ids.shape)
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
                    R, phi, z, energy, pitch, zeta,
                    anum, znum, weight, time, desc="GCTRANSFORM_GC")
@@ -197,21 +198,21 @@ def init():
     #*                                                                         #
     #**************************************************************************#
     Rmin = 4; Rmax = 8.5; nR = 120; zmin = -4; zmax = 4; nz = 200;
-    B_GS.write_hdf5_B_2D(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                         Rmin, Rmax, nR, zmin, zmax, nz,
-                         desc="GCTRANSFORM_GC")
-    B_GS.write_hdf5_B_2D(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                         Rmin, Rmax, nR, zmin, zmax, nz,
-                         desc="GCTRANSFORM_GO")
-    B_GS.write_hdf5_B_2D(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                         Rmin, Rmax, nR, zmin, zmax, nz,
-                         desc="GCTRANSFORM_GO2GC")
-    B_GS.write_hdf5_B_2D(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                         Rmin, Rmax, nR, zmin, zmax, nz,
-                         desc="GCTRANSFORM_ZEROTH")
-    B_GS.write_hdf5_B_2D(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                         Rmin, Rmax, nR, zmin, zmax, nz,
-                         desc="GCTRANSFORM_FIRST")
+    B_GS.write_hdf5_B_2DS(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+                          Rmin, Rmax, nR, zmin, zmax, nz,
+                          desc="GCTRANSFORM_GC")
+    B_GS.write_hdf5_B_2DS(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+                          Rmin, Rmax, nR, zmin, zmax, nz,
+                          desc="GCTRANSFORM_GO")
+    B_GS.write_hdf5_B_2DS(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+                          Rmin, Rmax, nR, zmin, zmax, nz,
+                          desc="GCTRANSFORM_GO2GC")
+    B_GS.write_hdf5_B_2DS(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+                          Rmin, Rmax, nR, zmin, zmax, nz,
+                          desc="GCTRANSFORM_ZEROTH")
+    B_GS.write_hdf5_B_2DS(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+                          Rmin, Rmax, nR, zmin, zmax, nz,
+                          desc="GCTRANSFORM_FIRST")
 
     #**************************************************************************#
     #*                     Rest of the inputs are trivial                      #
@@ -238,11 +239,11 @@ def init():
     W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall,
                     desc="GCTRANSFORM_FIRST")
 
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="GCTRANSFORM_GC")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="GCTRANSFORM_GO")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="GCTRANSFORM_GO2GC")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="GCTRANSFORM_ZEROTH")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="GCTRANSFORM_FIRST")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_GC")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_GO")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_GO2GC")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_ZEROTH")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_FIRST")
 
     Nrho   = 3
     Nion   = 1

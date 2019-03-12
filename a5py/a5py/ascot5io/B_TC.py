@@ -33,26 +33,28 @@ def write_hdf5(fn, bxyz, jacobian, rhoval, psival=None, axisr=1, axisz=0,
             Input description.
 
     Returns:
-        QID of the new input that was written.
+        Name of the new input that was written.
     """
 
     parent = "bfield"
     group  = "B_TC"
+    gname  = ""
 
     if psival is None:
         psival = rhoval
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
+        gname = g.name.split("/")[-1]
 
         g.create_dataset("bxyz",     (3,1), data=bxyz,     dtype="f8")
         g.create_dataset("jacobian", (3,3), data=jacobian, dtype="f8")
         g.create_dataset("rhoval",   (1,),  data=rhoval,   dtype="f8")
         g.create_dataset("psival",   (1,),  data=psival,   dtype="f8")
-        g.create_dataset("axisr",    (1,),  data=axisR,    dtype="f8")
+        g.create_dataset("axisr",    (1,),  data=axisr,    dtype="f8")
         g.create_dataset("axisz",    (1,),  data=axisz,    dtype="f8")
 
-    return g.name
+    return gname
 
 
 def read_hdf5(fn, qid):
@@ -77,6 +79,16 @@ def read_hdf5(fn, qid):
             out[key] = f[path][key][:]
 
     return out
+
+
+def write_hdf5_dummy(fn, desc="Dummy"):
+    """
+    Write dummy data.
+    """
+    B   = np.array([1,0,3])
+    jac = np.array([ [0,0,0.01], [0,0,0], [0,0,0] ])
+    return write_hdf5(fn, B, jacobian=jac,
+                      rhoval=0.5, psival=1.5, axisr=6, axisz=0, desc=desc)
 
 
 class B_TC(AscotData):

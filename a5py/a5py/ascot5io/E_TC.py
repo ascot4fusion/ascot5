@@ -27,13 +27,15 @@ def write_hdf5(fn, exyz, desc=None):
 
     parent = "efield"
     group  = "E_TC"
+    gname  = ""
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
+        gname = g.name.split("/")[-1]
 
         g.create_dataset("exyz", (3,1), data=exyz, dtype="f8")
 
-    return g.name
+    return gname
 
 
 def read_hdf5(fn, qid):
@@ -58,6 +60,13 @@ def read_hdf5(fn, qid):
             out[key] = f[path][key][:]
 
     return out
+
+
+def write_hdf5_dummy(fn, desc="Dummy"):
+    """
+    Write dummy data.
+    """
+    return write_hdf5(fn, np.array([1,2,3]), desc=desc)
 
 
 class E_TC(AscotData):
