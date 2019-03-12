@@ -167,8 +167,10 @@ def read_plasma(a4folder, h5fn):
             data['ti1'] = np.interp(new_rho, data['rho'], data['ti1'])
             data['rho'] = new_rho
         dens_i = np.array([data['ni'+str(i)] for i in range(1,data['nion']+1)])
+        dens_i = np.transpose(dens_i)
         plasma_1D.write_hdf5(
             h5fn, data['nrho'], data['nion'], data['znum'], data['anum'],
+            data['znum'], data['anum'],
             data['rho'], data['ne'], data['te'], dens_i, data['ti1'])
     if (os.path.isfile(fname2d)):
         data = a4plasma.read_plasma(fname2d)
@@ -214,7 +216,7 @@ def read_wall(a4folder, h5fn):
         data = a4wall_3d.read_wall_3d(fname)
         wall_3D.write_hdf5(
             h5fn, data['id'].size, data['x1x2x3'],
-            data['y1y2y3'], data['z1z2z3'], data['id'])
+            data['y1y2y3'], data['z1z2z3'])
     elif (os.path.isfile(fnameh5)):
         with h5py.File(fnameh5, 'r') as f:
             if (not "/wall" in f):
@@ -222,7 +224,7 @@ def read_wall(a4folder, h5fn):
         data = a4wall_3d.read_wall_3d_hdf5(fnameh5)
         wall_3D.write_hdf5(
             h5fn, data['id'].size, data['x1x2x3'],
-            data['y1y2y3'], data['z1z2z3'], data['id'])
+            data['y1y2y3'], data['z1z2z3'])
 
 def run(a4folder, h5fn, overwrite=True):
     """
@@ -283,10 +285,7 @@ def run(a4folder, h5fn, overwrite=True):
     # Neutral density
     if overwrite or (not "neutral" in groups):
         # No ASCOT4 neutral density
-        N0 = np.array([ [ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ] ])
-        T0 = np.array([ [ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ] ])
-        N0_3D.write_hdf5(h5fn, -1, 1, 2, -1, 1, 2, 0,
-                         2*np.pi, 2, 1, 1, 1, N0, T0)
+        N0_3D.write_hdf5_dummy(h5fn)
 
     # Wall.
     if overwrite or (not "wall" in groups):

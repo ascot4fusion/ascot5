@@ -40,6 +40,11 @@ def read_magn_bkg(fn,hdrfn):
         str['bphi'] = data[sz2d+1*sz3d:sz2d+2*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
         str['bz']   = data[sz2d+2*sz3d:sz2d+3*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
 
+        str['psi']  = np.transpose(str['psi'])
+        str['br']   = np.transpose(str['br'])
+        str['bphi'] = np.transpose(str['bphi'])
+        str['bz']   = np.transpose(str['bz'])
+
     read_magn_header(hdrfn,str)
     return str
 
