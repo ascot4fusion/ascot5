@@ -98,7 +98,7 @@ def stellarator_bfield_sector2full(data):
     out['r'] = data['r']
     out['z'] = data['z']
     out['phi'] = np.concatenate( (data['phi'][:-1],
-                                  data['phi'][:-1] + data['phi'][-1]) )
+                                  data['phi'][:] + data['phi'][-1]) )
     # br
     br = data['br'][:, :-1, :]
     br_sym = - data['br'][-1::-1, -1:0:-1, :]
@@ -120,7 +120,6 @@ def stellarator_bfield_sector2full(data):
 
 def bfield_remove_duplicate_phi(data):
     out = data
-    out['phi'] = data['phi'][:-1]
     out['br'] = data['br'][:, :-1, :]
     out['bphi'] = data['bphi'][:, :-1, :]
     out['bz'] = data['bz'][:, :-1, :]
