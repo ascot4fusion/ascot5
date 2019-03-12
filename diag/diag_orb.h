@@ -61,7 +61,7 @@ typedef struct{
     real* mu;     /**< Guiding center magnetic moment [J/T]                 */
     real* theta;  /**< Guiding center gyroangle [rad]                       */
     real* weight; /**< Marker weight [1]                                    */
-    real* charge; /**< Marker charge [e]                                    */
+    real* charge; /**< Marker charge [C]                                    */
     real* rho;    /**< Normalized poloidal flux at marker position [1]      */
     real* pol;    /**< Marker poloidal angle [rad]                          */
     real* B_r;    /**< Magnetic field R component at marker position [T]    */

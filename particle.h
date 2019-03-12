@@ -51,7 +51,7 @@ typedef struct {
     real phidot;      /**< dphi/dt [rad/s]                                 */
     real zdot;        /**< dz/dt [m/s]                                     */
     real mass;        /**< Mass [kg]                                       */
-    real charge;      /**< Charge [e]                                      */
+    real charge;      /**< Charge [C]                                      */
     real weight;      /**< Marker weight                                   */
     real time;        /**< Marker simulation time [s]                      */
     real cputime;     /**< Marker wall-clock time [s]                      */
@@ -90,7 +90,7 @@ typedef struct {
     real v_phi;  /**< Velocity phi-component [m/s]        */
     real v_z;    /**< Velocity z-component [m/s]          */
     real mass;   /**< Mass [kg]                           */
-    real charge; /**< Charge [e]                          */
+    real charge; /**< Charge [C]                          */
     real weight; /**< Particle marker weight              */
     real time;   /**< Particle marker simulation time [s] */
     integer id;  /**< Unique ID for the particle marker   */
@@ -110,7 +110,7 @@ typedef struct {
     real pitch;  /**< Pitch                                     */
     real theta;  /**< Gyroangle [rad]                           */
     real mass;   /**< Mass [kg]                                 */
-    real charge; /**< Charge [e]                                */
+    real charge; /**< Charge [C]                                */
     real weight; /**< Guiding center marker weight              */
     real time;   /**< Guiding center marker simulation time [s] */
     integer id;  /**< Unique ID for the guiding center marker   */
@@ -211,7 +211,7 @@ typedef struct {
     real phidot[NSIMD] __memalign__;  /**< dphi/dt [rad/s]                    */
     real zdot[NSIMD] __memalign__;    /**< dz/dt [m/s]                        */
     real mass[NSIMD] __memalign__;    /**< Mass [kg]                          */
-    real charge[NSIMD] __memalign__;  /**< Charge [e]                         */
+    real charge[NSIMD] __memalign__;  /**< Charge [C]                         */
     real time[NSIMD] __memalign__;    /**< Marker simulation time [s]         */
 
     /* Magnetic field data */
@@ -275,7 +275,7 @@ typedef struct {
     real mu[NSIMD] __memalign__;     /**< Magnetic moment [J/T]               */
     real theta[NSIMD] __memalign__;  /**< Gyroangle [rad]                     */
     real mass[NSIMD] __memalign__;   /**< Mass [kg]                           */
-    real charge[NSIMD] __memalign__; /**< Charge [e]                          */
+    real charge[NSIMD] __memalign__; /**< Charge [C]                          */
     real time[NSIMD] __memalign__;   /**< Marker simulation time [s]          */
 
     /* Magnetic field data */
