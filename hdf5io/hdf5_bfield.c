@@ -473,7 +473,7 @@ int hdf5_bfield_read_STS(hid_t f, B_STS_offload_data* offload_data,
     offload_data->offload_array_length = psi_size + 3 * B_size + 2 * axis_size;
 
     /* Read the magnetic field */
-    if( hdf5_read_double(BPATH "bR", &(*offload_array)[0*B_size],
+    if( hdf5_read_double(BPATH "br", &(*offload_array)[0*B_size],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BPATH "bphi", &(*offload_array)[1*B_size],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
