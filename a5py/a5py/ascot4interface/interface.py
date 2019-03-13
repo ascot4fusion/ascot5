@@ -12,6 +12,7 @@ import a5py.ascot4interface.plasma   as a4plasma
 import a5py.ascot4interface.erad     as a4erad
 import a5py.ascot4interface.wall_2d  as a4wall_2d
 import a5py.ascot4interface.wall_3d  as a4wall_3d
+import a5py.ascot4interface.mhdinput as a4mhdinput
 
 import a5py.ascot5io.B_2DS     as B_2DS
 import a5py.ascot5io.B_3DS     as B_3DS
@@ -25,6 +26,7 @@ import a5py.ascot5io.E_1DS     as E_1DS
 import a5py.ascot5io.wall_2D   as wall_2D
 import a5py.ascot5io.wall_3D   as wall_3D
 import a5py.ascot5io.boozer    as boozer
+import a5py.ascot5io.mhd       as mhd
 
 from a5py.preprocessing.boozermaps import Boozermaps
 from a5py.postprocessing.physicslib import guessMass
@@ -227,6 +229,18 @@ def read_boozer(a4folder, h5fn):
         boozer.write_hdf5_dummy(h5fn)
 
 
+def read_mhd(a4folder, h5fn):
+    fname = a4folder + "input.alfven"
+    if (os.path.isfile(fname)):
+        data = a4mhdinput.read_alfven(fname)
+        mhd.write_hdf5(h5fn, data["nmode"], data["nmodes"], data["mmodes"],
+                       data["amplitude"], data["omega"], data["alpha"],
+                       data["phi"], data["npsi"], data["psimin"],
+                       data["psimax"])
+    else:
+        mhd.write_haf5_dummy(h5fn)
+
+
 def run(a4folder, h5fn, overwrite=True):
     """
     Convert ASCOT4 input files to ASCOT5 input HDF5 file.
@@ -267,6 +281,10 @@ def run(a4folder, h5fn, overwrite=True):
 
     with h5py.File(h5fn, 'r') as f:
         groups = f.keys()
+
+    # MHD input
+    if overwrite or (not "mhd" in groups):
+        read_mhd(a4folder, h5fn)
 
     if overwrite or (not "markers" in groups):
         read_markers(a4folder, h5fn)
