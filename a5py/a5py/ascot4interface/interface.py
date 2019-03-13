@@ -6,24 +6,24 @@ import os.path
 import numpy as np
 import h5py
 
-import a5py.ascot4interface.markers as a4markers
+import a5py.ascot4interface.markers  as a4markers
 import a5py.ascot4interface.magn_bkg as a4magn_bkg
-import a5py.ascot4interface.plasma as a4plasma
-import a5py.ascot4interface.erad as a4erad
-import a5py.ascot4interface.wall_2d as a4wall_2d
-import a5py.ascot4interface.wall_3d as a4wall_3d
+import a5py.ascot4interface.plasma   as a4plasma
+import a5py.ascot4interface.erad     as a4erad
+import a5py.ascot4interface.wall_2d  as a4wall_2d
+import a5py.ascot4interface.wall_3d  as a4wall_3d
 
-import a5py.ascot5io.B_2DS as B_2DS
-import a5py.ascot5io.B_3DS as B_3DS
-import a5py.ascot5io.B_STS as B_STS
-import a5py.ascot5io.N0_3D as N0_3D
+import a5py.ascot5io.B_2DS     as B_2DS
+import a5py.ascot5io.B_3DS     as B_3DS
+import a5py.ascot5io.B_STS     as B_STS
+import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.plasma_1D as plasma_1D
-import a5py.ascot5io.mrk_prt as mrk_prt
-import a5py.ascot5io.mrk_gc as mrk_gc
-import a5py.ascot5io.E_TC as E_TC
-import a5py.ascot5io.E_1DS as E_1DS
-import a5py.ascot5io.wall_2D as wall_2D
-import a5py.ascot5io.wall_3D as wall_3D
+import a5py.ascot5io.mrk_prt   as mrk_prt
+import a5py.ascot5io.mrk_gc    as mrk_gc
+import a5py.ascot5io.E_TC      as E_TC
+import a5py.ascot5io.E_1DS     as E_1DS
+import a5py.ascot5io.wall_2D   as wall_2D
+import a5py.ascot5io.wall_3D   as wall_3D
 
 from a5py.postprocessing.physicslib import guessMass
 
@@ -60,18 +60,20 @@ def read_markers(a4folder, h5fn):
                 data["fields"]["zprt"],
                 data["fields"]["vR"], data["fields"]["vphi"],
                 data["fields"]["vz"],
+                data["fields"]['Anum'], data["fields"]['Znum'],
                 data["fields"]["weight"], data["fields"]["weight"]*0)
         elif 'energy' in data['fieldNames']:
             # We have guiding centers (theta is random)
             print("Warning! Forcing time to zero and "
-                  "randomizing theta for all markers.")
-            theta = 2*np.pi*np.random.rand(data["fields"]["id"].size)
+                  "randomizing zeta for all markers.")
+            zeta = 2*np.pi*np.random.rand(data["fields"]["id"].size)
             mrk_gc.write_hdf5(
                 h5fn, data["fields"]["id"].size, data["fields"]["id"],
                 data["fields"]["mass"], data["fields"]["charge"],
                 data["fields"]["R"], data["fields"]["phi"],
                 data["fields"]["z"],
-                data["fields"]["energy"], data["fields"]["pitch"], theta,
+                data["fields"]["energy"], data["fields"]["pitch"], zeta,
+                data["fields"]['Anum'], data["fields"]['Znum'],
                 data["fields"]["weight"], data["fields"]["weight"]*0 )
 
 def read_bfield(a4folder, h5fn):
@@ -103,27 +105,16 @@ def read_bfield(a4folder, h5fn):
             if (not "/bfield" in f):
                 return
         data = a4magn_bkg.read_magn_bkg_stellarator(fnameh5)
-        if (data['phi'][0] == np.mod(data['phi'][-1],360/data['n_periods'])):
-            print("Warning! Removing duplicate bfield data point.")
-            data = a4magn_bkg.bfield_remove_duplicate_phi(data)
-        if(data['symmetrymode'] == 0):
-            print("Converting stellarator symmetric input to periodic.")
-            data = a4magn_bkg.stellarator_bfield_sector2full(data)
-        if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
-            print("Warning! Removing duplicated axis datapoint.")
-            data['axis_r'] = data['axis_r'][0:-1]
-            data['axis_phi'] = data['axis_phi'][0:-1]
-            data['axis_z'] = data['axis_z'][0:-1]
         psilims = [0, 1]
         B_STS.write_hdf5(
             h5fn,
             data['r'][0], data['r'][-1], data['r'].size,
             data['z'][0], data['z'][-1], data['z'].size,
-            data['phi'][0], data['phi'][-1], data['phi'].size,
+            data['phi'][0], data['phi'][-1], data['phi'].size - 1,
+            psilims[0], psilims[1],
             data['br'], data['bphi'], data['bz'], data['s'],
             data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
-            data['axis_r'], data['axis_z'],
-            psiaxis=psilims[0], psisepx=psilims[1])
+            data['axis_r'], data['axis_z'])
         print("Searching for psiaxis and psisepx.")
         try:
             psilims = a4magn_bkg.bfield_psi_lims(data, h5fn)
@@ -138,11 +129,11 @@ def read_bfield(a4folder, h5fn):
             h5fn,
             data['r'][0], data['r'][-1], data['r'].size,
             data['z'][0], data['z'][-1], data['z'].size,
-            data['phi'][0], data['phi'][-1], data['phi'].size,
+            data['phi'][0], data['phi'][-1], data['phi'].size - 1,
+            psilims[0], psilims[1],
             data['br'], data['bphi'], data['bz'], data['s'],
             data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
-            data['axis_r'], data['axis_z'],
-            psiaxis=psilims[0], psisepx=psilims[1])
+            data['axis_r'], data['axis_z'])
 
 def read_plasma(a4folder, h5fn):
     fname1d = a4folder + "input.plasma_1d"
@@ -165,8 +156,10 @@ def read_plasma(a4folder, h5fn):
             data['ti1'] = np.interp(new_rho, data['rho'], data['ti1'])
             data['rho'] = new_rho
         dens_i = np.array([data['ni'+str(i)] for i in range(1,data['nion']+1)])
+        dens_i = np.transpose(dens_i)
         plasma_1D.write_hdf5(
             h5fn, data['nrho'], data['nion'], data['znum'], data['anum'],
+            data['znum'], data['anum'],
             data['rho'], data['ne'], data['te'], dens_i, data['ti1'])
     if (os.path.isfile(fname2d)):
         data = a4plasma.read_plasma(fname2d)
@@ -212,7 +205,7 @@ def read_wall(a4folder, h5fn):
         data = a4wall_3d.read_wall_3d(fname)
         wall_3D.write_hdf5(
             h5fn, data['id'].size, data['x1x2x3'],
-            data['y1y2y3'], data['z1z2z3'], data['id'])
+            data['y1y2y3'], data['z1z2z3'])
     elif (os.path.isfile(fnameh5)):
         with h5py.File(fnameh5, 'r') as f:
             if (not "/wall" in f):
@@ -220,7 +213,7 @@ def read_wall(a4folder, h5fn):
         data = a4wall_3d.read_wall_3d_hdf5(fnameh5)
         wall_3D.write_hdf5(
             h5fn, data['id'].size, data['x1x2x3'],
-            data['y1y2y3'], data['z1z2z3'], data['id'])
+            data['y1y2y3'], data['z1z2z3'])
 
 def run(a4folder, h5fn, overwrite=True):
     """
@@ -281,10 +274,7 @@ def run(a4folder, h5fn, overwrite=True):
     # Neutral density
     if overwrite or (not "neutral" in groups):
         # No ASCOT4 neutral density
-        N0 = np.array([ [ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ] ])
-        T0 = np.array([ [ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ] ])
-        N0_3D.write_hdf5(h5fn, -1, 1, 2, -1, 1, 2, 0,
-                         2*np.pi, 2, 1, 1, 1, N0, T0)
+        N0_3D.write_hdf5_dummy(h5fn)
 
     # Wall.
     if overwrite or (not "wall" in groups):

@@ -34,6 +34,7 @@ import a5py.ascot5io.B_TC      as B_TC
 import a5py.ascot5io.E_TC      as E_TC
 import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
+import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 
 import a5py.testascot.helpers as helpers
@@ -69,12 +70,12 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-11
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 2e-9
+    odict["ENDCOND_MAX_SIMTIME"]       = 2e-9
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 1e-11
-    odict["ORBITWRITE_MAXPOINTS"]      = 202
+    odict["ORBITWRITE_NPOINT"]         = 202
 
     options.write_hdf5(helpers.testfn, odict, desc="GYROMOTION")
 
@@ -89,12 +90,12 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 1e-7
+    odict["ENDCOND_MAX_SIMTIME"]       = 1e-7
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 1e-11
-    odict["ORBITWRITE_MAXPOINTS"]      = 10002
+    odict["ORBITWRITE_NPOINT"]         = 10002
 
     options.write_hdf5(helpers.testfn, odict, desc="EXB_GO")
     options.write_hdf5(helpers.testfn, odict, desc="GRADB_GO")
@@ -110,12 +111,12 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-9
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 1e-7
+    odict["ENDCOND_MAX_SIMTIME"]       = 1e-7
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 1e-9
-    odict["ORBITWRITE_MAXPOINTS"]      = 102
+    odict["ORBITWRITE_NPOINT"]         = 102
 
     options.write_hdf5(helpers.testfn, odict, desc="EXB_GC")
     options.write_hdf5(helpers.testfn, odict, desc="GRADB_GC")
@@ -129,28 +130,30 @@ def init():
     weight = np.array([1, 1])
     mass   = m_e_AMU * np.array([1, 1])
     charge = 1       * np.array([1,-1])
+    anum   = 1       * np.array([1, 0])
+    znum   = 1       * np.array([1, 0])
     time   = 0       * np.array([1, 2])
     R      = 5       * np.array([1, 1])
     phi    = 90      * np.array([1, 1])
     z      = 0       * np.array([1, 1])
-    theta  = 0       * np.array([1, 1])
+    zeta   = 0       * np.array([1, 1])
     energy = 100e6   * np.array([1, 1])
     pitch  = 0.5     * np.array([1, 1])
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
-                   R, phi, z, energy, pitch, theta,
-                   weight, time, desc="GYROMOTION")
+                   R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="GYROMOTION")
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
-                   R, phi, z, energy, pitch, theta,
-                   weight, time, desc="EXB_GO")
+                   R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="EXB_GO")
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
-                   R, phi, z, energy, pitch, theta,
-                   weight, time, desc="EXB_GC")
+                   R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="EXB_GC")
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
-                   R, phi, z, energy, pitch, theta,
-                   weight, time, desc="GRADB_GO")
+                   R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="GRADB_GO")
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
-                   R, phi, z, energy, pitch, theta,
-                   weight, time, desc="GRADB_GC")
+                   R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="GRADB_GC")
 
     #**************************************************************************#
     #*             Magnetic and electric fields for GYROMOTION                 #
@@ -205,30 +208,32 @@ def init():
     W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall, desc="GRADB_GO")
     W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall, desc="GRADB_GC")
 
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="GYROMOTION")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="EXB_GO")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="EXB_GC")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="GRADB_GO")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="GRADB_GC")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GYROMOTION")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="EXB_GO")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="EXB_GC")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GRADB_GO")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GRADB_GC")
 
-    Nrho  = 3
-    Nion  = 1
-    znum  = np.array([1])
-    anum  = np.array([1])
-    rho   = np.array([0, 0.5, 100])
-    edens = 1e20 * np.ones(rho.shape)
-    etemp = 1e3  * np.ones(rho.shape)
-    idens = 1e20 * np.ones((rho.size, Nion))
-    itemp = 1e3  * np.ones(rho.shape)
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    Nrho   = 3
+    Nion   = 1
+    znum   = np.array([1])
+    anum   = np.array([1])
+    mass   = np.array([1])
+    charge = np.array([1])
+    rho    = np.array([0, 0.5, 100])
+    edens  = 1e20 * np.ones(rho.shape)
+    etemp  = 1e3  * np.ones(rho.shape)
+    idens  = 1e20 * np.ones((rho.size, Nion))
+    itemp  = 1e3  * np.ones(rho.shape)
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="GYROMOTION")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="EXB_GO")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="EXB_GC")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="GRADB_GO")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="GRADB_GC")
 
 def run():
@@ -253,11 +258,11 @@ def check():
     GYROMOTION = {}
     EXB        = {}
     GRADB      = {}
-    GYROMOTION["GO"] = a5["GYROMOTION"]["orbits"].read()
-    EXB["GO"]        = a5["EXB_GO"]["orbits"].read()
-    EXB["GC"]        = a5["EXB_GC"]["orbits"].read()
-    GRADB["GO"]      = a5["GRADB_GO"]["orbits"].read()
-    GRADB["GC"]      = a5["GRADB_GC"]["orbits"].read()
+    GYROMOTION["GO"] = a5["GYROMOTION"]["orbit"].read()
+    EXB["GO"]        = a5["EXB_GO"]["orbit"].read()
+    EXB["GC"]        = a5["EXB_GC"]["orbit"].read()
+    GRADB["GO"]      = a5["GRADB_GO"]["orbit"].read()
+    GRADB["GC"]      = a5["GRADB_GC"]["orbit"].read()
 
     # Electron energy in Joules
     E = 100e6 * e
@@ -298,7 +303,7 @@ def check():
     # Numerical values
     ang  = GYROMOTION["GO"]["phi"] * np.pi / 180
     igo  = GYROMOTION["GO"]["id"]
-    x    = GYROMOTION["GO"]["R"] * np.sin(ang)
+    x    = GYROMOTION["GO"]["r"] * np.sin(ang)
     y    = GYROMOTION["GO"]["z"]
     time = GYROMOTION["GO"]["time"][igo==1]
 
@@ -320,21 +325,21 @@ def check():
     # Numerical values
     ang = EXB["GO"]["phi"] * np.pi / 180
     igo = EXB["GO"]["id"]
-    xgo = EXB["GO"]["R"] * np.sin(ang)
+    xgo = EXB["GO"]["r"] * np.sin(ang)
     ygo = EXB["GO"]["z"]
 
     igo0  = a5["EXB_GO"]["inistate"]["id"]
     time  = a5["EXB_GO"]["endstate"]["time"]
     ang   = a5["EXB_GO"]["inistate"]["phi"] * np.pi / 180
-    xgo0  = a5["EXB_GO"]["inistate"]["R"] * np.sin(ang)
+    xgo0  = a5["EXB_GO"]["inistate"]["r"] * np.sin(ang)
     ygo0  = a5["EXB_GO"]["inistate"]["z"]
     ang   = a5["EXB_GO"]["endstate"]["phi"] * np.pi / 180
-    xgo1  = a5["EXB_GO"]["endstate"]["R"] * np.sin(ang)
+    xgo1  = a5["EXB_GO"]["endstate"]["r"] * np.sin(ang)
     ygo1  = a5["EXB_GO"]["endstate"]["z"]
 
     ang = EXB["GC"]["phi"] * np.pi / 180
     igc = EXB["GC"]["id"]
-    xgc = EXB["GC"]["R"] * np.sin(ang)
+    xgc = EXB["GC"]["r"] * np.sin(ang)
     ygc = EXB["GC"]["z"]
 
     vgo1_ExB = ((ygo1[igo0==1] - ygo0[igo0==1]) / (time[igo0==1]))[0]
@@ -361,21 +366,21 @@ def check():
     # Numerical values
     ang = GRADB["GO"]["phi"] * np.pi / 180
     igo = GRADB["GO"]["id"]
-    xgo = GRADB["GO"]["R"] * np.sin(ang)
+    xgo = GRADB["GO"]["r"] * np.sin(ang)
     ygo = GRADB["GO"]["z"]
 
     igo0  = a5["GRADB_GO"]["inistate"]["id"]
     time  = a5["GRADB_GO"]["endstate"]["time"]
     ang   = a5["GRADB_GO"]["inistate"]["phi"]
-    xgo0  = a5["GRADB_GO"]["inistate"]["R"] * np.sin(ang)
+    xgo0  = a5["GRADB_GO"]["inistate"]["r"] * np.sin(ang)
     zgo0  = a5["GRADB_GO"]["inistate"]["z"]
     ang   = a5["GRADB_GO"]["endstate"]["phi"]
-    xgo1  = a5["GRADB_GO"]["endstate"]["R"] * np.sin(ang)
+    xgo1  = a5["GRADB_GO"]["endstate"]["r"] * np.sin(ang)
     ygo1  = a5["GRADB_GO"]["endstate"]["z"]
 
     ang = GRADB["GC"]["phi"] * np.pi / 180
     igc = GRADB["GC"]["id"]
-    xgc = GRADB["GC"]["R"] * np.sin(ang)
+    xgc = GRADB["GC"]["r"] * np.sin(ang)
     ygc = GRADB["GC"]["z"]
 
     vgo1_gradB = ((xgo1[igo0==1] - xgo0[igo0==1]) / (time[igo0==1]))[0]

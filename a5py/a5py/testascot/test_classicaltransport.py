@@ -28,6 +28,7 @@ import a5py.ascot5io.B_TC      as B_TC
 import a5py.ascot5io.E_TC      as E_TC
 import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
+import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 
 import a5py.testascot.helpers as helpers
@@ -78,7 +79,7 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
+    odict["ENDCOND_MAX_SIMTIME"]       = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
@@ -96,7 +97,7 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-9
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
+    odict["ENDCOND_MAX_SIMTIME"]       = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
@@ -119,7 +120,7 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-8
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 5e-6
+    odict["ENDCOND_MAX_SIMTIME"]       = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
@@ -134,23 +135,25 @@ def init():
     weight = np.ones(ids.shape)
     mass   = m_p_AMU * np.ones(ids.shape)
     charge = 1       * np.ones(ids.shape)
+    anum   = 1       * np.ones(ids.shape)
+    znum   = 1       * np.ones(ids.shape)
     time   = 0       * np.ones(ids.shape)
     R      = 5       * np.ones(ids.shape)
     phi    = 0       * np.ones(ids.shape)
     z      = 0       * np.ones(ids.shape)
     energy = 1e3     * np.ones(ids.shape)
-    theta  = 2 * np.pi * np.random.rand(1,Nmrk)
+    zeta   = 2 * np.pi * np.random.rand(1,Nmrk)
     pitch  = 1 - 2 * np.random.rand(1,Nmrk)
     for i in range(1, nB+1):
         mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass,
-                       charge, R, phi, z, energy, pitch, theta,
-                       weight, time, desc="CLASS_GO" + str(i))
+                       charge, R, phi, z, energy, pitch, zeta,
+                       anum, znum, weight, time, desc="CLASS_GO" + str(i))
         mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass,
-                       charge, R, phi, z, energy, pitch, theta,
-                       weight, time, desc="CLASS_GCF" + str(i))
+                       charge, R, phi, z, energy, pitch, zeta,
+                       anum, znum, weight, time, desc="CLASS_GCF" + str(i))
         mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass,
-                       charge, R, phi, z, energy, pitch, theta,
-                       weight, time, desc="CLASS_GCA" + str(i))
+                       charge, R, phi, z, energy, pitch, zeta,
+                       anum, znum, weight, time, desc="CLASS_GCA" + str(i))
 
     #**************************************************************************#
     #*     Uniform magnetic field with values scanned from Bmin to Bmax        #
@@ -173,22 +176,27 @@ def init():
     #* Plasma consisting of electrons only (to avoid proton-proton collisions) #
     #*                                                                         #
     #**************************************************************************#
-    Nrho  = 3
-    Nion  = 1
-    znum  = np.array([1])
-    anum  = np.array([1])
-    rho   = np.array([0, 0.5, 100])
-    edens = ne  * np.ones(rho.shape)
-    etemp = Te  * np.ones(rho.shape)
-    idens = 1   * np.ones((rho.size, Nion))
-    itemp = 1e3 * np.ones(rho.shape)
+    Nrho   = 3
+    Nion   = 1
+    znum   = np.array([1])
+    anum   = np.array([1])
+    mass   = np.array([1])
+    charge = np.array([1])
+    rho    = np.array([0, 0.5, 100])
+    edens  = ne  * np.ones(rho.shape)
+    etemp  = Te  * np.ones(rho.shape)
+    idens  = 1   * np.ones((rho.size, Nion))
+    itemp  = 1e3 * np.ones(rho.shape)
     for i in range(1, nB+1):
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
-                        edens, etemp, idens, itemp, desc="CLASS_GO" + str(i))
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
-                        edens, etemp, idens, itemp, desc="CLASS_GCF" + str(i))
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
-                        edens, etemp, idens, itemp, desc="CLASS_GCA" + str(i))
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+                        rho, edens, etemp, idens, itemp,
+                        desc="CLASS_GO" + str(i))
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+                        rho, edens, etemp, idens, itemp,
+                        desc="CLASS_GCF" + str(i))
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+                        rho, edens, etemp, idens, itemp,
+                        desc="CLASS_GCA" + str(i))
 
     #**************************************************************************#
     #*                     Rest of the inputs are trivial                      #
@@ -210,9 +218,9 @@ def init():
         W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall,
                         desc="CLASS_GCA" + str(i))
 
-        helpers.write_N0_3D_dummy(helpers.testfn, desc="CLASS_GO" + str(i))
-        helpers.write_N0_3D_dummy(helpers.testfn, desc="CLASS_GCF" + str(i))
-        helpers.write_N0_3D_dummy(helpers.testfn, desc="CLASS_GCA" + str(i))
+        N0_3D.write_hdf5_dummy(helpers.testfn, desc="CLASS_GO" + str(i))
+        N0_3D.write_hdf5_dummy(helpers.testfn, desc="CLASS_GCF" + str(i))
+        N0_3D.write_hdf5_dummy(helpers.testfn, desc="CLASS_GCA" + str(i))
 
 
 def run():
@@ -245,12 +253,12 @@ def check():
     DGCA = np.zeros(nB)
     for i in range(1, nB+1):
         inistate = a5["CLASS_GO" + str(i)].inistate.read()
-        yi = inistate["R"] * np.sin( inistate["phi"] * np.pi / 180 )
+        yi = inistate["r"] * np.sin( inistate["phi"] * np.pi / 180 )
         zi = inistate["z"]
         ti = inistate["time"]
 
         endstate = a5["CLASS_GO" + str(i)].endstate.read()
-        ye = endstate["R"] * np.sin( endstate["phi"] * np.pi / 180 )
+        ye = endstate["r"] * np.sin( endstate["phi"] * np.pi / 180 )
         ze = endstate["z"]
         te = endstate["time"]
 
@@ -258,12 +266,12 @@ def check():
         DGO[i-1] = np.mean( dr2 / ( te - ti ) ) / (2*ndim)
 
         inistate = a5["CLASS_GCF" + str(i)].inistate.read()
-        yi = inistate["R"] * np.sin( inistate["phi"] * np.pi / 180 )
+        yi = inistate["r"] * np.sin( inistate["phi"] * np.pi / 180 )
         zi = inistate["z"]
         ti = inistate["time"]
 
         endstate = a5["CLASS_GCF" + str(i)].endstate.read()
-        ye = endstate["R"] * np.sin( endstate["phi"] * np.pi / 180 )
+        ye = endstate["r"] * np.sin( endstate["phi"] * np.pi / 180 )
         ze = endstate["z"]
         te = endstate["time"]
 
@@ -271,12 +279,12 @@ def check():
         DGCF[i-1] = np.mean( dr2 / ( te - ti ) ) / (2*ndim)
 
         inistate = a5["CLASS_GCA" + str(i)].inistate.read()
-        yi = inistate["R"] * np.sin( inistate["phi"] * np.pi / 180 )
+        yi = inistate["r"] * np.sin( inistate["phi"] * np.pi / 180 )
         zi = inistate["z"]
         ti = inistate["time"]
 
         endstate = a5["CLASS_GCA" + str(i)].endstate.read()
-        ye = endstate["R"] * np.sin( endstate["phi"] * np.pi / 180 )
+        ye = endstate["r"] * np.sin( endstate["phi"] * np.pi / 180 )
         ze = endstate["z"]
         te = endstate["time"]
 

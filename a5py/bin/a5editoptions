@@ -57,7 +57,7 @@ for i in info:
     elif(len(v) > 1):
         t = t + k + "=" \
             + ",".join([trim(vv) for vv in v]) \
-            + "\n"
+            + "\n\n"
 
 # Remove empty lines from beginning and end
 t = t[5:-2]

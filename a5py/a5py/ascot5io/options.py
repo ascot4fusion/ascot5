@@ -69,7 +69,7 @@ def read_hdf5(fn, qid, info=False):
         Dictionary containing options.
     """
 
-    path = "options" + "/opt-" + qid
+    path = "options" + "/opt_" + qid
 
     # Read values from file
     with h5py.File(fn,"r") as f:
@@ -95,7 +95,7 @@ def read_hdf5(fn, qid, info=False):
             continue
 
         val = out[name]
-        cmt = "Unknown parameter"
+        cmt = "Unknown parameter\n"
         for namecmtval in defopt:
             # A banner field
             if len(namecmtval) == 1 and (namecmtval[0],) not in info:
@@ -122,7 +122,7 @@ def read_hdf5(fn, qid, info=False):
                 break
 
     for namecmtval in unsorted:
-        if len(namecmtval) > 1 and namecmtval[1] == "Unknown parameter":
+        if len(namecmtval) > 1 and namecmtval[1] == "Unknown parameter\n":
             info[i] = namecmtval
             i = i + 1
 
@@ -171,7 +171,7 @@ def get_default():
          1)
     )
     info.append(
-        ("RECORD_GO_AS_GC",
+        ("RECORD_MODE",
          """\
          # Record GOs as GCs in diagnostics (0, 1)
          # - 0 Record GOs as GOs
@@ -197,7 +197,7 @@ def get_default():
          1e-8)
     )
     info.append(
-        ("FIXEDSTEP_NSTEPS_PER_GYROTIME",
+        ("FIXEDSTEP_GYRODEFINED",
          """\
          # Time-step is 2pi / ( gyrofrequency * N ) where N is this parameter
          """,
@@ -291,14 +291,14 @@ def get_default():
          0)
     )
     info.append(
-        ("ENDCOND_MAX_SIM_TIME",
+        ("ENDCOND_MAX_SIMTIME",
          """\
          # Maximum simulation time [s]
          """,
          1)
     )
     info.append(
-        ("ENDCOND_MAX_CPU_TIME",
+        ("ENDCOND_MAX_CPUTIME",
          """\
          # Maximum cpu time [s]
          """,
@@ -326,9 +326,9 @@ def get_default():
          1e3)
     )
     info.append(
-        ("ENDCOND_MIN_ENERGY_TIMES_THERMAL",
+        ("ENDCOND_MIN_THERMAL",
          """\
-         # Minimum energy limit local electron thermal energy times this value
+         # Minimum energy limit is local ion thermal energy times this value
          """,
          2)
     )
@@ -436,7 +436,7 @@ def get_default():
          1)
     )
     info.append(
-        ("ENABLE_DIST_rho5D",
+        ("ENABLE_DIST_RHO5D",
          """\
          # Collect distribution histogram in [rho, pol, phi, vpa, vpe, t, q]
          # The coordinates are
@@ -452,7 +452,7 @@ def get_default():
          1)
     )
     info.append(
-        ("ENABLE_DIST_rho6D",
+        ("ENABLE_DIST_RHO6D",
          """\
          # Collect distribution histogram in [rho, pol, phi, vR, vphi, vz, t, q]
          # The coordinates are
@@ -490,233 +490,233 @@ def get_default():
          10)
     )
     info.append(
-        ("DIST_MIN_phi",
+        ("DIST_MIN_PHI",
          """\
          # Minimum bin edge for phi coordinate [deg]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_phi",
+        ("DIST_MAX_PHI",
          """\
          # Maximum bin edge for phi coordinate [deg]
          """,
          360)
     )
     info.append(
-        ("DIST_NBIN_phi",
+        ("DIST_NBIN_PHI",
          """\
          # Number of bins the interval [DIST_MIN_phi, DIST_MAX_phi] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_z",
+        ("DIST_MIN_Z",
          """\
          # Minimum bin edge for z coordinate [m]
          """,
          -5)
     )
     info.append(
-        ("DIST_MAX_z",
+        ("DIST_MAX_Z",
          """\
          # Maximum bin edge for z coordinate [m]
          """,
          5)
     )
     info.append(
-        ("DIST_NBIN_z",
+        ("DIST_NBIN_Z",
          """\
          # Number of bins the interval [DIST_MIN_z, DIST_MAX_z] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_rho",
+        ("DIST_MIN_RHO",
          """\
          # Minimum bin edge for rho coordinate
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_rho",
+        ("DIST_MAX_RHO",
          """\
          # Maximum bin edge for rho coordinate
          """,
          2)
     )
     info.append(
-        ("DIST_NBIN_rho",
+        ("DIST_NBIN_RHO",
          """\
          # Number of bins the interval [DIST_MIN_rho, DIST_MAX_rho] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_pol",
+        ("DIST_MIN_THETA",
          """\
-         # Minimum bin edge for pol coordinate [deg]
+         # Minimum bin edge for poloidal angle coordinate [deg]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_pol",
+        ("DIST_MAX_THETA",
          """\
-         # Maximum bin edge for pol coordinate [deg]
+         # Maximum bin edge for poloidal angle coordinate [deg]
          """,
          360)
     )
     info.append(
-        ("DIST_NBIN_pol",
+        ("DIST_NBIN_THETA",
          """\
-         # Number of bins the interval [DIST_MIN_pol, DIST_MAX_pol] is divided to
+         # Number of bins the interval [DIST_MIN_THETA, DIST_MAX_THETA] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_vpa",
+        ("DIST_MIN_VPA",
          """\
          # Minimum bin edge for vpa coordinate [m/s]
          """,
          -3e8)
     )
     info.append(
-        ("DIST_MAX_vpa",
+        ("DIST_MAX_VPA",
          """\
          # Maximum bin edge for vpa coordinate [m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_vpa",
+        ("DIST_NBIN_VPA",
          """\
-         # Number of bins the interval [DIST_MIN_vpa, DIST_MAX_vpa] is divided to
+         # Number of bins the interval [DIST_MIN_VPA, DIST_MAX_VPA] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_vpe",
+        ("DIST_MIN_VPE",
          """\
          # Minimum bin edge for vpe coordinate [m/s]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_vpe",
+        ("DIST_MAX_VPE",
          """\
          # Maximum bin edge for vpe coordinate [m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_vpe",
+        ("DIST_NBIN_VPE",
          """\
-         # Number of bins the interval [DIST_MIN_vpe, DIST_MAX_vpe] is divided to
+         # Number of bins the interval [DIST_MIN_VPE, DIST_MAX_VPE] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_vR",
+        ("DIST_MIN_VR",
          """\
          # Minimum bin edge for vR coordinate [m/s]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_vR",
+        ("DIST_MAX_VR",
          """\
          # Maximum bin edge for vR coordinate [m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_vR",
+        ("DIST_NBIN_VR",
          """\
-         # Number of bins the interval [DIST_MIN_vR, DIST_MAX_vR] is divided to
+         # Number of bins the interval [DIST_MIN_VR, DIST_MAX_VR] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_vphi",
+        ("DIST_MIN_VPHI",
          """\
          # Minimum bin edge for vphi coordinate [m/s]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_vphi",
+        ("DIST_MAX_VPHI",
          """\
          # Maximum bin edge for vphi coordinate [m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_vphi",
+        ("DIST_NBIN_VPHI",
          """\
-         # Number of bins the interval [DIST_MIN_vphi, DIST_MAX_vphi] is divided to
+         # Number of bins the interval [DIST_MIN_VPHI, DIST_MAX_VPHI] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_vz",
+        ("DIST_MIN_VZ",
          """\
          # Minimum bin edge for vz coordinate [m/s]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_vz",
+        ("DIST_MAX_VZ",
          """\
          # Maximum bin edge for vz coordinate [m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_vz",
+        ("DIST_NBIN_VZ",
          """\
-         # Number of bins the interval [DIST_MIN_vz, DIST_MAX_vz] is divided to
+         # Number of bins the interval [DIST_MIN_VZ, DIST_MAX_VZ] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_t",
+        ("DIST_MIN_TIME",
          """\
-         # Minimum bin edge for t coordinate [s]
+         # Minimum bin edge for time coordinate [s]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_t",
+        ("DIST_MAX_TIME",
          """\
-         # Maximum bin edge for t coordinate [s]
+         # Maximum bin edge for time coordinate [s]
          """,
          1)
     )
     info.append(
-        ("DIST_NBIN_t",
+        ("DIST_NBIN_TIME",
          """\
-         # Number of bins the interval [DIST_MIN_t, DIST_MAX_t] is divided to
+         # Number of bins the interval [DIST_MIN_TIME, DIST_MAX_TIME] is divided to
          """,
          1)
     )
     info.append(
-        ("DIST_MIN_q",
+        ("DIST_MIN_CHARGE",
          """\
-         # Minimum bin edge for q coordinate [e]
+         # Minimum bin edge for charge coordinate [e]
          """,
          -100)
     )
     info.append(
-        ("DIST_MAX_q",
+        ("DIST_MAX_CHARGE",
          """\
-         # Maximum bin edge for q coordinate [e]
+         # Maximum bin edge for charge coordinate [e]
          """,
          100)
     )
     info.append(
-        ("DIST_NBIN_q",
+        ("DIST_NBIN_CHARGE",
          """\
-         # Number of bins the interval [DIST_MIN_q, DIST_MAX_q] is divided to
+         # Number of bins the interval [DIST_MIN_CHARGE, DIST_MAX_CHARGE] is divided to
          """,
          1)
     )
@@ -748,7 +748,7 @@ def get_default():
          1)
     )
     info.append(
-        ("ORBITWRITE_MAXPOINTS",
+        ("ORBITWRITE_NPOINT",
          """\
          # Maximum number of points (per marker) to be written
          # If this number is exceeded when marker is being simulated, the oldest

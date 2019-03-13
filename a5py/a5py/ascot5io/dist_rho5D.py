@@ -31,7 +31,7 @@ def read_hdf5(fn, qid):
 
     with h5py.File(fn,"r") as f:
 
-        path = "/results/run-"+qid+"/dists/rho_pol_phi_vpa_vpe_t_q/"
+        path = "/results/run-"+qid+"/distrho5d/"
         dist = f[path]
         out = {}
 

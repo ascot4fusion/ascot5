@@ -248,7 +248,7 @@ def combineoutput(fnt, addfns=None, contfns=None):
             tdata["ordinate"][:] += sdata["ordinate"][:]
 
     # Combine orbits
-    if hasattr(target, "orbits") and hasattr(source, "orbits"):
+    if hasattr(target, "orbit") and hasattr(source, "orbit"):
         with target.orbits as tdata, source.orbits as sdata:
             for field in tdata:
                 tsize = tdata[field].size

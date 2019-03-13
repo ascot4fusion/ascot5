@@ -33,6 +33,7 @@ import a5py.ascot5io.B_GS      as B_GS
 import a5py.ascot5io.E_TC      as E_TC
 import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
+import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 
 import a5py.testascot.helpers as helpers
@@ -98,7 +99,7 @@ def init():
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
     for i in range(1, nscan+1):
-        odict["ENDCOND_MAX_SIM_TIME"]  = np.maximum( 1e-4,
+        odict["ENDCOND_MAX_SIMTIME"]   = np.maximum( 1e-4,
                                                      1e-2 / (ni[i-1]/ni[0]) )
         odict["FIXEDSTEP_USERDEFINED"] = np.minimum( 2e-9,
                                                      3e-10 / (ni[i-1]/ni[-1]) )
@@ -119,7 +120,7 @@ def init():
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
     for i in range(1, nscan+1):
-        odict["ENDCOND_MAX_SIM_TIME"]  = np.maximum( 1e-4,
+        odict["ENDCOND_MAX_SIMTIME"]   = np.maximum( 1e-4,
                                                      1e-2 / (ni[i-1]/ni[0]) )
         odict["FIXEDSTEP_USERDEFINED"] = np.minimum( 2e-8,
                                                      5e-10 / (ni[i-1]/ni[-1]) )
@@ -146,8 +147,8 @@ def init():
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
     for i in range(1, nscan+1):
-        odict["ENDCOND_MAX_SIM_TIME"]  = np.maximum( 1e-4,
-                                                     1e-2 / (ni[i-1]/ni[0]) )
+        odict["ENDCOND_MAX_SIMTIME"] = np.maximum( 1e-4,
+                                                   1e-2 / (ni[i-1]/ni[0]) )
         options.write_hdf5(helpers.testfn, odict,
                            desc="NEOCLASS_GCA" + str(i))
 
@@ -159,25 +160,27 @@ def init():
     weight = np.ones(ids.shape)
     mass   = m_e_AMU * np.ones(ids.shape)
     charge = 1       * np.ones(ids.shape)
+    anum   = 0       * np.ones(ids.shape)
+    znum   = 0       * np.ones(ids.shape)
     time   = 0       * np.ones(ids.shape)
     R      = (R0+r0) * np.ones(ids.shape)
     phi    = 90      * np.ones(ids.shape)
     z      = 0       * np.ones(ids.shape)
     energy = Ekin    * np.ones(ids.shape)
-    theta  = 2 * np.pi * np.random.rand(1,Nmrk)
+    zeta   = 2 * np.pi * np.random.rand(1,Nmrk)
     pitch  = 1 - 2 * np.random.rand(1,Nmrk)
     for i in range(1, nscan+1):
         mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass,
-                       charge, R, phi, z, energy, pitch, theta,
-                       weight, time,
+                       charge, R, phi, z, energy, pitch, zeta,
+                       anum, znum, weight, time,
                        desc="NEOCLASS_GO" + str(i))
         mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass,
-                       charge, R, phi, z, energy, pitch, theta,
-                       weight, time,
+                       charge, R, phi, z, energy, pitch, zeta,
+                       anum, znum, weight, time,
                        desc="NEOCLASS_GCF" + str(i))
         mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass,
-                       charge, R, phi, z, energy, pitch, theta,
-                       weight, time,
+                       charge, R, phi, z, energy, pitch, zeta,
+                       anum, znum, weight, time,
                        desc="NEOCLASS_GCA" + str(i))
 
     #**************************************************************************#
@@ -196,24 +199,26 @@ def init():
     #*     Plasma consisting of protons only (to avoid e-e collisions)         #
     #*                                                                         #
     #**************************************************************************#
-    Nrho  = 3
-    Nion  = 1
-    znum  = np.array([1])
-    anum  = np.array([1])
-    rho   = np.array([0, 0.5, 100])
-    edens = 1    * np.ones(rho.shape)
-    etemp = Ti * np.ones(rho.shape)
-    itemp = Ti  * np.ones(rho.shape)
+    Nrho   = 3
+    Nion   = 1
+    znum   = np.array([1])
+    anum   = np.array([1])
+    mass   = np.array([1])
+    charge = np.array([1])
+    rho    = np.array([0, 0.5, 100])
+    edens  = 1    * np.ones(rho.shape)
+    etemp  = Ti * np.ones(rho.shape)
+    itemp  = Ti  * np.ones(rho.shape)
     for i in range(1, nscan+1):
         idens = ni[i-1] * np.ones((rho.size, Nion))
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
-                        edens, etemp, idens, itemp,
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+                        rho, edens, etemp, idens, itemp,
                         desc="NEOCLASS_GO" + str(i))
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
-                        edens, etemp, idens, itemp,
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+                        rho, edens, etemp, idens, itemp,
                         desc="NEOCLASS_GCF" + str(i))
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
-                        edens, etemp, idens, itemp,
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+                        rho, edens, etemp, idens, itemp,
                         desc="NEOCLASS_GCA" + str(i))
 
     #**************************************************************************#
@@ -236,9 +241,9 @@ def init():
         W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall,
                         desc="NEOCLASS_GCA" + str(i))
 
-        helpers.write_N0_3D_dummy(helpers.testfn, desc="NEOCLASS_GO" + str(i))
-        helpers.write_N0_3D_dummy(helpers.testfn, desc="NEOCLASS_GCF" + str(i))
-        helpers.write_N0_3D_dummy(helpers.testfn, desc="NEOCLASS_GCA" + str(i))
+        N0_3D.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GO" + str(i))
+        N0_3D.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GCF" + str(i))
+        N0_3D.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GCA" + str(i))
 
 def run():
     """

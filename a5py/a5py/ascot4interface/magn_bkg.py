@@ -5,45 +5,50 @@ from a5py.ascotpy import Ascotpy
 from scipy.optimize import fmin
 
 def read_magn_bkg(fn,hdrfn):
-    str = dict()
+    data = dict()
     with open(fn) as fh:
         tmp = list(map(float,fh.readline().split()))
-        str['phi0']       = tmp[0]
-        str['nSector']    = int(tmp[1])
-        str['nPhi']       = int(tmp[2])
-        str['nCoil']      = int(tmp[3])
-        str['zeroAtCoil'] = int(tmp[4])
+        data['phi0']       = tmp[0]
+        data['nSector']    = int(tmp[1])
+        data['nPhi']       = int(tmp[2])
+        data['nCoil']      = int(tmp[3])
+        data['zeroAtCoil'] = int(tmp[4])
 
         r1,r2,nr = [float(number) for number in fh.readline().split()]
         nr = int(nr)
         z1,z2,nz = [float(number) for number in fh.readline().split()]
         nz = int(nz)
 
-        str['r'] = np.linspace(r1,r2,nr)
-        str['z'] = np.linspace(z1,z2,nz)
-        if(str['nPhi'] > 1):
-            dphi = 360.0 / ( str['nSector'] * str['nPhi'] )
-            str['phi'] = ( np.linspace( str['phi0'] + dphi * 0.5,
-                                     str['phi0'] + 360.0 / str['nSector'] - dphi * 0.5,
-                                     str['nPhi'] ) )
+        data['r'] = np.linspace(r1,r2,nr)
+        data['z'] = np.linspace(z1,z2,nz)
+        if(data['nPhi'] > 1):
+            dphi = 360.0 / ( data['nSector'] * data['nPhi'] )
+            data['phi'] = ( np.linspace( data['phi0'] + dphi * 0.5,
+                                     data['phi0'] + 360.0 / data['nSector'] - dphi * 0.5,
+                                     data['nPhi'] ) )
 
-        str['phimap_tor'] = np.array([int(number) for number in fh.readline().split()])
-        str['phimap_pol'] = np.array([int(number) for number in fh.readline().split()])
+        data['phimap_tor'] = np.array([int(number) for number in fh.readline().split()])
+        data['phimap_pol'] = np.array([int(number) for number in fh.readline().split()])
 
         data = np.array(fh.read().split(), dtype=float).flatten()
 
         sz2d = nr*nz
-        sz3d = nr*nz*str['nPhi']
-        str['psi']  = data[:sz2d].reshape(nz,nr)
-        print(np.shape(data),nz,str['nPhi'],nr,sz2d,sz3d)
-        str['br']   = data[sz2d+0*sz3d:sz2d+1*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
-        str['bphi'] = data[sz2d+1*sz3d:sz2d+2*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
-        str['bz']   = data[sz2d+2*sz3d:sz2d+3*sz3d].reshape(nz,str['nPhi'],nr).squeeze()
+        sz3d = nr*nz*data['nPhi']
+        data['psi']  = data[:sz2d].reshape(nz,nr)
+        print(np.shape(data),nz,data['nPhi'],nr,sz2d,sz3d)
+        data['br']   = data[sz2d+0*sz3d:sz2d+1*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
+        data['bphi'] = data[sz2d+1*sz3d:sz2d+2*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
+        data['bz']   = data[sz2d+2*sz3d:sz2d+3*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
 
-    read_magn_header(hdrfn,str)
-    return str
+        data['psi']  = np.transpose(data['psi'])
+        data['br']   = np.transpose(data['br'])
+        data['bphi'] = np.transpose(data['bphi'])
+        data['bz']   = np.transpose(data['bz'])
 
-def read_magn_header(fn,str):
+    read_magn_header(hdrfn,data)
+    return data
+
+def read_magn_header(fn,data):
     with open(fn) as fh:
         # first four lines contain nothing interesting
         fh.readline()
@@ -53,44 +58,60 @@ def read_magn_header(fn,str):
 
         # Next three lines contain axis psi, R, and z values
         tmp = [float(number) for number in fh.readline().split()]
-        str['psi0']       = tmp[0]
-        str['psi1']       = tmp[1]
+        data['psi0']       = tmp[0]
+        data['psi1']       = tmp[1]
 
         tmp = [float(number) for number in fh.readline().split()]
-        str['axis_r']       = tmp[0]
+        data['axis_r']       = tmp[0]
 
         tmp = [float(number) for number in fh.readline().split()]
-        str['axis_z']       = tmp[0]
+        data['axis_z']       = tmp[0]
 
-    return str
+    return data
 
 def read_magn_bkg_stellarator(fn):
 
     with h5py.File(fn, 'r') as f: # Open for reading
-        str = dict()
+        data = dict()
 
-        str['r'] = f['bfield/stellarator/r'][:]
-        str['phi'] = f['bfield/stellarator/phi'][:]
-        str['z'] = f['bfield/stellarator/z'][:]
+        data['r'] = f['bfield/stellarator/r'][:]
+        data['phi'] = f['bfield/stellarator/phi'][:]
+        data['z'] = f['bfield/stellarator/z'][:]
 
-        str['br'] = f['bfield/stellarator/br'][:]
-        str['bphi'] = f['bfield/stellarator/bphi'][:]
-        str['bz'] = f['bfield/stellarator/bz'][:]
-        str['s'] = f['bfield/stellarator/s'][:]
+        data['br'] = f['bfield/stellarator/br'][:]
+        data['bphi'] = f['bfield/stellarator/bphi'][:]
+        data['bz'] = f['bfield/stellarator/bz'][:]
+        data['s'] = f['bfield/stellarator/s'][:]
 
-        str['axis_r'] = f['bfield/stellarator/axis_R'][:]
-        str['axis_phi'] = f['bfield/stellarator/axis_phi'][:]
-        str['axis_z'] = f['bfield/stellarator/axis_z'][:]
+        data['axis_r'] = f['bfield/stellarator/axis_R'][:]
+        data['axis_phi'] = f['bfield/stellarator/axis_phi'][:]
+        data['axis_z'] = f['bfield/stellarator/axis_z'][:]
 
-        str['n_periods'] = f['bfield/stellarator/toroidalPeriods'][:]
+        data['n_periods'] = f['bfield/stellarator/toroidalPeriods'][:]
         try:
-            str['symmetrymode'] = f['bfield/stellarator/symmetrymode'][:]
+            data['symmetrymode'] = f['bfield/stellarator/symmetrymode'][:]
         except KeyError:
             print("Warning! No symmetry mode specified in input.h5/bfield")
             print("Defaulting to stellarator symmetry")
-            str['symmetrymode'] = 0
+            data['symmetrymode'] = 0
+        if (data['phi'][0] == np.mod(data['phi'][-1],360/data['n_periods'])):
+            print("Warning! Removing duplicate bfield data point.")
+            data = bfield_remove_duplicate_phi(data)
+        if(data['symmetrymode'] == 0):
+            print("Converting stellarator symmetric input to periodic.")
+            data = stellarator_bfield_sector2full(data)
+        if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
+            print("Warning! Removing duplicated axis datapoint.")
+            data['axis_r'] = data['axis_r'][0:-1]
+            data['axis_phi'] = data['axis_phi'][0:-1]
+            data['axis_z'] = data['axis_z'][0:-1]
+        # Transpose to ascot5io format
+        data['br']   = np.transpose(data['br'],   (2,1,0))
+        data['bphi'] = np.transpose(data['bphi'], (2,1,0))
+        data['bz']   = np.transpose(data['bz'],   (2,1,0))
+        data['s']    = np.transpose(data['s'],    (2,1,0))
 
-    return str
+    return data
 
 def stellarator_bfield_sector2full(data):
     out = data

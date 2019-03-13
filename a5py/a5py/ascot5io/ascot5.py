@@ -137,6 +137,44 @@ class textcolor:
     header = bold
     active = green
 
+def create_inputobject(key, h5group):
+    """
+    Create an input object based on the HDF5 group name
+
+    Whenever you add a new input type, add it here and it then can be accessed
+    via ASCOT object.
+    """
+    name_and_object = {
+        "B_TC" : B_TC, "B_GS" : B_GS, "B_2DS" : B_2DS, "B_3DS" : B_3DS,
+        "B_3DST" : B_3DST, "B_STS" : B_STS,
+        "E_TC" : E_TC, "E_1DS" : E_1DS, "E_3D" : E_3D, "E_3DS" : E_3DS,
+        "E_3DST" : E_3DST, "E_3DPOT" : E_3DPOT,
+        "prt" : mrk_prt, "gc" : mrk_gc, "fl" : mrk_fl,
+        "wall_2D" : wall_2D, "wall_3D" : wall_3D,
+        "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS,
+        "N0_3D" : N0_3D,
+        "opt" : Opt
+    }
+
+    return name_and_object[key](h5group)
+
+
+def create_outputobject(key, h5group, runnode):
+    """
+    Create an output object based on the HDF5 group name
+
+    Whenever you add a new output type, add it here and it then can be accessed
+    via ASCOT object.
+    """
+    name_and_object = {
+        "inistate" : State, "endstate" : State, "orbit" : Orbits,
+        "dist5d" : Dist_5D, "dist6d" : Dist_6D, "distrho5d" : Dist_rho5D,
+        "distrho6d" : Dist_rho6D
+    }
+
+    return name_and_object[key](h5group, runnode)
+
+
 class _Node():
     """
     Class which lets its attributes be accessed in a dictionary-like manner.
@@ -346,70 +384,8 @@ class _InputNode(_ContainerNode):
         super().__init__()
 
         for key in parent.keys():
-            inputobj = None
             type_ = get_type(parent[key].name.split("/")[-1])
-            if type_ == "B_TC":
-                inputobj = B_TC(parent[key])
-
-            if type_ == "B_GS":
-                inputobj = B_GS(parent[key])
-
-            if type_ == "B_2DS":
-                inputobj = B_2DS(parent[key])
-
-            if type_ == "B_3DS":
-                inputobj = B_3DS(parent[key])
-
-            if type_ == "B_3DST":
-                inputobj = B_3DST(parent[key])
-
-            if type_ == "B_STS":
-                inputobj = B_STS(parent[key])
-
-            if type_ == "E_TC":
-                inputobj = E_TC(parent[key])
-
-            if type_ == "E_1DS":
-                inputobj = E_1DS(parent[key])
-
-            if type_ == "E_3D":
-                inputobj = E_3D(parent[key])
-
-            if type_ == "E_3DS":
-                inputobj = E_3DS(parent[key])
-
-            if type_ == "E_3DST":
-                inputobj = E_3DST(parent[key])
-
-            if type_ == "E_3DPOT":
-                inputobj = E_3DPOT(parent[key])
-
-            if type_ == "particle":
-                inputobj = mrk_prt(parent[key])
-
-            if type_ == "guiding_center":
-                inputobj = mrk_gc(parent[key])
-
-            if type_ == "field_line":
-                inputobj = mrk_fl(parent[key])
-
-            if type_ == "wall_2D":
-                inputobj = wall_2D(parent[key])
-
-            if type_ == "wall_3D":
-                inputobj = wall_3D(parent[key])
-
-            if type_ == "plasma_1D":
-                inputobj = plasma_1D(parent[key])
-
-            if type_ == "plasma_1DS":
-                inputobj = plasma_1DS(parent[key])
-
-            if type_ == "N0_3D":
-                inputobj = N0_3D(parent[key])
-
-            if type_ == "opt":
-                inputobj = Opt(parent[key])
+            inputobj = create_inputobject(type_, parent[key])
 
             self._init_store_qidgroup(parent.file, parent[key], inputobj)
 
@@ -473,24 +449,7 @@ class _RunNode(_Node):
 
         for key in rungroup:
             key = rungroup[key].name.split("/")[-1]
-            if key == "inistate":
-                self[key] = State(rungroup[key], self)
-
-            if key == "endstate":
-                self[key] = State(rungroup[key], self)
-
-            if key == "orbits":
-                self[key] = Orbits(rungroup[key], self)
-            if key == "dists":
-                for d in rungroup[key]:
-                    if d == "R_phi_z_vpa_vpe_t_q":
-                        self["dist5d"] = Dist_5D(rungroup[key][d], self)
-                    if d == "R_phi_z_vr_vphi_vz_t_q":
-                        self["dist6d"] = Dist_6D(rungroup[key][d], self)
-                    if d == "rho_pol_phi_vpa_vpe_t_q":
-                        self["distrho5d"] = Dist_rho5D(rungroup[key][d], self)
-                    if d == "rho_pol_phi_vr_vphi_vz_t_q":
-                        self["distrho6d"] = Dist_rho6D(rungroup[key][d], self)
+            self[key] = create_outputobject(key, rungroup[key], self)
 
         self._freeze()
 

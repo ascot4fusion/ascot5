@@ -52,6 +52,7 @@ import a5py.ascot5io.B_GS      as B_GS
 import a5py.ascot5io.E_TC      as E_TC
 import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
+import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 import a5py.ascot5io.mrk_prt   as prt
 
@@ -110,12 +111,12 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 1.5e-5
+    odict["ENDCOND_MAX_SIMTIME"]       = 1.5e-5
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 2e-10
-    odict["ORBITWRITE_MAXPOINTS"]      = 75002
+    odict["ORBITWRITE_NPOINT"]         = 75002
 
     options.write_hdf5(helpers.testfn, odict, desc="GCTRANSFORM_GC")
     options.write_hdf5(helpers.testfn, odict, desc="GCTRANSFORM_FIRST")
@@ -134,12 +135,12 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 1.5e-5
+    odict["ENDCOND_MAX_SIMTIME"]       = 1.5e-5
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 2e-10
-    odict["ORBITWRITE_MAXPOINTS"]      = 75002
+    odict["ORBITWRITE_NPOINT"]         = 75002
 
     options.write_hdf5(helpers.testfn, odict, desc="GCTRANSFORM_GO")
 
@@ -151,16 +152,16 @@ def init():
     helpers.clean_opt(odict)
 
     odict["SIM_MODE"]                  = 1
-    odict["RECORD_GO_AS_GC"]           = 1
+    odict["RECORD_MODE"]               = 1
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIM_TIME"]      = 1.5e-5
+    odict["ENDCOND_MAX_SIMTIME"]       = 1.5e-5
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
     odict["ORBITWRITE_INTERVAL"]       = 2e-10
-    odict["ORBITWRITE_MAXPOINTS"]      = 75002
+    odict["ORBITWRITE_NPOINT"]         = 75002
 
     options.write_hdf5(helpers.testfn, odict, desc="GCTRANSFORM_GO2GC")
 
@@ -169,47 +170,49 @@ def init():
     #*                                                                         #
     #**************************************************************************#
     Nmrk   = 1
-    ids    = 1
-    weight = 1
-    pitch  = 0.4
-    mass   = m_a_AMU
-    charge = 2
-    time   = 0
-    R      = 7.6
-    phi    = 90
-    z      = 0
-    theta  = 2
-    energy = 10e6
+    ids    = np.array([1])
+    weight = 1       * np.ones(ids.shape)
+    pitch  = 0.4     * np.ones(ids.shape)
+    mass   = m_a_AMU * np.ones(ids.shape)
+    charge = 2       * np.ones(ids.shape)
+    anum   = 4       * np.ones(ids.shape)
+    znum   = 2       * np.ones(ids.shape)
+    time   = 0       * np.ones(ids.shape)
+    R      = 7.6     * np.ones(ids.shape)
+    phi    = 90      * np.ones(ids.shape)
+    z      = 0       * np.ones(ids.shape)
+    zeta   = 2       * np.ones(ids.shape)
+    energy = 10e6    * np.ones(ids.shape)
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
-                   R, phi, z, energy, pitch, theta,
-                   weight, time, desc="GCTRANSFORM_GC")
+                   R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="GCTRANSFORM_GC")
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
-                   R, phi, z, energy, pitch, theta,
-                   weight, time, desc="GCTRANSFORM_GO")
+                   R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="GCTRANSFORM_GO")
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
-                   R, phi, z, energy, pitch, theta,
-                   weight, time, desc="GCTRANSFORM_GO2GC")
+                   R, phi, z, energy, pitch, zeta,
+                   anum, znum, weight, time, desc="GCTRANSFORM_GO2GC")
 
     #**************************************************************************#
     #*                     Construct ITER-like magnetic field                  #
     #*                                                                         #
     #**************************************************************************#
     Rmin = 4; Rmax = 8.5; nR = 120; zmin = -4; zmax = 4; nz = 200;
-    B_GS.write_hdf5_B_2D(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                         Rmin, Rmax, nR, zmin, zmax, nz,
-                         desc="GCTRANSFORM_GC")
-    B_GS.write_hdf5_B_2D(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                         Rmin, Rmax, nR, zmin, zmax, nz,
-                         desc="GCTRANSFORM_GO")
-    B_GS.write_hdf5_B_2D(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                         Rmin, Rmax, nR, zmin, zmax, nz,
-                         desc="GCTRANSFORM_GO2GC")
-    B_GS.write_hdf5_B_2D(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                         Rmin, Rmax, nR, zmin, zmax, nz,
-                         desc="GCTRANSFORM_ZEROTH")
-    B_GS.write_hdf5_B_2D(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                         Rmin, Rmax, nR, zmin, zmax, nz,
-                         desc="GCTRANSFORM_FIRST")
+    B_GS.write_hdf5_B_2DS(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+                          Rmin, Rmax, nR, zmin, zmax, nz,
+                          desc="GCTRANSFORM_GC")
+    B_GS.write_hdf5_B_2DS(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+                          Rmin, Rmax, nR, zmin, zmax, nz,
+                          desc="GCTRANSFORM_GO")
+    B_GS.write_hdf5_B_2DS(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+                          Rmin, Rmax, nR, zmin, zmax, nz,
+                          desc="GCTRANSFORM_GO2GC")
+    B_GS.write_hdf5_B_2DS(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+                          Rmin, Rmax, nR, zmin, zmax, nz,
+                          desc="GCTRANSFORM_ZEROTH")
+    B_GS.write_hdf5_B_2DS(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+                          Rmin, Rmax, nR, zmin, zmax, nz,
+                          desc="GCTRANSFORM_FIRST")
 
     #**************************************************************************#
     #*                     Rest of the inputs are trivial                      #
@@ -236,30 +239,32 @@ def init():
     W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall,
                     desc="GCTRANSFORM_FIRST")
 
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="GCTRANSFORM_GC")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="GCTRANSFORM_GO")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="GCTRANSFORM_GO2GC")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="GCTRANSFORM_ZEROTH")
-    helpers.write_N0_3D_dummy(helpers.testfn, desc="GCTRANSFORM_FIRST")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_GC")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_GO")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_GO2GC")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_ZEROTH")
+    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_FIRST")
 
-    Nrho  = 3
-    Nion  = 1
-    znum  = np.array([1])
-    anum  = np.array([1])
-    rho   = np.array([0, 0.5, 100])
-    edens = 1e20 * np.ones(rho.shape)
-    etemp = 1e3  * np.ones(rho.shape)
-    idens = 1e20 * np.ones((rho.size, Nion))
-    itemp = 1e3  * np.ones(rho.shape)
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    Nrho   = 3
+    Nion   = 1
+    znum   = np.array([1])
+    anum   = np.array([1])
+    mass   = np.array([1])
+    charge = np.array([1])
+    rho    = np.array([0, 0.5, 100])
+    edens  = 1e20 * np.ones(rho.shape)
+    etemp  = 1e3  * np.ones(rho.shape)
+    idens  = 1e20 * np.ones((rho.size, Nion))
+    itemp  = 1e3  * np.ones(rho.shape)
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="GCTRANSFORM_GC")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="GCTRANSFORM_GO")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="GCTRANSFORM_GO2GC")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="GCTRANSFORM_ZEROTH")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="GCTRANSFORM_FIRST")
 
 def run():
@@ -281,19 +286,21 @@ def run():
     weight = 1       * np.ones(ids.shape)
     mass   = m_a_AMU * np.ones(ids.shape)
     charge = 2       * np.ones(ids.shape)
-    time   = a5["GCTRANSFORM_GO"]["orbits"]["time"][0:Nmrk*dt:dt]
-    R      = a5["GCTRANSFORM_GO"]["orbits"]["R"][0:Nmrk*dt:dt]
-    phi    = a5["GCTRANSFORM_GO"]["orbits"]["phi"][0:Nmrk*dt:dt]
-    z      = a5["GCTRANSFORM_GO"]["orbits"]["z"][0:Nmrk*dt:dt]
-    vR     = a5["GCTRANSFORM_GO"]["orbits"]["v_R"][0:Nmrk*dt:dt]
-    vphi   = a5["GCTRANSFORM_GO"]["orbits"]["v_phi"][0:Nmrk*dt:dt]
-    vz     = a5["GCTRANSFORM_GO"]["orbits"]["v_z"][0:Nmrk*dt:dt]
+    znum   = 4       * np.ones(ids.shape)
+    anum   = 2       * np.ones(ids.shape)
+    time   = a5["GCTRANSFORM_GO"]["orbit"]["time"][0:Nmrk*dt:dt]
+    R      = a5["GCTRANSFORM_GO"]["orbit"]["r"][0:Nmrk*dt:dt]
+    phi    = a5["GCTRANSFORM_GO"]["orbit"]["phi"][0:Nmrk*dt:dt]
+    z      = a5["GCTRANSFORM_GO"]["orbit"]["z"][0:Nmrk*dt:dt]
+    vR     = a5["GCTRANSFORM_GO"]["orbit"]["vr"][0:Nmrk*dt:dt]
+    vphi   = a5["GCTRANSFORM_GO"]["orbit"]["vphi"][0:Nmrk*dt:dt]
+    vz     = a5["GCTRANSFORM_GO"]["orbit"]["vz"][0:Nmrk*dt:dt]
     prt.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
                    R, phi, z, vR, vphi, vz,
-                   weight, time, desc="GCTRANSFORM_ZEROTH")
+                   anum, znum, weight, time, desc="GCTRANSFORM_ZEROTH")
     prt.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
                    R, phi, z, vR, vphi, vz,
-                   weight, time, desc="GCTRANSFORM_FIRST")
+                   anum, znum, weight, time, desc="GCTRANSFORM_FIRST")
 
     for test in ["GCTRANSFORM_ZEROTH", "GCTRANSFORM_FIRST"]:
         helpers.set_and_run(test)
@@ -337,37 +344,37 @@ def check():
     # Make plots, scale the plotted quantities.
     # For some reason GCTRANSFORM_GO2GC GCTRANSFORM_GC are not equal in length
     # and we need to have [:-1]?
-    h1.plot(a5["GCTRANSFORM_GO"]["orbits"]["time"]*1e6,
-            ( a5["GCTRANSFORM_GO"]["orbits"]["mu"]
-              - a5["GCTRANSFORM_GC"]["orbits"]["mu"] )/e / 1e4 )
-    h1.plot(a5["GCTRANSFORM_GO2GC"]["orbits"]["time"]*1e6,
-            ( a5["GCTRANSFORM_GO2GC"]["orbits"]["mu"]
-              - a5["GCTRANSFORM_GC"]["orbits"]["mu"][:-1] )/e / 1e4 )
+    h1.plot(a5["GCTRANSFORM_GO"]["orbit"]["time"]*1e6,
+            ( a5["GCTRANSFORM_GO"]["orbit"]["mu"]
+              - a5["GCTRANSFORM_GC"]["orbit"]["mu"] )/e / 1e4 )
+    h1.plot(a5["GCTRANSFORM_GO2GC"]["orbit"]["time"]*1e6,
+            ( a5["GCTRANSFORM_GO2GC"]["orbit"]["mu"]
+              - a5["GCTRANSFORM_GC"]["orbit"]["mu"][:-1] )/e / 1e4 )
 
-    h2.plot(a5["GCTRANSFORM_GO"]["orbits"]["time"]*1e6,
-            ( a5["GCTRANSFORM_GO"]["orbits"]["vpar"]
-              - a5["GCTRANSFORM_GC"]["orbits"]["vpar"] ) / 1e5 )
-    h2.plot(a5["GCTRANSFORM_GO2GC"]["orbits"]["time"]*1e6,
-            ( a5["GCTRANSFORM_GO2GC"]["orbits"]["vpar"]
-              - a5["GCTRANSFORM_GC"]["orbits"]["vpar"][:-1] ) / 1e5 )
+    h2.plot(a5["GCTRANSFORM_GO"]["orbit"]["time"]*1e6,
+            ( a5["GCTRANSFORM_GO"]["orbit"]["vpar"]
+              - a5["GCTRANSFORM_GC"]["orbit"]["vpar"] ) / 1e5 )
+    h2.plot(a5["GCTRANSFORM_GO2GC"]["orbit"]["time"]*1e6,
+            ( a5["GCTRANSFORM_GO2GC"]["orbit"]["vpar"]
+              - a5["GCTRANSFORM_GC"]["orbit"]["vpar"][:-1] ) / 1e5 )
 
-    h3.plot(a5["GCTRANSFORM_GO"]["orbits"]["R"],
-            a5["GCTRANSFORM_GO"]["orbits"]["z"])
-    h3.plot(a5["GCTRANSFORM_GO2GC"]["orbits"]["R"],
-            a5["GCTRANSFORM_GO2GC"]["orbits"]["z"])
-    h3.plot(a5["GCTRANSFORM_GC"]["orbits"]["R"],
-            a5["GCTRANSFORM_GC"]["orbits"]["z"])
+    h3.plot(a5["GCTRANSFORM_GO"]["orbit"]["r"],
+            a5["GCTRANSFORM_GO"]["orbit"]["z"])
+    h3.plot(a5["GCTRANSFORM_GO2GC"]["orbit"]["r"],
+            a5["GCTRANSFORM_GO2GC"]["orbit"]["z"])
+    h3.plot(a5["GCTRANSFORM_GC"]["orbit"]["r"],
+            a5["GCTRANSFORM_GC"]["orbit"]["z"])
 
     for i in range(0, nrep):
-        id0 = a5["GCTRANSFORM_ZEROTH"]["orbits"]["id"]
-        id1 = a5["GCTRANSFORM_FIRST"]["orbits"]["id"]
-        h4.plot(a5["GCTRANSFORM_ZEROTH"]["orbits"]["R"][id0==i+1],
-                a5["GCTRANSFORM_ZEROTH"]["orbits"]["z"][id0==i+1], 'darkorchid')
-        h4.plot(a5["GCTRANSFORM_FIRST"]["orbits"]["R"][id1==i+1],
-                a5["GCTRANSFORM_FIRST"]["orbits"]["z"][id1==i+1], 'darkgreen')
+        id0 = a5["GCTRANSFORM_ZEROTH"]["orbit"]["id"]
+        id1 = a5["GCTRANSFORM_FIRST"]["orbit"]["id"]
+        h4.plot(a5["GCTRANSFORM_ZEROTH"]["orbit"]["r"][id0==i+1],
+                a5["GCTRANSFORM_ZEROTH"]["orbit"]["z"][id0==i+1], 'darkorchid')
+        h4.plot(a5["GCTRANSFORM_FIRST"]["orbit"]["r"][id1==i+1],
+                a5["GCTRANSFORM_FIRST"]["orbit"]["z"][id1==i+1], 'darkgreen')
 
-    h4.plot(a5["GCTRANSFORM_GO2GC"]["orbits"]["R"],
-            a5["GCTRANSFORM_GO2GC"]["orbits"]["z"], 'red')
+    h4.plot(a5["GCTRANSFORM_GO2GC"]["orbit"]["r"],
+            a5["GCTRANSFORM_GO2GC"]["orbit"]["z"], 'red')
 
     #**************************************************************************#
     #*                 Finalize and print and show the figure                  #

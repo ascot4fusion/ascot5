@@ -26,7 +26,7 @@ def clean_opt(odict):
     Args:
         odict: dict Options dictionary
     """
-    odict["RECORD_GO_AS_GC"] = np.array([0],dtype='i4')
+    odict["RECORD_MODE"] = np.array([0],dtype='i4')
     for o in odict:
         if o.startswith("ENABLE"):
             odict[o] = np.array([0],dtype='i4')
@@ -34,6 +34,7 @@ def clean_opt(odict):
             odict[o] = np.array([0],dtype='i4')
         if o.startswith("DISABLE"):
             odict[o] = np.array([0],dtype='i4')
+
 
 def set_correct_input(parent, test):
     """
@@ -48,6 +49,7 @@ def set_correct_input(parent, test):
     qid = a5[parent][test].get_qid()
     group = typ + "-" + qid
     tools.call_ascot5file(testfn, "set_active", group)
+
 
 def set_and_run(test):
     """
@@ -71,27 +73,4 @@ def set_and_run(test):
     start = timer()
     subprocess.call(["./"+testbin, "--in="+testfn[:-3], "--d="+test],
                     stdout=subprocess.DEVNULL)
-    print("Completed test " + test + " in " + frm(timer() - start))
-
-def write_N0_3D_dummy(h5fn, desc):
-    N0Rmin = 0
-    N0Rmax = 100
-    N0nR   = 2
-    N0zmin = -100
-    N0zmax = 100
-    N0nz   = 2
-    N0pmin = 0
-    N0pmax = 2*np.pi
-    N0np   = 2
-    N0spec = 1
-    N0anum = 1
-    N0znum = 1
-    N0dens = np.array([ [ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ] ])
-    N0temp = np.array([ [ [ [0,0] , [0,0] ], [ [0,0] , [0,0] ] ] ])
-    N0_3D.write_hdf5(h5fn,
-                     N0Rmin, N0Rmax, N0nR,
-                     N0zmin, N0zmax, N0nz,
-                     N0pmin, N0pmax, N0np,
-                     N0spec, N0anum, N0znum,
-                     N0dens, N0temp
-                     desc=desc)
+    print("Completed test " + test + " in " + frm(timer() - start)) 

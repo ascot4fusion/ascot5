@@ -67,6 +67,9 @@ import datetime
 INPUT_PARENTS = ["options", "bfield", "efield", "marker", "plasma", "neutral",
                  "wall"]
 
+## Current version
+VERSION = "0"
+
 def set_active(f, group):
     """
     Set given group as active.
@@ -254,6 +257,58 @@ def get_date(f, group):
 
     return group.attrs["date"].decode('utf-8')
 
+def _set_version(f, group, date):
+    """
+    Set group version.
+
+    Note that this function should only be called when the group is created.
+
+    Args:
+        f: h5py file.
+        group: Either the group's name or its h5py group.
+        vers: Version number as a string.
+
+    Raise:
+        ValueError if group does not exist.
+    """
+
+    # Check the group exists and access it.
+    if(str(group) == group):
+        qid = get_qid(group)
+        grp = get_group(f, qid)
+        if grp is None:
+            raise ValueError("Could not find group" + group)
+        else:
+            group = grp
+
+    group.attrs["version"] = np.string_(vers)
+
+def get_version(f, group):
+    """
+    Get input version.
+
+    Args:
+        f: h5py file.
+        group: Either the group's name or its h5py group.
+
+    Returns:
+        Version as a string.
+
+    Raise:
+        ValueError if group does not exist.
+    """
+
+    # Check the group exists and access it.
+    if(str(group) == group):
+        qid = get_qid(group)
+        grp = get_group(f, qid)
+        if grp is None:
+            raise ValueError("Could not find group" + group)
+        else:
+            group = grp
+
+    return group.attrs["version"].decode('utf-8')
+
 def get_qid(group):
     """
     Get QID from a given group or from its name.
@@ -404,8 +459,8 @@ def add_group(f, parent, group, desc=None):
         parent = f.require_group(parent)
 
     # Generate metadata and include qid in group's name.
-    qid, date, defdesc = _generate_meta()
-    group = group + "-" + qid
+    qid, date, defdesc, vers = _generate_meta()
+    group = group + "_" + qid
     if desc == None:
         desc = defdesc
 
@@ -508,8 +563,8 @@ def copy_group(fs, ft, group, newgroup=False):
 
     # Copy
     if newgroup:
-        qid, date, defdesc = _generate_meta()
-        newname = group.name[:-11] + "-" + qid
+        qid, date, defdesc, vers = _generate_meta()
+        newname = group.name[:-11] + "_" + qid
         fs.copy(group, newparent, name=newname)
         _set_date(ft, newname, date)
         newgroupobj = ft[parentname][newname]
@@ -547,4 +602,6 @@ def _generate_meta():
 
     desc = "No description."
 
-    return (qid, date, desc)
+    vers = VERSION
+
+    return (qid, date, desc, vers)
