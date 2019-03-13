@@ -105,12 +105,12 @@ def read_bfield(a4folder, h5fn):
             if (not "/bfield" in f):
                 return
         data = a4magn_bkg.read_magn_bkg_stellarator(fnameh5)
-        if(data['symmetrymode'] == 0):
-            print("Converting stellarator symmetric input to periodic.")
-            data = a4magn_bkg.stellarator_bfield_sector2full(data)
         if (data['phi'][0] == np.mod(data['phi'][-1],360/data['n_periods'])):
             print("Warning! Removing duplicate bfield data point.")
             data = a4magn_bkg.bfield_remove_duplicate_phi(data)
+        if(data['symmetrymode'] == 0):
+            print("Converting stellarator symmetric input to periodic.")
+            data = a4magn_bkg.stellarator_bfield_sector2full(data)
         if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
             print("Warning! Removing duplicated axis datapoint.")
             data['axis_r'] = data['axis_r'][0:-1]

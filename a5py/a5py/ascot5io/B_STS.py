@@ -20,6 +20,7 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
     """
     Write stellarator magnetic field input in HDF5 file.
 
+<<<<<<< HEAD
     Args:
         fn : str <br>
             Full path to the HDF5 file.
@@ -55,13 +56,13 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
             On-axis poloidal flux value [Vs/m].
         psi1 : float <br>
             Separatrix poloidal flux value [Vs/m].
-        psi : array_like (nz, nr) <br>
+        psi : array_like (psi_nr,psi_nz) <br>
             Poloidal flux values on the Rz grid [Vs/m].
-        br : array_like (nz,nr) <br>
+        br : array_like (b_nr,b_nphi,b_nz) <br>
             Magnetic field R component (excl. equilibrium comp.) on Rz grid [T].
-        bphi : array_like (nz,nr) <br>
+        bphi : array_like (b_nr,b_nphi,b_nz) <br>
             Magnetic field phi component on Rz grid [T].
-        bz : array_like (nz,nr) <br>
+        bz : array_like (b_nr,b_nphi,b_nz) <br>
             Magnetic field z component (excl. equilibrium comp.) onRz grid [T].
         psi_rmin : float, optional <br>
             Psi data R grid min edge [m].
@@ -109,10 +110,6 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
     br   = np.transpose(br,   (1,2,0))
     bphi = np.transpose(bphi, (1,2,0))
     bz   = np.transpose(bz,   (1,2,0))
-
-    B_R = np.transpose(B_R,(1,0,2))
-    B_phi = np.transpose(B_phi,(1,0,2))
-    B_z = np.transpose(B_z,(1,0,2))
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)

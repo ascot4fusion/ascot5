@@ -99,33 +99,32 @@ def read_magn_bkg_stellarator(fn):
 
 def stellarator_bfield_sector2full(data):
     out = data
-    # Data is in the format (r, phi, z)
+    # Data is in the format f(z, phi, r)
     out['r'] = data['r']
     out['z'] = data['z']
     out['phi'] = np.concatenate( (data['phi'][:-1],
-                                  data['phi'][:-1] + data['phi'][-1]))
+                                  data['phi'][:] + data['phi'][-1]) )
     # br
     br = data['br'][:, :-1, :]
-    br_sym = - data['br'][:, -1:0:-1, -1::-1]
+    br_sym = - data['br'][-1::-1, -1:0:-1, :]
     out['br'] = np.concatenate((br, br_sym),1)
     # bphi
     bphi = data['bphi'][:, :-1, :]
-    bphi_sym = data['bphi'][:, -1:0:-1, -1::-1]
+    bphi_sym = data['bphi'][-1::-1, -1:0:-1, :]
     out['bphi'] = np.concatenate((bphi, bphi_sym),1)
     # bz
     bz = data['bz'][:, :-1, :]
-    bz_sym = data['bz'][:, -1:0:-1, -1::-1]
+    bz_sym = data['bz'][-1::-1, -1:0:-1, :]
     out['bz'] = np.concatenate((bz, bz_sym),1)
     # s
     s = data['s'][:, :-1, :]
-    s_sym = data['s'][:, -1:0:-1, -1::-1]
+    s_sym = data['s'][-1::-1, -1:0:-1, :]
     out['s'] = np.concatenate((s, s_sym),1)
     out['symmetrymode'] == 1
     return out
 
 def bfield_remove_duplicate_phi(data):
     out = data
-    out['phi'] = data['phi'][:-1]
     out['br'] = data['br'][:, :-1, :]
     out['bphi'] = data['bphi'][:, :-1, :]
     out['bz'] = data['bz'][:, :-1, :]
