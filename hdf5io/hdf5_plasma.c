@@ -139,9 +139,9 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "edensity", dens_e,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "iontemperature", temp_i,
+    if( hdf5_read_double(PLSPATH "itemperature", temp_i,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "iondensity", dens_i,
+    if( hdf5_read_double(PLSPATH "idensity", dens_i,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     for(int i = 0; i < n_rho; i++) {
@@ -229,9 +229,9 @@ int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "edensity", dens_e,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "iontemperature", temp_i,
+    if( hdf5_read_double(PLSPATH "itemperature", temp_i,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "iondensity", dens_i,
+    if( hdf5_read_double(PLSPATH "idensity", dens_i,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     for(int i = 0; i < n_rho; i++) {

@@ -107,15 +107,16 @@ int B_GS_init_offload(B_GS_offload_data* offload_data, real** offload_array) {
     }
 
     /* Print some sanity check on data */
-    print_out(VERBOSE_IO, "\nAnalytical tokamak magnetic field (B_GS)\n");
-    print_out(VERBOSE_IO, "Psi at magnetic axis (%1.3f m, %1.3f m)\n",
-              offload_data->R0, offload_data->z0);
-    print_out(VERBOSE_IO, "%3.3f (evaluated)\n%3.3f (given)\n",
-              psival[0], offload_data->psi0);
-    print_out(VERBOSE_IO, "Magnetic field on axis:\n"
-              "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n",
-              Bval[0], Bval[1], Bval[2]);
-    print_out(VERBOSE_IO, "Number of toroidal field coils %d\n",
+    print_out(VERBOSE_IO,
+              "\nAnalytical tokamak magnetic field (B_GS)\n"
+              "Psi at magnetic axis (%1.3f m, %1.3f m)\n"
+              "%3.3f (evaluated)\n%3.3f (given)\n"
+              "Magnetic field on axis:\n"
+              "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n"
+              "Number of toroidal field coils %d\n",
+              offload_data->R0, offload_data->z0,
+              psival[0], offload_data->psi0,
+              Bval[0], Bval[1], Bval[2],
               offload_data->Nripple);
 
     return 0;

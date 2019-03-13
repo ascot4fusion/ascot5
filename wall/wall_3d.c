@@ -45,14 +45,27 @@
 int wall_3d_init_offload(wall_3d_offload_data* offload_data,
                          real** offload_array) {
 
+    /* Find min & max values of the volume occupied by the wall triangles. */
+    real xmin = (*offload_array)[0], xmax = (*offload_array)[0];
+    real ymin = (*offload_array)[1], ymax = (*offload_array)[1];
+    real zmin = (*offload_array)[2], zmax = (*offload_array)[2];
+    for(int i=0; i<offload_data->n*3; i++) {
+        xmin = fmin( xmin, (*offload_array)[i*3 + 0] );
+        xmax = fmax( xmax, (*offload_array)[i*3 + 0] );
+        ymin = fmin( ymin, (*offload_array)[i*3 + 1] );
+        ymax = fmax( ymax, (*offload_array)[i*3 + 1] );
+        zmin = fmin( zmin, (*offload_array)[i*3 + 2] );
+        zmax = fmax( zmax, (*offload_array)[i*3 + 2] );
+    }
+
     /* Add a little bit of padding so we don't need to worry about triangles
        clipping the edges */
-    offload_data->xmin -= 0.1;
-    offload_data->xmax += 0.1;
-    offload_data->ymin -= 0.1;
-    offload_data->ymax += 0.1;
-    offload_data->zmin -= 0.1;
-    offload_data->zmax += 0.1;
+    offload_data->xmin = xmin - 0.1;
+    offload_data->xmax = xmax + 0.1;
+    offload_data->ymin = ymin - 0.1;
+    offload_data->ymax = ymax + 0.1;
+    offload_data->zmin = zmin - 0.1;
+    offload_data->zmax = zmax + 0.1;
 
     /* Depth of the octree in which the triangles are sorted */
     offload_data->depth = WALL_OCTREE_DEPTH;
