@@ -174,11 +174,11 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
     B_STS_data Bdata;
     B_STS_init(&Bdata, offload_data, *offload_array);
     real psival[1], Bval[3], axis[2];
-    err = B_STS_get_axis_r(axis + 0, &Bdata, 0);
-    err = B_STS_get_axis_z(axis + 1, &Bdata, 0);
-    err = B_STS_eval_psi(psival, axis[0], 0, axis[1],
+    err += B_STS_get_axis_r(axis + 0, &Bdata, 0);
+    err += B_STS_get_axis_z(axis + 1, &Bdata, 0);
+    err += B_STS_eval_psi(psival, axis[0], 0, axis[1],
                          &Bdata);
-    err = B_STS_eval_B(Bval, axis[0], 0, axis[1],
+    err += B_STS_eval_B(Bval, axis[0], 0, axis[1],
                        &Bdata);
     if(err) {
         print_err("Error: Initialization failed.\n");
