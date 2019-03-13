@@ -105,27 +105,16 @@ def read_bfield(a4folder, h5fn):
             if (not "/bfield" in f):
                 return
         data = a4magn_bkg.read_magn_bkg_stellarator(fnameh5)
-        if (data['phi'][0] == np.mod(data['phi'][-1],360/data['n_periods'])):
-            print("Warning! Removing duplicate bfield data point.")
-            data = a4magn_bkg.bfield_remove_duplicate_phi(data)
-        if(data['symmetrymode'] == 0):
-            print("Converting stellarator symmetric input to periodic.")
-            data = a4magn_bkg.stellarator_bfield_sector2full(data)
-        if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
-            print("Warning! Removing duplicated axis datapoint.")
-            data['axis_r'] = data['axis_r'][0:-1]
-            data['axis_phi'] = data['axis_phi'][0:-1]
-            data['axis_z'] = data['axis_z'][0:-1]
         psilims = [0, 1]
         B_STS.write_hdf5(
             h5fn,
             data['r'][0], data['r'][-1], data['r'].size,
             data['z'][0], data['z'][-1], data['z'].size,
-            data['phi'][0], data['phi'][-1], data['phi'].size,
+            data['phi'][0], data['phi'][-1], data['phi'].size - 1,
+            psilims[0], psilims[1],
             data['br'], data['bphi'], data['bz'], data['s'],
             data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
-            data['axis_r'], data['axis_z'],
-            psiaxis=psilims[0], psisepx=psilims[1])
+            data['axis_r'], data['axis_z'])
         print("Searching for psiaxis and psisepx.")
         try:
             psilims = a4magn_bkg.bfield_psi_lims(data, h5fn)
@@ -140,11 +129,11 @@ def read_bfield(a4folder, h5fn):
             h5fn,
             data['r'][0], data['r'][-1], data['r'].size,
             data['z'][0], data['z'][-1], data['z'].size,
-            data['phi'][0], data['phi'][-1], data['phi'].size,
+            data['phi'][0], data['phi'][-1], data['phi'].size - 1,
+            psilims[0], psilims[1],
             data['br'], data['bphi'], data['bz'], data['s'],
             data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
-            data['axis_r'], data['axis_z'],
-            psiaxis=psilims[0], psisepx=psilims[1])
+            data['axis_r'], data['axis_z'])
 
 def read_plasma(a4folder, h5fn):
     fname1d = a4folder + "input.plasma_1d"
