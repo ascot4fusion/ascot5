@@ -20,7 +20,6 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
     """
     Write stellarator magnetic field input in HDF5 file.
 
-<<<<<<< HEAD
     Args:
         fn : str <br>
             Full path to the HDF5 file.
@@ -106,10 +105,10 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
     assert bphi.shape == (b_nr,b_nphi,b_nz)
     assert bz.shape   == (b_nr,b_nphi,b_nz)
 
-    psi  = np.transpose(psi,  (1,2,0))
-    br   = np.transpose(br,   (1,2,0))
-    bphi = np.transpose(bphi, (1,2,0))
-    bz   = np.transpose(bz,   (1,2,0))
+    psi  = np.transpose(psi,  (2,1,0))
+    br   = np.transpose(br,   (2,1,0))
+    bphi = np.transpose(bphi, (2,1,0))
+    bz   = np.transpose(bz,   (2,1,0))
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
@@ -142,13 +141,13 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
         g.create_dataset("axisr", (axis_nphi,), data=axisr, dtype="f8")
         g.create_dataset("axisz", (axis_nphi,), data=axisz, dtype="f8")
 
-        g.create_dataset("br",         (b_nphi,b_nz,b_nr),       data=br,
+        g.create_dataset("br",         (b_nz,b_nphi,b_nr),       data=br,
                          dtype="f8")
-        g.create_dataset("bphi",       (b_nphi,b_nz,b_nr),       data=bphi,
+        g.create_dataset("bphi",       (b_nz,b_nphi,b_nr),       data=bphi,
                          dtype="f8")
-        g.create_dataset("bz",         (b_nphi,b_nz,b_nr),       data=bz,
+        g.create_dataset("bz",         (b_nz,b_nphi,b_nr),       data=bz,
                          dtype="f8")
-        g.create_dataset("psi",        (psi_nphi,psi_nz,psi_nr), data=psi,
+        g.create_dataset("psi",        (psi_nz,psi_nphi,psi_nr), data=psi,
                          dtype="f8")
 
     return gname
@@ -175,10 +174,10 @@ def read_hdf5(fn, qid):
         for key in f[path]:
             out[key] = f[path][key][:]
 
-    out["psi"]  = np.transpose(out["psi"],  (2,0,1))
-    out["br"]   = np.transpose(out["br"],   (2,0,1))
-    out["bphi"] = np.transpose(out["bphi"], (2,0,1))
-    out["bz"]   = np.transpose(out["bz"],   (2,0,1))
+    out["psi"]  = np.transpose(out["psi"],  (2,1,0))
+    out["br"]   = np.transpose(out["br"],   (2,1,0))
+    out["bphi"] = np.transpose(out["bphi"], (2,1,0))
+    out["bz"]   = np.transpose(out["bz"],   (2,1,0))
     return out
 
 

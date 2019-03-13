@@ -105,9 +105,9 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
     assert bz.shape   == (b_nr,b_nphi,b_nz)
 
     psi  = np.transpose(psi)
-    br   = np.transpose(br,   (1,2,0))
-    bphi = np.transpose(bphi, (1,2,0))
-    bz   = np.transpose(bz,   (1,2,0))
+    br   = np.transpose(br,   (2,1,0))
+    bphi = np.transpose(bphi, (2,1,0))
+    bz   = np.transpose(bz,   (2,1,0))
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
@@ -134,9 +134,9 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
         g.create_dataset("psi1",     (1,), data=psi1,     dtype="f8")
 
         g.create_dataset("psi",  (psi_nz, psi_nr),     data=psi,  dtype="f8")
-        g.create_dataset("br",   (b_nphi, b_nz, b_nr), data=br,   dtype="f8")
-        g.create_dataset("bphi", (b_nphi, b_nz, b_nr), data=bphi, dtype="f8")
-        g.create_dataset("bz",   (b_nphi, b_nz, b_nr), data=bz,   dtype="f8")
+        g.create_dataset("br",   (b_nz, b_nphi, b_nr), data=br,   dtype="f8")
+        g.create_dataset("bphi", (b_nz, b_nphi, b_nr), data=bphi, dtype="f8")
+        g.create_dataset("bz",   (b_nz, b_nphi, b_nr), data=bz,   dtype="f8")
 
     return gname
 
@@ -163,9 +163,9 @@ def read_hdf5(fn, qid):
             out[key] = f[path][key][:]
 
     out["psi"]  = np.transpose(out["psi"])
-    out["br"]   = np.transpose(out["br"],   (2,0,1))
-    out["bphi"] = np.transpose(out["bphi"], (2,0,1))
-    out["bz"]   = np.transpose(out["bz"],   (2,0,1))
+    out["br"]   = np.transpose(out["br"],   (2,1,0))
+    out["bphi"] = np.transpose(out["bphi"], (2,1,0))
+    out["bz"]   = np.transpose(out["bz"],   (2,1,0))
     return out
 
 
