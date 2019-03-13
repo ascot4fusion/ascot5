@@ -16,9 +16,9 @@ typedef struct {
     real min_rho;     /**< value of lowest rho bin  */
     real max_rho;     /**< value of highest rho bin */
 
-    int n_pol;        /**< number of poloidal angle bins */
-    real min_pol;     /**< value of lowest pol bin       */
-    real max_pol;     /**< value of highest pol bin      */
+    int n_theta;      /**< number of poloidal angle bins */
+    real min_theta;   /**< value of lowest pol bin       */
+    real max_theta;   /**< value of highest pol bin      */
 
     int n_phi;        /**< number of phi bins       */
     real min_phi;     /**< value of lowest phi bin  */
@@ -49,9 +49,9 @@ typedef struct {
     real min_rho;     /**< value of lowest rho bin  */
     real max_rho;     /**< value of highest rho bin */
 
-    int n_pol;        /**< number of poloidal angle bins */
-    real min_pol;     /**< value of lowest pol bin       */
-    real max_pol;     /**< value of highest pol bin      */
+    int n_theta;      /**< number of poloidal angle bins */
+    real min_theta;   /**< value of lowest pol bin       */
+    real max_theta;   /**< value of highest pol bin      */
 
     int n_phi;        /**< number of phi bins       */
     real min_phi;     /**< value of lowest phi bin  */

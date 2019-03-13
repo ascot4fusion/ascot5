@@ -16,8 +16,8 @@
  * @brief Calculate guiding center equations of motion for a single particle
  *
  * @param ydot output right hand side of the equations of motion in a
- *             5-length array (rdot, phidot, zdot, vpardot, mudot)
- * @param y input coordinates in a 5-length array (r, phi, z, vpar, mu)
+ *             6-length array (rdot, phidot, zdot, vpardot, mudot, zetadot)
+ * @param y input coordinates in a 6-length array (r, phi, z, vpar, mu, zeta)
  * @param mass mass [kg]
  * @param charge charge [C]
  * @param B_dB magnetic field and derivatives at the guiding center location

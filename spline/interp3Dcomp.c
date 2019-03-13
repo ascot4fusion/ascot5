@@ -82,85 +82,88 @@ int interp3Dcomp_init_coeff(real* c, real* f,
        coefficients are [f, fxx, fyy, fzz, fxxyy, fxxzz, fyyzz, fxxyyzz].
        Note how we account for normalized grid. */
 
-    /* Bicubic spline surface over xz-grid for each y */
-    for(int i_y=0; i_y<n_y; i_y++) {
+    /* Bicubic spline surface over xy-grid for each z */
+    for(int i_z=0; i_z<n_z; i_z++) {
 
-        /* Cubic spline along x for each z to get fxx */
-        for(int i_z=0; i_z<n_z; i_z++) {
+        /* Cubic spline along x for each y, using f values, to get fxx */
+        for(int i_y=0; i_y<n_y; i_y++) {
+	    /* fxx */
             for(int i_x=0; i_x<n_x; i_x++) {
-                f_x[i_x] = f[i_y*n_z*n_x + i_z*n_x + i_x];
+                f_x[i_x] = f[i_z*n_y*n_x + i_y*n_x + i_x];
             }
             splinecomp(f_x, n_x, bc_x, c_x);
             for(int i_x=0; i_x<n_x; i_x++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8    ] = c_x[i_x*2];
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 1] = c_x[i_x*2 + 1]
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8    ] = c_x[i_x*2];
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 1] = c_x[i_x*2 + 1]
                                                            / (x_grid*x_grid);
             }
         }
 
-        /* Two cubic splines along z for each x using f and fxx */
+        /* Two cubic splines along y for each x, one using f values to
+	   get fyy, and the other using fxx values to get fxxyy */
         for(int i_x=0; i_x<n_x; i_x++) {
-            /* fzz */
-            for(int i_z=0; i_z<n_z; i_z++) {
-                f_z[i_z] = f[i_y*n_z*n_x + i_z*n_x + i_x];
+            /* fyy */
+            for(int i_y=0; i_y<n_y; i_y++) {
+                f_y[i_y] = f[i_z*n_y*n_x + i_y*n_x + i_x];
             }
-            splinecomp(f_z, n_z, bc_z, c_z);
-            for(int i_z=0; i_z<n_z; i_z++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 3] = c_z[i_z*2 + 1]
-                                                           / (z_grid*z_grid);
+            splinecomp(f_y, n_y, bc_y, c_y);
+            for(int i_y=0; i_y<n_y; i_y++) {
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 2] = c_y[i_y*2 + 1]
+                                                           / (y_grid*y_grid);
             }
-            /* fxxzz */
-            for(int i_z=0; i_z<n_z; i_z++) {
-                f_z[i_z] = c[i_y*n_z*n_x*8 + i_z*n_x*8+i_x*8 + 1];
+            /* fxxyy */
+            for(int i_y=0; i_y<n_y; i_y++) {
+                f_y[i_y] = c[i_z*n_y*n_x*8 + i_y*n_x*8+i_x*8 + 1];
             }
-            splinecomp(f_z, n_z, bc_z, c_z);
-            for(int i_z=0; i_z<n_z; i_z++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 5] = c_z[i_z*2+1]
-                                                           / (z_grid*z_grid);
+            splinecomp(f_y, n_y, bc_y, c_y);
+            for(int i_y=0; i_y<n_y; i_y++) {
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 4] = c_y[i_y*2 + 1]
+                                                           / (y_grid*y_grid);
             }
         }
 
     }
 
-    /* Cubic spline along y for each xz-pair to find the compact coefficients
-       of the tricubic spline volume */
-    for(int i_z=0; i_z<n_z; i_z++) {
+    /* Four cubic splines along z for each xy-pair, one using f values to get
+       fzz, one using fxx to get fxxzz, one using fyy to get fyyzz, and one
+       using fxxyy to get fxxyyzz */
+    for(int i_y=0; i_y<n_y; i_y++) {
         for(int i_x=0; i_x<n_x; i_x++) {
-            /* fyy */
-            for(int i_y=0; i_y<n_y; i_y++) {
-                f_y[i_y] = f[i_y*n_z*n_x + i_z*n_x + i_x];
+            /* fzz */
+            for(int i_z=0; i_z<n_z; i_z++) {
+                f_z[i_z] = f[i_z*n_y*n_x + i_y*n_x + i_x];
             }
-            splinecomp(f_y, n_y, bc_y, c_y);
-            for(int i_y=0; i_y<n_y; i_y++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 2] = c_y[i_y*2 + 1]
-                                                           / (y_grid*y_grid);
+            splinecomp(f_z, n_z, bc_z, c_z);
+            for(int i_z=0; i_z<n_z; i_z++) {
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 3] = c_z[i_z*2 + 1]
+                                                           / (z_grid*z_grid);
             }
-            /* fxxyy */
-            for(int i_y=0; i_y<n_y; i_y++) {
-                f_y[i_y] = c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 1];
+            /* fxxzz */
+            for(int i_z=0; i_z<n_z; i_z++) {
+                f_z[i_z] = c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 1];
             }
-            splinecomp(f_y, n_y, bc_y, c_y);
-            for(int i_y=0; i_y<n_y; i_y++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 4] = c_y[i_y*2 + 1]
-                                                           / (y_grid*y_grid);
+            splinecomp(f_z, n_z, bc_z, c_z);
+            for(int i_z=0; i_z<n_z; i_z++) {
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 5] = c_z[i_z*2 + 1]
+                                                           / (z_grid*z_grid);
             }
             /* fyyzz */
-            for(int i_y=0; i_y<n_y; i_y++) {
-                f_y[i_y] = c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 3];
+            for(int i_z=0; i_z<n_z; i_z++) {
+                f_z[i_z] = c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 2];
             }
-            splinecomp(f_y, n_y, bc_y, c_y);
-            for(int i_y=0; i_y<n_y; i_y++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 6] = c_y[i_y*2+1]
-                                                           / (y_grid*y_grid);
+            splinecomp(f_z, n_z, bc_z, c_z);
+            for(int i_z=0; i_z<n_z; i_z++) {
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 6] = c_z[i_z*2+1]
+                                                           / (z_grid*z_grid);
             }
             /* fxxyyzz */
-            for(int i_y=0; i_y<n_y; i_y++) {
-                f_y[i_y] = c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 5];
+            for(int i_z=0; i_z<n_z; i_z++) {
+                f_z[i_z] = c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 4];
             }
-            splinecomp(f_y, n_y, bc_y, c_y);
-            for(int i_y=0; i_y<n_y; i_y++) {
-                c[i_y*n_z*n_x*8 + i_z*n_x*8 + i_x*8 + 7] = c_y[i_y*2+1]
-                                                           / (y_grid*y_grid);
+            splinecomp(f_z, n_z, bc_z, c_z);
+            for(int i_z=0; i_z<n_z; i_z++) {
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 7] = c_z[i_z*2+1]
+                                                           / (z_grid*z_grid);
             }
         }
     }
@@ -281,10 +284,10 @@ int interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
     real zg2  = str->z_grid*str->z_grid;
 
     /**< Index jump to cell */
-    int n  = i_y*str->n_z*str->n_x*8 + i_z*str->n_x*8 + i_x*8;
+    int n  = i_z*str->n_y*str->n_x*8 + i_y*str->n_x*8 + i_x*8;
     int x1 = 8;                   /* Index jump one x forward */
-    int y1 = str->n_z*str->n_x*8; /* Index jump one y forward */
-    int z1 = str->n_x*8;          /* Index jump one z forward */
+    int y1 = str->n_x*8;          /* Index jump one y forward */ // CP: n_z-->n_y etc., bc, z now runs slowest
+    int z1 = str->n_y*str->n_x*8; /* Index jump one z forward */
 
     int err = 0;
 
@@ -457,10 +460,10 @@ int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
     real zgi    = 1.0 / zg;
 
     /* Index jump to cell */
-    int n  = i_y*str->n_z*str->n_x*8 + i_z*str->n_x*8 + i_x*8;
+    int n  = i_z*str->n_y*str->n_x*8 + i_y*str->n_x*8 + i_x*8;
     int x1 = 8;                   /* Index jump one x forward */
-    int y1 = str->n_z*str->n_x*8; /* Index jump one y forward */
-    int z1 = str->n_x*8;          /* Index jump one z forward */
+    int y1 = str->n_x*8;          /* Index jump one y forward */
+    int z1 = str->n_y*str->n_x*8; /* Index jump one z forward */
 
 
     int err = 0;
@@ -489,7 +492,8 @@ int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
     if(!err) {
 
         /* Fetch coefficients explicitly to fetch those that are adjacent
-           subsequently */
+           subsequently. This is to decrease computational time, by avoiding 
+	   going through the long str->c array repeatedly. */
         real c0000 = str->c[n+0];
         real c0001 = str->c[n+1];
         real c0002 = str->c[n+2];
@@ -535,32 +539,32 @@ int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         real c0116 = str->c[n+y1+x1+6];
         real c0117 = str->c[n+y1+x1+7];
 
-        real c1100 = str->c[n+y1+z1+0];
-        real c1101 = str->c[n+y1+z1+1];
-        real c1102 = str->c[n+y1+z1+2];
-        real c1103 = str->c[n+y1+z1+3];
-        real c1104 = str->c[n+y1+z1+4];
-        real c1105 = str->c[n+y1+z1+5];
-        real c1106 = str->c[n+y1+z1+6];
-        real c1107 = str->c[n+y1+z1+7];
+        real c1100 = str->c[n+z1+y1+0];
+        real c1101 = str->c[n+z1+y1+1];
+        real c1102 = str->c[n+z1+y1+2];
+        real c1103 = str->c[n+z1+y1+3];
+        real c1104 = str->c[n+z1+y1+4];
+        real c1105 = str->c[n+z1+y1+5];
+        real c1106 = str->c[n+z1+y1+6];
+        real c1107 = str->c[n+z1+y1+7];
 
-        real c1010 = str->c[n+x1+z1+0];
-        real c1011 = str->c[n+x1+z1+1];
-        real c1012 = str->c[n+x1+z1+2];
-        real c1013 = str->c[n+x1+z1+3];
-        real c1014 = str->c[n+x1+z1+4];
-        real c1015 = str->c[n+x1+z1+5];
-        real c1016 = str->c[n+x1+z1+6];
-        real c1017 = str->c[n+x1+z1+7];
+        real c1010 = str->c[n+z1+x1+0];
+        real c1011 = str->c[n+z1+x1+1];
+        real c1012 = str->c[n+z1+x1+2];
+        real c1013 = str->c[n+z1+x1+3];
+        real c1014 = str->c[n+z1+x1+4];
+        real c1015 = str->c[n+z1+x1+5];
+        real c1016 = str->c[n+z1+x1+6];
+        real c1017 = str->c[n+z1+x1+7];
 
-        real c1110 = str->c[n+x1+y1+z1+0];
-        real c1111 = str->c[n+x1+y1+z1+1];
-        real c1112 = str->c[n+x1+y1+z1+2];
-        real c1113 = str->c[n+x1+y1+z1+3];
-        real c1114 = str->c[n+x1+y1+z1+4];
-        real c1115 = str->c[n+x1+y1+z1+5];
-        real c1116 = str->c[n+x1+y1+z1+6];
-        real c1117 = str->c[n+x1+y1+z1+7];
+        real c1110 = str->c[n+z1+y1+x1+0];
+        real c1111 = str->c[n+z1+y1+x1+1];
+        real c1112 = str->c[n+z1+y1+x1+2];
+        real c1113 = str->c[n+z1+y1+x1+3];
+        real c1114 = str->c[n+z1+y1+x1+4];
+        real c1115 = str->c[n+z1+y1+x1+5];
+        real c1116 = str->c[n+z1+y1+x1+6];
+        real c1117 = str->c[n+z1+y1+x1+7];
 
         /* Evaluate splines */
 

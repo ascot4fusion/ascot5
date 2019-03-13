@@ -19,6 +19,8 @@ typedef struct {
                                      electrons                           */
     real mass[MAX_SPECIES];     /**< plasma species masses (kg)          */
     real charge[MAX_SPECIES];   /**< plasma species charges (C)          */
+    int anum[MAX_SPECIES];      /**< ion species atomic number           */
+    int znum[MAX_SPECIES];      /**< ion species charge number           */
     int offload_array_length;   /**< number of elements in offload_array */
 } plasma_1DS_offload_data;
 
@@ -30,6 +32,8 @@ typedef struct {
                                      electrons                                */
     real mass[MAX_SPECIES];     /**< plasma species masses (kg)               */
     real charge[MAX_SPECIES];   /**< plasma species charges (C)               */
+    int anum[MAX_SPECIES];      /**< ion species atomic number                */
+    int znum[MAX_SPECIES];      /**< ion species charge number                */
     interp1D_data temp[2];      /**< electron and ion temperature
                                      interpolation structs                    */
     interp1D_data dens[MAX_SPECIES]; /**< electron and every ion species

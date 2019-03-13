@@ -62,7 +62,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
             yprev[2] = p->z[i];
             yprev[3] = p->vpar[i];
             yprev[4] = p->mu[i];
-            yprev[5] = p->theta[i];
+            yprev[5] = p->zeta[i];
 
             /* Magnetic field at initial position already known */
             B_dB[0] = p->B_r[i];
@@ -243,8 +243,10 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
                 p->z[i]     = rk5[2];
                 p->vpar[i]  = rk5[3];
                 p->mu[i]    = rk5[4];
-                p->theta[i] = fmod( rk5[5], CONST_2PI );
-                if(p->theta[i]<0){p->theta[i] = CONST_2PI + p->theta[i];}
+                p->zeta[i]  = fmod( rk5[5], CONST_2PI );
+                if(p->zeta[i]<0) {
+                    p->zeta[i] = CONST_2PI + p->zeta[i];
+                }
             }
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
@@ -279,13 +281,13 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
                 p->B_z_dz[i]     = B_dB[11];
                 p->rho[i] = rho[0];
 
-                /* Evaluate pol angle so that it is cumulative */
+                /* Evaluate theta angle so that it is cumulative */
                 real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
                 real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->pol[i] += atan2(   (R0-axis_r) * (p->z[i]-axis_z)
-                                    - (z0-axis_z) * (p->r[i]-axis_r),
-                                      (R0-axis_r) * (p->r[i]-axis_r)
-                                    + (z0-axis_z) * (p->z[i]-axis_z) );
+                p->theta[i] += atan2(   (R0-axis_r) * (p->z[i]-axis_z)
+                                      - (z0-axis_z) * (p->r[i]-axis_r),
+                                        (R0-axis_r) * (p->r[i]-axis_r)
+                                      + (z0-axis_z) * (p->z[i]-axis_z) );
             }
 
             /* Error handling */

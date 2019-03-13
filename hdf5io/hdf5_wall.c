@@ -46,14 +46,14 @@ int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data,
 
     /* Read data the QID corresponds to */
 
-    hdf5_gen_path("/wall/wall_2D-XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/wall/wall_2D_XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
         offload_data->type = wall_type_2D;
         err = hdf5_wall_read_2D(f, &(offload_data->w2d),
                                 offload_array, qid);
     }
 
-    hdf5_gen_path("/wall/wall_3D-XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/wall/wall_3D_XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
         offload_data->type = wall_type_3D;
         err = hdf5_wall_read_3D(f, &(offload_data->w3d),
@@ -81,10 +81,10 @@ int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data,
 int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
                       real** offload_array, char* qid) {
     #undef WPATH
-    #define WPATH "/wall/wall_2D-XXXXXXXXXX/"
+    #define WPATH "/wall/wall_2D_XXXXXXXXXX/"
 
     /* Read number of wall elements and allocate offload array */
-    if( hdf5_read_int(WPATH "n", &(offload_data->n),
+    if( hdf5_read_int(WPATH "nelements", &(offload_data->n),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     offload_data->offload_array_length = 2 * offload_data->n;
     *offload_array = (real*) malloc(2 * offload_data->n * sizeof(real));
@@ -116,27 +116,14 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
 int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
                       real** offload_array, char* qid) {
     #undef WPATH
-    #define WPATH "/wall/wall_3D-XXXXXXXXXX/"
+    #define WPATH "/wall/wall_3D_XXXXXXXXXX/"
 
     /* Read number of wall elements and allocate offload array to
        store n 3D triangles */
-    if( hdf5_read_int(WPATH "n", &(offload_data->n),
+    if( hdf5_read_int(WPATH "nelements", &(offload_data->n),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     offload_data->offload_array_length = 9 * offload_data->n;
     *offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
-
-    if( hdf5_read_double(WPATH "min_x", &(offload_data->xmin),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(WPATH "max_x", &(offload_data->xmax),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(WPATH "min_y", &(offload_data->ymin),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(WPATH "max_y", &(offload_data->ymax),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(WPATH "min_z", &(offload_data->zmin),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(WPATH "max_z", &(offload_data->zmax),
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Allocate temporary arrays for x1x2x3, y1y2y3, z1z2z3 for each triangle */
     real* x1x2x3 = (real*)malloc(3 * offload_data->n * sizeof(real));
