@@ -282,10 +282,6 @@ def run(a4folder, h5fn, overwrite=True):
     with h5py.File(h5fn, 'r') as f:
         groups = f.keys()
 
-    # MHD input
-    if overwrite or (not "mhd" in groups):
-        read_mhd(a4folder, h5fn)
-
     if overwrite or (not "markers" in groups):
         read_markers(a4folder, h5fn)
 
@@ -309,6 +305,10 @@ def run(a4folder, h5fn, overwrite=True):
     # Boozer data
     if overwrite or (not "boozer" in groups):
         read_boozer(a4folder, h5fn)
+
+    # MHD input
+    if overwrite or (not "mhd" in groups):
+        read_mhd(a4folder, h5fn)
 
     # Wall.
     if overwrite or (not "wall" in groups):
