@@ -8,8 +8,9 @@ import tkinter.ttk as ttk
 
 import numpy as np
 
+from a5py.ascotpy.libbfield import LibBfield
+
 from .plotframe import PlotFrame
-import a5py.field.plot as bplot
 
 class BfieldFrame(PlotFrame):
     """
@@ -22,7 +23,7 @@ class BfieldFrame(PlotFrame):
         """
 
         super().__init__(gui)
-        self._gui     = gui
+        self._gui    = gui
         self.ascotpy = ascotpy
 
         self._binxlogchoice = tkinter.IntVar(self)
@@ -34,6 +35,8 @@ class BfieldFrame(PlotFrame):
         self._binymaxchoice = tkinter.DoubleVar(self)
         self._nbinychoice   = tkinter.IntVar(self)
 
+        self._qchoice = tkinter.StringVar(self)
+
         # Set default values for the variables.
         self._binxminchoice.set(1)
         self._binxmaxchoice.set(20)
@@ -42,6 +45,7 @@ class BfieldFrame(PlotFrame):
         self._binyminchoice.set(-10)
         self._binymaxchoice.set(10)
         self._nbinychoice.set(100)
+        self._qchoice.set("psi")
 
         self.ascotpy.init(bfield=True)
 
@@ -96,6 +100,11 @@ class BfieldFrame(PlotFrame):
         nyentry.grid(  row=2, column=3)
 
         binpanel.pack()
+
+        qinput = ttk.Combobox(panel, width=6, textvariable=self._qchoice)
+        qinput["values"] = LibBfield.quantities
+
+        qinput.pack()
         tkinter.Button(panel, text="Plot", command=self._plot).pack()
 
         self._plot()
@@ -133,15 +142,10 @@ class BfieldFrame(PlotFrame):
                          float(self._binymaxchoice.get()),
                          float(self._nbinychoice.get()) )
 
-        R, Z = np.meshgrid(r, z)
-        R = R.ravel()
-        Z = Z.ravel()
-        Phi = np.zeros(R.shape)
-
-        out = self.ascotpy.eval_bfield(R, Phi, Z, evalpsi=True)
-
-        out["psi"] = np.reshape(out["psi"], (r.size, z.size))
+        phi  = 0
+        time = 0
 
         axes = fig.add_subplot(1,1,1)
-        bplot.plot(r, z, out["psi"], axes=axes)
+        self.ascotpy.plotRz(r, phi, z, time, self._qchoice.get(), axes)
+
         self.draw()
