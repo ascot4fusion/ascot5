@@ -225,27 +225,6 @@ void libascot_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z, real* t,
 }
 
 /**
- * @brief Evaluate poloidal flux at given coordinates.
- *
- * @param Neval number of evaluation points.
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- * @param psi output array.
- */
-void libascot_B_field_eval_psi(int Neval, real* R, real* phi, real* z, real* t,
-                               real* psi) {
-    real psival[1];
-    for(int k = 0; k < Neval; k++) {
-        if( B_field_eval_psi(psival, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
-            continue;
-        }
-        psi[k] = psival[0];
-    }
-}
-
-/**
  * @brief Evaluate normalized poloidal flux at given coordinates.
  *
  * @param Neval number of evaluation points.
@@ -253,10 +232,11 @@ void libascot_B_field_eval_psi(int Neval, real* R, real* phi, real* z, real* t,
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
  * @param t time coordinates of the evaluation points [s].
- * @param rho output array.
+ * @param rho output array for the normalized poloidal flux.
+ * @param psi output array for the poloidal flux.
  */
 void libascot_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
-                               real* rho) {
+                               real* rho, real* psi) {
     real rhoval[1];
     real psival[1];
     for(int k = 0; k < Neval; k++) {
@@ -267,6 +247,7 @@ void libascot_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
             continue;
         }
         rho[k] = rhoval[0];
+        psi[k] = psival[0];
     }
 }
 
