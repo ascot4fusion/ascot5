@@ -395,17 +395,17 @@ def check():
         distobj = a5["THERMAL_" + mode]["dist5d"]
         Exidist = distobj.get_E_xi_dist(E_edges=THERMAL["Egrid"],
                                         xi_edges=THERMAL["xigrid"],
-                                        R=0, phi=0, z=0, charge=0, time=[1, 2])
+                                        r=0, phi=0, z=0, charge=0, time=[1, 2])
 
         Edist  = Exidist
         xidist = copy.deepcopy(Exidist)
-        distobj.get_dist(dist=Edist, xi=0)
-        distobj.get_dist(dist=xidist, E=0)
+        distobj.get_dist(dist=Edist, pitch=0)
+        distobj.get_dist(dist=xidist, energy=0)
 
-        THERMAL[mode + "_Edist"]  = Edist["density"]
-        THERMAL[mode + "_xidist"] = xidist["density"]
-        THERMAL["E"]  = Edist["E"]
-        THERMAL["xi"] = xidist["xi"]
+        THERMAL[mode + "_Edist"]  = Edist["distribution"]
+        THERMAL[mode + "_xidist"] = xidist["distribution"]
+        THERMAL["E"]  = Edist["energy"]
+        THERMAL["xi"] = xidist["pitch"]
 
     #**************************************************************************#
     #*        Evaluate slowing-down distributions in energy and pitch          #
@@ -417,17 +417,17 @@ def check():
 
         Exidist = distobj.get_E_xi_dist(E_edges=SLOWING["Egrid"],
                                         xi_edges=SLOWING["xigrid"],
-                                        R=0, phi=0, z=0, charge=0, time=0)
+                                        r=0, phi=0, z=0, charge=0, time=0)
 
         Edist  = Exidist
         xidist = copy.deepcopy(Exidist)
-        distobj.get_dist(dist=Edist, xi=0)
-        distobj.get_dist(dist=xidist, E=0)
+        distobj.get_dist(dist=Edist,   pitch=0)
+        distobj.get_dist(dist=xidist, energy=0)
 
-        SLOWING[mode + "_Edist"]  = Edist["density"]
-        SLOWING[mode + "_xidist"] = xidist["density"]
-        SLOWING["E"]  = Edist["E"]
-        SLOWING["xi"] = xidist["xi"]
+        SLOWING[mode + "_Edist"]  = Edist["distribution"]
+        SLOWING[mode + "_xidist"] = xidist["distribution"]
+        SLOWING["E"]  = Edist["energy"]
+        SLOWING["xi"] = xidist["pitch"]
 
     #**************************************************************************#
     #*                                 Plot                                    #
