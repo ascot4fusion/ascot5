@@ -110,8 +110,8 @@ class Orbits(AscotData):
                     item = item * np.pi/180
 
             # Is it modulus of poloidal angle.
-            if (item is None) and (key == "polmod"):
-                item = (np.mod(h5["pol"][:] + 360, 360) - 180) * np.pi/180
+            if (item is None) and (key == "thetamod"):
+                item = (np.mod(h5["theta"][:] + 360, 360) - 180) * np.pi/180
 
             # See if it is supposed to be read from inistate instead.
             if (item is None) and (key == "mass"):
@@ -221,7 +221,7 @@ class Orbits(AscotData):
                 f      = lambda x: interpret.energy_eV(x)
                 val   = np.array([f(x) for x in val]).ravel()
 
-            if key in ["phi", "phimod", "pol", "polmod"]:
+            if key in ["phi", "phimod", "theta", "thetamod"]:
                 val = val*180/np.pi
 
             if key in ["mass"]:

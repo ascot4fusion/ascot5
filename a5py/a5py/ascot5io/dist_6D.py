@@ -7,31 +7,26 @@ import numpy as np
 import h5py
 
 import a5py.dist as distmod
-import a5py.marker.interpret as interpret
+from a5py.marker.alias import get as alias
 
 from a5py.ascot5io.ascot5data import AscotData
 
 def read_hdf5(fn, qid):
     """
-    Read distributions.
+    Read 6D distribution.
 
-    Parameters
-    ----------
-
-    fn : str
-        Full path to HDF5 file.
-    qid : str
-        qid of the run where distribution is read.
-
-    Returns
-    -------
-
-    Dictionary storing the distributions that were read.
+    Args:
+        fn : str <br>
+            Full path to HDF5 file.
+        qid : str <br>
+            QID of the run from where the distribution is read.
+    Returns:
+        Dictionary storing the distributions that were read.
     """
 
     with h5py.File(fn,"r") as f:
 
-        path = "/results/run-"+qid+"/dist6d/"
+        path = "/results/run_"+qid+"/dist6d/"
         dist = f[path]
         out = {}
 
@@ -39,29 +34,19 @@ def read_hdf5(fn, qid):
         def edges2grid(edges):
             return np.linspace(0.5*(edges[0]+edges[1]),
                                0.5*(edges[-2]+edges[-1]), num=edges.size-1)
-
-        out["R_phi_z_vpa_vpe_t_q"] = {}
-
-        # These could be read directly from HDF5 file, but for clarity
-        # we list them here
-        abscissae = ["R", "phi", "z", "vr", "vphi", "vz", "time", "charge"]
+        # Abscissa info
+        abscissae = ["r", "phi", "z", "vr", "vphi", "vz", "time", "charge"]
         abscissae_units = ["m", "deg", "m", "m/s", "m/s", "m/s", "s", "e"]
-        abscissae_realnames = ["Major radius", "Toroidal angle", "Height",
-                               "Velocity R component", "Velocity phi component",
-                               "Velocity z component",
-                               "Time", "Charge"]
 
         for i in range(0,len(abscissae)):
             name = abscissae[i]
-            out[name + '_edges'] = dist['abscissa_vec_0'+str(i+1)][:]
-            out[name]            = edges2grid(out[name + '_edges'])
-            out[name + '_unit']  = abscissae_units[i]
-            out['n_' + name]     = out[name].size
+            out[name + "_edges"] = dist["abscissa_vec_0"+str(i+1)][:]
+            out[name]            = edges2grid(out[name + "_edges"])
+            out[name + "_unit"]  = abscissae_units[i]
+            out["n" + name]      = out[name].size
 
         out["abscissae"] = abscissae
-        out['histogram']     = dist['ordinate'][0,:,:,:,:,:,:,:,:]
-        out['ordinate_name'] = 'density'
-        out['ordinate_unit'] = 's/m^6*deg*e'
+        out["histogram"] = dist["ordinate"][0,:,:,:,:,:,:,:,:]
 
     return out
 
@@ -108,7 +93,7 @@ class Dist_6D(AscotData):
             Distribution dictionary.
         """
         if not dist:
-            dist = distmod.histogram2density(self.read())
+            dist = distmod.histogram2distribution(self.read())
         distmod.squeeze(dist, **kwargs)
 
         return dist
@@ -134,20 +119,20 @@ class Dist_6D(AscotData):
                Give input distribution explicitly instead of reading one from
                HDF5 file. Dimensions that are not x or y are integrated over.
         """
-        abscissae = {"R" : 0, "phi" : 0, "z" : 0, "vr" : 0,
+        abscissae = {"r" : 0, "phi" : 0, "z" : 0, "vr" : 0,
                      "vphi" : 0, "vz" : 0, "time" : 0, "charge" : 0}
 
-        x = args[0]
+        x = alias(args[0])
         del abscissae[x]
         y = None
         if len(args) > 1:
-            y = args[1]
+            y = alias(args[1])
             del abscissae[y]
 
         if not dist:
             dist = self.get_dist()
 
-        for k in abscissae.keys():
+        for k in list(abscissae.keys()):
             if k not in dist["abscissae"]:
                 del abscissae[k]
 
@@ -156,4 +141,5 @@ class Dist_6D(AscotData):
         if not y:
             distmod.plot_dist_1D(dist, logscale=logscale, axes=axes)
         else:
-            distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal, axes=axes)
+            distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal,
+                                 axes=axes)

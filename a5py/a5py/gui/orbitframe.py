@@ -70,7 +70,7 @@ class OrbitFrame(PlotFrame):
         # Check if this data contain Poincare data (and store Poincare ids).
         try:
             self._pncrids    = np.sort(np.unique(orbits["pncrid"])).tolist()
-            self._pncrcoords = ["R-z", "rho-phi", "rho-pol", "R-phi"]
+            self._pncrcoords = ["R-z", "rho-phi", "rho-theta", "R-phi"]
             haspoincare = True
         except (ValueError, AssertionError):
             haspoincare = False

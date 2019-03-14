@@ -7,9 +7,12 @@ File gui.py
 import os
 import sys
 import tkinter
+
 from tkinter.filedialog import askopenfilename, askdirectory
 from tkinter import messagebox
-import a5py.ascot5io.ascot5 as ascot5
+
+import a5py.ascot5io.ascot5  as ascot5
+import a5py.ascotpy          as ascotpy
 
 from .indexframe import IndexFrame
 
@@ -62,14 +65,14 @@ class GUI:
 
         self._root.protocol("WM_DELETE_WINDOW", self.close)
 
-        self._ascotfolder = ""
-        self._ascotpy     = None
+        try:
+            self._ascotpy = ascotpy.Ascotpy(self._h5fn)
+        except Exception:
+            self._ascotpy = None
+            messagebox.showwarning("Warning",
+                                     "Could not initialize ascotpy.\n"
+                                   + "Some features are disabled.")
 
-    def get_ascotobject(self):
-        """
-        Get Ascot object of the currently opened HDF5 file.
-        """
-        return self._ascot
 
     def get_ascotfilename(self):
         """
@@ -77,11 +80,13 @@ class GUI:
         """
         return self._h5fn
 
-    def get_ascotfolder(self):
+
+    def get_ascotobject(self):
         """
-        Get filename of currently opened HDF5 file.
+        Get Ascot object of the currently opened HDF5 file.
         """
-        return self._ascotfolder
+        return self._ascot
+
 
     def get_ascotpy(self):
         """
@@ -89,11 +94,13 @@ class GUI:
         """
         return self._ascotpy
 
+
     def get_root(self):
         """
         Get root windonw for displaying frames.
         """
         return self._root
+
 
     def launch(self):
         """
@@ -102,6 +109,7 @@ class GUI:
         self._root.deiconify()
         self.displayframe( IndexFrame(self) )
         self._root.mainloop()
+
 
     def displayframe(self, newframe):
         """
@@ -119,38 +127,19 @@ class GUI:
         self._current.pack_propagate(0)
         self._current.pack(fill=tkinter.BOTH, expand=1)
 
-    def ask_openfile(self):
+
+    def ask_openascot(self):
         """
-        Open dialog for opening filename and open it.
+        Open dialog for choosing HDF5 file and open it.
         """
-        fn = askopenfilename( title="Select file",
+        fn = askopenfilename( title="Select ASCOT5 HDF5 file",
                               filetypes = [("HDF5 files","*.h5")] )
         if len(fn) == 0:
             pass
         else:
             self._h5fn  = os.path.abspath(fn)
-            self._ascot = ascot5.Ascot(self._h5fn)
+            self.reload()
 
-    def ask_openfolder(self):
-        """
-        Open dialog for opening a folder where Ascot source code is.
-        """
-        fn = askdirectory(title="Select folder")
-
-        if (len(fn) == 0) :
-            pass
-
-        elif not os.path.isfile(fn + "/libascotpy.so") or \
-             not os.path.isfile(fn + "/ascotpy.py"):
-            messagebox.showerror("Failed to open folder",
-                                 "Folder does not contain libascotpy.so "
-                                 + "or ascotpy.py")
-        else:
-            fn = os.path.abspath(fn)
-            sys.path.insert(0, fn)
-            from ascotpy import Ascotpy
-            self._ascotfolder = fn
-            self._ascotpy = Ascotpy(fn + "/ascotpy.so", self._h5fn)
 
     def reload(self):
         """
@@ -160,6 +149,7 @@ class GUI:
         if self._ascotpy is not None:
             self._ascotpy.reload(self._h5fn)
         self.displayframe( IndexFrame(self) )
+
 
     def close(self):
         """

@@ -31,8 +31,8 @@ def plot_dist_1D(dist, logscale=False, axes=None):
         axes = plt.gca()
 
     ordinate = None
-    if "density" in dist:
-        ordinate = dist["density"]
+    if "distribution" in dist:
+        ordinate = dist["distribution"]
     elif "histogram" in dist:
         ordinate = dist["histogram"]
 
@@ -72,8 +72,8 @@ def plot_dist_2D(dist, *args, logscale=False, equal=False, axes=None):
         axes = plt.gca()
 
     ordinate = None
-    if "density" in dist:
-        ordinate = dist["density"]
+    if "distribution" in dist:
+        ordinate = dist["distribution"]
     elif "histogram" in dist:
         ordinate = dist["histogram"]
 

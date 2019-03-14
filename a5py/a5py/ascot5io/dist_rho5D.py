@@ -7,31 +7,28 @@ import numpy as np
 import h5py
 
 import a5py.dist as distmod
+from a5py.marker.alias import get as alias
 import a5py.marker.interpret as interpret
 
 from a5py.ascot5io.ascot5data import AscotData
 
 def read_hdf5(fn, qid):
     """
-    Read distributions.
+    Read rho 5D distribution.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            Full path to HDF5 file.
+        qid : str <br>
+            QID of the run where distribution is read.
 
-    fn : str
-        Full path to HDF5 file.
-    qid : str
-        qid of the run where distribution is read.
-
-    Returns
-    -------
-
-    Dictionary storing the distributions that were read.
+    Returns:
+        Dictionary storing the distributions that were read.
     """
 
     with h5py.File(fn,"r") as f:
 
-        path = "/results/run-"+qid+"/distrho5d/"
+        path = "/results/run_"+qid+"/distrho5d/"
         dist = f[path]
         out = {}
 
@@ -42,25 +39,18 @@ def read_hdf5(fn, qid):
 
         # These could be read directly from HDF5 file, but for clarity
         # we list them here
-        abscissae = ["rho", "pol", "phi", "vpa", "vpe", "time", "charge"]
+        abscissae = ["rho", "theta", "phi", "vpar", "vperp", "time", "charge"]
         abscissae_units = ["", "deg", "deg", "m/s", "m/s", "s", "e"]
-        abscissae_realnames = ["Radial coordinate", "Poloidal angle",
-                               "Toroidal angle",
-                               "Velocity parallel to magnetic field",
-                               "Velocity perpendicular to magnetic field",
-                               "Time", "Charge"]
 
         for i in range(0,len(abscissae)):
             name = abscissae[i]
-            out[name + '_edges'] = dist['abscissa_vec_00000'+str(i+1)][:]
-            out[name]            = edges2grid(out[name + '_edges'])
-            out[name + '_unit']  = abscissae_units[i]
-            out['n_' + name]     = out[name].size
+            out[name + "_edges"] = dist["abscissa_vec_0"+str(i+1)][:]
+            out[name]            = edges2grid(out[name + "_edges"])
+            out[name + "_unit"]  = abscissae_units[i]
+            out["n" + name]      = out[name].size
 
         out["abscissae"] = abscissae
-        out['histogram']     = dist['ordinate'][0,:,:,:,:,:,:,:]
-        out['ordinate_name'] = 'density'
-        out['ordinate_unit'] = 's/m^2*deg^2*e'
+        out["histogram"] = dist["ordinate"][0,:,:,:,:,:,:,:]
 
     return out
 
@@ -107,7 +97,7 @@ class Dist_rho5D(AscotData):
             Distribution dictionary.
         """
         if not dist:
-            dist = distmod.histogram2density(self.read())
+            dist = distmod.histogram2distribution(self.read())
         distmod.squeeze(dist, **kwargs)
 
         return dist
@@ -140,7 +130,7 @@ class Dist_rho5D(AscotData):
         """
 
         if not dist:
-            dist = distmod.histogram2density(self.read())
+            dist = distmod.histogram2distribution(self.read())
 
         # Mass from inistate.
         masskg = interpret.mass_kg(self._runnode.inistate["mass"][0])
@@ -170,20 +160,20 @@ class Dist_rho5D(AscotData):
                Give input distribution explicitly instead of reading one from
                HDF5 file. Dimensions that are not x or y are integrated over.
         """
-        abscissae = {"rho" : 0, "pol" : 0, "phi" : 0, "vpa" : 0,
-                     "vpe" : 0, "time" : 0, "charge" : 0}
+        abscissae = {"rho" : 0, "theta" : 0, "phi" : 0, "vpar" : 0,
+                     "vperp" : 0, "time" : 0, "charge" : 0}
 
-        x = args[0]
+        x = alias(args[0])
         del abscissae[x]
         y = None
         if len(args) > 1:
-            y = args[1]
+            y = alias(args[1])
             del abscissae[y]
 
         if not dist:
             dist = self.get_dist()
 
-        for k in abscissae.keys():
+        for k in list(abscissae.keys()):
             if k not in dist["abscissae"]:
                 del abscissae[k]
 
@@ -194,6 +184,7 @@ class Dist_rho5D(AscotData):
         else:
             distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal,
                                  axes=axes)
+
 
     def plot_E_xi_dist(self, *args, E_edges=None, xi_edges=None,
                        logscale=False, equal=False, axes=None, dist=None):
@@ -215,14 +206,14 @@ class Dist_rho5D(AscotData):
                Give input distribution explicitly instead of reading one from
                HDF5 file. Dimensions that are not x or y are integrated over.
         """
-        abscissae = {"rho" : 0, "pol" : 0, "phi" : 0, "E" : 0,
-                     "xi" : 0, "time" : 0, "charge" : 0}
+        abscissae = {"rho" : 0, "theta" : 0, "phi" : 0, "energy" : 0,
+                     "pitch" : 0, "time" : 0, "charge" : 0}
 
-        x = args[0]
+        x = alias(args[0])
         del abscissae[x]
         y = None
         if len(args) > 1:
-            y = args[1]
+            y = alias(args[1])
             del abscissae[y]
 
         if not dist:

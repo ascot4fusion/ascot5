@@ -46,8 +46,8 @@ def convert_vpavpe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
 
     if E_edges is None:
         Emax = (1/constants.e) * 0.5 * masskg \
-               * np.maximum( dist["vpa_edges"][-1]*dist["vpa_edges"][-1],
-                             dist["vpe_edges"][-1]*dist["vpe_edges"][-1] )
+               * np.maximum( dist["vpar_edges"][-1]*dist["vpar_edges"][-1],
+                             dist["vperp_edges"][-1]*dist["vperp_edges"][-1] )
         E_edges = np.linspace(0, Emax, 10)
     if xi_edges is None:
         xi_edges = np.linspace(-1, 1, 10)
@@ -56,35 +56,35 @@ def convert_vpavpe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
     Exidist = copy.deepcopy(dist)
 
     # Remove vpa and vpe components
-    del Exidist["density"]
-    Exidist["abscissae"].remove("vpa")
-    Exidist["abscissae"].remove("vpe")
+    del Exidist["distribution"]
+    Exidist["abscissae"].remove("vpar")
+    Exidist["abscissae"].remove("vperp")
     for k in list(Exidist):
-        if "vpa" in k or "vpe" in k:
+        if "vpar" in k or "vperp" in k:
             del Exidist[k]
 
     # Add E and xi abscissae and initialize a new density
-    Exidist["abscissae"].insert(3, "E")
-    Exidist["abscissae"].insert(4, "xi")
+    Exidist["abscissae"].insert(3, "energy")
+    Exidist["abscissae"].insert(4, "pitch")
     abscissae = Exidist["abscissae"]
 
-    Exidist["E"]        = (E_edges[0:-1] + E_edges[1:]) / 2
-    Exidist["E_edges"]  = E_edges
-    Exidist["n_E"]      = Exidist["E"].size
+    Exidist["energy"]       = (E_edges[0:-1] + E_edges[1:]) / 2
+    Exidist["energy_edges"] = E_edges
+    Exidist["nenergy"]      = Exidist["energy"].size
 
-    Exidist["xi"]       = (xi_edges[0:-1] + xi_edges[1:]) / 2
-    Exidist["xi_edges"] = xi_edges
-    Exidist["n_xi"]     = Exidist["xi"].size
+    Exidist["pitch"]       = (xi_edges[0:-1] + xi_edges[1:]) / 2
+    Exidist["pitch_edges"] = xi_edges
+    Exidist["npitch"]      = Exidist["pitch"].size
 
     dims = []
     for a in abscissae:
-        dims.append(Exidist["n_" + a])
+        dims.append(Exidist["n" + a])
 
-    Exidist["density"]  = np.zeros(tuple(dims))
+    Exidist["distribution"]  = np.zeros(tuple(dims))
 
     # Transform E-xi grid to points in (vpa,vpa) space that are used in
     # interpolation.
-    xig, Eg = np.meshgrid(Exidist["xi"], Exidist["E"])
+    xig, Eg = np.meshgrid(Exidist["pitch"], Exidist["energy"])
     vpag = ( xig * np.sqrt( 2*Eg*constants.e/masskg ) ).ravel()
     vpeg = (np.sqrt(1 - xig*xig) * np.sqrt(2*Eg*constants.e/masskg)).ravel()
 
@@ -100,37 +100,36 @@ def convert_vpavpe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
     # Interpolate.
     ranges = []
     for a in dist["abscissae"]:
-        if a is not "vpa" and a is not "vpe":
-            ranges.append(range(dist["n_" + a]))
+        if a is not "vpar" and a is not "vperp":
+            ranges.append(range(dist["n" + a]))
 
-    iE   = Exidist["abscissae"].index("E")
-    ivpa = dist["abscissae"].index("vpa")
+    iE   = Exidist["abscissae"].index("energy")
+    ivpa = dist["abscissae"].index("vpar")
     for itr in itertools.product(*ranges):
 
         idx = []
         for i in range(0, ivpa):
-            #idx.append(slice(itr[i], itr[i]+1, 1))
             idx.append(itr[i])
 
         idx.append(slice(None))
         idx.append(slice(None))
 
         for i in range(ivpa, len(dist["abscissae"])-2):
-            #idx.append(slice(itr[i], itr[i]+1, 1))
             idx.append(itr[i])
 
         idx = tuple(idx)
 
-        if dist["vpa"].size == 1 and dist["vpe"].size == 1:
-            d = np.ones( (Exidist["n_E"], Exidist["n_xi"]) ) \
-                * dist["density"][idx]
+        if dist["vpar"].size == 1 and dist["vperp"].size == 1:
+            d = np.ones( (Exidist["nenergy"], Exidist["npitch"]) ) \
+                * dist["distribution"][idx]
         else:
             f = RectBivariateSpline(
-                dist["vpa"], dist["vpe"],
-                np.squeeze(dist["density"][idx]),
+                dist["vpar"], dist["vperp"],
+                np.squeeze(dist["distribution"][idx]),
                 kx=1, ky=1)
-            d = np.reshape(f.ev(vpag, vpeg), (Exidist["n_E"], Exidist["n_xi"]))
+            d = np.reshape(f.ev(vpag, vpeg),
+                           (Exidist["nenergy"], Exidist["npitch"]))
 
-        Exidist["density"][idx] = d * jac
+        Exidist["distribution"][idx] = d * jac
 
     return Exidist

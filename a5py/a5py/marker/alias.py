@@ -18,25 +18,27 @@ File: alias.py
 
 ## Standard name : list of synonyms dictionary.
 synonyms = {
-    "mass"   : ["m"],
-    "charge" : ["q"],
-    "vnorm"  : ["v", "velocity", "velocitynorm"],
-    "bnorm"  : ["b", "magneticfield", "magneticfieldnorm"],
-    "energy" : ["ekin", "e"],
-    "pitch"  : ["xi"],
-    "mu"     : ["magneticmoment"],
-    "gamma"  : ["lorentzfactor", "relativisticfactor"],
-    "phi"    : ["toroidalangle"],
-    "pol"    : ["poloidalangle"],
-    "theta"  : ["gyroangle"],
-    "vpar"   : ["parallelvelocity", "vparallel", "vpa", "vpara"],
-    "ppar"   : ["parallelmomentum", "pparallel", "ppa", "ppara"],
-    "vperp"  : ["perpendicularvelocity", "vperpendicular", "vpe"],
-    "pparp"  : ["perpendicularmomentum", "pperpendicular", "ppe"],
-    "pnorm"  : ["p", "momentum", "momentumnorm"],
-    "ptor"   : ["canonicaltoroidalmomentum"],
-    "wall"   : ["lost"],
-    "therm"  : ["thermalized"]
+    "mass"     : ["m"],
+    "charge"   : ["q"],
+    "vnorm"    : ["v", "velocity", "velocitynorm"],
+    "bnorm"    : ["b", "magneticfield", "magneticfieldnorm"],
+    "energy"   : ["ekin", "e"],
+    "pitch"    : ["xi"],
+    "mu"       : ["magneticmoment"],
+    "gamma"    : ["lorentzfactor", "relativisticfactor"],
+    "phi"      : ["tor", "toroidalangle"],
+    "phimod"   : ["tormod"],
+    "theta"    : ["pol", "poloidalangle"],
+    "thetamod" : ["polmod"],
+    "zeta"     : ["gyroangle"],
+    "vpar"     : ["parallelvelocity", "vparallel", "vpa", "vpara"],
+    "ppar"     : ["parallelmomentum", "pparallel", "ppa", "ppara"],
+    "vperp"    : ["perpendicularvelocity", "vperpendicular", "vpe"],
+    "pparp"    : ["perpendicularmomentum", "pperpendicular", "ppe"],
+    "pnorm"    : ["p", "momentum", "momentumnorm"],
+    "ptor"     : ["canonicaltoroidalmomentum"],
+    "wall"     : ["lost"],
+    "therm"    : ["thermalized"]
 }
 
 def check(name, standardname):

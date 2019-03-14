@@ -3,12 +3,13 @@ Basic operations for processing distributions.
 
 File: basic.py
 """
+import numpy as np
 
-import numpy     as np
+from a5py.marker.alias import get as alias
 
-def histogram2density(dist):
+def histogram2distribution(dist):
     """
-    Convert histogram to density.
+    Convert histogram to distribution.
 
     A histogram tells how many markers there are in a cell whereas density,
     i.e. histogram divided by cell volume, is a physical quantity.
@@ -23,18 +24,17 @@ def histogram2density(dist):
     Returns:
         Reference to the dist argument.
     """
-    if "density" in dist:
-        print("Distribution ordinate is already density.")
+    if "distribution" in dist:
         return dist
 
     # Calculate volumes for each cell
     vol = 1
     for coord in dist["abscissae"]:
-        edges = dist[coord + '_edges']
+        edges = dist[coord + "_edges"]
         dv    = (edges[1:] - edges[:-1])
         vol   = np.multiply.outer(vol, dv)
 
-    dist["density"] = dist["histogram"] / vol
+    dist["distribution"] = dist["histogram"] / vol
     del dist["histogram"]
     return dist
 
@@ -67,7 +67,7 @@ def squeeze(dist, **kwargs):
     if len(kwargs.keys()) == 0:
         return dist
 
-    coord  = list(kwargs.keys())[0]
+    coord  = alias(list(kwargs.keys())[0])
     slices = kwargs[coord]
     del kwargs[coord]
 
@@ -79,18 +79,16 @@ def squeeze(dist, **kwargs):
 
     if type(slices) is tuple:
         dist[coord] = dist[coord][slices[0]:slices[1]]
-        dist[coord + '_edges'] = dist[coord][slices[0]:slices[1]+1]
-        dist['n_' + coord] = dist[coord].size
+        dist[coord + "_edges"] = dist[coord][slices[0]:slices[1]+1]
+        dist["n" + coord]      = dist[coord].size
 
         # Slice given dimension
-        #indx = [Ellipsis] * len(dist["abscissae"])
-        #indx[dim] = slice(slices[0], slices[1], 1)
-        #dist["density"] = dist["density"][indx]
-        dist["density"] = np.take(dist["density"], range(slices[0], slices[1]),
-                                  axis=dim)
+        dist["distribution"] = np.take(dist["distribution"],
+                                       range(slices[0], slices[1]),
+                                       axis=dim)
 
     if type(slices) is int:
-        slices = [0, dist["n_" + coord]]
+        slices = [0, dist["n" + coord]]
 
     if type(slices) is list or not slices:
         edges   = dist[coord + "_edges"]
@@ -101,13 +99,13 @@ def squeeze(dist, **kwargs):
             mask[slices[0]:slices[1]] = 1
             weights = weights*mask
 
-        dist["density"], s = np.average(dist["density"],
-                                        axis=dim, weights=weights,
-                                        returned=True)
-        dist["density"] *= s
+        dist["distribution"], s = np.average(dist["distribution"],
+                                             axis=dim, weights=weights,
+                                             returned=True)
+        dist["distribution"] *= s
         del dist[coord]
-        del dist[coord + '_edges']
-        del dist['n_' + coord]
+        del dist[coord + "_edges"]
+        del dist["n" + coord]
         del dist["abscissae"][dim]
 
     return dist
