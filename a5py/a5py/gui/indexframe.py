@@ -54,25 +54,6 @@ class IndexFrame(tkinter.Frame):
         fnbrowsebutton.grid(row=0, column=1)
         fnpanel.grid(row=0, column=1)
 
-        # Add another panel to previous panel for beowsing ascot folder.
-        fnpanel = tkinter.Frame(fnpanel, width=440, height=40)
-        fnbox   = tkinter.Text( fnpanel, width=50,  height=1)
-        fnlabel = tkinter.Label(fnpanel, text="ASCOT5 folder:", anchor="w")
-        fnbrowsebutton = tkinter.Button(fnpanel, text="Browse...",
-                                        command=self._browsefolder, anchor="e")
-        debugbutton    = tkinter.Button(fnpanel, text="Debug",
-                                        command=self._opendebug, anchor="e")
-        fnbox.configure(state="normal")
-        fnbox.delete("1.0", tkinter.END)
-        fnbox.insert("end", gui.get_ascotfolder())
-        fnbox.configure(state="disabled")
-
-        fnlabel.grid(       row=0, column=0)
-        fnbox.grid(         row=1, column=0, columnspan=3)
-        fnbrowsebutton.grid(row=0, column=1)
-        debugbutton.grid(   row=0, column=2)
-        fnpanel.grid(       row=2, column=0, rowspan=2, columnspan=3)
-
         self.grid_columnconfigure(1, weight=1)
         self.grid_columnconfigure(2, weight=1)
 
@@ -104,16 +85,7 @@ class IndexFrame(tkinter.Frame):
         """
         Browse a new HDF5 file.
         """
-        self._gui.ask_openfile()
-        self._gui.reload()
-
-
-    def _browsefolder(self):
-        """
-        Browse a new ascot folder.
-        """
-        self._gui.ask_openfolder()
-        self._gui.reload()
+        self._gui.ask_openascot()
 
 
     def _opendebug(self):
@@ -312,7 +284,7 @@ class RunInfoPanel(ttk.LabelFrame):
         self._distrho6dbutton = tkinter.Button(botbuttonframe,
                                                text="Dist rho6D")
         self._orbitbutton     = tkinter.Button(botbuttonframe,
-                                               text="Orbits")
+                                               text="Orbit")
         self._descbox         = tkinter.Text(self, height=4)
 
         selectionmenu.bind("<<ComboboxSelected>>", self._change_selection)
@@ -331,7 +303,7 @@ class RunInfoPanel(ttk.LabelFrame):
         self._distrho6dbutton.config(
             command=lambda *args : self._view_plot("distrho6d"))
         self._orbitbutton.config(
-            command=lambda *args : self._view_plot("orbits"))
+            command=lambda *args : self._view_plot("orbit"))
 
         # Place widgets.
         selectionmenu.pack(side="left")
@@ -392,7 +364,7 @@ class RunInfoPanel(ttk.LabelFrame):
             self._distrho6dbutton.config(state="normal")
 
         self._orbitbutton.config(state="disable")
-        if hasattr(run, "orbits"):
+        if hasattr(run, "orbit"):
             self._orbitbutton.config(state="normal")
 
     def _set_active(self):
@@ -445,5 +417,5 @@ class RunInfoPanel(ttk.LabelFrame):
             self._gui.displayframe(DistFrame(self._gui, run.distrho5d))
         if outputtype == "distrho6d":
             self._gui.displayframe(DistFrame(self._gui, run.distrho6d))
-        if outputtype == "orbits":
-            self._gui.displayframe(OrbitFrame(self._gui, run.orbits))
+        if outputtype == "orbit":
+            self._gui.displayframe(OrbitFrame(self._gui, run.orbit))
