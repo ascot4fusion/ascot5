@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import os.path
 import h5py
 import numpy as np
 from prompt_toolkit import PromptSession, HTML
@@ -131,7 +132,13 @@ def main():
     a             Perform command for <b>active</b> field
     """
 
-    fname = sys.argv[1]
+    try:
+        fname = sys.argv[1]
+    except IndexError:
+        fname = "ascot.h5"
+    if not os.path.isfile(fname):
+        print("File", fname, "does not exist.")
+        quit()
     with h5py.File(fname, 'a') as h5file:
         current_group = '/'
         session = PromptSession(completer=H5Completer(h5file, current_group))
