@@ -17,8 +17,7 @@ class LibBfield(LibAscot):
 
         out = None
         if quantity in ["rho", "psi"]:
-            out = self.eval_bfield(R, phi, z, t, evalrho=True,
-                                   evalpsi=True)[quantity]
+            out = self.eval_bfield(R, phi, z, t, evalrho=True)[quantity]
 
         if quantity in ["br", "bphi", "bz", "brdr", "brdphi", "brdz", "bphidr",
                         "bphidphi", "bphidz", "bzdr", "bzdphi", "bzdz"]:
