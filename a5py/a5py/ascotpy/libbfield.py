@@ -24,8 +24,9 @@ class LibBfield(LibAscot):
             out = self.eval_bfield(R, phi, z, t, evalb=True)[quantity]
 
         if quantity == "divergence":
+            print("dsada")
             out = self.eval_bfield(R, phi, z, t, evalb=True)
-            out = out["br"]/R + out["brdr"] + out["bphidphi"]/R + out["bzdz"]
+            out = out["br"]/R.ravel() + out["brdr"] + out["bphidphi"]/R.ravel() + out["bzdz"]
 
         assert out is not None, "Unknown quantity"
 
