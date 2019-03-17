@@ -494,10 +494,10 @@ class LibAscot:
 
         Neval = R.size
         out = {}
-        out["n0"]   = np.zeros(R.shape, dtype="f8")
+        out["density"] = np.zeros(R.shape, dtype="f8")
 
         self.libascot.libascot_neutral_eval_density(Neval, R, phi, z, t,
-                                                    out["n0"])
+                                                    out["density"])
 
         return out
 

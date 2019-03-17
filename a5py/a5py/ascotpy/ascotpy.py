@@ -9,8 +9,9 @@ File: ascotpy.py
 """
 import numpy as np
 
-from a5py.ascotpy.libbfield import LibBfield
-from a5py.ascotpy.libefield import LibEfield
+from a5py.ascotpy.libbfield  import LibBfield
+from a5py.ascotpy.libefield  import LibEfield
+from a5py.ascotpy.libneutral import LibNeutral
 
 import importlib.util as util
 
@@ -18,7 +19,7 @@ plt = util.find_spec("matplotlib")
 if plt:
     import matplotlib.pyplot as plt
 
-class Ascotpy(LibBfield):
+class Ascotpy(LibBfield, LibEfield, LibNeutral):
     """
     One class to rule them all.
     """
@@ -66,6 +67,8 @@ class Ascotpy(LibBfield):
             out = LibBfield.evaluate(self, R, phi, z, t, quantity)
         if quantity in LibEfield.quantities:
             out = LibEfield.evaluate(self, R, phi, z, t, quantity)
+        if quantity in LibNeutral.quantities:
+            out = LibNeutral.evaluate(self, R, phi, z, t, quantity)
 
         if grid:
             out = np.reshape(out, arrsize)

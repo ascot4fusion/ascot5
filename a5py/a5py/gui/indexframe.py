@@ -7,8 +7,9 @@ import tkinter
 import tkinter.ttk as ttk
 import a5py.ascot5io.ascot5tools as tools
 
-from .bfieldframe import BfieldFrame
-from .efieldframe import EfieldFrame
+from .bfieldframe  import BfieldFrame
+from .efieldframe  import EfieldFrame
+from .neutralframe import NeutralFrame
 
 from .stateframe  import StateFrame
 from .orbitframe  import OrbitFrame
@@ -115,6 +116,9 @@ class IndexFrame(tkinter.Frame):
 
         if inputtype in ["E_TC", "E_1DS"]:
             self._gui.displayframe(EfieldFrame(self._gui, ascotpy, walldata))
+
+        if inputtype in ["N0_3D"]:
+            self._gui.displayframe(NeutralFrame(self._gui, ascotpy, walldata))
 
 
     def select_inputs(self, options=None, bfield=None, efield=None, plasma=None,
