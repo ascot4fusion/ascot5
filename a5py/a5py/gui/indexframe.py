@@ -104,7 +104,12 @@ class IndexFrame(tkinter.Frame):
             return
 
         if inputtype in ["B_GS", "B_2DS", "B_3DS", "B_STS", "B_TC"]:
-            self._gui.displayframe(BfieldFrame(self._gui, ascotpy))
+            walldata = None
+            if "wall" in self._panels:
+                group    = self._panels["wall"]._inputselection.get()
+                walldata = self._gui.get_ascotobject()["wall"][group]
+
+            self._gui.displayframe(BfieldFrame(self._gui, ascotpy, walldata))
 
 
     def select_inputs(self, options=None, bfield=None, efield=None, plasma=None,

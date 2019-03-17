@@ -103,7 +103,7 @@ def write_hdf5_3D(fn, n, R, z, nphi, desc=None):
             z1z2z3[i-1 + 2*(j-1) + 1,:] = [ z[j], z[j-1], z[j-1] ]
 
     x1x2x3,y1y2y3 = pol2cart(p1p2p3, r1r2r3)
-    wall_3D.write_hdf5(fn, 2*n*nphi, x1x2x3, y1y2y3, z1z2z3, flag, desc=desc)
+    wall_3D.write_hdf5(fn, 2*n*nphi, x1x2x3, y1y2y3, z1z2z3, desc=desc)
 
 class wall_2D(AscotData):
     """
@@ -113,6 +113,6 @@ class wall_2D(AscotData):
     def read(self):
         return read_hdf5(self._file, self.get_qid())
 
-    def plot_segments(self, axes=None):
+    def plotRz(self, axes=None):
         w = self.read()
-        plot.plot_segments(w["R"], w["z"], axes=axes)
+        plot.plot_segments(w["r"], w["z"], axes=axes)

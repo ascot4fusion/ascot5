@@ -11,12 +11,11 @@ import numpy as np
 
 from a5py.ascotpy.libbfield import LibBfield
 
-from numpy.random import randint
 import importlib.util as util
 
 plt = util.find_spec("matplotlib")
 if plt:
-    import matplotlib.pyplot as pl
+    import matplotlib.pyplot as plt
 
 class Ascotpy(LibBfield):
     """
@@ -37,6 +36,10 @@ class Ascotpy(LibBfield):
         if grid:
             arrsize = (R.size, phi.size, z.size, t.size)
             R, phi, z, t = np.meshgrid(R, phi, z, t)
+            R   = R.ravel()
+            phi = phi.ravel()
+            z   = z.ravel()
+            t   = t.ravel()
         else:
             # Not a grid so check that dimensions are correct (and make
             # single-valued vectors correct size)
@@ -76,7 +79,7 @@ class Ascotpy(LibBfield):
         return out
 
 
-    def plotRz(self, R, phi, z, t, quantity, axes=None):
+    def plotRz(self, R, phi, z, t, quantity, axes=None, **kwargs):
         out = self.evaluate(R, phi, z, t, quantity, grid=True)
 
         newfig = axes is None
@@ -84,8 +87,8 @@ class Ascotpy(LibBfield):
             plt.figure()
             axes = plt.gca()
 
-        mesh = axes.pcolormesh(z, R, np.transpose(out[:,0,:,0]))
-        axes.axis("scaled")
+        mesh = axes.pcolormesh(R, z, np.transpose(out[:,0,:,0]))
+        axes.axis("image")
 
         if newfig:
             plt.show(block=False)

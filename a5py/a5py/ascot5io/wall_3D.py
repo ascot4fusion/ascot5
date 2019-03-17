@@ -81,3 +81,6 @@ class wall_3D(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
+
+    def plot_Rz(self, axes=None):
+        pass

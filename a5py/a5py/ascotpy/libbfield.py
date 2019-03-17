@@ -7,6 +7,13 @@ import numpy as np
 
 from a5py.ascotpy.libascot import LibAscot
 
+
+import importlib.util as util
+
+plt = util.find_spec("matplotlib")
+if plt:
+    import matplotlib.pyplot as plt
+
 class LibBfield(LibAscot):
 
     quantities = ["rho", "psi", "br", "bphi", "bz", "brdr", "brdphi", "brdz",
@@ -24,10 +31,15 @@ class LibBfield(LibAscot):
             out = self.eval_bfield(R, phi, z, t, evalb=True)[quantity]
 
         if quantity == "divergence":
-            print("dsada")
             out = self.eval_bfield(R, phi, z, t, evalb=True)
-            out = out["br"]/R.ravel() + out["brdr"] + out["bphidphi"]/R.ravel() + out["bzdz"]
+            out = out["br"] + out["brdr"] + out["bphidphi"] + out["bzdz"]
 
         assert out is not None, "Unknown quantity"
 
         return out
+
+
+    def plotseparatrix(self, R, phi, z, t, axes):
+        out = self.evaluate(R, phi, z, t, "rho", grid=True)
+
+        mesh = axes.contour(R, z, np.transpose(out[:,0,:,0]), [1], colors='black',zorder=1)
