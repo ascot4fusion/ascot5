@@ -10,6 +10,7 @@ File: ascotpy.py
 import numpy as np
 
 from a5py.ascotpy.libbfield import LibBfield
+from a5py.ascotpy.libefield import LibEfield
 
 import importlib.util as util
 
@@ -63,6 +64,8 @@ class Ascotpy(LibBfield):
         out = None
         if quantity in LibBfield.quantities:
             out = LibBfield.evaluate(self, R, phi, z, t, quantity)
+        if quantity in LibEfield.quantities:
+            out = LibEfield.evaluate(self, R, phi, z, t, quantity)
 
         if grid:
             out = np.reshape(out, arrsize)

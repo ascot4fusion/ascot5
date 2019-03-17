@@ -43,7 +43,7 @@ class FieldFrame(PlotFrame):
         self._binyminchoice.set(-10)
         self._binymaxchoice.set(10)
         self._nbinychoice.set(100)
-        self._qchoice.set("psi")
+        self._qchoice.set(quantities[0])
 
         self.init2dpanel(quantities)
 
