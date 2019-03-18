@@ -10,6 +10,7 @@ import a5py.ascot5io.ascot5tools as tools
 from .bfieldframe  import BfieldFrame
 from .efieldframe  import EfieldFrame
 from .neutralframe import NeutralFrame
+from .wallframe    import WallFrame
 
 from .stateframe  import StateFrame
 from .orbitframe  import OrbitFrame
@@ -119,6 +120,9 @@ class IndexFrame(tkinter.Frame):
 
         if inputtype in ["N0_3D"]:
             self._gui.displayframe(NeutralFrame(self._gui, ascotpy, walldata))
+
+        if inputtype in ["wall_2D", "wall_3D"]:
+            self._gui.displayframe(WallFrame(self._gui, walldata))
 
 
     def select_inputs(self, options=None, bfield=None, efield=None, plasma=None,

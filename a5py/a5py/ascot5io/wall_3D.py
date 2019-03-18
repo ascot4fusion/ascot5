@@ -9,6 +9,8 @@ import numpy as np
 from . ascot5file import add_group
 from a5py.ascot5io.ascot5data import AscotData
 
+import a5py.wall.plot as plot
+
 def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None):
     """
     Write 3D wall input in HDF5 file.
@@ -82,5 +84,7 @@ class wall_3D(AscotData):
     def read(self):
         return read_hdf5(self._file, self.get_qid())
 
-    def plot_Rz(self, axes=None):
-        pass
+    def plotRz(self, axes=None):
+        data = self.read()
+        plot.plot_projection(data["x1x2x3"], data["y1y2y3"], data["z1z2z3"],
+                             axes=axes)
