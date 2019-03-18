@@ -101,19 +101,10 @@ class LibAscot:
             pass
 
         try:
-            fun = self.libascot.libascot_B_field_eval_psi
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p]
-        except AttributeError:
-            warnings.warn("libascot_B_field_eval_psi not found", Warning)
-            pass
-
-        try:
             fun = self.libascot.libascot_B_field_eval_rho
             fun.restype  = None
             fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p]
+                            real_p, real_p]
         except AttributeError:
             warnings.warn("libascot_B_field_eval_rho not found", Warning)
             pass
@@ -355,8 +346,8 @@ class LibAscot:
             self.mhd_initialized = False
 
 
-    def eval_bfield(self, R, phi, z, t, evalb=False, evalpsi=False,
-                    evalrho=False, evalaxis=False):
+    def eval_bfield(self, R, phi, z, t, evalb=False, evalrho=False,
+                    evalaxis=False):
         """
         Evaluate magnetic field quantities at given coordinates.
 
@@ -371,10 +362,8 @@ class LibAscot:
                 time coordinates where data is evaluated [s].
             evalb : bool, optional <br>
                 Evaluate magnetic field vector and derivatives.
-            evalpsi : bool, optional <br>
-                Evaluate poloidal flux.
             evalrho : bool, optional <br>
-                Evaluate normalized poloidal flux.
+                Evaluate poloidal flux and normalized poloidal flux.
             evalaxis : bool, optional <br>
                 Evaluate magnetic axis.
 
@@ -416,15 +405,11 @@ class LibAscot:
                 out["bphidr"], out["bphidphi"], out["bphidz"],
                 out["bzdr"], out["bzdphi"], out["bzdz"])
 
-        if evalpsi:
-            out["psi"] = np.zeros(R.shape, dtype="f8") + np.nan
-            self.libascot.libascot_B_field_eval_psi(Neval, R, phi, z, t,
-                                                    out["psi"])
-
         if evalrho:
             out["rho"] = np.zeros(R.shape, dtype="f8") + np.nan
+            out["psi"] = np.zeros(R.shape, dtype="f8") + np.nan
             self.libascot.libascot_B_field_eval_rho(Neval, R, phi, z, t,
-                                                    out["rho"])
+                                                    out["rho"], out["psi"])
 
         if evalaxis:
             out["axisr"] = np.zeros(R.shape, dtype="f8") + np.nan
@@ -565,10 +550,10 @@ class LibAscot:
 
         Neval = R.size
         out = {}
-        out["n0"]   = np.zeros(R.shape, dtype="f8")
+        out["density"] = np.zeros(R.shape, dtype="f8")
 
         self.libascot.libascot_neutral_eval_density(Neval, R, phi, z, t,
-                                                    out["n0"])
+                                                    out["density"])
 
         return out
 

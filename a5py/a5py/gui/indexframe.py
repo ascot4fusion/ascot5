@@ -7,7 +7,11 @@ import tkinter
 import tkinter.ttk as ttk
 import a5py.ascot5io.ascot5tools as tools
 
-from .bfieldframe import BfieldFrame
+from .bfieldframe  import BfieldFrame
+from .efieldframe  import EfieldFrame
+from .neutralframe import NeutralFrame
+from .wallframe    import WallFrame
+
 from .stateframe  import StateFrame
 from .orbitframe  import OrbitFrame
 from .distframe   import DistFrame
@@ -103,8 +107,22 @@ class IndexFrame(tkinter.Frame):
         if ascotpy is None:
             return
 
+        walldata = None
+        if "wall" in self._panels:
+            group    = self._panels["wall"]._inputselection.get()
+            walldata = self._gui.get_ascotobject()["wall"][group]
+
         if inputtype in ["B_GS", "B_2DS", "B_3DS", "B_STS", "B_TC"]:
-            self._gui.displayframe(BfieldFrame(self._gui, ascotpy))
+            self._gui.displayframe(BfieldFrame(self._gui, ascotpy, walldata))
+
+        if inputtype in ["E_TC", "E_1DS"]:
+            self._gui.displayframe(EfieldFrame(self._gui, ascotpy, walldata))
+
+        if inputtype in ["N0_3D"]:
+            self._gui.displayframe(NeutralFrame(self._gui, ascotpy, walldata))
+
+        if inputtype in ["wall_2D", "wall_3D"]:
+            self._gui.displayframe(WallFrame(self._gui, walldata))
 
 
     def select_inputs(self, options=None, bfield=None, efield=None, plasma=None,

@@ -1,28 +1,28 @@
 """
-Contains definition of BfieldFrame class.
+Contains definition of EfieldFrame class.
 
-File: bfieldframe.py
+File: efieldframe.py
 """
 import tkinter
 import tkinter.ttk as ttk
 
 import numpy as np
 
-from a5py.ascotpy.libbfield import LibBfield
+from a5py.ascotpy.libefield import LibEfield
 
 from .fieldframe import FieldFrame
 
-class BfieldFrame(FieldFrame):
+class EfieldFrame(FieldFrame):
     """
-    A frame for plotting magnetic field data.
+    A frame for plotting electric field data.
     """
 
     def __init__(self, gui, ascotpy, walldata=None):
         """
         Initialize and show default plot.
         """
-        ascotpy.init(bfield=True)
-        super().__init__(gui, ascotpy, LibBfield.quantities)
+        ascotpy.init(bfield=True, efield=True)
+        super().__init__(gui, ascotpy, LibEfield.quantities)
 
         self._walldata = walldata
 

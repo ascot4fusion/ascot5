@@ -56,9 +56,9 @@ class GUI:
         self._root.resizable(0, 0)
         self._root.title("ASCOT5 GUI")
 
+        self._ascotpy = None
         if h5fn is None:
-            self.ask_openfile()
-
+            self.ask_openascot()
         else:
             self._h5fn  = os.path.abspath(h5fn)
             self._ascot = ascot5.Ascot(self._h5fn)
@@ -68,7 +68,6 @@ class GUI:
         try:
             self._ascotpy = ascotpy.Ascotpy(self._h5fn)
         except Exception:
-            self._ascotpy = None
             messagebox.showwarning("Warning",
                                      "Could not initialize ascotpy.\n"
                                    + "Some features are disabled.")
