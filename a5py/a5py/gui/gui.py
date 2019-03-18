@@ -57,7 +57,7 @@ class GUI:
         self._root.title("ASCOT5 GUI")
 
         if h5fn is None:
-            self.ask_openfile()
+            self.ask_openascot()
 
         else:
             self._h5fn  = os.path.abspath(h5fn)
