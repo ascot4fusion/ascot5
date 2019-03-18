@@ -10,7 +10,7 @@ plt = util.find_spec("matplotlib")
 if plt:
     import matplotlib.pyplot as plt
     import matplotlib.backends.tkagg as tkagg
-    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 
 class PlotFrame(tkinter.Frame):
     """
@@ -28,20 +28,28 @@ class PlotFrame(tkinter.Frame):
         #toprow = tkinter.Frame(self, height=100)
         #botrow = tkinter.Frame(self)
 
-        indexpanel = tkinter.Frame(self, width=200, height=100)
-        toppanel   = tkinter.Frame(self, width=gui.width-100, height=100)
+        indexpanel = tkinter.Frame(self, width=250, height=100)
+        toppanel   = tkinter.Frame(self, width=gui.width-250, height=100)
         sidepanel  = tkinter.Frame(self, height=gui.height-100, width=200)
         backbutton = tkinter.Button(indexpanel, text="Back")
         canvas     = FigureCanvasTkAgg(self._fig, master=self)
 
+        # Navigation toolbars but without the coordinate display
+        class Toolbar(NavigationToolbar2TkAgg):
+            def set_message(self, msg):
+                pass
+        navbar = Toolbar(canvas, indexpanel)
+
         backbutton.config(command=self._backtoindex)
 
         backbutton.pack()
+        navbar.pack()
 
         indexpanel.grid(row=0, column=0)
         toppanel.grid(row=0, column=1)
         sidepanel.grid(row=1, column=0)
-        canvas.get_tk_widget().grid(row=1, column=1, sticky="NEWS", padx=10, pady=10)
+        canvas.get_tk_widget().grid(row=1, column=1, sticky="NEWS",
+                                    padx=10, pady=10)
 
         indexpanel.pack_propagate(0)
         toppanel.grid_propagate(0)
