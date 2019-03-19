@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <hdf5.h>
+#include <math.h>
 
 #include "ascot5.h"
 #include "simulate.h"
@@ -264,6 +265,110 @@ void libascot_B_field_get_axis(int Neval, real* phi, real* Raxis, real* zaxis) {
     for(int k = 0; k < Neval; k++) {
         Raxis[k] = B_field_get_axis_r(&sim.B_data, phi[k]);
         zaxis[k] = B_field_get_axis_z(&sim.B_data, phi[k]);
+    }
+}
+
+/**
+ * @brief Get Rz coordinates for uniform grid of rho values.
+ *
+ * Purpose of this function is to form a connection between rho and Rz
+ * coordinates.
+ *
+ * This function starts from magnetic axis (at given phi), and takes small steps
+ * in the direction of theta until the rho evaluated at that point exceeds
+ * rhomin. Rz coordinates of that point are recorded, and steps are continued
+ * until rhomax is reached and coordinates of that point are recorded.
+ * Interval [(Rmin, zmin), (Rmax,zmax)] is then divided to nrho uniform grid
+ * points and rho is evaluated at those points.
+ *
+ * @param nrho number of evaluation points.
+ * @param minrho minimum rho value.
+ * @param maxrho maximum rho value.
+ * @param theta poloidal angle [rad].
+ * @param phi toroidal angle [rad].
+ * @param t time coordinate [s].
+ * @param r output array for R coordinates [m].
+ * @param z output array for R coordinates [m].
+ * @param rho output array for rho values.
+ */
+void libascot_B_field_eval_rhovals(int nrho, real minrho, real maxrho,
+                                   real theta, real phi, real t,
+                                   real* r, real* z, real* rho) {
+    /* Maximum number of steps and step length [m] */
+    int NSTEP = 500;
+    real step = 0.01;
+
+    real Raxis = B_field_get_axis_r(&sim.B_data, phi);
+    real zaxis = B_field_get_axis_z(&sim.B_data, phi);
+
+    real psival, rho0;
+
+    /* Start evaluation from axis */
+    real R1 = Raxis;
+    real z1 = zaxis;
+    if(B_field_eval_psi(&psival, R1, phi, z1, t, &sim.B_data)) {
+        return;
+    }
+    if( B_field_eval_rho(&rho0, psival, &sim.B_data) ) {
+        return;
+    }
+
+    int iter = 0;
+    while(rho0 < minrho && iter < NSTEP) {
+        iter++;
+
+        R1 = Raxis + iter*step*cos(theta);
+        z1 = zaxis + iter*step*sin(theta);
+        if( B_field_eval_psi(&psival, R1, phi, z1, t, &sim.B_data) ) {
+            continue;
+        }
+        if( B_field_eval_rho(&rho0, psival, &sim.B_data) ) {
+            continue;
+        }
+    }
+    if(iter > 0) {
+        /* Value stored in rho0 is > minrho so we take previous R,z coordinates,
+         * since it is the last point where rho0 < minrho. */
+        R1 = Raxis + (iter-1)*step*cos(theta);
+        z1 = zaxis + (iter-1)*step*sin(theta);
+    }
+
+    if(iter == NSTEP) {
+        /* Maximum iterations reached. Abort. */
+        return;
+    }
+
+    real R2 = R1;
+    real z2 = z1;
+
+    iter = 0;
+    while(rho0 < maxrho && iter < NSTEP) {
+        iter++;
+
+        R2 = R1 + iter*step*cos(theta);
+        z2 = z1 + iter*step*sin(theta);
+        if( B_field_eval_psi(&psival, R2, phi, z2, t, &sim.B_data) ) {
+            break;
+        }
+        if( B_field_eval_rho(&rho0, psival, &sim.B_data) ) {
+            break;
+        }
+    }
+
+    /* With limits determined, we can make a simple linspace from (R1, z1) to
+     * (R2, z2) and evaluate rho at those points.                             */
+    real rstep = (R2 - R1) / (nrho-1);
+    real zstep = (z2 - z1) / (nrho-1);
+    for(int i=0; i<nrho; i++) {
+        r[i] = R1 + rstep*i;
+        z[i] = z1 + zstep*i;
+        if( B_field_eval_psi(&psival, r[i], phi, z[i], t, &sim.B_data) ) {
+            continue;
+        }
+        if( B_field_eval_rho(&rho0, psival, &sim.B_data) ) {
+            continue;
+        }
+        rho[i] = rho0;
     }
 }
 
