@@ -12,6 +12,9 @@ import numpy as np
 from a5py.ascotpy.libbfield  import LibBfield
 from a5py.ascotpy.libefield  import LibEfield
 from a5py.ascotpy.libneutral import LibNeutral
+from a5py.ascotpy.libboozer  import LibBoozer
+from a5py.ascotpy.libmhd     import LibMhd
+
 
 import importlib.util as util
 
@@ -19,7 +22,7 @@ plt = util.find_spec("matplotlib")
 if plt:
     import matplotlib.pyplot as plt
 
-class Ascotpy(LibBfield, LibEfield, LibNeutral):
+class Ascotpy(LibBfield, LibEfield, LibNeutral, LibBoozer, LibMhd):
     """
     One class to rule them all.
     """
@@ -69,6 +72,11 @@ class Ascotpy(LibBfield, LibEfield, LibNeutral):
             out = LibEfield.evaluate(self, R, phi, z, t, quantity)
         if quantity in LibNeutral.quantities:
             out = LibNeutral.evaluate(self, R, phi, z, t, quantity)
+        if quantity in LibBoozer.quantities:
+            out = LibBoozer.evaluate(self, R, phi, z, t, quantity)
+        if quantity in LibMhd.quantities:
+            out = LibMhd.evaluate(self, R, phi, z, t, quantity)
+
 
         if grid:
             out = np.reshape(out, arrsize)
