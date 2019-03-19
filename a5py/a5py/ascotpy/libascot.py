@@ -15,6 +15,8 @@ import os
 import warnings
 import numpy as np
 
+from scipy import interpolate
+
 from ctypes.util import find_library
 from numpy.ctypeslib import ndpointer
 from a5py.ascot5io.ascot5 import Ascot
@@ -111,6 +113,16 @@ class LibAscot:
             fun.argtypes = [ctypes.c_int, real_p, real_p, real_p]
         except AttributeError:
             warnings.warn("libascot_B_field_get_axis not found", Warning)
+            pass
+
+        try:
+            fun = self.libascot.libascot_B_field_eval_rhovals
+            fun.restype  = None
+            fun.argtypes = [ctypes.c_int,    ctypes.c_double, ctypes.c_double,
+                            ctypes.c_double, ctypes.c_double, ctypes.c_double,
+                            real_p, real_p, real_p]
+        except AttributeError:
+            warnings.warn("libascot_B_field_eval_rhovals not found", Warning)
             pass
 
         # E field functions.
@@ -591,6 +603,28 @@ class LibAscot:
             out["dmu0"][i,:,:]   = dmu0[:,:]
 
         return out
+
+    def get_rhotheta_rz(self, rhovals, theta, phi, time):
+        assert self.bfield_initialized, "Magnetic field not initialized"
+
+        rhovals = np.asarray(rhovals).ravel().astype(dtype="f8")
+
+        ngrid = 100
+        r   = np.zeros((ngrid,), dtype="f8")
+        z   = np.zeros((ngrid,), dtype="f8")
+        rho = np.zeros((ngrid,), dtype="f8")
+
+        self.libascot.libascot_B_field_eval_rhovals(
+            ngrid, np.min(rhovals), np.max(rhovals), theta, phi, time,
+            r, z, rho)
+
+        rho[0]  = rhovals[0]
+        rho[-1] = rhovals[-1]
+
+        fr = interpolate.interp1d(rho, r, fill_value="extrapolate")
+        fz = interpolate.interp1d(rho, z, fill_value="extrapolate")
+
+        return (fr(rhovals), fz(rhovals))
 
 
 def test():
