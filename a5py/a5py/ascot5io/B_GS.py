@@ -63,6 +63,8 @@ def write_hdf5(fn, r0, z0, bphi0, psimult, coefficients, psi0=None, psi1=None,
         psi0 = psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
                            c[5], c[6], c[7], c[8], c[9], c[10], c[11],
                            c[12]) * psimult
+        r0 = x[0]*r0
+        z0 = x[1]*r0
 
     if psi1 is None:
         psi1 = 0 # Always true at the separatrix
@@ -187,6 +189,8 @@ def write_hdf5_B_2DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
             c[7], c[8], c[9], c[10], c[11], c[12])
         psi0 = psi_mult*psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
             c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
+        R0 = x[0]*R0
+        z0 = x[1]*R0
 
     psi1 = 0
 
@@ -246,6 +250,8 @@ def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
             c[7], c[8], c[9], c[10], c[11], c[12])
         psi0 = psi_mult*psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
             c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
+        R0 = x[0]*R0
+        z0 = x[1]*R0
 
     psi1 = 0
 
