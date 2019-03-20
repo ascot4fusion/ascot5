@@ -16,18 +16,16 @@ if plt:
 
 class LibBoozer(LibAscot):
 
-    quantities = ["psi", "theta", "zeta", "dpsidr", "dpsidphi", "dpsidz",\
-                  "dthetadr", "dthetadphi", "dthetadz", "dzetadr", \
-                  "dzetadphi", "dzetadz"]
+    quantities = ["psi", "theta", "zeta", "dpsidr", "dpsidphi", "dpsidz", 
+"dthetadr", "dthetadphi", "dthetadz", "dzetadr", "dzetadphi", "dzetadz"]
 
     def evaluate(self, R, phi, z, t, quantity):
 
         out = None
 
-		if quantity in ["psi", "theta", "zeta", "dpsidr", "dpsidphi", "dpsidz",\
-                        "dthetadr", "dthetadphi", "dthetadz", "dzetadr", \
-                        "dzetadphi", "dzetadz"]:
-            out = self.eval_mhd(R, phi, z, t)[quantity]
+        if quantity in ["psi", "theta", "zeta", "dpsidr", "dpsidphi", "dpsidz", 
+"dthetadr", "dthetadphi", "dthetadz", "dzetadr", "dzetadphi", "dzetadz"]:
+             out = self.eval_mhd(R, phi, z, t)[quantity]
 
         assert out is not None, "Unknown quantity"
 
