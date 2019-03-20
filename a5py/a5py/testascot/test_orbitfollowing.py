@@ -49,7 +49,6 @@ m_e     = constants.physical_constants["electron mass"][0]
 c       = constants.physical_constants["speed of light in vacuum"][0]
 
 psi_mult  = 200
-R0        = 6.2
 z0        = 0
 Bphi0     = 5.3
 
@@ -172,6 +171,7 @@ def init():
     #*                     Construct ITER-like magnetic field                  #
     #*                                                                         #
     #**************************************************************************#
+    R0 = 6.0
     if use_spline:
         B_GS.write_hdf5(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
                         desc="ORBFOL_GO")
@@ -248,6 +248,8 @@ def check():
     - And one that shows trajectories on a Rz plane for all cases
     """
     a5 = ascot5.Ascot(helpers.testfn)
+
+    R0 = a5["ORBFOL_GO"].bfield.read()["r0"]
 
     f = plt.figure(figsize=(11.9/2.54, 8/2.54))
     plt.rc('xtick', labelsize=10)
