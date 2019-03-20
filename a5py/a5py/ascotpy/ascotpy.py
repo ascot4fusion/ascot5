@@ -94,6 +94,7 @@ class Ascotpy(LibBfield, LibEfield, LibNeutral):
             axes = plt.gca()
 
         mesh = axes.pcolormesh(R, z, np.transpose(out[:,0,:,0]))
+        plt.colorbar(mesh)
         axes.axis("image")
 
         if newfig:
