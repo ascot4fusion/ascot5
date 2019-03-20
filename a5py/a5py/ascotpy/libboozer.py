@@ -25,7 +25,7 @@ class LibBoozer(LibAscot):
 
         if quantity in ["psi", "theta", "zeta", "dpsidr", "dpsidphi", "dpsidz", 
 "dthetadr", "dthetadphi", "dthetadz", "dzetadr", "dzetadphi", "dzetadz"]:
-             out = self.eval_mhd(R, phi, z, t)[quantity]
+             out = self.eval_boozer(R, phi, z, t)[quantity]
 
         assert out is not None, "Unknown quantity"
 
