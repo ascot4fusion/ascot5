@@ -25,37 +25,37 @@ def read_1d(fh):
     pls['nrho'] = nrho
     pls['nion'] = nion
     fh.readline() # ignore headers
-    data = np.loadtxt(fh)
-    pls['rho'] = np.array(data[:,0])
-    pls['te'] = np.array(data[:,1])
-    pls['ne'] = np.array(data[:,2])
-    pls['vtor'] = np.array(data[:,3])
-    pls['ti1'] = np.array(data[:,4])
+    h5data = np.loadtxt(fh)
+    pls['rho'] = np.array(h5data[:,0])
+    pls['te'] = np.array(h5data[:,1])
+    pls['ne'] = np.array(h5data[:,2])
+    pls['vtor'] = np.array(h5data[:,3])
+    pls['ti1'] = np.array(h5data[:,4])
     for i in range(0,nion):
-        pls['ni'+str(i+1)] = np.array(data[:,5+i])
+        pls['ni'+str(i+1)] = np.array(h5data[:,5+i])
     return pls
 
 def read_2d(fh):
-    str = {'comm1' : fh.readline(),'comm2' : fh.readline(),'comm3' : fh.readline()}
+    data = {'comm1' : fh.readline(),'comm2' : fh.readline(),'comm3' : fh.readline()}
     nr,nz = [int(number) for number in fh.readline().split()[:2]]
     rmin,rmax,zmin,zmax = [float(number) for number in fh.readline().split()[:4]]
     nion,rho2d = [float(number) for number in fh.readline().split()[:2]]
     nion = int(nion)
-    str['znum'] = np.array([float(znum) for znum in fh.readline().split()[:nion]])
-    str['anum'] = np.array([float(anum) for anum in fh.readline().split()[:nion]])
-    str['coll'] = np.array([float(coll) for coll in fh.readline().split()[:nion+1]])
+    data['znum'] = np.array([float(znum) for znum in fh.readline().split()[:nion]])
+    data['anum'] = np.array([float(anum) for anum in fh.readline().split()[:nion]])
+    data['coll'] = np.array([float(coll) for coll in fh.readline().split()[:nion+1]])
     fieldnames = fh.readline().split()[0:-1:2]
-    data = loadtxt(fh)
-    str['r'] = linspace(rmin,rmax,nr)
-    str['z'] = linspace(zmin,zmax,nz)
+    h5data = loadtxt(fh)
+    data['r'] = linspace(rmin,rmax,nr)
+    data['z'] = linspace(zmin,zmax,nz)
     for i,name in enumerate(fieldnames):
-        str[name.lower()] = data[:,i].reshape(nr,nz).T
+        data[name.lower()] = h5data[:,i].reshape(nr,nz).T
 
-    if(i+1 < shape(data)[1]):
+    if(i+1 < shape(h5data)[1]):
         print('Not all data fields assigned to struct')
         print('Something is probably wrong with the data file')
 
-    return str
+    return data
 
 def write_plasma_1d(fn, p):
     dens_i = np.array([p['ni'+str(i)] for i in range(1,p['nion']+1)])

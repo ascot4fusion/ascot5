@@ -30,15 +30,15 @@ def read_magn_bkg(fn,hdrfn):
         data['phimap_tor'] = np.array([int(number) for number in fh.readline().split()])
         data['phimap_pol'] = np.array([int(number) for number in fh.readline().split()])
 
-        data = np.array(fh.read().split(), dtype=float).flatten()
+        h5data = np.array(fh.read().split(), dtype=float).flatten()
 
         sz2d = nr*nz
         sz3d = nr*nz*data['nPhi']
-        data['psi']  = data[:sz2d].reshape(nz,nr)
-        print(np.shape(data),nz,data['nPhi'],nr,sz2d,sz3d)
-        data['br']   = data[sz2d+0*sz3d:sz2d+1*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
-        data['bphi'] = data[sz2d+1*sz3d:sz2d+2*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
-        data['bz']   = data[sz2d+2*sz3d:sz2d+3*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
+        data['psi']  = h5data[:sz2d].reshape(nz,nr)
+        print(np.shape(h5data),nz,data['nPhi'],nr,sz2d,sz3d)
+        data['br']   = h5data[sz2d+0*sz3d:sz2d+1*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
+        data['bphi'] = h5data[sz2d+1*sz3d:sz2d+2*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
+        data['bz']   = h5data[sz2d+2*sz3d:sz2d+3*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
 
         data['psi']  = np.transpose(data['psi'])
         data['br']   = np.transpose(data['br'])
