@@ -162,7 +162,7 @@ def write_hdf5_B_2DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
             Scaling factor for psi-
         psi_coeff : real 13 x 1 numpy array
             Coefficients defining psi.
-        Rlim, Rmax, zmin, zmax : real
+        Rmin, Rmax, zmin, zmax : real
             Edges of the uniform Rz-grid.
         nR, nz : int
             Number of Rz-grid points.
