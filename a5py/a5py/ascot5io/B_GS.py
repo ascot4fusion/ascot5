@@ -225,7 +225,7 @@ def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
             Ripple penetration, default is 2
         delta0 : real, optional
             Ripple strength, default is 0.05
-        Rlim, Rmax, zmin, zmax, phimin, phimax : real
+        Rmin, Rmax, zmin, zmax, phimin, phimax : real
             Edges of the uniform Rphiz-grid.
         nR, nz, nphi : int
             Number of Rphiz-grid points.
