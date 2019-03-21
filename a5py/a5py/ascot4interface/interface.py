@@ -113,7 +113,7 @@ def read_bfield(a4folder, h5fn):
             data['phi'][0], data['phi'][-1], data['phi'].size - 1,
             psilims[0], psilims[1],
             data['br'], data['bphi'], data['bz'], data['s'],
-            data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
+            data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size-1,
             data['axis_r'], data['axis_z'])
         print("Searching for psiaxis and psisepx.")
         try:
@@ -132,7 +132,7 @@ def read_bfield(a4folder, h5fn):
             data['phi'][0], data['phi'][-1], data['phi'].size - 1,
             psilims[0], psilims[1],
             data['br'], data['bphi'], data['bz'], data['s'],
-            data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
+            data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size-1,
             data['axis_r'], data['axis_z'])
 
 def read_plasma(a4folder, h5fn):

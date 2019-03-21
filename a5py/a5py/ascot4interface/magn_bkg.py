@@ -103,7 +103,6 @@ def read_magn_bkg_stellarator(fn):
         if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
             print("Warning! Removing duplicated axis datapoint.")
             data['axis_r'] = data['axis_r'][0:-1]
-            data['axis_phi'] = data['axis_phi'][0:-1]
             data['axis_z'] = data['axis_z'][0:-1]
         # Transpose to ascot5io format
         data['br']   = np.transpose(data['br'],   (2,1,0))
@@ -179,17 +178,17 @@ def bfield_psi_lims(data, h5fn):
         raise err
     # Initial guess for psi0
     psi0 = np.amin(data['s'])
-    for i in range(data['axis_phi'].size):
+    for i in range(data['axis_r'].size):
         psii = fmin(
-            lambda x: a5.eval_bfield(x[0],x[1],x[2],0,evalpsi=1)['psi'],
+            lambda x: a5.eval_bfield(x[0],x[1],x[2],0,evalrho=1)['psi'],
             [data['axis_r'][i], data['axis_phi'][i], data['axis_z'][i]],
             disp=0, full_output=1)[1]
         psi0 = np.amin([psi0, psii])
     # Initial guess for psi1
     psi1 = np.amax(data['s'])
-    for i in range(data['axis_phi'].size):
+    for i in range(data['axis_r'].size):
         psii = fmin(
-            lambda x: -a5.eval_bfield(x[0],x[1],x[2],0,evalpsi=1)['psi'],
+            lambda x: -a5.eval_bfield(x[0],x[1],x[2],0,evalrho=1)['psi'],
             [data['axis_r'][i], data['axis_phi'][i], data['axis_z'][i]],
             disp=0, full_output=1)[1]
         psii = -psii            # Back to a positive value
