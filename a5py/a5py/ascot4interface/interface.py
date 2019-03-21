@@ -13,17 +13,18 @@ import a5py.ascot4interface.erad     as a4erad
 import a5py.ascot4interface.wall_2d  as a4wall_2d
 import a5py.ascot4interface.wall_3d  as a4wall_3d
 
-import a5py.ascot5io.B_2DS     as B_2DS
-import a5py.ascot5io.B_3DS     as B_3DS
-import a5py.ascot5io.B_STS     as B_STS
-import a5py.ascot5io.N0_3D     as N0_3D
-import a5py.ascot5io.plasma_1D as plasma_1D
-import a5py.ascot5io.mrk_prt   as mrk_prt
-import a5py.ascot5io.mrk_gc    as mrk_gc
-import a5py.ascot5io.E_TC      as E_TC
-import a5py.ascot5io.E_1DS     as E_1DS
-import a5py.ascot5io.wall_2D   as wall_2D
-import a5py.ascot5io.wall_3D   as wall_3D
+import a5py.ascot5io.B_2DS       as B_2DS
+import a5py.ascot5io.B_3DS       as B_3DS
+import a5py.ascot5io.B_STS       as B_STS
+import a5py.ascot5io.N0_3D       as N0_3D
+import a5py.ascot5io.plasma_1D   as plasma_1D
+import a5py.ascot5io.mrk_prt     as mrk_prt
+import a5py.ascot5io.mrk_gc      as mrk_gc
+import a5py.ascot5io.E_TC        as E_TC
+import a5py.ascot5io.E_1DS       as E_1DS
+import a5py.ascot5io.wall_2D     as wall_2D
+import a5py.ascot5io.wall_3D     as wall_3D
+import a5py.ascot5io.ascot5tools as a5tools
 
 from a5py.postprocessing.physicslib import guessMass
 
@@ -106,7 +107,7 @@ def read_bfield(a4folder, h5fn):
                 return
         data = a4magn_bkg.read_magn_bkg_stellarator(fnameh5)
         psilims = [0, 1]
-        B_STS.write_hdf5(
+        temp_B_name = B_STS.write_hdf5(
             h5fn,
             data['r'][0], data['r'][-1], data['r'].size,
             data['z'][0], data['z'][-1], data['z'].size,
@@ -125,6 +126,7 @@ def read_bfield(a4folder, h5fn):
             print("This might take a while...")
             psilims = a4magn_bkg.stellarator_psi_lims(data)
         print("New limits: [" + str(psilims[0]) + ", " + str(psilims[1]) + "]")
+        a5tools.removegroup(h5fn, temp_B_name)
         B_STS.write_hdf5(
             h5fn,
             data['r'][0], data['r'][-1], data['r'].size,
