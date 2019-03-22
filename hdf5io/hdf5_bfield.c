@@ -591,6 +591,10 @@ int hdf5_bfield_read_GS(hid_t f, B_GS_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BPATH "z0", &(offload_data->z0),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "raxis", &(offload_data->raxis),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(BPATH "zaxis", &(offload_data->zaxis),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BPATH "bphi0", &(offload_data->B_phi0),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BPATH "psi0", &(offload_data->psi0),
