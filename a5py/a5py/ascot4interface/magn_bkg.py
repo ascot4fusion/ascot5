@@ -176,21 +176,37 @@ def bfield_psi_lims(data, h5fn):
         a5.init(bfield=1)
     except OSError as err:
         raise err
+    # Approximate a small deviation from the magnetic axis
+    diff_r = np.amax(np.abs(np.diff(data['axis_r'])))
+    diff_z = np.amax(np.abs(np.diff(data['axis_z'])))
+    # For every phi angle, we generate ndiff points around the axis
+    ndiff = 5
+    diff_angles = np.linspace(0, 2*np.pi, ndiff)[:-1]
     # Initial guess for psi0
     psi0 = np.amin(data['s'])
     for i in range(data['axis_r'].size):
-        psii = fmin(
-            lambda x: a5.eval_bfield(x[0],x[1],x[2],0,evalrho=1)['psi'],
-            [data['axis_r'][i], data['axis_phi'][i], data['axis_z'][i]],
-            disp=0, full_output=1)[1]
-        psi0 = np.amin([psi0, psii])
+        for angle in diff_angles:
+            psii = fmin(
+                lambda x: a5.eval_bfield(x[0],x[1],x[2],0,evalrho=1)['psi'],
+                [data['axis_r'][i] + np.cos(angle) * diff_r,
+                 data['axis_phi'][i],
+                 data['axis_z'][i] + np.sin(angle) * diff_z],
+                disp=0, full_output=1)[1]
+            psi0 = np.amin([psi0, psii])
     # Initial guess for psi1
     psi1 = np.amax(data['s'])
     for i in range(data['axis_r'].size):
-        psii = fmin(
-            lambda x: -a5.eval_bfield(x[0],x[1],x[2],0,evalrho=1)['psi'],
-            [data['axis_r'][i], data['axis_phi'][i], data['axis_z'][i]],
-            disp=0, full_output=1)[1]
-        psii = -psii            # Back to a positive value
-        psi1 = np.amax([psi1, psii])
+        for angle in diff_angles:
+            psii = fmin(
+                lambda x: -a5.eval_bfield(x[0],x[1],x[2],0,evalrho=1)['psi'],
+                [data['axis_r'][i] + np.cos(angle) * diff_r,
+                 data['axis_phi'][i],
+                 data['axis_z'][i] + np.sin(angle) * diff_z],
+                disp=0, full_output=1)[1]
+            psii = -psii            # Back to a positive value
+            psi1 = np.amax([psi1, psii])
+    # For extra buffering, quadruple the difference between given and calculated
+    # phi0 and phi1
+    psi0 = psi0 - 3*(np.amin(data['s']) - psi0)
+    psi1 = psi1 + 3*(psi1 - np.amax(data['s']))
     return psi0, psi1
