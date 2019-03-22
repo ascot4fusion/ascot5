@@ -288,10 +288,10 @@ class LibAscot:
             self.boozer_initialized = True
 
         if mhd and self.mhd_initialized:
-            warnings.warn("Neutral data already initialized.", Warning)
+            warnings.warn("MHD data already initialized.", Warning)
         if mhd:
             if self.libascot.libascot_init(self.h5fn, 0, 0, 0, 0, 0, 0, 1) :
-                raise RuntimeError("Failed to initialize mhd data")
+                raise RuntimeError("Failed to initialize MHD data")
 
             self.mhd_initialized = True
 
