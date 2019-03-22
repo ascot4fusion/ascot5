@@ -54,7 +54,7 @@ Ti   = 1e3
 ni   = np.power( 10, np.linspace(17.5, 22.0, nscan) )
 Ekin = 1e3
 
-R0 = 6.0
+R0 = 6.2
 r0 = 1.0
 z0 = 0
 B0 = 5.3
@@ -99,8 +99,8 @@ def init():
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
     for i in range(1, nscan+1):
-        odict["ENDCOND_MAX_SIMTIME"]   = np.maximum( 3e-4,
-                                                     3e-2 / (ni[i-1]/ni[0]) )
+        odict["ENDCOND_MAX_SIMTIME"]   = np.maximum( 5e-4,
+                                                     4e-2 / (ni[i-1]/ni[0]) )
         odict["FIXEDSTEP_USERDEFINED"] = np.minimum( 2e-9,
                                                      3e-10 / (ni[i-1]/ni[-1]) )
         options.write_hdf5(helpers.testfn, odict,
@@ -120,8 +120,8 @@ def init():
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
     for i in range(1, nscan+1):
-        odict["ENDCOND_MAX_SIMTIME"]   = np.maximum( 3e-4,
-                                                     3e-2 / (ni[i-1]/ni[0]) )
+        odict["ENDCOND_MAX_SIMTIME"]   = np.maximum( 5e-4,
+                                                     4e-2 / (ni[i-1]/ni[0]) )
         odict["FIXEDSTEP_USERDEFINED"] = np.minimum( 2e-8,
                                                      5e-10 / (ni[i-1]/ni[-1]) )
         options.write_hdf5(helpers.testfn, odict,
@@ -147,8 +147,8 @@ def init():
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
     for i in range(1, nscan+1):
-        odict["ENDCOND_MAX_SIMTIME"] = np.maximum( 3e-4,
-                                                   3e-2 / (ni[i-1]/ni[0]) )
+        odict["ENDCOND_MAX_SIMTIME"] = np.maximum( 5e-4,
+                                                   4e-2 / (ni[i-1]/ni[0]) )
         options.write_hdf5(helpers.testfn, odict,
                            desc="NEOCLASS_GCA" + str(i))
 
@@ -266,7 +266,7 @@ def check():
     """
 
     a5 = ascot5.Ascot(helpers.testfn)
-    axisr = a5["NEOCLASS_GO1"].bfield.read()["r0"][:][0]
+    axisr = a5["NEOCLASS_GO1"].bfield.read()["raxis"][:][0]
 
     # Map rho values to R outer mid-plane values
     R_omp    = np.linspace(axisr,8.4,1000)
@@ -364,7 +364,7 @@ def check():
     h = plt.gca()
     h.set_position([0.15, 0.25, 0.82, 0.7], which='both')
 
-    h.plot(np.log10(np.power([eps, eps], 3.0/2.0)), np.array([-6, 0]), 'black')
+    h.plot(np.log10(np.power([eps, eps], 3.0/2.0)), np.array([-6, 0]), 'grey')
     h.plot(np.log10(np.array([1, 1])), np.array([-6, 0]), 'grey')
 
     h.plot(np.log10(veff_x), np.log10(DGO), linestyle='none', marker='*',
@@ -391,9 +391,9 @@ def check():
                             '$10^{-2}$', '$10^{-1}$'])
     h.set(xlabel=r"$\log_{10}\nu^*$", ylabel=r"$D$ [m$^2$/s]")
 
-    h.text(-1.32, -5.7, r"$\nu^*=\epsilon^{3/2}$", fontsize=10,
+    h.text(-1.9, -5.7, r"$\nu^*=\epsilon^{3/2}$", fontsize=10,
            bbox={'facecolor':'white', 'edgecolor':'none', 'pad':0})
-    h.text(-0.17, -5.7, r"$\nu^*=1$", fontsize=10,
+    h.text(-0.25, -5.7, r"$\nu^*=1$", fontsize=10,
            bbox={'facecolor':'white', 'edgecolor':'none', 'pad':0})
     h.text(-2.5, -4, r"$D_{B}$", fontsize=10)
     h.text(-0.8, -3, r"$D_{P}$", fontsize=10)

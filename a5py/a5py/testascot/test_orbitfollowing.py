@@ -49,6 +49,7 @@ m_e     = constants.physical_constants["electron mass"][0]
 c       = constants.physical_constants["speed of light in vacuum"][0]
 
 psi_mult  = 200
+R0        = 6.2
 z0        = 0
 Bphi0     = 5.3
 
@@ -171,7 +172,6 @@ def init():
     #*                     Construct ITER-like magnetic field                  #
     #*                                                                         #
     #**************************************************************************#
-    R0 = 6.0
     if use_spline:
         B_GS.write_hdf5(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
                         desc="ORBFOL_GO")
@@ -249,7 +249,7 @@ def check():
     """
     a5 = ascot5.Ascot(helpers.testfn)
 
-    R0 = a5["ORBFOL_GO"].bfield.read()["r0"]
+    raxis = R0#a5["ORBFOL_GO"].bfield.read()["raxis"]
 
     f = plt.figure(figsize=(11.9/2.54, 8/2.54))
     plt.rc('xtick', labelsize=10)
@@ -284,7 +284,7 @@ def check():
     B = np.sqrt( orb["br"] * orb["br"] + orb["bphi"] * orb["bphi"] +
                  orb["bz"] * orb["bz"] )
 
-    psi = psifun(orb["r"]/R0, orb["z"]/R0, psi_coeff[0], psi_coeff[1],
+    psi = psifun(orb["r"]/raxis, orb["z"]/raxis, psi_coeff[0], psi_coeff[1],
                  psi_coeff[2], psi_coeff[3], psi_coeff[4], psi_coeff[5],
                  psi_coeff[6], psi_coeff[7], psi_coeff[8], psi_coeff[9],
                  psi_coeff[10], psi_coeff[11], psi_coeff[12]) * psi_mult
@@ -337,7 +337,7 @@ def check():
     B = np.sqrt(np.power(orb["br"],2) + np.power(orb["bphi"],2) +
                 np.power(orb["bz"],2))
 
-    psi = psifun(orb["r"]/R0, orb["z"]/R0, psi_coeff[0], psi_coeff[1],
+    psi = psifun(orb["r"]/raxis, orb["z"]/raxis, psi_coeff[0], psi_coeff[1],
                  psi_coeff[2], psi_coeff[3], psi_coeff[4], psi_coeff[5],
                  psi_coeff[6], psi_coeff[7], psi_coeff[8], psi_coeff[9],
                  psi_coeff[10], psi_coeff[11], psi_coeff[12]) * psi_mult
@@ -384,7 +384,7 @@ def check():
     B = np.sqrt(np.power(orb["br"],2) + np.power(orb["bphi"],2) +
                 np.power(orb["bz"],2))
 
-    psi = psifun(orb["r"]/R0, orb["z"]/R0, psi_coeff[0], psi_coeff[1],
+    psi = psifun(orb["r"]/raxis, orb["z"]/raxis, psi_coeff[0], psi_coeff[1],
                  psi_coeff[2], psi_coeff[3], psi_coeff[4], psi_coeff[5],
                  psi_coeff[6], psi_coeff[7], psi_coeff[8], psi_coeff[9],
                  psi_coeff[10], psi_coeff[11], psi_coeff[12]) * psi_mult
