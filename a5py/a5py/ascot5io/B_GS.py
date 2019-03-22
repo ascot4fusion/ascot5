@@ -214,7 +214,7 @@ def write_hdf5_B_2DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
 def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
                      Nripple, a0, alpha0, delta0,
                      Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
-                     psi0=None, desc=None):
+                     psi0=None, raxis=None, zaxis=None, desc=None):
     """
     Write analytical tokamak magnetic field as a 3D field input in HDF5 file.
 
@@ -256,22 +256,7 @@ def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     Bz = np.zeros((nR, nphi, nz))
     Bphi = np.zeros((nR, nphi, nz))
 
-    # search for magnetic axis if not given
-    if psi0 == None:
-        x = psifun.find_axis(R0, z0, c[0], c[1], c[2], c[3], c[4], c[5], c[6],
-            c[7], c[8], c[9], c[10], c[11], c[12])
-        psi0 = psi_mult*psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
-            c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
-        R0 = x[0]*R0
-        z0 = x[1]*R0
-
-    psi1 = 0
-
-    axisRz = np.array([R0, z0])
-    axispsi = psi_mult*psifun.psi0(R0/R0,z0/R0,c[0],c[1],c[2],c[3],c[4],c[5],
-                                   c[6],c[7],c[8],c[9],c[10],c[11],c[12])
-    psivals = np.array([axispsi, 0.0])
-
+    # Ripple
     radius = np.sqrt( ( Rg - R0 ) * ( Rg - R0 ) + ( zg - z0 ) * ( zg - z0 ))
     theta = np.arctan2( zg - z0, Rg - R0 )
     delta = delta0 * np.exp(-0.5*theta*theta) * np.power( radius / a0, alpha0 )
@@ -282,8 +267,19 @@ def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     for i in range(0,nphi):
         Bphi[:,i,:] = ((R0/Rg)*B_phi0 * ( 1 + delta * np.cos(Nripple * phigrid[i]) ))
 
+    # search for magnetic axis if not given
+    if psi0 == None:
+        x = psifun.find_axis(R0, z0, c[0], c[1], c[2], c[3], c[4], c[5], c[6],
+            c[7], c[8], c[9], c[10], c[11], c[12])
+        psi0 = psi_mult*psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
+            c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
+        raxis = x[0]*R0
+        zaxis = x[1]*R0
+
+    psi1 = 0
+
     return B_3DS.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax,
-                            nphi, R0, z0, psiRz, psi0, psi1,
+                            nphi, raxis, zaxis, psiRz, psi0, psi1,
                             Br, Bphi, Bz, desc=desc)
 
 
