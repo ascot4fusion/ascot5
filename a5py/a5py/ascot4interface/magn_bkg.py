@@ -94,21 +94,21 @@ def read_magn_bkg_stellarator(fn):
             print("Warning! No symmetry mode specified in input.h5/bfield")
             print("Defaulting to stellarator symmetry")
             data['symmetrymode'] = 0
-        if (data['phi'][0] == np.mod(data['phi'][-1],360/data['n_periods'])):
-            print("Warning! Removing duplicate bfield data point.")
-            data = bfield_remove_duplicate_phi(data)
-        if(data['symmetrymode'] == 0):
-            print("Converting stellarator symmetric input to periodic.")
-            data = stellarator_bfield_sector2full(data)
-        if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
-            print("Warning! Removing duplicated axis datapoint.")
-            data['axis_r'] = data['axis_r'][0:-1]
-            data['axis_z'] = data['axis_z'][0:-1]
-        # Transpose to ascot5io format
-        data['br']   = np.transpose(data['br'],   (2,1,0))
-        data['bphi'] = np.transpose(data['bphi'], (2,1,0))
-        data['bz']   = np.transpose(data['bz'],   (2,1,0))
-        data['s']    = np.transpose(data['s'],    (2,1,0))
+    if (data['phi'][0] == np.mod(data['phi'][-1],360/data['n_periods'])):
+        print("Warning! Removing duplicate bfield data point.")
+        data = bfield_remove_duplicate_phi(data)
+    if(data['symmetrymode'] == 0):
+        print("Converting stellarator symmetric input to periodic.")
+        data = stellarator_bfield_sector2full(data)
+    if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
+        print("Warning! Removing duplicated axis datapoint.")
+        data['axis_r'] = data['axis_r'][0:-1]
+        data['axis_z'] = data['axis_z'][0:-1]
+    # Transpose to ascot5io format
+    data['br']   = np.transpose(data['br'],   (2,1,0))
+    data['bphi'] = np.transpose(data['bphi'], (2,1,0))
+    data['bz']   = np.transpose(data['bz'],   (2,1,0))
+    data['s']    = np.transpose(data['s'],    (2,1,0))
 
     return data
 
