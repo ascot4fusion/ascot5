@@ -285,14 +285,14 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
  */
 a5err mhd_perturbations(real pert_field[6], real r, real phi,
                         real z, real t, boozer_data* boozerdata,
-                        mhd_data* mhddata, B_field_data* Bdata){
+                        mhd_data* mhddata, B_field_data* Bdata) {
     a5err err = 0;
     real mhd_dmhd[10];
-    mhd_eval(mhd_dmhd, r, phi, z, t, boozerdata, mhddata,Bdata);
+    err = mhd_eval(mhd_dmhd, r, phi, z, t, boozerdata, mhddata,Bdata);
 
     /*  see example of curl evaluation in step_gc_rk4.c, ydot_gc*/
     real B_dB[12];
-    B_field_eval_B_dB(B_dB, r, phi, z, t, Bdata);
+    err = B_field_eval_B_dB(B_dB, r, phi, z, t, Bdata);
 
     real B[3];
     B[0] = B_dB[0];
