@@ -51,6 +51,6 @@ class NeutralFrame(FieldFrame):
         self.ascotpy.plotseparatrix(r, phi, z, time, axes)
 
         if self._walldata is not None:
-            self._walldata.plotRz(axes=axes)
+            self._walldata.plotRz(axes=axes, phi=phi)
 
         self.draw()
