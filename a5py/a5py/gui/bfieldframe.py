@@ -51,6 +51,6 @@ class BfieldFrame(FieldFrame):
         self.ascotpy.plotseparatrix(r, phi, z, time, axes)
 
         if self._walldata is not None:
-            self._walldata.plotRz(axes=axes)
+            self._walldata.plotRzphi(phi, axes=axes)
 
         self.draw()
