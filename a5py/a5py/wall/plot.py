@@ -40,9 +40,8 @@ def plot_projection(x1x2x3, y1y2y3, z1z2z3, axes=None):
 
     r1r2r3 = r1r2r3.ravel()
     z1z2z3 = z1z2z3.ravel()
-    for i in range(r1r2r3.size):
-        axes.plot(r1r2r3[i], z1z2z3[i], marker=".", markeredgecolor="black",
-                  linestyle="None")
+    axes.plot(r1r2r3, z1z2z3, marker=".", markeredgecolor="black",
+              linestyle="None")
     axes.axis("scaled")
 
     if newfig:
