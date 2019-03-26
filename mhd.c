@@ -179,8 +179,7 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
                B_field_data* Bdata) {
 
     a5err err = 0;
-
-    real ptz[12];
+    real ptz[12];    
     int isinside;
     boozer_eval_psithetazeta(ptz, &isinside, r, phi, z, boozerdata);
 
@@ -241,6 +240,8 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
                - a_da[0] * mhddata->mmode[i] * ptz[6]  * cosmhd
                + a_da[0] * mhddata->nmode[i] * ptz[10] * cosmhd);
 
+
+
         mhd_dmhd[8] += (1/r) * mhddata->amplitude_nm[i]
             * (   phi_dphi[1] * ptz[2] * sinmhd
                 - phi_dphi[0] * mhddata->mmode[i] * ptz[6]  * cosmhd
@@ -287,11 +288,10 @@ a5err mhd_perturbations(real pert_field[6], real r, real phi,
                         real z, real t, boozer_data* boozerdata,
                         mhd_data* mhddata, B_field_data* Bdata) {
     a5err err = 0;
-    real mhd_dmhd[10];
+    real mhd_dmhd[10] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,0.0};
     err = mhd_eval(mhd_dmhd, r, phi, z, t, boozerdata, mhddata,Bdata);
-
     /*  see example of curl evaluation in step_gc_rk4.c, ydot_gc*/
-    real B_dB[12];
+    real B_dB[15];
     err = B_field_eval_B_dB(B_dB, r, phi, z, t, Bdata);
 
     real B[3];
@@ -321,6 +321,7 @@ a5err mhd_perturbations(real pert_field[6], real r, real phi,
     pert_field[3] = -1*mhd_dmhd[7] + -1*B[0]*mhd_dmhd[1];
     pert_field[4] = -1*mhd_dmhd[8] + -1*B[1]*mhd_dmhd[1];
     pert_field[5] = -1*mhd_dmhd[9] + -1*B[2]*mhd_dmhd[1];
+    
 
     return err;
 }
