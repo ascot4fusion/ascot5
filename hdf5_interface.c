@@ -336,6 +336,12 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     H5LTget_attribute_string(fin, "/marker/", "active", inputqid);
     hdf5_write_string_attribute(fout, path, "qid_marker",  inputqid);
 
+    H5LTget_attribute_string(fin, "/boozer/", "active", inputqid);
+    hdf5_write_string_attribute(fout, path, "qid_boozer",  inputqid);
+
+    H5LTget_attribute_string(fin, "/mhd/", "active", inputqid);
+    hdf5_write_string_attribute(fout, path, "qid_mhd",  inputqid);
+
     hdf5_close(fin);
 
     /* Set a description, repository status, and date; close the file. */
