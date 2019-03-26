@@ -384,20 +384,19 @@ void libascot_B_field_eval_rhovals(int nrho, real minrho, real maxrho,
  * @param Ephi output array [V/m].
  * @param Ez output array [V/m].
  */
-int libascot_E_field_eval_E(int Neval, real* R, real* phi, real* z, real* t,
-                            real* ER, real* Ephi, real* Ez) {
+void libascot_E_field_eval_E(int Neval, real* R, real* phi, real* z, real* t,
+                             real* ER, real* Ephi, real* Ez) {
 
     real E[3];
     for(int k = 0; k < Neval; k++) {
         if( E_field_eval_E(E, R[k], phi[k], z[k], t[k],
                            &sim.E_data, &sim.B_data) ) {
-            return 1;
+            continue;
         }
         ER[k]   = E[0];
         Ephi[k] = E[1];
         Ez[k]   = E[2];
     }
-    return 0;
 }
 
 /**
@@ -439,31 +438,31 @@ void libascot_plasma_get_species_mass_and_charge(real* mass, real* charge) {
  *
  * @return zero if evaluation succeeded.
  */
-int libascot_plasma_eval_background(int Neval, real* R, real* phi, real* z,
-                                    real* t, real* dens, real* temp) {
+void libascot_plasma_eval_background(int Neval, real* R, real* phi, real* z,
+                                     real* t, real* dens, real* temp) {
 
     int n_species = plasma_get_n_species(&sim.plasma_data);
     real psi[1];
     real rho[1];
-    real n[n_species];
-    real T[n_species];
+    real n[MAX_SPECIES];
+    real T[MAX_SPECIES];
+
     for(int k = 0; k < Neval; k++) {
         if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
-            return 1;
+            continue;
         }
         if( B_field_eval_rho(rho, psi[0], &sim.B_data) ) {
-            return 1;
+            continue;
         }
         if( plasma_eval_densandtemp(n, T, rho[0], R[k], phi[k], z[k], t[k],
                                     &sim.plasma_data) ) {
-            return 1;
+            continue;
         }
         for(int i=0; i<n_species; i++) {
             dens[k + i*Neval] = n[i];
             temp[k + i*Neval] = T[i];
         }
     }
-    return 0;
 }
 
 /**
@@ -478,17 +477,16 @@ int libascot_plasma_eval_background(int Neval, real* R, real* phi, real* z,
  *
  * @return zero if evaluation succeeded.
  */
-int libascot_neutral_eval_density(int Neval, real* R, real* phi, real* z,
-                                  real* t, real* dens) {
+void libascot_neutral_eval_density(int Neval, real* R, real* phi, real* z,
+                                   real* t, real* dens) {
 
     real n0[1];
     for(int k = 0; k < Neval; k++) {
         if( neutral_eval_n0(n0, R[k], phi[k], z[k], t[k], &sim.neutral_data) ) {
-            return 1;
+            continue;
         }
         dens[k] = n0[0];
     }
-    return 0;
 }
 
 /**
