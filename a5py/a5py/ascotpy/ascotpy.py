@@ -11,6 +11,7 @@ import numpy as np
 
 from a5py.ascotpy.libbfield  import LibBfield
 from a5py.ascotpy.libefield  import LibEfield
+from a5py.ascotpy.libplasma  import LibPlasma
 from a5py.ascotpy.libneutral import LibNeutral
 
 import importlib.util as util
@@ -19,7 +20,7 @@ plt = util.find_spec("matplotlib")
 if plt:
     import matplotlib.pyplot as plt
 
-class Ascotpy(LibBfield, LibEfield, LibNeutral):
+class Ascotpy(LibBfield, LibEfield, LibPlasma, LibNeutral):
     """
     One class to rule them all.
     """
@@ -69,6 +70,8 @@ class Ascotpy(LibBfield, LibEfield, LibNeutral):
             out = LibEfield.evaluate(self, R, phi, z, t, quantity)
         if quantity in LibNeutral.quantities:
             out = LibNeutral.evaluate(self, R, phi, z, t, quantity)
+        if self.plasma_initialized and quantity in self.get_plasmaquantities():
+            out = LibPlasma.evaluate(self, R, phi, z, t, quantity)
 
         if grid:
             out = np.reshape(out, arrsize)

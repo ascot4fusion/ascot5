@@ -128,7 +128,7 @@ class LibAscot:
         # E field functions.
         try:
             fun = self.libascot.libascot_E_field_eval_E
-            fun.restype  = ctypes.c_int
+            fun.restype  = None
             fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
                             real_p, real_p, real_p]
         except AttributeError:
@@ -155,7 +155,7 @@ class LibAscot:
 
         try:
             fun = self.libascot.libascot_plasma_eval_background
-            fun.restype  = ctypes.c_int
+            fun.restype  = None
             fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
                             real_p, real_p]
         except AttributeError:
@@ -165,7 +165,7 @@ class LibAscot:
         # Neutral functions.
         try:
             fun = self.libascot.libascot_neutral_eval_density
-            fun.restype  = ctypes.c_int
+            fun.restype  = None
             fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
                             real_p]
         except AttributeError:
@@ -419,6 +419,26 @@ class LibAscot:
         return out
 
 
+    def get_plasmaspecies(self):
+        """
+        Get plasma species information.
+
+        Returns;
+            Dictionary containing nspecies, and anum, znum, charge, and mass for
+            each species.
+        """
+        assert self.plasma_initialized, "Plasma not initialized"
+
+        out = {}
+        out["nspecies"] = self.libascot.libascot_plasma_get_n_species()
+        out["mass"]     = np.zeros((out["nspecies"],), dtype="f8")
+        out["charge"]   = np.zeros((out["nspecies"],), dtype="f8")
+        self.libascot.libascot_plasma_get_species_mass_and_charge(
+            out["mass"], out["charge"])
+
+        return out
+
+
     def eval_plasma(self, R, phi, z, t):
         """
         Evaluate plasma quantities at given coordinates.
@@ -450,28 +470,22 @@ class LibAscot:
         z   = np.asarray(z).ravel().astype(dtype="f8")
         t   = np.asarray(t).ravel().astype(dtype="f8")
 
-        # First get background species info.
-        out = {}
-        out["n_species"] = self.libascot.libascot_plasma_get_n_species()
-        out["mass"]      = np.zeros((out["n_species"],), dtype="f8")
-        out["charge"]    = np.zeros((out["n_species"],), dtype="f8")
-        self.libascot.libascot_plasma_get_species_mass_and_charge(
-            out["mass"], out["charge"])
-
         Neval = R.size
 
         # Allocate enough space for electrons and all ion species.
-        rawdens = np.zeros((Neval*(out["n_species"]),), dtype="f8")
-        rawtemp = np.zeros((Neval*(out["n_species"]),), dtype="f8")
+        nspecies = self.libascot.libascot_plasma_get_n_species()
+        rawdens = np.zeros((Neval*nspecies,), dtype="f8")
+        rawtemp = np.zeros((Neval*nspecies,), dtype="f8")
 
         self.libascot.libascot_plasma_eval_background(
             Neval, R, phi, z, t, rawdens, rawtemp)
 
+        out = {}
         out["ne"] = rawdens[0:Neval]
-        out["Te"] = rawtemp[0:Neval]
-        for i in range(1, out["n_species"]):
+        out["te"] = rawtemp[0:Neval]
+        for i in range(1, nspecies):
             out["ni"+str(i)] = rawdens[(Neval)*i:(Neval)*(i+1)]
-            out["Ti"+str(i)] = rawtemp[(Neval)*i:(Neval)*(i+1)]
+            out["ti"+str(i)] = rawtemp[(Neval)*i:(Neval)*(i+1)]
 
         return out
 
