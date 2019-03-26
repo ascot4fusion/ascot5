@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <hdf5.h>
+#include <math.h>
 
 #include "ascot5.h"
 #include "simulate.h"
@@ -274,27 +275,6 @@ void libascot_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z, real* t,
 }
 
 /**
- * @brief Evaluate poloidal flux at given coordinates.
- *
- * @param Neval number of evaluation points.
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- * @param psi output array.
- */
-void libascot_B_field_eval_psi(int Neval, real* R, real* phi, real* z, real* t,
-                               real* psi) {
-    real psival[1];
-    for(int k = 0; k < Neval; k++) {
-        if( B_field_eval_psi(psival, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
-            continue;
-        }
-        psi[k] = psival[0];
-    }
-}
-
-/**
  * @brief Evaluate normalized poloidal flux at given coordinates.
  *
  * @param Neval number of evaluation points.
@@ -302,10 +282,11 @@ void libascot_B_field_eval_psi(int Neval, real* R, real* phi, real* z, real* t,
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
  * @param t time coordinates of the evaluation points [s].
- * @param rho output array.
+ * @param rho output array for the normalized poloidal flux.
+ * @param psi output array for the poloidal flux.
  */
 void libascot_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
-                               real* rho) {
+                               real* rho, real* psi) {
     real rhoval[1];
     real psival[1];
     for(int k = 0; k < Neval; k++) {
@@ -316,6 +297,7 @@ void libascot_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
             continue;
         }
         rho[k] = rhoval[0];
+        psi[k] = psival[0];
     }
 }
 
@@ -336,6 +318,110 @@ void libascot_B_field_get_axis(int Neval, real* phi, real* Raxis, real* zaxis) {
 }
 
 /**
+ * @brief Get Rz coordinates for uniform grid of rho values.
+ *
+ * Purpose of this function is to form a connection between rho and Rz
+ * coordinates.
+ *
+ * This function starts from magnetic axis (at given phi), and takes small steps
+ * in the direction of theta until the rho evaluated at that point exceeds
+ * rhomin. Rz coordinates of that point are recorded, and steps are continued
+ * until rhomax is reached and coordinates of that point are recorded.
+ * Interval [(Rmin, zmin), (Rmax,zmax)] is then divided to nrho uniform grid
+ * points and rho is evaluated at those points.
+ *
+ * @param nrho number of evaluation points.
+ * @param minrho minimum rho value.
+ * @param maxrho maximum rho value.
+ * @param theta poloidal angle [rad].
+ * @param phi toroidal angle [rad].
+ * @param t time coordinate [s].
+ * @param r output array for R coordinates [m].
+ * @param z output array for R coordinates [m].
+ * @param rho output array for rho values.
+ */
+void libascot_B_field_eval_rhovals(int nrho, real minrho, real maxrho,
+                                   real theta, real phi, real t,
+                                   real* r, real* z, real* rho) {
+    /* Maximum number of steps and step length [m] */
+    int NSTEP = 500;
+    real step = 0.01;
+
+    real Raxis = B_field_get_axis_r(&sim.B_data, phi);
+    real zaxis = B_field_get_axis_z(&sim.B_data, phi);
+
+    real psival, rho0;
+
+    /* Start evaluation from axis */
+    real R1 = Raxis;
+    real z1 = zaxis;
+    if(B_field_eval_psi(&psival, R1, phi, z1, t, &sim.B_data)) {
+        return;
+    }
+    if( B_field_eval_rho(&rho0, psival, &sim.B_data) ) {
+        return;
+    }
+
+    int iter = 0;
+    while(rho0 < minrho && iter < NSTEP) {
+        iter++;
+
+        R1 = Raxis + iter*step*cos(theta);
+        z1 = zaxis + iter*step*sin(theta);
+        if( B_field_eval_psi(&psival, R1, phi, z1, t, &sim.B_data) ) {
+            continue;
+        }
+        if( B_field_eval_rho(&rho0, psival, &sim.B_data) ) {
+            continue;
+        }
+    }
+    if(iter > 0) {
+        /* Value stored in rho0 is > minrho so we take previous R,z coordinates,
+         * since it is the last point where rho0 < minrho. */
+        R1 = Raxis + (iter-1)*step*cos(theta);
+        z1 = zaxis + (iter-1)*step*sin(theta);
+    }
+
+    if(iter == NSTEP) {
+        /* Maximum iterations reached. Abort. */
+        return;
+    }
+
+    real R2 = R1;
+    real z2 = z1;
+
+    iter = 0;
+    while(rho0 < maxrho && iter < NSTEP) {
+        iter++;
+
+        R2 = R1 + iter*step*cos(theta);
+        z2 = z1 + iter*step*sin(theta);
+        if( B_field_eval_psi(&psival, R2, phi, z2, t, &sim.B_data) ) {
+            break;
+        }
+        if( B_field_eval_rho(&rho0, psival, &sim.B_data) ) {
+            break;
+        }
+    }
+
+    /* With limits determined, we can make a simple linspace from (R1, z1) to
+     * (R2, z2) and evaluate rho at those points.                             */
+    real rstep = (R2 - R1) / (nrho-1);
+    real zstep = (z2 - z1) / (nrho-1);
+    for(int i=0; i<nrho; i++) {
+        r[i] = R1 + rstep*i;
+        z[i] = z1 + zstep*i;
+        if( B_field_eval_psi(&psival, r[i], phi, z[i], t, &sim.B_data) ) {
+            continue;
+        }
+        if( B_field_eval_rho(&rho0, psival, &sim.B_data) ) {
+            continue;
+        }
+        rho[i] = rho0;
+    }
+}
+
+/**
  * @brief Evaluate electric field vector at given coordinates.
  *
  * @param Neval number of evaluation points.
@@ -347,20 +433,19 @@ void libascot_B_field_get_axis(int Neval, real* phi, real* Raxis, real* zaxis) {
  * @param Ephi output array [V/m].
  * @param Ez output array [V/m].
  */
-int libascot_E_field_eval_E(int Neval, real* R, real* phi, real* z, real* t,
-                            real* ER, real* Ephi, real* Ez) {
+void libascot_E_field_eval_E(int Neval, real* R, real* phi, real* z, real* t,
+                             real* ER, real* Ephi, real* Ez) {
 
     real E[3];
     for(int k = 0; k < Neval; k++) {
         if( E_field_eval_E(E, R[k], phi[k], z[k], t[k],
                            &sim.E_data, &sim.B_data) ) {
-            return 1;
+            continue;
         }
         ER[k]   = E[0];
         Ephi[k] = E[1];
         Ez[k]   = E[2];
     }
-    return 0;
 }
 
 /**
@@ -402,31 +487,31 @@ void libascot_plasma_get_species_mass_and_charge(real* mass, real* charge) {
  *
  * @return zero if evaluation succeeded.
  */
-int libascot_plasma_eval_background(int Neval, real* R, real* phi, real* z,
-                                    real* t, real* dens, real* temp) {
+void libascot_plasma_eval_background(int Neval, real* R, real* phi, real* z,
+                                     real* t, real* dens, real* temp) {
 
     int n_species = plasma_get_n_species(&sim.plasma_data);
     real psi[1];
     real rho[1];
-    real n[n_species];
-    real T[n_species];
+    real n[MAX_SPECIES];
+    real T[MAX_SPECIES];
+
     for(int k = 0; k < Neval; k++) {
         if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
-            return 1;
+            continue;
         }
         if( B_field_eval_rho(rho, psi[0], &sim.B_data) ) {
-            return 1;
+            continue;
         }
         if( plasma_eval_densandtemp(n, T, rho[0], R[k], phi[k], z[k], t[k],
                                     &sim.plasma_data) ) {
-            return 1;
+            continue;
         }
         for(int i=0; i<n_species; i++) {
             dens[k + i*Neval] = n[i];
             temp[k + i*Neval] = T[i];
         }
     }
-    return 0;
 }
 
 /**
@@ -441,17 +526,16 @@ int libascot_plasma_eval_background(int Neval, real* R, real* phi, real* z,
  *
  * @return zero if evaluation succeeded.
  */
-int libascot_neutral_eval_density(int Neval, real* R, real* phi, real* z,
-                                  real* t, real* dens) {
+void libascot_neutral_eval_density(int Neval, real* R, real* phi, real* z,
+                                   real* t, real* dens) {
 
     real n0[1];
     for(int k = 0; k < Neval; k++) {
         if( neutral_eval_n0(n0, R[k], phi[k], z[k], t[k], &sim.neutral_data) ) {
-            return 1;
+            continue;
         }
         dens[k] = n0[0];
     }
-    return 0;
 }
 
 /**
