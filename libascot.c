@@ -490,21 +490,23 @@ void libascot_boozer_eval_psithetazeta(int Neval, real* r, real* phi, real* z,
  * @brief Evaluate MHD perturbation EM-field components
  */
 void libascot_mhd_eval_perturbation(int Neval, real* R, real* phi, real* z,
-                                    real* t, real* br, real* bphi, real* bz,
-                                    real* er, real* ephi, real* ez) {
-
-    real pert_field[6];
+                                    real* t, real* mhd_br, real* mhd_bphi, real* mhd_bz,
+                                    real* mhd_er, real* mhd_ephi, real* mhd_ez) {
+    real pert_field[6]; 
     for(int k = 0; k < Neval; k++) {
         if( mhd_perturbations(pert_field, R[k], phi[k], z[k], t[k],
                               &sim.boozer_data, &sim.mhd_data, &sim.B_data) ) {
             continue;
         }
-        br[k]   = pert_field[0];
-        bphi[k] = pert_field[1];
-        bz[k]   = pert_field[2];
-        er[k]   = pert_field[3];
-        ephi[k] = pert_field[4];
-        ez[k]   = pert_field[5];
+ 
+      
+        mhd_br[k]   = pert_field[0];
+        mhd_bphi[k] = pert_field[1];
+        mhd_bz[k]   = pert_field[2];
+        mhd_er[k]   = pert_field[3];
+        mhd_ephi[k] = pert_field[4];
+        mhd_ez[k]   = pert_field[5];
+        
     }
 }
 
