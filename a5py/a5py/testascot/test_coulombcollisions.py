@@ -430,6 +430,8 @@ def check():
     #*                                                                         #
     #**************************************************************************#
 
+    cy = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
     f = plt.figure(figsize=(11.9/2.54, 8/2.54))
     plt.rc('xtick', labelsize=10)
     plt.rc('ytick', labelsize=10)
@@ -466,17 +468,17 @@ def check():
     dense = 16
     h3.plot(SLOWING["Egrid"], SLOWING["analytical"], 'black')
     h3.plot(SLOWING["E"][:dense], SLOWING["GO_Edist"][:dense], marker='*',
-            markersize=8, markevery=2, linestyle='none', alpha=0.5, color="b")
+            markersize=8, markevery=2, linestyle='none', alpha=0.5, color=cy[0])
     h3.plot(SLOWING["E"][dense:], SLOWING["GO_Edist"][dense:], marker='*',
-            markersize=8, markevery=20, linestyle='none', alpha=0.5, color="b")
+            markersize=8, markevery=20, linestyle='none', alpha=0.5,color=cy[0])
     h3.plot(SLOWING["E"][:dense], SLOWING["GCF_Edist"][:dense], marker='.',
-            markersize=10, markevery=2, linestyle='none', alpha=0.5, color="g")
+            markersize=10, markevery=2, linestyle='none', alpha=0.5,color=cy[1])
     h3.plot(SLOWING["E"][dense:], SLOWING["GCF_Edist"][dense:], marker='.',
-            markersize=10, markevery=20, linestyle='none', alpha=0.5, color="g")
+            markersize=10, markevery=20, linestyle='none', alpha=0.5,color=cy[1])
     h3.plot(SLOWING["E"][:dense], SLOWING["GCA_Edist"][:dense], marker='^',
-            markersize=5, markevery=2, linestyle='none', alpha=0.5, color="r")
+            markersize=5, markevery=2, linestyle='none', alpha=0.5, color=cy[2])
     h3.plot(SLOWING["E"][dense:], SLOWING["GCA_Edist"][dense:], marker='^',
-            markersize=5, markevery=20, linestyle='none', alpha=0.5, color="r")
+            markersize=5, markevery=20, linestyle='none', alpha=0.5, color=cy[2])
 
     h4.plot(np.array([-1, 1]), np.array([0.5, 0.5])*slowingdowntime, 'black')
     h4.plot(SLOWING["xi"], SLOWING["GO_xidist"], alpha=0.5)
@@ -545,11 +547,11 @@ def check():
 
     l1 = mlines.Line2D([], [], color='black', linestyle='-',
                        label='Analytical',axes=h1)
-    l2 = mlines.Line2D([], [], color='blue', marker='*', linestyle='-',
+    l2 = mlines.Line2D([], [], color=cy[0], marker='*', linestyle='-',
                        markersize=6, label='GO',axes=h1)
-    l3 = mlines.Line2D([], [], color='green', marker='.', linestyle='-',
+    l3 = mlines.Line2D([], [], color=cy[1], marker='.', linestyle='-',
                        markersize=8, label='GCF',axes=h1)
-    l4 = mlines.Line2D([], [], color='red', marker='^', linestyle='-',
+    l4 = mlines.Line2D([], [], color=cy[2], marker='^', linestyle='-',
                        markersize=4, label='GCA',axes=h1)
 
     h1.legend(handles=[l1, l2, l3, l4], loc='upper right', frameon=False,

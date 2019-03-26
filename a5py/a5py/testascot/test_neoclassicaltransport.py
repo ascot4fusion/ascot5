@@ -101,8 +101,8 @@ def init():
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
     for i in range(1, nscan+1):
-        odict["ENDCOND_MAX_SIMTIME"]   = np.maximum( 1e-4,
-                                                     1e-2 / (ni[i-1]/ni[0]) )
+        odict["ENDCOND_MAX_SIMTIME"]   = np.maximum( 5e-4,
+                                                     4e-2 / (ni[i-1]/ni[0]) )
         odict["FIXEDSTEP_USERDEFINED"] = np.minimum( 2e-9,
                                                      3e-10 / (ni[i-1]/ni[-1]) )
         options.write_hdf5(helpers.testfn, odict,
@@ -122,8 +122,8 @@ def init():
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
     for i in range(1, nscan+1):
-        odict["ENDCOND_MAX_SIMTIME"]   = np.maximum( 1e-4,
-                                                     1e-2 / (ni[i-1]/ni[0]) )
+        odict["ENDCOND_MAX_SIMTIME"]   = np.maximum( 5e-4,
+                                                     4e-2 / (ni[i-1]/ni[0]) )
         odict["FIXEDSTEP_USERDEFINED"] = np.minimum( 2e-8,
                                                      5e-10 / (ni[i-1]/ni[-1]) )
         options.write_hdf5(helpers.testfn, odict,
@@ -149,8 +149,8 @@ def init():
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
     for i in range(1, nscan+1):
-        odict["ENDCOND_MAX_SIMTIME"] = np.maximum( 1e-4,
-                                                   1e-2 / (ni[i-1]/ni[0]) )
+        odict["ENDCOND_MAX_SIMTIME"] = np.maximum( 5e-4,
+                                                   4e-2 / (ni[i-1]/ni[0]) )
         options.write_hdf5(helpers.testfn, odict,
                            desc="NEOCLASS_GCA" + str(i))
 
@@ -277,15 +277,16 @@ def check():
     """
 
     a5 = ascot5.Ascot(helpers.testfn)
+    axisr = a5["NEOCLASS_GO1"].bfield.read()["raxis"][:][0]
 
     # Map rho values to R outer mid-plane values
-    R_omp    = np.linspace(6.2,8.2,1000)
+    R_omp    = np.linspace(axisr,8.4,1000)
     z_omp    = 0*np.ones(R_omp.shape)
-    psi_omp  = psifun(R_omp/R0, z_omp/R0, psi_coeff[0], psi_coeff[1],
+    psi_omp  = psifun(R_omp/axisr, z_omp/axisr, psi_coeff[0], psi_coeff[1],
                       psi_coeff[2], psi_coeff[3], psi_coeff[4], psi_coeff[5],
                       psi_coeff[6], psi_coeff[7], psi_coeff[8], psi_coeff[9],
                       psi_coeff[10], psi_coeff[11], psi_coeff[12]) * psi_mult
-    psi_axis = psifun(R0/R0, 0, psi_coeff[0], psi_coeff[1],
+    psi_axis = psifun(axisr/axisr, 0, psi_coeff[0], psi_coeff[1],
                       psi_coeff[2], psi_coeff[3], psi_coeff[4], psi_coeff[5],
                       psi_coeff[6], psi_coeff[7], psi_coeff[8], psi_coeff[9],
                       psi_coeff[10], psi_coeff[11], psi_coeff[12]) * psi_mult
@@ -328,13 +329,13 @@ def check():
     #*                                                                         #
     #**************************************************************************#
 
-    eps = r0 / R0
+    eps = (r0 - (axisr - R0)) / axisr
     q   = 1.7 # This was verified numerically
     B   = 5.3
 
     gamma  = 1 + Ekin * e / ( m_e * c * c )
     v      = np.sqrt(1.0 - 1.0 / ( gamma * gamma ) ) * c
-    omegat = (v / (q * R0)) * np.sqrt(0.5*eps)
+    omegat = (v / (q * axisr)) * np.sqrt(0.5*eps)
     rhog   = gamma * m_e * v / (B * e)
 
     clog     = 15
@@ -374,7 +375,7 @@ def check():
     h = plt.gca()
     h.set_position([0.15, 0.25, 0.82, 0.7], which='both')
 
-    h.plot(np.log10(np.power([eps, eps], 3.0/2.0)), np.array([-6, 0]), 'black')
+    h.plot(np.log10(np.power([eps, eps], 3.0/2.0)), np.array([-6, 0]), 'grey')
     h.plot(np.log10(np.array([1, 1])), np.array([-6, 0]), 'grey')
 
     h.plot(np.log10(veff_x), np.log10(DGO), linestyle='none', marker='*',
@@ -401,9 +402,9 @@ def check():
                             '$10^{-2}$', '$10^{-1}$'])
     h.set(xlabel=r"$\log_{10}\nu^*$", ylabel=r"$D$ [m$^2$/s]")
 
-    h.text(-1.32, -5.7, r"$\nu^*=\epsilon^{3/2}$", fontsize=10,
+    h.text(-1.9, -5.7, r"$\nu^*=\epsilon^{3/2}$", fontsize=10,
            bbox={'facecolor':'white', 'edgecolor':'none', 'pad':0})
-    h.text(-0.17, -5.7, r"$\nu^*=1$", fontsize=10,
+    h.text(-0.25, -5.7, r"$\nu^*=1$", fontsize=10,
            bbox={'facecolor':'white', 'edgecolor':'none', 'pad':0})
     h.text(-2.5, -4, r"$D_{B}$", fontsize=10)
     h.text(-0.8, -3, r"$D_{P}$", fontsize=10)

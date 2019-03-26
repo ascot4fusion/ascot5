@@ -1,18 +1,18 @@
 """
-Contains definition of NeutralFrame class.
+Contains definition of PlasmaFrame class.
 
-File: neutralframe.py
+File: plasmaframe.py
 """
 import tkinter
 import tkinter.ttk as ttk
 
 import numpy as np
 
-from a5py.ascotpy.libneutral import LibNeutral
+from a5py.ascotpy.libplasma import LibPlasma
 
 from .fieldframe import FieldFrame
 
-class NeutralFrame(FieldFrame):
+class PlasmaFrame(FieldFrame):
     """
     A frame for plotting electric field data.
     """
@@ -21,8 +21,8 @@ class NeutralFrame(FieldFrame):
         """
         Initialize and show default plot.
         """
-        ascotpy.init(bfield=True, neutral=True)
-        super().__init__(gui, ascotpy, LibNeutral.quantities)
+        ascotpy.init(bfield=True, plasma=True)
+        super().__init__(gui, ascotpy, ascotpy.get_plasmaquantities())
 
         self._walldata = walldata
 

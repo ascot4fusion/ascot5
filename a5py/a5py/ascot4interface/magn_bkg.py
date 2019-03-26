@@ -30,15 +30,15 @@ def read_magn_bkg(fn,hdrfn):
         data['phimap_tor'] = np.array([int(number) for number in fh.readline().split()])
         data['phimap_pol'] = np.array([int(number) for number in fh.readline().split()])
 
-        actualdata = np.array(fh.read().split(), dtype=float).flatten()
+        h5data = np.array(fh.read().split(), dtype=float).flatten()
 
         sz2d = nr*nz
         sz3d = nr*nz*data['nPhi']
-        data['psi']  = actualdata[:sz2d].reshape(nz,nr)
-        print(np.shape(actualdata),nz,data['nPhi'],nr,sz2d,sz3d)
-        data['br']   = actualdata[sz2d+0*sz3d:sz2d+1*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
-        data['bphi'] = actualdata[sz2d+1*sz3d:sz2d+2*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
-        data['bz']   = actualdata[sz2d+2*sz3d:sz2d+3*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
+        data['psi']  = h5data[:sz2d].reshape(nz,nr)
+        print(np.shape(h5data),nz,data['nPhi'],nr,sz2d,sz3d)
+        data['br']   = h5data[sz2d+0*sz3d:sz2d+1*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
+        data['bphi'] = h5data[sz2d+1*sz3d:sz2d+2*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
+        data['bz']   = h5data[sz2d+2*sz3d:sz2d+3*sz3d].reshape(nz,data['nPhi'],nr).squeeze()
 
         data['psi']  = np.transpose(data['psi'])
         data['br']   = np.transpose(data['br'])
@@ -94,22 +94,21 @@ def read_magn_bkg_stellarator(fn):
             print("Warning! No symmetry mode specified in input.h5/bfield")
             print("Defaulting to stellarator symmetry")
             data['symmetrymode'] = 0
-        if (data['phi'][0] == np.mod(data['phi'][-1],360/data['n_periods'])):
-            print("Warning! Removing duplicate bfield data point.")
-            data = bfield_remove_duplicate_phi(data)
-        if(data['symmetrymode'] == 0):
-            print("Converting stellarator symmetric input to periodic.")
-            data = stellarator_bfield_sector2full(data)
-        if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
-            print("Warning! Removing duplicated axis datapoint.")
-            data['axis_r'] = data['axis_r'][0:-1]
-            data['axis_phi'] = data['axis_phi'][0:-1]
-            data['axis_z'] = data['axis_z'][0:-1]
-        # Transpose to ascot5io format
-        data['br']   = np.transpose(data['br'],   (2,1,0))
-        data['bphi'] = np.transpose(data['bphi'], (2,1,0))
-        data['bz']   = np.transpose(data['bz'],   (2,1,0))
-        data['s']    = np.transpose(data['s'],    (2,1,0))
+    if (data['phi'][0] == np.mod(data['phi'][-1],360/data['n_periods'])):
+        print("Warning! Removing duplicate bfield data point.")
+        data = bfield_remove_duplicate_phi(data)
+    if(data['symmetrymode'] == 0):
+        print("Converting stellarator symmetric input to periodic.")
+        data = stellarator_bfield_sector2full(data)
+    if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
+        print("Warning! Removing duplicated axis datapoint.")
+        data['axis_r'] = data['axis_r'][0:-1]
+        data['axis_z'] = data['axis_z'][0:-1]
+    # Transpose to ascot5io format
+    data['br']   = np.transpose(data['br'],   (2,1,0))
+    data['bphi'] = np.transpose(data['bphi'], (2,1,0))
+    data['bz']   = np.transpose(data['bz'],   (2,1,0))
+    data['s']    = np.transpose(data['s'],    (2,1,0))
 
     return data
 
@@ -177,21 +176,37 @@ def bfield_psi_lims(data, h5fn):
         a5.init(bfield=1)
     except OSError as err:
         raise err
+    # Approximate a small deviation from the magnetic axis
+    diff_r = np.amax(np.abs(np.diff(data['axis_r'])))
+    diff_z = np.amax(np.abs(np.diff(data['axis_z'])))
+    # For every phi angle, we generate ndiff points around the axis
+    ndiff = 5
+    diff_angles = np.linspace(0, 2*np.pi, ndiff)[:-1]
     # Initial guess for psi0
     psi0 = np.amin(data['s'])
-    for i in range(data['axis_phi'].size):
-        psii = fmin(
-            lambda x: a5.eval_bfield(x[0],x[1],x[2],0,evalpsi=1)['psi'],
-            [data['axis_r'][i], data['axis_phi'][i], data['axis_z'][i]],
-            disp=0, full_output=1)[1]
-        psi0 = np.amin([psi0, psii])
+    for i in range(data['axis_r'].size):
+        for angle in diff_angles:
+            psii = fmin(
+                lambda x: a5.eval_bfield(x[0],x[1],x[2],0,evalrho=1)['psi'],
+                [data['axis_r'][i] + np.cos(angle) * diff_r,
+                 data['axis_phi'][i],
+                 data['axis_z'][i] + np.sin(angle) * diff_z],
+                disp=0, full_output=1)[1]
+            psi0 = np.amin([psi0, psii])
     # Initial guess for psi1
     psi1 = np.amax(data['s'])
-    for i in range(data['axis_phi'].size):
-        psii = fmin(
-            lambda x: -a5.eval_bfield(x[0],x[1],x[2],0,evalpsi=1)['psi'],
-            [data['axis_r'][i], data['axis_phi'][i], data['axis_z'][i]],
-            disp=0, full_output=1)[1]
-        psii = -psii            # Back to a positive value
-        psi1 = np.amax([psi1, psii])
+    for i in range(data['axis_r'].size):
+        for angle in diff_angles:
+            psii = fmin(
+                lambda x: -a5.eval_bfield(x[0],x[1],x[2],0,evalrho=1)['psi'],
+                [data['axis_r'][i] + np.cos(angle) * diff_r,
+                 data['axis_phi'][i],
+                 data['axis_z'][i] + np.sin(angle) * diff_z],
+                disp=0, full_output=1)[1]
+            psii = -psii            # Back to a positive value
+            psi1 = np.amax([psi1, psii])
+    # For extra buffering, quadruple the difference between given and calculated
+    # phi0 and phi1
+    psi0 = psi0 - 3*(np.amin(data['s']) - psi0)
+    psi1 = psi1 + 3*(psi1 - np.amax(data['s']))
     return psi0, psi1
