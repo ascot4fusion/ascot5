@@ -179,9 +179,11 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
                B_field_data* Bdata) {
 
     a5err err = 0;
-    real ptz[12];    
+    real ptz[12];
     int isinside;
     boozer_eval_psithetazeta(ptz, &isinside, r, phi, z, boozerdata);
+    real rho;
+    boozer_eval_rho(&rho, ptz[0], boozerdata);
 
     // TODO If marker is not inside boozer grid, return null values or something
     int iterations = mhddata->n_modes;
@@ -192,10 +194,10 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
     for(int i = 0; i < iterations; i++){
         /*get interpolated values */
         real a_da[6];
-        interp2Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]),r,t);
+        interp2Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]), rho, t);
 
         real phi_dphi[6];
-        interp2Dcomp_eval_df(phi_dphi,&(mhddata->phi_nm[i]),r,t);
+        interp2Dcomp_eval_df(phi_dphi,&(mhddata->phi_nm[i]), rho, t);
 
         /* These are used frequently, so store them in separate variables */
         real mhdarg = mhddata->nmode[i] * ptz[8]
@@ -321,7 +323,6 @@ a5err mhd_perturbations(real pert_field[6], real r, real phi,
     pert_field[3] = -1*mhd_dmhd[7] + -1*B[0]*mhd_dmhd[1];
     pert_field[4] = -1*mhd_dmhd[8] + -1*B[1]*mhd_dmhd[1];
     pert_field[5] = -1*mhd_dmhd[9] + -1*B[2]*mhd_dmhd[1];
-    
 
     return err;
 }

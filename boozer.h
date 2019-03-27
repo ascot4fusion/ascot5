@@ -64,8 +64,8 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside, real r,
                                real phi, real z, boozer_data* boozerdata);
 
 #pragma omp declare simd uniform(boozerdata)
-a5err boozer_eval_psinormalized(real psi[4], real psin[4],
-                                boozer_data* boozerdata);
+a5err boozer_eval_rho(real rho[1], real psi,
+                      boozer_data* boozerdata);
 
 #pragma omp end declare target
 

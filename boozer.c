@@ -299,3 +299,26 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
 
     return err;
 }
+
+
+/**
+ * @brief Evaluate normalized poloidal flux rho
+ *
+ * @param rho pointer where rho value will be stored
+ * @param psi poloidal flux value from which rho is evaluated
+ * @param boozerdata pointer to boozer data struct
+ *
+ * @return Non-zero a5err value if evaluation failed, zero otherwise
+ */
+a5err boozer_eval_rho(real* rho, real psi, boozer_data* boozerdata) {
+
+    /* Check that the values seem valid */
+    real delta = (boozerdata->psi_outer - boozerdata->psi_inner);
+    if( (psi - boozerdata->psi_inner) / delta < 0 ) {
+        return 1;
+        //return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_2DS );
+    }
+
+    rho[0] = sqrt( (psi - boozerdata->psi_inner) / delta );
+    return 0;
+}
