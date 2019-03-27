@@ -34,27 +34,30 @@ def read_markers(a4folder, h5fn):
             # We have particles
             print("Warning! Forcing time to zero for all markers.")
             mrk_prt.write_hdf5(
-                h5fn, data["fields"]["id"].size, data["fields"]["id"],
-                data["fields"]["mass"], data["fields"]["charge"],
-                data["fields"]["Rprt"], data["fields"]["phiprt"],
-                data["fields"]["zprt"],
-                data["fields"]["vR"], data["fields"]["vphi"],
-                data["fields"]["vz"],
-                data["fields"]['Anum'], data["fields"]['Znum'],
-                data["fields"]["weight"], data["fields"]["weight"]*0)
+                fn=h5fn, n=data["fields"]["id"].size, ids=data["fields"]["id"],
+                mass=data["fields"]["mass"], charge=data["fields"]["charge"],
+                r=data["fields"]["Rprt"], phi=data["fields"]["phiprt"],
+                z=data["fields"]["zprt"],
+                vr=data["fields"]["vR"], vphi=data["fields"]["vphi"],
+                vz=data["fields"]["vz"],
+                anum=data["fields"]['Anum'], znum=data["fields"]['Znum'],
+                weight=data["fields"]["weight"],
+                time=data["fields"]["weight"]*0 )
         elif 'energy' in data['fieldNames']:
             # We have guiding centers (theta is random)
             print("Warning! Forcing time to zero and "
                   "randomizing zeta for all markers.")
             zeta = 2*np.pi*np.random.rand(data["fields"]["id"].size)
             mrk_gc.write_hdf5(
-                h5fn, data["fields"]["id"].size, data["fields"]["id"],
-                data["fields"]["mass"], data["fields"]["charge"],
-                data["fields"]["R"], data["fields"]["phi"],
-                data["fields"]["z"],
-                data["fields"]["energy"], data["fields"]["pitch"], zeta,
-                data["fields"]['Anum'], data["fields"]['Znum'],
-                data["fields"]["weight"], data["fields"]["weight"]*0 )
+                fn=h5fn, n=data["fields"]["id"].size, ids=data["fields"]["id"],
+                mass=data["fields"]["mass"], charge=data["fields"]["charge"],
+                r=data["fields"]["R"], phi=data["fields"]["phi"],
+                z=data["fields"]["z"],
+                energy=data["fields"]["energy"], pitch=data["fields"]["pitch"],
+                zeta=zeta,
+                anum=data["fields"]['Anum'], znum=data["fields"]['Znum'],
+                weight=data["fields"]["weight"],
+                time=data["fields"]["weight"]*0 )
 
 def read_bfield(a4folder, h5fn):
     fnamebkg = a4folder + "input.magn_bkg"
@@ -64,21 +67,23 @@ def read_bfield(a4folder, h5fn):
         data = a4magn_bkg.read_magn_bkg(fnamebkg, fnamehdr)
         if data["nPhi"] > 1:
             B_3DS.write_hdf5(
-                h5fn,
-                data['r'][0], data['r'][-1], data['r'].size,
-                data['z'][0], data['z'][-1], data['z'].size,
-                0, 360, data['nPhi'],
-                data['axis_r'], data['axis_z'], data['psi']/(2*np.pi),
-                data['psi0']/(2*np.pi), data['psi1']/(2*np.pi),
-                data['br'], data['bphi'], data['bz'])
+                fn=h5fn,
+                b_rmin=data['r'][0], b_rmax=data['r'][-1], b_nr=data['r'].size,
+                b_zmin=data['z'][0], b_zmax=data['z'][-1], b_nz=data['z'].size,
+                b_phimin=0, b_phimax=360, b_nphi=data['nPhi'],
+                axisr=data['axis_r'], axisz=data['axis_z'],
+                psi=data['psi']/(2*np.pi),
+                psi0=data['psi0']/(2*np.pi), psi1=data['psi1']/(2*np.pi),
+                br=data['br'], bphi=data['bphi'], bz=data['bz'])
         else:
             B_2DS.write_hdf5(
-                h5fn,
-                data['r'][0], data['r'][-1], data['r'].size,
-                data['z'][0], data['z'][-1], data['z'].size,
-                data['axis_r'], data['axis_z'], data['psi']/(2*np.pi),
-                data['psi0']/(2*np.pi), data['psi1']/(2*np.pi),
-                data['br']*0, data['bphi'], data['bz']*0)
+                fn=h5fn,
+                rmin=data['r'][0], rmax=data['r'][-1], nr=data['r'].size,
+                zmin=data['z'][0], zmax=data['z'][-1], nz=data['z'].size,
+                axisr=data['axis_r'], axisz=data['axis_z'],
+                psi=data['psi']/(2*np.pi),
+                psi0=data['psi0']/(2*np.pi), psi1=data['psi1']/(2*np.pi),
+                br=data['br']*0, bphi=data['bphi'], bz=data['bz']*0)
 
     elif os.path.isfile(fnameh5):
         with h5py.File(fnameh5, 'r') as f:
@@ -87,14 +92,16 @@ def read_bfield(a4folder, h5fn):
         data = a4magn_bkg.read_magn_bkg_stellarator(fnameh5)
         psilims = [0, 1]
         temp_B_name = B_STS.write_hdf5(
-            h5fn,
-            data['r'][0], data['r'][-1], data['r'].size,
-            data['z'][0], data['z'][-1], data['z'].size,
-            data['phi'][0], data['phi'][-1], data['phi'].size - 1,
-            psilims[0], psilims[1],
-            data['br'], data['bphi'], data['bz'], data['s'],
-            data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size-1,
-            data['axis_r'], data['axis_z'])
+            fn=h5fn,
+            b_rmin=data['r'][0], b_rmax=data['r'][-1], b_nr=data['r'].size,
+            b_zmin=data['z'][0], b_zmax=data['z'][-1], b_nz=data['z'].size,
+            b_phimin=data['phi'][0], b_phimax=data['phi'][-1],
+            b_nphi=data['phi'].size - 1,
+            psi0=psilims[0], psi1=psilims[1],
+            br=data['br'], bphi=data['bphi'], bz=data['bz'], psi=data['s'],
+            axis_phimin=data['axis_phi'][0], axis_phimax=data['axis_phi'][-1],
+            axis_nphi=data['axis_phi'].size-1,
+            axisr=data['axis_r'], axisz=data['axis_z'])
         print("Searching for psiaxis and psisepx.")
         try:
             psilims = a4magn_bkg.bfield_psi_lims(data, h5fn)
@@ -107,14 +114,16 @@ def read_bfield(a4folder, h5fn):
         print("New limits: [" + str(psilims[0]) + ", " + str(psilims[1]) + "]")
         a5tools.removegroup(h5fn, temp_B_name)
         B_STS.write_hdf5(
-            h5fn,
-            data['r'][0], data['r'][-1], data['r'].size,
-            data['z'][0], data['z'][-1], data['z'].size,
-            data['phi'][0], data['phi'][-1], data['phi'].size - 1,
-            psilims[0], psilims[1],
-            data['br'], data['bphi'], data['bz'], data['s'],
-            data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size-1,
-            data['axis_r'], data['axis_z'])
+            fn=h5fn,
+            b_rmin=data['r'][0], b_rmax=data['r'][-1], b_nr=data['r'].size,
+            b_zmin=data['z'][0], b_zmax=data['z'][-1], b_nz=data['z'].size,
+            b_phimin=data['phi'][0], b_phimax=data['phi'][-1],
+            b_nphi=data['phi'].size - 1,
+            psi0=psilims[0], psi1=psilims[1],
+            br=data['br'], bphi=data['bphi'], bz=data['bz'], psi=data['s'],
+            axis_phimin=data['axis_phi'][0], axis_phimax=data['axis_phi'][-1],
+            axis_nphi=data['axis_phi'].size-1,
+            axisr=data['axis_r'], axisz=data['axis_z'])
 
 def read_plasma(a4folder, h5fn):
     fname1d = a4folder + "input.plasma_1d"
@@ -122,9 +131,11 @@ def read_plasma(a4folder, h5fn):
     if (os.path.isfile(fname1d)):
         data = a4plasma.read_plasma(fname1d)
         plasma_1D.write_hdf5(
-            h5fn, data['nrho'], data['nion'], data['anum'], data['znum'],
-            data['anum'], data['znum'],
-            data['rho'], data['ne'], data['te'], data['ni'], data['ti'])
+            fn=h5fn, nrho=data['nrho'], nion=data['nion'],
+            anum=data['anum'], znum=data['znum'],
+            mass=data['anum'], charge=data['znum'],
+            rho=data['rho'], edensity=data['ne'], etemperature=data['te'],
+            idensity=data['ni'], itemperature=data['ti'])
     if (os.path.isfile(fname2d)):
         data = a4plasma.read_plasma(fname2d)
         dens_i = np.array([data['ni'+str(i)] for i in range(1,data['nion']+1)])
@@ -141,11 +152,12 @@ def read_erad(a4folder, h5fn):
     if (os.path.isfile(fname)):
         data = a4erad.read_erad(fname)
         E_1DS.write_hdf5(
-            h5fn, int(data['n_rho']), np.amin(data['rho']),
-            np.amax(data['rho']), data['dV_drho'], 1.0)
+            fn=h5fn, nrho=int(data['n_rho']),
+            rhomin=np.amin(data['rho']), rhomax=np.amax(data['rho']),
+            dvdrho=data['dV_drho'], reff=1.0)
     else:
         E = np.array([0, 0, 0])
-        E_TC.write_hdf5(h5fn, E)
+        E_TC.write_hdf5(fn=h5fn, exyz=E)
 
 def read_wall(a4folder, h5fn):
     fname = a4folder + "input.wall_2d"
@@ -157,16 +169,16 @@ def read_wall(a4folder, h5fn):
     if (os.path.isfile(fname)):
         data = a4wall_3d.read_wall_3d(fname)
         wall_3D.write_hdf5(
-            h5fn, data['id'].size, data['x1x2x3'],
-            data['y1y2y3'], data['z1z2z3'])
+            fn=h5fn, nelements=data['id'].size,
+            x1x2x3=data['x1x2x3'], y1y2y3=data['y1y2y3'], z1z2z3=data['z1z2z3'])
     elif (os.path.isfile(fnameh5)):
         with h5py.File(fnameh5, 'r') as f:
             if (not "/wall" in f):
                 return
         data = a4wall_3d.read_wall_3d_hdf5(fnameh5)
         wall_3D.write_hdf5(
-            h5fn, data['id'].size, data['x1x2x3'],
-            data['y1y2y3'], data['z1z2z3'])
+            fn=h5fn, nelements=data['id'].size,
+            x1x2x3=data['x1x2x3'], y1y2y3=data['y1y2y3'], z1z2z3=data['z1z2z3'])
 
 def run(a4folder, h5fn, overwrite=True):
     """
