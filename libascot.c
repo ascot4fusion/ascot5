@@ -555,6 +555,9 @@ void libascot_boozer_eval_psithetazeta(int Neval, real* r, real* phi, real* z,
                                      z[k], &sim.boozer_data) ) {
             continue;
         }
+        if(!isinside) {
+            continue;
+        }
         psi[k]        = psithetazeta[0];
         theta[k]      = psithetazeta[4];
         zeta[k]       = psithetazeta[8];
