@@ -77,7 +77,7 @@ int boozer_init_offload(boozer_offload_data* offload_data,
             &coeff_array[(rzsize + psithetasize) * NSIZE_COMP2D],
             &(*offload_array)[rzsize + psithetasize],
             offload_data->npsi, offload_data->ntheta,
-            NATURALBC, PERIODICBC,
+            NATURALBC, NATURALBC,
             offload_data->psi_min, offload_data->psi_max,
             THETAMIN, THETAMAX);
 
@@ -146,7 +146,7 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                              &(offload_array[rzsize + psithetasize]),
                              offload_data->npsi,
                              offload_data->ntheta,
-                             NATURALBC, PERIODICBC,
+                             NATURALBC, NATURALBC,
                              offload_data->psi_min,
                              offload_data->psi_max,
                              THETAMIN, THETAMAX);
@@ -240,7 +240,8 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
 
             /* geometrical theta */
             real thgeo;
-            thgeo = fmod(atan2(z-boozerdata->z0,r-boozerdata->r0), CONST_2PI);
+            thgeo = fmod( atan2(z-boozerdata->z0,r-boozerdata->r0) + CONST_2PI,
+                          CONST_2PI);
 
             /* boozer theta and derivatives */
             real theta[6];
