@@ -179,25 +179,40 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
                B_field_data* Bdata) {
 
     a5err err = 0;
+
     real ptz[12];
     int isinside;
-    boozer_eval_psithetazeta(ptz, &isinside, r, phi, z, boozerdata);
+    if(!err) {
+        err = boozer_eval_psithetazeta(ptz, &isinside, r, phi, z, boozerdata);
+    }
     real rho;
-    boozer_eval_rho(&rho, ptz[0], boozerdata);
+    if(!err) {
+        err = boozer_eval_rho(&rho, ptz[0], boozerdata);
+    }
 
-    // TODO If marker is not inside boozer grid, return null values or something
     int iterations = mhddata->n_modes;
+
+    /* Skip evaluation if point outside boozer grid */
     if(!isinside) {
+        for(int i=0; i<10; i++) {
+            mhd_dmhd[i] = 0;
+        }
         iterations = 0;
     }
 
+    /* Skip evaluation if boozer evaluation failed. */
+    if(err) {
+        iterations = 0;
+    }
+
+    int interperr = 0;
     for(int i = 0; i < iterations; i++){
         /*get interpolated values */
         real a_da[6];
-        interp2Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]), rho, t);
+        interperr += interp2Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]), rho, t);
 
         real phi_dphi[6];
-        interp2Dcomp_eval_df(phi_dphi,&(mhddata->phi_nm[i]), rho, t);
+        interperr += interp2Dcomp_eval_df(phi_dphi, &(mhddata->phi_nm[i]), rho, t);
 
         /* These are used frequently, so store them in separate variables */
         real mhdarg = mhddata->nmode[i] * ptz[8]
@@ -261,6 +276,10 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
                 - phi_dphi[0] * mhddata->mmode[i] * ptz[7]  * cosmhd
                 + phi_dphi[0] * mhddata->nmode[i] * ptz[11] * cosmhd);
     }
+
+    if(interperr) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_MHD );
+    }
     return err;
 }
 
@@ -290,39 +309,44 @@ a5err mhd_perturbations(real pert_field[6], real r, real phi,
                         real z, real t, boozer_data* boozerdata,
                         mhd_data* mhddata, B_field_data* Bdata) {
     a5err err = 0;
-    real mhd_dmhd[10] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,0.0};
-    err = mhd_eval(mhd_dmhd, r, phi, z, t, boozerdata, mhddata,Bdata);
+    real mhd_dmhd[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    if(!err) {
+        err = mhd_eval(mhd_dmhd, r, phi, z, t, boozerdata, mhddata,Bdata);
+    }
     /*  see example of curl evaluation in step_gc_rk4.c, ydot_gc*/
     real B_dB[15];
-    err = B_field_eval_B_dB(B_dB, r, phi, z, t, Bdata);
+    if(!err) {
+        err = B_field_eval_B_dB(B_dB, r, phi, z, t, Bdata);
+    }
 
-    real B[3];
-    B[0] = B_dB[0];
-    B[1] = B_dB[4];
-    B[2] = B_dB[8];
+    if(!err) {
+        real B[3];
+        B[0] = B_dB[0];
+        B[1] = B_dB[4];
+        B[2] = B_dB[8];
 
-    real curlB[3];
-    curlB[0] = B_dB[10]/r - B_dB[7];
-    curlB[1] = B_dB[3] - B_dB[9];
-    curlB[2] = (B[1] - B_dB[2])/r + B_dB[5];
+        real curlB[3];
+        curlB[0] = B_dB[10]/r - B_dB[7];
+        curlB[1] = B_dB[3] - B_dB[9];
+        curlB[2] = (B[1] - B_dB[2])/r + B_dB[5];
 
-    real gradalpha[3];
-    gradalpha[0] = mhd_dmhd[2];
-    gradalpha[1] = mhd_dmhd[3];
-    gradalpha[2] = mhd_dmhd[4];
+        real gradalpha[3];
+        gradalpha[0] = mhd_dmhd[2];
+        gradalpha[1] = mhd_dmhd[3];
+        gradalpha[2] = mhd_dmhd[4];
 
+        real gradalphacrossB[3];
 
-    real gradalphacrossB[3];
+        math_cross(gradalpha, B, gradalphacrossB);
 
-    math_cross(gradalpha, B, gradalphacrossB);
+        pert_field[0] = mhd_dmhd[0]*curlB[0] + gradalphacrossB[0];
+        pert_field[1] = mhd_dmhd[0]*curlB[1] + gradalphacrossB[1];
+        pert_field[2] = mhd_dmhd[0]*curlB[2] + gradalphacrossB[2];
 
-    pert_field[0] = mhd_dmhd[0]*curlB[0] + gradalphacrossB[0];
-    pert_field[1] = mhd_dmhd[0]*curlB[1] + gradalphacrossB[1];
-    pert_field[2] = mhd_dmhd[0]*curlB[2] + gradalphacrossB[2];
-
-    pert_field[3] = -1*mhd_dmhd[7] + -1*B[0]*mhd_dmhd[1];
-    pert_field[4] = -1*mhd_dmhd[8] + -1*B[1]*mhd_dmhd[1];
-    pert_field[5] = -1*mhd_dmhd[9] + -1*B[2]*mhd_dmhd[1];
+        pert_field[3] = -mhd_dmhd[7] - B[0]*mhd_dmhd[1];
+        pert_field[4] = -mhd_dmhd[8] - B[1]*mhd_dmhd[1];
+        pert_field[5] = -mhd_dmhd[9] - B[2]*mhd_dmhd[1];
+    }
 
     return err;
 }

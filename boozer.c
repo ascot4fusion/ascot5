@@ -231,7 +231,7 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
         /* get the psi value and check that it is within the psi grid (the grid
            does not extend all the way to the axis) */
         real psi[6];
-        interperr += interp2Dcomp_eval_df(psi, &boozerdata->psi_rz,r,z);
+        interperr += interp2Dcomp_eval_df(psi, &boozerdata->psi_rz, r, z);
 
         if(psi[0] >= boozerdata->psi_inner && psi[0] <= boozerdata->psi_outer) {
 
@@ -245,20 +245,20 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
             /* boozer theta and derivatives */
             real theta[6];
             interperr += interp2Dcomp_eval_df(
-                theta,&boozerdata->theta_psithetageom,psi[0],thgeo);
+                theta, &boozerdata->theta_psithetageom, psi[0], thgeo);
 
             /* boozer nu function and derivatives */
             real nu[6];
             interperr += interp2Dcomp_eval_df(
-                nu,&boozerdata->nu_psitheta,psi[0],theta[0]);
+                nu, &boozerdata->nu_psitheta, psi[0], theta[0]);
 
             /* set up data for returning the requested values */
 
             /* psi and derivatives */
-            psithetazeta[0]=psi[0]; /* psi */
-            psithetazeta[1]=psi[1]; /* dpsi_dr */
-            psithetazeta[2]=0; /* dpsi_dphi */
-            psithetazeta[3]=psi[2]; /* dpsi_dz */
+            psithetazeta[0]=psi[0]; /* psi       */
+            psithetazeta[1]=psi[1]; /* dpsi_dr   */
+            psithetazeta[2]=0;      /* dpsi_dphi */
+            psithetazeta[3]=psi[2]; /* dpsi_dz   */
 
             /* helpers */
             real asq;
@@ -270,19 +270,19 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
             dthgeo_dz=(r-boozerdata->r0)/asq;
 
             /* theta and derivatives */
-            psithetazeta[4]=theta[0]; /* theta */
-            psithetazeta[5]=theta[1]*psi[1]+theta[2]*dthgeo_dr; /* dtheta_dr */
-            psithetazeta[6]=0; /* dtheta_dphi */
-            psithetazeta[7]=theta[1]*psi[2]+theta[2]*dthgeo_dz; /* dtheta_dz */
+            psithetazeta[4]=theta[0];                          /* theta       */
+            psithetazeta[5]=theta[1]*psi[1]+theta[2]*dthgeo_dr;/* dtheta_dr   */
+            psithetazeta[6]=0;                                 /* dtheta_dphi */
+            psithetazeta[7]=theta[1]*psi[2]+theta[2]*dthgeo_dz;/* dtheta_dz   */
 
             /* zeta and derivatives */
-            psithetazeta[8]=phi-nu[0]; /* zeta */
-            psithetazeta[9]=-nu[1]*psi[1]-nu[2]*psithetazeta[5]; /* dzeta_dR */
-            psithetazeta[10]=1.0; /* dzeta_dphi */
-            psithetazeta[11]=-nu[1]*psi[2]-nu[2]*psithetazeta[7]; /* dzeta_dz */
+            psithetazeta[8]=phi-nu[0];                           /* zeta      */
+            psithetazeta[9]=-nu[1]*psi[1]-nu[2]*psithetazeta[5]; /* dzeta_dR  */
+            psithetazeta[10]=1.0;                                /* dzeta_dphi*/
+            psithetazeta[11]=-nu[1]*psi[2]-nu[2]*psithetazeta[7];/* dzeta_dz  */
         }
         else {
-            /* This whould mean that (r,z) is in the very center of the plasma */
+            /* This would mean that (r,z) is in the very center of the plasma */
             isinside[0]=0;
         }
     }
@@ -294,7 +294,7 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
 
 
     if(interperr) {
-        err = 1;
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_BOOZER );
     }
 
     return err;
@@ -315,8 +315,7 @@ a5err boozer_eval_rho(real* rho, real psi, boozer_data* boozerdata) {
     /* Check that the values seem valid */
     real delta = (boozerdata->psi_outer - boozerdata->psi_inner);
     if( (psi - boozerdata->psi_inner) / delta < 0 ) {
-        return 1;
-        //return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_2DS );
+        return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_BOOZER );
     }
 
     rho[0] = sqrt( (psi - boozerdata->psi_inner) / delta );
