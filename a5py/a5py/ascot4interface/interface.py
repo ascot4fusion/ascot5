@@ -122,8 +122,8 @@ def read_plasma(a4folder, h5fn):
     if (os.path.isfile(fname1d)):
         data = a4plasma.read_plasma(fname1d)
         plasma_1D.write_hdf5(
-            h5fn, data['nrho'], data['nion'], data['znum'], data['anum'],
-            data['znum'], data['anum'],
+            h5fn, data['nrho'], data['nion'], data['anum'], data['znum'],
+            data['anum'], data['znum'],
             data['rho'], data['ne'], data['te'], data['ni'], data['ti'])
     if (os.path.isfile(fname2d)):
         data = a4plasma.read_plasma(fname2d)
