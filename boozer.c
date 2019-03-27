@@ -38,17 +38,18 @@ int boozer_init_offload(boozer_offload_data* offload_data,
     int err = 0;
 
     /* Size of 2D grids and 1D data */
-    int rzsize       = offload_data->nr   * offload_data->nz;
-    int psithetasize = offload_data->npsi * offload_data->ntheta;
-    int contoursize  = offload_data->nrzs;
+    int rzsize      = offload_data->nr   * offload_data->nz;
+    int nusize      = offload_data->npsi * offload_data->ntheta;
+    int thetasize   = offload_data->npsi * offload_data->nthetag;
+    int contoursize = offload_data->nrzs;
 
     /* Grid limits for theta_bzr and theta_geo grids */
-    int THETAMIN = 0;
-    int THETAMAX = CONST_2PI;
+    real THETAMIN = 0;
+    real THETAMAX = CONST_2PI;
 
     /* Allocate array for storing coefficients (which later replaces the
        offload array) and contour points */
-    real* coeff_array = (real*)malloc( ( ( rzsize + 2 * psithetasize )
+    real* coeff_array = (real*)malloc( ( ( rzsize + nusize + thetasize)
                                          * NSIZE_COMP2D + 2*contoursize )
                                        * sizeof(real) );
 
@@ -74,23 +75,23 @@ int boozer_init_offload(boozer_offload_data* offload_data,
 
     /* theta_bzr */
     err += interp2Dcomp_init_coeff(
-            &coeff_array[(rzsize + psithetasize) * NSIZE_COMP2D],
-            &(*offload_array)[rzsize + psithetasize],
-            offload_data->npsi, offload_data->ntheta,
+            &coeff_array[(rzsize + nusize) * NSIZE_COMP2D],
+            &(*offload_array)[rzsize + nusize],
+            offload_data->npsi, offload_data->nthetag,
             NATURALBC, NATURALBC,
             offload_data->psi_min, offload_data->psi_max,
             THETAMIN, THETAMAX);
 
     for(int i = 0; i < contoursize; i++) {
-        coeff_array[(rzsize + 2*psithetasize)*NSIZE_COMP2D + i] =
-            (*offload_array)[rzsize + 2 * psithetasize + i];
-        coeff_array[(rzsize + 2*psithetasize)*NSIZE_COMP2D + contoursize + i] =
-            (*offload_array)[rzsize + 2 * psithetasize + contoursize + i];
+        coeff_array[(rzsize + nusize + thetasize)*NSIZE_COMP2D + i] =
+            (*offload_array)[rzsize + nusize + thetasize + i];
+        coeff_array[(rzsize + nusize + thetasize)*NSIZE_COMP2D + contoursize + i] =
+            (*offload_array)[rzsize + nusize + thetasize + contoursize + i];
     }
 
     free(*offload_array);
     *offload_array = coeff_array;
-    offload_data->offload_array_length = (rzsize + 2 * psithetasize)
+    offload_data->offload_array_length = (rzsize + nusize + thetasize)
                                          * NSIZE_COMP2D + 2* contoursize;
 
     return err;
@@ -113,13 +114,14 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
     boozerdata->nrzs      = offload_data->nrzs;
 
     /* Grid limits for theta_bzr and theta_geo grids*/
-    int THETAMIN = 0;
-    int THETAMAX = CONST_2PI;
+    real THETAMIN = 0;
+    real THETAMAX = CONST_2PI;
 
     /* Size of 1D and 2D input data arrays */
-    int rzsize       = offload_data->nr * offload_data->nz * NSIZE_COMP2D;
-    int psithetasize = offload_data->npsi * offload_data->ntheta * NSIZE_COMP2D;
-    int contoursize  = offload_data->nrzs;
+    int rzsize      = offload_data->nr * offload_data->nz * NSIZE_COMP2D;
+    int nusize      = offload_data->npsi * offload_data->ntheta * NSIZE_COMP2D;
+    int thetasize   = offload_data->npsi * offload_data->nthetag * NSIZE_COMP2D;
+    int contoursize = offload_data->nrzs;
 
     /* Initialize splines */
 
@@ -143,16 +145,16 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                              THETAMIN, THETAMAX);
 
     interp2Dcomp_init_spline(&boozerdata->theta_psithetageom,
-                             &(offload_array[rzsize + psithetasize]),
+                             &(offload_array[rzsize + nusize]),
                              offload_data->npsi,
-                             offload_data->ntheta,
+                             offload_data->nthetag,
                              NATURALBC, NATURALBC,
                              offload_data->psi_min,
                              offload_data->psi_max,
                              THETAMIN, THETAMAX);
 
-    boozerdata->rs = &(offload_array[rzsize + 2*psithetasize]);
-    boozerdata->zs = &(offload_array[rzsize + 2*psithetasize + contoursize]);
+    boozerdata->rs = &(offload_array[rzsize + nusize + thetasize]);
+    boozerdata->zs = &(offload_array[rzsize + nusize + thetasize + contoursize]);
 }
 
 /**
@@ -247,6 +249,7 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
             real theta[6];
             interperr += interp2Dcomp_eval_df(
                 theta, &boozerdata->theta_psithetageom, psi[0], thgeo);
+            printf("%g %g\n",thgeo,theta[0]);
 
             /* boozer nu function and derivatives */
             real nu[6];
@@ -295,6 +298,7 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
 
 
     if(interperr) {
+        printf("......\n");
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_BOOZER );
     }
 

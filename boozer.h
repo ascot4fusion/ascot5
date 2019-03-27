@@ -24,7 +24,8 @@ typedef struct {
     real psi_max;  /**< Maximum psi in other fields                           */
     real psi_inner;/**< psi at the inner edge (center of plasma) of the grid  */
     real psi_outer;/**< psi at the outer edge (~separatrix) of the grid       */
-    int  ntheta;   /**< number of theta angles (both boozer and geometric)    */
+    int  ntheta;   /**< number of boozer theta grid points                    */
+    int  nthetag;  /**< number of geometric theta grid points                 */
     real r0;       /**< R location of the axis for defining geometric theta   */
     real z0;       /**< z location of the axis for defining geometric theta   */
     int  nrzs;     /**< number of elements in rs and zs                       */
@@ -46,7 +47,7 @@ typedef struct {
     int  nrzs;     /**< number of elements in rs and zs                       */
     interp2D_data nu_psitheta; /**< the nu-function, phi=zeta+nu(psi,theta),
                                     with phi the cylindrical angle            */
-    interp2D_data theta_psithetageom; /**< boozer_theta(psi,theta_geometric)  */
+    interp2D_data theta_psithetageom; /**< boozer_theta(psi,thetag)           */
     interp2D_data psi_rz;             /**< psi(R,z)                           */
 } boozer_data;
 

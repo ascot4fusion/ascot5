@@ -65,6 +65,8 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
 
     if( hdf5_read_int(   BOOZERPATH "ntheta", &(offload_data->ntheta),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_int(   BOOZERPATH "nthetag", &(offload_data->nthetag),
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
 
     if( hdf5_read_double(BOOZERPATH "r0",      &(offload_data->r0),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
@@ -75,12 +77,13 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Size of 1D and 2D input data arrays */
-    int rzsize       = offload_data->nr   * offload_data->nz;
-    int psithetasize = offload_data->npsi * offload_data->ntheta;
-    int contoursize  = offload_data->nrzs;
+    int rzsize      = offload_data->nr   * offload_data->nz;
+    int nusize      = offload_data->npsi * offload_data->ntheta;
+    int thetasize   = offload_data->npsi * offload_data->nthetag;
+    int contoursize = offload_data->nrzs;
 
     /* Allocate offload array */
-    *offload_array = (real*) malloc( (rzsize + 2 * psithetasize
+    *offload_array = (real*) malloc( (rzsize + nusize + thetasize
                                       + 2 * contoursize) * sizeof(real) );
 
     /* Read data to offload array */
@@ -91,13 +94,13 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
                          &(*offload_array)[rzsize],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BOOZERPATH "theta_psithetageom",
-                         &(*offload_array)[rzsize + psithetasize],
+                         &(*offload_array)[rzsize + nusize],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BOOZERPATH "rs",
-                         &(*offload_array)[rzsize + 2*psithetasize],
+                         &(*offload_array)[rzsize + nusize + thetasize],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BOOZERPATH "zs",
-                         &(*offload_array)[rzsize + 2*psithetasize
+                         &(*offload_array)[rzsize + nusize + thetasize
                                            + contoursize],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
