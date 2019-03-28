@@ -80,17 +80,19 @@ def plot_intersection(x1x2x3, y1y2y3, z1z2z3, phi, axes=None):
     n = x1x2x3.shape[0]
     # Find intersection line for all crossing triangles
     p1p2p3_polarity = np.tile(p1p2p3_polarity, (3,1)).T
+    ind_diff = p1p2p3_sign != p1p2p3_polarity
+    ind_same = p1p2p3_sign == p1p2p3_polarity
 
-    phi_diff = p1p2p3[p1p2p3_sign != p1p2p3_polarity]
-    phi_same = np.reshape(p1p2p3[p1p2p3_sign == p1p2p3_polarity], (n,2))
+    phi_diff = p1p2p3[ind_diff]
+    phi_same = np.reshape(p1p2p3[ind_same], (n,2))
     phi_diffs = (- phi_same / (phi_diff[:,None] - phi_same))
 
-    r_diff = r1r2r3[p1p2p3_sign != p1p2p3_polarity]
-    r_same = np.reshape(r1r2r3[p1p2p3_sign == p1p2p3_polarity], (n,2))
+    r_diff = r1r2r3[ind_diff]
+    r_same = np.reshape(r1r2r3[ind_same], (n,2))
     r = r_same + (r_diff[:,None] - r_same ) * phi_diffs
 
-    z_diff = z1z2z3[p1p2p3_sign != p1p2p3_polarity]
-    z_same = np.reshape(z1z2z3[p1p2p3_sign == p1p2p3_polarity], (n,2))
+    z_diff = z1z2z3[ind_diff]
+    z_same = np.reshape(z1z2z3[ind_same], (n,2))
     z = z_same + (z_diff[:,None] - z_same ) * phi_diffs
 
     axes.plot(r.T, z.T, 'k')
