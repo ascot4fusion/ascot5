@@ -11,7 +11,6 @@ import numpy as np
 
 from a5py.ascotpy.libbfield  import LibBfield
 from a5py.ascotpy.libefield  import LibEfield
-from a5py.ascotpy.libplasma  import LibPlasma
 from a5py.ascotpy.libneutral import LibNeutral
 from a5py.ascotpy.libboozer  import LibBoozer
 from a5py.ascotpy.libmhd     import LibMhd
@@ -23,7 +22,7 @@ plt = util.find_spec("matplotlib")
 if plt:
     import matplotlib.pyplot as plt
 
-class Ascotpy(LibBfield, LibEfield, LibPlasma, LibNeutral, LibBoozer, LibMhd):
+class Ascotpy(LibBfield, LibEfield, LibNeutral, LibBoozer, LibMhd):
     """
     One class to rule them all.
     """
@@ -77,8 +76,7 @@ class Ascotpy(LibBfield, LibEfield, LibPlasma, LibNeutral, LibBoozer, LibMhd):
             out = LibBoozer.evaluate(self, R, phi, z, t, quantity)
         if quantity in LibMhd.quantities:
             out = LibMhd.evaluate(self, R, phi, z, t, quantity)
-        if self.plasma_initialized and quantity in self.get_plasmaquantities():
-            out = LibPlasma.evaluate(self, R, phi, z, t, quantity)
+
 
         if grid:
             out = np.reshape(out, arrsize)
@@ -104,7 +102,6 @@ class Ascotpy(LibBfield, LibEfield, LibPlasma, LibNeutral, LibBoozer, LibMhd):
             axes = plt.gca()
 
         mesh = axes.pcolormesh(R, z, np.transpose(out[:,0,:,0]))
-        plt.colorbar(mesh)
         axes.axis("image")
 
         if newfig:

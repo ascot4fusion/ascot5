@@ -9,9 +9,9 @@ import numpy as np
 from . ascot5file import add_group
 from . ascot5data import AscotData
 
-def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
-               zmin, zmax, nz, r0, z0, psi0, psi1, psi_rz, theta_psithetageom,
-               nu_psitheta, nrzs, rs, zs, desc=None):
+def write_hdf5(fn, psimin, psimax, npsi, ntheta, rmin, rmax, nr, zmin, zmax, nz,
+               r0, z0, psi0, psi1, psi_rz, theta_psithetageom, nu_psitheta,
+               nrzs, rs, zs, desc=None):
     """
     Write boozer input to HDF5 file.
 
@@ -25,9 +25,7 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
         npsi : int <br>
             Number of psi grid points.
         ntheta : int <br>
-            Number of boozer theta grid values.
-        nthetag : int <br>
-            Number of geometric theta grid values.
+            Number of theta grid (both boozer and geometric) values.
         rmin : float <br>
             Minimum R grid value.
         rmax : float <br>
@@ -50,8 +48,8 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
             Coordinate psi on separatrix.
         psi_rz : array_like (nr,nz) <br>
             Coordinate psi(R,z).
-        theta_psithetageom : array_like (npsi,nthetag) <br>
-            Coordinate theta(psi, thetag).
+        theta_psithetageom : array_like (npsi,ntheta) <br>
+            Coordinate theta(psi, thetageom).
         nu_psitheta : array_like (npsi,ntheta) <br>
             nu(psi, theta).
         nrsz : int <br>
@@ -66,10 +64,8 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
     Returns:
         Name of the new input that was written.
     """
-    print(nu_psitheta.shape)
-    print(theta_psithetageom.shape)
     assert psi_rz.shape             == (nr,nz)
-    assert theta_psithetageom.shape == (npsi,nthetag)
+    assert theta_psithetageom.shape == (npsi,ntheta)
     assert nu_psitheta.shape        == (npsi,ntheta)
     assert rs.size == nrzs
     assert zs.size == nrzs
@@ -82,32 +78,24 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
     group  = "Boozer"
     gname  = ""
 
-    # Add padding
-    padding = 4
-    data = np.copy(theta_psithetageom)
-    theta_psithetageom = np.concatenate( (theta_psithetageom, data[1:padding+1,:]+np.pi*2) )
-    theta_psithetageom = np.concatenate( (data[nthetag-padding-1:-1,:]-np.pi*2, theta_psithetageom) )
-    nthetag += padding*2
-
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
         gname = g.name.split("/")[-1]
 
         # grid specifications
-        g.create_dataset("psimin",  (1,), data=psimin,  dtype="f8")
-        g.create_dataset("psimax",  (1,), data=psimax,  dtype="f8")
-        g.create_dataset("npsi",    (1,), data=npsi,    dtype="i4")
-        g.create_dataset("ntheta",  (1,), data=ntheta,  dtype="i4")
-        g.create_dataset("nthetag", (1,), data=nthetag, dtype="i4")
-        g.create_dataset("rmin",    (1,), data=rmin,    dtype="f8")
-        g.create_dataset("rmax",    (1,), data=rmax,    dtype="f8")
-        g.create_dataset("nr",      (1,), data=nr,      dtype="i4")
-        g.create_dataset("zmin",    (1,), data=zmin,    dtype="f8")
-        g.create_dataset("zmax",    (1,), data=zmax,    dtype="f8")
-        g.create_dataset("nz",      (1,), data=nz,      dtype="i4")
-        g.create_dataset("r0",      (1,), data=r0,      dtype="f8")
-        g.create_dataset("z0",      (1,), data=z0,      dtype="f8")
-        g.create_dataset("nrzs",    (1,), data=nrzs,    dtype="i4")
+        g.create_dataset("psimin", (1,), data=psimin, dtype="f8")
+        g.create_dataset("psimax", (1,), data=psimax, dtype="f8")
+        g.create_dataset("npsi",   (1,), data=npsi,   dtype="i4")
+        g.create_dataset("ntheta", (1,), data=ntheta, dtype="i4")
+        g.create_dataset("rmin",   (1,), data=rmin,   dtype="f8")
+        g.create_dataset("rmax",   (1,), data=rmax,   dtype="f8")
+        g.create_dataset("nr",     (1,), data=nr,     dtype="i4")
+        g.create_dataset("zmin",   (1,), data=zmin,   dtype="f8")
+        g.create_dataset("zmax",   (1,), data=zmax,   dtype="f8")
+        g.create_dataset("nz",     (1,), data=nz,     dtype="i4")
+        g.create_dataset("r0",     (1,), data=r0,     dtype="f8")
+        g.create_dataset("z0",     (1,), data=z0,     dtype="f8")
+        g.create_dataset("nrzs",   (1,), data=nrzs,   dtype="i4")
 
         # the outermost poloidal psi-surface contour
         g.create_dataset("rs", (nrzs,), data=rs, dtype="f8")
@@ -119,7 +107,7 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
 
         # tabulated coordinates maps
         g.create_dataset("psi_rz", (nz,nr), data=psi_rz, dtype="f8")
-        g.create_dataset("theta_psithetageom", (nthetag,npsi),
+        g.create_dataset("theta_psithetageom", (ntheta,npsi),
                          data=theta_psithetageom, dtype="f8")
         g.create_dataset("nu_psitheta", (ntheta,npsi),
                          data=nu_psitheta, dtype="f8")

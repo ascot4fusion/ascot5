@@ -43,7 +43,7 @@ class BfieldFrame(FieldFrame):
                          float(self._binymaxchoice.get()),
                          float(self._nbinychoice.get()) )
 
-        phi  = float(self._phichoice.get()) * np.pi / 180
+        phi  = 0
         time = 0
 
         axes = fig.add_subplot(1,1,1)
@@ -51,6 +51,6 @@ class BfieldFrame(FieldFrame):
         self.ascotpy.plotseparatrix(r, phi, z, time, axes)
 
         if self._walldata is not None:
-            self._walldata.plotRzphi(phi, axes=axes)
+            self._walldata.plotRz(axes=axes)
 
         self.draw()

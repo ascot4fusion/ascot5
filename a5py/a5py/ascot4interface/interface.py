@@ -14,29 +14,46 @@ import a5py.ascot4interface.wall_2d  as a4wall_2d
 import a5py.ascot4interface.wall_3d  as a4wall_3d
 import a5py.ascot4interface.mhdinput as a4mhdinput
 
-import a5py.ascot5io.B_2DS       as B_2DS
-import a5py.ascot5io.B_3DS       as B_3DS
-import a5py.ascot5io.B_STS       as B_STS
-import a5py.ascot5io.N0_3D       as N0_3D
-import a5py.ascot5io.plasma_1D   as plasma_1D
-import a5py.ascot5io.mrk_prt     as mrk_prt
-import a5py.ascot5io.mrk_gc      as mrk_gc
-import a5py.ascot5io.E_TC        as E_TC
-import a5py.ascot5io.E_1DS       as E_1DS
-import a5py.ascot5io.wall_2D     as wall_2D
-import a5py.ascot5io.wall_3D     as wall_3D
-import a5py.ascot5io.boozer      as boozer
-import a5py.ascot5io.mhd         as mhd
-import a5py.ascot5io.ascot5tools as a5tools
+import a5py.ascot5io.B_2DS     as B_2DS
+import a5py.ascot5io.B_3DS     as B_3DS
+import a5py.ascot5io.B_STS     as B_STS
+import a5py.ascot5io.N0_3D     as N0_3D
+import a5py.ascot5io.plasma_1D as plasma_1D
+import a5py.ascot5io.mrk_prt   as mrk_prt
+import a5py.ascot5io.mrk_gc    as mrk_gc
+import a5py.ascot5io.E_TC      as E_TC
+import a5py.ascot5io.E_1DS     as E_1DS
+import a5py.ascot5io.wall_2D   as wall_2D
+import a5py.ascot5io.wall_3D   as wall_3D
+import a5py.ascot5io.boozer    as boozer
+import a5py.ascot5io.mhd       as mhd
 
 from a5py.preprocessing.boozermaps import Boozermaps
 from a5py.postprocessing.physicslib import guessMass
-
 
 def read_markers(a4folder, h5fn):
     fname = a4folder + "input.particles"
     if (os.path.isfile(fname)):
         data = a4markers.read_particles(fname)
+        if 'charge' not in data['fieldNames']:
+            print("Converting Znum to charge.")
+            data["fields"]['charge'] = data["fields"]['Znum'].astype('float')
+        if 'mass' not in data['fieldNames']:
+            print("Converting Anum to mass.")
+            data["fields"]['mass'] = np.array(
+                list(map(guessMass,
+                         data["fields"]['Anum'],
+                         data["fields"]['Znum'],
+                         data["fields"]['charge'])))
+        if 'id' not in data['fieldNames']:
+            print("Generating unique ids.")
+            data["fields"]['id'] = np.array(
+                range(1,data["fields"]['charge'].size + 1))
+        if (min(data["fields"]["id"]) <= 0):
+            zero_ind = np.where(data["fields"]["id"] == 0)[0];
+            data["fields"]["id"][zero_ind] = max(data["fields"]["id"] ) + 1
+            print("Converting id 0 to new unique id: "
+                  + str(int(max(data["fields"]["id"]))))
         if 'vphi' in data['fieldNames']:
             # We have particles
             print("Warning! Forcing time to zero for all markers.")
@@ -93,14 +110,14 @@ def read_bfield(a4folder, h5fn):
                 return
         data = a4magn_bkg.read_magn_bkg_stellarator(fnameh5)
         psilims = [0, 1]
-        temp_B_name = B_STS.write_hdf5(
+        B_STS.write_hdf5(
             h5fn,
             data['r'][0], data['r'][-1], data['r'].size,
             data['z'][0], data['z'][-1], data['z'].size,
             data['phi'][0], data['phi'][-1], data['phi'].size - 1,
             psilims[0], psilims[1],
             data['br'], data['bphi'], data['bz'], data['s'],
-            data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size-1,
+            data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
             data['axis_r'], data['axis_z'])
         print("Searching for psiaxis and psisepx.")
         try:
@@ -112,7 +129,6 @@ def read_bfield(a4folder, h5fn):
             print("This might take a while...")
             psilims = a4magn_bkg.stellarator_psi_lims(data)
         print("New limits: [" + str(psilims[0]) + ", " + str(psilims[1]) + "]")
-        a5tools.removegroup(h5fn, temp_B_name)
         B_STS.write_hdf5(
             h5fn,
             data['r'][0], data['r'][-1], data['r'].size,
@@ -120,7 +136,7 @@ def read_bfield(a4folder, h5fn):
             data['phi'][0], data['phi'][-1], data['phi'].size - 1,
             psilims[0], psilims[1],
             data['br'], data['bphi'], data['bz'], data['s'],
-            data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size-1,
+            data['axis_phi'][0], data['axis_phi'][-1], data['axis_phi'].size,
             data['axis_r'], data['axis_z'])
 
 def read_plasma(a4folder, h5fn):
@@ -128,10 +144,27 @@ def read_plasma(a4folder, h5fn):
     fname2d = a4folder + "input.plasma_2d"
     if (os.path.isfile(fname1d)):
         data = a4plasma.read_plasma(fname1d)
+        # Make sure the input is linearly spaced. If not, interpolate
+        tol = 1.0001
+        diff = np.diff(data['rho'])
+        if ( max(diff)/min(diff) > tol):
+            print("Warning! Interpolating plasma data to uniform grid")
+            new_rho = np.linspace(np.amin(data['rho']),
+                                  np.amax(data['rho']),
+                                  data['nrho'])
+            data['ne'] = np.interp(new_rho, data['rho'], data['ne'])
+            data['te'] = np.interp(new_rho, data['rho'], data['te'])
+            for i in range(1, data['nion']+1):
+                data['ni'+str(i)] = np.interp(new_rho, data['rho'],
+                                              data['ni'+str(i)])
+            data['ti1'] = np.interp(new_rho, data['rho'], data['ti1'])
+            data['rho'] = new_rho
+        dens_i = np.array([data['ni'+str(i)] for i in range(1,data['nion']+1)])
+        dens_i = np.transpose(dens_i)
         plasma_1D.write_hdf5(
             h5fn, data['nrho'], data['nion'], data['znum'], data['anum'],
             data['znum'], data['anum'],
-            data['rho'], data['ne'], data['te'], data['ni'], data['ti'])
+            data['rho'], data['ne'], data['te'], dens_i, data['ti1'])
     if (os.path.isfile(fname2d)):
         data = a4plasma.read_plasma(fname2d)
         dens_i = np.array([data['ni'+str(i)] for i in range(1,data['nion']+1)])
@@ -147,6 +180,17 @@ def read_erad(a4folder, h5fn):
     fname = a4folder + "input.erad"
     if (os.path.isfile(fname)):
         data = a4erad.read_erad(fname)
+        # Make sure the input is linearly spaced. If not, interpolate
+        tol = 1.0001
+        diff = np.diff(data['rho'])
+        if ( max(diff)/min(diff) > tol):
+            print("Warning! Interpolating dV_drho to uniform grid")
+            new_rho = np.linspace(np.amin(data['rho']),
+                                  np.amax(data['rho']),
+                                  data['n_rho'])
+            data['dV_drho'] = np.interp(new_rho, data['rho'],
+                                        data['dV_drho'])
+            data['rho'] = new_rho
         E_1DS.write_hdf5(
             h5fn, int(data['n_rho']), np.amin(data['rho']),
             np.amax(data['rho']), data['dV_drho'], 1.0)

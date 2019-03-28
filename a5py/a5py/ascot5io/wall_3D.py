@@ -88,8 +88,3 @@ class wall_3D(AscotData):
         data = self.read()
         plot.plot_projection(data["x1x2x3"], data["y1y2y3"], data["z1z2z3"],
                              axes=axes)
-
-    def plotRzphi(self, phi, axes=None):
-        data = self.read()
-        plot.plot_intersection(data["x1x2x3"], data["y1y2y3"], data["z1z2z3"],
-                               phi, axes=axes)

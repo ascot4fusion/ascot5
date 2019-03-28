@@ -32,7 +32,6 @@ class FieldFrame(PlotFrame):
         self._binyminchoice = tkinter.DoubleVar(self)
         self._binymaxchoice = tkinter.DoubleVar(self)
         self._nbinychoice   = tkinter.IntVar(self)
-        self._phichoice     = tkinter.DoubleVar(self)
 
         self._qchoice = tkinter.StringVar(self)
 
@@ -44,7 +43,6 @@ class FieldFrame(PlotFrame):
         self._binyminchoice.set(-10)
         self._binymaxchoice.set(10)
         self._nbinychoice.set(100)
-        self._phichoice.set(0)
         self._qchoice.set(quantities[0])
 
         self.init2dpanel(quantities)
@@ -82,10 +80,6 @@ class FieldFrame(PlotFrame):
         nyentry     = tkinter.Entry(binpanel, validate = 'key',
                                     validatecommand = vcmd, width=6,
                                     textvariable=self._nbinychoice)
-        philabel    = tkinter.Label(binpanel, text="phi ")
-        phientry    = tkinter.Entry(binpanel, validate = 'key',
-                                    validatecommand = vcmd, width=6,
-                                    textvariable=self._phichoice)
 
         xminlabel.grid(row=0, column=0)
         minxentry.grid(row=0, column=1)
@@ -100,8 +94,6 @@ class FieldFrame(PlotFrame):
         maxyentry.grid(row=1, column=3)
         nylabel.grid(  row=2, column=2)
         nyentry.grid(  row=2, column=3)
-        philabel.grid( row=3, column=0)
-        phientry.grid( row=3, column=1)
 
         binpanel.pack()
 

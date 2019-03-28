@@ -9,7 +9,8 @@ import importlib.util as util
 plt = util.find_spec("matplotlib")
 if plt:
     import matplotlib.pyplot as plt
-    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+    import matplotlib.backends.tkagg as tkagg
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 
 class PlotFrame(tkinter.Frame):
     """
@@ -34,7 +35,7 @@ class PlotFrame(tkinter.Frame):
         canvas     = FigureCanvasTkAgg(self._fig, master=self)
 
         # Navigation toolbars but without the coordinate display
-        class Toolbar(NavigationToolbar2Tk):
+        class Toolbar(NavigationToolbar2TkAgg):
             def set_message(self, msg):
                 pass
         navbar = Toolbar(canvas, indexpanel)
