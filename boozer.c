@@ -46,6 +46,7 @@ int boozer_init_offload(boozer_offload_data* offload_data,
     /* Grid limits for theta_bzr and theta_geo grids */
     real THETAMIN = 0;
     real THETAMAX = CONST_2PI;
+    real padding = (4.0*CONST_2PI)/(offload_data->nthetag-2*4.0 -1);
 
     /* Allocate array for storing coefficients (which later replaces the
        offload array) and contour points */
@@ -80,7 +81,7 @@ int boozer_init_offload(boozer_offload_data* offload_data,
             offload_data->npsi, offload_data->nthetag,
             NATURALBC, NATURALBC,
             offload_data->psi_min, offload_data->psi_max,
-            THETAMIN, THETAMAX);
+            THETAMIN-padding, THETAMAX+padding);
 
     for(int i = 0; i < contoursize; i++) {
         coeff_array[(rzsize + nusize + thetasize)*NSIZE_COMP2D + i] =
@@ -116,6 +117,7 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
     /* Grid limits for theta_bzr and theta_geo grids*/
     real THETAMIN = 0;
     real THETAMAX = CONST_2PI;
+    real padding = (4.0*CONST_2PI)/(offload_data->nthetag-2*4.0-1);
 
     /* Size of 1D and 2D input data arrays */
     int rzsize      = offload_data->nr * offload_data->nz * NSIZE_COMP2D;
@@ -151,7 +153,7 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                              NATURALBC, NATURALBC,
                              offload_data->psi_min,
                              offload_data->psi_max,
-                             THETAMIN, THETAMAX);
+                             THETAMIN-padding, THETAMAX+padding);
 
     boozerdata->rs = &(offload_array[rzsize + nusize + thetasize]);
     boozerdata->zs = &(offload_array[rzsize + nusize + thetasize + contoursize]);
@@ -249,7 +251,6 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
             real theta[6];
             interperr += interp2Dcomp_eval_df(
                 theta, &boozerdata->theta_psithetageom, psi[0], thgeo);
-            printf("%g %g\n",thgeo,theta[0]);
 
             /* boozer nu function and derivatives */
             real nu[6];
@@ -298,7 +299,6 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
 
 
     if(interperr) {
-        printf("......\n");
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_BOOZER );
     }
 
