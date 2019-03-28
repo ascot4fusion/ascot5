@@ -43,7 +43,7 @@ class NeutralFrame(FieldFrame):
                          float(self._binymaxchoice.get()),
                          float(self._nbinychoice.get()) )
 
-        phi  = float(self._phichoice.get()) * np.pi / 180
+        phi  = 0
         time = 0
 
         axes = fig.add_subplot(1,1,1)

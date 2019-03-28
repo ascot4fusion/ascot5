@@ -57,15 +57,15 @@ def read_alfven(fn):
         data["psimin"] = psi[0]
         data["psimax"] = psi[-1]
 
-        psiq = np.linspace(data["psimin"], data["psimax"], data["npsi"])
+        psiq = np.linspace(data["psimin"], data["psimin"], data["npsi"])
 
         data["alpha"] = np.zeros( (data["npsi"],data["nmode"]) )
         data["phi"]   = np.zeros( (data["npsi"],data["nmode"]) )
         for i in range(data["nmode"]):
-            f = interpolate.interp1d(psi.ravel(), alpha[:,i])
+            f = interpolate.interp1d(psi.ravel(), data["alpha"][:,i])
             data["alpha"][:,i] = f(psiq).ravel()
 
-            f = interpolate.interp1d(psi.ravel(), phi[:,i])
+            f = interpolate.interp1d(psi.ravel(), data["phi"][:,i])
             data["phi"][:,i] = f(psiq).ravel()
 
     return data

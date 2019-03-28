@@ -14,24 +14,24 @@ def read_wall_3d(fn):
     with open(fn,'r') as f:
 
         # fprintf(fid,'%d wall sectors; number, type, min. & max. phi(deg): \n\n',w.nsector);
-        data = {}
-        data['n_sectors'] = int(f.readline().split()[0])
+        str = {}
+        str['n_sectors'] = int(f.readline().split()[0])
 
         # Read sector ids
-        data['ids'] = {}
+        str['ids'] = {}
         f.readline()
-        for sector in range(data['n_sectors']):
+        for sector in range(str['n_sectors']):
             line = f.readline().split()
-            data['ids'][int(line[0])] = int(line[1])
+            str['ids'][int(line[0])] = int(line[1])
 
         # Read data for each sector
         n_read = 0
 
-        data['x1x2x3'] = np.array(np.zeros((num_lines, 3)))
-        data['y1y2y3'] = np.array(np.zeros((num_lines, 3)))
-        data['z1z2z3'] = np.array(np.zeros((num_lines, 3)))
-        data['id'] = np.array(np.zeros((num_lines, 1)))
-        for sector in range(1,data['n_sectors']+1):
+        str['x1x2x3'] = np.array(np.zeros((num_lines, 3)))
+        str['y1y2y3'] = np.array(np.zeros((num_lines, 3)))
+        str['z1z2z3'] = np.array(np.zeros((num_lines, 3)))
+        str['id'] = np.array(np.zeros((num_lines, 1)))
+        for sector in range(1,str['n_sectors']+1):
             f.readline() # Skip empty line
             try:
                 n_elements = int(f.readline().split()[0])
@@ -47,10 +47,10 @@ def read_wall_3d(fn):
                 f.readline() # Skip element info
                 for j in range(3):
                     line = f.readline().split()
-                    data['x1x2x3'][n_read,j] = line[0]
-                    data['y1y2y3'][n_read,j] = line[1]
-                    data['z1z2z3'][n_read,j] = line[2]
-                data['id'][n_read] = data['ids'][sector]
+                    str['x1x2x3'][n_read,j] = line[0]
+                    str['y1y2y3'][n_read,j] = line[1]
+                    str['z1z2z3'][n_read,j] = line[2]
+                str['id'][n_read] = str['ids'][sector]
                 n_read = n_read + 1
 
                 # Some data may contain rectangles instead of triangles.
@@ -64,52 +64,52 @@ def read_wall_3d(fn):
                     f.seek(pos)
                 else:
                     line = line.split()
-                    data['x1x2x3'][n_read,0] = line[0]
-                    data['y1y2y3'][n_read,0] = line[1]
-                    data['z1z2z3'][n_read,0] = line[2]
-                    data['x1x2x3'][n_read,1] = data['x1x2x3'][n_read-1,0]
-                    data['y1y2y3'][n_read,1] = data['y1y2y3'][n_read-1,0]
-                    data['z1z2z3'][n_read,1] = data['z1z2z3'][n_read-1,0]
-                    data['x1x2x3'][n_read,2] = data['x1x2x3'][n_read-1,2]
-                    data['y1y2y3'][n_read,2] = data['y1y2y3'][n_read-1,2]
-                    data['z1z2z3'][n_read,2] = data['z1z2z3'][n_read-1,2]
-                    data['id'][n_read] = data['ids'][sector]
+                    str['x1x2x3'][n_read,0] = line[0]
+                    str['y1y2y3'][n_read,0] = line[1]
+                    str['z1z2z3'][n_read,0] = line[2]
+                    str['x1x2x3'][n_read,1] = str['x1x2x3'][n_read-1,0]
+                    str['y1y2y3'][n_read,1] = str['y1y2y3'][n_read-1,0]
+                    str['z1z2z3'][n_read,1] = str['z1z2z3'][n_read-1,0]
+                    str['x1x2x3'][n_read,2] = str['x1x2x3'][n_read-1,2]
+                    str['y1y2y3'][n_read,2] = str['y1y2y3'][n_read-1,2]
+                    str['z1z2z3'][n_read,2] = str['z1z2z3'][n_read-1,2]
+                    str['id'][n_read] = str['ids'][sector]
                     n_read = n_read + 1
 
     # Remove extra zeros
-    data['x1x2x3'] = data['x1x2x3'][0:n_read,:]
-    data['y1y2y3'] = data['y1y2y3'][0:n_read,:]
-    data['z1z2z3'] = data['z1z2z3'][0:n_read,:]
-    data['id'] = data['id'][0:n_read,:]
+    str['x1x2x3'] = str['x1x2x3'][0:n_read,:]
+    str['y1y2y3'] = str['y1y2y3'][0:n_read,:]
+    str['z1z2z3'] = str['z1z2z3'][0:n_read,:]
+    str['id'] = str['id'][0:n_read,:]
 
     if copysector:
-        r1r2r3 = np.sqrt(data['x1x2x3']*data['x1x2x3'] + data['y1y2y3']*data['y1y2y3'])
-        t1t2t3 = np.arctan2(data['y1y2y3'], data['x1x2x3'])
-        z1z2z3 = data['z1z2z3']
-        data['x1x2x3'] = np.zeros( (n_read*data['n_sectors'],3) )
-        data['y1y2y3'] = np.zeros( (n_read*data['n_sectors'],3) )
-        data['z1z2z3'] = np.zeros( (n_read*data['n_sectors'],3) )
+        r1r2r3 = np.sqrt(str['x1x2x3']*str['x1x2x3'] + str['y1y2y3']*str['y1y2y3'])
+        t1t2t3 = np.arctan2(str['y1y2y3'], str['x1x2x3'])
+        z1z2z3 = str['z1z2z3']
+        str['x1x2x3'] = np.zeros( (n_read*str['n_sectors'],3) )
+        str['y1y2y3'] = np.zeros( (n_read*str['n_sectors'],3) )
+        str['z1z2z3'] = np.zeros( (n_read*str['n_sectors'],3) )
 
-        for i in range(data['n_sectors']):
-            x1x2x3 = r1r2r3 * np.cos(t1t2t3 + i*2*np.pi/data['n_sectors'])
-            y1y2y3 = r1r2r3 * np.sin(t1t2t3 + i*2*np.pi/data['n_sectors'])
-            data['x1x2x3'][n_read*i:n_read*(i+1),:] = x1x2x3
-            data['y1y2y3'][n_read*i:n_read*(i+1),:] = y1y2y3
-            data['z1z2z3'][n_read*i:n_read*(i+1),:] = z1z2z3
+        for i in range(str['n_sectors']):
+            x1x2x3 = r1r2r3 * np.cos(t1t2t3 + i*2*np.pi/str['n_sectors'])
+            y1y2y3 = r1r2r3 * np.sin(t1t2t3 + i*2*np.pi/str['n_sectors'])
+            str['x1x2x3'][n_read*i:n_read*(i+1),:] = x1x2x3
+            str['y1y2y3'][n_read*i:n_read*(i+1),:] = y1y2y3
+            str['z1z2z3'][n_read*i:n_read*(i+1),:] = z1z2z3
 
-        data['id'] = np.linspace(1, n_read*data['n_sectors'],n_read*data['n_sectors'] )
+        str['id'] = np.linspace(1, n_read*str['n_sectors'],n_read*str['n_sectors'] )
 
-    return data
+    return str
 
 def read_wall_3d_hdf5(fname):
 
     with h5py.File(fname, 'r') as f: # Open for reading
 
-        data = dict()
+        str = dict()
 
-        data['x1x2x3'] = f['/wall/3d/triangles_x1x2x3'][:]
-        data['y1y2y3'] = f['/wall/3d/triangles_y1y2y3'][:]
-        data['z1z2z3'] = f['/wall/3d/triangles_z1z2z3'][:]
-        data['id'] = f['/wall/3d/triangles_flag'][:]
+        str['x1x2x3'] = f['/wall/3d/triangles_x1x2x3'][:]
+        str['y1y2y3'] = f['/wall/3d/triangles_y1y2y3'][:]
+        str['z1z2z3'] = f['/wall/3d/triangles_z1z2z3'][:]
+        str['id'] = f['/wall/3d/triangles_flag'][:]
 
-    return data
+    return str

@@ -23,7 +23,7 @@ class LibMhd(LibAscot):
         out = None
         if quantity in ["mhd_br", "mhd_bphi", "mhd_bz", "mhd_er", "mhd_ephi",
 "mhd_ez"]:
-            out = self.eval_mhd(R, phi, z, t)[quantity[4:]]
+            out = self.eval_mhd(R, phi, z, t)[quantity]
 
         assert out is not None, "Unknown quantity"
 
