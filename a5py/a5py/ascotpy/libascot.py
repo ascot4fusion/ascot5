@@ -642,17 +642,17 @@ class LibAscot:
 
         Neval = R.size
         out = {}
-        out["br"]   = np.zeros(R.shape, dtype="f8")
-        out["bphi"] = np.zeros(R.shape, dtype="f8")
-        out["bz"]   = np.zeros(R.shape, dtype="f8")
-        out["er"]   = np.zeros(R.shape, dtype="f8")
-        out["ephi"] = np.zeros(R.shape, dtype="f8")
-        out["ez"]   = np.zeros(R.shape, dtype="f8")
+        out["mhd_br"]   = np.zeros(R.shape, dtype="f8")
+        out["mhd_bphi"] = np.zeros(R.shape, dtype="f8")
+        out["mhd_bz"]   = np.zeros(R.shape, dtype="f8")
+        out["mhd_er"]   = np.zeros(R.shape, dtype="f8")
+        out["mhd_ephi"] = np.zeros(R.shape, dtype="f8")
+        out["mhd_ez"]   = np.zeros(R.shape, dtype="f8")
 
         self.libascot.libascot_mhd_eval_perturbation(Neval, R, phi, z, t,
-                                                     out["br"],   out["bphi"],
-                                                     out["bz"],   out["er"],
-                                                     out["ephi"], out["ez"])
+                                                     out["mhd_br"],   out["mhd_bphi"],
+                                                     out["mhd_bz"],   out["mhd_er"],
+                                                     out["mhd_ephi"], out["mhd_ez"])
 
         return out
 
