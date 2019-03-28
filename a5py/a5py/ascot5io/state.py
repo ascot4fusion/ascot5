@@ -173,9 +173,9 @@ class State(AscotData):
 
         idx = np.ones(val.shape, dtype=bool)
 
-        if endcond is not None:
-            ec = self["endcond"]
-            er = self["errormsg"]
+        if endcond is not None and hasattr(self._runnode, "endstate"):
+            ec = self._runnode.endstate["endcond"]
+            er = self._runnode.endstate["errormsg"]
 
             endcondlist = [Endcond(ec[i], er[i]) for i in range(ec.size)]
             for i in range(idx.size):

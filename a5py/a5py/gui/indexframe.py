@@ -9,17 +9,17 @@ import a5py.ascot5io.ascot5tools as tools
 
 from .bfieldframe  import BfieldFrame
 from .efieldframe  import EfieldFrame
+from .plasmaframe  import PlasmaFrame
 from .neutralframe import NeutralFrame
 from .wallframe    import WallFrame
+from .boozerframe  import BoozerFrame
+from .mhdframe     import MhdFrame
 
 from .stateframe  import StateFrame
 from .orbitframe  import OrbitFrame
 from .distframe   import DistFrame
 from .debugframe  import DebugFrame
 
-## Input fields for which plot frames exist (so we can disable those others).
-__AVAILABLE_INPUTS__ = ["B_2DS", "B_3DS", "B_GS", "plasma_1D", "wall_2D",
-                        "wall_3D"]
 
 class IndexFrame(tkinter.Frame):
     """
@@ -66,9 +66,9 @@ class IndexFrame(tkinter.Frame):
 
         # Add input panels.
         rowcol = [1, 1]
-        maxrow = 4
+        maxrow = 5
         for inp in ["options", "bfield", "efield", "marker", "wall", "plasma",
-                    "neutral"]:
+                    "neutral", "boozer", "mhd"]:
             if hasattr(ascot, "options"):
                 self._panels[inp] = InputInfoPanel(gui, self, inp)
                 self._panels[inp].grid(row=rowcol[0], column=rowcol[1],
@@ -118,11 +118,20 @@ class IndexFrame(tkinter.Frame):
         if inputtype in ["E_TC", "E_1DS"]:
             self._gui.displayframe(EfieldFrame(self._gui, ascotpy, walldata))
 
+        if inputtype in ["plasma_1D", "plasma_1DS"]:
+            self._gui.displayframe(PlasmaFrame(self._gui, ascotpy, walldata))
+
         if inputtype in ["N0_3D"]:
             self._gui.displayframe(NeutralFrame(self._gui, ascotpy, walldata))
 
         if inputtype in ["wall_2D", "wall_3D"]:
             self._gui.displayframe(WallFrame(self._gui, walldata))
+
+        if inputtype in ["Boozer"]:
+            self._gui.displayframe(BoozerFrame(self._gui, ascotpy, walldata))
+
+        if inputtype in ["MHD"]:
+            self._gui.displayframe(MhdFrame(self._gui, ascotpy, walldata))
 
 
     def select_inputs(self, options=None, bfield=None, efield=None, plasma=None,

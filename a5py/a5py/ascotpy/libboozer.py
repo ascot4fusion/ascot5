@@ -16,14 +16,14 @@ if plt:
 
 class LibBoozer(LibAscot):
 
-    quantities = ["psi", "theta", "zeta", "dpsidr", "dpsidphi", "dpsidz", 
+    quantities = ["psi", "theta", "zeta", "dpsidr", "dpsidphi", "dpsidz",
 "dthetadr", "dthetadphi", "dthetadz", "dzetadr", "dzetadphi", "dzetadz"]
 
     def evaluate(self, R, phi, z, t, quantity):
 
         out = None
 
-        if quantity in ["psi", "theta", "zeta", "dpsidr", "dpsidphi", "dpsidz", 
+        if quantity in ["psi", "theta", "zeta", "dpsidr", "dpsidphi", "dpsidz",
 "dthetadr", "dthetadphi", "dthetadz", "dzetadr", "dzetadphi", "dzetadz"]:
              out = self.eval_boozer(R, phi, z, t)[quantity]
 

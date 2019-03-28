@@ -32,7 +32,7 @@ class LibBfield(LibAscot):
 
         if quantity == "divergence":
             out = self.eval_bfield(R, phi, z, t, evalb=True)
-            out = out["br"] + out["brdr"] + out["bphidphi"] + out["bzdz"]
+            out = out["br"]/R + out["brdr"] + out["bphidphi"]/R + out["bzdz"]
 
         assert out is not None, "Unknown quantity"
 
