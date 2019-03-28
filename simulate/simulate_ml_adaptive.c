@@ -142,7 +142,13 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 
         /* Cash-Karp method for orbit-following */
         if(sim->enable_orbfol) {
-            step_ml_cashkarp(&p, hin, hout, tol, &sim->B_data);
+            if(sim->enable_mhd) {
+                step_ml_cashkarp_mhd(&p, hin, hout, tol, &sim->B_data,
+                                     &sim->boozer_data, &sim->mhd_data);
+            }
+            else {
+                step_ml_cashkarp(&p, hin, hout, tol, &sim->B_data);
+            }
             /* Check whether time step was rejected */
             #pragma omp simd
             for(i = 0; i < NSIMD; i++) {
