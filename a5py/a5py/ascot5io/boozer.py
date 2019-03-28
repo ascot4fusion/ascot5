@@ -82,6 +82,13 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
     group  = "Boozer"
     gname  = ""
 
+    # Add padding
+    padding = 4
+    data = np.copy(theta_psithetageom)
+    theta_psithetageom = np.concatenate( (theta_psithetageom, data[1:padding+1,:]+np.pi*2) )
+    theta_psithetageom = np.concatenate( (data[nthetag-padding-1:-1,:]-np.pi*2, theta_psithetageom) )
+    nthetag += padding*2
+
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
         gname = g.name.split("/")[-1]
