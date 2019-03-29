@@ -136,7 +136,7 @@ def plot_histogram(x, xbins=None, y=None, ybins=None, weights=None,
     return axes
 
 def plot_scatter(x, y=None, z=None, c=None, equal=False, ids=None,
-                 xlabel=None, ylabel=None, zlabel=None, axes=None):
+                 xlabel=None, ylabel=None, zlabel=None, axes=None, **kwargs):
     """
     Plot a scatter plot.
 
@@ -160,15 +160,18 @@ def plot_scatter(x, y=None, z=None, c=None, equal=False, ids=None,
         axes = plt.figure()
         axes = plt.gca()
 
-    cmap = plt.cm.get_cmap("hsv", 10)
+    cmap = plt.cm.get_cmap("viridis", 5)
     if z is None and c is None:
         if ids is not None:
-            uids = np.unique(ids)
-            for i in uids:
-                k = randint(0, 10)
-                h = axes.scatter(x[ids==i], y[ids==i], c=cmap(k), edgecolors="none")
+            uids  = np.unique(ids)
+            cpick = np.arange(5)
+            np.random.shuffle(cpick)
+            for i in range(uids.size):
+                c = np.asarray( [cmap( cpick[np.mod(i, 5)] )] * np.sum(ids==uids[i]) )
+                h = axes.scatter(x[ids==uids[i]], y[ids==uids[i]], c=c,
+                                 edgecolors="none", **kwargs)
         else:
-            h = axes.scatter(x, y)
+            h = axes.scatter(x, y, **kwargs)
 
     elif z is not None and c is None:
         if ids is not None:
