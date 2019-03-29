@@ -18,7 +18,7 @@ class LibBfield(LibAscot):
 
     quantities = ["rho", "psi", "br", "bphi", "bz", "brdr", "brdphi", "brdz",
                   "bphidr", "bphidphi", "bphidz", "bzdr", "bzdphi", "bzdz",
-                  "divergence"]
+                  "divergence", "axis"]
 
     def evaluate(self, R, phi, z, t, quantity):
 
@@ -33,6 +33,8 @@ class LibBfield(LibAscot):
         if quantity == "divergence":
             out = self.eval_bfield(R, phi, z, t, evalb=True)
             out = out["br"]/R + out["brdr"] + out["bphidphi"]/R + out["bzdz"]
+        if quantity == "axis":
+            out = self.eval_bfield(R, phi, z, t, evalaxis=True)
 
         assert out is not None, "Unknown quantity"
 

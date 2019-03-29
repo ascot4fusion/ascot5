@@ -274,9 +274,7 @@ class OrbitFrame(PlotFrame):
                     self._orbits.scatter(xcoord, ycoord, c=ccoord, equal=equal,
                                          log=log, endcond=endcond, axes=axes)
             else:
-                # This would work for newer versions of matplotlib
-                #ax = fig.add_subplot(1,1,1, projection="3d")
-                axes = Axes3D(fig)
+                ax = fig.add_subplot(1,1,1, projection="3d")
                 if ccoord == "None":
                     self._orbits.plot(xcoord, ycoord, zcoord, equal=equal,
                                       log=log, endcond=endcond, axes=axes)
@@ -291,9 +289,9 @@ class OrbitFrame(PlotFrame):
             xcoord = xy.split("-")[0]
             ycoord = xy.split("-")[1]
 
-            if xcoord in ["phi", "pol"]:
+            if xcoord in ["phi", "theta"]:
                 xcoord += "mod"
-            if ycoord in ["phi", "pol"]:
+            if ycoord in ["phi", "theta"]:
                 ycoord += "mod"
 
             equal = False
