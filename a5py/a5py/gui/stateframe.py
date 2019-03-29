@@ -375,9 +375,7 @@ class StateFrame(PlotFrame):
                 state.scatter(xcoord, ycoord, c=ccoord, equal=equal,
                               log=log, endcond=endcond, axes=axes)
             else:
-                # This would work for newer versions of matplotlib
-                #ax = fig.add_subplot(1,1,1, projection="3d")
-                axes = Axes3D(fig)
+                ax = fig.add_subplot(1,1,1, projection="3d")
                 state.scatter(xcoord, ycoord, zcoord, ccoord,
                               equal=equal, log=log,
                               endcond=endcond, axes=axes)

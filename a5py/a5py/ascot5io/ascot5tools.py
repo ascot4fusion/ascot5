@@ -89,7 +89,7 @@ def removegroup(fn, group, force=False):
             # The group is a parent group. If it is a results group or removal
             # is forced, we can remove it directly.
             if force or group is "results":
-                del f[group]
+                ascot5file.remove_group(f, group)
                 return
 
             try:
@@ -112,7 +112,7 @@ def removegroup(fn, group, force=False):
                                                + " as an input. Removal aborted.")
 
             # No references, the group can be removed.
-            del f[group]
+            ascot5file.remove_group(f, group)
 
 
 def copygroup(fns, fnt, group, newgroup=False):

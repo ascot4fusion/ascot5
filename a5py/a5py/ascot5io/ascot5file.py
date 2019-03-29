@@ -65,7 +65,7 @@ import datetime
 
 ## Names of input parent groups.
 INPUT_PARENTS = ["options", "bfield", "efield", "marker", "plasma", "neutral",
-                 "wall"]
+                 "wall", "boozer", "mhd"]
 
 ## Current version
 VERSION = "0"

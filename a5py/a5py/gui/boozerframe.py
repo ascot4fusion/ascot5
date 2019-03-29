@@ -1,28 +1,28 @@
 """
-Contains definition of NeutralFrame class.
+Contains definition of BoozerFrame class.
 
-File: neutralframe.py
+File: boozerframe.py
 """
 import tkinter
 import tkinter.ttk as ttk
 
 import numpy as np
 
-from a5py.ascotpy.libneutral import LibNeutral
+from a5py.ascotpy.libboozer import LibBoozer
 
 from .fieldframe import FieldFrame
 
-class NeutralFrame(FieldFrame):
+class BoozerFrame(FieldFrame):
     """
-    A frame for plotting electric field data.
+    A frame for plotting boozer data.
     """
 
     def __init__(self, gui, ascotpy, walldata=None):
         """
         Initialize and show default plot.
         """
-        ascotpy.init(bfield=True, neutral=True)
-        super().__init__(gui, ascotpy, LibNeutral.quantities)
+        ascotpy.init(bfield=True, boozer=True)
+        super().__init__(gui, ascotpy, LibBoozer.quantities)
 
         self._walldata = walldata
 
