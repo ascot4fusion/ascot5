@@ -46,13 +46,13 @@ def write_hdf5(fn, r0, z0, bphi0, psimult, coefficients, psi0=None, psi1=0,
             Magnetic axis R coordinate [m].
         zaxis : float, optional <br>
             Magnetic axis z coordinate [m].
-        nripple : float, optional <br>
+        nripple : float, optional, default is 0. <br>
             Number of TF coils.
-        a0 : float, optional <br>
+        a0 : float, optional, default is 2 [m]. <br>
             Minor radius. [m]
-        alpha0 : float, optional <br>
+        alpha0 : float, optional, default is 2. <br>
             Ripple penetration.
-        delta0 : float, optional <br>
+        delta0 : float, optional, default is 0.05. <br>
             Ripple (maximum) strength.
         desc : str, optional <br>
             Input description.
@@ -171,13 +171,15 @@ def write_hdf5_B_2DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
         B_phi0 : float <br>
             Toroidal field at axis.
         psi_mult : real
-            Scaling factor for psi-
+            Scaling factor for psi.
         psi_coeff : real 13 x 1 numpy array
             Coefficients defining psi.
         Rmin, Rmax, zmin, zmax : real
             Edges of the uniform Rz-grid.
         nR, nz : int
             Number of Rz-grid points.
+        psi0 : float, optional <br>
+            Poloidal flux at magnetic axis.
         desc : str, optional <br>
             Input description.
     """
@@ -226,21 +228,29 @@ def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
         B_phi0 : real
             Toroidal field at axis.
         psi_mult : real
-            Scaling factor for psi-
+            Scaling factor for psi.
         psi_coeff : real 13 x 1 numpy array
             Coefficients defining psi.
-        Nripple : real, optional
-            Ripple period, default is 0
-        a0 : real, optional
-            Minor radius, default is 2 [m]
-        alpha0 : real, optional
-            Ripple penetration, default is 2
-        delta0 : real, optional
-            Ripple strength, default is 0.05
+        Nripple : real
+            Number of TF coils.
+        a0 : real
+            Minor radius [m].
+        alpha0 : real
+            Ripple penetration.
+        delta0 : real
+            Ripple strength.
         Rmin, Rmax, zmin, zmax, phimin, phimax : real
             Edges of the uniform Rphiz-grid.
         nR, nz, nphi : int
             Number of Rphiz-grid points.
+        psi0 : float, optional <br>
+            Poloidal flux at magnetic axis.
+        raxis : float, optional <br>
+            Magnetic axis R coordinate [m].
+        zaxis : float, optional <br>
+            Magnetic axis z coordinate [m].
+        desc : str, optional <br>
+            Input description.
     """
 
     rgrid = np.linspace(Rmin, Rmax, nR)
@@ -265,7 +275,7 @@ def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     phigrid = phigrid[0:-1]
 
     for i in range(0,nphi):
-        Bphi[:,i,:] = ((R0/Rg)*B_phi0 * ( 1 + delta * np.cos(Nripple * phigrid[i]) ))
+        Bphi[:,i,:] = ((R0/Rg)*B_phi0 * ( 1 + delta * np.cos(Nripple * phigrid[i]*2*np.pi/360) ))
 
     # search for magnetic axis if not given
     if psi0 == None:
