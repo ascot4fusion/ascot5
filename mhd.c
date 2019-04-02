@@ -284,7 +284,8 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
 }
 
 /**
- * @brief Evaluate mhd perturbed fields Btilde, Etilde for full orbit
+ * @brief Evaluate mhd perturbed fields Btilde, Etilde and potential
+ * Phi for full orbit
  *
  * The values are stored in the given array as
  * - pert_field[0] = BtildeR
@@ -293,6 +294,7 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
  * - pert_field[3] = EtildeR
  * - pert_field[4] = EtildePhi
  * - pert_field[5] = EtildeZ
+ * - pert_field[6] = Phi
  *
  * @param pert_field perturbation field components
  * @param r R coordinate [m]
@@ -305,7 +307,7 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err mhd_perturbations(real pert_field[6], real r, real phi,
+a5err mhd_perturbations(real pert_field[7], real r, real phi,
                         real z, real t, boozer_data* boozerdata,
                         mhd_data* mhddata, B_field_data* Bdata) {
     a5err err = 0;
@@ -346,6 +348,7 @@ a5err mhd_perturbations(real pert_field[6], real r, real phi,
         pert_field[3] = -mhd_dmhd[7] - B[0]*mhd_dmhd[1];
         pert_field[4] = -mhd_dmhd[8] - B[1]*mhd_dmhd[1];
         pert_field[5] = -mhd_dmhd[9] - B[2]*mhd_dmhd[1];
+        pert_field[6] = mhd_dmhd[5];
     }
 
     return err;
