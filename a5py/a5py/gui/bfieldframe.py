@@ -46,8 +46,15 @@ class BfieldFrame(FieldFrame):
         phi  = self.phi_entry.getval() * np.pi / 180
         time = self.time_entry.getval()
 
+        clim = [None, None]
+        if not self.cmin_entry.isempty():
+            clim[0] = self.cmin_entry.getval()
+        if not self.cmax_entry.isempty():
+            clim[1] = self.cmax_entry.getval()
+
         axes = fig.add_subplot(1,1,1)
-        self.ascotpy.plotRz(r, phi, z, time, self._qchoice.get(), axes)
+        self.ascotpy.plotRz(r, phi, z, time, self._qchoice.get(), axes=axes,
+                            clim=clim)
         self.ascotpy.plotseparatrix(r, phi, z, time, axes)
 
         if self._walldata is not None:

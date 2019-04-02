@@ -59,10 +59,15 @@ class FieldFrame(PlotFrame):
         self.time_entry = NumEntry(panel, labeltext="time [s]:", defval=0)
         self.time_entry.grid(row=4, column=0)
 
+        self.cmin_entry = NumEntry(panel, labeltext="c_min:", defval="")
+        self.cmax_entry = NumEntry(panel, labeltext="c_max:", defval="")
+        self.cmin_entry.grid(row=5, column=0)
+        self.cmax_entry.grid(row=6, column=0)
+
         qinput = ttk.Combobox(panel, width=10, textvariable=self._qchoice)
         qinput["values"] = quantities
 
-        qinput.grid(row=6, column=1, sticky="WE")
+        qinput.grid(row=7, column=1, sticky="WE")
         plotbutton = tkinter.Button(panel, text="Plot", command=self._plot)
         plotbutton.grid(row=8, column=1, sticky="WE")
 

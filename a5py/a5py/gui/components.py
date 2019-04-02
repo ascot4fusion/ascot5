@@ -74,6 +74,14 @@ class NumEntry(tkinter.Frame):
             return float(s1)
 
 
+    def isempty(self):
+        """
+        Check if entry is just an empty string.
+        """
+        val = self.choice.get()
+        return val == ""
+
+
     def _validate(self, P):
         """
         Check if entry is a valid float or int.
