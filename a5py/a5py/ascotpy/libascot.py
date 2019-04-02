@@ -409,9 +409,9 @@ class LibAscot:
 
         Neval = R.size
         out = {}
-        out["er"]   = np.zeros(R.shape, dtype="f8")
-        out["ephi"] = np.zeros(R.shape, dtype="f8")
-        out["ez"]   = np.zeros(R.shape, dtype="f8")
+        out["er"]   = np.zeros(R.shape, dtype="f8") + np.nan
+        out["ephi"] = np.zeros(R.shape, dtype="f8") + np.nan
+        out["ez"]   = np.zeros(R.shape, dtype="f8") + np.nan
 
         self.libascot.libascot_E_field_eval_E(
             Neval, R, phi, z, t, out["er"], out["ephi"], out["ez"])
@@ -474,8 +474,8 @@ class LibAscot:
 
         # Allocate enough space for electrons and all ion species.
         nspecies = self.libascot.libascot_plasma_get_n_species()
-        rawdens = np.zeros((Neval*nspecies,), dtype="f8")
-        rawtemp = np.zeros((Neval*nspecies,), dtype="f8")
+        rawdens = np.zeros((Neval*nspecies,), dtype="f8") + np.nan
+        rawtemp = np.zeros((Neval*nspecies,), dtype="f8") + np.nan
 
         self.libascot.libascot_plasma_eval_background(
             Neval, R, phi, z, t, rawdens, rawtemp)
@@ -520,7 +520,7 @@ class LibAscot:
 
         Neval = R.size
         out = {}
-        out["density"] = np.zeros(R.shape, dtype="f8")
+        out["density"] = np.zeros(R.shape, dtype="f8") + np.nan
 
         self.libascot.libascot_neutral_eval_density(Neval, R, phi, z, t,
                                                     out["density"])
