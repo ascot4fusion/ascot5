@@ -49,6 +49,7 @@ def plot_dist_1D(dist, logscale=False, axes=None):
     if newfig:
         plt.show(block=False)
 
+
 def plot_dist_2D(dist, *args, logscale=False, equal=False, axes=None):
     """
     Plot distribution as a 2D plot (pcolormesh).
@@ -91,12 +92,12 @@ def plot_dist_2D(dist, *args, logscale=False, equal=False, axes=None):
         ordinate = np.log10(ordinate)
 
     ordinate = np.ma.masked_invalid(ordinate)
-    mesh = axes.pcolormesh(ordinate, cmap=plt.cm.plasma,
+    mesh = axes.pcolormesh(ordinate,
                            vmin=np.nanmin(ordinate), vmax=np.nanmax(ordinate))
 
     # https://stackoverflow.com/a/16125413/190597 (Joe Kington)
     # and https://stackoverflow.com/a/35905483
-    axes.patch.set(hatch='x', edgecolor='black')
+    axes.patch.set(hatch='x', edgecolor=[0.9, 0.9, 0.9])
     plt.colorbar(mesh, ax=axes)
 
     axes.set_xlabel(x);
