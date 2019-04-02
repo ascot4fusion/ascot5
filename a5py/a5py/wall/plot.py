@@ -87,7 +87,7 @@ def plot_intersection(x1x2x3, y1y2y3, z1z2z3, phi, axes=None):
     z = z_same + (z_diff[:,None] - z_same ) * phi_diffs
 
     axes.plot(r.T, z.T, 'k')
-    axes.axis("scaled")
 
     if newfig:
+        axes.axis("scaled")
         plt.show(block=False)

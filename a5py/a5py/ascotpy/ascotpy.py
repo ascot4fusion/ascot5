@@ -98,7 +98,9 @@ class Ascotpy(LibBfield, LibEfield, LibPlasma, LibNeutral):
 
         mesh = axes.pcolormesh(R, z, np.transpose(out[:,0,:,0]))
         plt.colorbar(mesh)
-        axes.axis("image")
+        axes.set_aspect("equal", adjustable="box")
+        axes.set_xlim(R[0], R[-1])
+        axes.set_ylim(z[0], z[-1])
 
         if newfig:
             plt.show(block=False)
