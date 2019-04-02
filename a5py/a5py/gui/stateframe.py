@@ -10,6 +10,7 @@ import tkinter.ttk as ttk
 from mpl_toolkits.mplot3d import Axes3D
 
 from .plotframe import PlotFrame
+from .components import NumEntry
 import a5py.marker.endcond as endcond
 
 class StateFrame(PlotFrame):
@@ -87,14 +88,8 @@ class StateFrame(PlotFrame):
         self._equalchoice.set(1)
         self._binxchoice.set("R")
         self._binxlogchoice.set(0)
-        self._binxminchoice.set(0)
-        self._binxmaxchoice.set(20)
-        self._nbinxchoice.set(10)
         self._binychoice.set("None")
         self._binylogchoice.set(0)
-        self._binyminchoice.set(1)
-        self._binymaxchoice.set(2)
-        self._nbinychoice.set(10)
         self._binzlogchoice.set(0)
         self._weightchoice.set(0)
         self._endcondchoice.set("all")
@@ -256,35 +251,16 @@ class StateFrame(PlotFrame):
         yinput["values"] = self._coords
         endcondinput["values"] = self._endconds
 
-        vcmd = (self.register(self._validate),
-                '%d', '%i', '%P', '%s', '%S', '%v', '%V', '%W')
-
         binpanel   = tkinter.Frame(panel)
-        xminlabel  = tkinter.Label(binpanel, text="x min ")
-        xmaxlabel  = tkinter.Label(binpanel, text="x max ")
-        nxlabel    = tkinter.Label(binpanel, text="x nbin")
-        minxentry  = tkinter.Entry(binpanel, validate = 'key',
-                                   validatecommand = vcmd, width=6,
-                                   textvariable=self._binxminchoice)
-        maxxentry  = tkinter.Entry(binpanel, validate = 'key',
-                                   validatecommand = vcmd, width=6,
-                                   textvariable=self._binxmaxchoice)
-        nxentry    = tkinter.Entry(binpanel, validate = 'key',
-                                   validatecommand = vcmd, width=6,
-                                   textvariable=self._nbinxchoice)
+        self.xmin_entry = NumEntry(binpanel, labeltext="x_min:", defval=0)
+        self.xmax_entry = NumEntry(binpanel, labeltext="x_max:", defval=10)
+        self.xnum_entry = NumEntry(binpanel, labeltext="x_num:", defval=10,
+                                   isint=True)
 
-        yminlabel   = tkinter.Label(binpanel, text="y min ")
-        ymaxlabel   = tkinter.Label(binpanel, text="y max ")
-        nylabel     = tkinter.Label(binpanel, text="y nbin")
-        minyentry   = tkinter.Entry(binpanel, validate = 'key',
-                                    validatecommand = vcmd, width=6,
-                                    textvariable=self._binyminchoice)
-        maxyentry   = tkinter.Entry(binpanel, validate = 'key',
-                                    validatecommand = vcmd, width=6,
-                                    textvariable=self._binymaxchoice)
-        nyentry     = tkinter.Entry(binpanel, validate = 'key',
-                                    validatecommand = vcmd, width=6,
-                                    textvariable=self._nbinychoice)
+        self.ymin_entry = NumEntry(binpanel, labeltext="y_min:", defval=1)
+        self.ymax_entry = NumEntry(binpanel, labeltext="y_max:", defval=2)
+        self.ynum_entry = NumEntry(binpanel, labeltext="y_num:", defval=10,
+                                   isint=True)
 
         xlabel.pack(side="left")
         xinput.pack(side="left")
@@ -292,23 +268,16 @@ class StateFrame(PlotFrame):
         ylabel.pack(side="left")
         yinput.pack(side="left")
         yltick.pack(side="left")
-
         eclabel.pack(side="left")
         endcondinput.pack(side="left")
 
-        xminlabel.grid(row=0, column=0)
-        minxentry.grid(row=0, column=1)
-        xmaxlabel.grid(row=1, column=0)
-        maxxentry.grid(row=1, column=1)
-        nxlabel.grid(  row=2, column=0)
-        nxentry.grid(  row=2, column=1)
+        self.xmin_entry.grid(row=0, column=0, sticky="W")
+        self.xmax_entry.grid(row=1, column=0, sticky="W")
+        self.xnum_entry.grid(row=2, column=0, sticky="W")
 
-        yminlabel.grid(row=0, column=2)
-        minyentry.grid(row=0, column=3)
-        ymaxlabel.grid(row=1, column=2)
-        maxyentry.grid(row=1, column=3)
-        nylabel.grid(  row=2, column=2)
-        nyentry.grid(  row=2, column=3)
+        self.ymin_entry.grid(row=0, column=1, sticky="W")
+        self.ymax_entry.grid(row=1, column=1, sticky="W")
+        self.ynum_entry.grid(row=2, column=1, sticky="W")
 
         xpanel.pack()
         ypanel.pack()
@@ -319,20 +288,6 @@ class StateFrame(PlotFrame):
         tkinter.Button(panel, text="Plot", command=self._plot).pack()
 
         self._plot()
-
-
-    def _validate(self, action, index, value_if_allowed,
-                  prior_value, text, validation_type, trigger_type,
-                  widget_name):
-        if action == "1":
-            if text in "e0123456789.-+":
-                try:
-                    float(value_if_allowed)
-                    return True
-                except ValueError:
-                    return False
-            else:
-                return False
 
 
     def _plot(self, *args):
@@ -375,7 +330,7 @@ class StateFrame(PlotFrame):
                 state.scatter(xcoord, ycoord, c=ccoord, equal=equal,
                               log=log, endcond=endcond, axes=axes)
             else:
-                ax = fig.add_subplot(1,1,1, projection="3d")
+                axes = fig.add_subplot(1,1,1, projection="3d")
                 state.scatter(xcoord, ycoord, zcoord, ccoord,
                               equal=equal, log=log,
                               endcond=endcond, axes=axes)
@@ -396,12 +351,13 @@ class StateFrame(PlotFrame):
             logy     = self._binylogchoice.get()
             logscale = self._binzlogchoice.get()
 
-            xbins = [float( self._binxminchoice.get() ),
-                     float( self._binxmaxchoice.get() ),
-                     int(   self._nbinxchoice.get() ) ]
-            ybins = [float( self._binyminchoice.get() ),
-                     float( self._binymaxchoice.get() ),
-                     int(   self._nbinychoice.get() ) ]
+            xbins = [ self.xmin_entry.getval(),
+                      self.xmax_entry.getval(),
+                      self.xnum_entry.getval() ]
+
+            ybins = [ self.ymin_entry.getval(),
+                      self.ymax_entry.getval(),
+                      self.ynum_entry.getval() ]
 
             weight = self._weightchoice.get()
 
