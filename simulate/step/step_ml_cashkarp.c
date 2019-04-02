@@ -276,7 +276,7 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
             real yprev[3];
 
             real normB;
-            real pert_field[6];
+            real pert_field[7];
 
             real R0 = p->r[i];
             real z0 = p->z[i];
