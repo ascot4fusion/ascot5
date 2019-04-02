@@ -274,7 +274,7 @@ class OrbitFrame(PlotFrame):
                     self._orbits.scatter(xcoord, ycoord, c=ccoord, equal=equal,
                                          log=log, endcond=endcond, axes=axes)
             else:
-                ax = fig.add_subplot(1,1,1, projection="3d")
+                axes = fig.add_subplot(1,1,1, projection="3d")
                 if ccoord == "None":
                     self._orbits.plot(xcoord, ycoord, zcoord, equal=equal,
                                       log=log, endcond=endcond, axes=axes)
