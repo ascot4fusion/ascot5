@@ -154,7 +154,7 @@ def read_hdf5(fn, qid):
     return out
 
 
-def write_hdf5_dummy(fn, desc="Dummy"):
+def write_hdf5_dummy(fn, desc):
     """
     Write dummy boozer input.
 
@@ -166,6 +166,7 @@ def write_hdf5_dummy(fn, desc="Dummy"):
     psimin     = 0
     psimax     = 1
     npsi       = 6
+    nthetag    = 10 
     ntheta     = 10
     rmin       = 0.1
     rmax       = 10.0
@@ -181,14 +182,13 @@ def write_hdf5_dummy(fn, desc="Dummy"):
 
     rs = np.cos(np.linspace(0, 2*np.math.pi, nrzs))
     zs = np.sin(np.linspace(0, 2*np.math.pi, nrzs))
-
     psi_rz             = np.ones((nr,nz))
     theta_psithetageom = np.ones((npsi,ntheta))
     nu_psitheta        = np.ones((npsi,ntheta))
 
-    write_hdf5(fn, psimin, psimax, npsi, ntheta, rmin,
+    write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin,
                rmax, nr, zmin, zmax, nz, r0, z0, psi0, psi1, psi_rz,
-               theta_psithetageom, nu_psitheta, nrzs, rs, zs, desc=desc)
+               theta_psithetageom, nu_psitheta, nrzs, rs, zs, desc)
 
 
 class Boozer(AscotData):
