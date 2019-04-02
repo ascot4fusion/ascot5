@@ -16,13 +16,14 @@ if plt:
 
 class LibMhd(LibAscot):
 
-    quantities = ["mhd_br", "mhd_bphi", "mhd_bz","mhd_er", "mhd_ephi", "mhd_ez"]
+    quantities = ["mhd_br", "mhd_bphi", "mhd_bz","mhd_er", "mhd_ephi",
+                  "mhd_ez","mhd_phi"]
 
     def evaluate(self, R, phi, z, t, quantity):
 
         out = None
         if quantity in ["mhd_br", "mhd_bphi", "mhd_bz", "mhd_er", "mhd_ephi",
-                        "mhd_ez"]:
+                        "mhd_ez", "mhd_phi"]:
             out = self.eval_mhd(R, phi, z, t)[quantity]
 
         assert out is not None, "Unknown quantity"
