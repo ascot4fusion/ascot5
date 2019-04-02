@@ -674,11 +674,13 @@ class LibAscot:
         out["mhd_er"]   = np.zeros(R.shape, dtype="f8")
         out["mhd_ephi"] = np.zeros(R.shape, dtype="f8")
         out["mhd_ez"]   = np.zeros(R.shape, dtype="f8")
+        out["mhd_phi"]  = np.zeros(R.shape, dtype="f8")
 
         self.libascot.libascot_mhd_eval_perturbation(Neval, R, phi, z, t,
                                                      out["mhd_br"],   out["mhd_bphi"],
                                                      out["mhd_bz"],   out["mhd_er"],
-                                                     out["mhd_ephi"], out["mhd_ez"])
+                                                     out["mhd_ephi"], out["mhd_ez"], 
+                                                     out["mhd_phi"])
 
         return out
 
