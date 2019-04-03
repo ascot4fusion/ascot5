@@ -12,8 +12,7 @@
  * @brief Calculate bicubic spline interpolation coefficients for scalar 2D data
  *
  * This function calculates the bicubic spline interpolation coefficients and
- * stores them in a pre-allocated array. Compact  cofficients are calculated
- * directly.
+ * stores them in a pre-allocated array. Compact cofficients are calculated.
  *
  * For each data point four coefficients are stored for spline-interpolation.
  *
@@ -32,7 +31,8 @@
  */
 int interp2Dcomp_init_coeff(real* c, real* f,
                             int n_x, int n_y, int bc_x, int bc_y,
-                            real x_min, real x_max, real y_min, real y_max) {
+                            real x_min, real x_max,
+			    real y_min, real y_max) {
 
     /* Check boundary conditions and evaluate grid interval */
     real x_grid, y_grid;
@@ -50,7 +50,6 @@ int interp2Dcomp_init_coeff(real* c, real* f,
         return 1;
     }
 
-
     /* Allocate helper quantities */
     real* f_x = malloc(n_x*sizeof(real));
     real* f_y = malloc(n_y*sizeof(real));
@@ -61,11 +60,13 @@ int interp2Dcomp_init_coeff(real* c, real* f,
         return 1;
     }
 
-    /* Bicubic spline surface over rz-grid. Note how we account for
-       normalized grid. */
+    /* Calculate bicubic spline surface coefficients, i.e second derivatives.
+       For each grid cell (i_x, i_y), there are four coefficients:
+       [f, fxx, fyy, fxxyy]. Note how we account for normalized grid. */
 
-    /* Cubic spline along x for each y to get fxx */
+    /* Cubic spline along x for each y, using f values to get fxx */
     for(int i_y=0; i_y<n_y; i_y++) {
+	/* fxx */
         for(int i_x=0; i_x<n_x; i_x++) {
             f_x[i_x] = f[i_y*n_x+i_x];
         }
@@ -76,7 +77,8 @@ int interp2Dcomp_init_coeff(real* c, real* f,
         }
     }
 
-    /* Two cubic splines along y for each x using f and fxx */
+    /* Two cubic splines along y for each x, using f and fxx to get fyy and
+       fxxyy */
     for(int i_x=0; i_x<n_x; i_x++) {
 
         /* fyy */
@@ -123,11 +125,14 @@ int interp2Dcomp_init_coeff(real* c, real* f,
  */
 void interp2Dcomp_init_spline(interp2D_data* str, real* c,
                               int n_x, int n_y, int bc_x, int bc_y,
-                              real x_min, real x_max, real y_min, real y_max) {
+                              real x_min, real x_max,
+			      real y_min, real y_max) {
 
+    /* Calculate grid spacings */
     real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
     real y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
 
+    /* Initialize the interp2D_data struct */
     str->n_x    = n_x;
     str->n_y    = n_y;
     str->bc_x   = bc_x;
@@ -152,12 +157,11 @@ void interp2Dcomp_init_spline(interp2D_data* str, real* c,
  * @param x x-coordinate
  * @param y y-coordinate
  *
- * @return zero on success and one if (x,y) point is outside the grid.
+ * @return zero on success and one if (x,y) point is outside the domain.
  */
 int interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y) {
 
-
-    /* Make sure periodic coordinates are within [max, min] region. */
+    /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
         x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
         x = x + (x < str->x_min) * (str->x_max - str->x_min);
@@ -171,6 +175,7 @@ int interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y) {
     int i_x   = (x - str->x_min) / str->x_grid;
     /* Normalized x coordinate in current cell */
     real dx   = ( x - (str->x_min + i_x*str->x_grid) ) / str->x_grid;
+    /* Helper variables */
     real dx3  =  dx * (dx*dx - 1.0);
     real dxi  = 1.0 - dx;
     real dxi3 = dxi * (dxi*dxi - 1.0);
@@ -180,6 +185,7 @@ int interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y) {
     int i_y   = (y - str->y_min) / str->y_grid;
     /* Normalized y coordinate in current cell */
     real dy   = ( y - (str->y_min + i_y*str->y_grid) ) / str->y_grid;
+    /* Helper variables */
     real dy3  =  dy * (dy*dy - 1.0);
     real dyi  = 1.0 - dy;
     real dyi3 = dyi * (dyi*dyi - 1.0);
@@ -191,7 +197,7 @@ int interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y) {
 
     int err = 0;
 
-    /* Enforce periodic BC or check that the coordinate is within the grid. */
+    /* Enforce periodic BC or check that the coordinate is within the domain. */
     if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
         x1 = -(str->n_x-1)*x1;
     }
@@ -247,7 +253,7 @@ int interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y) {
  */
 int interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y) {
 
-    /* Make sure periodic coordinates are within [max, min] region. */
+    /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
         x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
         x = x + (x < str->x_min) * (str->x_max - str->x_min);
@@ -261,6 +267,7 @@ int interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y) {
     int i_x   = (x - str->x_min) / str->x_grid;
     /* Normalized x coordinate in current cell */
     real dx     = ( x - (str->x_min + i_x*str->x_grid) ) / str->x_grid;
+    /* Helper variables */
     real dx3    =  dx * (dx*dx - 1.0);
     real dx3dx  = 3*dx*dx - 1;
     real dxi    = 1.0 - dx;
@@ -274,6 +281,7 @@ int interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y) {
     int i_y   = (y - str->y_min) / str->y_grid;
     /* Normalized y coordinate in current cell */
     real dy     = ( y - (str->y_min + i_y*str->y_grid) ) / str->y_grid;
+    /* Helper variables */
     real dy3    =  dy * (dy*dy - 1.0);
     real dy3dy  = 3*dy*dy - 1;
     real dyi    = 1.0 - dy;
@@ -289,7 +297,7 @@ int interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y) {
 
     int err = 0;
 
-    /* Enforce periodic BC or check that the coordinate is within the grid. */
+    /* Enforce periodic BC or check that the coordinate is within the domain. */
     if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
         x1 = -(str->n_x-1)*x1;
     }
@@ -303,7 +311,6 @@ int interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y) {
         err = 1;
     }
 
-    /* Check that the point is not outside the evaluation regime */
     if(!err) {
         /* f */
         f_df[0] = (
@@ -377,5 +384,6 @@ int interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y) {
                 dxi3dx*(dyi3dy*str->c[n+3]  +dy3dy*str->c[n+y1+3])+
                 dx3dx*(dyi3dy*str->c[n+x1+3]+dy3dy*str->c[n+y1+x1+3]));
     }
+    
     return err;
 }
