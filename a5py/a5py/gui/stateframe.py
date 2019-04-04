@@ -11,7 +11,6 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from .plotframe import PlotFrame
 from .components import NumEntry
-import a5py.marker.endcond as endcond
 
 class StateFrame(PlotFrame):
     """
@@ -74,7 +73,11 @@ class StateFrame(PlotFrame):
                         "polmod", "pol", "None"]
 
         # All end conditions.
-        self._endconds = ["all"] + list(endcond.endconds.keys())
+        if endstate is not None:
+            endconds, counts = endstate.listendconds()
+        else:
+            endconds, counts = inistate.listendconds()
+        self._endconds = ["all"] + endconds
 
         # Set default values for the variables.
         self._xchoice.set("R")

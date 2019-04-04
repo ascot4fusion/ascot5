@@ -11,9 +11,9 @@ from a5py.marker.alias import get as alias
 import a5py.marker.interpret as interpret
 import a5py.marker as marker
 import a5py.marker.plot as plot
+import a5py.marker.endcond as endcondmod
+
 from a5py.marker.alias import get as alias
-from a5py.marker.endcond import Endcond
-from a5py.marker.endcond import endconds
 
 from a5py.ascot5io.ascot5data import AscotData
 
@@ -113,6 +113,11 @@ class State(AscotData):
                 if key == "mass":
                     f    = lambda x: interpret.mass_kg(x)
                     item = np.array([f(x) for x in item]).ravel()
+                if key == "endcond":
+                    err = h5["errormsg"][:]
+                    item = item << 2
+                    item[err > 0] = item[err > 0] & endcondmod.getbin("aborted")
+                    item[item==0] = endcondmod.getbin("none")
 
             if item is None:
 
@@ -165,7 +170,7 @@ class State(AscotData):
             pncrid : str, array_like, optional <br>
                 Poincare ID of those  markers which are returned.
             SI : bool, optional <br>
-                Wheter to return quantity in SI units or Ascot units.
+                Whether to return quantity in SI units or Ascot units.
         Returns:
             The quantity.
         """
@@ -173,13 +178,13 @@ class State(AscotData):
 
         idx = np.ones(val.shape, dtype=bool)
 
-        if endcond is not None and hasattr(self._runnode, "endstate"):
-            ec = self._runnode.endstate["endcond"]
-            er = self._runnode.endstate["errormsg"]
+        if endcond is not None:
+            if hasattr(self._runnode, "endstate"):
+                ec = self._runnode.endstate["endcond"]
+            else:
+                ec = self["endcond"]
 
-            endcondlist = [Endcond(ec[i], er[i]) for i in range(ec.size)]
-            for i in range(idx.size):
-                idx[i] = np.logical_and(idx[i], endcondlist[i] == endcond)
+            idx = np.logical_and( idx, ec == endcondmod.getbin(endcond) )
 
         if pncrid is not None:
             idx = np.logical_and(idx, self["pncrid"] == pncrid)
@@ -205,6 +210,15 @@ class State(AscotData):
                 val   = np.array([f(x) for x in val]).ravel()
 
         return val
+
+
+    def listendconds(self):
+        ec, counts = np.unique(self["endcond"], return_counts=True)
+        endcond = []
+        for e in ec:
+            endcond.append(endcondmod.getname(e))
+
+        return (endcond, counts)
 
 
     def scatter(self, x=None, y=None, z=None, c=None, endcond=None, pncrid=None,
@@ -252,50 +266,70 @@ class State(AscotData):
                           xlabel=x, ylabel=y, zlabel=z, axes=axes)
 
 
-    def histogram(self, x=None, y=None, xbins=None, ybins=None, weight=False,
+    def histogram(self, x, y=None, xbins=None, ybins=None, weight=False,
                   logx=False, logy=False, logscale=False, endcond=None,
                   axes=None):
         """
         Make histogram plot.
-
         """
-        if endcond is None and y is None:
-            # Repeat 1D histogram for all endconds so we get a stacked histogram
-            for ec in endconds.keys():
-                self.histogram(x, y=None, xbins=xbins, ybins=None,
-                               weight=weight, logx=logx, logy=False,
-                               logscale=logscale, endcond=ec, axes=axes)
+        if y is None:
+            # 1D plot
 
-            return
+            if logx:
+                xbins = np.linspace(np.log10(xbins[0]), np.log10(xbins[1]),
+                                    xbins[2])
+            else:
+                xbins = np.linspace(xbins[0], xbins[1], xbins[2])
 
-        ids = self.get("id", endcond=endcond)
+            weights=None
+            if endcond is not None or not hasattr(self._runnode, "endstate"):
+                xc = self.get(x, endcond=endcond, SI=False)
+                if weight:
+                    weights = self.get("weight", endcond=endcond)
+                if logx:
+                    xc = np.log10(np.absolute(xc))
+            else:
+                xc = []
+                if weight:
+                    weights = []
 
-        xc = np.linspace(0, ids.size, ids.size)
-        if x is not None:
+                ecs, count = self._runnode.endstate.listendconds()
+                for ec in ecs:
+                    xc0 = self.get(x, endcond=ec, SI=False)
+                    if weight:
+                        weights.append(self.get("weight", endcond=ec))
+                    if logx:
+                        xc0 = np.log10(np.absolute(xc0))
+
+                    xc.append(xc0)
+
+            plot.plot_histogram(x=xc, y=None, xbins=xbins, ybins=ybins,
+                                weights=weights, logscale=logscale,
+                                xlabel=x, ylabel=y, axes=axes)
+
+        else:
+            # 2D plot
             xc = self.get(x, endcond=endcond, SI=False)
-
-        yc = None
-        if y is not None:
             yc = self.get(y, endcond=endcond, SI=False)
 
-        if logx:
-            xc = np.log10(np.absolute(xc))
-            xbins = np.linspace(np.log10(xbins[0]), np.log10(xbins[1]),
-                                xbins[2])
-        else:
-            xbins = np.linspace(xbins[0], xbins[1], xbins[2])
+            if logx:
+                xc = np.log10(np.absolute(xc))
+                xbins = np.linspace(np.log10(xbins[0]), np.log10(xbins[1]),
+                                    xbins[2])
+            else:
+                xbins = np.linspace(xbins[0], xbins[1], xbins[2])
 
-        if logy and y is not None:
-            yc = np.log10(np.absolute(yc))
-            ybins = np.linspace(np.log10(ybins[0]), np.log10(ybins[1]),
-                                ybins[2])
-        elif y is not None:
-            ybins = np.linspace(ybins[0], ybins[1], ybins[2])
+            if logy:
+                yc = np.log10(np.absolute(yc))
+                ybins = np.linspace(np.log10(ybins[0]), np.log10(ybins[1]),
+                                    ybins[2])
+            else:
+                ybins = np.linspace(ybins[0], ybins[1], ybins[2])
 
-        weights=None
-        if weight:
-            weights = self.get("weight", endcond=endcond)
+            weights=None
+            if weight:
+                weights = self.get("weight", endcond=endcond)
 
-        plot.plot_histogram(x=xc, y=yc, xbins=xbins, ybins=ybins,
-                            weights=weights, logscale=logscale,
-                            xlabel=x, ylabel=y, axes=axes)
+            plot.plot_histogram(x=xc, y=yc, xbins=xbins, ybins=ybins,
+                                weights=weights, logscale=logscale,
+                                xlabel=x, ylabel=y, axes=axes)

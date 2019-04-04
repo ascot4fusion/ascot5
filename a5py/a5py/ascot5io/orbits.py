@@ -10,9 +10,9 @@ import scipy.constants as constants
 from a5py.ascot5io.ascot5data import AscotData
 import a5py.marker.interpret as interpret
 import a5py.marker as marker
+import a5py.marker.endcond as endcondmod
 import a5py.marker.plot as plot
 from a5py.marker.alias import get as alias
-from a5py.marker.endcond import Endcond
 
 def read_hdf5(fn, qid):
     """
@@ -201,13 +201,9 @@ class Orbits(AscotData):
 
         if endcond is not None:
             with self as h5:
-                ec = self._read_from_endstate("endcond", h5)
-                er = self._read_from_endstate("errormsg", h5)
+                ec = self._read_from_endstate("endcond", h5).ravel()
 
-            endcondlist = [Endcond(ec[i], er[i]) for i in range(ec.size)]
-
-            for i in range(idx.size):
-                idx[i] = np.logical_and(idx[i], endcondlist[i] == endcond)
+            idx = np.logical_and( idx, ec == endcondmod.getbin(endcond) )
 
         if pncrid is not None:
             idx = np.logical_and(idx, self["pncrid"] == pncrid)

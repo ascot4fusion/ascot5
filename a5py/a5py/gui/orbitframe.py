@@ -12,7 +12,6 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
 from .plotframe import PlotFrame
-import a5py.marker.endcond as endcond
 
 class OrbitFrame(PlotFrame):
     """
@@ -76,7 +75,8 @@ class OrbitFrame(PlotFrame):
             haspoincare = False
 
         # All end conditions.
-        self._endconds = ["all"] + list(endcond.endconds.keys())
+        endconds, counts = self._orbits._runnode.endstate.listendconds()
+        self._endconds = ["all"] + endconds
 
         # Set default values for the variables.
         self._xchoice.set("R")
