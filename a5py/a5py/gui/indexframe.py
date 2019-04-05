@@ -12,6 +12,7 @@ from .efieldframe  import EfieldFrame
 from .plasmaframe  import PlasmaFrame
 from .neutralframe import NeutralFrame
 from .wallframe    import WallFrame
+from .optionsframe import OptionsFrame
 
 from .stateframe  import StateFrame
 from .orbitframe  import OrbitFrame
@@ -124,6 +125,11 @@ class IndexFrame(tkinter.Frame):
 
         if inputtype in ["wall_2D", "wall_3D"]:
             self._gui.displayframe(WallFrame(self._gui, walldata))
+
+        if inputtype in ["opt"]:
+            group    = self._panels["options"]._inputselection.get()
+            options = self._gui.get_ascotobject()["options"][group]
+            self._gui.displayframe(OptionsFrame(self._gui, options))
 
 
     def select_inputs(self, options=None, bfield=None, efield=None, plasma=None,
