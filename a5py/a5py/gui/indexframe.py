@@ -13,6 +13,7 @@ from .plasmaframe  import PlasmaFrame
 from .neutralframe import NeutralFrame
 from .wallframe    import WallFrame
 from .optionsframe import OptionsFrame
+from .markerframe  import MarkerFrame
 
 from .stateframe  import StateFrame
 from .orbitframe  import OrbitFrame
@@ -130,6 +131,11 @@ class IndexFrame(tkinter.Frame):
             group    = self._panels["options"]._inputselection.get()
             options = self._gui.get_ascotobject()["options"][group]
             self._gui.displayframe(OptionsFrame(self._gui, options))
+
+        if inputtype in ["prt", "gc", "fl"]:
+            group  = self._panels["marker"]._inputselection.get()
+            marker = self._gui.get_ascotobject()["marker"][group]
+            self._gui.displayframe(MarkerFrame(self._gui, marker))
 
 
     def select_inputs(self, options=None, bfield=None, efield=None, plasma=None,
