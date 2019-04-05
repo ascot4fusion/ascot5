@@ -89,7 +89,7 @@ def plot_intersection(x1x2x3, y1y2y3, z1z2z3, phi, axes=None):
     z = z_same + (z_diff[:,None] - z_same ) * phi_diffs
 
     # Add triangles for which one side lies entirely on phi = 0
-    ind_2zero = np.sum(p1p2p3 == 0, 1) == 2
+    ind_2zero = np.sum(p1p2p3 == 0, axis=1) == 2
     ind_2zero = np.tile(ind_2zero, (3,1)).T
     ind_zero = p1p2p3 == 0
     ind_valid = np.tile(ind_valid, (3,1)).T
@@ -98,8 +98,18 @@ def plot_intersection(x1x2x3, y1y2y3, z1z2z3, phi, axes=None):
     r2 = np.reshape(r1r2r3[ind_onplane], (-1,2))
     z2 = np.reshape(z1z2z3[ind_onplane], (-1,2))
 
+    # Add triangles for which all 3 sides are entirely on phi = 0
+    ind_3zero = np.all(p1p2p3 == 0, axis=1)
+    r3 = np.concatenate((r1r2r3[ind_3zero][:,(0,1)],
+                         r1r2r3[ind_3zero][:,(1,2)],
+                         r1r2r3[ind_3zero][:,(2,0)]))
+    z3 = np.concatenate((z1z2z3[ind_3zero][:,(0,1)],
+                         z1z2z3[ind_3zero][:,(1,2)],
+                         z1z2z3[ind_3zero][:,(2,0)]))
+
     axes.plot(r.T, z.T, 'k')
     axes.plot(r2.T, z2.T, 'k')
+    axes.plot(r3.T, z3.T, 'k')
 
     if newfig:
         axes.axis("scaled")
