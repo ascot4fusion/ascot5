@@ -113,3 +113,71 @@ class NumEntry(tkinter.Frame):
                     return False
 
         return True
+
+
+class DropdownMenu(tkinter.Frame):
+    """
+    Dropdown menu where user can choose from given options.
+    """
+
+    def __init__(self, master, defval, values, log=False, trace=None,
+                 label=None):
+        super().__init__(master)
+        self.var = tkinter.StringVar(self)
+        self.var.set(defval)
+
+        if trace is not None:
+            self.var.trace('w', trace)
+
+        if label is not None:
+            label = tkinter.Label(self, text=label)
+            label.grid(row=0, column=0)
+
+        menu = ttk.Combobox(self, width=6, textvariable=self.var)
+        menu["values"] = values
+        menu.grid(row=0, column=1)
+
+        self.log = None
+        if log:
+            self.log = tkinter.IntVar(self)
+            logtick = tkinter.Checkbutton(self, text="log10", onvalue=1,
+                                          offvalue=0, variable=self.log,
+                                          height=1, width=5)
+            logtick.grid(row=0, column=2)
+
+            if trace is not None:
+                self.log.trace('w', trace)
+
+
+    def islog(self):
+        if self.log is None:
+            return False
+
+        return self.log.get()
+
+
+    def getval(self):
+        return self.var.get()
+
+
+class Tickbox(tkinter.Frame):
+    """
+    A tickbox and label.
+    """
+
+    def __init__(self, master, defval, trace=None, label=None):
+        super().__init__(master)
+        self.var = tkinter.StringVar(self)
+        self.var.set(defval)
+
+        if trace is not None:
+            self.var.trace('w', trace)
+
+        tick = tkinter.Checkbutton(self, text=label,
+                                   variable=self.var,
+                                   onvalue=1, offvalue=0,
+                                   height=1, width=8)
+
+
+    def getval(self):
+        return self.var.get()
