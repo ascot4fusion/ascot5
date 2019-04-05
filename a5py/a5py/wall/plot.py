@@ -61,12 +61,14 @@ def plot_intersection(x1x2x3, y1y2y3, z1z2z3, phi, axes=None):
     # Wrap phi to range [-pi, pi) and set p1p2p3 == phi to zero
     phi = np.mod(phi + np.pi, 2*np.pi) - np.pi
     p1p2p3 = p1p2p3 - phi
-    # Filter out triangles crossing -pi/pi
-    ind_invalid = np.amax(p1p2p3, 1) - np.amin(p1p2p3, 1) < np.pi
+    # Mod p1p2p3 again to range [-pi, pi)
+    p1p2p3 = np.mod(p1p2p3 + np.pi, 2*np.pi) - np.pi
+    # Filter out triangles crossing the -pi/pi boundary
+    ind_valid = np.amax(p1p2p3, 1) - np.amin(p1p2p3, 1) < np.pi
     # Intersection happens if any(p1p2p3) < phi = 0 and any(p1p2p3) >= phi = 0
     p1p2p3_sign = np.copysign(1, p1p2p3)
     p1p2p3_polarity = np.sum(p1p2p3_sign, 1)
-    ind_inter = np.logical_and(np.abs(p1p2p3_polarity) < 3, ind_invalid)
+    ind_inter = np.logical_and(np.abs(p1p2p3_polarity) < 3, ind_valid)
 
     # Find intersection line for all crossing triangles
     p1p2p3_polarity = np.tile(p1p2p3_polarity, (3,1)).T
@@ -86,7 +88,18 @@ def plot_intersection(x1x2x3, y1y2y3, z1z2z3, phi, axes=None):
     z_same = np.reshape(z1z2z3[ind_same], (-1,2))
     z = z_same + (z_diff[:,None] - z_same ) * phi_diffs
 
+    # Add triangles for which one side lies entirely on phi = 0
+    ind_2zero = np.sum(p1p2p3 == 0, 1) == 2
+    ind_2zero = np.tile(ind_2zero, (3,1)).T
+    ind_zero = p1p2p3 == 0
+    ind_valid = np.tile(ind_valid, (3,1)).T
+    ind_onplane = np.logical_and.reduce((ind_2zero, ind_zero, ind_valid))
+
+    r2 = np.reshape(r1r2r3[ind_onplane], (-1,2))
+    z2 = np.reshape(z1z2z3[ind_onplane], (-1,2))
+
     axes.plot(r.T, z.T, 'k')
+    axes.plot(r2.T, z2.T, 'k')
 
     if newfig:
         axes.axis("scaled")
