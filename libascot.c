@@ -48,65 +48,48 @@ static real* neutraldata; /**< Neutral data (i.e. offload array)        */
  * what data fields are initialized. It is user's responsibility not to
  * initialize same data twice.
  *
+ * Input with a given QID is read. If NULL is given instead, the field is not
+ * initialized.
+ *
  * @param fn name of the HDF5 file.
- * @param bfield flag for initializing magnetic field.
- * @param efield flag for initializing electric field.
- * @param plasma flag for initializing plasma data.
- * @param wall flag for initializing wall data.
- * @param neutral flag for initializing neutral data.
+ * @param bfield QID for initializing magnetic field.
+ * @param efield QID for initializing electric field.
+ * @param plasma QID for initializing plasma data.
+ * @param wall QID for initializing wall data.
+ * @param neutral QID for initializing neutral data.
  *
  * @return zero if initialization succeeded.
  */
-int libascot_init(char* fn, int bfield, int efield, int plasma, int wall,
-                  int neutral) {
+int libascot_init(char* fn, char* bfield, char* efield, char* plasma,
+                  char* wall, char* neutral) {
     hdf5_init();
     hid_t f = hdf5_open(fn);
     if(f < 0) {
         return 1;
     }
 
-    char qid[11];
-
     /* Initialize magnetic field data if requested. */
-    if(bfield) {
-        if( hdf5_find_group(f, "/bfield/") ) {
-            return 1;
-        }
-        if( hdf5_get_active_qid(f, "/bfield/", qid) ) {
-            return 1;
-        }
+    if(bfield != NULL) {
         if( hdf5_bfield_init_offload(f, &sim_offload.B_offload_data,
-                &Bdata, qid) ) {
+                &Bdata, bfield) ) {
             return 1;
         }
         B_field_init(&sim.B_data, &sim_offload.B_offload_data, Bdata);
     }
 
     /* Initialize electric field data if requested. */
-    if(efield) {
-        if( hdf5_find_group(f, "/efield/") ) {
-            return 1;
-        }
-        if( hdf5_get_active_qid(f, "/efield/", qid) ) {
-            return 1;
-        }
+    if(efield != NULL) {
         if( hdf5_efield_init_offload(f, &sim_offload.E_offload_data,
-                &Edata, qid) ) {
+                &Edata, efield) ) {
             return 1;
         }
         E_field_init(&sim.E_data, &sim_offload.E_offload_data, Edata);
     }
 
     /* Initialize plasma data if requested. */
-    if(plasma) {
-        if( hdf5_find_group(f, "/plasma/") ) {
-            return 1;
-        }
-        if( hdf5_get_active_qid(f, "/plasma/", qid) ) {
-            return 1;
-        }
+    if(plasma != NULL) {
         if( hdf5_plasma_init_offload(f, &sim_offload.plasma_offload_data,
-                &plasmadata, qid) ) {
+                &plasmadata, plasma) ) {
             return 1;
         }
         plasma_init(&sim.plasma_data, &sim_offload.plasma_offload_data,
@@ -114,15 +97,9 @@ int libascot_init(char* fn, int bfield, int efield, int plasma, int wall,
     }
 
     /* Initialize wall data if requested. */
-    if(wall) {
-        if( hdf5_find_group(f, "/wall/") ) {
-            return 1;
-        }
-        if( hdf5_get_active_qid(f, "/wall/", qid) ) {
-            return 1;
-        }
+    if(wall != NULL) {
         if( hdf5_wall_init_offload(f, &sim_offload.wall_offload_data,
-                &walldata, qid) ) {
+                &walldata, wall) ) {
             return 1;
         }
         wall_init(&sim.wall_data, &sim_offload.wall_offload_data,
@@ -130,15 +107,9 @@ int libascot_init(char* fn, int bfield, int efield, int plasma, int wall,
     }
 
     /* Initialize neutral data if requested. */
-    if(neutral) {
-        if( hdf5_find_group(f, "/neutral/") ) {
-            return 1;
-        }
-        if( hdf5_get_active_qid(f, "/neutral/", qid) ) {
-            return 1;
-        }
+    if(neutral != NULL) {
         if( hdf5_neutral_init_offload(f, &sim_offload.neutral_offload_data,
-                &neutraldata, qid) ) {
+                &neutraldata, neutral) ) {
             return 1;
         }
         neutral_init(&sim.neutral_data, &sim_offload.neutral_offload_data,
@@ -154,11 +125,11 @@ int libascot_init(char* fn, int bfield, int efield, int plasma, int wall,
 /**
  * @brief Free input data.
  *
- * @param bfield flag for initializing magnetic field.
- * @param efield flag for initializing electric field.
- * @param plasma flag for initializing plasma data.
- * @param wall flag for initializing wall data.
- * @param neutral flag for initializing neutral data.
+ * @param bfield flag for freeing magnetic field.
+ * @param efield flag for freeing electric field.
+ * @param plasma flag for freeing plasma data.
+ * @param wall flag for freeing wall data.
+ * @param neutral flag for freeing neutral data.
  */
 int libascot_free(int bfield, int efield, int plasma, int wall, int neutral) {
     if(bfield) {
