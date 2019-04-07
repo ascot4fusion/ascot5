@@ -17,11 +17,11 @@ class BfieldFrame(FieldFrame):
     A frame for plotting magnetic field data.
     """
 
-    def __init__(self, gui, ascotpy, walldata=None):
+    def __init__(self, gui, ascotpy, qid, walldata=None):
         """
         Initialize and show default plot.
         """
-        ascotpy.init(bfield=True)
+        ascotpy.init(bfield=qid)
         super().__init__(gui, ascotpy, LibBfield.quantities)
 
         self._walldata = walldata

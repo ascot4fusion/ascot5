@@ -14,14 +14,14 @@ from .fieldframe import FieldFrame
 
 class PlasmaFrame(FieldFrame):
     """
-    A frame for plotting electric field data.
+    A frame for plotting plasma data.
     """
 
-    def __init__(self, gui, ascotpy, walldata=None):
+    def __init__(self, gui, ascotpy, qid, bqid, walldata=None):
         """
         Initialize and show default plot.
         """
-        ascotpy.init(bfield=True, plasma=True)
+        ascotpy.init(bfield=bqid, plasma=qid)
         super().__init__(gui, ascotpy, ascotpy.get_plasmaquantities())
 
         self._walldata = walldata

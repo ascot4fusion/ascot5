@@ -113,16 +113,46 @@ class IndexFrame(tkinter.Frame):
             walldata = self._gui.get_ascotobject()["wall"][group]
 
         if inputtype in ["B_GS", "B_2DS", "B_3DS", "B_STS", "B_TC"]:
-            self._gui.displayframe(BfieldFrame(self._gui, ascotpy, walldata))
+            group = self._panels["bfield"]._inputselection.get()
+            qid   = self._gui.get_ascotobject()["bfield"][group].get_qid()
+            self._gui.displayframe(BfieldFrame(self._gui, ascotpy, qid,
+                                               walldata))
 
         if inputtype in ["E_TC", "E_1DS"]:
-            self._gui.displayframe(EfieldFrame(self._gui, ascotpy, walldata))
+            if "bfield" in self._panels:
+                group = self._panels["bfield"]._inputselection.get()
+                bqid   = self._gui.get_ascotobject()["bfield"][group].get_qid()
+            else:
+                raise RuntimeError("bfield input is required.")
+
+            group = self._panels["efield"]._inputselection.get()
+            qid   = self._gui.get_ascotobject()["efield"][group].get_qid()
+            self._gui.displayframe(EfieldFrame(self._gui, ascotpy, qid, bqid,
+                                               walldata))
 
         if inputtype in ["plasma_1D", "plasma_1DS"]:
-            self._gui.displayframe(PlasmaFrame(self._gui, ascotpy, walldata))
+            if "bfield" in self._panels:
+                group = self._panels["bfield"]._inputselection.get()
+                bqid   = self._gui.get_ascotobject()["bfield"][group].get_qid()
+            else:
+                raise RuntimeError("bfield input is required.")
+
+            group = self._panels["plasma"]._inputselection.get()
+            qid   = self._gui.get_ascotobject()["plasma"][group].get_qid()
+            self._gui.displayframe(PlasmaFrame(self._gui, ascotpy, qid, bqid,
+                                               walldata))
 
         if inputtype in ["N0_3D"]:
-            self._gui.displayframe(NeutralFrame(self._gui, ascotpy, walldata))
+            if "bfield" in self._panels:
+                group = self._panels["bfield"]._inputselection.get()
+                bqid   = self._gui.get_ascotobject()["bfield"][group].get_qid()
+            else:
+                raise RuntimeError("bfield input is required.")
+
+            group = self._panels["neutral"]._inputselection.get()
+            qid   = self._gui.get_ascotobject()["neutral"][group].get_qid()
+            self._gui.displayframe(NeutralFrame(self._gui, ascotpy, qid, bqid,
+                                                walldata))
 
         if inputtype in ["wall_2D", "wall_3D"]:
             self._gui.displayframe(WallFrame(self._gui, walldata))

@@ -14,14 +14,14 @@ from .fieldframe import FieldFrame
 
 class NeutralFrame(FieldFrame):
     """
-    A frame for plotting electric field data.
+    A frame for plotting neutral data.
     """
 
-    def __init__(self, gui, ascotpy, walldata=None):
+    def __init__(self, gui, ascotpy, qid, bqid, walldata=None):
         """
         Initialize and show default plot.
         """
-        ascotpy.init(bfield=True, neutral=True)
+        ascotpy.init(bfield=bqid, neutral=qid)
         super().__init__(gui, ascotpy, LibNeutral.quantities)
 
         self._walldata = walldata
