@@ -26,13 +26,6 @@ int N0_3D_init_offload(N0_3D_offload_data* offload_data,
     int N0_size = offload_data->n_r * offload_data->n_phi * offload_data->n_z;
     int T0_size = offload_data->n_r * offload_data->n_phi * offload_data->n_z;
 
-    offload_data->r_grid = (offload_data->r_max - offload_data->r_min)
-        / (offload_data->n_r - 1);
-    offload_data->z_grid = (offload_data->z_max - offload_data->z_min)
-        / (offload_data->n_z - 1);
-    offload_data->phi_grid = (offload_data->phi_max - offload_data->phi_min)
-        / (offload_data->n_phi - 1);
-
     offload_data->offload_array_length = offload_data->n_species * N0_size
         + offload_data->n_species * T0_size;
 
