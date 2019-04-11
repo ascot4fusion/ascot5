@@ -25,7 +25,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
 
     fn : str
         Full path to the HDF5 file.
-    Rlim, Rmax, phimin, phimax, zmin, zmax, tmin, tmax : real
+    Rmin, Rmax, phimin, phimax, zmin, zmax, tmin, tmax : real
         Edges of the uniform R x phi x z x time-grid [m x deg x m x s].
     nR, nphi, nz, ntime : int
         Number of Rphizt-grid points.
@@ -37,6 +37,7 @@ def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
         Psi values at magnetic axis and separatrix
     B_R, B_phi, B_z : real R x phi x z x t numpy array
         Magnetic field components in Rphizt-grid.
+        Matrices shape must be (n_time,n_z,n_phi,n_R)
     pRmin, pRmax, pnR, pzmin, pzmax, pnz : opt
         Optional parameters that define a separate grid for psi.
     desc : brief description of the input.
