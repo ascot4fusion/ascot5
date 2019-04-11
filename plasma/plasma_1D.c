@@ -7,6 +7,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.c>
 #include "../ascot5.h"
 #include "../error.h"
 #include "../consts.h"
@@ -60,8 +61,8 @@ int plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
         print_out(VERBOSE_IO,
                   "      %3d/%3d               %1.2le/%1.2le     "
                   "             %1.2le/%1.2le       \n",
-                  (int)(offload_data->charge[i+1]/CONST_E),
-                  (int)(offload_data->mass[i+1]/CONST_U),
+                  (int)round(offload_data->charge[i+1]/CONST_E),
+                  (int)round(offload_data->mass[i+1]/CONST_U),
                   (*offload_array)[n_rho*(4+i)],
                   (*offload_array)[n_rho*(5+i) - 1],
                   (*offload_array)[n_rho*2] / CONST_E,
