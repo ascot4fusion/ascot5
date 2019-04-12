@@ -7,7 +7,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.c>
+#include <math.h>
 #include "../ascot5.h"
 #include "../error.h"
 #include "../consts.h"
