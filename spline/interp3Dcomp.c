@@ -13,8 +13,8 @@
  * @brief Calculate tricubic spline interpolation coefficients for 3D data
  *
  * This function calculates the tricubic spline interpolation coefficients for
- * the given data and stores them in an array. Compact  cofficients are
- * calculated directly.
+ * the given data and stores them in an array. Compact cofficients are
+ * calculated.
  *
  * @param c allocated array of length n_z*n_y*n_x*8 to store the coefficients
  * @param f 3D data to be interpolated
@@ -64,7 +64,6 @@ int interp3Dcomp_init_coeff(real* c, real* f,
         return 1;
     }
 
-
     /* Allocate helper quantities */
     real* f_x = malloc(n_x*sizeof(real));
     real* f_y = malloc(n_y*sizeof(real));
@@ -78,14 +77,15 @@ int interp3Dcomp_init_coeff(real* c, real* f,
         return 1;
     }
 
-    /* Tricubic spline volume coefficients: For i_x, i_y and i_z the 8
-       coefficients are [f, fxx, fyy, fzz, fxxyy, fxxzz, fyyzz, fxxyyzz].
-       Note how we account for normalized grid. */
+    /* Calculate tricubic spline volume coefficients, i.e. second derivatives.
+       For each grid cell (i_x, i_y, i_z), there are eight coefficients:
+       [f, fxx, fyy, fzz, fxxyy, fxxzz, fyyzz, fxxyyzz]. Note how we account
+       for normalized grid. */
 
-    /* Bicubic spline surface over xy-grid for each z */
+    /* Bicubic spline surfaces over xy-grid for each z */
     for(int i_z=0; i_z<n_z; i_z++) {
 
-        /* Cubic spline along x for each y, using f values, to get fxx */
+        /* Cubic spline along x for each y, using f values to get fxx */
         for(int i_y=0; i_y<n_y; i_y++) {
 	    /* fxx */
             for(int i_x=0; i_x<n_x; i_x++) {
@@ -204,10 +204,12 @@ void interp3Dcomp_init_spline(interp3D_data* str, real* c,
                               real y_min, real y_max,
                               real z_min, real z_max) {
 
+    /* Calculate grid spacings */
     real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
     real y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
     real z_grid = (z_max - z_min) / ( n_z - 1 * (bc_z == NATURALBC) );
 
+    /* Initialize the interp3D_data struct */
     str->n_x    = n_x;
     str->n_y    = n_y;
     str->n_z    = n_z;
@@ -242,7 +244,7 @@ void interp3Dcomp_init_spline(interp3D_data* str, real* c,
  */
 int interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
 
-    /* Make sure periodic coordinates are within [max, min] region. */
+    /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
         x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
         x = x + (x < str->x_min) * (str->x_max - str->x_min);
@@ -256,28 +258,31 @@ int interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
         z = z + (z < str->z_min) * (str->z_max - str->z_min);
     }
 
-    /* index for x variable */
+    /* Index for x variable */
     int i_x   = (x - str->x_min) / str->x_grid;
     /* Normalized x coordinate in current cell */
     real dx   = (x - (str->x_min + i_x*str->x_grid)) / str->x_grid;
+    /* Helper varibles */
     real dxi  = 1.0 - dx;
     real dx3  = dx*dx*dx - dx;
     real dxi3 = (1.0 - dx) * (1.0 - dx) * (1.0 - dx) - (1.0 - dx);
     real xg2  = str->x_grid*str->x_grid;
 
-    /* index for y variable */
+    /* Index for y variable */
     int i_y   = (y - str->y_min) / str->y_grid;
     /* Normalized y coordinate in current cell */
     real dy   = (y - (str->y_min + i_y*str->y_grid)) / str->y_grid;
+    /* Helper varibles */
     real dyi  = 1.0 - dy;
     real dy3  = dy*dy*dy - dy;
     real dyi3 = (1.0 - dy) * (1.0 - dy) * (1.0 - dy) - (1.0 - dy);
     real yg2  = str->y_grid*str->y_grid;
 
-    /* index for z variable */
+    /* Index for z variable */
     int i_z   = (z - str->z_min) / str->z_grid;
     /* Normalized z coordinate in current cell */
     real dz   = (z - (str->z_min + i_z*str->z_grid)) / str->z_grid;
+    /* Helper varibles */
     real dzi  = 1.0 - dz;
     real dz3  = dz*dz*dz - dz;
     real dzi3 = (1.0 - dz) * (1.0 - dz) * (1.0 - dz) - (1.0-dz);
@@ -286,12 +291,12 @@ int interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
     /**< Index jump to cell */
     int n  = i_z*str->n_y*str->n_x*8 + i_y*str->n_x*8 + i_x*8;
     int x1 = 8;                   /* Index jump one x forward */
-    int y1 = str->n_x*8;          /* Index jump one y forward */ // CP: n_z-->n_y etc., bc, z now runs slowest
+    int y1 = str->n_x*8;          /* Index jump one y forward */
     int z1 = str->n_y*str->n_x*8; /* Index jump one z forward */
 
     int err = 0;
 
-    /* Enforce periodic BC or check that the coordinate is within the grid. */
+    /* Enforce periodic BC or check that the coordinate is within the domain. */
     if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
         x1 = -(str->n_x-1)*x1;
     }
@@ -313,7 +318,7 @@ int interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
 
     if(!err) {
 
-        /* Evaluate splines */
+        /* Evaluate spline value */
         *f = (
             dzi*(
                 dxi*(dyi*str->c[n+0]+dy*str->c[n+y1+0])+
@@ -406,7 +411,7 @@ int interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
 int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
                          real x, real y, real z) {
 
-    /* Make sure periodic coordinates are within [max, min] region. */
+    /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
         x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
         x = x + (x < str->x_min) * (str->x_max - str->x_min);
@@ -420,10 +425,11 @@ int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         z = z + (z < str->z_min) * (str->z_max - str->z_min);
     }
 
-    /* index for x variable */
+    /* Index for x variable */
     int i_x     = (x - str->x_min) / str->x_grid;
     /* Normalized x coordinate in current cell */
     real dx     = ( x - (str->x_min + i_x*str->x_grid) ) / str->x_grid;
+    /* Helper variables */
     real dx3    = dx*dx*dx - dx;
     real dx3dx  = 3*dx*dx - 1.0;
     real dxi    = 1.0 - dx;
@@ -433,10 +439,11 @@ int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
     real xg2    = xg*xg;
     real xgi    = 1.0 / xg;
 
-    /* index for y variable */
+    /* Index for y variable */
     int i_y     = (y - str->y_min) / str->y_grid;
     /* Normalized y coordinate in current cell */
     real dy     = ( y - (str->y_min + i_y*str->y_grid) ) / str->y_grid;
+    /* Helper variables */
     real dy3    = dy*dy*dy-dy;
     real dy3dy  = 3*dy*dy - 1.0;
     real dyi    = 1.0 - dy;
@@ -446,10 +453,11 @@ int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
     real yg2    = yg*yg;
     real ygi    = 1.0 / yg;
 
-    /* index for z variable */
+    /* Index for z variable */
     int i_z     = (z - str->z_min) / str->z_grid;
     /* Normalized z coordinate in current cell */
     real dz     = ( z - (str->z_min + i_z*str->z_grid) ) / str->z_grid;
+    /* Helper variables */
     real dz3    = dz*dz*dz - dz;
     real dz3dz  = 3*dz*dz - 1.0;
     real dzi    = 1.0 - dz;
@@ -465,11 +473,9 @@ int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
     int y1 = str->n_x*8;          /* Index jump one y forward */
     int z1 = str->n_y*str->n_x*8; /* Index jump one z forward */
 
-
     int err = 0;
 
-    /* Jump to first cell if last cell and BC is periodic. If BC is natural,
-       check that the queried point is within the grid                       */
+    /* Enforce periodic BC or check that the coordinate is within the domain. */
     if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
         x1 = -(str->n_x-1)*x1;
     }
@@ -492,8 +498,10 @@ int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
     if(!err) {
 
         /* Fetch coefficients explicitly to fetch those that are adjacent
-           subsequently. This is to decrease computational time, by avoiding 
-	   going through the long str->c array repeatedly. */
+           subsequently and to store in temporary variables coefficients that
+	   will be used multiple times. This is to decrease computational time,
+	   by exploiting simultaneous extraction of adjacent memory and by
+	   avoiding going through the long str->c array repeatedly. */
         real c0000 = str->c[n+0];
         real c0001 = str->c[n+1];
         real c0002 = str->c[n+2];
@@ -539,15 +547,6 @@ int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         real c0116 = str->c[n+y1+x1+6];
         real c0117 = str->c[n+y1+x1+7];
 
-        real c1100 = str->c[n+z1+y1+0];
-        real c1101 = str->c[n+z1+y1+1];
-        real c1102 = str->c[n+z1+y1+2];
-        real c1103 = str->c[n+z1+y1+3];
-        real c1104 = str->c[n+z1+y1+4];
-        real c1105 = str->c[n+z1+y1+5];
-        real c1106 = str->c[n+z1+y1+6];
-        real c1107 = str->c[n+z1+y1+7];
-
         real c1010 = str->c[n+z1+x1+0];
         real c1011 = str->c[n+z1+x1+1];
         real c1012 = str->c[n+z1+x1+2];
@@ -556,6 +555,15 @@ int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         real c1015 = str->c[n+z1+x1+5];
         real c1016 = str->c[n+z1+x1+6];
         real c1017 = str->c[n+z1+x1+7];
+
+        real c1100 = str->c[n+z1+y1+0];
+        real c1101 = str->c[n+z1+y1+1];
+        real c1102 = str->c[n+z1+y1+2];
+        real c1103 = str->c[n+z1+y1+3];
+        real c1104 = str->c[n+z1+y1+4];
+        real c1105 = str->c[n+z1+y1+5];
+        real c1106 = str->c[n+z1+y1+6];
+        real c1107 = str->c[n+z1+y1+7];
 
         real c1110 = str->c[n+z1+y1+x1+0];
         real c1111 = str->c[n+z1+y1+x1+1];
@@ -566,7 +574,7 @@ int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
         real c1116 = str->c[n+z1+y1+x1+6];
         real c1117 = str->c[n+z1+y1+x1+7];
 
-        /* Evaluate splines */
+        /* Evaluate spline values */
 
         /* f */
         f_df[0] = (
@@ -1063,7 +1071,6 @@ int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
             +dz3dz*(
                 dxi3*(dyi3dy*c1007+dy3dy*c1107)+
                 dx3*(dyi3dy*c1017+dy3dy*c1117)));
-
     }
 
     return err;
