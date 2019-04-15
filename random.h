@@ -9,6 +9,11 @@
 
 #include <mkl_vsl.h>
 
+/* Use Mersenne Twister as default RNG in MKL */
+#ifndef RANDOM_MKL_RNG
+#define RANDOM_MKL_RNG VSL_BRNG_SFMT19937
+#endif
+
 typedef struct {
     VSLStreamStatePtr r;
 } random_data;

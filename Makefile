@@ -26,7 +26,9 @@ endif
 ifeq ($(RANDOM),MKL)
 	DEFINES+=-DRANDOM_MKL
 	CFLAGS+=-mkl
-
+	ifdef RANDOM_MKL_RNG
+		DEFINES+=-DRANDOM_MKL_RNG=$(MKLRNG)
+	endif
 else ifeq ($(RANDOM),GSL)
 	DEFINES+=-DRANDOM_GSL
 	CFLAGS+=-lgsl -lgslcblas
