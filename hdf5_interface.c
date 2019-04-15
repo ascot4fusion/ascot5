@@ -312,6 +312,11 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900,
             tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     hdf5_write_string_attribute(fout, path, "date",  date);
+
+    /* Write compiler flags from stringified macros */
+    hdf5_write_string_attribute(fout, path, "CFLAGS", str_macro(CFLAGS));
+    hdf5_write_string_attribute(fout, path, "CC", str_macro(CC));
+
     hdf5_close(fout);
 
     return 0;

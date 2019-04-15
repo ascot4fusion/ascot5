@@ -42,6 +42,10 @@ endif
 
 CFLAGS+=-lm -Wall -fopenmp -fPIC -std=c11 $(DEFINES) $(FLAGS)
 
+# Escape spaces in CFLAGS and include it as a macro to be embedded in output
+DCFLAGS:=$(shell echo $(CFLAGS) | sed -e "s: :\\\ :g")
+CFLAGS+=-DCC=$(CC) -DCFLAGS="$(DCFLAGS)"
+
 SIMDIR = simulate/
 SIMHEADERS = $(wildcard $(SIMDIR)simulate*.h)
 SIMOBJS = $(patsubst %.c,%.o,$(wildcard $(SIMDIR)simulate*.c))
