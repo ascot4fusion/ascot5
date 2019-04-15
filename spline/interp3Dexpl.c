@@ -44,9 +44,9 @@ int interp3Dexpl_init_coeff(real* c, real* f,
     real* f_x = malloc(n_x*sizeof(real));
     real* f_y = malloc(n_y*sizeof(real));
     real* f_z = malloc(n_z*sizeof(real));
-    real* c_x = malloc((n_x-1*(bc_x==NATURALBC))*4*sizeof(real));
-    real* c_y = malloc((n_y-1*(bc_y==NATURALBC))*4*sizeof(real));
-    real* c_z = malloc((n_z-1*(bc_z==NATURALBC))*4*sizeof(real));
+    real* c_x = malloc((n_x-1*(bc_x==NATURALBC))*NSIZE_EXPL1D*sizeof(real));
+    real* c_y = malloc((n_y-1*(bc_y==NATURALBC))*NSIZE_EXPL1D*sizeof(real));
+    real* c_z = malloc((n_z-1*(bc_z==NATURALBC))*NSIZE_EXPL1D*sizeof(real));
     int i_ct;
 
     if(f_x == NULL || f_y == NULL || f_z == NULL ||
