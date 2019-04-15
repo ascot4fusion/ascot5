@@ -153,8 +153,7 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENDCOND_MIN_THERMAL",
                          &sim->endcond_min_thermal,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    sim->endcond_min_ekin    *= CONST_E;
-    sim->endcond_min_thermal *= CONST_E; // eV -> J
+    sim->endcond_min_ekin    *= CONST_E; // eV -> J
 
     int temp;
     if( hdf5_read_double(OPTPATH "ENDCOND_MAX_POLOIDALORBS", &tempfloat,
