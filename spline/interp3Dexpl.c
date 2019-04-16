@@ -40,30 +40,6 @@ int interp3Dexpl_init_coeff(real* c, real* f,
                             real y_min, real y_max,
                             real z_min, real z_max) {
 
-    /* For periodic boundary condition, grid maximum value and the last data
-       point are not the same. Take this into account in grid interval       */
-    real x_grid, y_grid, z_grid;
-    if(bc_x == NATURALBC || bc_x == PERIODICBC) {
-        x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
-    }
-    else {
-        return 1;
-    }
-
-    if(bc_y == NATURALBC || bc_y == PERIODICBC) {
-        y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
-    }
-    else {
-        return 1;
-    }
-
-    if(bc_z == NATURALBC || bc_z == PERIODICBC) {
-        z_grid = (z_max - z_min) / ( n_z - 1 * (bc_z == NATURALBC) );
-    }
-    else {
-        return 1;
-    }
-
     /* Allocate helper quantities */
     real* f_x = malloc(n_x*sizeof(real));
     real* f_y = malloc(n_y*sizeof(real));
@@ -86,62 +62,62 @@ int interp3Dexpl_init_coeff(real* c, real* f,
     /* Bicubic spline surfaces over xy-grid for each z */
     for(int i_z=0; i_z<n_z; i_z++) {
 
-	/* Cubic spline along x for each y, using f values to get a total of
-	   four coefficients */
-	for(int i_y=0; i_y<n_y; i_y++) {
-	    for(int i_x=0; i_x<n_x; i_x++) {
-		f_x[i_x] = f[i_z*n_y*n_x+i_y*n_x+i_x];
-	    }
-	    splineexpl(f_x, n_x, bc_x, c_x);
-	    for(int i_x=0; i_x<n_x-1*(bc_x==NATURALBC); i_x++) {
-		for(int i_c=0; i_c<4; i_c++) {
-		    c[i_z*n_y*n_x*64+i_y*n_x*64+i_x*64+i_c] = c_x[i_x*4+i_c];
-		}
-	    }
-	}
+        /* Cubic spline along x for each y, using f values to get a total of
+           four coefficients */
+        for(int i_y=0; i_y<n_y; i_y++) {
+            for(int i_x=0; i_x<n_x; i_x++) {
+                f_x[i_x] = f[i_z*n_y*n_x+i_y*n_x+i_x];
+            }
+            splineexpl(f_x, n_x, bc_x, c_x);
+            for(int i_x=0; i_x<n_x-1*(bc_x==NATURALBC); i_x++) {
+                for(int i_c=0; i_c<4; i_c++) {
+                    c[i_z*n_y*n_x*64+i_y*n_x*64+i_x*64+i_c] = c_x[i_x*4+i_c];
+                }
+            }
+        }
 
-	/* Four cubic splines along y for each x, using the above calulated four
-	   coefficient values to get a total of 16 coefficients */
-	for(int i_x=0; i_x<n_x-1*(bc_x==NATURALBC); i_x++) {
-	    for(int i_s=0; i_s<4; i_s++) {
-		for(int i_y=0; i_y<n_y; i_y++) {
-		    f_y[i_y] = c[i_z*n_y*n_x*64+i_y*n_x*64+i_x*64+i_s];
-		}
-		splineexpl(f_y,n_y,bc_y,c_y);
-		for(int i_y=0; i_y<n_y-1*(bc_y==NATURALBC); i_y++) {
-		    i_ct = 0;
-		    for(int i_c=i_s; i_c<16; i_c=i_c+4) {
-			c[i_z*n_y*n_x*64+i_y*n_x*64+i_x*64+i_c]
-			    = c_y[i_y*4+i_ct];
-			i_ct++;
-		    }
-		}
-	    }
-	}
+        /* Four cubic splines along y for each x, using the above calulated four
+           coefficient values to get a total of 16 coefficients */
+        for(int i_x=0; i_x<n_x-1*(bc_x==NATURALBC); i_x++) {
+            for(int i_s=0; i_s<4; i_s++) {
+                for(int i_y=0; i_y<n_y; i_y++) {
+                    f_y[i_y] = c[i_z*n_y*n_x*64+i_y*n_x*64+i_x*64+i_s];
+                }
+                splineexpl(f_y,n_y,bc_y,c_y);
+                for(int i_y=0; i_y<n_y-1*(bc_y==NATURALBC); i_y++) {
+                    i_ct = 0;
+                    for(int i_c=i_s; i_c<16; i_c=i_c+4) {
+                        c[i_z*n_y*n_x*64+i_y*n_x*64+i_x*64+i_c]
+                            = c_y[i_y*4+i_ct];
+                        i_ct++;
+                    }
+                }
+            }
+        }
     }
 
     /* Cubic splines along z for each xy-pair, using the above calculated 16
        coefficient values to get a total of 64 coefficients */
     for(int i_y=0; i_y<n_y-1*(bc_y==NATURALBC); i_y++) {
-	for(int i_x=0; i_x<n_x-1*(bc_x==NATURALBC); i_x++) {
-	    for(int i_ss=0; i_ss<4; i_ss++) {
-		for(int i_s=0; i_s<4; i_s++) {
-		    for(int i_z=0; i_z<n_z; i_z++) {
-			f_z[i_z] = c[i_z*n_y*n_x*64+i_y*n_x*64
-					  +i_x*64+(i_ss*4+i_s)];
-		    }
-		    splineexpl(f_z,n_z,bc_z,c_z);
-		    for(int i_z=0; i_z<n_z-1*(bc_z==NATURALBC); i_z++) {
-			i_ct = 0;
-			for(int i_c=4*i_ss+i_s; i_c<64; i_c=i_c+16) {
-			    c[i_z*n_y*n_x*64+i_y*n_x*64+i_x*64+i_c]
-				= c_z[i_z*4+i_ct];
-			    i_ct++;
-			}
-		    }
-		}
-	    }
-	}
+        for(int i_x=0; i_x<n_x-1*(bc_x==NATURALBC); i_x++) {
+            for(int i_ss=0; i_ss<4; i_ss++) {
+                for(int i_s=0; i_s<4; i_s++) {
+                    for(int i_z=0; i_z<n_z; i_z++) {
+                        f_z[i_z] = c[i_z*n_y*n_x*64+i_y*n_x*64
+                                     +i_x*64+(i_ss*4+i_s)];
+                    }
+                    splineexpl(f_z,n_z,bc_z,c_z);
+                    for(int i_z=0; i_z<n_z-1*(bc_z==NATURALBC); i_z++) {
+                        i_ct = 0;
+                        for(int i_c=4*i_ss+i_s; i_c<64; i_c=i_c+16) {
+                            c[i_z*n_y*n_x*64+i_y*n_x*64+i_x*64+i_c]
+                                = c_z[i_z*4+i_ct];
+                            i_ct++;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /* Free allocated memory */
@@ -180,7 +156,9 @@ void interp3Dexpl_init_spline(interp3D_data* str, real* c,
                               real y_min, real y_max,
                               real z_min, real z_max) {
 
-    /* Calculate grid spacings */
+    /* Calculate grid intervals. For periodic boundary condition, grid maximum
+       value and the last data point are not the same. Take this into account
+       in grid intervals. */
     real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
     real y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
     real z_grid = (z_max - z_min) / ( n_z - 1 * (bc_z == NATURALBC) );
@@ -278,25 +256,53 @@ int interp3Dexpl_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
 
         /* Evaluate spline value */
         *f = (
-                  str->c[n+ 0]+dx*str->c[n+ 1]+dx2*str->c[n+ 2]+dx3*str->c[n+ 3]
-             +dy*(str->c[n+ 4]+dx*str->c[n+ 5]+dx2*str->c[n+ 6]+dx3*str->c[n+ 7])
-            +dy2*(str->c[n+ 8]+dx*str->c[n+ 9]+dx2*str->c[n+10]+dx3*str->c[n+11])
-            +dy3*(str->c[n+12]+dx*str->c[n+13]+dx2*str->c[n+14]+dx3*str->c[n+15]))
+                    str->c[n+ 0]+dx*str->c[n+ 1]
+                    +dx2*str->c[n+ 2]+dx3*str->c[n+ 3]
+                +dy*(
+                    str->c[n+ 4]+dx*str->c[n+ 5]
+                    +dx2*str->c[n+ 6]+dx3*str->c[n+ 7])
+                +dy2*(
+                    str->c[n+ 8]+dx*str->c[n+ 9]
+                    +dx2*str->c[n+10]+dx3*str->c[n+11])
+                +dy3*(
+                    str->c[n+12]+dx*str->c[n+13]
+                    +dx2*str->c[n+14]+dx3*str->c[n+15]))
             +dz*(
-                      str->c[n+16]+dx*str->c[n+17]+dx2*str->c[n+18]+dx3*str->c[n+19]
-                 +dy*(str->c[n+20]+dx*str->c[n+21]+dx2*str->c[n+22]+dx3*str->c[n+23])
-                +dy2*(str->c[n+24]+dx*str->c[n+25]+dx2*str->c[n+26]+dx3*str->c[n+27])
-                +dy3*(str->c[n+28]+dx*str->c[n+29]+dx2*str->c[n+30]+dx3*str->c[n+31]))
+                    str->c[n+16]+dx*str->c[n+17]
+                    +dx2*str->c[n+18]+dx3*str->c[n+19]
+                +dy*(
+                    str->c[n+20]+dx*str->c[n+21]
+                    +dx2*str->c[n+22]+dx3*str->c[n+23])
+                +dy2*(
+                    str->c[n+24]+dx*str->c[n+25]
+                    +dx2*str->c[n+26]+dx3*str->c[n+27])
+                +dy3*(
+                    str->c[n+28]+dx*str->c[n+29]
+                    +dx2*str->c[n+30]+dx3*str->c[n+31]))
             +dz2*(
-                      str->c[n+32]+dx*str->c[n+33]+dx2*str->c[n+34]+dx3*str->c[n+35]
-                 +dy*(str->c[n+36]+dx*str->c[n+37]+dx2*str->c[n+38]+dx3*str->c[n+39])
-                +dy2*(str->c[n+40]+dx*str->c[n+41]+dx2*str->c[n+42]+dx3*str->c[n+43])
-                +dy3*(str->c[n+44]+dx*str->c[n+45]+dx2*str->c[n+46]+dx3*str->c[n+47]))
+                    str->c[n+32]+dx*str->c[n+33]
+                    +dx2*str->c[n+34]+dx3*str->c[n+35]
+                +dy*(
+                    str->c[n+36]+dx*str->c[n+37]
+                    +dx2*str->c[n+38]+dx3*str->c[n+39])
+                +dy2*(
+                    str->c[n+40]+dx*str->c[n+41]
+                    +dx2*str->c[n+42]+dx3*str->c[n+43])
+                +dy3*(
+                    str->c[n+44]+dx*str->c[n+45]
+                    +dx2*str->c[n+46]+dx3*str->c[n+47]))
             +dz3*(
-                      str->c[n+48]+dx*str->c[n+49]+dx2*str->c[n+50]+dx3*str->c[n+51]
-                 +dy*(str->c[n+52]+dx*str->c[n+53]+dx2*str->c[n+54]+dx3*str->c[n+55])
-                +dy2*(str->c[n+56]+dx*str->c[n+57]+dx2*str->c[n+58]+dx3*str->c[n+59])
-                +dy3*(str->c[n+60]+dx*str->c[n+61]+dx2*str->c[n+62]+dx3*str->c[n+63]));
+                    str->c[n+48]+dx*str->c[n+49]
+                    +dx2*str->c[n+50]+dx3*str->c[n+51]
+                +dy*(
+                    str->c[n+52]+dx*str->c[n+53]
+                    +dx2*str->c[n+54]+dx3*str->c[n+55])
+                +dy2*(
+                    str->c[n+56]+dx*str->c[n+57]
+                    +dx2*str->c[n+58]+dx3*str->c[n+59])
+                +dy3*(
+                    str->c[n+60]+dx*str->c[n+61]
+                    +dx2*str->c[n+62]+dx3*str->c[n+63]));
 
     }
 
@@ -304,7 +310,7 @@ int interp3Dexpl_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
 }
 
 /**
- * @brief Evaluate interpolated value of 3D scalar field and its 1st and 2nd derivatives
+ * @brief Evaluate interpolated value of 3D field and 1st and 2nd derivatives
  *
  * This function evaluates the interpolated value of a 3D scalar field and
  * its 1st and 2nd derivatives using bicubic spline interpolation coefficients
@@ -393,9 +399,9 @@ int interp3Dexpl_eval_df(real* f_df, interp3D_data* str, real x, real y, real z)
 
         /* Fetch coefficients explicitly to fetch those that are adjacent
            subsequently and to store in temporary variables coefficients that
-	   will be used multiple times. This is to decrease computational time,
-	   by exploiting simultaneous extraction of adjacent memory and by
-	   avoiding going through the long str->c array repeatedly. */
+           will be used multiple times. This is to decrease computational time,
+           by exploiting simultaneous extraction of adjacent memory and by
+           avoiding going through the long str->c array repeatedly. */
         real c000 = str->c[n+0];
         real c001 = str->c[n+1];
         real c002 = str->c[n+2];
@@ -653,7 +659,7 @@ int interp3Dexpl_eval_df(real* f_df, interp3D_data* str, real x, real y, real z)
             +3*dz2*(
                         c310+dx*c311+dx2*c312+dx3*c313
                  +2*dy*(c320+dx*c321+dx2*c322+dx3*c323)
-		+3*dy2*(c330+dx*c331+dx2*c332+dx3*c333)));
+                +3*dy2*(c330+dx*c331+dx2*c332+dx3*c333)));
     }
 
     return err;

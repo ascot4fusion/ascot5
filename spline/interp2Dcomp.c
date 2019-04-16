@@ -32,9 +32,12 @@
 int interp2Dcomp_init_coeff(real* c, real* f,
                             int n_x, int n_y, int bc_x, int bc_y,
                             real x_min, real x_max,
-			    real y_min, real y_max) {
+                            real y_min, real y_max) {
 
-    /* Check boundary conditions and evaluate grid interval */
+    /* Check boundary conditions and calculate grid intervals. Grid intervals
+       needed because we use normalized grid intervals. For periodic boundary
+       condition, grid maximum value and the last data point are not the same.
+       Take this into account in grid intervals. */
     real x_grid, y_grid;
     if(bc_x == PERIODICBC || bc_x == NATURALBC) {
         x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
@@ -66,7 +69,7 @@ int interp2Dcomp_init_coeff(real* c, real* f,
 
     /* Cubic spline along x for each y, using f values to get fxx */
     for(int i_y=0; i_y<n_y; i_y++) {
-	/* fxx */
+        /* fxx */
         for(int i_x=0; i_x<n_x; i_x++) {
             f_x[i_x] = f[i_y*n_x+i_x];
         }
@@ -126,9 +129,11 @@ int interp2Dcomp_init_coeff(real* c, real* f,
 void interp2Dcomp_init_spline(interp2D_data* str, real* c,
                               int n_x, int n_y, int bc_x, int bc_y,
                               real x_min, real x_max,
-			      real y_min, real y_max) {
+                              real y_min, real y_max) {
 
-    /* Calculate grid spacings */
+    /* Calculate grid intervals. For periodic boundary condition, grid maximum
+       value and the last data point are not the same. Take this into account
+       in grid intervals. */
     real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
     real y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
 
@@ -213,17 +218,17 @@ int interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y) {
 
     if(!err) {
         *f = (
-            dxi*(dyi*str->c[n]+dy*str->c[n+y1])+
-            dx*(dyi*str->c[n+x1]+dy*str->c[n+y1+x1]))
+            dxi*(dyi*str->c[n]+dy*str->c[n+y1])
+            +dx*(dyi*str->c[n+x1]+dy*str->c[n+y1+x1]))
             +(xg2/6)*(
-                dxi3*(dyi*str->c[n+1] + dy*str->c[n+y1+1])+
-                dx3*(dyi*str->c[n+x1+1] + dy*str->c[n+y1+x1+1]))
+                dxi3*(dyi*str->c[n+1] + dy*str->c[n+y1+1])
+                +dx3*(dyi*str->c[n+x1+1] + dy*str->c[n+y1+x1+1]))
             +(yg2/6)*(
-                dxi*(dyi3*str->c[n+2]+dy3*str->c[n+y1+2])+
-                dx*(dyi3*str->c[n+x1+2]+dy3*str->c[n+y1+x1+2]))
+                dxi*(dyi3*str->c[n+2]+dy3*str->c[n+y1+2])
+                +dx*(dyi3*str->c[n+x1+2]+dy3*str->c[n+y1+x1+2]))
             +(xg2*yg2/36)*(
-                dxi3*(dyi3*str->c[n+3]+dy3*str->c[n+y1+3])+
-                dx3*(dyi3*str->c[n+x1+3]+dy3*str->c[n+y1+x1+3]));
+                dxi3*(dyi3*str->c[n+3]+dy3*str->c[n+y1+3])
+                +dx3*(dyi3*str->c[n+x1+3]+dy3*str->c[n+y1+x1+3]));
     }
 
     return err;
@@ -314,76 +319,76 @@ int interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y) {
     if(!err) {
         /* f */
         f_df[0] = (
-            dxi*(dyi*str->c[n]+dy*str->c[n+y1])+
-            dx*(dyi*str->c[n+x1]+dy*str->c[n+y1+x1]))
+            dxi*(dyi*str->c[n]+dy*str->c[n+y1])
+            +dx*(dyi*str->c[n+x1]+dy*str->c[n+y1+x1]))
             +(xg2/6)*(
-                dxi3*(dyi*str->c[n+1] + dy*str->c[n+y1+1])+
-                dx3*(dyi*str->c[n+x1+1] + dy*str->c[n+y1+x1+1]))
+                dxi3*(dyi*str->c[n+1] + dy*str->c[n+y1+1])
+                +dx3*(dyi*str->c[n+x1+1] + dy*str->c[n+y1+x1+1]))
             +(yg2/6)*(
-                dxi*(dyi3*str->c[n+2]+dy3*str->c[n+y1+2])+
-                dx*(dyi3*str->c[n+x1+2]+dy3*str->c[n+y1+x1+2]))
+                dxi*(dyi3*str->c[n+2]+dy3*str->c[n+y1+2])
+                +dx*(dyi3*str->c[n+x1+2]+dy3*str->c[n+y1+x1+2]))
             +(xg2*yg2/36)*(
-                dxi3*(dyi3*str->c[n+3]+dy3*str->c[n+y1+3])+
-                dx3*(dyi3*str->c[n+x1+3]+dy3*str->c[n+y1+x1+3]));
+                dxi3*(dyi3*str->c[n+3]+dy3*str->c[n+y1+3])
+                +dx3*(dyi3*str->c[n+x1+3]+dy3*str->c[n+y1+x1+3]));
 
         /* df/dx */
         f_df[1] = xgi*(
             -(dyi*str->c[n]  +dy*str->c[n+y1])
             +(dyi*str->c[n+x1]+dy*str->c[n+y1+x1]))
             +(xg/6)*(
-                dxi3dx*(dyi*str->c[n+1]  +dy*str->c[n+y1+1])+
-                dx3dx*(dyi*str->c[n+x1+1]+dy*str->c[n+y1+x1+1]))
+                dxi3dx*(dyi*str->c[n+1]  +dy*str->c[n+y1+1])
+                +dx3dx*(dyi*str->c[n+x1+1]+dy*str->c[n+y1+x1+1]))
             +(xgi*yg2/6)*(
                 -(dyi3*str->c[n+2]  +dy3*str->c[n+y1+2])
                 +(dyi3*str->c[n+x1+2]+dy3*str->c[n+y1+x1+2]))
             +(xg*yg2/36)*(
-                dxi3dx*(dyi3*str->c[n+3]  +dy3*str->c[n+y1+3])+
-                dx3dx*(dyi3*str->c[n+x1+3]+dy3*str->c[n+y1+x1+3]));
+                dxi3dx*(dyi3*str->c[n+3]  +dy3*str->c[n+y1+3])
+                +dx3dx*(dyi3*str->c[n+x1+3]+dy3*str->c[n+y1+x1+3]));
 
         /* df/dy */
         f_df[2] = ygi*(
-            dxi*(-str->c[n]  +str->c[n+y1])+
-            dx*(-str->c[n+x1]+str->c[n+y1+x1]))
+            dxi*(-str->c[n]  +str->c[n+y1])
+            +dx*(-str->c[n+x1]+str->c[n+y1+x1]))
             +(xg2*ygi/6)*(
-                dxi3*(-str->c[n+1]  +str->c[n+y1+1])+
-                dx3*(-str->c[n+x1+1]+str->c[n+y1+x1+1]))
+                dxi3*(-str->c[n+1]  +str->c[n+y1+1])
+                +dx3*(-str->c[n+x1+1]+str->c[n+y1+x1+1]))
             +(yg/6)*(
-                dxi*(dyi3dy*str->c[n+2]  +dy3dy*str->c[n+y1+2])+
-                dx*(dyi3dy*str->c[n+x1+2]+dy3dy*str->c[n+y1+x1+2]))
+                dxi*(dyi3dy*str->c[n+2]  +dy3dy*str->c[n+y1+2])
+                +dx*(dyi3dy*str->c[n+x1+2]+dy3dy*str->c[n+y1+x1+2]))
             +(xg2*yg/36)*(
-                dxi3*(dyi3dy*str->c[n+3]  +dy3dy*str->c[n+y1+3])+
-                dx3*(dyi3dy*str->c[n+x1+3]+dy3dy*str->c[n+y1+x1+3]));
+                dxi3*(dyi3dy*str->c[n+3]  +dy3dy*str->c[n+y1+3])
+                +dx3*(dyi3dy*str->c[n+x1+3]+dy3dy*str->c[n+y1+x1+3]));
 
         /* d2f/dx2 */
         f_df[3] = (
-            dxi*(dyi*str->c[n+1]  +dy*str->c[n+y1+1])+
-            dx*(dyi*str->c[n+x1+1]+dy*str->c[n+y1+x1+1]))
+            dxi*(dyi*str->c[n+1]  +dy*str->c[n+y1+1])
+            +dx*(dyi*str->c[n+x1+1]+dy*str->c[n+y1+x1+1]))
             +(yg2/6)*(
-                dxi*(dyi3*str->c[n+3]  +dy3*str->c[n+y1+3])+
-                dx*(dyi3*str->c[n+x1+3]+dy3*str->c[n+y1+x1+3]));
+                dxi*(dyi3*str->c[n+3]  +dy3*str->c[n+y1+3])
+                +dx*(dyi3*str->c[n+x1+3]+dy3*str->c[n+y1+x1+3]));
 
         /* d2f/dy2 */
         f_df[4] = (
-              dxi*(dyi*str->c[n+2]  +dy*str->c[n+y1+2])+
-              dx*(dyi*str->c[n+x1+2]+dy*str->c[n+y1+x1+2]))
+              dxi*(dyi*str->c[n+2]  +dy*str->c[n+y1+2])
+              +dx*(dyi*str->c[n+x1+2]+dy*str->c[n+y1+x1+2]))
         +xg2/6*(
-            dxi3*(dyi*str->c[n+3]  +dy*str->c[n+y1+3])+
-            dx3*(dyi*str->c[n+x1+3]+dy*str->c[n+y1+x1+3]));
+            dxi3*(dyi*str->c[n+3]  +dy*str->c[n+y1+3])
+            +dx3*(dyi*str->c[n+x1+3]+dy*str->c[n+y1+x1+3]));
 
         /* d2f/dydx */
         f_df[5] = xgi*ygi*(
             str->c[n]  -str->c[n+y1]
             -str->c[n+x1]+str->c[n+y1+x1])
             +(xg/6*ygi)*(
-                dxi3dx*(-str->c[n+1]  +str->c[n+y1+1])+
-                dx3dx*(-str->c[n+x1+1]+str->c[n+y1+x1+1]))
+                dxi3dx*(-str->c[n+1]  +str->c[n+y1+1])
+                +dx3dx*(-str->c[n+x1+1]+str->c[n+y1+x1+1]))
             +(xgi/6*yg)*(
                 -(dyi3dy*str->c[n+2]  +dy3dy*str->c[n+y1+2])
                 +(dyi3dy*str->c[n+x1+2]+dy3dy*str->c[n+y1+x1+2]))
             +(xg*yg/36)*(
-                dxi3dx*(dyi3dy*str->c[n+3]  +dy3dy*str->c[n+y1+3])+
-                dx3dx*(dyi3dy*str->c[n+x1+3]+dy3dy*str->c[n+y1+x1+3]));
+                dxi3dx*(dyi3dy*str->c[n+3]  +dy3dy*str->c[n+y1+3])
+                +dx3dx*(dyi3dy*str->c[n+x1+3]+dy3dy*str->c[n+y1+x1+3]));
     }
-    
+
     return err;
 }

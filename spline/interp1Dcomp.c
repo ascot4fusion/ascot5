@@ -24,7 +24,10 @@
 int interp1Dcomp_init_coeff(real* c, real* f, int n_x, int bc_x,
                             real x_min, real x_max) {
 
-    /* Check boundary conditions and evaluate grid interval */
+    /* Check boundary condition and calculate grid interval. Grid interval
+       needed because we use normalized grid intervals. For periodic boundary
+       condition, grid maximum value and the last data point are not the same.
+       Take this into account in grid interval. */
     real x_grid;
     if(bc_x == PERIODICBC || bc_x == NATURALBC) {
         x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
@@ -64,7 +67,9 @@ int interp1Dcomp_init_coeff(real* c, real* f, int n_x, int bc_x,
 void interp1Dcomp_init_spline(interp1D_data* str, real* c,
                               int n_x, int bc_x, real x_min, real x_max) {
 
-    /* Calculate grid spacing */
+    /* Calculate grid interval. For periodic boundary condition, grid maximum
+       value and the last data point are not the same. Take this into account
+       in grid interval. */
     real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
 
     /* Initialize the interp1D_data struct */
@@ -120,11 +125,9 @@ int interp1Dcomp_eval_f(real* f, interp1D_data* str, real x) {
     }
 
     if(!err) {
-        *f = (
-              dxi*str->c[n] +
-              dx*str->c[n+x1] +
-              (xg2/6)*(dxi3*str->c[n+1] + dx3*str->c[n+x1+1])
-              );
+        *f =
+                      dxi *str->c[n+0]+dx *str->c[n+x1+0]
+            +(xg2/6)*(dxi3*str->c[n+1]+dx3*str->c[n+x1+1]);
     }
 
     return err;
@@ -185,21 +188,17 @@ int interp1Dcomp_eval_df(real* f_df, interp1D_data* str, real x) {
 
     if(!err) {
         /* f */
-        f_df[0] = (
-                   dxi*str->c[n] +
-                   dx*str->c[n+x1] +
-                   (xg2/6)*(dxi3*str->c[n+1] + dx3*str->c[n+x1+1])
-                   );
+        f_df[0] =
+                      dxi *str->c[n+0]+dx *str->c[n+x1+0]
+            +(xg2/6)*(dxi3*str->c[n+1]+dx3*str->c[n+x1+1]);
 
         /* df/dx */
-        f_df[1] = (xgi*(str->c[n+x1] - str->c[n])  +
-                   (xg/6)*(dx3dx*str->c[n+x1+1] +dxi3dx*str->c[n+1])
-                   );
+        f_df[1] =
+                      xgi*(str->c[n+x1+0]-       str->c[n+0])
+            +(xg/6)*(dx3dx*str->c[n+x1+1]+dxi3dx*str->c[n+1]);
 
         /* d2f/dx2 */
-        f_df[2] = (
-                   dxi*str->c[n+1] + dx*str->c[n+x1+1]
-                   );
+        f_df[2] = dxi*str->c[n+1]+dx*str->c[n+x1+1];
     }
 
     return err;
