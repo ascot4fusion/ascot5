@@ -154,16 +154,16 @@ int interp2Dexpl_eval_f(real* f, interp2D_data* str, real x, real y) {
         y = y + (y < str->y_min) * (str->y_max - str->y_min);
     }
 
-    /* Index for x variable */
-    int i_x = (x-str->x_min)/str->x_grid;
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x = (x-str->x_min)/str->x_grid - 1*(x==str->x_max);
     /* Normalized x coordinate in current cell */
     real dx = (x-(str->x_min+i_x*str->x_grid))/str->x_grid;
     /* Helper variables */
     real dx2 = dx*dx;
     real dx3 = dx2*dx;
 
-    /* Index for y variable */
-    int i_y = (y-str->y_min)/str->y_grid;
+    /* Index for y variable. The -1 needed at exactly grid end. */
+    int i_y = (y-str->y_min)/str->y_grid - 1*(y==str->y_max);
     /* Normalized y coordinate in current cell */
     real dy = (y-(str->y_min+i_y*str->y_grid))/str->y_grid;
     /* Helper variables */
@@ -228,8 +228,8 @@ int interp2Dexpl_eval_df(real* f_df, interp2D_data* str, real x, real y) {
         y = y + (y < str->y_min) * (str->y_max - str->y_min);
     }
 
-    /* Index for x variable */
-    int i_x = (x-str->x_min)/str->x_grid;
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x = (x-str->x_min)/str->x_grid - 1*(x==str->x_max);
     /* Normalized x coordinate in current cell */
     real dx = (x-(str->x_min+i_x*str->x_grid))/str->x_grid;
     /* Helper variables */
@@ -237,8 +237,8 @@ int interp2Dexpl_eval_df(real* f_df, interp2D_data* str, real x, real y) {
     real dx3 = dx2*dx;
     real xgi = 1.0/str->x_grid;
 
-    /* Index for y variable */
-    int i_y = (y-str->y_min)/str->y_grid;
+    /* Index for y variable. The -1 needed at exactly grid end. */
+    int i_y = (y-str->y_min)/str->y_grid - 1*(y==str->y_max);
     /* Normalized y coordinate in current cell */
     real dy = (y-(str->y_min+i_y*str->y_grid))/str->y_grid;
     /* Helper variables */

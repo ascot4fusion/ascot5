@@ -212,24 +212,24 @@ int interp3Dexpl_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
         z = z + (z < str->z_min) * (str->z_max - str->z_min);
     }
 
-    /* Index for x variable */
-    int i_x = (x-str->x_min)/str->x_grid;
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x = (x-str->x_min)/str->x_grid - 1*(x==str->x_max);
     /* Normalized x coordinate in current cell */
     real dx = (x-(str->x_min+i_x*str->x_grid))/str->x_grid;
     /* Helper varibles */
     real dx2 = dx*dx;
     real dx3 = dx2*dx;
 
-    /* Index for y variable */
-    int i_y = (y-str->y_min)/str->y_grid;
+    /* Index for y variable. The -1 needed at exactly grid end. */
+    int i_y = (y-str->y_min)/str->y_grid - 1*(y==str->y_max);
     /* Normalized y coordinate in current cell */
     real dy = (y-(str->y_min+i_y*str->y_grid))/str->y_grid;
     /* Helper varibles */
     real dy2 = dy*dy;
     real dy3 = dy2*dy;
 
-    /* Index for z variable */
-    int i_z = (z-str->z_min)/str->z_grid;
+    /* Index for z variable. The -1 needed at exactly grid end. */
+    int i_z = (z-str->z_min)/str->z_grid - 1*(z==str->z_max);
     /* Normalized z coordinate in current cell */
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid;
     /* Helper varibles */
@@ -352,8 +352,8 @@ int interp3Dexpl_eval_df(real* f_df, interp3D_data* str, real x, real y, real z)
         z = z + (z < str->z_min) * (str->z_max - str->z_min);
     }
 
-    /* Index for x variable */
-    int i_x = (x-str->x_min)/str->x_grid;
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x = (x-str->x_min)/str->x_grid - 1*(x==str->x_max);
     /* Normalized x coordinate in current cell */
     real dx = (x-(str->x_min+i_x*str->x_grid))/str->x_grid;
     /* Helper variables */
@@ -361,8 +361,8 @@ int interp3Dexpl_eval_df(real* f_df, interp3D_data* str, real x, real y, real z)
     real dx3 = dx2*dx;
     real xgi = 1.0/str->x_grid;
 
-    /* Index for y variable */
-    int i_y = (y-str->y_min)/str->y_grid;
+    /* Index for y variable. The -1 needed at exactly grid end. */
+    int i_y = (y-str->y_min)/str->y_grid - 1*(y==str->y_max);
     /* Normalized y coordinate in current cell */
     real dy = (y-(str->y_min+i_y*str->y_grid))/str->y_grid;
     /* Helper variables */
@@ -370,8 +370,8 @@ int interp3Dexpl_eval_df(real* f_df, interp3D_data* str, real x, real y, real z)
     real dy3 = dy2*dy;
     real ygi = 1.0/str->y_grid;
 
-    /* Index for z variable */
-    int i_z = (z-str->z_min)/str->z_grid;
+    /* Index for z variable. The -1 needed at exactly grid end. */
+    int i_z = (z-str->z_min)/str->z_grid - 1*(z==str->z_max);
     /* Normalized z coordinate in current cell */
     real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid;
     /* Helper variables */

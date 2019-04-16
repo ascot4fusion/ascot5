@@ -85,8 +85,8 @@ int interp1Dexpl_eval_f(real* f, interp1D_data* str, real x) {
         x = x + (x < str->x_min) * (str->x_max - str->x_min);
     }
 
-    /* Index for x variable */
-    int i_x = (x-str->x_min)/str->x_grid;
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x = (x-str->x_min)/str->x_grid - 1*(x==str->x_max);
     /* Normalized x coordinate in current cell */
     real dx = (x-(str->x_min+i_x*str->x_grid))/str->x_grid;
     /* Helper variables */
@@ -135,8 +135,8 @@ int interp1Dexpl_eval_df(real* f_df, interp1D_data* str, real x) {
         x = x + (x < str->x_min) * (str->x_max - str->x_min);
     }
 
-    /* Index for x variable */
-    int i_x = (x-str->x_min)/str->x_grid;
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x = (x-str->x_min)/str->x_grid - 1*(x==str->x_max);
     /* Normalized x coordinate in current cell */
     real dx = (x-(str->x_min+i_x*str->x_grid))/str->x_grid;
     /* Helper variables */
