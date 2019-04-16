@@ -1,0 +1,12 @@
+*.o
+job.err.*
+job.out.*
+*~
+test_offload
+ascot5_main
+ascot.h5
+*.optrpt
+*.pyc
+*.so
+doc/
+gitver.h
