@@ -34,22 +34,6 @@ int interp2Dexpl_init_coeff(real* c, real* f,
                             real x_min, real x_max,
                             real y_min, real y_max) {
 
-    /* Check boundary conditions and evaluate grid interval */
-    real x_grid, y_grid;
-    if(bc_x == PERIODICBC || bc_x == NATURALBC) {
-        x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
-    }
-    else {
-        return 1;
-    }
-
-    if(bc_y == PERIODICBC || bc_y == NATURALBC) {
-        y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
-    }
-    else {
-        return 1;
-    }
-
     /* Allocate helper quantities */
     real* f_x = malloc(n_x*sizeof(real));
     real* f_y = malloc(n_y*sizeof(real));
@@ -68,33 +52,33 @@ int interp2Dexpl_init_coeff(real* c, real* f,
     /* Cubic spline along x for each y, using f values to get a total of four
        coefficients */
     for(int i_y=0; i_y<n_y; i_y++) {
-	for(int i_x=0; i_x<n_x; i_x++) {
-	    f_x[i_x] = f[i_y*n_x+i_x];
-	}
-	splineexpl(f_x, n_x, bc_x, c_x);
-	for(int i_x=0; i_x<n_x-1; i_x++) {
-	    for(int i_c=0; i_c<4; i_c++) {
-		c[i_y*n_x*16+i_x*16+i_c] = c_x[i_x*4+i_c];
-	    }
-	}
+        for(int i_x=0; i_x<n_x; i_x++) {
+            f_x[i_x] = f[i_y*n_x+i_x];
+        }
+        splineexpl(f_x, n_x, bc_x, c_x);
+        for(int i_x=0; i_x<n_x-1; i_x++) {
+            for(int i_c=0; i_c<4; i_c++) {
+                c[i_y*n_x*16+i_x*16+i_c] = c_x[i_x*4+i_c];
+            }
+        }
     }
 
     /* Four cubic splines along y for each x, using the above calculated four
        coefficient values to get a total of 16 coefficients */
     for(int i_x=0; i_x<n_x-1; i_x++) {
-	for(int i_s=0; i_s<4; i_s++) {
-	    for(int i_y=0; i_y<n_y; i_y++) {
-		f_y[i_y] = c[i_y*n_x*16+i_x*16+i_s];
-	    }
-	    splineexpl(f_y, n_y, bc_y, c_y);
-	    for(int i_y=0; i_y<n_y-1; i_y++) {
-		i_ct = 0;
-		for(int i_c=i_s; i_c<16; i_c=i_c+4) {
-		    c[i_y*n_x*16+i_x*16+i_c] = c_y[i_y*4+i_ct];
-		    i_ct++;
-		}
-	    }
-	}
+        for(int i_s=0; i_s<4; i_s++) {
+            for(int i_y=0; i_y<n_y; i_y++) {
+                f_y[i_y] = c[i_y*n_x*16+i_x*16+i_s];
+            }
+            splineexpl(f_y, n_y, bc_y, c_y);
+            for(int i_y=0; i_y<n_y-1; i_y++) {
+                i_ct = 0;
+                for(int i_c=i_s; i_c<16; i_c=i_c+4) {
+                    c[i_y*n_x*16+i_x*16+i_c] = c_y[i_y*4+i_ct];
+                    i_ct++;
+                }
+            }
+        }
     }
 
     /* Free allocated memory */
@@ -123,9 +107,11 @@ int interp2Dexpl_init_coeff(real* c, real* f,
 void interp2Dexpl_init_spline(interp2D_data* str, real* c,
                               int n_x, int n_y, int bc_x, int bc_y,
                               real x_min, real x_max,
-			      real y_min, real y_max) {
+                              real y_min, real y_max) {
 
-    /* Calculate grid spacings */
+    /* Calculate grid intervals. For periodic boundary condition, grid maximum
+       value and the last data point are not the same. Take this into account
+       in grid intervals. */
     real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
     real y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
 
@@ -168,16 +154,16 @@ int interp2Dexpl_eval_f(real* f, interp2D_data* str, real x, real y) {
         y = y + (y < str->y_min) * (str->y_max - str->y_min);
     }
 
-    /* Index for x variable */
-    int i_x = (x-str->x_min)/str->x_grid;
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x = (x-str->x_min)/str->x_grid - 1*(x==str->x_max);
     /* Normalized x coordinate in current cell */
     real dx = (x-(str->x_min+i_x*str->x_grid))/str->x_grid;
     /* Helper variables */
     real dx2 = dx*dx;
     real dx3 = dx2*dx;
 
-    /* Index for y variable */
-    int i_y = (y-str->y_min)/str->y_grid;
+    /* Index for y variable. The -1 needed at exactly grid end. */
+    int i_y = (y-str->y_min)/str->y_grid - 1*(y==str->y_max);
     /* Normalized y coordinate in current cell */
     real dy = (y-(str->y_min+i_y*str->y_grid))/str->y_grid;
     /* Helper variables */
@@ -195,12 +181,16 @@ int interp2Dexpl_eval_f(real* f, interp2D_data* str, real x, real y) {
     if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
         err = 1;
     }
-    
+
     if(!err) {
-        *f =      str->c[n+ 0]+dx*str->c[n+ 1]+dx2*str->c[n+ 2]+dx3*str->c[n+ 3]
-             +dy*(str->c[n+ 4]+dx*str->c[n+ 5]+dx2*str->c[n+ 6]+dx3*str->c[n+ 7])
-            +dy2*(str->c[n+ 8]+dx*str->c[n+ 9]+dx2*str->c[n+10]+dx3*str->c[n+11])
-            +dy3*(str->c[n+12]+dx*str->c[n+13]+dx2*str->c[n+14]+dx3*str->c[n+15]);
+        *f =
+                str->c[n+ 0]+dx*str->c[n+ 1]+dx2*str->c[n+ 2]+dx3*str->c[n+ 3]
+            +dy*(
+                str->c[n+ 4]+dx*str->c[n+ 5]+dx2*str->c[n+ 6]+dx3*str->c[n+ 7])
+            +dy2*(
+                str->c[n+ 8]+dx*str->c[n+ 9]+dx2*str->c[n+10]+dx3*str->c[n+11])
+            +dy3*(
+                str->c[n+12]+dx*str->c[n+13]+dx2*str->c[n+14]+dx3*str->c[n+15]);
     }
 
     return err;
@@ -238,8 +228,8 @@ int interp2Dexpl_eval_df(real* f_df, interp2D_data* str, real x, real y) {
         y = y + (y < str->y_min) * (str->y_max - str->y_min);
     }
 
-    /* Index for x variable */
-    int i_x = (x-str->x_min)/str->x_grid;
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x = (x-str->x_min)/str->x_grid - 1*(x==str->x_max);
     /* Normalized x coordinate in current cell */
     real dx = (x-(str->x_min+i_x*str->x_grid))/str->x_grid;
     /* Helper variables */
@@ -247,15 +237,15 @@ int interp2Dexpl_eval_df(real* f_df, interp2D_data* str, real x, real y) {
     real dx3 = dx2*dx;
     real xgi = 1.0/str->x_grid;
 
-    /* Index for y variable */
-    int i_y = (y-str->y_min)/str->y_grid;
+    /* Index for y variable. The -1 needed at exactly grid end. */
+    int i_y = (y-str->y_min)/str->y_grid - 1*(y==str->y_max);
     /* Normalized y coordinate in current cell */
     real dy = (y-(str->y_min+i_y*str->y_grid))/str->y_grid;
     /* Helper variables */
     real dy2 = dy*dy;
     real dy3 = dy2*dy;
     real ygi = 1.0/str->y_grid;
-    
+
     int n = i_y*str->n_x*16+i_x*16; /* Index jump to cell */
 
     int err = 0;
@@ -270,41 +260,57 @@ int interp2Dexpl_eval_df(real* f_df, interp2D_data* str, real x, real y) {
 
     if(!err) {
         /* f */
-        f_df[0] = str->c[n+ 0]+dx*str->c[n+ 1]+dx2*str->c[n+ 2]+dx3*str->c[n+ 3]
-             +dy*(str->c[n+ 4]+dx*str->c[n+ 5]+dx2*str->c[n+ 6]+dx3*str->c[n+ 7])
-            +dy2*(str->c[n+ 8]+dx*str->c[n+ 9]+dx2*str->c[n+10]+dx3*str->c[n+11])
-            +dy3*(str->c[n+12]+dx*str->c[n+13]+dx2*str->c[n+14]+dx3*str->c[n+15]);
+        f_df[0] =
+                str->c[n+ 0]+dx*str->c[n+ 1]+dx2*str->c[n+ 2]+dx3*str->c[n+ 3]
+            +dy*(
+                str->c[n+ 4]+dx*str->c[n+ 5]+dx2*str->c[n+ 6]+dx3*str->c[n+ 7])
+            +dy2*(
+                str->c[n+ 8]+dx*str->c[n+ 9]+dx2*str->c[n+10]+dx3*str->c[n+11])
+            +dy3*(
+                str->c[n+12]+dx*str->c[n+13]+dx2*str->c[n+14]+dx3*str->c[n+15]);
 
         /* df/dx */
-        f_df[1] = xgi*(
-                  str->c[n+ 1]+2*dx*str->c[n+ 2]+3*dx2*str->c[n+ 3]
-             +dy*(str->c[n+ 5]+2*dx*str->c[n+ 6]+3*dx2*str->c[n+ 7])
-            +dy2*(str->c[n+ 9]+2*dx*str->c[n+10]+3*dx2*str->c[n+11])
-            +dy3*(str->c[n+13]+2*dx*str->c[n+14]+3*dx2*str->c[n+15]));
+        f_df[1] =
+            xgi*(
+                      str->c[n+ 1]+2*dx*str->c[n+ 2]+3*dx2*str->c[n+ 3]
+                 +dy*(str->c[n+ 5]+2*dx*str->c[n+ 6]+3*dx2*str->c[n+ 7])
+                +dy2*(str->c[n+ 9]+2*dx*str->c[n+10]+3*dx2*str->c[n+11])
+                +dy3*(str->c[n+13]+2*dx*str->c[n+14]+3*dx2*str->c[n+15]));
 
         /* df/dy */
-        f_df[2] = ygi*(
-                    str->c[n+ 4]+dx*str->c[n+ 5]+dx2*str->c[n+ 6]+dx3*str->c[n+ 7]
-             +2*dy*(str->c[n+ 8]+dx*str->c[n+ 9]+dx2*str->c[n+10]+dx3*str->c[n+11])
-            +3*dy2*(str->c[n+12]+dx*str->c[n+13]+dx2*str->c[n+14]+dx3*str->c[n+15]));
+        f_df[2] =
+            ygi*(
+                         str->c[n+ 4]+dx *str->c[n+ 5]
+                    +dx2*str->c[n+ 6]+dx3*str->c[n+ 7]
+                +2*dy*(
+                         str->c[n+ 8]+dx *str->c[n+ 9]
+                    +dx2*str->c[n+10]+dx3*str->c[n+11])
+                +3*dy2*(
+                        str->c[n+12]+dx *str->c[n+13]
+                    +dx2*str->c[n+14]+dx3*str->c[n+15]));
 
         /* d2f/dx2 */
-        f_df[3] = xgi*xgi*(
-                  2*str->c[n+ 2]+6*dx*str->c[n+ 3]
-             +dy*(2*str->c[n+ 6]+6*dx*str->c[n+ 7])
-            +dy2*(2*str->c[n+10]+6*dx*str->c[n+11])
-            +dy3*(2*str->c[n+14]+6*dx*str->c[n+15]));
+        f_df[3] =
+            xgi*xgi*(
+                      2*str->c[n+ 2]+6*dx*str->c[n+ 3]
+                 +dy*(2*str->c[n+ 6]+6*dx*str->c[n+ 7])
+                +dy2*(2*str->c[n+10]+6*dx*str->c[n+11])
+                +dy3*(2*str->c[n+14]+6*dx*str->c[n+15]));
 
         /* d2f/dy2 */
-        f_df[4] = ygi*ygi*(
-                2*(str->c[n+ 8]+dx*str->c[n+ 9]+dx2*str->c[n+10]+dx3*str->c[n+11])
-            +6*dy*(str->c[n+12]+dx*str->c[n+13]+dx2*str->c[n+14]+dx3*str->c[n+15]));
+        f_df[4] =
+            ygi*ygi*(
+                2*(         str->c[n+ 8]+dx *str->c[n+ 9]
+                       +dx2*str->c[n+10]+dx3*str->c[n+11])
+                +6*dy*(     str->c[n+12]+dx *str->c[n+13]
+                       +dx2*str->c[n+14]+dx3*str->c[n+15]));
 
         /* d2f/dydx */
-        f_df[5] = xgi*ygi*(
-                    str->c[n+ 5]+2*dx*str->c[n+ 6]+3*dx2*str->c[n+ 7]
-             +2*dy*(str->c[n+ 9]+2*dx*str->c[n+10]+3*dx2*str->c[n+11])
-            +3*dy2*(str->c[n+13]+2*dx*str->c[n+14]+3*dx2*str->c[n+15]));
+        f_df[5] =
+            xgi*ygi*(
+                        str->c[n+ 5]+2*dx*str->c[n+ 6]+3*dx2*str->c[n+ 7]
+                 +2*dy*(str->c[n+ 9]+2*dx*str->c[n+10]+3*dx2*str->c[n+11])
+                +3*dy2*(str->c[n+13]+2*dx*str->c[n+14]+3*dx2*str->c[n+15]));
     }
 
     return err;

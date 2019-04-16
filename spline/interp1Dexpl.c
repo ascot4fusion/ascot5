@@ -24,15 +24,6 @@
 int interp1Dexpl_init_coeff(real* c, real* f, int n_x, int bc_x,
                             real x_min, real x_max) {
 
-    /* Check boundary conditions and evaluate grid interval */
-    real x_grid;
-    if(bc_x == PERIODICBC || bc_x == NATURALBC) {
-        x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
-    }
-    else {
-        return 1;
-    }
-
     if(c == NULL) {
         return 1;
     }
@@ -60,7 +51,9 @@ int interp1Dexpl_init_coeff(real* c, real* f, int n_x, int bc_x,
 void interp1Dexpl_init_spline(interp1D_data* str, real* c,
                               int n_x, int bc_x, real x_min, real x_max) {
 
-    /* Calculate grid spacing */
+    /* Calculate grid interval. For periodic boundary condition, grid maximum
+       value and the last data point are not the same. Take this into account
+       in grid interval. */
     real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
 
     /* Initialize the interp1D_data struct */
@@ -92,8 +85,8 @@ int interp1Dexpl_eval_f(real* f, interp1D_data* str, real x) {
         x = x + (x < str->x_min) * (str->x_max - str->x_min);
     }
 
-    /* Index for x variable */
-    int i_x = (x-str->x_min)/str->x_grid;
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x = (x-str->x_min)/str->x_grid - 1*(x==str->x_max);
     /* Normalized x coordinate in current cell */
     real dx = (x-(str->x_min+i_x*str->x_grid))/str->x_grid;
     /* Helper variables */
@@ -142,15 +135,15 @@ int interp1Dexpl_eval_df(real* f_df, interp1D_data* str, real x) {
         x = x + (x < str->x_min) * (str->x_max - str->x_min);
     }
 
-    /* Index for x variable */
-    int i_x = (x-str->x_min)/str->x_grid;
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x = (x-str->x_min)/str->x_grid - 1*(x==str->x_max);
     /* Normalized x coordinate in current cell */
     real dx = (x-(str->x_min+i_x*str->x_grid))/str->x_grid;
     /* Helper variables */
     real dx2 = dx*dx;
     real dx3 = dx2*dx;
     real xgi = 1.0/str->x_grid;
-    
+
     int n = i_x*4; /* Index jump to cell */
 
     int err = 0;
