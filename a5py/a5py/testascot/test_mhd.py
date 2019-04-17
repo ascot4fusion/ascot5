@@ -26,6 +26,7 @@ import a5py.ascot5io.ascot5    as ascot5
 import a5py.ascot5io.orbits    as orbits
 import a5py.ascot5io.options   as options
 import a5py.ascot5io.B_GS      as B_GS
+import a5py.ascot5io.B_2DS     as B_2DS
 import a5py.ascot5io.E_TC      as E_TC
 import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
@@ -33,6 +34,11 @@ import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 import a5py.ascot5io.boozer    as boozer
 import a5py.ascot5io.mhd       as mhd
+import a5py.preprocessing.eqdsk2input as eqdsk
+
+from a5py.preprocessing.boozermaps import Boozermaps
+
+from a5py.ascotpy import Ascotpy
 
 import a5py.testascot.helpers as helpers
 
@@ -151,7 +157,7 @@ def init():
     anum   = 1       * np.array([1, 0])
     znum   = 1       * np.array([1, 0])
     time   = 0       * np.array([1, 1])
-    R      = 7.6     * np.array([1, 1])
+    R      = 0.1     * np.array([1, 1])
     phi    = 90      * np.array([1, 1])
     z      = 0       * np.array([1, 1])
     zeta   = 2       * np.array([1, 1])
@@ -167,28 +173,69 @@ def init():
                    anum, znum, weight, time, desc="MHD_GCA")
 
     #**************************************************************************#
-    #*                     Construct ITER-like magnetic field                  #
-    #*                                                                         #
+    #*                     Construct a field from geqdsk;                      #
+    #*                         add MHD modes                                   #
     #**************************************************************************#
-    if use_spline:
-        B_GS.write_hdf5(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                        desc="MHD_GO")
-        B_GS.write_hdf5(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                        desc="MHD_GCF")
-        B_GS.write_hdf5(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                        desc="MHD_GCA")
-    else:
-        Rmin = 4; Rmax = 8.5; nR = 120; zmin = -4; zmax = 4; nz = 200;
-        B_GS.write_hdf5_B_2D(helpers.testfn, R0, z0, Bphi0, psi_mult,
-                             psi_coeff, Rmin, Rmax, nR, zmin, zmax, nz,
-                             desc="MHD_GO")
-        B_GS.write_hdf5_B_2D(helpers.testfn, R0, z0, Bphi0, psi_mult,
-                             psi_coeff, Rmin, Rmax, nR, zmin, zmax, nz,
-                             desc="MHD_GCF")
-        B_GS.write_hdf5_B_2D(helpers.testfn, R0, z0, Bphi0, psi_mult,
-                             psi_coeff, Rmin, Rmax, nR, zmin, zmax, nz,
-                             desc="MHD_GCA")
+    #B_GS.write_hdf5(helpers.testfn, R0,z0, Bphi0, psi_mult, psi_coeff,
+#desc="MHD_GO")
 
+    #B_GS.write_hdf5(helpers.testfn, R0,z0, Bphi0, psi_mult, psi_coeff,
+#desc="MHD_GCF")
+
+
+    #B_GS.write_hdf5(helpers.testfn, R0,z0, Bphi0, psi_mult, psi_coeff,
+#desc="MHD_GCA")
+    B2D = eqdsk.generate("input.geq",cocosin=3,desc="MHD_GO", fn_out=helpers.testfn)
+
+    print(B2D)
+
+    eqdsk.generate("input.geq",cocosin=3,desc="MHD_GCF", fn_out=helpers.testfn)
+
+    eqdsk.generate("input.geq",cocosin=3,desc="MHD_GCA", fn_out=helpers.testfn)
+ 
+    fmhdname = "boozer_maps.out"
+    b = Boozermaps(fmhdname)
+    b.write_hdf5(helpers.testfn, desc="MHD_GO")
+    b.write_hdf5(helpers.testfn, desc="MHD_GCF")
+    b.write_hdf5(helpers.testfn, desc="MHD_GCA")
+
+    #create dummy data
+    data = {}
+    data["nmode"] = 1 
+    data["npsi"] = 500
+    data["mmodes"] = np.array([10])
+    data["nmodes"] = np.array([11])
+    data["amplitude"] = np.array([.001])
+    data["omega"] = np.array([3.24e+05])
+    data["psimin"] = 0.0
+    data["psimax"] = 1.0
+    psi = np.linspace(data["psimin"],data["psimax"],data["npsi"])
+    data["alpha"] = np.zeros((data["npsi"],data["nmode"]))
+    for i in range(data["npsi"]):
+        data["alpha"][i,0] = np.exp(-50*np.square(psi[i]-0.5))
+    data["phi"] = np.zeros((data["npsi"],data["nmode"]))
+    for i in range(data["npsi"]):
+        data["phi"][i,0] = np.exp(-50*np.square(psi[i]-0.5)) 
+
+
+    #write that data to file
+
+    mhd.write_hdf5(helpers.testfn, data["nmode"], data["nmodes"],
+                   data["mmodes"], data["amplitude"], data["omega"], 
+                   data["alpha"], data["phi"],data["npsi"], data["psimin"],
+                   data["psimax"], desc="MHD_GO")
+
+
+    mhd.write_hdf5(helpers.testfn, data["nmode"], data["nmodes"],
+                   data["mmodes"], data["amplitude"], data["omega"], 
+                   data["alpha"], data["phi"],data["npsi"], data["psimin"],
+                   data["psimax"], desc="MHD_GCF")
+
+
+    mhd.write_hdf5(helpers.testfn, data["nmode"], data["nmodes"],
+                   data["mmodes"], data["amplitude"], data["omega"], 
+                   data["alpha"], data["phi"],data["npsi"], data["psimin"],
+                   data["psimax"], desc="MHD_GCA")
     #**************************************************************************#
     #*                     Rest of the inputs are trivial                      #
     #*                                                                         #
@@ -204,8 +251,6 @@ def init():
     for tname in ["MHD_GO", "MHD_GCF", "MHD_GCA"]:
         W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall, desc=tname)
         N0_3D.write_hdf5_dummy(helpers.testfn, desc=tname)
-        boozer.write_hdf5_dummy(helpers.testfn, desc=tname)
-        mhd.write_hdf5_dummy(helpers.testfn, desc=tname)
 
     Nrho   = 3
     Nion   = 1
@@ -244,7 +289,18 @@ def check():
     - And one that shows trajectories on a Rz plane for all cases
     """
     a5 = ascot5.Ascot(helpers.testfn)
-
+    apy = Ascotpy(helpers.testfn)
+    print("initializing bfield")
+    apy.init(bfield=True)
+    print("initializing boozer")
+    apy.init(boozer=True)
+    print("initializing mhd")
+    apy.init(mhd=True) 
+    
+    #must have only one nmode and omega
+    nmode = float(a5["MHD_GO"].mhd.read()["nmodes"][0])
+    omega = float(a5["MHD_GO"].mhd.read()["omega"][0])
+   
     raxis = R0#a5["MHD_GO"].bfield.read()["raxis"]
 
     f = plt.figure(figsize=(11.9/2.54, 8/2.54))
@@ -294,16 +350,24 @@ def check():
     MHD["GO"]["ctor"] = gamma * m_e * orb["r"] * orb["vphi"] + \
                            orb["charge"] * e * psi
     MHD["GO"]["phi"]  = orb["phi"]
-    print(MHD["GO"]["phi"])
-    print(np.shape(MHD["GO"]["phi"]))
-    print(np.shape(MHD["GO"]["time"]))
 
+   
     id1 = MHD["GO"]["id"] == 1
     id2 = MHD["GO"]["id"] == 2
-    plot_relerr(h1, MHD["GO"]["time"][id1], MHD["GO"]["ekin"][id1],
-                colors[0])
-    plot_relerr(h1, MHD["GO"]["time"][id2], MHD["GO"]["ekin"][id2],
-                colors[1])
+    print((omega/nmode)*MHD["GO"]["ctor"][id1])
+    print(type(omega))
+    print(type(nmode))
+    print(type(omega/nmode))
+    print(apy.evaluate(orb["r"][id1],orb["phi"][id1],orb["z"][id1],orb["time"][id1], "mhd_phi"))
+ 
+    plot_relerr(h1, MHD["GO"]["time"][id1], (MHD["GO"]["ekin"][id1] +
+               e*apy.evaluate(orb["r"][id1],orb["phi"][id1],orb["z"][id1], orb["time"][id1], "mhd_phi") 
+              -(omega/nmode)*MHD["GO"]["ctor"][id1]), colors[0],label="GO 1")   
+
+    plot_relerr(h1, MHD["GO"]["time"][id2], MHD["GO"]["ekin"][id2] +
+               e*apy.evaluate(orb["r"][id2],orb["phi"][id2],orb["z"][id2],
+               orb["time"][id2], "mhd_phi") 
+               - (omega/nmode)*MHD["GO"]["ctor"][id2], colors[1], label = "GO 2")   
 
     #**************************************************************************#
     #*     Evaluate and plot conservation quantities for MHD_GCF            #
@@ -333,12 +397,20 @@ def check():
     MHD["GCF"]["ctor"] = gamma * m_e * orb["r"] * orb["vpar"] + \
                             orb["charge"] * e * psi
 
+    MHD["GCF"]["phi"]  = orb["phi"]
+    
+    
     id1 = MHD["GCF"]["id"] == 1
     id2 = MHD["GCF"]["id"] == 2
-    plot_relerr(h1, MHD["GCF"]["time"][id1], MHD["GCF"]["ekin"][id1],
-                colors[2])
-    plot_relerr(h1, MHD["GCF"]["time"][id2], MHD["GCF"]["ekin"][id2],
-                colors[3])
+
+    #plot_relerr(h1, MHD["GCF"]["time"][id1], MHD["GCF"]["ekin"][id1] +
+    #           e*apy.evaluate(orb["r"][id1],orb["phi"][id1],orb["z"][id1], orb["time"][id1], "mhd_phi") 
+    #           - (omega/nmode)*MHD["GCF"]["ctor"][id1], colors[2],label="GCF 1")  
+    
+    #plot_relerr(h1, MHD["GCF"]["time"][id2], MHD["GCF"]["ekin"][id2] +
+    #           e*apy.evaluate(orb["r"][id2],orb["phi"][id2],orb["z"][id2],
+    #           orb["time"][id2], "mhd_phi") 
+    #           - (omega/nmode)*MHD["GCF"]["ctor"][id2], colors[3], label="GCF 2")  
 
     #**************************************************************************#
     #*     Evaluate and plot conservation quantities for MHD_GCA            #
@@ -368,12 +440,22 @@ def check():
     MHD["GCA"]["ctor"] = gamma * m_e * orb["r"] * orb["vpar"] + \
                             orb["charge"] * e * psi
 
+    MHD["GCA"]["phi"] = orb["phi"]
+
+
     id1 = MHD["GCA"]["id"] == 1
     id2 = MHD["GCA"]["id"] == 2
-    plot_relerr(h1, MHD["GCA"]["time"][id1], MHD["GCA"]["ekin"][id1],
-                colors[4])
-    plot_relerr(h1, MHD["GCA"]["time"][id2], MHD["GCA"]["ekin"][id2],
-                colors[5])
+
+    #plot_relerr(h1, MHD["GCA"]["time"][id1], MHD["GCA"]["ekin"][id1] -
+    #           e*apy.evaluate(orb["r"][id1],orb["phi"][id1],orb["z"][id1], orb["time"][id1], "mhd_phi") 
+    #           -(omega/nmode)*MHD["GCA"]["ctor"][id1], colors[4],label = "GCA 1")  
+
+
+    #plot_relerr(h1, MHD["GCA"]["time"][id2], MHD["GCA"]["ekin"][id2] +
+    #           e*apy.evaluate(orb["r"][id2],orb["phi"][id2],orb["z"][id2],
+    #           orb["time"][id2], "mhd_phi") 
+    #           - (omega/nmode)*MHD["GCA"]["ctor"][id2], colors[5], label = "GCA 2")  
+
 
     #**************************************************************************#
     #*                 Finalize and print and show the figure                  #
@@ -389,13 +471,13 @@ def check():
     h1.yaxis.set_ticks_position('left')
     h1.xaxis.set_ticks_position('bottom')
     h1.set(ylabel=r"$\Delta E/E_0$")
-
+    h1.legend()
 
     plt.savefig("test_mhd.png", dpi=300)
     plt.show()
 
-def plot_relerr(axis, x, y, color):
-    axis.plot(x, y/y[0] - 1, color)
+def plot_relerr(axis, x, y, color,label=None):
+    axis.plot(x, y/y[0] - 1, color,label=label)
 
 
 if __name__ == '__main__':
