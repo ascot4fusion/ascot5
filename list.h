@@ -5,9 +5,12 @@
 #ifndef LIST_H
 #define LIST_H
 
+/**
+ * @brief Linked list node that stores int data
+ */
 typedef struct list_int_node {
-    struct list_int_node* next;
-    int data;
+    struct list_int_node* next; /**< Next node in chain               */
+    int data;                   /**< Data that is stored in this node */
 } list_int_node;
 
 #pragma omp declare target

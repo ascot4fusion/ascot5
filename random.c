@@ -9,7 +9,7 @@
 #include "random.h"
 
 void random_mkl_init(random_data* rdata, int seed) {
-    vslNewStream(&rdata->r, VSL_BRNG_SFMT19937, seed);
+    vslNewStream(&rdata->r, RANDOM_MKL_RNG, seed);
 }
 
 double random_mkl_uniform(random_data* rdata) {
@@ -67,7 +67,7 @@ void random_gsl_normal_simd(random_data* rdata, int n, double* r) {
 
 #else /* No RNG lib defined, use drand48 */
 
-#define _XOPEN_SOURCE 500
+#define _XOPEN_SOURCE 500 /**< rand48 requires POSIX 1995 standard */
 
 #include <stdlib.h>
 #include <math.h>

@@ -2,220 +2,144 @@
  * @file hdf5_histogram.c
  * @brief HDF5 Histogram IO
  */
-#include "hdf5_helpers.h"
-#include "hdf5.h"
-#include "hdf5_hl.h"
 #include <string.h>
 #include <stdlib.h>
-
-
+#include <hdf5.h>
+#include <hdf5_hl.h>
+#include "hdf5_histogram.h"
 
 /**
-   @brief Writes a histogram (ASCOT4 style, version 3) to a hdf5 file. 
+ * @brief Write a histogram with uniform grid to HDF5 file
+ *
+ * Histogram can have up to 99 dimensions (abscissae) and likewise the ordinate
+ * can be multi-dimensional.
+ *
+ * The ordinate is stored as Ndim array where format is
+ * ordinateDim x abscissa01Dim x abscissa02Dim ...
+ *
+ * The datasets that are written are the ordinate, ordinate dimension, abscissa
+ * dimension, abscissa grid vectors (that define edges of each cell), and
+ * abscissa grid vector lengths. Abscissae names and units and ordinate names
+ * and units are stored as attributes in ordinate and abscissa grid vectors.
+ *
+ * The ordinate data is expected to be array with format
+ *
+ * @param f HDF5 file id
+ * @param path full path including group name where histogram is stored
+ * @param abscissaDim number of abscissa dimensions
+ * @param ordinateDim number of ordinate dimensions
+ * @param abscissaNslots array with abscissa dimensions
+ * @param abscissaMin the lowest abscissa edge for each abscissa dimension
+ * @param abscissaMax the highest abscissa edge for each abscissa dimension
+ * @param abscissaUnits array with abscissa units
+ * @param abscissaNames array with abscissa names
+ * @param ordinateUnits array with ordinate units
+ * @param ordinateNames array with ordinate names
+ * @param ordinate ordinate data
+ *
+ * @return zero on success
+ */
+int hdf5_histogram_write_uniform_double(hid_t f, const char *path,
+                                        int abscissaDim, int ordinateDim,
+                                        int *abscissaNslots,
+                                        double *abscissaMin,
+                                        double *abscissaMax,
+                                        char **abscissaUnits,
+                                        char **abscissaNames,
+                                        char **ordinateUnits,
+                                        char **ordinateNames,
+                                        double *ordinate) {
 
-   The slot edges would be generated in matlab thus: 
-      linspace(abscissaMin(i),abscissaMax(i),abscissaNslots(i)+1)
+    char temppath[256]; /* Helper variable */
 
-   @param fileName hdf5 file to write to
-   @param title Histogram title
-   @param abscissaDim number of dimensions of the abscissa
-   @param ordinateLength Number of different quantities that are in this histogram
-   @param abscissaNslots how many slots in each abscissa dimension (integer array, length abscissaDim)
-   @param abscissaMin the lowest abscissa edge for each abscissa dimension (double array, length abscissaDim)
-   @param abscissaMax the highest abscissa edge for each abscissa dimension (double array, length abscissaDim)
-   @param abscissaNames a vector of strings (abscissaDim) defining name for each abscissa dimension
-   @param abscissaUnits a vector of strings (abscissaDim) defining unit for each abscissa dimension
-   @param ordinateNames a vector of strings (ordinateLength) defining name for each ordinate
-   @param ordinateUnits a vector of strings (ordinateLength) defining unit for each ordinate
-   @param ordinate, a double vector, size = ordinateLength * product(absicssaNslots)
-   
-   Here is an example of the expected order of indexing in ordinate. (The Fortran/matlab order, I guess)
-   ordinate = (double*) malloc(abscissaNslots[0] * abscissaNslots[1] * ordinateLength * sizeof(double) );
-   for (iDim2 = 0; iDim2 < abscissaNslots[1]; iDim2++ )
-    for ( iDim1 = 0; iDim1 < abscissaNslots[0]; iDim1++)
-     for ( iOrd = 0; iOrd< ordinateLength; iOrd++)
-      ordinate[ iDim2 * ordinateLength * abscissaNslots[0]  +
-                iDim1 * ordinateLength + 
-                iOrd         ]  =  100*(1+iOrd) + 10 * (1+iDim1) +iDim2 +1;
-
-   @return end status, zero on success
-*/
-
-int hdf5_histogram_write_uniform_double(
-		    const char *fileName,
-		    const char *runpath, 
-		    const char *title,
-		    int abscissaDim,
-		    int ordinateDim,
-		    int *abscissaNslots,
-		    double *abscissaMin,
-		    double *abscissaMax,
-		    char **abscissaUnits,
-		    char **abscissaNames,
-		    char **ordinateUnits,
-		    char **ordinateNames,
-		    double *ordinate
-			){
-  hid_t fileHandle;
-  hid_t groupHandleHist;
-  char path[256];
-  char temp_path[256];
-  herr_t err;
-
-  hsize_t size[1]; /* Helper variable */
-  
-
-  /* Open file and create "dist" main group and subgroup for this specific distribution. */
-
-  fileHandle = hdf5_open(fileName);
-  if( fileHandle < 0 ) return fileHandle;
-
-  strcpy(path, runpath);
-  strcat(path, "dists/");
-  
-  err = hdf5_find_group(fileHandle, path);
-  if(err) {
-      hid_t groupHandleDist = H5Gcreate2(fileHandle, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-      if(groupHandleDist < 0) {
-	  return -1;
-      }
-      H5Gclose (groupHandleDist);
-  }
-  
-  strcat(path, title);
-  groupHandleHist = H5Gcreate2(fileHandle, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  if(groupHandleHist < 0) {
-      H5Fclose(fileHandle);
-      return groupHandleHist;
-  }
-
-
-  /* Add ordinate */
-  
-  hsize_t* dims = malloc(sizeof(hsize_t)*(abscissaDim + 1)); /* For storing number of slots in ordinate matrix */
-  
-  dims[0] = ordinateDim;
-  for (int i=0; i<abscissaDim; i++) {
-      dims[i+1] = abscissaNslots[i];
-  }
-
-  err = H5LTmake_dataset_double (groupHandleHist , "ordinate", abscissaDim+1, dims, ordinate );
-  if(err){
-    printf("%s:%d Problem with make_dataset: %d.\n",__FILE__,__LINE__,err);
-    H5Gclose(groupHandleHist);
-    free(dims);
-    H5Fclose(fileHandle);
-    return err;
-  }
-
-
-  /* Add ordinate and abscissa dimensions and size of the dimensions */
- 
-  size[0] = 1;
-  err = H5LTmake_dataset_int(groupHandleHist , "ordinate_ndim", 1, size, &ordinateDim);
-  if(err){
-      printf("%s:%d Problem with make_dataset: %d.\n",__FILE__,__LINE__,err);
-      H5Gclose(groupHandleHist);
-      free(dims);
-      H5Fclose(fileHandle);
-      return err;
-  }
-  
-  err = H5LTmake_dataset_int(groupHandleHist , "abscissa_ndim", 1, size, &abscissaDim);
-  if(err){
-      printf("%s:%d Problem with make_dataset: %d.\n",__FILE__,__LINE__,err);
-      H5Gclose(groupHandleHist);
-      free(dims);
-      H5Fclose(fileHandle);
-      return err;
-  }
-
-  /* Ordinate names and units */
-  for (int i=0; i<ordinateDim; i++) {
-      sprintf(temp_path, "ordinate_name_%06d",i+1);
-      err =  H5LTmake_dataset_string ( groupHandleHist, temp_path, ordinateNames[i] ) ;
-      if(err){
-	  printf("%s:%d Problem with make_dataset: %d.\n",__FILE__,__LINE__,err);
-	  H5Gclose(groupHandleHist);
-	  free(dims);
-	  H5Fclose(fileHandle);
-	  return err;
-      }
-      sprintf(temp_path, "ordinate_unit_%06d",i+1);
-      err =  H5LTmake_dataset_string ( groupHandleHist, temp_path, ordinateUnits[i] ) ;
-      if(err){
-	  printf("%s:%d Problem with make_dataset: %d.\n",__FILE__,__LINE__,err);
-	  H5Gclose(groupHandleHist);
-	  free(dims);
-	  H5Fclose(fileHandle);
-	  return err;
-      }
-      
-      
-  }
-
-  /* Add abscissae */
-  
-  for (int i=0; i<abscissaDim; i++) {
-
-    double* abscissa = (double *) malloc( (dims[i+1]+1) * sizeof(double) );
-    for(int j=0; j<dims[i+1]+1; j++) {
-        abscissa[j] = abscissaMin[i] + j * ((abscissaMax[i] - abscissaMin[i])
-                                            /abscissaNslots[i]);
+    /* Create histogram group */
+    hid_t histogram = H5Gcreate2(f, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    if(histogram < 0) {
+        return 1;
     }
 
-    sprintf(temp_path, "abscissa_nslot_%06d",i+1);
-    size[0] = 1;
-    err = H5LTmake_dataset_int(groupHandleHist , temp_path, 1, size, &(abscissaNslots[i]));
+    /* Dimensions of ordinate data to be written */
+    hsize_t dims[100];
+    dims[0] = ordinateDim;
+    for (int i=0; i<abscissaDim; i++) {
+        dims[i+1] = abscissaNslots[i];
+    }
+
+    /* Write ordinate including its names and units */
+    herr_t err;
+    err = H5LTmake_dataset_double(histogram , "ordinate", abscissaDim+1,
+                                  dims, ordinate);
     if(err){
-	printf("%s:%d Problem with make_dataset: %d.\n",__FILE__,__LINE__,err);
-	H5Gclose(groupHandleHist);
-	free(dims);
-	free(abscissa);
-	H5Fclose(fileHandle);
-	return err;
+        H5Gclose(histogram);
+        return err;
     }
-    
-    
-    sprintf(temp_path, "abscissa_vec_%06d",i+1);
-    size[0] = abscissaNslots[i]+1;
-    err = H5LTmake_dataset_double (groupHandleHist , temp_path, 1, size, abscissa );
+    for(int i=0; i<ordinateDim; i++) {
+        sprintf(temppath, "name_%02d", i);
+        H5LTset_attribute_string(histogram, "ordinate", temppath,
+                                 ordinateNames[i]);
+        sprintf(temppath, "unit_%02d", i);
+        H5LTset_attribute_string(histogram, "ordinate", temppath,
+                                 ordinateUnits[i]);
+    }
+
+
+    /* Write ordinate and abscissa dimensions */
+    hsize_t dimsize = 1;
+    err = H5LTmake_dataset_int(histogram , "ordinate_ndim", 1, &dimsize,
+                               &ordinateDim);
     if(err){
-      printf("%s:%d Problem with make_dataset: %d.\n",__FILE__,__LINE__,err);
-      H5Gclose(groupHandleHist);
-      free(abscissa);
-      free(dims);
-      H5Fclose(fileHandle);
-      return err;
+        H5Gclose(histogram);
+        return 1;
     }
-    free(abscissa);
-
-    sprintf(temp_path, "abscissa_name_%06d",i+1);
-    err =  H5LTmake_dataset_string ( groupHandleHist, temp_path, abscissaNames[i] );
+    err = H5LTmake_dataset_int(histogram , "abscissa_ndim", 1, &dimsize,
+                               &abscissaDim);
     if(err){
-      printf("%s:%d Problem with make_dataset: %d.\n",__FILE__,__LINE__,err);
-      H5Gclose(groupHandleHist);
-      free(dims);
-      H5Fclose(fileHandle);
-      return err;
+        H5Gclose(histogram);
+        return 1;
     }
 
-    sprintf(temp_path, "abscissa_unit_%06d",i+1);
-    err =  H5LTmake_dataset_string ( groupHandleHist, temp_path, abscissaUnits[i] );
-    if(err){
-      printf("%s:%d Problem with make_dataset: %d.\n",__FILE__,__LINE__,err);
-      H5Gclose(groupHandleHist);
-      free(dims);
-      H5Fclose(fileHandle);
-      return err;
+    /* Write abscissae */
+    for (int i=0; i<abscissaDim; i++) {
+
+        double* abscissavec = (double *) malloc( (dims[i+1]+1)*sizeof(double) );
+        for(int j=0; j<dims[i+1]+1; j++) {
+            abscissavec[j] =
+                abscissaMin[i] + j * ( (abscissaMax[i] - abscissaMin[i])
+                                       / abscissaNslots[i] );
+        }
+
+        /* Vector */
+        char abscissapath[256];
+        sprintf(abscissapath, "abscissa_vec_%02d",i+1);
+        hsize_t abscissasize[1] = {abscissaNslots[i]+1};
+        err = H5LTmake_dataset_double(histogram , abscissapath, 1, abscissasize,
+                                      abscissavec);
+        free(abscissavec);
+        if(err){
+            H5Gclose(histogram);
+            return 1;
+        }
+
+        /* Vector length */
+        sprintf(temppath, "abscissa_nbin_%02d", i+1);
+        err = H5LTmake_dataset_int(histogram, temppath, 1, &dimsize,
+                                   &(abscissaNslots[i]));
+        if(err){
+            H5Gclose(histogram);
+            return 1;
+        }
+
+        /* Name and unit */
+        sprintf(temppath, "name_%02d", i);
+        H5LTset_attribute_string(histogram, abscissapath, temppath,
+                                 abscissaNames[i]);
+        sprintf(temppath, "unit_%02d", i);
+        H5LTset_attribute_string(histogram, abscissapath, temppath,
+                                 abscissaUnits[i]);
+
     }
 
-  }
-  
-  H5Gclose(groupHandleHist);
-  free(dims);
-  H5Fclose(fileHandle);
+    H5Gclose(histogram);
 
-  return 0;
+    return 0;
 }
-

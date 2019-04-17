@@ -4,9 +4,8 @@ ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
 endif
 
-ifneq ($(TARGET),1)
-	DEFINES+=-DNOTARGET
-#	CFLAGS+=-qno-openmp-offload -diag-disable 3180
+ifdef TARGET
+    DEFINES+=-DTARGET=$(TARGET)
 endif
 
 ifdef VERBOSE
@@ -27,7 +26,9 @@ endif
 ifeq ($(RANDOM),MKL)
 	DEFINES+=-DRANDOM_MKL
 	CFLAGS+=-mkl
-
+	ifdef RANDOM_MKL_RNG
+		DEFINES+=-DRANDOM_MKL_RNG=$(RANDOM_MKL_RNG)
+	endif
 else ifeq ($(RANDOM),GSL)
 	DEFINES+=-DRANDOM_GSL
 	CFLAGS+=-lgsl -lgslcblas
@@ -39,7 +40,11 @@ ifneq ($(CC),h5cc)
 	endif
 endif
 
-CFLAGS+=-lm -Wall -fopenmp -std=c99 $(DEFINES) $(FLAGS) 
+CFLAGS+=-lm -Wall -fopenmp -fPIC -std=c11 $(DEFINES) $(FLAGS)
+
+# Escape spaces in CFLAGS and include it as a macro to be embedded in output
+DCFLAGS:=$(shell echo $(CFLAGS) | sed -e "s: :\\\ :g")
+CFLAGS+=-DCC=$(CC) -DCFLAGS="$(DCFLAGS)"
 
 SIMDIR = simulate/
 SIMHEADERS = $(wildcard $(SIMDIR)simulate*.h)
@@ -53,8 +58,9 @@ MCCCDIR = $(SIMDIR)mccc/
 MCCCHEADERS = $(wildcard $(MCCCDIR)mccc*.h)
 MCCCOBJS = $(patsubst %.c,%.o,$(wildcard $(MCCCDIR)mccc*.c))
 
-DIAGHEADERS = diag.h diag_orb.h dist_5D.h dist_6D.h
-DIAGOBJS = diag.o diag_orb.o dist_5D.o dist_6D.o
+DIAGDIR = diag/
+DIAGHEADERS = $(wildcard $(DIAGDIR)diag*.h $(DIAGDIR)dist*.h)
+DIAGOBJS = $(patsubst %.c,%.o,$(wildcard $(DIAGDIR)diag*.c $(DIAGDIR)dist*.c))
 
 BFDIR = Bfield/
 BFHEADERS = $(wildcard $(BFDIR)B_*.h)
@@ -85,77 +91,91 @@ LINTHEADERS =  $(wildcard $(LINTDIR)linint*.h)
 LINTOBJS = $(patsubst %.c,%.o,$(wildcard $(LINTDIR)linint*.c))
 
 SPLINEDIR = spline/
-SPLINEHEADERS  = $(wildcard $(SPLINEDIR)spline*.h)
-SPLINEHEADERS += $(wildcard $(SPLINEDIR)interp*.h)
-SPLINEOBJS  = $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)spline*.c))
-SPLINEOBJS += $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)interp*.c))
+SPLINEHEADERS  = $(wildcard $(SPLINEDIR)spline.h $(SPLINEDIR)interp.h)
+SPLINEOBJS  = $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)spline*.c \
+						$(SPLINEDIR)interp*.c))
+
+UTESTDIR = unit_tests/
+DOCDIR = doc/
 
 HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
 	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
 	$(PLSHEADERS) $(N0HEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
-	neutral.h plasma.h particle.h endcond.h B_field.h E_field.h \
-	wall.h simulate.h diag.h diag_orb.h offload.h \
-	random.h print.h symmetry.h suzuki.h nbi.h
+	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
+	E_field.h wall.h simulate.h diag.h offload.h \
+	random.h print.h hdf5_interface.h suzuki.h nbi.h
 
-OBJS= math.o list.o octree.o physlib.o \
+OBJS= math.o list.o octree.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
 	$(PLSOBJS) $(N0OBJS) $(LINTOBJS) $(SPLINEOBJS) \
-	neutral.o plasma.o particle.o endcond.o B_field.o E_field.o \
-	wall.o simulate.o diag.o diag_orb.o offload.o \
-	random.o print.c symmetry.o suzuki.o nbi.o
+	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
+	E_field.o wall.o simulate.o diag.o offload.o \
+	random.o print.c hdf5_interface.o suzuki.o nbi.o
 
-BINS=test_math test_nbi \
+BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 \
 	ascot5_main
 
+ifdef NOGIT
+	DUMMY_GIT_INFO := $(shell touch gitver.h)
+else
+	GET_GIT_INFO := $(shell bash gitver.sh)
+endif
+
 all: $(BINS)
 
-ascotpy: ascotpy.so
+libascot: libascot.so
 	true
 
-ascotpy.so: CFLAGS+=-shlib -fPIC -shared
+libascot.so: CFLAGS+=-shlib -fPIC -shared
 
-ascotpy.so: ascotpy.o $(OBJS)
+libascot.so: libascot.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_B: test_B.o $(OBJS)
+doc:
+	doxygen Doxyfile
+
+test_B: $(UTESTDIR)test_B.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_wall_3d: test_wall_3d.o $(OBJS)
+test_wall_3d: $(UTESTDIR)test_wall_3d.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_math: test_math.o $(OBJS)
+test_math: $(UTESTDIR)test_math.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_wall_2d: test_wall_2d.o $(OBJS)
+test_wall_2d: $(UTESTDIR)test_wall_2d.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_offload: test_offload.o 
+test_offload: $(UTESTDIR)test_offload.o
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_E: test_E.o $(OBJS)
+test_E: $(UTESTDIR)test_E.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_interp1Dcomp: test_interp1Dcomp.o $(OBJS)
+test_interp1Dcomp: $(UTESTDIR)test_interp1Dcomp.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_plasma: test_plasma.o $(OBJS)
+test_plasma: $(UTESTDIR)test_plasma.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_random: test_random.o $(OBJS)
+test_random: $(UTESTDIR)test_random.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_linint3D: test_linint3D.o $(OBJS)
+test_linint3D: $(UTESTDIR)test_linint3D.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_N0: test_N0.o $(OBJS)
+test_N0: $(UTESTDIR)test_N0.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_bsearch: $(UTESTDIR)test_bsearch.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_nbi: test_nbi.o $(OBJS)
@@ -165,7 +185,9 @@ test_nbi: test_nbi.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 clean:
-	rm -f *.o *.so *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
-		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o \
+	@rm -f *.o *.so *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
+		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o $(DIAGDIR)*.o \
 		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
-		$(N0DIR)*.o $(LINTDIR)*.o $(SPLINEDIR)*.o *.pyc
+		$(N0DIR)*.o $(LINTDIR)*.o $(SPLINEDIR)*.o $(UTESTDIR)*.o *.pyc
+	@rm -rf $(DOCDIR)
+	@rm -f gitver.h

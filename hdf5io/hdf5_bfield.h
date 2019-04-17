@@ -13,16 +13,7 @@
 #include "../Bfield/B_TC.h"
 #include "hdf5.h"
 
-int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data, real** offload_array);
-
-void hdf5_bfield_init_offload_2DS(hid_t f, B_2DS_offload_data* offload_data, real** offload_array, char* qid);
-
-void hdf5_bfield_init_offload_3DS(hid_t f, B_3DS_offload_data* offload_data, real** offload_array, char* qid);
-
-void hdf5_bfield_init_offload_STS(hid_t f, B_STS_offload_data* offload_data, real** offload_array, char* qid);
-
-void hdf5_bfield_init_offload_TC(hid_t f, B_TC_offload_data* offload_data, real** offload_array, char* qid);
-
-void hdf5_bfield_init_offload_GS(hid_t f, B_GS_offload_data* offload_data, real** offload_array, char* qid);
+int hdf5_bfield_init_offload(hid_t f, B_field_offload_data* offload_data,
+                             real** offload_array, char* qid);
 
 #endif

@@ -10,7 +10,8 @@
 enum {
     VERBOSE_DEBUG = 2,
     VERBOSE_NORMAL = 1,
-    VERBOSE_MINIMAL = 0
+    VERBOSE_MINIMAL = 0,
+    VERBOSE_IO = 1
 };
 
 extern const char VERBOSE_LEVEL;
