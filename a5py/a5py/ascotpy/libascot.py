@@ -191,7 +191,8 @@ class LibAscot:
             fun = self.libascot.libascot_mhd_eval_perturbation
             fun.restype  = ctypes.c_int
             fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p]
+                            real_p, real_p, real_p, real_p, real_p, real_p,
+                            real_p]
         except AttributeError:
             warnings.warn("libascot_mhd_eval_perturbation not found", Warning)
             pass
