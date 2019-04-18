@@ -7,6 +7,7 @@
 #include "consts.h"
 #include "math.h"
 #include "nbi.h"
+#include "particle.h"
 #include "random.h"
 #include "plasma.h"
 #include "suzuki.h"
@@ -80,5 +81,30 @@ void nbi_ionize(real* xyz, real* vxyz, int anum, int znum, B_field_data* Bdata, 
         xyz[1] += ds * vhat[1];
         xyz[2] += ds * vhat[2];
         remaining *= exp(-rate * ds);
+    }
+}
+
+void nbi_generate(particle_state* p, int nprt, nbi_injector* n,
+                  B_field_data* Bdata, plasma_data* plsdata, random_data* rng) {
+    p = (particle_state*) malloc(nprt * sizeof(particle_state));
+
+    for(int i = 0; i < nprt; i++) {
+        real xyz[3], vxyz[3];
+        real anum, znum;
+
+        nbi_inject(n, &xyz[0], &xyz[1], &xyz[2], &vxyz[0], &vxyz[1], &vxyz[2],
+                   &anum, &znum, rng);
+        nbi_ionize(xyz, vxyz, &anum, &znum, Bdata, plsdata, rng);
+
+        real rpz[3], vrpz[3];
+        math_xyz2rpz(xyz, rpz);
+        math_vec_xyz2rpz(vxyz, vrpz, rpz[1]);
+
+        p[i].rprt = rpz[0];
+        p[i].phiprt = rpz[1];
+        p[i].zprt = rpz[2];
+        p[i].rdot = vrpz[0];
+        p[i].phidot = vrpz[1];
+        p[i].zdot = vrpz[2];
     }
 }

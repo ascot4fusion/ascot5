@@ -6,9 +6,16 @@
 #include <stdlib.h>
 #include <math.h>
 #include "ascot5.h"
-#include "nbi.h"
+#include "B_field.h"
+#include "hdf5_interface.h"
 #include "hdf5io/hdf5_nbi.h"
 #include "hdf5io/hdf5_helpers.h"
+#include "hdf5io/hdf5_bfield.h"
+#include "hdf5io/hdf5_plasma.h"
+#include "random.h"
+#include "nbi.h"
+#include "particle.h"
+#include "plasma.h"
 #include "suzuki.h"
 
 int main(int argc, char** argv) {
@@ -21,6 +28,24 @@ int main(int argc, char** argv) {
 
     hdf5_init();
     hid_t f = hdf5_open("ascot.h5");
+    char qid[11];
+
+    B_field_data B_data;
+    B_field_offload_data B_offload_data;
+    real* B_offload_array;
+    hdf5_get_active_qid(f, "/bfield/", qid);
+    hdf5_bfield_init_offload(f, &B_offload_data, &B_offload_array, qid);
+    B_field_init(&B_data, &B_offload_data, B_offload_array);
+
+    plasma_data plasma_data;
+    plasma_offload_data plasma_offload_data;
+    real* plasma_offload_array;
+    hdf5_get_active_qid(f, "/plasma/", qid);
+    hdf5_plasma_init_offload(f, &plasma_offload_data, &plasma_offload_array, qid);
+    plasma_init(&plasma_data, &plasma_offload_data, plasma_offload_array);
+
+    random_data rng;
+    random_init(&rng, 0);
 
     int n_inj;
     nbi_injector* inj;
@@ -43,6 +68,10 @@ int main(int argc, char** argv) {
         printf("znum: %d\n", inj[i].znum);
         printf("\n");
     }
+
+    particle_state* prt;
+
+    nbi_generate(prt, 1, &inj[0], &B_data, &plasma_data, &rng);
 
     return 0;
 }
