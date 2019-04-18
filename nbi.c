@@ -7,8 +7,8 @@
 #include "consts.h"
 #include "math.h"
 #include "nbi.h"
-#include "plasma.h"
 #include "random.h"
+#include "plasma.h"
 #include "suzuki.h"
 
 void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
@@ -64,15 +64,16 @@ void nbi_ionize(real* xyz, real* vxyz, int anum, int znum, B_field_data* Bdata, 
     }
 
     while(remaining > threshold) {
-        real* rpz;
+        real rpz[3];
         math_xyz2rpz(xyz, rpz);
 
         real psi, rho;
-        B_field_eval_psi(&psi, rpz[0], rpz[1], rpz[2], Bdata);
+        B_field_eval_psi(&psi, rpz[0], rpz[1], rpz[2], 0.0, Bdata);
         B_field_eval_rho(&rho, psi, Bdata);
 
 
-        plasma_eval_densandtemp(rho, plsdata, dens, temp);
+        plasma_eval_densandtemp(dens, temp, rho, rpz[0], rpz[1], rpz[2], 0.0,
+                                plsdata);
         real rate = dens[0] * 1e-4 * suzuki_sigmav(energy, dens[0], temp[0],
                                              n_species-1, &dens[1], anum, znum);
         xyz[0] += ds * vhat[0];
