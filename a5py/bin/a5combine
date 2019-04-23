@@ -32,13 +32,14 @@ if mode == "add" and len(sys.argv) >= 4:
         print("Target file has an active run group. Are results supposed to be")
         print("combined there or to a new run group?")
         while True:
-            o = input("(c) Combine to existing one. (m) Make a new group.")
+            o = input("(c) Combine to existing one. (m) Make a new group.\n")
             if o == "c":
                 break
             elif o == "m":
                 subprocess.call(["a5copygroup", sourcefiles[0], targetfile,
-                                 "results"])
+                                 "run_" + s5["active"].get_qid()])
                 del sourcefiles[0]
+                tools.call_ascot5file(targetfile, "set_active", "run_" + s5["active"].get_qid())
                 break
 
     for i in range(len(sourcefiles)):
