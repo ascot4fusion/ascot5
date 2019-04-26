@@ -43,7 +43,7 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
                 B_field_data* Bdata, plasma_data* plsdata, random_data* rng) {
     a5err err;
 
-    real absv = math_norm(xyz);
+    real absv = math_norm(vxyz);
     real energy = 0.5 * anum * CONST_U * absv*absv;
     real vhat[3];
     vhat[0] = vxyz[0] / absv;
@@ -81,9 +81,10 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
         real rate;
         if(!err) {
             rate = pls_dens[0] * 1e-4*suzuki_sigmav(energy, pls_dens[0],
-                                                    pls_temp[0], n_species,
-                                                    pls_dens, pls_anum,
-                                                    pls_znum);
+                                                    pls_temp[0] / CONST_E,
+                                                    n_species-1,
+                                                    pls_dens+1, pls_anum+1,
+                                                    pls_znum+1);
         }
         else {
             rate = 0.0; /* probably outside the plasma */

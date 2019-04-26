@@ -363,7 +363,6 @@ real suzuki_sigmav(real E, real ne, real te, integer nion, real* ni,
                 break;
             }
         }
-        printf("%d\n", ind_B);
         if(ind_B < 0) {
             printf("No plasma fit for species %d\n", ind_Z[i]);
             break;
