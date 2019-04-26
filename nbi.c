@@ -39,7 +39,8 @@ void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
     *znum = n->znum;
 }
 
-void nbi_ionize(real* xyz, real* vxyz, int anum, int znum, B_field_data* Bdata, plasma_data* plsdata, random_data* rng) {
+void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
+                B_field_data* Bdata, plasma_data* plsdata, random_data* rng) {
     a5err err;
 
     real absv = math_norm(xyz);
@@ -65,7 +66,8 @@ void nbi_ionize(real* xyz, real* vxyz, int anum, int znum, B_field_data* Bdata, 
         pls_znum[i] = round(pls_charge[i] / CONST_E);
     }
 
-    while(remaining > threshold) {
+    real s = 0.0;
+    while(remaining > threshold & s < NBI_MAX_DISTANCE) {
         real rpz[3];
         math_xyz2rpz(xyz, rpz);
 
@@ -82,28 +84,36 @@ void nbi_ionize(real* xyz, real* vxyz, int anum, int znum, B_field_data* Bdata, 
                                                     pls_temp[0], n_species,
                                                     pls_dens, pls_anum,
                                                     pls_znum);
-        } else {
+        }
+        else {
             rate = 0.0; /* probably outside the plasma */
         }
 
+        s += ds;
         xyz[0] += ds * vhat[0];
         xyz[1] += ds * vhat[1];
         xyz[2] += ds * vhat[2];
         remaining *= exp(-rate * ds);
     }
+
+    if(s < NBI_MAX_DISTANCE) {
+        *shinethrough = 0;
+    }
+    else {
+        *shinethrough = 1;
+    }
 }
 
-void nbi_generate(particle_state* p, int nprt, nbi_injector* n,
-                  B_field_data* Bdata, plasma_data* plsdata, random_data* rng) {
-    p = (particle_state*) malloc(nprt * sizeof(particle_state));
-
+void nbi_generate(int nprt, particle_state* p, int* shinethrough,
+                  nbi_injector* n, B_field_data* Bdata, plasma_data* plsdata,
+                  random_data* rng) {
     for(int i = 0; i < nprt; i++) {
         real xyz[3], vxyz[3];
         real anum, znum;
 
         nbi_inject(n, &xyz[0], &xyz[1], &xyz[2], &vxyz[0], &vxyz[1], &vxyz[2],
                    &anum, &znum, rng);
-        nbi_ionize(xyz, vxyz, anum, znum, Bdata, plsdata, rng);
+        nbi_ionize(xyz, vxyz, shinethrough, anum, znum, Bdata, plsdata, rng);
 
         real rpz[3], vrpz[3];
         math_xyz2rpz(xyz, rpz);

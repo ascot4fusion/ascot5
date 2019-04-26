@@ -69,9 +69,16 @@ int main(int argc, char** argv) {
         printf("\n");
     }
 
-    particle_state* prt;
+    int nprt = 1;
+    particle_state* p = (particle_state*) malloc(nprt*sizeof(particle_state));
+    int* shinethrough = (int*) malloc(nprt*sizeof(int));
 
-    nbi_generate(prt, 1, &inj[0], &B_data, &plasma_data, &rng);
+    nbi_generate(nprt, p, shinethrough, &inj[0], &B_data, &plasma_data, &rng);
+
+    for(int i=0; i < nprt; i++) {
+        printf("%d %le %le %le %le %le %le %d\n", i, p[i].rprt, p[i].phiprt,
+               p[i].zprt, p[i].rdot, p[i].phidot, p[i].zdot, shinethrough[i]);
+    }
 
     return 0;
 }
