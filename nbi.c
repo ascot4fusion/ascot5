@@ -40,6 +40,8 @@ void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
 }
 
 void nbi_ionize(real* xyz, real* vxyz, int anum, int znum, B_field_data* Bdata, plasma_data* plsdata, random_data* rng) {
+    a5err err;
+
     real absv = math_norm(xyz);
     real energy = 0.5 * anum * CONST_U * absv*absv;
     real vhat[3];
@@ -52,13 +54,12 @@ void nbi_ionize(real* xyz, real* vxyz, int anum, int znum, B_field_data* Bdata, 
     real ds = 1e-3;
 
     int n_species = plasma_get_n_species(plsdata);
-    real* temp = (real*) malloc(n_species * sizeof(real));
-    real* dens = (real*) malloc(n_species * sizeof(real));
-
-    int* pls_anum = (int*) malloc(n_species * sizeof(int));;
-    int* pls_znum = (int*) malloc(n_species * sizeof(int));;
     real* pls_mass = plasma_get_species_mass(plsdata);
     real* pls_charge = plasma_get_species_charge(plsdata);
+
+    real pls_temp[MAX_SPECIES], pls_dens[MAX_SPECIES];
+    int pls_anum[MAX_SPECIES], pls_znum[MAX_SPECIES];
+
     for(int i = 0; i < n_species; i++) {
         pls_anum[i] = round(pls_mass[i] / CONST_U);
         pls_znum[i] = round(pls_charge[i] / CONST_E);
@@ -72,11 +73,19 @@ void nbi_ionize(real* xyz, real* vxyz, int anum, int znum, B_field_data* Bdata, 
         B_field_eval_psi(&psi, rpz[0], rpz[1], rpz[2], 0.0, Bdata);
         B_field_eval_rho(&rho, psi, Bdata);
 
+        err = plasma_eval_densandtemp(pls_dens, pls_temp, rho, rpz[0], rpz[1],
+                                      rpz[2], 0.0, plsdata);
 
-        plasma_eval_densandtemp(dens, temp, rho, rpz[0], rpz[1], rpz[2], 0.0,
-                                plsdata);
-        real rate = dens[0] * 1e-4 * suzuki_sigmav(energy, dens[0], temp[0],
-                                             n_species-1, &dens[1], anum, znum);
+        real rate;
+        if(!err) {
+            rate = pls_dens[0] * 1e-4*suzuki_sigmav(energy, pls_dens[0],
+                                                    pls_temp[0], n_species,
+                                                    pls_dens, pls_anum,
+                                                    pls_znum);
+        } else {
+            rate = 0.0; /* probably outside the plasma */
+        }
+
         xyz[0] += ds * vhat[0];
         xyz[1] += ds * vhat[1];
         xyz[2] += ds * vhat[2];
@@ -94,7 +103,7 @@ void nbi_generate(particle_state* p, int nprt, nbi_injector* n,
 
         nbi_inject(n, &xyz[0], &xyz[1], &xyz[2], &vxyz[0], &vxyz[1], &vxyz[2],
                    &anum, &znum, rng);
-        nbi_ionize(xyz, vxyz, &anum, &znum, Bdata, plsdata, rng);
+        nbi_ionize(xyz, vxyz, anum, znum, Bdata, plsdata, rng);
 
         real rpz[3], vrpz[3];
         math_xyz2rpz(xyz, rpz);
