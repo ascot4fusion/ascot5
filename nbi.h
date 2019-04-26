@@ -19,9 +19,9 @@ typedef struct {
     real* beamlet_x;
     real* beamlet_y;
     real* beamlet_z;
-    real* beamlet_dirx;
-    real* beamlet_diry;
-    real* beamlet_dirz;
+    real* beamlet_dx;
+    real* beamlet_dy;
+    real* beamlet_dz;
     real power;
     real energy;
     real efrac[3];

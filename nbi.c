@@ -31,9 +31,9 @@ void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
     }
 
     real absv = sqrt(2 * energy / (n->anum * CONST_U));
-    *vx = absv * n->beamlet_dirx[i_beamlet];
-    *vy = absv * n->beamlet_diry[i_beamlet];
-    *vz = absv * n->beamlet_dirz[i_beamlet];
+    *vx = absv * n->beamlet_dx[i_beamlet];
+    *vy = absv * n->beamlet_dy[i_beamlet];
+    *vz = absv * n->beamlet_dz[i_beamlet];
 
     *anum = n->anum;
     *znum = n->znum;
