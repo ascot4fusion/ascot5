@@ -181,7 +181,7 @@ a5err boozer_eval_psinormalized(real psi[4], real psin[4],
                                 boozer_data* boozerdata){
     a5err err = 0;
 
-    psin[0] = ( psi[0] - boozerdata->psi_inner )
+    psin[0] = ( boozerdata-> psi_outer - psi[0] )
         / ( boozerdata->psi_outer - boozerdata->psi_inner );
     psin[1] = psi[1] / ( boozerdata->psi_outer - boozerdata->psi_inner );
     psin[2] = psi[2] / ( boozerdata->psi_outer - boozerdata->psi_inner );
@@ -319,10 +319,10 @@ a5err boozer_eval_rho(real* rho, real psi, boozer_data* boozerdata) {
 
     /* Check that the values seem valid */
     real delta = (boozerdata->psi_outer - boozerdata->psi_inner);
-    if( (psi - boozerdata->psi_inner) / delta < 0 ) {
+    if( (boozerdata->psi_outer-psi) / delta < 0 ) {
         return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_BOOZER );
     }
 
-    rho[0] = sqrt( (psi - boozerdata->psi_inner) / delta );
+    rho[0] = sqrt( (boozerdata->psi_outer - psi ) / delta );
     return 0;
 }
