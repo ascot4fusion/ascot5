@@ -2,6 +2,7 @@
  * @file test_nbi.c
  * @brief Test program for NBI functions
  */
+#define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -45,7 +46,7 @@ int main(int argc, char** argv) {
     plasma_init(&plasma_data, &plasma_offload_data, plasma_offload_array);
 
     random_data rng;
-    random_init(&rng, 0);
+    random_init(&rng, 12345);
 
     int n_inj;
     nbi_injector* inj;
@@ -69,7 +70,7 @@ int main(int argc, char** argv) {
         printf("\n");
     }
 
-    int nprt = 1;
+    int nprt = 10;
     particle_state* p = (particle_state*) malloc(nprt*sizeof(particle_state));
     int* shinethrough = (int*) malloc(nprt*sizeof(int));
 

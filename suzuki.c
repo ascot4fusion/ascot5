@@ -5,6 +5,7 @@
  * Based on S Suzuki et al 1998 Plasma Phys. Control. Fusion 40 2097
  */
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "ascot5.h"
 #include "suzuki.h"
