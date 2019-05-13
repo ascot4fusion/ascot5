@@ -18,6 +18,7 @@ import a5py.ascot5io.B_2DS       as B_2DS
 import a5py.ascot5io.B_3DS       as B_3DS
 import a5py.ascot5io.B_STS       as B_STS
 import a5py.ascot5io.N0_3D       as N0_3D
+import a5py.ascot5io.options     as options
 import a5py.ascot5io.plasma_1D   as plasma_1D
 import a5py.ascot5io.mrk_prt     as mrk_prt
 import a5py.ascot5io.mrk_gc      as mrk_gc
@@ -206,7 +207,7 @@ def read_mhd(a4folder, h5fn):
                        data["phi"], data["npsi"], data["psimin"],
                        data["psimax"])
     else:
-        mhd.write_haf5_dummy(h5fn)
+        mhd.write_hdf5_dummy(h5fn)
 
 
 def run(a4folder, h5fn, overwrite=True):
@@ -281,3 +282,20 @@ def run(a4folder, h5fn, overwrite=True):
     # Wall.
     if overwrite or (not "wall" in groups):
         read_wall(a4folder, h5fn)
+
+    # Options 
+    if overwrite or (not "options" in groups):
+        odict = options.generateopt()
+        helpers.clean_opt(odict)
+        #GCF
+        odict["SIM_MODE"]                  = 2
+        odict["FIXEDSTEP_USE_USERDEFINED"] = 1
+        odict["FIXEDSTEP_USERDEFINED"]     = 1e-8
+        odict["ENDCOND_SIMTIMELIM"]        = 1
+        odict["ENDCOND_MAX_SIMTIME"]       = 5e-6
+        odict["ENABLE_ORBIT_FOLLOWING"]    = 1
+        odict["ENABLE_MHD"]                = 1
+        odict["ENABLE_COULOMB_COLLISIONS"] = 1
+
+        options.write_hdf5(h5fn, odict)       
+
