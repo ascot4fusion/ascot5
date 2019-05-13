@@ -252,7 +252,18 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             real B_dB[15];
             real E[3];
             real mhd_dmhd[10];
-
+            
+            mhd_dmhd[0] = 0.0;
+            mhd_dmhd[1] = 0.0;
+            mhd_dmhd[2] = 0.0;
+            mhd_dmhd[3] = 0.0;
+            mhd_dmhd[4] = 0.0;
+            mhd_dmhd[5] = 0.0;
+            mhd_dmhd[6] = 0.0;
+            mhd_dmhd[7] = 0.0;
+            mhd_dmhd[8] = 0.0;
+            mhd_dmhd[9] = 0.0;
+            
             real R0 = p->r[i];
             real z0 = p->z[i];
 
@@ -288,9 +299,9 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, yprev[0], yprev[1], yprev[2], time,
-                                   boozer, mhd, Bdata);}
+                                   boozer, mhd, Bdata);} 
             if(!errflag) {
-                step_gceom_mhd(k2, tempy, mass, charge, B_dB, E, mhd_dmhd);
+                step_gceom_mhd(k1, yprev, mass, charge, B_dB, E, mhd_dmhd);
             }
 
             /* particle coordinates for the subsequent ydot evaluations are
@@ -313,6 +324,8 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 step_gceom_mhd(k2, tempy, mass, charge, B_dB, E, mhd_dmhd);
+
+
             }
             for(int j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]/2.0*k2[j];
@@ -332,6 +345,7 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 step_gceom_mhd(k3, tempy, mass, charge, B_dB, E, mhd_dmhd);
+
             }
             for(int j = 0; j < 6; j++) {
                 tempy[j] = yprev[j] + h[i]*k3[j];
