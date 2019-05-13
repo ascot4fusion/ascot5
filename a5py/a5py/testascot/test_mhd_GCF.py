@@ -286,10 +286,10 @@ def check():
                 label="GCF electron")
 
    
+    h2.plot(MHD["GCF"]["r"][id2], MHD["GCF"]["z"][id2],colors[2])
     
     h2.plot(MHD["GCF"]["r"][id1], MHD["GCF"]["z"][id1],colors[1])
 
-    h2.plot(MHD["GCF"]["r"][id2], MHD["GCF"]["z"][id2],colors[2])
   
     apy.plotRz(Rmode,0,Zmode,0,"mhd_br",axes=h2)
 
