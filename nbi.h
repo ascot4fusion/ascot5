@@ -25,7 +25,11 @@ typedef struct {
     real power;
     real energy;
     real efrac[3];
-    real divergence[3];
+    real div_h;
+    real div_v;
+    real div_halo_frac;
+    real div_halo_h;
+    real div_halo_v;
     int anum;
     int znum;
 } nbi_injector;

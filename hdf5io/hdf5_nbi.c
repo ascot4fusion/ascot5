@@ -78,8 +78,25 @@ int hdf5_nbi_read(hid_t f, int* n_inj_out, nbi_injector** inj_out) {
             err = H5LTread_dataset_double(f, hdf5_generate_qid_path(path, active, path), &(inj[i].energy));
             sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/efrac", i+1);
             err = H5LTread_dataset_double(f, hdf5_generate_qid_path(path, active, path), inj[i].efrac);
-            sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/divergence", i+1);
-            err = H5LTread_dataset_double(f, hdf5_generate_qid_path(path, active, path), inj[i].divergence);
+
+            sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/div_h", i+1);
+            err = H5LTread_dataset_double(f, hdf5_generate_qid_path(path, active, path), &(inj[i].div_h));
+            sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/div_v", i+1);
+            err = H5LTread_dataset_double(f, hdf5_generate_qid_path(path, active, path), &(inj[i].div_v));
+            sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/div_halo_frac", i+1);
+            err = H5LTread_dataset_double(f, hdf5_generate_qid_path(path, active, path), &(inj[i].div_halo_frac));
+            sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/div_halo_h", i+1);
+            err = H5LTread_dataset_double(f, hdf5_generate_qid_path(path, active, path), &(inj[i].div_halo_h));
+            sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/div_halo_v", i+1);
+            err = H5LTread_dataset_double(f, hdf5_generate_qid_path(path, active, path), &(inj[i].div_halo_v));
+
+            /* even if halo fraction is zero, the divergences should be nonzero
+               to avoid division by zero during evaluation */
+            if(inj[i].div_halo_frac == 0) {
+                inj[i].div_halo_h = 1e-10;
+                inj[i].div_halo_v = 1e-10;
+            }
+
             sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/anum", i+1);
             err = H5LTread_dataset_int(f, hdf5_generate_qid_path(path, active, path), &(inj[i].anum));
             sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/znum", i+1);

@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
         printf("power: %le\n", inj[i].power);
         printf("energy: %le\n", inj[i].energy);
         printf("efrac: %le %le %le\n", inj[i].efrac[0], inj[i].efrac[1], inj[i].efrac[2]);
-        printf("divergence: %le %le %le\n", inj[i].divergence[0], inj[i].divergence[1], inj[i].divergence[2]);
+        printf("divergence: %le %le %le %le %le\n", inj[i].div_h, inj[i].div_v, inj[i].div_halo_frac, inj[i].div_halo_h, inj[i].div_halo_v);
         printf("anum: %d\n", inj[i].anum);
         printf("znum: %d\n", inj[i].znum);
         printf("\n");
