@@ -31,10 +31,39 @@ void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
         energy = n->energy / 3;
     }
 
+    /* calculate vertical and horizontal normals for divergence */
+    real dir[3], normalv[3], normalh[3], tmp[3];
+
+    dir[0] = n->beamlet_dx[i_beamlet];
+    dir[1] = n->beamlet_dy[i_beamlet];
+    dir[2] = n->beamlet_dz[i_beamlet];
+
+    real phi = atan2(dir[1], dir[0]);
+    real theta = acos(dir[2]);
+
+    normalv[0] = sin(theta+CONST_PI/2) * cos(phi);
+    normalv[1] = sin(theta+CONST_PI/2) * sin(phi);
+    normalv[2] = cos(theta+CONST_PI/2);
+
+    math_cross(dir, normalv, tmp);
+    math_unit(tmp, normalh);
+
+    /* assuming isotropic divergence using horizontal value,
+       ignoring halo divergence for now */
+    r = random_uniform(rng);
+    real div = n->div_h * sqrt(log(1/(1-r)));
+
+    real angle = random_uniform(rng) * 2 * CONST_PI;
+    tmp[0] = dir[0] + div * (cos(angle)*normalh[0] + sin(angle)*normalv[0]);
+    tmp[1] = dir[1] + div * (cos(angle)*normalh[1] + sin(angle)*normalv[1]);
+    tmp[2] = dir[2] + div * (cos(angle)*normalh[2] + sin(angle)*normalv[2]);
+
+    math_unit(tmp, dir);
+
     real absv = sqrt(2 * energy / (n->anum * CONST_U));
-    *vx = absv * n->beamlet_dx[i_beamlet];
-    *vy = absv * n->beamlet_dy[i_beamlet];
-    *vz = absv * n->beamlet_dz[i_beamlet];
+    *vx = absv * dir[0];
+    *vy = absv * dir[1];
+    *vz = absv * dir[2];
 
     *anum = n->anum;
     *znum = n->znum;
