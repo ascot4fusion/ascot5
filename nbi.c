@@ -15,7 +15,7 @@
 
 void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
                 real* vz, real* anum, real* znum, random_data* rng) {
-    int i_beamlet = random_uniform(rng) * n->n_beamlet;
+    int i_beamlet = floor(random_uniform(rng) * n->n_beamlet);
 
     *x = n->beamlet_x[i_beamlet];
     *y = n->beamlet_y[i_beamlet];
@@ -45,7 +45,7 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
     a5err err;
 
     real absv = math_norm(vxyz);
-    real energy = 0.5 * anum * CONST_U * absv*absv;
+    real energy = 0.5 * anum * CONST_U * absv*absv / CONST_E / 1000;
     real vhat[3];
     vhat[0] = vxyz[0] / absv;
     vhat[1] = vxyz[1] / absv;
@@ -56,8 +56,8 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
     real ds = 1e-3;
 
     int n_species = plasma_get_n_species(plsdata);
-    real* pls_mass = plasma_get_species_mass(plsdata);
-    real* pls_charge = plasma_get_species_charge(plsdata);
+    const real* pls_mass = plasma_get_species_mass(plsdata);
+    const real* pls_charge = plasma_get_species_charge(plsdata);
 
     real pls_temp[MAX_SPECIES], pls_dens[MAX_SPECIES];
     int pls_anum[MAX_SPECIES], pls_znum[MAX_SPECIES];
@@ -68,7 +68,7 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
     }
 
     real s = 0.0;
-    while(remaining > threshold & s < NBI_MAX_DISTANCE) {
+    while(remaining > threshold && s < NBI_MAX_DISTANCE) {
         real rpz[3];
         math_xyz2rpz(xyz, rpz);
 
@@ -81,7 +81,7 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
 
         real rate;
         if(!err) {
-            rate = pls_dens[0] * 1e-4*suzuki_sigmav(energy, pls_dens[0],
+            rate = pls_dens[0] * 1e-4*suzuki_sigmav(energy / anum, pls_dens[0],
                                                     pls_temp[0] / CONST_E,
                                                     n_species-1,
                                                     pls_dens+1, pls_anum+1,
