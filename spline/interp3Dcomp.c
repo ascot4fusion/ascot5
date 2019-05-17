@@ -70,9 +70,9 @@ int interp3Dcomp_init_coeff(real* c, real* f,
     real* f_x = malloc(n_x*sizeof(real));
     real* f_y = malloc(n_y*sizeof(real));
     real* f_z = malloc(n_z*sizeof(real));
-    real* c_x = malloc(n_x*2*sizeof(real));
-    real* c_y = malloc(n_y*2*sizeof(real));
-    real* c_z = malloc(n_z*2*sizeof(real));
+    real* c_x = malloc(n_x*NSIZE_COMP1D*sizeof(real));
+    real* c_y = malloc(n_y*NSIZE_COMP1D*sizeof(real));
+    real* c_z = malloc(n_z*NSIZE_COMP1D*sizeof(real));
 
     if(f_x == NULL || f_y == NULL || f_z == NULL ||
        c_x == NULL || c_y == NULL || c_z == NULL) {

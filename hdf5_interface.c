@@ -34,6 +34,7 @@
  * allocates offload arrays and returns the pointers to them.
  *
  * @param sim pointer to simulation offload struct
+ * @param input_active bitflags for input types to read
  * @param B_offload_array pointer to magnetic field offload array
  * @param E_offload_array pointer to electric field offload array
  * @param plasma_offload_array pointer to plasma data offload array
@@ -45,6 +46,7 @@
  * @return zero if reading and initialization succeeded
  */
 int hdf5_interface_read_input(sim_offload_data* sim,
+                              int input_active,
                               real** B_offload_array,
                               real** E_offload_array,
                               real** plasma_offload_array,
@@ -67,141 +69,146 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         return 1;
     }
 
-    /* Check that input contains all relevant groups */
+    /* Read active input from hdf5 and initialize */
 
-    if(hdf5_find_group(f, "/options/")) {
-        print_err("Error: No options in input file.");
-        return 1;
-    }
-
-    if(hdf5_find_group(f, "/bfield/")) {
-        print_err("Error: No magnetic field in input file.");
-        return 1;
-    }
-
-    if(hdf5_find_group(f, "/efield/")) {
-        print_err("Error: No electric field in input file.");
-        return 1;
-    }
-
-    if(hdf5_find_group(f, "/plasma/")) {
-        print_err("Error: No plasma data in input file.");
-        return 1;
-    }
-
-    if(hdf5_find_group(f, "/neutral/")) {
-        print_err("Error: No neutral data in input file.");
-        return 1;
-    }
-
-    if(hdf5_find_group(f, "/wall/")) {
-        print_err("Error: No wall data in input file.");
-        return 1;
-    }
-
-    if(hdf5_find_group(f, "/marker/")) {
-        print_err("Error: No marker data in input file.");
-        return 1;
-    }
-
-    /* Read input from hdf5 and initialize */
     char qid[11];
 
-
-    print_out(VERBOSE_IO, "\nReading options input.\n");
-    if( hdf5_get_active_qid(f, "/options/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
+    if(input_active & hdf5_input_options) {
+        if(hdf5_find_group(f, "/options/")) {
+            print_err("Error: No options in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading options input.\n");
+        if( hdf5_get_active_qid(f, "/options/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_options_read(f, sim, qid) ) {
+            print_err("Error: Failed to initialize options.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Options read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_options_read(f, sim, qid) ) {
-        print_err("Error: Failed to initialize options.\n");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Options read and initialized.\n");
-
-
-    print_out(VERBOSE_IO, "\nReading magnetic field input.\n");
-    if( hdf5_get_active_qid(f, "/bfield/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_bfield_init_offload(f, &(sim->B_offload_data),
-                                 B_offload_array, qid) ) {
-        print_err("Error: Failed to initialize magnetic field.\n");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Magnetic field read and initialized.\n");
 
 
-    print_out(VERBOSE_IO, "\nReading electric field input.\n");
-    if( hdf5_get_active_qid(f, "/efield/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
+    if(input_active & hdf5_input_bfield) {
+        if(hdf5_find_group(f, "/bfield/")) {
+            print_err("Error: No magnetic field in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading magnetic field input.\n");
+        if( hdf5_get_active_qid(f, "/bfield/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_bfield_init_offload(f, &(sim->B_offload_data),
+                                     B_offload_array, qid) ) {
+            print_err("Error: Failed to initialize magnetic field.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Magnetic field read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_efield_init_offload(f, &(sim->E_offload_data),
-                                 E_offload_array, qid) ) {
-        print_err("Error: Failed to initialize electric field.\n");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Electric field read and initialized.\n");
 
 
-    print_out(VERBOSE_IO, "\nReading plasma input.\n");
-    if( hdf5_get_active_qid(f, "/plasma/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
+    if(input_active & hdf5_input_efield) {
+        if(hdf5_find_group(f, "/efield/")) {
+            print_err("Error: No electric field in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading electric field input.\n");
+        if( hdf5_get_active_qid(f, "/efield/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_efield_init_offload(f, &(sim->E_offload_data),
+                                     E_offload_array, qid) ) {
+            print_err("Error: Failed to initialize electric field.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Electric field read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_plasma_init_offload(f, &(sim->plasma_offload_data),
-                                 plasma_offload_array, qid) ) {
-        print_err("Error: Failed to initialize plasma data.\n");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Plasma data read and initialized.\n");
 
 
-    print_out(VERBOSE_IO, "\nReading neutral input.\n");
-    if( hdf5_get_active_qid(f, "/neutral/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
+    if(input_active & hdf5_input_plasma) {
+        if(hdf5_find_group(f, "/plasma/")) {
+            print_err("Error: No plasma data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading plasma input.\n");
+        if( hdf5_get_active_qid(f, "/plasma/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_plasma_init_offload(f, &(sim->plasma_offload_data),
+                                     plasma_offload_array, qid) ) {
+            print_err("Error: Failed to initialize plasma data.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Plasma data read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_neutral_init_offload(f, &(sim->neutral_offload_data),
-                                  neutral_offload_array, qid) ) {
-        print_err("Error: Failed to initialize neutral data.\n");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Neutral data read and initialized.\n");
 
 
-    print_out(VERBOSE_IO, "\nReading wall input.\n");
-    if( hdf5_get_active_qid(f, "/wall/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
+    if(input_active & hdf5_input_neutral) {
+        if(hdf5_find_group(f, "/neutral/")) {
+            print_err("Error: No neutral data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading neutral input.\n");
+        if( hdf5_get_active_qid(f, "/neutral/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_neutral_init_offload(f, &(sim->neutral_offload_data),
+                                      neutral_offload_array, qid) ) {
+            print_err("Error: Failed to initialize neutral data.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Neutral data read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_wall_init_offload(f, &(sim->wall_offload_data),
-                               wall_offload_array, qid) ) {
-        print_err("Error: Failed to initialize wall.\n");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Wall data read and initialized.\n");
 
 
-    print_out(VERBOSE_IO, "\nReading marker input.\n");
-    if( hdf5_get_active_qid(f, "/marker/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
+    if(input_active & hdf5_input_wall) {
+        if(hdf5_find_group(f, "/wall/")) {
+            print_err("Error: No wall data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading wall input.\n");
+        if( hdf5_get_active_qid(f, "/wall/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_wall_init_offload(f, &(sim->wall_offload_data),
+                                   wall_offload_array, qid) ) {
+            print_err("Error: Failed to initialize wall.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Wall data read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_marker_read(f, n_markers, p, qid) ) {
-        print_err("Error: Failed to read markers.\n");
-        return 1;
+
+
+    if(input_active & hdf5_input_marker) {
+        if(hdf5_find_group(f, "/marker/")) {
+            print_err("Error: No marker data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading marker input.\n");
+        if( hdf5_get_active_qid(f, "/marker/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_marker_read(f, n_markers, p, qid) ) {
+            print_err("Error: Failed to read markers.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Marker data read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Marker data read and initialized.\n");
 
 
     /* Close the hdf5 file */

@@ -37,8 +37,8 @@ int interp2Dexpl_init_coeff(real* c, real* f,
     /* Allocate helper quantities */
     real* f_x = malloc(n_x*sizeof(real));
     real* f_y = malloc(n_y*sizeof(real));
-    real* c_x = malloc(n_x*2*sizeof(real));
-    real* c_y = malloc(n_y*2*sizeof(real));
+    real* c_x = malloc((n_x-1*(bc_x==NATURALBC))*NSIZE_EXPL1D*sizeof(real));
+    real* c_y = malloc((n_y-1*(bc_y==NATURALBC))*NSIZE_EXPL1D*sizeof(real));
     int i_ct;
 
     if(f_x == NULL || f_y == NULL || c_x == NULL || c_y == NULL) {
