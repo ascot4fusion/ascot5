@@ -12,6 +12,7 @@
 #include "random.h"
 #include "plasma.h"
 #include "suzuki.h"
+#include "wall.h"
 
 void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
                 real* vz, real* anum, real* znum, random_data* rng) {
@@ -70,7 +71,8 @@ void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
 }
 
 void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
-                B_field_data* Bdata, plasma_data* plsdata, random_data* rng) {
+                B_field_data* Bdata, plasma_data* plsdata, wall_data* walldata,
+                random_data* rng) {
     a5err err;
 
     real absv = math_norm(vxyz);
@@ -97,6 +99,9 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
     }
 
     real s = 0.0;
+    int entered_plasma = 0;
+    int exited_plasma = 0;
+
     while(remaining > threshold && s < NBI_MAX_DISTANCE) {
         real rpz[3];
         math_xyz2rpz(xyz, rpz);
@@ -104,6 +109,14 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
         real psi, rho;
         B_field_eval_psi(&psi, rpz[0], rpz[1], rpz[2], 0.0, Bdata);
         B_field_eval_rho(&rho, psi, Bdata);
+
+        /* check for wall collisions after passing through separatrix twice */
+        if(!entered_plasma && rho <= 1.0) {
+            entered_plasma = 1;
+        }
+        if(entered_plasma && !exited_plasma && rho >= 1.0) {
+            exited_plasma = 1;
+        }
 
         err = plasma_eval_densandtemp(pls_dens, pls_temp, rho, rpz[0], rpz[1],
                                       rpz[2], 0.0, plsdata);
@@ -125,8 +138,22 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
         xyz[1] += ds * vhat[1];
         xyz[2] += ds * vhat[2];
         remaining *= exp(-rate * ds);
+
+        if(exited_plasma) {
+            real rpz2[3]; /* new position, old position already in rpz */
+            math_xyz2rpz(xyz, rpz2);
+            int tile = wall_hit_wall(rpz[0], rpz[1], rpz[2], rpz2[0], rpz2[1],
+                                     rpz2[2], walldata);
+
+            if(tile > 0) {
+                /* hit wall */
+                *shinethrough = 1;
+                return;
+            }
+        }
     }
 
+    /* check if we've missed the plasma entirely */
     if(s < NBI_MAX_DISTANCE) {
         *shinethrough = 0;
     }
@@ -137,14 +164,15 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
 
 void nbi_generate(int nprt, particle_state* p, int* shinethrough,
                   nbi_injector* n, B_field_data* Bdata, plasma_data* plsdata,
-                  random_data* rng) {
+                  wall_data* walldata, random_data* rng) {
     for(int i = 0; i < nprt; i++) {
         real xyz[3], vxyz[3];
         real anum, znum;
 
         nbi_inject(n, &xyz[0], &xyz[1], &xyz[2], &vxyz[0], &vxyz[1], &vxyz[2],
                    &anum, &znum, rng);
-        nbi_ionize(xyz, vxyz, shinethrough, anum, znum, Bdata, plsdata, rng);
+        nbi_ionize(xyz, vxyz, &shinethrough[i], anum, znum, Bdata, plsdata,
+                   walldata, rng);
 
         real rpz[3], vrpz[3];
         math_xyz2rpz(xyz, rpz);

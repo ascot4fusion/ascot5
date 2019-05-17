@@ -3,9 +3,10 @@
  * @brief Test program for NBI functions
  */
 #define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+#include <string.h>
 #include "../ascot5.h"
 #include "../B_field.h"
 #include "../hdf5_interface.h"
@@ -27,29 +28,32 @@ int main(int argc, char** argv) {
 
     return 0;*/
 
-    hdf5_init();
-    hid_t f = hdf5_open("ascot.h5");
-    char qid[11];
+    sim_offload_data sim;
+    strcpy(sim.hdf5_in, "ascot.h5");
+
+    real* B_offload_array;
+    real* plasma_offload_array;
+    real* wall_offload_array;
+    hdf5_interface_read_input(&sim, hdf5_input_bfield | hdf5_input_plasma |
+                              hdf5_input_wall, &B_offload_array, NULL,
+                              &plasma_offload_array, NULL, &wall_offload_array,
+                              NULL, NULL);
 
     B_field_data B_data;
-    B_field_offload_data B_offload_data;
-    real* B_offload_array;
-    hdf5_get_active_qid(f, "/bfield/", qid);
-    hdf5_bfield_init_offload(f, &B_offload_data, &B_offload_array, qid);
-    B_field_init(&B_data, &B_offload_data, B_offload_array);
+    B_field_init(&B_data, &sim.B_offload_data, B_offload_array);
 
     plasma_data plasma_data;
-    plasma_offload_data plasma_offload_data;
-    real* plasma_offload_array;
-    hdf5_get_active_qid(f, "/plasma/", qid);
-    hdf5_plasma_init_offload(f, &plasma_offload_data, &plasma_offload_array, qid);
-    plasma_init(&plasma_data, &plasma_offload_data, plasma_offload_array);
+    plasma_init(&plasma_data, &sim.plasma_offload_data, plasma_offload_array);
+
+    wall_data wall_data;
+    wall_init(&wall_data, &sim.wall_offload_data, wall_offload_array);
 
     random_data rng;
     random_init(&rng, 12345);
 
     int n_inj;
     nbi_injector* inj;
+    hid_t f = hdf5_open("ascot.h5");
     hdf5_nbi_read(f, &n_inj, &inj);
 
     for(int i=0; i < n_inj; i++) {
@@ -74,7 +78,8 @@ int main(int argc, char** argv) {
     particle_state* p = (particle_state*) malloc(nprt*sizeof(particle_state));
     int* shinethrough = (int*) malloc(nprt*sizeof(int));
 
-    nbi_generate(nprt, p, shinethrough, &inj[0], &B_data, &plasma_data, &rng);
+    nbi_generate(nprt, p, shinethrough, &inj[0], &B_data, &plasma_data,
+                 &wall_data, &rng);
 
     FILE* of = fopen("nbi.out", "w");
     for(int i=0; i < nprt; i++) {
