@@ -178,7 +178,7 @@ test_N0: $(UTESTDIR)test_N0.o $(OBJS)
 test_bsearch: $(UTESTDIR)test_bsearch.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
-test_nbi: test_nbi.o $(OBJS)
+test_nbi: $(UTESTDIR)test_nbi.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile

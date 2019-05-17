@@ -6,18 +6,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "ascot5.h"
-#include "B_field.h"
-#include "hdf5_interface.h"
-#include "hdf5io/hdf5_nbi.h"
-#include "hdf5io/hdf5_helpers.h"
-#include "hdf5io/hdf5_bfield.h"
-#include "hdf5io/hdf5_plasma.h"
-#include "random.h"
-#include "nbi.h"
-#include "particle.h"
-#include "plasma.h"
-#include "suzuki.h"
+#include "../ascot5.h"
+#include "../B_field.h"
+#include "../hdf5_interface.h"
+#include "../hdf5io/hdf5_nbi.h"
+#include "../hdf5io/hdf5_helpers.h"
+#include "../hdf5io/hdf5_bfield.h"
+#include "../hdf5io/hdf5_plasma.h"
+#include "../random.h"
+#include "../nbi.h"
+#include "../particle.h"
+#include "../plasma.h"
+#include "../suzuki.h"
 
 int main(int argc, char** argv) {
 /*    int Z[] = {1,4};
