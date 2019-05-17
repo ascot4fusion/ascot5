@@ -69,7 +69,7 @@ class IndexFrame(tkinter.Frame):
         maxrow = 4
         for inp in ["options", "bfield", "efield", "marker", "wall", "plasma",
                     "neutral"]:
-            if hasattr(ascot, "options"):
+            if hasattr(ascot, inp):
                 self._panels[inp] = InputInfoPanel(gui, self, inp)
                 self._panels[inp].grid(row=rowcol[0], column=rowcol[1],
                                        padx=10, pady=10)
