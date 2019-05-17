@@ -163,7 +163,12 @@ int main(int argc, char** argv) {
     real* wall_offload_array;
 
     /* Read input from the HDF5 file */
-    if( hdf5_interface_read_input(&sim, &B_offload_array, &E_offload_array,
+    if( hdf5_interface_read_input(&sim,
+                                  hdf5_input_options | hdf5_input_bfield |
+                                  hdf5_input_efield  | hdf5_input_plasma |
+                                  hdf5_input_neutral | hdf5_input_wall |
+                                  hdf5_input_marker,
+                                  &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
                                   &wall_offload_array, &p, &n) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
