@@ -79,7 +79,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading options input.\n");
-        if( hdf5_get_active_qid(f, "/options/", qid) ) {
+        if(sim->qid_options[0] != '\0') {
+            strcpy(qid, sim->qid_options);
+        }
+        else if( hdf5_get_active_qid(f, "/options/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
@@ -98,7 +101,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading magnetic field input.\n");
-        if( hdf5_get_active_qid(f, "/bfield/", qid) ) {
+        if(sim->qid_bfield[0] != '\0') {
+            strcpy(qid, sim->qid_bfield);
+        }
+        else if( hdf5_get_active_qid(f, "/bfield/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
@@ -118,7 +124,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading electric field input.\n");
-        if( hdf5_get_active_qid(f, "/efield/", qid) ) {
+        if(sim->qid_efield[0] != '\0') {
+            strcpy(qid, sim->qid_efield);
+        }
+        else if( hdf5_get_active_qid(f, "/efield/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
@@ -133,7 +142,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
 
 
     if(input_active & hdf5_input_plasma) {
-        if(hdf5_find_group(f, "/plasma/")) {
+        if(sim->qid_plasma[0] != '\0') {
+            strcpy(qid, sim->qid_plasma);
+        }
+        else if(hdf5_find_group(f, "/plasma/")) {
             print_err("Error: No plasma data in input file.");
             return 1;
         }
@@ -158,7 +170,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading neutral input.\n");
-        if( hdf5_get_active_qid(f, "/neutral/", qid) ) {
+        if(sim->qid_neutral[0] != '\0') {
+            strcpy(qid, sim->qid_neutral);
+        }
+        else if( hdf5_get_active_qid(f, "/neutral/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
@@ -178,7 +193,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading wall input.\n");
-        if( hdf5_get_active_qid(f, "/wall/", qid) ) {
+        if(sim->qid_wall[0] != '\0') {
+            strcpy(qid, sim->qid_wall);
+        }
+        else if( hdf5_get_active_qid(f, "/wall/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
@@ -198,7 +216,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading marker input.\n");
-        if( hdf5_get_active_qid(f, "/marker/", qid) ) {
+        if(sim->qid_marker[0] != '\0') {
+            strcpy(qid, sim->qid_marker);
+        }
+        else if( hdf5_get_active_qid(f, "/marker/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
