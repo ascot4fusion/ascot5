@@ -162,17 +162,20 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
     }
 }
 
-void nbi_generate(int nprt, particle_state* p, int* shinethrough,
-                  nbi_injector* n, B_field_data* Bdata, plasma_data* plsdata,
+void nbi_generate(int nprt, particle_state* p, nbi_injector* n,
+                  B_field_data* Bdata, plasma_data* plsdata,
                   wall_data* walldata, random_data* rng) {
     for(int i = 0; i < nprt; i++) {
         real xyz[3], vxyz[3];
         real anum, znum;
 
-        nbi_inject(n, &xyz[0], &xyz[1], &xyz[2], &vxyz[0], &vxyz[1], &vxyz[2],
-                   &anum, &znum, rng);
-        nbi_ionize(xyz, vxyz, &shinethrough[i], anum, znum, Bdata, plsdata,
+        int shinethrough;
+        do {
+            nbi_inject(n, &xyz[0], &xyz[1], &xyz[2], &vxyz[0], &vxyz[1],
+                       &vxyz[2], &anum, &znum, rng);
+            nbi_ionize(xyz, vxyz, &shinethrough, anum, znum, Bdata, plsdata,
                    walldata, rng);
+        } while(shinethrough == 1);
 
         real rpz[3], vrpz[3];
         math_xyz2rpz(xyz, rpz);

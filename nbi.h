@@ -40,8 +40,8 @@ void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
 void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
                 B_field_data* Bdata, plasma_data* plsdata, wall_data* walldata,
                 random_data* rng);
-void nbi_generate(int nprt, particle_state* p, int* shinethrough,
-                  nbi_injector* n, B_field_data* Bdata, plasma_data* plsdata,
+void nbi_generate(int nprt, particle_state* p, nbi_injector* n,
+                  B_field_data* Bdata, plasma_data* plsdata,
                   wall_data* walldata, random_data* rng);
 
 #endif
