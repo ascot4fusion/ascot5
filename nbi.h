@@ -14,25 +14,28 @@
 
 #define NBI_MAX_DISTANCE 100
 
+/**
+ * @brief Structure for describing an NBI injector
+ */
 typedef struct {
-    int id;
-    int n_beamlet;
-    real* beamlet_x;
-    real* beamlet_y;
-    real* beamlet_z;
-    real* beamlet_dx;
-    real* beamlet_dy;
-    real* beamlet_dz;
-    real power;
-    real energy;
-    real efrac[3];
-    real div_h;
-    real div_v;
-    real div_halo_frac;
-    real div_halo_h;
-    real div_halo_v;
-    int anum;
-    int znum;
+    int id;             /**< Integer identifier for this injector */
+    int n_beamlet;      /**< Number of beamlets in this injector */
+    real* beamlet_x;    /**< X coordinates of beamlets [m] */
+    real* beamlet_y;    /**< Y coordinates of beamlets [m] */
+    real* beamlet_z;    /**< Z coordinates of beamlets [m] */
+    real* beamlet_dx;   /**< X components of beamlet unit direction vectors */
+    real* beamlet_dy;   /**< Y components of beamlet unit direction vectors */
+    real* beamlet_dz;   /**< Z components of beamlet unit direction vectors */
+    real power;         /**< Total power injected [W] */
+    real energy;        /**< Full energy of injected particles [J] */
+    real efrac[3];      /**< Fractions of full, half and one-third energy */
+    real div_h;         /**< Vertical divergence [radians] */
+    real div_v;         /**< Horizontal divergence [radians] */
+    real div_halo_frac; /**< Fraction of power in the halo */
+    real div_halo_h;    /**< Horizontal divergence of the halo [radians] */
+    real div_halo_v;    /**< Vertical divergence of the halo [radians] */
+    int anum;           /**< Mass number of injected species */
+    int znum;           /**< Charge number of injected species */
 } nbi_injector;
 
 void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
