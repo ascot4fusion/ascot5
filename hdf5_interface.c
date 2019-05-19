@@ -299,25 +299,60 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
 
     hid_t fin = hdf5_open(sim->hdf5_in);
 
-    H5LTget_attribute_string(fin, "/options/", "active", inputqid);
+    if(sim->qid_options[0] != '\0') {
+        strcpy(inputqid, sim->qid_options);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/options/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_options",  inputqid);
 
-    H5LTget_attribute_string(fin, "/bfield/", "active", inputqid);
+    if(sim->qid_bfield[0] != '\0') {
+        strcpy(inputqid, sim->qid_bfield);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/bfield/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_bfield",  inputqid);
 
-    H5LTget_attribute_string(fin, "/efield/", "active", inputqid);
+    if(sim->qid_efield[0] != '\0') {
+        strcpy(inputqid, sim->qid_efield);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/efield/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_efield",  inputqid);
 
-    H5LTget_attribute_string(fin, "/plasma/", "active", inputqid);
+    if(sim->qid_plasma[0] != '\0') {
+        strcpy(inputqid, sim->qid_plasma);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/plasma/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_plasma",  inputqid);
 
-    H5LTget_attribute_string(fin, "/neutral/", "active", inputqid);
+    if(sim->qid_neutral[0] != '\0') {
+        strcpy(inputqid, sim->qid_neutral);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/neutral/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_neutral",  inputqid);
 
-    H5LTget_attribute_string(fin, "/wall/", "active", inputqid);
+    if(sim->qid_wall[0] != '\0') {
+        strcpy(inputqid, sim->qid_wall);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/wall/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_wall",  inputqid);
 
-    H5LTget_attribute_string(fin, "/marker/", "active", inputqid);
+    if(sim->qid_marker[0] != '\0') {
+        strcpy(inputqid, sim->qid_marker);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/marker/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_marker",  inputqid);
 
     hdf5_close(fin);
