@@ -26,7 +26,9 @@ endif
 ifeq ($(RANDOM),MKL)
 	DEFINES+=-DRANDOM_MKL
 	CFLAGS+=-mkl
-
+	ifdef RANDOM_MKL_RNG
+		DEFINES+=-DRANDOM_MKL_RNG=$(RANDOM_MKL_RNG)
+	endif
 else ifeq ($(RANDOM),GSL)
 	DEFINES+=-DRANDOM_GSL
 	CFLAGS+=-lgsl -lgslcblas
@@ -39,6 +41,10 @@ ifneq ($(CC),h5cc)
 endif
 
 CFLAGS+=-lm -Wall -fopenmp -fPIC -std=c11 $(DEFINES) $(FLAGS)
+
+# Escape spaces in CFLAGS and include it as a macro to be embedded in output
+DCFLAGS:=$(shell echo $(CFLAGS) | sed -e "s: :\\\ :g")
+CFLAGS+=-DCC=$(CC) -DCFLAGS="$(DCFLAGS)"
 
 SIMDIR = simulate/
 SIMHEADERS = $(wildcard $(SIMDIR)simulate*.h)
@@ -85,9 +91,9 @@ LINTHEADERS =  $(wildcard $(LINTDIR)linint*.h)
 LINTOBJS = $(patsubst %.c,%.o,$(wildcard $(LINTDIR)linint*.c))
 
 SPLINEDIR = spline/
-SPLINEHEADERS  = $(wildcard $(SPLINEDIR)spline.h $(SPLINEDIR)interp*comp.h)
+SPLINEHEADERS  = $(wildcard $(SPLINEDIR)spline.h $(SPLINEDIR)interp.h)
 SPLINEOBJS  = $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)spline*.c \
-						$(SPLINEDIR)interp*comp.c))
+						$(SPLINEDIR)interp*.c))
 
 UTESTDIR = unit_tests/
 DOCDIR = doc/

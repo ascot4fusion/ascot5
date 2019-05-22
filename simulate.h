@@ -116,6 +116,15 @@ typedef struct {
     int mpi_rank; /**< Rank of this MPI process      */
     int mpi_size; /**< Total number of MPI processes */
 
+    /* QIDs for inputs if the active inputs are not used */
+    char qid_options[256]; /* Options QID if active not used */
+    char qid_bfield[256];  /* Bfield QID if active not used  */
+    char qid_efield[256];  /* Efield QID if active not used  */
+    char qid_marker[256];  /* Marker QID if active not used  */
+    char qid_wall[256];    /* Wall QID if active not used    */
+    char qid_plasma[256];  /* Plasma QID if active not used  */
+    char qid_neutral[256]; /* Neutral QID if active not used */
+
 } sim_offload_data;
 
 /**

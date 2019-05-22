@@ -569,7 +569,7 @@ a5err B_field_eval_B_dB(real B_dB[15], real r, real phi, real z, real t,
         for(int k=1; k<12; k++) {B_dB[k] = 0;}
     }
 
-    return err = 0;
+    return err;
 }
 
 /**

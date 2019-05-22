@@ -59,6 +59,9 @@
 #ifndef ASCOT5_H
 #define ASCOT5_H
 
+#define stringify(c) #c
+#define str_macro(c) stringify(c)
+
 #include <omp.h>
 #include <time.h>
 

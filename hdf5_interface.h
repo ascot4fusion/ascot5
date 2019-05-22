@@ -10,7 +10,18 @@
 #include "ascot5.h"
 #include "simulate.h"
 
+enum {
+    hdf5_input_options = 0x1,
+    hdf5_input_bfield  = 0x2,
+    hdf5_input_efield  = 0x4,
+    hdf5_input_plasma  = 0x8,
+    hdf5_input_neutral = 0x10,
+    hdf5_input_wall    = 0x20,
+    hdf5_input_marker  = 0x40
+};
+
 int hdf5_interface_read_input(sim_offload_data* sim,
+                              int input_active,
                               real** B_offload_array,
                               real** E_offload_array,
                               real** plasma_offload_array,

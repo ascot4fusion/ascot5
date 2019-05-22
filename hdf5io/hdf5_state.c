@@ -258,7 +258,7 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
 
     int* intdata32 = (int*) malloc(n * sizeof(int));
     for(i = 0; i < n; i++) {
-        intdata32[i] = (int)(p[i].charge/CONST_E);
+        intdata32[i] = (int)round(p[i].charge/CONST_E);
     }
     hdf5_write_extendible_dataset_int(state_group, "charge", n, intdata32);
     H5LTset_attribute_string(state_group, "charge", "unit", "e");
