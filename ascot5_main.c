@@ -493,6 +493,8 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
         {"wall",    required_argument, 0, 10},
         {"plasma",  required_argument, 0, 11},
         {"neutral", required_argument, 0, 12},
+        {"boozer",  required_argument, 0, 13},
+        {"mhd",     required_argument, 0, 14},
         {0, 0, 0, 0}
     };
 
@@ -509,6 +511,8 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     sim->qid_wall[0]    = '\0';
     sim->qid_plasma[0]  = '\0';
     sim->qid_neutral[0] = '\0';
+    sim->qid_boozer[0]  = '\0';
+    sim->qid_mhd[0]     = '\0';
 
     // Read user input
     int c;
@@ -549,6 +553,12 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
                 break;
             case 12:
                 strcpy(sim->qid_neutral, optarg);
+                break;
+            case 13:
+                strcpy(sim->qid_boozer, optarg);
+                break;
+            case 14:
+                strcpy(sim->qid_mhd, optarg);
                 break;
             default:
                 // Unregonizable argument(s). Tell user how to run ascot5_main

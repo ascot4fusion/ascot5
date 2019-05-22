@@ -124,6 +124,8 @@ typedef struct {
     char qid_wall[256];    /* Wall QID if active not used    */
     char qid_plasma[256];  /* Plasma QID if active not used  */
     char qid_neutral[256]; /* Neutral QID if active not used */
+    char qid_boozer[256];  /* Boozer QID if active not used  */
+    char qid_mhd[256];     /* MHD QID if active not used     */
 
 } sim_offload_data;
 

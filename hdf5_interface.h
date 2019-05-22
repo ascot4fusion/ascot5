@@ -17,7 +17,9 @@ enum {
     hdf5_input_plasma  = 0x8,
     hdf5_input_neutral = 0x10,
     hdf5_input_wall    = 0x20,
-    hdf5_input_marker  = 0x40
+    hdf5_input_marker  = 0x40,
+    hdf5_input_boozer  = 0x80,
+    hdf5_input_mhd     = 0x100
 };
 
 int hdf5_interface_read_input(sim_offload_data* sim,

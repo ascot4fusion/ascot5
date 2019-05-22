@@ -125,15 +125,9 @@ int libascot_init(char* fn, char* bfield, char* efield, char* plasma,
     }
 
     /* Initialize boozer data if requested. */
-    if(boozer) {
-        if( hdf5_find_group(f, "/boozer/") ) {
-            return 1;
-        }
-        if( hdf5_get_active_qid(f, "/boozer/", qid) ) {
-            return 1;
-        }
+    if(boozer != NULL) {
         if( hdf5_boozer_init_offload(f, &sim_offload.boozer_offload_data,
-                &boozerdata, qid) ) {
+                &boozerdata, boozer) ) {
             return 1;
         }
         boozer_init(&sim.boozer_data, &sim_offload.boozer_offload_data,
@@ -141,15 +135,9 @@ int libascot_init(char* fn, char* bfield, char* efield, char* plasma,
     }
 
     /* Initialize mhd data if requested. */
-    if(mhd) {
-        if( hdf5_find_group(f, "/mhd/") ) {
-            return 1;
-        }
-        if( hdf5_get_active_qid(f, "/mhd/", qid) ) {
-            return 1;
-        }
+    if(mhd != NULL) {
         if( hdf5_mhd_init_offload(f, &sim_offload.mhd_offload_data,
-                &mhddata, qid) ) {
+                &mhddata, mhd) ) {
             return 1;
         }
         mhd_init(&sim.mhd_data, &sim_offload.mhd_offload_data,
