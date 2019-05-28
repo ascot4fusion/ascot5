@@ -1,11 +1,29 @@
 """
-Populate phase space and map it to real space.
+Transformations in phase-space and to/from real-space.
 
-File: transport/phasespace.py
+Phase-space transformations include:
+- P,mu -> rho_omp, ksi_omp
+- P,mu -> rho_omp, mu
+and inverse operations. Here P is canonical toroidal momentum, mu is magnetic
+moment, rho_omp is outer mid plane rho and ksi_omp is pitch at outer mid plane.
+To clarify, rho_omp and ksi_omp are the values a marker with given P and mu
+would have when crossing OMP. Since trapped particles have two crossing points,
+the one where ksi_omp has the same sign as the current pitch is chosen. The sign
+of pitch is transmitted as a sign of mu, i.e. mu = sign(ksi) * magnetic moment.
+
+The real-space transformation is P,mu -> R,z,ksi and its inverse.
+
+All parameters in this module are in SI units. Ascotpy is required and a file
+with a magnetic field. Functions accept either pre-initialized Ascotpy object
+or name of the HDF5 file, in which case magnetic field module is initialized
+and freed inside the function.
+
+This module is for tokamaks only.
+
+File: transport/ppmappings.py
 """
 import numpy as np
 import scipy.constants as const
-from itertools import compress
 import importlib.util as util
 
 plt = util.find_spec("matplotlib")
@@ -19,78 +37,186 @@ from a5py.ascotpy.ascotpy import Ascotpy
 def evalPmu(a5, mass, charge, energy, r, z, ksi):
     """
     Evaluate P and mu at the given coordinates.
+
+    Args:
+        a5 : Ascotpy, str <br>
+            Ascotpy object or HDF5 filename.
+        mass : float <br>
+            Marker mass [kg].
+        charge : float <br>
+            Marker charge [C].
+        energy : float <br>
+            Marker energy [J].
+        r : array_like (n,1) <br>
+            Major radius coordinates [m].
+        z : array_like (n,1) <br>
+            z coordinates [m].
+        ksi : array_like (n,1) <br>
+            Pitch coordinates (v_para/v_tot).
+
+    Returns:
+        Tuple (P,mu) where P and mu are (n,1) arrays ([kg*m/s], [J/T]).
     """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
     psi   = a5.evaluate(r, 0, z, 0, "psi")
     bnorm = a5.evaluate(r, 0, z, 0, "bnorm")
     vnorm = np.sqrt(2*energy/mass)
 
-    mu = (1 - ksi*ksi) * mass * vnorm * vnorm / (2*bnorm)
+    mu = (1-2*(ksi<0))*(1 - ksi*ksi) * mass * vnorm * vnorm / (2*bnorm)
     P  = mass * r * vnorm * ksi + charge * psi
+
+    if free:
+        a5.free(bfield=True)
 
     return (P, mu)
 
 
-def istrapped(a5, mass, charge, energy, pitch, P, mu, rmin):
+def istrapped(a5, mass, charge, energy, P, mu, rmin=None):
     """
-    Check whether a particle is trapped.
-    """
+    Check if a marker with given coordinates is trapped.
 
-    # Make R grid where to evaluate B and psi
+    Args:
+        a5 : Ascotpy, str <br>
+            Ascotpy object or HDF5 filename.
+        mass : float <br>
+            Marker mass [kg].
+        charge : float <br>
+            Marker charge [C].
+        energy : float <br>
+            Marker energy [J].
+        P : array_like (n,1) <br>
+            Canonical toroidal momentum coordinates [kg*m/s].
+        mu : array_like (n,1) <br>
+            Magnetic moment coordinates [J/T].
+        rlim : tuple or None <br>
+            Major grid minimum value that markers may have. If None, ther value
+            is picked at inner midplane separatrix.
+
+    Returns:
+        Boolean array with True elements for coordinates that are for trapped
+        markers.
+    """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
+    if rmin is None:
+        rz    = a5.get_rhotheta_rz( np.array([0,1]), 180, 0, 0 )
+        rmin = rz[0][-1]
+
+    # Make R grid for evaluating bnorm and psi.
+    nr = 100
     axis  = a5.evaluate(0, 0, 0, 0, "axis")
-    rgrid = np.linspace(rmin, axis["r"], 100)
+    rgrid = np.linspace(rmin, axis["axisr"], nr).ravel()
 
-    bnorm = a5.evaluate(rgrid, 0, axis["z"], 0, "bnorm")
-    psi   = a5.evaluate(rgrid, 0, axis["z"], 0, "psi")
+    bnorm = a5.evaluate(rgrid, 0, axis["axisz"], 0, "bnorm").ravel()
+    psi   = a5.evaluate(rgrid, 0, axis["axisz"], 0, "psi").ravel()
 
     vnorm = np.sqrt(2*energy/mass)
 
+    # Find which (P,mu) coordinates correspond to trapped markers. A marker is
+    # trapped if a) mu is imaginary for all r < raxis or b) P(r,mu) - P has a
+    # root for rmin < r <raxis.
     trapped = np.zeros(mu.shape) == 1
     for i in range(mu.size):
-        val1  = vnorm*vnorm - 2*mu*bnorm/mass
-        if all(val1 < 0):
-            trapped[i] = False
+        vperp2  = vnorm*vnorm - 2*np.absolute(mu[i])*bnorm/mass
+        if all(vperp2 < 0):
+            # mu is imaginary for all r < raxis. Therefore marker orbit has no
+            # solution there which means the marker is trapped.
+            trapped[i] = True
             continue
 
-        val2 = charge * psi + np.sign(pitch) * mass * rgrid * np.sqrt(val1)
-        val2[val1 < 0] = P
+        # Evaluate P(r,mu)
+        val = charge * psi + np.sign(mu[i]) * mass * rgrid * np.sqrt(vperp2)
+        val[vperp2 < 0] = np.nan
 
-        if any(val - P > 0) and any(val - P < 0):
-            trapped[i] = False
-        else:
+        if not (any(val - P[i] > 0) and any(val - P[i] < 0)):
+            # No root for P(r,mu) - P, marker does not pass IMP and hence is
+            # trapped
             trapped[i] = True
+
+    if free:
+        a5.free(bfield=True)
 
     return trapped
 
 
-def initgrid(a5, mass, charge, energy, rhomin, rhomax, nP, nmu, nrho, nksi,
-             padding):
+def initgridPmu(a5, mass, charge, energy, nP, nmu, padding):
     """
-    Create grids.
-    """
+    Initialize (P,mu) grid that covers the whole phase-space.
 
-    rhogrid = np.linspace(rhomin, rhomax, nrho)
-    rz   = a5.get_rhotheta_rz( rhogrid, 0, 0, 0 )
+    This function is useful as both P and mu depend not only on the marker
+    parameters, but also on the magnetic background. Here values for P and mu
+    are evaluated at OMP, and the extreme values (with some padding) are used
+    to define the grid.
+
+    mugrid is given in interval [-mumax, mumax].
+
+    Args:
+        a5 : Ascotpy, str <br>
+            Ascotpy object or HDF5 filename.
+        mass : float <br>
+            Marker mass [kg].
+        charge : float <br>
+            Marker charge [C].
+        energy : float <br>
+            Marker energy [J].
+        nP : int <br>
+            Number of P grid points.
+        nmu : int <br>
+            Number of mu grid points.
+        padding : array_like (n,1) <br>
+            How many percent grids are stretched beyond the extreme values.
+
+    Returns:
+        Tuple (Pgrid [kg*m/s], mugrid [J/T]).
+    """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
+    # OMP rz coordinates
+    rz = a5.get_rhotheta_rz( np.array([0,1]), 0, 0, 0 )
+
+    # mumax can be found assuming vperp = vnorm and using OMP separatrix value
+    # for bmin
     bmin = a5.evaluate(rz[0][-1], 0, rz[1][-1], 0, "bnorm")
-
     vnorm = np.sqrt(2*energy/mass)
     mumax = mass * vnorm * vnorm / (2*bmin)
     mumin = -mumax
 
     mugrid = np.linspace(mumin*(1+padding), mumax*(1+padding), nmu)
 
-    bnorm = a5.evaluate(rz[0], 0, rz[1], 0, "bnorm")
+    # Pmax and min are located at vpar = +-vnorm and psi = psimin or psimax.
     psi   = a5.evaluate(rz[0], 0, rz[1], 0, "psi")
 
-    mu    = mugrid
-    psi   = psi * np.ones(mu.shape)
-    r     = rz[0] * np.ones(mu.shape)
-    vpar2 = vnorm * vnorm - 2 * bnorm * np.absolute(mu) / mass
-    vpar  = np.sign(mu)*np.sqrt(vpar2)
+    if psi[0] < psi[1]:
+        psimin = psi[0]
+        rmin   = rz[0][0]
+        psimax = psi[1]
+        rmax   = rz[0][1]
+    else:
+        psimin = psi[1]
+        rmin   = rz[0][1]
+        psimax = psi[0]
+        rmax   = rz[0][0]
 
-    P  = mass * r * vpar + charge * psi
+    P  = np.array([ mass * rmin * vnorm + charge * psimin,
+                   -mass * rmin * vnorm + charge * psimin,
+                    mass * rmax * vnorm + charge * psimax,
+                   -mass * rmax * vnorm + charge * psimax])
 
-    Pmin = np.nanmin(P.ravel())
-    Pmax = np.nanmax(P.ravel())
+    Pmin = np.nanmin(P)
+    Pmax = np.nanmax(P)
 
     if Pmin < 0:
         Pmin = Pmin*(1+padding)
@@ -104,16 +230,48 @@ def initgrid(a5, mass, charge, energy, rhomin, rhomax, nP, nmu, nrho, nksi,
 
     Pgrid = np.linspace(Pmin, Pmax, nP)
 
-    ksigrid = np.linspace(-1, 1, nksi)
+    if free:
+        a5.free(bfield=True)
 
-    return (Pgrid, mugrid, rhogrid, ksigrid)
+    return (Pgrid, mugrid)
 
 
 def maprhomu2Pmu(a5, mass, charge, energy, rhovals, muvals,
                  Pgrid, mugrid, weights=None):
     """
-    Map rho_omp-mu values to a P-mu grid.
+    Map (rho_omp,mu) coordinates to (P,mu) grid.
+
+    Args:
+        a5 : Ascotpy, str <br>
+            Ascotpy object or HDF5 filename.
+        mass : float <br>
+            Marker mass [kg].
+        charge : float <br>
+            Marker charge [C].
+        energy : float <br>
+            Marker energy [J].
+        rhovals : array_like (n,1) <br>
+            Marker rho_omp values.
+        muvals : array_like (n,1) <br>
+            Marker mu values (including sign).
+        Pgrid : array_like (n,1) <br>
+            P coordinate grid.
+        mugrid : array_like (n,1) <br>
+            mu coordinate grid.
+        weights : array_like (n,1), optional <br>
+            Weights of markers. Uniform weights if None.
+
+    Returns:
+        Tuple (ordinate,Pvals,muvals) where ordinate is the resulting histogram
+        in (Pgrid,mugrid) grid and Pvals, and muvals are the exact (P,mu) values
+        corresponding to (rhovals,muvals).
     """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
     rz    = a5.get_rhotheta_rz( rhovals, 0, 0, 0 )
     psi   = a5.evaluate(rz[0], 0, rz[1], 0, "psi")
     bnorm = a5.evaluate(rz[0], 0, rz[1], 0, "bnorm")
@@ -126,24 +284,53 @@ def maprhomu2Pmu(a5, mass, charge, energy, rhovals, muvals,
     if weights is None:
         weights = np.ones(muvals.shape)
 
-    markers = np.zeros( (Pgrid.size-1, mugrid.size-1) )
-    for i in range(Pgrid.size-1):
-        for j in range(mugrid.size-1):
-            ids = np.logical_and.reduce( [
-                Pvals >= Pgrid[i], Pvals < Pgrid[i+1],
-                muvals >= mugrid[j], muvals < mugrid[j+1]
-            ] )
+    ordinate = np.histogram2d(Pvals, muvals,
+                              bins=[Pgrid.ravel(), mugrid.ravel()],
+                              weights=weights)[0]
 
-            markers[i,j] = np.sum(weights[ids])
+    if free:
+        a5.free(bfield=True)
 
-    return markers
+    return (ordinate, Pvals, muvals)
 
 
 def mapPmu2rhomu(a5, mass, charge, energy, Pvals, muvals, rhogrid, mugrid,
                  weights=None):
     """
-    Map P-mu values to a rho_omp-mu grid.
+    Map (P,mu) coordinates to (rho_omp,mu) grid.
+
+    Args:
+        a5 : Ascotpy, str <br>
+            Ascotpy object or HDF5 filename.
+        mass : float <br>
+            Marker mass [kg].
+        charge : float <br>
+            Marker charge [C].
+        energy : float <br>
+            Marker energy [J].
+        Pvals : array_like (n,1) <br>
+            Marker P values.
+        muvals : array_like (n,1) <br>
+            Marker mu values (including sign).
+        rhogrid : array_like (n,1) <br>
+            rho_omp coordinate grid.
+        mugrid : array_like (n,1) <br>
+            mu coordinate grid.
+        weights : array_like (n,1), optional <br>
+            Weights of markers. Uniform weights if None.
+
+    Returns:
+        Tuple (ordinate,rhovals,muvals) where ordinate is the resulting
+        histogram in (rhogrid,mugrid) grid and rhovals and muvals are values
+        each Pvals,muvals pair correspond to (center value of the bin they
+        belong to).
     """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
     rz    = a5.get_rhotheta_rz( rhogrid, 0, 0, 0 )
     psi   = a5.evaluate(rz[0], 0, rz[1], 0, "psi")
     bnorm = a5.evaluate(rz[0], 0, rz[1], 0, "bnorm")
@@ -161,293 +348,111 @@ def mapPmu2rhomu(a5, mass, charge, energy, Pvals, muvals, rhogrid, mugrid,
     if weights is None:
         weights = np.ones(muvals.shape)
 
-    markers = np.zeros( (rhogrid.size-1, mugrid.size-1) )
+    rhovals   = np.ones(Pvals.shape)
+    newmuvals = np.ones(Pvals.shape)
+    ordinate  = np.zeros( (rhogrid.size-1, mugrid.size-1) )
     for i in range(rhogrid.size-1):
         for j in range(mugrid.size-1):
-            a = np.array([ P[i,j], P[i+1,j] ])#, P[i,j+1], P[i+1,j+1] ])
+            a = np.array([ P[i,j], P[i+1,j] ])
 
             ids = np.logical_and.reduce( [
                 Pvals >= np.nanmin(a), Pvals < np.nanmax(a),
                 muvals >= mugrid[j], muvals < mugrid[j+1]
             ] )
 
-            markers[i,j] = np.nansum(weights[ids])
+            rhovals[ids]   = (rhogrid[i] + rhogrid[i+1]) / 2
+            newmuvals[ids] = (mugrid[j] + mugrid[j+1]) / 2
+            ordinate[i,j]   = np.nansum(weights[ids])
 
-    return markers
+    if free:
+        a5.free(bfield=True)
+
+    return (ordinate, rhovals, newmuvals)
 
 
-def checkrhomu2Pmu(fn):
+def test_rhomu2Pmu(fn):
     """
-    Check rho_omp-mu & P-mu transformation.
+    Verify rho_omp-mu & P-mu transformation.
+
+    This function populates (rho,mu) mesh uniformly, transforms it to (P,mu)
+    mesh, and transforms the resulting values back to (rho,mu) grid. Therefore
+    the initial and final histograms should resemble each other. Process is
+    repeated starting from uniform (P,mu) population. Final and intermediate
+    histograms are plotted.
+
+    Args:
+        fn : str <br>
+            Filename for ascot HDF5 file which must have magnetic field present.
     """
     h5 = Ascot(fn)
     a5 = Ascotpy(fn)
     a5.init(bfield=True)
 
+    # Perform check for alpha particles
     mass   = const.physical_constants["alpha particle mass"][0]
     energy = 3.5e6 * const.e
     charge = 2 * const.e
 
-    rhomin = 0.8
-    rhomax = 1.0
+    rhogrid = np.linspace( 0, 1, 100)
 
-    nP  = 200
+    nP  = 100
     nmu = 100
-    nksi = 20
-    nrho = 50
     try:
         fig  = plt.figure()
-        Pgrid, mugrid, rhogrid, pitchgrid = initgrid(a5, mass, charge, energy,
-                                                     rhomin, rhomax,
-                                                     nP, nmu, nrho, nksi, 1e-3)
+        Pgrid, mugrid = initgridPmu(a5, mass, charge, energy,
+                                    nP, nmu, padding=1e-3)
 
-        rhovals = rhogrid[:-1] + (rhogrid[1] - rhogrid[0]) / 2
-        muvals  = mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2
+        # Convert mesh midpoints to value pairs, transform, and plot
+        rhovals, muvals = np.meshgrid(
+            rhogrid[:-1] + (rhogrid[1] - rhogrid[0]) / 2,
+            mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2,
+            indexing='ij')
 
-        rhovals, muvals = np.meshgrid(rhovals, muvals, indexing='ij')
-        markers = np.ones(rhovals.shape)
-        markers = maprhomu2Pmu(a5, mass, charge, energy,
-                               rhovals.ravel(), muvals.ravel(),
-                               Pgrid, mugrid, weights=markers.ravel())
+        weights = np.ones(rhovals.shape)
+        weights, Pvals, muvals = maprhomu2Pmu(a5, mass, charge, energy,
+                                              rhovals.ravel(), muvals.ravel(),
+                                              Pgrid, mugrid,
+                                              weights=weights.ravel())
 
         axes = fig.add_subplot(2,2,1)
-        h = axes.pcolormesh(Pgrid, mugrid, markers.transpose())
+        h = axes.pcolormesh(Pgrid, mugrid, weights.transpose())
         plt.colorbar(h, ax=axes)
 
-        Pvals   = Pgrid[:-1] + (Pgrid[1] - Pgrid[0]) / 2
-        muvals  = mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2
-        Pvals, muvals = np.meshgrid(Pvals, muvals, indexing='ij')
-        markers = mapPmu2rhomu(a5, mass, charge, energy,
+        # Repeat
+        weights = np.ones(Pvals.shape)
+        weights = mapPmu2rhomu(a5, mass, charge, energy,
                                Pvals.ravel(), muvals.ravel(),
-                               rhogrid, mugrid, weights=markers.ravel())
+                               rhogrid, mugrid, weights=weights.ravel())[0]
 
         axes = fig.add_subplot(2,2,2)
-        h = axes.pcolormesh(rhogrid, mugrid, markers.transpose())
+        h = axes.pcolormesh(rhogrid, mugrid, weights.transpose())
         plt.colorbar(h, ax=axes)
 
-        Pvals   = Pgrid[:-1] + (Pgrid[1] - Pgrid[0]) / 2
-        muvals  = mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2
-        Pvals, muvals = np.meshgrid(Pvals, muvals, indexing='ij')
-        markers = np.ones(Pvals.shape)
-        markers = mapPmu2rhomu(a5, mass, charge, energy,
-                               Pvals.ravel(), muvals.ravel(),
-                               rhogrid, mugrid, weights=markers.ravel())
+        # Now do the whole stuff otherway around
+        Pvals, muvals = np.meshgrid(
+            Pgrid[:-1] + (Pgrid[1] - Pgrid[0]) / 2,
+            mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2,
+            indexing='ij')
+
+        weights = np.ones(Pvals.shape)
+        weights, rhovals, muvals = mapPmu2rhomu(a5, mass, charge, energy,
+                                                Pvals.ravel(), muvals.ravel(),
+                                                rhogrid, mugrid,
+                                                weights=weights.ravel())
 
         axes = fig.add_subplot(2,2,3)
-        h = axes.pcolormesh(rhogrid, mugrid, markers.transpose())
+        h = axes.pcolormesh(rhogrid, mugrid, weights.transpose())
         plt.colorbar(h, ax=axes)
 
-        rhovals = rhogrid[:-1] + (rhogrid[1] - rhogrid[0]) / 2
-        muvals  = mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2
 
-        rhovals, muvals = np.meshgrid(rhovals, muvals, indexing='ij')
-        markers = maprhomu2Pmu(a5, mass, charge, energy,
+        # And repeat
+        weights = maprhomu2Pmu(a5, mass, charge, energy,
                                rhovals.ravel(), muvals.ravel(),
-                               Pgrid, mugrid, weights=markers.ravel())
+                               Pgrid, mugrid, weights=weights.ravel())[0]
 
         axes = fig.add_subplot(2,2,4)
-        h = axes.pcolormesh(Pgrid, mugrid, markers.transpose())
+        h = axes.pcolormesh(Pgrid, mugrid, weights.transpose())
         plt.colorbar(h, ax=axes)
-
-        plt.show(block=False)
-
-    except Exception as e:
-        a5.free(bfield=True)
-        raise e
-
-    a5.free(bfield=True)
-
-
-def mapPmu2rzk(a5, mass, charge, energy, Pvals, muvals,
-               rgrid, zgrid, ksigrid, weights=None):
-    """
-    Map P-mu points to real space.
-    """
-
-    vnorm = np.sqrt(2*energy/mass)
-    if weights is None:
-        weights = np.ones(muvals.shape)
-
-    Pvals   = Pvals.ravel()
-    muvals  = muvals.ravel()
-    weights = weights.ravel()
-
-    R, Z, Ksi = np.meshgrid(rgrid, zgrid, ksigrid, indexing='ij')
-    psi   = a5.evaluate(R, 0, Z, 0, "psi").reshape(R.shape)
-    bnorm = a5.evaluate(R, 0, Z, 0, "bnorm").reshape(R.shape)
-    Mu = np.sign(Ksi)*mass * (1-Ksi*Ksi) * vnorm * vnorm / (2*bnorm)
-    P  = mass * R * Ksi * vnorm  + charge * psi
-
-    markers = np.zeros( (R.shape[0]-1,R.shape[1]-1,R.shape[2]-1) )
-    newweight = np.zeros(weights.shape)
-    for i in range(R.shape[0]-1):
-        for j in range(R.shape[1]-1):
-            for k in range(R.shape[2]-1):
-                vals = [Mu[i,j,k], Mu[i+1,j,k], Mu[i,j+1,k], Mu[i,j,k],
-                        Mu[i+1,j+1,k], Mu[i+1,j,k], Mu[i,j+1,k],
-                        Mu[i+1,j+1,k]]
-
-                a = np.logical_and.reduce([np.nanmin(vals) <= muvals,
-                                           np.nanmax(vals) > muvals])
-
-                vals = [P[i,j,k], P[i+1,j,k], P[i,j+1,k], P[i,j,k],
-                        P[i+1,j+1,k], P[i+1,j,k], P[i,j+1,k],
-                        P[i+1,j+1,k]]
-
-                b = np.logical_and.reduce([np.nanmin(vals) <= Pvals,
-                                           np.nanmax(vals) > Pvals])
-
-                ids = np.logical_and.reduce([a, b])
-                if np.sum(ids.ravel()) > 0:
-                    newweight[ids] += 1
-
-    weights = weights/newweight
-    for i in range(R.shape[0]-1):
-        for j in range(R.shape[1]-1):
-            for k in range(R.shape[2]-1):
-                vals = [Mu[i,j,k], Mu[i+1,j,k], Mu[i,j+1,k], Mu[i,j,k],
-                        Mu[i+1,j+1,k], Mu[i+1,j,k], Mu[i,j+1,k],
-                        Mu[i+1,j+1,k]]
-
-                a = np.logical_and.reduce([np.nanmin(vals) <= muvals,
-                                           np.nanmax(vals) > muvals])
-
-                vals = [P[i,j,k], P[i+1,j,k], P[i,j+1,k], P[i,j,k],
-                        P[i+1,j+1,k], P[i+1,j,k], P[i,j+1,k],
-                        P[i+1,j+1,k]]
-
-                b = np.logical_and.reduce([np.nanmin(vals) <= Pvals,
-                                           np.nanmax(vals) > Pvals])
-
-                ids = np.logical_and.reduce([a, b])
-                if np.sum(ids.ravel()) > 0:
-                    markers[i,j,k] = np.sum( weights[ids].ravel() )
-
-    return markers
-
-
-def maprzk2Pmu(a5, mass, charge, energy, rvals, zvals, ksivals,
-               Pgrid, mugrid, weights=None):
-    """
-    Map real space points to P-mu grid.
-    """
-    vnorm = np.sqrt(2*energy/mass)
-    bnorm = a5.evaluate(rvals, 0, zvals, 0, "bnorm")
-    psi   = a5.evaluate(rvals, 0, zvals, 0, "psi")
-
-    muvals = np.sign(ksivals) * (1-ksivals*ksivals) * vnorm * vnorm * mass / (2*bnorm)
-    Pvals  = mass * rvals * ksivals * vnorm + charge * psi
-
-    if weights is None:
-        weights = np.ones(muvals.shape)
-
-    markers = np.zeros( (Pgrid.size-1, mugrid.size-1) )
-    for i in range(Pgrid.size-1):
-        for j in range(mugrid.size-1):
-            ids = np.logical_and.reduce( [
-                Pvals >= Pgrid[i], Pvals < Pgrid[i+1],
-                muvals >= mugrid[j], muvals < mugrid[j+1]
-            ] )
-            markers[i,j] = np.sum(weights[ids])
-
-    return markers
-
-
-def checkrzk2Pmu(fn):
-    """
-    Check real-space & P-mu transformation.
-    """
-    h5 = Ascot(fn)
-    a5 = Ascotpy(fn)
-    a5.init(bfield=True)
-
-    mass   = const.physical_constants["alpha particle mass"][0]
-    energy = 3.5e6 * const.e
-    charge = 2 * const.e
-
-    rhomin = 0.8
-    rhomax = 1.0
-
-    nP  = 200
-    nmu = 100
-    nksi = 20
-    nrho = 50
-
-    rz   = a5.get_rhotheta_rz( np.array([0.1, 1]), 0, 0, 0 )
-    rmax = rz[0][-1]
-    rz   = a5.get_rhotheta_rz( np.array([0.1, 1]), 180, 0, 0 )
-    rmin = rz[0][-1]
-    rz   = a5.get_rhotheta_rz( np.array([0.1, 1]), 90, 0, 0 )
-    zmax = rz[1][-1]
-    rz   = a5.get_rhotheta_rz( np.array([0.1, 1]), -90, 0, 0 )
-    zmin = rz[1][-1]
-
-    nr = 30
-    nz = 60
-    nk = 50
-    rgrid = np.linspace(rmin, rmax, nr)
-    zgrid = np.linspace(zmin, zmax, nz)
-    kgrid = np.linspace(-1, 1, nk)
-
-    try:
-        fig  = plt.figure()
-        Pgrid, mugrid, rhogrid, pitchgrid = initgrid(a5, mass, charge, energy,
-                                                     rhomin, rhomax,
-                                                     nP, nmu, nrho, nksi, 1e-3)
-
-        Pvals   = Pgrid[:-1] + (Pgrid[1] - Pgrid[0]) / 2
-        muvals  = mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2
-        Pvals, muvals = np.meshgrid(Pvals, muvals, indexing='ij')
-        markers = np.ones(muvals.shape)
-        markers = mapPmu2rzk(a5, mass, charge, energy,
-                             Pvals.ravel(), muvals.ravel(),
-                             rgrid, zgrid, kgrid, markers.ravel())
-
-        axes = fig.add_subplot(2,3,1)
-        h = axes.pcolormesh(rgrid, zgrid, np.sum(markers, axis=2).transpose())
-        plt.colorbar(h, ax=axes)
-        kvals = kgrid[:-1] + (kgrid[1] - kgrid[0])/2
-        axes = fig.add_subplot(2,3,2)
-        h = axes.plot(kvals, np.sum(np.sum(markers, axis=0), axis=0))
-
-        rvals = rgrid[:-1] + (rgrid[1] - rgrid[0]) / 2
-        zvals = zgrid[:-1] + (zgrid[1] - zgrid[0]) / 2
-        kvals = kgrid[:-1] + (kgrid[1] - kgrid[0]) / 2
-        rvals, zvals, kvals = np.meshgrid(rvals, zvals, kvals, indexing='ij')
-        markers = maprzk2Pmu(a5, mass, charge, energy,
-                             rvals.ravel(), zvals.ravel(), kvals.ravel(),
-                             Pgrid, mugrid, weights=markers.ravel())
-
-        axes = fig.add_subplot(2,3,3)
-        h = axes.pcolormesh(Pgrid, mugrid, markers.transpose())
-        plt.colorbar(h, ax=axes)
-
-        rvals = rgrid[:-1] + (rgrid[1] - rgrid[0]) / 2
-        zvals = zgrid[:-1] + (zgrid[1] - zgrid[0]) / 2
-        kvals = kgrid[:-1] + (kgrid[1] - kgrid[0]) / 2
-        rvals, zvals, kvals = np.meshgrid(rvals, zvals, kvals, indexing='ij')
-        markers = np.ones(rvals.shape)
-        markers = maprzk2Pmu(a5, mass, charge, energy,
-                             rvals.ravel(), zvals.ravel(), kvals.ravel(),
-                             Pgrid, mugrid, weights=markers.ravel())
-
-        axes = fig.add_subplot(2,3,4)
-        h = axes.pcolormesh(Pgrid, mugrid, markers.transpose())
-        plt.colorbar(h, ax=axes)
-
-        Pvals   = Pgrid[:-1] + (Pgrid[1] - Pgrid[0]) / 2
-        muvals  = mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2
-        Pvals, muvals = np.meshgrid(Pvals, muvals, indexing='ij')
-        markers = mapPmu2rzk(a5, mass, charge, energy,
-                             Pvals.ravel(), muvals.ravel(),
-                             rgrid, zgrid, kgrid, markers.ravel())
-
-        axes = fig.add_subplot(2,3,5)
-        h = axes.pcolormesh(rgrid, zgrid, np.sum(markers, axis=2).transpose())
-        plt.colorbar(h, ax=axes)
-        kvals = kgrid[:-1] + (kgrid[1] - kgrid[0])/2
-        axes = fig.add_subplot(2,3,6)
-        h = axes.plot(kvals, np.sum(np.sum(markers, axis=0), axis=0))
 
         plt.show(block=False)
 
@@ -459,40 +464,104 @@ def checkrzk2Pmu(fn):
 
 
 def maprhoksi2Pmu(a5, mass, charge, energy, rhovals, ksivals,
-                 Pgrid, mugrid, weights=None):
+                  Pgrid, mugrid, weights=None):
     """
-    Map rho_omp-ksi values to a P-mu grid.
+    Map (rho_omp,rho_ksi) coordinates to (P,mu) grid.
+
+    Args:
+        a5 : Ascotpy, str <br>
+            Ascotpy object or HDF5 filename.
+        mass : float <br>
+            Marker mass [kg].
+        charge : float <br>
+            Marker charge [C].
+        energy : float <br>
+            Marker energy [J].
+        rhovals : array_like (n,1) <br>
+            Marker rho_omp values.
+        ksivals : array_like (n,1) <br>
+            Marker pitch values.
+        Pgrid : array_like (n,1) <br>
+            P coordinate grid.
+        mugrid : array_like (n,1) <br>
+            mu coordinate grid.
+        weights : array_like (n,1), optional <br>
+            Weights of markers. Uniform weights if None.
+
+    Returns:
+        Tuple (ordinate,Pvals,muvals) where ordinate is the resulting histogram
+        in (Pgrid,mugrid) grid and Pvals, and muvals are the exact (P,mu) values
+        corresponding to (rhovals,ksivals).
     """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
+    ksivals = ksivals
+    weights = weights
+    rhovals = rhovals
     rz    = a5.get_rhotheta_rz( rhovals, 0, 0, 0 )
     psi   = a5.evaluate(rz[0], 0, rz[1], 0, "psi")
     bnorm = a5.evaluate(rz[0], 0, rz[1], 0, "bnorm")
     vnorm = np.sqrt(2*energy/mass)
 
-    muvals = np.sign(ksivals)*(1 - ksivals*ksivals) * mass * vnorm * vnorm / (2*bnorm)
+    muvals = (1 - 2*(ksivals<0)) * (1 - ksivals*ksivals) \
+             * mass * vnorm * vnorm / (2*bnorm)
     Pvals  = mass * rz[0] * vnorm * ksivals + charge * psi
-
-    mumax = mass * vnorm * vnorm / (2*bnorm)
 
     if weights is None:
         weights = np.ones(rhovals.shape)
 
-    markers = np.zeros( (Pgrid.size-1, mugrid.size-1) )
-    for i in range(Pgrid.size-1):
-        for j in range(mugrid.size-1):
-            ids = np.logical_and.reduce( [
-                Pvals >= Pgrid[i], Pvals < Pgrid[i+1],
-                muvals >= mugrid[j], muvals < mugrid[j+1]
-            ] )
-            markers[i,j] = np.sum(weights[ids])
+    ordinate = np.histogram2d(Pvals,
+                              muvals,
+                              bins=[Pgrid.ravel(), mugrid.ravel()],
+                              weights=weights)[0]
 
-    return markers
+    if free:
+        a5.free(bfield=True)
+
+    return (ordinate, Pvals, muvals)
 
 
 def mapPmu2rhoksi(a5, mass, charge, energy, Pvals, muvals, rhogrid, ksigrid,
-                 weights=None):
+                  weights=None):
     """
-    Map P-mu values to a rho_omp-ksi grid.
+    Map (P,mu) coordinates to (rho_omp,ksi_omp) grid.
+
+    Args:
+        a5 : Ascotpy, str <br>
+            Ascotpy object or HDF5 filename.
+        mass : float <br>
+            Marker mass [kg].
+        charge : float <br>
+            Marker charge [C].
+        energy : float <br>
+            Marker energy [J].
+        Pvals : array_like (n,1) <br>
+            Marker P values.
+        muvals : array_like (n,1) <br>
+            Marker mu values (including sign).
+        rhogrid : array_like (n,1) <br>
+            rho_omp coordinate grid.
+        ksigrid : array_like (n,1) <br>
+            Pitch coordinate grid.
+        weights : array_like (n,1), optional <br>
+            Weights of markers. Uniform weights if None.
+
+    Returns:
+        Tuple (ordinate,rhovals,ksivals) where ordinate is the resulting
+        histogram in (rhogrid,ksigrid) grid and rhovals and ksivals are values
+        each Pvals,muvals pair correspond to (center value of the bin they
+        belong to).
     """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
     rz    = a5.get_rhotheta_rz( rhogrid, 0, 0, 0 )
     psi   = a5.evaluate(rz[0], 0, rz[1], 0, "psi")
     bnorm = a5.evaluate(rz[0], 0, rz[1], 0, "bnorm")
@@ -505,45 +574,71 @@ def mapPmu2rhoksi(a5, mass, charge, energy, Pvals, muvals, rhogrid, ksigrid,
     vpar  = ksi*vnorm
 
     P  = mass * r * vpar + charge * psi
-    mu = np.sign(ksi+1e-8) * (1 - ksi*ksi) * mass * vnorm * vnorm / (2*bnorm)
+    mu = (1 - 2*(ksi < 0)) * (1 - ksi*ksi) * mass * vnorm * vnorm / (2*bnorm)
     mumax = mass * vnorm * vnorm / (2*bnorm)
 
     if weights is None:
         weights = np.ones(muvals.shape)
 
-    markers = np.zeros( (rhogrid.size-1, ksigrid.size-1) )
+    rhovals = np.ones(Pvals.shape) + np.nan
+    ksivals = np.ones(Pvals.shape) + np.nan
+    ordinate = np.zeros( (rhogrid.size-1, ksigrid.size-1) )
     for i in range(rhogrid.size-1):
         for j in range(ksigrid.size-1):
-            a = np.array([ P[i,j], P[i+1,j] ])
-            b = np.array([ mu[i,j], mu[i,j+1] ])
+            a = np.array([ P[i,j], P[i+1,j], P[i,j+1], P[i+1,j+1] ])
+            b = np.array([ mu[i,j], mu[i,j+1], mu[i,j+1], mu[i+1,j+1]])
+            mumaxval = np.nanmax([mumax[i,j], mumax[i+1,j]])
 
             ids = np.logical_and.reduce( [
                 Pvals >= np.nanmin(a), Pvals < np.nanmax(a)
             ] )
 
-            if ksigrid.size % 2 == 1 and j == (ksigrid.size-1)/2-1 :
-                muids = np.logical_and.reduce( [ muvals <=  mu[i,j],
-                                                 -muvals < mumax[i,j] ] )
-            elif ksigrid.size % 2 == 0 and j == ksigrid.size/2-1:
-                ids1 = np.logical_and.reduce( [ muvals <= mu[i,j],
-                                                -muvals <= mumax[i,j] ] )
-                ids2 = np.logical_and.reduce( [ muvals > mu[i,j+1],
-                                                muvals < mumax[i,j] ] )
-                muids = np.logical_or.reduce( [ids1, ids2] )
+            if ksigrid.size % 2 == 0 and j == ksigrid.size/2 - 1:
+                a1 = np.logical_and.reduce( [
+                    muvals < np.nanmax([mu[i,j], mu[i+1,j]]),
+                    muvals >= -mumaxval ] )
+                a2 = np.logical_and.reduce( [
+                    muvals >= np.nanmin([mu[i,j+1], mu[i+1,j+1]]),
+                    muvals <=  mumaxval ] )
+                muids = np.logical_or.reduce([a1, a2])
+            elif ksigrid.size % 2 == 1 and j == (ksigrid.size-1)/2-1:
+                muids = np.logical_and.reduce(
+                    [ muvals <  np.nanmax([mu[i,j], mu[i+1,j]]),
+                      muvals >= -mumaxval] )
+            elif ksigrid.size % 2 == 1 and j == (ksigrid.size-1)/2:
+                muids = np.logical_and.reduce(
+                    [ muvals >= np.nanmin([mu[i,j+1], mu[i+1,j+1]]),
+                      muvals <= mumaxval] )
             else:
                 muids = np.logical_and.reduce( [ muvals >= np.nanmin(b),
                                                  muvals < np.nanmax(b) ] )
 
             ids = np.logical_and.reduce( [ids, muids] )
 
-            markers[i,j] = np.nansum(weights[ids])
+            rhovals[ids] = (rhogrid[i] + rhogrid[i+1]) / 2
+            ksivals[ids] = (ksigrid[j] + ksigrid[j+1]) / 2
+            ordinate[i,j] = np.nansum(weights[ids])
 
-    return markers
+
+    if free:
+        a5.free(bfield=True)
+
+    return (ordinate, rhovals, ksivals)
 
 
-def checkrhoksi2Pmu(fn):
+def test_rhoksi2Pmu(fn):
     """
-    Check rho_omp-ksi & P-mu transformation.
+    Verify rho_omp-ksi_omp & P-mu transformation.
+
+    This function populates (rho,ksi) mesh uniformly, transforms it to (P,mu)
+    mesh, and transforms the resulting values back to (rho,ksi) grid. Therefore
+    the initial and final histograms should resemble each other. Process is
+    repeated starting from uniform (P,mu) population. Final and intermediate
+    histograms are plotted.
+
+    Args:
+        fn : str <br>
+            Filename for ascot HDF5 file which must have magnetic field present.
     """
     h5 = Ascot(fn)
     a5 = Ascotpy(fn)
@@ -553,65 +648,66 @@ def checkrhoksi2Pmu(fn):
     energy = 3.5e6 * const.e
     charge = 2 * const.e
 
-    rhomin = 0.8
-    rhomax = 1.0
+    rhogrid = np.linspace( 0, 1, 200)
+    ksigrid = np.linspace(-1, 1, 50)
 
     nP  = 200
     nmu = 200
-    nksi = 200
-    nrho = 200
     try:
         fig  = plt.figure()
-        Pgrid, mugrid, rhogrid, ksigrid = initgrid(a5, mass, charge, energy,
-                                                   rhomin, rhomax,
-                                                   nP, nmu, nrho, nksi, 1e-3)
+        Pgrid, mugrid = initgridPmu(a5, mass, charge, energy,
+                                    nP, nmu, padding=1e-3)
 
-        rhovals = rhogrid[:-1] + (rhogrid[1] - rhogrid[0]) / 2
-        ksivals = ksigrid[:-1] + (ksigrid[1] - ksigrid[0]) / 2
-
-        rhovals, ksivals = np.meshgrid(rhovals, ksivals, indexing='ij')
-        markers = np.ones(rhovals.shape)
-        markers = maprhoksi2Pmu(a5, mass, charge, energy,
-                                rhovals.ravel(), ksivals.ravel(),
-                                Pgrid, mugrid, weights=markers.ravel())
+        # Convert mesh midpoints to value pairs, transform, and plot
+        rhovals, ksivals = np.meshgrid(
+            rhogrid[:-1] + (rhogrid[1] - rhogrid[0]) / 2,
+            ksigrid[:-1] + (ksigrid[1] - ksigrid[0]) / 2,
+            indexing='ij')
+        weights = np.ones(rhovals.shape)
+        weights, Pvals, muvals = maprhoksi2Pmu(a5, mass, charge, energy,
+                                               rhovals.ravel(), ksivals.ravel(),
+                                               Pgrid, mugrid,
+                                               weights=weights.ravel())
 
         axes = fig.add_subplot(2,2,1)
-        h = axes.pcolormesh(Pgrid, mugrid, markers.transpose())
+        h = axes.pcolormesh(Pgrid, mugrid, weights.transpose())
         plt.colorbar(h, ax=axes)
 
-        Pvals   = Pgrid[:-1] + (Pgrid[1] - Pgrid[0]) / 2
-        muvals  = mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2
-        Pvals, muvals = np.meshgrid(Pvals, muvals, indexing='ij')
-        markers = mapPmu2rhoksi(a5, mass, charge, energy,
+        # Convert back to rho_omp, ksi_omp space and plot
+        weights = np.ones(Pvals.shape)
+        weights, rhovals, ksivals = mapPmu2rhoksi(a5, mass, charge, energy,
                                 Pvals.ravel(), muvals.ravel(),
-                                rhogrid, ksigrid, weights=markers.ravel())
+                                rhogrid, ksigrid, weights=weights.ravel())
 
         axes = fig.add_subplot(2,2,2)
-        h = axes.pcolormesh(rhogrid, ksigrid, markers.transpose())
+        h = axes.pcolormesh(rhogrid, ksigrid, weights.transpose())
         plt.colorbar(h, ax=axes)
 
-        Pvals   = Pgrid[:-1] + (Pgrid[1] - Pgrid[0]) / 2
-        muvals  = mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2
-        Pvals, muvals = np.meshgrid(Pvals, muvals, indexing='ij')
-        markers = np.ones(Pvals.shape)
-        markers = mapPmu2rhoksi(a5, mass, charge, energy,
-                                Pvals.ravel(), muvals.ravel(),
-                                rhogrid, ksigrid, weights=markers.ravel())
+        # Repeat the process for a uniform (P,mu) population
+        Pvals, muvals = np.meshgrid(
+            Pgrid[:-1] + (Pgrid[1] - Pgrid[0]) / 2,
+            mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2,
+            indexing='ij')
+        weights = np.ones(Pvals.shape)
+        weights, rhovals, ksivals = mapPmu2rhoksi(a5, mass, charge, energy,
+                                                  Pvals.ravel(), muvals.ravel(),
+                                                  rhogrid, ksigrid,
+                                                  weights=weights.ravel())
 
         axes = fig.add_subplot(2,2,3)
-        h = axes.pcolormesh(rhogrid, ksigrid, markers.transpose())
+        h = axes.pcolormesh(rhogrid, ksigrid, weights.transpose())
         plt.colorbar(h, ax=axes)
 
-        rhovals = rhogrid[:-1] + (rhogrid[1] - rhogrid[0]) / 2
-        ksivals = ksigrid[:-1] + (ksigrid[1] - ksigrid[0]) / 2
-
-        rhovals, ksivals = np.meshgrid(rhovals, ksivals, indexing='ij')
-        markers = maprhoksi2Pmu(a5, mass, charge, energy,
+        # And transform back again and plot
+        rhovals = rhovals[np.isnan(rhovals) == False]
+        ksivals = ksivals[np.isnan(ksivals) == False]
+        weights = np.ones(rhovals.shape)
+        weights = maprhoksi2Pmu(a5, mass, charge, energy,
                                 rhovals.ravel(), ksivals.ravel(),
-                                Pgrid, mugrid, weights=markers.ravel())
+                                Pgrid, mugrid, weights=weights.ravel())[0]
 
         axes = fig.add_subplot(2,2,4)
-        h = axes.pcolormesh(Pgrid, mugrid, markers.transpose())
+        h = axes.pcolormesh(Pgrid, mugrid, weights.transpose())
         plt.colorbar(h, ax=axes)
 
         plt.show(block=False)
@@ -623,130 +719,345 @@ def checkrhoksi2Pmu(fn):
     a5.free(bfield=True)
 
 
-def populate(fn, mass, charge, energy, rhomin, rhomax, nrho, nmu,
-             rgrid, zgrid, ksigrid, weights, Nmrk):
+def maprzk2Pmu(a5, mass, charge, energy, rvals, zvals, ksivals,
+               Pgrid, mugrid, weights=None):
     """
-    Fill phase space with markers.
+    Map (rho_omp,mu) coordinates to (P,mu) grid.
+
+    Args:
+        a5 : Ascotpy, str <br>
+            Ascotpy object or HDF5 filename.
+        mass : float <br>
+            Marker mass [kg].
+        charge : float <br>
+            Marker charge [C].
+        energy : float <br>
+            Marker energy [J].
+        rvals : array_like (n,1) <br>
+            Marker R values.
+        zvals : array_like (n,1) <br>
+            Marker z values.
+        ksivals : array_like (n,1) <br>
+            Marker pitch values.
+        Pgrid : array_like (n,1) <br>
+            P coordinate grid.
+        mugrid : array_like (n,1) <br>
+            mu coordinate grid.
+        weights : array_like (n,1), optional <br>
+            Weights of markers. Uniform weights if None.
+
+    Returns:
+        Tuple (ordinate,Pvals,muvals) where ordinate is the resulting histogram
+        in (Pgrid,mugrid) grid and Pvals, and muvals are the exact (P,mu) values
+        corresponding to (rvals,zvals,ksivals).
+    """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
+    vnorm = np.sqrt(2*energy/mass)
+    bnorm = a5.evaluate(rvals, 0, zvals, 0, "bnorm")
+    psi   = a5.evaluate(rvals, 0, zvals, 0, "psi")
+
+    muvals = (1-2*(ksivals<0)) * (1-ksivals*ksivals) \
+             * vnorm * vnorm * mass / (2*bnorm)
+    Pvals  = mass * rvals * ksivals * vnorm + charge * psi
+
+    if weights is None:
+        weights = np.ones(muvals.shape)
+
+    ordinate = np.histogram2d(Pvals, muvals,
+                              bins=[Pgrid.ravel(), mugrid.ravel()],
+                              weights=weights)[0]
+
+    if free:
+        a5.free(bfield=True)
+
+    return (ordinate, Pvals, muvals)
+
+
+def mapPmu2rzk(a5, mass, charge, energy, Pvals, muvals,
+               rgrid, zgrid, ksigrid, weights=None):
+    """
+    Map (P,mu) coordinates to (R,z,ksi) grid.
+
+    This mapping is not one-to-one as single (P,mu) value corresponds to a whole
+    trajectory in (R,z,ksi) real-space. Therefore, this function finds all
+    (R,z,ksi) cells a (P,mu) correspond to, and divides the weight evenly among
+    them.
+
+    Args:
+        a5 : Ascotpy, str <br>
+            Ascotpy object or HDF5 filename.
+        mass : float <br>
+            Marker mass [kg].
+        charge : float <br>
+            Marker charge [C].
+        energy : float <br>
+            Marker energy [J].
+        Pvals : array_like (n,1) <br>
+            Marker P values.
+        muvals : array_like (n,1) <br>
+            Marker mu values (including sign).
+        rgrid : array_like (n,1) <br>
+            R coordinate grid.
+        zgrid : array_like (n,1) <br>
+            z coordinate grid.
+        ksigrid : array_like (n,1) <br>
+            ksi coordinate grid.
+        weights : array_like (n,1), optional <br>
+            Weights of markers. Uniform weights if None.
+
+    Returns:
+        Ordinate. (R,z,ksi) values are not returned as they are not unique.
+    """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
+    vnorm = np.sqrt(2*energy/mass)
+    if weights is None:
+        weights = np.ones(muvals.shape)
+
+    Pvals   = Pvals.ravel()
+    muvals  = muvals.ravel()
+    weights = weights.ravel()
+
+    # Evaluate what P and mu are at each Rzk-grid node
+    R, Z, Ksi = np.meshgrid(rgrid, zgrid, ksigrid, indexing='ij')
+    psi   = a5.evaluate(R, 0, Z, 0, "psi").reshape(R.shape)
+    bnorm = a5.evaluate(R, 0, Z, 0, "bnorm").reshape(R.shape)
+    Mu = (1-2*(Ksi<0))*mass * (1-Ksi*Ksi) * vnorm * vnorm / (2*bnorm)
+    P  = mass * R * Ksi * vnorm  + charge * psi
+    Pmid = charge * psi
+
+    # Maximum possible mu value at each node
+    Mumax = mass * vnorm * vnorm / (2*bnorm)
+
+    # The index search algorithm, which finds 8R,z,ksi) cells (P,mu) correspond
+    # to, is run twice: first to find how many cells each (P,mu) correspond to
+    # so that their weights can be dividec accordingly, and then to distribute
+    # the weight among the cells.
+    ncells  = np.zeros(weights.shape)
+    for i in range(rgrid.size-1):
+        for j in range(zgrid.size-1):
+            for k in range(ksigrid.size-1):
+                # Check which (Pvals, muvals) values are within this cell by
+                # finding those for which Mu_a < mu < Mu_b and P_c < P < P_d
+                # where a, b, c, and d are some grid nodes.
+
+                # However, there is a caveat. When ksi passes zero, mu is
+                # discontinuous. Therefore we separate those ksi grid points
+                # (k and k+1) so we can use Mu_a < mu < Mumax and
+                # -Mumax < mu < Mu_b where ksi(k) < 0 and ksi(k+1) > 0.
+                vals0 = [Mu[i,j,k], Mu[i+1,j,k], Mu[i,j+1,k], Mu[i+1,j+1,k]]
+                vals1 = [Mu[i,j,k+1], Mu[i+1,j,k+1], Mu[i,j+1,k+1],
+                         Mu[i+1,j+1,k+1]]
+
+                vals2 = [P[i,j,k], P[i+1,j,k], P[i,j+1,k], P[i+1,j+1,k]]
+                vals3 = [P[i,j,k+1], P[i+1,j,k+1], P[i,j+1,k+1], P[i+1,j+1,k+1]]
+
+                Mumaxval = np.nanmax([Mumax[i,j,k], Mumax[i+1,j,k],
+                                      Mumax[i,j+1,k], Mumax[i+1,j+1,k]])
+
+                if ksigrid.size % 2 == 0 and k == ksigrid.size/2-1:
+                    a1 = np.logical_and.reduce( [ muvals <= np.nanmin(vals0),
+                                                  muvals >  -Mumaxval ] )
+                    a2 = np.logical_and.reduce( [ muvals <= Mumaxval,
+                                                  muvals > np.nanmin(vals1) ] )
+                    a = np.logical_or.reduce([a1, a2])
+
+                elif ksigrid.size % 2 == 1 and k == (ksigrid.size-1)/2-1 :
+                    a = np.logical_and.reduce( [ muvals < np.nanmax(vals0),
+                                                 muvals >= -Mumaxval ] )
+
+                elif ksigrid.size % 2 == 1 and k == (ksigrid.size-1)/2 :
+                    a = np.logical_and.reduce( [ muvals >= np.nanmin(vals1),
+                                                 muvals <= Mumaxval ] )
+                else:
+                    a = np.logical_and.reduce(
+                        [ muvals >= np.nanmin(np.append(vals0,vals1)),
+                          muvals < np.nanmax(np.append(vals0,vals1)) ] )
+
+                b = np.logical_and.reduce(
+                    [Pvals >= np.nanmin(np.append(vals2,vals3)),
+                     Pvals < np.nanmax(np.append(vals2,vals3)) ])
+
+                # Add this cell to all (P,mu) values that it holds
+                ids = np.logical_and.reduce([a, b])
+                if np.sum(ids.ravel()) > 0:
+                    ncells[ids] += 1
+
+    # Update the weights and run the algorithm again
+    weights = weights/ncells
+    ordinate = np.zeros( (rgrid.size-1,zgrid.size-1,ksigrid.size-1) )
+    for i in range(rgrid.size-1):
+        for j in range(zgrid.size-1):
+            for k in range(ksigrid.size-1):
+                vals0 = [Mu[i,j,k], Mu[i+1,j,k], Mu[i,j+1,k], Mu[i+1,j+1,k]]
+                vals1 = [Mu[i,j,k+1], Mu[i+1,j,k+1], Mu[i,j+1,k+1],
+                         Mu[i+1,j+1,k+1]]
+
+                vals2 = [P[i,j,k], P[i+1,j,k], P[i,j+1,k], P[i+1,j+1,k]]
+                vals3 = [P[i,j,k+1], P[i+1,j,k+1], P[i,j+1,k+1], P[i+1,j+1,k+1]]
+
+                Mumaxval = np.nanmax([Mumax[i,j,k], Mumax[i+1,j,k],
+                                      Mumax[i,j+1,k], Mumax[i+1,j+1,k]])
+
+                #if ksigrid.size % 2 == 1 and k == (ksigrid.size-1)/2-1 :
+                if ksigrid.size % 2 == 0 and k == ksigrid.size/2-1:
+                    a1 = np.logical_and.reduce( [ muvals <= np.nanmin(vals0),
+                                                  muvals >=-Mumaxval ] )
+                    a2 = np.logical_and.reduce( [ muvals <= Mumaxval,
+                                                  muvals >  np.nanmin(vals1) ] )
+                    a = np.logical_or.reduce([a1, a2])
+
+                #elif ksigrid.size % 2 == 0 and k == ksigrid.size/2-1:
+                elif ksigrid.size % 2 == 1 and k == (ksigrid.size-1)/2-1 :
+                    a = np.logical_and.reduce( [ muvals <= np.nanmax(vals0),
+                                                 muvals >= -Mumaxval ] )
+                #elif ksigrid.size % 2 == 0 and k == ksigrid.size/2:
+                elif ksigrid.size % 2 == 1 and k == (ksigrid.size-1)/2 :
+                    a = np.logical_and.reduce( [ muvals > np.nanmin(vals1),
+                                                 muvals <= Mumaxval ] )
+                else:
+                    a = np.logical_and.reduce(
+                        [ muvals >= np.nanmin(np.append(vals0,vals1)),
+                          muvals < np.nanmax(np.append(vals0,vals1)) ] )
+
+                b = np.logical_and.reduce(
+                    [ Pvals >= np.nanmin(np.append(vals2,vals3)),
+                      Pvals < np.nanmax(np.append(vals2,vals3)) ])
+
+                # Weight of this cell is equal to sum of weights of those (P,mu)
+                # values that this cell holds.
+                ids = np.logical_and.reduce([a, b])
+                if np.sum(ids.ravel()) > 0:
+                    ordinate[i,j,k] = np.sum( weights[ids].ravel() )
+
+    if free:
+        a5.free(bfield=True)
+
+    return ordinate
+
+
+def test_rzk2Pmu(fn):
+    """
+    Verify R-z-ksi & P-mu transformation.
+
+    This function populates (r,z,ksi) mesh uniformly, transforms it to (P,mu)
+    mesh, and transforms the resulting values back to (r,z,ksi) grid. Therefore
+    the initial and final histograms should resemble each other. Process is
+    repeated starting from uniform (P,mu) population. Final and intermediate
+    histograms are plotted.
+
+    Args:
+        fn : str <br>
+            Filename for ascot HDF5 file which must have magnetic field present.
     """
     h5 = Ascot(fn)
     a5 = Ascotpy(fn)
     a5.init(bfield=True)
 
+    mass   = const.physical_constants["alpha particle mass"][0]
+    energy = 3.5e6 * const.e
+    charge = 2 * const.e
+
+    # Begin by finding min/max values for r and z based on separatrix.
+    rho   = np.array([0,1])
+    theta = np.array([1])
+    rz = a5.get_rhotheta_rz(rho, theta, 0, 0 )
+    rmin = rz[0][0]
+    rmax = rz[0][0]
+    zmin = rz[1][0]
+    zmax = rz[1][0]
+    for i in range(360):
+        rz = a5.get_rhotheta_rz(rho, i*theta, 0, 0 )
+        rmin = np.minimum(rmin, rz[0][1])
+        rmax = np.maximum(rmax, rz[0][1])
+        zmin = np.minimum(zmin, rz[1][1])
+        zmax = np.maximum(zmax, rz[1][1])
+
+    rgrid = np.linspace(rmin, rmax, 20)
+    zgrid = np.linspace(zmin, zmax, 40)
+    kgrid = np.linspace(-1, 1, 51)
+
     nP  = 100
-    nmu = 50
-    nksi = 20
-    nrho = 10
+    nmu = 100
     try:
-        Pgrid, mugrid, rhogrid, pitchgrid = initgrid(a5, mass, charge, energy,
-                                                     rhomin, rhomax,
-                                                     nP, nmu, nrho, nksi, 1e-3)
-
-        rhovals = rhogrid[:-1] + (rhogrid[1] - rhogrid[0]) / 2
-        muvals  = mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2
-
-        rhovals, muvals = np.meshgrid(rhovals, muvals, indexing='ij')
-        markers = np.ones(rhovals.shape)
-        markers = maprhomu2Pmu(a5, mass, charge, energy,
-                               rhovals.ravel(), muvals.ravel(),
-                               Pgrid, mugrid, weights=markers.ravel())
-
         fig  = plt.figure()
-        axes = fig.add_subplot(2,4,1)
-        h = axes.pcolormesh(Pgrid, mugrid, markers.transpose())
+
+        Pgrid, mugrid, = initgridPmu(a5, mass, charge, energy,
+                                     nP, nmu, padding=1e-3)
+
+        # Make uniform population on (R,z,ksi) grid.
+        rvals, zvals, kvals = np.meshgrid(
+            rgrid[:-1] + (rgrid[1] - rgrid[0]) / 2,
+            zgrid[:-1] + (zgrid[1] - zgrid[0]) / 2,
+            kgrid[:-1] + (kgrid[1] - kgrid[0]) / 2, indexing='ij')
+        weights = np.ones(rvals.shape)
+
+        # Transform it to (P,mu) space and plot
+        weights, Pvals, muvals = maprzk2Pmu(a5, mass, charge, energy,
+                                            rvals.ravel(), zvals.ravel(),
+                                            kvals.ravel(), Pgrid, mugrid,
+                                            weights=weights.ravel())
+
+        axes = fig.add_subplot(2,3,1)
+        h = axes.pcolormesh(Pgrid, mugrid, weights.transpose())
         plt.colorbar(h, ax=axes)
 
-        Pvals   = Pgrid[:-1] + (Pgrid[1] - Pgrid[0]) / 2
-        muvals  = mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2
-        Pvals, muvals = np.meshgrid(Pvals, muvals, indexing='ij')
-        markers = mapPmu2rhomu(a5, mass, charge, energy,
-                               Pvals.ravel(), muvals.ravel(),
-                               rhogrid, mugrid, weights=markers.ravel())
-
-        axes = fig.add_subplot(2,4,2)
-        h = axes.pcolormesh(rhogrid, mugrid, markers.transpose())
-        plt.colorbar(h, ax=axes)
-
-        plt.show(block=False)
-        return
-
-        Pvals   = Pgrid[:-1] + (Pgrid[1] - Pgrid[0]) / 2
-        muvals  = mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2
-        Pvals, muvals = np.meshgrid(Pvals, muvals, indexing='ij')
-        markers = mapPmu2rzk(a5, mass, charge, energy,
+        # Now transform the population back to (R,z,ksi) grid and plot
+        weights = np.ones(Pvals.shape)
+        weights = mapPmu2rzk(a5, mass, charge, energy,
                              Pvals.ravel(), muvals.ravel(),
-                             rgrid, zgrid, ksigrid, markers.ravel())
+                             rgrid, zgrid, kgrid, weights=weights.ravel())
 
-        axes = fig.add_subplot(2,4,2)
-        h = axes.pcolormesh(rgrid, zgrid, np.sum(markers, axis=2).transpose())
-        plt.colorbar(h, ax=axes)
-        ksivals = ksigrid[:-1] + (ksigrid[1] - ksigrid[0])/2
-        axes = fig.add_subplot(2,4,3)
-        h = axes.plot(ksivals, np.sum(np.sum(markers, axis=0), axis=0))
-
-        dist = markers
-        dist[weights < 1]    = 0
-        dist[np.isnan(dist)] = 0
-        dist[np.isinf(dist)] = 0
-
-        n = Nmrk
-        while(np.sum(np.floor(n*dist.ravel()))) < Nmrk:
-            n = n +1
-
-        dist = np.floor(dist*n)
-        dist[dist < 1] = 0
-
-        axes = fig.add_subplot(2,4,4)
-        h = axes.pcolormesh(rgrid, zgrid, np.sum(dist, axis=2).transpose())
+        # Rz
+        axes = fig.add_subplot(2,3,2)
+        h = axes.pcolormesh(rgrid, zgrid, np.sum(weights, axis=2).transpose())
         plt.colorbar(h, ax=axes)
 
-        n   = int(np.sum(dist.ravel()))
-        r   = np.zeros((n,))
-        z   = np.zeros((n,))
-        ksi = np.zeros((n,))
-        w   = np.zeros((n,))
-        n0  = 0
-        for i in range(dist.shape[0]):
-            for j in range(dist.shape[1]):
-                for k in range(dist.shape[2]):
-                    n = int(dist[i,j,k])
-                    if n == 0:
-                        continue
+        # ksi
+        axes = fig.add_subplot(2,3,3)
+        h = axes.plot(kgrid[:-1] + (kgrid[1] - kgrid[0])/2,
+                      np.sum(np.sum(weights, axis=0), axis=0))
 
-                    r[n0:n0+n]   = rgrid[i]   + np.random.rand(n)*(
-                        rgrid[1] - rgrid[0])
-                    z[n0:n0+n]   = zgrid[j]   + np.random.rand(n)*(
-                        zgrid[1] - zgrid[0])
-                    ksi[n0:n0+n] = ksigrid[k] + np.random.rand(n)*(
-                        ksigrid[1] - ksigrid[0])
-                    w[n0:n0+n]   = weights[i,j,k] / n
-                    n0 = n0+n
+        # Repeat the process other way around
+        Pvals, muvals = np.meshgrid(
+            Pgrid[:-1] + (Pgrid[1] - Pgrid[0]) / 2,
+            mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2,
+            indexing='ij')
+        weights = np.ones(Pvals.shape)
+        weights = mapPmu2rzk(a5, mass, charge, energy,
+                             Pvals.ravel(), muvals.ravel(),
+                             rgrid, zgrid, kgrid, weights=weights.ravel())
 
-        n = r.size
-
-        Nmrk = 20000
-        ids = np.arange(n)
-        np.random.shuffle(ids)
-        r   = np.squeeze(r)[ids[:Nmrk]]
-        z   = np.squeeze(z)[ids[:Nmrk]]
-        ksi = np.squeeze(ksi)[ids[:Nmrk]]
-        w   = np.squeeze(w * (Nmrk/n))[ids[:Nmrk]]
-
-        markers = maprzk2Pmu(a5, mass, charge, energy, r, z, ksi,
-                             Pgrid, mugrid, weights=None)
-
-        axes = fig.add_subplot(2,4,5)
-        h = axes.pcolormesh(Pgrid, mugrid, markers.transpose())
+        # Rz
+        axes = fig.add_subplot(2,3,4)
+        h = axes.pcolormesh(rgrid, zgrid, np.sum(weights, axis=2).transpose())
         plt.colorbar(h, ax=axes)
 
-        Pvals   = Pgrid[:-1] + (Pgrid[1] - Pgrid[0]) / 2
-        muvals  = mugrid[:-1] + (mugrid[1] - mugrid[0]) / 2
-        Pvals, muvals = np.meshgrid(Pvals, muvals, indexing='ij')
-        markers = mapPmu2rhomu(a5, mass, charge, energy,
-                               Pvals.ravel(), muvals.ravel(),
-                               rhogrid, mugrid, weights=markers.ravel())
+        # ksi
+        axes = fig.add_subplot(2,3,5)
+        h = axes.plot(kgrid[:-1] + (kgrid[1] - kgrid[0])/2,
+                      np.sum(np.sum(weights, axis=0), axis=0))
 
-        axes = fig.add_subplot(2,4,6)
-        h = axes.pcolormesh(rhogrid, mugrid, markers.transpose())
+        # Transform back to (P,mu) space and plot
+        rvals, zvals, kvals = np.meshgrid(
+            rgrid[:-1] + (rgrid[1] - rgrid[0]) / 2,
+            zgrid[:-1] + (zgrid[1] - zgrid[0]) / 2,
+            kgrid[:-1] + (kgrid[1] - kgrid[0]) / 2, indexing='ij')
+        weights = maprzk2Pmu(a5, mass, charge, energy,
+                             rvals.ravel(), zvals.ravel(), kvals.ravel(),
+                             Pgrid, mugrid, weights=weights.ravel())[0]
+
+        axes = fig.add_subplot(2,3,6)
+        h = axes.pcolormesh(Pgrid, mugrid, weights.transpose())
         plt.colorbar(h, ax=axes)
 
         plt.show(block=False)
@@ -756,3 +1067,102 @@ def populate(fn, mass, charge, energy, rhomin, rhomax, nrho, nmu,
         raise e
 
     a5.free(bfield=True)
+
+
+def maprhoksi2rpz(a5, mass, charge, energy, rhovals, ksivals, rgrid, zgrid,
+                  ksigrid, weights=None):
+    """
+    Convert (rho_omp,ksi_omp) to (r,z,ksi) via (P,mu).
+    """
+    Pgrid  = np.linspace(-1,1,5)
+    mugrid = np.linspace(-1,1,5)
+    _, Pvals, muvals = maprhoksi2Pmu(a5, mass, charge, energy, rhovals, ksivals,
+                                     Pgrid, mugrid, weights=None)
+
+    ordinate = mapPmu2rzk(a5, mass, charge, energy, Pvals, muvals,
+                          rgrid, zgrid, ksigrid, weights=weights)
+
+    return ordinate
+
+
+def maprpz2rhoksi(a5, mass, charge, energy, rvals, zvals, ksivals, rhogrid,
+                  ksigrid, weights=None):
+    """
+    Convert (r,z,ksi) to (rho_omp,ksi_omp) via (P,mu).
+    """
+    Pgrid  = np.linspace(-1,1,5)
+    mugrid = np.linspace(-1,1,5)
+    _, Pvals, muvals = maprzk2Pmu(a5, mass, charge, energy, rvals, zvals,
+                                  ksivals, Pgrid, mugrid, weights=None)
+
+    ordinate, rhovals, ksivals = mapPmu2rhoksi(a5, mass, charge, energy, Pvals,
+                                               muvals, rhogrid, ksigrid,
+                                               weights=weights)
+
+    return (ordinate, rhovals, ksivals)
+
+
+def maprhoksi2rhomu(a5, mass, charge, energy, rhovals, ksivals, rhogrid,
+                    mugrid, weights=None):
+    """
+    Convert (rho_omp,ksi_omp) to (rho,mu) via (P,mu).
+    """
+    Pgrid  = np.linspace(-1,1,5)
+    _, Pvals, muvals = maprhoksi2Pmu(a5, mass, charge, energy, rhovals, ksivals,
+                                     Pgrid, mugrid, weights=None)
+
+    ordinate, rhovals, muvals = mapPmu2rhomu(a5, mass, charge, energy, Pvals,
+                                             muvals, rhogrid, mugrid,
+                                             weights=weights)
+
+    return (ordinate, rhovals, muvals)
+
+
+def maprhomu2rhoksi(a5, mass, charge, energy, rhovals, muvals, rhogrid,
+                    ksigrid, weights=None):
+    """
+    Convert (rho_omp,ksi_omp) to (rho,mu) via (P,mu).
+    """
+    Pgrid  = np.linspace(-1,1,5)
+    mugrid = np.linspace(-1,1,5)
+
+    _, Pvals, muvals = maprhomu2Pmu(a5, mass, charge, energy, rhovals, muvals,
+                                    Pgrid, mugrid, weights=None)
+
+    ordinate, rhovals, ksivals = mapPmu2rhoksi(a5, mass, charge, energy, Pvals,
+                                               muvals, rhogrid, ksigrid,
+                                               weights=weights)
+
+    return (ordinate, rhovals, ksivals)
+
+
+def maprhomu2rpz(a5, mass, charge, energy, rhovals, muvals, rgrid, zgrid,
+                 ksigrid, weights=None):
+    """
+    Convert (rho_omp,mu) to (r,z,ksi) via (P,mu).
+    """
+    Pgrid  = np.linspace(-1,1,5)
+    mugrid = np.linspace(-1,1,5)
+    _, Pvals, muvals = maprhomu2Pmu(a5, mass, charge, energy, rhovals, muvals,
+                                    Pgrid, mugrid, weights=None)
+
+    ordinate = mapPmu2rzk(a5, mass, charge, energy, Pvals, muvals,
+                          rgrid, zgrid, ksigrid, weights=weights)
+
+    return ordinate
+
+
+def maprpz2rhomu():
+    """
+    Convert (r,z,ksi) to (rho_omp,mu) via (P,mu).
+    """
+    Pgrid  = np.linspace(-1,1,5)
+    mugrid = np.linspace(-1,1,5)
+    _, Pvals, muvals = maprzk2Pmu(a5, mass, charge, energy, rvals, zvals,
+                                  ksivals, Pgrid, mugrid, weights=None)
+
+    ordinate, rhovals, muvals = mapPmu2rhomu(a5, mass, charge, energy, Pvals,
+                                             muvals, rhogrid, mugrid,
+                                             weights=weights)
+
+    return (ordinate, rhovals, muvals)
