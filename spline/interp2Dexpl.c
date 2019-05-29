@@ -115,7 +115,7 @@ int interp2Dexpl_init(interp2D_data* str, real* f, int n_r, int n_z,
  * @param r r-coordinate
  * @param z z-coordinate
  */
-int interp2Dexpl_eval_B(real* B, interp2D_data* str, real r, real z) {
+a5err interp2Dexpl_eval_B(real* B, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid;
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
     real dr2 = dr*dr;
@@ -158,7 +158,7 @@ int interp2Dexpl_eval_B(real* B, interp2D_data* str, real r, real z) {
  * @param r r-coordinate
  * @param z z-coordinate
  */
-int interp2Dexpl_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
+a5err interp2Dexpl_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
     int i_r = (r-str->r_min)/str->r_grid;
     real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid;
     real dr2 = dr*dr;
