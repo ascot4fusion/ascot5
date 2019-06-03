@@ -497,18 +497,27 @@ def remove_group(f, group):
 
     # Check the group exists and access it.
     if(str(group) == group):
-        qid = get_qid(group)
-        grp = get_group(f, qid)
-        if grp is None:
-            raise ValueError("Could not find group " + group)
-        else:
-            group = grp
+        try:
+            #group is not a parent group
+            qid = get_qid(group)
+            grp = get_group(f, qid)
+            if grp is None:
+                raise ValueError("Could not find group " + group)
+            else:
+                group = grp
 
-    # Remove the group
+        except ValueError:
+            #group is a parent group
+            group = f[group]
+
+    # Remove the groupp
     parent = group.parent
-    was_active = get_active(f, parent) == group
-    del f[group.name]
-
+    if parent.name!='/':
+        was_active = get_active(f, parent) == group
+        del f[group.name]
+    else:
+        was_active=False
+        del f[group.name]        
     # Set next group active (if removed group was) or remove the parent if no
     # other groups exist
     if was_active:
