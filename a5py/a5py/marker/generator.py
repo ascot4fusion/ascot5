@@ -60,6 +60,7 @@ def gen_markerdist(a5, mass, charge, energy, rgrid, zgrid, kgrid,
     tol = 1e-2
     err = tol+1
     newdist = np.zeros((rgrid.size-1, zgrid.size-1, kgrid.size-1))
+    probdensity = np.append( [0], np.cumsum(rhoksidist[2].ravel()) )
     while(err > tol):
         olddist = np.copy(newdist)
 
@@ -67,18 +68,17 @@ def gen_markerdist(a5, mass, charge, energy, rgrid, zgrid, kgrid,
             rhogrid = rhoksidist[0]
             ksigrid = rhoksidist[1]
 
-            rhovals = rhogrid[0] + np.random.rand(Ndraw) \
-                      * (rhogrid[-1]-rhogrid[0])
-            ksivals = ksigrid[0] + np.random.rand(Ndraw) \
-                      * (ksigrid[-1]-ksigrid[0])
+            rhovals, ksivals = np.meshgrid(rhogrid[:-1], ksigrid[:-1],
+                                           indexing='ij')
 
-            weights = np.zeros(rhovals.shape)
-            for i in range(rhogrid.size-1):
-                for j in range(ksigrid.size-1):
-                    ids = np.logical_and.reduce(
-                        [ rhogrid[i] < rhovals, rhovals < rhogrid[i+1],
-                          ksigrid[j] < ksivals, ksivals < ksigrid[j+1] ] )
-                    weights[ids] = rhoksidist[2][i,j]
+            prob = np.random.rand(Ndraw)
+            idx  = np.searchsorted(probdensity, prob, side='left')-1
+
+            weights = np.ones(idx.shape)
+            rhovals = rhovals.ravel()[idx] + np.random.rand(Ndraw) \
+                      * (rhogrid[1]-rhogrid[0])
+            ksivals = ksivals.ravel()[idx] + np.random.rand(Ndraw) \
+                      * (ksigrid[1]-ksigrid[0])
 
             newdist += phasespace.maprhoksi2rzk(a5, mass, charge, energy,
                                                 rhovals, ksivals,
@@ -154,16 +154,11 @@ def gen_DTalphadist(a5, rgrid, zgrid, ksigrid, plot=False):
               * np.exp(-19.94*np.power(ti, -1.0/3) )
     PDT     = 5.6e-13*n1*n2*sigmaDT / 1e6
 
-    # Remove weight outside separatrix
-    #rho = a5.evaluate(R=R, phi=0, z=Z, t=0, quantity="rho").reshape(
-    #    rgrid.size-1, zgrid.size-1, ksigrid.size-1)
-    #PDT[rho > 1] = 0
-
     # Convert power density to total alpha power in each cell
-    PDT     = (PDT * 2*np.pi*R * dr * dz / (ksigrid.size-1))
+    PDT = PDT * 2*np.pi*R * dr * dz / (ksigrid.size-1)
 
     # Convert power to particle birth rate and replace NaNs with zeros.
-    dist = PDT / (3.5e6*const.e)
+    dist = PDT / 3.5
     dist[np.isnan(dist)] = 0
 
     if free:
@@ -214,8 +209,8 @@ def generate(mass, charge, energy, markerdist, particledist, Nmrk,
          particledist[2][:-1] + (particledist[2][1] - particledist[2][0]) / 2),
         particledist[3], method='linear', fill_value=None)
 
-    R, Z, Ksi  = np.meshgrid(rgrid[:-1], zgrid[:-1], ksigrid[:-1],
-                             indexing='ij')
+    R, Z, Ksi = np.meshgrid(rgrid[:-1], zgrid[:-1], ksigrid[:-1],
+                            indexing='ij')
     R   = R.ravel()
     Z   = Z.ravel()
     Ksi = Ksi.ravel()
@@ -241,7 +236,7 @@ def generate(mass, charge, energy, markerdist, particledist, Nmrk,
         # and choose corresponding cells by finding last index where P is
         # smaller than the drawn number.
         prob = np.random.rand(Nsample)
-        idx  = np.searchsorted(markerdist, prob, side='left')
+        idx  = np.searchsorted(markerdist, prob, side='left')-1
 
         # Get weights for each marker
         weights = particledist[idx]
