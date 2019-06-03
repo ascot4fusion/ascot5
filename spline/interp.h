@@ -33,8 +33,8 @@
  * @brief Boundary conditions for the spline interpolation.
  */
 enum boundaryCondition {
-    NATURALBC  = 0, /**< Second derivative is zero                            */
-    PERIODICBC = 1  /**< Function has same value and derivatives on both ends */
+    NATURALBC  = 0, /**< Second derivative is zero at both ends               */
+    PERIODICBC = 1  /**< Function has same value and derivatives at both ends */
 };
 
 /**

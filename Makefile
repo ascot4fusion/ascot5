@@ -91,9 +91,9 @@ LINTHEADERS =  $(wildcard $(LINTDIR)linint*.h)
 LINTOBJS = $(patsubst %.c,%.o,$(wildcard $(LINTDIR)linint*.c))
 
 SPLINEDIR = spline/
-SPLINEHEADERS  = $(wildcard $(SPLINEDIR)spline.h $(SPLINEDIR)interp*comp.h)
+SPLINEHEADERS  = $(wildcard $(SPLINEDIR)spline.h $(SPLINEDIR)interp.h)
 SPLINEOBJS  = $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)spline*.c \
-						$(SPLINEDIR)interp*comp.c))
+						$(SPLINEDIR)interp*.c))
 
 UTESTDIR = unit_tests/
 DOCDIR = doc/

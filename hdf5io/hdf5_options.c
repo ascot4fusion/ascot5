@@ -590,13 +590,23 @@ int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
 
     for(int i=0; i < DIAG_ORB_MAXPOINCARES; i++) {
-        if(diagorb->toroidalangles[i] == 361){
+        if(diagorb->toroidalangles[0] < 0) {
+            /* Negative angle means plane is disabled */
+            diagorb->ntoroidalplots = 0;
+            break;
+        }
+        if(diagorb->toroidalangles[i] == 361) {
             diagorb->ntoroidalplots = i;
             break;
         }
     }
     for(int i=0; i < DIAG_ORB_MAXPOINCARES; i++) {
-        if(diagorb->poloidalangles[i] == 361){
+        if(diagorb->poloidalangles[0] < 0) {
+            /* Negative angle means plane is disabled */
+            diagorb->npoloidalplots = 0;
+            break;
+        }
+        if(diagorb->poloidalangles[i] == 361) {
             diagorb->npoloidalplots = i;
             break;
         }

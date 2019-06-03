@@ -163,7 +163,12 @@ int main(int argc, char** argv) {
     real* wall_offload_array;
 
     /* Read input from the HDF5 file */
-    if( hdf5_interface_read_input(&sim, &B_offload_array, &E_offload_array,
+    if( hdf5_interface_read_input(&sim,
+                                  hdf5_input_options | hdf5_input_bfield |
+                                  hdf5_input_efield  | hdf5_input_plasma |
+                                  hdf5_input_neutral | hdf5_input_wall |
+                                  hdf5_input_marker,
+                                  &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
                                   &wall_offload_array, &p, &n) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
@@ -470,6 +475,13 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
         {"mpi_size", required_argument, 0, 3},
         {"mpi_rank", required_argument, 0, 4},
         {"d", required_argument, 0, 5},
+        {"options", required_argument, 0, 6},
+        {"bfield",  required_argument, 0, 7},
+        {"efield",  required_argument, 0, 8},
+        {"marker",  required_argument, 0, 9},
+        {"wall",    required_argument, 0, 10},
+        {"plasma",  required_argument, 0, 11},
+        {"neutral", required_argument, 0, 12},
         {0, 0, 0, 0}
     };
 
@@ -479,6 +491,13 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     sim->mpi_rank       = 0;
     sim->mpi_size       = 0;
     strcpy(sim->description, "No description.");
+    sim->qid_options[0] = '\0';
+    sim->qid_bfield[0]  = '\0';
+    sim->qid_efield[0]  = '\0';
+    sim->qid_marker[0]  = '\0';
+    sim->qid_wall[0]    = '\0';
+    sim->qid_plasma[0]  = '\0';
+    sim->qid_neutral[0] = '\0';
 
     // Read user input
     int c;
@@ -498,6 +517,27 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
                 break;
             case 5:
                 strcpy(sim->description, optarg);
+                break;
+            case 6:
+                strcpy(sim->qid_options, optarg);
+                break;
+            case 7:
+                strcpy(sim->qid_bfield, optarg);
+                break;
+            case 8:
+                strcpy(sim->qid_efield, optarg);
+                break;
+            case 9:
+                strcpy(sim->qid_marker, optarg);
+                break;
+            case 10:
+                strcpy(sim->qid_wall, optarg);
+                break;
+            case 11:
+                strcpy(sim->qid_plasma, optarg);
+                break;
+            case 12:
+                strcpy(sim->qid_neutral, optarg);
                 break;
             default:
                 // Unregonizable argument(s). Tell user how to run ascot5_main
