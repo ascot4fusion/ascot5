@@ -14,6 +14,7 @@
 #include "simulate.h"
 #include "print.h"
 #include "gitver.h"
+#include "compiler_flags.h"
 #include "hdf5_interface.h"
 #include "hdf5io/hdf5_helpers.h"
 #include "hdf5io/hdf5_options.h"
