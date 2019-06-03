@@ -27,6 +27,7 @@
 #ifndef INTERP_H
 #define INTERP_H
 #include "../ascot5.h"
+#include "../error.h"
 
 /**
  * @brief Boundary conditions for the spline interpolation.
@@ -165,35 +166,35 @@ void interp3Dexpl_init_spline(interp3D_data* str, real* c,
                               real z_min, real z_max);
 
 #pragma omp declare simd uniform(str)
-int interp1Dcomp_eval_f(real* f, interp1D_data* str, real x);
+a5err interp1Dcomp_eval_f(real* f, interp1D_data* str, real x);
 #pragma omp declare simd uniform(str)
-int interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y);
+a5err interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y);
 #pragma omp declare simd uniform(str)
-int interp3Dcomp_eval_f(real* f, interp3D_data* str,
+a5err interp3Dcomp_eval_f(real* f, interp3D_data* str,
                          real x, real y, real z);
 
 #pragma omp declare simd uniform(str)
-int interp1Dexpl_eval_f(real* f, interp1D_data* str, real x);
+a5err interp1Dexpl_eval_f(real* f, interp1D_data* str, real x);
 #pragma omp declare simd uniform(str)
-int interp2Dexpl_eval_f(real* f, interp2D_data* str, real x, real y);
+a5err interp2Dexpl_eval_f(real* f, interp2D_data* str, real x, real y);
 #pragma omp declare simd uniform(str)
-int interp3Dexpl_eval_f(real* f, interp3D_data* str,
-                        real x, real y, real z);
+a5err interp3Dexpl_eval_f(real* f, interp3D_data* str,
+                          real x, real y, real z);
 
 #pragma omp declare simd uniform(str)
-int interp1Dcomp_eval_df(real* f_df, interp1D_data* str, real x);
+a5err interp1Dcomp_eval_df(real* f_df, interp1D_data* str, real x);
 #pragma omp declare simd uniform(str)
-int interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y);
+a5err interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y);
 #pragma omp declare simd uniform(str)
-int interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
-                         real x, real y, real z);
+a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
+                           real x, real y, real z);
 
 #pragma omp declare simd uniform(str)
-int interp1Dexpl_eval_df(real* f_df, interp1D_data* str, real x);
+a5err interp1Dexpl_eval_df(real* f_df, interp1D_data* str, real x);
 #pragma omp declare simd uniform(str)
-int interp2Dexpl_eval_df(real* f_df, interp2D_data* str, real x, real y);
+a5err interp2Dexpl_eval_df(real* f_df, interp2D_data* str, real x, real y);
 #pragma omp declare simd uniform(str)
-int interp3Dexpl_eval_df(real* f_df, interp3D_data* str,
-                         real x, real y, real z);
+a5err interp3Dexpl_eval_df(real* f_df, interp3D_data* str,
+                           real x, real y, real z);
 #pragma omp end declare target
 #endif

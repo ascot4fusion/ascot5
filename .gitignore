@@ -10,3 +10,4 @@ ascot.h5
 *.so
 doc/
 gitver.h
+compiler_flags.h

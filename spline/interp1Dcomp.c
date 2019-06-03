@@ -93,7 +93,7 @@ void interp1Dcomp_init_spline(interp1D_data* str, real* c,
  *
  * @return zero on success and one if x point is outside the domain.
  */
-int interp1Dcomp_eval_f(real* f, interp1D_data* str, real x) {
+a5err interp1Dcomp_eval_f(real* f, interp1D_data* str, real x) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
@@ -151,7 +151,7 @@ int interp1Dcomp_eval_f(real* f, interp1D_data* str, real x) {
  *
  * @return zero on success and one if (x,y) point is outside the grid.
  */
-int interp1Dcomp_eval_df(real* f_df, interp1D_data* str, real x) {
+a5err interp1Dcomp_eval_df(real* f_df, interp1D_data* str, real x) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
