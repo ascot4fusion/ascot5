@@ -1069,11 +1069,17 @@ def test_rzk2Pmu(fn):
     a5.free(bfield=True)
 
 
-def maprhoksi2rpz(a5, mass, charge, energy, rhovals, ksivals, rgrid, zgrid,
+def maprhoksi2rzk(a5, mass, charge, energy, rhovals, ksivals, rgrid, zgrid,
                   ksigrid, weights=None):
     """
     Convert (rho_omp,ksi_omp) to (r,z,ksi) via (P,mu).
     """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
     Pgrid  = np.linspace(-1,1,5)
     mugrid = np.linspace(-1,1,5)
     _, Pvals, muvals = maprhoksi2Pmu(a5, mass, charge, energy, rhovals, ksivals,
@@ -1082,14 +1088,23 @@ def maprhoksi2rpz(a5, mass, charge, energy, rhovals, ksivals, rgrid, zgrid,
     ordinate = mapPmu2rzk(a5, mass, charge, energy, Pvals, muvals,
                           rgrid, zgrid, ksigrid, weights=weights)
 
+    if free:
+        a5.free(bfield=True)
+
     return ordinate
 
 
-def maprpz2rhoksi(a5, mass, charge, energy, rvals, zvals, ksivals, rhogrid,
+def maprzk2rhoksi(a5, mass, charge, energy, rvals, zvals, ksivals, rhogrid,
                   ksigrid, weights=None):
     """
     Convert (r,z,ksi) to (rho_omp,ksi_omp) via (P,mu).
     """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
     Pgrid  = np.linspace(-1,1,5)
     mugrid = np.linspace(-1,1,5)
     _, Pvals, muvals = maprzk2Pmu(a5, mass, charge, energy, rvals, zvals,
@@ -1098,6 +1113,9 @@ def maprpz2rhoksi(a5, mass, charge, energy, rvals, zvals, ksivals, rhogrid,
     ordinate, rhovals, ksivals = mapPmu2rhoksi(a5, mass, charge, energy, Pvals,
                                                muvals, rhogrid, ksigrid,
                                                weights=weights)
+
+    if free:
+        a5.free(bfield=True)
 
     return (ordinate, rhovals, ksivals)
 
@@ -1107,6 +1125,12 @@ def maprhoksi2rhomu(a5, mass, charge, energy, rhovals, ksivals, rhogrid,
     """
     Convert (rho_omp,ksi_omp) to (rho,mu) via (P,mu).
     """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
     Pgrid  = np.linspace(-1,1,5)
     _, Pvals, muvals = maprhoksi2Pmu(a5, mass, charge, energy, rhovals, ksivals,
                                      Pgrid, mugrid, weights=None)
@@ -1114,6 +1138,9 @@ def maprhoksi2rhomu(a5, mass, charge, energy, rhovals, ksivals, rhogrid,
     ordinate, rhovals, muvals = mapPmu2rhomu(a5, mass, charge, energy, Pvals,
                                              muvals, rhogrid, mugrid,
                                              weights=weights)
+
+    if free:
+        a5.free(bfield=True)
 
     return (ordinate, rhovals, muvals)
 
@@ -1123,6 +1150,12 @@ def maprhomu2rhoksi(a5, mass, charge, energy, rhovals, muvals, rhogrid,
     """
     Convert (rho_omp,ksi_omp) to (rho,mu) via (P,mu).
     """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
     Pgrid  = np.linspace(-1,1,5)
     mugrid = np.linspace(-1,1,5)
 
@@ -1133,14 +1166,23 @@ def maprhomu2rhoksi(a5, mass, charge, energy, rhovals, muvals, rhogrid,
                                                muvals, rhogrid, ksigrid,
                                                weights=weights)
 
+    if free:
+        a5.free(bfield=True)
+
     return (ordinate, rhovals, ksivals)
 
 
-def maprhomu2rpz(a5, mass, charge, energy, rhovals, muvals, rgrid, zgrid,
+def maprhomu2rzk(a5, mass, charge, energy, rhovals, muvals, rgrid, zgrid,
                  ksigrid, weights=None):
     """
     Convert (rho_omp,mu) to (r,z,ksi) via (P,mu).
     """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
     Pgrid  = np.linspace(-1,1,5)
     mugrid = np.linspace(-1,1,5)
     _, Pvals, muvals = maprhomu2Pmu(a5, mass, charge, energy, rhovals, muvals,
@@ -1149,13 +1191,22 @@ def maprhomu2rpz(a5, mass, charge, energy, rhovals, muvals, rgrid, zgrid,
     ordinate = mapPmu2rzk(a5, mass, charge, energy, Pvals, muvals,
                           rgrid, zgrid, ksigrid, weights=weights)
 
+    if free:
+        a5.free(bfield=True)
+
     return ordinate
 
 
-def maprpz2rhomu():
+def maprzk2rhomu():
     """
     Convert (r,z,ksi) to (rho_omp,mu) via (P,mu).
     """
+    free = False
+    if isinstance(a5, str):
+        free = True
+        a5 = Ascotpy(a5)
+        a5.init(bfield=True)
+
     Pgrid  = np.linspace(-1,1,5)
     mugrid = np.linspace(-1,1,5)
     _, Pvals, muvals = maprzk2Pmu(a5, mass, charge, energy, rvals, zvals,
@@ -1164,5 +1215,8 @@ def maprpz2rhomu():
     ordinate, rhovals, muvals = mapPmu2rhomu(a5, mass, charge, energy, Pvals,
                                              muvals, rhogrid, mugrid,
                                              weights=weights)
+
+    if free:
+        a5.free(bfield=True)
 
     return (ordinate, rhovals, muvals)
