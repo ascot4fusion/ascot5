@@ -103,6 +103,7 @@ from a5py.ascot5io.options    import Opt
 
 from a5py.ascot5io.state      import State
 from a5py.ascot5io.orbits     import Orbits
+from a5py.ascot5io.transcoef  import Transcoef
 from a5py.ascot5io.dist_5D    import Dist_5D
 from a5py.ascot5io.dist_6D    import Dist_6D
 from a5py.ascot5io.dist_rho5D import Dist_rho5D
@@ -169,7 +170,7 @@ def create_outputobject(key, h5group, runnode):
     name_and_object = {
         "inistate" : State, "endstate" : State, "orbit" : Orbits,
         "dist5d" : Dist_5D, "dist6d" : Dist_6D, "distrho5d" : Dist_rho5D,
-        "distrho6d" : Dist_rho6D
+        "distrho6d" : Dist_rho6D, "transcoef" : Transcoef
     }
 
     return name_and_object[key](h5group, runnode)
