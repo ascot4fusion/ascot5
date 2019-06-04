@@ -188,8 +188,9 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENABLE_ORBITWRITE", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     diag->diagorb_collect = (int)tempfloat;
-
-    diag->diagtrcof_collect = (int)1;
+    if( hdf5_read_double(OPTPATH "ENABLE_TRANSCOEF", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diag->diagtrcof_collect = (int)tempfloat;
 
     /* Read individual diagnostics data */
     if(diag->dist5D_collect) {
@@ -639,8 +640,13 @@ int hdf5_options_read_diagtrcof(hid_t file,
     #undef OPTPATH
     #define OPTPATH "/options/opt_XXXXXXXXXX/"
 
-    diagtrcof->interval = -1;
-    diagtrcof->Navg     = 5;
+    if( hdf5_read_double(OPTPATH "TRANSCOEF_INTERVAL", &diagtrcof->interval,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+
+    real tempfloat;
+    if( hdf5_read_double(OPTPATH "TRANSCOEF_NAVG", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diagtrcof->Navg = (int)tempfloat;
 
     return 0;
 }
