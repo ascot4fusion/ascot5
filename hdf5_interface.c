@@ -492,6 +492,11 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
         }
     }
 
+    if(sim->diag_offload_data.diagtrcof_collect) {
+        print_out(VERBOSE_IO, "Writing transport coefficient diagnostics.\n");
+        int idx = sim->diag_offload_data.offload_diagtrcof_index;
+    }
+
     hdf5_close(f);
 
     print_out(VERBOSE_IO, "\nDiagnostics output written.\n");

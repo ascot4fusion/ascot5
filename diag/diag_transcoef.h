@@ -58,5 +58,5 @@ void diag_transcoef_free(diag_transcoef_data* data);
 
 void diag_transcoef_update_gc(diag_transcoef_data* data,
                               particle_simd_gc* p_f, particle_simd_gc* p_i);
-
+#pragma omp end declare target
 #endif

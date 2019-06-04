@@ -31,6 +31,9 @@ int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
                                 char* qid);
 int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
                               char* qid);
+int hdf5_options_read_diagtrcof(hid_t file,
+                                diag_transcoef_offload_data* diagtrcof,
+                                char* qid);
 
 /**
  * @brief Read options and diagnostics settings from HDF5 file
@@ -186,6 +189,8 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     diag->diagorb_collect = (int)tempfloat;
 
+    diag->diagtrcof_collect = (int)1;
+
     /* Read individual diagnostics data */
     if(diag->dist5D_collect) {
         if( hdf5_options_read_dist5D(file, &diag->dist5D, qid) ) {
@@ -215,6 +220,12 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
         }
 
         if( hdf5_options_read_diagorb(file, &diag->diagorb, qid) ) {
+            return 1;
+        }
+    }
+
+    if(diag->diagtrcof_collect) {
+        if( hdf5_options_read_diagtrcof(file, &diag->diagtrcof, qid) ) {
             return 1;
         }
     }
@@ -618,6 +629,18 @@ int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
     for(int i=0; i < diagorb->npoloidalplots; i++) {
         diagorb->poloidalangles[i] = diagorb->poloidalangles[i]*CONST_PI/180;
     }
+
+    return 0;
+}
+
+int hdf5_options_read_diagtrcof(hid_t file,
+                                diag_transcoef_offload_data* diagtrcof,
+                                char* qid) {
+    #undef OPTPATH
+    #define OPTPATH "/options/opt_XXXXXXXXXX/"
+
+    diagtrcof->interval = -1;
+    diagtrcof->Navg     = 5;
 
     return 0;
 }

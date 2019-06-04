@@ -21,6 +21,7 @@
 #include "diag/dist_6D.h"
 #include "diag/dist_rho5D.h"
 #include "diag/dist_rho6D.h"
+#include "diag/diag_transcoef.h"
 #include "particle.h"
 
 void diag_arraysum(int start, int stop, real* array1, real* array2);
@@ -103,6 +104,12 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
         }
     }
 
+    if(data->diagtrcof_collect) {
+        data->offload_diagtrcof_index = n;
+        data->diagtrcof.Nmrk = Nmrk;
+        n += 3*data->diagtrcof.Nmrk;
+    }
+
     data->offload_array_length = n;
     *offload_array = malloc(n * sizeof(real));
     if(*offload_array == NULL) {
@@ -139,6 +146,7 @@ void diag_init(diag_data* data, diag_offload_data* offload_data,
     data->dist6D_collect    = offload_data->dist6D_collect;
     data->distrho5D_collect = offload_data->distrho5D_collect;
     data->distrho6D_collect = offload_data->distrho6D_collect;
+    data->diagtrcof_collect = offload_data->diagtrcof_collect;
 
     if(data->dist5D_collect) {
         dist_5D_init(&data->dist5D, &offload_data->dist5D,
@@ -163,6 +171,11 @@ void diag_init(diag_data* data, diag_offload_data* offload_data,
         diag_orb_init(&data->diagorb, &offload_data->diagorb,
                       &offload_array[offload_data->offload_diagorb_index]);
     }
+    if(data->diagtrcof_collect) {
+        diag_transcoef_init(
+            &data->diagtrcof, &offload_data->diagtrcof,
+            &offload_array[offload_data->offload_diagtrcof_index]);
+    }
 }
 
 /**
@@ -173,6 +186,9 @@ void diag_init(diag_data* data, diag_offload_data* offload_data,
 void diag_free(diag_data* data) {
     if(data->diagorb_collect) {
         diag_orb_free(&data->diagorb);
+    }
+    if(data->diagtrcof_collect) {
+        diag_transcoef_free(&data->diagtrcof);
     }
 }
 
@@ -238,6 +254,9 @@ void diag_update_gc(diag_data* data, particle_simd_gc* p_f,
     if(data->distrho6D_collect){
         dist_rho6D_update_gc(&data->distrho6D, p_f, p_i);
     }
+    if(data->diagtrcof_collect){
+        diag_transcoef_update_gc(&data->diagtrcof, p_f, p_i);
+    }
 }
 
 /**
@@ -262,9 +281,10 @@ void diag_update_ml(diag_data* data, particle_simd_ml* p_f,
 /**
  * @brief Sum offload data arrays as one
  *
- * The data in both arrays have identical order so distributionss can be summed
- * trivially. For orbits the first array already have space for appending the
- * orbit data from the second array, so we only need to move those elements.
+ * The data in both arrays have identical order so distributions can be summed
+ * trivially. For orbits and transport coefficients the first array already have
+ * space for appending the orbit data from the second array, so we only need to
+ * move those elements.
  *
  * @param data pointer to diagnostics data struct
  * @param array1 the array to which array2 is summed
@@ -275,6 +295,15 @@ void diag_sum(diag_offload_data* data, real* array1, real* array2) {
         int arr_start = data->offload_diagorb_index;
         int arr_length = data->diagorb.Nfld * data->diagorb.Nmrk
             * data->diagorb.Npnt;
+
+        memcpy(&(array1[arr_start+arr_length]),
+               &(array2[arr_start]),
+               arr_length*sizeof(real));
+    }
+
+    if(data->diagtrcof_collect) {
+        int arr_start = data->offload_diagtrcof_index;
+        int arr_length = 3 * data->diagtrcof.Nmrk;
 
         memcpy(&(array1[arr_start+arr_length]),
                &(array2[arr_start]),

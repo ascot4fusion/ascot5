@@ -2,11 +2,11 @@
  * @file diag_transcoef.c
  * @brief Transport coefficient diagnostics.
  */
-#include "../ascot5.h"
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "../ascot5.h"
 #include "../consts.h"
 #include "../simulate.h"
 #include "../particle.h"
@@ -31,8 +31,15 @@ void diag_transcoef_init(diag_transcoef_data* data,
     data->Kcoef = &(offload_array[1*offload_data->Nmrk]);
     data->Dcoef = &(offload_array[2*offload_data->Nmrk]);
 
+    data->interval = offload_data->interval;
+    data->Navg     = offload_data->Navg;
+
     data->datapoints = malloc(
-        offload_data->Nmrk*sizeof(diag_transcoef_link) );
+        offload_data->Nmrk*sizeof(diag_transcoef_link*) );
+    for(int i = 0; i < offload_data->Nmrk; i++) {
+        data->id[i] = -1;
+        data->datapoints[i] = NULL;
+    }
 }
 
 void diag_transcoef_free(diag_transcoef_data* data) {
@@ -48,14 +55,14 @@ void diag_transcoef_update_gc(diag_transcoef_data* data,
         if( p_f->id[i] > 0 ) {
 
             /* Check whether marker positin should be recorded */
-            real record = 0;
+            real record = 0.0;
             if( data->interval >= 0 &&
                 (p_f->time[i] - p_i->time[i]) > data->interval ) {
                 record = (p_f->time[i] - p_i->time[i]) / data->interval;
             }
             if( data->interval < 0 && p_f->time[i] > p_i->time[i] ) {
-                record = diag_transcoef_check_omp_crossing(p_f->phi[i],
-                                                           p_i->phi[i]);
+                record = diag_transcoef_check_omp_crossing(
+                    p_f->theta[i], p_i->theta[i]);
             }
 
             /* Record */
@@ -83,7 +90,7 @@ void diag_transcoef_update_gc(diag_transcoef_data* data,
     /* If marker simulation was ended, process and clean the data */
     for(int i=0; i < NSIMD; i++) {
         /* Mask dummy markers and those which are running */
-        if( p_f->id[i] > 0 && p_f->running[i] > 0 ) {
+        if( p_f->id[i] < 1 || p_f->running[i] > 0 ) {
             continue;
         }
 
@@ -146,7 +153,7 @@ void diag_transcoef_update_gc(diag_transcoef_data* data,
             for(int j = navgpnt-2; j > -1; j--) {
                 rho[j]  = 0;
                 time[j] = 0;
-                for(int k = 0; k < navgpnt; k++) {
+                for(int k = 0; k < data->Navg; k++) {
                     link = link->prevlink;
                     while(link->pitchsign * sign < 0) {
                         link = link->prevlink;
@@ -154,8 +161,8 @@ void diag_transcoef_update_gc(diag_transcoef_data* data,
                     rho[j]  += link->rho;
                     time[j] += link->time;
                 }
-                rho[j]  /= navgpnt;
-                time[j] /= navgpnt;
+                rho[j]  /= data->Navg;
+                time[j] /= data->Navg;
             }
 
             /* Evaluate coefficients */
@@ -203,15 +210,16 @@ void diag_transcoef_update_gc(diag_transcoef_data* data,
  */
 real diag_transcoef_check_omp_crossing(real fang, real iang){
 
-    real k = 0;
-    if( floor( fang/CONST_2PI ) != floor( iang/CONST_2PI ) ) {
+    real ang0 = 0;
+    real k = 0.0;
+    if( floor( (fang + ang0)/CONST_2PI ) != floor( (iang + ang0)/CONST_2PI ) ) {
 
         real a = fmod(iang, CONST_2PI);
         if(a < 0){
             a = CONST_2PI + a;
         }
 
-        a = fabs(a);
+        a = fabs(ang0 - a);
         if(a > CONST_PI) {
             a = CONST_2PI - a;
         }
