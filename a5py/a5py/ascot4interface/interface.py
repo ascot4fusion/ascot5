@@ -29,6 +29,7 @@ import a5py.ascot5io.wall_3D     as wall_3D
 import a5py.ascot5io.boozer      as boozer
 import a5py.ascot5io.mhd         as mhd
 import a5py.ascot5io.ascot5tools as a5tools
+import a5py.testascot.helpers    as helpers
 
 from a5py.preprocessing.boozermaps import Boozermaps
 from a5py.postprocessing.physicslib import guessMass

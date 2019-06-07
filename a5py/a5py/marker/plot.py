@@ -109,13 +109,11 @@ def plot_histogram(x, xbins=None, y=None, ybins=None, weights=None,
         axes = plt.gca()
 
     if xbins is None:
-        xbins = 10
-        #bins = np.amax(10, np.floor(x.size / 10))
-        #bins = np.amin(100, bins)
+        xbins = np.linspace(np.amin(x), np.amax(x), 10)
 
     if y is None:
-        axes.hist(x, xbins, normed=False, stacked=True, log=logscale,
-              weights=weights, rwidth=1)
+        axes.hist(x, xbins, density=False, stacked=True, log=logscale,
+                  weights=weights, rwidth=1)
 
         if xlabel is not None:
             axes.set_xlabel(xlabel)
@@ -128,7 +126,10 @@ def plot_histogram(x, xbins=None, y=None, ybins=None, weights=None,
             axes.ticklabel_format(style="sci", axis="y", scilimits=(0,0))
 
     else:
-        axes.hist2d(x, y)
+        if ybins is None:
+            ybins = np.linspace(np.amin(y), np.amax(y), 10)
+
+        axes.hist2d(x, y, bins=[xbins, ybins], weights=weights)
 
     if newfig:
         plt.show(block=False)

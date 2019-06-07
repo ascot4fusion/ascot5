@@ -95,17 +95,29 @@ class Ascotpy(LibBfield, LibEfield, LibPlasma, LibNeutral, LibBoozer, LibMhd):
         return out
 
 
-    def plotRz(self, R, phi, z, t, quantity, axes=None, **kwargs):
+    def plotRz(self, R, phi, z, t, quantity, axes=None, clim=[None, None],
+               **kwargs):
         out = self.evaluate(R, phi, z, t, quantity, grid=True)
+        out = np.transpose(out[:,0,:,0])
 
         newfig = axes is None
         if newfig:
             plt.figure()
             axes = plt.gca()
 
-        mesh = axes.pcolormesh(R, z, np.transpose(out[:,0,:,0]))
+        out = np.ma.masked_invalid(out)
+        if clim[0] is None:
+            clim[0] = np.nanmin(out)
+        if clim[1] is None:
+            clim[1] = np.nanmax(out)
+
+        mesh = axes.pcolormesh( R, z, out, vmin=clim[0], vmax=clim[1] )
+        axes.patch.set(hatch='x', edgecolor=[0.9, 0.9, 0.9])
+
         plt.colorbar(mesh)
-        axes.axis("image")
+        axes.set_aspect("equal", adjustable="box")
+        axes.set_xlim(R[0], R[-1])
+        axes.set_ylim(z[0], z[-1])
 
         if newfig:
             plt.show(block=False)

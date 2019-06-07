@@ -80,7 +80,7 @@ def read_hdf5(fn, qid):
         Dictionary containing input data.
     """
 
-    path = "marker/mrk_fl_" + qid
+    path = "marker/fl_" + qid
 
     out = {}
     with h5py.File(fn,"r") as f:

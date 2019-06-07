@@ -818,5 +818,5 @@ def generateopt():
 
 class Opt(AscotData):
 
-    def read(self):
-        return read_hdf5(self._file, self.get_qid())
+    def read(self, info=False):
+        return read_hdf5(self._file, self.get_qid(), info=info)

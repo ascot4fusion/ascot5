@@ -21,9 +21,26 @@ if mode == "add" and len(sys.argv) >= 4:
     # Check if the target file contains the results group. Copy it from the
     # first source file if not.
     a5 = ascot5.Ascot(targetfile)
+    s5 = ascot5.Ascot(sourcefiles[0])
     if not hasattr(a5, "active"):
         subprocess.call(["a5copygroup", sourcefiles[0], targetfile, "results"])
         del sourcefiles[0]
+    elif a5["active"] == s5["active"]:
+        print("Cannot combine. Target group already contains results with same QID.")
+        exit()
+    else:
+        print("Target file has an active run group. Are results supposed to be")
+        print("combined there or to a new run group?")
+        while True:
+            o = input("(c) Combine to existing one. (m) Make a new group.\n")
+            if o == "c":
+                break
+            elif o == "m":
+                subprocess.call(["a5copygroup", sourcefiles[0], targetfile,
+                                 "run_" + s5["active"].get_qid()])
+                del sourcefiles[0]
+                tools.call_ascot5file(targetfile, "set_active", "run_" + s5["active"].get_qid())
+                break
 
     for i in range(len(sourcefiles)):
         print("Combining " + sourcefiles[i] + " to " + targetfile)

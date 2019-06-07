@@ -29,7 +29,7 @@ class PlotFrame(tkinter.Frame):
 
         indexpanel = tkinter.Frame(self, width=250, height=100)
         toppanel   = tkinter.Frame(self, width=gui.width-250, height=100)
-        sidepanel  = tkinter.Frame(self, height=gui.height-100, width=200)
+        sidepanel  = tkinter.Frame(self, height=gui.height-100, width=250)
         backbutton = tkinter.Button(indexpanel, text="Back")
         canvas     = FigureCanvasTkAgg(self._fig, master=self)
 
@@ -48,7 +48,7 @@ class PlotFrame(tkinter.Frame):
         toppanel.grid(row=0, column=1)
         sidepanel.grid(row=1, column=0)
         canvas.get_tk_widget().grid(row=1, column=1, sticky="NEWS",
-                                    padx=10, pady=10)
+                                    padx=0, pady=0)
 
         indexpanel.pack_propagate(0)
         toppanel.grid_propagate(0)
@@ -71,7 +71,7 @@ class PlotFrame(tkinter.Frame):
 
     def get_toppanel(self):
         self._toppanel.destroy()
-        toppanel = tkinter.Frame(self, width=self._gui.width-200, height=100)
+        toppanel = tkinter.Frame(self, width=self._gui.width-250, height=100)
         toppanel.grid(row=0, column=1)
         toppanel.pack_propagate(0)
         toppanel.grid_propagate(0)
@@ -80,7 +80,7 @@ class PlotFrame(tkinter.Frame):
 
     def get_sidepanel(self):
         self._sidepanel.destroy()
-        sidepanel = tkinter.Frame(self, width=200, height=self._gui.height-100)
+        sidepanel = tkinter.Frame(self, width=250, height=self._gui.height-100)
         sidepanel.grid(row=1, column=0)
         sidepanel.pack_propagate(0)
         sidepanel.grid_propagate(0)

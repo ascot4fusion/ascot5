@@ -8,102 +8,61 @@ import numpy as np
 
 from .alias import get as alias
 
-endconds = {
-    "none"    : -1,
-    "aborted" : -2,
-    "tmax"    : 0,
-    "emin"    : 1,
-    "therm"   : 2,
-    "wall"    : 3,
-    "rhomin"  : 4,
-    "rhomax"  : 5,
-    "polmax"  : 6,
-    "tormax"  : 7,
-    "cpumax"  : 8,
-}
-
-class Endcond():
-    """
-    Class for representing endconditions.
-
-    Each Endcond represents a single marker's endcondition value in Ascot5
-    ini/endstate. Since a marker may have multiple endconditions active,
-    this class provides a functionality for comparing endconditions with a
-    simple equal operator e.g. Endcond == "wall" is a valid comparison.
-    """
-
-    def __init__(self, rawendcond, errmsg):
-        """
-        Init endcondition based on endcond and errmod fields in output data.
-        """
-        self._endconds = []
-        if errmsg > 0:
-            self._endconds.append(endconds["aborted"])
-
-        if rawendcond == 0:
-            self._endconds.append(endconds["none"])
-            return
-
-        ec = rawendcond - np.power(2, endconds["cpumax"])
-        if ec >= 0:
-            rawendcond = ec
-            self._endconds.append(endconds["cpumax"])
-
-        ec = rawendcond - np.power(2, endconds["tormax"])
-        if ec >= 0:
-            rawendcond = ec
-            self._endconds.append(endconds["tormax"])
-
-        ec = rawendcond - np.power(2, endconds["polmax"])
-        if ec >= 0:
-            rawendcond = ec
-            self._endconds.append(endconds["polmax"])
-
-        ec = rawendcond - np.power(2, endconds["rhomax"])
-        if ec >= 0:
-            rawendcond = ec
-            self._endconds.append(endconds["rhomax"])
-
-        ec = rawendcond - np.power(2, endconds["rhomin"])
-        if ec >= 0:
-            rawendcond = ec
-            self._endconds.append(endconds["rhomin"])
-
-        ec = rawendcond - np.power(2, endconds["wall"])
-        if ec >= 0:
-            rawendcond = ec
-            self._endconds.append(endconds["wall"])
-
-        ec = rawendcond - np.power(2, endconds["therm"])
-        if ec >= 0:
-            rawendcond = ec
-            self._endconds.append(endconds["therm"])
-
-        ec = rawendcond - np.power(2, endconds["emin"])
-        if ec >= 0:
-            rawendcond = ec
-            self._endconds.append(endconds["emin"])
-
-        ec = rawendcond - np.power(2, endconds["tmax"])
-        if ec >= 0:
-            rawendcond = ec
-            self._endconds.append(endconds["tmax"])
+endconds = [
+    ("aborted",  -1, 0x2),
+    ("none",      0, 0x1),
+    ("tmax",      1, 0x4),
+    ("emin",      2, 0x8),
+    ("therm",     3, 0x10),
+    ("wall",      4, 0x20),
+    ("rhomin",    5, 0x40),
+    ("rhomax",    6, 0x80),
+    ("polmax",    7, 0x100),
+    ("tormax",    8, 0x200),
+    ("cpumax",    9, 0x400)
+]
 
 
-    def __eq__(self, other):
-        """
-        Test if this endcondition is equal to the given value.
-        """
-        if isinstance(other, str):
-            other = endconds[alias(other)]
-            for key in self._endconds:
-                if key == other:
-                    return True
+def getval(name):
+    for ec in endconds:
+        if ec[0] == name:
+            return ec[1]
 
-        return False
+    return None
 
-    def __neq__(self, other):
-        """
-        Implementation for != operator.
-        """
-        return not (self == other)
+
+def getname(binr):
+    estr = ""
+    for ec in endconds:
+        if ec[2] & binr:
+            if estr == "":
+                estr = ec[0]
+            else:
+                estr += " + " + ec[0]
+
+    return estr
+
+
+def getbin(name):
+    for ec in endconds:
+        if ec[0] == name:
+            return ec[2]
+
+    return None
+
+
+def parse(endcond):
+    names = []
+    vals  = []
+
+    if endcond == 0:
+        names.append("none")
+        vals.append(getval("none"))
+        return (names, vals)
+
+    for ec in endconds:
+        if endcond & ec[2]:
+            names.append(ec[0])
+            vals.append(ec[1])
+
+    return (names, vals)
