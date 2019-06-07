@@ -19,11 +19,12 @@ plt = util.find_spec("matplotlib")
 if plt:
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
+    from matplotlib.colors import ListedColormap
 
 
 def plotpp(x, y, xgrid, ygrid, quantity=None, addlosscontour=None,
            addtrappedcontour=None, mask=None, axes=None, xlabel=None,
-           xlim=None, ylabel=None, ylim=None):
+           xlim=None, ylabel=None, ylim=None, displaycolormap=True):
     """
     Plot marker distribution in phase space.
 
@@ -52,11 +53,15 @@ def plotpp(x, y, xgrid, ygrid, quantity=None, addlosscontour=None,
             Boolean array indicating which values are taken into account when
             plotting the quantity (i.e. plot only lost markers). All values are
             still used to process addlosscontour and addtrappedcontour.
+        displaycolormap : bool, optional <br>
+            Show colormap.
     """
     if axes is None:
         fig = plt.figure()
         gs = GridSpec(1,1)
         ax = fig.add_subplot(gs[0,0])
+    else:
+        ax = axes
 
     if mask is None:
         mask = np.ones(x.shape) == 1
@@ -72,8 +77,16 @@ def plotpp(x, y, xgrid, ygrid, quantity=None, addlosscontour=None,
     density = np.histogram2d(x[mask], y[mask], bins=[xgrid,ygrid],
                              weights=quantity[mask])[0] / ncount
 
-    mesh = ax.pcolormesh(xgrid, ygrid, density.transpose())
-    plt.colorbar(mesh, ax=ax)
+    alpha=None
+    if addlosscontour is not None:
+        ncount   = np.histogram2d(x, y, bins=[xgrid,ygrid])[0]
+        lossfrac = np.histogram2d(x, y, bins=[xgrid,ygrid],
+                                  weights=addlosscontour)[0] / ncount
+
+    mesh = ax.pcolormesh(xgrid, ygrid, np.log10(density.transpose()),
+                         alpha=alpha)
+    if displaycolormap:
+        plt.colorbar(mesh)
 
 
     if addtrappedcontour is not None:
@@ -83,7 +96,7 @@ def plotpp(x, y, xgrid, ygrid, quantity=None, addlosscontour=None,
         ax.contour(xgrid[:-1] + (xgrid[1]-xgrid[0])/2,
                    ygrid[:-1] + (ygrid[1]-ygrid[0])/2,
                    (trapped.transpose() > 0)*1, [1], alpha=0.7,
-                   colors='grey', linestyles='dashed', linewidths=2)
+                   colors='grey', linestyles='dotted', linewidths=2)
 
     if addlosscontour is not None:
         ncount   = np.histogram2d(x, y, bins=[xgrid,ygrid])[0]
@@ -108,6 +121,63 @@ def plotpp(x, y, xgrid, ygrid, quantity=None, addlosscontour=None,
 
     if axes is None:
         plt.show(block=False)
+
+
+def plotlossmap(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid,
+                time, lost, weights, axis):
+    xgrid = rhogrid
+    ygrid = ksigrid
+    _, x, y = phasespace.maprzk2rhoksi(a5, mass, charge, energy, r, z,
+                                           pitch, xgrid, ygrid,
+                                           weights=None)
+    P,mu = phasespace.evalPmu(a5, mass, charge, energy, r, z, pitch)
+    trapped = phasespace.istrapped(a5, mass, charge, energy,
+                                   P, mu, rmin=4)
+
+    lostxy = np.histogram2d(x[lost], y[lost], bins=[xgrid,ygrid],
+                            weights=weights[lost])[0]
+    timexy = np.histogram2d(x[lost], y[lost], bins=[xgrid,ygrid],
+                            weights=(time*weights)[lost])[0] / lostxy
+
+    timexy = np.log10(timexy)
+
+    weightxy = np.histogram2d(x, y, bins=[xgrid,ygrid], weights=weights)[0]
+    lossfrac = lostxy / weightxy
+
+    trapxy = np.histogram2d(x, y, bins=[xgrid,ygrid],
+                            weights=trapped*weights)[0] / weightxy
+
+    cmap = plt.cm.get_cmap("viridis_r", 5)
+
+    alphacmap = cmap(np.arange(cmap.N))
+    alphacmap[:,:] = 1
+    alphacmap[:,-1] = np.linspace(0, 1, cmap.N)
+    alphacmap = ListedColormap(alphacmap)
+
+    mesh = axis.pcolormesh(xgrid, ygrid, timexy.transpose(),
+                           cmap=cmap, vmin=-5, vmax=-1)
+    axis.figure.canvas.draw()
+    colors = mesh.get_facecolor()
+
+    def alpha_to_white(color):
+        white = np.array([1,1,1])
+        alpha = color[-1]
+        color = color[:-1]
+        return alpha*color + (1 - alpha)*white
+
+    colors[:,3] = lossfrac.transpose().ravel()
+    colors = np.array([alpha_to_white(color) for color in colors])
+    mesh.set_facecolor(colors)
+
+    axis.contour(xgrid[:-1] + (xgrid[1]-xgrid[0])/2,
+                 ygrid[:-1] + (ygrid[1]-ygrid[0])/2,
+                 (trapxy.transpose() > 0)*1, [1], alpha=0.7,
+                 colors='red', linestyles='dotted', linewidths=1)
+
+    axis.contour(xgrid[:-1] + (xgrid[1]-xgrid[0])/2,
+                 ygrid[:-1] + (ygrid[1]-ygrid[0])/2,
+                 lossfrac.transpose(), [0.1, 0.9], colors=['black', 'black'],
+                 alpha=0.7, linewidths=[1, 3])
 
 
 def evalandplotpp(a5, mass, charge, energy, r, z, pitch, xy="rhoksi",
@@ -222,7 +292,7 @@ def evaltransportcoefficients(a5, mass, charge, energy, r0, z0, k0,
 
 
 def runtransportmodel(coefficients, markers, tmax, Nt,
-                      xmin=0, xmax=1, Nmrk=1000):
+                      xmin=0, xmax=1, Nmrk=1000, axis=None):
     xgrid = coefficients[0]
     ygrid = coefficients[1]
     lossfrac = np.zeros((xgrid.size-1,ygrid.size-1))
@@ -273,17 +343,76 @@ def runtransportmodel(coefficients, markers, tmax, Nt,
                                          x <  xgrid[i+1]])
             endstate[i,j] = np.sum(ids)
 
-    fig = plt.figure()
-    gs = GridSpec(1,1)
+    if axis is not None:
+        cmap = plt.cm.get_cmap("viridis_r", 5)
 
-    ax = fig.add_subplot(gs[0,0])
+        mesh = axis.pcolormesh(xgrid, ygrid, np.log10(losstime.transpose()),
+                               cmap=cmap, vmin=-5, vmax=-1)
 
-    mesh = ax.pcolormesh(xgrid, ygrid, np.log10(losstime.transpose()))
-    plt.colorbar(mesh, ax=ax)
+        axis.figure.canvas.draw()
+        colors = mesh.get_facecolor()
 
-    ax.contour(xgrid[:-1] + (xgrid[1]-xgrid[0])/2,
-               ygrid[:-1] + (ygrid[1]-ygrid[0])/2,
-               lossfrac.transpose(), [0.1, 0.9], colors=['black', 'white'],
-               alpha=0.7, linewidths=2)
+        def alpha_to_white(color):
+            white = np.array([1,1,1])
+            alpha = color[-1]
+            color = color[:-1]
+            return alpha*color + (1 - alpha)*white
 
-    plt.show(block=False)
+        colors[:,3] = lossfrac.transpose().ravel()
+        colors = np.array([alpha_to_white(color) for color in colors])
+        mesh.set_facecolor(colors)
+
+        axis.contour(xgrid[:-1] + (xgrid[1]-xgrid[0])/2,
+                 ygrid[:-1] + (ygrid[1]-ygrid[0])/2,
+                 lossfrac.transpose(), [0.1, 0.9], colors=['black', 'black'],
+                 alpha=0.7, linewidths=[1, 3])
+
+
+
+def evalcoefs(a5, mass, charge, energy, r, z, pitch, weights, xgrid, ygrid,
+              drift, diff, lost, endtime, xedge):
+    _, x, y = phasespace.maprzk2rhoksi(a5, mass, charge, energy, r, z,
+                                       pitch, xgrid, ygrid, weights=None)
+
+    if weights is None:
+        weights = np.ones(drift.shape)
+
+    xi = np.searchsorted(xgrid, x, side='left')
+    yi = np.searchsorted(ygrid, y, side='left')
+
+    K = np.zeros((xgrid.size-1,ygrid.size-1))
+    D = np.zeros((xgrid.size-1,ygrid.size-1))
+    for i in range(xgrid.size-1):
+        for j in range(ygrid.size-1):
+            idx = np.logical_and.reduce([xi == i, yi == j])
+
+            if np.sum(idx) == 0:
+                # No markers in this cell
+                continue
+
+            iii = np.logical_and.reduce([idx, lost == False])
+            if np.sum(lost[idx]) < np.sum(idx):
+                #K[i,j] = np.nanmean(drift[iii])
+                #D[i,j] = np.nanmean(diff[iii])
+                K[i,j] = np.average(drift[iii], weights=weights[iii])
+                D[i,j] = np.average(diff[iii], weights=weights[iii])
+            else:
+                K[i,j] = 0
+                D[i,j] = 0
+
+            if np.sum(lost[idx]) > 0:
+                jjj = np.logical_and.reduce([lost, idx])
+                c1 = np.average(endtime[jjj], weights=weights[jjj])
+
+                v = np.average((endtime[jjj] - c1)**2, weights=weights[jjj])
+                #c2 = c1*c1*c1 / np.var(endtime[jjj])
+                c2 = c1*c1*c1/v
+                delta  = xedge - ( xgrid[i] + xgrid[i+1] ) / 2
+
+                frac = np.sum(lost[idx]) / np.sum(idx)
+
+                K[i,j] = (1-frac) * K[i,j] + frac * (delta / c1)
+                D[i,j] = (1-frac) * D[i,j] + frac * (2 * delta * delta / c2)
+
+
+    return (xgrid, ygrid, K, D)
