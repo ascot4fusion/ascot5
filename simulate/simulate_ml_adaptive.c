@@ -28,7 +28,7 @@ real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i);
 
 
 #define MAGNETIC_FIELD_LINE_INISTEP 1.0e-2 /**< Initial step size in meters   */
-#define DUMMY_TIMESTEP_VAL 100.0           /**< Dummy time step val in meters */
+#define DUMMY_STEP_VAL 100.0              /**< Dummy orbit step val in meters */
 
 /**
  * @brief Simulates magnetic field-lines using adaptive time-step
@@ -45,9 +45,11 @@ real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i);
  * tolerances as well as user-defined limits for how much
  * marker state can change during a single time-step.
  *
- * Note simulation time is defined by assuming field-lines
- * "travel" at the speed of light. However, the "time" step
- * itself is given in meters.
+ * Note that even though we might refer the integration time-step
+ * as "time", in reality we are integrating over distance. The time
+ * step is therefore step in meters marker orbit is intgerated. Marker does have
+ * time in its field, but it is the global time and that is not being changed
+ * during the simulation.
  *
  * @param pq field lines to be simulated
  * @param sim simulation data struct
@@ -107,6 +109,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
             p0.pitch[i]      = p.pitch[i];
 
             p0.time[i]       = p.time[i];
+            p0.dist[i]       = p.dist[i];
             p0.cputime[i]    = p.cputime[i];
             p0.rho[i]        = p.rho[i];
             p0.weight[i]     = p.weight[i];
@@ -134,8 +137,8 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
             p0.B_z_dz[i]     = p.B_z_dz[i];
 
 
-            hout[i] = DUMMY_TIMESTEP_VAL;
-            hnext[i] = DUMMY_TIMESTEP_VAL;
+            hout[i] = DUMMY_STEP_VAL;
+            hnext[i] = DUMMY_STEP_VAL;
         }
 
         /*************************** Physics **********************************/
@@ -187,6 +190,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
                     p.pitch[i]      = p0.pitch[i];
 
                     p.time[i]       = p0.time[i];
+                    p.dist[i]       = p0.dist[i];
                     p.rho[i]        = p0.rho[i];
                     p.weight[i]     = p0.weight[i];
                     p.theta[i]      = p0.theta[i];
@@ -221,13 +225,13 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
                         hin[i] = -hnext[i];
                     }
                     else {
-                        p.time[i] = p.time[i] + hin[i]/CONST_C;
+                        p.dist[i] = p.dist[i] + hin[i];
 
                         if(hnext[i] > hout[i]) {
                             /* Use time step suggested by the integrator */
                             hnext[i] = hout[i];
                         }
-                        else if(hnext[i] == DUMMY_TIMESTEP_VAL) {
+                        else if(hnext[i] == DUMMY_STEP_VAL) {
                             /* Time step is unchanged (happens when no physics are enabled) */
                             hnext[i] = hin[i];
                         }

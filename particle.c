@@ -157,6 +157,7 @@ void particle_to_ml_dummy(particle_simd_ml* p_ml, int j){
     p_ml->phi[j]        = 1;
     p_ml->z[j]          = 1;
     p_ml->time[j]       = 0;
+    p_ml->dist[j]       = 0;
     p_ml->id[j]         = -1;
     p_ml->B_r[j]        = 1;
     p_ml->B_r_dr[j]     = 1;
@@ -1189,6 +1190,7 @@ a5err particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml,
 
         p_ml->pitch[j]      = 2*(p->vpar >= 0) - 1.0;
         p_ml->time[j]       = p->time;
+        p_ml->dist[j]       = 0;
         p_ml->weight[j]     = p->weight;
         p_ml->id[j]         = p->id;
         p_ml->cputime[j]    = p->cputime;
