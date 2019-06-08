@@ -321,11 +321,11 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = B_field_eval_B(k2, tempy[0], tempy[1], tempy[2],
-                                         t0 + (1.0/5)*h[i], Bdata);
+                                         t0, Bdata);
             }
             if(!errflag) {
                 errflag = mhd_perturbations(pert_field, tempy[0], tempy[1],
-                                            tempy[2], t0 + (1.0/5)*h[i],
+                                            tempy[2], t0,
                                             boozerdata, mhddata, Bdata);
             }
             k2[0] += pert_field[0];
@@ -346,11 +346,11 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = B_field_eval_B(k3, tempy[0], tempy[1], tempy[2],
-                                         t0 + (3.0/10)*h[i], Bdata);
+                                         t0, Bdata);
             }
             if(!errflag) {
                 errflag = mhd_perturbations(pert_field, tempy[0], tempy[1],
-                                            tempy[2], t0 + (3.0/10)*h[i],
+                                            tempy[2], t0,
                                             boozerdata, mhddata, Bdata);
             }
             k3[0] += pert_field[0];
@@ -372,11 +372,11 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = B_field_eval_B(k4, tempy[0], tempy[1], tempy[2],
-                                         t0 + (3.0/5)*h[i], Bdata);
+                                         t0, Bdata);
             }
             if(!errflag) {
                 errflag = mhd_perturbations(pert_field, tempy[0], tempy[1],
-                                            tempy[2], t0 + (3.0/5)*h[i],
+                                            tempy[2], t0,
                                             boozerdata, mhddata, Bdata);
             }
             k4[0] += pert_field[0];
@@ -399,11 +399,11 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = B_field_eval_B(k5, tempy[0], tempy[1], tempy[2],
-                                         t0 + h[i], Bdata);
+                                         t0, Bdata);
             }
             if(!errflag) {
                 errflag = mhd_perturbations(pert_field, tempy[0], tempy[1],
-                                            tempy[2], t0 + h[i], boozerdata,
+                                            tempy[2], t0, boozerdata,
                                             mhddata, Bdata);
             }
             k5[0] += pert_field[0];
@@ -427,11 +427,11 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = B_field_eval_B(k6, tempy[0], tempy[1], tempy[2],
-                               t0 + (7.0/8)*h[i], Bdata);
+                               t0, Bdata);
             }
             if(!errflag) {
                 errflag = mhd_perturbations(pert_field, tempy[0], tempy[1],
-                                            tempy[2], t0 + (7.0/8)*h[i],
+                                            tempy[2], t0,
                                             boozerdata, mhddata, Bdata);
             }
             k6[0] += pert_field[0];
