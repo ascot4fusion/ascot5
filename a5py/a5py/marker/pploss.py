@@ -147,7 +147,7 @@ def plotlossmap(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid,
     trapxy = np.histogram2d(x, y, bins=[xgrid,ygrid],
                             weights=trapped*weights)[0] / weightxy
 
-    cmap = plt.cm.get_cmap("viridis_r", 5)
+    cmap = plt.cm.get_cmap("viridis_r", 4)
 
     alphacmap = cmap(np.arange(cmap.N))
     alphacmap[:,:] = 1
@@ -167,7 +167,7 @@ def plotlossmap(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid,
 
     colors[:,3] = lossfrac.transpose().ravel()
     colors = np.array([alpha_to_white(color) for color in colors])
-    mesh.set_facecolor(colors)
+    mesh.set_facecolors(colors)
 
     axis.contour(xgrid[:-1] + (xgrid[1]-xgrid[0])/2,
                  ygrid[:-1] + (ygrid[1]-ygrid[0])/2,
@@ -178,6 +178,7 @@ def plotlossmap(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid,
                  ygrid[:-1] + (ygrid[1]-ygrid[0])/2,
                  lossfrac.transpose(), [0.1, 0.9], colors=['black', 'black'],
                  alpha=0.7, linewidths=[1, 3])
+    axis.figure.canvas.draw()
 
 
 def evalandplotpp(a5, mass, charge, energy, r, z, pitch, xy="rhoksi",
@@ -287,7 +288,6 @@ def evaltransportcoefficients(a5, mass, charge, energy, r0, z0, k0,
 
         plt.show(block=False)
 
-
     return (xgrid, ygrid, K, D)
 
 
@@ -377,8 +377,8 @@ def evalcoefs(a5, mass, charge, energy, r, z, pitch, weights, xgrid, ygrid,
     if weights is None:
         weights = np.ones(drift.shape)
 
-    xi = np.searchsorted(xgrid, x, side='left')
-    yi = np.searchsorted(ygrid, y, side='left')
+    xi = np.searchsorted(xgrid, x, side='left')-1
+    yi = np.searchsorted(ygrid, y, side='left')-1
 
     K = np.zeros((xgrid.size-1,ygrid.size-1))
     D = np.zeros((xgrid.size-1,ygrid.size-1))
