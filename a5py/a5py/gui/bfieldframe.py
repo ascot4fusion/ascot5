@@ -22,7 +22,7 @@ class BfieldFrame(FieldFrame):
         Initialize and show default plot.
         """
         ascotpy.init(bfield=qid)
-        quantities = LibBfield.quantities + ["ripplemagnitude"]
+        quantities = LibBfield.quantities + ["ripplemagnitude", "ripplewell"]
         super().__init__(gui, ascotpy, quantities)
 
         self._walldata = walldata
@@ -56,6 +56,8 @@ class BfieldFrame(FieldFrame):
         axes = fig.add_subplot(1,1,1)
         if self._qchoice.get() == "ripplemagnitude":
             self.ascotpy.plotripple(r, z, time, 360, axes=axes)
+        elif self._qchoice.get() == "ripplewell":
+            self.ascotpy.plotripplewell(r, z, time, 360, axes=axes)
         else:
             self.ascotpy.plotRz(r, phi, z, time, self._qchoice.get(), axes=axes,
                                 clim=clim)
