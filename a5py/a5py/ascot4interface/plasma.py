@@ -58,7 +58,7 @@ def read_1d(fh):
         data['ne'] = np.append(data['ne'], data['ne'][-1]*1e-10)
         data['te'] = np.append(data['te'], data['te'][-1])
         data['ni'] = np.append(data['ni'],
-                               np.expand_dims(data['ni'][-1,:]*1e-10, 1),
+                               np.expand_dims(data['ni'][-1,:]*1e-10, 1).T,
                                axis=0)
         data['ti'] = np.append(data['ti'], data['ti'][-1])
     return data
