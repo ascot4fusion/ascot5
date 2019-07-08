@@ -154,7 +154,7 @@ def read_erad(a4folder, h5fn):
     if (os.path.isfile(fname)):
         data = a4erad.read_erad(fname)
         E_1DS.write_hdf5(
-            fn=h5fn, nrho=int(data['n_rho']),
+            fn=h5fn, nrho=data['n_rho'],
             rhomin=np.amin(data['rho']), rhomax=np.amax(data['rho']),
             dvdrho=data['dV_drho'], reff=1.0)
     else:

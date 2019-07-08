@@ -18,10 +18,10 @@ def read_plasma(fn):
 
 def read_1d(fh):
     data = {'comm1' : fh.readline(),'comm2' : fh.readline(),'comm3' : fh.readline()}
-    nrho,nion = [int(number) for number in fh.readline().split()[:2]]
-    data['znum'] = np.array([int(znum) for znum in fh.readline().split()[:nion]])
-    data['anum'] = np.array([int(anum) for anum in fh.readline().split()[:nion]])
-    data['coll'] = np.array([int(coll) for coll in fh.readline().split()[:nion+1]])
+    nrho,nion = [int(float(number)) for number in fh.readline().split()[:2]]
+    data['znum'] = np.array([int(float(znum)) for znum in fh.readline().split()[:nion]])
+    data['anum'] = np.array([int(float(anum)) for anum in fh.readline().split()[:nion]])
+    data['coll'] = np.array([int(float(coll)) for coll in fh.readline().split()[:nion+1]])
     data['nrho'] = nrho
     data['nion'] = nion
     fh.readline() # ignore headers
@@ -65,7 +65,7 @@ def read_1d(fh):
 
 def read_2d(fh):
     data = {'comm1' : fh.readline(),'comm2' : fh.readline(),'comm3' : fh.readline()}
-    nr,nz = [int(number) for number in fh.readline().split()[:2]]
+    nr,nz = [int(float(number)) for number in fh.readline().split()[:2]]
     rmin,rmax,zmin,zmax = [float(number) for number in fh.readline().split()[:4]]
     nion,rho2d = [float(number) for number in fh.readline().split()[:2]]
     nion = int(nion)

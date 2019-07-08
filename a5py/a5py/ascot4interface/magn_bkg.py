@@ -27,8 +27,8 @@ def read_magn_bkg(fn,hdrfn):
                                      data['phi0'] + 360.0 / data['nSector'] - dphi * 0.5,
                                      data['nPhi'] ) )
 
-        data['phimap_tor'] = np.array([int(number) for number in fh.readline().split()])
-        data['phimap_pol'] = np.array([int(number) for number in fh.readline().split()])
+        data['phimap_tor'] = np.array([int(float(number)) for number in fh.readline().split()])
+        data['phimap_pol'] = np.array([int(float(number)) for number in fh.readline().split()])
 
         h5data = np.array(fh.read().split(), dtype=float).flatten()
 
