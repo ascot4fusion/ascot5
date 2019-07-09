@@ -1,6 +1,6 @@
 /**
  * @file neutral.c
- * @brief Neutral density interface
+ * @brief Neutral interface
  *
  * This is an interface through which neutral data is initialized and accessed.
  * Reading e.g. from disk is done elsewhere.
@@ -136,7 +136,7 @@ a5err neutral_eval_n0(real* n0, real r, real phi, real z, real t,
 
     switch(ndata->type) {
         case neutral_type_3D:
-            err = N0_3D_eval_n0(n0, r, phi, z, &(ndata->N03D));
+            err = N0_3D_eval_n0(n0, r, phi, z, 0, &(ndata->N03D));
             break;
         default:
             /* Unregonized input. Produce error. */
@@ -147,6 +147,44 @@ a5err neutral_eval_n0(real* n0, real r, real phi, real z, real t,
     if(err) {
         /* Return some reasonable values to avoid further errors */
         n0[0] = 0;
+    }
+
+    return err;
+}
+
+/**
+ * @brief Evaluate neutral temperature
+ *
+ * This function evaluates the neutral temperature n0 at the given coordinates.
+ *
+ * This is a SIMD function.
+ *
+ * @param t0 pointer where neutral temperature is stored [J]
+ * @param r R coordinate [m]
+ * @param phi phi coordinate [deg]
+ * @param z z coordinate [m]
+ * @param t time coordinate [s]
+ * @param ndata pointer to neutral temperature data struct
+ *
+ * @return Non-zero a5err value if evaluation failed, zero otherwise
+ */
+a5err neutral_eval_t0(real* t0, real r, real phi, real z, real t,
+                      neutral_data* ndata) {
+    a5err err = 0;
+
+    switch(ndata->type) {
+        case neutral_type_3D:
+            err = N0_3D_eval_t0(t0, r, phi, z, 0, &(ndata->N03D));
+            break;
+        default:
+            /* Unregonized input. Produce error. */
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_NEUTRAL);
+            break;
+    }
+
+    if(err) {
+        /* Return some reasonable values to avoid further errors */
+        t0[0] = 1;
     }
 
     return err;

@@ -72,14 +72,14 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data,
 
     /* Read data the QID corresponds to */
 
-    hdf5_gen_path("/efield/E_TC-XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/efield/E_TC_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
         offload_data->type = E_field_type_TC;
         err = hdf5_efield_read_TC(f, &(offload_data->ETC),
                                   offload_array, qid);
     }
 
-    hdf5_gen_path("/efield/E_1DS-XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/efield/E_1DS_XXXXXXXXXX", qid, path);
     if(hdf5_find_group(f, path) == 0) {
         offload_data->type = E_field_type_1DS;
         err = hdf5_efield_read_1DS(f, &(offload_data->E1DS),
@@ -128,24 +128,24 @@ int hdf5_efield_init_offload(hid_t f, E_field_offload_data* offload_data,
 int hdf5_efield_read_1DS(hid_t f, E_1DS_offload_data* offload_data,
                          real** offload_array, char* qid) {
     #undef EPATH
-    #define EPATH "/efield/E_1DS-XXXXXXXXXX/"
+    #define EPATH "/efield/E_1DS_XXXXXXXXXX/"
 
-    if( hdf5_read_int(EPATH "n_rho", &(offload_data->n_rho),
+    if( hdf5_read_int(EPATH "nrho", &(offload_data->n_rho),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(EPATH "rho_min", &(offload_data->rho_min),
+    if( hdf5_read_double(EPATH "rhomin", &(offload_data->rho_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(EPATH "rho_max", &(offload_data->rho_max),
+    if( hdf5_read_double(EPATH "rhomax", &(offload_data->rho_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Allocate n_rho space for dV/drho */
     *offload_array = (real*) malloc(offload_data->n_rho*sizeof(real));
 
-    if( hdf5_read_double(EPATH "dV_drho", *offload_array,
+    if( hdf5_read_double(EPATH "dvdrho", *offload_array,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Effective minor radius */
     real r_eff;
-    if( hdf5_read_double(EPATH "r_eff", &(r_eff),
+    if( hdf5_read_double(EPATH "reff", &(r_eff),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Scale derivatives by effective minor radius */
@@ -178,11 +178,11 @@ int hdf5_efield_read_1DS(hid_t f, E_1DS_offload_data* offload_data,
 int hdf5_efield_read_TC(hid_t f, E_TC_offload_data* offload_data,
                         real** offload_array, char* qid) {
     #undef EPATH
-    #define EPATH "/efield/E_TC-XXXXXXXXXX/"
+    #define EPATH "/efield/E_TC_XXXXXXXXXX/"
 
     *offload_array = NULL;
 
-    if( hdf5_read_double(EPATH "Exyz", offload_data->Exyz,
+    if( hdf5_read_double(EPATH "exyz", offload_data->Exyz,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     return 0;

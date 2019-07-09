@@ -14,6 +14,7 @@
 #include "simulate.h"
 #include "print.h"
 #include "gitver.h"
+#include "compiler_flags.h"
 #include "hdf5_interface.h"
 #include "hdf5io/hdf5_helpers.h"
 #include "hdf5io/hdf5_options.h"
@@ -22,10 +23,10 @@
 #include "hdf5io/hdf5_neutral.h"
 #include "hdf5io/hdf5_efield.h"
 #include "hdf5io/hdf5_wall.h"
-#include "hdf5io/hdf5_markers.h"
-#include "hdf5io/hdf5_particlestate.h"
+#include "hdf5io/hdf5_marker.h"
+#include "hdf5io/hdf5_state.h"
 #include "hdf5io/hdf5_dist.h"
-#include "hdf5io/hdf5_orbits.h"
+#include "hdf5io/hdf5_orbit.h"
 
 /**
  * @brief Read and initialize input data
@@ -34,6 +35,7 @@
  * allocates offload arrays and returns the pointers to them.
  *
  * @param sim pointer to simulation offload struct
+ * @param input_active bitflags for input types to read
  * @param B_offload_array pointer to magnetic field offload array
  * @param E_offload_array pointer to electric field offload array
  * @param plasma_offload_array pointer to plasma data offload array
@@ -45,6 +47,7 @@
  * @return zero if reading and initialization succeeded
  */
 int hdf5_interface_read_input(sim_offload_data* sim,
+                              int input_active,
                               real** B_offload_array,
                               real** E_offload_array,
                               real** plasma_offload_array,
@@ -67,141 +70,167 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         return 1;
     }
 
-    /* Check that input contains all relevant groups */
+    /* Read active input from hdf5 and initialize */
 
-    if(hdf5_find_group(f, "/options/")) {
-        print_err("Error: No options in input file.");
-        return 1;
-    }
-
-    if(hdf5_find_group(f, "/bfield/")) {
-        print_err("Error: No magnetic field in input file.");
-        return 1;
-    }
-
-    if(hdf5_find_group(f, "/efield/")) {
-        print_err("Error: No electric field in input file.");
-        return 1;
-    }
-
-    if(hdf5_find_group(f, "/plasma/")) {
-        print_err("Error: No plasma data in input file.");
-        return 1;
-    }
-
-    if(hdf5_find_group(f, "/neutral/")) {
-        print_err("Error: No neutral data in input file.");
-        return 1;
-    }
-
-    if(hdf5_find_group(f, "/wall/")) {
-        print_err("Error: No wall data in input file.");
-        return 1;
-    }
-
-    if(hdf5_find_group(f, "/marker/")) {
-        print_err("Error: No marker data in input file.");
-        return 1;
-    }
-
-    /* Read input from hdf5 and initialize */
     char qid[11];
 
-
-    print_out(VERBOSE_IO, "\nReading options input.\n");
-    if( hdf5_get_active_qid(f, "/options/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
+    if(input_active & hdf5_input_options) {
+        if(hdf5_find_group(f, "/options/")) {
+            print_err("Error: No options in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading options input.\n");
+        if(sim->qid_options[0] != '\0') {
+            strcpy(qid, sim->qid_options);
+        }
+        else if( hdf5_get_active_qid(f, "/options/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_options_read(f, sim, qid) ) {
+            print_err("Error: Failed to initialize options.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Options read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_options_read(f, sim, qid) ) {
-        print_err("Error: Failed to initialize options.\n");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Options read and initialized.\n");
-
-
-    print_out(VERBOSE_IO, "\nReading magnetic field input.\n");
-    if( hdf5_get_active_qid(f, "/bfield/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_bfield_init_offload(f, &(sim->B_offload_data),
-                                 B_offload_array, qid) ) {
-        print_err("Error: Failed to initialize magnetic field.\n");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Magnetic field read and initialized.\n");
 
 
-    print_out(VERBOSE_IO, "\nReading electric field input.\n");
-    if( hdf5_get_active_qid(f, "/efield/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
+    if(input_active & hdf5_input_bfield) {
+        if(hdf5_find_group(f, "/bfield/")) {
+            print_err("Error: No magnetic field in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading magnetic field input.\n");
+        if(sim->qid_bfield[0] != '\0') {
+            strcpy(qid, sim->qid_bfield);
+        }
+        else if( hdf5_get_active_qid(f, "/bfield/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_bfield_init_offload(f, &(sim->B_offload_data),
+                                     B_offload_array, qid) ) {
+            print_err("Error: Failed to initialize magnetic field.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Magnetic field read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_efield_init_offload(f, &(sim->E_offload_data),
-                                 E_offload_array, qid) ) {
-        print_err("Error: Failed to initialize electric field.\n");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Electric field read and initialized.\n");
 
 
-    print_out(VERBOSE_IO, "\nReading plasma input.\n");
-    if( hdf5_get_active_qid(f, "/plasma/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
+    if(input_active & hdf5_input_efield) {
+        if(hdf5_find_group(f, "/efield/")) {
+            print_err("Error: No electric field in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading electric field input.\n");
+        if(sim->qid_efield[0] != '\0') {
+            strcpy(qid, sim->qid_efield);
+        }
+        else if( hdf5_get_active_qid(f, "/efield/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_efield_init_offload(f, &(sim->E_offload_data),
+                                     E_offload_array, qid) ) {
+            print_err("Error: Failed to initialize electric field.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Electric field read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_plasma_init_offload(f, &(sim->plasma_offload_data),
-                                 plasma_offload_array, qid) ) {
-        print_err("Error: Failed to initialize plasma data.\n");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Plasma data read and initialized.\n");
 
 
-    print_out(VERBOSE_IO, "\nReading neutral input.\n");
-    if( hdf5_get_active_qid(f, "/neutral/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
+    if(input_active & hdf5_input_plasma) {
+        if(sim->qid_plasma[0] != '\0') {
+            strcpy(qid, sim->qid_plasma);
+        }
+        else if(hdf5_find_group(f, "/plasma/")) {
+            print_err("Error: No plasma data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading plasma input.\n");
+        if( hdf5_get_active_qid(f, "/plasma/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_plasma_init_offload(f, &(sim->plasma_offload_data),
+                                     plasma_offload_array, qid) ) {
+            print_err("Error: Failed to initialize plasma data.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Plasma data read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_neutral_init_offload(f, &(sim->neutral_offload_data),
-                                  neutral_offload_array, qid) ) {
-        print_err("Error: Failed to initialize neutral data.\n");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Neutral data read and initialized.\n");
 
 
-    print_out(VERBOSE_IO, "\nReading wall input.\n");
-    if( hdf5_get_active_qid(f, "/wall/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
+    if(input_active & hdf5_input_neutral) {
+        if(hdf5_find_group(f, "/neutral/")) {
+            print_err("Error: No neutral data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading neutral input.\n");
+        if(sim->qid_neutral[0] != '\0') {
+            strcpy(qid, sim->qid_neutral);
+        }
+        else if( hdf5_get_active_qid(f, "/neutral/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_neutral_init_offload(f, &(sim->neutral_offload_data),
+                                      neutral_offload_array, qid) ) {
+            print_err("Error: Failed to initialize neutral data.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Neutral data read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_wall_init_offload(f, &(sim->wall_offload_data),
-                               wall_offload_array, qid) ) {
-        print_err("Error: Failed to initialize wall.\n");
-        return 1;
-    }
-    print_out(VERBOSE_IO, "Wall data read and initialized.\n");
 
 
-    print_out(VERBOSE_IO, "\nReading marker input.\n");
-    if( hdf5_get_active_qid(f, "/marker/", qid) ) {
-        print_err("Error: Active QID not declared.");
-        return 1;
+    if(input_active & hdf5_input_wall) {
+        if(hdf5_find_group(f, "/wall/")) {
+            print_err("Error: No wall data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading wall input.\n");
+        if(sim->qid_wall[0] != '\0') {
+            strcpy(qid, sim->qid_wall);
+        }
+        else if( hdf5_get_active_qid(f, "/wall/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_wall_init_offload(f, &(sim->wall_offload_data),
+                                   wall_offload_array, qid) ) {
+            print_err("Error: Failed to initialize wall.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Wall data read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Active QID is %s\n", qid);
-    if( hdf5_markers_read(f, n_markers, p, qid) ) {
-        print_err("Error: Failed to read markers.\n");
-        return 1;
+
+
+    if(input_active & hdf5_input_marker) {
+        if(hdf5_find_group(f, "/marker/")) {
+            print_err("Error: No marker data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading marker input.\n");
+        if(sim->qid_marker[0] != '\0') {
+            strcpy(qid, sim->qid_marker);
+        }
+        else if( hdf5_get_active_qid(f, "/marker/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_marker_read(f, n_markers, p, qid) ) {
+            print_err("Error: Failed to read markers.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Marker data read and initialized.\n");
     }
-    print_out(VERBOSE_IO, "Marker data read and initialized.\n");
 
 
     /* Close the hdf5 file */
@@ -219,7 +248,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
  *
  * This functions creates results group (if one does not already exist) and
  * creates run group corresponding to this run. Run group is named as
- * /results/run-XXXXXXXXXX/ where X's are the qid of current run.
+ * /results/run_XXXXXXXXXX/ where X's are the qid of current run.
  *
  * The group is initialized by writing qids of all used inputs as string
  * attributes in the run group. Also the date and empty "details" fields
@@ -249,7 +278,7 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
 
     /* Create a run group for this specific run. */
     char path[256];
-    hdf5_gen_path("/results/run-XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/results/run_XXXXXXXXXX", qid, path);
     hid_t newgroup = H5Gcreate2(fout, path,
                                 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     H5Gclose (newgroup);
@@ -271,25 +300,60 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
 
     hid_t fin = hdf5_open(sim->hdf5_in);
 
-    H5LTget_attribute_string(fin, "/options/", "active", inputqid);
+    if(sim->qid_options[0] != '\0') {
+        strcpy(inputqid, sim->qid_options);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/options/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_options",  inputqid);
 
-    H5LTget_attribute_string(fin, "/bfield/", "active", inputqid);
+    if(sim->qid_bfield[0] != '\0') {
+        strcpy(inputqid, sim->qid_bfield);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/bfield/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_bfield",  inputqid);
 
-    H5LTget_attribute_string(fin, "/efield/", "active", inputqid);
+    if(sim->qid_efield[0] != '\0') {
+        strcpy(inputqid, sim->qid_efield);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/efield/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_efield",  inputqid);
 
-    H5LTget_attribute_string(fin, "/plasma/", "active", inputqid);
+    if(sim->qid_plasma[0] != '\0') {
+        strcpy(inputqid, sim->qid_plasma);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/plasma/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_plasma",  inputqid);
 
-    H5LTget_attribute_string(fin, "/neutral/", "active", inputqid);
+    if(sim->qid_neutral[0] != '\0') {
+        strcpy(inputqid, sim->qid_neutral);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/neutral/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_neutral",  inputqid);
 
-    H5LTget_attribute_string(fin, "/wall/", "active", inputqid);
+    if(sim->qid_wall[0] != '\0') {
+        strcpy(inputqid, sim->qid_wall);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/wall/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_wall",  inputqid);
 
-    H5LTget_attribute_string(fin, "/marker/", "active", inputqid);
+    if(sim->qid_marker[0] != '\0') {
+        strcpy(inputqid, sim->qid_marker);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/marker/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_marker",  inputqid);
 
     hdf5_close(fin);
@@ -312,6 +376,11 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900,
             tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     hdf5_write_string_attribute(fout, path, "date",  date);
+
+    /* Write compiler flags from stringified macros */
+    hdf5_write_string_attribute(fout, path, "CFLAGS", str_macro(CFLAGS));
+    hdf5_write_string_attribute(fout, path, "CC", str_macro(CC));
+
     hdf5_close(fout);
 
     return 0;
@@ -342,7 +411,7 @@ int hdf5_interface_write_state(char* fn, char* state, integer n,
         return 1;
     }
 
-    if( hdf5_particlestate_write(f, qid, state, n, p) ) {
+    if( hdf5_state_write(f, qid, state, n, p) ) {
         print_err("Error: State could not be written.\n");
         hdf5_close(f);
         return 1;
@@ -378,46 +447,53 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
         hdf5_close(f);
         return 1;
     }
-    hdf5_close(f);
 
     if(sim->diag_offload_data.dist5D_collect) {
-        hdf5_dist_write_5D(
-            &sim->diag_offload_data.dist5D,
-            &diag_offload_array[sim->diag_offload_data.offload_dist5D_index],
-            out, qid);
+        print_out(VERBOSE_IO, "\nWriting 5D distribution.\n");
+        int idx = sim->diag_offload_data.offload_dist5D_index;
+        if( hdf5_dist_write_5D(f, qid, &sim->diag_offload_data.dist5D,
+                               &diag_offload_array[idx]) ) {
+            print_err("Warning: 5D distribution could not be written.\n");
+        }
     }
 
     if(sim->diag_offload_data.dist6D_collect) {
-        hdf5_dist_write_6D(
-            &sim->diag_offload_data.dist6D,
-            &diag_offload_array[sim->diag_offload_data.offload_dist6D_index],
-            out, qid);
+        print_out(VERBOSE_IO, "\nWriting 6D distribution.\n");
+        int idx = sim->diag_offload_data.offload_dist6D_index;
+        if( hdf5_dist_write_6D(f, qid, &sim->diag_offload_data.dist6D,
+                               &diag_offload_array[idx]) ) {
+            print_err("Warning: 6D distribution could not be written.\n");
+        }
     }
     if(sim->diag_offload_data.distrho5D_collect) {
-        hdf5_dist_write_rho5D(
-            &sim->diag_offload_data.distrho5D,
-            &diag_offload_array[sim->diag_offload_data.offload_distrho5D_index],
-            out, qid);
+        print_out(VERBOSE_IO, "\nWriting rho 5D distribution.\n");
+        int idx = sim->diag_offload_data.offload_distrho5D_index;
+        if( hdf5_dist_write_rho5D(f, qid, &sim->diag_offload_data.distrho5D,
+                                  &diag_offload_array[idx]) ) {
+            print_err("Warning: rho 5D distribution could not be written.\n");
+        }
     }
 
     if(sim->diag_offload_data.distrho6D_collect) {
-        hdf5_dist_write_rho6D(
-            &sim->diag_offload_data.distrho6D,
-            &diag_offload_array[sim->diag_offload_data.offload_distrho6D_index],
-            out, qid);
+        print_out(VERBOSE_IO, "\nWriting rho 6D distribution.\n");
+        int idx = sim->diag_offload_data.offload_distrho6D_index;
+        if( hdf5_dist_write_rho6D( f, qid, &sim->diag_offload_data.distrho6D,
+                                   &diag_offload_array[idx]) ) {
+            print_err("Warning: rho 6D distribution could not be written.\n");
+        }
     }
 
     if(sim->diag_offload_data.diagorb_collect) {
-        hid_t f = hdf5_open(out);
         print_out(VERBOSE_IO, "Writing orbit diagnostics.\n");
 
         int idx = sim->diag_offload_data.offload_diagorb_index;
-        if( hdf5_orbits_write(f, qid, &sim->diag_offload_data.diagorb,
-                              &diag_offload_array[idx]) ) {
+        if( hdf5_orbit_write(f, qid, &sim->diag_offload_data.diagorb,
+                             &diag_offload_array[idx]) ) {
             print_err("Warning: Orbit diagnostics could not be written.\n");
         }
-        hdf5_close(f);
     }
+
+    hdf5_close(f);
 
     print_out(VERBOSE_IO, "\nDiagnostics output written.\n");
 

@@ -59,11 +59,11 @@ typedef struct{
     real* zdot;   /**< Particle dz/dt [m/s]                                 */
     real* vpar;   /**< Guiding center parallel velocity [m/s]               */
     real* mu;     /**< Guiding center magnetic moment [J/T]                 */
-    real* theta;  /**< Guiding center gyroangle [rad]                       */
+    real* zeta;   /**< Guiding center gyroangle [rad]                       */
     real* weight; /**< Marker weight [1]                                    */
-    real* charge; /**< Marker charge [e]                                    */
+    real* charge; /**< Marker charge [C]                                    */
     real* rho;    /**< Normalized poloidal flux at marker position [1]      */
-    real* pol;    /**< Marker poloidal angle [rad]                          */
+    real* theta;  /**< Marker poloidal angle [rad]                          */
     real* B_r;    /**< Magnetic field R component at marker position [T]    */
     real* B_phi;  /**< Magnetic field phi component at marker position [T]  */
     real* B_z;    /**< Magnetic field z component at marker position [T]    */

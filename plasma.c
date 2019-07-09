@@ -346,7 +346,7 @@ const real* plasma_get_species_mass(plasma_data* pls_data) {
  *
  * @param pls_data pointer to plasma data struct
  *
- * @return Pointer to array containing the requested charge values [e]
+ * @return Pointer to array containing the requested charge values [C]
  */
 const real* plasma_get_species_charge(plasma_data* pls_data) {
     const real* charge = NULL;

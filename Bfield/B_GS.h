@@ -11,8 +11,10 @@
  * @brief Analytic magnetic field parameters that will be offloaded to target
  */
 typedef struct {
-    real R0;                  /**< Magnetic axis R coordinate                 */
-    real z0;                  /**< Magnetic axis z coordinate                 */
+    real R0;                  /**< Major radius R coordinate                  */
+    real z0;                  /**< Midplane z coordinate                      */
+    real raxis;               /**< Magnetic axis R coordinate                 */
+    real zaxis;               /**< Magnetic axis z coordinate                 */
     real B_phi0;              /**< On-axis toroidal field                     */
     real psi0;                /**< Poloidal flux at axis [V*s*m^-1]           */
     real psi1;                /**< Poloidal flux at separatrix [V*s*m^-1]     */
@@ -30,8 +32,10 @@ typedef struct {
  * @brief Analytic magnetic field parameters on the target
  */
 typedef struct {
-    real R0;                  /**< Magnetic axis R coordinate                 */
-    real z0;                  /**< Magnetic axis z coordinate                 */
+    real R0;                  /**< Major radius R coordinate                  */
+    real z0;                  /**< Midplane z coordinate                      */
+    real raxis;               /**< Magnetic axis R coordinate                 */
+    real zaxis;               /**< Magnetic axis z coordinate                 */
     real B_phi0;              /**< On-axis toroidal field                     */
     real psi0;                /**< Poloidal flux at axis [V*s*m^-1]           */
     real psi1;                /**< Poloidal flux at separatrix [V*s*m^-1]     */

@@ -9,7 +9,7 @@
 #include "random.h"
 
 void random_mkl_init(random_data* rdata, int seed) {
-    vslNewStream(&rdata->r, VSL_BRNG_SFMT19937, seed);
+    vslNewStream(&rdata->r, RANDOM_MKL_RNG, seed);
 }
 
 double random_mkl_uniform(random_data* rdata) {

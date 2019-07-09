@@ -49,22 +49,21 @@ int B_TC_init_offload(B_TC_offload_data* offload_data, real** offload_array) {
     offload_data->offload_array_length = 0;
     *offload_array = NULL;
 
-    print_out(VERBOSE_IO, "\nTrivial cartesian magnetic field (B_TC)\n");
-    print_out(VERBOSE_IO, "Magnetic axis at (R,z) = (%.1f,%.1f)\n",
-              offload_data->axisr, offload_data->axisz);
-    print_out(VERBOSE_IO, "psi = %.1f, rho = %.1f\n",
-              offload_data->psival, offload_data->rhoval);
-    print_out(VERBOSE_IO, "Magnetic field at origo\n"
-              "B_x = %.3f B_y = %.3f B_z = %.3f\n",
-              offload_data->B[0], offload_data->B[1], offload_data->B[2]);
-    print_out(VERBOSE_IO, "Magnetic field gradient\n"
-              "dB_x/dx = %.3f dB_x/dy = %.3f B_x/dz = %.3f\n",
-              offload_data->dB[0], offload_data->dB[1], offload_data->dB[2]);
     print_out(VERBOSE_IO,
-              "dB_y/dx = %.3f dB_y/dy = %.3f B_y/dz = %.3f\n",
-              offload_data->dB[3], offload_data->dB[4], offload_data->dB[5]);
-    print_out(VERBOSE_IO,
+              "\nTrivial cartesian magnetic field (B_TC)\n"
+              "Magnetic axis at (R,z) = (%.1f,%.1f)\n"
+              "psi = %.1f, rho = %.1f\n"
+              "Magnetic field at origo\n"
+              "B_x = %.3f B_y = %.3f B_z = %.3f\n"
+              "Magnetic field gradient\n"
+              "dB_x/dx = %.3f dB_x/dy = %.3f B_x/dz = %.3f\n"
+              "dB_y/dx = %.3f dB_y/dy = %.3f B_y/dz = %.3f\n"
               "dB_z/dx = %.3f dB_z/dy = %.3f B_z/dz = %.3f\n",
+              offload_data->axisr, offload_data->axisz,
+              offload_data->psival, offload_data->rhoval,
+              offload_data->B[0],  offload_data->B[1],  offload_data->B[2],
+              offload_data->dB[0], offload_data->dB[1], offload_data->dB[2],
+              offload_data->dB[3], offload_data->dB[4], offload_data->dB[5],
               offload_data->dB[6], offload_data->dB[7], offload_data->dB[8]);
 
     return 0;

@@ -117,15 +117,13 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             p0.z[i]        = p.z[i];
             p0.vpar[i]     = p.vpar[i];
             p0.mu[i]       = p.mu[i];
-            p0.theta[i]    = p.theta[i];
+            p0.zeta[i]     = p.zeta[i];
 
             p0.time[i]       = p.time[i];
-            p0.cputime[i]    = p.cputime[i];
-            p0.rho[i]        = p.rho[i];
             p0.weight[i]     = p.weight[i];
             p0.cputime[i]    = p.cputime[i];
             p0.rho[i]        = p.rho[i];
-            p0.pol[i]        = p.pol[i];
+            p0.theta[i]      = p.theta[i];
 
             p0.mass[i]       = p.mass[i];
             p0.charge[i]     = p.charge[i];
@@ -215,13 +213,13 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                     p.z[i]        = p0.z[i];
                     p.vpar[i]     = p0.vpar[i];
                     p.mu[i]       = p0.mu[i];
-                    p.theta[i]    = p0.theta[i];
+                    p.zeta[i]     = p0.zeta[i];
 
                     p.time[i]       = p0.time[i];
                     p.rho[i]        = p0.rho[i];
                     p.weight[i]     = p0.weight[i];
                     p.rho[i]        = p0.rho[i];
-                    p.pol[i]        = p0.pol[i];
+                    p.theta[i]      = p0.theta[i];
 
                     p.mass[i]       = p0.mass[i];
                     p.charge[i]     = p0.charge[i];

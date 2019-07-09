@@ -97,121 +97,28 @@
  */
 int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
 
-    /* Fill rest of the offload data struct */
-    offload_data->psigrid_r_grid =
-        (offload_data->psigrid_r_max - offload_data->psigrid_r_min)
-        / (offload_data->psigrid_n_r - 1);
-    offload_data->psigrid_z_grid =
-        (offload_data->psigrid_z_max - offload_data->psigrid_z_min)
-        / (offload_data->psigrid_n_z - 1);
-    offload_data->psigrid_phi_grid =
-        (offload_data->psigrid_phi_max - offload_data->psigrid_phi_min)
-        / (offload_data->psigrid_n_phi - 1);// phi_max currently last point
-
-    offload_data->Bgrid_r_grid =
-        (offload_data->Bgrid_r_max - offload_data->Bgrid_r_min)
-        / (offload_data->Bgrid_n_r - 1);
-    offload_data->Bgrid_z_grid =
-        (offload_data->Bgrid_z_max - offload_data->Bgrid_z_min)
-        / (offload_data->Bgrid_n_z - 1);
-    offload_data->Bgrid_phi_grid =
-        (offload_data->Bgrid_phi_max - offload_data->Bgrid_phi_min)
-        / (offload_data->Bgrid_n_phi - 1);// phi_max currently last point
-
-    offload_data->axis_grid = (offload_data->axis_max - offload_data->axis_min)
-        / (offload_data->n_axis - 1);
-
-    int offload_B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
-        * offload_data->Bgrid_n_phi;
-    int offload_psi_size = offload_data->psigrid_n_r * offload_data->psigrid_n_z
-        * offload_data->psigrid_n_phi;
-    real* offload_B_r = &(*offload_array)[0*offload_B_size];
-    real* offload_B_phi = &(*offload_array)[1*offload_B_size];
-    real* offload_B_z = &(*offload_array)[2*offload_B_size];
-    real* offload_psi = &(*offload_array)[3*offload_B_size];
-    real* temp_array = NULL;
-
-    int B_size = 0;
-    int psi_size = 0;
-    int axis_size = offload_data->n_axis;
-    /* Remove duplicate phi point from data */
-    B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
-        * (offload_data->Bgrid_n_phi - 1);
-    psi_size = offload_data->psigrid_n_r * offload_data->psigrid_n_z
-        * (offload_data->psigrid_n_phi - 1);
-    temp_array = (real*) malloc((3 * B_size + psi_size)
-                                * sizeof(real));
-
-    int i_phi;
-    int i_z;
-    int i_r;
-    int temp_ind, off_ind;
-
-    /* Bfield */
-    int n_r = offload_data->Bgrid_n_r;
-    int n_phi = offload_data->Bgrid_n_phi - 1;
-    int n_z = offload_data->Bgrid_n_z;
-    for (i_phi = 0; i_phi < n_phi - 1; i_phi++) {
-        for (i_z = 0; i_z < n_z; i_z++) {
-            for (i_r = 0; i_r < n_r; i_r++) {
-                /* Index of data point in temp arrays */
-                temp_ind = i_z*n_phi*n_r + i_phi*n_r + i_r;
-                /* Index of data point in offload_array */
-                off_ind = i_phi*n_z*n_r + i_z*n_r + i_r;
-                /* B_r */
-                temp_array[off_ind] =
-                    offload_B_r[temp_ind];
-                // B_phi
-                temp_array[B_size + off_ind] =
-                    offload_B_phi[temp_ind];
-                // B_z
-                temp_array[2*B_size + off_ind] =
-                    offload_B_z[temp_ind];
-            }
-        }
-    }
-    /* Bfield data is now for one point less */
-    offload_data->Bgrid_n_phi = offload_data->Bgrid_n_phi - 1;
-    offload_data->Bgrid_phi_max =
-        offload_data->Bgrid_phi_max - offload_data->Bgrid_phi_grid;
-
-    /* Psi */
-    n_r = offload_data->psigrid_n_r;
-    n_phi = offload_data->psigrid_n_phi - 1;
-    n_z = offload_data->psigrid_n_z;
-    for (i_phi = 0; i_phi < n_phi; i_phi++) {
-        for (i_z = 0; i_z < n_z; i_z++) {
-            for (i_r = 0; i_r < n_r; i_r++) {
-                /* Index of data point in temp arrays */
-                temp_ind = i_z*n_phi*n_r + i_phi*n_r + i_r;
-                /* Index of data point in offload_array and
-                   corresponding stel.-symmetric index  */
-                off_ind = i_phi*n_z*n_r + i_z*n_r + i_r;
-                // psi
-                temp_array[3*B_size + off_ind] =
-                    offload_psi[temp_ind];
-            }
-        }
-    }
-    /* Psi data is now for one point less */
-    offload_data->psigrid_n_phi = offload_data->psigrid_n_phi - 1;
-    offload_data->psigrid_phi_max =
-        offload_data->psigrid_phi_max - offload_data->psigrid_phi_grid;
-
     /* Spline initialization. */
     int err = 0;
+    int psi_size = offload_data->psigrid_n_r * offload_data->psigrid_n_z
+                   * offload_data->psigrid_n_phi;
+    int B_size   = offload_data->Bgrid_n_r   * offload_data->Bgrid_n_z
+                   * offload_data->Bgrid_n_phi;
+    int axis_size = offload_data->n_axis;
 
     /* Allocate enough space to store four 3D arrays and axis data */
     real* coeff_array = (real*) malloc( (3*NSIZE_COMP3D*B_size
                                          + NSIZE_COMP3D*psi_size
                                          + 2*axis_size)*sizeof(real));
-    real* B_r   = &(coeff_array[0*B_size*NSIZE_COMP3D]);
-    real* B_phi = &(coeff_array[1*B_size*NSIZE_COMP3D]);
-    real* B_z   = &(coeff_array[2*B_size*NSIZE_COMP3D]);
-    real* psi   = &(coeff_array[3*B_size*NSIZE_COMP3D]);
+    real* B_r    = &(coeff_array[0*B_size*NSIZE_COMP3D]);
+    real* B_phi  = &(coeff_array[1*B_size*NSIZE_COMP3D]);
+    real* B_z    = &(coeff_array[2*B_size*NSIZE_COMP3D]);
+    real* psi    = &(coeff_array[3*B_size*NSIZE_COMP3D]);
+    real* axis_r = &(coeff_array[(3*B_size + psi_size)*NSIZE_COMP3D]);
+    real* axis_z = &(coeff_array[(3*B_size + psi_size)*NSIZE_COMP3D
+                                 + axis_size]);
 
     err += interp3Dcomp_init_coeff(
-        psi, temp_array + 3*B_size,
+        psi, *offload_array + 3*B_size,
         offload_data->psigrid_n_r, offload_data->psigrid_n_phi,
         offload_data->psigrid_n_z,
         NATURALBC, PERIODICBC, NATURALBC,
@@ -220,7 +127,7 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
         offload_data->psigrid_z_min,   offload_data->psigrid_z_max);
 
     err += interp3Dcomp_init_coeff(
-        B_r, temp_array + 0*B_size,
+        B_r, *offload_array + 0*B_size,
         offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
         offload_data->Bgrid_n_z,
         NATURALBC, PERIODICBC, NATURALBC,
@@ -229,7 +136,7 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
         offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max);
 
     err += interp3Dcomp_init_coeff(
-        B_phi, temp_array + 1*B_size,
+        B_phi, *offload_array + 1*B_size,
         offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
         offload_data->Bgrid_n_z,
         NATURALBC, PERIODICBC, NATURALBC,
@@ -238,7 +145,7 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
         offload_data->Bgrid_z_min,   offload_data->Bgrid_z_max);
 
     err += interp3Dcomp_init_coeff(
-        B_z, temp_array + 2*B_size,
+        B_z, *offload_array + 2*B_size,
         offload_data->Bgrid_n_r, offload_data->Bgrid_n_phi,
         offload_data->Bgrid_n_z,
         NATURALBC, PERIODICBC, NATURALBC,
@@ -252,10 +159,8 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
     }
 
     for(int i = 0; i < axis_size; i++) {
-        coeff_array[(3*B_size + psi_size)*NSIZE_COMP3D + i] =
-            (*offload_array)[3*offload_B_size + offload_psi_size + i];
-        coeff_array[(3*B_size + psi_size)*NSIZE_COMP3D + axis_size + i] =
-            (*offload_array)[3*offload_B_size + offload_psi_size + axis_size + i];
+        axis_r[i] = (*offload_array)[3*B_size + psi_size + i];
+        axis_z[i] = (*offload_array)[3*B_size + psi_size + axis_size + i];
     }
 
     /* Re-allocate the offload array and store spline coefficients there */
@@ -269,27 +174,14 @@ int B_STS_init_offload(B_STS_offload_data* offload_data, real** offload_array) {
     B_STS_data Bdata;
     B_STS_init(&Bdata, offload_data, *offload_array);
     real psival[1], Bval[3], axis[2];
-    err = B_STS_get_axis_r(axis + 0, &Bdata, 0);
-    if(err) {
-        print_err("Error: Axis r evaluation failed.\n");
-        return err;
-    }
-    err = B_STS_get_axis_z(axis + 1, &Bdata, 0);
-    if(err) {
-        print_err("Error: Axis z evaluation failed.\n");
-        return err;
-    }
-    err = B_STS_eval_psi(psival, axis[0], 0, axis[1],
+    err += B_STS_get_axis_r(axis + 0, &Bdata, 0);
+    err += B_STS_get_axis_z(axis + 1, &Bdata, 0);
+    err += B_STS_eval_psi(psival, axis[0], 0, axis[1],
                          &Bdata);
-
-    if(err) {
-        print_err("Error: psi evaluation failed.\n");
-        return err;
-    }
-    err = B_STS_eval_B(Bval, axis[0], 0, axis[1],
+    err += B_STS_eval_B(Bval, axis[0], 0, axis[1],
                        &Bdata);
     if(err) {
-        print_err("Error: B evaluation failed.\n");
+        print_err("Error: Initialization failed.\n");
         return err;
     }
 
