@@ -14,7 +14,7 @@
  *
  * This function calculates the 4D cubic spline interpolation coefficients for
  * the given data and stores them in an array. Compact cofficients are
- * calculated directly.
+ * calculated.
  *
  * @param c allocated array of length n_t*n_z*n_y*n_x*16 to store the coefficients
  * @param f 3D data to be interpolated
@@ -45,8 +45,10 @@ int interp4Dcomp_init_coeff(real* c, real* f,
                             real z_min, real z_max,
                             real t_min, real t_max) {
 
-    /* For periodic boundary condition, grid maximum value and the last data
-       point are not the same. Take this into account in grid interval       */
+    /* Check boundary conditions and calculate grid intervals. Grid intervals
+       needed because we use normalized grid intervals. For periodic boundary
+       condition, grid maximum value and the last data point are not the same.
+       Take this into account in grid intervals. */
     real x_grid, y_grid, z_grid, t_grid;
     if(bc_x == NATURALBC || bc_x == PERIODICBC) {
         x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
@@ -81,10 +83,10 @@ int interp4Dcomp_init_coeff(real* c, real* f,
     real* f_y = malloc(n_y*sizeof(real));
     real* f_z = malloc(n_z*sizeof(real));
     real* f_t = malloc(n_t*sizeof(real));
-    real* c_x = malloc(n_x*2*sizeof(real));
-    real* c_y = malloc(n_y*2*sizeof(real));
-    real* c_z = malloc(n_z*2*sizeof(real));
-    real* c_t = malloc(n_t*2*sizeof(real));
+    real* c_x = malloc(n_x*NSIZE_COMP1D*sizeof(real));
+    real* c_y = malloc(n_y*NSIZE_COMP1D*sizeof(real));
+    real* c_z = malloc(n_z*NSIZE_COMP1D*sizeof(real));
+    real* c_t = malloc(n_t*NSIZE_COMP1D*sizeof(real));
 
 
     if(f_x == NULL || f_y == NULL || f_z == NULL ||  f_t == NULL ||
@@ -275,13 +277,16 @@ void interp4Dcomp_init_spline(interp4D_data* str, real* c,
                               real y_min, real y_max,
                               real z_min, real z_max,
                               real t_min, real t_max) {
-
+  
+    /* Calculate grid intervals. For periodic boundary condition, grid maximum
+       value and the last data point are not the same. Take this into account
+       in grid intervals. */
     real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
     real y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
     real z_grid = (z_max - z_min) / ( n_z - 1 * (bc_z == NATURALBC) );
     real t_grid = (t_max - t_min) / ( n_t - 1 * (bc_t == NATURALBC) );
 
-
+    /* Initialize the interp4D_data struct */
     str->n_x    = n_x;
     str->n_y    = n_y;
     str->n_z    = n_z;
@@ -320,9 +325,9 @@ void interp4Dcomp_init_spline(interp4D_data* str, real* c,
  *
  * @return zero on success and one if (x,y,z,t) point is outside the grid.
  */
-int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, real t) {
+a5err interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, real t) {
 
-    /* Make sure periodic coordinates are within [max, min] region. */
+    /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
         x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
         x = x + (x < str->x_min) * (str->x_max - str->x_min);
@@ -341,7 +346,7 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
     }
 
     /* index for x variable */
-    int i_x   = (x - str->x_min) / str->x_grid;
+    int i_x   = (x - str->x_min) / str->x_grid - 1*(x==str->x_max);
     /* Normalized x coordinate in current cell
        (the order facilitates the evaluation)*/
     real dx[4];
@@ -351,7 +356,7 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
     dx[3] = dx[2]*(dx[2]*dx[2]-1)*str->x_grid*str->x_grid/6.0;   /* r_x */
 
     /* index for y variable */
-    int k_y   = (y - str->y_min) / str->y_grid;
+    int k_y   = (y - str->y_min) / str->y_grid - 1*(y==str->y_max);
    /* Normalized y coordinate in current cell
        (the order facilitates the evaluation)*/
     real dy[4];
@@ -361,7 +366,7 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
     dy[3] = dy[2]*(dy[2]*dy[2]-1)*str->y_grid*str->y_grid/6.0;   /* r_y */
 
     /* index for z variable */
-    int j_z   = (z - str->z_min) / str->z_grid;
+    int j_z   = (z - str->z_min) / str->z_grid - 1*(z==str->z_max);
    /* Normalized z coordinate in current cell
        (the order facilitates the evaluation)*/
     real dz[4];
@@ -371,7 +376,7 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
     dz[3] = dz[2]*(dz[2]*dz[2]-1)*str->z_grid*str->z_grid/6.0;   /* r_z */
 
     /* index for t variable */
-    int m_t   = (t - str->t_min) / str->t_grid;
+    int m_t   = (t - str->t_min) / str->t_grid - 1*(t==str->t_max);
    /* Normalized t coordinate in current cell
        (the order facilitates the evaluation)*/
     real dt[4];
@@ -390,7 +395,7 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
 
     int err = 0;
 
-    /* Enforce periodic BC or check that the coordinate is within the grid. */
+    /* Enforce periodic BC or check that the coordinate is within the domain. */
     if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
         x1 = -(str->n_x-1)*x1;
     }
@@ -418,7 +423,7 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
 
     if(!err) {
 
-        /* Evaluate splines */
+        /* Evaluate spline value */
         real d_aux1, d_aux2; /* Auxiliary normalized coordinates */
         *f = 0;
         /* loops to move through the nodes */
@@ -481,9 +486,9 @@ int interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, rea
  *
  * @return zero on success and one if (x,y,z,t) point is outside the grid.
  */
-int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
+a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
                          real x, real y, real z, real t) {
-    /* Make sure periodic coordinates are within [max, min] region. */
+    /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
         x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
         x = x + (x < str->x_min) * (str->x_max - str->x_min);
@@ -502,7 +507,7 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     }
 
     /* index for x variable */
-    int i_x   = (x - str->x_min) / str->x_grid;
+    int i_x   = (x - str->x_min) / str->x_grid - 1*(x==str->x_max);
     /* Normalized x coordinate in current cell
        (the order facilitates the evaluation)*/
     real dx[4];
@@ -526,7 +531,7 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     dd_dx[3] = dx[2];                                   /* d2(r_x)/dx2 */
 
     /* index for y variable */
-    int k_y   = (y - str->y_min) / str->y_grid;
+    int k_y   = (y - str->y_min) / str->y_grid - 1*(y==str->y_max);
    /* Normalized y coordinate in current cell
        (the order facilitates the evaluation)*/
     real dy[4];
@@ -550,7 +555,7 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     dd_dy[3] = dy[2];                                   /* d2(r_y)/dy2 */
 
     /* index for z variable */
-    int j_z   = (z - str->z_min) / str->z_grid;
+    int j_z   = (z - str->z_min) / str->z_grid - 1*(z==str->z_max);
    /* Normalized z coordinate in current cell
        (the order facilitates the evaluation)*/
     real dz[4];
@@ -574,7 +579,7 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     dd_dz[3] = dz[2];                                   /* d2(r_z)/dz2 */
 
     /* index for t variable */
-    int m_t   = (t - str->t_min) / str->t_grid;
+    int m_t   = (t - str->t_min) / str->t_grid - 1*(t==str->t_max);
    /* Normalized t coordinate in current cell
        (the order facilitates the evaluation)*/
     real dt[4];
@@ -593,7 +598,7 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
 
     int err = 0;
 
-    /* Enforce periodic BC or check that the coordinate is within the grid. */
+    /* Enforce periodic BC or check that the coordinate is within the domain. */
     if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
         x1 = -(str->n_x-1)*x1;
     }
@@ -621,7 +626,7 @@ int interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
 
     if(!err) {
 
-        /* Evaluate splines */
+        /* Evaluate spline value */
         real d_aux1, d_aux2; /* Auxiliary normalized coordinates */
 
         /* f */

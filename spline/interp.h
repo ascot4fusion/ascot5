@@ -219,8 +219,8 @@ a5err interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y);
 a5err interp3Dcomp_eval_f(real* f, interp3D_data* str,
                          real x, real y, real z);
 #pragma omp declare simd uniform(str)
-int interp4Dcomp_eval_f(real* f, interp4D_data* str,
-                        real x, real y, real z, real t);
+a5err interp4Dcomp_eval_f(real* f, interp4D_data* str,
+			  real x, real y, real z, real t);
 
 
 #pragma omp declare simd uniform(str)
