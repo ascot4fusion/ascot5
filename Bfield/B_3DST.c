@@ -34,7 +34,6 @@
  * @see B_field.c
  */
 #include <stdlib.h>
-#include <stdio.h>
 #include <math.h>
 #include "../math.h"
 #include "../ascot5.h"
@@ -166,7 +165,7 @@ int B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array)
     real psival[1], Bval[3];
     err = B_3DST_eval_psi(psival, offload_data->axis_r, 0, offload_data->axis_z,
                           &Bdata);
-    err = B_3DST_eval_B(Bval, offload_data->axis_r, 149.5, offload_data->axis_z,
+    err = B_3DST_eval_B(Bval, offload_data->axis_r, 0, offload_data->axis_z,
                         offload_data->Bgrid_t_min, &Bdata);
     if(err) {
         print_err("Error: Initialization failed.\n");
@@ -174,33 +173,33 @@ int B_3DST_init_offload(B_3DST_offload_data* offload_data, real** offload_array)
     }
 
     /* Print some sanity check on data */
-    printf("\nTime-dependent 3D magnetic field (B_3DST)\n");
-    print_out(VERBOSE_IO, "Psi-grid: nR = %4.d Rmin = %3.3f m Rmax = %3.3f m\n",
+    print_out(VERBOSE_IO,
+              "\nTime-dependent 3D magnetic field (B_3DST)\n"
+              "Psi-grid: nR = %4.d Rmin = %3.3f m Rmax = %3.3f m\n"
+              "          nz = %4.d zmin = %3.3f m zmax = %3.3f m\n"
+	      "B-grid: nR = %4.d Rmin = %3.3f m Rmax = %3.3f m\n"
+	      "        nz = %4.d zmin = %3.3f m zmax = %3.3f m\n"
+	      "        nphi = %4.d phimin = %3.3f deg phimax = %3.3f deg\n"
+	      "        ntime = %4.d tmin = %3.3f s tmax = %3.3f s\n"
+	      "Psi at magnetic axis (%1.3f m, %1.3f m)\n"
+              "%3.3f (evaluated)\n%3.3f (given)\n"
+              "Magnetic field on axis:\n"
+              "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n",
               offload_data->psigrid_n_r,
-              offload_data->psigrid_r_min, offload_data->psigrid_r_max);
-    print_out(VERBOSE_IO, "      nz = %4.d zmin = %3.3f m zmax = %3.3f m\n",
+              offload_data->psigrid_r_min, offload_data->psigrid_r_max,
               offload_data->psigrid_n_z,
-              offload_data->psigrid_z_min, offload_data->psigrid_z_max);
-    print_out(VERBOSE_IO, "B-grid: nR = %4.d Rmin = %3.3f m Rmax = %3.3f m\n",
+              offload_data->psigrid_z_min, offload_data->psigrid_z_max,
               offload_data->Bgrid_n_r,
-              offload_data->Bgrid_r_min, offload_data->Bgrid_r_max);
-    print_out(VERBOSE_IO, "      nz = %4.d zmin = %3.3f m zmax = %3.3f m\n",
+              offload_data->Bgrid_r_min, offload_data->Bgrid_r_max,
               offload_data->Bgrid_n_z,
-              offload_data->Bgrid_z_min, offload_data->Bgrid_z_max);
-    print_out(VERBOSE_IO, "nphi = %4.d phimin = %3.3f deg phimax = %3.3f deg\n",
+              offload_data->Bgrid_z_min, offload_data->Bgrid_z_max,
               offload_data->Bgrid_n_phi,
               math_rad2deg(offload_data->Bgrid_phi_min),
-              math_rad2deg(offload_data->Bgrid_phi_max));
-    print_out(VERBOSE_IO, "ntime = %4.d tmin = %3.3f s tmax = %3.3f s\n",
+	      math_rad2deg(offload_data->Bgrid_phi_max),
               offload_data->Bgrid_n_t,
-              offload_data->Bgrid_t_min,
-              offload_data->Bgrid_t_max);
-    print_out(VERBOSE_IO, "Psi at magnetic axis (%1.3f m, %1.3f m)\n",
-              offload_data->axis_r, offload_data->axis_z);
-    print_out(VERBOSE_IO, "%3.3f (evaluated)\n%3.3f (given)\n",
-              psival[0], offload_data->psi0);
-    print_out(VERBOSE_IO, "Magnetic field on axis:\n"
-              "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n",
+              offload_data->Bgrid_t_min, offload_data->Bgrid_t_max,
+              offload_data->axis_r, offload_data->axis_z,
+              psival[0], offload_data->psi0,
               Bval[0], Bval[1], Bval[2]);
 
     return err;
