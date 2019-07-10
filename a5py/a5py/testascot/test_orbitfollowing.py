@@ -270,8 +270,7 @@ def check():
     h4 = f.add_subplot(1,4,4)
     h4.set_position([0.6, 0.3, 0.45, 0.45], which='both')
 
-    #colors = ["#373e02", "#0a481e", "#03719c", "#0165fc", "#7e1e9c", "#cea2fd"]
-    colors = ["b", "dodgerblue", "darkgreen", "forestgreen", "r", "tomato"]
+    colors = ["C0", "C9", "C2", "C8", "C3", "C1"]
 
     #**************************************************************************#
     #*     Evaluate and plot conservation quantities for ORBFOL_GO             #
@@ -302,7 +301,7 @@ def check():
     ORBFOL["GO"]["id"]   = orb["id"]
     ORBFOL["GO"]["r"]    = orb["r"]
     ORBFOL["GO"]["z"]    = orb["z"]
-    ORBFOL["GO"]["ekin"] = (gamma - 1) * m_e * c * c
+    ORBFOL["GO"]["ekin"] = vnorm#(gamma - 1) * m_e * c * c
     ORBFOL["GO"]["mu"]   = ( ( m_e * gamma * gamma ) / ( 2 * B ) ) * \
                            ( vnorm * vnorm - vpar * vpar )
     ORBFOL["GO"]["ctor"] = gamma * m_e * orb["r"] * orb["vphi"] + \
@@ -323,9 +322,9 @@ def check():
     plot_relerr(h3, ORBFOL["GO"]["time"][id2], ORBFOL["GO"]["ctor"][id2],
                 colors[1])
     h4.plot(        ORBFOL["GO"]["r"][id1],    ORBFOL["GO"]["z"][id1],
-                    colors[0])
+                    colors[0], alpha=0.7)
     h4.plot(        ORBFOL["GO"]["r"][id2],    ORBFOL["GO"]["z"][id2],
-                    colors[1])
+                    colors[1], alpha=0.7)
 
     #**************************************************************************#
     #*     Evaluate and plot conservation quantities for ORBFOL_GCF            #
@@ -370,9 +369,9 @@ def check():
     plot_relerr(h3, ORBFOL["GCF"]["time"][id2], ORBFOL["GCF"]["ctor"][id2],
                 colors[3])
     h4.plot(        ORBFOL["GCF"]["r"][id1],    ORBFOL["GCF"]["z"][id1],
-                colors[2])
+                colors[2], alpha=0.7, linewidth=1)
     h4.plot(        ORBFOL["GCF"]["r"][id2],    ORBFOL["GCF"]["z"][id2],
-                colors[3])
+                colors[3], alpha=0.7, linewidth=1)
 
     #**************************************************************************#
     #*     Evaluate and plot conservation quantities for ORBFOL_GCA            #
@@ -417,9 +416,9 @@ def check():
     plot_relerr(h3, ORBFOL["GCA"]["time"][id2], ORBFOL["GCA"]["ctor"][id2],
                 colors[5])
     h4.plot(        ORBFOL["GCA"]["r"][id1],    ORBFOL["GCA"]["z"][id1],
-                colors[4])
+                    colors[4], alpha=0.7, linewidth=1)
     h4.plot(        ORBFOL["GCA"]["r"][id2],    ORBFOL["GCA"]["z"][id2],
-                colors[5])
+                colors[5], alpha=0.7, linewidth=1)
 
     #**************************************************************************#
     #*                 Finalize and print and show the figure                  #
@@ -480,7 +479,7 @@ def check():
     plt.show()
 
 def plot_relerr(axis, x, y, color):
-    axis.plot(x, y/y[0] - 1, color)
+    axis.plot(x, y/y[0] - 1, color, alpha=0.7)
 
 
 if __name__ == '__main__':
