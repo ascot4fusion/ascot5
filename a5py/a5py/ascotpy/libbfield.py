@@ -76,16 +76,12 @@ class LibBfield(LibAscot):
         bhat_r   = out["br"]   / bnorm
         bhat_phi = out["bphi"] / bnorm
         bhat_z   = out["bz"]   / bnorm
-        dbdl_r   = (bhat_r * out["brdr"]   + bhat_phi * out["bphidr"]   + bhat_z * out["bzdr"]) * bhat_r
-        dbdl_phi = (bhat_r * out["brdphi"] + bhat_phi * out["bphidphi"] + bhat_z * out["bzdphi"]) * bhat_phi / R.ravel()
-        dbdl_z   = (bhat_r * out["brdz"]   + bhat_phi * out["bphidz"]   + bhat_z * out["bzdz"]) * bhat_z
 
-        dbdl = np.sqrt(dbdl_r * dbdl_r + dbdl_phi * dbdl_phi + dbdl_z * dbdl_z).reshape(nin, nphi)
+        bbar = (bhat_r * out["bphidr"] +  bhat_z * out["bphidz"]).reshape(nin, nphi)
+        btil = (bhat_phi * out["bphidphi"] / R.ravel()).reshape(nin, nphi)
 
-        print(np.nanmean(dbdl, axis=1).shape)
-        phigrid = np.linspace(0, 2*np.pi, nphi+1)[:-1]
-        avg = np.meshgrid(np.nanmean(dbdl, axis=1).ravel(), phigrid, indexing="ij")[0]
-        return np.nanmax(np.abs(dbdl - avg), axis=1) / np.nanmean(dbdl, axis=1)
+        return np.nanmean(np.abs(bbar), axis=1) \
+            / np.nanmax(np.abs(btil), axis=1)
 
 
     def plotseparatrix(self, R, phi, z, t, axes):
@@ -116,7 +112,8 @@ class LibBfield(LibAscot):
             plt.show(block=False)
 
 
-    def plotripplewell(self, Rgrid, zgrid, time, nphi, axes=None):
+    def plotripplewell(self, Rgrid, zgrid, time, nphi, axes=None,
+                       clevel=[-1,0,1], clabel=True, **kwargs):
         R, z, t = np.meshgrid(Rgrid, zgrid, time, indexing="ij")
         rip = self.evaluateripplewell(R, z, t, nphi).reshape(Rgrid.size, zgrid.size)
 
@@ -125,9 +122,10 @@ class LibBfield(LibAscot):
             plt.figure()
             axes = plt.gca()
 
-        CS = axes.contour(Rgrid, zgrid, 100 * rip.transpose(),
-                          [0.1, 1, 10, 100, 200])
-        axes.clabel(CS)
+        CS = axes.contour(Rgrid, zgrid, np.log10(rip.transpose()),
+                          clevel, **kwargs)
+        if clabel:
+            axes.clabel(CS)
 
         axes.set_aspect("equal", adjustable="box")
         axes.set_xlim(Rgrid[0], Rgrid[-1])

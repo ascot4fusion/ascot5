@@ -8,7 +8,7 @@ losses.
 pploss.py
 """
 import numpy as np
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, RectBivariateSpline, interp2d
 
 import a5py.marker.phasespace as phasespace
 from a5py.ascotpy.ascotpy import Ascotpy
@@ -124,10 +124,17 @@ def plotpp(x, y, xgrid, ygrid, quantity=None, addlosscontour=None,
 
 
 def plotlossmap(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid,
-                time, lost, weights, axis):
-    xgrid = rhogrid
-    ygrid = ksigrid
-    _, x, y = phasespace.maprzk2rhoksi(a5, mass, charge, energy, r, z,
+                time, lost, weights, axis, muin=False):
+    if muin:
+        xgrid = rhogrid
+        ygrid = ksigrid
+        _, x, y = phasespace.maprzk2rhomu(a5, mass, charge, energy, r, z,
+                                          pitch, xgrid, ygrid,
+                                          weights=None)
+    else:
+        xgrid = rhogrid
+        ygrid = ksigrid
+        _, x, y = phasespace.maprzk2rhoksi(a5, mass, charge, energy, r, z,
                                            pitch, xgrid, ygrid,
                                            weights=None)
     P,mu = phasespace.evalPmu(a5, mass, charge, energy, r, z, pitch)
@@ -179,6 +186,40 @@ def plotlossmap(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid,
                  lossfrac.transpose(), [0.1, 0.9], colors=['black', 'black'],
                  alpha=0.7, linewidths=[1, 3])
     axis.figure.canvas.draw()
+
+
+def evallossfrac(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid,
+                 time, lost, weights):
+    xgrid = rhogrid
+    ygrid = ksigrid
+    _, x, y = phasespace.maprzk2rhoksi(a5, mass, charge, energy, r, z,
+                                       pitch, xgrid, ygrid,
+                                       weights=None)
+    P,mu = phasespace.evalPmu(a5, mass, charge, energy, r, z, pitch)
+
+    lostxy = np.histogram2d(x[lost], y[lost], bins=[xgrid,ygrid],
+                            weights=weights[lost])[0]
+    timexy = np.histogram2d(x[lost], y[lost], bins=[xgrid,ygrid],
+                            weights=(time*weights)[lost])[0] / lostxy
+
+    weightxy = np.histogram2d(x, y, bins=[xgrid,ygrid], weights=weights)[0]
+    lossfrac = lostxy / weightxy
+
+    return (lossfrac, timexy)
+
+
+def evalpdens(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid, weights):
+    xgrid = rhogrid
+    ygrid = ksigrid
+    _, x, y = phasespace.maprzk2rhoksi(a5, mass, charge, energy, r, z,
+                                       pitch, xgrid, ygrid,
+                                       weights=None)
+    P,mu = phasespace.evalPmu(a5, mass, charge, energy, r, z, pitch)
+
+
+    weightxy = np.histogram2d(x, y, bins=[xgrid,ygrid], weights=weights)[0]
+
+    return weightxy
 
 
 def evalandplotpp(a5, mass, charge, energy, r, z, pitch, xy="rhoksi",
@@ -292,7 +333,8 @@ def evaltransportcoefficients(a5, mass, charge, energy, r0, z0, k0,
 
 
 def runtransportmodel(coefficients, markers, tmax, Nt,
-                      xmin=0, xmax=1, Nmrk=1000, axis=None):
+                      xmin=0, xmax=1, Nmrk=1000, axis=None, ksigrid=None,
+                      a5=None, mass=None, charge=None, energy=None):
     xgrid = coefficients[0]
     ygrid = coefficients[1]
     lossfrac = np.zeros((xgrid.size-1,ygrid.size-1))
@@ -343,6 +385,56 @@ def runtransportmodel(coefficients, markers, tmax, Nt,
                                          x <  xgrid[i+1]])
             endstate[i,j] = np.sum(ids)
 
+    if ksigrid is not None:
+        xvals, yvals = np.meshgrid(xgrid[:-1]+(xgrid[1]-xgrid[0])/2,
+                                   ksigrid[:-1]+(ksigrid[1]-ksigrid[0])/2,
+                                   indexing='ij')
+        _, x, y = phasespace.maprhoksi2rhomu(a5, mass, charge, energy,
+                                             xvals.ravel(), yvals.ravel(),
+                                             xgrid, ygrid, weights=None)
+
+        xvals, yvals = np.meshgrid(xgrid[:-1]+(xgrid[1]-xgrid[0])/2,
+                                   ygrid[:-1]+(ygrid[1]-ygrid[0])/2,
+                                   indexing='ij')
+        f = RectBivariateSpline(xgrid[:-1]+(xgrid[1]-xgrid[0])/2,
+                                ygrid[:-1]+(ygrid[1]-ygrid[0])/2,
+                                lossfrac)
+        lossfrac = f(x,y,grid=False).reshape(xgrid.size-1, ksigrid.size-1)
+        #f = interp2d(xvals.ravel(),
+        #             yvals.ravel(),
+        #             lossfrac.ravel())
+        #lossfrac = (np.diag(f(x,y, grid=False)).reshape(ksigrid.size-1, xgrid.size-1)).T
+        #print(lossfrac.shape)
+        #lossfrac = f(xgrid, y)
+
+
+        lossfrac[lossfrac>1] = 1
+        lossfrac[lossfrac<0] = 0
+
+        losstime[np.isnan(losstime)] = 0
+        f = RectBivariateSpline(xgrid[:-1]+(xgrid[1]-xgrid[0])/2,
+                                ygrid[:-1]+(ygrid[1]-ygrid[0])/2,
+                                losstime)
+        losstime = f(x,y,grid=False).reshape(xgrid.size-1, ksigrid.size-1)
+
+        #f = interp2d(xvals,
+        #             yvals,
+        #             losstime)
+        #losstime = f(xgrid[:-1]+(xgrid[1]-xgrid[0])/2, ygrid[:-1]+(ygrid[1]-ygrid[0])/2).T#f(xgrid, ygrid)#(x, y).reshape(xgrid.size-1, ksigrid.size-1)
+        #losstime = (np.diag(f(x,y)).reshape(ksigrid.size-1, xgrid.size-1)).T
+        #losstime.setflags(write=1)
+
+        ygrid = ksigrid
+
+        #n = np.histogram2d(x, y, bins=[xgrid,ygrid])[0]
+        #lossfrac = np.histogram2d(x, y, bins=[xgrid,ygrid],
+        #                          weights=lossfrac.ravel())[0] / n
+        #losstime = np.histogram2d(x, y, bins=[xgrid,ygrid],
+        #                          weights=losstime.ravel())[0] / n
+        #lossfrac[np.isnan(lossfrac)] = 0
+        #losstime[np.isnan(losstime)] = 1
+
+
     if axis is not None:
         cmap = plt.cm.get_cmap("viridis_r", 5)
 
@@ -368,11 +460,18 @@ def runtransportmodel(coefficients, markers, tmax, Nt,
                  alpha=0.7, linewidths=[1, 3])
 
 
+    return (lossfrac,losstime)
+
+
 
 def evalcoefs(a5, mass, charge, energy, r, z, pitch, weights, xgrid, ygrid,
-              drift, diff, lost, endtime, xedge):
-    _, x, y = phasespace.maprzk2rhoksi(a5, mass, charge, energy, r, z,
-                                       pitch, xgrid, ygrid, weights=None)
+              drift, diff, lost, endtime, xedge, mutype=False):
+    if mutype:
+        _, x, y = phasespace.maprzk2rhomu(a5, mass, charge, energy, r, z,
+                                          pitch, xgrid, ygrid, weights=None)
+    else:
+        _, x, y = phasespace.maprzk2rhoksi(a5, mass, charge, energy, r, z,
+                                           pitch, xgrid, ygrid, weights=None)
 
     if weights is None:
         weights = np.ones(drift.shape)

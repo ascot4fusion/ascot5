@@ -68,7 +68,7 @@ def evalPmu(a5, mass, charge, energy, r, z, ksi):
     vnorm = np.sqrt(2*energy/mass)
 
     mu = (1-2*(ksi<0))*(1 - ksi*ksi) * mass * vnorm * vnorm / (2*bnorm)
-    P  = mass * r * vnorm * ksi - charge * psi
+    P  = mass * r * vnorm * ksi + charge * psi
 
     if free:
         a5.free(bfield=True)
@@ -134,7 +134,7 @@ def istrapped(a5, mass, charge, energy, P, mu, rmin=None):
             continue
 
         # Evaluate P(r,mu)
-        val = -charge * psi + np.sign(mu[i]) * mass * rgrid * np.sqrt(vperp2)
+        val = charge * psi + np.sign(mu[i]) * mass * rgrid * np.sqrt(vperp2)
         val[vperp2 < 0] = np.nan
 
         if not (any(val - P[i] > 0) and any(val - P[i] < 0)):
@@ -210,10 +210,10 @@ def initgridPmu(a5, mass, charge, energy, nP, nmu, padding):
         psimax = psi[0]
         rmax   = rz[0][0]
 
-    P  = np.array([ mass * rmin * vnorm - charge * psimin,
-                   -mass * rmin * vnorm - charge * psimin,
-                    mass * rmax * vnorm - charge * psimax,
-                   -mass * rmax * vnorm - charge * psimax])
+    P  = np.array([ mass * rmin * vnorm + charge * psimin,
+                   -mass * rmin * vnorm + charge * psimin,
+                    mass * rmax * vnorm + charge * psimax,
+                   -mass * rmax * vnorm + charge * psimax])
 
     Pmin = np.nanmin(P)
     Pmax = np.nanmax(P)
@@ -279,7 +279,7 @@ def maprhomu2Pmu(a5, mass, charge, energy, rhovals, muvals,
 
     vpar   = np.sign(muvals) * np.sqrt(vnorm*vnorm
                                        - 2*bnorm*np.absolute(muvals)/mass)
-    Pvals  = mass * rz[0] * vpar - charge * psi
+    Pvals  = mass * rz[0] * vpar + charge * psi
 
     if weights is None:
         weights = np.ones(muvals.shape)
@@ -343,7 +343,7 @@ def mapPmu2rhomu(a5, mass, charge, energy, Pvals, muvals, rhogrid, mugrid,
     vpar2 = vnorm * vnorm - 2 * bnorm * np.absolute(mu) / mass
     vpar  = np.sign(mu)*np.sqrt(vpar2)
 
-    P  = mass * r * vpar - charge * psi
+    P  = mass * r * vpar + charge * psi
 
     if weights is None:
         weights = np.ones(muvals.shape)
@@ -510,7 +510,7 @@ def maprhoksi2Pmu(a5, mass, charge, energy, rhovals, ksivals,
 
     muvals = (1 - 2*(ksivals<0)) * (1 - ksivals*ksivals) \
              * mass * vnorm * vnorm / (2*bnorm)
-    Pvals  = mass * rz[0] * vnorm * ksivals - charge * psi
+    Pvals  = mass * rz[0] * vnorm * ksivals + charge * psi
 
     if weights is None:
         weights = np.ones(rhovals.shape)
@@ -572,9 +572,10 @@ def mapPmu2rhoksi(a5, mass, charge, energy, Pvals, muvals, rhogrid, ksigrid,
     psi   = psi.reshape(-1,1) * np.ones(ksi.shape)
     bnorm = bnorm.reshape(-1,1) * np.ones(ksi.shape)
     r     = rz[0].reshape(-1,1) * np.ones(ksi.shape)
+    ksi   = np.ones(rz[0].reshape(-1,1).shape).reshape(-1,1)*ksigrid.transpose()
     vpar  = ksi*vnorm
 
-    P  = mass * r * vpar - charge * psi
+    P  = mass * r * vpar + charge * psi
     mu = (1 - 2*(ksi < 0)) * (1 - ksi*ksi) * mass * vnorm * vnorm / (2*bnorm)
     mumax = mass * vnorm * vnorm / (2*bnorm)
 
@@ -764,7 +765,7 @@ def maprzk2Pmu(a5, mass, charge, energy, rvals, zvals, ksivals,
 
     muvals = (1-2*(ksivals<0)) * (1-ksivals*ksivals) \
              * vnorm * vnorm * mass / (2*bnorm)
-    Pvals  = mass * rvals * ksivals * vnorm - charge * psi
+    Pvals  = mass * rvals * ksivals * vnorm + charge * psi
 
     if weights is None:
         weights = np.ones(muvals.shape)
@@ -833,8 +834,8 @@ def mapPmu2rzk(a5, mass, charge, energy, Pvals, muvals,
     psi   = a5.evaluate(R, 0, Z, 0, "psi").reshape(R.shape)
     bnorm = a5.evaluate(R, 0, Z, 0, "bnorm").reshape(R.shape)
     Mu = (1-2*(Ksi<0))*mass * (1-Ksi*Ksi) * vnorm * vnorm / (2*bnorm)
-    P  = mass * R * Ksi * vnorm  - charge * psi
-    Pmid = -charge * psi
+    P  = mass * R * Ksi * vnorm  + charge * psi
+    #Pmid = charge * psi
 
     # Maximum possible mu value at each node
     Mumax = mass * vnorm * vnorm / (2*bnorm)
@@ -1108,8 +1109,9 @@ def maprzk2rhoksi(a5, mass, charge, energy, rvals, zvals, ksivals, rhogrid,
 
     Pgrid  = np.linspace(-1,1,5)
     mugrid = np.linspace(-1,1,5)
-    _, Pvals, muvals = maprzk2Pmu(a5, mass, charge, energy, rvals, zvals,
-                                  ksivals, Pgrid, mugrid, weights=None)
+    #_, Pvals, muvals = maprzk2Pmu(a5, mass, charge, energy, rvals, zvals,
+    #                              ksivals, Pgrid, mugrid, weights=None)
+    Pvals, muvals = evalPmu(a5, mass, charge, energy, rvals, zvals, ksivals)
 
     ordinate, rhovals, ksivals = mapPmu2rhoksi(a5, mass, charge, energy, Pvals,
                                                muvals, rhogrid, ksigrid,
