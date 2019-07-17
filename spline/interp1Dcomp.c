@@ -47,7 +47,7 @@ int interp1Dcomp_init_coeff(real* c, real* f, int n_x, int bc_x,
     /* Cubic spline along x, using f values to get fxx */
     splinecomp(f, n_x, bc_x, c);
     for(int i_x=0; i_x<n_x; i_x++) {
-        c[i_x*2]     = c[i_x*2];
+        /* Accounting for normalized grid. Affects fxx, but not f. */
         c[i_x*2 + 1] = c[i_x*2+1] / (x_grid*x_grid);
     }
 
