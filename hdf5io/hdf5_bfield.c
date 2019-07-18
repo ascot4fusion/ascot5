@@ -380,11 +380,11 @@ int hdf5_bfield_read_3DS(hid_t f, B_3DS_offload_data* offload_data,
  * - double psi Poloidal magnetic flux on the Rz-grid as
  *              a {psi_nz, psi_nr} matrix [V*s*m^-1]
  * - double br   Magnetic field R component on the Rz-grid as
- *               a {b_nt, b_nphi, b_nz, b_nr} matrix [T]
+ *               a {b_nt, b_nz, b_nphi, b_nr} matrix [T]
  * - double bphi Magnetic field R component on the Rz-grid as
- *               a {b_nt, b_nphi, b_nz, b_nr} matrix [T]
+ *               a {b_nt, b_nz, b_nphi, b_nr} matrix [T]
  * - double bz   Magnetic field R component on the Rz-grid as
- *               a {b_nt, b_nphi, b_nz, b_nr} matrix [T]
+ *               a {b_nt, b_nz, b_nphi, b_nr} matrix [T]
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
