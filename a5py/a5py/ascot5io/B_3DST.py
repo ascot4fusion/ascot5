@@ -125,102 +125,78 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
         psi_zmax = b_zmax
         psi_nz   = b_nz
 
-    ## continue here (and delete this comment)
-        
-    br = np.transpose(br,(0,2,1,3))
-    bphi = np.transpose(bphi,(0,2,1,3))
-    bz = np.transpose(bz,(0,2,1,3))
+    assert psi.shape  == (psi_nr,psi_nz)
+    assert br.shape   == (b_nr,b_nphi,b_nz,b_nt)
+    assert bphi.shape == (b_nr,b_nphi,b_nz,b_nt)
+    assert bz.shape   == (b_nr,b_nphi,b_nz,b_nt)
+
+    psi  = np.transpose(psi)
+    br   = np.transpose(br,   (3,2,1,0))
+    bphi = np.transpose(bphi, (3,2,1,0))
+    bz   = np.transpose(bz,   (3,2,1,0))
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
+        gname = g.name.split("/")[-1]
 
-        g.create_dataset("R_min",         (1,), data=b_rmin,    dtype="f8")
-        g.create_dataset("R_max",         (1,), data=b_rmax,    dtype="f8")
-        g.create_dataset("n_R",           (1,), data=b_nr,      dtype="i8")
-        g.create_dataset("phi_min",       (1,), data=b_phimin,  dtype="f8")
-        g.create_dataset("phi_max",       (1,), data=b_phimax,  dtype="f8")
-        g.create_dataset("n_phi",         (1,), data=b_nphi,    dtype="i8")
-        g.create_dataset("z_min",         (1,), data=b_zmin,    dtype="f8")
-        g.create_dataset("z_max",         (1,), data=b_zmax,    dtype="f8")
-        g.create_dataset("n_z",           (1,), data=b_nz,      dtype="i8")
-        g.create_dataset("t_min",         (1,), data=b_tmin,    dtype="f8")
-        g.create_dataset("t_max",         (1,), data=b_tmax,    dtype="f8")
-        g.create_dataset("n_t",           (1,), data=b_nt,   dtype="i8")
-        g.create_dataset("psigrid_R_min", (1,), data=psi_rmin,   dtype="f8")
-        g.create_dataset("psigrid_R_max", (1,), data=psi_rmax,   dtype="f8")
-        g.create_dataset("psigrid_n_R",   (1,), data=psi_nr,     dtype="i8")
-        g.create_dataset("psigrid_z_min", (1,), data=psi_zmin,   dtype="f8")
-        g.create_dataset("psigrid_z_max", (1,), data=psi_zmax,   dtype="f8")
-        g.create_dataset("psigrid_n_z",   (1,), data=psi_nz,     dtype="i8")
-        g.create_dataset("psi",                 data=psi,   dtype="f8")
-        g.create_dataset("br",                 data=br,     dtype="f8")
-        g.create_dataset("bphi",               data=bphi,   dtype="f8")
-        g.create_dataset("bz",                 data=bz,     dtype="f8")
-        g.create_dataset("axis_R",        (1,), data=axisr,   dtype="f8")
-        g.create_dataset("axis_z",        (1,), data=axisz,   dtype="f8")
-        g.create_dataset("psi0",          (1,), data=psi0, dtype="f8")
-        g.create_dataset("psi1",          (1,), data=psi1, dtype="f8")
+        g.create_dataset("b_rmin",   (1,), data=b_rmin,   dtype="f8")
+        g.create_dataset("b_rmax",   (1,), data=b_rmax,   dtype="f8")
+        g.create_dataset("b_nr",     (1,), data=b_nr,     dtype="i4")
+        g.create_dataset("b_phimin", (1,), data=b_phimin, dtype="f8")
+        g.create_dataset("b_phimax", (1,), data=b_phimax, dtype="f8")
+        g.create_dataset("b_nphi",   (1,), data=b_nphi,   dtype="i4")
+        g.create_dataset("b_zmin",   (1,), data=b_zmin,   dtype="f8")
+        g.create_dataset("b_zmax",   (1,), data=b_zmax,   dtype="f8")
+        g.create_dataset("b_nz",     (1,), data=b_nz,     dtype="i4")
+        g.create_dataset("b_tmin",   (1,), data=b_tmin,   dtype="f8")
+        g.create_dataset("b_tmax",   (1,), data=b_tmax,   dtype="f8")
+        g.create_dataset("b_nt",     (1,), data=b_nt,     dtype="i4")
+        g.create_dataset("psi_rmin", (1,), data=psi_rmin, dtype="f8")
+        g.create_dataset("psi_rmax", (1,), data=psi_rmax, dtype="f8")
+        g.create_dataset("psi_nr",   (1,), data=psi_nr,   dtype="i4")
+        g.create_dataset("psi_zmin", (1,), data=psi_zmin, dtype="f8")
+        g.create_dataset("psi_zmax", (1,), data=psi_zmax, dtype="f8")
+        g.create_dataset("psi_nz",   (1,), data=psi_nz,   dtype="i4")
+        g.create_dataset("axisr",    (1,), data=axisr,    dtype="f8")
+        g.create_dataset("axisz",    (1,), data=axisz,    dtype="f8")
+        g.create_dataset("psi0",     (1,), data=psi0,     dtype="f8")
+        g.create_dataset("psi1",     (1,), data=psi1,     dtype="f8")
 
+        g.create_dataset("psi",  (psi_nz, psi_nr),     data=psi,  dtype="f8")
+        g.create_dataset("br",   (b_nt, b_nz, b_nphi, b_nr), data=br,   dtype="f8")
+        g.create_dataset("bphi", (b_nt, b_nz, b_nphi, b_nr), data=bphi, dtype="f8")
+        g.create_dataset("bz",   (b_nt, b_nz, b_nphi, b_nr), data=bz,   dtype="f8")                                                     
+    return gname
 
 def read_hdf5(fn, qid):
     """
-    Read 3D magnetic field input from HDF5 file.
-
-    Parameters
-    ----------
-
-    fn : str
-        Full path to the HDF5 file.
-    qid : str
-        qid of the bfield to be read.
-
-    Returns
-    -------
-
-    Dictionary containing magnetic field data.
+    Read time-dependent 3D magnetic field input from HDF5 file.
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        qid : str <br>
+            QID of the data to be read.
+    Returns:                                                                                                                    
+        Dictionary containing input data.  
     """
 
-    path = "bfield" + "/B_3DST-" + qid
+    path = "bfield" + "/B_3DST_" + qid
 
+    out = {}
     with h5py.File(fn,"r") as f:
-        out = {}
-
-        # Metadata.
-        out["qid"]  = qid
-        out["date"] = f[path].attrs["date"]
-        out["description"] = f[path].attrs["description"]
-
-        # Actual data.
-        out["R_min"] = f[path]["R_min"][:]
-        out["R_max"] = f[path]["R_max"][:]
-        out["n_R"]   = f[path]["n_R"][:]
-
-        out["phi_min"] = f[path]["phi_min"][:]
-        out["phi_max"] = f[path]["phi_max"][:]
-        out["n_phi"]   = f[path]["n_phi"][:]
-
-        out["z_min"] = f[path]["z_min"][:]
-        out["z_max"] = f[path]["z_max"][:]
-        out["n_z"]   = f[path]["n_z"][:]
-
-        out["t_min"] = f[path]["t_min"][:]
-        out["t_max"] = f[path]["t_max"][:]
-        out["n_t"]   = f[path]["n_t"][:]
-
-        out["psi"]   = f[path]["psi"][:]
-        out["br"]   = f[path]["br"][:]
-        out["bphi"] = f[path]["bphi"][:]
-        out["bz"]   = f[path]["bz"][:]
-
-        out["axis_R"] = f[path]["axis_R"][:]
-        out["axis_z"] = f[path]["axis_z"][:]
-
-        out["psiaxis"] = f[path]["psi0"][:]
-        out["psi1"] = f[path]["psi1"][:]
-
+        for key in f[path]:
+            out[key] = f[path][key][:]
+            
+    out["psi"]  = np.transpose(out["psi"])
+    out["br"]   = np.transpose(out["br"],   (3,2,1,0))
+    out["bphi"] = np.transpose(out["bphi"], (3,2,1,0))
+    out["bz"]   = np.transpose(out["bz"],   (3,2,1,0))
     return out
 
 class B_3DST(AscotData):
-
+    """
+    Object representing B_3DS data.
+    """
+    
     def read(self):
         return read_hdf5(self._file, self.get_qid())
