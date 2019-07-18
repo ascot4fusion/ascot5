@@ -49,9 +49,11 @@ int main() {
     int anl_func = TRIG;
     int rep = COMP;
     int n_rnd = 1000000; /* Number of random points for error calculation */
+    /* Common number of grid points and interval min and max for all
+       coordinates, since we want h_x = h_y = h_z for simple monitoring of
+       error scaling. Also, min and max are chosen to give trigonometric
+       functions perfect BC matching. */
     int n[5] = {8, 16, 32, 64, 128};
-    /* Currently available boundary conditions: NATURALBC, PERIODICBC */
-    int bc = NATURALBC; // Curr only used in printing. Manual in func calls.
     real min = 0.0;
     real max = 2*CONST_PI;
 
@@ -69,7 +71,13 @@ int main() {
     double cpu_time_2D[5*2];
     double cpu_time_3D[5*2];
 
-    /* Loop through resolutions and test all dimensions */
+    /* Loop through resolutions and test all dimensions. Currently available
+       boundary conditions: NATURALBC and PERIODICBC. Note that the h for
+       PERIODICBCs will be slightly smaller, because of the one extra
+       subinterval between min and max. However, the relative significance of
+       this fades quickly with increasing n. We cannot tweak the NATURALBC
+       max to eliminate this, since max = 2*pi is needed for perfect BC match
+       for trigonometric functions also for NATURALBC. */
     for(int i_n = 0; i_n < 5; i_n++) {
         test_interp1D(&err1D_df[i_n*3], anl_func, rep, n_rnd,
                       n[i_n], NATURALBC,
@@ -90,10 +98,12 @@ int main() {
 
     /* Print results, in Matlab compatible format. If you copy-paste the output
        to Matlab, nice vectors and matrices are written. */
-    /* Grid interval h */
+    /* Grid interval h. Be careful when mixing other BCs with PERIODICBC,
+       which has one more subinterval. Now we are using the h for NATURALBC,
+       even knowing that it does not exactly equal the h for PERIODICBC. */
     printf("\nh = [");
     for(int i = 0; i < 5; i++) {
-        printf(" %le", (max-min)/(n[i]-1*(bc==NATURALBC)));
+        printf(" %le", (max-min)/(n[i]-1));
     }
     printf("];\n");
     /* 1D error */
