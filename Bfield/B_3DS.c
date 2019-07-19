@@ -74,11 +74,11 @@
  * B_3DS_offload_data.offload_array_length is set here.
  *
  * The offload array must contain the following data:
- * - offload_array[                     z*Bn_r*Bn_z + j*Bn_r + i]
+ * - offload_array[                     j*Bn_r*Bn_phi + z*Bn_r + i]
  *   = B_R(R_i, phi_z, z_j)   [T]
- * - offload_array[  Bn_r*Bn_z*Bn_phi + z*Bn_r*Bn_z + j*Bn_r + i]
- *   = B_phi(R_i, phi_z, z_j)   [T]
- * - offload_array[2*Bn_r*Bn_z*Bn_phi + z*Bn_r*Bn_z + j*Bn_r + i]
+ * - offload_array[  Bn_r*Bn_z*Bn_phi + j*Bn_r*Bn_phi + z*Bn_r + i]
+ *   = B_phi(R_i, phi_z, z_j) [T]
+ * - offload_array[2*Bn_r*Bn_z*Bn_phi + j*Bn_r*Bn_phi + z*Bn_r + i]
  *   = B_z(R_i, phi_z, z_j)   [T]
  * - offload_array[3*Bn_r*Bn_z*Bn_phi + j*n_r + i]
  *   = psi(R_i, z_j)   [V*s*m^-1]
