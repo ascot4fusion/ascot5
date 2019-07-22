@@ -193,7 +193,7 @@ int test_interp1D(real* err_df, int anl_func, int rep, int n_rnd,
                   clock_t start, clock_t end, double* cpu_time) {
 
     /* Initialize variable and test data */
-    real* x = (real*) malloc(n_x*sizeof(real));
+    real* x = (real*) malloc((n_x+1*(bc_x==PERIODICBC))*sizeof(real));
     math_linspace(x, x_min, x_max, n_x+1*(bc_x==PERIODICBC));
     real* f_inp = (real*) malloc(n_x*sizeof(real));
     for(int i = 0; i < n_x; i++) {
@@ -288,9 +288,9 @@ int test_interp2D(real* err_df, int anl_func, int rep, int n_rnd,
                   clock_t start, clock_t end, double* cpu_time) {
 
     /* Initialize variables and test data */
-    real* x = (real*) malloc(n_x*sizeof(real));
+    real* x = (real*) malloc((n_x+1*(bc_x==PERIODICBC))*sizeof(real));
     math_linspace(x, x_min, x_max, n_x+1*(bc_x==PERIODICBC));
-    real* y = (real*) malloc(n_y*sizeof(real));
+    real* y = (real*) malloc((n_y+1*(bc_y==PERIODICBC))*sizeof(real));
     math_linspace(y, y_min, y_max, n_y+1*(bc_y==PERIODICBC));
     real* f_inp = (real*) malloc(n_y*n_x*sizeof(real));
     for(int i_y = 0; i_y < n_y; i_y++) {
@@ -410,11 +410,11 @@ int test_interp3D(real* err_df, int anl_func, int rep, int n_rnd,
                   clock_t start, clock_t end, double* cpu_time) {
 
     /* Initialize variables and test data */
-    real* x = (real*) malloc(n_x*sizeof(real));
+    real* x = (real*) malloc((n_x+1*(bc_x==PERIODICBC))*sizeof(real));
     math_linspace(x, x_min, x_max, n_x+1*(bc_x==PERIODICBC));
-    real* y = (real*) malloc(n_y*sizeof(real));
+    real* y = (real*) malloc((n_y+1*(bc_y==PERIODICBC))*sizeof(real));
     math_linspace(y, y_min, y_max, n_y+1*(bc_y==PERIODICBC));
-    real* z = (real*) malloc(n_z*sizeof(real));
+    real* z = (real*) malloc((n_z+1*(bc_z==PERIODICBC))*sizeof(real));
     math_linspace(z, z_min, z_max, n_z+1*(bc_z==PERIODICBC));
     real* f_inp = (real*) malloc(n_z*n_y*n_x*sizeof(real));
     for(int i_z = 0; i_z < n_z; i_z++) {
