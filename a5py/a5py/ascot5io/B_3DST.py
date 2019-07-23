@@ -27,7 +27,7 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
     The toroidal angle phi is treated as a periodic coordinate meaning that
     B(phi) = B(phi + n*(b_phimax - b_phimin)). Do note that to avoid duplicate
     data, the last points in phi axis in B data are not at b_phimax, i.e.
-    br[:,:,-1] != BR(phi=b_phimax).
+    br[:,-1,:,:] != BR(phi=b_phimax).
 
     Args:
         fn : str <br>                                                               
@@ -66,15 +66,12 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
             Separatrix poloidal flux value [Vs/m].                                  
         psi : array_like (nr, nz) <br>                                              
             Poloidal flux values on the Rz grid [Vs/m].                             
-        br : array_like (nr,nphi,nz) <br>                                           
-            Magnetic field R component (excl. equilibrium comp.) on Rz grid [T].
-            Matrices shape must be (n_time,n_z,n_phi,n_R) CHECK THIS
-        bphi : array_like (nr,nphi,nz) <br>                                         
+        br : array_like (nr,nphi,nz,nt) <br>                                           
+            Magnetic field R component (excl. equilibrium comp.).
+        bphi : array_like (nr,nphi,nz,nt) <br>                                         
             Magnetic field phi component on Rz grid [T].
-            Matrices shape must be (n_time,n_z,n_phi,n_R) CHECK THIS
-        bz : array_like (nr,nphi,nz) <br>                                           
-            Magnetic field z component (excl. equilibrium comp.) onRz grid [T].
-            Matrices shape must be (n_time,n_z,n_phi,n_R) CHECK THIS
+        bz : array_like (nr,nphi,nz,nt) <br>                                           
+            Magnetic field z component (excl. equilibrium comp.).
         psi_rmin : float, optional <br>                                             
             Psi data R grid min edge [m].                                           
         psi_rmax : float, optional <br>                                             
@@ -92,23 +89,6 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
 
     Returns:
         Name of the new input that was written.
-
-    Notes
-    -------
-
-    Rphiz coordinates form a right-handed cylindrical coordinates.
-    phi is in degrees and is considered as a periodic coordinate.
-    b_phimin is where the period begins and phimax is the last data point,
-    i.e. not the end of period. E.g if you have a n = 2 symmetric system
-    with nphi = 180 deg and b_phimin = 0 deg, then phimax should be 179 deg.
-
-    Within ASCOT5, the magnetic field is evaluated as:
-
-    br = br' + dPsi/dz,
-    bphi = bphi',
-    bz = bz' + dPsi/dR,
-
-    where ' notates input fields.
     """
 
     parent = "bfield"
