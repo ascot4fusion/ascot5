@@ -209,11 +209,11 @@ int hdf5_efield_read_TC(hid_t f, E_TC_offload_data* offload_data,
  * - double zmax Maximum value in E data z grid [m]
  *
  * - double er   Electric field R component on the Rz-grid as
- *                a {nphi, nz, nR} matrix [T]
+ *                a {nz, nphi, nR} matrix [V/m]
  * - double ephi Electric field phi component on the Rz-grid as
- *                a {nphi, nz, nR} matrix [T]
+ *                a {nz, nphi, nR} matrix [V/m]
  * - double ez   Electric field z component on the Rz-grid as
- *                a {nphi, nz, nR} matrix [T]
+ *                a {nz, nphi, nR} matrix [V/m]
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
@@ -293,18 +293,11 @@ int hdf5_efield_read_3D(hid_t f, E_3D_offload_data* offload_data,
  * - double zmax Maximum value in E data z grid [m]
  *
  * - double er   Electric field R component on the Rz-grid as
- *                a {nphi, nz, nR} matrix [T]
+ *                a {nz, nphi, nR} matrix [V/m]
  * - double ephi Electric field phi component on the Rz-grid as
- *                a {nphi, nz, nR} matrix [T]
+ *                a {nz, nphi, nR} matrix [V/m]
  * - double ez   Electric field z component on the Rz-grid as
- *                a {nphi, nz, nR} matrix [T]
- *
- * - double E_R   Electric field R component on the Rz-grid as
- *                a {nphi, nz, nR} matrix [T]
- * - double E_phi Electric field phi component on the Rz-grid as
- *                a {nphi, nz, nR} matrix [T]
- * - double E_z   Electric field z component on the Rz-grid as
- *                a {nphi, nz, nR} matrix [T]
+ *                a {nz, nphi, nR} matrix [V/m]
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
@@ -388,11 +381,11 @@ int hdf5_efield_read_3DS(hid_t f, E_3DS_offload_data* offload_data,
  * - double tmax Maximum value in E data t grid [s]
  *
  * - double er   Electric field R component on the Rzphit-grid as
- *                a {nt, nphi, nz, nR} matrix [T]
+ *                a {nt, nz, nphi, nR} matrix [V/m]
  * - double ephi Electric field phi component on the Rzphit-grid as
- *                a {nt, nphi, nz, nR} matrix [T]
+ *                a {nt, nz, nphi, nR} matrix [V/m]
  * - double ez   Electric field z component on the Rzphit-grid as
- *                a {nt, nphi, nz, nR} matrix [T]
+ *                a {nt, nz, nphi, nR} matrix [V/m]
  *
  * @param f HDF5 file identifier for a file which is opened and closed outside
  *          of this function
