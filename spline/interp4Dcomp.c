@@ -94,139 +94,136 @@ int interp4Dcomp_init_coeff(real* c, real* f,
         return 1;
     }
 
-    /* 4D cubic spline volume coefficients: For i_x, k_y, j_z, m_t the 16
+    /* 4D cubic spline volume coefficients: For i_x, j_y, k_z, m_t the 16
        coefficients are:
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 0] = D1111 = f;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 1] = D2111 = fxx;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 2] = D1211 = fzz;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 3] = D2211 = fxxzz;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 4] = D1121 = fyy;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 5] = D2121 = fxxyy;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 6] = D1221 = fzzyy;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 7] = D2221 = fxxzzyy;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 8] = D1112 = ftt;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 9] = D2112 = fxxtt;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) +10] = D1212 = fzztt;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) +11] = D2212 = fxxzztt;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) +12] = D1122 = fyytt;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) +13] = D2122 = fxxyytt;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) +14] = D1222 = fzzyytt;
-       c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) +15] = D2222 = fxxzzyytt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 0] = D1111 = f;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 1] = D2111 = fxx;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 2] = D1211 = fyy;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 3] = D2211 = fxxyy;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 4] = D1121 = fzz;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 5] = D2121 = fxxzz;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 6] = D1221 = fyyzz;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 7] = D2221 = fxxyyzz;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 8] = D1112 = ftt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 9] = D2112 = fxxtt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) +10] = D1212 = fyytt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) +11] = D2212 = fxxyytt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) +12] = D1122 = fzztt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) +13] = D2122 = fxxzztt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) +14] = D1222 = fyyzztt;
+       c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) +15] = D2222 = fxxyyzztt;
        Note how we account for normalized grid. */
 
     for(int m_t=0; m_t<n_t; m_t++) {
-        for(int k_y=0; k_y<n_y; k_y++) {
-            for(int j_z=0; j_z<n_z; j_z++) {
+        for(int k_z=0; k_z<n_z; k_z++) {
+            for(int j_y=0; j_y<n_y; j_y++) {
                 /* Cubic spline of f along x
-                   to get fxx (for each j_z,k_y,m_t) */
+                   to get fxx (for each j_y,k_z,m_t) */
                 for(int i_x=0; i_x<n_x; i_x++) {
-                    f_x[i_x] = f[m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x];
+                    f_x[i_x] = f[m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x];
                 }
                 splinecomp(f_x, n_x, bc_x, c_x);
                 for(int i_x=0; i_x<n_x; i_x++) {
-                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 0] =
+                    c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 0] =
                         c_x[i_x*2];
-                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 1] =
+                    c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 1] =
                         c_x[i_x*2 + 1]/(x_grid*x_grid);
                 }
             }
-            /* Cubic spline of f, fxx along z
-               to get fzz, fxxzz (for each i_x,k_y,m_t) */
+            /* Cubic spline of f, fxx along y
+               to get fyy, fxxyy (for each i_x,k_z,m_t) */
             for(int i_x=0; i_x<n_x; i_x++) {
-                /* fzz */
-                for(int j_z=0; j_z<n_z; j_z++) {
-                    f_z[j_z] = f[m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x];
+                /* fyy */
+                for(int j_y=0; j_y<n_y; j_y++) {
+                    f_y[j_y] = f[m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x];
                 }
-                splinecomp(f_z, n_z, bc_z, c_z);
-                for(int j_z=0; j_z<n_z; j_z++) {
-                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 2] =
-                        c_z[j_z*2 + 1]/(z_grid*z_grid);
+                splinecomp(f_y, n_y, bc_y, c_y);
+                for(int j_y=0; j_y<n_y; j_y++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 2] =
+                        c_y[j_y*2 + 1]/(y_grid*y_grid);
                 }
-                /* fxxzz */
-                for(int j_z=0; j_z<n_z; j_z++) {
-                    f_z[j_z] =
-                        c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 1];
+                /* fxxyy */
+                for(int j_y=0; j_y<n_y; j_y++) {
+                    f_y[j_y] =
+                        c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 1];
                 }
-                splinecomp(f_z, n_z, bc_z, c_z);
-                for(int j_z=0; j_z<n_z; j_z++) {
-                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 3] =
-                        c_z[j_z*2 + 1]/(z_grid*z_grid);
+                splinecomp(f_y, n_y, bc_y, c_y);
+                for(int j_y=0; j_y<n_y; j_y++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 3] =
+                        c_y[j_y*2 + 1]/(y_grid*y_grid);
                 }
             }
         }
-        /* Cubic spline of f, fxx, fzz, fxxzz along y
-           to get fyy, fxxyy, fzzyy, fxxzzyy (for each i_x,j_z,m_t) */
-        for(int j_z=0; j_z<n_z; j_z++) {
+        /* Cubic spline of f, fxx, fyy, fxxyy along z
+           to get fzz, fxxzz, fyyzz, fxxyyzz (for each i_x,j_y,m_t) */
+        for(int j_y=0; j_y<n_y; j_y++) {
             for(int i_x=0; i_x<n_x; i_x++) {
                 /* fyy */
-                for(int k_y=0; k_y<n_y; k_y++) {
-                    f_y[k_y] = f[m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x];
+                for(int k_z=0; k_z<n_z; k_z++) {
+                    f_z[k_z] = f[m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x];
                 }
-                splinecomp(f_y, n_y, bc_y, c_y);
-                for(int k_y=0; k_y<n_y; k_y++) {
-                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 4] =
-                        c_y[k_y*2 + 1]/(y_grid*y_grid);
+                splinecomp(f_z, n_z, bc_z, c_z);
+                for(int k_z=0; k_z<n_z; k_z++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 4] =
+                        c_z[k_z*2 + 1]/(z_grid*z_grid);
                 }
                 /* fxxyy */
-                for(int k_y=0; k_y<n_y; k_y++) {
-                    f_y[k_y] =
-                        c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 1];
+                for(int k_z=0; k_z<n_z; k_z++) {
+                    f_y[k_z] =
+                        c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 1];
                 }
-                splinecomp(f_y, n_y, bc_y, c_y);
-                for(int k_y=0; k_y<n_y; k_y++) {
-                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 5] =
-                        c_y[k_y*2 + 1]/(y_grid*y_grid);
+                splinecomp(f_z, n_z, bc_z, c_z);
+                for(int k_z=0; k_z<n_z; k_z++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 5] =
+                        c_z[k_z*2 + 1]/(z_grid*z_grid);
                 }
                 /* fzzyy */
-                for(int k_y=0; k_y<n_y; k_y++) {
-                    f_y[k_y] =
-                        c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 2];
+                for(int k_z=0; k_z<n_z; k_z++) {
+                    f_y[k_z] =
+                        c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 2];
                 }
-                splinecomp(f_y, n_y, bc_y, c_y);
-                for(int k_y=0; k_y<n_y; k_y++) {
-                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 6] =
-                        c_y[k_y*2 + 1]/(y_grid*y_grid);
+                splinecomp(f_z, n_z, bc_z, c_z);
+                for(int k_z=0; k_z<n_z; k_z++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 6] =
+                        c_z[k_z*2 + 1]/(z_grid*z_grid);
                 }
                 /* fxxzzyy */
-                for(int k_y=0; k_y<n_y; k_y++) {
-                    f_y[k_y] =
-                        c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 3];
+                for(int k_z=0; k_z<n_z; k_z++) {
+                    f_y[k_z] =
+                        c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 3];
                 }
-                splinecomp(f_y, n_y, bc_y, c_y);
-                for(int k_y=0; k_y<n_y; k_y++) {
-                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 7] =
-                        c_y[k_y*2 + 1]/(y_grid*y_grid);
+                splinecomp(f_z, n_z, bc_z, c_z);
+                for(int k_z=0; k_z<n_y; k_z++) {
+                    c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 7] =
+                        c_z[k_z*2 + 1]/(z_grid*z_grid);
                 }
             }
         }
     }
-    /* Cubic spline of f, fxx, fzz, fxxzz, fyy, fxxyy, fzzyy, fxxzzyy along t
-       to get ftt, fxxtt, fzztt, fxxzztt, fyytt, fxxyytt, fzzyytt, fxxzzyytt
+    /* Cubic spline of f, fxx, fyy, fxxyy, fzz, fxxzz, fyyzz, fxxyyzz along t
+       to get ftt, fxxtt, fyytt, fxxyytt, fzztt, fxxzztt, fyyzztt, fxxyyzztt
        (for each i_x,j_z,k_y) */
-
-    /* Cubic spline along y for each xz-pair to find the compact coefficients
-       of the tricubic spline volume */
-    for(int k_y=0; k_y<n_y; k_y++) {
-        for(int j_z=0; j_z<n_z; j_z++) {
+    for(int k_z=0; k_z<n_z; k_z++) {
+        for(int j_y=0; j_y<n_y; j_y++) {
             for(int i_x=0; i_x<n_x; i_x++) {
                 /* ftt */
                 for(int m_t=0; m_t<n_t; m_t++) {
-                    f_t[m_t] = f[m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x];
+                    f_t[m_t] = f[m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x];
                 }
                 splinecomp(f_t, n_t, bc_t, c_t);
                 for(int m_t=0; m_t<n_t; m_t++) {
-                    c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + 8] =
+                    c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 8] =
                         c_t[m_t*2 + 1]/(t_grid*t_grid);
                 }
                 /* c[9:15] are calculated from c[1:7] in a loop */
                 for(int i_c=1; i_c<8; i_c++) {
                     for(int m_t=0; m_t<n_t; m_t++) {
                         f_t[m_t] =
-                            c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + i_c];
+                            c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + i_c];
                     }
                     splinecomp(f_t, n_t, bc_t, c_t);
                     for(int m_t=0; m_t<n_t; m_t++) {
-                        c[NSIZE_COMP4D*(m_t*n_x*n_z*n_y + k_y*n_x*n_z + j_z*n_x + i_x) + i_c + 8] =
+                        c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + i_c + 8] =
                             c_t[m_t*2 + 1]/(t_grid*t_grid);
                     }
                 }
@@ -352,28 +349,28 @@ a5err interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, r
     real dx[4];
     dx[2] = (x - (str->x_min + i_x*str->x_grid)) / str->x_grid; /* p_x */
     dx[0] = 1.0 - dx[2];                                        /* q_x */
-    dx[1] = dx[0]*(dx[0]*dx[0]-1)*str->x_grid*str->x_grid/6.0;   /* s_x */
-    dx[3] = dx[2]*(dx[2]*dx[2]-1)*str->x_grid*str->x_grid/6.0;   /* r_x */
+    dx[1] = dx[0]*(dx[0]*dx[0]-1)*str->x_grid*str->x_grid/6.0;  /* s_x */
+    dx[3] = dx[2]*(dx[2]*dx[2]-1)*str->x_grid*str->x_grid/6.0;  /* r_x */
 
     /* index for y variable */
-    int k_y   = (y - str->y_min) / str->y_grid - 1*(y==str->y_max);
+    int j_y   = (y - str->y_min) / str->y_grid - 1*(y==str->y_max);
    /* Normalized y coordinate in current cell
        (the order facilitates the evaluation)*/
     real dy[4];
     dy[2] = (y - (str->y_min + k_y*str->y_grid)) / str->y_grid; /* p_y */
     dy[0] = 1.0 - dy[2];                                        /* q_y */
-    dy[1] = dy[0]*(dy[0]*dy[0]-1)*str->y_grid*str->y_grid/6.0;   /* s_y */
-    dy[3] = dy[2]*(dy[2]*dy[2]-1)*str->y_grid*str->y_grid/6.0;   /* r_y */
+    dy[1] = dy[0]*(dy[0]*dy[0]-1)*str->y_grid*str->y_grid/6.0;  /* s_y */
+    dy[3] = dy[2]*(dy[2]*dy[2]-1)*str->y_grid*str->y_grid/6.0;  /* r_y */
 
     /* index for z variable */
-    int j_z   = (z - str->z_min) / str->z_grid - 1*(z==str->z_max);
+    int k_z   = (z - str->z_min) / str->z_grid - 1*(z==str->z_max);
    /* Normalized z coordinate in current cell
        (the order facilitates the evaluation)*/
     real dz[4];
     dz[2] = (z - (str->z_min + j_z*str->z_grid)) / str->z_grid; /* p_z */
     dz[0] = 1.0 - dz[2];                                        /* q_z */
-    dz[1] = dz[0]*(dz[0]*dz[0]-1)*str->z_grid*str->z_grid/6.0;   /* s_z */
-    dz[3] = dz[2]*(dz[2]*dz[2]-1)*str->z_grid*str->z_grid/6.0;   /* r_z */
+    dz[1] = dz[0]*(dz[0]*dz[0]-1)*str->z_grid*str->z_grid/6.0;  /* s_z */
+    dz[3] = dz[2]*(dz[2]*dz[2]-1)*str->z_grid*str->z_grid/6.0;  /* r_z */
 
     /* index for t variable */
     int m_t   = (t - str->t_min) / str->t_grid - 1*(t==str->t_max);
@@ -382,16 +379,16 @@ a5err interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, r
     real dt[4];
     dt[2] = (t - (str->t_min + m_t*str->t_grid)) / str->t_grid; /* p_t */
     dt[0] = 1.0 - dt[2];                                        /* q_t */
-    dt[1] = dt[0]*(dt[0]*dt[0]-1)*str->t_grid*str->t_grid/6.0;   /* s_t */
-    dt[3] = dt[2]*(dt[2]*dt[2]-1)*str->t_grid*str->t_grid/6.0;   /* r_t */
+    dt[1] = dt[0]*(dt[0]*dt[0]-1)*str->t_grid*str->t_grid/6.0;  /* s_t */
+    dt[3] = dt[2]*(dt[2]*dt[2]-1)*str->t_grid*str->t_grid/6.0;  /* r_t */
 
     /**< Index jump to cell */
     int n  = NSIZE_COMP4D*
-        (m_t*str->n_x*str->n_z*str->n_y + k_y*str->n_x*str->n_z + j_z*str->n_x + i_x);
+        (m_t*str->n_x*str->n_y*str->n_z + k_z*str->n_x*str->n_y + j_y*str->n_x + i_x);
     int x1 = NSIZE_COMP4D;                           /* Index jump one x forward */
-    int y1 = NSIZE_COMP4D*str->n_z*str->n_x;         /* Index jump one y forward */
-    int z1 = NSIZE_COMP4D*str->n_x;                  /* Index jump one z forward */
-    int t1 = NSIZE_COMP4D*str->n_x*str->n_z*str->n_y;/* Index jump one z forward */
+    int y1 = NSIZE_COMP4Dstr->n_x;                   /* Index jump one y forward */
+    int z1 = NSIZE_COMP4D*str->n_x*str->n_y;         /* Index jump one z forward */
+    int t1 = NSIZE_COMP4D*str->n_x*str->n_y*str->n_z;/* Index jump one z forward */
 
     int err = 0;
 
@@ -402,13 +399,13 @@ a5err interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, r
     else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
         err = 1;
     }
-    if( str->bc_y == PERIODICBC && k_y == str->n_y-1 ) {
+    if( str->bc_y == PERIODICBC && j_y == str->n_y-1 ) {
         y1 = -(str->n_y-1)*y1;
     }
     else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
         err = 1;
     }
-    if( str->bc_z == PERIODICBC && j_z == str->n_z-1 ) {
+    if( str->bc_z == PERIODICBC && k_z == str->n_z-1 ) {
         z1 = -(str->n_z-1)*z1;
     }
     else if( str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max) ) {
@@ -428,22 +425,22 @@ a5err interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, r
         *f = 0;
         /* loops to move through the nodes */
         for(int i_node_x=0; i_node_x<2; i_node_x++) {
-            for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                for(int i_node_y=0; i_node_y<2; i_node_y++) {
+            for(int i_node_y=0; i_node_y<2; i_node_y++) {
+                for(int i_node_z=0; i_node_z<2; i_node_z++) {
                     for(int i_node_t=0; i_node_t<2; i_node_t++) {
                         /* loops to move through the coefficients */
                         for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
-                            for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
-                                d_aux1 = dt[i_node_t*2+i_coef_t]*dy[i_node_y*2+i_coef_y];
-                                for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
-                                    d_aux2 = d_aux1*dz[i_node_z*2+i_coef_z];
+                            for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
+                                d_aux1 = dt[i_node_t*2+i_coef_t]*dz[i_node_z*2+i_coef_z];
+                                for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
+                                    d_aux2 = d_aux1*dy[i_node_y*2+i_coef_y];
                                     for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
                                         *f +=
                                             str->c[n +
-                                                   i_node_x*x1 + i_node_z*z1 +
-                                                   i_node_y*y1 + i_node_t*t1 +
-                                                   i_coef_t*8 + i_coef_y*4 +
-                                                   i_coef_z*2 + i_coef_x]*
+                                                   i_node_x*x1 + i_node_y*y1 +
+                                                   i_node_z*z1 + i_node_t*t1 +
+                                                   i_coef_t*8 + i_coef_z*4 +
+                                                   i_coef_y*2 + i_coef_x]*
                                             d_aux2*dx[i_node_x*2+i_coef_x];
                                     }
                                 }
@@ -513,8 +510,8 @@ a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     real dx[4];
     dx[2] = (x - (str->x_min + i_x*str->x_grid)) / str->x_grid; /* p_x */
     dx[0] = 1.0 - dx[2];                                        /* q_x */
-    dx[1] = dx[0]*(dx[0]*dx[0]-1)*str->x_grid*str->x_grid/6.0;   /* s_x */
-    dx[3] = dx[2]*(dx[2]*dx[2]-1)*str->x_grid*str->x_grid/6.0;   /* r_x */
+    dx[1] = dx[0]*(dx[0]*dx[0]-1)*str->x_grid*str->x_grid/6.0;  /* s_x */
+    dx[3] = dx[2]*(dx[2]*dx[2]-1)*str->x_grid*str->x_grid/6.0;  /* r_x */
     /* Normalized x coordinate 1st derivates in current cell
        (the order facilitates the evaluation)*/
     real d_dx[4];
@@ -531,14 +528,14 @@ a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     dd_dx[3] = dx[2];                                   /* d2(r_x)/dx2 */
 
     /* index for y variable */
-    int k_y   = (y - str->y_min) / str->y_grid - 1*(y==str->y_max);
+    int j_y   = (y - str->y_min) / str->y_grid - 1*(y==str->y_max);
    /* Normalized y coordinate in current cell
        (the order facilitates the evaluation)*/
     real dy[4];
     dy[2] = (y - (str->y_min + k_y*str->y_grid)) / str->y_grid; /* p_y */
     dy[0] = 1.0 - dy[2];                                        /* q_y */
-    dy[1] = dy[0]*(dy[0]*dy[0]-1)*str->y_grid*str->y_grid/6.0;   /* s_y */
-    dy[3] = dy[2]*(dy[2]*dy[2]-1)*str->y_grid*str->y_grid/6.0;   /* r_y */
+    dy[1] = dy[0]*(dy[0]*dy[0]-1)*str->y_grid*str->y_grid/6.0;  /* s_y */
+    dy[3] = dy[2]*(dy[2]*dy[2]-1)*str->y_grid*str->y_grid/6.0;  /* r_y */
     /* Normalized y coordinate 1st derivates in current cell
        (the order facilitates the evaluation)*/
     real d_dy[4];
@@ -555,14 +552,14 @@ a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     dd_dy[3] = dy[2];                                   /* d2(r_y)/dy2 */
 
     /* index for z variable */
-    int j_z   = (z - str->z_min) / str->z_grid - 1*(z==str->z_max);
+    int k_z   = (z - str->z_min) / str->z_grid - 1*(z==str->z_max);
    /* Normalized z coordinate in current cell
        (the order facilitates the evaluation)*/
     real dz[4];
     dz[2] = (z - (str->z_min + j_z*str->z_grid)) / str->z_grid; /* p_z */
     dz[0] = 1.0 - dz[2];                                        /* q_z */
-    dz[1] = dz[0]*(dz[0]*dz[0]-1)*str->z_grid*str->z_grid/6.0;   /* s_z */
-    dz[3] = dz[2]*(dz[2]*dz[2]-1)*str->z_grid*str->z_grid/6.0;   /* r_z */
+    dz[1] = dz[0]*(dz[0]*dz[0]-1)*str->z_grid*str->z_grid/6.0;  /* s_z */
+    dz[3] = dz[2]*(dz[2]*dz[2]-1)*str->z_grid*str->z_grid/6.0;  /* r_z */
     /* Normalized z coordinate 1st derivates in current cell
        (the order facilitates the evaluation)*/
     real d_dz[4];
@@ -585,16 +582,16 @@ a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     real dt[4];
     dt[2] = (t - (str->t_min + m_t*str->t_grid)) / str->t_grid; /* p_t */
     dt[0] = 1.0 - dt[2];                                        /* q_t */
-    dt[1] = dt[0]*(dt[0]*dt[0]-1)*str->t_grid*str->t_grid/6.0;   /* s_t */
-    dt[3] = dt[2]*(dt[2]*dt[2]-1)*str->t_grid*str->t_grid/6.0;   /* r_t */
+    dt[1] = dt[0]*(dt[0]*dt[0]-1)*str->t_grid*str->t_grid/6.0;  /* s_t */
+    dt[3] = dt[2]*(dt[2]*dt[2]-1)*str->t_grid*str->t_grid/6.0;  /* r_t */
 
     /**< Index jump to cell */
     int n  = NSIZE_COMP4D*
-        (m_t*str->n_x*str->n_z*str->n_y + k_y*str->n_x*str->n_z + j_z*str->n_x + i_x);
+        (m_t*str->n_x*str->n_y*str->n_z + k_z*str->n_x*str->n_y + j_y*str->n_x + i_x);
     int x1 = NSIZE_COMP4D;                           /* Index jump one x forward */
-    int y1 = NSIZE_COMP4D*str->n_z*str->n_x;         /* Index jump one y forward */
-    int z1 = NSIZE_COMP4D*str->n_x;                  /* Index jump one z forward */
-    int t1 = NSIZE_COMP4D*str->n_x*str->n_z*str->n_y;/* Index jump one z forward */
+    int y1 = NSIZE_COMP4D*str->n_x;                  /* Index jump one y forward */
+    int z1 = NSIZE_COMP4D*str->n_x*str->n_y;         /* Index jump one z forward */
+    int t1 = NSIZE_COMP4D*str->n_x*str->n_y*str->n_z;/* Index jump one z forward */
 
     int err = 0;
 
@@ -605,13 +602,13 @@ a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
         err = 1;
     }
-    if( str->bc_y == PERIODICBC && k_y == str->n_y-1 ) {
+    if( str->bc_y == PERIODICBC && j_y == str->n_y-1 ) {
         y1 = -(str->n_y-1)*y1;
     }
     else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
         err = 1;
     }
-    if( str->bc_z == PERIODICBC && j_z == str->n_z-1 ) {
+    if( str->bc_z == PERIODICBC && k_z == str->n_z-1 ) {
         z1 = -(str->n_z-1)*z1;
     }
     else if( str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max) ) {
@@ -627,235 +624,85 @@ a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
     if(!err) {
 
         /* Evaluate spline value */
-        real d_aux1, d_aux2; /* Auxiliary normalized coordinates */
+        real c_aux; /* Auxiliary normalized coordinates */
 
         /* f */
-        f_df[0] = 0;
+        f_df[0] = 0;        /* f   */
+	f_df[1] = 0;        /* f_x */
+        f_df[2] = 0;        /* f_y */
+	f_df[3] = 0;        /* f_z */
+        f_df[4] = 0;        /* f_xx*/
+	f_df[5] = 0;        /* f_yy*/
+        f_df[6] = 0;        /* f_zz*/
+	f_df[7] = 0;        /* f_xy*/
+        f_df[8] = 0;        /* f_xz*/
+        f_df[9] = 0;        /* f_yz*/
         /* loops to move through the nodes */
         for(int i_node_x=0; i_node_x<2; i_node_x++) {
-            for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                for(int i_node_y=0; i_node_y<2; i_node_y++) {
+            for(int i_node_y=0; i_node_y<2; i_node_y++) {
+                for(int i_node_z=0; i_node_z<2; i_node_z++) {
                     for(int i_node_t=0; i_node_t<2; i_node_t++) {
                         /* loops to move through the coefficients */
                         for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
-                            for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
-                                d_aux1 = dt[i_node_t*2+i_coef_t]*dy[i_node_y*2+i_coef_y];
-                                for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
-                                    d_aux2 = d_aux1*dz[i_node_z*2+i_coef_z];
-                                    for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
-                                        f_df[0] +=
-                                            str->c[n +
-                                                   i_node_x*x1 + i_node_z*z1 +
-                                                   i_node_y*y1 + i_node_t*t1 +
-                                                   i_coef_t*8 + i_coef_y*4 +
-                                                   i_coef_z*2 + i_coef_x]*
-                                            d_aux2*dx[i_node_x*2+i_coef_x];
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        /* f_x */
-        f_df[1] = 0;
-        /* loops to move through the nodes */
-        for(int i_node_x=0; i_node_x<2; i_node_x++) {
-            for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                for(int i_node_y=0; i_node_y<2; i_node_y++) {
-                    for(int i_node_t=0; i_node_t<2; i_node_t++) {
-                        /* loops to move through the coefficients */
-                        for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
-                            for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
-                                d_aux1 = dt[i_node_t*2+i_coef_t]*dy[i_node_y*2+i_coef_y];
-                                for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
-                                    d_aux2 = d_aux1*dz[i_node_z*2+i_coef_z];
-                                    for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
-                                        f_df[1] +=
-                                            str->c[n +
-                                                   i_node_x*x1 + i_node_z*z1 +
-                                                   i_node_y*y1 + i_node_t*t1 +
-                                                   i_coef_t*8 + i_coef_y*4 +
-                                                   i_coef_z*2 + i_coef_x]*
-                                            d_aux2*d_dx[i_node_x*2+i_coef_x];
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        /* f_y */
-        f_df[2] = 0;
-        /* loops to move through the nodes */
-        for(int i_node_x=0; i_node_x<2; i_node_x++) {
-            for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                for(int i_node_y=0; i_node_y<2; i_node_y++) {
-                    for(int i_node_t=0; i_node_t<2; i_node_t++) {
-                        /* loops to move through the coefficients */
-                        for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
-                            for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
-                                d_aux1 = dt[i_node_t*2+i_coef_t]*d_dy[i_node_y*2+i_coef_y];
-                                for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
-                                    d_aux2 = d_aux1*dz[i_node_z*2+i_coef_z];
-                                    for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
-                                        f_df[2] +=
-                                            str->c[n +
-                                                   i_node_x*x1 + i_node_z*z1 +
-                                                   i_node_y*y1 + i_node_t*t1 +
-                                                   i_coef_t*8 + i_coef_y*4 +
-                                                   i_coef_z*2 + i_coef_x]*
-                                            d_aux2*dx[i_node_x*2+i_coef_x];
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        /* f_z */
-        f_df[3] = 0;
-        /* loops to move through the nodes */
-        for(int i_node_x=0; i_node_x<2; i_node_x++) {
-            for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                for(int i_node_y=0; i_node_y<2; i_node_y++) {
-                    for(int i_node_t=0; i_node_t<2; i_node_t++) {
-                        /* loops to move through the coefficients */
-                        for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
-                            for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
-                                d_aux1 = dt[i_node_t*2+i_coef_t]*dy[i_node_y*2+i_coef_y];
-                                for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
-                                    d_aux2 = d_aux1*d_dz[i_node_z*2+i_coef_z];
-                                    for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
-                                        f_df[3] +=
-                                            str->c[n +
-                                                   i_node_x*x1 + i_node_z*z1 +
-                                                   i_node_y*y1 + i_node_t*t1 +
-                                                   i_coef_t*8 + i_coef_y*4 +
-                                                   i_coef_z*2 + i_coef_x]*
-                                            d_aux2*dx[i_node_x*2+i_coef_x];
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        /* f_xx */
-        f_df[4] = 0;
-        /* loops to move through the nodes */
-        for(int i_node_x=0; i_node_x<2; i_node_x++) {
-            for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                for(int i_node_y=0; i_node_y<2; i_node_y++) {
-                    for(int i_node_t=0; i_node_t<2; i_node_t++) {
-                        /* loops to move through the coefficients */
-                        for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
-                            for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
-                                d_aux1 = dt[i_node_t*2+i_coef_t]*dy[i_node_y*2+i_coef_y];
-                                for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
-                                    d_aux2 = d_aux1*dz[i_node_z*2+i_coef_z];
-                                    int i_coef_x=1;
-                                    f_df[4] +=
-                                        str->c[n +
-                                               i_node_x*x1 + i_node_z*z1 +
-                                               i_node_y*y1 + i_node_t*t1 +
-                                               i_coef_t*8 + i_coef_y*4 +
-                                               i_coef_z*2 + i_coef_x]*
-                                        d_aux2*dd_dx[i_node_x*2+i_coef_x];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        /* f_yy */
-        f_df[5] = 0;
-        /* loops to move through the nodes */
-        for(int i_node_x=0; i_node_x<2; i_node_x++) {
-            for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                for(int i_node_y=0; i_node_y<2; i_node_y++) {
-                    for(int i_node_t=0; i_node_t<2; i_node_t++) {
-                        /* loops to move through the coefficients */
-                        for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
-                            int i_coef_y=1;
-                            d_aux1 = dt[i_node_t*2+i_coef_t]*dd_dy[i_node_y*2+i_coef_y];
                             for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
-                                d_aux2 = d_aux1*dz[i_node_z*2+i_coef_z];
-                                for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
-                                    f_df[5] +=
-                                        str->c[n +
-                                               i_node_x*x1 + i_node_z*z1 +
-                                               i_node_y*y1 + i_node_t*t1 +
-                                               i_coef_t*8 + i_coef_y*4 +
-                                               i_coef_z*2 + i_coef_x]*
-                                        d_aux2*dx[i_node_x*2+i_coef_x];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        /* f_zz */
-        f_df[6] = 0;
-        /* loops to move through the nodes */
-        for(int i_node_x=0; i_node_x<2; i_node_x++) {
-            for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                for(int i_node_y=0; i_node_y<2; i_node_y++) {
-                    for(int i_node_t=0; i_node_t<2; i_node_t++) {
-                        /* loops to move through the coefficients */
-                        for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
-                            for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
-                                d_aux1 = dt[i_node_t*2+i_coef_t]*dy[i_node_y*2+i_coef_y];
-                                int i_coef_z=1;
-                                d_aux2 = d_aux1*dd_dz[i_node_z*2+i_coef_z];
-                                for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
-                                    f_df[6] +=
-                                        str->c[n +
-                                               i_node_x*x1 + i_node_z*z1 +
-                                               i_node_y*y1 + i_node_t*t1 +
-                                               i_coef_t*8 + i_coef_y*4 +
-                                               i_coef_z*2 + i_coef_x]*
-                                        d_aux2*dx[i_node_x*2+i_coef_x];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        /* f_xy */
-        f_df[7] = 0;
-        /* loops to move through the nodes */
-        for(int i_node_x=0; i_node_x<2; i_node_x++) {
-            for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                for(int i_node_y=0; i_node_y<2; i_node_y++) {
-                    for(int i_node_t=0; i_node_t<2; i_node_t++) {
-                        /* loops to move through the coefficients */
-                        for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
-                            for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
-                                d_aux1 = dt[i_node_t*2+i_coef_t]*d_dy[i_node_y*2+i_coef_y];
-                                for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
-                                    d_aux2 = d_aux1*dz[i_node_z*2+i_coef_z];
+                                d_aux1 = dt[i_node_t*2+i_coef_t]*dz[i_node_z*2+i_coef_z];
+                                for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
+                                    d_aux2 = d_aux1*dy[i_node_y*2+i_coef_y];
                                     for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
-                                        f_df[7] +=
-                                            str->c[n +
-                                                   i_node_x*x1 + i_node_z*z1 +
-                                                   i_node_y*y1 + i_node_t*t1 +
-                                                   i_coef_t*8 + i_coef_y*4 +
-                                                   i_coef_z*2 + i_coef_x]*
-                                            d_aux2*d_dx[i_node_x*2+i_coef_x];
+				        c_aux = tr->c[n + i_node_x*x1 + i_node_y*y1 +
+						      i_node_z*z1 + i_node_t*t1 +
+						      i_coef_t*8 + i_coef_z*4 +
+						      i_coef_y*2 + i_coef_x];
+					f_df[0] += c_aux*
+					           dx[i_node_x*2+i_coef_x]*
+					           dy[i_node_y*2+i_coef_y]*
+					           dz[i_node_z*2+i_coef_z]*
+					           dt[i_node_t*2+i_coef_t];
+					f_df[1] += c_aux*
+					           d_dx[i_node_x*2+i_coef_x]*
+					           dy[i_node_y*2+i_coef_y]*
+					           dz[i_node_z*2+i_coef_z]*
+					           dt[i_node_t*2+i_coef_t];
+					f_df[2] += c_aux*
+					           dx[i_node_x*2+i_coef_x]*
+					           d_dy[i_node_y*2+i_coef_y]*
+					           dz[i_node_z*2+i_coef_z]*
+					           dt[i_node_t*2+i_coef_t];
+					f_df[3] += c_aux*
+					           dx[i_node_x*2+i_coef_x]*
+					           dy[i_node_y*2+i_coef_y]*
+					           d_dz[i_node_z*2+i_coef_z]*
+					           dt[i_node_t*2+i_coef_t];
+					f_df[4] += c_aux*
+					           dd_dx[i_node_x*2+i_coef_x]*
+					           dy[i_node_y*2+i_coef_y]*
+					           dz[i_node_z*2+i_coef_z]*
+					           dt[i_node_t*2+i_coef_t];
+					f_df[5] += c_aux*
+					           dx[i_node_x*2+i_coef_x]*
+					           dd_dy[i_node_y*2+i_coef_y]*
+					           dz[i_node_z*2+i_coef_z]*
+					           dt[i_node_t*2+i_coef_t];
+					f_df[6] += c_aux*
+					           dx[i_node_x*2+i_coef_x]*
+					           dy[i_node_y*2+i_coef_y]*
+					           dd_dz[i_node_z*2+i_coef_z]*
+					           dt[i_node_t*2+i_coef_t];
+					f_df[7] += c_aux*
+					           d_dx[i_node_x*2+i_coef_x]*
+					           d_dy[i_node_y*2+i_coef_y]*
+					           dz[i_node_z*2+i_coef_z]*
+					           dt[i_node_t*2+i_coef_t];
+					f_df[8] += c_aux*
+					           d_dx[i_node_x*2+i_coef_x]*
+					           dy[i_node_y*2+i_coef_y]*
+					           d_dz[i_node_z*2+i_coef_z]*
+					           dt[i_node_t*2+i_coef_t];
+					f_df[9] += c_aux*
+					           dx[i_node_x*2+i_coef_x]*
+					           d_dy[i_node_y*2+i_coef_y]*
+					           d_dz[i_node_z*2+i_coef_z]*
+					           dt[i_node_t*2+i_coef_t];
                                     }
                                 }
                             }
@@ -864,67 +711,6 @@ a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
                 }
             }
         }
-        /* f_xz */
-        f_df[8] = 0;
-        /* loops to move through the nodes */
-        for(int i_node_x=0; i_node_x<2; i_node_x++) {
-            for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                for(int i_node_y=0; i_node_y<2; i_node_y++) {
-                    for(int i_node_t=0; i_node_t<2; i_node_t++) {
-                        /* loops to move through the coefficients */
-                        for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
-                            for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
-                                d_aux1 = dt[i_node_t*2+i_coef_t]*dy[i_node_y*2+i_coef_y];
-                                for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
-                                    d_aux2 = d_aux1*d_dz[i_node_z*2+i_coef_z];
-                                    for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
-                                        f_df[8] +=
-                                            str->c[n +
-                                                   i_node_x*x1 + i_node_z*z1 +
-                                                   i_node_y*y1 + i_node_t*t1 +
-                                                   i_coef_t*8 + i_coef_y*4 +
-                                                   i_coef_z*2 + i_coef_x]*
-                                            d_aux2*d_dx[i_node_x*2+i_coef_x];
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        /* f_yz */
-        f_df[9] = 0;
-        /* loops to move through the nodes */
-        for(int i_node_x=0; i_node_x<2; i_node_x++) {
-            for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                for(int i_node_y=0; i_node_y<2; i_node_y++) {
-                    for(int i_node_t=0; i_node_t<2; i_node_t++) {
-                        /* loops to move through the coefficients */
-                        for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
-                            for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
-                                d_aux1 = dt[i_node_t*2+i_coef_t]*d_dy[i_node_y*2+i_coef_y];
-                                for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
-                                    d_aux2 = d_aux1*d_dz[i_node_z*2+i_coef_z];
-                                    for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
-                                        f_df[9] +=
-                                            str->c[n +
-                                                   i_node_x*x1 + i_node_z*z1 +
-                                                   i_node_y*y1 + i_node_t*t1 +
-                                                   i_coef_t*8 + i_coef_y*4 +
-                                                   i_coef_z*2 + i_coef_x]*
-                                            d_aux2*dx[i_node_x*2+i_coef_x];
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-
-    }
 
     return err;
 }
