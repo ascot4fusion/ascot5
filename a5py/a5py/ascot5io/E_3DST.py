@@ -1,7 +1,7 @@
 """
 Non-axisymmetric tokamak electric field HDF5 IO
 
-File: E_3DS.py
+File: E_3DST.py
 """
 import numpy as np
 import h5py
@@ -46,11 +46,11 @@ def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz, phimin, phimax, nphi,
             Maximum value in t grid [s].
         nt : int <br>
             Number of t grid points.
-        er : array_like (nr,nphi,nz) <br>
+        er : array_like (nr,nphi,nz,nt) <br>
             Electric field R component [V/m].
-        ephi : array_like (nr,nphi,nz) <br>
+        ephi : array_like (nr,nphi,nz,nt) <br>
             Electric field phi component [V/m].
-        ez : array_like (nr,nphi,nz) <br>
+        ez : array_like (nr,nphi,nz,nt) <br>
             Electric field z component [V/m].    
         desc : str, optional <br>
             Input description.
@@ -120,7 +120,7 @@ def read_hdf5(fn,qid):
     out["ez"]   = np.transpose(out["ez"],   (3,2,1,0))
     return out
 
-class E_3DS(AscotData):
+class E_3DST(AscotData):
     """
     Object representing E_3DST data.
     """

@@ -55,7 +55,7 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
     The toroidal angle phi is treated as a periodic coordinate meaning that
     B(phi) = B(phi + n*(b_phimax - b_phimin)). Do note that to avoid dublicate
     data, the last points in phi axis in B data are not at b_phimax, i.e.
-    br[:,:,-1] != BR(phi=b_phimax).
+    br[:,-1,:] != BR(phi=b_phimax).
 
     Args:
         fn : str <br>
