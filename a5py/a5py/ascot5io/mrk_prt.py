@@ -22,10 +22,10 @@ def write_hdf5(fn, n, ids, mass, charge,
             Number of markers.
         ids : array_like (n,1) <br>
             Unique identifier for each marker (must be a positive integer).
-        charge : array_like (n,1) <br>
-            Charge [e].
         mass : array_like (n,1) <br>
             Mass [amu].
+        charge : array_like (n,1) <br>
+            Charge [e].
         r : array_like (n,1) <br>
             Particle R coordinate [m].
         phi : array_like (n,1) <br>
