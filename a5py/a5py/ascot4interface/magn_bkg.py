@@ -135,7 +135,7 @@ def stellarator_bfield_sector2full(data):
     s = data['s'][:, :-1, :]
     s_sym = data['s'][-1::-1, -1:0:-1, :]
     out['s'] = np.concatenate((s, s_sym),1)
-    out['symmetrymode'] == 1
+    out['symmetrymode'] = 1
     return out
 
 def bfield_remove_duplicate_phi(data):
