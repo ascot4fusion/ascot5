@@ -6,6 +6,7 @@
 #include <math.h>
 #include "../ascot5.h"
 #include "../consts.h"
+#include "../print.h"
 #include "interp.h"
 #include "spline.h"
 
@@ -49,6 +50,7 @@ int interp4Dcomp_init_coeff(real* c, real* f,
        needed because we use normalized grid intervals. For periodic boundary
        condition, grid maximum value and the last data point are not the same.
        Take this into account in grid intervals. */
+
     real x_grid, y_grid, z_grid, t_grid;
     if(bc_x == NATURALBC || bc_x == PERIODICBC) {
         x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
@@ -77,7 +79,7 @@ int interp4Dcomp_init_coeff(real* c, real* f,
     else {
         return 1;
     }
-
+  
     /* Allocate helper quantities */
     real* f_x = malloc(n_x*sizeof(real));
     real* f_y = malloc(n_y*sizeof(real));
@@ -87,7 +89,6 @@ int interp4Dcomp_init_coeff(real* c, real* f,
     real* c_y = malloc(n_y*NSIZE_COMP1D*sizeof(real));
     real* c_z = malloc(n_z*NSIZE_COMP1D*sizeof(real));
     real* c_t = malloc(n_t*NSIZE_COMP1D*sizeof(real));
-
 
     if(f_x == NULL || f_y == NULL || f_z == NULL ||  f_t == NULL ||
        c_x == NULL || c_y == NULL || c_z == NULL || c_t == NULL) {
@@ -158,7 +159,7 @@ int interp4Dcomp_init_coeff(real* c, real* f,
            to get fzz, fxxzz, fyyzz, fxxyyzz (for each i_x,j_y,m_t) */
         for(int j_y=0; j_y<n_y; j_y++) {
             for(int i_x=0; i_x<n_x; i_x++) {
-                /* fyy */
+                /* fzz */
                 for(int k_z=0; k_z<n_z; k_z++) {
                     f_z[k_z] = f[m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x];
                 }
@@ -167,9 +168,9 @@ int interp4Dcomp_init_coeff(real* c, real* f,
                     c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 4] =
                         c_z[k_z*2 + 1]/(z_grid*z_grid);
                 }
-                /* fxxyy */
+                /* fxxzz */
                 for(int k_z=0; k_z<n_z; k_z++) {
-                    f_y[k_z] =
+                    f_z[k_z] =
                         c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 1];
                 }
                 splinecomp(f_z, n_z, bc_z, c_z);
@@ -177,9 +178,9 @@ int interp4Dcomp_init_coeff(real* c, real* f,
                     c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 5] =
                         c_z[k_z*2 + 1]/(z_grid*z_grid);
                 }
-                /* fzzyy */
+                /* fyyzz */
                 for(int k_z=0; k_z<n_z; k_z++) {
-                    f_y[k_z] =
+                    f_z[k_z] =
                         c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 2];
                 }
                 splinecomp(f_z, n_z, bc_z, c_z);
@@ -187,13 +188,13 @@ int interp4Dcomp_init_coeff(real* c, real* f,
                     c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 6] =
                         c_z[k_z*2 + 1]/(z_grid*z_grid);
                 }
-                /* fxxzzyy */
+                /* fxxyyzz */
                 for(int k_z=0; k_z<n_z; k_z++) {
-                    f_y[k_z] =
+                    f_z[k_z] =
                         c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 3];
                 }
                 splinecomp(f_z, n_z, bc_z, c_z);
-                for(int k_z=0; k_z<n_y; k_z++) {
+                for(int k_z=0; k_z<n_z; k_z++) {
                     c[NSIZE_COMP4D*(m_t*n_x*n_y*n_z + k_z*n_x*n_y + j_y*n_x + i_x) + 7] =
                         c_z[k_z*2 + 1]/(z_grid*z_grid);
                 }
@@ -202,7 +203,7 @@ int interp4Dcomp_init_coeff(real* c, real* f,
     }
     /* Cubic spline of f, fxx, fyy, fxxyy, fzz, fxxzz, fyyzz, fxxyyzz along t
        to get ftt, fxxtt, fyytt, fxxyytt, fzztt, fxxzztt, fyyzztt, fxxyyzztt
-       (for each i_x,j_z,k_y) */
+       (for each i_x,j_y,k_z) */
     for(int k_z=0; k_z<n_z; k_z++) {
         for(int j_y=0; j_y<n_y; j_y++) {
             for(int i_x=0; i_x<n_x; i_x++) {
@@ -230,7 +231,7 @@ int interp4Dcomp_init_coeff(real* c, real* f,
             }
         }
     }
-
+    
     /* Free allocated memory */
     free(f_x);
     free(f_y);
@@ -240,7 +241,6 @@ int interp4Dcomp_init_coeff(real* c, real* f,
     free(c_y);
     free(c_z);
     free(c_t);
-
 
     return 0;
 }
@@ -357,7 +357,7 @@ a5err interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, r
    /* Normalized y coordinate in current cell
        (the order facilitates the evaluation)*/
     real dy[4];
-    dy[2] = (y - (str->y_min + k_y*str->y_grid)) / str->y_grid; /* p_y */
+    dy[2] = (y - (str->y_min + j_y*str->y_grid)) / str->y_grid; /* p_y */
     dy[0] = 1.0 - dy[2];                                        /* q_y */
     dy[1] = dy[0]*(dy[0]*dy[0]-1)*str->y_grid*str->y_grid/6.0;  /* s_y */
     dy[3] = dy[2]*(dy[2]*dy[2]-1)*str->y_grid*str->y_grid/6.0;  /* r_y */
@@ -367,7 +367,7 @@ a5err interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, r
    /* Normalized z coordinate in current cell
        (the order facilitates the evaluation)*/
     real dz[4];
-    dz[2] = (z - (str->z_min + j_z*str->z_grid)) / str->z_grid; /* p_z */
+    dz[2] = (z - (str->z_min + k_z*str->z_grid)) / str->z_grid; /* p_z */
     dz[0] = 1.0 - dz[2];                                        /* q_z */
     dz[1] = dz[0]*(dz[0]*dz[0]-1)*str->z_grid*str->z_grid/6.0;  /* s_z */
     dz[3] = dz[2]*(dz[2]*dz[2]-1)*str->z_grid*str->z_grid/6.0;  /* r_z */
@@ -532,7 +532,7 @@ a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
    /* Normalized y coordinate in current cell
        (the order facilitates the evaluation)*/
     real dy[4];
-    dy[2] = (y - (str->y_min + k_y*str->y_grid)) / str->y_grid; /* p_y */
+    dy[2] = (y - (str->y_min + j_y*str->y_grid)) / str->y_grid; /* p_y */
     dy[0] = 1.0 - dy[2];                                        /* q_y */
     dy[1] = dy[0]*(dy[0]*dy[0]-1)*str->y_grid*str->y_grid/6.0;  /* s_y */
     dy[3] = dy[2]*(dy[2]*dy[2]-1)*str->y_grid*str->y_grid/6.0;  /* r_y */
@@ -556,7 +556,7 @@ a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
    /* Normalized z coordinate in current cell
        (the order facilitates the evaluation)*/
     real dz[4];
-    dz[2] = (z - (str->z_min + j_z*str->z_grid)) / str->z_grid; /* p_z */
+    dz[2] = (z - (str->z_min + k_z*str->z_grid)) / str->z_grid; /* p_z */
     dz[0] = 1.0 - dz[2];                                        /* q_z */
     dz[1] = dz[0]*(dz[0]*dz[0]-1)*str->z_grid*str->z_grid/6.0;  /* s_z */
     dz[3] = dz[2]*(dz[2]*dz[2]-1)*str->z_grid*str->z_grid/6.0;  /* r_z */
@@ -645,14 +645,12 @@ a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
                         /* loops to move through the coefficients */
                         for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
                             for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
-                                d_aux1 = dt[i_node_t*2+i_coef_t]*dz[i_node_z*2+i_coef_z];
                                 for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
-                                    d_aux2 = d_aux1*dy[i_node_y*2+i_coef_y];
                                     for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
-				        c_aux = tr->c[n + i_node_x*x1 + i_node_y*y1 +
-						      i_node_z*z1 + i_node_t*t1 +
-						      i_coef_t*8 + i_coef_z*4 +
-						      i_coef_y*2 + i_coef_x];
+				        c_aux = str->c[n + i_node_x*x1 + i_node_y*y1 +
+						       i_node_z*z1 + i_node_t*t1 +
+						       i_coef_t*8 + i_coef_z*4 +
+						       i_coef_y*2 + i_coef_x];
 					f_df[0] += c_aux*
 					           dx[i_node_x*2+i_coef_x]*
 					           dy[i_node_y*2+i_coef_y]*
@@ -711,6 +709,7 @@ a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
                 }
             }
         }
+    }
 
     return err;
 }
