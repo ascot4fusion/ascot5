@@ -209,10 +209,11 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
     for(int i = 0; i < iterations; i++){
         /*get interpolated values */
         real a_da[6];
-        interperr += interp2Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]), rho, t);
+        interperr += interp2Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]), rho*rho, t);
 
         real phi_dphi[6];
-        interperr += interp2Dcomp_eval_df(phi_dphi, &(mhddata->phi_nm[i]), rho, t);
+        interperr += interp2Dcomp_eval_df(phi_dphi, &(mhddata->phi_nm[i]),
+rho*rho, t);
 
         /* These are used frequently, so store them in separate variables */
         real mhdarg = mhddata->nmode[i] * ptz[8]
