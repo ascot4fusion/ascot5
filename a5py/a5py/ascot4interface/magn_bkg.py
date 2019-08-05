@@ -73,33 +73,35 @@ def read_magn_bkg_stellarator(fn):
 
     with h5py.File(fn, 'r') as f: # Open for reading
         data = dict()
+        bstr = 'bfield/stellarator/'
 
-        data['r'] = f['bfield/stellarator/r'][:]
-        data['phi'] = f['bfield/stellarator/phi'][:]
-        data['z'] = f['bfield/stellarator/z'][:]
+        data['r']    = f[bstr+'r'][:]
+        data['phi']  = f[bstr+'phi'][:]
+        data['z']    = f[bstr+'z'][:]
 
-        data['br'] = f['bfield/stellarator/br'][:]
-        data['bphi'] = f['bfield/stellarator/bphi'][:]
-        data['bz'] = f['bfield/stellarator/bz'][:]
-        data['s'] = f['bfield/stellarator/s'][:]
+        data['br']   = f[bstr+'br'][:]
+        data['bphi'] = f[bstr+'bphi'][:]
+        data['bz']   = f[bstr+'bz'][:]
+        data['s']    = f[bstr+'s'][:]
 
-        data['axis_r'] = f['bfield/stellarator/axis_R'][:]
-        data['axis_phi'] = f['bfield/stellarator/axis_phi'][:]
-        data['axis_z'] = f['bfield/stellarator/axis_z'][:]
+        data['axis_r']   = f[bstr+'axis_R'][:]
+        data['axis_phi'] = f[bstr+'axis_phi'][:]
+        data['axis_z']   = f[bstr+'axis_z'][:]
 
-        data['n_periods'] = f['bfield/stellarator/toroidalPeriods'][:]
+        data['n_periods'] = f[bstr+'toroidalPeriods'][:]
         try:
-            data['symmetrymode'] = f['bfield/stellarator/symmetrymode'][:]
+            data['symmetrymode'] = f[bstr+'symmetrymode'][:]
         except KeyError:
             print("Warning! No symmetry mode specified in input.h5/bfield")
             print("Defaulting to stellarator symmetry")
             data['symmetrymode'] = 0
-    if (data['phi'][0] == np.mod(data['phi'][-1],360/data['n_periods'])):
-        print("Warning! Removing duplicate bfield data point.")
-        data = bfield_remove_duplicate_phi(data)
+    philim = 360/data['n_periods']/(2 if data['symmetrymode'] == 0 else 1)
     if(data['symmetrymode'] == 0):
         print("Converting stellarator symmetric input to periodic.")
         data = stellarator_bfield_sector2full(data)
+    elif (data['phi'][0] == np.mod(data['phi'][-1],philim)):
+        print("Warning! Removing duplicate bfield data point.")
+        data = bfield_remove_duplicate_phi(data)
     if (data['axis_phi'][0] == np.mod(data['axis_phi'][-1],360)):
         print("Warning! Removing duplicated axis datapoint.")
         data['axis_r'] = data['axis_r'][0:-1]
