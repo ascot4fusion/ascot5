@@ -57,7 +57,7 @@ def gen_markerdist(a5, mass, charge, energy, rgrid, zgrid, kgrid,
     # chuncks of markers until the change in each cell is less than the
     # tolerance.
     Ndraw = 100000
-    tol = 1e-2
+    tol = 1e-1
     err = tol+1
     newdist = np.zeros((rgrid.size-1, zgrid.size-1, kgrid.size-1))
     probdensity = np.append( [0], np.cumsum(rhoksidist[2].ravel()) )
@@ -152,13 +152,13 @@ def gen_DTalphadist(a5, rgrid, zgrid, ksigrid, plot=False):
     # Fusion alpha power density (NRL)
     sigmaDT = 3.68e-12 * np.power(ti, -2.0/3) \
               * np.exp(-19.94*np.power(ti, -1.0/3) )
-    PDT     = 5.6e-13*n1*n2*sigmaDT / 1e6
+    PDT     = 5.6e-13*n1*n2*sigmaDT / 1e6 # W / m^3
 
     # Convert power density to total alpha power in each cell
-    PDT = PDT * 2*np.pi*R * dr * dz / (ksigrid.size-1)
+    PDT = PDT * 2*np.pi*R * dr * dz / (ksigrid.size-1) # W/bin
 
     # Convert power to particle birth rate and replace NaNs with zeros.
-    dist = PDT / 3.5
+    dist = PDT / (3.5e6*const.e)
     dist[np.isnan(dist)] = 0
 
     if free:
@@ -202,6 +202,10 @@ def generate(mass, charge, energy, markerdist, particledist, Nmrk,
     zgrid   = markerdist[1]
     ksigrid = markerdist[2]
 
+    if Nmrk < np.sum(markerdist[3]>0):
+        print("More markers are needed to represent this distribution\n")
+        return
+
     # Interpolate particle distribution to marker distribution grid.
     linint = RegularGridInterpolator(
         (particledist[0][:-1] + (particledist[0][1] - particledist[0][0]) / 2,
@@ -222,6 +226,7 @@ def generate(mass, charge, energy, markerdist, particledist, Nmrk,
 
     # Turn marker distribution into 1D array that holds cumulative
     # probability P(i).
+    check = markerdist[3].copy()
     markerdist = np.append( [0], np.cumsum(markerdist[3].ravel()) )
 
     # Markers are generated in a sets of Nsample markers. Once the total number
@@ -254,6 +259,25 @@ def generate(mass, charge, energy, markerdist, particledist, Nmrk,
     r   = R[indices]   + np.random.rand(Ntotal) * (rgrid[1]   - rgrid[0]  )
     z   = Z[indices]   + np.random.rand(Ntotal) * (zgrid[1]   - zgrid[0]  )
     ksi = Ksi[indices] + np.random.rand(Ntotal) * (ksigrid[1] - ksigrid[0])
+
+    # Make sure there is a marker in each cell
+    check0 = check.copy().ravel()
+    check0[np.unique(indices)] = 0
+    Ncheck = np.sum(check0 > 0)
+    if Ncheck > 0:
+        Ncheck = np.sum(check > 0)
+        r[:Ncheck]   = R[check.ravel() > 0]   \
+                       + np.random.rand(Ncheck) * (rgrid[1]   - rgrid[0]  )
+        z[:Ncheck]   = Z[check.ravel() > 0]   \
+                       + np.random.rand(Ncheck) * (zgrid[1]   - zgrid[0]  )
+        ksi[:Ncheck] = Ksi[check.ravel() > 0] \
+                       + np.random.rand(Ncheck) * (ksigrid[1]   - ksigrid[0]  )
+
+        ir = np.searchsorted(rgrid, r, side='left')-1
+        iz = np.searchsorted(zgrid, z, side='left')-1
+        ik = np.searchsorted(ksigrid, ksi, side='left')-1
+
+        indices = (ik + iz*(ksigrid.size-1) + ir*(ksigrid.size-1)*(zgrid.size-1)).astype(int)
 
     # Weight is divided equally among markers within a given cell
     weights = particledist[indices]

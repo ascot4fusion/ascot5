@@ -256,3 +256,13 @@ def combineoutput(fnt, addfns=None, contfns=None):
 
                 tdata[field].resize((tsize+ssize, ))
                 tdata[field][tsize:] = sdata[field][:]
+
+    # Combine transport coefficients
+    if hasattr(target, "transcoef") and hasattr(source, "transcoef"):
+        with target.transcoef as tdata, source.transcoef as sdata:
+            for field in tdata:
+                tsize = tdata[field].size
+                ssize = sdata[field].size
+
+                tdata[field].resize((tsize+ssize, ))
+                tdata[field][tsize:] = sdata[field][:]

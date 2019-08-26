@@ -783,6 +783,38 @@ def get_default():
          1e-8)
     )
 
+    info.append(("""\
+    #**************************************************************************#
+    #*                         Transport coefficient                          *#
+    #*                                                                        *#
+    #**************************************************************************#
+    """,))
+    info.append(
+        ("ENABLE_TRANSCOEF",
+         """\
+         # Enable evaluation of transport coefficients.
+         #    - 0 Transport coefficients are not collected
+         #    - 1 Transport coefficients are collected
+         """,
+         0)
+    )
+    info.append(
+        ("TRANSCOEF_INTERVAL",
+         """\
+         # Time interval for recording data points. If negative, data points are
+         # recorded at outer midplane.
+         """,
+         -1)
+    )
+    info.append(
+        ("TRANSCOEF_NAVG",
+         """\
+         # Number of subsequent data points that are averaged before calculating
+         # coefficients to reduce noise.
+         """,
+         5)
+    )
+
     cleaned = []
     for namecmtval in info:
         if len(namecmtval) == 1:
