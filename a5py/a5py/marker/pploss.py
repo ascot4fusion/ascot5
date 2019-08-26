@@ -189,7 +189,7 @@ def plotlossmap(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid,
 
 
 def evallossfrac(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid,
-                 time, lost, weights):
+                 time, lost, weights, endenergy=None):
     xgrid = rhogrid
     ygrid = ksigrid
     _, x, y = phasespace.maprzk2rhoksi(a5, mass, charge, energy, r, z,
@@ -205,7 +205,14 @@ def evallossfrac(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid,
     weightxy = np.histogram2d(x, y, bins=[xgrid,ygrid], weights=weights)[0]
     lossfrac = lostxy / weightxy
 
-    return (lossfrac, timexy)
+    if endenergy is None:
+        return (lossfrac, timexy)
+    else:
+        lostxy = np.histogram2d(x[lost], y[lost], bins=[xgrid,ygrid],
+                                weights=(weights*endenergy)[lost])[0]
+        weightxy = np.histogram2d(x, y, bins=[xgrid,ygrid],
+                                  weights=weights*energy)[0]
+        return (lossfrac, timexy, lostxy / weightxy)
 
 
 def evalpdens(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid, weights):
@@ -217,7 +224,8 @@ def evalpdens(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid, weights):
     P,mu = phasespace.evalPmu(a5, mass, charge, energy, r, z, pitch)
 
 
-    weightxy = np.histogram2d(x, y, bins=[xgrid,ygrid], weights=weights)[0]
+    weightxy = np.histogram2d(x, y, bins=[xgrid,ygrid],
+                              weights=weights*energy)[0]
 
     return weightxy
 
