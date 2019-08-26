@@ -111,6 +111,8 @@ def read_bfield(a4folder, h5fn):
             print("Calculating interpolated limits for psiaxis and psisepx.")
             print("This might take a while...")
             psilims = a4magn_bkg.stellarator_psi_lims(data)
+        # psi1 > 1 breaks plasma evaluation, so we only keep the lower limit
+        psilims = [psilims[0], 1]
         print("New limits: [" + str(psilims[0]) + ", " + str(psilims[1]) + "]")
         a5tools.removegroup(h5fn, temp_B_name)
         B_STS.write_hdf5(
@@ -152,7 +154,7 @@ def read_erad(a4folder, h5fn):
     if (os.path.isfile(fname)):
         data = a4erad.read_erad(fname)
         E_1DS.write_hdf5(
-            fn=h5fn, nrho=int(data['n_rho']),
+            fn=h5fn, nrho=data['n_rho'],
             rhomin=np.amin(data['rho']), rhomax=np.amax(data['rho']),
             dvdrho=data['dV_drho'], reff=1.0)
     else:

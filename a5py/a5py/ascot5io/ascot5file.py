@@ -497,12 +497,17 @@ def remove_group(f, group):
 
     # Check the group exists and access it.
     if(str(group) == group):
-        qid = get_qid(group)
-        grp = get_group(f, qid)
-        if grp is None:
-            raise ValueError("Could not find group " + group)
-        else:
-            group = grp
+        try:
+            qid = get_qid(group)
+            grp = get_group(f, qid)
+            if grp is None:
+                raise ValueError("Could not find group " + group)
+            else:
+                group = grp
+        except ValueError:
+            # This is probably a parent group
+            del f[group]
+            return
 
     # Remove the group
     parent = group.parent

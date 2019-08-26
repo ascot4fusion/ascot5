@@ -66,7 +66,7 @@ def removegroup(fn, group, force=False):
 
             # This is a data group. If it is a run group or removal is forced,
             # we can remove it directly.
-            if force or ascot5file.get_type(group) is "run":
+            if force or ascot5file.get_type(group) == "run":
                 ascot5file.remove_group(f, group)
                 return
 
@@ -88,7 +88,7 @@ def removegroup(fn, group, force=False):
         except ValueError:
             # The group is a parent group. If it is a results group or removal
             # is forced, we can remove it directly.
-            if force or group is "results":
+            if force or group == "results":
                 ascot5file.remove_group(f, group)
                 return
 
