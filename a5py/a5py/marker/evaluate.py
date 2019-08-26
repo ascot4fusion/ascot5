@@ -184,7 +184,7 @@ def eval_guidingcenter(quantity, mass=None, charge=None,
 
         Bnorm = eval_guidingcenter("bnorm", BR=BR, Bphi=Bphi, Bz=Bz)
         return 1 / np.sqrt(
-            ( 1 + (2 * mu * Bnorm) / (masskg * const.c * const.c) )
+            ( 1 + (2 * mu * Bnorm) / (mass * const.c * const.c) )
             / (1 - vpar * vpar / (const.c * const.c) ) )
 
     if quantity == "vnorm":
@@ -203,12 +203,9 @@ def eval_guidingcenter(quantity, mass=None, charge=None,
         return vpar/vnorm
 
     if quantity == "ppar":
-        assert(vR is not None and vphi is not None and vz is not None and
-               BR is not None and Bphi is not None and Bz is not None and
-               mass is not None)
+        assert(mass is not None and vpar is not None and mu is not None and
+               BR is not None and Bphi is not None and Bz is not None)
 
-        vpar = eval_guidingcenter("vpar", vR=vR, vphi=vphi, vz=vz,
-                                  BR=BR, Bphi=Bphi, Bz=Bz)
         g    = eval_guidingcenter("gamma", mass=mass, mu=mu, vpar=vpar,
                                   BR=BR, Bphi=Bphi, Bz=Bz)
         return g * mass * vpar
