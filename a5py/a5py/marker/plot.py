@@ -136,8 +136,8 @@ def plot_histogram(x, xbins=None, y=None, ybins=None, weights=None,
 
     return axes
 
-def plot_scatter(x, y=None, z=None, c=None, equal=False, ids=None,
-                 xlabel=None, ylabel=None, zlabel=None, axes=None, prune=1,
+def plot_scatter(x, y=None, z=None, c=None, prune=1, equal=False, ids=None,
+                 xlabel=None, ylabel=None, zlabel=None, axes=None,
                  **kwargs):
     """
     Plot a scatter plot.
@@ -151,6 +151,8 @@ def plot_scatter(x, y=None, z=None, c=None, equal=False, ids=None,
             z data. If None, scatter will be plotted in 2D.
         c : array_like, optional <br>
             Color data.
+        prune : int, optional <br>
+            Plot only x[::prune] data points.
         kwargs : <br>
             Same arguments as in plot_line.
 
