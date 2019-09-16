@@ -232,11 +232,11 @@ class StateFrame(PlotFrame):
 
         xbins = [ self.xmin_entry.getval(),
                   self.xmax_entry.getval(),
-                  self.xnum_entry.getval() ]
+                  self.xnum_entry.getval() + 1 ]
 
         ybins = [ self.ymin_entry.getval(),
                   self.ymax_entry.getval(),
-                  self.ynum_entry.getval() ]
+                  self.ynum_entry.getval() + 1 ]
 
         weight = self.weighttick.getval() == 1
 
