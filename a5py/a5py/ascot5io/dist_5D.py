@@ -226,4 +226,5 @@ class Dist_5D(AscotData):
         if not y:
             distmod.plot_dist_1D(dist, logscale=logscale, axes=axes)
         else:
-            distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal, axes=axes)
+            distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal,
+                                 axes=axes)
