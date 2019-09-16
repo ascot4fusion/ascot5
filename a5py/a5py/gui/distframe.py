@@ -8,7 +8,7 @@ import copy
 import tkinter.ttk as ttk
 
 from .plotframe import PlotFrame
-
+from .components import NumEntry, DropdownMenu, Tickbox
 
 class DistFrame(PlotFrame):
     """
@@ -32,11 +32,13 @@ class DistFrame(PlotFrame):
 
         self._xchoice   = tkinter.StringVar(self)
         self._ychoice   = tkinter.StringVar(self)
+        self._xnum      = tkinter.IntVar(self)
+        self._ynum      = tkinter.IntVar(self)
         self._equalaxis = tkinter.IntVar(self)
         self._logscale  = tkinter.IntVar(self)
 
-        self._xchoice.trace('w', self._set_xcoord)
-        self._ychoice.trace('w', self._set_ycoord)
+        #self._xchoice.trace('w', self._change_coord)
+        #self._ychoice.trace('w', self._change_coord)
 
         top = self.get_toppanel()
 
@@ -101,25 +103,17 @@ class DistFrame(PlotFrame):
 
         panel = self.get_sidepanel()
 
-        plotbutton = tkinter.Button(panel, text="Plot", command=self._plot)
+        self.plotbutton = tkinter.Button(panel, text="Plot",
+                                         command=self._plot)
 
-        xinput = ttk.Combobox(panel, width=6, textvariable=self._xchoice)
-        xinput["values"] = self._coords
+        self.xinput = DropdownMenu(panel, coords[0], self._coords, log=False,
+                                   trace=None, label="x: ")
+        self.ticklog = Tickbox(panel, 0, label="Log scale",
+                               trace=self._plot)
 
-        ticklog = tkinter.Checkbutton(panel, text="Log scale",
-                                      variable=self._logscale,
-                                      onvalue=1, offvalue=0,
-                                      height=1, width=8)
-
-        xinput.pack()
-        ticklog.pack()
-        plotbutton.pack()
-
-        self._plotbutton = plotbutton
-
-        self._xchoice.set(coords[0])
-        self._ychoice.set(coords[0])
-        self._logscale.set(0)
+        self.xinput.pack()
+        self.ticklog.pack()
+        self.plotbutton.pack()
 
         del data
 
@@ -133,32 +127,31 @@ class DistFrame(PlotFrame):
         data = self._dist.get_E_xi_dist()
 
         coords = data["abscissae"]
-        self._xcoord = coords[0]
+        self._xcoord = coords[3]
         self._ycoord = None
 
         self._coords = copy.copy(coords)
 
         panel = self.get_sidepanel()
 
-        plotbutton = tkinter.Button(panel, text="Plot", command=self._plot)
+        self.plotbutton = tkinter.Button(panel, text="Plot",
+                                         command=self._plot)
 
-        xinput = ttk.Combobox(panel, width=6, textvariable=self._xchoice)
-        xinput["values"] = self._coords
+        self.xinput = DropdownMenu(panel, coords[3], self._coords, log=False,
+                                   trace=None, label="x: ")
+        self.Enum_entry  = NumEntry(panel, labeltext="E bins:",
+                                    defval=10, isint=True)
+        self.xinum_entry = NumEntry(panel, labeltext="xi bins:",
+                                    defval=10, isint=True)
 
-        ticklog = tkinter.Checkbutton(panel, text="Log scale",
-                                      variable=self._logscale,
-                                      onvalue=1, offvalue=0,
-                                      height=1, width=8)
+        self.ticklog = Tickbox(panel, 0, label="Log scale",
+                               trace=self._plot)
 
-        xinput.pack()
-        ticklog.pack()
-        plotbutton.pack()
-
-        self._plotbutton = plotbutton
-
-        self._xchoice.set(coords[0])
-        self._ychoice.set(coords[0])
-        self._logscale.set(0)
+        self.xinput.pack()
+        self.Enum_entry.pack()
+        self.xinum_entry.pack()
+        self.ticklog.pack()
+        self.plotbutton.pack()
 
         del data
 
@@ -173,50 +166,39 @@ class DistFrame(PlotFrame):
 
         coords = data["abscissae"]
         self._xcoord = coords[0]
-        self._ycoord = coords[1]
+        self._ycoord = coords[2]
 
         self._coords = copy.copy(coords)
 
         panel = self.get_sidepanel()
 
-        plotbutton = tkinter.Button(panel, text="Plot", command=self._plot)
+        self.plotbutton = tkinter.Button(panel, text="Plot", command=self._plot)
 
         panel1 = tkinter.Frame(panel)
-        xinput = ttk.Combobox(panel1, width=6, textvariable=self._xchoice)
-        yinput = ttk.Combobox(panel1, width=6, textvariable=self._ychoice)
+        self.xinput = DropdownMenu(panel1, coords[0], self._coords, log=False,
+                                   trace=self._check_coord, label="x: ")
+        self.yinput = DropdownMenu(panel1, coords[2], self._coords, log=False,
+                                   trace=self._check_coord, label="y: ")
 
         panel2 = tkinter.Frame(panel)
-        tickequal = tkinter.Checkbutton(panel2, text="Axis equal",
-                                        variable=self._equalaxis,
-                                        onvalue=1, offvalue=0,
-                                        height=1, width=8)
-        ticklog = tkinter.Checkbutton(panel2, text="Log scale",
-                                      variable=self._logscale,
-                                      onvalue=1, offvalue=0,
-                                      height=1, width=8)
+        self.tickequal = Tickbox(panel2, 1, label="Axis equal",
+                                 trace=self._plot)
+        self.ticklog   = Tickbox(panel2, 0, label="Log scale",
+                                 trace=self._plot)
 
-        xinput["values"] = self._coords
-        yinput["values"] = self._coords
-
-        xinput.pack(side="left")
-        yinput.pack(side="left")
-
+        self.xinput.pack()
+        self.yinput.pack()
         panel1.pack()
-        tickequal.pack(side="left")
-        ticklog.pack(side="left")
+
+        self.tickequal.pack()
+        self.ticklog.pack()
         panel2.pack()
-        plotbutton.pack()
-
-        self._plotbutton = plotbutton
-
-        self._xchoice.set(coords[0])
-        self._ychoice.set(coords[2])
-        self._equalaxis.set(1)
-        self._logscale.set(0)
+        self.plotbutton.pack()
 
         del data
 
         self._plot()
+
 
     def _show_2dexipanel(self):
         """
@@ -226,103 +208,95 @@ class DistFrame(PlotFrame):
 
         coords = data["abscissae"]
         self._xcoord = coords[0]
-        self._ycoord = coords[1]
+        self._ycoord = coords[2]
 
         self._coords = copy.copy(coords)
 
         panel = self.get_sidepanel()
 
-        plotbutton = tkinter.Button(panel, text="Plot", command=self._plot)
+        self.plotbutton = tkinter.Button(panel, text="Plot", command=self._plot)
 
         panel1 = tkinter.Frame(panel)
-        xinput = ttk.Combobox(panel1, width=6, textvariable=self._xchoice)
-        yinput = ttk.Combobox(panel1, width=6, textvariable=self._ychoice)
+        self.xinput = DropdownMenu(panel1, coords[0], self._coords, log=False,
+                                   trace=self._check_coord, label="x: ")
+        self.yinput = DropdownMenu(panel1, coords[2], self._coords, log=False,
+                                   trace=self._check_coord, label="y: ")
 
         panel2 = tkinter.Frame(panel)
-        tickequal = tkinter.Checkbutton(panel2, text="Axis equal",
-                                        variable=self._equalaxis,
-                                        onvalue=1, offvalue=0,
-                                        height=1, width=8)
-        ticklog = tkinter.Checkbutton(panel2, text="Log scale",
-                                      variable=self._logscale,
-                                      onvalue=1, offvalue=0,
-                                      height=1, width=8)
+        self.Enum_entry  = NumEntry(panel2, labeltext="E bins:",
+                                    defval=10, isint=True)
+        self.xinum_entry = NumEntry(panel2, labeltext="xi bins:",
+                                    defval=10, isint=True)
 
-        xinput["values"] = self._coords
-        yinput["values"] = self._coords
+        self.tickequal = Tickbox(panel2, 1, label="Axis equal",
+                                 trace=self._plot)
+        self.ticklog   = Tickbox(panel2, 0, label="Log scale",
+                                 trace=self._plot)
 
-        xinput.pack(side="left")
-        yinput.pack(side="left")
-
+        self.xinput.pack()
+        self.yinput.pack()
         panel1.pack()
-        tickequal.pack(side="left")
-        ticklog.pack(side="left")
+
+        self.Enum_entry.pack()
+        self.xinum_entry.pack()
+        self.tickequal.pack()
+        self.ticklog.pack()
         panel2.pack()
-        plotbutton.pack()
-
-        self._plotbutton = plotbutton
-
-        self._xchoice.set(coords[0])
-        self._ychoice.set(coords[2])
-        self._equalaxis.set(1)
-        self._logscale.set(0)
+        self.plotbutton.pack()
 
         del data
 
         self._plot()
 
-    def _set_xcoord(self, *args):
+
+    def _check_coord(self, *args):
         """
-        Set x coordinate for plots.
+        Check that coordinates are valid.
 
         Plot button is disabled if x and y coordinates are same.
         """
-        self._xcoord = self._xchoice.get()
-
         if (self._plottype.get() == "2d" or self._plottype.get() == "2dexi") \
-           and (self._xcoord == self._ycoord):
-            self._plotbutton.config(state="disable")
+           and (self.xinput.getval() == self.yinput.getval()):
+            self.plotbutton.config(state="disable")
         else:
-            self._plotbutton.config(state="normal")
+            self.plotbutton.config(state="normal")
 
-    def _set_ycoord(self, *args):
-        """
-        Set y coordinate for plots.
 
-        Plot button is disabled if x and y coordinates are same.
-        """
-        self._ycoord = self._ychoice.get()
-
-        if (self._plottype.get() == "2d" or self._plottype.get() == "2dexi") \
-           and (self._xcoord == self._ycoord):
-            self._plotbutton.config(state="disable")
-        else:
-            self._plotbutton.config(state="normal")
-
-    def _plot(self):
+    def _plot(self, *args):
         """
         Plot distribution whose view is displayed.
         """
+        if (self._plottype.get() == "2d" or self._plottype.get() == "2dexi") \
+           and (self.xinput.getval() == self.yinput.getval()):
+            return
+
         fig = self.get_fig()
         ax = fig.add_subplot(1,1,1)
-        logscale = self._logscale.get() == 1
+        logscale = self.ticklog.getval() == 1
 
         if(self._plottype.get() == "1d"):
-            self._dist.plot_dist(self._xcoord, logscale=logscale,
+            self._dist.plot_dist(self.xinput.getval(), logscale=logscale,
                                  axes=ax)
 
         if(self._plottype.get() == "1dexi"):
-            self._dist.plot_E_xi_dist(self._xcoord, logscale=logscale,
+            E_edges  = self.Enum_entry.getval()
+            xi_edges = self.xinum_entry.getval()
+            self._dist.plot_E_xi_dist(self.xinput.getval(), logscale=logscale,
+                                      E_edges=E_edges, xi_edges=xi_edges,
                                       axes=ax)
 
         elif(self._plottype.get() == "2d"):
-            equal = self._equalaxis.get() == 1
-            self._dist.plot_dist(self._xcoord, self._ycoord, equal=equal,
-                                 logscale=logscale, axes=ax)
+            equal = self.tickequal.getval() == 1
+            self._dist.plot_dist(self.xinput.getval(), self.yinput.getval(),
+                                 equal=equal, logscale=logscale, axes=ax)
 
         elif(self._plottype.get() == "2dexi"):
-            equal = self._equalaxis.get() == 1
-            self._dist.plot_E_xi_dist(self._xcoord, self._ycoord, equal=equal,
-                                      logscale=logscale, axes=ax)
+            E_edges  = self.Enum_entry.getval()
+            xi_edges = self.xinum_entry.getval()
+            equal = self.tickequal.getval() == 1
+            self._dist.plot_E_xi_dist(self.xinput.getval(),
+                                      self.yinput.getval(),
+                                      E_edges=E_edges, xi_edges=xi_edges,
+                                      equal=equal, logscale=logscale, axes=ax)
 
         self.draw()
