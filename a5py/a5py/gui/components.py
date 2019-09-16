@@ -167,7 +167,7 @@ class Tickbox(tkinter.Frame):
 
     def __init__(self, master, defval, trace=None, label=None):
         super().__init__(master)
-        self.var = tkinter.StringVar(self)
+        self.var = tkinter.IntVar(self)
         self.var.set(defval)
 
         if trace is not None:
@@ -177,6 +177,7 @@ class Tickbox(tkinter.Frame):
                                    variable=self.var,
                                    onvalue=1, offvalue=0,
                                    height=1, width=8)
+        tick.pack()
 
 
     def getval(self):
