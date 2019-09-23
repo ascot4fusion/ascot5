@@ -4,6 +4,7 @@ Methods to evaluate quantities from magnetic field data.
 File: libbfield.py
 """
 import numpy as np
+from scipy.constants import physical_constants as const
 
 from a5py.ascotpy.libascot import LibAscot
 
@@ -19,7 +20,7 @@ class LibBfield(LibAscot):
     quantities = ["rho", "psi", "br", "bphi", "bz", "brdr", "brdphi", "brdz",
                   "bphidr", "bphidphi", "bphidz", "bzdr", "bzdphi", "bzdz",
                   "divergence", "axis", "bnorm",
-                  "ripplecritlarmor"]
+                  "ripplecritlarmor", "jnorm", "jr", "jphi", "jz"]
 
     def evaluate(self, R, phi, z, t, quantity):
 
@@ -42,6 +43,19 @@ class LibBfield(LibAscot):
                            + out["bz"]*out["bz"] )
         if quantity == "ripplecritlarmor":
             pass
+
+        if quantity in ["jnorm", "jr", "jphi", "jz"]:
+            b  = self.eval_bfield(R, phi, z, t, evalb=True)
+            out = {}
+            out["jr"]    = b["bzdphi"]/R - b["bphidz"]
+            out["jphi"]  = b["brdz"] - b["bzdr"]
+            out["jz"]    = b["bphi"]/R + b["bphidr"] - b["brdphi"]/R
+            out["jnorm"] = np.sqrt(out["jr"]**2 + out["jphi"]**2 + out["jz"]**2)
+
+            for k in out.keys():
+                out[k] /= const["mag. constant"][0]
+
+            out = out[quantity]
 
         assert out is not None, "Unknown quantity"
 

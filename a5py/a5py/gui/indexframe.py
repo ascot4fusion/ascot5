@@ -22,7 +22,8 @@ from .markerframe  import MarkerFrame
 from .stateframe  import StateFrame
 from .orbitframe  import OrbitFrame
 from .distframe   import DistFrame
-from .debugframe  import DebugFrame
+
+from .sanityframe  import SanityFrame
 
 
 # Some constants defining widget sizes (in px)
@@ -115,8 +116,18 @@ class IndexFrame(tkinter.Frame):
         """
         Open sanity check frame.
         """
-        #self._gui.ask_openascot()
-        pass
+        ascotpy = self._gui.get_ascotpy()
+
+        if ascotpy is None \
+           or "marker" not in self._panels \
+           or "bfield" not in self._panels:
+            return
+
+        group = self._panels["bfield"]._inputselection.get()
+        qid   = self._gui.get_ascotobject()["bfield"][group].get_qid()
+        group  = self._panels["marker"]._inputselection.get()
+        marker = self._gui.get_ascotobject()["marker"][group]
+        self._gui.displayframe(SanityFrame(self._gui, ascotpy, qid, marker))
 
 
     def analyze(self):
