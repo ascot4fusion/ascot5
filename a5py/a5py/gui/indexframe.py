@@ -1,6 +1,10 @@
 """
 Contains definition of IndexFrame class.
 
+Index frame is the frame that greets you when the GUI is opened. From there you
+can navigate to input and output frames, choose which groups are active, modify
+their descriptions or open a different HDF5 file.
+
 File: indexframe.py
 """
 import tkinter
@@ -20,6 +24,13 @@ from .orbitframe  import OrbitFrame
 from .distframe   import DistFrame
 from .debugframe  import DebugFrame
 
+
+# Some constants defining widget sizes (in px)
+DROPDOWNMENUWIDTH = 25
+PANELWIDTH  = 500
+PANELHEIGHT = 50
+
+MAXROWS = 5
 
 class IndexFrame(tkinter.Frame):
     """
@@ -42,66 +53,84 @@ class IndexFrame(tkinter.Frame):
         super().__init__(gui._root)
         self._gui = gui
 
-        # Create filename panel and its contents.
-        fnpanel = tkinter.Frame(self,    width=440, height=80)
-        fnbox   = tkinter.Text( fnpanel, width=50,  height=1)
-        fnlabel = tkinter.Label(fnpanel, text="ASCOT5 file:", anchor="w")
-        fnbrowsebutton = tkinter.Button(fnpanel, text="Browse...",
-                                        command=self._browsefile, anchor="e")
-        fnbox.configure(state="normal")
-        fnbox.delete("1.0", tkinter.END)
-        fnbox.insert("end", gui.get_ascotfilename())
-        fnbox.configure(state="disabled")
+        # Create filename panel and fill panels to edges.
+        fnpanel = GeneralInfoPanel(gui, self, PANELWIDTH, PANELHEIGHT)
+        fnpanel.grid(row=0, column=1, sticky="NSWE")
+        tkinter.Frame(self).grid(row=0,column=0,rowspan=MAXROWS+1,
+                                 sticky="NSWE")
+        tkinter.Frame(self).grid(row=0,column=3,rowspan=MAXROWS+1,
+                                 sticky="NSWE")
+        tkinter.Frame(self).grid(row=MAXROWS,column=1,columnspan=2,
+                                 sticky="NSWE")
 
-        fnlabel.grid(       row=0, column=0)
-        fnbox.grid(         row=1, column=0, columnspan=3)
-        fnbrowsebutton.grid(row=0, column=1)
-        fnpanel.grid(row=0, column=1)
+        # The columns featuring panels remain unchanged in size
+        self.grid_columnconfigure(1, weight=0)
+        self.grid_columnconfigure(2, weight=0)
 
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_columnconfigure(2, weight=1)
+        # The last column is free to resize
+        self.grid_columnconfigure(3, weight=1)
+
+        # All rows can grow in size:
+        for i in range(MAXROWS+1):
+            self.grid_rowconfigure(i, weight=1)
+
+        # Set weight to 1 to obtain horizontally centered view
+        self.grid_columnconfigure(0, weight=0)
+
 
         self._panels = {}
         ascot = gui.get_ascotobject()
 
         # Add input panels.
         rowcol = [1, 1]
-        maxrow = 4
         for inp in ["options", "bfield", "efield", "marker", "wall", "plasma",
                     "neutral"]:
             if hasattr(ascot, inp):
-                self._panels[inp] = InputInfoPanel(gui, self, inp)
+                self._panels[inp] = InputInfoPanel(gui, self, inp,
+                                                   PANELWIDTH, PANELHEIGHT)
                 self._panels[inp].grid(row=rowcol[0], column=rowcol[1],
-                                       padx=10, pady=10)
+                                       padx=0, pady=0, sticky="NSWE")
 
             rowcol[0] += 1
-            if rowcol[0] > maxrow:
+            if rowcol[0] > MAXROWS-1:
                 rowcol[0] = 1
                 rowcol[1] += 1
 
         # Add run panel.
         if hasattr(ascot, "active"):
-            self._panels["results"] = RunInfoPanel(gui, self)
-            self._panels["results"].grid(row=0, column=2, padx=10, pady=10)
+            self._panels["results"] = RunInfoPanel(gui, self,
+                                                   PANELWIDTH, PANELHEIGHT)
+            self._panels["results"].grid(row=0, column=2,
+                                         padx=0, pady=0, sticky="NSWE")
 
 
-    def _browsefile(self):
+    def browsefile(self):
         """
         Browse a new HDF5 file.
         """
         self._gui.ask_openascot()
 
 
-    def _opendebug(self):
+    def sanitycheck(self):
         """
-        Open debugframe.
+        Open sanity check frame.
         """
-        if self._gui.get_ascotpy() is not None:
-            self._gui.displayframe(DebugFrame( self._gui,
-                                               self._gui.get_ascotpy() ))
+        #self._gui.ask_openascot()
+        pass
+
+
+    def analyze(self):
+        """
+        Open analysis frame.
+        """
+        #self._gui.ask_openascot()
+        pass
 
 
     def viewinput(self, inputtype):
+        """
+        Open a new frane for viewing the selected input type.
+        """
         ascotpy = self._gui.get_ascotpy()
 
         if ascotpy is None:
@@ -168,6 +197,30 @@ class IndexFrame(tkinter.Frame):
             self._gui.displayframe(MarkerFrame(self._gui, marker))
 
 
+    def view_output(self, outputtype):
+        """
+        View plot screen of corresponding output data.
+        """
+        run = "run_" + self._panels["results"]._runselection.get()
+        run = self._gui.get_ascotobject()[run]
+        if outputtype == "state":
+            if hasattr(run, "endstate"):
+                self._gui.displayframe(StateFrame(self._gui, run.inistate,
+                                                  run.endstate))
+            else:
+                self._gui.displayframe(StateFrame(self._gui, run.inistate))
+        if outputtype == "dist5d":
+            self._gui.displayframe(DistFrame(self._gui, run.dist5d))
+        if outputtype == "dist6d":
+            self._gui.displayframe(DistFrame(self._gui, run.dist6d))
+        if outputtype == "distrho5d":
+            self._gui.displayframe(DistFrame(self._gui, run.distrho5d))
+        if outputtype == "distrho6d":
+            self._gui.displayframe(DistFrame(self._gui, run.distrho6d))
+        if outputtype == "orbit":
+            self._gui.displayframe(OrbitFrame(self._gui, run.orbit))
+
+
     def select_inputs(self, options=None, bfield=None, efield=None, plasma=None,
                       marker=None, neutral=None, wall=None):
         """
@@ -181,8 +234,41 @@ class IndexFrame(tkinter.Frame):
                 self._panels[inputname].select(inputobjects[inputname])
 
 
-class InputInfoPanel(ttk.LabelFrame):
+class GeneralInfoPanel(ttk.LabelFrame):
+    """
+    Panel which shows the general information of the HDF5 file.
+    """
 
+    def __init__(self, gui, indexframe, width, height):
+        super().__init__(indexframe, width=width, height=height,
+                         text="ASCOT5 file")
+
+        topframe = tkinter.Frame(self)
+        browse   = tkinter.Button(topframe, text="Browse...",
+                                  command=indexframe.browsefile, anchor="e")
+        browse.pack(side="left")
+
+        textbox = tkinter.Text(self, height=1, width=1)
+
+        botframe = tkinter.Frame(self)
+        sanity   = tkinter.Button(botframe, text="Sanity checks",
+                                  command=indexframe.sanitycheck, anchor="e")
+        analyze  = tkinter.Button(botframe, text="Analyze results",
+                                  command=indexframe.sanitycheck, anchor="e")
+        sanity.pack(side="left")
+        analyze.pack(side="left")
+
+        textbox.configure(state="normal")
+        textbox.delete("1.0", tkinter.END)
+        textbox.insert("end", gui.get_ascotfilename())
+        textbox.configure(state="disabled")
+
+        topframe.pack(anchor="w")
+        textbox.pack(anchor="w", fill="x")
+        botframe.pack(anchor="w")
+
+
+class InputInfoPanel(ttk.LabelFrame):
     """
     A panel for showing and adjusting input data.
 
@@ -191,8 +277,9 @@ class InputInfoPanel(ttk.LabelFrame):
     group can be changed from this panel as well as description which is
     also shown. These changes are saved to HDF5 file.
     """
-    def __init__(self, gui, indexframe, name):
-        super().__init__(indexframe, width=440, height=140, text=name)
+
+    def __init__(self, gui, indexframe, name, width, height):
+        super().__init__(indexframe, text=name, width=width, height=height)
         self._gui = gui
         self._indexframe = indexframe
         self._name = name
@@ -217,7 +304,7 @@ class InputInfoPanel(ttk.LabelFrame):
 
         # Create widgets and set functionality.
         buttonframe   = tkinter.Frame(self)
-        selectionmenu = ttk.Combobox(buttonframe, width=25,
+        selectionmenu = ttk.Combobox(buttonframe, width=DROPDOWNMENUWIDTH,
                                      textvariable=self._inputselection)
         activebutton  = tkinter.Button(buttonframe, text="Set active",
                                        bg="sky blue")
@@ -225,7 +312,7 @@ class InputInfoPanel(ttk.LabelFrame):
                                        bg="sky blue")
         viewbutton    = tkinter.Button(buttonframe, text="View",
                                        bg="sky blue")
-        descbox       = tkinter.Text(self, height=4)
+        descbox       = tkinter.Text(self, height=1, width=1)
         datelabel     = tkinter.Label(self)
 
         selectionmenu.bind("<<ComboboxSelected>>", self._change_selection)
@@ -241,7 +328,7 @@ class InputInfoPanel(ttk.LabelFrame):
         viewbutton.pack(side="left")
 
         buttonframe.pack(anchor="w")
-        descbox.pack(anchor="w")
+        descbox.pack(anchor="w", fill="both")
         datelabel.pack(anchor="w")
 
         # Finalize and select active input.
@@ -250,6 +337,22 @@ class InputInfoPanel(ttk.LabelFrame):
         self._descbox       = descbox
         self._datelabel     = datelabel
         self._change_selection()
+
+        # Resize (comment to disable)
+        self.bind("<Configure>", self.onresize)
+
+
+    def onresize(self, event):
+        """
+        Adjust descbox to better fit the resized frame.
+        """
+        self.configure(width=event.width, height=event.height)
+        if event.height < 120:
+            self._descbox.config(height=1)
+        elif event.height < 140:
+            self._descbox.config(height=2)
+        else:
+            self._descbox.config(height=3)
 
 
     def select(self, group):
@@ -288,6 +391,7 @@ class InputInfoPanel(ttk.LabelFrame):
         inputtype = group.get_type()
         self._indexframe.viewinput(inputtype)
 
+
 class RunInfoPanel(ttk.LabelFrame):
     """
     A panel for showing data from different runs.
@@ -298,15 +402,15 @@ class RunInfoPanel(ttk.LabelFrame):
     not present, corresnponding button is set inactive.
     """
 
-    def __init__(self, gui, indexframe):
+    def __init__(self, gui, indexframe, width, height):
         """
         Initialize a new run frame.
         """
-        super().__init__(indexframe, width=440, height=140, text="results")
+        super().__init__(indexframe, width=width, height=height, text="results")
         self._indexframe = indexframe
         self._gui = gui
 
-        # Obtain QIDs for all runs and put the active one first on the list.
+        # Obtain a list QIDs for all runs and put the active one first.
         runqids   = tools.call_ascot5file(gui.get_ascotfilename(), "get_qids",
                                           "results")
         activeqid = tools.call_ascot5file(gui.get_ascotfilename(),
@@ -314,16 +418,23 @@ class RunInfoPanel(ttk.LabelFrame):
         runqids.remove(activeqid)
         runqids = [activeqid] + runqids
 
-        # Initialize run selection.
+        # String variable which keeps track of the currently selected run.
         self._runselection = tkinter.StringVar(self)
         self._runselection.set(runqids[0])
         self._runselection.trace('w', self._change_selection)
 
-        # Create widgets and set functionality.
-        self._datelabel       = tkinter.Label( self)
-        topbuttonframe   = tkinter.Frame(self)
-        selectionmenu   = ttk.Combobox(topbuttonframe, width=25,
+        ## Create widgets and place them. ##
+        #
+        # topbuttomframe [selection][set active][show inputs][save desc]
+        # botbuttonframe [ini/end][d5][d6][dr5][dr6][orb]
+        # textbox        [description]
+        # label          [date]
+
+        topbuttonframe  = tkinter.Frame(self)
+        selectionmenu   = ttk.Combobox(topbuttonframe,
+                                       width=DROPDOWNMENUWIDTH-5,
                                        textvariable=self._runselection)
+
         activebutton    = tkinter.Button(topbuttonframe,
                                          text="Set active",
                                          bg="sky blue")
@@ -333,7 +444,8 @@ class RunInfoPanel(ttk.LabelFrame):
         savebutton      = tkinter.Button(topbuttonframe,
                                          text="Save description",
                                          bg="sky blue")
-        botbuttonframe   = tkinter.Frame(self)
+
+        botbuttonframe = tkinter.Frame(self)
         self._statebutton     = tkinter.Button(botbuttonframe,
                                                text="Ini/Endstate")
         self._dist5dbutton    = tkinter.Button(botbuttonframe,
@@ -346,27 +458,10 @@ class RunInfoPanel(ttk.LabelFrame):
                                                text="Dist rho6D")
         self._orbitbutton     = tkinter.Button(botbuttonframe,
                                                text="Orbit")
-        self._descbox         = tkinter.Text(self, height=4)
+        self._descbox         = tkinter.Text(self, height=1, width=1)
 
-        selectionmenu.bind("<<ComboboxSelected>>", self._change_selection)
-        selectionmenu["values"] = runqids
-        activebutton.config(   command=self._set_active)
-        savebutton.config(     command=self._set_desc)
-        inputsbutton.config(   command=self._set_inputs)
-        self._statebutton.config(
-            command=lambda *args : self._view_plot("state"))
-        self._dist5dbutton.config(
-            command=lambda *args : self._view_plot("dist5d"))
-        self._dist6dbutton.config(
-            command=lambda *args : self._view_plot("dist6d"))
-        self._distrho5dbutton.config(
-            command=lambda *args : self._view_plot("distrho5d"))
-        self._distrho6dbutton.config(
-            command=lambda *args : self._view_plot("distrho6d"))
-        self._orbitbutton.config(
-            command=lambda *args : self._view_plot("orbit"))
+        self._datelabel = tkinter.Label(self)
 
-        # Place widgets.
         selectionmenu.pack(side="left")
         activebutton.pack(side="left")
         savebutton.pack(side="left")
@@ -380,11 +475,47 @@ class RunInfoPanel(ttk.LabelFrame):
 
         topbuttonframe.pack(anchor="w")
         botbuttonframe.pack(anchor="w")
-        self._descbox.pack(anchor="w")
+        self._descbox.pack(anchor="w", fill="x")
         self._datelabel.pack(anchor="w")
+
+        # Set functionality
+        selectionmenu.bind("<<ComboboxSelected>>", self._change_selection)
+        selectionmenu["values"] = runqids
+        activebutton.config(command=self._set_active)
+        savebutton.config(  command=self._set_desc)
+        inputsbutton.config(command=self._set_inputs)
+        self._statebutton.config(
+            command=lambda *args : self._indexframe.view_output("state"))
+        self._dist5dbutton.config(
+            command=lambda *args : self._indexframe.view_output("dist5d"))
+        self._dist6dbutton.config(
+            command=lambda *args : self._indexframe.view_output("dist6d"))
+        self._distrho5dbutton.config(
+            command=lambda *args : self._indexframe.view_output("distrho5d"))
+        self._distrho6dbutton.config(
+            command=lambda *args : self._indexframe.view_output("distrho6d"))
+        self._orbitbutton.config(
+            command=lambda *args : self._indexframe.view_output("orbit"))
 
         # Select active run.
         self._change_selection()
+
+        # Resize (comment to disable)
+        self.bind("<Configure>", self.onresize)
+
+
+    def onresize(self, event):
+        """
+        Adjust descbox to better fit the resized frame.
+        """
+        self.configure(width=event.width, height=event.height)
+        if event.height < 160:
+            self._descbox.config(height=1)
+        elif event.height < 180:
+            self._descbox.config(height=2)
+        else:
+            self._descbox.config(height=3)
+
 
     def select(self, runqid):
         """
@@ -392,6 +523,7 @@ class RunInfoPanel(ttk.LabelFrame):
         """
         self._runselection.set(runqid)
         self._change_selection()
+
 
     def _change_selection(self, *args):
         """
@@ -428,6 +560,7 @@ class RunInfoPanel(ttk.LabelFrame):
         if hasattr(run, "orbit"):
             self._orbitbutton.config(state="normal")
 
+
     def _set_active(self):
         """
         Set currently selected run as active in HDF5 and reload GUI.
@@ -435,6 +568,7 @@ class RunInfoPanel(ttk.LabelFrame):
         run = "q"+self._runselection.get()
         tools.call_ascot5file(self._gui.get_ascotfilename(), "set_active", run)
         self._gui.reload()
+
 
     def _set_desc(self):
         """
@@ -445,6 +579,7 @@ class RunInfoPanel(ttk.LabelFrame):
         tools.call_ascot5file(self._gui.get_ascotfilename(), "set_desc", run,
                               desc)
         self._gui.reload()
+
 
     def _set_inputs(self):
         """
@@ -458,25 +593,3 @@ class RunInfoPanel(ttk.LabelFrame):
                                        neutral=run.neutral.get_name(),
                                        marker=run.marker.get_name(),
                                        wall=run.wall.get_name())
-
-    def _view_plot(self, outputtype):
-        """
-        View plot screen of corresponding output data.
-        """
-        run = self._gui.get_ascotobject()["run_" + self._runselection.get()]
-        if outputtype == "state":
-            if hasattr(run, "endstate"):
-                self._gui.displayframe(StateFrame(self._gui, run.inistate,
-                                                  run.endstate))
-            else:
-                self._gui.displayframe(StateFrame(self._gui, run.inistate))
-        if outputtype == "dist5d":
-            self._gui.displayframe(DistFrame(self._gui, run.dist5d))
-        if outputtype == "dist6d":
-            self._gui.displayframe(DistFrame(self._gui, run.dist6d))
-        if outputtype == "distrho5d":
-            self._gui.displayframe(DistFrame(self._gui, run.distrho5d))
-        if outputtype == "distrho6d":
-            self._gui.displayframe(DistFrame(self._gui, run.distrho6d))
-        if outputtype == "orbit":
-            self._gui.displayframe(OrbitFrame(self._gui, run.orbit))
