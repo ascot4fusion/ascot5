@@ -32,24 +32,24 @@ def eval_particle(quantity, mass=None, charge=None,
 
     quantity = alias(quantity)
 
-    if quantity in ["x", "y"]:
+    if quantity in ["x", "y", "xprt", "yprt"]:
         assert(R is not None and phi is not None)
 
-        if quantity == "x":
+        if quantity in ["x", "xprt"]:
             return R * np.cos(phi)
-        if quantity == "y":
+        if quantity in ["y", "yprt"]:
             return R * np.sin(phi)
 
-    if quantity == "phimod":
+    if quantity in ["phimod", "phimodprt"]:
         return np.mod(phi + 2*np.pi, 2*np.pi)
 
-    if quantity == "energy":
+    if quantity in ["energy", "energyprt"]:
         assert(mass is not None and vR is not None and vphi is not None and
                vz is not None)
 
         return 0.5 * mass * (vR*vR + vphi*vphi + vz*vz)
 
-    if quantity == "gamma":
+    if quantity in ["gamma", "gammaprt"]:
         assert(vR is not None and vphi is not None and vz is not None)
 
         return 1/ np.sqrt( 1 - (vR*vR + vphi*vphi + vz*vz)
@@ -68,7 +68,7 @@ def eval_particle(quantity, mass=None, charge=None,
         if quantity == "pz":
             return g*mass*vz
 
-    if quantity == "pitch":
+    if quantity in ["pitch", "pitchprt"]:
         assert(vR is not None and vphi is not None and vz is not None and
                BR is not None and Bphi is not None and Bz is not None)
 
@@ -76,7 +76,7 @@ def eval_particle(quantity, mass=None, charge=None,
         Bnorm = eval_particle("bnorm", BR=BR, Bphi=Bphi, Bz=Bz)
         return (vR*BR + vphi*Bphi + vz*Bz) / (vnorm*Bnorm)
 
-    if quantity == "mu":
+    if quantity in ["mu", "muprt"]:
         assert(vR is not None and vphi is not None and vz is not None and
                BR is not None and Bphi is not None and Bz is not None and
                mass is not None)
@@ -88,7 +88,7 @@ def eval_particle(quantity, mass=None, charge=None,
         Bnorm = eval_particle("bnorm", BR=BR, Bphi=Bphi, Bz=Bz)
         return mass * np.power(g*vnorm, 2) * (1 - pitch*pitch) / (2*Bnorm)
 
-    if quantity == "vpar":
+    if quantity in ["vpar", "vparprt"]:
         assert(vR is not None and vphi is not None and vz is not None and
                BR is not None and Bphi is not None and Bz is not None)
 
@@ -97,7 +97,7 @@ def eval_particle(quantity, mass=None, charge=None,
         vnorm = eval_particle("vnorm", vR=vR, vphi=vphi, vz=vz)
         return pitch * vnorm
 
-    if quantity == "ppar":
+    if quantity in ["ppar", "pparprt"]:
         assert(vR is not None and vphi is not None and vz is not None and
                BR is not None and Bphi is not None and Bz is not None and
                mass is not None)
@@ -107,12 +107,12 @@ def eval_particle(quantity, mass=None, charge=None,
         g = eval_particle("gamma", vR=vR, vphi=vphi, vz=vz)
         return g*mass*vpar
 
-    if quantity == "vnorm":
+    if quantity in ["vnorm", "vnormprt"]:
         assert(vR is not None and vphi is not None and vz is not None)
 
         return np.sqrt(vR*vR + vphi*vphi + vz*vz)
 
-    if quantity == "pnorm":
+    if quantity in ["pnorm", "pnormprt"]:
         assert(mass is not None and vR is not None and vphi is not None and
                vz is not None)
 
@@ -121,12 +121,12 @@ def eval_particle(quantity, mass=None, charge=None,
         pz   = eval_particle("pz", mass=mass, vR=vR, vphi=vphi, vz=vz)
         return np.sqrt(pR*pR + pphi*pphi + pz*pz)
 
-    if quantity == "bnorm":
+    if quantity in ["bnorm", "bnormprt"]:
         assert(BR is not None and Bphi is not None and Bz is not None)
 
         return np.sqrt(BR*BR + Bphi*Bphi + Bz*Bz)
 
-    if quantity == "ptor":
+    if quantity in ["ptor", "ptorprt"]:
         assert(R is not None and charge is not None and mass is not None and
                vR is not None and vphi is not None and vz is not None and
                psi is not None)
@@ -160,25 +160,25 @@ def eval_guidingcenter(quantity, mass=None, charge=None,
     """
     quantity = alias(quantity)
 
-    if quantity in ["x", "y"]:
+    if quantity in ["x", "y", "xgc", "ygc"]:
         assert(R is not None and phi is not None)
 
-        if quantity == "x":
+        if quantity in ["x", "xgc"]:
             return R * np.cos(phi)
-        if quantity == "y":
+        if quantity in ["y", "ygc"]:
             return R * np.sin(phi)
 
-    if quantity == "phimod":
+    if quantity in ["phimod", "phimodgc"]:
         return np.mod(phi + 2*np.pi, 2*np.pi)
 
-    if quantity == "energy":
+    if quantity in ["energy", "energygc"]:
         assert(mass is not None and vpar is not None and mu is not None and
                BR is not None and Bphi is not None and Bz is not None)
 
         Bnorm = eval_guidingcenter("bnorm", BR=BR, Bphi=Bphi, Bz=Bz)
         return mu * Bnorm + mass * vpar*vpar / 2
 
-    if quantity == "gamma":
+    if quantity in ["gamma", "gammagc"]:
         assert(mass is not None and mu is not None and vpar is not None and
                BR is not None and Bphi is not None and Bz is not None)
 
@@ -187,7 +187,7 @@ def eval_guidingcenter(quantity, mass=None, charge=None,
             ( 1 + (2 * mu * Bnorm) / (mass * const.c * const.c) )
             / (1 - vpar * vpar / (const.c * const.c) ) )
 
-    if quantity == "vnorm":
+    if quantity in ["vnorm", "vnormgc"]:
         assert(mass is not None and vpar is not None and mu is not None and
                BR is not None and Bphi is not None and Bz is not None)
 
@@ -195,7 +195,7 @@ def eval_guidingcenter(quantity, mass=None, charge=None,
                                    BR=BR, Bphi=Bphi, Bz=Bz)
         return np.sqrt(1-1/g**2) * const.c
 
-    if quantity == "pitch":
+    if quantity in ["pitch", "pitchgc"]:
         assert(mass is not None and vpar is not None and mu is not None and
                BR is not None and Bphi is not None and Bz is not None)
 
@@ -203,7 +203,7 @@ def eval_guidingcenter(quantity, mass=None, charge=None,
                                    BR=BR, Bphi=Bphi, Bz=Bz)
         return vpar/vnorm
 
-    if quantity == "ppar":
+    if quantity in ["ppar", "ppargc"]:
         assert(mass is not None and vpar is not None and mu is not None and
                BR is not None and Bphi is not None and Bz is not None)
 
@@ -211,7 +211,7 @@ def eval_guidingcenter(quantity, mass=None, charge=None,
                                   BR=BR, Bphi=Bphi, Bz=Bz)
         return g * mass * vpar
 
-    if quantity == "pnorm":
+    if quantity in ["pnorm", "pnormgc"]:
         assert(mass is not None and vpar is not None and mu is not None and
                BR is not None and Bphi is not None and Bz is not None)
 
@@ -221,12 +221,12 @@ def eval_guidingcenter(quantity, mass=None, charge=None,
                                    BR=BR, Bphi=Bphi, Bz=Bz)
         return g * mass * vnorm
 
-    if quantity == "bnorm":
+    if quantity in ["bnorm", "bnormgc"]:
         assert(BR is not None and Bphi is not None and Bz is not None)
 
         return np.sqrt(BR*BR + Bphi*Bphi + Bz*Bz)
 
-    if quantity == "ptor":
+    if quantity in ["ptor", "ptorgc"]:
         assert(R is not None and charge is not None and mass is not None and
                vpar is not None and mu is not None and psi is not None and
                BR is not None and Bphi is not None and Bz is not None)
