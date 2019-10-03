@@ -183,7 +183,7 @@ def eval_guidingcenter(quantity, mass=None, charge=None,
                BR is not None and Bphi is not None and Bz is not None)
 
         Bnorm = eval_guidingcenter("bnorm", BR=BR, Bphi=Bphi, Bz=Bz)
-        return 1 / np.sqrt(
+        return np.sqrt(
             ( 1 + (2 * mu * Bnorm) / (mass * const.c * const.c) )
             / (1 - vpar * vpar / (const.c * const.c) ) )
 
@@ -191,8 +191,9 @@ def eval_guidingcenter(quantity, mass=None, charge=None,
         assert(mass is not None and vpar is not None and mu is not None and
                BR is not None and Bphi is not None and Bz is not None)
 
-        Bnorm = eval_guidingcenter("bnorm", BR=BR, Bphi=Bphi, Bz=Bz)
-        return np.sqrt(2 * mu * Bnorm / mass + vpar*vpar)
+        g     = eval_guidingcenter("gamma", mass=mass, mu=mu, vpar=vpar,
+                                   BR=BR, Bphi=Bphi, Bz=Bz)
+        return np.sqrt(1-1/g**2) * const.c
 
     if quantity == "pitch":
         assert(mass is not None and vpar is not None and mu is not None and
