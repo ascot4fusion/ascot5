@@ -47,7 +47,8 @@ def eval_particle(quantity, mass=None, charge=None,
         assert(mass is not None and vR is not None and vphi is not None and
                vz is not None)
 
-        return 0.5 * mass * (vR*vR + vphi*vphi + vz*vz)
+        g = eval_particle("gamma", vR=vR, vphi=vphi, vz=vz)
+        return (g - 1) * mass * const.c**2
 
     if quantity in ["gamma", "gammaprt"]:
         assert(vR is not None and vphi is not None and vz is not None)
@@ -175,8 +176,9 @@ def eval_guidingcenter(quantity, mass=None, charge=None,
         assert(mass is not None and vpar is not None and mu is not None and
                BR is not None and Bphi is not None and Bz is not None)
 
-        Bnorm = eval_guidingcenter("bnorm", BR=BR, Bphi=Bphi, Bz=Bz)
-        return mu * Bnorm + mass * vpar*vpar / 2
+        g     = eval_guidingcenter("gamma", mass=mass, mu=mu, vpar=vpar,
+                                   BR=BR, Bphi=Bphi, Bz=Bz)
+        return (g - 1) * mass * const.c**2
 
     if quantity in ["gamma", "gammagc"]:
         assert(mass is not None and mu is not None and vpar is not None and
