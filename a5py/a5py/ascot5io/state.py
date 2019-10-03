@@ -6,6 +6,7 @@ File: state.py
 
 import numpy as np
 import h5py
+import warnings
 
 from a5py.marker.alias import get as alias
 import a5py.marker.interpret as interpret
@@ -293,11 +294,49 @@ class State(AscotData):
                     pass
 
                 if item is None:
-                    item = marker.eval_particle(
-                        key, mass=mass, charge=charge,
-                        R=h5["r"][:], phi=phi, z=h5["z"][:],
-                        vR=h5["vr"][:], vphi=h5["vphi"][:], vz=h5["vz"][:],
-                        BR=h5["br"][:], Bphi=h5["bphi"][:], Bz=h5["bz"][:])
+                    phi = h5["phiprt"][:] * np.pi/180
+
+                    # The magnetic field values in the HDF5 file are for the
+                    # guiding center position. Those need to be evaluated in
+                    # particle position using Ascotpy.
+                    from a5py.ascotpy import Ascotpy
+                    a5 = None
+                    try:
+                        a5 = Ascotpy(self._file)
+                        a5.init(bfield=self._runnode.bfield.get_qid())
+
+                        br   = a5.evaluate(h5["rprt"][:], phi=phi,
+                                           z=h5["zprt"][:],
+                                           t=h5["time"][:], quantity="br")
+                        bphi = a5.evaluate(h5["rprt"][:], phi=phi,
+                                           z=h5["zprt"][:],
+                                           t=h5["time"][:], quantity="bphi")
+                        bz   = a5.evaluate(h5["rprt"][:], phi=phi,
+                                           z=h5["zprt"][:],
+                                           t=h5["time"][:], quantity="bz")
+                    except:
+                        warnings.warn("Ascotpy initialization failed.\n" +
+                                      "Using magnetic field values at gc " +
+                                      "position to evaluate particle data.")
+                        br   = h5["br"][:]
+                        bphi = h5["bphi"][:]
+                        bz   = h5["bz"][:]
+
+                    if key == "brprt":
+                        item = br
+                    elif key == "bphiprt":
+                        item = bphi
+                    elif key == "bzprt":
+                        item = bz
+                    else:
+                        item = marker.eval_particle(
+                            key, mass=mass, charge=charge,
+                            R=h5["rprt"][:], phi=phi, z=h5["zprt"][:],
+                            vR=h5["vr"][:], vphi=h5["vphi"][:], vz=h5["vz"][:],
+                            BR=br, Bphi=bphi, Bz=bz)
+
+                    if a5 is not None:
+                        a5.free(bfield=True)
 
             # Order by id
             ids  = h5["id"][:]
