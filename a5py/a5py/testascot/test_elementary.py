@@ -401,8 +401,10 @@ def check():
     # Print analytical values
     text1  = r"$\rho_{g}$ = %2.3f cm" % (rhog*100)
     text1 += r" (%2.3f cm)" % (rho*100)
-    text1 += "\n"+ r"$\omega_{g}$ = " + latex_float(omegag) + r" Hz "
-    text1 += r"(" + latex_float(omegag) + r" Hz)"
+    text1 += "\n"+ r"$\omega_{g}$ = " + latex_float(omegag)
+    text1 += r" $\frac{\mathrm{rad}}{\mathrm{s}}$ "
+    text1 += r"(" + latex_float(omegag)
+    text1 += r" $\frac{\mathrm{rad}}{\mathrm{s}}$)"
     text1 += "\n" + r"$v_{E \times B}$ = " + latex_float(v_ExB) + r" m/s"
     text1 += "\n" + r"(" + latex_float(-vgo1_ExB) + r" m/s, "
     text1 += latex_float(-vgc1_ExB) + r" m/s)" + "\n"

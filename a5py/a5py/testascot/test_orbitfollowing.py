@@ -351,7 +351,7 @@ def check():
     ORBFOL["GCF"]["z"]    = orb["z"]
     ORBFOL["GCF"]["ekin"] = (gamma - 1) * m_e * c * c
     ORBFOL["GCF"]["mu"]   = orb["mu"] * e
-    ORBFOL["GCF"]["ctor"] = gamma * m_e * orb["r"] * orb["vpar"] + \
+    ORBFOL["GCF"]["ctor"] = gamma * m_e * orb["r"] * orb["vpar"] * orb["bphi"] / B + \
                             orb["charge"] * e * psi
 
     id1 = ORBFOL["GCF"]["id"] == 1
@@ -398,7 +398,7 @@ def check():
     ORBFOL["GCA"]["z"]    = orb["z"]
     ORBFOL["GCA"]["ekin"] = (gamma - 1) * m_e * c * c
     ORBFOL["GCA"]["mu"]   = orb["mu"] * e
-    ORBFOL["GCA"]["ctor"] = gamma * m_e * orb["r"] * orb["vpar"] + \
+    ORBFOL["GCA"]["ctor"] = gamma * m_e * orb["r"] * orb["vpar"] * orb["bphi"] / B + \
                             orb["charge"] * e * psi
 
     id1 = ORBFOL["GCA"]["id"] == 1
@@ -451,14 +451,14 @@ def check():
     h3.set_xlim(0, 5e-6)
     h3.xaxis.set(ticks=[0, 1e-6, 2e-6, 3e-6, 4e-6, 5e-6],
                  ticklabels=[0, 1, 2, 3, 4, 5])
-    h3.yaxis.set(ticks=np.array([-6, 0, 6])*1e-4, ticklabels=[-6, 0, 6])
+    h3.yaxis.set(ticks=np.array([-6, 0, 6])*1e-7, ticklabels=[-6, 0, 6])
     h3.tick_params(axis='y', direction='out')
     h3.tick_params(axis='x', direction='out')
     h3.spines['right'].set_visible(False)
     h3.spines['top'].set_visible(False)
     h3.yaxis.set_ticks_position('left')
     h3.xaxis.set_ticks_position('bottom')
-    h3.set(ylabel=r"$\Delta P/P_0\;[10^{-4}]$", xlabel=r"Time [$10^{-6}$ s]")
+    h3.set(ylabel=r"$\Delta P/P_0\;[10^{-7}]$", xlabel=r"Time [$10^{-6}$ s]")
 
     h4.axis('scaled')
     h4.xaxis.set(ticks=[5, 6.5, 8])
@@ -467,13 +467,13 @@ def check():
     h4.tick_params(axis='x', direction='out')
     h4.set(xlabel="$R$ [m]", ylabel="$z$ [m]")
 
-    legend = [r"GO-p", r"GCF-p", r"GCA-p", r"GO-b", r"GCF-b", r"GCA-b"]
-    h4.text(5.0, 2.5, legend[0], fontsize=9, color=colors[0])
-    h4.text(6.0, 2.5, legend[1], fontsize=9, color=colors[2])
-    h4.text(7.0, 2.5, legend[2], fontsize=9, color=colors[4])
-    h4.text(5.0, 2.0, legend[3], fontsize=9, color=colors[1])
-    h4.text(6.0, 2.0, legend[4], fontsize=9, color=colors[3])
-    h4.text(7.0, 2.0, legend[5], fontsize=9, color=colors[5])
+    legend = [r"GO-p", r"GCF-p", r"GCA-p", r"GO-t", r"GCF-t", r"GCA-t"]
+    h4.text(5.0, 2.5, legend[0], fontsize=9, color=colors[1])
+    h4.text(6.0, 2.5, legend[1], fontsize=9, color=colors[3])
+    h4.text(7.0, 2.5, legend[2], fontsize=9, color=colors[5])
+    h4.text(5.0, 2.0, legend[3], fontsize=9, color=colors[0])
+    h4.text(6.0, 2.0, legend[4], fontsize=9, color=colors[2])
+    h4.text(7.0, 2.0, legend[5], fontsize=9, color=colors[4])
 
     plt.savefig("test_orbitfollowing.png", dpi=300)
     plt.show()
