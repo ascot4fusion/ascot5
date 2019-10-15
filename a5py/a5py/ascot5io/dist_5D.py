@@ -184,6 +184,26 @@ class Dist_5D(AscotData):
             distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal,
                                  axes=axes)
 
+
+    def eval_1d_dist(self, quantity, rhomin, rhomax, nrho):
+        from a5py.ascotpy import Ascotpy
+        a5 = Ascotpy(self._file)
+        a5.init(bfield=self._runnode.bfield.get_qid())
+
+        dist = distmod.eval1d(a5, self.get_dist(), quantity,
+                              rhomin, rhomax, nrho)
+
+        a5.free(bfield=True)
+
+        return dist
+
+
+    def plot_1d_dist(self, quantity, rhomin, rhomax, nrho, axes=None):
+        dist = self.eval_1d_dist(quantity, rhomin, rhomax, nrho)
+
+        distmod.plot_dist_1D(dist, axes=axes)
+
+
     def plot_E_xi_dist(self, *args, E_edges=None, xi_edges=None,
                        logscale=False, equal=False, axes=None, dist=None):
         """

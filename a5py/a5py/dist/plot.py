@@ -35,6 +35,8 @@ def plot_dist_1D(dist, logscale=False, axes=None):
         ordinate = dist["distribution"]
     elif "histogram" in dist:
         ordinate = dist["histogram"]
+    elif "density" in dist:
+        ordinate = dist["density"]
 
     x = dist["abscissae"][0]
 
