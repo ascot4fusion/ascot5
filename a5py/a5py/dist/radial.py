@@ -3,11 +3,14 @@ Evaluate radial (1D) distributions from 5D or 6D distributions.
 
 File: radial.py
 """
+import copy
 import numpy as np
+import scipy.constants as const
 
 from . import basic as distmod
+from . import conversion as distconv
 
-def eval1d(ascotpy, dist, quantity, rhomin, rhomax, nrho):
+def eval1d(ascotpy, dist, quantity, rhomin, rhomax, nrho, ma=None, qa=None):
 
     # Find rho volume
     vol = evalrhovol(
@@ -19,6 +22,31 @@ def eval1d(ascotpy, dist, quantity, rhomin, rhomax, nrho):
     # Evaluate the requested quantity in 5D
     if quantity == "density":
         dist = distmod.squeeze(dist, vpar=0, vperp=0, time=0, charge=0)
+
+    if quantity == "epowerdeposition":
+        emax = 0.5*ma*np.power(np.maximum( dist["vpar_edges"][-1],
+                                           dist["vperp_edges"][-1] ), 2) / const.e
+        dist = distconv.convert_vpavpe_to_Exi(dist, ma,
+                                              E_edges=np.linspace(0, emax,100),
+                                              xi_edges=np.linspace(-1,1,50))
+        dist = distmod.squeeze(dist, pitch=0, time=0, charge=0)
+        va = np.sqrt( const.e*2*dist["energy"]/ma )
+
+        distPi = copy.deepcopy(dist)
+        for ir in range(dist["r"].size):
+            for ip in range(dist["phi"].size):
+                for iz in range(dist["z"].size):
+                    coefs = ascotpy.eval_collcoefs(ma, qa, dist["r"][ir],
+                                                   dist["phi"][ip], dist["z"][iz], 0, va)
+                    #print(coefs["F"])
+                    #print(coefs["F"].shape)
+
+                    distPi["distribution"][ir, ip, iz, :] = -dist["distribution"][ir, ip, iz, :]\
+                                                            *( ma*va*( coefs["F"][0,0,:] + 0*coefs["F"][0,1,:] )\
+                                                               +      ma*( coefs["Dpara"][0,0,:] + 0*coefs["Dpara"][0,1,:] ))
+
+        dist = distmod.squeeze(distPi, energy=0)
+        #dist = distPi
 
     # Map  (R,phi,z) to rho
     rho = ascotpy.evaluate(dist["r"], np.deg2rad(dist["phi"]), dist["z"], 0,
