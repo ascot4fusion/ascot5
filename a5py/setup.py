@@ -26,4 +26,5 @@ setup(name='a5py',
         'bin/a5ls',
         'bin/a5vol',
         'bin/a5doxygen'
-      ])
+      ],
+      include_package_data=True)
