@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Test elementary results such as gyromotion and drifts
 

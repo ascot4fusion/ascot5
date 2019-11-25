@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Test conservation properties of the integration of the Hamiltonian motion.
 
