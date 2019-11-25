@@ -75,7 +75,7 @@ def write_hdf5(fn, r0, z0, bphi0, psimult, coefficients, psi0=None, psi1=0,
                              c[7], c[8], c[9], c[10], c[11], c[12])
         psi0 = psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
                            c[5], c[6], c[7], c[8], c[9], c[10], c[11],
-                           c[12]) * psimult
+                           c[12]) * psimult * 1.001
         raxis = x[0]*r0
         zaxis = x[1]*r0
 
