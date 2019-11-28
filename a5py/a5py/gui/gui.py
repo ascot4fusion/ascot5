@@ -54,6 +54,11 @@ class GUI:
         x = (sw/2) - (w/2)
         y = (sh/2) - (h/2)
 
+        if w < GUIMINWIDTH:
+            w = GUIMINWIDTH
+        if h < GUIMINHEIGHT:
+            h = GUIMINHEIGHT
+
         self.width  = w
         self.height = h
         self._root.geometry('%dx%d+%d+%d' % (w, h, x, y))
