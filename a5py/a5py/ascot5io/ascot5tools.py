@@ -66,7 +66,7 @@ def removegroup(fn, group, force=False):
 
             # This is a data group. If it is a run group or removal is forced,
             # we can remove it directly.
-            if force or ascot5file.get_type(group) is "run":
+            if force or ascot5file.get_type(group) == "run":
                 ascot5file.remove_group(f, group)
                 return
 
@@ -88,7 +88,7 @@ def removegroup(fn, group, force=False):
         except ValueError:
             # The group is a parent group. If it is a results group or removal
             # is forced, we can remove it directly.
-            if force or group is "results":
+            if force or group == "results":
                 ascot5file.remove_group(f, group)
                 return
 
@@ -250,6 +250,16 @@ def combineoutput(fnt, addfns=None, contfns=None):
     # Combine orbits
     if hasattr(target, "orbit") and hasattr(source, "orbit"):
         with target.orbit as tdata, source.orbit as sdata:
+            for field in tdata:
+                tsize = tdata[field].size
+                ssize = sdata[field].size
+
+                tdata[field].resize((tsize+ssize, ))
+                tdata[field][tsize:] = sdata[field][:]
+
+    # Combine transport coefficients
+    if hasattr(target, "transcoef") and hasattr(source, "transcoef"):
+        with target.transcoef as tdata, source.transcoef as sdata:
             for field in tdata:
                 tsize = tdata[field].size
                 ssize = sdata[field].size

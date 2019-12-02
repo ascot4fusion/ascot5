@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Test collisional transport in tokamak magnetic field.
 

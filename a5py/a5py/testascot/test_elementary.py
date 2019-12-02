@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Test elementary results such as gyromotion and drifts
 
@@ -312,7 +314,10 @@ def check():
     omega = zero_crossings * np.pi * 2 / time[-1]
 
     # Plot
-    h1.plot(x[igo==1] - 5, y[igo==1])
+    h1.plot(x[igo==1] - 5, y[igo==1], linewidth=3)
+    h1.plot(rhog * np.sin(np.linspace(0,2*np.pi,360)),
+            rhog * np.cos(np.linspace(0,2*np.pi,360)), linestyle="--",
+            color="black", alpha=0.7)
 
     #**************************************************************************#
     #*                           Check EXB                                     #
@@ -350,7 +355,7 @@ def check():
 
     # Plot
     h2.plot(xgo[igo==1] - 0.07 - 5, ygo[igo==1])
-    h2.plot(xgo[igo==2] + 0.07 - 5, ygo[igo==2])
+    h2.plot(xgo[igo==2][1:-1] + 0.07 - 5, ygo[igo==2][1:-1])
     h2.plot(xgc[igc==1] - 0.07 - 5, ygc[igc==1], color="red")
     h2.plot(xgc[igc==2] + 0.07 - 5, ygc[igc==2], color="red")
 
@@ -390,7 +395,7 @@ def check():
     vgc1_gradB = (x[-1] - x[0]) / (t[-1] - t[0])
 
     # Plot
-    h3.plot(ygo[igo==1] - 0.07, xgo[igo==1] - 5)
+    h3.plot(ygo[igo==1][1:-1] - 0.07, xgo[igo==1][1:-1] - 5)
     h3.plot(ygo[igo==2] + 0.07, xgo[igo==2] - 5)
     h3.plot(ygc[igc==1] - 0.07, xgc[igc==1] - 5, color="red")
     h3.plot(ygc[igc==2] + 0.07, xgc[igc==2] - 5, color="red")
@@ -398,15 +403,17 @@ def check():
     # Print analytical values
     text1  = r"$\rho_{g}$ = %2.3f cm" % (rhog*100)
     text1 += r" (%2.3f cm)" % (rho*100)
-    text1 += "\n"+ r"$\omega_{g}$ = " + latex_float(omegag) + r" Hz "
-    text1 += r"(" + latex_float(omegag) + r" Hz)"
+    text1 += "\n"+ r"$\omega_{g}$ = " + latex_float(omegag)
+    text1 += r" $\frac{\mathrm{rad}}{\mathrm{s}}$ "
+    text1 += r"(" + latex_float(omegag)
+    text1 += r" $\frac{\mathrm{rad}}{\mathrm{s}}$)"
     text1 += "\n" + r"$v_{E \times B}$ = " + latex_float(v_ExB) + r" m/s"
     text1 += "\n" + r"(" + latex_float(-vgo1_ExB) + r" m/s, "
     text1 += latex_float(-vgc1_ExB) + r" m/s)" + "\n"
     text1 += r"$v_{\nabla B}$ = " + latex_float(v_gradB) + r" m/s"
     text1 += "\n" + r"(" + latex_float(-vgo1_gradB) + r" m/s, "
     text1 += latex_float(-vgc1_gradB) + r" m/s)" + "\n"
-    h1.text(-0.1, -0.24, text1, fontsize=9)
+    h1.text(-0.1, -0.26, text1, fontsize=9)
 
     #**************************************************************************#
     #*                           Finalize                                      #
@@ -423,7 +430,7 @@ def check():
 
     h2.axis('scaled')
     h2.set(xlim=[-0.15, 0.15], ylim=[-0.08, 0.08])
-    h2.xaxis.set(ticklabels=[])
+    h2.xaxis.set(ticks=[-0.12,-0.07,-0.02, 0.02, 0.07, 0.12], ticklabels=[])
     h2.yaxis.set(ticks=[-0.08, 0, 0.08], ticklabels=[-8, 0, 8])
     h2.tick_params(axis='y', direction='out')
     h2.tick_params(axis='x', direction='out')
@@ -431,11 +438,15 @@ def check():
 
     h3.axis('scaled')
     h3.set(xlim=[-0.15, 0.15], ylim=[-0.08, 0.08])
-    h3.xaxis.set(ticks=[-0.15, 0, 0.15], ticklabels=[-15, 0, 15])
+    h3.xaxis.set(ticks=[-0.12,-0.07,-0.02, 0.02, 0.07, 0.12],
+                 ticklabels=[-5, 0, 5, -5, 0, 5])
     h3.yaxis.set(ticks=[-0.08, 0, 0.08], ticklabels=[-8, 0, 8])
     h3.tick_params(axis='y', direction='out')
     h3.tick_params(axis='x', direction='out')
     h3.set(xlabel="$x$ [cm]", ylabel="$y$ [cm]")
+
+    h2.plot([0,0], [-8, 8],color="black", linewidth=1)
+    h3.plot([0,0], [-8, 8],color="black", linewidth=1)
 
     plt.savefig("test_elementary.png", dpi=300)
     plt.show()

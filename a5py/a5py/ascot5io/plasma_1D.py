@@ -60,13 +60,13 @@ def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho,
         g = add_group(f, parent, group, desc=desc)
         gname = g.name.split("/")[-1]
 
-        g.create_dataset('nion',   (1,1),    data=nion, dtype='i4')
-        g.create_dataset('nrho',   (1,1),    data=nrho, dtype='i4')
-        g.create_dataset('znum',   (nion,1), data=znum, dtype='i4')
-        g.create_dataset('anum',   (nion,1), data=anum, dtype='i4')
-        g.create_dataset('charge', (nion,1), data=znum, dtype='i4')
-        g.create_dataset('mass',   (nion,1), data=anum, dtype='f8')
-        g.create_dataset('rho',    (nrho,1), data=rho,  dtype='f8')
+        g.create_dataset('nion',   (1,1),    data=nion,   dtype='i4')
+        g.create_dataset('nrho',   (1,1),    data=nrho,   dtype='i4')
+        g.create_dataset('znum',   (nion,1), data=znum,   dtype='i4')
+        g.create_dataset('anum',   (nion,1), data=anum,   dtype='i4')
+        g.create_dataset('charge', (nion,1), data=charge, dtype='i4')
+        g.create_dataset('mass',   (nion,1), data=mass,   dtype='f8')
+        g.create_dataset('rho',    (nrho,1), data=rho,    dtype='f8')
 
         g.create_dataset('etemperature', (nrho,1),    data=etemperature,
                          dtype='f8')

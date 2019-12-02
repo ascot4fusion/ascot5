@@ -16,6 +16,10 @@ import a5py.ascotpy          as ascotpy
 
 from .indexframe import IndexFrame
 
+# GUI Minimum size
+GUIMINWIDTH  = 1000
+GUIMINHEIGHT = 600
+
 class GUI:
     """
     GUI object that controls the window and has direct access to the Ascot data.
@@ -43,18 +47,28 @@ class GUI:
 
         # This is ugly, but makes window work if there is a dual monitor
         if sw > 2000:
-            sw = 2000
+            sw /= 2
 
         w = sw*3/4
         h = sh*3/4
         x = (sw/2) - (w/2)
         y = (sh/2) - (h/2)
 
+        if w < GUIMINWIDTH:
+            w = GUIMINWIDTH
+        if h < GUIMINHEIGHT:
+            h = GUIMINHEIGHT
+
         self.width  = w
         self.height = h
         self._root.geometry('%dx%d+%d+%d' % (w, h, x, y))
-        self._root.resizable(0, 0)
         self._root.title("ASCOT5 GUI")
+
+        # Set minimum framesize
+        self._root.minsize(GUIMINWIDTH, GUIMINHEIGHT)
+
+        # Uncomment for a window with fixed size
+        #self._root.resizable(0, 0)
 
         self._ascotpy = None
         if h5fn is None:

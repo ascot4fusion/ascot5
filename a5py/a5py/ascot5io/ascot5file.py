@@ -510,14 +510,15 @@ def remove_group(f, group):
             #group is a parent group
             group = f[group]
 
-    # Remove the groupp
+    # Remove the group
     parent = group.parent
     if parent.name!='/':
         was_active = get_active(f, parent) == group
         del f[group.name]
     else:
         was_active=False
-        del f[group.name]        
+        del f[group.name]
+
     # Set next group active (if removed group was) or remove the parent if no
     # other groups exist
     if was_active:
@@ -532,6 +533,7 @@ def remove_group(f, group):
                     group = grp
 
             set_active(f, group)
+
 
 def copy_group(fs, ft, group, newgroup=False):
     """
@@ -585,6 +587,7 @@ def copy_group(fs, ft, group, newgroup=False):
         set_active(ft, newgroupobj)
 
     return newgroupobj
+
 
 def _generate_meta():
     """
