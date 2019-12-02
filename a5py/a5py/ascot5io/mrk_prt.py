@@ -35,9 +35,9 @@ def write_hdf5(fn, n, ids, mass, charge,
         vr : array_like (n,1) <br>
             Particle velocity R-component [m/s].
         vphi : array_like (n,1) <br>
-            Particle velocity phi-component [deg].
+            Particle velocity phi-component [m/s].
         vz : array_like (n,1) <br>
-            Particle velocity z-component [m].
+            Particle velocity z-component [m/s].
         anum : array_like (n,1) <br>
             Marker species atomic mass number.
         znum : array_like (n,1) <br>
