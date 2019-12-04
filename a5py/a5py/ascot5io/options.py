@@ -36,15 +36,14 @@ def write_hdf5(fn, options, desc=None):
         g    = add_group(f, parent, group, desc=desc)
         name = g.name
 
-        # Options might contain parameters unknown to default options
+        # Convert all options to float (and to numpy arrays) and write to file
         for opt in options:
-            if opt != "qid" and opt != "date" and opt != "description":
-                data = options[opt]
-                if type(data) is not np.array:
-                    data = np.array(data)
+            data = options[opt]
+            if type(data) is not np.array:
+                data = np.array(data)
 
-                data =data.astype("f8")
-                d = g.create_dataset(opt, (data.size,), data=data)
+            data =data.astype("f8")
+            d = g.create_dataset(opt, (data.size,), data=data)
 
     return name
 
@@ -845,3 +844,21 @@ class Opt(AscotData):
 
     def read(self, info=False):
         return read_hdf5(self._file, self.get_qid(), info=info)
+
+
+    def write(self, fn, data=None):
+        if data is None:
+            data = self.read()
+
+        # Fill in the default values for missing parameters
+        defopt = generateopt()
+        for par in defopt.keys():
+            if par not in data.keys():
+                data[par] = defopt[par]
+
+        # Remove all unknown parameters
+        for par in list(data.keys()):
+            if par not in defopt.keys():
+                del data[par]
+
+        return write_hdf5(fn, data)
