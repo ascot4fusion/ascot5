@@ -87,6 +87,8 @@ def read_hdf5(fn, qid):
         for key in f[path]:
             out[key] = f[path][key][:]
 
+    out["ids"] = out["id"]
+    del out["id"]
     return out
 
 
