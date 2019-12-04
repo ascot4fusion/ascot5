@@ -69,7 +69,7 @@ def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz, phimin, phimax, nphi,
     temperature = np.transpose(temperature,(3,1,2,0))
 
     if maxwellian == 1:
-        maxwellian = np.ones( (nspecies,1) )
+        maxwellian = np.ones( (int(nspecies),1) )
 
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
@@ -122,18 +122,19 @@ def read_hdf5(fn, qid):
         for key in f[path]:
             out[key] = f[path][key][:]
 
-    out["density"]     = np.transpose(out["density"],     (3,0,2,1))
-    out["temperature"] = np.transpose(out["temperature"], (3,0,2,1))
+    out["density"]     = np.transpose(out["density"],     (3,1,2,0))
+    out["temperature"] = np.transpose(out["temperature"], (3,1,2,0))
+
     return out
 
 
 def write_hdf5_dummy(fn, desc="Dummy"):
     N0Rmin = 0
     N0Rmax = 100
-    N0nR   = 2
+    N0nR   = 4
     N0zmin = -100
     N0zmax = 100
-    N0nz   = 2
+    N0nz   = 3
     N0pmin = 0
     N0pmax = 2*np.pi
     N0np   = 2
