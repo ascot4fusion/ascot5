@@ -385,10 +385,10 @@ a5err interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, r
     /**< Index jump to cell */
     int n  = NSIZE_COMP4D*
         (m_t*str->n_x*str->n_y*str->n_z + k_z*str->n_x*str->n_y + j_y*str->n_x + i_x);
-    int x1 = NSIZE_COMP4D;                           /* Index jump one x forward */
+    int x1 = NSIZE_COMP4D;                            /* Index jump one x forward */
     int y1 = NSIZE_COMP4D*str->n_x;                   /* Index jump one y forward */
-    int z1 = NSIZE_COMP4D*str->n_x*str->n_y;         /* Index jump one z forward */
-    int t1 = NSIZE_COMP4D*str->n_x*str->n_y*str->n_z;/* Index jump one z forward */
+    int z1 = NSIZE_COMP4D*str->n_x*str->n_y;          /* Index jump one z forward */
+    int t1 = NSIZE_COMP4D*str->n_x*str->n_y*str->n_z; /* Index jump one z forward */
 
     int err = 0;
 
