@@ -133,34 +133,34 @@ void simulate(int id, int n_particles, particle_state* p,
     /*                                                                        */
     /**************************************************************************/
     particle_queue pq;
-    particle_queue pq_hybrid;
+    //particle_queue pq_hybrid;
 
     pq.n = 0;
-    pq_hybrid.n = 0;
+    //pq_hybrid.n = 0;
     for(int i = 0; i < n_particles; i++) {
-        if(p[i].endcond == 0) {
+        //if(p[i].endcond == 0) {
             pq.n++;
-        }
-        else if(p[i].endcond == endcond_hybrid) {
-            pq_hybrid.n++;
-        }
+            //}
+        //else if(p[i].endcond == endcond_hybrid) {
+            //pq_hybrid.n++;
+            //}
     }
 
     pq.p = (particle_state**) malloc(pq.n * sizeof(particle_state*));
-    pq_hybrid.p = (particle_state**)malloc(pq_hybrid.n*sizeof(particle_state*));
+    //pq_hybrid.p = (particle_state**)malloc(pq_hybrid.n*sizeof(particle_state*));
 
     pq.finished = 0;
-    pq_hybrid.finished = 0;
+    //pq_hybrid.finished = 0;
 
     pq.next = 0;
-    pq_hybrid.next = 0;
+    //pq_hybrid.next = 0;
     for(int i = 0; i < n_particles; i++) {
-        if(p[i].endcond == 0) {
+        //if(p[i].endcond == 0) {
             pq.p[pq.next++] = &p[i];
-        }
-        else if(p[i].endcond == endcond_hybrid) {
-            pq_hybrid.p[pq_hybrid.next++] = &p[i];
-        }
+            //}
+            //else if(p[i].endcond == endcond_hybrid) {
+            //pq_hybrid.p[pq_hybrid.next++] = &p[i];
+            //}
 
     }
     pq.next = 0;
@@ -255,30 +255,33 @@ void simulate(int id, int n_particles, particle_state* p,
 
     if(n_new > 0) {
         /* Reallocate and add "old" hybrid particles to the hybrid queue */
-        particle_state** tmp = pq_hybrid.p;
-        pq_hybrid.p = (particle_state**) malloc((pq_hybrid.n + n_new)
-                                                * sizeof(particle_state*));
-        memcpy(pq_hybrid.p, tmp, pq_hybrid.n * sizeof(particle_state*));
-        free(tmp);
+        //particle_state** tmp = pq_hybrid.p;
+        //pq_hybrid.p = (particle_state**) malloc((pq_hybrid.n + n_new)
+        //                                        * sizeof(particle_state*));
+        //memcpy(pq_hybrid.p, tmp, pq_hybrid.n * sizeof(particle_state*));
+        //free(tmp);
 
         /* Add "new" hybrid particles and reset their end condition */
-        pq_hybrid.n += n_new;
+        //pq_hybrid.n += n_new;
         for(int i = 0; i < pq.n; i++) {
-            if(pq.p[i]->endcond == endcond_hybrid) {
-                pq.p[i]->endcond = 0;
-                pq_hybrid.p[pq_hybrid.next++] = pq.p[i];
+            if(pq.p[i]->endcond & endcond_hybrid) {
+                pq.p[i]->endcond ^= endcond_hybrid;
+                //pq_hybrid.p[pq_hybrid.next++] = pq.p[i];
             }
         }
-        pq_hybrid.next = 0;
+        //pq_hybrid.next = 0;
+        pq.next = 0;
+        pq.finished = 0;
 
-        sim.record_mode = 1;//Make sure we don't collect fos in gc diagnostics
+        //sim.record_mode = 1;//Make sure we don't collect fos in gc diagnostics
 
         #pragma omp parallel sections num_threads(2)
         {
             #pragma omp section
             {
                 #pragma omp parallel
-                simulate_fo_fixed(&pq_hybrid, &sim);
+                //simulate_fo_fixed(&pq_hybrid, &sim);
+                simulate_fo_fixed(&pq, &sim);
             }
 
             #pragma omp section
@@ -289,7 +292,8 @@ void simulate(int id, int n_particles, particle_state* p,
                 strcpy(outfn, sim_offload->hdf5_out);
                 outfn[strlen(outfn)-3] = '\0';
                 sprintf(filename, "%s.stdout", outfn);
-                sim_monitor(filename, &pq_hybrid.n, &pq_hybrid.finished);
+                //sim_monitor(filename, &pq_hybrid.n, &pq_hybrid.finished);
+                sim_monitor(filename, &pq.n, &pq.finished);
 #endif
             }
         }
@@ -301,7 +305,7 @@ void simulate(int id, int n_particles, particle_state* p,
     /*                                                                        */
     /**************************************************************************/
     free(pq.p);
-    free(pq_hybrid.p);
+    //free(pq_hybrid.p);
     diag_free(&sim.diag_data);
 
     /**************************************************************************/
