@@ -196,7 +196,7 @@ void interp3Dexpl_init_spline(interp3D_data* str, real* c,
  *
  * @return zero on success and one if (x,y,z) point is outside the grid.
  */
-int interp3Dexpl_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
+a5err interp3Dexpl_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
@@ -336,7 +336,7 @@ int interp3Dexpl_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
  *
  * @return zero on success and one if (x,y,z) point is outside the grid.
  */
-int interp3Dexpl_eval_df(real* f_df, interp3D_data* str, real x, real y, real z) {
+a5err interp3Dexpl_eval_df(real* f_df, interp3D_data* str, real x, real y, real z) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {

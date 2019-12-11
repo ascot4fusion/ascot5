@@ -164,7 +164,7 @@ void interp2Dcomp_init_spline(interp2D_data* str, real* c,
  *
  * @return zero on success and one if (x,y) point is outside the domain.
  */
-int interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y) {
+a5err interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
@@ -256,7 +256,7 @@ int interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y) {
  *
  * @return zero on success and one if (x,y) point is outside the grid.
  */
-int interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y) {
+a5err interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {

@@ -109,46 +109,11 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
      * - Update diagnostics
      */
     while(n_running > 0) {
+
+        /* Store marker states in case time step will be rejected */
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
-            /* Store marker states in case time step will be rejected */
-            p0.r[i]        = p.r[i];
-            p0.phi[i]      = p.phi[i];
-            p0.z[i]        = p.z[i];
-            p0.vpar[i]     = p.vpar[i];
-            p0.mu[i]       = p.mu[i];
-            p0.zeta[i]     = p.zeta[i];
-
-            p0.time[i]       = p.time[i];
-            p0.weight[i]     = p.weight[i];
-            p0.cputime[i]    = p.cputime[i];
-            p0.rho[i]        = p.rho[i];
-            p0.theta[i]      = p.theta[i];
-
-            p0.mass[i]       = p.mass[i];
-            p0.charge[i]     = p.charge[i];
-
-            p0.id[i]         = p.id[i];
-            p0.running[i]    = p.running[i];
-            p0.endcond[i]    = p.endcond[i];
-            p0.walltile[i]   = p.walltile[i];
-
-            p0.B_r[i]        = p.B_r[i];
-            p0.B_phi[i]      = p.B_phi[i];
-            p0.B_z[i]        = p.B_z[i];
-
-            p0.B_r_dr[i]     = p.B_r_dr[i];
-            p0.B_r_dphi[i]   = p.B_r_dphi[i];
-            p0.B_r_dz[i]     = p.B_r_dz[i];
-
-            p0.B_phi_dr[i]   = p.B_phi_dr[i];
-            p0.B_phi_dphi[i] = p.B_phi_dphi[i];
-            p0.B_phi_dz[i]   = p.B_phi_dz[i];
-
-            p0.B_z_dr[i]     = p.B_z_dr[i];
-            p0.B_z_dphi[i]   = p.B_z_dphi[i];
-            p0.B_z_dz[i]     = p.B_z_dz[i];
-
+            particle_copy_gc(&p, i, &p0, i);
             hout_orb[i] = DUMMY_TIMESTEP_VAL;
             hout_col[i] = DUMMY_TIMESTEP_VAL;
             hnext[i]    = DUMMY_TIMESTEP_VAL;
@@ -207,45 +172,10 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                 }
 
                 /* Retrieve marker states in case time step was rejected */
-                if(hnext[i] < 0){
-                    p.r[i]        = p0.r[i];
-                    p.phi[i]      = p0.phi[i];
-                    p.z[i]        = p0.z[i];
-                    p.vpar[i]     = p0.vpar[i];
-                    p.mu[i]       = p0.mu[i];
-                    p.zeta[i]     = p0.zeta[i];
-
-                    p.time[i]       = p0.time[i];
-                    p.rho[i]        = p0.rho[i];
-                    p.weight[i]     = p0.weight[i];
-                    p.rho[i]        = p0.rho[i];
-                    p.theta[i]      = p0.theta[i];
-
-                    p.mass[i]       = p0.mass[i];
-                    p.charge[i]     = p0.charge[i];
-
-                    p.running[i]    = p0.running[i];
-                    p.endcond[i]    = p0.endcond[i];
-                    p.walltile[i]   = p0.walltile[i];
-
-                    p.B_r[i]        = p0.B_r[i];
-                    p.B_phi[i]      = p0.B_phi[i];
-                    p.B_z[i]        = p0.B_z[i];
-
-                    p.B_r_dr[i]     = p0.B_r_dr[i];
-                    p.B_r_dphi[i]   = p0.B_r_dphi[i];
-                    p.B_r_dz[i]     = p0.B_r_dz[i];
-
-                    p.B_phi_dr[i]   = p0.B_phi_dr[i];
-                    p.B_phi_dphi[i] = p0.B_phi_dphi[i];
-                    p.B_phi_dz[i]   = p0.B_phi_dz[i];
-
-                    p.B_z_dr[i]     = p0.B_z_dr[i];
-                    p.B_z_dphi[i]   = p0.B_z_dphi[i];
-                    p.B_z_dz[i]     = p0.B_z_dz[i];
+                if(hnext[i] < 0) {
+                    particle_copy_gc(&p0, i, &p, i);
 
                     hin[i] = -hnext[i];
-
                 }
                 if(p.running[i]){
 

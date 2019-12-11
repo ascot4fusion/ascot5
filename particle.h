@@ -421,6 +421,12 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
 #pragma omp declare simd uniform(p_fo,Bdata)
 int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
                       B_field_data* Bdata);
+#pragma omp declare simd
+void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j);
+#pragma omp declare simd
+void particle_copy_gc(particle_simd_gc* p1, int i, particle_simd_gc* p2, int j);
+#pragma omp declare simd
+void particle_copy_ml(particle_simd_ml* p1, int i, particle_simd_ml* p2, int j);
 #pragma omp end declare target
 
 #endif

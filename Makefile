@@ -42,9 +42,9 @@ endif
 
 CFLAGS+=-lm -Wall -fopenmp -fPIC -std=c11 $(DEFINES) $(FLAGS)
 
-# Escape spaces in CFLAGS and include it as a macro to be embedded in output
-DCFLAGS:=$(shell echo $(CFLAGS) | sed -e "s: :\\\ :g")
-CFLAGS+=-DCC=$(CC) -DCFLAGS="$(DCFLAGS)"
+# Write CFLAGS and CC to a file to be included into output
+$(shell echo "#define CFLAGS " $(CFLAGS) > compiler_flags.h)
+$(shell echo "#define CC " $(CC) >> compiler_flags.h)
 
 SIMDIR = simulate/
 SIMHEADERS = $(wildcard $(SIMDIR)simulate*.h)
@@ -118,7 +118,7 @@ BINS=test_math test_bsearch \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 \
-	ascot5_main
+	test_spline ascot5_main
 
 ifdef NOGIT
 	DUMMY_GIT_INFO := $(shell touch gitver.h)
@@ -176,6 +176,9 @@ test_N0: $(UTESTDIR)test_N0.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_bsearch: $(UTESTDIR)test_bsearch.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_spline: $(UTESTDIR)test_spline.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile
