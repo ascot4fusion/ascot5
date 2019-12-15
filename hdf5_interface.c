@@ -6,6 +6,7 @@
  * from the main program should be done using this module.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <hdf5.h>
@@ -14,6 +15,7 @@
 #include "simulate.h"
 #include "print.h"
 #include "gitver.h"
+#include "compiler_flags.h"
 #include "hdf5_interface.h"
 #include "hdf5io/hdf5_helpers.h"
 #include "hdf5io/hdf5_options.h"
@@ -79,7 +81,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading options input.\n");
-        if( hdf5_get_active_qid(f, "/options/", qid) ) {
+        if(sim->qid_options[0] != '\0') {
+            strcpy(qid, sim->qid_options);
+        }
+        else if( hdf5_get_active_qid(f, "/options/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
@@ -98,7 +103,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading magnetic field input.\n");
-        if( hdf5_get_active_qid(f, "/bfield/", qid) ) {
+        if(sim->qid_bfield[0] != '\0') {
+            strcpy(qid, sim->qid_bfield);
+        }
+        else if( hdf5_get_active_qid(f, "/bfield/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
@@ -118,7 +126,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading electric field input.\n");
-        if( hdf5_get_active_qid(f, "/efield/", qid) ) {
+        if(sim->qid_efield[0] != '\0') {
+            strcpy(qid, sim->qid_efield);
+        }
+        else if( hdf5_get_active_qid(f, "/efield/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
@@ -133,7 +144,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
 
 
     if(input_active & hdf5_input_plasma) {
-        if(hdf5_find_group(f, "/plasma/")) {
+        if(sim->qid_plasma[0] != '\0') {
+            strcpy(qid, sim->qid_plasma);
+        }
+        else if(hdf5_find_group(f, "/plasma/")) {
             print_err("Error: No plasma data in input file.");
             return 1;
         }
@@ -158,7 +172,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading neutral input.\n");
-        if( hdf5_get_active_qid(f, "/neutral/", qid) ) {
+        if(sim->qid_neutral[0] != '\0') {
+            strcpy(qid, sim->qid_neutral);
+        }
+        else if( hdf5_get_active_qid(f, "/neutral/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
@@ -178,7 +195,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading wall input.\n");
-        if( hdf5_get_active_qid(f, "/wall/", qid) ) {
+        if(sim->qid_wall[0] != '\0') {
+            strcpy(qid, sim->qid_wall);
+        }
+        else if( hdf5_get_active_qid(f, "/wall/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
@@ -198,7 +218,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading marker input.\n");
-        if( hdf5_get_active_qid(f, "/marker/", qid) ) {
+        if(sim->qid_marker[0] != '\0') {
+            strcpy(qid, sim->qid_marker);
+        }
+        else if( hdf5_get_active_qid(f, "/marker/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
@@ -278,25 +301,60 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
 
     hid_t fin = hdf5_open(sim->hdf5_in);
 
-    H5LTget_attribute_string(fin, "/options/", "active", inputqid);
+    if(sim->qid_options[0] != '\0') {
+        strcpy(inputqid, sim->qid_options);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/options/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_options",  inputqid);
 
-    H5LTget_attribute_string(fin, "/bfield/", "active", inputqid);
+    if(sim->qid_bfield[0] != '\0') {
+        strcpy(inputqid, sim->qid_bfield);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/bfield/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_bfield",  inputqid);
 
-    H5LTget_attribute_string(fin, "/efield/", "active", inputqid);
+    if(sim->qid_efield[0] != '\0') {
+        strcpy(inputqid, sim->qid_efield);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/efield/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_efield",  inputqid);
 
-    H5LTget_attribute_string(fin, "/plasma/", "active", inputqid);
+    if(sim->qid_plasma[0] != '\0') {
+        strcpy(inputqid, sim->qid_plasma);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/plasma/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_plasma",  inputqid);
 
-    H5LTget_attribute_string(fin, "/neutral/", "active", inputqid);
+    if(sim->qid_neutral[0] != '\0') {
+        strcpy(inputqid, sim->qid_neutral);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/neutral/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_neutral",  inputqid);
 
-    H5LTget_attribute_string(fin, "/wall/", "active", inputqid);
+    if(sim->qid_wall[0] != '\0') {
+        strcpy(inputqid, sim->qid_wall);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/wall/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_wall",  inputqid);
 
-    H5LTget_attribute_string(fin, "/marker/", "active", inputqid);
+    if(sim->qid_marker[0] != '\0') {
+        strcpy(inputqid, sim->qid_marker);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/marker/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_marker",  inputqid);
 
     hdf5_close(fin);
@@ -466,3 +524,29 @@ int hdf5_get_active_qid(hid_t f, const char* group, char qid[11]) {
 
     return 0;
 }
+
+/**
+ * @brief Generate an identification number for a run
+ *
+ * The identification number (QID) is a 32 bit unsigned integer represented in a
+ * string format, i.e., by ten characters. QID is a random integer between 0 and
+ * 4 294 967 295, and it is padded with leading zeroes in string representation.
+ *
+ * @param qid a pointer to 11 chars wide array where generated QID is stored
+ */
+void hdf5_generate_qid(char* qid) {
+
+    /* Seed random number generator with current time */
+    srand48( time(NULL) );
+
+    /* Generate a 32 bit random integer by generating signed 32 bit random
+     * integers with mrand48() and choosing the first one that is positive */
+    long int qint = -1;
+    while(qint < 0) {
+        qint = mrand48();
+    }
+
+    /* Convert the random number to a string format */
+    sprintf(qid, "%010lu", (long unsigned int)qint);
+}
+

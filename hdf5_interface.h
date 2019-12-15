@@ -39,4 +39,6 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
                                      real* diag_offload_array, char* out);
 
 int hdf5_get_active_qid(hid_t f, const char* group, char qid[11]);
+
+void hdf5_generate_qid(char* qid);
 #endif

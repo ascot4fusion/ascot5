@@ -111,10 +111,10 @@ int hdf5_plasma_read_1D(hid_t f, plasma_1D_offload_data* offload_data,
         offload_data->charge[i+1] = temparr[i] * CONST_E;
     }
 
-    if( hdf5_read_int(PLSPATH "mass", temparr,
+    if( hdf5_read_double(PLSPATH "mass", &(offload_data->mass[1]),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     for(int i = 0; i < n_ions; i++) {
-        offload_data->mass[i+1] = temparr[i] * CONST_U;
+        offload_data->mass[i+1] *= CONST_U;
     }
 
     /* Allocate space for rhogrid, density (for each species) and
@@ -204,10 +204,10 @@ int hdf5_plasma_read_1DS(hid_t f, plasma_1DS_offload_data* offload_data,
         offload_data->charge[i+1] = temparr[i] * CONST_E;
     }
 
-    if( hdf5_read_int(PLSPATH "mass", temparr,
+    if( hdf5_read_double(PLSPATH "mass", &(offload_data->mass[1]),
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     for(int i = 0; i < n_ions; i++) {
-        offload_data->mass[i+1] = temparr[i] * CONST_U;
+        offload_data->mass[i+1] *= CONST_U;
     }
 
     /* Allocate space for density (for each species) and
