@@ -166,6 +166,10 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
 void nbi_generate(int nprt, particle_state* p, nbi_injector* n,
                   B_field_data* Bdata, plasma_data* plsdata,
                   wall_data* walldata, random_data* rng) {
+
+    real totalShine = 0.0;
+    real totalPower = 0.0;
+
     for(int i = 0; i < nprt; i++) {
         real xyz[3], vxyz[3];
         int anum, znum;
@@ -177,6 +181,10 @@ void nbi_generate(int nprt, particle_state* p, nbi_injector* n,
                        &vxyz[2], &anum, &znum, &mass, rng);
             nbi_ionize(xyz, vxyz, &shinethrough, anum, znum, Bdata, plsdata,
                    walldata, rng);
+
+            if(shinethrough == 1) {
+                totalShine += 0.5 * mass * pow(math_norm(vxyz), 2);
+            }
         } while(shinethrough == 1);
 
         real rpz[3], vrpz[3];
@@ -195,5 +203,11 @@ void nbi_generate(int nprt, particle_state* p, nbi_injector* n,
         p[i].mass = mass;
         p[i].id = i+1;
         p[i].time = 0;
+
+        totalPower += 0.5 * mass * pow(math_norm(vxyz), 2);
+    }
+    printf("%le %le\n", totalPower, totalShine);
+    for(int i = 0; i < nprt; i++) {
+        p[i].weight = n->power * (1 - totalShine/totalPower) / totalPower;
     }
 }
