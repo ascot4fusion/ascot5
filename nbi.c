@@ -191,7 +191,7 @@ void nbi_generate(int nprt, particle_state* p, nbi_injector* n,
         p[i].zdot = vrpz[2];
         p[i].anum = anum;
         p[i].znum = znum;
-        p[i].charge = 1 * CONSTS_E;
+        p[i].charge = 1 * CONST_E;
         p[i].mass = mass;
         p[i].id = i+1;
         p[i].time = 0;
