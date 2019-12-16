@@ -15,7 +15,7 @@
 #include "wall.h"
 
 void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
-                real* vz, real* anum, real* znum, random_data* rng) {
+                real* vz, int* anum, int* znum, real* mass, random_data* rng) {
     int i_beamlet = floor(random_uniform(rng) * n->n_beamlet);
 
     *x = n->beamlet_x[i_beamlet];
@@ -68,6 +68,7 @@ void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
 
     *anum = n->anum;
     *znum = n->znum;
+    *mass = n->mass;
 }
 
 void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
@@ -167,12 +168,13 @@ void nbi_generate(int nprt, particle_state* p, nbi_injector* n,
                   wall_data* walldata, random_data* rng) {
     for(int i = 0; i < nprt; i++) {
         real xyz[3], vxyz[3];
-        real anum, znum;
+        int anum, znum;
+        real mass;
 
         int shinethrough;
         do {
             nbi_inject(n, &xyz[0], &xyz[1], &xyz[2], &vxyz[0], &vxyz[1],
-                       &vxyz[2], &anum, &znum, rng);
+                       &vxyz[2], &anum, &znum, &mass, rng);
             nbi_ionize(xyz, vxyz, &shinethrough, anum, znum, Bdata, plsdata,
                    walldata, rng);
         } while(shinethrough == 1);
@@ -187,5 +189,11 @@ void nbi_generate(int nprt, particle_state* p, nbi_injector* n,
         p[i].rdot = vrpz[0];
         p[i].phidot = vrpz[1];
         p[i].zdot = vrpz[2];
+        p[i].anum = anum;
+        p[i].znum = znum;
+        p[i].charge = 1 * CONSTS_E;
+        p[i].mass = mass;
+        p[i].id = i+1;
+        p[i].time = 0;
     }
 }

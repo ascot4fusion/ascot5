@@ -36,10 +36,11 @@ typedef struct {
     real div_halo_v;    /**< Vertical divergence of the halo [radians] */
     int anum;           /**< Mass number of injected species */
     int znum;           /**< Charge number of injected species */
+    real mass;          /**< Mass of injected species */
 } nbi_injector;
 
 void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
-                real* vz, real* anum, real* znum, random_data* rng);
+                real* vz, int* anum, int* znum, real* mass, random_data* rng);
 void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
                 B_field_data* Bdata, plasma_data* plsdata, wall_data* walldata,
                 random_data* rng);

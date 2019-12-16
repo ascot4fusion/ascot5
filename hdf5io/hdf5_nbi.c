@@ -101,6 +101,8 @@ int hdf5_nbi_read(hid_t f, int* n_inj_out, nbi_injector** inj_out) {
             err = H5LTread_dataset_int(f, hdf5_generate_qid_path(path, active, path), &(inj[i].anum));
             sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/znum", i+1);
             err = H5LTread_dataset_int(f, hdf5_generate_qid_path(path, active, path), &(inj[i].znum));
+            sprintf(path, "/nbi/nbi_XXXXXXXXXX/inj%d/mass", i+1);
+            err = H5LTread_dataset_double(f, hdf5_generate_qid_path(path, active, path), &(inj[i].mass));
         }
 
         *n_inj_out = n_inj;
