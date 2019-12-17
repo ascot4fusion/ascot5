@@ -371,7 +371,7 @@ int hdf5_marker_write_particle(hid_t f, int n, input_particle* p, char* qid) {
     real* v_phi  = malloc(n * sizeof(real));
     real* v_z    = malloc(n * sizeof(real));
     real* mass   = malloc(n * sizeof(real));
-    int* charge  = malloc(n * sizeof(int));
+    real* charge  = malloc(n * sizeof(real));
     int* anum    = malloc(n * sizeof(int));
     int* znum    = malloc(n * sizeof(int));
     real* weight = malloc(n * sizeof(real));
@@ -385,8 +385,8 @@ int hdf5_marker_write_particle(hid_t f, int n, input_particle* p, char* qid) {
         v_r[i] = p[i].p.v_r;
         v_phi[i] = p[i].p.v_phi;
         v_z[i] = p[i].p.v_z;
-        mass[i] = p[i].p.mass;
-        charge[i] = p[i].p.charge;
+        mass[i] = p[i].p.mass / CONST_U;
+        charge[i] = p[i].p.charge / CONST_E;
         anum[i] = p[i].p.anum;
         znum[i] = p[i].p.znum;
         weight[i] = p[i].p.weight;
@@ -402,12 +402,15 @@ int hdf5_marker_write_particle(hid_t f, int n, input_particle* p, char* qid) {
     hdf5_write_extendible_dataset_double(grp, "vphi", n, v_phi);
     hdf5_write_extendible_dataset_double(grp, "vz", n, v_z);
     hdf5_write_extendible_dataset_double(grp, "mass", n, mass);
-    hdf5_write_extendible_dataset_int(grp, "charge", n, charge);
+    hdf5_write_extendible_dataset_double(grp, "charge", n, charge);
     hdf5_write_extendible_dataset_int(grp, "anum", n, anum);
     hdf5_write_extendible_dataset_int(grp, "znum", n, znum);
     hdf5_write_extendible_dataset_double(grp, "weight", n, weight);
     hdf5_write_extendible_dataset_double(grp, "time", n, time);
     hdf5_write_extendible_dataset_long(grp, "id", n, id);
+
+    hdf5_write_string_attribute(f, path, "description",  "");
+    hdf5_write_string_attribute(f, path, "date",  "");
 
     /* Set this run as active. */
     hdf5_write_string_attribute(f, "/marker", "active",  qid);
