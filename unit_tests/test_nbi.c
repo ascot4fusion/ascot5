@@ -75,14 +75,14 @@ int main(int argc, char** argv) {
     }
 
     int nprt = 100000;
-    particle_state* p = (particle_state*) malloc(nprt*sizeof(particle_state));
+    particle* p = (particle*) malloc(nprt*sizeof(particle));
 
     nbi_generate(nprt, p, &inj[0], &B_data, &plasma_data, &wall_data, &rng);
 
     FILE* of = fopen("nbi.out", "w");
     for(int i=0; i < nprt; i++) {
-        fprintf(of,"%d %le %le %le %le %le %le\n", i, p[i].rprt, p[i].phiprt,
-               p[i].zprt, p[i].rdot, p[i].phidot, p[i].zdot);
+        fprintf(of,"%d %le %le %le %le %le %le\n", i, p[i].r, p[i].phi,
+               p[i].z, p[i].v_r, p[i].v_phi, p[i].v_z);
     }
     fclose(of);
 
