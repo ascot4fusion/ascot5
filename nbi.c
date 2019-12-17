@@ -112,7 +112,7 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
         B_field_eval_rho(&rho, psi, Bdata);
 
         /* check for wall collisions after passing through separatrix twice */
-        if(!entered_plasma && rho <= 1.0) {
+        if(!entered_plasma && rho < 1.0) {
             entered_plasma = 1;
         }
         if(entered_plasma && !exited_plasma && rho >= 1.0) {
