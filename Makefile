@@ -118,7 +118,7 @@ BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 \
-	test_spline ascot5_main
+	test_spline ascot5_main bbnbi5
 
 ifdef NOGIT
 	DUMMY_GIT_INFO := $(shell touch gitver.h)
@@ -137,6 +137,9 @@ libascot.so: libascot.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+bbnbi5: bbnbi5.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 doc:
