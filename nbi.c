@@ -104,34 +104,45 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
     int exited_plasma = 0;
 
     while(remaining > threshold && s < NBI_MAX_DISTANCE) {
+        err = 0;
+        real rate = 0.0;
+
         real rpz[3];
         math_xyz2rpz(xyz, rpz);
 
         real psi, rho;
-        B_field_eval_psi(&psi, rpz[0], rpz[1], rpz[2], 0.0, Bdata);
-        B_field_eval_rho(&rho, psi, Bdata);
+        err = B_field_eval_psi(&psi, rpz[0], rpz[1], rpz[2], 0.0, Bdata);
 
-        /* check for wall collisions after passing through separatrix twice */
-        if(!entered_plasma && rho < 1.0) {
-            entered_plasma = 1;
-        }
-        if(entered_plasma && !exited_plasma && rho >= 1.0) {
-            exited_plasma = 1;
-        }
-
-        err = plasma_eval_densandtemp(pls_dens, pls_temp, rho, rpz[0], rpz[1],
-                                      rpz[2], 0.0, plsdata);
-
-        real rate;
         if(!err) {
-            rate = pls_dens[0] * 1e-4*suzuki_sigmav(energy / anum, pls_dens[0],
-                                                    pls_temp[0] / CONST_E,
-                                                    n_species-1,
-                                                    pls_dens+1, pls_anum+1,
-                                                    pls_znum+1);
+            err = B_field_eval_rho(&rho, psi, Bdata);
+
+            /* check for wall collisions after passing through separatrix
+             * twice */
+            if(!entered_plasma && rho < 1.0) {
+                entered_plasma = 1;
+            }
+            if(entered_plasma && !exited_plasma && rho >= 1.0) {
+                exited_plasma = 1;
+            }
+
+            err = plasma_eval_densandtemp(pls_dens, pls_temp, rho, rpz[0],
+                                          rpz[1], rpz[2], 0.0, plsdata);
+
+            if(!err) {
+                rate = pls_dens[0] * 1e-4*suzuki_sigmav(energy / anum,
+                                                        pls_dens[0],
+                                                        pls_temp[0] / CONST_E,
+                                                        n_species-1,
+                                                        pls_dens+1,
+                                                        pls_anum+1,
+                                                        pls_znum+1);
+            }
+            else {
+                rate = 0.0; /* outside the plasma */
+            }
         }
         else {
-            rate = 0.0; /* probably outside the plasma */
+            rate = 0.0; /* outside the magnetic field */
         }
 
         s += ds;
@@ -175,7 +186,7 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
         int anum, znum;
         real mass;
 
-        int shinethrough;
+        int shinethrough = 1;
         do {
             nbi_inject(n, &xyz[0], &xyz[1], &xyz[2], &vxyz[0], &vxyz[1],
                        &vxyz[2], &anum, &znum, &mass, rng);
