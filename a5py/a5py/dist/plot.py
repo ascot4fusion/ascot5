@@ -85,7 +85,7 @@ def plot_dist_2D(dist, *args, logscale=False, equal=False, axes=None):
         x = args[0]
         y = args[1]
 
-    if ordinate.shape[0] == dist[x].size:
+    if x == dist["abscissae"][0]:
         ordinate = np.transpose(ordinate)
 
     if logscale:

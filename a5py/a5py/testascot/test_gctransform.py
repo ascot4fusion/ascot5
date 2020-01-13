@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Test guiding center transformation.
 
@@ -113,11 +115,11 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIMTIME"]       = 1.5e-5
+    odict["ENDCOND_MAX_SIMTIME"]       = 3e-5
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
-    odict["ORBITWRITE_INTERVAL"]       = 2e-10
+    odict["ORBITWRITE_INTERVAL"]       = 4e-10
     odict["ORBITWRITE_NPOINT"]         = 75002
 
     options.write_hdf5(helpers.testfn, odict, desc="GCTRANSFORM_GC")
@@ -137,11 +139,11 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIMTIME"]       = 1.5e-5
+    odict["ENDCOND_MAX_SIMTIME"]       = 3e-5
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
-    odict["ORBITWRITE_INTERVAL"]       = 2e-10
+    odict["ORBITWRITE_INTERVAL"]       = 4e-10
     odict["ORBITWRITE_NPOINT"]         = 75002
 
     options.write_hdf5(helpers.testfn, odict, desc="GCTRANSFORM_GO")
@@ -158,11 +160,11 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIMTIME"]       = 1.5e-5
+    odict["ENDCOND_MAX_SIMTIME"]       = 3e-5
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
-    odict["ORBITWRITE_INTERVAL"]       = 2e-10
+    odict["ORBITWRITE_INTERVAL"]       = 4e-10
     odict["ORBITWRITE_NPOINT"]         = 75002
 
     options.write_hdf5(helpers.testfn, odict, desc="GCTRANSFORM_GO2GC")
@@ -184,7 +186,7 @@ def init():
     phi    = 90      * np.ones(ids.shape)
     z      = 0       * np.ones(ids.shape)
     zeta   = 2       * np.ones(ids.shape)
-    energy = 10e6    * np.ones(ids.shape)
+    energy = 3.5e6   * np.ones(ids.shape)
     mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
                    R, phi, z, energy, pitch, zeta,
                    anum, znum, weight, time, desc="GCTRANSFORM_GC")
@@ -322,10 +324,10 @@ def check():
     plt.rcParams['font.family'] = 'STIXGeneral'
 
     h1 = f.add_subplot(1,4,1)
-    h1.set_position([0.12, 0.56, 0.26, 0.4], which='both')
+    h1.set_position([0.12, 0.58, 0.26, 0.38], which='both')
 
     h2 = f.add_subplot(1,4,2)
-    h2.set_position([0.12, 0.15, 0.26, 0.4], which='both')
+    h2.set_position([0.12, 0.15, 0.26, 0.38], which='both')
 
     h3 = f.add_subplot(1,4,3)
     h3.set_position([0.5, 0.15, 0.24, 0.8], which='both')
@@ -336,6 +338,8 @@ def check():
     # Make plots, scale the plotted quantities.
     # For some reason GCTRANSFORM_GO2GC GCTRANSFORM_GC are not equal in length
     # and we need to have [:-1]?
+    ccyc = plt.rcParams['axes.prop_cycle'].by_key()['color'] # default colors
+
     h1.plot(a5["GCTRANSFORM_GO"]["orbit"]["time"]*1e6,
             ( a5["GCTRANSFORM_GO"]["orbit"]["mu"]
               - a5["GCTRANSFORM_GC"]["orbit"]["mu"] )/e / 1e4 )
@@ -344,11 +348,11 @@ def check():
               - a5["GCTRANSFORM_GC"]["orbit"]["mu"][:-1] )/e / 1e4 )
 
     h2.plot(a5["GCTRANSFORM_GO"]["orbit"]["time"]*1e6,
-            ( a5["GCTRANSFORM_GO"]["orbit"]["vpar"]
-              - a5["GCTRANSFORM_GC"]["orbit"]["vpar"] ) / 1e5 )
+            m_a*( a5["GCTRANSFORM_GO"]["orbit"]["vpar"]
+              - a5["GCTRANSFORM_GC"]["orbit"]["vpar"] ) / 1e-21 )
     h2.plot(a5["GCTRANSFORM_GO2GC"]["orbit"]["time"]*1e6,
-            ( a5["GCTRANSFORM_GO2GC"]["orbit"]["vpar"]
-              - a5["GCTRANSFORM_GC"]["orbit"]["vpar"][:-1] ) / 1e5 )
+            m_a*( a5["GCTRANSFORM_GO2GC"]["orbit"]["vpar"]
+              - a5["GCTRANSFORM_GC"]["orbit"]["vpar"][:-1] ) / 1e-21 )
 
     h3.plot(a5["GCTRANSFORM_GO"]["orbit"]["r"],
             a5["GCTRANSFORM_GO"]["orbit"]["z"])
@@ -361,20 +365,20 @@ def check():
         id0 = a5["GCTRANSFORM_ZEROTH"]["orbit"]["id"]
         id1 = a5["GCTRANSFORM_FIRST"]["orbit"]["id"]
         h4.plot(a5["GCTRANSFORM_ZEROTH"]["orbit"]["r"][id0==i+1],
-                a5["GCTRANSFORM_ZEROTH"]["orbit"]["z"][id0==i+1], 'darkorchid')
+                a5["GCTRANSFORM_ZEROTH"]["orbit"]["z"][id0==i+1], ccyc[4])
         h4.plot(a5["GCTRANSFORM_FIRST"]["orbit"]["r"][id1==i+1],
-                a5["GCTRANSFORM_FIRST"]["orbit"]["z"][id1==i+1], 'darkgreen')
+                a5["GCTRANSFORM_FIRST"]["orbit"]["z"][id1==i+1], ccyc[3])
 
     h4.plot(a5["GCTRANSFORM_GO2GC"]["orbit"]["r"],
-            a5["GCTRANSFORM_GO2GC"]["orbit"]["z"], 'red')
+            a5["GCTRANSFORM_GO2GC"]["orbit"]["z"], ccyc[1])
 
     #**************************************************************************#
     #*                 Finalize and print and show the figure                  #
     #*                                                                         #
     #**************************************************************************#
 
-    h1.set_xlim(0, 15)
-    h1.set_ylim(-6, 6)
+    h1.set_xlim(0, 30)
+    h1.set_ylim(-2, 2)
     h1.spines['right'].set_visible(False)
     h1.spines['top'].set_visible(False)
     h1.spines['bottom'].set_visible(False)
@@ -382,23 +386,22 @@ def check():
     h1.xaxis.set_ticks_position('bottom')
     h1.tick_params(axis='y', direction='out')
     h1.tick_params(axis='x', direction='inout')
-    h1.xaxis.set(ticks=[0, 5, 10, 15], ticklabels=[])
-    h1.yaxis.set(ticks=[-6, -4, -2, 0, 2, 4, 6],
-                 ticklabels=[-6, '', '', 0, '', '', 6])
+    h1.xaxis.set(ticks=[0, 10, 20, 30], ticklabels=[])
+    h1.yaxis.set(ticks=[-2, 0, 2])
     h1.set(ylabel=r"$\Delta \mu$ [$10^{4}$ eV/T]")
 
-    h2.set_xlim(0, 15)
-    h2.set_ylim(-2, 6)
+    h2.set_xlim(0, 30)
+    h2.set_ylim(-1, 2)
     h2.spines['right'].set_visible(False)
     h2.spines['top'].set_visible(False)
     h2.yaxis.set_ticks_position('left')
     h2.xaxis.set_ticks_position('bottom')
     h2.tick_params(axis='y', direction='out')
     h2.tick_params(axis='x', direction='out')
-    h2.xaxis.set(ticks=[0, 5, 10, 15])
-    h2.yaxis.set(ticks=[-2, 0, 2, 4, 6],
-                 ticklabels=[-2, 0, 2, 4, ''])
-    h2.set(ylabel=r"$\Delta v_\parallel$ [$10^{5}$ m/s]",
+    h2.xaxis.set(ticks=[0, 10, 20, 30])
+    h2.yaxis.set(ticks=[-1, 0, 2],
+                 ticklabels=[-1, 0, 2])
+    h2.set(ylabel=r"$\Delta p_\parallel$ [$10^{-21}$ kg$\cdot$m/s]",
            xlabel=r"Time [$10^{-6}$ s]")
 
     h3.axis('scaled')
@@ -420,17 +423,21 @@ def check():
     h4.xaxis.set(ticks=[6.2, 6.4, 6.6])
     h4.yaxis.set(ticks=[1.7, 1.9, 2.1, 2.3, 2.5], ticklabels=[])
 
-    l1 = mlines.Line2D([], [], color='r', linestyle='-', label='GC',    axes=h3)
-    l2 = mlines.Line2D([], [], color='b', linestyle='-', label='GO',    axes=h3)
-    l3 = mlines.Line2D([], [], color='g', linestyle='-', label='GO2GC', axes=h3)
+    l1 = mlines.Line2D([], [], color=ccyc[2], linestyle='-', label='GC',
+                       axes=h3)
+    l2 = mlines.Line2D([], [], color=ccyc[0], linestyle='-', label='GO',
+                       axes=h3)
+    l3 = mlines.Line2D([], [], color=ccyc[1], linestyle='-', label='GO2GC',
+                       axes=h3)
     h3.legend(handles=[l1, l2, l3], loc='lower left', frameon=False,
               fontsize=9)
 
-    l1 = mlines.Line2D([], [], color='r', linestyle='-', label='GC',    axes=h4)
-    l2 = mlines.Line2D([], [], color='darkorchid', linestyle='-',
-                       label=r'0$^\circ$ order GC', axes=h4)
-    l3 = mlines.Line2D([], [], color='darkgreen', linestyle='-',
-                       label=r'1$^\circ$ order GC', axes=h4)
+    l1 = mlines.Line2D([], [], color=ccyc[1], linestyle='-', label='GO2GC',
+                       axes=h4)
+    l2 = mlines.Line2D([], [], color=ccyc[4], linestyle='-',
+                       label=r'0th order GC', axes=h4)
+    l3 = mlines.Line2D([], [], color=ccyc[3], linestyle='-',
+                       label=r'1st order GC', axes=h4)
     h4.legend(handles=[l1, l2, l3], loc='lower left', frameon=False,
               fontsize=9)
 

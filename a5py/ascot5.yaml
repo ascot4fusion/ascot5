@@ -1,0 +1,31 @@
+# This file is suitable for using with conda environments.
+#
+# See for example:
+#       https://docs.csc.fi/#support/tutorials/conda/#what-is-conda
+#
+# A shortcut:
+#   wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+#   bash Miniconda3-latest-Linux-x86_64.sh -b -p /MINICONDA/INSTALL/DIR/miniconda3
+#
+# source /MINICONDA/INSTALL/DIR/miniconda3/etc/profile.d/conda.sh
+#
+# conda env create --file ascot5.yaml
+# conda env update --file ascot5.yaml
+# conda activate ascot5
+
+name: ascot5
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - ipython
+  - pip
+  - pip:
+      - numpy
+      - scipy
+      - matplotlib
+      - h5py
+      # The next line installs a5py. Please update to the folder of the package
+      - -e /users/sjjamsa/ascot5/python/a5py
+
+

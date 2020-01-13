@@ -22,10 +22,10 @@ def write_hdf5(fn, n, ids, mass, charge,
             Number of markers.
         ids : array_like (n,1) <br>
             Unique identifier for each marker (must be a positive integer).
-        charge : array_like (n,1) <br>
-            Charge [e].
         mass : array_like (n,1) <br>
             Mass [amu].
+        charge : array_like (n,1) <br>
+            Charge [e].
         r : array_like (n,1) <br>
             Particle R coordinate [m].
         phi : array_like (n,1) <br>
@@ -35,9 +35,9 @@ def write_hdf5(fn, n, ids, mass, charge,
         vr : array_like (n,1) <br>
             Particle velocity R-component [m/s].
         vphi : array_like (n,1) <br>
-            Particle velocity phi-component [deg].
+            Particle velocity phi-component [m/s].
         vz : array_like (n,1) <br>
-            Particle velocity z-component [m].
+            Particle velocity z-component [m/s].
         anum : array_like (n,1) <br>
             Marker species atomic mass number.
         znum : array_like (n,1) <br>
@@ -113,6 +113,8 @@ def read_hdf5(fn, qid):
         for key in f[path]:
             out[key] = f[path][key][:]
 
+    out["ids"] = out["id"]
+    del out["id"]
     return out
 
 
@@ -123,3 +125,10 @@ class mrk_prt(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
+
+
+    def write(self, fn, data=None):
+        if data is None:
+            data = self.read()
+
+        return write_hdf5(fn, **data)

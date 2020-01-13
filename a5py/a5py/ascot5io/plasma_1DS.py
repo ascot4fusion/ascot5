@@ -11,7 +11,7 @@ import datetime
 from . ascot5file import add_group
 from . ascot5data import AscotData
 
-def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rhomin, rhomax,
+def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho,
                edensity, etemperature, idensity, itemperature, desc=None):
     """
     Write 1DS plasma input in HDF5 file.
@@ -31,10 +31,8 @@ def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rhomin, rhomax,
             Ion species mass [amu].
         charge : array_like (nion,1) <br>
             Ion species charge [e].
-        rhomin : float <br>
-            Minimum rho grid value.
-        rhomax : float <br>
-            Maximum rho grid value.
+        rho : array_like (nrho,1) <br>
+            rho grid, doesn't have to be uniform.
         edensity : array_like (nrho,1) <br>
             Electron density [m^-3].
         etemperature : array_like (nrho,1) <br>
@@ -66,13 +64,11 @@ def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rhomin, rhomax,
 
         g.create_dataset('nion',   (1,1),    data=nion,   dtype='i4')
         g.create_dataset('nrho',   (1,1),    data=nrho,   dtype='i4')
-        g.create_dataset('rhomin', (1,1),    data=rhomin, dtype='f8')
-        g.create_dataset('rhomax', (1,1),    data=rhomax, dtype='f8')
-        g.create_dataset('rho',    (nrho,1), data=rho,    dtype='f8')
         g.create_dataset('znum',   (nion,1), data=znum,   dtype='i4')
         g.create_dataset('anum',   (nion,1), data=anum,   dtype='i4')
         g.create_dataset('charge', (nion,1), data=charge, dtype='i4')
         g.create_dataset('mass',   (nion,1), data=mass,   dtype='f8')
+        g.create_dataset('rho',    (nrho,1), data=rho,    dtype='f8')
 
         g.create_dataset('etemperature', (nrho,1),    data=etemperature,
                          dtype='f8')

@@ -76,3 +76,10 @@ class E_TC(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
+
+
+    def write(self, fn, data=None):
+        if data is None:
+            data = self.read()
+
+        return write_hdf5(fn, **data)

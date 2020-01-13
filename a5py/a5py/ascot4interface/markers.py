@@ -31,7 +31,7 @@ def read_particles(fname):
 
         line = f.readline()
         headerLength += 1
-        nComments = int(line.split()[0])
+        nComments = int(float(line.split()[0]))
 
         comments=[]
         for i in range(0,nComments):
@@ -44,14 +44,14 @@ def read_particles(fname):
 
         line = f.readline()
         headerLength += 1
-        nParticles = int(line.split()[0])
+        nParticles = int(float(line.split()[0]))
 
         line = f.readline()
         headerLength += 1
 
         line = f.readline()
         headerLength += 1
-        nFields = int(line.split()[0])
+        nFields = int(float(line.split()[0]))
 
         fields = []
         for i in range(0,nFields):

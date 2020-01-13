@@ -6,6 +6,7 @@ File: state.py
 
 import numpy as np
 import h5py
+import warnings
 
 from a5py.marker.alias import get as alias
 import a5py.marker.interpret as interpret
@@ -17,40 +18,88 @@ from a5py.marker.alias import get as alias
 
 from a5py.ascot5io.ascot5data import AscotData
 
+def write_hdf5(fn, run, name, data):
+    """
+    Write state data in HDF5 file.
+
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+    """
+
+    gname = "results/" + run + "/" + name
+
+    N = data["id"].size
+
+    with h5py.File(fn, "a") as f:
+        g = f.create_group(gname)
+
+        g.create_dataset("mass",      (N,1), data=data["mass"],      dtype="f8")
+        g.create_dataset("time",      (N,1), data=data["time"],      dtype="f8")
+        g.create_dataset("cputime",   (N,1), data=data["cputime"],   dtype="f8")
+        g.create_dataset("weight",    (N,1), data=data["weight"],    dtype="f8")
+
+        g.create_dataset("rprt",      (N,1), data=data["rprt"],      dtype="f8")
+        g.create_dataset("phiprt",    (N,1), data=data["phiprt"],    dtype="f8")
+        g.create_dataset("zprt",      (N,1), data=data["zprt"],      dtype="f8")
+        g.create_dataset("vr",        (N,1), data=data["vr"],        dtype="f8")
+        g.create_dataset("vphi",      (N,1), data=data["vphi"],      dtype="f8")
+        g.create_dataset("vz",        (N,1), data=data["vz"],        dtype="f8")
+
+        g.create_dataset("r",         (N,1), data=data["r"],         dtype="f8")
+        g.create_dataset("phi",       (N,1), data=data["phi"],       dtype="f8")
+        g.create_dataset("z",         (N,1), data=data["z"],         dtype="f8")
+        g.create_dataset("mu",        (N,1), data=data["mu"],        dtype="f8")
+        g.create_dataset("vpar",      (N,1), data=data["vpar"],      dtype="f8")
+        g.create_dataset("zeta",      (N,1), data=data["zeta"],      dtype="f8")
+
+        g.create_dataset("rho",       (N,1), data=data["rho"],       dtype="f8")
+        g.create_dataset("theta",     (N,1), data=data["theta"],     dtype="f8")
+
+        g.create_dataset("id",        (N,1), data=data["id"],        dtype="i8")
+        g.create_dataset("walltile",  (N,1), data=data["walltile"],  dtype="i8")
+        g.create_dataset("endcond",   (N,1), data=data["endcond"],   dtype="i8")
+        g.create_dataset("anum",      (N,1), data=data["anum"],      dtype="i4")
+        g.create_dataset("znum",      (N,1), data=data["znum"],      dtype="i4")
+        g.create_dataset("charge",    (N,1), data=data["charge"],    dtype="i4")
+        g.create_dataset("errormsg",  (N,1), data=data["errormsg"],  dtype="i4")
+        g.create_dataset("errorline", (N,1), data=data["errorline"], dtype="i4")
+        g.create_dataset("errormod",  (N,1), data=data["errormod"],  dtype="i4")
+
+        g.create_dataset("br",        (N,1), data=data["br"],        dtype="f8")
+        g.create_dataset("bphi",      (N,1), data=data["bphi"],      dtype="f8")
+        g.create_dataset("bz",        (N,1), data=data["bz"],        dtype="f8")
+        g.create_dataset("brdr",      (N,1), data=data["brdr"],      dtype="f8")
+        g.create_dataset("brdphi",    (N,1), data=data["brdphi"],    dtype="f8")
+        g.create_dataset("brdz",      (N,1), data=data["brdz"],      dtype="f8")
+        g.create_dataset("bphidr",    (N,1), data=data["bphidr"],    dtype="f8")
+        g.create_dataset("bphidphi",  (N,1), data=data["bphidphi"],  dtype="f8")
+        g.create_dataset("bphidz",    (N,1), data=data["bphidz"],    dtype="f8")
+        g.create_dataset("bzdr",      (N,1), data=data["bzdr"],      dtype="f8")
+        g.create_dataset("bzdphi",    (N,1), data=data["bzdphi"],    dtype="f8")
+        g.create_dataset("bzdz",      (N,1), data=data["bzdz"],      dtype="f8")
+
+
 def read_hdf5(fn, qid, name):
     """
-    Read all or specified states.
+    Read state output from HDF5 file.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        qid : str <br>
+            QID of the data to be read.
 
-    fn : str
-        Full path to HDF5 file.
-    read : string list, optional
-        Which states are read e.g. "inistate". Default is all.
-
-    Returns
-    -------
-
-    Dictionary storing the states that were read.
+    Returns:
+        Dictionary containing input data.
     """
 
     path = "results/run_" + qid + "/" + name
 
+    out = {}
     with h5py.File(fn,"r") as f:
-        out = {}
-
-        for field in f[path]:
-            out[field]           = f[path][field][:]
-            out[field + "_unit"] = f[path][field].attrs["unit"]
-
-        # TODO Parse endconditions.
-
-        # Find number of markers and check that no markers share same id
-        # (which they shouldn't).
-        out["N"] = np.unique(out["id"]).size
-        if out["N"] != out["id"].size:
-            print("Warning: Markers don't have unique Id.")
+        for key in f[path]:
+            out[key] = f[path][key][:]
 
     return out
 
@@ -69,9 +118,18 @@ class State(AscotData):
 
     def read(self):
         """
-        Read orbit data to dictionary.
+        Read state data to dictionary.
         """
         return read_hdf5(self._file, self.get_qid(), self._path.split("/")[-1])
+
+    def write(self, fn, run, name, data=None):
+        """
+        Write state data to HDF5 file.
+        """
+        if data is None:
+            data = self.read()
+
+        write_hdf5(fn, run, name, data)
 
 
     def __getitem__(self, key):
@@ -142,11 +200,49 @@ class State(AscotData):
                     pass
 
                 if item is None:
-                    item = marker.eval_particle(
-                        key, mass=mass, charge=charge,
-                        R=h5["r"][:], phi=phi, z=h5["z"][:],
-                        vR=h5["vr"][:], vphi=h5["vphi"][:], vz=h5["vz"][:],
-                        BR=h5["br"][:], Bphi=h5["bphi"][:], Bz=h5["bz"][:])
+                    phi = h5["phiprt"][:] * np.pi/180
+
+                    # The magnetic field values in the HDF5 file are for the
+                    # guiding center position. Those need to be evaluated in
+                    # particle position using Ascotpy.
+                    from a5py.ascotpy import Ascotpy
+                    a5 = None
+                    try:
+                        a5 = Ascotpy(self._file)
+                        a5.init(bfield=self._runnode.bfield.get_qid())
+
+                        br   = a5.evaluate(h5["rprt"][:], phi=phi,
+                                           z=h5["zprt"][:],
+                                           t=h5["time"][:], quantity="br")
+                        bphi = a5.evaluate(h5["rprt"][:], phi=phi,
+                                           z=h5["zprt"][:],
+                                           t=h5["time"][:], quantity="bphi")
+                        bz   = a5.evaluate(h5["rprt"][:], phi=phi,
+                                           z=h5["zprt"][:],
+                                           t=h5["time"][:], quantity="bz")
+                    except:
+                        warnings.warn("Ascotpy initialization failed.\n" +
+                                      "Using magnetic field values at gc " +
+                                      "position to evaluate particle data.")
+                        br   = h5["br"][:]
+                        bphi = h5["bphi"][:]
+                        bz   = h5["bz"][:]
+
+                    if key == "brprt":
+                        item = br
+                    elif key == "bphiprt":
+                        item = bphi
+                    elif key == "bzprt":
+                        item = bz
+                    else:
+                        item = marker.eval_particle(
+                            key, mass=mass, charge=charge,
+                            R=h5["rprt"][:], phi=phi, z=h5["zprt"][:],
+                            vR=h5["vr"][:], vphi=h5["vphi"][:], vz=h5["vz"][:],
+                            BR=br, Bphi=bphi, Bz=bz)
+
+                    if a5 is not None:
+                        a5.free(bfield=True)
 
             # Order by id
             ids  = h5["id"][:]

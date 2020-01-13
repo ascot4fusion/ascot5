@@ -31,13 +31,15 @@ def convert_vpavpe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
         masskg : float <br>
             Mass of the species (required for energy conversion) in kg. Note
             that distribution is assumed to consist of markers with equal mass.
-        E_edges : array_like, optional <br>
+        E_edges : array_like or int, optional <br>
             Energy grid edges in the new distribution. If not given,
             linspace(0, Emax, 10) will be used where Emax is
-            e*0.5*masskg*max(vpa^2, vpe^2).
-        xi_edges : array_like, optional <br>
+            e*0.5*masskg*max(vpa^2, vpe^2). If an integer is given then
+            linspace(0, Emax, E_edges) is used.
+        xi_edges : array_like or int, optional <br>
             Pitch grid edges in the new distribution. If not given,
-            linspace(-1, 1, 10) will be used.
+            linspace(-1, 1, 10) will be used. If an integer is given then
+            linspace(-1, 1, xi_edges) is used.
 
     Returns:
        Energy-pitch distribution dictionary whose other dimensions are same as
@@ -51,6 +53,15 @@ def convert_vpavpe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
         E_edges = np.linspace(0, Emax, 10)
     if xi_edges is None:
         xi_edges = np.linspace(-1, 1, 10)
+
+    if not isinstance(E_edges, np.ndarray):
+        Emax = (1/constants.e) * 0.5 * masskg \
+               * np.maximum( dist["vpar_edges"][-1]*dist["vpar_edges"][-1],
+                             dist["vperp_edges"][-1]*dist["vperp_edges"][-1] )
+        E_edges = np.linspace(0, Emax, E_edges)
+
+    if not isinstance(xi_edges, np.ndarray):
+        xi_edges = np.linspace(-1, 1, xi_edges)
 
     ## Create E-xi distribution ##
     Exidist = copy.deepcopy(dist)

@@ -75,6 +75,7 @@ File: ascot5.py
 """
 
 import h5py
+import warnings
 
 from . ascot5file import get_qid, get_activeqid, get_desc, get_date, get_type
 from . ascot5file import get_inputqids
@@ -90,7 +91,6 @@ from a5py.ascot5io.E_1DS      import E_1DS
 from a5py.ascot5io.E_3D       import E_3D
 from a5py.ascot5io.E_3DS      import E_3DS
 from a5py.ascot5io.E_3DST     import E_3DST
-from a5py.ascot5io.E_3DPOT    import E_3DPOT
 from a5py.ascot5io.mrk_prt    import mrk_prt
 from a5py.ascot5io.mrk_gc     import mrk_gc
 from a5py.ascot5io.mrk_fl     import mrk_fl
@@ -105,6 +105,7 @@ from a5py.ascot5io.options    import Opt
 
 from a5py.ascot5io.state      import State
 from a5py.ascot5io.orbits     import Orbits
+from a5py.ascot5io.transcoef  import Transcoef
 from a5py.ascot5io.dist_5D    import Dist_5D
 from a5py.ascot5io.dist_6D    import Dist_6D
 from a5py.ascot5io.dist_rho5D import Dist_rho5D
@@ -150,7 +151,7 @@ def create_inputobject(key, h5group):
         "B_TC" : B_TC, "B_GS" : B_GS, "B_2DS" : B_2DS, "B_3DS" : B_3DS,
         "B_3DST" : B_3DST, "B_STS" : B_STS,
         "E_TC" : E_TC, "E_1DS" : E_1DS, "E_3D" : E_3D, "E_3DS" : E_3DS,
-        "E_3DST" : E_3DST, "E_3DPOT" : E_3DPOT,
+        "E_3DST" : E_3DST,
         "prt" : mrk_prt, "gc" : mrk_gc, "fl" : mrk_fl,
         "wall_2D" : wall_2D, "wall_3D" : wall_3D,
         "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS,
@@ -158,6 +159,10 @@ def create_inputobject(key, h5group):
         "Boozer" : Boozer, "MHD" : MHD,
         "opt" : Opt
     }
+
+    if key not in name_and_object:
+        warnings.warn("Unknown input group " + key)
+        return None
 
     return name_and_object[key](h5group)
 
@@ -172,8 +177,12 @@ def create_outputobject(key, h5group, runnode):
     name_and_object = {
         "inistate" : State, "endstate" : State, "orbit" : Orbits,
         "dist5d" : Dist_5D, "dist6d" : Dist_6D, "distrho5d" : Dist_rho5D,
-        "distrho6d" : Dist_rho6D
+        "distrho6d" : Dist_rho6D, "transcoef" : Transcoef
     }
+
+    if key not in name_and_object:
+        warnings.warn("Unknown output group " + key)
+        return None
 
     return name_and_object[key](h5group, runnode)
 
@@ -389,8 +398,8 @@ class _InputNode(_ContainerNode):
         for key in parent.keys():
             type_ = get_type(parent[key].name.split("/")[-1])
             inputobj = create_inputobject(type_, parent[key])
-
-            self._init_store_qidgroup(parent.file, parent[key], inputobj)
+            if inputobj is not None:
+                self._init_store_qidgroup(parent.file, parent[key], inputobj)
 
         self._init_store_activegroup(parent.file, parent)
 
@@ -452,7 +461,9 @@ class _RunNode(_Node):
 
         for key in rungroup:
             key = rungroup[key].name.split("/")[-1]
-            self[key] = create_outputobject(key, rungroup[key], self)
+            outputobj = create_outputobject(key, rungroup[key], self)
+            if outputobj is not None:
+                self[key] = outputobj
 
         self._freeze()
 

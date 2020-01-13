@@ -11,6 +11,36 @@ from a5py.marker.alias import get as alias
 
 from a5py.ascot5io.ascot5data import AscotData
 
+def write_hdf5(fn, run, data):
+    """
+    Write dist6D data in HDF5 file.
+
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+    """
+
+    gname = "results/" + run + "/dist6d"
+
+    with h5py.File(fn, "a") as f:
+        g = f.create_group(gname)
+
+        abscissae = ["r", "phi", "z", "vr", "vphi", "vz", "time", "charge"]
+        for i in range(0,len(abscissae)):
+            name = abscissae[i]
+            g.create_dataset("abscissa_nbin_0"+str(i+1), (1,),
+                             data=data["n" + name], dtype="i4")
+            g.create_dataset("abscissa_vec_0"+str(i+1),  (data["n" + name]+1,),
+                             data=data[name + "_edges"], dtype="f8")
+
+        g.create_dataset("abscissa_ndim", (1,), data=8, dtype="i4")
+        g.create_dataset("ordinate_ndim", (1,), data=1, dtype="i4")
+
+        g.create_dataset("ordinate",
+                         data=np.expand_dims(data["histogram"], axis=0),
+                         dtype="f8")
+
+
 def read_hdf5(fn, qid):
     """
     Read 6D distribution.
@@ -69,6 +99,16 @@ class Dist_6D(AscotData):
             Distribution dictionary.
         """
         return read_hdf5(self._file, self.get_qid())
+
+
+    def write(self, fn, run, data=None):
+        """
+        Write dist6D data to HDF5 file.
+        """
+        if data is None:
+            data = self.read()
+
+        write_hdf5(fn, run, data)
 
 
     def get_dist(self, dist=None, **kwargs):

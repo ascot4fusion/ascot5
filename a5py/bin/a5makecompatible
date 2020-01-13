@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+
+import sys
+
+import a5py.ascot5io.compatibility as comp
+
+if len(sys.argv) != 4:
+   pass
+
+fnin  = sys.argv[1]
+fnout = sys.argv[2]
+ver   = int(sys.argv[3])
+
+comp.convert_oldtonew(fnin, fnout, ver)

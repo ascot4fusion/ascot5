@@ -22,7 +22,7 @@ def read_wall_3d(fn):
         f.readline()
         for sector in range(data['n_sectors']):
             line = f.readline().split()
-            data['ids'][int(line[0])] = int(line[1])
+            data['ids'][int(float(line[0]))] = int(float(line[1]))
 
         # Read data for each sector
         n_read = 0
@@ -34,7 +34,7 @@ def read_wall_3d(fn):
         for sector in range(1,data['n_sectors']+1):
             f.readline() # Skip empty line
             try:
-                n_elements = int(f.readline().split()[0])
+                n_elements = int(float(f.readline().split()[0]))
             except Exception:
                 print("Warning: There are multiple sectors but\n"
                       + "data only for one sector. The sector is\n"

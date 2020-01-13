@@ -25,9 +25,9 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
     components by giving Rz grid for psi separately.
 
     The toroidal angle phi is treated as a periodic coordinate meaning that
-    B(phi) = B(phi + n*(b_phimax - b_phimin)). Do note that to avoid dublicate
+    B(phi) = B(phi + n*(b_phimax - b_phimin)). Do note that to avoid duplicate
     data, the last points in phi axis in B data are not at b_phimax, i.e.
-    br[:,:,-1] != BR(phi=b_phimax).
+    br[:,-1,:] != BR(phi=b_phimax).
 
     Args:
         fn : str <br>
@@ -181,3 +181,9 @@ class B_3DS(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
+
+    def write(self, fn, data=None):
+        if data is None:
+            data = self.read()
+
+        return write_hdf5(fn, **data)

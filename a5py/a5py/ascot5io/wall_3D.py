@@ -84,6 +84,32 @@ class wall_3D(AscotData):
     def read(self):
         return read_hdf5(self._file, self.get_qid())
 
+
+    def write(self, fn, data=None):
+        if data is None:
+            data = self.read()
+
+        return write_hdf5(fn, **data)
+
+
+    def area(self):
+        w = self.read()
+
+        ab_x = w["x1x2x3"][:,1] - w["x1x2x3"][:,0]
+        ab_y = w["y1y2y3"][:,1] - w["y1y2y3"][:,0]
+        ab_z = w["z1z2z3"][:,1] - w["z1z2z3"][:,0]
+
+        ac_x = w["x1x2x3"][:,2] - w["x1x2x3"][:,0]
+        ac_y = w["y1y2y3"][:,2] - w["y1y2y3"][:,0]
+        ac_z = w["z1z2z3"][:,2] - w["z1z2z3"][:,0]
+
+        A = 0.5 * np.sqrt(   (ab_y * ac_z - ab_z * ac_y)**2
+                           + (ab_z * ac_x - ab_x * ac_z)**2
+                           + (ab_x * ac_y - ab_y * ac_x)**2 )
+
+        return A
+
+
     def plotRz(self, axes=None, phi=None):
         data = self.read()
         if phi is not None:

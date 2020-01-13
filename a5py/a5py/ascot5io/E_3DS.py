@@ -9,109 +9,112 @@ import h5py
 from . ascot5file import add_group
 from . ascot5data import AscotData
 
-def write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
-               E_R, E_phi, E_z, desc=None):
+def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz, phimin, phimax, nphi,
+               er, ephi, ez, desc=None):
     """
-    Write 3D electric field input in HDF5 file for tricubic interpolation.
+    Write 3DS electric field input in HDF5 file.
 
-    Parameters
-    ----------
+    The toroidal angle phi is treated as a periodic coordinate meaning that
+    E(phi) = E(phi + n*(b_phimax - b_phimin)). Do note that to avoid duplicate
+    data, the last points in phi axis in E data are not at phimax, i.e.
+    er[:,-1,:] != ER(phi=phimax).
 
-    fn : str
-        Full path to the HDF5 file.
-    Rmin, Rmax, phimin, phimax, zmin, zmax : real
-        Edges of the uniform Rphiz-grid.
-    nR, nphi, nz : int
-        Number of Rphiz-grid points.
-    E_R, E_phi, E_z : real R x phi x z numpy array
-        Electric field components in Rphiz-grid.
-    desc : brief description of the input.
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        rmin : float <br>
+            Minimum value in R grid [m].
+        rmax : float <br>
+            Maximum value in R grid [m].
+        nr : int <br>
+            Number of R grid points.
+        zmin : float <br>
+            Minimum value in z grid [m].
+        zmax : float <br>
+            Maximum value in z grid [m].
+        nz : int <br>
+            Number of z grid points.
+        phimin : float <br>
+            Minimum value in phi grid [deg].
+        phimax : float <br>
+            Maximum value in phi grid [deg].
+        nphi : int <br>
+            Number of phi grid points.
+        er : array_like (nr,nphi,nz) <br>
+            Electric field R component [V/m].
+        ephi : array_like (nr,nphi,nz) <br>
+            Electric field phi component [V/m].
+        ez : array_like (nr,nphi,nz) <br>
+            Electric field z component [V/m].    
+        desc : str, optional <br>
+            Input description.
 
-    Notes
-    -------
-
-    Rphiz coordinates form a right-handed cylindrical coordinates.
-    phi is in degrees and is considered as a periodic coordinate.
-    phimin is where the period begins and phimax is the last data point,
-    i.e. not the end of period. E.g if you have a n = 2 symmetric system
-    with nphi = 180 deg and phimin = 0 deg, then phimax should be 179 deg.
-
+    Returns:
+        Name of the new input that was written.
     """
 
     parent = "efield"
     group  = "E_3DS"
-
-    E_R = np.transpose(E_R,(1,0,2))
-    E_phi = np.transpose(E_phi,(1,0,2))
-    E_z = np.transpose(E_z,(1,0,2))
+    gname  = ""
+    
+    assert er.shape   == (nr,nphi,nz)
+    assert ephi.shape == (nr,nphi,nz)
+    assert ez.shape   == (nr,nphi,nz)
+    
+    er = np.transpose(er,(2,1,0))
+    ephi = np.transpose(ephi,(2,1,0))
+    ez = np.transpose(ez,(2,1,0))
 
     # Create a group for this input.
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
+        gname = g.name.split("/")[-1]
 
-        g.create_dataset("R_min",   (1,), data=Rmin,   dtype="f8")
-        g.create_dataset("R_max",   (1,), data=Rmax,   dtype="f8")
-        g.create_dataset("n_R",     (1,), data=nR,     dtype="i8")
-        g.create_dataset("phi_min", (1,), data=phimin, dtype="f8")
-        g.create_dataset("phi_max", (1,), data=phimax, dtype="f8")
-        g.create_dataset("n_phi",   (1,), data=nphi,   dtype="i8")
-        g.create_dataset("z_min",   (1,), data=zmin,   dtype="f8")
-        g.create_dataset("z_max",   (1,), data=zmax,   dtype="f8")
-        g.create_dataset("n_z",     (1,), data=nz,     dtype="i8")
-        g.create_dataset("E_R",           data=E_R,    dtype="f8")
-        g.create_dataset("E_phi",         data=E_phi,  dtype="f8")
-        g.create_dataset("E_z",           data=E_z,    dtype="f8")
+        g.create_dataset("rmin",          (1,),  data=rmin,   dtype="f8")
+        g.create_dataset("rmax",          (1,),  data=rmax,   dtype="f8")
+        g.create_dataset("nr",            (1,),  data=nr,     dtype="i4")
+        g.create_dataset("phimin",        (1,),  data=phimin, dtype="f8")
+        g.create_dataset("phimax",        (1,),  data=phimax, dtype="f8")
+        g.create_dataset("nphi",          (1,),  data=nphi,   dtype="i4")
+        g.create_dataset("zmin",          (1,),  data=zmin,   dtype="f8")
+        g.create_dataset("zmax",          (1,),  data=zmax,   dtype="f8")
+        g.create_dataset("nz",            (1,),  data=nz,     dtype="i4")
+        g.create_dataset("er",  (nz, nphi, nr),  data=er,     dtype="f8")
+        g.create_dataset("ephi",(nz, nphi, nr),  data=ephi,   dtype="f8")
+        g.create_dataset("ez",  (nz, nphi, nr),  data=ez,     dtype="f8")
 
+    return gname
 
 def read_hdf5(fn,qid):
     """
     Read 3D electric field input from HDF5 file.
 
-    Parameters
-    ----------
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        qid : str <br>
+            QID of the data to be read.
 
-    fn : str
-        Full path to the HDF5 file.
-    qid : str
-        qid of the bfield to be read.
-
-
-    Returns
-    -------
-
-    Dictionary containing magnetic field data.
+    Returns:
+        Dictionary containing input data.
     """
 
-    path = "efield" + "/E_3DS-" + qid
+    path = "efield" + "/E_3DS_" + qid
 
+    out = {}
     with h5py.File(fn,"r") as f:
-        out = {}
+        for key in f[path]:
+            out[key] = f[path][key][:]
 
-        # Metadata.
-        out["qid"] = qid
-        out["date"] = f[path].attrs["date"]
-        out["description"] = f[path].attrs["description"]
-
-        # Actual data.
-        out["R_min"] = f[path]["R_min"][:]
-        out["R_max"] = f[path]["R_max"][:]
-        out["n_R"]   = f[path]["n_R"][:]
-
-        out["phi_min"] = f[path]["phi_min"][:]
-        out["phi_max"] = f[path]["phi_max"][:]
-        out["n_phi"]   = f[path]["n_phi"][:]
-
-        out["z_min"] = f[path]["z_min"][:]
-        out["z_max"] = f[path]["z_max"][:]
-        out["n_z"]   = f[path]["n_z"][:]
-
-        out["E_R"]   = f[path]["E_R"][:]
-        out["E_phi"] = f[path]["E_phi"][:]
-        out["E_z"]   = f[path]["E_z"][:]
-
+    out["er"]   = np.transpose(out["er"],   (2,1,0))
+    out["ephi"] = np.transpose(out["ephi"], (2,1,0))
+    out["ez"]   = np.transpose(out["ez"],   (2,1,0))
     return out
 
 class E_3DS(AscotData):
+    """
+    Object representing E_3DS data.
+    """
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())

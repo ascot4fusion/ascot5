@@ -4,7 +4,7 @@ def read_erad(fn):
 
     with open(fn,'r') as f:
         data = {'comm1' : f.readline()} #Skip comment line
-        data['n_rho'] = f.readline().split()[0]
+        data['n_rho'] = int(float(f.readline().split()[0]))
 
         h5data = np.loadtxt(f)
 

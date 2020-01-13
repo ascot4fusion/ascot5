@@ -12,6 +12,36 @@ import a5py.marker.interpret as interpret
 
 from a5py.ascot5io.ascot5data import AscotData
 
+def write_hdf5(fn, run, data):
+    """
+    Write distrho5D data in HDF5 file.
+
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+    """
+
+    gname = "results/" + run + "/distrho5d"
+
+    with h5py.File(fn, "a") as f:
+        g = f.create_group(gname)
+
+        abscissae = ["rho", "theta", "phi", "vpar", "vperp", "time", "charge"]
+        for i in range(0,len(abscissae)):
+            name = abscissae[i]
+            g.create_dataset("abscissa_nbin_0"+str(i+1), (1,),
+                             data=data["n" + name], dtype="i4")
+            g.create_dataset("abscissa_vec_0"+str(i+1),  (data["n" + name]+1,),
+                             data=data[name + "_edges"], dtype="f8")
+
+        g.create_dataset("abscissa_ndim", (1,), data=7, dtype="i4")
+        g.create_dataset("ordinate_ndim", (1,), data=1, dtype="i4")
+
+        g.create_dataset("ordinate",
+                         data=np.expand_dims(data["histogram"], axis=0),
+                         dtype="f8")
+
+
 def read_hdf5(fn, qid):
     """
     Read rho 5D distribution.
@@ -66,6 +96,7 @@ class Dist_rho5D(AscotData):
         self._runnode = runnode
         super().__init__(hdf5)
 
+
     def read(self):
         """
         Read distribution data from HDF5 file to a dictionary.
@@ -74,6 +105,17 @@ class Dist_rho5D(AscotData):
             Distribution dictionary.
         """
         return read_hdf5(self._file, self.get_qid())
+
+
+    def write(self, fn, run, data=None):
+        """
+        Write distrho5D data to HDF5 file.
+        """
+        if data is None:
+            data = self.read()
+
+        write_hdf5(fn, run, data)
+
 
     def get_dist(self, dist=None, **kwargs):
         """
@@ -101,6 +143,7 @@ class Dist_rho5D(AscotData):
         distmod.squeeze(dist, **kwargs)
 
         return dist
+
 
     def get_E_xi_dist(self, E_edges=None, xi_edges=None, dist=None,
                       **kwargs):

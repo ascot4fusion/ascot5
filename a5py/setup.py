@@ -16,14 +16,12 @@ setup(name='a5py',
         'bin/a5removegroup',
         'bin/a5copygroup',
         'bin/a5editoptions',
-        'bin/a5separatemarkers',
-        'bin/a5poincare',
         'bin/a5combine',
         'bin/a5ascot4input',
-        'bin/a5continuerun',
         'bin/a5setactive',
         'bin/a5gui',
         'bin/a5ls',
-        'bin/a5vol',
+        'bin/a5makecompatible',
         'bin/a5doxygen'
-      ])
+      ],
+      include_package_data=True)

@@ -16,40 +16,76 @@ from a5py.marker.alias import get as alias
 
 def read_hdf5(fn, qid):
     """
-    Read orbit data from HDF5 file to dictionary.
+    Read orbit output from HDF5 file.
 
     Args:
         fn : str <br>
-            Full path to HDF5 file.
+            Full path to the HDF5 file.
         qid : str <br>
-            QID of the run whose orbit data is read.
+            QID of the data to be read.
 
     Returns:
-        Dictionary storing the orbits that were read sorted by id and time.
+        Dictionary containing orbit data.
     """
 
+    path = "results/run_" + qid + "/orbit"
+
+    out = {}
     with h5py.File(fn,"r") as f:
-        orbits = f["/results/run_"+qid+"/orbit"]
-
-        out = {}
-
-        # Read data from file.
-        for field in orbits:
-            out[field]           = orbits[field][:]
-            out[field + "_unit"] = orbits[field].attrs["unit"]
-
-        # Find how many markers we have and their ids.
-        N = (np.unique(orbits["id"][:])).size
-        uniqueId = np.unique(orbits["id"][:])
-
-        # Sort fields by id (major) and time (minor), both ascending.
-        if N > 0:
-            ind = np.lexsort((out["time"], out["id"]))
-            for field in orbits:
-                if field[-4:] != "unit":
-                    out[field] = out[field][ind]
+        for key in f[path]:
+            out[key] = f[path][key][:]
 
     return out
+
+
+def write_hdf5(fn, run, data, desc=None):
+    """
+    Write state data in HDF5 file.
+
+    Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        desc : str, optional <br>
+            Input description.
+    """
+
+    gname = "results/" + run + "/orbit"
+
+    N = data["id"].size
+
+    with h5py.File(fn, "a") as f:
+        g = f.create_group(gname)
+
+        g.create_dataset("id",   (N,1), data=data["id"],   dtype="i8")
+        g.create_dataset("r",    (N,1), data=data["r"],    dtype="f8")
+        g.create_dataset("phi",  (N,1), data=data["phi"],  dtype="f8")
+        g.create_dataset("z",    (N,1), data=data["z"],    dtype="f8")
+        g.create_dataset("time", (N,1), data=data["time"], dtype="f8")
+
+        g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
+        g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
+        g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
+        g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
+        g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
+
+        if "pncrid" in data:
+            g.create_dataset("pncrid", (N,1), data=data["pncrid"], dtype="i4")
+
+        if "charge" in data:
+            g.create_dataset("charge", (N,1), data=data["charge"], dtype="i4")
+
+        if "weight" in data:
+            g.create_dataset("weight", (N,1), data=data["weight"], dtype="f8")
+
+        if "vr" in data:
+            g.create_dataset("vr",   (N,1), data=data["vr"],   dtype="f8")
+            g.create_dataset("vphi", (N,1), data=data["vphi"], dtype="f8")
+            g.create_dataset("vz",   (N,1), data=data["vz"],   dtype="f8")
+
+        if "vpar" in data:
+            g.create_dataset("vpar", (N,1), data=data["vpar"], dtype="f8")
+            g.create_dataset("mu",   (N,1), data=data["mu"],   dtype="f8")
+            g.create_dataset("zeta", (N,1), data=data["zeta"], dtype="f8")
 
 
 class Orbits(AscotData):
@@ -70,6 +106,16 @@ class Orbits(AscotData):
         Read orbit data to dictionary.
         """
         return read_hdf5(self._file, self.get_qid())
+
+
+    def write(self, fn, run, data=None):
+        """
+        Write orbit data to HDF5 file.
+        """
+        if data is None:
+            data = self.read()
+
+        write_hdf5(fn, run, data)
 
 
     def __getitem__(self, key):
@@ -208,6 +254,9 @@ class Orbits(AscotData):
         if pncrid is not None:
             idx = np.logical_and(idx, self["pncrid"] == pncrid)
 
+        if ids is not None:
+            idx = np.logical_and(idx, np.in1d(self["id"], ids))
+
         val = val[idx]
 
         if not SI:
@@ -268,27 +317,28 @@ class Orbits(AscotData):
 
 
     def scatter(self, x=None, y=None, z=None, c=None, endcond=None, pncrid=None,
-                sepid=False, equal=False, log=False, axes=None, **kwargs):
+                sepid=False, equal=False, log=False, axes=None, prune=1, ids=None,
+                **kwargs):
         """
         Make scatter plot.
         """
-        ids = self.get("id", endcond=endcond, pncrid=pncrid)
+        ids = self.get("id", ids=ids, endcond=endcond, pncrid=pncrid)
 
         xc = np.linspace(0, ids.size, ids.size)
         if x is not None:
-            xc = self.get(x, endcond=endcond, pncrid=pncrid, SI=False)
+            xc = self.get(x, ids=ids, endcond=endcond, pncrid=pncrid, SI=False)
 
         yc = None
         if y is not None:
-            yc = self.get(y, endcond=endcond, pncrid=pncrid, SI=False)
+            yc = self.get(y, ids=ids, endcond=endcond, pncrid=pncrid, SI=False)
 
         zc = None
         if z is not None:
-            zc = self.get(z, endcond=endcond, pncrid=pncrid, SI=False)
+            zc = self.get(z, ids=ids, endcond=endcond, pncrid=pncrid, SI=False)
 
         cc = None
         if c is not None:
-            cc = self.get(c, endcond=endcond, pncrid=pncrid, SI=False)
+            cc = self.get(c, ids=ids, endcond=endcond, pncrid=pncrid, SI=False)
 
         if not sepid:
             ids = None
@@ -312,29 +362,28 @@ class Orbits(AscotData):
 
         plot.plot_scatter(x=xc, y=yc, z=zc, c=cc, equal=equal,
                           ids=ids, xlabel=x, ylabel=y, zlabel=z, axes=axes,
-                          **kwargs)
+                          prune=prune, **kwargs)
 
 
     def poincare(self, *args, log=False, endcond=None, equal=False,
-                 axes=None):
+                 prune=1, ids=None, markersize=5, axes=None):
         """
         Make a Poincare plot.
         """
-        markersize = 5
 
-        ids = False
         z   = None
+        sepid = False
         if len(args) == 1:
             x = "rho"
             y = "phimod"
             pncrid = args[0]
-            ids = True
+            sepid = True
 
         elif len(args) == 3:
             x = args[0]
             y = args[1]
             pncrid = args[2]
-            ids = True
+            sepid = True
 
         if len(args) == 4:
             x = args[0]
@@ -347,8 +396,9 @@ class Orbits(AscotData):
         if x == "R" and y == "z":
             equal = True
 
-        self.scatter(x=x, y=y, c=z, pncrid=pncrid, endcond=endcond,
-                     sepid=ids, log=log, equal=equal, axes=axes, s=markersize)
+        self.scatter(x=x, y=y, c=z, pncrid=pncrid, endcond=endcond, prune=prune,
+                     sepid=sepid, log=log, equal=equal, axes=axes, s=markersize,
+                     ids=ids)
 
         if y == "phimod":
             axes.set_ylim([0, 360])

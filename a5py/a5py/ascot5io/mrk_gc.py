@@ -113,6 +113,8 @@ def read_hdf5(fn, qid):
         for key in f[path]:
             out[key] = f[path][key][:]
 
+    out["ids"] = out["id"]
+    del out["id"]
     return out
 
 
@@ -123,3 +125,10 @@ class mrk_gc(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
+
+
+    def write(self, fn, data=None):
+        if data is None:
+            data = self.read()
+
+        return write_hdf5(fn, **data)
