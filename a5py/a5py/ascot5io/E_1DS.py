@@ -22,10 +22,11 @@ def write_hdf5(fn, nrho, rhomin, rhomax, dvdrho, reff, desc=None):
             Minimum rho value.
         rhomax : float <br>
             Maximum rho value.
-        dvdrho : array_like (nrho,1) <br>
-            Gradient of electric potential in rho grid.
+        dvdr : array_like (nrho,1) <br>
+            Derivative of electric potential WRT minor radius [V/m].
+            If reff = 1, this is essentially equal to dv/drho
         reff : float <br>
-            Number of rho slots in data.
+            Effective minor radius of the plasma [m].
         desc : str, optional <br>
             Input description.
 
