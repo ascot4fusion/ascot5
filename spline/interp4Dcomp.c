@@ -421,7 +421,7 @@ a5err interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, r
     if(!err) {
 
         /* Evaluate spline value */
-        real d_aux1, d_aux2; /* Auxiliary normalized coordinates */
+        real aux_x, aux_y, aux_z; /* Auxiliary normalized coordinates */
         *f = 0;
         /* loops to move through the nodes */
         for(int i_node_x=0; i_node_x<2; i_node_x++) {
@@ -430,21 +430,24 @@ a5err interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, r
                     for(int i_node_t=0; i_node_t<2; i_node_t++) {
                         /* loops to move through the coefficients */
                         for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
+			    aux_z = 0;
                             for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
-                                d_aux1 = dt[i_node_t*2+i_coef_t]*dz[i_node_z*2+i_coef_z];
+                                aux_y = 0;
                                 for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
-                                    d_aux2 = d_aux1*dy[i_node_y*2+i_coef_y];
+                                    aux_x = 0;
                                     for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
-                                        *f +=
-                                            str->c[n +
-                                                   i_node_x*x1 + i_node_y*y1 +
-                                                   i_node_z*z1 + i_node_t*t1 +
-                                                   i_coef_t*8 + i_coef_z*4 +
-                                                   i_coef_y*2 + i_coef_x]*
-                                            d_aux2*dx[i_node_x*2+i_coef_x];
+					aux_x += str->c[n +
+							i_node_x*x1 + i_node_y*y1 +
+							i_node_z*z1 + i_node_t*t1 +
+							i_coef_t*8 + i_coef_z*4 +
+							i_coef_y*2 + i_coef_x]*
+					    dx[i_node_x*2+i_coef_x];
                                     }
+				    aux_y += aux_x*dy[i_node_y*2+i_coef_y];
                                 }
+				aux_z += aux_y*dz[i_node_z*2+i_coef_z];
                             }
+			    *f += aux_z*dt[i_node_t*2+i_coef_t];
                         }
                     }
                 }
