@@ -192,16 +192,13 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
 
     int iterations = mhddata->n_modes;
 
-    /* Skip evaluation if point outside boozer grid */
-    if(!isinside) {
-        for(int i=0; i<10; i++) {
-            mhd_dmhd[i] = 0;
-        }
-        iterations = 0;
+    /* Initialize values */
+    for(int i=0; i<10; i++) {
+      mhd_dmhd[i] = 0;
     }
 
-    /* Skip evaluation if boozer evaluation failed. */
-    if(err) {
+    /* Skip evaluation if boozer evaluation failed or point outside the boozer grid. */
+    if(err || !isinside) {
         iterations = 0;
     }
 
@@ -212,8 +209,7 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
         interperr += interp2Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]), rho*rho, t);
 
         real phi_dphi[6];
-        interperr += interp2Dcomp_eval_df(phi_dphi, &(mhddata->phi_nm[i]),
-rho*rho, t);
+        interperr += interp2Dcomp_eval_df(phi_dphi, &(mhddata->phi_nm[i]), rho*rho, t);
 
         /* These are used frequently, so store them in separate variables */
         real mhdarg = mhddata->nmode[i] * ptz[8]
@@ -312,7 +308,6 @@ a5err mhd_perturbations(real pert_field[7], real r, real phi,
                         real z, real t, boozer_data* boozerdata,
                         mhd_data* mhddata, B_field_data* Bdata) {
     a5err err = 0;
-    real mhd_dmhd[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     if(!err) {
         err = mhd_eval(mhd_dmhd, r, phi, z, t, boozerdata, mhddata,Bdata);
     }
