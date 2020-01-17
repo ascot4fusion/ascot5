@@ -281,7 +281,7 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
             psithetazeta[7]=theta[1]*psi[2]+theta[2]*dthgeo_dz;/* dtheta_dz   */
 
             /* zeta and derivatives */
-            psithetazeta[8]=phi-nu[0];                           /* zeta      */
+            psithetazeta[8]=fmod(phi-nu[0], CONST_2PI);          /* zeta      */
             psithetazeta[9]=-nu[1]*psi[1]-nu[2]*psithetazeta[5]; /* dzeta_dR  */
             psithetazeta[10]=1.0;                                /* dzeta_dphi*/
             psithetazeta[11]=-nu[1]*psi[2]-nu[2]*psithetazeta[7];/* dzeta_dz  */
