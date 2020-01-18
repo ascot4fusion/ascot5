@@ -9,6 +9,7 @@
 #include <hdf5_hl.h>
 #include "../ascot5.h"
 #include "../boozer.h"
+#include "../consts.h"
 #include "hdf5_helpers.h"
 #include "hdf5_boozer.h"
 
@@ -103,6 +104,14 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
                          &(*offload_array)[rzsize + nusize + thetasize
                                            + contoursize],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    offload_data->psi_inner = offload_data->psi_inner*CONST_PI;
+    offload_data->psi_outer = offload_data->psi_outer*CONST_PI;
+    offload_data->psi_min = offload_data->psi_min*CONST_PI;
+    offload_data->psi_max = offload_data->psi_max*CONST_PI;
+    for(int i=0; i<rzsize; i++) {
+      (*offload_array)[i]= (*offload_array)[i]*CONST_PI;
+    }
 
     /* Initialize the data */
     if( boozer_init_offload(offload_data, offload_array) ) {
