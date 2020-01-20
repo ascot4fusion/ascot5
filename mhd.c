@@ -219,7 +219,6 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
         real cosmhd = cos(mhdarg);
 
         /*sum over modes to get alpha, phi */
-        /*possible normalization errors*/
 
         mhd_dmhd[0] +=     a_da[0] * mhddata->amplitude_nm[i] * sinmhd;
         mhd_dmhd[5] += phi_dphi[0] * mhddata->amplitude_nm[i] * sinmhd;
@@ -233,7 +232,6 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
                                      * mhddata->omega_nm[i] * cosmhd
                        + phi_dphi[2] * mhddata->amplitude_nm[i] * sinmhd;
 
-        /*following code could be written better*/
         /*r component of gradients */
 
         mhd_dmhd[2] += mhddata->amplitude_nm[i]
