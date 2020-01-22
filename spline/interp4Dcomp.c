@@ -419,48 +419,40 @@ a5err interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, r
     }
 
     if(!err) {
-	
-	/* Get the coefficients in the right order */
-	real aux_c[256];
-        for(int i_node_t=0; i_node_t<2; i_node_t++) {
-            for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                for(int i_node_y=0; i_node_y<2; i_node_y++) {
-                    for(int i_node_x=0; i_node_x<2; i_node_x++) {
-                        for(int i_coef_c=0; i_coef_c<16; i_coef_c++) {
-			    aux_c[i_node_t*128 + i_node_z*64 +
-				  i_node_y*32 + i_node_x*16 + i_coef_c] = str->c[n +
-										 i_node_x*x1 + 
-										 i_node_y*y1 +
-										 i_node_z*z1 + 
-										 i_node_t*t1 +
-										 i_coef_c];
-			}
-                    }
-                }
-            }
-        }
 
         /* Evaluate spline value */
         real aux_x, aux_y, aux_z; /* Auxiliary normalized coordinates */
         *f = 0;
-	for(int i_coef_t=0; i_coef_t<4; i_coef_t++) {
-	    aux_z = 0;
-	    for(int i_coef_z=0; i_coef_z<4; i_coef_z++) {
-		aux_y = 0;
-		for(int i_coef_y=0; i_coef_y<4; i_coef_y++) {
-		    aux_x = 0;
-		    for(int i_coef_x=0; i_coef_x<4; i_coef_x++) {
-			aux_x += aux_c[(i_coef_t/2)%2*128 + (i_coef_z/2)%2*64 +
-				       (i_coef_y/2)%2*32 + (i_coef_x/2)%2*16 +
-                                       i_coef_t%2*8 + i_coef_z%2*4 +
-				       i_coef_y%2*2 + i_coef_x%2]*dx[i_coef_x];
-		    }
-		    aux_y += aux_x*dy[i_coef_y];
-		}
-		aux_z += aux_y*dz[i_coef_z];
-	    }
-	    *f += aux_z*dt[i_coef_t];
-	}
+        /* loops to move through the nodes */
+        for(int i_node_x=0; i_node_x<2; i_node_x++) {
+            for(int i_node_y=0; i_node_y<2; i_node_y++) {
+                for(int i_node_z=0; i_node_z<2; i_node_z++) {
+                    for(int i_node_t=0; i_node_t<2; i_node_t++) {
+                        /* loops to move through the coefficients */
+                        for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
+			    aux_z = 0;
+                            for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
+                                aux_y = 0;
+                                for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
+                                    aux_x = 0;
+                                    for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
+					aux_x += str->c[n +
+							i_node_x*x1 + i_node_y*y1 +
+							i_node_z*z1 + i_node_t*t1 +
+							i_coef_t*8 + i_coef_z*4 +
+							i_coef_y*2 + i_coef_x]*
+					    dx[i_node_x*2+i_coef_x];
+                                    }
+				    aux_y += aux_x*dy[i_node_y*2+i_coef_y];
+                                }
+				aux_z += aux_y*dz[i_node_z*2+i_coef_z];
+                            }
+			    *f += aux_z*dt[i_node_t*2+i_coef_t];
+                        }
+                    }
+                }
+            }
+        }
     }
 
     return err;
