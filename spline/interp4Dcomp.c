@@ -424,10 +424,10 @@ a5err interp4Dcomp_eval_f(real* f, interp4D_data* str, real x, real y, real z, r
         real aux_x, aux_y, aux_z; /* Auxiliary normalized coordinates */
         *f = 0;
         /* loops to move through the nodes */
-        for(int i_node_x=0; i_node_x<2; i_node_x++) {
-            for(int i_node_y=0; i_node_y<2; i_node_y++) {
-                for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                    for(int i_node_t=0; i_node_t<2; i_node_t++) {
+        for(int i_node_t=0; i_node_t<2; i_node_t++) {
+            for(int i_node_z=0; i_node_z<2; i_node_z++) {
+                for(int i_node_y=0; i_node_y<2; i_node_y++) {
+                    for(int i_node_x=0; i_node_x<2; i_node_x++) {
                         /* loops to move through the coefficients */
                         for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
 			    aux_z = 0;
