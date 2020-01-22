@@ -637,6 +637,28 @@ a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
         /* Evaluate spline value */
         real c_aux; /* Auxiliary normalized coordinates */
 
+	real aux_x;
+	real aux_d_x;
+	real aux_dd_x;
+	
+	real aux_y;
+	real aux_d_x_y;
+	real aux_d_y;
+	real aux_dd_x_y;
+	real aux_dd_y;
+	real aux_d_x_d_y;
+	
+	real aux_z;
+	real aux_d_x_z;
+	real aux_d_y_z;
+	real aux_d_z;
+	real aux_dd_x_z;
+	real aux_dd_y_z;
+	real aux_dd_z;
+	real aux_d_x_d_y_z;
+	real aux_d_x_d_z;
+	real aux_d_y_d_z;
+	
         /* f */
         f_df[0] = 0;        /* f   */
 	f_df[1] = 0;        /* f_x */
@@ -648,79 +670,76 @@ a5err interp4Dcomp_eval_df(real* f_df, interp4D_data* str,
 	f_df[7] = 0;        /* f_xy*/
         f_df[8] = 0;        /* f_xz*/
         f_df[9] = 0;        /* f_yz*/
-        /* loops to move through the nodes */
-        for(int i_node_x=0; i_node_x<2; i_node_x++) {
-            for(int i_node_y=0; i_node_y<2; i_node_y++) {
-                for(int i_node_z=0; i_node_z<2; i_node_z++) {
-                    for(int i_node_t=0; i_node_t<2; i_node_t++) {
-                        /* loops to move through the coefficients */
-                        for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
+        /* loops to move through the nodes and coefficients */
+        for(int i_node_t=0; i_node_t<2; i_node_t++) {
+	    for(int i_node_z=0; i_node_z<2; i_node_z++) {
+		for(int i_node_y=0; i_node_y<2; i_node_y++) {
+		    for(int i_node_x=0; i_node_x<2; i_node_x++) {
+			for(int i_coef_t=0; i_coef_t<2; i_coef_t++) {
+			    aux_z = 0;
+			    aux_d_x_z = 0;
+			    aux_d_y_z = 0;
+			    aux_d_z = 0;
+			    aux_dd_x_z = 0;
+			    aux_dd_y_z = 0;
+			    aux_dd_z = 0;
+			    aux_d_x_d_y_z = 0;
+			    aux_d_x_d_z = 0;
+			    aux_d_y_d_z = 0;
                             for(int i_coef_z=0; i_coef_z<2; i_coef_z++) {
-                                for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
+				aux_y = 0;
+				aux_d_x_y = 0;
+				aux_d_y = 0;
+				aux_dd_x_y = 0;
+				aux_dd_y = 0;
+				aux_d_x_d_y = 0;
+				for(int i_coef_y=0; i_coef_y<2; i_coef_y++) {
+				    aux_x = 0;
+				    aux_d_x = 0;
+				    aux_dd_x = 0;
                                     for(int i_coef_x=0; i_coef_x<2; i_coef_x++) {
 				        c_aux = str->c[n + i_node_x*x1 + i_node_y*y1 +
 						       i_node_z*z1 + i_node_t*t1 +
 						       i_coef_t*8 + i_coef_z*4 +
 						       i_coef_y*2 + i_coef_x];
-					f_df[0] += c_aux*
-					           dx[i_node_x*2+i_coef_x]*
-					           dy[i_node_y*2+i_coef_y]*
-					           dz[i_node_z*2+i_coef_z]*
-					           dt[i_node_t*2+i_coef_t];
-					f_df[1] += c_aux*
-					           d_dx[i_node_x*2+i_coef_x]*
-					           dy[i_node_y*2+i_coef_y]*
-					           dz[i_node_z*2+i_coef_z]*
-					           dt[i_node_t*2+i_coef_t];
-					f_df[2] += c_aux*
-					           dx[i_node_x*2+i_coef_x]*
-					           d_dy[i_node_y*2+i_coef_y]*
-					           dz[i_node_z*2+i_coef_z]*
-					           dt[i_node_t*2+i_coef_t];
-					f_df[3] += c_aux*
-					           dx[i_node_x*2+i_coef_x]*
-					           dy[i_node_y*2+i_coef_y]*
-					           d_dz[i_node_z*2+i_coef_z]*
-					           dt[i_node_t*2+i_coef_t];
-					f_df[4] += c_aux*
-					           dd_dx[i_node_x*2+i_coef_x]*
-					           dy[i_node_y*2+i_coef_y]*
-					           dz[i_node_z*2+i_coef_z]*
-					           dt[i_node_t*2+i_coef_t];
-					f_df[5] += c_aux*
-					           dx[i_node_x*2+i_coef_x]*
-					           dd_dy[i_node_y*2+i_coef_y]*
-					           dz[i_node_z*2+i_coef_z]*
-					           dt[i_node_t*2+i_coef_t];
-					f_df[6] += c_aux*
-					           dx[i_node_x*2+i_coef_x]*
-					           dy[i_node_y*2+i_coef_y]*
-					           dd_dz[i_node_z*2+i_coef_z]*
-					           dt[i_node_t*2+i_coef_t];
-					f_df[7] += c_aux*
-					           d_dx[i_node_x*2+i_coef_x]*
-					           d_dy[i_node_y*2+i_coef_y]*
-					           dz[i_node_z*2+i_coef_z]*
-					           dt[i_node_t*2+i_coef_t];
-					f_df[8] += c_aux*
-					           d_dx[i_node_x*2+i_coef_x]*
-					           dy[i_node_y*2+i_coef_y]*
-					           d_dz[i_node_z*2+i_coef_z]*
-					           dt[i_node_t*2+i_coef_t];
-					f_df[9] += c_aux*
-					           dx[i_node_x*2+i_coef_x]*
-					           d_dy[i_node_y*2+i_coef_y]*
-					           d_dz[i_node_z*2+i_coef_z]*
-					           dt[i_node_t*2+i_coef_t];
+					aux_x += c_aux*dx[i_node_x*2+i_coef_x];
+					aux_d_x += c_aux*d_dx[i_node_x*2+i_coef_x];
+					aux_dd_x += c_aux*dd_dx[i_node_x*2+i_coef_x];
                                     }
+				    aux_y += aux_x*dy[i_node_y*2+i_coef_y];
+				    aux_d_x_y += aux_d_x*dy[i_node_y*2+i_coef_y];
+				    aux_d_y += aux_x*d_dy[i_node_y*2+i_coef_y]; 
+				    aux_dd_x_y += aux_dd_x*dy[i_node_y*2+i_coef_y];
+				    aux_dd_y += aux_x*dd_dy[i_node_y*2+i_coef_y];
+				    aux_d_x_d_y += aux_d_x*d_dy[i_node_y*2+i_coef_y];
                                 }
+				aux_z += aux_y*dz[i_node_z*2+i_coef_z];
+				aux_d_x_z += aux_d_x_y*dz[i_node_z*2+i_coef_z];
+				aux_d_y_z += aux_d_y*dz[i_node_z*2+i_coef_z];
+				aux_d_z += aux_y*d_dz[i_node_z*2+i_coef_z];
+				aux_dd_x_z += aux_dd_x_y*dz[i_node_z*2+i_coef_z];
+				aux_dd_y_z += aux_dd_y*dz[i_node_z*2+i_coef_z];
+				aux_dd_z += aux_y*dd_dz[i_node_z*2+i_coef_z];
+				aux_d_x_d_y_z += aux_d_x_d_y*dz[i_node_z*2+i_coef_z];
+				aux_d_x_d_z += aux_d_x_y*d_dz[i_node_z*2+i_coef_z];
+				aux_d_y_d_z += aux_d_y*d_dz[i_node_z*2+i_coef_z];
                             }
-                        }
-                    }
-                }
-            }
-        }
+			f_df[0] += aux_z*dt[i_node_t*2+i_coef_t];
+			f_df[1] += aux_d_x_z*dt[i_node_t*2+i_coef_t];
+			f_df[2] += aux_d_y_z*dt[i_node_t*2+i_coef_t];
+			f_df[3] += aux_d_z*dt[i_node_t*2+i_coef_t];
+			f_df[4] += aux_dd_x_z*dt[i_node_t*2+i_coef_t];
+			f_df[5] += aux_dd_y_z*dt[i_node_t*2+i_coef_t];
+			f_df[6] += aux_dd_z*dt[i_node_t*2+i_coef_t];
+			f_df[7] += aux_d_x_d_y_z*dt[i_node_t*2+i_coef_t];
+			f_df[8] += aux_d_x_d_z*dt[i_node_t*2+i_coef_t];
+			f_df[9] += aux_d_y_d_z*dt[i_node_t*2+i_coef_t];
+			}
+		    }
+		}
+	    }
+	}
     }
-
+    
     return err;
 }
