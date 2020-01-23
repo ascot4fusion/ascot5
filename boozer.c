@@ -70,7 +70,7 @@ int boozer_init_offload(boozer_offload_data* offload_data,
             &coeff_array[rzsize * NSIZE_COMP2D],
             &(*offload_array)[rzsize],
             offload_data->npsi, offload_data->ntheta,
-            NATURALBC, PERIODICBC,
+            NATURALBC, NATURALBC,
             offload_data->psi_min, offload_data->psi_max,
             THETAMIN, THETAMAX);
 
@@ -108,11 +108,11 @@ int boozer_init_offload(boozer_offload_data* offload_data,
 void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                  real* offload_array) {
 
-    boozerdata->psi_inner = offload_data->psi_inner;
-    boozerdata->psi_outer = offload_data->psi_outer;
-    boozerdata->r0        = offload_data->r0;
-    boozerdata->z0        = offload_data->z0;
-    boozerdata->nrzs      = offload_data->nrzs;
+    boozerdata->psi0  = offload_data->psi0;
+    boozerdata->psi1  = offload_data->psi1;
+    boozerdata->r0    = offload_data->r0;
+    boozerdata->z0    = offload_data->z0;
+    boozerdata->nrzs  = offload_data->nrzs;
 
     /* Grid limits for theta_bzr and theta_geo grids*/
     real THETAMIN = 0;
@@ -141,7 +141,7 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                              &(offload_array[rzsize]),
                              offload_data->npsi,
                              offload_data->ntheta,
-                             NATURALBC, PERIODICBC,
+                             NATURALBC, NATURALBC,
                              offload_data->psi_min,
                              offload_data->psi_max,
                              THETAMIN, THETAMAX);
@@ -171,21 +171,25 @@ void boozer_free_offload(boozer_offload_data* offload_data,
 }
 
 /**
- * @brief Evaluates the normalized psi and derivatives from
- * given psi and its derivatives
+ * @brief Evaluates the normalized psi and derivatives from a given psi
  *
- * @param psi a vector [psi,dpsi/dR, dpsi/dphi, dpsi/dz]
- * @param psin a normalized psi
+ * @param psi a vector [psi, dpsi/dR, dpsin/dphi, dpsi/dz]
+ * @param psin a normalized psi [psin, dpsin/dR, dpsin/dphi, dpsin/dz]
  */
 a5err boozer_eval_psinormalized(real psi[4], real psin[4],
                                 boozer_data* boozerdata){
     a5err err = 0;
 
-    psin[0] = ( boozerdata-> psi_outer - psi[0] )
-        / ( boozerdata->psi_outer - boozerdata->psi_inner );
-    psin[1] = psi[1] / ( boozerdata->psi_outer - boozerdata->psi_inner );
-    psin[2] = psi[2] / ( boozerdata->psi_outer - boozerdata->psi_inner );
-    psin[3] = psi[3] / ( boozerdata->psi_outer - boozerdata->psi_inner );
+    /* Check that the values seem valid */
+    real delta = boozerdata->psi1 - boozerdata->psi0;
+    if( !err && (psi[0] - boozerdata->psi0) / delta < 0 ) {
+         err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_BOOZER );
+    }
+
+    psin[0] = sqrt( ( psi[0] - boozerdata-> psi0 ) / delta );
+    psin[1] = psi[1] / (2*delta*psin[0]);
+    psin[2] = psi[2] / (2*delta*psin[0]);
+    psin[3] = psi[3] / (2*delta*psin[0]);
 
     return err;
 }
@@ -228,44 +232,50 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
     int interperr = 0;
 
 
-    /* winding number to test whether we are inside the plasma */
+    /* Winding number to test whether we are inside the plasma (and not in the
+       private plasma region) */
     if(math_point_in_polygon(r, z, boozerdata->rs, boozerdata->zs,
                              boozerdata->nrzs)) {
 
-        /* get the psi value and check that it is within the psi grid (the grid
+        /* Get the psi value and check that it is within the psi grid (the grid
            does not extend all the way to the axis) */
         real psi[6];
         interperr += interp2Dcomp_eval_df(psi, &boozerdata->psi_rz, r, z);
 
-        if(psi[0] >= boozerdata->psi_inner && psi[0] <= boozerdata->psi_outer) {
+        /* Not really how this function should be calleb but ok if only psin[0]
+           is needed */
+        real psin[4];
+        boozer_eval_psinormalized(psi, psin, boozerdata);
 
-            /* update the flag, and we are good to go */
+        if(psin[0] < 1) {
+
+            /* Update the flag, and we are good to go */
             isinside[0]=1;
 
-            /* geometrical theta */
+            /* Geometrical theta */
             real thgeo;
             thgeo = fmod( atan2(z-boozerdata->z0,r-boozerdata->r0) + CONST_2PI,
                           CONST_2PI);
 
-            /* boozer theta and derivatives */
+            /* Boozer theta and derivatives */
             real theta[6];
             interperr += interp2Dcomp_eval_df(
                 theta, &boozerdata->theta_psithetageom, psi[0], thgeo);
 
-            /* boozer nu function and derivatives */
+            /* Boozer nu function and derivatives */
             real nu[6];
             interperr += interp2Dcomp_eval_df(
                 nu, &boozerdata->nu_psitheta, psi[0], theta[0]);
 
-            /* set up data for returning the requested values */
+            /* Set up data for returning the requested values */
 
-            /* psi and derivatives */
+            /* Psi and derivatives */
             psithetazeta[0]=psi[0]; /* psi       */
             psithetazeta[1]=psi[1]; /* dpsi_dr   */
             psithetazeta[2]=0;      /* dpsi_dphi */
             psithetazeta[3]=psi[2]; /* dpsi_dz   */
 
-            /* helpers */
+            /* Helpers */
             real asq;
             asq = (r - boozerdata->r0) * (r - boozerdata->r0)
                 + (z - boozerdata->z0) * (z - boozerdata->z0);
@@ -274,17 +284,17 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
             real dthgeo_dz;
             dthgeo_dz=(r-boozerdata->r0)/asq;
 
-            /* theta and derivatives */
+            /* Theta and derivatives */
             psithetazeta[4]=theta[0];                          /* theta       */
             psithetazeta[5]=theta[1]*psi[1]+theta[2]*dthgeo_dr;/* dtheta_dr   */
             psithetazeta[6]=0;                                 /* dtheta_dphi */
             psithetazeta[7]=theta[1]*psi[2]+theta[2]*dthgeo_dz;/* dtheta_dz   */
 
-            /* zeta and derivatives */
-            psithetazeta[8]=fmod(phi-nu[0], CONST_2PI);          /* zeta      */
-            psithetazeta[9]=-nu[1]*psi[1]-nu[2]*psithetazeta[5]; /* dzeta_dR  */
+            /* Zeta and derivatives */
+            psithetazeta[8]=fmod(phi+CONST_2PI, CONST_2PI)+nu[0];/* zeta      */
+            psithetazeta[9]=nu[1]*psi[1]+nu[2]*psithetazeta[5];  /* dzeta_dR  */
             psithetazeta[10]=1.0;                                /* dzeta_dphi*/
-            psithetazeta[11]=-nu[1]*psi[2]-nu[2]*psithetazeta[7];/* dzeta_dz  */
+            psithetazeta[11]=nu[1]*psi[2]+nu[2]*psithetazeta[7]; /* dzeta_dz  */
         }
         else {
             /* This would mean that (r,z) is in the very center of the plasma */
@@ -303,26 +313,4 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
     }
 
     return err;
-}
-
-
-/**
- * @brief Evaluate normalized poloidal flux rho
- *
- * @param rho pointer where rho value will be stored
- * @param psi poloidal flux value from which rho is evaluated
- * @param boozerdata pointer to boozer data struct
- *
- * @return Non-zero a5err value if evaluation failed, zero otherwise
- */
-a5err boozer_eval_rho(real* rho, real psi, boozer_data* boozerdata) {
-
-    /* Check that the values seem valid */
-    real delta = (boozerdata->psi_outer - boozerdata->psi_inner);
-    if( (boozerdata->psi_outer-psi) / delta < 0 ) {
-        return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_BOOZER );
-    }
-
-    rho[0] = sqrt( (boozerdata->psi_outer - psi ) / delta );
-    return 0;
 }

@@ -59,9 +59,9 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(BOOZERPATH "psimax",    &(offload_data->psi_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "psi0",    &(offload_data->psi_inner),
+    if( hdf5_read_double(BOOZERPATH "psi0",    &(offload_data->psi0),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(BOOZERPATH "psi1",    &(offload_data->psi_outer),
+    if( hdf5_read_double(BOOZERPATH "psi1",    &(offload_data->psi1),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
     if( hdf5_read_int(   BOOZERPATH "ntheta", &(offload_data->ntheta),
@@ -104,14 +104,6 @@ int hdf5_boozer_init_offload(hid_t f, boozer_offload_data* offload_data,
                          &(*offload_array)[rzsize + nusize + thetasize
                                            + contoursize],
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-
-    offload_data->psi_inner = offload_data->psi_inner*CONST_PI;
-    offload_data->psi_outer = offload_data->psi_outer*CONST_PI;
-    offload_data->psi_min = offload_data->psi_min*CONST_PI;
-    offload_data->psi_max = offload_data->psi_max*CONST_PI;
-    for(int i=0; i<rzsize; i++) {
-      (*offload_array)[i]= (*offload_array)[i]*CONST_PI;
-    }
 
     /* Initialize the data */
     if( boozer_init_offload(offload_data, offload_array) ) {
