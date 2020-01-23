@@ -15,6 +15,19 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
     """
     Write boozer input to HDF5 file.
 
+    Note: the data in theta_psithetageom is assummed to span the whole interval
+    (i.e. coinciding start and end points included) in the angular axis. This is
+    needed so that we can add "padding" to this dataset. To be mores specic, the
+    padding means that the dataset is artificially extended in the angular
+    space. This is needed so that ASCOT5 can use the natural boundary condition
+    when fitting the splines to the data: the data is effectively periodic but
+    the periodic condition would assume x_end = x_ini when in fact x_end = x_ini
+    + 2*pi e.g. for theta_psithetageom.
+
+    Note that the nu_psitheta data is also periodic, but there it is valid to
+    use the natural boundary condition which sets y'' = 0 (the nu data is
+    has a local extrema at theta=0).
+
     Args:
         fn : str <br>
             Full path to the HDF5 file.
@@ -57,9 +70,9 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
         nrsz : int <br>
             Number of separatrix Rz points.
         rs : array_like (nrsz,1) <br>
-            Separatrix R coordinates.
+            Separatrix R coordinates, start and end points should coincide.
         zs : array_like (nrsz,1) <br>
-            Separatrix z coordinates.
+            Separatrix z coordinates, start and end points should coincide.
         desc : str, optional <br>
             Input's description.
 
@@ -82,11 +95,13 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
     group  = "Boozer"
     gname  = ""
 
-    # Add padding
+    # Add padding to theta_psithetageom (see boozer.c for explanation)
     padding = 4
     data = np.copy(theta_psithetageom)
-    theta_psithetageom = np.concatenate( (theta_psithetageom, data[1:padding+1,:]+np.pi*2) )
-    theta_psithetageom = np.concatenate( (data[nthetag-padding-1:-1,:]-np.pi*2, theta_psithetageom) )
+    theta_psithetageom = np.concatenate(
+        data, data[-1,:] + data[1:padding+1,:] )
+    theta_psithetageom = np.concatenate(
+        data[nthetag-padding-1:-1,:] - data[-1,:], theta_psithetageom )
     nthetag += padding*2
 
     with h5py.File(fn, "a") as f:
@@ -113,7 +128,7 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
         g.create_dataset("rs", (nrzs,), data=rs, dtype="f8")
         g.create_dataset("zs", (nrzs,), data=zs, dtype="f8")
 
-        # psi data min and max values
+        # psi data min and max values for normalization
         g.create_dataset("psi0", (1,), data=psi0, dtype="f8")
         g.create_dataset("psi1", (1,), data=psi1, dtype="f8")
 
