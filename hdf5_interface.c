@@ -537,7 +537,9 @@ int hdf5_get_active_qid(hid_t f, const char* group, char qid[11]) {
 void hdf5_generate_qid(char* qid) {
 
     /* Seed random number generator with current time */
-    srand48( time(NULL) );
+    struct timespec ts;
+    timespec_get(&ts, TIME_UTC);
+    srand48( ts.tv_nsec );
 
     /* Generate a 32 bit random integer by generating signed 32 bit random
      * integers with mrand48() and choosing the first one that is positive */
