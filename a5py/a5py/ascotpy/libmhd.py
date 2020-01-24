@@ -16,12 +16,14 @@ if plt:
 
 class LibMhd(LibAscot):
 
-    quantities = ["mhd_br", "mhd_bphi", "mhd_bz","mhd_er", "mhd_ephi",
-                  "mhd_ez","mhd_phi", "db/b"]
+    quantities = ["alpha", "phi", "mhd_br", "mhd_bphi", "mhd_bz",
+                  "mhd_er", "mhd_ephi", "mhd_ez","mhd_phi", "db/b"]
 
     def evaluate(self, R, phi, z, t, quantity):
 
         out = None
+        if quantity in ["alpha", "phi"]:
+            out = self.eval_mhd(R, phi, z, t, evalpot=True)[quantity]
         if quantity in ["mhd_br", "mhd_bphi", "mhd_bz", "mhd_er", "mhd_ephi",
                         "mhd_ez", "mhd_phi"]:
             out = self.eval_mhd(R, phi, z, t)[quantity]
@@ -30,8 +32,9 @@ class LibMhd(LibAscot):
             bpert = self.eval_mhd(R, phi, z, t)
             b = self.eval_bfield(R, phi, z, t, evalb=True)
 
-            bpert = np.sqrt(bpert["mhd_br"]**2 + bpert["mhd_bphi"]**2
-                            +  bpert["mhd_bz"]**2)
+            bpert = np.sqrt(  bpert["mhd_br"]**2
+                            + bpert["mhd_bphi"]**2
+                            + bpert["mhd_bz"]**2)
             b = np.sqrt(b["br"]**2 + b["bphi"]**2 + b["bz"]**2)
 
             out = bpert/b

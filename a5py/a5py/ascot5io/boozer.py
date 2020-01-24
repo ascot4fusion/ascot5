@@ -79,8 +79,6 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
     Returns:
         Name of the new input that was written.
     """
-    print(nu_psitheta.shape)
-    print(theta_psithetageom.shape)
     assert psi_rz.shape             == (nr,nz)
     assert theta_psithetageom.shape == (npsi,nthetag)
     assert nu_psitheta.shape        == (npsi,ntheta)
@@ -99,9 +97,9 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
     padding = 4
     data = np.copy(theta_psithetageom)
     theta_psithetageom = np.concatenate(
-        data, data[-1,:] + data[1:padding+1,:] )
+        (data, data[-1,:] + data[1:padding+1,:]) )
     theta_psithetageom = np.concatenate(
-        data[nthetag-padding-1:-1,:] - data[-1,:], theta_psithetageom )
+        (data[nthetag-padding-1:-1,:] - data[-1,:], theta_psithetageom) )
     nthetag += padding*2
 
     with h5py.File(fn, "a") as f:

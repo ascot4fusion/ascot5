@@ -188,6 +188,25 @@ class LibAscot:
             pass
 
         try:
+            fun = self.libascot.libascot_boozer_eval_fun
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p, real_p]
+        except AttributeError:
+            warnings.warn("libascot_boozer_eval_fun not found", Warning)
+            pass
+
+        try:
+            fun = self.libascot.libascot_mhd_eval
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p, real_p, real_p]
+        except AttributeError:
+            warnings.warn("libascot_mhd_eval not found", Warning)
+            pass
+
+        try:
             fun = self.libascot.libascot_mhd_eval_perturbation
             fun.restype  = ctypes.c_int
             fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
@@ -643,7 +662,7 @@ class LibAscot:
         return out
 
 
-    def eval_boozer(self, R, phi, z, t):
+    def eval_boozer(self, R, phi, z, t, evalfun=False):
         """
         Evaluate boozer quantities at given coordinates.
 
@@ -656,6 +675,8 @@ class LibAscot:
                 z coordinates where data is evaluated [m].
             t : array_like <br>
                 time coordinates where data is evaluated [s].
+            evalfun : boolean, optional <br>
+                evaluate the boozer functions instead of the coordinates.
 
         Returns:
             Dictionary containing evaluated quantities.
@@ -673,29 +694,35 @@ class LibAscot:
 
         Neval = R.size
         out = {}
-        out["psi"]        = np.zeros(R.shape, dtype="f8")
-        out["theta"]      = np.zeros(R.shape, dtype="f8")
-        out["zeta"]       = np.zeros(R.shape, dtype="f8")
-        out["dpsidr"]     = np.zeros(R.shape, dtype="f8")
-        out["dpsidphi"]   = np.zeros(R.shape, dtype="f8")
-        out["dpsidz"]     = np.zeros(R.shape, dtype="f8")
-        out["dthetadr"]   = np.zeros(R.shape, dtype="f8")
-        out["dthetadphi"] = np.zeros(R.shape, dtype="f8")
-        out["dthetadz"]   = np.zeros(R.shape, dtype="f8")
-        out["dzetadr"]    = np.zeros(R.shape, dtype="f8")
-        out["dzetadphi"]  = np.zeros(R.shape, dtype="f8")
-        out["dzetadz"]    = np.zeros(R.shape, dtype="f8")
 
-        self.libascot.libascot_boozer_eval_psithetazeta(
-            Neval, R, phi, z, t, out["psi"], out["theta"], out["zeta"],
-            out["dpsidr"], out["dpsidphi"], out["dpsidz"],
-            out["dthetadr"], out["dthetadphi"], out["dthetadz"],
-            out["dzetadr"], out["dzetadphi"], out["dzetadz"])
+        if evalfun:
+            out["qprof"]    = np.zeros(R.shape, dtype="f8")
+            out["jacobian"] = np.zeros(R.shape, dtype="f8")
+            self.libascot.libascot_boozer_eval_fun(
+                Neval, R, phi, z, t, out["qprof"], out["jacobian"])
+        else:
+            out["psi"]        = np.zeros(R.shape, dtype="f8")
+            out["theta"]      = np.zeros(R.shape, dtype="f8")
+            out["zeta"]       = np.zeros(R.shape, dtype="f8")
+            out["dpsidr"]     = np.zeros(R.shape, dtype="f8")
+            out["dpsidphi"]   = np.zeros(R.shape, dtype="f8")
+            out["dpsidz"]     = np.zeros(R.shape, dtype="f8")
+            out["dthetadr"]   = np.zeros(R.shape, dtype="f8")
+            out["dthetadphi"] = np.zeros(R.shape, dtype="f8")
+            out["dthetadz"]   = np.zeros(R.shape, dtype="f8")
+            out["dzetadr"]    = np.zeros(R.shape, dtype="f8")
+            out["dzetadphi"]  = np.zeros(R.shape, dtype="f8")
+            out["dzetadz"]    = np.zeros(R.shape, dtype="f8")
+            self.libascot.libascot_boozer_eval_psithetazeta(
+                Neval, R, phi, z, t, out["psi"], out["theta"], out["zeta"],
+                out["dpsidr"], out["dpsidphi"], out["dpsidz"],
+                out["dthetadr"], out["dthetadphi"], out["dthetadz"],
+                out["dzetadr"], out["dzetadphi"], out["dzetadz"])
 
         return out
 
 
-    def eval_mhd(self, R, phi, z, t):
+    def eval_mhd(self, R, phi, z, t, evalpot=False):
         """
         Evaluate mhd perturbation EM components at given coordinates.
 
@@ -708,6 +735,8 @@ class LibAscot:
                 z coordinates where data is evaluated [m].
             t : array_like <br>
                 time coordinates where data is evaluated [s].
+            evalpot : boolean, optional <br>
+                flag to evaluate also alpha and phi.
 
         Returns:
             Dictionary containing evaluated quantities.
@@ -735,11 +764,28 @@ class LibAscot:
         out["mhd_ez"]   = np.zeros(R.shape, dtype="f8")
         out["mhd_phi"]  = np.zeros(R.shape, dtype="f8")
 
-        self.libascot.libascot_mhd_eval_perturbation(Neval, R, phi, z, t,
-                                                     out["mhd_br"],   out["mhd_bphi"],
-                                                     out["mhd_bz"],   out["mhd_er"],
-                                                     out["mhd_ephi"], out["mhd_ez"], 
-                                                     out["mhd_phi"])
+        self.libascot.libascot_mhd_eval_perturbation(
+            Neval, R, phi, z, t, out["mhd_br"], out["mhd_bphi"], out["mhd_bz"],
+            out["mhd_er"], out["mhd_ephi"], out["mhd_ez"], out["mhd_phi"])
+
+        if evalpot:
+            out["alpha"] = np.zeros(R.shape, dtype="f8")
+            out["phi"]   = np.zeros(R.shape, dtype="f8")
+
+            out["dadt"]   = np.zeros(R.shape, dtype="f8")
+            out["dadr"]   = np.zeros(R.shape, dtype="f8")
+            out["dadphi"] = np.zeros(R.shape, dtype="f8")
+            out["dadz"]   = np.zeros(R.shape, dtype="f8")
+
+            out["dphidt"]   = np.zeros(R.shape, dtype="f8")
+            out["dphidr"]   = np.zeros(R.shape, dtype="f8")
+            out["dphidphi"] = np.zeros(R.shape, dtype="f8")
+            out["dphidz"]   = np.zeros(R.shape, dtype="f8")
+
+            self.libascot.libascot_mhd_eval(
+                Neval, R, phi, z, t, out["alpha"], out["dadr"], out["dadphi"],
+                out["dadz"], out["dadt"], out["phi"], out["dphidr"],
+                out["dphidphi"], out["dphidz"], out["dphidt"])
 
         return out
 

@@ -16,16 +16,28 @@ if plt:
 
 class LibBoozer(LibAscot):
 
-    quantities = ["psi", "theta", "zeta", "dpsidr", "dpsidphi", "dpsidz",
-"dthetadr", "dthetadphi", "dthetadz", "dzetadr", "dzetadphi", "dzetadz"]
+    quantities = ["psi (bzr)", "theta", "zeta",
+                  "dpsidr (bzr)", "dpsidphi (bzr)", "dpsidz (bzr)",
+                  "dthetadr", "dthetadphi", "dthetadz",
+                  "dzetadr", "dzetadphi", "dzetadz", "qprof", "jacobian"]
 
-    def evaluate(self, R, phi, z, t, quantity):
+    def evaluate(self, R, phi, z, t, quantity, br=None, bphi=None, bz=None):
 
         out = None
-
-        if quantity in ["psi", "theta", "zeta", "dpsidr", "dpsidphi", "dpsidz",
-"dthetadr", "dthetadphi", "dthetadz", "dzetadr", "dzetadphi", "dzetadz"]:
+        if quantity == "psi (bzr)":
+            out = self.eval_boozer(R, phi, z, t)["psi"]
+        elif quantity == "dpsidr (bzr)":
+            out = self.eval_boozer(R, phi, z, t)["dpsidr"]
+        elif quantity == "dpsidphi (bzr)":
+            out = self.eval_boozer(R, phi, z, t)["dpsidphi"]
+        elif quantity == "dpsidz (bzr)":
+            out = self.eval_boozer(R, phi, z, t)["dpsidz"]
+        elif quantity in ["theta", "zeta",
+                          "dthetadr", "dthetadphi", "dthetadz", "dzetadr",
+                          "dzetadphi", "dzetadz"]:
              out = self.eval_boozer(R, phi, z, t)[quantity]
+        elif quantity in ["qprof", "jacobian"]:
+            out = self.eval_boozer(R, phi, z, t, evalfun=True)[quantity]
 
         assert out is not None, "Unknown quantity"
 
