@@ -68,4 +68,11 @@ def read_alfven(fn):
             f = interpolate.interp1d(psi.ravel(), phi[:,i])
             data["phi"][:,i] = f(psiq).ravel()
 
+        for i in range(data["nmode"]):
+            f = interpolate.interp1d(psiq.ravel(), data["alpha"][:,i])
+            data["alpha"][:,i] = f(psiq*psiq).ravel()
+
+            f = interpolate.interp1d(psiq.ravel(), data["phi"][:,i])
+            data["phi"][:,i] = f(psiq*psiq).ravel()
+
     return data
