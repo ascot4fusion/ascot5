@@ -49,7 +49,7 @@ int mhd_init_offload(mhd_offload_data* offload_data,
     for(int j=0; j<offload_data->n_modes; j++) {
 
         /* alpha_nm */
-        err += interp2Dcomp_init_coeff(
+        /*err += interp2Dcomp_init_coeff(
             &coeff_array[NSIZE_COMP2D * datasize * j],
             &(*offload_array)[j*datasize],
             offload_data->npsi, offload_data->ntime,
@@ -57,10 +57,17 @@ int mhd_init_offload(mhd_offload_data* offload_data,
             offload_data->psi_min,
             offload_data->psi_max,
             offload_data->t_min,
-            offload_data->t_max);
+            offload_data->t_max);*/
+        err += interp1Dcomp_init_coeff(
+            &coeff_array[NSIZE_COMP2D * datasize * j],
+            &(*offload_array)[j*datasize],
+            offload_data->npsi,
+            NATURALBC,
+            offload_data->psi_min,
+            offload_data->psi_max);
 
         /* omega_nm */
-        err += interp2Dcomp_init_coeff(
+        /*err += interp2Dcomp_init_coeff(
             &coeff_array[NSIZE_COMP2D * datasize * (n_modes + j)],
             &(*offload_array)[j*datasize],
             offload_data->npsi,
@@ -69,7 +76,14 @@ int mhd_init_offload(mhd_offload_data* offload_data,
             offload_data->psi_min,
             offload_data->psi_max,
             offload_data->t_min,
-            offload_data->t_max);
+            offload_data->t_max);*/
+        err += interp1Dcomp_init_coeff(
+            &coeff_array[NSIZE_COMP2D * datasize * (n_modes + j)],
+            &(*offload_array)[j*datasize],
+            offload_data->npsi,
+            NATURALBC,
+            offload_data->psi_min,
+            offload_data->psi_max);
     }
 
     free(*offload_array);
@@ -129,19 +143,17 @@ void mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
         mhddata->amplitude_nm[j] = offload_data->amplitude_nm[j];
         mhddata->omega_nm[j]     = offload_data->omega_nm[j];
 
-        interp2Dcomp_init_spline(&(mhddata->alpha_nm[j]),
+        interp1Dcomp_init_spline(&(mhddata->alpha_nm[j]),
                                  &(offload_array[j*datasize]),
-                                 offload_data->npsi, offload_data->ntime,
-                                 NATURALBC, NATURALBC,
-                                 offload_data->psi_min, offload_data->psi_max,
-                                 offload_data->t_min,   offload_data->t_max);
+                                 offload_data->npsi,
+                                 NATURALBC,
+                                 offload_data->psi_min, offload_data->psi_max);
 
-        interp2Dcomp_init_spline(&(mhddata->phi_nm[j]),
+        interp1Dcomp_init_spline(&(mhddata->phi_nm[j]),
                                  &(offload_array[(n_modes + j)*datasize]),
-                                 offload_data->npsi, offload_data->ntime,
-                                 NATURALBC, NATURALBC,
-                                 offload_data->psi_min, offload_data->psi_max,
-                                 offload_data->t_min,   offload_data->t_max);
+                                 offload_data->npsi,
+                                 NATURALBC,
+                                 offload_data->psi_min, offload_data->psi_max);
     }
 }
 
@@ -170,13 +182,11 @@ void mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
  * @param t time coordinate [s]
  * @param boozerdata pointer to boozer data
  * @param mhddata pointer to mhd data
- * @param Bdata pointer to magnetic field data
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
-               boozer_data* boozerdata, mhd_data* mhddata,
-               B_field_data* Bdata) {
+               boozer_data* boozerdata, mhd_data* mhddata) {
 
     a5err err = 0;
 
@@ -185,16 +195,16 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
     if(!err) {
         err = boozer_eval_psithetazeta(ptz, &isinside, r, phi, z, boozerdata);
     }
-    real rho;
+    real rho[2];
     if(!err) {
-        err = boozer_eval_rho(&rho, ptz[0], boozerdata);
+        err = boozer_eval_rho_drho(rho, ptz[0], boozerdata);
     }
 
     int iterations = mhddata->n_modes;
 
     /* Initialize values */
     for(int i=0; i<10; i++) {
-      mhd_dmhd[i] = 0;
+        mhd_dmhd[i] = 0;
     }
 
     /* Skip evaluation if boozer evaluation failed or point outside the boozer grid. */
@@ -204,12 +214,16 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
 
     int interperr = 0;
     for(int i = 0; i < iterations; i++){
-        /*get interpolated values */
+        /* Get interpolated values */
         real a_da[6];
-        interperr += interp2Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]), rho*rho, t);
+        interperr += interp1Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]),
+                                          rho[0]);
+        a_da[1] *= rho[1];
 
         real phi_dphi[6];
-        interperr += interp2Dcomp_eval_df(phi_dphi, &(mhddata->phi_nm[i]), rho*rho, t);
+        interperr += interp1Dcomp_eval_df(phi_dphi, &(mhddata->phi_nm[i]),
+                                          rho[0]);
+        phi_dphi[1] *= rho[1];
 
         /* These are used frequently, so store them in separate variables */
         real mhdarg = mhddata->nmode[i] * ptz[8]
@@ -218,8 +232,7 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
         real sinmhd = sin(mhdarg);
         real cosmhd = cos(mhdarg);
 
-        /*sum over modes to get alpha, phi */
-
+        /* Sum over modes to get alpha, phi */
         mhd_dmhd[0] +=     a_da[0] * mhddata->amplitude_nm[i] * sinmhd;
         mhd_dmhd[5] += phi_dphi[0] * mhddata->amplitude_nm[i] * sinmhd;
 
@@ -227,45 +240,35 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
         mhd_dmhd[1] +=     - a_da[0] * mhddata->amplitude_nm[i]
                                      * mhddata->omega_nm[i] * cosmhd
                            + a_da[2] * mhddata->amplitude_nm[i] * sinmhd;
-
         mhd_dmhd[6] += - phi_dphi[0] * mhddata->amplitude_nm[i]
                                      * mhddata->omega_nm[i] * cosmhd
                        + phi_dphi[2] * mhddata->amplitude_nm[i] * sinmhd;
 
-        /*r component of gradients */
-
+        /* R component of gradients */
         mhd_dmhd[2] += mhddata->amplitude_nm[i]
             * (  a_da[1] * ptz[1] * sinmhd
                - a_da[0] * mhddata->mmode[i] * ptz[5] * cosmhd
                + a_da[0] * mhddata->nmode[i] * ptz[9] * cosmhd);
-
-
         mhd_dmhd[7] += mhddata->amplitude_nm[i]
             * (   phi_dphi[1] * ptz[1] * sinmhd
                 - phi_dphi[0] * mhddata->mmode[i] * ptz[5] * cosmhd
                 + phi_dphi[0] * mhddata->nmode[i] * ptz[9] * cosmhd);
 
-        /*phi component of gradients */
-
+        /* phi component of gradients */
         mhd_dmhd[3] += (1/r) * mhddata->amplitude_nm[i]
             * (  a_da[1] * ptz[2] * sinmhd
                - a_da[0] * mhddata->mmode[i] * ptz[6]  * cosmhd
                + a_da[0] * mhddata->nmode[i] * ptz[10] * cosmhd);
-
-
-
         mhd_dmhd[8] += (1/r) * mhddata->amplitude_nm[i]
             * (   phi_dphi[1] * ptz[2] * sinmhd
                 - phi_dphi[0] * mhddata->mmode[i] * ptz[6]  * cosmhd
                 + phi_dphi[0] * mhddata->nmode[i] * ptz[10] * cosmhd);
 
-        /*z component of gradients */
-
+        /* z component of gradients */
         mhd_dmhd[4] += mhddata->amplitude_nm[i]
             * (   a_da[1] * ptz[3] * sinmhd
                 - a_da[0] * mhddata->mmode[i] * ptz[7]  * cosmhd
                 + a_da[0] * mhddata->nmode[i] * ptz[11] * cosmhd);
-
         mhd_dmhd[9] += mhddata->amplitude_nm[i]
             * (   phi_dphi[1] * ptz[3] * sinmhd
                 - phi_dphi[0] * mhddata->mmode[i] * ptz[7]  * cosmhd
@@ -308,7 +311,7 @@ a5err mhd_perturbations(real pert_field[7], real r, real phi,
     a5err err = 0;
     real mhd_dmhd[10];
     if(!err) {
-        err = mhd_eval(mhd_dmhd, r, phi, z, t, boozerdata, mhddata,Bdata);
+        err = mhd_eval(mhd_dmhd, r, phi, z, t, boozerdata, mhddata);
     }
     /*  see example of curl evaluation in step_gc_rk4.c, ydot_gc*/
     real B_dB[15];

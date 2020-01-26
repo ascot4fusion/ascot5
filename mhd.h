@@ -46,9 +46,9 @@ typedef struct {
                                                each mode [rad/s]              */
 
     /**< 2D splines (psi,time) for each mode's alpha_nm */
-    interp2D_data alpha_nm[MHD_MODES_MAX_NUM];
+    interp1D_data alpha_nm[MHD_MODES_MAX_NUM];
     /**< 2D splines (psi,time) for each mode's phi_nm */
-    interp2D_data phi_nm[MHD_MODES_MAX_NUM];
+    interp1D_data phi_nm[MHD_MODES_MAX_NUM];
 } mhd_data;
 
 int mhd_init_offload(mhd_offload_data* offload_data,
@@ -60,9 +60,9 @@ void mhd_free_offload(mhd_offload_data* offload_data,
 #pragma omp declare target
 void mhd_init(mhd_data* MHDdata, mhd_offload_data* offload_data,
               real* offload_array);
-#pragma omp declare simd uniform(boozerdata, mhddata, Bdata)
+#pragma omp declare simd uniform(boozerdata, mhddata)
 a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
-               boozer_data* boozerdata, mhd_data* mhddata, B_field_data* Bdata);
+               boozer_data* boozerdata, mhd_data* mhddata);
 #pragma omp declare simd uniform(boozerdata, mhddata, Bdata)
 a5err mhd_perturbations(real pert_field[7], real r, real phi,
                         real z, real t, boozer_data* boozerdata,

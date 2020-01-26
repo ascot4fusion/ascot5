@@ -4,6 +4,7 @@
  */
 #include <stdlib.h>
 #include <math.h>
+#include "print.h"
 #include "ascot5.h"
 #include "consts.h"
 #include "math.h"
@@ -95,6 +96,20 @@ int boozer_init_offload(boozer_offload_data* offload_data,
     offload_data->offload_array_length = (rzsize + nusize + thetasize)
                                          * NSIZE_COMP2D + 2* contoursize;
 
+    /* Print some sanity check on data */
+    print_out(VERBOSE_IO, "\nBoozer input\n");
+    print_out(VERBOSE_IO, "R grid: n = %4.d min = %3.3f max = %3.3f\n",
+              offload_data->nr,
+              offload_data->r_min, offload_data->r_max);
+    print_out(VERBOSE_IO, "z grid: n = %4.d min = %3.3f max = %3.3f\n",
+              offload_data->nz,
+              offload_data->z_min, offload_data->z_max);
+    print_out(VERBOSE_IO, "psi grid: n = %4.d min = %3.3f max = %3.3f\n",
+              offload_data->npsi,
+              offload_data->psi_min, offload_data->psi_max);
+    print_out(VERBOSE_IO, "thetageo grid: n = %4.d\n", offload_data->nthetag);
+    print_out(VERBOSE_IO, "thetabzr grid: n = %4.d\n", offload_data->ntheta);
+
     return err;
 }
 
@@ -173,23 +188,23 @@ void boozer_free_offload(boozer_offload_data* offload_data,
 /**
  * @brief Evaluates the normalized psi and derivatives from a given psi
  *
- * @param psi a vector [psi, dpsi/dR, dpsin/dphi, dpsi/dz]
- * @param psin a normalized psi [psin, dpsin/dR, dpsin/dphi, dpsin/dz]
+ * This is equivalent to the one found in the magnetic field module but uses
+ * the boozer data (for the sake of consistence) instead.
+ *
+ * @param rho pointer for storing [rho, drho/dpsi]
+ * @param psi poloidal flux function
  */
-a5err boozer_eval_psinormalized(real psi[4], real psin[4],
-                                boozer_data* boozerdata){
+a5err boozer_eval_rho_drho(real rho[2], real psi, boozer_data* boozerdata){
     a5err err = 0;
 
     /* Check that the values seem valid */
     real delta = boozerdata->psi1 - boozerdata->psi0;
-    if( !err && (psi[0] - boozerdata->psi0) / delta < 0 ) {
+    if( !err && (psi - boozerdata->psi0) / delta < 0 ) {
          err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_BOOZER );
     }
 
-    psin[0] = sqrt( ( psi[0] - boozerdata-> psi0 ) / delta );
-    psin[1] = psi[1] / (2*delta*psin[0]);
-    psin[2] = psi[2] / (2*delta*psin[0]);
-    psin[3] = psi[3] / (2*delta*psin[0]);
+    rho[0] = sqrt( ( psi - boozerdata-> psi0 ) / delta );
+    rho[1] = 1.0 / (2*delta*rho[0]);
 
     return err;
 }
@@ -239,15 +254,11 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
 
         /* Get the psi value and check that it is within the psi grid (the grid
            does not extend all the way to the axis) */
-        real psi[6];
+        real psi[6], rho[2];
         interperr += interp2Dcomp_eval_df(psi, &boozerdata->psi_rz, r, z);
+        err = boozer_eval_rho_drho(rho, psi[0], boozerdata);
 
-        /* Not really how this function should be calleb but ok if only psin[0]
-           is needed */
-        real psin[4];
-        boozer_eval_psinormalized(psi, psin, boozerdata);
-
-        if(psin[0] < 1) {
+        if(!err && rho[0] < 1) {
 
             /* Update the flag, and we are good to go */
             isinside[0]=1;

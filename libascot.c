@@ -12,6 +12,7 @@
 #include <math.h>
 
 #include "ascot5.h"
+#include "math.h"
 #include "simulate.h"
 #include "B_field.h"
 #include "E_field.h"
@@ -499,8 +500,14 @@ void libascot_neutral_eval_density(int Neval, real* R, real* phi, real* z,
 
 /**
  * @brief Evaluate boozer coordinates and derivatives.
+ *
+ * @param Neval number of evaluation points.
+ * @param R R coordinates of the evaluation points [m].
+ * @param phi phi coordinates of the evaluation points [rad].
+ * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
  */
-void libascot_boozer_eval_psithetazeta(int Neval, real* r, real* phi, real* z,
+void libascot_boozer_eval_psithetazeta(int Neval, real* R, real* phi, real* z,
                                        real* t, real* psi, real* theta,
                                        real* zeta, real* dpsidr, real* dpsidphi,
                                        real* dpsidz, real* dthetadr,
@@ -510,7 +517,7 @@ void libascot_boozer_eval_psithetazeta(int Neval, real* r, real* phi, real* z,
     real psithetazeta[12];
     int isinside;
     for(int k = 0; k < Neval; k++) {
-        if( boozer_eval_psithetazeta(psithetazeta, &isinside, r[k], phi[k],
+        if( boozer_eval_psithetazeta(psithetazeta, &isinside, R[k], phi[k],
                                      z[k], &sim.boozer_data) ) {
             continue;
         }
@@ -533,7 +540,57 @@ void libascot_boozer_eval_psithetazeta(int Neval, real* r, real* phi, real* z,
 }
 
 /**
+ * @brief Evaluate boozer coordinates related quantities.
+ *
+ * @param Neval number of evaluation points.
+ * @param R R coordinates of the evaluation points [m].
+ * @param phi phi coordinates of the evaluation points [rad].
+ * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
+ * @param qprof array for storing the (flux averaged) safety factor.
+ * @param jac array for storing the coordinate Jacobian.
+ */
+void libascot_boozer_eval_fun(int Neval, real* R, real* phi, real* z,
+			      real* t, real* qprof, real* jac) {
+    real psithetazeta[12];
+    real B[12];
+    int isinside;
+    for(int k = 0; k < Neval; k++) {
+        if( boozer_eval_psithetazeta(psithetazeta, &isinside, R[k], phi[k],
+                                     z[k], &sim.boozer_data) ) {
+            continue;
+        }
+        if(!isinside) {
+            continue;
+        }
+	if( B_field_eval_B_dB(B, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
+	    continue;
+	}
+
+	real bvec[]      = {B[0], B[4], B[8]};
+	real gradpsi[]   = {psithetazeta[1], psithetazeta[2]/R[k],  psithetazeta[3]};
+	real gradtheta[] = {psithetazeta[5], psithetazeta[6]/R[k],  psithetazeta[7]};
+	real gradzeta[]  = {psithetazeta[9], psithetazeta[10]/R[k], psithetazeta[11]};
+
+	real veca[3], vecb[3];
+
+	math_cross(gradpsi, gradzeta, veca);
+	math_cross(gradpsi, gradtheta, vecb);
+	qprof[k] = (veca[1] - bvec[1]) / vecb[1];
+
+        math_cross(gradtheta, gradzeta, veca);
+        jac[k] = math_dot(veca, gradpsi);
+    }
+}
+
+/**
  * @brief Evaluate MHD perturbation EM-field components
+ *
+ * @param Neval number of evaluation points.
+ * @param R R coordinates of the evaluation points [m].
+ * @param phi phi coordinates of the evaluation points [rad].
+ * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
  */
 void libascot_mhd_eval_perturbation(int Neval, real* R, real* phi, real* z,
                                     real* t, real* mhd_br, real* mhd_bphi,
@@ -552,6 +609,39 @@ void libascot_mhd_eval_perturbation(int Neval, real* R, real* phi, real* z,
         mhd_ephi[k] = pert_field[4];
         mhd_ez[k]   = pert_field[5];
         mhd_phi[k]  = pert_field[6];
+    }
+}
+
+/**
+ * @brief Evaluate MHD perturbation potentials
+ *
+ * @param Neval number of evaluation points.
+ * @param R R coordinates of the evaluation points [m].
+ * @param phi phi coordinates of the evaluation points [rad].
+ * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
+ */
+void libascot_mhd_eval(int Neval, real* R, real* phi, real* z,
+                       real* t, real* alpha, real* dadr,
+                       real* dadphi, real* dadz, real* dadt,
+                       real* Phi, real* dPhidr, real* dPhidphi,
+                       real* dPhidz, real* dPhidt) {
+    real mhd_dmhd[10];
+    for(int k = 0; k < Neval; k++) {
+        if( mhd_eval(mhd_dmhd, R[k], phi[k], z[k], t[k],
+                     &sim.boozer_data, &sim.mhd_data) ) {
+            continue;
+        }
+        alpha[k]    = mhd_dmhd[0];
+        dadr[k]     = mhd_dmhd[2];
+        dadphi[k]   = mhd_dmhd[3];
+        dadz[k]     = mhd_dmhd[4];
+        dadt[k]     = mhd_dmhd[1];
+        Phi[k]      = mhd_dmhd[5];
+        dPhidr[k]   = mhd_dmhd[7];
+        dPhidphi[k] = mhd_dmhd[8];
+        dPhidz[k]   = mhd_dmhd[9];
+        dPhidt[k]   = mhd_dmhd[6];
     }
 }
 
