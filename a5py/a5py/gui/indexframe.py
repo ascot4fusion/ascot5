@@ -229,7 +229,7 @@ class IndexFrame(tkinter.Frame):
         if outputtype == "distrho6d":
             self._gui.displayframe(DistFrame(self._gui, run.distrho6d))
         if outputtype == "orbit":
-            self._gui.displayframe(OrbitFrame(self._gui, run.orbit))
+            self._gui.displayframe(OrbitFrame(self._gui, run.orbit, run.wall))
 
 
     def select_inputs(self, options=None, bfield=None, efield=None, plasma=None,
