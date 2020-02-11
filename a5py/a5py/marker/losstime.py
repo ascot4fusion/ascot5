@@ -44,6 +44,12 @@ from scipy.optimize import curve_fit
 from scipy.special import erf
 from scipy.integrate import cumtrapz
 
+def islost(endcond):
+    """
+    Small helper function to find markers that are lost: edcond=wall or maxrho.
+    """
+    return np.logical_or(endcond==32, endcond==128)
+
 def firstpassagetime(t, K, D, inirho, endrho):
     """
     Calculate first passage time distribution for given parameters.
@@ -165,12 +171,12 @@ def eval_meanvar_coeffs(run=None, inirho=None, losstime=None, endcond=None,
         losstime = run.endstate["time"]
         inirho   = np.mean(run.inistate["rho"])
         endcond  = run.endstate["endcond"]
-        lost     = np.sum(endcond != 4) / losstime.size
-        losstime = losstime[endcond != 4]
+        lost     = np.sum(islost(endcond)) / losstime.size
+        losstime = losstime[islost(endcond)]
     elif dataprovided:
         inirho   = np.mean(inirho)
-        lost     = np.sum(endcond != 4) / losstime.size
-        losstime = losstime[endcond != 4]
+        lost     = np.sum(islost(endcond)) / losstime.size
+        losstime = losstime[islost(endcond)]
     else:
         raise Exception(
             "Please provide either run node or the data explicitly (not both).")
@@ -227,13 +233,13 @@ def eval_radindep_coeffs(run=None, inirho=None, losstime=None, endcond=None,
     if run is not None and not dataprovided:
         inirho   = np.mean(run.inistate["rho"])
         endcond  = run.endstate["endcond"]
-        lost     = np.sum(endcond != 4) / losstime.size
-        losstime = losstime[endcond != 4]
+        lost     = np.sum(islost(endcond)) / losstime.size
+        losstime = losstime[islost(endcond)]
         losstime = np.sort(run.endstate["time"])
     elif dataprovided:
         inirho   = np.mean(inirho)
-        lost     = np.sum(endcond != 4) / losstime.size
-        losstime = losstime[endcond != 4]
+        lost     = np.sum(islost(endcond)) / losstime.size
+        losstime = losstime[islost(endcond)]
         losstime = np.sort(losstime)
     else:
         raise Exception(
@@ -253,7 +259,7 @@ def eval_radindep_coeffs(run=None, inirho=None, losstime=None, endcond=None,
     # Fit and return the coefficients.
     coeffs, _ = curve_fit(fitfun, losstime,
                           np.linspace(0, 1, losstime.size),
-                          p0=[10, 10], bounds=(0,np.inf))
+                          p0=[10000, 10000], bounds=(0,np.inf))
 
     return (inirho, coeffs[0], coeffs[1], lost)
 
@@ -303,13 +309,13 @@ def eval_raddep_coeffs(tgrid, rho2, K2, D2, run=None, inirho=None,
     if run is not None and not dataprovided:
         inirho   = np.mean(run.inistate["rho"])
         endcond  = run.endstate["endcond"]
-        lost     = np.sum(endcond != 4) / losstime.size
-        losstime = losstime[endcond != 4]
+        lost     = np.sum(islost(endcond)) / losstime.size
+        losstime = losstime[islost(endcond)]
         losstime = np.sort(run.endstate["time"])
     elif dataprovided:
         inirho   = np.mean(inirho)
-        lost     = np.sum(endcond != 4) / losstime.size
-        losstime = losstime[endcond != 4]
+        lost     = np.sum(islost(endcond)) / losstime.size
+        losstime = losstime[islost(endcond)]
         losstime = np.sort(losstime)
     else:
         raise Exception(
@@ -330,11 +336,11 @@ def eval_raddep_coeffs(tgrid, rho2, K2, D2, run=None, inirho=None,
 
     # Fit and return the coefficients.
     coeffs, _ = curve_fit(fitfun, tgrid, losstimeg,
-                          p0=[10, 10], bounds=(0,np.inf))
+                          p0=[10000, 10000], bounds=(0,np.inf))
     return (inirho, coeffs[0], coeffs[1], lost)
 
 
-def eval_coefficients(runs, method="raddep", lastpoint="raddep",
+def eval_coefficients(runs, method="raddep", lastpoint="raddep", gap=1,
                       endrho=1.0, ids=None, tgrid=None, SIunits=False):
     """
     Evaluate coefficients for given radial positions.
@@ -394,7 +400,7 @@ def eval_coefficients(runs, method="raddep", lastpoint="raddep",
     diff     = np.zeros((len(runs),))
     lostfrac = np.zeros((len(runs),))
 
-    def extractdata(run):
+    def extractdata(run, ids):
         """
         Small helper for initializing the run data.
         """
@@ -414,7 +420,7 @@ def eval_coefficients(runs, method="raddep", lastpoint="raddep",
 
     if method == MEANVAR:
         for i in range(len(runs)):
-            (inirho, losstime, endcond) = extractdata(runs[i])
+            (inirho, losstime, endcond) = extractdata(runs[i], ids[i])
 
             rho[i], drift[i], diff[i], lostfrac[i] = eval_meanvar_coeffs(
                 inirho=inirho, losstime=losstime, endcond=endcond,
@@ -424,7 +430,7 @@ def eval_coefficients(runs, method="raddep", lastpoint="raddep",
 
     # Radindep coefficients are needed for the raddep ones so calculate them.
     for i in range(len(runs)):
-        (inirho, losstime, endcond) = extractdata(runs[i])
+        (inirho, losstime, endcond) = extractdata(runs[i], ids[i])
         rho[i], drift[i], diff[i], lostfrac[i] = eval_radindep_coeffs(
             inirho=inirho, losstime=losstime, endcond=endcond,
             endrho=endrho)
@@ -435,10 +441,10 @@ def eval_coefficients(runs, method="raddep", lastpoint="raddep",
     drift0 = np.copy(drift)
     diff0  = np.copy(diff)
 
-    for i in np.arange(len(runs)-2, -1, -1):
-        (inirho, losstime, endcond) = extractdata(runs[i])
+    for i in np.arange(len(runs)-1-gap, -1, -1):
+        (inirho, losstime, endcond) = extractdata(runs[i], ids[i])
         rho[i], drift[i], diff[i], lostfrac[i] = eval_raddep_coeffs(
-            tgrid=tgrid, rho2=rho[i+1], K2=drift0[i+1], D2=diff0[i+1],
+            tgrid=tgrid, rho2=rho[i+gap], K2=drift0[i+gap], D2=diff0[i+gap],
             inirho=inirho, losstime=losstime, endcond=endcond,
             endrho=endrho)
 
@@ -449,7 +455,7 @@ def eval_coefficients(runs, method="raddep", lastpoint="raddep",
         drift[-1] = drift0[-1]
         diff[-1]  = diff0[-1]
     elif lastpoint == MEANVAR:
-        (inirho, losstime, endcond) = extractdata(runs[-1])
+        (inirho, losstime, endcond) = extractdata(runs[-1], ids[i])
         rho[-1], drift[-1], diff[-1], lostfrac[-1] = eval_meanvar_coeffs(
             inirho=inirho, losstime=losstime, endcond=endcond,
             endrho=endrho)

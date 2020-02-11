@@ -106,8 +106,6 @@ def solve_model(xmin, xmax, simtime, timestep, numberofmarkers,
         ismoving = xcoords <= xmax
 
         ti = np.floor( i*timestep / ( tgrid[1] - tgrid[0] ) ).astype("i8")
-        #xi = np.digitize(x1, bins=xgrid)-2
-        #density[xi,ti] += timestep
         weights = np.ones(x1.shape) * timestep
         density[:,ti] += np.histogram(x1, bins=xgrid, weights=weights)[0]
 
