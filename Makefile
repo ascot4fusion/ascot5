@@ -112,13 +112,13 @@ OBJS= math.o list.o octree.o error.c \
 	$(PLSOBJS) $(N0OBJS) $(LINTOBJS) $(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o offload.o \
-	random.o print.c hdf5_interface.o suzuki.o nbi.o
+	random.o print.c hdf5_interface.o suzuki.o nbi.o biosaw.o
 
 BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 \
-	test_spline ascot5_main bbnbi5
+	test_spline ascot5_main bbnbi5 test_biosaw
 
 ifdef NOGIT
 	DUMMY_GIT_INFO := $(shell touch gitver.h)
@@ -185,6 +185,9 @@ test_nbi: $(UTESTDIR)test_nbi.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_spline: $(UTESTDIR)test_spline.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_biosaw: $(UTESTDIR)test_biosaw.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile
