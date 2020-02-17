@@ -325,7 +325,7 @@ def get_qid(group):
     if(str(group) != group):
         group = group.name
 
-    if len(group) > 10:
+    if len(group) >= 10:
         qid = group[-10:]
         if qid.isdigit():
             # Seems like a valid QID

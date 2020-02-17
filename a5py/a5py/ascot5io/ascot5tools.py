@@ -63,10 +63,11 @@ def removegroup(fn, group, force=False):
         try:
             # This will raise an exception if group is not a data group.
             qid = ascot5file.get_qid(group)
+            filegroup = ascot5file.get_group(f, qid)
 
             # This is a data group. If it is a run group or removal is forced,
             # we can remove it directly.
-            if force or ascot5file.get_type(group) == "run":
+            if force or ascot5file.get_type(filegroup) == "run":
                 ascot5file.remove_group(f, group)
                 return
 
