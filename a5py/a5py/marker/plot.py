@@ -184,30 +184,33 @@ def plot_scatter(x, y=None, z=None, c=None, prune=1, equal=False, ids=None,
             uids = np.unique(ids)
             for i in uids:
                 h = axes.scatter(x[ids==i][::prune], y[ids==i][::prune],
-                                 zs=z[ids==i][::prune])
+                                 zs=z[ids==i][::prune], edgecolors="none",
+                                 **kwargs)
 
         else:
-            h = axes.scatter(x, y, zs=z)
+            h = axes.scatter(x, y, zs=z, **kwargs)
 
     elif z is None and c is not None:
         if ids is not None:
             uids = np.unique(ids)
             for i in uids:
                 h = axes.scatter(x[ids==i][::prune], y[ids==i][::prune],
-                                 c=c[ids==i][::prune])
+                                 c=c[ids==i][::prune], edgecolors="none",
+                                 **kwargs)
 
         else:
-            h = axes.scatter(x, y, c=c)
+            h = axes.scatter(x, y, c=c, **kwargs)
             plt.colorbar(h, ax=axes)
     else:
         if ids is not None:
             uids = np.unique(ids)
             for i in uids:
                 h = axes.scatter(x[ids==i][::prune], y[ids==i][::prune],
-                                 zs=z[ids==i][::prune], c=c[ids==i][::prune])
+                                 zs=z[ids==i][::prune], c=c[ids==i][::prune],
+                                 edgecolors="none", **kwargs)
 
         else:
-            h = axes.scatter(x, y, zs=z, c=c)
+            h = axes.scatter(x, y, zs=z, c=c, **kwargs)
             plt.colorbar(h, ax=axes)
 
     if equal:

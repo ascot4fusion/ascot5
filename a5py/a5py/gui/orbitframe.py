@@ -23,12 +23,14 @@ class OrbitFrame(PlotFrame):
     3D if z coordinate is not None.
     """
 
-    def __init__(self, gui, orbits):
+    def __init__(self, gui, orbits, walldata=None):
         """
         Initialize and show default plot.
         """
         super().__init__(gui)
         self._orbits = orbits
+
+        self._walldata = walldata
 
         # Variables for plotting orbits.
         self._xchoice       = tkinter.StringVar(self)
@@ -313,5 +315,8 @@ class OrbitFrame(PlotFrame):
                 self._orbits.poincare(xcoord, ycoord, "time", pncrid,
                                       log=(0, 0, 0, 1), equal=equal,
                                       endcond=endcond, axes=axes)
+
+        if self._walldata is not None and xcoord == "R" and ycoord == "z":
+            self._walldata.plotRz(axes=axes)
 
         self.draw()

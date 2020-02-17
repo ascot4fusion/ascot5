@@ -143,7 +143,7 @@ class Dist_5D(AscotData):
 
         return dist
 
-    def get_E_xi_dist(self, E_edges=None, xi_edges=None, dist=None,
+    def get_E_xi_dist(self, E_edges=None, xi_edges=None, dist=None, mass=None,
                       **kwargs):
         """
         Return distribution dictionary where (vpa, vpe) is converted to (E, xi).
@@ -173,8 +173,11 @@ class Dist_5D(AscotData):
         if not dist:
             dist = distmod.histogram2distribution(self.read())
 
-        # Mass from inistate.
-        masskg = interpret.mass_kg(self._runnode.inistate["mass"][0])
+        if mass is None:
+            # Mass from inistate.
+            masskg = interpret.mass_kg(self._runnode.inistate["mass"][0])
+        else:
+            masskg = mass
 
         Exidist = distmod.convert_vpavpe_to_Exi(dist, masskg, E_edges, xi_edges)
         distmod.squeeze(Exidist, **kwargs)

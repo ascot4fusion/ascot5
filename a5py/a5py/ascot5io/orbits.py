@@ -318,7 +318,7 @@ class Orbits(AscotData):
 
     def scatter(self, x=None, y=None, z=None, c=None, endcond=None, pncrid=None,
                 sepid=False, equal=False, log=False, axes=None, prune=1, ids=None,
-                **kwargs):
+                markersize=5, **kwargs):
         """
         Make scatter plot.
         """
@@ -362,7 +362,7 @@ class Orbits(AscotData):
 
         plot.plot_scatter(x=xc, y=yc, z=zc, c=cc, equal=equal,
                           ids=ids, xlabel=x, ylabel=y, zlabel=z, axes=axes,
-                          prune=prune, **kwargs)
+                          prune=prune, s=markersize, **kwargs)
 
 
     def poincare(self, *args, log=False, endcond=None, equal=False,
@@ -397,8 +397,8 @@ class Orbits(AscotData):
             equal = True
 
         self.scatter(x=x, y=y, c=z, pncrid=pncrid, endcond=endcond, prune=prune,
-                     sepid=sepid, log=log, equal=equal, axes=axes, s=markersize,
-                     ids=ids)
+                     sepid=sepid, log=log, equal=equal, axes=axes,
+                     markersize=markersize, ids=ids)
 
         if y == "phimod":
             axes.set_ylim([0, 360])
