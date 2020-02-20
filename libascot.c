@@ -568,9 +568,15 @@ void libascot_boozer_eval_fun(int Neval, real* R, real* phi, real* z,
 	}
 
 	real bvec[]      = {B[0], B[4], B[8]};
-	real gradpsi[]   = {psithetazeta[1], psithetazeta[2]/R[k],  psithetazeta[3]};
-	real gradtheta[] = {psithetazeta[5], psithetazeta[6]/R[k],  psithetazeta[7]};
-	real gradzeta[]  = {psithetazeta[9], psithetazeta[10]/R[k], psithetazeta[11]};
+	real gradpsi[]   = {psithetazeta[1],
+                            psithetazeta[2]/R[k],
+                            psithetazeta[3]};
+	real gradtheta[] = {psithetazeta[5],
+                            psithetazeta[6]/R[k],
+                            psithetazeta[7]};
+	real gradzeta[]  = {psithetazeta[9],
+                            psithetazeta[10]/R[k],
+                            psithetazeta[11]};
 
 	real veca[3], vecb[3];
 
@@ -597,8 +603,9 @@ void libascot_mhd_eval_perturbation(int Neval, real* R, real* phi, real* z,
                                     real* mhd_bz, real* mhd_er, real* mhd_ephi,
                                     real* mhd_ez, real* mhd_phi) {
     real pert_field[7];
+    int onlypert = 1;
     for(int k = 0; k < Neval; k++) {
-        if( mhd_perturbations(pert_field, R[k], phi[k], z[k], t[k],
+        if( mhd_perturbations(pert_field, R[k], phi[k], z[k], t[k], onlypert,
                               &sim.boozer_data, &sim.mhd_data, &sim.B_data) ) {
             continue;
         }

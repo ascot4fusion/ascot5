@@ -225,6 +225,10 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
         /* The interpolation returns dx/drho but we require dx/dpsi */
         a_da[1]     *= rho[1];
         phi_dphi[1] *= rho[1];
+        for(int j=2; j<6; j++) {
+            a_da[j] = 0;
+            phi_dphi[j] = 0;
+        }
 
         /* These are used frequently, so store them in separate variables */
         real mhdarg = mhddata->nmode[i] * ptz[8]
@@ -295,11 +299,16 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
  * - pert_field[5] = EtildeZ
  * - pert_field[6] = Phi
  *
+ * Only the perturbation values for the magnetic field are returned if
+ * pertonly=1, otherwise, the total perturbed field is returned. This is done to For electric
+ * field only the perturbation component is returned.
+ *
  * @param pert_field perturbation field components
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
  * @param t time coordinate [s]
+ * @param pertonly flag whether to return the whole field or only perturbation
  * @param boozerdata pointer to boozer data
  * @param mhddata pointer to mhd data
  * @param Bdata pointer to magnetic field data
@@ -307,7 +316,7 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err mhd_perturbations(real pert_field[7], real r, real phi,
-                        real z, real t, boozer_data* boozerdata,
+                        real z, real t, int pertonly, boozer_data* boozerdata,
                         mhd_data* mhddata, B_field_data* Bdata) {
     a5err err = 0;
     real mhd_dmhd[10];
@@ -348,6 +357,12 @@ a5err mhd_perturbations(real pert_field[7], real r, real phi,
         pert_field[4] = -mhd_dmhd[8] - B[1]*mhd_dmhd[1];
         pert_field[5] = -mhd_dmhd[9] - B[2]*mhd_dmhd[1];
         pert_field[6] = mhd_dmhd[5];
+
+        if(!pertonly) {
+            pert_field[0] += B[0];
+            pert_field[1] += B[1];
+            pert_field[2] += B[2];
+        }
     }
 
     return err;

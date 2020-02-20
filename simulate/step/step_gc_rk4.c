@@ -288,7 +288,8 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, yprev[0], yprev[1], yprev[2], time,
-                                   boozer, mhd);}
+                                   boozer, mhd);
+            }
             if(!errflag) {
                 step_gceom_mhd(k1, yprev, mass, charge, B_dB, E, mhd_dmhd);
             }

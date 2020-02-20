@@ -288,26 +288,22 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
                 direction = -1;
             }
 
+            int pertonly = 0;
+
             /* Coordinates are copied from the struct into an array to make
              * passing parameters easier */
             yprev[0] = p->r[i];
             yprev[1] = p->phi[i];
             yprev[2] = p->z[i];
 
-            /* Magnetic field at initial position already known but perturbation
-               is not */
-            k1[0] = p->B_r[i];
-            k1[1] = p->B_phi[i];
-            k1[2] = p->B_z[i];
-
             if(!errflag) {
                 errflag = mhd_perturbations(pert_field, p->r[i], p->phi[i],
-                                            p->z[i], p->time[i], boozerdata,
-                                            mhddata, Bdata);
+                                            p->z[i], p->time[i], pertonly,
+                                            boozerdata, mhddata, Bdata);
             }
-            k1[0] += pert_field[0];
-            k1[1] += pert_field[1];
-            k1[2] += pert_field[2];
+            k1[0] = pert_field[0];
+            k1[1] = pert_field[1];
+            k1[2] = pert_field[2];
 
             normB = (math_normc(k1[0], k1[1], k1[2])) * direction;
             k1[0] /= normB;
@@ -320,17 +316,13 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
                     + h[i] * ( (1.0/5) * k1[j] );
             }
             if(!errflag) {
-                errflag = B_field_eval_B(k2, tempy[0], tempy[1], tempy[2],
-                                         t0, Bdata);
-            }
-            if(!errflag) {
                 errflag = mhd_perturbations(pert_field, tempy[0], tempy[1],
-                                            tempy[2], t0,
+                                            tempy[2], t0, pertonly,
                                             boozerdata, mhddata, Bdata);
             }
-            k2[0] += pert_field[0];
-            k2[1] += pert_field[1];
-            k2[2] += pert_field[2];
+            k2[0] = pert_field[0];
+            k2[1] = pert_field[1];
+            k2[2] = pert_field[2];
 
             normB = (math_normc(k2[0], k2[1], k2[2])) * direction;
             k2[0] /= normB;
@@ -345,17 +337,13 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
                         + (9.0/40) * k2[j] );
             }
             if(!errflag) {
-                errflag = B_field_eval_B(k3, tempy[0], tempy[1], tempy[2],
-                                         t0, Bdata);
-            }
-            if(!errflag) {
                 errflag = mhd_perturbations(pert_field, tempy[0], tempy[1],
-                                            tempy[2], t0,
+                                            tempy[2], t0, pertonly,
                                             boozerdata, mhddata, Bdata);
             }
-            k3[0] += pert_field[0];
-            k3[1] += pert_field[1];
-            k3[2] += pert_field[2];
+            k3[0] = pert_field[0];
+            k3[1] = pert_field[1];
+            k3[2] = pert_field[2];
 
             normB = (math_normc(k3[0], k3[1], k3[2])) * direction;
             k3[0] /= normB;
@@ -371,17 +359,13 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
                         + ( 6.0/5 ) * k3[j] );
             }
             if(!errflag) {
-                errflag = B_field_eval_B(k4, tempy[0], tempy[1], tempy[2],
-                                         t0, Bdata);
-            }
-            if(!errflag) {
                 errflag = mhd_perturbations(pert_field, tempy[0], tempy[1],
-                                            tempy[2], t0,
+                                            tempy[2], t0, pertonly,
                                             boozerdata, mhddata, Bdata);
             }
-            k4[0] += pert_field[0];
-            k4[1] += pert_field[1];
-            k4[2] += pert_field[2];
+            k4[0] = pert_field[0];
+            k4[1] = pert_field[1];
+            k4[2] = pert_field[2];
 
             normB = (math_normc(k4[0], k4[1], k4[2])) * direction;
             k4[0] /= normB;
@@ -398,17 +382,13 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
                         + ( 35.0/27) * k4[j] );
             }
             if(!errflag) {
-                errflag = B_field_eval_B(k5, tempy[0], tempy[1], tempy[2],
-                                         t0, Bdata);
-            }
-            if(!errflag) {
                 errflag = mhd_perturbations(pert_field, tempy[0], tempy[1],
-                                            tempy[2], t0, boozerdata,
-                                            mhddata, Bdata);
+                                            tempy[2], t0, pertonly,
+                                            boozerdata, mhddata, Bdata);
             }
-            k5[0] += pert_field[0];
-            k5[1] += pert_field[1];
-            k5[2] += pert_field[2];
+            k5[0] = pert_field[0];
+            k5[1] = pert_field[1];
+            k5[2] = pert_field[2];
 
             normB = (math_normc(k5[0], k5[1], k5[2])) * direction;
             k5[0] /= normB;
@@ -426,17 +406,13 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
                         + (  253.0/4096  ) * k5[j] );
             }
             if(!errflag) {
-                errflag = B_field_eval_B(k6, tempy[0], tempy[1], tempy[2],
-                               t0, Bdata);
-            }
-            if(!errflag) {
                 errflag = mhd_perturbations(pert_field, tempy[0], tempy[1],
-                                            tempy[2], t0,
+                                            tempy[2], t0, pertonly,
                                             boozerdata, mhddata, Bdata);
             }
-            k6[0] += pert_field[0];
-            k6[1] += pert_field[1];
-            k6[2] += pert_field[2];
+            k6[0] = pert_field[0];
+            k6[1] = pert_field[1];
+            k6[2] = pert_field[2];
 
             normB = (math_normc(k6[0], k6[1], k6[2])) * direction;
             k6[0] /= normB;
