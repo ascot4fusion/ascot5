@@ -1,6 +1,12 @@
 """
 MHD input IO.
 
+This module reads and writes both MHD_STAT and MHD_NONSTAT data. The only
+difference between these two is the time-dependency of the eigenfunctions,
+that is, does the mode amplitude (alpha or Phi) depend only on psi or psi
+and time. MHD_STAT assumes only psi dependency, making the interpolation
+*much* faster. So don't use MHD_NONSTAT unless you really have to.
+
 File: mhd.py
 """
 import h5py
@@ -10,13 +16,13 @@ from . ascot5file import add_group
 from . ascot5data import AscotData
 
 def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, alpha, phi,
-               npsi, psimin, psimax, ntime=4, tmin=-100, tmax=100,
+               npsi, psimin, psimax, ntime=None, tmin=None, tmax=None,
                desc=None):
     """
     Write MHD input to HDF5 file.
 
-    Giving time grid is optional, but if it is not given, default values are
-    used as ASCOT5 requires time-dependent profiles.
+    This module writes both stationary and non-stationary MHD data. The latter
+    is used when the time-grid is provided.
 
     Args:
         fn : str <br>
@@ -56,19 +62,21 @@ def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, alpha, phi,
     assert nmodes.size == nmode
     assert mmodes.size == nmode
 
-    if alpha.ndim == 2:
-        # Add quasi time-dependency.
-        alpha = np.transpose( np.tile(alpha, (ntime,1,1)), (1,0,2) )
-        phi   = np.transpose( np.tile(phi,   (ntime,1,1)), (1,0,2) )
+    assert (ntime is None and tmin is None and tmax is None) or \
+    (ntime is not None and tmin is not None and tmax is not None)
 
-    assert alpha.shape == (npsi,ntime,nmode)
-    assert phi.shape   == (npsi,ntime,nmode)
+    if ntime is None:
+        assert alpha.shape == (npsi,nmode)
+        assert phi.shape   == (npsi,nmode)
+    else:
+        assert alpha.shape == (npsi,ntime,nmode)
+        assert phi.shape   == (npsi,ntime,nmode)
 
     alpha = np.transpose(alpha, (2,1,0) )
     phi   = np.transpose(phi,   (2,1,0) )
 
     parent = "mhd"
-    group  = "MHD"
+    group  = "MHD_NONSTAT" if ntime is None else "MHD_STAT"
     gname  = ""
 
     with h5py.File(fn, "a") as f:
@@ -79,9 +87,6 @@ def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, alpha, phi,
         g.create_dataset("npsi",   (1,), data=npsi,   dtype="i4")
         g.create_dataset("psimin", (1,), data=psimin, dtype="f8")
         g.create_dataset("psimax", (1,), data=psimax, dtype="f8")
-        g.create_dataset("ntime",  (1,), data=ntime,  dtype="i4")
-        g.create_dataset("tmin",   (1,), data=tmin,   dtype="f8")
-        g.create_dataset("tmax",   (1,), data=tmax,   dtype="f8")
 
         g.create_dataset("nmodes", (nmode,), data=nmodes, dtype="i4")
         g.create_dataset("mmodes", (nmode,), data=mmodes, dtype="i4")
@@ -89,8 +94,15 @@ def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, alpha, phi,
         g.create_dataset("amplitude", (nmode,), data=amplitude, dtype="f8")
         g.create_dataset("omega",     (nmode,), data=omega,     dtype="f8")
 
-        g.create_dataset("alpha", (nmode,ntime,npsi), data=alpha, dtype="f8")
-        g.create_dataset("phi",   (nmode,ntime,npsi), data=phi,   dtype="f8")
+        if ntime is None:
+            g.create_dataset("alpha", (nmode,npsi), data=alpha, dtype="f8")
+            g.create_dataset("phi",   (nmode,npsi), data=phi,   dtype="f8")
+        else:
+            g.create_dataset("ntime", (1,), data=ntime, dtype="i4")
+            g.create_dataset("tmin",  (1,), data=tmin,  dtype="f8")
+            g.create_dataset("tmax",  (1,), data=tmax,  dtype="f8")
+            g.create_dataset("alpha", (nmode,ntime,npsi), data=alpha,dtype="f8")
+            g.create_dataset("phi",   (nmode,ntime,npsi), data=phi,  dtype="f8")
 
     return gname
 
@@ -133,10 +145,12 @@ def read_hdf5(fn, qid):
         Dictionary containing input data.
     """
 
-    path = "mhd/MHD_" + qid
+    path = "mhd/MHD_STAT" + qid
 
     out = {}
     with h5py.File(fn,"r") as f:
+        if path not in f:
+            path = "mhd/MHD_NONSTAT_" + qid
         for key in f[path]:
             out[key] = f[path][key][:]
 
