@@ -44,8 +44,8 @@ from a5py.preprocessing.analyticequilibrium import psi0 as psifun
 from a5py.preprocessing.generateboozer import generate as genbooz
 
 e       = constants.elementary_charge
-m_p_AMU = constants.physical_constants["proton mass in u"][0]
-m_p     = constants.physical_constants["proton mass"][0]
+m_p_AMU = constants.physical_constants["electron mass in u"][0]
+m_p     = constants.physical_constants["electron mass"][0]
 c       = constants.physical_constants["speed of light in vacuum"][0]
 
 psi_mult  = 200
@@ -61,7 +61,7 @@ psi_coeff = np.array([ 2.218e-02, -1.288e-01, -4.177e-02, -6.227e-02,
 # MHD mode specifications
 nmode = 2
 mmode = 3
-modefreq = 3e5
+modefreq = 1e3
 amplitude = 1e-2
 
 def init():
@@ -73,6 +73,27 @@ def init():
     """
 
     #**************************************************************************#
+    #*             Generate options for GO                                     #
+    #*                                                                         #
+    #**************************************************************************#
+    odict = options.generateopt()
+    helpers.clean_opt(odict)
+
+    odict["SIM_MODE"]                  = 1
+    odict["FIXEDSTEP_USE_USERDEFINED"] = 1
+    odict["FIXEDSTEP_USERDEFINED"]     = 1e-11
+    odict["ENDCOND_SIMTIMELIM"]        = 1
+    odict["ENDCOND_MAX_SIMTIME"]       = 1e-4
+    odict["ENABLE_ORBIT_FOLLOWING"]    = 1
+    odict["ENABLE_MHD"]                = 1
+    odict["ENABLE_ORBITWRITE"]         = 1
+    odict["ORBITWRITE_MODE"]           = 1
+    odict["ORBITWRITE_INTERVAL"]       = 1e-7
+    odict["ORBITWRITE_NPOINT"]         = 1e4
+
+    options.write_hdf5(helpers.testfn, odict, desc="MHD_GO")
+
+    #**************************************************************************#
     #*             Generate options for GCF                                    #
     #*                                                                         #
     #**************************************************************************#
@@ -81,9 +102,9 @@ def init():
 
     odict["SIM_MODE"]                  = 2
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
-    odict["FIXEDSTEP_USERDEFINED"]     = 1e-9
+    odict["FIXEDSTEP_USERDEFINED"]     = 1e-11
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIMTIME"]       = 1e-3
+    odict["ENDCOND_MAX_SIMTIME"]       = 1e-4
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_MHD"]                = 1
     odict["ENABLE_ORBITWRITE"]         = 1
@@ -103,7 +124,7 @@ def init():
     R      = np.array([7.0, 8.0])
     pitch  = np.array([0.4, 0.9])
     zeta   = 2       * np.array([1, 1])
-    energy = 1e5     * np.array([1, 1])
+    energy = 1e6     * np.array([1, 1])
     mass   = m_p_AMU * np.array([1, 1])
     charge = 1       * np.array([1, 1])
     anum   = 1       * np.array([1, 0])
@@ -112,16 +133,18 @@ def init():
     time   = 0       * np.array([1, 1])
     phi    = 0       * np.array([1, 1])
     z      = 0       * np.array([1, 1])
-    mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
-                   R, phi, z, energy, pitch, zeta,
-                   anum, znum, weight, time, desc="MHD_GCF")
+    for d in ["MHD_GO", "MHD_GCF"]:
+        mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
+                       R, phi, z, energy, pitch, zeta,
+                       anum, znum, weight, time, desc=d)
 
     #**************************************************************************#
     #*                     Construct ITER-like magnetic field                  #
     #*                                                                         #
     #**************************************************************************#
-    B_GS.write_hdf5(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
-                    desc="MHD_GCF")
+    for d in ["MHD_GO", "MHD_GCF"]:
+        B_GS.write_hdf5(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
+                        desc=d)
 
     #**************************************************************************#
     #*                     Construct the boozer input                          #
@@ -141,7 +164,8 @@ def init():
                                    psi0=h5.bfield["MHD_GCF"].read()["psi0"],
                                    psi1=h5.bfield["MHD_GCF"].read()["psi1"])
     a5.free(bfield=True)
-    boozer.write_hdf5(helpers.testfn, desc="MHD_GCF", **booz)
+    for d in ["MHD_GO", "MHD_GCF"]:
+        boozer.write_hdf5(helpers.testfn, desc=d, **booz)
 
     #**************************************************************************#
     #* Helical perturbation which is not used in the simulation but is used    #
@@ -164,41 +188,43 @@ def init():
     phi = alpha*0
     mhd["phi"]   = np.tile(phi, (mhd["nmode"],1)).T
     mhd["alpha"] = np.tile(alpha, (mhd["nmode"],1)).T
-    mhdmod.write_hdf5(helpers.testfn, desc="MHD_GCF", **mhd)
+    for d in ["MHD_GO", "MHD_GCF"]:
+        mhdmod.write_hdf5(helpers.testfn, desc=d, **mhd)
 
     #**************************************************************************#
     #*                     Rest of the inputs are trivial                      #
     #*                                                                         #
     #**************************************************************************#
-    Exyz   = np.array([0, 0, 0])
-    E_TC.write_hdf5(helpers.testfn, Exyz, desc="MHD_GCF")
+    for d in ["MHD_GO", "MHD_GCF"]:
+        Exyz   = np.array([0, 0, 0])
+        E_TC.write_hdf5(helpers.testfn, Exyz, desc=d)
 
-    nwall = 4
-    Rwall = np.array([0.1, 100, 100, 0.1])
-    zwall = np.array([-100, -100, 100, 100])
-    W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall, desc="MHD_GCF")
-    N0_3D.write_hdf5_dummy(helpers.testfn, desc="MHD_GCF")
+        nwall = 4
+        Rwall = np.array([0.1, 100, 100, 0.1])
+        zwall = np.array([-100, -100, 100, 100])
+        W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall, desc=d)
+        N0_3D.write_hdf5_dummy(helpers.testfn, desc=d)
 
-    Nrho   = 3
-    Nion   = 1
-    znum   = np.array([1])
-    anum   = np.array([1])
-    mass   = np.array([1])
-    charge = np.array([1])
-    rho    = np.array([0, 0.5, 100])
-    edens  = 1e20 * np.ones(rho.shape)
-    etemp  = 1e3  * np.ones(rho.shape)
-    idens  = 1e20 * np.ones((rho.size, Nion))
-    itemp  = 1e3  * np.ones(rho.shape)
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
-                    edens, etemp, idens, itemp, desc="MHD_GCF")
+        Nrho   = 3
+        Nion   = 1
+        znum   = np.array([1])
+        anum   = np.array([1])
+        mass   = np.array([1])
+        charge = np.array([1])
+        rho    = np.array([0, 0.5, 100])
+        edens  = 1e20 * np.ones(rho.shape)
+        etemp  = 1e3  * np.ones(rho.shape)
+        idens  = 1e20 * np.ones((rho.size, Nion))
+        itemp  = 1e3  * np.ones(rho.shape)
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+                        rho, edens, etemp, idens, itemp, desc=d)
 
 
 def run():
     """
     Run tests.
     """
-    for test in ["MHD_GCF"]:
+    for test in ["MHD_GO", "MHD_GCF"]:
         helpers.set_and_run(test)
 
 def check():
@@ -212,46 +238,66 @@ def check():
     - And one that shows trajectories on a Rz plane for all cases
     """
     h5 = ascot5.Ascot(helpers.testfn)
-    orb = h5["MHD_GCF"].orbit
-
-    B0 = np.sqrt(np.power(orb["br"],2) + np.power(orb["bphi"],2) +
-                np.power(orb["bz"],2))
 
     a5 = Ascotpy(helpers.testfn)
     a5.init(bfield=h5.bfield["MHD_GCF"].get_qid(),
             boozer=h5.boozer["MHD_GCF"].get_qid(),
             mhd=h5.mhd["MHD_GCF"].get_qid())
-    psi = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
-                      t=orb["time"], quantity="psi")
-    b0 = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
-                     t=orb["time"], quantity="bnorm")
-    db = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
-                     t=orb["time"], quantity="db/b")
-    dbphi = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
-                     t=orb["time"], quantity="mhd_bphi")
-    a5.free(bfield=True, boozer=True, mhd=True)
-
-    B = b0*(1+db)
-
-    #gamma = np.sqrt( ( 1 + 2 * orb["mu"] * e * B / ( m_p * c * c ) ) /
-    #                 ( 1 - orb["vpar"] * orb["vpar"] / ( c * c ) ) )
-
-    #ekin = (gamma - 1) * m_p * c * c
-
-    ekin = orb["mu"]*b0 + 0.5*m_p*orb["vpar"]**2
-
-    #ctor = gamma * m_p * orb["r"] * orb["vpar"] * orb["bphi"] / B + \
-    #       orb["charge"] * e * psi
-    ctor = m_p * orb["r"] * orb["vpar"] * orb["bphi"] / b0 + \
-           orb["charge"] * psi
-
-    ids = orb["id"]
-    H = ekin - modefreq*ctor/nmode
 
     fig = plt.figure()
-    plt.plot(H[ids==1], color="black")
-    plt.plot(ekin[ids==1], color="red")
-    plt.plot(modefreq*ctor[ids==1]/nmode, color="blue")
+    for run in ["MHD_GO", "MHD_GCF"]:
+        orb = h5[run].orbit
+
+        B0 = np.sqrt(np.power(orb["br"],2) + np.power(orb["bphi"],2) +
+                     np.power(orb["bz"],2) )
+        psi = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
+                          t=orb["time"], quantity="psi")
+        b0 = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
+                         t=orb["time"], quantity="bnorm")
+        bphi = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
+                         t=orb["time"], quantity="bphi")
+        alpha = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
+                            t=orb["time"], quantity="alpha")
+        Phi = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
+                            t=orb["time"], quantity="phi")
+        bdb = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
+                         t=orb["time"], quantity="db/b")
+        #b0 = (1+bdb)*b0
+
+        if run == "MHD_GO":
+            gamma = np.sqrt(1/(1-(orb["vr"]**2+orb["vphi"]**2+orb["vz"]**2)/c**2))
+            vphi = orb["vphi"]
+            H    = (gamma - 1) * m_p * c**2
+            #H    = 0.5*m_p*(orb["vr"]**2+orb["vphi"]**2+orb["vz"]**2)
+            delta = 0
+        else:
+            gamma = np.sqrt( ( 1 + 2 * orb["mu"] * b0 / ( m_p * c**2 ) ) /
+                         ( 1 - orb["vpar"] **2 / c**2 ) )
+            vphi = orb["vpar"] * orb["bphi"] / b0
+            H    = m_p * c**2 *(np.sqrt(1 + 2*orb["mu"]*b0/(m_p*c**2) \
+                                        + (gamma*orb["vpar"]/c)**2)-1) \
+                                        + orb["charge"]*Phi
+
+        ctor = gamma * m_p * orb["r"] * vphi + orb["charge"] * psi \
+               + orb["r"] *orb["charge"] * (alpha+delta) * bphi
+
+        ids = orb["id"]
+        K = H - modefreq*ctor/nmode
+
+        time = orb["time"][ids==2]
+        K = K[ids==2]
+
+        if run == "MHD_GO":
+            #plt.plot(time, (K-K[0])/K[0], color="black")
+            plt.plot(time, K, color="black")
+            pass
+        else:
+            #plt.plot(time, (K-K[0])/K[0], color="red")
+            #plt.plot(time, K, color="red")
+            pass
+
+    a5.free(bfield=True, boozer=True, mhd=True)
+
     plt.show()
 
 
