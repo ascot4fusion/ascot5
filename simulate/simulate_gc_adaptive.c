@@ -19,6 +19,8 @@
 #include "../diag.h"
 #include "../B_field.h"
 #include "../E_field.h"
+#include "../boozer.h"
+#include "../mhd.h"
 #include "../plasma.h"
 #include "simulate_gc_adaptive.h"
 #include "step/step_gc_cashkarp.h"
@@ -158,9 +160,15 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
         /* Cash-Karp method for orbit-following */
         if(sim->enable_orbfol) {
-            step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
-                             &sim->B_data, &sim->E_data);
-
+            if(sim->enable_mhd) {
+                step_gc_cashkarp_mhd(&p, hin, hout_orb, tol_orb,
+                                     &sim->B_data, &sim->E_data,
+                                     &sim->boozer_data, &sim->mhd_data);
+            }
+            else {
+                step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
+                                 &sim->B_data, &sim->E_data);
+            }
             /* Check whether time step was rejected */
             #pragma omp simd
             for(int i = 0; i < NSIMD; i++) {
