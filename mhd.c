@@ -1,161 +1,148 @@
 /**
  * @file mhd.c
- * @brief Module for evaluating MHD parameters.
+ * @brief MHD module interface
+ *
+ * This is an interface through which MHD data is initialized and accessed.
+ * Reading e.g. from disk is done elsewhere. The MHD module produces helical
+ * EM perturbations in to the EM field using the boozer module in making the
+ * coordinate transformations between cylindrical and straight-field-line
+ * coordinates.
+ *
+ * To add a new MHD instance, make sure these functions are implemented and
+ * called from this interface, and that mhd.h contains enum type for the new
+ * instance.
+ *
+ * The interface checks which instance given data corresponds to from
+ * mhd_offload_data.type and mhd_data.type from the struct that is given
+ * as an argument, and calls the relevant function for that instance.
  */
 #include <stdlib.h>
 #include "ascot5.h"
-#include "print.h"
 #include "error.h"
+#include "print.h"
 #include "mhd.h"
-#include "boozer.h"
-#include "spline/interp.h"
 #include "B_field.h"
-#include "math.h"
+#include "boozer.h"
+#include "mhd/mhd_stat.h"
+#include "mhd/mhd_nonstat.h"
 
 /**
- * @brief Load MHD data and prepare parameters for offload.
+ * @brief Load MHD data and prepare parameters
  *
- * This function fills the MHD offload struct with parameters and allocates
- * and fills the offload array. Sets offload array length in the offload struct.
+ * This function fills the relevant MHD offload struct with
+ * parameters and allocates and fills the offload array.
  *
- * It is assumed that the offload_data struct is completely filled before
- * calling this function (except for the offload_array_length and psigrid).
- * Furthermore, offload array should contain following data:
+ * The offload data has to have a type when this function is called as it should
+ * be set when the offload data is constructed from inputs.
  *
- * - offload_array[j*npsi + i] : alpha(mode_j, psi_i).
- * - offload_array[n_modes*npsi + j*npsi + i] : phi(mode_j, psi_i).
- *
- * 1D splines are constructed here and stored to offload array which is
- * reallocated.
+ * This function is host only.
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  *
- * @return zero if initialization succeeded.
+ * @return zero if initialization succeeded
  */
 int mhd_init_offload(mhd_offload_data* offload_data,
                      real** offload_array) {
+    int err = 0;
 
-    /* Allocate array for storing 2D spline coefficients for two quantities
-     * for each mode                                                         */
-    real* coeff_array = (real*)malloc(2 * NSIZE_COMP2D * offload_data->n_modes
-                                      * offload_data->npsi * offload_data->ntime
-                                      * sizeof(real));
+    switch(offload_data->type) {
 
-    /* Go through all modes, and evaluate and store coefficients for each */
-    int err      = 0;
-    int datasize = offload_data->npsi * offload_data->ntime;
-    int n_modes  = offload_data->n_modes;
-    for(int j=0; j<offload_data->n_modes; j++) {
+        case mhd_type_stat:
+            err = mhd_stat_init_offload(&(offload_data->stat), offload_array);
+            offload_data->offload_array_length =
+                offload_data->stat.offload_array_length;
+            break;
 
-        /* alpha_nm */
-        /*err += interp2Dcomp_init_coeff(
-            &coeff_array[NSIZE_COMP2D * datasize * j],
-            &(*offload_array)[j*datasize],
-            offload_data->npsi, offload_data->ntime,
-            NATURALBC, NATURALBC,
-            offload_data->psi_min,
-            offload_data->psi_max,
-            offload_data->t_min,
-            offload_data->t_max);*/
-        err += interp1Dcomp_init_coeff(
-            &coeff_array[NSIZE_COMP2D * datasize * j],
-            &(*offload_array)[j*datasize],
-            offload_data->npsi,
-            NATURALBC,
-            offload_data->psi_min,
-            offload_data->psi_max);
+        case mhd_type_nonstat:
+            err = mhd_nonstat_init_offload(&(offload_data->nonstat),
+                                           offload_array);
+            offload_data->offload_array_length =
+                offload_data->nonstat.offload_array_length;
+            break;
 
-        /* phi_nm */
-        /*err += interp2Dcomp_init_coeff(
-            &coeff_array[NSIZE_COMP2D * datasize * (n_modes + j)],
-            &(*offload_array)[(n_modes + j)*datasize],
-            offload_data->npsi,
-            offload_data->ntime,
-            NATURALBC, NATURALBC,
-            offload_data->psi_min,
-            offload_data->psi_max,
-            offload_data->t_min,
-            offload_data->t_max);*/
-        err += interp1Dcomp_init_coeff(
-            &coeff_array[NSIZE_COMP2D * datasize * (n_modes + j)],
-            &(*offload_array)[(n_modes + j)*datasize],
-            offload_data->npsi,
-            NATURALBC,
-            offload_data->psi_min,
-            offload_data->psi_max);
+        default:
+            /* Unregonized input. Produce error. */
+            print_err("Error: Unregonized MHD type.");
+            err = 1;
+            break;
     }
 
-    free(*offload_array);
-    *offload_array = coeff_array;
-    offload_data->offload_array_length = 2 * NSIZE_COMP2D
-        * offload_data->n_modes * offload_data->npsi * offload_data->ntime;
-
-    /* Print some sanity check on data */
-    print_out(VERBOSE_IO, "\nMHD input\n");
-    print_out(VERBOSE_IO, "Grid: npsi = %4.d psimin = %3.3f psimax = %3.3f\n",
-              offload_data->npsi,
-              offload_data->psi_min, offload_data->psi_max);
-    print_out(VERBOSE_IO, "      ntime = %4.d tmin = %3.3f tmax = %3.3f\n",
-              offload_data->ntime,
-              offload_data->t_min, offload_data->t_max);
-
-    print_out(VERBOSE_IO, "\nModes:\n");
-    for(int j=0; j<n_modes; j++) {
-        print_out(VERBOSE_IO,
-                  "(n,m) = (%2.d,%2.d) Amplitude = %3.3g Frequency = %3.3g\n",
-                  offload_data->nmode[j], offload_data->mmode[j],
-                  offload_data->amplitude_nm[j], offload_data->omega_nm[j]);
+    if(!err) {
+        print_out(VERBOSE_IO, "Estimated memory usage %.1f MB\n",
+                  offload_data->offload_array_length
+                  * sizeof(real) / (1024.0*1024.0) );
     }
 
     return err;
 }
 
 /**
- * @brief Free offload array
+ * @brief Free offload array and reset parameters
+ *
+ * This function deallocates the offload_array.
+ *
+ * This function is host only.
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
 void mhd_free_offload(mhd_offload_data* offload_data,
-                          real** offload_array) {
-    free(*offload_array);
+                      real** offload_array) {
+    switch(offload_data->type) {
+
+        case mhd_type_stat:
+            mhd_stat_free_offload(&(offload_data->stat), offload_array);
+            break;
+
+        case mhd_type_nonstat:
+            mhd_nonstat_free_offload(&(offload_data->nonstat), offload_array);
+            break;
+    }
 }
 
 /**
  * @brief Initialize MHD data struct on target
  *
+ * This function copies the electric field parameters from the offload struct
+ * to the struct on target and sets the MHD data pointers to correct offsets
+ * in the offload array.
+ *
+ * This function returns error if the offload data has not been initialized.
+ * The instances themselves should not return an error since all they do is
+ * assign pointers and values.
+ *
  * @param mhddata pointer to data struct on target
  * @param offload_data pointer to offload data struct
- * @param offload_array pointer to offload array
+ * @param offload_array the offload array
+ *
+ * @return Non-zero integer if offload was not initialized beforehand
  */
-void mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
-              real* offload_array) {
+int mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
+             real* offload_array) {
+    int err = 0;
 
-    mhddata->n_modes = offload_data->n_modes;
+    switch(offload_data->type) {
 
-    int n_modes  = offload_data->n_modes;
-    int datasize = NSIZE_COMP2D * offload_data->npsi * offload_data->ntime;
+        case mhd_type_stat:
+            mhd_stat_init(&(mhddata->stat), &(offload_data->stat),
+                          offload_array);
+            break;
 
-    for(int j=0; j<mhddata->n_modes; j++) {
-        mhddata->nmode[j]        = offload_data->nmode[j];
-        mhddata->mmode[j]        = offload_data->mmode[j];
-        mhddata->amplitude_nm[j] = offload_data->amplitude_nm[j];
-        mhddata->omega_nm[j]     = offload_data->omega_nm[j];
+        case mhd_type_nonstat:
+            mhd_nonstat_init(&(mhddata->nonstat), &(offload_data->nonstat),
+                             offload_array);
+            break;
 
-        interp1Dcomp_init_spline(&(mhddata->alpha_nm[j]),
-                                 &(offload_array[j*datasize]),
-                                 offload_data->npsi,
-                                 NATURALBC,
-                                 offload_data->psi_min, offload_data->psi_max);
-
-        interp1Dcomp_init_spline(&(mhddata->phi_nm[j]),
-                                 &(offload_array[(n_modes + j)*datasize]),
-                                 offload_data->npsi,
-                                 NATURALBC,
-                                 offload_data->psi_min, offload_data->psi_max);
-
+        default:
+            /* Unregonized input. Produce error. */
+            print_err("Error: Unregonized electric field type.\n");
+            err = 1;
+            break;
     }
+    mhddata->type = offload_data->type;
+
+    return err;
 }
 
 /**
@@ -188,107 +175,31 @@ void mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
  */
 a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
                boozer_data* boozerdata, mhd_data* mhddata) {
-
     a5err err = 0;
 
-    real ptz[12];
-    int isinside;
-    if(!err) {
-        err = boozer_eval_psithetazeta(ptz, &isinside, r, phi, z, boozerdata);
-    }
-    real rho[2];
-    if(!err) {
-        err = boozer_eval_rho_drho(rho, ptz[0], boozerdata);
-    }
+    switch(mhddata->type) {
 
-    int iterations = mhddata->n_modes;
+        case mhd_type_stat:
+            err = mhd_stat_eval(mhd_dmhd, r, phi, z, t,
+                                boozerdata, &(mhddata->stat));
+            break;
 
-    /* Initialize values */
-    for(int i=0; i<10; i++) {
-        mhd_dmhd[i] = 0;
-    }
+        case mhd_type_nonstat:
+            err = mhd_nonstat_eval(mhd_dmhd, r, phi, z, t,
+                                boozerdata, &(mhddata->nonstat));
+            break;
 
-    /* Skip evaluation if evaluation failed or point outside the boozer grid. */
-    if(err || !isinside) {
-        iterations = 0;
+        default:
+            /* Unregonized input. Produce error. */
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_MHD );
+            break;
     }
 
-    int interperr = 0;
-    for(int i = 0; i < iterations; i++){
-        /* Get interpolated values */
-        real a_da[6], phi_dphi[6];
-        interperr += interp1Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]),
-                                          rho[0]);
-        interperr += interp1Dcomp_eval_df(phi_dphi, &(mhddata->phi_nm[i]),
-                                          rho[0]);
-
-        /* The interpolation returns dx/drho but we require dx/dpsi */
-        a_da[1]     *= rho[1];
-        phi_dphi[1] *= rho[1];
-        for(int j=2; j<6; j++) {
-            a_da[j] = 0;
-            phi_dphi[j] = 0;
-        }
-
-        /* These are used frequently, so store them in separate variables */
-        real mhdarg = mhddata->nmode[i] * ptz[8]
-                    - mhddata->mmode[i] * ptz[4]
-                    - mhddata->omega_nm[i] * t;
-        real sinmhd = sin(mhdarg);
-        real cosmhd = cos(mhdarg);
-
-        /* Sum over modes to get alpha, phi */
-        mhd_dmhd[0] +=     a_da[0] * mhddata->amplitude_nm[i] * cosmhd;
-        mhd_dmhd[5] += phi_dphi[0] * mhddata->amplitude_nm[i] * cosmhd;
-
-        /* Time derivatives */
-        mhd_dmhd[1] +=       a_da[0] * mhddata->amplitude_nm[i]
-                                     * mhddata->omega_nm[i] * sinmhd
-                           + a_da[2] * mhddata->amplitude_nm[i] * cosmhd;
-        mhd_dmhd[6] +=    phi_dphi[0] * mhddata->amplitude_nm[i]
-                                     * mhddata->omega_nm[i] * sinmhd
-                       + phi_dphi[2] * mhddata->amplitude_nm[i] * cosmhd;
-
-        /* R component of gradients */
-        mhd_dmhd[2] += mhddata->amplitude_nm[i]
-            * (  a_da[1] * ptz[1] * cosmhd
-               + a_da[0] * mhddata->mmode[i] * ptz[5] * sinmhd
-               - a_da[0] * mhddata->nmode[i] * ptz[9] * sinmhd);
-        mhd_dmhd[7] += mhddata->amplitude_nm[i]
-            * (   phi_dphi[1] * ptz[1] * cosmhd
-                + phi_dphi[0] * mhddata->mmode[i] * ptz[5] * sinmhd
-                - phi_dphi[0] * mhddata->nmode[i] * ptz[9] * sinmhd);
-
-        /* phi component of gradients */
-        mhd_dmhd[3] += (1/r) * mhddata->amplitude_nm[i]
-            * (  a_da[1] * ptz[2] * cosmhd
-               + a_da[0] * mhddata->mmode[i] * ptz[6]  * sinmhd
-               - a_da[0] * mhddata->nmode[i] * ptz[10] * sinmhd);
-        mhd_dmhd[8] += (1/r) * mhddata->amplitude_nm[i]
-            * (   phi_dphi[1] * ptz[2] * cosmhd
-                + phi_dphi[0] * mhddata->mmode[i] * ptz[6]  * sinmhd
-                - phi_dphi[0] * mhddata->nmode[i] * ptz[10] * sinmhd);
-
-        /* z component of gradients */
-        mhd_dmhd[4] += mhddata->amplitude_nm[i]
-            * (   a_da[1] * ptz[3] * cosmhd
-                + a_da[0] * mhddata->mmode[i] * ptz[7]  * sinmhd
-                - a_da[0] * mhddata->nmode[i] * ptz[11] * sinmhd);
-        mhd_dmhd[9] += mhddata->amplitude_nm[i]
-            * (   phi_dphi[1] * ptz[3] * cosmhd
-                + phi_dphi[0] * mhddata->mmode[i] * ptz[7]  * sinmhd
-                - phi_dphi[0] * mhddata->nmode[i] * ptz[11] * sinmhd);
-    }
-
-    if(interperr) {
-        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_MHD );
-    }
     return err;
 }
 
 /**
- * @brief Evaluate mhd perturbed fields Btilde, Etilde and potential
- * Phi for full orbit
+ * @brief Evaluate perturbed fields Btilde, Etilde and potential Phi explicitly
  *
  * The values are stored in the given array as
  * - pert_field[0] = BtildeR
@@ -300,8 +211,9 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
  * - pert_field[6] = Phi
  *
  * Only the perturbation values for the magnetic field are returned if
- * pertonly=1, otherwise, the total perturbed field is returned. This is done to For electric
- * field only the perturbation component is returned.
+ * pertonly=1, otherwise, the total perturbed field is returned. This is done to
+ * avoid double evaluation of the magnetic field e.g. in field line tracing.
+ * For electric field only the perturbation component is returned always.
  *
  * @param pert_field perturbation field components
  * @param r R coordinate [m]
@@ -315,54 +227,28 @@ a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err mhd_perturbations(real pert_field[7], real r, real phi,
-                        real z, real t, int pertonly, boozer_data* boozerdata,
+a5err mhd_perturbations(real pert_field[7], real r, real phi, real z,
+                        real t, int pertonly, boozer_data* boozerdata,
                         mhd_data* mhddata, B_field_data* Bdata) {
     a5err err = 0;
-    real mhd_dmhd[10];
-    if(!err) {
-        err = mhd_eval(mhd_dmhd, r, phi, z, t, boozerdata, mhddata);
-    }
-    /*  see example of curl evaluation in step_gc_rk4.c, ydot_gc*/
-    real B_dB[15];
-    if(!err) {
-        err = B_field_eval_B_dB(B_dB, r, phi, z, t, Bdata);
-    }
 
-    if(!err) {
-        real B[3];
-        B[0] = B_dB[0];
-        B[1] = B_dB[4];
-        B[2] = B_dB[8];
+    switch(mhddata->type) {
 
-        real curlB[3];
-        curlB[0] = B_dB[10]/r - B_dB[7];
-        curlB[1] = B_dB[3] - B_dB[9];
-        curlB[2] = (B[1] - B_dB[2])/r + B_dB[5];
+        case mhd_type_stat:
+            err =  mhd_stat_perturbations(pert_field, r, phi, z, t, pertonly,
+                                          boozerdata, &(mhddata->stat), Bdata);
+            break;
 
-        real gradalpha[3];
-        gradalpha[0] = mhd_dmhd[2];
-        gradalpha[1] = mhd_dmhd[3];
-        gradalpha[2] = mhd_dmhd[4];
+        case mhd_type_nonstat:
+            err =  mhd_nonstat_perturbations(pert_field, r, phi, z, t, pertonly,
+                                             boozerdata, &(mhddata->nonstat),
+                                             Bdata);
+            break;
 
-        real gradalphacrossB[3];
-
-        math_cross(gradalpha, B, gradalphacrossB);
-
-        pert_field[0] = mhd_dmhd[0]*curlB[0] + gradalphacrossB[0];
-        pert_field[1] = mhd_dmhd[0]*curlB[1] + gradalphacrossB[1];
-        pert_field[2] = mhd_dmhd[0]*curlB[2] + gradalphacrossB[2];
-
-        pert_field[3] = -mhd_dmhd[7] - B[0]*mhd_dmhd[1];
-        pert_field[4] = -mhd_dmhd[8] - B[1]*mhd_dmhd[1];
-        pert_field[5] = -mhd_dmhd[9] - B[2]*mhd_dmhd[1];
-        pert_field[6] = mhd_dmhd[5];
-
-        if(!pertonly) {
-            pert_field[0] += B[0];
-            pert_field[1] += B[1];
-            pert_field[2] += B[2];
-        }
+        default:
+            /* Unregonized input. Produce error. */
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_MHD );
+            break;
     }
 
     return err;
