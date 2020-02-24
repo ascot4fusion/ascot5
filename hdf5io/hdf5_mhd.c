@@ -39,14 +39,14 @@ int hdf5_mhd_init_offload(hid_t f, mhd_offload_data* offload_data,
     int err = 1;
 
     /* Read data the QID corresponds to */
-    hdf5_gen_path("/mhd/mhdstat_XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/mhd/MHD_STAT_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
         offload_data->type = mhd_type_stat;
         err = hdf5_mhd_read_stat(f, &(offload_data->stat),
                                  offload_array, qid);
     }
 
-    hdf5_gen_path("/mhd/mhdnonstat_XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/mhd/MHD_NONSTAT_XXXXXXXXXX", qid, path);
     if( !hdf5_find_group(f, path) ) {
         offload_data->type = mhd_type_nonstat;
         err = hdf5_mhd_read_nonstat(f, &(offload_data->nonstat),
@@ -74,7 +74,7 @@ int hdf5_mhd_init_offload(hid_t f, mhd_offload_data* offload_data,
 int hdf5_mhd_read_stat(hid_t f, mhd_stat_offload_data* offload_data,
                        real** offload_array, char* qid) {
     #undef MHDPATH
-    #define MHDPATH "/mhd/mhd_stat_XXXXXXXXXX/"
+    #define MHDPATH "/mhd/MHD_STAT_XXXXXXXXXX/"
 
     /* Read parameters. */
     if( hdf5_read_int(   MHDPATH "nmode",      &(offload_data->n_modes),
@@ -120,7 +120,7 @@ int hdf5_mhd_read_stat(hid_t f, mhd_stat_offload_data* offload_data,
 int hdf5_mhd_read_nonstat(hid_t f, mhd_nonstat_offload_data* offload_data,
                           real** offload_array, char* qid) {
     #undef MHDPATH
-    #define MHDPATH "/mhd/mhd_nonstat_XXXXXXXXXX/"
+    #define MHDPATH "/mhd/MHD_NONSTAT_XXXXXXXXXX/"
 
     /* Read parameters. */
     if( hdf5_read_int(   MHDPATH "nmode",      &(offload_data->n_modes),
