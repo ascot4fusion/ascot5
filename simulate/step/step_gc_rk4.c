@@ -261,7 +261,6 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             yprev[0] = p->r[i];
             yprev[1] = p->phi[i];
             yprev[2] = p->z[i];
-            yprev[3] = p->vpar[i];
             yprev[4] = p->mu[i];
             yprev[5] = p->zeta[i];
 
@@ -281,6 +280,10 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             B_dB[10] = p->B_z_dphi[i];
             B_dB[11] = p->B_z_dz[i];
 
+            real normB = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
+            real qBrhom;
+            real gamma = physlib_gamma_vpar(mass, p->mu[i], p->vpar[i], normB);
+            yprev[3] = gamma*mass*p->vpar[i] / (charge*normB);
 
             if(!errflag) {
                 errflag = E_field_eval_E(E, yprev[0], yprev[1], yprev[2], time,
@@ -361,6 +364,11 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
                     + h[i]/6.0 * (k1[j] + 2*k2[j] + 2*k3[j] + k4[j]);
             }
 
+            //printf("%g %g\n", yprev[0], y[0]);
+            //printf("%g %g\n", yprev[1], y[1]);
+            //printf("%g %g\n", yprev[2], y[2]);
+            //printf("%g %g\n", yprev[3], y[3]);
+
             /* Test that results are physical */
             if(!errflag && y[0] <= 0) {
                 errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
@@ -377,7 +385,6 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
                 p->r[i]    = y[0];
                 p->phi[i]  = y[1];
                 p->z[i]    = y[2];
-                p->vpar[i] = y[3];
                 p->mu[i]   = y[4];
                 p->zeta[i] = fmod(y[5],CONST_2PI);
                 if(p->zeta[i]<0){
@@ -415,6 +422,12 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
                 p->B_z_dr[i]     = B_dB[9];
                 p->B_z_dphi[i]   = B_dB[10];
                 p->B_z_dz[i]     = B_dB[11];
+
+                normB = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
+                qBrhom = charge*normB*y[3]/mass;
+                gamma = sqrt( 1 + 2*p->mu[i]*normB/(mass*CONST_C2)
+                              + qBrhom*qBrhom/CONST_C2 );
+                p->vpar[i] = charge*normB*y[3] / (gamma*mass);
 
                 p->rho[i] = rho[0];
 
