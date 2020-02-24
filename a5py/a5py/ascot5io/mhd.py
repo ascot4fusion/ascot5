@@ -68,15 +68,16 @@ def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, alpha, phi,
     if ntime is None:
         assert alpha.shape == (npsi,nmode)
         assert phi.shape   == (npsi,nmode)
+        alpha = np.transpose(alpha, (1,0) )
+        phi   = np.transpose(phi,   (1,0) )
     else:
         assert alpha.shape == (npsi,ntime,nmode)
         assert phi.shape   == (npsi,ntime,nmode)
-
-    alpha = np.transpose(alpha, (2,1,0) )
-    phi   = np.transpose(phi,   (2,1,0) )
+        alpha = np.transpose(alpha, (2,1,0) )
+        phi   = np.transpose(phi,   (2,1,0) )
 
     parent = "mhd"
-    group  = "MHD_NONSTAT" if ntime is None else "MHD_STAT"
+    group  = "MHD_STAT" if ntime is None else "MHD_NONSTAT"
     gname  = ""
 
     with h5py.File(fn, "a") as f:

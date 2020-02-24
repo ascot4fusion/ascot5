@@ -156,7 +156,7 @@ def create_inputobject(key, h5group):
         "wall_2D" : wall_2D, "wall_3D" : wall_3D,
         "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS,
         "N0_3D" : N0_3D,
-        "Boozer" : Boozer, "MHD" : MHD,
+        "Boozer" : Boozer, "MHD_STAT" : MHD, "MHD_NONSTAT" : MHD,
         "opt" : Opt
     }
 
