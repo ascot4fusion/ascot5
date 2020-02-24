@@ -114,6 +114,31 @@ def init():
 
     options.write_hdf5(helpers.testfn, odict, desc="MHD_GCF")
 
+    #**************************************************************************#
+    #*             Generate options for GCA                                    #
+    #*                                                                         #
+    #**************************************************************************#
+    odict = options.generateopt()
+    helpers.clean_opt(odict)
+
+    odict["SIM_MODE"]                  = 2
+    odict["ENABLE_ADAPTIVE"]           = 1
+    odict["ADAPTIVE_TOL_ORBIT"]        = 1e-10
+    odict["ADAPTIVE_MAX_DRHO"]         = 0.1
+    odict["ADAPTIVE_MAX_DPHI"]         = 10
+    odict["FIXEDSTEP_USE_USERDEFINED"] = 1
+    odict["FIXEDSTEP_USERDEFINED"]     = 1e-11
+    odict["ENDCOND_SIMTIMELIM"]        = 1
+    odict["ENDCOND_MAX_SIMTIME"]       = 1e-4
+    odict["ENABLE_ORBIT_FOLLOWING"]    = 1
+    odict["ENABLE_MHD"]                = 1
+    odict["ENABLE_ORBITWRITE"]         = 1
+    odict["ORBITWRITE_MODE"]           = 1
+    odict["ORBITWRITE_INTERVAL"]       = 1e-7
+    odict["ORBITWRITE_NPOINT"]         = 1e4
+
+    options.write_hdf5(helpers.testfn, odict, desc="MHD_GCA")
+
 
     #**************************************************************************#
     #*                            Field line markers                           #
@@ -133,7 +158,7 @@ def init():
     time   = 0       * np.array([1, 1])
     phi    = 0       * np.array([1, 1])
     z      = 0       * np.array([1, 1])
-    for d in ["MHD_GO", "MHD_GCF"]:
+    for d in ["MHD_GO", "MHD_GCF", "MHD_GCA"]:
         mrk.write_hdf5(helpers.testfn, Nmrk, ids, mass, charge,
                        R, phi, z, energy, pitch, zeta,
                        anum, znum, weight, time, desc=d)
@@ -142,7 +167,7 @@ def init():
     #*                     Construct ITER-like magnetic field                  #
     #*                                                                         #
     #**************************************************************************#
-    for d in ["MHD_GO", "MHD_GCF"]:
+    for d in ["MHD_GO", "MHD_GCF", "MHD_GCA"]:
         B_GS.write_hdf5(helpers.testfn, R0, z0, Bphi0, psi_mult, psi_coeff,
                         desc=d)
 
@@ -164,7 +189,7 @@ def init():
                                    psi0=h5.bfield["MHD_GCF"].read()["psi0"],
                                    psi1=h5.bfield["MHD_GCF"].read()["psi1"])
     a5.free(bfield=True)
-    for d in ["MHD_GO", "MHD_GCF"]:
+    for d in ["MHD_GO", "MHD_GCF", "MHD_GCA"]:
         boozer.write_hdf5(helpers.testfn, desc=d, **booz)
 
     #**************************************************************************#
@@ -188,14 +213,14 @@ def init():
     phi = alpha*0
     mhd["phi"]   = np.tile(phi, (mhd["nmode"],1)).T
     mhd["alpha"] = np.tile(alpha, (mhd["nmode"],1)).T
-    for d in ["MHD_GO", "MHD_GCF"]:
+    for d in ["MHD_GO", "MHD_GCF", "MHD_GCA"]:
         mhdmod.write_hdf5(helpers.testfn, desc=d, **mhd)
 
     #**************************************************************************#
     #*                     Rest of the inputs are trivial                      #
     #*                                                                         #
     #**************************************************************************#
-    for d in ["MHD_GO", "MHD_GCF"]:
+    for d in ["MHD_GO", "MHD_GCF", "MHD_GCA"]:
         Exyz   = np.array([0, 0, 0])
         E_TC.write_hdf5(helpers.testfn, Exyz, desc=d)
 
@@ -224,7 +249,7 @@ def run():
     """
     Run tests.
     """
-    for test in ["MHD_GO", "MHD_GCF"]:
+    for test in ["MHD_GO", "MHD_GCF"]:#, "MHD_GCA"]:
         helpers.set_and_run(test)
 
 def check():
@@ -245,7 +270,7 @@ def check():
             mhd=h5.mhd["MHD_GCF"].get_qid())
 
     fig = plt.figure()
-    for run in ["MHD_GO", "MHD_GCF"]:
+    for run in ["MHD_GO", "MHD_GCF"]:#, "MHD_GCA"]:
         orb = h5[run].orbit
 
         B0 = np.sqrt(np.power(orb["br"],2) + np.power(orb["bphi"],2) +
@@ -262,24 +287,19 @@ def check():
                             t=orb["time"], quantity="phi")
         bdb = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
                          t=orb["time"], quantity="db/b")
-        #b0 = (1+bdb)*b0
 
         if run == "MHD_GO":
             gamma = np.sqrt(1/(1-(orb["vr"]**2+orb["vphi"]**2+orb["vz"]**2)/c**2))
             vphi = orb["vphi"]
             H    = (gamma - 1) * m_p * c**2
-            #H    = 0.5*m_p*(orb["vr"]**2+orb["vphi"]**2+orb["vz"]**2)
-            delta = 0
         else:
             gamma = np.sqrt( ( 1 + 2 * orb["mu"] * b0 / ( m_p * c**2 ) ) /
                          ( 1 - orb["vpar"] **2 / c**2 ) )
             vphi = orb["vpar"] * orb["bphi"] / b0
-            H    = m_p * c**2 *(np.sqrt(1 + 2*orb["mu"]*b0/(m_p*c**2) \
-                                        + (gamma*orb["vpar"]/c)**2)-1) \
-                                        + orb["charge"]*Phi
+            H    = m_p * c**2 *(gamma-1) + orb["charge"]*Phi
 
         ctor = gamma * m_p * orb["r"] * vphi + orb["charge"] * psi \
-               + orb["r"] *orb["charge"] * (alpha+delta) * bphi
+               + orb["r"] *orb["charge"] * alpha * bphi
 
         ids = orb["id"]
         K = H - modefreq*ctor/nmode
@@ -288,11 +308,11 @@ def check():
         K = K[ids==2]
 
         if run == "MHD_GO":
-            #plt.plot(time, (K-K[0])/K[0], color="black")
-            plt.plot(time, K, color="black")
+            plt.plot(time, (K-K[0])/K[0], color="black")
+            #plt.plot(time, K, color="black")
             pass
         else:
-            #plt.plot(time, (K-K[0])/K[0], color="red")
+            plt.plot(time, (K-K[0])/K[0], color="red")
             #plt.plot(time, K, color="red")
             pass
 
