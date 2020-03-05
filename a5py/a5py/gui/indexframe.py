@@ -211,7 +211,7 @@ class IndexFrame(tkinter.Frame):
             self._gui.displayframe(BoozerFrame(self._gui, ascotpy, qid, bqid,
                                                walldata))
 
-        if inputtype in ["MHD"]:
+        if inputtype in ["MHD_STAT", "MHD_NONSTAT"]:
             if "bfield" in self._panels:
                 group = self._panels["bfield"]._inputselection.get()
                 bqid   = self._gui.get_ascotobject()["bfield"][group].get_qid()
@@ -265,7 +265,7 @@ class IndexFrame(tkinter.Frame):
 
 
     def select_inputs(self, options=None, bfield=None, efield=None, plasma=None,
-                      marker=None, neutral=None, wall=None):
+                      marker=None, neutral=None, wall=None, boozer=None, mhd=None):
         """
         Set given inputs as selected in their corresponding panels.
         """
@@ -635,4 +635,6 @@ class RunInfoPanel(ttk.LabelFrame):
                                        plasma=run.plasma.get_name(),
                                        neutral=run.neutral.get_name(),
                                        marker=run.marker.get_name(),
-                                       wall=run.wall.get_name())
+                                       wall=run.wall.get_name(),
+                                       boozer=run.boozer.get_name(),
+                                       mhd=run.mhd.get_name())
