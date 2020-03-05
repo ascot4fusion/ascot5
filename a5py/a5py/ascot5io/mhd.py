@@ -15,8 +15,8 @@ import numpy as np
 from . ascot5file import add_group
 from . ascot5data import AscotData
 
-def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, alpha, phi,
-               npsi, psimin, psimax, ntime=None, tmin=None, tmax=None,
+def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, phase, alpha, phi,
+               nrho, rhomin, rhomax, ntime=None, tmin=None, tmax=None,
                desc=None):
     """
     Write MHD input to HDF5 file.
@@ -37,16 +37,20 @@ def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, alpha, phi,
             Mode amplitudies.
         omega : array_like (nmode,) <br>
             Mode frequencies [rad/s].
-        alpha : array_like (npsi, ntime, nmode) <br>
-            Mode alpha. If no time grid, the shape should be (npsi, nmode).
-        phi : array_like (npsi, ntime, nmode) <br>
-            Mode phi. If no time grid, the shape should be (npsi, nmode).
-        npsi : int <br>
-            Number of psi grid points.
-        psimin : float <br>
-            Minimum value in psi grid.
-        psimax : float <br>
-            Maximum value in psi grid.
+        omega : array_like (nmode,) <br>
+            Mode phases [rad].
+        alpha : array_like (nrho, ntime, nmode) <br>
+            Magnetic perturbation eigenfunctions. If no time grid, the shape
+            should be (nrho, nmode).
+        phi : array_like (nrho, ntime, nmode) <br>
+            Electric perturbation eigenfunctions. If no time grid, the shape
+            should be (nrho, nmode).
+        nrho : int <br>
+            Number of rho grid points.
+        rhomin : float <br>
+            Minimum value in rho grid.
+        rhomax : float <br>
+            Maximum value in rho grid.
         ntime : int, optional <br>
             Number of time grid points.
         tmin : float, optional <br>
@@ -66,13 +70,13 @@ def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, alpha, phi,
     (ntime is not None and tmin is not None and tmax is not None)
 
     if ntime is None:
-        assert alpha.shape == (npsi,nmode)
-        assert phi.shape   == (npsi,nmode)
+        assert alpha.shape == (nrho,nmode)
+        assert phi.shape   == (nrho,nmode)
         alpha = np.transpose(alpha, (1,0) )
         phi   = np.transpose(phi,   (1,0) )
     else:
-        assert alpha.shape == (npsi,ntime,nmode)
-        assert phi.shape   == (npsi,ntime,nmode)
+        assert alpha.shape == (nrho,ntime,nmode)
+        assert phi.shape   == (nrho,ntime,nmode)
         alpha = np.transpose(alpha, (2,1,0) )
         phi   = np.transpose(phi,   (2,1,0) )
 
@@ -85,25 +89,26 @@ def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, alpha, phi,
         gname = g.name.split("/")[-1]
 
         g.create_dataset("nmode",  (1,), data=nmode,  dtype="i4")
-        g.create_dataset("npsi",   (1,), data=npsi,   dtype="i4")
-        g.create_dataset("psimin", (1,), data=psimin, dtype="f8")
-        g.create_dataset("psimax", (1,), data=psimax, dtype="f8")
+        g.create_dataset("nrho",   (1,), data=nrho,   dtype="i4")
+        g.create_dataset("rhomin", (1,), data=rhomin, dtype="f8")
+        g.create_dataset("rhomax", (1,), data=rhomax, dtype="f8")
 
         g.create_dataset("nmodes", (nmode,), data=nmodes, dtype="i4")
         g.create_dataset("mmodes", (nmode,), data=mmodes, dtype="i4")
 
         g.create_dataset("amplitude", (nmode,), data=amplitude, dtype="f8")
         g.create_dataset("omega",     (nmode,), data=omega,     dtype="f8")
+        g.create_dataset("phase",     (nmode,), data=phase,     dtype="f8")
 
         if ntime is None:
-            g.create_dataset("alpha", (nmode,npsi), data=alpha, dtype="f8")
-            g.create_dataset("phi",   (nmode,npsi), data=phi,   dtype="f8")
+            g.create_dataset("alpha", (nmode,nrho), data=alpha, dtype="f8")
+            g.create_dataset("phi",   (nmode,nrho), data=phi,   dtype="f8")
         else:
             g.create_dataset("ntime", (1,), data=ntime, dtype="i4")
             g.create_dataset("tmin",  (1,), data=tmin,  dtype="f8")
             g.create_dataset("tmax",  (1,), data=tmax,  dtype="f8")
-            g.create_dataset("alpha", (nmode,ntime,npsi), data=alpha,dtype="f8")
-            g.create_dataset("phi",   (nmode,ntime,npsi), data=phi,  dtype="f8")
+            g.create_dataset("alpha", (nmode,ntime,nrho), data=alpha,dtype="f8")
+            g.create_dataset("phi",   (nmode,ntime,nrho), data=phi,  dtype="f8")
 
     return gname
 
@@ -117,18 +122,19 @@ def write_hdf5_dummy(fn, desc="Dummy"):
             Full path to the HDF5 file.
     """
     nmode = 2
-    npsi  = 6
+    nrho  = 6
 
     nmodes    = np.array([1, 2])
     mmodes    = np.array([3, 4])
     amplitude = np.array([0.1, 2])
     omega     = np.array([1, 1.5])
-    alpha     = np.ones((npsi,nmode))
-    phi       = np.ones((npsi,nmode))
-    psimin    = 0
-    psimax    = 1
-    write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, alpha, phi,
-               npsi, psimin, psimax,
+    phase     = np.array([0, 3.141/4])
+    alpha     = np.ones((nrho,nmode))
+    phi       = np.ones((nrho,nmode))
+    rhomin    = 0
+    rhomax    = 1
+    write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, phase, alpha, phi,
+               nrho, rhomin, rhomax,
                desc=desc)
 
 
