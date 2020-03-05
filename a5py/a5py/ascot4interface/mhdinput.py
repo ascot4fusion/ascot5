@@ -17,7 +17,7 @@ def read_alfven(fn):
         data["nmode"] = int(fh.readline().split()[0])
 
         # Number of radial points for profiles
-        data["npsi"] = int(fh.readline().split()[0])
+        data["nrho"] = int(fh.readline().split()[0])
 
         # Skip empty line
         fh.readline()
@@ -38,15 +38,18 @@ def read_alfven(fn):
         data["omega"] = np.array(fh.readline().split()[:data["nmode"]])
         data["omega"] = data["omega"].astype(np.float)
 
+        # Phase not given, fix it at zero
+        data["phase"] = data["omega"]*0
+
         # psin, alpha profile, phi profile, each line corresponds to one psislot
         line = fh.readline()
-        psi   = np.zeros( (data["npsi"],1) )
-        alpha = np.zeros( (data["npsi"],data["nmode"]) )
-        phi   = np.zeros( (data["npsi"],data["nmode"]) )
+        psi   = np.zeros( (data["nrho"],1) )
+        alpha = np.zeros( (data["nrho"],data["nmode"]) )
+        phi   = np.zeros( (data["nrho"],data["nmode"]) )
         line = fh.readline()
 
         # File ends in #EOF
-        for i in range(data["npsi"]):
+        for i in range(data["nrho"]):
             line = line.split()
             psi[i]     = line[0]
             alpha[i,:] = line[1:data["nmode"]+1]
@@ -54,13 +57,13 @@ def read_alfven(fn):
             line = fh.readline()
 
         # Set data on uniform grid
-        data["psimin"] = psi[0]
-        data["psimax"] = psi[-1]
+        data["rhomin"] = psi[0]
+        data["rhomax"] = psi[-1]
 
-        psiq = np.linspace(data["psimin"], data["psimax"], data["npsi"])
+        psiq = np.linspace(data["rhomin"], data["rhomax"], data["nrho"])
 
-        data["alpha"] = np.zeros( (data["npsi"],data["nmode"]) )
-        data["phi"]   = np.zeros( (data["npsi"],data["nmode"]) )
+        data["alpha"] = np.zeros( (data["nrho"],data["nmode"]) )
+        data["phi"]   = np.zeros( (data["nrho"],data["nmode"]) )
         for i in range(data["nmode"]):
             f = interpolate.interp1d(psi.ravel(), alpha[:,i])
             data["alpha"][:,i] = f(psiq).ravel()
