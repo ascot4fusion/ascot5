@@ -14,7 +14,7 @@ Boozer coordinates have the following properties:
 2. The Jacobian has the following dependency h(psi) / B^2.
 
 These properties are tested by implementing an analytical equilibrium,
-consturcting the boozer coordinates, and evaluating the field line trajectories
+constructing the boozer coordinates, and evaluating the field line trajectories
 with ASCOT5. Furthermore, it is shown that the helical perturbations appear
 correctly.
 
@@ -48,6 +48,8 @@ from a5py.ascotpy.ascotpy import Ascotpy
 from a5py.preprocessing.analyticequilibrium import psi0 as psifun
 from a5py.preprocessing.generateboozer import generate as genbooz
 
+from matplotlib.gridspec import GridSpec
+
 psi_mult  = 200
 R0        = 6.2
 z0        = 0
@@ -61,6 +63,10 @@ psi_coeff = np.array([ 2.218e-02, -1.288e-01, -4.177e-02, -6.227e-02,
 # MHd modes
 nmode = 2
 mmode = 3
+
+# boozer Rz grid
+rgrid = np.linspace(4, 8.5, 200)
+zgrid = np.linspace(-2.5, 2.5, 200)
 
 def init():
     """
@@ -119,8 +125,8 @@ def init():
     a5 = Ascotpy(helpers.testfn)
     a5.init(bfield=h5.bfield["BOOZER"].get_qid())
     booz, rhoprof, qprof = genbooz(a5,
-                                   rgrid=np.linspace(4, 8.5, 200),
-                                   zgrid=np.linspace(-2.5, 2.5, 200),
+                                   rgrid=rgrid,
+                                   zgrid=zgrid,
                                    npsi=200,
                                    nthgeo=360,
                                    nthbzr=360,
@@ -145,14 +151,15 @@ def init():
     mhd["mmodes"]    = np.array([mmode])
     mhd["amplitude"] = np.array([1])
     mhd["omega"]     = np.array([1])
+    mhd["phase"]     = np.array([0])
 
-    mhd["npsi"]   = 100
-    mhd["psimin"] = 0.0
-    mhd["psimax"] = 1
+    mhd["nrho"]   = 100
+    mhd["rhomin"] = 0.0
+    mhd["rhomax"] = 1
 
-    psigrid = np.linspace(mhd["psimin"], mhd["psimax"], mhd["npsi"])
-    alpha = np.exp( -(psigrid-0.85)**2/0.1 )
-    phi = alpha*0
+    rhogrid = np.linspace(mhd["rhomin"], mhd["rhomax"], mhd["nrho"])
+    alpha   = np.exp( -(rhogrid-0.85)**2/0.1 )
+    phi     = alpha*0
     mhd["phi"]   = np.tile(phi, (mhd["nmode"],1)).T
     mhd["alpha"] = np.tile(alpha, (mhd["nmode"],1)).T
     mhdmod.write_hdf5(helpers.testfn, desc="BOOZER", **mhd)
@@ -196,11 +203,14 @@ def check():
     """
     Plot the results of these tests.
 
-    This function makes four plots.
-    - One that shows conservation of energy for all cases
-    - One that shows conservation of magnetic moment for all cases
-    - One that shows conservation of toroidal canonical momentum for all cases
-    - And one that shows trajectories on a Rz plane for all cases
+    This function makes five plots.
+    - One for both markers showing that indeed they trace straight field lines
+      in Boozer coordinates. On top of these a line with safety factor as slope
+      is plotted.
+    - One for both markers showing that the MHD perturbation along the field has
+      a sinusoidal shape with correct amplitude.
+    - Final plot shows the product Jacobian * B^2 which should be a flux surface
+      function. To verify this, rho contours are also plotted.
     """
     h5 = ascot5.Ascot(helpers.testfn)
     orb = h5["BOOZER"].orbit
@@ -215,32 +225,120 @@ def check():
                        t=orb["time"], quantity="zeta")
     alpha = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
                         t=orb["time"]*0, quantity="alpha")
+    jac = a5.evaluate(rgrid, phi=0, z=zgrid, t=0, grid=True,
+                      quantity="jacobian")
+    B =  a5.evaluate(rgrid, phi=0, z=zgrid, t=0, grid=True, quantity="bnorm")
+    rhovals = a5.evaluate(rgrid, phi=0, z=zgrid, t=0, grid=True, quantity="rho")
     a5.free(bfield=True, boozer=True, mhd=True)
 
     ids = orb["id"]
-    th = np.linspace(0,2*np.pi,200)
 
-    fig = plt.figure()
-    s1 = fig.add_subplot(2,2,1)
-    s1.plot(theta[ids==1], np.mod(zeta[ids==1]+2*np.pi, 2*np.pi),
+    fig = plt.figure(figsize=(11.9/2.54, 8/2.54), constrained_layout=True)
+    plt.rc('xtick', labelsize=10)
+    plt.rc('ytick', labelsize=10)
+    plt.rc('axes', labelsize=10)
+    plt.rcParams['mathtext.fontset'] = 'stix'
+    plt.rcParams['font.family'] = 'STIXGeneral'
+
+    gs = GridSpec(ncols=3, nrows=2, figure=fig)
+
+    # Plot field lines for the first point #
+    th = np.linspace(0, 2*np.pi*3, 5000)
+    s1 = fig.add_subplot(gs[0,0])
+    s1.plot(theta[ids==1][:160], zeta[ids==1][:160],
             linestyle="none", marker=".")
     line = 1.67*th
-    s1.plot(th[line < 2*np.pi], line[line < 2*np.pi], color="black")
+    idx = np.argwhere(np.logical_or(
+        np.diff(np.mod(th, 2*np.pi)) < 0,
+        np.diff(np.mod(line, 2*np.pi)) < 0
+    ) )
+    i0 = 0
+    for i in range(idx.size):
+        i1 = int(idx[i])
+        s1.plot(np.mod(th, 2*np.pi)[i0:i1],
+                np.mod(line, 2*np.pi)[i0:i1], color="black")
+        i0 = i1+1
 
-    s2 = fig.add_subplot(2,2,2)
-    s2.plot(theta[ids==2], np.mod(zeta[ids==2]+2*np.pi, 2*np.pi),
+    s1.set_xlim(0, 2*np.pi)
+    s1.set_ylim(0, 2*np.pi)
+    s1.set_xticks([0, 2*np.pi])
+    s1.set_xticklabels(["", ""])
+    s1.set_yticks([0, 2*np.pi])
+    s1.set_yticklabels(["0", r"$2\pi$"])
+    s1.set_ylabel("Boozer phi [rad]")
+    s1.set_title("Field lines")
+
+    # Plot field lines for the second point #
+    th = np.linspace(0, 2*np.pi*5, 5000)
+    s2 = fig.add_subplot(gs[1,0])
+    s2.plot(theta[ids==2][:350], zeta[ids==2][:350],
             linestyle="none", marker=".")
-    line = 2.19*th
-    s2.plot(th[line < 2*np.pi], line[line < 2*np.pi], color="black")
+    line = 2.198*th
+    idx = np.argwhere(np.logical_or(
+        np.diff(np.mod(th, 2*np.pi)) < 0,
+        np.diff(np.mod(line, 2*np.pi)) < 0
+    ) )
+    i0 = 0
+    for i in range(idx.size):
+        i1 = int(idx[i])
+        s2.plot(np.mod(th, 2*np.pi)[i0:i1],
+                np.mod(line, 2*np.pi)[i0:i1], color="black")
+        i0 = i1+1
 
-    s3 = fig.add_subplot(2,2,3)
+    s2.set_xlim(0, 2*np.pi)
+    s2.set_ylim(0, 2*np.pi)
+    s2.set_xticks([0, 2*np.pi])
+    s2.set_xticklabels(["0", r"$2\pi$"])
+    s2.set_yticks([0, 2*np.pi])
+    s2.set_yticklabels(["0", r"$2\pi$"])
+    s2.set_xlabel("Boozer theta [rad]")
+    s2.set_ylabel("Boozer phi [rad]")
+
+    # Plot perturbation for the first point #
+    s3 = fig.add_subplot(gs[0,1])
     s3.plot(np.mod(nmode*zeta[ids==1] - mmode*theta[ids==1], 2*np.pi),
             alpha[ids==1], linestyle="none", marker=".")
 
-    s4 = fig.add_subplot(2,2,4)
+    rho        = orb["rho"][ids==1][0]
+    amplitude  = np.exp( -(rho-0.85)**2/0.1 )
+    th         = np.linspace(0, 2*np.pi, 100)
+    mode       = amplitude * np.cos(th)
+    s3.plot(th, mode, color="black")
+
+    s3.set_xlim(0, 2*np.pi)
+    s3.set_xticks([0, 2*np.pi])
+    s3.set_xticklabels(["", ""])
+    s3.set_title("Perturbation")
+
+    # Plot perturbation for the second point #
+    s4 = fig.add_subplot(gs[1,1])
     s4.plot(np.mod(nmode*zeta[ids==2] - mmode*theta[ids==2], 2*np.pi),
             alpha[ids==2], linestyle="none", marker=".")
 
+    rho        = orb["rho"][ids==2][0]
+    amplitude  = np.exp( -(rho-0.85)**2/0.1 )
+    th         = np.linspace(0, 2*np.pi, 100)
+    mode       = amplitude * np.cos(th)
+    s4.plot(th, mode, color="black")
+
+    s4.set_xlim(0, 2*np.pi)
+    s4.set_xticks([0, 2*np.pi])
+    s4.set_xticklabels(["0", r"$2\pi$"])
+    s4.set_xlabel("Phase [rad]")
+    s4.set_ylabel("Amplitude [A.U.]")
+
+    # Plot Jacobian #
+    jac     = np.squeeze(jac)
+    B       = np.squeeze(B)
+    rhovals = np.squeeze(rhovals)
+    s5 = fig.add_subplot(gs[0:2,2])
+    s5.pcolormesh(rgrid, zgrid, (jac*B**2).T )
+    s5.contour(rgrid, zgrid, rhovals.T, colors="black" )
+    s5.set_xlabel(r"$R$ [m]")
+    s5.set_ylabel(r"$z$ [m]")
+    s5.set_title("Jacobian x B")
+
+    plt.savefig("test_boozercoordinates.png", dpi=300)
     plt.show()
 
 

@@ -203,14 +203,15 @@ def init():
     mhd["mmodes"]    = np.array([mmode])
     mhd["amplitude"] = np.array([amplitude])
     mhd["omega"]     = np.array([modefreq])
+    mhd["phase"]     = np.array([np.pi/4])
 
-    mhd["npsi"]   = 100
-    mhd["psimin"] = 0.0
-    mhd["psimax"] = 1
+    mhd["nrho"]   = 100
+    mhd["rhomin"] = 0.0
+    mhd["rhomax"] = 1
 
-    psigrid = np.linspace(mhd["psimin"], mhd["psimax"], mhd["npsi"])
-    alpha = np.exp( -(psigrid-0.85)**2/0.1 )
-    phi = alpha*0
+    psigrid = np.linspace(mhd["rhomin"], mhd["rhomax"], mhd["nrho"])
+    alpha   = np.exp( -(psigrid-0.85)**2/0.1 )
+    phi     = alpha*0
     mhd["phi"]   = np.tile(phi, (mhd["nmode"],1)).T
     mhd["alpha"] = np.tile(alpha, (mhd["nmode"],1)).T
     for d in ["MHD_GO", "MHD_GCF", "MHD_GCA"]:
