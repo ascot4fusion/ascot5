@@ -19,11 +19,11 @@
  * and fills the offload array. Sets offload array length in the offload struct.
  *
  * It is assumed that the offload_data struct is completely filled before
- * calling this function (except for the offload_array_length and psigrid).
+ * calling this function (except for the offload_array_length and rhogrid).
  * Furthermore, offload array should contain following data:
  *
- * - offload_array[j*npsi + i] : alpha(mode_j, psi_i).
- * - offload_array[n_modes*npsi + j*npsi + i] : phi(mode_j, psi_i).
+ * - offload_array[j*nrho + i] : alpha(mode_j, rho_i).
+ * - offload_array[n_modes*nrho + j*nrho + i] : phi(mode_j, rho_i).
  *
  * 1D splines are constructed here and stored to offload array which is
  * reallocated.
@@ -39,12 +39,12 @@ int mhd_nonstat_init_offload(mhd_nonstat_offload_data* offload_data,
     /* Allocate array for storing 2D spline coefficients for two quantities
      * for each mode                                                         */
     real* coeff_array = (real*)malloc(2 * NSIZE_COMP2D * offload_data->n_modes
-                                      * offload_data->npsi * offload_data->ntime
+                                      * offload_data->nrho * offload_data->ntime
                                       * sizeof(real));
 
     /* Go through all modes, and evaluate and store coefficients for each */
     int err      = 0;
-    int datasize = offload_data->npsi * offload_data->ntime;
+    int datasize = offload_data->nrho * offload_data->ntime;
     int n_modes  = offload_data->n_modes;
     for(int j=0; j<offload_data->n_modes; j++) {
 
@@ -52,10 +52,10 @@ int mhd_nonstat_init_offload(mhd_nonstat_offload_data* offload_data,
         err += interp2Dcomp_init_coeff(
             &coeff_array[NSIZE_COMP2D * datasize * j],
             &(*offload_array)[j*datasize],
-            offload_data->npsi, offload_data->ntime,
+            offload_data->nrho, offload_data->ntime,
             NATURALBC, NATURALBC,
-            offload_data->psi_min,
-            offload_data->psi_max,
+            offload_data->rho_min,
+            offload_data->rho_max,
             offload_data->t_min,
             offload_data->t_max);
 
@@ -63,11 +63,11 @@ int mhd_nonstat_init_offload(mhd_nonstat_offload_data* offload_data,
         err += interp2Dcomp_init_coeff(
             &coeff_array[NSIZE_COMP2D * datasize * (n_modes + j)],
             &(*offload_array)[(n_modes + j)*datasize],
-            offload_data->npsi,
+            offload_data->nrho,
             offload_data->ntime,
             NATURALBC, NATURALBC,
-            offload_data->psi_min,
-            offload_data->psi_max,
+            offload_data->rho_min,
+            offload_data->rho_max,
             offload_data->t_min,
             offload_data->t_max);
     }
@@ -75,13 +75,13 @@ int mhd_nonstat_init_offload(mhd_nonstat_offload_data* offload_data,
     free(*offload_array);
     *offload_array = coeff_array;
     offload_data->offload_array_length = 2 * NSIZE_COMP2D
-        * offload_data->n_modes * offload_data->npsi * offload_data->ntime;
+        * offload_data->n_modes * offload_data->nrho * offload_data->ntime;
 
     /* Print some sanity check on data */
     print_out(VERBOSE_IO, "\nMHD input (non-stationary)\n");
-    print_out(VERBOSE_IO, "Grid: npsi = %4.d psimin = %3.3f psimax = %3.3f\n",
-              offload_data->npsi,
-              offload_data->psi_min, offload_data->psi_max);
+    print_out(VERBOSE_IO, "Grid: nrho = %4.d rhomin = %3.3f rhomax = %3.3f\n",
+              offload_data->nrho,
+              offload_data->rho_min, offload_data->rho_max);
     print_out(VERBOSE_IO, "      ntime = %4.d tmin = %3.3f tmax = %3.3f\n",
               offload_data->ntime,
               offload_data->t_min, offload_data->t_max);
@@ -89,9 +89,11 @@ int mhd_nonstat_init_offload(mhd_nonstat_offload_data* offload_data,
     print_out(VERBOSE_IO, "\nModes:\n");
     for(int j=0; j<n_modes; j++) {
         print_out(VERBOSE_IO,
-                  "(n,m) = (%2.d,%2.d) Amplitude = %3.3g Frequency = %3.3g\n",
+                  "(n,m) = (%2.d,%2.d) Amplitude = %3.3g Frequency = %3.3g"
+                  " Phase = %3.3g\n",
                   offload_data->nmode[j], offload_data->mmode[j],
-                  offload_data->amplitude_nm[j], offload_data->omega_nm[j]);
+                  offload_data->amplitude_nm[j], offload_data->omega_nm[j],
+                  offload_data->phase_nm[j]);
     }
 
     return err;
@@ -122,26 +124,27 @@ void mhd_nonstat_init(mhd_nonstat_data* mhddata,
     mhddata->n_modes = offload_data->n_modes;
 
     int n_modes  = offload_data->n_modes;
-    int datasize = NSIZE_COMP2D * offload_data->npsi * offload_data->ntime;
+    int datasize = NSIZE_COMP2D * offload_data->nrho * offload_data->ntime;
 
     for(int j=0; j<mhddata->n_modes; j++) {
         mhddata->nmode[j]        = offload_data->nmode[j];
         mhddata->mmode[j]        = offload_data->mmode[j];
         mhddata->amplitude_nm[j] = offload_data->amplitude_nm[j];
         mhddata->omega_nm[j]     = offload_data->omega_nm[j];
+        mhddata->phase_nm[j]     = offload_data->phase_nm[j];
 
         interp2Dcomp_init_spline(&(mhddata->alpha_nm[j]),
                                  &(offload_array[j*datasize]),
-                                 offload_data->npsi, offload_data->ntime,
+                                 offload_data->nrho, offload_data->ntime,
                                  NATURALBC, PERIODICBC,
-                                 offload_data->psi_min, offload_data->psi_max,
+                                 offload_data->rho_min, offload_data->rho_max,
                                  offload_data->t_min, offload_data->t_max);
 
         interp2Dcomp_init_spline(&(mhddata->phi_nm[j]),
                                  &(offload_array[(n_modes + j)*datasize]),
-                                 offload_data->npsi, offload_data->ntime,
+                                 offload_data->nrho, offload_data->ntime,
                                  NATURALBC, PERIODICBC,
-                                 offload_data->psi_min, offload_data->psi_max,
+                                 offload_data->rho_min, offload_data->rho_max,
                                  offload_data->t_min, offload_data->t_max);
 
     }
@@ -219,7 +222,8 @@ a5err mhd_nonstat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
         /* These are used frequently, so store them in separate variables */
         real mhdarg = mhddata->nmode[i] * ptz[8]
                     - mhddata->mmode[i] * ptz[4]
-                    - mhddata->omega_nm[i] * t;
+                    - mhddata->omega_nm[i] * t
+                    + mhddata->phase_nm[i];
         real sinmhd = sin(mhdarg);
         real cosmhd = cos(mhdarg);
 

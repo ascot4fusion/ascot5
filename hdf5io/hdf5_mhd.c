@@ -79,11 +79,11 @@ int hdf5_mhd_read_stat(hid_t f, mhd_stat_offload_data* offload_data,
     /* Read parameters. */
     if( hdf5_read_int(   MHDPATH "nmode",      &(offload_data->n_modes),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(   MHDPATH "npsi",       &(offload_data->npsi),
+    if( hdf5_read_int(   MHDPATH "nrho",       &(offload_data->nrho),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "psimin",     &(offload_data->psi_min),
+    if( hdf5_read_double(MHDPATH "rhomin",     &(offload_data->rho_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "psimax",     &(offload_data->psi_max),
+    if( hdf5_read_double(MHDPATH "rhomax",     &(offload_data->rho_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(   MHDPATH "nmodes",       offload_data->nmode,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
@@ -93,9 +93,11 @@ int hdf5_mhd_read_stat(hid_t f, mhd_stat_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(MHDPATH "omega",        offload_data->omega_nm,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(MHDPATH "phase",        offload_data->phase_nm,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Allocate offload array */
-    int datasize = offload_data->npsi * offload_data->n_modes;
+    int datasize = offload_data->nrho * offload_data->n_modes;
     *offload_array = (real*) malloc( 2 * datasize * sizeof(real) );
 
     /* Read data to offload array */
@@ -125,11 +127,11 @@ int hdf5_mhd_read_nonstat(hid_t f, mhd_nonstat_offload_data* offload_data,
     /* Read parameters. */
     if( hdf5_read_int(   MHDPATH "nmode",      &(offload_data->n_modes),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_int(   MHDPATH "npsi",       &(offload_data->npsi),
+    if( hdf5_read_int(   MHDPATH "nrho",       &(offload_data->nrho),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "psimin",     &(offload_data->psi_min),
+    if( hdf5_read_double(MHDPATH "rhomin",     &(offload_data->rho_min),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(MHDPATH "psimax",     &(offload_data->psi_max),
+    if( hdf5_read_double(MHDPATH "rhomax",     &(offload_data->rho_max),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(   MHDPATH "ntime",      &(offload_data->ntime),
                          f, qid, __FILE__, __LINE__) ) {return 1;}
@@ -145,9 +147,11 @@ int hdf5_mhd_read_nonstat(hid_t f, mhd_nonstat_offload_data* offload_data,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(MHDPATH "omega",        offload_data->omega_nm,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(MHDPATH "phase",        offload_data->phase_nm,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Allocate offload array */
-    int datasize = offload_data->npsi * offload_data->ntime
+    int datasize = offload_data->nrho * offload_data->ntime
                    * offload_data->n_modes;
     *offload_array = (real*) malloc( 2 * datasize * sizeof(real) );
 

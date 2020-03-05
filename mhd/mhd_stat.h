@@ -18,15 +18,16 @@
  */
 typedef struct {
 
-    int n_modes;   /**< Number of modes                                       */
-    int npsi;      /**< Number of psi grid points                             */
-    real psi_min;  /**< psi grid minimum value                                */
-    real psi_max;  /**< psi grid maximum value                                */
+    int n_modes;                          /**< Number of modes                */
+    int nrho;                             /**< Number of rho grid points      */
+    real rho_min;                         /**< rho grid minimum value         */
+    real rho_max;                         /**< rho grid maximum value         */
     int nmode[MHD_MODES_MAX_NUM];         /**< Toroidal mode numbers          */
     int mmode[MHD_MODES_MAX_NUM];         /**< Poloidal mode numbers          */
     real amplitude_nm[MHD_MODES_MAX_NUM]; /**< Amplitude of each mode         */
     real omega_nm[MHD_MODES_MAX_NUM];     /**< Toroidal rotation frequency of
                                                each mode [rad/s]              */
+    real phase_nm[MHD_MODES_MAX_NUM];     /**< Phase of each mode [rad]       */
 
     int offload_array_length; /**< Number of elements in offload_array        */
 } mhd_stat_offload_data;
@@ -41,10 +42,11 @@ typedef struct {
     real amplitude_nm[MHD_MODES_MAX_NUM]; /**< Amplitude of each mode         */
     real omega_nm[MHD_MODES_MAX_NUM];     /**< Toroidal rotation frequency of
                                                each mode [rad/s]              */
+    real phase_nm[MHD_MODES_MAX_NUM];     /**< Phase of each mode [rad]       */
 
-    /**< 1D splines (psi) for each mode's magnetic potential */
+    /**< 1D splines (rho) for each mode's magnetic eigenfunction */
     interp1D_data alpha_nm[MHD_MODES_MAX_NUM];
-    /**< 1D splines (psi) for each mode's electric potential */
+    /**< 1D splines (rho) for each mode's electric eigenfunction */
     interp1D_data phi_nm[MHD_MODES_MAX_NUM];
 } mhd_stat_data;
 
