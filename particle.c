@@ -1263,7 +1263,7 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->zeta       = 0;
     p->mass       = 0;
     p->charge     = 0;
-    p->time       = p_ml->time[j];
+    p->time       = p_ml->time[j] + p_ml->dist[j] / CONST_C;
     p->weight     = p_ml->weight[j];
     p->id         = p_ml->id[j];
     p->cputime    = p_ml->cputime[j];
