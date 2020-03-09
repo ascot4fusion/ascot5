@@ -144,7 +144,9 @@ class a5VtkWall(object):
         for i,l in enumerate(data):
             field.SetTuple(i,[l])
             
-        self.vtkPolyData.GetCellData().SetScalars(field)
+        #self.vtkPolyData.GetCellData().SetScalars(field) # This one replaces.
+        self.vtkPolyData.GetCellData().AddArray(field)
+        self.vtkPolyData.GetCellData().SetActiveScalars(fieldname);
         self.vtkPolyData.Modified()
         
         
