@@ -26,17 +26,6 @@ class a5VtkWall(object):
         if a5wall is not None:
             self.fromA5wall(a5wall)
          
-#    def takeOnlyNpoints(self,W,n):
-#        
-#        nOld= W['nelements'][0][0]
-#        if nOld <= n:
-#            return W
-#        
-#        W['nelements']=[[n]]
-#        W['x1x2x3'] = W['x1x2x3'][:n,:]  
-#        W['y1y2y3'] = W['y1y2y3'][:n,:]
-#        W['z1z2z3'] = W['z1z2z3'][:n,:]
-#        return W
     
         
     def fromA5wall(self, a5wall):
@@ -81,7 +70,7 @@ class a5VtkWall(object):
         '''
         
         
-        print('Creating the point cloud')
+        print('Creating VTK points from triangle vertices.')
 
         
         nTriangles = vertices.shape[0]
@@ -99,22 +88,28 @@ class a5VtkWall(object):
 
             
         
-        print('Creating the triangles (using InsertNext, there must be a better way)')
+        print('Creating VTK triangles referencing the points.')
         
         
         Triangles = vtk.vtkCellArray()
-        #Triangles.SetNumberOfCells (nTriangles)
         
+        # Prepare a connectivity array
+        Cells= vtk.vtkIdTypeArray()
+        Cells.SetNumberOfTuples(4*nTriangles)
+        
+        # Fill the array with nVertices, vert1, vert2, ..., vertn, nVertices, vert1, vert2, ...        
         for iTri in range(nTriangles):
-            Triangle = vtk.vtkTriangle()
-            #print(vertices[iTri,:])
+            ind=iTri*4
+            Cells.SetValue(ind,3) # triangle (3 vertices)
             for iP in range(3):
-                Triangle.GetPointIds().SetId(iP, vertices[iTri,iP])
-                #print(vertices[iTri,iP])
-            Triangles.InsertNextCell(Triangle)
-            
+                ind = iTri*4+iP+1
+                Cells.SetValue(ind,vertices[iTri,iP])
+
+
+        Triangles.SetCells(   nTriangles,   Cells ) 
+
         
-        print('Combining the datatype')
+        print('Combining the points and triangles to a single VTK PolyData datastructure.')
         
             
         Polydata = vtk.vtkPolyData()
@@ -138,7 +133,7 @@ class a5VtkWall(object):
         @param data: length-n array of values for coloring the triangles 
         '''
 
-        print('Creating the field array')
+        print('Creating a VTK array representing "'+fieldname+'" and attaching it to the VTK PolyData.')
         
      
         
