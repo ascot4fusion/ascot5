@@ -19,6 +19,7 @@ channels:
 dependencies:
   - python
   - ipython
+  - vtk
   - pip
   - pip:
       - numpy
