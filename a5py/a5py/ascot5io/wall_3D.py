@@ -81,8 +81,17 @@ class wall_3D(AscotData):
     Object representing wall_3D data.
     """
 
+    number_of_elements = None
+
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        W=read_hdf5(self._file, self.get_qid())
+        self.number_of_elements =  W['nelements'][0][0]
+        return W
+
+    def getNumberOfElements(self):
+        if self.number_of_elements is None:
+            self.read()
+        return self.number_of_elements
 
 
     def write(self, fn, data=None):
