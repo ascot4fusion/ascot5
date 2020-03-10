@@ -118,7 +118,7 @@ class wall_3D(AscotData):
 
         return A
 
-    def getAspointsAndVertices(self):
+    def getAspointsAndVertices(self, removeDuplcatePoints=True):
         a5wall = self.read()
 
         nTriangles = a5wall['nelements'][0][0]
@@ -139,9 +139,22 @@ class wall_3D(AscotData):
 
         vertices = np.reshape( np.arange(0,3*nTriangles,1,dtype=int), (nTriangles,3) )
 
+        if not removeDuplcatePoints:
+            return points,vertices
+
+        points,vertices = self._removeDuplicatePoints(points,vertices)
         return points,vertices
 
+    def _removeDuplicatePoints(self,points,vertices):
+        ''' Remove duplicate points from points and vertices representation of the 3D wall
+        '''
 
+        upoints,inverse = np.unique(points, return_index=False,return_inverse=True, axis=0)
+
+
+        uvertices = inverse[vertices]
+
+        return upoints,uvertices
 
 
     def plotRz(self, axes=None, phi=None):
