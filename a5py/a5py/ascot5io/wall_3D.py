@@ -118,6 +118,31 @@ class wall_3D(AscotData):
 
         return A
 
+    def getAspointsAndVertices(self):
+        a5wall = self.read()
+
+        nTriangles = a5wall['nelements'][0][0]
+
+        # Create an array
+        points = np.zeros(shape=(3*nTriangles,3))
+
+        points[ ::3,0]=a5wall['x1x2x3'][:,0]
+        points[1::3,0]=a5wall['x1x2x3'][:,1]
+        points[2::3,0]=a5wall['x1x2x3'][:,2]
+        points[ ::3,1]=a5wall['y1y2y3'][:,0]
+        points[1::3,1]=a5wall['y1y2y3'][:,1]
+        points[2::3,1]=a5wall['y1y2y3'][:,2]
+        points[ ::3,2]=a5wall['z1z2z3'][:,0]
+        points[1::3,2]=a5wall['z1z2z3'][:,1]
+        points[2::3,2]=a5wall['z1z2z3'][:,2]
+
+
+        vertices = np.reshape( np.arange(0,3*nTriangles,1,dtype=int), (nTriangles,3) )
+
+        return points,vertices
+
+
+
 
     def plotRz(self, axes=None, phi=None):
         data = self.read()

@@ -18,50 +18,27 @@ class a5VtkWall(object):
     '''
 
 
-    def __init__(self, a5wall=None):
+    def __init__(self, W=None):
         '''
-        @param a5wall: (optional) The output of  a5py.ascot5io.wall_3D.read_hdf5()
+        @param W: (optional) The wall_3D class:  a5py.ascot5io.ascot5.Ascot(filename).active.wall
         '''
         
-        if a5wall is not None:
-            self.fromA5wall(a5wall)
-         
+        if W is not None:
+            self.fromA5wall(W)
+            return
     
         
-    def fromA5wall(self, a5wall):
+    def fromA5wall(self, W):
         '''
-        @param a5wall: (optional) The output of  a5py.ascot5io.wall_3D.read_hdf5()
+        @param W: (optional) The output of  a5py.ascot5io.wall_3D.read_hdf5()
         No reduction of points.
         '''
         
-        points,vertices  = self.pointsAndVerticesFromA5wall(a5wall)
+        points,vertices  = W.getAspointsAndVertices()
         
         self.fromPointsAndVertices(points,vertices)
     
-    def pointsAndVerticesFromA5wall(self,a5wall):
-    
-        nTriangles = a5wall['nelements'][0][0]
 
-        # Create an array 
-        points = np.zeros(shape=(3*nTriangles,3))
-        
-        points[ ::3,0]=a5wall['x1x2x3'][:,0]
-        points[1::3,0]=a5wall['x1x2x3'][:,1]
-        points[2::3,0]=a5wall['x1x2x3'][:,2]
-        points[ ::3,1]=a5wall['y1y2y3'][:,0]
-        points[1::3,1]=a5wall['y1y2y3'][:,1]
-        points[2::3,1]=a5wall['y1y2y3'][:,2]
-        points[ ::3,2]=a5wall['z1z2z3'][:,0]
-        points[1::3,2]=a5wall['z1z2z3'][:,1]
-        points[2::3,2]=a5wall['z1z2z3'][:,2]                     
-
-    
-        vertices = np.reshape( np.arange(0,3*nTriangles,1,dtype=int), (nTriangles,3) )
-        
-       
-        
-        return points,vertices
-    
     
     def fromPointsAndVertices(self,points,vertices):
         '''
