@@ -30,8 +30,7 @@ class a5VtkWall(object):
         
     def fromA5wall(self, W):
         '''
-        @param W: (optional) The output of  a5py.ascot5io.wall_3D.read_hdf5()
-        No reduction of points.
+        @param W: The wall_3D class:  a5py.ascot5io.ascot5.Ascot(filename).active.wall
         '''
         
         points,vertices  = W.getAspointsAndVertices()
