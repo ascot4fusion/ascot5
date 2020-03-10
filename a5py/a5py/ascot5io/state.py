@@ -89,6 +89,8 @@ def read_hdf5(fn, qid, name):
             Full path to the HDF5 file.
         qid : str <br>
             QID of the data to be read.
+        name : str <br>
+            Name of the data to read, e.g. "inistate", "endstate", "distrho5d"
 
     Returns:
         Dictionary containing input data.
