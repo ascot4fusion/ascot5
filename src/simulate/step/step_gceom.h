@@ -7,6 +7,7 @@
 
 #include <math.h>
 #include "../../ascot5.h"
+#include "../../consts.h"
 #include "../../math.h"
 #include "../../physlib.h"
 
@@ -82,6 +83,16 @@ inline static void step_gceom(real* ydot, real* y, real mass, real charge,
     ydot[4] = 0;
     ydot[5] = charge * normB / ( gamma * mass );
 
+    /* ALD force from E. Hirvijoki et al. 2015 Guiding-center transformation of
+     * the Abrahams-Lorentz-Dirac radiation reaction force
+     * http://de.arxiv.org/abs/1412.1966 */
+    real C = 2 * y[4] * normB / (mass * CONST_C * CONST_C);
+    real nu = charge * charge * charge * charge * normB * normB
+              / (6 * CONST_PI * CONST_E0 * gamma * mass * mass * mass
+                 * CONST_C * CONST_C * CONST_C);
+
+    ydot[3] += -nu * y[3] * C;
+    ydot[4] += -2 * nu * y[4] * (1 + C);
 }
 
 #pragma omp end declare target
