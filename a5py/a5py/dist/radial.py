@@ -12,6 +12,7 @@ from . import conversion as distconv
 
 def eval1d(ascotpy, dist, quantity, rhomin, rhomax, nrho, ma=None, qa=None, vol=None, area=None):
 
+    # working copy
     dist = copy.deepcopy(dist)
 
     if vol is None or area is None:
@@ -65,18 +66,33 @@ def eval1d(ascotpy, dist, quantity, rhomin, rhomax, nrho, ma=None, qa=None, vol=
         dist = distmod.squeeze(dist, pitch=0, time=0, charge=0)
         va = np.sqrt( const.e*2*dist["energy"]/ma )
 
+        distPe = copy.deepcopy(dist)
+        for ir in range(dist["r"].size):
+            for ip in range(dist["phi"].size):
+                for iz in range(dist["z"].size):
+                    coefs = ascotpy.eval_collcoefs(ma, qa, dist["r"][ir],
+                                                   dist["phi"][ip], dist["z"][iz], 0, va)
+                    distPe["distribution"][ir, ip, iz, :] = -dist["distribution"][ir, ip, iz, :]*coefs["K"][0,0,:]*ma*va
+
+        dist = distmod.squeeze(distPe, energy=0)
+
+    if quantity == "ipowerdeposition":
+        emax = 0.5*ma*np.power(np.maximum( dist["vpar_edges"][-1],
+                                           dist["vperp_edges"][-1] ), 2) / const.e
+        dist = distconv.convert_vpavpe_to_Exi(dist, ma,
+                                              E_edges=np.linspace(0, emax,100),
+                                              xi_edges=np.linspace(-1,1,50))
+        dist = distmod.squeeze(dist, pitch=0, time=0, charge=0)
+        va = np.sqrt( const.e*2*dist["energy"]/ma )
+
         distPi = copy.deepcopy(dist)
         for ir in range(dist["r"].size):
             for ip in range(dist["phi"].size):
                 for iz in range(dist["z"].size):
                     coefs = ascotpy.eval_collcoefs(ma, qa, dist["r"][ir],
                                                    dist["phi"][ip], dist["z"][iz], 0, va)
-                    #print(coefs["F"])
-                    #print(coefs["F"].shape)
 
-                    distPi["distribution"][ir, ip, iz, :] = -dist["distribution"][ir, ip, iz, :]\
-                                                            *( ma*va*( coefs["F"][0,0,:] + 0*coefs["F"][0,1,:] )\
-                                                               +      ma*( coefs["Dpara"][0,0,:] + 0*coefs["Dpara"][0,1,:] ))
+                    distPi["distribution"][ir, ip, iz, :] = -dist["distribution"][ir, ip, iz, :]*sum(coefs["K"][0,1:,:],0)*ma*va
 
         dist = distmod.squeeze(distPi, energy=0)
         #dist = distPi
