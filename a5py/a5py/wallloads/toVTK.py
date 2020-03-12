@@ -4,13 +4,12 @@ Created on Mar 10, 2020
 @author: sjjamsa
 '''
 
-def save3DAsVTP(hdf5,filename):
+def as3DpolyData(hdf5):
     '''
-    Calculate and save the wall 3D loads to a VTK file. 
+    Calculate the wall 3D loads to a VTK polydata datatype.
     @param hdf5: a5py.ascot5io.ascot5.Ascot(filename)
-    @param filename: The output filename, usually with the suffix .vtp
     '''
-    
+
     import a5py.wallloads.calculate
     import a5py.wall.a5vtkwall
     
@@ -22,5 +21,16 @@ def save3DAsVTP(hdf5,filename):
     
     fieldname = 'Wall load (W/m^2)'
     avtk.addScalarField(fieldname=fieldname,data=wallLoad)
-    
+
+    return avtk
+
+def save3DAsVTP(hdf5,filename):
+    '''
+    Calculate and save the wall 3D loads to a VTK file.
+    @param hdf5: a5py.ascot5io.ascot5.Ascot(filename)
+    @param filename: The output filename, usually with the suffix .vtp
+    '''
+    avtk = as3DpolyData(hdf5)
+
     avtk.writeVtp(filename)
+
