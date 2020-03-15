@@ -563,29 +563,30 @@ void libascot_boozer_eval_fun(int Neval, real* R, real* phi, real* z,
         if(!isinside) {
             continue;
         }
-	if( B_field_eval_B_dB(B, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
-	    continue;
-	}
+        if( B_field_eval_B_dB(B, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
+            continue;
+        }
 
-	real bvec[]      = {B[0], B[4], B[8]};
-	real gradpsi[]   = {psithetazeta[1],
+        real bvec[]      = {B[0], B[4], B[8]};
+        real gradpsi[]   = {psithetazeta[1],
                             psithetazeta[2]/R[k],
                             psithetazeta[3]};
-	real gradtheta[] = {psithetazeta[5],
+        real gradtheta[] = {psithetazeta[5],
                             psithetazeta[6]/R[k],
                             psithetazeta[7]};
-	real gradzeta[]  = {psithetazeta[9],
+        real gradzeta[]  = {psithetazeta[9],
                             psithetazeta[10]/R[k],
                             psithetazeta[11]};
 
-	real veca[3], vecb[3];
+        real veca[3], vecb[3];
 
-	math_cross(gradpsi, gradzeta, veca);
-	math_cross(gradpsi, gradtheta, vecb);
-	qprof[k] = (veca[1] - bvec[1]) / vecb[1];
+        math_cross(gradpsi, gradzeta, veca);
+        math_cross(gradpsi, gradtheta, vecb);
+        qprof[k] = (veca[1] - bvec[1]) / vecb[1];
 
         math_cross(gradtheta, gradzeta, veca);
-        jac[k] = math_dot(veca, gradpsi);
+        jac[k] = 1/math_dot(veca, gradpsi);
+        jac[k] = jac[k]*jac[k];
     }
 }
 
