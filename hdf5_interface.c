@@ -406,10 +406,20 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     }
     hdf5_write_string_attribute(fout, path, "qid_marker",  inputqid);
 
-    H5LTget_attribute_string(fin, "/boozer/", "active", inputqid);
+    if(sim->qid_boozer[0] != '\0') {
+        strcpy(inputqid, sim->qid_boozer);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/boozer/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_boozer",  inputqid);
 
-    H5LTget_attribute_string(fin, "/mhd/", "active", inputqid);
+    if(sim->qid_mhd[0] != '\0') {
+        strcpy(inputqid, sim->qid_mhd);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/mhd/", "active", inputqid);
+    }
     hdf5_write_string_attribute(fout, path, "qid_mhd",  inputqid);
 
     hdf5_close(fin);
