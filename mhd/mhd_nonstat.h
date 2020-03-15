@@ -11,7 +11,7 @@
 #include "../spline/interp.h"
 #include "../B_field.h"
 
-#define MHD_MODES_MAX_NUM 20
+#define MHD_MODES_MAX_NUM 30
 
 /**
  * @brief MHD parameters that will be offloaded to target
