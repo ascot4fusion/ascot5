@@ -538,7 +538,11 @@ void hdf5_generate_qid(char* qid) {
 
     /* Seed random number generator with current time */
     struct timespec ts;
+#ifdef __MACH__
+    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+#else
     timespec_get(&ts, TIME_UTC);
+#endif
     srand48( ts.tv_nsec );
 
     /* Generate a 32 bit random integer by generating signed 32 bit random
