@@ -40,11 +40,15 @@ int main(int argc, char** argv) {
     strcpy(sim.hdf5_in, "ascot.h5");
     strcpy(sim.hdf5_out, "ascot");
 
-    hdf5_interface_read_input(&sim, &B_offload_array, &E_offload_array,
+    hdf5_interface_read_input(&sim,
+                              hdf5_input_plasma,
+                              &B_offload_array,
+                              &E_offload_array,
                               &plasma_offload_array,
                               &neutral_offload_array,
-                              &wall_offload_array, &p, &n);
-
+                              &wall_offload_array,
+                              &p,
+                              &n);
     /* Init plasma */
     offload_package offload_data;
     offload_init_offload(&offload_data, &offload_array);
@@ -57,9 +61,8 @@ int main(int argc, char** argv) {
     int species = 1;
 
     real rho, dens;
-    real time = 0;
     for(rho = 0.0; rho <= 1.1; rho += 0.005) {
-        dens = plasma_eval_dens(rho, time, species, &data);
+        plasma_eval_dens(&dens, rho, 0, 0, 0, 0, species, &data);
         fprintf(f,"%le %le\n", rho, dens);
     }
 

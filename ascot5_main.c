@@ -77,7 +77,6 @@
 #include "gitver.h"
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
-void generate_qid(char* qid);
 void marker_summary(particle_state* p, int n);
 
 /**
@@ -108,7 +107,7 @@ int main(int argc, char** argv) {
     /* Get MPI rank and set qid for the run*/
     int mpi_rank, mpi_size;
     char qid[11];
-    generate_qid(qid);
+    hdf5_generate_qid(qid);
 
     if(sim.mpi_size == 0) {
 #ifdef MPI
@@ -163,7 +162,12 @@ int main(int argc, char** argv) {
     real* wall_offload_array;
 
     /* Read input from the HDF5 file */
-    if( hdf5_interface_read_input(&sim, &B_offload_array, &E_offload_array,
+    if( hdf5_interface_read_input(&sim,
+                                  hdf5_input_options | hdf5_input_bfield |
+                                  hdf5_input_efield  | hdf5_input_plasma |
+                                  hdf5_input_neutral | hdf5_input_wall |
+                                  hdf5_input_marker,
+                                  &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
                                   &wall_offload_array, &p, &n) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
@@ -470,6 +474,13 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
         {"mpi_size", required_argument, 0, 3},
         {"mpi_rank", required_argument, 0, 4},
         {"d", required_argument, 0, 5},
+        {"options", required_argument, 0, 6},
+        {"bfield",  required_argument, 0, 7},
+        {"efield",  required_argument, 0, 8},
+        {"marker",  required_argument, 0, 9},
+        {"wall",    required_argument, 0, 10},
+        {"plasma",  required_argument, 0, 11},
+        {"neutral", required_argument, 0, 12},
         {0, 0, 0, 0}
     };
 
@@ -479,6 +490,13 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     sim->mpi_rank       = 0;
     sim->mpi_size       = 0;
     strcpy(sim->description, "No description.");
+    sim->qid_options[0] = '\0';
+    sim->qid_bfield[0]  = '\0';
+    sim->qid_efield[0]  = '\0';
+    sim->qid_marker[0]  = '\0';
+    sim->qid_wall[0]    = '\0';
+    sim->qid_plasma[0]  = '\0';
+    sim->qid_neutral[0] = '\0';
 
     // Read user input
     int c;
@@ -498,6 +516,27 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
                 break;
             case 5:
                 strcpy(sim->description, optarg);
+                break;
+            case 6:
+                strcpy(sim->qid_options, optarg);
+                break;
+            case 7:
+                strcpy(sim->qid_bfield, optarg);
+                break;
+            case 8:
+                strcpy(sim->qid_efield, optarg);
+                break;
+            case 9:
+                strcpy(sim->qid_marker, optarg);
+                break;
+            case 10:
+                strcpy(sim->qid_wall, optarg);
+                break;
+            case 11:
+                strcpy(sim->qid_plasma, optarg);
+                break;
+            case 12:
+                strcpy(sim->qid_neutral, optarg);
                 break;
             default:
                 // Unregonizable argument(s). Tell user how to run ascot5_main
@@ -539,31 +578,6 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
         strcat(sim->hdf5_in, ".h5");
     }
     return 0;
-}
-
-/**
- * @brief Generate an identification number for a run
- *
- * The identification number (QID) is a 32 bit unsigned integer represented in a
- * string format, i.e., by ten characters. QID is a random integer between 0 and
- * 4 294 967 295, and it is padded with leading zeroes in string representation.
- *
- * @param qid a pointer to 11 chars wide array where generated QID is stored
- */
-void generate_qid(char* qid) {
-
-    /* Seed random number generator with current time */
-    srand48( time(NULL) );
-
-    /* Generate a 32 bit random integer by generating signed 32 bit random
-     * integers with mrand48() and choosing the first one that is positive */
-    long int qint = -1;
-    while(qint < 0) {
-        qint = mrand48();
-    }
-
-    /* Convert the random number to a string format */
-    sprintf(qid, "%010lu", (long unsigned int)qint);
 }
 
 /**
