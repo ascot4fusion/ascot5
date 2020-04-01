@@ -67,6 +67,6 @@ class WallFrame(PlotFrame):
             self.vtkWall.addIndex()
             print(" ...done. Next plotting") 
         
-        self.vtkWall.plot()
+        self.vtkWall.plot(logarithmicColorScale=False)
        
 
