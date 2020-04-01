@@ -145,12 +145,16 @@ class a5VtkWall(object):
         self.vtkPolyData = reader.GetOutput()
 
 
-    def plot(self,manual_range=None):
+    def plot(self,manual_range=None,logarithmicColorScale=True):
         '''
         @param manual_range: (opt) length two vector/tuple defining the coloraxis range as 10**manual_range[0] -- 10**manual_range[0] 
         '''
 
         output = self.vtkPolyData
+
+        title = output.GetCellData().GetArrayName(0)
+        print('Plotting "'+title+'".')
+
         scalar_range = output.GetScalarRange()
 
         print('Original color value range {} - {}'.format(scalar_range[0],scalar_range[1]))
@@ -174,7 +178,8 @@ class a5VtkWall(object):
         '''
 
         lut = vtk.vtkLookupTable()
-        lut.SetScaleToLog10()
+        if logarithmicColorScale:
+            lut.SetScaleToLog10()
         lut.Build()
         # Invert the colormap
         nColors=lut.GetNumberOfTableValues()
@@ -209,7 +214,7 @@ class a5VtkWall(object):
         scalar_bar = vtk.vtkScalarBarActor()
         scalar_bar.SetOrientationToHorizontal()
         scalar_bar.SetLookupTable(lut)
-        scalar_bar.SetTitle("Wall load (W/m2)")
+        scalar_bar.SetTitle(title)
         if manual_range is not None:
             scalar_bar.SetNumberOfLabels(round(manual_range[1]-manual_range[0]+1))
 
