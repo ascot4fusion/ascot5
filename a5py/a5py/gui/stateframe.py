@@ -30,6 +30,7 @@ class StateFrame(PlotFrame):
         self._inistate = inistate
         self._endstate = endstate
         self._states = ["inistate"]
+        self.avtk = None # So that we always regenerate the wall when entering here.
         if endstate is not None:
             self._states.append("endstate")
 
@@ -58,6 +59,10 @@ class StateFrame(PlotFrame):
                                       value="histogram",
                                       variable=self.plotkind,
                                       command=self._showhistogrampanel)
+        buttonc = tkinter.Radiobutton(top, text="3D wall-loads with VTK",
+                                      value="3DwallLoad",
+                                      variable=self.plotkind,
+                                      command=self._show3dwallloadpanel)
 
         # Ini/endstate toggle
         self._statechoice = tkinter.StringVar(self)
@@ -77,8 +82,46 @@ class StateFrame(PlotFrame):
 
         buttona.grid(row=0, column=0)
         buttonb.grid(row=1, column=0)
+        buttonc.grid(row=2, column=0)
 
         self._showscatterpanel()
+
+    def _show3dwallloadpanel(self):
+        self._statechoice.set("endstate")
+        panel = self.get_sidepanel()
+        __fig = self.get_fig() #clears the plots, at least...
+        
+        #self.caxpanel   = tkinter.Frame(panel)
+        self.Pmin_entry = NumEntry(panel, labeltext="P [W/m2] min:", defval=100.0)
+        self.Pmax_entry = NumEntry(panel, labeltext="P [W/m2] max:", defval=1.0e6)
+        self.Plogtick   = Tickbox(panel, 1, label="log10 P (color)")
+
+        self.Pmin_entry.grid(row=0, column=0, sticky="W")
+        self.Pmax_entry.grid(row=1, column=0, sticky="W")
+        self.Plogtick.grid(  row=2, column=0, sticky="W")
+
+        self.PplotBtn   = tkinter.Button(panel, text="Plot with VTK", command=self._plotVTK)
+        
+        #self.caxpanel.pack()
+        self.PplotBtn.grid(  row=3, column=0, sticky="W")
+        
+        self.draw()
+
+    def _plotVTK(self):
+        import a5py.wallloads.toVTK
+        import numpy as np
+        
+        if self.avtk is None:
+            ASCOT = self._gui.get_ascotobject()
+            self.avtk = a5py.wallloads.toVTK.as3DpolyData(ASCOT)
+
+        # TODO: Change the code so that float limits are possible.
+        colorRange=(int(np.log10(float(self.Pmin_entry.getval()))),
+                    int(np.log10(float(self.Pmax_entry.getval())))  )
+        
+        logScale = self.Plogtick.getval() == 1
+        
+        self.avtk.plot(manual_range=colorRange,logarithmicColorScale=logScale)
 
 
     def _showscatterpanel(self):
