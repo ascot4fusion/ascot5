@@ -32,6 +32,15 @@ class WallFrame(PlotFrame):
         plotbutton = tkinter.Button(panel, text="Plot", command=self._plot)
         plotbutton.grid(row=1, column=0, sticky="WE")
 
+
+        vtkText=tkinter.Label(panel, text="Plot the 3D wall in separate window:")
+        vtkText.grid(row=2, column=0, sticky="WE")
+        
+        vtkbutton = tkinter.Button(panel, text="Plot in 3D with VTK", command=self._plotVTKwall)
+        vtkbutton.grid(row=3, column=0, sticky="WE")
+
+
+
         self._plot()
 
 
@@ -46,3 +55,18 @@ class WallFrame(PlotFrame):
         self._wall.plotRz(axes=axes, phi=phi)
 
         self.draw()
+
+    def _plotVTKwall(self):
+        
+        import a5py.wall.a5vtkwall
+       
+        if not hasattr(self, 'vtkWall'):
+            print("Starting to generate VTK 3D-wall...") 
+            self.vtkWall=a5py.wall.a5vtkwall.a5VtkWall(W=self._wall)
+            print("Add triangle numbering for colors")
+            self.vtkWall.addIndex()
+            print(" ...done. Next plotting") 
+        
+        self.vtkWall.plot()
+       
+
