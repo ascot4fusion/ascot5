@@ -152,7 +152,8 @@ class a5VtkWall(object):
 
         output = self.vtkPolyData
 
-        title = output.GetCellData().GetArrayName(0)
+        # GetScalars() returns the active scalar field.
+        title = output.GetCellData().GetScalars().GetName()
         print('Plotting "'+title+'".')
 
         scalar_range = output.GetScalarRange()
