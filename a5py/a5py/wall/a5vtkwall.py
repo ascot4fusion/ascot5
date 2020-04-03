@@ -145,9 +145,11 @@ class a5VtkWall(object):
         self.vtkPolyData = reader.GetOutput()
 
 
-    def plot(self,manual_range=None,logarithmicColorScale=True):
+    def plot(self,manual_range=None,logarithmicColorScale=True,camControl=None):
         '''
         @param manual_range: (opt) length two vector/tuple defining the coloraxis range as 10**manual_range[0] -- 10**manual_range[0] 
+        @param camControl: (opt) an instance of a5VtkWall.camControl. 
+               It will be associated with the new camera in the plot. The requested camera settings should be set before calling this routine.
         '''
 
         output = self.vtkPolyData
@@ -217,7 +219,9 @@ class a5VtkWall(object):
         scalar_bar.SetLookupTable(lut)
         scalar_bar.SetTitle(title)
         if manual_range is not None:
-            scalar_bar.SetNumberOfLabels(round(manual_range[1]-manual_range[0]+1))
+            nTicks = int(round(manual_range[1]-manual_range[0]+1))
+            if nTicks >=3:
+                scalar_bar.SetNumberOfLabels(nTicks)
 
 
         # create the scalar_bar_widget
@@ -228,10 +232,19 @@ class a5VtkWall(object):
 
 
         # Enable user interface interactor
+        print("Initializing vtkRenderWindowInteractor.")
         iren.Initialize()
-        renWin.Render()
-        ren.GetActiveCamera().SetPosition(6.0, 0.0, 0.0)
-        ren.GetActiveCamera().SetViewUp(0.0, 0.0, 1.0)
+
+        
+        if camControl is None:
+            ren.GetActiveCamera().SetPosition(6.0, 0.0, 0.0)
+            ren.GetActiveCamera().SetViewUp(0.0, 0.0, 1.0)
+        else:
+            # Set the camera using the parameters in the camControl object given as a parameter.
+            camControl.vtkCamera = ren.GetActiveCamera()
+            camControl.applyValuesToVtkCamera()
+            
+        print("Rendering the vtkRenderWindow")
         renWin.Render()
 
         # Different interactor styles
@@ -244,6 +257,9 @@ class a5VtkWall(object):
         print(self.plotHelpText)
 
         iren.Start()
+
+
+
 
 
 
@@ -270,3 +286,71 @@ class a5VtkWall(object):
     # Above is from https://vtk.org/doc/release/5.0/html/a01650.html
 
     # For vtk 5.8, check the subpages via "see also" in https://vtk.org/doc/release/5.8/html/a01087.html
+
+
+
+class camControl():
+    
+    
+    def __init__(self,vtkCamera=None):
+        self.__focalPoint    = None  # (x,y,z)
+        self.__position      = None  # (x,y,z)
+        self.__viewUp        = None  # (x,y,z)
+        self.__viewAngle     = None  # degrees (vertical)
+
+        
+        self.vtkCamera = vtkCamera
+        if self.vtkCamera is not None:
+            self.loadValuesFromVtkCamera()
+
+    def loadValuesFromVtkCamera(self):
+        '''
+        Load the settings from the VtkCamera
+        '''
+        if self.vtkCamera is None:
+            raise ValueError('No camera to load from.')
+            
+        self.focalPoint = self.vtkCamera.getFocalPoint()
+        self.position   = self.vtkCamera.getPosition()
+        self.viewUp     = self.vtkCamera.getViewUp()
+        self.viewAngle  = self.vtkCamera.getViewAngle()
+    
+    def applyValuesToVtkCamera(self):
+        if self.vtkCamera is None:
+            raise ValueError('No camera to apply to.')
+        
+        self.vtkCamera.setFocalPoint(self.focalPoint)
+        self.vtkCamera.setPosition(  self.position  )
+        self.vtkCamera.setViewUp(    self.viewUp    )
+        self.vtkCamera.setViewAngle( self.viewAngle )
+
+    
+    
+#     @property
+#     def vtkCamera(self):
+#         return self.__vtkCamera
+#     
+#     @property
+#     def focalPoint(self):
+#         return self.__focalPoint
+#     
+#     @property
+#     def position(self):
+#         return self.__position
+#     
+#     @property
+#     def viewUp(self):
+#         return self.__viewUp
+#     
+    @property
+    def viewAngle(self):
+        return self.__viewAngle
+    
+    @viewAngle.setter
+    def viewAngle(self,angle):
+        if angle <= 0.0:
+            raise ValueError('View angle must be positive "{}".'.angle)        
+        self.__viewAngle = angle
+        
+
+
