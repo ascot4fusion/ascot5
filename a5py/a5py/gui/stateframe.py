@@ -11,6 +11,9 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from .plotframe import PlotFrame
 from .components import NumEntry, DropdownMenu, Tickbox
+from .cameraControlPanel import generateCameraControlPanel
+
+
 
 class StateFrame(PlotFrame):
     """
@@ -96,30 +99,46 @@ class StateFrame(PlotFrame):
         self.Pmax_entry = NumEntry(panel, labeltext="P [W/m2] max:", defval=1.0e6)
         self.Plogtick   = Tickbox(panel, 1, label="log10 P (color)")
 
-        self.Pmin_entry.grid(row=0, column=0, sticky="W")
-        self.Pmax_entry.grid(row=1, column=0, sticky="W")
-        self.Plogtick.grid(  row=2, column=0, sticky="W")
+        #self.Pmin_entry.grid(row=0, column=0, sticky="W")
+        #self.Pmax_entry.grid(row=1, column=0, sticky="W")
+        #self.Plogtick.grid(  row=2, column=0, sticky="W")
+        self.Pmin_entry.pack()
+        self.Pmax_entry.pack()
+        self.Plogtick.pack()
+        
+        self.camControlPanelComponents,self.applyCameraControlPanel= generateCameraControlPanel(panel)
+        self.camControlPanelComponents['panel'].pack()
+
 
         self.PplotBtn   = tkinter.Button(panel, text="Plot with VTK", command=self._plotVTK)
         
         #self.caxpanel.pack()
-        self.PplotBtn.grid(  row=3, column=0, sticky="W")
+        #self.PplotBtn.grid(  row=3, column=0, sticky="W")
+        self.PplotBtn.pack()
+
         
         self.draw()
 
     def _plotVTK(self):
+        print('Importing VTK.')
         import a5py.wallloads.toVTK
+        import a5py.wall.a5vtkwall
         import numpy as np
+
+        print('Starting to plot with VTK.')
         
         if self.avtk is None:
             ASCOT = self._gui.get_ascotobject()
             self.avtk = a5py.wallloads.toVTK.as3DpolyData(ASCOT)
 
-        # TODO: Change the code so that float limits are possible.
-        colorRange=(int(np.log10(float(self.Pmin_entry.getval()))),
-                    int(np.log10(float(self.Pmax_entry.getval())))  )
+        colorRange=(np.log10(float(self.Pmin_entry.getval())),
+                    np.log10(float(self.Pmax_entry.getval()))  )
         
         logScale = self.Plogtick.getval() == 1
+        
+        self.camControl = a5py.wall.a5vtkwall.camControl()
+        
+        self.applyCameraControlPanel(self.camControlPanelComponents,self.camControl)
         
         self.avtk.plot(manual_range=colorRange,logarithmicColorScale=logScale)
 
@@ -296,3 +315,5 @@ class StateFrame(PlotFrame):
             self._plotscatter()
         else:
             self._plothistogram()
+
+

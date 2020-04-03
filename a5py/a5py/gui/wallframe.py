@@ -10,6 +10,7 @@ import numpy as np
 
 from .plotframe import PlotFrame
 from .components import NumEntry
+from .cameraControlPanel import generateCameraControlPanel
 
 class WallFrame(PlotFrame):
     """
@@ -27,17 +28,22 @@ class WallFrame(PlotFrame):
 
         panel = self.get_sidepanel()
         self.phi_entry = NumEntry(panel, labeltext="phi [deg]:", defval=0)
-        self.phi_entry.grid(row=0, column=0)
+        self.phi_entry.pack() #.grid(row=0, column=0)
 
         plotbutton = tkinter.Button(panel, text="Plot", command=self._plot)
-        plotbutton.grid(row=1, column=0, sticky="WE")
+        plotbutton.pack() #.grid(row=1, column=0, sticky="WE")
 
 
         vtkText=tkinter.Label(panel, text="Plot the 3D wall in separate window:")
-        vtkText.grid(row=2, column=0, sticky="WE")
+        vtkText.pack() #.grid(row=2, column=0, sticky="WE")
         
         vtkbutton = tkinter.Button(panel, text="Plot in 3D with VTK", command=self._plotVTKwall)
-        vtkbutton.grid(row=3, column=0, sticky="WE")
+        
+        self.camControlPanelComponents,self.applyCameraControlPanel= generateCameraControlPanel(panel)
+        self.camControlPanelComponents['panel'].pack()
+
+        
+        vtkbutton.pack() #.grid(row=3, column=0, sticky="WE")
 
 
 
@@ -67,6 +73,11 @@ class WallFrame(PlotFrame):
             self.vtkWall.addIndex()
             print(" ...done. Next plotting") 
         
-        self.vtkWall.plot(logarithmicColorScale=False)
+        self.camControl = a5py.wall.a5vtkwall.camControl()
+        
+        self.applyCameraControlPanel(self.camControlPanelComponents,self.camControl)
+
+        
+        self.vtkWall.plot(logarithmicColorScale=False,camControl=self.camControl)
        
 
