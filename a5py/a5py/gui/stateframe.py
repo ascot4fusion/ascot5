@@ -140,7 +140,9 @@ class StateFrame(PlotFrame):
         
         self.applyCameraControlPanel(self.camControlPanelComponents,self.camControl)
         
-        self.avtk.plot(manual_range=colorRange,logarithmicColorScale=logScale)
+        self.avtk.plot(manual_range=colorRange,
+                       logarithmicColorScale=logScale,
+                       camControl=self.camControl)
 
 
     def _showscatterpanel(self):

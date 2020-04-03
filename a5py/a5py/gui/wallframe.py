@@ -77,7 +77,8 @@ class WallFrame(PlotFrame):
         
         self.applyCameraControlPanel(self.camControlPanelComponents,self.camControl)
 
-        
+        print('Using camControl: '+str(self.camControl))
+
         self.vtkWall.plot(logarithmicColorScale=False,camControl=self.camControl)
        
 

@@ -223,6 +223,12 @@ class a5VtkWall(object):
             if nTicks >=3:
                 scalar_bar.SetNumberOfLabels(nTicks)
 
+        # Enable user interface interactor
+        print("Initializing vtkRenderWindowInteractor.")
+        iren.Initialize()
+        print("Rendering the vtkRenderWindow (1)")
+        renWin.Render()
+
 
         # create the scalar_bar_widget
         scalar_bar_widget = vtk.vtkScalarBarWidget()
@@ -231,21 +237,6 @@ class a5VtkWall(object):
         scalar_bar_widget.On()
 
 
-        # Enable user interface interactor
-        print("Initializing vtkRenderWindowInteractor.")
-        iren.Initialize()
-
-        
-        if camControl is None:
-            ren.GetActiveCamera().SetPosition(6.0, 0.0, 0.0)
-            ren.GetActiveCamera().SetViewUp(0.0, 0.0, 1.0)
-        else:
-            # Set the camera using the parameters in the camControl object given as a parameter.
-            camControl.vtkCamera = ren.GetActiveCamera()
-            camControl.applyValuesToVtkCamera()
-            
-        print("Rendering the vtkRenderWindow")
-        renWin.Render()
 
         # Different interactor styles
         # Type "j", "t", "c" or "a" to switch
@@ -254,10 +245,32 @@ class a5VtkWall(object):
         style.SetCurrentStyleToTrackballCamera()
         iren.SetInteractorStyle(style)
 
+        print("Rendering the vtkRenderWindow (1)")
+        renWin.Render()
+
+
+        ren.ResetCamera()
+        if camControl is None:
+            print('Setting default camera position.')
+            ren.GetActiveCamera().SetPosition(6.0, 0.0, 0.0)
+            ren.GetActiveCamera().SetViewUp(0.0, 0.0, 1.0)
+        else:
+            # Set the camera using the parameters in the camControl object given as a parameter.
+            camControl.vtkCamera = ren.GetActiveCamera()
+            camControl.applyValuesToVtkCamera()
+            
+        print("Rendering the vtkRenderWindow (2)")
+        renWin.Render()
+
+
         print(self.plotHelpText)
 
-        iren.Start()
+        print("Rendering the vtkRenderWindow (3)")
+        renWin.Render()
 
+        #print("Before Start()")
+        iren.Start()
+        #print("After Start()")
 
 
 
@@ -310,21 +323,32 @@ class camControl():
         if self.vtkCamera is None:
             raise ValueError('No camera to load from.')
             
-        self.focalPoint = self.vtkCamera.getFocalPoint()
-        self.position   = self.vtkCamera.getPosition()
-        self.viewUp     = self.vtkCamera.getViewUp()
-        self.viewAngle  = self.vtkCamera.getViewAngle()
+        self.focalPoint = self.vtkCamera.GetFocalPoint()
+        self.position   = self.vtkCamera.GetPosition()
+        self.viewUp     = self.vtkCamera.GetViewUp()
+        self.viewAngle  = self.vtkCamera.GetViewAngle()
     
     def applyValuesToVtkCamera(self):
         if self.vtkCamera is None:
             raise ValueError('No camera to apply to.')
         
-        self.vtkCamera.setFocalPoint(self.focalPoint)
-        self.vtkCamera.setPosition(  self.position  )
-        self.vtkCamera.setViewUp(    self.viewUp    )
-        self.vtkCamera.setViewAngle( self.viewAngle )
+        #self.printValues()
 
-    
+        self.vtkCamera.SetFocalPoint(self.focalPoint)
+        self.vtkCamera.SetPosition(  self.position  )
+        self.vtkCamera.SetViewUp(    self.viewUp    )
+        self.vtkCamera.SetViewAngle( self.viewAngle )
+
+    def printValues(self):
+        print('Cam: '+str(self.vtkCamera))
+        print('Cam: position   ({:6.3f},{:6.3f},{:6.3f})\n'.format(
+            self.position[0],self.position[1],self.position[2]))
+        print('Cam: focalpoint ({:6.3f},{:6.3f},{:6.3f})\n'.format(
+            self.focalPoint[0],self.focalPoint[1],self.focalPoint[2]))
+        print('Cam: viewUp     ({:6.3f},{:6.3f},{:6.3f})\n'.format(
+            self.viewUp[0],self.viewUp[1],self.viewUp[2]))
+        print('Cam: viewAngle   {:6.3f}\n'.format(
+            self.viewAngle))
     
 #     @property
 #     def vtkCamera(self):

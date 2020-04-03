@@ -16,11 +16,11 @@ def generateCameraControlPanel(tkInterParentElement):
     panel  = tkinter.Frame(tkInterParentElement)
 
     posx   = NumEntry(panel, labeltext="Pos x:", defval=6.0)
-    posy   = NumEntry(panel, labeltext="Pos y:", defval=0.0)
+    posy   = NumEntry(panel, labeltext="Pos y:", defval=-0.01)
     posz   = NumEntry(panel, labeltext="Pos z:", defval=0.0)
 
     focx   = NumEntry(panel, labeltext="Foc x:", defval=6.0)
-    focy   = NumEntry(panel, labeltext="Foc y:", defval=1.0)
+    focy   = NumEntry(panel, labeltext="Foc y:", defval=0.0)
     focz   = NumEntry(panel, labeltext="Foc z:", defval=0.0)
 
     vux    = NumEntry(panel, labeltext="ViewUp x:", defval=0.0)
