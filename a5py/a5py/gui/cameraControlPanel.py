@@ -29,6 +29,9 @@ def generateCameraControlPanel(tkInterParentElement):
 
     va     = NumEntry(panel, labeltext="VerViewAng:", defval=30.0)
 
+    crMin  = NumEntry(panel, labeltext="ClipRmin:", defval=1.0e-3)
+    crMax  = NumEntry(panel, labeltext="ClipRmax:", defval=20.0)
+
 
     posx.grid(row=0, column=0, sticky="W")
     posy.grid(row=1, column=0, sticky="W")
@@ -43,12 +46,14 @@ def generateCameraControlPanel(tkInterParentElement):
     vuz.grid( row=8, column=0, sticky="W")
 
     va.grid( row=9, column=0, sticky="W")
-    
+    crMin.grid( row=10, column=0, sticky="W")
+    crMax.grid( row=11, column=0, sticky="W")
+
     components =  {'panel':panel,
             'posx':posx, 'posy':posy, 'posz':posz,
             'focx':focx, 'focy':focy, 'focz':focz,
              'vux': vux,  'vuy': vuy,  'vuz': vuz,
-             'va' : va               }
+             'va' : va , 'crMin':crMin, 'crMax':crMax             }
     
     def applyCameraControlPanel(components,camControl):
 
@@ -68,6 +73,9 @@ def generateCameraControlPanel(tkInterParentElement):
                                   components[ 'vuz'].getval()  )
 
         camControl.viewAngle  =   components[ 'va' ].getval() 
+
+        camControl.clipRange = ( components['crMin'].getval(),
+                                 components['crMax'].getval()   )
 
     return components, applyCameraControlPanel
     

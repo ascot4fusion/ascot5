@@ -306,11 +306,11 @@ class camControl():
     
     
     def __init__(self,vtkCamera=None):
-        self.__focalPoint    = None  # (x,y,z)
-        self.__position      = None  # (x,y,z)
-        self.__viewUp        = None  # (x,y,z)
+        self.focalPoint    = None  # (x,y,z)
+        self.position      = None  # (x,y,z)
+        self.viewUp        = None  # (x,y,z)
         self.__viewAngle     = None  # degrees (vertical)
-
+        self.__clipRange     = None  # (min,max)
         
         self.vtkCamera = vtkCamera
         if self.vtkCamera is not None:
@@ -333,11 +333,17 @@ class camControl():
             raise ValueError('No camera to apply to.')
         
         #self.printValues()
-
-        self.vtkCamera.SetFocalPoint(self.focalPoint)
+        self.vtkCamera.SetViewAngle( self.viewAngle )
         self.vtkCamera.SetPosition(  self.position  )
         self.vtkCamera.SetViewUp(    self.viewUp    )
-        self.vtkCamera.SetViewAngle( self.viewAngle )
+        self.vtkCamera.SetFocalPoint(self.focalPoint)
+
+        self.vtkCamera.OrthogonalizeViewUp()
+        #minClip = self.vtkCamera.GetDistance() * 1.0e-3
+        #maxClip = 1.0e2
+        #self.vtkCamera.SetClippingRange(minClip,maxClip)
+        self.vtkCamera.SetClippingRange(self.clipRange)
+        #self.printValues()
 
     def printValues(self):
         print('Cam: '+str(self.vtkCamera))
@@ -350,10 +356,18 @@ class camControl():
         print('Cam: viewAngle   {:6.3f}\n'.format(
             self.viewAngle))
     
-#     @property
-#     def vtkCamera(self):
-#         return self.__vtkCamera
-#     
+    @property
+    def clipRange(self):
+        return self.__clipRange
+
+    def clipRange(self,cr):
+        if len(cr) != 2:
+            raise ValueError('ClipRange should be length two tuple.')
+        if cr[0] >= cr[1]:
+            raise ValueError('ClipRange should be increasing')
+        self.__clipRange = cr
+
+     
 #     @property
 #     def focalPoint(self):
 #         return self.__focalPoint
