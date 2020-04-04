@@ -156,7 +156,8 @@ def create_inputobject(key, h5group):
         "wall_2D" : wall_2D, "wall_3D" : wall_3D,
         "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS,
         "N0_3D" : N0_3D,
-        "opt" : Opt, "nbi" : nbi
+        "opt" : Opt, 
+        "nbi" : nbi
     }
 
     if key not in name_and_object:
