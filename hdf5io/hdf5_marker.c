@@ -380,7 +380,7 @@ int hdf5_marker_write_particle(hid_t f, int n, input_particle* p, char* qid) {
 
     for(int i = 0; i < n; i++) {
         r[i] = p[i].p.r;
-        phi[i] = p[i].p.phi;
+        phi[i] = p[i].p.phi * 180 / CONST_PI;
         z[i] = p[i].p.z;
         v_r[i] = p[i].p.v_r;
         v_phi[i] = p[i].p.v_phi;
