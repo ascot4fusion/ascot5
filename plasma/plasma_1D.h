@@ -36,6 +36,7 @@ typedef struct {
                                    offload_array                       */
     real* temp;               /**< pointer to start of temperatures    */
     real* dens;               /**< pointer to start of densities       */
+    real* vtor;
 } plasma_1D_data;
 
 int plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
@@ -56,6 +57,9 @@ a5err plasma_1D_eval_dens(real* temp, real rho, int species,
 #pragma omp declare simd uniform(pls_data)
 a5err plasma_1D_eval_densandtemp(real* dens, real* temp, real rho,
                                  plasma_1D_data* pls_data);
+#pragma omp declare simd uniform(pls_data)
+a5err plasma_1D_eval_rotation(real* vr, real* vphi, real* vz, real rho, real r,
+                              plasma_1D_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
 int plasma_1D_get_n_species(plasma_1D_data* pls_data);
 #pragma omp declare simd uniform(pls_data)

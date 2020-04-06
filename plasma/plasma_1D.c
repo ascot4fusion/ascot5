@@ -259,6 +259,37 @@ a5err plasma_1D_eval_densandtemp(real* dens, real* temp, real rho,
     return err;
 }
 
+a5err plasma_1D_eval_rotation(real* vr, real* vphi, real* vz, real rho, real r,
+                              plasma_1D_data* pls_data) {
+    a5err err = 0;
+    if(rho < pls_data->rho[0]) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
+    }
+    else if(rho >= pls_data->rho[pls_data->n_rho-1]) {
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
+    }
+    else {
+        int i_rho = 0;
+        while(i_rho < pls_data->n_rho-1 && pls_data->rho[i_rho] <= rho) {
+            i_rho++;
+        }
+        i_rho--;
+
+        real t_rho = (rho - pls_data->rho[i_rho])
+                 / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
+
+        real p1, p2;
+        p1 = pls_data->vtor[i_rho];
+        p2 = pls_data->vtor[i_rho+1];
+        *vphi = p1 + t_rho * (p2 - p1);
+        *vr = 0;
+        *vz = 0;
+    }
+
+    return err;
+}
+
+
 /**
  * @brief Return number of plasma species
  *
