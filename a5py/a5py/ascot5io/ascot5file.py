@@ -433,8 +433,12 @@ def get_inputqids(f, rungroup):
 
     qids = [];
     for inp in range(0, len(INPUT_PARENTS)):
-        qid = rungroup.attrs["qid_" + INPUT_PARENTS[inp]].decode('utf-8')
-        qids.append(qid)
+        try:
+            qid = rungroup.attrs["qid_" + INPUT_PARENTS[inp]].decode('utf-8')
+        except KeyError as err:
+            print(err)
+        else:
+            qids.append(qid)
 
     return qids
 
