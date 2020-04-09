@@ -573,7 +573,8 @@ class Ascot(_ContainerNode):
                                                 h5["results"][run])
 
                     inputgroups = []
-                    for inp in range(0, len(INPUT_PARENTS)):
+                    for inp in range(len(inputqids)):
+
                         if hasattr(self, INPUT_PARENTS[inp]):
                             groups = getattr(self, INPUT_PARENTS[inp])
                             inputgroups.append((INPUT_PARENTS[inp],
