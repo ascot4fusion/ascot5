@@ -85,7 +85,9 @@ class wall_3D(AscotData):
 
     def read(self):
         W=read_hdf5(self._file, self.get_qid())
-        self.number_of_elements =  W['nelements'][0][0]
+        
+        # The dimensionality of  nTriangles = a5wall['nelements'][0][0] varies, so by-pass it.
+        self.number_of_elements = W['x1x2x3'].shape[0]
         return W
 
     def getNumberOfElements(self):
@@ -120,8 +122,7 @@ class wall_3D(AscotData):
 
     def getAspointsAndVertices(self, removeDuplcatePoints=True):
         a5wall = self.read()
-
-        nTriangles = a5wall['nelements'][0][0]
+        nTriangles = self.number_of_elements
 
         # Create an array
         points = np.zeros(shape=(3*nTriangles,3))
