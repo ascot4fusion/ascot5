@@ -46,6 +46,16 @@ class AscotData():
 
     def get_name(self):
         return self._group
+    
+    def set_as_active(self):
+        '''
+        Set the current group as active.
+        '''
+        import a5py.ascot5io.ascot5tools as tools
+        
+        
+        tools.call_ascot5file(self._file, "set_active", self._path)
+
 
     def _open(self):
         if self._opened is not None:
