@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
                                   hdf5_input_efield  | hdf5_input_plasma |
                                   hdf5_input_neutral | hdf5_input_wall |
                                   hdf5_input_marker | hdf5_input_boozer |
-				  hdf5_input_mhd,
+                                  hdf5_input_mhd,
                                   &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
                                   &wall_offload_array, &boozer_offload_array,
