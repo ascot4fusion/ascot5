@@ -274,7 +274,7 @@ void gctransform_particle2guidingcenter(
     /* Choose whether to use first order transformation in velocity space */
     if(GCTRANSFORM_ORDER) {
         *vpar  = vpar0 + vpar1;
-        *mu    = mu0 + mu1;
+        *mu    = fabs(mu0 + mu1);
         *zeta  = zeta0 + zeta1;
     }
     else {
@@ -483,6 +483,7 @@ void gctransform_guidingcenter2particle(
         mu   -= mu1;
         vpar -= vpar1;
         zeta -= zeta1;
+        mu = fabs(mu);
 
         /* Calculate new unit vector for position */
         c = cos(zeta);
