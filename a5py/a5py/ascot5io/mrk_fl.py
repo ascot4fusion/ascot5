@@ -7,7 +7,8 @@ import h5py
 import numpy as np
 
 from . ascot5file import add_group
-from a5py.ascot5io.ascot5data import AscotData
+from a5py.ascot5io.mrk import mrk
+import a5py.ascot5io.mrk
 
 def write_hdf5(fn, n, ids, r, phi, z, pitch, weight, time, desc=None):
     """
@@ -80,19 +81,11 @@ def read_hdf5(fn, qid):
         Dictionary containing input data.
     """
 
-    path = "marker/fl_" + qid
-
-    out = {}
-    with h5py.File(fn,"r") as f:
-        for key in f[path]:
-            out[key] = f[path][key][:]
-
-    out["ids"] = out["id"]
-    del out["id"]
-    return out
+    prefix='fl'
+    return a5py.ascot5io.mrk.read_hdf5(fn, qid, prefix)
 
 
-class mrk_fl(AscotData):
+class mrk_fl(mrk):
     """
     Object representing field line marker data.
     """
@@ -101,8 +94,8 @@ class mrk_fl(AscotData):
         return read_hdf5(self._file, self.get_qid())
 
 
-    def write(self, fn, data=None):
+    def write(self, fn, data=None, desc=None):
         if data is None:
             data = self.read()
 
-        return write_hdf5(fn, **data)
+        return write_hdf5(fn, **data, desc=desc)
