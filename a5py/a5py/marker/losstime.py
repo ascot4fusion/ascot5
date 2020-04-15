@@ -44,11 +44,11 @@ from scipy.optimize import curve_fit
 from scipy.special import erf
 from scipy.integrate import cumtrapz
 
-def islost(endcond):
+def islost(endcond, losstime):
     """
     Small helper function to find markers that are lost: edcond=wall or maxrho.
     """
-    return np.logical_or(endcond==32, endcond==128)
+    return np.logical_and(np.logical_or.reduce([endcond==32, endcond==128, endcond==1]),losstime >1e-8)
 
 def firstpassagetime(t, K, D, inirho, endrho):
     """
@@ -101,7 +101,7 @@ def firstpassagetimecum(t, K, D, inirho, endrho):
     # Helper variables
     drho = endrho - inirho
     c1   = drho/K
-    c2   = 2*drho**2/D
+    c2   = drho**2/(2*D)
     t1   =  np.sqrt(c2 / t) * (t/c1 - 1)
     t2   = -np.sqrt(c2 / t) * (t/c1 + 1)
     return 0.5*( 1 + erf( t1 / np.sqrt(2) ) ) \
@@ -233,13 +233,13 @@ def eval_radindep_coeffs(run=None, inirho=None, losstime=None, endcond=None,
     if run is not None and not dataprovided:
         inirho   = np.mean(run.inistate["rho"])
         endcond  = run.endstate["endcond"]
-        lost     = np.sum(islost(endcond)) / losstime.size
-        losstime = losstime[islost(endcond)]
-        losstime = np.sort(run.endstate["time"])
+        lost     = np.sum(islost(endcond, losstime)) / losstime.size
+        losstime = losstime[islost(endcond, losstime)]
+        losstime = np.sort(losstime)
     elif dataprovided:
         inirho   = np.mean(inirho)
-        lost     = np.sum(islost(endcond)) / losstime.size
-        losstime = losstime[islost(endcond)]
+        lost     = np.sum(islost(endcond, losstime)) / losstime.size
+        losstime = losstime[islost(endcond, losstime)]
         losstime = np.sort(losstime)
     else:
         raise Exception(
@@ -257,9 +257,9 @@ def eval_radindep_coeffs(run=None, inirho=None, losstime=None, endcond=None,
         return firstpassagetimecum(x, a, b, inirho, endrho)
 
     # Fit and return the coefficients.
-    coeffs, _ = curve_fit(fitfun, losstime,
-                          np.linspace(0, 1, losstime.size),
-                          p0=[10000, 10000], bounds=(0,np.inf))
+    cumlost = np.linspace(0, 1, losstime.size)
+    coeffs, _ = curve_fit(fitfun, losstime, cumlost,
+                          p0=[1e4, 1e4], bounds=(0,np.inf))
 
     return (inirho, coeffs[0], coeffs[1], lost)
 
@@ -461,3 +461,27 @@ def eval_coefficients(runs, method="raddep", lastpoint="raddep", gap=1,
             endrho=endrho)
 
     return (rho, drift, diff, lostfrac)
+
+
+def getplotdata_radindep(run, K, D, endrho=1.0, ids=None):
+    def extractdata(run, ids):
+        """
+        Small helper for initializing the run data.
+        """
+        endcond  = run.endstate["endcond"]
+        losstime = run.endstate["time"]
+        inirho   = run.inistate["rho"]
+
+        if ids is not None:
+            inirho   = inirho[ids]
+            losstime = losstime[ids]
+            endcond  = endcond[ids]
+
+        return (inirho, losstime, endcond)
+
+    (inirho, losstime, endcond) = extractdata(run, ids)
+    lf = islost(endcond, losstime)
+    t = np.sort(losstime[lf])
+    f = firstpassagetimecum(t, K, D, inirho[lf], endrho)
+
+    return (np.log10(t), f, np.linspace(0,1,t.size))
