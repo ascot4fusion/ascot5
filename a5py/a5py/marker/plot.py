@@ -12,7 +12,7 @@ if plt:
     import matplotlib.pyplot as plt
 
 def plot_line(x, y=None, z=None, ids=None, equal=False,
-              xlabel=None, ylabel=None, zlabel=None, axes=None):
+              xlabel=None, ylabel=None, zlabel=None, axes=None, **kwargs):
     """
     Plot continuous line f(x).
 
@@ -55,16 +55,16 @@ def plot_line(x, y=None, z=None, ids=None, equal=False,
         for i in uids:
             if z is None:
                 plot_line(x[i==ids], y[i==ids], equal=equal, xlabel=xlabel,
-                          ylabel=ylabel, axes=axes)
+                          ylabel=ylabel, axes=axes, **kwargs)
             else:
                 plot_line(x[i==ids], y[i==ids], z[i==ids], equal=equal,
                           xlabel=xlabel, ylabel=ylabel, zlabel=zlabel,
-                          axes=axes)
+                          axes=axes, **kwargs)
     else:
         if z is None:
-            axes.plot(x, y)
+            axes.plot(x, y, **kwargs)
         else:
-            axes.plot(x, y, z)
+            axes.plot(x, y, z, **kwargs)
 
     if equal:
         axes.axis("scaled")
