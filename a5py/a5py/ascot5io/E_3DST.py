@@ -7,7 +7,7 @@ import numpy as np
 import h5py
 
 from . ascot5file import add_group
-from . ascot5data import AscotData
+from . E import E
 
 def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz, phimin, phimax, nphi,
                tmin, tmax, nt, er, ephi, ez, desc=None):
@@ -120,7 +120,7 @@ def read_hdf5(fn,qid):
     out["ez"]   = np.transpose(out["ez"],   (3,2,1,0))
     return out
 
-class E_3DST(AscotData):
+class E_3DST(E):
     """
     Object representing E_3DST data.
     """
