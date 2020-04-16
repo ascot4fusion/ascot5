@@ -76,9 +76,9 @@ void particle_to_fo_dummy(particle_simd_fo* p_fo, int j){
     p_fo->r[j]        = 1;
     p_fo->phi[j]      = 1;
     p_fo->z[j]        = 1;
-    p_fo->rdot[j]     = 1;
-    p_fo->phidot[j]   = 1;
-    p_fo->zdot[j]     = 1;
+    p_fo->p_r[j]      = 1;
+    p_fo->p_phi[j]    = 1;
+    p_fo->p_z[j]      = 1;
     p_fo->mass[j]     = 1;
     p_fo->charge[j]   = 1;
     p_fo->weight[j]   = 0;
@@ -112,7 +112,7 @@ void particle_to_gc_dummy(particle_simd_gc* p_gc, int j) {
     p_gc->r[j]          = 1;
     p_gc->phi[j]        = 1;
     p_gc->z[j]          = 1;
-    p_gc->vpar[j]       = 1;
+    p_gc->ppar[j]       = 1;
     p_gc->mu[j]         = 1;
     p_gc->zeta[j]       = 1;
     p_gc->mass[j]       = 1;
@@ -490,9 +490,6 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         if(!err && p->p.r <= 0) {
             err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
         }
-        if(!err && ( math_normc(p->p.v_r,p->p.v_phi,p->p.v_z) >= CONST_C2 )) {
-            err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
-        }
         if(!err && p->p.mass <= 0) {
             err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
         }
@@ -511,9 +508,9 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->rprt   = p->p.r;
             ps->phiprt = p->p.phi;
             ps->zprt   = p->p.z;
-            ps->rdot   = p->p.v_r;
-            ps->phidot = p->p.v_phi/ps->rprt;
-            ps->zdot   = p->p.v_z;
+            ps->p_r    = p->p.p_r;
+            ps->p_phi  = p->p.p_phi;
+            ps->p_z    = p->p.p_z;
             ps->mass   = p->p.mass;
             ps->charge = p->p.charge;
             ps->anum   = p->p.anum;
@@ -529,7 +526,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         }
 
         /* Guiding center transformation */
-        real B_dB[15], r, phi, z, vpar, mu, zeta, psi[1], rho[1];
+        real B_dB[15], r, phi, z, ppar, mu, zeta, psi[1], rho[1];
         if(!err) {
             err = B_field_eval_B_dB(B_dB, ps->rprt, ps->phiprt, ps->zprt,
                                     ps->time, Bdata);
@@ -538,14 +535,15 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         if(!err) {
             gctransform_particle2guidingcenter(
                 ps->mass, ps->charge, B_dB,
-                ps->rprt, ps->phiprt, ps->zprt, p->p.v_r, p->p.v_phi, p->p.v_z,
-                &r, &phi, &z, &vpar, &mu, &zeta);
+                ps->rprt, ps->phiprt, ps->zprt, p->p.p_r, p->p.p_phi, p->p.p_z,
+                &r, &phi, &z, &ppar, &mu, &zeta);
         }
         if(!err && r <= 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
         if(!err && mu < 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
         /* Update magnetic field at gc position */
         if(!err) {
+            //printf("%g %g %g\n", r, phi, z);
             err = B_field_eval_B_dB(B_dB, r, phi, z, ps->time, Bdata);
         }
         if(!err) {
@@ -554,13 +552,12 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         if(!err) {
             err = B_field_eval_rho(rho, psi[0], Bdata);
         }
-        if(!err && vpar >= CONST_C) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
         if(!err) {
             ps->r     = r;
             ps->phi   = phi;
             ps->z     = z;
-            ps->vpar  = vpar;
+            ps->ppar  = ppar;
             ps->mu    = mu;
             ps->zeta  = zeta;
 
@@ -626,28 +623,27 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
 
         /* Input is in (Ekin,xi) coordinates but state needs (mu,vpar) so we need to do that
          * transformation first. */
-        real gamma, mu, vpar;
+        real gamma, mu, ppar;
         if(!err) {
             /* From kinetic energy we get Lorentz factor as gamma = 1 + Ekin/mc^2 */
             gamma = 1 + p->p_gc.energy / (p->p_gc.mass * CONST_C2);
 
-            /* And then we can use the usual formula for Lorentz factor to get total velocity */
-            real v = sqrt(1 - 1.0 / (gamma * gamma)) * CONST_C;
+            /* And then we can use the usual formula for Lorentz factor to get total momentum */
+            real pnorm = sqrt( gamma * gamma - 1 ) * p->p_gc.mass * CONST_C;
 
             /* Now we can use library functions for transformation */
             real Bnorm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
-            vpar = physlib_gc_vpar(v, p->p_gc.pitch);
-            mu   = physlib_gc_mu(p->p_gc.mass, v, p->p_gc.pitch, Bnorm);
+            ppar = physlib_gc_ppar(pnorm, p->p_gc.pitch);
+            mu   = physlib_gc_mu(p->p_gc.mass, pnorm, p->p_gc.pitch, Bnorm);
         }
         if(!err && mu < 0)          {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
-        if(!err && vpar >= CONST_C) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
         if(!err) {
             ps->r        = p->p_gc.r;
             ps->phi      = p->p_gc.phi;
             ps->z        = p->p_gc.z;
             ps->mu       = mu;
-            ps->vpar     = vpar;
+            ps->ppar     = ppar;
             ps->zeta     = p->p_gc.zeta;
             ps->mass     = p->p_gc.mass;
             ps->charge   = p->p_gc.charge;
@@ -664,20 +660,20 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         }
 
         /* Guiding center transformation to get particle coordinates */
-        real rprt, phiprt, zprt, vR, vphi, vz;
+        real rprt, phiprt, zprt, pr, pphi, pz;
         if(!err) {
-            real vparprt, muprt, zetaprt;
+            real pparprt, muprt, zetaprt;
             gctransform_guidingcenter2particle(
                 ps->mass, ps->charge, B_dB,
-                ps->r, ps->phi, ps->z, ps->vpar, ps->mu, ps->zeta,
-                &rprt, &phiprt, &zprt, &vparprt, &muprt, &zetaprt);
+                ps->r, ps->phi, ps->z, ps->ppar, ps->mu, ps->zeta,
+                &rprt, &phiprt, &zprt, &pparprt, &muprt, &zetaprt);
 
             B_field_eval_B_dB(B_dB, rprt, phiprt, zprt, ps->time, Bdata);
 
-            gctransform_vparmuzeta2vRvphivz(
+            gctransform_pparmuzeta2prpphipz(
                 ps->mass, ps->charge, B_dB,
-                phiprt, vparprt, muprt, zetaprt,
-                &vR, &vphi, &vz);
+                phiprt, pparprt, muprt, zetaprt,
+                &pr, &pphi, &pz);
         }
         if(!err && rprt <= 0) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
@@ -685,9 +681,9 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->rprt   = rprt;
             ps->phiprt = phiprt;
             ps->zprt   = zprt;
-            ps->rdot   = vR;
-            ps->phidot = vphi / ps->rprt;
-            ps->zdot   = vz;
+            ps->p_r    = pr;
+            ps->p_phi  = pphi;
+            ps->p_z    = pz;
 
             ps->err = 0;
         }
@@ -719,9 +715,9 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->rprt       = p->p_ml.r;
             ps->phiprt     = p->p_ml.phi;
             ps->zprt       = p->p_ml.z;
-            ps->rdot       = 0;
-            ps->phidot     = 0;
-            ps->zdot       = 0;
+            ps->p_r        = 0;
+            ps->p_phi      = 0;
+            ps->p_z        = 0;
 
             ps->mass       = 0;
             ps->charge     = 0;
@@ -739,7 +735,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->r          = p->p_ml.r;
             ps->phi        = p->p_ml.phi;
             ps->z          = p->p_ml.z;
-            ps->vpar       = p->p_ml.pitch >= 0;
+            ps->ppar       = p->p_ml.pitch >= 0;
             ps->mu         = 0;
             ps->zeta       = 0;
 
@@ -803,9 +799,9 @@ a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
         p_fo->r[j]          = p->rprt;
         p_fo->phi[j]        = p->phiprt;
         p_fo->z[j]          = p->zprt;
-        p_fo->rdot[j]       = p->rdot;
-        p_fo->phidot[j]     = p->phidot;
-        p_fo->zdot[j]       = p->zdot;
+        p_fo->p_r[j]        = p->p_r;
+        p_fo->p_phi[j]      = p->p_phi;
+        p_fo->p_z[j]        = p->p_z;
 
         p_fo->mass[j]       = p->mass;
         p_fo->charge[j]     = p->charge;
@@ -883,9 +879,9 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->rprt       = p_fo->r[j];
     p->phiprt     = p_fo->phi[j];
     p->zprt       = p_fo->z[j];
-    p->rdot       = p_fo->rdot[j];
-    p->phidot     = p_fo->phidot[j];
-    p->zdot       = p_fo->zdot[j];
+    p->p_r        = p_fo->p_r[j];
+    p->p_phi      = p_fo->p_phi[j];
+    p->p_z        = p_fo->p_z[j];
 
     p->mass       = p_fo->mass[j];
     p->charge     = p_fo->charge[j];
@@ -914,16 +910,16 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     B_dB[11]      = p_fo->B_z_dz[j];
 
     /* Guiding center transformation */
-    real vpar;
+    real ppar;
     if(!err) {
-        real vR   = p->rdot;
-        real vphi = p->phidot * p->rprt;
-        real vz   = p->zdot;
+        real pr   = p->p_r;
+        real pphi = p->p_phi;
+        real pz   = p->p_z;
 
         gctransform_particle2guidingcenter(
             p->mass, p->charge, B_dB,
-            p->rprt, p->phiprt, p->zprt, vR , vphi, vz,
-            &p->r, &p->phi, &p->z, &vpar, &p->mu, &p->zeta);
+            p->rprt, p->phiprt, p->zprt, pr , pphi, pz,
+            &p->r, &p->phi, &p->z, &ppar, &p->mu, &p->zeta);
     }
     if(!err && p->r <= 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
     if(!err && p->mu < 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
@@ -939,9 +935,9 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     }
 
     if(!err) {
-        p->vpar = vpar;
+        p->ppar = ppar;
     }
-    if(!err && p->vpar >= CONST_C) {
+    if(!err && p->ppar >= CONST_C) {
         err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
     }
 
@@ -1008,7 +1004,7 @@ a5err particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc,
         p_gc->r[j]          = p->r;
         p_gc->phi[j]        = p->phi;
         p_gc->z[j]          = p->z;
-        p_gc->vpar[j]       = p->vpar;
+        p_gc->ppar[j]       = p->ppar;
         p_gc->mu[j]         = p->mu;
         p_gc->zeta[j]       = p->zeta;
 
@@ -1070,7 +1066,7 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     p->r          = p_gc->r[j];
     p->phi        = p_gc->phi[j];
     p->z          = p_gc->z[j];
-    p->vpar       = p_gc->vpar[j];
+    p->ppar       = p_gc->ppar[j];
     p->mu         = p_gc->mu[j];
     p->zeta       = p_gc->zeta[j];
 
@@ -1115,27 +1111,27 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     B_dB[10]      = p->B_z_dphi;
     B_dB[11]      = p->B_z_dz;
 
-    real vR, vphi, vz;
+    real pr, pphi, pz;
     if(!err) {
-        real vparprt, muprt, zetaprt;
+        real pparprt, muprt, zetaprt;
         gctransform_guidingcenter2particle(
             p->mass, p->charge, B_dB,
-            p->r, p->phi, p->z, p->vpar, p->mu, p->zeta,
-            &p->rprt, &p->phiprt, &p->zprt, &vparprt, &muprt, &zetaprt);
+            p->r, p->phi, p->z, p->ppar, p->mu, p->zeta,
+            &p->rprt, &p->phiprt, &p->zprt, &pparprt, &muprt, &zetaprt);
 
         B_field_eval_B_dB(B_dB, p->rprt, p->phiprt, p->zprt, p->time, Bdata);
 
-        gctransform_vparmuzeta2vRvphivz(
+        gctransform_pparmuzeta2prpphipz(
             p->mass, p->charge, B_dB,
-            p->phiprt, vparprt, muprt, zetaprt,
-            &vR, &vphi, &vz);
+            p->phiprt, pparprt, muprt, zetaprt,
+            &pr, &pphi, &pz);
     }
     if(!err && p->rprt <= 0) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
     if(!err) {
-        p->rdot       = vR;
-        p->phidot     = vphi/p->rprt;
-        p->zdot       = vz;
+        p->p_r   = pr;
+        p->p_phi = pphi;
+        p->p_z   = pz;
     }
 
     /* If marker already has error flag, make sure it is not overwritten here */
@@ -1187,7 +1183,7 @@ a5err particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml,
         p_ml->phi[j]        = p->phi;
         p_ml->z[j]          = p->z;
 
-        p_ml->pitch[j]      = 2*(p->vpar >= 0) - 1.0;
+        p_ml->pitch[j]      = 2*(p->ppar >= 0) - 1.0;
         p_ml->time[j]       = p->time;
         p_ml->weight[j]     = p->weight;
         p_ml->id[j]         = p->id;
@@ -1249,14 +1245,14 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->rprt       = p_ml->r[j];
     p->phiprt     = p_ml->phi[j];
     p->zprt       = p_ml->z[j];
-    p->rdot       = 0;
-    p->phidot     = 0;
-    p->zdot       = 0;
+    p->p_r        = 0;
+    p->p_phi      = 0;
+    p->p_z        = 0;
 
     p->r          = p_ml->r[j];
     p->phi        = p_ml->phi[j];
     p->z          = p_ml->z[j];
-    p->vpar       = p_ml->pitch[j];
+    p->ppar       = p_ml->pitch[j];
     p->mu         = 0;
     p->zeta       = 0;
     p->mass       = 0;
@@ -1317,14 +1313,14 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
     p_gc->id[j]      = p_fo->id[j];
     p_gc->index[j]   = p_fo->index[j];
 
-    real r, phi, z, vpar, mu, zeta, B_dB[15];
+    real r, phi, z, ppar, mu, zeta, B_dB[15];
     if(!err) {
         real Rprt   = p_fo->r[j];
         real phiprt = p_fo->phi[j];
         real zprt   = p_fo->z[j];
-        real vR     = p_fo->rdot[j];
-        real vphi   = p_fo->phidot[j] * p_fo->r[j];
-        real vz     = p_fo->zdot[j];
+        real pr     = p_fo->p_r[j];
+        real pphi   = p_fo->p_phi[j];
+        real pz     = p_fo->p_z[j];
         real mass   = p_fo->mass[j];
         real charge = p_fo->charge[j];
 
@@ -1352,8 +1348,8 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
         /* Guiding center transformation */
         gctransform_particle2guidingcenter(
             mass, charge, B_dB,
-            Rprt, phiprt, zprt, vR , vphi, vz,
-            &r, &phi, &z, &vpar, &mu, &zeta);
+            Rprt, phiprt, zprt, pr , pphi, pz,
+            &r, &phi, &z, &ppar, &mu, &zeta);
     }
     if(!err && r <= 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
     if(!err && mu < 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
@@ -1372,13 +1368,13 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
     }
 
     if(!err) {
-        p_gc->r[j]          = r;
-        p_gc->phi[j]        = phi;
-        p_gc->z[j]          = z;
-        p_gc->mu[j]         = mu;
-        p_gc->zeta[j]       = zeta;
-        p_gc->vpar[j]       = vpar;
-        p_gc->rho[j]        = rho[0];
+        p_gc->r[j]    = r;
+        p_gc->phi[j]  = phi;
+        p_gc->z[j]    = z;
+        p_gc->mu[j]   = mu;
+        p_gc->zeta[j] = zeta;
+        p_gc->ppar[j] = ppar;
+        p_gc->rho[j]  = rho[0];
 
         /* Evaluate pol angle so that it is cumulative and at gc position */
         real axis_r = B_field_get_axis_r(Bdata, p_gc->phi[j]);
@@ -1414,13 +1410,21 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
     return err > 0;
 }
 
+/**
+ * @brief Copy FO struct
+ *
+ * @param p1 SIMD structure for input
+ * @param i  index for the copied input
+ * @param p2 SIMD structure for output
+ * @param j  index for the output slot
+ */
 void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j) {
         p2->r[j]          = p1->r[i];
         p2->phi[j]        = p1->phi[i];
         p2->z[j]          = p1->z[i];
-        p2->rdot[j]       = p1->rdot[i];
-        p2->phidot[j]     = p1->phidot[i];
-        p2->zdot[j]       = p1->zdot[i];
+        p2->p_r[j]        = p1->p_r[i];
+        p2->p_phi[j]      = p1->p_phi[i];
+        p2->p_z[j]        = p1->p_z[i];
 
         p2->time[j]       = p1->time[i];
         p2->cputime[j]    = p1->cputime[i];
@@ -1455,11 +1459,19 @@ void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j) 
         p2->B_z_dz[j]     = p1->B_z_dz[i];
 }
 
+/**
+ * @brief Copy GC struct
+ *
+ * @param p1 SIMD structure for input
+ * @param i  index for the copied input
+ * @param p2 SIMD structure for output
+ * @param j  index for the output slot
+ */
 void particle_copy_gc(particle_simd_gc* p1, int i, particle_simd_gc* p2, int j) {
     p2->r[j]          = p1->r[i];
     p2->phi[j]        = p1->phi[i];
     p2->z[j]          = p1->z[i];
-    p2->vpar[j]       = p1->vpar[i];
+    p2->ppar[j]       = p1->ppar[i];
     p2->mu[j]         = p1->mu[i];
     p2->zeta[j]       = p1->zeta[i];
 
@@ -1494,6 +1506,14 @@ void particle_copy_gc(particle_simd_gc* p1, int i, particle_simd_gc* p2, int j) 
     p2->B_z_dz[j]     = p1->B_z_dz[i];
 }
 
+/**
+ * @brief Copy ML struct
+ *
+ * @param p1 SIMD structure for input
+ * @param i  index for the copied input
+ * @param p2 SIMD structure for output
+ * @param j  index for the output slot
+ */
 void particle_copy_ml(particle_simd_ml* p1, int i, particle_simd_ml* p2, int j) {
     p2->r[j]          = p1->r[i];
     p2->phi[j]        = p1->phi[i];

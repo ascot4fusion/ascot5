@@ -60,7 +60,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
             yprev[0] = p->r[i];
             yprev[1] = p->phi[i];
             yprev[2] = p->z[i];
-            yprev[3] = p->vpar[i];
+            yprev[3] = p->ppar[i];
             yprev[4] = p->mu[i];
             yprev[5] = p->zeta[i];
 
@@ -233,7 +233,6 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
             /* Test that results are physical */
             if(!errflag && fabs(hnext[i]) < A5_EXTREMELY_SMALL_TIMESTEP)      {errflag = error_raise(ERR_INVALID_TIMESTEP, __LINE__, EF_STEP_GC_CASHKARP);}
             else if(!errflag && rk5[0] <= 0)              {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_CASHKARP);}
-            else if(!errflag && fabs(rk5[4]) >= CONST_C)  {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_CASHKARP);}
             else if(!errflag && rk5[4] < 0)               {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_CASHKARP);}
 
             /* Update gc phase space position */
@@ -241,7 +240,7 @@ void step_gc_cashkarp(particle_simd_gc* p, real* h, real* hnext, real tol,
                 p->r[i]     = rk5[0];
                 p->phi[i]   = rk5[1];
                 p->z[i]     = rk5[2];
-                p->vpar[i]  = rk5[3];
+                p->ppar[i]  = rk5[3];
                 p->mu[i]    = rk5[4];
                 p->zeta[i]  = fmod( rk5[5], CONST_2PI );
                 if(p->zeta[i]<0) {

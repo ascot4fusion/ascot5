@@ -7,6 +7,7 @@
 #include <math.h>
 #include "../ascot5.h"
 #include "../consts.h"
+#include "../physlib.h"
 #include "dist_rho5D.h"
 #include "../particle.h"
 
@@ -35,19 +36,19 @@ unsigned long dist_rho5D_index(int i_rho, int i_theta, int i_phi, int i_vpara,
  * @param offload_data pointer to offload data struct
  */
 void dist_rho5D_free_offload(dist_rho5D_offload_data* offload_data) {
-    offload_data->n_rho = 0;
-    offload_data->min_rho = 0;
-    offload_data->max_rho = 0;
-    offload_data->n_theta = 0;
+    offload_data->n_rho     = 0;
+    offload_data->min_rho   = 0;
+    offload_data->max_rho   = 0;
+    offload_data->n_theta   = 0;
     offload_data->min_theta = 0;
     offload_data->max_theta = 0;
-    offload_data->n_phi = 0;
-    offload_data->min_phi = 0;
-    offload_data->max_phi = 0;
-    offload_data->n_vpara = 0;
+    offload_data->n_phi     = 0;
+    offload_data->min_phi   = 0;
+    offload_data->max_phi   = 0;
+    offload_data->n_vpara   = 0;
     offload_data->min_vpara = 0;
     offload_data->max_vpara = 0;
-    offload_data->n_vperp = 0;
+    offload_data->n_vperp   = 0;
     offload_data->min_vperp = 0;
     offload_data->max_vperp = 0;
 }
@@ -125,6 +126,13 @@ void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
+
+            real mass = p_i->mass[i];
+            real pnorm = sqrt(p_f->p_r[i]*p_f->p_r[i]
+                              + p_f->p_phi[i]*p_f->p_phi[i]
+                              + p_f->p_z[i]*p_f->p_z[i]);
+            real gamma = physlib_gamma_pnorm(mass, pnorm);
+
             i_rho[i] = floor((p_f->rho[i] - dist->min_rho)
                              / ((dist->max_rho - dist->min_rho)/dist->n_rho));
 
@@ -144,20 +152,21 @@ void dist_rho5D_update_fo(dist_rho5D_data* dist, particle_simd_fo* p_f,
                                / ( (dist->max_theta - dist->min_theta)
                                    / dist->n_theta) );
 
-            vpara[i] = (p_f->rdot[i] * p_f->B_r[i] +
-                        (p_f->phidot[i] * p_f->r[i])
-                        * p_f->B_phi[i] + p_f->zdot[i] * p_f->B_z[i])
-                / sqrt(p_f->B_r[i]*p_f->B_r[i]
-                       +p_f->B_phi[i]*p_f->B_phi[i]
-                       + p_f->B_z[i]*p_f->B_z[i]);
+            vpara[i] = (  p_f->p_r[i]   * p_f->B_r[i]
+                        + p_f->p_phi[i] * p_f->B_phi[i]
+                        + p_f->p_z[i]   * p_f->B_z[i])
+                       / sqrt(  p_f->B_r[i]  * p_f->B_r[i]
+                              + p_f->B_phi[i]* p_f->B_phi[i]
+                              + p_f->B_z[i]  * p_f->B_z[i]) / (gamma*mass);
             i_vpara[i] = floor((vpara[i] - dist->min_vpara)
                                / ((dist->max_vpara - dist->min_vpara)
                                   / dist->n_vpara));
 
-            vperp[i] = sqrt(p_f->rdot[i]*p_f->rdot[i] + (p_f->phidot[i]
-                                                         * p_f->phidot[i]
-                                                         * p_f->r[i]*p_f->r[i])
-                            + p_f->zdot[i]*p_f->zdot[i] - vpara[i]*vpara[i]);
+            vperp[i] = sqrt(
+                  p_f->p_r[i]   * p_f->p_r[i]
+                + p_f->p_phi[i] * p_f->p_phi[i]
+                + p_f->p_z[i]   * p_f->p_z[i]
+                - vpara[i] * vpara[i] * gamma * gamma * mass * mass);
             i_vperp[i] = floor((vperp[i] - dist->min_vperp)
                                / ((dist->max_vperp - dist->min_vperp)
                                   / dist->n_vperp));
@@ -230,6 +239,13 @@ void dist_rho5D_update_gc(dist_rho5D_data* dist, particle_simd_gc* p_f,
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
+            real Bnorm = sqrt(
+                    p_f->B_r[i]*p_f->B_r[i] + p_f->B_phi[i]*p_f->B_phi[i]
+                    +p_f->B_z[i]*p_f->B_z[i]);
+            real mass = p_i->mass[i];
+            real gamma = physlib_gamma_ppar(mass, p_f->mu[i], p_f->ppar[i],
+                                            Bnorm);
+
             i_rho[i] = floor((p_f->rho[i] - dist->min_rho)
                              / ((dist->max_rho - dist->min_rho)/dist->n_rho));
 
@@ -248,14 +264,13 @@ void dist_rho5D_update_gc(dist_rho5D_data* dist, particle_simd_gc* p_f,
                                / ((dist->max_theta - dist->min_theta)
                                   / dist->n_theta));
 
-            i_vpara[i] = floor((p_f->vpar[i] - dist->min_vpara)
-                               / ((dist->max_vpara - dist->min_vpara)
-                                  / dist->n_vpara));
+            i_vpara[i] = floor((p_f->ppar[i] /(gamma*mass) - dist->min_vpara)
+                       / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
 
-            vperp[i] = sqrt(2 * sqrt(p_f->B_r[i]*p_f->B_r[i]
-                                     +p_f->B_phi[i]*p_f->B_phi[i]
-                                     +p_f->B_z[i]*p_f->B_z[i])
-                            * p_f->mu[i] / p_f->mass[i]);
+            vperp[i] = sqrt(2 * sqrt(  p_f->B_r[i]   * p_f->B_r[i]
+                                     + p_f->B_phi[i] * p_f->B_phi[i]
+                                     + p_f->B_z[i]   * p_f->B_z[i] )
+                            * p_f->mu[i] / (p_f->mass[i]*gamma));
             i_vperp[i] = floor((vperp[i] - dist->min_vperp)
                                / ((dist->max_vperp - dist->min_vperp)
                                   / dist->n_vperp));

@@ -8,6 +8,7 @@
 #include <hdf5_hl.h>
 #include "../ascot5.h"
 #include "../consts.h"
+#include "../physlib.h"
 #include "../particle.h"
 #include "hdf5_helpers.h"
 #include "hdf5_state.h"
@@ -67,19 +68,25 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     H5LTset_attribute_string(state_group, "zprt", "unit", "m");
 
     for(i = 0; i < n; i++) {
-        data[i] = p[i].rdot;
+        real pnorm =  sqrt(p[i].p_r*p[i].p_r + p[i].p_phi*p[i].p_phi + p[i].p_z*p[i].p_z);
+        real gamma = physlib_gamma_pnorm(p[i].mass, pnorm);
+        data[i] = p[i].p_r / (gamma*p[i].mass);
     }
     hdf5_write_extendible_dataset_double(state_group, "vr", n, data);
     H5LTset_attribute_string(state_group, "vr", "unit", "m/s");
 
     for(i = 0; i < n; i++) {
-        data[i] = p[i].phidot * p[i].rprt;
+        real pnorm =  sqrt(p[i].p_r*p[i].p_r + p[i].p_phi*p[i].p_phi + p[i].p_z*p[i].p_z);
+        real gamma = physlib_gamma_pnorm(p[i].mass, pnorm);
+        data[i] = p[i].p_phi / (gamma*p[i].mass);
     }
     hdf5_write_extendible_dataset_double(state_group, "vphi", n, data);
     H5LTset_attribute_string(state_group, "vphi", "unit", "m/s");
 
     for(i = 0; i < n; i++) {
-        data[i] = p[i].zdot;
+        real pnorm = sqrt(p[i].p_r*p[i].p_r + p[i].p_phi*p[i].p_phi + p[i].p_z*p[i].p_z);
+        real gamma = physlib_gamma_pnorm(p[i].mass, pnorm);
+        data[i] = p[i].p_z / (gamma*p[i].mass);
     }
     hdf5_write_extendible_dataset_double(state_group, "vz", n, data);
     H5LTset_attribute_string(state_group, "vz", "unit", "m/s");
@@ -104,7 +111,10 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     H5LTset_attribute_string(state_group, "z", "unit", "m");
 
     for(i = 0; i < n; i++) {
-        data[i] = p[i].vpar;
+        real Bnorm = sqrt(
+            p[i].B_r * p[i].B_r + p[i].B_phi * p[i].B_phi + p[i].B_z * p[i].B_z);
+        real gamma = physlib_gamma_ppar(p[i].mass, p[i].mu, p[i].ppar, Bnorm);
+        data[i] = p[i].ppar  / (gamma*p[i].mass);
     }
     hdf5_write_extendible_dataset_double(state_group, "vpar", n, data);
     H5LTset_attribute_string(state_group, "vpar", "unit", "m/s");

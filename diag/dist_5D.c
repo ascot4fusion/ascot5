@@ -7,6 +7,7 @@
 #include <math.h>
 #include "../ascot5.h"
 #include "../consts.h"
+#include "../physlib.h"
 #include "dist_5D.h"
 #include "../particle.h"
 
@@ -122,6 +123,11 @@ void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
+            real mass = p_i->mass[i];
+            real pnorm = sqrt(p_f->p_r[i]*p_f->p_r[i]
+                              + p_f->p_phi[i]*p_f->p_phi[i]
+                              + p_f->p_z[i]*p_f->p_z[i]);
+            real gamma = physlib_gamma_pnorm(mass, pnorm);
             i_r[i] = floor((p_f->r[i] - dist->min_r)
                      / ((dist->max_r - dist->min_r)/dist->n_r));
 
@@ -135,18 +141,20 @@ void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
             i_z[i] = floor((p_f->z[i] - dist->min_z)
                      / ((dist->max_z - dist->min_z) / dist->n_z));
 
-            vpara[i] = (p_f->rdot[i] * p_f->B_r[i] +
-                        (p_f->phidot[i] * p_f->r[i])
-                        * p_f->B_phi[i] + p_f->zdot[i] * p_f->B_z[i])
-                       / sqrt(p_f->B_r[i]*p_f->B_r[i]
-                              +p_f->B_phi[i]*p_f->B_phi[i]
-                              + p_f->B_z[i]*p_f->B_z[i]);
+            vpara[i] = (  p_f->p_r[i]   * p_f->B_r[i]
+                        + p_f->p_phi[i] * p_f->B_phi[i]
+                        + p_f->p_z[i]   * p_f->B_z[i])
+                       / sqrt(  p_f->B_r[i]  * p_f->B_r[i]
+                              + p_f->B_phi[i]* p_f->B_phi[i]
+                              + p_f->B_z[i]  * p_f->B_z[i]) / (gamma*mass);
             i_vpara[i] = floor((vpara[i] - dist->min_vpara)
                        / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
 
-            vperp[i] = sqrt(p_f->rdot[i]*p_f->rdot[i] + (p_f->phidot[i]
-                                            *p_f->phidot[i]*p_f->r[i]*p_f->r[i])
-                            + p_f->zdot[i]*p_f->zdot[i] - vpara[i]*vpara[i]);
+            vperp[i] = sqrt(
+                  p_f->p_r[i]   * p_f->p_r[i]
+                + p_f->p_phi[i] * p_f->p_phi[i]
+                + p_f->p_z[i]   * p_f->p_z[i]
+                  - vpara[i] * vpara[i] * gamma * gamma * mass * mass) / (gamma * mass);
             i_vperp[i] = floor((vperp[i] - dist->min_vperp)
                        / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
 
@@ -216,6 +224,12 @@ void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
+            real Bnorm = sqrt(
+                    p_f->B_r[i]*p_f->B_r[i] + p_f->B_phi[i]*p_f->B_phi[i]
+                    +p_f->B_z[i]*p_f->B_z[i]);
+            real mass = p_i->mass[i];
+            real gamma = physlib_gamma_ppar(mass, p_f->mu[i], p_f->ppar[i],
+                                            Bnorm);
             i_r[i] = floor((p_f->r[i] - dist->min_r)
                      / ((dist->max_r - dist->min_r)/dist->n_r));
 
@@ -229,13 +243,13 @@ void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
             i_z[i] = floor((p_f->z[i] - dist->min_z)
                     / ((dist->max_z - dist->min_z) / dist->n_z));
 
-            i_vpara[i] = floor((p_f->vpar[i] - dist->min_vpara)
+            i_vpara[i] = floor((p_f->ppar[i] /(gamma*mass) - dist->min_vpara)
                        / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
 
-            vperp[i] = sqrt(2 * sqrt(p_f->B_r[i]*p_f->B_r[i]
-                                     +p_f->B_phi[i]*p_f->B_phi[i]
-                                     +p_f->B_z[i]*p_f->B_z[i])
-                            * p_f->mu[i] / p_f->mass[i]);
+            vperp[i] = sqrt(2 * sqrt(  p_f->B_r[i]   * p_f->B_r[i]
+                                     + p_f->B_phi[i] * p_f->B_phi[i]
+                                     + p_f->B_z[i]   * p_f->B_z[i] )
+                            * p_f->mu[i] / (p_f->mass[i]*gamma));
             i_vperp[i] = floor((vperp[i] - dist->min_vperp)
                        / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
 

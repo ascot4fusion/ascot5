@@ -8,6 +8,7 @@
 #include <string.h>
 #include "../ascot5.h"
 #include "../consts.h"
+#include "../physlib.h"
 #include "../simulate.h"
 #include "../gctransform.h"
 #include "../particle.h"
@@ -167,6 +168,12 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
 
             /* Mask dummy markers */
             if(p_f->id[i] > 0) {
+                real mass = p_i->mass[i];
+                real pnorm = sqrt(p_f->p_r[i]*p_f->p_r[i]
+                                  + p_f->p_phi[i]*p_f->p_phi[i]
+                                  + p_f->p_z[i]*p_f->p_z[i]);
+                real gamma = physlib_gamma_pnorm(mass, pnorm);
+
                 integer imrk   = p_f->index[i];
                 integer ipoint = data->mrk_pnt[imrk];
                 integer idx    = imrk * data->Npnt + ipoint;
@@ -178,9 +185,9 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                     data->r[idx]      = p_i->r[i];
                     data->phi[idx]    = p_i->phi[i];
                     data->z[idx]      = p_i->z[i];
-                    data->rdot[idx]   = p_i->rdot[i];
-                    data->phidot[idx] = p_i->phidot[i];
-                    data->zdot[idx]   = p_i->zdot[i];
+                    data->rdot[idx]   = p_i->p_r[i]   / (gamma*mass);
+                    data->phidot[idx] = p_i->p_phi[i] / (gamma*mass*p_i->r[i]);
+                    data->zdot[idx]   = p_i->p_z[i]   / (gamma*mass);
                     data->weight[idx] = p_i->weight[i];
                     data->charge[idx] = p_i->charge[i];
                     data->rho[idx]    = p_i->rho[i];
@@ -209,9 +216,9 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                     data->r[idx]      = p_f->r[i];
                     data->phi[idx]    = p_f->phi[i];
                     data->z[idx]      = p_f->z[i];
-                    data->rdot[idx]   = p_f->rdot[i];
-                    data->phidot[idx] = p_f->phidot[i];
-                    data->zdot[idx]   = p_f->zdot[i];
+                    data->rdot[idx]   = p_f->p_r[i]   / (gamma*mass);
+                    data->phidot[idx] = p_f->p_phi[i] / (gamma*mass*p_i->r[i]);
+                    data->zdot[idx]   = p_f->p_z[i]   / (gamma*mass);
                     data->weight[idx] = p_f->weight[i];
                     data->charge[idx] = p_f->charge[i];
                     data->rho[idx]    = p_f->rho[i];
@@ -237,6 +244,12 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
             /* Mask dummy markers and thosw whose time-step was rejected. */
             if( p_f->id[i] > 0 && (p_f->time[i] != p_i->time[i]) ) {
 
+                real mass = p_i->mass[i];
+                real pnorm = sqrt(p_f->p_r[i]*p_f->p_r[i]
+                                  + p_f->p_phi[i]*p_f->p_phi[i]
+                                  + p_f->p_z[i]*p_f->p_z[i]);
+                real gamma = physlib_gamma_pnorm(mass, pnorm);
+
                 real k;
                 integer imrk   = p_f->index[i];
                 integer ipoint = data->mrk_pnt[imrk];
@@ -254,9 +267,9 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
                         data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
                         data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
-                        data->rdot[idx]   = k*p_f->rdot[i]   + d*p_i->rdot[i];
-                        data->phidot[idx] = k*p_f->phidot[i] + d*p_i->phidot[i];
-                        data->zdot[idx]   = k*p_f->zdot[i]   + d*p_i->zdot[i];
+                        data->rdot[idx]   = (k*p_f->p_r[i]    + d*p_i->p_r[i])/ (gamma*mass);
+                        data->phidot[idx] = (k*p_f->p_phi[i]  + d*p_i->p_phi[i]) / (gamma*mass*p_i->r[i]);
+                        data->zdot[idx]   = (k*p_f->p_z[i]    + d*p_i->p_z[i])/ (gamma*mass);
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
                         data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
@@ -288,9 +301,9 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
                         data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
                         data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
-                        data->rdot[idx]   = k*p_f->rdot[i]   + d*p_i->rdot[i];
-                        data->phidot[idx] = k*p_f->phidot[i] + d*p_i->phidot[i];
-                        data->zdot[idx]   = k*p_f->zdot[i]   + d*p_i->zdot[i];
+                        data->rdot[idx]   = (k*p_f->p_r[i]    + d*p_i->p_r[i])/ (gamma*mass);
+                        data->phidot[idx] = (k*p_f->p_phi[i]  + d*p_i->p_phi[i]) / (gamma*mass*p_i->r[i]);
+                        data->zdot[idx]   = (k*p_f->p_z[i]    + d*p_i->p_z[i])/ (gamma*mass);
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
                         data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
@@ -329,6 +342,13 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
         #pragma omp simd
         for(int i= 0; i < NSIMD; i++) {
 
+            real Bnorm = sqrt(
+                    p_f->B_r[i]*p_f->B_r[i] + p_f->B_phi[i]*p_f->B_phi[i]
+                    +p_f->B_z[i]*p_f->B_z[i]);
+            real mass = p_i->mass[i];
+            real gamma = physlib_gamma_ppar(mass, p_f->mu[i], p_f->ppar[i],
+                                            Bnorm);
+
             /* Mask dummy markers */
             if(p_f->id[i] > 0) {
                 integer imrk   = p_f->index[i];
@@ -342,7 +362,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                     data->r[idx]      = p_i->r[i];
                     data->phi[idx]    = p_i->phi[i];
                     data->z[idx]      = p_i->z[i];
-                    data->vpar[idx]   = p_i->vpar[i];
+                    data->vpar[idx]   = p_i->ppar[i]/ (gamma*mass);
                     data->mu[idx]     = p_i->mu[i];
                     data->zeta[idx]   = p_i->zeta[i];
                     data->weight[idx] = p_i->weight[i];
@@ -374,7 +394,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                     data->r[idx]      = p_f->r[i];
                     data->phi[idx]    = p_f->phi[i];
                     data->z[idx]      = p_f->z[i];
-                    data->vpar[idx]   = p_f->vpar[i];
+                    data->vpar[idx]   = p_f->ppar[i]/ (gamma*mass);
                     data->mu[idx]     = p_f->mu[i];
                     data->zeta[idx]   = p_f->zeta[i];
                     data->weight[idx] = p_f->weight[i];
@@ -400,6 +420,13 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
             /* Mask dummy markers and thosw whose time-step was rejected. */
             if( p_f->id[i] > 0 && (p_f->time[i] != p_i->time[i]) ) {
 
+                real Bnorm = sqrt(
+                    p_f->B_r[i]*p_f->B_r[i] + p_f->B_phi[i]*p_f->B_phi[i]
+                    +p_f->B_z[i]*p_f->B_z[i]);
+                real mass = p_i->mass[i];
+                real gamma = physlib_gamma_ppar(mass, p_f->mu[i], p_f->ppar[i],
+                                                Bnorm);
+
                 real k;
                 integer imrk   = p_f->index[i];
                 integer ipoint = data->mrk_pnt[imrk];
@@ -417,7 +444,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
                         data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
                         data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
-                        data->vpar[idx]   = k*p_f->vpar[i]   + d*p_i->vpar[i];
+                        data->vpar[idx]   = (k*p_f->ppar[i]   + d*p_i->ppar[i])/ (gamma*mass);
                         data->mu[idx]     = k*p_f->mu[i]     + d*p_i->mu[i];
                         data->zeta[idx]   = k*p_f->zeta[i]   + d*p_i->zeta[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
@@ -451,7 +478,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
                         data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
                         data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
-                        data->vpar[idx]   = k*p_f->vpar[i]   + d*p_i->vpar[i];
+                        data->vpar[idx]   = (k*p_f->ppar[i]   + d*p_i->ppar[i])/ (gamma*mass);
                         data->mu[idx]     = k*p_f->mu[i]     + d*p_i->mu[i];
                         data->zeta[idx]   = k*p_f->zeta[i]   + d*p_i->zeta[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];

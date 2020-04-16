@@ -7,6 +7,7 @@
 #include <math.h>
 #include "../ascot5.h"
 #include "../consts.h"
+#include "../physlib.h"
 #include "../gctransform.h"
 #include "dist_rho6D.h"
 
@@ -125,6 +126,11 @@ void dist_rho6D_update_fo(dist_rho6D_data* dist, particle_simd_fo* p_f,
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
+            real mass = p_i->mass[i];
+            real pnorm = sqrt(p_f->p_r[i]*p_f->p_r[i]
+                              + p_f->p_phi[i]*p_f->p_phi[i]
+                              + p_f->p_z[i]*p_f->p_z[i]);
+            real gamma = physlib_gamma_pnorm(mass, pnorm);
             i_rho[i] = floor((p_f->rho[i] - dist->min_rho)
                              / ((dist->max_rho - dist->min_rho)/dist->n_rho));
 
@@ -140,16 +146,17 @@ void dist_rho6D_update_fo(dist_rho6D_data* dist, particle_simd_fo* p_f,
                 theta[i] = theta[i] + 2*CONST_PI;
             }
             i_theta[i] = floor((theta[i] - dist->min_theta)
-                             / ((dist->max_theta - dist->min_theta) / dist->n_theta));
+                             / ((dist->max_theta - dist->min_theta)
+                                / dist->n_theta));
 
-            i_vr[i] = floor((p_f->rdot[i] - dist->min_vr)
+            i_vr[i] = floor((p_f->p_r[i] / (gamma*mass) - dist->min_vr)
                             / ((dist->max_vr - dist->min_vr) / dist->n_vr));
 
-            i_vphi[i] = floor((p_f->phidot[i]*p_f->r[i] - dist->min_vphi)
+            i_vphi[i] = floor((p_f->p_phi[i] / (gamma*mass) - dist->min_vphi)
                               / ((dist->max_vphi - dist->min_vphi)
                                  / dist->n_vphi));
 
-            i_vz[i] = floor((p_f->zdot[i] - dist->min_vz)
+            i_vz[i] = floor((p_f->p_z[i] / (gamma*mass) - dist->min_vz)
                             / ((dist->max_vz - dist->min_vz) / dist->n_vz));
 
             i_time[i] = floor((p_f->time[i] - dist->min_time)
@@ -221,7 +228,13 @@ void dist_rho6D_update_gc(dist_rho6D_data* dist, particle_simd_gc* p_f,
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
-            real vr, vphi, vz;
+            real Bnorm = sqrt(
+                    p_f->B_r[i]*p_f->B_r[i] + p_f->B_phi[i]*p_f->B_phi[i]
+                    +p_f->B_z[i]*p_f->B_z[i]);
+            real mass = p_i->mass[i];
+            real gamma = physlib_gamma_ppar(mass, p_f->mu[i], p_f->ppar[i],
+                                            Bnorm);
+            real pr, pphi, pz;
             real B_dB[12] = {p_f->B_r[i],
                              p_f->B_r_dr[i],
                              p_f->B_r_dphi[i],
@@ -234,10 +247,10 @@ void dist_rho6D_update_gc(dist_rho6D_data* dist, particle_simd_gc* p_f,
                              p_f->B_z_dr[i],
                              p_f->B_z_dphi[i],
                              p_f->B_z_dz[i]};
-            gctransform_vparmuzeta2vRvphivz(p_f->mass[i], p_f->charge[i], B_dB,
-                                            p_f->phi[i], p_f->vpar[i],
+            gctransform_pparmuzeta2prpphipz(p_f->mass[i], p_f->charge[i], B_dB,
+                                            p_f->phi[i], p_f->ppar[i],
                                             p_f->mu[i], p_f->zeta[i],
-                                            &vr, &vphi, &vz);
+                                            &pr, &pphi, &pz);
 
             i_rho[i] = floor((p_f->rho[i] - dist->min_rho)
                              / ((dist->max_rho - dist->min_rho)/dist->n_rho));
@@ -256,14 +269,14 @@ void dist_rho6D_update_gc(dist_rho6D_data* dist, particle_simd_gc* p_f,
             i_theta[i] = floor((theta[i] - dist->min_theta)
                              / ((dist->max_theta - dist->min_theta) / dist->n_theta));
 
-            i_vr[i] = floor((vr - dist->min_vr)
+            i_vr[i] = floor((pr/(gamma*mass) - dist->min_vr)
                             / ((dist->max_vr - dist->min_vr) / dist->n_vr));
 
-            i_vphi[i] = floor((vphi - dist->min_vphi)
+            i_vphi[i] = floor((pphi/(gamma*mass) - dist->min_vphi)
                               / ((dist->max_vphi - dist->min_vphi)
                                  / dist->n_vphi));
 
-            i_vz[i] = floor((vz - dist->min_vz)
+            i_vz[i] = floor((pz/(gamma*mass) - dist->min_vz)
                             / ((dist->max_vz - dist->min_vz) / dist->n_vz));
 
             i_time[i] = floor((p_f->time[i] - dist->min_time)

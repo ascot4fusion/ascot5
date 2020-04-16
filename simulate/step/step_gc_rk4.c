@@ -57,7 +57,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
             yprev[0] = p->r[i];
             yprev[1] = p->phi[i];
             yprev[2] = p->z[i];
-            yprev[3] = p->vpar[i];
+            yprev[3] = p->ppar[i];
             yprev[4] = p->mu[i];
             yprev[5] = p->zeta[i];
 
@@ -144,20 +144,17 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
             if(!errflag && y[0] <= 0) {
                 errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
             }
-            if(!errflag && fabs(y[4]) >= CONST_C) {
-                errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
-            }
             if(!errflag && y[4] < 0) {
                 errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
             }
 
             /* Update gc phase space position */
             if(!errflag) {
-                p->r[i] = y[0];
-                p->phi[i] = y[1];
-                p->z[i] = y[2];
-                p->vpar[i] = y[3];
-                p->mu[i] = y[4];
+                p->r[i]    = y[0];
+                p->phi[i]  = y[1];
+                p->z[i]    = y[2];
+                p->ppar[i] = y[3];
+                p->mu[i]   = y[4];
                 p->zeta[i] = fmod(y[5],CONST_2PI);
                 if(p->zeta[i]<0) {
                     p->zeta[i] = CONST_2PI + p->zeta[i];
