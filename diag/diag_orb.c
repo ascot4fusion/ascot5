@@ -217,7 +217,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                     data->phi[idx]    = p_f->phi[i];
                     data->z[idx]      = p_f->z[i];
                     data->rdot[idx]   = p_f->p_r[i]   / (gamma*mass);
-                    data->phidot[idx] = p_f->p_phi[i] / (gamma*mass*p_i->r[i]);
+                    data->phidot[idx] = p_f->p_phi[i] / (gamma*mass*p_f->r[i]);
                     data->zdot[idx]   = p_f->p_z[i]   / (gamma*mass);
                     data->weight[idx] = p_f->weight[i];
                     data->charge[idx] = p_f->charge[i];
