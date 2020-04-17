@@ -543,7 +543,6 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
 
         /* Update magnetic field at gc position */
         if(!err) {
-            //printf("%g %g %g\n", r, phi, z);
             err = B_field_eval_B_dB(B_dB, r, phi, z, ps->time, Bdata);
         }
         if(!err) {

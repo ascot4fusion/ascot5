@@ -264,21 +264,21 @@ int hdf5_options_read_dist5D(hid_t file, dist_5D_offload_data* dist,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     dist->n_z = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VPA", &dist->min_vpara,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PPA", &dist->min_ppara,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VPA", &dist->max_vpara,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PPA", &dist->max_ppara,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VPA", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PPA", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vpara = (int)tempfloat;
+    dist->n_ppara = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VPE", &dist->min_vperp,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PPE", &dist->min_pperp,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VPE", &dist->max_vperp,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PPE", &dist->max_pperp,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VPE", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PPE", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vperp = (int)tempfloat;
+    dist->n_pperp = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_TIME", &dist->min_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
@@ -341,29 +341,29 @@ int hdf5_options_read_dist6D(hid_t file, dist_6D_offload_data* dist,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     dist->n_z = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VR", &dist->min_vr,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PR", &dist->min_pr,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VR", &dist->max_vr,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PR", &dist->max_pr,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VR", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PR", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vr = (int)tempfloat;
+    dist->n_pr = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VPHI", &dist->min_vphi,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PPHI", &dist->min_pphi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VPHI", &dist->max_vphi,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PPHI", &dist->max_pphi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VPHI", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PPHI", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vphi = (int)tempfloat;
+    dist->n_pphi = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VZ", &dist->min_vz,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PZ", &dist->min_pz,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VZ", &dist->max_vz,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PZ", &dist->max_pz,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VZ", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PZ", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vz = (int)tempfloat;
+    dist->n_pz = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_TIME", &dist->min_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
@@ -428,21 +428,21 @@ int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_offload_data* dist,
     dist->min_theta = math_deg2rad(dist->min_theta);
     dist->max_theta = math_deg2rad(dist->max_theta);
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VPA", &dist->min_vpara,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PPA", &dist->min_ppara,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VPA", &dist->max_vpara,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PPA", &dist->max_ppara,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VPA", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PPA", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vpara = (int)tempfloat;
+    dist->n_ppara = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VPE", &dist->min_vperp,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PPE", &dist->min_pperp,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VPE", &dist->max_vperp,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PPE", &dist->max_pperp,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VPE", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PPE", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vperp = (int)tempfloat;
+    dist->n_pperp = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_TIME", &dist->min_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
@@ -507,29 +507,29 @@ int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
     dist->min_theta = math_deg2rad(dist->min_theta);
     dist->max_theta = math_deg2rad(dist->max_theta);
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VR", &dist->min_vr,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PR", &dist->min_pr,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VR", &dist->max_vr,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PR", &dist->max_pr,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VR", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PR", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vr = (int)tempfloat;
+    dist->n_pr = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VPHI", &dist->min_vphi,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PPHI", &dist->min_pphi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VPHI", &dist->max_vphi,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PPHI", &dist->max_pphi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VPHI", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PPHI", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vphi = (int)tempfloat;
+    dist->n_pphi = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VZ", &dist->min_vz,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PZ", &dist->min_pz,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VZ", &dist->max_vz,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PZ", &dist->max_pz,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VZ", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PZ", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vz = (int)tempfloat;
+    dist->n_pz = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_TIME", &dist->min_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}

@@ -207,7 +207,6 @@ void gctransform_particle2guidingcenter(
 
     /* Gyrolength */
     real rho0 = sqrt( ( 2* mass * mu0 ) / Bnorm ) / fabs(charge);
-    printf("%g %g %g\n", pr, pphi,pz);
 
     /* First order position */
     real XYZ[3];
@@ -310,8 +309,6 @@ void gctransform_guidingcenter2particle(
 
     /* |B| */
     real Bnorm   = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
-    /* gamma (Lorentz factor) */
-    real gamma   = physlib_gamma_vpar(mass, mu, ppar, Bnorm);
 
     /* Guiding center transformation is more easily done in cartesian
      * coordinates so we switch to using those */

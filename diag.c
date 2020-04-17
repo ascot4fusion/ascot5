@@ -41,22 +41,22 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
     if(data->dist5D_collect) {
         data->offload_dist5D_index = n;
         n += data->dist5D.n_r * data->dist5D.n_phi * data->dist5D.n_z
-            * data->dist5D.n_vpara * data->dist5D.n_vperp
+            * data->dist5D.n_ppara * data->dist5D.n_pperp
             * data->dist5D.n_time * data->dist5D.n_q;
     }
 
     if(data->dist6D_collect) {
         data->offload_dist6D_index = n;
         n += data->dist6D.n_r * data->dist6D.n_phi * data->dist6D.n_z
-             * data->dist6D.n_vr * data->dist6D.n_vphi
-             * data->dist6D.n_vz * data->dist6D.n_time * data->dist6D.n_q;
+             * data->dist6D.n_pr * data->dist6D.n_pphi
+             * data->dist6D.n_pz * data->dist6D.n_time * data->dist6D.n_q;
     }
 
     if(data->distrho5D_collect) {
         data->offload_distrho5D_index = n;
         n += data->distrho5D.n_rho * data->distrho5D.n_theta
             * data->distrho5D.n_phi
-            * data->distrho5D.n_vpara * data->distrho5D.n_vperp
+            * data->distrho5D.n_ppara * data->distrho5D.n_pperp
             * data->distrho5D.n_time * data->distrho5D.n_q;
     }
 
@@ -64,8 +64,8 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
         data->offload_distrho6D_index = n;
         n += data->distrho6D.n_rho * data->distrho6D.n_theta
             * data->distrho6D.n_phi
-            * data->distrho6D.n_vr * data->distrho6D.n_vphi
-            * data->distrho6D.n_vz * data->distrho6D.n_time
+            * data->distrho6D.n_pr * data->distrho6D.n_pphi
+            * data->distrho6D.n_pz * data->distrho6D.n_time
             * data->distrho6D.n_q;
     }
 
@@ -284,7 +284,7 @@ void diag_sum(diag_offload_data* data, real* array1, real* array2) {
     if(data->dist5D_collect){
         int start = data->offload_dist5D_index;
         int stop = start + data->dist5D.n_r * data->dist5D.n_z
-                   * data->dist5D.n_vpara * data->dist5D.n_vperp
+                   * data->dist5D.n_ppara * data->dist5D.n_pperp
                    * data->dist5D.n_time * data->dist5D.n_q;
         diag_arraysum(start, stop, array1, array2);
     }
@@ -292,16 +292,16 @@ void diag_sum(diag_offload_data* data, real* array1, real* array2) {
     if(data->dist6D_collect){
         int start = data->offload_dist6D_index;
         int stop = start + data->dist6D.n_r * data->dist6D.n_phi
-            * data->dist6D.n_z * data->dist6D.n_vr * data->dist6D.n_vphi
-            * data->dist6D.n_vz * data->dist6D.n_time * data->dist6D.n_q;
+            * data->dist6D.n_z * data->dist6D.n_pr * data->dist6D.n_pphi
+            * data->dist6D.n_pz * data->dist6D.n_time * data->dist6D.n_q;
         diag_arraysum(start, stop, array1, array2);
     }
 
     if(data->distrho5D_collect){
         int start = data->offload_distrho5D_index;
         int stop = start + data->distrho5D.n_rho * data->distrho5D.n_theta
-            * data->distrho5D.n_phi * data->distrho5D.n_vpara
-            * data->distrho5D.n_vperp * data->distrho5D.n_time
+            * data->distrho5D.n_phi * data->distrho5D.n_ppara
+            * data->distrho5D.n_pperp * data->distrho5D.n_time
             * data->distrho5D.n_q;
         diag_arraysum(start, stop, array1, array2);
     }
@@ -309,8 +309,8 @@ void diag_sum(diag_offload_data* data, real* array1, real* array2) {
     if(data->distrho6D_collect){
         int start = data->offload_distrho6D_index;
         int stop = start + data->distrho6D.n_rho * data->distrho6D.n_theta
-            * data->distrho6D.n_phi * data->distrho6D.n_vr
-            * data->distrho6D.n_vphi * data->distrho6D.n_vz
+            * data->distrho6D.n_phi * data->distrho6D.n_pr
+            * data->distrho6D.n_pphi * data->distrho6D.n_pz
             * data->distrho6D.n_time * data->distrho6D.n_q;
         diag_arraysum(start, stop, array1, array2);
     }
