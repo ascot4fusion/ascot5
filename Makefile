@@ -1,5 +1,11 @@
 CC=h5pcc
 
+
+ifdef TRAP_FPE
+	DEFINES+=-DTRAP_FPE=$(TRAP_FPE)
+	CFLAGS+= -fsignaling-nans -ftrapping-math
+endif
+
 ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
 endif
