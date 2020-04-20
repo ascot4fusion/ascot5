@@ -11,7 +11,8 @@ from a5py.ascot5io.ascot5data import AscotData
 
 import a5py.wall.plot as plot
 
-def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None):
+def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None,
+               flag=None, flagIdList=None, flagIdStrings=None):
     """
     Write 3D wall input in HDF5 file.
 
@@ -28,6 +29,12 @@ def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None):
             Each triangle's vertices' z coordinates [m].
         desc : str, optional <br>
             Input description.
+        flag : array_like (nelements,1) <br>
+            Integer array depicting the wall component of each triangle,
+        flagIdList, array_like (nUniqueFlags) <br>
+            List of keys of the flagIdStrings (int)
+        flagIdStrings, array_like (nUniqueFlags) <br>
+            List of values of the flagIdStrings (string)
 
     Returns:
         Name of the new input that was written.
@@ -36,19 +43,41 @@ def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None):
     assert y1y2y3.shape == (nelements,3)
     assert z1z2z3.shape == (nelements,3)
 
+    if flag is None:
+        flag = np.zero(shape=(nelements,1),dtype=np.int)
+    else:
+        assert flag.shape == (nelements,1)
+        
     parent = "wall"
     group  = "wall_3D"
     gname  = ""
 
+    # Convert strings to the favorite format
+    if flagIdStrings is not None:
+        strlen = 0
+        for s in flagIdStrings:
+            if len(s) >  strlen:
+                strlen = len(s)
+        fids=np.empty(shape=(len(flagIdStrings),),dtype='|S{}'.format(strlen) )
+        for istr,s in enumerate(flagIdStrings):
+            fids[istr]=s
+        
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
         gname = g.name.split("/")[-1]
 
-        g.create_dataset('x1x2x3',    (nelements,3), data=x1x2x3,    dtype='f8')
-        g.create_dataset('y1y2y3',    (nelements,3), data=y1y2y3,    dtype='f8')
-        g.create_dataset('z1z2z3',    (nelements,3), data=z1z2z3,    dtype='f8')
-        g.create_dataset('nelements', (1,1),         data=nelements, dtype='i4')
+        g.create_dataset('x1x2x3',     (nelements,3), data=x1x2x3,    dtype='f8')
+        g.create_dataset('y1y2y3',     (nelements,3), data=y1y2y3,    dtype='f8')
+        g.create_dataset('z1z2z3',     (nelements,3), data=z1z2z3,    dtype='f8')
+        g.create_dataset('nelements',  (1,1),         data=nelements, dtype='i4')
+        fl = g.create_dataset('flag',(nelements,1),   data=flag,      dtype='i4')
 
+        if flagIdList is not None and flagIdStrings is not None:
+            fl.attrs.create(name='flagIdList',    data=np.array( flagIdList    ),  dtype='i4')
+            fl.attrs.create(name='flagIdStrings', data=fids           )
+
+        
+            
     return gname
 
 
@@ -73,6 +102,20 @@ def read_hdf5(fn, qid):
         for key in f[path]:
             out[key] = f[path][key][:]
 
+        if path+'/flag' in f:
+            flagAttrs = ['flagIdStrings','flagIdList']
+            for s in flagAttrs:
+                if s in f[ path+'/flag' ].attrs:
+                    out[s] = f[ path+'/flag' ].attrs.get(s)
+
+        if not 'flag' in out:
+            out['flag'] = np.zeros(shape=(out['n'][0]),dtype=np.int)
+                    
+        if 'flagIdStrings' in out:
+            s=[]
+            for S in out['flagIdStrings']:
+                s.append(S.decode('utf-8'))
+            out['flagIdStrings']=s
     return out
 
 
