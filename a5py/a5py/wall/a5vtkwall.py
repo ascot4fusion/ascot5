@@ -37,8 +37,6 @@ class a5VtkWall(object):
         
         self.fromPointsAndVertices(points,vertices)
     
-
-    
     def fromPointsAndVertices(self,points,vertices):
         '''
         @param points: nx3 array of triangle corners; a list of (x,y,z)-tuples
@@ -97,13 +95,27 @@ class a5VtkWall(object):
         self.nTriangles = nTriangles
         self.vtkPolyData = Polydata
 
-    def addIndex(self):
+    def addFlag(self,flag,flagIdList,flagIdStrings,setAsActive=None):
+        
+        fieldname = 'Triangle Flag'
+        
+        # Save these for future need.
+        self.flagIdList    = flagIdList
+        self.flagIdStrings = flagIdStrings
+        
+        if setAsActive is None:
+            setAsActive =  len(np.unique(flag)) > 1
+            
+        self.addScalarField(fieldname, flag, setAsActive=setAsActive)
+
+    
+    def addIndex(self,setAsActive=True):
         
         fieldname = 'Triangle index'
         data=np.arange(0,self.nTriangles,1,dtype=float)
-        self.addScalarField(fieldname, data)
+        self.addScalarField(fieldname, data, setAsActive=setAsActive)
     
-    def addScalarField(self,fieldname,data):
+    def addScalarField(self,fieldname,data,setAsActive=True):
         '''
         @param fieldname: A string describing the data
         @param data: length-n array of values for coloring the triangles 
@@ -122,7 +134,8 @@ class a5VtkWall(object):
             
         #self.vtkPolyData.GetCellData().SetScalars(field) # This one replaces.
         self.vtkPolyData.GetCellData().AddArray(field)
-        self.vtkPolyData.GetCellData().SetActiveScalars(fieldname);
+        if setAsActive:
+            self.vtkPolyData.GetCellData().SetActiveScalars(fieldname);
         self.vtkPolyData.Modified()
         
         
