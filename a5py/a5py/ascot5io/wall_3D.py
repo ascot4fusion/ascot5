@@ -102,20 +102,33 @@ def read_hdf5(fn, qid):
         for key in f[path]:
             out[key] = f[path][key][:]
 
+        nTriangles = out['x1x2x3'].shape[0]
+
         if path+'/flag' in f:
             flagAttrs = ['flagIdStrings','flagIdList']
             for s in flagAttrs:
                 if s in f[ path+'/flag' ].attrs:
                     out[s] = f[ path+'/flag' ].attrs.get(s)
 
+        if not 'n' in out:
+            out['n'] = np.array([nTriangles])
+        
         if not 'flag' in out:
-            out['flag'] = np.zeros(shape=(out['n'][0]),dtype=np.int)
+            out['flag'] = np.zeros(shape=(nTriangles,),dtype=np.int)
                     
         if 'flagIdStrings' in out:
+            # We need to decode the bytearrays into strings.
             s=[]
             for S in out['flagIdStrings']:
                 s.append(S.decode('utf-8'))
             out['flagIdStrings']=s
+        else:
+            # Generate some flag names.
+            out['flagIdList']=np.unique(out['flag'])
+            out['flagIdStrings']=[]
+            for fl in out['flagIdList']:
+                out['flagIdStrings'].append('Flag {}'.format(fl))
+                
     return out
 
 
