@@ -171,16 +171,20 @@ def read_wall(a4folder, h5fn):
     if (os.path.isfile(fname)):
         data = a4wall_3d.read_wall_3d(fname)
         wall_3D.write_hdf5(
-            fn=h5fn, nelements=data['id'].size,
-            x1x2x3=data['x1x2x3'], y1y2y3=data['y1y2y3'], z1z2z3=data['z1z2z3'])
+            fn=h5fn, nelements=data["flag"].size,
+            x1x2x3=data['x1x2x3'], y1y2y3=data['y1y2y3'], z1z2z3=data['z1z2z3'],
+            desc='fromASCOT4',
+            flag=np.reshape(data['flag'],(data["flag"].size,1)))
     elif (os.path.isfile(fnameh5)):
         with h5py.File(fnameh5, 'r') as f:
             if (not "/wall" in f):
                 return
         data = a4wall_3d.read_wall_3d_hdf5(fnameh5)
         wall_3D.write_hdf5(
-            fn=h5fn, nelements=data['id'].size,
-            x1x2x3=data['x1x2x3'], y1y2y3=data['y1y2y3'], z1z2z3=data['z1z2z3'])
+            fn=h5fn, nelements=data["flag"].size,
+            x1x2x3=data['x1x2x3'], y1y2y3=data['y1y2y3'], z1z2z3=data['z1z2z3'],
+            desc='fromASCOT4',
+            flag=np.reshape(data['flag'],(data["flag"].size,1)))
 
 def run(a4folder, h5fn, overwrite=True):
     """
