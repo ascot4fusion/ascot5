@@ -44,7 +44,7 @@ def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None,
     assert z1z2z3.shape == (nelements,3)
 
     if flag is None:
-        flag = np.zero(shape=(nelements,1),dtype=np.int)
+        flag = np.zeros(shape=(nelements,1),dtype=np.int)
     else:
         assert flag.shape == (nelements,1)
         
@@ -222,3 +222,22 @@ class wall_3D(AscotData):
         else:
             plot.plot_projection(data["x1x2x3"], data["y1y2y3"],
                                  data["z1z2z3"], axes=axes)
+            
+            
+    def toVtk(self):
+        import a5py.wall.a5vtkwall
+        
+        a5VTKwall = a5py.wall.a5vtkwall.a5VtkWall()
+        
+        a5VTKwall.fromA5wall(self)
+        
+        W=self.read()
+        
+        # Add index of running triangle number
+        a5VTKwall.addIndex(setAsActive=True)
+        
+        # Add coloring based on flags. (Get's activated only if there are more than one flag.
+        a5VTKwall.addFlag(W['flag'],W['flagIdList'],W['flagIdStrings'])
+        
+        return a5VTKwall 
+        
