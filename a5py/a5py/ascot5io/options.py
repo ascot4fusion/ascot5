@@ -406,13 +406,13 @@ def get_default():
     info.append(
         ("ENABLE_DIST_5D",
          """\
-         # Collect distribution histogram in [R, phi, z, vpa, vpe, t, q]
+         # Collect distribution histogram in [R, phi, z, ppa, ppe, t, q]
          # The coordinates are
          #   - R   major radius
          #   - phi toroidal angle
          #   - z   z-coordinate
-         #   - vpa velocity component parallel to magnetic field
-         #   - vpe velocity component perpendicular to magnetic field
+         #   - ppa momentum component parallel to magnetic field
+         #   - ppe momentum component perpendicular to magnetic field
          #   - t   time
          #   - q   charge
          """,
@@ -421,14 +421,14 @@ def get_default():
     info.append(
         ("ENABLE_DIST_6D",
          """\
-         # Collect distribution histogram in [R, phi, z, vR, vphi, vz, t, q]
+         # Collect distribution histogram in [R, phi, z, pR, pphi, pz, t, q]
          # The coordinates are
          #    - R    major radius
          #    - phi  toroidal angle
          #    - z    z-coordinate
-         #    - vR   velocity R-component
-         #    - vphi velocity phi-component
-         #    - vz   velocity z-component
+         #    - pR   momentum R-component
+         #    - pphi momentum phi-component
+         #    - pz   momentum z-component
          #    - t    time
          #    - q    charge
          """,
@@ -437,14 +437,14 @@ def get_default():
     info.append(
         ("ENABLE_DIST_RHO5D",
          """\
-         # Collect distribution histogram in [rho, pol, phi, vpa, vpe, t, q]
+         # Collect distribution histogram in [rho, pol, phi, ppa, ppe, t, q]
          # The coordinates are
          #    - rho  flux surface
          #    - pol  poloidal angle
          #    - phi  toroidal angle
          #    - z    z-coordinate
-         #    - vpa  velocity component parallel to magnetic field
-         #    - vpe  velocity component perpendicular to magnetic field
+         #    - ppa  momentum component parallel to magnetic field
+         #    - ppe  momentum component perpendicular to magnetic field
          #    - t    time
          #    - q    charge
          """,
@@ -453,15 +453,15 @@ def get_default():
     info.append(
         ("ENABLE_DIST_RHO6D",
          """\
-         # Collect distribution histogram in [rho, pol, phi, vR, vphi, vz, t, q]
+         # Collect distribution histogram in [rho, pol, phi, pR, pphi, pz, t, q]
          # The coordinates are
          #    - rho  flux surface
          #    - pol  poloidal angle
          #    - phi  toroidal angle
          #    - z    z-coordinate
-         #    - vR   velocity R-component
-         #    - vphi velocity phi-component
-         #    - vz   velocity z-component
+         #    - pR   momentum R-component
+         #    - pphi momentum phi-component
+         #    - pz   momentum z-component
          #    - t    time
          #    - q    charge
          """,
@@ -573,107 +573,107 @@ def get_default():
          10)
     )
     info.append(
-        ("DIST_MIN_VPA",
+        ("DIST_MIN_PPA",
          """\
-         # Minimum bin edge for vpa coordinate [m/s]
+         # Minimum bin edge for ppa coordinate [kg m/s]
          """,
          -3e8)
     )
     info.append(
-        ("DIST_MAX_VPA",
+        ("DIST_MAX_PPA",
          """\
-         # Maximum bin edge for vpa coordinate [m/s]
+         # Maximum bin edge for ppa coordinate [kg m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_VPA",
+        ("DIST_NBIN_PPA",
          """\
-         # Number of bins the interval [DIST_MIN_VPA, DIST_MAX_VPA] is divided to
+         # Number of bins the interval [DIST_MIN_PPA, DIST_MAX_PPA] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_VPE",
+        ("DIST_MIN_PPE",
          """\
-         # Minimum bin edge for vpe coordinate [m/s]
+         # Minimum bin edge for ppe coordinate [kg m/s]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_VPE",
+        ("DIST_MAX_PPE",
          """\
-         # Maximum bin edge for vpe coordinate [m/s]
+         # Maximum bin edge for ppe coordinate [kg m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_VPE",
+        ("DIST_NBIN_PPE",
          """\
-         # Number of bins the interval [DIST_MIN_VPE, DIST_MAX_VPE] is divided to
+         # Number of bins the interval [DIST_MIN_PPE, DIST_MAX_PPE] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_VR",
+        ("DIST_MIN_PR",
          """\
-         # Minimum bin edge for vR coordinate [m/s]
+         # Minimum bin edge for pR coordinate [kg m/s]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_VR",
+        ("DIST_MAX_PR",
          """\
-         # Maximum bin edge for vR coordinate [m/s]
+         # Maximum bin edge for pR coordinate [kg m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_VR",
+        ("DIST_NBIN_PR",
          """\
-         # Number of bins the interval [DIST_MIN_VR, DIST_MAX_VR] is divided to
+         # Number of bins the interval [DIST_MIN_PR, DIST_MAX_PR] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_VPHI",
+        ("DIST_MIN_PPHI",
          """\
-         # Minimum bin edge for vphi coordinate [m/s]
+         # Minimum bin edge for pphi coordinate [kg m/s]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_VPHI",
+        ("DIST_MAX_PPHI",
          """\
-         # Maximum bin edge for vphi coordinate [m/s]
+         # Maximum bin edge for pphi coordinate [kg m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_VPHI",
+        ("DIST_NBIN_PPHI",
          """\
-         # Number of bins the interval [DIST_MIN_VPHI, DIST_MAX_VPHI] is divided to
+         # Number of bins the interval [DIST_MIN_PPHI, DIST_MAX_PPHI] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_VZ",
+        ("DIST_MIN_PZ",
          """\
-         # Minimum bin edge for vz coordinate [m/s]
+         # Minimum bin edge for pz coordinate [kg m/s]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_VZ",
+        ("DIST_MAX_PZ",
          """\
-         # Maximum bin edge for vz coordinate [m/s]
+         # Maximum bin edge for pz coordinate [kg m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_VZ",
+        ("DIST_NBIN_PZ",
          """\
-         # Number of bins the interval [DIST_MIN_VZ, DIST_MAX_VZ] is divided to
+         # Number of bins the interval [DIST_MIN_PZ, DIST_MAX_PZ] is divided to
          """,
          10)
     )

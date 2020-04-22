@@ -98,12 +98,12 @@ def init():
     odict["DIST_MIN_Z"]     = -5
     odict["DIST_MAX_Z"]     = 5
     odict["DIST_NBIN_Z"]    = 1
-    odict["DIST_MIN_VPA"]   = -1.5e6
-    odict["DIST_MAX_VPA"]   =  1.5e6
-    odict["DIST_NBIN_VPA"]  = 140
-    odict["DIST_MIN_VPE"]   = 0
-    odict["DIST_MAX_VPE"]   = 1.5e6
-    odict["DIST_NBIN_VPE"]  = 80
+    odict["DIST_MIN_PPA"]   = -1.5e6 * m_p
+    odict["DIST_MAX_PPA"]   =  1.5e6 * m_p
+    odict["DIST_NBIN_PPA"]  = 140
+    odict["DIST_MIN_PPE"]   = 0      * m_p
+    odict["DIST_MAX_PPE"]   = 1.5e6  * m_p
+    odict["DIST_NBIN_PPE"]  = 80
     odict["DIST_MIN_TIME"]  = 0
     odict["DIST_MAX_TIME"]  = simtime_th
     odict["DIST_NBIN_TIME"] = 2
@@ -152,12 +152,12 @@ def init():
     odict["DIST_MIN_Z"]    = -5
     odict["DIST_MAX_Z"]    = 5
     odict["DIST_NBIN_Z"]   = 1
-    odict["DIST_MIN_VPA"]  = -2e7
-    odict["DIST_MAX_VPA"]  =  2e7
-    odict["DIST_NBIN_VPA"] = 200
-    odict["DIST_MIN_VPE"]  = 0
-    odict["DIST_MAX_VPE"]  = 2e7
-    odict["DIST_NBIN_VPE"] = 100
+    odict["DIST_MIN_PPA"]  = -2e7 * m_a
+    odict["DIST_MAX_PPA"]  =  2e7 * m_a
+    odict["DIST_NBIN_PPA"] = 200
+    odict["DIST_MIN_PPE"]  = 0    * m_a
+    odict["DIST_MAX_PPE"]  = 2e7  * m_a
+    odict["DIST_NBIN_PPE"] = 100
 
     odict["SIM_MODE"]                  = 1
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
