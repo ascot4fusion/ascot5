@@ -30,6 +30,12 @@ class AscotData():
         val = ascot5file.get_desc(f.file, self._group)
         self._close()
         return val
+    
+    def set_desc(self,desc):
+        f = self._open()
+        val = ascot5file.set_desc(f.file, self._group,desc)
+        self._close()
+        return val
 
     def get_date(self):
         f = self._open()
