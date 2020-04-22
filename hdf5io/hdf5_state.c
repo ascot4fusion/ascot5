@@ -68,28 +68,22 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     H5LTset_attribute_string(state_group, "zprt", "unit", "m");
 
     for(i = 0; i < n; i++) {
-        real pnorm =  sqrt(p[i].p_r*p[i].p_r + p[i].p_phi*p[i].p_phi + p[i].p_z*p[i].p_z);
-        real gamma = physlib_gamma_pnorm(p[i].mass, pnorm);
-        data[i] = p[i].p_r / (gamma*p[i].mass);
+        data[i] = p[i].p_r;
     }
-    hdf5_write_extendible_dataset_double(state_group, "vr", n, data);
-    H5LTset_attribute_string(state_group, "vr", "unit", "m/s");
+    hdf5_write_extendible_dataset_double(state_group, "prprt", n, data);
+    H5LTset_attribute_string(state_group, "prprt", "unit", "kg*m/s");
 
     for(i = 0; i < n; i++) {
-        real pnorm =  sqrt(p[i].p_r*p[i].p_r + p[i].p_phi*p[i].p_phi + p[i].p_z*p[i].p_z);
-        real gamma = physlib_gamma_pnorm(p[i].mass, pnorm);
-        data[i] = p[i].p_phi / (gamma*p[i].mass);
+        data[i] = p[i].p_phi;
     }
-    hdf5_write_extendible_dataset_double(state_group, "vphi", n, data);
-    H5LTset_attribute_string(state_group, "vphi", "unit", "m/s");
+    hdf5_write_extendible_dataset_double(state_group, "pphiprt", n, data);
+    H5LTset_attribute_string(state_group, "pphiprt", "unit", "kg*m/s");
 
     for(i = 0; i < n; i++) {
-        real pnorm = sqrt(p[i].p_r*p[i].p_r + p[i].p_phi*p[i].p_phi + p[i].p_z*p[i].p_z);
-        real gamma = physlib_gamma_pnorm(p[i].mass, pnorm);
-        data[i] = p[i].p_z / (gamma*p[i].mass);
+        data[i] = p[i].p_z;
     }
-    hdf5_write_extendible_dataset_double(state_group, "vz", n, data);
-    H5LTset_attribute_string(state_group, "vz", "unit", "m/s");
+    hdf5_write_extendible_dataset_double(state_group, "pzprt", n, data);
+    H5LTset_attribute_string(state_group, "pzprt", "unit", "kg*m/s");
 
     /* Guiding center coordinates */
     for(i = 0; i < n; i++) {
@@ -111,13 +105,10 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     H5LTset_attribute_string(state_group, "z", "unit", "m");
 
     for(i = 0; i < n; i++) {
-        real Bnorm = sqrt(
-            p[i].B_r * p[i].B_r + p[i].B_phi * p[i].B_phi + p[i].B_z * p[i].B_z);
-        real gamma = physlib_gamma_ppar(p[i].mass, p[i].mu, p[i].ppar, Bnorm);
-        data[i] = p[i].ppar  / (gamma*p[i].mass);
+        data[i] = p[i].ppar;
     }
-    hdf5_write_extendible_dataset_double(state_group, "vpar", n, data);
-    H5LTset_attribute_string(state_group, "vpar", "unit", "m/s");
+    hdf5_write_extendible_dataset_double(state_group, "ppar", n, data);
+    H5LTset_attribute_string(state_group, "ppar", "unit", "kg*m/s");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].mu/CONST_E;
@@ -187,60 +178,6 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     hdf5_write_extendible_dataset_double(state_group, "bz", n, data);
     H5LTset_attribute_string(state_group, "bz", "unit", "T");
 
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_r_dr;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "brdr", n, data);
-    H5LTset_attribute_string(state_group, "brdr", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_r_dphi/p[i].r;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "brdphi", n, data);
-    H5LTset_attribute_string(state_group, "brdphi", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_r_dz;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "brdz", n, data);
-    H5LTset_attribute_string(state_group, "brdz", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_phi_dr;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "bphidr", n, data);
-    H5LTset_attribute_string(state_group, "bphidr", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_phi_dphi/p[i].r;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "bphidphi", n, data);
-    H5LTset_attribute_string(state_group, "bphidphi", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_phi_dz;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "bphidz", n, data);
-    H5LTset_attribute_string(state_group, "bphidz", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_z_dr;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "bzdr", n, data);
-    H5LTset_attribute_string(state_group, "bzdr", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_z_dphi/p[i].r;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "bzdphi", n, data);
-    H5LTset_attribute_string(state_group, "bzdphi", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_z_dz;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "bzdz", n, data);
-    H5LTset_attribute_string(state_group, "bzdz", "unit", "T/m");
-
     free(data);
 
     /* Integer quantities */
@@ -249,8 +186,8 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     for(i = 0; i < n; i++) {
         intdata[i] = p[i].id;
     }
-    hdf5_write_extendible_dataset_long(state_group, "id", n, intdata);
-    H5LTset_attribute_string(state_group, "id", "unit", "1");
+    hdf5_write_extendible_dataset_long(state_group, "ids", n, intdata);
+    H5LTset_attribute_string(state_group, "ids", "unit", "1");
 
     for(i = 0; i < n; i++) {
         intdata[i] = p[i].endcond;

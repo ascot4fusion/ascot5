@@ -54,10 +54,10 @@ typedef struct{
     real* r;      /**< Marker R coordinate [m]                              */
     real* phi;    /**< Marker phi coordinate [rad]                          */
     real* z;      /**< Marker z coordiante [m]                              */
-    real* rdot;   /**< Particle dR/dt [m/s]                                 */
-    real* phidot; /**< Particle dphi/dt [rad]                               */
-    real* zdot;   /**< Particle dz/dt [m/s]                                 */
-    real* vpar;   /**< Guiding center parallel velocity [m/s]               */
+    real* p_r;    /**< Particle momentum R component [kg m/s]               */
+    real* p_phi;  /**< Particle momentum phi component [kg m/s]             */
+    real* p_z;    /**< Particle momentum z component [kg m/s]               */
+    real* ppar;   /**< Guiding center parallel momentum [kg m/s]            */
     real* mu;     /**< Guiding center magnetic moment [J/T]                 */
     real* zeta;   /**< Guiding center gyroangle [rad]                       */
     real* weight; /**< Marker weight [1]                                    */

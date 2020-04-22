@@ -55,9 +55,9 @@ int hdf5_dist_write_5D(hid_t f, char* qid, dist_5D_offload_data* dist,
     abscissa_max[5] = dist->max_time;
     abscissa_max[6] = dist->max_q;
 
-    char* abscissa_names[] = { "r", "phi", "z", "ppara", "pperp", "time",
+    char* abscissa_names[] = { "r", "phi", "z", "ppar", "pperp", "time",
                                "charge" };
-    char* abscissa_units[] = { "m", "deg", "m", "kg m/s", "kg m/s", "s", "e" };
+    char* abscissa_units[] = { "m", "deg", "m", "kg*m/s", "kg*m/s", "s", "e" };
     char* ordinate_names[] = { "distribution" };
     char* ordinate_units[] = { "s/m^5*kg^2*deg*e" };
 
@@ -189,7 +189,7 @@ int hdf5_dist_write_rho5D(hid_t f, char* qid, dist_rho5D_offload_data* dist,
     abscissa_max[5] = dist->max_time;
     abscissa_max[6] = dist->max_q;
 
-    char* abscissa_names[] = { "rho", "theta", "phi", "ppara", "pperp", "time",
+    char* abscissa_names[] = { "rho", "theta", "phi", "ppar", "pperp", "time",
                                "charge" };
     char* abscissa_units[] = { "1", "deg", "deg", "kg m/s", "kg m/s",
                                "s", "e" };
