@@ -67,7 +67,10 @@ def read_particles(fname):
 
     print('Reading', nFields, 'fields for', nParticles, 'particles.')
     columns = numpy.loadtxt(fname,skiprows=headerLength)
-    #nParticles = columns.shape[0]
+    
+    # -1 means unkown number of lines.
+    if nParticles == -1:
+        nParticles = columns.shape[0]
 
     print('Read ', nParticles, 'particles')
 
@@ -78,10 +81,10 @@ def read_particles(fname):
         for j in range(0,nFields):
             data['fields'][data['fieldNames'][j]][i] = columns[i,j]
 
-    if 'charge' not in data['fieldNames']:
+    if 'charge' not in data['fieldNames'] and 'Znum' in data['fieldNames']:
         print("Converting Znum to charge.")
         data["fields"]['charge'] = data["fields"]['Znum'].astype('float')
-    if 'mass' not in data['fieldNames']:
+    if 'mass' not in data['fieldNames'] and 'Anum' in data['fieldNames']:
         print("Converting Anum to mass.")
         data["fields"]['mass'] = np.array(
             list(map(guessMass,
