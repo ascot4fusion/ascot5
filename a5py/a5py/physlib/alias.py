@@ -38,7 +38,7 @@ synonyms = {
     "vperp"    : ["perpendicularvelocity", "vperpendicular", "vpe"],
     "pparp"    : ["perpendicularmomentum", "pperpendicular", "ppe"],
     "pnorm"    : ["p", "momentum", "momentumnorm"],
-    "ptor"     : ["canonicaltoroidalmomentum"]
+    "ptor"     : ["toroidalcanonicalangularmomentum", "ctor", "torcanangmom"]
 }
 
 

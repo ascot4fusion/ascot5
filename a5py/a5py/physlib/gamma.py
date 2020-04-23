@@ -11,7 +11,12 @@ def velocity_momentum(m, p):
 
     If p is a vector (scalar) then returned value is a vector (scalar).
     """
-    return p / ( m * gamma_momentum(m=m, p=p) )
+    a = m * gamma_momentum(m=m, p=p)
+    if p.shape[1] == 3:
+        a = np.tile( m, (3,1)).T
+
+    print( (p/a).shape)
+    return p / a
 
 
 def momentum_velocity(m, v):
@@ -21,6 +26,14 @@ def momentum_velocity(m, v):
     If v is a vector (scalar) then returned value is a vector (scalar).
     """
     return gamma_velocity(v=v) * m * v
+
+
+def vpar_muppar(m, mu, ppar, b):
+    """
+    Evaluate vpar from mu and ppar.
+    """
+    gamma = gamma_muppar(m, mu, ppar, b)
+    return ppar / (gamma * m)
 
 
 def gamma_momentum(m, p):

@@ -47,7 +47,7 @@ def convert_ppappe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
     """
 
     if E_edges is None:
-        pmax2 = np.maximum( dist["ppara_edges"][-1]*dist["ppara_edges"][-1],
+        pmax2 = np.maximum( dist["ppar_edges"][-1]*dist["ppar_edges"][-1],
                            dist["pperp_edges"][-1]*dist["pperp_edges"][-1] )
         gamma = np.sqrt( 1 +  pmax2 / ( masskg * constants.c) **2)
         Emax = (1/constants.e) * (gamma - 1) * masskg * constants.c**2
@@ -56,7 +56,7 @@ def convert_ppappe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
         xi_edges = np.linspace(-1, 1, 10)
 
     if not isinstance(E_edges, np.ndarray):
-        pmax2 = np.maximum( dist["ppara_edges"][-1]*dist["ppara_edges"][-1],
+        pmax2 = np.maximum( dist["ppar_edges"][-1]*dist["ppar_edges"][-1],
                            dist["pperp_edges"][-1]*dist["pperp_edges"][-1] )
         gamma = np.sqrt( 1 +  pmax2 / ( masskg * constants.c) **2)
         Emax = (1/constants.e) * (gamma - 1) * masskg * constants.c**2
@@ -70,10 +70,10 @@ def convert_ppappe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
 
     # Remove vpa and vpe components
     del Exidist["distribution"]
-    Exidist["abscissae"].remove("ppara")
+    Exidist["abscissae"].remove("ppar")
     Exidist["abscissae"].remove("pperp")
     for k in list(Exidist):
-        if "ppara" in k or "pperp" in k:
+        if "ppar" in k or "pperp" in k:
             del Exidist[k]
 
     # Add E and xi abscissae and initialize a new density
@@ -98,29 +98,29 @@ def convert_ppappe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
     # Transform E-xi grid to points in (vpa,vpa) space that are used in
     # interpolation.
     xig, Eg = np.meshgrid(Exidist["pitch"], Exidist["energy"])
-    pg   = np.sqrt( ( Eg * constants.e / constants.c + masskg * constants.c )**2
-                     - (masskg * constants.c)**2 )
+    pg   = np.sqrt( ( Eg * constants.e / constants.c + masskg.v * constants.c )**2
+                     - (masskg.v * constants.c)**2 )
     ppag = ( xig * pg ).ravel()
     ppeg = (np.sqrt(1 - xig*xig) * pg).ravel()
 
     # Coordinate transform Jacobian: dvpa dvpe = |jac| dE dxi
     # Jacobian for transform (ppa, ppe) -> (p, xi) is p / sqrt(1-xi^2)
     # because jac = dppa / dp  = xi, dppe / dp  = sqrt(1-xi^2)
-    #               dppa / dxi = v,  dppe / dxi = -xi p / sqrt(1-xi^2),
+    #               dppa / dxi = p,  dppe / dxi = -xi p / sqrt(1-xi^2),
     # and the Jacobian for (p, xi) -> (E, xi) is e E0 / c^2 p when
     # E is in electronvolts. Therefore the combined Jacobian is
     # (e E0 / c^2) / sqrt(1-xi*xi).
-    E0  = np.sqrt( (pg*constants.c)**2 + (masskg*constants.c**2)**2 )
+    E0  = np.sqrt( (pg*constants.c)**2 + (masskg.v*constants.c**2)**2 )
     jac = (constants.e * E0 / constants.c**2) / np.sqrt(1 - xig*xig)
 
     # Interpolate.
     ranges = []
     for a in dist["abscissae"]:
-        if a != "ppara" and a != "pperp":
+        if a != "ppar" and a != "pperp":
             ranges.append(range(dist["n" + a]))
 
     iE   = Exidist["abscissae"].index("energy")
-    ippa = dist["abscissae"].index("ppara")
+    ippa = dist["abscissae"].index("ppar")
     for itr in itertools.product(*ranges):
 
         idx = []
@@ -135,12 +135,12 @@ def convert_ppappe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
 
         idx = tuple(idx)
 
-        if dist["ppara"].size == 1 and dist["pperp"].size == 1:
+        if dist["ppar"].size == 1 and dist["pperp"].size == 1:
             d = np.ones( (Exidist["nenergy"], Exidist["npitch"]) ) \
                 * dist["distribution"][idx]
         else:
             f = RectBivariateSpline(
-                dist["ppara"], dist["pperp"],
+                dist["ppar"], dist["pperp"],
                 np.squeeze(dist["distribution"][idx]),
                 kx=1, ky=1)
             d = np.reshape(f.ev(ppag, ppeg),

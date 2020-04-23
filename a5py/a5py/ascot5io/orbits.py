@@ -186,8 +186,8 @@ class Orbits(AscotData):
 
         # Gets mass for each datapoint from the endstate
         def mass():
-            return self._read_from_inistate("mass",
-                                            read_dataw("ids")) * unyt.amu
+            return self._read_from_inistate(
+                "mass", read_dataw("ids")).ravel() * unyt.amu
 
         # Get alias and data field names in HDF5
         key  = getalias(key)
@@ -202,12 +202,15 @@ class Orbits(AscotData):
             # See what type of data is stored
             if "mu" in h5keys:
                 key += "gc"
-            elif "mass" in h5keys:
+            elif "charge" in h5keys:
                 key += "prt"
             else:
                 key += "fl"
 
         # Evaluate the quantity if direct read could not be done
+        # New quantities can be added here. Use suffix "gc" for quantities that
+        # can be evaluated from guiding-center data, "prt" for particle data
+        # and "fl" for field line data.
         if item is not None:
             pass
         elif key in ["xgc", "xprt", "xfl"]:
@@ -244,18 +247,87 @@ class Orbits(AscotData):
                 m = mass(),
                 p = getpvecprt()
             )
-        elif key == "pitch":
-            item = 0
+        elif key == "vpargc":
+            item = physlib.vpar_muppar(
+                m    = mass(),
+                mu   = read_dataw("mu"),
+                ppar = read_dataw("ppar"),
+                b    = getbvec()
+                )
+        elif key == "vparprt":
+            item = physlib.vpar_momentum(
+                m = mass(),
+                p = getpvecprt(),
+                b = getbvec()
+                )
+
+        elif key == "pnormprt":
+            item = getpvecprt()
+            item = np.sqrt( np.sum( item**2, axis=1 ) )
+
+        elif key == "vnormprt":
+            item = getpvecprt()
+            item = np.sqrt( np.sum( item**2, axis=1 ) )
+            item = physlib.velocity_momentum(
+                m = mass(),
+                p = item
+            )
+        elif key == "vrprt":
+            item = physlib.velocity_momentum(
+                m = mass(),
+                p = getpvecprt()
+            )[:,0]
+        elif key == "vphiprt":
+            item = physlib.velocity_momentum(
+                m = mass(),
+                p = getpvecprt()
+            )[:,1]
+        elif key == "vzprt":
+            item = physlib.velocity_momentum(
+                m = mass(),
+                p = getpvecprt()
+            )[:,2]
+        elif key == "muprt":
+            item = physlib.mu_momentum(
+                m = mass(),
+                p = getpvecprt(),
+                b = getbvec()
+            )
+        elif key in ["bnormgc", "bnormprt", "bnormfl"]:
+            item = getbvec()
+            item = np.sqrt( np.sum( item**2, axis=1 ) )
+
         elif key in ["psigc", "psiprt", "psifl"]:
             a5.init(bfield=True)
             item = evalapy("psi") * unyt.Wb
             a5.free(bfield=True)
+
         elif key in ["rhogc", "rhoprt", "rhofl"]:
             a5.init(bfield=True)
-            item = evalapyprt("rho") * unyt.dimensionless
+            item = evalapy("rho") * unyt.dimensionless
             a5.free(bfield=True)
-        elif key == "muprt":
-            item = 0
+
+        elif key == "ptorgc":
+            a5.init(bfield=True)
+            item = physlib.torcanangmom_ppar(
+                q    = read_dataw("charge"),
+                r    = read_dataw("r"),
+                ppar = read_dataw("ppar"),
+                b    = getbvec(),
+                psi  = evalapy("psi") * unyt.Wb
+            )
+            a5.free(bfield=True)
+
+        elif key == "ptorprt":
+            a5.init(bfield=True)
+            item = physlib.torcanangmom_momentum(
+                q   = read_dataw("charge"),
+                r   = read_dataw("r"),
+                p   = getpvecprt(),
+                psi = evalapy("psi") * unyt.Wb
+            )
+            a5.free(bfield=True)
+
 
         # Dissect endcondition
         if key == "endcond":

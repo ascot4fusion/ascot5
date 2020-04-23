@@ -209,7 +209,7 @@ class Dist_rho5D(AscotData):
                Give input distribution explicitly instead of reading one from
                HDF5 file. Dimensions that are not x or y are integrated over.
         """
-        abscissae = {"rho" : 0, "theta" : 0, "phi" : 0, "ppara" : 0,
+        abscissae = {"rho" : 0, "theta" : 0, "phi" : 0, "ppar" : 0,
                      "pperp" : 0, "time" : 0, "charge" : 0}
 
         x = alias(args[0])

@@ -21,10 +21,9 @@ File: test_classicaltransport.py
 import sys
 
 import numpy                   as np
-import scipy.constants         as constants
 import matplotlib.pyplot       as plt
+import unyt
 
-import a5py.ascot5io.ascot5    as ascot5
 import a5py.ascot5io.options   as options
 import a5py.ascot5io.B_TC      as B_TC
 import a5py.ascot5io.E_TC      as E_TC
@@ -33,14 +32,11 @@ import a5py.ascot5io.wall_2D   as W_2D
 import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 
+from a5py.ascot5io.ascot5 import Ascot
+from a5py.physlib import e, m_e, m_p, c, eps_0
+
 import a5py.testascot.helpers as helpers
 
-e       = constants.elementary_charge
-m_p_AMU = constants.physical_constants["proton mass in u"][0]
-m_p     = constants.physical_constants["proton mass"][0]
-m_e     = constants.physical_constants["electron mass"][0]
-eps0    = constants.physical_constants["electric constant"][0]
-c       = constants.physical_constants["speed of light in vacuum"][0]
 
 Te   = 1e3
 ne   = 1e22
@@ -135,15 +131,15 @@ def init():
     #**************************************************************************#
     ids    = np.linspace(1,Nmrk,Nmrk)
     weight = np.ones(ids.shape)
-    mass   = m_p_AMU * np.ones(ids.shape)
-    charge = 1       * np.ones(ids.shape)
-    anum   = 1       * np.ones(ids.shape)
-    znum   = 1       * np.ones(ids.shape)
-    time   = 0       * np.ones(ids.shape)
-    R      = 5       * np.ones(ids.shape)
-    phi    = 0       * np.ones(ids.shape)
-    z      = 0       * np.ones(ids.shape)
-    energy = 1e3     * np.ones(ids.shape)
+    mass   = m_p.to("amu") * np.ones(ids.shape)
+    charge = 1             * np.ones(ids.shape)
+    anum   = 1             * np.ones(ids.shape)
+    znum   = 1             * np.ones(ids.shape)
+    time   = 0             * np.ones(ids.shape)
+    R      = 5             * np.ones(ids.shape)
+    phi    = 0             * np.ones(ids.shape)
+    z      = 0             * np.ones(ids.shape)
+    energy = 1e3           * np.ones(ids.shape)
     zeta   = 2 * np.pi * np.random.rand(1,Nmrk)
     pitch  = 1 - 2 * np.random.rand(1,Nmrk)
     for i in range(1, nB+1):
@@ -242,7 +238,7 @@ def check():
     numerically with different modes scales with magnetic field strength, and
     compares that to the classical diffusion coefficient.
     """
-    a5 = ascot5.Ascot(helpers.testfn)
+    a5 = Ascot(helpers.testfn)
 
     # Diffusion occurs on a 2D plane
     ndim = 2
@@ -254,39 +250,39 @@ def check():
     DGCF = np.zeros(nB)
     DGCA = np.zeros(nB)
     for i in range(1, nB+1):
-        inistate = a5["CLASS_GO" + str(i)].inistate.read()
-        yi = inistate["r"] * np.sin( inistate["phi"] * np.pi / 180 )
+        inistate = a5["CLASS_GO" + str(i)].inistate
+        yi = inistate["y"]
         zi = inistate["z"]
         ti = inistate["time"]
 
-        endstate = a5["CLASS_GO" + str(i)].endstate.read()
-        ye = endstate["r"] * np.sin( endstate["phi"] * np.pi / 180 )
+        endstate = a5["CLASS_GO" + str(i)].endstate
+        ye = endstate["y"]
         ze = endstate["z"]
         te = endstate["time"]
 
         dr2 = ( yi - ye ) * ( yi - ye ) + ( zi - ze ) * ( zi - ze )
         DGO[i-1] = np.mean( dr2 / ( te - ti ) ) / (2*ndim)
 
-        inistate = a5["CLASS_GCF" + str(i)].inistate.read()
-        yi = inistate["r"] * np.sin( inistate["phi"] * np.pi / 180 )
+        inistate = a5["CLASS_GCF" + str(i)].inistate
+        yi = inistate["y"]
         zi = inistate["z"]
         ti = inistate["time"]
 
-        endstate = a5["CLASS_GCF" + str(i)].endstate.read()
-        ye = endstate["r"] * np.sin( endstate["phi"] * np.pi / 180 )
+        endstate = a5["CLASS_GCF" + str(i)].endstate
+        ye = endstate["y"]
         ze = endstate["z"]
         te = endstate["time"]
 
         dr2 = ( yi - ye ) * ( yi - ye ) + ( zi - ze ) * ( zi - ze )
         DGCF[i-1] = np.mean( dr2 / ( te - ti ) ) / (2*ndim)
 
-        inistate = a5["CLASS_GCA" + str(i)].inistate.read()
-        yi = inistate["r"] * np.sin( inistate["phi"] * np.pi / 180 )
+        inistate = a5["CLASS_GCA" + str(i)].inistate
+        yi = inistate["y"]
         zi = inistate["z"]
         ti = inistate["time"]
 
-        endstate = a5["CLASS_GCA" + str(i)].endstate.read()
-        ye = endstate["r"] * np.sin( endstate["phi"] * np.pi / 180 )
+        endstate = a5["CLASS_GCA" + str(i)].endstate
+        ye = endstate["y"]
         ze = endstate["z"]
         te = endstate["time"]
 
@@ -300,12 +296,12 @@ def check():
 
     clog     = 13.4
     collfreq = (m_e/m_p) * (np.sqrt(2/np.pi)/3) \
-               * np.power(e*e/(4*np.pi*eps0), 2) \
+               * np.power(e*e/(4*np.pi*eps_0), 2) \
                * (4*np.pi / np.sqrt(m_e*np.power(Te*e,3) ) ) * ne * clog
 
     xvals    = np.linspace( 1 / ( Bmax * Bmax ), 1 / ( Bmin * Bmin ), nB )
     Bvals    = 1 / np.sqrt(xvals)
-    gamma  = 1 + 1e3*e / ( m_p * c * c )
+    gamma  = 1 + 1e3*unyt.eV / ( m_p * c * c )
     v      = np.sqrt(1.0 - 1.0 / ( gamma * gamma ) ) * c
     rhog   = gamma * m_p * v / (Bvals * e)
     Dclass = collfreq * rhog * rhog / 2
