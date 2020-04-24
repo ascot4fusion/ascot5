@@ -195,11 +195,12 @@ int B_field_init(B_field_data* Bdata, B_field_offload_data* offload_data,
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
+ * @param t time coordinate [s]
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_field_eval_psi(real* psi, real r, real phi, real z,
+a5err B_field_eval_psi(real* psi, real r, real phi, real z, real t,
                       B_field_data* Bdata) {
     a5err err = 0;
 
@@ -217,7 +218,7 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z,
             break;
 
         case B_field_type_STS:
-            B_STS_eval_psi(psi, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_psi(psi, r, phi, z, &(Bdata->BSTS));
             break;
 
         case B_field_type_TC:
@@ -254,16 +255,17 @@ a5err B_field_eval_psi(real* psi, real r, real phi, real z,
  *
  * This is a SIMD function.
  *
- * @param psi pointer where psi [V*s*m^-1] and its derivatives will be stored
+ * @param psi_dpsi pointer for storing psi [V*s*m^-1] and its derivatives
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
+ * @param t time coordinate [s]
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
-                       B_field_data* Bdata) {
+a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z, real t,
+                            B_field_data* Bdata) {
     a5err err = 0;
 
     switch(Bdata->type) {
@@ -280,7 +282,7 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
             break;
 
         case B_field_type_STS:
-            B_STS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_psi_dpsi(psi_dpsi, r, phi, z, &(Bdata->BSTS));
             break;
 
         case B_field_type_TC:
@@ -319,9 +321,7 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
  * This is a SIMD function.
  *
  * @param rho pointer where rho value will be stored
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
+ * @param psi poloidal flux from which rho is evaluated
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
@@ -343,7 +343,7 @@ a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
             break;
 
         case B_field_type_STS:
-            B_STS_eval_rho(rho, psi, &(Bdata->BSTS));
+            err = B_STS_eval_rho(rho, psi, &(Bdata->BSTS));
             break;
 
         case B_field_type_TC:
@@ -386,7 +386,7 @@ a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
  *
  * This is a SIMD function.
  *
- * @param rho pointer where rho and its derivatives will be stored
+ * @param rho_drho pointer where rho and its derivatives will be stored
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
@@ -412,7 +412,7 @@ a5err B_field_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
             break;
 
         case B_field_type_STS:
-            B_STS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_rho_drho(rho_drho, r, phi, z, &(Bdata->BSTS));
             break;
 
         case B_field_type_TC:
@@ -451,11 +451,13 @@ a5err B_field_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
  * @param r R coordinate [m]
  * @param phi phi coordinate [deg]
  * @param z z coordinate [m]
+ * @param t time coordinate [s]
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
+a5err B_field_eval_B(real B[3], real r, real phi, real z, real t,
+                     B_field_data* Bdata) {
     a5err err = 0;
 
     switch(Bdata->type) {
@@ -472,7 +474,7 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
             break;
 
         case B_field_type_STS:
-            B_STS_eval_B(B, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_B(B, r, phi, z, &(Bdata->BSTS));
             break;
 
         case B_field_type_TC:
@@ -514,6 +516,9 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
  * - B[9]  = dBz/dR
  * - B[10] = dBz/dphi
  * - B[11] = dBz/dz
+ * - B[12] = dBR/dt
+ * - B[13] = dBphi/dt
+ * - B[14] = dBz/dt
  *
  * This is a SIMD function.
  *
@@ -521,11 +526,12 @@ a5err B_field_eval_B(real B[3], real r, real phi, real z, B_field_data* Bdata) {
  * @param r R coordinate [m]
  * @param phi phi coordinate [deg]
  * @param z z coordinate [m]
+ * @param t time coordinate [s]
  * @param Bdata pointer to magnetic field data struct
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_field_eval_B_dB(real B_dB[12], real r, real phi, real z,
+a5err B_field_eval_B_dB(real B_dB[15], real r, real phi, real z, real t,
                         B_field_data* Bdata) {
     a5err err = 0;
 
@@ -543,7 +549,7 @@ a5err B_field_eval_B_dB(real B_dB[12], real r, real phi, real z,
             break;
 
         case B_field_type_STS:
-            B_STS_eval_B_dB(B_dB, r, phi, z, &(Bdata->BSTS));
+            err = B_STS_eval_B_dB(B_dB, r, phi, z, &(Bdata->BSTS));
             break;
 
         case B_field_type_TC:
@@ -563,7 +569,7 @@ a5err B_field_eval_B_dB(real B_dB[12], real r, real phi, real z,
         for(int k=1; k<12; k++) {B_dB[k] = 0;}
     }
 
-    return err = 0;
+    return err;
 }
 
 /**

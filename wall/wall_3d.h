@@ -6,7 +6,7 @@
 #define WALL_3D_H
 #include "../ascot5.h"
 
-/* Default depth of octree struct */
+/** Default depth of octree struct */
 #define WALL_OCTREE_DEPTH 7
 
 /**
@@ -47,9 +47,9 @@ typedef struct {
     int depth;           /**< Depth of the octree                             */
     int ngrid;           /**< Number of cells computational volume is divided
                               to in each direction. ngrid = 2^(depth-1)       */
-    real* wall_tris;     /**<  */
+    real* wall_tris;     /**< Array of wall triangle coordinates */
     int tree_array_size; /**<  */
-    int* tree_array;     /**<  */
+    int* tree_array;     /**< Pointer to octree array */
 } wall_3d_data;
 
 int wall_3d_init_offload(wall_3d_offload_data* offload_data,

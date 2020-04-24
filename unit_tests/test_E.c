@@ -8,13 +8,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../math.h"
+#include "../consts.h"
 #include "../B_field.h"
 #include "../E_field.h"
-#include "../hdf5io/hdf5_input.h"
-#include "../hdf5io/hdf5_orbits.h"
-#include "../hdf5io/hdf5_particlestate.h"
+#include "../hdf5_interface.h"
 #include "../offload.h"
 
+/**
+ * Main function for the electric field test program.
+ */
 int main(int argc, char** argv) {
 
     if(argc < 11) {
@@ -24,7 +26,6 @@ int main(int argc, char** argv) {
 
     FILE* f = fopen(argv[10], "w");
 
-    int err = 0;
     sim_offload_data sim;
     sim.mpi_rank = 0;
     sim.mpi_size = 1;
@@ -42,8 +43,11 @@ int main(int argc, char** argv) {
     strcpy(sim.hdf5_in, "ascot.h5");
     strcpy(sim.hdf5_out, "ascot");
 
-    err = hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array,
-                     &neutral_offload_array, &wall_offload_array, &p, &n);
+    hdf5_interface_read_input(&sim, hdf5_input_efield,
+                              &B_offload_array, &E_offload_array,
+                              &plasma_offload_array,
+                              &neutral_offload_array,
+                              &wall_offload_array, &p, &n);
 
     /* Init magnetic background */
     offload_package offload_data;
@@ -88,13 +92,14 @@ int main(int argc, char** argv) {
     fprintf(f,"%d %le %le\n", n_z, z_min, z_max);
 
     int i, j, k;
+    real time = 0;
     for(i = 0; i < n_r; i++) {
         for(j = 0; j < n_phi; j++) {
             for(k = 0; k < n_z; k++) {
                 B_field_eval_rho_drho(rho, r[i], phi[j], z[k], &Bdata);
                 /* Correct Jacobian */
                 rho[2] = rho[2]/r[i];
-                E_field_eval_E(E, r[i], phi[j], z[k], &Edata, &Bdata);
+                E_field_eval_E(E, r[i], phi[j], z[k], time, &Edata, &Bdata);
                 fprintf(f,"%le %le %le %le ", rho[0], rho[1], rho[2], rho[3]);
                 fprintf(f,"%le %le %le\n", E[0], E[1], E[2]);
             }

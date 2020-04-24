@@ -3,160 +3,233 @@
  * @brief Tricubic spline interpolation in compact form
  */
 #include <stdlib.h>
-#include <stdio.h> /* Needed for printf debugging purposes */
 #include <math.h>
 #include "../ascot5.h"
 #include "../consts.h"
-#include "interp3Dcomp.h"
-#include "spline1Dcomp.h"
+#include "interp.h"
+#include "spline.h"
 
 /**
- * @brief Calculate tricubic spline interpolation coefficients for scalar 3D data
+ * @brief Calculate tricubic spline interpolation coefficients for 3D data
  *
  * This function calculates the tricubic spline interpolation coefficients for
- * the given data and stores them in the data struct. Compact  cofficients are
- * calculated directly.
+ * the given data and stores them in an array. Compact cofficients are
+ * calculated.
  *
- * @todo Error checking
- *
- * @param str data struct for data interpolation
+ * @param c allocated array of length n_z*n_y*n_x*8 to store the coefficients
  * @param f 3D data to be interpolated
- * @param n_r number of data points in the r direction
- * @param n_phi number of data points in the phi direction
+ * @param n_x number of data points in the x direction
+ * @param n_y number of data points in the y direction
  * @param n_z number of data points in the z direction
- * @param r_min minimum value of the r axis
- * @param r_max maximum value of the r axis
- * @param phi_min minimum value of the phi axis
- * @param phi_max maximum value of the phi axis
+ * @param bc_x boundary condition for x axis
+ * @param bc_y boundary condition for y axis
+ * @param bc_z boundary condition for z axis
+ * @param x_min minimum value of the x axis
+ * @param x_max maximum value of the x axis
+ * @param y_min minimum value of the y axis
+ * @param y_max maximum value of the y axis
  * @param z_min minimum value of the z axis
  * @param z_max maximum value of the z axis
+ *
+ * @return zero if initialization succeeded
  */
-int interp3Dcomp_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
-                       real r_min, real r_max, real r_grid,
-                       real phi_min, real phi_max, real phi_grid,
-                       real z_min, real z_max, real z_grid) {
+int interp3Dcomp_init_coeff(real* c, real* f,
+                            int n_x, int n_y, int n_z,
+                            int bc_x, int bc_y, int bc_z,
+                            real x_min, real x_max,
+                            real y_min, real y_max,
+                            real z_min, real z_max) {
 
-    int err = 0;
-
-    /* Initialize and fill the data struct */
-    str->n_r = n_r;
-    str->n_phi = n_phi;
-    str->n_z = n_z;
-    str->r_min = r_min;
-    str->r_max = r_max;
-    str->r_grid = r_grid;
-    str->phi_min = phi_min;
-    str->phi_max = phi_max;
-    str->phi_grid = phi_grid;
-    str->z_min = z_min;
-    str->z_max = z_max;
-    str->z_grid = z_grid;
-    str->c = malloc(n_phi*n_z*n_r*8*sizeof(real));
-
-    /* Declare and allocate the needed variables */
-    int i_r;                                    /**< index for r variable */
-    int i_phi;                                  /**< index for phi variable */
-    int i_z;                                    /**< index for z variable */
-    real* f_r = malloc(n_r*sizeof(real));       /**< Temporary array for data along r */
-    real* f_phi = malloc(n_phi*sizeof(real));   /**< Temp array for data along phi */
-    real* f_z = malloc(n_z*sizeof(real));       /**< Temp array for data along z */
-    real* c_r = malloc(n_r*2*sizeof(real));     /**< Temp array for coefficients along r */
-    real* c_phi = malloc(n_phi*2*sizeof(real)); /**< Temp array for coefs along phi */
-    real* c_z = malloc(n_z*2*sizeof(real));     /**< Temp array for coefficients along z */
-
-    if(f_r == NULL || f_z == NULL || c_r == NULL || c_z == NULL) {
-        err = 1;
+    /* Check boundary conditions and calculate grid intervals. Grid intervals
+       needed because we use normalized grid intervals. For periodic boundary
+       condition, grid maximum value and the last data point are not the same.
+       Take this into account in grid intervals. */
+    real x_grid, y_grid, z_grid;
+    if(bc_x == NATURALBC || bc_x == PERIODICBC) {
+        x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
     }
     else {
+        return 1;
+    }
 
-        /* Tricubic spline volume coefficients: For i_r, i_phi and i_z the 8 coefficients
-           are [f, frr, fphiphi, fzz, frrphiphi, frrzz, fphiphizz, frrphiphizz].
-           Note how we account for normalized grid. */
-        /* Bicubic spline surface over rz-grid for each phi */
-        for(i_phi=0; i_phi<n_phi; i_phi++) {
-            /* Cubic spline along r for each z to get frr */
-            for(i_z=0; i_z<n_z; i_z++) {
-                for(i_r=0; i_r<n_r; i_r++) {
-                    f_r[i_r] = f[i_phi*n_z*n_r+i_z*n_r+i_r];
-                }
-                spline1Dcomp(f_r,n_r,0,c_r);
-                for(i_r=0; i_r<n_r; i_r++) {
-                    str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8] = c_r[i_r*2];
-                    str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+1] = c_r[i_r*2+1]/(r_grid*r_grid);
-                }
+    if(bc_y == NATURALBC || bc_y == PERIODICBC) {
+        y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
+    }
+    else {
+        return 1;
+    }
+
+    if(bc_z == NATURALBC || bc_z == PERIODICBC) {
+        z_grid = (z_max - z_min) / ( n_z - 1 * (bc_z == NATURALBC) );
+    }
+    else {
+        return 1;
+    }
+
+    /* Allocate helper quantities */
+    real* f_x = malloc(n_x*sizeof(real));
+    real* f_y = malloc(n_y*sizeof(real));
+    real* f_z = malloc(n_z*sizeof(real));
+    real* c_x = malloc(n_x*NSIZE_COMP1D*sizeof(real));
+    real* c_y = malloc(n_y*NSIZE_COMP1D*sizeof(real));
+    real* c_z = malloc(n_z*NSIZE_COMP1D*sizeof(real));
+
+    if(f_x == NULL || f_y == NULL || f_z == NULL ||
+       c_x == NULL || c_y == NULL || c_z == NULL) {
+        return 1;
+    }
+
+    /* Calculate tricubic spline volume coefficients, i.e. second derivatives.
+       For each grid cell (i_x, i_y, i_z), there are eight coefficients:
+       [f, fxx, fyy, fzz, fxxyy, fxxzz, fyyzz, fxxyyzz]. Note how we account
+       for normalized grid intervals. */
+
+    /* Bicubic spline surfaces over xy-grid for each z */
+    for(int i_z=0; i_z<n_z; i_z++) {
+
+        /* Cubic spline along x for each y, using f values to get fxx */
+        for(int i_y=0; i_y<n_y; i_y++) {
+            /* fxx */
+            for(int i_x=0; i_x<n_x; i_x++) {
+                f_x[i_x] = f[i_z*n_y*n_x + i_y*n_x + i_x];
             }
-
-            /* Two cubic splines along z for each r using f and frr */
-            for(i_r=0; i_r<n_r; i_r++) {
-                /* fzz */
-                for(i_z=0; i_z<n_z; i_z++) {
-                    f_z[i_z] =  f[i_phi*n_z*n_r+i_z*n_r+i_r];
-                }
-                spline1Dcomp(f_z,n_z,0,c_z);
-                for(i_z=0; i_z<n_z; i_z++) {
-                    str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+3] = c_z[i_z*2+1]/(z_grid*z_grid);
-                }
-                /* frrzz */
-                for(i_z=0; i_z<n_z; i_z++) {
-                    f_z[i_z] = str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+1];
-                }
-                spline1Dcomp(f_z,n_z,0,c_z);
-                for(i_z=0; i_z<n_z; i_z++) {
-                    str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+5] = c_z[i_z*2+1]/(z_grid*z_grid);
-                }
+            splinecomp(f_x, n_x, bc_x, c_x);
+            for(int i_x=0; i_x<n_x; i_x++) {
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8    ] = c_x[i_x*2];
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 1] = c_x[i_x*2 + 1]
+                                                           / (x_grid*x_grid);
             }
-
         }
 
-        /* Cubic spline along phi for each rz-pair to find the compact coefficients
-           of the tricubic spline volume */
-        for(i_z=0; i_z<n_z; i_z++) {
-            for(i_r=0; i_r<n_r; i_r++) {
-                /* fphiphi */
-                for(i_phi=0; i_phi<n_phi; i_phi++) {
-                    f_phi[i_phi] = f[i_phi*n_z*n_r+i_z*n_r+i_r];
-                }
-                spline1Dcomp(f_phi,n_phi,1,c_phi);
-                for(i_phi=0; i_phi<n_phi; i_phi++) {
-                    str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+2] = c_phi[i_phi*2+1]/(phi_grid*phi_grid);
-                }
-                /* frrphiphi */
-                for(i_phi=0; i_phi<n_phi; i_phi++) {
-                    f_phi[i_phi] = str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+1];
-                }
-                spline1Dcomp(f_phi,n_phi,1,c_phi);
-                for(i_phi=0; i_phi<n_phi; i_phi++) {
-                    str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+4] = c_phi[i_phi*2+1]/(phi_grid*phi_grid);
-                }
-                /* fphiphizz */
-                for(i_phi=0; i_phi<n_phi; i_phi++) {
-                    f_phi[i_phi] = str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+3];
-                }
-                spline1Dcomp(f_phi,n_phi,1,c_phi);
-                for(i_phi=0; i_phi<n_phi; i_phi++) {
-                    str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+6] = c_phi[i_phi*2+1]/(phi_grid*phi_grid);
-                }
-                /* frrphiphizz */
-                for(i_phi=0; i_phi<n_phi; i_phi++) {
-                    f_phi[i_phi] = str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+5];
-                }
-                spline1Dcomp(f_phi,n_phi,1,c_phi);
-                for(i_phi=0; i_phi<n_phi; i_phi++) {
-                    str->c[i_phi*n_z*n_r*8+i_z*n_r*8+i_r*8+7] = c_phi[i_phi*2+1]/(phi_grid*phi_grid);
-                }
+        /* Two cubic splines along y for each x, one using f values to
+           get fyy, and the other using fxx values to get fxxyy */
+        for(int i_x=0; i_x<n_x; i_x++) {
+            /* fyy */
+            for(int i_y=0; i_y<n_y; i_y++) {
+                f_y[i_y] = f[i_z*n_y*n_x + i_y*n_x + i_x];
+            }
+            splinecomp(f_y, n_y, bc_y, c_y);
+            for(int i_y=0; i_y<n_y; i_y++) {
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 2] = c_y[i_y*2 + 1]
+                                                           / (y_grid*y_grid);
+            }
+            /* fxxyy */
+            for(int i_y=0; i_y<n_y; i_y++) {
+                f_y[i_y] = c[i_z*n_y*n_x*8 + i_y*n_x*8+i_x*8 + 1];
+            }
+            splinecomp(f_y, n_y, bc_y, c_y);
+            for(int i_y=0; i_y<n_y; i_y++) {
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 4] = c_y[i_y*2 + 1]
+                                                           / (y_grid*y_grid);
+            }
+        }
+
+    }
+
+    /* Four cubic splines along z for each xy-pair, one using f values to get
+       fzz, one using fxx to get fxxzz, one using fyy to get fyyzz, and one
+       using fxxyy to get fxxyyzz */
+    for(int i_y=0; i_y<n_y; i_y++) {
+        for(int i_x=0; i_x<n_x; i_x++) {
+            /* fzz */
+            for(int i_z=0; i_z<n_z; i_z++) {
+                f_z[i_z] = f[i_z*n_y*n_x + i_y*n_x + i_x];
+            }
+            splinecomp(f_z, n_z, bc_z, c_z);
+            for(int i_z=0; i_z<n_z; i_z++) {
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 3] = c_z[i_z*2 + 1]
+                                                           / (z_grid*z_grid);
+            }
+            /* fxxzz */
+            for(int i_z=0; i_z<n_z; i_z++) {
+                f_z[i_z] = c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 1];
+            }
+            splinecomp(f_z, n_z, bc_z, c_z);
+            for(int i_z=0; i_z<n_z; i_z++) {
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 5] = c_z[i_z*2 + 1]
+                                                           / (z_grid*z_grid);
+            }
+            /* fyyzz */
+            for(int i_z=0; i_z<n_z; i_z++) {
+                f_z[i_z] = c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 2];
+            }
+            splinecomp(f_z, n_z, bc_z, c_z);
+            for(int i_z=0; i_z<n_z; i_z++) {
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 6] = c_z[i_z*2+1]
+                                                           / (z_grid*z_grid);
+            }
+            /* fxxyyzz */
+            for(int i_z=0; i_z<n_z; i_z++) {
+                f_z[i_z] = c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 4];
+            }
+            splinecomp(f_z, n_z, bc_z, c_z);
+            for(int i_z=0; i_z<n_z; i_z++) {
+                c[i_z*n_y*n_x*8 + i_y*n_x*8 + i_x*8 + 7] = c_z[i_z*2+1]
+                                                           / (z_grid*z_grid);
             }
         }
     }
 
     /* Free allocated memory */
-    free(f_r);
-    free(f_phi);
+    free(f_x);
+    free(f_y);
     free(f_z);
-    free(c_r);
-    free(c_phi);
+    free(c_x);
+    free(c_y);
     free(c_z);
 
-    return err;
+    return 0;
+}
+
+/**
+ * @brief Initialize a tricubic spline
+ *
+ * @param str pointer to spline to be initialized
+ * @param c array where coefficients are stored
+ * @param n_x number of data points in the x direction
+ * @param n_y number of data points in the y direction
+ * @param n_z number of data points in the z direction
+ * @param bc_x boundary condition for x axis
+ * @param bc_y boundary condition for y axis
+ * @param bc_y boundary condition for z axis
+ * @param x_min minimum value of the x axis
+ * @param x_max maximum value of the x axis
+ * @param y_min minimum value of the y axis
+ * @param y_max maximum value of the y axis
+ * @param z_min minimum value of the z axis
+ * @param z_max maximum value of the z axis
+ */
+void interp3Dcomp_init_spline(interp3D_data* str, real* c,
+                              int n_x, int n_y, int n_z,
+                              int bc_x, int bc_y, int bc_z,
+                              real x_min, real x_max,
+                              real y_min, real y_max,
+                              real z_min, real z_max) {
+
+    /* Calculate grid intervals. For periodic boundary condition, grid maximum
+       value and the last data point are not the same. Take this into account
+       in grid intervals. */
+    real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
+    real y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
+    real z_grid = (z_max - z_min) / ( n_z - 1 * (bc_z == NATURALBC) );
+
+    /* Initialize the interp3D_data struct */
+    str->n_x    = n_x;
+    str->n_y    = n_y;
+    str->n_z    = n_z;
+    str->bc_x   = bc_x;
+    str->bc_y   = bc_y;
+    str->bc_z   = bc_z;
+    str->x_min  = x_min;
+    str->x_max  = x_max;
+    str->x_grid = x_grid;
+    str->y_min  = y_min;
+    str->y_max  = y_max;
+    str->y_grid = y_grid;
+    str->z_min  = z_min;
+    str->z_max  = z_max;
+    str->z_grid = z_grid;
+    str->c      = c;
 }
 
 /**
@@ -165,117 +238,147 @@ int interp3Dcomp_init(interp3D_data* str, real* f, int n_r, int n_phi, int n_z,
  * This function evaluates the interpolated value of a 3D scalar field using
  * tricubic spline interpolation coefficients of the compact form.
  *
- * @todo Seg fault if in last phi-sector becaause of compact eval +1-coefs
- * @todo Check discrepency to ascot4 and explicit version
- * @todo Error checking
- *
- * @param B variable in which to place the evaluated value
+ * @param f variable in which to place the evaluated value
  * @param str data struct for data interpolation
- * @param r r-coordinate
- * @param phi phi-coordinate
+ * @param x x-coordinate
+ * @param y y-coordinate
  * @param z z-coordinate
+ *
+ * @return zero on success and one if (x,y,z) point is outside the grid.
  */
-integer interp3Dcomp_eval_B(real* B, interp3D_data* str, real r, real phi, real z) {
-    /** Make sure phi is in interval [phi_min, phi_max) */
-    real phi_range = str->phi_max - str->phi_min;
-    phi = fmod(phi - str->phi_min, phi_range) + str->phi_min;
-    if(phi < 0){phi = phi_range + phi;}
+a5err interp3Dcomp_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
 
-    int i_r = (r-str->r_min)/str->r_grid;     /**< index for r variable */
-    real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-                                                               current cell */
-    real dri = 1.0-dr;
-    real dr3 = dr*dr*dr-dr;
-    real dri3 = (1.0-dr)*(1.0-dr)*(1.0-dr)-(1.0-dr);
-    real rg2 = str->r_grid*str->r_grid;       /**< Square of cell length in r direction */
-    int i_phi = (phi-str->phi_min)/str->phi_grid; /**< index for phi variable */
-    real dphi = (phi-(str->phi_min+i_phi*str->phi_grid))/str->phi_grid; /**< Normalized phi
-                                                                           coordinate in
-                                                                           current cell */
-    real dphii = 1.0-dphi;
-    real dphi3 = dphi*dphi*dphi-dphi;
-    real dphii3 = (1.0-dphi)*(1.0-dphi)*(1.0-dphi)-(1.0-dphi);
-    real phig2 = str->phi_grid*str->phi_grid; /**< Square of cell length in phi dir */
-    int i_z = (z-str->z_min)/str->z_grid;     /**< index for z variable */
-    real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
-                                                               current cell */
-    real dzi = 1.0-dz;
-    real dz3 = dz*dz*dz-dz;
-    real dzi3 = (1.0-dz)*(1.0-dz)*(1.0-dz)-(1.0-dz);
-    real zg2 = str->z_grid*str->z_grid;       /**< Square of cell length in z direction */
-    int n = i_phi*str->n_z*str->n_r*8+i_z*str->n_r*8+i_r*8; /**< Index jump to cell */
-    int r1 = 8;                               /**< Index jump one r forward */
-    int phi1 = str->n_z*str->n_r*8;           /**< Index jump one phi forward */
-    if(i_phi==str->n_phi-1) {
-        phi1 = -(str->n_phi-1)*phi1;          /**< If last cell, index jump to 1st phi */
+    /* Make sure periodic coordinates are within [min, max] region. */
+    if(str->bc_x == PERIODICBC) {
+        x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
+        x = x + (x < str->x_min) * (str->x_max - str->x_min);
     }
-    int z1 = str->n_r*8;                      /**< Index jump one z forward */
+    if(str->bc_y == PERIODICBC) {
+        y = fmod(y - str->y_min, str->y_max - str->y_min) + str->y_min;
+        y = y + (y < str->y_min) * (str->y_max - str->y_min);
+    }
+    if(str->bc_z == PERIODICBC) {
+        z = fmod(z - str->z_min, str->z_max - str->z_min) + str->z_min;
+        z = z + (z < str->z_min) * (str->z_max - str->z_min);
+    }
+
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x   = (x - str->x_min) / str->x_grid - 1*(x==str->x_max);
+    /* Normalized x coordinate in current cell */
+    real dx   = (x - (str->x_min + i_x*str->x_grid)) / str->x_grid;
+    /* Helper varibles */
+    real dxi  = 1.0 - dx;
+    real dx3  = dx*dx*dx - dx;
+    real dxi3 = (1.0 - dx) * (1.0 - dx) * (1.0 - dx) - (1.0 - dx);
+    real xg2  = str->x_grid*str->x_grid;
+
+    /* Index for y variable. The -1 needed at exactly grid end. */
+    int i_y   = (y - str->y_min) / str->y_grid - 1*(y==str->y_max);
+    /* Normalized y coordinate in current cell */
+    real dy   = (y - (str->y_min + i_y*str->y_grid)) / str->y_grid;
+    /* Helper varibles */
+    real dyi  = 1.0 - dy;
+    real dy3  = dy*dy*dy - dy;
+    real dyi3 = (1.0 - dy) * (1.0 - dy) * (1.0 - dy) - (1.0 - dy);
+    real yg2  = str->y_grid*str->y_grid;
+
+    /* Index for z variable. The -1 needed at exactly grid end. */
+    int i_z   = (z - str->z_min) / str->z_grid - 1*(z==str->z_max);
+    /* Normalized z coordinate in current cell */
+    real dz   = (z - (str->z_min + i_z*str->z_grid)) / str->z_grid;
+    /* Helper varibles */
+    real dzi  = 1.0 - dz;
+    real dz3  = dz*dz*dz - dz;
+    real dzi3 = (1.0 - dz) * (1.0 - dz) * (1.0 - dz) - (1.0-dz);
+    real zg2  = str->z_grid*str->z_grid;
+
+    /**< Index jump to cell */
+    int n  = i_z*str->n_y*str->n_x*8 + i_y*str->n_x*8 + i_x*8;
+    int x1 = 8;                   /* Index jump one x forward */
+    int y1 = str->n_x*8;          /* Index jump one y forward */
+    int z1 = str->n_y*str->n_x*8; /* Index jump one z forward */
 
     int err = 0;
 
-    /* Check that the point is not outside the evaluation regime */
-    if(r < str->r_min || r > str->r_max
-        || z < str->z_min || z > str->z_max) {
+    /* Enforce periodic BC or check that the coordinate is within the domain. */
+    if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
+        x1 = -(str->n_x-1)*x1;
+    }
+    else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
         err = 1;
     }
-    else {
+    if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
+        y1 = -(str->n_y-1)*y1;
+    }
+    else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+        err = 1;
+    }
+    if( str->bc_z == PERIODICBC && i_z == str->n_z-1 ) {
+        z1 = -(str->n_z-1)*z1;
+    }
+    else if( str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max) ) {
+        err = 1;
+    }
 
-        *B = (
+    if(!err) {
+
+        /* Evaluate spline value */
+        *f = (
             dzi*(
-                dri*(dphii*str->c[n+0]+dphi*str->c[n+phi1+0])+
-                dr*(dphii*str->c[n+r1+0]+dphi*str->c[n+phi1+r1+0]))
+                dxi*(dyi*str->c[n+0]+dy*str->c[n+y1+0])
+                +dx*(dyi*str->c[n+x1+0]+dy*str->c[n+y1+x1+0]))
             +dz*(
-                dri*(dphii*str->c[n+z1+0]+dphi*str->c[n+phi1+z1+0])+
-                dr*(dphii*str->c[n+r1+z1+0]+dphi*str->c[n+phi1+z1+r1+0])))
-            +rg2/6*(
+                dxi*(dyi*str->c[n+z1+0]+dy*str->c[n+y1+z1+0])
+                +dx*(dyi*str->c[n+x1+z1+0]+dy*str->c[n+y1+z1+x1+0])))
+            +xg2/6*(
                 dzi*(
-                    dri3*(dphii*str->c[n+1]+dphi*str->c[n+phi1+1])+
-                    dr3*(dphii*str->c[n+r1+1]+dphi*str->c[n+phi1+r1+1]))
+                    dxi3*(dyi*str->c[n+1]+dy*str->c[n+y1+1])
+                    +dx3*(dyi*str->c[n+x1+1]+dy*str->c[n+y1+x1+1]))
                 +dz*(
-                    dri3*(dphii*str->c[n+z1+1]+dphi*str->c[n+phi1+z1+1])+
-                    dr3*(dphii*str->c[n+r1+z1+1]+dphi*str->c[n+phi1+z1+r1+1])))
-            +phig2/6*(
+                    dxi3*(dyi*str->c[n+z1+1]+dy*str->c[n+y1+z1+1])
+                    +dx3*(dyi*str->c[n+x1+z1+1]+dy*str->c[n+y1+z1+x1+1])))
+            +yg2/6*(
                 dzi*(
-                    dri*(dphii3*str->c[n+2]+dphi3*str->c[n+phi1+2])+
-                    dr*(dphii3*str->c[n+r1+2]+dphi3*str->c[n+phi1+r1+2]))
+                    dxi*(dyi3*str->c[n+2]+dy3*str->c[n+y1+2])
+                    +dx*(dyi3*str->c[n+x1+2]+dy3*str->c[n+y1+x1+2]))
                 +dz*(
-                    dri*(dphii3*str->c[n+z1+2]+dphi3*str->c[n+phi1+z1+2])+
-                    dr*(dphii3*str->c[n+r1+z1+2]+dphi3*str->c[n+phi1+z1+r1+2])))
+                    dxi*(dyi3*str->c[n+z1+2]+dy3*str->c[n+y1+z1+2])
+                    +dx*(dyi3*str->c[n+x1+z1+2]+dy3*str->c[n+y1+z1+x1+2])))
             +zg2/6*(
                 dzi3*(
-                    dri*(dphii*str->c[n+3]+dphi*str->c[n+phi1+3])+
-                    dr*(dphii*str->c[n+r1+3]+dphi*str->c[n+phi1+r1+3]))
+                    dxi*(dyi*str->c[n+3]+dy*str->c[n+y1+3])
+                    +dx*(dyi*str->c[n+x1+3]+dy*str->c[n+y1+x1+3]))
                 +dz3*(
-                    dri*(dphii*str->c[n+z1+3]+dphi*str->c[n+phi1+z1+3])+
-                    dr*(dphii*str->c[n+r1+z1+3]+dphi*str->c[n+phi1+z1+r1+3])))
-            +rg2*phig2/36*(
+                    dxi*(dyi*str->c[n+z1+3]+dy*str->c[n+y1+z1+3])
+                    +dx*(dyi*str->c[n+x1+z1+3]+dy*str->c[n+y1+z1+x1+3])))
+            +xg2*yg2/36*(
                 dzi*(
-                    dri3*(dphii3*str->c[n+4]+dphi3*str->c[n+phi1+4])+
-                    dr3*(dphii3*str->c[n+r1+4]+dphi3*str->c[n+phi1+r1+4]))
+                    dxi3*(dyi3*str->c[n+4]+dy3*str->c[n+y1+4])
+                    +dx3*(dyi3*str->c[n+x1+4]+dy3*str->c[n+y1+x1+4]))
                 +dz*(
-                    dri3*(dphii3*str->c[n+z1+4]+dphi3*str->c[n+phi1+z1+4])+
-                    dr3*(dphii3*str->c[n+r1+z1+4]+dphi3*str->c[n+phi1+z1+r1+4])))
-            +rg2*zg2/36*(
+                    dxi3*(dyi3*str->c[n+z1+4]+dy3*str->c[n+y1+z1+4])
+                    +dx3*(dyi3*str->c[n+x1+z1+4]+dy3*str->c[n+y1+z1+x1+4])))
+            +xg2*zg2/36*(
                 dzi3*(
-                    dri3*(dphii*str->c[n+5]+dphi*str->c[n+phi1+5])+
-                    dr3*(dphii*str->c[n+r1+5]+dphi*str->c[n+phi1+r1+5]))
+                    dxi3*(dyi*str->c[n+5]+dy*str->c[n+y1+5])
+                    +dx3*(dyi*str->c[n+x1+5]+dy*str->c[n+y1+x1+5]))
                 +dz3*(
-                    dri3*(dphii*str->c[n+z1+5]+dphi*str->c[n+phi1+z1+5])+
-                    dr3*(dphii*str->c[n+r1+z1+5]+dphi*str->c[n+phi1+z1+r1+5])))
-            +phig2*zg2/36*(
+                    dxi3*(dyi*str->c[n+z1+5]+dy*str->c[n+y1+z1+5])
+                    +dx3*(dyi*str->c[n+x1+z1+5]+dy*str->c[n+y1+z1+x1+5])))
+            +yg2*zg2/36*(
                 dzi3*(
-                    dri*(dphii3*str->c[n+6]+dphi3*str->c[n+phi1+6])+
-                    dr*(dphii3*str->c[n+r1+6]+dphi3*str->c[n+phi1+r1+6]))
+                    dxi*(dyi3*str->c[n+6]+dy3*str->c[n+y1+6])
+                    +dx*(dyi3*str->c[n+x1+6]+dy3*str->c[n+y1+x1+6]))
                 +dz3*(
-                    dri*(dphii3*str->c[n+z1+6]+dphi3*str->c[n+phi1+z1+6])+
-                    dr*(dphii3*str->c[n+r1+z1+6]+dphi3*str->c[n+phi1+z1+r1+6])))
-            +rg2*phig2*zg2/216*(
+                    dxi*(dyi3*str->c[n+z1+6]+dy3*str->c[n+y1+z1+6])
+                    +dx*(dyi3*str->c[n+x1+z1+6]+dy3*str->c[n+y1+z1+x1+6])))
+            +xg2*yg2*zg2/216*(
                 dzi3*(
-                    dri3*(dphii3*str->c[n+7]+dphi3*str->c[n+phi1+7])+
-                    dr3*(dphii3*str->c[n+r1+7]+dphi3*str->c[n+phi1+r1+7]))
+                    dxi3*(dyi3*str->c[n+7]+dy3*str->c[n+y1+7])
+                    +dx3*(dyi3*str->c[n+x1+7]+dy3*str->c[n+y1+x1+7]))
                 +dz3*(
-                    dri3*(dphii3*str->c[n+z1+7]+dphi3*str->c[n+phi1+z1+7])+
-                    dr3*(dphii3*str->c[n+r1+z1+7]+dphi3*str->c[n+phi1+z1+r1+7])));
+                    dxi3*(dyi3*str->c[n+z1+7]+dy3*str->c[n+y1+z1+7])
+                    +dx3*(dyi3*str->c[n+x1+z1+7]+dy3*str->c[n+y1+z1+x1+7])));
 
     }
 
@@ -283,82 +386,126 @@ integer interp3Dcomp_eval_B(real* B, interp3D_data* str, real r, real phi, real 
 }
 
 /**
- * @brief Evaluate interpolated value of 3D scalar field and its 1st and 2nd derivatives
+ * @brief Evaluate interpolated value of 3D field and 1st and 2nd derivatives
  *
  * This function evaluates the interpolated value of a 3D scalar field and
  * its 1st and 2nd derivatives using bicubic spline interpolation coefficients
  * of the compact form.
  *
- * @todo Seg fault if in last phi-sector becaause of compact eval +1-coefs
- * @todo Check discrepency to ascot4 and explicit version
- * @todo Error checking
+ * The evaluated  values are returned in an array with following elements:
+ * - f_df[0] = f
+ * - f_df[1] = f_x
+ * - f_df[2] = f_y
+ * - f_df[3] = f_z
+ * - f_df[4] = f_xx
+ * - f_df[5] = f_yy
+ * - f_df[6] = f_zz
+ * - f_df[7] = f_xy
+ * - f_df[8] = f_xz
+ * - f_df[9] = f_yz
  *
- * @param B_dB array in which to place the evaluated values
+ * @param f_df array in which to place the evaluated values
  * @param str data struct for data interpolation
- * @param r r-coordinate
- * @param phi phi-coordinate
+ * @param x x-coordinate
+ * @param y y-coordinate
  * @param z z-coordinate
+ *
+ * @return zero on success and one if (x,y,z) point is outside the grid.
  */
-integer interp3Dcomp_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, real z) {
-    /** Make sure phi is in interval [phi_min, phi_max) */
-    real phi_range = str->phi_max - str->phi_min;
-    phi = fmod(phi - str->phi_min, phi_range) + str->phi_min;
-    if(phi < 0){phi = phi_range + phi;}
+a5err interp3Dcomp_eval_df(real* f_df, interp3D_data* str,
+                         real x, real y, real z) {
 
-    int i_r = (r-str->r_min)/str->r_grid;       /**< index for r variable */
-    real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-                                                               current cell */
-    real dr3 = dr*dr*dr-dr;
-    real dr3dr = 3*dr*dr-1.0;           /**< r-derivative of dr3, not including 1/r_grid */
-    real dri = 1.0-dr;
-    real dri3 = dri*dri*dri-dri;
-    real dri3dr = -3*dri*dri+1.0;      /**< r-derivative of dri3, not including 1/r_grid */
-    real rg = str->r_grid;                      /**< Cell length in r direction */
-    real rg2 = rg*rg;
-    real rgi = 1.0/rg;
-    int i_phi = (phi-str->phi_min)/str->phi_grid; /**< index for phi variable */
-    real dphi = (phi-(str->phi_min+i_phi*str->phi_grid))/str->phi_grid; /**< Normalized phi
-                                                                           coordinate in
-                                                                           current cell */
-    real dphi3 = dphi*dphi*dphi-dphi;
-    real dphi3dphi = 3*dphi*dphi-1.0; /**< phi-derivative of dphi3,
-                                         not including 1/phi_grid */
-    real dphii = 1.0-dphi;
-    real dphii3 = dphii*dphii*dphii-dphii;
-    real dphii3dphi = -3*dphii*dphii+1.0; /**< phi-derivative of dphii3,
-                                             not including 1/r_grid */
-    real phig = str->phi_grid;                  /**< Cell length in phi direction */
-    real phig2 = phig*phig;
-    real phigi = 1.0/phig;
-    int i_z = (z-str->z_min)/str->z_grid;       /**< index for z variable */
-    real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
-                                                               current cell */
-    real dz3 = dz*dz*dz-dz;
-    real dz3dz = 3*dz*dz-1.0;          /**< z-derivative of dz3, not including 1/z_grid */
-    real dzi = 1.0-dz;
-    real dzi3 = dzi*dzi*dzi-dzi;
-    real dzi3dz = -3*dzi*dzi+1.0;      /**< z-derivative of dzi3, not including 1/z_grid */
-    real zg = str->z_grid;                      /**< Cell length in z direction */
-    real zg2 = zg*zg;
-    real zgi = 1.0/zg;
-    int n = i_phi*str->n_z*str->n_r*8+i_z*str->n_r*8+i_r*8; /**< Index jump to cell */
-    int r1 = 8;                                 /**< Index jump one r forward */
-    int phi1 = str->n_z*str->n_r*8;             /**< Index jump one phi forward */
-    if(i_phi==str->n_phi-1) {
-        phi1 = -(str->n_phi-1)*phi1;            /**< If last cell, index jump to 1st phi */
+    /* Make sure periodic coordinates are within [min, max] region. */
+    if(str->bc_x == PERIODICBC) {
+        x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
+        x = x + (x < str->x_min) * (str->x_max - str->x_min);
     }
-    int z1 = str->n_r*8;                        /**< Index jump one z forward */
+    if(str->bc_y == PERIODICBC) {
+        y = fmod(y - str->y_min, str->y_max - str->y_min) + str->y_min;
+        y = y + (y < str->y_min) * (str->y_max - str->y_min);
+    }
+    if(str->bc_z == PERIODICBC) {
+        z = fmod(z - str->z_min, str->z_max - str->z_min) + str->z_min;
+        z = z + (z < str->z_min) * (str->z_max - str->z_min);
+    }
 
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x     = (x - str->x_min) / str->x_grid - 1*(x==str->x_max);
+    /* Normalized x coordinate in current cell */
+    real dx     = ( x - (str->x_min + i_x*str->x_grid) ) / str->x_grid;
+    /* Helper variables */
+    real dx3    = dx*dx*dx - dx;
+    real dx3dx  = 3*dx*dx - 1.0;
+    real dxi    = 1.0 - dx;
+    real dxi3   = dxi*dxi*dxi - dxi;
+    real dxi3dx = -3*dxi*dxi + 1.0;
+    real xg     = str->x_grid;
+    real xg2    = xg*xg;
+    real xgi    = 1.0 / xg;
+
+    /* Index for y variable. The -1 needed at exactly grid end. */
+    int i_y     = (y - str->y_min) / str->y_grid - 1*(y==str->y_max);
+    /* Normalized y coordinate in current cell */
+    real dy     = ( y - (str->y_min + i_y*str->y_grid) ) / str->y_grid;
+    /* Helper variables */
+    real dy3    = dy*dy*dy-dy;
+    real dy3dy  = 3*dy*dy - 1.0;
+    real dyi    = 1.0 - dy;
+    real dyi3   = dyi*dyi*dyi - dyi;
+    real dyi3dy = -3*dyi*dyi + 1.0;
+    real yg     = str->y_grid;
+    real yg2    = yg*yg;
+    real ygi    = 1.0 / yg;
+
+    /* Index for z variable. The -1 needed at exactly grid end. */
+    int i_z     = (z - str->z_min) / str->z_grid - 1*(z==str->z_max);
+    /* Normalized z coordinate in current cell */
+    real dz     = ( z - (str->z_min + i_z*str->z_grid) ) / str->z_grid;
+    /* Helper variables */
+    real dz3    = dz*dz*dz - dz;
+    real dz3dz  = 3*dz*dz - 1.0;
+    real dzi    = 1.0 - dz;
+    real dzi3   = dzi*dzi*dzi - dzi;
+    real dzi3dz = -3*dzi*dzi + 1.0;
+    real zg     = str->z_grid;
+    real zg2    = zg*zg;
+    real zgi    = 1.0 / zg;
+
+    /* Index jump to cell */
+    int n  = i_z*str->n_y*str->n_x*8 + i_y*str->n_x*8 + i_x*8;
+    int x1 = 8;                   /* Index jump one x forward */
+    int y1 = str->n_x*8;          /* Index jump one y forward */
+    int z1 = str->n_y*str->n_x*8; /* Index jump one z forward */
 
     int err = 0;
 
-    /* Check that the point is not outside the evaluation regime */
-    if(r < str->r_min || r > str->r_max
-        || z < str->z_min || z > str->z_max) {
+    /* Enforce periodic BC or check that the coordinate is within the domain. */
+    if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
+        x1 = -(str->n_x-1)*x1;
+    }
+    else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
         err = 1;
     }
-    else {
+    if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
+        y1 = -(str->n_y-1)*y1;
+    }
+    else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+        err = 1;
+    }
+    if( str->bc_z == PERIODICBC && i_z == str->n_z-1 ) {
+        z1 = -(str->n_z-1)*z1;
+    }
+    else if( str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max) ) {
+        err = 1;
+    }
 
+    if(!err) {
+
+        /* Fetch coefficients explicitly to fetch those that are adjacent
+           subsequently and to store in temporary variables coefficients that
+           will be used multiple times. This is to decrease computational time,
+           by exploiting simultaneous extraction of adjacent memory and by
+           avoiding going through the long str->c array repeatedly. */
         real c0000 = str->c[n+0];
         real c0001 = str->c[n+1];
         real c0002 = str->c[n+2];
@@ -368,23 +515,23 @@ integer interp3Dcomp_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, r
         real c0006 = str->c[n+6];
         real c0007 = str->c[n+7];
 
-        real c0010 = str->c[n+r1+0];
-        real c0011 = str->c[n+r1+1];
-        real c0012 = str->c[n+r1+2];
-        real c0013 = str->c[n+r1+3];
-        real c0014 = str->c[n+r1+4];
-        real c0015 = str->c[n+r1+5];
-        real c0016 = str->c[n+r1+6];
-        real c0017 = str->c[n+r1+7];
+        real c0010 = str->c[n+x1+0];
+        real c0011 = str->c[n+x1+1];
+        real c0012 = str->c[n+x1+2];
+        real c0013 = str->c[n+x1+3];
+        real c0014 = str->c[n+x1+4];
+        real c0015 = str->c[n+x1+5];
+        real c0016 = str->c[n+x1+6];
+        real c0017 = str->c[n+x1+7];
 
-        real c0100 = str->c[n+phi1+0];
-        real c0101 = str->c[n+phi1+1];
-        real c0102 = str->c[n+phi1+2];
-        real c0103 = str->c[n+phi1+3];
-        real c0104 = str->c[n+phi1+4];
-        real c0105 = str->c[n+phi1+5];
-        real c0106 = str->c[n+phi1+6];
-        real c0107 = str->c[n+phi1+7];
+        real c0100 = str->c[n+y1+0];
+        real c0101 = str->c[n+y1+1];
+        real c0102 = str->c[n+y1+2];
+        real c0103 = str->c[n+y1+3];
+        real c0104 = str->c[n+y1+4];
+        real c0105 = str->c[n+y1+5];
+        real c0106 = str->c[n+y1+6];
+        real c0107 = str->c[n+y1+7];
 
         real c1000 = str->c[n+z1+0];
         real c1001 = str->c[n+z1+1];
@@ -395,554 +542,540 @@ integer interp3Dcomp_eval_dB(real* B_dB, interp3D_data* str, real r, real phi, r
         real c1006 = str->c[n+z1+6];
         real c1007 = str->c[n+z1+7];
 
-        real c0110 = str->c[n+phi1+r1+0];
-        real c0111 = str->c[n+phi1+r1+1];
-        real c0112 = str->c[n+phi1+r1+2];
-        real c0113 = str->c[n+phi1+r1+3];
-        real c0114 = str->c[n+phi1+r1+4];
-        real c0115 = str->c[n+phi1+r1+5];
-        real c0116 = str->c[n+phi1+r1+6];
-        real c0117 = str->c[n+phi1+r1+7];
+        real c0110 = str->c[n+y1+x1+0];
+        real c0111 = str->c[n+y1+x1+1];
+        real c0112 = str->c[n+y1+x1+2];
+        real c0113 = str->c[n+y1+x1+3];
+        real c0114 = str->c[n+y1+x1+4];
+        real c0115 = str->c[n+y1+x1+5];
+        real c0116 = str->c[n+y1+x1+6];
+        real c0117 = str->c[n+y1+x1+7];
 
-        real c1100 = str->c[n+phi1+z1+0];
-        real c1101 = str->c[n+phi1+z1+1];
-        real c1102 = str->c[n+phi1+z1+2];
-        real c1103 = str->c[n+phi1+z1+3];
-        real c1104 = str->c[n+phi1+z1+4];
-        real c1105 = str->c[n+phi1+z1+5];
-        real c1106 = str->c[n+phi1+z1+6];
-        real c1107 = str->c[n+phi1+z1+7];
+        real c1010 = str->c[n+z1+x1+0];
+        real c1011 = str->c[n+z1+x1+1];
+        real c1012 = str->c[n+z1+x1+2];
+        real c1013 = str->c[n+z1+x1+3];
+        real c1014 = str->c[n+z1+x1+4];
+        real c1015 = str->c[n+z1+x1+5];
+        real c1016 = str->c[n+z1+x1+6];
+        real c1017 = str->c[n+z1+x1+7];
 
-        real c1010 = str->c[n+r1+z1+0];
-        real c1011 = str->c[n+r1+z1+1];
-        real c1012 = str->c[n+r1+z1+2];
-        real c1013 = str->c[n+r1+z1+3];
-        real c1014 = str->c[n+r1+z1+4];
-        real c1015 = str->c[n+r1+z1+5];
-        real c1016 = str->c[n+r1+z1+6];
-        real c1017 = str->c[n+r1+z1+7];
+        real c1100 = str->c[n+z1+y1+0];
+        real c1101 = str->c[n+z1+y1+1];
+        real c1102 = str->c[n+z1+y1+2];
+        real c1103 = str->c[n+z1+y1+3];
+        real c1104 = str->c[n+z1+y1+4];
+        real c1105 = str->c[n+z1+y1+5];
+        real c1106 = str->c[n+z1+y1+6];
+        real c1107 = str->c[n+z1+y1+7];
 
-        real c1110 = str->c[n+r1+phi1+z1+0];
-        real c1111 = str->c[n+r1+phi1+z1+1];
-        real c1112 = str->c[n+r1+phi1+z1+2];
-        real c1113 = str->c[n+r1+phi1+z1+3];
-        real c1114 = str->c[n+r1+phi1+z1+4];
-        real c1115 = str->c[n+r1+phi1+z1+5];
-        real c1116 = str->c[n+r1+phi1+z1+6];
-        real c1117 = str->c[n+r1+phi1+z1+7];
+        real c1110 = str->c[n+z1+y1+x1+0];
+        real c1111 = str->c[n+z1+y1+x1+1];
+        real c1112 = str->c[n+z1+y1+x1+2];
+        real c1113 = str->c[n+z1+y1+x1+3];
+        real c1114 = str->c[n+z1+y1+x1+4];
+        real c1115 = str->c[n+z1+y1+x1+5];
+        real c1116 = str->c[n+z1+y1+x1+6];
+        real c1117 = str->c[n+z1+y1+x1+7];
 
+        /* Evaluate spline values */
 
         /* f */
-        B_dB[0] = (
+        f_df[0] = (
                dzi*(
-                   dri*(dphii*c0000+dphi*c0100)+
-                   dr*(dphii*c0010+dphi*c0110))
+                   dxi*(dyi*c0000+dy*c0100)
+                   +dx*(dyi*c0010+dy*c0110))
                +dz*(
-                   dri*(dphii*c1000+dphi*c1100)+
-                   dr*(dphii*c1010+dphi*c1110)))
-        +rg2/6*(
+                   dxi*(dyi*c1000+dy*c1100)
+                   +dx*(dyi*c1010+dy*c1110)))
+        +xg2/6*(
             dzi*(
-                dri3*(dphii*c0001+dphi*c0101)+
-                dr3*(dphii*c0011+dphi*c0111))
+                dxi3*(dyi*c0001+dy*c0101)
+                +dx3*(dyi*c0011+dy*c0111))
             +dz*(
-                dri3*(dphii*c1001+dphi*c1101)+
-                dr3*(dphii*c1011+dphi*c1111)))
-        +phig2/6*(
+                dxi3*(dyi*c1001+dy*c1101)
+                +dx3*(dyi*c1011+dy*c1111)))
+        +yg2/6*(
             dzi*(
-                dri*(dphii3*c0002+dphi3*c0102)+
-                dr*(dphii3*c0012+dphi3*c0112))
+                dxi*(dyi3*c0002+dy3*c0102)
+                +dx*(dyi3*c0012+dy3*c0112))
             +dz*(
-                dri*(dphii3*c1002+dphi3*c1102)+
-                dr*(dphii3*c1012+dphi3*c1112)))
+                dxi*(dyi3*c1002+dy3*c1102)
+                +dx*(dyi3*c1012+dy3*c1112)))
         +zg2/6*(
             dzi3*(
-                dri*(dphii*c0003+dphi*c0103)+
-                dr*(dphii*c0013+dphi*c0113))
+                dxi*(dyi*c0003+dy*c0103)
+                +dx*(dyi*c0013+dy*c0113))
             +dz3*(
-                dri*(dphii*c1003+dphi*c1103)+
-                dr*(dphii*c1013+dphi*c1113)))
-        +rg2*phig2/36*(
+                dxi*(dyi*c1003+dy*c1103)
+                +dx*(dyi*c1013+dy*c1113)))
+        +xg2*yg2/36*(
             dzi*(
-                dri3*(dphii3*c0004+dphi3*c0104)+
-                dr3*(dphii3*c0014+dphi3*c0114))
+                dxi3*(dyi3*c0004+dy3*c0104)
+                +dx3*(dyi3*c0014+dy3*c0114))
             +dz*(
-                dri3*(dphii3*c1004+dphi3*c1104)+
-                dr3*(dphii3*c1014+dphi3*c1114)))
-        +rg2*zg2/36*(
+                dxi3*(dyi3*c1004+dy3*c1104)
+                +dx3*(dyi3*c1014+dy3*c1114)))
+        +xg2*zg2/36*(
             dzi3*(
-                dri3*(dphii*c0005+dphi*c0105)+
-                dr3*(dphii*c0015+dphi*c0115))
+                dxi3*(dyi*c0005+dy*c0105)
+                +dx3*(dyi*c0015+dy*c0115))
             +dz3*(
-                dri3*(dphii*c1005+dphi*c1105)+
-                dr3*(dphii*c1015+dphi*c1115)))
-        +phig2*zg2/36*(
+                dxi3*(dyi*c1005+dy*c1105)
+                +dx3*(dyi*c1015+dy*c1115)))
+        +yg2*zg2/36*(
             dzi3*(
-                dri*(dphii3*c0006+dphi3*c0106)+
-                dr*(dphii3*c0016+dphi3*c0116))
+                dxi*(dyi3*c0006+dy3*c0106)
+                +dx*(dyi3*c0016+dy3*c0116))
             +dz3*(
-                dri*(dphii3*c1006+dphi3*c1106)+
-                dr*(dphii3*c1016+dphi3*c1116)))
-        +rg2*phig2*zg2/216*(
+                dxi*(dyi3*c1006+dy3*c1106)
+                +dx*(dyi3*c1016+dy3*c1116)))
+        +xg2*yg2*zg2/216*(
             dzi3*(
-                dri3*(dphii3*c0007+dphi3*c0107)+
-                dr3*(dphii3*c0017+dphi3*c0117))
+                dxi3*(dyi3*c0007+dy3*c0107)
+                +dx3*(dyi3*c0017+dy3*c0117))
             +dz3*(
-                dri3*(dphii3*c1007+dphi3*c1107)+
-                dr3*(dphii3*c1017+dphi3*c1117)));
+                dxi3*(dyi3*c1007+dy3*c1107)
+                +dx3*(dyi3*c1017+dy3*c1117)));
 
-    /* df/dr */
-    B_dB[1] = rgi*(
+    /* df/dx */
+    f_df[1] = xgi*(
         dzi*(
-            -(dphii*c0000+dphi*c0100)
-            +(dphii*c0010+dphi*c0110))
+            -(dyi*c0000+dy*c0100)
+            +(dyi*c0010+dy*c0110))
         +dz*(
-            -(dphii*c1000+dphi*c1100)
-            +(dphii*c1010+dphi*c1110)))
-        +rg/6*(
+            -(dyi*c1000+dy*c1100)
+            +(dyi*c1010+dy*c1110)))
+        +xg/6*(
             dzi*(
-                dri3dr*(dphii*c0001+dphi*c0101)+
-                dr3dr*(dphii*c0011+dphi*c0111))
+                dxi3dx*(dyi*c0001+dy*c0101)
+                +dx3dx*(dyi*c0011+dy*c0111))
             +dz*(
-                dri3dr*(dphii*c1001  +dphi*c1101)+
-                dr3dr*(dphii*c1011+dphi*c1111)))
-        +rgi*phig2/6*(
+                dxi3dx*(dyi*c1001  +dy*c1101)
+                +dx3dx*(dyi*c1011+dy*c1111)))
+        +xgi*yg2/6*(
             dzi*(
-                -(dphii3*c0002+dphi3*c0102)
-                +(dphii3*c0012+dphi3*c0112))
+                -(dyi3*c0002+dy3*c0102)
+                +(dyi3*c0012+dy3*c0112))
             +dz*(
-                -(dphii3*c1002+dphi3*c1102)
-                +(dphii3*c1012+dphi3*c1112)))
-        +rgi*zg2/6*(
+                -(dyi3*c1002+dy3*c1102)
+                +(dyi3*c1012+dy3*c1112)))
+        +xgi*zg2/6*(
             dzi3*(
-                -(dphii*c0003+dphi*c0103)
-                +(dphii*c0013+dphi*c0113))
+                -(dyi*c0003+dy*c0103)
+                +(dyi*c0013+dy*c0113))
             +dz3*(
-                -(dphii*c1003+dphi*c1103)
-                +(dphii*c1013+dphi*c1113)))
-        +rg*phig2/36*(
+                -(dyi*c1003+dy*c1103)
+                +(dyi*c1013+dy*c1113)))
+        +xg*yg2/36*(
             dzi*(
-                dri3dr*(dphii3*c0004+dphi3*c0104)+
-                dr3dr*(dphii3*c0014+dphi3*c0114))
+                dxi3dx*(dyi3*c0004+dy3*c0104)
+                +dx3dx*(dyi3*c0014+dy3*c0114))
             +dz*(
-                dri3dr*(dphii3*c1004+dphi3*c1104)+
-                dr3dr*(dphii3*c1014+dphi3*c1114)))
-        +rg*zg2/36*(
+                dxi3dx*(dyi3*c1004+dy3*c1104)
+                +dx3dx*(dyi3*c1014+dy3*c1114)))
+        +xg*zg2/36*(
             dzi3*(
-                dri3dr*(dphii*c0005+dphi*c0105)+
-                dr3dr*(dphii*c0015+dphi*c0115))
+                dxi3dx*(dyi*c0005+dy*c0105)
+                +dx3dx*(dyi*c0015+dy*c0115))
             +dz3*(
-                dri3dr*(dphii*c1005+dphi*c1105)+
-                dr3dr*(dphii*c1015+dphi*c1115)))
-        +rgi*phig2*zg2/36*(
+                dxi3dx*(dyi*c1005+dy*c1105)
+                +dx3dx*(dyi*c1015+dy*c1115)))
+        +xgi*yg2*zg2/36*(
             dzi3*(
-                -(dphii3*c0006+dphi3*c0106)
-                +(dphii3*c0016+dphi3*c0116))
+                -(dyi3*c0006+dy3*c0106)
+                +(dyi3*c0016+dy3*c0116))
             +dz3*(
-                -(dphii3*c1006+dphi3*c1106)
-                +(dphii3*c1016+dphi3*c1116)))
-        +rg*phig2*zg2/216*(
+                -(dyi3*c1006+dy3*c1106)
+                +(dyi3*c1016+dy3*c1116)))
+        +xg*yg2*zg2/216*(
             dzi3*(
-                dri3dr*(dphii3*c0007+dphi3*c0107)+
-                dr3dr*(dphii3*c0017+dphi3*c0117))
+                dxi3dx*(dyi3*c0007+dy3*c0107)
+                +dx3dx*(dyi3*c0017+dy3*c0117))
             +dz3*(
-                dri3dr*(dphii3*c1007+dphi3*c1107)+
-                dr3dr*(dphii3*c1017+dphi3*c1117)));
+                dxi3dx*(dyi3*c1007+dy3*c1107)
+                +dx3dx*(dyi3*c1017+dy3*c1117)));
 
-    /* df/dphi */
-    B_dB[2] = phigi*(
+    /* df/dy */
+    f_df[2] = ygi*(
         dzi*(
-            dri*(-c0000+c0100)+
-            dr*(-c0010+c0110))
+            dxi*(-c0000+c0100)
+            +dx*(-c0010+c0110))
         +dz*(
-            dri*(-c1000+c1100)+
-            dr*(-c1010+c1110)))
-        +phigi*rg2/6*(
+            dxi*(-c1000+c1100)
+            +dx*(-c1010+c1110)))
+        +ygi*xg2/6*(
             dzi*(
-                dri3*(-c0001+c0101)+
-                dr3*(-c0011+c0111))
+                dxi3*(-c0001+c0101)
+                +dx3*(-c0011+c0111))
             +dz*(
-                dri3*(-c1001+c1101)+
-                dr3*(-c1011+c1111)))
-        +phig/6*(
+                dxi3*(-c1001+c1101)
+                +dx3*(-c1011+c1111)))
+        +yg/6*(
             dzi*(
-                dri*(dphii3dphi*c0002+dphi3dphi*c0102)+
-                dr*(dphii3dphi*c0012+dphi3dphi*c0112))
+                dxi*(dyi3dy*c0002+dy3dy*c0102)
+                +dx*(dyi3dy*c0012+dy3dy*c0112))
             +dz*(
-                dri*(dphii3dphi*c1002+dphi3dphi*c1102)+
-                dr*(dphii3dphi*c1012+dphi3dphi*c1112)))
-        +phigi*zg2/6*(
+                dxi*(dyi3dy*c1002+dy3dy*c1102)
+                +dx*(dyi3dy*c1012+dy3dy*c1112)))
+        +ygi*zg2/6*(
             dzi3*(
-                dri*(-c0003+c0103)+
-                dr*(-c0013+c0113))
+                dxi*(-c0003+c0103)
+                +dx*(-c0013+c0113))
             +dz3*(
-                dri*(-c1003+c1103)+
-                dr*(-c1013+c1113)))
-        +rg2*phig/36*(
+                dxi*(-c1003+c1103)
+                +dx*(-c1013+c1113)))
+        +xg2*yg/36*(
             dzi*(
-                dri3*(dphii3dphi*c0004+dphi3dphi*c0104)+
-                dr3*(dphii3dphi*c0014+dphi3dphi*c0114))
+                dxi3*(dyi3dy*c0004+dy3dy*c0104)
+                +dx3*(dyi3dy*c0014+dy3dy*c0114))
             +dz*(
-                dri3*(dphii3dphi*c1004+dphi3dphi*c1104)+
-                dr3*(dphii3dphi*c1014+dphi3dphi*c1114)))
-        +phigi*rg2*zg2/36*(
+                dxi3*(dyi3dy*c1004+dy3dy*c1104)
+                +dx3*(dyi3dy*c1014+dy3dy*c1114)))
+        +ygi*xg2*zg2/36*(
             dzi3*(
-                dri3*(-c0005+c0105)+
-                dr3*(-c0015+c0115))
+                dxi3*(-c0005+c0105)
+                +dx3*(-c0015+c0115))
             +dz3*(
-                dri3*(-c1005+c1105)+
-                dr3*(-c1015+c1115)))
-        +phig*zg2/36*(
+                dxi3*(-c1005+c1105)
+                +dx3*(-c1015+c1115)))
+        +yg*zg2/36*(
             dzi3*(
-                dri*(dphii3dphi*c0006+dphi3dphi*c0106)+
-                dr*(dphii3dphi*c0016+dphi3dphi*c0116))
+                dxi*(dyi3dy*c0006+dy3dy*c0106)
+                +dx*(dyi3dy*c0016+dy3dy*c0116))
             +dz3*(
-                dri*(dphii3dphi*c1006+dphi3dphi*c1106)+
-                dr*(dphii3dphi*c1016+dphi3dphi*c1116)))
-        +rg2*phig*zg2/216*(
+                dxi*(dyi3dy*c1006+dy3dy*c1106)
+                +dx*(dyi3dy*c1016+dy3dy*c1116)))
+        +xg2*yg*zg2/216*(
             dzi3*(
-                dri3*(dphii3dphi*c0007+dphi3dphi*c0107)+
-                dr3*(dphii3dphi*c0017+dphi3dphi*c0117))
+                dxi3*(dyi3dy*c0007+dy3dy*c0107)
+                +dx3*(dyi3dy*c0017+dy3dy*c0117))
             +dz3*(
-                dri3*(dphii3dphi*c1007+dphi3dphi*c1107)+
-                dr3*(dphii3dphi*c1017+dphi3dphi*c1117)));
+                dxi3*(dyi3dy*c1007+dy3dy*c1107)
+                +dx3*(dyi3dy*c1017+dy3dy*c1117)));
 
     /* df/dz */
-    B_dB[3] = zgi*(
+    f_df[3] = zgi*(
         -(
-            dri*(dphii*c0000+dphi*c0100)+
-            dr*(dphii*c0010+dphi*c0110))
+            dxi*(dyi*c0000+dy*c0100)
+            +dx*(dyi*c0010+dy*c0110))
         +(
-            dri*(dphii*c1000+dphi*c1100)+
-            dr*(dphii*c1010+dphi*c1110)))
-        +rg2*zgi/6*(
+            dxi*(dyi*c1000+dy*c1100)
+            +dx*(dyi*c1010+dy*c1110)))
+        +xg2*zgi/6*(
             -(
-                dri3*(dphii*c0001+dphi*c0101)+
-                dr3*(dphii*c0011+dphi*c0111))
+                dxi3*(dyi*c0001+dy*c0101)
+                +dx3*(dyi*c0011+dy*c0111))
             +(
-                dri3*(dphii*c1001+dphi*c1101)+
-                dr3*(dphii*c1011+dphi*c1111)))
-        +phig2*zgi/6*(
+                dxi3*(dyi*c1001+dy*c1101)
+                +dx3*(dyi*c1011+dy*c1111)))
+        +yg2*zgi/6*(
             -(
-                dri*(dphii3*c0002+dphi3*c0102)+
-                dr*(dphii3*c0012+dphi3*c0112))
+                dxi*(dyi3*c0002+dy3*c0102)
+                +dx*(dyi3*c0012+dy3*c0112))
             +(
-                dri*(dphii3*c1002+dphi3*c1102)+
-                dr*(dphii3*c1012+dphi3*c1112)))
+                dxi*(dyi3*c1002+dy3*c1102)
+                +dx*(dyi3*c1012+dy3*c1112)))
         +zg/6*(
             dzi3dz*(
-                dri*(dphii*c0003+dphi*c0103)+
-                dr*(dphii*c0013+dphi*c0113))
+                dxi*(dyi*c0003+dy*c0103)
+                +dx*(dyi*c0013+dy*c0113))
             +dz3dz*(
-                dri*(dphii*c1003+dphi*c1103)+
-                dr*(dphii*c1013+dphi*c1113)))
-        +rg2*phig2*zgi/36*(
+                dxi*(dyi*c1003+dy*c1103)
+                +dx*(dyi*c1013+dy*c1113)))
+        +xg2*yg2*zgi/36*(
             -(
-                dri3*(dphii3*c0004+dphi3*c0104)+
-                dr3*(dphii3*c0014+dphi3*c0114))
+                dxi3*(dyi3*c0004+dy3*c0104)
+                +dx3*(dyi3*c0014+dy3*c0114))
             +(
-                dri3*(dphii3*c1004+dphi3*c1104)+
-                dr3*(dphii3*c1014+dphi3*c1114)))
-        +rg2*zg/36*(
+                dxi3*(dyi3*c1004+dy3*c1104)
+                +dx3*(dyi3*c1014+dy3*c1114)))
+        +xg2*zg/36*(
             dzi3dz*(
-                dri3*(dphii*c0005+dphi*c0105)+
-                dr3*(dphii*c0015+dphi*c0115))
+                dxi3*(dyi*c0005+dy*c0105)
+                +dx3*(dyi*c0015+dy*c0115))
             +dz3dz*(
-                dri3*(dphii*c1005+dphi*c1105)+
-                dr3*(dphii*c1015+dphi*c1115)))
-        +phig2*zg/36*(
+                dxi3*(dyi*c1005+dy*c1105)
+                +dx3*(dyi*c1015+dy*c1115)))
+        +yg2*zg/36*(
             dzi3dz*(
-                dri*(dphii3*c0006+dphi3*c0106)+
-                dr*(dphii3*c0016+dphi3*c0116))
+                dxi*(dyi3*c0006+dy3*c0106)
+                +dx*(dyi3*c0016+dy3*c0116))
             +dz3dz*(
-                dri*(dphii3*c1006+dphi3*c1106)+
-                dr*(dphii3*c1016+dphi3*c1116)))
-        +rg2*phig2*zg/216*(
+                dxi*(dyi3*c1006+dy3*c1106)
+                +dx*(dyi3*c1016+dy3*c1116)))
+        +xg2*yg2*zg/216*(
             dzi3dz*(
-                dri3*(dphii3*c0007+dphi3*c0107)+
-                dr3*(dphii3*c0017+dphi3*c0117))
+                dxi3*(dyi3*c0007+dy3*c0107)
+                +dx3*(dyi3*c0017+dy3*c0117))
             +dz3dz*(
-                dri3*(dphii3*c1007+dphi3*c1107)+
-                dr3*(dphii3*c1017+dphi3*c1117)));
+                dxi3*(dyi3*c1007+dy3*c1107)
+                +dx3*(dyi3*c1017+dy3*c1117)));
 
-    /* d2f/dr2 */
-    B_dB[4] = (
+    /* d2f/dx2 */
+    f_df[4] = (
         dzi*(
-            dri*(dphii*c0001+dphi*c0101)+
-            dr*(dphii*c0011+dphi*c0111))
+            dxi*(dyi*c0001+dy*c0101)
+            +dx*(dyi*c0011+dy*c0111))
         +dz*(
-            dri*(dphii*c1001+dphi*c1101)+
-            dr*(dphii*c1011+dphi*c1111)))
-        +phig2/6*(
+            dxi*(dyi*c1001+dy*c1101)
+            +dx*(dyi*c1011+dy*c1111)))
+        +yg2/6*(
             dzi*(
-                dri*(dphii3*c0004+dphi3*c0104)+
-                dr*(dphii3*c0014+dphi3*c0114))
+                dxi*(dyi3*c0004+dy3*c0104)
+                +dx*(dyi3*c0014+dy3*c0114))
             +dz*(
-                dri*(dphii3*c1004+dphi3*c1104)+
-                dr*(dphii3*c1014+dphi3*c1114)))
+                dxi*(dyi3*c1004+dy3*c1104)
+                +dx*(dyi3*c1014+dy3*c1114)))
         +zg2/6*(
             dzi3*(
-                dri*(dphii*c0005+dphi*c0105)+
-                dr*(dphii*c0015+dphi*c0115))
+                dxi*(dyi*c0005+dy*c0105)
+                +dx*(dyi*c0015+dy*c0115))
             +dz3*(
-                dri*(dphii*c1005+dphi*c1105)+
-                dr*(dphii*c1015+dphi*c1115)))
-        +phig2*zg2/36*(
+                dxi*(dyi*c1005+dy*c1105)
+                +dx*(dyi*c1015+dy*c1115)))
+        +yg2*zg2/36*(
             dzi3*(
-                dri*(dphii3*c0007+dphi3*c0107)+
-                dr*(dphii3*c0017+dphi3*c0117))
+                dxi*(dyi3*c0007+dy3*c0107)
+                +dx*(dyi3*c0017+dy3*c0117))
             +dz3*(
-                dri*(dphii3*c1007+dphi3*c1107)+
-                dr*(dphii3*c1017+dphi3*c1117)));
+                dxi*(dyi3*c1007+dy3*c1107)
+                +dx*(dyi3*c1017+dy3*c1117)));
 
-    /* d2f/dphi2 */
-    B_dB[5] = (
+    /* d2f/dy2 */
+    f_df[5] = (
         dzi*(
-            dri*(dphii*c0002+dphi*c0102)+
-            dr*(dphii*c0012+dphi*c0112))
+            dxi*(dyi*c0002+dy*c0102)
+            +dx*(dyi*c0012+dy*c0112))
         +dz*(
-            dri*(dphii*c1002+dphi*c1102)+
-            dr*(dphii*c1012+dphi*c1112)))
-        +rg2/6*(
+            dxi*(dyi*c1002+dy*c1102)
+            +dx*(dyi*c1012+dy*c1112)))
+        +xg2/6*(
             dzi*(
-                dri3*(dphii*c0004+dphi*c0104)+
-                dr3*(dphii*c0014+dphi*c0114))
+                dxi3*(dyi*c0004+dy*c0104)
+                +dx3*(dyi*c0014+dy*c0114))
             +dz*(
-                dri3*(dphii*c1004+dphi*c1104)+
-                dr3*(dphii*c1014+dphi*c1114)))
+                dxi3*(dyi*c1004+dy*c1104)
+                +dx3*(dyi*c1014+dy*c1114)))
         +zg2/6*(
             dzi3*(
-                dri*(dphii*c0006+dphi*c0106)+
-                dr*(dphii*c0016+dphi*c0116))
+                dxi*(dyi*c0006+dy*c0106)
+                +dx*(dyi*c0016+dy*c0116))
             +dz3*(
-                dri*(dphii*c1006+dphi*c1106)+
-                dr*(dphii*c1016+dphi*c1116)))
-        +rg2*zg2/36*(
+                dxi*(dyi*c1006+dy*c1106)
+                +dx*(dyi*c1016+dy*c1116)))
+        +xg2*zg2/36*(
             dzi3*(
-                dri3*(dphii*c0007+dphi*c0107)+
-                dr3*(dphii*c0017+dphi*c0117))
+                dxi3*(dyi*c0007+dy*c0107)
+                +dx3*(dyi*c0017+dy*c0117))
             +dz3*(
-                dri3*(dphii*c1007+dphi*c1107)+
-                dr3*(dphii*c1017+dphi*c1117)));
+                dxi3*(dyi*c1007+dy*c1107)
+                +dx3*(dyi*c1017+dy*c1117)));
 
     /* d2f/dz2 */
-    B_dB[6] = (
+    f_df[6] = (
         dzi*(
-            dri*(dphii*c0003+dphi*c0103)+
-            dr*(dphii*c0013+dphi*c0113))
+            dxi*(dyi*c0003+dy*c0103)
+            +dx*(dyi*c0013+dy*c0113))
         +dz*(
-            dri*(dphii*c1003+dphi*c1103)+
-            dr*(dphii*c1013+dphi*c1113)))
-        +rg2/6*(
+            dxi*(dyi*c1003+dy*c1103)
+            +dx*(dyi*c1013+dy*c1113)))
+        +xg2/6*(
             dzi*(
-                dri3*(dphii*c0005+dphi*c0105)+
-                dr3*(dphii*c0015+dphi*c0115))
+                dxi3*(dyi*c0005+dy*c0105)
+                +dx3*(dyi*c0015+dy*c0115))
             +dz*(
-                dri3*(dphii*c1005+dphi*c1105)+
-                dr3*(dphii*c1015+dphi*c1115)))
-        +phig2/6*(
+                dxi3*(dyi*c1005+dy*c1105)
+                +dx3*(dyi*c1015+dy*c1115)))
+        +yg2/6*(
             dzi*(
-                dri*(dphii3*c0006+dphi3*c0106)+
-                dr*(dphii3*c0016+dphi3*c0116))
+                dxi*(dyi3*c0006+dy3*c0106)
+                +dx*(dyi3*c0016+dy3*c0116))
             +dz*(
-                dri*(dphii3*c1006+dphi3*c1106)+
-                dr*(dphii3*c1016+dphi3*c1116)))
-        +rg2*phig2/36*(
+                dxi*(dyi3*c1006+dy3*c1106)
+                +dx*(dyi3*c1016+dy3*c1116)))
+        +xg2*yg2/36*(
             dzi*(
-                dri3*(dphii3*c0007+dphi3*c0107)+
-                dr3*(dphii3*c0017+dphi3*c0117))
+                dxi3*(dyi3*c0007+dy3*c0107)
+                +dx3*(dyi3*c0017+dy3*c0117))
             +dz*(
-                dri3*(dphii3*c1007+dphi3*c1107)+
-                dr3*(dphii3*c1017+dphi3*c1117)));
+                dxi3*(dyi3*c1007+dy3*c1107)
+                +dx3*(dyi3*c1017+dy3*c1117)));
 
-    /* d2f/drdphi */
-    B_dB[7] = rgi*phigi*(
+    /* d2f/dxdy */
+    f_df[7] = xgi*ygi*(
         dzi*(
-            (c0000  -c0100)-
-            (c0010-c0110))
+            (c0000  -c0100)
+            -(c0010-c0110))
         +dz*(
-            (c1000  -c1100)-
-            (c1010-c1110)))
-        +phigi*rg/6*(
+            (c1000  -c1100)
+            -(c1010-c1110)))
+        +ygi*xg/6*(
             dzi*(
-                dri3dr*(-c0001+c0101)+
-                dr3dr*(-c0011+c0111))
+                dxi3dx*(-c0001+c0101)
+                +dx3dx*(-c0011+c0111))
             +dz*(
-                dri3dr*(-c1001+c1101)+
-                dr3dr*(-c1011+c1111)))
-        +rgi*phig/6*(
+                dxi3dx*(-c1001+c1101)
+                +dx3dx*(-c1011+c1111)))
+        +xgi*yg/6*(
             dzi*(
-                -(dphii3dphi*c0002+dphi3dphi*c0102)
-                +(dphii3dphi*c0012+dphi3dphi*c0112))
+                -(dyi3dy*c0002+dy3dy*c0102)
+                +(dyi3dy*c0012+dy3dy*c0112))
             +dz*(
-                -(dphii3dphi*c1002+dphi3dphi*c1102)
-                +(dphii3dphi*c1012+dphi3dphi*c1112)))
-        +rgi*phigi*zg2/6*(
+                -(dyi3dy*c1002+dy3dy*c1102)
+                +(dyi3dy*c1012+dy3dy*c1112)))
+        +xgi*ygi*zg2/6*(
             dzi3*(
-                (c0003  -c0103)-
-                (c0013-c0113))
+                (c0003  -c0103)
+                -(c0013-c0113))
             +dz3*(
-                (c1003  -c1103)-
-                (c1013-c1113)))
-        +rg*phig/36*(
+                (c1003  -c1103)
+                -(c1013-c1113)))
+        +xg*yg/36*(
             dzi*(
-                dri3dr*(dphii3dphi*c0004+dphi3dphi*c0104)+
-                dr3dr*(dphii3dphi*c0014+dphi3dphi*c0114))
+                dxi3dx*(dyi3dy*c0004+dy3dy*c0104)
+                +dx3dx*(dyi3dy*c0014+dy3dy*c0114))
             +dz*(
-                dri3dr*(dphii3dphi*c1004+dphi3dphi*c1104)+
-                dr3dr*(dphii3dphi*c1014+dphi3dphi*c1114)))
-        +phigi*rg*zg2/36*(
+                dxi3dx*(dyi3dy*c1004+dy3dy*c1104)
+                +dx3dx*(dyi3dy*c1014+dy3dy*c1114)))
+        +ygi*xg*zg2/36*(
             dzi3*(
-                dri3dr*(-c0005+c0105)+
-                dr3dr*(-c0015+c0115))
+                dxi3dx*(-c0005+c0105)
+                +dx3dx*(-c0015+c0115))
             +dz3*(
-                dri3dr*(-c1005+c1105)+
-                dr3dr*(-c1015+c1115)))
-        +rgi*phig*zg2/36*(
+                dxi3dx*(-c1005+c1105)
+                +dx3dx*(-c1015+c1115)))
+        +xgi*yg*zg2/36*(
             dzi3*(
-                -(dphii3dphi*c0006+dphi3dphi*c0106)
-                +(dphii3dphi*c0016+dphi3dphi*c0116))
+                -(dyi3dy*c0006+dy3dy*c0106)
+                +(dyi3dy*c0016+dy3dy*c0116))
             +dz3*(
-                -(dphii3dphi*c1006+dphi3dphi*c1106)
-                +(dphii3dphi*c1016+dphi3dphi*c1116)))
-        +rg*phig*zg2/216*(
+                -(dyi3dy*c1006+dy3dy*c1106)
+                +(dyi3dy*c1016+dy3dy*c1116)))
+        +xg*yg*zg2/216*(
             dzi3*(
-                dri3dr*(dphii3dphi*c0007+dphi3dphi*c0107)+
-                dr3dr*(dphii3dphi*c0017+dphi3dphi*c0117))
+                dxi3dx*(dyi3dy*c0007+dy3dy*c0107)
+                +dx3dx*(dyi3dy*c0017+dy3dy*c0117))
             +dz3*(
-                dri3dr*(dphii3dphi*c1007+dphi3dphi*c1107)+
-                dr3dr*(dphii3dphi*c1017+dphi3dphi*c1117)));
+                dxi3dx*(dyi3dy*c1007+dy3dy*c1107)
+                +dx3dx*(dyi3dy*c1017+dy3dy*c1117)));
 
-    /* d2f/drdz */
-    B_dB[8] = rgi*zgi*(
+    /* d2f/dxdz */
+    f_df[8] = xgi*zgi*(
         (
-            (dphii*c0000+dphi*c0100) -
-            (dphii*c0010+dphi*c0110))
+            (dyi*c0000+dy*c0100)
+            -(dyi*c0010+dy*c0110))
         -(
-            (dphii*c1000+dphi*c1100) -
-            (dphii*c1010+dphi*c1110)))
-        +rg*zgi/6*(
+            (dyi*c1000+dy*c1100)
+            -(dyi*c1010+dy*c1110)))
+        +xg*zgi/6*(
             -(
-                dri3dr*(dphii*c0001+dphi*c0101)+
-                dr3dr*(dphii*c0011+dphi*c0111))
+                dxi3dx*(dyi*c0001+dy*c0101)
+                +dx3dx*(dyi*c0011+dy*c0111))
             +(
-                dri3dr*(dphii*c1001+dphi*c1101)+
-                dr3dr*(dphii*c1011+dphi*c1111)))
-        +rgi*phig2*zgi/6*(
+                dxi3dx*(dyi*c1001+dy*c1101)
+                +dx3dx*(dyi*c1011+dy*c1111)))
+        +xgi*yg2*zgi/6*(
             (
-                (dphii3*c0002+dphi3*c0102) -
-                (dphii3*c0012+dphi3*c0112))
+                (dyi3*c0002+dy3*c0102)
+                -(dyi3*c0012+dy3*c0112))
             -(
-                (dphii3*c1002+dphi3*c1102) -
-                (dphii3*c1012+dphi3*c1112)))
-        +rgi*zg/6*(
+                (dyi3*c1002+dy3*c1102)
+                -(dyi3*c1012+dy3*c1112)))
+        +xgi*zg/6*(
             dzi3dz*(
-                -(dphii*c0003+dphi*c0103)
-                +(dphii*c0013+dphi*c0113))
+                -(dyi*c0003+dy*c0103)
+                +(dyi*c0013+dy*c0113))
             +dz3dz*(
-                -(dphii*c1003+dphi*c1103)
-                +(dphii*c1013+dphi*c1113)))
-        +rg*phig2*zgi/36*(
+                -(dyi*c1003+dy*c1103)
+                +(dyi*c1013+dy*c1113)))
+        +xg*yg2*zgi/36*(
             -(
-                dri3dr*(dphii3*c0004+dphi3*c0104)+
-                dr3dr*(dphii3*c0014+dphi3*c0114))
+                dxi3dx*(dyi3*c0004+dy3*c0104)
+                +dx3dx*(dyi3*c0014+dy3*c0114))
             +(
-                dri3dr*(dphii3*c1004+dphi3*c1104)+
-                dr3dr*(dphii3*c1014+dphi3*c1114)))
-        +rg*zg/36*(
+                dxi3dx*(dyi3*c1004+dy3*c1104)
+                +dx3dx*(dyi3*c1014+dy3*c1114)))
+        +xg*zg/36*(
             dzi3dz*(
-                dri3dr*(dphii*c0005+dphi*c0105)+
-                dr3dr*(dphii*c0015+dphi*c0115))
+                dxi3dx*(dyi*c0005+dy*c0105)
+                +dx3dx*(dyi*c0015+dy*c0115))
             +dz3dz*(
-                dri3dr*(dphii*c1005+dphi*c1105)+
-                dr3dr*(dphii*c1015+dphi*c1115)))
-        +rgi*phig2*zg/36*(
+                dxi3dx*(dyi*c1005+dy*c1105)
+                +dx3dx*(dyi*c1015+dy*c1115)))
+        +xgi*yg2*zg/36*(
             dzi3dz*(
-                -(dphii3*c0006+dphi3*c0106)
-                +(dphii3*c0016+dphi3*c0116))
+                -(dyi3*c0006+dy3*c0106)
+                +(dyi3*c0016+dy3*c0116))
             +dz3dz*(
-                -(dphii3*c1006+dphi3*c1106)
-                +(dphii3*c1016+dphi3*c1116)))
-        +rg*phig2*zg/216*(
+                -(dyi3*c1006+dy3*c1106)
+                +(dyi3*c1016+dy3*c1116)))
+        +xg*yg2*zg/216*(
             dzi3dz*(
-                dri3dr*(dphii3*c0007+dphi3*c0107)+
-                dr3dr*(dphii3*c0017+dphi3*c0117))
+                dxi3dx*(dyi3*c0007+dy3*c0107)
+                +dx3dx*(dyi3*c0017+dy3*c0117))
             +dz3dz*(
-                dri3dr*(dphii3*c1007+dphi3*c1107)+
-                dr3dr*(dphii3*c1017+dphi3*c1117)));
+                dxi3dx*(dyi3*c1007+dy3*c1107)
+                +dx3dx*(dyi3*c1017+dy3*c1117)));
 
-    /* d2f/dphidz */
-    B_dB[9] = phigi*zgi*(
+    /* d2f/dydz */
+    f_df[9] = ygi*zgi*(
         (
-            dri*(c0000  -c0100)+
-            dr*(c0010-c0110))
+            dxi*(c0000  -c0100)
+            +dx*(c0010-c0110))
         -(
-            dri*(c1000  -c1100)+
-            dr*(c1010-c1110)))
-        +phigi*rg2*zgi/6*(
+            dxi*(c1000  -c1100)
+            +dx*(c1010-c1110)))
+        +ygi*xg2*zgi/6*(
             (
-                dri3*(c0001  -c0101)+
-                dr3*(c0011-c0111))
+                dxi3*(c0001  -c0101)
+                +dx3*(c0011-c0111))
             -(
-                dri3*(c1001  -c1101)+
-                dr3*(c1011-c1111)))
-        +phig*zgi/6*(
+                dxi3*(c1001  -c1101)
+                +dx3*(c1011-c1111)))
+        +yg*zgi/6*(
             -(
-                dri*(dphii3dphi*c0002+dphi3dphi*c0102)+
-                dr*(dphii3dphi*c0012+dphi3dphi*c0112))
+                dxi*(dyi3dy*c0002+dy3dy*c0102)
+                +dx*(dyi3dy*c0012+dy3dy*c0112))
             +(
-                dri*(dphii3dphi*c1002+dphi3dphi*c1102)+
-                dr*(dphii3dphi*c1012+dphi3dphi*c1112)))
-        +phigi*zg/6*(
+                dxi*(dyi3dy*c1002+dy3dy*c1102)
+                +dx*(dyi3dy*c1012+dy3dy*c1112)))
+        +ygi*zg/6*(
             dzi3dz*(
-                dri*(-c0003+c0103)+
-                dr*(-c0013+c0113))
+                dxi*(-c0003+c0103)
+                +dx*(-c0013+c0113))
             +dz3dz*(
-                dri*(-c1003+c1103)+
-                dr*(-c1013+c1113)))
-        +rg2*phig*zgi/36*(
+                dxi*(-c1003+c1103)
+                +dx*(-c1013+c1113)))
+        +xg2*yg*zgi/36*(
             -(
-                dri3*(dphii3dphi*c0004+dphi3dphi*c0104)+
-                dr3*(dphii3dphi*c0014+dphi3dphi*c0114))
+                dxi3*(dyi3dy*c0004+dy3dy*c0104)
+                +dx3*(dyi3dy*c0014+dy3dy*c0114))
             +(
-                dri3*(dphii3dphi*c1004+dphi3dphi*c1104)+
-                dr3*(dphii3dphi*c1014+dphi3dphi*c1114)))
-        +phigi*rg2*zg/36*(
+                dxi3*(dyi3dy*c1004+dy3dy*c1104)
+                +dx3*(dyi3dy*c1014+dy3dy*c1114)))
+        +ygi*xg2*zg/36*(
             dzi3dz*(
-                dri3*(-c0005+c0105)+
-                dr3*(-c0015+c0115))
+                dxi3*(-c0005+c0105)
+                +dx3*(-c0015+c0115))
             +dz3dz*(
-                dri3*(-c1005+c1105)+
-                dr3*(-c1015+c1115)))
-        +phig*zg/36*(
+                dxi3*(-c1005+c1105)
+                +dx3*(-c1015+c1115)))
+        +yg*zg/36*(
             dzi3dz*(
-                dri*(dphii3dphi*c0006+dphi3dphi*c0106)+
-                dr*(dphii3dphi*c0016+dphi3dphi*c0116))
+                dxi*(dyi3dy*c0006+dy3dy*c0106)
+                +dx*(dyi3dy*c0016+dy3dy*c0116))
             +dz3dz*(
-                dri*(dphii3dphi*c1006+dphi3dphi*c1106)+
-                dr*(dphii3dphi*c1016+dphi3dphi*c1116)))
-        +rg2*phig*zg/216*(
+                dxi*(dyi3dy*c1006+dy3dy*c1106)
+                +dx*(dyi3dy*c1016+dy3dy*c1116)))
+        +xg2*yg*zg/216*(
             dzi3dz*(
-                dri3*(dphii3dphi*c0007+dphi3dphi*c0107)+
-                dr3*(dphii3dphi*c0017+dphi3dphi*c0117))
+                dxi3*(dyi3dy*c0007+dy3dy*c0107)
+                +dx3*(dyi3dy*c0017+dy3dy*c0117))
             +dz3dz*(
-                dri3*(dphii3dphi*c1007+dphi3dphi*c1107)+
-                dr3*(dphii3dphi*c1017+dphi3dphi*c1117)));
-
+                dxi3*(dyi3dy*c1007+dy3dy*c1107)
+                +dx3*(dyi3dy*c1017+dy3dy*c1117)));
     }
 
     return err;
-}
-
-/**
- * @brief Free allocated memory in interpolation data struct
- *
- * This function frees the memory allocated for interpolation coefficients
- * in the interpolation data struct
- *
- * @todo Error checking
- *
- * @param str data struct for data interpolation
- */
-void interp3Dcomp_free(interp3D_data* str) {
-    free(str->c);
 }

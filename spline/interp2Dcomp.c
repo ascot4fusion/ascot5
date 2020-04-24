@@ -3,292 +3,392 @@
  * @brief Bicubic spline interpolation in compact form
  */
 #include <stdlib.h>
-#include <stdio.h> /* Needed for printf debugging purposes */
+#include <math.h>
 #include "../ascot5.h"
-#include "interp2Dcomp.h"
-#include "spline1Dcomp.h"
+#include "interp.h"
+#include "spline.h"
 
 /**
  * @brief Calculate bicubic spline interpolation coefficients for scalar 2D data
  *
- * This function calculates the bicubic spline interpolation coefficients for
- * the given data and stores them in the data struct. Compact  cofficients are
- * calculated directly.
+ * This function calculates the bicubic spline interpolation coefficients and
+ * stores them in a pre-allocated array. Compact cofficients are calculated.
  *
- * @todo Error checking
+ * For each data point four coefficients are stored for spline-interpolation.
  *
- * @param str data struct for data interpolation
+ * @param c allocated array of length n_y*n_x*4 to store the coefficients
  * @param f 2D data to be interpolated
- * @param n_r number of data points in the r direction
- * @param n_z number of data points in the z direction
- * @param r_min minimum value of the r axis
- * @param r_max maximum value of the r axis
- * @param z_min minimum value of the z axis
- * @param z_max maximum value of the z axis
+ * @param n_x number of data points in the x direction
+ * @param n_y number of data points in the y direction
+ * @param bc_x boundary condition for x axis (0) natural (1) periodic
+ * @param bc_y boundary condition for y axis (0) natural (1) periodic
+ * @param x_min minimum value of the x axis
+ * @param x_max maximum value of the x axis
+ * @param y_min minimum value of the y axis
+ * @param y_max maximum value of the y axis
+ *
+ * @return zero if initialization succeeded
  */
-int interp2Dcomp_init(interp2D_data* str, real* f, int n_r, int n_z,
-                      real r_min, real r_max, real r_grid,
-                      real z_min, real z_max, real z_grid) {
-    int err = 0;
+int interp2Dcomp_init_coeff(real* c, real* f,
+                            int n_x, int n_y, int bc_x, int bc_y,
+                            real x_min, real x_max,
+                            real y_min, real y_max) {
 
-    /* Initialize and fill the data struct */
-    str->n_r = n_r;
-    str->n_z = n_z;
-    str->r_min = r_min;
-    str->r_max = r_max;
-    str->r_grid = r_grid;
-    str->z_min = z_min;
-    str->z_max = z_max;
-    str->z_grid = z_grid;
-    str->c = malloc(n_z*n_r*4*sizeof(real));
-
-    /* Declare and allocate the needed variables */
-    int i_r;                                 /**< index for r variable */
-    int i_z;                                 /**< index for z variable */
-    real* f_r = malloc(n_r*sizeof(real));    /**< Temporary array for data along r */
-    real* f_z = malloc(n_z*sizeof(real));    /**< Temporary array for data along z */
-    real* c_r = malloc(n_r*2*sizeof(real));  /**< Temp array for coefficients along r */
-    real* c_z = malloc(n_z*2*sizeof(real));  /**< Temp array for coefficients along z */
-
-    if(f_r == NULL || f_z == NULL || c_r == NULL || c_z == NULL) {
-        err = 1;
+    /* Check boundary conditions and calculate grid intervals. Grid intervals
+       needed because we use normalized grid intervals. For periodic boundary
+       condition, grid maximum value and the last data point are not the same.
+       Take this into account in grid intervals. */
+    real x_grid, y_grid;
+    if(bc_x == PERIODICBC || bc_x == NATURALBC) {
+        x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
     }
     else {
-        /* Bicubic spline surface over rz-grid. Note how we account for normalized grid. */
-        /* Cubic spline along r for each z to get frr */
-        for(i_z=0; i_z<n_z; i_z++) {
-            for(i_r=0; i_r<n_r; i_r++) {
-                f_r[i_r] = f[i_z*n_r+i_r];
-            }
-            spline1Dcomp(f_r,n_r,0,c_r);
-            for(i_r=0; i_r<n_r; i_r++) {
-                str->c[i_z*n_r*4+i_r*4] = c_r[i_r*2];
-                str->c[i_z*n_r*4+i_r*4+1] = c_r[i_r*2+1]/(r_grid*r_grid);
-            }
+        return 1;
+    }
+
+    if(bc_y == PERIODICBC || bc_y == NATURALBC) {
+        y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
+    }
+    else {
+        return 1;
+    }
+
+    /* Allocate helper quantities */
+    real* f_x = malloc(n_x*sizeof(real));
+    real* f_y = malloc(n_y*sizeof(real));
+    real* c_x = malloc(n_x*NSIZE_COMP1D*sizeof(real));
+    real* c_y = malloc(n_y*NSIZE_COMP1D*sizeof(real));
+
+    if(f_x == NULL || f_y == NULL || c_x == NULL || c_y == NULL) {
+        return 1;
+    }
+
+    /* Calculate bicubic spline surface coefficients, i.e second derivatives.
+       For each grid cell (i_x, i_y), there are four coefficients:
+       [f, fxx, fyy, fxxyy]. Note how we account for normalized grid. */
+
+    /* Cubic spline along x for each y, using f values to get fxx */
+    for(int i_y=0; i_y<n_y; i_y++) {
+        /* fxx */
+        for(int i_x=0; i_x<n_x; i_x++) {
+            f_x[i_x] = f[i_y*n_x+i_x];
+        }
+        splinecomp(f_x, n_x, bc_x, c_x);
+        for(int i_x=0; i_x<n_x; i_x++) {
+            c[i_y*n_x*4 + i_x*4    ] = c_x[i_x*2];
+            c[i_y*n_x*4 + i_x*4 + 1] = c_x[i_x*2+1] / (x_grid*x_grid);
+        }
+    }
+
+    /* Two cubic splines along y for each x, using f and fxx to get fyy and
+       fxxyy */
+    for(int i_x=0; i_x<n_x; i_x++) {
+
+        /* fyy */
+        for(int i_y=0; i_y<n_y; i_y++) {
+            f_y[i_y] =  f[i_y*n_x + i_x];
+        }
+        splinecomp(f_y, n_y, bc_y, c_y);
+        for(int i_y=0; i_y<n_y; i_y++) {
+            c[i_y*n_x*4+i_x*4+2] = c_y[i_y*2+1]/(y_grid*y_grid);
         }
 
-        /* Two cubic splines along z for each r using f and frr */
-        for(i_r=0; i_r<n_r; i_r++) {
-            /* fzz */
-            for(i_z=0; i_z<n_z; i_z++) {
-                f_z[i_z] =  f[i_z*n_r+i_r];
-            }
-            spline1Dcomp(f_z,n_z,0,c_z);
-            for(i_z=0; i_z<n_z; i_z++) {
-                str->c[i_z*n_r*4+i_r*4+2] = c_z[i_z*2+1]/(z_grid*z_grid);
-            }
-            /* frrzz */
-            for(i_z=0; i_z<n_z; i_z++) {
-                f_z[i_z] =  str->c[i_z*n_r*4+i_r*4+1];
-            }
-            spline1Dcomp(f_z,n_z,0,c_z);
-            for(i_z=0; i_z<n_z; i_z++) {
-                str->c[i_z*n_r*4+i_r*4+3] = c_z[i_z*2+1]/(z_grid*z_grid);
-            }
+        /* fxxyy */
+        for(int i_y=0; i_y<n_y; i_y++) {
+            f_y[i_y] =  c[i_y*n_x*4 + i_x*4 + 1];
+        }
+        splinecomp(f_y, n_y, bc_y, c_y);
+        for(int i_y=0; i_y<n_y; i_y++) {
+            c[i_y*n_x*4 + i_x*4 + 3] = c_y[i_y*2 + 1] / (y_grid*y_grid);
         }
     }
 
     /* Free allocated memory */
-    free(f_r);
-    free(f_z);
-    free(c_r);
-    free(c_z);
+    free(f_x);
+    free(f_y);
+    free(c_x);
+    free(c_y);
 
-    return err;
+    return 0;
 }
 
 /**
- * @brief Evaluate interpolated value of 2D scalar field
+ * @brief Initialize a bicubic spline
+ *
+ * @param str pointer to spline to be initialized
+ * @param c array where coefficients are stored
+ * @param n_x number of data points in the x direction
+ * @param n_y number of data points in the y direction
+ * @param bc_x boundary condition for x axis
+ * @param bc_y boundary condition for y axis
+ * @param x_min minimum value of the x axis
+ * @param x_max maximum value of the x axis
+ * @param y_min minimum value of the y axis
+ * @param y_max maximum value of the y axis
+ */
+void interp2Dcomp_init_spline(interp2D_data* str, real* c,
+                              int n_x, int n_y, int bc_x, int bc_y,
+                              real x_min, real x_max,
+                              real y_min, real y_max) {
+
+    /* Calculate grid intervals. For periodic boundary condition, grid maximum
+       value and the last data point are not the same. Take this into account
+       in grid intervals. */
+    real x_grid = (x_max - x_min) / ( n_x - 1 * (bc_x == NATURALBC) );
+    real y_grid = (y_max - y_min) / ( n_y - 1 * (bc_y == NATURALBC) );
+
+    /* Initialize the interp2D_data struct */
+    str->n_x    = n_x;
+    str->n_y    = n_y;
+    str->bc_x   = bc_x;
+    str->bc_y   = bc_y;
+    str->x_min  = x_min;
+    str->x_max  = x_max;
+    str->x_grid = x_grid;
+    str->y_min  = y_min;
+    str->y_max  = y_max;
+    str->y_grid = y_grid;
+    str->c      = c;
+}
+
+/**
+ * @brief Evaluate interpolated value of a 2D field
  *
  * This function evaluates the interpolated value of a 2D scalar field using
  * bicubic spline interpolation coefficients of the compact form.
  *
- * @todo Check discrepency to ascot4 and explicit version
- * @todo Error checking
- *
- * @param B variable in which to place the evaluated value
+ * @param f variable in which to place the evaluated value
  * @param str data struct for data interpolation
- * @param r r-coordinate
- * @param z z-coordinate
+ * @param x x-coordinate
+ * @param y y-coordinate
+ *
+ * @return zero on success and one if (x,y) point is outside the domain.
  */
-integer interp2Dcomp_eval_B(real* B, interp2D_data* str, real r, real z) {
-    int i_r = (r-str->r_min)/str->r_grid; /**< index for r variable */
-    real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-                                                               current cell */
-    real dr3 = dr*(dr*dr-1.0);
-    real dri = 1.0-dr;
-    real dri3 = dri*(dri*dri-1.0);
-    real rg2 = str->r_grid*str->r_grid;        /**< Square of cell length in r direction */
-    int i_z = (z-str->z_min)/str->z_grid;                   /**< index for z variable */
-    real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
-                                                               current cell */
-    real dz3 = dz*(dz*dz-1.0);
-    real dzi = 1.0-dz;
-    real dzi3 = dzi*(dzi*dzi-1.0);
-    real zg2 = str->z_grid*str->z_grid; /**< Square of cell length in z direction */
-    int n = i_z*str->n_r*4+i_r*4;       /**< Index jump to cell */
-    int r1 = 4;                         /**< Index jump one r forward */
-    int z1 = str->n_r*4;                /**< Index jump one z forward */
+a5err interp2Dcomp_eval_f(real* f, interp2D_data* str, real x, real y) {
+
+    /* Make sure periodic coordinates are within [min, max] region. */
+    if(str->bc_x == PERIODICBC) {
+        x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
+        x = x + (x < str->x_min) * (str->x_max - str->x_min);
+    }
+    if(str->bc_y == PERIODICBC) {
+        y = fmod(y - str->y_min, str->y_max - str->y_min) + str->y_min;
+        y = y + (y < str->y_min) * (str->y_max - str->y_min);
+    }
+
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x   = (x - str->x_min) / str->x_grid - 1*(x==str->x_max);
+    /* Normalized x coordinate in current cell */
+    real dx   = ( x - (str->x_min + i_x*str->x_grid) ) / str->x_grid;
+    /* Helper variables */
+    real dx3  =  dx * (dx*dx - 1.0);
+    real dxi  = 1.0 - dx;
+    real dxi3 = dxi * (dxi*dxi - 1.0);
+    real xg2  = str->x_grid*str->x_grid;
+
+    /* Index for y variable. The -1 needed at exactly grid end. */
+    int i_y   = (y - str->y_min) / str->y_grid - 1*(y==str->y_max);
+    /* Normalized y coordinate in current cell */
+    real dy   = ( y - (str->y_min + i_y*str->y_grid) ) / str->y_grid;
+    /* Helper variables */
+    real dy3  =  dy * (dy*dy - 1.0);
+    real dyi  = 1.0 - dy;
+    real dyi3 = dyi * (dyi*dyi - 1.0);
+    real yg2  = str->y_grid*str->y_grid;
+
+    int n  = i_y*str->n_x*4+i_x*4; /* Index jump to cell       */
+    int x1 = 4;                    /* Index jump one x forward */
+    int y1 = str->n_x*4;           /* Index jump one y forward */
 
     int err = 0;
 
-    /* Check that the point is not outside the evaluation regime */
-    if(r < str->r_min || r > str->r_max
-        || z < str->z_min || z > str->z_max) {
+    /* Enforce periodic BC or check that the coordinate is within the domain. */
+    if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
+        x1 = -(str->n_x-1)*x1;
+    }
+    else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
         err = 1;
     }
-    else {
-        *B = (
-            dri*(dzi*str->c[n]   +dz*str->c[n+z1])+
-            dr*(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
-            +rg2/6.0*(
-                dri3*(dzi*str->c[n+1]   +dz*str->c[n+z1+1])+
-                dr3*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
-            +zg2/6.0*(
-                dri*(dzi3*str->c[n+2]   +dz3*str->c[n+z1+2])+
-                dr*(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
-            +rg2*zg2/36.0*(
-                dri3*(dzi3*str->c[n+3]   +dz3*str->c[n+z1+3])+
-                dr3*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
+    if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
+        y1 = -(str->n_y-1)*y1;
     }
+    else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+        err = 1;
+    }
+
+    if(!err) {
+        *f = (
+            dxi*(dyi*str->c[n]+dy*str->c[n+y1])
+            +dx*(dyi*str->c[n+x1]+dy*str->c[n+y1+x1]))
+            +(xg2/6)*(
+                dxi3*(dyi*str->c[n+1] + dy*str->c[n+y1+1])
+                +dx3*(dyi*str->c[n+x1+1] + dy*str->c[n+y1+x1+1]))
+            +(yg2/6)*(
+                dxi*(dyi3*str->c[n+2]+dy3*str->c[n+y1+2])
+                +dx*(dyi3*str->c[n+x1+2]+dy3*str->c[n+y1+x1+2]))
+            +(xg2*yg2/36)*(
+                dxi3*(dyi3*str->c[n+3]+dy3*str->c[n+y1+3])
+                +dx3*(dyi3*str->c[n+x1+3]+dy3*str->c[n+y1+x1+3]));
+    }
+
     return err;
 }
 
 /**
- * @brief Evaluate interpolated value of 2D scalar field and its 1st and 2nd derivatives
+ * @brief Evaluate interpolated value and 1st and 2nd derivatives of 2D field
  *
  * This function evaluates the interpolated value of a 2D scalar field and
  * its 1st and 2nd derivatives using bicubic spline interpolation coefficients
  * of the compact form.
  *
- * @todo Check discrepency to ascot4 and explicit version
- * @todo Error checking
+ * The evaluated  values are returned in an array with following elements:
+ * - f_df[0] = f
+ * - f_df[1] = f_x
+ * - f_df[2] = f_y
+ * - f_df[3] = f_xx
+ * - f_df[4] = f_yy
+ * - f_df[5] = f_xy
  *
- * @param B_dB array in which to place the evaluated values
+ * @param f_df array in which to place the evaluated values
  * @param str data struct for data interpolation
- * @param r r-coordinate
- * @param z z-coordinate
+ * @param x x-coordinate
+ * @param y y-coordinate
+ *
+ * @return zero on success and one if (x,y) point is outside the grid.
  */
-integer interp2Dcomp_eval_dB(real* B_dB, interp2D_data* str, real r, real z) {
-    int i_r = (r-str->r_min)/str->r_grid;                   /**< index for r variable */
-    real dr = (r-(str->r_min+i_r*str->r_grid))/str->r_grid; /**< Normalized r coordinate in
-                                                               current cell */
-    real dr3 = dr*(dr*dr-1);
-    real dr3dr = 3*dr*dr-1;           /**< r-derivative of dr3, not including 1/r_grid */
-    real dri = 1.0-dr;
-    real dri3 = dri*(dri*dri-1);
-    real dri3dr = -3*dri*dri+1;       /**< r-derivative of dri3, not including 1/r_grid */
-    real rg = str->r_grid;            /**< Cell length in r direction */
-    real rg2 = rg*rg;
-    real rgi = 1.0/rg;
-    int i_z = (z-str->z_min)/str->z_grid; /**< index for z variable */
-    real dz = (z-(str->z_min+i_z*str->z_grid))/str->z_grid; /**< Normalized z coordinate in
-                                                               current cell */
-    real dz3 = dz*(dz*dz-1);
-    real dz3dz = 3*dz*dz-1;           /**< z-derivative of dz3, not including 1/z_grid */
-    real dzi = 1.0-dz;
-    real dzi3 = dzi*(dzi*dzi-1);
-    real dzi3dz = -3*dzi*dzi+1;       /**< z-derivative of dzi3, not including 1/z_grid */
-    real zg = str->z_grid;            /**< Cell length in z direction */
-    real zg2 = zg*zg;
-    real zgi = 1.0/zg;
-    int n = i_z*str->n_r*4+i_r*4;     /**< Index jump to cell */
-    int r1 = 4;                       /**< Index jump one r forward */
-    int z1 = str->n_r*4;              /**< Index jump one z forward */
+a5err interp2Dcomp_eval_df(real* f_df, interp2D_data* str, real x, real y) {
+
+    /* Make sure periodic coordinates are within [min, max] region. */
+    if(str->bc_x == PERIODICBC) {
+        x = fmod(x - str->x_min, str->x_max - str->x_min) + str->x_min;
+        x = x + (x < str->x_min) * (str->x_max - str->x_min);
+    }
+    if(str->bc_y == PERIODICBC) {
+        y = fmod(y - str->y_min, str->y_max - str->y_min) + str->y_min;
+        y = y + (y < str->y_min) * (str->y_max - str->y_min);
+    }
+
+    /* Index for x variable. The -1 needed at exactly grid end. */
+    int i_x   = (x - str->x_min) / str->x_grid - 1*(x==str->x_max);
+    /* Normalized x coordinate in current cell */
+    real dx     = ( x - (str->x_min + i_x*str->x_grid) ) / str->x_grid;
+    /* Helper variables */
+    real dx3    =  dx * (dx*dx - 1.0);
+    real dx3dx  = 3*dx*dx - 1;
+    real dxi    = 1.0 - dx;
+    real dxi3   = dxi * (dxi*dxi - 1.0);
+    real dxi3dx = -3*dxi*dxi + 1;
+    real xg     = str->x_grid;
+    real xg2    = xg*xg;
+    real xgi    = 1.0/xg;
+
+    /* Index for y variable. The -1 needed at exactly grid end. */
+    int i_y   = (y - str->y_min) / str->y_grid - 1*(y==str->y_max);
+    /* Normalized y coordinate in current cell */
+    real dy     = ( y - (str->y_min + i_y*str->y_grid) ) / str->y_grid;
+    /* Helper variables */
+    real dy3    =  dy * (dy*dy - 1.0);
+    real dy3dy  = 3*dy*dy - 1;
+    real dyi    = 1.0 - dy;
+    real dyi3   = dyi * (dyi*dyi - 1.0);
+    real dyi3dy = -3*dyi*dyi + 1;
+    real yg     = str->y_grid;
+    real yg2    = yg*yg;
+    real ygi    = 1.0/yg;
+
+    int n  = i_y*str->n_x*4+i_x*4; /**< Index jump to cell       */
+    int x1 = 4;                    /**< Index jump one x forward */
+    int y1 = str->n_x*4;           /**< Index jump one y forward */
 
     int err = 0;
 
-    /* Check that the point is not outside the evaluation regime */
-    if(r < str->r_min || r > str->r_max
-        || z < str->z_min || z > str->z_max) {
+    /* Enforce periodic BC or check that the coordinate is within the domain. */
+    if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
+        x1 = -(str->n_x-1)*x1;
+    }
+    else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
         err = 1;
     }
-    else {
-        /* f */
-        B_dB[0] = (
-            dri*(dzi*str->c[n]+dz*str->c[n+z1])+
-            dr*(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
-            +(rg2/6)*(
-                dri3*(dzi*str->c[n+1] + dz*str->c[n+z1+1])+
-                dr3*(dzi*str->c[n+r1+1] + dz*str->c[n+z1+r1+1]))
-            +(zg2/6)*(
-                dri*(dzi3*str->c[n+2]+dz3*str->c[n+z1+2])+
-                dr*(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
-            +(rg2*zg2/36)*(
-                dri3*(dzi3*str->c[n+3]+dz3*str->c[n+z1+3])+
-                dr3*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
-
-        /* df/dr */
-        B_dB[1] = rgi*(
-            -(dzi*str->c[n]  +dz*str->c[n+z1])
-            +(dzi*str->c[n+r1]+dz*str->c[n+z1+r1]))
-            +(rg/6)*(
-                dri3dr*(dzi*str->c[n+1]  +dz*str->c[n+z1+1])+
-                dr3dr*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
-            +(rgi*zg2/6)*(
-                -(dzi3*str->c[n+2]  +dz3*str->c[n+z1+2])
-                +(dzi3*str->c[n+r1+2]+dz3*str->c[n+z1+r1+2]))
-            +(rg*zg2/36)*(
-                dri3dr*(dzi3*str->c[n+3]  +dz3*str->c[n+z1+3])+
-                dr3dr*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
-
-        /* df/dz */
-        B_dB[2] = zgi*(
-            dri*(-str->c[n]  +str->c[n+z1])+
-            dr*(-str->c[n+r1]+str->c[n+z1+r1]))
-            +(rg2*zgi/6)*(
-                dri3*(-str->c[n+1]  +str->c[n+z1+1])+
-                dr3*(-str->c[n+r1+1]+str->c[n+z1+r1+1]))
-            +(zg/6)*(
-                dri*(dzi3dz*str->c[n+2]  +dz3dz*str->c[n+z1+2])+
-                dr*(dzi3dz*str->c[n+r1+2]+dz3dz*str->c[n+z1+r1+2]))
-            +(rg2*zg/36)*(
-                dri3*(dzi3dz*str->c[n+3]  +dz3dz*str->c[n+z1+3])+
-                dr3*(dzi3dz*str->c[n+r1+3]+dz3dz*str->c[n+z1+r1+3]));
-
-        /* d2f/dr2 */
-        B_dB[3] = (
-            dri*(dzi*str->c[n+1]  +dz*str->c[n+z1+1])+
-            dr*(dzi*str->c[n+r1+1]+dz*str->c[n+z1+r1+1]))
-            +(zg2/6)*(
-                dri*(dzi3*str->c[n+3]  +dz3*str->c[n+z1+3])+
-                dr*(dzi3*str->c[n+r1+3]+dz3*str->c[n+z1+r1+3]));
-
-        /* d2f/dz2 */
-        B_dB[4] = (
-              dri*(dzi*str->c[n+2]  +dz*str->c[n+z1+2])+
-              dr*(dzi*str->c[n+r1+2]+dz*str->c[n+z1+r1+2]))
-        +rg2/6*(
-            dri3*(dzi*str->c[n+3]  +dz*str->c[n+z1+3])+
-            dr3*(dzi*str->c[n+r1+3]+dz*str->c[n+z1+r1+3]));
-
-        /* d2f/dzdr */
-        B_dB[5] = rgi*zgi*(
-            str->c[n]  -str->c[n+z1]
-            -str->c[n+r1]+str->c[n+z1+r1])
-            +(rg/6*zgi)*(
-                dri3dr*(-str->c[n+1]  +str->c[n+z1+1])+
-                dr3dr*(-str->c[n+r1+1]+str->c[n+z1+r1+1]))
-            +(rgi/6*zg)*(
-                -(dzi3dz*str->c[n+2]  +dz3dz*str->c[n+z1+2])
-                +(dzi3dz*str->c[n+r1+2]+dz3dz*str->c[n+z1+r1+2]))
-            +(rg*zg/36)*(
-                dri3dr*(dzi3dz*str->c[n+3]  +dz3dz*str->c[n+z1+3])+
-                dr3dr*(dzi3dz*str->c[n+r1+3]+dz3dz*str->c[n+z1+r1+3]));
+    if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
+        y1 = -(str->n_y-1)*y1;
     }
-    return err;
-}
+    else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+        err = 1;
+    }
 
-/**
- * @brief Free allocated memory in interpolation data struct
- *
- * This function frees the memory allocated for interpolation coefficients
- * in the interpolation data struct
- *
- * @todo Error checking
- *
- * @param str data struct for data interpolation
- */
-void interp2Dcomp_free(interp2D_data* str) {
-    free(str->c);
+    if(!err) {
+        /* f */
+        f_df[0] = (
+            dxi*(dyi*str->c[n]+dy*str->c[n+y1])
+            +dx*(dyi*str->c[n+x1]+dy*str->c[n+y1+x1]))
+            +(xg2/6)*(
+                dxi3*(dyi*str->c[n+1] + dy*str->c[n+y1+1])
+                +dx3*(dyi*str->c[n+x1+1] + dy*str->c[n+y1+x1+1]))
+            +(yg2/6)*(
+                dxi*(dyi3*str->c[n+2]+dy3*str->c[n+y1+2])
+                +dx*(dyi3*str->c[n+x1+2]+dy3*str->c[n+y1+x1+2]))
+            +(xg2*yg2/36)*(
+                dxi3*(dyi3*str->c[n+3]+dy3*str->c[n+y1+3])
+                +dx3*(dyi3*str->c[n+x1+3]+dy3*str->c[n+y1+x1+3]));
+
+        /* df/dx */
+        f_df[1] = xgi*(
+            -(dyi*str->c[n]  +dy*str->c[n+y1])
+            +(dyi*str->c[n+x1]+dy*str->c[n+y1+x1]))
+            +(xg/6)*(
+                dxi3dx*(dyi*str->c[n+1]  +dy*str->c[n+y1+1])
+                +dx3dx*(dyi*str->c[n+x1+1]+dy*str->c[n+y1+x1+1]))
+            +(xgi*yg2/6)*(
+                -(dyi3*str->c[n+2]  +dy3*str->c[n+y1+2])
+                +(dyi3*str->c[n+x1+2]+dy3*str->c[n+y1+x1+2]))
+            +(xg*yg2/36)*(
+                dxi3dx*(dyi3*str->c[n+3]  +dy3*str->c[n+y1+3])
+                +dx3dx*(dyi3*str->c[n+x1+3]+dy3*str->c[n+y1+x1+3]));
+
+        /* df/dy */
+        f_df[2] = ygi*(
+            dxi*(-str->c[n]  +str->c[n+y1])
+            +dx*(-str->c[n+x1]+str->c[n+y1+x1]))
+            +(xg2*ygi/6)*(
+                dxi3*(-str->c[n+1]  +str->c[n+y1+1])
+                +dx3*(-str->c[n+x1+1]+str->c[n+y1+x1+1]))
+            +(yg/6)*(
+                dxi*(dyi3dy*str->c[n+2]  +dy3dy*str->c[n+y1+2])
+                +dx*(dyi3dy*str->c[n+x1+2]+dy3dy*str->c[n+y1+x1+2]))
+            +(xg2*yg/36)*(
+                dxi3*(dyi3dy*str->c[n+3]  +dy3dy*str->c[n+y1+3])
+                +dx3*(dyi3dy*str->c[n+x1+3]+dy3dy*str->c[n+y1+x1+3]));
+
+        /* d2f/dx2 */
+        f_df[3] = (
+            dxi*(dyi*str->c[n+1]  +dy*str->c[n+y1+1])
+            +dx*(dyi*str->c[n+x1+1]+dy*str->c[n+y1+x1+1]))
+            +(yg2/6)*(
+                dxi*(dyi3*str->c[n+3]  +dy3*str->c[n+y1+3])
+                +dx*(dyi3*str->c[n+x1+3]+dy3*str->c[n+y1+x1+3]));
+
+        /* d2f/dy2 */
+        f_df[4] = (
+              dxi*(dyi*str->c[n+2]  +dy*str->c[n+y1+2])
+              +dx*(dyi*str->c[n+x1+2]+dy*str->c[n+y1+x1+2]))
+        +xg2/6*(
+            dxi3*(dyi*str->c[n+3]  +dy*str->c[n+y1+3])
+            +dx3*(dyi*str->c[n+x1+3]+dy*str->c[n+y1+x1+3]));
+
+        /* d2f/dydx */
+        f_df[5] = xgi*ygi*(
+            str->c[n]  -str->c[n+y1]
+            -str->c[n+x1]+str->c[n+y1+x1])
+            +(xg/6*ygi)*(
+                dxi3dx*(-str->c[n+1]  +str->c[n+y1+1])
+                +dx3dx*(-str->c[n+x1+1]+str->c[n+y1+x1+1]))
+            +(xgi/6*yg)*(
+                -(dyi3dy*str->c[n+2]  +dy3dy*str->c[n+y1+2])
+                +(dyi3dy*str->c[n+x1+2]+dy3dy*str->c[n+y1+x1+2]))
+            +(xg*yg/36)*(
+                dxi3dx*(dyi3dy*str->c[n+3]  +dy3dy*str->c[n+y1+3])
+                +dx3dx*(dyi3dy*str->c[n+x1+3]+dy3dy*str->c[n+y1+x1+3]));
+    }
+
+    return err;
 }

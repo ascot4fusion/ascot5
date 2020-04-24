@@ -43,7 +43,7 @@ typedef struct {
     real z;           /**< Guiding center z coordinate [m]                 */
     real vpar;        /**< Parallel velocity [m/s]                         */
     real mu;          /**< Magnetic moment [J/T]                           */
-    real theta;       /**< Gyroangle [rad]                                 */
+    real zeta;        /**< Gyroangle [rad]                                 */
     real rprt;        /**< Particle R coordinate [m]                       */
     real phiprt;      /**< Particle phi coordinate [phi]                   */
     real zprt;        /**< Particle z coordinate [m]                       */
@@ -51,12 +51,14 @@ typedef struct {
     real phidot;      /**< dphi/dt [rad/s]                                 */
     real zdot;        /**< dz/dt [m/s]                                     */
     real mass;        /**< Mass [kg]                                       */
-    real charge;      /**< Charge [e]                                      */
+    real charge;      /**< Charge [C]                                      */
+    int  anum;        /**< Atomic mass number of marker species            */
+    int  znum;        /**< Charge number of marker species                 */
     real weight;      /**< Marker weight                                   */
     real time;        /**< Marker simulation time [s]                      */
     real cputime;     /**< Marker wall-clock time [s]                      */
     real rho;         /**< Marker rho coordinate                           */
-    real pol;         /**< Marker poloidal coordinate [rad]                */
+    real theta;       /**< Marker poloidal coordinate [rad]                */
     integer id;       /**< Arbitrary but unique ID for the marker          */
     integer endcond;  /**< Marker end condition                            */
     integer walltile; /**< ID of walltile if marker has hit the wall       */
@@ -90,7 +92,9 @@ typedef struct {
     real v_phi;  /**< Velocity phi-component [m/s]        */
     real v_z;    /**< Velocity z-component [m/s]          */
     real mass;   /**< Mass [kg]                           */
-    real charge; /**< Charge [e]                          */
+    real charge; /**< Charge [C]                          */
+    int  anum;   /**< Atomic mass number [1]              */
+    int  znum;   /**< Charge number [1]                   */
     real weight; /**< Particle marker weight              */
     real time;   /**< Particle marker simulation time [s] */
     integer id;  /**< Unique ID for the particle marker   */
@@ -108,9 +112,11 @@ typedef struct {
     real z;      /**< z coordinate [m]                          */
     real energy; /**< Kinetic energy [J]                        */
     real pitch;  /**< Pitch                                     */
-    real theta;  /**< Gyroangle [rad]                           */
+    real zeta;   /**< Gyroangle [rad]                           */
     real mass;   /**< Mass [kg]                                 */
-    real charge; /**< Charge [e]                                */
+    real charge; /**< Charge [C]                                */
+    int  anum;   /**< Atomic mass number [1]                    */
+    int  znum;   /**< Charge number [1]                         */
     real weight; /**< Guiding center marker weight              */
     real time;   /**< Guiding center marker simulation time [s] */
     integer id;  /**< Unique ID for the guiding center marker   */
@@ -177,12 +183,12 @@ typedef enum input_particle_type {
  * a new marker struct removes the old marker struct.
  */
 typedef struct {
-    input_particle_type type;
+    input_particle_type type; /**< Type of data currently stored */
     union {
-        particle p;
-        particle_gc p_gc;
-        particle_ml p_ml;
-        particle_state p_s;
+        particle p;           /**< Particle input                */
+        particle_gc p_gc;     /**< Guiding center input          */
+        particle_ml p_ml;     /**< Field line tracer input       */
+        particle_state p_s;   /**< Marker state                  */
     };
 } input_particle;
 
@@ -211,7 +217,7 @@ typedef struct {
     real phidot[NSIMD] __memalign__;  /**< dphi/dt [rad/s]                    */
     real zdot[NSIMD] __memalign__;    /**< dz/dt [m/s]                        */
     real mass[NSIMD] __memalign__;    /**< Mass [kg]                          */
-    real charge[NSIMD] __memalign__;  /**< Charge [e]                         */
+    real charge[NSIMD] __memalign__;  /**< Charge [C]                         */
     real time[NSIMD] __memalign__;    /**< Marker simulation time [s]         */
 
     /* Magnetic field data */
@@ -236,7 +242,7 @@ typedef struct {
     real weight[NSIMD] __memalign__;  /**< Marker weight                      */
     real cputime[NSIMD] __memalign__; /**< Marker wall-clock time [s]         */
     real rho[NSIMD] __memalign__;     /**< Marker rho coordinate              */
-    real pol[NSIMD] __memalign__;     /**< Marker poloidal coordinate [rad]   */
+    real theta[NSIMD] __memalign__;   /**< Marker poloidal coordinate [rad]   */
 
     integer id[NSIMD] __memalign__;       /**< Unique ID for the marker       */
     integer endcond[NSIMD] __memalign__;  /**< Marker end condition           */
@@ -273,9 +279,9 @@ typedef struct {
     real z[NSIMD] __memalign__;      /**< Guiding center z coordinate [m]     */
     real vpar[NSIMD] __memalign__;   /**< Parallel velocity [m/s]             */
     real mu[NSIMD] __memalign__;     /**< Magnetic moment [J/T]               */
-    real theta[NSIMD] __memalign__;  /**< Gyroangle [rad]                     */
+    real zeta[NSIMD] __memalign__;   /**< Gyroangle [rad]                     */
     real mass[NSIMD] __memalign__;   /**< Mass [kg]                           */
-    real charge[NSIMD] __memalign__; /**< Charge [e]                          */
+    real charge[NSIMD] __memalign__; /**< Charge [C]                          */
     real time[NSIMD] __memalign__;   /**< Marker simulation time [s]          */
 
     /* Magnetic field data */
@@ -300,7 +306,7 @@ typedef struct {
     real weight[NSIMD] __memalign__;  /**< Marker weight                      */
     real cputime[NSIMD] __memalign__; /**< Marker wall-clock time [s]         */
     real rho[NSIMD] __memalign__;     /**< Marker rho coordinate              */
-    real pol[NSIMD] __memalign__;     /**< Marker poloidal coordinate [rad]   */
+    real theta[NSIMD] __memalign__;   /**< Marker poloidal coordinate [rad]   */
 
     integer id[NSIMD] __memalign__;       /**< Unique ID for the marker       */
     integer endcond[NSIMD] __memalign__;  /**< Marker end condition           */
@@ -362,7 +368,7 @@ typedef struct {
     real weight[NSIMD] __memalign__;  /**< Marker weight                      */
     real cputime[NSIMD] __memalign__; /**< Marker wall-clock time [s]         */
     real rho[NSIMD] __memalign__;     /**< Marker rho coordinate              */
-    real pol[NSIMD] __memalign__;     /**< Marker poloidal coordinate [rad]   */
+    real theta[NSIMD] __memalign__;   /**< Marker poloidal coordinate [rad]   */
 
     integer id[NSIMD] __memalign__;       /**< Unique ID for the marker       */
     integer endcond[NSIMD] __memalign__;  /**< Marker end condition           */
@@ -415,6 +421,12 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
 #pragma omp declare simd uniform(p_fo,Bdata)
 int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
                       B_field_data* Bdata);
+#pragma omp declare simd
+void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j);
+#pragma omp declare simd
+void particle_copy_gc(particle_simd_gc* p1, int i, particle_simd_gc* p2, int j);
+#pragma omp declare simd
+void particle_copy_ml(particle_simd_ml* p1, int i, particle_simd_ml* p2, int j);
 #pragma omp end declare target
 
 #endif

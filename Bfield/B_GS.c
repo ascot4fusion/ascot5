@@ -97,9 +97,9 @@ int B_GS_init_offload(B_GS_offload_data* offload_data, real** offload_array) {
     B_GS_data Bdata;
     B_GS_init(&Bdata, offload_data, *offload_array);
     real psival[1], Bval[3];
-    err = B_GS_eval_psi(psival, offload_data->R0, 0, offload_data->z0,
+    err = B_GS_eval_psi(psival, offload_data->raxis, 0, offload_data->zaxis,
                         &Bdata);
-    err = B_GS_eval_B(Bval, offload_data->R0, 0, offload_data->z0,
+    err = B_GS_eval_B(Bval, offload_data->raxis, 0, offload_data->zaxis,
                       &Bdata);
     if(err) {
         print_err("Error: Initialization failed.\n");
@@ -107,15 +107,16 @@ int B_GS_init_offload(B_GS_offload_data* offload_data, real** offload_array) {
     }
 
     /* Print some sanity check on data */
-    print_out(VERBOSE_IO, "\nAnalytical tokamak magnetic field (B_GS)\n");
-    print_out(VERBOSE_IO, "Psi at magnetic axis (%1.3f m, %1.3f m)\n",
-              offload_data->R0, offload_data->z0);
-    print_out(VERBOSE_IO, "%3.3f (evaluated)\n%3.3f (given)\n",
-              psival[0], offload_data->psi0);
-    print_out(VERBOSE_IO, "Magnetic field on axis:\n"
-              "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n",
-              Bval[0], Bval[1], Bval[2]);
-    print_out(VERBOSE_IO, "Number of toroidal field coils %d\n",
+    print_out(VERBOSE_IO,
+              "\nAnalytical tokamak magnetic field (B_GS)\n"
+              "Psi at magnetic axis (%1.3f m, %1.3f m)\n"
+              "%3.3f (evaluated)\n%3.3f (given)\n"
+              "Magnetic field on axis:\n"
+              "B_R = %3.3f B_phi = %3.3f B_z = %3.3f\n"
+              "Number of toroidal field coils %d\n",
+              offload_data->raxis, offload_data->zaxis,
+              psival[0], offload_data->psi0,
+              Bval[0], Bval[1], Bval[2],
               offload_data->Nripple);
 
     return 0;
@@ -144,6 +145,8 @@ void B_GS_init(B_GS_data* Bdata, B_GS_offload_data* offload_data,
                real* offload_array) {
     Bdata->R0        = offload_data->R0;
     Bdata->z0        = offload_data->z0;
+    Bdata->raxis     = offload_data->raxis;
+    Bdata->zaxis     = offload_data->zaxis;
     Bdata->B_phi0    = offload_data->B_phi0;
     Bdata->psi0      = offload_data->psi0;
     Bdata->psi1      = offload_data->psi1;
@@ -168,7 +171,7 @@ void B_GS_init(B_GS_data* Bdata, B_GS_offload_data* offload_data,
  *
  * @return zero to indicate success
  */
-a5err B_GS_eval_psi(real psi[1], real r, real phi, real z,
+a5err B_GS_eval_psi(real* psi, real r, real phi, real z,
                     B_GS_data* Bdata) {
     /* Normalize the coordinates */
     z -= Bdata->z0;
@@ -213,7 +216,7 @@ a5err B_GS_eval_psi(real psi[1], real r, real phi, real z,
 /**
  * @brief Evaluate poloidal flux psi and its derivatives
  *
- * @param psi pointer where psi [V*s*m^-1] and its derivatives will be stored
+ * @param psi_dpsi pointer for storing psi [V*s*m^-1] and its derivatives
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
@@ -283,14 +286,12 @@ a5err B_GS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
  * @brief Evaluate normalized poloidal flux rho
  *
  * @param rho pointer where rho value will be stored
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
+ * @param psi poloidal flux from which rho is evaluated
  * @param Bdata pointer to magnetic field data struct
  *
  * @return zero to indicate success
  */
-a5err B_GS_eval_rho(real rho[1], real psi, B_GS_data* Bdata) {
+a5err B_GS_eval_rho(real* rho, real psi, B_GS_data* Bdata) {
 
     /* Check that the values seem valid */
     real delta = Bdata->psi1 - Bdata->psi0;
@@ -306,7 +307,7 @@ a5err B_GS_eval_rho(real rho[1], real psi, B_GS_data* Bdata) {
 /**
  * @brief Evaluate normalized poloidal flux rho and its derivatives
  *
- * @param rho pointer where rho and its derivatives will be stored
+ * @param rho_drho pointer where rho and its derivatives will be stored
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
@@ -316,19 +317,20 @@ a5err B_GS_eval_rho(real rho[1], real psi, B_GS_data* Bdata) {
  */
 a5err B_GS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
                          B_GS_data* Bdata) {
+    real psi_dpsi[4];
 
-    B_GS_eval_psi_dpsi(rho_drho, r, phi, z, Bdata);
+    B_GS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
 
     /* Check that the values seem valid */
     real delta = Bdata->psi1 - Bdata->psi0;
-    if( (rho_drho[0] - Bdata->psi0) / delta < 0 ) {
+    if( (psi_dpsi[0] - Bdata->psi0) / delta < 0 ) {
          return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_GS );
     }
 
-    rho_drho[0] = sqrt( (rho_drho[0] - Bdata->psi0) / delta );
-    rho_drho[1] = rho_drho[1] / (2*delta*rho_drho[0]);
+    rho_drho[0] = sqrt( (psi_dpsi[0] - Bdata->psi0) / delta );
+    rho_drho[1] = psi_dpsi[1] / (2*delta*rho_drho[0]);
     rho_drho[2] = 0;
-    rho_drho[3] = rho_drho[3] / (2*delta*rho_drho[0]);
+    rho_drho[3] = psi_dpsi[3] / (2*delta*rho_drho[0]);
 
     return 0;
 }
@@ -574,7 +576,7 @@ a5err B_GS_eval_B_dB(real B_dB[12], real r, real phi, real z,
  * @return Magnetic axis R-coordinate [m]
  */
 real B_GS_get_axis_r(B_GS_data* Bdata) {
-    return Bdata->R0;
+    return Bdata->raxis;
 }
 
 /**
@@ -585,5 +587,5 @@ real B_GS_get_axis_r(B_GS_data* Bdata) {
  * @return Magnetic axis z-coordinate [m]
  */
 real B_GS_get_axis_z(B_GS_data* Bdata) {
-    return Bdata->z0;
+    return Bdata->zaxis;
 }

@@ -1,5 +1,4 @@
 /**
- * @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
  * @file simulate_fo_fixed.c
  * @brief Simulate particles using fixed time-step
  */
@@ -18,12 +17,12 @@
 #include "../B_field.h"
 #include "../E_field.h"
 #include "../plasma.h"
-#include "simulate_fo_fixed.h"
-#include "step/step_fo_vpa.h"
-#include "mccc/mccc.h"
 #include "../endcond.h"
 #include "../math.h"
 #include "../consts.h"
+#include "simulate_fo_fixed.h"
+#include "step/step_fo_vpa.h"
+#include "mccc/mccc.h"
 
 #pragma omp declare target
 #pragma omp declare simd uniform(sim)
@@ -57,11 +56,6 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
     particle_simd_fo p;  // This array holds current states
     particle_simd_fo p0; // This array stores previous states
 
-    // This is diagnostic specific data which is declared
-    // here to make it thread safe
-    diag_storage* diag_strg;
-    diag_storage_aquire(&sim->diag_data, &diag_strg);
-
     /* Init dummy markers */
     for(int i=0; i< NSIMD; i++) {
         p.id[i] = -1;
@@ -82,60 +76,23 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 
     cputime_last = A5_WTIME;
 
-/* MAIN SIMULATION LOOP
- * - Store current state
- * - Integrate motion due to background EM-field (orbit-following)
- * - Integrate scattering due to Coulomb collisions
- * - Advance time
- * - Check for end condition(s)
- * - Update diagnostics
- */
+    /* MAIN SIMULATION LOOP
+     * - Store current state
+     * - Integrate motion due to background EM-field (orbit-following)
+     * - Integrate scattering due to Coulomb collisions
+     * - Advance time
+     * - Check for end condition(s)
+     * - Update diagnostics
+     */
     while(n_running > 0) {
 
         /* Store marker states */
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
-            p0.r[i]          = p.r[i];
-            p0.phi[i]        = p.phi[i];
-            p0.z[i]          = p.z[i];
-            p0.rdot[i]       = p.rdot[i];
-            p0.phidot[i]     = p.phidot[i];
-            p0.zdot[i]       = p.zdot[i];
-
-            p0.time[i]       = p.time[i];
-            p0.cputime[i]    = p.cputime[i];
-            p0.rho[i]        = p.rho[i];
-            p0.weight[i]     = p.weight[i];
-            p0.cputime[i]    = p.cputime[i];
-            p0.rho[i]        = p.rho[i];
-            p0.pol[i]        = p.pol[i];
-
-            p0.mass[i]       = p.mass[i];
-            p0.charge[i]     = p.charge[i];
-
-            p0.id[i]         = p.id[i];
-            p0.running[i]    = p.running[i];
-            p0.endcond[i]    = p.endcond[i];
-            p0.walltile[i]   = p.walltile[i];
-
-            p0.B_r[i]        = p.B_r[i];
-            p0.B_phi[i]      = p.B_phi[i];
-            p0.B_z[i]        = p.B_z[i];
-
-            p0.B_r_dr[i]     = p.B_r_dr[i];
-            p0.B_r_dphi[i]   = p.B_r_dphi[i];
-            p0.B_r_dz[i]     = p.B_r_dz[i];
-
-            p0.B_phi_dr[i]   = p.B_phi_dr[i];
-            p0.B_phi_dphi[i] = p.B_phi_dphi[i];
-            p0.B_phi_dz[i]   = p.B_phi_dz[i];
-
-            p0.B_z_dr[i]     = p.B_z_dr[i];
-            p0.B_z_dphi[i]   = p.B_z_dphi[i];
-            p0.B_z_dz[i]     = p.B_z_dz[i];
+            particle_copy_fo(&p, i, &p0, i);
         }
 
-        /*************************** Physics ***********************************************/
+        /*************************** Physics **********************************/
 
         /* Volume preserving algorithm for orbit-following */
         if(sim->enable_orbfol) {
@@ -144,10 +101,11 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
-            mccc_step_fo_fixed(&p, &sim->B_data, &sim->plasma_data, &sim->random_data, sim->coldata, hin);
+            mccc_fo_euler(&p, hin, &sim->B_data, &sim->plasma_data,
+                          &sim->random_data, &sim->mccc_data);
         }
 
-        /***********************************************************************************/
+        /**********************************************************************/
 
 
         /* Update simulation and cpu times */
@@ -165,12 +123,12 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         endcond_check_fo(&p, &p0, sim);
 
         /* Update diagnostics */
-        if(!(sim->record_GOasGC)) {
+        if(!(sim->record_mode)) {
             /* Record particle coordinates */
-            diag_update_fo(&sim->diag_data, diag_strg, &p, &p0);
+            diag_update_fo(&sim->diag_data, &p, &p0);
         }
         else {
-            /* Instead of particle coordinates we record guiding center coordinates*/
+            /* Instead of particle coordinates we record guiding center */
 
             // Dummy guiding centers
             particle_simd_gc gc_f;
@@ -191,7 +149,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
                     gc_i.running[i] = 0;
                 }
             }
-            diag_update_gc(&sim->diag_data, diag_strg, &gc_f, &gc_i);
+            diag_update_gc(&sim->diag_data, &gc_f, &gc_i);
         }
 
         /* Update running particles */
@@ -208,9 +166,6 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 
     /* All markers simulated! */
 
-    /* Clean diagnostics struct */
-    diag_storage_discard(diag_strg);
-
 }
 
 /**
@@ -220,8 +175,10 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
  * whose formula accounts for relativity, or an user defined value
  * is used as is depending on simulation options.
  *
+ * @param sim pointer to simulation data struct
  * @param p SIMD array of markers
  * @param i index of marker for which time step is assessed
+ *
  * @return Calculated time step
  */
 real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
@@ -238,7 +195,7 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
         real vnorm = math_normc( p->rdot[i], p->phidot[i]*p->r[i], p->zdot[i] );
         real gyrotime = CONST_2PI/
             phys_gyrofreq_vnorm(p->mass[i], p->charge[i], vnorm, Bnorm);
-        h = gyrotime/sim->fix_stepsPerGO;
+        h = gyrotime/sim->fix_gyrodef_nstep;
     }
 
     return h;

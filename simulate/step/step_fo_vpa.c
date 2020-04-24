@@ -1,6 +1,6 @@
 /**
- * @file step_fo_lf.c
- * @brief Calculate a full orbit step for a struct of particles with leap-frog
+ * @file step_fo_vpa.c
+ * @brief Calculate a full orbit step for a struct of particles with VPA
  **/
 #include <math.h>
 #include <stdio.h>
@@ -17,14 +17,16 @@
  * @brief Integrate a full orbit step for a struct of particles with VPA
  *
  * The integration is performed for a struct of NSIMD particles using the
- * volume preserving algorithm (Boris method for relativistic particles) see Zhang 2015.
+ * volume preserving algorithm (Boris method for relativistic particles) see
+ * Zhang 2015.
  *
  * @param p particle_simd_fo struct that will be updated
  * @param h pointer to array containing time steps
  * @param Bdata pointer to magnetic field data
  * @param Edata pointer to electric field data
  */
-void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data* Edata) {
+void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
+                 E_field_data* Edata) {
 
     int i;
     /* Following loop will be executed simultaneously for all i */
@@ -33,8 +35,9 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
         if(p->running[i]) {
             a5err errflag = 0;
 
-            real R0   = p->r[i];
-            real z0   = p->z[i];
+            real R0 = p->r[i];
+            real z0 = p->z[i];
+            real t0 = p->time[i];
 
             /* Convert velocity to cartesian coordinates */
             real vrpz[3] = {p->rdot[i], p->phidot[i]*p->r[i], p->zdot[i]};
@@ -54,8 +57,14 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 
             real Brpz[3];
             real Erpz[3];
-            if(!errflag) {errflag = B_field_eval_B(Brpz, posrpz[0], posrpz[1], posrpz[2], Bdata);}
-            if(!errflag) {errflag = E_field_eval_E(Erpz, posrpz[0], posrpz[1], posrpz[2], Edata, Bdata);}
+            if(!errflag) {
+                errflag = B_field_eval_B(Brpz, posrpz[0], posrpz[1], posrpz[2],
+                                         t0 + h[i]/2, Bdata);
+            }
+            if(!errflag) {
+                errflag = E_field_eval_E(Erpz, posrpz[0], posrpz[1], posrpz[2],
+                                         t0 + h[i]/2, Edata, Bdata);
+            }
 
             real fposxyz[3]; // final position in cartesian coordinates
 
@@ -132,12 +141,20 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
             }
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
-            real BdBrpz[12];
+            real BdBrpz[15];
             real psi[1];
             real rho[1];
-            if(!errflag) {errflag = B_field_eval_B_dB(BdBrpz, p->r[i], p->phi[i], p->z[i], Bdata);}
-            if(!errflag) {errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i], Bdata);}
-            if(!errflag) {errflag = B_field_eval_rho(rho, psi[0], Bdata);}
+            if(!errflag) {
+                errflag = B_field_eval_B_dB(BdBrpz, p->r[i], p->phi[i], p->z[i],
+                                            t0 + h[i], Bdata);
+            }
+            if(!errflag) {
+                errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i],
+                                           t0 + h[i], Bdata);
+            }
+            if(!errflag) {
+                errflag = B_field_eval_rho(rho, psi[0], Bdata);
+            }
 
             if(!errflag) {
                 p->B_r[i]        = BdBrpz[0];
@@ -157,11 +174,13 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata, E_field_data
 
                 p->rho[i] = rho[0];
 
-                /* Evaluate phi and pol angles so that they are cumulative */
+                /* Evaluate phi and theta angles so that they are cumulative */
                 real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
                 real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->pol[i] += atan2( (R0-axis_r) * (p->z[i]-axis_z) - (z0-axis_z) * (p->r[i]-axis_r), 
-                            (R0-axis_r) * (p->r[i]-axis_r) + (z0-axis_z) * (p->z[i]-axis_z) );
+                p->theta[i] += atan2(   (R0-axis_r) * (p->z[i]-axis_z)
+                                      - (z0-axis_z) * (p->r[i]-axis_r),
+                                        (R0-axis_r) * (p->r[i]-axis_r)
+                                      + (z0-axis_z) * (p->z[i]-axis_z) );
             }
 
             /* Error handling */

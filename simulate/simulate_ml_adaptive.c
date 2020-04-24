@@ -27,8 +27,8 @@ real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i);
 #pragma omp end declare target
 
 
-#define MAGNETIC_FIELD_LINE_INISTEP 1.0e-2 // Initial step size in meters
-#define DUMMY_TIMESTEP_VAL 100.0             // Dummy time step val (in meters), just use value large enough not to be encountered in actual simulations
+#define MAGNETIC_FIELD_LINE_INISTEP 1.0e-2 /**< Initial step size in meters   */
+#define DUMMY_TIMESTEP_VAL 100.0           /**< Dummy time step val in meters */
 
 /**
  * @brief Simulates magnetic field-lines using adaptive time-step
@@ -67,11 +67,6 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
     particle_simd_ml p;  // This array holds current states
     particle_simd_ml p0; // This array stores previous states
 
-    // This is diagnostic specific data which is declared
-    // here to make it thread safe
-    diag_storage* diag_strg = NULL;
-    diag_storage_aquire(&sim->diag_data, &diag_strg);
-
     for(i=0; i< NSIMD; i++) {
         p.id[i] = -1;
         p.running[i] = 0;
@@ -91,58 +86,29 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 
     cputime_last = A5_WTIME;
 
-/* MAIN SIMULATION LOOP
- * - Store current state
- * - Integrate motion due to bacgkround EM-field (orbit-following)
- * - Check whether time step was accepted
- *   - NO:  revert to initial state and ignore the end of the loop
- *          (except CPU_TIME_MAX end condition if this is implemented)
- *   - YES: update particle time, clean redundant Wiener processes, and proceed
- * - Check for end condition(s)
- * - Update diagnostics
- * - Check for end condition(s)
- * */
+    /* MAIN SIMULATION LOOP
+     * - Store current state
+     * - Integrate motion due to bacgkround EM-field (orbit-following)
+     * - Check whether time step was accepted
+     *   - NO:  revert to initial state and ignore the end of the loop
+     *          (except CPU_TIME_MAX end condition if this is implemented)
+     *   - YES: update particle time, clean redundant Wiener processes, and proceed
+     * - Check for end condition(s)
+     * - Update diagnostics
+     * - Check for end condition(s)
+     */
     while(n_running > 0) {
+
+        /* Store marker states in case time step will be rejected */
         #pragma omp simd
         for(i = 0; i < NSIMD; i++) {
-            /* Store marker states in case time step will be rejected */
-            p0.r[i]          = p.r[i];
-            p0.phi[i]        = p.phi[i];
-            p0.z[i]          = p.z[i];
-            p0.pitch[i]      = p.pitch[i];
-
-            p0.time[i]       = p.time[i];
-            p0.cputime[i]    = p.cputime[i];
-            p0.rho[i]        = p.rho[i];
-            p0.weight[i]     = p.weight[i];
-            p0.pol[i]        = p.pol[i];
-
-            p0.running[i]    = p.running[i];
-            p0.endcond[i]    = p.endcond[i];
-            p0.walltile[i]   = p.walltile[i];
-
-            p0.B_r[i]        = p.B_r[i];
-            p0.B_phi[i]      = p.B_phi[i];
-            p0.B_z[i]        = p.B_z[i];
-
-            p0.B_r_dr[i]     = p.B_r_dr[i];
-            p0.B_r_dphi[i]   = p.B_r_dphi[i];
-            p0.B_r_dz[i]     = p.B_r_dz[i];
-
-            p0.B_phi_dr[i]   = p.B_phi_dr[i];
-            p0.B_phi_dphi[i] = p.B_phi_dphi[i];
-            p0.B_phi_dz[i]   = p.B_phi_dz[i];
-
-            p0.B_z_dr[i]     = p.B_z_dr[i];
-            p0.B_z_dphi[i]   = p.B_z_dphi[i];
-            p0.B_z_dz[i]     = p.B_z_dz[i];
-
+            particle_copy_ml(&p, i, &p0, i);
 
             hout[i] = DUMMY_TIMESTEP_VAL;
             hnext[i] = DUMMY_TIMESTEP_VAL;
         }
 
-        /*************************** Physics ***********************************************/
+        /*************************** Physics **********************************/
 
         /* Cash-Karp method for orbit-following */
         if(sim->enable_orbfol) {
@@ -157,7 +123,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
             }
         }
 
-        /***********************************************************************************/
+        /**********************************************************************/
 
 
         cputime = A5_WTIME;
@@ -179,35 +145,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 
                 /* Retrieve marker states in case time step was rejected */
                 if(hnext[i] < 0){
-                    p.r[i]          = p0.r[i];
-                    p.phi[i]        = p0.phi[i];
-                    p.z[i]          = p0.z[i];
-                    p.pitch[i]      = p0.pitch[i];
-
-                    p.time[i]       = p0.time[i];
-                    p.rho[i]        = p0.rho[i];
-                    p.weight[i]     = p0.weight[i];
-                    p.pol[i]        = p0.pol[i];
-
-                    p.running[i]    = p0.running[i];
-                    p.endcond[i]    = p0.endcond[i];
-                    p.walltile[i]   = p0.walltile[i];
-
-                    p.B_r[i]        = p0.B_r[i];
-                    p.B_phi[i]      = p0.B_phi[i];
-                    p.B_z[i]        = p0.B_z[i];
-
-                    p.B_r_dr[i]     = p0.B_r_dr[i];
-                    p.B_r_dphi[i]   = p0.B_r_dphi[i];
-                    p.B_r_dz[i]     = p0.B_r_dz[i];
-
-                    p.B_phi_dr[i]   = p0.B_phi_dr[i];
-                    p.B_phi_dphi[i] = p0.B_phi_dphi[i];
-                    p.B_phi_dz[i]   = p0.B_phi_dz[i];
-
-                    p.B_z_dr[i]     = p0.B_z_dr[i];
-                    p.B_z_dphi[i]   = p0.B_z_dphi[i];
-                    p.B_z_dz[i]     = p0.B_z_dz[i];
+                    particle_copy_ml(&p0, i, &p, i);
                 }
 
                 /* Update simulation and cpu times */
@@ -242,7 +180,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
         endcond_check_ml(&p, &p0, sim);
 
         /* Update diagnostics */
-        diag_update_ml(&sim->diag_data, diag_strg, &p, &p0);
+        diag_update_ml(&sim->diag_data, &p, &p0);
 
         /* Update running particles */
         n_running = particle_cycle_ml(pq, &p, &sim->B_data, cycle);
@@ -258,9 +196,6 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 
     /* All markers simulated! */
 
-    /* Clean diagnostics struct */
-    diag_storage_discard(diag_strg);
-
 }
 
 /**
@@ -269,8 +204,10 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
  * The time step value (in units of meters) is defined
  * by MAGNETIC_FIELD_LINE_INISTEP
  *
+ * @param sim pointer to simulation data struct
  * @param p SIMD array of markers
  * @param i index of marker for which time step is assessed
+ *
  * @return Calculated time step
  */
 real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i) {

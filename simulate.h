@@ -17,13 +17,12 @@
 #include "diag.h"
 #include "offload.h"
 #include "random.h"
+#include "simulate/mccc/mccc.h"
 
 /**
  * @brief Simulaton modes
  *
  * These enums are used to determine which simulation mode will be executed.
- *
- * @todo Make these real enums.
  */
 enum {
     /** Models markers as particles using particle_simd_fo struct and
@@ -61,13 +60,13 @@ typedef struct {
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */
     int enable_ada;      /**< Is adaptive time-step used                      */
-    int record_GOasGC;   /**< Is particles GC coordinates used in diagnostics */
+    int record_mode;     /**< Which record mode is used                       */
 
     /* Options - fixed time-step */
-    int fix_usrdef_use;  /**< Use user defined value for (initial) time-step  */
-    real fix_usrdef_val; /**< User defined time-step value                    */
-    int fix_stepsPerGO;  /**< Time-step = gyrotime/fix_stepsPerGO if not
-                              explicitly user defined                         */
+    int fix_usrdef_use;    /**< Use user defined value for (initial) time-step*/
+    real fix_usrdef_val;   /**< User defined time-step value                  */
+    int fix_gyrodef_nstep; /**< Time-step = gyrotime/fix_gyrodef_nstep if not
+                                explicitly user defined                       */
 
     /* Options - adaptive time-step */
     real ada_tol_orbfol;       /**< Tolerance for relative error in
@@ -93,25 +92,33 @@ typedef struct {
 
     /* Options - end conditions */
     int endcond_active;        /**< Bit array notating active end conditions  */
-    real endcond_maxSimTime;   /**< Maximum simulation time [s]               */
-    real endcond_maxCpuTime;   /**< Maximum wall-clock time [s]               */
-    real endcond_minRho;       /**< Minimum rho limit                         */
-    real endcond_maxRho;       /**< Maximum rho limit                         */
-    real endcond_minEkin;      /**< Fixed minimum kinetic energy limit [J]    */
-    real endcond_minEkinPerTe; /**< Thermal minimum energy limit is this
+    real endcond_max_simtime;  /**< Maximum simulation time [s]               */
+    real endcond_max_cputime;  /**< Maximum wall-clock time [s]               */
+    real endcond_min_rho;      /**< Minimum rho limit                         */
+    real endcond_max_rho;      /**< Maximum rho limit                         */
+    real endcond_min_ekin;     /**< Fixed minimum kinetic energy limit [J]    */
+    real endcond_min_thermal;  /**< Thermal minimum energy limit is this
                                     parameter times local thermal energy      */
-    real endcond_maxTorOrb;    /**< Maximum limit for toroidal distance [rad] */
-    real endcond_maxPolOrb;    /**< Maximum limit for poloidal distance [rad] */
+    real endcond_max_tororb;   /**< Maximum limit for toroidal distance [rad] */
+    real endcond_max_polorb;   /**< Maximum limit for poloidal distance [rad] */
 
     /* Metadata */
-    char hdf5_in[256];
-    char hdf5_out[256];
-    char outfn[256];
-    char qid[256];
-    char description[256];
+    char hdf5_in[256];     /**< Name of the input HDF5 file  */
+    char hdf5_out[256];    /**< Name of the output HDF5 file */
+    char qid[256];         /**< QID of current run           */
+    char description[256]; /**< Current run's description    */
 
-    int mpi_rank;
-    int mpi_size;
+    int mpi_rank; /**< Rank of this MPI process      */
+    int mpi_size; /**< Total number of MPI processes */
+
+    /* QIDs for inputs if the active inputs are not used */
+    char qid_options[256]; /* Options QID if active not used */
+    char qid_bfield[256];  /* Bfield QID if active not used  */
+    char qid_efield[256];  /* Efield QID if active not used  */
+    char qid_marker[256];  /* Marker QID if active not used  */
+    char qid_wall[256];    /* Wall QID if active not used    */
+    char qid_plasma[256];  /* Plasma QID if active not used  */
+    char qid_neutral[256]; /* Neutral QID if active not used */
 
 } sim_offload_data;
 
@@ -134,16 +141,21 @@ typedef struct {
     wall_data wall_data;       /**< Wall data interface                       */
     diag_data diag_data;       /**< Diagnostics data interface                */
 
+    /* Metadata */
+    random_data random_data;   /**< Random number generator                   */
+    mccc_data mccc_data;       /**< Tabulated special functions and collision
+                                    operator parameters                       */
+
     /* Options - general */
     int sim_mode;        /**< Which simulation mode is used                   */
     int enable_ada;      /**< Is adaptive time-step used                      */
-    int record_GOasGC;   /**< Is particles GC coordinates used in diagnostics */
+    int record_mode;     /**< Which record mode is used                       */
 
     /* Options - fixed time-step */
-    int fix_usrdef_use;  /**< Use user defined value for (initial) time-step  */
-    real fix_usrdef_val; /**< User defined time-step value                    */
-    int fix_stepsPerGO;  /**< Time-step = gyrotime/fix_stepsPerGO if not
-                              explicitly user defined                         */
+    int fix_usrdef_use;    /**< Use user defined value for (initial) time-step*/
+    real fix_usrdef_val;   /**< User defined time-step value                  */
+    int fix_gyrodef_nstep; /**< Time-step = gyrotime/fix_stepsPerGO if not
+                                explicitly user defined                       */
 
     /* Options - adaptive time-step */
     real ada_tol_orbfol;       /**< Tolerance for relative error in
@@ -168,22 +180,17 @@ typedef struct {
                                     from Coulomb collisions */
 
     /* Options - end conditions */
-    int endcond_active;        /**< Bit array notating active end conditions  */
-    real endcond_maxSimTime;   /**< Maximum simulation time [s]               */
-    real endcond_maxCpuTime;   /**< Maximum wall-clock time [s]               */
-    real endcond_minRho;       /**< Minimum rho limit                         */
-    real endcond_maxRho;       /**< Maximum rho limit                         */
-    real endcond_minEkin;      /**< Fixed minimum kinetic energy limit [J]    */
-    real endcond_minEkinPerTe; /**< Thermal minimum energy limit is this
-                                    parameter times local thermal energy      */
-    real endcond_maxTorOrb;    /**< Maximum limit for toroidal distance [rad] */
-    real endcond_maxPolOrb;    /**< Maximum limit for poloidal distance [rad] */
+    int endcond_active;       /**< Bit array notating active end conditions  */
+    real endcond_max_simtime; /**< Maximum simulation time [s]               */
+    real endcond_max_cputime; /**< Maximum wall-clock time [s]               */
+    real endcond_min_rho;     /**< Minimum rho limit                         */
+    real endcond_max_rho;     /**< Maximum rho limit                         */
+    real endcond_min_ekin;    /**< Fixed minimum kinetic energy limit [J]    */
+    real endcond_min_thermal; /**< Thermal minimum energy limit is this
+                                   parameter times local thermal energy      */
+    real endcond_max_tororb;  /**< Maximum limit for toroidal distance [rad] */
+    real endcond_max_polorb;  /**< Maximum limit for poloidal distance [rad] */
 
-    /* Metadata */
-    random_data random_data;   /**< Random number generator                   */
-    real* coldata;             /**< Look-up tables for collision operator if
-                                    collision coefficients are interpolated
-                                    and not calculated run-time               */
 } sim_data;
 
 void simulate_init_offload(sim_offload_data* sim);

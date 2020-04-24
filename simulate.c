@@ -15,7 +15,6 @@
 #include <string.h>
 #include <unistd.h>
 #include "endcond.h"
-#include "hdf5io/hdf5_orbits.h"
 #include "offload.h"
 #include "particle.h"
 #include "plasma.h"
@@ -26,7 +25,6 @@
 #include "simulate/simulate_gc_adaptive.h"
 #include "simulate/simulate_gc_fixed.h"
 #include "simulate/simulate_fo_fixed.h"
-#include "simulate/mccc/mccc_coefs.h"
 #include "simulate/mccc/mccc.h"
 #include "gctransform.h"
 
@@ -123,16 +121,12 @@ void simulate(int id, int n_particles, particle_state* p,
     wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
     diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
-            diag_offload_array);
+              diag_offload_array);
 
     /**************************************************************************/
     /* 2. Meta data (e.g. random number generator) is initialized.            */
     /*                                                                        */
     /**************************************************************************/
-
-    /* Initialize collision coefficients */
-    sim.coldata = NULL;
-    mccc_coefs_init(sim.coldata);
 
     /**************************************************************************/
     /* 3. Markers are put into simulation queue.                              */
@@ -192,7 +186,6 @@ void simulate(int id, int n_particles, particle_state* p,
             /******************************************************************/
             if(pq.n > 0 && (sim.sim_mode == simulate_mode_gc
                         || sim.sim_mode == simulate_mode_hybrid)) {
-                sim.diag_data.orbits.type = diag_orb_type_gc;
                 if(sim.enable_ada) {
                     #pragma omp parallel
                     simulate_gc_adaptive(&pq, &sim);
@@ -203,18 +196,11 @@ void simulate(int id, int n_particles, particle_state* p,
                 }
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_fo) {
-                if(sim.record_GOasGC) {
-                    sim.diag_data.orbits.type = diag_orb_type_gc;
-                }
-                else {
-                    sim.diag_data.orbits.type = diag_orb_type_fo;
-                }
 
                 #pragma omp parallel
                 simulate_fo_fixed(&pq, &sim);
             }
             else if(pq.n > 0 && sim.sim_mode == simulate_mode_ml) {
-                sim.diag_data.orbits.type = diag_orb_type_ml;
 
                 #pragma omp parallel
                 simulate_ml_adaptive(&pq, &sim);
@@ -224,10 +210,12 @@ void simulate(int id, int n_particles, particle_state* p,
         #pragma omp section
         {
 #if VERBOSE > 1
-            /* Update progress until simulation is complete. */
-            char filename[256];
-            sprintf(filename, "%s_%06d.stdout", sim_offload->outfn,
-                    sim_offload->mpi_rank);
+            /* Update progress until simulation is complete.             */
+            /* Trim .h5 from filename and replace it with _??????.stdout */
+            char filename[256], outfn[256];
+            strcpy(outfn, sim_offload->hdf5_out);
+            outfn[strlen(outfn)-3] = '\0';
+            sprintf(filename, "%s.stdout", outfn);
             sim_monitor(filename, &pq.n, &pq.finished);
 #endif
         }
@@ -241,11 +229,11 @@ void simulate(int id, int n_particles, particle_state* p,
     /*    progress is monitored as previously.                                */
     /*                                                                        */
     /**************************************************************************/
+    int n_new = 0;
     if(sim.sim_mode == simulate_mode_hybrid) {
 
         /* Determine the number markers that should be run
          * in fo after previous gc simulation */
-        int n_new = 0;
         for(int i = 0; i < pq.n; i++) {
             if(pq.p[i]->endcond == endcond_hybrid) {
                 /* Check that there was no wall between when moving from
@@ -263,27 +251,27 @@ void simulate(int id, int n_particles, particle_state* p,
             }
         }
 
-        if(n_new > 0) {
-        /* Reallocate and add "old" hybrid particles to the hybrid queue */
-            particle_state** tmp = pq_hybrid.p;
-            pq_hybrid.p = (particle_state**) malloc((pq_hybrid.n + n_new)
-                    * sizeof(particle_state*));
-            memcpy(pq_hybrid.p, tmp, pq_hybrid.n * sizeof(particle_state*));
-            free(tmp);
+    }
 
-            /* Add "new" hybrid particles and reset their end condition */
-            pq_hybrid.n += n_new;
-            for(int i = 0; i < pq.n; i++) {
-                if(pq.p[i]->endcond == endcond_hybrid) {
-                    pq.p[i]->endcond = 0;
-                    pq_hybrid.p[pq_hybrid.next++] = pq.p[i];
-                }
+    if(n_new > 0) {
+        /* Reallocate and add "old" hybrid particles to the hybrid queue */
+        particle_state** tmp = pq_hybrid.p;
+        pq_hybrid.p = (particle_state**) malloc((pq_hybrid.n + n_new)
+                                                * sizeof(particle_state*));
+        memcpy(pq_hybrid.p, tmp, pq_hybrid.n * sizeof(particle_state*));
+        free(tmp);
+
+        /* Add "new" hybrid particles and reset their end condition */
+        pq_hybrid.n += n_new;
+        for(int i = 0; i < pq.n; i++) {
+            if(pq.p[i]->endcond == endcond_hybrid) {
+                pq.p[i]->endcond = 0;
+                pq_hybrid.p[pq_hybrid.next++] = pq.p[i];
             }
         }
         pq_hybrid.next = 0;
 
-        sim.record_GOasGC = 1;//Make sure we don't collect fos in gc diagnostics
-        sim.diag_data.orbits.type = diag_orb_type_gc;
+        sim.record_mode = 1;//Make sure we don't collect fos in gc diagnostics
 
         #pragma omp parallel sections num_threads(2)
         {
@@ -296,9 +284,11 @@ void simulate(int id, int n_particles, particle_state* p,
             #pragma omp section
             {
 #if VERBOSE > 1
-                char filename[256];
-                sprintf(filename, "%s_%06d.stdout", sim_offload->outfn,
-                        sim_offload->mpi_rank);
+                /* Trim .h5 from filename and replace it with _??????.stdout */
+                char filename[256], outfn[256];
+                strcpy(outfn, sim_offload->hdf5_out);
+                outfn[strlen(outfn)-3] = '\0';
+                sprintf(filename, "%s.stdout", outfn);
                 sim_monitor(filename, &pq_hybrid.n, &pq_hybrid.finished);
 #endif
             }
@@ -310,16 +300,9 @@ void simulate(int id, int n_particles, particle_state* p,
     /*    to host.                                                            */
     /*                                                                        */
     /**************************************************************************/
-    free(sim.coldata);
     free(pq.p);
     free(pq_hybrid.p);
-
-    // Temporary solution
-#ifndef TARGET
-    hdf5_orbits_write(&sim, sim_offload->hdf5_out, sim_offload->qid);
-#endif
-
-    diag_clean(&sim.diag_data);
+    diag_free(&sim.diag_data);
 
     /**************************************************************************/
     /* 8. Execution returns to host where this function was called.           */
@@ -341,12 +324,6 @@ void simulate_init_offload(sim_offload_data* sim) {
     if(sim->disable_gctransform) {
         gctransform_setorder(0);
     }
-    if(sim->disable_energyccoll || sim->disable_pitchccoll
-       || sim->disable_gcdiffccoll) {
-        mccc_setoperator(!sim->disable_energyccoll,
-                         !sim->disable_pitchccoll,
-                         !sim->disable_gcdiffccoll);
-    }
 }
 
 /**
@@ -361,11 +338,11 @@ void simulate_init_offload(sim_offload_data* sim) {
 void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->sim_mode             = offload_data->sim_mode;
     sim->enable_ada           = offload_data->enable_ada;
-    sim->record_GOasGC        = offload_data->record_GOasGC;
+    sim->record_mode          = offload_data->record_mode;
 
     sim->fix_usrdef_use       = offload_data->fix_usrdef_use;
     sim->fix_usrdef_val       = offload_data->fix_usrdef_val;
-    sim->fix_stepsPerGO       = offload_data->fix_stepsPerGO;
+    sim->fix_gyrodef_nstep    = offload_data->fix_gyrodef_nstep;
 
     sim->ada_tol_orbfol       = offload_data->ada_tol_orbfol;
     sim->ada_tol_clmbcol      = offload_data->ada_tol_clmbcol;
@@ -380,14 +357,18 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->disable_gcdiffccoll  = offload_data->disable_gcdiffccoll;
 
     sim->endcond_active       = offload_data->endcond_active;
-    sim->endcond_maxSimTime   = offload_data->endcond_maxSimTime;
-    sim->endcond_maxCpuTime   = offload_data->endcond_maxCpuTime;
-    sim->endcond_minRho       = offload_data->endcond_minRho;
-    sim->endcond_maxRho       = offload_data->endcond_maxRho;
-    sim->endcond_minEkin      = offload_data->endcond_minEkin;
-    sim->endcond_minEkinPerTe = offload_data->endcond_minEkinPerTe;
-    sim->endcond_maxTorOrb    = offload_data->endcond_maxTorOrb;
-    sim->endcond_maxPolOrb    = offload_data->endcond_maxPolOrb;
+    sim->endcond_max_simtime  = offload_data->endcond_max_simtime;
+    sim->endcond_max_cputime  = offload_data->endcond_max_cputime;
+    sim->endcond_min_rho      = offload_data->endcond_min_rho;
+    sim->endcond_max_rho      = offload_data->endcond_max_rho;
+    sim->endcond_min_ekin     = offload_data->endcond_min_ekin;
+    sim->endcond_min_thermal  = offload_data->endcond_min_thermal;
+    sim->endcond_max_tororb   = offload_data->endcond_max_tororb;
+    sim->endcond_max_polorb   = offload_data->endcond_max_polorb;
+
+    mccc_init(&sim->mccc_data, !sim->disable_energyccoll,
+              !sim->disable_pitchccoll, !sim->disable_gcdiffccoll);
+
 }
 
 /**
@@ -401,8 +382,8 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
  * to output file, along with time spent on simulation and estimated time
  * remaining for the simulation to finish.
  *
- * @param f pointer to file where progress is written. File is opened and closed
- *          outside this function
+ * @param filename pointer to file where progress is written. File is opened and
+ *        closed outside this function
  * @param n pointer to number of total markers in simulation queue
  * @param finished pointer to number of finished markers in simulation queue
  */

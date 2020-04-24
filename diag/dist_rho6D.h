@@ -16,9 +16,9 @@ typedef struct {
     real min_rho;     /**< value of lowest rho bin */
     real max_rho;     /**< value of highest rho bin */
 
-    int n_pol;        /**< number of poloidal angle bins */
-    real min_pol;     /**< value of lowest pol bin */
-    real max_pol;     /**< value of highest pol bin */
+    int n_theta;        /**< number of poloidal angle bins */
+    real min_theta;     /**< value of lowest theta bin */
+    real max_theta;     /**< value of highest theta bin */
 
     int n_phi;        /**< number of phi bins */
     real min_phi;     /**< value of lowest phi bin */
@@ -45,14 +45,17 @@ typedef struct {
     real max_q;       /**< value of highest charge bin */
 } dist_rho6D_offload_data;
 
+/**
+ * @brief Histogram parameters on target
+ */
 typedef struct {
     int n_rho;        /**< number of rho bins */
     real min_rho;     /**< value of lowest rho bin */
     real max_rho;     /**< value of highest rho bin */
 
-    int n_pol;        /**< number of poloidal angle bins */
-    real min_pol;     /**< value of lowest pol bin */
-    real max_pol;     /**< value of highest pol bin */
+    int n_theta;        /**< number of poloidal angle bins */
+    real min_theta;     /**< value of lowest theta bin */
+    real max_theta;     /**< value of highest theta bin */
 
     int n_phi;        /**< number of phi bins */
     real min_phi;     /**< value of lowest phi bin */
@@ -80,8 +83,6 @@ typedef struct {
 
     real* histogram;  /**< pointer to start of histogram array */
 } dist_rho6D_data;
-
-void dist_rho6D_sum(int start, int stop, real* array1, real* array2);
 
 #pragma omp declare target
 void dist_rho6D_init(dist_rho6D_data* dist_data, dist_rho6D_offload_data* offload_data,

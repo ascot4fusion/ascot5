@@ -1,7 +1,7 @@
 /**
  * @file mccc.h
- * @brief Header file for mccc.c
-*/
+ * @brief Header file for mccc package
+ */
 #ifndef MCCC_H
 #define MCCC_H
 
@@ -12,19 +12,41 @@
 #include "../../random.h"
 #include "mccc_wiener.h"
 
+/**
+ * @brief Defines minimum energy boundary condition
+ *
+ * This times local electron temperature is minimum energy boundary. If guiding
+ * center energy goes below this, it is mirrored to prevent collision
+ * coefficients from diverging.
+ */
+#define MCCC_CUTOFF 0.1
+
+/**
+ * @brief Parameters and data required to evaluate Coulomb collisions
+ */
+typedef struct {
+    int usetabulated;   /**< Use tabulated values for special functions    */
+    int include_energy; /**< Let collisions change energy                  */
+    int include_pitch;  /**< Let collisions change pitch                   */
+    int include_gcdiff; /**< Let collisions change guiding center position */
+} mccc_data;
+
 #pragma omp declare target
-void mccc_setoperator(int include_energy, int include_pitch,
-                      int include_gcdiff);
-void mccc_update_fo(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, real* coldata, 
-                    real* clogab, real* F, real* Dpara, real* Dperp, real* K, real* nu);
-void mccc_update_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* coldata,
-                    real* clogab, real* Dpara, real* DX, real* K, real* nu, real* dQ, real* dDpara);
-void mccc_collfreq_gc(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, real* coldata, 
-                      real* nu, int i);
-void mccc_step_fo_fixed(particle_simd_fo* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* coldata, real* h);
-void mccc_step_gc_fixed(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* coldata, real* h);
-void mccc_step_gc_adaptive(particle_simd_gc* p, B_field_data* Bdata, plasma_data* pdata, random_data* rdata, real* coldata, real* hin, real* hout, mccc_wienarr** w, real tol);
-void mccc_printerror(int err);
+
+void mccc_init(mccc_data* mdata, int include_energy, int include_pitch,
+               int include_gcdiff);
+int mccc_eval_coefs(real ma, real qa, real r, real phi, real z, real t,
+                    real* va, int nv, plasma_data* pdata, B_field_data* Bdata,
+                    real* F, real* Dpara, real* Dperp, real* K, real* nu,
+                    real* Q, real* dQ, real* dDpara, real* clog, real* mu0,
+                    real* mu1, real* dmu0);
+void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
+                   plasma_data* pdata, random_data* rdata, mccc_data* mdata);
+void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
+                   plasma_data* pdata, random_data* rdata, mccc_data* mdata);
+void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
+                      mccc_wienarr* wienarr, B_field_data* Bdata,
+                      plasma_data* pdata, random_data* rdata, mccc_data* mdata);
 #pragma omp end declare target
 
 #endif

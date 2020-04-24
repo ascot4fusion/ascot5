@@ -8,7 +8,7 @@
 #define B_2DS_H
 #include "../ascot5.h"
 #include "../error.h"
-#include "../spline/interp2D.h"
+#include "../spline/interp.h"
 
 /**
  * @brief 2D magnetic field parameters that will be offloaded to target
@@ -18,10 +18,8 @@ typedef struct {
     int n_z;                  /**< Number of z grid points                    */
     real r_min;               /**< Minimum R coordinate in the grid [m]       */
     real r_max;               /**< Maximum R coordinate in the grid [m]       */
-    real r_grid;              /**< R grid interval [m]                        */
     real z_min;               /**< Minimum z coordinate in the grid [m]       */
     real z_max;               /**< Maximum z coordinate in the grid [m]       */
-    real z_grid;              /**< z grid interval [m]                        */
     real psi0;                /**< Poloidal flux at magnetic axis [V*s*m^-1]  */
     real psi1;                /**< Poloidal flux at separatrix [V*s*m^-1]     */
     real axis_r;              /**< R coordinate of magnetic axis [m]          */
@@ -50,19 +48,19 @@ void B_2DS_free_offload(B_2DS_offload_data* offload_data, real** offload_array);
 void B_2DS_init(B_2DS_data* Bdata, B_2DS_offload_data* offload_data,
                 real* offload_array);
 #pragma omp declare simd uniform(Bdata)
-a5err B_2DS_eval_psi(real psi[], real r, real phi, real z, B_2DS_data* Bdata);
+a5err B_2DS_eval_psi(real* psi, real r, real phi, real z, B_2DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_2DS_eval_psi_dpsi(real psi_dpsi[], real r, real phi, real z,
+a5err B_2DS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
                           B_2DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_2DS_eval_rho(real rho[], real psi, B_2DS_data* Bdata);
+a5err B_2DS_eval_rho(real* rho, real psi, B_2DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_2DS_eval_rho_drho(real rho[], real r, real phi, real z,
+a5err B_2DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
                           B_2DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_2DS_eval_B(real B[], real r, real phi, real z, B_2DS_data* Bdata);
+a5err B_2DS_eval_B(real B[3], real r, real phi, real z, B_2DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_2DS_eval_B_dB(real B_dB[], real r, real phi, real z, B_2DS_data* Bdata);
+a5err B_2DS_eval_B_dB(real B_dB[12], real r, real phi, real z, B_2DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 real B_2DS_get_axis_r(B_2DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)

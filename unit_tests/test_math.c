@@ -8,10 +8,16 @@
 #include "../ascot5.h"
 #include "../math.h"
 
+/**
+ * Evaluate some mathematical function to be used for testing purposes
+ */
 double myfunc(double x){
   return sin(10*x)*exp(-x);
 }
 
+/**
+ * Main function for the test program.
+ */
 int main(void) {
   int i;
   srand48(0);

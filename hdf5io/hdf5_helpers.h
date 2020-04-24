@@ -22,6 +22,16 @@ int hdf5_read_int(const char* var, int* ptr, hid_t file, char* qid,
                   const char* errfile, int errline);
 int hdf5_read_long(const char* var, long* ptr, hid_t file, char* qid,
                    const char* errfile, int errline);
-herr_t  hdf5_write_string_attribute(hid_t loc, const char* path, const char* attrname,  const char* string);
+herr_t  hdf5_write_string_attribute(hid_t loc, const char* path,
+                                    const char* attrname,  const char* string);
+herr_t hdf5_write_extendible_dataset_double(hid_t group,
+                                            const char* datasetname,
+                                            int length, double* data);
+herr_t hdf5_write_extendible_dataset_long(hid_t group,
+                                          const char* datasetname,
+                                          int length, long* data);
+herr_t hdf5_write_extendible_dataset_int(hid_t group,
+                                         const char* datasetname,
+                                         int length, int* data);
 
 #endif

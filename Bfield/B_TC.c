@@ -49,22 +49,21 @@ int B_TC_init_offload(B_TC_offload_data* offload_data, real** offload_array) {
     offload_data->offload_array_length = 0;
     *offload_array = NULL;
 
-    print_out(VERBOSE_IO, "\nTrivial cartesian magnetic field (B_TC)\n");
-    print_out(VERBOSE_IO, "Magnetic axis at (R,z) = (%.1f,%.1f)\n",
-              offload_data->axisr, offload_data->axisz);
-    print_out(VERBOSE_IO, "psi = %.1f, rho = %.1f\n",
-              offload_data->psival, offload_data->rhoval);
-    print_out(VERBOSE_IO, "Magnetic field at origo\n"
-              "B_x = %.3f B_y = %.3f B_z = %.3f\n",
-              offload_data->B[0], offload_data->B[1], offload_data->B[2]);
-    print_out(VERBOSE_IO, "Magnetic field gradient\n"
-              "dB_x/dx = %.3f dB_x/dy = %.3f B_x/dz = %.3f\n",
-              offload_data->dB[0], offload_data->dB[1], offload_data->dB[2]);
     print_out(VERBOSE_IO,
-              "dB_y/dx = %.3f dB_y/dy = %.3f B_y/dz = %.3f\n",
-              offload_data->dB[3], offload_data->dB[4], offload_data->dB[5]);
-    print_out(VERBOSE_IO,
+              "\nTrivial cartesian magnetic field (B_TC)\n"
+              "Magnetic axis at (R,z) = (%.1f,%.1f)\n"
+              "psi = %.1f, rho = %.1f\n"
+              "Magnetic field at origo\n"
+              "B_x = %.3f B_y = %.3f B_z = %.3f\n"
+              "Magnetic field gradient\n"
+              "dB_x/dx = %.3f dB_x/dy = %.3f B_x/dz = %.3f\n"
+              "dB_y/dx = %.3f dB_y/dy = %.3f B_y/dz = %.3f\n"
               "dB_z/dx = %.3f dB_z/dy = %.3f B_z/dz = %.3f\n",
+              offload_data->axisr, offload_data->axisz,
+              offload_data->psival, offload_data->rhoval,
+              offload_data->B[0],  offload_data->B[1],  offload_data->B[2],
+              offload_data->dB[0], offload_data->dB[1], offload_data->dB[2],
+              offload_data->dB[3], offload_data->dB[4], offload_data->dB[5],
               offload_data->dB[6], offload_data->dB[7], offload_data->dB[8]);
 
     return 0;
@@ -122,7 +121,7 @@ a5err B_TC_eval_psi(real* psi, real r, real phi, real z,
 /**
  * @brief Evaluate poloidal flux psi and its derivatives
  *
- * @param psi pointer where psi [V*s*m^-1] and its derivatives will be stored
+ * @param psi_dpsi pointer for storing psi [V*s*m^-1] and its derivatives
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
@@ -130,12 +129,12 @@ a5err B_TC_eval_psi(real* psi, real r, real phi, real z,
  *
  * @return zero to indicate success
  */
-a5err B_TC_eval_psi_dpsi(real* psi, real r, real phi, real z,
-                   B_TC_data* Bdata) {
-    psi[0] = Bdata->psival;
-    psi[1] = 0;
-    psi[2] = 0;
-    psi[3] = 0;
+a5err B_TC_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
+                         B_TC_data* Bdata) {
+    psi_dpsi[0] = Bdata->psival;
+    psi_dpsi[1] = 0;
+    psi_dpsi[2] = 0;
+    psi_dpsi[3] = 0;
 
     return 0;
 }
@@ -144,9 +143,7 @@ a5err B_TC_eval_psi_dpsi(real* psi, real r, real phi, real z,
  * @brief Evaluate normalized poloidal flux rho
  *
  * @param rho pointer where rho value will be stored
- * @param r R coordinate [m]
- * @param phi phi coordinate [rad]
- * @param z z coordinate [m]
+ * @param psi poloidal flux value from which rho is evaluated
  * @param Bdata pointer to magnetic field data struct
  *
  * @return zero to indicate success
@@ -160,7 +157,7 @@ a5err B_TC_eval_rho(real* rho, real psi, B_TC_data* Bdata) {
 /**
  * @brief Evaluate normalized poloidal flux rho and its derivatives
  *
- * @param rho pointer where rho and its derivatives will be stored
+ * @param rho_drho pointer where rho and its derivatives will be stored
  * @param r R coordinate [m]
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
@@ -168,13 +165,13 @@ a5err B_TC_eval_rho(real* rho, real psi, B_TC_data* Bdata) {
  *
  * @return zero to indicate success
  */
-a5err B_TC_eval_rho_drho(real* rho, real r, real phi, real z,
+a5err B_TC_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
                          B_TC_data* Bdata) {
-    rho[0] = Bdata->rhoval;
+    rho_drho[0] = Bdata->rhoval;
 
-    rho[1] = 0;
-    rho[2] = 0;
-    rho[3] = 0;
+    rho_drho[1] = 0;
+    rho_drho[2] = 0;
+    rho_drho[3] = 0;
 
     return 0;
 }
@@ -184,13 +181,13 @@ a5err B_TC_eval_rho_drho(real* rho, real r, real phi, real z,
  *
  * @param B pointer to array where magnetic field values are stored
  * @param r R coordinate [m]
- * @param phi phi coordinate [deg]
+ * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
  * @param Bdata pointer to magnetic field data struct
  *
  * @return zero to indicate success
  */
-a5err B_TC_eval_B(real* B, real r, real phi,
+a5err B_TC_eval_B(real B[3], real r, real phi,
                  real z, B_TC_data* Bdata) {
     /* Find the Cartesian position and evaluate the field there */
     real xyz[3];
@@ -216,14 +213,14 @@ a5err B_TC_eval_B(real* B, real r, real phi,
  *
  * @param B_dB pointer to array where the field and its derivatives are stored
  * @param r R coordinate [m]
- * @param phi phi coordinate [deg]
+ * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
  * @param Bdata pointer to magnetic field data struct
  *
  * @return zero to indicate success
  */
-a5err B_TC_eval_B_dB(real* B_dB, real r, real phi, real z,
-                    B_TC_data* Bdata) {
+a5err B_TC_eval_B_dB(real B_dB[12], real r, real phi, real z,
+                     B_TC_data* Bdata) {
     /* Find the Cartesian position and evaluate the field there */
     real xyz[3];
     real rpz[3] = {r, phi, z};

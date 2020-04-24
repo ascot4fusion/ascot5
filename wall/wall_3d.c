@@ -20,17 +20,6 @@
 #include "../print.h"
 
 /**
- * @brief Load 3D wall data and prepare parameters
- *
- * The input file contains an integer giving the number of wall triangles
- * followed by a list of coordinates for the corners of each triangle
- * (x1,y1,z1,x2,y2,z2,x3,y3,z3).
- *
- * The reading of the ASCOT4 input.wall_3d file has been moved into
- * ascot4_interface, so this function is now a dummy.
- *
- */
-/**
  * @brief Initialize 3D wall data and check inputs
  *
  * Before calling this function, the offload struct is expected to hold
@@ -50,18 +39,33 @@
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ *
+ * @return zero if initialization succeeded
  */
 int wall_3d_init_offload(wall_3d_offload_data* offload_data,
                          real** offload_array) {
 
+    /* Find min & max values of the volume occupied by the wall triangles. */
+    real xmin = (*offload_array)[0], xmax = (*offload_array)[0];
+    real ymin = (*offload_array)[1], ymax = (*offload_array)[1];
+    real zmin = (*offload_array)[2], zmax = (*offload_array)[2];
+    for(int i=0; i<offload_data->n*3; i++) {
+        xmin = fmin( xmin, (*offload_array)[i*3 + 0] );
+        xmax = fmax( xmax, (*offload_array)[i*3 + 0] );
+        ymin = fmin( ymin, (*offload_array)[i*3 + 1] );
+        ymax = fmax( ymax, (*offload_array)[i*3 + 1] );
+        zmin = fmin( zmin, (*offload_array)[i*3 + 2] );
+        zmax = fmax( zmax, (*offload_array)[i*3 + 2] );
+    }
+
     /* Add a little bit of padding so we don't need to worry about triangles
        clipping the edges */
-    offload_data->xmin -= 0.1;
-    offload_data->xmax += 0.1;
-    offload_data->ymin -= 0.1;
-    offload_data->ymax += 0.1;
-    offload_data->zmin -= 0.1;
-    offload_data->zmax += 0.1;
+    offload_data->xmin = xmin - 0.1;
+    offload_data->xmax = xmax + 0.1;
+    offload_data->ymin = ymin - 0.1;
+    offload_data->ymax = ymax + 0.1;
+    offload_data->zmin = zmin - 0.1;
+    offload_data->zmax = zmax + 0.1;
 
     /* Depth of the octree in which the triangles are sorted */
     offload_data->depth = WALL_OCTREE_DEPTH;
@@ -119,8 +123,6 @@ void wall_3d_free_offload(wall_3d_offload_data* offload_data,
  * @param w pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array offload array
- *
- * @return zero on success
  */
 void wall_3d_init(wall_3d_data* w, wall_3d_offload_data* offload_data,
                   real* offload_array) {
@@ -138,9 +140,6 @@ void wall_3d_init(wall_3d_data* w, wall_3d_offload_data* offload_data,
     w->ngrid = offload_data->ngrid;
     w->wall_tris = &offload_array[0];
     wall_3d_init_octree(w, offload_array);
-
-    /* old slow method */
-    /* wall_3d_init_tree(w, offload_array); */
 }
 
 /**
@@ -305,7 +304,7 @@ void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
  * @param r2 end point R coordinate [m]
  * @param phi2 end point phi coordinate [rad]
  * @param z2 end point z coordinate [rad]
- * @param w pointer to data struct on target
+ * @param wdata pointer to data struct on target
  *
  * @return wall element id if hit, zero otherwise
  */
@@ -380,7 +379,7 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
  * @param r2 end point R coordinate [m]
  * @param phi2 end point phi coordinate [rad]
  * @param z2 end point z coordinate [rad]
- * @param w pointer to data struct on target
+ * @param wdata pointer to data struct on target
  *
  * @return wall element id if hit, zero otherwise
  */
@@ -428,7 +427,7 @@ int wall_3d_hit_wall_full(real r1, real phi1, real z1, real r2, real phi2,
  * @return zero if not any part of the triangle is within the box
  */
 int wall_3d_tri_in_cube(real t1[3], real t2[3], real t3[3], real bb1[3],
-                           real bb2[3]) {
+                        real bb2[3]) {
     /* check if any point is inside the cube */
     if(bb1[0] <= t1[0] && t1[0] <= bb2[0]
         && bb1[1] <= t1[1] && t1[1] <= bb2[1]
@@ -565,7 +564,7 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
  * @param t1 xyz coordinates of first quad vertex [m]
  * @param t2 xyz coordinates of second quad vertex [m]
  * @param t3 xyz coordinates of third quad vertex [m]
- * @param t3 xyz coordinates of fourth quad vertex [m]
+ * @param t4 xyz coordinates of fourth quad vertex [m]
  *
  * @return Zero if no intersection, positive number otherwise
  */

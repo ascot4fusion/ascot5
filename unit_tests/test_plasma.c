@@ -8,9 +8,12 @@
 #include <string.h>
 #include "../math.h"
 #include "../plasma.h"
-#include "../hdf5io/hdf5_input.h"
+#include "../hdf5_interface.h"
 #include "../offload.h"
 
+/**
+ * Main function for the test program.
+ */
 int main(int argc, char** argv) {
 
     if(argc < 11) {
@@ -20,7 +23,6 @@ int main(int argc, char** argv) {
 
     FILE* f = fopen(argv[10], "w");
 
-    int err = 0;
     sim_offload_data sim;
     sim.mpi_rank = 0;
     sim.mpi_size = 1;
@@ -38,9 +40,15 @@ int main(int argc, char** argv) {
     strcpy(sim.hdf5_in, "ascot.h5");
     strcpy(sim.hdf5_out, "ascot");
 
-    err = hdf5_input(&sim, &B_offload_array, &E_offload_array, &plasma_offload_array, 
-                     &neutral_offload_array, &wall_offload_array, &p, &n);
-
+    hdf5_interface_read_input(&sim,
+                              hdf5_input_plasma,
+                              &B_offload_array,
+                              &E_offload_array,
+                              &plasma_offload_array,
+                              &neutral_offload_array,
+                              &wall_offload_array,
+                              &p,
+                              &n);
     /* Init plasma */
     offload_package offload_data;
     offload_init_offload(&offload_data, &offload_array);
@@ -54,7 +62,7 @@ int main(int argc, char** argv) {
 
     real rho, dens;
     for(rho = 0.0; rho <= 1.1; rho += 0.005) {
-        dens = plasma_eval_dens(rho, species, &data);
+        plasma_eval_dens(&dens, rho, 0, 0, 0, 0, species, &data);
         fprintf(f,"%le %le\n", rho, dens);
     }
 

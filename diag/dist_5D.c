@@ -1,6 +1,6 @@
 /**
- * @file distributions.c
- * @brief Distribution collecting and processing functions.
+ * @file dist_5D.c
+ * @brief 5D distribution collecting and processing functions.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +30,8 @@ unsigned long dist_5D_index(int i_r, int i_phi, int i_z, int i_vpara,
 
 /**
  * @brief Frees the offload data
+ *
+ * @param offload_data pointer to offload data struct
  */
 void dist_5D_free_offload(dist_5D_offload_data* offload_data) {
     offload_data->n_r = 0;
@@ -51,6 +53,10 @@ void dist_5D_free_offload(dist_5D_offload_data* offload_data) {
 
 /**
  * @brief Initializes distribution from offload data
+ *
+ * @param dist_data pointer to data struct
+ * @param offload_data pointer to offload data struct
+ * @param offload_array offload array
  */
 void dist_5D_init(dist_5D_data* dist_data, dist_5D_offload_data* offload_data,
                   real* offload_array) {
@@ -93,7 +99,8 @@ void dist_5D_init(dist_5D_data* dist_data, dist_5D_offload_data* offload_data,
  * avoid race conditions.
  *
  * @param dist pointer to distribution parameter struct
- * @param p pointer to SIMD particle struct
+ * @param p_f pointer to SIMD particle struct at the end of current time step
+ * @param p_i pointer to SIMD particle struct at the start of current time step
  */
 void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
                        particle_simd_fo* p_i) {
@@ -146,7 +153,7 @@ void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
             i_time[i] = floor((p_f->time[i] - dist->min_time)
                           / ((dist->max_time - dist->min_time) / dist->n_time));
 
-            i_q[i] = floor((p_f->charge[i] - dist->min_q)
+            i_q[i] = floor((p_f->charge[i]/CONST_E - dist->min_q)
                            / ((dist->max_q - dist->min_q) / dist->n_q));
 
             if(i_r[i]     >= 0  &&  i_r[i]     <= dist->n_r - 1      &&
@@ -180,14 +187,15 @@ void dist_5D_update_fo(dist_5D_data* dist, particle_simd_fo* p_f,
 }
 
 /**
- * @brief Update the histogram from full-orbit particles
+ * @brief Update the histogram from guiding center markers
  *
- * This function updates the histogram from the particle data. Bins are
+ * This function updates the histogram from the marker data. Bins are
  * calculated as vector op and histogram is updates as an atomic operation to
  * avoid race conditions.
  *
  * @param dist pointer to distribution parameter struct
- * @param p pointer to SIMD particle struct
+ * @param p_f pointer to SIMD gc struct at the end of current time step
+ * @param p_i pointer to SIMD gc struct at the start of current time step
  */
 void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
                        particle_simd_gc* p_i) {
@@ -234,7 +242,7 @@ void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
             i_time[i] = floor((p_f->time[i] - dist->min_time)
                           / ((dist->max_time - dist->min_time) / dist->n_time));
 
-            i_q[i] = floor((p_f->charge[i] - dist->min_q)
+            i_q[i] = floor((p_f->charge[i]/CONST_E - dist->min_q)
                            / ((dist->max_q - dist->min_q) / dist->n_q));
 
             if(i_r[i]     >= 0  &&  i_r[i]     <= dist->n_r - 1      &&
@@ -265,12 +273,5 @@ void dist_5D_update_gc(dist_5D_data* dist, particle_simd_gc* p_f,
             #pragma omp atomic
             dist->histogram[index] += weight[i];
         }
-    }
-}
-
-
-void dist_5D_sum(int start, int stop, real* array1, real* array2) {
-    for(int i = start; i < stop; i++) {
-        array1[i] += array2[i];
     }
 }

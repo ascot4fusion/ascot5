@@ -11,8 +11,10 @@
  * @brief Analytic magnetic field parameters that will be offloaded to target
  */
 typedef struct {
-    real R0;                  /**< Magnetic axis R coordinate                 */
-    real z0;                  /**< Magnetic axis z coordinate                 */
+    real R0;                  /**< Major radius R coordinate                  */
+    real z0;                  /**< Midplane z coordinate                      */
+    real raxis;               /**< Magnetic axis R coordinate                 */
+    real zaxis;               /**< Magnetic axis z coordinate                 */
     real B_phi0;              /**< On-axis toroidal field                     */
     real psi0;                /**< Poloidal flux at axis [V*s*m^-1]           */
     real psi1;                /**< Poloidal flux at separatrix [V*s*m^-1]     */
@@ -30,8 +32,10 @@ typedef struct {
  * @brief Analytic magnetic field parameters on the target
  */
 typedef struct {
-    real R0;                  /**< Magnetic axis R coordinate                 */
-    real z0;                  /**< Magnetic axis z coordinate                 */
+    real R0;                  /**< Major radius R coordinate                  */
+    real z0;                  /**< Midplane z coordinate                      */
+    real raxis;               /**< Magnetic axis R coordinate                 */
+    real zaxis;               /**< Magnetic axis z coordinate                 */
     real B_phi0;              /**< On-axis toroidal field                     */
     real psi0;                /**< Poloidal flux at axis [V*s*m^-1]           */
     real psi1;                /**< Poloidal flux at separatrix [V*s*m^-1]     */
@@ -51,18 +55,19 @@ void B_GS_free_offload(B_GS_offload_data* offload_data, real** offload_array);
 void B_GS_init(B_GS_data* Bdata, B_GS_offload_data* offload_data,
                real* offload_array);
 #pragma omp declare simd uniform(Bdata)
-a5err B_GS_eval_B(real B[], real r, real phi, real z, B_GS_data* Bdata);
+a5err B_GS_eval_B(real B[3], real r, real phi, real z, B_GS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_GS_eval_psi(real psi[], real r, real phi, real z, B_GS_data* Bdata);
+a5err B_GS_eval_psi(real* psi, real r, real phi, real z, B_GS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_GS_eval_psi_dpsi(real psi[], real r, real phi, real z, B_GS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
-a5err B_GS_eval_rho(real rho[], real psi, B_GS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
-a5err B_GS_eval_rho_drho(real rho_drho[], real r, real phi, real z,
+a5err B_GS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
                          B_GS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_GS_eval_B_dB(real B_dB[], real r, real phi, real z, B_GS_data* Bdata);
+a5err B_GS_eval_rho(real* rho, real psi, B_GS_data* Bdata);
+#pragma omp declare simd uniform(Bdata)
+a5err B_GS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
+                         B_GS_data* Bdata);
+#pragma omp declare simd uniform(Bdata)
+a5err B_GS_eval_B_dB(real B_dB[12], real r, real phi, real z, B_GS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 real B_GS_get_axis_r(B_GS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)

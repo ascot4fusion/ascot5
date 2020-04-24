@@ -41,6 +41,9 @@ typedef struct {
     real max_q;       /**< value of highest charge bin */
 } dist_5D_offload_data;
 
+/**
+ * @brief Histogram parameters on target
+ */
 typedef struct {
     int n_r;          /**< number of r bins */
     real min_r;       /**< value of lowest r bin */
@@ -72,8 +75,6 @@ typedef struct {
 
     real* histogram;  /**< pointer to start of histogram array */
 } dist_5D_data;
-
-void dist_5D_sum(int start, int stop, real* array1, real* array2);
 
 #pragma omp declare target
 void dist_5D_init(dist_5D_data* dist_data,

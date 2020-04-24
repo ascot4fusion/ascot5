@@ -7,8 +7,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../math.h"
-#include "../linint/linint3D.h"
+#include "../consts.h"
+#include "../linint/linint.h"
 
+/**
+ * Main function for the test program.
+ */
 int main(int argc, char** argv) {
 
     if(argc < 2) {
@@ -60,7 +64,7 @@ int main(int argc, char** argv) {
     for (int k = 0; k < n_phi*10; k++) {
         for (int j = 0; j < n_z*10; j++) {
             for (int i = 0; i < n_r*10; i++) {
-                linint3D_eval(&val, &str, r[i], phi[k], z[j]);
+                linint3D_eval_f(&val, &str, r[i], phi[k], z[j]);
                 fprintf(f,"%le %le %le %le\n", r[i], z[j], phi[k], val);
             }
         }

@@ -51,7 +51,7 @@
  * *.stdout files with each MPI process having dedicated file. See ascot5.h for
  * details.
  */
-#define _XOPEN_SOURCE 500
+#define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
 #include <getopt.h>
 #include <math.h>
 #ifdef MPI
@@ -76,8 +76,11 @@
 #include "offload.h"
 #include "gitver.h"
 
+#ifdef TRAP_FPE
+#include <fenv.h>
+#endif
+
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
-void generate_qid(char* qid);
 void marker_summary(particle_state* p, int n);
 
 /**
@@ -98,6 +101,22 @@ void marker_summary(particle_state* p, int n);
  */
 int main(int argc, char** argv) {
 
+#ifdef TRAP_FPE
+	/* This will raise floating point exceptions */
+    feenableexcept(FE_DIVBYZERO| FE_INVALID | FE_OVERFLOW);
+	/*
+	 * If you are hunting a specific exception, you can disable the exceptions in other parts
+	 * of the code by surrounding it with: */
+    /*
+     * fedisableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+     *  --- your  code here ---
+     * feenableexcept(FE_DIVBYZERO  | FE_INVALID | FE_OVERFLOW);
+     *
+     * */
+
+#endif
+
+
     /* Read and parse command line arguments */
     sim_offload_data sim;
     if( read_arguments(argc, argv, &sim) ) {
@@ -105,13 +124,10 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    /* Get MPI rank and set qid for the run.
-     * qid rules: The actual random unique qid is used in MPI or single-process
-     * runs. If this is a multi-process run (user-defined MPI rank and size),
-     * e.g. condor run, we set qid = 5 000 000 000 since 32 bit integers don't
-     * go that high. The actual qid is assigned when results are combined.*/
+    /* Get MPI rank and set qid for the run*/
     int mpi_rank, mpi_size;
-    char qid[] = "5000000000";
+    char qid[11];
+    hdf5_generate_qid(qid);
 
     if(sim.mpi_size == 0) {
 #ifdef MPI
@@ -122,13 +138,14 @@ int main(int argc, char** argv) {
         MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
         sim.mpi_rank = mpi_rank;
         sim.mpi_size = mpi_size;
-        generate_qid(qid);
 #else
         /* MPI was not included while compiling       */
         /* Give warning  and run a single process run */
         mpi_rank = 0;
         mpi_size = 1;
-        generate_qid(qid);
+        print_out(VERBOSE_MINIMAL,
+                  "Warning: compiled with MPI=0."
+                  "Proceeding as single process");
 #endif
     }
     else {
@@ -165,7 +182,12 @@ int main(int argc, char** argv) {
     real* wall_offload_array;
 
     /* Read input from the HDF5 file */
-    if( hdf5_interface_read_input(&sim, &B_offload_array, &E_offload_array,
+    if( hdf5_interface_read_input(&sim,
+                                  hdf5_input_options | hdf5_input_bfield |
+                                  hdf5_input_efield  | hdf5_input_plasma |
+                                  hdf5_input_neutral | hdf5_input_wall |
+                                  hdf5_input_marker,
+                                  &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
                                   &wall_offload_array, &p, &n) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
@@ -176,31 +198,40 @@ int main(int argc, char** argv) {
     };
     simulate_init_offload(&sim);
 
-    /* Pack offload data into single array */
+    /* Pack offload data into single array and free individual offload arrays */
+    /* B_offload_array is needed for marker evaluation and is freed later */
     real* offload_array;
     offload_package offload_data;
     offload_init_offload(&offload_data, &offload_array);
     offload_pack(&offload_data, &offload_array, B_offload_array,
                  sim.B_offload_data.offload_array_length);
+
     offload_pack(&offload_data, &offload_array, E_offload_array,
                  sim.E_offload_data.offload_array_length);
+    E_field_free_offload(&sim.E_offload_data, &E_offload_array);
+
     offload_pack(&offload_data, &offload_array, plasma_offload_array,
                  sim.plasma_offload_data.offload_array_length);
+    plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
+
     offload_pack(&offload_data, &offload_array, neutral_offload_array,
                  sim.neutral_offload_data.offload_array_length);
+    neutral_free_offload(&sim.neutral_offload_data, &neutral_offload_array);
+
     offload_pack(&offload_data, &offload_array, wall_offload_array,
                  sim.wall_offload_data.offload_array_length);
+    wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
 
     /* Initialize diagnostics offload data.
      * Separate arrays for host and target */
 #ifdef TARGET
     real* diag_offload_array_mic0;
     real* diag_offload_array_mic1;
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0, n);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1, n);
 #else
     real* diag_offload_array_host;
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host, n);
 #endif
 
     real diag_offload_array_size = sim.diag_offload_data.offload_array_length
@@ -240,6 +271,8 @@ int main(int argc, char** argv) {
     for(int i = 0; i < n; i++) {
         particle_input_to_state(&p[i], &ps[i], &Bdata);
     }
+    /* We can now free the Bfield offload array */
+    B_field_free_offload(&sim.B_offload_data, &B_offload_array);
     free(p-start_index); // Input markers are no longer required
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Estimated memory usage %.1f MB.\n",
@@ -348,6 +381,9 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_NORMAL, mpi_rank, "mic0 %lf s, mic1 %lf s, host %lf s\n",
         mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
 
+    /* Free input data */
+    offload_free_offload(&offload_data, &offload_array);
+
     /* Write endstate */
     if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n, ps) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
@@ -385,19 +421,10 @@ int main(int argc, char** argv) {
     }
 
     /* Free offload data */
-    goto CLEANUP_SUCCESS;
-
-CLEANUP_SUCCESS:
 
 #ifdef MPI
     MPI_Finalize();
 #endif
-
-    B_field_free_offload(&sim.B_offload_data, &B_offload_array);
-    E_field_free_offload(&sim.E_offload_data, &E_offload_array);
-    plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
-    wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
-    neutral_free_offload(&sim.neutral_offload_data, &neutral_offload_array);
 
 #ifdef TARGET
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
@@ -406,8 +433,6 @@ CLEANUP_SUCCESS:
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
 #endif
 
-    offload_free_offload(&offload_data, &offload_array);
-
     marker_summary(ps, n);
     free(ps);
 
@@ -415,17 +440,13 @@ CLEANUP_SUCCESS:
 
     return 0;
 
+
+/* Free resources in case simulation crashes */
 CLEANUP_FAILURE:
 
 #ifdef MPI
     MPI_Finalize();
 #endif
-
-    B_field_free_offload(&sim.B_offload_data, &B_offload_array);
-    E_field_free_offload(&sim.E_offload_data, &E_offload_array);
-    plasma_free_offload(&sim.plasma_offload_data, &plasma_offload_array);
-    wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
-    neutral_free_offload(&sim.neutral_offload_data, &neutral_offload_array);
 
 #ifdef TARGET
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
@@ -455,7 +476,7 @@ CLEANUP_FAILURE:
  * - sim->hdf5_out    = "out" (sim->hdf5_in is copied here)
  * - sim->mpi_rank    = 0
  * - sim->mpi_size    = 0
- * - sim->description = "-"
+ * - sim->desc        = "No description"
  *
  * If the arguments could not be parsed, this function returns a non-zero exit
  * value.
@@ -473,6 +494,13 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
         {"mpi_size", required_argument, 0, 3},
         {"mpi_rank", required_argument, 0, 4},
         {"d", required_argument, 0, 5},
+        {"options", required_argument, 0, 6},
+        {"bfield",  required_argument, 0, 7},
+        {"efield",  required_argument, 0, 8},
+        {"marker",  required_argument, 0, 9},
+        {"wall",    required_argument, 0, 10},
+        {"plasma",  required_argument, 0, 11},
+        {"neutral", required_argument, 0, 12},
         {0, 0, 0, 0}
     };
 
@@ -481,8 +509,14 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     sim->hdf5_out[0]    = '\0';
     sim->mpi_rank       = 0;
     sim->mpi_size       = 0;
-    sim->description[0] = '-';  // Simple \0 won't work with HDF5,
-    sim->description[1] = '\0'; // don't know why.
+    strcpy(sim->description, "No description.");
+    sim->qid_options[0] = '\0';
+    sim->qid_bfield[0]  = '\0';
+    sim->qid_efield[0]  = '\0';
+    sim->qid_marker[0]  = '\0';
+    sim->qid_wall[0]    = '\0';
+    sim->qid_plasma[0]  = '\0';
+    sim->qid_neutral[0] = '\0';
 
     // Read user input
     int c;
@@ -502,6 +536,27 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
                 break;
             case 5:
                 strcpy(sim->description, optarg);
+                break;
+            case 6:
+                strcpy(sim->qid_options, optarg);
+                break;
+            case 7:
+                strcpy(sim->qid_bfield, optarg);
+                break;
+            case 8:
+                strcpy(sim->qid_efield, optarg);
+                break;
+            case 9:
+                strcpy(sim->qid_marker, optarg);
+                break;
+            case 10:
+                strcpy(sim->qid_wall, optarg);
+                break;
+            case 11:
+                strcpy(sim->qid_plasma, optarg);
+                break;
+            case 12:
+                strcpy(sim->qid_neutral, optarg);
                 break;
             default:
                 // Unregonizable argument(s). Tell user how to run ascot5_main
@@ -542,33 +597,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
         // Both input and output files are given
         strcat(sim->hdf5_in, ".h5");
     }
-    strcpy(sim->outfn, sim->hdf5_out);
     return 0;
-}
-
-/**
- * @brief Generate an identification number for a run
- *
- * The identification number (QID) is a 32 bit unsigned integer represented in a
- * string format, i.e., by ten characters. QID is a random integer between 0 and
- * 4 294 967 295, and it is padded with leading zeroes in string representation.
- *
- * @param a pointer to 11 chars wide array where generated QID is stored
- */
-void generate_qid(char* qid) {
-
-    /* Seed random number generator with current time */
-    srand48( time(NULL) );
-
-    /* Generate a 32 bit random integer by generating signed 32 bit random
-     * integers with mrand48() and choosing the first one that is positive */
-    long int qint = -1;
-    while(qint < 0) {
-        qint = mrand48();
-    }
-
-    /* Convert the random number to a string format */
-    sprintf(qid, "%010lu", (long unsigned int)qint);
 }
 
 /**

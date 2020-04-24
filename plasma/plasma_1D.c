@@ -7,6 +7,7 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "../ascot5.h"
 #include "../error.h"
 #include "../consts.h"
@@ -21,21 +22,22 @@
  * initialized.
  *
  * The offload array is expected to hold plasma data as
- *   &(*offload_array)[0] = rho grid
- *   &(*offload_array)[n_rho] = electron temperature
- *   &(*offload_array)[n_rho*2] = ion temperature
- *   &(*offload_array)[n_rho*2 + n_rho*n_ions] = electron density
- *   &(*offload_array)[n_rho*2 + n_rho*n_ions + n_rho] = ion density
+ *   -                              [0] = rho grid
+ *   -                          [n_rho] = electron temperature [J]
+ *   -                        [n_rho*2] = ion temperature [J]
+ *   -         [n_rho*2 + n_rho*n_ions] = electron density [m^-3]
+ *   - [n_rho*2 + n_rho*n_ions + n_rho] = ion density [m^-3]
  *
  * Since this data requires no initialization, the only thing this function does
  * is that it prints some values as sanity check.
  *
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
+ *
+ * @return zero if initialization succes
  */
 int plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
                             real** offload_array) {
-    // Do no initialization
 
     int n_rho = offload_data->n_rho;
     int n_ions = offload_data->n_species -1;
@@ -51,29 +53,28 @@ int plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
     print_out(VERBOSE_IO,
               "     Electrons              %1.2le/%1.2le          "
               "        %1.2le/%1.2le       \n",
-              (*offload_array)[n_rho*2 + n_rho*n_ions],
-              (*offload_array)[n_rho*3 + n_rho*n_ions - 1],
-              (*offload_array)[n_rho] * CONST_KB / CONST_E,
-              (*offload_array)[n_rho*2-1] * CONST_KB / CONST_E);
+              (*offload_array)[n_rho*3],
+              (*offload_array)[n_rho*4 - 1],
+              (*offload_array)[n_rho] / CONST_E,
+              (*offload_array)[n_rho*2-1] / CONST_E);
     for(int i=0; i < n_ions; i++) {
         print_out(VERBOSE_IO,
                   "      %3d/%3d               %1.2le/%1.2le     "
                   "             %1.2le/%1.2le       \n",
-                  (int)(offload_data->charge[i+1]/CONST_E),
-                  (int)(offload_data->mass[i+1]/CONST_U),
-                  (*offload_array)[n_rho*(3+i) + n_rho*n_ions],
-                  (*offload_array)[n_rho*(4+i) + n_rho*n_ions - 1],
-                  (*offload_array)[n_rho*2] * CONST_KB / CONST_E,
-                  (*offload_array)[n_rho*3-1] * CONST_KB / CONST_E);
+                  (int)round(offload_data->charge[i+1]/CONST_E),
+                  (int)round(offload_data->mass[i+1]/CONST_U),
+                  (*offload_array)[n_rho*(4+i)],
+                  (*offload_array)[n_rho*(5+i) - 1],
+                  (*offload_array)[n_rho*2] / CONST_E,
+                  (*offload_array)[n_rho*3-1] / CONST_E);
     }
     real quasineutrality = 0;
     for(int k = 0; k <n_rho; k++) {
-        real ele_qdens = (*offload_array)[n_rho*2 + n_rho*n_ions + k] * CONST_E;
+        real ele_qdens = (*offload_array)[n_rho*3 + k] * CONST_E;
         real ion_qdens = 0;
         for(int i=0; i < n_ions; i++) {
             ion_qdens +=
-                (*offload_array)[n_rho*(3+i) + n_rho*n_ions + k]
-                * offload_data->charge[i+1];
+                (*offload_array)[n_rho*(4+i) + k] * offload_data->charge[i+1];
         }
         quasineutrality = fmax( quasineutrality,
                                 fabs( 1 - ion_qdens / ele_qdens ) );
@@ -104,29 +105,24 @@ void plasma_1D_free_offload(plasma_1D_offload_data* offload_data,
  * to the struct on target and sets the plasma data pointers to
  * correct offsets in the offload array.
  *
- * @param plasma_data pointer to data struct on target
+ * @param pls_data pointer to data struct on target
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to offload array
 */
-int plasma_1D_init(plasma_1D_data* pls_data,
+void plasma_1D_init(plasma_1D_data* pls_data,
                     plasma_1D_offload_data* offload_data,
                     real* offload_array) {
 
-    int err = 0;
-
     pls_data->n_rho = offload_data->n_rho;
     pls_data->n_species = offload_data->n_species;
-    int i;
-    for(i = 0; i < pls_data->n_species; i++) {
+
+    for(int i = 0; i < pls_data->n_species; i++) {
         pls_data->mass[i] = offload_data->mass[i];
         pls_data->charge[i] = offload_data->charge[i];
     }
-    pls_data->rho = &offload_array[0];
+    pls_data->rho  = &offload_array[0];
     pls_data->temp = &offload_array[pls_data->n_rho];
-    pls_data->dens = &offload_array[pls_data->n_rho
-                                  + pls_data->n_rho*pls_data->n_species];
-
-    return err;
+    pls_data->dens = &offload_array[pls_data->n_rho*3];
 }
 
 /**
@@ -135,21 +131,22 @@ int plasma_1D_init(plasma_1D_data* pls_data,
  * This function evaluates the temperature of a plasma species at the given
  * radial coordinate using linear interpolation.
  *
+ * @param temp pointer to where evaluated temperature [J] is stored
  * @param rho radial coordinate
  * @param species index of plasma species
- * @param plasma_data pointer to plasma data struct
+ * @param pls_data pointer to plasma data struct
+ *
+ * @return zero if evaluation succeeded
  */
-real plasma_1D_eval_temp(real rho, int species, plasma_1D_data* pls_data) {
+a5err plasma_1D_eval_temp(real* temp, real rho, int species,
+                          plasma_1D_data* pls_data) {
 
-    /* As the plasma data may be provided at irregular intervals, we must
-     * search for the correct grid index */
-    /** @todo Implement a more efficient search algorithm */
-    real p = 0;
+    a5err err = 0;
     if(rho < pls_data->rho[0]) {
-        p = pls_data->temp[species*pls_data->n_rho];
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
     }
     else if(rho >= pls_data->rho[pls_data->n_rho-1]) {
-        p = pls_data->temp[species*pls_data->n_rho + pls_data->n_rho - 1];
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
     }
     else {
         int i_rho = 0;
@@ -162,24 +159,34 @@ real plasma_1D_eval_temp(real rho, int species, plasma_1D_data* pls_data) {
 
         real p1 = pls_data->temp[species*pls_data->n_rho + i_rho];
         real p2 = pls_data->temp[species*pls_data->n_rho + i_rho+1];
-        p = p1 + t_rho * (p2 - p1);
+        temp[0] = p1 + t_rho * (p2 - p1);
     }
 
-    return p;
+    return err;
 }
 
 /**
  * @brief Evaluate plasma density
  *
- * @see plasma_1d_eval_temp
+ * This function evaluates the density of a plasma species at the given
+ * radial coordinate using linear interpolation.
+ *
+ * @param dens pointer to where evaluated density [m^-3] is stored
+ * @param rho radial coordinate
+ * @param species index of plasma species
+ * @param pls_data pointer to plasma data struct
+ *
+ * @return zero if evaluation succeeded
  */
-real plasma_1D_eval_dens(real rho, int species, plasma_1D_data* pls_data) {
-    real p = 0;
+a5err plasma_1D_eval_dens(real* dens, real rho, int species,
+                          plasma_1D_data* pls_data) {
+
+    a5err err = 0;
     if(rho < pls_data->rho[0]) {
-        p = pls_data->dens[species*pls_data->n_rho];
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
     }
     else if(rho >= pls_data->rho[pls_data->n_rho-1]) {
-        p = pls_data->dens[species*pls_data->n_rho + pls_data->n_rho - 1];
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
     }
     else {
         int i_rho = 0;
@@ -192,47 +199,33 @@ real plasma_1D_eval_dens(real rho, int species, plasma_1D_data* pls_data) {
 
         real p1 = pls_data->dens[species*pls_data->n_rho + i_rho];
         real p2 = pls_data->dens[species*pls_data->n_rho + i_rho+1];
-        p = p1 + t_rho * (p2 - p1);
+        dens[0] = p1 + t_rho * (p2 - p1);
     }
 
-    return p;
+    return err;
 }
 
 /**
  * @brief Evaluate plasma density and temperature for all species
  *
+ * This function evaluates the density and temperature of all plasma species at
+ * the given radial coordinate using linear interpolation.
+ *
+ * @param dens pointer to where interpolated densities [m^-3] are stored
+ * @param temp pointer to where interpolated temperatures [J] are stored
+ * @param rho radial coordinate
+ * @param pls_data pointer to plasma data struct
+ *
+ * @return zero if evaluation succeeded
  */
-a5err plasma_1D_eval_densandtemp(real rho, plasma_1D_data* pls_data,
-                                 real* dens, real* temp) {
+a5err plasma_1D_eval_densandtemp(real* dens, real* temp, real rho,
+                                 plasma_1D_data* pls_data) {
     a5err err = 0;
-    real p1, p2;
     if(rho < pls_data->rho[0]) {
-        for(int i = 0; i < pls_data->n_species; i++) {
-            dens[i] = pls_data->dens[i*pls_data->n_rho];
-
-            if(i < 2) {
-                /* Electron and ion temperature */
-                temp[i] = pls_data->temp[i*pls_data->n_rho];
-            }
-            else {
-                /* Temperature is same for all ion species */
-                temp[i] = temp[1];
-            }
-        }
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
     }
     else if(rho >= pls_data->rho[pls_data->n_rho-1]) {
-        for(int i = 0; i < pls_data->n_species; i++) {
-            dens[i] = pls_data->dens[i*pls_data->n_rho + pls_data->n_rho - 1];
-            if(i < 2) {
-                /* Electron and ion temperature */
-                temp[i] =
-                    pls_data->temp[i*pls_data->n_rho + pls_data->n_rho - 1];
-            }
-            else {
-                /* Temperature is same for all ion species */
-                temp[i] = temp[1];
-            }
-        }
+        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
     }
     else {
         int i_rho = 0;
@@ -244,6 +237,7 @@ a5err plasma_1D_eval_densandtemp(real rho, plasma_1D_data* pls_data,
         real t_rho = (rho - pls_data->rho[i_rho])
                  / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
 
+        real p1, p2;
         for(int i = 0; i < pls_data->n_species; i++) {
             p1 = pls_data->dens[i*pls_data->n_rho + i_rho];
             p2 = pls_data->dens[i*pls_data->n_rho + i_rho+1];
@@ -265,14 +259,35 @@ a5err plasma_1D_eval_densandtemp(real rho, plasma_1D_data* pls_data,
     return err;
 }
 
+/**
+ * @brief Return number of plasma species
+ *
+ * @param pls_data pointer to plasma data
+ *
+ * @return number of plasma species
+ */
 int plasma_1D_get_n_species(plasma_1D_data* pls_data) {
     return pls_data->n_species;
 }
 
-real* plasma_1D_get_species_mass(plasma_1D_data* pls_data) {
+/**
+ * @brief Return pointer to array storing species mass
+ *
+ * @param pls_data pointer to plasma data
+ *
+ * @return pointer to immutable MAX_SPECIES length array containing masses
+ */
+const real* plasma_1D_get_species_mass(plasma_1D_data* pls_data) {
     return pls_data->mass;
 }
 
-real* plasma_1D_get_species_charge(plasma_1D_data* pls_data) {
+/**
+ * @brief Return pointer to array storing species charge
+ *
+ * @param pls_data pointer to plasma data
+ *
+ * @return pointer to immutable MAX_SPECIES length array containing charges
+ */
+const real* plasma_1D_get_species_charge(plasma_1D_data* pls_data) {
     return pls_data->charge;
 }

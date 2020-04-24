@@ -1,5 +1,11 @@
 CC=h5pcc
 
+
+ifdef TRAP_FPE
+	DEFINES+=-DTRAP_FPE=$(TRAP_FPE)
+	CFLAGS+= -fsignaling-nans -ftrapping-math
+endif
+
 ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
 endif
@@ -14,6 +20,10 @@ else
 	DEFINES+=-DVERBOSE=1
 endif
 
+ifdef B_STS_CLAMP_RHO_NONNEGATIVE
+	DEFINES+=-DB_STS_CLAMP_RHO_NONNEGATIVE=$(B_STS_CLAMP_RHO_NONNEGATIVE)
+endif
+
 ifeq ($(SINGLEPRECISION),1)
 	DEFINES+=-DSINGLEPRECISION
 endif
@@ -26,7 +36,9 @@ endif
 ifeq ($(RANDOM),MKL)
 	DEFINES+=-DRANDOM_MKL
 	CFLAGS+=-mkl
-
+	ifdef RANDOM_MKL_RNG
+		DEFINES+=-DRANDOM_MKL_RNG=$(RANDOM_MKL_RNG)
+	endif
 else ifeq ($(RANDOM),GSL)
 	DEFINES+=-DRANDOM_GSL
 	CFLAGS+=-lgsl -lgslcblas
@@ -38,7 +50,11 @@ ifneq ($(CC),h5cc)
 	endif
 endif
 
-CFLAGS+=-lm -Wall -fopenmp -std=c99 $(DEFINES) $(FLAGS)
+CFLAGS+=-lm -Wall -fopenmp -fPIC -std=c11 $(DEFINES) $(FLAGS)
+
+# Write CFLAGS and CC to a file to be included into output
+$(shell echo "#define CFLAGS " $(CFLAGS) > compiler_flags.h)
+$(shell echo "#define CC " $(CC) >> compiler_flags.h)
 
 SIMDIR = simulate/
 SIMHEADERS = $(wildcard $(SIMDIR)simulate*.h)
@@ -85,7 +101,7 @@ LINTHEADERS =  $(wildcard $(LINTDIR)linint*.h)
 LINTOBJS = $(patsubst %.c,%.o,$(wildcard $(LINTDIR)linint*.c))
 
 SPLINEDIR = spline/
-SPLINEHEADERS  = $(wildcard $(SPLINEDIR)spline*.h $(SPLINEDIR)interp*.h)
+SPLINEHEADERS  = $(wildcard $(SPLINEDIR)spline.h $(SPLINEDIR)interp.h)
 SPLINEOBJS  = $(patsubst %.c,%.o,$(wildcard $(SPLINEDIR)spline*.c \
 						$(SPLINEDIR)interp*.c))
 
@@ -98,7 +114,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(PLSHEADERS) $(N0HEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h \
-	random.h print.h symmetry.h hdf5_interface.h mpi_interface.h
+	random.h print.h hdf5_interface.h suzuki.h nbi.h mpi_interface.h
 
 OBJS= math.o list.o octree.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -106,13 +122,13 @@ OBJS= math.o list.o octree.o error.c \
 	$(PLSOBJS) $(N0OBJS) $(LINTOBJS) $(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o offload.o \
-	random.o print.c symmetry.o hdf5_interface.o mpi_interface.c
+	random.o print.c hdf5_interface.o suzuki.o nbi.o mpi_interface.o
 
-BINS=test_math test_bsearch \
+BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 \
-	ascot5_main
+	test_spline ascot5_main bbnbi5
 
 ifdef NOGIT
 	DUMMY_GIT_INFO := $(shell touch gitver.h)
@@ -122,15 +138,18 @@ endif
 
 all: $(BINS)
 
-ascotpy: ascotpy.so
+libascot: libascot.so
 	true
 
-ascotpy.so: CFLAGS+=-shlib -fPIC -shared
+libascot.so: CFLAGS+=-shlib -fPIC -shared
 
-ascotpy.so: ascotpy.o $(OBJS)
+libascot.so: libascot.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+bbnbi5: bbnbi5.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 doc:
@@ -172,6 +191,12 @@ test_N0: $(UTESTDIR)test_N0.o $(OBJS)
 test_bsearch: $(UTESTDIR)test_bsearch.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
+test_nbi: $(UTESTDIR)test_nbi.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_spline: $(UTESTDIR)test_spline.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
 %.o: %.c $(HEADERS) Makefile
 	$(CC) -c -o $@ $< $(CFLAGS)
 
@@ -179,6 +204,6 @@ clean:
 	@rm -f *.o *.so *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
 		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o $(DIAGDIR)*.o \
 		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
-		$(N0DIR)*.o $(LINTDIR)*.o $(SPLINEDIR)*.o *.pyc
+		$(N0DIR)*.o $(LINTDIR)*.o $(SPLINEDIR)*.o $(UTESTDIR)*.o *.pyc
 	@rm -rf $(DOCDIR)
 	@rm -f gitver.h
