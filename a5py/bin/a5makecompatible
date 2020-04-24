@@ -5,16 +5,10 @@ import os
 
 import a5py.ascot5io.compatibility as comp
 
-if len(sys.argv) != 4:
-	print("This script converts ASCOT5 input files between ASCOT5 versions.")
-	print("The scripts takes three arguments:")
-	print("   input_filename output_filename old_file_version")   
-	print("  For example:  "+os.path.basename(sys.argv[0])+" existing_file.h5 new_copy.h5 1")   
-	print("     For the version, use x, from 5.x.")   
-	quit()
-	
-fnin  = sys.argv[1]
-fnout = sys.argv[2]
-ver   = int(sys.argv[3])
+if len(sys.argv) != 2:
+        print("Convert HDF5 file of the previous version to current version.")
+        quit()
 
-comp.convert_oldtonew(fnin, fnout, ver)
+fnin  = sys.argv[1]
+
+comp.convert(fnin)

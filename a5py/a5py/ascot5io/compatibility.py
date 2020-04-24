@@ -1,108 +1,98 @@
 """
 Make older ASCOT5 HDF5 files compatible with newer versions of ASCOT5.
 
+Whenever a new version is released, add a new function here that converts
+previous version to current version. Note that you might have to modify the HDF5
+directly as this tool should be independent of ascot5io (which is subject to
+changes).
+
+Also update the CURRENT_VERSION number.
+
 File compatibility.py
 """
 import h5py
 import numpy as np
 import tempfile
+import subprocess
 
-from . ascot5file  import add_group, get_qid, get_type, get_activeqid
-from . ascot5tools import call_ascot5file
-from . ascot5      import create_inputobject, create_outputobject
+## KEEP THIS UPDATED ##
+CURRENT_VERSION = 2
 
-def convert_oldtonew(fnin, fnout, oldver):
+def convert_oldtonew(fnin, origin, keeptemp=False):
+    """
+    Convert an old file to the current version.
 
-    fnfinal = fnout
-    newver = 2
-    while oldver < newver:
-        if oldver + 1 == newver:
-            fnout = fnfinal
-        else:
-            fnout, _ = tempfile.mkstemp()
+    The old file remains as it is, and the converted version will be named
+    fnin_{CURRENT_VERSION}.h5.
 
-        globals()["convert_" + str(oldver) + "to" + str(oldver+1)](fnin, fnout)
-        fnin = fnout
-        oldver += 1
+    If there are several versions between the current and the old version, the
+    conversion is done incrementally e.g. 1->2, 2->3, 3->4 etc.
+
+    ***********DEPRECATED*******************
+
+    Args:
+        fnin : str <br>
+            Name of the input file.
+        origin : int <br>
+            Version number of the old file.
+        keeptemp : bool, optional <br>
+            Flag whether the intermediate files are kept.
+    """
+
+    version = origin
+    fntemp = fnin
+    while version < CURRENT_VERSION:
+        fnout = fnin[:-3] + "_" + str(version+1) + ".h5"
+
+        # Make the version conversion.
+        funname = "convert_" + str(version) + "to" + str(version+1)
+        globals()[funname](fntemp, fnout)
+
+        if (not keeptemp) and (origin < version):
+            # TODO remove temporary files
+            pass
+
+        version += 1
+        fntemp  = fnout
 
 
 def convert_1to2(fnin, fnout):
+    """
+    Convert version 1 to 2.
 
-    # Store old and corresponding new QIDs in a dictionary
-    qids = {}
+    Changes:
+        - Add dummy NBI input to each run.
 
-    # It might not be possible to initialize Ascot object so we access HDF5 file
-    # directly.
-    with h5py.File(fnin, "r") as h5in:
-
-        # Create run groups in the target file if those exists in h5in
-        if "results" in h5in:
-            with h5py.File(fnout, "a") as h5out:
-                h5out.create_group("results")
-
-                for run in h5in["results"]:
-                    g = add_group(h5out, h5out["results"], "run")
-                    qids[get_qid(run)] = get_qid(g)
-
-                    ## Update metadata ##
-                    h5out["results"][g.name].attrs["description"] = \
-                        h5in["results"][run].attrs["description"]
-                    h5out["results"][g.name].attrs["date"] = \
-                        h5in["results"][run].attrs["date"]
-
-        for parent in h5in:
-            if parent == "results":
-                for run in h5in["results"]:
-                    newrun = "run_" + qids[get_qid(run)]
-
-                    ## Output groups ##
-                    for group in h5in["results"][run]:
-                        if group == "inistate" or group == "endstate":
-                            o = create_outputobject(group,
-                                                    h5in["results"][run][group],
-                                                    None)
-                            data = o.read()
-                            o.write(fnout, newrun, group, data)
-                        else:
-                            o = create_outputobject(group,
-                                                    h5in["results"][run][group],
-                                                    None)
-                            data = o.read()
-                            o.write(fnout, newrun, data)
-
-            else:
-                ## Input groups ##
-                for group in h5in[parent]:
-                    o = create_inputobject(get_type(group), h5in[parent][group])
-                    data = o.read()
-                    g = o.write(fnout, data)
-                    qids[o.get_qid()] = get_qid(g)
-
-                    with h5py.File(fnout, "a") as h5out:
-                        ## Update metadata ##
-                        h5out[parent][g].attrs["description"] = \
-                            h5in[parent][group].attrs["description"]
-                        h5out[parent][g].attrs["date"] = \
-                            h5in[parent][group].attrs["date"]
+    **** DEPRECATED ****
+    """
+    pass
 
 
-        ## Set relationships correctly ##
-        for parent in h5in:
-            oldqid = get_activeqid(h5in, parent)
-            newqid = qids[oldqid]
-            call_ascot5file(fnout, "set_activeqid", newqid)
+def convert(fnin):
+    """
+    Update version 1 HDF5 to version 2.
 
-        if "results" in h5in:
-            with h5py.File(fnout, "a") as h5out:
-                for run in h5in["results"]:
-                    newqid = qids[get_qid(run)]
-                    new = "results/run_"+newqid
-                    old = "results/" + run
+    - Adds dummy NBI input to existing runs.
+    """
+    from a5py.ascot5io.ascot5file import get_qid
+    from a5py.ascot5io.nbi import write_hdf5_dummy
 
-                    for field in ["CC", "CFLAGS", "repository"]:
-                        h5out[new].attrs[field] = h5in[old].attrs[field]
+    fnout = fnin[:-3] + "_" + str(CURRENT_VERSION) + ".h5"
 
-                    for field in ["bfield", "efield", "options", "plasma",
-                                  "wall", "neutral", "marker"]:
-                        h5out[new].attrs["qid_"+field] = \
-                            np.string_( qids[h5in[old].attrs["qid_"+field].decode('utf-8')] )
+    subprocess.call(["cp", fnin, fnout])
+
+    print("Adding a dummy NBI input group.")
+    qid = get_qid(write_hdf5_dummy(fnout))
+
+    print("Adding the dummy NBI input as a pseudo-input for existing runs.")
+    def wrapper():
+        with h5py.File(fnout, "a") as h5:
+            if not "results" in h5:
+                return
+
+            for run in h5["results"]:
+                h5["results"][run].attrs["qid_nbi"] = np.string_(qid)
+
+    wrapper()
+
+    print("Conversion complete.")
