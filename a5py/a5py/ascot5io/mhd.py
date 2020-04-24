@@ -152,17 +152,23 @@ def read_hdf5(fn, qid):
         Dictionary containing input data.
     """
 
-    path = "mhd/MHD_STAT" + qid
+    path = "mhd/MHD_STAT_" + qid
+    isstat = True
 
     out = {}
     with h5py.File(fn,"r") as f:
         if path not in f:
             path = "mhd/MHD_NONSTAT_" + qid
+            isstat = False
         for key in f[path]:
             out[key] = f[path][key][:]
 
-    out["alpha"] = np.transpose(out["alpha"], (2,1,0) )
-    out["phi"]   = np.transpose(out["phi"],   (2,1,0) )
+    if isstat:
+        out["alpha"] = np.transpose(out["alpha"], (1,0) )
+        out["phi"]   = np.transpose(out["phi"],   (1,0) )
+    else:
+        out["alpha"] = np.transpose(out["alpha"], (2,1,0) )
+        out["phi"]   = np.transpose(out["phi"],   (2,1,0) )
     return out
 
 
