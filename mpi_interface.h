@@ -99,5 +99,6 @@ const MPI_Datatype mpi_particlestate_types[35] = {mpi_type_real,
 */
 void mpi_interface_init(int argc, char** argv, int* mpi_rank, int* mpi_size);
 void mpi_my_particles(int* start_index, int* n, int ntotal, int mpi_rank, int mpi_size);
+particle_state* mpi_gather_particlestates(particle_state* ps, int ntotal, int mpi_rank, int mpi_size);
 
 #endif
