@@ -11,12 +11,32 @@
 #include "diag.h"
 #include "mpi_interface.h"
 #include "particle.h"
+#include "simulate.h"
 
-void mpi_interface_init(int argc, char** argv, int* mpi_rank, int* mpi_size) {
+void mpi_interface_init(int argc, char** argv, sim_offload_data* sim,
+                        int* mpi_rank, int* mpi_size) {
+#ifdef MPI
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
     MPI_Comm_rank(MPI_COMM_WORLD, mpi_rank);
     MPI_Comm_size(MPI_COMM_WORLD, mpi_size);
+    sim->mpi_rank = *mpi_rank;
+    sim->mpi_size = *mpi_size;
+#else
+    if(sim->mpi_size == 0) {
+        *mpi_rank = 0;
+        *mpi_size = 1;
+    } else {
+        *mpi_rank = sim->mpi_rank;
+        *mpi_size = sim->mpi_size;
+    }
+#endif
+}
+
+void mpi_interface_finalize() {
+#ifdef MPI
+    MPI_Finalize();
+#endif
 }
 
 void mpi_my_particles(int* start_index, int* n, int ntotal, int mpi_rank,
