@@ -8,7 +8,9 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include "ascot5.h"
+#include "diag.h"
 #include "mpi_interface.h"
+#include "particle.h"
 
 void mpi_interface_init(int argc, char** argv, int* mpi_rank, int* mpi_size) {
     int provided;
@@ -29,8 +31,8 @@ void mpi_my_particles(int* start_index, int* n, int ntotal, int mpi_rank,
     *start_index = mpi_rank * (ntotal / mpi_size);
 }
 
-particle_state* mpi_gather_particlestates(particle_state* ps, int ntotal, int mpi_rank,
-                               int mpi_size) {
+void mpi_gather_particlestate(particle_state* ps, particle_state* ps_all,
+                              int ntotal, int mpi_rank, int mpi_size) {
 /*
     MPI_Datatype mpi_type_tmp, mpi_type_particlestate;
     MPI_Aint lb, extent;
@@ -56,15 +58,12 @@ particle_state* mpi_gather_particlestates(particle_state* ps, int ntotal, int mp
         int start_index, n;
         mpi_my_particles(&start_index, &n, ntotal, mpi_rank, mpi_size);
 
-        particle_state* ps_all = (particle_state*) malloc(ntotal*sizeof(particle_state));
-
         for(int j = 0; j < n; j++) {
             ps_all[j] = ps[j];
         }
 
         for(int i = 1; i < mpi_size; i++) {
             mpi_my_particles(&start_index, &n, ntotal, i, mpi_size);
-            printf("%d %d %d %d %d\n", start_index, n, ntotal, i, mpi_size);
 
             real* realdata;
             realdata = malloc(n_real * n * sizeof(realdata));
@@ -122,8 +121,6 @@ particle_state* mpi_gather_particlestates(particle_state* ps, int ntotal, int mp
             free(intdata);
             free(errdata);
         }
-
-        return ps_all;
     }
     else {
 
@@ -182,8 +179,47 @@ particle_state* mpi_gather_particlestates(particle_state* ps, int ntotal, int mp
         free(realdata);
         free(intdata);
         free(errdata);
-
-        return (particle_state*) malloc(1);
     }
 
+}
+
+void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal, int mpi_rank, int mpi_size) {
+    int dist_size = data->offload_diagorb_index;
+
+    if(mpi_rank == 0) {
+        MPI_Reduce(MPI_IN_PLACE, offload_array,
+            dist_size, mpi_type_real, MPI_SUM,
+            0, MPI_COMM_WORLD);
+    } else {
+        MPI_Reduce(offload_array, offload_array,
+           dist_size, mpi_type_real, MPI_SUM,
+           0, MPI_COMM_WORLD);
+    }
+
+    if(data->diagorb_collect) {
+        if(mpi_rank == 0) {
+            for(int i = 1; i < mpi_size; i++) {
+                int start_index, n;
+                mpi_my_particles(&start_index, &n, ntotal, i, mpi_size);
+
+                for(int j = 0; j < data->diagorb.Nfld; j++) {
+                    MPI_Recv(&offload_array[dist_size
+                                        +j*data->diagorb.Nmrk*data->diagorb.Npnt
+                                        +start_index*data->diagorb.Npnt],
+                        n*data->diagorb.Npnt, mpi_type_real, i, 0,
+                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                }
+            }
+        }
+        else {
+            int start_index, n;
+            mpi_my_particles(&start_index, &n, ntotal, mpi_rank, mpi_size);
+
+            for(int j = 0; j < data->diagorb.Nfld; j++) {
+                MPI_Send(&offload_array[dist_size
+                                      +j*data->diagorb.Nmrk*data->diagorb.Npnt],
+                n*data->diagorb.Npnt, mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            }
+        }
+    }
 }
