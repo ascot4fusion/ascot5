@@ -15,6 +15,21 @@
 #include "particle.h"
 #include "simulate.h"
 
+/**
+ * @brief Initialize MPI
+ *
+ * This function initializes MPI and sets the mpi_rank and mpi_size
+ * accordingly. If compiled without MPI, mpi_rank and mpi_size given on
+ * command line are used. To be called before any other MPI calls.
+ *
+ * @todo Could be done more cleanly with custom datatypes
+ *
+ * @param argc count of the command line arguments
+ * @param argv pointers to the command line arguments
+ * @param sim pointer to simulation offload struct
+ * @param mpi_rank pointer to mpi_rank variable in main program
+ * @param mpi_size pointer to mpi_size variable in main program
+ */
 void mpi_interface_init(int argc, char** argv, sim_offload_data* sim,
                         int* mpi_rank, int* mpi_size) {
 #ifdef MPI
@@ -39,12 +54,30 @@ void mpi_interface_init(int argc, char** argv, sim_offload_data* sim,
 #endif
 }
 
+/**
+ * @brief Finalize MPI
+ *
+ * This function finalizes the MPI environment, to be called at the end of
+ * execution.
+ */
 void mpi_interface_finalize() {
 #ifdef MPI
     MPI_Finalize();
 #endif
 }
 
+/**
+ * @brief Divide markers to mpi processes
+ *
+ * This function divides ntotal markers evenly and returns the starting index
+ * and number of markers to be simulated for each process.
+ *
+ * @param start_index pointer to variable for starting index in input markers
+ * @param n pointer to variable for number of markers for this process
+ * @param ntotal total number of markers in the simulation
+ * @param mpi_rank rank of this MPI process
+ * @param mpi_size total number of MPI processes
+ */
 void mpi_my_particles(int* start_index, int* n, int ntotal, int mpi_rank,
                       int mpi_size) {
     if(mpi_rank == mpi_size-1) {
@@ -57,6 +90,19 @@ void mpi_my_particles(int* start_index, int* n, int ntotal, int mpi_rank,
     *start_index = mpi_rank * (ntotal / mpi_size);
 }
 
+/**
+ * @brief Gather all particle states to the root process
+ *
+ * This function gathers the particle states from each process to the array
+ * ps_all in the root process. The array ps_all should be allocated to hold
+ * all ntotal markers in the simulation.
+ *
+ * @param ps pointer to array particle states for this process
+ * @param ps_all pointer to array of particle states for all markers
+ * @param ntotal total number of markers in the simulation
+ * @param mpi_rank rank of this MPI process
+ * @param mpi_size total number of MPI processes
+ */
 void mpi_gather_particlestate(particle_state* ps, particle_state* ps_all,
                               int ntotal, int mpi_rank, int mpi_size) {
 #ifdef MPI
@@ -204,6 +250,19 @@ void mpi_gather_particlestate(particle_state* ps, particle_state* ps_all,
 #endif
 }
 
+/**
+ * @brief Gather all diagnostics to the root process
+ *
+ * This function gathers the distributions and orbits to the root process.
+ * Distributions are summed and orbit data is appended to the root process
+ * diagnostics array.
+ *
+ * @param diag_offload_data diagnostics offload data
+ * @param offload_array pointer to diagnostics offload array
+ * @param ntotal total number of markers in the simulation
+ * @param mpi_rank rank of this MPI process
+ * @param mpi_size total number of MPI processes
+ */
 void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal, int mpi_rank, int mpi_size) {
 #ifdef MPI
 
