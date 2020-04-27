@@ -5,7 +5,9 @@
 #ifndef MPI_INTERFACE_H
 #define MPI_INTERFACE_H
 
+#ifdef MPI
 #include <mpi.h>
+#endif
 #include "diag.h"
 #include "particle.h"
 #include "simulate.h"

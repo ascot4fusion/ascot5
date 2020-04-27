@@ -4,7 +4,9 @@
  *
  * This module provides interfaces for communication with MPI.
  */
+#ifdef MPI
 #include <mpi.h>
+#endif
 #include <stddef.h>
 #include <stdlib.h>
 #include "ascot5.h"
@@ -16,13 +18,16 @@
 void mpi_interface_init(int argc, char** argv, sim_offload_data* sim,
                         int* mpi_rank, int* mpi_size) {
 #ifdef MPI
+
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
     MPI_Comm_rank(MPI_COMM_WORLD, mpi_rank);
     MPI_Comm_size(MPI_COMM_WORLD, mpi_size);
     sim->mpi_rank = *mpi_rank;
     sim->mpi_size = *mpi_size;
+
 #else
+
     if(sim->mpi_size == 0) {
         *mpi_rank = 0;
         *mpi_size = 1;
@@ -30,6 +35,7 @@ void mpi_interface_init(int argc, char** argv, sim_offload_data* sim,
         *mpi_rank = sim->mpi_rank;
         *mpi_size = sim->mpi_size;
     }
+
 #endif
 }
 
@@ -53,6 +59,8 @@ void mpi_my_particles(int* start_index, int* n, int ntotal, int mpi_rank,
 
 void mpi_gather_particlestate(particle_state* ps, particle_state* ps_all,
                               int ntotal, int mpi_rank, int mpi_size) {
+#ifdef MPI
+
     const int n_real = 31;
     const int n_int = 3;
     const int n_err = 1;
@@ -184,9 +192,21 @@ void mpi_gather_particlestate(particle_state* ps, particle_state* ps_all,
         free(errdata);
     }
 
+#else
+
+    int start_index, n;
+    mpi_my_particles(&start_index, &n, ntotal, mpi_rank, mpi_size);
+
+    for(int j = 0; j < n; j++) {
+        ps_all[j] = ps[j];
+    }
+
+#endif
 }
 
 void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal, int mpi_rank, int mpi_size) {
+#ifdef MPI
+
     int dist_size = data->offload_diagorb_index;
 
     if(mpi_rank == 0) {
@@ -225,4 +245,6 @@ void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal, i
             }
         }
     }
+
+#endif
 }
