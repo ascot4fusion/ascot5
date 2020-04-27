@@ -53,23 +53,6 @@ void mpi_my_particles(int* start_index, int* n, int ntotal, int mpi_rank,
 
 void mpi_gather_particlestate(particle_state* ps, particle_state* ps_all,
                               int ntotal, int mpi_rank, int mpi_size) {
-/*
-    MPI_Datatype mpi_type_tmp, mpi_type_particlestate;
-    MPI_Aint lb, extent;
-
-    MPI_Type_create_struct(mpi_particlestate_count,
-        mpi_particlestate_blocklengths, mpi_particlestate_displacements,
-        mpi_particlestate_types, &mpi_type_tmp);
-    MPI_Type_get_extent(mpi_type_tmp, &lb, &extent);
-    MPI_Type_create_resized(mpi_type_tmp, lb, extent, &mpi_type_particlestate);
-    MPI_Type_commit(&mpi_type_particlestate);
-
-    int start_index, n;
-    mpi_my_particles(&start_index, &n, mpi_rank, mpi_size);
-
-    MPI_Gather(ps+start_index, n, mpi_type_particlestate, ps, n,
-        mpi_type_particlestate, 0, MPI_COMM_WORLD);
-*/
     const int n_real = 31;
     const int n_int = 3;
     const int n_err = 1;
