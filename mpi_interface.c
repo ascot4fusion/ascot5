@@ -22,8 +22,6 @@
  * accordingly. If compiled without MPI, mpi_rank and mpi_size given on
  * command line are used. To be called before any other MPI calls.
  *
- * @todo Could be done more cleanly with custom datatypes
- *
  * @param argc count of the command line arguments
  * @param argv pointers to the command line arguments
  * @param sim pointer to simulation offload struct
@@ -31,7 +29,7 @@
  * @param mpi_size pointer to mpi_size variable in main program
  */
 void mpi_interface_init(int argc, char** argv, sim_offload_data* sim,
-                        int* mpi_rank, int* mpi_size) {
+                        int* mpi_rank, int* mpi_size, int* mpi_root) {
 #ifdef MPI
 
     int provided;
@@ -40,6 +38,7 @@ void mpi_interface_init(int argc, char** argv, sim_offload_data* sim,
     MPI_Comm_size(MPI_COMM_WORLD, mpi_size);
     sim->mpi_rank = *mpi_rank;
     sim->mpi_size = *mpi_size;
+    *mpi_root = 0;
 
 #else
 
@@ -50,6 +49,7 @@ void mpi_interface_init(int argc, char** argv, sim_offload_data* sim,
         *mpi_rank = sim->mpi_rank;
         *mpi_size = sim->mpi_size;
     }
+    *mpi_root = *mpi_rank;
 
 #endif
 }
@@ -93,23 +93,30 @@ void mpi_my_particles(int* start_index, int* n, int ntotal, int mpi_rank,
 /**
  * @brief Gather all particle states to the root process
  *
- * This function gathers the particle states from each process to the array
- * ps_all in the root process. The array ps_all should be allocated to hold
- * all ntotal markers in the simulation.
+ * This function gathers the particle states from each process to an array
+ * in the root process. In condor-style execution only particle states for
+ * current process are stored. An allocated array for gathered particle states
+ * is stored in psgathered and number of states in ngathered.
+ *
+ * @todo Could be done more cleanly with custom datatypes
  *
  * @param ps pointer to array particle states for this process
- * @param ps_all pointer to array of particle states for all markers
+ * @param psgathered pointer to pointer to array where markers are gathered
+ * @param ngathered pointer to variable for number of gathered markers
  * @param ntotal total number of markers in the simulation
  * @param mpi_rank rank of this MPI process
  * @param mpi_size total number of MPI processes
  */
-void mpi_gather_particlestate(particle_state* ps, particle_state* ps_all,
-                              int ntotal, int mpi_rank, int mpi_size) {
+void mpi_gather_particlestate(particle_state* ps, particle_state** psgathered, 
+                              int* ngathered, int ntotal, int mpi_rank,
+                              int mpi_size, int mpi_root) {
 #ifdef MPI
 
     const int n_real = 31;
     const int n_int = 3;
     const int n_err = 1;
+
+    particle_state* ps_all = malloc(ntotal * sizeof(particle_state));
 
     if(mpi_rank == 0) {
         int start_index, n;
@@ -238,14 +245,23 @@ void mpi_gather_particlestate(particle_state* ps, particle_state* ps_all,
         free(errdata);
     }
 
+    *psgathered = ps_all;
+    *ngathered = ntotal;
+
 #else
 
     int start_index, n;
     mpi_my_particles(&start_index, &n, ntotal, mpi_rank, mpi_size);
 
+    /* Only store particles for this process in Condor-style execution */
+    particle_state* ps_all = malloc(n * sizeof(particle_state));
+
     for(int j = 0; j < n; j++) {
         ps_all[j] = ps[j];
     }
+
+    *psgathered = ps_all;
+    *ngathered = n;
 
 #endif
 }
@@ -263,7 +279,8 @@ void mpi_gather_particlestate(particle_state* ps, particle_state* ps_all,
  * @param mpi_rank rank of this MPI process
  * @param mpi_size total number of MPI processes
  */
-void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal, int mpi_rank, int mpi_size) {
+void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal,
+                     int mpi_rank, int mpi_size, int mpi_root) {
 #ifdef MPI
 
     int dist_size = data->offload_diagorb_index;

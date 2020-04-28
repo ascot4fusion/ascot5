@@ -123,11 +123,11 @@ int main(int argc, char** argv) {
     }
 
     /* Get MPI rank and set qid for the run*/
-    int mpi_rank, mpi_size;
     char qid[11];
     hdf5_generate_qid(qid);
 
-    mpi_interface_init(argc, argv, &sim, &mpi_rank, &mpi_size);
+    int mpi_rank, mpi_size, mpi_root;
+    mpi_interface_init(argc, argv, &sim, &mpi_rank, &mpi_size, &mpi_root);
 
     print_out0(VERBOSE_MINIMAL, mpi_rank,
                "ASCOT5_MAIN\n");
@@ -239,7 +239,7 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Marker states initialized.\n");
 
-    if(mpi_rank == 0) {
+    if(mpi_rank == mpi_root) {
         /* Initialize results group in the output file */
         print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
         if( hdf5_interface_init_results(&sim, qid) ) {
@@ -252,12 +252,16 @@ int main(int argc, char** argv) {
         strcpy(sim.qid, qid);
     }
 
-    particle_state* ps_all = malloc(n_tot * sizeof(particle_state));
-    mpi_gather_particlestate(ps, ps_all, n_tot, mpi_rank, mpi_size);
+    particle_state* ps_gathered;
+    int n_gathered;
 
-    if(mpi_rank == 0) {
+    mpi_gather_particlestate(ps, &ps_gathered, &n_gathered, n_tot,
+                             mpi_rank, mpi_size, mpi_root);
+
+    if(mpi_rank == mpi_root) {
         /* Write inistate */
-        if(hdf5_interface_write_state(sim.hdf5_out,"inistate",n_tot,ps_all)) {
+        if(hdf5_interface_write_state(sim.hdf5_out, "inistate", n_gathered, 
+                                      ps_gathered)) {
             print_out0(VERBOSE_MINIMAL, mpi_rank,
                        "\n"
                        "Writing inistate failed.\n"
@@ -269,6 +273,8 @@ int main(int argc, char** argv) {
         print_out0(VERBOSE_NORMAL, mpi_rank,
                    "\nInistate written.\n");
     }
+
+    free(ps_gathered);
 
     /* Divide markers among host and target */
 #ifdef TARGET
@@ -350,12 +356,14 @@ int main(int argc, char** argv) {
     /* Free input data */
     offload_free_offload(&offload_data, &offload_array);
 
-    mpi_gather_particlestate(ps, ps_all, n_tot, mpi_rank, mpi_size);
+    mpi_gather_particlestate(ps, &ps_gathered, &n_gathered, n_tot,
+                             mpi_rank, mpi_size, mpi_root);
 
-    if(mpi_rank == 0) {
+    if(mpi_rank == mpi_root) {
 
         /* Write endstate */
-        if( hdf5_interface_write_state(sim.hdf5_out,"endstate",n_tot,ps_all)) {
+        if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n_gathered,
+                                       ps_gathered)) {
             print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nWriting endstate failed.\n"
                    "See stderr for details.\n");
@@ -374,16 +382,17 @@ int main(int argc, char** argv) {
     diag_sum(&sim.diag_offload_data,
              diag_offload_array_mic0, diag_offload_array_mic1);
     mpi_gather_diag(&sim.diag_offload_data, diag_offload_array_mic0, n_tot,
-                    mpi_rank, mpi_size);
+                    mpi_rank, mpi_size, mpi_root);
 
-    if(mpi_rank == 0) {
+    if(mpi_rank == mpi_root) {
         err_writediag = hdf5_interface_write_diagnostics(&sim,
             diag_offload_array_mic0, sim.hdf5_out);
     }
 #else
-    mpi_gather_diag(&sim.diag_offload_data, diag_offload_array_host, n_tot, mpi_rank, mpi_size);
+    mpi_gather_diag(&sim.diag_offload_data, diag_offload_array_host, n_tot,
+                    mpi_rank, mpi_size, mpi_root);
 
-    if(mpi_rank == 0) {
+    if(mpi_rank == mpi_root) {
         err_writediag = hdf5_interface_write_diagnostics(&sim,
             diag_offload_array_host, sim.hdf5_out);
     }
@@ -411,12 +420,12 @@ int main(int argc, char** argv) {
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
 #endif
 
-    if(mpi_rank == 0) {
-        marker_summary(ps_all, n_tot);
+    if(mpi_rank == mpi_root) {
+        marker_summary(ps_gathered, n_gathered);
     }
 
     free(ps);
-    free(ps_all);
+    free(ps_gathered);
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone.\n");
 
@@ -438,7 +447,7 @@ CLEANUP_FAILURE:
     offload_free_offload(&offload_data, &offload_array);
 
     free(ps);
-    free(ps_all);
+    free(ps_gathered);
 
     abort();
     return 1;
