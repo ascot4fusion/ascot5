@@ -138,7 +138,7 @@ void plasma_1Dt_init(plasma_1Dt_data* pls_data,
  *
  * @return zero if evaluation succeeded
  */
-a5err plasma_1Dt_eval_temp(real* temp, real rho, int species,
+a5err plasma_1Dt_eval_temp(real* temp, real rho, real t, int species,
                           plasma_1Dt_data* pls_data) {
 
     /** @todo update for plasma_1Dt */
@@ -180,7 +180,7 @@ a5err plasma_1Dt_eval_temp(real* temp, real rho, int species,
  *
  * @return zero if evaluation succeeded
  */
-a5err plasma_1Dt_eval_dens(real* dens, real rho, int species,
+a5err plasma_1Dt_eval_dens(real* dens, real rho, real t, int species,
                            plasma_1Dt_data* pls_data) {
 
     /** @todo update for plasma_1Dt */
@@ -222,10 +222,8 @@ a5err plasma_1Dt_eval_dens(real* dens, real rho, int species,
  *
  * @return zero if evaluation succeeded
  */
-a5err plasma_1Dt_eval_densandtemp(real* dens, real* temp, real rho,
+a5err plasma_1Dt_eval_densandtemp(real* dens, real* temp, real rho, real t,
                                   plasma_1Dt_data* pls_data) {
-
-    /** @todo update for plasma_1Dt */
 
     a5err err = 0;
     if(rho < pls_data->rho[0]) {
@@ -244,16 +242,65 @@ a5err plasma_1Dt_eval_densandtemp(real* dens, real* temp, real rho,
         real t_rho = (rho - pls_data->rho[i_rho])
                  / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
 
-        real p1, p2;
+        int i_time = 0;
+        while(i_time < pls_data->n_time-1 && pls_data->time[i_time] <= t) {
+            i_time++;
+        }
+        i_time--;
+
+        real t_time = (t - pls_data->rho[i_rho])
+                 / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
+
+        if(i_time < 0) {
+            /* time < t[0], use first profile */
+            i_time = 0;
+            t_time = 0;
+        }
+        else if(i_time >= pls_data->n_time-1) {
+            /* time > t[n_time-1], use last profile */
+            i_time = pls_data->n_time-2;
+            t_time = 1;
+        }
+
         for(int i = 0; i < pls_data->n_species; i++) {
-            p1 = pls_data->dens[i*pls_data->n_rho + i_rho];
-            p2 = pls_data->dens[i*pls_data->n_rho + i_rho+1];
-            dens[i] = p1 + t_rho * (p2 - p1);
+            real p11, p12, p21, p22, p1, p2;
+
+            p11 = pls_data->dens[i_time*pls_data->n_species*pls_data->n_rho
+                                 + i*pls_data->n_rho
+                                 + i_rho];
+            p12 = pls_data->dens[i_time*pls_data->n_species*pls_data->n_rho
+                                 + i*pls_data->n_rho
+                                 + i_rho + 1];
+            p21 = pls_data->dens[(i_time+1)*pls_data->n_species*pls_data->n_rho 
+                                 + i*pls_data->n_rho
+                                 + i_rho];
+            p22 = pls_data->dens[(i_time+1)*pls_data->n_species*pls_data->n_rho 
+                                 + i*pls_data->n_rho
+                                 + i_rho + 1];
+            
+            p1 = p11 + t_rho * (p12 - p11);
+            p2 = p21 + t_rho * (p22 - p21);
+
+            dens[i] = p1 + t_time * (p2 - p1);
 
             if(i < 2) {
                 /* Electron and ion temperature */
-                p1 = pls_data->temp[i*pls_data->n_rho + i_rho];
-                p2 = pls_data->temp[i*pls_data->n_rho + i_rho+1];
+                p11 = pls_data->temp[i_time*2*pls_data->n_rho
+                                     + i*pls_data->n_rho
+                                     +i_rho];
+                p12 = pls_data->temp[i_time*2*pls_data->n_rho
+                                     + i*pls_data->n_rho
+                                     + i_rho + 1];
+                p21 = pls_data->temp[(i_time+1)*2*pls_data->n_rho
+                                     + i*pls_data->n_rho
+                                     + i_rho];
+                p22 = pls_data->temp[(i_time+1)*2*pls_data->n_rho
+                                     + i*pls_data->n_rho
+                                     + i_rho + 1];
+
+                p1 = p11 + t_rho * (p12 - p11);
+                p2 = p21 + t_rho * (p22 - p21);
+
                 temp[i] = p1 + t_rho * (p2 - p1);
             }
             else {
