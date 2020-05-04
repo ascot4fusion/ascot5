@@ -1,3 +1,4 @@
+
 # This file is suitable for using with conda environments.
 #
 # See for example:
@@ -26,7 +27,8 @@ dependencies:
       - scipy
       - matplotlib
       - h5py
-      # The next line installs a5py. Please update to the folder of the package
-      - -e /users/sjjamsa/ascot5/python/a5py
-
-
+      # One of the two next line installs a5py.
+      #    EITHER please update to the folder of the manually checked out package
+      # - -e /users/sjjamsa/ascot5/python/a5py
+      #    OR automatically checkout the latest version from git:
+      - "--editable=git+git@version.aalto.fi:ascot/python.git#egg=a5py&subdirectory=a5py"
