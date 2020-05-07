@@ -28,6 +28,7 @@
 #include "hdf5io/hdf5_state.h"
 #include "hdf5io/hdf5_dist.h"
 #include "hdf5io/hdf5_orbit.h"
+#include "hdf5io/hdf5_transcoef.h"
 
 /**
  * @brief Read and initialize input data
@@ -491,6 +492,15 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
         if( hdf5_orbit_write(f, qid, &sim->diag_offload_data.diagorb,
                              &diag_offload_array[idx]) ) {
             print_err("Warning: Orbit diagnostics could not be written.\n");
+        }
+    }
+
+    if(sim->diag_offload_data.diagtrcof_collect) {
+        print_out(VERBOSE_IO, "Writing transport coefficient diagnostics.\n");
+        int idx = sim->diag_offload_data.offload_diagtrcof_index;
+        if( hdf5_transcoef_write(f, qid, &sim->diag_offload_data.diagtrcof,
+                                 &diag_offload_array[idx]) ) {
+            print_err("Warning: Transport coefficients could not be written.\n");
         }
     }
 
