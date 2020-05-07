@@ -1,5 +1,4 @@
 /**
- * @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
  * @file simulate_ml_adaptive.c
  * @brief Simulate magnetic field-lines using adaptive time-step
  */
