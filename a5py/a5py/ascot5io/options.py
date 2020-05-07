@@ -241,16 +241,20 @@ def get_default():
     info.append(
         ("ENDCOND_SIMTIMELIM",
          """\
-         # Terminate when marker's clock ("laboratory") time reaches a limit
-         # The limit is set by ENDCOND_MAX_SIM_TIME
+         # Terminate when marker time exceeds ENDCOND_MAX_SIMTIME or when marker
+         # time has advanced ENDCOND_MAX_MILEAGE in a simulation. In other
+         # words, marker is terminated if t > ENDCOND_MAX_MILEAGE or
+         # t0 + t > ENDCOND_MAX_SIMTIME where t0 is marker's initial time and t
+         # the time it has been simulated. See also ENDCOND_CPUTIMELIM.
          """,
          1)
     )
     info.append(
         ("ENDCOND_CPUTIMELIM",
          """\
-         # Terminate when marker's cpu time reaches a limit
-         # The limit is set by ENDCOND_MAX_CPU_TIME
+         # Terminate marker when the computer has spent ENDCOND_MAX_CPUTIME
+         # amount of real time to simulate it. This limit should be rarely used
+         # as its intended use is in debugging to stop markers stuck in a loop.
          """,
          1)
     )
@@ -293,6 +297,13 @@ def get_default():
         ("ENDCOND_MAX_SIMTIME",
          """\
          # Maximum simulation time [s]
+         """,
+         1)
+    )
+    info.append(
+        ("ENDCOND_MAX_MILEAGE",
+         """\
+         # The maximum amount of time this marker is simulated [s]
          """,
          1)
     )
