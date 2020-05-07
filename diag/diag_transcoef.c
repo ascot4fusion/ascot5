@@ -76,7 +76,7 @@ void diag_transcoef_update_gc(diag_transcoef_data* data,
                     malloc(sizeof(diag_transcoef_link));
                 newlink->rho       = p_f->rho[i];
                 newlink->time      = p_f->time[i];
-                newlink->pitchsign = 1 - 2*(p_f->vpar[i] < 0);
+                newlink->pitchsign = 1 - 2*(p_f->ppar[i] < 0);
 
                 /* Store the link or make a new chain if the marker is new */
                 if( data->datapoints[p_f->index[i]] == NULL ) {
