@@ -54,13 +54,18 @@ void diag_transcoef_update_gc(diag_transcoef_data* data,
         /* Mask dummy markers */
         if( p_f->id[i] > 0 ) {
 
-            /* Check whether marker positin should be recorded */
+            /* Check whether marker position should be recorded: *
+             * - Time step was accepted t_f > t_i
+             * - Enough time has passed since last record t_f - ti > interval OR
+                 no data exists yet.
+             * - Marker has crossed OMP.
+             */
             real record = 0.0;
-            if( data->interval >= 0 &&
-                (p_f->time[i] - p_i->time[i]) > data->interval ) {
-                record = (p_f->time[i] - p_i->time[i]) / data->interval;
-            }
-            if( data->interval < 0 && p_f->time[i] > p_i->time[i] ) {
+            if( p_f->time[i] > p_i->time[i] &&
+                ( data->datapoints[p_f->index[i]] == NULL ||
+                  p_f->time[i] - data->datapoints[p_f->index[i]]->time
+                  > data->interval )
+                ) {
                 record = diag_transcoef_check_omp_crossing(
                     p_f->theta[i], p_i->theta[i]);
             }
