@@ -7,6 +7,7 @@
 #include "../../ascot5.h"
 #include "../../math.h"
 #include "../../consts.h"
+#include "../../physlib.h"
 #include "../../error.h"
 #include "../../B_field.h"
 #include "../../E_field.h"
@@ -35,23 +36,25 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
         if(p->running[i]) {
             a5err errflag = 0;
 
-            real R0 = p->r[i];
-            real z0 = p->z[i];
-            real t0 = p->time[i];
+            real R0   = p->r[i];
+            real z0   = p->z[i];
+            real t0   = p->time[i];
+            real mass = p->mass[i];
 
             /* Convert velocity to cartesian coordinates */
-            real vrpz[3] = {p->rdot[i], p->phidot[i]*p->r[i], p->zdot[i]};
-            real vxyz[3];
-            math_vec_rpz2xyz(vrpz, vxyz, p->phi[i]);
+            real prpz[3] = {p->p_r[i], p->p_phi[i], p->p_z[i]};
+            real pxyz[3];
+            math_vec_rpz2xyz(prpz, pxyz, p->phi[i]);
 
             real posrpz[3] = {p->r[i], p->phi[i], p->z[i]};
             real posxyz0[3],posxyz[3];
             math_rpz2xyz(posrpz,posxyz0);
 
             /* Take a half step and evaluate fields at that position */
-            posxyz[0] = posxyz0[0] + vxyz[0]*h[i]/2;
-            posxyz[1] = posxyz0[1] + vxyz[1]*h[i]/2;
-            posxyz[2] = posxyz0[2] + vxyz[2]*h[i]/2;
+            real gamma = physlib_gamma_pnorm(mass, math_norm(pxyz));
+            posxyz[0] = posxyz0[0] + pxyz[0] * h[i] / (2 * gamma * mass);
+            posxyz[1] = posxyz0[1] + pxyz[1] * h[i] / (2 * gamma * mass);
+            posxyz[2] = posxyz0[2] + pxyz[2] * h[i] / (2 * gamma * mass);
 
             math_xyz2rpz(posxyz,posrpz);
 
@@ -78,12 +81,10 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
 
                 /* Evaluate helper variable pminus */
                 real pminus[3];
-                real vnorm = math_norm(vxyz);
-                real gamma = sqrt(1 / ( (1 - vnorm/CONST_C)*(1 + vnorm/CONST_C) ));
                 real sigma = p->charge[i]*h[i]/(2*p->mass[i]*CONST_C);
-                pminus[0] = gamma*vxyz[0]/(CONST_C) + sigma*Exyz[0];
-                pminus[1] = gamma*vxyz[1]/(CONST_C) + sigma*Exyz[1];
-                pminus[2] = gamma*vxyz[2]/(CONST_C) + sigma*Exyz[2];
+                pminus[0] = pxyz[0] / (mass * CONST_C) + sigma * Exyz[0];
+                pminus[1] = pxyz[1] / (mass * CONST_C) + sigma * Exyz[1];
+                pminus[2] = pxyz[2] / (mass * CONST_C) + sigma * Exyz[2];
 
                 /* Second helper variable pplus*/
                 real d = (p->charge[i]*h[i]/(2*p->mass[i])) /
@@ -111,33 +112,32 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
                 pfinal[0] = pminus[0] + pplus[0] + sigma*Exyz[0];
                 pfinal[1] = pminus[1] + pplus[1] + sigma*Exyz[1];
                 pfinal[2] = pminus[2] + pplus[2] + sigma*Exyz[2];
-                gamma = sqrt(1/(1 + math_dot(pfinal,pfinal)));
 
-                vxyz[0] = pfinal[0]*CONST_C*gamma;
-                vxyz[1] = pfinal[1]*CONST_C*gamma;
-                vxyz[2] = pfinal[2]*CONST_C*gamma;
-
-                fposxyz[0] = posxyz[0] + h[i]*vxyz[0]/2;
-                fposxyz[1] = posxyz[1] + h[i]*vxyz[1]/2;
-                fposxyz[2] = posxyz[2] + h[i]*vxyz[2]/2;
+                pxyz[0] = pfinal[0] * mass * CONST_C;
+                pxyz[1] = pfinal[1] * mass * CONST_C;
+                pxyz[2] = pfinal[2] * mass * CONST_C;
             }
 
-            /* Test that the results are reasonable */
-            if(!errflag && ( posxyz[0] == 0 && posxyz[1] == 0 && posxyz[2] == 0 ))       {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_FO_VPA);}
-            if(!errflag && (vxyz[0]*vxyz[0]+vxyz[1]*vxyz[1]+vxyz[2]*vxyz[2]) > CONST_C2) {errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_FO_VPA);}
+            gamma = physlib_gamma_pnorm(mass, math_norm(pxyz));
+            fposxyz[0] = posxyz[0] + h[i] * pxyz[0] / (2 * gamma * mass);
+            fposxyz[1] = posxyz[1] + h[i] * pxyz[1] / (2 * gamma * mass);
+            fposxyz[2] = posxyz[2] + h[i] * pxyz[2] / (2 * gamma * mass);
 
             if(!errflag) {
                 /* Back to cylindrical coordinates */
                 p->r[i] = sqrt(fposxyz[0]*fposxyz[0]+fposxyz[1]*fposxyz[1]);
 
-                // We need to evaluate phi like this to make sure it is cumulative
-                p->phi[i] += atan2( posxyz0[0] * fposxyz[1] - posxyz0[1] * fposxyz[0], 
+                /* phi is evaluated like this to make sure it is cumulative */
+                p->phi[i] += atan2(
+                    posxyz0[0] * fposxyz[1] - posxyz0[1] * fposxyz[0],
                     posxyz0[0] * fposxyz[0] + posxyz0[1] * fposxyz[1] );
                 p->z[i] = fposxyz[2];
 
-                p->rdot[i] = vxyz[0] * cos(p->phi[i]) + vxyz[1] * sin(p->phi[i]);
-                p->phidot[i] = ( -vxyz[0] * sin(p->phi[i]) + vxyz[1] * cos(p->phi[i]) ) / p->r[i];
-                p->zdot[i] = vxyz[2];
+                real cosp = cos(p->phi[i]);
+                real sinp = sin(p->phi[i]);
+                p->p_r[i]   =  pxyz[0] * cosp + pxyz[1] * sinp;
+                p->p_phi[i] = -pxyz[0] * sinp + pxyz[1] * cosp;
+                p->p_z[i]   =  pxyz[2];
             }
 
             /* Evaluate magnetic field (and gradient) and rho at new position */

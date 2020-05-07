@@ -193,9 +193,9 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
     else {
         /* Value calculated from gyrotime */
         real Bnorm = math_normc( p->B_r[i], p->B_phi[i], p->B_z[i] );
-        real vnorm = math_normc( p->rdot[i], p->phidot[i]*p->r[i], p->zdot[i] );
+        real pnorm = math_normc( p->p_r[i], p->p_phi[i], p->p_z[i] );
         real gyrotime = CONST_2PI/
-            phys_gyrofreq_vnorm(p->mass[i], p->charge[i], vnorm, Bnorm);
+            phys_gyrofreq_pnorm(p->mass[i], p->charge[i], pnorm, Bnorm);
         h = gyrotime/sim->fix_gyrodef_nstep;
     }
 

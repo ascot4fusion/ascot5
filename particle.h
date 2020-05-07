@@ -41,15 +41,15 @@ typedef struct {
     real r;           /**< Guiding center R coordinate [m]                 */
     real phi;         /**< Guiding center phi coordinate [rad]             */
     real z;           /**< Guiding center z coordinate [m]                 */
-    real vpar;        /**< Parallel velocity [m/s]                         */
+    real ppar;        /**< Parallel momentum [kg m/s]                      */
     real mu;          /**< Magnetic moment [J/T]                           */
     real zeta;        /**< Gyroangle [rad]                                 */
     real rprt;        /**< Particle R coordinate [m]                       */
     real phiprt;      /**< Particle phi coordinate [phi]                   */
     real zprt;        /**< Particle z coordinate [m]                       */
-    real rdot;        /**< dr/dt [m/s]                                     */
-    real phidot;      /**< dphi/dt [rad/s]                                 */
-    real zdot;        /**< dz/dt [m/s]                                     */
+    real p_r;         /**< Momentum r component [kg m/s]                   */
+    real p_phi;       /**< Momentum phi component [kg m/s]                 */
+    real p_z;         /**< Momentum z component [kg m/s]                   */
     real mass;        /**< Mass [kg]                                       */
     real charge;      /**< Charge [C]                                      */
     int  anum;        /**< Atomic mass number of marker species            */
@@ -89,9 +89,9 @@ typedef struct {
     real r;      /**< R coordinate [m]                    */
     real phi;    /**< phi coordinate [rad]                */
     real z;      /**< z coordinate [m]                    */
-    real v_r;    /**< Velocity R-component [m/s]          */
-    real v_phi;  /**< Velocity phi-component [m/s]        */
-    real v_z;    /**< Velocity z-component [m/s]          */
+    real p_r;    /**< Momentum R-component [kg m/s]       */
+    real p_phi;  /**< Momentum phi-component [kg m/s]     */
+    real p_z;    /**< Momentum z-component [kg m/s]       */
     real mass;   /**< Mass [kg]                           */
     real charge; /**< Charge [C]                          */
     int  anum;   /**< Atomic mass number [1]              */
@@ -215,9 +215,9 @@ typedef struct {
     real r[NSIMD] __memalign__;       /**< Particle R coordinate [m]          */
     real phi[NSIMD] __memalign__;     /**< Particle phi coordinate [phi]      */
     real z[NSIMD] __memalign__;       /**< Particle z coordinate [m]          */
-    real rdot[NSIMD] __memalign__;    /**< dr/dt [m/s]                        */
-    real phidot[NSIMD] __memalign__;  /**< dphi/dt [rad/s]                    */
-    real zdot[NSIMD] __memalign__;    /**< dz/dt [m/s]                        */
+    real p_r[NSIMD] __memalign__;     /**< Momentum r coordinate [kg m/s]     */
+    real p_phi[NSIMD] __memalign__;   /**< Momentum phi coordinate [kg m/s]   */
+    real p_z[NSIMD] __memalign__;     /**< Momentum z coordinate [kg m/s]     */
     real mass[NSIMD] __memalign__;    /**< Mass [kg]                          */
     real charge[NSIMD] __memalign__;  /**< Charge [C]                         */
     real time[NSIMD] __memalign__;    /**< Marker simulation time [s]         */
@@ -281,7 +281,7 @@ typedef struct {
     real r[NSIMD] __memalign__;      /**< Guiding center R coordinate [m]     */
     real phi[NSIMD] __memalign__;    /**< Guiding center phi coordinate [phi] */
     real z[NSIMD] __memalign__;      /**< Guiding center z coordinate [m]     */
-    real vpar[NSIMD] __memalign__;   /**< Parallel velocity [m/s]             */
+    real ppar[NSIMD] __memalign__;   /**< Parallel momentum [kg m/s]          */
     real mu[NSIMD] __memalign__;     /**< Magnetic moment [J/T]               */
     real zeta[NSIMD] __memalign__;   /**< Gyroangle [rad]                     */
     real mass[NSIMD] __memalign__;   /**< Mass [kg]                           */
