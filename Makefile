@@ -1,5 +1,11 @@
 CC=h5pcc
 
+
+ifdef TRAP_FPE
+	DEFINES+=-DTRAP_FPE=$(TRAP_FPE)
+	CFLAGS+= -fsignaling-nans -ftrapping-math
+endif
+
 ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
 endif
@@ -12,6 +18,10 @@ ifdef VERBOSE
 	DEFINES+=-DVERBOSE=$(VERBOSE)
 else
 	DEFINES+=-DVERBOSE=1
+endif
+
+ifdef B_STS_CLAMP_RHO_NONNEGATIVE
+	DEFINES+=-DB_STS_CLAMP_RHO_NONNEGATIVE=$(B_STS_CLAMP_RHO_NONNEGATIVE)
 endif
 
 ifeq ($(SINGLEPRECISION),1)

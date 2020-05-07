@@ -76,6 +76,10 @@
 #include "offload.h"
 #include "gitver.h"
 
+#ifdef TRAP_FPE
+#include <fenv.h>
+#endif
+
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
 void marker_summary(particle_state* p, int n);
 
@@ -96,6 +100,22 @@ void marker_summary(particle_state* p, int n);
  * @return Zero if simulation was completed
  */
 int main(int argc, char** argv) {
+
+#ifdef TRAP_FPE
+	/* This will raise floating point exceptions */
+    feenableexcept(FE_DIVBYZERO| FE_INVALID | FE_OVERFLOW);
+	/*
+	 * If you are hunting a specific exception, you can disable the exceptions in other parts
+	 * of the code by surrounding it with: */
+    /*
+     * fedisableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+     *  --- your  code here ---
+     * feenableexcept(FE_DIVBYZERO  | FE_INVALID | FE_OVERFLOW);
+     *
+     * */
+
+#endif
+
 
     /* Read and parse command line arguments */
     sim_offload_data sim;
