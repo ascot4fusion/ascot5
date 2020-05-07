@@ -6,6 +6,7 @@
  * from the main program should be done using this module.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <hdf5.h>
@@ -533,3 +534,35 @@ int hdf5_get_active_qid(hid_t f, const char* group, char qid[11]) {
 
     return 0;
 }
+
+/**
+ * @brief Generate an identification number for a run
+ *
+ * The identification number (QID) is a 32 bit unsigned integer represented in a
+ * string format, i.e., by ten characters. QID is a random integer between 0 and
+ * 4 294 967 295, and it is padded with leading zeroes in string representation.
+ *
+ * @param qid a pointer to 11 chars wide array where generated QID is stored
+ */
+void hdf5_generate_qid(char* qid) {
+
+    /* Seed random number generator with current time */
+    struct timespec ts;
+#ifdef __MACH__
+    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+#else
+    timespec_get(&ts, TIME_UTC);
+#endif
+    srand48( ts.tv_nsec );
+
+    /* Generate a 32 bit random integer by generating signed 32 bit random
+     * integers with mrand48() and choosing the first one that is positive */
+    long int qint = -1;
+    while(qint < 0) {
+        qint = mrand48();
+    }
+
+    /* Convert the random number to a string format */
+    sprintf(qid, "%010lu", (long unsigned int)qint);
+}
+

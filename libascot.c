@@ -216,11 +216,11 @@ void libascot_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
         if( B_field_eval_psi(psival, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
             continue;
         }
+        psi[k] = psival[0];
         if( B_field_eval_rho(rhoval, psival[0], &sim.B_data) ) {
             continue;
         }
         rho[k] = rhoval[0];
-        psi[k] = psival[0];
     }
 }
 

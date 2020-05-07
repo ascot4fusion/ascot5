@@ -1,5 +1,11 @@
 CC=h5pcc
 
+
+ifdef TRAP_FPE
+	DEFINES+=-DTRAP_FPE=$(TRAP_FPE)
+	CFLAGS+= -fsignaling-nans -ftrapping-math
+endif
+
 ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
 endif
@@ -12,6 +18,10 @@ ifdef VERBOSE
 	DEFINES+=-DVERBOSE=$(VERBOSE)
 else
 	DEFINES+=-DVERBOSE=1
+endif
+
+ifdef B_STS_CLAMP_RHO_NONNEGATIVE
+	DEFINES+=-DB_STS_CLAMP_RHO_NONNEGATIVE=$(B_STS_CLAMP_RHO_NONNEGATIVE)
 endif
 
 ifeq ($(SINGLEPRECISION),1)
@@ -104,7 +114,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(PLSHEADERS) $(N0HEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h \
-	random.h print.h hdf5_interface.h
+	random.h print.h hdf5_interface.h suzuki.h nbi.h
 
 OBJS= math.o list.o octree.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -112,13 +122,13 @@ OBJS= math.o list.o octree.o error.c \
 	$(PLSOBJS) $(N0OBJS) $(LINTOBJS) $(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o offload.o \
-	random.o print.c hdf5_interface.o
+	random.o print.c hdf5_interface.o suzuki.o nbi.o
 
-BINS=test_math test_bsearch \
+BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 \
-	test_spline ascot5_main
+	test_spline ascot5_main bbnbi5
 
 ifdef NOGIT
 	DUMMY_GIT_INFO := $(shell touch gitver.h)
@@ -137,6 +147,9 @@ libascot.so: libascot.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+bbnbi5: bbnbi5.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 doc:
@@ -176,6 +189,9 @@ test_N0: $(UTESTDIR)test_N0.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_bsearch: $(UTESTDIR)test_bsearch.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_nbi: $(UTESTDIR)test_nbi.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_spline: $(UTESTDIR)test_spline.o $(OBJS)

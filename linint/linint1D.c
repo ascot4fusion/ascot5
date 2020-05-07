@@ -56,7 +56,7 @@ int linint1D_eval_f(real* f, linint1D_data* str, real x) {
     /**< Normalized x coordinate in current cell */
     real dx = ( x - (str->x_min + i_x*str->x_grid)) / str->x_grid;
 
-    int x1 = 1;   /* Index jump one r forward */
+    int x1 = 1;   /* Index jump one x forward */
 
     int err = 0;
 
