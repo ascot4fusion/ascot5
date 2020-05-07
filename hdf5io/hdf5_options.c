@@ -138,6 +138,9 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENDCOND_MAX_SIMTIME",
                          &sim->endcond_max_simtime,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
+     if( hdf5_read_double(OPTPATH "ENDCOND_MAX_MILEAGE",
+                         &sim->endcond_max_mileage,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "ENDCOND_MAX_CPUTIME",
                          &sim->endcond_max_cputime,
                          file, qid, __FILE__, __LINE__) ) {return 1;}

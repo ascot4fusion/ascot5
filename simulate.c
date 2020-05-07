@@ -358,6 +358,7 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
 
     sim->endcond_active       = offload_data->endcond_active;
     sim->endcond_max_simtime  = offload_data->endcond_max_simtime;
+    sim->endcond_max_mileage  = offload_data->endcond_max_mileage;
     sim->endcond_max_cputime  = offload_data->endcond_max_cputime;
     sim->endcond_min_rho      = offload_data->endcond_min_rho;
     sim->endcond_max_rho      = offload_data->endcond_max_rho;

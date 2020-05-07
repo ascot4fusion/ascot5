@@ -187,7 +187,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                         hin[i] = -hnext[i];
                     }
                     else {
-                        p.time[i] = p.time[i] + hin[i];
+                        p.time[i]    += hin[i];
+                        p.mileage[i] += hin[i];
 
                         if(hnext[i] > hout_orb[i]) {
                             /* Use time step suggested by the orbit-following

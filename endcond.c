@@ -91,6 +91,10 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                     p_f->endcond[i] |= endcond_tmax;
                     p_f->running[i] = 0;
                 }
+                if(p_f->mileage[i] > sim->endcond_max_mileage) {
+                    p_f->endcond[i] |= endcond_tmax;
+                    p_f->running[i] = 0;
+                }
             }
 
             /* Check, using the wall collision module, whether marker hit wall
@@ -216,6 +220,10 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
             /* Check if the marker time exceeds simulation time */
             if(active_tmax) {
                 if(p_f->time[i] > sim->endcond_max_simtime) {
+                    p_f->endcond[i] |= endcond_tmax;
+                    p_f->running[i] = 0;
+                }
+                if(p_f->mileage[i] > sim->endcond_max_mileage) {
                     p_f->endcond[i] |= endcond_tmax;
                     p_f->running[i] = 0;
                 }
@@ -349,6 +357,10 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
             /* Check if the marker time exceeds simulation time */
             if(active_tmax) {
                 if(p_f->time[i] > sim->endcond_max_simtime) {
+                    p_f->endcond[i] |= endcond_tmax;
+                    p_f->running[i] = 0;
+                }
+                if(p_f->mileage[i] > sim->endcond_max_mileage) {
                     p_f->endcond[i] |= endcond_tmax;
                     p_f->running[i] = 0;
                 }

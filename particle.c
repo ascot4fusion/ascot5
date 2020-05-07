@@ -84,6 +84,7 @@ void particle_to_fo_dummy(particle_simd_fo* p_fo, int j){
     p_fo->weight[j]   = 0;
     p_fo->time[j]     = 0;
     p_fo->id[j]       = -1;
+    p_fo->mileage[j]  = 0;
     p_fo->running[j]  = 0;
     p_fo->endcond[j]  = 0;
     p_fo->walltile[j] = 0;
@@ -120,6 +121,7 @@ void particle_to_gc_dummy(particle_simd_gc* p_gc, int j) {
     p_gc->time[j]       = 0;
     p_gc->weight[j]     = 0;
     p_gc->id[j]         = -1;
+    p_gc->mileage[j]    = 0;
     p_gc->B_r[j]        = 1;
     p_gc->B_r_dr[j]     = 1;
     p_gc->B_r_dphi[j]   = 1;
@@ -158,6 +160,7 @@ void particle_to_ml_dummy(particle_simd_ml* p_ml, int j){
     p_ml->z[j]          = 1;
     p_ml->time[j]       = 0;
     p_ml->id[j]         = -1;
+    p_ml->mileage[j]    = 0;
     p_ml->B_r[j]        = 1;
     p_ml->B_r_dr[j]     = 1;
     p_ml->B_r_dphi[j]   = 1;
@@ -523,6 +526,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->theta  = atan2(ps->zprt-B_field_get_axis_r(Bdata, ps->phiprt),
                                ps->rprt-B_field_get_axis_z(Bdata, ps->phiprt));
             ps->id       = id;
+            ps->mileage  = 0;
             ps->endcond  = 0;
             ps->walltile = 0;
             ps->cputime  = 0;
@@ -658,6 +662,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->theta    = atan2(ps->z-B_field_get_axis_z(Bdata, ps->phi),
                                  ps->r-B_field_get_axis_r(Bdata, ps->phi));
             ps->id       = id;
+            ps->mileage  = 0;
             ps->endcond  = 0;
             ps->walltile = 0;
             ps->cputime  = 0;
@@ -735,6 +740,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->endcond    = 0;
             ps->walltile   = 0;
             ps->cputime    = 0;
+            ps->mileage    = 0;
 
             ps->r          = p->p_ml.r;
             ps->phi        = p->p_ml.phi;
@@ -815,6 +821,7 @@ a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
         p_fo->id[j]         = p->id;
         p_fo->endcond[j]    = p->endcond;
         p_fo->walltile[j]   = p->walltile;
+        p_fo->mileage[j]    = p->mileage;
     }
 
     /* Magnetic field stored in state is for the gc position */
@@ -896,6 +903,7 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->endcond    = p_fo->endcond[j];
     p->walltile   = p_fo->walltile[j];
     p->cputime    = p_fo->cputime[j];
+    p->mileage    = p_fo->mileage[j];
 
     /* Particle to guiding center */
     real B_dB[15], psi[1], rho[1];
@@ -1021,6 +1029,7 @@ a5err particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc,
         p_gc->id[j]         = p->id;
         p_gc->endcond[j]    = p->endcond;
         p_gc->walltile[j]   = p->walltile;
+        p_gc->mileage[j]    = p->mileage;
 
         p_gc->B_r[j]        = p->B_r;
         p_gc->B_r_dr[j]     = p->B_r_dr;
@@ -1084,6 +1093,7 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
     p->theta      = p_gc->theta[j];
     p->endcond    = p_gc->endcond[j];
     p->walltile   = p_gc->walltile[j];
+    p->mileage    = p_gc->mileage[j];
 
     p->B_r        = p_gc->B_r[j];
     p->B_r_dr     = p_gc->B_r_dr[j];
@@ -1196,6 +1206,7 @@ a5err particle_state_to_ml(particle_state* p, int i, particle_simd_ml* p_ml,
         p_ml->theta[j]      = p->theta;
         p_ml->endcond[j]    = p->endcond;
         p_ml->walltile[j]   = p->walltile;
+        p_ml->mileage[j]    = p->mileage;
 
         p_ml->B_r[j]        = p->B_r;
         p_ml->B_r_dr[j]     = p->B_r_dr;
@@ -1269,6 +1280,7 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
     p->theta      = p_ml->theta[j];
     p->endcond    = p_ml->endcond[j];
     p->walltile   = p_ml->walltile[j];
+    p->mileage    = p_ml->mileage[j];
     p->err        = p_ml->err[j];
 
     p->B_r        = p_ml->B_r[j];

@@ -111,7 +111,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]) {
-                p.time[i] = p.time[i] + hin[i];
+                p.time[i]    += hin[i];
+                p.mileage[i] += hin[i];
                 p.cputime[i] += cputime - cputime_last;
             }
         }

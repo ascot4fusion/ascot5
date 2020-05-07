@@ -56,6 +56,7 @@ typedef struct {
     int  znum;        /**< Charge number of marker species                 */
     real weight;      /**< Marker weight                                   */
     real time;        /**< Marker simulation time [s]                      */
+    real mileage;     /**< Duration this marker has been simulated [s]     */
     real cputime;     /**< Marker wall-clock time [s]                      */
     real rho;         /**< Marker rho coordinate                           */
     real theta;       /**< Marker poloidal coordinate [rad]                */
@@ -97,6 +98,7 @@ typedef struct {
     int  znum;   /**< Charge number [1]                   */
     real weight; /**< Particle marker weight              */
     real time;   /**< Particle marker simulation time [s] */
+    real mileage; /**< Duration this marker has been simulated [s]     */
     integer id;  /**< Unique ID for the particle marker   */
 } particle;
 
@@ -250,6 +252,8 @@ typedef struct {
                                                hit the wall                   */
 
     /* Meta data */
+    real mileage[NSIMD] __memalign__;    /**< Duration this marker has been
+                                              simulated [s]                   */
     integer running[NSIMD] __memalign__; /**< Indicates whether this marker is
                                               currently simulated (1) or not  */
     a5err err[NSIMD] __memalign__;       /**< Error flag, zero if no error    */
@@ -314,6 +318,8 @@ typedef struct {
                                                hit the wall                   */
 
     /* Meta data */
+    real mileage[NSIMD] __memalign__;    /**< Duration this marker has been
+                                              simulated [s]                   */
     integer running[NSIMD] __memalign__; /**< Indicates whether this marker is
                                               currently simulated (1) or not  */
     a5err err[NSIMD] __memalign__;       /**< Error flag, zero if no error    */
@@ -376,6 +382,8 @@ typedef struct {
                                                hit the wall                   */
 
     /* Meta data */
+    real mileage[NSIMD] __memalign__;    /**< Duration this marker has been
+                                              simulated [s]                   */
     integer running[NSIMD] __memalign__; /**< Indicates whether this marker is
                                               currently simulated (1) or not  */
     a5err err[NSIMD] __memalign__;       /**< Error flag, zero if no error    */
