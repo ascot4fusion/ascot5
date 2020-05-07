@@ -19,8 +19,11 @@
 #include "../diag.h"
 #include "../B_field.h"
 #include "../E_field.h"
+<<<<<<< HEAD
 #include "../boozer.h"
 #include "../mhd.h"
+=======
+>>>>>>> develop
 #include "../plasma.h"
 #include "simulate_gc_adaptive.h"
 #include "step/step_gc_cashkarp.h"
@@ -111,6 +114,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
      * - Update diagnostics
      */
     while(n_running > 0) {
+<<<<<<< HEAD
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             /* Store marker states in case time step will be rejected */
@@ -151,6 +155,13 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             p0.B_z_dphi[i]   = p.B_z_dphi[i];
             p0.B_z_dz[i]     = p.B_z_dz[i];
 
+=======
+
+        /* Store marker states in case time step will be rejected */
+        #pragma omp simd
+        for(int i = 0; i < NSIMD; i++) {
+            particle_copy_gc(&p, i, &p0, i);
+>>>>>>> develop
             hout_orb[i] = DUMMY_TIMESTEP_VAL;
             hout_col[i] = DUMMY_TIMESTEP_VAL;
             hnext[i]    = DUMMY_TIMESTEP_VAL;
@@ -160,6 +171,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
         /* Cash-Karp method for orbit-following */
         if(sim->enable_orbfol) {
+<<<<<<< HEAD
             if(sim->enable_mhd) {
                 step_gc_cashkarp_mhd(&p, hin, hout_orb, tol_orb,
                                      &sim->B_data, &sim->E_data,
@@ -169,6 +181,11 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                 step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
                                  &sim->B_data, &sim->E_data);
             }
+=======
+            step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
+                             &sim->B_data, &sim->E_data);
+
+>>>>>>> develop
             /* Check whether time step was rejected */
             #pragma omp simd
             for(int i = 0; i < NSIMD; i++) {
@@ -215,6 +232,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                 }
 
                 /* Retrieve marker states in case time step was rejected */
+<<<<<<< HEAD
                 if(hnext[i] < 0){
                     p.r[i]        = p0.r[i];
                     p.phi[i]      = p0.phi[i];
@@ -254,6 +272,12 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
                     hin[i] = -hnext[i];
 
+=======
+                if(hnext[i] < 0) {
+                    particle_copy_gc(&p0, i, &p, i);
+
+                    hin[i] = -hnext[i];
+>>>>>>> develop
                 }
                 if(p.running[i]){
 

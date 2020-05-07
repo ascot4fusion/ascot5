@@ -21,6 +21,7 @@
 #include "neutral.h"
 #include "boozer.h"
 #include "mhd.h"
+#include "consts.h"
 
 #include "simulate/mccc/mccc.h"
 
@@ -253,11 +254,11 @@ void libascot_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
         if( B_field_eval_psi(psival, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
             continue;
         }
+        psi[k] = psival[0];
         if( B_field_eval_rho(rhoval, psival[0], &sim.B_data) ) {
             continue;
         }
         rho[k] = rhoval[0];
-        psi[k] = psival[0];
     }
 }
 
@@ -469,7 +470,7 @@ void libascot_plasma_eval_background(int Neval, real* R, real* phi, real* z,
         }
         for(int i=0; i<n_species; i++) {
             dens[k + i*Neval] = n[i];
-            temp[k + i*Neval] = T[i];
+            temp[k + i*Neval] = T[i]/CONST_E;
         }
     }
 }

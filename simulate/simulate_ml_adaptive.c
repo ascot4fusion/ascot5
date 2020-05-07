@@ -99,42 +99,11 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
      * - Check for end condition(s)
      */
     while(n_running > 0) {
+
+        /* Store marker states in case time step will be rejected */
         #pragma omp simd
         for(i = 0; i < NSIMD; i++) {
-            /* Store marker states in case time step will be rejected */
-            p0.r[i]          = p.r[i];
-            p0.phi[i]        = p.phi[i];
-            p0.z[i]          = p.z[i];
-            p0.pitch[i]      = p.pitch[i];
-
-            p0.time[i]       = p.time[i];
-            p0.dist[i]       = p.dist[i];
-            p0.cputime[i]    = p.cputime[i];
-            p0.rho[i]        = p.rho[i];
-            p0.weight[i]     = p.weight[i];
-            p0.theta[i]      = p.theta[i];
-
-            p0.id[i]         = p.id[i];
-            p0.running[i]    = p.running[i];
-            p0.endcond[i]    = p.endcond[i];
-            p0.walltile[i]   = p.walltile[i];
-
-            p0.B_r[i]        = p.B_r[i];
-            p0.B_phi[i]      = p.B_phi[i];
-            p0.B_z[i]        = p.B_z[i];
-
-            p0.B_r_dr[i]     = p.B_r_dr[i];
-            p0.B_r_dphi[i]   = p.B_r_dphi[i];
-            p0.B_r_dz[i]     = p.B_r_dz[i];
-
-            p0.B_phi_dr[i]   = p.B_phi_dr[i];
-            p0.B_phi_dphi[i] = p.B_phi_dphi[i];
-            p0.B_phi_dz[i]   = p.B_phi_dz[i];
-
-            p0.B_z_dr[i]     = p.B_z_dr[i];
-            p0.B_z_dphi[i]   = p.B_z_dphi[i];
-            p0.B_z_dz[i]     = p.B_z_dz[i];
-
+            particle_copy_ml(&p, i, &p0, i);
 
             hout[i] = DUMMY_STEP_VAL;
             hnext[i] = DUMMY_STEP_VAL;
@@ -151,6 +120,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
             else {
                 step_ml_cashkarp(&p, hin, hout, tol, &sim->B_data);
             }
+
             /* Check whether time step was rejected */
             #pragma omp simd
             for(i = 0; i < NSIMD; i++) {
@@ -183,36 +153,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 
                 /* Retrieve marker states in case time step was rejected */
                 if(hnext[i] < 0){
-                    p.r[i]          = p0.r[i];
-                    p.phi[i]        = p0.phi[i];
-                    p.z[i]          = p0.z[i];
-                    p.pitch[i]      = p0.pitch[i];
-
-                    p.time[i]       = p0.time[i];
-                    p.dist[i]       = p0.dist[i];
-                    p.rho[i]        = p0.rho[i];
-                    p.weight[i]     = p0.weight[i];
-                    p.theta[i]      = p0.theta[i];
-
-                    p.running[i]    = p0.running[i];
-                    p.endcond[i]    = p0.endcond[i];
-                    p.walltile[i]   = p0.walltile[i];
-
-                    p.B_r[i]        = p0.B_r[i];
-                    p.B_phi[i]      = p0.B_phi[i];
-                    p.B_z[i]        = p0.B_z[i];
-
-                    p.B_r_dr[i]     = p0.B_r_dr[i];
-                    p.B_r_dphi[i]   = p0.B_r_dphi[i];
-                    p.B_r_dz[i]     = p0.B_r_dz[i];
-
-                    p.B_phi_dr[i]   = p0.B_phi_dr[i];
-                    p.B_phi_dphi[i] = p0.B_phi_dphi[i];
-                    p.B_phi_dz[i]   = p0.B_phi_dz[i];
-
-                    p.B_z_dr[i]     = p0.B_z_dr[i];
-                    p.B_z_dphi[i]   = p0.B_z_dphi[i];
-                    p.B_z_dz[i]     = p0.B_z_dz[i];
+                    particle_copy_ml(&p0, i, &p, i);
                 }
 
                 /* Update simulation and cpu times */

@@ -626,7 +626,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
  * that defines a Poincare plane is between marker's initial and final angles
  * (of single timestep).
  *
- * @param fang marker initial angle in radians.
+ * @param fang marker final angle in radians.
  * @param iang marker initial angle in radians.
  * @param ang0 Poincare plane angle.
  *

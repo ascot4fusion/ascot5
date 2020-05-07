@@ -480,7 +480,7 @@ void gctransform_guidingcenter2particle(
     /* Choose whether to use first or zeroth order velocity transform */
 
     if(GCTRANSFORM_ORDER) {
-        mu   -= mu1;
+        mu   = fabs(mu - mu1);
         vpar -= vpar1;
         zeta -= zeta1;
         mu = fabs(mu);

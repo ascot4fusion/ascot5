@@ -42,7 +42,8 @@ int main(int argc, char** argv) {
     strcpy(sim.hdf5_in, "ascot.h5");
     strcpy(sim.hdf5_out, "ascot");
 
-    hdf5_interface_read_input(&sim, &B_offload_array, &E_offload_array,
+    hdf5_interface_read_input(&sim, hdf5_input_bfield,
+                              &B_offload_array, &E_offload_array,
                               &plasma_offload_array,
                               &neutral_offload_array,
                               &wall_offload_array, &p, &n);
@@ -53,7 +54,6 @@ int main(int argc, char** argv) {
     offload_pack(&offload_data, &offload_array, B_offload_array,
                  sim.B_offload_data.offload_array_length);
 
-    /* Set up particlestates on host, needs magnetic field evaluation */
     B_field_data Bdata;
     B_field_init(&Bdata, &sim.B_offload_data, B_offload_array);
 

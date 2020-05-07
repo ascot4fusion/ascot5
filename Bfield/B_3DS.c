@@ -20,14 +20,14 @@
  * bicubic splines. \f$\psi\f$ and \f$\mathbf{B}\f$ are given in separate grids.
  *
  * This module does no extrapolation so if queried value is outside the
- * \f$Rz\f$-grid an error is thrown. For \f$\phi\f$-grid, periodic boundary
- * conditions are used but it is user's responsibility to provide input
- * whose \f$\phi\f$-grid makes sense (in that it actually represents a periodic
- * field), i.e., \f$\phi_\mathrm{max}-\phi_\mathrm{min} = 2\pi/(N+1)\f$.
- * However, do note that in this module \f$\phi_\mathrm{max}\f$ is not the
- * "last" grid point but the second last, e.g. if \f$\phi_\mathrm{min}=0\f$
- * and \f$n_\phi = 360\f$, then \f$\phi_\mathrm{max}=359\f$ if periodicity is
- * \f$N=0\f$.
+ * \f$Rz\f$-grid an error is thrown. 
+ *
+ * The toroidal angle phi is treated as a periodic coordinate meaning that
+ * B(phi) = B(phi + N*(b_phimax - b_phimin)) being N the periodic number. 
+ * Do note that to avoid duplicate data, the last points in phi axis in B data
+ * are not at b_phimax, i.e. br[:,-1,:] != BR(phi=b_phimax). It is user's 
+ * responsibility to provide input whose \f$\phi\f$-grid makes sense (in 
+ * that it actually represents a periodic field).
  *
  * @see B_field.c
  */
@@ -74,11 +74,11 @@
  * B_3DS_offload_data.offload_array_length is set here.
  *
  * The offload array must contain the following data:
- * - offload_array[                     z*Bn_r*Bn_z + j*Bn_r + i]
+ * - offload_array[                     j*Bn_r*Bn_phi + z*Bn_r + i]
  *   = B_R(R_i, phi_z, z_j)   [T]
- * - offload_array[  Bn_r*Bn_z*Bn_phi + z*Bn_r*Bn_z + j*Bn_r + i]
- *   = B_phi(R_i, phi_z, z_j)   [T]
- * - offload_array[2*Bn_r*Bn_z*Bn_phi + z*Bn_r*Bn_z + j*Bn_r + i]
+ * - offload_array[  Bn_r*Bn_z*Bn_phi + j*Bn_r*Bn_phi + z*Bn_r + i]
+ *   = B_phi(R_i, phi_z, z_j) [T]
+ * - offload_array[2*Bn_r*Bn_z*Bn_phi + j*Bn_r*Bn_phi + z*Bn_r + i]
  *   = B_z(R_i, phi_z, z_j)   [T]
  * - offload_array[3*Bn_r*Bn_z*Bn_phi + j*n_r + i]
  *   = psi(R_i, z_j)   [V*s*m^-1]

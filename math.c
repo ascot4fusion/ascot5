@@ -8,9 +8,12 @@
 #include "ascot5.h"
 #include "math.h"
 
+#pragma omp declare target
+int rcomp(const void* a, const void* b);
 double math_simpson_helper(double (*f)(double), double a, double b, double eps,
                            double S, double fa, double fb, double fc,
                            int bottom);
+#pragma omp end declare target
 
 /**
  * @brief Convert a Jacobian from cylindrical to cartesian coordinates
