@@ -26,6 +26,8 @@ import a5py.ascot5io.wall_2D     as wall_2D
 import a5py.ascot5io.wall_3D     as wall_3D
 import a5py.ascot5io.ascot5tools as a5tools
 
+import a5py.preprocessing.psilims as psilims
+
 def read_markers(a4folder, h5fn):
     fname = a4folder + "input.particles"
     if (os.path.isfile(fname)):
@@ -90,30 +92,28 @@ def read_bfield(a4folder, h5fn):
             if (not "/bfield" in f):
                 return
         data = a4magn_bkg.read_magn_bkg_stellarator(fnameh5)
-        psilims = [0, 1]
+        psilim = [0, 1]
         temp_B_name = B_STS.write_hdf5(
             fn=h5fn,
             b_rmin=data['r'][0], b_rmax=data['r'][-1], b_nr=data['r'].size,
             b_zmin=data['z'][0], b_zmax=data['z'][-1], b_nz=data['z'].size,
             b_phimin=data['phi'][0], b_phimax=data['phi'][-1],
             b_nphi=data['phi'].size - 1,
-            psi0=psilims[0], psi1=psilims[1],
+            psi0=psilim[0], psi1=psilim[1],
             br=data['br'], bphi=data['bphi'], bz=data['bz'], psi=data['s'],
             axis_phimin=data['axis_phi'][0], axis_phimax=data['axis_phi'][-1],
             axis_nphi=data['axis_phi'].size-1,
             axisr=data['axis_r'], axisz=data['axis_z'])
         print("Searching for psiaxis and psisepx.")
         try:
-            psilims = a4magn_bkg.bfield_psi_lims(data, h5fn)
+            psilim = psilims.bfield_psi_lims(data, h5fn)
         except OSError:
             print("Error: Ascotpy initialization failed. "
                   "Is libascot.so is in current folder?")
-            print("Calculating interpolated limits for psiaxis and psisepx.")
-            print("This might take a while...")
-            psilims = a4magn_bkg.stellarator_psi_lims(data)
+            return
         # psi1 > 1 breaks plasma evaluation, so we only keep the lower limit
-        psilims = [psilims[0], 1]
-        print("New limits: [" + str(psilims[0]) + ", " + str(psilims[1]) + "]")
+        psilim = [psilim[0], 1]
+        print("New limits: [" + str(psilim[0]) + ", " + str(psilim[1]) + "]")
         a5tools.removegroup(h5fn, temp_B_name)
         B_STS.write_hdf5(
             fn=h5fn,
@@ -121,7 +121,7 @@ def read_bfield(a4folder, h5fn):
             b_zmin=data['z'][0], b_zmax=data['z'][-1], b_nz=data['z'].size,
             b_phimin=data['phi'][0], b_phimax=data['phi'][-1],
             b_nphi=data['phi'].size - 1,
-            psi0=psilims[0], psi1=psilims[1],
+            psi0=psilim[0], psi1=psilim[1],
             br=data['br'], bphi=data['bphi'], bz=data['bz'], psi=data['s'],
             axis_phimin=data['axis_phi'][0], axis_phimax=data['axis_phi'][-1],
             axis_nphi=data['axis_phi'].size-1,
@@ -171,16 +171,20 @@ def read_wall(a4folder, h5fn):
     if (os.path.isfile(fname)):
         data = a4wall_3d.read_wall_3d(fname)
         wall_3D.write_hdf5(
-            fn=h5fn, nelements=data['id'].size,
-            x1x2x3=data['x1x2x3'], y1y2y3=data['y1y2y3'], z1z2z3=data['z1z2z3'])
+            fn=h5fn, nelements=data["flag"].size,
+            x1x2x3=data['x1x2x3'], y1y2y3=data['y1y2y3'], z1z2z3=data['z1z2z3'],
+            desc='fromASCOT4',
+            flag=np.reshape(data['flag'],(data["flag"].size,1)))
     elif (os.path.isfile(fnameh5)):
         with h5py.File(fnameh5, 'r') as f:
             if (not "/wall" in f):
                 return
         data = a4wall_3d.read_wall_3d_hdf5(fnameh5)
         wall_3D.write_hdf5(
-            fn=h5fn, nelements=data['id'].size,
-            x1x2x3=data['x1x2x3'], y1y2y3=data['y1y2y3'], z1z2z3=data['z1z2z3'])
+            fn=h5fn, nelements=data["flag"].size,
+            x1x2x3=data['x1x2x3'], y1y2y3=data['y1y2y3'], z1z2z3=data['z1z2z3'],
+            desc='fromASCOT4',
+            flag=np.reshape(data['flag'],(data["flag"].size,1)))
 
 def run(a4folder, h5fn, overwrite=True):
     """

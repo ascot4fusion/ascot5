@@ -846,7 +846,7 @@ class Opt(AscotData):
         return read_hdf5(self._file, self.get_qid(), info=info)
 
 
-    def write(self, fn, data=None):
+    def write(self, fn, data=None,desc=None):
         if data is None:
             data = self.read()
 
@@ -861,4 +861,4 @@ class Opt(AscotData):
             if par not in defopt.keys():
                 del data[par]
 
-        return write_hdf5(fn, data)
+        return write_hdf5(fn, data,desc=desc)

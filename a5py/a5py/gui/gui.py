@@ -84,10 +84,12 @@ class GUI:
 
         try:
             self._ascotpy = ascotpy.Ascotpy(self._h5fn)
-        except Exception:
+        except OSError as err:
             messagebox.showwarning("Warning",
                                      "Could not initialize ascotpy.\n"
-                                   + "Some features are disabled.")
+                                   + "Some features are disabled.\n\n"
+                                   + " The error message follows:\n"
+                                   + str(err))
 
     def set_window_icon(self):
         try:
