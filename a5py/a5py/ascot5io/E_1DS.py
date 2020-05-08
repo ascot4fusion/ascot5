@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 
 from . ascot5file import add_group
-from . ascot5data import AscotData
+from . E import E
 
 def write_hdf5(fn, nrho, rhomin, rhomax, dvdrho, reff, desc=None):
     """
@@ -75,7 +75,7 @@ def read_hdf5(fn, qid):
     return out
 
 
-class E_1DS(AscotData):
+class E_1DS(E):
     """
     Object representing E_1DS data.
     """

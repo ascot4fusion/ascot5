@@ -78,25 +78,45 @@ def write_hdf5(fn, nbi, desc=None):
 
             nbeamlet = nbi[i]["nbeamlet"]
 
-            ginj.create_dataset("id",    (1,), data=nbi[i]["id"],    dtype="i4")
-            ginj.create_dataset("nbeamlet",    (1,), data=nbi[i]["nbeamlet"],    dtype="i4")
-            ginj.create_dataset("beamletx",  (nbeamlet,), data=nbi[i]["beamletx"],  dtype="f8")
-            ginj.create_dataset("beamlety",  (nbeamlet,), data=nbi[i]["beamlety"],  dtype="f8")
-            ginj.create_dataset("beamletz",  (nbeamlet,), data=nbi[i]["beamletz"],  dtype="f8")
-            ginj.create_dataset("beamletdx",  (nbeamlet,), data=nbi[i]["beamletdx"],  dtype="f8")
-            ginj.create_dataset("beamletdy",  (nbeamlet,), data=nbi[i]["beamletdy"],  dtype="f8")
-            ginj.create_dataset("beamletdz",  (nbeamlet,), data=nbi[i]["beamletdz"],  dtype="f8")
-            ginj.create_dataset("div_h",  (1,), data=nbi[i]["div_h"],  dtype="f8")
-            ginj.create_dataset("div_v",  (1,), data=nbi[i]["div_v"],  dtype="f8")
-            ginj.create_dataset("div_halo_frac",  (1,), data=nbi[i]["div_halo_frac"],  dtype="f8")
-            ginj.create_dataset("div_halo_h",  (1,), data=nbi[i]["div_halo_h"],  dtype="f8")
-            ginj.create_dataset("div_halo_v",  (1,), data=nbi[i]["div_halo_v"],  dtype="f8")
-            ginj.create_dataset("anum",  (1,), data=nbi[i]["anum"],  dtype="i4")
-            ginj.create_dataset("znum",  (1,), data=nbi[i]["znum"],  dtype="i4")
-            ginj.create_dataset("mass",  (1,), data=nbi[i]["mass"],  dtype="f8")
-            ginj.create_dataset("energy",  (1,), data=nbi[i]["energy"],  dtype="f8")
-            ginj.create_dataset("efrac",  (3,), data=nbi[i]["efrac"],  dtype="f8")
-            ginj.create_dataset("power",  (1,), data=nbi[i]["power"],  dtype="f8")
+            ginj.create_dataset("id",            (1,),
+                                data=nbi[i]["id"],            dtype="i4")
+            ginj.create_dataset("nbeamlet",      (1,),
+                                data=nbi[i]["nbeamlet"],      dtype="i4")
+            ginj.create_dataset("beamletx",      (nbeamlet,),
+                                data=nbi[i]["beamletx"],      dtype="f8")
+            ginj.create_dataset("beamlety",      (nbeamlet,),
+                                data=nbi[i]["beamlety"],      dtype="f8")
+            ginj.create_dataset("beamletz",      (nbeamlet,),
+                                data=nbi[i]["beamletz"],      dtype="f8")
+            ginj.create_dataset("beamletdx",     (nbeamlet,),
+                                data=nbi[i]["beamletdx"],     dtype="f8")
+            ginj.create_dataset("beamletdy",     (nbeamlet,),
+                                data=nbi[i]["beamletdy"],     dtype="f8")
+            ginj.create_dataset("beamletdz",     (nbeamlet,),
+                                data=nbi[i]["beamletdz"],     dtype="f8")
+            ginj.create_dataset("div_h",         (1,),
+                                data=nbi[i]["div_h"],         dtype="f8")
+            ginj.create_dataset("div_v",         (1,),
+                                data=nbi[i]["div_v"],         dtype="f8")
+            ginj.create_dataset("div_halo_frac", (1,),
+                                data=nbi[i]["div_halo_frac"], dtype="f8")
+
+            ginj.create_dataset("div_halo_h", (1,), data=nbi[i]["div_halo_h"],
+                                dtype="f8")
+            ginj.create_dataset("div_halo_v", (1,), data=nbi[i]["div_halo_v"],
+                                dtype="f8")
+            ginj.create_dataset("anum",       (1,), data=nbi[i]["anum"],
+                                dtype="i4")
+            ginj.create_dataset("znum",       (1,), data=nbi[i]["znum"],
+                                dtype="i4")
+            ginj.create_dataset("mass",       (1,), data=nbi[i]["mass"],
+                                dtype="f8")
+            ginj.create_dataset("energy",     (1,), data=nbi[i]["energy"],
+                                dtype="f8")
+            ginj.create_dataset("efrac",      (3,), data=nbi[i]["efrac"],
+                                dtype="f8")
+            ginj.create_dataset("power",      (1,), data=nbi[i]["power"],
+                                dtype="f8")
 
     return gname
 
@@ -126,6 +146,35 @@ def read_hdf5(fn, qid):
                 out[i][key] = f[path+"/inj"+str(i+1)][key][:]
 
     return out
+
+
+def write_hdf5_dummy(fn):
+    """
+    Write a dummy injector.
+    """
+
+    nbi = {
+        "id" : 1,
+        "nbeamlet" : 1,
+        "beamletx" : np.array([1.0]),
+        "beamlety" : np.array([0.0]),
+        "beamletz" : np.array([0.0]),
+        "beamletdx" : np.array([1.0]),
+        "beamletdy" : np.array([0.0]),
+        "beamletdz" : np.array([0.0]),
+        "div_h" : 0.0,
+        "div_v" : 0.0,
+        "div_halo_frac" : 0.0,
+        "div_halo_h" : 0.0,
+        "div_halo_v" : 0.0,
+        "anum" : 1.0,
+        "znum" : 1.0,
+        "mass" : 1.0,
+        "energy" : 1.0,
+        "efrac" : [1,0,0],
+        "power" : 1
+    }
+    return write_hdf5(fn, [nbi], desc="DUMMY")
 
 
 class nbi(AscotData):

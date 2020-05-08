@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 import sys
+import os
 
 import a5py.ascot5io.compatibility as comp
 
-if len(sys.argv) != 4:
-   pass
+if len(sys.argv) != 2:
+        print("Convert HDF5 file of the previous version to current version.")
+        quit()
 
 fnin  = sys.argv[1]
-fnout = sys.argv[2]
-ver   = int(sys.argv[3])
 
-comp.convert_oldtonew(fnin, fnout, ver)
+comp.convert(fnin)

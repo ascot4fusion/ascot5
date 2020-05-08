@@ -111,7 +111,7 @@ def convert_vpavpe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
     # Interpolate.
     ranges = []
     for a in dist["abscissae"]:
-        if a is not "vpar" and a is not "vperp":
+        if a != "vpar" and a != "vperp":
             ranges.append(range(dist["n" + a]))
 
     iE   = Exidist["abscissae"].index("energy")

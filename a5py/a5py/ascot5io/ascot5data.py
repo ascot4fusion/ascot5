@@ -30,6 +30,12 @@ class AscotData():
         val = ascot5file.get_desc(f.file, self._group)
         self._close()
         return val
+    
+    def set_desc(self,desc):
+        f = self._open()
+        val = ascot5file.set_desc(f.file, self._group,desc)
+        self._close()
+        return val
 
     def get_date(self):
         f = self._open()
@@ -46,6 +52,22 @@ class AscotData():
 
     def get_name(self):
         return self._group
+    
+    def set_as_active(self):
+        '''
+        Set the current group as active.
+        '''
+        import a5py.ascot5io.ascot5tools as tools
+        
+        
+        tools.call_ascot5file(self._file, "set_active", self._path)
+
+    def copy_to_hdf5file(self,target_file,newgroup=False):
+        
+        import a5py.ascot5io.ascot5tools as tools
+        group = tools.copygroup(self._file, target_file, self._path,
+                            newgroup=newgroup)
+        return group
 
     def _open(self):
         if self._opened is not None:

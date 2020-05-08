@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 
 from . ascot5file import add_group
-from . ascot5data import AscotData
+from . E import E
 
 def write_hdf5(fn, exyz, desc=None):
     """
@@ -66,10 +66,10 @@ def write_hdf5_dummy(fn, desc="Dummy"):
     """
     Write dummy data.
     """
-    return write_hdf5(fn, np.array([1,2,3]), desc=desc)
+    return write_hdf5(fn, np.array([0,0,0]), desc=desc)
 
 
-class E_TC(AscotData):
+class E_TC(E):
     """
     Object representing E_TC data.
     """
