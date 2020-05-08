@@ -350,7 +350,6 @@ typedef struct {
     real pitch[NSIMD] __memalign__; /**< Field line direction: along (1) or
                                          against (-1) magnetic field vector   */
     real time[NSIMD] __memalign__;  /**< Field line simulation time [s]       */
-    real dist[NSIMD] __memalign__;  /**< Distance marker has travelled [m]    */
 
     /* Magnetic field data */
     real B_r[NSIMD] __memalign__;        /**< Magnetic field R component at

@@ -244,7 +244,6 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
             real mass   = p->mass[i];
             real charge = p->charge[i];
-            real time   = p->time[i];
 
             real B_dB[15];
             real E[3];
@@ -252,12 +251,14 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
             real R0 = p->r[i];
             real z0 = p->z[i];
+            real t0 = p->time[i];
 
             /* Coordinates are copied from the struct into an array to make
              * passing parameters easier */
             yprev[0] = p->r[i];
             yprev[1] = p->phi[i];
             yprev[2] = p->z[i];
+            yprev[3] = p->ppar[i];
             yprev[4] = p->mu[i];
             yprev[5] = p->zeta[i];
 
@@ -277,17 +278,12 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             B_dB[10] = p->B_z_dphi[i];
             B_dB[11] = p->B_z_dz[i];
 
-            real normB = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
-            real qBrhom;
-            real gamma = physlib_gamma_vpar(mass, p->mu[i], p->vpar[i], normB);
-            yprev[3] = gamma*mass*p->vpar[i] / (charge*normB);
-
             if(!errflag) {
-                errflag = E_field_eval_E(E, yprev[0], yprev[1], yprev[2], time,
+                errflag = E_field_eval_E(E, yprev[0], yprev[1], yprev[2], t0,
                                          Edata, Bdata);
             }
             if(!errflag) {
-                errflag = mhd_eval(mhd_dmhd, yprev[0], yprev[1], yprev[2], time,
+                errflag = mhd_eval(mhd_dmhd, yprev[0], yprev[1], yprev[2], t0,
                                    boozer, mhd);
             }
             if(!errflag) {
@@ -302,15 +298,15 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
             if(!errflag) {
                 errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2],
-                                            time + h[i]/2.0, Bdata);
+                                            t0 + h[i]/2.0, Bdata);
             }
             if(!errflag) {
                 errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
-                                         time + h[i]/2.0, Edata, Bdata);
+                                         t0 + h[i]/2.0, Edata, Bdata);
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   time + h[i]/2.0, boozer, mhd);
+                                   t0 + h[i]/2.0, boozer, mhd);
             }
             if(!errflag) {
                 step_gceom_mhd(k2, tempy, mass, charge, B_dB, E, mhd_dmhd);
@@ -323,15 +319,15 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
             if(!errflag) {
                 errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2],
-                                            time + h[i]/2.0, Bdata);
+                                            t0 + h[i]/2.0, Bdata);
             }
             if(!errflag) {
                 errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
-                                         time + h[i]/2.0, Edata, Bdata);
+                                         t0 + h[i]/2.0, Edata, Bdata);
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   time + h[i]/2.0, boozer, mhd);
+                                   t0 + h[i]/2.0, boozer, mhd);
             }
             if(!errflag) {
                 step_gceom_mhd(k3, tempy, mass, charge, B_dB, E, mhd_dmhd);
@@ -343,15 +339,15 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
             if(!errflag) {
                 errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2],
-                                            time + h[i], Bdata);
+                                            t0 + h[i], Bdata);
             }
             if(!errflag) {
                 errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
-                                         time + h[i], Edata, Bdata);
+                                         t0 + h[i], Edata, Bdata);
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   time + h[i], boozer, mhd);
+                                   t0 + h[i], boozer, mhd);
             }
             if(!errflag) {
                 step_gceom_mhd(k4, tempy, mass, charge, B_dB, E, mhd_dmhd);
@@ -360,11 +356,6 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
                 y[j] = yprev[j]
                     + h[i]/6.0 * (k1[j] + 2*k2[j] + 2*k3[j] + k4[j]);
             }
-
-            //printf("%g %g\n", yprev[0], y[0]);
-            //printf("%g %g\n", yprev[1], y[1]);
-            //printf("%g %g\n", yprev[2], y[2]);
-            //printf("%g %g\n", yprev[3], y[3]);
 
             /* Test that results are physical */
             if(!errflag && y[0] <= 0) {
@@ -382,6 +373,7 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
                 p->r[i]    = y[0];
                 p->phi[i]  = y[1];
                 p->z[i]    = y[2];
+                p->ppar[i] = y[3];
                 p->mu[i]   = y[4];
                 p->zeta[i] = fmod(y[5],CONST_2PI);
                 if(p->zeta[i]<0){
@@ -394,11 +386,11 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             real rho[1];
             if(!errflag) {
                 errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i],
-                                            time + h[i], Bdata);
+                                            t0 + h[i], Bdata);
             }
             if(!errflag) {
                 errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i],
-                                           time + h[i], Bdata);
+                                           t0 + h[i], Bdata);
             }
             if(!errflag) {
                 errflag = B_field_eval_rho(rho, psi[0], Bdata);
@@ -419,12 +411,6 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
                 p->B_z_dr[i]     = B_dB[9];
                 p->B_z_dphi[i]   = B_dB[10];
                 p->B_z_dz[i]     = B_dB[11];
-
-                normB = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
-                qBrhom = charge*normB*y[3]/mass;
-                gamma = sqrt( 1 + 2*p->mu[i]*normB/(mass*CONST_C2)
-                              + qBrhom*qBrhom/CONST_C2 );
-                p->vpar[i] = charge*normB*y[3] / (gamma*mass);
 
                 p->rho[i] = rho[0];
 

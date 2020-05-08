@@ -50,7 +50,7 @@ typedef struct{
 typedef struct{
 
     real* id;     /**< Marker ID                                            */
-    real* time;   /**< Marker time [s]                                      */
+    real* mileage;/**< Time marker has been simulated for [s]               */
     real* r;      /**< Marker R coordinate [m]                              */
     real* phi;    /**< Marker phi coordinate [rad]                          */
     real* z;      /**< Marker z coordiante [m]                              */

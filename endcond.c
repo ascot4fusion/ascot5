@@ -355,7 +355,7 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
         if(p_f->running[i]) {
             /* Check if the marker time exceeds simulation time */
             if(active_tmax) {
-                if(p_f->dist[i] > sim->endcond_max_simtime) {
+                if(p_f->time[i] > sim->endcond_max_simtime) {
                     p_f->endcond[i] |= endcond_tmax;
                     p_f->running[i] = 0;
                 }
