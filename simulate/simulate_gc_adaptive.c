@@ -287,12 +287,6 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
 
         /* Value calculated from collision frequency */
         if(sim->enable_clmbcol) {
-            int mccc_eval_coefs(
-                real ma, real qa, real r, real phi, real z, real t,
-                real* va, int nv, plasma_data* pdata, B_field_data* Bdata,
-                real* F, real* Dpara, real* Dperp, real* K, real* nu,
-                real* Q, real* dQ, real* dDpara, real* clog, real* mu0,
-                real* mu1, real* dmu0);
             real nu = 1;
             //mccc_collfreq_gc(p, &sim->B_data, &sim->plasma_data, sim->coldata, &nu, i);
 
