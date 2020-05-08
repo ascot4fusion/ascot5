@@ -26,10 +26,9 @@ File: test_elementary.py
 import sys
 
 import numpy                   as np
-import scipy.constants         as constants
 import matplotlib.pyplot       as plt
+import unyt
 
-import a5py.ascot5io.ascot5    as ascot5
 import a5py.ascot5io.orbits    as orbits
 import a5py.ascot5io.options   as options
 import a5py.ascot5io.B_TC      as B_TC
@@ -43,10 +42,8 @@ import a5py.ascot5io.mhd       as mhd
 
 import a5py.testascot.helpers as helpers
 
-e       = constants.elementary_charge
-m_e_AMU = constants.physical_constants["electron mass in u"][0]
-m_e     = constants.physical_constants["electron mass"][0]
-c       = constants.physical_constants["speed of light in vacuum"][0]
+from a5py.ascot5io.ascot5 import Ascot
+from a5py.physlib import e, m_e, c
 
 def init():
     """
@@ -132,7 +129,7 @@ def init():
     Nmrk   = 2
     ids    = np.array([1, 2])
     weight = np.array([1, 1])
-    mass   = m_e_AMU * np.array([1, 1])
+    mass   = m_e.to("amu") * np.array([1, 1])
     charge = 1       * np.array([1,-1])
     anum   = 1       * np.array([1, 0])
     znum   = 1       * np.array([1, 0])
@@ -251,19 +248,19 @@ def check():
       EXB_GC, GRADB-GO, and GRADB-GC)
     - Also the analytical an numerical values are shown
     """
-    a5 = ascot5.Ascot(helpers.testfn)
+    a5 = Ascot(helpers.testfn)
 
     GYROMOTION = {}
     EXB        = {}
     GRADB      = {}
-    GYROMOTION["GO"] = a5["GYROMOTION"]["orbit"].read()
-    EXB["GO"]        = a5["EXB_GO"]["orbit"].read()
-    EXB["GC"]        = a5["EXB_GC"]["orbit"].read()
-    GRADB["GO"]      = a5["GRADB_GO"]["orbit"].read()
-    GRADB["GC"]      = a5["GRADB_GC"]["orbit"].read()
+    GYROMOTION["GO"] = a5["GYROMOTION"].orbit
+    EXB["GO"]        = a5["EXB_GO"].orbit
+    EXB["GC"]        = a5["EXB_GC"].orbit
+    GRADB["GO"]      = a5["GRADB_GO"].orbit
+    GRADB["GC"]      = a5["GRADB_GC"].orbit
 
     # Electron energy in Joules
-    E = 100e6 * e
+    E = 100e6 * unyt.eV
     # Lorentz factor
     gamma = 1 + E / ( m_e * c * c )
     # Pitch, magnetic field strength and gradient, electric field, and velocity
@@ -296,16 +293,17 @@ def check():
 
     # Analytical values
     rhog   = gamma * np.sqrt(1 - 0.5 * 0.5) * m_e * v / (B * e)
-    omegag = e * B / ( gamma * m_e)
+    omegag = (unyt.kg / unyt.C)*e * B / ( gamma * m_e)
+    m = unyt.m
 
     # Numerical values
     ang  = GYROMOTION["GO"]["phi"] * np.pi / 180
     igo  = GYROMOTION["GO"]["id"]
-    x    = GYROMOTION["GO"]["r"] * np.sin(ang)
-    y    = GYROMOTION["GO"]["z"]
+    x    = GYROMOTION["GO"]["y"].v
+    y    = GYROMOTION["GO"]["z"].v
     time = GYROMOTION["GO"]["time"][igo==1]
 
-    rho   = np.max( np.sqrt((x-5)*(x-5) + y*y) )
+    rho   = np.max( np.sqrt((x-5)**2 + y**2) )
     zero_crossings = np.where(np.diff(np.sign(x[igo==1])))[0].size
     omega = zero_crossings * np.pi * 2 / time[-1]
 
@@ -326,22 +324,22 @@ def check():
     # Numerical values
     ang = EXB["GO"]["phi"] * np.pi / 180
     igo = EXB["GO"]["id"]
-    xgo = EXB["GO"]["r"] * np.sin(ang)
-    ygo = EXB["GO"]["z"]
+    xgo = EXB["GO"]["y"] / m
+    ygo = EXB["GO"]["z"] / m
 
     igo0  = a5["EXB_GO"]["inistate"]["id"]
     time  = a5["EXB_GO"]["endstate"]["time"]
     ang   = a5["EXB_GO"]["inistate"]["phi"] * np.pi / 180
-    xgo0  = a5["EXB_GO"]["inistate"]["r"] * np.sin(ang)
-    ygo0  = a5["EXB_GO"]["inistate"]["z"]
+    xgo0  = a5["EXB_GO"]["inistate"]["y"] / m
+    ygo0  = a5["EXB_GO"]["inistate"]["z"] / m
     ang   = a5["EXB_GO"]["endstate"]["phi"] * np.pi / 180
-    xgo1  = a5["EXB_GO"]["endstate"]["r"] * np.sin(ang)
-    ygo1  = a5["EXB_GO"]["endstate"]["z"]
+    xgo1  = a5["EXB_GO"]["endstate"]["y"] / m
+    ygo1  = a5["EXB_GO"]["endstate"]["z"] / m
 
     ang = EXB["GC"]["phi"] * np.pi / 180
     igc = EXB["GC"]["id"]
-    xgc = EXB["GC"]["r"] * np.sin(ang)
-    ygc = EXB["GC"]["z"]
+    xgc = EXB["GC"]["y"] / m
+    ygc = EXB["GC"]["z"] / m
 
     vgo1_ExB = ((ygo1[igo0==1] - ygo0[igo0==1]) / (time[igo0==1]))[0]
 
@@ -367,22 +365,22 @@ def check():
     # Numerical values
     ang = GRADB["GO"]["phi"] * np.pi / 180
     igo = GRADB["GO"]["id"]
-    xgo = GRADB["GO"]["r"] * np.sin(ang)
-    ygo = GRADB["GO"]["z"]
+    xgo = GRADB["GO"]["y"] / m
+    ygo = GRADB["GO"]["z"] / m
 
     igo0  = a5["GRADB_GO"]["inistate"]["id"]
     time  = a5["GRADB_GO"]["endstate"]["time"]
     ang   = a5["GRADB_GO"]["inistate"]["phi"]
-    xgo0  = a5["GRADB_GO"]["inistate"]["r"] * np.sin(ang)
-    zgo0  = a5["GRADB_GO"]["inistate"]["z"]
+    xgo0  = a5["GRADB_GO"]["inistate"]["y"] / m
+    zgo0  = a5["GRADB_GO"]["inistate"]["z"] / m
     ang   = a5["GRADB_GO"]["endstate"]["phi"]
-    xgo1  = a5["GRADB_GO"]["endstate"]["r"] * np.sin(ang)
-    ygo1  = a5["GRADB_GO"]["endstate"]["z"]
+    xgo1  = a5["GRADB_GO"]["endstate"]["y"] / m
+    ygo1  = a5["GRADB_GO"]["endstate"]["z"] / m
 
     ang = GRADB["GC"]["phi"] * np.pi / 180
     igc = GRADB["GC"]["id"]
-    xgc = GRADB["GC"]["r"] * np.sin(ang)
-    ygc = GRADB["GC"]["z"]
+    xgc = GRADB["GC"]["y"] / m
+    ygc = GRADB["GC"]["z"] / m
 
     vgo1_gradB = ((xgo1[igo0==1] - xgo0[igo0==1]) / (time[igo0==1]))[0]
 
@@ -399,16 +397,16 @@ def check():
     # Print analytical values
     text1  = r"$\rho_{g}$ = %2.3f cm" % (rhog*100)
     text1 += r" (%2.3f cm)" % (rho*100)
-    text1 += "\n"+ r"$\omega_{g}$ = " + latex_float(omegag)
+    text1 += "\n"+ r"$\omega_{g}$ = " + latex_float(omegag.v)
     text1 += r" $\frac{\mathrm{rad}}{\mathrm{s}}$ "
-    text1 += r"(" + latex_float(omegag)
+    text1 += r"(" + latex_float(omegag.v)
     text1 += r" $\frac{\mathrm{rad}}{\mathrm{s}}$)"
     text1 += "\n" + r"$v_{E \times B}$ = " + latex_float(v_ExB) + r" m/s"
-    text1 += "\n" + r"(" + latex_float(-vgo1_ExB) + r" m/s, "
-    text1 += latex_float(-vgc1_ExB) + r" m/s)" + "\n"
-    text1 += r"$v_{\nabla B}$ = " + latex_float(v_gradB) + r" m/s"
-    text1 += "\n" + r"(" + latex_float(-vgo1_gradB) + r" m/s, "
-    text1 += latex_float(-vgc1_gradB) + r" m/s)" + "\n"
+    text1 += "\n" + r"(" + latex_float(-vgo1_ExB.v) + r" m/s, "
+    text1 += latex_float(-vgc1_ExB.v) + r" m/s)" + "\n"
+    text1 += r"$v_{\nabla B}$ = " + latex_float(v_gradB.v) + r" m/s"
+    text1 += "\n" + r"(" + latex_float(-vgo1_gradB.v) + r" m/s, "
+    text1 += latex_float(-vgc1_gradB.v) + r" m/s)" + "\n"
     h1.text(-0.1, -0.26, text1, fontsize=9)
 
     #**************************************************************************#

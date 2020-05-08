@@ -25,21 +25,25 @@ def write_hdf5(fn, run, data):
     with h5py.File(fn, "a") as f:
         g = f.create_group(gname)
 
-        abscissae = ["rho", "theta", "phi", "vr", "vphi", "vz", "time",
-                     "charge"]
-        for i in range(0,len(abscissae)):
-            name = abscissae[i]
+        for i in range(0, len(data["abscissae"])):
+            name = data["abscissae"][i]
             g.create_dataset("abscissa_nbin_0"+str(i+1), (1,),
                              data=data["n" + name], dtype="i4")
-            g.create_dataset("abscissa_vec_0"+str(i+1),  (data["n" + name]+1,),
-                             data=data[name + "_edges"], dtype="f8")
+            abscissa = g.create_dataset("abscissa_vec_0"+str(i+1),
+                                        (data["n" + name]+1,),
+                                        data=data[name + "_edges"], dtype="f8")
 
-        g.create_dataset("abscissa_ndim", (1,), data=8, dtype="i4")
+            abscissa.attrs["name_0"+str(i+1)] = np.string_(name)
+            abscissa.attrs["unit_0"+str(i+1)] = np.string_(data[name + "_unit"])
+
+        g.create_dataset("abscissa_ndim", (1,), data=7, dtype="i4")
         g.create_dataset("ordinate_ndim", (1,), data=1, dtype="i4")
 
-        g.create_dataset("ordinate",
-                         data=np.expand_dims(data["histogram"], axis=0),
-                         dtype="f8")
+        ordinate = g.create_dataset(
+            "ordinate", data=np.expand_dims(data["histogram"], axis=0),
+            dtype="f8")
+        ordinate.attrs["name_00"] = np.string_("density")
+        ordinate.attrs["unit_00"] = np.string_(data["ordinate_unit"])
 
 
 def read_hdf5(fn, qid):
@@ -59,29 +63,27 @@ def read_hdf5(fn, qid):
 
         path = "/results/run_"+qid+"/distrho6d/"
         dist = f[path]
+        out = {}
 
         # A Short helper function to calculate grid points from grid edges.
         def edges2grid(edges):
             return np.linspace(0.5*(edges[0]+edges[1]),
                                0.5*(edges[-2]+edges[-1]), num=edges.size-1)
 
-        out = {}
+        abscissae = [0] * int(dist["abscissa_ndim"][:])
+        for i in range(0, len(abscissae)):
+            abscissa     = dist["abscissa_vec_0"+str(i+1)]
+            name         = abscissa.attrs["name_0"+str(i)].decode("utf-8")
+            abscissae[i] = name
 
-        # These could be read directly from HDF5 file, but for clarity
-        # we list them here
-        abscissae = ["rho", "theta", "phi", "vr", "vphi", "vz", "time",
-                     "charge"]
-        abscissae_units = ["", "deg", "deg", "m/s", "m/s", "m/s", "s", "e"]
-
-        for i in range(0,len(abscissae)):
-            name = abscissae[i]
-            out[name + "_edges"] = dist["abscissa_vec_0"+str(i+1)][:]
+            out[name + "_edges"] = abscissa[:]
+            out[name + "_unit"]  = abscissa.attrs["unit_0"+str(i)].decode("utf-8")
             out[name]            = edges2grid(out[name + "_edges"])
-            out[name + "_unit"]  = abscissae_units[i]
             out["n" + name]      = out[name].size
 
         out["abscissae"] = abscissae
         out["histogram"] = dist["ordinate"][0,:,:,:,:,:,:,:,:]
+        out["histogram_unit"] = dist["ordinate"].attrs["unit_00"].decode("utf-8")
 
     return out
 
@@ -165,8 +167,8 @@ class Dist_rho6D(AscotData):
                Give input distribution explicitly instead of reading one from
                HDF5 file. Dimensions that are not x or y are integrated over.
         """
-        abscissae = {"rho" : 0, "theta" : 0, "phi" : 0, "vr" : 0,
-                     "vphi" : 0, "vz" : 0, "time" : 0, "charge" : 0}
+        abscissae = {"rho" : 0, "theta" : 0, "phi" : 0, "pr" : 0,
+                     "pphi" : 0, "pz" : 0, "time" : 0, "charge" : 0}
 
         x = args[0]
         del abscissae[x]

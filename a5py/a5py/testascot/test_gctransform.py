@@ -43,11 +43,10 @@ File: test_gctransform.py
 import sys
 
 import numpy                   as np
-import scipy.constants         as constants
+import unyt
 import matplotlib.pyplot       as plt
 import matplotlib.lines        as mlines
 
-import a5py.ascot5io.ascot5    as ascot5
 import a5py.ascot5io.orbits    as orbits
 import a5py.ascot5io.options   as options
 import a5py.ascot5io.B_GS      as B_GS
@@ -64,10 +63,8 @@ import a5py.testascot.helpers as helpers
 
 from a5py.preprocessing.analyticequilibrium import psi0 as psifun
 
-e       = constants.elementary_charge
-m_a_AMU = constants.physical_constants["alpha particle mass in u"][0]
-m_a     = constants.physical_constants["alpha particle mass"][0]
-c       = constants.physical_constants["speed of light in vacuum"][0]
+from a5py.ascot5io.ascot5 import Ascot
+from a5py.physlib import e, m_a, c
 
 psi_mult  = 200
 R0        = 6.2
@@ -177,7 +174,7 @@ def init():
     ids    = np.array([1])
     weight = 1       * np.ones(ids.shape)
     pitch  = 0.4     * np.ones(ids.shape)
-    mass   = m_a_AMU * np.ones(ids.shape)
+    mass   = m_a.to("amu") * np.ones(ids.shape)
     charge = 2       * np.ones(ids.shape)
     anum   = 4       * np.ones(ids.shape)
     znum   = 2       * np.ones(ids.shape)
@@ -272,13 +269,13 @@ def run():
     for test in ["GCTRANSFORM_GC", "GCTRANSFORM_GO", "GCTRANSFORM_GO2GC"]:
         helpers.set_and_run(test)
 
-    a5 = ascot5.Ascot(helpers.testfn)
+    a5 = Ascot(helpers.testfn)
 
     dt = 20
     Nmrk   = nrep
     ids    = np.linspace(1, Nmrk, Nmrk)
     weight = 1       * np.ones(ids.shape)
-    mass   = m_a_AMU * np.ones(ids.shape)
+    mass   = m_a.to("amu") * np.ones(ids.shape)
     charge = 2       * np.ones(ids.shape)
     znum   = 4       * np.ones(ids.shape)
     anum   = 2       * np.ones(ids.shape)
@@ -314,7 +311,7 @@ def check():
       GCTRANSFORM_ZEROTH and GCTRANSFORM_FIRST. The latter two have orbits from
       multiple markers but these are plotted with same color.
     """
-    a5 = ascot5.Ascot(helpers.testfn)
+    a5 = Ascot(helpers.testfn)
 
     f = plt.figure(figsize=(11.9/2.54, 8/2.54))
     plt.rc('xtick', labelsize=10)

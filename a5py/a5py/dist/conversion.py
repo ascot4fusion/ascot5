@@ -12,22 +12,22 @@ import itertools
 from scipy.interpolate import griddata, RectBivariateSpline
 
 
-def convert_vpavpe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
+def convert_ppappe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
     """
     Converts vpa and vpe distribution abscissae to energy and pitch.
 
     This function operates by looping through all other coordinates except
-    vpa and vpe, and at each loop calculates
-    f_Exi(E, xi) = f_vpavpe(vpa(E_i, xi_i), vpe(E_i, xi_i)) where E_i and
+    ppa and ppe, and at each loop calculates
+    f_Exi(E, xi) = f_ppappe(ppa(E_i, xi_i), ppe(E_i, xi_i)) where E_i and
     xi_i are grid points of the new energy-pitch distribution. Interpolation
     is done bilinearly.
 
-    Energy is in electronvolts and pitch is vpa/(vpa^2 + vpe^2)^0.5. The
+    Energy is in electronvolts and pitch is ppa/(ppa^2 + ppe^2)^0.5. The
     transformation is not relativistic.
 
     Args:
         dist : dict_like <br>
-            A vpa-vpe distribution. May hold other dimensions as well.
+            A ppa-ppe distribution. May hold other dimensions as well.
         masskg : float <br>
             Mass of the species (required for energy conversion) in kg. Note
             that distribution is assumed to consist of markers with equal mass.
@@ -47,17 +47,19 @@ def convert_vpavpe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
     """
 
     if E_edges is None:
-        Emax = (1/constants.e) * 0.5 * masskg \
-               * np.maximum( dist["vpar_edges"][-1]*dist["vpar_edges"][-1],
-                             dist["vperp_edges"][-1]*dist["vperp_edges"][-1] )
+        pmax2 = np.maximum( dist["ppar_edges"][-1]*dist["ppar_edges"][-1],
+                           dist["pperp_edges"][-1]*dist["pperp_edges"][-1] )
+        gamma = np.sqrt( 1 +  pmax2 / ( masskg * constants.c) **2)
+        Emax = (1/constants.e) * (gamma - 1) * masskg * constants.c**2
         E_edges = np.linspace(0, Emax, 10)
     if xi_edges is None:
         xi_edges = np.linspace(-1, 1, 10)
 
     if not isinstance(E_edges, np.ndarray):
-        Emax = (1/constants.e) * 0.5 * masskg \
-               * np.maximum( dist["vpar_edges"][-1]*dist["vpar_edges"][-1],
-                             dist["vperp_edges"][-1]*dist["vperp_edges"][-1] )
+        pmax2 = np.maximum( dist["ppar_edges"][-1]*dist["ppar_edges"][-1],
+                           dist["pperp_edges"][-1]*dist["pperp_edges"][-1] )
+        gamma = np.sqrt( 1 +  pmax2 / ( masskg * constants.c) **2)
+        Emax = (1/constants.e) * (gamma - 1) * masskg * constants.c**2
         E_edges = np.linspace(0, Emax, E_edges)
 
     if not isinstance(xi_edges, np.ndarray):
@@ -68,10 +70,10 @@ def convert_vpavpe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
 
     # Remove vpa and vpe components
     del Exidist["distribution"]
-    Exidist["abscissae"].remove("vpar")
-    Exidist["abscissae"].remove("vperp")
+    Exidist["abscissae"].remove("ppar")
+    Exidist["abscissae"].remove("pperp")
     for k in list(Exidist):
-        if "vpar" in k or "vperp" in k:
+        if "ppar" in k or "pperp" in k:
             del Exidist[k]
 
     # Add E and xi abscissae and initialize a new density
@@ -96,49 +98,52 @@ def convert_vpavpe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
     # Transform E-xi grid to points in (vpa,vpa) space that are used in
     # interpolation.
     xig, Eg = np.meshgrid(Exidist["pitch"], Exidist["energy"])
-    vpag = ( xig * np.sqrt( 2*Eg*constants.e/masskg ) ).ravel()
-    vpeg = (np.sqrt(1 - xig*xig) * np.sqrt(2*Eg*constants.e/masskg)).ravel()
+    pg   = np.sqrt( ( Eg * constants.e / constants.c + masskg.v * constants.c )**2
+                     - (masskg.v * constants.c)**2 )
+    ppag = ( xig * pg ).ravel()
+    ppeg = (np.sqrt(1 - xig*xig) * pg).ravel()
 
     # Coordinate transform Jacobian: dvpa dvpe = |jac| dE dxi
-    # Jacobian for transform (vpa, vpe) -> (v, xi) is v / sqrt(1-xi^2)
-    # because jac = dvpa / dv  = xi, dvpe / dv  = sqrt(1-xi^2)
-    #               dvpa / dxi = v,  dvpe / dxi = -xi v / sqrt(1-xi^2),
-    # and the Jacobian for (v, xi) -> (E, xi) is e / (mass*v) when
+    # Jacobian for transform (ppa, ppe) -> (p, xi) is p / sqrt(1-xi^2)
+    # because jac = dppa / dp  = xi, dppe / dp  = sqrt(1-xi^2)
+    #               dppa / dxi = p,  dppe / dxi = -xi p / sqrt(1-xi^2),
+    # and the Jacobian for (p, xi) -> (E, xi) is e E0 / c^2 p when
     # E is in electronvolts. Therefore the combined Jacobian is
-    # (e/mass) / sqrt(1-xi*xi).
-    jac = (constants.e/masskg) / np.sqrt(1 - xig*xig)
+    # (e E0 / c^2) / sqrt(1-xi*xi).
+    E0  = np.sqrt( (pg*constants.c)**2 + (masskg.v*constants.c**2)**2 )
+    jac = (constants.e * E0 / constants.c**2) / np.sqrt(1 - xig*xig)
 
     # Interpolate.
     ranges = []
     for a in dist["abscissae"]:
-        if a != "vpar" and a != "vperp":
+        if a != "ppar" and a != "pperp":
             ranges.append(range(dist["n" + a]))
 
     iE   = Exidist["abscissae"].index("energy")
-    ivpa = dist["abscissae"].index("vpar")
+    ippa = dist["abscissae"].index("ppar")
     for itr in itertools.product(*ranges):
 
         idx = []
-        for i in range(0, ivpa):
+        for i in range(0, ippa):
             idx.append(itr[i])
 
         idx.append(slice(None))
         idx.append(slice(None))
 
-        for i in range(ivpa, len(dist["abscissae"])-2):
+        for i in range(ippa, len(dist["abscissae"])-2):
             idx.append(itr[i])
 
         idx = tuple(idx)
 
-        if dist["vpar"].size == 1 and dist["vperp"].size == 1:
+        if dist["ppar"].size == 1 and dist["pperp"].size == 1:
             d = np.ones( (Exidist["nenergy"], Exidist["npitch"]) ) \
                 * dist["distribution"][idx]
         else:
             f = RectBivariateSpline(
-                dist["vpar"], dist["vperp"],
+                dist["ppar"], dist["pperp"],
                 np.squeeze(dist["distribution"][idx]),
                 kx=1, ky=1)
-            d = np.reshape(f.ev(vpag, vpeg),
+            d = np.reshape(f.ev(ppag, ppeg),
                            (Exidist["nenergy"], Exidist["npitch"]))
 
         Exidist["distribution"][idx] = d * jac

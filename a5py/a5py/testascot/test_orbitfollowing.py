@@ -28,10 +28,9 @@ File: test_orbitfollowing.py
 import sys
 
 import numpy                   as np
-import scipy.constants         as constants
 import matplotlib.pyplot       as plt
+import unyt
 
-import a5py.ascot5io.ascot5    as ascot5
 import a5py.ascot5io.orbits    as orbits
 import a5py.ascot5io.options   as options
 import a5py.ascot5io.B_GS      as B_GS
@@ -47,10 +46,8 @@ import a5py.testascot.helpers as helpers
 
 from a5py.preprocessing.analyticequilibrium import psi0 as psifun
 
-e       = constants.elementary_charge
-m_e_AMU = constants.physical_constants["electron mass in u"][0]
-m_e     = constants.physical_constants["electron mass"][0]
-c       = constants.physical_constants["speed of light in vacuum"][0]
+from a5py.ascot5io.ascot5 import Ascot
+from a5py.physlib import e, m_e, c
 
 psi_mult  = 200
 R0        = 6.2
@@ -152,7 +149,7 @@ def init():
     ids    = np.array([1, 2])
     weight = np.array([1, 1])
     pitch  = np.array([0.4, 0.9])
-    mass   = m_e_AMU * np.array([1, 1])
+    mass   = m_e.to("amu") * np.array([1, 1])
     charge = 1       * np.array([1,-1])
     anum   = 1       * np.array([1, 0])
     znum   = 1       * np.array([1, 0])
@@ -249,9 +246,9 @@ def check():
     - One that shows conservation of toroidal canonical momentum for all cases
     - And one that shows trajectories on a Rz plane for all cases
     """
-    a5 = ascot5.Ascot(helpers.testfn)
+    a5 = Ascot(helpers.testfn)
 
-    raxis = R0#a5["ORBFOL_GO"].bfield.read()["raxis"]
+    raxis = R0
 
     f = plt.figure(figsize=(11.9/2.54, 8/2.54))
     plt.rc('xtick', labelsize=10)
@@ -280,34 +277,15 @@ def check():
     #**************************************************************************#
     ORBFOL = {}
     ORBFOL["GO"] = {}
-    orb = a5["ORBFOL_GO"]["orbit"].read()
-
-    B = np.sqrt( orb["br"] * orb["br"] + orb["bphi"] * orb["bphi"] +
-                 orb["bz"] * orb["bz"] )
-
-    psi = psifun(orb["r"]/raxis, orb["z"]/raxis, psi_coeff[0], psi_coeff[1],
-                 psi_coeff[2], psi_coeff[3], psi_coeff[4], psi_coeff[5],
-                 psi_coeff[6], psi_coeff[7], psi_coeff[8], psi_coeff[9],
-                 psi_coeff[10], psi_coeff[11], psi_coeff[12]) * psi_mult
-
-    vnorm = np.sqrt( orb["vr"]   * orb["vr"] +
-                     orb["vphi"] * orb["vphi"] +
-                     orb["vz"]   * orb["vz"] )
-
-    vpar  = ( orb["vr"] * orb["br"] + orb["vphi"] * orb["bphi"] +
-              orb["vz"] * orb["bz"] ) / B
-
-    gamma = np.sqrt(1 / ( 1 - vnorm * vnorm / (c * c) ) )
+    orb = a5["ORBFOL_GO"]["orbit"]
 
     ORBFOL["GO"]["time"] = orb["time"]
     ORBFOL["GO"]["id"]   = orb["id"]
     ORBFOL["GO"]["r"]    = orb["r"]
     ORBFOL["GO"]["z"]    = orb["z"]
-    ORBFOL["GO"]["ekin"] = vnorm#(gamma - 1) * m_e * c * c
-    ORBFOL["GO"]["mu"]   = ( ( m_e * gamma * gamma ) / ( 2 * B ) ) * \
-                           ( vnorm * vnorm - vpar * vpar )
-    ORBFOL["GO"]["ctor"] = gamma * m_e * orb["r"] * orb["vphi"] + \
-                           orb["charge"] * e * psi
+    ORBFOL["GO"]["ekin"] = orb["ekin"]
+    ORBFOL["GO"]["mu"]   = orb["mu"]
+    ORBFOL["GO"]["ctor"] = orb["ctor"]
 
     id1 = ORBFOL["GO"]["id"] == 1
     id2 = ORBFOL["GO"]["id"] == 2
@@ -333,28 +311,15 @@ def check():
     #*                                                                         #
     #**************************************************************************#
     ORBFOL["GCF"] = {}
-    orb = a5["ORBFOL_GCF"]["orbit"].read()
-
-    B = np.sqrt(np.power(orb["br"],2) + np.power(orb["bphi"],2) +
-                np.power(orb["bz"],2))
-
-    psi = psifun(orb["r"]/raxis, orb["z"]/raxis, psi_coeff[0], psi_coeff[1],
-                 psi_coeff[2], psi_coeff[3], psi_coeff[4], psi_coeff[5],
-                 psi_coeff[6], psi_coeff[7], psi_coeff[8], psi_coeff[9],
-                 psi_coeff[10], psi_coeff[11], psi_coeff[12]) * psi_mult
-
-    # Note that mu is in eV / T
-    gamma = np.sqrt( ( 1 + 2 * orb["mu"] * e * B / ( m_e * c * c ) ) /
-                     ( 1 - orb["vpar"] * orb["vpar"] / ( c * c ) ) )
+    orb = a5["ORBFOL_GCF"]["orbit"]
 
     ORBFOL["GCF"]["time"] = orb["time"]
     ORBFOL["GCF"]["id"]   = orb["id"]
     ORBFOL["GCF"]["r"]    = orb["r"]
     ORBFOL["GCF"]["z"]    = orb["z"]
-    ORBFOL["GCF"]["ekin"] = (gamma - 1) * m_e * c * c
-    ORBFOL["GCF"]["mu"]   = orb["mu"] * e
-    ORBFOL["GCF"]["ctor"] = gamma * m_e * orb["r"] * orb["vpar"] * orb["bphi"] / B + \
-                            orb["charge"] * e * psi
+    ORBFOL["GCF"]["ekin"] = orb["ekin"]
+    ORBFOL["GCF"]["mu"]   = orb["mu"]
+    ORBFOL["GCF"]["ctor"] = orb["ctor"]
 
     id1 = ORBFOL["GCF"]["id"] == 1
     id2 = ORBFOL["GCF"]["id"] == 2
@@ -380,28 +345,15 @@ def check():
     #*                                                                         #
     #**************************************************************************#
     ORBFOL["GCA"] = {}
-    orb = a5["ORBFOL_GCA"]["orbit"].read()
-
-    B = np.sqrt(np.power(orb["br"],2) + np.power(orb["bphi"],2) +
-                np.power(orb["bz"],2))
-
-    psi = psifun(orb["r"]/raxis, orb["z"]/raxis, psi_coeff[0], psi_coeff[1],
-                 psi_coeff[2], psi_coeff[3], psi_coeff[4], psi_coeff[5],
-                 psi_coeff[6], psi_coeff[7], psi_coeff[8], psi_coeff[9],
-                 psi_coeff[10], psi_coeff[11], psi_coeff[12]) * psi_mult
-
-    # Note that mu is in eV / T
-    gamma = np.sqrt( ( 1 + 2 * orb["mu"] * e * B / ( m_e * c * c ) ) /
-                     ( 1 - orb["vpar"] * orb["vpar"] / ( c * c ) ) )
+    orb = a5["ORBFOL_GCA"]["orbit"]
 
     ORBFOL["GCA"]["time"] = orb["time"]
     ORBFOL["GCA"]["id"]   = orb["id"]
     ORBFOL["GCA"]["r"]    = orb["r"]
     ORBFOL["GCA"]["z"]    = orb["z"]
-    ORBFOL["GCA"]["ekin"] = (gamma - 1) * m_e * c * c
-    ORBFOL["GCA"]["mu"]   = orb["mu"] * e
-    ORBFOL["GCA"]["ctor"] = gamma * m_e * orb["r"] * orb["vpar"] * orb["bphi"] / B + \
-                            orb["charge"] * e * psi
+    ORBFOL["GCA"]["ekin"] = orb["ekin"]
+    ORBFOL["GCA"]["mu"]   = orb["mu"]
+    ORBFOL["GCA"]["ctor"] = orb["ctor"]
 
     id1 = ORBFOL["GCA"]["id"] == 1
     id2 = ORBFOL["GCA"]["id"] == 2

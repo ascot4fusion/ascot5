@@ -5,14 +5,18 @@ File: orbits.py
 """
 import numpy as np
 import h5py
-import scipy.constants as constants
+import unyt
 
-from a5py.ascot5io.ascot5data import AscotData
 import a5py.marker.interpret as interpret
 import a5py.marker as marker
 import a5py.marker.endcond as endcondmod
 import a5py.marker.plot as plot
-from a5py.marker.alias import get as alias
+import a5py.physlib as physlib
+
+from a5py.physlib.alias import getalias
+
+from a5py.ascot5io.ascot5data import AscotData
+from a5py.ascot5io.ascot5file import read_data
 
 def read_hdf5(fn, qid):
     """
@@ -57,16 +61,7 @@ def write_hdf5(fn, run, data, desc=None):
         g = f.create_group(gname)
 
         g.create_dataset("id",   (N,1), data=data["id"],   dtype="i8")
-        g.create_dataset("r",    (N,1), data=data["r"],    dtype="f8")
-        g.create_dataset("phi",  (N,1), data=data["phi"],  dtype="f8")
-        g.create_dataset("z",    (N,1), data=data["z"],    dtype="f8")
         g.create_dataset("time", (N,1), data=data["time"], dtype="f8")
-
-        g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
-        g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
-        g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
-        g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
-        g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
 
         if "pncrid" in data:
             g.create_dataset("pncrid", (N,1), data=data["pncrid"], dtype="i4")
@@ -77,15 +72,35 @@ def write_hdf5(fn, run, data, desc=None):
         if "weight" in data:
             g.create_dataset("weight", (N,1), data=data["weight"], dtype="f8")
 
-        if "vr" in data:
-            g.create_dataset("vr",   (N,1), data=data["vr"],   dtype="f8")
-            g.create_dataset("vphi", (N,1), data=data["vphi"], dtype="f8")
-            g.create_dataset("vz",   (N,1), data=data["vz"],   dtype="f8")
+        if "prprt" in data:
+            g.create_dataset("rprt",    (N,1), data=data["rprt"],    dtype="f8")
+            g.create_dataset("phiprt",  (N,1), data=data["phiprt"],  dtype="f8")
+            g.create_dataset("zprt",    (N,1), data=data["zprt"],    dtype="f8")
 
-        if "vpar" in data:
-            g.create_dataset("vpar", (N,1), data=data["vpar"], dtype="f8")
-            g.create_dataset("mu",   (N,1), data=data["mu"],   dtype="f8")
-            g.create_dataset("zeta", (N,1), data=data["zeta"], dtype="f8")
+            g.create_dataset("prprt",   (N,1), data=data["prprt"],   dtype="f8")
+            g.create_dataset("pphiprt", (N,1), data=data["pphiprt"], dtype="f8")
+            g.create_dataset("pzprt",   (N,1), data=data["pzprt"],   dtype="f8")
+
+            g.create_dataset("rhoprt",   (N,1), data=data["rhoprt"],   dtype="f8")
+            g.create_dataset("thetaprt", (N,1), data=data["thetaprt"], dtype="f8")
+            g.create_dataset("brprt",    (N,1), data=data["brprt"],    dtype="f8")
+            g.create_dataset("bphiprt",  (N,1), data=data["bphiprt"],  dtype="f8")
+            g.create_dataset("bzprt",    (N,1), data=data["bzprt"],    dtype="f8")
+        else:
+            g.create_dataset("rgc",    (N,1), data=data["rgc"],    dtype="f8")
+            g.create_dataset("phigc",  (N,1), data=data["phigc"],  dtype="f8")
+            g.create_dataset("zgc",    (N,1), data=data["zgc"],    dtype="f8")
+
+            g.create_dataset("rhogc",   (N,1), data=data["rhogc"],   dtype="f8")
+            g.create_dataset("thetagc", (N,1), data=data["thetagc"], dtype="f8")
+            g.create_dataset("brgc",    (N,1), data=data["brgc"],    dtype="f8")
+            g.create_dataset("bphigc",  (N,1), data=data["bphigc"],  dtype="f8")
+            g.create_dataset("bzgc",    (N,1), data=data["bzgc"],    dtype="f8")
+
+        if "ppargc" in data:
+            g.create_dataset("ppargc", (N,1), data=data["ppargc"], dtype="f8")
+            g.create_dataset("mugc",   (N,1), data=data["mugc"],   dtype="f8")
+            g.create_dataset("zetagc", (N,1), data=data["zetagc"], dtype="f8")
 
 
 class Orbits(AscotData):
@@ -123,107 +138,216 @@ class Orbits(AscotData):
         Return queried quantity.
 
         The quantity is returned as a single numpy array ordered by id and time.
-        Internally, this method first sees if the quantity can be read directly
-        from HDF5. If not, then it tries to see if it is present in endstate and
-        can be copied from there (e.g. mass). If not, then quantity is evaluated
-        by first determining if the stored orbit type is field line (has no
-        charge), guiding center (has magnetic moment), or particle.
+
+        The quantity will be in the same picture as the stored data is, e.g. if
+        one queries for magnetic momentum mu, mu will be in guiding center
+        picture if the data corresponds to guiding center data, particle picture
+        for particle data, and none for field line data.
 
         Args:
             key : str <br>
-                Name of the quantity (see alias.py for a complete list).
+                Name of the quantity.
         Returns:
-            The quantity in SI units ordered by id and time.
+            The quantity ordered by id and time.
         """
+        # Init ascotpy object (no data is initialized yet)
+        from a5py.ascotpy import Ascotpy
+        a5 = Ascotpy(self._file)
+
+        # Wrapper for read data which opens the HDF5 file
+        def read_dataw(data):
+            with self as h5:
+                data = read_data(h5, data)
+            return data
+
+        # Helper function that returns magnetic field vector
+        def getbvec():
+            return unyt.T * np.array(
+                [read_dataw("br"),
+                 read_dataw("bphi"),
+                 read_dataw("bz")]).T
+
+        # Helper function that returns particle momentum vector
+        def getpvecprt():
+            return unyt.kg * unyt.m / unyt.s * np.array(
+                [read_dataw("pr"),
+                 read_dataw("pphi"),
+                 read_dataw("pz")]).T
+
+        # Helper function that evaluates ascotpy at marker position
+        def evalapy(quantity):
+            return a5.evaluate(
+                R   = read_dataw("r"),
+                phi = read_dataw("phi").to("rad"),
+                z   = read_dataw("z"),
+                t   = read_dataw("time"),
+                quantity = quantity
+            )
+
+        # Gets mass for each datapoint from the endstate
+        def mass():
+            return self._read_from_inistate(
+                "mass", read_dataw("ids")).ravel() * unyt.amu
+
+        # Get alias and data field names in HDF5
+        key  = getalias(key)
+        item = None
         with self as h5:
-
-            key  = alias(key)
-            item = None
-
-            # See if the field can be read directly and without conversions
             h5keys = list(h5.keys())
-            if key in h5keys:
-                item = h5[key][:]
 
-                # Unit conversions
-                if key == "charge":
-                    f    = lambda x: interpret.charge_C(x)
-                    item = np.array([f(x) for x in item]).ravel()
-                if key == "mu":
-                    f    = lambda x: interpret.energy_J(x)
-                    item = np.array([f(x) for x in item]).ravel()
-                if key == "phi":
-                    item = item * np.pi/180
+        # See if the field can be read directly and without conversions
+        if key in h5keys:
+            item = read_dataw(key)
+        else:
+            # See what type of data is stored
+            if "mu" in h5keys:
+                key += "gc"
+            elif "charge" in h5keys:
+                key += "prt"
+            else:
+                key += "fl"
 
-            # Is it modulus of poloidal angle.
-            if (item is None) and (key == "thetamod"):
-                item = (np.mod(h5["theta"][:] + 360, 360) - 180) * np.pi/180
+        # Evaluate the quantity if direct read could not be done
+        # New quantities can be added here. Use suffix "gc" for quantities that
+        # can be evaluated from guiding-center data, "prt" for particle data
+        # and "fl" for field line data.
+        if item is not None:
+            pass
+        elif key in ["xgc", "xprt", "xfl"]:
+            item = physlib.xcoord(
+                r   = read_dataw("r"),
+                phi = read_dataw("phi")
+            )
+        elif key in ["ygc", "yprt", "yfl"]:
+            item = physlib.ycoord(
+                r   = read_dataw("r"),
+                phi = read_dataw("phi")
+            )
+        elif key == "energygc":
+            item = physlib.energy_muppar(
+                m    = mass(),
+                mu   = read_dataw("mu"),
+                ppar = read_dataw("ppar"),
+                b    = getbvec()
+            )
+        elif key == "energyprt":
+            item = physlib.energy_momentum(
+                m = mass(),
+                p = getpvecprt()
+            )
+        elif key == "gammagc":
+            item = physlib.gamma_muppar(
+                m    = mass(),
+                mu   = read_dataw("mu"),
+                ppar = read_dataw("ppar"),
+                b    = getbvec()
+            )
+        elif key == "gammaprt":
+            item = physlib.gamma_momentum(
+                m = mass(),
+                p = getpvecprt()
+            )
+        elif key == "vpargc":
+            item = physlib.vpar_muppar(
+                m    = mass(),
+                mu   = read_dataw("mu"),
+                ppar = read_dataw("ppar"),
+                b    = getbvec()
+                )
+        elif key == "vparprt":
+            item = physlib.vpar_momentum(
+                m = mass(),
+                p = getpvecprt(),
+                b = getbvec()
+                )
 
-            # See if it is supposed to be read from inistate instead.
-            if (item is None) and (key == "mass"):
-                item = self._read_from_inistate("mass", h5)
-                f    = lambda x: interpret.mass_kg(x)
-                mass = np.array([f(x) for x in mass]).ravel()
+        elif key == "pnormprt":
+            item = getpvecprt()
+            item = np.sqrt( np.sum( item**2, axis=1 ) )
 
-            if (item is None) and ("mu" in h5keys):
-                # HDF5 contains guiding center data
-                mass = self._read_from_inistate("mass", h5)
+        elif key == "vnormprt":
+            item = getpvecprt()
+            item = np.sqrt( np.sum( item**2, axis=1 ) )
+            item = physlib.velocity_momentum(
+                m = mass(),
+                p = item
+            )
+        elif key == "vrprt":
+            item = physlib.velocity_momentum(
+                m = mass(),
+                p = getpvecprt()
+            )[:,0]
+        elif key == "vphiprt":
+            item = physlib.velocity_momentum(
+                m = mass(),
+                p = getpvecprt()
+            )[:,1]
+        elif key == "vzprt":
+            item = physlib.velocity_momentum(
+                m = mass(),
+                p = getpvecprt()
+            )[:,2]
+        elif key == "muprt":
+            item = physlib.mu_momentum(
+                m = mass(),
+                p = getpvecprt(),
+                b = getbvec()
+            )
+        elif key in ["bnormgc", "bnormprt", "bnormfl"]:
+            item = getbvec()
+            item = np.sqrt( np.sum( item**2, axis=1 ) )
 
-                # Convert guiding-center quantities to SI units
-                f      = lambda x: interpret.mass_kg(x)
-                mass   = np.array([f(x) for x in mass]).ravel()
-                f      = lambda x: interpret.charge_C(x)
-                charge = np.array([f(x) for x in h5["charge"][:]]).ravel()
-                f      = lambda x: interpret.energy_J(x)
-                mu     = np.array([f(x) for x in h5["mu"][:]]).ravel()
-                phi    = h5["phi"][:] * np.pi/180
+        elif key in ["psigc", "psiprt", "psifl"]:
+            a5.init(bfield=True)
+            item = evalapy("psi") * unyt.Wb
+            a5.free(bfield=True)
 
-                item = marker.eval_guidingcenter(
-                    key, mass=mass, charge=charge,
-                    R=h5["r"][:], phi=phi, z=h5["z"][:],
-                    mu=mu, vpar=h5["vpar"][:],
-                    theta=h5["theta"][:],
-                    BR=h5["br"][:], Bphi=h5["bphi"][:],
-                    Bz=h5["bz"][:])
+        elif key in ["rhogc", "rhoprt", "rhofl"]:
+            a5.init(bfield=True)
+            item = evalapy("rho") * unyt.dimensionless
+            a5.free(bfield=True)
 
-            if (item is None) and ("charge" in h5keys):
-                # HDF5 contains particle data
-                mass = self._read_from_inistate("mass", h5)
+        elif key == "ptorgc":
+            a5.init(bfield=True)
+            item = physlib.torcanangmom_ppar(
+                q    = read_dataw("charge"),
+                r    = read_dataw("r"),
+                ppar = read_dataw("ppar"),
+                b    = getbvec(),
+                psi  = evalapy("psi") * unyt.Wb
+            )
+            a5.free(bfield=True)
 
-                # Convert particle quantities to SI units
-                f      = lambda x: interpret.mass_kg(x)
-                mass   = np.array([f(x) for x in mass]).ravel()
-                f      = lambda x: interpret.charge_C(x)
-                charge = np.array([f(x) for x in h5["charge"][:]]).ravel()
-                phi    = h5["phi"][:] * np.pi/180
-
-                item = marker.eval_particle(
-                    key, mass=mass, charge=charge,
-                    R=h5["r"][:], phi=phi, z=h5["z"][:],
-                    vR=h5["vr"][:], vphi=h5["vphi"][:], vz=h5["vz"][:],
-                    BR=h5["br"][:], Bphi=h5["bphi"][:], Bz=h5["bz"][:])
-
-            if item is None:
-                # HDF5 contains field line data
-
-                # Convert particle quantities to SI units
-                phi    = h5["phi"][:] * np.pi/180
-
-                # All physical field-line quantities can be get like this.
-                item = marker.eval_particle(key, R=h5["r"][:], phi=phi,
-                                            z=h5["z"][:], BR=h5["br"][:],
-                                            Bphi=h5["bphi"][:],
-                                            Bz=h5["bz"][:])
-
-            # Order by id and time
-            ids  = h5["id"][:]
-            time = h5["time"][:]
-            idx  = np.lexsort((time, ids))
-
-            return item[idx]
+        elif key == "ptorprt":
+            a5.init(bfield=True)
+            item = physlib.torcanangmom_momentum(
+                q   = read_dataw("charge"),
+                r   = read_dataw("r"),
+                p   = getpvecprt(),
+                psi = evalapy("psi") * unyt.Wb
+            )
+            a5.free(bfield=True)
 
 
-    def get(self, key, ids=None, endcond=None, pncrid=None, SI=True):
+        # Dissect endcondition
+        if key == "endcond":
+            err = read_dataw("errormsg")
+            item = item << 2
+            item[err > 0] = item[err > 0] & endcondmod.getbin("aborted")
+            item[item==0] = endcondmod.getbin("none")
+
+        # Convert to ascot unit system.
+        item.convert_to_base("ascot")
+
+        # Order by id and time
+        ids  = read_dataw("ids")
+        time = read_dataw("time")
+        idx  = np.lexsort((time, ids))
+
+        return item[idx]
+
+
+    def get(self, key, ids=None, endcond=None, pncrid=None):
         """
         Same as __getitem__ but with option to filter which points are returned.
 
@@ -236,8 +360,6 @@ class Orbits(AscotData):
                 Endcond of those  markers which are returned.
             pncrid : str, array_like, optional <br>
                 Poincare ID of those  markers which are returned.
-            SI : bool, optional <br>
-                Wheter to return quantity in SI units or Ascot units.
         Returns:
             The quantity.
         """
@@ -258,24 +380,6 @@ class Orbits(AscotData):
             idx = np.logical_and(idx, np.in1d(self["id"], ids))
 
         val = val[idx]
-
-        if not SI:
-            key = alias(key)
-
-            if key in ["energy", "mu"]:
-                f      = lambda x: interpret.energy_eV(x)
-                val   = np.array([f(x) for x in val]).ravel()
-
-            if key in ["phi", "phimod", "theta", "thetamod"]:
-                val = val*180/np.pi
-
-            if key in ["mass"]:
-                f      = lambda x: interpret.mass_amu(x)
-                val   = np.array([f(x) for x in val]).ravel()
-
-            if key in ["charge"]:
-                f      = lambda x: interpret.charge_e(x)
-                val   = np.array([f(x) for x in val]).ravel()
 
         return val
 
@@ -406,15 +510,15 @@ class Orbits(AscotData):
 
 
 
-    def _read_from_inistate(self, key, h5):
+    def _read_from_inistate(self, key, ids):
         isval = self._runnode.inistate[key]
-        isid  = self._runnode.inistate["id"]
+        isid  = self._runnode.inistate["ids"]
         f     = lambda x: isval[isid == x]
-        return np.array([f(x) for x in h5["id"][:]])
+        return np.array([f(x) for x in ids])
 
 
-    def _read_from_endstate(self, key, h5):
+    def _read_from_endstate(self, key, ids):
         esval = self._runnode.endstate[key]
-        esid  = self._runnode.endstate["id"]
+        esid  = self._runnode.endstate["ids"]
         f     = lambda x: esval[esid == x]
-        return np.array([f(x) for x in h5["id"][:]])
+        return np.array([f(x) for x in ids])

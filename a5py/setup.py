@@ -10,7 +10,8 @@ setup(name='a5py',
       install_requires=[
           'numpy',
           'h5py',
-          'prompt_toolkit'
+          'prompt_toolkit',
+          'unyt'
       ],
       scripts=[
         'bin/a5removegroup',

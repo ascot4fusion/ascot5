@@ -18,12 +18,11 @@ import sys
 import copy
 
 import numpy                   as np
-import scipy.constants         as constants
+import unyt
 import scipy
 import matplotlib.pyplot       as plt
 import matplotlib.lines        as mlines
 
-import a5py.ascot5io.ascot5    as ascot5
 import a5py.ascot5io.options   as options
 import a5py.ascot5io.B_GS      as B_GS
 import a5py.ascot5io.E_TC      as E_TC
@@ -38,15 +37,8 @@ import a5py.testascot.helpers as helpers
 
 from a5py.preprocessing.analyticequilibrium import psi0 as psifun
 
-e       = constants.elementary_charge
-m_p_AMU = constants.physical_constants["proton mass in u"][0]
-m_p     = constants.physical_constants["proton mass"][0]
-m_a_AMU = constants.physical_constants["alpha particle mass in u"][0]
-m_a     = constants.physical_constants["alpha particle mass"][0]
-m_e_AMU = constants.physical_constants["electron mass in u"][0]
-m_e     = constants.physical_constants["electron mass"][0]
-c       = constants.physical_constants["speed of light in vacuum"][0]
-eps0    = constants.physical_constants["electric constant"][0]
+from a5py.ascot5io.ascot5 import Ascot
+from a5py.physlib import e, m_e, m_p, m_a, c, eps_0
 
 simtime_th = 2e-2
 
@@ -100,12 +92,12 @@ def init():
     odict["DIST_MIN_Z"]     = -5
     odict["DIST_MAX_Z"]     = 5
     odict["DIST_NBIN_Z"]    = 1
-    odict["DIST_MIN_VPA"]   = -1.5e6
-    odict["DIST_MAX_VPA"]   =  1.5e6
-    odict["DIST_NBIN_VPA"]  = 140
-    odict["DIST_MIN_VPE"]   = 0
-    odict["DIST_MAX_VPE"]   = 1.5e6
-    odict["DIST_NBIN_VPE"]  = 80
+    odict["DIST_MIN_PPA"]   = -1.5e6 * m_p
+    odict["DIST_MAX_PPA"]   =  1.5e6 * m_p
+    odict["DIST_NBIN_PPA"]  = 140
+    odict["DIST_MIN_PPE"]   = 0      * m_p
+    odict["DIST_MAX_PPE"]   = 1.5e6  * m_p
+    odict["DIST_NBIN_PPE"]  = 80
     odict["DIST_MIN_TIME"]  = 0
     odict["DIST_MAX_TIME"]  = simtime_th
     odict["DIST_NBIN_TIME"] = 2
@@ -154,12 +146,12 @@ def init():
     odict["DIST_MIN_Z"]    = -5
     odict["DIST_MAX_Z"]    = 5
     odict["DIST_NBIN_Z"]   = 1
-    odict["DIST_MIN_VPA"]  = -2e7
-    odict["DIST_MAX_VPA"]  =  2e7
-    odict["DIST_NBIN_VPA"] = 200
-    odict["DIST_MIN_VPE"]  = 0
-    odict["DIST_MAX_VPE"]  = 2e7
-    odict["DIST_NBIN_VPE"] = 100
+    odict["DIST_MIN_PPA"]  = -2e7 * m_a
+    odict["DIST_MAX_PPA"]  =  2e7 * m_a
+    odict["DIST_NBIN_PPA"] = 200
+    odict["DIST_MIN_PPE"]  = 0    * m_a
+    odict["DIST_MAX_PPE"]  = 2e7  * m_a
+    odict["DIST_NBIN_PPE"] = 100
 
     odict["SIM_MODE"]                  = 1
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
@@ -188,7 +180,7 @@ def init():
     Nmrk   = 20
     ids    = np.linspace(1,Nmrk,Nmrk)
     weight = (1/Nmrk)* np.ones(ids.shape)
-    mass   = m_p_AMU * np.ones(ids.shape)
+    mass   = m_p.to("amu") * np.ones(ids.shape)
     charge = 1       * np.ones(ids.shape)
     anum   = 1       * np.ones(ids.shape)
     znum   = 1       * np.ones(ids.shape)
@@ -222,7 +214,7 @@ def init():
     Nmrk   = 200
     ids    = np.linspace(1,Nmrk,Nmrk)
     weight = (1/Nmrk)* np.ones(ids.shape)
-    mass   = m_a_AMU * np.ones(ids.shape)
+    mass   = m_a.to("amu") * np.ones(ids.shape)
     charge = 2       * np.ones(ids.shape)
     anum   = 4       * np.ones(ids.shape)
     znum   = 2       * np.ones(ids.shape)
@@ -344,7 +336,7 @@ def check():
     - One that shows pitch distribution during the slowing-down.
     """
 
-    a5 = ascot5.Ascot(helpers.testfn)
+    a5 = Ascot(helpers.testfn)
 
     ts_GO  = np.mean(a5.SLOWING_GO.endstate["time"])
     ts_GCF = np.mean(a5.SLOWING_GCF.endstate["time"])
@@ -366,7 +358,7 @@ def check():
     vth    = np.sqrt(2*Te*e / m_e)
     vcrit  = vth * np.power( (3.0*np.sqrt(np.pi)/4.0) * (m_e / m_p) , 1/3.0)
     Ecrit  = 0.5 * m_a * vcrit * vcrit / e
-    ts     = 3 * np.sqrt( np.power(2*np.pi * Te * e, 3) / m_e ) * eps0 * eps0 \
+    ts     = 3 * np.sqrt( np.power(2*np.pi * Te * e, 3) / m_e ) * eps_0 * eps_0 \
              * m_a /( alphaZ * alphaZ * np.power(e, 4) * ne * clog)
 
     heaviside = np.logical_and(SLOWING["Egrid"] <= Esd,
