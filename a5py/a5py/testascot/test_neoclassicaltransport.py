@@ -37,6 +37,8 @@ import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
 import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
+import a5py.ascot5io.boozer    as boozer
+import a5py.ascot5io.mhd       as mhd
 
 import a5py.testascot.helpers as helpers
 
@@ -246,6 +248,15 @@ def init():
         N0_3D.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GO" + str(i))
         N0_3D.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GCF" + str(i))
         N0_3D.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GCA" + str(i))
+
+        boozer.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GO"  + str(i))
+        boozer.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GCF" + str(i))
+        boozer.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GCA" + str(i))
+
+        mhd.write_hdf5_dummy(helpers.testfn,    desc="NEOCLASS_GO"  + str(i))
+        mhd.write_hdf5_dummy(helpers.testfn,    desc="NEOCLASS_GCF" + str(i))
+        mhd.write_hdf5_dummy(helpers.testfn,    desc="NEOCLASS_GCA" + str(i))
+
 
 def run():
     """

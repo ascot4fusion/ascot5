@@ -32,6 +32,8 @@ import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
 import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
+import a5py.ascot5io.boozer    as boozer
+import a5py.ascot5io.mhd       as mhd
 
 import a5py.testascot.helpers as helpers
 
@@ -206,7 +208,7 @@ def init():
     #**************************************************************************#
     for i in range(1, nB+1):
         Exyz   = np.array([0, 0, 0])
-        E_TC.write_hdf5(helpers.testfn, Exyz, desc="CLASS_GO" + str(i))
+        E_TC.write_hdf5(helpers.testfn, Exyz, desc="CLASS_GO"  + str(i))
         E_TC.write_hdf5(helpers.testfn, Exyz, desc="CLASS_GCF" + str(i))
         E_TC.write_hdf5(helpers.testfn, Exyz, desc="CLASS_GCA" + str(i))
 
@@ -220,9 +222,17 @@ def init():
         W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall,
                         desc="CLASS_GCA" + str(i))
 
-        N0_3D.write_hdf5_dummy(helpers.testfn, desc="CLASS_GO" + str(i))
+        N0_3D.write_hdf5_dummy(helpers.testfn, desc="CLASS_GO"  + str(i))
         N0_3D.write_hdf5_dummy(helpers.testfn, desc="CLASS_GCF" + str(i))
         N0_3D.write_hdf5_dummy(helpers.testfn, desc="CLASS_GCA" + str(i))
+
+        boozer.write_hdf5_dummy(helpers.testfn, desc="CLASS_GO"  + str(i))
+        boozer.write_hdf5_dummy(helpers.testfn, desc="CLASS_GCF" + str(i))
+        boozer.write_hdf5_dummy(helpers.testfn, desc="CLASS_GCA" + str(i))
+
+        mhd.write_hdf5_dummy(helpers.testfn,    desc="CLASS_GO"  + str(i))
+        mhd.write_hdf5_dummy(helpers.testfn,    desc="CLASS_GCF" + str(i))
+        mhd.write_hdf5_dummy(helpers.testfn,    desc="CLASS_GCA" + str(i))
 
 
 def run():

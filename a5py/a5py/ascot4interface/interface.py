@@ -12,11 +12,13 @@ import a5py.ascot4interface.plasma   as a4plasma
 import a5py.ascot4interface.erad     as a4erad
 import a5py.ascot4interface.wall_2d  as a4wall_2d
 import a5py.ascot4interface.wall_3d  as a4wall_3d
+import a5py.ascot4interface.mhdinput as a4mhdinput
 
 import a5py.ascot5io.B_2DS       as B_2DS
 import a5py.ascot5io.B_3DS       as B_3DS
 import a5py.ascot5io.B_STS       as B_STS
 import a5py.ascot5io.N0_3D       as N0_3D
+import a5py.ascot5io.options     as options
 import a5py.ascot5io.plasma_1D   as plasma_1D
 import a5py.ascot5io.mrk_prt     as mrk_prt
 import a5py.ascot5io.mrk_gc      as mrk_gc
@@ -24,7 +26,14 @@ import a5py.ascot5io.E_TC        as E_TC
 import a5py.ascot5io.E_1DS       as E_1DS
 import a5py.ascot5io.wall_2D     as wall_2D
 import a5py.ascot5io.wall_3D     as wall_3D
+import a5py.ascot5io.boozer      as boozer
+import a5py.ascot5io.mhd         as mhd
 import a5py.ascot5io.ascot5tools as a5tools
+import a5py.testascot.helpers    as helpers
+
+from a5py.preprocessing.boozermaps import Boozermaps
+from a5py.postprocessing.physicslib import guessMass
+
 
 import a5py.preprocessing.psilims as psilims
 
@@ -186,6 +195,28 @@ def read_wall(a4folder, h5fn):
             desc='fromASCOT4',
             flag=np.reshape(data['flag'],(data["flag"].size,1)))
 
+
+def read_boozer(a4folder, h5fn):
+    fname = a4folder + "boozer_maps.out"
+    if (os.path.isfile(fname)):
+        b = Boozermaps(fname)
+        b.write_hdf5(h5fn)
+    else:
+        boozer.write_hdf5_dummy(h5fn)
+
+
+def read_mhd(a4folder, h5fn):
+    fname = a4folder + "input.alfven"
+    if (os.path.isfile(fname)):
+        data = a4mhdinput.read_alfven(fname)
+        mhd.write_hdf5(h5fn, data["nmode"], data["nmodes"], data["mmodes"],
+                       data["amplitude"], data["omega"], data["alpha"],
+                       data["phi"], data["npsi"], data["psimin"],
+                       data["psimax"])
+    else:
+        mhd.write_hdf5_dummy(h5fn)
+
+
 def run(a4folder, h5fn, overwrite=True):
     """
     Convert ASCOT4 input files to ASCOT5 input HDF5 file.
@@ -247,6 +278,31 @@ def run(a4folder, h5fn, overwrite=True):
         # No ASCOT4 neutral density
         N0_3D.write_hdf5_dummy(h5fn)
 
+    # Boozer data
+    if overwrite or (not "boozer" in groups):
+        read_boozer(a4folder, h5fn)
+
+    # MHD input
+    if overwrite or (not "mhd" in groups):
+        read_mhd(a4folder, h5fn)
+
     # Wall.
     if overwrite or (not "wall" in groups):
         read_wall(a4folder, h5fn)
+
+    # Options 
+    if overwrite or (not "options" in groups):
+        odict = options.generateopt()
+        helpers.clean_opt(odict)
+        #GCF
+        odict["SIM_MODE"]                  = 2
+        odict["FIXEDSTEP_USE_USERDEFINED"] = 1
+        odict["FIXEDSTEP_USERDEFINED"]     = 1e-8
+        odict["ENDCOND_SIMTIMELIM"]        = 1
+        odict["ENDCOND_MAX_SIMTIME"]       = 5e-6
+        odict["ENABLE_ORBIT_FOLLOWING"]    = 1
+        odict["ENABLE_MHD"]                = 1
+        odict["ENABLE_COULOMB_COLLISIONS"] = 1
+
+        options.write_hdf5(h5fn, odict)       
+

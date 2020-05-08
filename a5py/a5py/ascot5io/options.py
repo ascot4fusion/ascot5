@@ -379,6 +379,13 @@ def get_default():
          1)
     )
     info.append(
+        ("ENABLE_MHD",
+         """\
+         # Include MHD perturbations to orbit-following
+         """,
+         0)
+    )
+    info.append(
         ("DISABLE_FIRSTORDER_GCTRANS",
          """\
          # Disable first order guiding center transformation in velocity space

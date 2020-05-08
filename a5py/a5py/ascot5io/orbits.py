@@ -281,23 +281,24 @@ class Orbits(AscotData):
 
 
     def plot(self, x=None, y=None, z=None, endcond=None, pncrid=None,
-             equal=False, log=False, axes=None):
+             equal=False, log=False, axes=None, ids=None, **kwargs):
         """
         Plot orbits as a continuous line.
         """
-        ids = self.get("id", endcond=endcond)
+        ids0 = ids
+        ids = self.get("id", endcond=endcond, ids=ids0)
 
         xc = np.linspace(0, ids.size, ids.size)
         if x is not None:
-            xc = self.get(x, endcond=endcond, pncrid=pncrid, SI=False)
+            xc = self.get(x, endcond=endcond, pncrid=pncrid, SI=False, ids=ids0)
 
         yc = None
         if y is not None:
-            yc = self.get(y, endcond=endcond, pncrid=pncrid, SI=False)
+            yc = self.get(y, endcond=endcond, pncrid=pncrid, SI=False, ids=ids0)
 
         zc = None
         if z is not None:
-            zc = self.get(z, endcond=endcond, pncrid=pncrid, SI=False)
+            zc = self.get(z, endcond=endcond, pncrid=pncrid, SI=False, ids=ids0)
 
         if isinstance(log, tuple):
             if log[0]:
@@ -313,7 +314,7 @@ class Orbits(AscotData):
                 zc = np.log10(np.absolute(zc))
 
         plot.plot_line(x=xc, y=yc, z=zc, ids=ids, equal=equal,
-                       xlabel=x, ylabel=y, zlabel=z, axes=axes)
+                       xlabel=x, ylabel=y, zlabel=z, axes=axes, **kwargs)
 
 
     def scatter(self, x=None, y=None, z=None, c=None, endcond=None, pncrid=None,
