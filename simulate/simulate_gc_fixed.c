@@ -94,7 +94,13 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
         /* RK4 method for orbit-following */
         if(sim->enable_orbfol) {
-            step_gc_rk4(&p, hin, &sim->B_data, &sim->E_data);
+            if(sim->enable_mhd) {
+                step_gc_rk4_mhd(&p, hin, &sim->B_data, &sim->E_data,
+                                &sim->boozer_data, &sim->mhd_data);
+            }
+            else {
+                step_gc_rk4(&p, hin, &sim->B_data, &sim->E_data);
+            }
         }
 
         /* Euler-Maruyama method for collisions */

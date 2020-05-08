@@ -504,7 +504,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                 /* If this is the first time-step, record marker position. */
                 if( data->id[imrk * data->Npnt] == 0 ) {
                     data->id[idx]    = (real)p_i->id[i];
-                    data->time[idx]  = p_i->time[i];
+                    data->time[idx]  = p_i->dist[i];
                     data->r[idx]     = p_i->r[i];
                     data->phi[idx]   = p_i->phi[i];
                     data->z[idx]     = p_i->z[i];
@@ -519,17 +519,17 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
-                    data->mrk_recorded[imrk] = p_f->time[i];
+                    data->mrk_recorded[imrk] = p_f->dist[i];
                 }
 
                 /* Record marker if enough time has passed from last record, or
                    if marker has met some end condition. */
                 real dt = data->mrk_recorded[imrk] + data->writeInterval
-                    - p_f->time[i];
+                    - p_f->dist[i];
                 if( dt <= 0 || p_f->endcond[i] > 0 ) {
                     idx = imrk * data->Npnt + ipoint;
                     data->id[idx]    = (real)p_f->id[i];
-                    data->time[idx]  = p_f->time[i];
+                    data->time[idx]  = p_f->dist[i];
                     data->r[idx]     = p_f->r[i];
                     data->phi[idx]   = p_f->phi[i];
                     data->z[idx]     = p_f->z[i];
@@ -544,7 +544,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
-                    data->mrk_recorded[imrk] = p_f->time[i];
+                    data->mrk_recorded[imrk] = p_f->dist[i];
                 }
             }
         }
@@ -553,7 +553,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
         #pragma omp simd
         for(int i= 0; i < NSIMD; i++) {
             /* Mask dummy markers and thosw whose time-step was rejected. */
-            if( p_f->id[i] > 0 && (p_f->time[i] != p_i->time[i]) ) {
+            if( p_f->id[i] > 0 && (p_f->dist[i] != p_i->dist[i]) ) {
 
                 real k;
                 integer imrk   = p_f->index[i];
@@ -568,7 +568,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         real d = 1-k;
                         idx = imrk * data->Npnt + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
-                        data->time[idx]   = k*p_f->time[i]  + d*p_i->time[i];
+                        data->time[idx]   = k*p_f->dist[i]  + d*p_i->dist[i];
                         data->r[idx]      = k*p_f->r[i]     + d*p_i->r[i];
                         data->phi[idx]    = k*p_f->phi[i]   + d*p_i->phi[i];
                         data->z[idx]      = k*p_f->z[i]     + d*p_i->z[i];
@@ -584,7 +584,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
-                        data->mrk_recorded[imrk] = p_f->time[i];
+                        data->mrk_recorded[imrk] = p_f->dist[i];
                     }
                 }
 
@@ -597,7 +597,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         real d = 1-k;
                         idx = imrk * data->Npnt + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
-                        data->time[idx]   = k*p_f->time[i]  + d*p_i->time[i];
+                        data->time[idx]   = k*p_f->dist[i]  + d*p_i->dist[i];
                         data->r[idx]      = k*p_f->r[i]     + d*p_i->r[i];
                         data->phi[idx]    = k*p_f->phi[i]   + d*p_i->phi[i];
                         data->z[idx]      = k*p_f->z[i]     + d*p_i->z[i];
@@ -613,7 +613,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
-                        data->mrk_recorded[imrk] = p_f->time[i];
+                        data->mrk_recorded[imrk] = p_f->dist[i];
                     }
                 }
             }

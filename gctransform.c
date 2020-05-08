@@ -474,6 +474,7 @@ void gctransform_guidingcenter2particle(
         mu   = fabs(mu - mu1);
         ppar -= ppar1;
         zeta -= zeta1;
+        mu = fabs(mu);
 
         /* Calculate new unit vector for position */
         c = cos(zeta);

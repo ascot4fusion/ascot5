@@ -96,7 +96,13 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Volume preserving algorithm for orbit-following */
         if(sim->enable_orbfol) {
-            step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data);
+            if(sim->enable_mhd) {
+                step_fo_vpa_mhd(&p, hin, &sim->B_data, &sim->E_data,
+                                &sim->boozer_data, &sim->mhd_data);
+            }
+            else {
+                step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data);
+            }
         }
 
         /* Euler-Maruyama for Coulomb collisions */
