@@ -107,6 +107,23 @@ int main(int argc, char** argv) {
     hdf5_close(of);
     of = hdf5_open(sim.hdf5_out);
     hdf5_marker_write_particle(of, nprt, ip, qid);
+
+    /* Write metadata */
+    char path[256];
+    hdf5_gen_path("/marker/prt_XXXXXXXXXX", qid, path);
+
+    hdf5_write_string_attribute(f, path, "description",  sim.description);
+
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    char date[21];
+    sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900,
+            tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    hdf5_write_string_attribute(f, path, "date",  date);
+
+    /* Set this run as active. */
+    hdf5_write_string_attribute(f, "/marker", "active",  qid);
+
     hdf5_close(of);
 
     return 0;
@@ -179,10 +196,6 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt) {
                 print_out(VERBOSE_MINIMAL,
                     "--out output file without .h5 extension (default: same as "
                     "input)\n");
-                print_out(VERBOSE_MINIMAL,
-                    "--mpi_size number of independent processes\n");
-                print_out(VERBOSE_MINIMAL,
-                    "--mpi_rank rank of independent process\n");
                 print_out(VERBOSE_MINIMAL,
                     "--d run description maximum of 250 characters\n");
                 print_out(VERBOSE_MINIMAL,
