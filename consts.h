@@ -40,4 +40,7 @@
 /** @brief Reduced Planck constant [m^2*kg/s]                                 */
 #define CONST_HBAR 1.0546e-34
 
+/** @brief Magnetic constant [kg*m*s^-2*A^-2]                                 */
+#define CONST_MU0 1.25663706212e-6
+
 #endif
