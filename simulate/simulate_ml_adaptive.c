@@ -165,7 +165,8 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
                         hin[i] = -hnext[i];
                     }
                     else {
-                        p.mileage[i] += hin[i];
+                        /* Mileage measures seconds but hin is in meters */
+                        p.mileage[i] += hin[i] / CONST_C;
 
                         if(hnext[i] > hout[i]) {
                             /* Use time step suggested by the integrator */
