@@ -104,7 +104,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(PLSHEADERS) $(N0HEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h \
-	random.h print.h hdf5_interface.h suzuki.h nbi.h
+	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h
 
 OBJS= math.o list.o octree.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -118,7 +118,7 @@ BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 \
-	test_spline ascot5_main bbnbi5 test_biosaw
+	test_spline ascot5_main bbnbi5
 
 ifdef NOGIT
 	DUMMY_GIT_INFO := $(shell touch gitver.h)
@@ -185,9 +185,6 @@ test_nbi: $(UTESTDIR)test_nbi.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_spline: $(UTESTDIR)test_spline.o $(OBJS)
-	$(CC) -o $@ $^ $(CFLAGS)
-
-test_biosaw: $(UTESTDIR)test_biosaw.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile
