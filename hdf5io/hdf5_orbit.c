@@ -142,7 +142,7 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
         hdf5_orbit_writeset(group,  "phi", "deg", dtypef64, arraylength,
                             180.0/CONST_PI,
                             mask, datasize, &orbits[arraylength*3]);
-        hdf5_orbit_writeset(group,  "zgc", "m", dtypef64, arraylength, 1,
+        hdf5_orbit_writeset(group,  "z", "m", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*4]);
         hdf5_orbit_writeset(group,  "rho", "1", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*5]);
