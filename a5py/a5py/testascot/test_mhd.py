@@ -282,8 +282,8 @@ def check():
         orb = h5[run].orbit
         alpha = 0
         # Include alpha to ctor or not
-        #alpha = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
-        #                    t=orb["time"], quantity="alpha")
+        alpha = a5.evaluate(orb["r"], phi=orb["phi"].to("rad"), z=orb["z"],
+                            t=orb["time"], quantity="alpha")
 
         H = orb["energy"].to("J").v
 
@@ -291,7 +291,7 @@ def check():
         ctor.convert_to_mks()
         ctor = ctor.v + (orb["r"] * orb["charge"].to("C") * alpha * orb["bphi"]).v
 
-        ids  = orb["id"] == 1
+        ids  = orb["id"] == 2
         time = orb["time"][ids]
         H    = H[ids]
         P    = (modefreq)*ctor[ids]/nmode

@@ -85,7 +85,7 @@ def init():
 
     odict["SIM_MODE"]                  = 4
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIMTIME"]       = 1e3/3e8
+    odict["ENDCOND_MAX_MILEAGE"]       = 1e3/3e8
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
@@ -219,11 +219,11 @@ def check():
     a5.init(bfield=h5.bfield["BOOZER"].get_qid(),
             boozer=h5.boozer["BOOZER"].get_qid(),
             mhd=h5.mhd["BOOZER"].get_qid())
-    theta = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
+    theta = a5.evaluate(orb["r"], phi=orb["phi"].to("rad"), z=orb["z"],
                         t=orb["time"], quantity="theta")
-    zeta = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
+    zeta = a5.evaluate(orb["r"], phi=orb["phi"].to("rad"), z=orb["z"],
                        t=orb["time"], quantity="zeta")
-    alpha = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
+    alpha = a5.evaluate(orb["r"], phi=orb["phi"].to("rad"), z=orb["z"],
                         t=orb["time"]*0, quantity="alpha")
     jac = a5.evaluate(rgrid, phi=0, z=zgrid, t=0, grid=True,
                       quantity="jacobian")
