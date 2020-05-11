@@ -35,6 +35,8 @@ def clean_opt(odict):
         if o.startswith("DISABLE"):
             odict[o] = np.array([0],dtype='i4')
 
+    odict["ENDCOND_MAX_MILEAGE"] = 1
+
 
 def set_correct_input(parent, test):
     """

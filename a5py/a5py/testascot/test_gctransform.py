@@ -344,12 +344,15 @@ def check():
             ( a5["GCTRANSFORM_GO2GC"]["orbit"]["mu"]
               - a5["GCTRANSFORM_GC"]["orbit"]["mu"][:-1] )/e / 1e4 )
 
-    h2.plot(a5["GCTRANSFORM_GO"]["orbit"]["time"]*1e6,
-            m_a*( a5["GCTRANSFORM_GO"]["orbit"]["vpar"]
-              - a5["GCTRANSFORM_GC"]["orbit"]["vpar"] ) / 1e-21 )
-    h2.plot(a5["GCTRANSFORM_GO2GC"]["orbit"]["time"]*1e6,
-            m_a*( a5["GCTRANSFORM_GO2GC"]["orbit"]["vpar"]
-              - a5["GCTRANSFORM_GC"]["orbit"]["vpar"][:-1] ) / 1e-21 )
+    dppar = ( a5["GCTRANSFORM_GO"]["orbit"]["ppar"]
+             - a5["GCTRANSFORM_GC"]["orbit"]["ppar"] )
+    dppar.convert_to_mks()
+    h2.plot(a5["GCTRANSFORM_GO"]["orbit"]["time"]*1e6, dppar / 1e-21 )
+
+    dppar = ( a5["GCTRANSFORM_GO2GC"]["orbit"]["ppar"]
+              - a5["GCTRANSFORM_GC"]["orbit"]["ppar"][:-1] )
+    dppar.convert_to_mks()
+    h2.plot(a5["GCTRANSFORM_GO2GC"]["orbit"]["time"]*1e6, dppar / 1e-21 )
 
     h3.plot(a5["GCTRANSFORM_GO"]["orbit"]["r"],
             a5["GCTRANSFORM_GO"]["orbit"]["z"])

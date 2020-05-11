@@ -22,7 +22,6 @@ File: test_orbitfollowing.py
 import sys
 
 import numpy                   as np
-import scipy.constants         as constants
 import matplotlib.pyplot       as plt
 
 import a5py.ascot5io.ascot5    as ascot5
@@ -39,14 +38,12 @@ import a5py.ascot5io.mhd       as mhdmod
 
 import a5py.testascot.helpers as helpers
 
+from a5py.physlib import m_e, m_p
+
 from a5py.ascotpy.ascotpy import Ascotpy
-from a5py.preprocessing.analyticequilibrium import psi0 as psifun
 from a5py.preprocessing.generateboozer import generate as genbooz
 
-e       = constants.elementary_charge
-m_p_AMU = constants.physical_constants["electron mass in u"][0]
-m_p     = constants.physical_constants["electron mass"][0]
-c       = constants.physical_constants["speed of light in vacuum"][0]
+from matplotlib.gridspec import GridSpec
 
 psi_mult  = 200
 R0        = 6.2
@@ -61,7 +58,7 @@ psi_coeff = np.array([ 2.218e-02, -1.288e-01, -4.177e-02, -6.227e-02,
 # MHD mode specifications
 nmode = 2
 mmode = 3
-modefreq = 1e3
+modefreq = 1e6
 amplitude = 1e-2
 
 def init():
@@ -81,9 +78,9 @@ def init():
 
     odict["SIM_MODE"]                  = 1
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
-    odict["FIXEDSTEP_USERDEFINED"]     = 1e-11
+    odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIMTIME"]       = 1e-4
+    odict["ENDCOND_MAX_SIMTIME"]       = 1e-3
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_MHD"]                = 1
     odict["ENABLE_ORBITWRITE"]         = 1
@@ -102,9 +99,9 @@ def init():
 
     odict["SIM_MODE"]                  = 2
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
-    odict["FIXEDSTEP_USERDEFINED"]     = 1e-11
+    odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIMTIME"]       = 1e-4
+    odict["ENDCOND_MAX_SIMTIME"]       = 1e-3
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_MHD"]                = 1
     odict["ENABLE_ORBITWRITE"]         = 1
@@ -129,7 +126,7 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-11
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIMTIME"]       = 1e-4
+    odict["ENDCOND_MAX_SIMTIME"]       = 1e-3
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_MHD"]                = 1
     odict["ENABLE_ORBITWRITE"]         = 1
@@ -150,10 +147,10 @@ def init():
     pitch  = np.array([0.4, 0.9])
     zeta   = 2       * np.array([1, 1])
     energy = 1e6     * np.array([1, 1])
-    mass   = m_p_AMU * np.array([1, 1])
+    mass   = m_e.to("amu") * np.array([1, 1])
     charge = 1       * np.array([1, 1])
-    anum   = 1       * np.array([1, 0])
-    znum   = 1       * np.array([1, 0])
+    anum   = 1       * np.array([1, 1])
+    znum   = 1       * np.array([1, 1])
     weight = 1       * np.array([1, 1])
     time   = 0       * np.array([1, 1])
     phi    = 0       * np.array([1, 1])
@@ -250,7 +247,7 @@ def run():
     """
     Run tests.
     """
-    for test in ["MHD_GO", "MHD_GCF"]:#, "MHD_GCA"]:
+    for test in ["MHD_GO", "MHD_GCF", "MHD_GCA"]:
         helpers.set_and_run(test)
 
 def check():
@@ -270,55 +267,61 @@ def check():
             boozer=h5.boozer["MHD_GCF"].get_qid(),
             mhd=h5.mhd["MHD_GCF"].get_qid())
 
-    fig = plt.figure()
-    for run in ["MHD_GO", "MHD_GCF"]:#, "MHD_GCA"]:
+    f = plt.figure(figsize=(11.9/2.54, 8/2.54))
+    plt.rc('xtick', labelsize=10)
+    plt.rc('ytick', labelsize=10)
+    plt.rc('axes', labelsize=10)
+    plt.rcParams['mathtext.fontset'] = 'stix'
+    plt.rcParams['font.family'] = 'STIXGeneral'
+
+    gs = GridSpec(ncols=1, nrows=1, left=0.15, bottom=0.15, figure=f)
+    s1 = f.add_subplot(gs[0,0])
+
+    i = 0
+    for run in ["MHD_GO", "MHD_GCF", "MHD_GCA"]:
         orb = h5[run].orbit
+        alpha = 0
+        # Include alpha to ctor or not
+        #alpha = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
+        #                    t=orb["time"], quantity="alpha")
 
-        B0 = np.sqrt(np.power(orb["br"],2) + np.power(orb["bphi"],2) +
-                     np.power(orb["bz"],2) )
-        psi = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
-                          t=orb["time"], quantity="psi")
-        b0 = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
-                         t=orb["time"], quantity="bnorm")
-        bphi = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
-                         t=orb["time"], quantity="bphi")
-        alpha = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
-                            t=orb["time"], quantity="alpha")
-        Phi = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
-                            t=orb["time"], quantity="phi")
-        bdb = a5.evaluate(orb["r"], phi=orb["phi"], z=orb["z"],
-                         t=orb["time"], quantity="db/b")
+        H = orb["energy"].to("J").v
 
-        if run == "MHD_GO":
-            gamma = np.sqrt(1/(1-(orb["vr"]**2+orb["vphi"]**2+orb["vz"]**2)/c**2))
-            vphi = orb["vphi"]
-            H    = (gamma - 1) * m_p * c**2
-        else:
-            gamma = np.sqrt( ( 1 + 2 * orb["mu"] * b0 / ( m_p * c**2 ) ) /
-                         ( 1 - orb["vpar"] **2 / c**2 ) )
-            vphi = orb["vpar"] * orb["bphi"] / b0
-            H    = m_p * c**2 *(gamma-1) + orb["charge"]*Phi
+        ctor = orb["ptor"]
+        ctor.convert_to_mks()
+        ctor = ctor.v + (orb["r"] * orb["charge"].to("C") * alpha * orb["bphi"]).v
 
-        ctor = gamma * m_p * orb["r"] * vphi + orb["charge"] * psi \
-               + orb["r"] *orb["charge"] * alpha * bphi
+        ids  = orb["id"] == 1
+        time = orb["time"][ids]
+        H    = H[ids]
+        P    = (modefreq)*ctor[ids]/nmode
+        K    = H - P
 
-        ids = orb["id"]
-        K = H - modefreq*ctor/nmode
+        ls = [":", "--", "-"]
 
-        time = orb["time"][ids==2]
-        K = K[ids==2]
-
-        if run == "MHD_GO":
-            plt.plot(time, (K-K[0])/K[0], color="black")
-            #plt.plot(time, K, color="black")
-            pass
-        else:
-            plt.plot(time, (K-K[0])/K[0], color="red")
-            #plt.plot(time, K, color="red")
-            pass
+        h1 = s1.plot(time, (P-P[0])/H[0], color="C0", linestyle=ls[i],
+                       alpha=0.3, label=r"$\omega_nP_\phi/n$")[0]
+        h2 = s1.plot(time, (H-H[0])/H[0], color="C1", linestyle=ls[i],
+                       alpha=0.3, label=r"$E$")[0]
+        h3 = s1.plot(time, (K-K[0])/H[0], color="C2", linestyle=ls[i],
+                       alpha=0.3, label=r"$E-\omega_nP_\phi/n$")[0]
+        i += 1
 
     a5.free(bfield=True, boozer=True, mhd=True)
 
+    s1.ticklabel_format(scilimits=(0,0))
+
+    s1.set_xlim(0, 1e-3)
+    s1.set_xticks([0, 0.5e-3, 1e-3])
+
+    s1.set_xlabel(r"Time [s]")
+    s1.set_ylabel(r"Relative difference $(y-y_0)/E_0$")
+
+    plt.legend(handles=[h1,h2,h3], loc='upper center',
+               bbox_to_anchor=(0.6, 1.15),
+               ncol=3, fancybox=True, shadow=True)
+
+    plt.savefig("test_mhd.png", dpi=300)
     plt.show()
 
 

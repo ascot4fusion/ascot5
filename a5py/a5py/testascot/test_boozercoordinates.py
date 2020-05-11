@@ -85,11 +85,11 @@ def init():
 
     odict["SIM_MODE"]                  = 4
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIMTIME"]       = 1e3
+    odict["ENDCOND_MAX_SIMTIME"]       = 1e3/3e8
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_ORBITWRITE"]         = 1
     odict["ORBITWRITE_MODE"]           = 1
-    odict["ORBITWRITE_INTERVAL"]       = 1e-1
+    odict["ORBITWRITE_INTERVAL"]       = 1e-1/3e8
     odict["ORBITWRITE_NPOINT"]         = 10002
 
     options.write_hdf5(helpers.testfn, odict, desc="BOOZER")

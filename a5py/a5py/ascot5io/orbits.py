@@ -253,14 +253,18 @@ class Orbits(AscotData):
                 mu   = read_dataw("mu"),
                 ppar = read_dataw("ppar"),
                 b    = getbvec()
-                )
+            )
         elif key == "vparprt":
             item = physlib.vpar_momentum(
                 m = mass(),
                 p = getpvecprt(),
                 b = getbvec()
-                )
-
+            )
+        elif key == "pparprt":
+            item = physlib.ppar_momentum(
+                p = getpvecprt(),
+                b = getbvec()
+            )
         elif key == "pnormprt":
             item = getpvecprt()
             item = np.sqrt( np.sum( item**2, axis=1 ) )
