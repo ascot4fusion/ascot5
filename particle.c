@@ -1339,6 +1339,7 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
         p_gc->charge[j]   = p_fo->charge[j];
         p_gc->weight[j]   = p_fo->weight[j];
         p_gc->time[j]     = p_fo->time[j];
+        p_gc->mileage[j]  = p_fo->mileage[j];
         p_gc->endcond[j]  = p_fo->endcond[j];
         p_gc->walltile[j] = p_fo->walltile[j];
         p_gc->cputime[j]  = p_fo->cputime[j];
@@ -1438,6 +1439,7 @@ void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j) 
         p2->p_z[j]        = p1->p_z[i];
 
         p2->time[j]       = p1->time[i];
+        p2->mileage[j]    = p1->mileage[i];
         p2->cputime[j]    = p1->cputime[i];
         p2->rho[j]        = p1->rho[i];
         p2->weight[j]     = p1->weight[i];
@@ -1487,6 +1489,7 @@ void particle_copy_gc(particle_simd_gc* p1, int i, particle_simd_gc* p2, int j) 
     p2->zeta[j]       = p1->zeta[i];
 
     p2->time[j]       = p1->time[i];
+    p2->mileage[j]    = p1->mileage[i];
     p2->weight[j]     = p1->weight[i];
     p2->cputime[j]    = p1->cputime[i];
     p2->rho[j]        = p1->rho[i];
@@ -1532,6 +1535,7 @@ void particle_copy_ml(particle_simd_ml* p1, int i, particle_simd_ml* p2, int j) 
     p2->pitch[j]      = p1->pitch[i];
 
     p2->time[j]       = p1->time[i];
+    p2->mileage[j]    = p1->mileage[i];
     p2->cputime[j]    = p1->cputime[i];
     p2->rho[j]        = p1->rho[i];
     p2->weight[j]     = p1->weight[i];
