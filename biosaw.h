@@ -7,7 +7,8 @@
 
 #include "ascot5.h"
 
-void biosaw_calc_B(real* x, int coil_n, real* coil_x, real* coil_y,
-                   real* coil_z, real* B);
+void biosaw_calc_B(int n, real* x, real* y, real* z,
+                   int coil_n, real* coil_x, real* coil_y, real* coil_z,
+                   real* Bx, real* By, real* Bz);
 
 #endif
