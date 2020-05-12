@@ -155,16 +155,20 @@ int main(int argc, char** argv) {
     real* plasma_offload_array;
     real* neutral_offload_array;
     real* wall_offload_array;
+    real* boozer_offload_array;
+    real* mhd_offload_array;
 
     /* Read input from the HDF5 file */
     if( hdf5_interface_read_input(&sim,
                                   hdf5_input_options | hdf5_input_bfield |
                                   hdf5_input_efield  | hdf5_input_plasma |
                                   hdf5_input_neutral | hdf5_input_wall |
-                                  hdf5_input_marker,
+                                  hdf5_input_marker | hdf5_input_boozer |
+                                  hdf5_input_mhd,
                                   &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
-                                  &wall_offload_array, &p, &n_tot) ) {
+                                  &wall_offload_array, &boozer_offload_array,
+                                  &mhd_offload_array, &p, &n_tot) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nInput reading or initializing failed.\n"
                    "See stderr for details.\n");
@@ -196,6 +200,14 @@ int main(int argc, char** argv) {
     offload_pack(&offload_data, &offload_array, wall_offload_array,
                  sim.wall_offload_data.offload_array_length);
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
+
+    offload_pack(&offload_data, &offload_array, boozer_offload_array,
+                 sim.boozer_offload_data.offload_array_length);
+    boozer_free_offload(&sim.boozer_offload_data, &boozer_offload_array);
+
+    offload_pack(&offload_data, &offload_array, mhd_offload_array,
+                 sim.mhd_offload_data.offload_array_length);
+    mhd_free_offload(&sim.mhd_offload_data, &mhd_offload_array);
 
     /* Initialize diagnostics offload data.
      * Separate arrays for host and target */
@@ -260,7 +272,7 @@ int main(int argc, char** argv) {
 
     if(mpi_rank == mpi_root) {
         /* Write inistate */
-        if(hdf5_interface_write_state(sim.hdf5_out, "inistate", n_gathered, 
+        if(hdf5_interface_write_state(sim.hdf5_out, "inistate", n_gathered,
                                       ps_gathered)) {
             print_out0(VERBOSE_MINIMAL, mpi_rank,
                        "\n"
@@ -491,6 +503,8 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
         {"wall",    required_argument, 0, 10},
         {"plasma",  required_argument, 0, 11},
         {"neutral", required_argument, 0, 12},
+        {"boozer",  required_argument, 0, 13},
+        {"mhd",     required_argument, 0, 14},
         {0, 0, 0, 0}
     };
 
@@ -507,6 +521,8 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     sim->qid_wall[0]    = '\0';
     sim->qid_plasma[0]  = '\0';
     sim->qid_neutral[0] = '\0';
+    sim->qid_boozer[0]  = '\0';
+    sim->qid_mhd[0]     = '\0';
 
     // Read user input
     int c;
@@ -547,6 +563,12 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
                 break;
             case 12:
                 strcpy(sim->qid_neutral, optarg);
+                break;
+            case 13:
+                strcpy(sim->qid_boozer, optarg);
+                break;
+            case 14:
+                strcpy(sim->qid_mhd, optarg);
                 break;
             default:
                 // Unregonizable argument(s). Tell user how to run ascot5_main

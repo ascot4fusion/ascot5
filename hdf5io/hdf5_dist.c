@@ -32,8 +32,8 @@ int hdf5_dist_write_5D(hid_t f, char* qid, dist_5D_offload_data* dist,
     abscissa_n_slots[0] = dist->n_r;
     abscissa_n_slots[1] = dist->n_phi;
     abscissa_n_slots[2] = dist->n_z;
-    abscissa_n_slots[3] = dist->n_vpara;
-    abscissa_n_slots[4] = dist->n_vperp;
+    abscissa_n_slots[3] = dist->n_ppara;
+    abscissa_n_slots[4] = dist->n_pperp;
     abscissa_n_slots[5] = dist->n_time;
     abscissa_n_slots[6] = dist->n_q;
 
@@ -41,8 +41,8 @@ int hdf5_dist_write_5D(hid_t f, char* qid, dist_5D_offload_data* dist,
     abscissa_min[0] = dist->min_r;
     abscissa_min[1] = math_rad2deg(dist->min_phi);
     abscissa_min[2] = dist->min_z;
-    abscissa_min[3] = dist->min_vpara;
-    abscissa_min[4] = dist->min_vperp;
+    abscissa_min[3] = dist->min_ppara;
+    abscissa_min[4] = dist->min_pperp;
     abscissa_min[5] = dist->min_time;
     abscissa_min[6] = dist->min_q;
 
@@ -50,16 +50,16 @@ int hdf5_dist_write_5D(hid_t f, char* qid, dist_5D_offload_data* dist,
     abscissa_max[0] = dist->max_r;
     abscissa_max[1] = math_rad2deg(dist->max_phi);
     abscissa_max[2] = dist->max_z;
-    abscissa_max[3] = dist->max_vpara;
-    abscissa_max[4] = dist->max_vperp;
+    abscissa_max[3] = dist->max_ppara;
+    abscissa_max[4] = dist->max_pperp;
     abscissa_max[5] = dist->max_time;
     abscissa_max[6] = dist->max_q;
 
-    char* abscissa_names[] = { "r", "phi", "z", "vpara", "vperp", "time",
+    char* abscissa_names[] = { "r", "phi", "z", "ppar", "pperp", "time",
                                "charge" };
-    char* abscissa_units[] = { "m", "deg", "m", "m/s", "m/s", "s", "e" };
+    char* abscissa_units[] = { "m", "deg", "m", "kg*m/s", "kg*m/s", "s", "e" };
     char* ordinate_names[] = { "distribution" };
-    char* ordinate_units[] = { "s/m^5*deg*e" };
+    char* ordinate_units[] = { "s/m^5*kg^2*deg*e" };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
@@ -97,9 +97,9 @@ int hdf5_dist_write_6D(hid_t f, char* qid, dist_6D_offload_data* dist,
     abscissa_n_slots[0] = dist->n_r;
     abscissa_n_slots[1] = dist->n_phi;
     abscissa_n_slots[2] = dist->n_z;
-    abscissa_n_slots[3] = dist->n_vr;
-    abscissa_n_slots[4] = dist->n_vphi;
-    abscissa_n_slots[5] = dist->n_vz;
+    abscissa_n_slots[3] = dist->n_pr;
+    abscissa_n_slots[4] = dist->n_pphi;
+    abscissa_n_slots[5] = dist->n_pz;
     abscissa_n_slots[6] = dist->n_time;
     abscissa_n_slots[7] = dist->n_q;
 
@@ -107,9 +107,9 @@ int hdf5_dist_write_6D(hid_t f, char* qid, dist_6D_offload_data* dist,
     abscissa_min[0] = dist->min_r;
     abscissa_min[1] = math_rad2deg(dist->min_phi);
     abscissa_min[2] = dist->min_z;
-    abscissa_min[3] = dist->min_vr;
-    abscissa_min[4] = dist->min_vphi;
-    abscissa_min[5] = dist->min_vz;
+    abscissa_min[3] = dist->min_pr;
+    abscissa_min[4] = dist->min_pphi;
+    abscissa_min[5] = dist->min_pz;
     abscissa_min[6] = dist->min_time;
     abscissa_min[7] = dist->min_q;
 
@@ -117,17 +117,18 @@ int hdf5_dist_write_6D(hid_t f, char* qid, dist_6D_offload_data* dist,
     abscissa_max[0] = dist->max_r;
     abscissa_max[1] = math_rad2deg(dist->max_phi);
     abscissa_max[2] = dist->max_z;
-    abscissa_max[3] = dist->max_vr;
-    abscissa_max[4] = dist->max_vphi;
-    abscissa_max[5] = dist->max_vz;
+    abscissa_max[3] = dist->max_pr;
+    abscissa_max[4] = dist->max_pphi;
+    abscissa_max[5] = dist->max_pz;
     abscissa_max[6] = dist->max_time;
     abscissa_max[7] = dist->max_q;
 
-    char* abscissa_names[] = { "r", "phi", "z", "vr", "vphi", "vz", "time",
+    char* abscissa_names[] = { "r", "phi", "z", "pr", "pphi", "pz", "time",
                                "charge" };
-    char* abscissa_units[] = { "m", "deg", "m", "m/s", "m/s", "m/s", "s", "e" };
+    char* abscissa_units[] = { "m", "deg", "m", "kg m/s", "kg m/s", "kg m/s",
+                               "s", "e" };
     char* ordinate_names[] = { "distribution" };
-    char* ordinate_units[] = { "s/m^6*deg*e" };
+    char* ordinate_units[] = { "s/m^6*kg^3*deg*e" };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
@@ -165,8 +166,8 @@ int hdf5_dist_write_rho5D(hid_t f, char* qid, dist_rho5D_offload_data* dist,
     abscissa_n_slots[0] = dist->n_rho;
     abscissa_n_slots[1] = dist->n_theta;
     abscissa_n_slots[2] = dist->n_phi;
-    abscissa_n_slots[3] = dist->n_vpara;
-    abscissa_n_slots[4] = dist->n_vperp;
+    abscissa_n_slots[3] = dist->n_ppara;
+    abscissa_n_slots[4] = dist->n_pperp;
     abscissa_n_slots[5] = dist->n_time;
     abscissa_n_slots[6] = dist->n_q;
 
@@ -174,8 +175,8 @@ int hdf5_dist_write_rho5D(hid_t f, char* qid, dist_rho5D_offload_data* dist,
     abscissa_min[0] = dist->min_rho;
     abscissa_min[1] = math_rad2deg(dist->min_theta);
     abscissa_min[2] = math_rad2deg(dist->min_phi);
-    abscissa_min[3] = dist->min_vpara;
-    abscissa_min[4] = dist->min_vperp;
+    abscissa_min[3] = dist->min_ppara;
+    abscissa_min[4] = dist->min_pperp;
     abscissa_min[5] = dist->min_time;
     abscissa_min[6] = dist->min_q;
 
@@ -183,16 +184,17 @@ int hdf5_dist_write_rho5D(hid_t f, char* qid, dist_rho5D_offload_data* dist,
     abscissa_max[0] = dist->max_rho;
     abscissa_max[1] = math_rad2deg(dist->max_theta);
     abscissa_max[2] = math_rad2deg(dist->max_phi);
-    abscissa_max[3] = dist->max_vpara;
-    abscissa_max[4] = dist->max_vperp;
+    abscissa_max[3] = dist->max_ppara;
+    abscissa_max[4] = dist->max_pperp;
     abscissa_max[5] = dist->max_time;
     abscissa_max[6] = dist->max_q;
 
-    char* abscissa_names[] = { "rho", "theta", "phi", "vpara", "vperp", "time",
+    char* abscissa_names[] = { "rho", "theta", "phi", "ppar", "pperp", "time",
                                "charge" };
-    char* abscissa_units[] = { "1", "deg", "deg", "m/s", "m/s", "s", "e" };
+    char* abscissa_units[] = { "1", "deg", "deg", "kg m/s", "kg m/s",
+                               "s", "e" };
     char* ordinate_names[] = { "distribution" };
-    char* ordinate_units[] = { "s/m^2*deg^2e" };
+    char* ordinate_units[] = { "s/m^2*kg^2*deg^2e" };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
@@ -230,9 +232,9 @@ int hdf5_dist_write_rho6D(hid_t f, char* qid, dist_rho6D_offload_data* dist,
     abscissa_n_slots[0] = dist->n_rho;
     abscissa_n_slots[1] = dist->n_theta;
     abscissa_n_slots[2] = dist->n_phi;
-    abscissa_n_slots[3] = dist->n_vr;
-    abscissa_n_slots[4] = dist->n_vphi;
-    abscissa_n_slots[5] = dist->n_vz;
+    abscissa_n_slots[3] = dist->n_pr;
+    abscissa_n_slots[4] = dist->n_pphi;
+    abscissa_n_slots[5] = dist->n_pz;
     abscissa_n_slots[6] = dist->n_time;
     abscissa_n_slots[7] = dist->n_q;
 
@@ -240,9 +242,9 @@ int hdf5_dist_write_rho6D(hid_t f, char* qid, dist_rho6D_offload_data* dist,
     abscissa_min[0] = dist->min_rho;
     abscissa_min[1] = math_rad2deg(dist->min_theta);
     abscissa_min[2] = math_rad2deg(dist->min_phi);
-    abscissa_min[3] = dist->min_vr;
-    abscissa_min[4] = dist->min_vphi;
-    abscissa_min[5] = dist->min_vz;
+    abscissa_min[3] = dist->min_pr;
+    abscissa_min[4] = dist->min_pphi;
+    abscissa_min[5] = dist->min_pz;
     abscissa_min[6] = dist->min_time;
     abscissa_min[7] = dist->min_q;
 
@@ -250,17 +252,18 @@ int hdf5_dist_write_rho6D(hid_t f, char* qid, dist_rho6D_offload_data* dist,
     abscissa_max[0] = dist->max_rho;
     abscissa_max[1] = math_rad2deg(dist->max_theta);
     abscissa_max[2] = math_rad2deg(dist->max_phi);
-    abscissa_max[3] = dist->max_vr;
-    abscissa_max[4] = dist->max_vphi;
-    abscissa_max[5] = dist->max_vz;
+    abscissa_max[3] = dist->max_pr;
+    abscissa_max[4] = dist->max_pphi;
+    abscissa_max[5] = dist->max_pz;
     abscissa_max[6] = dist->max_time;
     abscissa_max[7] = dist->max_q;
 
-    char* abscissa_names[] = { "rho", "theta", "phi", "vr", "vphi", "vz", "time",
-                               "charge" };
-    char* abscissa_units[] = { "1", "deg", "deg", "m/s", "m/s", "m/s", "s", "e" };
+    char* abscissa_names[] = { "rho", "theta", "phi", "pr", "pphi", "pz",
+                               "time", "charge" };
+    char* abscissa_units[] = { "1", "deg", "deg", "kg m/s", "kg m/s", "kg m/s",
+                               "s", "e" };
     char* ordinate_names[] = { "distribution" };
-    char* ordinate_units[] = { "s^2/m^3*deg^2*e" };
+    char* ordinate_units[] = { "s^2/m^3*kg^3*deg^2*e" };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];

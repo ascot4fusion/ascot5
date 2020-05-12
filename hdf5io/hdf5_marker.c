@@ -139,12 +139,14 @@ int hdf5_marker_read_particle(hid_t f, int* nmrk, input_particle** mrk,
     input_particle* p = *mrk;
 
     for(integer i = 0; i < n; i++) {
+        real gamma = 1.0/sqrt(
+            1 - (v_r[i]*v_r[i] + v_phi[i]*v_phi[i] + v_z[i]*v_z[i]) / CONST_C2 );
         p[i].p.r      = r[i];
         p[i].p.phi    = phi[i] * CONST_PI / 180;
         p[i].p.z      = z[i];
-        p[i].p.v_r    = v_r[i];
-        p[i].p.v_phi  = v_phi[i];
-        p[i].p.v_z    = v_z[i];
+        p[i].p.p_r    = v_r[i] * gamma * mass[i]* CONST_U;;
+        p[i].p.p_phi  = v_phi[i] * gamma * mass[i]* CONST_U;;
+        p[i].p.p_z    = v_z[i] * gamma * mass[i]* CONST_U;;
         p[i].p.mass   = mass[i] * CONST_U;
         p[i].p.charge = charge[i] * CONST_E;
         p[i].p.anum   = anum[i];
@@ -345,7 +347,7 @@ int hdf5_marker_read_field_line(hid_t f, int* nmrk, input_particle** mrk,
 /**
  * @brief Write particle input.
  *
- * Write particles ín the input_particle array to hdf5 file.
+ * Write particles in the input_particle array to hdf5 file.
  *
  * @param f HDF5 file to be written
  * @param n number of markers to be stored
@@ -380,19 +382,25 @@ int hdf5_marker_write_particle(hid_t f, int n, input_particle* p, char* qid) {
     integer* id  = malloc(n * sizeof(integer));
 
     for(int i = 0; i < n; i++) {
-        r[i] = p[i].p.r;
-        phi[i] = p[i].p.phi * 180 / CONST_PI;
-        z[i] = p[i].p.z;
-        v_r[i] = p[i].p.v_r;
-        v_phi[i] = p[i].p.v_phi;
-        v_z[i] = p[i].p.v_z;
-        mass[i] = p[i].p.mass / CONST_U;
+        real gamma = sqrt(
+            1
+            + (p[i].p.p_r*p[i].p.p_r
+               + p[i].p.p_phi*p[i].p.p_phi
+               + p[i].p.p_z*p[i].p.p_z) / (CONST_C2*p[i].p.mass)
+            );
+        r[i]      = p[i].p.r;
+        phi[i]    = p[i].p.phi * 180 / CONST_PI;
+        z[i]      = p[i].p.z;
+        v_r[i]    = p[i].p.p_r / (p[i].p.mass*gamma);
+        v_phi[i]  = p[i].p.p_phi / (p[i].p.mass*gamma);
+        v_z[i]    = p[i].p.p_z / (p[i].p.mass*gamma);
+        mass[i]   = p[i].p.mass / CONST_U;
         charge[i] = round(p[i].p.charge / CONST_E);
-        anum[i] = p[i].p.anum;
-        znum[i] = p[i].p.znum;
+        anum[i]   = p[i].p.anum;
+        znum[i]   = p[i].p.znum;
         weight[i] = p[i].p.weight;
-        time[i] = p[i].p.time;
-        id[i] = p[i].p.id;
+        time[i]   = p[i].p.time;
+        id[i]     = p[i].p.id;
     }
 
     hdf5_write_extendible_dataset_int(grp, "n", 1, &n);

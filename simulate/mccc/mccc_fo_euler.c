@@ -7,6 +7,7 @@
 #include "../../consts.h"
 #include "../../math.h"
 #include "../../error.h"
+#include "../../physlib.h"
 #include "../../particle.h"
 #include "../../B_field.h"
 #include "../../plasma.h"
@@ -46,10 +47,16 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
             real sinphi = sin(p->phi[i]);
             real cosphi = cos(p->phi[i]);
 
+            real pnorm = sqrt( p->p_r[i] * p->p_r[i] + p->p_phi[i] * p->p_phi[i]
+                               + p->p_z[i] * p->p_z[i] );
+            real gamma = physlib_gamma_pnorm(p->mass[i], pnorm);
+
             real vin_xyz[3];
-            vin_xyz[0] = p->rdot[i] * cosphi - (p->phidot[i]*p->r[i]) * sinphi;
-            vin_xyz[1] = p->rdot[i] * sinphi + (p->phidot[i]*p->r[i]) * cosphi;
-            vin_xyz[2] = p->zdot[i];
+            vin_xyz[0] = ( p->p_r[i] * cosphi - p->p_phi[i] * sinphi )
+                / ( gamma * p->mass[i] );
+            vin_xyz[1] = ( p->p_r[i] * sinphi + p->p_phi[i] * cosphi )
+                / ( gamma * p->mass[i] );
+            vin_xyz[2] = p->p_z[i] / ( gamma * p->mass[i] );
             real vin   = math_norm(vin_xyz);
 
             /* Evaluate plasma density and temperature */
@@ -107,11 +114,14 @@ void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
 
             /* Transform back to cylindrical coordinates.  */
 
+            real vnorm = math_norm(vout_xyz);
+            gamma = physlib_gamma_vnorm(vnorm);
             if(!errflag) {
-                p->rdot[i]   =    vout_xyz[0] * cosphi + vout_xyz[1] * sinphi;
-                p->phidot[i] = ( -vout_xyz[0] * sinphi + vout_xyz[1] * cosphi )
-                               / p->r[i];
-                p->zdot[i]   =    vout_xyz[2];
+                p->p_r[i]   = (  vout_xyz[0] * cosphi + vout_xyz[1] * sinphi )
+                    * gamma * p->mass[i];
+                p->p_phi[i] = ( -vout_xyz[0] * sinphi + vout_xyz[1] * cosphi )
+                               * gamma * p->mass[i];
+                p->p_z[i]   =    vout_xyz[2] * gamma * p->mass[i];
             }
 
             /* Error handling */

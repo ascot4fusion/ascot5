@@ -6,6 +6,7 @@
 #include <math.h>
 #include "B_field.h"
 #include "consts.h"
+#include "physlib.h"
 #include "math.h"
 #include "nbi.h"
 #include "particle.h"
@@ -204,18 +205,19 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
         math_xyz2rpz(xyz, rpz);
         math_vec_xyz2rpz(vxyz, vrpz, rpz[1]);
 
-        p[i].r = rpz[0];
-        p[i].phi = rpz[1];
-        p[i].z = rpz[2];
-        p[i].v_r = vrpz[0];
-        p[i].v_phi = vrpz[1];
-        p[i].v_z = vrpz[2];
-        p[i].anum = anum;
-        p[i].znum = znum;
+        real gamma = physlib_gamma_vnorm(math_norm(vrpz));
+        p[i].r      = rpz[0];
+        p[i].phi    = rpz[1];
+        p[i].z      = rpz[2];
+        p[i].p_r    = vrpz[0] * gamma * mass;
+        p[i].p_phi  = vrpz[1] * gamma * mass;
+        p[i].p_z    = vrpz[2] * gamma * mass;
+        p[i].anum   = anum;
+        p[i].znum   = znum;
         p[i].charge = 1 * CONST_E;
-        p[i].mass = mass;
-        p[i].id = i+1;
-        p[i].time = 0;
+        p[i].mass   = mass;
+        p[i].id     = i+1;
+        p[i].time   = 0;
 
         #pragma omp atomic
         totalPower += 0.5 * mass * pow(math_norm(vxyz), 2);
