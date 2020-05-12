@@ -1341,6 +1341,7 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
         p_gc->time[j]     = p_fo->time[j];
         p_gc->mileage[j]  = p_fo->mileage[j];
         p_gc->endcond[j]  = p_fo->endcond[j];
+        p_gc->running[j]  = p_fo->running[j];
         p_gc->walltile[j] = p_fo->walltile[j];
         p_gc->cputime[j]  = p_fo->cputime[j];
 
