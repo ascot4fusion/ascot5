@@ -73,6 +73,8 @@ int main(int argc, char** argv) {
     hdf5_nbi_read(f, &n_inj, &inj);
     hdf5_close(f);
 
+    real total_power = 0;
+
     for(int i=0; i < n_inj; i++) {
         printf("Injector %d:\n", i+1);
         printf("id: %d\n", inj[i].id);
@@ -85,11 +87,33 @@ int main(int argc, char** argv) {
         printf("znum: %d\n", inj[i].znum);
         printf("mass: %le\n", inj[i].mass);
         printf("\n");
+
+        total_power += inj[i].power;
     }
+
 
     /* Simulate requested number of markers into array of particle structs */
     particle* p = (particle*) malloc(nprt*sizeof(particle));
-    nbi_generate(nprt, p, &inj[0], &B_data, &plasma_data, &wall_data, &rng);
+    int nprt_generated = 0;
+
+    for(int i = 0; i < n_inj; i++) {
+        int nprt_inj;
+
+        if(i == n_inj-1) {
+            nprt_inj = nprt - nprt_generated;
+        }
+        else {
+            nprt_inj = inj[i].power * nprt;
+        }
+
+        nbi_generate(nprt_inj, &p[nprt_generated], &inj[i], &B_data,
+                     &plasma_data, &wall_data, &rng);
+
+        nprt_generated += nprt_inj;
+        printf("Generated %d markers for injector %d.\n", nprt_inj, i+1);
+    }
+
+    printf("\nWriting %d markers.\n", nprt_generated);
 
     /* Copy markers from particle structs into input_particle structs to be
      * written into the h5 file */
@@ -107,7 +131,26 @@ int main(int argc, char** argv) {
     hdf5_close(of);
     of = hdf5_open(sim.hdf5_out);
     hdf5_marker_write_particle(of, nprt, ip, qid);
+
+    /* Write metadata */
+    char path[256];
+    hdf5_gen_path("/marker/prt_XXXXXXXXXX", qid, path);
+
+    hdf5_write_string_attribute(f, path, "description",  sim.description);
+
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    char date[21];
+    sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900,
+            tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    hdf5_write_string_attribute(f, path, "date",  date);
+
+    /* Set this run as active. */
+    hdf5_write_string_attribute(f, "/marker", "active",  qid);
+
     hdf5_close(of);
+
+    printf("\nDone.\n");
 
     return 0;
 }
@@ -179,10 +222,6 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt) {
                 print_out(VERBOSE_MINIMAL,
                     "--out output file without .h5 extension (default: same as "
                     "input)\n");
-                print_out(VERBOSE_MINIMAL,
-                    "--mpi_size number of independent processes\n");
-                print_out(VERBOSE_MINIMAL,
-                    "--mpi_rank rank of independent process\n");
                 print_out(VERBOSE_MINIMAL,
                     "--d run description maximum of 250 characters\n");
                 print_out(VERBOSE_MINIMAL,

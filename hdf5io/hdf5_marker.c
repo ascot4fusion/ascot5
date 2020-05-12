@@ -357,14 +357,15 @@ int hdf5_marker_read_field_line(hid_t f, int* nmrk, input_particle** mrk,
  * @return zero on success
  */
 int hdf5_marker_write_particle(hid_t f, int n, input_particle* p, char* qid) {
-    #undef MRKPATH
-    #define MRKPATH "/marker/prt_XXXXXXXXXX/"
+
+    if(hdf5_find_group(f, "/marker/")) {
+        hdf5_create_group(f, "/marker/");
+    }
 
     char path[256];
-    hdf5_gen_path(MRKPATH, qid, path);
+    hdf5_gen_path("/marker/prt_XXXXXXXXXX", qid, path);
 
-    hdf5_create_group(f, path);
-    hid_t grp = H5Gopen(f, path, H5P_DEFAULT);
+    hid_t grp = H5Gcreate2(f, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     real* r      = malloc(n * sizeof(real));
     real* phi    = malloc(n * sizeof(real));
@@ -416,12 +417,6 @@ int hdf5_marker_write_particle(hid_t f, int n, input_particle* p, char* qid) {
     hdf5_write_extendible_dataset_double(grp, "weight", n, weight);
     hdf5_write_extendible_dataset_double(grp, "time", n, time);
     hdf5_write_extendible_dataset_long(grp, "id", n, id);
-
-    hdf5_write_string_attribute(f, path, "description",  "");
-    hdf5_write_string_attribute(f, path, "date",  "");
-
-    /* Set this run as active. */
-    hdf5_write_string_attribute(f, "/marker", "active",  qid);
 
     H5Gclose(grp);
 

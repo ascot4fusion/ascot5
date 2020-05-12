@@ -118,7 +118,8 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(PLSHEADERS) $(N0HEADERS) $(MHDHEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
-	random.h print.h hdf5_interface.h suzuki.h nbi.h
+	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
+	mpi_interface.h
 
 OBJS= math.o list.o octree.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -126,7 +127,8 @@ OBJS= math.o list.o octree.o error.c \
 	$(PLSOBJS) $(N0OBJS) $(MHDOBJS) $(LINTOBJS) $(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o offload.o boozer.o mhd.o \
-	random.o print.c hdf5_interface.o suzuki.o nbi.o
+	random.o print.c hdf5_interface.o suzuki.o nbi.o biosaw.o \
+	mpi_interface.o
 
 BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \

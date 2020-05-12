@@ -182,6 +182,7 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
     real totalShine = 0.0;
     real totalPower = 0.0;
 
+    #pragma omp parallel for
     for(int i = 0; i < nprt; i++) {
         real xyz[3], vxyz[3];
         int anum, znum;
@@ -195,6 +196,7 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
                    walldata, rng);
 
             if(shinethrough == 1) {
+                #pragma omp atomic
                 totalShine += 0.5 * mass * pow(math_norm(vxyz), 2);
             }
         } while(shinethrough == 1);
@@ -217,6 +219,7 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
         p[i].id     = i+1;
         p[i].time   = 0;
 
+        #pragma omp atomic
         totalPower += 0.5 * mass * pow(math_norm(vxyz), 2);
     }
 
