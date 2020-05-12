@@ -39,9 +39,9 @@ class StateFrame(PlotFrame):
 
         # List of all possible coordinates.
         self._coords = ["R", "phimod", "z", "time", "energy", "pitch", "vnorm",
-                        "Bnorm", "vR", "vphi", "vz", "BR", "Bphi", "Bz", "mu",
-                        "vpar", "charge", "id", "x", "y", "phi", "rho",
-                        "polmod", "pol", "None"]
+                        "Bnorm", "vRprt", "vphiprt", "vzprt",
+                        "BR", "Bphi", "Bz", "mu", "vpar", "charge", "id",
+                        "x", "y", "phi", "rho", "polmod", "pol", "None"]
 
         # All end conditions.
         if endstate is not None:

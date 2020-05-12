@@ -148,7 +148,7 @@ def read_hdf5(fn, qid):
     return out
 
 
-def write_hdf5_dummy(fn):
+def write_hdf5_dummy(fn, desc="Dummy"):
     """
     Write a dummy injector.
     """
@@ -174,7 +174,7 @@ def write_hdf5_dummy(fn):
         "efrac" : [1,0,0],
         "power" : 1
     }
-    return write_hdf5(fn, [nbi], desc="DUMMY")
+    return write_hdf5(fn, [nbi], desc=desc)
 
 
 class nbi(AscotData):

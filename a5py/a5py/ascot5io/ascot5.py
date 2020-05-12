@@ -102,8 +102,15 @@ from a5py.ascot5io.N0_3D      import N0_3D
 from a5py.ascot5io.boozer     import Boozer
 from a5py.ascot5io.mhd        import MHD
 from a5py.ascot5io.options    import Opt
-
 from a5py.ascot5io.nbi        import nbi
+
+from a5py.ascot5io.E_TC       import write_hdf5_dummy as dummy_efield
+from a5py.ascot5io.wall_2D    import write_hdf5_dummy as dummy_wall
+from a5py.ascot5io.plasma_1D  import write_hdf5_dummy as dummy_plasma
+from a5py.ascot5io.N0_3D      import write_hdf5_dummy as dummy_neutral
+from a5py.ascot5io.boozer     import write_hdf5_dummy as dummy_boozer
+from a5py.ascot5io.mhd        import write_hdf5_dummy as dummy_mhd
+from a5py.ascot5io.nbi        import write_hdf5_dummy as dummy_nbi
 
 from a5py.ascot5io.state      import State
 from a5py.ascot5io.orbits     import Orbits
@@ -188,6 +195,32 @@ def create_outputobject(key, h5group, runnode):
         return None
 
     return name_and_object[key](h5group, runnode)
+
+
+def write_dummy(fn, parent, desc="Dummy"):
+    """
+    Write a dummy input for a given parent (e.g. "bfield").
+
+    Whenever you add a new parent (which should not happen often), add one
+    function here which creates a dummy input.
+
+    Markers and magnetic field are not included here as those are essential
+    for every simulation.
+    """
+    if parent == "efield":
+        dummy_efield(fn, desc=desc)
+    if parent == "plasma":
+        dummy_plasma(fn, desc=desc)
+    if parent == "wall":
+        dummy_wall(fn, desc=desc)
+    if parent == "neutral":
+        dummy_neutral(fn, desc=desc)
+    if parent == "boozer":
+        dummy_boozer(fn, desc=desc)
+    if parent == "mhd":
+        dummy_mhd(fn, desc=desc)
+    if parent == "nbi":
+        dummy_nbi(fn, desc=desc)
 
 
 class _Node():
@@ -591,3 +624,19 @@ class Ascot(_ContainerNode):
                 self._init_organize()
 
         self._freeze()
+
+
+    def add_dummyinputs(self, desc="Dummy"):
+        """
+        Add dummy inputs for all missing groups.
+        """
+        missing = []
+        with h5py.File(self._hdf5fn, "r") as h5:
+            for p in INPUT_PARENTS:
+                if p not in h5:
+                    missing.append(p)
+
+        for p in missing:
+            write_dummy(self._hdf5fn, p, desc=desc)
+
+        self.reload()

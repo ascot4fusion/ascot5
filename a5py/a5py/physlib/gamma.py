@@ -12,10 +12,9 @@ def velocity_momentum(m, p):
     If p is a vector (scalar) then returned value is a vector (scalar).
     """
     a = m * gamma_momentum(m=m, p=p)
-    if p.shape[1] == 3:
-        a = np.tile( m, (3,1)).T
+    if p.shape[0] == 3:
+        a = np.tile( a, (3,1))
 
-    print( (p/a).shape)
     return p / a
 
 
@@ -40,8 +39,8 @@ def gamma_momentum(m, p):
     """
     Evaluate gamma from momentum.
     """
-    if p.shape[1] == 3:
-        p = np.sum(p**2, axis=1)
+    if p.shape[0] == 3:
+        p = np.sum(p**2, axis=0)
     else:
         p = p**2
 
@@ -52,8 +51,8 @@ def gamma_velocity(v):
     """
     Evaluate gamma from velocity.
     """
-    if v.shape[1] == 3:
-        v = np.sum(v**2, axis=1)
+    if v.shape[0] == 3:
+        v = np.sum(v**2, axis=0)
     else:
         v = v**2
 
@@ -64,8 +63,8 @@ def gamma_muppar(m, mu, ppar, b):
     """
     Evaluate gamma from magnetic moment and parallel momentum.
     """
-    if b.shape[1] == 3:
-        b = np.sqrt( np.sum(b**2, axis=1) )
+    if b.shape[0] == 3:
+        b = np.sqrt( np.sum(b**2, axis=0) )
 
     return np.sqrt( 1 + 2 * mu * b / ( m * c**2 ) + ( ppar / ( m * c ) )**2 )
 
@@ -74,8 +73,8 @@ def gamma_muvpar(m, mu, vpar, b):
     """
     Evaluate gamma from magnetic moment and parallel velocity.
     """
-    if b.shape[1] == 3:
-        b = np.sqrt( np.sum(b**2, axis=1) )
+    if b.shape[0] == 3:
+        b = np.sqrt( np.sum(b**2, axis=0) )
 
     a1 = 1 + 2 * mu * b / ( m * c**2 )
     a2 = ( 1 - vpar / c ) * ( 1 + vpar * c )
@@ -102,7 +101,7 @@ def energy_velocity(m, v):
     Evaluate kinetic energy from velocity.
     """
     gamma = gamma_velocity(v=v)
-    return gamma#energy_gamma(m=m, gamma=gamma)
+    return energy_gamma(m=m, gamma=gamma)
 
 
 def energy_muppar(m, mu, ppar, b):

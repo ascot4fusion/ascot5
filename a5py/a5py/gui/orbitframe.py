@@ -54,26 +54,30 @@ class OrbitFrame(PlotFrame):
         self._endcondchoice = tkinter.StringVar(self)
         self._plottype      = tkinter.StringVar(self)
 
-        # List of all possible coordinates. Those not applicable to this data
-        # will be removed.
-        self._coords = ["R", "phimod", "z", "time", "energy", "pitch", "vnorm",
-                        "Bnorm", "vR", "vphi", "vz", "BR", "Bphi", "Bz", "mu",
-                        "vpar", "charge", "id", "x", "y", "phi", "rho",
-                        "polmod", "pol", "None"]
-        clist = copy.copy(self._coords)
-        clist.remove("None")
-        for c in clist:
-            try:
-                orbits[c]
-            except (ValueError, AssertionError):
-                self._coords.remove(c)
+
+        # Check what data can be plotted
+        datatype = orbits.get_datatype()
+        if datatype == "prt":
+            self._coords = ["R", "phimod", "z", "time", "energy", "pitch",
+                            "vnorm", "Bnorm", "vR", "vphi", "vz", "BR", "Bphi",
+                            "Bz", "mu", "vpar", "charge", "id", "x", "y", "phi",
+                            "rho", "polmod", "pol", "None"]
+        elif datatype == "gc":
+            self._coords = ["R", "phimod", "z", "time", "energy", "pitch",
+                            "vnorm", "Bnorm", "BR", "Bphi",
+                            "Bz", "mu", "vpar", "charge", "id", "x", "y", "phi",
+                            "rho", "polmod", "pol", "None"]
+        elif datatype == "fl":
+            self._coords = ["R", "phimod", "z", "time", "Bnorm", "BR", "Bphi",
+                            "Bz", "id", "x", "y", "phi",
+                            "rho", "polmod", "pol", "None"]
 
         # Check if this data contain Poincare data (and store Poincare ids).
         try:
             self._pncrids    = np.sort(np.unique(orbits["pncrid"])).tolist()
             self._pncrcoords = ["R-z", "rho-phi", "rho-theta", "R-phi"]
             haspoincare = True
-        except (ValueError, AssertionError):
+        except Exception:
             haspoincare = False
 
         # All end conditions.

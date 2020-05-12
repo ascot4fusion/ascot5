@@ -72,35 +72,35 @@ def write_hdf5(fn, run, data, desc=None):
         if "weight" in data:
             g.create_dataset("weight", (N,1), data=data["weight"], dtype="f8")
 
-        if "prprt" in data:
-            g.create_dataset("rprt",    (N,1), data=data["rprt"],    dtype="f8")
-            g.create_dataset("phiprt",  (N,1), data=data["phiprt"],  dtype="f8")
-            g.create_dataset("zprt",    (N,1), data=data["zprt"],    dtype="f8")
+        if "pr" in data:
+            g.create_dataset("r",     (N,1), data=data["r"],     dtype="f8")
+            g.create_dataset("phi",   (N,1), data=data["phi"],   dtype="f8")
+            g.create_dataset("z",     (N,1), data=data["z"],     dtype="f8")
 
-            g.create_dataset("prprt",   (N,1), data=data["prprt"],   dtype="f8")
-            g.create_dataset("pphiprt", (N,1), data=data["pphiprt"], dtype="f8")
-            g.create_dataset("pzprt",   (N,1), data=data["pzprt"],   dtype="f8")
+            g.create_dataset("pr",    (N,1), data=data["pr"],    dtype="f8")
+            g.create_dataset("pphi",  (N,1), data=data["pphi"],  dtype="f8")
+            g.create_dataset("pz",    (N,1), data=data["pz"],    dtype="f8")
 
-            g.create_dataset("rhoprt",   (N,1), data=data["rhoprt"],   dtype="f8")
-            g.create_dataset("thetaprt", (N,1), data=data["thetaprt"], dtype="f8")
-            g.create_dataset("brprt",    (N,1), data=data["brprt"],    dtype="f8")
-            g.create_dataset("bphiprt",  (N,1), data=data["bphiprt"],  dtype="f8")
-            g.create_dataset("bzprt",    (N,1), data=data["bzprt"],    dtype="f8")
+            g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
+            g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
+            g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
+            g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
+            g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
         else:
-            g.create_dataset("rgc",    (N,1), data=data["rgc"],    dtype="f8")
-            g.create_dataset("phigc",  (N,1), data=data["phigc"],  dtype="f8")
-            g.create_dataset("zgc",    (N,1), data=data["zgc"],    dtype="f8")
+            g.create_dataset("r",     (N,1), data=data["r"],     dtype="f8")
+            g.create_dataset("phi",   (N,1), data=data["phi"],   dtype="f8")
+            g.create_dataset("z",     (N,1), data=data["z"],     dtype="f8")
 
-            g.create_dataset("rhogc",   (N,1), data=data["rhogc"],   dtype="f8")
-            g.create_dataset("thetagc", (N,1), data=data["thetagc"], dtype="f8")
-            g.create_dataset("brgc",    (N,1), data=data["brgc"],    dtype="f8")
-            g.create_dataset("bphigc",  (N,1), data=data["bphigc"],  dtype="f8")
-            g.create_dataset("bzgc",    (N,1), data=data["bzgc"],    dtype="f8")
+            g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
+            g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
+            g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
+            g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
+            g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
 
-        if "ppargc" in data:
-            g.create_dataset("ppargc", (N,1), data=data["ppargc"], dtype="f8")
-            g.create_dataset("mugc",   (N,1), data=data["mugc"],   dtype="f8")
-            g.create_dataset("zetagc", (N,1), data=data["zetagc"], dtype="f8")
+        if "ppar" in data:
+            g.create_dataset("ppar",  (N,1), data=data["ppar"],  dtype="f8")
+            g.create_dataset("mu",    (N,1), data=data["mu"],    dtype="f8")
+            g.create_dataset("zeta",  (N,1), data=data["zeta"],  dtype="f8")
 
 
 class Orbits(AscotData):
@@ -165,14 +165,14 @@ class Orbits(AscotData):
             return unyt.T * np.array(
                 [read_dataw("br"),
                  read_dataw("bphi"),
-                 read_dataw("bz")]).T
+                 read_dataw("bz")])
 
         # Helper function that returns particle momentum vector
         def getpvecprt():
             return unyt.kg * unyt.m / unyt.s * np.array(
                 [read_dataw("pr"),
                  read_dataw("pphi"),
-                 read_dataw("pz")]).T
+                 read_dataw("pz")])
 
         # Helper function that evaluates ascotpy at marker position
         def evalapy(quantity):
@@ -213,6 +213,8 @@ class Orbits(AscotData):
         # and "fl" for field line data.
         if item is not None:
             pass
+
+        ## Coordinates ##
         elif key in ["xgc", "xprt", "xfl"]:
             item = physlib.xcoord(
                 r   = read_dataw("r"),
@@ -223,6 +225,13 @@ class Orbits(AscotData):
                 r   = read_dataw("r"),
                 phi = read_dataw("phi")
             )
+        elif key in ["phimodgc", "phimodprt", "phimodfl"]:
+            item = np.mod(read_dataw("phi"), 2 * np.pi * unyt.rad)
+
+        elif key in ["thetamodgc", "thetamodprt", "thetamodfl"]:
+            item = np.mod(read_dataw("theta"), 2 * np.pi * unyt.rad)
+
+        ## Energy, gamma, and pitch ##
         elif key == "energygc":
             item = physlib.energy_muppar(
                 m    = mass(),
@@ -247,6 +256,20 @@ class Orbits(AscotData):
                 m = mass(),
                 p = getpvecprt()
             )
+        elif key == "pitchgc":
+            item = physlib.pitch_muppar(
+                m    = mass(),
+                mu   = read_dataw("mu"),
+                ppar = read_dataw("ppar"),
+                b    = getbvec()
+            )
+        elif key == "pitchprt":
+            item = pitch_momentum(
+                p = getpvecprt(),
+                b = getbvec()
+            )
+
+        ## Velocity and momentum components, norms and mu ##
         elif key == "vpargc":
             item = physlib.vpar_muppar(
                 m    = mass(),
@@ -265,13 +288,27 @@ class Orbits(AscotData):
                 p = getpvecprt(),
                 b = getbvec()
             )
+        elif key == "pnormgc":
+            item = physlib.momentum_muppar(
+                m    = mass(),
+                mu   = read_dataw("mu"),
+                ppar = read_dataw("ppar"),
+                b    = getbvec()
+            )
         elif key == "pnormprt":
             item = getpvecprt()
-            item = np.sqrt( np.sum( item**2, axis=1 ) )
+            item = np.sqrt( np.sum( item**2, axis=0 ) )
 
+        elif key == "vnormgc":
+            item = physlib.velocity_muppar(
+                m    = mass(),
+                mu   = read_dataw("mu"),
+                ppar = read_dataw("ppar"),
+                b    = getbvec()
+            )
         elif key == "vnormprt":
             item = getpvecprt()
-            item = np.sqrt( np.sum( item**2, axis=1 ) )
+            item = np.sqrt( np.sum( item**2, axis=0 ) )
             item = physlib.velocity_momentum(
                 m = mass(),
                 p = item
@@ -280,26 +317,28 @@ class Orbits(AscotData):
             item = physlib.velocity_momentum(
                 m = mass(),
                 p = getpvecprt()
-            )[:,0]
+            )[0,:]
         elif key == "vphiprt":
             item = physlib.velocity_momentum(
                 m = mass(),
                 p = getpvecprt()
-            )[:,1]
+            )[1,:]
         elif key == "vzprt":
             item = physlib.velocity_momentum(
                 m = mass(),
                 p = getpvecprt()
-            )[:,2]
+            )[2,:]
         elif key == "muprt":
             item = physlib.mu_momentum(
                 m = mass(),
                 p = getpvecprt(),
                 b = getbvec()
             )
+
+        ## Background quantities ##
         elif key in ["bnormgc", "bnormprt", "bnormfl"]:
             item = getbvec()
-            item = np.sqrt( np.sum( item**2, axis=1 ) )
+            item = np.sqrt( np.sum( item**2, axis=0 ) )
 
         elif key in ["psigc", "psiprt", "psifl"]:
             a5.init(bfield=True)
@@ -332,6 +371,15 @@ class Orbits(AscotData):
             )
             a5.free(bfield=True)
 
+        if item is None:
+            raise Exception("Invalid query: " + key)
+
+        # Strip units from fields to which they do not belong
+        if key in ["ids"]:
+            item = item.v
+        else:
+            # Convert to ascot unit system.
+            item.convert_to_base("ascot")
 
         # Dissect endcondition
         if key == "endcond":
@@ -340,11 +388,8 @@ class Orbits(AscotData):
             item[err > 0] = item[err > 0] & endcondmod.getbin("aborted")
             item[item==0] = endcondmod.getbin("none")
 
-        # Convert to ascot unit system.
-        item.convert_to_base("ascot")
-
         # Order by id and time
-        ids  = read_dataw("ids")
+        ids  = read_dataw("ids").v
         time = read_dataw("time")
         idx  = np.lexsort((time, ids))
 
@@ -388,6 +433,21 @@ class Orbits(AscotData):
         return val
 
 
+    def get_datatype(self):
+        """
+        Get string describing what data this object contains (prt, gc, fl).
+        """
+        with self as h5:
+            h5keys = list(h5.keys())
+
+        if "mu" in h5keys:
+            return "gc"
+        elif "charge" in h5keys:
+            return "prt"
+        else:
+            return "fl"
+
+
     def plot(self, x=None, y=None, z=None, endcond=None, pncrid=None,
              equal=False, log=False, axes=None, ids=None, **kwargs):
         """
@@ -398,15 +458,15 @@ class Orbits(AscotData):
 
         xc = np.linspace(0, ids.size, ids.size)
         if x is not None:
-            xc = self.get(x, endcond=endcond, pncrid=pncrid, SI=False, ids=ids0)
+            xc = self.get(x, endcond=endcond, pncrid=pncrid, ids=ids0)
 
         yc = None
         if y is not None:
-            yc = self.get(y, endcond=endcond, pncrid=pncrid, SI=False, ids=ids0)
+            yc = self.get(y, endcond=endcond, pncrid=pncrid, ids=ids0)
 
         zc = None
         if z is not None:
-            zc = self.get(z, endcond=endcond, pncrid=pncrid, SI=False, ids=ids0)
+            zc = self.get(z, endcond=endcond, pncrid=pncrid, ids=ids0)
 
         if isinstance(log, tuple):
             if log[0]:
@@ -435,19 +495,19 @@ class Orbits(AscotData):
 
         xc = np.linspace(0, ids.size, ids.size)
         if x is not None:
-            xc = self.get(x, ids=ids, endcond=endcond, pncrid=pncrid, SI=False)
+            xc = self.get(x, ids=ids, endcond=endcond, pncrid=pncrid)
 
         yc = None
         if y is not None:
-            yc = self.get(y, ids=ids, endcond=endcond, pncrid=pncrid, SI=False)
+            yc = self.get(y, ids=ids, endcond=endcond, pncrid=pncrid)
 
         zc = None
         if z is not None:
-            zc = self.get(z, ids=ids, endcond=endcond, pncrid=pncrid, SI=False)
+            zc = self.get(z, ids=ids, endcond=endcond, pncrid=pncrid)
 
         cc = None
         if c is not None:
-            cc = self.get(c, ids=ids, endcond=endcond, pncrid=pncrid, SI=False)
+            cc = self.get(c, ids=ids, endcond=endcond, pncrid=pncrid)
 
         if not sepid:
             ids = None

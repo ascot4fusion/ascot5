@@ -38,6 +38,7 @@ import a5py.ascot5io.mhd       as mhdmod
 
 import a5py.testascot.helpers as helpers
 
+from a5py.ascot5io.ascot5 import write_dummy
 from a5py.physlib import m_e, m_p
 
 from a5py.ascotpy.ascotpy import Ascotpy
@@ -218,29 +219,13 @@ def init():
     #*                     Rest of the inputs are trivial                      #
     #*                                                                         #
     #**************************************************************************#
+    h5 = ascot5.Ascot(helpers.testfn)
     for d in ["MHD_GO", "MHD_GCF", "MHD_GCA"]:
-        Exyz   = np.array([0, 0, 0])
-        E_TC.write_hdf5(helpers.testfn, Exyz, desc=d)
-
-        nwall = 4
-        Rwall = np.array([0.1, 100, 100, 0.1])
-        zwall = np.array([-100, -100, 100, 100])
-        W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall, desc=d)
-        N0_3D.write_hdf5_dummy(helpers.testfn, desc=d)
-
-        Nrho   = 3
-        Nion   = 1
-        znum   = np.array([1])
-        anum   = np.array([1])
-        mass   = np.array([1])
-        charge = np.array([1])
-        rho    = np.array([0, 0.5, 100])
-        edens  = 1e20 * np.ones(rho.shape)
-        etemp  = 1e3  * np.ones(rho.shape)
-        idens  = 1e20 * np.ones((rho.size, Nion))
-        itemp  = 1e3  * np.ones(rho.shape)
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
-                        rho, edens, etemp, idens, itemp, desc=d)
+        write_dummy(helpers.testfn, "efield", desc=d)
+        write_dummy(helpers.testfn, "plasma", desc=d)
+        write_dummy(helpers.testfn, "wall", desc=d)
+        write_dummy(helpers.testfn, "neutral", desc=d)
+        write_dummy(helpers.testfn, "nbi", desc=d)
 
 
 def run():
@@ -280,8 +265,8 @@ def check():
     i = 0
     for run in ["MHD_GO", "MHD_GCF", "MHD_GCA"]:
         orb = h5[run].orbit
-        alpha = 0
-        # Include alpha to ctor or not
+
+        # Include alpha to ctor
         alpha = a5.evaluate(orb["r"], phi=orb["phi"].to("rad"), z=orb["z"],
                             t=orb["time"], quantity="alpha")
 
