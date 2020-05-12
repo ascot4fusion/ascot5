@@ -150,15 +150,15 @@ int hdf5_interface_read_input(sim_offload_data* sim,
 
 
     if(input_active & hdf5_input_plasma) {
-        if(sim->qid_plasma[0] != '\0') {
-            strcpy(qid, sim->qid_plasma);
-        }
-        else if(hdf5_find_group(f, "/plasma/")) {
+        if(hdf5_find_group(f, "/plasma/")) {
             print_err("Error: No plasma data in input file.");
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading plasma input.\n");
-        if( hdf5_get_active_qid(f, "/plasma/", qid) ) {
+        if(sim->qid_plasma[0] != '\0') {
+            strcpy(qid, sim->qid_plasma);
+        }
+        else if( hdf5_get_active_qid(f, "/plasma/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
