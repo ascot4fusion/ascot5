@@ -192,8 +192,13 @@ class Dist_5D(AscotData):
         a5.init(bfield=self._runnode.bfield.get_qid(),
                 plasma=self._runnode.plasma.get_qid())
 
-        ma = self._runnode.inistate["mass"][0] * const.physical_constants["atomic mass constant"][0]
-        qa = self._runnode.inistate["charge"][0] * const.e
+        ma = self._runnode.inistate["mass"][0]
+        #print('mass {} kg'.format(ma)) 
+        # ma *= const.physical_constants["atomic mass constant"][0]
+        qa = self._runnode.inistate["charge"][0]
+        # qa *=  * const.e
+        #print('charge {} C'.format(qa)) 
+        
         dist = distmod.eval1d(a5, self.get_dist(), quantity,
                               rhomin, rhomax, nrho, ma=ma, qa=qa)
 
