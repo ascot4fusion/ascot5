@@ -49,8 +49,8 @@ def convert_ppappe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
     if E_edges is None:
         pmax2 = np.maximum( dist["ppar_edges"][-1]*dist["ppar_edges"][-1],
                            dist["pperp_edges"][-1]*dist["pperp_edges"][-1] )
-        gamma = np.sqrt( 1 +  pmax2 / ( masskg * constants.c) **2)
-        Emax = (1/constants.e) * (gamma - 1) * masskg * constants.c**2
+        gamma = np.sqrt( 1 +  pmax2 / ( masskg.v * constants.c) **2)
+        Emax = (1/constants.e) * (gamma - 1) * masskg.v * constants.c**2
         E_edges = np.linspace(0, Emax, 10)
     if xi_edges is None:
         xi_edges = np.linspace(-1, 1, 10)
@@ -58,8 +58,8 @@ def convert_ppappe_to_Exi(dist, masskg, E_edges=None, xi_edges=None):
     if not isinstance(E_edges, np.ndarray):
         pmax2 = np.maximum( dist["ppar_edges"][-1]*dist["ppar_edges"][-1],
                            dist["pperp_edges"][-1]*dist["pperp_edges"][-1] )
-        gamma = np.sqrt( 1 +  pmax2 / ( masskg * constants.c) **2)
-        Emax = (1/constants.e) * (gamma - 1) * masskg * constants.c**2
+        gamma = np.sqrt( 1 +  pmax2 / ( masskg.v * constants.c) **2)
+        Emax = (1/constants.e) * (gamma - 1) * masskg.v * constants.c**2
         E_edges = np.linspace(0, Emax, E_edges)
 
     if not isinstance(xi_edges, np.ndarray):
