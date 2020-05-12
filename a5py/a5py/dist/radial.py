@@ -111,6 +111,42 @@ def eval_quantity_5d_rho(ascotpy, dist, quantity, ma, qa):
     # Evaluate the requested quantity in 5D
     if quantity == "density":
         dist = distmod.squeeze(dist, vpar=0, vperp=0, time=0, charge=0)
+
+    elif quantity == "energydensity":
+        emax = 0.5*ma*np.power(np.maximum( dist["vpar_edges"][-1],
+                                           dist["vperp_edges"][-1] ), 2) / const.e
+        dist = distconv.convert_vpavpe_to_Exi(dist, ma,
+                                              E_edges=np.linspace(0, emax,100),
+                                              xi_edges=np.linspace(-1,1,50))
+        dist = distmod.squeeze(dist, pitch=0, time=0, charge=0)
+
+        distE = copy.deepcopy(dist)
+        for iphi in range(dist["phi"].size):
+            for itheta in range(dist["theta"].size):
+                for irho in range(dist["rho"].size):
+                    distE["distribution"][irho, itheta, iphi, :] = dist["distribution"][irho, itheta, iphi,:] * dist["energy"] 
+
+        dist = distmod.squeeze(distE, energy=0)
+
+    elif quantity == "toroidalcurrent":
+        dist = distmod.squeeze(dist, vperp=0, time=0, charge=0)
+
+        distj = copy.deepcopy(dist)
+
+        for iphi in range(dist["phi"].size):
+            for itheta in range(dist["theta"].size):
+                                #Calculate R,phi,z for all rho-values for single phi,theta
+                (r, z) = ascotpy.get_rhotheta_rz(dist["rho"][:], dist["theta"][itheta], dist["phi"][iphi], time=0.0)
+                phi = np.ones_like(r) * dist["phi"][iphi]
+
+                for irho in range(dist["rho"].size):
+                    bphi = ascotpy.evaluate( r[irho], phi[irho], z[irho], 0.0, "bphi")
+                    bnorm = ascotpy.evaluate(r[irho], phi[irho], z[irho], 0.0, "bnorm")
+                    for ivpar in range(dist["vpar"].size):
+                        distj["distribution"][irho, itheta, iphi, ivpar] = dist["distribution"][irho, itheta, iphi, ivpar] * dist["vpar"][ivpar] * qa * bphi / bnorm
+        dist = distmod.squeeze(distj, vpar=0)
+
+    
     elif quantity == "ipowerdeposition" or quantity == "epowerdeposition" or quantity == "powerdeposition":
         
                 
