@@ -407,7 +407,7 @@ def get_qids(f, parent):
 
     return qids
 
-def get_inputqids(f, rungroup):
+def get_inputqids(f, rungroup, ignore=[]):
     """
     Get all QIDs that tell which input was used in the given run group.
 
@@ -417,6 +417,7 @@ def get_inputqids(f, rungroup):
     Args:
         f: h5py file.
         rungroup: Either the run group's name or its h5py group.
+        ignore: List of names of inputs that are not relevant for this run.
     Returns:
         A list of QID strings.
     Raise:
@@ -434,6 +435,9 @@ def get_inputqids(f, rungroup):
 
     qids = [];
     for inp in range(0, len(INPUT_PARENTS)):
+        if INPUT_PARENTS[inp] in ignore:
+            continue
+
         try:
             qid = rungroup.attrs["qid_" + INPUT_PARENTS[inp]].decode('utf-8')
         except KeyError as err:

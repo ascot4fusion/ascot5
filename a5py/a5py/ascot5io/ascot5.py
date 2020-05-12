@@ -605,8 +605,9 @@ class Ascot(_ContainerNode):
                 for run in h5["results"].keys():
 
                     # Fetch those input groups that correspond to this run.
-                    inputqids   = get_inputqids(h5["results"][run].file,
-                                                h5["results"][run])
+                    inputqids = get_inputqids(
+                        h5["results"][run].file, h5["results"][run],
+                        ignore = ["nbi"])
 
                     inputgroups = []
                     for inp in range(len(inputqids)):
