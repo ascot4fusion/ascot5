@@ -9,7 +9,6 @@
 #include "../../error.h"
 #include "../../physlib.h"
 #include "../../particle.h"
-#include "../../B_field.h"
 #include "../../plasma.h"
 #include "../../random.h"
 #include "mccc_coefs.h"
@@ -20,13 +19,12 @@
  *
  * @param p fo struct
  * @param h time-steps for NSIMD markers
- * @param Bdata pointer to magnetic field
  * @param pdata pointer to plasma data
  * @param rdata pointer to random-generator data
  * @param mdata pointer collision data struct
  */
-void mccc_fo_euler(particle_simd_fo* p, real* h, B_field_data* Bdata,
-                   plasma_data* pdata, random_data* rdata, mccc_data* mdata) {
+void mccc_fo_euler(particle_simd_fo* p, real* h, plasma_data* pdata,
+                   random_data* rdata, mccc_data* mdata) {
 
     /* Generate random numbers and get plasma information before going to the *
      * SIMD loop                                                              */

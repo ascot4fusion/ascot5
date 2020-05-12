@@ -107,8 +107,8 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
-            mccc_fo_euler(&p, hin, &sim->B_data, &sim->plasma_data,
-                          &sim->random_data, &sim->mccc_data);
+            mccc_fo_euler(&p, hin, &sim->plasma_data, sim->random_data,
+                          &sim->mccc_data);
         }
 
         /**********************************************************************/
