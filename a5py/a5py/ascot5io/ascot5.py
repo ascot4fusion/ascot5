@@ -501,6 +501,10 @@ class _RunNode(_Node):
             if outputobj is not None:
                 self[key] = outputobj
 
+        # Store the filename and path in the file
+        self._file = rungroup.file.filename
+        self._path = rungroup.name
+
         self._freeze()
 
     def __str__(self):
