@@ -67,6 +67,13 @@ class AscotData():
         """
         import a5py.ascot5io.ascot5tools as tools
         tools.call_ascot5file(self._file, "set_active", self._path)
+        
+    def remove_from_file(self):
+        """
+        Remove the group from the hdf5 file.
+        """
+        with h5py.File(self._file, "a") as f:
+            ascot5file.remove_group(f, self._path)
 
     def copy_to_hdf5file(self,target_file,newgroup=False):
 

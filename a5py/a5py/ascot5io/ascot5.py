@@ -79,6 +79,7 @@ import warnings
 
 from . ascot5file import get_qid, get_activeqid, get_desc, get_date, get_type
 from . ascot5file import get_inputqids
+from . ascot5file import remove_group
 
 from a5py.ascot5io.B_TC       import B_TC
 from a5py.ascot5io.B_GS       import B_GS
@@ -541,6 +542,13 @@ class _RunNode(_Node):
     def get_desc(self):
         return self._desc
 
+    def remove_from_file(self):
+        """
+        Remove the group from the hdf5 file.
+        """
+        with h5py.File(self._file, "a") as f:
+            remove_group(f, self._path)
+
 
 class Ascot(_ContainerNode):
     """
@@ -645,3 +653,13 @@ class Ascot(_ContainerNode):
             write_dummy(self._hdf5fn, p, desc=desc)
 
         self.reload()
+        
+    def remove_all_runs_from_file(self):
+        """
+        Remove every run node from this hdf5 file.
+        """
+        for qid in self._qids:
+            self.__getattribute__('run_'+qid[1:]).remove_from_file()
+            
+        
+        
