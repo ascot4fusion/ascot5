@@ -9,7 +9,9 @@ libascot = ctypes.CDLL("libascot.so")
 real_p = ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")
 
 libascot.biosaw_calc_B.restype = None
-libascot.biosaw_calc_B.argtypes = [real_p, ctypes.c_int, real_p, real_p, real_p, real_p]
+libascot.biosaw_calc_B.argtypes = [ctypes.c_int, real_p, real_p, real_p,
+                                   ctypes.c_int, real_p, real_p, real_p,
+                                   real_p, real_p, real_p]
 
 def calc_B(Rv, phiv, zv, coil_x, coil_y, coil_z):
     coil_n = len(coil_x)
@@ -37,16 +39,22 @@ def calc_B(Rv, phiv, zv, coil_x, coil_y, coil_z):
     b3d["br"] = np.zeros(R.shape)
     b3d["bphi"] = np.zeros(R.shape)
     b3d["bz"] = np.zeros(R.shape)
+    
+    n = len(R.ravel())
 
-    for iR in range(Rv.size):
-        for iphi in range(phiv.size):
-            for iz in range(zv.size):
-                p = np.array([x[iphi,iR,iz], y[iphi,iR,iz], z[iphi,iR,iz]])
-                B = np.zeros(3, dtype="f8")
-                libascot.biosaw_calc_B(p, coil_n, coil_x, coil_y, coil_z, B)
-                b3d["br"][iphi,iR,iz] = B[0]*np.cos(phi[iphi,iR,iz]) + B[1]*np.sin(phi[iphi,iR,iz])
-                b3d["bphi"][iphi,iR,iz] = -B[0]*np.sin(phi[iphi,iR,iz]) + B[1]*np.cos(phi[iphi,iR,iz])
-                b3d["bz"][iphi,iR,iz] = B[2]
+    Bx = np.zeros(n, dtype="f8")
+    By = np.zeros(n, dtype="f8")
+    Bz = np.zeros(n, dtype="f8")
+
+    libascot.biosaw_calc_B(n, x.ravel(), y.ravel(), z.ravel(), coil_n, coil_x, coil_y, coil_z, Bx, By, Bz)
+
+    Bx = Bx.reshape((phiv.size,Rv.size,zv.size))
+    By = By.reshape((phiv.size,Rv.size,zv.size))
+    Bz = Bz.reshape((phiv.size,Rv.size,zv.size))
+
+    b3d["br"] = Bx*np.cos(phi) + By*np.sin(phi)
+    b3d["bphi"] = -Bx*np.sin(phi) + By*np.cos(phi)
+    b3d["bz"] = Bz
 
     return b3d
 
