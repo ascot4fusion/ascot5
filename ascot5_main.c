@@ -526,13 +526,28 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
 
     // Read user input
     int c;
+    int slen;  // String length
     while((c = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch(c) {
             case 1:
-                strcpy(sim->hdf5_in, optarg);
+                // The .hdf5 filename can be specified with or without the trailing .h5
+                slen = strlen(optarg);
+                if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
+                    strncpy(sim->hdf5_in,optarg,slen-3);
+                    (sim->hdf5_in)[slen-3]=NULL;
+                }
+                else
+                    strcpy(sim->hdf5_in, optarg);
                 break;
             case 2:
-                strcpy(sim->hdf5_out, optarg);
+                // The .hdf5 filename can be specified with or without the trailing .h5
+                slen = strlen(optarg);
+                if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
+                    strncpy(sim->hdf5_out,optarg,slen-3);
+                    (sim->hdf5_out)[slen-3]=NULL;
+                }
+                else
+                    strcpy(sim->hdf5_out, optarg);
                 break;
             case 3:
                 sim->mpi_size = atoi(optarg);
