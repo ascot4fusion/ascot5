@@ -112,7 +112,7 @@ void mpi_gather_particlestate(particle_state* ps, particle_state** psgathered,
                               int mpi_size, int mpi_root) {
 #ifdef MPI
 
-    const int n_real = 31;
+    const int n_real = 32;
     const int n_int = 3;
     const int n_err = 1;
 
@@ -178,6 +178,7 @@ void mpi_gather_particlestate(particle_state* ps, particle_state** psgathered,
                 ps_all[start_index+j].B_r_dz   = realdata[28*n+j];
                 ps_all[start_index+j].B_phi_dz = realdata[29*n+j];
                 ps_all[start_index+j].B_z_dz   = realdata[30*n+j];
+                ps_all[start_index+j].mileage  = realdata[31*n+j];
                 ps_all[start_index+j].err      = errdata[j];
             }
 
@@ -233,6 +234,7 @@ void mpi_gather_particlestate(particle_state* ps, particle_state** psgathered,
             realdata[28*n+j] = ps[j].B_r_dz;
             realdata[29*n+j] = ps[j].B_phi_dz;
             realdata[30*n+j] = ps[j].B_z_dz;
+            realdata[31*n+j] = ps[j].mileage;
             errdata[j] = ps[j].err;
         }
 
