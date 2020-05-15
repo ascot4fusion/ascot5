@@ -324,5 +324,35 @@ void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal,
         }
     }
 
+    if(data->diagtrcof_collect) {
+        /* 3 fields for transport coefficients, id, D, K */
+        int nfield = 3;
+
+        if(mpi_rank == 0) {
+            for(int i = 1; i < mpi_size; i++) {
+                int start_index, n;
+                mpi_my_particles(&start_index, &n, ntotal, i, mpi_size);
+
+                for(int j = 0; j < nfield; j++) {
+                    MPI_Recv(&offload_array[offload_diagtrcof_index
+                                        +j*data->diagtrcof.Nmrk
+                                        +start_index],
+                        n, mpi_type_real, i, 0,
+                        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                }
+            }
+        }
+        else {
+            int start_index, n;
+            mpi_my_particles(&start_index, &n, ntotal, mpi_rank, mpi_size);
+
+            for(int j = 0; j < nfield; j++) {
+                MPI_Send(&offload_array[offload_diagtrcof_index
+                                      +j*data->diagtrcof.Nmrk],
+                n, mpi_type_real, 0, 0, MPI_COMM_WORLD);
+            }
+        }
+    }
+
 #endif
 }
