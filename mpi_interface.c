@@ -334,7 +334,7 @@ void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal,
                 mpi_my_particles(&start_index, &n, ntotal, i, mpi_size);
 
                 for(int j = 0; j < nfield; j++) {
-                    MPI_Recv(&offload_array[offload_diagtrcof_index
+                    MPI_Recv(&offload_array[data->offload_diagtrcof_index
                                         +j*data->diagtrcof.Nmrk
                                         +start_index],
                         n, mpi_type_real, i, 0,
@@ -347,7 +347,7 @@ void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal,
             mpi_my_particles(&start_index, &n, ntotal, mpi_rank, mpi_size);
 
             for(int j = 0; j < nfield; j++) {
-                MPI_Send(&offload_array[offload_diagtrcof_index
+                MPI_Send(&offload_array[data->offload_diagtrcof_index
                                       +j*data->diagtrcof.Nmrk],
                 n, mpi_type_real, 0, 0, MPI_COMM_WORLD);
             }
