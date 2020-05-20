@@ -209,10 +209,20 @@ def read_mhd(a4folder, h5fn):
     fname = a4folder + "input.alfven"
     if (os.path.isfile(fname)):
         data = a4mhdinput.read_alfven(fname)
-        mhd.write_hdf5(h5fn, data["nmode"], data["nmodes"], data["mmodes"],
-                       data["amplitude"], data["omega"], data["alpha"],
-                       data["phi"], data["npsi"], data["psimin"],
-                       data["psimax"])
+        print("No MHD phase data in Ascot4. Assuming phase = 0.")
+        mhd.write_hdf5(
+            fn=h5fn,
+            nmode     = data["nmode"],
+            nmodes    = data["nmodes"],
+            mmodes    = data["mmodes"],
+            amplitude = data["amplitude"],
+            omega     = data["omega"],
+            phase     = np.zeros(data["omega"].shape),
+            alpha     = data["alpha"],
+            phi       = data["phi"],
+            nrho      = data["nrho"],
+            rhomin    = data["rhomin"],
+            rhomax    = data["rhomax"])
     else:
         mhd.write_hdf5_dummy(h5fn)
 
