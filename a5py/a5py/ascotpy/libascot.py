@@ -191,7 +191,7 @@ class LibAscot:
             fun = self.libascot.libascot_boozer_eval_fun
             fun.restype  = ctypes.c_int
             fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p]
+                            real_p, real_p, real_p]
         except AttributeError:
             warnings.warn("libascot_boozer_eval_fun not found", Warning)
             pass
@@ -696,10 +696,12 @@ class LibAscot:
         out = {}
 
         if evalfun:
-            out["qprof"]    = np.zeros(R.shape, dtype="f8") + np.nan
-            out["jacobian"] = np.zeros(R.shape, dtype="f8") + np.nan
+            out["qprof"]      = np.zeros(R.shape, dtype="f8") + np.nan
+            out["jacobian"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["jacobianb2"] = np.zeros(R.shape, dtype="f8") + np.nan
             self.libascot.libascot_boozer_eval_fun(
-                Neval, R, phi, z, t, out["qprof"], out["jacobian"])
+                Neval, R, phi, z, t, out["qprof"], out["jacobian"],
+                out["jacobianb2"])
         else:
             out["psi"]        = np.zeros(R.shape, dtype="f8") + np.nan
             out["theta"]      = np.zeros(R.shape, dtype="f8") + np.nan

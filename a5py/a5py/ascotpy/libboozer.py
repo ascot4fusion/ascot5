@@ -19,7 +19,8 @@ class LibBoozer(LibAscot):
     quantities = ["psi (bzr)", "theta", "zeta",
                   "dpsidr (bzr)", "dpsidphi (bzr)", "dpsidz (bzr)",
                   "dthetadr", "dthetadphi", "dthetadz",
-                  "dzetadr", "dzetadphi", "dzetadz", "qprof", "jacobian"]
+                  "dzetadr", "dzetadphi", "dzetadz", "qprof", "jacobian",
+                  "jacobianb2"]
 
     def evaluate(self, R, phi, z, t, quantity, br=None, bphi=None, bz=None):
 
@@ -36,7 +37,7 @@ class LibBoozer(LibAscot):
                           "dthetadr", "dthetadphi", "dthetadz", "dzetadr",
                           "dzetadphi", "dzetadz"]:
              out = self.eval_boozer(R, phi, z, t)[quantity]
-        elif quantity in ["qprof", "jacobian"]:
+        elif quantity in ["qprof", "jacobian", "jacobianb2"]:
             out = self.eval_boozer(R, phi, z, t, evalfun=True)[quantity]
 
         assert out is not None, "Unknown quantity"
