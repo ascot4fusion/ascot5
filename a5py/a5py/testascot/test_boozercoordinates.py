@@ -221,13 +221,13 @@ def check():
             mhd=h5.mhd["BOOZER"].get_qid())
     theta = a5.evaluate(orb["r"], phi=orb["phi"].to("rad"), z=orb["z"],
                         t=orb["time"], quantity="theta")
-    zeta = a5.evaluate(orb["r"], phi=orb["phi"].to("rad"), z=orb["z"],
-                       t=orb["time"], quantity="zeta")
+    zeta  = a5.evaluate(orb["r"], phi=orb["phi"].to("rad"), z=orb["z"],
+                        t=orb["time"], quantity="zeta")
     alpha = a5.evaluate(orb["r"], phi=orb["phi"].to("rad"), z=orb["z"],
                         t=orb["time"]*0, quantity="alpha")
-    jac = a5.evaluate(rgrid, phi=0, z=zgrid, t=0, grid=True,
-                      quantity="jacobian")
-    B =  a5.evaluate(rgrid, phi=0, z=zgrid, t=0, grid=True, quantity="bnorm")
+    jacB2 = a5.evaluate(rgrid, phi=0, z=zgrid, t=0, grid=True,
+                        quantity="jacobianb2")
+    #B =  a5.evaluate(rgrid, phi=0, z=zgrid, t=0, grid=True, quantity="bnorm")
     rhovals = a5.evaluate(rgrid, phi=0, z=zgrid, t=0, grid=True, quantity="rho")
     a5.free(bfield=True, boozer=True, mhd=True)
 
@@ -328,11 +328,10 @@ def check():
     s4.set_ylabel("Amplitude [A.U.]")
 
     # Plot Jacobian #
-    jac     = np.squeeze(jac)
-    B       = np.squeeze(B)
+    jacB2   = np.squeeze(jacB2)
     rhovals = np.squeeze(rhovals)
     s5 = fig.add_subplot(gs[0:2,2])
-    s5.pcolormesh(rgrid, zgrid, (jac*B**2).T )
+    s5.contour(rgrid, zgrid, jacB2.T, colors="C0" )
     s5.contour(rgrid, zgrid, rhovals.T, colors="black" )
     s5.set_xlabel(r"$R$ [m]")
     s5.set_ylabel(r"$z$ [m]")
