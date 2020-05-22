@@ -550,9 +550,10 @@ void libascot_boozer_eval_psithetazeta(int Neval, real* R, real* phi, real* z,
  * @param t time coordinates of the evaluation points [s].
  * @param qprof array for storing the (flux averaged) safety factor.
  * @param jac array for storing the coordinate Jacobian.
+ * @param jac array for storing the coordinate Jacobian multiplied with B^2.
  */
 void libascot_boozer_eval_fun(int Neval, real* R, real* phi, real* z,
-			      real* t, real* qprof, real* jac) {
+                              real* t, real* qprof, real* jac, real* jacB2) {
     real psithetazeta[12];
     real B[12];
     int isinside;
@@ -586,8 +587,8 @@ void libascot_boozer_eval_fun(int Neval, real* R, real* phi, real* z,
         qprof[k] = (veca[1] - bvec[1]) / vecb[1];
 
         math_cross(gradtheta, gradzeta, veca);
-        jac[k] = 1/math_dot(veca, gradpsi);
-        jac[k] = jac[k]*jac[k];
+        jac[k]   = 1/math_dot(veca, gradpsi);
+        jacB2[k] = jac[k]*math_norm(bvec)*math_norm(bvec);
     }
 }
 
