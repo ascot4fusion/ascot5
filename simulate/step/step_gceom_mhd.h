@@ -59,11 +59,6 @@ static void step_gceom_mhd(real* ydot, real* y, real mass, real charge,
     gradalpha[1] = mhd_dmhd[3];
     gradalpha[2] = mhd_dmhd[4];
 
-    real alphadot = mhd_dmhd[1]
-        +        ydot[0] * gradalpha[0]
-        + y[0] * ydot[1] * gradalpha[1]
-        +        ydot[2] * gradalpha[2];
-
     real gradalphacrossB[3];
     math_cross(gradalpha, B, gradalphacrossB);
 
