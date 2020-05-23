@@ -371,6 +371,17 @@ class Orbits(AscotData):
             )
             a5.free(bfield=True)
 
+        ## Boozer and MHD parameters ##
+        elif key in ["mhdepotgc", "mhdepotprt", "mhdepotfl"]:
+            a5.init(bfield=True, boozer=True, mhd=True)
+            item = evalapy("phi") * unyt.V
+            a5.free(bfield=True, boozer=True, mhd=True)
+
+        elif key in ["mhdalphagc", "mhdalphaprt", "mhdalphafl"]:
+            a5.init(bfield=True, boozer=True, mhd=True)
+            item = evalapy("alpha") * unyt.m
+            a5.free(bfield=True, boozer=True, mhd=True)
+
         if item is None:
             raise Exception("Invalid query: " + key)
 

@@ -406,6 +406,27 @@ class State(AscotData):
             )
             a5.free(bfield=True)
 
+        ## Boozer and MHD parameters ##
+        elif key == "mhdepot":
+            a5.init(bfield=True, boozer=True, mhd=True)
+            item = evalapy("phi") * unyt.V
+            a5.free(bfield=True, boozer=True, mhd=True)
+
+        elif key == "mhdepotprt":
+            a5.init(bfield=True, boozer=True, mhd=True)
+            item = evalapyprt("phi") * unyt.V
+            a5.free(bfield=True, boozer=True, mhd=True)
+
+        elif key == "mhdalpha":
+            a5.init(bfield=True, boozer=True, mhd=True)
+            item = evalapy("alpha") * unyt.m
+            a5.free(bfield=True, boozer=True, mhd=True)
+
+        elif key == "mhdalphaprt":
+            a5.init(bfield=True, boozer=True, mhd=True)
+            item = evalapyprt("alpha") * unyt.m
+            a5.free(bfield=True, boozer=True, mhd=True)
+
         if item is None:
             raise Exception("Invalid query: " + key)
 
