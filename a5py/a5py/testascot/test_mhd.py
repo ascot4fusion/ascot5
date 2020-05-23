@@ -60,7 +60,7 @@ psi_coeff = np.array([ 2.218e-02, -1.288e-01, -4.177e-02, -6.227e-02,
 nmode = 2
 mmode = 3
 modefreq = 1e6
-amplitude = 1e-2
+amplitude = 1e-6 # 1e-2
 
 def init():
     """
@@ -79,7 +79,7 @@ def init():
 
     odict["SIM_MODE"]                  = 1
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
-    odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
+    odict["FIXEDSTEP_USERDEFINED"]     = 1e-11
     odict["ENDCOND_SIMTIMELIM"]        = 1
     odict["ENDCOND_MAX_SIMTIME"]       = 1e-3
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
@@ -209,7 +209,7 @@ def init():
 
     psigrid = np.linspace(mhd["rhomin"], mhd["rhomax"], mhd["nrho"])
     alpha   = np.exp( -(psigrid-0.85)**2/0.1 )
-    phi     = alpha*0
+    phi     = np.exp( -(psigrid-0.85)**2/0.1 )*1e9
     mhd["phi"]   = np.tile(phi, (mhd["nmode"],1)).T
     mhd["alpha"] = np.tile(alpha, (mhd["nmode"],1)).T
     for d in ["MHD_GO", "MHD_GCF", "MHD_GCA"]:
@@ -251,6 +251,7 @@ def check():
     a5.init(bfield=h5.bfield["MHD_GCF"].get_qid(),
             boozer=h5.boozer["MHD_GCF"].get_qid(),
             mhd=h5.mhd["MHD_GCF"].get_qid())
+    a5.free(bfield=True, boozer=True, mhd=True)
 
     f = plt.figure(figsize=(11.9/2.54, 8/2.54))
     plt.rc('xtick', labelsize=10)
@@ -266,15 +267,11 @@ def check():
     for run in ["MHD_GO", "MHD_GCF", "MHD_GCA"]:
         orb = h5[run].orbit
 
-        # Include alpha to ctor
-        alpha = a5.evaluate(orb["r"], phi=orb["phi"].to("rad"), z=orb["z"],
-                            t=orb["time"], quantity="alpha")
+        H = (orb["energy"] + orb["mhd_epot"] * orb["charge"]).to("J").v
 
-        H = orb["energy"].to("J").v
-
-        ctor = orb["ptor"]
+        ctor = orb["ptor"] + orb["r"] * orb["charge"] * orb["mhdalpha"] * orb["bphi"]
         ctor.convert_to_mks()
-        ctor = ctor.v + (orb["r"] * orb["charge"].to("C") * alpha * orb["bphi"]).v
+        ctor = ctor.v
 
         ids  = orb["id"] == 2
         time = orb["time"][ids]
@@ -289,7 +286,7 @@ def check():
         h2 = s1.plot(time, (H-H[0])/H[0], color="C1", linestyle=ls[i],
                        alpha=0.3, label=r"$E$")[0]
         h3 = s1.plot(time, (K-K[0])/H[0], color="C2", linestyle=ls[i],
-                       alpha=0.3, label=r"$E-\omega_nP_\phi/n$")[0]
+                       alpha=0.3, linewidth=3, label=r"$E-\omega_nP_\phi/n$")[0]
         i += 1
 
     a5.free(bfield=True, boozer=True, mhd=True)
