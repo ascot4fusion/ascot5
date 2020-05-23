@@ -79,6 +79,7 @@ import warnings
 
 from . ascot5file import get_qid, get_activeqid, get_desc, get_date, get_type
 from . ascot5file import get_inputqids
+from . ascot5file import remove_group
 
 from a5py.ascot5io.B_TC       import B_TC
 from a5py.ascot5io.B_GS       import B_GS
@@ -99,7 +100,18 @@ from a5py.ascot5io.wall_3D    import wall_3D
 from a5py.ascot5io.plasma_1D  import plasma_1D
 from a5py.ascot5io.plasma_1DS import plasma_1DS
 from a5py.ascot5io.N0_3D      import N0_3D
+from a5py.ascot5io.boozer     import Boozer
+from a5py.ascot5io.mhd        import MHD
 from a5py.ascot5io.options    import Opt
+from a5py.ascot5io.nbi        import nbi
+
+from a5py.ascot5io.E_TC       import write_hdf5_dummy as dummy_efield
+from a5py.ascot5io.wall_2D    import write_hdf5_dummy as dummy_wall
+from a5py.ascot5io.plasma_1D  import write_hdf5_dummy as dummy_plasma
+from a5py.ascot5io.N0_3D      import write_hdf5_dummy as dummy_neutral
+from a5py.ascot5io.boozer     import write_hdf5_dummy as dummy_boozer
+from a5py.ascot5io.mhd        import write_hdf5_dummy as dummy_mhd
+from a5py.ascot5io.nbi        import write_hdf5_dummy as dummy_nbi
 
 from a5py.ascot5io.state      import State
 from a5py.ascot5io.orbits     import Orbits
@@ -154,7 +166,9 @@ def create_inputobject(key, h5group):
         "wall_2D" : wall_2D, "wall_3D" : wall_3D,
         "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS,
         "N0_3D" : N0_3D,
-        "opt" : Opt
+        "Boozer" : Boozer, "MHD_STAT" : MHD, "MHD_NONSTAT" : MHD,
+        "opt" : Opt,
+        "nbi" : nbi
     }
 
     if key not in name_and_object:
@@ -182,6 +196,32 @@ def create_outputobject(key, h5group, runnode):
         return None
 
     return name_and_object[key](h5group, runnode)
+
+
+def write_dummy(fn, parent, desc="Dummy"):
+    """
+    Write a dummy input for a given parent (e.g. "bfield").
+
+    Whenever you add a new parent (which should not happen often), add one
+    function here which creates a dummy input.
+
+    Markers and magnetic field are not included here as those are essential
+    for every simulation.
+    """
+    if parent == "efield":
+        dummy_efield(fn, desc=desc)
+    if parent == "plasma":
+        dummy_plasma(fn, desc=desc)
+    if parent == "wall":
+        dummy_wall(fn, desc=desc)
+    if parent == "neutral":
+        dummy_neutral(fn, desc=desc)
+    if parent == "boozer":
+        dummy_boozer(fn, desc=desc)
+    if parent == "mhd":
+        dummy_mhd(fn, desc=desc)
+    if parent == "nbi":
+        dummy_nbi(fn, desc=desc)
 
 
 class _Node():
@@ -462,6 +502,10 @@ class _RunNode(_Node):
             if outputobj is not None:
                 self[key] = outputobj
 
+        # Store the filename and path in the file
+        self._file = rungroup.file.filename
+        self._path = rungroup.name
+
         self._freeze()
 
     def __str__(self):
@@ -497,6 +541,13 @@ class _RunNode(_Node):
 
     def get_desc(self):
         return self._desc
+
+    def remove_from_file(self):
+        """
+        Remove the group from the hdf5 file.
+        """
+        with h5py.File(self._file, "a") as f:
+            remove_group(f, self._path)
 
 
 class Ascot(_ContainerNode):
@@ -566,11 +617,13 @@ class Ascot(_ContainerNode):
                 for run in h5["results"].keys():
 
                     # Fetch those input groups that correspond to this run.
-                    inputqids   = get_inputqids(h5["results"][run].file,
-                                                h5["results"][run])
+                    inputqids = get_inputqids(
+                        h5["results"][run].file, h5["results"][run],
+                        ignore = ["nbi"])
 
                     inputgroups = []
-                    for inp in range(0, len(INPUT_PARENTS)):
+                    for inp in range(len(inputqids)):
+
                         if hasattr(self, INPUT_PARENTS[inp]):
                             groups = getattr(self, INPUT_PARENTS[inp])
                             inputgroups.append((INPUT_PARENTS[inp],
@@ -584,3 +637,29 @@ class Ascot(_ContainerNode):
                 self._init_organize()
 
         self._freeze()
+
+
+    def add_dummyinputs(self, desc="Dummy"):
+        """
+        Add dummy inputs for all missing groups.
+        """
+        missing = []
+        with h5py.File(self._hdf5fn, "r") as h5:
+            for p in INPUT_PARENTS:
+                if p not in h5:
+                    missing.append(p)
+
+        for p in missing:
+            write_dummy(self._hdf5fn, p, desc=desc)
+
+        self.reload()
+        
+    def remove_all_runs_from_file(self):
+        """
+        Remove every run node from this hdf5 file.
+        """
+        for qid in self._qids:
+            self.__getattribute__('run_'+qid[1:]).remove_from_file()
+            
+        
+        

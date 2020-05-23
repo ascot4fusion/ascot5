@@ -104,6 +104,23 @@ def read_hdf5(fn, qid):
     out["idensity"] = np.transpose(out["idensity"])
     return out
 
+
+def write_hdf5_dummy(fn, desc="Dummy"):
+    Nrho   = 3
+    Nion   = 1
+    znum   = np.array([1])
+    anum   = np.array([1])
+    mass   = np.array([1])
+    charge = np.array([1])
+    rho    = np.array([0, 0.5, 100])
+    edens  = 1e20 * np.ones(rho.shape)
+    etemp  = 1e3  * np.ones(rho.shape)
+    idens  = 1e20 * np.ones((rho.size, Nion))
+    itemp  = 1e3  * np.ones(rho.shape)
+    write_hdf5(fn, Nrho, Nion, znum, anum, mass, charge,
+               rho, edens, etemp, idens, itemp, desc=desc)
+
+
 class plasma_1D(AscotData):
     """
     Object representing P_1D data.
@@ -118,3 +135,53 @@ class plasma_1D(AscotData):
             data = self.read()
 
         return write_hdf5(fn, **data)
+
+    def plot(self, pls=None):
+        import matplotlib.pyplot as plt
+
+        if pls is None:
+            pls = self.read()
+
+        plotyy=False # This didn't come out nice, but keep it just in case.
+
+        if plotyy:
+            fig, ax1 = plt.subplots()
+
+            color = 'tab:red'
+            ax1.set_xlabel('$\\rho $')
+            ax1.set_ylabel('Density (10$^{19}$/m$^3$)', color=color)
+            ax1.plot(pls['rho'],pls['edensity']*1e-19,'-' ,color=color,label='n$_e$')
+            ax1.plot(pls['rho'],pls['idensity']*1e-19,'--',label='n$_i$')
+            ax1.tick_params(axis='y', labelcolor=color)
+
+            ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+            color = 'tab:blue'
+            ax2.set_ylabel('Temperature(eV)', color=color)  # we already handled the x-label with ax1
+            ax2.plot(pls['rho'],pls['itemperature'],'-' ,color=color,label='T$_i$')
+            ax2.plot(pls['rho'],pls['etemperature'],'--',label='T$_e$')
+            ax2.tick_params(axis='y', labelcolor=color)
+
+            ax1.legend()
+            ax2.legend()
+
+            fig.tight_layout()  # otherwise the right y-label is slightly clipped
+
+            plt.show()
+
+        else:
+
+            plt.subplot(2,1,1)
+            plt.plot(pls['rho'],pls['edensity']*1e-19,'-',label='n$_e$')
+            plt.plot(pls['rho'],pls['idensity']*1e-19,'--',label='n$_i$')
+            plt.legend()
+            plt.ylabel('Density (10$^{19}$/m$^3$)')
+
+            plt.subplot(2,1,2)
+            plt.plot(pls['rho'],pls['etemperature'],'-',label='T$_e$')
+            plt.plot(pls['rho'],pls['itemperature'],'--',label='T$_i$')
+            plt.legend()
+            plt.ylabel('Temperature (eV)')
+
+            plt.xlabel('$\\rho $')
+
+            plt.show()

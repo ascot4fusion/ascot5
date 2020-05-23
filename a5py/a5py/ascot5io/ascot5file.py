@@ -60,12 +60,13 @@ File: ascot5file.py
 
 import numpy as np
 import h5py
+import unyt
 import random
 import datetime
 
 ## Names of input parent groups.
 INPUT_PARENTS = ["options", "bfield", "efield", "marker", "plasma", "neutral",
-                 "wall"]
+                 "wall", "boozer", "mhd", "nbi"]
 
 ## Current version
 VERSION = "0"
@@ -406,7 +407,7 @@ def get_qids(f, parent):
 
     return qids
 
-def get_inputqids(f, rungroup):
+def get_inputqids(f, rungroup, ignore=[]):
     """
     Get all QIDs that tell which input was used in the given run group.
 
@@ -416,6 +417,7 @@ def get_inputqids(f, rungroup):
     Args:
         f: h5py file.
         rungroup: Either the run group's name or its h5py group.
+        ignore: List of names of inputs that are not relevant for this run.
     Returns:
         A list of QID strings.
     Raise:
@@ -433,8 +435,15 @@ def get_inputqids(f, rungroup):
 
     qids = [];
     for inp in range(0, len(INPUT_PARENTS)):
-        qid = rungroup.attrs["qid_" + INPUT_PARENTS[inp]].decode('utf-8')
-        qids.append(qid)
+        if INPUT_PARENTS[inp] in ignore:
+            continue
+
+        try:
+            qid = rungroup.attrs["qid_" + INPUT_PARENTS[inp]].decode('utf-8')
+        except KeyError as err:
+            print(err)
+        else:
+            qids.append(qid)
 
     return qids
 
@@ -587,6 +596,42 @@ def copy_group(fs, ft, group, newgroup=False):
         set_active(ft, newgroupobj)
 
     return newgroupobj
+
+
+def write_data(group, name, data, dtype="f8", unit=None):
+    """
+    Write a dataset.
+
+    The shape of the written dataset is deduced from the given dataset.
+
+    Args:
+        group : HDF5 group where the dataset will be written.
+        name : Name of the new dataset.
+        data : Data to be written.
+        dtype : Data type.
+        unit : Unit string if the data has units.
+    """
+    g = group.create_dataset(
+        name  = name,
+        shape = name.shape,
+        data  = data,
+        dtype = dtype
+    )
+    if unit is not None:
+        g.attrs.create("unit", np.string_(unit))
+
+
+def read_data(group, name):
+    """
+    Read a dataset.
+    """
+    if "unit" in group[name].attrs.keys():
+        unit_str = group[name].attrs["unit"]
+        unit     = unyt.Unit(unit_str)
+
+        return group[name][:] * unit
+    else:
+        return group[name][:]
 
 
 def _generate_meta():

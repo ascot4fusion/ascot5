@@ -63,6 +63,8 @@ class LibAscot:
         self.plasma_initialized  = False
         self.neutral_initialized = False
         self.wall_initialized    = False
+        self.boozer_initialized  = False
+        self.mhd_initialized     = False
 
         # Declare functions found in libascot
 
@@ -73,7 +75,8 @@ class LibAscot:
             fun = self.libascot.libascot_init
             fun.restype  = ctypes.c_int
             fun.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p,
-                            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+                            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p,
+                            ctypes.c_char_p, ctypes.c_char_p]
         except AttributeError:
             warnings.warn("libascot_init not found", Warning)
             pass
@@ -82,7 +85,8 @@ class LibAscot:
             fun = self.libascot.libascot_free
             fun.restype  = None
             fun.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                            ctypes.c_int, ctypes.c_int]
+                            ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                            ctypes.c_int]
         except AttributeError:
             warnings.warn("libascot_free not found", Warning)
             pass
@@ -172,6 +176,46 @@ class LibAscot:
             warnings.warn("libascot_neutral_eval_density not found", Warning)
             pass
 
+        # Boozer and MHD functions.
+        try:
+            fun = self.libascot.libascot_boozer_eval_psithetazeta
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p, real_p, real_p, real_p]
+        except AttributeError:
+            warnings.warn("libascot_boozer_eval_psithetazeta not found", Warning)
+            pass
+
+        try:
+            fun = self.libascot.libascot_boozer_eval_fun
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p]
+        except AttributeError:
+            warnings.warn("libascot_boozer_eval_fun not found", Warning)
+            pass
+
+        try:
+            fun = self.libascot.libascot_mhd_eval
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p, real_p, real_p]
+        except AttributeError:
+            warnings.warn("libascot_mhd_eval not found", Warning)
+            pass
+
+        try:
+            fun = self.libascot.libascot_mhd_eval_perturbation
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
+                            real_p, real_p, real_p, real_p, real_p, real_p,
+                            real_p]
+        except AttributeError:
+            warnings.warn("libascot_mhd_eval_perturbation not found", Warning)
+            pass
+
         # Collision coefficients.
         try:
             fun = self.libascot.libascot_eval_collcoefs
@@ -204,7 +248,7 @@ class LibAscot:
 
 
     def init(self, bfield=False, efield=False, plasma=False, wall=False,
-             neutral=False):
+             neutral=False, boozer=False, mhd=False):
         """
         Initialize input data.
 
@@ -222,6 +266,10 @@ class LibAscot:
                 Flag for initializing wall data.
             neutral : bool or str optional <br>
                 Flag for initializing neutral data.
+            boozer : bool, optional <br>
+                Flag for initializing boozer data.
+            mhd : bool, optional <br>
+                Flag for initializing mhd data.
 
         Raises:
             RuntimeError if initialization failed.
@@ -238,7 +286,7 @@ class LibAscot:
             warnings.warn("Magnetic field already initialized.", Warning)
         elif bfield:
             if self.libascot.libascot_init(self.h5fn, qid, None, None, None,
-                                           None) :
+                                           None, None, None):
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.bfield_initialized = True
@@ -254,7 +302,7 @@ class LibAscot:
             warnings.warn("Electric field already initialized.", Warning)
         elif efield:
             if self.libascot.libascot_init(self.h5fn, None, qid, None, None,
-                                           None) :
+                                           None, None, None) :
                 raise RuntimeError("Failed to initialize electric field")
 
             self.efield_initialized = True
@@ -270,7 +318,7 @@ class LibAscot:
             warnings.warn("Plasma already initialized.", Warning)
         elif plasma:
             if self.libascot.libascot_init(self.h5fn, None, None, qid, None,
-                                           None) :
+                                           None, None, None) :
                 raise RuntimeError("Failed to initialize plasma")
 
             self.plasma_initialized = True
@@ -286,7 +334,7 @@ class LibAscot:
             warnings.warn("Wall already initialized.", Warning)
         elif wall:
             if self.libascot.libascot_init(self.h5fn, None, None, None, qid,
-                                           None) :
+                                           None, None, None) :
                 raise RuntimeError("Failed to initialize wall")
 
             self.wall_initialized = True
@@ -302,14 +350,44 @@ class LibAscot:
             warnings.warn("Neutral data already initialized.", Warning)
         if neutral:
             if self.libascot.libascot_init(self.h5fn, None, None, None, None,
-                                           qid) :
+                                           qid, None, None) :
                 raise RuntimeError("Failed to initialize neutral data")
 
             self.neutral_initialized = True
 
+        if isinstance(boozer, str):
+            qid    = boozer.encode('UTF-8')
+            boozer = True
+        elif boozer:
+            qid = a5.boozer.active.get_qid().encode('UTF-8')
+
+        if boozer and self.boozer_initialized:
+            warnings.warn("Boozer data already initialized.", Warning)
+        if boozer:
+            if self.libascot.libascot_init(self.h5fn, None, None, None, None,
+                                           None, qid, None) :
+                raise RuntimeError("Failed to initialize boozer data")
+
+            self.boozer_initialized = True
+
+        if isinstance(mhd, str):
+            qid = mhd.encode('UTF-8')
+            mhd = True
+        elif mhd:
+            qid = a5.mhd.active.get_qid().encode('UTF-8')
+
+        if mhd and self.mhd_initialized:
+            warnings.warn("MHD data already initialized.", Warning)
+        if mhd:
+            if self.libascot.libascot_init(self.h5fn, None, None, None, None,
+                                           None, None, qid) :
+                raise RuntimeError("Failed to initialize MHD data")
+
+            self.mhd_initialized = True
+
 
     def free(self, bfield=False, efield=False, plasma=False, wall=False,
-             neutral=False):
+             neutral=False, boozer=False, mhd=False):
         """
         Free input data.
 
@@ -324,26 +402,38 @@ class LibAscot:
                 Flag for freeing wall data.
             neutral : bool, optional <br>
                 Flag for freeing neutral data.
+            boozer : bool, optional <br>
+                Flag for freeing boozer data.
+            mhd : bool, optional <br>
+                Flag for freeing mhd data.
         """
         if bfield and self.bfield_initialized:
-            self.libascot.libascot_free(1, 0, 0, 0, 0)
+            self.libascot.libascot_free(1, 0, 0, 0, 0, 0, 0)
             self.bfield_initialized = False
 
         if efield and self.efield_initialized:
-            self.libascot.libascot_free(0, 1, 0, 0, 0)
+            self.libascot.libascot_free(0, 1, 0, 0, 0, 0, 0)
             self.efield_initialized = False
 
         if plasma and self.plasma_initialized:
-            self.libascot.libascot_free(0, 0, 1, 0, 0)
+            self.libascot.libascot_free(0, 0, 1, 0, 0, 0, 0)
             self.plasma_initialized = False
 
         if wall and self.wall_initialized:
-            self.libascot.libascot_free(0, 0, 0, 1, 0)
+            self.libascot.libascot_free(0, 0, 0, 1, 0, 0, 0)
             self.wall_initialized = False
 
         if neutral and self.neutral_initialized:
-            self.libascot.libascot_free(0, 0, 0, 0, 1)
+            self.libascot.libascot_free(0, 0, 0, 0, 1, 0, 0)
             self.neutral_initialized = False
+
+        if boozer and self.boozer_initialized:
+            self.libascot.libascot_free(0, 0, 0, 0, 0, 1, 0)
+            self.boozer_initialized = False
+
+        if mhd and self.mhd_initialized:
+            self.libascot.libascot_free(0, 0, 0, 0, 0, 0, 1)
+            self.mhd_initialized = False
 
 
     def eval_bfield(self, R, phi, z, t, evalb=False, evalrho=False,
@@ -568,6 +658,136 @@ class LibAscot:
 
         self.libascot.libascot_neutral_eval_density(Neval, R, phi, z, t,
                                                     out["density"])
+
+        return out
+
+
+    def eval_boozer(self, R, phi, z, t, evalfun=False):
+        """
+        Evaluate boozer quantities at given coordinates.
+
+        Args:
+            R : array_like <br>
+                R coordinates where data is evaluated [m].
+            phi : array_like <br>
+                phi coordinates where data is evaluated [rad].
+            z : array_like <br>
+                z coordinates where data is evaluated [m].
+            t : array_like <br>
+                time coordinates where data is evaluated [s].
+            evalfun : boolean, optional <br>
+                evaluate the boozer functions instead of the coordinates.
+
+        Returns:
+            Dictionary containing evaluated quantities.
+
+        Raises:
+            AssertionError if this is called data uninitialized.
+            RuntimeError if evaluation failed.
+        """
+        assert self.boozer_initialized, "Boozer data not initialized"
+
+        R   = np.asarray(R).ravel().astype(dtype="f8")
+        phi = np.asarray(phi).ravel().astype(dtype="f8")
+        z   = np.asarray(z).ravel().astype(dtype="f8")
+        t   = np.asarray(t).ravel().astype(dtype="f8")
+
+        Neval = R.size
+        out = {}
+
+        if evalfun:
+            out["qprof"]      = np.zeros(R.shape, dtype="f8") + np.nan
+            out["jacobian"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["jacobianb2"] = np.zeros(R.shape, dtype="f8") + np.nan
+            self.libascot.libascot_boozer_eval_fun(
+                Neval, R, phi, z, t, out["qprof"], out["jacobian"],
+                out["jacobianb2"])
+        else:
+            out["psi"]        = np.zeros(R.shape, dtype="f8") + np.nan
+            out["theta"]      = np.zeros(R.shape, dtype="f8") + np.nan
+            out["zeta"]       = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dpsidr"]     = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dpsidphi"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dpsidz"]     = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dthetadr"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dthetadphi"] = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dthetadz"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dzetadr"]    = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dzetadphi"]  = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dzetadz"]    = np.zeros(R.shape, dtype="f8") + np.nan
+            self.libascot.libascot_boozer_eval_psithetazeta(
+                Neval, R, phi, z, t, out["psi"], out["theta"], out["zeta"],
+                out["dpsidr"], out["dpsidphi"], out["dpsidz"],
+                out["dthetadr"], out["dthetadphi"], out["dthetadz"],
+                out["dzetadr"], out["dzetadphi"], out["dzetadz"])
+
+        return out
+
+
+    def eval_mhd(self, R, phi, z, t, evalpot=False):
+        """
+        Evaluate mhd perturbation EM components at given coordinates.
+
+        Args:
+            R : array_like <br>
+                R coordinates where data is evaluated [m].
+            phi : array_like <br>
+                phi coordinates where data is evaluated [rad].
+            z : array_like <br>
+                z coordinates where data is evaluated [m].
+            t : array_like <br>
+                time coordinates where data is evaluated [s].
+            evalpot : boolean, optional <br>
+                flag to evaluate also alpha and phi.
+
+        Returns:
+            Dictionary containing evaluated quantities.
+
+        Raises:
+            AssertionError if this is called data uninitialized.
+            RuntimeError if evaluation failed.
+        """
+        assert self.bfield_initialized, "Magnetic field not initialized"
+        assert self.boozer_initialized, "Boozer data not initialized"
+        assert self.mhd_initialized,    "MHD data not initialized"
+
+        R   = np.asarray(R).ravel().astype(dtype="f8")
+        phi = np.asarray(phi).ravel().astype(dtype="f8")
+        z   = np.asarray(z).ravel().astype(dtype="f8")
+        t   = np.asarray(t).ravel().astype(dtype="f8")
+
+        Neval = R.size
+        out = {}
+        out["mhd_br"]   = np.zeros(R.shape, dtype="f8") + np.nan
+        out["mhd_bphi"] = np.zeros(R.shape, dtype="f8") + np.nan
+        out["mhd_bz"]   = np.zeros(R.shape, dtype="f8") + np.nan
+        out["mhd_er"]   = np.zeros(R.shape, dtype="f8") + np.nan
+        out["mhd_ephi"] = np.zeros(R.shape, dtype="f8") + np.nan
+        out["mhd_ez"]   = np.zeros(R.shape, dtype="f8") + np.nan
+        out["mhd_phi"]  = np.zeros(R.shape, dtype="f8") + np.nan
+
+        self.libascot.libascot_mhd_eval_perturbation(
+            Neval, R, phi, z, t, out["mhd_br"], out["mhd_bphi"], out["mhd_bz"],
+            out["mhd_er"], out["mhd_ephi"], out["mhd_ez"], out["mhd_phi"])
+
+        if evalpot:
+            out["alpha"] = np.zeros(R.shape, dtype="f8") + np.nan
+            out["phi"]   = np.zeros(R.shape, dtype="f8") + np.nan
+
+            out["dadt"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dadr"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dadphi"] = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dadz"]   = np.zeros(R.shape, dtype="f8") + np.nan
+
+            out["dphidt"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dphidr"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dphidphi"] = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dphidz"]   = np.zeros(R.shape, dtype="f8") + np.nan
+
+            self.libascot.libascot_mhd_eval(
+                Neval, R, phi, z, t, out["alpha"], out["dadr"], out["dadphi"],
+                out["dadz"], out["dadt"], out["phi"], out["dphidr"],
+                out["dphidphi"], out["dphidz"], out["dphidt"])
 
         return out
 

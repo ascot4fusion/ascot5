@@ -43,11 +43,10 @@ File: test_gctransform.py
 import sys
 
 import numpy                   as np
-import scipy.constants         as constants
+import unyt
 import matplotlib.pyplot       as plt
 import matplotlib.lines        as mlines
 
-import a5py.ascot5io.ascot5    as ascot5
 import a5py.ascot5io.orbits    as orbits
 import a5py.ascot5io.options   as options
 import a5py.ascot5io.B_GS      as B_GS
@@ -57,15 +56,15 @@ import a5py.ascot5io.wall_2D   as W_2D
 import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 import a5py.ascot5io.mrk_prt   as prt
+import a5py.ascot5io.boozer    as boozer
+import a5py.ascot5io.mhd       as mhd
 
 import a5py.testascot.helpers as helpers
 
 from a5py.preprocessing.analyticequilibrium import psi0 as psifun
 
-e       = constants.elementary_charge
-m_a_AMU = constants.physical_constants["alpha particle mass in u"][0]
-m_a     = constants.physical_constants["alpha particle mass"][0]
-c       = constants.physical_constants["speed of light in vacuum"][0]
+from a5py.ascot5io.ascot5 import Ascot
+from a5py.physlib import e, m_a, c
 
 psi_mult  = 200
 R0        = 6.2
@@ -175,7 +174,7 @@ def init():
     ids    = np.array([1])
     weight = 1       * np.ones(ids.shape)
     pitch  = 0.4     * np.ones(ids.shape)
-    mass   = m_a_AMU * np.ones(ids.shape)
+    mass   = m_a.to("amu") * np.ones(ids.shape)
     charge = 2       * np.ones(ids.shape)
     anum   = 4       * np.ones(ids.shape)
     znum   = 2       * np.ones(ids.shape)
@@ -230,22 +229,12 @@ def init():
     nwall = 4
     Rwall = np.array([0.1, 100, 100, 0.1])
     zwall = np.array([-100, -100, 100, 100])
-    W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall,
-                    desc="GCTRANSFORM_GC")
-    W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall,
-                    desc="GCTRANSFORM_GO")
-    W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall,
-                    desc="GCTRANSFORM_GO2GC")
-    W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall,
-                    desc="GCTRANSFORM_ZEROTH")
-    W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall,
-                    desc="GCTRANSFORM_FIRST")
-
-    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_GC")
-    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_GO")
-    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_GO2GC")
-    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_ZEROTH")
-    N0_3D.write_hdf5_dummy(helpers.testfn, desc="GCTRANSFORM_FIRST")
+    for tname in ["GCTRANSFORM_GC", "GCTRANSFORM_GO", "GCTRANSFORM_GO2GC",
+                  "GCTRANSFORM_ZEROTH", "GCTRANSFORM_FIRST"]:
+        W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall, desc=tname)
+        N0_3D.write_hdf5_dummy(helpers.testfn, desc=tname)
+        boozer.write_hdf5_dummy(helpers.testfn, desc=tname)
+        mhd.write_hdf5_dummy(helpers.testfn, desc=tname)
 
     Nrho   = 3
     Nion   = 1
@@ -280,13 +269,13 @@ def run():
     for test in ["GCTRANSFORM_GC", "GCTRANSFORM_GO", "GCTRANSFORM_GO2GC"]:
         helpers.set_and_run(test)
 
-    a5 = ascot5.Ascot(helpers.testfn)
+    a5 = Ascot(helpers.testfn)
 
     dt = 20
     Nmrk   = nrep
     ids    = np.linspace(1, Nmrk, Nmrk)
     weight = 1       * np.ones(ids.shape)
-    mass   = m_a_AMU * np.ones(ids.shape)
+    mass   = m_a.to("amu") * np.ones(ids.shape)
     charge = 2       * np.ones(ids.shape)
     znum   = 4       * np.ones(ids.shape)
     anum   = 2       * np.ones(ids.shape)
@@ -322,7 +311,7 @@ def check():
       GCTRANSFORM_ZEROTH and GCTRANSFORM_FIRST. The latter two have orbits from
       multiple markers but these are plotted with same color.
     """
-    a5 = ascot5.Ascot(helpers.testfn)
+    a5 = Ascot(helpers.testfn)
 
     f = plt.figure(figsize=(11.9/2.54, 8/2.54))
     plt.rc('xtick', labelsize=10)
@@ -355,12 +344,15 @@ def check():
             ( a5["GCTRANSFORM_GO2GC"]["orbit"]["mu"]
               - a5["GCTRANSFORM_GC"]["orbit"]["mu"][:-1] )/e / 1e4 )
 
-    h2.plot(a5["GCTRANSFORM_GO"]["orbit"]["time"]*1e6,
-            m_a*( a5["GCTRANSFORM_GO"]["orbit"]["vpar"]
-              - a5["GCTRANSFORM_GC"]["orbit"]["vpar"] ) / 1e-21 )
-    h2.plot(a5["GCTRANSFORM_GO2GC"]["orbit"]["time"]*1e6,
-            m_a*( a5["GCTRANSFORM_GO2GC"]["orbit"]["vpar"]
-              - a5["GCTRANSFORM_GC"]["orbit"]["vpar"][:-1] ) / 1e-21 )
+    dppar = ( a5["GCTRANSFORM_GO"]["orbit"]["ppar"]
+             - a5["GCTRANSFORM_GC"]["orbit"]["ppar"] )
+    dppar.convert_to_mks()
+    h2.plot(a5["GCTRANSFORM_GO"]["orbit"]["time"]*1e6, dppar / 1e-21 )
+
+    dppar = ( a5["GCTRANSFORM_GO2GC"]["orbit"]["ppar"]
+              - a5["GCTRANSFORM_GC"]["orbit"]["ppar"][:-1] )
+    dppar.convert_to_mks()
+    h2.plot(a5["GCTRANSFORM_GO2GC"]["orbit"]["time"]*1e6, dppar / 1e-21 )
 
     h3.plot(a5["GCTRANSFORM_GO"]["orbit"]["r"],
             a5["GCTRANSFORM_GO"]["orbit"]["z"])

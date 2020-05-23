@@ -9,8 +9,9 @@ import a5py.ascot5io.mrk_gc as mrkmod
 from a5py.ascotpy import Ascotpy
 
 
-def initmarkers(fn, n, mass, charge, r, energy, pitch, weight=1, time=0,
-                desc=None, separateruns=False):
+def initmarkers(fn, n, mass, charge, r, energy, pitch,
+                rdist="random", energydist="random", pitchdist="random",
+                weight=1, time=0, desc=None, separateruns=False):
 
     # Find the OMP z value
     a5 = Ascotpy(fn)
@@ -19,23 +20,26 @@ def initmarkers(fn, n, mass, charge, r, energy, pitch, weight=1, time=0,
     a5.free(bfield=True)
 
     # Generate radial coordinates
-    def gencoords(x):
-        if isinstance(x, list):
-            if x[-1] == 0:
+    def gencoords(x, dist):
+        if isinstance(x, list) or isinstance(x, np.ndarray):
+            if dist == "random":
                 x  = x[0] + (x[1]-x[0]) * np.random.rand(n,)
                 nx = 1
-            else:
+            elif dist == "linear":
                 nx = x[2]
                 x  = np.linspace(x[0], x[1], x[2])
+            elif dist == "given":
+                x  = np.array(x)
+                nx = x.size
         else:
             x  = x*np.ones((n,))
             nx = 1
 
         return (x,nx)
 
-    r, nr      = gencoords(r)
-    energy, ne = gencoords(energy)
-    pitch, nx  = gencoords(pitch)
+    r, nr      = gencoords(r, rdist)
+    energy, ne = gencoords(energy, energydist)
+    pitch, nx  = gencoords(pitch, pitchdist)
 
     rcoords = np.array([])
     ecoords = np.array([])

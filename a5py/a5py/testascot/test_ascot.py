@@ -43,6 +43,7 @@ import test_gctransform
 import test_coulombcollisions
 import test_classicaltransport
 import test_neoclassicaltransport
+import test_boozercoordinates
 
 # You can specify here which tests to run
 
@@ -58,6 +59,8 @@ dotest_coulombcollisions     = True
 dotest_classicaltransport    = True
 ## Test test_neoclassicaltransport.py
 dotest_neoclassicaltransport = True
+## Test test_neoclassicaltransport.py
+dotest_boozercoordinate      = True
 
 def init():
     """
@@ -90,6 +93,10 @@ def init():
     if dotest_neoclassicaltransport:
         print("Initializing test_neoclassicaltransport.")
         test_neoclassicaltransport.init()
+
+    if dotest_boozercoordinates:
+        print("Initializing test_boozercoordinates.")
+        test_boozercoordinates.init()
 
 
 def run():
@@ -157,6 +164,13 @@ def run():
         print("")
         inter = timer()
 
+    if dotest_boozercoordinates:
+        print("Running test_boozercoordinates.")
+        test_boozercoordinates.run()
+        print("Elapsed time is " + frm(timer() - inter))
+        print("")
+        inter = timer()
+
     print("Total elapsed time is " + frm(timer() - start))
 
 
@@ -192,6 +206,10 @@ def check():
     if dotest_neoclassicaltransport:
         print("Checking results of test_neoclassicaltransport.")
         test_neoclassicaltransport.check()
+
+    if dotest_boozercoordinates:
+        print("Checking results of test_boozercoordinates.")
+        test_boozercoordinates.check()
 
 if __name__ == '__main__':
 

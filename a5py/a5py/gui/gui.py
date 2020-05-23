@@ -38,6 +38,9 @@ class GUI:
         window prompting the user to choose a file is shown.
         """
         self._root = tkinter.Tk()
+        self.set_window_icon()
+
+        
         self._root.withdraw()
 
         self._current = None
@@ -81,10 +84,23 @@ class GUI:
 
         try:
             self._ascotpy = ascotpy.Ascotpy(self._h5fn)
-        except Exception:
+        except OSError as err:
             messagebox.showwarning("Warning",
                                      "Could not initialize ascotpy.\n"
-                                   + "Some features are disabled.")
+                                   + "Some features are disabled.\n\n"
+                                   + " The error message follows:\n"
+                                   + str(err))
+
+    def set_window_icon(self):
+        try:
+            import pkg_resources
+            icon_path = pkg_resources.resource_filename(__name__, "ascotLogo2020_256x256.png")
+            self._root.iconphoto(False, tkinter.PhotoImage(file=icon_path))
+        except Exception as exc:
+            # We don't really mind if we can't set the icon.
+            #print(exc) # For debugging
+            _ = exc # Does nothing, but at least the exc is used and doesn't raise warnings for unused variables.
+            pass
 
 
     def get_ascotfilename(self):
