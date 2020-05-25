@@ -25,3 +25,19 @@ def read_erad(fn):
         data['rho'] = new_rho
 
     return data
+
+def write_ascot4_input_erad(filename,plasmaData,comment):
+    '''
+    Write the radial electric field to input.erad
+    @param plasmaData: dictionary with keys:
+        'rho','Er'
+    '''
+
+    header=comment+ '\n'
+
+    Nrad = len(plasmaData['rho'])
+    header = header + ' {} # Nradial points\n'.format(Nrad)
+
+
+    D=np.vstack( (plasmaData['rho'],plasmaData['Er']) )
+    np.savetxt(filename,np.transpose(D),delimiter=' ',comments='',header=header)
