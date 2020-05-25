@@ -87,6 +87,43 @@ def read_2d(fh):
 
 def write_plasma_1d(fn, p):
     dens_i = np.array([p['ni'+str(i)] for i in range(1,p['nion']+1)])
+
+    raise RuntimeError('Bug on the next line, znum used twice, anum never. And p1D undefined.')
     p1D.write_hdf5(fn, p['nrho'], p['nion'], p['znum'], p['znum'], p['rho'],
                    np.zeros(p['rho'].shape), np.zeros(p['rho'].shape),
                    p['ne'], p['te'], dens_i, p['ti'])
+
+
+def write_ascot4_plasma_1d(filename,plasmaData,Anum,Znum,comment1,comment2,comment3):
+    '''
+    This routine writes the plasma_1d in ASCOT4 format.
+
+
+    @param plasmaData: A dictionary with the following keys:
+        'rho', 'te', 'ne', 'ti', 'ni'
+    '''
+
+    header=comment1 + '\n' + comment2 + '\n' + comment3 + '\n'
+
+    Nrad = len(plasmaData['rho'])
+    Nion = len(Anum)
+    header = header + ' {} {} # Nrad,Nion\n'.format(Nrad,Nion)
+
+    for i in range(0,Nion):
+        header = header + ' {}'.format(Znum[i])
+    header = header + ' # ion Znum\n'
+
+    for i in range(0,Nion):
+        header = header + ' {}'.format(Anum[i])
+    header = header + ' # ion Anum\n'
+
+    header = header + ' {}'.format(1)
+    for i in range(0,Nion):
+        header = header + ' {}'.format(1)
+    header = header + ' # OBSOLETE VALUES. PUT 1\n'
+    header = header + 'RHO (pol)     Te (eV)         Ne (1/m3)       Vtor_I (rad/s)  Ti1 (eV)        Ni1 (1/m3)      Ni2 (1/m3) ...'
+
+    D=np.vstack( (plasmaData['rho'],plasmaData['te'],plasmaData['ne'],
+                  -999.0*np.ones_like(plasmaData['rho']),plasmaData['ti'],plasmaData['ni']) )
+    np.savetxt(filename,np.transpose(D),delimiter=' ',comments='',header=header)
+
