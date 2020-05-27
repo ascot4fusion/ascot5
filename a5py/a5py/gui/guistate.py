@@ -8,9 +8,11 @@ from tkinter.filedialog import askopenfilename, askdirectory
 from tkinter import messagebox
 
 import a5py.ascot5io.ascot5tools as tools
-from a5py.ascot5io.ascot5  import Ascot
+from a5py.ascot5io.ascot5  import Ascot, write_dummy as write_dummy_input
 from a5py.ascotpy          import Ascotpy
 from a5py.ascot5io.ascot5file import INPUT_PARENTS
+
+from .contentmanager import ContentManager
 
 class GUI(tk.Tk):
     """
@@ -67,7 +69,8 @@ class GUI(tk.Tk):
 
         ## Add decorations: title and icons ##
         self.title("ASCOT5 GUI")
-        self.tk.call("wm", "iconphoto", self._w, tk.PhotoImage(file="icon.png"))
+        icon = os.path.join(os.path.dirname(__file__), "icon.png")
+        self.tk.call("wm", "iconphoto", self._w, tk.PhotoImage(file=icon))
 
         ## Set window size and minimum size ##
         sw = self.winfo_screenwidth()
@@ -131,13 +134,14 @@ class GUI(tk.Tk):
 
         self.files    = files
         self.groups   = groups
-        self.settings = settings
-        self.canvas   = canvas
 
         # Initialize popupmenu
         groupmenu = GroupMenu(self, self.groups.tree)
 
-        # Read and show data
+        # Set up content manager
+        self.contentmanager = ContentManager(settings.get_frame(), canvas)
+
+        # Read file and show its contents
         self.filename = None if filename is None else os.path.abspath(filename)
         self.ascot    = None
         self.ascotpy  = None
@@ -165,7 +169,7 @@ class GUI(tk.Tk):
         self.groups.init(filename)
 
 
-    def selectionchanged(self, qid):
+    def selectionchanged(self, parent, qid):
         """
         Update settings and canvas frames to correspond to current selection.
         """
@@ -173,9 +177,11 @@ class GUI(tk.Tk):
         try:
             int(qid)
         except:
-            qid = None
+            parent = qid
+            qid    = None
 
-        self.settings.refresh(qid)
+        self.contentmanager.selectionchanged(
+            parent, qid, self.ascot, self.ascotpy)
 
 
     def ascotfile_activate(self):
@@ -279,7 +285,14 @@ class GUI(tk.Tk):
 
         The GUI is re-initialized after this operation.
         """
-        pass
+        tree   = self.groups.tree
+        item   = tree.selection()
+        parent = tree.item(tree.selection(), "text")
+        write_dummy_input(self.filename, parent, desc="Dummy")
+
+        self.ascot   = Ascot(self.filename)
+        self.ascotpy = Ascotpy(self.filename)
+        self.groups.init(self.filename)
 
 
 class FileFrame(tk.Frame):
@@ -411,7 +424,7 @@ class GroupFrame(tk.Frame):
 
         # Styles for different entries:
         # - Every odd entry has a white background and every even a darker one
-        # - Parents have white background with bold and larher font.
+        # - Parents have white background with bold and larger font.
         # - If input parent don't exist in the file the font is set to red
         # - Active group has a green bolded medium font.
         tree.tag_configure("even",    background="#EFEFEF")
@@ -430,8 +443,11 @@ class GroupFrame(tk.Frame):
             """
             Notify MainWindow when the selection changes.
             """
+            selection = self.tree.selection()
+            parent    = self.tree.parent(selection)
             container.selectionchanged(
-                self.tree.item(self.tree.selection(),"text") )
+                self.tree.item(parent,    "text"),
+                self.tree.item(selection, "text") )
 
         self.tree.bind("<<TreeviewSelect>>", selectionchanged)
 
@@ -581,9 +597,15 @@ class GroupMenu(tk.Menu):
         Show menu if a group was right-clicked and select the group.
         """
         item = self.tree.identify("item", e.x, e.y)
-        if len(self.tree.item(item, "text")) > 0:
+        itemname = self.tree.item(item, "text")
+        if len(itemname) > 0:
             self.post(e.x_root, e.y_root)
             self.focus_set()
+
+            # Disable "add dummy option" if selected item is not parent
+            self.entryconfigure(4, state="normal")
+            if itemname not in INPUT_PARENTS + ["results"]:
+                self.entryconfigure(4, state="disabled")
 
             # This will launch a event that will update the GUI.
             self.tree.selection_set(item)
@@ -636,13 +658,11 @@ class SettingsFrame(ttk.Frame):
         scrollbar.pack(side="right", fill="y")
 
 
-    def refresh(self, state):
+    def get_frame(self):
         """
-        Update frame according to the stored parameters.
+        Return the actual contents frame.
         """
-        pass
-        #for i in range(50):
-        #    ttk.Label(self.contentframe, text="Sample scrolling label").pack(expand=False)
+        return self.contentframe
 
 
 class CanvasFrame(tk.Frame):
@@ -652,13 +672,6 @@ class CanvasFrame(tk.Frame):
 
     def __init__(self, container, *args, **kwargs):
         tk.Frame.__init__(self, container, *args, **kwargs)
-
-
-    def refresh(self, state):
-        """
-        Update frame according to the stored parameters.
-        """
-        pass
 
 
 class AscotInitException(Exception):
