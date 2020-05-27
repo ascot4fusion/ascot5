@@ -77,7 +77,8 @@ File: ascot5.py
 import h5py
 import warnings
 
-from . ascot5file import get_qid, get_activeqid, get_desc, get_date, get_type
+from . ascot5file import get_qid, get_activeqid, get_desc, get_date, get_type,\
+    set_desc
 from . ascot5file import get_inputqids
 from . ascot5file import remove_group
 
@@ -541,6 +542,13 @@ class _RunNode(_Node):
 
     def get_desc(self):
         return self._desc
+
+    def set_desc(self, desc):
+        val = None
+        with h5py.File(self._file, "a") as h5:
+            val = set_desc(h5, self._path, desc)
+            self._desc = desc
+        return val
 
     def remove_from_file(self):
         """
