@@ -547,7 +547,9 @@ class _RunNode(_Node):
         val = None
         with h5py.File(self._file, "a") as h5:
             val = set_desc(h5, self._path, desc)
+            self._unfreeze()
             self._desc = desc
+            self._freeze()
         return val
 
     def remove_from_file(self):
