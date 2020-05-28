@@ -6,6 +6,7 @@
  * from the main program should be done using this module.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <hdf5.h>
@@ -23,10 +24,13 @@
 #include "hdf5io/hdf5_neutral.h"
 #include "hdf5io/hdf5_efield.h"
 #include "hdf5io/hdf5_wall.h"
+#include "hdf5io/hdf5_boozer.h"
+#include "hdf5io/hdf5_mhd.h"
 #include "hdf5io/hdf5_marker.h"
 #include "hdf5io/hdf5_state.h"
 #include "hdf5io/hdf5_dist.h"
 #include "hdf5io/hdf5_orbit.h"
+#include "hdf5io/hdf5_transcoef.h"
 
 /**
  * @brief Read and initialize input data
@@ -41,6 +45,8 @@
  * @param plasma_offload_array pointer to plasma data offload array
  * @param neutral_offload_array pointer to neutral data offload array
  * @param wall_offload_array pointer to wall offload array
+ * @param boozer_offload_array pointer to boozer offload array
+ * @param mhd_offload_array pointer to mhd offload array
  * @param p pointer to marker offload data
  * @param n_markers pointer to integer notating how many markers were read
  *
@@ -53,6 +59,8 @@ int hdf5_interface_read_input(sim_offload_data* sim,
                               real** plasma_offload_array,
                               real** neutral_offload_array,
                               real** wall_offload_array,
+                              real** boozer_offload_array,
+                              real** mhd_offload_array,
                               input_particle** p,
                               int* n_markers){
 
@@ -71,7 +79,6 @@ int hdf5_interface_read_input(sim_offload_data* sim,
     }
 
     /* Read active input from hdf5 and initialize */
-
     char qid[11];
 
     if(input_active & hdf5_input_options) {
@@ -143,15 +150,15 @@ int hdf5_interface_read_input(sim_offload_data* sim,
 
 
     if(input_active & hdf5_input_plasma) {
-        if(sim->qid_plasma[0] != '\0') {
-            strcpy(qid, sim->qid_plasma);
-        }
-        else if(hdf5_find_group(f, "/plasma/")) {
+        if(hdf5_find_group(f, "/plasma/")) {
             print_err("Error: No plasma data in input file.");
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading plasma input.\n");
-        if( hdf5_get_active_qid(f, "/plasma/", qid) ) {
+        if(sim->qid_plasma[0] != '\0') {
+            strcpy(qid, sim->qid_plasma);
+        }
+        else if( hdf5_get_active_qid(f, "/plasma/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
@@ -208,6 +215,52 @@ int hdf5_interface_read_input(sim_offload_data* sim,
             return 1;
         }
         print_out(VERBOSE_IO, "Wall data read and initialized.\n");
+    }
+
+
+    if(input_active & hdf5_input_boozer) {
+        if(hdf5_find_group(f, "/boozer/")) {
+            print_err("Error: No boozer data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading boozer input.\n");
+        if(sim->qid_boozer[0] != '\0') {
+            strcpy(qid, sim->qid_boozer);
+        }
+        else if( hdf5_get_active_qid(f, "/boozer/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_boozer_init_offload(f, &(sim->boozer_offload_data),
+                                     boozer_offload_array, qid) ) {
+            print_err("Error: Failed to read boozer input.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Boozer data read and initialized.\n");
+    }
+
+
+    if(input_active & hdf5_input_mhd) {
+        if(hdf5_find_group(f, "/mhd/")) {
+            print_err("Error: No MHD data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading MHD input.\n");
+        if(sim->qid_mhd[0] != '\0') {
+            strcpy(qid, sim->qid_mhd);
+        }
+        else if( hdf5_get_active_qid(f, "/mhd/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_mhd_init_offload(f, &(sim->mhd_offload_data),
+                                  mhd_offload_array, qid) ) {
+            print_err("Error: Failed to read MHD input.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "MHD data read and initialized.\n");
     }
 
 
@@ -356,6 +409,22 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     }
     hdf5_write_string_attribute(fout, path, "qid_marker",  inputqid);
 
+    if(sim->qid_boozer[0] != '\0') {
+        strcpy(inputqid, sim->qid_boozer);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/boozer/", "active", inputqid);
+    }
+    hdf5_write_string_attribute(fout, path, "qid_boozer",  inputqid);
+
+    if(sim->qid_mhd[0] != '\0') {
+        strcpy(inputqid, sim->qid_mhd);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/mhd/", "active", inputqid);
+    }
+    hdf5_write_string_attribute(fout, path, "qid_mhd",  inputqid);
+
     hdf5_close(fin);
 
     /* Set a description, repository status, and date; close the file. */
@@ -493,6 +562,15 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
         }
     }
 
+    if(sim->diag_offload_data.diagtrcof_collect) {
+        print_out(VERBOSE_IO, "Writing transport coefficient diagnostics.\n");
+        int idx = sim->diag_offload_data.offload_diagtrcof_index;
+        if( hdf5_transcoef_write(f, qid, &sim->diag_offload_data.diagtrcof,
+                                 &diag_offload_array[idx]) ) {
+            print_err("Warning: Transport coefficients could not be written.\n");
+        }
+    }
+
     hdf5_close(f);
 
     print_out(VERBOSE_IO, "\nDiagnostics output written.\n");
@@ -523,3 +601,35 @@ int hdf5_get_active_qid(hid_t f, const char* group, char qid[11]) {
 
     return 0;
 }
+
+/**
+ * @brief Generate an identification number for a run
+ *
+ * The identification number (QID) is a 32 bit unsigned integer represented in a
+ * string format, i.e., by ten characters. QID is a random integer between 0 and
+ * 4 294 967 295, and it is padded with leading zeroes in string representation.
+ *
+ * @param qid a pointer to 11 chars wide array where generated QID is stored
+ */
+void hdf5_generate_qid(char* qid) {
+
+    /* Seed random number generator with current time */
+    struct timespec ts;
+#ifdef __MACH__
+    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+#else
+    timespec_get(&ts, TIME_UTC);
+#endif
+    srand48( ts.tv_nsec );
+
+    /* Generate a 32 bit random integer by generating signed 32 bit random
+     * integers with mrand48() and choosing the first one that is positive */
+    long int qint = -1;
+    while(qint < 0) {
+        qint = mrand48();
+    }
+
+    /* Convert the random number to a string format */
+    sprintf(qid, "%010lu", (long unsigned int)qint);
+}
+

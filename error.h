@@ -43,10 +43,12 @@ typedef enum error_file {
     EF_E_1DS             =  19, /**< Error is from E_1DS.c                    */
     EF_B_FIELD           =  20, /**< Error is from B_field.c                  */
     EF_PARTICLE          =  21, /**< Error is from particle.c                 */
-    EF_B_3DST            =  22, /**< Error is from B_3DST.c                   */
-    EF_E_3D              =  23, /**< Error is from E_3D.c                     */
-    EF_E_3DS             =  24,  /**< Error is from E_3DS.c                   */
-    EF_E_3DST            =  25  /**< Error is from E_3DST.c                   */
+    EF_BOOZER            =  22, /**< Error is from boozer.c                   */
+    EF_MHD               =  23, /**< Error is from mhd.c                      */
+    EF_B_3DST            =  24, /**< Error is from B_3DST.c                   */
+    EF_E_3D              =  25, /**< Error is from E_3D.c                     */
+    EF_E_3DS             =  26,  /**< Error is from E_3DS.c                   */
+    EF_E_3DST            =  27  /**< Error is from E_3DST.c                   */
 }error_file;
 
 /**

@@ -1,5 +1,11 @@
 CC=h5pcc
 
+
+ifdef TRAP_FPE
+	DEFINES+=-DTRAP_FPE=$(TRAP_FPE)
+	CFLAGS+= -fsignaling-nans -ftrapping-math
+endif
+
 ifdef NSIMD
 	DEFINES+=-DNSIMD=$(NSIMD)
 endif
@@ -86,6 +92,10 @@ N0DIR = neutral/
 N0HEADERS =  $(wildcard $(N0DIR)N0_*.h)
 N0OBJS = $(patsubst %.c,%.o,$(wildcard $(N0DIR)N0_*.c))
 
+MHDDIR = mhd/
+MHDHEADERS =  $(wildcard $(MHDDIR)mhd_*.h)
+MHDOBJS = $(patsubst %.c,%.o,$(wildcard $(MHDDIR)mhd_*.c))
+
 LINTDIR = linint/
 LINTHEADERS =  $(wildcard $(LINTDIR)linint*.h)
 LINTOBJS = $(patsubst %.c,%.o,$(wildcard $(LINTDIR)linint*.c))
@@ -101,24 +111,26 @@ DOCDIR = doc/
 HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
 	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
-	$(PLSHEADERS) $(N0HEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
+	$(PLSHEADERS) $(N0HEADERS) $(MHDHEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
-	E_field.h wall.h simulate.h diag.h offload.h \
-	random.h print.h hdf5_interface.h
+	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
+	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
+	mpi_interface.h
 
 OBJS= math.o list.o octree.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
-	$(PLSOBJS) $(N0OBJS) $(LINTOBJS) $(SPLINEOBJS) \
+	$(PLSOBJS) $(N0OBJS) $(MHDOBJS) $(LINTOBJS) $(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
-	E_field.o wall.o simulate.o diag.o offload.o \
-	random.o print.c hdf5_interface.o
+	E_field.o wall.o simulate.o diag.o offload.o boozer.o mhd.o \
+	random.o print.c hdf5_interface.o suzuki.o nbi.o biosaw.o \
+	mpi_interface.o
 
-BINS=test_math test_bsearch \
+BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 \
-	test_spline ascot5_main
+	test_spline ascot5_main bbnbi5
 
 ifdef NOGIT
 	DUMMY_GIT_INFO := $(shell touch gitver.h)
@@ -137,6 +149,9 @@ libascot.so: libascot.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+bbnbi5: bbnbi5.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 doc:
@@ -178,6 +193,9 @@ test_N0: $(UTESTDIR)test_N0.o $(OBJS)
 test_bsearch: $(UTESTDIR)test_bsearch.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
+test_nbi: $(UTESTDIR)test_nbi.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
 test_spline: $(UTESTDIR)test_spline.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
@@ -187,7 +205,7 @@ test_spline: $(UTESTDIR)test_spline.o $(OBJS)
 clean:
 	@rm -f *.o *.so *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
 		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o $(DIAGDIR)*.o \
-		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
+		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o $(MHDDIR)*.o \
 		$(N0DIR)*.o $(LINTDIR)*.o $(SPLINEDIR)*.o $(UTESTDIR)*.o *.pyc
 	@rm -rf $(DOCDIR)
 	@rm -f gitver.h

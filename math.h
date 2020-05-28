@@ -4,6 +4,8 @@
  */
 #ifndef MATH_H
 #define MATH_H
+
+#include <math.h>
 #include "ascot5.h"
 
 /** @brief One degree in radians */
@@ -15,11 +17,11 @@
 #define math_maxSimpsonDepth 20
 
 /** @brief Copies elements of vector b to vector a */
-#define math_copy(a,b) do { a[0]=b[0];a[1]=b[1];a[2]=b[2] } while(0)
+#define math_copy(a,b) do { a[0]=b[0];a[1]=b[1];a[2]=b[2]; } while(0)
 
 /** @brief Copies elements of matrix b to matrix a */
 #define math_matcopy(a,b) do { a[0]=b[0];a[1]=b[1];a[2]=b[2];a[3]=b[3]; \
-        a[4]=b[4];a[5]=b[5];a[6]=b[6];a[7]=b[7];a[8]=b[8] } while(0)
+        a[4]=b[4];a[5]=b[5];a[6]=b[6];a[7]=b[7];a[8]=b[8]; } while(0)
 
 /** @brief Calculate dot product a[3] dot b[3] */
 #define math_dot(a,b) (a[0]*b[0]+a[1]*b[1]+a[2]*b[2])

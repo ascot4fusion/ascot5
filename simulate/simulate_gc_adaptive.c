@@ -19,6 +19,9 @@
 #include "../diag.h"
 #include "../B_field.h"
 #include "../E_field.h"
+#include "../boozer.h"
+#include "../mhd.h"
+
 #include "../plasma.h"
 #include "simulate_gc_adaptive.h"
 #include "step/step_gc_cashkarp.h"
@@ -123,9 +126,15 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
         /* Cash-Karp method for orbit-following */
         if(sim->enable_orbfol) {
-            step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
-                             &sim->B_data, &sim->E_data);
-
+            if(sim->enable_mhd) {
+                step_gc_cashkarp_mhd(&p, hin, hout_orb, tol_orb,
+                                     &sim->B_data, &sim->E_data,
+                                     &sim->boozer_data, &sim->mhd_data);
+            }
+            else {
+                step_gc_cashkarp(&p, hin, hout_orb, tol_orb,
+                                 &sim->B_data, &sim->E_data);
+            }
             /* Check whether time step was rejected */
             #pragma omp simd
             for(int i = 0; i < NSIMD; i++) {
@@ -187,7 +196,8 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                         hin[i] = -hnext[i];
                     }
                     else {
-                        p.time[i] = p.time[i] + hin[i];
+                        p.time[i]    += hin[i];
+                        p.mileage[i] += hin[i];
 
                         if(hnext[i] > hout_orb[i]) {
                             /* Use time step suggested by the orbit-following
@@ -268,8 +278,8 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
         if(sim->enable_orbfol) {
             real Bnorm = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
             real gyrotime = CONST_2PI /
-                phys_gyrofreq_vpar(p->mass[i], p->charge[i], p->mu[i],
-                                   p->vpar[i], Bnorm);
+                phys_gyrofreq_ppar(p->mass[i], p->charge[i], p->mu[i],
+                                   p->ppar[i], Bnorm);
             if(h > gyrotime) {
                 h = gyrotime;
             }
@@ -277,13 +287,8 @@ real simulate_gc_adaptive_inidt(sim_data* sim, particle_simd_gc* p, int i) {
 
         /* Value calculated from collision frequency */
         if(sim->enable_clmbcol) {
-            int mccc_eval_coefs(real ma, real qa, real r, real phi, real z, real t,
-                    real* va, int nv, plasma_data* pdata, B_field_data* Bdata,
-                    real* F, real* Dpara, real* Dperp, real* K, real* nu,
-                    real* Q, real* dQ, real* dDpara, real* clog, real* mu0,
-                    real* mu1, real* dmu0);
             real nu = 1;
-            //mccc_collfreq_gc(p,&sim->B_data,&sim->plasma_data, sim->coldata,&nu,i);
+            //mccc_collfreq_gc(p, &sim->B_data, &sim->plasma_data, sim->coldata, &nu, i);
 
             /* Only small angle collisions so divide this by 100 */
             real colltime = 1/(100*nu);
