@@ -663,13 +663,28 @@ class Ascot(_ContainerNode):
             write_dummy(self._hdf5fn, p, desc=desc)
 
         self.reload()
-        
+
+
     def remove_all_runs_from_file(self):
         """
         Remove every run node from this hdf5 file.
         """
         for qid in self._qids:
             self.__getattribute__('run_'+qid[1:]).remove_from_file()
-            
-        
-        
+
+
+    def get_runsfrominput(self, inputqid):
+        """
+        Fetch QIDs of all runs that have used the given input (QID).
+        """
+        # Find the parent group
+        for parent in INPUT_PARENTS:
+            if parent in self and "q" + inputqid in self[parent]:
+                break
+
+        runqids = []
+        for qid in self._qids:
+            if parent in self[qid] and self[qid][parent].get_qid() == inputqid:
+                runqids.append(qid[1:])
+
+        return runqids
