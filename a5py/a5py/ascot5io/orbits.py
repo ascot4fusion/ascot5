@@ -198,6 +198,10 @@ class Orbits(AscotData):
         # See if the field can be read directly and without conversions
         if key in h5keys:
             item = read_dataw(key)
+
+        # Mass is read from inistate
+        elif key == "mass":
+            item = mass()
         else:
             # See what type of data is stored
             if "mu" in h5keys:
