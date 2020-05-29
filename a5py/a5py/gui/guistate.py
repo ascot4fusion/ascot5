@@ -139,7 +139,7 @@ class GUI(tk.Tk):
         groupmenu = GroupMenu(self, self.groups.tree)
 
         # Set up content manager
-        self.contentmanager = ContentManager(settings.get_frame(), canvas)
+        self.contentmanager = ContentManager(self, settings.get_frame(), canvas)
 
         # Read file and show its contents
         self.filename = None if filename is None else os.path.abspath(filename)
@@ -176,9 +176,25 @@ class GUI(tk.Tk):
         # Test if a valid QID or a parent group.
         try:
             int(qid)
+
         except:
             parent = qid
             qid    = None
+
+        # If selection is a run, highlight the inputs it has used. If selection
+        # is a input, highlight the runs that have used it.
+        if qid is not None:
+            if parent == "results":
+                inputqids = []
+                for p in INPUT_PARENTS:
+                    if p in self.ascot["q"+qid]:
+                        inputqids.append(self.ascot["q"+qid][p].get_qid())
+
+                self.groups.highlightinputs(inputqids)
+
+            else:
+                outputqids = self.ascot.get_runsfrominput(qid)
+                self.groups.highlightoutputs(outputqids)
 
         self.contentmanager.selectionchanged(
             parent, qid, self.ascot, self.ascotpy)
@@ -241,6 +257,7 @@ class GUI(tk.Tk):
         self.ascotpy = Ascotpy(self.filename)
         self.groups.remove_item(item, self.filename)
         self.files.filechanged(self.filename)
+        self.contentmanager.clear()
 
 
     def ascotfile_export(self):
@@ -293,6 +310,7 @@ class GUI(tk.Tk):
         self.ascot   = Ascot(self.filename)
         self.ascotpy = Ascotpy(self.filename)
         self.groups.init(self.filename)
+        self.contentmanager.clear()
 
 
 class FileFrame(tk.Frame):
@@ -406,8 +424,8 @@ class GroupFrame(tk.Frame):
 
         # Set white background, header font, and default font for tree entries.
         style = ttk.Style()
-        style.configure("Treeview.Heading", font=("Calibri", 9))
-        style.configure("Treeview", font=("Calibri", 7),
+        style.configure("Treeview.Heading", font=("Calibri", 10))
+        style.configure("Treeview", font=("Calibri", 9),
                         background="white", fieldbackground="white")
 
         # Tree where only one item can be selected at a time
@@ -416,8 +434,8 @@ class GroupFrame(tk.Frame):
         # Three columns: Group, Type, and Date
         tree["columns"]=("#1","#2")
         tree.column("#0", width=100, minwidth=100, stretch=False)
-        tree.column("#1", width=145, minwidth=145, stretch=False)
-        tree.column("#2", width=100, minwidth=100, stretch=False)
+        tree.column("#1", width=125, minwidth=125, stretch=False)
+        tree.column("#2", width=110, minwidth=110, stretch=False)
         tree.heading("#0", text="Group")
         tree.heading("#1", text="Type")
         tree.heading("#2", text="Date")
@@ -431,9 +449,9 @@ class GroupFrame(tk.Frame):
         tree.tag_configure("odd",     background="white")
         tree.tag_configure("nodata",  foreground="red")
         tree.tag_configure("parent",  background="white",
-                           font=("Calibri", 9, "bold"))
+                           font=("Calibri", 10, "bold"))
         tree.tag_configure("active",  foreground="green",
-                           font=("Calibri", 8, "bold"))
+                           font=("Calibri", 9, "bold"))
 
 
         tree.pack(side=tk.TOP, expand=True, fill="both")
@@ -484,26 +502,35 @@ class GroupFrame(tk.Frame):
             activeqid = tools.call_ascot5file(
                 ascotfn, "get_activeqid", parent)
 
+            # Get dates and types and sort with respect to date
+            dates = []; types = []
+            for qid in qids:
+                if parent == "results":
+                    dates.append(ascot["q"+qid].get_date())
+                    types.append("run")
+                else:
+                    dates.append(ascot[parent]["q"+qid].get_date())
+                    types.append(ascot[parent]["q"+qid].get_type())
+
+            sorted_datetypeqid = sorted(zip(dates, types, qids), reverse=True)
+            sorted_datetypeqid = list(zip(*sorted_datetypeqid)) # Unzip
+            dates = sorted_datetypeqid[0]
+            types = sorted_datetypeqid[1]
+            qids  = sorted_datetypeqid[2]
+
             # Generate children:
             # - Rows are tagged "even" or "odd"
             # - Active groups are tagged "active"
             alternatingrowcolor = 0
-            for qid in qids:
-                if parent == "results":
-                    date  = ascot["q"+qid].get_date()
-                    dtype = "run"
-                else:
-                    date  = ascot[parent]["q"+qid].get_date()
-                    dtype = ascot[parent]["q"+qid].get_type()
-
+            for i in range(len(qids)):
                 tags = []
                 tags.append("odd" if alternatingrowcolor % 2 else "even")
                 alternatingrowcolor += 1
-                if qid == activeqid:
+                if qids[i] == activeqid:
                     tags.append("active")
 
-                self.tree.insert(item, "end", text=qid, tags=tuple(tags),
-                                 values=(dtype, date))
+                self.tree.insert(item, "end", text=qids[i], tags=tuple(tags),
+                                 values=(types[i], dates[i]))
 
 
     def activate_item(self, item):
@@ -562,6 +589,52 @@ class GroupFrame(tk.Frame):
             if activeqid == self.tree.item(group, "text"):
                 self.activate_item(group)
                 break
+
+
+    def highlightinputs(self, inputqids):
+        """
+        Highlight inputs used in the selected run.
+        """
+        children = self.tree.get_children()
+        for c in children:
+            if self.tree.item(c, "text") == "results":
+                continue
+
+            groups = self.tree.get_children(c)
+            for g in groups:
+                qid = self.tree.item(g, "text")
+                vals = self.tree.item(g, "values")
+                date = vals[1]
+                if date[0] == "*":
+                    date = date[1:-1]
+
+                if qid in inputqids:
+                    date = "*" + date + "*"
+
+                self.tree.item(g, values=(vals[0], date))
+
+
+    def highlightoutputs(self, outputqids):
+        """
+        Highlight inputs used in the selected run.
+        """
+        children = self.tree.get_children()
+        for c in children:
+            if self.tree.item(c, "text") != "results":
+                continue
+
+            groups = self.tree.get_children(c)
+            for g in groups:
+                qid = self.tree.item(g, "text")
+                vals = self.tree.item(g, "values")
+                date = vals[1]
+                if date[0] == "*":
+                    date = date[1:-1]
+
+                if qid in outputqids:
+                    date = "*" + date + "*"
+
+                self.tree.item(g, values=(vals[0], date))
 
 
 class GroupMenu(tk.Menu):

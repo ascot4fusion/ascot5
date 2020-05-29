@@ -11,7 +11,9 @@ class ContentManager(OptionsManager):
     """
 
 
-    def __init__(self, settingsframe, canvasframe):
+    def __init__(self, gui, settingsframe, canvasframe):
+
+        self.gui = gui
 
         # These two frames are kept immutable
         self.settingsframe_original = settingsframe
@@ -96,4 +98,8 @@ class ContentManager(OptionsManager):
         frame.grid(row=2, column=0, columnspan=2, sticky="nsew")
 
         if parent == "options":
-            self.activateoptions(frame, self.canvasframe, group, ascotpy)
+            self.activateoptions(
+                frame, self.canvasframe, group,
+                lambda : self.gui.filechanged(self.gui.filename),
+                lambda : descbox.get("1.0", "end-1c")
+            )
