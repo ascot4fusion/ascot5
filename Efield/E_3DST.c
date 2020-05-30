@@ -120,7 +120,7 @@ int E_3DST_init_offload(E_3DST_offload_data* offload_data, real** offload_array)
         offload_data->offload_array_length = NSIZE_COMP4D*E_size*3;
 
     /* Print some sanity check on data */
-    print_out(VERBOSE_IO, "\nTime-dependent 3D electric field (B_3DST)\n");
+    print_out(VERBOSE_IO, "\nTime-dependent 3D electric field (E_3DST)\n");
     print_out(VERBOSE_IO, "Grid: nR = %4.d Rmin = %3.3f Rmax = %3.3f\n",
               offload_data->n_r,
               offload_data->r_min, offload_data->r_max);
