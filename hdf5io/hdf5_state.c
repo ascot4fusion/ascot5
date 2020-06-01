@@ -136,6 +136,12 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     H5LTset_attribute_string(state_group, "time", "unit", "s");
 
     for(i = 0; i < n; i++) {
+        data[i] = p[i].mileage;
+    }
+    hdf5_write_extendible_dataset_double(state_group, "mileage", n, data);
+    H5LTset_attribute_string(state_group, "mileage", "unit", "s");
+
+    for(i = 0; i < n; i++) {
         data[i] = p[i].cputime;
     }
     hdf5_write_extendible_dataset_double(state_group, "cputime", n, data);
