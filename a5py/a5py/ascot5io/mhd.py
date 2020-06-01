@@ -133,9 +133,10 @@ def write_hdf5_dummy(fn, desc="Dummy"):
     phi       = np.ones((nrho,nmode))
     rhomin    = 0
     rhomax    = 1
-    write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, phase, alpha, phi,
-               nrho, rhomin, rhomax,
-               desc=desc)
+    return write_hdf5(
+        fn, nmode, nmodes, mmodes, amplitude, omega, phase, alpha, phi,
+        nrho, rhomin, rhomax,
+        desc=desc)
 
 
 def read_hdf5(fn, qid):

@@ -199,9 +199,10 @@ def write_hdf5_dummy(fn, desc="Dummy"):
     theta_psithetageom = np.ones((npsi,ntheta))
     nu_psitheta        = np.ones((npsi,ntheta))
 
-    write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin,
-               rmax, nr, zmin, zmax, nz, r0, z0, psi0, psi1, psi_rz,
-               theta_psithetageom, nu_psitheta, nrzs, rs, zs, desc)
+    return write_hdf5(
+        fn, psimin, psimax, npsi, ntheta, nthetag, rmin,
+        rmax, nr, zmin, zmax, nz, r0, z0, psi0, psi1, psi_rz,
+        theta_psithetageom, nu_psitheta, nrzs, rs, zs, desc)
 
 
 class Boozer(AscotData):
