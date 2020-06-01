@@ -168,8 +168,8 @@ def eval_meanvar_coeffs(run=None, inirho=None, losstime=None, endcond=None,
                    and losstime is not None \
                    and endcond  is not None
     if run is not None and not dataprovided:
-        losstime = run.endstate["time"]
-        inirho   = np.mean(run.inistate["rho"])
+        losstime = run.endstate["mileage"].v
+        inirho   = np.mean(run.inistate["rho"].v)
         endcond  = run.endstate["endcond"]
         lost     = np.sum(islost(endcond)) / losstime.size
         losstime = losstime[islost(endcond)]
@@ -307,11 +307,11 @@ def eval_raddep_coeffs(tgrid, rho2, K2, D2, run=None, inirho=None,
                    and losstime is not None \
                    and endcond  is not None
     if run is not None and not dataprovided:
-        inirho   = np.mean(run.inistate["rho"])
+        inirho   = np.mean(run.inistate["rho"].v)
         endcond  = run.endstate["endcond"]
         lost     = np.sum(islost(endcond)) / losstime.size
         losstime = losstime[islost(endcond)]
-        losstime = np.sort(run.endstate["time"])
+        losstime = np.sort(run.endstate["mileage"].v)
     elif dataprovided:
         inirho   = np.mean(inirho)
         lost     = np.sum(islost(endcond)) / losstime.size
@@ -405,8 +405,8 @@ def eval_coefficients(runs, method="raddep", lastpoint="raddep", gap=1,
         Small helper for initializing the run data.
         """
         endcond  = run.endstate["endcond"]
-        losstime = run.endstate["time"]
-        inirho   = run.inistate["rho"]
+        losstime = run.endstate["mileage"].v
+        inirho   = run.inistate["rho"].v
 
         if SIunits:
             inirho = run.inistate["r"]
@@ -469,8 +469,8 @@ def getplotdata_radindep(run, K, D, endrho=1.0, ids=None):
         Small helper for initializing the run data.
         """
         endcond  = run.endstate["endcond"]
-        losstime = run.endstate["time"]
-        inirho   = run.inistate["rho"]
+        losstime = run.endstate["mileage"].v
+        inirho   = run.inistate["rho"].v
 
         if ids is not None:
             inirho   = inirho[ids]
