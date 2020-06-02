@@ -327,6 +327,12 @@ a5err B_STS_eval_psi(real* psi, real r, real phi, real z,
 
     interperr += interp3Dcomp_eval_f(&psi[0], &Bdata->psi, r, phi, z);
 
+#ifdef B_STS_CLAMP_RHO_NONNEGATIVE
+    if ( psi[0] < Bdata->psi0 ){
+    		psi[0] = Bdata->psi0;
+    }
+#endif
+
     /* Test for psi interpolation error */
     if(interperr) {
         return error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );
@@ -354,10 +360,21 @@ a5err B_STS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
 
     interperr += interp3Dcomp_eval_df(psi_dpsi_temp, &Bdata->psi, r, phi, z);
 
+
     psi_dpsi[0] = psi_dpsi_temp[0];
     psi_dpsi[1] = psi_dpsi_temp[1];
     psi_dpsi[2] = psi_dpsi_temp[2];
     psi_dpsi[3] = psi_dpsi_temp[3];
+
+#ifdef B_STS_CLAMP_RHO_NONNEGATIVE
+    if ( psi_dpsi_temp[0] < Bdata->psi0 ){
+    	psi_dpsi[0] = Bdata->psi0;
+    	psi_dpsi[1] = 0.0;
+    	psi_dpsi[2] = 0.0;
+    	psi_dpsi[3] = 0.0;
+    }
+#endif
+
 
     if(interperr) {
         return error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_B_STS );
@@ -381,7 +398,12 @@ a5err B_STS_eval_rho(real* rho, real psi, B_STS_data* Bdata) {
     /* Check that the values seem valid */
     real delta = (Bdata->psi1 - Bdata->psi0);
     if( (psi - Bdata->psi0) / delta < 0 ) {
-         return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_STS );
+#ifdef B_STS_CLAMP_RHO_NONNEGATIVE
+    	rho[0] =  0.0;
+    	return err;
+#else
+    	return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_STS );
+#endif
     }
 
     rho[0] = sqrt( (psi - Bdata->psi0) / delta );
@@ -405,12 +427,26 @@ a5err B_STS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
     a5err err = 0;
     real psi_dpsi[4];
 
-    B_STS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
+    err = B_STS_eval_psi_dpsi(psi_dpsi, r, phi, z, Bdata);
+    if(err){
+    	return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_STS );
+    }
 
     /* Check that the values seem valid */
     real delta = Bdata->psi1 - Bdata->psi0;
-    if( (psi_dpsi[0] - Bdata->psi0) / delta < 0 ) {
-         return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_STS );
+    if( (psi_dpsi[0] - Bdata->psi0) / delta <= 0 ) {
+#ifdef B_STS_CLAMP_RHO_NONNEGATIVE
+    	/* Set rho and the partial derivatives to zero, because otherwise one would need to divide by rho, which is zero.
+    	 * Of course, this problem persists when B_STS_CLAMP_RHO_NONNEGATIVE is not defined and the evaluation happens
+    	 * exactly at rho=0.0 */
+    	rho_drho[0] = 0.0;
+    	rho_drho[1] = 0.0;
+    	rho_drho[2] = 0.0;
+    	rho_drho[3] = 0.0;
+    	return err;
+#else
+    	return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_STS );
+#endif
     }
 
     /* Normalize psi to get rho */

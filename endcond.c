@@ -91,6 +91,10 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                     p_f->endcond[i] |= endcond_tmax;
                     p_f->running[i] = 0;
                 }
+                if(p_f->mileage[i] > sim->endcond_max_mileage) {
+                    p_f->endcond[i] |= endcond_tmax;
+                    p_f->running[i] = 0;
+                }
             }
 
             /* Check, using the wall collision module, whether marker hit wall
@@ -109,10 +113,9 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
             /* Evaluate marker energy, and check if it is below the minimum
              * energy limit or local thermal energy limit */
             if(active_emin || active_therm) {
-                real vnorm = math_normc(
-                    p_f->rdot[i], p_f->phidot[i] * p_f->r[i], p_f->zdot[i]);
-                real gamma = physlib_gamma_vnorm(vnorm);
-                real ekin  = CONST_C2 * p_f->mass[i] * (gamma - 1);
+                real pnorm = math_normc(
+                    p_f->p_r[i], p_f->p_phi[i], p_f->p_z[i]);
+                real ekin = physlib_Ekin_pnorm(p_f->mass[i], pnorm);
 
                 real Ti;
                 a5err errflag =
@@ -219,6 +222,10 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                     p_f->endcond[i] |= endcond_tmax;
                     p_f->running[i] = 0;
                 }
+                if(p_f->mileage[i] > sim->endcond_max_mileage) {
+                    p_f->endcond[i] |= endcond_tmax;
+                    p_f->running[i] = 0;
+                }
             }
 
             /* Check, using the wall collision module, whether marker hit wall
@@ -237,10 +244,10 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
             /* Evaluate marker energy, and check if it is below the minimum
              * energy limit or local thermal energy limit */
             if(active_emin || active_therm) {
-                real Bnorm = math_normc(p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]);
-                real gamma = physlib_gamma_vpar(
-                    p_f->mass[i], p_f->mu[i], p_f->vpar[i], Bnorm);
-                real ekin = CONST_C2 * p_f->mass[i] * (gamma - 1);
+                real Bnorm = math_normc(
+                    p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]);
+                real ekin = physlib_Ekin_ppar(p_f->mass[i], p_f->mu[i],
+                                              p_f->ppar[i], Bnorm);
 
 
                 real Ti;
@@ -349,6 +356,10 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
             /* Check if the marker time exceeds simulation time */
             if(active_tmax) {
                 if(p_f->time[i] > sim->endcond_max_simtime) {
+                    p_f->endcond[i] |= endcond_tmax;
+                    p_f->running[i] = 0;
+                }
+                if(p_f->mileage[i] > sim->endcond_max_mileage) {
                     p_f->endcond[i] |= endcond_tmax;
                     p_f->running[i] = 0;
                 }

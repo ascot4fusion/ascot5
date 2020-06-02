@@ -64,39 +64,33 @@ void gctransform_setorder(int order) {
  * @param r      particle R coordinate [m]
  * @param phi    particle phi coordinate [rad]
  * @param z      particle z coordinate [m]
- * @param vr     particle velocity R component [m/s]
- * @param vphi   particle velocity phi component [m/s]
- * @param vz     particle velocity z component [m/s]
+ * @param pr     particle momentum R component [kg m/s]
+ * @param pphi   particle momentum phi component [kg m/s]
+ * @param pz     particle momentum z component [kg m/s]
  * @param R      pointer to guiding center R coordinate [m]
  * @param Phi    pointer to guiding center phi coordinate [rad]
  * @param Z      pointer to guiding center z coordinate [m]
- * @param vpar   pointer to guiding center parallel velocity [m/s]
+ * @param ppar   pointer to guiding center parallel momentum [kg m/s]
  * @param mu     pointer to guiding center magnetic moment [J/T]
  * @param zeta   pointer to guiding center gyroangle [rad]
  */
 void gctransform_particle2guidingcenter(
     real mass, real charge, real* B_dB,
-    real r, real phi, real z, real vr, real vphi, real vz,
-    real* R, real* Phi, real* Z, real* vpar, real* mu, real* zeta) {
+    real r, real phi, real z, real pr, real pphi, real pz,
+    real* R, real* Phi, real* Z, real* ppar, real* mu, real* zeta) {
 
-    /* |v|^2 */
-    real vnorm2  = vr*vr + vphi*vphi + vz*vz;
-    /* |v| */
-    real vnorm   = sqrt(vnorm2);
-    /* gamma (Lorentz factor) */
-    real gamma   = physlib_gamma_vnorm(vnorm);
     /* |B| */
     real Bnorm   = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
 
     /* Guiding center transformation is more easily done in cartesian
      * coordinates so we switch to using those */
     real rpz[3] = {r, phi, z};
-    real vrpz[3] = {vr, vphi, vz};
+    real prpz[3] = {pr, pphi, pz};
     real xyz[3];
-    real vxyz[3];
+    real pxyz[3];
     real B_dBxyz[12];
     math_rpz2xyz(rpz, xyz);
-    math_vec_rpz2xyz(vrpz, vxyz, phi);
+    math_vec_rpz2xyz(prpz, pxyz, phi);
     math_jac_rpz2xyz(B_dB, B_dBxyz, r, phi);
 
     /* bhat = Unit vector of B */
@@ -146,18 +140,17 @@ void gctransform_particle2guidingcenter(
           bhat[1] * B_dBxyz[7]  +
           bhat[2] * B_dBxyz[11] - math_dot(bhat, gradB) * bhat[2] ) / Bnorm;
 
-    /* Zeroth order mu and vpar */
-    real vpar0  =
-        vxyz[0] * bhat[0] + vxyz[1] * bhat[1] + vxyz[2] * bhat[2];
+    /* Zeroth order mu and ppar */
+    real ppar0  =
+        pxyz[0] * bhat[0] + pxyz[1] * bhat[1] + pxyz[2] * bhat[2];
 
     /* Gyrovector rhohat = bhat X perphat */
-    real vperp[3] = {vxyz[0] - vpar0 * bhat[0],
-                     vxyz[1] - vpar0 * bhat[1],
-                     vxyz[2] - vpar0 * bhat[2]};
-    real mu0    =
-        mass * gamma * gamma * math_dot(vperp, vperp) / ( 2 * Bnorm );
+    real pperp[3] = {pxyz[0] - ppar0 * bhat[0],
+                     pxyz[1] - ppar0 * bhat[1],
+                     pxyz[2] - ppar0 * bhat[2]};
+    real mu0 = math_dot(pperp, pperp) / ( 2 * mass * Bnorm );
     real perphat[3];
-    math_unit(vperp, perphat);
+    math_unit(pperp, perphat);
     if( charge < 0 ) {
         perphat[0] = - perphat[0];
         perphat[1] = - perphat[1];
@@ -233,17 +226,17 @@ void gctransform_particle2guidingcenter(
         atan2( -math_dot(rhohat, e2), math_dot(rhohat, e1) );
 
     /* First order velocity terms vpar, mu1, and zeta1 */
-    real vpar1 =
-        -vpar0 * rho0 * math_dot(rhohat, kappa) +
-        ( mu0 / ( gamma * charge ) ) * ( tau + a1ddotgradb );
+    real ppar1 =
+        -ppar0 * rho0 * math_dot(rhohat, kappa) +
+        ( mass * mu0 / charge ) * ( tau + a1ddotgradb );
 
-    real gammavpar2 = gamma * gamma * vpar0 * vpar0;
-    real temp[3] = { mu0 * gradB[0] + mass * gammavpar2 * kappa[0],
-                     mu0 * gradB[1] + mass * gammavpar2 * kappa[1],
-                     mu0 * gradB[2] + mass * gammavpar2 * kappa[2] };
+    real ppar2   = ppar0 * ppar0;
+    real temp[3] = { mu0 * gradB[0] + ppar2 * kappa[0] / mass,
+                     mu0 * gradB[1] + ppar2 * kappa[1] / mass,
+                     mu0 * gradB[2] + ppar2 * kappa[2] / mass };
     real mu1 =
         ( rho0 / Bnorm ) * math_dot(rhohat, temp) -
-        ( mass * gamma * vpar0 * mu0 / ( charge * Bnorm ) ) *
+        ( ppar0 * mu0 / ( charge * Bnorm ) ) *
         ( tau + a1ddotgradb );
 
     /* This monster is Littlejohn's gyro gauge vector (nabla e1) dot e2 */
@@ -263,22 +256,22 @@ void gctransform_particle2guidingcenter(
         b1x * ( nablabhat[7] + b2x * ( nablabhat[6] + nablabhat[7] ) ) +
         b1y * ( nablabhat[6] + b2y * ( nablabhat[6] + nablabhat[7] ) );
 
-    temp[0] = gradB[0] + kappa[0] * ( mass * gammavpar2 ) / (2 * mu0);
-    temp[1] = gradB[1] + kappa[1] * ( mass * gammavpar2 ) / (2 * mu0);
-    temp[2] = gradB[2] + kappa[2] * ( mass * gammavpar2 ) / (2 * mu0);
+    temp[0] = gradB[0] + kappa[0] * ( ppar2 / mass ) / (2 * mu0);
+    temp[1] = gradB[1] + kappa[1] * ( ppar2 / mass ) / (2 * mu0);
+    temp[2] = gradB[2] + kappa[2] * ( ppar2 / mass ) / (2 * mu0);
     real zeta1 =
         -rho0 * math_dot(rhohat, Rvec) +
-        ( mass * gamma * vpar0 / ( charge * Bnorm ) ) * a2ddotgradb +
+        ( ppar0 / ( charge * Bnorm ) ) * a2ddotgradb +
         ( rho0 / Bnorm ) * math_dot(perphat, temp);
 
     /* Choose whether to use first order transformation in velocity space */
     if(GCTRANSFORM_ORDER) {
-        *vpar  = vpar0 + vpar1;
+        *ppar  = ppar0 + ppar1;
         *mu    = fabs(mu0 + mu1);
         *zeta  = zeta0 + zeta1;
     }
     else {
-        *vpar  = vpar0;
+        *ppar  = ppar0;
         *mu    = mu0;
         *zeta = zeta0;
     }
@@ -290,8 +283,8 @@ void gctransform_particle2guidingcenter(
 /**
  * @brief Transform guiding center to particle phase space
  *
- * The transformation is done from coordinates [R, Phi, Z, vpar, mu] to
- * [r, phi, z, vpar_prt, mu_prt, zeta_prt].
+ * The transformation is done from coordinates [R, Phi, Z, ppar, mu] to
+ * [r, phi, z, ppar_prt, mu_prt, zeta_prt].
  *
  * @param mass     mass [kg]
  * @param charge   charge [C]
@@ -299,25 +292,23 @@ void gctransform_particle2guidingcenter(
  * @param R        guiding center R coordinate [m]
  * @param Phi      guiding center phi coordinate [rad]
  * @param Z        guiding center z coordinate [m]
- * @param vpar     guiding center parallel velocity [m/s]
+ * @param ppar     guiding center parallel momentum [kg m/s]
  * @param mu       guiding center magnetic moment [J/T]
  * @param zeta     guiding center gyroangle [rad]
  * @param r        pointer to particle R coordinate [m]
  * @param phi      pointer to particle phi coordinate [rad]
  * @param z        pointer to particle z coordinate [m]
- * @param vparprt  pointer to particle parallel velocity [m/s]
+ * @param pparprt  pointer to particle parallel momentum [kg m/s]
  * @param muprt    pointer to particle magnetic moment [J/T]
  * @param zetaprt  pointer to particle gyroangle [rad]
  */
 void gctransform_guidingcenter2particle(
     real mass, real charge, real* B_dB,
-    real R, real Phi, real Z, real vpar, real mu, real zeta,
-    real* r, real* phi, real* z, real* vparprt, real* muprt, real* zetaprt) {
+    real R, real Phi, real Z, real ppar, real mu, real zeta,
+    real* r, real* phi, real* z, real* pparprt, real* muprt, real* zetaprt) {
 
     /* |B| */
     real Bnorm   = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
-    /* gamma (Lorentz factor) */
-    real gamma   = physlib_gamma_vpar(mass, mu, vpar, Bnorm);
 
     /* Guiding center transformation is more easily done in cartesian
      * coordinates so we switch to using those */
@@ -438,23 +429,23 @@ void gctransform_guidingcenter2particle(
             );
 
     /* First order terms */
-    real vpar1 =
-        -vpar * rho0 * math_dot(rhohat, kappa) +
-        ( mu / ( gamma * charge ) ) * ( tau + a1ddotgradb );
+    real ppar1 =
+        -ppar * rho0 * math_dot(rhohat, kappa) +
+        ( mass * mu / charge ) * ( tau + a1ddotgradb );
 
-    real gammavpar2 = gamma * gamma * vpar * vpar;
+    real ppar2 = ppar * ppar;
     real temp[3] =
-        { mu * gradB[0] + mass * gammavpar2 * kappa[0],
-          mu * gradB[1] + mass * gammavpar2 * kappa[1],
-          mu * gradB[2] + mass * gammavpar2 * kappa[2] };
+        { mu * gradB[0] + ppar2 * kappa[0] / mass,
+          mu * gradB[1] + ppar2 * kappa[1] / mass,
+          mu * gradB[2] + ppar2 * kappa[2] / mass };
     real mu1 =
         ( rho0 / Bnorm ) * math_dot(rhohat, temp) -
-        ( mass * gamma * vpar * mu / ( charge * Bnorm ) ) *
+        ( ppar * mu / ( charge * Bnorm ) ) *
         ( tau + a1ddotgradb );
 
-    temp[0] = gradB[0] + kappa[0] * mass * gammavpar2 / (2 * mu);
-    temp[1] = gradB[1] + kappa[1] * mass * gammavpar2 / (2 * mu);
-    temp[2] = gradB[2] + kappa[2] * mass * gammavpar2 / (2 * mu);
+    temp[0] = gradB[0] + kappa[0] * ppar2 / (2 * mass * mu);
+    temp[1] = gradB[1] + kappa[1] * ppar2 / (2 * mass * mu);
+    temp[2] = gradB[2] + kappa[2] * ppar2 / (2 * mass * mu);
 
     /* This monster is Littlejohn's gyro gauge vector (nabla e1) dot e2 */
     real bx2by2 = bhat[0] * bhat[0] + bhat[1] * bhat[1];
@@ -474,15 +465,16 @@ void gctransform_guidingcenter2particle(
         b1y * ( nablabhat[6] + b2y * ( nablabhat[6] + nablabhat[7] ) );
     real zeta1 =
         -rho0 * math_dot(rhohat, Rvec) +
-        ( mass * gamma * vpar / ( charge * Bnorm ) ) * a2ddotgradb +
+        ( ppar / ( charge * Bnorm ) ) * a2ddotgradb +
         ( rho0 / Bnorm ) * math_dot(perphat, temp);
 
     /* Choose whether to use first or zeroth order velocity transform */
 
     if(GCTRANSFORM_ORDER) {
         mu   = fabs(mu - mu1);
-        vpar -= vpar1;
+        ppar -= ppar1;
         zeta -= zeta1;
+        mu = fabs(mu);
 
         /* Calculate new unit vector for position */
         c = cos(zeta);
@@ -505,7 +497,7 @@ void gctransform_guidingcenter2particle(
     *r        = rpz[0];
     *phi      = rpz[1];
     *z        = rpz[2];
-    *vparprt  = vpar;
+    *pparprt  = ppar;
     *muprt    = mu;
     *zetaprt = zeta;
 }
@@ -527,9 +519,9 @@ void gctransform_guidingcenter2particle(
  * @param vphi   pointer to particle velocity phi-component [m/s]
  * @param vz     pointer to particle velocity z-component [m/s]
  */
-void gctransform_vparmuzeta2vRvphivz(real mass, real charge, real* B_dB,
-                                     real phi, real vpar, real mu, real zeta,
-                                     real* vr, real* vphi, real* vz) {
+void gctransform_pparmuzeta2prpphipz(real mass, real charge, real* B_dB,
+                                     real phi, real ppar, real mu, real zeta,
+                                     real* pr, real* pphi, real* pz) {
     /* Find magnetic field norm and unit vector */
     real Brpz[3] = {B_dB[0], B_dB[4], B_dB[8]};
     real Bxyz[3];
@@ -538,7 +530,6 @@ void gctransform_vparmuzeta2vRvphivz(real mass, real charge, real* B_dB,
     real bhat[3];
     math_unit(Bxyz, bhat);
     real Bnorm = math_norm(Bxyz);
-    real gamma   = physlib_gamma_vpar(mass, mu, vpar, Bnorm);
 
     /* Find the basis vectors e1 and e2 */
     real e1[3] = {0, 0, 1};
@@ -555,23 +546,23 @@ void gctransform_vparmuzeta2vRvphivz(real mass, real charge, real* B_dB,
     perphat[1] = -s * e1[1] - c * e2[1];
     perphat[2] = -s * e1[2] - c * e2[2];
 
-    /* Perpendicular velocity, negative particles travel opposite to perphat */
-    real vperp = sqrt((2.0 * Bnorm * mu) / ( mass * gamma * gamma ) );
+    /* Perpendicular momentum, negative particles travel opposite to perphat */
+    real pperp = sqrt(2.0 * mass * Bnorm * mu );
     if( charge <  0 ) {
-        vperp = -vperp;
+        pperp = -pperp;
     }
 
-    /* Evaluate the velocity from vpar and vperp */
-    real vxyz[3];
-    vxyz[0] = vpar * bhat[0] + vperp * perphat[0];
-    vxyz[1] = vpar * bhat[1] + vperp * perphat[1];
-    vxyz[2] = vpar * bhat[2] + vperp * perphat[2];
+    /* Evaluate the momentum vector from ppar and pperp */
+    real pxyz[3];
+    pxyz[0] = ppar * bhat[0] + pperp * perphat[0];
+    pxyz[1] = ppar * bhat[1] + pperp * perphat[1];
+    pxyz[2] = ppar * bhat[2] + pperp * perphat[2];
 
     /* Back to cylindrical coordinates */
-    real vrpz[3];
-    math_vec_xyz2rpz(vxyz, vrpz, phi);
+    real prpz[3];
+    math_vec_xyz2rpz(pxyz, prpz, phi);
 
-    *vr    = vrpz[0];
-    *vphi  = vrpz[1];
-    *vz    = vrpz[2];
+    *pr    = prpz[0];
+    *pphi  = prpz[1];
+    *pz    = prpz[2];
 }
