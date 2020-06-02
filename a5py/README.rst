@@ -13,7 +13,7 @@ and `doxypypy` is needed for generating Doxygen documentation.
 Websites
 --------
 
-* Source code: https://version.aalto.fi/gitlab/ascot/python/a5py
+* Source code: https://version.aalto.fi/gitlab/ascot/python/tree/master/a5py
 * ASCOT5: https://version.aalto.fi/gitlab/ascot/ascot5
 
 Installation
