@@ -25,6 +25,11 @@ Begin by creating your own virtual environment:::
     virtualenv -p python3 --system-site-packages ascot
     source ascot/bin/activate
 
+If you can't use/install virtualenv, you can use `venv` instead 
+
+    python3 -m --system_site_packages venv ascot
+    source ascot/bin/activate
+
 Flag --system-site-packages makes your virtual environment inherit packages
 already present in your system. This is necessary if you wish to do any plotting
 as installing `matplotlib` is not possible with just `pip`.
