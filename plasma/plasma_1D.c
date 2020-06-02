@@ -121,8 +121,9 @@ void plasma_1D_init(plasma_1D_data* pls_data,
         pls_data->charge[i] = offload_data->charge[i];
     }
     pls_data->rho  = &offload_array[0];
-    pls_data->temp = &offload_array[pls_data->n_rho];
-    pls_data->dens = &offload_array[pls_data->n_rho*3];
+    pls_data->vtor = &offload_array[pls_data->n_rho];
+    pls_data->temp = &offload_array[pls_data->n_rho*2];
+    pls_data->dens = &offload_array[pls_data->n_rho*4];
 }
 
 /**
