@@ -25,7 +25,7 @@ Begin by creating your own virtual environment:::
     virtualenv -p python3 --system-site-packages ascot
     source ascot/bin/activate
 
-If you can't use/install virtualenv, you can use `venv` instead 
+If you can't use/install virtualenv, you can use `venv` instead:::
 
     python3 -m --system_site_packages venv ascot
     source ascot/bin/activate
