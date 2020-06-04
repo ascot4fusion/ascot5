@@ -285,16 +285,17 @@ void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal,
                      int mpi_rank, int mpi_size, int mpi_root) {
 #ifdef MPI
 
-    int dist_size = data->offload_diagorb_index;
-
-    if(mpi_rank == 0) {
-        MPI_Reduce(MPI_IN_PLACE, offload_array,
-            dist_size, mpi_type_real, MPI_SUM,
-            0, MPI_COMM_WORLD);
-    } else {
-        MPI_Reduce(offload_array, offload_array,
-           dist_size, mpi_type_real, MPI_SUM,
-           0, MPI_COMM_WORLD);
+    if(data->dist5D_collect || data->distrho5D_collect
+       || data->dist6D_collect || data->distrho6D_collect) {
+        if(mpi_rank == 0) {
+            MPI_Reduce(MPI_IN_PLACE, offload_array,
+                data->offload_dist_length, mpi_type_real, MPI_SUM,
+                0, MPI_COMM_WORLD);
+        } else {
+            MPI_Reduce(offload_array, offload_array,
+                data->offload_dist_length, mpi_type_real, MPI_SUM,
+                0, MPI_COMM_WORLD);
+        }
     }
 
     if(data->diagorb_collect) {
@@ -304,7 +305,7 @@ void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal,
                 mpi_my_particles(&start_index, &n, ntotal, i, mpi_size);
 
                 for(int j = 0; j < data->diagorb.Nfld; j++) {
-                    MPI_Recv(&offload_array[dist_size
+                    MPI_Recv(&offload_array[data->offload_diagorb_index
                                         +j*data->diagorb.Nmrk*data->diagorb.Npnt
                                         +start_index*data->diagorb.Npnt],
                         n*data->diagorb.Npnt, mpi_type_real, i, 0,
@@ -317,7 +318,7 @@ void mpi_gather_diag(diag_offload_data* data, real* offload_array, int ntotal,
             mpi_my_particles(&start_index, &n, ntotal, mpi_rank, mpi_size);
 
             for(int j = 0; j < data->diagorb.Nfld; j++) {
-                MPI_Send(&offload_array[dist_size
+                MPI_Send(&offload_array[data->offload_diagorb_index
                                       +j*data->diagorb.Nmrk*data->diagorb.Npnt],
                 n*data->diagorb.Npnt, mpi_type_real, 0, 0, MPI_COMM_WORLD);
             }

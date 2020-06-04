@@ -70,6 +70,8 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
             * data->distrho6D.n_q;
     }
 
+    data->offload_dist_length = n;
+
     if(data->diagorb_collect) {
         data->offload_diagorb_index = n;
         data->diagorb.Nmrk = Nmrk;
