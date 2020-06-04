@@ -534,7 +534,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
                 slen = strlen(optarg);
                 if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
                     strncpy(sim->hdf5_in,optarg,slen-3);
-                    (sim->hdf5_in)[slen-3]=NULL;
+                    (sim->hdf5_in)[slen-3]='\0';
                 }
                 else
                     strcpy(sim->hdf5_in, optarg);
@@ -544,7 +544,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
                 slen = strlen(optarg);
                 if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
                     strncpy(sim->hdf5_out,optarg,slen-3);
-                    (sim->hdf5_out)[slen-3]=NULL;
+                    (sim->hdf5_out)[slen-3]='\0';
                 }
                 else
                     strcpy(sim->hdf5_out, optarg);
