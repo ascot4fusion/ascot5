@@ -92,10 +92,13 @@ def convert(fnin):
             for wall in walls:
                 if "wall_3D" in wall:
                     g = h5["wall"][wall]
-                    nelements = int(g["nelements"][:])
-                    flag = np.zeros(shape=(nelements,1), dtype=np.int)
-                    g.create_dataset('flag',(nelements,1), data=flag,
+                    if not "flag" in g:
+                        nelements = int(g["nelements"][:])
+                        flag = np.zeros(shape=(nelements,1), dtype=np.int)
+                        g.create_dataset('flag',(nelements,1), data=flag,
                                      dtype='i4')
+                    else:
+                        print('      Already there...skipping.')
 
             print("Adding ENDCOND_MAX_MILEAGE=100 and setting distribution")
             print("momentum limits (DIST_MIN/MAX_P* ) to")
