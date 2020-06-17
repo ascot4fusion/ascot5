@@ -1,0 +1,14 @@
+stages:
+  - build
+
+compile_ascot5_main:
+  stage: build
+  tags:
+    - ascot5v2
+  script: "make -j ascot5_main"
+    
+compile_ascot5_main_MPI:
+  stage: build
+  tags:
+    - ascot5v2
+  script: "make -j ascot5_main MPI=1"
