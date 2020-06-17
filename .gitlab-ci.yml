@@ -1,32 +1,24 @@
-stages:
-  - build
-
 compile_all:
-  stage: build
   tags:
     - ascot5v2
   script: "make clean; make -j all"
 
 compile_all_VERBOSE_2:
-  stage: build
   tags:
     - ascot5v2
   script: "make clean; make -j all VERBOSE=2"
 
 compile_all_VERBOSE_1:
-  stage: build
   tags:
     - ascot5v2
   script: "make clean; make -j all VERBOSE=1"
     
 compile_all_VERBOSE_0:
-  stage: build
   tags:
     - ascot5v2
   script: "make clean; make -j all VERBOSE=0"
     
 compile_all_MPI:
-  stage: build
   tags:
     - ascot5v2
   script: "make clean; make -j all MPI=1"
