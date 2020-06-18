@@ -60,6 +60,13 @@ int plasma_init_offload(plasma_offload_data* offload_data,
                 offload_data->plasma_1D.offload_array_length;
             break;
 
+        case plasma_type_1Dt:
+            err = plasma_1Dt_init_offload(&(offload_data->plasma_1Dt),
+                                          offload_array);
+            offload_data->offload_array_length =
+                offload_data->plasma_1Dt.offload_array_length;
+            break;
+
         case plasma_type_1DS:
             err = plasma_1DS_init_offload(&(offload_data->plasma_1DS),
                                           offload_array);
@@ -127,6 +134,11 @@ int plasma_init(plasma_data* pls_data, plasma_offload_data* offload_data,
         case plasma_type_1D:
             plasma_1D_init(&(pls_data->plasma_1D),
                            &(offload_data->plasma_1D), offload_array);
+            break;
+
+        case plasma_type_1Dt:
+            plasma_1D_init(&(pls_data->plasma_1Dt),
+                           &(offload_data->plasma_1Dt), offload_array);
             break;
 
         case plasma_type_1DS:
@@ -259,6 +271,11 @@ a5err plasma_eval_densandtemp(real* dens, real* temp, real rho,
         case plasma_type_1D:
             err = plasma_1D_eval_densandtemp(dens, temp,
                                              rho, &(pls_data->plasma_1D));
+            break;
+
+        case plasma_type_1Dt:
+            err = plasma_1Dt_eval_densandtemp(dens, temp,
+                                              rho, t, &(pls_data->plasma_1Dt));
             break;
 
         case plasma_type_1DS:
