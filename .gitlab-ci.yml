@@ -6,19 +6,24 @@ compile_all:
 compile_all_VERBOSE_2:
   tags:
     - ascot5v2
-  script: "make clean; make -j all VERBOSE=2"
+  script:
+    - make -j all VERBOSE=2
 
 compile_all_VERBOSE_1:
   tags:
     - ascot5v2
-  script: "make clean; make -j all VERBOSE=1"
+  script:
+    - make -j all VERBOSE=1
     
 compile_all_VERBOSE_0:
   tags:
     - ascot5v2
-  script: "make clean; make -j all VERBOSE=0"
+  script:
+    - make -j all VERBOSE=0
     
 compile_all_MPI:
   tags:
     - ascot5v2
-  script: "make clean; make -j all MPI=1"
+  script:
+    - make -j all MPI=1"
+
