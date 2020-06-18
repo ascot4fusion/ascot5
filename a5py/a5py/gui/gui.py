@@ -37,7 +37,7 @@ class GUI:
         object is initalized from the filename. If filename was not given, a
         window prompting the user to choose a file is shown.
         """
-        self._root = tkinter.Tk()
+        self._root = tkinter.Tk(className="a5gui") # The classname is related to window icon. 
         self.set_window_icon()
 
         
