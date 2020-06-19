@@ -244,7 +244,7 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_offload_data* offload_data,
     if( hdf5_read_double(PLSPATH "idensity", dens_i,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    for(int i = 0; i < n_rho; i++) {
+    for(int i = 0; i < n_rho*n_time; i++) {
         temp_e[i] = temp_e[i] * CONST_E;
         temp_i[i] = temp_i[i] * CONST_E;
     }

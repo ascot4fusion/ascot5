@@ -137,8 +137,8 @@ int plasma_init(plasma_data* pls_data, plasma_offload_data* offload_data,
             break;
 
         case plasma_type_1Dt:
-            plasma_1D_init(&(pls_data->plasma_1Dt),
-                           &(offload_data->plasma_1Dt), offload_array);
+            plasma_1Dt_init(&(pls_data->plasma_1Dt),
+                            &(offload_data->plasma_1Dt), offload_array);
             break;
 
         case plasma_type_1DS:
