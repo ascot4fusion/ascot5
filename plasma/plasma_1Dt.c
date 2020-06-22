@@ -248,8 +248,8 @@ a5err plasma_1Dt_eval_densandtemp(real* dens, real* temp, real rho, real t,
         }
         i_time--;
 
-        real t_time = (t - pls_data->rho[i_rho])
-                 / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
+        real t_time = (t - pls_data->time[i_time])
+                 / (pls_data->time[i_time+1] - pls_data->time[i_time]);
 
         if(i_time < 0) {
             /* time < t[0], use first profile */
@@ -301,7 +301,7 @@ a5err plasma_1Dt_eval_densandtemp(real* dens, real* temp, real rho, real t,
                 p1 = p11 + t_rho * (p12 - p11);
                 p2 = p21 + t_rho * (p22 - p21);
 
-                temp[i] = p1 + t_rho * (p2 - p1);
+                temp[i] = p1 + t_time * (p2 - p1);
             }
             else {
                 /* Temperature is same for all ion species */

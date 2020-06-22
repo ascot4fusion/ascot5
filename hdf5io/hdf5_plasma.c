@@ -178,7 +178,7 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_offload_data* offload_data,
     #define PLSPATH "/plasma/plasma_1Dt_XXXXXXXXXX/"
 
     /* Read rhogrid size and number of species */
-    int n_rho, n_time, n_ions;
+    int n_rho, n_time, n_ions, n_species;
     if( hdf5_read_int(PLSPATH "nion", &n_ions,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_int(PLSPATH "nrho",  &n_rho,
@@ -186,7 +186,8 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_offload_data* offload_data,
     if( hdf5_read_int(PLSPATH "ntime",  &n_time,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    offload_data->n_species = n_ions + 1; /* Include electrons */
+    n_species = n_ions + 1; /* Include electrons */
+    offload_data->n_species = n_species;
     offload_data->n_rho     = n_rho;
     offload_data->n_time     = n_time;
 
@@ -225,28 +226,63 @@ int hdf5_plasma_read_1Dt(hid_t f, plasma_1Dt_offload_data* offload_data,
      * readable */
     real* rho = &(*offload_array)[0];
     real* time = &(*offload_array)[n_rho];
-    real* temp_e = &(*offload_array)[n_rho+n_time];
-    real* temp_i = &(*offload_array)[n_rho+n_time+n_time*n_rho];
-    real* dens_e = &(*offload_array)[n_rho+n_time+n_time*n_rho*2];
-    real* dens_i = &(*offload_array)[n_rho+n_time+n_time*n_rho*3];
+    real* temp = &(*offload_array)[n_rho+n_time];
+    real* dens = &(*offload_array)[n_rho+n_time+n_time*n_rho*2];
 
-    /* Read rhogrid, densities, and temperatures into allocated array */
+    /* Read rho and time grids */
     if( hdf5_read_double(PLSPATH "rho", rho,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(PLSPATH "time", time,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "etemperature", temp_e,
+
+    /* read electron and ion temperature data into temporary arrays and
+     * rearrange into offload array */
+    real* temp_e_in = (real*) malloc(n_time*n_rho*sizeof(real));
+    real* temp_i_in = (real*) malloc(n_time*n_rho*sizeof(real));
+
+    if( hdf5_read_double(PLSPATH "etemperature", temp_e_in,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "edensity", dens_e,
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "itemperature", temp_i,
-                         f, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(PLSPATH "idensity", dens_i,
+    if( hdf5_read_double(PLSPATH "itemperature", temp_i_in,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
-    for(int i = 0; i < n_rho*n_time; i++) {
-        temp_e[i] = temp_e[i] * CONST_E;
-        temp_i[i] = temp_i[i] * CONST_E;
+    for(int i_time = 0; i_time < n_time; i_time++) {
+        for(int i_rho = 0; i_rho < n_rho; i_rho++) {
+            /* electrons */
+            temp[i_time*2*n_rho+i_rho]
+                = temp_e_in[i_time*n_rho + i_rho] * CONST_E; /* convert to J */
+
+            /* ions */
+            temp[i_time*2*n_rho+n_rho+i_rho]
+                = temp_i_in[i_time*n_rho + i_rho] * CONST_E; /* convert to J */
+        }
+    }
+
+    /* read electron and ion densities into temporary arrays and rearrange
+     * data into offload array */
+    real* dens_e_in = (real*) malloc(n_time*n_rho*sizeof(real));
+    real* dens_i_in = (real*) malloc(n_time*n_ions*n_rho*sizeof(real));
+
+    if( hdf5_read_double(PLSPATH "edensity", dens_e_in,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(PLSPATH "idensity", dens_i_in,
+                         f, qid, __FILE__, __LINE__) ) {return 1;}
+
+    for(int i_time = 0; i_time < n_time; i_time++) {
+        for(int i_species = 0; i_species < (n_ions+1); i_species++) {
+            for(int i_rho = 0; i_rho < n_rho; i_rho++) {
+                if(i_species == 0) {
+                    /* electrons */
+                    dens[i_time*n_species*n_rho+i_species*n_rho+i_rho]
+                        = dens_e_in[i_time*n_rho + i_rho];
+                }
+                else {
+                    /* ions */
+                    dens[i_time*n_species*n_rho+i_species*n_rho+i_rho]
+                        = dens_i_in[i_time*(n_ions*n_rho)+(i_species-1)*n_rho
+                                    + i_rho];
+                }
+            }
+        }
     }
 
     return 0;
