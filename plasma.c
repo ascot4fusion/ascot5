@@ -107,6 +107,11 @@ void plasma_free_offload(plasma_offload_data* offload_data,
                 &(offload_data->plasma_1D), offload_array);
             break;
 
+        case plasma_type_1Dt:
+            plasma_1Dt_free_offload(
+                &(offload_data->plasma_1Dt), offload_array);
+            break;
+
         case plasma_type_1DS:
             plasma_1DS_free_offload(
                 &(offload_data->plasma_1DS), offload_array);
@@ -186,6 +191,11 @@ a5err plasma_eval_temp(real* temp, real rho, real r, real phi, real z, real t,
                                       &(pls_data->plasma_1D));
             break;
 
+        case plasma_type_1Dt:
+            err = plasma_1Dt_eval_temp(temp, rho, t, species,
+                                       &(pls_data->plasma_1Dt));
+            break;
+
         case plasma_type_1DS:
             err = plasma_1DS_eval_temp(temp, rho, species,
                                        &(pls_data->plasma_1DS));
@@ -227,6 +237,11 @@ a5err plasma_eval_dens(real* dens, real rho, real r, real phi, real z, real t,
         case plasma_type_1D:
             err = plasma_1D_eval_dens(dens, rho, species,
                                       &(pls_data->plasma_1D));
+            break;
+
+        case plasma_type_1Dt:
+            err = plasma_1Dt_eval_dens(dens, rho, t, species,
+                                       &(pls_data->plasma_1Dt));
             break;
 
         case plasma_type_1DS:
@@ -320,6 +335,10 @@ int plasma_get_n_species(plasma_data* pls_data) {
             n = plasma_1D_get_n_species(&(pls_data->plasma_1D));
             break;
 
+        case plasma_type_1Dt:
+            n = plasma_1Dt_get_n_species(&(pls_data->plasma_1Dt));
+            break;
+
         case plasma_type_1DS:
             n = plasma_1DS_get_n_species(&(pls_data->plasma_1DS));
             break;
@@ -346,6 +365,10 @@ const real* plasma_get_species_mass(plasma_data* pls_data) {
             mass = plasma_1D_get_species_mass( &(pls_data->plasma_1D) );
             break;
 
+        case plasma_type_1Dt:
+            mass = plasma_1Dt_get_species_mass( &(pls_data->plasma_1Dt) );
+            break;
+
         case plasma_type_1DS:
             mass = plasma_1DS_get_species_mass( &(pls_data->plasma_1DS) );
             break;
@@ -370,6 +393,10 @@ const real* plasma_get_species_charge(plasma_data* pls_data) {
     switch(pls_data->type) {
         case plasma_type_1D:
             charge = plasma_1D_get_species_charge(&(pls_data->plasma_1D));
+            break;
+
+        case plasma_type_1Dt:
+            charge = plasma_1Dt_get_species_charge(&(pls_data->plasma_1Dt));
             break;
 
         case plasma_type_1DS:

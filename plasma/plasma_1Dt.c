@@ -37,47 +37,19 @@ int plasma_1Dt_init_offload(plasma_1Dt_offload_data* offload_data,
                             real** offload_array) {
 
     int n_rho = offload_data->n_rho;
+    int n_time = offload_data->n_time;
     int n_ions = offload_data->n_species -1;
-    print_out(VERBOSE_IO, "\n1D plasma profiles (P_1D)\n");
+    print_out(VERBOSE_IO, "\n1D plasma profiles (P_1Dt)\n");
     print_out(VERBOSE_IO,
               "Min rho = %1.2le, Max rho = %1.2le,"
-              " Number of rho grid points = %d,"
-              " Number of ion species = %d\n",
-              (*offload_array)[0], (*offload_array)[n_rho-1], n_rho, n_ions);
+              " Number of rho grid points = %d\n",
+              (*offload_array)[0], (*offload_array)[n_rho-1], n_rho);
     print_out(VERBOSE_IO,
-              "Species Z/A    Density [m^-3] at Min/Max rho"
-              "    Temperature [eV] at Min/Max rho\n");
+              "Min time = %1.2le, Max time = %1.2le,"
+              " Number of time points = %d\n",
+              (*offload_array)[n_rho], (*offload_array)[n_rho+n_time-1],n_time);
     print_out(VERBOSE_IO,
-              "     Electrons              %1.2le/%1.2le          "
-              "        %1.2le/%1.2le       \n",
-              (*offload_array)[n_rho*3],
-              (*offload_array)[n_rho*4 - 1],
-              (*offload_array)[n_rho] / CONST_E,
-              (*offload_array)[n_rho*2-1] / CONST_E);
-    for(int i=0; i < n_ions; i++) {
-        print_out(VERBOSE_IO,
-                  "      %3d/%3d               %1.2le/%1.2le     "
-                  "             %1.2le/%1.2le       \n",
-                  (int)round(offload_data->charge[i+1]/CONST_E),
-                  (int)round(offload_data->mass[i+1]/CONST_U),
-                  (*offload_array)[n_rho*(4+i)],
-                  (*offload_array)[n_rho*(5+i) - 1],
-                  (*offload_array)[n_rho*2] / CONST_E,
-                  (*offload_array)[n_rho*3-1] / CONST_E);
-    }
-    real quasineutrality = 0;
-    for(int k = 0; k <n_rho; k++) {
-        real ele_qdens = (*offload_array)[n_rho*3 + k] * CONST_E;
-        real ion_qdens = 0;
-        for(int i=0; i < n_ions; i++) {
-            ion_qdens +=
-                (*offload_array)[n_rho*(4+i) + k] * offload_data->charge[i+1];
-        }
-        quasineutrality = fmax( quasineutrality,
-                                fabs( 1 - ion_qdens / ele_qdens ) );
-    }
-    print_out(VERBOSE_IO, "Quasi-neutrality is (electron / ion charge density)"
-              " %.2f\n", 1+quasineutrality);
+              "Number of ion species = %d\n", n_ions);
     return 0;
 }
 
@@ -141,30 +113,15 @@ void plasma_1Dt_init(plasma_1Dt_data* pls_data,
 a5err plasma_1Dt_eval_temp(real* temp, real rho, real t, int species,
                           plasma_1Dt_data* pls_data) {
 
-    /** @todo update for plasma_1Dt */
+    real temp_dens[MAX_SPECIES], temp_temp[MAX_SPECIES];
 
-    a5err err = 0;
-    if(rho < pls_data->rho[0]) {
-        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
-    }
-    else if(rho >= pls_data->rho[pls_data->n_rho-1]) {
-        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
-    }
-    else {
-        int i_rho = 0;
-        while(i_rho < pls_data->n_rho - 1 && pls_data->rho[i_rho] <= rho) {
-            i_rho++;
-        }
-        i_rho--;
-        real t_rho = (rho - pls_data->rho[i_rho])
-            / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
+    a5err err = plasma_1Dt_eval_densandtemp(temp_dens, temp_temp, rho, t,
+                                            pls_data);
 
-        real p1 = pls_data->temp[species*pls_data->n_rho + i_rho];
-        real p2 = pls_data->temp[species*pls_data->n_rho + i_rho+1];
-        temp[0] = p1 + t_rho * (p2 - p1);
-    }
+    *temp = temp_temp[species];
 
     return err;
+
 }
 
 /**
@@ -182,31 +139,15 @@ a5err plasma_1Dt_eval_temp(real* temp, real rho, real t, int species,
  */
 a5err plasma_1Dt_eval_dens(real* dens, real rho, real t, int species,
                            plasma_1Dt_data* pls_data) {
+    real temp_dens[MAX_SPECIES], temp_temp[MAX_SPECIES];
 
-    /** @todo update for plasma_1Dt */
+    a5err err = plasma_1Dt_eval_densandtemp(temp_dens, temp_temp, rho, t,
+                                            pls_data);
 
-    a5err err = 0;
-    if(rho < pls_data->rho[0]) {
-        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
-    }
-    else if(rho >= pls_data->rho[pls_data->n_rho-1]) {
-        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_PLASMA_1D );
-    }
-    else {
-        int i_rho = 0;
-        while(i_rho < pls_data->n_rho - 1 && pls_data->rho[i_rho] <= rho) {
-            i_rho++;
-        }
-        i_rho--;
-        real t_rho = (rho - pls_data->rho[i_rho])
-                 / (pls_data->rho[i_rho+1] - pls_data->rho[i_rho]);
-
-        real p1 = pls_data->dens[species*pls_data->n_rho + i_rho];
-        real p2 = pls_data->dens[species*pls_data->n_rho + i_rho+1];
-        dens[0] = p1 + t_rho * (p2 - p1);
-    }
+    *dens = temp_dens[species];
 
     return err;
+
 }
 
 /**
