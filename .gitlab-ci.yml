@@ -1,29 +1,22 @@
-compile_all:
+compile_ascot5_main:
   tags:
-    - ascot5v2
-  script: "make clean; make -j all"
+    - docker-images
+  image: ascot5v2dep
+  only:
+    - master
+    - develop
+  script: "make ascot5_main FLAGS=-foffload=disable"
 
-compile_all_VERBOSE_2:
+compile_ascot5_main_all:
   tags:
-    - ascot5v2
+    - docker-images
+  image: ascot5v2dep
   script:
-    - make -j all VERBOSE=2
+    - make ascot5_main FLAGS=-foffload=disable
 
-compile_all_VERBOSE_1:
+compile_ascot5_main_MPI:
   tags:
-    - ascot5v2
+    - docker-images
+  image: ascot5v2dep
   script:
-    - make -j all VERBOSE=1
-    
-compile_all_VERBOSE_0:
-  tags:
-    - ascot5v2
-  script:
-    - make -j all VERBOSE=0
-    
-compile_all_MPI:
-  tags:
-    - ascot5v2
-  script:
-    - make -j all MPI=1"
-
+    - make ascot5_main MPI=1 FLAGS=-foffload=disable
