@@ -3,40 +3,40 @@ compile_ascot5_main:
     - docker-images
   image: ascot5v2dep
   script:
-    - make ascot5_main FLAGS=-foffload=disable
+    - make -j ascot5_main FLAGS=-foffload=disable
 
 compile_ascot5_main_MPI:
   tags:
     - docker-images
   image: ascot5v2dep
   script:
-    - make ascot5_main MPI=1 FLAGS=-foffload=disable
+    - make -j ascot5_main MPI=1 FLAGS=-foffload=disable
 
 compile_ascot5_main_verbose1:
   tags:
     - docker-images
   image: ascot5v2dep
   script:
-    - make ascot5_main VERBOSE=1 FLAGS=-foffload=disable
+    - make -j ascot5_main VERBOSE=1 FLAGS=-foffload=disable
 
 compile_bbnbi_verbose:
   tags:
     - docker-images
   image: ascot5v2dep
   script:
-    - make bbnbi5 VERBOSE=1 FLAGS=-foffload=disable
+    - make -j bbnbi5 VERBOSE=1 FLAGS=-foffload=disable
 
 compile_bbnbi:
   tags:
     - docker-images
   image: ascot5v2dep
   script:
-    - make bbnbi5 FLAGS=-foffload=disable
+    - make -j bbnbi5 FLAGS=-foffload=disable
 
 compile_libascot:
   tags:
     - docker-images
   image: ascot5v2dep
   script:
-    - make libascot FLAGS=-foffload=disable
+    - make -j libascot FLAGS=-foffload=disable
 
