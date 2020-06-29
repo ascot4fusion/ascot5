@@ -529,7 +529,87 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
     q2q1[1] = q2[1]-q1[1];
     q2q1[2] = q2[2]-q1[2];
 
-    real w = math_dot(t1q1, n) / math_dot(q2q1, n);
+    /* Is the interval parallel to the triangle? */
+    real par = math_dot(q2q1, n);
+    if (par == 0.0) {
+    	/* Check if one of the points solve the plane equation (is it on the plane?)*/
+    	if( !math_point_on_plane( q1, t1, t2, t3 )){
+    		return -1;
+    	}
+
+		/** It is on the plane.
+		 * Does the line intersect any edges? */
+
+		for (int idim=0;idim<=1;idim++){
+			/* Try project to xy plane, and then to yz plane and check */
+			real ka,kb, intersectionPoint ;
+			if (    q2[0+idim] != q1[0+idim]  &&
+					t2[0+idim] != t1[0+idim]  &&
+					t3[0+idim] != t1[0+idim]  &&
+					t2[0+idim] != t3[0+idim]   ){
+				/* Where do the lines intersect? y=y0+k(x-x0) */
+				ka = ( q2[1+idim]-q1[1+idim] ) / ( q2[0+idim]-q1[0+idim]  );
+
+				kb = ( t2[1+idim]-t1[1+idim] ) / ( t2[0+idim]-t1[0+idim]  );
+				/*parallel lines. Is there overlap?*/
+				if (ka == kb ){
+					if ( !( fmin(q1[0+idim],q2[0+idim]) > fmax(t1[0+idim],t2[0+idim]) ||
+							fmax(q1[0+idim],q2[0+idim]) < fmin(t1[0+idim],t2[0+idim])	 ) ){
+						return 0;
+					}
+				}
+				else
+				{
+					intersectionPoint = 1.0 / (kb - ka) * ( t1[1+idim]- q1[1+idim] - kb*t1[0+idim] + ka*q1[0+idim]);
+					if( intersectionPoint >= fmin(t1[0+idim],t2[0+idim]) && intersectionPoint <= fmax(t1[0+idim],t2[0+idim]) &&
+						intersectionPoint >= fmin(q1[0+idim],q2[0+idim]) && intersectionPoint <= fmax(q1[0+idim],q2[0+idim])	) {
+						return 0.0;
+					}
+				}
+
+				kb = ( t3[1+idim]-t1[1+idim] ) / ( t3[0+idim]-t1[0+idim]  );
+				if (ka == kb ){
+					if ( !( fmin(q1[0+idim],q2[0+idim]) > fmax(t1[0+idim],t2[0+idim]) ||
+							fmax(q1[0+idim],q2[0+idim]) < fmin(t1[0+idim],t2[0+idim])	 ) ){
+						return 0;
+					}
+				}
+				else
+				{
+					intersectionPoint = 1.0 / (kb - ka) * ( t1[1+idim]- q1[1+idim] - kb*t1[0+idim] + ka*q1[0+idim]);
+					if( intersectionPoint >= fmin(t1[0],t3[0+idim])      && intersectionPoint <= fmax(t1[0+idim],t3[0+idim])  &&
+						intersectionPoint >= fmin(q1[0+idim],q2[0+idim]) && intersectionPoint <= fmax(q1[0+idim],q2[0+idim])	) {
+						return 0.0;
+					}
+				}
+
+				kb = ( t2[1+idim]-t3[1+idim] ) / ( t2[0+idim]-t3[0+idim]  );
+				if (ka == kb ){
+					if ( !( fmin(q1[0+idim],q2[0+idim]) > fmax(t1[0+idim],t2[0+idim]) ||
+							fmax(q1[0+idim],q2[0+idim]) < fmin(t1[0+idim],t2[0+idim])	 ) ){
+						return 0;
+					}
+				}
+				else
+				{
+					intersectionPoint = 1.0 / (kb - ka) * ( t3[1+idim]- q1[1+idim] - kb*t3[0+idim] + ka*q1[0+idim]);
+					if( intersectionPoint >= fmin(t3[0+idim],t2[0+idim]) && intersectionPoint <= fmax(t3[0+idim],t2[0+idim]) &&
+						intersectionPoint >= fmin(q1[0+idim],q2[0+idim]) && intersectionPoint <= fmax(q1[0+idim],q2[0+idim])	 ) {
+						return 0.0;
+					}
+				}
+			}
+
+		}
+    	return -1;
+
+
+    }
+
+
+
+
+    real w = math_dot(t1q1, n) / par ;
 
     real p[3];
     p[0] = q1[0] + w * (q2[0] - q1[0]) - t1[0];
