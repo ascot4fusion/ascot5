@@ -107,6 +107,7 @@ real math_normal_rand();
 int math_ipow(int a, int p);
 double math_simpson(double (*f)(double), double a, double b, double epsilon);
 void math_linspace(real* vec, real a, real b, int n);
+int math_point_on_plane(real q[3], real t1[3], real t2[3], real t3[3]);
 void math_uniquecount(int* in, int* unique, int* count, int n);
 #pragma omp declare simd
 real* math_rsearch(const real key, const real* base, int num);

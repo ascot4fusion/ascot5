@@ -292,6 +292,47 @@ void math_uniquecount(int* in, int* unique, int* count, int n) {
     }
 }
 
+
+/*
+ * From wikipedia, Plane_(Geometry)
+ *
+ * Let t1=(x1, y1, z1), t2=(x2, y2, z2), and t3=(x3, y3, z3) be non-collinear points on the plane.
+ * Let q =(x,  y,  z) be an arbitrary point. I lies in the plane iff:
+ *
+ * det(  |x -x1  y -y1 z -z1|
+ *       |x2-x1  y2-y1 z2-z1|
+ *       |x3-x1  y3-y1 z3-z1| ) == 0
+ *
+ * det(  |x -x1  y -y1 z -z1|
+ *       |x -x2  y -y2 z -z2|
+ *       |x -x3  y -y3 z -z3| ) == 0
+ * */
+
+ int math_point_on_plane(real q[3], real t1[3], real t2[3], real t3[3]){
+
+	 real x =  q[0], 	 y =  q[1],    z = q[2];
+	 real x1= t1[0],     y1= t1[1],    z1=t1[2];
+	 real x2= t2[0],     y2= t2[1],    z2=t2[2];
+	 real x3= t3[0],     y3= t3[1],    z3=t3[2];
+
+
+	 if ( math_determinant3x3(
+			 x -x1, y -y1, z -z1,
+			 x2-x1, y2-y1, z2-z1,
+			 x3-x1, y3-y1, z3-z1) != 0.0){
+		 return 1;
+	 }
+	 if ( math_determinant3x3(
+			 x -x1, y -y1, z -z1,
+			 x -x2, y -y2, z -z2,
+			 x -x3, y -y3, z -z3) != 0.0){
+		 return 1;
+	 }
+	 return 0;
+ }
+
+
+
 /**
  * @brief Helper comparison routine for "math_rsearch"
  *
