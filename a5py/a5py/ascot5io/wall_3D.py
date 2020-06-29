@@ -158,9 +158,38 @@ class wall_3D(AscotData):
 
         return write_hdf5(fn, **data)
 
+    def remove_small_triangles(self,maximumAreaToRemove=0.0,data=None):
+        "The modification happens in-place. No deep copy is made!"
+        
+        if data is None:
+            w = self.read()
+        else:
+            w = data
+            
+        A = self.area(data=w)
+        
+        keep =  ( A > maximumAreaToRemove )
+    
+        fields = ["x1x2x3","y1y2y3","z1z2z3"]
+        for f in fields:
+            w[f] = w[f][keep,:]
+        w['flag'] = w['flag'][keep]
+        
+        nOld = w['n'][:]
+        nNew = len(w['flag'])
+        w['n'][:]         = nNew
+        w['nelements'][:] = nNew
+        
+        print('Removing {}/{} triangles'.format(nOld-nNew,nOld))
+        
+        return w
 
-    def area(self):
-        w = self.read()
+    def area(self, data= None):
+        if data is None:
+            w = self.read()
+        else:
+            w = data
+        
 
         ab_x = w["x1x2x3"][:,1] - w["x1x2x3"][:,0]
         ab_y = w["y1y2y3"][:,1] - w["y1y2y3"][:,0]
