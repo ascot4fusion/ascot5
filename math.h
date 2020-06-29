@@ -78,6 +78,16 @@
         vrpz[1]=-vxyz[0]*sin(phi)+vxyz[1]*cos(phi); \
         vrpz[2]=vxyz[2]; } while(0)
 
+ /** @brief Direct expansion of 3x3 matrix determinant
+  */
+#define math_determinant3x3( \
+		x1, x2, x3, \
+		y1, y2, y3, \
+		z1, z2, z3) \
+	(x1) * ( (y2)*(z3) - (y3)*(z2) ) + \
+	(x2) * ( (y3)*(z1) - (y1)*(z3) ) + \
+	(x3) * ( (y1)*(z2) - (y2)*(z1) )
+
 /** @brief Convert degrees to radians */
 #define math_deg2rad(a) (a * math_degrad)
 
