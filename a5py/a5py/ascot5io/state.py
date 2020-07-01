@@ -407,6 +407,46 @@ class State(AscotData):
             a5.free(bfield=True)
 
         ## Boozer and MHD parameters ##
+        elif key == "psi(bzr)":
+            a5.init(bfield=True, boozer=True)
+            item = evalapy("psi (bzr)") * unyt.dimensionless
+            a5.free(bfield=True, boozer=True)
+
+        elif key == "psi(bzr)prt":
+            a5.init(bfield=True, boozer=True)
+            item = evalapyprt("psi (bzr)") * unyt.dimensionless
+            a5.free(bfield=True, boozer=True)
+
+        elif key == "theta(bzr)":
+            a5.init(bfield=True, boozer=True)
+            item = evalapy("theta") * unyt.rad
+            a5.free(bfield=True, boozer=True)
+
+        elif key == "theta(bzr)prt":
+            a5.init(bfield=True, boozer=True)
+            item = evalapyprt("theta") * unyt.rad
+            a5.free(bfield=True, boozer=True)
+
+        elif key == "phi(bzr)":
+            a5.init(bfield=True, boozer=True)
+            item = evalapy("zeta") * unyt.rad
+            a5.free(bfield=True, boozer=True)
+
+        elif key == "phi(bzr)prt":
+            a5.init(bfield=True, boozer=True)
+            item = evalapyprt("zeta") * unyt.rad
+            a5.free(bfield=True, boozer=True)
+
+        elif key == "db/b(mhd)":
+            a5.init(bfield=True, boozer=True, mhd=True)
+            item = evalapy("db/b") * unyt.T
+            a5.free(bfield=True, boozer=True, mhd=True)
+
+        elif key == "db/b(mhd)prt":
+            a5.init(bfield=True, boozer=True, mhd=True)
+            item = evalapyprt("db/b") * unyt.dimensionless
+            a5.free(bfield=True, boozer=True, mhd=True)
+
         elif key == "mhdepot":
             a5.init(bfield=True, boozer=True, mhd=True)
             item = evalapy("phi") * unyt.V

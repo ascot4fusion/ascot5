@@ -376,6 +376,26 @@ class Orbits(AscotData):
             a5.free(bfield=True)
 
         ## Boozer and MHD parameters ##
+        elif key in ["psi(bzr)gc", "psi(bzr)prt", "psi(bzr)fl"]:
+            a5.init(bfield=True, boozer=True)
+            item = evalapy("psi (bzr)") * unyt.dimensionless
+            a5.free(bfield=True, boozer=True)
+
+        elif key in ["theta(bzr)gc", "theta(bzr)prt", "theta(bzr)fl"]:
+            a5.init(bfield=True, boozer=True)
+            item = evalapy("theta") * unyt.rad
+            a5.free(bfield=True, boozer=True)
+
+        elif key in ["phi(bzr)gc", "phi(bzr)prt", "phi(bzr)fl"]:
+            a5.init(bfield=True, boozer=True)
+            item = evalapy("zeta") * unyt.rad
+            a5.free(bfield=True, boozer=True)
+
+        elif key in ["db/b(mhd)gc", "db/b(mhd)prt", "db/b(mhd)fl"]:
+            a5.init(bfield=True, boozer=True, mhd=True)
+            item = evalapy("db/b") * unyt.dimensionless
+            a5.free(bfield=True, boozer=True, mhd=True)
+
         elif key in ["mhdepotgc", "mhdepotprt", "mhdepotfl"]:
             a5.init(bfield=True, boozer=True, mhd=True)
             item = evalapy("phi") * unyt.V
