@@ -82,5 +82,22 @@ int main(void) {
   }else{
 	  printf("ok!\n");
   }
+
+
+  printf("Testing triple product\n");
+  real *a,*b,*c;
+  a=&matdeta[0];
+  b=&matdeta[3];
+  c=&matdeta[6];
+
+  real tp = math_scalar_triple_product( a, b, c);
+  printf("dot( cross([1 2 3],[4 5 6]),[7 8 10] ) == %f  (correct: -3)\n",tp);
+  if ( fabs(tp+3) > 1.0e-14){
+	  return 1;
+  }else{
+	  printf("ok!\n");
+  }
+
+
   return 0;
 }

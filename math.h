@@ -30,6 +30,19 @@
 #define math_cross(a,b,c) do { c[0]=a[1]*b[2]-a[2]*b[1];                \
         c[1]=a[2]*b[0]-a[0]*b[2];c[2]=a[0]*b[1]-a[1]*b[0]; } while(0)
 
+ /** @brief the mixed or triple product of three vectors (a cross b) dot c
+  * mathematica:
+  * a={a0,a1,a2};b={b0,b1,b2};c={c0,c1,c2};FullSimplify[Dot[Cross[a,b],c]]
+  * -(a2 b1 c0) + a1 b2 c0 + a2 b0 c1 - a0 b2 c1 - a1 b0 c2 + a0 b1 c2
+  * */
+#define math_scalar_triple_product(a,b,c) \
+       ( - (a[2] * b[1] * c[0] ) \
+         + (a[1] * b[2] * c[0] ) \
+         + (a[2] * b[0] * c[1] ) \
+         - (a[0] * b[2] * c[1] ) \
+         - (a[1] * b[0] * c[2] ) \
+         + (a[0] * b[1] * c[2] )     )
+
 /** @brief Elementwise vector sum a = a + b */
 #define math_sumew(a,b) do { a[0]=a[0]+b[0];a[1]=a[1]+b[1];a[2]=a[2]+b[2] } while(0)
 
@@ -87,6 +100,7 @@
 	(x1) * ( (y2)*(z3) - (y3)*(z2) ) + \
 	(x2) * ( (y3)*(z1) - (y1)*(z3) ) + \
 	(x3) * ( (y1)*(z2) - (y2)*(z1) )
+
 
 /** @brief Convert degrees to radians */
 #define math_deg2rad(a) (a * math_degrad)
