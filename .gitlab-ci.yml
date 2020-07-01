@@ -45,5 +45,5 @@ test_math:
     - docker-images
   image: ascot5v3dep
   script:
-    - make test_math
+    - make test_math  FLAGS=-foffload=disable
     - ./test_math
