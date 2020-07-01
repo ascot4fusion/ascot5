@@ -40,3 +40,10 @@ compile_libascot:
   script:
     - make -j libascot FLAGS=-foffload=disable
 
+test_math:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make test_math
+    - ./test_math
