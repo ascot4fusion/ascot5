@@ -297,7 +297,7 @@ void math_uniquecount(int* in, int* unique, int* count, int n) {
  * From wikipedia, Plane_(Geometry)
  *
  * Let t1=(x1, y1, z1), t2=(x2, y2, z2), and t3=(x3, y3, z3) be non-collinear points on the plane.
- * Let q =(x,  y,  z) be an arbitrary point. I lies in the plane iff:
+ * Let q =(x,  y,  z) be an arbitrary point. It lies in the plane iff:
  *
  * det(  |x -x1  y -y1 z -z1|
  *       |x2-x1  y2-y1 z2-z1|
@@ -330,6 +330,39 @@ void math_uniquecount(int* in, int* unique, int* count, int n) {
 	 }
 	 return 0;
  }
+
+ /* Provided as documentation for the below code.
+  * a,b,c are vertices of a triangle, p is an arbitrary point,
+  * s,t are the barycentric coordinates of p:
+  * p = (1-s-t)*a + s*b + t*c
+  *
+void math_barycentric_coords_triangle_points(real a[3], real b[3], real c[3], real p[3], real *s, real *t){
+	real AP[3], AC[3], AB[3],n[3];
+	int i;
+
+	for(i=0;i<3;i++)
+		AP[i] = p[i]-a[i];
+	for(i=0;i<3;i++)
+		AC[i] = c[i]-a[i];
+	for(i=0;i<3;i++)
+		AB[i] = b[i]-a[i];
+
+	math_cross(AB, AC, n);
+
+	math_barycentric_coords_triangle(AP, AB, AC, n, s, t);
+}
+*/
+void math_barycentric_coords_triangle(real AP[3], real AB[3], real AC[3], real n[3], real *s, real *t){
+
+	real n0[3],area;
+
+    math_unit(n,n0);
+
+    area = math_scalar_triple_product(AB,AC,n0);
+    *s = math_scalar_triple_product(AP,AC,n0) / area;
+    *t = math_scalar_triple_product(AB,AP,n0) / area;
+
+}
 
 
 

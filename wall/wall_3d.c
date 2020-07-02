@@ -532,79 +532,89 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
     /* Is the interval parallel to the triangle? */
     real par = math_dot(q2q1, n);
     if (par == 0.0) {
-    	/* Check if one of the points solve the plane equation (is it on the plane?)*/
-    	if( !math_point_on_plane( q1, t1, t2, t3 )){
-    		return -1;
-    	}
+        /* Check if one of the points solve the plane equation (is it on the plane?)*/
+        if( math_point_on_plane( q1, t1, t2, t3 ) != 0 ){
+            return -1.0;
+        }
 
-		/** It is on the plane.
-		 * Does the line intersect any edges? */
+        /** It is on the plane. */
+#if VERBOSE>1
+        printf(" We actually have a interval on the triangle plane!\n");
+        printf("   q1 =[ %10f %10f %10f] ; q2 =[ %10f %10f %10f] \n", q1[0],q1[1],q1[2], q2[0],q2[1],q2[2]);
+        printf("      t1 = [%10f %10f %10f]\n", t1[0],t1[1],t1[2] );
+        printf("      t2 = [%10f %10f %10f]\n", t2[0],t2[1],t2[2] );
+        printf("      t3 = [%10f %10f %10f]\n", t3[0],t3[1],t3[2] );
+#endif
 
-		for (int idim=0;idim<=1;idim++){
-			/* Try project to xy plane, and then to yz plane and check */
-			real ka,kb, intersectionPoint ;
-			if (    q2[0+idim] != q1[0+idim]  &&
-					t2[0+idim] != t1[0+idim]  &&
-					t3[0+idim] != t1[0+idim]  &&
-					t2[0+idim] != t3[0+idim]   ){
-				/* Where do the lines intersect? y=y0+k(x-x0) */
-				ka = ( q2[1+idim]-q1[1+idim] ) / ( q2[0+idim]-q1[0+idim]  );
+        /** Is at least one of the points inside the triangle?
+         * Go to barycentric coordinates.
+         */
+        real S1,S2,T1,T2;
+        real AP[3];
+        AP[0] = q1[0]-t1[0]; AP[1] = q1[1]-t1[1]; AP[2] = q1[2]-t1[2];
+        math_barycentric_coords_triangle( AP, t2t1, t3t1, n, &S1, &T1);
+        if (1.0 >= T1+S1 &&
+               T1 >= 0.0 && T1 <= 1.0 &&
+               S1 >= 0.0 && S1 <= 1.0      )
+        {
+                return 0.0;
+        }
 
-				kb = ( t2[1+idim]-t1[1+idim] ) / ( t2[0+idim]-t1[0+idim]  );
-				/*parallel lines. Is there overlap?*/
-				if (ka == kb ){
-					if ( !( fmin(q1[0+idim],q2[0+idim]) > fmax(t1[0+idim],t2[0+idim]) ||
-							fmax(q1[0+idim],q2[0+idim]) < fmin(t1[0+idim],t2[0+idim])	 ) ){
-						return 0;
-					}
-				}
-				else
-				{
-					intersectionPoint = 1.0 / (kb - ka) * ( t1[1+idim]- q1[1+idim] - kb*t1[0+idim] + ka*q1[0+idim]);
-					if( intersectionPoint >= fmin(t1[0+idim],t2[0+idim]) && intersectionPoint <= fmax(t1[0+idim],t2[0+idim]) &&
-						intersectionPoint >= fmin(q1[0+idim],q2[0+idim]) && intersectionPoint <= fmax(q1[0+idim],q2[0+idim])	) {
-						return 0.0;
-					}
-				}
-
-				kb = ( t3[1+idim]-t1[1+idim] ) / ( t3[0+idim]-t1[0+idim]  );
-				if (ka == kb ){
-					if ( !( fmin(q1[0+idim],q2[0+idim]) > fmax(t1[0+idim],t2[0+idim]) ||
-							fmax(q1[0+idim],q2[0+idim]) < fmin(t1[0+idim],t2[0+idim])	 ) ){
-						return 0;
-					}
-				}
-				else
-				{
-					intersectionPoint = 1.0 / (kb - ka) * ( t1[1+idim]- q1[1+idim] - kb*t1[0+idim] + ka*q1[0+idim]);
-					if( intersectionPoint >= fmin(t1[0],t3[0+idim])      && intersectionPoint <= fmax(t1[0+idim],t3[0+idim])  &&
-						intersectionPoint >= fmin(q1[0+idim],q2[0+idim]) && intersectionPoint <= fmax(q1[0+idim],q2[0+idim])	) {
-						return 0.0;
-					}
-				}
-
-				kb = ( t2[1+idim]-t3[1+idim] ) / ( t2[0+idim]-t3[0+idim]  );
-				if (ka == kb ){
-					if ( !( fmin(q1[0+idim],q2[0+idim]) > fmax(t1[0+idim],t2[0+idim]) ||
-							fmax(q1[0+idim],q2[0+idim]) < fmin(t1[0+idim],t2[0+idim])	 ) ){
-						return 0;
-					}
-				}
-				else
-				{
-					intersectionPoint = 1.0 / (kb - ka) * ( t3[1+idim]- q1[1+idim] - kb*t3[0+idim] + ka*q1[0+idim]);
-					if( intersectionPoint >= fmin(t3[0+idim],t2[0+idim]) && intersectionPoint <= fmax(t3[0+idim],t2[0+idim]) &&
-						intersectionPoint >= fmin(q1[0+idim],q2[0+idim]) && intersectionPoint <= fmax(q1[0+idim],q2[0+idim])	 ) {
-						return 0.0;
-					}
-				}
-			}
-
-		}
-    	return -1;
+        AP[0] = q2[0]-t1[0]; AP[1] = q2[1]-t1[1]; AP[2] = q2[2]-t1[2];
+        math_barycentric_coords_triangle( AP, t2t1, t3t1, n, &S2, &T2);
+        if (1.0 >= T2+S2 &&
+               T2 >= 0.0 && T2 <= 1.0 &&
+               S2 >= 0.0 && S2 <= 1.0      )
+        {
+                return 0.0;
+        }
 
 
-    }
+                /*
+                 * Does the line intersect any edges? */
+
+        /* We know one edge is vertical at s=0*/
+        if (S1 * S2 < 0.0){
+                /* The points are on both sides of s=0*/
+                real L= fabs(S1)+fabs(S2);
+                real T0 =T1 + fabs(S1)/L*(T2-T1);
+                if ( T0 >= 0.0 && T0 <= 1.0){
+                        return 0.0;
+                }
+        }
+                /* We know one edge is horizontal at t=0*/
+        if (T1 * T2 < 0.0){
+                /* The points are on both sides of t=0*/
+                real L= fabs(T1)+fabs(T2);
+                real S0 = S1 + fabs(T1)/L*(S2-S1);
+                if ( S0 >= 0.0 && S0 <= 1.0){
+                        return 0.0;
+                }
+        }
+        /* We know one edge is at -45 degrees : t = 1- s*/
+        if (S1==S2){
+                /* vertical line*/
+                if(S1 >= 0.0 && S1 <= 1.0){
+                        return 0.0;
+                }
+        } else {
+                        real k = (T2-T1)/(S2-S1);
+                        if(k==-1.0){
+                                /* Parallel line*/
+                                if(S1+T1==1.0){
+                                        return 0.0;
+                                }
+                        }else{
+                                real S0 = ( k*(1-T1)+S1)/(1.0+k);
+                                if ( S0 >= 0.0 && S0 <= 1.0){
+                                        return 0.0;
+                                }
+                        }
+
+            }
+        return -1;
+    }     /* Is the interval is not parallel to the triangle */
+
 
 
 
