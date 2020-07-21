@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
             nprt_inj = nprt - nprt_generated;
         }
         else {
-            nprt_inj = inj[i].power * nprt;
+            nprt_inj = inj[i].power/total_power * nprt;
         }
 
         nbi_generate(nprt_inj, &p[nprt_generated], &inj[i], &B_data,
