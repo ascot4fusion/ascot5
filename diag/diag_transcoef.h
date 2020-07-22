@@ -27,8 +27,8 @@ typedef struct{
     integer Nmrk;  /**< Number of markers in this simulation                  */
     int Navg;      /**< Data is divided into subarrays of length Navg, before
                         taking average value and evaluating K and D           */
-    real interval; /**< Interval at which markers are recorded. Negative
-                        negative means markers are recorded when crossing OMP */
+    int recordrho; /**< Flag for whether the spatial unit is rho or R.        */
+    real interval; /**< Interval at which markers are recorded.               */
 
 }diag_transcoef_offload_data;
 
@@ -38,8 +38,8 @@ typedef struct{
 typedef struct{
     int Navg;      /**< Data is divided into subarrays of length Navg, before
                         taking average value and evaluating K and D           */
-    real interval; /**< Interval at which markers are recorded. Negative
-                        negative means markers are recorded when crossing OMP */
+    int recordrho; /**< Flag for whether the spatial unit is rho or R.        */
+    real interval; /**< Interval at which markers are recorded.               */
     diag_transcoef_link** datapoints; /* Temporary data storage               */
 
     real* id;    /* Marker ID whose data is stored at this index              */
@@ -56,7 +56,14 @@ void diag_transcoef_init(diag_transcoef_data* data,
 
 void diag_transcoef_free(diag_transcoef_data* data);
 
+void diag_transcoef_update_fo(diag_transcoef_data* data,
+                              particle_simd_fo* p_f, particle_simd_fo* p_i);
+
 void diag_transcoef_update_gc(diag_transcoef_data* data,
                               particle_simd_gc* p_f, particle_simd_gc* p_i);
+
+void diag_transcoef_update_ml(diag_transcoef_data* data,
+                              particle_simd_ml* p_f, particle_simd_ml* p_i);
+
 #pragma omp end declare target
 #endif
