@@ -23,7 +23,7 @@ def read_hdf5(fn, qid):
     """
 
     with h5py.File(fn,"r") as f:
-        data = f["/results/run_"+qid+"/transcoef"]
+        transcoef = f["/results/run_"+qid+"/transcoef"]
 
         out = {}
 

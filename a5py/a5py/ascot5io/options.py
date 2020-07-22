@@ -769,9 +769,9 @@ def get_default():
          """\
          # Maximum number of points (per marker) to be written
          # If this number is exceeded when marker is being simulated, the oldest
-         # points will be replaced as long as the simulation continues. Thus, this
-         # parameter is effectively the number of marker's last positions that are
-         # stored.
+         # points will be replaced as long as the simulation continues. Thus,
+         # this parameter is effectively the number of marker's last positions
+         # that are stored.
          """,
          10)
     )
@@ -818,8 +818,9 @@ def get_default():
     info.append(
         ("TRANSCOEF_INTERVAL",
          """\
-         # Time interval for recording data points. If negative, data points are
-         # recorded at outer midplane.
+         # Time interval for recording data points. The data points are recorded
+         # outer mid-plane crossing if this interval has passed from the
+         # previous recording.
          """,
          -1)
     )
@@ -830,6 +831,14 @@ def get_default():
          # coefficients to reduce noise.
          """,
          5)
+    )
+    info.append(
+        ("TRANSCOEF_RECORDRHO",
+         """\
+         # Record coefficients in terms of normalized poloidal flux instead of
+         # meters.
+         """,
+         0)
     )
 
     cleaned = []
