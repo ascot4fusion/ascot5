@@ -32,46 +32,46 @@ def write_hdf5(fn, run, name, data):
 
     gname = "results/" + run + "/" + name
 
-    N = data["id"].size
+    fields = [("mass",      "amu"),
+              ("time",      "s"),
+              ("cputime",   "s"),
+              ("weight",    "markers/s"),
+              ("rprt",      "m"),
+              ("phiprt",    "deg"),
+              ("zprt",      "m"),
+              ("prprt",     "kg*m/s"),
+              ("pphiprt",   "kg*m/s"),
+              ("pzprt",     "kg*m/s"),
+              ("r",         "m"),
+              ("phi",       "deg"),
+              ("z",         "m"),
+              ("mu",        "eV/T"),
+              ("ppar",      "kg*m/s"),
+              ("zeta",      "rad"),
+              ("rho",       "1"),
+              ("theta",     "deg"),
+              ("ids",       "1"),
+              ("walltile",  "1"),
+              ("endcond",   "1"),
+              ("anum",      "1"),
+              ("znum",      "1"),
+              ("charge",    "e"),
+              ("errormsg",  "1"),
+              ("errorline", "1"),
+              ("errormod",  "1"),
+              ("br",        "T"),
+              ("bphi",      "T"),
+              ("bz",        "T")]
+
+    N = data["ids"].size
 
     with h5py.File(fn, "a") as f:
         g = f.create_group(gname)
 
-        g.create_dataset("mass",      (N,1), data=data["mass"],      dtype="f8")
-        g.create_dataset("time",      (N,1), data=data["time"],      dtype="f8")
-        g.create_dataset("cputime",   (N,1), data=data["cputime"],   dtype="f8")
-        g.create_dataset("weight",    (N,1), data=data["weight"],    dtype="f8")
-
-        g.create_dataset("rprt",      (N,1), data=data["rprt"],      dtype="f8")
-        g.create_dataset("phiprt",    (N,1), data=data["phiprt"],    dtype="f8")
-        g.create_dataset("zprt",      (N,1), data=data["zprt"],      dtype="f8")
-        g.create_dataset("prprt",     (N,1), data=data["prprt"],     dtype="f8")
-        g.create_dataset("pphiprt",   (N,1), data=data["pphiprt"],   dtype="f8")
-        g.create_dataset("pzprt",     (N,1), data=data["pzprt"],     dtype="f8")
-
-        g.create_dataset("r",         (N,1), data=data["r"],         dtype="f8")
-        g.create_dataset("phi",       (N,1), data=data["phi"],       dtype="f8")
-        g.create_dataset("z",         (N,1), data=data["z"],         dtype="f8")
-        g.create_dataset("mu",        (N,1), data=data["mu"],        dtype="f8")
-        g.create_dataset("ppar",      (N,1), data=data["ppar"],      dtype="f8")
-        g.create_dataset("zeta",      (N,1), data=data["zeta"],      dtype="f8")
-
-        g.create_dataset("rho",       (N,1), data=data["rhogc"],     dtype="f8")
-        g.create_dataset("theta",     (N,1), data=data["thetagc"],   dtype="f8")
-
-        g.create_dataset("ids",       (N,1), data=data["ids"],       dtype="i8")
-        g.create_dataset("walltile",  (N,1), data=data["walltile"],  dtype="i8")
-        g.create_dataset("endcond",   (N,1), data=data["endcond"],   dtype="i8")
-        g.create_dataset("anum",      (N,1), data=data["anum"],      dtype="i4")
-        g.create_dataset("znum",      (N,1), data=data["znum"],      dtype="i4")
-        g.create_dataset("charge",    (N,1), data=data["charge"],    dtype="i4")
-        g.create_dataset("errormsg",  (N,1), data=data["errormsg"],  dtype="i4")
-        g.create_dataset("errorline", (N,1), data=data["errorline"], dtype="i4")
-        g.create_dataset("errormod",  (N,1), data=data["errormod"],  dtype="i4")
-
-        g.create_dataset("br",        (N,1), data=data["br"],        dtype="f8")
-        g.create_dataset("bphi",      (N,1), data=data["bphi"],      dtype="f8")
-        g.create_dataset("bz",        (N,1), data=data["bz"],        dtype="f8")
+        for field in fields:
+            ds = g.create_dataset(field[0], (N,1), data=data[field[0]],
+                dtype="f8")
+            ds.attrs["unit"] = field[1]
 
 
 def read_hdf5(fn, qid, name):
