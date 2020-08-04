@@ -1,7 +1,4 @@
-/**
  * @file diag_orb.c
- * @brief Functions to write particle and guiding center information.
- */
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -18,6 +15,7 @@
 #pragma omp declare target
 #pragma omp declare simd uniform(ang0)
 real diag_orb_check_plane_crossing(real fang, real iang, real ang0);
+real diag_orb_check_r_crossing(real fr, real ir, real r0);
 #pragma omp end declare target
 
 /**
@@ -280,8 +278,11 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                 /* Check and store poloidal crossings. */
                 for(int j=0; j < data->npoloidalplots; j++) {
                     k = diag_orb_check_plane_crossing(p_f->theta[i],
-                                                      p_i->theta[i],
+                    		                          p_i->theta[i],
                                                       data->poloidalangles[j]);
+                    //printf("Poloidal %10.5f,%10.5f,%10.5d,%10.5d \n",k,data->pncrid[idx],data->npoloidalplots, data->nradialplots);
+                    printf("Poloidal/angles %10.5f,%10.5f,%10.5f,\n,%10.5f,%10.5f\n",data->poloidalangles[j],data->radialdistances[j]
+                          ,data->rho[imrk * data->Npnt + ipoint],data->r[imrk * data->Npnt + ipoint],data->z[imrk * data->Npnt + ipoint]);
                     if(k) {
                         real d = 1-k;
                         idx = imrk * data->Npnt + ipoint;
@@ -308,6 +309,45 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         }
                         data->mrk_pnt[imrk]      = ipoint;
                         data->mrk_recorded[imrk] = p_f->mileage[i];
+                    //printf("Poloidal %10.5f,%10.5f \n",k,data->pncrid[idx]);
+                    }
+                }
+
+                /* Check and store radial crossings. */
+                for(int j=0; j < data->nradialplots; j++) {
+                    k = diag_orb_check_r_crossing(p_f->r[i],p_i->r[i],
+                                                    data->radialdistances[j]);
+                    printf("Radial %10.5f,%10.5f,%10.5f,%10.5f,%10.5d \n",k, p_f->r[i],
+                    		p_i->r[i], data->radialdistances[j],data->nradialplots);
+                    //toiseksi viimeinen ei toimi
+                    if(k) {
+                        real d = 1-k;
+                        idx = imrk * data->Npnt + ipoint;
+                        data->id[idx]     = (real)p_f->id[i];
+                        data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
+                        data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
+                        data->p_r[idx]    = k*p_f->p_r[i]    + d*p_i->p_r[i];
+                        data->p_phi[idx]  = k*p_f->p_phi[i]  + d*p_i->p_phi[i];
+                        data->p_z[idx]    = k*p_f->p_z[i]    + d*p_i->p_z[i];
+                        data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
+                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
+                        data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
+                        data->pncrid[idx] = j + data->ntoroidalplots + data->npoloidalplots;
+
+                        ipoint++;
+                        if(ipoint == data->Npnt) {
+                            ipoint = 0;
+                        }
+                        data->mrk_pnt[imrk]      = ipoint;
+                        data->mrk_recorded[imrk] = p_f->mileage[i];
+                        printf("############################################# Radial %10.5f,%10.5f,%10.5f,%10.5f \n",k, p_f->r[i],
+                    		p_i->r[i], data->radialdistances[j]);
                     }
                 }
             }
@@ -396,6 +436,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
             }
         }
     }
+
     else if(data->mode == DIAG_ORB_POINCARE) {
         #pragma omp simd
         for(int i= 0; i < NSIMD; i++) {
@@ -471,6 +512,43 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         }
                         data->mrk_pnt[imrk]      = ipoint;
                         data->mrk_recorded[imrk] = p_f->mileage[i];
+                        //printf("Poloidal %10.5f,%10.5f \n",k,data->pncrid[idx]);
+                    }
+                }
+
+                /* Check and store radial crossings. */
+                for(int j=0; j < data->nradialplots; j++) {
+                    k = diag_orb_check_r_crossing(p_f->rho[i],
+                                                      p_i->rho[i],
+                                                      data->radialdistances[j]);
+                    if(k) {
+                        real d = 1-k;
+                        idx = imrk * data->Npnt + ipoint;
+                        data->id[idx]     = (real)p_f->id[i];
+                        data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
+                        data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
+                        data->ppar[idx]   = k*p_f->ppar[i]   + d*p_i->ppar[i];
+                        data->mu[idx]     = k*p_f->mu[i]     + d*p_i->mu[i];
+                        data->zeta[idx]   = k*p_f->zeta[i]   + d*p_i->zeta[i];
+                        data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
+                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
+                        data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
+                        data->pncrid[idx] =
+                        		j + data->ntoroidalplots;//+data->npoloidalplots;
+
+                        ipoint++;
+                        if(ipoint == data->Npnt) {
+                            ipoint = 0;
+                        }
+                        data->mrk_pnt[imrk]      = ipoint;
+                        data->mrk_recorded[imrk] = p_f->mileage[i];
+                        printf("Radial %10.5f,%10.5f \n",k,data->pncrid[idx]);
                     }
                 }
             }
@@ -621,6 +699,8 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
     }
 }
 
+
+
 /**
  * @brief Check if marker has crossed a plane.
  *
@@ -634,6 +714,8 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
  *
  * @return zero if no-crossing, number k, ang0 = k + (fang - iang), otherwise.
  */
+
+
 real diag_orb_check_plane_crossing(real fang, real iang, real ang0){
 
     real k = 0;
@@ -653,3 +735,29 @@ real diag_orb_check_plane_crossing(real fang, real iang, real ang0){
 
     return k;
 }
+
+/**
+ * @brief Check if marker has crossed given rho
+ *
+ * This helper function checks whether given rho that defines a Poincare plane
+ * is between marker's initial and final rhos (of single timestep).
+ *
+ * @param frho marker final rho in metres.
+ * @param irho marker initial rho in metres.
+ * @param rho0 Poincare plane rho.
+ *
+ * @return zero if no-crossing, number k, rho0 = k + (frho - irho), otherwise.
+ */
+
+real diag_orb_check_r_crossing(real fr, real ir, real r0){
+
+    real k = 0;
+    if(((fr <= r0 && ir > r0) || (ir <= r0 && fr > r0))) {
+        k = fabs(ir / (fr - ir));
+    }
+    printf("%10.5f %10.5f %10.5f %10.5f\n",k, fr,ir,r0);
+
+    return k;
+}
+
+ 

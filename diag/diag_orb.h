@@ -31,9 +31,10 @@ typedef struct{
     real writeInterval; /**< Interval at which markers are recorded        */
     int ntoroidalplots; /**< Number of toroidal Poincare planes            */
     int npoloidalplots; /**< Number of toroidal Poincare planes            */
+    int nradialplots;   /**< Number of radial Poincare planes              */
     real toroidalangles[DIAG_ORB_MAXPOINCARES]; /**< Toroidal plane angles */
     real poloidalangles[DIAG_ORB_MAXPOINCARES]; /**< Poloidal plane angles */
-
+    real radialdistances[DIAG_ORB_MAXPOINCARES];   /**< Radial plane angles*/
 }diag_orb_offload_data;
 
 /**
@@ -77,10 +78,11 @@ typedef struct{
     int Nmrk;           /**< Number of markers to record                    */
     real writeInterval; /**< Interval at which markers are recorded         */
     int ntoroidalplots; /**< Number of toroidal Poincare planes             */
-    int npoloidalplots; /**< Number of toroidal Poincare planes             */
+    int npoloidalplots; /**< Number of poloidal Poincare planes             */
+    int nradialplots;   /**< Number of radial Poincare planes               */
     real toroidalangles[DIAG_ORB_MAXPOINCARES]; /**< Toroidal plane angles  */
     real poloidalangles[DIAG_ORB_MAXPOINCARES]; /**< Poloidal plane angles  */
-
+    real radialdistances[DIAG_ORB_MAXPOINCARES];   /**< Radial plane angles */
 }diag_orb_data;
 
 #pragma omp declare target
@@ -100,3 +102,4 @@ void diag_orb_update_ml(diag_orb_data* data,
 #pragma omp end declare target
 
 #endif
+
