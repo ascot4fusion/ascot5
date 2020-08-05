@@ -5,12 +5,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "../math.h"
 #include "../ascot5.h"
 #include "../wall/wall_3d.h"
 
 #define N 10000 /**< Number of repetitions in each test */
 
 #define TETRA_N_TRIANGLES 4
+#define TRIQUEUE_N_TRIANGLES 1000
+#define TRIQUEUE_N_BATCHES   10
+#define TRIQUEUE_Z_DISTANCE  1.0
 
 /**
  *  Generate a simple 3D wall to test against.
@@ -87,7 +91,58 @@ void tetra_wall(wall_3d_offload_data *offload_data,
 
 }
 
+/**
+ *  Generate a simple 3D wall to test against.
+ *
+ */
+void queue_wall(wall_3d_offload_data *offload_data,
+		real **offload_array) {
 
+
+        real z;
+  
+	int iTri,iedge,ibatch;
+	const int nTri = TRIQUEUE_N_TRIANGLES;
+	
+	
+	offload_data->n = nTri;
+	offload_data->offload_array_length = nTri*3*3;
+
+    /* The data in the offload array is to be in the format
+     *  [x1 y1 z1 x2 y2 z2 x3 y3 z3; ... ]
+     */
+	*offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
+
+	int tri_in_batch = TRIQUEUE_N_TRIANGLES/TRIQUEUE_N_BATCHES;
+	real dz_batch = TRIQUEUE_Z_DISTANCE / TRIQUEUE_N_BATCHES;
+	/*Compress the triangles at the beginnings of each group*/
+	real dz_tri   = dz_batch / (10*tri_in_batch);
+	
+	for ( ibatch=0; ibatch<TRIQUEUE_N_BATCHES; ibatch++) {
+	  for ( iTri=0; iTri<tri_in_batch; iTri++) {
+	    z= ibatch * dz_batch + iTri * dz_tri;
+	    iedge=0;
+	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 0] = 1.0; /* x */
+	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 1] = 1.0; /* y */
+	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 2] = z;   /* z */
+	    iedge++;
+	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 0] = 1.01; /* x */
+	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 1] = 2.01; /* y */
+	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 2] = z;   /* z */
+	    iedge++;
+	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 0] = 2.02; /* x */
+	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 1] = 1.02; /* y */
+	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 2] = z  ; /* z */
+
+	    /*if (ibatch==0){
+	      printf("z=%f\n",z);
+	      }*/
+	  }
+	}
+
+
+	
+}
 
 /**
  * Guess two random points and see if the line between them intersects a wall.
@@ -283,6 +338,134 @@ int test_fixed_rays(real *offload_array ){
     return 0;
 }
 
+int test_rays_in_queue( wall_3d_data *wdata ){
+
+  /* Check the first batch. Make a ray going through the whole batch upwards */
+
+  real q1[3], q2[3], rpz1[3], rpz2[3];
+  int tri_in_batch = TRIQUEUE_N_TRIANGLES/TRIQUEUE_N_BATCHES;
+  real dz_batch = TRIQUEUE_Z_DISTANCE / TRIQUEUE_N_BATCHES;
+  real dz_tri   = dz_batch / (10*tri_in_batch);
+  int  hitId,correctId;
+  int failed;
+
+
+  failed = 0;
+  
+  q1[0]= 1.2; q1[1]=1.2; q1[2]= -1.0 * dz_tri;
+  q2[0]= 1.2; q2[1]=1.2; q2[2]= 0.5  * dz_batch;
+
+  correctId = 1;
+  printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check all tris]\n",
+	 q1[0],q1[1],q1[2],
+	 q2[0],q2[1],q2[2]  );
+  math_xyz2rpz(q1, rpz1);
+  math_xyz2rpz(q2, rpz2);
+  hitId = wall_3d_hit_wall_full(rpz1[0], rpz1[1], rpz1[2],
+				rpz2[0], rpz2[1], rpz2[2],  wdata); 
+  if ( hitId == correctId ){
+    printf("Correct hit id: %6d ok!\n",hitId);
+  }
+  else{
+    printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
+    failed++;
+  }
+
+  correctId = 1;
+  printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check using search tree]\n",
+	 q1[0],q1[1],q1[2],
+	 q2[0],q2[1],q2[2]  );
+  math_xyz2rpz(q1, rpz1);
+  math_xyz2rpz(q2, rpz2);
+  hitId = wall_3d_hit_wall(rpz1[0], rpz1[1], rpz1[2],
+				rpz2[0], rpz2[1], rpz2[2],  wdata); 
+  if ( hitId == correctId ){
+    printf("Correct hit id: %6d ok!\n",hitId);
+  }
+  else{
+    printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
+    failed++;
+  }
+
+
+
+  
+  correctId = tri_in_batch ;
+  printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check all tris]]\n",
+	 q2[0],q2[1],q2[2],
+	 q1[0],q1[1],q1[2]  );
+  math_xyz2rpz(q2, rpz2);
+  math_xyz2rpz(q1, rpz1);
+  hitId = wall_3d_hit_wall_full(rpz2[0], rpz2[1], rpz2[2],
+			   rpz1[0], rpz1[1], rpz1[2],  wdata);
+  /*hitId = wall_3d_hit_wall(rpz2[0], rpz2[1], rpz2[2],
+    rpz1[0], rpz1[1], rpz1[2],  wdata); */
+  if ( hitId == correctId ){
+    printf("Correct hit id: %6d ok!\n",hitId);
+  }
+  else{
+    printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
+    failed++;
+  }
+    
+  correctId = tri_in_batch ;
+  printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check using search tree]]\n",
+	 q2[0],q2[1],q2[2],
+	 q1[0],q1[1],q1[2]  );
+  math_xyz2rpz(q2, rpz2);
+  math_xyz2rpz(q1, rpz1);
+  hitId = wall_3d_hit_wall(rpz2[0], rpz2[1], rpz2[2],
+			   rpz1[0], rpz1[1], rpz1[2],  wdata);
+  if ( hitId == correctId ){
+    printf("Correct hit id: %6d ok!\n",hitId);
+  }
+  else{
+    printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
+    failed++;
+  }
+    
+  
+  q1[0]= 1.2; q1[1]=1.2; q1[2]= -1.0 * dz_tri+dz_batch;
+  q2[0]= 1.2; q2[1]=1.2; q2[2]= 1.5  * dz_batch;
+  correctId = tri_in_batch + 1;
+  printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check all tris]]\n",
+	 q1[0],q1[1],q1[2],
+	 q2[0],q2[1],q2[2]  );
+  math_xyz2rpz(q1, rpz1);
+  math_xyz2rpz(q2, rpz2);
+  hitId = wall_3d_hit_wall_full(rpz1[0], rpz1[1], rpz1[2],
+			   rpz2[0], rpz2[1], rpz2[2],  wdata);
+  /*hitId = wall_3d_hit_wall(rpz2[0], rpz2[1], rpz2[2],
+    rpz1[0], rpz1[1], rpz1[2],  wdata); */
+  if ( hitId == correctId ){
+    printf("Correct hit id: %6d ok!\n",hitId);
+  }
+  else{
+    printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
+    failed++;
+  }
+    
+  correctId = tri_in_batch + 1;
+  printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check using search tree]]\n",
+	 q1[0],q1[1],q1[2],
+	 q2[0],q2[1],q2[2]  );
+  math_xyz2rpz(q1, rpz1);
+  math_xyz2rpz(q2, rpz2);
+  hitId = wall_3d_hit_wall(rpz1[0], rpz1[1], rpz1[2],
+			   rpz2[0], rpz2[1], rpz2[2],  wdata);
+  if ( hitId == correctId ){
+    printf("Correct hit id: %6d ok!\n",hitId);
+  }
+  else{
+    printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
+    failed++;
+  }
+    
+  
+  
+  return failed;
+}
+
 
 
 int main(int argc, char** argv) {
@@ -291,6 +474,7 @@ int main(int argc, char** argv) {
 
     /* Get a sample wall */
     tetra_wall(&offload_data, &offload_array);
+
 
     wall_3d_init_offload(&offload_data, &offload_array);
 
@@ -306,5 +490,20 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+
+    /* Deallocate the previous wall */
+    wall_3d_free_offload(&offload_data, &offload_array);
+    
+    /* Create and initialize the whole tree*/
+    queue_wall(&offload_data, &offload_array);
+    wall_3d_init_offload(&offload_data,&offload_array);
+    wall_3d_init(&wdata, &offload_data, offload_array);
+		   
+    if (test_rays_in_queue(&wdata)) {
+        return 1;
+    }
+
+
+    
     return 0;
 }
