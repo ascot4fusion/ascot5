@@ -12,7 +12,9 @@
 #include "../particle.h"
 #include "hdf5_helpers.h"
 #include "hdf5_state.h"
-
+#ifdef TRAP_FPE
+#include <fenv.h>
+#endif
 /**
  * @brief Writes marker state to an ASCOT5 HDF5 file.
  *
@@ -210,9 +212,17 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     free(intdata);
 
     int* intdata32 = (int*) malloc(n * sizeof(int));
+#ifdef TRAP_FPE
+    /* If there are errors in generating the markers, the data may be corrupt. We should ignore
+     * floating point exceptions here. */
+    fedisableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+#endif
     for(i = 0; i < n; i++) {
         intdata32[i] = (int)round(p[i].charge/CONST_E);
     }
+#ifdef TRAP_FPE
+    feenableexcept(FE_DIVBYZERO  | FE_INVALID | FE_OVERFLOW);
+#endif
     hdf5_write_extendible_dataset_int(state_group, "charge", n, intdata32);
     H5LTset_attribute_string(state_group, "charge", "unit", "e");
 
