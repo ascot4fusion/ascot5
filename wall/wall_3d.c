@@ -234,13 +234,11 @@ void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
 void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
 
 
-#ifdef WALL_3D_VERBOSE
-        if (w->n > 1000000){
-                printf("Starting to initialize 3D-wall octree with %d triangles.\n", w->n);
-        }
-#endif
+    if (w->n > 1000000){
+        print_out(VERBOSE_NORMAL, "Starting to initialize 3D-wall octree with %d triangles.\n", w->n);
+    }
 
-        /* construct the octree and store triangles there */
+    /* construct the octree and store triangles there */
     octree_node* tree;
     octree_create(&tree, w->xmin, w->xmax, w->ymin, w->ymax, w->zmin, w->zmax,
                   w->depth);
@@ -257,10 +255,9 @@ void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
         t3[1] = offload_array[i*9+7];
         t3[2] = offload_array[i*9+8];
         octree_add(tree, t1, t2, t3, i);
-#ifdef WALL_3D_VERBOSE
-        if (i%1000000==0 && i > 0)
-printf("  Adding triangle %10d/%d.\n",i,w->n);
-#endif
+        if (i%1000000==0 && i > 0){
+	  print_out(VERBOSE_NORMAL, "  Adding triangle %10d/%d.\n",i,w->n);
+	}
     }
 
     /* create lists for triangles in each grid square and fill the lists
@@ -550,14 +547,6 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
             return -1.0;
         }
 
-        /** It is on the plane. */
-#ifdef WALL_3D_VERBOSE
-        printf(" We actually have an interval on the triangle plane!\n");
-        printf("   q1 =[ %10f %10f %10f] ; q2 =[ %10f %10f %10f] \n", q1[0],q1[1],q1[2], q2[0],q2[1],q2[2]);
-        printf("      t1 = [%10f %10f %10f]\n", t1[0],t1[1],t1[2] );
-        printf("      t2 = [%10f %10f %10f]\n", t2[0],t2[1],t2[2] );
-        printf("      t3 = [%10f %10f %10f]\n", t3[0],t3[1],t3[2] );
-#endif
 
         /** Is at least one of the points inside the triangle?
          * Go to barycentric coordinates.
@@ -566,9 +555,6 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
         real AP[3];
         AP[0] = q1[0]-t1[0]; AP[1] = q1[1]-t1[1]; AP[2] = q1[2]-t1[2];
         math_barycentric_coords_triangle( AP, t2t1, t3t1, n, &S1, &T1);
-#ifdef WALL_3D_VERBOSE
-      printf("Barycentric coordinates S1,T1 %f,%f\n",S1,T1);
-#endif
         if (1.0 >= T1+S1 &&
                T1 >= 0.0 && T1 <= 1.0 &&
                S1 >= 0.0 && S1 <= 1.0      )
@@ -578,9 +564,6 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
 
         AP[0] = q2[0]-t1[0]; AP[1] = q2[1]-t1[1]; AP[2] = q2[2]-t1[2];
         math_barycentric_coords_triangle( AP, t2t1, t3t1, n, &S2, &T2);
-#ifdef WALL_3D_VERBOSE
-      printf("Barycentric coordinates S2,T2 %f,%f\n",S2,T2);
-#endif
         if (1.0 >= T2+S2 &&
                T2 >= 0.0 && T2 <= 1.0 &&
                S2 >= 0.0 && S2 <= 1.0      )
@@ -597,9 +580,6 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
                 /* The points are on both sides of s=0*/
                 real L= fabs(S1)+fabs(S2);
                 real T0 =T1 + fabs(S1)/L*(T2-T1);
-#ifdef WALL_3D_VERBOSE
-      printf("e1: Intersection point T0 %f\n",T0);
-#endif
                 if ( T0 >= 0.0 && T0 <= 1.0){
                         return 0.0;
                 }
@@ -609,9 +589,6 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
                 /* The points are on both sides of t=0*/
                 real L= fabs(T1)+fabs(T2);
                 real S0 = S1 + fabs(T1)/L*(S2-S1);
-#ifdef WALL_3D_VERBOSE
-                printf("e2: Intersection point S0 %f\n",S0);
-#endif
                 if ( S0 >= 0.0 && S0 <= 1.0){
                         return 0.0;
                 }
@@ -622,9 +599,6 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
             if( S1 >= 0.0 && S1 <= 1.0 ){
                 real T0 = 1.0 - S1;
                 if( (T1-T0)*(T2-T0) <= 0.0 ){
-#ifdef WALL_3D_VERBOSE
-                    printf("e3: S1==S2==%f, T0=\n",S1,T0);
-#endif
                     return 0.0;
                 }
 			}
@@ -633,16 +607,10 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
             if(k==-1.0){
                 /* Parallel line*/
                 if(S1+T1==1.0){
-#ifdef WALL_3D_VERBOSE
-                    printf("e3: Parallel line 1==S1+T1=%f\n",S1+T1);
-#endif
                     return 0.0;
                 }
             }else{
                 real S0 = ( k*(1-T1)+S1)/(1.0+k);
-#ifdef WALL_3D_VERBOSE
-                printf("e3: Intersection point S0 %f\n",S0);
-#endif
                 if ( S0 >= 0.0 && S0 <= 1.0){
                     return 0.0;
                 }
