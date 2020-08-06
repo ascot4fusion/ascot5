@@ -165,8 +165,8 @@ void test_wall_hit(wall_3d_data* wdata) {
         q1[2] = ((real)rand()/(real)RAND_MAX)*(zmax-zmin) + zmin;
         q2[2] = ((real)rand()/(real)RAND_MAX)*(zmax-zmin) + zmin;
 
-        int w = wall_3d_hit_wall(q1[0], q1[1], q1[2], q2[0], q2[1], q2[2], wdata);
-
+        int idw = wall_3d_hit_wall(q1[0], q1[1], q1[2], q2[0], q2[1], q2[2], wdata);
+	w = idw->w;
         printf("%lf %lf %lf %lf %lf %lf %d\n", q1[0], q1[1], q1[2],
                q2[0], q2[1], q2[2], w);
     }
