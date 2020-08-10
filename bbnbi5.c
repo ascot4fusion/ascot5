@@ -135,17 +135,17 @@ int main(int argc, char** argv) {
     char path[256];
     hdf5_gen_path("/marker/prt_XXXXXXXXXX", qid, path);
 
-    hdf5_write_string_attribute(f, path, "description",  sim.description);
+    hdf5_write_string_attribute(of, path, "description",  sim.description);
 
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     char date[21];
     sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900,
             tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-    hdf5_write_string_attribute(f, path, "date",  date);
+    hdf5_write_string_attribute(of, path, "date",  date);
 
     /* Set this run as active. */
-    hdf5_write_string_attribute(f, "/marker", "active",  qid);
+    hdf5_write_string_attribute(of, "/marker", "active",  qid);
 
     hdf5_close(of);
 
