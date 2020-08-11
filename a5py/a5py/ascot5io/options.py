@@ -776,7 +776,7 @@ def get_default():
          10)
     )
     info.append(
-        ("ORBITWRITE_TOROIDALANGLES",
+        ("ORBITWRITE_POLOIDALANGLES",
          """\
          # Poloidal angles of toroidal planes where toroidal plots are collected
          # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 0.
@@ -784,7 +784,7 @@ def get_default():
          [0, 180])
     )
     info.append(
-        ("ORBITWRITE_POLOIDALANGLES",
+        ("ORBITWRITE_TOROIDALANGLES",
          """\
          # Toroidal angles of poloidal planes where poloidal plots are collected
          # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 0.
@@ -854,15 +854,27 @@ def get_default():
     return cleaned
 
 
-def generateopt():
+def generateopt(clean=False):
     """
     Get default option parameter names and values as a dictionary
+
+    Set clean=True to set disable all features except those that are supposed to
+    be enabled. Also clears all end conditions.
     """
     defopt = get_default()
     opt = {}
     for namecmtval in defopt:
         if len(namecmtval) == 3:
             opt[namecmtval[0]] = namecmtval[2]
+
+    if clean:
+        for o in opt:
+            if o.startswith("ENABLE"):
+                opt[o] = 0
+            if o.startswith("ENDCOND"):
+                opt[o] = 0
+            if o.startswith("DISABLE"):
+                opt[o] = 0
 
     return opt
 
