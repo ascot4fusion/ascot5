@@ -23,13 +23,13 @@ def read_hdf5(fn, qid):
     """
 
     with h5py.File(fn,"r") as f:
-        transcoef = f["/results/run_"+qid+"/transcoef"]
+        data = f["/results/run_"+qid+"/transcoef"]
 
         out = {}
 
         # Read data from file.
-        for field in transcoef:
-            out[field]           = data[field][:]
+        for field in data:
+            out[field] = data[field][:]
 
     return out
 
@@ -61,4 +61,6 @@ class Transcoef(AscotData):
             if key in h5keys:
                 item = h5[key][:]
 
-            return item
+            # Sort by id
+            idx  = h5["ids"][:].argsort()
+            return item[idx]
