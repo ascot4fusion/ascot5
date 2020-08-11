@@ -55,7 +55,7 @@ int hdf5_transcoef_write(hid_t f, char* qid, diag_transcoef_offload_data* data,
             j++;
         }
     }
-    hdf5_write_extendible_dataset_long(group, "id", datasize, idarr);
+    hdf5_write_extendible_dataset_long(group, "ids", datasize, idarr);
     free(idarr);
 
     /* Write K and D */
@@ -67,7 +67,7 @@ int hdf5_transcoef_write(hid_t f, char* qid, diag_transcoef_offload_data* data,
             j++;
         }
     }
-    hdf5_write_extendible_dataset_double(group, "K", datasize, dataarr);
+    hdf5_write_extendible_dataset_double(group, "k", datasize, dataarr);
 
     j = 0;
     for(integer i = 0; i < arrlen; i++) {
@@ -76,9 +76,20 @@ int hdf5_transcoef_write(hid_t f, char* qid, diag_transcoef_offload_data* data,
             j++;
         }
     }
-    hdf5_write_extendible_dataset_double(group, "D", datasize, dataarr);
+    hdf5_write_extendible_dataset_double(group, "d", datasize, dataarr);
     free(dataarr);
     free(mask);
+
+    /* Write units */
+    H5LTset_attribute_string(group, "ids", "unit", "1");
+    if( data->recordrho ) {
+        H5LTset_attribute_string(group, "k", "unit", "1/s");
+        H5LTset_attribute_string(group, "d", "unit", "1/s");
+    }
+    else {
+        H5LTset_attribute_string(group, "k", "unit", "m/s");
+        H5LTset_attribute_string(group, "d", "unit", "m^2/s");
+    }
 
     H5Gclose (group);
 

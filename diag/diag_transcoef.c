@@ -137,7 +137,7 @@ void diag_transcoef_update_ml(diag_transcoef_data* data,
         real pitchsign = 1 - 2*(p_f->pitch[i] < 0);
         diag_transcoef_record(
             data, p_f->index[i], p_f->id[i], p_f->rho[i], p_f->r[i], pitchsign,
-            p_i->mileage[i], p_f->mileage[i], p_i->theta[i],  p_f->theta[i]);
+            p_f->mileage[i], p_i->mileage[i], p_f->theta[i],  p_i->theta[i]);
     }
 
 
@@ -180,10 +180,13 @@ void diag_transcoef_record(diag_transcoef_data* data, integer index,
          * - Marker has crossed OMP during the current time step.
          */
         real record = 0.0;
-        int nodataexists = data->datapoints[index] == NULL;
-        real timepassed  = t_f - data->datapoints[index]->time;
-        if( t_f > t_i && ( nodataexists || timepassed > data->interval ) ) {
-            record = diag_transcoef_check_omp_crossing(theta_f, theta_i);
+        if( t_f > t_i ) {
+            if( data->datapoints[index] == NULL ) {
+                record = diag_transcoef_check_omp_crossing(theta_f, theta_i);
+            }
+            else if( t_f - data->datapoints[index]->time > data->interval ) {
+                record = diag_transcoef_check_omp_crossing(theta_f, theta_i);
+            }
         }
 
         /* Record */
@@ -349,16 +352,15 @@ void diag_transcoef_process_and_clean(diag_transcoef_data* data,
  */
 real diag_transcoef_check_omp_crossing(real fang, real iang){
 
-    real ang0 = 0;
     real k = 0.0;
-    if( floor( (fang + ang0)/CONST_2PI ) != floor( (iang + ang0)/CONST_2PI ) ) {
+    if( floor( fang/CONST_2PI ) != floor( iang/CONST_2PI ) ) {
 
         real a = fmod(iang, CONST_2PI);
         if(a < 0){
             a = CONST_2PI + a;
         }
 
-        a = fabs(ang0 - a);
+        a = fabs(a);
         if(a > CONST_PI) {
             a = CONST_2PI - a;
         }
