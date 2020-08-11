@@ -9,14 +9,14 @@ these grid nodes.
 
 import numpy as np
 
-from scipy.constants import c, physical_constants as constants
 import a5py.ascot5io.mrk_gc as mrk_gc
 import a5py.ascot5io.mrk_fl as mrk_fl
 
 from a5py.ascotpy import Ascotpy
 
 
-def init_rho(fn, n, rhogrid, randomize_rho=False, desc=None):
+def init_rho(fn, n, rhogrid, rgrid=None, randomize_rho=False, bfield=True,
+             desc=None):
     """
     Initialize field line markers in radius.
 
@@ -24,22 +24,36 @@ def init_rho(fn, n, rhogrid, randomize_rho=False, desc=None):
     The coordinates are given in rhogrid array at any order. If randomize_rho is
     True, n markers are randomly and uniformly distributed between min and max
     rhogrid values.
+
+    Use rgrid to give R values explicitly in which case rhogrid is ignored.
     """
     rhogrid = np.atleast_1d(rhogrid)
 
-    if randomize_rho:
-        rhovals = np.amin(rhogrid) + ( np.amax(rhogrid)- np.amin(rhogrid) ) \
-                  * np.random.rand(n)
+    def getvals(grid):
+        if randomize_rho:
+            vals = np.amin(grid) + ( np.amax(grid)- np.amin(grid) ) \
+                      * np.random.rand(n)
+        else:
+            vals = np.zeros((grid.size*n,))
+            for i in range(grid.size):
+                vals[i*n:(i+1)*n] = grid[i]
+
+        return vals
+
+    if rgrid is None:
+        rhovals = getvals(rhogrid)
     else:
-        rhovals = np.zeros((rhogrid.size*n,))
-        for i in range(rhogrid.size):
-            rhovals[i*n:(i+1)*n] = rhogrid[i]
+        rhovals = getvals(rgrid)
 
     # Find OMP R,z values
     a5 = Ascotpy(fn)
-    a5.init(bfield=True)
-    rz_omp = a5.get_rhotheta_rz( rhovals, 0, 0, 0 )
-    a5.free(bfield=True)
+    a5.init(bfield=bfield)
+    if rgrid is None:
+        rz_omp = a5.get_rhotheta_rz( rhovals, 0, 0, 0 )
+    else:
+        rz_omp = a5.get_rhotheta_rz( 0.5*np.ones(rhovals.shape), 0, 0, 0 )
+        rz_omp[0] = rhovals
+    a5.free(bfield=bfield)
 
     mrk = {}
     mrk["n"]      = rz_omp[0].size
@@ -58,16 +72,18 @@ def init_rho(fn, n, rhogrid, randomize_rho=False, desc=None):
     mrk_fl.write_hdf5(fn, **mrk, desc=desc)
 
 
-def init_rhoenergypitch(fn, n, rhogrid, energygrid, pitchgrid,
+def init_rhoenergypitch(fn, n, mass, charge, anum, znum, rhogrid, energygrid,
+                        pitchgrid, rgrid=None,
                         randomize_rho=False, randomize_energy=False,
-                        randomize_pitch=False, time=0, desc=None,
-                        species="electron"):
+                        randomize_pitch=False, time=0, desc=None):
     """
     Initialize guiding center markers in radius, energy, and pitch.
 
     See init_rho for how markers are distributed. This function distributes
     markers also in energy and pitch. At each grid point n markers are
     initialized.
+
+    Use rgrid to give R values explicitly in which case rhogrid is ignored.
     """
 
     rhogrid    = np.atleast_1d(rhogrid)
@@ -88,14 +104,21 @@ def init_rhoenergypitch(fn, n, rhogrid, energygrid, pitchgrid,
     for irho in range(rhogrid.size):
         for ienergy in range(energygrid.size):
             for ipitch in range(pitchgrid.size):
-                idx =   ipitch * (energygrid.size + rhogrid.size) \
+                idx =   ipitch * (energygrid.size * rhogrid.size) \
                       + ienergy * rhogrid.size + irho
-                if randomize_rho:
+                if randomize_rho and rgrid is None:
                     rhovals[idx*n:(idx+1)*n] = \
                     np.amin(rhogrid) + ( np.amax(rhogrid)- np.amin(rhogrid) ) \
                         * np.random.rand(n)
-                else:
+                elif rgrid is None:
                     rhovals[idx*n:(idx+1)*n] = rhogrid[irho]
+
+                if randomize_rho and rgrid is not None:
+                    rhovals[idx*n:(idx+1)*n] = \
+                    np.amin(rgrid) + ( np.amax(rgrid)- np.amin(rgrid) ) \
+                        * np.random.rand(n)
+                elif rgrid is not None:
+                    rhovals[idx*n:(idx+1)*n] = rgrid[irho]
 
                 if randomize_energy:
                     energyvals[idx*n:(idx+1)*n] = \
@@ -116,7 +139,11 @@ def init_rhoenergypitch(fn, n, rhogrid, energygrid, pitchgrid,
     # Find OMP R,z values
     a5 = Ascotpy(fn)
     a5.init(bfield=True)
-    rz_omp = a5.get_rhotheta_rz( rhovals, 0, 0, 0 )
+    if rgrid is None:
+        rz_omp = a5.get_rhotheta_rz( rhovals, 0, 0, 0 )
+    else:
+        rz_omp = a5.get_rhotheta_rz( 0.5*np.ones(rhovals.shape), 0, 0, 0 )
+        rz_omp[0] = rhovals
     a5.free(bfield=True)
 
     mrk = {}
@@ -137,16 +164,7 @@ def init_rhoenergypitch(fn, n, rhogrid, energygrid, pitchgrid,
     mrk["pitch"]  = mrk["pitch"][mix]
     mrk["energy"] = mrk["energy"][mix]
 
-    if species == "electron":
-        mass   = constants["electron mass in u"][0]
-        charge = -1
-        anum   = 0
-        znum   = 0
-    else:
-        print("Unknown species")
-        return
-
-    mrk["mass"]   = mass   * np.ones((mrk["n"],))
+    mrk["mass"]   = mass.to("amu").d   * np.ones((mrk["n"],))
     mrk["charge"] = charge * np.ones((mrk["n"],))
     mrk["anum"]   = anum   * np.ones((mrk["n"],))
     mrk["znum"]   = znum   * np.ones((mrk["n"],))
@@ -154,16 +172,18 @@ def init_rhoenergypitch(fn, n, rhogrid, energygrid, pitchgrid,
     mrk_gc.write_hdf5(fn=fn, **mrk, desc=desc)
 
 
-def init_rhopparapperp(fn, n, rhogrid, pparagrid, pperpgrid,
+def init_rhopparapperp(fn, n, mass, charge, anum, znum, rhogrid, pparagrid,
+                       pperpgrid, rgrid=None,
                        randomize_rho=False, randomize_ppara=False,
-                       randomize_pperp=False, time=0, desc=None,
-                       species="electron"):
+                       randomize_pperp=False, time=0, desc=None):
     """
     Initialize guiding center markers in radius, ppara, and pperp.
 
     See init_rho for how markers are distributed. This function distributes
     markers also in ppara and pperp. At each grid point n markers are
     initialized.
+
+    Use rgrid to give R values explicitly in which case rhogrid is ignored.
     """
 
     rhogrid   = np.atleast_1d(rhogrid)
@@ -212,7 +232,11 @@ def init_rhopparapperp(fn, n, rhogrid, pparagrid, pperpgrid,
     # Find OMP R,z values
     a5 = Ascotpy(fn)
     a5.init(bfield=True)
-    rz_omp = a5.get_rhotheta_rz( rhovals, 0, 0, 0 )
+    if rgrid is None:
+        rz_omp = a5.get_rhotheta_rz( rhovals, 0, 0, 0 )
+    else:
+        rz_omp = a5.get_rhotheta_rz( 0.5*np.ones(rhovals.shape), 0, 0, 0 )
+        rz_omp[0] = rhovals
     a5.free(bfield=True)
 
     mrk = {}
@@ -225,16 +249,6 @@ def init_rhopparapperp(fn, n, rhogrid, pparagrid, pperpgrid,
     mrk["pitch"]  = pparavals / np.sqrt(pparavals**2 + pperpvals**2)
     mrk["time"]   = 0 * np.ones((mrk["n"],))
     mrk["weight"] = 1 * np.ones((mrk["n"],))
-
-    if species == "electron":
-        mass   = constants["electron mass in u"][0]
-        charge = -1
-        anum   = 0
-        znum   = 0
-        restmass = constants["electron mass energy equivalent in MeV"][0] * 1e-6
-    else:
-        print("Unknown species")
-        return
 
     pnorm2 =  pparavals**2 + pperpvals**2
     mrk["energy"] = np.sqrt(restmass**2 + pnorm2 * c**2) - restmass
