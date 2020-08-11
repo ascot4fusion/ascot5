@@ -179,7 +179,7 @@ def write_hdf5_dummy(fn, desc="Dummy"):
     psimin     = 0
     psimax     = 1
     npsi       = 6
-    nthetag    = 10 
+    nthetag    = 10
     ntheta     = 10
     rmin       = 0.1
     rmax       = 10.0
@@ -212,11 +212,11 @@ class Boozer(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
-    
+
     def write(self,fn,data = None, desc=None):
         if data is None:
             data = self.read()
-        
+
         if desc is None:
             return write_hdf5(fn=fn, **data)
         else:
