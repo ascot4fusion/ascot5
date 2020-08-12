@@ -46,7 +46,8 @@ ifneq ($(CC),h5cc)
 	endif
 endif
 
-CFLAGS+=-O2 -lm -Wall -fopenmp -fPIC -std=c11 $(DEFINES) $(FLAGS)
+CFLAGS += -g
+CFLAGS += -O2 -lm -Wall -fopenmp -fPIC -std=c11 $(DEFINES) $(FLAGS)
 
 # Write CFLAGS and CC to a file to be included into output
 $(shell echo "#define CFLAGS " $(CFLAGS) > compiler_flags.h)

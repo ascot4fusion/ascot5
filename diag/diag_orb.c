@@ -1,4 +1,3 @@
- * @file diag_orb.c
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -15,7 +14,7 @@
 #pragma omp declare target
 #pragma omp declare simd uniform(ang0)
 real diag_orb_check_plane_crossing(real fang, real iang, real ang0);
-real diag_orb_check_r_crossing(real fr, real ir, real r0);
+real diag_orb_check_radial_crossing(real fr, real ir, real r0);
 #pragma omp end declare target
 
 /**
@@ -52,6 +51,10 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
         data->npoloidalplots = offload_data->npoloidalplots;
         for(int i=0; i<data->npoloidalplots; i++) {
             data->poloidalangles[i] = offload_data->poloidalangles[i];
+        }
+        data->nradialplots = offload_data->nradialplots;
+        for(int i=0; i<data->nradialplots; i++) {
+            data->radialdistances[i] = offload_data->radialdistances[i];
         }
 
         data->pncrid = &(offload_array[step*offload_data->Nfld]);
@@ -281,8 +284,8 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                     		                          p_i->theta[i],
                                                       data->poloidalangles[j]);
                     //printf("Poloidal %10.5f,%10.5f,%10.5d,%10.5d \n",k,data->pncrid[idx],data->npoloidalplots, data->nradialplots);
-                    printf("Poloidal/angles %10.5f,%10.5f,%10.5f,\n,%10.5f,%10.5f\n",data->poloidalangles[j],data->radialdistances[j]
-                          ,data->rho[imrk * data->Npnt + ipoint],data->r[imrk * data->Npnt + ipoint],data->z[imrk * data->Npnt + ipoint]);
+                    //printf("Poloidal/angles %10.5f,%10.5f,%10.5f,\n,%10.5f,%10.5f\n",data->poloidalangles[j],data->radialdistances[j]
+                    //      ,data->rho[imrk * data->Npnt + ipoint],data->r[imrk * data->Npnt + ipoint],data->z[imrk * data->Npnt + ipoint]);
                     if(k) {
                         real d = 1-k;
                         idx = imrk * data->Npnt + ipoint;
@@ -309,19 +312,21 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         }
                         data->mrk_pnt[imrk]      = ipoint;
                         data->mrk_recorded[imrk] = p_f->mileage[i];
-                    //printf("Poloidal %10.5f,%10.5f \n",k,data->pncrid[idx]);
+                        //printf("Poloidal %10.5f,%10.5f,%10.5f,%10.5f \n",k, p_f->theta[i],
+                    	//	p_i->theta[i], data->poloidalangles[j]);;
                     }
                 }
 
                 /* Check and store radial crossings. */
                 for(int j=0; j < data->nradialplots; j++) {
-                    k = diag_orb_check_r_crossing(p_f->r[i],p_i->r[i],
+                    k = diag_orb_check_radial_crossing(p_f->rho[i],p_i->rho[i],
                                                     data->radialdistances[j]);
-                    printf("Radial %10.5f,%10.5f,%10.5f,%10.5f,%10.5d \n",k, p_f->r[i],
-                    		p_i->r[i], data->radialdistances[j],data->nradialplots);
+                    //printf("Radial %10.5f,%10.5f,%10.5f,%10.5f,%10.5d \n",k, p_f->r[i],
+                    //		p_i->r[i], data->radialdistances[j],data->nradialplots);
                     //toiseksi viimeinen ei toimi
                     if(k) {
-                        real d = 1-k;
+                        real d = k;
+			k = 1-d;
                         idx = imrk * data->Npnt + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
                         data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
@@ -346,8 +351,8 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         }
                         data->mrk_pnt[imrk]      = ipoint;
                         data->mrk_recorded[imrk] = p_f->mileage[i];
-                        printf("############################################# Radial %10.5f,%10.5f,%10.5f,%10.5f \n",k, p_f->r[i],
-                    		p_i->r[i], data->radialdistances[j]);
+                        //printf("Radial %10.5f,%10.5f,%10.5f,%10.5f \n",k, p_f->rho[i],
+                    	//	p_i->rho[i], data->radialdistances[j]);
                     }
                 }
             }
@@ -518,7 +523,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
 
                 /* Check and store radial crossings. */
                 for(int j=0; j < data->nradialplots; j++) {
-                    k = diag_orb_check_r_crossing(p_f->rho[i],
+                    k = diag_orb_check_radial_crossing(p_f->rho[i],
                                                       p_i->rho[i],
                                                       data->radialdistances[j]);
                     if(k) {
@@ -540,7 +545,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] =
-                        		j + data->ntoroidalplots;//+data->npoloidalplots;
+                        		j + data->ntoroidalplots + data->npoloidalplots;
 
                         ipoint++;
                         if(ipoint == data->Npnt) {
@@ -694,9 +699,40 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         data->mrk_recorded[imrk] = p_f->mileage[i];
                     }
                 }
-            }
+  
+                /* Check and store radial crossings. */
+                for(int j=0; j < data->nradialplots; j++) {
+                    k = diag_orb_check_radial_crossing(p_f->rho[i],
+                                                      p_i->rho[i],
+                                                      data->radialdistances[j]);
+                    if(k) {
+                        real d = 1-k;
+                        idx = imrk * data->Npnt + ipoint;
+                        data->id[idx]     = (real)p_f->id[i];
+                        data->mileage[idx]= k*p_f->mileage[i] + d*p_i->mileage[i];
+                        data->r[idx]      = k*p_f->r[i]       + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]     + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]       + d*p_i->z[i];
+                        data->rho[idx]    = k*p_f->rho[i]     + d*p_i->rho[i];
+                        data->theta[idx]  = k*p_f->theta[i]   + d*p_i->theta[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]     + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i]   + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]     + d*p_i->B_z[i];
+                        data->pncrid[idx] =
+			  j + data->ntoroidalplots + data->npoloidalplots;
+
+                        ipoint++;
+                        if(ipoint == data->Npnt) {
+                            ipoint = 0;
+                        }
+
+                        data->mrk_pnt[imrk]      = ipoint;
+                        data->mrk_recorded[imrk] = p_f->mileage[i];
+                    }
+              }
         }
     }
+}
 }
 
 
@@ -708,33 +744,58 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
  * that defines a Poincare plane is between marker's initial and final angles
  * (of single timestep).
  *
+ * Assumption: (ian-fang) < 360 degrees in a single timestep
+ *
  * @param fang marker final angle in radians.
  * @param iang marker initial angle in radians.
- * @param ang0 Poincare plane angle.
- *
- * @return zero if no-crossing, number k, ang0 = k + (fang - iang), otherwise.
+ * @param ang0 Poincare plane angle in degrees.
+ * k = (iang-ang0)/(fang-iang)
+ * @return zero if no-crossing, number k, ang0 = k * (fang - iang), otherwise.
  */
 
 
 real diag_orb_check_plane_crossing(real fang, real iang, real ang0){
-
+  
     real k = 0;
-    if( floor( (fang + ang0)/CONST_2PI ) != floor( (iang + ang0)/CONST_2PI ) ) {
-
-        real a = fmod(iang, CONST_2PI);
-        if(a < 0){
-            a = CONST_2PI + a;
-        }
-
-        a = fabs(ang0 - a);
-        if(a > CONST_PI) {
-            a = CONST_2PI - a;
-        }
-        k = fabs(a / (fang - iang));
+    int fix = iang/CONST_2PI;
+    real iaf = fmod(iang,fix);
+    real faf = fmod(fang,fix);
+    real ang0r = ang0;
+    
+    if(fix > 0){
+        iaf = fmod(iang,CONST_2PI);
+	//    printf("iaf %f\n",iaf);
+        faf = fmod(fang,CONST_2PI);
+	//    printf("faf %f\n",faf);
     }
-
+    
+    if(fix < 0){
+        iaf = -fix*CONST_2PI + fmod(iang,CONST_2PI);
+	//    printf("iaf %f\n",iaf);
+        faf = -fix*CONST_2PI + fmod(fang,CONST_2PI);
+	//    printf("faf %f\n",faf);
+    }
+    
+    if(iaf < faf){
+        if(iaf <= ang0r && faf > ang0r){
+	        k = fabs((iaf - ang0r) / (faf - iaf));
+        }
+        //else if(iaf - CONST_2PI <= ang0 && faf - CONST_2PI > ang0){
+        //    k= fabs((iaf - ang0 - CONST_2PI) / (faf - iaf));
+	    //}
+    }
+    else{
+        if(faf <= ang0r && iaf > ang0r){
+            k = fabs((iaf - ang0r) / (faf - iaf));
+        }
+	//else if(iaf + CONST_2PI <= ang0 && faf + CONST_2PI > ang0){
+        //    k = fabs((iaf - ang0 + CONST_2PI) / (faf - iaf));
+        //}
+    }
     return k;
 }
+
+
 
 /**
  * @brief Check if marker has crossed given rho
@@ -746,18 +807,17 @@ real diag_orb_check_plane_crossing(real fang, real iang, real ang0){
  * @param irho marker initial rho in metres.
  * @param rho0 Poincare plane rho.
  *
- * @return zero if no-crossing, number k, rho0 = k + (frho - irho), otherwise.
+ * @return zero if no-crossing, number k, rho0 = k * (frho - irho), otherwise.
  */
 
-real diag_orb_check_r_crossing(real fr, real ir, real r0){
+real diag_orb_check_radial_crossing(real frho, real irho, real rho0){
 
     real k = 0;
-    if(((fr <= r0 && ir > r0) || (ir <= r0 && fr > r0))) {
-        k = fabs(ir / (fr - ir));
+    if((frho <= rho0 && irho > rho0) || (irho <= rho0 && frho > rho0)){
+        k = fabs((irho - rho0) / (frho - irho));
     }
-    printf("%10.5f %10.5f %10.5f %10.5f\n",k, fr,ir,r0);
-
     return k;
+
 }
 
  
