@@ -1,5 +1,4 @@
 /**
- * @author Konsta Sarkimaki konsta.sarkimaki@aalto.fi
  * @file simulate_ml_adaptive.c
  * @brief Simulate magnetic field-lines using adaptive time-step
  */
@@ -28,7 +27,7 @@ real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i);
 
 
 #define MAGNETIC_FIELD_LINE_INISTEP 1.0e-2 /**< Initial step size in meters   */
-#define DUMMY_TIMESTEP_VAL 100.0           /**< Dummy time step val in meters */
+#define DUMMY_STEP_VAL 100.0              /**< Dummy orbit step val in meters */
 
 /**
  * @brief Simulates magnetic field-lines using adaptive time-step
@@ -45,9 +44,11 @@ real simulate_ml_adaptive_inidt(sim_data* sim, particle_simd_ml* p, int i);
  * tolerances as well as user-defined limits for how much
  * marker state can change during a single time-step.
  *
- * Note simulation time is defined by assuming field-lines
- * "travel" at the speed of light. However, the "time" step
- * itself is given in meters.
+ * Note that even though we might refer the integration time-step
+ * as "time", in reality we are integrating over distance. The time
+ * step is therefore step in meters marker orbit is intgerated. Marker does have
+ * time in its field, but it is the global time and that is not being changed
+ * during the simulation.
  *
  * @param pq field lines to be simulated
  * @param sim simulation data struct
@@ -98,51 +99,28 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
      * - Check for end condition(s)
      */
     while(n_running > 0) {
+
+        /* Store marker states in case time step will be rejected */
         #pragma omp simd
         for(i = 0; i < NSIMD; i++) {
-            /* Store marker states in case time step will be rejected */
-            p0.r[i]          = p.r[i];
-            p0.phi[i]        = p.phi[i];
-            p0.z[i]          = p.z[i];
-            p0.pitch[i]      = p.pitch[i];
+            particle_copy_ml(&p, i, &p0, i);
 
-            p0.time[i]       = p.time[i];
-            p0.cputime[i]    = p.cputime[i];
-            p0.rho[i]        = p.rho[i];
-            p0.weight[i]     = p.weight[i];
-            p0.theta[i]      = p.theta[i];
-
-            p0.id[i]         = p.id[i];
-            p0.running[i]    = p.running[i];
-            p0.endcond[i]    = p.endcond[i];
-            p0.walltile[i]   = p.walltile[i];
-
-            p0.B_r[i]        = p.B_r[i];
-            p0.B_phi[i]      = p.B_phi[i];
-            p0.B_z[i]        = p.B_z[i];
-
-            p0.B_r_dr[i]     = p.B_r_dr[i];
-            p0.B_r_dphi[i]   = p.B_r_dphi[i];
-            p0.B_r_dz[i]     = p.B_r_dz[i];
-
-            p0.B_phi_dr[i]   = p.B_phi_dr[i];
-            p0.B_phi_dphi[i] = p.B_phi_dphi[i];
-            p0.B_phi_dz[i]   = p.B_phi_dz[i];
-
-            p0.B_z_dr[i]     = p.B_z_dr[i];
-            p0.B_z_dphi[i]   = p.B_z_dphi[i];
-            p0.B_z_dz[i]     = p.B_z_dz[i];
-
-
-            hout[i] = DUMMY_TIMESTEP_VAL;
-            hnext[i] = DUMMY_TIMESTEP_VAL;
+            hout[i] = DUMMY_STEP_VAL;
+            hnext[i] = DUMMY_STEP_VAL;
         }
 
         /*************************** Physics **********************************/
 
         /* Cash-Karp method for orbit-following */
         if(sim->enable_orbfol) {
-            step_ml_cashkarp(&p, hin, hout, tol, &sim->B_data);
+            if(sim->enable_mhd) {
+                step_ml_cashkarp_mhd(&p, hin, hout, tol, &sim->B_data,
+                                     &sim->boozer_data, &sim->mhd_data);
+            }
+            else {
+                step_ml_cashkarp(&p, hin, hout, tol, &sim->B_data);
+            }
+
             /* Check whether time step was rejected */
             #pragma omp simd
             for(i = 0; i < NSIMD; i++) {
@@ -175,35 +153,7 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
 
                 /* Retrieve marker states in case time step was rejected */
                 if(hnext[i] < 0){
-                    p.r[i]          = p0.r[i];
-                    p.phi[i]        = p0.phi[i];
-                    p.z[i]          = p0.z[i];
-                    p.pitch[i]      = p0.pitch[i];
-
-                    p.time[i]       = p0.time[i];
-                    p.rho[i]        = p0.rho[i];
-                    p.weight[i]     = p0.weight[i];
-                    p.theta[i]      = p0.theta[i];
-
-                    p.running[i]    = p0.running[i];
-                    p.endcond[i]    = p0.endcond[i];
-                    p.walltile[i]   = p0.walltile[i];
-
-                    p.B_r[i]        = p0.B_r[i];
-                    p.B_phi[i]      = p0.B_phi[i];
-                    p.B_z[i]        = p0.B_z[i];
-
-                    p.B_r_dr[i]     = p0.B_r_dr[i];
-                    p.B_r_dphi[i]   = p0.B_r_dphi[i];
-                    p.B_r_dz[i]     = p0.B_r_dz[i];
-
-                    p.B_phi_dr[i]   = p0.B_phi_dr[i];
-                    p.B_phi_dphi[i] = p0.B_phi_dphi[i];
-                    p.B_phi_dz[i]   = p0.B_phi_dz[i];
-
-                    p.B_z_dr[i]     = p0.B_z_dr[i];
-                    p.B_z_dphi[i]   = p0.B_z_dphi[i];
-                    p.B_z_dz[i]     = p0.B_z_dz[i];
+                    particle_copy_ml(&p0, i, &p, i);
                 }
 
                 /* Update simulation and cpu times */
@@ -215,13 +165,14 @@ void simulate_ml_adaptive(particle_queue* pq, sim_data* sim) {
                         hin[i] = -hnext[i];
                     }
                     else {
-                        p.time[i] = p.time[i] + hin[i]/CONST_C;
+                        /* Mileage measures seconds but hin is in meters */
+                        p.mileage[i] += hin[i] / CONST_C;
 
                         if(hnext[i] > hout[i]) {
                             /* Use time step suggested by the integrator */
                             hnext[i] = hout[i];
                         }
-                        else if(hnext[i] == DUMMY_TIMESTEP_VAL) {
+                        else if(hnext[i] == DUMMY_STEP_VAL) {
                             /* Time step is unchanged (happens when no physics are enabled) */
                             hnext[i] = hin[i];
                         }

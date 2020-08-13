@@ -59,7 +59,7 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
     int dtypei16 = 2;
     if(data->record_mode == simulate_mode_fo) {
 
-        hdf5_orbit_writeset(group,  "id", "1", dtypei32, arraylength, 1,
+        hdf5_orbit_writeset(group,  "ids", "1", dtypei32, arraylength, 1,
                             mask, datasize, &orbits[arraylength*0]);
         hdf5_orbit_writeset(group,  "time", "s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*1]);
@@ -70,24 +70,11 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
                             mask, datasize, &orbits[arraylength*3]);
         hdf5_orbit_writeset(group,  "z", "m", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*4]);
-        hdf5_orbit_writeset(group,  "vr", "m/s", dtypef64, arraylength, 1,
+        hdf5_orbit_writeset(group,  "pr", "kg*m/s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*5]);
-
-        // v_phi is stored by orbits contain phidot -> multiply it with R.
-        for(integer i=0; i < arraylength; i++) {
-            if(mask[i]) {
-                orbits[arraylength*6 + i] *= orbits[arraylength*2 + i];
-            }
-        }
-        hdf5_orbit_writeset(group,  "vphi", "m/s", dtypef64, arraylength, 1,
-                             mask, datasize, &orbits[arraylength*6]);
-        for(integer i=0; i < arraylength; i++) {
-            if(mask[i]) {
-                orbits[arraylength*6 + i] /= orbits[arraylength*2 + i];
-            }
-        }
-
-        hdf5_orbit_writeset(group,  "vz", "m/s", dtypef64, arraylength, 1,
+        hdf5_orbit_writeset(group,  "pphi", "kg*m/s", dtypef64, arraylength, 1,
+                            mask, datasize, &orbits[arraylength*6]);
+        hdf5_orbit_writeset(group,  "pz", "kg*m/s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*7]);
         hdf5_orbit_writeset(group,  "weight", "1", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*8]);
@@ -105,11 +92,13 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
                             mask, datasize, &orbits[arraylength*13]);
         hdf5_orbit_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*14]);
+        hdf5_orbit_writeset(group,  "simmode", "1", dtypei32, arraylength, 1,
+                            mask, datasize, &orbits[arraylength*15]);
 
     }
 
     if(data->record_mode == simulate_mode_gc) {
-        hdf5_orbit_writeset(group,  "id", "1", dtypei32, arraylength, 1,
+        hdf5_orbit_writeset(group,  "ids", "1", dtypei32, arraylength, 1,
                             mask, datasize, &orbits[arraylength*0]);
         hdf5_orbit_writeset(group,  "time", "s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*1]);
@@ -120,9 +109,9 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
                             mask, datasize, &orbits[arraylength*3]);
         hdf5_orbit_writeset(group,  "z", "m", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*4]);
-        hdf5_orbit_writeset(group,  "vpar", "m/s", dtypef64, arraylength, 1,
+        hdf5_orbit_writeset(group,  "ppar", "kg*m/s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*5]);
-        hdf5_orbit_writeset(group,  "mu", "ev/T", dtypef64, arraylength,
+        hdf5_orbit_writeset(group,  "mu", "eV/T", dtypef64, arraylength,
                             1.0/CONST_E,
                             mask, datasize, &orbits[arraylength*6]);
         hdf5_orbit_writeset(group,  "zeta", "rad", dtypef64, arraylength, 1,
@@ -143,10 +132,12 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
                             mask, datasize, &orbits[arraylength*13]);
         hdf5_orbit_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*14]);
+        hdf5_orbit_writeset(group,  "simmode", "1", dtypei32, arraylength, 1,
+                            mask, datasize, &orbits[arraylength*15]);
     }
 
     if(data->record_mode == simulate_mode_ml) {
-        hdf5_orbit_writeset(group,  "id", "1", dtypei32, arraylength, 1,
+        hdf5_orbit_writeset(group,  "ids", "1", dtypei32, arraylength, 1,
                             mask, datasize, &orbits[arraylength*0]);
         hdf5_orbit_writeset(group,  "time", "s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*1]);
@@ -168,10 +159,12 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
                             mask, datasize, &orbits[arraylength*8]);
         hdf5_orbit_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*9]);
+        hdf5_orbit_writeset(group,  "simmode", "1", dtypei32, arraylength, 1,
+                            mask, datasize, &orbits[arraylength*10]);
     }
 
     if(data->record_mode == simulate_mode_hybrid) {
-        hdf5_orbit_writeset(group,  "id", "1", dtypei32, arraylength, 1,
+        hdf5_orbit_writeset(group,  "ids", "1", dtypei32, arraylength, 1,
                             mask, datasize, &orbits[arraylength*0]);
         hdf5_orbit_writeset(group,  "time", "s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*1]);
@@ -182,28 +175,15 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
                             mask, datasize, &orbits[arraylength*3]);
         hdf5_orbit_writeset(group,  "z", "m", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*4]);
-        hdf5_orbit_writeset(group,  "vr", "m/s", dtypef64, arraylength, 1,
+        hdf5_orbit_writeset(group,  "pr", "kg*m/s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*5]);
-
-        // v_phi is stored by orbits contain phidot -> multiply it with R.
-        for(integer i=0; i < arraylength; i++) {
-            if(mask[i]) {
-                orbits[arraylength*6 + i] *= orbits[arraylength*2 + i];
-            }
-        }
-        hdf5_orbit_writeset(group,  "vphi", "m/s", dtypef64, arraylength, 1,
+        hdf5_orbit_writeset(group,  "pphi", "kg*m/s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*6]);
-        for(integer i=0; i < arraylength; i++) {
-            if(mask[i]) {
-                orbits[arraylength*6 + i] /= orbits[arraylength*2 + i];
-            }
-        }
-
-        hdf5_orbit_writeset(group,  "vz", "m/s", dtypef64, arraylength, 1,
+        hdf5_orbit_writeset(group,  "pz", "kg*m/s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*7]);
-        hdf5_orbit_writeset(group,  "vpar", "m/s", dtypef64, arraylength, 1,
+        hdf5_orbit_writeset(group,  "ppar", "kg*m/s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*8]);
-        hdf5_orbit_writeset(group,  "mu", "ev/T", dtypef64, arraylength,
+        hdf5_orbit_writeset(group,  "mu", "eV/T", dtypef64, arraylength,
                             1.0/CONST_E,
                             mask, datasize, &orbits[arraylength*9]);
         hdf5_orbit_writeset(group,  "zeta", "rad", dtypef64, arraylength, 1,
@@ -224,6 +204,8 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
                             mask, datasize, &orbits[arraylength*16]);
         hdf5_orbit_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*17]);
+        hdf5_orbit_writeset(group,  "simmode", "1", dtypei32, arraylength, 1,
+                            mask, datasize, &orbits[arraylength*18]);
 
     }
 

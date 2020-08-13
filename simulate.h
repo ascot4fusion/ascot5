@@ -14,6 +14,8 @@
 #include "plasma.h"
 #include "neutral.h"
 #include "wall.h"
+#include "boozer.h"
+#include "mhd.h"
 #include "diag.h"
 #include "offload.h"
 #include "random.h"
@@ -55,6 +57,8 @@ typedef struct {
     plasma_offload_data plasma_offload_data;   /**< Plasma offload data         */
     neutral_offload_data neutral_offload_data; /**< Neutral offload data        */
     wall_offload_data wall_offload_data;       /**< Wall offload data           */
+    boozer_offload_data boozer_offload_data;   /**< Boozer offload data         */
+    mhd_offload_data mhd_offload_data;         /**< MHD offload data            */
     diag_offload_data diag_offload_data;       /**< Diagnostics offload data    */
 
     /* Options - general */
@@ -81,6 +85,7 @@ typedef struct {
     /* Options - physics */
     int enable_orbfol;         /**< Is orbit-following enabled                */
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
+    int enable_mhd;            /**< Are MHD modes enabled                     */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb
@@ -93,6 +98,7 @@ typedef struct {
     /* Options - end conditions */
     int endcond_active;        /**< Bit array notating active end conditions  */
     real endcond_max_simtime;  /**< Maximum simulation time [s]               */
+    real endcond_max_mileage;  /**< Maximum simulation duration [s]           */
     real endcond_max_cputime;  /**< Maximum wall-clock time [s]               */
     real endcond_min_rho;      /**< Minimum rho limit                         */
     real endcond_max_rho;      /**< Maximum rho limit                         */
@@ -110,6 +116,17 @@ typedef struct {
 
     int mpi_rank; /**< Rank of this MPI process      */
     int mpi_size; /**< Total number of MPI processes */
+
+    /* QIDs for inputs if the active inputs are not used */
+    char qid_options[256]; /* Options QID if active not used */
+    char qid_bfield[256];  /* Bfield QID if active not used  */
+    char qid_efield[256];  /* Efield QID if active not used  */
+    char qid_marker[256];  /* Marker QID if active not used  */
+    char qid_wall[256];    /* Wall QID if active not used    */
+    char qid_plasma[256];  /* Plasma QID if active not used  */
+    char qid_neutral[256]; /* Neutral QID if active not used */
+    char qid_boozer[256];  /* Boozer QID if active not used  */
+    char qid_mhd[256];     /* MHD QID if active not used     */
 
 } sim_offload_data;
 
@@ -130,6 +147,8 @@ typedef struct {
     plasma_data plasma_data;   /**< Plasma data interface                     */
     neutral_data neutral_data; /**< Neutral data interface                    */
     wall_data wall_data;       /**< Wall data interface                       */
+    boozer_data boozer_data;   /**< Boozer data interface                     */
+    mhd_data mhd_data;         /**< MHD data interface                        */
     diag_data diag_data;       /**< Diagnostics data interface                */
 
     /* Metadata */
@@ -161,6 +180,7 @@ typedef struct {
     /* Options - physics */
     int enable_orbfol;         /**< Is orbit-following enabled                */
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
+    int enable_mhd;            /**< Are MHD modes enabled                     */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb
@@ -173,6 +193,7 @@ typedef struct {
     /* Options - end conditions */
     int endcond_active;       /**< Bit array notating active end conditions  */
     real endcond_max_simtime; /**< Maximum simulation time [s]               */
+    real endcond_max_mileage; /**< Maximum simulation duration [s]           */
     real endcond_max_cputime; /**< Maximum wall-clock time [s]               */
     real endcond_min_rho;     /**< Minimum rho limit                         */
     real endcond_max_rho;     /**< Maximum rho limit                         */

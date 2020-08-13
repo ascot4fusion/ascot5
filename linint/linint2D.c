@@ -78,6 +78,8 @@ int linint2D_eval_f(real* f, linint2D_data* str, real x, real y) {
     /* Normalized y coordinate in current cell */
     real dy   = ( y - (str->y_min + i_y*str->y_grid) ) / str->y_grid;
 
+    /* Index jump to cell */
+    int n  = i_y*str->n_x + i_x;
     int x1 = 1;        /* Index jump one x forward */
     int y1 = str->n_x; /* Index jump one y forward */
 
@@ -99,10 +101,10 @@ int linint2D_eval_f(real* f, linint2D_data* str, real x, real y) {
 
     if(!err) {
         /* Values at grid cell corners */
-        c00 = str->c[i_y*y1 + i_x];
-        c10 = str->c[i_y*y1 + (i_x + 1)];
-        c01 = str->c[(i_y + 1)*y1 + i_x];
-        c11 = str->c[(i_y + 1)*y1 + (i_x + 1)];
+        c00 = str->c[n];
+        c10 = str->c[n + x1];
+        c01 = str->c[n + y1];
+        c11 = str->c[n + y1 + x1];
         /* Interpolate along x */
         c0 = c00*(1 - dx) + c10*dx;
         c1 = c01*(1 - dx) + c11*dx;

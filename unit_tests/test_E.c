@@ -43,10 +43,11 @@ int main(int argc, char** argv) {
     strcpy(sim.hdf5_in, "ascot.h5");
     strcpy(sim.hdf5_out, "ascot");
 
-    hdf5_interface_read_input(&sim, &B_offload_array, &E_offload_array,
+    hdf5_interface_read_input(&sim, hdf5_input_efield,
+                              &B_offload_array, &E_offload_array,
                               &plasma_offload_array,
                               &neutral_offload_array,
-                              &wall_offload_array, &p, &n);
+                              &wall_offload_array, NULL, NULL, &p, &n);
 
     /* Init magnetic background */
     offload_package offload_data;
