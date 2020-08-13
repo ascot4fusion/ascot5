@@ -1,5 +1,24 @@
 #include "bmc_diag.h"
 
+void diag_copy_distribution(sim_offload_data* sim, diag_data* diag0, diag_data* diag1, int dist_length) {
+    // copy into diag0
+    #ifdef MPI
+        if (sim->diag_offload_data.dist5D_collect) {
+            MPI_Allreduce(diag1->dist5D.histogram, diag0->dist5D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        }
+        if (sim->diag_offload_data.dist6D_collect) {
+            MPI_Allreduce(diag1->dist6D.histogram, diag0->dist6D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        }
+    #else
+        if (sim->diag_offload_data.dist5D_collect) {
+            memcpy(diag0->dist5D.histogram, diag1->dist5D.histogram, dist_length);
+        }
+        if (sim->diag_offload_data.dist6D_collect) {
+            memcpy(diag0->dist6D.histogram, diag1->dist6D.histogram, dist_length);
+        }
+    #endif
+}
+
 int bmc_walltile_in_target(integer walltile) {
     if ((walltile > 10) && (walltile < 30)) {
         return 1;

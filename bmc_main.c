@@ -204,19 +204,19 @@ int main(int argc, char** argv) {
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
 
     // setup endpoint conditions, total time=1, wall collision enabled
-    bmc_setup_endconds();
+    bmc_setup_endconds(&sim);
 
     /* Initialize diagnostics offload data.
      * Separate arrays for host and target */
-#ifdef TARGET
-    real* diag_offload_array_mic0;
-    real* diag_offload_array_mic1;
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0, n);
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1, n);
-#else
-    real* diag_offload_array_host;
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host, n);
-#endif
+// #ifdef TARGET
+//     real* diag_offload_array_mic0;
+//     real* diag_offload_array_mic1;
+//     diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0, n);
+//     diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1, n);
+// #else
+//     real* diag_offload_array_host;
+    // diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host, n);
+// #endif
 
     real diag_offload_array_size = sim.diag_offload_data.offload_array_length
         * sizeof(real) / (1024.0*1024.0);
@@ -233,14 +233,15 @@ int main(int argc, char** argv) {
         strcat(sim.hdf5_out, temp);
     }
 
-    /* Set up particlestates on host, needs magnetic field evaluation */
-    print_out0(VERBOSE_NORMAL, mpi_rank,
-               "\nInitializing marker states.\n");
+    // init magnetic field
     B_field_data Bdata;
     B_field_init(&Bdata, &sim.B_offload_data, B_offload_array);
 
+    /* Set up particlestates on host, needs magnetic field evaluation */
     // compute particles needed for the Backward Monte Carlo simulation
-    bmc_init_particles(&n, &p, &sim, &Bdata, 10);
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "\nInitializing marker states.\n");
+    bmc_init_particles(&n, &p, &sim, &Bdata, offload_array, 10);
     int n_total_particles = n;
 
     /* Choose which markers are used in this MPI process. Simply put, markers
@@ -270,6 +271,17 @@ int main(int argc, char** argv) {
     int n_host = n;
 #endif
 
+    /* Initialize results group in the output file */
+    print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
+    if( hdf5_interface_init_results(&sim, qid) ) {
+        print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "\nInitializing output failed.\n"
+                   "See stderr for details.\n");
+        /* Free offload data and terminate */
+        goto CLEANUP_FAILURE;
+    };
+    strcpy(sim.qid, qid);
+
     double mic0_start = 0, mic0_end=0,
         mic1_start=0, mic1_end=0,
         host_start=0, host_end=0;
@@ -283,50 +295,30 @@ int main(int argc, char** argv) {
         &mic1_start, &mic1_end,
         &mic0_start, &mic0_end,
         &host_start, &host_end,
-        n_mic, n_host);
+        n_mic, n_host, mpi_rank);
 
     /* Code execution returns to host. */
     print_out0(VERBOSE_NORMAL, mpi_rank, "mic0 %lf s, mic1 %lf s, host %lf s\n",
         mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
 
     /* Free input data */
-    offload_free_offload(&offload_data, &offload_array);
+    // offload_free_offload(&offload_data, &offload_array);
 
-    /* Write endstate */
-    // if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n, ps1) ) {
+    /* Combine distribution and write it to HDF5 file */
+    // print_out0(VERBOSE_MINIMAL, mpi_rank, "\nWriting BMC probability distribution.\n");
+    // int err_writediag = 0;
+    // err_writediag = hdf5_interface_write_diagnostics(&sim, diag_offload_array, sim.hdf5_out);
+    // if(err_writediag) {
     //     print_out0(VERBOSE_MINIMAL, mpi_rank,
-    //                "\nWriting endstate failed.\n"
+    //                "\nWriting diagnostics failed.\n"
     //                "See stderr for details.\n");
     //     /* Free offload data and terminate */
     //     goto CLEANUP_FAILURE;
     // }
-    // print_out0(VERBOSE_NORMAL, mpi_rank,
-    //            "Endstate written.\n");
-
-    /* Combine diagnostic data and write it to HDF5 file */
-    print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\nCombining and writing diagnostics.\n");
-    int err_writediag = 0;
-#ifdef TARGET
-    diag_sum(&sim.diag_offload_data,
-             diag_offload_array_mic0, diag_offload_array_mic1);
-    err_writediag = hdf5_interface_write_diagnostics(
-        &sim, diag_offload_array_mic0, sim.hdf5_out);
-#else
-    err_writediag = hdf5_interface_write_diagnostics(
-        &sim, diag_offload_array_host, sim.hdf5_out);
-#endif
-    if(err_writediag) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\nWriting diagnostics failed.\n"
-                   "See stderr for details.\n");
-        /* Free offload data and terminate */
-        goto CLEANUP_FAILURE;
-    }
-    else {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "Diagnostics written.\n");
-    }
+    // else {
+    //     print_out0(VERBOSE_MINIMAL, mpi_rank,
+    //                "Diagnostics written.\n");
+    // }
 
     /* Free offload data */
 
@@ -334,15 +326,7 @@ int main(int argc, char** argv) {
     MPI_Finalize();
 #endif
 
-#ifdef TARGET
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
-#else
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
-#endif
-
-    // marker_summary(ps1, n);
-    // free(ps1);
+    // diag_free_offload(&sim.diag_offload_data, &diag_offload_array);
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone.\n");
 
@@ -356,16 +340,9 @@ CLEANUP_FAILURE:
     MPI_Finalize();
 #endif
 
-#ifdef TARGET
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
-#else
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
-#endif
+    // diag_free_offload(&sim.diag_offload_data, &diag_offload_array);
 
     offload_free_offload(&offload_data, &offload_array);
-
-    // free(ps1);
 
     abort();
     return 1;
