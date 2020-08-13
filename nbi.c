@@ -194,10 +194,11 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
                        &vxyz[2], &anum, &znum, &mass, rng);
             nbi_ionize(xyz, vxyz, &shinethrough, anum, znum, Bdata, plsdata,
                    walldata, rng);
-
+            totalPower += 0.5 * mass * pow(math_norm(vxyz), 2);
             if(shinethrough == 1) {
                 #pragma omp atomic
                 totalShine += 0.5 * mass * pow(math_norm(vxyz), 2);
+
             }
         } while(shinethrough == 1);
 
@@ -218,12 +219,9 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
         p[i].mass   = mass;
         p[i].id     = i+1;
         p[i].time   = 0;
-
-        #pragma omp atomic
-        totalPower += 0.5 * mass * pow(math_norm(vxyz), 2);
     }
 
     for(int i = 0; i < nprt; i++) {
-        p[i].weight = n->power * (1 - totalShine/totalPower) / totalPower;
+        p[i].weight = n->power * (1 - totalShine/totalPower) / npart;
     }
 }
