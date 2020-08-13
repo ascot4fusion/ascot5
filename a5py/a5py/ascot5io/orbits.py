@@ -133,32 +133,18 @@ class Orbits(AscotData):
         write_hdf5(fn, run, data)
 
 
-    def __getitem__(self, key):
+    def _eval(self, key, simmode, a5):
         """
-        Return queried quantity.
-
-        The quantity is returned as a single numpy array ordered by id and time.
-
-        The quantity will be in the same picture as the stored data is, e.g. if
-        one queries for magnetic momentum mu, mu will be in guiding center
-        picture if the data corresponds to guiding center data, particle picture
-        for particle data, and none for field line data.
-
-        Args:
-            key : str <br>
-                Name of the quantity.
-        Returns:
-            The quantity ordered by id and time.
+        Evaluate a quantity.
         """
-        # Init ascotpy object (no data is initialized yet)
-        from a5py.ascotpy import Ascotpy
-        a5 = Ascotpy(self._file)
+        with self as h5:
+            mask = read_data(h5, "simmode").v == simmode
 
         # Wrapper for read data which opens the HDF5 file
         def read_dataw(data):
             with self as h5:
                 data = read_data(h5, data)
-            return data
+            return data[mask]
 
         # Helper function that returns magnetic field vector
         def getbvec():
@@ -186,11 +172,10 @@ class Orbits(AscotData):
 
         # Gets mass for each datapoint from the endstate
         def mass():
-            return self._read_from_inistate(
+            m = self._read_from_inistate(
                 "mass", read_dataw("ids")).ravel() * unyt.amu
+            return m[mask]
 
-        # Get alias and data field names in HDF5
-        key  = getalias(key)
         item = None
         with self as h5:
             h5keys = list(h5.keys())
@@ -203,15 +188,13 @@ class Orbits(AscotData):
         elif key == "mass":
             item = mass()
         else:
-            # See what type of data is stored
-            if "mu" in h5keys:
-                key += "gc"
-            elif "charge" in h5keys:
+            if simmode == 1:
                 key += "prt"
+            elif simmode == 2:
+                key += "gc"
             else:
                 key += "fl"
 
-        # Evaluate the quantity if direct read could not be done
         # New quantities can be added here. Use suffix "gc" for quantities that
         # can be evaluated from guiding-center data, "prt" for particle data
         # and "fl" for field line data.
@@ -219,7 +202,7 @@ class Orbits(AscotData):
             pass
 
         ## Coordinates ##
-        elif key in ["xgc", "xprt", "xfl"]:
+        if key in ["xgc", "xprt", "xfl"]:
             item = physlib.xcoord(
                 r   = read_dataw("r"),
                 phi = read_dataw("phi")
@@ -406,15 +389,64 @@ class Orbits(AscotData):
             item = evalapy("alpha") * unyt.m
             a5.free(bfield=True, boozer=True, mhd=True)
 
+        return item
+
+
+    def __getitem__(self, key):
+        """
+        Return queried quantity.
+
+        The quantity is returned as a single numpy array ordered by id and time.
+
+        The quantity will be in the same picture as the stored data is, e.g. if
+        one queries for magnetic momentum mu, mu will be in guiding center
+        picture if the data corresponds to guiding center data, particle picture
+        for particle data, and none for field line data.
+
+        Args:
+            key : str <br>
+                Name of the quantity.
+        Returns:
+            The quantity ordered by id and time.
+        """
+
+        # Init ascotpy object (no data is initialized yet)
+        from a5py.ascotpy import Ascotpy
+        a5 = Ascotpy(self._file)
+
+        # Wrapper for read data which opens the HDF5 file
+        def read_dataw(data):
+            with self as h5:
+                data = read_data(h5, data)
+            return data
+
+        # Get alias
+        key  = getalias(key)
+
+        # Get simmode in each data point which is used as a mask
+        simmode = read_dataw("simmode")
+        sids    = np.unique(simmode)
+
+        item = self._eval(key, sids[0], a5)
+        item.convert_to_base("ascot")
+
+        # Deal with the hybrid case
+        if sids.size > 1:
+            item0 = np.zeros(simmode.shape) * item.unit_quantity
+            item0[simmode == sids[0]] = item
+            item = self._eval(key, sids[1], a5)
+            item.convert_to_base("ascot")
+
+            item0[simmode == sids[1]] = item
+            item = item0
+
+
         if item is None:
             raise Exception("Invalid query: " + key)
 
         # Strip units from fields to which they do not belong
         if key in ["ids"]:
             item = item.v
-        else:
-            # Convert to ascot unit system.
-            item.convert_to_base("ascot")
 
         # Dissect endcondition
         if key == "endcond":
@@ -473,13 +505,15 @@ class Orbits(AscotData):
         Get string describing what data this object contains (prt, gc, fl).
         """
         with self as h5:
-            h5keys = list(h5.keys())
+            simmode = np.unique(read_data(h5, "simmode"))
 
-        if "mu" in h5keys:
-            return "gc"
-        elif "charge" in h5keys:
+        if 1 in simmode and 2 in simmode:
+            return "hybrid"
+        if 1 in simmode:
             return "prt"
-        else:
+        if 2 in simmode:
+            return "gc"
+        if 3 in simmode:
             return "fl"
 
 

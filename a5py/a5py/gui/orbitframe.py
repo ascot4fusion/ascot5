@@ -57,14 +57,9 @@ class OrbitFrame(PlotFrame):
 
         # Check what data can be plotted
         datatype = orbits.get_datatype()
-        if datatype == "prt":
+        if datatype in ["prt", "gc", "hybrid"]:
             self._coords = ["R", "phimod", "z", "time", "energy", "pitch",
                             "vnorm", "Bnorm", "vR", "vphi", "vz", "BR", "Bphi",
-                            "Bz", "mu", "vpar", "charge", "id", "x", "y", "phi",
-                            "rho", "polmod", "pol", "None"]
-        elif datatype == "gc":
-            self._coords = ["R", "phimod", "z", "time", "energy", "pitch",
-                            "vnorm", "Bnorm", "BR", "Bphi",
                             "Bz", "mu", "vpar", "charge", "id", "x", "y", "phi",
                             "rho", "polmod", "pol", "None"]
         elif datatype == "fl":
