@@ -77,6 +77,7 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
             data->B_r     = &(offload_array[step*12]);
             data->B_phi   = &(offload_array[step*13]);
             data->B_z     = &(offload_array[step*14]);
+            data->simmode = &(offload_array[step*15]);
             break;
 
         case simulate_mode_gc:
@@ -95,6 +96,7 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
             data->B_r     = &(offload_array[step*12]);
             data->B_phi   = &(offload_array[step*13]);
             data->B_z     = &(offload_array[step*14]);
+            data->simmode = &(offload_array[step*15]);
             break;
 
         case simulate_mode_ml:
@@ -108,6 +110,7 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
             data->B_r     = &(offload_array[step*7]);
             data->B_phi   = &(offload_array[step*8]);
             data->B_z     = &(offload_array[step*9]);
+            data->simmode = &(offload_array[step*10]);
             break;
 
         case simulate_mode_hybrid:
@@ -129,6 +132,7 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
             data->B_r     = &(offload_array[step*15]);
             data->B_phi   = &(offload_array[step*16]);
             data->B_z     = &(offload_array[step*17]);
+            data->simmode = &(offload_array[step*18]);
             break;
     }
 
@@ -190,6 +194,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                     data->B_r[idx]    = p_i->B_r[i];
                     data->B_phi[idx]  = p_i->B_phi[i];
                     data->B_z[idx]    = p_i->B_z[i];
+                    data->simmode[idx]= DIAG_ORB_FO;
 
                     ipoint++;
                     if(ipoint == data->Npnt) {
@@ -221,6 +226,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                     data->B_r[idx]    = p_f->B_r[i];
                     data->B_phi[idx]  = p_f->B_phi[i];
                     data->B_z[idx]    = p_f->B_z[i];
+                    data->simmode[idx]= DIAG_ORB_FO;
 
                     ipoint++;
                     if(ipoint == data->Npnt) {
@@ -267,6 +273,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j;
+                        data->simmode[idx]= DIAG_ORB_FO;
 
                         ipoint++;
                         if(ipoint == data->Npnt) {
@@ -301,6 +308,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j + data->ntoroidalplots;
+                        data->simmode[idx]= DIAG_ORB_FO;
 
                         ipoint++;
                         if(ipoint == data->Npnt) {
@@ -354,6 +362,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                     data->B_r[idx]    = p_i->B_r[i];
                     data->B_phi[idx]  = p_i->B_phi[i];
                     data->B_z[idx]    = p_i->B_z[i];
+                    data->simmode[idx]= DIAG_ORB_GC;
 
                     ipoint++;
                     if(ipoint == data->Npnt) {
@@ -386,6 +395,8 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                     data->B_r[idx]    = p_f->B_r[i];
                     data->B_phi[idx]  = p_f->B_phi[i];
                     data->B_z[idx]    = p_f->B_z[i];
+                    data->simmode[idx]= DIAG_ORB_GC;
+
                     ipoint++;
                     if(ipoint == data->Npnt) {
                         ipoint = 0;
@@ -430,6 +441,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j;
+                        data->simmode[idx]= DIAG_ORB_GC;
 
                         ipoint++;
                         if(ipoint == data->Npnt) {
@@ -464,6 +476,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j + data->ntoroidalplots;
+                        data->simmode[idx]= DIAG_ORB_GC;
 
                         ipoint++;
                         if(ipoint == data->Npnt) {
@@ -513,6 +526,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                     data->B_r[idx]     = p_i->B_r[i];
                     data->B_phi[idx]   = p_i->B_phi[i];
                     data->B_z[idx]     = p_i->B_z[i];
+                    data->simmode[idx] = DIAG_ORB_ML;
 
                     ipoint++;
                     if(ipoint == data->Npnt) {
@@ -538,6 +552,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                     data->B_r[idx]     = p_f->B_r[i];
                     data->B_phi[idx]   = p_f->B_phi[i];
                     data->B_z[idx]     = p_f->B_z[i];
+                    data->simmode[idx] = DIAG_ORB_ML;
 
                     ipoint++;
                     if(ipoint == data->Npnt) {
@@ -578,6 +593,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j;
+                        data->simmode[idx]= DIAG_ORB_ML;
 
                         ipoint++;
                         if(ipoint == data->Npnt) {
@@ -607,6 +623,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]   + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]     + d*p_i->B_z[i];
                         data->pncrid[idx] = j + data->ntoroidalplots;
+                        data->simmode[idx]= DIAG_ORB_ML;
 
                         ipoint++;
                         if(ipoint == data->Npnt) {
