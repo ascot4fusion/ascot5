@@ -222,6 +222,6 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
     }
 
     for(int i = 0; i < nprt; i++) {
-        p[i].weight = n->power * (1 - totalShine/totalPower) / npart;
+        p[i].weight = n->power * (1 - totalShine/totalPower) / nprt;
     }
 }
