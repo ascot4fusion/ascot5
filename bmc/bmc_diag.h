@@ -1,9 +1,25 @@
 #include "../diag.h"
+#include "../diag/dist_6D.h"
+#include "../diag/dist_5D.h"
 #include "../simulate.h"
 #include "../endcond.h"
 #include "../consts.h"
+#include "mpi.h"
+#include <string.h>
 
 int bmc_walltile_in_target(integer walltile);
+
+void diag_copy_distribution(sim_offload_data* sim, diag_data* diag0, diag_data* diag1, int dist_length);
+
+void bmc_update_particles_diag(
+    int n_mpi_particles,
+    particle_state* ps0,
+    particle_state* ps1,
+    diag_data* diag0,
+    diag_data* diag1,
+    sim_data* sim,
+    int n_montecarlo_steps
+);
 
 void bmc_diag_update_gc(
     particle_state* ps0,

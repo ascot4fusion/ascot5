@@ -2,12 +2,17 @@
 #include "../simulate.h"
 #include "bmc_diag.h"
 #include "mpi.h"
+#include "../print.h"
+#include "../hdf5_interface.h"
+
+void bmc_setup_endconds(sim_offload_data* sim);
 
 void bmc_init_particles(
         int *n,
         input_particle **p,
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
+        real* offload_array,
         int n_montecarlo_steps
     );
 
@@ -24,7 +29,8 @@ void backward_monte_carlo(
         double* mic0_start, double* mic0_end,
         double* host_start, double* host_end,
         int n_mic,
-        int n_host
+        int n_host,
+        int mpi_rank
     );
 
 void bmc_simulate_particles(
@@ -38,5 +44,3 @@ void bmc_simulate_particles(
         double* host_start, double* host_end,
         int n_mic,
         int n_host);
-
-void mpi_reduce_distribution(sim_offload_data* sim, diag_data* diag0, diag_data* diag1, int dist_length);
