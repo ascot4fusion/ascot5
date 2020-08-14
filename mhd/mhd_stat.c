@@ -112,6 +112,8 @@ void mhd_stat_init(mhd_stat_data* mhddata, mhd_stat_offload_data* offload_data,
                    real* offload_array) {
 
     mhddata->n_modes = offload_data->n_modes;
+    mhddata->rho_min = offload_data->rho_min;
+    mhddata->rho_max = offload_data->rho_max;
 
     int n_modes  = offload_data->n_modes;
     int datasize = NSIZE_COMP1D * offload_data->nrho;
@@ -188,7 +190,12 @@ a5err mhd_stat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
         mhd_dmhd[i] = 0;
     }
 
-    /* Skip evaluation if evaluation failed or point outside the boozer grid. */
+    /* Check that we are within MHD grid */
+    if(rho[0] < mhddata->rho_min || rho[0] > mhddata->rho_max) {
+        isinside = 0;
+    }
+
+    /* Skip evaluation if evaluation failed or point outside the grid. */
     if(err || !isinside) {
         iterations = 0;
     }
