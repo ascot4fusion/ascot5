@@ -261,7 +261,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->p_phi[idx]  = k*p_f->p_phi[i]  + d*p_i->p_phi[i];
                         data->p_z[idx]    = k*p_f->p_z[i]    + d*p_i->p_z[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
-                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->charge[idx] = p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
                         data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
@@ -298,7 +298,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->p_phi[idx]  = k*p_f->p_phi[i]  + d*p_i->p_phi[i];
                         data->p_z[idx]    = k*p_f->p_z[i]    + d*p_i->p_z[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
-                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->charge[idx] = p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
                         data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
@@ -337,7 +337,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->p_phi[idx]  = k*p_f->p_phi[i]  + d*p_i->p_phi[i];
                         data->p_z[idx]    = k*p_f->p_z[i]    + d*p_i->p_z[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
-                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->charge[idx] = p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
                         data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
@@ -469,7 +469,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->mu[idx]     = k*p_f->mu[i]     + d*p_i->mu[i];
                         data->zeta[idx]   = k*p_f->zeta[i]   + d*p_i->zeta[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
-                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->charge[idx] = p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
                         data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
@@ -503,7 +503,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->mu[idx]     = k*p_f->mu[i]     + d*p_i->mu[i];
                         data->zeta[idx]   = k*p_f->zeta[i]   + d*p_i->zeta[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
-                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->charge[idx] = p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
                         data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
@@ -538,7 +538,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->mu[idx]     = k*p_f->mu[i]     + d*p_i->mu[i];
                         data->zeta[idx]   = k*p_f->zeta[i]   + d*p_i->zeta[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
-                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->charge[idx] = p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
                         data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
@@ -782,7 +782,7 @@ real diag_orb_check_plane_crossing(real fang, real iang, real ang0){
         }
         //else if(iaf - CONST_2PI <= ang0 && faf - CONST_2PI > ang0){
         //    k= fabs((iaf - ang0 - CONST_2PI) / (faf - iaf));
-	    //}
+        //}
     }
     else{
         if(faf <= ang0r && iaf > ang0r){
@@ -817,7 +817,4 @@ real diag_orb_check_radial_crossing(real frho, real irho, real rho0){
         k = fabs((irho - rho0) / (frho - irho));
     }
     return k;
-
 }
-
- 
