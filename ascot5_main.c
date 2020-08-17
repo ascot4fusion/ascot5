@@ -180,6 +180,7 @@ int main(int argc, char** argv) {
     real* plasma_offload_array;
     real* neutral_offload_array;
     real* wall_offload_array;
+    int* wall_int_offload_array;
 
     /* Read input from the HDF5 file */
     if( hdf5_interface_read_input(&sim,
@@ -189,7 +190,8 @@ int main(int argc, char** argv) {
                                   hdf5_input_marker,
                                   &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
-                                  &wall_offload_array, &p, &n) ) {
+                                  &wall_offload_array, &wall_int_offload_array,
+                                  &p, &n) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nInput reading or initializing failed.\n"
                    "See stderr for details.\n");
@@ -201,6 +203,9 @@ int main(int argc, char** argv) {
     /* Pack offload data into single array and free individual offload arrays */
     /* B_offload_array is needed for marker evaluation and is freed later */
     real* offload_array;
+    int* int_offload_array;
+    int int_offload_array_length;
+
     offload_package offload_data;
     offload_init_offload(&offload_data, &offload_array);
     offload_pack(&offload_data, &offload_array, B_offload_array,
@@ -220,7 +225,11 @@ int main(int argc, char** argv) {
 
     offload_pack(&offload_data, &offload_array, wall_offload_array,
                  sim.wall_offload_data.offload_array_length);
-    wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
+    int_offload_array_length = sim.wall_offload_data.w3d.int_offload_array_length;
+    int_offload_array = (int*) malloc(int_offload_array_length*sizeof(int));
+    memcpy(int_offload_array, wall_int_offload_array, int_offload_array_length*sizeof(int));
+    wall_free_offload(&sim.wall_offload_data, &wall_offload_array,
+                      &wall_int_offload_array);
 
     /* Initialize diagnostics offload data.
      * Separate arrays for host and target */
@@ -337,10 +346,11 @@ int main(int argc, char** argv) {
             #pragma omp target device(0) map( \
                 ps[0:n_mic], \
                 offload_array[0:offload_data.offload_array_length], \
+                int_offload_array[0:int_offload_array_length], \
                 diag_offload_array_mic0[0:sim.diag_offload_data.offload_array_length] \
             )
             simulate(1, n_mic, ps, &sim, &offload_data, offload_array,
-                diag_offload_array_mic0);
+                int_offload_array, diag_offload_array_mic0);
 
             mic0_end = omp_get_wtime();
         }
@@ -355,10 +365,11 @@ int main(int argc, char** argv) {
             #pragma omp target device(1) map( \
                 ps[n_mic:2*n_mic], \
                 offload_array[0:offload_data.offload_array_length], \
+                int_offload_array[0:int_offload_array_length], \
                 diag_offload_array_mic1[0:sim.diag_offload_data.offload_array_length] \
             )
             simulate(2, n_mic, ps+n_mic, &sim, &offload_data, offload_array,
-                diag_offload_array_mic1);
+                int_offload_array, diag_offload_array_mic1);
 
             mic1_end = omp_get_wtime();
         }
@@ -371,7 +382,7 @@ int main(int argc, char** argv) {
         {
             host_start = omp_get_wtime();
             simulate(0, n_host, ps+2*n_mic, &sim, &offload_data,
-                offload_array, diag_offload_array_host);
+                offload_array, int_offload_array, diag_offload_array_host);
             host_end = omp_get_wtime();
         }
 #endif

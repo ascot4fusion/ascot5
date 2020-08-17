@@ -38,7 +38,8 @@
  *
  * @return zero if initialization succeeded
  */
-int wall_init_offload(wall_offload_data* offload_data, real** offload_array) {
+int wall_init_offload(wall_offload_data* offload_data, real** offload_array,
+                      int** int_offload_array) {
 
     int err = 0;
 
@@ -51,7 +52,8 @@ int wall_init_offload(wall_offload_data* offload_data, real** offload_array) {
             break;
 
         case wall_type_3D:
-            err = wall_3d_init_offload(&(offload_data->w3d), offload_array);
+            err = wall_3d_init_offload(&(offload_data->w3d), offload_array,
+                                       int_offload_array);
             offload_data->offload_array_length =
                 offload_data->w3d.offload_array_length;
             break;
@@ -81,14 +83,16 @@ int wall_init_offload(wall_offload_data* offload_data, real** offload_array) {
  * @param offload_data pointer to offload data struct
  * @param offload_array pointer to pointer to offload array
  */
-void wall_free_offload(wall_offload_data* offload_data, real** offload_array) {
+void wall_free_offload(wall_offload_data* offload_data, real** offload_array,
+                       int** int_offload_array) {
     switch(offload_data->type) {
         case wall_type_2D:
             wall_2d_free_offload(&(offload_data->w2d), offload_array);
             break;
 
         case wall_type_3D:
-            wall_3d_free_offload(&(offload_data->w3d), offload_array);
+            wall_3d_free_offload(&(offload_data->w3d), offload_array,
+                                 int_offload_array);
             break;
     }
 }
@@ -107,7 +111,7 @@ void wall_free_offload(wall_offload_data* offload_data, real** offload_array) {
  * @return zero on success
  */
 int wall_init(wall_data* w, wall_offload_data* offload_data,
-              real* offload_array) {
+              real* offload_array, int* int_offload_array) {
     int err = 0;
     switch(offload_data->type) {
         case wall_type_2D:
@@ -115,7 +119,8 @@ int wall_init(wall_data* w, wall_offload_data* offload_data,
             break;
 
         case wall_type_3D:
-            wall_3d_init(&(w->w3d), &(offload_data->w3d), offload_array);
+            wall_3d_init(&(w->w3d), &(offload_data->w3d), offload_array,
+                         int_offload_array);
             break;
         default:
             /* Unregonized input. Produce error. */
