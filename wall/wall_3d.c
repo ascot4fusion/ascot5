@@ -316,7 +316,7 @@ void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
  * @param z2 end point z coordinate [rad]
  * @param wdata pointer to data struct on target
  *
- * @return id, which is wall element id if hit, zero otherwise
+ * @return id, which is the first element id if hit, zero otherwise
  */
 int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
 			   real z2, wall_3d_data* wdata, real* w_coll) {
@@ -396,7 +396,7 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
  * @return id is wall element id if hit, zero otherwise*         
  */
 int wall_3d_hit_wall_full(real r1, real phi1, real z1, real r2, real phi2,
-                          real z2, wall_3d_data* wdata) {
+                          real z2, wall_3d_data* wdata, real* w_coll) {
     real rpz1[3], rpz2[3];
     rpz1[0] = r1;
     rpz1[1] = phi1;
@@ -409,22 +409,24 @@ int wall_3d_hit_wall_full(real r1, real phi1, real z1, real r2, real phi2,
     math_rpz2xyz(rpz1, q1);
     math_rpz2xyz(rpz2, q2);
 
+    int hit_tri = 0;
+    real smallest_w = 1.1;
     real w;
     int j;
+    
     for(j = 0; j < wdata->n; j++) {
         w = wall_3d_tri_collision(q1, q2, &wdata->wall_tris[9*j],
                 &wdata->wall_tris[9*j+3], &wdata->wall_tris[9*j+6]);
-        if(w >= 0) {
-            break;
-        }
+        if(w > 0) {
+	    if(w < smallest_w) {
+	        smallest_w = w;
+		hit_tri = j+1;
+            }
+	}
     }
-
-    if(j == wdata->n) {
-        return 0;
-    }
-    else {
-        return 1;
-    }
+    
+    *w_coll = smallest_w;
+    return hit_tri;
 }
 
 /**

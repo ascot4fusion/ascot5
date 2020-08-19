@@ -165,9 +165,10 @@ void test_wall_hit(wall_3d_data* wdata) {
         q1[2] = ((real)rand()/(real)RAND_MAX)*(zmax-zmin) + zmin;
         q2[2] = ((real)rand()/(real)RAND_MAX)*(zmax-zmin) + zmin;
 
-        int idw = wall_3d_hit_wall(q1[0], q1[1], q1[2], q2[0], q2[1], q2[2], wdata);
-	w = idw->w;
-        printf("%lf %lf %lf %lf %lf %lf %d\n", q1[0], q1[1], q1[2],
+	real w_coll = 0;
+        wall_3d_hit_wall(q1[0], q1[1], q1[2], q2[0], q2[1], q2[2], wdata, &w_coll);
+        real w = w_coll;
+	printf("%lf %lf %lf %lf %lf %lf %f\n", q1[0], q1[1], q1[2],
                q2[0], q2[1], q2[2], w);
     }
 }
@@ -361,8 +362,9 @@ int test_rays_in_queue( wall_3d_data *wdata ){
 	 q2[0],q2[1],q2[2]  );
   math_xyz2rpz(q1, rpz1);
   math_xyz2rpz(q2, rpz2);
+  real w_coll;
   hitId = wall_3d_hit_wall_full(rpz1[0], rpz1[1], rpz1[2],
-				rpz2[0], rpz2[1], rpz2[2],  wdata); 
+				rpz2[0], rpz2[1], rpz2[2],  wdata, &w_coll); 
   if ( hitId == correctId ){
     printf("Correct hit id: %6d ok!\n",hitId);
   }
@@ -378,7 +380,7 @@ int test_rays_in_queue( wall_3d_data *wdata ){
   math_xyz2rpz(q1, rpz1);
   math_xyz2rpz(q2, rpz2);
   hitId = wall_3d_hit_wall(rpz1[0], rpz1[1], rpz1[2],
-				rpz2[0], rpz2[1], rpz2[2],  wdata); 
+			   rpz2[0], rpz2[1], rpz2[2],  wdata, &w_coll); 
   if ( hitId == correctId ){
     printf("Correct hit id: %6d ok!\n",hitId);
   }
@@ -397,7 +399,7 @@ int test_rays_in_queue( wall_3d_data *wdata ){
   math_xyz2rpz(q2, rpz2);
   math_xyz2rpz(q1, rpz1);
   hitId = wall_3d_hit_wall_full(rpz2[0], rpz2[1], rpz2[2],
-			   rpz1[0], rpz1[1], rpz1[2],  wdata);
+				rpz1[0], rpz1[1], rpz1[2],  wdata, &w_coll);
   /*hitId = wall_3d_hit_wall(rpz2[0], rpz2[1], rpz2[2],
     rpz1[0], rpz1[1], rpz1[2],  wdata); */
   if ( hitId == correctId ){
@@ -415,7 +417,7 @@ int test_rays_in_queue( wall_3d_data *wdata ){
   math_xyz2rpz(q2, rpz2);
   math_xyz2rpz(q1, rpz1);
   hitId = wall_3d_hit_wall(rpz2[0], rpz2[1], rpz2[2],
-			   rpz1[0], rpz1[1], rpz1[2],  wdata);
+			   rpz1[0], rpz1[1], rpz1[2],  wdata, &w_coll);
   if ( hitId == correctId ){
     printf("Correct hit id: %6d ok!\n",hitId);
   }
@@ -434,7 +436,7 @@ int test_rays_in_queue( wall_3d_data *wdata ){
   math_xyz2rpz(q1, rpz1);
   math_xyz2rpz(q2, rpz2);
   hitId = wall_3d_hit_wall_full(rpz1[0], rpz1[1], rpz1[2],
-			   rpz2[0], rpz2[1], rpz2[2],  wdata);
+				rpz2[0], rpz2[1], rpz2[2],  wdata,  &w_coll);
   /*hitId = wall_3d_hit_wall(rpz2[0], rpz2[1], rpz2[2],
     rpz1[0], rpz1[1], rpz1[2],  wdata); */
   if ( hitId == correctId ){
@@ -452,7 +454,7 @@ int test_rays_in_queue( wall_3d_data *wdata ){
   math_xyz2rpz(q1, rpz1);
   math_xyz2rpz(q2, rpz2);
   hitId = wall_3d_hit_wall(rpz1[0], rpz1[1], rpz1[2],
-			   rpz2[0], rpz2[1], rpz2[2],  wdata);
+			   rpz2[0], rpz2[1], rpz2[2],  wdata, &w_coll);
   if ( hitId == correctId ){
     printf("Correct hit id: %6d ok!\n",hitId);
   }

@@ -65,7 +65,7 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
                      real z2, wall_3d_data* w, real* w_coll);
 #pragma omp declare simd uniform(w)
 int wall_3d_hit_wall_full(real r1, real phi1, real z1, real r2, real phi2,
-                          real z2, wall_3d_data* w);
+                          real z2, wall_3d_data* w, real* w_coll);
 #pragma omp declare simd
 double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
                              real t3[3]);
