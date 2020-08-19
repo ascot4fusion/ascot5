@@ -316,10 +316,10 @@ void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
  * @param z2 end point z coordinate [rad]
  * @param wdata pointer to data struct on target
  *
- * @return struct id_and_w, where id is wall element id if hit, zero otherwise
+ * @return id, which is wall element id if hit, zero otherwise
  */
-id_and_w* wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
-                     real z2, wall_3d_data* wdata) {
+int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
+			   real z2, wall_3d_data* wdata, real* w_coll) {
     real rpz1[3], rpz2[3];
     rpz1[0] = r1;
     rpz1[1] = phi1;
@@ -377,9 +377,8 @@ id_and_w* wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
             }
         }
     }
-
-    id_and_w ret = { .id=hit_tri, .w=smallest_w };
-    return &ret;
+    *w_coll = smallest_w;
+    return hit_tri;
 }
 
 /**

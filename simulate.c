@@ -246,9 +246,10 @@ void simulate(int id, int n_particles, particle_state* p,
             if(pq.p[i]->endcond == endcond_hybrid) {
                 /* Check that there was no wall between when moving from
                    gc to fo */
+	        real w_coll;
                 int tile = wall_hit_wall(pq.p[i]->r, pq.p[i]->phi, pq.p[i]->z,
                         pq.p[i]->rprt, pq.p[i]->phiprt, pq.p[i]->zprt,
-                        &sim.wall_data);
+					 &sim.wall_data, &w_coll);
                 if(tile > 0) {
                     pq.p[i]->walltile = tile;
                     pq.p[i]->endcond |= endcond_wall;
