@@ -154,6 +154,7 @@ int main(int argc, char** argv) {
     int n;
     /* Marker input struct */
     input_particle* p;
+    particle_state* ps;
 
     /* Offload data arrays that are allocated when input is read */
     real* B_offload_array;
@@ -206,18 +207,6 @@ int main(int argc, char** argv) {
     // setup endpoint conditions, total time=1, wall collision enabled
     bmc_setup_endconds(&sim);
 
-    /* Initialize diagnostics offload data.
-     * Separate arrays for host and target */
-// #ifdef TARGET
-//     real* diag_offload_array_mic0;
-//     real* diag_offload_array_mic1;
-//     diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0, n);
-//     diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1, n);
-// #else
-//     real* diag_offload_array_host;
-    // diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host, n);
-// #endif
-
     real diag_offload_array_size = sim.diag_offload_data.offload_array_length
         * sizeof(real) / (1024.0*1024.0);
     print_out0(VERBOSE_NORMAL, mpi_rank,
@@ -241,14 +230,16 @@ int main(int argc, char** argv) {
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
-    bmc_init_particles(&n, &p, &sim, &Bdata, offload_array, 10);
+    if (bmc_init_particles(&n, &ps, &sim, &Bdata, offload_array)) {
+        goto CLEANUP_FAILURE;
+    }
     int n_total_particles = n;
 
     /* Choose which markers are used in this MPI process. Simply put, markers
      * are divided into mpi_size sequential blocks and the mpi_rank:th block
      * is chosen for this simulation. */
     int start_index = mpi_rank * (n / mpi_size);
-    p += start_index;
+    ps += start_index;
 
     if(mpi_rank == mpi_size-1) {
         n = n - mpi_rank * (n / mpi_size);
@@ -281,6 +272,18 @@ int main(int argc, char** argv) {
         goto CLEANUP_FAILURE;
     };
     strcpy(sim.qid, qid);
+    /* Write inistate */
+    if( hdf5_interface_write_state(sim.hdf5_out, "inistate", n, ps) ) {
+        print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "\n"
+                   "Writing inistate failed.\n"
+                   "See stderr for details.\n"
+                   "\n");
+        /* Free offload data and terminate */
+        goto CLEANUP_FAILURE;
+    }
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "\nInistate written.\n");
 
     double mic0_start = 0, mic0_end=0,
         mic1_start=0, mic1_end=0,
@@ -289,38 +292,30 @@ int main(int argc, char** argv) {
     fflush(stdout);
 
     // SIMULATE HERE
-    backward_monte_carlo(10,
-        n_total_particles, n, p,
+    if (backward_monte_carlo(
+        n_total_particles, n, ps,
         &Bdata, &sim, &offload_data, offload_array,
         &mic1_start, &mic1_end,
         &mic0_start, &mic0_end,
         &host_start, &host_end,
-        n_mic, n_host, mpi_rank);
+        n_mic, n_host, mpi_rank)) {
+            goto CLEANUP_FAILURE;
+        }
 
     /* Code execution returns to host. */
     print_out0(VERBOSE_NORMAL, mpi_rank, "mic0 %lf s, mic1 %lf s, host %lf s\n",
         mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
 
-    /* Free input data */
-    // offload_free_offload(&offload_data, &offload_array);
-
-    /* Combine distribution and write it to HDF5 file */
-    // print_out0(VERBOSE_MINIMAL, mpi_rank, "\nWriting BMC probability distribution.\n");
-    // int err_writediag = 0;
-    // err_writediag = hdf5_interface_write_diagnostics(&sim, diag_offload_array, sim.hdf5_out);
-    // if(err_writediag) {
-    //     print_out0(VERBOSE_MINIMAL, mpi_rank,
-    //                "\nWriting diagnostics failed.\n"
-    //                "See stderr for details.\n");
-    //     /* Free offload data and terminate */
-    //     goto CLEANUP_FAILURE;
-    // }
-    // else {
-    //     print_out0(VERBOSE_MINIMAL, mpi_rank,
-    //                "Diagnostics written.\n");
-    // }
-
-    /* Free offload data */
+        /* Write endstate */
+    if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n, ps) ) {
+        print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "\nWriting endstate failed.\n"
+                   "See stderr for details.\n");
+        /* Free offload data and terminate */
+        goto CLEANUP_FAILURE;
+    }
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "Endstate written.\n");
 
 #ifdef MPI
     MPI_Finalize();

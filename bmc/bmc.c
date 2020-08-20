@@ -1,8 +1,11 @@
 #include "bmc.h"
 
-#define TIMESTEP 0.1 // TODO use input HDF
-#define T0 0
-#define T1 10
+#define TIMESTEP 1E-7 // TODO use input HDF
+#define T0 0.999999
+#define T1 1.
+#define N_MC_STEPS 1
+#define MASS 9.10938356E-31
+#define CHARGE 1.60217662E-19
 
 void bmc_setup_endconds(sim_offload_data* sim) {
     sim->endcond_active = endcond_tmax | endcond_wall;
@@ -21,11 +24,10 @@ void bmc_setup_endconds(sim_offload_data* sim) {
     }
 }
 
-void backward_monte_carlo(
-        int n_montecarlo_steps,
+int backward_monte_carlo(
         int n_tot_particles,
         int n_mpi_particles,
-        input_particle* p_mpi,
+        particle_state* ps1,
         B_field_data* Bdata,
         sim_offload_data* sim_offload,
         offload_package* offload_data,
@@ -38,18 +40,19 @@ void backward_monte_carlo(
         int mpi_rank
     ) {
 
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nStarting Backward Monte Carlo. N particles: %d.\n", n_mpi_particles);
+
     /* Allow threads to spawn threads */
     omp_set_nested(1);
 
-    // create 2 copies of the particles.
     // ps0 holds the initial particle states (constant space in vertices, and changing time)
     // ps1 are simulated and will hold the final state at eatch time step
-    particle_state* ps1 = (particle_state*) malloc(n_mpi_particles * sizeof(particle_state));
     particle_state* ps0 = (particle_state*) malloc(n_mpi_particles * sizeof(particle_state));
-    for(int i = 0; i < n_mpi_particles; i++) {
-        particle_input_to_state(&p_mpi[i], &ps1[i], Bdata);
-        particle_input_to_state(&p_mpi[i], &ps0[i], Bdata);
-    }
+    memcpy(ps0, ps1, n_mpi_particles * sizeof(particle_state));
+
+    // for(int i = 0; i < 50; i++) {
+    //     printf("Particle %d %f %f %f %f %f %f %f\n", i, ps1[i].r, ps1[i].phi, ps1[i].z, ps1[i].vpar, ps1[i].rho, ps1[i].rprt, ps1[i].rdot);
+    // }
 
     // initialize distributions
     diag_data diag0, diag1;
@@ -82,7 +85,7 @@ void backward_monte_carlo(
         bmc_simulate_particles(ps1, n_tot_particles, sim_offload, offload_data, offload_array, mic1_start, mic1_end, mic0_start, mic0_end, host_start, host_end, n_mic, n_host);
 
         // Update the probability distribution
-        bmc_update_particles_diag(n_mpi_particles, ps0, ps1, &diag0, &diag1, &sim, n_montecarlo_steps);
+        bmc_update_particles_diag(n_mpi_particles, ps0, ps1, &diag0, &diag1, &sim, N_MC_STEPS);
 
         // shift distributions
         diag_copy_distribution(sim_offload, &diag0, &diag1, dist_length);
@@ -106,21 +109,18 @@ void backward_monte_carlo(
                     "BMC distributions written.\n");
         }
 
-        // for (int i = 0; i<dist_length; i++) {
-        //     printf("%d", diag0.dist5D.histogram[i]);
-        // }
-
     }
+
+    return 0;
 
 }
 
-void bmc_init_particles(
+int bmc_init_particles(
         int *n,
-        input_particle **p,
+        particle_state** ps,
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
-        real* offload_array,
-        int n_montecarlo_steps
+        real* offload_array
     ) {
     // vacate the phase space to find the phase-space points in the mesh
     // suitable for simulating the BMC scheme
@@ -130,8 +130,6 @@ void bmc_init_particles(
     sim_init(&sim, sim_offload);
     wall_init(&sim.wall_data, &sim_offload->wall_offload_data, offload_array);
 
-    *n = 0;
-
     real r;
     real phi;
     real z;
@@ -140,11 +138,10 @@ void bmc_init_particles(
     real vr;
     real vphi;
     real vz;
-    real B_dB[15];
 
     int n_r, n_phi, n_z, n_vpara, n_vperp, n_vr, n_vphi, n_vz;
-    int max_r, max_phi, max_z, max_vpara, max_vperp, max_vr, max_vphi, max_vz;
-    int min_r, min_phi, min_z, min_vpara, min_vperp, min_vr, min_vphi, min_vz;
+    real max_r, max_phi, max_z, max_vpara, max_vperp, max_vr, max_vphi, max_vz;
+    real min_r, min_phi, min_z, min_vpara, min_vperp, min_vr, min_vphi, min_vz;
     if (sim_offload->diag_offload_data.dist5D_collect) {
         dist_5D_offload_data dist5D = sim_offload->diag_offload_data.dist5D;
         n_r = dist5D.n_r;
@@ -184,7 +181,17 @@ void bmc_init_particles(
         min_vphi = dist6D.min_vphi;
     }
 
+    if (sim_offload->diag_offload_data.dist5D_collect) {
+        *n = n_r * n_phi * n_z * n_vpara * n_vperp * N_MC_STEPS;
+    } else {
+        *n = n_r * n_phi * n_z * n_vr * n_vphi * n_vz * N_MC_STEPS;
+    }
 
+    *ps = (particle_state *)malloc(*n * sizeof(particle_state));
+    input_particle p_tmp; // tmp particle
+    particle_state ps_tmp; // tmp particle
+
+    int i = 0;
     for (int i_r = 0; i_r < n_r; ++i_r) {
         r = (max_r - min_r) * i_r / n_r + min_r;
         for (int i_phi = 0; i_phi < n_phi; ++i_phi) {
@@ -192,19 +199,26 @@ void bmc_init_particles(
             for (int i_z = 0; i_z < n_z; ++i_z) {
                 z = (max_z - min_z) * i_z / n_z + min_z;
 
-                if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) {
-                    continue;
-                }
+                // if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) {
+                //     continue;
+                // }
 
                 if (sim_offload->diag_offload_data.dist5D_collect) {                
                     // compute magnetic field
-                    B_field_eval_B_dB(B_dB, r, phi, z, T1, Bdata);
-
                     for (int i_vpara = 0; i_vpara < n_vpara; ++i_vpara) {
                         vpara = (max_vpara - min_vpara) * i_vpara / n_vpara + min_vpara;
                         for (int i_vperp = 0; i_vperp < n_vperp; ++i_vperp) {
                             vperp = (max_vperp - min_vperp) * i_vperp / n_vperp + min_vperp;
-                            bmc_5D_to_fo(B_dB, r, phi, z, vpara, vperp, &vr, &vphi, &vz);
+                            // bmc_5D_to_fo(B_dB, r, phi, z, vpara, vperp, &vr, &vphi, &vz);
+                            bmc_5D_to_particle_state(Bdata, r, phi, z, vpara, vperp, T1, i, &ps_tmp);
+
+                            if (!ps_tmp.err) {
+                                for (int i_mc=0; i_mc<N_MC_STEPS; ++i_mc) {
+                                    ps_tmp.id = i;
+                                    memcpy(*ps + i, &ps_tmp, sizeof(particle_state));
+                                    i++;
+                                }
+                            }
                         }
                     }
                 } else {
@@ -214,46 +228,128 @@ void bmc_init_particles(
                             vphi = (max_vphi - min_vphi) * i_vphi / n_vphi + min_vphi;
                             for (int i_vz = 0; i_vz < n_vz; ++i_vz) {
                                 vz = (max_vz - min_vz) * i_vz / n_vz + min_vz;
+                                bmc_init_fo_particle(&p_tmp, r, phi, z, vr, vphi, vz, T1, i);
+                                particle_input_to_state(&p_tmp, &ps_tmp, Bdata);
+                            }
+
+                            if (!ps_tmp.err) {
+                                for (int i_mc=0; i_mc<N_MC_STEPS; ++i_mc) {
+                                    ps_tmp.id = i;
+                                    memcpy(*ps + i, &ps_tmp, sizeof(particle_state));
+                                    i++;
+                                }
                             }
                         }
                     }
                 }
-
-                // create as many particles as needed for the integration of this mesh vertex
-                for (int i=0; i<n_montecarlo_steps; ++i) {
-                    *n = *n + 1;
-                    *p = (input_particle *)realloc(*p, *n * sizeof(input_particle));
-                    bmc_init_fo_particle(*p+*n, r, phi, z, vr, vphi, vz, T1, *n);
-                }
             }
         }
     }
+
+    *n = i;
+    printf("Initialized %d particles\n", i);
+
+    return 0;
 }
 
-void bmc_5D_to_fo(
-        real B_dB[15],
+void bmc_5D_to_particle_state(
+        B_field_data* Bdata,
         real r, real phi, real z,
         real vpara, real vperp,
-        real *vr,
-        real *vphi,
-        real *vz
+        real t,
+        int id,
+        particle_state* ps
     ) {
 
-    // find the parallel unit vector
-    real Bpar_norm = sqrt(B_dB[0]*B_dB[0] + B_dB[4]*B_dB[4] + B_dB[8]*B_dB[8]);
-    real e_par_r = B_dB[0] / Bpar_norm;
-    real e_par_phi = B_dB[4] / Bpar_norm;
-    real e_par_z = B_dB[8] / Bpar_norm;
-    
-    // find a perpendicular unit vector --> i.e. normalized of (-Bz, 0, Br)
-    real Bperp_norm = sqrt(B_dB[0]*B_dB[0] + B_dB[8]*B_dB[8]);
-    real e_perp_r = - B_dB[8] / Bperp_norm;
-    real e_perp_phi = 0;
-    real e_perp_z = B_dB[0] / Bperp_norm;
+    a5err err = 0;
 
-    *vr = vpara * e_par_r + vperp * e_perp_r;
-    *vphi = vpara * e_par_phi + vperp * e_perp_phi;
-    *vz = vpara * e_par_z + vperp * e_perp_z;
+    real psi[1], rho[1], B_dB[15];
+    err = B_field_eval_B_dB(B_dB, r, phi, z, t, Bdata);
+    if (!err) {
+        err = B_field_eval_psi(psi, r, phi, z,
+                                t, Bdata);
+    }
+    if(!err) {
+        err = B_field_eval_rho(rho, psi[0], Bdata);
+    }
+
+    if(!err) {
+        ps->rho        = rho[0];
+        ps->B_r        = B_dB[0];
+        ps->B_phi      = B_dB[4];
+        ps->B_z        = B_dB[8];
+        ps->B_r_dr     = B_dB[1];
+        ps->B_phi_dr   = B_dB[5];
+        ps->B_z_dr     = B_dB[9];
+        ps->B_r_dphi   = B_dB[2];
+        ps->B_phi_dphi = B_dB[6];
+        ps->B_z_dphi   = B_dB[10];
+        ps->B_r_dz     = B_dB[3];
+        ps->B_phi_dz   = B_dB[7];
+        ps->B_z_dz     = B_dB[11];
+    }
+
+    /* Input is in (Ekin,xi) coordinates but state needs (mu,vpar) so we need to do that
+        * transformation first. */
+    real Bnorm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
+    real mu = 0.5 * vperp * vperp * MASS / Bnorm;
+    if(!err && mu < 0)          {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+    if(!err && vpara >= CONST_C) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+
+    if(!err) {
+        ps->r        = r;
+        ps->phi      = phi;
+        ps->z        = z;
+        ps->mu       = mu;
+        ps->vpar     = vpara;
+        ps->zeta     = 0;
+        ps->mass     = MASS;
+        ps->charge   = CHARGE;
+        ps->anum     = 0;
+        ps->znum     = 1;
+        ps->weight   = 1;
+        ps->time     = t;
+        ps->theta    = atan2(ps->z-B_field_get_axis_z(Bdata, ps->phi),
+                                ps->r-B_field_get_axis_r(Bdata, ps->phi));
+        ps->id       = id;
+        ps->endcond  = 0;
+        ps->walltile = 0;
+        ps->cputime  = 0;
+    }
+
+    /* Guiding center transformation to get particle coordinates */
+    real rprt, phiprt, zprt, vR, vphi, vz;
+    if(!err) {
+        real vparprt, muprt, zetaprt;
+        gctransform_guidingcenter2particle(
+            ps->mass, ps->charge, B_dB,
+            ps->r, ps->phi, ps->z, ps->vpar, ps->mu, ps->zeta,
+            &rprt, &phiprt, &zprt, &vparprt, &muprt, &zetaprt);
+
+        B_field_eval_B_dB(B_dB, rprt, phiprt, zprt, ps->time, Bdata);
+        if(!err && vparprt >= CONST_C) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+        if(!err && -vparprt >= CONST_C) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+
+        gctransform_vparmuzeta2vRvphivz(
+            ps->mass, ps->charge, B_dB,
+            phiprt, vparprt, muprt, zetaprt,
+            &vR, &vphi, &vz);
+    }
+    if(!err && rprt <= 0) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+
+    if(!err) {
+        ps->rprt   = rprt;
+        ps->phiprt = phiprt;
+        ps->zprt   = zprt;
+        ps->rdot   = vR;
+        ps->phidot = vphi / ps->rprt;
+        ps->zdot   = vz;
+
+        ps->err = 0;
+    } else {
+        ps->err = err;
+    }
+
 }
 
 void bmc_init_fo_particle(
@@ -269,8 +365,8 @@ void bmc_init_fo_particle(
     p->p.v_r = v_r;
     p->p.v_phi = v_phi;
     p->p.v_z = v_z;
-    p->p.mass = 1;
-    p->p.charge = 1;
+    p->p.mass = MASS;
+    p->p.charge = CHARGE;
     p->p.anum = 0;
     p->p.znum = 1;
     p->p.weight = 1;
@@ -292,8 +388,7 @@ void bmc_simulate_particles(
         int n_host
     ) {
 
-
-    // FIXME: decide on diag data initialization
+    offload_data->unpack_pos = 0;
 
     /* Initialize diagnostics offload data.
      * Separate arrays for host and target */
@@ -325,7 +420,7 @@ void bmc_simulate_particles(
                     offload_array[0:offload_data.offload_array_length], \
                     diag_offload_array_mic0[0:sim.diag_offload_data.offload_array_length] \
                 )
-                simulate(1, n_mic, ps, sim, &offload_data, offload_array,
+                simulate(1, n_mic, ps, sim, offload_data, offload_array,
                     diag_offload_array_mic0);
 
                 *mic0_end = omp_get_wtime();
@@ -343,7 +438,7 @@ void bmc_simulate_particles(
                     offload_array[0:offload_data.offload_array_length], \
                     diag_offload_array_mic1[0:sim.diag_offload_data.offload_array_length] \
                 )
-                simulate(2, n_mic, ps+n_mic, sim, &offload_data, offload_array,
+                simulate(2, n_mic, ps+n_mic, sim, offload_data, offload_array,
                     diag_offload_array_mic1);
 
                 *mic1_end = omp_get_wtime();
@@ -355,7 +450,7 @@ void bmc_simulate_particles(
             #pragma omp section
             {
                 *host_start = omp_get_wtime();
-                simulate(0, n_host, ps+2*n_mic, sim, &offload_data,
+                simulate(0, n_host, ps+2*n_mic, sim, offload_data,
                     offload_array, diag_offload_array_host);
                 *host_end = omp_get_wtime();
             }
