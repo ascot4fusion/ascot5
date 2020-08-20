@@ -42,4 +42,7 @@ void bmc_simulate_particles(
         double* mic0_start, double* mic0_end,
         double* host_start, double* host_end,
         int n_mic,
-        int n_host);
+        int n_host,
+        real* diag_offload_array_host,
+        real* diag_offload_array_mic0,
+        real* diag_offload_array_mic1);
