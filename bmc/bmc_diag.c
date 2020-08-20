@@ -24,7 +24,7 @@ int bmc_walltile_in_target(integer walltile) {
         return 1;
     }
 
-    return 0;
+    return 1;
 }
 
 void bmc_update_particles_diag(

@@ -4,23 +4,22 @@
 #include "mpi.h"
 #include "../print.h"
 #include "../hdf5_interface.h"
+#include "../math.h"
 
 void bmc_setup_endconds(sim_offload_data* sim);
 
-void bmc_init_particles(
+int bmc_init_particles(
         int *n,
-        input_particle **p,
+        particle_state** ps,
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
-        real* offload_array,
-        int n_montecarlo_steps
+        real* offload_array
     );
 
-void backward_monte_carlo(
-        int n_montecarlo_steps,
+int backward_monte_carlo(
         int n_tot_particles,
         int n_mpi_particles,
-        input_particle* p_mpi,
+        particle_state* ps_mpi,
         B_field_data* Bdata,
         sim_offload_data* sim_offload,
         offload_package* offload_data,
