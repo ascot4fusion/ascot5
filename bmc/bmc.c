@@ -1,7 +1,7 @@
 #include "bmc.h"
 
 #define TIMESTEP 1E-7 // TODO use input HDF
-#define T0 0.999999
+#define T0 0.999995
 #define T1 1.
 #define N_MC_STEPS 1
 #define MASS 9.10938356E-31
@@ -55,14 +55,25 @@ int backward_monte_carlo(
     // }
 
     // initialize distributions
-    diag_data diag0, diag1;
-    real* diag0_array, *diag1_array;
-    diag_init_offload(&sim_offload->diag_offload_data, &diag0_array, n_tot_particles);
-    diag_init_offload(&sim_offload->diag_offload_data, &diag1_array, n_tot_particles);
-    diag_init(&diag0, &sim_offload->diag_offload_data, diag0_array);
-    diag_init(&diag1, &sim_offload->diag_offload_data, diag1_array);
-
+    diag_data distr0, distr1;
+    real* distr0_array, *distr1_array;
+    diag_init_offload(&sim_offload->diag_offload_data, &distr0_array, 1);
+    diag_init_offload(&sim_offload->diag_offload_data, &distr1_array, 1);
+    diag_init(&distr0, &sim_offload->diag_offload_data, distr0_array);
+    diag_init(&distr1, &sim_offload->diag_offload_data, distr1_array);
     int dist_length = sim_offload->diag_offload_data.offload_array_length;
+
+    /* Initialize diagnostics offload data.
+     * Separate arrays for host and target */
+    // diagnostic might be useless for BMC. Remove this?
+    real* diag_offload_array_mic0, *diag_offload_array_mic1, *diag_offload_array_host;
+    #ifdef TARGET
+        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic0, n_tot_particles);
+        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic1, n_tot_particles);
+    #else
+        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_host, n_tot_particles);
+    #endif
+
 
     // init sim data
     sim_data sim;
@@ -82,13 +93,15 @@ int backward_monte_carlo(
         }
 
         // simulate one step of all needed particles
-        bmc_simulate_particles(ps1, n_tot_particles, sim_offload, offload_data, offload_array, mic1_start, mic1_end, mic0_start, mic0_end, host_start, host_end, n_mic, n_host);
+        bmc_simulate_particles(ps1, n_tot_particles, sim_offload, offload_data, offload_array,
+                            mic1_start, mic1_end, mic0_start, mic0_end, host_start, host_end, n_mic, n_host,
+                            diag_offload_array_host, diag_offload_array_mic0, diag_offload_array_mic1);
 
         // Update the probability distribution
-        bmc_update_particles_diag(n_mpi_particles, ps0, ps1, &diag0, &diag1, &sim, N_MC_STEPS);
+        bmc_update_particles_diag(n_mpi_particles, ps0, ps1, &distr0, &distr1, &sim, N_MC_STEPS);
 
         // shift distributions
-        diag_copy_distribution(sim_offload, &diag0, &diag1, dist_length);
+        diag_copy_distribution(sim_offload, &distr0, &distr1, dist_length);
 
         // reset particle initial states to ps1
         memcpy(ps1, ps0, n_mpi_particles * sizeof(particle_state));
@@ -98,7 +111,7 @@ int backward_monte_carlo(
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nWriting BMC probability distribution.\n");
     if (mpi_rank == 0) {
         int err_writediag = 0;
-        err_writediag = hdf5_interface_write_diagnostics(sim_offload, diag0_array, sim_offload->hdf5_out);
+        err_writediag = hdf5_interface_write_diagnostics(sim_offload, distr0_array, sim_offload->hdf5_out);
         if(err_writediag) {
             print_out0(VERBOSE_MINIMAL, mpi_rank,
                     "\nWriting diagnostics failed.\n"
@@ -110,6 +123,14 @@ int backward_monte_carlo(
         }
 
     }
+
+    // Free diagnostic data
+    #ifdef TARGET
+        diag_free_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic0);
+        diag_free_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic1);
+    #else
+        diag_free_offload(&sim_offload->diag_offload_data, &diag_offload_array_host);
+    #endif
 
     return 0;
 
@@ -385,23 +406,13 @@ void bmc_simulate_particles(
         double* mic0_start, double* mic0_end,
         double* host_start, double* host_end,
         int n_mic,
-        int n_host
+        int n_host,
+        real* diag_offload_array_host,
+        real* diag_offload_array_mic0,
+        real* diag_offload_array_mic1
     ) {
 
     offload_data->unpack_pos = 0;
-
-    /* Initialize diagnostics offload data.
-     * Separate arrays for host and target */
-    // diagnostic might be useless for BMC. Remove this?
-    #ifdef TARGET
-        real* diag_offload_array_mic0;
-        real* diag_offload_array_mic1;
-        diag_init_offload(&sim->diag_offload_data, &diag_offload_array_mic0, n_tot_particles);
-        diag_init_offload(&sim->diag_offload_data, &diag_offload_array_mic1, n_tot_particles);
-    #else
-        real* diag_offload_array_host;
-        diag_init_offload(&sim->diag_offload_data, &diag_offload_array_host, n_tot_particles);
-    #endif
 
     /* Actual marker simulation happens here. Threads are spawned which
     * distribute the execution between target(s) and host. Both input and
