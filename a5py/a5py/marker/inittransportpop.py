@@ -101,15 +101,19 @@ def init_rhoenergypitch(fn, n, mass, charge, anum, znum, rhogrid, energygrid,
     rhovals    = np.zeros((ntotal,))
     energyvals = np.zeros((ntotal,))
     pitchvals  = np.zeros((ntotal,))
-    for irho in range(rhogrid.size):
+
+    irho = 0
+    while irho < rhogrid.size:
         for ienergy in range(energygrid.size):
             for ipitch in range(pitchgrid.size):
                 idx =   ipitch * (energygrid.size * rhogrid.size) \
                       + ienergy * rhogrid.size + irho
+
                 if randomize_rho and rgrid is None:
                     rhovals[idx*n:(idx+1)*n] = \
                     np.amin(rhogrid) + ( np.amax(rhogrid)- np.amin(rhogrid) ) \
                         * np.random.rand(n)
+                    irho = rhogrid.size
                 elif rgrid is None:
                     rhovals[idx*n:(idx+1)*n] = rhogrid[irho]
 
@@ -117,6 +121,7 @@ def init_rhoenergypitch(fn, n, mass, charge, anum, znum, rhogrid, energygrid,
                     rhovals[idx*n:(idx+1)*n] = \
                     np.amin(rgrid) + ( np.amax(rgrid)- np.amin(rgrid) ) \
                         * np.random.rand(n)
+                    irho = rhogrid.size
                 elif rgrid is not None:
                     rhovals[idx*n:(idx+1)*n] = rgrid[irho]
 
@@ -125,6 +130,7 @@ def init_rhoenergypitch(fn, n, mass, charge, anum, znum, rhogrid, energygrid,
                       np.amin(energygrid) \
                     + ( np.amax(energygrid)- np.amin(energygrid) ) \
                     * np.random.rand(n)
+                    ienergy = energygrid.size
                 else:
                     energyvals[idx*n:(idx+1)*n] = energygrid[ienergy]
 
@@ -133,8 +139,11 @@ def init_rhoenergypitch(fn, n, mass, charge, anum, znum, rhogrid, energygrid,
                       np.amin(pitchgrid)
                     + ( np.amax(pitchgrid)- np.amin(pitchgrid) ) \
                     * np.random.rand(n)
+                    ipitch = pitchgrid.size
                 else:
                     pitchvals[idx*n:(idx+1)*n] = pitchgrid[ipitch]
+
+        irho += 1
 
     # Find OMP R,z values
     a5 = Ascotpy(fn)
