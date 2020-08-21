@@ -182,7 +182,8 @@ class LibAscot:
             fun.restype  = ctypes.c_int
             fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
                             real_p, real_p, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p]
+                            real_p, real_p, real_p, real_p, real_p, real_p,
+                            real_p]
         except AttributeError:
             warnings.warn("libascot_boozer_eval_psithetazeta not found", Warning)
             pass
@@ -715,11 +716,12 @@ class LibAscot:
             out["dzetadr"]    = np.zeros(R.shape, dtype="f8") + np.nan
             out["dzetadphi"]  = np.zeros(R.shape, dtype="f8") + np.nan
             out["dzetadz"]    = np.zeros(R.shape, dtype="f8") + np.nan
+            out["rho"]        = np.zeros(R.shape, dtype="f8") + np.nan
             self.libascot.libascot_boozer_eval_psithetazeta(
                 Neval, R, phi, z, t, out["psi"], out["theta"], out["zeta"],
                 out["dpsidr"], out["dpsidphi"], out["dpsidz"],
                 out["dthetadr"], out["dthetadphi"], out["dthetadz"],
-                out["dzetadr"], out["dzetadphi"], out["dzetadz"])
+                out["dzetadr"], out["dzetadphi"], out["dzetadz"], out["rho"])
 
         return out
 
