@@ -195,72 +195,70 @@ a5err mhd_stat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
         isinside = 0;
     }
 
-    /* Skip evaluation if evaluation failed or point outside the grid. */
-    if(err || !isinside) {
-        iterations = 0;
-    }
-
     int interperr = 0;
     for(int i = 0; i < iterations; i++){
-        /* Get interpolated values */
-        real a_da[3], phi_dphi[3];
-        interperr += interp1Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]),
-                                          rho[0]);
-        interperr += interp1Dcomp_eval_df(phi_dphi, &(mhddata->phi_nm[i]),
-                                          rho[0]);
+        /* Skip evaluation if evaluation failed or point outside the grid. */
+        if(!err && isinside) {
+            /* Get interpolated values */
+            real a_da[3], phi_dphi[3];
+            interperr += interp1Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]),
+                                              rho[0]);
+            interperr += interp1Dcomp_eval_df(phi_dphi, &(mhddata->phi_nm[i]),
+                                              rho[0]);
 
-        /* The interpolation returns dx/drho but we require dx/dpsi.
-         * The second order derivatives are not needed anywhere */
-        a_da[1]     *= rho[1];
-        phi_dphi[1] *= rho[1];
+            /* The interpolation returns dx/drho but we require dx/dpsi.
+             * The second order derivatives are not needed anywhere */
+            a_da[1]     *= rho[1];
+            phi_dphi[1] *= rho[1];
 
-        /* These are used frequently, so store them in separate variables */
-        real mhdarg = mhddata->nmode[i] * ptz[8]
-                    - mhddata->mmode[i] * ptz[4]
-                    - mhddata->omega_nm[i] * t
-                    + mhddata->phase_nm[i];
-        real sinmhd = sin(mhdarg);
-        real cosmhd = cos(mhdarg);
+            /* These are used frequently, so store them in separate variables */
+            real mhdarg = mhddata->nmode[i] * ptz[8]
+                - mhddata->mmode[i] * ptz[4]
+                - mhddata->omega_nm[i] * t
+                + mhddata->phase_nm[i];
+            real sinmhd = sin(mhdarg);
+            real cosmhd = cos(mhdarg);
 
-        /* Sum over modes to get alpha, phi */
-        mhd_dmhd[0] +=     a_da[0] * mhddata->amplitude_nm[i] * cosmhd;
-        mhd_dmhd[5] += phi_dphi[0] * mhddata->amplitude_nm[i] * cosmhd;
+            /* Sum over modes to get alpha, phi */
+            mhd_dmhd[0] +=     a_da[0] * mhddata->amplitude_nm[i] * cosmhd;
+            mhd_dmhd[5] += phi_dphi[0] * mhddata->amplitude_nm[i] * cosmhd;
 
-        /* Time derivatives */
-        mhd_dmhd[1] +=     a_da[0] * mhddata->amplitude_nm[i]
-                                   * mhddata->omega_nm[i] * sinmhd;
-        mhd_dmhd[6] += phi_dphi[0] * mhddata->amplitude_nm[i]
-                                   * mhddata->omega_nm[i] * sinmhd;
+            /* Time derivatives */
+            mhd_dmhd[1] +=     a_da[0] * mhddata->amplitude_nm[i]
+                * mhddata->omega_nm[i] * sinmhd;
+            mhd_dmhd[6] += phi_dphi[0] * mhddata->amplitude_nm[i]
+                * mhddata->omega_nm[i] * sinmhd;
 
-        /* R component of gradients */
-        mhd_dmhd[2] += mhddata->amplitude_nm[i]
+            /* R component of gradients */
+            mhd_dmhd[2] += mhddata->amplitude_nm[i]
             * (  a_da[1] * ptz[1] * cosmhd
                + a_da[0] * mhddata->mmode[i] * ptz[5] * sinmhd
                - a_da[0] * mhddata->nmode[i] * ptz[9] * sinmhd);
-        mhd_dmhd[7] += mhddata->amplitude_nm[i]
-            * (   phi_dphi[1] * ptz[1] * cosmhd
+            mhd_dmhd[7] += mhddata->amplitude_nm[i]
+                * (   phi_dphi[1] * ptz[1] * cosmhd
                 + phi_dphi[0] * mhddata->mmode[i] * ptz[5] * sinmhd
                 - phi_dphi[0] * mhddata->nmode[i] * ptz[9] * sinmhd);
 
-        /* phi component of gradients */
-        mhd_dmhd[3] += (1/r) * mhddata->amplitude_nm[i]
-            * (  a_da[1] * ptz[2] * cosmhd
-               + a_da[0] * mhddata->mmode[i] * ptz[6]  * sinmhd
-               - a_da[0] * mhddata->nmode[i] * ptz[10] * sinmhd);
-        mhd_dmhd[8] += (1/r) * mhddata->amplitude_nm[i]
+            /* phi component of gradients */
+            mhd_dmhd[3] += (1/r) * mhddata->amplitude_nm[i]
+                    * (  a_da[1] * ptz[2] * cosmhd
+                       + a_da[0] * mhddata->mmode[i] * ptz[6]  * sinmhd
+                       - a_da[0] * mhddata->nmode[i] * ptz[10] * sinmhd);
+            mhd_dmhd[8] += (1/r) * mhddata->amplitude_nm[i]
             * (   phi_dphi[1] * ptz[2] * cosmhd
                 + phi_dphi[0] * mhddata->mmode[i] * ptz[6]  * sinmhd
                 - phi_dphi[0] * mhddata->nmode[i] * ptz[10] * sinmhd);
 
-        /* z component of gradients */
-        mhd_dmhd[4] += mhddata->amplitude_nm[i]
+            /* z component of gradients */
+            mhd_dmhd[4] += mhddata->amplitude_nm[i]
             * (   a_da[1] * ptz[3] * cosmhd
                 + a_da[0] * mhddata->mmode[i] * ptz[7]  * sinmhd
                 - a_da[0] * mhddata->nmode[i] * ptz[11] * sinmhd);
-        mhd_dmhd[9] += mhddata->amplitude_nm[i]
-            * (   phi_dphi[1] * ptz[3] * cosmhd
-                + phi_dphi[0] * mhddata->mmode[i] * ptz[7]  * sinmhd
-                - phi_dphi[0] * mhddata->nmode[i] * ptz[11] * sinmhd);
+            mhd_dmhd[9] += mhddata->amplitude_nm[i]
+                * (   phi_dphi[1] * ptz[3] * cosmhd
+                      + phi_dphi[0] * mhddata->mmode[i] * ptz[7]  * sinmhd
+                      - phi_dphi[0] * mhddata->nmode[i] * ptz[11] * sinmhd);
+        }
     }
 
     if(interperr) {
