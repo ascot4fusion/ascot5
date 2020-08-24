@@ -514,9 +514,8 @@ void libascot_boozer_eval_psithetazeta(int Neval, real* R, real* phi, real* z,
                                        real* dpsidz, real* dthetadr,
                                        real* dthetadphi, real* dthetadz,
                                        real* dzetadr, real* dzetadphi,
-                                       real* dzetadz, real* rho) {
+                                       real* dzetadz) {
     real psithetazeta[12];
-    real rhoval[2];
     int isinside;
     for(int k = 0; k < Neval; k++) {
         if( boozer_eval_psithetazeta(psithetazeta, &isinside, R[k], phi[k],
@@ -524,9 +523,6 @@ void libascot_boozer_eval_psithetazeta(int Neval, real* R, real* phi, real* z,
             continue;
         }
         if(!isinside) {
-            continue;
-        }
-        if( boozer_eval_rho_drho(rhoval, psithetazeta[0], &sim.boozer_data) ) {
             continue;
         }
         psi[k]        = psithetazeta[0];
@@ -541,7 +537,6 @@ void libascot_boozer_eval_psithetazeta(int Neval, real* R, real* phi, real* z,
         dzetadr[k]    = psithetazeta[9];
         dzetadphi[k]  = psithetazeta[10];
         dzetadz[k]    = psithetazeta[11];
-        rho[k]        = rhoval[0];
     }
 }
 
