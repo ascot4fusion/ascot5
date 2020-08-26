@@ -155,6 +155,7 @@ int main(int argc, char** argv) {
     /* Marker input struct */
     input_particle* p;
     particle_state* ps;
+    int *ps_indexes;
 
     /* Offload data arrays that are allocated when input is read */
     real* B_offload_array;
@@ -230,7 +231,7 @@ int main(int argc, char** argv) {
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
-    if (bmc_init_particles(&n, &ps, &sim, &Bdata, offload_array)) {
+    if (bmc_init_particles(&n, &ps, &ps_indexes, &sim, &Bdata, offload_array)) {
         goto CLEANUP_FAILURE;
     }
     int n_total_particles = n;
@@ -293,7 +294,7 @@ int main(int argc, char** argv) {
 
     // SIMULATE HERE
     if (backward_monte_carlo(
-        n_total_particles, n, ps,
+        n_total_particles, n, ps, ps_indexes,
         &Bdata, &sim, &offload_data, offload_array,
         &mic1_start, &mic1_end,
         &mic0_start, &mic0_end,

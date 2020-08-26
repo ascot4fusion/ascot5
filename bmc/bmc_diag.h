@@ -22,7 +22,7 @@ void bmc_update_particles_diag(
     int n_montecarlo_steps
 );
 
-void bmc_diag_update_gc(
+int bmc_diag_update_gc(
     particle_state* ps0,
     particle_state* ps1,
     int p0_index,
@@ -39,7 +39,7 @@ void bmc_diag_update_fo(
     int n_montecarlo_steps
 );
 
-void bmc_diag_5D_update_gc(
+int bmc_diag_5D_update_gc(
     dist_5D_data* dist1,
     dist_5D_data* dist0,
     int p0_index,

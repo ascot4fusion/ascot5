@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "bit": "cpp",
+        "chrono": "cpp",
+        "memory_resource": "cpp",
+        "optional": "cpp",
+        "mutex": "cpp",
+        "ratio": "cpp"
+    }
+}
