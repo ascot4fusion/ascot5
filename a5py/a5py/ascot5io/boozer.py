@@ -99,7 +99,7 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
     theta_psithetageom = np.concatenate(
         (data, data[-1,:] + data[1:padding+1,:]) )
     theta_psithetageom = np.concatenate(
-        (data[nthetag-padding-1:-1,:] - data[-1,:], theta_psithetageom) )
+        (data[int(nthetag-padding-1):-1,:] - data[-1,:], theta_psithetageom) )
     nthetag += padding*2
 
     with h5py.File(fn, "a") as f:
@@ -161,9 +161,17 @@ def read_hdf5(fn, qid):
         for key in f[path]:
             out[key] = f[path][key][:]
 
+    # (Remove padding to theta_psithetageom)
+    padding = 4
+    nthetag = int(out["nthetag"] - padding*2)
+    out["theta_psithetageom"] = out["theta_psithetageom"][padding:,:]
+    out["theta_psithetageom"] = out["theta_psithetageom"][:nthetag,:]
+    out["nthetag"] = nthetag
+
     out["psi_rz"]             = np.transpose(out["psi_rz"])
     out["theta_psithetageom"] = np.transpose(out["theta_psithetageom"])
     out["nu_psitheta"]        = np.transpose(out["nu_psitheta"])
+
     return out
 
 
