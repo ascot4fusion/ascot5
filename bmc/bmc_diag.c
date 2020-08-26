@@ -1,20 +1,22 @@
 #include "bmc_diag.h"
 
-void diag_copy_distribution(sim_offload_data* sim, diag_data* diag0, diag_data* diag1, int dist_length) {
-    // copy into diag0
+void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int dist_length) {
+    // copy into diag_dest
     #ifdef MPI
         if (sim->diag_offload_data.dist5D_collect) {
-            MPI_Allreduce(diag1->dist5D.histogram, diag0->dist5D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        }
-        if (sim->diag_offload_data.dist6D_collect) {
-            MPI_Allreduce(diag1->dist6D.histogram, diag0->dist6D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(diag_src->dist5D.histogram, diag_dest->dist5D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            memset(diag_src->dist5D.histogram, 0, dist_length);
+        } else if (sim->diag_offload_data.dist6D_collect) {
+            MPI_Allreduce(diag_src->dist6D.histogram, diag_dest->dist6D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            memset(diag_src->dist6D.histogram, 0, dist_length);
         }
     #else
         if (sim->diag_offload_data.dist5D_collect) {
-            memcpy(diag0->dist5D.histogram, diag1->dist5D.histogram, dist_length);
-        }
-        if (sim->diag_offload_data.dist6D_collect) {
-            memcpy(diag0->dist6D.histogram, diag1->dist6D.histogram, dist_length);
+            memcpy(diag_dest->dist5D.histogram, diag_src->dist5D.histogram, dist_length * sizeof(real));
+            memset(diag_src->dist5D.histogram, 0, dist_length * sizeof(real));
+        } else if (sim->diag_offload_data.dist6D_collect) {
+            memcpy(diag_dest->dist6D.histogram, diag_src->dist6D.histogram, dist_length * sizeof(real));
+            memset(diag_src->dist6D.histogram, 0, dist_length * sizeof(real));
         }
     #endif
 }
@@ -31,6 +33,7 @@ void bmc_update_particles_diag(
     int n_mpi_particles,
     particle_state* ps0,
     particle_state* ps1,
+    int* ps_indexes,
     diag_data* diag0,
     diag_data* diag1,
     sim_data* sim,
@@ -39,10 +42,10 @@ void bmc_update_particles_diag(
     for(int i = 0; i < n_mpi_particles; i++) {
 
         if (sim->sim_mode == simulate_mode_fo) {
-            bmc_diag_update_fo(&ps0[i], &ps1[i], diag0, diag1, n_montecarlo_steps);
+            bmc_diag_update_fo(&ps0[i], &ps1[i], ps_indexes[i], diag0, diag1, n_montecarlo_steps);
         }
         else if (sim->sim_mode == simulate_mode_gc) {
-            bmc_diag_update_gc(&ps0[i], &ps1[i], diag0, diag1, n_montecarlo_steps);
+            bmc_diag_update_gc(&ps0[i], &ps1[i], ps_indexes[i], diag0, diag1, n_montecarlo_steps);
         }
 
     }
@@ -51,32 +54,34 @@ void bmc_update_particles_diag(
 void bmc_diag_update_gc(
     particle_state* ps0,
     particle_state* ps1,
+    int p0_index,
     diag_data* diag0,
     diag_data* diag1,
     int n_montecarlo_steps
 ) {
     if(diag0->dist5D_collect) {
-        bmc_diag_5D_update_gc(&diag1->dist5D, &diag0->dist5D,  ps1, ps0, n_montecarlo_steps);
+        bmc_diag_5D_update_gc(&diag1->dist5D, &diag0->dist5D,  p0_index, ps1, ps0, n_montecarlo_steps);
     }
 
     if(diag0->dist6D_collect) {
-        bmc_diag_6D_update_gc(&diag1->dist6D, &diag0->dist6D,  ps1, ps0, n_montecarlo_steps);
+        bmc_diag_6D_update_gc(&diag1->dist6D, &diag0->dist6D,  p0_index, ps1, ps0, n_montecarlo_steps);
     }
 }
 
 void bmc_diag_update_fo(
     particle_state* ps0,
     particle_state* ps1,
+    int p0_index,
     diag_data* diag0,
     diag_data* diag1,
     int n_montecarlo_steps
 ) {
     if(diag0->dist5D_collect) {
-        bmc_diag_5D_update_fo(&diag1->dist5D, &diag0->dist5D,  ps1, ps0, n_montecarlo_steps);
+        bmc_diag_5D_update_fo(&diag1->dist5D, &diag0->dist5D,  p0_index, ps1, ps0, n_montecarlo_steps);
     }
 
     if(diag0->dist6D_collect) {
-        bmc_diag_6D_update_fo(&diag1->dist6D, &diag0->dist6D,  ps1, ps0, n_montecarlo_steps);
+        bmc_diag_6D_update_fo(&diag1->dist6D, &diag0->dist6D,  p0_index, ps1, ps0, n_montecarlo_steps);
     }
 }
 
@@ -84,11 +89,11 @@ void bmc_diag_update_fo(
 void bmc_diag_5D_update_gc(
         dist_5D_data* dist1,
         dist_5D_data* dist0,
+        int p0_index,
         particle_state* ps1,
         particle_state* ps0,
         int n_montecarlo_steps
     ) {
-    int p0_index = bmc_dist5D_gc_index(ps0, dist0);
 
     // check if the particle hit the wall
     if (ps1->endcond & endcond_wall) {
@@ -96,20 +101,38 @@ void bmc_diag_5D_update_gc(
             // particle ended in target domain, set the weight to 1
             dist1->histogram[p0_index] += 1. / n_montecarlo_steps;
         }
-    } else {
-        int p1_index = bmc_dist5D_gc_index(ps1, dist0);
-        dist1->histogram[p0_index] += dist0->histogram[p1_index] / n_montecarlo_steps;
+
+        return;
     }
+
+    // check if the particle escaped the velocity space
+    real vperp = sqrt(2 * sqrt(ps1->B_r*ps1->B_r
+        +ps1->B_phi*ps1->B_phi
+        +ps1->B_z*ps1->B_z)
+        * ps1->mu / ps1->mass);
+                
+    if ((ps1->vpar > dist1->max_vpara) || (ps1->vpar < dist1->min_vpara) ||
+        (vperp > dist1->max_vperp) || (vperp < dist1->max_vperp)) {
+
+        // outside velocity space
+        return;
+    }
+
+    // if (ps1->mu < 0) {
+    //     printf("mu fail diag\n");
+    // }
+    int p1_index = bmc_dist5D_gc_index(ps1, dist0);
+    dist1->histogram[p0_index] += dist0->histogram[p1_index] / n_montecarlo_steps;
 }
 
 void bmc_diag_5D_update_fo(
         dist_5D_data* dist1,
         dist_5D_data* dist0,
+        int p0_index,
         particle_state* ps1,
         particle_state* ps0,
         int n_montecarlo_steps
     ) {
-    int p0_index = bmc_dist5D_fo_index(ps0, dist0);
 
     // check if the particle hit the wall
     if (ps1->endcond & endcond_wall) {
@@ -126,11 +149,11 @@ void bmc_diag_5D_update_fo(
 void bmc_diag_6D_update_gc(
         dist_6D_data* dist1,
         dist_6D_data* dist0,
+        int p0_index,
         particle_state* ps1,
         particle_state* ps0,
         int n_montecarlo_steps
     ) {
-    int p0_index = bmc_dist6D_gc_index(ps0, dist0);
 
     // check if the particle hit the wall
     if (ps1->endcond & endcond_wall) {
@@ -147,11 +170,11 @@ void bmc_diag_6D_update_gc(
 void bmc_diag_6D_update_fo(
         dist_6D_data* dist1,
         dist_6D_data* dist0,
+        int p0_index,
         particle_state* ps1,
         particle_state* ps0,
         int n_montecarlo_steps
     ) {
-    int p0_index = bmc_dist6D_fo_index(ps0, dist0);
 
     // check if the particle hit the wall
     if (ps1->endcond & endcond_wall) {

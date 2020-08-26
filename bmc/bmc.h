@@ -5,12 +5,15 @@
 #include "../print.h"
 #include "../hdf5_interface.h"
 #include "../math.h"
+#include "../diag/dist_6D.h"
+#include "../diag/dist_5D.h"
 
 void bmc_setup_endconds(sim_offload_data* sim);
 
 int bmc_init_particles(
         int *n,
         particle_state** ps,
+        int** ps_indexes,
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
         real* offload_array
@@ -20,6 +23,7 @@ int backward_monte_carlo(
         int n_tot_particles,
         int n_mpi_particles,
         particle_state* ps_mpi,
+        int* ps_mpi_indexes,
         B_field_data* Bdata,
         sim_offload_data* sim_offload,
         offload_package* offload_data,

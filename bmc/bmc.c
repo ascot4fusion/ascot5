@@ -1,11 +1,11 @@
 #include "bmc.h"
 
 #define TIMESTEP 1E-7 // TODO use input HDF
-#define T0 0.999995
+#define T0 0.9999999
 #define T1 1.
-#define N_MC_STEPS 1
 #define MASS 9.10938356E-31
 #define CHARGE 1.60217662E-19
+#define N_STEPS 1
 
 void bmc_setup_endconds(sim_offload_data* sim) {
     sim->endcond_active = endcond_tmax | endcond_wall;
@@ -13,14 +13,14 @@ void bmc_setup_endconds(sim_offload_data* sim) {
     sim->fix_usrdef_use = 1;
 
     // force n_time and n_q to be 1 in sim struct
-    diag_offload_data diag_data = sim->diag_offload_data;
-    if (diag_data.dist6D_collect) {
-        diag_data.dist6D.n_time = 1;
-        diag_data.dist6D.n_q = 1;
+    diag_offload_data* diag_data = &sim->diag_offload_data;
+    if (diag_data->dist6D_collect) {
+        diag_data->dist6D.n_time = 1;
+        diag_data->dist6D.n_q = 1;
     }
-    if (diag_data.dist5D_collect) {
-        diag_data.dist5D.n_time = 1;
-        diag_data.dist5D.n_q = 1;
+    if (diag_data->dist5D_collect) {
+        diag_data->dist5D.n_time = 1;
+        diag_data->dist5D.n_q = 1;
     }
 }
 
@@ -28,6 +28,7 @@ int backward_monte_carlo(
         int n_tot_particles,
         int n_mpi_particles,
         particle_state* ps1,
+        int* ps1_indexes,
         B_field_data* Bdata,
         sim_offload_data* sim_offload,
         offload_package* offload_data,
@@ -58,8 +59,8 @@ int backward_monte_carlo(
     diag_data distr0, distr1;
     real* distr0_array, *distr1_array;
     diag_init_offload(&sim_offload->diag_offload_data, &distr0_array, 1);
-    diag_init_offload(&sim_offload->diag_offload_data, &distr1_array, 1);
     diag_init(&distr0, &sim_offload->diag_offload_data, distr0_array);
+    diag_init_offload(&sim_offload->diag_offload_data, &distr1_array, 1);
     diag_init(&distr1, &sim_offload->diag_offload_data, distr1_array);
     int dist_length = sim_offload->diag_offload_data.offload_array_length;
 
@@ -97,11 +98,11 @@ int backward_monte_carlo(
                             mic1_start, mic1_end, mic0_start, mic0_end, host_start, host_end, n_mic, n_host,
                             diag_offload_array_host, diag_offload_array_mic0, diag_offload_array_mic1);
 
-        // Update the probability distribution
-        bmc_update_particles_diag(n_mpi_particles, ps0, ps1, &distr0, &distr1, &sim, N_MC_STEPS);
+        // // Update the probability distribution
+        bmc_update_particles_diag(n_mpi_particles, ps0, ps1, ps1_indexes, &distr0, &distr1, &sim, N_STEPS);
 
-        // shift distributions
-        diag_copy_distribution(sim_offload, &distr0, &distr1, dist_length);
+        // // shift distributions
+        diag_move_distribution(sim_offload, &distr0, &distr1, dist_length);
 
         // reset particle initial states to ps1
         memcpy(ps1, ps0, n_mpi_particles * sizeof(particle_state));
@@ -139,6 +140,7 @@ int backward_monte_carlo(
 int bmc_init_particles(
         int *n,
         particle_state** ps,
+        int** ps_indexes,
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
         real* offload_array
@@ -149,7 +151,13 @@ int bmc_init_particles(
     // init sim data
     sim_data sim;
     sim_init(&sim, sim_offload);
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, offload_array);
+    
+    real* ptr = offload_array + 
+            sim_offload->B_offload_data.offload_array_length +
+            sim_offload->E_offload_data.offload_array_length +
+            sim_offload->plasma_offload_data.offload_array_length +
+            sim_offload->neutral_offload_data.offload_array_length;
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
     real r;
     real phi;
@@ -203,12 +211,13 @@ int bmc_init_particles(
     }
 
     if (sim_offload->diag_offload_data.dist5D_collect) {
-        *n = n_r * n_phi * n_z * n_vpara * n_vperp * N_MC_STEPS;
+        *n = n_r * n_phi * n_z * n_vpara * n_vperp * N_STEPS;
     } else {
-        *n = n_r * n_phi * n_z * n_vr * n_vphi * n_vz * N_MC_STEPS;
+        *n = n_r * n_phi * n_z * n_vr * n_vphi * n_vz * N_STEPS;
     }
 
     *ps = (particle_state *)malloc(*n * sizeof(particle_state));
+    *ps_indexes = (int *)malloc(*n * sizeof(int));
     input_particle p_tmp; // tmp particle
     particle_state ps_tmp; // tmp particle
 
@@ -220,23 +229,29 @@ int bmc_init_particles(
             for (int i_z = 0; i_z < n_z; ++i_z) {
                 z = (max_z - min_z) * i_z / n_z + min_z;
 
-                // if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) {
-                //     continue;
-                // }
+                if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) {
+                    continue;
+                }
 
                 if (sim_offload->diag_offload_data.dist5D_collect) {                
-                    // compute magnetic field
                     for (int i_vpara = 0; i_vpara < n_vpara; ++i_vpara) {
                         vpara = (max_vpara - min_vpara) * i_vpara / n_vpara + min_vpara;
                         for (int i_vperp = 0; i_vperp < n_vperp; ++i_vperp) {
                             vperp = (max_vperp - min_vperp) * i_vperp / n_vperp + min_vperp;
-                            // bmc_5D_to_fo(B_dB, r, phi, z, vpara, vperp, &vr, &vphi, &vz);
                             bmc_5D_to_particle_state(Bdata, r, phi, z, vpara, vperp, T1, i, &ps_tmp);
 
+                            unsigned long index = dist_5D_index(i_r, i_phi, i_z,
+                                    i_vpara, i_vperp,
+                                    0, 0,
+                                    n_phi, n_z,
+                                    n_vpara, n_vperp,
+                                    1, 1);
+
                             if (!ps_tmp.err) {
-                                for (int i_mc=0; i_mc<N_MC_STEPS; ++i_mc) {
+                                for (int i_mc=0; i_mc<N_STEPS; ++i_mc) {
                                     ps_tmp.id = i;
                                     memcpy(*ps + i, &ps_tmp, sizeof(particle_state));
+                                    (*ps_indexes)[i] = index;
                                     i++;
                                 }
                             }
@@ -249,17 +264,24 @@ int bmc_init_particles(
                             vphi = (max_vphi - min_vphi) * i_vphi / n_vphi + min_vphi;
                             for (int i_vz = 0; i_vz < n_vz; ++i_vz) {
                                 vz = (max_vz - min_vz) * i_vz / n_vz + min_vz;
-                                bmc_init_fo_particle(&p_tmp, r, phi, z, vr, vphi, vz, T1, i);
+                                bmc_init_fo_particle(&p_tmp, r, phi, z, vr, vphi, vz, T1, i+1);
                                 particle_input_to_state(&p_tmp, &ps_tmp, Bdata);
-                            }
 
-                            if (!ps_tmp.err) {
-                                for (int i_mc=0; i_mc<N_MC_STEPS; ++i_mc) {
-                                    ps_tmp.id = i;
-                                    memcpy(*ps + i, &ps_tmp, sizeof(particle_state));
-                                    i++;
+                                unsigned long index = dist_6D_index(i_r, i_phi, i_z,
+                                    i_vr, i_vphi, i_vz,
+                                    0, 0,
+                                    n_phi, n_z,
+                                    n_vr, n_vphi, n_vz,
+                                    1, 1);
+                                if (!ps_tmp.err) {
+                                    for (int i_mc=0; i_mc<N_STEPS; ++i_mc) {
+                                        ps_tmp.id = i;
+                                        memcpy(*ps + i, &ps_tmp, sizeof(particle_state));
+                                        i++;
+                                    }
                                 }
                             }
+
                         }
                     }
                 }

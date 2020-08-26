@@ -9,12 +9,13 @@
 
 int bmc_walltile_in_target(integer walltile);
 
-void diag_copy_distribution(sim_offload_data* sim, diag_data* diag0, diag_data* diag1, int dist_length);
+void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int dist_length);
 
 void bmc_update_particles_diag(
     int n_mpi_particles,
     particle_state* ps0,
     particle_state* ps1,
+    int* ps_indexes,
     diag_data* diag0,
     diag_data* diag1,
     sim_data* sim,
@@ -24,13 +25,15 @@ void bmc_update_particles_diag(
 void bmc_diag_update_gc(
     particle_state* ps0,
     particle_state* ps1,
-    diag_data* diag0,
-    diag_data* diag1,
+    int p0_index,
+    diag_data* diag_0,
+    diag_data* diag_1,
     int n_montecarlo_steps
 );
 void bmc_diag_update_fo(
     particle_state* ps0,
     particle_state* ps1,
+    int p0_index,
     diag_data* diag0,
     diag_data* diag1,
     int n_montecarlo_steps
@@ -39,6 +42,7 @@ void bmc_diag_update_fo(
 void bmc_diag_5D_update_gc(
     dist_5D_data* dist1,
     dist_5D_data* dist0,
+    int p0_index,
     particle_state* ps1,
     particle_state* ps0,
     int n_montecarlo_steps
@@ -46,6 +50,7 @@ void bmc_diag_5D_update_gc(
 void bmc_diag_5D_update_fo(
     dist_5D_data* dist1,
     dist_5D_data* dist0,
+    int p0_index,
     particle_state* ps1,
     particle_state* ps0,
     int n_montecarlo_steps
@@ -54,6 +59,7 @@ void bmc_diag_5D_update_fo(
 void bmc_diag_6D_update_gc(
     dist_6D_data* dist1,
     dist_6D_data* dist0,
+    int p0_index,
     particle_state* ps1,
     particle_state* ps0,
     int n_montecarlo_steps
@@ -61,6 +67,7 @@ void bmc_diag_6D_update_gc(
 void bmc_diag_6D_update_fo(
     dist_6D_data* dist1,
     dist_6D_data* dist0,
+    int p0_index,
     particle_state* ps1,
     particle_state* ps0,
     int n_montecarlo_steps
