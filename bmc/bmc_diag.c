@@ -39,19 +39,23 @@ void bmc_update_particles_diag(
     sim_data* sim,
     int n_montecarlo_steps
 ) {
+
+    int n_updated = 0;
     for(int i = 0; i < n_mpi_particles; i++) {
 
         if (sim->sim_mode == simulate_mode_fo) {
             bmc_diag_update_fo(&ps0[i], &ps1[i], ps_indexes[i], diag0, diag1, n_montecarlo_steps);
         }
         else if (sim->sim_mode == simulate_mode_gc) {
-            bmc_diag_update_gc(&ps0[i], &ps1[i], ps_indexes[i], diag0, diag1, n_montecarlo_steps);
+            n_updated += bmc_diag_update_gc(&ps0[i], &ps1[i], ps_indexes[i], diag0, diag1, n_montecarlo_steps);
         }
 
     }
+
+    printf("Updated %d particles\n", n_updated);
 }
 
-void bmc_diag_update_gc(
+int bmc_diag_update_gc(
     particle_state* ps0,
     particle_state* ps1,
     int p0_index,
@@ -60,7 +64,7 @@ void bmc_diag_update_gc(
     int n_montecarlo_steps
 ) {
     if(diag0->dist5D_collect) {
-        bmc_diag_5D_update_gc(&diag1->dist5D, &diag0->dist5D,  p0_index, ps1, ps0, n_montecarlo_steps);
+        return bmc_diag_5D_update_gc(&diag1->dist5D, &diag0->dist5D,  p0_index, ps1, ps0, n_montecarlo_steps);
     }
 
     if(diag0->dist6D_collect) {
@@ -86,7 +90,7 @@ void bmc_diag_update_fo(
 }
 
 
-void bmc_diag_5D_update_gc(
+int bmc_diag_5D_update_gc(
         dist_5D_data* dist1,
         dist_5D_data* dist0,
         int p0_index,
@@ -97,12 +101,14 @@ void bmc_diag_5D_update_gc(
 
     // check if the particle hit the wall
     if (ps1->endcond & endcond_wall) {
+        // printf("Wall collision\n");
         if (bmc_walltile_in_target(ps1->walltile)) {
             // particle ended in target domain, set the weight to 1
             dist1->histogram[p0_index] += 1. / n_montecarlo_steps;
+            return 1;
         }
 
-        return;
+        return 0;
     }
 
     // check if the particle escaped the velocity space
@@ -112,17 +118,25 @@ void bmc_diag_5D_update_gc(
         * ps1->mu / ps1->mass);
                 
     if ((ps1->vpar > dist1->max_vpara) || (ps1->vpar < dist1->min_vpara) ||
-        (vperp > dist1->max_vperp) || (vperp < dist1->max_vperp)) {
+        (vperp > dist1->max_vperp) || (vperp < dist1->min_vperp)) {
 
         // outside velocity space
-        return;
+        //     printf("v outside %.10e %.10e %.10e %.10e\n", vperp, dist1->max_vperp, ps1->vpar, dist1->max_vpara);
+        return 0;
     }
 
     // if (ps1->mu < 0) {
     //     printf("mu fail diag\n");
     // }
     int p1_index = bmc_dist5D_gc_index(ps1, dist0);
-    dist1->histogram[p0_index] += dist0->histogram[p1_index] / n_montecarlo_steps;
+    if (p1_index >=0) {
+        dist1->histogram[p0_index] += dist0->histogram[p1_index] / n_montecarlo_steps;
+        return 1;
+    } else {
+        printf("Warning: p1_index < 0\n");
+    }
+
+    return 0;
 }
 
 void bmc_diag_5D_update_fo(

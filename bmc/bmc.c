@@ -1,8 +1,8 @@
 #include "bmc.h"
 
-#define TIMESTEP 1E-7 // TODO use input HDF
-#define T0 0.9999999
-#define T1 1.
+#define TIMESTEP 1E-6 // TODO use input HDF
+#define T0 0.
+#define T1 1E-5
 #define MASS 9.10938356E-31
 #define CHARGE 1.60217662E-19
 #define N_STEPS 1
@@ -51,9 +51,9 @@ int backward_monte_carlo(
     particle_state* ps0 = (particle_state*) malloc(n_mpi_particles * sizeof(particle_state));
     memcpy(ps0, ps1, n_mpi_particles * sizeof(particle_state));
 
-    // for(int i = 0; i < 50; i++) {
-    //     printf("Particle %d %f %f %f %f %f %f %f\n", i, ps1[i].r, ps1[i].phi, ps1[i].z, ps1[i].vpar, ps1[i].rho, ps1[i].rprt, ps1[i].rdot);
-    // }
+    for(int i = 0; i < 50; i++) {
+        printf("Particle %d %f %f %f %f %f %f %f\n", i, ps1[i].r, ps1[i].phi, ps1[i].z, ps1[i].vpar, ps1[i].rho, ps1[i].rprt, ps1[i].rdot);
+    }
 
     // initialize distributions
     diag_data distr0, distr1;
@@ -107,6 +107,19 @@ int backward_monte_carlo(
         // reset particle initial states to ps1
         memcpy(ps1, ps0, n_mpi_particles * sizeof(particle_state));
     } 
+
+    for (int i = 0; i<dist_length; i++) {
+        if (sim_offload->diag_offload_data.dist5D_collect) {
+            if (distr0.dist5D.histogram[i] > 1) {
+                printf("Warning: unpysical probability: %f\n", distr0.dist5D.histogram[i]);
+            }
+        }
+        if (sim_offload->diag_offload_data.dist6D_collect) {
+            if (distr0.dist6D.histogram[i] > 1) {
+                printf("Warning: unpysical probability: %f\n", distr0.dist6D.histogram[i]);
+            }
+        }
+    }
 
     /* Combine distribution and write it to HDF5 file */
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nWriting BMC probability distribution.\n");
