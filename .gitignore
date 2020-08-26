@@ -24,3 +24,4 @@ doc/
 gitver.h
 compiler_flags.h
 bbnbi5
+bmc_main
