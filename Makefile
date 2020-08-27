@@ -145,6 +145,9 @@ ascot5_main: ascot5_main.o $(OBJS)
 bmc_main: bmc_main.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
+fmc_main: fmc_main.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
 bbnbi5: bbnbi5.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 

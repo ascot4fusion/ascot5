@@ -14,6 +14,7 @@ int bmc_init_particles(
         int *n,
         particle_state** ps,
         int** ps_indexes,
+        int n_per_vertex,
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
         real* offload_array
@@ -22,6 +23,7 @@ int bmc_init_particles(
 int backward_monte_carlo(
         int n_tot_particles,
         int n_mpi_particles,
+        int n_montecarlo_steps,
         particle_state* ps_mpi,
         int* ps_mpi_indexes,
         B_field_data* Bdata,
