@@ -152,7 +152,7 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
         xyz[2] += ds * vhat[2];
         remaining *= exp(-rate * ds);
 
-        if(exited_plasma) {
+        if(entered_plasma) {
             real rpz2[3]; /* new position, old position already in rpz */
             math_xyz2rpz(xyz, rpz2);
             int tile = wall_hit_wall(rpz[0], rpz[1], rpz[2], rpz2[0], rpz2[1],
