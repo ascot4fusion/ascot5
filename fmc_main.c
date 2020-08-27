@@ -295,7 +295,7 @@ int main(int argc, char** argv) {
     fflush(stdout);
 
     // SIMULATE HERE
-    if (backward_monte_carlo(
+    if (forward_monte_carlo(
         n_total_particles, n, N_MONTECARLO_STEPS, ps, ps_indexes,
         &Bdata, &sim, &offload_data, offload_array,
         &mic1_start, &mic1_end,

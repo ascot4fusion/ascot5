@@ -2,10 +2,10 @@
 
 #define TIMESTEP 1E-6 // TODO use input HDF
 #define T0 0.
-#define T1 1E-5
+#define T1 4E-6
+// #define T1 
 #define MASS 9.10938356E-31
 #define CHARGE 1.60217662E-19
-#define N_STEPS 1
 
 void bmc_setup_endconds(sim_offload_data* sim) {
     sim->endcond_active = endcond_tmax | endcond_wall;
@@ -27,6 +27,7 @@ void bmc_setup_endconds(sim_offload_data* sim) {
 int backward_monte_carlo(
         int n_tot_particles,
         int n_mpi_particles,
+        int n_montecarlo_steps,
         particle_state* ps1,
         int* ps1_indexes,
         B_field_data* Bdata,
@@ -99,7 +100,7 @@ int backward_monte_carlo(
                             diag_offload_array_host, diag_offload_array_mic0, diag_offload_array_mic1);
 
         // // Update the probability distribution
-        bmc_update_particles_diag(n_mpi_particles, ps0, ps1, ps1_indexes, &distr0, &distr1, &sim, N_STEPS);
+        bmc_update_particles_diag(n_mpi_particles, ps0, ps1, ps1_indexes, &distr0, &distr1, &sim, n_montecarlo_steps);
 
         // // shift distributions
         diag_move_distribution(sim_offload, &distr0, &distr1, dist_length);
@@ -154,6 +155,7 @@ int bmc_init_particles(
         int *n,
         particle_state** ps,
         int** ps_indexes,
+        int n_per_vertex,
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
         real* offload_array
@@ -224,9 +226,9 @@ int bmc_init_particles(
     }
 
     if (sim_offload->diag_offload_data.dist5D_collect) {
-        *n = n_r * n_phi * n_z * n_vpara * n_vperp * N_STEPS;
+        *n = n_r * n_phi * n_z * n_vpara * n_vperp * n_per_vertex;
     } else {
-        *n = n_r * n_phi * n_z * n_vr * n_vphi * n_vz * N_STEPS;
+        *n = n_r * n_phi * n_z * n_vr * n_vphi * n_vz * n_per_vertex;
     }
 
     *ps = (particle_state *)malloc(*n * sizeof(particle_state));
@@ -261,7 +263,7 @@ int bmc_init_particles(
                                     1, 1);
 
                             if (!ps_tmp.err) {
-                                for (int i_mc=0; i_mc<N_STEPS; ++i_mc) {
+                                for (int i_mc=0; i_mc<n_per_vertex; ++i_mc) {
                                     ps_tmp.id = i;
                                     memcpy(*ps + i, &ps_tmp, sizeof(particle_state));
                                     (*ps_indexes)[i] = index;
@@ -287,7 +289,7 @@ int bmc_init_particles(
                                     n_vr, n_vphi, n_vz,
                                     1, 1);
                                 if (!ps_tmp.err) {
-                                    for (int i_mc=0; i_mc<N_STEPS; ++i_mc) {
+                                    for (int i_mc=0; i_mc<n_per_vertex; ++i_mc) {
                                         ps_tmp.id = i;
                                         memcpy(*ps + i, &ps_tmp, sizeof(particle_state));
                                         i++;
@@ -502,4 +504,128 @@ void bmc_simulate_particles(
             }
         #endif
     }
+}
+
+int forward_monte_carlo(
+        int n_tot_particles,
+        int n_mpi_particles,
+        int n_montecarlo_steps,
+        particle_state* ps1,
+        int* ps1_indexes,
+        B_field_data* Bdata,
+        sim_offload_data* sim_offload,
+        offload_package* offload_data,
+        real* offload_array,
+        double* mic1_start, double* mic1_end,
+        double* mic0_start, double* mic0_end,
+        double* host_start, double* host_end,
+        int n_mic,
+        int n_host,
+        int mpi_rank
+    ) {
+
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nStarting Backward Monte Carlo. N particles: %d.\n", n_mpi_particles);
+
+    /* Allow threads to spawn threads */
+    omp_set_nested(1);
+
+    // ps0 holds the initial particle states (constant space in vertices, and changing time)
+    // ps1 are simulated and will hold the final state at eatch time step
+    particle_state* ps0 = (particle_state*) malloc(n_mpi_particles * sizeof(particle_state));
+    memcpy(ps0, ps1, n_mpi_particles * sizeof(particle_state));
+
+    for(int i = 0; i < 50; i++) {
+        printf("Particle %d %f %f %f %f %f %f %f\n", i, ps1[i].r, ps1[i].phi, ps1[i].z, ps1[i].vpar, ps1[i].rho, ps1[i].rprt, ps1[i].rdot);
+    }
+
+    // initialize distributions
+    diag_data distr0, distr1;
+    real* distr0_array, *distr1_array;
+    diag_init_offload(&sim_offload->diag_offload_data, &distr0_array, 1);
+    diag_init(&distr0, &sim_offload->diag_offload_data, distr0_array);
+    diag_init_offload(&sim_offload->diag_offload_data, &distr1_array, 1);
+    diag_init(&distr1, &sim_offload->diag_offload_data, distr1_array);
+    int dist_length = sim_offload->diag_offload_data.offload_array_length;
+
+    /* Initialize diagnostics offload data.
+     * Separate arrays for host and target */
+    // diagnostic might be useless for BMC. Remove this?
+    real* diag_offload_array_mic0, *diag_offload_array_mic1, *diag_offload_array_host;
+    #ifdef TARGET
+        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic0, n_tot_particles);
+        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic1, n_tot_particles);
+    #else
+        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_host, n_tot_particles);
+    #endif
+
+
+    // init sim data
+    sim_data sim;
+    sim_init(&sim, sim_offload);
+
+    // setup time end conditions.
+    // By setting the end time to be the initial time,
+    // the simulation is forced to end after 1 timestep
+    sim_offload->endcond_max_simtime = T1;
+
+    // set time in particle states
+    for(int i = 0; i < n_mpi_particles; i++) {
+        ps1[i].time = T0;
+        ps0[i].time = T0;
+    }
+
+    // simulate one step of all needed particles
+    bmc_simulate_particles(ps1, n_tot_particles, sim_offload, offload_data, offload_array,
+                        mic1_start, mic1_end, mic0_start, mic0_end, host_start, host_end, n_mic, n_host,
+                        diag_offload_array_host, diag_offload_array_mic0, diag_offload_array_mic1);
+
+    // // Update the probability distribution
+    bmc_update_particles_diag(n_mpi_particles, ps0, ps1, ps1_indexes, &distr0, &distr1, &sim, n_montecarlo_steps);
+
+    // // shift distributions
+    diag_move_distribution(sim_offload, &distr0, &distr1, dist_length);
+
+    // reset particle initial states to ps1
+    memcpy(ps1, ps0, n_mpi_particles * sizeof(particle_state));
+
+    for (int i = 0; i<dist_length; i++) {
+        if (sim_offload->diag_offload_data.dist5D_collect) {
+            if (distr0.dist5D.histogram[i] > 1) {
+                printf("Warning: unpysical probability: %f\n", distr0.dist5D.histogram[i]);
+            }
+        }
+        if (sim_offload->diag_offload_data.dist6D_collect) {
+            if (distr0.dist6D.histogram[i] > 1) {
+                printf("Warning: unpysical probability: %f\n", distr0.dist6D.histogram[i]);
+            }
+        }
+    }
+
+    /* Combine distribution and write it to HDF5 file */
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nWriting BMC probability distribution.\n");
+    if (mpi_rank == 0) {
+        int err_writediag = 0;
+        err_writediag = hdf5_interface_write_diagnostics(sim_offload, distr0_array, sim_offload->hdf5_out);
+        if(err_writediag) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                    "\nWriting diagnostics failed.\n"
+                    "See stderr for details.\n");
+        }
+        else {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                    "BMC distributions written.\n");
+        }
+
+    }
+
+    // Free diagnostic data
+    #ifdef TARGET
+        diag_free_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic0);
+        diag_free_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic1);
+    #else
+        diag_free_offload(&sim_offload->diag_offload_data, &diag_offload_array_host);
+    #endif
+
+    return 0;
+
 }
