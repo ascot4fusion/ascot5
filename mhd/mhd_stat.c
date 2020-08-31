@@ -188,11 +188,6 @@ a5err mhd_stat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
         mhd_dmhd[i] = 0;
     }
 
-    /* Check that we are within MHD grid */
-    if(rho[0] < mhddata->rho_min || rho[0] > mhddata->rho_max) {
-        isinside = 0;
-    }
-
     int interperr = 0;
     for(int i = 0; i < mhddata->n_modes; i++){
         /* Get interpolated values */
@@ -257,7 +252,7 @@ a5err mhd_stat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
     }
 
     /* Omit evaluation if evaluation failed or point outside the grid. */
-    if(!isinside) {
+    if(err || !isinside) {
         interperr = 0;
         for(int i=0; i<10; i++) {
             mhd_dmhd[i] = 0;

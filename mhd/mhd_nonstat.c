@@ -200,11 +200,6 @@ a5err mhd_nonstat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
         mhd_dmhd[i] = 0;
     }
 
-    /* Skip evaluation if evaluation failed or point outside the boozer grid. */
-    if(err || !isinside) {
-        iterations = 0;
-    }
-
     int interperr = 0;
     for(int i = 0; i < iterations; i++){
         /* Get interpolated values */
@@ -268,6 +263,14 @@ a5err mhd_nonstat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
             * (   phi_dphi[1] * ptz[3] * cosmhd
                 + phi_dphi[0] * mhddata->mmode[i] * ptz[7]  * sinmhd
                 - phi_dphi[0] * mhddata->nmode[i] * ptz[11] * sinmhd);
+    }
+
+    /* Omit evaluation if evaluation failed or point outside the grid. */
+    if(err || !isinside) {
+        interperr = 0;
+        for(int i=0; i<10; i++) {
+            mhd_dmhd[i] = 0;
+        }
     }
 
     if(interperr) {
