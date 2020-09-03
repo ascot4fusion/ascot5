@@ -521,6 +521,9 @@ class State(AscotData):
         if pncrid is not None:
             idx = np.logical_and(idx, self["pncrid"] == pncrid)
 
+        if ids is not None:
+            idx = np.logical_and(idx, np.in1d(self["id"], ids))
+
         val = val[idx]
 
         return val
