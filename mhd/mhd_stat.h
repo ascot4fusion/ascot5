@@ -11,8 +11,6 @@
 #include "../spline/interp.h"
 #include "../B_field.h"
 
-#define MHD_MODES_MAX_NUM 30
-
 /**
  * @brief MHD stat parameters that will be offloaded to target
  */
@@ -37,6 +35,8 @@ typedef struct {
  */
 typedef struct {
     int n_modes;                          /**< Number of modes                */
+    real rho_min;                         /**< rho grid minimum value         */
+    real rho_max;                         /**< rho grid maximum value         */
     int nmode[MHD_MODES_MAX_NUM];         /**< Toroidal mode numbers          */
     int mmode[MHD_MODES_MAX_NUM];         /**< Poloidal mode numbers          */
     real amplitude_nm[MHD_MODES_MAX_NUM]; /**< Amplitude of each mode         */

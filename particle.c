@@ -244,6 +244,11 @@ int particle_cycle_fo(particle_queue* q, particle_simd_fo* p,
                 cycle[i] = -1;
                 newmarker = 0;
             }
+            else if(q->p[i_prt]->endcond) {
+                /* This marker already has an active end condition. Try next. */
+                #pragma omp critical
+                q->finished++;
+            }
             else {
                 /* Try to convert marker state to a simulation marker */
                 a5err err = particle_state_to_fo(

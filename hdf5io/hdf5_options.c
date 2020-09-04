@@ -654,5 +654,9 @@ int hdf5_options_read_diagtrcof(hid_t file,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     diagtrcof->Navg = (int)tempfloat;
 
+    if( hdf5_read_double(OPTPATH "TRANSCOEF_RECORDRHO", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diagtrcof->recordrho = (int)tempfloat;
+
     return 0;
 }

@@ -249,8 +249,10 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
 
     /* Winding number to test whether we are inside the plasma (and not in the
        private plasma region) */
+    isinside[0]=0;
     if(math_point_in_polygon(r, z, boozerdata->rs, boozerdata->zs,
                              boozerdata->nrzs)) {
+        isinside[0]=1;
 
         /* Get the psi value and check that it is within the psi grid (the grid
            does not extend all the way to the axis) */
@@ -307,19 +309,9 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
             psithetazeta[10]=1.0;                                /* dzeta_dphi*/
             psithetazeta[11]=nu[1]*psi[2]+nu[2]*psithetazeta[7]; /* dzeta_dz  */
         }
-        else {
-            /* This would mean that (r,z) is in the very center of the plasma */
-            isinside[0]=0;
-        }
-    }
-    else {
-        /* The winding number test indicates that (r,z) is outside the outermost
-           boozer grid psi contour. */
-        isinside[0]=0;
     }
 
-
-    if(interperr) {
+    if(!err && interperr) {
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_BOOZER );
     }
 

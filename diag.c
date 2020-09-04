@@ -70,6 +70,8 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
             * data->distrho6D.n_q;
     }
 
+    data->offload_dist_length = n;
+
     if(data->diagorb_collect) {
         data->offload_diagorb_index = n;
         data->diagorb.Nmrk = Nmrk;
@@ -222,6 +224,10 @@ void diag_update_fo(diag_data* data, particle_simd_fo* p_f,
     if(data->distrho6D_collect) {
         dist_rho6D_update_fo(&data->distrho6D, p_f, p_i);
     }
+
+    if(data->diagtrcof_collect){
+        diag_transcoef_update_fo(&data->diagtrcof, p_f, p_i);
+    }
 }
 
 /**
@@ -275,7 +281,9 @@ void diag_update_ml(diag_data* data, particle_simd_ml* p_f,
     if(data->diagorb_collect) {
         diag_orb_update_ml(&data->diagorb, p_f, p_i);
     }
-
+    if(data->diagtrcof_collect){
+        diag_transcoef_update_ml(&data->diagtrcof, p_f, p_i);
+    }
 }
 
 /**

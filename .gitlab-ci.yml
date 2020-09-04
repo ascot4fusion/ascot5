@@ -1,0 +1,51 @@
+compile_ascot5_main:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make -j ascot5_main FLAGS=-foffload=disable
+
+compile_ascot5_main_MPI:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make -j ascot5_main MPI=1 FLAGS=-foffload=disable
+
+compile_ascot5_main_verbose1:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make -j ascot5_main VERBOSE=1 FLAGS=-foffload=disable
+
+compile_bbnbi_verbose:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make -j bbnbi5 VERBOSE=1 FLAGS=-foffload=disable
+
+compile_bbnbi:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make -j bbnbi5 FLAGS=-foffload=disable
+
+compile_libascot:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make -j libascot FLAGS=-foffload=disable
+
+unit_tests:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make test_math  FLAGS="-foffload=disable -DWALL_3D_VERBOSE"
+    - ./test_math
+    - make test_wall_3d FLAGS="-foffload=disable -DWALL_3D_VERBOSE"
+    - ./test_wall_3d

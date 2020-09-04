@@ -92,6 +92,8 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
                             mask, datasize, &orbits[arraylength*13]);
         hdf5_orbit_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*14]);
+        hdf5_orbit_writeset(group,  "simmode", "1", dtypei32, arraylength, 1,
+                            mask, datasize, &orbits[arraylength*15]);
 
     }
 
@@ -130,6 +132,8 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
                             mask, datasize, &orbits[arraylength*13]);
         hdf5_orbit_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*14]);
+        hdf5_orbit_writeset(group,  "simmode", "1", dtypei32, arraylength, 1,
+                            mask, datasize, &orbits[arraylength*15]);
     }
 
     if(data->record_mode == simulate_mode_ml) {
@@ -155,6 +159,8 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
                             mask, datasize, &orbits[arraylength*8]);
         hdf5_orbit_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*9]);
+        hdf5_orbit_writeset(group,  "simmode", "1", dtypei32, arraylength, 1,
+                            mask, datasize, &orbits[arraylength*10]);
     }
 
     if(data->record_mode == simulate_mode_hybrid) {
@@ -198,6 +204,8 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
                             mask, datasize, &orbits[arraylength*16]);
         hdf5_orbit_writeset(group,  "bz", "T", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*17]);
+        hdf5_orbit_writeset(group,  "simmode", "1", dtypei32, arraylength, 1,
+                            mask, datasize, &orbits[arraylength*18]);
 
     }
 

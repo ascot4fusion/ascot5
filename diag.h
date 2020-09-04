@@ -37,6 +37,8 @@ typedef struct {
     int offload_distrho6D_index; /**< Index for 6D rho dist in offload array */
     int offload_diagorb_index;   /**< Index for orbit data in offload array  */
     int offload_diagtrcof_index; /**< Index for trcoef data in offload array */
+
+    int offload_dist_length;     /**< Number of elements in distributions    */
     int offload_array_length;    /**< Number of elements in offload_array    */
 
 } diag_offload_data;

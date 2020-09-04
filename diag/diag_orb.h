@@ -14,10 +14,14 @@
 #define DIAG_ORB_INTERVAL 1      /**< Interval mode flag                 */
 #define DIAG_ORB_MAXPOINCARES 30 /**< Maximum number of Poincare planes  */
 
-#define DIAG_ORB_FOFIELDS     15 /**< Number of coordinates in FO output     */
-#define DIAG_ORB_GCFIELDS     15 /**< Number of coordinates in GC output     */
-#define DIAG_ORB_MLFIELDS     10 /**< Number of coordinates in ML output     */
-#define DIAG_ORB_HYBRIDFIELDS 18 /**< Number of coordinates in hybrid output */
+#define DIAG_ORB_FOFIELDS     16 /**< Number of coordinates in FO output     */
+#define DIAG_ORB_GCFIELDS     16 /**< Number of coordinates in GC output     */
+#define DIAG_ORB_MLFIELDS     11 /**< Number of coordinates in ML output     */
+#define DIAG_ORB_HYBRIDFIELDS 19 /**< Number of coordinates in hybrid output */
+
+#define DIAG_ORB_FO 1 /**< Data stored in FO mode */
+#define DIAG_ORB_GC 2 /**< Data stored in GC mode */
+#define DIAG_ORB_ML 3 /**< Data stored in ML mode */
 
 /**
  * @brief Orbit diagnostics offload data struct.
@@ -67,6 +71,7 @@ typedef struct{
     real* B_r;    /**< Magnetic field R component at marker position [T]    */
     real* B_phi;  /**< Magnetic field phi component at marker position [T]  */
     real* B_z;    /**< Magnetic field z component at marker position [T]    */
+    real* simmode;/**< In what simulation mode data point was recorded      */
     real* pncrid; /**< Id for the poincare plot a point corresponds to      */
 
     integer* mrk_pnt;     /**< Index of the last recorded point             */

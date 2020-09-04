@@ -232,6 +232,12 @@ void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
  * @param offload_array the offload array
  */
 void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
+
+
+    if (w->n > 1000000){
+        print_out(VERBOSE_NORMAL, "Starting to initialize 3D-wall octree with %d triangles.\n", w->n);
+    }
+
     /* construct the octree and store triangles there */
     octree_node* tree;
     octree_create(&tree, w->xmin, w->xmax, w->ymin, w->ymax, w->zmin, w->zmax,
@@ -249,6 +255,9 @@ void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
         t3[1] = offload_array[i*9+7];
         t3[2] = offload_array[i*9+8];
         octree_add(tree, t1, t2, t3, i);
+        if (i%1000000==0 && i > 0){
+	  print_out(VERBOSE_NORMAL, "  Adding triangle %10d/%d.\n",i,w->n);
+	}
     }
 
     /* create lists for triangles in each grid square and fill the lists
@@ -270,6 +279,7 @@ void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
             }
         }
     }
+
 
     /* construct an array from the triangle lists */
     int list_size = 0;
@@ -529,7 +539,92 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
     q2q1[1] = q2[1]-q1[1];
     q2q1[2] = q2[2]-q1[2];
 
-    real w = math_dot(t1q1, n) / math_dot(q2q1, n);
+    /* Is the interval parallel to the triangle? */
+    real par = math_dot(q2q1, n);
+    if (par == 0.0) {
+        /* Check if one of the points solve the plane equation (is it on the plane?)*/
+        if( math_point_on_plane( q1, t1, t2, t3 ) != 0 ){
+            return -1.0;
+        }
+
+
+        /** Is at least one of the points inside the triangle?
+         * Go to barycentric coordinates.
+         */
+        real S1,S2,T1,T2;
+        real AP[3];
+        AP[0] = q1[0]-t1[0]; AP[1] = q1[1]-t1[1]; AP[2] = q1[2]-t1[2];
+        math_barycentric_coords_triangle( AP, t2t1, t3t1, n, &S1, &T1);
+        if (1.0 >= T1+S1 &&
+               T1 >= 0.0 && T1 <= 1.0 &&
+               S1 >= 0.0 && S1 <= 1.0      )
+        {
+                return 0.0;
+        }
+
+        AP[0] = q2[0]-t1[0]; AP[1] = q2[1]-t1[1]; AP[2] = q2[2]-t1[2];
+        math_barycentric_coords_triangle( AP, t2t1, t3t1, n, &S2, &T2);
+        if (1.0 >= T2+S2 &&
+               T2 >= 0.0 && T2 <= 1.0 &&
+               S2 >= 0.0 && S2 <= 1.0      )
+        {
+                return 0.0;
+        }
+
+
+                /*
+                 * Does the line intersect any edges? */
+
+        /* We know one edge is vertical at s=0*/
+        if (S1 * S2 < 0.0){
+                /* The points are on both sides of s=0*/
+                real L= fabs(S1)+fabs(S2);
+                real T0 =T1 + fabs(S1)/L*(T2-T1);
+                if ( T0 >= 0.0 && T0 <= 1.0){
+                        return 0.0;
+                }
+        }
+                /* We know one edge is horizontal at t=0*/
+        if (T1 * T2 < 0.0){
+                /* The points are on both sides of t=0*/
+                real L= fabs(T1)+fabs(T2);
+                real S0 = S1 + fabs(T1)/L*(S2-S1);
+                if ( S0 >= 0.0 && S0 <= 1.0){
+                        return 0.0;
+                }
+        }
+        /* We know one edge is at -45 degrees : t = 1- s*/
+        if (S1==S2){
+            /* vertical line*/
+            if( S1 >= 0.0 && S1 <= 1.0 ){
+                real T0 = 1.0 - S1;
+                if( (T1-T0)*(T2-T0) <= 0.0 ){
+                    return 0.0;
+                }
+			}
+        } else {
+            real k = (T2-T1)/(S2-S1);
+            if(k==-1.0){
+                /* Parallel line*/
+                if(S1+T1==1.0){
+                    return 0.0;
+                }
+            }else{
+                real S0 = ( k*(1-T1)+S1)/(1.0+k);
+                if ( S0 >= 0.0 && S0 <= 1.0){
+                    return 0.0;
+                }
+            }
+
+        }
+        return -1;
+    }     /* Is the interval is not parallel to the triangle */
+
+
+
+
+
+    real w = math_dot(t1q1, n) / par ;
 
     real p[3];
     p[0] = q1[0] + w * (q2[0] - q1[0]) - t1[0];
