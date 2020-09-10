@@ -89,13 +89,13 @@ int linint2D_eval_f(real* f, linint2D_data* str, real x, real y) {
     if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
         x1 = -(str->n_x-1)*x1;
     }
-    else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
+    else if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
         err = 1;
     }
     if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
         y1 = -(str->n_y-1)*y1;
     }
-    else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+    else if( str->bc_y == NATURALBC && !(y >= str->y_min && y <= str->y_max) ) {
         err = 1;
     }
 
