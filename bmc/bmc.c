@@ -115,35 +115,7 @@ int backward_monte_carlo(
         memcpy(ps1, ps0, n_mpi_particles * sizeof(particle_state));
     } 
 
-    for (int i = 0; i<dist_length; i++) {
-        if (sim_offload->diag_offload_data.dist5D_collect) {
-            if (distr0.dist5D.histogram[i] > 1) {
-                printf("Warning: unpysical probability: %f\n", distr0.dist5D.histogram[i]);
-            }
-        }
-        if (sim_offload->diag_offload_data.dist6D_collect) {
-            if (distr0.dist6D.histogram[i] > 1) {
-                printf("Warning: unpysical probability: %f\n", distr0.dist6D.histogram[i]);
-            }
-        }
-    }
-
-    /* Combine distribution and write it to HDF5 file */
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nWriting BMC probability distribution.\n");
-    if (mpi_rank == 0) {
-        int err_writediag = 0;
-        err_writediag = hdf5_interface_write_diagnostics(sim_offload, distr0_array, sim_offload->hdf5_out);
-        if(err_writediag) {
-            print_out0(VERBOSE_MINIMAL, mpi_rank,
-                    "\nWriting diagnostics failed.\n"
-                    "See stderr for details.\n");
-        }
-        else {
-            print_out0(VERBOSE_MINIMAL, mpi_rank,
-                    "BMC distributions written.\n");
-        }
-
-    }
+    write_probability_distribution(sim_offload, &distr0, distr0_array, dist_length, mpi_rank);
 
     // Free diagnostic data
     #ifdef TARGET
@@ -591,44 +563,16 @@ int forward_monte_carlo(
                         mic1_start, mic1_end, mic0_start, mic0_end, host_start, host_end, n_mic, n_host,
                         diag_offload_array_host, diag_offload_array_mic0, diag_offload_array_mic1);
 
-    // // Update the probability distribution
+    // Update the probability distribution
+    // distr0 is a 0-valued distribution passed only for compatibility with the BMC main code...
+    // ... It is used only as a weight when particles don't collide with the target domain, resulting in 0, correctly.
     bmc_update_particles_diag(n_mpi_particles, ps0, ps1, ps1_indexes, &distr0, &distr1, &sim, n_montecarlo_steps);
 
-    // // shift distributions
+    // shift distributions. Required since distr1 is partitioned through all the MPI nodes,
+    // and can't be written directly to disk
     diag_move_distribution(sim_offload, &distr0, &distr1, dist_length);
 
-    // reset particle initial states to ps1
-    memcpy(ps1, ps0, n_mpi_particles * sizeof(particle_state));
-
-    for (int i = 0; i<dist_length; i++) {
-        if (sim_offload->diag_offload_data.dist5D_collect) {
-            if (distr0.dist5D.histogram[i] > 1) {
-                printf("Warning: unpysical probability: %f\n", distr0.dist5D.histogram[i]);
-            }
-        }
-        if (sim_offload->diag_offload_data.dist6D_collect) {
-            if (distr0.dist6D.histogram[i] > 1) {
-                printf("Warning: unpysical probability: %f\n", distr0.dist6D.histogram[i]);
-            }
-        }
-    }
-
-    /* Combine distribution and write it to HDF5 file */
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nWriting BMC probability distribution.\n");
-    if (mpi_rank == 0) {
-        int err_writediag = 0;
-        err_writediag = hdf5_interface_write_diagnostics(sim_offload, distr0_array, sim_offload->hdf5_out);
-        if(err_writediag) {
-            print_out0(VERBOSE_MINIMAL, mpi_rank,
-                    "\nWriting diagnostics failed.\n"
-                    "See stderr for details.\n");
-        }
-        else {
-            print_out0(VERBOSE_MINIMAL, mpi_rank,
-                    "BMC distributions written.\n");
-        }
-
-    }
+    write_probability_distribution(sim_offload, &distr0, distr0_array, dist_length, mpi_rank);
 
     // Free diagnostic data
     #ifdef TARGET
@@ -640,4 +584,52 @@ int forward_monte_carlo(
 
     return 0;
 
+}
+
+/**
+ * Write the probability distribution to the output HDF file
+ * 
+ * @param sim_offload pointer to simulation offload data
+ * @param distr pointer to distribution struct
+ * @param distr_array pointer to offload array of the distribution
+ * @param dist_length length of the distribution data
+ * @param mpi_rank MPI node rank id
+ * 
+ **/
+void write_probability_distribution(
+    sim_offload_data* sim_offload,
+    diag_data* distr,
+    real* distr_array,
+    int dist_length,
+    int mpi_rank
+) {
+        for (int i = 0; i<dist_length; i++) {
+        if (sim_offload->diag_offload_data.dist5D_collect) {
+            if (distr->dist5D.histogram[i] > 1.0001) {
+                printf("Warning: unpysical probability: %f\n", distr->dist5D.histogram[i]);
+            }
+        }
+        if (sim_offload->diag_offload_data.dist6D_collect) {
+            if (distr->dist6D.histogram[i] > 1.0001) {
+                printf("Warning: unpysical probability: %f\n", distr->dist6D.histogram[i]);
+            }
+        }
+    }
+
+    /* Combine distribution and write it to HDF5 file */
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nWriting BMC probability distribution.\n");
+    if (mpi_rank == 0) {
+        int err_writediag = 0;
+        err_writediag = hdf5_interface_write_diagnostics(sim_offload, distr_array, sim_offload->hdf5_out);
+        if(err_writediag) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                    "\nWriting diagnostics failed.\n"
+                    "See stderr for details.\n");
+        }
+        else {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                    "BMC distributions written.\n");
+        }
+
+    }
 }

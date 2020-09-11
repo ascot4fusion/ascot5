@@ -52,3 +52,11 @@ void bmc_simulate_particles(
         real* diag_offload_array_host,
         real* diag_offload_array_mic0,
         real* diag_offload_array_mic1);
+
+void write_probability_distribution(
+    sim_offload_data* sim_offload,
+    diag_data* distr,
+    real* distr_array,
+    int dist_length,
+    int mpi_rank
+);
