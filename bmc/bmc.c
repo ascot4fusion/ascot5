@@ -80,6 +80,12 @@ int backward_monte_carlo(
     // init sim data
     sim_data sim;
     sim_init(&sim, sim_offload);
+    real* ptr = offload_array + 
+            sim_offload->B_offload_data.offload_array_length +
+            sim_offload->E_offload_data.offload_array_length +
+            sim_offload->plasma_offload_data.offload_array_length +
+            sim_offload->neutral_offload_data.offload_array_length;
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
     for (double t=T1; t >= T0; t -= TIMESTEP) {
 
@@ -562,6 +568,12 @@ int forward_monte_carlo(
     // init sim data
     sim_data sim;
     sim_init(&sim, sim_offload);
+    real* ptr = offload_array + 
+        sim_offload->B_offload_data.offload_array_length +
+        sim_offload->E_offload_data.offload_array_length +
+        sim_offload->plasma_offload_data.offload_array_length +
+        sim_offload->neutral_offload_data.offload_array_length;
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
     // setup time end conditions.
     // By setting the end time to be the initial time,
