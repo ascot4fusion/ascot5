@@ -5,9 +5,8 @@
 #include "../endcond.h"
 #include "../consts.h"
 #include "mpi.h"
+#include "bmc_wall.h"
 #include <string.h>
-
-int bmc_walltile_in_target(integer walltile);
 
 void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int dist_length);
 
@@ -28,7 +27,8 @@ int bmc_diag_update_gc(
     int p0_index,
     diag_data* diag_0,
     diag_data* diag_1,
-    int n_montecarlo_steps
+    int n_montecarlo_steps,
+    wall_2d_data* w2d
 );
 void bmc_diag_update_fo(
     particle_state* ps0,
@@ -45,7 +45,8 @@ int bmc_diag_5D_update_gc(
     int p0_index,
     particle_state* ps1,
     particle_state* ps0,
-    int n_montecarlo_steps
+    int n_montecarlo_steps,
+    wall_2d_data* w2d
 );
 void bmc_diag_5D_update_fo(
     dist_5D_data* dist1,
@@ -73,7 +74,7 @@ void bmc_diag_6D_update_fo(
     int n_montecarlo_steps
 );
 
-int bmc_dist5D_gc_index(particle_state* ps, dist_5D_data* dist);
+void bmc_dist5D_gc_indexes(particle_state* ps0, int* indexes, real* weights, int* target_hit, particle_state* ps, dist_5D_data* dist, wall_2d_data* w2d);
 int bmc_dist5D_fo_index(particle_state* ps, dist_5D_data* dist);
 int bmc_dist6D_gc_index(particle_state* ps, dist_6D_data* dist);
 int bmc_dist6D_fo_index(particle_state* ps, dist_6D_data* dist);
