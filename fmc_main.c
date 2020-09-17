@@ -77,7 +77,7 @@
 #include "gitver.h"
 #include "bmc/bmc.h"
 
-#define N_MONTECARLO_STEPS 1
+#define N_MONTECARLO_STEPS 2
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
 void marker_summary(particle_state* p, int n);
@@ -233,7 +233,7 @@ int main(int argc, char** argv) {
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
-    if (bmc_init_particles(&n, &ps, &ps_indexes, N_MONTECARLO_STEPS, &sim, &Bdata, offload_array)) {
+    if (bmc_init_particles(&n, &ps, &ps_indexes, N_MONTECARLO_STEPS, 0, &sim, &Bdata, offload_array)) {
         goto CLEANUP_FAILURE;
     }
     int n_total_particles = n;
