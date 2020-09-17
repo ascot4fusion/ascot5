@@ -1,0 +1,27 @@
+#include "../particle.h"
+#include "../simulate.h"
+#include "../endcond.h"
+#include "../print.h"
+
+void bmc_simulate_timestep_gc(int n_simd_particles, particle_simd_gc* p,
+        sim_offload_data* sim_offload,
+        offload_package* offload_data,
+        real* offload_array,
+        real h, int n_rk4_subcycles
+    );
+
+void fmc_simulation(
+        particle_state* ps,
+        int n_tot_particles,
+        sim_offload_data* sim,
+        offload_package* offload_data,
+        real* offload_array,
+        double* mic1_start, double* mic1_end,
+        double* mic0_start, double* mic0_end,
+        double* host_start, double* host_end,
+        int n_mic,
+        int n_host,
+        real* diag_offload_array_host,
+        real* diag_offload_array_mic0,
+        real* diag_offload_array_mic1
+    );

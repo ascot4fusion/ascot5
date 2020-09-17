@@ -8,73 +8,29 @@
 #include "bmc_wall.h"
 #include <string.h>
 
-void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int dist_length);
+void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src);
 
-void bmc_update_particles_diag(
-    int n_mpi_particles,
-    particle_state* ps0,
-    particle_state* ps1,
-    int* ps_indexes,
-    diag_data* diag0,
-    diag_data* diag1,
-    sim_data* sim,
-    int n_montecarlo_steps
-);
+int bmc_update_distr5D(
+        dist_5D_data* dist1,
+        dist_5D_data* dist0,
+        int* p0_index,
+        particle_simd_gc* p1,
+        particle_simd_gc* p0,
+        int n_simd_particles,
+        wall_2d_data* w2d
+    );
 
-int bmc_diag_update_gc(
-    particle_state* ps0,
-    particle_state* ps1,
-    int p0_index,
-    diag_data* diag_0,
-    diag_data* diag_1,
-    int n_montecarlo_steps,
-    wall_2d_data* w2d
-);
-void bmc_diag_update_fo(
-    particle_state* ps0,
-    particle_state* ps1,
-    int p0_index,
-    diag_data* diag0,
-    diag_data* diag1,
-    int n_montecarlo_steps
-);
+int bmc_update_distr5D_from_states(
+        dist_5D_data* dist1,
+        dist_5D_data* dist0,
+        int* p0_indexes,
+        particle_state* p1,
+        particle_state* p0,
+        int n_particles,
+        wall_2d_data* w2d
+    );
 
-int bmc_diag_5D_update_gc(
-    dist_5D_data* dist1,
-    dist_5D_data* dist0,
-    int p0_index,
-    particle_state* ps1,
-    particle_state* ps0,
-    int n_montecarlo_steps,
-    wall_2d_data* w2d
-);
-void bmc_diag_5D_update_fo(
-    dist_5D_data* dist1,
-    dist_5D_data* dist0,
-    int p0_index,
-    particle_state* ps1,
-    particle_state* ps0,
-    int n_montecarlo_steps
-);
 
-void bmc_diag_6D_update_gc(
-    dist_6D_data* dist1,
-    dist_6D_data* dist0,
-    int p0_index,
-    particle_state* ps1,
-    particle_state* ps0,
-    int n_montecarlo_steps
-);
-void bmc_diag_6D_update_fo(
-    dist_6D_data* dist1,
-    dist_6D_data* dist0,
-    int p0_index,
-    particle_state* ps1,
-    particle_state* ps0,
-    int n_montecarlo_steps
-);
-
-void bmc_dist5D_gc_indexes(particle_state* ps0, int* indexes, real* weights, int* target_hit, particle_state* ps, dist_5D_data* dist, wall_2d_data* w2d);
-int bmc_dist5D_fo_index(particle_state* ps, dist_5D_data* dist);
-int bmc_dist6D_gc_index(particle_state* ps, dist_6D_data* dist);
+void bmc_dist5D_state_indexes(particle_state* ps0, int* indexes, real* weights, int* target_hit, particle_state* ps, dist_5D_data* dist, wall_2d_data* w2d);
+ void bmc_dist5D_gc_indexes(particle_simd_gc* p0, int* indexes, real* weights, int* target_hit, particle_simd_gc* p, int i, dist_5D_data* dist, wall_2d_data* w2d);
 int bmc_dist6D_fo_index(particle_state* ps, dist_6D_data* dist);

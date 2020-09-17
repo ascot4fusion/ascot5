@@ -38,6 +38,10 @@
  * For example, magnetic field must be updated when marker position changes.
  */
 typedef struct {
+    int n_t_subcycles;
+    real hermite_knots;           /**< Guiding center R coordinate [m]                 */
+    real hermite_weights;           /**< Guiding center R coordinate [m]                 */
+    int use_hermite;
     real r;           /**< Guiding center R coordinate [m]                 */
     real phi;         /**< Guiding center phi coordinate [rad]             */
     real z;           /**< Guiding center z coordinate [m]                 */
@@ -279,6 +283,9 @@ typedef struct {
  * The fields are aligned to 64 bit with __memalign__ (see ascot5.h).
  */
 typedef struct {
+    real hermite_knots[NSIMD] __memalign__;      /**< Guiding center R coordinate [m]     */
+    real hermite_weights[NSIMD] __memalign__;      /**< Guiding center R coordinate [m]     */
+    real use_hermite[NSIMD] __memalign__;      /**< Guiding center R coordinate [m]     */
     /* Physical coordinates and parameters */
     real r[NSIMD] __memalign__;      /**< Guiding center R coordinate [m]     */
     real phi[NSIMD] __memalign__;    /**< Guiding center phi coordinate [phi] */

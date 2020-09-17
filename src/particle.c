@@ -815,6 +815,9 @@ a5err particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc,
     a5err err = p->err;
 
     if(!err) {
+        p_gc->hermite_weights[j]          = p->hermite_weights;
+        p_gc->hermite_knots[j]          = p->hermite_knots;
+        p_gc->use_hermite[j]          = p->use_hermite;
         p_gc->r[j]          = p->r;
         p_gc->phi[j]        = p->phi;
         p_gc->z[j]          = p->z;
@@ -879,6 +882,9 @@ void particle_gc_to_state(particle_simd_gc* p_gc, int j, particle_state* p,
                           B_field_data* Bdata) {
     a5err err = 0;
 
+    p->hermite_weights          = p_gc->hermite_weights[j];
+    p->hermite_knots          = p_gc->hermite_knots[j];
+    p->use_hermite          = p_gc->use_hermite[j];
     p->r          = p_gc->r[j];
     p->phi        = p_gc->phi[j];
     p->z          = p_gc->z[j];
@@ -1295,6 +1301,9 @@ void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j) 
  * @param j  index for the output slot
  */
 void particle_copy_gc(particle_simd_gc* p1, int i, particle_simd_gc* p2, int j) {
+    p2->hermite_weights[j]          = p1->hermite_weights[i];
+    p2->hermite_knots[j]          = p1->hermite_knots[i];
+    p2->use_hermite[j]          = p1->use_hermite[i];
     p2->r[j]          = p1->r[i];
     p2->phi[j]        = p1->phi[i];
     p2->z[j]          = p1->z[i];

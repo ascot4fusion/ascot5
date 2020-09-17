@@ -49,6 +49,10 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
 void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     int cycle[NSIMD]  __memalign__; // Flag indigating whether a new marker was initialized
     real hin[NSIMD]  __memalign__;  // Time step
+    real h_rk4[NSIMD] __memalign__;
+
+    // compute number of subcycles for the rk4 loop
+    int n_t_subcycles = pq->p[0][0].n_t_subcycles;
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
@@ -69,6 +73,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     for(int i = 0; i < NSIMD; i++) {
         if(cycle[i] > 0) {
             hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
+            h_rk4[i] = hin[i] / n_t_subcycles;
         }
     }
 
@@ -109,6 +114,11 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
             else {
                 step_gc_rk4(&p, hin, &sim->B_data, &sim->E_data);
             }
+
+            /* BMC */
+            for (int nt = 0; nt < n_t_subcycles; ++nt) {
+                step_gc_rk4(&p, h_rk4, &sim->B_data, &sim->E_data);
+            }
         }
 
         /* Switch sign of the time-step again if it was reverted earlier */
@@ -142,6 +152,26 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Check possible end conditions */
         endcond_check_gc(&p, &p0, sim);
+
+        // // check if the particle exited the velocity space
+        #pragma omp simd
+        for(int i = 0; i < NSIMD; i++) {
+            if(p.running[i]) {
+                real vperp = sqrt(2 * sqrt(p.B_r[i]*p.B_r[i]
+                    +p.B_phi[i]*p.B_phi[i]
+                    +p.B_z[i]*p.B_z[i])
+                    * p.mu[i] / p.mass[i]);
+
+                if ((p.vpar[i] > sim->diag_data.dist5D.max_vpara) ||
+                    (p.vpar[i] < sim->diag_data.dist5D.min_vpara) ||
+                    (vperp > sim->diag_data.dist5D.max_vperp) ||
+                    (vperp < sim->diag_data.dist5D.min_vperp)) {
+
+                    // outside velocity space
+                    p.running[i] = 0;
+                }
+            }
+        }
 
         /* Update diagnostics */
         diag_update_gc(&sim->diag_data, &sim->B_data, &p, &p0);

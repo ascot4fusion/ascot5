@@ -77,7 +77,8 @@
 #include "gitver.h"
 #include "bmc/bmc.h"
 
-#define N_MONTECARLO_STEPS 1
+#define N_MONTECARLO_STEPS 5
+#define USE_HERMITE 1
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
 void marker_summary(particle_state* p, int n);
@@ -233,7 +234,7 @@ int main(int argc, char** argv) {
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
-    if (bmc_init_particles(&n, &ps, &ps_indexes, N_MONTECARLO_STEPS, &sim, &Bdata, offload_array)) {
+    if (bmc_init_particles(&n, &ps, &ps_indexes, N_MONTECARLO_STEPS, USE_HERMITE, &sim, &Bdata, offload_array)) {
         goto CLEANUP_FAILURE;
     }
     int n_total_particles = n;
@@ -250,20 +251,6 @@ int main(int argc, char** argv) {
     else {
         n = n / mpi_size;
     }
-
-
-    /* We can now free the Bfield offload array */
-    // B_field_free_offload(&sim.B_offload_data, &B_offload_array);
-    // free(p-start_index); // Input markers are no longer required
-    
-    /* Divide markers among host and target */
-#ifdef TARGET
-    int n_mic = n / TARGET;
-    int n_host = 0;
-#else
-    int n_mic = 0;
-    int n_host = n;
-#endif
 
     /* Initialize results group in the output file */
     print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
@@ -296,12 +283,8 @@ int main(int argc, char** argv) {
 
     // SIMULATE HERE
     if (backward_monte_carlo(
-        n_total_particles, n, N_MONTECARLO_STEPS, ps, ps_indexes,
-        &Bdata, &sim, &offload_data, offload_array,
-        &mic1_start, &mic1_end,
-        &mic0_start, &mic0_end,
-        &host_start, &host_end,
-        n_mic, n_host, mpi_rank)) {
+        n_total_particles, n, ps, ps_indexes,
+        &Bdata, &sim, &offload_data, offload_array, mpi_rank)) {
             goto CLEANUP_FAILURE;
         }
 
