@@ -1,11 +1,13 @@
 #include "bmc.h"
 
-#define TIMESTEP 1E-6 // TODO use input HDF
+#define TIMESTEP 1E-7 // TODO use input HDF
 #define T0 0.
-#define T1 4E-6
+#define T1 4E-7
 // #define T1 
 #define MASS 9.10938356E-31
 #define CHARGE 1.60217662E-19
+#define RK4_SUBCYCLES 1
+#define PI2E0_5 2.50662827463
 
 void bmc_setup_endconds(sim_offload_data* sim) {
     sim->endcond_active = endcond_tmax | endcond_wall;
