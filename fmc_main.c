@@ -112,8 +112,15 @@ int main(int argc, char** argv) {
     char qid[11];
     hdf5_generate_qid(qid);
 
-    if(sim.mpi_size == 0) {
-#ifdef MPI
+    #ifndef MPI
+        /* MPI was not included while compiling       */
+        /* Give warning  and run a single process run */
+        mpi_rank = 0;
+        mpi_size = 1;
+        print_out(VERBOSE_MINIMAL,
+                    "Warning: compiled with MPI=0."
+                    "Proceeding as single process");
+    #else
         /* MPI run */
         int provided;
         MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
@@ -121,22 +128,7 @@ int main(int argc, char** argv) {
         MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
         sim.mpi_rank = mpi_rank;
         sim.mpi_size = mpi_size;
-#else
-        /* MPI was not included while compiling       */
-        /* Give warning  and run a single process run */
-        mpi_rank = 0;
-        mpi_size = 1;
-        print_out(VERBOSE_MINIMAL,
-                  "Warning: compiled with MPI=0."
-                  "Proceeding as single process");
-#endif
-    }
-    else {
-        /* Emulate MPI run (Condor-like run) */
-        /* Use user-defined size and rank    */
-        mpi_rank = sim.mpi_rank;
-        mpi_size = sim.mpi_size;
-    }
+    #endif
 
     print_out0(VERBOSE_MINIMAL, mpi_rank,
                "ASCOT5_MAIN\n");
