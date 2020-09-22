@@ -79,7 +79,7 @@ void bmc_simulate_timestep_gc(int n_simd_particles, particle_simd_gc* p,
 
         /* Euler-Maruyama method for collisions */
         if(sim.enable_clmbcol) {
-            mccc_gc_euler(&p, h_coll, &sim.B_data, &sim.plasma_data,
+            mccc_gc_euler(p + i_simd, h_coll, &sim.B_data, &sim.plasma_data,
                           &sim.random_data, &sim.mccc_data);
         }
 
