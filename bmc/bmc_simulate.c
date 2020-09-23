@@ -32,6 +32,7 @@ void bmc_simulate_timestep_gc(int n_simd_particles, particle_simd_gc* p,
     sim_init(&sim, sim_offload);
 
     real* ptr;
+    offload_data->unpack_pos = 0;
     ptr = offload_unpack(offload_data, offload_array,
             sim_offload->B_offload_data.offload_array_length);
     B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);

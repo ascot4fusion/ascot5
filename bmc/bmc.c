@@ -266,10 +266,14 @@ int bmc_init_particles(
     }
 
     if (sim_offload->diag_offload_data.dist5D_collect) {
+        printf("5D: n_r %d n_phi %d n_z %d n_vpara %d n_vperp %d n_per_vertex %d\n", n_r, n_phi, n_z, n_vpara, n_vperp, n_per_vertex);
         *n = n_r * n_phi * n_z * n_vpara * n_vperp * n_per_vertex;
     } else {
+        printf("6D: n_r %d n_phi %d n_z %d n_vr %d n_vphi %d n_vz %d n_per_vertex %d\n", n_r, n_phi, n_z, n_vr, n_vphi, n_vz, n_per_vertex);
         *n = n_r * n_phi * n_z * n_vr * n_vphi * n_vz * n_per_vertex;
     }
+
+    print_out(VERBOSE_NORMAL, "Mesh size %d.\n", *n / n_per_vertex);
 
     *ps = (particle_state *)malloc(*n * sizeof(particle_state));
     *ps_indexes = (int *)malloc(*n * sizeof(int));

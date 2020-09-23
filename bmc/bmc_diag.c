@@ -210,6 +210,15 @@ int bmc_update_distr5D(
     for (int j_r=i_r; j_r<i_r + 2; j_r++)
     for (int j_phi=i_phi; j_phi<i_phi + 2; j_phi++)
     for (int j_z=i_z; j_z<i_z + 2; j_z++) {
+
+        if ((j_r < 0) || (j_phi < 0) || (j_z < 0)) {
+            indexes[i] = 0;
+            weights[i] = 0;
+            target_hit[i] = 0;
+            i++;
+            continue;
+        }
+
         j_phimod = j_phi;
         if (j_phimod>=dist->n_phi) {
             j_phimod = 0;
