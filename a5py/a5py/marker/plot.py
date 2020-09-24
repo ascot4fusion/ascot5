@@ -137,7 +137,7 @@ def plot_histogram(x, xbins=None, y=None, ybins=None, weights=None,
     return axes
 
 def plot_scatter(x, y=None, z=None, c=None, prune=1, equal=False, ids=None,
-                 xlabel=None, ylabel=None, zlabel=None, axes=None,
+                 xlabel=None, ylabel=None, zlabel=None, axes=None, cmap=None,
                  **kwargs):
     """
     Plot a scatter plot.
@@ -164,7 +164,10 @@ def plot_scatter(x, y=None, z=None, c=None, prune=1, equal=False, ids=None,
         axes = plt.figure()
         axes = plt.gca()
 
-    cmap = plt.cm.get_cmap("viridis", 5)
+    if cmap is not None:
+        cmap = plt.cm.get_cmap(cmap, 5)
+    else:
+        cmap = plt.cm.get_cmap("viridis", 5)
     if z is None and c is None:
         if ids is not None:
             uids  = np.unique(ids)
