@@ -651,11 +651,14 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
  *
  * @return zero if no-crossing, number k, ang0 = k + (fang - iang), otherwise.
  */
-real diag_orb_check_plane_crossing(real fang, real iang, real ang0){
+real diag_orb_check_plane_crossing(real fang, real iang, real ang0) {
 
     real k = 0;
-    if( floor( (fang + ang0)/CONST_2PI ) != floor( (iang + ang0)/CONST_2PI ) ) {
+    /* Check whether nag0 is between iang and fang. Note that this     *
+     * implementation works only because iang and fang are cumulative. */
+    if( floor( (fang - ang0)/CONST_2PI ) != floor( (iang - ang0)/CONST_2PI ) ) {
 
+        /* Move iang to interval [0, 2pi] */
         real a = fmod(iang, CONST_2PI);
         if(a < 0){
             a = CONST_2PI + a;
