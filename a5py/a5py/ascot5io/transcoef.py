@@ -78,12 +78,15 @@ class Transcoef(AscotData):
         k   = self["k"]
         d   = self["d"]
 
-        rho = self._runnode.inistate["r"]
+        ids0 = self._runnode.inistate["id"]
+        rho  = self._runnode.inistate["r"]
         if userho:
             rho = self._runnode.inistate["rho"]
         energy = self._runnode.inistate["energy"]
         pitch  = self._runnode.inistate["pitch"]
-        ec     = self._runnode.inistate["endcond"]
+        ec     = self._runnode.endstate["endcond"]
+
+        lost   = np.logical_or.reduce([ec==32, ec==128, ec==1])
 
         nsize = 1
         for i in np.arange( len(dim) ):
@@ -104,22 +107,29 @@ class Transcoef(AscotData):
         i = 0
         n = 0
         while n < ntot:
-            idx = np.logical_and( ids > n, ids <= n + nslot )
-            K[i] = np.mean(k[idx])
-            D[i] = np.mean(d[idx])
+            idx  = np.logical_and(  ids > n,  ids <= n + nslot )
+            idx0 = np.logical_and( ids0 > n, ids0 <= n + nslot )
 
             # Evaluate transport from losses instead
-            lf = np.sum(np.logical_or.reduce([ec==32, ec==128, ec==1])[ids[idx]-1]) / nslot
+            lf = np.sum(lost[ids0[idx0]-1]) / nslot
             if lf >= lossfrac:
                 coefs = eval_coefficients(
                     [self._runnode], method=method, endrho=1,
-                    ids=[ids[idx]-1])
+                    ids=[ids0[idx0]-1])
                 K[i] = coefs[1]
                 D[i] = coefs[2]
 
-            A1[i] = np.mean(rho[ids[idx]-1])
-            A2[i] = np.mean(energy[ids[idx]-1])
-            A3[i] = np.mean(pitch[ids[idx]-1])
+                A1[i] = np.mean(rho[ids0[idx0]-1])
+                A2[i] = np.mean(energy[ids0[idx0]-1])
+                A3[i] = np.mean(pitch[ids0[idx0]-1])
+
+            else:
+                K[i] = np.mean(k[idx])
+                D[i] = np.mean(d[idx])
+
+                A1[i] = np.mean(rho[ids[idx]-1])
+                A2[i] = np.mean(energy[ids[idx]-1])
+                A3[i] = np.mean(pitch[ids[idx]-1])
 
             n = n + nslot
             i = i + 1
