@@ -61,7 +61,7 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
 
         hdf5_orbit_writeset(group,  "ids", "1", dtypei32, arraylength, 1,
                             mask, datasize, &orbits[arraylength*0]);
-        hdf5_orbit_writeset(group,  "time", "s", dtypef64, arraylength, 1,
+        hdf5_orbit_writeset(group,  "mileage", "s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*1]);
         hdf5_orbit_writeset(group,  "r", "m", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*2]);
@@ -100,7 +100,7 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
     if(data->record_mode == simulate_mode_gc) {
         hdf5_orbit_writeset(group,  "ids", "1", dtypei32, arraylength, 1,
                             mask, datasize, &orbits[arraylength*0]);
-        hdf5_orbit_writeset(group,  "time", "s", dtypef64, arraylength, 1,
+        hdf5_orbit_writeset(group,  "mileage", "s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*1]);
         hdf5_orbit_writeset(group,  "r", "m", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*2]);
@@ -139,7 +139,7 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
     if(data->record_mode == simulate_mode_ml) {
         hdf5_orbit_writeset(group,  "ids", "1", dtypei32, arraylength, 1,
                             mask, datasize, &orbits[arraylength*0]);
-        hdf5_orbit_writeset(group,  "time", "s", dtypef64, arraylength, 1,
+        hdf5_orbit_writeset(group,  "mileage", "s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*1]);
         hdf5_orbit_writeset(group,  "r", "m", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*2]);
@@ -166,7 +166,7 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
     if(data->record_mode == simulate_mode_hybrid) {
         hdf5_orbit_writeset(group,  "ids", "1", dtypei32, arraylength, 1,
                             mask, datasize, &orbits[arraylength*0]);
-        hdf5_orbit_writeset(group,  "time", "s", dtypef64, arraylength, 1,
+        hdf5_orbit_writeset(group,  "mileage", "s", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*1]);
         hdf5_orbit_writeset(group,  "r", "m", dtypef64, arraylength, 1,
                             mask, datasize, &orbits[arraylength*2]);
