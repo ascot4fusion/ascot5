@@ -170,10 +170,15 @@ class Orbits(AscotData):
                 quantity = quantity
             )
 
-        # Gets mass for each datapoint from the endstate
+        # Gets mass and initime for each datapoint from the inistate
         def mass():
             m = self._read_from_inistate(
                 "mass", read_dataw("ids")).ravel() * unyt.amu
+            return m[mask]
+
+        def initime():
+            m = self._read_from_inistate(
+                "time", read_dataw("ids")).ravel() * unyt.s
             return m[mask]
 
         item = None
@@ -184,9 +189,14 @@ class Orbits(AscotData):
         if key in h5keys:
             item = read_dataw(key)
 
-        # Mass is read from inistate
+        # Mass and time are read from inistate
         elif key == "mass":
             item = mass()
+        elif key == "time":
+            item = initime() + read_dataw("mileage")
+        elif key == "mileagerev":
+            item = read_dataw("mileage")
+            item = item[0] - item
         else:
             if simmode == 1:
                 key += "prt"
@@ -455,10 +465,10 @@ class Orbits(AscotData):
             item[err > 0] = item[err > 0] & endcondmod.getbin("aborted")
             item[item==0] = endcondmod.getbin("none")
 
-        # Order by id and time
+        # Order by id and mileage
         ids  = read_dataw("ids").v
-        time = read_dataw("time")
-        idx  = np.lexsort((time, ids))
+        mile = read_dataw("mileage")
+        idx  = np.lexsort((mile, ids))
 
         return item[idx]
 
@@ -550,8 +560,10 @@ class Orbits(AscotData):
             if z is not None:
                 zc = np.log10(np.absolute(zc))
 
-        plot.plot_line(x=xc, y=yc, z=zc, ids=ids, equal=equal,
-                       xlabel=x, ylabel=y, zlabel=z, axes=axes, **kwargs)
+        axes = plot.plot_line(x=xc, y=yc, z=zc, ids=ids, equal=equal,
+                              xlabel=x, ylabel=y, zlabel=z, axes=axes, **kwargs)
+
+        return axes
 
 
     def scatter(self, x=None, y=None, z=None, c=None, endcond=None, pncrid=None,
@@ -598,9 +610,11 @@ class Orbits(AscotData):
             if c is not None:
                 cc = np.log10(np.absolute(cc))
 
-        plot.plot_scatter(x=xc, y=yc, z=zc, c=cc, equal=equal,
-                          ids=ids, xlabel=x, ylabel=y, zlabel=z, axes=axes,
-                          prune=prune, s=markersize, **kwargs)
+        axes = plot.plot_scatter(x=xc, y=yc, z=zc, c=cc, equal=equal,
+                                 ids=ids, xlabel=x, ylabel=y, zlabel=z,
+                                 axes=axes, prune=prune, s=markersize, **kwargs)
+
+        return axes
 
 
     def poincare(self, *args, log=False, endcond=None, equal=False,
@@ -634,13 +648,14 @@ class Orbits(AscotData):
         if x == "R" and y == "z":
             equal = True
 
-        self.scatter(x=x, y=y, c=z, pncrid=pncrid, endcond=endcond, prune=prune,
-                     sepid=sepid, log=log, equal=equal, axes=axes,
-                     markersize=markersize, ids=ids)
+        axes = self.scatter(x=x, y=y, c=z, pncrid=pncrid, endcond=endcond,
+                            prune=prune, sepid=sepid, log=log, equal=equal,
+                            axes=axes, markersize=markersize, ids=ids)
 
         if y == "phimod":
             axes.set_ylim([0, 360])
 
+        return axes
 
 
     def _read_from_inistate(self, key, ids):
