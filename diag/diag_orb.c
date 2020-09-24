@@ -57,6 +57,7 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
         }
 
         data->pncrid = &(offload_array[step*offload_data->Nfld]);
+        data->pncrdi = &(offload_array[step*(offload_data->Nfld+1)]);
     }
 
     switch(offload_data->record_mode) {
@@ -273,6 +274,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->phi[i] < p_i->phi[i]);
                         data->simmode[idx]= DIAG_ORB_FO;
 
                         ipoint++;
@@ -308,6 +310,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j + data->ntoroidalplots;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->theta[i] < p_i->theta[i]);
                         data->simmode[idx]= DIAG_ORB_FO;
 
                         ipoint++;
@@ -441,6 +444,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->phi[i] < p_i->phi[i]);
                         data->simmode[idx]= DIAG_ORB_GC;
 
                         ipoint++;
@@ -476,6 +480,7 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j + data->ntoroidalplots;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->theta[i] < p_i->theta[i]);
                         data->simmode[idx]= DIAG_ORB_GC;
 
                         ipoint++;
@@ -593,6 +598,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->phi[i] < p_i->phi[i]);
                         data->simmode[idx]= DIAG_ORB_ML;
 
                         ipoint++;
@@ -623,6 +629,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         data->B_phi[idx]  = k*p_f->B_phi[i]   + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]     + d*p_i->B_z[i];
                         data->pncrid[idx] = j + data->ntoroidalplots;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->theta[i] < p_i->theta[i]);
                         data->simmode[idx]= DIAG_ORB_ML;
 
                         ipoint++;

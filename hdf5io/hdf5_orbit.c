@@ -212,6 +212,8 @@ int hdf5_orbit_write(hid_t f, char* qid, diag_orb_offload_data* data,
     if(data->mode == DIAG_ORB_POINCARE) {
         hdf5_orbit_writeset(group,  "pncrid", "1", dtypei16, arraylength, 1,
                             mask, datasize, &orbits[arraylength * data->Nfld]);
+        hdf5_orbit_writeset(group,  "pncrdi", "1", dtypei16, arraylength, 1,
+                            mask, datasize, &orbits[arraylength * (data->Nfld+1)]);
     }
 
     free(mask);

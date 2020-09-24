@@ -73,6 +73,7 @@ typedef struct{
     real* B_z;    /**< Magnetic field z component at marker position [T]    */
     real* simmode;/**< In what simulation mode data point was recorded      */
     real* pncrid; /**< Id for the poincare plot a point corresponds to      */
+    real* pncrdi; /**< Direction in which Poincare plane was crossed        */
 
     integer* mrk_pnt;     /**< Index of the last recorded point             */
     real* mrk_recorded;   /**< Last time (in seconds) a marker was updated  */
