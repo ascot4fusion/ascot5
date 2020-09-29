@@ -525,8 +525,8 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->znum   = p->p.znum;
             ps->weight = p->p.weight;
             ps->time   = p->p.time;
-            ps->theta  = atan2(ps->zprt-B_field_get_axis_r(Bdata, ps->phiprt),
-                               ps->rprt-B_field_get_axis_z(Bdata, ps->phiprt));
+            ps->theta  = atan2(ps->zprt-B_field_get_axis_z(Bdata, ps->phiprt),
+                               ps->rprt-B_field_get_axis_r(Bdata, ps->phiprt));
             ps->id       = id;
             ps->mileage  = 0;
             ps->endcond  = 0;
