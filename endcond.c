@@ -155,17 +155,25 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
             }
 
             /* Check if marker exceeds toroidal or poloidal limits */
+            int maxorb = 0;
             if(active_tormax) {
                 if(fabs(p_f->phi[i]) > sim->endcond_max_tororb) {
-                    p_f->endcond[i] |= endcond_tormax;
-                    p_f->running[i] = 0;
+                    maxorb |= endcond_tormax;
                 }
             }
             if(active_polmax) {
                 if(fabs(p_f->theta[i]) > sim->endcond_max_polorb) {
-                    p_f->endcond[i] |= endcond_polmax;
-                    p_f->running[i] = 0;
+                    maxorb |= endcond_polmax;
                 }
+            }
+            if( sim->endcond_torandpol &&
+                maxorb & endcond_tormax && maxorb & endcond_polmax ) {
+                p_f->endcond[i] |= maxorb;
+                p_f->running[i] = 0;
+            }
+            else if(maxorb) {
+                p_f->endcond[i] |= maxorb;
+                p_f->running[i] = 0;
             }
 
             /* Check if the time spent simulating this marker exceeds the

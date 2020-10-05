@@ -107,6 +107,7 @@ typedef struct {
                                     parameter times local thermal energy      */
     real endcond_max_tororb;   /**< Maximum limit for toroidal distance [rad] */
     real endcond_max_polorb;   /**< Maximum limit for poloidal distance [rad] */
+    int endcond_torandpol;     /**< Flag whether both tor and pol must be met */
 
     /* Metadata */
     char hdf5_in[256];     /**< Name of the input HDF5 file  */
@@ -202,6 +203,7 @@ typedef struct {
                                    parameter times local thermal energy      */
     real endcond_max_tororb;  /**< Maximum limit for toroidal distance [rad] */
     real endcond_max_polorb;  /**< Maximum limit for poloidal distance [rad] */
+    int endcond_torandpol;    /**< Flag whether both tor and pol must be met */
 
 } sim_data;
 

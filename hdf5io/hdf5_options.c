@@ -140,6 +140,11 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     sim->endcond_active = sim->endcond_active | endcond_polmax * (ec > 0);
     sim->endcond_active = sim->endcond_active | endcond_tormax * (ec > 0);
 
+    sim->endcond_torandpol = 0;
+    if( ec == 2) {
+        sim->endcond_torandpol = 1;
+    }
+
 
     if( hdf5_read_double(OPTPATH "ENDCOND_MAX_SIMTIME",
                          &sim->endcond_max_simtime,

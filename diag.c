@@ -97,7 +97,7 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
         }
 
         if(data->diagorb.mode == DIAG_ORB_POINCARE) {
-            n += (data->diagorb.Nfld+1)
+            n += (data->diagorb.Nfld+2)
                 * data->diagorb.Nmrk * data->diagorb.Npnt;
         }
         else if(data->diagorb.mode == DIAG_ORB_INTERVAL) {

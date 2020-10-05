@@ -349,6 +349,7 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->endcond_min_thermal  = offload_data->endcond_min_thermal;
     sim->endcond_max_tororb   = offload_data->endcond_max_tororb;
     sim->endcond_max_polorb   = offload_data->endcond_max_polorb;
+    sim->endcond_torandpol    = offload_data->endcond_torandpol;
 
     mccc_init(&sim->mccc_data, !sim->disable_energyccoll,
               !sim->disable_pitchccoll, !sim->disable_gcdiffccoll);
