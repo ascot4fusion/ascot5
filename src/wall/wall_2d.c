@@ -9,6 +9,83 @@
 #include "../print.h"
 #include "wall_2d.h"
 
+// // Given three colinear points p, q, r, the function checks if 
+// // point q lies on line segment 'pr' 
+// int onSegment(real pr, real pz, real qr, real qz, real rr, real rz) 
+// { 
+//     if (qr <= fmax(pr, rr) && qr >= fmin(pr, rr) && 
+//         qz <= fmax(pz, rz) && qz >= fmin(pz, rz)) 
+//        return 1; 
+  
+//     return 0; 
+// }
+
+// // To find orientation of ordered triplet (p, q, r). 
+// // The function returns following values 
+// // 0 --> p, q and r are colinear 
+// // 1 --> Clockwise 
+// // 2 --> Counterclockwise 
+// int orientation(real pr, real pz, real qr, real qz, real rr, real rz) 
+// { 
+//     // See https://www.geeksforgeeks.org/orientation-3-ordered-points/ 
+//     // for details of below formula. 
+//     int val = (qz - pz) * (rr - qr) - 
+//               (qr - pr) * (rz - qz); 
+  
+//     if (val == 0) return 0;  // colinear 
+  
+//     return (val > 0)? 1: 2; // clock or counterclock wise 
+// }
+
+// /**
+//  * Check if 2 segments p1q1 and p2q2 intersect
+//  * @param  {Point} p1 : 
+//  * @param  {Point} q1 : 
+//  * @param  {Point} p2 : 
+//  * @param  {Point} q2 : 
+//  * @return {bool}     : 
+//  */
+// int doIntersect(real pr1, real pz1, real qr1, real qz1, real pr2, real pz2, real qr2, real qz2)
+// { 
+//     // Find the four orientations needed for general and 
+//     // special cases 
+//     int o1 = orientation(pr1, pz1, qr1, qz1, pr2, pz2); 
+//     int o2 = orientation(pr1, pz1, qr1, qz1, qr2, qz2); 
+//     int o3 = orientation(pr2, pz2, qr2, qz2, pr1, pz1); 
+//     int o4 = orientation(pr2, pz2, qr2, qz2, qr1, qz1); 
+  
+//     // General case 
+//     if (o1 != o2 && o3 != o4) 
+//         return 1; 
+  
+//     // Special Cases 
+//     if (o1 == 0 && onSegment(pr1, pz1, pr2, pz2, qr1, qz1)) return 1; 
+//     if (o2 == 0 && onSegment(pr1, pz1, qr2, qz2, qr1, qz1)) return 1; 
+//     if (o3 == 0 && onSegment(pr2, pz2, pr1, pz1, qr2, qz2)) return 1; 
+//     if (o4 == 0 && onSegment(pr2, pz2, qr1, qz1, qr2, qz2)) return 1; 
+  
+//     return 0; // Doesn't fall in any of the above cases 
+// }
+
+int ccw(real Ar, real Az, real Br, real Bz, real Cr, real Cz) {
+    return (Cz-Az) * (Br-Ar) > (Bz-Az) * (Cr-Ar);
+}
+
+// # Return true if line segments AB and CD intersect
+int intersect(real Ar, real Az, real Br, real Bz, real Cr, real Cz, real Dr, real Dz) {
+    return ccw(Ar, Az, Cr, Cz, Dr, Dz) != ccw(Br, Bz, Cr, Cz, Dr, Dz) && ccw(Ar, Az, Br, Bz, Cr, Cz) != ccw(Ar, Az, Br, Bz, Dr, Dz);
+}
+
+int wall_2d_find_intersection(real r1, real z1, real r2, real z2, wall_2d_data* w) {
+    int i;
+    for(i = 0; i < w->n - 1; i++) {
+        if (intersect(r1, z1, r2, z2, w->wall_r[i], w->wall_z[i], w->wall_r[i+1], w->wall_z[i+1])) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 /**
  * @brief Load 2D wall data and prepare parameters
  *
@@ -135,8 +212,9 @@ int wall_2d_inside(real r, real z, wall_2d_data* w) {
  */
 int wall_2d_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
                      wall_2d_data* w) {
-    if(!wall_2d_inside(r2, z2, w))
-        return 1;
-    else
+    if(!wall_2d_inside(r2, z2, w)) {
+        return wall_2d_find_intersection(r1, z1, r2, z2, w);
+    } else {
         return 0;
+    }
 }
