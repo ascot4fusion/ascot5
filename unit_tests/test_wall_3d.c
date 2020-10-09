@@ -94,6 +94,13 @@ void tetra_wall(wall_3d_offload_data *offload_data,
 /**
  *  Generate a simple 3D wall to test against.
  *
+ * A TRIQUEUE_N_TRIANGLES long line of parallel triangles grouped together into TRIQUEUE_N_BATCHES batches.
+ * Distance b/w starts of first and last+1 batches is  TRIQUEUE_Z_DISTANCE.
+ * Distance b/w triangles in each batch are condensed 10-fold.
+ *
+ *   |||||          |||||          |||||          |||||
+ *   |---------------------- TRIQUEUE_Z_DISTANCE-----------------|
+ *
  */
 void queue_wall(wall_3d_offload_data *offload_data,
 		real **offload_array) {
@@ -349,6 +356,9 @@ int test_rays_in_queue( wall_3d_data *wdata ){
   real dz_tri   = dz_batch / (10*tri_in_batch);
   int  hitId,correctId;
   int failed;
+  real correct_w;
+  const real w_tolerance = 1.1e-6;
+
 
 
   failed = 0;
@@ -356,7 +366,9 @@ int test_rays_in_queue( wall_3d_data *wdata ){
   q1[0]= 1.2; q1[1]=1.2; q1[2]= -1.0 * dz_tri;
   q2[0]= 1.2; q2[1]=1.2; q2[2]= 0.5  * dz_batch;
 
+  // We should hit the first in queue.
   correctId = 1;
+  correct_w = fabs(q1[2]) / ( q2[2] - q1[2] );
   printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check all tris]\n",
 	 q1[0],q1[1],q1[2],
 	 q2[0],q2[1],q2[2]  );
@@ -372,8 +384,16 @@ int test_rays_in_queue( wall_3d_data *wdata ){
     printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
     failed++;
   }
+  if ( fabs(w_coll - correct_w) < w_tolerance) {
+      printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
+  }
+  else{
+      printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
+      failed++;
+  }
 
   correctId = 1;
+  // No change in correct_w
   printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check using search tree]\n",
 	 q1[0],q1[1],q1[2],
 	 q2[0],q2[1],q2[2]  );
@@ -388,11 +408,19 @@ int test_rays_in_queue( wall_3d_data *wdata ){
     printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
     failed++;
   }
+  if ( fabs(w_coll - correct_w) < w_tolerance) {
+      printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
+  }
+  else{
+      printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
+      failed++;
+  }
 
 
 
-  
+  // We should hit the last triangle of the first batch
   correctId = tri_in_batch ;
+  correct_w = (q2[2] - (dz_tri * (TRIQUEUE_N_TRIANGLES / TRIQUEUE_N_BATCHES -1) ) ) / fabs( q2[2] - q1[2] );
   printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check all tris]]\n",
 	 q2[0],q2[1],q2[2],
 	 q1[0],q1[1],q1[2]  );
@@ -409,8 +437,17 @@ int test_rays_in_queue( wall_3d_data *wdata ){
     printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
     failed++;
   }
+  if ( fabs(w_coll - correct_w) < w_tolerance) {
+      printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
+  }
+  else{
+      printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
+      failed++;
+  }
+
     
   correctId = tri_in_batch ;
+  // No change in correct_w
   printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check using search tree]]\n",
 	 q2[0],q2[1],q2[2],
 	 q1[0],q1[1],q1[2]  );
@@ -425,11 +462,20 @@ int test_rays_in_queue( wall_3d_data *wdata ){
     printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
     failed++;
   }
+  if ( fabs(w_coll - correct_w) < w_tolerance) {
+      printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
+  }
+  else{
+      printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
+      failed++;
+  }
+
     
-  
+  // Now we are supposed to hit the first triangle of the second batch
   q1[0]= 1.2; q1[1]=1.2; q1[2]= -1.0 * dz_tri+dz_batch;
   q2[0]= 1.2; q2[1]=1.2; q2[2]= 1.5  * dz_batch;
   correctId = tri_in_batch + 1;
+  correct_w = fabs(dz_batch -q1[2])  / fabs(q2[2]-q1[2]);
   printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check all tris]]\n",
 	 q1[0],q1[1],q1[2],
 	 q2[0],q2[1],q2[2]  );
@@ -446,8 +492,17 @@ int test_rays_in_queue( wall_3d_data *wdata ){
     printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
     failed++;
   }
+  if ( fabs(w_coll - correct_w) < w_tolerance) {
+      printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
+  }
+  else{
+      printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
+      failed++;
+  }
+
     
   correctId = tri_in_batch + 1;
+  // No change in correct_w
   printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check using search tree]]\n",
 	 q1[0],q1[1],q1[2],
 	 q2[0],q2[1],q2[2]  );
@@ -462,6 +517,14 @@ int test_rays_in_queue( wall_3d_data *wdata ){
     printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
     failed++;
   }
+  if ( fabs(w_coll - correct_w) < w_tolerance) {
+      printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
+  }
+  else{
+      printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
+      failed++;
+  }
+
     
   
   
