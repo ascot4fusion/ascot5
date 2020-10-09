@@ -494,9 +494,7 @@ class Orbits(AscotData):
         idx = np.ones(val.shape, dtype=bool)
 
         if endcond is not None:
-            with self as h5:
-                ec = self._read_from_endstate("endcond", h5).ravel()
-
+            ec = self._read_from_endstate("endcond", self["ids"]).ravel()
             idx = np.logical_and( idx, ec == endcondmod.getbin(endcond) )
 
         if pncrid is not None:
