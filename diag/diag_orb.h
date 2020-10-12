@@ -23,6 +23,14 @@
 #define DIAG_ORB_GC 2 /**< Data stored in GC mode */
 #define DIAG_ORB_ML 3 /**< Data stored in ML mode */
 
+#pragma omp declare target
+#pragma omp declare simd uniform(ang0)
+real diag_orb_check_plane_crossing(real fang, real iang, real ang0);
+#pragma omp declare simd uniform(r0)
+real diag_orb_check_radial_crossing(real fr, real ir, real r0);
+#pragma omp end declare target
+
+
 /**
  * @brief Orbit diagnostics offload data struct.
  */
@@ -35,9 +43,10 @@ typedef struct{
     real writeInterval; /**< Interval at which markers are recorded        */
     int ntoroidalplots; /**< Number of toroidal Poincare planes            */
     int npoloidalplots; /**< Number of toroidal Poincare planes            */
+    int nradialplots;   /**< Number of radial Poincare planes              */
     real toroidalangles[DIAG_ORB_MAXPOINCARES]; /**< Toroidal plane angles */
     real poloidalangles[DIAG_ORB_MAXPOINCARES]; /**< Poloidal plane angles */
-
+    real radialdistances[DIAG_ORB_MAXPOINCARES];   /**< Radial plane angles*/
 }diag_orb_offload_data;
 
 /**
@@ -83,10 +92,11 @@ typedef struct{
     int Nmrk;           /**< Number of markers to record                    */
     real writeInterval; /**< Interval at which markers are recorded         */
     int ntoroidalplots; /**< Number of toroidal Poincare planes             */
-    int npoloidalplots; /**< Number of toroidal Poincare planes             */
+    int npoloidalplots; /**< Number of poloidal Poincare planes             */
+    int nradialplots;   /**< Number of radial Poincare planes               */
     real toroidalangles[DIAG_ORB_MAXPOINCARES]; /**< Toroidal plane angles  */
     real poloidalangles[DIAG_ORB_MAXPOINCARES]; /**< Poloidal plane angles  */
-
+    real radialdistances[DIAG_ORB_MAXPOINCARES];   /**< Radial plane angles */
 }diag_orb_data;
 
 #pragma omp declare target
