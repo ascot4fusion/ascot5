@@ -115,11 +115,11 @@ int bmc_update_distr5D(
 
             // deposit the final state with a linear interpolation on the closest spatial vertices
             // deposit in the velocity space is nearest neighbour 
-            int p1_indexes[8];
-            int p1_target_hit[8];
-            real p1_weights[8];
+            int p1_indexes[32];
+            int p1_target_hit[32];
+            real p1_weights[32];
             bmc_dist5D_gc_indexes(p0 + i, p1_indexes, p1_weights, p1_target_hit, p1 + i, j, dist0, w2d);
-            for (int i_nodes=0; i_nodes<8; i_nodes++) {
+            for (int i_nodes=0; i_nodes<32; i_nodes++) {
                 if (p1_indexes[i_nodes] >= 0) {
                     if (p1_target_hit[i_nodes]) {
                         // particle hit the target domain. Set the relative probabiity to 1
@@ -158,7 +158,7 @@ int bmc_update_distr5D(
     real phi;
     real vpara;
     real vperp;
-    real weights_rphiz[3];
+    real weights_dim[5];
     int i_r;
     int i_phi;
     int i_z;
@@ -167,34 +167,39 @@ int bmc_update_distr5D(
     int i_time;
     int i_q;
 
-    weights_rphiz[0] = ((p->r[i_simd] - dist->min_r)
+    weights_dim[0] = ((p->r[i_simd] - dist->min_r)
                 / ((dist->max_r - dist->min_r)/dist->n_r));
-    i_r = floor(weights_rphiz[0]);
-    weights_rphiz[0] = 1. - weights_rphiz[0] + i_r;
+    i_r = floor(weights_dim[0]);
+    weights_dim[0] = 1. - weights_dim[0] + i_r;
 
     phi = fmod(p->phi[i_simd], 2*CONST_PI);
     if(phi < 0) {
         phi = phi + 2*CONST_PI;
     }
-    weights_rphiz[1] = ((phi - dist->min_phi)
+    weights_dim[1] = ((phi - dist->min_phi)
                 / ((dist->max_phi - dist->min_phi)/dist->n_phi));
-    i_phi = floor(weights_rphiz[1]);
-    weights_rphiz[1] = 1. - weights_rphiz[1] + i_phi;
+    i_phi = floor(weights_dim[1]);
+    weights_dim[1] = 1. - weights_dim[1] + i_phi;
 
-    weights_rphiz[2] = ((p->z[i_simd] - dist->min_z)
+    weights_dim[2] = ((p->z[i_simd] - dist->min_z)
             / ((dist->max_z - dist->min_z) / dist->n_z));
-    i_z = floor(weights_rphiz[2]);
-    weights_rphiz[2] = 1. - weights_rphiz[2] + i_z;
+    i_z = floor(weights_dim[2]);
+    weights_dim[2] = 1. - weights_dim[2] + i_z;
 
-    i_vpara = floor((p->vpar[i_simd] - dist->min_vpara)
-                / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara));
+    weights_dim[3] = (p->vpar[i_simd] - dist->min_vpara)
+                / ((dist->max_vpara - dist->min_vpara) / dist->n_vpara);
+    i_vpara = floor(weights_dim[3]);
+    weights_dim[3] = 1. - weights_dim[3] + i_vpara;
 
     vperp = sqrt(2 * sqrt(p->B_r[i_simd]*p->B_r[i_simd]
                                 +p->B_phi[i_simd]*p->B_phi[i_simd]
                                 +p->B_z[i_simd]*p->B_z[i_simd])
                     * p->mu[i_simd] / p->mass[i_simd]);
-    i_vperp = floor((vperp - dist->min_vperp)
-                / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp));
+    weights_dim[4] = (vperp - dist->min_vperp)
+                / ((dist->max_vperp - dist->min_vperp) / dist->n_vperp);
+    i_vperp = floor(weights_dim[4]);
+    weights_dim[4] = 1. - weights_dim[4] + i_vperp;
+    
 
     i_time = 0;
 
@@ -203,15 +208,19 @@ int bmc_update_distr5D(
     real dr = (dist->max_r - dist->min_r)/dist->n_r;
     real dphi = (dist->max_phi - dist->min_phi)/dist->n_phi;
     real dz = (dist->max_z - dist->min_z)/dist->n_z;
+    real dvpara = (dist->max_vpara - dist->min_vpara)/dist->n_vpara;
+    real dvperp = (dist->max_vperp - dist->min_vperp)/dist->n_vperp;
 
     int i = 0;
-    real r1, phi1, z1;
+    real r1, phi1, z1, vpara1, vperp1;
     int j_phimod;
     for (int j_r=i_r; j_r<i_r + 2; j_r++)
     for (int j_phi=i_phi; j_phi<i_phi + 2; j_phi++)
-    for (int j_z=i_z; j_z<i_z + 2; j_z++) {
+    for (int j_z=i_z; j_z<i_z + 2; j_z++)
+    for (int j_vpara=i_vpara; j_vpara<i_vpara + 2; j_vpara++)
+    for (int j_vperp=i_vperp; j_vperp<i_vperp + 2; j_vperp++) {
 
-        if ((j_r < 0) || (j_phi < 0) || (j_z < 0)) {
+        if ((j_r < 0) || (j_phi < 0) || (j_z < 0) || (j_vpara < 0) || (j_vperp < 0)) {
             indexes[i] = 0;
             weights[i] = 0;
             target_hit[i] = 0;
@@ -226,9 +235,11 @@ int bmc_update_distr5D(
         r1 = j_r*dr + dist->min_r;
         phi1 = j_phimod*dphi + dist->min_phi;
         z1 = j_z*dz + dist->min_z;
-        indexes[i] = dist_5D_index(j_r, j_phimod, j_z, i_vpara, i_vperp, i_time, i_q,
+        vpara1 = j_vpara*dvpara + dist->min_vpara;
+        vperp1 = j_vperp*dvperp + dist->min_vperp;
+        indexes[i] = dist_5D_index(j_r, j_phimod, j_z, j_vpara, j_vperp, i_time, i_q,
                     dist->n_phi, dist->n_z, dist->n_vpara, dist->n_vperp, 1, 1);
-        weights[i] = fabs(weights_rphiz[0] - j_r + i_r) * fabs(weights_rphiz[1] - j_phi + i_phi) * fabs(weights_rphiz[2] - j_z + i_z);
+        weights[i] = fabs(weights_dim[0] - j_r + i_r) * fabs(weights_dim[1] - j_phi + i_phi) * fabs(weights_dim[2] - j_z + i_z) * fabs(weights_dim[3] - j_vpara + i_vpara) * fabs(weights_dim[4] - j_vperp + i_vperp);
         target_hit[i] = bmc_wall_2d_hit_target(p0->r[i_simd], (j_r)*dr + dist->min_r,
                         p0->phi[i_simd], (j_phimod)*dphi + dist->min_phi, p0->z[i_simd], (j_z)*dz + dist->min_z, w2d);
         i++;
