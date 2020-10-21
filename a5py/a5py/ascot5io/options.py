@@ -288,8 +288,9 @@ def get_default():
          """\
          # Terminate when marker has completed user-specified number of orbits
          # Limit ENDCOND_MAX_TOROIDALORBS is used for a number of toroidal
-         # and ENDCOND_MAX_POLOIDALORBS for poloidal orbits. Marker is
-         # terminated when either of these limits is reached.
+         # and ENDCOND_MAX_POLOIDALORBS for poloidal orbits.
+         # 1 : Marker is terminated when either of these limits is reached.
+         # 2 : Marker is terminated when both limits are reached.
          """,
          0)
     )
