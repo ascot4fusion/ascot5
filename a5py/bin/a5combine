@@ -56,10 +56,26 @@ elif mode == "continue" and len(sys.argv) == 4:
     tools.combineoutput(targetfile, contfns=sourcefile)
     print("Combine complete.")
 
+if mode == "madd" and len(sys.argv) >= 4:
+
+    targetfile  = sys.argv[2]
+    sourcefiles = sys.argv[3:]
+
+    s5 = ascot5.Ascot(sourcefiles[0])
+    for i in range(len(sourcefiles)):
+        print("Combining " + sourcefiles[i] + " to " + targetfile)
+        subprocess.call(["a5copygroup", sourcefiles[i], targetfile,
+                         "run_" + s5["active"].get_qid()])
+
+    print("Combine complete.")
+
 else:
-    print("Combines output of HDF5 files. Two modes are available.\n")
-    print("Add results of several files to a single file:\n"
+    print("Combines output of HDF5 files. Three modes are available.\n")
+    print("Add results of a single run split into several files to a single\n"
+          + "run in a single file:\n"
           + "a5combine add target.h5 several.h5 files.h5 ...\n")
+    print("Add results of a multiple runs, one per file, to a single file:\n"
+          + "a5combine madd target.h5 several.h5 files.h5 ...\n")
     print("Combine results of two runs where the second run continued the first"
           + " run (results are gathered to the first run):\n"
           + "a5combine continue firstrun.h5 secondrun.h5\n")
