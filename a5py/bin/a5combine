@@ -61,11 +61,11 @@ if mode == "madd" and len(sys.argv) >= 4:
     targetfile  = sys.argv[2]
     sourcefiles = sys.argv[3:]
 
-    s5 = ascot5.Ascot(sourcefiles[0])
     for i in range(len(sourcefiles)):
         print("Combining " + sourcefiles[i] + " to " + targetfile)
+        qid = ascot5.Ascot(sourcefiles[i]).active.get_qid()
         subprocess.call(["a5copygroup", sourcefiles[i], targetfile,
-                         "run_" + s5["active"].get_qid()])
+                         "run_" + qid])
 
     print("Combine complete.")
 
