@@ -72,7 +72,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
 
     /* Check if requested HDF5 file exists and open it */
     print_out(VERBOSE_IO, "\nInput file is %s.\n", sim->hdf5_in);
-    hid_t f = hdf5_open(sim->hdf5_in);
+    hid_t f = hdf5_open_ro(sim->hdf5_in);
     if(f < 0) {
         print_err("Error: File not found.");
         return 1;
