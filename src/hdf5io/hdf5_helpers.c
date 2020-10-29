@@ -31,7 +31,7 @@ hid_t hdf5_create(const char* filename) {
 
 /**
  * @brief Open a hdf5 file for reading and writing. A negative value is
- *returned on failure.
+ * returned on failure.
  */
 hid_t hdf5_open(const char *filename) {
     hid_t file;
@@ -41,7 +41,7 @@ hid_t hdf5_open(const char *filename) {
 
 /**
  * @brief Open a hdf5 file for read only. A negative value is
- *returned on failure.
+ * returned on failure.
  */
 hid_t hdf5_open_ro(const char *filename) {
     hid_t file;
@@ -51,7 +51,7 @@ hid_t hdf5_open_ro(const char *filename) {
 
 /**
  * @brief Close access to given hdf5 file identifier. A negative value is
- *returned on failure.
+ * returned on failure.
  */
 herr_t hdf5_close(hid_t file_id) {
     herr_t err;
