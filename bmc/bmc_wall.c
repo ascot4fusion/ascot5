@@ -11,7 +11,8 @@
  * @todo implement this check for 3d walls
  **/
 int bmc_walltile_in_target(integer walltile) {
-    return 1;
+    return walltile == 141;
+    // return 1;
 }
 
 /**
