@@ -51,9 +51,10 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
             real z0   = p->z[i];
 
             /* Move guiding center to (x, y, z, vnorm, xi) coordinates */
-            real vin, xiin, Xin_xyz[3];
-            vin  = physlib_gc_v(p->mass[i], p->mu[i], p->vpar[i], Bnorm);
-            xiin = physlib_gc_xi(p->mass[i], p->mu[i], p->vpar[i], Bnorm);
+            real vin, pin, xiin, Xin_xyz[3];
+            pin  = physlib_gc_p( p->mass[i], p->mu[i], p->ppar[i], Bnorm);
+            xiin = physlib_gc_xi(p->mass[i], p->mu[i], p->ppar[i], Bnorm);
+            vin  = physlib_vnorm_pnorm(p->mass[i], pin);
             Xin_xyz[0] = p->r[i] * cos(p->phi[i]);
             Xin_xyz[1] = p->r[i] * sin(p->phi[i]);
             Xin_xyz[2] = p->z[i];
@@ -73,8 +74,8 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
             /* Evaluate collision coefficients and sum them for each *
              * species                                               */
-            real gyrofreq = phys_gyrofreq_vnorm(p->mass[i], p->charge[i], vin,
-                                                Bnorm);
+            real gyrofreq = phys_gyrofreq_pnorm(p->mass[i], p->charge[i],
+                                                pin, Bnorm);
             real K = 0, Dpara = 0, nu = 0, DX = 0;
             for(int j = 0; j < n_species; j++) {
                 real vb = sqrt( 2 * Tb[j] / mb[j] );
@@ -152,6 +153,7 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
                 Xout_xyz[1] = Xin_xyz[1];
                 Xout_xyz[2] = Xin_xyz[2];
             }
+            real pout = physlib_pnorm_vnorm(p->mass[i], vout);
 
             /* Back to cylindrical coordinates */
             real Xout_rpz[3];
@@ -196,8 +198,8 @@ void mccc_gc_euler(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
                 p->r[i]    = Xout_rpz[0];
                 p->z[i]    = Xout_rpz[2];
-                p->vpar[i] = physlib_gc_vpar(vout, xiout);
-                p->mu[i]   = physlib_gc_mu(p->mass[i], vout, xiout, Bnorm);
+                p->ppar[i] = physlib_gc_ppar(pout, xiout);
+                p->mu[i]   = physlib_gc_mu(p->mass[i], pout, xiout, Bnorm);
 
                 /* Evaluate phi and theta angles so that they are cumulative */
                 real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);

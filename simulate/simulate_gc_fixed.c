@@ -99,8 +99,14 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
         /* RK4 method for orbit-following */
         if(sim->enable_orbfol) {
-            for (int nt = 0; nt < n_t_subcycles; ++nt) {
-                step_gc_rk4(&p, h_rk4, &sim->B_data, &sim->E_data);
+            if(sim->enable_mhd) {
+                step_gc_rk4_mhd(&p, hin, &sim->B_data, &sim->E_data,
+                                &sim->boozer_data, &sim->mhd_data);
+            }
+            else {
+                for (int nt = 0; nt < n_t_subcycles; ++nt) {
+                    step_gc_rk4(&p, h_rk4, &sim->B_data, &sim->E_data);
+                }
             }
         }
 
@@ -118,7 +124,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]) {
-                p.time[i] = p.time[i] + hin[i];
+                p.time[i]    += hin[i];
+                p.mileage[i] += hin[i];
                 p.cputime[i] += cputime - cputime_last;
             }
         }
@@ -128,22 +135,22 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         endcond_check_gc(&p, &p0, sim);
 
         // // check if the particle exited the velocity space
-        #pragma omp simd
-        for(int i = 0; i < NSIMD; i++) {
-            if(p.running[i]) {
-                real vperp = sqrt(2 * sqrt(p.B_r[i]*p.B_r[i]
-                    +p.B_phi[i]*p.B_phi[i]
-                    +p.B_z[i]*p.B_z[i])
-                    * p.mu[i] / p.mass[i]);
+        // #pragma omp simd
+        // for(int i = 0; i < NSIMD; i++) {
+        //     if(p.running[i]) {
+        //         real vperp = sqrt(2 * sqrt(p.B_r[i]*p.B_r[i]
+        //             +p.B_phi[i]*p.B_phi[i]
+        //             +p.B_z[i]*p.B_z[i])
+        //             * p.mu[i] / p.mass[i]);
                             
-                if ((p.vpar[i] > sim->diag_data.dist5D.max_vpara) || (p.vpar[i] < sim->diag_data.dist5D.min_vpara) ||
-                    (vperp > sim->diag_data.dist5D.max_vperp) || (vperp < sim->diag_data.dist5D.min_vperp)) {
+        //         if ((p.vpar[i] > sim->diag_data.dist5D.max_vpara) || (p.vpar[i] < sim->diag_data.dist5D.min_vpara) ||
+        //             (vperp > sim->diag_data.dist5D.max_vperp) || (vperp < sim->diag_data.dist5D.min_vperp)) {
 
-                    // outside velocity space
-                    p.running[i] = 0;
-                }
-            }
-        }
+        //             // outside velocity space
+        //             p.running[i] = 0;
+        //         }
+        //     }
+        // }
 
         /* Update diagnostics */
         diag_update_gc(&sim->diag_data, &p, &p0);
@@ -189,7 +196,8 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i) {
         /* Value calculated from gyrotime */
         real Bnorm = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
         real gyrotime = CONST_2PI /
-            phys_gyrofreq_vpar(p->mass[i], p->charge[i], p->mu[i], p->vpar[i], Bnorm);
+            phys_gyrofreq_ppar(p->mass[i], p->charge[i],
+                               p->mu[i], p->ppar[i], Bnorm);
         h = gyrotime/sim->fix_gyrodef_nstep;
     }
 

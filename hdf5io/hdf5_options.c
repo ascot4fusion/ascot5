@@ -31,6 +31,9 @@ int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
                                 char* qid);
 int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
                               char* qid);
+int hdf5_options_read_diagtrcof(hid_t file,
+                                diag_transcoef_offload_data* diagtrcof,
+                                char* qid);
 
 /**
  * @brief Read options and diagnostics settings from HDF5 file
@@ -90,6 +93,9 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENABLE_COULOMB_COLLISIONS", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->enable_clmbcol = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_MHD", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->enable_mhd = (int)tempfloat;
     if( hdf5_read_double(OPTPATH "DISABLE_FIRSTORDER_GCTRANS", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->disable_gctransform = (int)tempfloat;
@@ -134,9 +140,17 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     sim->endcond_active = sim->endcond_active | endcond_polmax * (ec > 0);
     sim->endcond_active = sim->endcond_active | endcond_tormax * (ec > 0);
 
+    sim->endcond_torandpol = 0;
+    if( ec == 2) {
+        sim->endcond_torandpol = 1;
+    }
+
 
     if( hdf5_read_double(OPTPATH "ENDCOND_MAX_SIMTIME",
                          &sim->endcond_max_simtime,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+     if( hdf5_read_double(OPTPATH "ENDCOND_MAX_MILEAGE",
+                         &sim->endcond_max_mileage,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "ENDCOND_MAX_CPUTIME",
                          &sim->endcond_max_cputime,
@@ -185,6 +199,9 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENABLE_ORBITWRITE", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     diag->diagorb_collect = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_TRANSCOEF", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diag->diagtrcof_collect = (int)tempfloat;
 
     /* Read individual diagnostics data */
     if(diag->dist5D_collect) {
@@ -215,6 +232,12 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
         }
 
         if( hdf5_options_read_diagorb(file, &diag->diagorb, qid) ) {
+            return 1;
+        }
+    }
+
+    if(diag->diagtrcof_collect) {
+        if( hdf5_options_read_diagtrcof(file, &diag->diagtrcof, qid) ) {
             return 1;
         }
     }
@@ -264,21 +287,21 @@ int hdf5_options_read_dist5D(hid_t file, dist_5D_offload_data* dist,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     dist->n_z = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VPA", &dist->min_vpara,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PPA", &dist->min_ppara,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VPA", &dist->max_vpara,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PPA", &dist->max_ppara,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VPA", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PPA", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vpara = (int)tempfloat;
+    dist->n_ppara = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VPE", &dist->min_vperp,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PPE", &dist->min_pperp,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VPE", &dist->max_vperp,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PPE", &dist->max_pperp,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VPE", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PPE", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vperp = (int)tempfloat;
+    dist->n_pperp = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_TIME", &dist->min_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
@@ -341,29 +364,29 @@ int hdf5_options_read_dist6D(hid_t file, dist_6D_offload_data* dist,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     dist->n_z = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VR", &dist->min_vr,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PR", &dist->min_pr,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VR", &dist->max_vr,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PR", &dist->max_pr,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VR", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PR", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vr = (int)tempfloat;
+    dist->n_pr = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VPHI", &dist->min_vphi,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PPHI", &dist->min_pphi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VPHI", &dist->max_vphi,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PPHI", &dist->max_pphi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VPHI", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PPHI", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vphi = (int)tempfloat;
+    dist->n_pphi = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VZ", &dist->min_vz,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PZ", &dist->min_pz,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VZ", &dist->max_vz,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PZ", &dist->max_pz,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VZ", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PZ", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vz = (int)tempfloat;
+    dist->n_pz = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_TIME", &dist->min_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
@@ -428,21 +451,21 @@ int hdf5_options_read_distrho5D(hid_t file, dist_rho5D_offload_data* dist,
     dist->min_theta = math_deg2rad(dist->min_theta);
     dist->max_theta = math_deg2rad(dist->max_theta);
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VPA", &dist->min_vpara,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PPA", &dist->min_ppara,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VPA", &dist->max_vpara,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PPA", &dist->max_ppara,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VPA", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PPA", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vpara = (int)tempfloat;
+    dist->n_ppara = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VPE", &dist->min_vperp,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PPE", &dist->min_pperp,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VPE", &dist->max_vperp,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PPE", &dist->max_pperp,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VPE", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PPE", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vperp = (int)tempfloat;
+    dist->n_pperp = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_TIME", &dist->min_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
@@ -507,29 +530,29 @@ int hdf5_options_read_distrho6D(hid_t file, dist_rho6D_offload_data* dist,
     dist->min_theta = math_deg2rad(dist->min_theta);
     dist->max_theta = math_deg2rad(dist->max_theta);
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VR", &dist->min_vr,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PR", &dist->min_pr,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VR", &dist->max_vr,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PR", &dist->max_pr,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VR", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PR", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vr = (int)tempfloat;
+    dist->n_pr = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VPHI", &dist->min_vphi,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PPHI", &dist->min_pphi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VPHI", &dist->max_vphi,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PPHI", &dist->max_pphi,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VPHI", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PPHI", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vphi = (int)tempfloat;
+    dist->n_pphi = (int)tempfloat;
 
-    if( hdf5_read_double(OPTPATH "DIST_MIN_VZ", &dist->min_vz,
+    if( hdf5_read_double(OPTPATH "DIST_MIN_PZ", &dist->min_pz,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_MAX_VZ", &dist->max_vz,
+    if( hdf5_read_double(OPTPATH "DIST_MAX_PZ", &dist->max_pz,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    if( hdf5_read_double(OPTPATH "DIST_NBIN_VZ", &tempfloat,
+    if( hdf5_read_double(OPTPATH "DIST_NBIN_PZ", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    dist->n_vz = (int)tempfloat;
+    dist->n_pz = (int)tempfloat;
 
     if( hdf5_read_double(OPTPATH "DIST_MIN_TIME", &dist->min_time,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
@@ -577,17 +600,24 @@ int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
                          &(diagorb->writeInterval),
                          file, qid, __FILE__, __LINE__) ) {return 1;}
 
+
+
     for(int i=0; i < DIAG_ORB_MAXPOINCARES; i++) {
-        diagorb->toroidalangles[i] = 361;
-        diagorb->poloidalangles[i] = 361;
+        diagorb->toroidalangles[i] = TOROIDAL_ANGLE_FILLER_VALUE;
+        diagorb->poloidalangles[i] = POLOIDAL_ANGLE_FILLER_VALUE;
+        diagorb->radialdistances[i] = RADIAL_FILLER_VALUE;
     }
 
     if( hdf5_read_double(OPTPATH "ORBITWRITE_TOROIDALANGLES",
                          (diagorb->toroidalangles),
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "ORBITWRITE_POLOIDALANGLES",
                          (diagorb->poloidalangles),
                          file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "ORBITWRITE_RADIALDISTANCES",
+                         (diagorb->radialdistances),
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+
 
     for(int i=0; i < DIAG_ORB_MAXPOINCARES; i++) {
         if(diagorb->toroidalangles[0] < 0) {
@@ -595,19 +625,32 @@ int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
             diagorb->ntoroidalplots = 0;
             break;
         }
-        if(diagorb->toroidalangles[i] == 361) {
+        if(diagorb->toroidalangles[i] == TOROIDAL_ANGLE_FILLER_VALUE) {
             diagorb->ntoroidalplots = i;
             break;
         }
     }
+
     for(int i=0; i < DIAG_ORB_MAXPOINCARES; i++) {
         if(diagorb->poloidalangles[0] < 0) {
             /* Negative angle means plane is disabled */
             diagorb->npoloidalplots = 0;
             break;
         }
-        if(diagorb->poloidalangles[i] == 361) {
+        if(diagorb->poloidalangles[i] == POLOIDAL_ANGLE_FILLER_VALUE) {
             diagorb->npoloidalplots = i;
+            break;
+        }
+    }
+
+    for(int i=0; i < DIAG_ORB_MAXPOINCARES; i++) {
+        if(diagorb->radialdistances[0] < 0) {
+            /* Negative angle means plane is disabled */
+            diagorb->nradialplots = 0;
+            break;
+        }
+        if(diagorb->radialdistances[i] == RADIAL_FILLER_VALUE) {
+            diagorb->nradialplots = i;
             break;
         }
     }
@@ -618,6 +661,27 @@ int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
     for(int i=0; i < diagorb->npoloidalplots; i++) {
         diagorb->poloidalangles[i] = diagorb->poloidalangles[i]*CONST_PI/180;
     }
+    return 0;
+}
+
+int hdf5_options_read_diagtrcof(hid_t file,
+                                diag_transcoef_offload_data* diagtrcof,
+                                char* qid) {
+    #undef OPTPATH
+    #define OPTPATH "/options/opt_XXXXXXXXXX/"
+
+    if( hdf5_read_double(OPTPATH "TRANSCOEF_INTERVAL", &diagtrcof->interval,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+
+    real tempfloat;
+    if( hdf5_read_double(OPTPATH "TRANSCOEF_NAVG", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diagtrcof->Navg = (int)tempfloat;
+
+    if( hdf5_read_double(OPTPATH "TRANSCOEF_RECORDRHO", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diagtrcof->recordrho = (int)tempfloat;
 
     return 0;
 }
+
