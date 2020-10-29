@@ -40,6 +40,16 @@ hid_t hdf5_open(const char *filename) {
 }
 
 /**
+ * @brief Open a hdf5 file for reading and writing. A negative value is
+ *returned on failure.
+ */
+hid_t hdf5_open_ro(const char *filename) {
+    hid_t file;
+    file = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+    return file;
+}
+
+/**
  * @brief Close access to given hdf5 file identifier. A negative value is
  *returned on failure.
  */
