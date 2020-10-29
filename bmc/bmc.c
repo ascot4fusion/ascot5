@@ -2,9 +2,9 @@
 
 #define TIMESTEP 1E-7 // TODO use input HDF
 #define T0 0.
-#define T1 4E-7
+#define T1 1E-6
 // #define T1 
-#define MASS 9.10938356E-31
+#define MASS 3.3452438E-27
 #define CHARGE 1.60217662E-19
 #define RK4_SUBCYCLES 1
 #define PI2E0_5 2.50662827463
@@ -46,7 +46,7 @@ int backward_monte_carlo(
 
     // debug print of first particles
     for(int i = 0; i < 10; i++) {
-        printf("Particle %d %f %f %f %f %f %f %f\n", i, ps[i].r, ps[i].phi, ps[i].z, ps[i].vpar, ps[i].rho, ps[i].rprt, ps[i].rdot);
+        printf("Particle %d %f %f %f %f %f %f %f\n", i, ps[i].r, ps[i].phi, ps[i].z, ps[i].ppar, ps[i].rho, ps[i].rprt, ps[i].p_r);
     }
 
     // initialize distributions
@@ -217,60 +217,60 @@ int bmc_init_particles(
     real r;
     real phi;
     real z;
-    real vpara;
-    real vperp;
-    real vr;
-    real vphi;
-    real vz;
+    real ppara;
+    real pperp;
+    real pr;
+    real pphi;
+    real pz;
 
-    int n_r, n_phi, n_z, n_vpara, n_vperp, n_vr, n_vphi, n_vz;
-    real max_r, max_phi, max_z, max_vpara, max_vperp, max_vr, max_vphi, max_vz;
-    real min_r, min_phi, min_z, min_vpara, min_vperp, min_vr, min_vphi, min_vz;
+    int n_r, n_phi, n_z, n_ppara, n_pperp, n_pr, n_pphi, n_pz;
+    real max_r, max_phi, max_z, max_ppara, max_pperp, max_pr, max_pphi, max_pz;
+    real min_r, min_phi, min_z, min_ppara, min_pperp, min_pr, min_pphi, min_pz;
     if (sim_offload->diag_offload_data.dist5D_collect) {
         dist_5D_offload_data dist5D = sim_offload->diag_offload_data.dist5D;
         n_r = dist5D.n_r;
         n_phi = dist5D.n_phi;
         n_z = dist5D.n_z;
-        n_vpara = dist5D.n_vpara;
-        n_vperp = dist5D.n_vperp;
+        n_ppara = dist5D.n_ppara;
+        n_pperp = dist5D.n_pperp;
         max_r = dist5D.max_r;
         max_phi = dist5D.max_phi;
         max_z = dist5D.max_z;
-        max_vpara = dist5D.max_vpara;
-        max_vperp = dist5D.max_vperp;
+        max_ppara = dist5D.max_ppara;
+        max_pperp = dist5D.max_pperp;
         min_r = dist5D.min_r;
         min_phi = dist5D.min_phi;
         min_z = dist5D.min_z;
-        min_vpara = dist5D.min_vpara;
-        min_vperp = dist5D.min_vperp;
+        min_ppara = dist5D.min_ppara;
+        min_pperp = dist5D.min_pperp;
     } else {
         dist_6D_offload_data dist6D = sim_offload->diag_offload_data.dist6D;
         n_r = dist6D.n_r;
         n_phi = dist6D.n_phi;
         n_z = dist6D.n_z;
-        n_vr = dist6D.n_vr;
-        n_vphi = dist6D.n_vphi;
-        n_vz = dist6D.n_vz;
+        n_pr = dist6D.n_pr;
+        n_pphi = dist6D.n_pphi;
+        n_pz = dist6D.n_pz;
         max_r = dist6D.max_r;
         max_phi = dist6D.max_phi;
         max_z = dist6D.max_z;
-        max_vr = dist6D.max_vr;
-        max_vphi = dist6D.max_vphi;
-        max_vz = dist6D.max_vz;
+        max_pr = dist6D.max_pr;
+        max_pphi = dist6D.max_pphi;
+        max_pz = dist6D.max_pz;
         min_r = dist6D.min_r;
         min_phi = dist6D.min_phi;
         min_z = dist6D.min_z;
         min_z = dist6D.min_z;
-        min_vr = dist6D.min_vr;
-        min_vphi = dist6D.min_vphi;
+        min_pr = dist6D.min_pr;
+        min_pphi = dist6D.min_pphi;
     }
 
     if (sim_offload->diag_offload_data.dist5D_collect) {
-        printf("5D: n_r %d n_phi %d n_z %d n_vpara %d n_vperp %d n_per_vertex %d\n", n_r, n_phi, n_z, n_vpara, n_vperp, n_per_vertex);
-        *n = n_r * n_phi * n_z * n_vpara * n_vperp * n_per_vertex;
+        printf("5D: n_r %d n_phi %d n_z %d n_vpara %d n_vperp %d n_per_vertex %d\n", n_r, n_phi, n_z, n_ppara, n_pperp, n_per_vertex);
+        *n = n_r * n_phi * n_z * n_ppara * n_pperp * n_per_vertex;
     } else {
-        printf("6D: n_r %d n_phi %d n_z %d n_vr %d n_vphi %d n_vz %d n_per_vertex %d\n", n_r, n_phi, n_z, n_vr, n_vphi, n_vz, n_per_vertex);
-        *n = n_r * n_phi * n_z * n_vr * n_vphi * n_vz * n_per_vertex;
+        printf("6D: n_r %d n_phi %d n_z %d n_vr %d n_vphi %d n_vz %d n_per_vertex %d\n", n_r, n_phi, n_z, n_pr, n_pphi, n_pz, n_per_vertex);
+        *n = n_r * n_phi * n_z * n_pr * n_pphi * n_pz * n_per_vertex;
     }
 
     print_out(VERBOSE_NORMAL, "Mesh size %d.\n", *n / n_per_vertex);
@@ -293,17 +293,17 @@ int bmc_init_particles(
                 }
 
                 if (sim_offload->diag_offload_data.dist5D_collect) {                
-                    for (int i_vpara = 0; i_vpara < n_vpara; ++i_vpara) {
-                        vpara = (max_vpara - min_vpara) * i_vpara / n_vpara + min_vpara;
-                        for (int i_vperp = 0; i_vperp < n_vperp; ++i_vperp) {
-                            vperp = (max_vperp - min_vperp) * i_vperp / n_vperp + min_vperp;
-                            bmc_5D_to_particle_state(Bdata, r, phi, z, vpara, vperp, T1, i, &ps_tmp);
+                    for (int i_ppara = 0; i_ppara < n_ppara; ++i_ppara) {
+                        ppara = (max_ppara - min_ppara) * i_ppara / n_ppara + min_ppara;
+                        for (int i_pperp = 0; i_pperp < n_pperp; ++i_pperp) {
+                            pperp = (max_pperp - min_pperp) * i_pperp / n_pperp + min_pperp;
+                            bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, T1, i, &ps_tmp);
 
                             unsigned long index = dist_5D_index(i_r, i_phi, i_z,
-                                    i_vpara, i_vperp,
+                                    i_ppara, i_pperp,
                                     0, 0,
                                     n_phi, n_z,
-                                    n_vpara, n_vperp,
+                                    n_ppara, n_pperp,
                                     1, 1);
 
                             if (!ps_tmp.err) {
@@ -326,20 +326,20 @@ int bmc_init_particles(
                         }
                     }
                 } else {
-                    for (int i_vr = 0; i_vr < n_vr; ++i_vr) {
-                        vr = (max_vr - min_vr) * i_vr / n_vr + min_vr;
-                        for (int i_vphi = 0; i_vphi < n_vphi; ++i_vphi) {
-                            vphi = (max_vphi - min_vphi) * i_vphi / n_vphi + min_vphi;
-                            for (int i_vz = 0; i_vz < n_vz; ++i_vz) {
-                                vz = (max_vz - min_vz) * i_vz / n_vz + min_vz;
-                                bmc_init_fo_particle(&p_tmp, r, phi, z, vr, vphi, vz, T1, i+1);
+                    for (int i_pr = 0; i_pr < n_pr; ++i_pr) {
+                        pr = (max_pr - min_pr) * i_pr / n_pr + min_pr;
+                        for (int i_pphi = 0; i_pphi < n_pphi; ++i_pphi) {
+                            pphi = (max_pphi - min_pphi) * i_pphi / n_pphi + min_pphi;
+                            for (int i_pz = 0; i_pz < n_pz; ++i_pz) {
+                                pz = (max_pz - min_pz) * i_pz / n_pz + min_pz;
+                                bmc_init_fo_particle(&p_tmp, r, phi, z, pr, pphi, pz, T1, i+1);
                                 particle_input_to_state(&p_tmp, &ps_tmp, Bdata);
 
                                 unsigned long index = dist_6D_index(i_r, i_phi, i_z,
-                                    i_vr, i_vphi, i_vz,
+                                    i_pr, i_pphi, i_pz,
                                     0, 0,
                                     n_phi, n_z,
-                                    n_vr, n_vphi, n_vz,
+                                    n_pr, n_pphi, n_pz,
                                     1, 1);
                                 if (!ps_tmp.err) {
                                     for (int i_mc=0; i_mc<n_per_vertex; ++i_mc) {
@@ -366,7 +366,7 @@ int bmc_init_particles(
 void bmc_5D_to_particle_state(
         B_field_data* Bdata,
         real r, real phi, real z,
-        real vpara, real vperp,
+        real ppara, real pperp,
         real t,
         int id,
         particle_state* ps
@@ -403,9 +403,8 @@ void bmc_5D_to_particle_state(
     /* Input is in (Ekin,xi) coordinates but state needs (mu,vpar) so we need to do that
         * transformation first. */
     real Bnorm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
-    real mu = 0.5 * vperp * vperp * MASS / Bnorm;
+    real mu = 0.5 * pperp * pperp / MASS / Bnorm;
     if(!err && mu < 0)          {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
-    if(!err && vpara >= CONST_C) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
     if(!err) {
         ps->n_t_subcycles = RK4_SUBCYCLES;
@@ -413,7 +412,7 @@ void bmc_5D_to_particle_state(
         ps->phi      = phi;
         ps->z        = z;
         ps->mu       = mu;
-        ps->vpar     = vpara;
+        ps->ppar     = ppara;
         ps->zeta     = 0;
         ps->mass     = MASS;
         ps->charge   = CHARGE;
@@ -430,22 +429,20 @@ void bmc_5D_to_particle_state(
     }
 
     /* Guiding center transformation to get particle coordinates */
-    real rprt, phiprt, zprt, vR, vphi, vz;
+    real rprt, phiprt, zprt, pr, pphi, pz;
     if(!err) {
-        real vparprt, muprt, zetaprt;
+        real pparprt, muprt, zetaprt;
         gctransform_guidingcenter2particle(
             ps->mass, ps->charge, B_dB,
-            ps->r, ps->phi, ps->z, ps->vpar, ps->mu, ps->zeta,
-            &rprt, &phiprt, &zprt, &vparprt, &muprt, &zetaprt);
+            ps->r, ps->phi, ps->z, ps->ppar, ps->mu, ps->zeta,
+            &rprt, &phiprt, &zprt, &pparprt, &muprt, &zetaprt);
 
         B_field_eval_B_dB(B_dB, rprt, phiprt, zprt, ps->time, Bdata);
-        if(!err && vparprt >= CONST_C) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
-        if(!err && -vparprt >= CONST_C) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
-        gctransform_vparmuzeta2vRvphivz(
+        gctransform_pparmuzeta2prpphipz(
             ps->mass, ps->charge, B_dB,
-            phiprt, vparprt, muprt, zetaprt,
-            &vR, &vphi, &vz);
+            phiprt, pparprt, muprt, zetaprt,
+            &pr, &pphi, &pz);
     }
     if(!err && rprt <= 0) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
@@ -453,9 +450,9 @@ void bmc_5D_to_particle_state(
         ps->rprt   = rprt;
         ps->phiprt = phiprt;
         ps->zprt   = zprt;
-        ps->rdot   = vR;
-        ps->phidot = vphi / ps->rprt;
-        ps->zdot   = vz;
+        ps->p_r    = pr;
+        ps->p_phi  = pphi;
+        ps->p_z    = pz;
 
         ps->err = 0;
     } else {
@@ -467,16 +464,16 @@ void bmc_5D_to_particle_state(
 void bmc_init_fo_particle(
         input_particle* p,
         real r, real phi, real z,
-        real v_r, real v_phi, real v_z,
+        real p_r, real p_phi, real p_z,
         real t,
         int id
     ) {
     p->p.r = r;
     p->p.phi = phi;
     p->p.z = z;
-    p->p.v_r = v_r;
-    p->p.v_phi = v_phi;
-    p->p.v_z = v_z;
+    p->p.p_r = p_r;
+    p->p.p_phi = p_phi;
+    p->p.p_z = p_z;
     p->p.mass = MASS;
     p->p.charge = CHARGE;
     p->p.anum = 0;
@@ -517,7 +514,7 @@ int forward_monte_carlo(
     memcpy(ps0, ps1, n_mpi_particles * sizeof(particle_state));
 
     for(int i = 0; i < 50; i++) {
-        printf("Particle %d %f %f %f %f %f %f %f\n", i, ps1[i].r, ps1[i].phi, ps1[i].z, ps1[i].vpar, ps1[i].rho, ps1[i].rprt, ps1[i].rdot);
+        printf("Particle %d %f %f %f %f %f %f %f\n", i, ps1[i].r, ps1[i].phi, ps1[i].z, ps1[i].ppar, ps1[i].rho, ps1[i].rprt, ps1[i].p_r);
     }
 
     // initialize distributions
