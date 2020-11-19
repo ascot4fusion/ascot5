@@ -1493,9 +1493,9 @@ void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j) 
  * @param j  index for the output slot
  */
 void particle_copy_gc(particle_simd_gc* p1, int i, particle_simd_gc* p2, int j) {
-    p2->hermite_weights[j]          = p1->hermite_weights[i];
-    p2->hermite_knots[j]          = p1->hermite_knots[i];
-    p2->use_hermite[j]          = p1->use_hermite[i];
+    // p2->hermite_weights[j]          = p1->hermite_weights[i];
+    // p2->hermite_knots[j]          = p1->hermite_knots[i];
+    // p2->use_hermite[j]          = p1->use_hermite[i];
     p2->r[j]          = p1->r[i];
     p2->phi[j]        = p1->phi[i];
     p2->z[j]          = p1->z[i];
