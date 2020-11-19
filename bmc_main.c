@@ -75,8 +75,7 @@
 #include "bmc/bmc.h"
 #include "mpi_interface.h"
 
-#define N_MONTECARLO_STEPS 5
-#define USE_HERMITE 1
+#define HERMITE_KNOTS 5
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
 
@@ -193,7 +192,7 @@ int main(int argc, char** argv) {
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
-    if (bmc_init_particles(&n, &ps, &ps_indexes, N_MONTECARLO_STEPS, USE_HERMITE, &sim, &Bdata, offload_array)) {
+    if (bmc_init_particles(&n, &ps, &ps_indexes, 1, 0, &sim, &Bdata, offload_array)) {
         goto CLEANUP_FAILURE;
     }
     int n_total_particles = n;
@@ -243,7 +242,7 @@ int main(int argc, char** argv) {
     fflush(stdout);
 
     // SIMULATE HERE
-    if (backward_monte_carlo(n_total_particles, n, ps, ps_indexes,
+    if (backward_monte_carlo(n_total_particles, n, HERMITE_KNOTS, ps, ps_indexes,
                             &Bdata, &sim, &offload_data, offload_array, mpi_rank)) {
         goto CLEANUP_FAILURE;
     }
