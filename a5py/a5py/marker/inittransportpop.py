@@ -152,7 +152,7 @@ def init_rhoenergypitch(fn, n, mass, charge, anum, znum, rhogrid, energygrid,
         rz_omp = a5.get_rhotheta_rz( rhovals, 0, 0, 0 )
     else:
         rz_omp = a5.get_rhotheta_rz( 0.5*np.ones(rhovals.shape), 0, 0, 0 )
-        rz_omp[0] = rhovals
+        rz_omp = (rhovals, rz_omp[1])
     a5.free(bfield=True)
 
     mrk = {}
@@ -210,17 +210,27 @@ def init_rhopparapperp(fn, n, mass, charge, anum, znum, rhogrid, pparagrid,
     rhovals   = np.zeros((ntotal,))
     pparavals = np.zeros((ntotal,))
     pperpvals = np.zeros((ntotal,))
-    for irho in range(rhogrid.size):
+    irho = 0
+    while irho < rhogrid.size:
         for ippara in range(pparagrid.size):
             for ipperp in range(pperpgrid.size):
                 idx =   ipperp * (pparagrid.size + rhogrid.size) \
                       + ippara * rhogrid.size + irho
-                if randomize_rho:
+                if randomize_rho and rgrid is None:
                     rhovals[idx*n:(idx+1)*n] = \
                     np.amin(rhogrid) + ( np.amax(rhogrid)- np.amin(rhogrid) ) \
                         * np.random.rand(n)
-                else:
+                    irho = rhogrid.size
+                elif rgrid is None:
                     rhovals[idx*n:(idx+1)*n] = rhogrid[irho]
+
+                if randomize_rho and rgrid is not None:
+                    rhovals[idx*n:(idx+1)*n] = \
+                    np.amin(rgrid) + ( np.amax(rgrid)- np.amin(rgrid) ) \
+                        * np.random.rand(n)
+                    irho = rhogrid.size
+                elif rgrid is not None:
+                    rhovals[idx*n:(idx+1)*n] = rgrid[irho]
 
                 if randomize_ppara:
                     pparavals[idx*n:(idx+1)*n] = \
@@ -237,6 +247,8 @@ def init_rhopparapperp(fn, n, mass, charge, anum, znum, rhogrid, pparagrid,
                     * np.random.rand(n)
                 else:
                     pperpvals[idx*n:(idx+1)*n] = pperpgrid[ipperp]
+
+        irho += 1
 
     # Find OMP R,z values
     a5 = Ascotpy(fn)
