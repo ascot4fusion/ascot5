@@ -100,7 +100,7 @@ void backward_monte_carlo_gc(
     ) {
 
     // int n_simd_particles = n_mpi_particles / NSIMD;
-    particle_simd_gc *p0, *p1, *pcoll1;
+    particle_simd_gc *p0, *p1, *pcoll1, *pcoll0;
     int n_simd_particles = init_simd_gc_particles(ps, n_mpi_particles, &p0, Bdata);
     init_simd_gc_particles(ps, n_mpi_particles, &p1, Bdata);
 
@@ -108,6 +108,7 @@ void backward_monte_carlo_gc(
     // = n_particles * hermite_knots
     int n_coll_simd = (n_mpi_particles * n_hermite_knots + NSIMD - 1) / NSIMD;
     pcoll1 = (particle_simd_gc *)malloc(n_coll_simd * sizeof(particle_simd_gc));  
+    pcoll0 = (particle_simd_gc *)malloc(n_coll_simd * sizeof(particle_simd_gc));  
     int *p0_indexes_coll = (int *)malloc(n_mpi_particles * n_hermite_knots * sizeof(int));  
     for (int i=0; i < n_mpi_particles; i++) {
         for (int j=0; j < n_hermite_knots; j++) {
@@ -117,6 +118,8 @@ void backward_monte_carlo_gc(
 
     // init Hermite knots and weights for the collisional SIMD array
     init_particles_coll_simd_hermite(n_simd_particles, n_hermite_knots, pcoll1);
+    init_particles_coll_simd_hermite(n_simd_particles, n_hermite_knots, pcoll0);
+    copy_particles_simd_to_coll_simd(n_simd_particles, n_hermite_knots, p0, pcoll0);
 
     for (double t=T1; t >= T0; t -= TIMESTEP) {
 
@@ -175,8 +178,7 @@ void backward_monte_carlo_gc(
         }
 
         // // Update the probability distribution
-        // bmc_update_distr_gc(n_mpi_particles, ps0, ps1, ps1_indexes, &distr0, &distr1, &sim);
-        int n_updated = bmc_update_distr5D(&distr1->dist5D, &distr0->dist5D, p0_indexes, p1, p0, n_simd_particles, &(sim->wall_data.w2d));
+        int n_updated = bmc_update_distr5D(&distr1->dist5D, &distr0->dist5D, p0_indexes_coll, pcoll1, pcoll0, n_coll_simd, &(sim->wall_data.w2d));
         
         printf("Time %f Updated %d\n", t, n_updated);
 
