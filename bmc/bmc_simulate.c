@@ -104,8 +104,8 @@ void init_particles_coll_simd_hermite(int n_simd_particles, int n_hermite_knots,
     for (int i=0; i < n_simd_particles; i++) {
         for (int j=0; j < NSIMD; j++) {
             for (int k = 0; k < n_hermite_knots; k++) {
-                p_coll[i_coll / NSIMD].hermite_knots[i_coll % NSIMD] = hermiteK[n_hermite_knots];
-                p_coll[i_coll / NSIMD].hermite_weights[i_coll % NSIMD] = hermiteW[n_hermite_knots] / PI2E0_5;
+                p_coll[i_coll / NSIMD].hermite_knots[i_coll % NSIMD] = hermiteK[k];
+                p_coll[i_coll / NSIMD].hermite_weights[i_coll % NSIMD] = hermiteW[k] / PI2E0_5;
                 p_coll[i_coll / NSIMD].use_hermite[i_coll % NSIMD] = 1;
                 i_coll++;
             }
