@@ -30,6 +30,7 @@ void bmc_setup_endconds(sim_offload_data* sim) {
 int backward_monte_carlo(
         int n_tot_particles,
         int n_mpi_particles,
+        int n_hermite_knots,
         particle_state* ps,
         int* ps_indexes,
         B_field_data* Bdata,
@@ -68,7 +69,7 @@ int backward_monte_carlo(
     wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
     if (distr0.dist5D_collect) {
-        backward_monte_carlo_gc(ps, ps_indexes, n_mpi_particles, sim_offload, &sim, offload_data, offload_array,
+        backward_monte_carlo_gc(ps, ps_indexes, n_mpi_particles, n_hermite_knots, sim_offload, &sim, offload_data, offload_array,
                                 &distr0, &distr1, Bdata);
     } else {
         // TODO: FULL ORBIT
@@ -88,6 +89,7 @@ void backward_monte_carlo_gc(
         particle_state* ps,
         int* p0_indexes,
         int n_mpi_particles,
+        int n_hermite_knots,
         sim_offload_data* sim_offload,
         sim_data* sim,
         offload_package* offload_data,
@@ -98,11 +100,28 @@ void backward_monte_carlo_gc(
     ) {
 
     // int n_simd_particles = n_mpi_particles / NSIMD;
-    particle_simd_gc *p0, *p1;
+    particle_simd_gc *p0, *p1, *pcoll1;
     int n_simd_particles = init_simd_gc_particles(ps, n_mpi_particles, &p0, Bdata);
     init_simd_gc_particles(ps, n_mpi_particles, &p1, Bdata);
-    
+
+    // compute the number of collisional particles needed.
+    // = n_particles * hermite_knots
+    int n_coll_simd = (n_mpi_particles * n_hermite_knots + NSIMD - 1) / NSIMD;
+    pcoll1 = (particle_simd_gc *)malloc(n_coll_simd * sizeof(particle_simd_gc));  
+    int *p0_indexes_coll = (int *)malloc(n_mpi_particles * n_hermite_knots * sizeof(int));  
+    for (int i=0; i < n_mpi_particles; i++) {
+        for (int j=0; j < n_hermite_knots; j++) {
+            p0_indexes_coll[i * n_hermite_knots + j] = p0_indexes[i];
+        }
+    }
+
+    // init Hermite knots and weights for the collisional SIMD array
+    init_particles_coll_simd_hermite(n_simd_particles, n_hermite_knots, pcoll1);
+
     for (double t=T1; t >= T0; t -= TIMESTEP) {
+
+        // reset particle initial states to ps1 and pcoll1
+        memcpy(p1, p0, n_simd_particles * sizeof(particle_simd_gc));
 
         // set time in particle states
         for(int i = 0; i < n_simd_particles; i++) {
@@ -115,10 +134,10 @@ void backward_monte_carlo_gc(
 
         #ifdef TARGET
             int n_mic = n_simd_particles / TARGET;
-            int n_host = 0;
+            int n_mic_coll = n_coll_simd / TARGET;
         #else
             int n_mic = 0;
-            int n_host = n_simd_particles;
+            int n_mic_coll = 0;
         #endif
 
         // simulate one step of all needed particles.
@@ -130,9 +149,10 @@ void backward_monte_carlo_gc(
                 {
                     #pragma omp target device(0) map( \
                         p1[0:n_mic], \
+                        pcoll1[0:n_mic_coll], \
                         offload_array[0:offload_data.offload_array_length] \
                     )
-                    bmc_simulate_timestep_gc(n_mic, p1 + n_mic, sim_offload, offload_data, offload_array, TIMESTEP, RK4_SUBCYCLES);
+                    bmc_simulate_timestep_gc(n_mic, n_mic_coll, p1, pcoll1, n_hermite_knots, sim_offload, offload_data, offload_array, TIMESTEP, RK4_SUBCYCLES);
                 }
             #endif
             #ifdef TARGET >= 2
@@ -140,15 +160,16 @@ void backward_monte_carlo_gc(
                 {
                     #pragma omp target device(1) map( \
                         p1[n_mic:2*n_mic], \
+                        pcoll1[n_mic_coll:2*n_mic_coll], \
                         offload_array[0:offload_data.offload_array_length] \
                     )
-                    bmc_simulate_timestep_gc(n_mic, p1 + n_mic, sim_offload, offload_data, offload_array, TIMESTEP, RK4_SUBCYCLES);
+                    bmc_simulate_timestep_gc(n_mic, n_mic_coll, p1 + n_mic, pcoll1 + n_mic_coll, n_hermite_knots, sim_offload, offload_data, offload_array, TIMESTEP, RK4_SUBCYCLES);
                 }
             #endif
             #ifndef TARGET
                 #pragma omp section
                 {
-                    bmc_simulate_timestep_gc(n_simd_particles, p1, sim_offload, offload_data, offload_array, TIMESTEP, RK4_SUBCYCLES);
+                    bmc_simulate_timestep_gc(n_simd_particles, n_coll_simd, p1, pcoll1, n_hermite_knots, sim_offload, offload_data, offload_array, TIMESTEP, RK4_SUBCYCLES);
                 }
             #endif
         }
@@ -161,9 +182,6 @@ void backward_monte_carlo_gc(
 
         // // shift distributions
         diag_move_distribution(sim_offload, distr0, distr1);
-
-        // reset particle initial states to ps1
-        memcpy(p1, p0, n_simd_particles * sizeof(particle_simd_gc));
     } 
 }
 
@@ -198,6 +216,9 @@ int bmc_init_particles(
     ) {
     // vacate the phase space to find the phase-space points in the mesh
     // suitable for simulating the BMC scheme
+
+    // TODO: use_hermite and n_per_vertex are deprecated.
+    // Hermite weights and n particles per vertex are due to be computed when creating SIMD particles
 
     // init hermite params (N=5)
     real hermiteK[5] = {-2.856970, -1.355626, 0.000000, 1.355626, 2.856970};

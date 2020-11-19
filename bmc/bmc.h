@@ -25,6 +25,7 @@ int bmc_init_particles(
 int backward_monte_carlo(
         int n_tot_particles,
         int n_mpi_particles,
+        int n_hermite_knots,
         particle_state* ps,
         int* ps_indexes,
         B_field_data* Bdata,
@@ -38,6 +39,7 @@ void backward_monte_carlo_gc(
         particle_state* ps,
         int* p0_indexes,
         int n_mpi_particles,
+        int n_hermite_knots,
         sim_offload_data* sim_offload,
         sim_data* sim,
         offload_package* offload_data,

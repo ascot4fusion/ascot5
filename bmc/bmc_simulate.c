@@ -16,7 +16,11 @@
  *
  * @todo Reorganize this function so that it conforms to documentation.
  */
-void bmc_simulate_timestep_gc(int n_simd_particles, particle_simd_gc* p,
+
+#define PI2E0_5 2.50662827463
+
+void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, particle_simd_gc* p, particle_simd_gc* p_coll,
+        int n_hermite_knots,
         sim_offload_data* sim_offload,
         offload_package* offload_data,
         real* offload_array,
@@ -77,13 +81,50 @@ void bmc_simulate_timestep_gc(int n_simd_particles, particle_simd_gc* p,
         for (int nt = 0; nt < n_rk4_subcycles; ++nt) {
             step_gc_rk4(p + i_simd, h_rk4, &sim.B_data, &sim.E_data);
         }
+    }
 
-        /* Euler-Maruyama method for collisions */
-        if(sim.enable_clmbcol) {
-            mccc_gc_euler(p + i_simd, h_coll, &sim.B_data, &sim.plasma_data,
-                          &sim.random_data, &sim.mccc_data);
+    // copy the result of RK4 to N_HERMITE different copy of the particle.
+    // compute the hermite weights for each copy of the particle
+    copy_particles_simd_to_coll_simd(n_simd_particles, n_hermite_knots, p, p_coll);
+    /* Euler-Maruyama method for collisions */
+    if(sim.enable_clmbcol) {
+        for (int i_simd = 0; i_simd < n_coll_simd_particles; i_simd++) {
+            mccc_gc_euler(p_coll + i_simd, h_coll, &sim.B_data, &sim.plasma_data,
+                            &sim.random_data, &sim.mccc_data);
         }
+    }
+}
 
+void init_particles_coll_simd_hermite(int n_simd_particles, int n_hermite_knots,
+        particle_simd_gc* p_coll
+    ) {
+    real hermiteK[5] = {-2.856970, -1.355626, 0.000000, 1.355626, 2.856970};
+    real hermiteW[5] = {0.028218, 0.556662, 1.336868, 0.556662, 0.028218};
+    int i_coll = 0;
+    for (int i=0; i < n_simd_particles; i++) {
+        for (int j=0; j < NSIMD; j++) {
+            for (int k = 0; k < n_hermite_knots; k++) {
+                p_coll[i_coll / NSIMD].hermite_knots[i_coll % NSIMD] = hermiteK[n_hermite_knots];
+                p_coll[i_coll / NSIMD].hermite_weights[i_coll % NSIMD] = hermiteW[n_hermite_knots] / PI2E0_5;
+                p_coll[i_coll / NSIMD].use_hermite[i_coll % NSIMD] = 1;
+                i_coll++;
+            }
+        }
+    }
+}
+
+void copy_particles_simd_to_coll_simd(int n_simd_particles, int n_hermite_knots,
+        particle_simd_gc* p, particle_simd_gc* p_coll
+    ) {
+    int i_coll = 0;
+    for (int i=0; i < n_simd_particles; i++) {
+        for (int j=0; j < NSIMD; j++) {
+            for (int k = 0; k < n_hermite_knots; k++) {
+                particle_copy_gc(&p[i], j, &p_coll[i_coll / NSIMD], i_coll % NSIMD);
+
+                i_coll++;
+            }
+        }
     }
 }
 
