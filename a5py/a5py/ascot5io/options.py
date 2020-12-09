@@ -793,6 +793,14 @@ def get_default():
          [0, 180])
     )
     info.append(
+        ("ORBITWRITE_RADIALDISTANCES",
+         """\
+         # Minor radius coordinate where radial plots are collected
+         # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 0.
+         """,
+         [-18, ])
+    )
+    info.append(
         ("ORBITWRITE_INTERVAL",
          """\
          # Time interval for writing marker state [s]
