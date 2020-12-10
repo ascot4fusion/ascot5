@@ -798,7 +798,7 @@ def get_default():
          # Minor radius coordinate where radial plots are collected
          # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 0.
          """,
-         [-18, ])
+         [-1, ])
     )
     info.append(
         ("ORBITWRITE_INTERVAL",
