@@ -206,6 +206,7 @@ int main(int argc, char** argv) {
      * is chosen for this simulation. */
     int start_index = mpi_rank * (n / mpi_size);
     ps += start_index;
+    ps_indexes += start_index;
 
     if(mpi_rank == mpi_size-1) {
         n = n - mpi_rank * (n / mpi_size);
