@@ -3,6 +3,12 @@
 
 // number of markers for each mesh node
 #define N_MONTECARLO_STEPS 5
+#define TIMESTEP 1E-7 // TODO use input HDF
+#define T0 9E-7
+#define T1 1E-6
+#define MASS 3.3452438E-27
+#define CHARGE 1.60217662E-19
+#define RK4_SUBCYCLES 5
 
 // Importance sampling parameters.
 // If importance sampling is enabled, total particles are used and N_MONTECARLO_STEPS is ignored
@@ -89,6 +95,7 @@
 #include "offload.h"
 #include "gitver.h"
 #include "bmc/bmc.h"
+#include "bmc/bmc_init.h"
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
 void marker_summary(particle_state* p, int n);
@@ -192,7 +199,7 @@ int main(int argc, char** argv) {
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
 
     // setup endpoint conditions, total time=1, wall collision enabled
-    bmc_setup_endconds(&sim);
+    bmc_setup_endconds(&sim, TIMESTEP);
 
     real diag_offload_array_size = sim.diag_offload_data.offload_array_length
         * sizeof(real) / (1024.0*1024.0);
@@ -209,12 +216,12 @@ int main(int argc, char** argv) {
                "\nInitializing marker states.\n");
     if (IMPORTANCE_SAMPLING) {
         if (fmc_init_importance_sampling_mesh(&n, &ps, &ps_indexes, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, 0, &sim, &Bdata, offload_array, &offload_data,
-            IMPORTANCE_SAMPLING_PROBABILITY, IMPORTANCE_SAMPLING_DENSITY
+            IMPORTANCE_SAMPLING_PROBABILITY, IMPORTANCE_SAMPLING_DENSITY, T1, MASS, CHARGE, RK4_SUBCYCLES
         )) {
             goto CLEANUP_FAILURE;
         }
     } else {
-        if (bmc_init_particles(&n, &ps, &ps_indexes, N_MONTECARLO_STEPS, 0, &sim, &Bdata, offload_array)) {
+        if (bmc_init_particles(&n, &ps, &ps_indexes, N_MONTECARLO_STEPS, 0, &sim, &Bdata, offload_array, T0, MASS, CHARGE, RK4_SUBCYCLES)) {
             goto CLEANUP_FAILURE;
         }
     }
@@ -286,7 +293,7 @@ int main(int argc, char** argv) {
         &mic1_start, &mic1_end,
         &mic0_start, &mic0_end,
         &host_start, &host_end,
-        n_mic, n_host, mpi_rank, IMPORTANCE_SAMPLING)) {
+        n_mic, n_host, mpi_rank, IMPORTANCE_SAMPLING, T1, T0)) {
             goto CLEANUP_FAILURE;
         }
 
