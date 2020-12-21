@@ -1,4 +1,5 @@
 #define N_MONTECARLO_STEPS 5
+#define TIME_INDEPENDENT 1
 #define TIMESTEP 1E-7 // TODO use input HDF
 #define T0 9E-7
 #define T1 1E-6
@@ -78,7 +79,6 @@
 #include "endcond.h"
 #include "hdf5_interface.h"
 #include "offload.h"
-#include "gitver.h"
 #include "bmc/bmc.h"
 #include "bmc/bmc_init.h"
 #include "mpi_interface.h"
@@ -252,7 +252,7 @@ int main(int argc, char** argv) {
 
     // SIMULATE HERE
     if (backward_monte_carlo(n_total_particles, n, HERMITE_KNOTS, ps, ps_indexes,
-                            &Bdata, &sim, &offload_data, offload_array, mpi_rank, T1, T0, TIMESTEP, RK4_SUBCYCLES)) {
+                            &Bdata, &sim, &offload_data, offload_array, mpi_rank, T1, T0, TIMESTEP, RK4_SUBCYCLES, TIME_INDEPENDENT)) {
         goto CLEANUP_FAILURE;
     }
 

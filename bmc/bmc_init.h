@@ -1,5 +1,5 @@
 #include "../simulate.h"
-#include "bmc.h"
+#include "../print.h"
 
 int fmc_init_importance_sampling_mesh(
         int *n,

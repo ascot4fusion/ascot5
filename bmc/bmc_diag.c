@@ -544,3 +544,91 @@ void write_probability_distribution(
 
     }
 }
+
+void bmc_update_distr5D_from_weights(
+        particle_deposit_weights *p1_weights,
+        dist_5D_data* dist1,
+        dist_5D_data* dist0,
+        particle_simd_gc* p1,
+        int n_simd_particles,
+        int* p0_indexes
+    ) {
+
+    for(int i = 0; i < n_simd_particles; i++) {
+
+        #pragma omp simd
+        for (int j=0; j<NSIMD; j++) {
+            int index;
+            real weight;
+            int target_hit;
+            for (int k=0; k<32; k++) {
+                index = p1_weights[i].index[j*32 + k];
+                target_hit = p1_weights[i].target_hit[j*32 + k];
+                weight = p1_weights[i].weight[j*32 + k];
+                if (target_hit) {
+                    // particle hit the target domain. Set the relative probabiity to 1
+                    dist1->histogram[p0_indexes[i*NSIMD + j]] += weight * p1[i].hermite_weights[j];
+                } else {
+                    // particle didn't hit the target domain. Weight the probability with the last probability matrix
+                    dist1->histogram[p0_indexes[i*NSIMD + j]] += dist0->histogram[index] * weight * p1[i].hermite_weights[j];
+                }
+            }
+        }
+
+    }
+}
+
+void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
+    int n_simd_particles, particle_simd_gc *p1, particle_simd_gc *p0,
+    dist_5D_data* dist1, dist_5D_data* dist0, wall_2d_data* w2d
+    ) {
+
+    for(int i = 0; i < n_simd_particles; i++) {
+
+        #pragma omp simd
+        for (int j=0; j<NSIMD; j++) {
+
+            for (int k=0; k<32; k++) {
+                p1_weightsIndexes[i].weight[32*j + k] = 0;
+            }
+
+            if ((p1[i].err[j]) || (p1[i].id[j] < 0))
+               continue; 
+
+            // check if the particle escaped the velocity space
+            real pperp = sqrt(2 * sqrt(p1[i].B_r[j]*p1[i].B_r[j]
+                +p1[i].B_phi[j]*p1[i].B_phi[j]
+                +p1[i].B_z[j]*p1[i].B_z[j])
+                * p1[i].mu[j] / p1[i].mass[j]) * p1[i].mass[j];
+                        
+            if ((p1[i].ppar[j] > dist1->max_ppara) || (p1[i].ppar[j] < dist1->min_ppara) ||
+                (pperp > dist1->max_pperp) || (pperp < dist1->min_pperp)) {
+
+                // outside velocity space
+                continue; 
+            }
+
+
+            int tile = wall_2d_hit_wall(p0[i].r[j], p0[i].phi[j], p0[i].z[j], p1[i].r[j], p1[i].phi[j], p1[i].z[j], w2d);
+            if (tile > 0) {
+                if (bmc_walltile_in_target(tile)) {
+                    p1_weightsIndexes[i].weight[32*j] = 1.;
+                    p1_weightsIndexes[i].target_hit[32*j] = 1;
+                }
+                continue;
+            }
+
+            // deposit the final state j
+            // deposit in the velocity space is nearest neighbour 
+            int p1_indexes[32];
+            int p1_target_hit[32];
+            real p1_weights[32];
+            bmc_dist5D_gc_indexes(p0 + i, p1_indexes, p1_weights, p1_target_hit, p1 + i, j, dist0, w2d);
+            for (int k=0; k<32; k++) {
+                p1_weightsIndexes[i].weight[32*j + k] = p1_weights[k];
+                p1_weightsIndexes[i].index[32*j + k] = p1_indexes[k];
+                p1_weightsIndexes[i].target_hit[32*j + k] = p1_target_hit[k];
+            }
+        }
+    }
+}
