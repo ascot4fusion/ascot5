@@ -1,3 +1,16 @@
+// Forward Monte Carlo to be used along BMC
+// For now, particles are always simulated as markers on nodes of the mesh
+
+// number of markers for each mesh node
+#define N_MONTECARLO_STEPS 5
+
+// Importance sampling parameters.
+// If importance sampling is enabled, total particles are used and N_MONTECARLO_STEPS is ignored
+#define IMPORTANCE_SAMPLING 1
+#define IMPORTANCE_SAMPLING_TOTAL_PARTICLES 1645000
+#define IMPORTANCE_SAMPLING_DENSITY 0
+#define IMPORTANCE_SAMPLING_PROBABILITY 1
+
 /**
  * @file ascot5_main.c
  * @brief ASCOT5 stand-alone program
@@ -76,8 +89,6 @@
 #include "offload.h"
 #include "gitver.h"
 #include "bmc/bmc.h"
-
-#define N_MONTECARLO_STEPS 2
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
 void marker_summary(particle_state* p, int n);
@@ -196,8 +207,16 @@ int main(int argc, char** argv) {
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
-    if (bmc_init_particles(&n, &ps, &ps_indexes, N_MONTECARLO_STEPS, 0, &sim, &Bdata, offload_array)) {
-        goto CLEANUP_FAILURE;
+    if (IMPORTANCE_SAMPLING) {
+        if (fmc_init_importance_sampling_mesh(&n, &ps, &ps_indexes, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, 0, &sim, &Bdata, offload_array, &offload_data,
+            IMPORTANCE_SAMPLING_PROBABILITY, IMPORTANCE_SAMPLING_DENSITY
+        )) {
+            goto CLEANUP_FAILURE;
+        }
+    } else {
+        if (bmc_init_particles(&n, &ps, &ps_indexes, N_MONTECARLO_STEPS, 0, &sim, &Bdata, offload_array)) {
+            goto CLEANUP_FAILURE;
+        }
     }
     int n_total_particles = n;
 
@@ -230,27 +249,29 @@ int main(int argc, char** argv) {
 #endif
 
     /* Initialize results group in the output file */
-    print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
-    if( hdf5_interface_init_results(&sim, qid) ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\nInitializing output failed.\n"
-                   "See stderr for details.\n");
-        /* Free offload data and terminate */
-        goto CLEANUP_FAILURE;
-    };
-    strcpy(sim.qid, qid);
-    /* Write inistate */
-    if( hdf5_interface_write_state(sim.hdf5_out, "inistate", n, ps) ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\n"
-                   "Writing inistate failed.\n"
-                   "See stderr for details.\n"
-                   "\n");
-        /* Free offload data and terminate */
-        goto CLEANUP_FAILURE;
+    if (mpi_rank == mpi_root) {
+        print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
+        if( hdf5_interface_init_results(&sim, qid) ) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                    "\nInitializing output failed.\n"
+                    "See stderr for details.\n");
+            /* Free offload data and terminate */
+            goto CLEANUP_FAILURE;
+        };
+        strcpy(sim.qid, qid);
+        /* Write inistate */
+        if( hdf5_interface_write_state(sim.hdf5_out, "inistate", n, ps) ) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                    "\n"
+                    "Writing inistate failed.\n"
+                    "See stderr for details.\n"
+                    "\n");
+            /* Free offload data and terminate */
+            goto CLEANUP_FAILURE;
+        }
+        print_out0(VERBOSE_NORMAL, mpi_rank,
+                "\nInistate written.\n");
     }
-    print_out0(VERBOSE_NORMAL, mpi_rank,
-               "\nInistate written.\n");
 
     double mic0_start = 0, mic0_end=0,
         mic1_start=0, mic1_end=0,
@@ -265,7 +286,7 @@ int main(int argc, char** argv) {
         &mic1_start, &mic1_end,
         &mic0_start, &mic0_end,
         &host_start, &host_end,
-        n_mic, n_host, mpi_rank)) {
+        n_mic, n_host, mpi_rank, IMPORTANCE_SAMPLING)) {
             goto CLEANUP_FAILURE;
         }
 

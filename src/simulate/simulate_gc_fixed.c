@@ -150,10 +150,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         }
         cputime_last = cputime;
 
-        /* Check possible end conditions */
-        endcond_check_gc(&p, &p0, sim);
-
-        // // check if the particle exited the velocity space
+        // check if the particle exited the velocity space
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]) {
@@ -172,6 +169,10 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                 }
             }
         }
+
+        /* Check possible end conditions */
+        endcond_check_gc(&p, &p0, sim);
+
 
         /* Update diagnostics */
         diag_update_gc(&sim->diag_data, &sim->B_data, &p, &p0);

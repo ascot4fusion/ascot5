@@ -130,7 +130,6 @@ void copy_particles_simd_to_coll_simd(int n_simd_particles, int n_hermite_knots,
 
 void fmc_simulation(
         particle_state* ps,
-        int n_tot_particles,
         sim_offload_data* sim,
         offload_package* offload_data,
         real* offload_array,
