@@ -8,7 +8,7 @@
 #include "bmc_wall.h"
 #include <string.h>
 
-void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src);
+void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated);
 
 int bmc_update_distr5D(
         dist_5D_data* dist1,
@@ -20,7 +20,7 @@ int bmc_update_distr5D(
         wall_2d_data* w2d
     );
 
-int bmc_update_distr5D_from_states(
+int fmc_update_distr5D_from_states(
         dist_5D_data* dist1,
         dist_5D_data* dist0,
         int* p0_indexes,

@@ -1,11 +1,12 @@
 #include "bmc_diag.h"
 
-void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src) {
+void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated) {
     // copy into diag_dest
     int dist_length = sim->diag_offload_data.offload_array_length;
     #ifdef MPI
         if (sim->diag_offload_data.dist5D_collect) {
             MPI_Allreduce(diag_src->dist5D.histogram, diag_dest->dist5D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(updated, updated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
             memset(diag_src->dist5D.histogram, 0, dist_length);
         } else if (sim->diag_offload_data.dist6D_collect) {
             MPI_Allreduce(diag_src->dist6D.histogram, diag_dest->dist6D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -22,7 +23,7 @@ void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_da
     #endif
 }
 
-int bmc_update_distr5D_from_states(
+int fmc_update_distr5D_from_states(
         dist_5D_data* dist1,
         dist_5D_data* dist0,
         int* p0_indexes,
@@ -40,40 +41,11 @@ int bmc_update_distr5D_from_states(
             continue;
         }
 
-
-        // check if the particle escaped the velocity space
-        real vperp = sqrt(2 * sqrt(p1[i].B_r*p1[i].B_r
-            +p1[i].B_phi*p1[i].B_phi
-            +p1[i].B_z*p1[i].B_z)
-            * p1[i].mu / p1[i].mass) * p1[i].mass;
-                    
-        if ((p1[i].ppar > dist1->max_ppara) || (p1[i].ppar < dist1->min_ppara) ||
-            (vperp > dist1->max_pperp) || (vperp < dist1->min_pperp)) {
-
-            // outside velocity space
+        if ((p1[i].walltile > 0) && (bmc_walltile_in_target(p1[i].walltile))) {
+            n_updated++;
+            dist1->histogram[p0_indexes[i]] += p1[i].hermite_weights;
             continue;
         }
-
-        // deposit the final state with a linear interpolation on the closest spatial vertices
-        // deposit in the velocity space is nearest neighbour 
-        int p1_indexes[8];
-        int p1_target_hit[8];
-        real p1_weights[8];
-        // bmc_dist5D_state_indexes(p0 + i, p1_indexes, p1_weights, p1_target_hit, p1 + i, j, dist0, w2d);
-        bmc_dist5D_state_indexes(p0 + i, p1_indexes, p1_weights, p1_target_hit, p1 + i, dist1, w2d);
-        for (int i_nodes=0; i_nodes<8; i_nodes++) {
-            if (p1_indexes[i_nodes] >= 0) {
-                if (p1_target_hit[i_nodes]) {
-                    // particle hit the target domain. Set the relative probabiity to 1
-                    dist1->histogram[p0_indexes[i]] += p1_weights[i_nodes] * p1[i].hermite_weights;
-                } else {
-                    // particle didn't hit the target domain. Weight the probability with the last probability matrix
-                    dist1->histogram[p0_indexes[i]] += dist0->histogram[p1_indexes[i_nodes]] * p1_weights[i_nodes] * p1[i].hermite_weights;
-                }
-            }
-        }
-
-        n_updated++;
     }
     return n_updated;
 }
@@ -100,6 +72,15 @@ int bmc_update_distr5D(
                 continue;
             }
 
+            int tile = wall_2d_hit_wall(p0[i].r[j], p0[i].phi[j], p0[i].z[j], p1[i].r[j], p1[i].phi[j], p1[i].z[j], w2d);
+            if (tile > 0) {
+                n_updated++;
+                if (bmc_walltile_in_target(tile)) {
+                    dist1->histogram[p0_indexes[i*NSIMD + j]] += p1[i].hermite_weights[j];
+                }
+                continue;
+            }
+
             // check if the particle escaped the velocity space
             real pperp = sqrt(2 * sqrt(p1[i].B_r[j]*p1[i].B_r[j]
                 +p1[i].B_phi[j]*p1[i].B_phi[j]
@@ -108,8 +89,6 @@ int bmc_update_distr5D(
                         
             if ((p1[i].ppar[j] > dist1->max_ppara) || (p1[i].ppar[j] < dist1->min_ppara) ||
                 (pperp > dist1->max_pperp) || (pperp < dist1->min_pperp)) {
-
-                // printf("ppar %e pperp %e\n", p1[i].ppar[j], pperp);
 
                 // outside velocity space
                 continue;

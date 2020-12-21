@@ -131,26 +131,27 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         }
         cputime_last = cputime;
 
-        /* Check possible end conditions */
-        endcond_check_gc(&p, &p0, sim);
-
-        // // check if the particle exited the velocity space
+        // check if the particle exited the velocity space
         // #pragma omp simd
         // for(int i = 0; i < NSIMD; i++) {
         //     if(p.running[i]) {
-        //         real vperp = sqrt(2 * sqrt(p.B_r[i]*p.B_r[i]
+        //         real pperp = sqrt(2 * sqrt(p.B_r[i]*p.B_r[i]
         //             +p.B_phi[i]*p.B_phi[i]
         //             +p.B_z[i]*p.B_z[i])
-        //             * p.mu[i] / p.mass[i]);
+        //             * p.mu[i] / p.mass[i]) * p.mass[i];
                             
-        //         if ((p.vpar[i] > sim->diag_data.dist5D.max_vpara) || (p.vpar[i] < sim->diag_data.dist5D.min_vpara) ||
-        //             (vperp > sim->diag_data.dist5D.max_vperp) || (vperp < sim->diag_data.dist5D.min_vperp)) {
+        //         if ((p.ppar[i] > sim->diag_data.dist5D.max_ppara) || (p.ppar[i] < sim->diag_data.dist5D.min_ppara) ||
+        //             (pperp > sim->diag_data.dist5D.max_pperp) || (pperp < sim->diag_data.dist5D.min_pperp)) {
 
         //             // outside velocity space
         //             p.running[i] = 0;
         //         }
         //     }
         // }
+
+        /* Check possible end conditions */
+        endcond_check_gc(&p, &p0, sim);
+
 
         /* Update diagnostics */
         diag_update_gc(&sim->diag_data, &p, &p0);

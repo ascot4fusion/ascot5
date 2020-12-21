@@ -1,13 +1,38 @@
 #include "bmc.h"
 
 #define TIMESTEP 1E-7 // TODO use input HDF
-#define T0 0.
+#define T0 9E-7
 #define T1 1E-6
-// #define T1 
 #define MASS 3.3452438E-27
 #define CHARGE 1.60217662E-19
-#define RK4_SUBCYCLES 1
+#define RK4_SUBCYCLES 5
 #define PI2E0_5 2.50662827463
+
+double r2()
+{
+    return (double)rand() / (double)RAND_MAX ;
+}
+
+// Assumes 0 <= max <= RAND_MAX
+// Returns in the closed interval [0, max]
+long random_at_most(long max) {
+  unsigned long
+    // max <= RAND_MAX < ULONG_MAX, so this is okay.
+    num_bins = (unsigned long) max + 1,
+    num_rand = (unsigned long) RAND_MAX + 1,
+    bin_size = num_rand / num_bins,
+    defect   = num_rand % num_bins;
+
+  long x;
+  do {
+   x = random();
+  }
+  // This is carefully written not to overflow
+  while (num_rand - defect <= (unsigned long)x);
+
+  // Truncated division is intentional
+  return x/bin_size;
+}
 
 void bmc_setup_endconds(sim_offload_data* sim) {
     sim->endcond_active = endcond_tmax | endcond_wall;
@@ -75,7 +100,7 @@ int backward_monte_carlo(
         // TODO: FULL ORBIT
     }
 
-    write_probability_distribution(sim_offload, &distr0, distr0_array, mpi_rank);
+    write_probability_distribution(sim_offload, &distr0, distr0_array, mpi_rank, true);
 
     // Free sitribution data
     diag_free_offload(&sim_offload->diag_offload_data, &distr1_array);
@@ -180,10 +205,14 @@ void backward_monte_carlo_gc(
         // // Update the probability distribution
         int n_updated = bmc_update_distr5D(&distr1->dist5D, &distr0->dist5D, p0_indexes_coll, pcoll1, pcoll0, n_coll_simd, &(sim->wall_data.w2d));
         
-        printf("Time %f Updated %d\n", t, n_updated);
 
         // // shift distributions
-        diag_move_distribution(sim_offload, distr0, distr1);
+        diag_move_distribution(sim_offload, distr0, distr1, &n_updated);
+        printf("Time %f Updated %d\n", t, n_updated);
+        printf("Distribution moved\n");
+
+        // reset particle initial states to ps1
+        memcpy(p1, p0, n_simd_particles * sizeof(particle_simd_gc));
     } 
 }
 
@@ -290,7 +319,7 @@ int bmc_init_particles(
 
     if (sim_offload->diag_offload_data.dist5D_collect) {
         printf("5D: n_r %d n_phi %d n_z %d n_vpara %d n_vperp %d n_per_vertex %d\n", n_r, n_phi, n_z, n_ppara, n_pperp, n_per_vertex);
-        *n = n_r * n_phi * n_z * n_ppara * n_pperp * n_per_vertex;
+        *n = n_r * n_phi * n_z * (n_ppara - 2) * (n_pperp - 2) * n_per_vertex;
     } else {
         printf("6D: n_r %d n_phi %d n_z %d n_vr %d n_vphi %d n_vz %d n_per_vertex %d\n", n_r, n_phi, n_z, n_pr, n_pphi, n_pz, n_per_vertex);
         *n = n_r * n_phi * n_z * n_pr * n_pphi * n_pz * n_per_vertex;
@@ -316,9 +345,9 @@ int bmc_init_particles(
                 }
 
                 if (sim_offload->diag_offload_data.dist5D_collect) {                
-                    for (int i_ppara = 0; i_ppara < n_ppara; ++i_ppara) {
+                    for (int i_ppara = 1; i_ppara < n_ppara - 1; ++i_ppara) {
                         ppara = (max_ppara - min_ppara) * i_ppara / n_ppara + min_ppara;
-                        for (int i_pperp = 0; i_pperp < n_pperp; ++i_pperp) {
+                        for (int i_pperp = 1; i_pperp < n_pperp - 1; ++i_pperp) {
                             pperp = (max_pperp - min_pperp) * i_pperp / n_pperp + min_pperp;
                             bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, T1, i, &ps_tmp);
 
@@ -384,6 +413,406 @@ int bmc_init_particles(
     printf("Initialized %d particles\n", i);
 
     return 0;
+}
+
+void buildImportantSamplingHistogram(
+    int dist_length,
+    real *histogram,
+    dist_5D_offload_data* dist5D,
+    plasma_data* plasma_data,
+    B_field_data* Bdata,
+    int importanceSamplingProbability,
+    int importanceSamplingdensity
+) {
+
+    real *histogram_probability;
+    FILE *p_probability;
+    if (importanceSamplingProbability) {
+        p_probability = fopen("distr_prob", "rb");
+        histogram_probability = (real*)malloc(dist_length * sizeof(real));
+        fread(histogram_probability, sizeof(real), dist_length, p_probability);
+    }
+
+    real r,phi,z,ppara,pperp, dens[10];
+    for (int i=0; i<dist_length; i++) {
+
+        histogram[i] = 1.;
+        int i_x[5];
+        compute_5d_coordinates_from_hist_index(i, i_x, &r, &phi, &z, &ppara, &pperp, dist5D);
+
+        // avoid to fill velocity boundaries
+        if ((i_x[4] == 0) || (i_x[4] == dist5D->n_pperp - 1) || (i_x[2] == 0) || (i_x[2] == dist5D->n_ppara - 1)) {
+            histogram[i] = 0;
+            continue;
+        }
+
+        if (importanceSamplingdensity) {
+
+            real psi[1], rho[1], B_dB[15];
+            B_field_eval_B_dB(B_dB, r, phi, z, T1, Bdata);
+            B_field_eval_psi(psi, r, phi, z, T1, Bdata);
+            B_field_eval_rho(rho, psi[0], Bdata);
+
+            plasma_eval_dens(dens, rho[0], r, phi, z, 0, 1, plasma_data);
+
+            // add space distribution from background plasma
+            histogram[i] *= dens[0];
+
+            // add velocity distribution
+            if ((fabs(ppara) <= 6E-20) && (fabs(ppara) >= 0E-20) && (fabs(pperp) <= 6E-20) && (fabs(pperp) >= 0E-30)) {
+                    histogram[i] *= 1;
+            } else {
+                    histogram[i] = 0;
+            }
+        } 
+        if (importanceSamplingProbability) {
+            histogram[i] *= histogram_probability[i];
+        } 
+    }
+}
+
+int fmc_init_importance_sampling_mesh(
+        int *n,
+        particle_state** ps,
+        int** ps_indexes,
+        int n_total,
+        int use_hermite,
+        sim_offload_data* sim_offload,
+        B_field_data* Bdata,
+        real* offload_array,
+        offload_package* offload_data,
+        int importanceSamplingProbability,
+        int importanceSamplingdensity
+    ) {
+    // vacate the phase space to find the phase-space points in the mesh
+    // suitable for simulating the BMC scheme
+
+    // init sim data
+    sim_data sim;
+    sim_init(&sim, sim_offload);
+    real* ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->B_offload_data.offload_array_length);
+    B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->E_offload_data.offload_array_length);
+    E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->plasma_offload_data.offload_array_length);
+    plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->neutral_offload_data.offload_array_length);
+    neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->wall_offload_data.offload_array_length);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+
+
+    real* distr0_array;
+    diag_init_offload(&sim_offload->diag_offload_data, &distr0_array, 1);
+
+    real r;
+    real phi;
+    real z;
+    real ppara;
+    real pperp;
+    real pr;
+    real pphi;
+    real pz;
+
+    int n_r, n_phi, n_z, n_ppara, n_pperp, n_pr, n_pphi, n_pz;
+    real max_r, max_phi, max_z, max_ppara, max_pperp, max_pr, max_pphi, max_pz;
+    real min_r, min_phi, min_z, min_ppara, min_pperp, min_pr, min_pphi, min_pz;
+    dist_5D_offload_data dist5D = sim_offload->diag_offload_data.dist5D;
+    n_r = dist5D.n_r;
+    n_phi = dist5D.n_phi;
+    n_z = dist5D.n_z;
+    n_ppara = dist5D.n_ppara;
+    n_pperp = dist5D.n_pperp;
+    max_r = dist5D.max_r;
+    max_phi = dist5D.max_phi;
+    max_z = dist5D.max_z;
+    max_ppara = dist5D.max_ppara;
+    max_pperp = dist5D.max_pperp;
+    min_r = dist5D.min_r;
+    min_phi = dist5D.min_phi;
+    min_z = dist5D.min_z;
+    min_ppara = dist5D.min_ppara;
+    min_pperp = dist5D.min_pperp;
+
+    int dist_length = sim_offload->diag_offload_data.offload_array_length;
+    real *histogram = (real*)malloc(dist_length * sizeof(real));
+
+    buildImportantSamplingHistogram(dist_length, histogram, &dist5D, &sim.plasma_data, Bdata, importanceSamplingProbability, importanceSamplingdensity);
+
+    int *nparticlesHistogram = (int*)malloc(dist_length * sizeof(int));
+
+    real sum = 0;
+    for (int i=0; i<dist_length; i++) {
+       sum += histogram[i];
+    }
+    printf("Init initial sum %f\n", sum);
+    *n = 0;
+    for (int i=0; i<dist_length; i++) {
+        nparticlesHistogram[i] = ceil(histogram[i] / sum * n_total);
+        // if (histogram[i] / sum * n_total > 0) {
+        //     printf("hist %d %f %d\n", i, histogram[i] / sum * n_total, nparticlesHistogram[i]);
+        // }
+        *n += nparticlesHistogram[i];
+    }
+
+    *ps = (particle_state *)malloc(*n * sizeof(particle_state));
+    *ps_indexes = (int *)malloc(*n * sizeof(int));
+    input_particle p_tmp; // tmp particle
+    particle_state ps_tmp; // tmp particle
+
+    int i = 0;
+    for (int i_r = 0; i_r < n_r; ++i_r) {
+        r = (max_r - min_r) * i_r / n_r + min_r;
+        for (int i_phi = 0; i_phi < n_phi; ++i_phi) {
+            phi = (max_phi - min_phi) * i_phi / n_phi + min_phi;
+            for (int i_z = 0; i_z < n_z; ++i_z) {
+                z = (max_z - min_z) * i_z / n_z + min_z;
+
+                if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) {
+                    continue;
+                }
+
+                for (int i_ppara = 0; i_ppara < n_ppara; ++i_ppara) {
+                    ppara = (max_ppara - min_ppara) * i_ppara / n_ppara + min_ppara;
+                    for (int i_pperp = 0; i_pperp < n_pperp; ++i_pperp) {
+                        pperp = (max_pperp - min_pperp) * i_pperp / n_pperp + min_pperp;
+                        bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, T1, 0, &ps_tmp);
+
+                        unsigned long index = dist_5D_index(i_r, i_phi, i_z,
+                                i_ppara, i_pperp,
+                                0, 0,
+                                n_phi, n_z,
+                                n_ppara, n_pperp,
+                                1, 1);
+
+                        if (!ps_tmp.err) {
+                            for (int i_mc=0; i_mc<nparticlesHistogram[index]; ++i_mc) {
+                                ps_tmp.id = i;
+
+                                ps_tmp.use_hermite = 0;
+                                ps_tmp.hermite_weights = 1./nparticlesHistogram[index];
+
+                                memcpy(*ps + i, &ps_tmp, sizeof(particle_state));
+                                (*ps_indexes)[i] = index;
+                                i++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+
+    printf("Initialized %d %d particles\n", *n, i);
+
+    return 0;
+}
+int fmc_init_importance_sampling(
+        int *n,
+        particle_state** ps,
+        int** ps_indexes,
+        int n_total,
+        int use_hermite,
+        sim_offload_data* sim_offload,
+        B_field_data* Bdata,
+        real* offload_array
+    ) {
+    // vacate the phase space to find the phase-space points in the mesh
+    // suitable for simulating the BMC scheme
+
+    // init sim data
+    sim_data sim;
+    sim_init(&sim, sim_offload);
+    
+    real* ptr = offload_array + 
+            sim_offload->B_offload_data.offload_array_length +
+            sim_offload->E_offload_data.offload_array_length +
+            sim_offload->plasma_offload_data.offload_array_length +
+            sim_offload->neutral_offload_data.offload_array_length;
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+
+    real* distr0_array;
+    diag_init_offload(&sim_offload->diag_offload_data, &distr0_array, 1);
+
+    real r;
+    real phi;
+    real z;
+    real ppara;
+    real pperp;
+    real pr;
+    real pphi;
+    real pz;
+    real r_new;
+    real phi_new;
+    real z_new;
+    real ppara_new;
+    real pperp_new;
+    real pr_new;
+    real pphi_new;
+    real pz_new;
+
+    int n_r, n_phi, n_z, n_ppara, n_pperp, n_pr, n_pphi, n_pz;
+    real max_r, max_phi, max_z, max_ppara, max_pperp, max_pr, max_pphi, max_pz;
+    real min_r, min_phi, min_z, min_ppara, min_pperp, min_pr, min_pphi, min_pz;
+    dist_5D_offload_data dist5D = sim_offload->diag_offload_data.dist5D;
+    n_r = dist5D.n_r;
+    n_phi = dist5D.n_phi;
+    n_z = dist5D.n_z;
+    n_ppara = dist5D.n_ppara;
+    n_pperp = dist5D.n_pperp;
+    max_r = dist5D.max_r;
+    max_phi = dist5D.max_phi;
+    max_z = dist5D.max_z;
+    max_ppara = dist5D.max_ppara;
+    max_pperp = dist5D.max_pperp;
+    min_r = dist5D.min_r;
+    min_phi = dist5D.min_phi;
+    min_z = dist5D.min_z;
+    min_ppara = dist5D.min_ppara;
+    min_pperp = dist5D.min_pperp;
+
+    // printf("5D: n_r %d n_phi %d n_z %d n_vpara %d n_vperp %d n_per_vertex %d\n", n_r, n_phi, n_z, n_ppara, n_pperp, n_per_vertex);
+    *n = n_total;
+    // print_out(VERBOSE_NORMAL, "Mesh size %d.\n", *n / n_per_vertex);
+
+    *ps = (particle_state *)malloc(*n * sizeof(particle_state));
+    *ps_indexes = (int *)malloc(*n * sizeof(int));
+    input_particle p_tmp; // tmp particle
+    particle_state ps_tmp; // tmp particle
+
+    // open precomputed distr file
+    FILE *fp;
+    fp = fopen("distr_out", "rb");
+    int dist_length = sim_offload->diag_offload_data.offload_array_length;
+    printf("%d\n", dist_length);
+    real *histogram = (real*)malloc(dist_length * sizeof(real));
+    fread(histogram, sizeof(real), dist_length, fp);
+
+    int weights[dist_length];
+    for (int i=0; i< dist_length; i++) {
+        weights[i] = 0;
+    }
+
+    unsigned long index_old, index_new;
+    int i_x[5], i_x_new[5];
+    i_x[0] = n_r / 2;
+    i_x[1] = n_phi / 2;
+    i_x[2] = n_z / 2;
+    i_x[3] = n_ppara / 2;
+    i_x[4] = n_pperp / 2;
+    // int i_r = n_r / 2, i_phi = n_phi / 2, i_z = n_z / 2;
+    // int i_ppara = n_ppara / 2, i_pperp = n_pperp / 2;
+    // int i_r_new, i_phi_new, i_z_new, i_ppara_new, i_pperp_new;
+    compute_element_5d_coordinates(i_x, &r, &phi, &z, &ppara, &pperp, &dist5D);
+
+    index_old = dist_5D_index(i_x[0], i_x[1], i_x[2],
+        i_x[3], i_x[4],
+        0, 0,
+        n_phi, n_z,
+        n_ppara, n_pperp,
+        1, 1);
+
+    int accepted = 0;
+    int i = 0;
+    while (i < *n) { 
+
+        importance_sampling_random_move(i_x, i_x_new, i);
+        // printf("%f %f %f %f %f %d %d\n", r, z, dist5D.min_r, dist5D.min_z, dist5D.max_z, i_x_new[2], i_x[2]);
+        compute_element_5d_coordinates(i_x_new, &r, &phi, &z, &ppara, &pperp, &dist5D);
+
+        if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) {
+            continue;
+        }
+
+        printf("%d %d\n", i, *n);
+
+        // while (!wall_2d_inside(r, z, &sim.wall_data.w2d)) {
+        //     importance_sampling_random_move(&i_r, &i_phi, &i_z, &i_ppara, &i_pperp);
+        //     compute_element_5d_coordinates(i_r, i_phi, i_z, i_ppara, i_pperp, &r_new, &phi_new, &z_new, &ppara_new, &pperp_new);
+        // }
+
+        index_new = dist_5D_index(i_x_new[0], i_x_new[1], i_x_new[2],
+            i_x_new[3], i_x_new[4],
+            0, 0,
+            n_phi, n_z,
+            n_ppara, n_pperp,
+            1, 1);
+
+        double r_rand = r2(); 
+        // printf("%d %d %e %e\n", index_new, index_old, histogram[index_new] / histogram[index_old], histogram[index_old]);
+        if ((histogram[index_new] / histogram[index_old]) > r_rand ) {
+            // printf("pass\n");
+            index_old = index_new;
+            r = r_new;
+            phi = phi_new;
+            z = z_new;
+            ppara = ppara_new;
+            pperp = pperp_new;
+            memcpy(i_x, i_x_new, 5*sizeof(int));
+        }
+
+        bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, T1, i, &ps_tmp);
+
+        if (!ps_tmp.err) {
+            weights[index_old]++;
+            ps_tmp.id = i;
+            ps_tmp.use_hermite = 0;
+            // ps_tmp.hermite_weights = 1. / n_per_vertex;
+            memcpy(*ps + i, &ps_tmp, sizeof(particle_state));
+            (*ps_indexes)[i] = index_old;
+            i++;
+        } else {
+            printf("err\n");
+        }
+    }
+
+    printf("Computing particles weights\n");
+
+    for (int i = 0; i < *n; i++) {
+        (*ps)[i].hermite_weights = 1. / weights[(*ps_indexes)[i]];
+    }
+
+    printf("Initialized %d particles\n", n);
+
+    return 0;
+}
+
+void importance_sampling_random_move(int* i_x, int* i_x_new, int i) {
+    int dim = i % 5;
+    memcpy(i_x_new, i_x, 5 * sizeof(int));
+    i_x_new[dim] += random_at_most(4) - 2;
+}
+
+void compute_5d_coordinates_from_hist_index(int i, int* i_x, real* r, real* phi, real* z, real* ppara, real* pperp, dist_5D_offload_data* dist5D) {
+    int i1 = i;
+    i_x[4] = i1 % dist5D->n_pperp;
+    i1 = i1 / dist5D->n_pperp;
+    i_x[3] = i1 % dist5D->n_ppara;
+    i1 = i1 / dist5D->n_ppara;
+    i_x[2] = i1 % dist5D->n_z;
+    i1 = i1 / dist5D->n_z;
+    i_x[1] = i1 % dist5D->n_phi;
+    i_x[0] = i1 / dist5D->n_phi;
+    compute_element_5d_coordinates(i_x, r, phi, z, ppara, pperp, dist5D);
+}
+
+void compute_element_5d_coordinates(int* i_x_new, real* r, real* phi, real* z, real* ppara, real* pperp, dist_5D_offload_data* dist) {
+    *r = dist->min_r + (dist->max_r - dist->min_r) / dist->n_r * i_x_new[0];
+    *phi = dist->min_phi + (dist->max_phi - dist->min_phi) / dist->n_phi * i_x_new[1];
+    *z = dist->min_z + (dist->max_z - dist->min_z) / dist->n_z * i_x_new[2];
+    *ppara = dist->min_ppara + (dist->max_ppara - dist->min_ppara) / dist->n_ppara * i_x_new[3];
+    *pperp = dist->min_pperp + (dist->max_pperp - dist->min_pperp) / dist->n_pperp * i_x_new[4];
 }
 
 void bmc_5D_to_particle_state(
@@ -523,7 +952,8 @@ int forward_monte_carlo(
         double* host_start, double* host_end,
         int n_mic,
         int n_host,
-        int mpi_rank
+        int mpi_rank,
+        bool importance_sampling
     ) {
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nStarting Backward Monte Carlo. N particles: %d.\n", n_mpi_particles);
@@ -564,11 +994,24 @@ int forward_monte_carlo(
     // init sim data
     sim_data sim;
     sim_init(&sim, sim_offload);
-    real* ptr = offload_array + 
-        sim_offload->B_offload_data.offload_array_length +
-        sim_offload->E_offload_data.offload_array_length +
-        sim_offload->plasma_offload_data.offload_array_length +
-        sim_offload->neutral_offload_data.offload_array_length;
+    real* ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->B_offload_data.offload_array_length);
+    B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->E_offload_data.offload_array_length);
+    E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->plasma_offload_data.offload_array_length);
+    plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->neutral_offload_data.offload_array_length);
+    neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->wall_offload_data.offload_array_length);
     wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
     // setup time end conditions.
@@ -583,27 +1026,34 @@ int forward_monte_carlo(
     }
 
     // simulate one step of all needed particles
-    fmc_simulation(ps1, n_tot_particles, sim_offload, offload_data, offload_array,
+    fmc_simulation(ps1, sim_offload, offload_data, offload_array,
                         mic1_start, mic1_end, mic0_start, mic0_end, host_start, host_end, n_mic, n_host,
                         diag_offload_array_host, diag_offload_array_mic0, diag_offload_array_mic1);
+    
 
-    // // Update the probability distribution
+    // // // Update the probability distribution
+    int n_updated;
     if (distr0.dist5D_collect) {
-        // int n_updated = bmc_update_distr5D_from_states(n_mpi_particles, ps0, ps1, ps1_indexes, &distr0.dist5D, &distr1.dist5D, &(sim.wall_data.w2d));
-        int n_updated = bmc_update_distr5D_from_states(&distr1.dist5D, &distr0.dist5D, ps1_indexes, ps1, ps0, n_mpi_particles, &(sim.wall_data.w2d));
+        n_updated = fmc_update_distr5D_from_states(&distr1.dist5D, &distr0.dist5D, ps1_indexes, ps1, ps0, n_mpi_particles, &(sim.wall_data.w2d));
         
-        printf("Updated %d\n", n_updated);
     } else {
         // TODO: Full orbit
     }
 
-    // shift distributions. Required since distr1 is partitioned through all the MPI nodes,
-    // and can't be written directly to disk
-    diag_move_distribution(sim_offload, &distr0, &distr1);
+    // // shift distributions. Required since distr1 is partitioned through all the MPI nodes,
+    // // and can't be written directly to disk
+    diag_move_distribution(sim_offload, &distr0, &distr1, &n_updated);
+    printf("Updated %d\n", n_updated);
 
-    write_probability_distribution(sim_offload, &distr0, distr0_array, mpi_rank);
+    real sum = 0, dens[5];
+    for (int i=0; i < dist_length; i++) {
+        sum += distr0.dist5D.histogram[i];
+    }
+    printf("Value of integrated signal:%f\n", sum);
 
-    // Free diagnostic data
+    write_probability_distribution(sim_offload, &distr0, distr0_array, mpi_rank, true);
+
+    // // Free diagnostic data
     #ifdef TARGET
         diag_free_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic0);
         diag_free_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic1);
@@ -629,13 +1079,25 @@ void write_probability_distribution(
     sim_offload_data* sim_offload,
     diag_data* distr,
     real* distr_array,
-    int mpi_rank
+    int mpi_rank,
+    bool write_for_importance_sampling
 ) {
-        int dist_length = sim_offload->diag_offload_data.offload_array_length;
-        for (int i = 0; i<dist_length; i++) {
+
+    FILE *fp;
+
+    if (write_for_importance_sampling)
+        fp = fopen("distr_prob", "wb");
+
+    int dist_length = sim_offload->diag_offload_data.offload_array_length;
+
+    if (write_for_importance_sampling)
+        fwrite(distr->dist5D.histogram, sizeof(distr->dist5D.histogram), dist_length, fp);
+
+    for (int i = 0; i<dist_length; i++) {
+        // printf("%f\n", distr->dist5D.histogram[i]);
         if (sim_offload->diag_offload_data.dist5D_collect) {
             if (distr->dist5D.histogram[i] > 1.0001) {
-                printf("Warning: unpysical probability: %f\n", distr->dist5D.histogram[i]);
+                // printf("Warning: unpysical probability: %f\n", distr->dist5D.histogram[i]);
             }
         }
         if (sim_offload->diag_offload_data.dist6D_collect) {
@@ -644,6 +1106,8 @@ void write_probability_distribution(
             }
         }
     }
+    if (write_for_importance_sampling)
+        fclose(fp);
 
     /* Combine distribution and write it to HDF5 file */
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nWriting BMC probability distribution.\n");

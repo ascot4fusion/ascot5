@@ -13,7 +13,6 @@ void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, p
 
 void fmc_simulation(
         particle_state* ps,
-        int n_tot_particles,
         sim_offload_data* sim,
         offload_package* offload_data,
         real* offload_array,
