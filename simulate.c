@@ -120,6 +120,14 @@ void simulate(int id, int n_particles, particle_state* p,
             sim_offload->wall_offload_data.offload_array_length);
     wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->boozer_offload_data.offload_array_length);
+    boozer_init(&sim.boozer_data, &sim_offload->boozer_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->mhd_offload_data.offload_array_length);
+    mhd_init(&sim.mhd_data, &sim_offload->mhd_offload_data, ptr);
+
     diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
               diag_offload_array);
 
@@ -133,34 +141,18 @@ void simulate(int id, int n_particles, particle_state* p,
     /*                                                                        */
     /**************************************************************************/
     particle_queue pq;
-    particle_queue pq_hybrid;
 
     pq.n = 0;
-    pq_hybrid.n = 0;
     for(int i = 0; i < n_particles; i++) {
-        if(p[i].endcond == 0) {
             pq.n++;
-        }
-        else if(p[i].endcond == endcond_hybrid) {
-            pq_hybrid.n++;
-        }
     }
 
     pq.p = (particle_state**) malloc(pq.n * sizeof(particle_state*));
-    pq_hybrid.p = (particle_state**)malloc(pq_hybrid.n*sizeof(particle_state*));
-
     pq.finished = 0;
-    pq_hybrid.finished = 0;
 
     pq.next = 0;
-    pq_hybrid.next = 0;
     for(int i = 0; i < n_particles; i++) {
-        if(p[i].endcond == 0) {
-            pq.p[pq.next++] = &p[i];
-        }
-        else if(p[i].endcond == endcond_hybrid) {
-            pq_hybrid.p[pq_hybrid.next++] = &p[i];
-        }
+        pq.p[pq.next++] = &p[i];
 
     }
     pq.next = 0;
@@ -238,9 +230,10 @@ void simulate(int id, int n_particles, particle_state* p,
             if(pq.p[i]->endcond == endcond_hybrid) {
                 /* Check that there was no wall between when moving from
                    gc to fo */
+	        real w_coll;
                 int tile = wall_hit_wall(pq.p[i]->r, pq.p[i]->phi, pq.p[i]->z,
                         pq.p[i]->rprt, pq.p[i]->phiprt, pq.p[i]->zprt,
-                        &sim.wall_data);
+					 &sim.wall_data, &w_coll);
                 if(tile > 0) {
                     pq.p[i]->walltile = tile;
                     pq.p[i]->endcond |= endcond_wall;
@@ -254,31 +247,22 @@ void simulate(int id, int n_particles, particle_state* p,
     }
 
     if(n_new > 0) {
-        /* Reallocate and add "old" hybrid particles to the hybrid queue */
-        particle_state** tmp = pq_hybrid.p;
-        pq_hybrid.p = (particle_state**) malloc((pq_hybrid.n + n_new)
-                                                * sizeof(particle_state*));
-        memcpy(pq_hybrid.p, tmp, pq_hybrid.n * sizeof(particle_state*));
-        free(tmp);
 
-        /* Add "new" hybrid particles and reset their end condition */
-        pq_hybrid.n += n_new;
+        /* Reset hybrid marker end condition */
         for(int i = 0; i < pq.n; i++) {
-            if(pq.p[i]->endcond == endcond_hybrid) {
-                pq.p[i]->endcond = 0;
-                pq_hybrid.p[pq_hybrid.next++] = pq.p[i];
+            if(pq.p[i]->endcond & endcond_hybrid) {
+                pq.p[i]->endcond ^= endcond_hybrid;
             }
         }
-        pq_hybrid.next = 0;
-
-        sim.record_mode = 1;//Make sure we don't collect fos in gc diagnostics
+        pq.next = 0;
+        pq.finished = 0;
 
         #pragma omp parallel sections num_threads(2)
         {
             #pragma omp section
             {
                 #pragma omp parallel
-                simulate_fo_fixed(&pq_hybrid, &sim);
+                simulate_fo_fixed(&pq, &sim);
             }
 
             #pragma omp section
@@ -289,7 +273,7 @@ void simulate(int id, int n_particles, particle_state* p,
                 strcpy(outfn, sim_offload->hdf5_out);
                 outfn[strlen(outfn)-3] = '\0';
                 sprintf(filename, "%s.stdout", outfn);
-                sim_monitor(filename, &pq_hybrid.n, &pq_hybrid.finished);
+                sim_monitor(filename, &pq.n, &pq.finished);
 #endif
             }
         }
@@ -301,7 +285,6 @@ void simulate(int id, int n_particles, particle_state* p,
     /*                                                                        */
     /**************************************************************************/
     free(pq.p);
-    free(pq_hybrid.p);
     diag_free(&sim.diag_data);
 
     /**************************************************************************/
@@ -351,6 +334,7 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
 
     sim->enable_orbfol        = offload_data->enable_orbfol;
     sim->enable_clmbcol       = offload_data->enable_clmbcol;
+    sim->enable_mhd           = offload_data->enable_mhd;
     sim->disable_gctransform  = offload_data->disable_gctransform;
     sim->disable_energyccoll  = offload_data->disable_energyccoll;
     sim->disable_pitchccoll   = offload_data->disable_pitchccoll;
@@ -358,6 +342,7 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
 
     sim->endcond_active       = offload_data->endcond_active;
     sim->endcond_max_simtime  = offload_data->endcond_max_simtime;
+    sim->endcond_max_mileage  = offload_data->endcond_max_mileage;
     sim->endcond_max_cputime  = offload_data->endcond_max_cputime;
     sim->endcond_min_rho      = offload_data->endcond_min_rho;
     sim->endcond_max_rho      = offload_data->endcond_max_rho;
@@ -365,6 +350,7 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->endcond_min_thermal  = offload_data->endcond_min_thermal;
     sim->endcond_max_tororb   = offload_data->endcond_max_tororb;
     sim->endcond_max_polorb   = offload_data->endcond_max_polorb;
+    sim->endcond_torandpol    = offload_data->endcond_torandpol;
 
     mccc_init(&sim->mccc_data, !sim->disable_energyccoll,
               !sim->disable_pitchccoll, !sim->disable_gcdiffccoll);

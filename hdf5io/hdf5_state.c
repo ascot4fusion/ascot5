@@ -8,10 +8,13 @@
 #include <hdf5_hl.h>
 #include "../ascot5.h"
 #include "../consts.h"
+#include "../physlib.h"
 #include "../particle.h"
 #include "hdf5_helpers.h"
 #include "hdf5_state.h"
-
+#ifdef TRAP_FPE
+#include <fenv.h>
+#endif
 /**
  * @brief Writes marker state to an ASCOT5 HDF5 file.
  *
@@ -67,22 +70,22 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     H5LTset_attribute_string(state_group, "zprt", "unit", "m");
 
     for(i = 0; i < n; i++) {
-        data[i] = p[i].rdot;
+        data[i] = p[i].p_r;
     }
-    hdf5_write_extendible_dataset_double(state_group, "vr", n, data);
-    H5LTset_attribute_string(state_group, "vr", "unit", "m/s");
+    hdf5_write_extendible_dataset_double(state_group, "prprt", n, data);
+    H5LTset_attribute_string(state_group, "prprt", "unit", "kg*m/s");
 
     for(i = 0; i < n; i++) {
-        data[i] = p[i].phidot * p[i].rprt;
+        data[i] = p[i].p_phi;
     }
-    hdf5_write_extendible_dataset_double(state_group, "vphi", n, data);
-    H5LTset_attribute_string(state_group, "vphi", "unit", "m/s");
+    hdf5_write_extendible_dataset_double(state_group, "pphiprt", n, data);
+    H5LTset_attribute_string(state_group, "pphiprt", "unit", "kg*m/s");
 
     for(i = 0; i < n; i++) {
-        data[i] = p[i].zdot;
+        data[i] = p[i].p_z;
     }
-    hdf5_write_extendible_dataset_double(state_group, "vz", n, data);
-    H5LTset_attribute_string(state_group, "vz", "unit", "m/s");
+    hdf5_write_extendible_dataset_double(state_group, "pzprt", n, data);
+    H5LTset_attribute_string(state_group, "pzprt", "unit", "kg*m/s");
 
     /* Guiding center coordinates */
     for(i = 0; i < n; i++) {
@@ -104,10 +107,10 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     H5LTset_attribute_string(state_group, "z", "unit", "m");
 
     for(i = 0; i < n; i++) {
-        data[i] = p[i].vpar;
+        data[i] = p[i].ppar;
     }
-    hdf5_write_extendible_dataset_double(state_group, "vpar", n, data);
-    H5LTset_attribute_string(state_group, "vpar", "unit", "m/s");
+    hdf5_write_extendible_dataset_double(state_group, "ppar", n, data);
+    H5LTset_attribute_string(state_group, "ppar", "unit", "kg*m/s");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].mu/CONST_E;
@@ -133,6 +136,12 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     }
     hdf5_write_extendible_dataset_double(state_group, "time", n, data);
     H5LTset_attribute_string(state_group, "time", "unit", "s");
+
+    for(i = 0; i < n; i++) {
+        data[i] = p[i].mileage;
+    }
+    hdf5_write_extendible_dataset_double(state_group, "mileage", n, data);
+    H5LTset_attribute_string(state_group, "mileage", "unit", "s");
 
     for(i = 0; i < n; i++) {
         data[i] = p[i].cputime;
@@ -177,60 +186,6 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     hdf5_write_extendible_dataset_double(state_group, "bz", n, data);
     H5LTset_attribute_string(state_group, "bz", "unit", "T");
 
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_r_dr;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "brdr", n, data);
-    H5LTset_attribute_string(state_group, "brdr", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_r_dphi/p[i].r;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "brdphi", n, data);
-    H5LTset_attribute_string(state_group, "brdphi", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_r_dz;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "brdz", n, data);
-    H5LTset_attribute_string(state_group, "brdz", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_phi_dr;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "bphidr", n, data);
-    H5LTset_attribute_string(state_group, "bphidr", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_phi_dphi/p[i].r;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "bphidphi", n, data);
-    H5LTset_attribute_string(state_group, "bphidphi", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_phi_dz;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "bphidz", n, data);
-    H5LTset_attribute_string(state_group, "bphidz", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_z_dr;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "bzdr", n, data);
-    H5LTset_attribute_string(state_group, "bzdr", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_z_dphi/p[i].r;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "bzdphi", n, data);
-    H5LTset_attribute_string(state_group, "bzdphi", "unit", "T/m");
-
-    for(i = 0; i < n; i++) {
-        data[i] = p[i].B_z_dz;
-    }
-    hdf5_write_extendible_dataset_double(state_group, "bzdz", n, data);
-    H5LTset_attribute_string(state_group, "bzdz", "unit", "T/m");
-
     free(data);
 
     /* Integer quantities */
@@ -239,8 +194,8 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     for(i = 0; i < n; i++) {
         intdata[i] = p[i].id;
     }
-    hdf5_write_extendible_dataset_long(state_group, "id", n, intdata);
-    H5LTset_attribute_string(state_group, "id", "unit", "1");
+    hdf5_write_extendible_dataset_long(state_group, "ids", n, intdata);
+    H5LTset_attribute_string(state_group, "ids", "unit", "1");
 
     for(i = 0; i < n; i++) {
         intdata[i] = p[i].endcond;
@@ -257,9 +212,17 @@ int hdf5_state_write(hid_t f, char* qid, char* state, integer n,
     free(intdata);
 
     int* intdata32 = (int*) malloc(n * sizeof(int));
+#ifdef TRAP_FPE
+    /* If there are errors in generating the markers, the data may be corrupt. We should ignore
+     * floating point exceptions here. */
+    fedisableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+#endif
     for(i = 0; i < n; i++) {
         intdata32[i] = (int)round(p[i].charge/CONST_E);
     }
+#ifdef TRAP_FPE
+    feenableexcept(FE_DIVBYZERO  | FE_INVALID | FE_OVERFLOW);
+#endif
     hdf5_write_extendible_dataset_int(state_group, "charge", n, intdata32);
     H5LTset_attribute_string(state_group, "charge", "unit", "e");
 

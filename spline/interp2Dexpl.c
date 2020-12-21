@@ -175,10 +175,10 @@ a5err interp2Dexpl_eval_f(real* f, interp2D_data* str, real x, real y) {
     int err = 0;
 
     /* Check that the coordinate is within the domain. */
-    if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
+    if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
         err = 1;
     }
-    if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+    if( str->bc_y == NATURALBC && !(y >= str->y_min && y <= str->y_max) ) {
         err = 1;
     }
 
@@ -251,10 +251,10 @@ a5err interp2Dexpl_eval_df(real* f_df, interp2D_data* str, real x, real y) {
     int err = 0;
 
     /* Check that the coordinate is within the domain. */
-    if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
+    if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
         err = 1;
     }
-    if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+    if( str->bc_y == NATURALBC && !(y >= str->y_min && y <= str->y_max) ) {
         err = 1;
     }
 

@@ -54,9 +54,6 @@
 #define _XOPEN_SOURCE 500 /**< drand48 requires POSIX 1995 standard */
 #include <getopt.h>
 #include <math.h>
-#ifdef MPI
-  #include <mpi.h>
-#endif
 #include <omp.h>
 #include <stdlib.h>
 #include <string.h>
@@ -75,6 +72,11 @@
 #include "hdf5_interface.h"
 #include "offload.h"
 #include "gitver.h"
+#include "mpi_interface.h"
+
+#ifdef TRAP_FPE
+#include <fenv.h>
+#endif
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
 void marker_summary(particle_state* p, int n);
@@ -97,6 +99,22 @@ void marker_summary(particle_state* p, int n);
  */
 int main(int argc, char** argv) {
 
+#ifdef TRAP_FPE
+    /* This will raise floating point exceptions */
+    feenableexcept(FE_DIVBYZERO| FE_INVALID | FE_OVERFLOW);
+    /*
+     * If you are hunting a specific exception, you can disable the exceptions in other parts
+     * of the code by surrounding it with: */
+    /*
+     * fedisableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+     *  --- your  code here ---
+     * feenableexcept(FE_DIVBYZERO  | FE_INVALID | FE_OVERFLOW);
+     *
+     * */
+
+#endif
+
+
     /* Read and parse command line arguments */
     sim_offload_data sim;
     if( read_arguments(argc, argv, &sim) ) {
@@ -105,35 +123,11 @@ int main(int argc, char** argv) {
     }
 
     /* Get MPI rank and set qid for the run*/
-    int mpi_rank, mpi_size;
     char qid[11];
     hdf5_generate_qid(qid);
 
-    if(sim.mpi_size == 0) {
-#ifdef MPI
-        /* MPI run */
-        int provided;
-        MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-        MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
-        sim.mpi_rank = mpi_rank;
-        sim.mpi_size = mpi_size;
-#else
-        /* MPI was not included while compiling       */
-        /* Give warning  and run a single process run */
-        mpi_rank = 0;
-        mpi_size = 1;
-        print_out(VERBOSE_MINIMAL,
-                  "Warning: compiled with MPI=0."
-                  "Proceeding as single process");
-#endif
-    }
-    else {
-        /* Emulate MPI run (Condor-like run) */
-        /* Use user-defined size and rank    */
-        mpi_rank = sim.mpi_rank;
-        mpi_size = sim.mpi_size;
-    }
+    int mpi_rank, mpi_size, mpi_root;
+    mpi_interface_init(argc, argv, &sim, &mpi_rank, &mpi_size, &mpi_root);
 
     print_out0(VERBOSE_MINIMAL, mpi_rank,
                "ASCOT5_MAIN\n");
@@ -149,8 +143,9 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
 
-    /* Number of markers to be simulated */
-    int n;
+    /* Total number of markers to be simulated */
+    int n_tot;
+
     /* Marker input struct */
     input_particle* p;
 
@@ -160,16 +155,20 @@ int main(int argc, char** argv) {
     real* plasma_offload_array;
     real* neutral_offload_array;
     real* wall_offload_array;
+    real* boozer_offload_array;
+    real* mhd_offload_array;
 
     /* Read input from the HDF5 file */
     if( hdf5_interface_read_input(&sim,
                                   hdf5_input_options | hdf5_input_bfield |
                                   hdf5_input_efield  | hdf5_input_plasma |
                                   hdf5_input_neutral | hdf5_input_wall |
-                                  hdf5_input_marker,
+                                  hdf5_input_marker | hdf5_input_boozer |
+                                  hdf5_input_mhd,
                                   &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
-                                  &wall_offload_array, &p, &n) ) {
+                                  &wall_offload_array, &boozer_offload_array,
+                                  &mhd_offload_array, &p, &n_tot) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nInput reading or initializing failed.\n"
                    "See stderr for details.\n");
@@ -202,16 +201,24 @@ int main(int argc, char** argv) {
                  sim.wall_offload_data.offload_array_length);
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
 
+    offload_pack(&offload_data, &offload_array, boozer_offload_array,
+                 sim.boozer_offload_data.offload_array_length);
+    boozer_free_offload(&sim.boozer_offload_data, &boozer_offload_array);
+
+    offload_pack(&offload_data, &offload_array, mhd_offload_array,
+                 sim.mhd_offload_data.offload_array_length);
+    mhd_free_offload(&sim.mhd_offload_data, &mhd_offload_array);
+
     /* Initialize diagnostics offload data.
      * Separate arrays for host and target */
 #ifdef TARGET
     real* diag_offload_array_mic0;
     real* diag_offload_array_mic1;
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0, n);
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1, n);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic0, n_tot);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_mic1, n_tot);
 #else
     real* diag_offload_array_host;
-    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host, n);
+    diag_init_offload(&sim.diag_offload_data, &diag_offload_array_host, n_tot);
 #endif
 
     real diag_offload_array_size = sim.diag_offload_data.offload_array_length
@@ -219,28 +226,12 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Initialized diagnostics, %.1f MB.\n", diag_offload_array_size);
 
-    /* Set output filename for this MPI process. */
-    if(mpi_size == 1) {
-        strcat(sim.hdf5_out, ".h5");
-    }
-    else {
-        char temp[256];
-        sprintf(temp, "_%06d.h5", mpi_rank);
-        strcat(sim.hdf5_out, temp);
-    }
-
     /* Choose which markers are used in this MPI process. Simply put, markers
      * are divided into mpi_size sequential blocks and the mpi_rank:th block
      * is chosen for this simulation. */
-    int start_index = mpi_rank * (n / mpi_size);
+    int start_index, n;
+    mpi_my_particles(&start_index, &n, n_tot, mpi_rank, mpi_size);
     p += start_index;
-
-    if(mpi_rank == mpi_size-1) {
-        n = n - mpi_rank * (n / mpi_size);
-    }
-    else {
-        n = n / mpi_size;
-    }
 
     /* Set up particlestates on host, needs magnetic field evaluation */
     print_out0(VERBOSE_NORMAL, mpi_rank,
@@ -260,29 +251,42 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Marker states initialized.\n");
 
-    /* Initialize results group in the output file */
-    print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
-    if( hdf5_interface_init_results(&sim, qid) ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\nInitializing output failed.\n"
-                   "See stderr for details.\n");
-        /* Free offload data and terminate */
-        goto CLEANUP_FAILURE;
-    };
-    strcpy(sim.qid, qid);
-
-    /* Write inistate */
-    if( hdf5_interface_write_state(sim.hdf5_out, "inistate", n, ps) ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\n"
-                   "Writing inistate failed.\n"
-                   "See stderr for details.\n"
-                   "\n");
-        /* Free offload data and terminate */
-        goto CLEANUP_FAILURE;
+    if(mpi_rank == mpi_root) {
+        /* Initialize results group in the output file */
+        print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
+        if( hdf5_interface_init_results(&sim, qid) ) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                       "\nInitializing output failed.\n"
+                       "See stderr for details.\n");
+            /* Free offload data and terminate */
+            goto CLEANUP_FAILURE;
+        };
+        strcpy(sim.qid, qid);
     }
-    print_out0(VERBOSE_NORMAL, mpi_rank,
-               "\nInistate written.\n");
+
+    particle_state* ps_gathered;
+    int n_gathered;
+
+    mpi_gather_particlestate(ps, &ps_gathered, &n_gathered, n_tot,
+                             mpi_rank, mpi_size, mpi_root);
+
+    if(mpi_rank == mpi_root) {
+        /* Write inistate */
+        if(hdf5_interface_write_state(sim.hdf5_out, "inistate", n_gathered,
+                                      ps_gathered)) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                       "\n"
+                       "Writing inistate failed.\n"
+                       "See stderr for details.\n"
+                       "\n");
+            /* Free offload data and terminate */
+            goto CLEANUP_FAILURE;
+        }
+        print_out0(VERBOSE_NORMAL, mpi_rank,
+                   "\nInistate written.\n");
+    }
+
+    free(ps_gathered);
 
     /* Divide markers among host and target */
 #ifdef TARGET
@@ -364,16 +368,23 @@ int main(int argc, char** argv) {
     /* Free input data */
     offload_free_offload(&offload_data, &offload_array);
 
-    /* Write endstate */
-    if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n, ps) ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
+    mpi_gather_particlestate(ps, &ps_gathered, &n_gathered, n_tot,
+                             mpi_rank, mpi_size, mpi_root);
+
+    if(mpi_rank == mpi_root) {
+
+        /* Write endstate */
+        if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n_gathered,
+                                       ps_gathered)) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nWriting endstate failed.\n"
                    "See stderr for details.\n");
-        /* Free offload data and terminate */
-        goto CLEANUP_FAILURE;
+            /* Free offload data and terminate */
+            goto CLEANUP_FAILURE;
+        }
+        print_out0(VERBOSE_NORMAL, mpi_rank,
+                   "Endstate written.\n");
     }
-    print_out0(VERBOSE_NORMAL, mpi_rank,
-               "Endstate written.\n");
 
     /* Combine diagnostic data and write it to HDF5 file */
     print_out0(VERBOSE_MINIMAL, mpi_rank,
@@ -382,11 +393,21 @@ int main(int argc, char** argv) {
 #ifdef TARGET
     diag_sum(&sim.diag_offload_data,
              diag_offload_array_mic0, diag_offload_array_mic1);
-    err_writediag = hdf5_interface_write_diagnostics(
-        &sim, diag_offload_array_mic0, sim.hdf5_out);
+    mpi_gather_diag(&sim.diag_offload_data, diag_offload_array_mic0, n_tot,
+                    mpi_rank, mpi_size, mpi_root);
+
+    if(mpi_rank == mpi_root) {
+        err_writediag = hdf5_interface_write_diagnostics(&sim,
+            diag_offload_array_mic0, sim.hdf5_out);
+    }
 #else
-    err_writediag = hdf5_interface_write_diagnostics(
-        &sim, diag_offload_array_host, sim.hdf5_out);
+    mpi_gather_diag(&sim.diag_offload_data, diag_offload_array_host, n_tot,
+                    mpi_rank, mpi_size, mpi_root);
+
+    if(mpi_rank == mpi_root) {
+        err_writediag = hdf5_interface_write_diagnostics(&sim,
+            diag_offload_array_host, sim.hdf5_out);
+    }
 #endif
     if(err_writediag) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
@@ -402,9 +423,7 @@ int main(int argc, char** argv) {
 
     /* Free offload data */
 
-#ifdef MPI
-    MPI_Finalize();
-#endif
+    mpi_interface_finalize();
 
 #ifdef TARGET
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
@@ -413,8 +432,12 @@ int main(int argc, char** argv) {
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
 #endif
 
-    marker_summary(ps, n);
+    if(mpi_rank == mpi_root) {
+        marker_summary(ps_gathered, n_gathered);
+    }
+
     free(ps);
+    free(ps_gathered);
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone.\n");
 
@@ -424,9 +447,7 @@ int main(int argc, char** argv) {
 /* Free resources in case simulation crashes */
 CLEANUP_FAILURE:
 
-#ifdef MPI
-    MPI_Finalize();
-#endif
+    mpi_interface_finalize();
 
 #ifdef TARGET
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
@@ -438,6 +459,7 @@ CLEANUP_FAILURE:
     offload_free_offload(&offload_data, &offload_array);
 
     free(ps);
+    free(ps_gathered);
 
     abort();
     return 1;
@@ -481,6 +503,8 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
         {"wall",    required_argument, 0, 10},
         {"plasma",  required_argument, 0, 11},
         {"neutral", required_argument, 0, 12},
+        {"boozer",  required_argument, 0, 13},
+        {"mhd",     required_argument, 0, 14},
         {0, 0, 0, 0}
     };
 
@@ -497,16 +521,33 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     sim->qid_wall[0]    = '\0';
     sim->qid_plasma[0]  = '\0';
     sim->qid_neutral[0] = '\0';
+    sim->qid_boozer[0]  = '\0';
+    sim->qid_mhd[0]     = '\0';
 
     // Read user input
     int c;
+    int slen;  // String length
     while((c = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch(c) {
             case 1:
-                strcpy(sim->hdf5_in, optarg);
+                // The .hdf5 filename can be specified with or without the trailing .h5
+                slen = strlen(optarg);
+                if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
+                    strncpy(sim->hdf5_in,optarg,slen-3);
+                    (sim->hdf5_in)[slen-3]='\0';
+                }
+                else
+                    strcpy(sim->hdf5_in, optarg);
                 break;
             case 2:
-                strcpy(sim->hdf5_out, optarg);
+                // The .hdf5 filename can be specified with or without the trailing .h5
+                slen = strlen(optarg);
+                if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
+                    strncpy(sim->hdf5_out,optarg,slen-3);
+                    (sim->hdf5_out)[slen-3]='\0';
+                }
+                else
+                    strcpy(sim->hdf5_out, optarg);
                 break;
             case 3:
                 sim->mpi_size = atoi(optarg);
@@ -538,6 +579,12 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
             case 12:
                 strcpy(sim->qid_neutral, optarg);
                 break;
+            case 13:
+                strcpy(sim->qid_boozer, optarg);
+                break;
+            case 14:
+                strcpy(sim->qid_mhd, optarg);
+                break;
             default:
                 // Unregonizable argument(s). Tell user how to run ascot5_main
                 print_out(VERBOSE_MINIMAL,
@@ -562,7 +609,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] == '\0') {
         // No input, use default values for both
         strcpy(sim->hdf5_in, "ascot.h5");
-        strcpy(sim->hdf5_out, "ascot");
+        strcpy(sim->hdf5_out, "ascot.h5");
     }
     else if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] != '\0') {
         // Output file is given but the input file is not
@@ -570,12 +617,13 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     }
     else if(sim->hdf5_in[0] != '\0' && sim->hdf5_out[0] == '\0') {
         // Input file is given but the output is not
-        strcpy(sim->hdf5_out, sim->hdf5_in);
         strcat(sim->hdf5_in, ".h5");
+        strcpy(sim->hdf5_out, sim->hdf5_in);
     }
     else {
         // Both input and output files are given
         strcat(sim->hdf5_in, ".h5");
+        strcat(sim->hdf5_out, ".h5");
     }
     return 0;
 }

@@ -45,21 +45,22 @@ typedef struct {
     real r;           /**< Guiding center R coordinate [m]                 */
     real phi;         /**< Guiding center phi coordinate [rad]             */
     real z;           /**< Guiding center z coordinate [m]                 */
-    real vpar;        /**< Parallel velocity [m/s]                         */
+    real ppar;        /**< Parallel momentum [kg m/s]                      */
     real mu;          /**< Magnetic moment [J/T]                           */
     real zeta;        /**< Gyroangle [rad]                                 */
     real rprt;        /**< Particle R coordinate [m]                       */
     real phiprt;      /**< Particle phi coordinate [phi]                   */
     real zprt;        /**< Particle z coordinate [m]                       */
-    real rdot;        /**< dr/dt [m/s]                                     */
-    real phidot;      /**< dphi/dt [rad/s]                                 */
-    real zdot;        /**< dz/dt [m/s]                                     */
+    real p_r;         /**< Momentum r component [kg m/s]                   */
+    real p_phi;       /**< Momentum phi component [kg m/s]                 */
+    real p_z;         /**< Momentum z component [kg m/s]                   */
     real mass;        /**< Mass [kg]                                       */
     real charge;      /**< Charge [C]                                      */
     int  anum;        /**< Atomic mass number of marker species            */
     int  znum;        /**< Charge number of marker species                 */
     real weight;      /**< Marker weight                                   */
     real time;        /**< Marker simulation time [s]                      */
+    real mileage;     /**< Duration this marker has been simulated [s]     */
     real cputime;     /**< Marker wall-clock time [s]                      */
     real rho;         /**< Marker rho coordinate                           */
     real theta;       /**< Marker poloidal coordinate [rad]                */
@@ -92,15 +93,16 @@ typedef struct {
     real r;      /**< R coordinate [m]                    */
     real phi;    /**< phi coordinate [rad]                */
     real z;      /**< z coordinate [m]                    */
-    real v_r;    /**< Velocity R-component [m/s]          */
-    real v_phi;  /**< Velocity phi-component [m/s]        */
-    real v_z;    /**< Velocity z-component [m/s]          */
+    real p_r;    /**< Momentum R-component [kg m/s]       */
+    real p_phi;  /**< Momentum phi-component [kg m/s]     */
+    real p_z;    /**< Momentum z-component [kg m/s]       */
     real mass;   /**< Mass [kg]                           */
     real charge; /**< Charge [C]                          */
     int  anum;   /**< Atomic mass number [1]              */
     int  znum;   /**< Charge number [1]                   */
     real weight; /**< Particle marker weight              */
     real time;   /**< Particle marker simulation time [s] */
+    real mileage; /**< Duration this marker has been simulated [s]     */
     integer id;  /**< Unique ID for the particle marker   */
 } particle;
 
@@ -217,9 +219,9 @@ typedef struct {
     real r[NSIMD] __memalign__;       /**< Particle R coordinate [m]          */
     real phi[NSIMD] __memalign__;     /**< Particle phi coordinate [phi]      */
     real z[NSIMD] __memalign__;       /**< Particle z coordinate [m]          */
-    real rdot[NSIMD] __memalign__;    /**< dr/dt [m/s]                        */
-    real phidot[NSIMD] __memalign__;  /**< dphi/dt [rad/s]                    */
-    real zdot[NSIMD] __memalign__;    /**< dz/dt [m/s]                        */
+    real p_r[NSIMD] __memalign__;     /**< Momentum r coordinate [kg m/s]     */
+    real p_phi[NSIMD] __memalign__;   /**< Momentum phi coordinate [kg m/s]   */
+    real p_z[NSIMD] __memalign__;     /**< Momentum z coordinate [kg m/s]     */
     real mass[NSIMD] __memalign__;    /**< Mass [kg]                          */
     real charge[NSIMD] __memalign__;  /**< Charge [C]                         */
     real time[NSIMD] __memalign__;    /**< Marker simulation time [s]         */
@@ -254,6 +256,8 @@ typedef struct {
                                                hit the wall                   */
 
     /* Meta data */
+    real mileage[NSIMD] __memalign__;    /**< Duration this marker has been
+                                              simulated [s]                   */
     integer running[NSIMD] __memalign__; /**< Indicates whether this marker is
                                               currently simulated (1) or not  */
     a5err err[NSIMD] __memalign__;       /**< Error flag, zero if no error    */
@@ -284,7 +288,7 @@ typedef struct {
     real r[NSIMD] __memalign__;      /**< Guiding center R coordinate [m]     */
     real phi[NSIMD] __memalign__;    /**< Guiding center phi coordinate [phi] */
     real z[NSIMD] __memalign__;      /**< Guiding center z coordinate [m]     */
-    real vpar[NSIMD] __memalign__;   /**< Parallel velocity [m/s]             */
+    real ppar[NSIMD] __memalign__;   /**< Parallel momentum [kg m/s]          */
     real mu[NSIMD] __memalign__;     /**< Magnetic moment [J/T]               */
     real zeta[NSIMD] __memalign__;   /**< Gyroangle [rad]                     */
     real mass[NSIMD] __memalign__;   /**< Mass [kg]                           */
@@ -321,6 +325,8 @@ typedef struct {
                                                hit the wall                   */
 
     /* Meta data */
+    real mileage[NSIMD] __memalign__;    /**< Duration this marker has been
+                                              simulated [s]                   */
     integer running[NSIMD] __memalign__; /**< Indicates whether this marker is
                                               currently simulated (1) or not  */
     a5err err[NSIMD] __memalign__;       /**< Error flag, zero if no error    */
@@ -350,8 +356,7 @@ typedef struct {
     real z[NSIMD] __memalign__;     /**< Field line z coordinate [m]          */
     real pitch[NSIMD] __memalign__; /**< Field line direction: along (1) or
                                          against (-1) magnetic field vector   */
-    real time[NSIMD] __memalign__;  /**< Field line simulation "time" i.e.
-                                         (distance / speed of light) [m]      */
+    real time[NSIMD] __memalign__;  /**< Field line simulation time [s]       */
 
     /* Magnetic field data */
     real B_r[NSIMD] __memalign__;        /**< Magnetic field R component at
@@ -383,6 +388,8 @@ typedef struct {
                                                hit the wall                   */
 
     /* Meta data */
+    real mileage[NSIMD] __memalign__;    /**< Duration this marker has been
+                                              simulated [s]                   */
     integer running[NSIMD] __memalign__; /**< Indicates whether this marker is
                                               currently simulated (1) or not  */
     a5err err[NSIMD] __memalign__;       /**< Error flag, zero if no error    */

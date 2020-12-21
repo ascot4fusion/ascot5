@@ -1,3 +1,22 @@
+// Forward Monte Carlo to be used along BMC
+// For now, particles are always simulated as markers on nodes of the mesh
+
+// number of markers for each mesh node
+#define N_MONTECARLO_STEPS 5
+#define TIMESTEP 1E-7 // TODO use input HDF
+#define T0 9E-7
+#define T1 1E-6
+#define MASS 3.3452438E-27
+#define CHARGE 1.60217662E-19
+#define RK4_SUBCYCLES 5
+
+// Importance sampling parameters.
+// If importance sampling is enabled, total particles are used and N_MONTECARLO_STEPS is ignored
+#define IMPORTANCE_SAMPLING 1
+#define IMPORTANCE_SAMPLING_TOTAL_PARTICLES 1645000
+#define IMPORTANCE_SAMPLING_DENSITY 0
+#define IMPORTANCE_SAMPLING_PROBABILITY 1
+
 /**
  * @file ascot5_main.c
  * @brief ASCOT5 stand-alone program
@@ -76,8 +95,7 @@
 #include "offload.h"
 #include "gitver.h"
 #include "bmc/bmc.h"
-
-#define N_MONTECARLO_STEPS 2
+#include "bmc/bmc_init.h"
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
 void marker_summary(particle_state* p, int n);
@@ -107,42 +125,19 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    /* Get MPI rank and set qid for the run*/
-    int mpi_rank, mpi_size;
     char qid[11];
     hdf5_generate_qid(qid);
 
-    #ifndef MPI
-        /* MPI was not included while compiling       */
-        /* Give warning  and run a single process run */
-        mpi_rank = 0;
-        mpi_size = 1;
-        print_out(VERBOSE_MINIMAL,
-                    "Warning: compiled with MPI=0."
-                    "Proceeding as single process");
-    #else
-        /* MPI run */
-        int provided;
-        MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-        MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
-        sim.mpi_rank = mpi_rank;
-        sim.mpi_size = mpi_size;
-    #endif
+    /* Get MPI rank and set qid for the run*/
+    int mpi_rank, mpi_size, mpi_root;
+    mpi_interface_init(argc, argv, &sim, &mpi_rank, &mpi_size, &mpi_root);
 
     print_out0(VERBOSE_MINIMAL, mpi_rank,
-               "ASCOT5_MAIN\n");
-
-#ifdef GIT_VERSION
-    print_out0(VERBOSE_MINIMAL, mpi_rank,
-               "Tag %s\nBranch %s\n\n", GIT_VERSION, GIT_BRANCH);
-#else
-    print_out0(VERBOSE_MINIMAL, mpi_rank,
-               "Not under version control\n\n");
-#endif
+            "BMC_MAIN\n");
 
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
+
 
     /* Number of markers to be simulated */
     int n;
@@ -157,16 +152,20 @@ int main(int argc, char** argv) {
     real* plasma_offload_array;
     real* neutral_offload_array;
     real* wall_offload_array;
+    real* boozer_offload_array;
+    real* mhd_offload_array;
 
     /* Read input from the HDF5 file */
     if( hdf5_interface_read_input(&sim,
                                   hdf5_input_options | hdf5_input_bfield |
                                   hdf5_input_efield  | hdf5_input_plasma |
                                   hdf5_input_neutral | hdf5_input_wall |
-                                  hdf5_input_marker,
+                                  hdf5_input_marker | hdf5_input_boozer |
+                                  hdf5_input_mhd,
                                   &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
-                                  &wall_offload_array, &p, &n) ) {
+                                  &wall_offload_array, &boozer_offload_array,
+                                  &mhd_offload_array, &p, &n) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nInput reading or initializing failed.\n"
                    "See stderr for details.\n");
@@ -200,22 +199,12 @@ int main(int argc, char** argv) {
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
 
     // setup endpoint conditions, total time=1, wall collision enabled
-    bmc_setup_endconds(&sim);
+    bmc_setup_endconds(&sim, TIMESTEP);
 
     real diag_offload_array_size = sim.diag_offload_data.offload_array_length
         * sizeof(real) / (1024.0*1024.0);
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "Initialized diagnostics, %.1f MB.\n", diag_offload_array_size);
-
-    /* Set output filename for this MPI process. */
-    if(mpi_size == 1) {
-        strcat(sim.hdf5_out, ".h5");
-    }
-    else {
-        char temp[256];
-        sprintf(temp, "_%06d.h5", mpi_rank);
-        strcat(sim.hdf5_out, temp);
-    }
 
     // init magnetic field
     B_field_data Bdata;
@@ -225,8 +214,16 @@ int main(int argc, char** argv) {
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
-    if (bmc_init_particles(&n, &ps, &ps_indexes, N_MONTECARLO_STEPS, 0, &sim, &Bdata, offload_array)) {
-        goto CLEANUP_FAILURE;
+    if (IMPORTANCE_SAMPLING) {
+        if (fmc_init_importance_sampling_mesh(&n, &ps, &ps_indexes, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, 0, &sim, &Bdata, offload_array, &offload_data,
+            IMPORTANCE_SAMPLING_PROBABILITY, IMPORTANCE_SAMPLING_DENSITY, T1, MASS, CHARGE, RK4_SUBCYCLES
+        )) {
+            goto CLEANUP_FAILURE;
+        }
+    } else {
+        if (bmc_init_particles(&n, &ps, &ps_indexes, N_MONTECARLO_STEPS, 0, &sim, &Bdata, offload_array, T0, MASS, CHARGE, RK4_SUBCYCLES)) {
+            goto CLEANUP_FAILURE;
+        }
     }
     int n_total_particles = n;
 
@@ -235,6 +232,7 @@ int main(int argc, char** argv) {
      * is chosen for this simulation. */
     int start_index = mpi_rank * (n / mpi_size);
     ps += start_index;
+    ps_indexes += start_index;
 
     if(mpi_rank == mpi_size-1) {
         n = n - mpi_rank * (n / mpi_size);
@@ -258,27 +256,29 @@ int main(int argc, char** argv) {
 #endif
 
     /* Initialize results group in the output file */
-    print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
-    if( hdf5_interface_init_results(&sim, qid) ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\nInitializing output failed.\n"
-                   "See stderr for details.\n");
-        /* Free offload data and terminate */
-        goto CLEANUP_FAILURE;
-    };
-    strcpy(sim.qid, qid);
-    /* Write inistate */
-    if( hdf5_interface_write_state(sim.hdf5_out, "inistate", n, ps) ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\n"
-                   "Writing inistate failed.\n"
-                   "See stderr for details.\n"
-                   "\n");
-        /* Free offload data and terminate */
-        goto CLEANUP_FAILURE;
+    if (mpi_rank == mpi_root) {
+        print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
+        if( hdf5_interface_init_results(&sim, qid) ) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                    "\nInitializing output failed.\n"
+                    "See stderr for details.\n");
+            /* Free offload data and terminate */
+            goto CLEANUP_FAILURE;
+        };
+        strcpy(sim.qid, qid);
+        /* Write inistate */
+        if( hdf5_interface_write_state(sim.hdf5_out, "inistate", n, ps) ) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                    "\n"
+                    "Writing inistate failed.\n"
+                    "See stderr for details.\n"
+                    "\n");
+            /* Free offload data and terminate */
+            goto CLEANUP_FAILURE;
+        }
+        print_out0(VERBOSE_NORMAL, mpi_rank,
+                "\nInistate written.\n");
     }
-    print_out0(VERBOSE_NORMAL, mpi_rank,
-               "\nInistate written.\n");
 
     double mic0_start = 0, mic0_end=0,
         mic1_start=0, mic1_end=0,
@@ -293,7 +293,7 @@ int main(int argc, char** argv) {
         &mic1_start, &mic1_end,
         &mic0_start, &mic0_end,
         &host_start, &host_end,
-        n_mic, n_host, mpi_rank)) {
+        n_mic, n_host, mpi_rank, IMPORTANCE_SAMPLING, T1, T0)) {
             goto CLEANUP_FAILURE;
         }
 
@@ -302,21 +302,19 @@ int main(int argc, char** argv) {
         mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
 
         /* Write endstate */
-    if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n, ps) ) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\nWriting endstate failed.\n"
-                   "See stderr for details.\n");
-        /* Free offload data and terminate */
-        goto CLEANUP_FAILURE;
+    if (mpi_rank == mpi_root) {
+        if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n, ps) ) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                    "\nWriting endstate failed.\n"
+                    "See stderr for details.\n");
+            /* Free offload data and terminate */
+            goto CLEANUP_FAILURE;
+        }
+        print_out0(VERBOSE_NORMAL, mpi_rank,
+                "Endstate written.\n");
     }
-    print_out0(VERBOSE_NORMAL, mpi_rank,
-               "Endstate written.\n");
 
-#ifdef MPI
-    MPI_Finalize();
-#endif
-
-    // diag_free_offload(&sim.diag_offload_data, &diag_offload_array);
+    mpi_interface_finalize();
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone.\n");
 
@@ -326,18 +324,13 @@ int main(int argc, char** argv) {
 /* Free resources in case simulation crashes */
 CLEANUP_FAILURE:
 
-#ifdef MPI
-    MPI_Finalize();
-#endif
-
-    // diag_free_offload(&sim.diag_offload_data, &diag_offload_array);
+    mpi_interface_finalize();
 
     offload_free_offload(&offload_data, &offload_array);
 
     abort();
     return 1;
 }
-
 
 
 /**
@@ -378,6 +371,8 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
         {"wall",    required_argument, 0, 10},
         {"plasma",  required_argument, 0, 11},
         {"neutral", required_argument, 0, 12},
+        {"boozer",  required_argument, 0, 13},
+        {"mhd",     required_argument, 0, 14},
         {0, 0, 0, 0}
     };
 
@@ -394,16 +389,33 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     sim->qid_wall[0]    = '\0';
     sim->qid_plasma[0]  = '\0';
     sim->qid_neutral[0] = '\0';
+    sim->qid_boozer[0]  = '\0';
+    sim->qid_mhd[0]     = '\0';
 
     // Read user input
     int c;
+    int slen;  // String length
     while((c = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch(c) {
             case 1:
-                strcpy(sim->hdf5_in, optarg);
+                // The .hdf5 filename can be specified with or without the trailing .h5
+                slen = strlen(optarg);
+                if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
+                    strncpy(sim->hdf5_in,optarg,slen-3);
+                    (sim->hdf5_in)[slen-3]='\0';
+                }
+                else
+                    strcpy(sim->hdf5_in, optarg);
                 break;
             case 2:
-                strcpy(sim->hdf5_out, optarg);
+                // The .hdf5 filename can be specified with or without the trailing .h5
+                slen = strlen(optarg);
+                if ( slen > 3 && !strcmp(optarg+slen-3,".h5") ) {
+                    strncpy(sim->hdf5_out,optarg,slen-3);
+                    (sim->hdf5_out)[slen-3]='\0';
+                }
+                else
+                    strcpy(sim->hdf5_out, optarg);
                 break;
             case 3:
                 sim->mpi_size = atoi(optarg);
@@ -435,6 +447,12 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
             case 12:
                 strcpy(sim->qid_neutral, optarg);
                 break;
+            case 13:
+                strcpy(sim->qid_boozer, optarg);
+                break;
+            case 14:
+                strcpy(sim->qid_mhd, optarg);
+                break;
             default:
                 // Unregonizable argument(s). Tell user how to run ascot5_main
                 print_out(VERBOSE_MINIMAL,
@@ -459,7 +477,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] == '\0') {
         // No input, use default values for both
         strcpy(sim->hdf5_in, "ascot.h5");
-        strcpy(sim->hdf5_out, "ascot");
+        strcpy(sim->hdf5_out, "ascot.h5");
     }
     else if(sim->hdf5_in[0] == '\0' && sim->hdf5_out[0] != '\0') {
         // Output file is given but the input file is not
@@ -467,15 +485,18 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     }
     else if(sim->hdf5_in[0] != '\0' && sim->hdf5_out[0] == '\0') {
         // Input file is given but the output is not
-        strcpy(sim->hdf5_out, sim->hdf5_in);
         strcat(sim->hdf5_in, ".h5");
+        strcpy(sim->hdf5_out, sim->hdf5_in);
     }
     else {
         // Both input and output files are given
         strcat(sim->hdf5_in, ".h5");
+        strcat(sim->hdf5_out, ".h5");
     }
     return 0;
 }
+
+
 
 /**
  * @brief Writes a summary of what happened to the markers during simulation
