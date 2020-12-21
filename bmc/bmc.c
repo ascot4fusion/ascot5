@@ -32,7 +32,8 @@ int backward_monte_carlo(
         real t1,
         real t0,
         real h,
-        int rk4_subcycles
+        int rk4_subcycles,
+        int time_intependent
     ) {
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nStarting Backward Monte Carlo. N particles: %d.\n", n_mpi_particles);
@@ -64,8 +65,13 @@ int backward_monte_carlo(
     wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
     if (distr0.dist5D_collect) {
-        backward_monte_carlo_gc(ps, ps_indexes, n_mpi_particles, n_hermite_knots, sim_offload, &sim, offload_data, offload_array,
+        if (!time_intependent) {
+            backward_monte_carlo_gc(ps, ps_indexes, n_mpi_particles, n_hermite_knots, sim_offload, &sim, offload_data, offload_array,
                                 &distr0, &distr1, Bdata, t1, t0, h, rk4_subcycles);
+        } else {
+            backward_monte_carlo_gc_time_indep(ps, ps_indexes, n_mpi_particles, n_hermite_knots, sim_offload, &sim, offload_data, offload_array,
+                                &distr0, &distr1, Bdata, t1, t0, h, rk4_subcycles);
+        }
     } else {
         // TODO: FULL ORBIT
     }
@@ -78,6 +84,77 @@ int backward_monte_carlo(
 
     return 0;
 
+}
+
+void backward_monte_carlo_gc_time_indep(
+        particle_state* ps,
+        int* p0_indexes,
+        int n_mpi_particles,
+        int n_hermite_knots,
+        sim_offload_data* sim_offload,
+        sim_data* sim,
+        offload_package* offload_data,
+        real* offload_array,
+        diag_data* distr0,
+        diag_data* distr1,
+        B_field_data* Bdata,
+        real t1,
+        real t0,
+        real h,
+        real rk4_subcycles
+    ) {
+
+    particle_simd_gc *p0, *p1, *pcoll1, *pcoll0;
+    int n_simd_particles = init_simd_gc_particles(ps, n_mpi_particles, &p0, Bdata);
+    init_simd_gc_particles(ps, n_mpi_particles, &p1, Bdata);
+
+    // compute the number of collisional particles needed.
+    // = n_particles * hermite_knots
+    int n_coll_simd = (n_mpi_particles * n_hermite_knots + NSIMD - 1) / NSIMD;
+    pcoll1 = (particle_simd_gc *)malloc(n_coll_simd * sizeof(particle_simd_gc));  
+    pcoll0 = (particle_simd_gc *)malloc(n_coll_simd * sizeof(particle_simd_gc));  
+    int *p0_indexes_coll = (int *)malloc(n_mpi_particles * n_hermite_knots * sizeof(int));  
+    for (int i=0; i < n_mpi_particles; i++) {
+        for (int j=0; j < n_hermite_knots; j++) {
+            p0_indexes_coll[i * n_hermite_knots + j] = p0_indexes[i];
+        }
+    }
+
+    // init Hermite knots and weights for the collisional SIMD array
+    init_particles_coll_simd_hermite(n_simd_particles, n_hermite_knots, pcoll1);
+    init_particles_coll_simd_hermite(n_simd_particles, n_hermite_knots, pcoll0);
+    copy_particles_simd_to_coll_simd(n_simd_particles, n_hermite_knots, p0, pcoll0);
+
+    // reset particle initial states to ps1 and pcoll1
+    memcpy(p1, p0, n_simd_particles * sizeof(particle_simd_gc));
+
+    // set time in particle states
+    for(int i = 0; i < n_simd_particles; i++) {
+        for(int j = 0; j < NSIMD; j++) {
+            if (p1[i].id[j]) {
+                p1[i].time[j] = t1;
+            }
+        }
+    }
+
+    bmc_simulate_timestep_gc(n_simd_particles, n_coll_simd, p1, pcoll1, n_hermite_knots, sim_offload, offload_data, offload_array, h, rk4_subcycles);
+
+    particle_deposit_weights *p1_weights = (particle_deposit_weights *)malloc(n_coll_simd * sizeof(particle_deposit_weights));  
+
+    bmc_compute_prob_weights(p1_weights, n_coll_simd, pcoll1, pcoll0, &distr1->dist5D, &distr0->dist5D, &(sim->wall_data.w2d));
+
+    for (double t=t1; t >= t0; t -= h) {
+        // // Update the probability distribution
+        // int n_updated = bmc_update_distr5D(&distr1->dist5D, &distr0->dist5D, p0_indexes_coll, pcoll1, pcoll0, n_coll_simd, &(sim->wall_data.w2d)); 
+        bmc_update_distr5D_from_weights(p1_weights, &distr1->dist5D, &distr0->dist5D, pcoll1, n_coll_simd, p0_indexes_coll);
+
+        // printf("Time %f Updated %d\n", t, n_updated);
+        printf("Time %e\n", t);
+
+        // // shift distributions
+        int n_updated;
+        diag_move_distribution(sim_offload, distr0, distr1, &n_updated);
+    }
 }
 
 void backward_monte_carlo_gc(
@@ -182,7 +259,7 @@ void backward_monte_carlo_gc(
 
         // // shift distributions
         diag_move_distribution(sim_offload, distr0, distr1, &n_updated);
-        printf("Time %f Updated %d\n", t, n_updated);
+        printf("Time %e Updated %d\n", t, n_updated);
         printf("Distribution moved\n");
 
         // reset particle initial states to ps1

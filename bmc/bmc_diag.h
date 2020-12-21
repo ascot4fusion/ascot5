@@ -10,6 +10,12 @@
 #include "../print.h"
 #include "../math.h"
 
+typedef struct {
+    int index[NSIMD * 32] __memalign__;
+    int target_hit[NSIMD * 32] __memalign__;
+    real weight[NSIMD * 32] __memalign__;
+} particle_deposit_weights;
+
 void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated);
 
 int bmc_update_distr5D(
@@ -58,3 +64,17 @@ void write_probability_distribution(
     int mpi_rank,
     int write_for_importance_sampling
 );
+
+void bmc_update_distr5D_from_weights(
+        particle_deposit_weights *p1_weights,
+        dist_5D_data* dist1,
+        dist_5D_data* dist0,
+        particle_simd_gc* p1,
+        int n_simd_particles,
+        int* p0_indexes
+    );
+
+void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
+    int n_simd_particles, particle_simd_gc *p1, particle_simd_gc *p0,
+    dist_5D_data* dist1, dist_5D_data* dist0, wall_2d_data* w2d
+    );

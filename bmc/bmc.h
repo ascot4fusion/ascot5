@@ -28,7 +28,26 @@ int backward_monte_carlo(
         real t1,
         real t0,
         real h,
-        int rk4_subcycles
+        int rk4_subcycles,
+        int time_independent
+    );
+
+void backward_monte_carlo_gc_time_indep(
+        particle_state* ps,
+        int* p0_indexes,
+        int n_mpi_particles,
+        int n_hermite_knots,
+        sim_offload_data* sim_offload,
+        sim_data* sim,
+        offload_package* offload_data,
+        real* offload_array,
+        diag_data* distr0,
+        diag_data* distr1,
+        B_field_data* Bdata,
+        real t1,
+        real t0,
+        real h,
+        real rk4_subcycles
     );
 
 void backward_monte_carlo_gc(
