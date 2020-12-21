@@ -360,3 +360,187 @@ int bmc_dist6D_fo_index(particle_state* ps, dist_6D_data* dist) {
     //                     dist->n_vr, dist->n_vphi,
     //                     dist->n_vz, 1, 1);
 }
+
+void compute_5d_coordinates_from_hist_index(int i, int* i_x, real* r, real* phi, real* z, real* ppara, real* pperp, dist_5D_offload_data* dist5D) {
+    int i1 = i;
+    i_x[4] = i1 % dist5D->n_pperp;
+    i1 = i1 / dist5D->n_pperp;
+    i_x[3] = i1 % dist5D->n_ppara;
+    i1 = i1 / dist5D->n_ppara;
+    i_x[2] = i1 % dist5D->n_z;
+    i1 = i1 / dist5D->n_z;
+    i_x[1] = i1 % dist5D->n_phi;
+    i_x[0] = i1 / dist5D->n_phi;
+    compute_element_5d_coordinates(i_x, r, phi, z, ppara, pperp, dist5D);
+}
+
+void compute_element_5d_coordinates(int* i_x_new, real* r, real* phi, real* z, real* ppara, real* pperp, dist_5D_offload_data* dist) {
+    *r = dist->min_r + (dist->max_r - dist->min_r) / dist->n_r * i_x_new[0];
+    *phi = dist->min_phi + (dist->max_phi - dist->min_phi) / dist->n_phi * i_x_new[1];
+    *z = dist->min_z + (dist->max_z - dist->min_z) / dist->n_z * i_x_new[2];
+    *ppara = dist->min_ppara + (dist->max_ppara - dist->min_ppara) / dist->n_ppara * i_x_new[3];
+    *pperp = dist->min_pperp + (dist->max_pperp - dist->min_pperp) / dist->n_pperp * i_x_new[4];
+}
+
+void bmc_5D_to_particle_state(
+        B_field_data* Bdata,
+        real r, real phi, real z,
+        real ppara, real pperp,
+        real t,
+        int id,
+        particle_state* ps,
+        real m,
+        real q,
+        int rk4_subcycles
+    ) {
+
+    a5err err = 0;
+
+    real psi[1], rho[1], B_dB[15];
+    err = B_field_eval_B_dB(B_dB, r, phi, z, t, Bdata);
+    if (!err) {
+        err = B_field_eval_psi(psi, r, phi, z,
+                                t, Bdata);
+    }
+    if(!err) {
+        err = B_field_eval_rho(rho, psi[0], Bdata);
+    }
+
+    if(!err) {
+        ps->rho        = rho[0];
+        ps->B_r        = B_dB[0];
+        ps->B_phi      = B_dB[4];
+        ps->B_z        = B_dB[8];
+        ps->B_r_dr     = B_dB[1];
+        ps->B_phi_dr   = B_dB[5];
+        ps->B_z_dr     = B_dB[9];
+        ps->B_r_dphi   = B_dB[2];
+        ps->B_phi_dphi = B_dB[6];
+        ps->B_z_dphi   = B_dB[10];
+        ps->B_r_dz     = B_dB[3];
+        ps->B_phi_dz   = B_dB[7];
+        ps->B_z_dz     = B_dB[11];
+    }
+
+    /* Input is in (Ekin,xi) coordinates but state needs (mu,vpar) so we need to do that
+        * transformation first. */
+    real Bnorm = math_normc(B_dB[0], B_dB[4], B_dB[8]);
+    real mu = 0.5 * pperp * pperp / m / Bnorm;
+    if(!err && mu < 0)          {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+
+    if(!err) {
+        ps->n_t_subcycles = rk4_subcycles;
+        ps->r        = r;
+        ps->phi      = phi;
+        ps->z        = z;
+        ps->mu       = mu;
+        ps->ppar     = ppara;
+        ps->zeta     = 0;
+        ps->mass     = m;
+        ps->charge   = q;
+        ps->anum     = 0;
+        ps->znum     = 1;
+        ps->weight   = 1;
+        ps->time     = t;
+        ps->theta    = atan2(ps->z-B_field_get_axis_z(Bdata, ps->phi),
+                                ps->r-B_field_get_axis_r(Bdata, ps->phi));
+        ps->id       = id;
+        ps->endcond  = 0;
+        ps->walltile = 0;
+        ps->cputime  = 0;
+    }
+
+    /* Guiding center transformation to get particle coordinates */
+    real rprt, phiprt, zprt, pr, pphi, pz;
+    if(!err) {
+        real pparprt, muprt, zetaprt;
+        gctransform_guidingcenter2particle(
+            ps->mass, ps->charge, B_dB,
+            ps->r, ps->phi, ps->z, ps->ppar, ps->mu, ps->zeta,
+            &rprt, &phiprt, &zprt, &pparprt, &muprt, &zetaprt);
+
+        B_field_eval_B_dB(B_dB, rprt, phiprt, zprt, ps->time, Bdata);
+
+        gctransform_pparmuzeta2prpphipz(
+            ps->mass, ps->charge, B_dB,
+            phiprt, pparprt, muprt, zetaprt,
+            &pr, &pphi, &pz);
+    }
+    if(!err && rprt <= 0) {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+
+    if(!err) {
+        ps->rprt   = rprt;
+        ps->phiprt = phiprt;
+        ps->zprt   = zprt;
+        ps->p_r    = pr;
+        ps->p_phi  = pphi;
+        ps->p_z    = pz;
+
+        ps->err = 0;
+    } else {
+        ps->err = err;
+    }
+
+}
+
+/**
+ * Write the probability distribution to the output HDF file
+ * 
+ * @param sim_offload pointer to simulation offload data
+ * @param distr pointer to distribution struct
+ * @param distr_array pointer to offload array of the distribution
+ * @param dist_length length of the distribution data
+ * @param mpi_rank MPI node rank id
+ * 
+ **/
+void write_probability_distribution(
+    sim_offload_data* sim_offload,
+    diag_data* distr,
+    real* distr_array,
+    int mpi_rank,
+    int write_for_importance_sampling
+) {
+
+    FILE *fp;
+
+    if (write_for_importance_sampling)
+        fp = fopen("distr_prob", "wb");
+
+    int dist_length = sim_offload->diag_offload_data.offload_array_length;
+
+    if (write_for_importance_sampling)
+        fwrite(distr->dist5D.histogram, sizeof(distr->dist5D.histogram), dist_length, fp);
+
+    for (int i = 0; i<dist_length; i++) {
+        // printf("%f\n", distr->dist5D.histogram[i]);
+        if (sim_offload->diag_offload_data.dist5D_collect) {
+            if (distr->dist5D.histogram[i] > 1.0001) {
+                // printf("Warning: unpysical probability: %f\n", distr->dist5D.histogram[i]);
+            }
+        }
+        if (sim_offload->diag_offload_data.dist6D_collect) {
+            if (distr->dist6D.histogram[i] > 1.0001) {
+                printf("Warning: unpysical probability: %f\n", distr->dist6D.histogram[i]);
+            }
+        }
+    }
+    if (write_for_importance_sampling)
+        fclose(fp);
+
+    /* Combine distribution and write it to HDF5 file */
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nWriting BMC probability distribution.\n");
+    if (mpi_rank == 0) {
+        int err_writediag = 0;
+        err_writediag = hdf5_interface_write_diagnostics(sim_offload, distr_array, sim_offload->hdf5_out);
+        if(err_writediag) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                    "\nWriting diagnostics failed.\n"
+                    "See stderr for details.\n");
+        }
+        else {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                    "BMC distributions written.\n");
+        }
+
+    }
+}

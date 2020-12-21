@@ -12,41 +12,7 @@
 #include "../simulate/mccc/mccc.h"
 #include "../physlib.h"
 
-void bmc_setup_endconds(sim_offload_data* sim);
-
-int fmc_init_importance_sampling_mesh(
-        int *n,
-        particle_state** ps,
-        int** ps_indexes,
-        int n_total,
-        int use_hermite,
-        sim_offload_data* sim_offload,
-        B_field_data* Bdata,
-        real* offload_array,
-        offload_package* offload_data,
-        int importanceSamplingProbability,
-        int importanceSamplingdensity
-    );
-int fmc_init_importance_sampling(
-        int *n,
-        particle_state** ps,
-        int** ps_indexes,
-        int n_total,
-        int use_hermite,
-        sim_offload_data* sim_offload,
-        B_field_data* Bdata,
-        real* offload_array
-    );
-int bmc_init_particles(
-        int *n,
-        particle_state** ps,
-        int** ps_indexes,
-        int n_per_vertex,
-        int use_hermite,
-        sim_offload_data* sim_offload,
-        B_field_data* Bdata,
-        real* offload_array
-    );
+void bmc_setup_endconds(sim_offload_data* sim, real timestep);
 
 int backward_monte_carlo(
         int n_tot_particles,
@@ -58,7 +24,11 @@ int backward_monte_carlo(
         sim_offload_data* sim_offload,
         offload_package* offload_data,
         real* offload_array,
-        int mpi_rank
+        int mpi_rank,
+        real t1,
+        real t0,
+        real h,
+        int rk4_subcycles
     );
 
 void backward_monte_carlo_gc(
@@ -72,16 +42,12 @@ void backward_monte_carlo_gc(
         real* offload_array,
         diag_data* distr0,
         diag_data* distr1,
-        B_field_data* Bdata
+        B_field_data* Bdata,
+        real t1,
+        real t0,
+        real h,
+        int rk4_subcycles
     );
-
-void write_probability_distribution(
-    sim_offload_data* sim_offload,
-    diag_data* distr,
-    real* distr_array,
-    int mpi_rank,
-    bool write_for_importance_sampling
-);
 
 int forward_monte_carlo(
         int n_tot_particles,
@@ -99,5 +65,7 @@ int forward_monte_carlo(
         int n_mic,
         int n_host,
         int mpi_rank,
-        bool importance_sampling
+        bool importance_sampling,
+        real t1,
+        real t0
     );

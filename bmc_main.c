@@ -1,3 +1,10 @@
+#define N_MONTECARLO_STEPS 5
+#define TIMESTEP 1E-7 // TODO use input HDF
+#define T0 9E-7
+#define T1 1E-6
+#define MASS 3.3452438E-27
+#define CHARGE 1.60217662E-19
+#define RK4_SUBCYCLES 5
 /**
  * @file ascot5_main.c
  * @brief ASCOT5 stand-alone program
@@ -73,6 +80,7 @@
 #include "offload.h"
 #include "gitver.h"
 #include "bmc/bmc.h"
+#include "bmc/bmc_init.h"
 #include "mpi_interface.h"
 
 #define HERMITE_KNOTS 5
@@ -177,7 +185,7 @@ int main(int argc, char** argv) {
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
 
     // setup endpoint conditions, total time=1, wall collision enabled
-    bmc_setup_endconds(&sim);
+    bmc_setup_endconds(&sim, TIMESTEP);
 
     real diag_offload_array_size = sim.diag_offload_data.offload_array_length
         * sizeof(real) / (1024.0*1024.0);
@@ -192,7 +200,7 @@ int main(int argc, char** argv) {
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
-    if (bmc_init_particles(&n, &ps, &ps_indexes, 1, 0, &sim, &Bdata, offload_array)) {
+    if (bmc_init_particles(&n, &ps, &ps_indexes, 1, 0, &sim, &Bdata, offload_array, T1, MASS, CHARGE, RK4_SUBCYCLES)) {
         goto CLEANUP_FAILURE;
     }
     int n_total_particles = n;
@@ -244,7 +252,7 @@ int main(int argc, char** argv) {
 
     // SIMULATE HERE
     if (backward_monte_carlo(n_total_particles, n, HERMITE_KNOTS, ps, ps_indexes,
-                            &Bdata, &sim, &offload_data, offload_array, mpi_rank)) {
+                            &Bdata, &sim, &offload_data, offload_array, mpi_rank, T1, T0, TIMESTEP, RK4_SUBCYCLES)) {
         goto CLEANUP_FAILURE;
     }
 
