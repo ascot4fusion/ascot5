@@ -383,7 +383,7 @@ int forward_monte_carlo(
     }
     printf("Value of integrated signal:%f\n", sum);
 
-    write_probability_distribution(sim_offload, &distr0, distr0_array, mpi_rank, true);
+    write_probability_distribution(sim_offload, &distr0, distr0_array, mpi_rank, false);
 
     // // Free diagnostic data
     #ifdef TARGET
