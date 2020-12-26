@@ -14,10 +14,13 @@ int fmc_init_importance_sampling_mesh(
         offload_package* offload_data,
         int importanceSamplingProbability,
         int importanceSamplingdensity,
+        int importanceSamplingFromParticles,
         real t,
         real m,
         real q,
-        int rk4_subcycles
+        int rk4_subcycles,
+        particle_state* input_ps,
+        int input_n_ps
     ) {
     // vacate the phase space to find the phase-space points in the mesh
     // suitable for simulating the BMC scheme
@@ -81,7 +84,7 @@ int fmc_init_importance_sampling_mesh(
     int dist_length = sim_offload->diag_offload_data.offload_array_length;
     real *histogram = (real*)malloc(dist_length * sizeof(real));
 
-    buildImportantSamplingHistogram(dist_length, histogram, &dist5D, &sim.plasma_data, Bdata, importanceSamplingProbability, importanceSamplingdensity, t);
+    buildImportantSamplingHistogram(dist_length, histogram, &dist5D, &sim.plasma_data, Bdata, importanceSamplingProbability, importanceSamplingdensity, importanceSamplingFromParticles, t, input_ps, input_n_ps, &sim.wall_data.w2d);
 
     int *nparticlesHistogram = (int*)malloc(dist_length * sizeof(int));
 
@@ -162,10 +165,14 @@ void buildImportantSamplingHistogram(
     B_field_data* Bdata,
     int importanceSamplingProbability,
     int importanceSamplingdensity,
-    real t
+    int importanceSamplingFromInputParticles,
+    real t,
+    particle_state* ps,
+    int n_ps,
+    wall_2d_data* w2d
 ) {
 
-    real *histogram_probability;
+    real *histogram_probability, *histogram_from_particles;
     FILE *p_probability;
     if (importanceSamplingProbability) {
         p_probability = fopen("distr_prob", "rb");
@@ -175,6 +182,21 @@ void buildImportantSamplingHistogram(
         }
         histogram_probability = (real*)malloc(dist_length * sizeof(real));
         fread(histogram_probability, sizeof(real), dist_length, p_probability);
+    }
+
+    if (importanceSamplingFromInputParticles) {
+        histogram_from_particles = (real*)calloc(dist_length, sizeof(real));
+        int indexes[32], target_hit[32];
+        real weights[32];
+
+        for (int i=0; i <= n_ps; i++) {
+            bmc_dist5D_state_indexes(&ps[i], indexes, weights, target_hit, &ps[i], dist5D, w2d);
+            for (int j=0; j<=32; j++) {
+                if (target_hit[j])
+                    continue;
+                histogram_from_particles[indexes[j]] += weights[j];
+            }
+        }
     }
 
     real r,phi,z,ppara,pperp, dens[10];
@@ -190,7 +212,9 @@ void buildImportantSamplingHistogram(
             continue;
         }
 
-        if (importanceSamplingdensity) {
+        if (importanceSamplingFromInputParticles) {
+            histogram[i] *= histogram_from_particles[i];
+        } else if (importanceSamplingdensity) {
 
             real psi[1], rho[1], B_dB[15];
             B_field_eval_B_dB(B_dB, r, phi, z, t, Bdata);

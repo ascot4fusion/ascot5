@@ -4,7 +4,7 @@
 // number of markers for each mesh node
 #define N_MONTECARLO_STEPS 5
 #define TIMESTEP 1E-7 // TODO use input HDF
-#define T0 9E-7
+#define T0 1E-6
 #define T1 1E-6
 #define MASS 3.3452438E-27
 #define CHARGE 1.60217662E-19
@@ -14,8 +14,9 @@
 // If importance sampling is enabled, total particles are used and N_MONTECARLO_STEPS is ignored
 #define IMPORTANCE_SAMPLING 1
 #define IMPORTANCE_SAMPLING_TOTAL_PARTICLES 1645000
-#define IMPORTANCE_SAMPLING_DENSITY 0
-#define IMPORTANCE_SAMPLING_PROBABILITY 1
+#define IMPORTANCE_SAMPLING_DENSITY 0 // follow a distribution hardcoded in bmc_init.h, buildImportantSamplingHistogram()
+#define IMPORTANCE_SAMPLING_PROBABILITY 0 // add importance sampling from bmc output probability matrix. To use this, a BMC sim must be run first
+#define IMPORTANCE_SAMPLING_FROM_PARTICLES 1 // follow distribuition of particles from input h5 file. This excludes IMPORTANCE_SAMPLING_DENSITY
 
 /**
  * @file ascot5_main.c
@@ -210,13 +211,20 @@ int main(int argc, char** argv) {
     B_field_data Bdata;
     B_field_init(&Bdata, &sim.B_offload_data, B_offload_array);
 
+    // convert input particles to particle state.
+    // they should be used to init importance sampling if needed
+    particle_state* input_ps = (particle_state*) malloc(n * sizeof(particle_state));
+    for(int i = 0; i < n; i++) {
+        particle_input_to_state(&p[i], &input_ps[i], &Bdata);
+    }
+
     /* Set up particlestates on host, needs magnetic field evaluation */
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
     if (IMPORTANCE_SAMPLING) {
         if (fmc_init_importance_sampling_mesh(&n, &ps, &ps_indexes, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, 0, &sim, &Bdata, offload_array, &offload_data,
-            IMPORTANCE_SAMPLING_PROBABILITY, IMPORTANCE_SAMPLING_DENSITY, T1, MASS, CHARGE, RK4_SUBCYCLES
+            IMPORTANCE_SAMPLING_PROBABILITY, IMPORTANCE_SAMPLING_DENSITY, IMPORTANCE_SAMPLING_FROM_PARTICLES, T1, MASS, CHARGE, RK4_SUBCYCLES, input_ps, n
         )) {
             goto CLEANUP_FAILURE;
         }

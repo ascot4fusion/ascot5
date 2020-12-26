@@ -13,10 +13,13 @@ int fmc_init_importance_sampling_mesh(
         offload_package* offload_data,
         int importanceSamplingProbability,
         int importanceSamplingdensity,
+        int importanceSamplingFromParticles,
         real t,
         real m,
         real q,
-        int rk4_subcycles
+        int rk4_subcycles,
+        particle_state* input_ps,
+        int input_n_ps
     );
 int fmc_init_importance_sampling(
         int *n,
@@ -56,7 +59,11 @@ void buildImportantSamplingHistogram(
     B_field_data* Bdata,
     int importanceSamplingProbability,
     int importanceSamplingdensity,
-    real t
+    int importanceSamplingFromInputParticles,
+    real t,
+    particle_state* ps,
+    int n_ps,
+    wall_2d_data* w2d
 );
 
 void bmc_init_fo_particle(
