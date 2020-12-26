@@ -365,8 +365,9 @@ int forward_monte_carlo(
 
     // // // Update the probability distribution
     int n_updated;
+    int n_loss = 0;
     if (distr0.dist5D_collect) {
-        n_updated = fmc_update_distr5D_from_states(&distr1.dist5D, &distr0.dist5D, ps1_indexes, ps1, n_mpi_particles, &(sim.wall_data.w2d));
+        n_updated = fmc_update_distr5D_from_states(&distr1.dist5D, &distr0.dist5D, ps1_indexes, ps1, n_mpi_particles, &(sim.wall_data.w2d), &n_loss);
         
     } else {
         // TODO: Full orbit
@@ -375,7 +376,8 @@ int forward_monte_carlo(
     // // shift distributions. Required since distr1 is partitioned through all the MPI nodes,
     // // and can't be written directly to disk
     diag_move_distribution(sim_offload, &distr0, &distr1, &n_updated);
-    printf("Updated %d\n", n_updated);
+    printf("Target domain hit n_markers: %d\n", n_updated);
+    printf("Wall hit not in target n_markers: %d\n", n_loss);
 
     real sum = 0, dens[5];
     for (int i=0; i < dist_length; i++) {

@@ -29,10 +29,12 @@ int fmc_update_distr5D_from_states(
         int* p0_indexes,
         particle_state* p1,
         int n_particles,
-        wall_2d_data* w2d
+        wall_2d_data* w2d,
+        int *n_loss
     ) {
 
     int n_updated = 0;
+    *n_loss = 0;
 
     for(int i = 0; i < n_particles; i++) {
 
@@ -44,6 +46,9 @@ int fmc_update_distr5D_from_states(
             n_updated++;
             dist1->histogram[p0_indexes[i]] += p1[i].hermite_weights;
             continue;
+        }
+        else if (p1[i].walltile > 0) {
+            *n_loss = *n_loss + 1;
         }
     }
     return n_updated;
