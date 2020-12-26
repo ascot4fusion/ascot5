@@ -366,7 +366,7 @@ int forward_monte_carlo(
     // // // Update the probability distribution
     int n_updated;
     if (distr0.dist5D_collect) {
-        n_updated = fmc_update_distr5D_from_states(&distr1.dist5D, &distr0.dist5D, ps1_indexes, ps1, ps0, n_mpi_particles, &(sim.wall_data.w2d));
+        n_updated = fmc_update_distr5D_from_states(&distr1.dist5D, &distr0.dist5D, ps1_indexes, ps1, n_mpi_particles, &(sim.wall_data.w2d));
         
     } else {
         // TODO: Full orbit

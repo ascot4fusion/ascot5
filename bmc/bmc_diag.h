@@ -33,7 +33,6 @@ int fmc_update_distr5D_from_states(
         dist_5D_data* dist0,
         int* p0_indexes,
         particle_state* p1,
-        particle_state* p0,
         int n_particles,
         wall_2d_data* w2d
     );
