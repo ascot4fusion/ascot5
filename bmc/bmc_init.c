@@ -220,18 +220,22 @@ void buildImportantSamplingHistogram(
             B_field_eval_B_dB(B_dB, r, phi, z, t, Bdata);
             B_field_eval_psi(psi, r, phi, z, t, Bdata);
             B_field_eval_rho(rho, psi[0], Bdata);
-
             plasma_eval_dens(dens, rho[0], r, phi, z, 0, 1, plasma_data);
 
+            // add space distribution from NBI AUG Q8 source
+            if ((phi >= 3.67) && (phi <= 4.19)) {
+                histogram[i] *= exp (2.61*r -(z-0.093)*(z-0.093) / 0.021);
+            }
+
             // add space distribution from background plasma
-            histogram[i] *= dens[0];
+            // histogram[i] *= dens[0];
 
             // add velocity distribution
-            if ((fabs(ppara) <= 6E-20) && (fabs(ppara) >= 0E-20) && (fabs(pperp) <= 6E-20) && (fabs(pperp) >= 0E-30)) {
-                    histogram[i] *= 1;
-            } else {
-                    histogram[i] = 0;
-            }
+            // if ((fabs(ppara) <= 6E-20) && (fabs(ppara) >= 0E-20) && (fabs(pperp) <= 6E-20) && (fabs(pperp) >= 0E-30)) {
+            //         histogram[i] *= 1;
+            // } else {
+            //         histogram[i] = 0;
+            // }
         } 
         if (importanceSamplingProbability) {
             histogram[i] *= histogram_probability[i];
