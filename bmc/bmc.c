@@ -326,6 +326,7 @@ int forward_monte_carlo(
     // init sim data
     sim_data sim;
     sim_init(&sim, sim_offload);
+    offload_data->unpack_pos = 0;
     real* ptr = offload_unpack(offload_data, offload_array,
             sim_offload->B_offload_data.offload_array_length);
     B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
