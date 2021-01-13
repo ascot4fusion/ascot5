@@ -582,7 +582,7 @@ void bmc_update_distr5D_from_weights(
 
     for(int i = 0; i < n_simd_particles; i++) {
 
-        #pragma omp simd
+        // #pragma omp simd
         for (int j=0; j<NSIMD; j++) {
             int index;
             real weight;
