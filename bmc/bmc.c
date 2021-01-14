@@ -152,8 +152,8 @@ void backward_monte_carlo_gc_time_indep(
         printf("Time %e\n", t);
 
         // // shift distributions
-        int n_updated;
-        diag_move_distribution(sim_offload, distr0, distr1, &n_updated);
+        int n_updated, n_loss;
+        diag_move_distribution(sim_offload, distr0, distr1, &n_updated, &n_loss);
     }
 }
 
@@ -258,7 +258,8 @@ void backward_monte_carlo_gc(
         
 
         // // shift distributions
-        diag_move_distribution(sim_offload, distr0, distr1, &n_updated);
+        int nloss;
+        diag_move_distribution(sim_offload, distr0, distr1, &n_updated, &nloss);
         printf("Time %e Updated %d\n", t, n_updated);
         printf("Distribution moved\n");
 
@@ -376,7 +377,8 @@ int forward_monte_carlo(
 
     // // shift distributions. Required since distr1 is partitioned through all the MPI nodes,
     // // and can't be written directly to disk
-    diag_move_distribution(sim_offload, &distr0, &distr1, &n_updated);
+    diag_move_distribution(sim_offload, &distr0, &distr1, &n_updated, &n_loss);
+    printf("Total number of markers: %d\n", n_tot_particles);
     printf("Target domain hit n_markers: %d\n", n_updated);
     printf("Wall hit not in target n_markers: %d\n", n_loss);
 

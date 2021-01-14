@@ -1,12 +1,13 @@
 #include "bmc_diag.h"
 
-void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated) {
+void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated, int* nloss) {
     // copy into diag_dest
     int dist_length = sim->diag_offload_data.offload_array_length;
     #ifdef MPI
         if (sim->diag_offload_data.dist5D_collect) {
             MPI_Allreduce(diag_src->dist5D.histogram, diag_dest->dist5D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(updated, updated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(nloss, nloss, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
             memset(diag_src->dist5D.histogram, 0, dist_length);
         } else if (sim->diag_offload_data.dist6D_collect) {
             MPI_Allreduce(diag_src->dist6D.histogram, diag_dest->dist6D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
