@@ -1,6 +1,6 @@
 #include "bmc_diag.h"
 
-void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated, int* nloss) {
+void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated, int* nloss, int* n_err) {
     // copy into diag_dest
     int dist_length = sim->diag_offload_data.offload_array_length;
     #ifdef MPI
@@ -8,6 +8,7 @@ void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_da
             MPI_Allreduce(diag_src->dist5D.histogram, diag_dest->dist5D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(updated, updated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(nloss, nloss, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(n_err, n_err, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
             memset(diag_src->dist5D.histogram, 0, dist_length);
         } else if (sim->diag_offload_data.dist6D_collect) {
             MPI_Allreduce(diag_src->dist6D.histogram, diag_dest->dist6D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -31,15 +32,18 @@ int fmc_update_distr5D_from_states(
         particle_state* p1,
         int n_particles,
         wall_2d_data* w2d,
-        int *n_loss
+        int *n_loss,
+        int *n_err
     ) {
 
     int n_updated = 0;
     *n_loss = 0;
+    *n_err = 0;
 
     for(int i = 0; i < n_particles; i++) {
 
         if (p1[i].err) {
+            *n_err = *n_err + 1;
             continue;
         }
 
