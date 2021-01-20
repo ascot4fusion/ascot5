@@ -220,18 +220,23 @@ int main(int argc, char** argv) {
     for(int i = 0; i < n; i++) {
         particle_input_to_state(&p[i], &input_ps[i], &Bdata);
     }
+    int n_input = n;
 
     /* Set up particlestates on host, needs magnetic field evaluation */
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
     if (IMPORTANCE_SAMPLING) {
-        if (fmc_init_importance_sampling_mesh(&n, &ps, &ps_indexes, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, 0, &sim, &Bdata, offload_array, &offload_data,
-            IMPORTANCE_SAMPLING_PROBABILITY, IMPORTANCE_SAMPLING_DENSITY, IMPORTANCE_SAMPLING_FROM_PARTICLES, T1, MASS, CHARGE, RK4_SUBCYCLES, input_ps, n
-        )) {
-            goto CLEANUP_FAILURE;
-        }
+        printf("Using importance sampling\n");
+
+        // if (fmc_init_importance_sampling_mesh(&n, &ps, &ps_indexes, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, 0, &sim, &Bdata, offload_array, &offload_data,
+        //     IMPORTANCE_SAMPLING_PROBABILITY, IMPORTANCE_SAMPLING_DENSITY, IMPORTANCE_SAMPLING_FROM_PARTICLES, T1, MASS, CHARGE, RK4_SUBCYCLES, input_ps, n_input
+        // )) {
+        //     goto CLEANUP_FAILURE;
+        // }
+        fmc_init_importance_sampling_from_source_distribution(&n, &ps, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, IMPORTANCE_SAMPLING_PROBABILITY, RK4_SUBCYCLES, input_ps, n_input);
     } else {
+        printf("Not using importance sampling. Using %d markers per node\n", N_MONTECARLO_STEPS);
         if (bmc_init_particles(&n, &ps, &ps_indexes, N_MONTECARLO_STEPS, 0, &sim, &Bdata, offload_array, T0, MASS, CHARGE, RK4_SUBCYCLES)) {
             goto CLEANUP_FAILURE;
         }
@@ -298,15 +303,33 @@ int main(int argc, char** argv) {
     fflush(stdout);
 
     // SIMULATE HERE
-    if (forward_monte_carlo(
-        n_total_particles, n, N_MONTECARLO_STEPS, ps, ps_indexes,
-        &Bdata, &sim, &offload_data, offload_array,
-        &mic1_start, &mic1_end,
-        &mic0_start, &mic0_end,
-        &host_start, &host_end,
-        n_mic, n_host, mpi_rank, IMPORTANCE_SAMPLING, T1, T0)) {
-            goto CLEANUP_FAILURE;
-        }
+    if (IMPORTANCE_SAMPLING) {
+        if (forward_monte_carlo_from_source_particles(
+            n_total_particles, n, ps, 
+            input_ps, n_input,
+            &Bdata, &sim, &offload_data, offload_array,
+            &mic1_start, &mic1_end,
+            &mic0_start, &mic0_end,
+            &host_start, &host_end,
+            n_mic, n_host, mpi_rank,
+            IMPORTANCE_SAMPLING, T1, T0,
+            DEBUG_INPUT_DISTRIBUTION, DEBUG_HIT_TIME)) {
+                goto CLEANUP_FAILURE;
+            }
+    } else {
+        if (forward_monte_carlo(
+            n_total_particles, n, N_MONTECARLO_STEPS, ps, ps_indexes,
+            input_ps, n_input,
+            &Bdata, &sim, &offload_data, offload_array,
+            &mic1_start, &mic1_end,
+            &mic0_start, &mic0_end,
+            &host_start, &host_end,
+            n_mic, n_host, mpi_rank,
+            IMPORTANCE_SAMPLING, T1, T0,
+            DEBUG_INPUT_DISTRIBUTION, DEBUG_HIT_TIME)) {
+                goto CLEANUP_FAILURE;
+            }
+    }
 
     /* Code execution returns to host. */
     print_out0(VERBOSE_NORMAL, mpi_rank, "mic0 %lf s, mic1 %lf s, host %lf s\n",

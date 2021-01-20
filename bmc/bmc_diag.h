@@ -18,6 +18,14 @@ typedef struct {
 
 void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated, int* nloss, int* n_err);
 
+real fmc_compute_signal_from_states(
+    int n_particles,
+    particle_state* ps,
+    int* n_updated,
+    int* n_loss,
+    int* n_err
+);
+
 int bmc_update_distr5D(
         dist_5D_data* dist1,
         dist_5D_data* dist0,
