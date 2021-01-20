@@ -12,7 +12,30 @@ void buildDensityMatrixFromInputParticles(
     wall_2d_data* w2d
 );
 
-#include "../print.h"
+int init_simd_gc_particles(particle_state* ps, int n_ps, particle_simd_gc** p, B_field_data* Bdata);
+
+void buildParticlesWeightsFromProbabilityMatrix(
+    real* probabilityMatrix,
+    real* weights,
+    particle_state* ps,
+    int n,
+    dist_5D_data* dist,
+    wall_2d_data* w2d
+);
+
+int fmc_init_importance_sampling_from_source_distribution(
+        int *n,
+        particle_state** ps,
+        int n_total,
+        sim_offload_data* sim_offload,
+        B_field_data* Bdata,
+        real* offload_array,
+        offload_package* offload_data,
+        int importanceSamplingProbability,
+        int rk4_subcycles,
+        particle_state* input_ps,
+        int input_n_ps
+    );
 
 int fmc_init_importance_sampling_mesh(
         int *n,

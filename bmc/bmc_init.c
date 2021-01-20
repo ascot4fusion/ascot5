@@ -2,6 +2,144 @@
 
 #define PI2E0_5 2.50662827463
 
+void buildParticlesWeightsFromProbabilityMatrix(
+    real* probabilityMatrix,
+    real* weights,
+    particle_state* ps,
+    int n,
+    dist_5D_data* dist,
+    wall_2d_data* w2d
+) {
+
+    int indexes[32];
+    real p_weights[32];
+    int hits[32];
+    for (int i=0; i<=n; i++) {
+        bmc_dist5D_state_indexes(&(ps[i]), indexes, p_weights, hits, &(ps[i]), dist, w2d);
+
+        weights[i] = 0;
+        for (int j=0; j<32; j++) {
+            weights[i] = weights[i] + p_weights[j] * probabilityMatrix[indexes[j]];
+        }
+    }
+}
+
+int fmc_init_importance_sampling_from_source_distribution(
+        int *n,
+        particle_state** ps,
+        int n_total,
+        sim_offload_data* sim_offload,
+        B_field_data* Bdata,
+        real* offload_array,
+        offload_package* offload_data,
+        int importanceSamplingProbability,
+        int rk4_subcycles,
+        particle_state* input_ps,
+        int input_n_ps
+    ) {
+    // vacate the phase space to find the phase-space points in the mesh
+    // suitable for simulating the BMC scheme
+
+    // init sim data
+    sim_data sim;
+    sim_init(&sim, sim_offload);
+    real* ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->B_offload_data.offload_array_length);
+    B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->E_offload_data.offload_array_length);
+    E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->plasma_offload_data.offload_array_length);
+    plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->neutral_offload_data.offload_array_length);
+    neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->wall_offload_data.offload_array_length);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+
+    real* distr_array;
+    diag_init_offload(&sim_offload->diag_offload_data, &distr_array, 1);
+    dist_5D_offload_data dist5D = sim_offload->diag_offload_data.dist5D;
+    int dist_length = sim_offload->diag_offload_data.offload_array_length;
+
+    real importanceSamplingWeights[input_n_ps];
+
+    // compute Ekin for each input particle
+    real Ekin[input_n_ps];
+    for (int i=0; i<input_n_ps; i++) {
+        real Brpz[3] = {input_ps[i].B_r, input_ps[i].B_phi, input_ps[i].B_z};
+        real Bnorm   = math_norm(Brpz);
+        real p = physlib_gc_p( input_ps[i].mass, input_ps[i].mu, input_ps[i].ppar, Bnorm);
+        Ekin[i] = physlib_Ekin_pnorm(input_ps[i].mass, p);
+
+        importanceSamplingWeights[i] = Ekin[i];
+        importanceSamplingWeights[i] = 1;
+    }
+    
+    if (importanceSamplingProbability) {
+        FILE* f_probability = fopen("distr_prob", "rb");
+        if (f_probability == NULL) {
+            printf("Warning: Cannot open probability matrix file for importance sampling\n");
+            abort();
+        }
+        real weightsFromProbability[input_n_ps];
+        real* probabilityMatrix = (real*)malloc(dist_length * sizeof(real));
+        fread(probabilityMatrix, sizeof(real), dist_length, f_probability);
+
+        printf("diocane %e\n", probabilityMatrix[332870]);
+
+            buildParticlesWeightsFromProbabilityMatrix(probabilityMatrix, weightsFromProbability, input_ps, input_n_ps, &dist5D, &sim.wall_data.w2d);
+
+        for (int i=0; i<= input_n_ps; i++) {
+            importanceSamplingWeights[i] = importanceSamplingWeights[i] * weightsFromProbability[i];
+        }
+    }
+
+    real sum = 0;
+    for (int i=0; i<input_n_ps; i++) {
+       sum += importanceSamplingWeights[i];
+    }
+    printf("Init initial Importance sampling weights sum %e\n", sum);
+    *n = 0;
+    int nparticlesHistogram[input_n_ps];
+    for (int i=0; i<input_n_ps; i++) {
+        nparticlesHistogram[i] = ceil(importanceSamplingWeights[i] / sum * n_total);
+        *n += nparticlesHistogram[i];
+    }
+
+    *ps = (particle_state *)malloc(*n * sizeof(particle_state));
+    particle_state* ps_tmp; // tmp particle
+
+    int i_tot = 0;
+    for (int i=0; i<input_n_ps; i++) {
+        for (int j=0; j<nparticlesHistogram[i]; ++j) {
+            memcpy(*ps + i_tot, &(input_ps[i]), sizeof(particle_state));
+            ps_tmp = *ps + i_tot;
+            ps_tmp->n_t_subcycles = rk4_subcycles;
+            ps_tmp->weight = ps_tmp->weight / nparticlesHistogram[i];
+            ps_tmp->weight = ps_tmp->weight * Ekin[i];
+            i_tot++;
+        }
+    }
+
+    printf("Initialized %d %d particles\n", *n, i_tot);
+
+    printf("BMC mesh and markers initialization complete.\n");
+    printf("Mesh size: rmin %f\trmax %e\tnr %d\n", dist5D.min_r, dist5D.max_r, dist5D.n_r);
+    printf("Mesh size: phimin %f\tphimax %e\tnphi %d\n", dist5D.min_phi, dist5D.max_phi, dist5D.n_phi);
+    printf("Mesh size: zmin %f\tzmax %e\tnz %d\n", dist5D.min_z, dist5D.max_z, dist5D.n_z);
+    printf("Mesh size: pparamin %f\tpparamax %e\tnppara %d\n", dist5D.min_ppara, dist5D.max_ppara, dist5D.n_ppara);
+    printf("Mesh size: pperpmin %f\tpperpmax %e\tnpperp %d\n", dist5D.min_pperp, dist5D.max_pperp, dist5D.n_pperp);
+     
+    return 0;
+}
+
 int fmc_init_importance_sampling_mesh(
         int *n,
         particle_state** ps,

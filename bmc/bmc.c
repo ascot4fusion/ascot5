@@ -442,3 +442,139 @@ int forward_monte_carlo(
     return 0;
 
 }
+
+
+int forward_monte_carlo_from_source_particles(
+        int n_tot_particles,
+        int n_mpi_particles,
+        particle_state* ps,
+        particle_state* input_particles,
+        int n_input_particles,
+        B_field_data* Bdata,
+        sim_offload_data* sim_offload,
+        offload_package* offload_data,
+        real* offload_array,
+        double* mic1_start, double* mic1_end,
+        double* mic0_start, double* mic0_end,
+        double* host_start, double* host_end,
+        int n_mic,
+        int n_host,
+        int mpi_rank,
+        bool importance_sampling,
+        real t1,
+        real t0,
+        int debugInputDistribution,
+        int debugHitTime
+    ) {
+
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nStarting Forward Monte Carlo from source particles. N particles: %d.\n", n_mpi_particles);
+
+    /* Allow threads to spawn threads */
+    omp_set_nested(1);
+
+    for(int i = 0; i < 10; i++) {
+        printf("Particle %d %f %f %f %f %f %f %f\n", i, ps[i].r, ps[i].phi, ps[i].z, ps[i].ppar, ps[i].rho, ps[i].rprt, ps[i].p_r);
+    }
+
+    // initialize distributions
+    diag_data distr;
+    real* distr_array;
+    diag_init_offload(&sim_offload->diag_offload_data, &distr_array, 1);
+    diag_init(&distr, &sim_offload->diag_offload_data, distr_array);
+    int dist_length = sim_offload->diag_offload_data.offload_array_length;
+
+    /* Initialize diagnostics offload data.
+     * Separate arrays for host and target */
+    // diagnostic might be useless for BMC. Remove this?
+    real* diag_offload_array_mic0, *diag_offload_array_mic1, *diag_offload_array_host;
+    #ifdef TARGET
+        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic0, n_tot_particles);
+        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic1, n_tot_particles);
+    #else
+        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_host, n_tot_particles);
+    #endif
+
+
+    // init sim data
+    sim_data sim;
+    sim_init(&sim, sim_offload);
+    offload_data->unpack_pos = 0;
+    real* ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->B_offload_data.offload_array_length);
+    B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->E_offload_data.offload_array_length);
+    E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->plasma_offload_data.offload_array_length);
+    plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->neutral_offload_data.offload_array_length);
+    neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->wall_offload_data.offload_array_length);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+
+    // setup time end conditions.
+    // By setting the end time to be the initial time,
+    // the simulation is forced to end after 1 timestep
+    sim_offload->endcond_max_simtime = t1;
+
+    // set time in particle states
+    for(int i = 0; i < n_mpi_particles; i++) {
+        ps[i].time = t0;
+    }
+
+    // simulate one step of all needed particles
+    fmc_simulation(ps, sim_offload, offload_data, offload_array,
+                        mic1_start, mic1_end, mic0_start, mic0_end, host_start, host_end, n_mic, n_host,
+                        diag_offload_array_host, diag_offload_array_mic0, diag_offload_array_mic1);
+    
+
+    // // // Update the probability distribution
+    int n_updated;
+    int n_loss = 0, n_err = 0;
+    real powerLoad = fmc_compute_signal_from_states(n_mpi_particles, ps, &n_updated, &n_loss, &n_err);
+
+    // print wall hit time to file
+    if (debugHitTime) {
+        FILE *hitFile;
+        hitFile = fopen("hitTime", "w");
+
+        real time;
+        a5err err;
+        int walltile;
+        for (int i = 0; i < n_mpi_particles; i++) {
+            err = ps[i].err;
+            walltile = ps[i].walltile;
+            time = ps[i].time;
+            if (ps[i].err != 0) {
+                // printf("r_z %d %e %e %e\n", ps[i].id, ps[i].r, ps[i].z, ps[i].ppar); 
+                time = -1E-4;
+                walltile = 0;
+            }
+            printf("hittime %d %e %d %d\n", ps[i].id, time, walltile, err);
+        }
+    }
+
+    printf("Total number of markers: %d\n", n_tot_particles);
+    printf("Target domain hit n_markers: %d\n", n_updated);
+    printf("Wall hit not in target n_markers: %d\n", n_loss);
+    printf("Err markers: %d\n", n_err);
+    printf("Value of power load: %e\n", powerLoad);
+    
+    // // Free diagnostic data
+    #ifdef TARGET
+        diag_free_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic0);
+        diag_free_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic1);
+    #else
+        diag_free_offload(&sim_offload->diag_offload_data, &diag_offload_array_host);
+    #endif
+
+    return 0;
+
+}

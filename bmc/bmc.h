@@ -15,6 +15,29 @@
 
 void bmc_setup_endconds(sim_offload_data* sim, real timestep);
 
+int forward_monte_carlo_from_source_particles(
+        int n_tot_particles,
+        int n_mpi_particles,
+        particle_state* ps,
+        particle_state* input_particles,
+        int n_input_particles,
+        B_field_data* Bdata,
+        sim_offload_data* sim_offload,
+        offload_package* offload_data,
+        real* offload_array,
+        double* mic1_start, double* mic1_end,
+        double* mic0_start, double* mic0_end,
+        double* host_start, double* host_end,
+        int n_mic,
+        int n_host,
+        int mpi_rank,
+        bool importance_sampling,
+        real t1,
+        real t0,
+        int debugInputDistribution,
+        int debugHitTime
+    );
+
 int backward_monte_carlo(
         int n_tot_particles,
         int n_mpi_particles,

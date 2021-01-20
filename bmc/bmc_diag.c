@@ -25,6 +25,37 @@ void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_da
     #endif
 }
 
+real fmc_compute_signal_from_states(
+    int n_particles,
+    particle_state* ps,
+    int* n_updated,
+    int* n_loss,
+    int* n_err
+) {
+    *n_updated = 0;
+    *n_loss = 0;
+    *n_err = 0;
+    real signal = 0;
+
+    for(int i = 0; i < n_particles; i++) {
+
+        if (ps[i].err) {
+            *n_err = *n_err + 1;
+            continue;
+        }
+
+        if ((ps[i].walltile > 0) && (bmc_walltile_in_target(ps[i].walltile))) {
+            *n_updated = *n_updated + 1;
+            signal += ps[i].weight;
+
+        }
+        else if (ps[i].walltile > 0) {
+            *n_loss = *n_loss + 1;
+        }
+    }
+    return signal;
+}
+
 int fmc_update_distr5D_from_states(
         dist_5D_data* dist1,
         dist_5D_data* dist0,
