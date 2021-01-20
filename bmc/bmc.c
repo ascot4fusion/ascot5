@@ -274,6 +274,8 @@ int forward_monte_carlo(
         int n_montecarlo_steps,
         particle_state* ps1,
         int* ps1_indexes,
+        particle_state* input_particles,
+        int n_input_particles,
         B_field_data* Bdata,
         sim_offload_data* sim_offload,
         offload_package* offload_data,
@@ -383,12 +385,18 @@ int forward_monte_carlo(
     printf("Wall hit not in target n_markers: %d\n", n_loss);
     printf("Err markers: %d\n", n_err);
 
-    real sum = 0, dens[5];
+    // build the initial density matrix for computing the output signal
+    real *initialDensityMatrix;
+    buildDensityMatrixFromInputParticles(&initialDensityMatrix, dist_length, n_input_particles, input_particles, &distr0.dist5D, &(sim.wall_data.w2d));
+
+    real sum = 0, dens[5], powerLoad = 0;
     for (int i=0; i < dist_length; i++) {
         sum += distr0.dist5D.histogram[i];
+        powerLoad += distr0.dist5D.histogram[i] * initialDensityMatrix[i];
     }
-    printf("Value of integrated signal:%f\n", sum);
-
+    printf("Value of unweighted integrated signal: %e\n", sum);
+    printf("Value of power load: %e\n", powerLoad);
+    
     write_probability_distribution(sim_offload, &distr0, distr0_array, mpi_rank, false);
 
     // // Free diagnostic data

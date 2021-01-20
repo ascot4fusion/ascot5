@@ -1,4 +1,17 @@
 #include "../simulate.h"
+// #include "./bmc_diag.h"
+#include "../print.h"
+#include "../physlib.h"
+
+void buildDensityMatrixFromInputParticles(
+    real **histogram,
+    int dist_length,
+    int n_particles,
+    particle_state* input_particles,
+    dist_5D_offload_data* dist5D,
+    wall_2d_data* w2d
+);
+
 #include "../print.h"
 
 int fmc_init_importance_sampling_mesh(
