@@ -152,8 +152,8 @@ void backward_monte_carlo_gc_time_indep(
         printf("Time %e\n", t);
 
         // // shift distributions
-        int n_updated, n_loss;
-        diag_move_distribution(sim_offload, distr0, distr1, &n_updated, &n_loss);
+        int n_updated, n_loss, n_err;
+        diag_move_distribution(sim_offload, distr0, distr1, &n_updated, &n_loss, &n_err);
     }
 }
 
@@ -258,8 +258,8 @@ void backward_monte_carlo_gc(
         
 
         // // shift distributions
-        int nloss;
-        diag_move_distribution(sim_offload, distr0, distr1, &n_updated, &nloss);
+        int nloss, n_err;
+        diag_move_distribution(sim_offload, distr0, distr1, &n_updated, &nloss, &n_err);
         printf("Time %e Updated %d\n", t, n_updated);
         printf("Distribution moved\n");
 
@@ -367,9 +367,9 @@ int forward_monte_carlo(
 
     // // // Update the probability distribution
     int n_updated;
-    int n_loss = 0;
+    int n_loss = 0, n_err = 0;
     if (distr0.dist5D_collect) {
-        n_updated = fmc_update_distr5D_from_states(&distr1.dist5D, &distr0.dist5D, ps1_indexes, ps1, n_mpi_particles, &(sim.wall_data.w2d), &n_loss);
+        n_updated = fmc_update_distr5D_from_states(&distr1.dist5D, &distr0.dist5D, ps1_indexes, ps1, n_mpi_particles, &(sim.wall_data.w2d), &n_loss, &n_err);
         
     } else {
         // TODO: Full orbit
@@ -377,10 +377,11 @@ int forward_monte_carlo(
 
     // // shift distributions. Required since distr1 is partitioned through all the MPI nodes,
     // // and can't be written directly to disk
-    diag_move_distribution(sim_offload, &distr0, &distr1, &n_updated, &n_loss);
+    diag_move_distribution(sim_offload, &distr0, &distr1, &n_updated, &n_loss, &n_err);
     printf("Total number of markers: %d\n", n_tot_particles);
     printf("Target domain hit n_markers: %d\n", n_updated);
     printf("Wall hit not in target n_markers: %d\n", n_loss);
+    printf("Err markers: %d\n", n_err);
 
     real sum = 0, dens[5];
     for (int i=0; i < dist_length; i++) {

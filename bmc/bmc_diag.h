@@ -16,7 +16,7 @@ typedef struct {
     real weight[NSIMD * 32] __memalign__;
 } particle_deposit_weights;
 
-void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated, int* nloss);
+void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated, int* nloss, int* n_err);
 
 int bmc_update_distr5D(
         dist_5D_data* dist1,
@@ -35,7 +35,8 @@ int fmc_update_distr5D_from_states(
         particle_state* p1,
         int n_particles,
         wall_2d_data* w2d,
-        int *n_loss
+        int *n_loss,
+        int *n_err
     );
 
 
