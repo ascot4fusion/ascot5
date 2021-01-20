@@ -157,6 +157,36 @@ int fmc_init_importance_sampling_mesh(
     return 0;
 }
 
+void buildDensityMatrixFromInputParticles(
+    real **histogram,
+    int dist_length,
+    int n_particles,
+    particle_state* input_particles,
+    dist_5D_offload_data* dist5D,
+    wall_2d_data* w2d
+) {
+    *histogram = (real*)calloc(dist_length, sizeof(real));
+    int indexes[32], target_hit[32];
+    real weights[32];
+
+    int i_x[5];
+    real r, phi, z, ppara, pperp, p, Ekin;
+    for (int i=0; i <= n_particles; i++) {
+        bmc_dist5D_state_indexes(&input_particles[i], indexes, weights, target_hit, &input_particles[i], dist5D, w2d);
+        for (int j=0; j<=32; j++) {
+            compute_5d_coordinates_from_hist_index(indexes[j], i_x, &r, &phi, &z, &ppara, &pperp, dist5D);
+            if (target_hit[j])
+                continue;
+            if (!wall_2d_inside(r, z, w2d))
+                    continue;
+
+            real p = sqrt(ppara*ppara + pperp*pperp);
+            real Ekin = physlib_Ekin_pnorm(input_particles[i].mass, p);
+            (*histogram)[indexes[j]] += weights[j] * input_particles[i].weight * Ekin;
+        }
+    }
+}
+
 void buildImportantSamplingHistogram(
     int dist_length,
     real *histogram,
@@ -185,18 +215,7 @@ void buildImportantSamplingHistogram(
     }
 
     if (importanceSamplingFromInputParticles) {
-        histogram_from_particles = (real*)calloc(dist_length, sizeof(real));
-        int indexes[32], target_hit[32];
-        real weights[32];
-
-        for (int i=0; i <= n_ps; i++) {
-            bmc_dist5D_state_indexes(&ps[i], indexes, weights, target_hit, &ps[i], dist5D, w2d);
-            for (int j=0; j<=32; j++) {
-                if (target_hit[j])
-                    continue;
-                histogram_from_particles[indexes[j]] += weights[j];
-            }
-        }
+        buildDensityMatrixFromInputParticles(&histogram_from_particles, dist_length, n_ps, ps, dist5D, w2d);
     }
 
     real r,phi,z,ppara,pperp, dens[10];
