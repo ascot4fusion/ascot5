@@ -288,7 +288,9 @@ int forward_monte_carlo(
         int mpi_rank,
         bool importance_sampling,
         real t1,
-        real t0
+        real t0,
+        int debugInputDistribution,
+        int debugHitTime
     ) {
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nStarting Backward Monte Carlo. N particles: %d.\n", n_mpi_particles);
@@ -301,7 +303,7 @@ int forward_monte_carlo(
     particle_state* ps0 = (particle_state*) malloc(n_mpi_particles * sizeof(particle_state));
     memcpy(ps0, ps1, n_mpi_particles * sizeof(particle_state));
 
-    for(int i = 0; i < 50; i++) {
+    for(int i = 0; i < 10; i++) {
         printf("Particle %d %f %f %f %f %f %f %f\n", i, ps1[i].r, ps1[i].phi, ps1[i].z, ps1[i].ppar, ps1[i].rho, ps1[i].rprt, ps1[i].p_r);
     }
 
@@ -377,6 +379,29 @@ int forward_monte_carlo(
         // TODO: Full orbit
     }
 
+    // print wall hit time to file
+    if (debugHitTime) {
+        FILE *hitFile;
+        hitFile = fopen("hitTime", "w");
+
+        real time;
+        a5err err;
+        int walltile;
+        for (int i = 0; i < n_mpi_particles; i++) {
+            // fprintf(hitFile, "%d %e %d\n", ps1[i].id, ps1[i].time, ps1[i].walltile);
+            err = ps1[i].err;
+            walltile = ps1[i].walltile;
+            time = ps1[i].time;
+            if (ps1[i].err != 0) {
+                time = -1E-4;
+                walltile = 0;
+                printf("r_z %e %e\n", ps1[i].r, ps1[i].z);
+            }
+            printf("hittime %d %e %d %d\n", ps1[i].id, time, walltile, err);
+            // }
+        }
+    }
+
     // // shift distributions. Required since distr1 is partitioned through all the MPI nodes,
     // // and can't be written directly to disk
     diag_move_distribution(sim_offload, &distr0, &distr1, &n_updated, &n_loss, &n_err);
@@ -397,6 +422,13 @@ int forward_monte_carlo(
     printf("Value of unweighted integrated signal: %e\n", sum);
     printf("Value of power load: %e\n", powerLoad);
     
+    // print initial distribution instead of probability for debugging, if needed
+    if (debugInputDistribution) {
+        for (int i=0; i<dist_length; i++) {
+            distr0.dist5D.histogram[i] = initialDensityMatrix[i];
+        }
+    }
+
     write_probability_distribution(sim_offload, &distr0, distr0_array, mpi_rank, false);
 
     // // Free diagnostic data
