@@ -105,7 +105,28 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
             }
             else {
                 for (int nt = 0; nt < n_t_subcycles; ++nt) {
+                    #pragma omp simd
+                    for(int i = 0; i < NSIMD; i++) {
+                        particle_copy_gc(&p, i, &p0, i);
+                    }
+
                     step_gc_rk4(&p, h_rk4, &sim->B_data, &sim->E_data);
+
+                    #pragma omp simd
+                    for(int i = 0; i < NSIMD; i++) {
+                        if (p.running[i]) {
+                            real w_coll = 0;
+                            int tile = wall_hit_wall(p0.r[i], p0.phi[i], p0.z[i],
+                                                    p.r[i], p.phi[i], p.z[i],
+                                                    &sim->wall_data, &w_coll);
+                            if(tile > 0) {
+                                // printf("wall hit id %d %e\n", p.id[i], p.hermite_weights[i]);
+                                p.walltile[i] = tile;
+                                p.endcond[i] |= endcond_wall;
+                                p.running[i] = 0;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -132,22 +153,22 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         cputime_last = cputime;
 
         // check if the particle exited the velocity space
-        // #pragma omp simd
-        // for(int i = 0; i < NSIMD; i++) {
-        //     if(p.running[i]) {
-        //         real pperp = sqrt(2 * sqrt(p.B_r[i]*p.B_r[i]
-        //             +p.B_phi[i]*p.B_phi[i]
-        //             +p.B_z[i]*p.B_z[i])
-        //             * p.mu[i] / p.mass[i]) * p.mass[i];
+        #pragma omp simd
+        for(int i = 0; i < NSIMD; i++) {
+            if(p.running[i]) {
+                real pperp = sqrt(2 * sqrt(p.B_r[i]*p.B_r[i]
+                    +p.B_phi[i]*p.B_phi[i]
+                    +p.B_z[i]*p.B_z[i])
+                    * p.mu[i] / p.mass[i]) * p.mass[i];
                             
-        //         if ((p.ppar[i] > sim->diag_data.dist5D.max_ppara) || (p.ppar[i] < sim->diag_data.dist5D.min_ppara) ||
-        //             (pperp > sim->diag_data.dist5D.max_pperp) || (pperp < sim->diag_data.dist5D.min_pperp)) {
-
-        //             // outside velocity space
-        //             p.running[i] = 0;
-        //         }
-        //     }
-        // }
+                if ((p.ppar[i] > sim->diag_data.dist5D.max_ppara) || (p.ppar[i] < sim->diag_data.dist5D.min_ppara) ||
+                    (pperp > sim->diag_data.dist5D.max_pperp) || (pperp < sim->diag_data.dist5D.min_pperp)) {
+                    // outside velocity space
+                    p.err[i] = 1;
+                    p.running[i] = 0;
+                }
+            }
+        }
 
         /* Check possible end conditions */
         endcond_check_gc(&p, &p0, sim);

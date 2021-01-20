@@ -112,10 +112,10 @@ int bmc_update_distr5D(
                 continue;
             }
 
-            int tile = wall_2d_hit_wall(p0[i].r[j], p0[i].phi[j], p0[i].z[j], p1[i].r[j], p1[i].phi[j], p1[i].z[j], w2d);
-            if (tile > 0) {
+            // int tile = wall_2d_hit_wall(p0[i].r[j], p0[i].phi[j], p0[i].z[j], p1[i].r[j], p1[i].phi[j], p1[i].z[j], w2d);
+            if (p1[i].walltile[j] > 0) {
                 n_updated++;
-                if (bmc_walltile_in_target(tile)) {
+                if (bmc_walltile_in_target(p1[i].walltile[j])) {
                     dist1->histogram[p0_indexes[i*NSIMD + j]] += p1[i].hermite_weights[j];
                 }
                 continue;
