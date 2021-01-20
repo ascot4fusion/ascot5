@@ -52,6 +52,10 @@ void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, p
     ptr = offload_unpack(offload_data, offload_array,
             sim_offload->neutral_offload_data.offload_array_length);
     neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
+    
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->wall_offload_data.offload_array_length);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
     random_init(&sim.random_data, 0);
 
@@ -75,11 +79,28 @@ void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, p
      * - Check for end condition(s)
      * - Update diagnostics
      */
+    particle_simd_gc p0;
     for (int i_simd = 0; i_simd < n_simd_particles; i_simd++) {
 
         /* RK4 method for orbit-following */
         for (int nt = 0; nt < n_rk4_subcycles; ++nt) {
+            memcpy(&p0, p + i_simd, sizeof(particle_simd_gc));
             step_gc_rk4(p + i_simd, h_rk4, &sim.B_data, &sim.E_data);
+
+            #pragma omp simd
+            for(int i = 0; i < NSIMD; i++) {
+                if (p[i_simd].running[i]) {
+                    real w_coll = 0;
+                    int tile = wall_hit_wall(p0.r[i], p0.phi[i], p0.z[i],
+                                            p[i_simd].r[i], p[i_simd].phi[i], p[i_simd].z[i],
+                                            &(sim.wall_data), &w_coll);
+                    if(tile > 0) {
+                        p[i_simd].walltile[i] = tile;
+                        p[i_simd].endcond[i] |= endcond_wall;
+                        p[i_simd].running[i] = 0;
+                    }
+                }
+            }
         }
     }
 
