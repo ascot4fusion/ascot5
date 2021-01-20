@@ -18,6 +18,9 @@
 #define IMPORTANCE_SAMPLING_PROBABILITY 0 // add importance sampling from bmc output probability matrix. To use this, a BMC sim must be run first
 #define IMPORTANCE_SAMPLING_FROM_PARTICLES 1 // follow distribuition of particles from input h5 file. This excludes IMPORTANCE_SAMPLING_DENSITY
 
+#define DEBUG_INPUT_DISTRIBUTION 0
+#define DEBUG_HIT_TIME 1 // print to file when each marker hit the wall
+
 /**
  * @file ascot5_main.c
  * @brief ASCOT5 stand-alone program

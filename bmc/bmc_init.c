@@ -92,7 +92,7 @@ int fmc_init_importance_sampling_mesh(
     for (int i=0; i<dist_length; i++) {
        sum += histogram[i];
     }
-    printf("Init initial sum %f\n", sum);
+    printf("Init initial sum %e\n", sum);
     *n = 0;
     for (int i=0; i<dist_length; i++) {
         nparticlesHistogram[i] = ceil(histogram[i] / sum * n_total);
@@ -154,6 +154,13 @@ int fmc_init_importance_sampling_mesh(
 
     printf("Initialized %d %d particles\n", *n, i);
 
+    printf("BMC mesh and markers initialization complete.\n");
+    printf("Mesh size: rmin %f\trmax %e\tnr %d\n", dist5D.min_r, dist5D.max_r, dist5D.n_r);
+    printf("Mesh size: phimin %f\tphimax %e\tnphi %d\n", dist5D.min_phi, dist5D.max_phi, dist5D.n_phi);
+    printf("Mesh size: zmin %f\tzmax %e\tnz %d\n", dist5D.min_z, dist5D.max_z, dist5D.n_z);
+    printf("Mesh size: pparamin %f\tpparamax %e\tnppara %d\n", dist5D.min_ppara, dist5D.max_ppara, dist5D.n_ppara);
+    printf("Mesh size: pperpmin %f\tpperpmax %e\tnpperp %d\n", dist5D.min_pperp, dist5D.max_pperp, dist5D.n_pperp);
+     
     return 0;
 }
 

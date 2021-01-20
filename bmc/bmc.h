@@ -11,6 +11,7 @@
 #include "../simulate/mccc/mccc_coefs.h"
 #include "../simulate/mccc/mccc.h"
 #include "../physlib.h"
+#include "bmc_init.h"
 
 void bmc_setup_endconds(sim_offload_data* sim, real timestep);
 
@@ -87,5 +88,7 @@ int forward_monte_carlo(
         int mpi_rank,
         bool importance_sampling,
         real t1,
-        real t0
+        real t0,
+        int debugInputDistribution,
+        int debugHitTime
     );
