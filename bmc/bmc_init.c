@@ -129,11 +129,11 @@ int fmc_init_importance_sampling_from_source_distribution(
     printf("Initialized %d %d particles\n", *n, i_tot);
 
     printf("BMC mesh and markers initialization complete.\n");
-    printf("Mesh size: rmin %f\trmax %e\tnr %d\n", dist5D.min_r, dist5D.max_r, dist5D.n_r);
-    printf("Mesh size: phimin %f\tphimax %e\tnphi %d\n", dist5D.min_phi, dist5D.max_phi, dist5D.n_phi);
-    printf("Mesh size: zmin %f\tzmax %e\tnz %d\n", dist5D.min_z, dist5D.max_z, dist5D.n_z);
-    printf("Mesh size: pparamin %f\tpparamax %e\tnppara %d\n", dist5D.min_ppara, dist5D.max_ppara, dist5D.n_ppara);
-    printf("Mesh size: pperpmin %f\tpperpmax %e\tnpperp %d\n", dist5D.min_pperp, dist5D.max_pperp, dist5D.n_pperp);
+    printf("Mesh size: rmin %e\trmax %e\tnr %d\n", dist5D.min_r, dist5D.max_r, dist5D.n_r);
+    printf("Mesh size: phimin %e\tphimax %e\tnphi %d\n", dist5D.min_phi, dist5D.max_phi, dist5D.n_phi);
+    printf("Mesh size: zmin %e\tzmax %e\tnz %d\n", dist5D.min_z, dist5D.max_z, dist5D.n_z);
+    printf("Mesh size: pparamin %e\tpparamax %e\tnppara %d\n", dist5D.min_ppara, dist5D.max_ppara, dist5D.n_ppara);
+    printf("Mesh size: pperpmin %e\tpperpmax %e\tnpperp %d\n", dist5D.min_pperp, dist5D.max_pperp, dist5D.n_pperp);
      
     return 0;
 }
@@ -572,6 +572,14 @@ int bmc_init_particles(
 
     *n = i;
     printf("Initialized %d particles\n", i);
+
+    dist_5D_offload_data dist5D = sim_offload->diag_offload_data.dist5D;
+    printf("BMC mesh and markers initialization complete.\n");
+    printf("Mesh size: rmin %f\trmax %e\tnr %d\n", dist5D.min_r, dist5D.max_r, dist5D.n_r);
+    printf("Mesh size: phimin %f\tphimax %e\tnphi %d\n", dist5D.min_phi, dist5D.max_phi, dist5D.n_phi);
+    printf("Mesh size: zmin %f\tzmax %e\tnz %d\n", dist5D.min_z, dist5D.max_z, dist5D.n_z);
+    printf("Mesh size: pparamin %f\tpparamax %e\tnppara %d\n", dist5D.min_ppara, dist5D.max_ppara, dist5D.n_ppara);
+    printf("Mesh size: pperpmin %f\tpperpmax %e\tnpperp %d\n", dist5D.min_pperp, dist5D.max_pperp, dist5D.n_pperp);
 
     return 0;
 }

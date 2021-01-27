@@ -293,7 +293,7 @@ int forward_monte_carlo(
         int debugHitTime
     ) {
 
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nStarting Backward Monte Carlo. N particles: %d.\n", n_mpi_particles);
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nStarting Forward Monte Carlo, mesh version. N particles: %d.\n", n_mpi_particles);
 
     /* Allow threads to spawn threads */
     omp_set_nested(1);
@@ -468,6 +468,7 @@ int forward_monte_carlo_from_source_particles(
     ) {
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nStarting Forward Monte Carlo from source particles. N particles: %d.\n", n_mpi_particles);
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nt0: %e t1: %e\n", t0, t1);
 
     /* Allow threads to spawn threads */
     omp_set_nested(1);
@@ -557,7 +558,8 @@ int forward_monte_carlo_from_source_particles(
                 time = -1E-4;
                 walltile = 0;
             }
-            printf("hittime %d %e %d %d\n", ps[i].id, time, walltile, err);
+            real pperp = sqrt(2 * sqrt(ps[i].B_r * ps[i].B_r + ps[i].B_phi * ps[i].B_phi + ps[i].B_z * ps[i].B_z) * ps[i].mu / ps[i].mass) * ps[i].mass;
+            printf("hittime %d %e %d %d %e %e %e %e %e %e\n", ps[i].id, time, walltile, err, ps[i].ppar, pperp, ps[i].mu, ps[i].B_r, ps[i].B_phi, ps[i].B_z);
         }
     }
 
