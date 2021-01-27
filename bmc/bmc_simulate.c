@@ -125,11 +125,26 @@ void init_particles_coll_simd_hermite(int n_simd_particles, int n_hermite_knots,
 void copy_particles_simd_to_coll_simd(int n_simd_particles, int n_hermite_knots,
         particle_simd_gc* p, particle_simd_gc* p_coll
     ) {
+
+    // TODO add hermite knots for n != {1,5}
+    real hermiteK[5] = {-2.856970, -1.355626, 0.000000, 1.355626, 2.856970};
+    real hermiteW[5] = {0.028218, 0.556662, 1.336868, 0.556662, 0.028218};
+
+    if (n_hermite_knots == 1)
+    {
+        hermiteK[0] = 0;
+        hermiteW[0] = 1;
+    }
+
     int i_coll = 0;
     for (int i=0; i < n_simd_particles; i++) {
         for (int j=0; j < NSIMD; j++) {
             for (int k = 0; k < n_hermite_knots; k++) {
                 particle_copy_gc(&p[i], j, &p_coll[i_coll / NSIMD], i_coll % NSIMD);
+
+                // update hermite knots and weights
+                p_coll[i_coll / NSIMD].hermite_knots[i_coll % NSIMD] = hermiteK[k];
+                p_coll[i_coll / NSIMD].hermite_weights[i_coll % NSIMD] = hermiteW[k];
 
                 i_coll++;
             }
