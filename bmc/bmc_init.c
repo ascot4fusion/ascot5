@@ -410,7 +410,6 @@ int bmc_init_particles(
         particle_state** ps,
         int** ps_indexes,
         int n_per_vertex,
-        int use_hermite,
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
         real* offload_array,
@@ -421,13 +420,6 @@ int bmc_init_particles(
     ) {
     // vacate the phase space to find the phase-space points in the mesh
     // suitable for simulating the BMC scheme
-
-    // TODO: use_hermite and n_per_vertex are deprecated.
-    // Hermite weights and n particles per vertex are due to be computed when creating SIMD particles
-
-    // init hermite params (N=5)
-    real hermiteK[5] = {-2.856970, -1.355626, 0.000000, 1.355626, 2.856970};
-    real hermiteW[5] = {0.028218, 0.556662, 1.336868, 0.556662, 0.028218};
 
     // init sim data
     sim_data sim;
@@ -532,18 +524,13 @@ int bmc_init_particles(
                                     n_ppara, n_pperp,
                                     1, 1);
 
-                            if (!ps_tmp.err) {
+                            if (!ps_tmp.err)
+                            {
                                 for (int i_mc=0; i_mc<n_per_vertex; ++i_mc) {
                                     ps_tmp.id = i;
 
-                                    if (use_hermite) {
-                                        ps_tmp.hermite_weights = hermiteW[i_mc] / PI2E0_5;
-                                        ps_tmp.hermite_knots = hermiteK[i_mc];
-                                        ps_tmp.use_hermite = 1;
-                                    } else {
-                                        ps_tmp.hermite_weights = 1. / n_per_vertex;
-                                        ps_tmp.use_hermite = 0;
-                                    }
+                                    ps_tmp.hermite_weights = 1. / n_per_vertex;
+                                    ps_tmp.use_hermite = 0;
                                     memcpy(*ps + i, &ps_tmp, sizeof(particle_state));
                                     (*ps_indexes)[i] = index;
                                     i++;

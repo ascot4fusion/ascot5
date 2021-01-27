@@ -77,7 +77,6 @@ int bmc_init_particles(
         particle_state** ps,
         int** ps_indexes,
         int n_per_vertex,
-        int use_hermite,
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
         real* offload_array,
