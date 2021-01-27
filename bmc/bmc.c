@@ -141,7 +141,7 @@ void backward_monte_carlo_gc_time_indep(
 
     particle_deposit_weights *p1_weights = (particle_deposit_weights *)malloc(n_coll_simd * sizeof(particle_deposit_weights));  
 
-    bmc_compute_prob_weights(p1_weights, n_coll_simd, pcoll1, pcoll0, &distr1->dist5D, &distr0->dist5D, &(sim->wall_data.w2d));
+    bmc_compute_prob_weights(p1_weights, n_coll_simd, pcoll1, pcoll0, &distr1->dist5D, &distr0->dist5D, &(sim->wall_data));
 
     for (double t=t1; t >= t0; t -= h) {
         // // Update the probability distribution

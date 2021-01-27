@@ -34,3 +34,30 @@ int bmc_wall_2d_hit_target(real r0, real r1, real phi0, real phi1, real z0, real
     }
     return 0;
 }
+
+void bmc_check_simd_particle_wallhit(
+    particle_simd_gc* p,
+    particle_simd_gc* p0,
+    wall_data* wdata
+) {
+    #pragma omp simd
+    for (int i = 0; i < NSIMD; i++)
+    {
+        if (p->running[i])
+        {
+            real w_coll = 0;
+            int tile = wall_hit_wall(p0->r[i], p0->phi[i], p0->z[i],
+                                     p->r[i], p->phi[i], p->z[i],
+                                     wdata, &w_coll);
+            if (tile > 0)
+            {
+                if (p->id[i] == 0) {
+                    printf("wallhitmerda %d %e %e %e %e %e %e\n", p0->id[i], p0->r[i], p0->phi[i], p0->z[i], p->r[i], p->phi[i], p->z[i]);
+                }
+                p->walltile[i] = tile;
+                p->endcond[i] |= endcond_wall;
+                p->running[i] = 0;
+            }
+        }
+    }
+}

@@ -2,6 +2,7 @@
 #include "../simulate.h"
 #include "../endcond.h"
 #include "../print.h"
+#include "./bmc_wall.h"
 
 void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, particle_simd_gc* p, particle_simd_gc* p_coll,
         int n_hermite_knots,

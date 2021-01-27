@@ -97,7 +97,7 @@ int bmc_update_distr5D(
         particle_simd_gc* p1,
         particle_simd_gc* p0,
         int n_simd_particles,
-        wall_2d_data* w2d
+        wall_data* wallData 
     ) {
 
     int n_updated = 0;
@@ -139,7 +139,7 @@ int bmc_update_distr5D(
             int p1_indexes[32];
             int p1_target_hit[32];
             real p1_weights[32];
-            bmc_dist5D_gc_indexes(p0 + i, p1_indexes, p1_weights, p1_target_hit, p1 + i, j, dist0, w2d);
+            bmc_dist5D_gc_indexes(p0 + i, p1_indexes, p1_weights, p1_target_hit, p1 + i, j, dist0, wallData);
             for (int i_nodes=0; i_nodes<32; i_nodes++) {
                 if (p1_indexes[i_nodes] >= 0) {
                     if (p1_target_hit[i_nodes]) {
@@ -175,7 +175,7 @@ int bmc_update_distr5D(
  * @param w2d Pointer to the 2D wall struct
  * 
  **/
- void bmc_dist5D_gc_indexes(particle_simd_gc* p0, int* indexes, real* weights, int* target_hit, particle_simd_gc* p, int i_simd, dist_5D_data* dist, wall_2d_data* w2d) {
+ void bmc_dist5D_gc_indexes(particle_simd_gc* p0, int* indexes, real* weights, int* target_hit, particle_simd_gc* p, int i_simd, dist_5D_data* dist, wall_data* wallData) {
     real phi;
     real ppara;
     real pperp;
@@ -263,8 +263,8 @@ int bmc_update_distr5D(
         weights[i] = fabs(weights_dim[0] - j_r + i_r) * fabs(weights_dim[1] - j_phi + i_phi)
                     * fabs(weights_dim[2] - j_z + i_z) * fabs(weights_dim[3] - j_ppara + i_ppara)
                     * fabs(weights_dim[4] - j_pperp + i_pperp);
-        target_hit[i] = bmc_wall_2d_hit_target(p0->r[i_simd], (j_r)*dr + dist->min_r,
-                        p0->phi[i_simd], (j_phimod)*dphi + dist->min_phi, p0->z[i_simd], (j_z)*dz + dist->min_z, w2d);
+        target_hit[i] = bmc_wall_2d_hit_target(p->r[i_simd], (j_r)*dr + dist->min_r,
+                        p->phi[i_simd], (j_phimod)*dphi + dist->min_phi, p->z[i_simd], (j_z)*dz + dist->min_z, &(wallData->w2d));
         i++;
     }
 }
@@ -642,7 +642,7 @@ void bmc_update_distr5D_from_weights(
 
 void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
     int n_simd_particles, particle_simd_gc *p1, particle_simd_gc *p0,
-    dist_5D_data* dist1, dist_5D_data* dist0, wall_2d_data* w2d
+    dist_5D_data* dist1, dist_5D_data* dist0, wall_data* wallData
     ) {
 
     for(int i = 0; i < n_simd_particles; i++) {
@@ -652,6 +652,17 @@ void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
 
             for (int k=0; k<32; k++) {
                 p1_weightsIndexes[i].weight[32*j + k] = 0;
+            }
+
+            // check if the marker hit the wall
+            // int tile = wall_2d_hit_wall(p0[i].r[j], p0[i].phi[j], p0[i].z[j], p1[i].r[j], p1[i].phi[j], p1[i].z[j], w2d);
+            int tile = p1[i].walltile[j];
+            if (tile > 0) {
+                if (bmc_walltile_in_target(tile)) {
+                    p1_weightsIndexes[i].weight[32*j] = 1.;
+                    p1_weightsIndexes[i].target_hit[32*j] = 1;
+                }
+                continue;
             }
 
             if ((p1[i].err[j]) || (p1[i].id[j] < 0))
@@ -671,21 +682,13 @@ void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
             }
 
 
-            int tile = wall_2d_hit_wall(p0[i].r[j], p0[i].phi[j], p0[i].z[j], p1[i].r[j], p1[i].phi[j], p1[i].z[j], w2d);
-            if (tile > 0) {
-                if (bmc_walltile_in_target(tile)) {
-                    p1_weightsIndexes[i].weight[32*j] = 1.;
-                    p1_weightsIndexes[i].target_hit[32*j] = 1;
-                }
-                continue;
-            }
 
             // deposit the final state j
             // deposit in the velocity space is nearest neighbour 
             int p1_indexes[32];
             int p1_target_hit[32];
             real p1_weights[32];
-            bmc_dist5D_gc_indexes(p0 + i, p1_indexes, p1_weights, p1_target_hit, p1 + i, j, dist0, w2d);
+            bmc_dist5D_gc_indexes(p0 + i, p1_indexes, p1_weights, p1_target_hit, p1 + i, j, dist0, wallData);
             for (int k=0; k<32; k++) {
                 p1_weightsIndexes[i].weight[32*j + k] = p1_weights[k];
                 p1_weightsIndexes[i].index[32*j + k] = p1_indexes[k];
