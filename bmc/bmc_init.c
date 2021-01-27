@@ -92,8 +92,6 @@ int fmc_init_importance_sampling_from_source_distribution(
         real* probabilityMatrix = (real*)malloc(dist_length * sizeof(real));
         fread(probabilityMatrix, sizeof(real), dist_length, f_probability);
 
-        printf("diocane %e\n", probabilityMatrix[332870]);
-
             buildParticlesWeightsFromProbabilityMatrix(probabilityMatrix, weightsFromProbability, input_ps, input_n_ps, &dist5D, &sim.wall_data.w2d);
 
         for (int i=0; i<= input_n_ps; i++) {

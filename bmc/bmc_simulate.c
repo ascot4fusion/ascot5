@@ -86,21 +86,7 @@ void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, p
         for (int nt = 0; nt < n_rk4_subcycles; ++nt) {
             memcpy(&p0, p + i_simd, sizeof(particle_simd_gc));
             step_gc_rk4(p + i_simd, h_rk4, &sim.B_data, &sim.E_data);
-
-            #pragma omp simd
-            for(int i = 0; i < NSIMD; i++) {
-                if (p[i_simd].running[i]) {
-                    real w_coll = 0;
-                    int tile = wall_hit_wall(p0.r[i], p0.phi[i], p0.z[i],
-                                            p[i_simd].r[i], p[i_simd].phi[i], p[i_simd].z[i],
-                                            &(sim.wall_data), &w_coll);
-                    if(tile > 0) {
-                        p[i_simd].walltile[i] = tile;
-                        p[i_simd].endcond[i] |= endcond_wall;
-                        p[i_simd].running[i] = 0;
-                    }
-                }
-            }
+            bmc_check_simd_particle_wallhit(p+i_simd, &p0, &(sim.wall_data));
         }
     }
 
@@ -110,8 +96,10 @@ void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, p
     /* Euler-Maruyama method for collisions */
     if(sim.enable_clmbcol) {
         for (int i_simd = 0; i_simd < n_coll_simd_particles; i_simd++) {
+            memcpy(&p0, p_coll + i_simd, sizeof(particle_simd_gc));
             mccc_gc_euler(p_coll + i_simd, h_coll, &sim.B_data, &sim.plasma_data,
                             &sim.random_data, &sim.mccc_data);
+            bmc_check_simd_particle_wallhit(p_coll+i_simd, &p0, &(sim.wall_data));
         }
     }
 }
