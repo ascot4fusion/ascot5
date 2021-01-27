@@ -561,6 +561,14 @@ int forward_monte_carlo_from_source_particles(
         }
     }
 
+    // reduce output from all MPI nodes
+    #ifdef MPI
+        MPI_Allreduce(&n_updated, &n_updated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(&n_loss, &n_loss, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(&n_err, &n_err, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(&powerLoad, &powerLoad, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    #endif
+
     printf("Total number of markers: %d\n", n_tot_particles);
     printf("Target domain hit n_markers: %d\n", n_updated);
     printf("Wall hit not in target n_markers: %d\n", n_loss);
