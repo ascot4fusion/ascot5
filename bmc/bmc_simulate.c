@@ -149,6 +149,12 @@ void copy_particles_simd_to_coll_simd(int n_simd_particles, int n_hermite_knots,
             }
         }
     }
+    // pad dummy particles in the last SIMD element
+    if ((i_coll % NSIMD) != 0) {
+        for (int i = (i_coll % NSIMD); i < NSIMD; i++) {
+            p_coll[i_coll / NSIMD].id[i] = -1;
+        }
+    }
 }
 
 void fmc_simulation(
