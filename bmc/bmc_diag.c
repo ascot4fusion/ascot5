@@ -624,6 +624,10 @@ void bmc_update_distr5D_from_weights(
 
         // #pragma omp simd
         for (int j=0; j<NSIMD; j++) {
+            if (p1[i].id[j] < 0) {
+                continue;
+            }
+
             err = 0;
             int index;
             real weight;
