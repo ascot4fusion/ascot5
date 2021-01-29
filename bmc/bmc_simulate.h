@@ -3,6 +3,24 @@
 #include "../endcond.h"
 #include "../print.h"
 #include "./bmc_wall.h"
+#include <stdio.h>
+#include <math.h>
+#include "../ascot5.h"
+#include "../consts.h"
+#include "../B_field.h"
+#include "../E_field.h"
+#include "../boozer.h"
+#include "../mhd.h"
+#include "../math.h"
+#include "../particle.h"
+#include "../error.h"
+#include "../random.h"
+#include "../simulate/mccc/mccc_coefs.h"
+#include "../simulate/mccc/mccc.h"
+#include "../physlib.h"
+#include "../simulate/step/step_gceom.h"
+#include "../simulate/step/step_gceom_mhd.h"
+#include "../simulate/step/step_gc_rk4.h"
 
 void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, particle_simd_gc* p, particle_simd_gc* p_coll,
         int n_hermite_knots,
