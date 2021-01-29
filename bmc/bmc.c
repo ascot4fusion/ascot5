@@ -33,7 +33,8 @@ int backward_monte_carlo(
         real t0,
         real h,
         int rk4_subcycles,
-        int time_intependent
+        int time_intependent,
+        int debugExitVelocitySpace
     ) {
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nStarting Backward Monte Carlo. N particles: %d.\n", n_mpi_particles);
@@ -70,7 +71,7 @@ int backward_monte_carlo(
                                 &distr0, &distr1, Bdata, t1, t0, h, rk4_subcycles);
         } else {
             backward_monte_carlo_gc_time_indep(ps, ps_indexes, n_mpi_particles, n_hermite_knots, sim_offload, &sim, offload_data, offload_array,
-                                &distr0, &distr1, Bdata, t1, t0, h, rk4_subcycles);
+                                &distr0, &distr1, Bdata, t1, t0, h, rk4_subcycles, debugExitVelocitySpace);
         }
     } else {
         // TODO: FULL ORBIT
@@ -101,7 +102,8 @@ void backward_monte_carlo_gc_time_indep(
         real t1,
         real t0,
         real h,
-        real rk4_subcycles
+        real rk4_subcycles,
+        int debugExitVelocitySpace
     ) {
 
     particle_simd_gc *p0, *p1, *pcoll1, *pcoll0;
@@ -141,7 +143,7 @@ void backward_monte_carlo_gc_time_indep(
 
     particle_deposit_weights *p1_weights = (particle_deposit_weights *)malloc(n_coll_simd * sizeof(particle_deposit_weights));  
 
-    bmc_compute_prob_weights(p1_weights, n_coll_simd, pcoll1, pcoll0, &distr1->dist5D, &distr0->dist5D, &(sim->wall_data));
+    bmc_compute_prob_weights(p1_weights, n_coll_simd, pcoll1, pcoll0, &distr1->dist5D, &distr0->dist5D, &(sim->wall_data), p0_indexes_coll, debugExitVelocitySpace);
 
     for (double t=t1; t >= t0; t -= h) {
         // // Update the probability distribution

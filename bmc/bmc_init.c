@@ -17,8 +17,23 @@ void buildParticlesWeightsFromProbabilityMatrix(
     for (int i=0; i<=n; i++) {
         bmc_dist5D_state_indexes(&(ps[i]), indexes, p_weights, hits, &(ps[i]), dist, w2d);
 
+
         weights[i] = 0;
+        int err = 0;
         for (int j=0; j<32; j++) {
+            if (err) continue;
+            if (ps[i].id == 12619) {
+                // printf("cazzo %e %d\n", weights[i], indexes[j]);
+            }
+            if (indexes[j] == -1) {
+                printf("Warning: Input marker outside mesh id %d r %e phi %e z %e ppar %e\n", ps[i].id, ps[i].r, ps[i].phi, ps[i].z, ps[i].ppar);
+                err = 1;
+                continue;
+            }
+            if (probabilityMatrix[indexes[j]] < 0) {
+                printf("Warning: probability ill-defined on index %d Increase velocity mesh size.\n", indexes[j]);
+                probabilityMatrix[indexes[j]] = 0;
+            }
             weights[i] = weights[i] + p_weights[j] * probabilityMatrix[indexes[j]];
         }
     }

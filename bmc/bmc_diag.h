@@ -84,6 +84,6 @@ void bmc_update_distr5D_from_weights(
     );
 
 void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
-    int n_simd_particles, particle_simd_gc *p1, particle_simd_gc *p0,
-    dist_5D_data* dist1, dist_5D_data* dist0, wall_data* wallData
-    );
+                              int n_simd_particles, particle_simd_gc *p1, particle_simd_gc *p0,
+                              dist_5D_data *dist1, dist_5D_data *dist0, wall_data *wallData,
+                              int* p0_indexes, int debugExitVelocitySpace);

@@ -352,7 +352,7 @@ int bmc_update_distr5D(
     for (int j_pperp=i_pperp; j_pperp<i_pperp + 2; j_pperp++) {
 
         if ((j_r < 0) || (j_phi < 0) || (j_z < 0) || (j_ppara < 0) || (j_pperp < 0)) {
-            indexes[i] = 0;
+            indexes[i] = -1;
             weights[i] = 0;
             target_hit[i] = 0;
             i++;
@@ -577,7 +577,10 @@ void write_probability_distribution(
         // printf("%f\n", distr->dist5D.histogram[i]);
         if (sim_offload->diag_offload_data.dist5D_collect) {
             if (distr->dist5D.histogram[i] > 1.0001) {
-                // printf("Warning: unpysical probability: %f\n", distr->dist5D.histogram[i]);
+                printf("Warning: unpysical probability: %f\n", distr->dist5D.histogram[i]);
+            }
+            if (distr->dist5D.histogram[i] < 0) {
+               distr->dist5D.histogram[i] = 0; 
             }
         }
         if (sim_offload->diag_offload_data.dist6D_collect) {
@@ -616,20 +619,35 @@ void bmc_update_distr5D_from_weights(
         int* p0_indexes
     ) {
 
+    int err;
     for(int i = 0; i < n_simd_particles; i++) {
 
         // #pragma omp simd
         for (int j=0; j<NSIMD; j++) {
+            err = 0;
             int index;
             real weight;
             int target_hit;
             for (int k=0; k<32; k++) {
+                if (err) break;
+
                 index = p1_weights[i].index[j*32 + k];
                 target_hit = p1_weights[i].target_hit[j*32 + k];
                 weight = p1_weights[i].weight[j*32 + k];
-                if (target_hit) {
+                if (weight < 0) {
+                    // if the weight is negative, the prob of the node couldn't be computed
+                    // likely because it exited the velocity space
+                    // mark the node as negative so the it can be caught for debug
+                    dist1->histogram[p0_indexes[i*NSIMD + j]] = weight;
+                    err = 1;
+                }
+                else if (target_hit) {
                     // particle hit the target domain. Set the relative probabiity to 1
                     dist1->histogram[p0_indexes[i*NSIMD + j]] += weight * p1[i].hermite_weights[j];
+                } else if (dist0->histogram[index] < 0) {
+                    continue;
+                    // dist1->histogram[p0_indexes[i * NSIMD + j]] = weight;
+                    // err = 1;
                 } else {
                     // particle didn't hit the target domain. Weight the probability with the last probability matrix
                     dist1->histogram[p0_indexes[i*NSIMD + j]] += dist0->histogram[index] * weight * p1[i].hermite_weights[j];
@@ -642,7 +660,8 @@ void bmc_update_distr5D_from_weights(
 
 void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
     int n_simd_particles, particle_simd_gc *p1, particle_simd_gc *p0,
-    dist_5D_data* dist1, dist_5D_data* dist0, wall_data* wallData
+    dist_5D_data* dist1, dist_5D_data* dist0, wall_data* wallData,
+    int* p0_indexes, int debugExitVelocitySpace
     ) {
 
     for(int i = 0; i < n_simd_particles; i++) {
@@ -677,7 +696,11 @@ void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
             if ((p1[i].ppar[j] > dist1->max_ppara) || (p1[i].ppar[j] < dist1->min_ppara) ||
                 (pperp > dist1->max_pperp) || (pperp < dist1->min_pperp)) {
 
-                // outside velocity space
+                // outside velocity space. Mark the weight as negative so it can be caught for debug purpose later
+                if (debugExitVelocitySpace) {
+                    printf("Warning: outside V: index: %d id: %d, ppar: %e, pperp %e\n", p0_indexes[i*NSIMD+j], p1[i].id[j], p1[i].ppar[j], pperp);
+                }
+                p1_weightsIndexes[i].weight[32 * j] = -1;
                 continue; 
             }
 
