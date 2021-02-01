@@ -85,7 +85,7 @@ void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, p
         /* RK4 method for orbit-following */
         for (int nt = 0; nt < n_rk4_subcycles; ++nt) {
             memcpy(&p0, p + i_simd, sizeof(particle_simd_gc));
-            bmc_step_deterministic(p + i_simd, h_rk4, &sim.B_data, &sim.E_data, &sim.plasma_data, &sim.random_data, &sim.mccc_data);
+            bmc_step_deterministic(p + i_simd, h_rk4, &sim.B_data, &sim.E_data, &sim.plasma_data, sim.enable_clmbcol, &sim.random_data, &sim.mccc_data);
             bmc_check_simd_particle_wallhit(p+i_simd, &p0, &(sim.wall_data));
         }
     }
@@ -244,7 +244,7 @@ void fmc_simulation(
  * @param Edata pointer to electric field data
  */
 void bmc_step_deterministic(particle_simd_gc *p, real *h, B_field_data *Bdata,
-                 E_field_data *Edata, plasma_data* pdata, random_data* rdata, mccc_data* mdata)
+                 E_field_data *Edata, plasma_data* pdata, int enable_clmbcol, random_data* rdata, mccc_data* mdata)
 {
 
     real rnd[5 * NSIMD];
@@ -448,6 +448,9 @@ void bmc_step_deterministic(particle_simd_gc *p, real *h, B_field_data *Bdata,
 
             /// DETERMINISTIC PART OF COLLISION OPERATOR
             /* Initial (R,z) position and magnetic field are needed for later */
+            if (!enable_clmbcol)
+                continue;
+
             real Brpz[3] = {p->B_r[i], p->B_phi[i], p->B_z[i]};
             real Bnorm = math_norm(Brpz);
             real Bxyz[3];
