@@ -250,7 +250,7 @@ int main(int argc, char** argv) {
 
     // SIMULATE HERE
     if (backward_monte_carlo(n_total_particles, n, HERMITE_KNOTS, ps, ps_indexes,
-                            &Bdata, &sim, &offload_data, offload_array, mpi_rank, T1, T0, TIMESTEP, RK4_SUBCYCLES, TIME_INDEPENDENT)) {
+                            &Bdata, &sim, &offload_data, offload_array, mpi_rank, T1, T0, TIMESTEP, RK4_SUBCYCLES, TIME_INDEPENDENT, DEBUG_EXIT_VELOCITY)) {
         goto CLEANUP_FAILURE;
     }
 
