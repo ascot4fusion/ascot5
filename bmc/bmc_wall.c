@@ -51,9 +51,6 @@ void bmc_check_simd_particle_wallhit(
                                      wdata, &w_coll);
             if (tile > 0)
             {
-                if (p->id[i] == 0) {
-                    printf("wallhitmerda %d %e %e %e %e %e %e\n", p0->id[i], p0->r[i], p0->phi[i], p0->z[i], p->r[i], p->phi[i], p->z[i]);
-                }
                 p->walltile[i] = tile;
                 p->endcond[i] |= endcond_wall;
                 p->running[i] = 0;

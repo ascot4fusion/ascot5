@@ -73,6 +73,8 @@ int fmc_init_importance_sampling(
     );
 
 int bmc_init_particles(
+        int mpi_rank,
+        int mpi_size,
         int *n,
         particle_state** ps,
         int** ps_indexes,

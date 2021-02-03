@@ -39,7 +39,6 @@ int forward_monte_carlo_from_source_particles(
     );
 
 int backward_monte_carlo(
-        int n_tot_particles,
         int n_mpi_particles,
         int n_hermite_knots,
         particle_state* ps,

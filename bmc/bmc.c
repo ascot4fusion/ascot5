@@ -19,7 +19,6 @@ void bmc_setup_endconds(sim_offload_data* sim, real timestep) {
 }
 
 int backward_monte_carlo(
-        int n_tot_particles,
         int n_mpi_particles,
         int n_hermite_knots,
         particle_state* ps,

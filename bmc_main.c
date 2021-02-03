@@ -198,25 +198,13 @@ int main(int argc, char** argv) {
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
-    if (bmc_init_particles(&n, &ps, &ps_indexes, 1, &sim, &Bdata, offload_array, T1, MASS, CHARGE, RK4_SUBCYCLES)) {
+    if (bmc_init_particles(mpi_rank, mpi_size, &n, &ps, &ps_indexes, 1, &sim, &Bdata, offload_array, T1, MASS, CHARGE, RK4_SUBCYCLES)) {
         goto CLEANUP_FAILURE;
     }
-    int n_total_particles = n;
 
     /* Choose which markers are used in this MPI process. Simply put, markers
      * are divided into mpi_size sequential blocks and the mpi_rank:th block
      * is chosen for this simulation. */
-    int start_index = mpi_rank * (n / mpi_size);
-    ps += start_index;
-    ps_indexes += start_index;
-
-    if(mpi_rank == mpi_size-1) {
-        n = n - mpi_rank * (n / mpi_size);
-    }
-    else {
-        n = n / mpi_size;
-    }
-
     /* Initialize results group in the output file */
     if (mpi_rank == mpi_root) {
         print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
@@ -249,7 +237,7 @@ int main(int argc, char** argv) {
     fflush(stdout);
 
     // SIMULATE HERE
-    if (backward_monte_carlo(n_total_particles, n, HERMITE_KNOTS, ps, ps_indexes,
+    if (backward_monte_carlo(n, HERMITE_KNOTS, ps, ps_indexes,
                             &Bdata, &sim, &offload_data, offload_array, mpi_rank, T1, T0, TIMESTEP, RK4_SUBCYCLES, TIME_INDEPENDENT, DEBUG_EXIT_VELOCITY)) {
         goto CLEANUP_FAILURE;
     }
