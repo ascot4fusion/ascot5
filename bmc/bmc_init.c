@@ -421,6 +421,8 @@ void buildImportantSamplingHistogram(
 }
 
 int bmc_init_particles(
+        int mpi_rank,
+        int mpi_size,
         int *n,
         particle_state** ps,
         int** ps_indexes,
@@ -459,44 +461,22 @@ int bmc_init_particles(
     int n_r, n_phi, n_z, n_ppara, n_pperp, n_pr, n_pphi, n_pz;
     real max_r, max_phi, max_z, max_ppara, max_pperp, max_pr, max_pphi, max_pz;
     real min_r, min_phi, min_z, min_ppara, min_pperp, min_pr, min_pphi, min_pz;
-    if (sim_offload->diag_offload_data.dist5D_collect) {
-        dist_5D_offload_data dist5D = sim_offload->diag_offload_data.dist5D;
-        n_r = dist5D.n_r;
-        n_phi = dist5D.n_phi;
-        n_z = dist5D.n_z;
-        n_ppara = dist5D.n_ppara;
-        n_pperp = dist5D.n_pperp;
-        max_r = dist5D.max_r;
-        max_phi = dist5D.max_phi;
-        max_z = dist5D.max_z;
-        max_ppara = dist5D.max_ppara;
-        max_pperp = dist5D.max_pperp;
-        min_r = dist5D.min_r;
-        min_phi = dist5D.min_phi;
-        min_z = dist5D.min_z;
-        min_ppara = dist5D.min_ppara;
-        min_pperp = dist5D.min_pperp;
-    } else {
-        dist_6D_offload_data dist6D = sim_offload->diag_offload_data.dist6D;
-        n_r = dist6D.n_r;
-        n_phi = dist6D.n_phi;
-        n_z = dist6D.n_z;
-        n_pr = dist6D.n_pr;
-        n_pphi = dist6D.n_pphi;
-        n_pz = dist6D.n_pz;
-        max_r = dist6D.max_r;
-        max_phi = dist6D.max_phi;
-        max_z = dist6D.max_z;
-        max_pr = dist6D.max_pr;
-        max_pphi = dist6D.max_pphi;
-        max_pz = dist6D.max_pz;
-        min_r = dist6D.min_r;
-        min_phi = dist6D.min_phi;
-        min_z = dist6D.min_z;
-        min_z = dist6D.min_z;
-        min_pr = dist6D.min_pr;
-        min_pphi = dist6D.min_pphi;
-    }
+    dist_5D_offload_data dist5D = sim_offload->diag_offload_data.dist5D;
+    n_r = dist5D.n_r;
+    n_phi = dist5D.n_phi;
+    n_z = dist5D.n_z;
+    n_ppara = dist5D.n_ppara;
+    n_pperp = dist5D.n_pperp;
+    max_r = dist5D.max_r;
+    max_phi = dist5D.max_phi;
+    max_z = dist5D.max_z;
+    max_ppara = dist5D.max_ppara;
+    max_pperp = dist5D.max_pperp;
+    min_r = dist5D.min_r;
+    min_phi = dist5D.min_phi;
+    min_z = dist5D.min_z;
+    min_ppara = dist5D.min_ppara;
+    min_pperp = dist5D.min_pperp;
 
     if (sim_offload->diag_offload_data.dist5D_collect) {
         printf("5D: n_r %d n_phi %d n_z %d n_vpara %d n_vperp %d n_per_vertex %d\n", n_r, n_phi, n_z, n_ppara, n_pperp, n_per_vertex);
@@ -508,10 +488,48 @@ int bmc_init_particles(
 
     print_out(VERBOSE_NORMAL, "Mesh size %d.\n", *n / n_per_vertex);
 
-    *ps = (particle_state *)malloc(*n * sizeof(particle_state));
-    *ps_indexes = (int *)malloc(*n * sizeof(int));
     input_particle p_tmp; // tmp particle
     particle_state ps_tmp; // tmp particle
+
+    // first loop is used only to compute the number of particles needed
+    // i is the total number of particles 
+    int n_tot = 0;
+    for (int i_r = 0; i_r < n_r; ++i_r) {
+        r = (max_r - min_r) * i_r / n_r + min_r;
+        for (int i_phi = 0; i_phi < n_phi; ++i_phi) {
+            phi = (max_phi - min_phi) * i_phi / n_phi + min_phi;
+            for (int i_z = 0; i_z < n_z; ++i_z) {
+                z = (max_z - min_z) * i_z / n_z + min_z;
+
+                if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) {
+                    continue;
+                }
+
+                for (int i_ppara = 1; i_ppara < n_ppara - 1; ++i_ppara) {
+                    ppara = (max_ppara - min_ppara) * i_ppara / n_ppara + min_ppara;
+                    for (int i_pperp = 1; i_pperp < n_pperp - 1; ++i_pperp) {
+                        pperp = (max_pperp - min_pperp) * i_pperp / n_pperp + min_pperp;
+                        bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, t, n_tot, &ps_tmp, m, q, rk4_subcycles);
+
+                        if (!ps_tmp.err)
+                            n_tot += n_per_vertex;
+                    }
+                }
+            }
+        }
+    }
+
+    // compute number of particles needed for the specific MPI node
+    if (mpi_rank == mpi_size - 1) {
+        // printf("n_tot mpi_rank n mpisize %d %d %d %d %d %d\n", n_tot, mpi_rank, *n, mpi_size, n_tot - mpi_rank * (*n / mpi_size));
+        *n = n_tot - mpi_rank * (n_tot / mpi_size);
+    }
+    else
+        *n = n_tot / mpi_size;
+    int start_index = mpi_rank * (n_tot / mpi_size);
+
+    *ps = (particle_state *)malloc(*n * sizeof(particle_state));
+    *ps_indexes = (int *)malloc(*n * sizeof(int));
 
     int i = 0;
     for (int i_r = 0; i_r < n_r; ++i_r) {
@@ -525,70 +543,40 @@ int bmc_init_particles(
                     continue;
                 }
 
-                if (sim_offload->diag_offload_data.dist5D_collect) {                
-                    for (int i_ppara = 1; i_ppara < n_ppara - 1; ++i_ppara) {
-                        ppara = (max_ppara - min_ppara) * i_ppara / n_ppara + min_ppara;
-                        for (int i_pperp = 1; i_pperp < n_pperp - 1; ++i_pperp) {
-                            pperp = (max_pperp - min_pperp) * i_pperp / n_pperp + min_pperp;
-                            bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, t, i, &ps_tmp, m, q, rk4_subcycles);
+                for (int i_ppara = 1; i_ppara < n_ppara - 1; ++i_ppara) {
+                    ppara = (max_ppara - min_ppara) * i_ppara / n_ppara + min_ppara;
+                    for (int i_pperp = 1; i_pperp < n_pperp - 1; ++i_pperp) {
+                        pperp = (max_pperp - min_pperp) * i_pperp / n_pperp + min_pperp;
+                        bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, t, i, &ps_tmp, m, q, rk4_subcycles);
 
-                            unsigned long index = dist_5D_index(i_r, i_phi, i_z,
-                                    i_ppara, i_pperp,
-                                    0, 0,
-                                    n_phi, n_z,
-                                    n_ppara, n_pperp,
-                                    1, 1);
+                        unsigned long index = dist_5D_index(i_r, i_phi, i_z,
+                                i_ppara, i_pperp,
+                                0, 0,
+                                n_phi, n_z,
+                                n_ppara, n_pperp,
+                                1, 1);
 
-                            if (!ps_tmp.err)
-                            {
-                                for (int i_mc=0; i_mc<n_per_vertex; ++i_mc) {
+                        if (!ps_tmp.err)
+                        {
+                            for (int i_mc=0; i_mc<n_per_vertex; ++i_mc) {
+                                if ((i >= start_index) && (i < start_index + *n)) {
                                     ps_tmp.id = i;
 
                                     ps_tmp.hermite_weights = 1. / n_per_vertex;
                                     ps_tmp.use_hermite = 0;
-                                    memcpy(*ps + i, &ps_tmp, sizeof(particle_state));
-                                    (*ps_indexes)[i] = index;
-                                    i++;
+                                    memcpy(*ps + i - start_index, &ps_tmp, sizeof(particle_state));
+                                    (*ps_indexes)[i - start_index] = index;
                                 }
+                                i++;
                             }
-                        }
-                    }
-                } else {
-                    for (int i_pr = 0; i_pr < n_pr; ++i_pr) {
-                        pr = (max_pr - min_pr) * i_pr / n_pr + min_pr;
-                        for (int i_pphi = 0; i_pphi < n_pphi; ++i_pphi) {
-                            pphi = (max_pphi - min_pphi) * i_pphi / n_pphi + min_pphi;
-                            for (int i_pz = 0; i_pz < n_pz; ++i_pz) {
-                                pz = (max_pz - min_pz) * i_pz / n_pz + min_pz;
-                                bmc_init_fo_particle(&p_tmp, r, phi, z, pr, pphi, pz, t, m, q, i+1);
-                                particle_input_to_state(&p_tmp, &ps_tmp, Bdata);
-
-                                unsigned long index = dist_6D_index(i_r, i_phi, i_z,
-                                    i_pr, i_pphi, i_pz,
-                                    0, 0,
-                                    n_phi, n_z,
-                                    n_pr, n_pphi, n_pz,
-                                    1, 1);
-                                if (!ps_tmp.err) {
-                                    for (int i_mc=0; i_mc<n_per_vertex; ++i_mc) {
-                                        ps_tmp.id = i;
-                                        memcpy(*ps + i, &ps_tmp, sizeof(particle_state));
-                                        i++;
-                                    }
-                                }
-                            }
-
                         }
                     }
                 }
             }
         }
     }
-
-    *n = i;
-    printf("Initialized %d particles\n", i);
-
-    dist_5D_offload_data dist5D = sim_offload->diag_offload_data.dist5D;
+    
+    printf("Initialized %d particles in MPI node out of %d total particles\n", *n, i);
     printf("BMC mesh and markers initialization complete.\n");
     printf("Mesh size: rmin %f\trmax %e\tnr %d\n", dist5D.min_r, dist5D.max_r, dist5D.n_r);
     printf("Mesh size: phimin %f\tphimax %e\tnphi %d\n", dist5D.min_phi, dist5D.max_phi, dist5D.n_phi);
