@@ -97,7 +97,6 @@
 #include "endcond.h"
 #include "hdf5_interface.h"
 #include "offload.h"
-#include "gitver.h"
 #include "bmc/bmc.h"
 #include "bmc/bmc_init.h"
 
@@ -237,7 +236,7 @@ int main(int argc, char** argv) {
         fmc_init_importance_sampling_from_source_distribution(&n, &ps, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, IMPORTANCE_SAMPLING_PROBABILITY, RK4_SUBCYCLES, input_ps, n_input);
     } else {
         printf("Not using importance sampling. Using %d markers per node\n", N_MONTECARLO_STEPS);
-        if (bmc_init_particles(&n, &ps, &ps_indexes, N_MONTECARLO_STEPS, &sim, &Bdata, offload_array, T0, MASS, CHARGE, RK4_SUBCYCLES)) {
+        if (bmc_init_particles(mpi_rank, mpi_size, &n, &ps, &ps_indexes, N_MONTECARLO_STEPS, &sim, &Bdata, offload_array, T0, MASS, CHARGE, RK4_SUBCYCLES)) {
             goto CLEANUP_FAILURE;
         }
     }
