@@ -6,6 +6,7 @@
 #define MASS 3.3452438E-27
 #define CHARGE 1.60217662E-19
 #define RK4_SUBCYCLES 5
+#define DEBUG_EXIT_VELOCITY 0
 /**
  * @file ascot5_main.c
  * @brief ASCOT5 stand-alone program
