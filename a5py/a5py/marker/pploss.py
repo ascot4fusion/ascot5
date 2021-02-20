@@ -23,7 +23,7 @@ if plt:
 
 
 def plotlossmap(a5, mass, charge, energy, r, z, pitch, rhogrid, ksigrid,
-                time, lost, weights, axis, muin=False):
+                time, lost, weights, rmin, axis, muin=False):
     """
     Plot lost markers in (rho_omp,ksi_omp) or (rho_omp,mu) space.
 
@@ -58,6 +58,8 @@ def plotlossmap(a5, mass, charge, energy, r, z, pitch, rhogrid, ksigrid,
             Boolean array indicating which markers are lost.
         weights : array_like (n,1) <br>
             Marker weights.
+        rmin : float <br>
+            R coordinate for the inner mid plane separatrix.
         axis : Axis <br>
             Axis on which the lossmap is plotted.
         muin : bool, optional <br>
@@ -81,7 +83,7 @@ def plotlossmap(a5, mass, charge, energy, r, z, pitch, rhogrid, ksigrid,
     # Which particles are trapped
     P,mu = phasespace.evalPmu(a5, mass, charge, energy, r, z, pitch)
     trapped = phasespace.istrapped(a5, mass, charge, energy,
-                                   P, mu, rmin=4)
+                                   P, mu, rmin=rmin)
 
     # Evaluate the plotted quantities
     lostxy = np.histogram2d(x[lost], y[lost], bins=[xgrid,ygrid],
@@ -105,7 +107,7 @@ def plotlossmap(a5, mass, charge, energy, r, z, pitch, rhogrid, ksigrid,
     alphacmap = ListedColormap(alphacmap)
 
     mesh = axis.pcolormesh(xgrid, ygrid, timexy.transpose(),
-                           cmap=cmap, vmin=-5, vmax=-1)
+                           cmap=cmap, vmin=-9, vmax=-5)
     axis.figure.canvas.draw()
 
     # Get the colors and adjust shade so it corresponds to fraction of prts lost
