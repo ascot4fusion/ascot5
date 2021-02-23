@@ -10,6 +10,7 @@ import unyt
 import warnings
 
 from a5py.marker.alias import get as alias
+from a5py.marker.pploss import plotlossmap
 import a5py.marker.interpret as interpret
 import a5py.marker as marker
 import a5py.marker.plot as plot
@@ -650,3 +651,23 @@ class State(AscotData):
             plot.plot_histogram(x=xc, y=yc, xbins=xbins, ybins=ybins,
                                 weights=weights, logscale=logscale,
                                 xlabel=x, ylabel=y, axes=axes)
+
+
+    def plot_lossmap(self, rmin, endcond=32, rhogrid=np.linspace( 0, 1, 10),
+                     ksigrid=np.linspace(-1, 1, 10), binmin=-5, binmax=-1, nbin=4,
+                     axes=None):
+        from a5py.ascotpy import Ascotpy
+        a5 = Ascotpy(self._file)
+        a5.init(bfield=True)
+
+        inistate = self._runnode.inistate
+        endstate = self._runnode.endstate
+        mass   = self["mass"][0].to("kg").v
+        charge = self["charge"][0].to("C").v
+        energy = np.mean(inistate["energy"]).to("J").v
+        plotlossmap(a5, mass, charge, energy,
+                    inistate["r"].v, inistate["z"].v, inistate["pitch"].v,
+                    rhogrid, ksigrid, endstate["time"].v, endstate["endcond"]==endcond,
+                    inistate["weight"].v, rmin=rmin, binmin=binmin, binmax=binmax, nbin=nbin, axes=axes)
+
+        a5.free(bfield=True)
