@@ -26,12 +26,19 @@ import numpy as np
 import scipy.constants as const
 import importlib.util as util
 
+from unyt import c as speed_of_light
+
 plt = util.find_spec("matplotlib")
 if plt:
     import matplotlib.pyplot as plt
 
-from a5py.ascot5io.ascot5 import Ascot
-from a5py.ascotpy.ascotpy import Ascotpy
+
+def evalpnorm(mass, energy):
+    """
+    Small helper function to evaluate pnorm.
+    """
+    gamma = 1 + energy / (mass * speed_of_light.v**2)
+    return np.sqrt(gamma**2 - 1) * mass * speed_of_light.v
 
 
 def evalPmu(a5, mass, charge, energy, r, z, ksi):
@@ -59,6 +66,7 @@ def evalPmu(a5, mass, charge, energy, r, z, ksi):
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
@@ -66,10 +74,10 @@ def evalPmu(a5, mass, charge, energy, r, z, ksi):
     psi   = a5.evaluate(r, 0, z, 0, "psi")
     bphi  = a5.evaluate(r, 0, z, 0, "bphi")
     bnorm = a5.evaluate(r, 0, z, 0, "bnorm")
-    vnorm = np.sqrt(2*energy/mass)
+    pnorm = evalpnorm(mass, energy)
 
-    mu = (1-2*(ksi<0))*(1 - ksi*ksi) * mass * vnorm * vnorm / (2*bnorm)
-    P  = mass * r * vnorm * ksi * bphi / bnorm + charge * psi
+    mu = np.sign(ksi) * ( 1 - ksi**2 ) * pnorm**2 / ( 2 * bnorm * mass )
+    P  = r * pnorm * ksi * bphi / bnorm + charge * psi
 
     if free:
         a5.free(bfield=True)
@@ -104,6 +112,7 @@ def istrapped(a5, mass, charge, energy, P, mu, rmin=None):
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
@@ -120,25 +129,24 @@ def istrapped(a5, mass, charge, energy, P, mu, rmin=None):
     bphi  = a5.evaluate(rgrid, 0, axis["axisz"], 0, "bphi").ravel()
     bnorm = a5.evaluate(rgrid, 0, axis["axisz"], 0, "bnorm").ravel()
     psi   = a5.evaluate(rgrid, 0, axis["axisz"], 0, "psi").ravel()
-
-    vnorm = np.sqrt(2*energy/mass)
+    pnorm = evalpnorm(mass, energy)
 
     # Find which (P,mu) coordinates correspond to trapped markers. A marker is
     # trapped if a) mu is imaginary for all r < raxis or b) P(r,mu) - P has a
     # root for rmin < r <raxis.
     trapped = np.zeros(mu.shape) == 1
     for i in range(mu.size):
-        vperp2  = vnorm*vnorm - 2*np.absolute(mu[i])*bnorm/mass
-        if all(vperp2 < 0):
+        ppar2  = pnorm*pnorm - 2 * np.absolute(mu[i]) * bnorm * mass
+        if all(ppar2 < 0):
             # mu is imaginary for all r < raxis. Therefore marker orbit has no
             # solution there which means the marker is trapped.
             trapped[i] = True
             continue
 
         # Evaluate P(r,mu)
-        val = charge * psi + np.sign(mu[i]) * mass * rgrid * np.sqrt(vperp2) \
+        val = charge * psi + np.sign(mu[i]) * rgrid * np.sqrt(ppar2) \
               * bphi / bnorm
-        val[vperp2 < 0] = np.nan
+        val[ppar2 < 0] = np.nan
 
         if not (any(val - P[i] > 0) and any(val - P[i] < 0)):
             # No root for P(r,mu) - P, marker does not pass IMP and hence is
@@ -183,6 +191,7 @@ def initgridPmu(a5, mass, charge, energy, nP, nmu, padding):
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
@@ -190,11 +199,12 @@ def initgridPmu(a5, mass, charge, energy, nP, nmu, padding):
     # OMP rz coordinates
     rz = a5.get_rhotheta_rz( np.array([0,1]), 0, 0, 0 )
 
-    # mumax can be found assuming vperp = vnorm and using OMP separatrix value
+    # mumax can be found assuming pperp = pnorm and using OMP separatrix value
     # for bmin
     bmin = a5.evaluate(rz[0][-1], 0, rz[1][-1], 0, "bnorm")
-    vnorm = np.sqrt(2*energy/mass)
-    mumax = mass * vnorm * vnorm / (2*bmin)
+    pnorm = evalpnorm(mass, energy)
+
+    mumax = pnorm**2 / ( 2 * bnorm * mass )
     mumin = -mumax
 
     mugrid = np.linspace(mumin*(1+padding), mumax*(1+padding), nmu)
@@ -218,10 +228,10 @@ def initgridPmu(a5, mass, charge, energy, nP, nmu, padding):
     bpmax = a5.evaluate(rmax, 0, rz[1][-1], 0, "bphi") / \
             a5.evaluate(rmax, 0, rz[1][-1], 0, "bnorm")
 
-    P  = np.array([ mass * rmin * vnorm * bpmin + charge * psimin,
-                   -mass * rmin * vnorm * bpmin + charge * psimin,
-                    mass * rmax * vnorm * bpmax + charge * psimax,
-                   -mass * rmax * vnorm * bpmax + charge * psimax])
+    P  = np.array([ rmin * pnorm * bpmin + charge * psimin,
+                   -rmin * pnorm * bpmin + charge * psimin,
+                    rmax * pnorm * bpmax + charge * psimax,
+                   -rmax * pnorm * bpmax + charge * psimax])
 
     Pmin = np.nanmin(P)
     Pmax = np.nanmax(P)
@@ -276,6 +286,7 @@ def maprhomu2Pmu(a5, mass, charge, energy, rhovals, muvals,
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
@@ -284,11 +295,11 @@ def maprhomu2Pmu(a5, mass, charge, energy, rhovals, muvals,
     psi   = a5.evaluate(rz[0], 0, rz[1], 0, "psi")
     bnorm = a5.evaluate(rz[0], 0, rz[1], 0, "bnorm")
     bphi  = a5.evaluate(rz[0], 0, rz[1], 0, "bphi")
-    vnorm = np.sqrt(2*energy/mass)
+    pnorm = evalpnorm(mass, energy)
 
-    vpar   = np.sign(muvals) * np.sqrt(vnorm*vnorm
-                                       - 2*bnorm*np.absolute(muvals)/mass)
-    Pvals  = mass * rz[0] * vpar *bphi / bnorm + charge * psi
+    ppar   = np.sign(muvals) * np.sqrt(pnorm*pnorm
+                                       - 2*bnorm*np.absolute(muvals)*mass)
+    Pvals  = rz[0] * ppar *bphi / bnorm + charge * psi
 
     if weights is None:
         weights = np.ones(muvals.shape)
@@ -336,6 +347,7 @@ def mapPmu2rhomu(a5, mass, charge, energy, Pvals, muvals, rhogrid, mugrid,
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
@@ -344,17 +356,17 @@ def mapPmu2rhomu(a5, mass, charge, energy, Pvals, muvals, rhogrid, mugrid,
     psi   = a5.evaluate(rz[0], 0, rz[1], 0, "psi")
     bnorm = a5.evaluate(rz[0], 0, rz[1], 0, "bnorm")
     bphi  = a5.evaluate(rz[0], 0, rz[1], 0, "bphi")
-    vnorm = np.sqrt(2*energy/mass)
+    pnorm = evalpnorm(mass, energy)
 
     mu    = mugrid.transpose()
     psi   = psi.reshape(-1,1) * np.ones(mu.shape)
     bnorm = bnorm.reshape(-1,1) * np.ones(mu.shape)
     bphi  = bphi.reshape(-1,1) * np.ones(mu.shape)
     r     = rz[0].reshape(-1,1) * np.ones(mu.shape)
-    vpar2 = vnorm * vnorm - 2 * bnorm * np.absolute(mu) / mass
-    vpar  = np.sign(mu)*np.sqrt(vpar2)
+    ppar2 = pnorm * pnorm - 2 * bnorm * np.absolute(mu) * mass
+    ppar  = np.sign(mu)*np.sqrt(ppar2)
 
-    P  = mass * r * vpar * bphi / bnorm + charge * psi
+    P  = r * ppar * bphi / bnorm + charge * psi
 
     if weights is None:
         weights = np.ones(muvals.shape)
@@ -395,6 +407,8 @@ def test_rhomu2Pmu(fn):
         fn : str <br>
             Filename for ascot HDF5 file which must have magnetic field present.
     """
+    from a5py.ascot5io.ascot5 import Ascot
+    from a5py.ascotpy.ascotpy import Ascotpy
     h5 = Ascot(fn)
     a5 = Ascotpy(fn)
     a5.init(bfield=True)
@@ -506,6 +520,7 @@ def maprhoksi2Pmu(a5, mass, charge, energy, rhovals, ksivals,
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
@@ -518,11 +533,11 @@ def maprhoksi2Pmu(a5, mass, charge, energy, rhovals, ksivals,
     psi   = a5.evaluate(rz[0], 0, rz[1], 0, "psi")
     bnorm = a5.evaluate(rz[0], 0, rz[1], 0, "bnorm")
     bphi  = a5.evaluate(rz[0], 0, rz[1], 0, "bphi")
-    vnorm = np.sqrt(2*energy/mass)
+    pnorm = evalpnorm(mass, energy)
 
     muvals = (1 - 2*(ksivals<0)) * (1 - ksivals*ksivals) \
-             * mass * vnorm * vnorm / (2*bnorm)
-    Pvals  = mass * rz[0] * vnorm * ksivals * bphi / bnorm + charge * psi
+             * pnorm * pnorm / ( 2 * bnorm * mass )
+    Pvals  = rz[0] * pnorm * ksivals * bphi / bnorm + charge * psi
 
     if weights is None:
         weights = np.ones(rhovals.shape)
@@ -571,6 +586,7 @@ def mapPmu2rhoksi(a5, mass, charge, energy, Pvals, muvals, rhogrid, ksigrid,
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
@@ -579,7 +595,7 @@ def mapPmu2rhoksi(a5, mass, charge, energy, Pvals, muvals, rhogrid, ksigrid,
     psi   = a5.evaluate(rz[0], 0, rz[1], 0, "psi")
     bnorm = a5.evaluate(rz[0], 0, rz[1], 0, "bnorm")
     bphi  = a5.evaluate(rz[0], 0, rz[1], 0, "bphi")
-    vnorm = np.sqrt(2*energy/mass)
+    pnorm = evalpnorm(mass, energy)
 
     ksi   = ksigrid.transpose()
     psi   = psi.reshape(-1,1) * np.ones(ksi.shape)
@@ -587,11 +603,11 @@ def mapPmu2rhoksi(a5, mass, charge, energy, Pvals, muvals, rhogrid, ksigrid,
     bphi  = bphi.reshape(-1,1) * np.ones(ksi.shape)
     r     = rz[0].reshape(-1,1) * np.ones(ksi.shape)
     ksi   = np.ones(rz[0].reshape(-1,1).shape).reshape(-1,1)*ksigrid.transpose()
-    vpar  = ksi*vnorm
+    ppar  = ksi*pnorm
 
-    P  = mass * r * vpar * bphi / bnorm + charge * psi
-    mu = (1 - 2*(ksi < 0)) * (1 - ksi*ksi) * mass * vnorm * vnorm / (2*bnorm)
-    mumax = mass * vnorm * vnorm / (2*bnorm)
+    P  = r * ppar * bphi / bnorm + charge * psi
+    mu = (1 - 2*(ksi < 0)) * (1 - ksi*ksi) * pnorm * pnorm / ( 2 * bnorm * mass )
+    mumax = pnorm * pnorm / ( 2 * bnorm * mass )
 
     if weights is None:
         weights = np.ones(muvals.shape)
@@ -656,6 +672,8 @@ def test_rhoksi2Pmu(fn):
         fn : str <br>
             Filename for ascot HDF5 file which must have magnetic field present.
     """
+    from a5py.ascot5io.ascot5 import Ascot
+    from a5py.ascotpy.ascotpy import Ascotpy
     h5 = Ascot(fn)
     a5 = Ascotpy(fn)
     a5.init(bfield=True)
@@ -769,18 +787,19 @@ def maprzk2Pmu(a5, mass, charge, energy, rvals, zvals, ksivals,
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
 
-    vnorm = np.sqrt(2*energy/mass)
     bnorm = a5.evaluate(rvals, 0, zvals, 0, "bnorm")
     bphi  = a5.evaluate(rvals, 0, zvals, 0, "bphi")
     psi   = a5.evaluate(rvals, 0, zvals, 0, "psi")
+    pnorm = evalpnorm(mass, energy)
 
     muvals = (1-2*(ksivals<0)) * (1-ksivals*ksivals) \
-             * vnorm * vnorm * mass / (2*bnorm)
-    Pvals  = mass * rvals * ksivals * vnorm * bphi / bnorm + charge * psi
+             * pnorm * pnorm / ( 2 * bnorm * mass )
+    Pvals  = rvals * ksivals * pnorm * bphi / bnorm + charge * psi
 
     if weights is None:
         weights = np.ones(muvals.shape)
@@ -832,11 +851,12 @@ def mapPmu2rzk(a5, mass, charge, energy, Pvals, muvals,
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
 
-    vnorm = np.sqrt(2*energy/mass)
+    pnorm = evalpnorm(mass, energy)
     if weights is None:
         weights = np.ones(muvals.shape)
 
@@ -849,12 +869,12 @@ def mapPmu2rzk(a5, mass, charge, energy, Pvals, muvals,
     psi   = a5.evaluate(R, 0, Z, 0, "psi").reshape(R.shape)
     bnorm = a5.evaluate(R, 0, Z, 0, "bnorm").reshape(R.shape)
     bphi  = a5.evaluate(R, 0, Z, 0, "bphi").reshape(R.shape)
-    Mu = (1-2*(Ksi<0))*mass * (1-Ksi*Ksi) * vnorm * vnorm / (2*bnorm)
-    P  = mass * R * Ksi * vnorm * bphi / bnorm  + charge * psi
+    Mu = (1-2*(Ksi<0)) * (1-Ksi*Ksi) * pnorm * pnorm / ( 2 * bnorm * mass )
+    P  = R * Ksi * pnorm * bphi / bnorm  + charge * psi
     #Pmid = charge * psi
 
     # Maximum possible mu value at each node
-    Mumax = mass * vnorm * vnorm / (2*bnorm)
+    Mumax = pnorm * pnorm / ( 2 * bnorm * mass )
 
     # The index search algorithm, which finds 8R,z,ksi) cells (P,mu) correspond
     # to, is run twice: first to find how many cells each (P,mu) correspond to
@@ -977,6 +997,8 @@ def test_rzk2Pmu(fn):
         fn : str <br>
             Filename for ascot HDF5 file which must have magnetic field present.
     """
+    from a5py.ascot5io.ascot5 import Ascot
+    from a5py.ascotpy.ascotpy import Ascotpy
     h5 = Ascot(fn)
     a5 = Ascotpy(fn)
     a5.init(bfield=True)
@@ -1094,6 +1116,7 @@ def maprhoksi2rzk(a5, mass, charge, energy, rhovals, ksivals, rgrid, zgrid,
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
@@ -1119,6 +1142,7 @@ def maprzk2rhoksi(a5, mass, charge, energy, rvals, zvals, ksivals, rhogrid,
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
@@ -1146,6 +1170,7 @@ def maprhoksi2rhomu(a5, mass, charge, energy, rhovals, ksivals, rhogrid,
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
@@ -1171,6 +1196,7 @@ def maprhomu2rhoksi(a5, mass, charge, energy, rhovals, muvals, rhogrid,
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
@@ -1198,6 +1224,7 @@ def maprhomu2rzk(a5, mass, charge, energy, rhovals, muvals, rgrid, zgrid,
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
@@ -1223,6 +1250,7 @@ def maprzk2rhomu(a5, mass, charge, energy, rvals, zvals, ksivals,
     """
     free = False
     if isinstance(a5, str):
+        from a5py.ascotpy.ascotpy import Ascotpy
         free = True
         a5 = Ascotpy(a5)
         a5.init(bfield=True)
