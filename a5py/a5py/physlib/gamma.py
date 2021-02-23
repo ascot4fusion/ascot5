@@ -125,3 +125,17 @@ def energy_gamma(m, gamma):
     Evaluate kinetic energy from Lorentz factor.
     """
     return (gamma - 1.0) * m * c**2
+
+
+def vnorm_gamma(gamma):
+    """
+    Evaluate velocity norm from Lorentz factor.
+    """
+    return np.sqrt(1 - 1.0 / gamma**2) * c
+
+
+def pnorm_gamma(m, gamma):
+    """
+    Evaluate momentum norm from Lorentz factor.
+    """
+    return np.sqrt(gamma**2 - 1) * m * c
