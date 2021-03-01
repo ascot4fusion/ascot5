@@ -23,7 +23,7 @@ if plt:
 
 def plotlossmap(a5, mass, charge, energy, r, z, pitch, rhogrid, ksigrid,
                 time, lost, weights, rmin, binmin=-5, binmax=-1, nbin=4, muin=False,
-                axes=None):
+                uselinscale=False, axes=None):
     """
     Plot lost markers in (rho_omp,ksi_omp) or (rho_omp,mu) space.
 
@@ -33,7 +33,7 @@ def plotlossmap(a5, mass, charge, energy, r, z, pitch, rhogrid, ksigrid,
     (10 % losses = thin contour, 90 % losses = thick contour).  The plot also
     shows the passing-trapped boundary in red.
 
-    The color scale is discrete and logarithmic.
+    The color scale is discrete and logarithmic (unless uselinscale=True).
 
     Args:
         a5 : Ascotpy <br>
@@ -63,13 +63,15 @@ def plotlossmap(a5, mass, charge, energy, r, z, pitch, rhogrid, ksigrid,
         rmin : float <br>
             R coordinate for the inner mid plane separatrix.
         binmin : float, optional <br>
-            Minimum time exponent for the color scale.
+            Minimum time exponent (or value if uselinscale=True) for the color scale.
         binmax : float, optional <br>
-            Maximum time exponent for the color scale.
+            Maximum time exponent (or value if uselinscale=True) for the color scale.
         nbin : integer, optional <br>
             Number of bins on the color scale.
         muin : bool, optional <br>
             mu grid if the lossmap is plotted in (rho_omp,mu) instead.
+        uselinscale : bool <br>
+            Use linear scale for time instead.
         axes : Axes, optional <br>
             Axes on which the lossmap is plotted. Default is to open a new figure.
     """
@@ -103,15 +105,21 @@ def plotlossmap(a5, mass, charge, energy, r, z, pitch, rhogrid, ksigrid,
     lostxy = np.histogram2d(x[lost], y[lost], bins=[xgrid,ygrid],
                             weights=weights[lost])[0]
     timexy = np.histogram2d(x[lost], y[lost], bins=[xgrid,ygrid],
-                            weights=(time*weights)[lost])[0] / lostxy
+                            weights=(time*weights)[lost])[0]
+    timexy = np.divide(timexy, lostxy,
+                       out=np.zeros(timexy.shape, dtype=float), where=lostxy!=0)
 
-    timexy = np.log10(timexy)
+    if not uselinscale:
+        timexy = np.log10(timexy)
 
     weightxy = np.histogram2d(x, y, bins=[xgrid,ygrid], weights=weights)[0]
-    lossfrac = lostxy / weightxy
+    lossfrac = np.divide(lostxy, weightxy,
+                         out=np.zeros(lostxy.shape, dtype=float), where=weightxy!=0)
 
     trapxy = np.histogram2d(x, y, bins=[xgrid,ygrid],
-                            weights=trapped*weights)[0] / weightxy
+                            weights=trapped*weights)[0]
+    trapxy = np.divide(trapxy, weightxy,
+                       out=np.zeros(trapxy.shape, dtype=float), where=weightxy!=0)
 
     # Plot loss time with different colours
     cmap = plt.cm.get_cmap("viridis_r", nbin)

@@ -143,8 +143,8 @@ def istrapped(a5, mass, charge, energy, P, mu, rmin=None):
             trapped[i] = True
             continue
 
-        # Evaluate P(r,mu)
-        val = charge * psi + np.sign(mu[i]) * rgrid * np.sqrt(ppar2) \
+        # Evaluate P(r,mu).  Note that np.abs() is used just to suppress warnings
+        val = charge * psi + np.sign(mu[i]) * rgrid * np.sqrt(np.abs(ppar2)) \
               * bphi / bnorm
         val[ppar2 < 0] = np.nan
 
