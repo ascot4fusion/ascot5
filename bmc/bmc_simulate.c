@@ -57,7 +57,7 @@ void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, p
             sim_offload->wall_offload_data.offload_array_length);
     wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
-    random_init(&sim.random_data, 0);
+    random_init(&sim.random_data, time(NULL));
 
     /******************************************************************/
     /* 2. Prepare time steps */
