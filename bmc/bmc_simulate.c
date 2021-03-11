@@ -143,7 +143,7 @@ void copy_particles_simd_to_coll_simd(int n_simd_particles, int n_hermite_knots,
 
                 // update hermite knots and weights
                 p_coll[i_coll / NSIMD].hermite_knots[i_coll % NSIMD] = hermiteK[k];
-                p_coll[i_coll / NSIMD].hermite_weights[i_coll % NSIMD] = hermiteW[k];
+                p_coll[i_coll / NSIMD].hermite_weights[i_coll % NSIMD] = hermiteW[k] / PI2E0_5;
 
                 i_coll++;
             }

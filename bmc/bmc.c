@@ -121,11 +121,6 @@ void backward_monte_carlo_gc_time_indep(
         }
     }
 
-    // init Hermite knots and weights for the collisional SIMD array
-    init_particles_coll_simd_hermite(n_simd_particles, n_hermite_knots, pcoll1);
-    init_particles_coll_simd_hermite(n_simd_particles, n_hermite_knots, pcoll0);
-    copy_particles_simd_to_coll_simd(n_simd_particles, n_hermite_knots, p0, pcoll0);
-
     // reset particle initial states to ps1 and pcoll1
     memcpy(p1, p0, n_simd_particles * sizeof(particle_simd_gc));
 
