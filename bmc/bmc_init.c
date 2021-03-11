@@ -480,7 +480,7 @@ int bmc_init_particles(
 
     if (sim_offload->diag_offload_data.dist5D_collect) {
         printf("5D: n_r %d n_phi %d n_z %d n_vpara %d n_vperp %d n_per_vertex %d\n", n_r, n_phi, n_z, n_ppara, n_pperp, n_per_vertex);
-        *n = n_r * n_phi * n_z * (n_ppara - 2) * (n_pperp - 2) * n_per_vertex;
+        *n = n_r * n_phi * n_z * (n_ppara ) * (n_pperp ) * n_per_vertex;
     } else {
         printf("6D: n_r %d n_phi %d n_z %d n_vr %d n_vphi %d n_vz %d n_per_vertex %d\n", n_r, n_phi, n_z, n_pr, n_pphi, n_pz, n_per_vertex);
         *n = n_r * n_phi * n_z * n_pr * n_pphi * n_pz * n_per_vertex;
@@ -505,9 +505,9 @@ int bmc_init_particles(
                     continue;
                 }
 
-                for (int i_ppara = 1; i_ppara < n_ppara - 1; ++i_ppara) {
+                for (int i_ppara = 0; i_ppara < n_ppara; ++i_ppara) {
                     ppara = (max_ppara - min_ppara) * i_ppara / n_ppara + min_ppara;
-                    for (int i_pperp = 1; i_pperp < n_pperp - 1; ++i_pperp) {
+                    for (int i_pperp = 0; i_pperp < n_pperp; ++i_pperp) {
                         pperp = (max_pperp - min_pperp) * i_pperp / n_pperp + min_pperp;
                         bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, t, n_tot, &ps_tmp, m, q, rk4_subcycles);
 
@@ -543,9 +543,9 @@ int bmc_init_particles(
                     continue;
                 }
 
-                for (int i_ppara = 1; i_ppara < n_ppara - 1; ++i_ppara) {
+                for (int i_ppara = 0; i_ppara < n_ppara; ++i_ppara) {
                     ppara = (max_ppara - min_ppara) * i_ppara / n_ppara + min_ppara;
-                    for (int i_pperp = 1; i_pperp < n_pperp - 1; ++i_pperp) {
+                    for (int i_pperp = 0; i_pperp < n_pperp; ++i_pperp) {
                         pperp = (max_pperp - min_pperp) * i_pperp / n_pperp + min_pperp;
                         bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, t, i, &ps_tmp, m, q, rk4_subcycles);
 
