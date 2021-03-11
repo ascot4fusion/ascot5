@@ -157,7 +157,7 @@ void simulate(int id, int n_particles, particle_state* p,
     }
     pq.next = 0;
 
-    random_init(&sim.random_data, 0);
+    random_init(&sim.random_data, time(NULL));
 
     print_out(VERBOSE_NORMAL,"%s: All fields initialized. Simulation begins, %d threads.\n",
               targetname, omp_get_max_threads());
