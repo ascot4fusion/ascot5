@@ -140,6 +140,7 @@ void copy_particles_simd_to_coll_simd(int n_simd_particles, int n_hermite_knots,
         for (int j=0; j < NSIMD; j++) {
             for (int k = 0; k < n_hermite_knots; k++) {
                 particle_copy_gc(&p[i], j, &p_coll[i_coll / NSIMD], i_coll % NSIMD);
+                p_coll[i_coll / NSIMD].err[i_coll % NSIMD] = p[i].err[j];
 
                 // update hermite knots and weights
                 p_coll[i_coll / NSIMD].hermite_knots[i_coll % NSIMD] = hermiteK[k];
