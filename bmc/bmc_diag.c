@@ -58,7 +58,6 @@ real fmc_compute_signal_from_states(
 
 int fmc_update_distr5D_from_states(
         dist_5D_data* dist1,
-        dist_5D_data* dist0,
         int* p0_indexes,
         particle_state* p1,
         int n_particles,

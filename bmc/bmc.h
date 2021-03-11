@@ -93,8 +93,7 @@ void backward_monte_carlo_gc(
         int rk4_subcycles
     );
 int forward_monte_carlo(
-        int n_tot_particles,
-        int n_mpi_particles,
+        int n_particles,
         int n_montecarlo_steps,
         particle_state* ps1,
         int* ps1_indexes,
