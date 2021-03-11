@@ -91,12 +91,18 @@ def init_rhoenergypitch(fn, n, mass, charge, anum, znum, rhogrid, energygrid,
     pitchgrid  = np.atleast_1d(pitchgrid)
 
     ntotal = n
-    if not randomize_rho:
+    if rgrid is None and not randomize_rho:
         ntotal *= np.unique(rhogrid).size
     if not randomize_energy:
         ntotal *= np.unique(energygrid).size
     if not randomize_pitch:
         ntotal *= np.unique(pitchgrid).size
+
+    if rgrid is not None:
+        rgrid = np.atleast_1d(rgrid)
+        rhogrid = rgrid
+        if not randomize_rho:
+            ntotal *= np.unique(rgrid).size
 
     rhovals    = np.zeros((ntotal,))
     energyvals = np.zeros((ntotal,))
@@ -104,8 +110,10 @@ def init_rhoenergypitch(fn, n, mass, charge, anum, znum, rhogrid, energygrid,
 
     irho = 0
     while irho < rhogrid.size:
-        for ienergy in range(energygrid.size):
-            for ipitch in range(pitchgrid.size):
+        ienergy = 0
+        while ienergy < energygrid.size:
+            ipitch = 0
+            while ipitch < pitchgrid.size:
                 idx =   ipitch * (energygrid.size * rhogrid.size) \
                       + ienergy * rhogrid.size + irho
 
@@ -143,6 +151,8 @@ def init_rhoenergypitch(fn, n, mass, charge, anum, znum, rhogrid, energygrid,
                 else:
                     pitchvals[idx*n:(idx+1)*n] = pitchgrid[ipitch]
 
+                ipitch += 1
+            ienergy += 1
         irho += 1
 
     # Find OMP R,z values
@@ -200,21 +210,30 @@ def init_rhopparapperp(fn, n, mass, charge, anum, znum, rhogrid, pparagrid,
     pperpgrid = np.atleast_1d(pperpgrid)
 
     ntotal = n
-    if not randomize_rho:
+    if rgrid is None and not randomize_rho:
         ntotal *= np.unique(rhogrid).size
     if not randomize_ppara:
         ntotal *= np.unique(pparagrid).size
     if not randomize_pperp:
         ntotal *= np.unique(pperpgrid).size
 
+    if rgrid is not None:
+        rgrid = np.atleast_1d(rgrid)
+        rhogrid = rgrid
+        if not randomize_rho:
+            ntotal *= np.unique(rgrid).size
+
     rhovals   = np.zeros((ntotal,))
     pparavals = np.zeros((ntotal,))
     pperpvals = np.zeros((ntotal,))
+
     irho = 0
     while irho < rhogrid.size:
-        for ippara in range(pparagrid.size):
-            for ipperp in range(pperpgrid.size):
-                idx =   ipperp * (pparagrid.size + rhogrid.size) \
+        ippara = 0
+        while ippara < pparagrid.size:
+            ipperp = 0
+            while ipperp < pperpgrid.size:
+                idx =   ipperp * (pparagrid.size * rhogrid.size) \
                       + ippara * rhogrid.size + irho
                 if randomize_rho and rgrid is None:
                     rhovals[idx*n:(idx+1)*n] = \
@@ -237,17 +256,21 @@ def init_rhopparapperp(fn, n, mass, charge, anum, znum, rhogrid, pparagrid,
                       np.amin(pparagrid) \
                     + ( np.amax(pparagrid)- np.amin(pparagrid) ) \
                     * np.random.rand(n)
+                    ippara = pparagrid.size
                 else:
                     pparavals[idx*n:(idx+1)*n] = pparagrid[ippara]
 
                 if randomize_pperp:
-                    pitchvals[idx*n:(idx+1)*n] = \
+                    pperpvals[idx*n:(idx+1)*n] = \
                       np.amin(pperpgrid)
                     + ( np.amax(pperpgrid)- np.amin(pperpgrid) ) \
                     * np.random.rand(n)
+                    ipperp = pperpgrid.size
                 else:
                     pperpvals[idx*n:(idx+1)*n] = pperpgrid[ipperp]
 
+                ipperp += 1
+            ippara += 1
         irho += 1
 
     # Find OMP R,z values
@@ -257,8 +280,12 @@ def init_rhopparapperp(fn, n, mass, charge, anum, znum, rhogrid, pparagrid,
         rz_omp = a5.get_rhotheta_rz( rhovals, 0, 0, 0 )
     else:
         rz_omp = a5.get_rhotheta_rz( 0.5*np.ones(rhovals.shape), 0, 0, 0 )
-        rz_omp[0] = rhovals
+        rz_omp = (rhovals, rz_omp[1])
     a5.free(bfield=True)
+
+    mass_amu = mass.to("amu").d
+    mass_kg  = mass.to("kg").d
+    c = 299792458
 
     mrk = {}
     mrk["n"]      = rz_omp[0].size
@@ -272,8 +299,8 @@ def init_rhopparapperp(fn, n, mass, charge, anum, znum, rhogrid, pparagrid,
     mrk["weight"] = 1 * np.ones((mrk["n"],))
 
     pnorm2 =  pparavals**2 + pperpvals**2
-    mrk["energy"] = np.sqrt(restmass**2 + pnorm2 * c**2) - restmass
-    mrk["mass"]   = mass   * np.ones((mrk["n"],))
+    mrk["energy"] = (np.sqrt(mass_kg**2 + pnorm2 * c**2) - mass_kg) / 1.602e-19
+    mrk["mass"]   = mass_amu * np.ones((mrk["n"],))
     mrk["charge"] = charge * np.ones((mrk["n"],))
     mrk["anum"]   = anum   * np.ones((mrk["n"],))
     mrk["znum"]   = znum   * np.ones((mrk["n"],))

@@ -539,6 +539,37 @@ class State(AscotData):
         return (endcond, counts)
 
 
+    def getmatrix(self, dim, quantity):
+        run = self._runnode
+
+        nsize = 1
+        for i in np.arange( len(dim) ):
+            nsize *= dim[i]
+
+        ntot = run.inistate["ids"].size
+        if ntot % nsize > 0:
+            print("The number of markers must be a multiple of dimensions.")
+            return
+
+        nslot = int(ntot / nsize)
+        outini = np.zeros(dim).ravel()
+        outend = np.zeros(dim).ravel()
+
+        ids = run.inistate["ids"]
+        qini = run.inistate[quantity]
+        qend = run.endstate[quantity]
+
+        n = 0; i = 0
+        while n < ntot:
+            idx  = np.logical_and(  ids > n,  ids <= n + nslot )
+            outini[i] = np.mean(qini[idx])
+            outend[i] = np.mean(qend[idx])
+            n += nslot
+            i += 1
+
+        return (np.reshape(outini, dim), np.reshape(outend, dim))
+
+
     def scatter(self, x=None, y=None, z=None, c=None, endcond=None, pncrid=None,
                 equal=False, log=False, axes=None):
         """
