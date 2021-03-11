@@ -265,8 +265,7 @@ void backward_monte_carlo_gc(
 }
 
 int forward_monte_carlo(
-        int n_tot_particles,
-        int n_mpi_particles,
+        int n_particles,
         int n_montecarlo_steps,
         particle_state* ps1,
         int* ps1_indexes,
@@ -289,15 +288,15 @@ int forward_monte_carlo(
         int debugHitTime
     ) {
 
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nStarting Forward Monte Carlo, mesh version. N particles: %d.\n", n_mpi_particles);
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nStarting Forward Monte Carlo, mesh version. N particles in MPI node: %d.\n", n_particles);
 
     /* Allow threads to spawn threads */
     omp_set_nested(1);
 
     // ps0 holds the initial particle states (constant space in vertices, and changing time)
     // ps1 are simulated and will hold the final state at eatch time step
-    particle_state* ps0 = (particle_state*) malloc(n_mpi_particles * sizeof(particle_state));
-    memcpy(ps0, ps1, n_mpi_particles * sizeof(particle_state));
+    particle_state* ps0 = (particle_state*) malloc(n_particles * sizeof(particle_state));
+    memcpy(ps0, ps1, n_particles * sizeof(particle_state));
 
     for(int i = 0; i < 10; i++) {
         printf("Particle %d %f %f %f %f %f %f %f\n", i, ps1[i].r, ps1[i].phi, ps1[i].z, ps1[i].ppar, ps1[i].rho, ps1[i].rprt, ps1[i].p_r);
@@ -317,10 +316,10 @@ int forward_monte_carlo(
     // diagnostic might be useless for BMC. Remove this?
     real* diag_offload_array_mic0, *diag_offload_array_mic1, *diag_offload_array_host;
     #ifdef TARGET
-        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic0, n_tot_particles);
-        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic1, n_tot_particles);
+        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic0, n_particles);
+        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_mic1, n_particles);
     #else
-        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_host, n_tot_particles);
+        diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_host, n_particles);
     #endif
 
 
@@ -354,7 +353,7 @@ int forward_monte_carlo(
     sim_offload->endcond_max_simtime = t1;
 
     // set time in particle states
-    for(int i = 0; i < n_mpi_particles; i++) {
+    for(int i = 0; i < n_particles; i++) {
         ps1[i].time = t0;
         ps0[i].time = t0;
     }
@@ -369,7 +368,7 @@ int forward_monte_carlo(
     int n_updated;
     int n_loss = 0, n_err = 0;
     if (distr0.dist5D_collect) {
-        n_updated = fmc_update_distr5D_from_states(&distr1.dist5D, &distr0.dist5D, ps1_indexes, ps1, n_mpi_particles, &(sim.wall_data.w2d), &n_loss, &n_err);
+        n_updated = fmc_update_distr5D_from_states(&distr1.dist5D, ps1_indexes, ps1, n_particles, &(sim.wall_data.w2d), &n_loss, &n_err);
         
     } else {
         // TODO: Full orbit
@@ -383,7 +382,7 @@ int forward_monte_carlo(
         real time;
         a5err err;
         int walltile;
-        for (int i = 0; i < n_mpi_particles; i++) {
+        for (int i = 0; i < n_particles; i++) {
             // fprintf(hitFile, "%d %e %d\n", ps1[i].id, ps1[i].time, ps1[i].walltile);
             err = ps1[i].err;
             walltile = ps1[i].walltile;
@@ -401,7 +400,6 @@ int forward_monte_carlo(
     // // shift distributions. Required since distr1 is partitioned through all the MPI nodes,
     // // and can't be written directly to disk
     diag_move_distribution(sim_offload, &distr0, &distr1, &n_updated, &n_loss, &n_err);
-    printf("Total number of markers: %d\n", n_tot_particles);
     printf("Target domain hit n_markers: %d\n", n_updated);
     printf("Wall hit not in target n_markers: %d\n", n_loss);
     printf("Err markers: %d\n", n_err);
@@ -469,8 +467,9 @@ int forward_monte_carlo_from_source_particles(
     /* Allow threads to spawn threads */
     omp_set_nested(1);
 
-    for(int i = 0; i < 10; i++) {
-        printf("Particle %d %f %f %f %f %f %f %f\n", i, ps[i].r, ps[i].phi, ps[i].z, ps[i].ppar, ps[i].rho, ps[i].rprt, ps[i].p_r);
+    for(int i = 0; i < n_mpi_particles; i++) {
+        if (i > 10) break;
+        printf("Particle %d %f %f %f %f %f %f %f\n", ps[i].id, ps[i].r, ps[i].phi, ps[i].z, ps[i].ppar, ps[i].rho, ps[i].rprt, ps[i].p_r);
     }
 
     // initialize distributions

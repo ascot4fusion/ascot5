@@ -246,14 +246,16 @@ int main(int argc, char** argv) {
      * are divided into mpi_size sequential blocks and the mpi_rank:th block
      * is chosen for this simulation. */
     int start_index = mpi_rank * (n / mpi_size);
-    ps += start_index;
-    ps_indexes += start_index;
+    if (IMPORTANCE_SAMPLING) {
+        ps += start_index;
+        ps_indexes += start_index;
 
-    if(mpi_rank == mpi_size-1) {
-        n = n - mpi_rank * (n / mpi_size);
-    }
-    else {
-        n = n / mpi_size;
+        if(mpi_rank == mpi_size-1) {
+            n = n - mpi_rank * (n / mpi_size);
+        }
+        else {
+            n = n / mpi_size;
+        }
     }
 
 
@@ -317,7 +319,7 @@ int main(int argc, char** argv) {
             }
     } else {
         if (forward_monte_carlo(
-            n_total_particles, n, N_MONTECARLO_STEPS, ps, ps_indexes,
+            n_total_particles, N_MONTECARLO_STEPS, ps, ps_indexes,
             input_ps, n_input,
             &Bdata, &sim, &offload_data, offload_array,
             &mic1_start, &mic1_end,
