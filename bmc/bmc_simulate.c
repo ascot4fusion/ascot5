@@ -129,6 +129,10 @@ void copy_particles_simd_to_coll_simd(int n_simd_particles, int n_hermite_knots,
     real hermiteK[5] = {-2.856970, -1.355626, 0.000000, 1.355626, 2.856970};
     real hermiteW[5] = {0.028218, 0.556662, 1.336868, 0.556662, 0.028218};
 
+    for (int i = 0; i < 5; i++) {
+        hermiteW[i] /= PI2E0_5;
+    }
+
     if (n_hermite_knots == 1)
     {
         hermiteK[0] = 0;
@@ -144,7 +148,7 @@ void copy_particles_simd_to_coll_simd(int n_simd_particles, int n_hermite_knots,
 
                 // update hermite knots and weights
                 p_coll[i_coll / NSIMD].hermite_knots[i_coll % NSIMD] = hermiteK[k];
-                p_coll[i_coll / NSIMD].hermite_weights[i_coll % NSIMD] = hermiteW[k] / PI2E0_5;
+                p_coll[i_coll / NSIMD].hermite_weights[i_coll % NSIMD] = hermiteW[k];
 
                 i_coll++;
             }
@@ -734,6 +738,12 @@ void bmc_step_stochastic(particle_simd_gc *p, real *h, B_field_data *Bdata,
             dW[1] = sdt * rnd[1 * NSIMD + i]; // For X_2
             dW[2] = sdt * rnd[2 * NSIMD + i]; // For X_3
             dW[4] = sdt * rnd[4 * NSIMD + i]; // For xi
+
+            dW[0] = 0;
+            dW[1] = 0;
+            dW[2] = 0;
+            dW[3] = 0;
+            dW[4] = 0;
 
             if (p->hermite_knots[i] > 0)
             {
