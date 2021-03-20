@@ -76,7 +76,7 @@ int backward_monte_carlo(
         // TODO: FULL ORBIT
     }
 
-    write_probability_distribution(sim_offload, &distr0, distr0_array, mpi_rank, true);
+    write_probability_distribution(sim_offload, &distr0, distr0_array, mpi_rank, 1);
 
     // Free sitribution data
     diag_free_offload(&sim_offload->diag_offload_data, &distr1_array);
@@ -281,7 +281,7 @@ int forward_monte_carlo(
         int n_mic,
         int n_host,
         int mpi_rank,
-        bool importance_sampling,
+        int importance_sampling,
         real t1,
         real t0,
         int debugInputDistribution,
@@ -423,7 +423,7 @@ int forward_monte_carlo(
         }
     }
 
-    write_probability_distribution(sim_offload, &distr0, distr0_array, mpi_rank, false);
+    write_probability_distribution(sim_offload, &distr0, distr0_array, mpi_rank, 0);
 
     // // Free diagnostic data
     #ifdef TARGET
@@ -454,7 +454,7 @@ int forward_monte_carlo_from_source_particles(
         int n_mic,
         int n_host,
         int mpi_rank,
-        bool importance_sampling,
+        int importance_sampling,
         real t1,
         real t0,
         int debugInputDistribution,
