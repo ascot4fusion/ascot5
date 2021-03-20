@@ -739,12 +739,6 @@ void bmc_step_stochastic(particle_simd_gc *p, real *h, B_field_data *Bdata,
             dW[2] = sdt * rnd[2 * NSIMD + i]; // For X_3
             dW[4] = sdt * rnd[4 * NSIMD + i]; // For xi
 
-            dW[0] = 0;
-            dW[1] = 0;
-            dW[2] = 0;
-            dW[3] = 0;
-            dW[4] = 0;
-
             if (p->hermite_knots[i] > 0)
             {
                 dW[3] = sdt * p->hermite_knots[i];
