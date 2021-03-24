@@ -5,7 +5,6 @@ void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_da
     int dist_length = sim->diag_offload_data.offload_array_length;
     #ifdef MPI
         if (sim->diag_offload_data.dist5D_collect) {
-            MPI_Barrier(MPI_COMM_WORLD);
             MPI_Allreduce(diag_src->dist5D.histogram, diag_dest->dist5D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(updated, updated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(nloss, nloss, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -504,6 +503,7 @@ void bmc_5D_to_particle_state(
         ps->znum     = 1;
         ps->weight   = 1;
         ps->time     = t;
+        ps->mileage  = 0;
         ps->theta    = atan2(ps->z-B_field_get_axis_z(Bdata, ps->phi),
                                 ps->r-B_field_get_axis_r(Bdata, ps->phi));
         ps->id       = id;
