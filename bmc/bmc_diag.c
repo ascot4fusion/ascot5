@@ -188,7 +188,7 @@ int bmc_update_distr5D(
     int i_q;
 
     weights_dim[0] = ((p->r[i_simd] - dist->min_r)
-                / ((dist->max_r - dist->min_r)/dist->n_r));
+                / ((dist->max_r - dist->min_r)/(dist->n_r-1)));
     i_r = floor(weights_dim[0]);
     weights_dim[0] = 1. - weights_dim[0] + i_r;
 
@@ -197,17 +197,17 @@ int bmc_update_distr5D(
         phi = phi + 2*CONST_PI;
     }
     weights_dim[1] = ((phi - dist->min_phi)
-                / ((dist->max_phi - dist->min_phi)/dist->n_phi));
+                / ((dist->max_phi - dist->min_phi)/fmax(1, dist->n_phi-1)));
     i_phi = floor(weights_dim[1]);
     weights_dim[1] = 1. - weights_dim[1] + i_phi;
 
     weights_dim[2] = ((p->z[i_simd] - dist->min_z)
-            / ((dist->max_z - dist->min_z) / dist->n_z));
+            / ((dist->max_z - dist->min_z) / (dist->n_z-1)));
     i_z = floor(weights_dim[2]);
     weights_dim[2] = 1. - weights_dim[2] + i_z;
 
     weights_dim[3] = (p->ppar[i_simd] - dist->min_ppara)
-                / ((dist->max_ppara - dist->min_ppara) / dist->n_ppara);
+                / ((dist->max_ppara - dist->min_ppara) / (dist->n_ppara-1));
     i_ppara = floor(weights_dim[3]);
     weights_dim[3] = 1. - weights_dim[3] + i_ppara;
 
@@ -216,7 +216,7 @@ int bmc_update_distr5D(
                                 +p->B_z[i_simd]*p->B_z[i_simd])
                     * p->mu[i_simd] / p->mass[i_simd]) * p->mass[i_simd];
     weights_dim[4] = (pperp - dist->min_pperp)
-                / ((dist->max_pperp - dist->min_pperp) / dist->n_pperp);
+                / ((dist->max_pperp - dist->min_pperp) / (dist->n_pperp-1));
     i_pperp = floor(weights_dim[4]);
     weights_dim[4] = 1. - weights_dim[4] + i_pperp;
     
@@ -225,11 +225,11 @@ int bmc_update_distr5D(
 
     i_q = 0;
 
-    real dr = (dist->max_r - dist->min_r)/dist->n_r;
-    real dphi = (dist->max_phi - dist->min_phi)/dist->n_phi;
-    real dz = (dist->max_z - dist->min_z)/dist->n_z;
-    real dppara = (dist->max_ppara - dist->min_ppara)/dist->n_ppara;
-    real dpperp = (dist->max_pperp - dist->min_pperp)/dist->n_pperp;
+    real dr = (dist->max_r - dist->min_r)/(dist->n_r-1);
+    real dphi = (dist->max_phi - dist->min_phi)/fmax(1, dist->n_phi-1);
+    real dz = (dist->max_z - dist->min_z)/(dist->n_z - 1);
+    real dppara = (dist->max_ppara - dist->min_ppara)/(dist->n_ppara - 1);
+    real dpperp = (dist->max_pperp - dist->min_pperp)/(dist->n_pperp - 1);
 
     int i = 0;
     real r1, phi1, z1, ppara1, pperp1;
