@@ -495,20 +495,20 @@ int bmc_init_particles(
     // i is the total number of particles 
     int n_tot = 0;
     for (int i_r = 0; i_r < n_r; ++i_r) {
-        r = (max_r - min_r) * i_r / n_r + min_r;
+        r = (max_r - min_r) * i_r / (n_r-1) + min_r;
         for (int i_phi = 0; i_phi < n_phi; ++i_phi) {
-            phi = (max_phi - min_phi) * i_phi / n_phi + min_phi;
+            phi = (max_phi - min_phi) * i_phi / fmax(1, n_phi - 1) + min_phi;
             for (int i_z = 0; i_z < n_z; ++i_z) {
-                z = (max_z - min_z) * i_z / n_z + min_z;
+                z = (max_z - min_z) * i_z / (n_z-1) + min_z;
 
                 if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) {
                     continue;
                 }
 
                 for (int i_ppara = 0; i_ppara < n_ppara; ++i_ppara) {
-                    ppara = (max_ppara - min_ppara) * i_ppara / n_ppara + min_ppara;
+                    ppara = (max_ppara - min_ppara) * i_ppara / (n_ppara-1) + min_ppara;
                     for (int i_pperp = 0; i_pperp < n_pperp; ++i_pperp) {
-                        pperp = (max_pperp - min_pperp) * i_pperp / n_pperp + min_pperp;
+                        pperp = (max_pperp - min_pperp) * i_pperp / (n_pperp-1) + min_pperp;
                         bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, t, n_tot, &ps_tmp, m, q, rk4_subcycles);
 
                         if (!ps_tmp.err)
@@ -533,20 +533,20 @@ int bmc_init_particles(
 
     int i = 0;
     for (int i_r = 0; i_r < n_r; ++i_r) {
-        r = (max_r - min_r) * i_r / n_r + min_r;
+        r = (max_r - min_r) * i_r / (n_r-1) + min_r;
         for (int i_phi = 0; i_phi < n_phi; ++i_phi) {
-            phi = (max_phi - min_phi) * i_phi / n_phi + min_phi;
+            phi = (max_phi - min_phi) * i_phi / fmax(1, n_phi - 1) + min_phi;
             for (int i_z = 0; i_z < n_z; ++i_z) {
-                z = (max_z - min_z) * i_z / n_z + min_z;
+                z = (max_z - min_z) * i_z / (n_z-1) + min_z;
 
                 if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) {
                     continue;
                 }
 
                 for (int i_ppara = 0; i_ppara < n_ppara; ++i_ppara) {
-                    ppara = (max_ppara - min_ppara) * i_ppara / n_ppara + min_ppara;
+                    ppara = (max_ppara - min_ppara) * i_ppara / (n_ppara-1) + min_ppara;
                     for (int i_pperp = 0; i_pperp < n_pperp; ++i_pperp) {
-                        pperp = (max_pperp - min_pperp) * i_pperp / n_pperp + min_pperp;
+                        pperp = (max_pperp - min_pperp) * i_pperp / (n_pperp-1) + min_pperp;
                         bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, t, i, &ps_tmp, m, q, rk4_subcycles);
 
                         unsigned long index = dist_5D_index(i_r, i_phi, i_z,
