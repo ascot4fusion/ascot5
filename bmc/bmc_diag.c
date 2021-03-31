@@ -3,13 +3,18 @@
 void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated, int* nloss, int* n_err) {
     // copy into diag_dest
     int dist_length = sim->diag_offload_data.offload_array_length;
+    int updated_tmp, nloss_tmp, n_err_tmp;
     #ifdef MPI
         if (sim->diag_offload_data.dist5D_collect) {
             MPI_Allreduce(diag_src->dist5D.histogram, diag_dest->dist5D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-            MPI_Allreduce(updated, updated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-            MPI_Allreduce(nloss, nloss, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-            MPI_Allreduce(n_err, n_err, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(updated, &updated_tmp, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(nloss, &nloss_tmp, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(n_err, &n_err_tmp, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
             memset(diag_src->dist5D.histogram, 0, sizeof(real)*dist_length);
+
+            *updated = updated_tmp;
+            *nloss = nloss_tmp;
+            *n_err = n_err_tmp;
         } else if (sim->diag_offload_data.dist6D_collect) {
             MPI_Allreduce(diag_src->dist6D.histogram, diag_dest->dist6D.histogram, dist_length, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             memset(diag_src->dist6D.histogram, 0, sizeof(real)*dist_length);
