@@ -4,6 +4,10 @@ compile_ascot5_main:
   image: ascot5v3dep
   script:
     - make -j ascot5_main FLAGS=-foffload=disable
+  artifacts:
+    paths:
+      - ascot5_main
+    when: on_success
 
 compile_ascot5_main_MPI:
   tags:
@@ -39,6 +43,11 @@ compile_libascot:
   image: ascot5v3dep
   script:
     - make -j libascot FLAGS=-foffload=disable
+  artifacts:
+    paths:
+      - libascot.so
+    when: on_success
+
 
 unit_tests:
   tags:
