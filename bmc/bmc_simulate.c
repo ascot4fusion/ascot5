@@ -734,18 +734,20 @@ void bmc_step_stochastic(particle_simd_gc *p, real *h, B_field_data *Bdata,
             /* Evaluate collisions */
             real sdt = sqrt(h[i]);
             real dW[5];
-            dW[0] = sdt * rnd[0 * NSIMD + i]; // For X_1
-            dW[1] = sdt * rnd[1 * NSIMD + i]; // For X_2
-            dW[2] = sdt * rnd[2 * NSIMD + i]; // For X_3
-            dW[4] = sdt * rnd[4 * NSIMD + i]; // For xi
-
-            if (p->hermite_knots[i] > 0)
+            dW[0] = 0;
+            dW[1] = 0;
+            dW[2] = 0;
+            dW[3] = 0;
+            dW[4] = 0;
+            
+            if (p->hermite_weights[i] > 0)
             {
-                dW[3] = sdt * p->hermite_knots[i];
+                dW[4] = sdt * p->hermite_knots[i];
             }
             else
             {
-                dW[3] = sdt * rnd[3 * NSIMD + i]; // For v
+                printf("warning: no hermite knots for the particle\n");
+                dW[4] = sdt * rnd[4 * NSIMD + i]; // For v
             }
 
             real bhat[3];
