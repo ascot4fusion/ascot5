@@ -298,8 +298,10 @@ int forward_monte_carlo(
     particle_state* ps0 = (particle_state*) malloc(n_particles * sizeof(particle_state));
     memcpy(ps0, ps1, n_particles * sizeof(particle_state));
 
-    for(int i = 0; i < 10; i++) {
-        printf("Particle %d %f %f %f %f %f %f %f\n", i, ps1[i].r, ps1[i].phi, ps1[i].z, ps1[i].ppar, ps1[i].rho, ps1[i].rprt, ps1[i].p_r);
+    for(int i = 0; i < n_particles; i++) {
+        if (i > 10) break;
+        real pperp = sqrt(2 * sqrt(ps1[i].B_r * ps1[i].B_r + ps1[i].B_phi * ps1[i].B_phi + ps1[i].B_z * ps1[i].B_z) * ps1[i].mu / ps1[i].mass) * ps1[i].mass;
+        printf("Particle %d %e %e %e %e %e %e %e %e\n", ps1[i].id, ps1[i].r, ps1[i].phi, ps1[i].z, ps1[i].ppar, pperp, ps1[i].rho, ps1[i].rprt, ps1[i].p_r);
     }
 
     // initialize distributions
@@ -469,7 +471,8 @@ int forward_monte_carlo_from_source_particles(
 
     for(int i = 0; i < n_mpi_particles; i++) {
         if (i > 10) break;
-        printf("Particle %d %f %f %f %f %f %f %f\n", ps[i].id, ps[i].r, ps[i].phi, ps[i].z, ps[i].ppar, ps[i].rho, ps[i].rprt, ps[i].p_r);
+        real pperp = sqrt(2 * sqrt(ps[i].B_r * ps[i].B_r + ps[i].B_phi * ps[i].B_phi + ps[i].B_z * ps[i].B_z) * ps[i].mu / ps[i].mass) * ps[i].mass;
+        printf("Particle %d %e %e %e %e %e %e %e %e\n", ps[i].id, ps[i].r, ps[i].phi, ps[i].z, ps[i].ppar, pperp, ps[i].rho, ps[i].rprt, ps[i].p_r);
     }
 
     // initialize distributions
