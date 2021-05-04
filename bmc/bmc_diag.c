@@ -646,9 +646,14 @@ void bmc_update_distr5D_from_weights(
                 if (weight < 0) {
                     // if the weight is negative, the prob of the node couldn't be computed
                     // likely because it exited the velocity space
-                    // mark the node as negative so the it can be caught for debug
-                    dist1->histogram[p0_indexes[i*NSIMD + j]] = weight;
                     err = 1;
+
+                    // just continue to the next marker.
+                    // It might be that another marker in the same node will evolve to a valid location
+                    continue;
+
+                    // // mark the node as negative so the it can be caught for debug
+                    // dist1->histogram[p0_indexes[i*NSIMD + j]] = weight;
                 }
                 else if (target_hit) {
                     // particle hit the target domain. Set the relative probabiity to 1
