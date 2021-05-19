@@ -427,7 +427,7 @@ int bmc_dist6D_fo_index(particle_state* ps, dist_6D_data* dist) {
     //                     dist->n_vz, 1, 1);
 }
 
-void compute_5d_coordinates_from_hist_index(int i, int* i_x, real* r, real* phi, real* z, real* ppara, real* pperp, dist_5D_offload_data* dist5D) {
+void compute_5d_indexes_from_hist_index(int i, int* i_x, dist_5D_offload_data* dist5D) {
     int i1 = i;
     i_x[4] = i1 % dist5D->n_pperp;
     i1 = i1 / dist5D->n_pperp;
@@ -437,6 +437,10 @@ void compute_5d_coordinates_from_hist_index(int i, int* i_x, real* r, real* phi,
     i1 = i1 / dist5D->n_z;
     i_x[1] = i1 % dist5D->n_phi;
     i_x[0] = i1 / dist5D->n_phi;
+}
+
+void compute_5d_coordinates_from_hist_index(int i, int* i_x, real* r, real* phi, real* z, real* ppara, real* pperp, dist_5D_offload_data* dist5D) {
+    compute_5d_indexes_from_hist_index(i, i_x, dist5D);
     compute_element_5d_coordinates(i_x, r, phi, z, ppara, pperp, dist5D);
 }
 

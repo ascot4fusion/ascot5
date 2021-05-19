@@ -51,6 +51,7 @@ void bmc_dist5D_state_indexes(particle_state* ps0, int* indexes, real* weights, 
 void bmc_dist5D_gc_indexes(particle_simd_gc* p0, int* indexes, real* weights, int* target_hit, particle_simd_gc* p, int i, dist_5D_data* dist, wall_data* wallData);
 int bmc_dist6D_fo_index(particle_state* ps, dist_6D_data* dist);
 
+void compute_5d_indexes_from_hist_index(int i, int* i_x, dist_5D_offload_data* dist5D);
 void compute_5d_coordinates_from_hist_index(int i, int* i_x, real* r, real* phi, real* z, real* ppara, real* pperp, dist_5D_offload_data* dist5D);
 void compute_element_5d_coordinates(int* i_x_new, real* r, real* phi, real* z, real* ppara, real* pperp, dist_5D_offload_data* dist);
 void bmc_5D_to_particle_state(
