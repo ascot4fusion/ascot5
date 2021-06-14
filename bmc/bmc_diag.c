@@ -267,8 +267,8 @@ int bmc_update_distr5D(
         weights[i] = fabs(weights_dim[0] - j_r + i_r) * fabs(weights_dim[1] - j_phi + i_phi)
                     * fabs(weights_dim[2] - j_z + i_z) * fabs(weights_dim[3] - j_ppara + i_ppara)
                     * fabs(weights_dim[4] - j_pperp + i_pperp);
-        target_hit[i] = bmc_wall_2d_hit_target(p->r[i_simd], (j_r)*dr + dist->min_r,
-                        p->phi[i_simd], (j_phimod)*dphi + dist->min_phi, p->z[i_simd], (j_z)*dz + dist->min_z, &(wallData->w2d));
+        target_hit[i] = bmc_wall_hit_target(p->r[i_simd], (j_r)*dr + dist->min_r,
+                        p->phi[i_simd], (j_phimod)*dphi + dist->min_phi, p->z[i_simd], (j_z)*dz + dist->min_z, wallData);
         i++;
     }
 }
@@ -289,7 +289,7 @@ int bmc_update_distr5D(
  * @param w2d Pointer to the 2D wall struct
  * 
  **/
- void bmc_dist5D_state_indexes(particle_state* ps0, int* indexes, real* weights, int* target_hit, particle_state* ps, dist_5D_data* dist, wall_2d_data* w2d) {
+ void bmc_dist5D_state_indexes(particle_state* ps0, int* indexes, real* weights, int* target_hit, particle_state* ps, dist_5D_data* dist, wall_data* wdata) {
     real phi;
     real ppara;
     real pperp;
@@ -377,8 +377,8 @@ int bmc_update_distr5D(
         weights[i] = fabs(weights_dim[0] - j_r + i_r) * fabs(weights_dim[1] - j_phi + i_phi)
                     * fabs(weights_dim[2] - j_z + i_z) * fabs(weights_dim[3] - j_ppara + i_ppara)
                     * fabs(weights_dim[4] - j_pperp + i_pperp);
-        target_hit[i] = bmc_wall_2d_hit_target(ps0->r, (j_r)*dr + dist->min_r,
-                        ps0->phi, (j_phimod)*dphi + dist->min_phi, ps0->z, (j_z)*dz + dist->min_z, w2d);
+        target_hit[i] = bmc_wall_hit_target(ps0->r, (j_r)*dr + dist->min_r,
+                        ps0->phi, (j_phimod)*dphi + dist->min_phi, ps0->z, (j_z)*dz + dist->min_z, wdata);
         i++;
     }
 }

@@ -9,7 +9,7 @@ void buildDensityMatrixFromInputParticles(
     int n_particles,
     particle_state* input_particles,
     dist_5D_offload_data* dist5D,
-    wall_2d_data* w2d
+    wall_data* wdata
 );
 
 int init_simd_gc_particles(particle_state* ps, int n_ps, particle_simd_gc** p, B_field_data* Bdata);
@@ -20,7 +20,7 @@ void buildParticlesWeightsFromProbabilityMatrix(
     particle_state* ps,
     int n,
     dist_5D_data* dist,
-    wall_2d_data* w2d
+    wall_data* wdata
 );
 
 int fmc_init_importance_sampling_from_source_distribution(
@@ -100,7 +100,7 @@ void buildImportantSamplingHistogram(
     real t,
     particle_state* ps,
     int n_ps,
-    wall_2d_data* w2d
+    wall_data* wdata
 );
 
 void bmc_init_fo_particle(

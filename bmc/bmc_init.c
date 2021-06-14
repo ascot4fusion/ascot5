@@ -8,14 +8,14 @@ void buildParticlesWeightsFromProbabilityMatrix(
     particle_state* ps,
     int n,
     dist_5D_data* dist,
-    wall_2d_data* w2d
+    wall_data* wdata
 ) {
 
     int indexes[32];
     real p_weights[32];
     int hits[32];
     for (int i=0; i<=n; i++) {
-        bmc_dist5D_state_indexes(&(ps[i]), indexes, p_weights, hits, &(ps[i]), dist, w2d);
+        bmc_dist5D_state_indexes(&(ps[i]), indexes, p_weights, hits, &(ps[i]), dist, wdata);
 
 
         weights[i] = 0;
@@ -104,7 +104,7 @@ int fmc_init_importance_sampling_from_source_distribution(
         real* probabilityMatrix = (real*)malloc(dist_length * sizeof(real));
         fread(probabilityMatrix, sizeof(real), dist_length, f_probability);
 
-            buildParticlesWeightsFromProbabilityMatrix(probabilityMatrix, weightsFromProbability, input_ps, input_n_ps, &dist5D, &sim.wall_data.w2d);
+        buildParticlesWeightsFromProbabilityMatrix(probabilityMatrix, weightsFromProbability, input_ps, input_n_ps, &dist5D, &sim.wall_data);
 
         for (int i=0; i<= input_n_ps; i++) {
             importanceSamplingWeights[i] = importanceSamplingWeights[i] * weightsFromProbability[i];
@@ -232,7 +232,7 @@ int fmc_init_importance_sampling_mesh(
     int dist_length = sim_offload->diag_offload_data.offload_array_length;
     real *histogram = (real*)malloc(dist_length * sizeof(real));
 
-    buildImportantSamplingHistogram(dist_length, histogram, &dist5D, &sim.plasma_data, Bdata, importanceSamplingProbability, importanceSamplingdensity, importanceSamplingFromParticles, t, input_ps, input_n_ps, &sim.wall_data.w2d);
+    buildImportantSamplingHistogram(dist_length, histogram, &dist5D, &sim.plasma_data, Bdata, importanceSamplingProbability, importanceSamplingdensity, importanceSamplingFromParticles, t, input_ps, input_n_ps, &sim.wall_data);
 
     int *nparticlesHistogram = (int*)malloc(dist_length * sizeof(int));
 
@@ -318,7 +318,7 @@ void buildDensityMatrixFromInputParticles(
     int n_particles,
     particle_state* input_particles,
     dist_5D_offload_data* dist5D,
-    wall_2d_data* w2d
+    wall_data* wdata
 ) {
     *histogram = (real*)calloc(dist_length, sizeof(real));
     int indexes[32], target_hit[32];
@@ -327,12 +327,12 @@ void buildDensityMatrixFromInputParticles(
     int i_x[5];
     real r, phi, z, ppara, pperp, p, Ekin;
     for (int i=0; i <= n_particles; i++) {
-        bmc_dist5D_state_indexes(&input_particles[i], indexes, weights, target_hit, &input_particles[i], dist5D, w2d);
+        bmc_dist5D_state_indexes(&input_particles[i], indexes, weights, target_hit, &input_particles[i], dist5D, wdata);
         for (int j=0; j<=32; j++) {
             compute_5d_coordinates_from_hist_index(indexes[j], i_x, &r, &phi, &z, &ppara, &pperp, dist5D);
             if (target_hit[j])
                 continue;
-            if (!wall_2d_inside(r, z, w2d))
+            if (!wall_2d_inside(r, z, wdata))
                     continue;
 
             real p = sqrt(ppara*ppara + pperp*pperp);
@@ -354,7 +354,7 @@ void buildImportantSamplingHistogram(
     real t,
     particle_state* ps,
     int n_ps,
-    wall_2d_data* w2d
+    wall_data* wdata
 ) {
 
     real *histogram_probability, *histogram_from_particles;
@@ -370,7 +370,7 @@ void buildImportantSamplingHistogram(
     }
 
     if (importanceSamplingFromInputParticles) {
-        buildDensityMatrixFromInputParticles(&histogram_from_particles, dist_length, n_ps, ps, dist5D, w2d);
+        buildDensityMatrixFromInputParticles(&histogram_from_particles, dist_length, n_ps, ps, dist5D, wdata);
     }
 
     real r,phi,z,ppara,pperp, dens[10];
@@ -488,42 +488,14 @@ int bmc_init_particles(
     input_particle p_tmp; // tmp particle
     particle_state ps_tmp; // tmp particle
 
-    // first loop is used only to compute the number of particles needed
-    // i is the total number of particles 
-    int n_tot = 0;
-    for (int i_r = 0; i_r < n_r; ++i_r) {
-        r = (max_r - min_r) * i_r / (n_r-1) + min_r;
-        for (int i_phi = 0; i_phi < n_phi; ++i_phi) {
-            phi = (max_phi - min_phi) * i_phi / fmax(1, n_phi - 1) + min_phi;
-            for (int i_z = 0; i_z < n_z; ++i_z) {
-                z = (max_z - min_z) * i_z / (n_z-1) + min_z;
-
-                if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) {
-                    continue;
-                }
-
-                for (int i_ppara = 0; i_ppara < n_ppara; ++i_ppara) {
-                    ppara = (max_ppara - min_ppara) * i_ppara / (n_ppara-1) + min_ppara;
-                    for (int i_pperp = 0; i_pperp < n_pperp; ++i_pperp) {
-                        pperp = (max_pperp - min_pperp) * i_pperp / (n_pperp-1) + min_pperp;
-                        bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, t, n_tot, &ps_tmp, m, q, rk4_subcycles);
-
-                        if (!ps_tmp.err)
-                            n_tot += n_per_vertex;
-                    }
-                }
-            }
-        }
-    }
 
     // compute number of particles needed for the specific MPI node
     if (mpi_rank == mpi_size - 1) {
-        // printf("n_tot mpi_rank n mpisize %d %d %d %d %d %d\n", n_tot, mpi_rank, *n, mpi_size, n_tot - mpi_rank * (*n / mpi_size));
-        *n = n_tot - mpi_rank * (n_tot / mpi_size);
+        *n = *n - mpi_rank * (*n / mpi_size);
     }
     else
-        *n = n_tot / mpi_size;
-    int start_index = mpi_rank * (n_tot / mpi_size);
+        *n = *n / mpi_size;
+    int start_index = mpi_rank * (*n / mpi_size);
 
     *ps = (particle_state *)malloc(*n * sizeof(particle_state));
     *ps_indexes = (int *)malloc(*n * sizeof(int));
@@ -535,10 +507,6 @@ int bmc_init_particles(
             phi = (max_phi - min_phi) * i_phi / fmax(1, n_phi - 1) + min_phi;
             for (int i_z = 0; i_z < n_z; ++i_z) {
                 z = (max_z - min_z) * i_z / (n_z-1) + min_z;
-
-                if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) {
-                    continue;
-                }
 
                 for (int i_ppara = 0; i_ppara < n_ppara; ++i_ppara) {
                     ppara = (max_ppara - min_ppara) * i_ppara / (n_ppara-1) + min_ppara;
