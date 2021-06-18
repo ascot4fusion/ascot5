@@ -371,11 +371,11 @@ void compute_5d_coordinates_from_hist_index(int i, int* i_x, real* r, real* phi,
 }
 
 void compute_element_5d_coordinates(int* i_x_new, real* r, real* phi, real* z, real* ppara, real* pperp, dist_5D_offload_data* dist) {
-    *r = dist->min_r + (dist->max_r - dist->min_r) / dist->n_r * i_x_new[0];
-    *phi = dist->min_phi + (dist->max_phi - dist->min_phi) / dist->n_phi * i_x_new[1];
-    *z = dist->min_z + (dist->max_z - dist->min_z) / dist->n_z * i_x_new[2];
-    *ppara = dist->min_ppara + (dist->max_ppara - dist->min_ppara) / dist->n_ppara * i_x_new[3];
-    *pperp = dist->min_pperp + (dist->max_pperp - dist->min_pperp) / dist->n_pperp * i_x_new[4];
+    *r = dist->min_r + (dist->max_r - dist->min_r) / (dist->n_r-1) * i_x_new[0];
+    *phi = dist->min_phi + (dist->max_phi - dist->min_phi) / fmax(1, dist->n_phi - 1) * i_x_new[1];
+    *z = dist->min_z + (dist->max_z - dist->min_z) / (dist->n_z-1) * i_x_new[2];
+    *ppara = dist->min_ppara + (dist->max_ppara - dist->min_ppara) / (dist->n_ppara-1) * i_x_new[3];
+    *pperp = dist->min_pperp + (dist->max_pperp - dist->min_pperp) / (dist->n_pperp - 1) * i_x_new[4];
 }
 
 void bmc_5D_to_particle_state(
@@ -585,9 +585,9 @@ void bmc_update_distr5D_from_weights(
                     // // mark the node as negative so the it can be caught for debug
                     // dist1->histogram[p0_indexes[i*NSIMD + j]] = weight;
                 }
-                else if (weight == 0) {
-                    continue;
-                }
+                // else if (weight == 0) {
+                //     continue;
+                // }
                 else if (target_hit) {
                     // particle hit the target domain. Set the relative probabiity to 1
                     dist1->histogram[p0_indexes[i*NSIMD + j]] += weight * p1[i].hermite_weights[j];
