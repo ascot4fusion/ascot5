@@ -12,6 +12,13 @@ void buildDensityMatrixFromInputParticles(
     wall_data* wdata
 );
 
+real ISContinuousDistr(
+    real z[5],
+    real* probabilityMatrix,
+    dist_5D_data* dist5D,
+    wall_data* wallData
+);
+
 int init_simd_gc_particles(particle_state* ps, int n_ps, particle_simd_gc** p, B_field_data* Bdata);
 
 void buildParticlesWeightsFromProbabilityMatrix(
@@ -36,6 +43,16 @@ int fmc_init_importance_sampling_from_source_distribution(
         particle_state* input_ps,
         int input_n_ps
     );
+
+void buildISMatrixForMesh(
+    int input_n_ps,
+    particle_state* input_ps,
+    real* ISMatrix,
+    int importanceSamplingProbability,
+    int dist_length,
+    dist_5D_data* dist5D,
+    wall_data* wallData
+);
 
 void buildISMatrixForParticles(
     int input_n_ps,
@@ -82,6 +99,24 @@ int fmc_init_importance_sampling(
         real q,
         int rk4_subcycles
     );
+
+void fmcInitImportanceSamplingMetropolis(
+    int *n,
+    particle_state** ps,
+    int n_total,
+    sim_offload_data* sim_offload,
+    B_field_data* Bdata,
+    real* offload_array,
+    offload_package* offload_data,
+    int importanceSamplingProbability,
+    int rk4_subcycles,
+    particle_state* input_ps,
+    int input_n_ps,
+    real t,
+    real m,
+    real q,
+    real displacementPercentage
+);
 
 int bmc_init_particles(
         int mpi_rank,
