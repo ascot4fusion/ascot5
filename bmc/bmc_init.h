@@ -37,6 +37,17 @@ int fmc_init_importance_sampling_from_source_distribution(
         int input_n_ps
     );
 
+void buildISMatrixForParticles(
+    int input_n_ps,
+    real* Ekin,
+    particle_state* input_ps,
+    real* ISMatrix,
+    int importanceSamplingProbability,
+    int dist_length,
+    dist_5D_data* dist5D,
+    wall_data* wallData
+);
+
 int fmc_init_importance_sampling_mesh(
         int *n,
         particle_state** ps,
