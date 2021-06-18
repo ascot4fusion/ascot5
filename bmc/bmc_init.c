@@ -15,7 +15,7 @@ void buildParticlesWeightsFromProbabilityMatrix(
     real p_weights[32];
     int hits[32];
     for (int i=0; i<=n; i++) {
-        bmc_dist5D_state_indexes(&(ps[i]), indexes, p_weights, hits, &(ps[i]), dist, wdata);
+        bmc_dist5D_state_indexes(indexes, p_weights, hits, &(ps[i]), dist, wdata);
 
 
         weights[i] = 0;
@@ -32,6 +32,44 @@ void buildParticlesWeightsFromProbabilityMatrix(
                 probabilityMatrix[indexes[j]] = 0;
             }
             weights[i] = weights[i] + p_weights[j] * probabilityMatrix[indexes[j]];
+        }
+    }
+}
+
+void buildISMatrixForParticles(
+    int input_n_ps,
+    real* Ekin,
+    particle_state* input_ps,
+    real* ISMatrix,
+    int importanceSamplingProbability,
+    int dist_length,
+    dist_5D_data* dist5D,
+    wall_data* wallData
+) {
+    for (int i=0; i<input_n_ps; i++) {
+        real Brpz[3] = {input_ps[i].B_r, input_ps[i].B_phi, input_ps[i].B_z};
+        real Bnorm   = math_norm(Brpz);
+        real p = physlib_gc_p( input_ps[i].mass, input_ps[i].mu, input_ps[i].ppar, Bnorm);
+        Ekin[i] = physlib_Ekin_pnorm(input_ps[i].mass, p);
+
+        ISMatrix[i] = Ekin[i];
+        ISMatrix[i] = 1;
+    }
+    
+    if (importanceSamplingProbability) {
+        FILE* f_probability = fopen("distr_prob", "rb");
+        if (f_probability == NULL) {
+            printf("Warning: Cannot open probability matrix file for importance sampling\n");
+            abort();
+        }
+        real weightsFromProbability[input_n_ps];
+        real* probabilityMatrix = (real*)malloc(dist_length * sizeof(real));
+        fread(probabilityMatrix, sizeof(real), dist_length, f_probability);
+
+        buildParticlesWeightsFromProbabilityMatrix(probabilityMatrix, weightsFromProbability, input_ps, input_n_ps, dist5D, wallData);
+
+        for (int i=0; i<= input_n_ps; i++) {
+            ISMatrix[i] = ISMatrix[i] * weightsFromProbability[i];
         }
     }
 }
@@ -80,46 +118,18 @@ int fmc_init_importance_sampling_from_source_distribution(
     dist_5D_offload_data dist5D = sim_offload->diag_offload_data.dist5D;
     int dist_length = sim_offload->diag_offload_data.offload_array_length;
 
-    real importanceSamplingWeights[input_n_ps];
-
-    // compute Ekin for each input particle
-    real Ekin[input_n_ps];
-    for (int i=0; i<input_n_ps; i++) {
-        real Brpz[3] = {input_ps[i].B_r, input_ps[i].B_phi, input_ps[i].B_z};
-        real Bnorm   = math_norm(Brpz);
-        real p = physlib_gc_p( input_ps[i].mass, input_ps[i].mu, input_ps[i].ppar, Bnorm);
-        Ekin[i] = physlib_Ekin_pnorm(input_ps[i].mass, p);
-
-        importanceSamplingWeights[i] = Ekin[i];
-        importanceSamplingWeights[i] = 1;
-    }
-    
-    if (importanceSamplingProbability) {
-        FILE* f_probability = fopen("distr_prob", "rb");
-        if (f_probability == NULL) {
-            printf("Warning: Cannot open probability matrix file for importance sampling\n");
-            abort();
-        }
-        real weightsFromProbability[input_n_ps];
-        real* probabilityMatrix = (real*)malloc(dist_length * sizeof(real));
-        fread(probabilityMatrix, sizeof(real), dist_length, f_probability);
-
-        buildParticlesWeightsFromProbabilityMatrix(probabilityMatrix, weightsFromProbability, input_ps, input_n_ps, &dist5D, &sim.wall_data);
-
-        for (int i=0; i<= input_n_ps; i++) {
-            importanceSamplingWeights[i] = importanceSamplingWeights[i] * weightsFromProbability[i];
-        }
-    }
+    real ISMatrix[input_n_ps], Ekin[input_n_ps];
+    buildISMatrixForParticles(input_n_ps, Ekin, input_ps, ISMatrix, importanceSamplingProbability, dist_length, &dist5D, &sim.wall_data);
 
     real sum = 0;
     for (int i=0; i<input_n_ps; i++) {
-       sum += importanceSamplingWeights[i];
+       sum += ISMatrix[i];
     }
     printf("Init initial Importance sampling weights sum %e\n", sum);
     *n = 0;
     int nparticlesHistogram[input_n_ps];
     for (int i=0; i<input_n_ps; i++) {
-        nparticlesHistogram[i] = ceil(importanceSamplingWeights[i] / sum * n_total);
+        nparticlesHistogram[i] = ceil(ISMatrix[i] / sum * n_total);
         *n += nparticlesHistogram[i];
     }
 
@@ -327,7 +337,7 @@ void buildDensityMatrixFromInputParticles(
     int i_x[5];
     real r, phi, z, ppara, pperp, p, Ekin;
     for (int i=0; i <= n_particles; i++) {
-        bmc_dist5D_state_indexes(&input_particles[i], indexes, weights, target_hit, &input_particles[i], dist5D, wdata);
+        bmc_dist5D_state_indexes(indexes, weights, target_hit, &input_particles[i], dist5D, wdata);
         for (int j=0; j<=32; j++) {
             compute_5d_coordinates_from_hist_index(indexes[j], i_x, &r, &phi, &z, &ppara, &pperp, dist5D);
             if (target_hit[j])
