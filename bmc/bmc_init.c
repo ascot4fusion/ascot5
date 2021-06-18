@@ -2,6 +2,134 @@
 
 #define PI2E0_5 2.50662827463
 
+// init particles based on input distribution and BMC matrix
+// place markers in continuous space using Metropolis-Hasting scheme
+// NB: works only in 5D-gc for now
+void fmcInitImportanceSamplingMetropolis(
+    int *n,
+    particle_state** ps,
+    int n_total,
+    sim_offload_data* sim_offload,
+    B_field_data* Bdata,
+    real* offload_array,
+    offload_package* offload_data,
+    int importanceSamplingProbability,
+    int rk4_subcycles,
+    particle_state* input_ps,
+    int input_n_ps,
+    real t,
+    real m,
+    real q,
+    real displacementPercentage
+) {
+
+    sim_data sim;
+    sim_init(&sim, sim_offload);
+    real* ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->B_offload_data.offload_array_length);
+    B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->E_offload_data.offload_array_length);
+    E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->plasma_offload_data.offload_array_length);
+    plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->neutral_offload_data.offload_array_length);
+    neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->wall_offload_data.offload_array_length);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+
+    real* distr_array;
+    diag_init_offload(&sim_offload->diag_offload_data, &distr_array, 1);
+    dist_5D_offload_data dist5D = sim_offload->diag_offload_data.dist5D;
+    int dist_length = sim_offload->diag_offload_data.offload_array_length;
+
+    *ps = (particle_state *)malloc(n_total * sizeof(particle_state));
+
+    // place the first position at the middle of the mesh
+    real z0[5], z_size[5], z1[5];
+    z0[0] = (dist5D.max_r + dist5D.min_r) / 2.;
+    z0[1] = (dist5D.max_phi + dist5D.min_phi) / 2.;
+    z0[2] = (dist5D.max_z + dist5D.min_z) / 2.;
+    z0[3] = (dist5D.max_ppara + dist5D.min_ppara) / 2.;
+    z0[4] = (dist5D.max_pperp + dist5D.min_pperp) / 2.;
+    z_size[0] = (dist5D.max_r - dist5D.min_r);
+    z_size[1] = (dist5D.max_phi - dist5D.min_phi);
+    z_size[2] = (dist5D.max_z - dist5D.min_z);
+    z_size[3] = (dist5D.max_ppara - dist5D.min_ppara);
+    z_size[4] = (dist5D.max_pperp - dist5D.min_pperp);
+
+    memcpy(z1, z0, 5*sizeof(real)); 
+
+    // build Importance sampling matrix
+    real* ISMatrix = (real *)malloc(dist_length * sizeof(real));
+    buildISMatrixForMesh(input_n_ps, input_ps, ISMatrix, importanceSamplingProbability, dist_length, &dist5D, &sim.wall_data);
+
+    *n = 0;
+    int dim;
+    real dz, step;
+    int acc = 0, rej = 0;
+    real p0 = ISContinuousDistr(z0, ISMatrix, &dist5D, &sim.wall_data), p1, p;
+
+    while (*n < n_total) {
+        dim = rand() % 6;
+
+        dz = z_size[dim] * displacementPercentage;
+        step = 2.*dz*(((float)rand()/RAND_MAX) - 0.5);
+
+        p = ((float)rand()/RAND_MAX);
+        z1[dim] += 2.*dz*step;
+
+        p1 = ISContinuousDistr(z1, ISMatrix, &dist5D, &sim.wall_data);
+
+        int err = 0;
+
+        bmc_5D_to_particle_state(Bdata, z1[0], z1[1], z1[2], z1[3], z1[4], t, *n, *ps + *n, m, q, rk4_subcycles);
+        if ((*ps)[*n].err) err = 1;
+
+        if (((p1 / p0) < p) && (p1!=0 || p0!=0)) err = 1;
+
+        if (err) {
+            rej++;
+        } else {
+            acc++;
+            z0[dim] = z1[dim];
+        }
+
+        bmc_5D_to_particle_state(Bdata, z0[0], z0[1], z0[2], z0[3], z0[4], t, *n, *ps + *n, m, q, rk4_subcycles);
+
+        if (!(*ps)[*n].err) {
+            *n = *n + 1;
+        }
+    }
+
+    printf("IS Metropolis: Init %d particles, %d steps accepted, %d rejected", *n, acc, rej);
+}
+
+real ISContinuousDistr(
+    real z[5],
+    real* probabilityMatrix,
+    dist_5D_data* dist5D,
+    wall_data* wallData
+) {
+    int indexes[32], target_hit[32];
+    real weights[32];
+    bmc_dist5D_gc_indexes_from_coordinates(indexes, weights, target_hit, z[0], z[1], z[2], z[3], z[4], dist5D, wallData);
+
+    real ret = 0;
+    for (int i=0; i<32; ++i) {
+        ret += weights[i] * probabilityMatrix[i];
+    }
+
+    return ret;
+}
+
 void buildParticlesWeightsFromProbabilityMatrix(
     real* probabilityMatrix,
     real* weights,
@@ -36,6 +164,56 @@ void buildParticlesWeightsFromProbabilityMatrix(
     }
 }
 
+void buildISMatrixForMesh(
+    int input_n_ps,
+    particle_state* input_ps,
+    real* ISMatrix,
+    int importanceSamplingProbability,
+    int dist_length,
+    dist_5D_data* dist5D,
+    wall_data* wallData
+) {
+
+    // reset IS matrix
+    for (int i=0; i<dist_length; ++i) {
+        ISMatrix[i] = 0;
+    }
+
+    // deposit input particles contributions to IS matrix
+    real Ekin;
+    int indexes[32], target_hit[32];
+    real weights[32];
+    for (int i=0; i<input_n_ps; i++) {
+        real Brpz[3] = {input_ps[i].B_r, input_ps[i].B_phi, input_ps[i].B_z};
+        real Bnorm   = math_norm(Brpz);
+        real p = physlib_gc_p( input_ps[i].mass, input_ps[i].mu, input_ps[i].ppar, Bnorm);
+        Ekin = physlib_Ekin_pnorm(input_ps[i].mass, p);
+
+        bmc_dist5D_state_indexes(indexes, weights, target_hit, input_ps[i], dist5D, wallData);
+
+        for (int j=0; j<32; ++j) {
+            if (!target_hit[j] && indexes[j]>=0) {
+                ISMatrix[indexes[j]] = ISMatrix[indexes[j]] * weights[j];
+                // ISMatrix[indexes[j]] = ISMatrix[indexes[j]] * weights[j] * Ekin;
+            }
+        }
+    }
+    
+    if (importanceSamplingProbability) {
+        FILE* f_probability = fopen("distr_prob", "rb");
+        if (f_probability == NULL) {
+            printf("Warning: Cannot open probability matrix file for importance sampling\n");
+            abort();
+        }
+        real weightsFromProbability[input_n_ps];
+        real* probabilityMatrix = (real*)malloc(dist_length * sizeof(real));
+        fread(probabilityMatrix, sizeof(real), dist_length, f_probability);
+
+        for (int i=0; i<dist_length; ++i) {
+            ISMatrix[i] = ISMatrix[i] * probabilityMatrix[i];
+        }
+    }
+}
 void buildISMatrixForParticles(
     int input_n_ps,
     real* Ekin,

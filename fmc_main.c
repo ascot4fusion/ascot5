@@ -14,6 +14,8 @@
 // If importance sampling is enabled, total particles are used and N_MONTECARLO_STEPS is ignored
 #define IMPORTANCE_SAMPLING 1
 #define IMPORTANCE_SAMPLING_TOTAL_PARTICLES 1645000
+#define IS_METROPOLIS 1 // place markers based on BMC and input markers, in a random continuous way
+#define IS_METROPOLIS_D 0.2 // displacement of Metropolis scheme, percentage of mesh size for each dimension
 #define IMPORTANCE_SAMPLING_DENSITY 0 // follow a distribution hardcoded in bmc_init.h, buildImportantSamplingHistogram()
 #define IMPORTANCE_SAMPLING_PROBABILITY 0 // add importance sampling from bmc output probability matrix. To use this, a BMC sim must be run first
 #define IMPORTANCE_SAMPLING_FROM_PARTICLES 1 // follow distribuition of particles from input h5 file. This excludes IMPORTANCE_SAMPLING_DENSITY
