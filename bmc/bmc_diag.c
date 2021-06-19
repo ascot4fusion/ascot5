@@ -585,9 +585,9 @@ void bmc_update_distr5D_from_weights(
                     // // mark the node as negative so the it can be caught for debug
                     // dist1->histogram[p0_indexes[i*NSIMD + j]] = weight;
                 }
-                // else if (weight == 0) {
-                //     continue;
-                // }
+                else if (weight == 0) {
+                    continue;
+                }
                 else if (target_hit) {
                     // particle hit the target domain. Set the relative probabiity to 1
                     dist1->histogram[p0_indexes[i*NSIMD + j]] += weight * p1[i].hermite_weights[j];
