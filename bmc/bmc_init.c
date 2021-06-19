@@ -670,6 +670,11 @@ int bmc_init_particles(
     for (int i=0; i<dist_length; i++) {
         compute_5d_coordinates_from_hist_index(i, i_x, &r, &phi, &z, &ppara, &pperp, &dist5D);
 
+        // exclude markers outside wall. Only for 2D walls for now
+        if (sim_offload->wall_offload_data.type == wall_type_2D) {
+            if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) continue;
+        }
+
         bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, t, i, &ps_tmp, m, q, rk4_subcycles);
 
         if (!ps_tmp.err) tot_n = tot_n + n_per_vertex;
@@ -690,6 +695,11 @@ int bmc_init_particles(
     for (int i=0; i<dist_length; i++) {
         compute_5d_coordinates_from_hist_index(i, i_x, &r, &phi, &z, &ppara, &pperp, &dist5D);
 
+        // exclude markers outside wall. Only for 2D walls for now
+        if (sim_offload->wall_offload_data.type == wall_type_2D) {
+            if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) continue;
+        }
+
         bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, t, j, &ps_tmp, m, q, rk4_subcycles);
 
         if (!ps_tmp.err) {
@@ -700,7 +710,7 @@ int bmc_init_particles(
                     ps_tmp.hermite_weights = 1. / n_per_vertex;
                     ps_tmp.use_hermite = 0;
                     memcpy(*ps + j - start_index, &ps_tmp, sizeof(particle_state));
-                    (*ps_indexes)[j - start_index] = j;
+                    (*ps_indexes)[j - start_index] = i;
                 }
                 j++;
             }
