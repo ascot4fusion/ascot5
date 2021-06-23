@@ -229,13 +229,11 @@ int main(int argc, char** argv) {
                "\nInitializing marker states.\n");
     if (IMPORTANCE_SAMPLING) {
         printf("Using importance sampling\n");
-
-        // if (fmc_init_importance_sampling_mesh(&n, &ps, &ps_indexes, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, 0, &sim, &Bdata, offload_array, &offload_data,
-        //     IMPORTANCE_SAMPLING_PROBABILITY, IMPORTANCE_SAMPLING_DENSITY, IMPORTANCE_SAMPLING_FROM_PARTICLES, T1, MASS, CHARGE, RK4_SUBCYCLES, input_ps, n_input
-        // )) {
-        //     goto CLEANUP_FAILURE;
-        // }
-        fmc_init_importance_sampling_from_source_distribution(&n, &ps, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, IMPORTANCE_SAMPLING_PROBABILITY, RK4_SUBCYCLES, input_ps, n_input);
+        if (IS_METROPOLIS) {
+            fmcInitImportanceSamplingMetropolis(&n, &ps, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, IMPORTANCE_SAMPLING_PROBABILITY, RK4_SUBCYCLES, input_ps, n_input, T0, MASS, CHARGE, IS_METROPOLIS_D);
+        } else {
+            fmc_init_importance_sampling_from_source_distribution(&n, &ps, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, IMPORTANCE_SAMPLING_PROBABILITY, RK4_SUBCYCLES, input_ps, n_input);
+        }
     } else {
         printf("Not using importance sampling. Using %d markers per node\n", N_MONTECARLO_STEPS);
         if (bmc_init_particles(mpi_rank, mpi_size, &n, &ps, &ps_indexes, N_MONTECARLO_STEPS, &sim, &Bdata, offload_array, T0, MASS, CHARGE, RK4_SUBCYCLES)) {
