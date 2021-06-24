@@ -1,3 +1,6 @@
+#ifndef BMCDIAG_H
+#define BMCDIAG_H
+
 #include "../diag.h"
 #include "../diag/dist_6D.h"
 #include "../diag/dist_5D.h"
@@ -17,6 +20,8 @@ typedef struct {
 } particle_deposit_weights;
 
 void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated, int* nloss, int* n_err);
+
+void bmc_dist5D_gc_indexes_from_coordinates(int* indexes, real* weights, int* target_hit, real r, real phi, real z, real ppar, real pperp, dist_5D_data* dist, wall_data* wallData);
 
 real fmc_compute_signal_from_states(
     int n_particles,
@@ -87,3 +92,5 @@ void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
                               int n_simd_particles, particle_simd_gc *p1, particle_simd_gc *p0,
                               dist_5D_data *dist1, dist_5D_data *dist0, wall_data *wallData,
                               int* p0_indexes, int debugExitVelocitySpace);
+
+#endif

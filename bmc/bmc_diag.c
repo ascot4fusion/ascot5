@@ -146,10 +146,10 @@ int bmc_update_distr5D(
             bmc_dist5D_gc_indexes(p1_indexes, p1_weights, p1_target_hit, p1 + i, j, dist0, wallData);
             for (int i_nodes=0; i_nodes<32; i_nodes++) {
                 if (p1_indexes[i_nodes] >= 0) {
-                    if (p1_target_hit[i_nodes]) {
+                    if (p1_target_hit[i_nodes] == 1) {
                         // particle hit the target domain. Set the relative probabiity to 1
                         dist1->histogram[p0_indexes[i*NSIMD + j]] += p1_weights[i_nodes] * p1[i].hermite_weights[j];
-                    } else {
+                    } else if (p1_target_hit[i_nodes] == 0) {
                         // particle didn't hit the target domain. Weight the probability with the last probability matrix
                         dist1->histogram[p0_indexes[i*NSIMD + j]] += dist0->histogram[p1_indexes[i_nodes]] * p1_weights[i_nodes] * p1[i].hermite_weights[j];
                     }
@@ -588,7 +588,11 @@ void bmc_update_distr5D_from_weights(
                 else if (weight == 0) {
                     continue;
                 }
-                else if (target_hit) {
+                else if (target_hit == 2) {
+                    // wall hit, no target
+                    continue;
+                }
+                else if (target_hit == 1) {
                     // particle hit the target domain. Set the relative probabiity to 1
                     dist1->histogram[p0_indexes[i*NSIMD + j]] += weight * p1[i].hermite_weights[j];
                 } else if (dist0->histogram[index] < 0) {
@@ -654,7 +658,6 @@ void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
 
 
             // deposit the final state j
-            // deposit in the velocity space is nearest neighbour 
             int p1_indexes[32];
             int p1_target_hit[32];
             real p1_weights[32];

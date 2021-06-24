@@ -212,9 +212,9 @@ int wall_2d_inside(real r, real z, wall_2d_data* w) {
  */
 int wall_2d_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
                      wall_2d_data* w) {
-    if(!wall_2d_inside(r2, z2, w)) {
-        return wall_2d_find_intersection(r1, z1, r2, z2, w);
-    } else {
-        return 0;
-    }
+    return wall_2d_find_intersection(r1, z1, r2, z2, w);
+    // if(!wall_2d_inside(r2, z2, w)) {
+    // } else {
+    //     return 0;
+    // }
 }
