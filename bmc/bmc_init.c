@@ -54,22 +54,25 @@ void fmcInitImportanceSamplingMetropolis(
 
     // place the first position at the middle of the mesh
     real z0[5], z_size[5], z1[5];
-    z0[0] = (dist5D.max_r + dist5D.min_r) / 2.;
-    z0[1] = (dist5D.max_phi + dist5D.min_phi) / 2.;
-    z0[2] = (dist5D.max_z + dist5D.min_z) / 2.;
-    z0[3] = (dist5D.max_ppara + dist5D.min_ppara) / 2.;
-    z0[4] = (dist5D.max_pperp + dist5D.min_pperp) / 2.;
     z_size[0] = (dist5D.max_r - dist5D.min_r);
     z_size[1] = (dist5D.max_phi - dist5D.min_phi);
     z_size[2] = (dist5D.max_z - dist5D.min_z);
     z_size[3] = (dist5D.max_ppara - dist5D.min_ppara);
     z_size[4] = (dist5D.max_pperp - dist5D.min_pperp);
 
-    memcpy(z1, z0, 5*sizeof(real)); 
-
     // build Importance sampling matrix
     real* ISMatrix = (real *)malloc(dist_length * sizeof(real));
     buildISMatrixForMesh(input_n_ps, input_ps, ISMatrix, importanceSamplingProbability, dist_length, &dist5D, &sim.wall_data);
+
+    // put first marker where IS matrix is non null
+    int i_x[5];
+    for (int i = 0; i<dist_length; i++) {
+        if (ISMatrix[i] > 0) {
+            compute_5d_coordinates_from_hist_index(i, i_x, &z0[0], &z0[1], &z0[2], &z0[3], &z0[4], &dist5D);
+            break;
+        }
+    }
+    memcpy(z1, z0, 5*sizeof(real)); 
 
     *n = 0;
     int dim;
@@ -77,39 +80,43 @@ void fmcInitImportanceSamplingMetropolis(
     int acc = 0, rej = 0;
     real p0 = ISContinuousDistr(z0, ISMatrix, &dist5D, &sim.wall_data), p1, p;
 
+    srand ( time(NULL) );
+
     while (*n < n_total) {
-        dim = rand() % 6;
-
-        dz = z_size[dim] * displacementPercentage;
-        step = 2.*dz*(((float)rand()/RAND_MAX) - 0.5);
-
-        p = ((float)rand()/RAND_MAX);
-        z1[dim] += 2.*dz*step;
+        for (dim = 0; dim < 5; dim++) {
+            dz = z_size[dim] * displacementPercentage;
+            z1[dim] += 2.*dz*(((float)rand()/RAND_MAX) - 0.5);
+        }
 
         p1 = ISContinuousDistr(z1, ISMatrix, &dist5D, &sim.wall_data);
+        p = ((float)rand()/RAND_MAX);
 
         int err = 0;
 
         bmc_5D_to_particle_state(Bdata, z1[0], z1[1], z1[2], z1[3], z1[4], t, *n, *ps + *n, m, q, rk4_subcycles);
         if ((*ps)[*n].err) err = 1;
 
-        if (((p1 / p0) < p) && (p1!=0 || p0!=0)) err = 1;
+        if (p1 == 0) err = 1;
+        if (((p1 / p0) < p)) err = 1;
 
         if (err) {
             rej++;
+            memcpy(z1, z0, 5*sizeof(real)); 
         } else {
             acc++;
-            z0[dim] = z1[dim];
+            p0 = p1;
+            memcpy(z0, z1, 5*sizeof(real)); 
         }
 
         bmc_5D_to_particle_state(Bdata, z0[0], z0[1], z0[2], z0[3], z0[4], t, *n, *ps + *n, m, q, rk4_subcycles);
 
         if (!(*ps)[*n].err) {
+            // printf(met, "%e %e\n", (*ps)[*n].r, (*ps)[*n].z);
             *n = *n + 1;
         }
     }
 
-    printf("IS Metropolis: Init %d particles, %d steps accepted, %d rejected", *n, acc, rej);
+    printf("IS Metropolis: Init %d particles, %.2f%% steps accepted, %.2f%% rejected", *n, 100. * acc / *n, 100. * rej / *n);
 }
 
 real ISContinuousDistr(
@@ -124,7 +131,9 @@ real ISContinuousDistr(
 
     real ret = 0;
     for (int i=0; i<32; ++i) {
-        ret += weights[i] * probabilityMatrix[i];
+        if (target_hit[i] == 0) {
+            ret += weights[i] * probabilityMatrix[indexes[i]];
+        }
     }
 
     return ret;
@@ -159,7 +168,9 @@ void buildParticlesWeightsFromProbabilityMatrix(
                 printf("Warning: probability ill-defined (%f) on index %d Increase velocity mesh size.\n", probabilityMatrix[indexes[j]], indexes[j]);
                 probabilityMatrix[indexes[j]] = 0;
             }
-            weights[i] = weights[i] + p_weights[j] * probabilityMatrix[indexes[j]];
+            if (hits[j] == 0) {
+                weights[i] = weights[i] + p_weights[j] * probabilityMatrix[indexes[j]];
+            }
         }
     }
 }
@@ -189,12 +200,12 @@ void buildISMatrixForMesh(
         real p = physlib_gc_p( input_ps[i].mass, input_ps[i].mu, input_ps[i].ppar, Bnorm);
         Ekin = physlib_Ekin_pnorm(input_ps[i].mass, p);
 
-        bmc_dist5D_state_indexes(indexes, weights, target_hit, input_ps[i], dist5D, wallData);
+        bmc_dist5D_state_indexes(indexes, weights, target_hit, &input_ps[i], dist5D, wallData);
 
         for (int j=0; j<32; ++j) {
-            if (!target_hit[j] && indexes[j]>=0) {
-                ISMatrix[indexes[j]] = ISMatrix[indexes[j]] * weights[j];
-                // ISMatrix[indexes[j]] = ISMatrix[indexes[j]] * weights[j] * Ekin;
+            if (target_hit[j] == 0 && indexes[j]>=0) {
+                ISMatrix[indexes[j]] = ISMatrix[indexes[j]] + weights[j];
+                // ISMatrix[indexes[j]] = ISMatrix[indexes[j]] + weights[j] * Ekin * input_ps[i].weight;
             }
         }
     }
@@ -518,10 +529,8 @@ void buildDensityMatrixFromInputParticles(
         bmc_dist5D_state_indexes(indexes, weights, target_hit, &input_particles[i], dist5D, wdata);
         for (int j=0; j<=32; j++) {
             compute_5d_coordinates_from_hist_index(indexes[j], i_x, &r, &phi, &z, &ppara, &pperp, dist5D);
-            if (target_hit[j])
+            if (target_hit[j] != 0)
                 continue;
-            if (!wall_2d_inside(r, z, wdata))
-                    continue;
 
             real p = sqrt(ppara*ppara + pperp*pperp);
             real Ekin = physlib_Ekin_pnorm(input_particles[i].mass, p);

@@ -1,5 +1,5 @@
 #include "../simulate.h"
-// #include "./bmc_diag.h"
+#include "./bmc_diag.h"
 #include "../print.h"
 #include "../physlib.h"
 
