@@ -1,12 +1,19 @@
+#include "bmc_main.h"
+
 #define HERMITE_KNOTS 1
 #define TIME_INDEPENDENT 1
-#define TIMESTEP 1E-7 // TODO use input HDF
-#define T0 9E-7
-#define T1 1E-6
+#define TIMESTEP 1E-6 // TODO use input HDF
+#define T0 0
+#define T1 499E-6
 #define MASS 3.3452438E-27
 #define CHARGE 1.60217662E-19
-#define RK4_SUBCYCLES 5
+#define RK4_SUBCYCLES 10
 #define DEBUG_EXIT_VELOCITY 0
+#define IMPORTANCE_SAMPLING_METROPOLIS 0
+#define IMPORTANCE_SAMPLING_TOTAL_PARTICLES 100000
+#define IMPORTANCE_SAMPLING_METROPOLIS_D 0.2
+
+
 /**
  * @file ascot5_main.c
  * @brief ASCOT5 stand-alone program
@@ -125,10 +132,10 @@ int main(int argc, char** argv) {
                "Initialized MPI, rank %d, size %d.\n", mpi_rank, mpi_size);
 
     /* Number of markers to be simulated */
-    int n;
+    // n and ps are local to the MPI node, they are not the total markers
+    int input_n;
     /* Marker input struct */
-    input_particle* p;
-    particle_state* ps;
+    input_particle* input_p;
     int *ps_indexes;
 
     /* Offload data arrays that are allocated when input is read */
@@ -150,7 +157,7 @@ int main(int argc, char** argv) {
                                   &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
                                   &wall_offload_array, &boozer_offload_array,
-                                  &mhd_offload_array, &p, &n) ) {
+                                  &mhd_offload_array, &input_p, &input_n) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nInput reading or initializing failed.\n"
                    "See stderr for details.\n");
@@ -199,13 +206,12 @@ int main(int argc, char** argv) {
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
+    int n;
+    particle_state* ps;
     if (bmc_init_particles(mpi_rank, mpi_size, &n, &ps, &ps_indexes, 1, &sim, &Bdata, offload_array, T1, MASS, CHARGE, RK4_SUBCYCLES)) {
         goto CLEANUP_FAILURE;
     }
 
-    /* Choose which markers are used in this MPI process. Simply put, markers
-     * are divided into mpi_size sequential blocks and the mpi_rank:th block
-     * is chosen for this simulation. */
     /* Initialize results group in the output file */
     if (mpi_rank == mpi_root) {
         print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
@@ -237,28 +243,41 @@ int main(int argc, char** argv) {
 
     fflush(stdout);
 
+    // create the output BMC histogram container
+    // TODO: MPI-decompose this 
+    diag_data distr;
+
     // SIMULATE HERE
     if (backward_monte_carlo(n, HERMITE_KNOTS, ps, ps_indexes,
-                            &Bdata, &sim, &offload_data, offload_array, mpi_rank, T1, T0, TIMESTEP, RK4_SUBCYCLES, TIME_INDEPENDENT, DEBUG_EXIT_VELOCITY)) {
+                            &Bdata, &sim, &offload_data, offload_array, mpi_rank, T1, T0, TIMESTEP, RK4_SUBCYCLES, TIME_INDEPENDENT, DEBUG_EXIT_VELOCITY, &distr)) {
         goto CLEANUP_FAILURE;
     }
 
-    /* Code execution returns to host. */
-    print_out0(VERBOSE_NORMAL, mpi_rank, "mic0 %lf s, mic1 %lf s, host %lf s\n",
-        mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
+    int nOut;
+    particle_state* psOut;
 
-    /* Write endstate */
-    if (mpi_rank == mpi_root) {
-        if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n, ps) ) {
-            print_out0(VERBOSE_MINIMAL, mpi_rank,
-                    "\nWriting endstate failed.\n"
-                    "See stderr for details.\n");
-            /* Free offload data and terminate */
-            goto CLEANUP_FAILURE;
-        }
-        print_out0(VERBOSE_NORMAL, mpi_rank,
-                "Endstate written.\n");
+    // convert input particles to particle_states
+    particle_state* input_ps = (particle_state*) malloc(input_n * sizeof(particle_state));
+    for(int i = 0; i < input_n; i++) {
+        particle_input_to_state(&input_p[i], &input_ps[i], &Bdata);
     }
+
+    print_out0(VERBOSE_NORMAL, mpi_rank, "Computing Importance sampling weighted markers for FMC\n");
+    if (IMPORTANCE_SAMPLING_METROPOLIS) {
+        fmcInitImportanceSamplingMetropolis(&nOut, &psOut, &distr, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, 1, RK4_SUBCYCLES, input_ps, input_n, T0, MASS, CHARGE, IMPORTANCE_SAMPLING_METROPOLIS_D);
+    } else {
+        fmc_init_importance_sampling_from_source_distribution(&nOut, &psOut, &distr, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, 1, RK4_SUBCYCLES, input_ps, input_n);
+    }
+
+    // convert Importance sampling marker
+    // from particle_state to input_particle
+    input_particle* inpOut = (input_particle*) malloc(nOut*sizeof(input_particle));
+    particle* pOut = (particle*) malloc(nOut*sizeof(particle));
+    for (int i=0; i<nOut; ++i) {
+        particle_state_to_particle(&psOut[i], &pOut[i]);
+        inpOut[i].p = pOut[i];
+    }
+    writeMarkersToHDF5(&sim, nOut, inpOut);
 
     mpi_interface_finalize();
 
@@ -543,4 +562,39 @@ void marker_summary(particle_state* ps, int n) {
     free(temp);
     free(unique);
     free(count);
+}
+
+void writeMarkersToHDF5(
+    sim_offload_data* sim,
+    int nprt,
+    input_particle* ip
+) {
+    printf("Writing BMC IS markers to output file\n");
+    char qid[11];
+    hdf5_generate_qid(qid);
+
+    hid_t of = hdf5_open(sim->hdf5_in);
+    if(of < 0) {
+        print_err("Error: File not found.\n");
+        return 1;
+    }
+    hdf5_marker_write_particle(of, nprt, ip, qid);
+
+    /* Write metadata */
+    char path[256];
+    hdf5_gen_path("/marker/prt_XXXXXXXXXX", qid, path);
+
+    hdf5_write_string_attribute(of, path, "description",  sim->description);
+
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    char date[21];
+    sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900,
+            tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    hdf5_write_string_attribute(of, path, "date",  date);
+
+    // /* Set this run as active. */
+    hdf5_write_string_attribute(of, "/marker", "active",  qid);
+
+    hdf5_close(of);
 }

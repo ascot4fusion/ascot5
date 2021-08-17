@@ -670,3 +670,23 @@ void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
         }
     }
 }
+
+void particle_state_to_particle(
+    particle_state* ps,
+    particle* p
+) {
+    p->r = ps->r;
+    p->phi = ps->phi;
+    p->z = ps->z;
+    p->p_r = ps->p_r;
+    p->p_phi = ps->p_phi;
+    p->p_z = ps->p_z;
+    p->mass = ps->mass;
+    p->charge = ps->charge;
+    p->anum = ps->anum;
+    p->znum = ps->znum;
+    p->weight = ps->weight;
+    p->time = ps->time;
+    p->mileage = ps->mileage;
+    p->id = ps->id;
+}

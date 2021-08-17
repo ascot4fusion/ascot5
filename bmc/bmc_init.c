@@ -8,6 +8,7 @@
 void fmcInitImportanceSamplingMetropolis(
     int *n,
     particle_state** ps,
+    diag_data* distr,
     int n_total,
     sim_offload_data* sim_offload,
     B_field_data* Bdata,
@@ -226,6 +227,7 @@ void buildISMatrixForMesh(
     }
 }
 void buildISMatrixForParticles(
+    diag_data* distr,
     int input_n_ps,
     real* Ekin,
     particle_state* input_ps,
@@ -246,16 +248,16 @@ void buildISMatrixForParticles(
     }
     
     if (importanceSamplingProbability) {
-        FILE* f_probability = fopen("distr_prob", "rb");
-        if (f_probability == NULL) {
-            printf("Warning: Cannot open probability matrix file for importance sampling\n");
-            abort();
-        }
+        // FILE* f_probability = fopen("distr_prob", "rb");
+        // if (f_probability == NULL) {
+        //     printf("Warning: Cannot open probability matrix file for importance sampling\n");
+        //     abort();
+        // }
         real weightsFromProbability[input_n_ps];
-        real* probabilityMatrix = (real*)malloc(dist_length * sizeof(real));
-        fread(probabilityMatrix, sizeof(real), dist_length, f_probability);
+        // real* probabilityMatrix = (real*)malloc(dist_length * sizeof(real));
+        // fread(probabilityMatrix, sizeof(real), dist_length, f_probability);
 
-        buildParticlesWeightsFromProbabilityMatrix(probabilityMatrix, weightsFromProbability, input_ps, input_n_ps, dist5D, wallData);
+        buildParticlesWeightsFromProbabilityMatrix(distr->dist5D.histogram, weightsFromProbability, input_ps, input_n_ps, dist5D, wallData);
 
         for (int i=0; i<= input_n_ps; i++) {
             ISMatrix[i] = ISMatrix[i] * weightsFromProbability[i];
@@ -266,6 +268,7 @@ void buildISMatrixForParticles(
 int fmc_init_importance_sampling_from_source_distribution(
         int *n,
         particle_state** ps,
+        diag_data* distr,
         int n_total,
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
@@ -308,7 +311,7 @@ int fmc_init_importance_sampling_from_source_distribution(
     int dist_length = sim_offload->diag_offload_data.offload_array_length;
 
     real ISMatrix[input_n_ps], Ekin[input_n_ps];
-    buildISMatrixForParticles(input_n_ps, Ekin, input_ps, ISMatrix, importanceSamplingProbability, dist_length, &dist5D, &sim.wall_data);
+    buildISMatrixForParticles(distr, input_n_ps, Ekin, input_ps, ISMatrix, importanceSamplingProbability, dist_length, &dist5D, &sim.wall_data);
 
     real sum = 0;
     for (int i=0; i<input_n_ps; i++) {

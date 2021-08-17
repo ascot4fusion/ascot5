@@ -93,4 +93,9 @@ void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
                               dist_5D_data *dist1, dist_5D_data *dist0, wall_data *wallData,
                               int* p0_indexes, int debugExitVelocitySpace);
 
+void particle_state_to_particle(
+    particle_state* ps,
+    particle* p
+);
+
 #endif

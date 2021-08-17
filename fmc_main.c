@@ -1,27 +1,17 @@
-// Forward Monte Carlo to be used along BMC
-// For now, particles are always simulated as markers on nodes of the mesh
-
 // number of markers for each mesh node
-#define N_MONTECARLO_STEPS 5
 #define TIMESTEP 1E-7 // TODO use input HDF
-#define T0 1E-6
-#define T1 1E-6
+#define T0 0E-6
+#define T1 5E-6
 #define MASS 3.3452438E-27
 #define CHARGE 1.60217662E-19
-#define RK4_SUBCYCLES 5
+#define RK4_SUBCYCLES 1
 
-// Importance sampling parameters.
-// If importance sampling is enabled, total particles are used and N_MONTECARLO_STEPS is ignored
-#define IMPORTANCE_SAMPLING 1
-#define IMPORTANCE_SAMPLING_TOTAL_PARTICLES 1645000
-#define IS_METROPOLIS 1 // place markers based on BMC and input markers, in a random continuous way
-#define IS_METROPOLIS_D 0.2 // displacement of Metropolis scheme, percentage of mesh size for each dimension
-#define IMPORTANCE_SAMPLING_DENSITY 0 // follow a distribution hardcoded in bmc_init.h, buildImportantSamplingHistogram()
-#define IMPORTANCE_SAMPLING_PROBABILITY 0 // add importance sampling from bmc output probability matrix. To use this, a BMC sim must be run first
-#define IMPORTANCE_SAMPLING_FROM_PARTICLES 1 // follow distribuition of particles from input h5 file. This excludes IMPORTANCE_SAMPLING_DENSITY
+// Use input particles, or put n markers per node on the mesh
+#define USE_INPUT_PARTICLES 1
+#define MARKERS_PER_NODE 5 // disabled if using input particles
 
 #define DEBUG_INPUT_DISTRIBUTION 0
-#define DEBUG_HIT_TIME 1 // print to file when each marker hit the wall
+#define DEBUG_HIT_TIME 0 // print to file when each marker hit the wall
 
 /**
  * @file ascot5_main.c
@@ -227,28 +217,18 @@ int main(int argc, char** argv) {
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
-    if (IMPORTANCE_SAMPLING) {
-        printf("Using importance sampling\n");
-        if (IS_METROPOLIS) {
-            fmcInitImportanceSamplingMetropolis(&n, &ps, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, IMPORTANCE_SAMPLING_PROBABILITY, RK4_SUBCYCLES, input_ps, n_input, T0, MASS, CHARGE, IS_METROPOLIS_D);
-        } else {
-            fmc_init_importance_sampling_from_source_distribution(&n, &ps, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, IMPORTANCE_SAMPLING_PROBABILITY, RK4_SUBCYCLES, input_ps, n_input);
-        }
-    } else {
-        printf("Not using importance sampling. Using %d markers per node\n", N_MONTECARLO_STEPS);
-        if (bmc_init_particles(mpi_rank, mpi_size, &n, &ps, &ps_indexes, N_MONTECARLO_STEPS, &sim, &Bdata, offload_array, T0, MASS, CHARGE, RK4_SUBCYCLES)) {
-            goto CLEANUP_FAILURE;
-        }
-    }
-    int n_total_particles = n;
+    int n_total_particles;
+    if (USE_INPUT_PARTICLES) {
+        printf("Using input particles\n");
+        n = n_input;
+        n_total_particles = n_input;
+        ps = input_ps;
 
-    /* Choose which markers are used in this MPI process. Simply put, markers
-     * are divided into mpi_size sequential blocks and the mpi_rank:th block
-     * is chosen for this simulation. */
-    int start_index = mpi_rank * (n / mpi_size);
-    if (IMPORTANCE_SAMPLING) {
+        /* Choose which markers are used in this MPI process. Simply put, markers
+        * are divided into mpi_size sequential blocks and the mpi_rank:th block
+        * is chosen for this simulation. */
+        int start_index = mpi_rank * (n / mpi_size);
         ps += start_index;
-        ps_indexes += start_index;
 
         if(mpi_rank == mpi_size-1) {
             n = n - mpi_rank * (n / mpi_size);
@@ -256,13 +236,14 @@ int main(int argc, char** argv) {
         else {
             n = n / mpi_size;
         }
+    } else {
+        printf("Not using importance sampling. Using %d markers per node\n", MARKERS_PER_NODE);
+        // NB: markers are divided in MPI nodes inside the init function
+        if (bmc_init_particles(mpi_rank, mpi_size, &n, &ps, &ps_indexes, MARKERS_PER_NODE, &sim, &Bdata, offload_array, T0, MASS, CHARGE, RK4_SUBCYCLES)) {
+            goto CLEANUP_FAILURE;
+        }
     }
 
-
-    /* We can now free the Bfield offload array */
-    // B_field_free_offload(&sim.B_offload_data, &B_offload_array);
-    // free(p-start_index); // Input markers are no longer required
-    
     /* Divide markers among host and target */
 #ifdef TARGET
     int n_mic = n / TARGET;
@@ -304,7 +285,7 @@ int main(int argc, char** argv) {
     fflush(stdout);
 
     // SIMULATE HERE
-    if (IMPORTANCE_SAMPLING) {
+    if (USE_INPUT_PARTICLES) {
         if (forward_monte_carlo_from_source_particles(
             n_total_particles, n, ps, 
             input_ps, n_input,
@@ -313,20 +294,20 @@ int main(int argc, char** argv) {
             &mic0_start, &mic0_end,
             &host_start, &host_end,
             n_mic, n_host, mpi_rank,
-            IMPORTANCE_SAMPLING, T1, T0,
+            T1, T0,
             DEBUG_INPUT_DISTRIBUTION, DEBUG_HIT_TIME)) {
                 goto CLEANUP_FAILURE;
             }
     } else {
-        if (forward_monte_carlo(
-            n_total_particles, N_MONTECARLO_STEPS, ps, ps_indexes,
+        if (forward_monte_carlo_mesh(
+            n, ps, ps_indexes,
             input_ps, n_input,
             &Bdata, &sim, &offload_data, offload_array,
             &mic1_start, &mic1_end,
             &mic0_start, &mic0_end,
             &host_start, &host_end,
             n_mic, n_host, mpi_rank,
-            IMPORTANCE_SAMPLING, T1, T0,
+            T1, T0,
             DEBUG_INPUT_DISTRIBUTION, DEBUG_HIT_TIME)) {
                 goto CLEANUP_FAILURE;
             }

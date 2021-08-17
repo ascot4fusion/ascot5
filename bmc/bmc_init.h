@@ -33,6 +33,7 @@ void buildParticlesWeightsFromProbabilityMatrix(
 int fmc_init_importance_sampling_from_source_distribution(
         int *n,
         particle_state** ps,
+        diag_data* distr,
         int n_total,
         sim_offload_data* sim_offload,
         B_field_data* Bdata,
@@ -55,6 +56,7 @@ void buildISMatrixForMesh(
 );
 
 void buildISMatrixForParticles(
+    diag_data* distr,
     int input_n_ps,
     real* Ekin,
     particle_state* input_ps,
@@ -103,6 +105,7 @@ int fmc_init_importance_sampling(
 void fmcInitImportanceSamplingMetropolis(
     int *n,
     particle_state** ps,
+    diag_data* distr,
     int n_total,
     sim_offload_data* sim_offload,
     B_field_data* Bdata,
