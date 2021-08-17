@@ -33,7 +33,8 @@ int backward_monte_carlo(
         real h,
         int rk4_subcycles,
         int time_intependent,
-        int debugExitVelocitySpace
+        int debugExitVelocitySpace,
+        diag_data* distr0
     ) {
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nStarting Backward Monte Carlo. N particles: %d.\n", n_mpi_particles);
@@ -47,10 +48,10 @@ int backward_monte_carlo(
     }
 
     // initialize distributions
-    diag_data distr0, distr1;
+    diag_data distr1;
     real* distr0_array, *distr1_array;
     diag_init_offload(&sim_offload->diag_offload_data, &distr0_array, 1);
-    diag_init(&distr0, &sim_offload->diag_offload_data, distr0_array);
+    diag_init(distr0, &sim_offload->diag_offload_data, distr0_array);
     diag_init_offload(&sim_offload->diag_offload_data, &distr1_array, 1);
     diag_init(&distr1, &sim_offload->diag_offload_data, distr1_array);
 
@@ -64,23 +65,23 @@ int backward_monte_carlo(
             sim_offload->neutral_offload_data.offload_array_length;
     wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
 
-    if (distr0.dist5D_collect) {
+    if (distr0->dist5D_collect) {
         if (!time_intependent) {
             backward_monte_carlo_gc(ps, ps_indexes, n_mpi_particles, n_hermite_knots, sim_offload, &sim, offload_data, offload_array,
-                                &distr0, &distr1, Bdata, t1, t0, h, rk4_subcycles);
+                                distr0, &distr1, Bdata, t1, t0, h, rk4_subcycles);
         } else {
             backward_monte_carlo_gc_time_indep(ps, ps_indexes, n_mpi_particles, n_hermite_knots, sim_offload, &sim, offload_data, offload_array,
-                                &distr0, &distr1, Bdata, t1, t0, h, rk4_subcycles, debugExitVelocitySpace);
+                                distr0, &distr1, Bdata, t1, t0, h, rk4_subcycles, debugExitVelocitySpace);
         }
     } else {
         // TODO: FULL ORBIT
     }
 
-    write_probability_distribution(sim_offload, &distr0, distr0_array, mpi_rank, 1);
+    write_probability_distribution(sim_offload, distr0, distr0_array, mpi_rank, 0);
 
     // Free sitribution data
     diag_free_offload(&sim_offload->diag_offload_data, &distr1_array);
-    diag_free_offload(&sim_offload->diag_offload_data, &distr0_array);
+    // diag_free_offload(&sim_offload->diag_offload_data, &distr0_array);
 
     return 0;
 
@@ -264,9 +265,8 @@ void backward_monte_carlo_gc(
     } 
 }
 
-int forward_monte_carlo(
+int forward_monte_carlo_mesh(
         int n_particles,
-        int n_montecarlo_steps,
         particle_state* ps1,
         int* ps1_indexes,
         particle_state* input_particles,
@@ -281,7 +281,6 @@ int forward_monte_carlo(
         int n_mic,
         int n_host,
         int mpi_rank,
-        int importance_sampling,
         real t1,
         real t0,
         int debugInputDistribution,
@@ -456,7 +455,6 @@ int forward_monte_carlo_from_source_particles(
         int n_mic,
         int n_host,
         int mpi_rank,
-        int importance_sampling,
         real t1,
         real t0,
         int debugInputDistribution,

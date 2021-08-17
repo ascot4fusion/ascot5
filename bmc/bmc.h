@@ -31,7 +31,6 @@ int forward_monte_carlo_from_source_particles(
         int n_mic,
         int n_host,
         int mpi_rank,
-        int importance_sampling,
         real t1,
         real t0,
         int debugInputDistribution,
@@ -53,7 +52,8 @@ int backward_monte_carlo(
         real h,
         int rk4_subcycles,
         int time_independent,
-        int debugExitVelocitySpace
+        int debugExitVelocitySpace,
+        diag_data* distr0
     );
 
 void backward_monte_carlo_gc_time_indep(
@@ -92,9 +92,8 @@ void backward_monte_carlo_gc(
         real h,
         int rk4_subcycles
     );
-int forward_monte_carlo(
+int forward_monte_carlo_mesh(
         int n_particles,
-        int n_montecarlo_steps,
         particle_state* ps1,
         int* ps1_indexes,
         particle_state* input_particles,
@@ -109,7 +108,6 @@ int forward_monte_carlo(
         int n_mic,
         int n_host,
         int mpi_rank,
-        int importance_sampling,
         real t1,
         real t0,
         int debugInputDistribution,
