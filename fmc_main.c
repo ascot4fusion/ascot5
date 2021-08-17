@@ -210,6 +210,7 @@ int main(int argc, char** argv) {
     particle_state* input_ps = (particle_state*) malloc(n * sizeof(particle_state));
     for(int i = 0; i < n; i++) {
         particle_input_to_state(&p[i], &input_ps[i], &Bdata);
+        input_ps[i].n_t_subcycles = RK4_SUBCYCLES;
     }
     int n_input = n;
 

@@ -1,6 +1,6 @@
 #include "bmc_main.h"
 
-#define HERMITE_KNOTS 1
+#define HERMITE_KNOTS 5
 #define TIME_INDEPENDENT 1
 #define TIMESTEP 1E-6 // TODO use input HDF
 #define T0 0
