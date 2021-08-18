@@ -112,7 +112,6 @@ void fmcInitImportanceSamplingMetropolis(
         bmc_5D_to_particle_state(Bdata, z0[0], z0[1], z0[2], z0[3], z0[4], t, *n, *ps + *n, m, q, rk4_subcycles);
 
         if (!(*ps)[*n].err) {
-            // printf(met, "%e %e\n", (*ps)[*n].r, (*ps)[*n].z);
             *n = *n + 1;
         }
     }
@@ -321,7 +320,7 @@ int fmc_init_importance_sampling_from_source_distribution(
     *n = 0;
     int nparticlesHistogram[input_n_ps];
     for (int i=0; i<input_n_ps; i++) {
-        nparticlesHistogram[i] = ceil(ISMatrix[i] / sum * n_total);
+        nparticlesHistogram[i] = round(ISMatrix[i] / sum * n_total);
         *n += nparticlesHistogram[i];
     }
 
@@ -445,10 +444,7 @@ int fmc_init_importance_sampling_mesh(
     printf("Init initial sum %e\n", sum);
     *n = 0;
     for (int i=0; i<dist_length; i++) {
-        nparticlesHistogram[i] = ceil(histogram[i] / sum * n_total);
-        // if (histogram[i] / sum * n_total > 0) {
-        //     printf("hist %d %f %d\n", i, histogram[i] / sum * n_total, nparticlesHistogram[i]);
-        // }
+        nparticlesHistogram[i] = round(histogram[i] / sum * n_total);
         *n += nparticlesHistogram[i];
     }
 
