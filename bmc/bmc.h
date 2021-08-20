@@ -19,8 +19,6 @@ int forward_monte_carlo_from_source_particles(
         int n_tot_particles,
         int n_mpi_particles,
         particle_state* ps,
-        particle_state* input_particles,
-        int n_input_particles,
         B_field_data* Bdata,
         sim_offload_data* sim_offload,
         offload_package* offload_data,
