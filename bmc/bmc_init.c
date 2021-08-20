@@ -26,6 +26,7 @@ void fmcInitImportanceSamplingMetropolis(
 
     sim_data sim;
     sim_init(&sim, sim_offload);
+    offload_data->unpack_pos = 0;
     real* ptr = offload_unpack(offload_data, offload_array,
             sim_offload->B_offload_data.offload_array_length);
     B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
@@ -284,6 +285,8 @@ int fmc_init_importance_sampling_from_source_distribution(
     // init sim data
     sim_data sim;
     sim_init(&sim, sim_offload);
+
+    offload_data->unpack_pos = 0;
     real* ptr = offload_unpack(offload_data, offload_array,
             sim_offload->B_offload_data.offload_array_length);
     B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
@@ -338,8 +341,6 @@ int fmc_init_importance_sampling_from_source_distribution(
             i_tot++;
         }
     }
-
-    printf("Initialized %d %d particles\n", *n, i_tot);
 
     printf("BMC mesh and markers initialization complete.\n");
     printf("Mesh size: rmin %e\trmax %e\tnr %d\n", dist5D.min_r, dist5D.max_r, dist5D.n_r);
