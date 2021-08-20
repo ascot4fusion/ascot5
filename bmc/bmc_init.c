@@ -312,7 +312,8 @@ int fmc_init_importance_sampling_from_source_distribution(
     dist_5D_offload_data dist5D = sim_offload->diag_offload_data.dist5D;
     int dist_length = sim_offload->diag_offload_data.offload_array_length;
 
-    real ISMatrix[input_n_ps], Ekin[input_n_ps];
+    real* ISMatrix = (real *)malloc(input_n_ps * sizeof(real));
+    real* Ekin = (real *)malloc(input_n_ps * sizeof(real));
     buildISMatrixForParticles(distr, input_n_ps, Ekin, input_ps, ISMatrix, importanceSamplingProbability, dist_length, &dist5D, &sim.wall_data);
 
     real sum = 0;
@@ -320,8 +321,9 @@ int fmc_init_importance_sampling_from_source_distribution(
        sum += ISMatrix[i];
     }
     printf("Init initial Importance sampling weights sum %e\n", sum);
+
     *n = 0;
-    int nparticlesHistogram[input_n_ps];
+    int *nparticlesHistogram = (particle_state *)malloc(input_n_ps * sizeof(particle_state));
     for (int i=0; i<input_n_ps; i++) {
         nparticlesHistogram[i] = round(ISMatrix[i] / sum * n_total);
         *n += nparticlesHistogram[i];
@@ -333,11 +335,11 @@ int fmc_init_importance_sampling_from_source_distribution(
     int i_tot = 0;
     for (int i=0; i<input_n_ps; i++) {
         for (int j=0; j<nparticlesHistogram[i]; ++j) {
-            memcpy(*ps + i_tot, &(input_ps[i]), sizeof(particle_state));
+            memcpy(*ps + i_tot, input_ps + i, sizeof(particle_state));
             ps_tmp = *ps + i_tot;
             ps_tmp->n_t_subcycles = rk4_subcycles;
             ps_tmp->weight = ps_tmp->weight / nparticlesHistogram[i];
-            ps_tmp->weight = ps_tmp->weight * Ekin[i];
+            // ps_tmp->weight = ps_tmp->weight * Ekin[i];
             i_tot++;
         }
     }

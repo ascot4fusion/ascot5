@@ -171,6 +171,7 @@ int main(int argc, char** argv) {
     real* offload_array;
     offload_package offload_data;
     offload_init_offload(&offload_data, &offload_array);
+    offload_data.unpack_pos = 0;
     offload_pack(&offload_data, &offload_array, B_offload_array,
                  sim.B_offload_data.offload_array_length);
 
