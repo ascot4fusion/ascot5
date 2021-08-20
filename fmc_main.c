@@ -91,6 +91,7 @@
 #include "offload.h"
 #include "bmc/bmc.h"
 #include "bmc/bmc_init.h"
+#include "mpi_interface.h"
 
 int read_arguments(int argc, char** argv, sim_offload_data* sim);
 void marker_summary(particle_state* p, int n);
@@ -218,11 +219,9 @@ int main(int argc, char** argv) {
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
-    int n_total_particles;
     if (USE_INPUT_PARTICLES) {
         printf("Using input particles\n");
         n = n_input;
-        n_total_particles = n_input;
         ps = input_ps;
 
         /* Choose which markers are used in this MPI process. Simply put, markers
@@ -288,8 +287,7 @@ int main(int argc, char** argv) {
     // SIMULATE HERE
     if (USE_INPUT_PARTICLES) {
         if (forward_monte_carlo_from_source_particles(
-            n_total_particles, n, ps, 
-            input_ps, n_input,
+            n_input, n, ps, 
             &Bdata, &sim, &offload_data, offload_array,
             &mic1_start, &mic1_end,
             &mic0_start, &mic0_end,
@@ -318,9 +316,15 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_NORMAL, mpi_rank, "mic0 %lf s, mic1 %lf s, host %lf s\n",
         mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
 
+    particle_state* ps_gathered;
+    int n_gathered;
+    mpi_gather_particlestate(ps, &ps_gathered, &n_gathered, n_input,
+                            mpi_rank, mpi_size, mpi_root);
+    printf("Gathered %d particles\n", n_gathered);
+
         /* Write endstate */
     if (mpi_rank == mpi_root) {
-        if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n, ps) ) {
+        if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n_gathered, ps_gathered) ) {
             print_out0(VERBOSE_MINIMAL, mpi_rank,
                     "\nWriting endstate failed.\n"
                     "See stderr for details.\n");
