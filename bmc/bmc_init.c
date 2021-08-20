@@ -675,7 +675,7 @@ int bmc_init_particles(
     particle_state ps_tmp; // tmp particle
 
     // compute total number of particles
-    int i_x[5], tot_n;
+    int i_x[5], tot_n = 0;
     for (int i=0; i<dist_length; i++) {
         compute_5d_coordinates_from_hist_index(i, i_x, &r, &phi, &z, &ppara, &pperp, &dist5D);
 
