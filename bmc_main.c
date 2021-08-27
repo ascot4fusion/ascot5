@@ -264,21 +264,24 @@ int main(int argc, char** argv) {
     }
 
     print_out0(VERBOSE_NORMAL, mpi_rank, "Computing Importance sampling weighted markers for FMC\n");
-    if (IMPORTANCE_SAMPLING_METROPOLIS) {
-        fmcInitImportanceSamplingMetropolis(&nOut, &psOut, &distr, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, 1, RK4_SUBCYCLES, input_ps, input_n, T0, MASS, CHARGE, IMPORTANCE_SAMPLING_METROPOLIS_D);
-    } else {
-        fmc_init_importance_sampling_from_source_distribution(&nOut, &psOut, &distr, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, 1, RK4_SUBCYCLES, input_ps, input_n);
+    if (mpi_rank == 0) {
+        if (IMPORTANCE_SAMPLING_METROPOLIS) {
+            fmcInitImportanceSamplingMetropolis(&nOut, &psOut, &distr, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, 1, RK4_SUBCYCLES, input_ps, input_n, T0, MASS, CHARGE, IMPORTANCE_SAMPLING_METROPOLIS_D);
+        } else {
+            fmc_init_importance_sampling_from_source_distribution(&nOut, &psOut, &distr, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, 1, RK4_SUBCYCLES, input_ps, input_n);
+        }
+
+        // convert Importance sampling marker
+        // from particle_state to input_particle
+        input_particle* inpOut = (input_particle*) malloc(nOut*sizeof(input_particle));
+        particle* pOut = (particle*) malloc(nOut*sizeof(particle));
+        for (int i=0; i<nOut; ++i) {
+            particle_state_to_particle(&psOut[i], &pOut[i]);
+            inpOut[i].p = pOut[i];
+        }
+        writeMarkersToHDF5(&sim, nOut, inpOut);
     }
 
-    // convert Importance sampling marker
-    // from particle_state to input_particle
-    input_particle* inpOut = (input_particle*) malloc(nOut*sizeof(input_particle));
-    particle* pOut = (particle*) malloc(nOut*sizeof(particle));
-    for (int i=0; i<nOut; ++i) {
-        particle_state_to_particle(&psOut[i], &pOut[i]);
-        inpOut[i].p = pOut[i];
-    }
-    writeMarkersToHDF5(&sim, nOut, inpOut);
 
     mpi_interface_finalize();
 
