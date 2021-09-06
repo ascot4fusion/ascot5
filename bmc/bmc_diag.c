@@ -241,7 +241,6 @@ int bmc_update_distr5D(
     real dpperp = (dist->max_pperp - dist->min_pperp)/(dist->n_pperp - 1);
 
     int i = 0;
-    real r1, phi1, z1, ppara1, pperp1;
     int j_phimod;
     for (int j_r=i_r; j_r<i_r + 2; j_r++)
     for (int j_phi=i_phi; j_phi<i_phi + 2; j_phi++)
@@ -268,11 +267,7 @@ int bmc_update_distr5D(
         if (j_phimod>=dist->n_phi) {
             j_phimod = 0;
         }
-        r1 = j_r*dr + dist->min_r;
-        phi1 = j_phimod*dphi + dist->min_phi;
-        z1 = j_z*dz + dist->min_z;
-        ppara1 = j_ppara*dppara + dist->min_ppara;
-        pperp1 = j_pperp*dpperp + dist->min_pperp;
+
         indexes[i] = dist_5D_index(j_r, j_phimod, j_z, j_ppara, j_pperp, i_time, i_q, dist->n_phi, dist->n_z, dist->n_ppara, dist->n_pperp, 1, 1);
         weights[i] = fabs(weights_dim[0] - j_r + i_r) * fabs(weights_dim[1] - j_phi + i_phi)
                     * fabs(weights_dim[2] - j_z + i_z) * fabs(weights_dim[3] - j_ppara + i_ppara)
