@@ -106,8 +106,20 @@ void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, p
 void init_particles_coll_simd_hermite(int n_simd_particles, int n_hermite_knots,
         particle_simd_gc* p_coll
     ) {
-    real hermiteK[5] = {-2.856970, -1.355626, 0.000000, 1.355626, 2.856970};
-    real hermiteW[5] = {0.028218, 0.556662, 1.336868, 0.556662, 0.028218};
+    real hermiteK[10];
+    real hermiteW[10];
+
+    if (n_hermite_knots == 5) {
+        real ktmp[5] = {-2.856970, -1.355626, 0.000000, 1.355626, 2.856970};
+        real wtmp[5] = {0.028218, 0.556662, 1.336868, 0.556662, 0.028218};
+        memcpy(hermiteK, ktmp, 5*sizeof(int));
+        memcpy(hermiteW, wtmp, 5*sizeof(int));
+    } else if (n_hermite_knots == 10) {
+        real ktmp[10] = {-4.859463, -3.581823, -2.484326, -1.465989, -0.484936, 0.484936, 1.465989, 2.484326, 3.581823, 4.859463};
+        real wtmp[10] = {0.000011, 0.001900, 0.047906, 0.339607, 0.863890, 0.863890, 0.339607, 0.047906, 0.001900, 0.000011};
+        memcpy(hermiteK, ktmp, 10*sizeof(int));
+        memcpy(hermiteW, wtmp, 10*sizeof(int));
+    }
     int i_coll = 0;
     for (int i=0; i < n_simd_particles; i++) {
         for (int j=0; j < NSIMD; j++) {
