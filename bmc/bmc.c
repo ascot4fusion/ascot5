@@ -152,6 +152,14 @@ void backward_monte_carlo_gc_time_indep(
         int n_updated, n_loss, n_err;
         diag_move_distribution(sim_offload, distr0, distr1, &n_updated, &n_loss, &n_err);
     }
+
+    real sumdist = 0;
+    for (int i=0; i< sim_offload->diag_offload_data.offload_array_length;i++) {
+        if (distr0->dist5D.histogram[i] > 0) {
+            sumdist += distr0->dist5D.histogram[i]; 
+        }
+    }
+    printf("distsum %e\n", sumdist);
 }
 
 void backward_monte_carlo_gc(
