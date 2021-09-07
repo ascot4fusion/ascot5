@@ -666,22 +666,25 @@ void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
     }
 }
 
-void particle_state_to_particle(
+void particle_state_to_particle_gc(
     particle_state* ps,
-    particle* p
+    particle_gc* p_gc
 ) {
-    p->r = ps->r;
-    p->phi = ps->phi;
-    p->z = ps->z;
-    p->p_r = ps->p_r;
-    p->p_phi = ps->p_phi;
-    p->p_z = ps->p_z;
-    p->mass = ps->mass;
-    p->charge = ps->charge;
-    p->anum = ps->anum;
-    p->znum = ps->znum;
-    p->weight = ps->weight;
-    p->time = ps->time;
-    p->mileage = ps->mileage;
-    p->id = ps->id;
+    real Brpz[3] = {ps->B_r, ps->B_phi, ps->B_z};
+    real Bnorm   = math_norm(Brpz);
+    real pin = physlib_gc_p( ps->mass, ps->mu, ps->ppar, Bnorm);
+    p_gc->pitch = physlib_gc_xi(ps->mass, ps->mu, ps->ppar, Bnorm);
+    p_gc->energy = physlib_Ekin_pnorm(ps->mass, pin);
+
+    p_gc->r = ps->r;
+    p_gc->phi = ps->phi;
+    p_gc->z = ps->z;
+    p_gc->zeta = ps->zeta;
+    p_gc->mass = ps->mass;
+    p_gc->charge = ps->charge;
+    p_gc-> anum = ps->anum;
+    p_gc-> znum = ps->znum;
+    p_gc->weight = ps->weight;
+    p_gc->time = ps->time;
+    p_gc->id = ps->id;
 }

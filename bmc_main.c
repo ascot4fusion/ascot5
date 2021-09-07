@@ -274,10 +274,10 @@ int main(int argc, char** argv) {
         // convert Importance sampling marker
         // from particle_state to input_particle
         input_particle* inpOut = (input_particle*) malloc(nOut*sizeof(input_particle));
-        particle* pOut = (particle*) malloc(nOut*sizeof(particle));
+        particle_gc* pOut = (particle_gc*) malloc(nOut*sizeof(particle_gc));
         for (int i=0; i<nOut; ++i) {
-            particle_state_to_particle(&psOut[i], &pOut[i]);
-            inpOut[i].p = pOut[i];
+            particle_state_to_particle_gc(&psOut[i], &pOut[i]);
+            inpOut[i].p_gc = pOut[i];
         }
         writeMarkersToHDF5(&sim, nOut, inpOut);
     }
@@ -568,6 +568,81 @@ void marker_summary(particle_state* ps, int n) {
     free(count);
 }
 
+int hdf5_marker_write_particle_gc(hid_t f, int n, input_particle* p, char* qid) {
+
+    if(hdf5_find_group(f, "/marker/")) {
+        hdf5_create_group(f, "/marker/");
+    }
+
+    char path[256];
+    hdf5_gen_path("/marker/gc_XXXXXXXXXX", qid, path);
+
+    hid_t grp = H5Gcreate2(f, path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    real* r      = malloc(n * sizeof(real));
+    real* phi    = malloc(n * sizeof(real));
+    real* z      = malloc(n * sizeof(real));
+    real* energy = malloc(n * sizeof(real));
+    real* pitch  = malloc(n * sizeof(real));
+    real* zeta   = malloc(n * sizeof(real));
+    real* mass   = malloc(n * sizeof(real));
+    int* charge  = malloc(n * sizeof(int));
+    int* anum    = malloc(n * sizeof(int));
+    int* znum    = malloc(n * sizeof(int));
+    real* weight = malloc(n * sizeof(real));
+    real* time   = malloc(n * sizeof(real));
+    integer* id  = malloc(n * sizeof(integer));
+
+    for(int i = 0; i < n; i++) {
+        r[i] = p[i].p_gc.r;
+        phi[i] = p[i].p_gc.phi / CONST_PI * 180;
+        z[i] = p[i].p_gc.z;
+        energy[i] = p[i].p_gc.energy / CONST_E;
+        pitch[i] = p[i].p_gc.pitch;
+        zeta[i] = p[i].p_gc.zeta;
+        mass[i] = p[i].p_gc.mass / CONST_U;
+        charge[i] = p[i].p_gc.charge / CONST_E;
+        anum[i] = p[i].p_gc.anum;
+        znum[i] = p[i].p_gc.znum;
+        weight[i] = p[i].p_gc.weight;
+        time[i] = p[i].p_gc.time;
+        id[i] = p[i].p_gc.id;
+    }
+
+    hdf5_write_extendible_dataset_int(grp, "n", 1, &n);
+    hdf5_write_extendible_dataset_double(grp, "r", n, r);
+    hdf5_write_extendible_dataset_double(grp, "phi", n, phi);
+    hdf5_write_extendible_dataset_double(grp, "z", n, z);
+    hdf5_write_extendible_dataset_double(grp, "energy", n, energy);
+    hdf5_write_extendible_dataset_double(grp, "pitch", n, pitch);
+    hdf5_write_extendible_dataset_double(grp, "zeta", n, zeta);
+    hdf5_write_extendible_dataset_double(grp, "mass", n, mass);
+    hdf5_write_extendible_dataset_int(grp, "charge", n, charge);
+    hdf5_write_extendible_dataset_int(grp, "anum", n, anum);
+    hdf5_write_extendible_dataset_int(grp, "znum", n, znum);
+    hdf5_write_extendible_dataset_double(grp, "weight", n, weight);
+    hdf5_write_extendible_dataset_double(grp, "time", n, time);
+    hdf5_write_extendible_dataset_long(grp, "id", n, id);
+
+    H5Gclose(grp);
+
+    free(r);
+    free(phi);
+    free(z);
+    free(energy);
+    free(pitch);
+    free(zeta);
+    free(mass);
+    free(charge);
+    free(anum);
+    free(znum);
+    free(weight);
+    free(time);
+    free(id);
+
+    return 0;
+}
+
 void writeMarkersToHDF5(
     sim_offload_data* sim,
     int nprt,
@@ -582,11 +657,11 @@ void writeMarkersToHDF5(
         print_err("Error: File not found.\n");
         return 1;
     }
-    hdf5_marker_write_particle(of, nprt, ip, qid);
+    hdf5_marker_write_particle_gc(of, nprt, ip, qid);
 
     /* Write metadata */
     char path[256];
-    hdf5_gen_path("/marker/prt_XXXXXXXXXX", qid, path);
+    hdf5_gen_path("/marker/gc_XXXXXXXXXX", qid, path);
 
     hdf5_write_string_attribute(of, path, "description",  sim->description);
 

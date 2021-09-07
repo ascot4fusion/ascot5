@@ -12,12 +12,18 @@
 #include <string.h>
 #include "../print.h"
 #include "../math.h"
+#include "../physlib.h"
 
 typedef struct {
     int index[NSIMD * 32] __memalign__;
     int target_hit[NSIMD * 32] __memalign__;
     real weight[NSIMD * 32] __memalign__;
 } particle_deposit_weights;
+
+void particle_state_to_particle_gc(
+    particle_state* ps,
+    particle_gc* p_gc
+);
 
 void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated, int* nloss, int* n_err);
 
@@ -92,10 +98,5 @@ void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
                               int n_simd_particles, particle_simd_gc *p1, particle_simd_gc *p0,
                               dist_5D_data *dist1, dist_5D_data *dist0, wall_data *wallData,
                               int* p0_indexes, int debugExitVelocitySpace);
-
-void particle_state_to_particle(
-    particle_state* ps,
-    particle* p
-);
 
 #endif
