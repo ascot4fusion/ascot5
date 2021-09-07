@@ -12,6 +12,7 @@
 #include "../particle.h"
 #include "hdf5_helpers.h"
 #include "hdf5_state.h"
+#include "math.h"
 #ifdef TRAP_FPE
 #include <fenv.h>
 #endif
@@ -184,7 +185,6 @@ int hdf5_state_write(hid_t f, char* run, char* state, integer n,
     hdf5_write_extendible_dataset_double(state_group, "bz", n, data);
     H5LTset_attribute_string(state_group, "bz", "unit", "T");
 
-    free(data);
 
     /* Integer quantities */
     integer* intdata = (integer*) malloc(n * sizeof(integer));
@@ -207,7 +207,26 @@ int hdf5_state_write(hid_t f, char* run, char* state, integer n,
     hdf5_write_extendible_dataset_long(state_group, "walltile", n, intdata);
     H5LTset_attribute_string(state_group, "walltile", "unit", "1");
 
+    for(i = 0; i < n; i++) {
+        real Brpz[3] = {p[i].B_r, p[i].B_phi, p[i].B_z};
+        real Bnorm   = math_norm(Brpz);
+        real pin = physlib_gc_p( p[i].mass, p[i].mu, p[i].ppar, Bnorm);
+        data[i] = physlib_Ekin_pnorm(p[i].mass, pin);
+    }
+    hdf5_write_extendible_dataset_double(state_group, "Ekin", n, data);
+    H5LTset_attribute_string(state_group, "Ekin", "unit", "J");
+
+    for(i = 0; i < n; i++) {
+        real Brpz[3] = {p[i].B_r, p[i].B_phi, p[i].B_z};
+        real Bnorm   = math_norm(Brpz);
+        real pin = physlib_gc_p( p[i].mass, p[i].mu, p[i].ppar, Bnorm);
+        data[i] = physlib_gc_xi(p[i].mass, p[i].mu, p[i].ppar, Bnorm);
+    }
+    hdf5_write_extendible_dataset_double(state_group, "xi", n, data);
+    H5LTset_attribute_string(state_group, "xi", "unit", "1");
+
     free(intdata);
+    free(data);
 
     int* intdata32 = (int*) malloc(n * sizeof(int));
 #ifdef TRAP_FPE
