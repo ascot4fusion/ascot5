@@ -42,6 +42,8 @@ def wallLoad3DEndstate(hdf5):
     wallLoad = np.bincount( T, weights=P, minlength=nWallTris) # This is a histogram, where triangle indexes are the bins
     nonZero = wallLoad > 0.0
     wallLoad[nonZero] = np.divide( wallLoad[nonZero],A[nonZero] )
-    
-    return wallLoad
+    Nmarkers = np.bincount(T,minlength=nWallTris)
+
+
+    return wallLoad, Nmarkers
     

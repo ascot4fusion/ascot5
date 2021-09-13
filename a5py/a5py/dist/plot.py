@@ -92,8 +92,7 @@ def plot_dist_2D(dist, *args, logscale=False, equal=False, axes=None):
         ordinate = np.log10(ordinate)
 
     ordinate = np.ma.masked_invalid(ordinate)
-    mesh = axes.pcolormesh(dist[x], dist[y], ordinate,
-                           vmin=np.nanmin(ordinate), vmax=np.nanmax(ordinate))
+    mesh = axes.pcolormesh(dist[x], dist[y], ordinate, cmap=plt.cm.gnuplot	,vmin=np.nanmin(ordinate), vmax=np.nanmax(ordinate))
 
     # https://stackoverflow.com/a/16125413/190597 (Joe Kington)
     # and https://stackoverflow.com/a/35905483
