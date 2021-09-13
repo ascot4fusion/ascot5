@@ -100,11 +100,11 @@ void marker_summary(particle_state* p, int n);
 int main(int argc, char** argv) {
 
 #ifdef TRAP_FPE
-	/* This will raise floating point exceptions */
+    /* This will raise floating point exceptions */
     feenableexcept(FE_DIVBYZERO| FE_INVALID | FE_OVERFLOW);
-	/*
-	 * If you are hunting a specific exception, you can disable the exceptions in other parts
-	 * of the code by surrounding it with: */
+    /*
+     * If you are hunting a specific exception, you can disable the exceptions in other parts
+     * of the code by surrounding it with: */
     /*
      * fedisableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
      *  --- your  code here ---

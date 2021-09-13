@@ -316,10 +316,10 @@ void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
  * @param z2 end point z coordinate [rad]
  * @param wdata pointer to data struct on target
  *
- * @return wall element id if hit, zero otherwise
+ * @return id, which is the first element id if hit, zero otherwise
  */
 int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
-                     real z2, wall_3d_data* wdata) {
+			   real z2, wall_3d_data* wdata, real* w_coll) {
     real rpz1[3], rpz2[3];
     rpz1[0] = r1;
     rpz1[1] = phi1;
@@ -347,7 +347,8 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
                           / ((wdata->zmax - wdata->zmin) / (wdata->ngrid)));
 
     int hit_tri = 0;
-
+    real smallest_w = 1.1;
+    
     for(int i = 0; i <= abs(ix2-ix1); i++) {
         for(int j = 0; j <= abs(iy2-iy1); j++) {
             for(int k = 0; k <= abs(iz2-iz1); k++) {
@@ -356,26 +357,27 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
                 int iz = iz1 + k*((int) copysign(1, iz2-iz1));
 
                 if(ix >= 0 && ix < wdata->ngrid && iy >= 0 && iy < wdata->ngrid
-                   && iz >= 0 && iz < wdata->ngrid) {
+                   && iz >= 0 && iz < wdata->ngrid) { 
 
-                int ilist = wdata->tree_array[ix*wdata->ngrid*wdata->ngrid
-                                              + iy*wdata->ngrid + iz];
-
-                for(int l = 0; l < wdata->tree_array[ilist]; l++) {
-                    int itri = wdata->tree_array[ilist+l+1];
-                    real w = wall_3d_tri_collision(q1, q2,
-                                                   &wdata->wall_tris[9*itri],
-                                                   &wdata->wall_tris[9*itri+3],
-                                                   &wdata->wall_tris[9*itri+6]);
-                    if(w >= 0) {
-                        hit_tri = itri+1;
+                    int ilist = wdata->tree_array[ix*wdata->ngrid*wdata->ngrid
+                                                  + iy*wdata->ngrid + iz];
+		
+                    for(int l = 0; l < wdata->tree_array[ilist]; l++) {
+                        int itri = wdata->tree_array[ilist+l+1];
+                        real w = wall_3d_tri_collision(q1, q2,
+                                                       &wdata->wall_tris[9*itri],
+                                                       &wdata->wall_tris[9*itri+3],
+                                                       &wdata->wall_tris[9*itri+6]);
+                        if(w >= 0 && w < smallest_w) {
+			    smallest_w = w;
+                            hit_tri = itri+1;
+                        }
                     }
-                }
                 }
             }
         }
     }
-
+    *w_coll = smallest_w;
     return hit_tri;
 }
 
@@ -391,10 +393,10 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
  * @param z2 end point z coordinate [rad]
  * @param wdata pointer to data struct on target
  *
- * @return wall element id if hit, zero otherwise
+ * @return id is wall element id if hit, zero otherwise*         
  */
 int wall_3d_hit_wall_full(real r1, real phi1, real z1, real r2, real phi2,
-                          real z2, wall_3d_data* wdata) {
+                          real z2, wall_3d_data* wdata, real* w_coll) {
     real rpz1[3], rpz2[3];
     rpz1[0] = r1;
     rpz1[1] = phi1;
@@ -407,22 +409,24 @@ int wall_3d_hit_wall_full(real r1, real phi1, real z1, real r2, real phi2,
     math_rpz2xyz(rpz1, q1);
     math_rpz2xyz(rpz2, q2);
 
+    int hit_tri = 0;
+    real smallest_w = 1.1;
     real w;
     int j;
+    
     for(j = 0; j < wdata->n; j++) {
         w = wall_3d_tri_collision(q1, q2, &wdata->wall_tris[9*j],
                 &wdata->wall_tris[9*j+3], &wdata->wall_tris[9*j+6]);
-        if(w >= 0) {
-            break;
-        }
+        if(w > 0) {
+	    if(w < smallest_w) {
+	        smallest_w = w;
+		hit_tri = j+1;
+            }
+	}
     }
-
-    if(j == wdata->n) {
-        return 0;
-    }
-    else {
-        return 1;
-    }
+    
+    *w_coll = smallest_w;
+    return hit_tri;
 }
 
 /**

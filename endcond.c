@@ -100,14 +100,21 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
             /* Check, using the wall collision module, whether marker hit wall
              * during this time-step. Store the wall element ID if it did. */
             if(active_wall) {
+	        real w_coll = 0;
                 int tile = wall_hit_wall(
                     p_i->r[i], p_i->phi[i], p_i->z[i],
-                    p_f->r[i], p_f->phi[i], p_f->z[i], &sim->wall_data);
+                    p_f->r[i], p_f->phi[i], p_f->z[i], &sim->wall_data, &w_coll);
                 if(tile > 0) {
+		    real w = w_coll;
+		    p_f->time[i] = p_i->time[i] + w*(p_f->time[i] - p_i->time[i]);
+                    p_f->r[i]    = p_i->r[i] + w*(p_f->r[i] - p_i->r[i]);
+                    p_f->phi[i]  = p_i->phi[i] + w*(p_f->phi[i] - p_i->phi[i]);
+                    p_f->z[i]    = p_i->z[i] + w*(p_f->z[i] - p_i->z[i]);
+
                     p_f->walltile[i] = tile;
                     p_f->endcond[i] |= endcond_wall;
                     p_f->running[i] = 0;
-                }
+                }  
             }
 
             /* Evaluate marker energy, and check if it is below the minimum
@@ -239,9 +246,10 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
             /* Check, using the wall collision module, whether marker hit wall
              * during this time-step. Store the wall element ID if it did. */
             if(active_wall) {
+	        real w_coll = 0;
                 int tile = wall_hit_wall(p_i->r[i], p_i->phi[i], p_i->z[i],
                                          p_f->r[i], p_f->phi[i], p_f->z[i],
-                                         &sim->wall_data);
+                                         &sim->wall_data, &w_coll);
                 if(tile > 0) {
                     p_f->walltile[i] = tile;
                     p_f->endcond[i] |= endcond_wall;
@@ -296,17 +304,25 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
             }
 
             /* Check if marker exceeds toroidal or poloidal limits */
+            int maxorb = 0;
             if(active_tormax) {
                 if(fabs(p_f->phi[i]) > sim->endcond_max_tororb) {
-                    p_f->endcond[i] |= endcond_tormax;
-                    p_f->running[i] = 0;
+                    maxorb |= endcond_tormax;
                 }
             }
             if(active_polmax) {
                 if(fabs(p_f->theta[i]) > sim->endcond_max_polorb) {
-                    p_f->endcond[i] |= endcond_polmax;
-                    p_f->running[i] = 0;
+                    maxorb |= endcond_polmax;
                 }
+            }
+            if( sim->endcond_torandpol &&
+                maxorb & endcond_tormax && maxorb & endcond_polmax ) {
+                p_f->endcond[i] |= maxorb;
+                p_f->running[i] = 0;
+            }
+            else if(maxorb) {
+                p_f->endcond[i] |= maxorb;
+                p_f->running[i] = 0;
             }
 
             /* Check if the time spent simulating this marker exceeds the
@@ -376,9 +392,10 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
             /* Check, using the wall collision module, whether marker hit wall
              * during this time-step. Store the wall element ID if it did. */
             if(active_wall) {
+	        real w_coll = 0;
                 int tile = wall_hit_wall(p_i->r[i], p_i->phi[i], p_i->z[i],
                                          p_f->r[i], p_f->phi[i], p_f->z[i],
-                                         &sim->wall_data);
+                                         &sim->wall_data, &w_coll);
                 if(tile > 0) {
                     p_f->walltile[i] = tile;
                     p_f->endcond[i] |= endcond_wall;
@@ -401,17 +418,25 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
             }
 
             /* Check if marker exceeds toroidal or poloidal limits */
+            int maxorb = 0;
             if(active_tormax) {
                 if(fabs(p_f->phi[i]) > sim->endcond_max_tororb) {
-                    p_f->endcond[i] |= endcond_tormax;
-                    p_f->running[i] = 0;
+                    maxorb |= endcond_tormax;
                 }
             }
             if(active_polmax) {
                 if(fabs(p_f->theta[i]) > sim->endcond_max_polorb) {
-                    p_f->endcond[i] |= endcond_polmax;
-                    p_f->running[i] = 0;
+                    maxorb |= endcond_polmax;
                 }
+            }
+            if( sim->endcond_torandpol &&
+                maxorb & endcond_tormax && maxorb & endcond_polmax ) {
+                p_f->endcond[i] |= maxorb;
+                p_f->running[i] = 0;
+            }
+            else if(maxorb) {
+                p_f->endcond[i] |= maxorb;
+                p_f->running[i] = 0;
             }
 
             /* Check if the time spent simulating this marker exceeds the

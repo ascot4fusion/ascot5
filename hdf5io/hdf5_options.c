@@ -600,17 +600,24 @@ int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
                          &(diagorb->writeInterval),
                          file, qid, __FILE__, __LINE__) ) {return 1;}
 
+
+
     for(int i=0; i < DIAG_ORB_MAXPOINCARES; i++) {
-        diagorb->toroidalangles[i] = 361;
-        diagorb->poloidalangles[i] = 361;
+        diagorb->toroidalangles[i] = TOROIDAL_ANGLE_FILLER_VALUE;
+        diagorb->poloidalangles[i] = POLOIDAL_ANGLE_FILLER_VALUE;
+        diagorb->radialdistances[i] = RADIAL_FILLER_VALUE;
     }
 
     if( hdf5_read_double(OPTPATH "ORBITWRITE_TOROIDALANGLES",
                          (diagorb->toroidalangles),
-                      file, qid, __FILE__, __LINE__) ) {return 1;}
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "ORBITWRITE_POLOIDALANGLES",
                          (diagorb->poloidalangles),
                          file, qid, __FILE__, __LINE__) ) {return 1;}
+    if( hdf5_read_double(OPTPATH "ORBITWRITE_RADIALDISTANCES",
+                         (diagorb->radialdistances),
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+
 
     for(int i=0; i < DIAG_ORB_MAXPOINCARES; i++) {
         if(diagorb->toroidalangles[0] < 0) {
@@ -618,19 +625,32 @@ int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
             diagorb->ntoroidalplots = 0;
             break;
         }
-        if(diagorb->toroidalangles[i] == 361) {
+        if(diagorb->toroidalangles[i] == TOROIDAL_ANGLE_FILLER_VALUE) {
             diagorb->ntoroidalplots = i;
             break;
         }
     }
+
     for(int i=0; i < DIAG_ORB_MAXPOINCARES; i++) {
         if(diagorb->poloidalangles[0] < 0) {
             /* Negative angle means plane is disabled */
             diagorb->npoloidalplots = 0;
             break;
         }
-        if(diagorb->poloidalangles[i] == 361) {
+        if(diagorb->poloidalangles[i] == POLOIDAL_ANGLE_FILLER_VALUE) {
             diagorb->npoloidalplots = i;
+            break;
+        }
+    }
+
+    for(int i=0; i < DIAG_ORB_MAXPOINCARES; i++) {
+        if(diagorb->radialdistances[0] < 0) {
+            /* Negative angle means plane is disabled */
+            diagorb->nradialplots = 0;
+            break;
+        }
+        if(diagorb->radialdistances[i] == RADIAL_FILLER_VALUE) {
+            diagorb->nradialplots = i;
             break;
         }
     }
@@ -641,7 +661,6 @@ int hdf5_options_read_diagorb(hid_t file, diag_orb_offload_data* diagorb,
     for(int i=0; i < diagorb->npoloidalplots; i++) {
         diagorb->poloidalangles[i] = diagorb->poloidalangles[i]*CONST_PI/180;
     }
-
     return 0;
 }
 
@@ -665,3 +684,4 @@ int hdf5_options_read_diagtrcof(hid_t file,
 
     return 0;
 }
+

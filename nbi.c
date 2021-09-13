@@ -152,11 +152,12 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
         xyz[2] += ds * vhat[2];
         remaining *= exp(-rate * ds);
 
-        if(entered_plasma) {
+        if(exited_plasma) {
             real rpz2[3]; /* new position, old position already in rpz */
             math_xyz2rpz(xyz, rpz2);
+	    int w_coll=0;
             int tile = wall_hit_wall(rpz[0], rpz[1], rpz[2], rpz2[0], rpz2[1],
-                                     rpz2[2], walldata);
+                                     rpz2[2], walldata, &w_coll);
 
             if(tile > 0) {
                 /* hit wall */
@@ -194,11 +195,10 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
                        &vxyz[2], &anum, &znum, &mass, rng);
             nbi_ionize(xyz, vxyz, &shinethrough, anum, znum, Bdata, plsdata,
                    walldata, rng);
-            totalPower += 0.5 * mass * pow(math_norm(vxyz), 2);
+
             if(shinethrough == 1) {
                 #pragma omp atomic
                 totalShine += 0.5 * mass * pow(math_norm(vxyz), 2);
-
             }
         } while(shinethrough == 1);
 
@@ -219,9 +219,12 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
         p[i].mass   = mass;
         p[i].id     = i+1;
         p[i].time   = 0;
+
+        #pragma omp atomic
+        totalPower += 0.5 * mass * pow(math_norm(vxyz), 2);
     }
 
     for(int i = 0; i < nprt; i++) {
-        p[i].weight = n->power * (1 - totalShine/totalPower) / nprt;
+        p[i].weight = n->power * (1 - totalShine/totalPower) / totalPower;
     }
 }

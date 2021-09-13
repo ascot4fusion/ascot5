@@ -4,6 +4,10 @@ compile_ascot5_main:
   image: ascot5v3dep
   script:
     - make -j ascot5_main FLAGS=-foffload=disable
+  artifacts:
+    paths:
+      - ascot5_main
+    when: on_success
 
 compile_ascot5_main_MPI:
   tags:
@@ -39,6 +43,11 @@ compile_libascot:
   image: ascot5v3dep
   script:
     - make -j libascot FLAGS=-foffload=disable
+  artifacts:
+    paths:
+      - libascot.so
+    when: on_success
+
 
 unit_tests:
   tags:
@@ -49,3 +58,5 @@ unit_tests:
     - ./test_math
     - make test_wall_3d FLAGS="-foffload=disable -DWALL_3D_VERBOSE"
     - ./test_wall_3d
+    - make test_diag_orb FLAGS="-foffload=disable -DWALL_3D_VERBOSE"
+    - ./test_diag_orb
