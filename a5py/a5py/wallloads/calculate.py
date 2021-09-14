@@ -45,5 +45,5 @@ def wallLoad3DEndstate(hdf5):
     Nmarkers = np.bincount(T,minlength=nWallTris)
 
 
-    return wallLoad, Nmarkers
+    return wallLoad
     

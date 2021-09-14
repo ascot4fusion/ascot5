@@ -50,7 +50,7 @@ def plot_dist_1D(dist, logscale=False, axes=None):
         plt.show(block=False)
 
 
-def plot_dist_2D(dist, *args, logscale=False, equal=False, axes=None):
+def plot_dist_2D(dist, *args, logscale=False, equal=False, axes=None, cmap=False):
     """
     Plot distribution as a 2D plot (pcolormesh).
 
@@ -65,6 +65,8 @@ def plot_dist_2D(dist, *args, logscale=False, equal=False, axes=None):
         axes : Axes, optional <br>
             Axes to which the distribution is plotted. If None, a new figure is
             created and displayed.
+        cmap : optional <br>
+            If True, the cmap gnuplot is used
     """
 
     newfig = axes is None
@@ -92,8 +94,12 @@ def plot_dist_2D(dist, *args, logscale=False, equal=False, axes=None):
         ordinate = np.log10(ordinate)
 
     ordinate = np.ma.masked_invalid(ordinate)
-    mesh = axes.pcolormesh(dist[x], dist[y], ordinate, cmap=plt.cm.gnuplot	,vmin=np.nanmin(ordinate), vmax=np.nanmax(ordinate))
 
+    if cmap = False:
+        mesh = axes.pcolormesh(dist[x], dist[y], ordinate, vmin=np.nanmin(ordinate), vmax=np.nanmax(ordinate))
+    else:
+        mesh = axes.pcolormesh(dist[x], dist[y], ordinate, cmap=plt.cm.gnuplot  ,vmin=np.nanmin(ordinate), vmax=np.nanmax(ordinate))
+	
     # https://stackoverflow.com/a/16125413/190597 (Joe Kington)
     # and https://stackoverflow.com/a/35905483
     axes.patch.set(hatch='x', edgecolor=[0.9, 0.9, 0.9])
