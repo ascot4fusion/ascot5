@@ -140,7 +140,7 @@ void backward_monte_carlo_gc_time_indep(
 
     bmc_compute_prob_weights(p1_weights, n_coll_simd, pcoll1, pcoll0, &distr1->dist5D, &distr0->dist5D, &(sim->wall_data), p0_indexes_coll, debugExitVelocitySpace);
 
-    for (double t=t1; t >= t0; t -= h) {
+    for (double t=t1; t > t0; t -= h) {
         // // Update the probability distribution
         // int n_updated = bmc_update_distr5D(&distr1->dist5D, &distr0->dist5D, p0_indexes_coll, pcoll1, pcoll0, n_coll_simd, &(sim->wall_data.w2d)); 
         bmc_update_distr5D_from_weights(p1_weights, &distr1->dist5D, &distr0->dist5D, pcoll1, n_coll_simd, p0_indexes_coll);
