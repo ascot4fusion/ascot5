@@ -27,7 +27,7 @@ void particle_state_to_particle_gc(
 
 void diag_move_distribution(sim_offload_data* sim, diag_data* diag_dest, diag_data* diag_src, int* updated, int* nloss, int* n_err);
 
-void bmc_dist5D_gc_indexes_from_coordinates(int* indexes, real* weights, int* target_hit, real r, real phi, real z, real ppar, real pperp, dist_5D_data* dist, wall_data* wallData);
+int bmc_dist5D_gc_indexes_from_coordinates(int* indexes, real* weights, int* target_hit, real r, real phi, real z, real ppar, real pperp, dist_5D_data* dist, wall_data* wallData);
 
 real fmc_compute_signal_from_states(
     int n_particles,
@@ -58,8 +58,8 @@ int fmc_update_distr5D_from_states(
     );
 
 
-void bmc_dist5D_state_indexes(int* indexes, real* weights, int* target_hit, particle_state* ps, dist_5D_data* dist, wall_data* wdata);
-void bmc_dist5D_gc_indexes(int* indexes, real* weights, int* target_hit, particle_simd_gc* p, int i, dist_5D_data* dist, wall_data* wallData);
+int bmc_dist5D_state_indexes(int* indexes, real* weights, int* target_hit, particle_state* ps, dist_5D_data* dist, wall_data* wdata);
+int bmc_dist5D_gc_indexes(int* indexes, real* weights, int* target_hit, particle_simd_gc* p, int i, dist_5D_data* dist, wall_data* wallData);
 int bmc_dist6D_fo_index(particle_state* ps, dist_6D_data* dist);
 
 void compute_5d_indexes_from_hist_index(int i, int* i_x, dist_5D_offload_data* dist5D);

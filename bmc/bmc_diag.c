@@ -179,18 +179,18 @@ int bmc_update_distr5D(
  * @param w2d Pointer to the 2D wall struct
  * 
  **/
- void bmc_dist5D_gc_indexes(int* indexes, real* weights, int* target_hit, particle_simd_gc* p, int i_simd, dist_5D_data* dist, wall_data* wallData) {
+ int bmc_dist5D_gc_indexes(int* indexes, real* weights, int* target_hit, particle_simd_gc* p, int i_simd, dist_5D_data* dist, wall_data* wallData) {
     real phi;
     real pperp = sqrt(2 * sqrt(p->B_r[i_simd]*p->B_r[i_simd]
             +p->B_phi[i_simd]*p->B_phi[i_simd]
             +p->B_z[i_simd]*p->B_z[i_simd])
             * p->mu[i_simd] / p->mass[i_simd]) * p->mass[i_simd];
 
-    bmc_dist5D_gc_indexes_from_coordinates(indexes, weights, target_hit, p->r[i_simd], p->phi[i_simd], p->z[i_simd], p->ppar[i_simd], pperp, dist, wallData);
+    return bmc_dist5D_gc_indexes_from_coordinates(indexes, weights, target_hit, p->r[i_simd], p->phi[i_simd], p->z[i_simd], p->ppar[i_simd], pperp, dist, wallData);
 
 }
 
- void bmc_dist5D_gc_indexes_from_coordinates(int* indexes, real* weights, int* target_hit, real r, real phi, real z, real ppar, real pperp, dist_5D_data* dist, wall_data* wallData) {
+ int bmc_dist5D_gc_indexes_from_coordinates(int* indexes, real* weights, int* target_hit, real r, real phi, real z, real ppar, real pperp, dist_5D_data* dist, wall_data* wallData) {
 
     real weights_dim[5];
     int i_r;
@@ -240,6 +240,7 @@ int bmc_update_distr5D(
     real dppara = (dist->max_ppara - dist->min_ppara)/(dist->n_ppara - 1);
     real dpperp = (dist->max_pperp - dist->min_pperp)/(dist->n_pperp - 1);
 
+    int err = 0;
     int i = 0;
     int j_phimod;
     for (int j_r=i_r; j_r<i_r + 2; j_r++)
@@ -253,14 +254,16 @@ int bmc_update_distr5D(
             weights[i] = 0;
             target_hit[i] = 0;
             i++;
-            continue;
+            err = 1;
+            break;
         }
         if ((j_r >= dist->n_r) || (j_z >= dist->n_z) || (j_ppara >= dist->n_ppara) || (j_pperp >= dist->n_pperp)) {
             indexes[i] = 0;
             weights[i] = 0;
             target_hit[i] = 0;
             i++;
-            continue;
+            err = 1;
+            break;
         }
 
         j_phimod = j_phi;
@@ -276,6 +279,7 @@ int bmc_update_distr5D(
                         phi, (j_phimod)*dphi + dist->min_phi, z, (j_z)*dz + dist->min_z, wallData);
         i++;
     }
+    return err;
 }
 /**
  * Deposit a particle with a linear interpolation in the 3 spatial dimensions
@@ -293,14 +297,14 @@ int bmc_update_distr5D(
  * @param w2d Pointer to the 2D wall struct
  * 
  **/
- void bmc_dist5D_state_indexes(int* indexes, real* weights, int* target_hit, particle_state* ps, dist_5D_data* dist, wall_data* wdata) {
+int bmc_dist5D_state_indexes(int* indexes, real* weights, int* target_hit, particle_state* ps, dist_5D_data* dist, wall_data* wdata) {
 
     real pperp = sqrt(2 * sqrt(ps->B_r*ps->B_r
             +ps->B_phi*ps->B_phi
             +ps->B_z*ps->B_z)
             * ps->mu / ps->mass) * ps->mass;
 
-    bmc_dist5D_gc_indexes_from_coordinates(indexes, weights, target_hit, ps->r, ps->phi, ps->z, ps->ppar, pperp, dist, wdata);
+    return bmc_dist5D_gc_indexes_from_coordinates(indexes, weights, target_hit, ps->r, ps->phi, ps->z, ps->ppar, pperp, dist, wdata);
 
 }
 
