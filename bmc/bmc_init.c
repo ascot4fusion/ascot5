@@ -155,7 +155,13 @@ void buildParticlesWeightsFromProbabilityMatrix(
     for (int i=0; i<=n; i++) {
         weights[i] = 0;
         if (bmc_dist5D_state_indexes(indexes, p_weights, hits, &(ps[i]), dist, wdata)) {
-            printf("Warning: Input marker outside mesh id %d r %e phi %e z %e ppar %e\n", ps[i].id, ps[i].r, ps[i].phi, ps[i].z, ps[i].ppar);            
+
+            real pperp = sqrt(2 * sqrt(ps[i].B_r*ps[i].B_r
+            +ps[i].B_phi*ps[i].B_phi
+            +ps[i].B_z*ps[i].B_z)
+            * ps[i].mu / ps[i].mass) * ps[i].mass;
+
+            printf("Warning: Input marker outside mesh id %d r %e phi %e z %e ppar %e pperp %e\n", ps[i].id, ps[i].r, ps[i].phi, ps[i].z, ps[i].ppar, pperp);            
             continue;
         }
 
