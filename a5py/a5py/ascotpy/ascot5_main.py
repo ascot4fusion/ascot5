@@ -14,7 +14,7 @@ from a5py.ascotpy import ascotpy2
 
 class ascot5_main(object):
     '''
-    classdocs
+    This class plays the role of the C-function ascot5_main.c main() function.
     '''
 
     sim = ascotpy2.struct_c__SA_sim_offload_data()
@@ -33,15 +33,39 @@ class ascot5_main(object):
     boozer_offload_array  = ctypes.POINTER(ctypes.c_double)()
     mhd_offload_array     = ctypes.POINTER(ctypes.c_double)()
     prt                   = ctypes.POINTER(ascotpy2.struct_c__SA_input_particle)()
+    offload_array         = ctypes.POINTER(ctypes.c_double)() # Some sort of joint array for all (?)
+    
+    diag_offload_array_mic0   = ctypes.POINTER(ctypes.c_double)() 
+    diag_offload_array_mic1   = ctypes.POINTER(ctypes.c_double)() 
+    diag_offload_array_host   = ctypes.POINTER(ctypes.c_double)() 
 
+    offload_package       = ascotpy2.struct_c__SA_offload_package()
 
+    # number of particles read
+    n_tot   = ctypes.c_int32()
+    
+    #number of particles to simulate (?)
+    nprts   = ctypes.c_int32()
 
-    def __init__(self, input_filename=b'input.h5'):
+    #number of particles gathered with MPI (?)
+    n_gathered   = ctypes.c_int32()
+    
+    
+    # QID for the new results.
+    qid_str = (ctypes.c_char * 12)()
+    qid     = ctypes.POINTER(ctypes.c_char)(qid_str)
+    
+    # pointer to the current particle
+    prt = ctypes.POINTER(ascotpy2.struct_c__SA_input_particle)()
+    ps  = ctypes.POINTER(ascotpy2.struct_c__SA_particle_state)()
+
+    def __init__(self, input_filename=b'input.h5', output_filename=b'output.h5'):
         '''
         Constructor
         '''
         
-        self.sim.hdf5_in=input_filename
+        self.sim.hdf5_in  =  input_filename
+        self.sim.hdf5_out = output_filename
         
 
 
@@ -50,8 +74,8 @@ class ascot5_main(object):
         # No argumets given at the moment.
         argc=ctypes.c_int32()
         argc.value=0
-        argv=ctypes.POINTER(ctypes.c_char)()
-        argv.contents=None
+        argv=ctypes.POINTER(ctypes.c_char)() # This points to null.
+
         
         ascotpy2.mpi_interface_init(argc,
                                     ctypes.byref(argv),
@@ -59,6 +83,9 @@ class ascot5_main(object):
                                     ctypes.byref(self.mpi_rank),
                                     ctypes.byref(self.mpi_size),
                                     ctypes.byref(self.mpi_root)  ) 
+
+        ascotpy2.hdf5_generate_qid(self.qid)
+
         
     def read_input(self):
         
@@ -69,6 +96,8 @@ class ascot5_main(object):
                                 ascotpy2.hdf5_input_neutral | ascotpy2.hdf5_input_wall   | \
                                 ascotpy2.hdf5_input_marker  | ascotpy2.hdf5_input_boozer | \
                                 ascotpy2.hdf5_input_mhd
+       
+
                                 
         ascotpy2.hdf5_interface_read_input(
             ctypes.byref(self.sim),
@@ -80,5 +109,81 @@ class ascot5_main(object):
             ctypes.byref(self.wall_offload_array),
             ctypes.byref(self.boozer_offload_array),
             ctypes.byref(self.mhd_offload_array),
-            ctypes.byref(self.prt)
+            ctypes.byref(self.prt),
+            ctypes.byref(self.n_tot)
             )
+
+    def offload(self):        
+        '''
+        int offload(
+        sim_offload_data *sim,
+        real** B_offload_array,
+        real** E_offload_array,
+        real** plasma_offload_array,
+        real** neutral_offload_array,
+        real** wall_offload_array,
+        real** boozer_offload_array,
+        real** mhd_offload_array,
+        int n_tot,
+        int mpi_rank,
+        int mpi_size,
+        int mpi_root,
+        char *qid,
+        int *nprts,
+        input_particle **p,
+        int* n_gathered,
+        real **offload_array,
+        offload_package *offload_data,
+        particle_state** ps,
+        real** diag_offload_array_mic0,
+        real** diag_offload_array_mic1,
+        real** diag_offload_array_host
+);
+        '''
+        '''
+        offload.argtypes = [
+        ctypes.POINTER(struct_c__SA_sim_offload_data), 
+        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), 
+        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), 
+        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), 
+        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), 
+        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), 
+        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), 
+        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)),
+        ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, ctypes.c_int32, 
+        ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_int32), 
+        ctypes.POINTER(ctypes.POINTER(struct_c__SA_input_particle)), ctypes.POINTER(ctypes.c_int32), 
+        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(struct_c__SA_offload_package), 
+        ctypes.POINTER(ctypes.POINTER(struct_c__SA_particle_state)), 
+        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), 
+        ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), 
+        ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+        '''
+        
+
+        retval = ascotpy2.offload(
+            ctypes.byref(self.sim),
+            ctypes.byref(self.B_offload_array),
+            ctypes.byref(self.E_offload_array),
+            ctypes.byref(self.plasma_offload_array),
+            ctypes.byref(self.neutral_offload_array),
+            ctypes.byref(self.wall_offload_array),
+            ctypes.byref(self.boozer_offload_array),
+            ctypes.byref(self.mhd_offload_array),
+            self.n_tot,  self.mpi_rank, self.mpi_size, self.mpi_root,
+            self.qid, ctypes.byref(self.nprts),
+            ctypes.byref(self.prt), ctypes.byref(self.n_gathered),
+            ctypes.byref(self.offload_array),
+            ctypes.byref(self.offload_package),
+            ctypes.byref(self.ps),
+            ctypes.byref(self.diag_offload_array_mic0),
+            ctypes.byref(self.diag_offload_array_mic1),
+            ctypes.byref(self.diag_offload_array_host)
+            )
+
+        if retval != 0:
+            print('offload() returned',retval)
+            raise NotImplementedError("Should call the routines at 'GOTO CLEANUP_FAILURE'")
+        
+        
+        
