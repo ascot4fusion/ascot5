@@ -7,7 +7,7 @@ Created on Nov 16, 2021
 import ctypes
 
 # generate ascotpy2 in the source folder with
-# % clang2py -l ./libascot.so -o ../python/a5py/a5py/ascotpy/ascotpy2.py  particle.h hdf5_interface.h ascot5.h mpi_interface.h --clang-args="-I/usr/include/hdf5/serial"
+# % clang2py -l ./libascot.so -o ../python/a5py/a5py/ascotpy/ascotpy2.py  particle.h hdf5_interface.h ascot5.h mpi_interface.h simulate.h ascot5_main.h --clang-args="-I/usr/include/hdf5/serial"
 from a5py.ascotpy import ascotpy2
 
 
@@ -56,8 +56,9 @@ class ascot5_main(object):
     qid     = ctypes.POINTER(ctypes.c_char)(qid_str)
     
     # pointer to the current particle
-    prt = ctypes.POINTER(ascotpy2.struct_c__SA_input_particle)()
-    ps  = ctypes.POINTER(ascotpy2.struct_c__SA_particle_state)()
+    prt          = ctypes.POINTER(ascotpy2.struct_c__SA_input_particle)()
+    ps           = ctypes.POINTER(ascotpy2.struct_c__SA_particle_state)()
+    ps_gathered  = ctypes.POINTER(ascotpy2.struct_c__SA_particle_state)()
 
     def __init__(self, input_filename=b'input.h5', output_filename=b'output.h5'):
         '''
@@ -183,7 +184,25 @@ class ascot5_main(object):
 
         if retval != 0:
             print('offload() returned',retval)
-            raise NotImplementedError("Should call the routines at 'GOTO CLEANUP_FAILURE'")
+
+            '''
+            int cleanup( sim_offload_data sim,    particle_state* ps,     particle_state* ps_gathered,
+            real** diag_offload_array_mic0,
+            real** diag_offload_array_mic1,
+            real** diag_offload_array_host,
+            real* offload_array,
+            offload_package *offload_data
+            ){
+            '''
+            
+            ascotpy2.cleanup(self.sim, 
+                             self.ps, self.ps_gathered,
+                             ctypes.byref(self.diag_offload_array_mic0),
+                             ctypes.byref(self.diag_offload_array_mic1),
+                             ctypes.byref(self.diag_offload_array_host),
+                             self.offload_array,
+                             self.offload_package)
+                             
         
         
         
