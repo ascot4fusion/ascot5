@@ -145,7 +145,7 @@ libascot: libascot.so
 
 libascot.so: CFLAGS+=-shlib -fPIC -shared
 
-libascot.so: libascot.o $(OBJS)
+libascot.so: libascot.o ascot5_main.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)
