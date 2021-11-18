@@ -30,4 +30,14 @@ int offload(
 	    real** diag_offload_array_host
 );
 
+int cleanup( sim_offload_data sim,    particle_state* ps,     particle_state* ps_gathered,
+	    real** diag_offload_array_mic0,
+	    real** diag_offload_array_mic1,
+	    real** diag_offload_array_host,
+	    real* offload_array,
+	    offload_package *offload_data
+		);
+
+
 #endif
+

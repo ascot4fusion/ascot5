@@ -378,23 +378,41 @@ int main(int argc, char** argv) {
 
 /* Free resources in case simulation crashes */
 CLEANUP_FAILURE:
+	mpi_interface_finalize();
+    int retval =  cleanup( sim, ps, ps_gathered,
+    		&diag_offload_array_mic0,
+    	    &diag_offload_array_mic1,
+    	    &diag_offload_array_host,
+		    offload_array,
+		    &offload_data );
+	abort();
+	return retval;
+}
 
-    mpi_interface_finalize();
+int cleanup( sim_offload_data sim,    particle_state* ps,     particle_state* ps_gathered,
+	    real** diag_offload_array_mic0,
+	    real** diag_offload_array_mic1,
+	    real** diag_offload_array_host,
+	    real* offload_array,
+	    offload_package *offload_data
+		){
+
+
 
 #ifdef TARGET
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
+	diag_free_offload(&sim.diag_offload_data, diag_offload_array_mic0);
+	diag_free_offload(&sim.diag_offload_data, diag_offload_array_mic1);
 #else
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
+	diag_free_offload(&sim.diag_offload_data, diag_offload_array_host);
 #endif
 
-    offload_free_offload(&offload_data, &offload_array);
+	offload_free_offload(offload_data, offload_array);
 
-    free(ps);
-    free(ps_gathered);
+	free(ps);
+	free(ps_gathered);
 
-    abort();
-    return 1;
+
+	return 1;
 }
 
 /**
