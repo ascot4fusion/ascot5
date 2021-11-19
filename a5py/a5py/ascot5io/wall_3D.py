@@ -270,3 +270,66 @@ class wall_3D(AscotData):
         
         return a5VTKwall 
         
+    def append(self,newWall,data=None):
+        '''
+        Returns the wall  with newWall["x1x2x3], newWall["y1y2y3"],  newWall["z1z2z3"], newWall["flag"] to the existing triangles.
+        If data=None (or not given) reads the old triangles from file.
+        '''
+        if data is None:
+            w = self.read()
+        else:
+            w = data
+            
+        fields = ["x1x2x3","y1y2y3","z1z2z3","flag"]
+        for f in fields:
+            #print('Field "{}" has the shapes (data,newWall):'.format(f))
+            #print(w[f].shape, newWall[f].shape)
+            
+            
+            if(len(w[f].shape)==1):
+                if( len(newWall[f]) != len(newWall[f].ravel()) ):
+                    raise Exception("Wrong size field {}".format(f))
+                w[f] = np.concatenate( (w[f], newWall[f].ravel() ), axis=0 )
+            else:
+                w[f] = np.concatenate( (w[f], newWall[f]         ), axis=0 )
+
+                
+        
+        w['n'] = w['n'] + newWall['n']
+
+        return w
+
+
+    def move_component(self, movement, direction, component):    
+        '''
+        @Params:
+        filename    Filename where the wall will be saved.
+        movement    How much the component is moved in metres
+        direction    Which direction the component is moved [x, y, z]
+        component     Bool array of the points of a component
+        wall         Wall object where the wall is copied from, if left empty active 
+        wall from filename will be used
+        
+        @return the new wall data
+        '''
+        
+        
+        rwall = self.read()
+        
+    
+        #Movement in metres
+        t = movement/np.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2) 
+    
+        rwall['x1x2x3'][component,:] += t*direction[0]  
+        rwall['y1y2y3'][component,:] += t*direction[1]
+        rwall['z1z2z3'][component,:] += t*direction[2]
+    
+        new_rwall = {'x1x2x3':rwall['x1x2x3'],'y1y2y3':rwall['y1y2y3'],'z1z2z3':rwall['z1z2z3'],
+                'desc':'ICRHmv{}m'.format(movement),
+            'flag':rwall['flag'], 'flagIdList':rwall['flagIdList'],
+            'flagIdStrings':rwall['flagIdStrings'], 'nelements':rwall['n']}
+    
+        return new_rwall
+
+
+
