@@ -91,13 +91,16 @@ int main(int argc, char** argv) {
         total_power += inj[i].power;
     }
 
-
+    printf("flag=0\n");
     /* Simulate requested number of markers into array of particle structs */
     particle* p = (particle*) malloc(nprt*sizeof(particle));
+    particle* p_shined = (particle*) malloc(2*nprt*sizeof(particle));
     int nprt_generated = 0;
+    int nprt_shined = 0;
 
     for(int i = 0; i < n_inj; i++) {
         int nprt_inj;
+        int nprt_shined_inj = 0;
 
         if(i == n_inj-1) {
             nprt_inj = nprt - nprt_generated;
@@ -105,22 +108,30 @@ int main(int argc, char** argv) {
         else {
             nprt_inj = inj[i].power/total_power * nprt;
         }
-
-        nbi_generate(nprt_inj, &p[nprt_generated], &inj[i], &B_data,
+        
+        nbi_generate(nprt_inj, &p[nprt_generated], &nprt_shined_inj, &p_shined[nprt_shined], &inj[i], &B_data,
                      &plasma_data, &wall_data, &rng);
 
         nprt_generated += nprt_inj;
+        nprt_shined += nprt_shined_inj;
         printf("Generated %d markers for injector %d.\n", nprt_inj, i+1);
+        printf("Shined %d markers for injector %d.\n", nprt_shined_inj, i+1);
     }
 
-    printf("\nWriting %d markers.\n", nprt_generated);
+    printf("\nWriting %d markers and %d shined markers.\n", nprt_generated, nprt_shined);
 
     /* Copy markers from particle structs into input_particle structs to be
      * written into the h5 file */
     input_particle* ip = (input_particle*) malloc(nprt*sizeof(input_particle));
+    input_particle* ip_shined = (input_particle*) malloc(nprt_shined*sizeof(input_particle));
     for(int i=0; i < nprt; i++) {
         ip[i].type = input_particle_type_p;
         ip[i].p = p[i];
+    }
+
+    for(int i=0; i < nprt_shined; i++) {
+        ip_shined[i].type = input_particle_type_p;
+        ip_shined[i].p = p_shined[i];
     }
 
     char qid[11];
@@ -130,6 +141,7 @@ int main(int argc, char** argv) {
     hdf5_close(of);
     of = hdf5_open(sim.hdf5_out);
     hdf5_marker_write_particle(of, nprt, ip, qid);
+    hdf5_marker_write_particle_shined(of, nprt_shined, ip_shined, qid);
 
     /* Write metadata */
     char path[256];
@@ -144,8 +156,13 @@ int main(int argc, char** argv) {
             tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     hdf5_write_string_attribute(of, path, "date",  date);
 
+    hdf5_gen_path("/marker_shined/prt_shined_XXXXXXXXXX", qid, path);
+    hdf5_write_string_attribute(of, path, "description",  sim.description);
+    hdf5_write_string_attribute(of, path, "date",  date);
+
     /* Set this run as active. */
     hdf5_write_string_attribute(of, "/marker", "active",  qid);
+    hdf5_write_string_attribute(of, "/marker_shined", "active",  qid);
 
     hdf5_close(of);
 

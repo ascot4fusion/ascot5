@@ -176,14 +176,15 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
     }
 }
 
-void nbi_generate(int nprt, particle* p, nbi_injector* n,
+void nbi_generate(int nprt, particle* p, int* nprt_shined, particle* p_shined, nbi_injector* n,
                   B_field_data* Bdata, plasma_data* plsdata,
                   wall_data* walldata, random_data* rng) {
 
+    int nshined=0;
     real totalShine = 0.0;
     real totalPower = 0.0;
 
-    #pragma omp parallel for
+    #pragma omp parallel 
     for(int i = 0; i < nprt; i++) {
         real xyz[3], vxyz[3];
         int anum, znum;
@@ -199,6 +200,29 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
             if(shinethrough == 1) {
                 #pragma omp atomic
                 totalShine += 0.5 * mass * pow(math_norm(vxyz), 2);
+                
+                if(*nprt_shined < 2*nprt){
+                                       
+                    real rpz[3], vrpz[3];
+                    math_xyz2rpz(xyz, rpz);
+                    math_vec_xyz2rpz(vxyz, vrpz, rpz[1]);
+                    real gamma = physlib_gamma_vnorm(math_norm(vrpz));
+                    
+                    p_shined[nshined].r      = rpz[0];
+                    p_shined[nshined].phi    = rpz[1]; 
+                    p_shined[nshined].z      = rpz[2]; 
+                    p_shined[nshined].p_r    = vrpz[0] * gamma * mass;
+                    p_shined[nshined].p_phi  = vrpz[1] * gamma * mass;
+                    p_shined[nshined].p_z    = vrpz[2] * gamma * mass;
+                    p_shined[nshined].anum   = anum;
+                    p_shined[nshined].znum   = znum;
+                    p_shined[nshined].charge = 1 * CONST_E;
+                    p_shined[nshined].mass   = mass;
+                    p_shined[nshined].id     = *nprt_shined+1;
+                    p_shined[nshined].time   = 0;
+
+                    nshined += 1;
+                }
             }
         } while(shinethrough == 1);
 
@@ -224,7 +248,13 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
         totalPower += 0.5 * mass * pow(math_norm(vxyz), 2);
     }
 
+    *nprt_shined += nshined;
+
     for(int i = 0; i < nprt; i++) {
         p[i].weight = n->power * (1 - totalShine/totalPower) / totalPower;
+    }
+
+    for(int i = 0; i < *nprt_shined; i++) {
+        p_shined[i].weight = n->power * (1 - totalShine/totalPower) / totalPower;
     }
 }
