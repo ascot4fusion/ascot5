@@ -35,9 +35,7 @@ class ascot5_main(object):
     prt                   = ctypes.POINTER(ascotpy2.struct_c__SA_input_particle)()
     offload_array         = ctypes.POINTER(ctypes.c_double)() # Some sort of joint array for all (?)
     
-    diag_offload_array_mic0   = ctypes.POINTER(ctypes.c_double)() 
-    diag_offload_array_mic1   = ctypes.POINTER(ctypes.c_double)() 
-    diag_offload_array_host   = ctypes.POINTER(ctypes.c_double)() 
+    diag_offload_array    = ctypes.POINTER(ctypes.c_double)() 
 
     offload_package       = ascotpy2.struct_c__SA_offload_package()
 
@@ -177,9 +175,7 @@ class ascot5_main(object):
             ctypes.byref(self.offload_array),
             ctypes.byref(self.offload_package),
             ctypes.byref(self.ps),
-            ctypes.byref(self.diag_offload_array_mic0),
-            ctypes.byref(self.diag_offload_array_mic1),
-            ctypes.byref(self.diag_offload_array_host)
+            ctypes.byref(self.diag_offload_array)
             )
 
         if retval != 0:
@@ -187,9 +183,7 @@ class ascot5_main(object):
 
             '''
             int cleanup( sim_offload_data sim,    particle_state* ps,     particle_state* ps_gathered,
-            real** diag_offload_array_mic0,
-            real** diag_offload_array_mic1,
-            real** diag_offload_array_host,
+            real** diag_offload_array,
             real* offload_array,
             offload_package *offload_data
             ){
@@ -197,9 +191,7 @@ class ascot5_main(object):
             
             ascotpy2.cleanup(self.sim, 
                              self.ps, self.ps_gathered,
-                             ctypes.byref(self.diag_offload_array_mic0),
-                             ctypes.byref(self.diag_offload_array_mic1),
-                             ctypes.byref(self.diag_offload_array_host),
+                             ctypes.byref(self.diag_offload_array),
                              self.offload_array,
                              self.offload_package)
                              
