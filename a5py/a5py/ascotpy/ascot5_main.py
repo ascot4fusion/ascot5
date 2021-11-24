@@ -195,6 +195,15 @@ class ascot5_main(object):
                              self.offload_array,
                              self.offload_package)
                              
+    def run_simulation(self):
+         
+        retval = ascotpy2.run(self.nprts,
+                              self.mpi_rank,
+                              self.ps, 
+                              self.offload_array,
+                              self.diag_offload_array,
+                              ctypes.byref(self.sim), 
+                              self.offload_package)   
         
-        
+        return retval
         
