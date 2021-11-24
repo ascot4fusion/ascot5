@@ -28,12 +28,34 @@ int offload(
 	    real** diag_offload_array
 );
 
+int free_ps(particle_state *ps);
+
 int cleanup( sim_offload_data sim,    particle_state* ps,     particle_state* ps_gathered,
 	    real** diag_offload_array,
 	    real* offload_array,
 	    offload_package *offload_data
 		);
 
+int run(
+		int nprts,
+		int mpi_rank,
+		particle_state *ps,
+	    real *offload_array,
+	    real *diag_offload_array,
+		sim_offload_data *sim,
+	    offload_package *offload_data
+		);
+
+int gather_output(particle_state *ps, particle_state **ps_gathered,
+	    int *n_gathered, int n_tot, int mpi_rank, int mpi_size, int mpi_root,
+		sim_offload_data sim, real* diag_offload_array);
+
+int write_output(sim_offload_data sim, int mpi_rank, int mpi_root,
+		particle_state *ps_gathered, int n_gathered,
+		real* diag_offload_array);
+
+
+void marker_summary(particle_state* ps, int n);
 
 #endif
 

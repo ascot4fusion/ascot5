@@ -212,6 +212,145 @@ int main(int argc, char** argv) {
     	goto CLEANUP_FAILURE;
     }
 
+    run(
+    		nprts,
+    		mpi_rank,
+    		ps,
+    	    offload_array,
+    	    diag_offload_array,
+    		&sim,
+    	    &offload_data
+    );
+
+
+
+
+    /* Free input data */
+    offload_free_offload(&offload_data, &offload_array);
+
+    particle_state* ps_gathered;
+
+    gather_output(ps, &ps_gathered,
+    	    &n_gathered, n_tot, mpi_rank, mpi_size, mpi_root,
+    		sim, diag_offload_array);
+
+    if ( write_output( sim, mpi_rank, mpi_root,
+    		ps_gathered, n_gathered,
+    		diag_offload_array) ){
+    	goto CLEANUP_FAILURE;
+    }
+
+
+
+
+
+    mpi_interface_finalize();
+
+    diag_free_offload(&sim.diag_offload_data, &diag_offload_array);
+
+    if(mpi_rank == mpi_root) {
+        marker_summary(ps_gathered, n_gathered);
+    }
+
+    free_ps(ps);
+    free_ps(ps_gathered);
+
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone.\n");
+
+    return 0;
+
+
+/* Free resources in case simulation crashes */
+CLEANUP_FAILURE:
+	mpi_interface_finalize();
+    int retval =  cleanup( sim, ps, ps_gathered,
+    		&diag_offload_array,
+		    offload_array,
+		    &offload_data );
+	abort();
+	return retval;
+}
+
+int free_ps(particle_state *ps){
+	free(ps);
+	return 0;
+}
+
+int write_output(sim_offload_data sim, int mpi_rank, int mpi_root,
+		particle_state *ps_gathered, int n_gathered,
+		real* diag_offload_array){
+
+    if(mpi_rank == mpi_root) {
+
+        /* Write endstate */
+        if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n_gathered,
+                                       ps_gathered)) {
+            print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "\nWriting endstate failed.\n"
+                   "See stderr for details.\n");
+            /* Free offload data and terminate */
+            return 1;
+        }
+        print_out0(VERBOSE_NORMAL, mpi_rank,
+                   "Endstate written.\n");
+    }
+
+    /* Combine diagnostic data and write it to HDF5 file */
+    print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "\nCombining and writing diagnostics.\n");
+    int err_writediag = 0;
+
+    if(mpi_rank == mpi_root) {
+        err_writediag = hdf5_interface_write_diagnostics(&sim,
+            diag_offload_array, sim.hdf5_out);
+    }
+    if(err_writediag) {
+        print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "\nWriting diagnostics failed.\n"
+                   "See stderr for details.\n");
+        /* Free offload data and terminate */
+        return 1;
+    }
+    else {
+        print_out0(VERBOSE_MINIMAL, mpi_rank,
+                   "Diagnostics written.\n");
+    }
+
+    return 0;
+
+}
+
+int gather_output(particle_state *ps, particle_state **ps_gathered,
+	    int *n_gathered, int n_tot, int mpi_rank, int mpi_size, int mpi_root,
+		sim_offload_data sim, real* diag_offload_array
+){
+
+	   mpi_gather_particlestate(ps, ps_gathered, n_gathered, n_tot,
+	                             mpi_rank, mpi_size, mpi_root);
+
+	   mpi_gather_diag(&sim.diag_offload_data, diag_offload_array, n_tot,
+	                    mpi_rank, mpi_size, mpi_root);
+
+	   return 0;
+}
+
+
+/*
+ * Run the simulation
+ *
+ */
+int run(
+		int nprts,
+		int mpi_rank,
+		particle_state *ps,
+	    real *offload_array,
+	    real *diag_offload_array,
+		sim_offload_data *sim,
+	    offload_package *offload_data
+
+		)
+	{
+
     /* Divide markers among host and target */
 #ifdef TARGET
     int n_mic = nprts;
@@ -248,7 +387,7 @@ int main(int argc, char** argv) {
                 offload_array[0:offload_data.offload_array_length], \
                 diag_offload_array[0:sim.diag_offload_data.offload_array_length] \
             )
-            simulate(1, n_mic, ps, &sim, &offload_data, offload_array,
+            simulate(1, n_mic, ps, sim, offload_data, offload_array,
                 diag_offload_array);
 
             mic_end = omp_get_wtime();
@@ -262,7 +401,7 @@ int main(int argc, char** argv) {
         #pragma omp section
         {
             host_start = omp_get_wtime();
-            simulate(0, n_host, ps+2*n_mic, &sim, &offload_data,
+            simulate(0, n_host, ps+2*n_mic, sim, offload_data,
                 offload_array, diag_offload_array);
             host_end = omp_get_wtime();
         }
@@ -273,80 +412,11 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_NORMAL, mpi_rank, "gpu %lf s, host %lf s\n",
         mic_end-mic_start, host_end-host_start);
 
-    /* Free input data */
-    offload_free_offload(&offload_data, &offload_array);
-
-    particle_state* ps_gathered;
-
-    mpi_gather_particlestate(ps, &ps_gathered, &n_gathered, n_tot,
-                             mpi_rank, mpi_size, mpi_root);
-
-    if(mpi_rank == mpi_root) {
-
-        /* Write endstate */
-        if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n_gathered,
-                                       ps_gathered)) {
-            print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\nWriting endstate failed.\n"
-                   "See stderr for details.\n");
-            /* Free offload data and terminate */
-            goto CLEANUP_FAILURE;
-        }
-        print_out0(VERBOSE_NORMAL, mpi_rank,
-                   "Endstate written.\n");
-    }
-
-    /* Combine diagnostic data and write it to HDF5 file */
-    print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\nCombining and writing diagnostics.\n");
-    int err_writediag = 0;
-    mpi_gather_diag(&sim.diag_offload_data, diag_offload_array, n_tot,
-                    mpi_rank, mpi_size, mpi_root);
-
-    if(mpi_rank == mpi_root) {
-        err_writediag = hdf5_interface_write_diagnostics(&sim,
-            diag_offload_array, sim.hdf5_out);
-    }
-    if(err_writediag) {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "\nWriting diagnostics failed.\n"
-                   "See stderr for details.\n");
-        /* Free offload data and terminate */
-        goto CLEANUP_FAILURE;
-    }
-    else {
-        print_out0(VERBOSE_MINIMAL, mpi_rank,
-                   "Diagnostics written.\n");
-    }
-
-    /* Free offload data */
-
-    mpi_interface_finalize();
-
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array);
-
-    if(mpi_rank == mpi_root) {
-        marker_summary(ps_gathered, n_gathered);
-    }
-
-    free(ps);
-    free(ps_gathered);
-
-    print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone.\n");
-
     return 0;
-
-
-/* Free resources in case simulation crashes */
-CLEANUP_FAILURE:
-	mpi_interface_finalize();
-    int retval =  cleanup( sim, ps, ps_gathered,
-    		&diag_offload_array,
-		    offload_array,
-		    &offload_data );
-	abort();
-	return retval;
 }
+
+
+
 
 int cleanup( sim_offload_data sim,    particle_state* ps,     particle_state* ps_gathered,
 	    real** diag_offload_array,
