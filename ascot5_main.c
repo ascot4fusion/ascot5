@@ -184,9 +184,7 @@ int main(int argc, char** argv) {
     real* offload_array;
     offload_package offload_data;
     particle_state* ps;
-    real* diag_offload_array_mic0;
-    real* diag_offload_array_mic1;
-    real* diag_offload_array_host;
+    real* diag_offload_array;
 
 
 
@@ -210,15 +208,13 @@ int main(int argc, char** argv) {
     	    &offload_array,
     	    &offload_data,
     		&ps,
-    	    &diag_offload_array_mic0,
-    	    &diag_offload_array_mic1,
-    	    &diag_offload_array_host   ) ) {
+    	    &diag_offload_array   ) ) {
     	goto CLEANUP_FAILURE;
     }
 
     /* Divide markers among host and target */
 #ifdef TARGET
-    int n_mic = nprts / TARGET;
+    int n_mic = nprts;
     int n_host = 0;
 #else
     int n_mic = 0;
@@ -227,8 +223,7 @@ int main(int argc, char** argv) {
 
 
 
-    double mic0_start = 0, mic0_end=0,
-        mic1_start=0, mic1_end=0,
+    double mic_start = 0, mic_end=0,
         host_start=0, host_end=0;
 
     fflush(stdout);
@@ -246,37 +241,20 @@ int main(int argc, char** argv) {
 #if TARGET >= 1
         #pragma omp section
         {
-            mic0_start = omp_get_wtime();
+            mic_start = omp_get_wtime();
 
             #pragma omp target device(0) map( \
                 ps[0:n_mic], \
                 offload_array[0:offload_data.offload_array_length], \
-                diag_offload_array_mic0[0:sim.diag_offload_data.offload_array_length] \
+                diag_offload_array[0:sim.diag_offload_data.offload_array_length] \
             )
             simulate(1, n_mic, ps, &sim, &offload_data, offload_array,
-                diag_offload_array_mic0);
+                diag_offload_array);
 
-            mic0_end = omp_get_wtime();
+            mic_end = omp_get_wtime();
         }
 #endif
 
-        /* Run simulation on second target */
-#if TARGET >= 2
-        #pragma omp section
-        {
-            mic1_start = omp_get_wtime();
-
-            #pragma omp target device(1) map( \
-                ps[n_mic:2*n_mic], \
-                offload_array[0:offload_data.offload_array_length], \
-                diag_offload_array_mic1[0:sim.diag_offload_data.offload_array_length] \
-            )
-            simulate(2, n_mic, ps+n_mic, &sim, &offload_data, offload_array,
-                diag_offload_array_mic1);
-
-            mic1_end = omp_get_wtime();
-        }
-#endif
 
         /* No target, marker simulation happens where the code execution began.
          * Offloading is only emulated. */
@@ -285,15 +263,15 @@ int main(int argc, char** argv) {
         {
             host_start = omp_get_wtime();
             simulate(0, n_host, ps+2*n_mic, &sim, &offload_data,
-                offload_array, diag_offload_array_host);
+                offload_array, diag_offload_array);
             host_end = omp_get_wtime();
         }
 #endif
     }
 
     /* Code execution returns to host. */
-    print_out0(VERBOSE_NORMAL, mpi_rank, "mic0 %lf s, mic1 %lf s, host %lf s\n",
-        mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
+    print_out0(VERBOSE_NORMAL, mpi_rank, "gpu %lf s, host %lf s\n",
+        mic_end-mic_start, host_end-host_start);
 
     /* Free input data */
     offload_free_offload(&offload_data, &offload_array);
@@ -322,25 +300,13 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nCombining and writing diagnostics.\n");
     int err_writediag = 0;
-#ifdef TARGET
-    diag_sum(&sim.diag_offload_data,
-             diag_offload_array_mic0, diag_offload_array_mic1);
-    mpi_gather_diag(&sim.diag_offload_data, diag_offload_array_mic0, n_tot,
+    mpi_gather_diag(&sim.diag_offload_data, diag_offload_array, n_tot,
                     mpi_rank, mpi_size, mpi_root);
 
     if(mpi_rank == mpi_root) {
         err_writediag = hdf5_interface_write_diagnostics(&sim,
-            diag_offload_array_mic0, sim.hdf5_out);
+            diag_offload_array, sim.hdf5_out);
     }
-#else
-    mpi_gather_diag(&sim.diag_offload_data, diag_offload_array_host, n_tot,
-                    mpi_rank, mpi_size, mpi_root);
-
-    if(mpi_rank == mpi_root) {
-        err_writediag = hdf5_interface_write_diagnostics(&sim,
-            diag_offload_array_host, sim.hdf5_out);
-    }
-#endif
     if(err_writediag) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nWriting diagnostics failed.\n"
@@ -357,12 +323,7 @@ int main(int argc, char** argv) {
 
     mpi_interface_finalize();
 
-#ifdef TARGET
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic0);
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_mic1);
-#else
-    diag_free_offload(&sim.diag_offload_data, &diag_offload_array_host);
-#endif
+    diag_free_offload(&sim.diag_offload_data, &diag_offload_array);
 
     if(mpi_rank == mpi_root) {
         marker_summary(ps_gathered, n_gathered);
@@ -380,9 +341,7 @@ int main(int argc, char** argv) {
 CLEANUP_FAILURE:
 	mpi_interface_finalize();
     int retval =  cleanup( sim, ps, ps_gathered,
-    		&diag_offload_array_mic0,
-    	    &diag_offload_array_mic1,
-    	    &diag_offload_array_host,
+    		&diag_offload_array,
 		    offload_array,
 		    &offload_data );
 	abort();
@@ -390,23 +349,16 @@ CLEANUP_FAILURE:
 }
 
 int cleanup( sim_offload_data sim,    particle_state* ps,     particle_state* ps_gathered,
-	    real** diag_offload_array_mic0,
-	    real** diag_offload_array_mic1,
-	    real** diag_offload_array_host,
+	    real** diag_offload_array,
 	    real* offload_array,
 	    offload_package *offload_data
 		){
 
 
 
-#ifdef TARGET
-	diag_free_offload(&sim.diag_offload_data, diag_offload_array_mic0);
-	diag_free_offload(&sim.diag_offload_data, diag_offload_array_mic1);
-#else
-	diag_free_offload(&sim.diag_offload_data, diag_offload_array_host);
-#endif
+	diag_free_offload(&sim.diag_offload_data, diag_offload_array);
 
-	offload_free_offload(offload_data, offload_array);
+	offload_free_offload(offload_data, &offload_array);
 
 	free(ps);
 	free(ps_gathered);
@@ -702,9 +654,7 @@ int offload(
 	    real **offload_array,
 	    offload_package *offload_data,
 		particle_state** ps,
-	    real** diag_offload_array_mic0,
-	    real** diag_offload_array_mic1,
-	    real** diag_offload_array_host
+	    real** diag_offload_array
 
 ){
 
@@ -748,12 +698,7 @@ int offload(
 
     /* Initialize diagnostics offload data.
      * Separate arrays for host and target */
-#ifdef TARGET
-    diag_init_offload(&sim->diag_offload_data, diag_offload_array_mic0, n_tot);
-    diag_init_offload(&sim->diag_offload_data, diag_offload_array_mic1, n_tot);
-#else
-    diag_init_offload(&sim->diag_offload_data, diag_offload_array_host, n_tot);
-#endif
+    diag_init_offload(&sim->diag_offload_data, diag_offload_array, n_tot);
 
     real diag_offload_array_size = sim->diag_offload_data.offload_array_length
         * sizeof(real) / (1024.0*1024.0);
