@@ -207,3 +207,50 @@ class ascot5_main(object):
         
         return retval
         
+    def gather_output(self):
+        
+        ascotpy2.gather_output(self.ps, ctypes.byref(self.ps_gathered),
+                               ctypes.byref(self.n_gathered),
+                               self.n_tot, self.mpi_rank, self.mpi_size, self.mpi_root,
+                               self.sim, self.diag_offload_array)
+        
+    def print_marker_summary(self):
+        
+        ascotpy2.marker_summary(self.ps_gathered, self.n_gathered)
+    
+    def write_output_h5(self):
+        
+        '''
+        int write_output(sim_offload_data sim, int mpi_rank, int mpi_root,
+        particle_state *ps_gathered, int n_gathered,
+        real* diag_offload_array);
+        '''
+        
+        retval = ascotpy2.write_output(
+            self.sim, 
+            self.mpi_rank, self.mpi_root, 
+            self.ps_gathered, self.n_gathered,
+            self.diag_offload_array)
+        
+        if retval != 0:
+            print('offload() returned',retval)
+            
+             
+    def free_c(self):
+        
+        ascotpy2.offload_free_offload( 
+            ctypes.byref(self.offload_package),
+            ctypes.byref(self.offload_array) ) 
+        
+        ascotpy2.diag_free_offload(
+            ctypes.byref(self.sim.diag_offload_data),
+            ctypes.byref(self.diag_offload_array)
+            )
+        
+        ascotpy2.free_ps(self.ps)
+        ascotpy2.free_ps(self.ps_gathered)
+        
+    
+    def finalize(self):
+        ascotpy2.mpi_interface_finalize()
+        
