@@ -94,6 +94,7 @@ from a5py.ascot5io.E_3D       import E_3D
 from a5py.ascot5io.E_3DS      import E_3DS
 from a5py.ascot5io.E_3DST     import E_3DST
 from a5py.ascot5io.mrk_prt    import mrk_prt
+from a5py.ascot5io.mrk_prt_shined    import mrk_prt_shined
 from a5py.ascot5io.mrk_gc     import mrk_gc
 from a5py.ascot5io.mrk_fl     import mrk_fl
 from a5py.ascot5io.wall_2D    import wall_2D
@@ -163,7 +164,7 @@ def create_inputobject(key, h5group):
         "B_3DST" : B_3DST, "B_STS" : B_STS,
         "E_TC" : E_TC, "E_1DS" : E_1DS, "E_3D" : E_3D, "E_3DS" : E_3DS,
         "E_3DST" : E_3DST,
-        "prt" : mrk_prt, "gc" : mrk_gc, "fl" : mrk_fl,
+        "prt" : mrk_prt, "prt_shined" : mrk_prt_shined, "gc" : mrk_gc, "fl" : mrk_fl,
         "wall_2D" : wall_2D, "wall_3D" : wall_3D,
         "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS,
         "N0_3D" : N0_3D,
