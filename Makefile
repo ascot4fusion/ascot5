@@ -115,7 +115,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
 	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
-	mpi_interface.h
+	mpi_interface.h libascot_mem.h
 
 OBJS= math.o list.o octree.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -145,7 +145,7 @@ libascot: libascot.so
 
 libascot.so: CFLAGS+=-shlib -fPIC -shared
 
-libascot.so: libascot.o ascot5_main.o $(OBJS)
+libascot.so: libascot.o ascot5_main.o libascot_mem.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)
