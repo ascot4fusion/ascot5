@@ -86,15 +86,15 @@ class ascot5_main(object):
         ascotpy2.hdf5_generate_qid(self.qid)
 
         
-    def read_input(self):
+    def read_input(self,what_to_read=None):
         
-         
-        what_to_read = ctypes.c_int32()
-        what_to_read.value =    ascotpy2.hdf5_input_options | ascotpy2.hdf5_input_bfield | \
-                                ascotpy2.hdf5_input_efield  | ascotpy2.hdf5_input_plasma | \
-                                ascotpy2.hdf5_input_neutral | ascotpy2.hdf5_input_wall   | \
-                                ascotpy2.hdf5_input_marker  | ascotpy2.hdf5_input_boozer | \
-                                ascotpy2.hdf5_input_mhd
+        if what_to_read is None:         
+            what_to_read = ctypes.c_int32()
+            what_to_read.value =    ascotpy2.hdf5_input_options | ascotpy2.hdf5_input_bfield | \
+                                    ascotpy2.hdf5_input_efield  | ascotpy2.hdf5_input_plasma | \
+                                    ascotpy2.hdf5_input_neutral | ascotpy2.hdf5_input_wall   | \
+                                    ascotpy2.hdf5_input_marker  | ascotpy2.hdf5_input_boozer | \
+                                    ascotpy2.hdf5_input_mhd
        
 
                                 

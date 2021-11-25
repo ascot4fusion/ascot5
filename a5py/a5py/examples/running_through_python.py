@@ -1,7 +1,8 @@
 # coding: utf-8
 
 import ctypes
-from  a5py.ascotpy import ascotpy2
+from   a5py.ascotpy import ascotpy2
+import a5py.ascotpy.ascot5_main
 
 def create_particles(n_prts=3):
 
@@ -41,10 +42,17 @@ def create_particles(n_prts=3):
         
     return (prt_array,n_prts)
 
-import a5py.ascotpy.ascot5_main
 M=a5py.ascotpy.ascot5_main.ascot5_main(input_filename=b'helloworld.h5',output_filename=b'helloworld_out.h5')
 M.init()
-M.read_input()
+
+# don't read marker input
+what_to_read = ctypes.c_int32()
+what_to_read.value =    ascotpy2.hdf5_input_options | ascotpy2.hdf5_input_bfield | \
+                        ascotpy2.hdf5_input_efield  | ascotpy2.hdf5_input_plasma | \
+                        ascotpy2.hdf5_input_neutral | ascotpy2.hdf5_input_wall   | \
+                        ascotpy2.hdf5_input_boozer  | ascotpy2.hdf5_input_mhd
+
+M.read_input(what_to_read=what_to_read)
 
 # Generate a few markers of our own.
 (prt_array,n_tot) = create_particles(n_prts=30)
