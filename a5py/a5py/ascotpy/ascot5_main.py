@@ -7,7 +7,7 @@ Created on Nov 16, 2021
 import ctypes
 
 # generate ascotpy2 in the source folder with
-# % clang2py -l ./libascot.so -o ../python/a5py/a5py/ascotpy/ascotpy2.py  particle.h hdf5_interface.h ascot5.h mpi_interface.h simulate.h ascot5_main.h --clang-args="-I/usr/include/hdf5/serial"
+# % clang2py -l ./libascot.so -o ../python/a5py/a5py/ascotpy/ascotpy2.py  particle.h hdf5_interface.h ascot5.h mpi_interface.h simulate.h ascot5_main.h offload.h diag.h libascot_mem.h --clang-args="-I/usr/include/hdf5/serial"
 from a5py.ascotpy import ascotpy2
 
 
