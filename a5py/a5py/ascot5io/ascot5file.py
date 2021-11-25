@@ -65,7 +65,7 @@ import random
 import datetime
 
 ## Names of input parent groups.
-INPUT_PARENTS = ["options", "bfield", "efield", "marker", "marker_shined", "plasma", "neutral",
+INPUT_PARENTS = ["options", "bfield", "efield", "marker", "plasma", "neutral",
                  "wall", "boozer", "mhd", "nbi"]
 
 ## Current version
