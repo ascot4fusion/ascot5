@@ -630,7 +630,7 @@ class Ascot(_ContainerNode):
                     # Fetch those input groups that correspond to this run.
                     inputqids = get_inputqids(
                         h5["results"][run].file, h5["results"][run],
-                        ignore = ["nbi"])
+                        ignore = ["nbi","marker_shined"])
 
                     inputgroups = []
                     for inp in range(len(inputqids)):
