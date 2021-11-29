@@ -30,6 +30,7 @@ test_libascot:
 generate_helloworld_py:
     script:
         - cd a5py
+        - pip install scipy
         - pip install -e .
         - cd ..
         - python a5py/a5py/preprocessing/simpleruns.py
