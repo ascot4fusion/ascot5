@@ -2,6 +2,6 @@
 install:   
     image: ascot5pyv1
     script:
+        - cd a5py 
         - ls
         - pwd
-        
