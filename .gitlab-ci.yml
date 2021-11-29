@@ -10,3 +10,12 @@ install:
     script:
         - cd a5py 
         - python setup.py install
+
+wheel:
+    image: ascot5pyv1
+    script:
+        - cd a5py
+        - python -m build --wheel
+    artifacts:
+        paths:
+            - a5py/dist/a5py-0.0-py3-none-any.whl
