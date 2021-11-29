@@ -1,28 +1,31 @@
 
 build:   
-    image: ascot5pyv1
+    image: ascot5pyv2
     script:
         - cd a5py 
         - python setup.py build
 
 install:   
-    image: ascot5pyv1
+    image: ascot5pyv2
     script:
         - cd a5py 
         - python setup.py install
 
 wheel:
-    image: ascot5pyv1
+    image: ascot5pyv2
     script:
         - cd a5py
+        - pip install build
         - python -m build --wheel
     artifacts:
         paths:
             - a5py/dist/a5py-0.0-py3-none-any.whl
 
 test_libascot:
-    image: ascot5pyv1
+    image: ascot5pyv2
     script:
         - 'cd a5py'
         - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/libascot.so?job=compile_libascot" --output libascot.so'
+        - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/ascotpy2.py?job=compile_libascot" --output a5py/ascotpy/ascotpy2.py'
         - 'ls -l *.so'
+        - 'ls -l a5py/ascotpy/*.py'
