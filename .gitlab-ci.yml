@@ -23,6 +23,6 @@ wheel:
 test_libascot:
     image: ascot5pyv1
     script:
-        - cd a5py
-        - curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/libascot.so?job=compile_libascot" --output libascot.so
-        - ls -l *.so
+        - 'cd a5py'
+        - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/libascot.so?job=compile_libascot" --output libascot.so'
+        - 'ls -l *.so'
