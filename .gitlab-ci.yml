@@ -1,0 +1,5 @@
+image: ascot5pyv1
+
+install:   
+    script:
+        - python setup.py
