@@ -8,6 +8,7 @@ build:
 install:   
     image: ascot5pyv2
     script:
+        - pip install Cython
         - cd a5py 
         - python setup.py install
 
