@@ -2,4 +2,6 @@
 install:   
     image: ascot5pyv1
     script:
-        - python setup.py
+        - ls
+        - pwd
+        
