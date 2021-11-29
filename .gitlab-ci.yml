@@ -29,5 +29,5 @@ test_libascot:
 
 generate_helloworld_py:
     script:
-        python a5py/preprocessing/simpleruns.py
+        python a5py/a5py/preprocessing/simpleruns.py
         ls -lh *.h5
