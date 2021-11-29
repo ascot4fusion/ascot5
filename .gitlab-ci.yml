@@ -1,5 +1,5 @@
 
 install:   
-    image: ascot5pyv1
+    image: ascot5v4dep
     script:
         - python setup.py
