@@ -206,7 +206,7 @@ test_spline: $(UTESTDIR)test_spline.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 ascotpy2.py : libascot.so
-	clang2py -l ./libascot.so -o $@  \
+	clang2py -l libascot.so -o $@  \
 		particle.h hdf5_interface.h ascot5.h mpi_interface.h simulate.h ascot5_main.h offload.h diag.h libascot_mem.h \
 		--clang-args="-I/usr/include/hdf5/serial"
 # The above hdf5-include folder should not be hardcoded...
