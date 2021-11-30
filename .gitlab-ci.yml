@@ -31,6 +31,7 @@ test_python_main_with_helloworld_py:
     script:
         - cd a5py
         - pip install scipy
+        - pip install matplotlib
         - pip install -e .
         - cd ..
         - python a5py/a5py/preprocessing/simpleruns.py
