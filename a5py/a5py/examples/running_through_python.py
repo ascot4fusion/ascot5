@@ -55,7 +55,7 @@ what_to_read.value =    ascotpy2.hdf5_input_options | ascotpy2.hdf5_input_bfield
 M.read_input(what_to_read=what_to_read)
 
 # Generate a few markers of our own.
-(prt_array,n_tot) = create_particles(n_prts=30)
+(prt_array,n_tot) = create_particles(n_prts=3)
 M.n_tot = n_tot
 M.prt.contents = prt_array.contents
 #M.prt.contents = prt_array
