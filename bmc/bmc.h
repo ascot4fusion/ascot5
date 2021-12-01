@@ -1,7 +1,11 @@
 #include "../diag.h"
 #include "../simulate.h"
 #include "bmc_diag.h"
-#include "mpi.h"
+
+#ifdef MPI
+#include <mpi.h>
+#endif
+
 #include "../print.h"
 #include "../hdf5_interface.h"
 #include "../math.h"
