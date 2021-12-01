@@ -194,6 +194,14 @@ int main(int argc, char** argv) {
                  sim.wall_offload_data.offload_array_length);
     wall_free_offload(&sim.wall_offload_data, &wall_offload_array);
 
+    offload_pack(&offload_data, &offload_array, boozer_offload_array,
+                 sim.boozer_offload_data.offload_array_length);
+    boozer_free_offload(&sim.boozer_offload_data, &boozer_offload_array);
+
+    offload_pack(&offload_data, &offload_array, mhd_offload_array,
+                 sim.mhd_offload_data.offload_array_length);
+    mhd_free_offload(&sim.mhd_offload_data, &mhd_offload_array);
+
     // setup endpoint conditions, total time=1, wall collision enabled
     bmc_setup_endconds(&sim, TIMESTEP);
 
