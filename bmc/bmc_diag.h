@@ -7,7 +7,11 @@
 #include "../simulate.h"
 #include "../endcond.h"
 #include "../consts.h"
+
+#ifdef MPI
 #include "mpi.h"
+#endif
+
 #include "bmc_wall.h"
 #include <string.h>
 #include "../print.h"
