@@ -94,7 +94,7 @@ def init():
         print("Initializing test_neoclassicaltransport.")
         test_neoclassicaltransport.init()
 
-    if dotest_boozercoordinates:
+    if dotest_boozercoordinate:
         print("Initializing test_boozercoordinates.")
         test_boozercoordinates.init()
 
