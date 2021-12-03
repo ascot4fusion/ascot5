@@ -34,7 +34,7 @@ tests:
         - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/ascotpy2.py?job=compile_libascot" --output a5py/ascotpy/ascotpy2.py'
         - pip install scipy
         - pip install matplotlib
-        - pip install skimage
+        - pip install scikit-image
         - pip install -e .
         - cd ..
         - python a5py/a5py/preprocessing/simpleruns.py
