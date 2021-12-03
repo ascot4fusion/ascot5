@@ -27,7 +27,7 @@ test_libascot:
         - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/ascotpy2.py?job=compile_libascot" --output a5py/ascotpy/ascotpy2.py'
         - pip install -e .
 
-test_python_main_with_helloworld_py:
+tests:
     script:
         - cd a5py
         - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/libascot.so?job=compile_libascot" --output /usr/lib/libascot.so'
@@ -43,3 +43,6 @@ test_python_main_with_helloworld_py:
         - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/ascot5_main?job=compile_ascot5_main" --output ascot5_main'
         - chmod u+x ascot5_main
         - ./ascot5_main --in helloworld.h5 --out helloworld_output.h5
+        - python a5py/a5py/testascot/test_ascot.py init
+        - python a5py/a5py/testascot/test_ascot.py run
+        - python a5py/a5py/testascot/test_ascot.py check
