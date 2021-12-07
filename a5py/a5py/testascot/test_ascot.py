@@ -54,11 +54,11 @@ dotest_orbitfollowing        = True
 ## Test test_gctransform.py
 dotest_gctransform           = True
 ## Test test_coulombcollisions.py
-dotest_coulombcollisions     = True
+dotest_coulombcollisions     = False
 ## Test test_classicaltransport.py
 dotest_classicaltransport    = True
 ## Test test_neoclassicaltransport.py
-dotest_neoclassicaltransport = True
+dotest_neoclassicaltransport = False
 ## Test test_neoclassicaltransport.py
 dotest_boozercoordinate      = True
 
