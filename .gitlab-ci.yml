@@ -37,7 +37,7 @@ tests:
             - test_orbitfollowing.png
     script:
         - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/libascot.so?job=compile_libascot" --output /usr/lib/libascot.so'
-        - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/ascotpy2.py?job=compile_libascot" --output a5py/5py/ascotpy/ascotpy2.py'
+        - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/ascotpy2.py?job=compile_libascot" --output a5py/a5py/ascotpy/ascotpy2.py'
         - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/ascot5_main?job=compile_ascot5_main" --output ascot5_main'
         - pip install scipy
         - pip install matplotlib
