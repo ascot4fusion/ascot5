@@ -39,6 +39,7 @@ tests:
         - cd a5py
         - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/libascot.so?job=compile_libascot" --output /usr/lib/libascot.so'
         - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/ascotpy2.py?job=compile_libascot" --output a5py/ascotpy/ascotpy2.py'
+        - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/ascot5_main?job=compile_ascot5_main" --output ascot5_main'
         - pip install scipy
         - pip install matplotlib
         - pip install scikit-image
@@ -46,9 +47,5 @@ tests:
         - cd ..
         - python a5py/a5py/preprocessing/simpleruns.py
         - python a5py/a5py/examples/running_through_python.py
-        - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN"  "https://version.aalto.fi/gitlab/api/v4/projects/52/jobs/artifacts/256-refactor_ascot5_main/raw/ascot5_main?job=compile_ascot5_main" --output ascot5_main'
         - chmod u+x ascot5_main
-        - '#./ascot5_main --in helloworld.h5 --out helloworld_output.h5'
-        - test_ascot.py init
-        - test_ascot.py run
-        - test_ascot.py check
+        - './ascot5_main --in helloworld.h5 --out helloworld_output.h5'
