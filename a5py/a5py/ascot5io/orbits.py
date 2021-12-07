@@ -399,6 +399,9 @@ class Orbits(AscotData):
             item = evalapy("alpha") * unyt.m
             a5.free(bfield=True, boozer=True, mhd=True)
 
+        return item
+
+    
     def __getitem__(self, key):
         """
         Return queried quantity.
