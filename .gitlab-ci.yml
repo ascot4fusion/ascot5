@@ -79,6 +79,7 @@ phys_tests:
     - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN" "https://version.aalto.fi/gitlab/api/v4/projects/1813/jobs/artifacts/109-make-ascot5-fully-calable-from-python/raw/a5py/dist/a5py-0.0-py3-none-any.whl?job=wheel" --output a5py-0.0-py3-none-any.whl'
     - pip install a5py-0.0-py3-none-any.whl
     - make -j ascot5_main libascot.so FLAGS=-foffload=disable
+    - cp -v libascot.so /usr/lib/
     - test_ascot.py init
     - test_ascot.py run
     - test_ascot.py check
