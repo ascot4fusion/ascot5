@@ -164,7 +164,7 @@ def run():
         print("")
         inter = timer()
 
-    if dotest_boozercoordinates:
+    if dotest_boozercoordinate:
         print("Running test_boozercoordinates.")
         test_boozercoordinates.run()
         print("Elapsed time is " + frm(timer() - inter))
@@ -207,7 +207,7 @@ def check():
         print("Checking results of test_neoclassicaltransport.")
         test_neoclassicaltransport.check()
 
-    if dotest_boozercoordinates:
+    if dotest_boozercoordinate:
         print("Checking results of test_boozercoordinates.")
         test_boozercoordinates.check()
 
