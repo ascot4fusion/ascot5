@@ -166,7 +166,7 @@ class Orbits(AscotData):
                 R   = read_dataw("r"),
                 phi = read_dataw("phi").to("rad"),
                 z   = read_dataw("z"),
-                t   = read_dataw("time"),
+                t   = read_dataw("mileage") + initime(),
                 quantity = quantity
             )
 
@@ -224,6 +224,14 @@ class Orbits(AscotData):
             )
         elif key in ["phimodgc", "phimodprt", "phimodfl"]:
             item = np.mod(read_dataw("phi"), 2 * np.pi * unyt.rad)
+        #elif key in ["phi"]:
+        #    item = read_dataw("phi") * unyt.rad
+        #elif key in ["r"]:
+        #    item = read_dataw("r") * unyt.m
+        #elif key in ["z"]:
+        #    item = read_dataw("z") * unyt.m
+        #elif key in ["ids"]:
+        #    uten = read_dataw("ids") * unyt.dimensionless
 
         elif key in ["thetamodgc", "thetamodprt", "thetamodfl"]:
             item = np.mod(read_dataw("theta"), 2 * np.pi * unyt.rad)
@@ -399,6 +407,12 @@ class Orbits(AscotData):
             item = evalapy("alpha") * unyt.m
             a5.free(bfield=True, boozer=True, mhd=True)
 
+
+
+        else:
+            if item is None:
+                raise KeyError("Key '{}' not supported for evaluating through Orbit[].".format(key))
+            
         return item
 
 
