@@ -37,13 +37,13 @@ import a5py.ascot5io.ascot5      as ascot5
 import a5py.ascot5io.ascot5tools as tools
 
 import a5py.testascot.helpers as helpers
-import test_elementary
-import test_orbitfollowing
-import test_gctransform
-import test_coulombcollisions
-import test_classicaltransport
-import test_neoclassicaltransport
-import test_boozercoordinates
+from a5py.testascot import test_elementary
+from a5py.testascot import test_orbitfollowing
+from a5py.testascot import test_gctransform
+from a5py.testascot import test_coulombcollisions
+from a5py.testascot import test_classicaltransport
+from a5py.testascot import test_neoclassicaltransport
+from a5py.testascot import test_boozercoordinates
 
 # You can specify here which tests to run
 
