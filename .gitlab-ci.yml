@@ -67,7 +67,7 @@ unit_tests:
 phys_tests:
   tags:
     - docker-images
-  image: ascot5v3dep
+  image: ascot5v5dep
   artifacts:
     paths:
       - test_boozercoordinates.png
