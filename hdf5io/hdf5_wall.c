@@ -83,16 +83,18 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
     #undef WPATH
     #define WPATH "/wall/wall_2D_XXXXXXXXXX/"
 
+	int nelements,ret;
+	real *tmp;
+
     /* Read number of wall elements and allocate offload array */
-    if( hdf5_read_int(WPATH "nelements", &(offload_data->n),
+    if( hdf5_read_int(WPATH "nelements", &nelements,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    offload_data->offload_array_length = 2 * offload_data->n;
-    *offload_array = (real*) malloc(2 * offload_data->n * sizeof(real));
+    tmp = (real*) malloc(2 * nelements * sizeof(real));
 
     /* Pointers to beginning of different data series to make code more
      * readable */
-    real* r = &(*offload_array)[0];
-    real* z = &(*offload_array)[offload_data->n];
+    real* r = &(tmp[ 0       ]);
+    real* z = &(tmp[nelements]);
 
     /* Read the wall polygon */
     if( hdf5_read_double(WPATH "r", r,
@@ -100,8 +102,50 @@ int hdf5_wall_read_2D(hid_t f, wall_2d_offload_data* offload_data,
     if( hdf5_read_double(WPATH "z", z,
         f, qid, __FILE__, __LINE__) ) {return 1;}
 
+    ret=hdf5_wall_2d_to_offload(
+            offload_data, offload_array,
+	        nelements, r, z );
+    free(tmp);
+
+    return ret;
+}
+
+/**
+ * @brief Assign r,z to the offload array
+ *
+ * @param offload_data pointer to offload data
+ * @param offload_array pointer to offload array
+ * @param rin a 1-d array of nelements containing R-coordinates
+ * @param zin a 1-d array of nelements containing z-coordinates
+ * @param nelements length of the wall data
+ *
+ * @return Zero if assignment succeeded
+ */
+
+int hdf5_wall_2d_to_offload(
+		wall_2d_offload_data *offload_data, real **offload_array,
+		int nelements, real *r, real *z ) {
+
+
+    offload_data->n = nelements;
+    offload_data->offload_array_length = 2 * offload_data->n;
+    *offload_array = (real*) malloc(2 * offload_data->n * sizeof(real));
+    if (*offload_array == NULL){
+        printf("Failed to allocate.\n");
+        return 2;
+    }
+
+    /* Pointers to beginning of different data series to make code more
+     * readable */
+    real* rpoint = &(*offload_array)[0];
+    real* zpoint = &(*offload_array)[offload_data->n];
+
+    memcpy( rpoint, r, nelements*sizeof(real) );
+    memcpy( zpoint, z, nelements*sizeof(real) );
+
     return 0;
 }
+
 
 /**
  * @brief Read 3D wall data from HDF5 file
