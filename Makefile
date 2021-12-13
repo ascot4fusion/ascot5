@@ -205,9 +205,12 @@ test_spline: $(UTESTDIR)test_spline.o $(OBJS)
 %.o: %.c $(HEADERS) Makefile
 	$(CC) -c -o $@ $< $(CFLAGS)
 
+ASCOTPY2_HEADERFILES=particle.h hdf5_interface.h ascot5.h mpi_interface.h simulate.h \
+	ascot5_main.h offload.h diag.h libascot_mem.h wall.h hdf5io/hdf5_wall.h
+
 ascotpy2.py : libascot.so
 	clang2py -l libascot.so -o $@  \
-		particle.h hdf5_interface.h ascot5.h mpi_interface.h simulate.h ascot5_main.h offload.h diag.h libascot_mem.h \
+		$(ASCOTPY2_HEADERFILES) \
 		--clang-args="-I/usr/include/hdf5/serial"
 # The above hdf5-include folder should not be hardcoded...
 
