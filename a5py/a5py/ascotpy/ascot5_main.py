@@ -254,3 +254,30 @@ class ascot5_main(object):
     def finalize(self):
         ascotpy2.mpi_interface_finalize()
         
+    def inject_wall_2d(self,R,z):
+
+        if( len(R) != len(z) ):
+            raise ValueError("R and z must be of equal length.")
+
+        nelements = len(R)
+
+        # Create temporary variable for the wall
+        R_c = (ctypes.c_double * nelements)()
+        z_c = (ctypes.c_double * nelements)()
+
+        for i in range(nelements):
+            R_c[i] = R[i]
+            z_c[i] = z[i]
+
+        ascotpy2.hdf5_wall_2d_to_offload(
+            ctypes.byref(self.sim.wall_offload_data.w2d),
+            ctypes.byref(self.wall_offload_array),
+            nelements,
+            R_c, z_c
+            )
+
+        ascotpy2.wall_init_offload(
+            ctypes.byref(self.sim.wall_offload_data),
+            self.wall_offload_array
+            )
+

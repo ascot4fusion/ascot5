@@ -3,6 +3,22 @@
 import ctypes
 from   a5py.ascotpy import ascotpy2
 import a5py.ascotpy.ascot5_main
+import numpy as np
+
+
+def create_wall_2d():
+
+    r=np.array([4.96, 5.82, 6.68, 7.54,
+                8.4, 8.4, 8.4, 8.4, 8.4, 8.4,
+                7.54, 6.68, 5.82, 4.96,
+                4.1, 4.1, 4.1, 4.1, 4.1, 4.1 ] )
+
+    z=np.array([ -3.9, -3.9,  -3.9,  -3.9,
+                 -3.9, -2.34, -0.78, 0.78, 2.34, 3.9,
+                 3.9,   3.9,   3.9,  3.9,
+                 3.9,   2.34,  0.78, -0.78, -2.34, -3.9])
+
+    return r,z
 
 def create_particles(n_prts=3):
 
@@ -49,18 +65,32 @@ M.init()
 what_to_read = ctypes.c_int32()
 what_to_read.value =    ascotpy2.hdf5_input_options | ascotpy2.hdf5_input_bfield | \
                         ascotpy2.hdf5_input_efield  | ascotpy2.hdf5_input_plasma | \
-                        ascotpy2.hdf5_input_neutral | ascotpy2.hdf5_input_wall   | \
+                        ascotpy2.hdf5_input_neutral |\
                         ascotpy2.hdf5_input_boozer  | ascotpy2.hdf5_input_mhd
+
+#  ascotpy2.hdf5_input_wall |
 
 M.read_input(what_to_read=what_to_read)
 
+n_prts=3
+
+# Reduce the simulation time a bit:
+max_simtime=1.0e-4
+print("Reducing max_simtime to {}s.".format(max_simtime))
+M.sim.endcond_max_simtime = max_simtime
+
 # Generate a few markers of our own.
-(prt_array,n_tot) = create_particles(n_prts=3)
+(prt_array,n_tot) = create_particles(n_prts=n_prts)
 M.n_tot = n_tot
 M.prt.contents = prt_array.contents
 #M.prt.contents = prt_array
 
-print("id=",M.prt[3].c__SA_input_particle_0.p.id)
+#print("id=",M.prt[n_prts-1].c__SA_input_particle_0.p.id)
+
+
+R,z = create_wall_2d()
+M.inject_wall_2d( R, z  )
+
 
 M.offload()
 
