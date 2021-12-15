@@ -11,7 +11,10 @@ setup(name='a5py',
           'numpy',
           'h5py',
           'prompt_toolkit',
-          'unyt'
+          'unyt',
+          'scipy',
+          'matplotlib',
+          'scikit-image'
       ],
       scripts=[
         'bin/a5removegroup',
@@ -23,6 +26,7 @@ setup(name='a5py',
         'bin/a5gui',
         'bin/a5ls',
         'bin/a5makecompatible',
-        'bin/a5doxygen'
+        'bin/a5doxygen',
+        'bin/test_ascot.py'
       ],
       include_package_data=True)

@@ -166,7 +166,7 @@ class Orbits(AscotData):
                 R   = read_dataw("r"),
                 phi = read_dataw("phi").to("rad"),
                 z   = read_dataw("z"),
-                t   = read_dataw("time"),
+                t   = read_dataw("mileage") + initime(),
                 quantity = quantity
             )
 
@@ -401,7 +401,7 @@ class Orbits(AscotData):
 
         return item
 
-
+    
     def __getitem__(self, key):
         """
         Return queried quantity.
