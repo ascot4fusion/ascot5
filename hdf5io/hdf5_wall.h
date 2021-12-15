@@ -11,5 +11,8 @@
 
 int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data,
                            real** offload_array, char* qid);
+int hdf5_wall_2d_to_offload(
+		wall_2d_offload_data *offload_data, real **offload_array,
+		int nelements, real *r, real *z );
 
 #endif
