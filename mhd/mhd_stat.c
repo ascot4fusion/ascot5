@@ -179,7 +179,7 @@ a5err mhd_stat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
         err = boozer_eval_psithetazeta(ptz, &isinside, r, phi, z, boozerdata);
     }
     real rho[2];
-    if(!err) {
+    if(!err && isinside) {
         err = boozer_eval_rho_drho(rho, ptz[0], boozerdata);
     }
 
