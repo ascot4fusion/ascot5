@@ -49,10 +49,6 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i);
 void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     int cycle[NSIMD]  __memalign__; // Flag indigating whether a new marker was initialized
     real hin[NSIMD]  __memalign__;  // Time step
-    real h_rk4[NSIMD] __memalign__;
-
-    // compute number of subcycles for the rk4 loop
-    int n_t_subcycles = pq->p[0][0].n_t_subcycles;
 
     real cputime, cputime_last; // Global cpu time: recent and previous record
 
@@ -73,7 +69,6 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
     for(int i = 0; i < NSIMD; i++) {
         if(cycle[i] > 0) {
             hin[i] = simulate_gc_fixed_inidt(sim, &p, i);
-            h_rk4[i] = hin[i] / n_t_subcycles;
         }
     }
 
@@ -104,30 +99,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
                                 &sim->boozer_data, &sim->mhd_data);
             }
             else {
-                for (int nt = 0; nt < n_t_subcycles; ++nt) {
-                    #pragma omp simd
-                    for(int i = 0; i < NSIMD; i++) {
-                        particle_copy_gc(&p, i, &p0, i);
-                    }
-
-                    step_gc_rk4(&p, h_rk4, &sim->B_data, &sim->E_data);
-
-                    #pragma omp simd
-                    for(int i = 0; i < NSIMD; i++) {
-                        if (p.running[i]) {
-                            real w_coll = 0;
-                            int tile = wall_hit_wall(p0.r[i], p0.phi[i], p0.z[i],
-                                                    p.r[i], p.phi[i], p.z[i],
-                                                    &sim->wall_data, &w_coll);
-                            if(tile > 0) {
-                                // printf("wall hit id %d %e\n", p.id[i], p.hermite_weights[i]);
-                                p.walltile[i] = tile;
-                                p.endcond[i] |= endcond_wall;
-                                p.running[i] = 0;
-                            }
-                        }
-                    }
-                }
+                step_gc_rk4(&p, hin, &sim->B_data, &sim->E_data);
             }
         }
 
