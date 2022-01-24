@@ -497,34 +497,6 @@ int forward_monte_carlo_from_source_particles(
         diag_init_offload(&sim_offload->diag_offload_data, &diag_offload_array_host, n_tot_particles);
     #endif
 
-
-    // init sim data
-    sim_data sim;
-    sim_init(&sim, sim_offload);
-    offload_data->unpack_pos = 0;
-    real* ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->B_offload_data.offload_array_length);
-    B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
-
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->E_offload_data.offload_array_length);
-    E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
-
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->plasma_offload_data.offload_array_length);
-    plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
-
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->neutral_offload_data.offload_array_length);
-    neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
-
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->wall_offload_data.offload_array_length);
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
-
-    // setup time end conditions.
-    // By setting the end time to be the initial time,
-    // the simulation is forced to end after 1 timestep
     sim_offload->endcond_max_simtime = t1;
 
     // set time in particle states
