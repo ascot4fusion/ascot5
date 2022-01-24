@@ -250,34 +250,26 @@ int bmc_update_distr5D(
     for (int j_pperp=i_pperp; j_pperp<i_pperp + 2; j_pperp++) {
 
         if ((j_r < 0) || (j_phi < 0) || (j_z < 0) || (j_ppara < 0) || (j_pperp < 0)) {
-            indexes[i] = 0;
-            weights[i] = 0;
-            target_hit[i] = 0;
-            i++;
             err = 1;
-            break;
         }
         if ((j_r >= dist->n_r) || (j_z >= dist->n_z) || (j_ppara >= dist->n_ppara) || (j_pperp >= dist->n_pperp)) {
-            indexes[i] = 0;
-            weights[i] = 0;
-            target_hit[i] = 0;
-            i++;
             err = 1;
-            break;
         }
 
-        j_phimod = j_phi;
-        if (j_phimod>=dist->n_phi) {
-            j_phimod = 0;
-        }
+        if (!err) {
+            j_phimod = j_phi;
+            if (j_phimod>=dist->n_phi) {
+                j_phimod = 0;
+            }
 
-        indexes[i] = dist_5D_index(j_r, j_phimod, j_z, j_ppara, j_pperp, i_time, i_q, dist->n_phi, dist->n_z, dist->n_ppara, dist->n_pperp, 1, 1);
-        weights[i] = fabs(weights_dim[0] - j_r + i_r) * fabs(weights_dim[1] - j_phi + i_phi)
-                    * fabs(weights_dim[2] - j_z + i_z) * fabs(weights_dim[3] - j_ppara + i_ppara)
-                    * fabs(weights_dim[4] - j_pperp + i_pperp);
-        target_hit[i] = bmc_wall_hit_target(r, (j_r)*dr + dist->min_r,
-                        phi, (j_phimod)*dphi + dist->min_phi, z, (j_z)*dz + dist->min_z, wallData);
-        i++;
+            indexes[i] = dist_5D_index(j_r, j_phimod, j_z, j_ppara, j_pperp, i_time, i_q, dist->n_phi, dist->n_z, dist->n_ppara, dist->n_pperp, 1, 1);
+            weights[i] = fabs(weights_dim[0] - j_r + i_r) * fabs(weights_dim[1] - j_phi + i_phi)
+                        * fabs(weights_dim[2] - j_z + i_z) * fabs(weights_dim[3] - j_ppara + i_ppara)
+                        * fabs(weights_dim[4] - j_pperp + i_pperp);
+            target_hit[i] = bmc_wall_hit_target(r, (j_r)*dr + dist->min_r,
+                            phi, (j_phimod)*dphi + dist->min_phi, z, (j_z)*dz + dist->min_z, wallData);
+            i++;
+        }
     }
     return err;
 }
@@ -660,11 +652,12 @@ void bmc_compute_prob_weights(particle_deposit_weights *p1_weightsIndexes,
             int p1_indexes[32];
             int p1_target_hit[32];
             real p1_weights[32];
-            bmc_dist5D_gc_indexes(p1_indexes, p1_weights, p1_target_hit, p1 + i, j, dist0, wallData);
-            for (int k=0; k<32; k++) {
-                p1_weightsIndexes[i].weight[32*j + k] = p1_weights[k];
-                p1_weightsIndexes[i].index[32*j + k] = p1_indexes[k];
-                p1_weightsIndexes[i].target_hit[32*j + k] = p1_target_hit[k];
+            if (!bmc_dist5D_gc_indexes(p1_indexes, p1_weights, p1_target_hit, p1 + i, j, dist0, wallData)) {
+                for (int k=0; k<32; k++) {
+                    p1_weightsIndexes[i].weight[32*j + k] = p1_weights[k];
+                    p1_weightsIndexes[i].index[32*j + k] = p1_indexes[k];
+                    p1_weightsIndexes[i].target_hit[32*j + k] = p1_target_hit[k];
+                }
             }
         }
     }
