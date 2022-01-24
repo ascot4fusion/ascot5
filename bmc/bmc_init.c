@@ -128,7 +128,11 @@ real ISContinuousDistr(
 ) {
     int indexes[32], target_hit[32];
     real weights[32];
-    bmc_dist5D_gc_indexes_from_coordinates(indexes, weights, target_hit, z[0], z[1], z[2], z[3], z[4], dist5D, wallData);
+    int err = bmc_dist5D_gc_indexes_from_coordinates(indexes, weights, target_hit, z[0], z[1], z[2], z[3], z[4], dist5D, wallData);
+
+    if (err) {
+        return 0;
+    }
 
     real ret = 0;
     for (int i=0; i<32; ++i) {
@@ -198,18 +202,21 @@ void buildISMatrixForMesh(
     real Ekin;
     int indexes[32], target_hit[32];
     real weights[32];
+    int err;
     for (int i=0; i<input_n_ps; i++) {
         real Brpz[3] = {input_ps[i].B_r, input_ps[i].B_phi, input_ps[i].B_z};
         real Bnorm   = math_norm(Brpz);
         real p = physlib_gc_p( input_ps[i].mass, input_ps[i].mu, input_ps[i].ppar, Bnorm);
         Ekin = physlib_Ekin_pnorm(input_ps[i].mass, p);
 
-        bmc_dist5D_state_indexes(indexes, weights, target_hit, &input_ps[i], dist5D, wallData);
+        err = bmc_dist5D_state_indexes(indexes, weights, target_hit, &input_ps[i], dist5D, wallData);
 
-        for (int j=0; j<32; ++j) {
-            if (target_hit[j] == 0 && indexes[j]>=0) {
-                ISMatrix[indexes[j]] = ISMatrix[indexes[j]] + weights[j];
-                // ISMatrix[indexes[j]] = ISMatrix[indexes[j]] + weights[j] * Ekin * input_ps[i].weight;
+        if (!err) {
+            for (int j=0; j<32; ++j) {
+                if (target_hit[j] == 0 && indexes[j]>=0) {
+                    ISMatrix[indexes[j]] = ISMatrix[indexes[j]] + weights[j];
+                    // ISMatrix[indexes[j]] = ISMatrix[indexes[j]] + weights[j] * Ekin * input_ps[i].weight;
+                }
             }
         }
     }
@@ -530,16 +537,19 @@ void buildDensityMatrixFromInputParticles(
 
     int i_x[5];
     real r, phi, z, ppara, pperp, p, Ekin;
+    int err;
     for (int i=0; i <= n_particles; i++) {
-        bmc_dist5D_state_indexes(indexes, weights, target_hit, &input_particles[i], dist5D, wdata);
-        for (int j=0; j<=32; j++) {
-            compute_5d_coordinates_from_hist_index(indexes[j], i_x, &r, &phi, &z, &ppara, &pperp, dist5D);
-            if (target_hit[j] != 0)
-                continue;
+        err = bmc_dist5D_state_indexes(indexes, weights, target_hit, &input_particles[i], dist5D, wdata);
+        if (!err) {
+            for (int j=0; j<=32; j++) {
+                compute_5d_coordinates_from_hist_index(indexes[j], i_x, &r, &phi, &z, &ppara, &pperp, dist5D);
+                if (target_hit[j] != 0)
+                    continue;
 
-            real p = sqrt(ppara*ppara + pperp*pperp);
-            real Ekin = physlib_Ekin_pnorm(input_particles[i].mass, p);
-            (*histogram)[indexes[j]] += weights[j] * input_particles[i].weight * Ekin;
+                real p = sqrt(ppara*ppara + pperp*pperp);
+                real Ekin = physlib_Ekin_pnorm(input_particles[i].mass, p);
+                (*histogram)[indexes[j]] += weights[j] * input_particles[i].weight * Ekin;
+            }
         }
     }
 }
