@@ -53,7 +53,8 @@ void copy_particles_simd_to_coll_simd(int n_simd_particles, int n_hermite_knots,
     );
 
 void bmc_step_deterministic(particle_simd_gc *p, real *h, B_field_data *Bdata,
-                            E_field_data *Edata, plasma_data *pdata, int enable_clmbcol, random_data *rdata, mccc_data *mdata);
+                            E_field_data *Edata, plasma_data *pdata, int enable_clmbcol, int enable_mhd,
+                            random_data *rdata, mccc_data *mdata, boozer_data* boozer, mhd_data* mhd);
 
 void bmc_step_stochastic(particle_simd_gc *p, real *h, B_field_data *Bdata,
                          E_field_data *Edata, plasma_data *pdata, random_data *rdata, mccc_data *mdata);

@@ -85,7 +85,9 @@ void bmc_simulate_timestep_gc(int n_simd_particles, int n_coll_simd_particles, p
         /* RK4 method for orbit-following */
         for (int nt = 0; nt < n_rk4_subcycles; ++nt) {
             memcpy(&p0, p + i_simd, sizeof(particle_simd_gc));
-            bmc_step_deterministic(p + i_simd, h_rk4, &sim.B_data, &sim.E_data, &sim.plasma_data, sim.enable_clmbcol, &sim.random_data, &sim.mccc_data);
+            bmc_step_deterministic(p + i_simd, h_rk4, &sim.B_data, &sim.E_data, &sim.plasma_data,
+                                sim.enable_clmbcol, sim.enable_mhd,
+                                &sim.random_data, &sim.mccc_data, &sim.boozer_data, &sim.mhd_data);
             bmc_check_simd_particle_wallhit(p+i_simd, &p0, &(sim.wall_data));
         }
     }
@@ -261,7 +263,8 @@ void fmc_simulation(
  * @param Edata pointer to electric field data
  */
 void bmc_step_deterministic(particle_simd_gc *p, real *h, B_field_data *Bdata,
-                 E_field_data *Edata, plasma_data* pdata, int enable_clmbcol, random_data* rdata, mccc_data* mdata)
+                 E_field_data *Edata, plasma_data* pdata, int enable_clmbcol, int enable_mhd,
+                 random_data* rdata, mccc_data* mdata, boozer_data* boozer, mhd_data* mhd)
 {
 
     real rnd[5 * NSIMD];
@@ -270,210 +273,31 @@ void bmc_step_deterministic(particle_simd_gc *p, real *h, B_field_data *Bdata,
     const real *qb = plasma_get_species_charge(pdata);
     const real *mb = plasma_get_species_mass(pdata);
 
+    if (enable_mhd) {
+        step_gc_rk4_mhd(p, h, Bdata, Edata, boozer, mhd);
+    }
+    else {
+        step_gc_rk4(p, h, Bdata, Edata);
+    }
+
+    if (!enable_clmbcol)
+        return;
+
+    /// DETERMINISTIC PART OF COLLISION OPERATOR
     int i;
-/* Following loop will be executed simultaneously for all i */
-#pragma omp simd aligned(h : 64)
+    #pragma omp simd aligned(h : 64)
     for (i = 0; i < NSIMD; i++)
     {
-        if (p->running[i])
-        {
+        if (p->running[i]) {
             a5err errflag = 0;
 
-            real k1[6], k2[6], k3[6], k4[6];
-            real tempy[6];
-            real yprev[6];
-            real y[6];
-
-            real mass = p->mass[i];
-            real charge = p->charge[i];
-
-            real B_dB[15];
-            real E[3];
-
-            real R0 = p->r[i];
-            real z0 = p->z[i];
-            real t0 = p->time[i];
-
-            /* Coordinates are copied from the struct into an array to make
-             * passing parameters easier */
-            yprev[0] = p->r[i];
-            yprev[1] = p->phi[i];
-            yprev[2] = p->z[i];
-            yprev[3] = p->ppar[i];
-            yprev[4] = p->mu[i];
-            yprev[5] = p->zeta[i];
-
-            /* Magnetic field at initial position already known */
-            B_dB[0] = p->B_r[i];
-            B_dB[1] = p->B_r_dr[i];
-            B_dB[2] = p->B_r_dphi[i];
-            B_dB[3] = p->B_r_dz[i];
-
-            B_dB[4] = p->B_phi[i];
-            B_dB[5] = p->B_phi_dr[i];
-            B_dB[6] = p->B_phi_dphi[i];
-            B_dB[7] = p->B_phi_dz[i];
-
-            B_dB[8] = p->B_z[i];
-            B_dB[9] = p->B_z_dr[i];
-            B_dB[10] = p->B_z_dphi[i];
-            B_dB[11] = p->B_z_dz[i];
-
-            if (!errflag)
-            {
-                errflag = E_field_eval_E(E, yprev[0], yprev[1], yprev[2],
-                                         t0, Edata, Bdata);
-            }
-            if (!errflag)
-            {
-                step_gceom(k1, yprev, mass, charge, B_dB, E);
-            }
-
-            /* particle coordinates for the subsequent ydot evaluations are
-             * stored in tempy */
-            for (int j = 0; j < 6; j++)
-            {
-                tempy[j] = yprev[j] + h[i] * k1[j] / 2.0;
-            }
-
-            if (!errflag)
-            {
-                errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2],
-                                            t0 + h[i] / 2.0, Bdata);
-            }
-            if (!errflag)
-            {
-                errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
-                                         t0 + h[i] / 2.0, Edata, Bdata);
-            }
-            if (!errflag)
-            {
-                step_gceom(k2, tempy, mass, charge, B_dB, E);
-            }
-            for (int j = 0; j < 6; j++)
-            {
-                tempy[j] = yprev[j] + h[i] * k2[j] / 2.0;
-            }
-
-            if (!errflag)
-            {
-                errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2],
-                                            t0 + h[i] / 2.0, Bdata);
-            }
-            if (!errflag)
-            {
-                errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
-                                         t0 + h[i] / 2.0, Edata, Bdata);
-            }
-            if (!errflag)
-            {
-                step_gceom(k3, tempy, mass, charge, B_dB, E);
-            }
-            for (int j = 0; j < 6; j++)
-            {
-                tempy[j] = yprev[j] + h[i] * k3[j];
-            }
-
-            if (!errflag)
-            {
-                errflag = B_field_eval_B_dB(B_dB, tempy[0], tempy[1], tempy[2],
-                                            t0 + h[i], Bdata);
-            }
-            if (!errflag)
-            {
-                errflag = E_field_eval_E(E, tempy[0], tempy[1], tempy[2],
-                                         t0 + h[i], Edata, Bdata);
-            }
-            if (!errflag)
-            {
-                step_gceom(k4, tempy, mass, charge, B_dB, E);
-            }
-            for (int j = 0; j < 6; j++)
-            {
-                y[j] = yprev[j] + h[i] / 6.0 * (k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j]);
-            }
-
-            /* Test that results are physical */
-            if (!errflag && y[0] <= 0)
-            {
-                errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
-            }
-            if (!errflag && y[4] < 0)
-            {
-                errflag = error_raise(ERR_INTEGRATION, __LINE__, EF_STEP_GC_RK4);
-            }
-
-            /* Update gc phase space position */
-            if (!errflag)
-            {
-                p->r[i] = y[0];
-                p->phi[i] = y[1];
-                p->z[i] = y[2];
-                p->ppar[i] = y[3];
-                p->mu[i] = y[4];
-                p->zeta[i] = fmod(y[5], CONST_2PI);
-                if (p->zeta[i] < 0)
-                {
-                    p->zeta[i] = CONST_2PI + p->zeta[i];
-                }
-            }
-
-            /* Evaluate magnetic field (and gradient) and rho at new position */
-            real psi[1];
-            real rho[1];
-            if (!errflag)
-            {
-                errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i],
-                                            t0 + h[i], Bdata);
-            }
-            if (!errflag)
-            {
-                errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i],
-                                           t0 + h[i], Bdata);
-            }
-            if (!errflag)
-            {
-                errflag = B_field_eval_rho(rho, psi[0], Bdata);
-            }
-
-            if (!errflag)
-            {
-                p->B_r[i] = B_dB[0];
-                p->B_r_dr[i] = B_dB[1];
-                p->B_r_dphi[i] = B_dB[2];
-                p->B_r_dz[i] = B_dB[3];
-
-                p->B_phi[i] = B_dB[4];
-                p->B_phi_dr[i] = B_dB[5];
-                p->B_phi_dphi[i] = B_dB[6];
-                p->B_phi_dz[i] = B_dB[7];
-
-                p->B_z[i] = B_dB[8];
-                p->B_z_dr[i] = B_dB[9];
-                p->B_z_dphi[i] = B_dB[10];
-                p->B_z_dz[i] = B_dB[11];
-
-                p->rho[i] = rho[0];
-
-                /* Evaluate theta angle so that it is cumulative */
-                real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
-                real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->theta[i] += atan2((R0 - axis_r) * (p->z[i] - axis_z) - (z0 - axis_z) * (p->r[i] - axis_r),
-                                     (R0 - axis_r) * (p->r[i] - axis_r) + (z0 - axis_z) * (p->z[i] - axis_z));
-            }
-
-
-            /// DETERMINISTIC PART OF COLLISION OPERATOR
             /* Initial (R,z) position and magnetic field are needed for later */
-            if (!enable_clmbcol)
-                continue;
-
             real Brpz[3] = {p->B_r[i], p->B_phi[i], p->B_z[i]};
             real Bnorm = math_norm(Brpz);
             real Bxyz[3];
             math_vec_rpz2xyz(Brpz, Bxyz, p->phi[i]);
-            R0 = p->r[i];
-            z0 = p->z[i];
+            real R0 = p->r[i];
+            real z0 = p->z[i];
 
             /* Move guiding center to (x, y, z, vnorm, xi) coordinates */
             real vin, pin, xiin, Xin_xyz[3];
@@ -586,7 +410,7 @@ void bmc_step_deterministic(particle_simd_gc *p, real *h, B_field_data *Bdata,
             math_xyz2rpz(Xout_xyz, Xout_rpz);
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
-            // real B_dB[15], psi[1], rho[1];
+            real B_dB[15], psi[1], rho[1];
             if (!errflag)
             {
                 errflag = B_field_eval_B_dB(B_dB, Xout_rpz[0], Xout_rpz[1],
