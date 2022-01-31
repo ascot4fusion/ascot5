@@ -280,6 +280,10 @@ int main(int argc, char** argv) {
             inpOut[i].p_gc = pOut[i];
         }
         writeMarkersToHDF5(&sim, nOut, inpOut);
+
+        if (nOut == 0) {
+            printf("WARNING: 0 markers for IS distributions written. All birth input markers have 0 probability\n");
+        }
     }
 
 
