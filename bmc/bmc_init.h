@@ -125,6 +125,7 @@ int bmc_init_particles(
         int mpi_rank,
         int mpi_size,
         int *n,
+        int* n_tot,
         particle_state** ps,
         int** ps_indexes,
         int n_per_vertex,

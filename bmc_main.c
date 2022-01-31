@@ -9,9 +9,11 @@
 #define CHARGE 1.60217662E-19
 #define RK4_SUBCYCLES 10
 #define DEBUG_EXIT_VELOCITY 0
+#define IMPORTANCE_SAMPLING 1
 #define IMPORTANCE_SAMPLING_METROPOLIS 0
 #define IMPORTANCE_SAMPLING_TOTAL_PARTICLES 100000
 #define IMPORTANCE_SAMPLING_METROPOLIS_D 0.2
+#define WRITE_PARTICLESTATES 0
 
 
 /**
@@ -207,9 +209,9 @@ int main(int argc, char** argv) {
     // compute particles needed for the Backward Monte Carlo simulation
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
-    int n;
+    int n, n_tot;
     particle_state* ps;
-    if (bmc_init_particles(mpi_rank, mpi_size, &n, &ps, &ps_indexes, 1, &sim, &Bdata, offload_array, T1, MASS, CHARGE, RK4_SUBCYCLES)) {
+    if (bmc_init_particles(mpi_rank, mpi_size, &n, &n_tot, &ps, &ps_indexes, 1, &sim, &Bdata, offload_array, T1, MASS, CHARGE, RK4_SUBCYCLES)) {
         goto CLEANUP_FAILURE;
     }
 
@@ -224,18 +226,27 @@ int main(int argc, char** argv) {
             goto CLEANUP_FAILURE;
         };
         strcpy(sim.qid, qid);
-        /* Write inistate */
-        if( hdf5_interface_write_state(sim.hdf5_out, "inistate", n, ps) ) {
-            print_out0(VERBOSE_MINIMAL, mpi_rank,
-                    "\n"
-                    "Writing inistate failed.\n"
-                    "See stderr for details.\n"
-                    "\n");
-            /* Free offload data and terminate */
-            goto CLEANUP_FAILURE;
+    }
+
+    if (WRITE_PARTICLESTATES) {
+        particle_state* ps_gathered;
+        int n_gathered;
+        mpi_gather_particlestate(ps, &ps_gathered, &n_gathered, n_tot,
+                                mpi_rank, mpi_size, mpi_root);
+        print_out0(VERBOSE_MINIMAL, mpi_rank, "Gathered %d particles\n", n_gathered);
+
+        /* Write endstate */
+        if (mpi_rank == mpi_root) {
+            if( hdf5_interface_write_state(sim.hdf5_out, "inistate", n_gathered, ps_gathered) ) {
+                print_out0(VERBOSE_MINIMAL, mpi_rank,
+                        "\nWriting endstate failed.\n"
+                        "See stderr for details.\n");
+                /* Free offload data and terminate */
+                goto CLEANUP_FAILURE;
+            }
+            print_out0(VERBOSE_NORMAL, mpi_rank,
+                    "Inistate written.\n");
         }
-        print_out0(VERBOSE_NORMAL, mpi_rank,
-                "\nInistate written.\n");
     }
 
     double mic0_start = 0, mic0_end=0,
@@ -254,6 +265,27 @@ int main(int argc, char** argv) {
         goto CLEANUP_FAILURE;
     }
 
+    if (WRITE_PARTICLESTATES) {
+        particle_state* ps_gathered;
+        int n_gathered;
+        mpi_gather_particlestate(ps, &ps_gathered, &n_gathered, n_tot,
+                                mpi_rank, mpi_size, mpi_root);
+        print_out0(VERBOSE_MINIMAL, mpi_rank, "Gathered %d particles\n", n_gathered);
+
+            /* Write endstate */
+        if (mpi_rank == mpi_root) {
+            if( hdf5_interface_write_state(sim.hdf5_out, "endstate", n_gathered, ps_gathered) ) {
+                print_out0(VERBOSE_MINIMAL, mpi_rank,
+                        "\nWriting endstate failed.\n"
+                        "See stderr for details.\n");
+                /* Free offload data and terminate */
+                goto CLEANUP_FAILURE;
+            }
+            print_out0(VERBOSE_NORMAL, mpi_rank,
+                    "Endstate written.\n");
+        }
+    }
+
     int nOut;
     particle_state* psOut;
 
@@ -264,7 +296,7 @@ int main(int argc, char** argv) {
     }
 
     print_out0(VERBOSE_NORMAL, mpi_rank, "Computing Importance sampling weighted markers for FMC\n");
-    if (mpi_rank == 0) {
+    if (mpi_rank == 0 && IMPORTANCE_SAMPLING) {
         if (IMPORTANCE_SAMPLING_METROPOLIS) {
             fmcInitImportanceSamplingMetropolis(&nOut, &psOut, &distr, IMPORTANCE_SAMPLING_TOTAL_PARTICLES, &sim, &Bdata, offload_array, &offload_data, 1, RK4_SUBCYCLES, input_ps, input_n, T0, MASS, CHARGE, IMPORTANCE_SAMPLING_METROPOLIS_D);
         } else {
