@@ -256,6 +256,8 @@ void buildISMatrixForParticles(
         ISMatrix[i] = Ekin[i];
         ISMatrix[i] = 1;
     }
+
+    printf("Building IS matrix from BMC prob\n");
     
     if (importanceSamplingProbability) {
         // FILE* f_probability = fopen("distr_prob", "rb");

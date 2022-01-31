@@ -74,7 +74,8 @@ void backward_monte_carlo_gc_time_indep(
         real t0,
         real h,
         real rk4_subcycles,
-        int debugExitVelocitySpace
+        int debugExitVelocitySpace,
+        int mpi_rank
     );
 
 void backward_monte_carlo_gc(

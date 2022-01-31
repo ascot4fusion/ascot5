@@ -44,7 +44,7 @@ int backward_monte_carlo(
 
     // debug print of first particles
     for(int i = 0; i < 10; i++) {
-        printf("Particle %d %f %f %f %f %f %f %f\n", i, ps[i].r, ps[i].phi, ps[i].z, ps[i].ppar, ps[i].rho, ps[i].rprt, ps[i].p_r);
+        print_out0(VERBOSE_MINIMAL, mpi_rank, "Particle %d %f %f %f %f %f %f %f\n", i, ps[i].r, ps[i].phi, ps[i].z, ps[i].ppar, ps[i].rho, ps[i].rprt, ps[i].p_r);
     }
 
     // initialize distributions
@@ -71,7 +71,7 @@ int backward_monte_carlo(
                                 distr0, &distr1, Bdata, t1, t0, h, rk4_subcycles);
         } else {
             backward_monte_carlo_gc_time_indep(ps, ps_indexes, n_mpi_particles, n_hermite_knots, sim_offload, &sim, offload_data, offload_array,
-                                distr0, &distr1, Bdata, t1, t0, h, rk4_subcycles, debugExitVelocitySpace);
+                                distr0, &distr1, Bdata, t1, t0, h, rk4_subcycles, debugExitVelocitySpace, mpi_rank);
         }
     } else {
         // TODO: FULL ORBIT
@@ -103,7 +103,8 @@ void backward_monte_carlo_gc_time_indep(
         real t0,
         real h,
         real rk4_subcycles,
-        int debugExitVelocitySpace
+        int debugExitVelocitySpace,
+        int mpi_rank
     ) {
 
     particle_simd_gc *p0, *p1, *pcoll1, *pcoll0;
@@ -146,7 +147,7 @@ void backward_monte_carlo_gc_time_indep(
         bmc_update_distr5D_from_weights(p1_weights, &distr1->dist5D, &distr0->dist5D, pcoll1, n_coll_simd, p0_indexes_coll);
 
         // printf("Time %f Updated %d\n", t, n_updated);
-        printf("Time %e\n", t);
+        print_out0(VERBOSE_MINIMAL, mpi_rank, "Time %e\n", t);
 
         // // shift distributions
         int n_updated, n_loss, n_err;
@@ -159,7 +160,7 @@ void backward_monte_carlo_gc_time_indep(
             sumdist += distr0->dist5D.histogram[i]; 
         }
     }
-    printf("distsum %e\n", sumdist);
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "distsum %e\n", sumdist);
 }
 
 void backward_monte_carlo_gc(
@@ -476,7 +477,7 @@ int forward_monte_carlo_from_source_particles(
     for(int i = 0; i < n_mpi_particles; i++) {
         if (i > 10) break;
         real pperp = sqrt(2 * sqrt(ps[i].B_r * ps[i].B_r + ps[i].B_phi * ps[i].B_phi + ps[i].B_z * ps[i].B_z) * ps[i].mu / ps[i].mass) * ps[i].mass;
-        printf("Particle %d %e %e %e %e %e %e %e %e\n", ps[i].id, ps[i].r, ps[i].phi, ps[i].z, ps[i].ppar, pperp, ps[i].rho, ps[i].rprt, ps[i].p_r);
+        print_out0(VERBOSE_MINIMAL, mpi_rank, "Particle %d %e %e %e %e %e %e %e %e\n", ps[i].id, ps[i].r, ps[i].phi, ps[i].z, ps[i].ppar, pperp, ps[i].rho, ps[i].rprt, ps[i].p_r);
     }
 
     // initialize distributions
@@ -515,28 +516,6 @@ int forward_monte_carlo_from_source_particles(
     int n_loss = 0, n_err = 0;
     real powerLoad = fmc_compute_signal_from_states(n_mpi_particles, ps, &n_updated, &n_loss, &n_err);
 
-    // print wall hit time to file
-    if (debugHitTime) {
-        FILE *hitFile;
-        hitFile = fopen("hitTime", "w");
-
-        real time;
-        a5err err;
-        int walltile;
-        for (int i = 0; i < n_mpi_particles; i++) {
-            err = ps[i].err;
-            walltile = ps[i].walltile;
-            time = ps[i].time;
-            if (ps[i].err != 0) {
-                // printf("r_z %d %e %e %e\n", ps[i].id, ps[i].r, ps[i].z, ps[i].ppar); 
-                time = -1E-4;
-                walltile = 0;
-            }
-            real pperp = sqrt(2 * sqrt(ps[i].B_r * ps[i].B_r + ps[i].B_phi * ps[i].B_phi + ps[i].B_z * ps[i].B_z) * ps[i].mu / ps[i].mass) * ps[i].mass;
-            printf("hittime %d %e %d %d %e %e %e %e %e %e\n", ps[i].id, time, walltile, err, ps[i].ppar, pperp, ps[i].mu, ps[i].B_r, ps[i].B_phi, ps[i].B_z);
-        }
-    }
-
     // reduce output from all MPI nodes
     #ifdef MPI
         MPI_Allreduce(&n_updated, &n_updated, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
@@ -545,11 +524,10 @@ int forward_monte_carlo_from_source_particles(
         MPI_Allreduce(&powerLoad, &powerLoad, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     #endif
 
-    printf("Total number of markers: %d\n", n_tot_particles);
-    printf("Target domain hit n_markers: %d\n", n_updated);
-    printf("Wall hit not in target n_markers: %d\n", n_loss);
-    printf("Err markers: %d\n", n_err);
-    printf("Value of power load: %e\n", powerLoad);
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "Total number of markers: %d\n", n_tot_particles);
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "Target domain hit n_markers: %d\n", n_updated);
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "Wall hit not in target n_markers: %d\n", n_loss);
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "Err markers: %d\n", n_err);
     
     // // Free diagnostic data
     #ifdef TARGET
