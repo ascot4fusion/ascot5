@@ -635,6 +635,7 @@ int bmc_init_particles(
         int mpi_rank,
         int mpi_size,
         int *n,
+        int* tot_n,
         particle_state** ps,
         int** ps_indexes,
         int n_per_vertex,
@@ -692,7 +693,8 @@ int bmc_init_particles(
     particle_state ps_tmp; // tmp particle
 
     // compute total number of particles
-    int i_x[5], tot_n = 0;
+    int i_x[5];
+    *tot_n = 0;
     for (int i=0; i<dist_length; i++) {
         compute_5d_coordinates_from_hist_index(i, i_x, &r, &phi, &z, &ppara, &pperp, &dist5D);
 
@@ -701,18 +703,22 @@ int bmc_init_particles(
             if (!wall_2d_inside(r, z, &sim.wall_data.w2d)) continue;
         }
 
+        // if (r>1.1 || z>0.1 || z<-0.1) continue;
+
         bmc_5D_to_particle_state(Bdata, r, phi, z, ppara, pperp, t, i, &ps_tmp, m, q, rk4_subcycles);
 
-        if (!ps_tmp.err) tot_n = tot_n + n_per_vertex;
+        if (!ps_tmp.err) {
+            *tot_n = *tot_n + n_per_vertex;
+        }
     }
 
     // compute number of particles needed for the specific MPI node
     if (mpi_rank == mpi_size - 1) {
-        *n = tot_n - mpi_rank * (tot_n / mpi_size);
+        *n = *tot_n - mpi_rank * (*tot_n / mpi_size);
     }
     else
-        *n = tot_n / mpi_size;
-    int start_index = mpi_rank * (tot_n / mpi_size);
+        *n = *tot_n / mpi_size;
+    int start_index = mpi_rank * (*tot_n / mpi_size);
 
     *ps = (particle_state *)malloc(*n * sizeof(particle_state));
     *ps_indexes = (int *)malloc(*n * sizeof(int));
@@ -743,7 +749,7 @@ int bmc_init_particles(
         }
     }
     
-    printf("Initialized %d particles in MPI node out of %d total particles\n", *n, tot_n);
+    printf("Initialized %d particles in MPI node out of %d total particles\n", *n, *tot_n);
     printf("BMC mesh and markers initialization complete.\n");
     printf("Mesh size: rmin %f\trmax %e\tnr %d\n", dist5D.min_r, dist5D.max_r, dist5D.n_r);
     printf("Mesh size: phimin %f\tphimax %e\tnphi %d\n", dist5D.min_phi, dist5D.max_phi, dist5D.n_phi);

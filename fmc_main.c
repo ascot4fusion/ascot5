@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
 
 
     /* Number of markers to be simulated */
-    int n;
+    int n_input;
     /* Marker input struct */
     input_particle* p;
     particle_state* ps;
@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
                                   &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
                                   &wall_offload_array, &boozer_offload_array,
-                                  &mhd_offload_array, &p, &n) ) {
+                                  &mhd_offload_array, &p, &n_input) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nInput reading or initializing failed.\n"
                    "See stderr for details.\n");
@@ -216,38 +216,39 @@ int main(int argc, char** argv) {
 
     // convert input particles to particle state.
     // they should be used to init importance sampling if needed
-    particle_state* input_ps = (particle_state*) malloc(n * sizeof(particle_state));
-    for(int i = 0; i < n; i++) {
+    // n = 1000;
+    particle_state* input_ps = (particle_state*) malloc(n_input * sizeof(particle_state));
+    for(int i = 0; i < n_input; i++) {
         particle_input_to_state(&p[i], &input_ps[i], &Bdata);
         input_ps[i].n_t_subcycles = RK4_SUBCYCLES;
     }
-    int n_input = n;
 
     /* Set up particlestates on host, needs magnetic field evaluation */
     // compute particles needed for the Backward Monte Carlo simulation
+    int n, n_tot;
     print_out0(VERBOSE_NORMAL, mpi_rank,
                "\nInitializing marker states.\n");
     if (USE_INPUT_PARTICLES) {
-        printf("Using input particles\n");
-        n = n_input;
+        n_tot = n_input;
         ps = input_ps;
 
         /* Choose which markers are used in this MPI process. Simply put, markers
         * are divided into mpi_size sequential blocks and the mpi_rank:th block
         * is chosen for this simulation. */
-        int start_index = mpi_rank * (n / mpi_size);
+        int start_index = mpi_rank * (n_input / mpi_size);
         ps += start_index;
 
         if(mpi_rank == mpi_size-1) {
-            n = n - mpi_rank * (n / mpi_size);
+            n = n_input - mpi_rank * (n_input / mpi_size);
         }
         else {
-            n = n / mpi_size;
+            n = n_input / mpi_size;
         }
+        printf("Using input particles. %d markers in current MPI node\n", n);
     } else {
         printf("Not using importance sampling. Using %d markers per node\n", MARKERS_PER_NODE);
         // NB: markers are divided in MPI nodes inside the init function
-        if (bmc_init_particles(mpi_rank, mpi_size, &n, &ps, &ps_indexes, MARKERS_PER_NODE, &sim, &Bdata, offload_array, T0, MASS, CHARGE, RK4_SUBCYCLES)) {
+        if (bmc_init_particles(mpi_rank, mpi_size, &n, &n_tot, &ps, &ps_indexes, MARKERS_PER_NODE, &sim, &Bdata, offload_array, T0, MASS, CHARGE, RK4_SUBCYCLES)) {
             goto CLEANUP_FAILURE;
         }
     }
@@ -261,6 +262,12 @@ int main(int argc, char** argv) {
     int n_host = n;
 #endif
 
+    particle_state* ps_gathered;
+    int n_gathered;
+    mpi_gather_particlestate(ps, &ps_gathered, &n_gathered, n_tot,
+                            mpi_rank, mpi_size, mpi_root);
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "Gathered %d particles\n", n_gathered);
+
     /* Initialize results group in the output file */
     if (mpi_rank == mpi_root) {
         print_out0(VERBOSE_IO, mpi_rank, "\nPreparing output.\n")
@@ -273,7 +280,7 @@ int main(int argc, char** argv) {
         };
         strcpy(sim.qid, qid);
         /* Write inistate */
-        if( hdf5_interface_write_state(sim.hdf5_out, "inistate", n, ps) ) {
+        if( hdf5_interface_write_state(sim.hdf5_out, "inistate", n_gathered, ps_gathered) ) {
             print_out0(VERBOSE_MINIMAL, mpi_rank,
                     "\n"
                     "Writing inistate failed.\n"
@@ -282,6 +289,7 @@ int main(int argc, char** argv) {
             /* Free offload data and terminate */
             goto CLEANUP_FAILURE;
         }
+        free(ps_gathered);
         print_out0(VERBOSE_NORMAL, mpi_rank,
                 "\nInistate written.\n");
     }
@@ -324,11 +332,9 @@ int main(int argc, char** argv) {
     print_out0(VERBOSE_NORMAL, mpi_rank, "mic0 %lf s, mic1 %lf s, host %lf s\n",
         mic0_end-mic0_start, mic1_end-mic1_start, host_end-host_start);
 
-    particle_state* ps_gathered;
-    int n_gathered;
-    mpi_gather_particlestate(ps, &ps_gathered, &n_gathered, n_input,
+    mpi_gather_particlestate(ps, &ps_gathered, &n_gathered, n_tot,
                             mpi_rank, mpi_size, mpi_root);
-    printf("Gathered %d particles\n", n_gathered);
+    print_out0(VERBOSE_MINIMAL, mpi_rank, "Gathered %d particles\n", n_gathered);
 
         /* Write endstate */
     if (mpi_rank == mpi_root) {
