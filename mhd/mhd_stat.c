@@ -262,7 +262,7 @@ a5err mhd_stat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
     if(interperr) {
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_MHD );
     }
-    return err;
+    return 0;
 }
 
 /**
