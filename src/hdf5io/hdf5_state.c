@@ -13,6 +13,7 @@
 #include "hdf5_helpers.h"
 #include "hdf5_state.h"
 #include "math.h"
+#include "../bmc/bmc_wall.h"
 #ifdef TRAP_FPE
 #include <fenv.h>
 #endif
@@ -206,6 +207,12 @@ int hdf5_state_write(hid_t f, char* run, char* state, integer n,
     }
     hdf5_write_extendible_dataset_long(state_group, "walltile", n, intdata);
     H5LTset_attribute_string(state_group, "walltile", "unit", "1");
+
+    for(i = 0; i < n; i++) {
+        intdata[i] = bmc_walltile_in_target(p[i].walltile);
+    }
+    hdf5_write_extendible_dataset_long(state_group, "targethit", n, intdata);
+    H5LTset_attribute_string(state_group, "targethit", "unit", "1");
 
     for(i = 0; i < n; i++) {
         real Brpz[3] = {p[i].B_r, p[i].B_phi, p[i].B_z};
