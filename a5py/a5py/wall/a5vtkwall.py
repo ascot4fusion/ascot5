@@ -158,7 +158,8 @@ class a5VtkWall(object):
         self.vtkPolyData = reader.GetOutput()
 
 
-    def plot(self,manual_range=None,logarithmicColorScale=True,camControl=None):
+    def plot(self,manual_range=None,logarithmicColorScale=True,camControl=None,
+             invertColormap=True,replaceBottom=True):
         '''
         @param manual_range: (opt) length two vector/tuple defining the coloraxis range as 10**manual_range[0] -- 10**manual_range[0] 
         @param camControl: (opt) an instance of a5VtkWall.camControl. 
@@ -198,15 +199,16 @@ class a5VtkWall(object):
             lut.SetScaleToLog10()
         lut.Build()
         # Invert the colormap
-        nColors=lut.GetNumberOfTableValues()
-        colors=list( range( nColors ) )
-        for iColor in range( nColors ):
-            colors[iColor]=lut.GetTableValue(iColor)
-        for iColor in range( nColors ):
-            lut.SetTableValue(nColors-iColor-1, colors[iColor] )
-
+        if invertColormap:
+            nColors=lut.GetNumberOfTableValues()
+            colors=list( range( nColors ) )
+            for iColor in range( nColors ):
+                colors[iColor]=lut.GetTableValue(iColor)
+            for iColor in range( nColors ):
+                lut.SetTableValue(nColors-iColor-1, colors[iColor] )
         # replace bottom with white
-        lut.SetTableValue(0,(1.0,1.0,1.0,1.0))
+        if replaceBottom:
+            lut.SetTableValue(0,(1.0,1.0,1.0,1.0))
 
         mapper.SetLookupTable(lut)
 
