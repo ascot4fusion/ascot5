@@ -80,7 +80,7 @@ int backward_monte_carlo(
     write_probability_distribution(sim_offload, distr0, distr0_array, mpi_rank, 0);
 
     // Free sitribution data
-    diag_free_offload(&sim_offload->diag_offload_data, &distr1_array);
+    // diag_free_offload(&sim_offload->diag_offload_data, &distr1_array);
     // diag_free_offload(&sim_offload->diag_offload_data, &distr0_array);
 
     return 0;
