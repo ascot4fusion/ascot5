@@ -251,10 +251,12 @@ void nbi_generate(int nprt, particle* p, int* nprt_shined, particle* p_shined, n
     *nprt_shined += nshined;
 
     for(int i = 0; i < nprt; i++) {
-        p[i].weight = n->power * (1 - totalShine/totalPower) / totalPower;
+        /*p[i].weight = n->power * (1 - totalShine/totalPower) / totalPower;*/
+        p[i].weight = n->power /(totalPower+totalShine) 
     }
 
     for(int i = 0; i < *nprt_shined; i++) {
-        p_shined[i].weight = n->power * (1 - totalShine/totalPower) / totalPower;
+        /*p_shined[i].weight = n->power * (1 - totalShine/totalPower) / totalPower;*/
+        p[i].weight = n->power /(totalPower+totalShine)
     }
 }
