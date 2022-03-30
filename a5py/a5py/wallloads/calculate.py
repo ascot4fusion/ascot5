@@ -7,17 +7,16 @@ Created on Mar 9, 2020
 import numpy as np
 import a5py.marker.endcond
 
-
-def wallLoad3DEndstate(hdf5):
+def wallLoad3DEndstate(run):
     """
-    Calculates the wall load from 3D wall for the active run.
+    Calculates the wall load from 3D wall for the specified run.
     @param hdf5: a5py.ascot5io.ascot5.Ascot(filename)
 
     @return: A float array of power load per triangle (W/m^2).
     """
 
-    cW = hdf5.active.wall  # The wall class
-    es = hdf5.active.endstate  # The Endstates
+    cW = run.wall  # The wall class
+    es = run.endstate  # The Endstates
 
     A = cW.area()  # Triangle area
     nWallTris = cW.getNumberOfElements()
