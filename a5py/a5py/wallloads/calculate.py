@@ -6,6 +6,7 @@ Created on Mar 9, 2020
 
 import numpy as np
 import a5py.marker.endcond
+from scipy.constants import physical_constants as const
 
 def wallLoad3DEndstate(run):
     """
@@ -29,6 +30,8 @@ def wallLoad3DEndstate(run):
     T = es.get("walltile")[WH] - 1
     weight = es.get("weight")[WH]
     ene = es.get("energy")[WH]
+    # The energies are now in eV. Need to convert to Joules.
+    ene = ene * const["elementary charge"][0]
 
     # Calculate the power represented by each marker
     P = np.multiply(weight, ene)
