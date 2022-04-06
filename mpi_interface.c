@@ -113,7 +113,7 @@ void mpi_gather_particlestate(particle_state* ps, particle_state** psgathered,
 #ifdef MPI
 
     const int n_real = 32;
-    const int n_int = 3;
+    const int n_int = 5;
     const int n_err = 1;
 
     particle_state* ps_all = malloc(ntotal * sizeof(particle_state));
@@ -158,14 +158,16 @@ void mpi_gather_particlestate(particle_state* ps, particle_state** psgathered,
                 ps_all[start_index+j].p_z    = realdata[11*n+j];
                 ps_all[start_index+j].mass   = realdata[12*n+j];
                 ps_all[start_index+j].charge = realdata[13*n+j];
+                ps_all[start_index+j].anum   = intdata[0*n+j];
+                ps_all[start_index+j].znum   = intdata[1*n+j];
                 ps_all[start_index+j].weight = realdata[14*n+j];
                 ps_all[start_index+j].time   = realdata[15*n+j];
                 ps_all[start_index+j].cputime = realdata[16*n+j];
                 ps_all[start_index+j].rho    = realdata[17*n+j];
                 ps_all[start_index+j].theta  = realdata[18*n+j];
-                ps_all[start_index+j].id       = intdata[0*n+j];
-                ps_all[start_index+j].endcond  = intdata[1*n+j];
-                ps_all[start_index+j].walltile = intdata[2*n+j];
+                ps_all[start_index+j].id       = intdata[2*n+j];
+                ps_all[start_index+j].endcond  = intdata[3*n+j];
+                ps_all[start_index+j].walltile = intdata[4*n+j];
                 ps_all[start_index+j].B_r    = realdata[19*n+j];
                 ps_all[start_index+j].B_phi  = realdata[20*n+j];
                 ps_all[start_index+j].B_z    = realdata[21*n+j];
@@ -214,14 +216,16 @@ void mpi_gather_particlestate(particle_state* ps, particle_state** psgathered,
             realdata[11*n+j] = ps[j].p_z;
             realdata[12*n+j] = ps[j].mass;
             realdata[13*n+j] = ps[j].charge;
+            intdata[0*n+j]  = ps[j].anum;
+            intdata[1*n+j]  = ps[j].znum;
             realdata[14*n+j] = ps[j].weight;
             realdata[15*n+j] = ps[j].time;
             realdata[16*n+j] = ps[j].cputime;
             realdata[17*n+j] = ps[j].rho;
             realdata[18*n+j] = ps[j].theta;
-            intdata[0*n+j] = ps[j].id;
-            intdata[1*n+j] = ps[j].endcond;
-            intdata[2*n+j] = ps[j].walltile;
+            intdata[2*n+j] = ps[j].id;
+            intdata[3*n+j] = ps[j].endcond;
+            intdata[4*n+j] = ps[j].walltile;
             realdata[19*n+j] = ps[j].B_r;
             realdata[20*n+j] = ps[j].B_phi;
             realdata[21*n+j] = ps[j].B_z;
