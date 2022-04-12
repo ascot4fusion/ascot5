@@ -121,6 +121,7 @@ int main(int argc, char** argv) {
     for(int i=0; i < nprt; i++) {
         ip[i].type = input_particle_type_p;
         ip[i].p = p[i];
+        ip[i].p.id = i;
     }
 
     char qid[11];
