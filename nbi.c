@@ -180,8 +180,8 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
                   B_field_data* Bdata, plasma_data* plsdata,
                   wall_data* walldata, random_data* rng) {
 
-    real totalShine = 0.0;
-    real totalPower = 0.0;
+    real totalShined = 0.0;
+    real totalIonized = 0.0;
 
     #pragma omp parallel for
     for(int i = 0; i < nprt; i++) {
@@ -198,7 +198,7 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
 
             if(shinethrough == 1) {
                 #pragma omp atomic
-                totalShine += 0.5 * mass * pow(math_norm(vxyz), 2);
+                totalShined += 0.5 * mass * pow(math_norm(vxyz), 2);
             }
         } while(shinethrough == 1);
 
@@ -221,10 +221,10 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
         p[i].time   = 0;
 
         #pragma omp atomic
-        totalPower += 0.5 * mass * pow(math_norm(vxyz), 2);
+        totalIonized += 0.5 * mass * pow(math_norm(vxyz), 2);
     }
 
     for(int i = 0; i < nprt; i++) {
-        p[i].weight = n->power * (1 - totalShine/totalPower) / totalPower;
+        p[i].weight = n->power / (totalShined + totalIonized);
     }
 }
