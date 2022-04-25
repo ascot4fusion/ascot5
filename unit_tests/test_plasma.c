@@ -32,6 +32,8 @@ int main(int argc, char** argv) {
     real* plasma_offload_array;
     real* neutral_offload_array;
     real* wall_offload_array;
+    real* boozer_offload_array;
+    real* mhd_offload_array;
     real* offload_array;
     int n;
     input_particle* p;
@@ -47,6 +49,8 @@ int main(int argc, char** argv) {
                               &plasma_offload_array,
                               &neutral_offload_array,
                               &wall_offload_array,
+                              NULL,
+                              NULL,
                               &p,
                               &n);
     /* Init plasma */

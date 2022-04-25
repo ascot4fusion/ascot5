@@ -6,6 +6,7 @@
 #include <math.h>
 #include "B_field.h"
 #include "consts.h"
+#include "physlib.h"
 #include "math.h"
 #include "nbi.h"
 #include "particle.h"
@@ -154,8 +155,9 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
         if(exited_plasma) {
             real rpz2[3]; /* new position, old position already in rpz */
             math_xyz2rpz(xyz, rpz2);
+	    real w_coll;
             int tile = wall_hit_wall(rpz[0], rpz[1], rpz[2], rpz2[0], rpz2[1],
-                                     rpz2[2], walldata);
+                                     rpz2[2], walldata, &w_coll);
 
             if(tile > 0) {
                 /* hit wall */
@@ -178,9 +180,10 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
                   B_field_data* Bdata, plasma_data* plsdata,
                   wall_data* walldata, random_data* rng) {
 
-    real totalShine = 0.0;
-    real totalPower = 0.0;
+    real totalShined = 0.0;
+    real totalIonized = 0.0;
 
+    #pragma omp parallel for
     for(int i = 0; i < nprt; i++) {
         real xyz[3], vxyz[3];
         int anum, znum;
@@ -194,7 +197,8 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
                    walldata, rng);
 
             if(shinethrough == 1) {
-                totalShine += 0.5 * mass * pow(math_norm(vxyz), 2);
+                #pragma omp atomic
+                totalShined += 0.5 * mass * pow(math_norm(vxyz), 2);
             }
         } while(shinethrough == 1);
 
@@ -202,23 +206,25 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
         math_xyz2rpz(xyz, rpz);
         math_vec_xyz2rpz(vxyz, vrpz, rpz[1]);
 
-        p[i].r = rpz[0];
-        p[i].phi = rpz[1];
-        p[i].z = rpz[2];
-        p[i].v_r = vrpz[0];
-        p[i].v_phi = vrpz[1];
-        p[i].v_z = vrpz[2];
-        p[i].anum = anum;
-        p[i].znum = znum;
+        real gamma = physlib_gamma_vnorm(math_norm(vrpz));
+        p[i].r      = rpz[0];
+        p[i].phi    = rpz[1];
+        p[i].z      = rpz[2];
+        p[i].p_r    = vrpz[0] * gamma * mass;
+        p[i].p_phi  = vrpz[1] * gamma * mass;
+        p[i].p_z    = vrpz[2] * gamma * mass;
+        p[i].anum   = anum;
+        p[i].znum   = znum;
         p[i].charge = 1 * CONST_E;
-        p[i].mass = mass;
-        p[i].id = i+1;
-        p[i].time = 0;
+        p[i].mass   = mass;
+        p[i].id     = i+1;
+        p[i].time   = 0;
 
-        totalPower += 0.5 * mass * pow(math_norm(vxyz), 2);
+        #pragma omp atomic
+        totalIonized += 0.5 * mass * pow(math_norm(vxyz), 2);
     }
 
     for(int i = 0; i < nprt; i++) {
-        p[i].weight = n->power * (1 - totalShine/totalPower) / totalPower;
+        p[i].weight = n->power / (totalShined + totalIonized);
     }
 }

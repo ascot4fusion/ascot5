@@ -1,0 +1,85 @@
+compile_libascot:
+  tags:
+    - docker-images
+  image: ascot5v4dep
+  script:
+    - make -j libascot FLAGS=-foffload=disable
+    - make ascotpy2.py FLAGS=-foffload=disable
+  artifacts:
+    paths:
+      - libascot.so
+      - ascotpy2.py
+    when: on_success
+
+compile_ascot5_main:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make -j ascot5_main FLAGS=-foffload=disable
+  artifacts:
+    paths:
+      - ascot5_main
+    when: on_success
+
+compile_ascot5_main_MPI:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make -j ascot5_main MPI=1 FLAGS=-foffload=disable
+
+compile_ascot5_main_verbose1:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make -j ascot5_main VERBOSE=1 FLAGS=-foffload=disable
+
+compile_bbnbi_verbose:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make -j bbnbi5 VERBOSE=1 FLAGS=-foffload=disable
+
+compile_bbnbi:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make -j bbnbi5 FLAGS=-foffload=disable
+
+
+
+unit_tests:
+  tags:
+    - docker-images
+  image: ascot5v3dep
+  script:
+    - make test_math  FLAGS="-foffload=disable -DWALL_3D_VERBOSE"
+    - ./test_math
+    - make test_wall_3d FLAGS="-foffload=disable -DWALL_3D_VERBOSE"
+    - ./test_wall_3d
+    - make test_diag_orb FLAGS="-foffload=disable -DWALL_3D_VERBOSE"
+    - ./test_diag_orb
+
+phys_tests:
+  tags:
+    - docker-images
+  image: ascot5v5dep
+  artifacts:
+    paths:
+      - test_boozercoordinates.png
+      - test_classicaltransport.png
+      - test_elementary.png
+      - test_gctransform.png
+      - test_orbitfollowing.png
+  script:
+    - 'curl --location --header "JOB-TOKEN: $CI_JOB_TOKEN" "https://version.aalto.fi/gitlab/api/v4/projects/1813/jobs/artifacts/master/raw/a5py/dist/a5py-0.0-py3-none-any.whl?job=wheel" --output a5py-0.0-py3-none-any.whl'
+    - pip install a5py-0.0-py3-none-any.whl
+    - make -j ascot5_main libascot.so FLAGS=-foffload=disable
+    - cp -v libascot.so /usr/lib/
+    - test_ascot.py init
+    - test_ascot.py run
+    - test_ascot.py check

@@ -2,22 +2,17 @@
  * @file diag_orb.c
  * @brief Functions to write particle and guiding center information.
  */
+
+#include "diag_orb.h"
+
 #include <math.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
+
 #include "../ascot5.h"
 #include "../consts.h"
 #include "../simulate.h"
-#include "../gctransform.h"
-#include "../particle.h"
-#include "../B_field.h"
-#include "diag_orb.h"
 
-#pragma omp declare target
-#pragma omp declare simd uniform(ang0)
-real diag_orb_check_plane_crossing(real fang, real iang, real ang0);
-#pragma omp end declare target
 
 /**
  * @brief Initializes orbit diagnostics offload data.
@@ -54,80 +49,89 @@ void diag_orb_init(diag_orb_data* data, diag_orb_offload_data* offload_data,
         for(int i=0; i<data->npoloidalplots; i++) {
             data->poloidalangles[i] = offload_data->poloidalangles[i];
         }
+        data->nradialplots = offload_data->nradialplots;
+        for(int i=0; i<data->nradialplots; i++) {
+            data->radialdistances[i] = offload_data->radialdistances[i];
+        }
 
         data->pncrid = &(offload_array[step*offload_data->Nfld]);
+        data->pncrdi = &(offload_array[step*(offload_data->Nfld+1)]);
     }
 
     switch(offload_data->record_mode) {
 
         case simulate_mode_fo:
-            data->id     = &(offload_array[step*0]);
-            data->time   = &(offload_array[step*1]);
-            data->r      = &(offload_array[step*2]);
-            data->phi    = &(offload_array[step*3]);
-            data->z      = &(offload_array[step*4]);
-            data->rdot   = &(offload_array[step*5]);
-            data->phidot = &(offload_array[step*6]);
-            data->zdot   = &(offload_array[step*7]);
-            data->weight = &(offload_array[step*8]);
-            data->charge = &(offload_array[step*9]);
-            data->rho    = &(offload_array[step*10]);
-            data->theta  = &(offload_array[step*11]);
-            data->B_r    = &(offload_array[step*12]);
-            data->B_phi  = &(offload_array[step*13]);
-            data->B_z    = &(offload_array[step*14]);
+            data->id      = &(offload_array[step*0]);
+            data->mileage = &(offload_array[step*1]);
+            data->r       = &(offload_array[step*2]);
+            data->phi     = &(offload_array[step*3]);
+            data->z       = &(offload_array[step*4]);
+            data->p_r     = &(offload_array[step*5]);
+            data->p_phi   = &(offload_array[step*6]);
+            data->p_z     = &(offload_array[step*7]);
+            data->weight  = &(offload_array[step*8]);
+            data->charge  = &(offload_array[step*9]);
+            data->rho     = &(offload_array[step*10]);
+            data->theta   = &(offload_array[step*11]);
+            data->B_r     = &(offload_array[step*12]);
+            data->B_phi   = &(offload_array[step*13]);
+            data->B_z     = &(offload_array[step*14]);
+            data->simmode = &(offload_array[step*15]);
             break;
 
         case simulate_mode_gc:
-            data->id     = &(offload_array[step*0]);
-            data->time   = &(offload_array[step*1]);
-            data->r      = &(offload_array[step*2]);
-            data->phi    = &(offload_array[step*3]);
-            data->z      = &(offload_array[step*4]);
-            data->vpar   = &(offload_array[step*5]);
-            data->mu     = &(offload_array[step*6]);
-            data->zeta   = &(offload_array[step*7]);
-            data->weight = &(offload_array[step*8]);
-            data->charge = &(offload_array[step*9]);
-            data->rho    = &(offload_array[step*10]);
-            data->theta  = &(offload_array[step*11]);
-            data->B_r    = &(offload_array[step*12]);
-            data->B_phi  = &(offload_array[step*13]);
-            data->B_z    = &(offload_array[step*14]);
+            data->id      = &(offload_array[step*0]);
+            data->mileage = &(offload_array[step*1]);
+            data->r       = &(offload_array[step*2]);
+            data->phi     = &(offload_array[step*3]);
+            data->z       = &(offload_array[step*4]);
+            data->ppar    = &(offload_array[step*5]);
+            data->mu      = &(offload_array[step*6]);
+            data->zeta    = &(offload_array[step*7]);
+            data->weight  = &(offload_array[step*8]);
+            data->charge  = &(offload_array[step*9]);
+            data->rho     = &(offload_array[step*10]);
+            data->theta   = &(offload_array[step*11]);
+            data->B_r     = &(offload_array[step*12]);
+            data->B_phi   = &(offload_array[step*13]);
+            data->B_z     = &(offload_array[step*14]);
+            data->simmode = &(offload_array[step*15]);
             break;
 
         case simulate_mode_ml:
-            data->id     = &(offload_array[step*0]);
-            data->time   = &(offload_array[step*1]);
-            data->r      = &(offload_array[step*2]);
-            data->phi    = &(offload_array[step*3]);
-            data->z      = &(offload_array[step*4]);
-            data->rho    = &(offload_array[step*5]);
-            data->theta  = &(offload_array[step*6]);
-            data->B_r    = &(offload_array[step*7]);
-            data->B_phi  = &(offload_array[step*8]);
-            data->B_z    = &(offload_array[step*9]);
+            data->id      = &(offload_array[step*0]);
+            data->mileage = &(offload_array[step*1]);
+            data->r       = &(offload_array[step*2]);
+            data->phi     = &(offload_array[step*3]);
+            data->z       = &(offload_array[step*4]);
+            data->rho     = &(offload_array[step*5]);
+            data->theta   = &(offload_array[step*6]);
+            data->B_r     = &(offload_array[step*7]);
+            data->B_phi   = &(offload_array[step*8]);
+            data->B_z     = &(offload_array[step*9]);
+            data->simmode = &(offload_array[step*10]);
             break;
 
         case simulate_mode_hybrid:
-            data->id     = &(offload_array[step*0]);
-            data->time   = &(offload_array[step*1]);
-            data->r      = &(offload_array[step*2]);
-            data->phi    = &(offload_array[step*3]);
-            data->z      = &(offload_array[step*4]);
-            data->rdot   = &(offload_array[step*5]);
-            data->phidot = &(offload_array[step*6]);
-            data->zdot   = &(offload_array[step*7]);
-            data->vpar   = &(offload_array[step*8]);
-            data->mu     = &(offload_array[step*9]);
-            data->zeta   = &(offload_array[step*10]);
-            data->weight = &(offload_array[step*11]);
-            data->charge = &(offload_array[step*12]);
-            data->rho    = &(offload_array[step*13]);
-            data->theta  = &(offload_array[step*14]);
-            data->B_r    = &(offload_array[step*15]);
-            data->B_phi  = &(offload_array[step*16]);
-            data->B_z    = &(offload_array[step*17]);
+            data->id      = &(offload_array[step*0]);
+            data->mileage = &(offload_array[step*1]);
+            data->r       = &(offload_array[step*2]);
+            data->phi     = &(offload_array[step*3]);
+            data->z       = &(offload_array[step*4]);
+            data->p_r     = &(offload_array[step*5]);
+            data->p_phi   = &(offload_array[step*6]);
+            data->p_z     = &(offload_array[step*7]);
+            data->ppar    = &(offload_array[step*8]);
+            data->mu      = &(offload_array[step*9]);
+            data->zeta    = &(offload_array[step*10]);
+            data->weight  = &(offload_array[step*11]);
+            data->charge  = &(offload_array[step*12]);
+            data->rho     = &(offload_array[step*13]);
+            data->theta   = &(offload_array[step*14]);
+            data->B_r     = &(offload_array[step*15]);
+            data->B_phi   = &(offload_array[step*16]);
+            data->B_z     = &(offload_array[step*17]);
+            data->simmode = &(offload_array[step*18]);
             break;
     }
 
@@ -167,6 +171,7 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
 
             /* Mask dummy markers */
             if(p_f->id[i] > 0) {
+
                 integer imrk   = p_f->index[i];
                 integer ipoint = data->mrk_pnt[imrk];
                 integer idx    = imrk * data->Npnt + ipoint;
@@ -174,13 +179,13 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                 /* If this is the first time-step, record marker position. */
                 if( data->id[imrk * data->Npnt] == 0 ) {
                     data->id[idx]     = (real)p_i->id[i];
-                    data->time[idx]   = p_i->time[i];
+                    data->mileage[idx]= p_i->mileage[i];
                     data->r[idx]      = p_i->r[i];
                     data->phi[idx]    = p_i->phi[i];
                     data->z[idx]      = p_i->z[i];
-                    data->rdot[idx]   = p_i->rdot[i];
-                    data->phidot[idx] = p_i->phidot[i];
-                    data->zdot[idx]   = p_i->zdot[i];
+                    data->p_r[idx]    = p_i->p_r[i];
+                    data->p_phi[idx]  = p_i->p_phi[i];
+                    data->p_z[idx]    = p_i->p_z[i];
                     data->weight[idx] = p_i->weight[i];
                     data->charge[idx] = p_i->charge[i];
                     data->rho[idx]    = p_i->rho[i];
@@ -188,30 +193,31 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                     data->B_r[idx]    = p_i->B_r[i];
                     data->B_phi[idx]  = p_i->B_phi[i];
                     data->B_z[idx]    = p_i->B_z[i];
+                    data->simmode[idx]= DIAG_ORB_FO;
 
                     ipoint++;
                     if(ipoint == data->Npnt) {
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
-                    data->mrk_recorded[imrk] = p_f->time[i];
+                    data->mrk_recorded[imrk] = p_f->mileage[i];
                 }
 
                 /* Record marker if enough time has passed from last record, or
                    if marker has met some end condition. */
                 real dt = data->mrk_recorded[imrk] + data->writeInterval
-                    - p_f->time[i];
+                    - p_f->mileage[i];
                 if( dt <= 0 || p_f->endcond[i] > 0 ) {
                     idx = imrk * data->Npnt + ipoint;
 
                     data->id[idx]     = (real)p_f->id[i];
-                    data->time[idx]   = p_f->time[i];
+                    data->mileage[idx]= p_f->mileage[i];
                     data->r[idx]      = p_f->r[i];
                     data->phi[idx]    = p_f->phi[i];
                     data->z[idx]      = p_f->z[i];
-                    data->rdot[idx]   = p_f->rdot[i];
-                    data->phidot[idx] = p_f->phidot[i];
-                    data->zdot[idx]   = p_f->zdot[i];
+                    data->p_r[idx]    = p_f->p_r[i];
+                    data->p_phi[idx]  = p_f->p_phi[i];
+                    data->p_z[idx]    = p_f->p_z[i];
                     data->weight[idx] = p_f->weight[i];
                     data->charge[idx] = p_f->charge[i];
                     data->rho[idx]    = p_f->rho[i];
@@ -219,13 +225,14 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                     data->B_r[idx]    = p_f->B_r[i];
                     data->B_phi[idx]  = p_f->B_phi[i];
                     data->B_z[idx]    = p_f->B_z[i];
+                    data->simmode[idx]= DIAG_ORB_FO;
 
                     ipoint++;
                     if(ipoint == data->Npnt) {
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
-                    data->mrk_recorded[imrk] = p_f->time[i];
+                    data->mrk_recorded[imrk] = p_f->mileage[i];
                 }
             }
         }
@@ -234,8 +241,8 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
 
         #pragma omp simd
         for(int i= 0; i < NSIMD; i++) {
-            /* Mask dummy markers and thosw whose time-step was rejected. */
-            if( p_f->id[i] > 0 && (p_f->time[i] != p_i->time[i]) ) {
+            /* Mask dummy markers and those whose time-step was rejected. */
+            if( p_f->id[i] > 0 && (p_f->mileage[i] != p_i->mileage[i]) ) {
 
                 real k;
                 integer imrk   = p_f->index[i];
@@ -250,28 +257,30 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         real d = 1-k;
                         idx = imrk * data->Npnt + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
-                        data->time[idx]   = k*p_f->time[i]   + d*p_i->time[i];
+                        data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
                         data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
                         data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
-                        data->rdot[idx]   = k*p_f->rdot[i]   + d*p_i->rdot[i];
-                        data->phidot[idx] = k*p_f->phidot[i] + d*p_i->phidot[i];
-                        data->zdot[idx]   = k*p_f->zdot[i]   + d*p_i->zdot[i];
+                        data->p_r[idx]    = k*p_f->p_r[i]    + d*p_i->p_r[i];
+                        data->p_phi[idx]  = k*p_f->p_phi[i]  + d*p_i->p_phi[i];
+                        data->p_z[idx]    = k*p_f->p_z[i]    + d*p_i->p_z[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
-                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->charge[idx] = p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
                         data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->phi[i] < p_i->phi[i]);
+                        data->simmode[idx]= DIAG_ORB_FO;
 
                         ipoint++;
                         if(ipoint == data->Npnt) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
-                        data->mrk_recorded[imrk] = p_f->time[i];
+                        data->mrk_recorded[imrk] = p_f->mileage[i];
                     }
                 }
 
@@ -284,28 +293,64 @@ void diag_orb_update_fo(diag_orb_data* data, particle_simd_fo* p_f,
                         real d = 1-k;
                         idx = imrk * data->Npnt + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
-                        data->time[idx]   = k*p_f->time[i]   + d*p_i->time[i];
+                        data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
                         data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
                         data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
-                        data->rdot[idx]   = k*p_f->rdot[i]   + d*p_i->rdot[i];
-                        data->phidot[idx] = k*p_f->phidot[i] + d*p_i->phidot[i];
-                        data->zdot[idx]   = k*p_f->zdot[i]   + d*p_i->zdot[i];
+                        data->p_r[idx]    = k*p_f->p_r[i]    + d*p_i->p_r[i];
+                        data->p_phi[idx]  = k*p_f->p_phi[i]  + d*p_i->p_phi[i];
+                        data->p_z[idx]    = k*p_f->p_z[i]    + d*p_i->p_z[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
-                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->charge[idx] = p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
                         data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j + data->ntoroidalplots;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->theta[i] < p_i->theta[i]);
+                        data->simmode[idx]= DIAG_ORB_FO;
 
                         ipoint++;
                         if(ipoint == data->Npnt) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
-                        data->mrk_recorded[imrk] = p_f->time[i];
+                        data->mrk_recorded[imrk] = p_f->mileage[i];
+                    }
+                }
+
+                /* Check and store radial crossings. */
+                for(int j=0; j < data->nradialplots; j++) {
+                    k = diag_orb_check_radial_crossing(p_f->rho[i],p_i->rho[i],
+                                                    data->radialdistances[j]);
+                    if(k) {
+                        real d = k;
+                        k = 1-d;
+                        idx = imrk * data->Npnt + ipoint;
+                        data->id[idx]     = (real)p_f->id[i];
+                        data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
+                        data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
+                        data->p_r[idx]    = k*p_f->p_r[i]    + d*p_i->p_r[i];
+                        data->p_phi[idx]  = k*p_f->p_phi[i]  + d*p_i->p_phi[i];
+                        data->p_z[idx]    = k*p_f->p_z[i]    + d*p_i->p_z[i];
+                        data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
+                        data->charge[idx] = p_i->charge[i];
+                        data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
+                        data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
+                        data->pncrid[idx] = j + data->ntoroidalplots + data->npoloidalplots;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->rho[i] < p_i->rho[i]);
+                        ipoint++;
+                        if(ipoint == data->Npnt) {
+                            ipoint = 0;
+                        }
+                        data->mrk_pnt[imrk]      = ipoint;
+                        data->mrk_recorded[imrk] = p_f->mileage[i];
                     }
                 }
             }
@@ -338,11 +383,11 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                 /* If this is the first time-step, record marker position. */
                 if( data->id[imrk * data->Npnt] == 0 ) {
                     data->id[idx]     = (real)(p_i->id[i]);
-                    data->time[idx]   = p_i->time[i];
+                    data->mileage[idx]= p_i->mileage[i];
                     data->r[idx]      = p_i->r[i];
                     data->phi[idx]    = p_i->phi[i];
                     data->z[idx]      = p_i->z[i];
-                    data->vpar[idx]   = p_i->vpar[i];
+                    data->ppar[idx]   = p_i->ppar[i];
                     data->mu[idx]     = p_i->mu[i];
                     data->zeta[idx]   = p_i->zeta[i];
                     data->weight[idx] = p_i->weight[i];
@@ -352,29 +397,30 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                     data->B_r[idx]    = p_i->B_r[i];
                     data->B_phi[idx]  = p_i->B_phi[i];
                     data->B_z[idx]    = p_i->B_z[i];
+                    data->simmode[idx]= DIAG_ORB_GC;
 
                     ipoint++;
                     if(ipoint == data->Npnt) {
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
-                    data->mrk_recorded[imrk] = p_f->time[i];
+                    data->mrk_recorded[imrk] = p_f->mileage[i];
                 }
 
                 /* Record marker if enough time has passed from last record, or
                    if marker has met some end condition. */
                 real dt = data->mrk_recorded[imrk] + data->writeInterval
-                    - p_f->time[i];
+                    - p_f->mileage[i];
 
                 if( dt <= 0 || p_f->endcond[i] > 0 ) {
                                     idx = imrk * data->Npnt + ipoint;
 
                     data->id[idx]     = (real)p_f->id[i];
-                    data->time[idx]   = p_f->time[i];
+                    data->mileage[idx]= p_f->mileage[i];
                     data->r[idx]      = p_f->r[i];
                     data->phi[idx]    = p_f->phi[i];
                     data->z[idx]      = p_f->z[i];
-                    data->vpar[idx]   = p_f->vpar[i];
+                    data->ppar[idx]   = p_f->ppar[i];
                     data->mu[idx]     = p_f->mu[i];
                     data->zeta[idx]   = p_f->zeta[i];
                     data->weight[idx] = p_f->weight[i];
@@ -384,12 +430,14 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                     data->B_r[idx]    = p_f->B_r[i];
                     data->B_phi[idx]  = p_f->B_phi[i];
                     data->B_z[idx]    = p_f->B_z[i];
+                    data->simmode[idx]= DIAG_ORB_GC;
+
                     ipoint++;
                     if(ipoint == data->Npnt) {
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
-                    data->mrk_recorded[imrk] = p_f->time[i];
+                    data->mrk_recorded[imrk] = p_f->mileage[i];
                 }
             }
         }
@@ -397,8 +445,8 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
     else if(data->mode == DIAG_ORB_POINCARE) {
         #pragma omp simd
         for(int i= 0; i < NSIMD; i++) {
-            /* Mask dummy markers and thosw whose time-step was rejected. */
-            if( p_f->id[i] > 0 && (p_f->time[i] != p_i->time[i]) ) {
+            /* Mask dummy markers and those whose time-step was rejected. */
+            if( p_f->id[i] > 0 && (p_f->mileage[i] != p_i->mileage[i]) ) {
 
                 real k;
                 integer imrk   = p_f->index[i];
@@ -413,28 +461,30 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         real d = 1-k;
                         idx = imrk * data->Npnt + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
-                        data->time[idx]   = k*p_f->time[i]   + d*p_i->time[i];
+                        data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
                         data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
                         data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
-                        data->vpar[idx]   = k*p_f->vpar[i]   + d*p_i->vpar[i];
+                        data->ppar[idx]   = k*p_f->ppar[i]   + d*p_i->ppar[i];
                         data->mu[idx]     = k*p_f->mu[i]     + d*p_i->mu[i];
                         data->zeta[idx]   = k*p_f->zeta[i]   + d*p_i->zeta[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
-                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->charge[idx] = p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
                         data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->phi[i] < p_i->phi[i]);
+                        data->simmode[idx]= DIAG_ORB_GC;
 
                         ipoint++;
                         if(ipoint == data->Npnt) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
-                        data->mrk_recorded[imrk] = p_f->time[i];
+                        data->mrk_recorded[imrk] = p_f->mileage[i];
                     }
                 }
 
@@ -447,28 +497,67 @@ void diag_orb_update_gc(diag_orb_data* data, particle_simd_gc* p_f,
                         real d = 1-k;
                         idx = imrk * data->Npnt + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
-                        data->time[idx]   = k*p_f->time[i]   + d*p_i->time[i];
+                        data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
                         data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
                         data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
                         data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
-                        data->vpar[idx]   = k*p_f->vpar[i]   + d*p_i->vpar[i];
+                        data->ppar[idx]   = k*p_f->ppar[i]   + d*p_i->ppar[i];
                         data->mu[idx]     = k*p_f->mu[i]     + d*p_i->mu[i];
                         data->zeta[idx]   = k*p_f->zeta[i]   + d*p_i->zeta[i];
                         data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
-                        data->charge[idx] = k*p_f->charge[i] + d*p_i->charge[i];
+                        data->charge[idx] = p_i->charge[i];
                         data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
                         data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
                         data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
                         data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
                         data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j + data->ntoroidalplots;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->theta[i] < p_i->theta[i]);
+                        data->simmode[idx]= DIAG_ORB_GC;
 
                         ipoint++;
                         if(ipoint == data->Npnt) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
-                        data->mrk_recorded[imrk] = p_f->time[i];
+                        data->mrk_recorded[imrk] = p_f->mileage[i];
+                    }
+                }
+
+
+                /* Check and store radial crossings. */
+                for(int j=0; j < data->nradialplots; j++) {
+                    k = diag_orb_check_radial_crossing(p_f->rho[i],
+                                                      p_i->rho[i],
+                                                      data->radialdistances[j]);
+                    if(k) {
+                        real d = 1-k;
+                        idx = imrk * data->Npnt + ipoint;
+                        data->id[idx]     = (real)p_f->id[i];
+                        data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
+                        data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
+                        data->ppar[idx]   = k*p_f->ppar[i]   + d*p_i->ppar[i];
+                        data->mu[idx]     = k*p_f->mu[i]     + d*p_i->mu[i];
+                        data->zeta[idx]   = k*p_f->zeta[i]   + d*p_i->zeta[i];
+                        data->weight[idx] = k*p_f->weight[i] + d*p_i->weight[i];
+                        data->charge[idx] = p_i->charge[i];
+                        data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
+                        data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
+                        data->pncrid[idx] =
+                                j + data->ntoroidalplots + data->npoloidalplots;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->rho[i] < p_i->rho[i]);
+
+                        ipoint++;
+                        if(ipoint == data->Npnt) {
+                            ipoint = 0;
+                        }
+                        data->mrk_pnt[imrk]      = ipoint;
+                        data->mrk_recorded[imrk] = p_f->mileage[i];
                     }
                 }
             }
@@ -501,48 +590,50 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
 
                 /* If this is the first time-step, record marker position. */
                 if( data->id[imrk * data->Npnt] == 0 ) {
-                    data->id[idx]    = (real)p_i->id[i];
-                    data->time[idx]  = p_i->time[i];
-                    data->r[idx]     = p_i->r[i];
-                    data->phi[idx]   = p_i->phi[i];
-                    data->z[idx]     = p_i->z[i];
-                    data->rho[idx]   = p_i->rho[i];
-                    data->theta[idx] = p_i->theta[i];
-                    data->B_r[idx]   = p_i->B_r[i];
-                    data->B_phi[idx] = p_i->B_phi[i];
-                    data->B_z[idx]   = p_i->B_z[i];
+                    data->id[idx]      = (real)p_i->id[i];
+                    data->mileage[idx] = p_i->mileage[i];
+                    data->r[idx]       = p_i->r[i];
+                    data->phi[idx]     = p_i->phi[i];
+                    data->z[idx]       = p_i->z[i];
+                    data->rho[idx]     = p_i->rho[i];
+                    data->theta[idx]   = p_i->theta[i];
+                    data->B_r[idx]     = p_i->B_r[i];
+                    data->B_phi[idx]   = p_i->B_phi[i];
+                    data->B_z[idx]     = p_i->B_z[i];
+                    data->simmode[idx] = DIAG_ORB_ML;
 
                     ipoint++;
                     if(ipoint == data->Npnt) {
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
-                    data->mrk_recorded[imrk] = p_f->time[i];
+                    data->mrk_recorded[imrk] = p_f->mileage[i];
                 }
 
                 /* Record marker if enough time has passed from last record, or
                    if marker has met some end condition. */
                 real dt = data->mrk_recorded[imrk] + data->writeInterval
-                    - p_f->time[i];
+                    - p_f->mileage[i];
                 if( dt <= 0 || p_f->endcond[i] > 0 ) {
                     idx = imrk * data->Npnt + ipoint;
-                    data->id[idx]    = (real)p_f->id[i];
-                    data->time[idx]  = p_f->time[i];
-                    data->r[idx]     = p_f->r[i];
-                    data->phi[idx]   = p_f->phi[i];
-                    data->z[idx]     = p_f->z[i];
-                    data->rho[idx]   = p_f->rho[i];
-                    data->theta[idx] = p_f->theta[i];
-                    data->B_r[idx]   = p_f->B_r[i];
-                    data->B_phi[idx] = p_f->B_phi[i];
-                    data->B_z[idx]   = p_f->B_z[i];
+                    data->id[idx]      = (real)p_f->id[i];
+                    data->mileage[idx] = p_f->mileage[i];
+                    data->r[idx]       = p_f->r[i];
+                    data->phi[idx]     = p_f->phi[i];
+                    data->z[idx]       = p_f->z[i];
+                    data->rho[idx]     = p_f->rho[i];
+                    data->theta[idx]   = p_f->theta[i];
+                    data->B_r[idx]     = p_f->B_r[i];
+                    data->B_phi[idx]   = p_f->B_phi[i];
+                    data->B_z[idx]     = p_f->B_z[i];
+                    data->simmode[idx] = DIAG_ORB_ML;
 
                     ipoint++;
                     if(ipoint == data->Npnt) {
                         ipoint = 0;
                     }
                     data->mrk_pnt[imrk]      = ipoint;
-                    data->mrk_recorded[imrk] = p_f->time[i];
+                    data->mrk_recorded[imrk] = p_f->mileage[i];
                 }
             }
         }
@@ -551,7 +642,7 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
         #pragma omp simd
         for(int i= 0; i < NSIMD; i++) {
             /* Mask dummy markers and thosw whose time-step was rejected. */
-            if( p_f->id[i] > 0 && (p_f->time[i] != p_i->time[i]) ) {
+            if( p_f->id[i] > 0 && (p_f->mileage[i] != p_i->mileage[i]) ) {
 
                 real k;
                 integer imrk   = p_f->index[i];
@@ -566,23 +657,25 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         real d = 1-k;
                         idx = imrk * data->Npnt + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
-                        data->time[idx]   = k*p_f->time[i]  + d*p_i->time[i];
-                        data->r[idx]      = k*p_f->r[i]     + d*p_i->r[i];
-                        data->phi[idx]    = k*p_f->phi[i]   + d*p_i->phi[i];
-                        data->z[idx]      = k*p_f->z[i]     + d*p_i->z[i];
-                        data->rho[idx]    = k*p_f->rho[i]   + d*p_i->rho[i];
-                        data->theta[idx]  = k*p_f->theta[i] + d*p_i->theta[i];
-                        data->B_r[idx]    = k*p_f->B_r[i]   + d*p_i->B_r[i];
-                        data->B_phi[idx]  = k*p_f->B_phi[i] + d*p_i->B_phi[i];
-                        data->B_z[idx]    = k*p_f->B_z[i]   + d*p_i->B_z[i];
+                        data->mileage[idx]= k*p_f->mileage[i]+ d*p_i->mileage[i];
+                        data->r[idx]      = k*p_f->r[i]      + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]    + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]      + d*p_i->z[i];
+                        data->rho[idx]    = k*p_f->rho[i]    + d*p_i->rho[i];
+                        data->theta[idx]  = k*p_f->theta[i]  + d*p_i->theta[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]    + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i]  + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]    + d*p_i->B_z[i];
                         data->pncrid[idx] = j;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->phi[i] < p_i->phi[i]);
+                        data->simmode[idx]= DIAG_ORB_ML;
 
                         ipoint++;
                         if(ipoint == data->Npnt) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
-                        data->mrk_recorded[imrk] = p_f->time[i];
+                        data->mrk_recorded[imrk] = p_f->mileage[i];
                     }
                 }
 
@@ -595,29 +688,65 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
                         real d = 1-k;
                         idx = imrk * data->Npnt + ipoint;
                         data->id[idx]     = (real)p_f->id[i];
-                        data->time[idx]   = k*p_f->time[i]  + d*p_i->time[i];
-                        data->r[idx]      = k*p_f->r[i]     + d*p_i->r[i];
-                        data->phi[idx]    = k*p_f->phi[i]   + d*p_i->phi[i];
-                        data->z[idx]      = k*p_f->z[i]     + d*p_i->z[i];
-                        data->rho[idx]    = k*p_f->rho[i]   + d*p_i->rho[i];
-                        data->theta[idx]  = k*p_f->theta[i] + d*p_i->theta[i];
-                        data->B_r[idx]    = k*p_f->B_r[i]   + d*p_i->B_r[i];
-                        data->B_phi[idx]  = k*p_f->B_phi[i] + d*p_i->B_phi[i];
-                        data->B_z[idx]    = k*p_f->B_z[i]   + d*p_i->B_z[i];
+                        data->mileage[idx]= k*p_f->mileage[i] + d*p_i->mileage[i];
+                        data->r[idx]      = k*p_f->r[i]       + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]     + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]       + d*p_i->z[i];
+                        data->rho[idx]    = k*p_f->rho[i]     + d*p_i->rho[i];
+                        data->theta[idx]  = k*p_f->theta[i]   + d*p_i->theta[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]     + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i]   + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]     + d*p_i->B_z[i];
                         data->pncrid[idx] = j + data->ntoroidalplots;
+                        data->pncrdi[idx] = 1 - 2 * (p_f->theta[i] < p_i->theta[i]);
+                        data->simmode[idx]= DIAG_ORB_ML;
 
                         ipoint++;
                         if(ipoint == data->Npnt) {
                             ipoint = 0;
                         }
                         data->mrk_pnt[imrk]      = ipoint;
-                        data->mrk_recorded[imrk] = p_f->time[i];
+                        data->mrk_recorded[imrk] = p_f->mileage[i];
+                    }
+                }
+  
+                /* Check and store radial crossings. */
+                for(int j=0; j < data->nradialplots; j++) {
+                    k = diag_orb_check_radial_crossing(p_f->rho[i],
+                                                      p_i->rho[i],
+                                                      data->radialdistances[j]);
+                    if(k) {
+                        real d = 1-k;
+                        idx = imrk * data->Npnt + ipoint;
+                        data->id[idx]     = (real)p_f->id[i];
+                        data->mileage[idx]= k*p_f->mileage[i] + d*p_i->mileage[i];
+                        data->r[idx]      = k*p_f->r[i]       + d*p_i->r[i];
+                        data->phi[idx]    = k*p_f->phi[i]     + d*p_i->phi[i];
+                        data->z[idx]      = k*p_f->z[i]       + d*p_i->z[i];
+                        data->rho[idx]    = k*p_f->rho[i]     + d*p_i->rho[i];
+                        data->theta[idx]  = k*p_f->theta[i]   + d*p_i->theta[i];
+                        data->B_r[idx]    = k*p_f->B_r[i]     + d*p_i->B_r[i];
+                        data->B_phi[idx]  = k*p_f->B_phi[i]   + d*p_i->B_phi[i];
+                        data->B_z[idx]    = k*p_f->B_z[i]     + d*p_i->B_z[i];
+                        data->pncrid[idx] =
+                                j + data->ntoroidalplots + data->npoloidalplots;
+
+                        ipoint++;
+                        if(ipoint == data->Npnt) {
+                            ipoint = 0;
+                        }
+
+                        data->mrk_pnt[imrk]      = ipoint;
+                        data->mrk_recorded[imrk] = p_f->mileage[i];
                     }
                 }
             }
         }
     }
 }
+
+
+
 
 /**
  * @brief Check if marker has crossed a plane.
@@ -632,11 +761,14 @@ void diag_orb_update_ml(diag_orb_data* data, particle_simd_ml* p_f,
  *
  * @return zero if no-crossing, number k, ang0 = k + (fang - iang), otherwise.
  */
-real diag_orb_check_plane_crossing(real fang, real iang, real ang0){
+real diag_orb_check_plane_crossing(real fang, real iang, real ang0) {
 
     real k = 0;
-    if( floor( (fang + ang0)/CONST_2PI ) != floor( (iang + ang0)/CONST_2PI ) ) {
+    /* Check whether nag0 is between iang and fang. Note that this     *
+     * implementation works only because iang and fang are cumulative. */
+    if( floor( (fang - ang0)/CONST_2PI ) != floor( (iang - ang0)/CONST_2PI ) ) {
 
+        /* Move iang to interval [0, 2pi] */
         real a = fmod(iang, CONST_2PI);
         if(a < 0){
             a = CONST_2PI + a;
@@ -648,6 +780,28 @@ real diag_orb_check_plane_crossing(real fang, real iang, real ang0){
         }
         k = fabs(a / (fang - iang));
     }
-
     return k;
 }
+
+/**
+ * @brief Check if marker has crossed given rho
+ *
+ * This helper function checks whether given rho that defines a Poincare plane
+ * is between marker's initial and final rhos (of single timestep).
+ *
+ * @param frho marker final rho in metres.
+ * @param irho marker initial rho in metres.
+ * @param rho0 Poincare plane rho.
+ *
+ * @return zero if no-crossing, number k, rho0 = k * (frho - irho), otherwise.
+ */
+
+real diag_orb_check_radial_crossing(real frho, real irho, real rho0){
+
+    real k = 0;
+    if((frho <= rho0 && irho > rho0) || (irho <= rho0 && frho > rho0)){
+        k = fabs((irho - rho0) / (frho - irho));
+    }
+    return k;
+}
+

@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
                               &B_offload_array, &E_offload_array,
                               &plasma_offload_array,
                               &neutral_offload_array,
-                              &wall_offload_array, &p, &n);
+                              &wall_offload_array, NULL, NULL, &p, &n);
 
     /* Init magnetic background */
     offload_package offload_data;

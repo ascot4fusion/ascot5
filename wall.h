@@ -64,7 +64,7 @@ int wall_init(wall_data* w, wall_offload_data* offload_data,
               real* offload_array);
 #pragma omp declare simd uniform(w)
 int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
-                  wall_data* w);
+                  wall_data* w, real* w_coll);
 #pragma omp end declare target
 
 #endif
