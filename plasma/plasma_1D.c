@@ -282,7 +282,7 @@ a5err plasma_1D_eval_rotation(real* vr, real* vphi, real* vz, real rho, real r,
         real p1, p2;
         p1 = pls_data->vtor[i_rho];
         p2 = pls_data->vtor[i_rho+1];
-        *vphi = p1 + t_rho * (p2 - p1);
+        *vphi = r * (p1 + t_rho * (p2 - p1));
         *vr = 0;
         *vz = 0;
     }
