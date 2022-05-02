@@ -21,6 +21,7 @@
 #include "../plasma.h"
 #include "simulate_gc_fixed.h"
 #include "step/step_gc_rk4.h"
+#include "../flow.h"
 #include "mccc/mccc.h"
 
 #pragma omp declare target
@@ -105,8 +106,10 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
         /* Euler-Maruyama method for collisions */
         if(sim->enable_clmbcol) {
+            flow_gc_to_plasma(&p, &sim->B_data, &sim->plasma_data);
             mccc_gc_euler(&p, hin, &sim->B_data, &sim->plasma_data,
                           &sim->random_data, &sim->mccc_data);
+            flow_gc_to_lab(&p, &sim->B_data, &sim->plasma_data);
         }
 
         /**********************************************************************/

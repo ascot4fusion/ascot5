@@ -147,9 +147,11 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
         /* Milstein method for collisions */
         if(sim->enable_clmbcol) {
+            flow_gc_to_plasma(&p, &sim->B_data, &sim->plasma_data);
             mccc_gc_milstein(&p, hin, hout_col, tol_col, wienarr, &sim->B_data,
                              &sim->plasma_data, &sim->random_data,
                              &sim->mccc_data);
+            flow_gc_to_lab(&p, &sim->B_data, &sim->plasma_data);
 
             /* Check whether time step was rejected */
             #pragma omp simd

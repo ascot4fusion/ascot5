@@ -129,8 +129,20 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
             err = plasma_eval_densandtemp(pls_dens, pls_temp, rho, rpz[0],
                                           rpz[1], rpz[2], 0.0, plsdata);
 
+            real vr, vphi, vz;
+
+            plasma_eval_rotation(&vr, &vphi, &vz, rho, rpz[0], rpz[1],
+                                 rpz[2], 0.0, plsdata);
+
+            real vrpz[3];
+            math_vec_xyz2rpz(vxyz, vrpz, rpz[1]);
+            vrpz[1] -= vphi;
+
+            real absv2 = math_norm(vrpz);
+
+            real energyrot = 0.5 * anum * CONST_U * absv2*absv2 / CONST_E / 1000;
             if(!err) {
-                rate = pls_dens[0] * 1e-4*suzuki_sigmav(energy / anum,
+                rate = pls_dens[0] * 1e-4*suzuki_sigmav(energyrot / anum,
                                                         pls_dens[0],
                                                         pls_temp[0] / CONST_E,
                                                         n_species-1,
