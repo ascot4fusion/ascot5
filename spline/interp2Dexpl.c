@@ -142,7 +142,7 @@ void interp2Dexpl_init_spline(interp2D_data* str, real* c,
  *
  * @return zero on success and one if (x,y) point is outside the domain.
  */
-int interp2Dexpl_eval_f(real* f, interp2D_data* str, real x, real y) {
+a5err interp2Dexpl_eval_f(real* f, interp2D_data* str, real x, real y) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
@@ -175,10 +175,10 @@ int interp2Dexpl_eval_f(real* f, interp2D_data* str, real x, real y) {
     int err = 0;
 
     /* Check that the coordinate is within the domain. */
-    if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
+    if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
         err = 1;
     }
-    if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+    if( str->bc_y == NATURALBC && !(y >= str->y_min && y <= str->y_max) ) {
         err = 1;
     }
 
@@ -216,7 +216,7 @@ int interp2Dexpl_eval_f(real* f, interp2D_data* str, real x, real y) {
  * @param x x-coordinate
  * @param y y-coordinate
  */
-int interp2Dexpl_eval_df(real* f_df, interp2D_data* str, real x, real y) {
+a5err interp2Dexpl_eval_df(real* f_df, interp2D_data* str, real x, real y) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
@@ -251,10 +251,10 @@ int interp2Dexpl_eval_df(real* f_df, interp2D_data* str, real x, real y) {
     int err = 0;
 
     /* Check that the coordinate is within the domain. */
-    if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
+    if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
         err = 1;
     }
-    if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+    if( str->bc_y == NATURALBC && !(y >= str->y_min && y <= str->y_max) ) {
         err = 1;
     }
 

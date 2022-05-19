@@ -196,7 +196,7 @@ void interp3Dexpl_init_spline(interp3D_data* str, real* c,
  *
  * @return zero on success and one if (x,y,z) point is outside the grid.
  */
-int interp3Dexpl_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
+a5err interp3Dexpl_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
@@ -242,13 +242,13 @@ int interp3Dexpl_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
     int err = 0;
 
     /* Check that the coordinate is within the domain. */
-    if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
+    if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
         err = 1;
     }
-    if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+    if( str->bc_y == NATURALBC && !(y >= str->y_min && y <= str->y_max) ) {
         err = 1;
     }
-    if( str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max) ) {
+    if( str->bc_z == NATURALBC && !(z >= str->z_min && z <= str->z_max) ) {
         err = 1;
     }
 
@@ -336,7 +336,7 @@ int interp3Dexpl_eval_f(real* f, interp3D_data* str, real x, real y, real z) {
  *
  * @return zero on success and one if (x,y,z) point is outside the grid.
  */
-int interp3Dexpl_eval_df(real* f_df, interp3D_data* str, real x, real y, real z) {
+a5err interp3Dexpl_eval_df(real* f_df, interp3D_data* str, real x, real y, real z) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
@@ -385,13 +385,13 @@ int interp3Dexpl_eval_df(real* f_df, interp3D_data* str, real x, real y, real z)
     int err = 0;
 
     /* Check that the coordinate is within the domain. */
-    if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
+    if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
         err = 1;
     }
-    if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+    if( str->bc_y == NATURALBC && !(y >= str->y_min && y <= str->y_max) ) {
         err = 1;
     }
-    if( str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max) ) {
+    if( str->bc_z == NATURALBC && !(z >= str->z_min && z <= str->z_max) ) {
         err = 1;
     }
 

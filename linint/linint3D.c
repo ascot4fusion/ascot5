@@ -99,6 +99,8 @@ int linint3D_eval_f(real* f, linint3D_data* str, real x, real y, real z) {
     /* Normalized z coordinate in current cell */
     real dz   = (z - (str->z_min + i_z*str->z_grid)) / str->z_grid;
 
+    /* Index jump to cell */
+    int n  = i_y*str->n_z*str->n_x + i_z*str->n_x + i_x;
     int x1 = 1;                 /* Index jump one x forward */
     int y1 = str->n_z*str->n_x; /* Index jump one y forward */
     int z1 = str->n_x;          /* Index jump one z forward */
@@ -109,32 +111,32 @@ int linint3D_eval_f(real* f, linint3D_data* str, real x, real y, real z) {
     if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
         x1 = -(str->n_x-1)*x1;
     }
-    else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
+    else if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
         err = 1;
     }
     if( str->bc_y == PERIODICBC && i_y == str->n_y-1 ) {
         y1 = -(str->n_y-1)*y1;
     }
-    else if( str->bc_y == NATURALBC && (y < str->y_min || y > str->y_max) ) {
+    else if( str->bc_y == NATURALBC && !(y >= str->y_min && y <= str->y_max) ) {
         err = 1;
     }
     if( str->bc_z == PERIODICBC && i_z == str->n_z-1 ) {
         z1 = -(str->n_z-1)*z1;
     }
-    else if( str->bc_z == NATURALBC && (z < str->z_min || z > str->z_max) ) {
+    else if( str->bc_z == NATURALBC && !(z >= str->z_min && z <= str->z_max) ) {
         err = 1;
     }
 
     if(!err) {
         /* Values at grid cell corners */
-        c000 = str->c[i_y*y1 + i_z*z1 + i_x];
-        c100 = str->c[i_y*y1 + i_z*z1 + (i_x + 1)];
-        c001 = str->c[(i_y + 1)*y1 + i_z*z1 + i_x];
-        c101 = str->c[(i_y + 1)*y1 + i_z*z1 + (i_x + 1)];
-        c010 = str->c[i_y*y1 + (i_z + 1)*z1 + i_x];
-        c110 = str->c[i_y*y1 + (i_z + 1)*z1 + (i_x + 1)];
-        c011 = str->c[(i_y + 1)*y1 + (i_z + 1)*z1 + i_x];
-        c111 = str->c[(i_y + 1)*y1 + (i_z + 1)*z1 + (i_x + 1)];
+        c000 = str->c[n];
+        c100 = str->c[n + x1];
+        c001 = str->c[n + y1];
+        c101 = str->c[n + y1 + x1];
+        c010 = str->c[n + z1];
+        c110 = str->c[n +z1 + x1];
+        c011 = str->c[n + y1 + z1];
+        c111 = str->c[n + y1 + z1 + x1];
         /* Interpolate along x */
         c00 = c000*(1 - dx) + c100*dx;
         c01 = c001*(1 - dx) + c101*dx;

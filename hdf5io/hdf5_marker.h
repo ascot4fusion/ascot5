@@ -9,5 +9,6 @@
 #include "../particle.h"
 
 int hdf5_marker_read(hid_t f, int *n, input_particle** p, char* qid);
+int hdf5_marker_write_particle(hid_t f, int n, input_particle* p, char* qid);
 
 #endif

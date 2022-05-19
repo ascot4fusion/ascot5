@@ -3,6 +3,18 @@ job.err.*
 job.out.*
 *~
 test_offload
+test_B
+test_E
+test_N0
+test_bsearch
+test_interp1Dcomp
+test_linint3D
+test_math
+test_plasma
+test_random
+test_spline
+test_wall_2d
+test_wall_3d
 ascot5_main
 ascot.h5
 *.optrpt
@@ -10,3 +22,6 @@ ascot.h5
 *.so
 doc/
 gitver.h
+compiler_flags.h
+bbnbi5
+/.metadata/

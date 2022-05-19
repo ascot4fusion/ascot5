@@ -89,57 +89,26 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         /* Store marker states */
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
-            p0.r[i]          = p.r[i];
-            p0.phi[i]        = p.phi[i];
-            p0.z[i]          = p.z[i];
-            p0.rdot[i]       = p.rdot[i];
-            p0.phidot[i]     = p.phidot[i];
-            p0.zdot[i]       = p.zdot[i];
-
-            p0.time[i]       = p.time[i];
-            p0.cputime[i]    = p.cputime[i];
-            p0.rho[i]        = p.rho[i];
-            p0.weight[i]     = p.weight[i];
-            p0.cputime[i]    = p.cputime[i];
-            p0.rho[i]        = p.rho[i];
-            p0.theta[i]      = p.theta[i];
-
-            p0.mass[i]       = p.mass[i];
-            p0.charge[i]     = p.charge[i];
-
-            p0.id[i]         = p.id[i];
-            p0.running[i]    = p.running[i];
-            p0.endcond[i]    = p.endcond[i];
-            p0.walltile[i]   = p.walltile[i];
-
-            p0.B_r[i]        = p.B_r[i];
-            p0.B_phi[i]      = p.B_phi[i];
-            p0.B_z[i]        = p.B_z[i];
-
-            p0.B_r_dr[i]     = p.B_r_dr[i];
-            p0.B_r_dphi[i]   = p.B_r_dphi[i];
-            p0.B_r_dz[i]     = p.B_r_dz[i];
-
-            p0.B_phi_dr[i]   = p.B_phi_dr[i];
-            p0.B_phi_dphi[i] = p.B_phi_dphi[i];
-            p0.B_phi_dz[i]   = p.B_phi_dz[i];
-
-            p0.B_z_dr[i]     = p.B_z_dr[i];
-            p0.B_z_dphi[i]   = p.B_z_dphi[i];
-            p0.B_z_dz[i]     = p.B_z_dz[i];
+            particle_copy_fo(&p, i, &p0, i);
         }
 
         /*************************** Physics **********************************/
 
         /* Volume preserving algorithm for orbit-following */
         if(sim->enable_orbfol) {
-            step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data);
+            if(sim->enable_mhd) {
+                step_fo_vpa_mhd(&p, hin, &sim->B_data, &sim->E_data,
+                                &sim->boozer_data, &sim->mhd_data);
+            }
+            else {
+                step_fo_vpa(&p, hin, &sim->B_data, &sim->E_data);
+            }
         }
 
         /* Euler-Maruyama for Coulomb collisions */
         if(sim->enable_clmbcol) {
-            mccc_fo_euler(&p, hin, &sim->B_data, &sim->plasma_data,
-                          &sim->random_data, &sim->mccc_data);
+            mccc_fo_euler(&p, hin, &sim->plasma_data, sim->random_data,
+                          &sim->mccc_data);
         }
 
         /**********************************************************************/
@@ -150,7 +119,8 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]){
-                p.time[i] = p.time[i] + hin[i];
+                p.time[i]    += hin[i];
+                p.mileage[i] += hin[i];
                 p.cputime[i] += cputime - cputime_last;
             }
         }
@@ -229,9 +199,9 @@ real simulate_fo_fixed_inidt(sim_data* sim, particle_simd_fo* p, int i) {
     else {
         /* Value calculated from gyrotime */
         real Bnorm = math_normc( p->B_r[i], p->B_phi[i], p->B_z[i] );
-        real vnorm = math_normc( p->rdot[i], p->phidot[i]*p->r[i], p->zdot[i] );
+        real pnorm = math_normc( p->p_r[i], p->p_phi[i], p->p_z[i] );
         real gyrotime = CONST_2PI/
-            phys_gyrofreq_vnorm(p->mass[i], p->charge[i], vnorm, Bnorm);
+            phys_gyrofreq_pnorm(p->mass[i], p->charge[i], pnorm, Bnorm);
         h = gyrotime/sim->fix_gyrodef_nstep;
     }
 

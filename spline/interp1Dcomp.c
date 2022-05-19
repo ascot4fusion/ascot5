@@ -47,7 +47,7 @@ int interp1Dcomp_init_coeff(real* c, real* f, int n_x, int bc_x,
     /* Cubic spline along x, using f values to get fxx */
     splinecomp(f, n_x, bc_x, c);
     for(int i_x=0; i_x<n_x; i_x++) {
-        c[i_x*2]     = c[i_x*2];
+        /* Accounting for normalized grid. Affects fxx, but not f. */
         c[i_x*2 + 1] = c[i_x*2+1] / (x_grid*x_grid);
     }
 
@@ -93,7 +93,7 @@ void interp1Dcomp_init_spline(interp1D_data* str, real* c,
  *
  * @return zero on success and one if x point is outside the domain.
  */
-int interp1Dcomp_eval_f(real* f, interp1D_data* str, real x) {
+a5err interp1Dcomp_eval_f(real* f, interp1D_data* str, real x) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
@@ -120,7 +120,7 @@ int interp1Dcomp_eval_f(real* f, interp1D_data* str, real x) {
     if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
         x1 = -(str->n_x-1)*x1;
     }
-    else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
+    else if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
         err = 1;
     }
 
@@ -151,7 +151,7 @@ int interp1Dcomp_eval_f(real* f, interp1D_data* str, real x) {
  *
  * @return zero on success and one if (x,y) point is outside the grid.
  */
-int interp1Dcomp_eval_df(real* f_df, interp1D_data* str, real x) {
+a5err interp1Dcomp_eval_df(real* f_df, interp1D_data* str, real x) {
 
     /* Make sure periodic coordinates are within [min, max] region. */
     if(str->bc_x == PERIODICBC) {
@@ -182,7 +182,7 @@ int interp1Dcomp_eval_df(real* f_df, interp1D_data* str, real x) {
     if( str->bc_x == PERIODICBC && i_x == str->n_x-1 ) {
         x1 = -(str->n_x-1)*x1;
     }
-    else if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
+    else if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
         err = 1;
     }
 

@@ -140,9 +140,9 @@ a5err E_1DS_eval_E(real E[3], real r, real phi, real z, E_1DS_data* Edata,
     real dV;
     interperr += interp1Dcomp_eval_f(&dV, &Edata->dV, rho_drho[0]);
 
-    E[0] = dV * rho_drho[1];
-    E[1] = dV * rho_drho[2];
-    E[2] = dV * rho_drho[3];
+    E[0] = -dV * rho_drho[1];
+    E[1] = -dV * rho_drho[2];
+    E[2] = -dV * rho_drho[3];
 
     if(interperr) {
         err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_E_1DS );
