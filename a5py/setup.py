@@ -10,20 +10,23 @@ setup(name='a5py',
       install_requires=[
           'numpy',
           'h5py',
-          'prompt_toolkit'
+          'prompt_toolkit',
+          'unyt',
+          'scipy',
+          'matplotlib',
+          'scikit-image'
       ],
       scripts=[
         'bin/a5removegroup',
         'bin/a5copygroup',
         'bin/a5editoptions',
-        'bin/a5separatemarkers',
-        'bin/a5poincare',
         'bin/a5combine',
         'bin/a5ascot4input',
-        'bin/a5continuerun',
         'bin/a5setactive',
         'bin/a5gui',
         'bin/a5ls',
-        'bin/a5vol',
-        'bin/a5doxygen'
-      ])
+        'bin/a5makecompatible',
+        'bin/a5doxygen',
+        'bin/test_ascot.py'
+      ],
+      include_package_data=True)

@@ -12,7 +12,7 @@ if plt:
     import matplotlib.pyplot as plt
 
 def plot_line(x, y=None, z=None, ids=None, equal=False,
-              xlabel=None, ylabel=None, zlabel=None, axes=None):
+              xlabel=None, ylabel=None, zlabel=None, axes=None, **kwargs):
     """
     Plot continuous line f(x).
 
@@ -55,16 +55,16 @@ def plot_line(x, y=None, z=None, ids=None, equal=False,
         for i in uids:
             if z is None:
                 plot_line(x[i==ids], y[i==ids], equal=equal, xlabel=xlabel,
-                          ylabel=ylabel, axes=axes)
+                          ylabel=ylabel, axes=axes, **kwargs)
             else:
                 plot_line(x[i==ids], y[i==ids], z[i==ids], equal=equal,
                           xlabel=xlabel, ylabel=ylabel, zlabel=zlabel,
-                          axes=axes)
+                          axes=axes, **kwargs)
     else:
         if z is None:
-            axes.plot(x, y)
+            axes.plot(x, y, **kwargs)
         else:
-            axes.plot(x, y, z)
+            axes.plot(x, y, z, **kwargs)
 
     if equal:
         axes.axis("scaled")
@@ -137,7 +137,7 @@ def plot_histogram(x, xbins=None, y=None, ybins=None, weights=None,
     return axes
 
 def plot_scatter(x, y=None, z=None, c=None, prune=1, equal=False, ids=None,
-                 xlabel=None, ylabel=None, zlabel=None, axes=None,
+                 xlabel=None, ylabel=None, zlabel=None, axes=None, cmap=None,
                  **kwargs):
     """
     Plot a scatter plot.
@@ -164,7 +164,13 @@ def plot_scatter(x, y=None, z=None, c=None, prune=1, equal=False, ids=None,
         axes = plt.figure()
         axes = plt.gca()
 
-    cmap = plt.cm.get_cmap("viridis", 5)
+    if isinstance(prune, int):
+        prune = slice(None,None,prune)
+
+    if cmap is not None:
+        cmap = plt.cm.get_cmap(cmap, 5)
+    else:
+        cmap = plt.cm.get_cmap("viridis", 5)
     if z is None and c is None:
         if ids is not None:
             uids  = np.unique(ids)
@@ -173,41 +179,44 @@ def plot_scatter(x, y=None, z=None, c=None, prune=1, equal=False, ids=None,
             for i in range(uids.size):
                 c = np.asarray( [cmap( cpick[np.mod(i, 5)] )]
                                 * np.sum( ids==uids[i] ) )
-                h = axes.scatter(x[ids==uids[i]][::prune],
-                                 y[ids==uids[i]][::prune], c=c[::prune],
+                h = axes.scatter(x[ids==uids[i]][prune],
+                                 y[ids==uids[i]][prune], c=c[prune],
                                  edgecolors="none", **kwargs)
         else:
-            h = axes.scatter(x[::prune], y[::prune], **kwargs)
+            h = axes.scatter(x[prune], y[prune], **kwargs)
 
     elif z is not None and c is None:
         if ids is not None:
             uids = np.unique(ids)
             for i in uids:
-                h = axes.scatter(x[ids==i][::prune], y[ids==i][::prune],
-                                 zs=z[ids==i][::prune])
+                h = axes.scatter(x[ids==i][prune], y[ids==i][prune],
+                                 zs=z[ids==i][prune], edgecolors="none",
+                                 **kwargs)
 
         else:
-            h = axes.scatter(x, y, zs=z)
+            h = axes.scatter(x, y, zs=z, **kwargs)
 
     elif z is None and c is not None:
         if ids is not None:
             uids = np.unique(ids)
             for i in uids:
-                h = axes.scatter(x[ids==i][::prune], y[ids==i][::prune],
-                                 c=c[ids==i][::prune])
+                h = axes.scatter(x[ids==i][prune], y[ids==i][prune],
+                                 c=c[ids==i][prune], edgecolors="none",
+                                 **kwargs)
 
         else:
-            h = axes.scatter(x, y, c=c)
+            h = axes.scatter(x, y, c=c, **kwargs)
             plt.colorbar(h, ax=axes)
     else:
         if ids is not None:
             uids = np.unique(ids)
             for i in uids:
-                h = axes.scatter(x[ids==i][::prune], y[ids==i][::prune],
-                                 zs=z[ids==i][::prune], c=c[ids==i][::prune])
+                h = axes.scatter(x[ids==i][prune], y[ids==i][prune],
+                                 zs=z[ids==i][prune], c=c[ids==i][prune],
+                                 edgecolors="none", **kwargs)
 
         else:
-            h = axes.scatter(x, y, zs=z, c=c)
+            h = axes.scatter(x, y, zs=z, c=c, **kwargs)
             plt.colorbar(h, ax=axes)
 
     if equal:

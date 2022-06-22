@@ -35,6 +35,8 @@ def clean_opt(odict):
         if o.startswith("DISABLE"):
             odict[o] = np.array([0],dtype='i4')
 
+    odict["ENDCOND_MAX_MILEAGE"] = 1
+
 
 def set_correct_input(parent, test):
     """
@@ -66,7 +68,9 @@ def set_and_run(test):
     set_correct_input("neutral", test)
     set_correct_input("wall",    test)
     set_correct_input("options", test)
-
+    set_correct_input("boozer",  test)
+    set_correct_input("mhd",     test)
+    
     sleep(1.01) # Sleep for one second so that each run gets unique QID
 
     frm   = lambda x: "%.3f s" % x

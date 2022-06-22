@@ -7,7 +7,9 @@ import h5py
 import numpy as np
 
 from . ascot5file import add_group
-from a5py.ascot5io.ascot5data import AscotData
+from a5py.ascot5io.mrk import mrk
+import a5py.ascot5io.mrk
+
 
 def write_hdf5(fn, n, ids, mass, charge,
                r, phi, z, vr, vphi, vz,
@@ -35,9 +37,9 @@ def write_hdf5(fn, n, ids, mass, charge,
         vr : array_like (n,1) <br>
             Particle velocity R-component [m/s].
         vphi : array_like (n,1) <br>
-            Particle velocity phi-component [deg].
+            Particle velocity phi-component [m/s].
         vz : array_like (n,1) <br>
-            Particle velocity z-component [m].
+            Particle velocity z-component [m/s].
         anum : array_like (n,1) <br>
             Marker species atomic mass number.
         znum : array_like (n,1) <br>
@@ -91,7 +93,6 @@ def write_hdf5(fn, n, ids, mass, charge,
 
     return gname
 
-
 def read_hdf5(fn, qid):
     """
     Read particle marker input from HDF5 file.
@@ -105,21 +106,21 @@ def read_hdf5(fn, qid):
     Returns:
         Dictionary containing input data.
     """
-
-    path = "marker/prt_" + qid
-
-    out = {}
-    with h5py.File(fn,"r") as f:
-        for key in f[path]:
-            out[key] = f[path][key][:]
-
-    return out
+    prefix='prt'
+    return a5py.ascot5io.mrk.read_hdf5(fn, qid, prefix)
 
 
-class mrk_prt(AscotData):
+class mrk_prt(mrk):
     """
     Object representing particle marker data.
     """
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
+
+
+    def write(self, fn, data=None, desc=None):
+        if data is None:
+            data = self.read()
+
+        return write_hdf5(fn, **data, desc=desc)

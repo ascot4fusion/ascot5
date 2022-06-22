@@ -11,7 +11,6 @@ import numpy as np
 from scipy.interpolate import interp1d, RectBivariateSpline, interp2d
 
 import a5py.marker.phasespace as phasespace
-from a5py.ascotpy.ascotpy import Ascotpy
 
 import importlib.util as util
 
@@ -23,7 +22,8 @@ if plt:
 
 
 def plotlossmap(a5, mass, charge, energy, r, z, pitch, rhogrid, ksigrid,
-                time, lost, weights, axis, muin=False):
+                time, lost, weights, rmin, binmin=-5, binmax=-1, nbin=4, muin=False,
+                uselinscale=False, axes=None):
     """
     Plot lost markers in (rho_omp,ksi_omp) or (rho_omp,mu) space.
 
@@ -32,6 +32,8 @@ def plotlossmap(a5, mass, charge, energy, r, z, pitch, rhogrid, ksigrid,
     the fraction of particles lost is illustrated with shade and black contours
     (10 % losses = thin contour, 90 % losses = thick contour).  The plot also
     shows the passing-trapped boundary in red.
+
+    The color scale is discrete and logarithmic (unless uselinscale=True).
 
     Args:
         a5 : Ascotpy <br>
@@ -58,11 +60,27 @@ def plotlossmap(a5, mass, charge, energy, r, z, pitch, rhogrid, ksigrid,
             Boolean array indicating which markers are lost.
         weights : array_like (n,1) <br>
             Marker weights.
-        axis : Axis <br>
-            Axis on which the lossmap is plotted.
+        rmin : float <br>
+            R coordinate for the inner mid plane separatrix.
+        binmin : float, optional <br>
+            Minimum time exponent (or value if uselinscale=True) for the color scale.
+        binmax : float, optional <br>
+            Maximum time exponent (or value if uselinscale=True) for the color scale.
+        nbin : integer, optional <br>
+            Number of bins on the color scale.
         muin : bool, optional <br>
             mu grid if the lossmap is plotted in (rho_omp,mu) instead.
+        uselinscale : bool <br>
+            Use linear scale for time instead.
+        axes : Axes, optional <br>
+            Axes on which the lossmap is plotted. Default is to open a new figure.
     """
+
+    showfig = False
+    if axes is None:
+        plt.figure()
+        axes = plt.gca()
+        showfig = True
 
     # Find the phase-space coordinates for each marker
     if muin:
@@ -81,32 +99,38 @@ def plotlossmap(a5, mass, charge, energy, r, z, pitch, rhogrid, ksigrid,
     # Which particles are trapped
     P,mu = phasespace.evalPmu(a5, mass, charge, energy, r, z, pitch)
     trapped = phasespace.istrapped(a5, mass, charge, energy,
-                                   P, mu, rmin=4)
+                                   P, mu, rmin=rmin)
 
     # Evaluate the plotted quantities
     lostxy = np.histogram2d(x[lost], y[lost], bins=[xgrid,ygrid],
                             weights=weights[lost])[0]
     timexy = np.histogram2d(x[lost], y[lost], bins=[xgrid,ygrid],
-                            weights=(time*weights)[lost])[0] / lostxy
+                            weights=(time*weights)[lost])[0]
+    timexy = np.divide(timexy, lostxy,
+                       out=np.zeros(timexy.shape, dtype=float), where=lostxy!=0)
 
-    timexy = np.log10(timexy)
+    if not uselinscale:
+        timexy = np.log10(timexy)
 
     weightxy = np.histogram2d(x, y, bins=[xgrid,ygrid], weights=weights)[0]
-    lossfrac = lostxy / weightxy
+    lossfrac = np.divide(lostxy, weightxy,
+                         out=np.zeros(lostxy.shape, dtype=float), where=weightxy!=0)
 
     trapxy = np.histogram2d(x, y, bins=[xgrid,ygrid],
-                            weights=trapped*weights)[0] / weightxy
+                            weights=trapped*weights)[0]
+    trapxy = np.divide(trapxy, weightxy,
+                       out=np.zeros(trapxy.shape, dtype=float), where=weightxy!=0)
 
-    # Plot loss time with 4 different colours
-    cmap = plt.cm.get_cmap("viridis_r", 4)
+    # Plot loss time with different colours
+    cmap = plt.cm.get_cmap("viridis_r", nbin)
     alphacmap = cmap(np.arange(cmap.N))
     alphacmap[:,:] = 1
     alphacmap[:,-1] = np.linspace(0, 1, cmap.N)
     alphacmap = ListedColormap(alphacmap)
 
-    mesh = axis.pcolormesh(xgrid, ygrid, timexy.transpose(),
-                           cmap=cmap, vmin=-5, vmax=-1)
-    axis.figure.canvas.draw()
+    mesh = axes.pcolormesh(xgrid, ygrid, timexy.transpose(),
+                           cmap=cmap, vmin=binmin, vmax=binmax)
+    axes.figure.canvas.draw()
 
     # Get the colors and adjust shade so it corresponds to fraction of prts lost
     colors = mesh.get_facecolor()
@@ -121,18 +145,21 @@ def plotlossmap(a5, mass, charge, energy, r, z, pitch, rhogrid, ksigrid,
     mesh.set_facecolors(colors)
 
     # Passing-trapped boundary
-    axis.contour(xgrid[:-1] + (xgrid[1]-xgrid[0])/2,
+    axes.contour(xgrid[:-1] + (xgrid[1]-xgrid[0])/2,
                  ygrid[:-1] + (ygrid[1]-ygrid[0])/2,
                  (trapxy.transpose() > 0)*1, [1], alpha=0.7,
                  colors='red', linestyles='dotted', linewidths=1)
 
     # 10 % and 90 % contours
-    axis.contour(xgrid[:-1] + (xgrid[1]-xgrid[0])/2,
+    axes.contour(xgrid[:-1] + (xgrid[1]-xgrid[0])/2,
                  ygrid[:-1] + (ygrid[1]-ygrid[0])/2,
                  lossfrac.transpose(), [0.1, 0.9], colors=['black', 'black'],
                  alpha=0.7, linewidths=[1, 3])
 
-    axis.figure.canvas.draw()
+    axes.figure.canvas.draw()
+
+    if showfig:
+        plt.show()
 
 
 def evallossfrac(a5, mass, charge, energy, r, z ,pitch, rhogrid, ksigrid,

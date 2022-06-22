@@ -24,9 +24,9 @@ def plot_segments(x, y, axes=None):
     x = np.append(x, x[0])
     y = np.append(y, y[0])
     axes.plot(x, y, color="black", linewidth=2)
-    axes.axis("scaled")
 
     if newfig:
+        axes.axis("scaled")
         plt.show(block=False)
 
 def plot_projection(x1x2x3, y1y2y3, z1z2z3, axes=None):
@@ -43,9 +43,9 @@ def plot_projection(x1x2x3, y1y2y3, z1z2z3, axes=None):
     z1z2z3 = z1z2z3.ravel()
     axes.plot(r1r2r3, z1z2z3, marker=".", markeredgecolor="black",
               linestyle="None")
-    axes.axis("scaled")
 
     if newfig:
+        axes.axis("scaled")
         plt.show(block=False)
 
 def plot_intersection(x1x2x3, y1y2y3, z1z2z3, phi, axes=None):

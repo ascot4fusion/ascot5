@@ -31,6 +31,7 @@ def read_wall_3d(fn):
         data['y1y2y3'] = np.array(np.zeros((num_lines, 3)))
         data['z1z2z3'] = np.array(np.zeros((num_lines, 3)))
         data['id'] = np.array(np.zeros((num_lines, 1)))
+        data['flag'] = np.array(np.zeros((num_lines, 1))) # This is not filled (for lack of test-files)
         for sector in range(1,data['n_sectors']+1):
             f.readline() # Skip empty line
             try:
@@ -103,13 +104,14 @@ def read_wall_3d(fn):
 
 def read_wall_3d_hdf5(fname):
 
+    data = dict()
+    
     with h5py.File(fname, 'r') as f: # Open for reading
-
-        data = dict()
-
         data['x1x2x3'] = f['/wall/3d/triangles_x1x2x3'][:]
         data['y1y2y3'] = f['/wall/3d/triangles_y1y2y3'][:]
         data['z1z2z3'] = f['/wall/3d/triangles_z1z2z3'][:]
-        data['id'] = f['/wall/3d/triangles_flag'][:]
+        data[ "flag" ] = f['/wall/3d/triangles_flag'  ][:]
+        
+    data['n']=[[ data['x1x2x3'].shape[0] ]]
 
     return data

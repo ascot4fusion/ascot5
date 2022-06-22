@@ -105,6 +105,11 @@ def write_hdf5_3D(fn, n, R, z, nphi, desc=None):
     wall_3D.write_hdf5(fn, 2*n*nphi, x1x2x3, y1y2y3, z1z2z3, desc=desc)
 
 
+def write_hdf5_dummy(fn, desc="Dummy"):
+    r = np.array([0.01, 100, 100, 0.01])
+    z = np.array([-100, -100, 100, 100])
+    write_hdf5(fn=fn, nelements=4, r=r, z=z, desc=desc)
+
 class wall_2D(AscotData):
     """
     Object representing wall_2D data.
@@ -112,6 +117,14 @@ class wall_2D(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
+
+
+    def write(self, fn, data=None):
+        if data is None:
+            data = self.read()
+
+        return write_hdf5(fn, **data)
+
 
     def plotRz(self, axes=None, phi=0):
         w = self.read()

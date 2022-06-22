@@ -43,10 +43,10 @@ class DistFrame(PlotFrame):
         top = self.get_toppanel()
 
         self._plottype = tkinter.StringVar()
-        buttona = tkinter.Radiobutton(top, text="1D (vpa, vpe)",
+        buttona = tkinter.Radiobutton(top, text="1D (ppa, ppe)",
                                       variable=self._plottype, value="1d",
                                       command=self._update_sidepanel)
-        buttonb = tkinter.Radiobutton(top, text="2D (vpa, vpe)",
+        buttonb = tkinter.Radiobutton(top, text="2D (ppa, ppe)",
                                       variable=self._plottype, value="2d",
                                       command=self._update_sidepanel)
 
@@ -91,7 +91,7 @@ class DistFrame(PlotFrame):
 
     def _show_1dpanel(self):
         """
-        Show panel for plotting 1D vpa,vpe dist.
+        Show panel for plotting 1D ppa,ppe dist.
         """
         data = self._dist.get_dist()
 
@@ -160,7 +160,7 @@ class DistFrame(PlotFrame):
 
     def _show_2dpanel(self):
         """
-        Show panel for plotting 2D vpa,vpe dist.
+        Show panel for plotting 2D ppa,ppe dist.
         """
         data = self._dist.get_dist()
 

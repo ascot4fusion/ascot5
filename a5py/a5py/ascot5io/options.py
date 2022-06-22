@@ -36,15 +36,14 @@ def write_hdf5(fn, options, desc=None):
         g    = add_group(f, parent, group, desc=desc)
         name = g.name
 
-        # Options might contain parameters unknown to default options
+        # Convert all options to float (and to numpy arrays) and write to file
         for opt in options:
-            if opt != "qid" and opt != "date" and opt != "description":
-                data = options[opt]
-                if type(data) is not np.array:
-                    data = np.array(data)
+            data = options[opt]
+            if type(data) is not np.array:
+                data = np.array(data)
 
-                data =data.astype("f8")
-                d = g.create_dataset(opt, (data.size,), data=data)
+            data =data.astype("f8")
+            d = g.create_dataset(opt, (data.size,), data=data)
 
     return name
 
@@ -242,16 +241,20 @@ def get_default():
     info.append(
         ("ENDCOND_SIMTIMELIM",
          """\
-         # Terminate when marker's clock ("laboratory") time reaches a limit
-         # The limit is set by ENDCOND_MAX_SIM_TIME
+         # Terminate when marker time exceeds ENDCOND_MAX_SIMTIME or when marker
+         # time has advanced ENDCOND_MAX_MILEAGE in a simulation. In other
+         # words, marker is terminated if t > ENDCOND_MAX_MILEAGE or
+         # t0 + t > ENDCOND_MAX_SIMTIME where t0 is marker's initial time and t
+         # the time it has been simulated. See also ENDCOND_CPUTIMELIM.
          """,
          1)
     )
     info.append(
         ("ENDCOND_CPUTIMELIM",
          """\
-         # Terminate when marker's cpu time reaches a limit
-         # The limit is set by ENDCOND_MAX_CPU_TIME
+         # Terminate marker when the computer has spent ENDCOND_MAX_CPUTIME
+         # amount of real time to simulate it. This limit should be rarely used
+         # as its intended use is in debugging to stop markers stuck in a loop.
          """,
          1)
     )
@@ -285,8 +288,9 @@ def get_default():
          """\
          # Terminate when marker has completed user-specified number of orbits
          # Limit ENDCOND_MAX_TOROIDALORBS is used for a number of toroidal
-         # and ENDCOND_MAX_POLOIDALORBS for poloidal orbits. Marker is
-         # terminated when either of these limits is reached.
+         # and ENDCOND_MAX_POLOIDALORBS for poloidal orbits.
+         # 1 : Marker is terminated when either of these limits is reached.
+         # 2 : Marker is terminated when both limits are reached.
          """,
          0)
     )
@@ -294,6 +298,13 @@ def get_default():
         ("ENDCOND_MAX_SIMTIME",
          """\
          # Maximum simulation time [s]
+         """,
+         1)
+    )
+    info.append(
+        ("ENDCOND_MAX_MILEAGE",
+         """\
+         # The maximum amount of time this marker is simulated [s]
          """,
          1)
     )
@@ -369,6 +380,13 @@ def get_default():
          1)
     )
     info.append(
+        ("ENABLE_MHD",
+         """\
+         # Include MHD perturbations to orbit-following
+         """,
+         0)
+    )
+    info.append(
         ("DISABLE_FIRSTORDER_GCTRANS",
          """\
          # Disable first order guiding center transformation in velocity space
@@ -407,13 +425,13 @@ def get_default():
     info.append(
         ("ENABLE_DIST_5D",
          """\
-         # Collect distribution histogram in [R, phi, z, vpa, vpe, t, q]
+         # Collect distribution histogram in [R, phi, z, ppa, ppe, t, q]
          # The coordinates are
          #   - R   major radius
          #   - phi toroidal angle
          #   - z   z-coordinate
-         #   - vpa velocity component parallel to magnetic field
-         #   - vpe velocity component perpendicular to magnetic field
+         #   - ppa momentum component parallel to magnetic field
+         #   - ppe momentum component perpendicular to magnetic field
          #   - t   time
          #   - q   charge
          """,
@@ -422,14 +440,14 @@ def get_default():
     info.append(
         ("ENABLE_DIST_6D",
          """\
-         # Collect distribution histogram in [R, phi, z, vR, vphi, vz, t, q]
+         # Collect distribution histogram in [R, phi, z, pR, pphi, pz, t, q]
          # The coordinates are
          #    - R    major radius
          #    - phi  toroidal angle
          #    - z    z-coordinate
-         #    - vR   velocity R-component
-         #    - vphi velocity phi-component
-         #    - vz   velocity z-component
+         #    - pR   momentum R-component
+         #    - pphi momentum phi-component
+         #    - pz   momentum z-component
          #    - t    time
          #    - q    charge
          """,
@@ -438,14 +456,14 @@ def get_default():
     info.append(
         ("ENABLE_DIST_RHO5D",
          """\
-         # Collect distribution histogram in [rho, pol, phi, vpa, vpe, t, q]
+         # Collect distribution histogram in [rho, pol, phi, ppa, ppe, t, q]
          # The coordinates are
          #    - rho  flux surface
          #    - pol  poloidal angle
          #    - phi  toroidal angle
          #    - z    z-coordinate
-         #    - vpa  velocity component parallel to magnetic field
-         #    - vpe  velocity component perpendicular to magnetic field
+         #    - ppa  momentum component parallel to magnetic field
+         #    - ppe  momentum component perpendicular to magnetic field
          #    - t    time
          #    - q    charge
          """,
@@ -454,15 +472,15 @@ def get_default():
     info.append(
         ("ENABLE_DIST_RHO6D",
          """\
-         # Collect distribution histogram in [rho, pol, phi, vR, vphi, vz, t, q]
+         # Collect distribution histogram in [rho, pol, phi, pR, pphi, pz, t, q]
          # The coordinates are
          #    - rho  flux surface
          #    - pol  poloidal angle
          #    - phi  toroidal angle
          #    - z    z-coordinate
-         #    - vR   velocity R-component
-         #    - vphi velocity phi-component
-         #    - vz   velocity z-component
+         #    - pR   momentum R-component
+         #    - pphi momentum phi-component
+         #    - pz   momentum z-component
          #    - t    time
          #    - q    charge
          """,
@@ -574,107 +592,107 @@ def get_default():
          10)
     )
     info.append(
-        ("DIST_MIN_VPA",
+        ("DIST_MIN_PPA",
          """\
-         # Minimum bin edge for vpa coordinate [m/s]
+         # Minimum bin edge for ppa coordinate [kg m/s]
          """,
          -3e8)
     )
     info.append(
-        ("DIST_MAX_VPA",
+        ("DIST_MAX_PPA",
          """\
-         # Maximum bin edge for vpa coordinate [m/s]
+         # Maximum bin edge for ppa coordinate [kg m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_VPA",
+        ("DIST_NBIN_PPA",
          """\
-         # Number of bins the interval [DIST_MIN_VPA, DIST_MAX_VPA] is divided to
+         # Number of bins the interval [DIST_MIN_PPA, DIST_MAX_PPA] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_VPE",
+        ("DIST_MIN_PPE",
          """\
-         # Minimum bin edge for vpe coordinate [m/s]
+         # Minimum bin edge for ppe coordinate [kg m/s]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_VPE",
+        ("DIST_MAX_PPE",
          """\
-         # Maximum bin edge for vpe coordinate [m/s]
+         # Maximum bin edge for ppe coordinate [kg m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_VPE",
+        ("DIST_NBIN_PPE",
          """\
-         # Number of bins the interval [DIST_MIN_VPE, DIST_MAX_VPE] is divided to
+         # Number of bins the interval [DIST_MIN_PPE, DIST_MAX_PPE] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_VR",
+        ("DIST_MIN_PR",
          """\
-         # Minimum bin edge for vR coordinate [m/s]
+         # Minimum bin edge for pR coordinate [kg m/s]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_VR",
+        ("DIST_MAX_PR",
          """\
-         # Maximum bin edge for vR coordinate [m/s]
+         # Maximum bin edge for pR coordinate [kg m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_VR",
+        ("DIST_NBIN_PR",
          """\
-         # Number of bins the interval [DIST_MIN_VR, DIST_MAX_VR] is divided to
+         # Number of bins the interval [DIST_MIN_PR, DIST_MAX_PR] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_VPHI",
+        ("DIST_MIN_PPHI",
          """\
-         # Minimum bin edge for vphi coordinate [m/s]
+         # Minimum bin edge for pphi coordinate [kg m/s]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_VPHI",
+        ("DIST_MAX_PPHI",
          """\
-         # Maximum bin edge for vphi coordinate [m/s]
+         # Maximum bin edge for pphi coordinate [kg m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_VPHI",
+        ("DIST_NBIN_PPHI",
          """\
-         # Number of bins the interval [DIST_MIN_VPHI, DIST_MAX_VPHI] is divided to
+         # Number of bins the interval [DIST_MIN_PPHI, DIST_MAX_PPHI] is divided to
          """,
          10)
     )
     info.append(
-        ("DIST_MIN_VZ",
+        ("DIST_MIN_PZ",
          """\
-         # Minimum bin edge for vz coordinate [m/s]
+         # Minimum bin edge for pz coordinate [kg m/s]
          """,
          0)
     )
     info.append(
-        ("DIST_MAX_VZ",
+        ("DIST_MAX_PZ",
          """\
-         # Maximum bin edge for vz coordinate [m/s]
+         # Maximum bin edge for pz coordinate [kg m/s]
          """,
          3e8)
     )
     info.append(
-        ("DIST_NBIN_VZ",
+        ("DIST_NBIN_PZ",
          """\
-         # Number of bins the interval [DIST_MIN_VZ, DIST_MAX_VZ] is divided to
+         # Number of bins the interval [DIST_MIN_PZ, DIST_MAX_PZ] is divided to
          """,
          10)
     )
@@ -752,14 +770,14 @@ def get_default():
          """\
          # Maximum number of points (per marker) to be written
          # If this number is exceeded when marker is being simulated, the oldest
-         # points will be replaced as long as the simulation continues. Thus, this
-         # parameter is effectively the number of marker's last positions that are
-         # stored.
+         # points will be replaced as long as the simulation continues. Thus,
+         # this parameter is effectively the number of marker's last positions
+         # that are stored.
          """,
          10)
     )
     info.append(
-        ("ORBITWRITE_TOROIDALANGLES",
+        ("ORBITWRITE_POLOIDALANGLES",
          """\
          # Poloidal angles of toroidal planes where toroidal plots are collected
          # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 0.
@@ -767,12 +785,20 @@ def get_default():
          [0, 180])
     )
     info.append(
-        ("ORBITWRITE_POLOIDALANGLES",
+        ("ORBITWRITE_TOROIDALANGLES",
          """\
          # Toroidal angles of poloidal planes where poloidal plots are collected
          # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 0.
          """,
          [0, 180])
+    )
+    info.append(
+        ("ORBITWRITE_RADIALDISTANCES",
+         """\
+         # Minor radius coordinate where radial plots are collected
+         # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 0.
+         """,
+         [-1, ])
     )
     info.append(
         ("ORBITWRITE_INTERVAL",
@@ -801,8 +827,9 @@ def get_default():
     info.append(
         ("TRANSCOEF_INTERVAL",
          """\
-         # Time interval for recording data points. If negative, data points are
-         # recorded at outer midplane.
+         # Time interval for recording data points. The data points are recorded
+         # outer mid-plane crossing if this interval has passed from the
+         # previous recording.
          """,
          -1)
     )
@@ -813,6 +840,14 @@ def get_default():
          # coefficients to reduce noise.
          """,
          5)
+    )
+    info.append(
+        ("TRANSCOEF_RECORDRHO",
+         """\
+         # Record coefficients in terms of normalized poloidal flux instead of
+         # meters.
+         """,
+         0)
     )
 
     cleaned = []
@@ -828,15 +863,27 @@ def get_default():
     return cleaned
 
 
-def generateopt():
+def generateopt(clean=False):
     """
     Get default option parameter names and values as a dictionary
+
+    Set clean=True to set disable all features except those that are supposed to
+    be enabled. Also clears all end conditions.
     """
     defopt = get_default()
     opt = {}
     for namecmtval in defopt:
         if len(namecmtval) == 3:
             opt[namecmtval[0]] = namecmtval[2]
+
+    if clean:
+        for o in opt:
+            if o.startswith("ENABLE"):
+                opt[o] = 0
+            if o.startswith("ENDCOND"):
+                opt[o] = 0
+            if o.startswith("DISABLE"):
+                opt[o] = 0
 
     return opt
 
@@ -845,3 +892,21 @@ class Opt(AscotData):
 
     def read(self, info=False):
         return read_hdf5(self._file, self.get_qid(), info=info)
+
+
+    def write(self, fn, data=None,desc=None):
+        if data is None:
+            data = self.read()
+
+        # Fill in the default values for missing parameters
+        defopt = generateopt()
+        for par in defopt.keys():
+            if par not in data.keys():
+                data[par] = defopt[par]
+
+        # Remove all unknown parameters
+        for par in list(data.keys()):
+            if par not in defopt.keys():
+                del data[par]
+
+        return write_hdf5(fn, data,desc=desc)

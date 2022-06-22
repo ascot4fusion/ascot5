@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Test ASCOT5 physics.
 
@@ -35,12 +37,13 @@ import a5py.ascot5io.ascot5      as ascot5
 import a5py.ascot5io.ascot5tools as tools
 
 import a5py.testascot.helpers as helpers
-import test_elementary
-import test_orbitfollowing
-import test_gctransform
-import test_coulombcollisions
-import test_classicaltransport
-import test_neoclassicaltransport
+from a5py.testascot import test_elementary
+from a5py.testascot import test_orbitfollowing
+from a5py.testascot import test_gctransform
+from a5py.testascot import test_coulombcollisions
+from a5py.testascot import test_classicaltransport
+from a5py.testascot import test_neoclassicaltransport
+from a5py.testascot import test_boozercoordinates
 
 # You can specify here which tests to run
 
@@ -51,11 +54,13 @@ dotest_orbitfollowing        = True
 ## Test test_gctransform.py
 dotest_gctransform           = True
 ## Test test_coulombcollisions.py
-dotest_coulombcollisions     = True
+dotest_coulombcollisions     = False
 ## Test test_classicaltransport.py
 dotest_classicaltransport    = True
 ## Test test_neoclassicaltransport.py
-dotest_neoclassicaltransport = True
+dotest_neoclassicaltransport = False
+## Test test_neoclassicaltransport.py
+dotest_boozercoordinate      = True
 
 def init():
     """
@@ -88,6 +93,10 @@ def init():
     if dotest_neoclassicaltransport:
         print("Initializing test_neoclassicaltransport.")
         test_neoclassicaltransport.init()
+
+    if dotest_boozercoordinate:
+        print("Initializing test_boozercoordinates.")
+        test_boozercoordinates.init()
 
 
 def run():
@@ -155,6 +164,13 @@ def run():
         print("")
         inter = timer()
 
+    if dotest_boozercoordinate:
+        print("Running test_boozercoordinates.")
+        test_boozercoordinates.run()
+        print("Elapsed time is " + frm(timer() - inter))
+        print("")
+        inter = timer()
+
     print("Total elapsed time is " + frm(timer() - start))
 
 
@@ -190,6 +206,10 @@ def check():
     if dotest_neoclassicaltransport:
         print("Checking results of test_neoclassicaltransport.")
         test_neoclassicaltransport.check()
+
+    if dotest_boozercoordinate:
+        print("Checking results of test_boozercoordinates.")
+        test_boozercoordinates.check()
 
 if __name__ == '__main__':
 

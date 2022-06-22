@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Test collisional transport in tokamak magnetic field.
 
@@ -24,10 +26,8 @@ File: test_neoclassicaltransport.py
 import sys
 
 import numpy                   as np
-import scipy.constants         as constants
 import matplotlib.pyplot       as plt
 
-import a5py.ascot5io.ascot5    as ascot5
 import a5py.ascot5io.options   as options
 import a5py.ascot5io.B_GS      as B_GS
 import a5py.ascot5io.E_TC      as E_TC
@@ -35,20 +35,18 @@ import a5py.ascot5io.plasma_1D as P_1D
 import a5py.ascot5io.wall_2D   as W_2D
 import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
+import a5py.ascot5io.boozer    as boozer
+import a5py.ascot5io.mhd       as mhd
 
 import a5py.testascot.helpers as helpers
 
+from a5py.ascot5io.ascot5 import Ascot
+from a5py.physlib import e, m_e, m_p, c, eps_0
+
 from a5py.preprocessing.analyticequilibrium import psi0 as psifun
 
-e       = constants.elementary_charge
-m_e_AMU = constants.physical_constants["electron mass in u"][0]
-m_e     = constants.physical_constants["electron mass"][0]
-m_p     = constants.physical_constants["proton mass"][0]
-c       = constants.physical_constants["speed of light in vacuum"][0]
-eps0    = constants.physical_constants["electric constant"][0]
-
 Nmrk  = 100
-nscan = 20 #20
+nscan = 20
 
 Ti   = 1e3
 ni   = np.power( 10, np.linspace(17.5, 22.0, nscan) )
@@ -158,7 +156,7 @@ def init():
     #**************************************************************************#
     ids    = np.linspace(1,Nmrk,Nmrk)
     weight = np.ones(ids.shape)
-    mass   = m_e_AMU * np.ones(ids.shape)
+    mass   = m_e.to("amu") * np.ones(ids.shape)
     charge = 1       * np.ones(ids.shape)
     anum   = 0       * np.ones(ids.shape)
     znum   = 0       * np.ones(ids.shape)
@@ -245,6 +243,15 @@ def init():
         N0_3D.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GCF" + str(i))
         N0_3D.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GCA" + str(i))
 
+        boozer.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GO"  + str(i))
+        boozer.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GCF" + str(i))
+        boozer.write_hdf5_dummy(helpers.testfn, desc="NEOCLASS_GCA" + str(i))
+
+        mhd.write_hdf5_dummy(helpers.testfn,    desc="NEOCLASS_GO"  + str(i))
+        mhd.write_hdf5_dummy(helpers.testfn,    desc="NEOCLASS_GCF" + str(i))
+        mhd.write_hdf5_dummy(helpers.testfn,    desc="NEOCLASS_GCA" + str(i))
+
+
 def run():
     """
     Run tests.
@@ -265,7 +272,7 @@ def check():
     the boundaries of the regimes themselves.
     """
 
-    a5 = ascot5.Ascot(helpers.testfn)
+    a5 = Ascot(helpers.testfn)
     axisr = a5["NEOCLASS_GO1"].bfield.read()["raxis"][:][0]
 
     # Map rho values to R outer mid-plane values
@@ -289,24 +296,24 @@ def check():
     DGCF = np.zeros(nscan)
     DGCA = np.zeros(nscan)
     for i in range(1, nscan+1):
-        inistate = a5["NEOCLASS_GO" + str(i)].inistate.read()
-        endstate = a5["NEOCLASS_GO" + str(i)].endstate.read()
+        inistate = a5["NEOCLASS_GO" + str(i)].inistate
+        endstate = a5["NEOCLASS_GO" + str(i)].endstate
         ri = np.interp(inistate["rho"], rho_omp, R_omp)
         rf = np.interp(endstate["rho"], rho_omp, R_omp)
         t  = endstate["time"]
 
         DGO[i-1] = np.mean( np.power(ri - rf, 2) / (2*t) )
 
-        inistate = a5["NEOCLASS_GCF" + str(i)].inistate.read()
-        endstate = a5["NEOCLASS_GCF" + str(i)].endstate.read()
+        inistate = a5["NEOCLASS_GCF" + str(i)].inistate
+        endstate = a5["NEOCLASS_GCF" + str(i)].endstate
         ri = np.interp(inistate["rho"], rho_omp, R_omp)
         rf = np.interp(endstate["rho"], rho_omp, R_omp)
         t  = endstate["time"]
 
         DGCF[i-1] = np.mean( np.power(ri - rf, 2) / (2*t) )
 
-        inistate = a5["NEOCLASS_GCA" + str(i)].inistate.read()
-        endstate = a5["NEOCLASS_GCA" + str(i)].endstate.read()
+        inistate = a5["NEOCLASS_GCA" + str(i)].inistate
+        endstate = a5["NEOCLASS_GCA" + str(i)].endstate
         ri = np.interp(inistate["rho"], rho_omp, R_omp)
         rf = np.interp(endstate["rho"], rho_omp, R_omp)
         t  = endstate["time"]
@@ -331,7 +338,7 @@ def check():
     density  = np.power( 10, np.linspace(np.log10(ni[0]) - 1,
                                          np.log10(ni[-1]) + 1, 50) )
     collfreq = (np.sqrt(2/np.pi) / 3) \
-               * np.power(e*e / ( 4*np.pi*eps0 ), 2) \
+               * np.power(e*e / ( 4*np.pi*eps_0 ), 2) \
                * ( 4*np.pi / np.sqrt( m_e*np.power(Ti*e, 3) ) ) * density * clog
     veff = collfreq/omegat
     # Add values needed for plotting a continuous curve

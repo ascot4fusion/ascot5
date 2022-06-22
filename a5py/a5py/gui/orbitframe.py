@@ -23,12 +23,14 @@ class OrbitFrame(PlotFrame):
     3D if z coordinate is not None.
     """
 
-    def __init__(self, gui, orbits):
+    def __init__(self, gui, orbits, walldata=None):
         """
         Initialize and show default plot.
         """
         super().__init__(gui)
         self._orbits = orbits
+
+        self._walldata = walldata
 
         # Variables for plotting orbits.
         self._xchoice       = tkinter.StringVar(self)
@@ -52,26 +54,25 @@ class OrbitFrame(PlotFrame):
         self._endcondchoice = tkinter.StringVar(self)
         self._plottype      = tkinter.StringVar(self)
 
-        # List of all possible coordinates. Those not applicable to this data
-        # will be removed.
-        self._coords = ["R", "phimod", "z", "time", "energy", "pitch", "vnorm",
-                        "Bnorm", "vR", "vphi", "vz", "BR", "Bphi", "Bz", "mu",
-                        "vpar", "charge", "id", "x", "y", "phi", "rho",
-                        "polmod", "pol", "None"]
-        clist = copy.copy(self._coords)
-        clist.remove("None")
-        for c in clist:
-            try:
-                orbits[c]
-            except (ValueError, AssertionError):
-                self._coords.remove(c)
+
+        # Check what data can be plotted
+        datatype = orbits.get_datatype()
+        if datatype in ["prt", "gc", "hybrid"]:
+            self._coords = ["R", "phimod", "z", "time", "energy", "pitch",
+                            "vnorm", "Bnorm", "vR", "vphi", "vz", "BR", "Bphi",
+                            "Bz", "mu", "vpar", "charge", "id", "x", "y", "phi",
+                            "rho", "polmod", "pol", "None"]
+        elif datatype == "fl":
+            self._coords = ["R", "phimod", "z", "time", "Bnorm", "BR", "Bphi",
+                            "Bz", "id", "x", "y", "phi",
+                            "rho", "polmod", "pol", "None"]
 
         # Check if this data contain Poincare data (and store Poincare ids).
         try:
             self._pncrids    = np.sort(np.unique(orbits["pncrid"])).tolist()
             self._pncrcoords = ["R-z", "rho-phi", "rho-theta", "R-phi"]
             haspoincare = True
-        except (ValueError, AssertionError):
+        except Exception:
             haspoincare = False
 
         # All end conditions.
@@ -313,5 +314,8 @@ class OrbitFrame(PlotFrame):
                 self._orbits.poincare(xcoord, ycoord, "time", pncrid,
                                       log=(0, 0, 0, 1), equal=equal,
                                       endcond=endcond, axes=axes)
+
+        if self._walldata is not None and xcoord == "R" and ycoord == "z":
+            self._walldata.plotRz(axes=axes)
 
         self.draw()

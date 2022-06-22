@@ -1,0 +1,5 @@
+include a5py/preprocessing/FILD_mesh/fild_aug.mat
+include a5py/preprocessing/FILD_mesh/fild_mastu.mat
+include a5py/gui/ascotLogo2020_256x256.png
+include a5py/gui/logo.png
+include a5py/gui/icon.png

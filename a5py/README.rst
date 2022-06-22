@@ -13,7 +13,7 @@ and `doxypypy` is needed for generating Doxygen documentation.
 Websites
 --------
 
-* Source code: https://version.aalto.fi/gitlab/ascot/python/a5py
+* Source code: https://version.aalto.fi/gitlab/ascot/python/tree/master/a5py
 * ASCOT5: https://version.aalto.fi/gitlab/ascot/ascot5
 
 Installation
@@ -23,6 +23,11 @@ Make sure you have `pip` and `virtualenv` installed first (and `python3`).
 Begin by creating your own virtual environment:::
 
     virtualenv -p python3 --system-site-packages ascot
+    source ascot/bin/activate
+
+If you can't use/install virtualenv, you can use `venv` instead:::
+
+    python3 -m --system_site_packages venv ascot
     source ascot/bin/activate
 
 Flag --system-site-packages makes your virtual environment inherit packages

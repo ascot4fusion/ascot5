@@ -9,6 +9,8 @@ import h5py
 from . ascot5file import add_group
 from a5py.ascot5io.ascot5data import AscotData
 
+from . import B_2DS
+
 def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
                b_phimin, b_phimax, b_nphi,
                axisr, axisz, psi, psi0, psi1, br, bphi, bz,
@@ -174,6 +176,22 @@ def write_hdf5_dummy(fn, desc="Dummy"):
     return B_GS.write_hdf5_dummy(fn, kind="3DS", desc=desc)
 
 
+def write_hdf5_B_2DS(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
+                     b_phimin, b_phimax, b_nphi,
+                     axisr, axisz, psi, psi0, psi1, br, bphi, bz,
+                     desc=None):
+    """
+    Convert the 3D data to 2D.
+    """
+    bphi = bphi=np.mean(bphi,axis=1)
+    B_2DS.write_hdf5(fn, rmin=b_rmin, rmax=b_rmax,
+                     zmin=b_zmin, zmax=b_zmax, nr=b_nr,
+                     nz=b_nz, axisr=axisr, axisz=axisz,
+                     psi0=psi0, psi1=psi1, psi=psi,
+                     br=bphi*0, bphi=bphi, bz=bphi*0)
+
+
+
 class B_3DS(AscotData):
     """
     Object representing B_3DS data.
@@ -181,3 +199,9 @@ class B_3DS(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
+
+    def write(self, fn, data=None):
+        if data is None:
+            data = self.read()
+
+        return write_hdf5(fn, **data)

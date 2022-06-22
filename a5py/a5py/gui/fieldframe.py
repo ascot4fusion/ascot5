@@ -74,7 +74,7 @@ class FieldFrame(PlotFrame):
 
     def _backtoindex(self):
         self.ascotpy.free(bfield=True, efield=True, plasma=True, neutral=True,
-                          wall=True)
+                          wall=True, boozer=True, mhd=True)
         super()._backtoindex()
 
 
