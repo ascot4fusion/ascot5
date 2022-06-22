@@ -3,7 +3,7 @@ from scipy import interpolate
 import ctypes
 from numpy.ctypeslib import ndpointer
 from copy import deepcopy
-import a5py.ascot5io.B_3DS as b3d
+import a5py.ascot5io.B_3DS as B_3D
 
 libascot = ctypes.CDLL("libascot.so")
 real_p = ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")
@@ -91,14 +91,14 @@ def revolve_coils(b3d_coil, n_coil, B0=None, R0=None, width=None):
     return b3d
 
 def combine(fn, b2d, b3d):
-    b3d.write_hdf5(fn,
-                   b3d["b_rmin"], b3d["b_rmax"], b3d["b_nr"],
-                   b3d["b_zmin"], b3d["b_zmax"], b3d["b_nz"],
-                   b3d["b_phimin"], b3d["b_phimax"], b3d["b_nphi"],
-                   b2d["axisr"], b2d["axisz"],
-                   b2d["psi"], b2d["psi0"], b2d["psi1"],
-                   np.transpose(b3d["br"],(1,0,2)),
-                   np.transpose(b3d["bphi"],(1,0,2)),
-                   np.transpose(b3d["bz"],(1,0,2)),
-                   psi_rmin=b2d["rmin"], psi_rmax=b2d["rmax"], psi_nr=b2d["nr"],
-                   psi_zmin=b2d["zmin"], psi_zmax=b2d["zmax"], psi_nz=b2d["nz"])
+    B_3D.write_hdf5(fn,
+                    b3d["b_rmin"], b3d["b_rmax"], b3d["b_nr"],
+                    b3d["b_zmin"], b3d["b_zmax"], b3d["b_nz"],
+                    b3d["b_phimin"], b3d["b_phimax"], b3d["b_nphi"],
+                    b2d["axisr"], b2d["axisz"],
+                    b2d["psi"], b2d["psi0"], b2d["psi1"],
+                    np.transpose(b3d["br"],(1,0,2)),
+                    np.transpose(b3d["bphi"],(1,0,2)),
+                    np.transpose(b3d["bz"],(1,0,2)),
+                    psi_rmin=b2d["rmin"], psi_rmax=b2d["rmax"], psi_nr=b2d["nr"],
+                    psi_zmin=b2d["zmin"], psi_zmax=b2d["zmax"], psi_nz=b2d["nz"])
