@@ -9,6 +9,7 @@ import scipy.constants as const
 
 from . import basic as distmod
 from . import conversion as distconv
+import unyt
 
 def eval1d(ascotpy, dist, quantity, rhomin, rhomax, nrho, ma=None, qa=None, vol=None, area=None):
     '''
@@ -113,23 +114,19 @@ def eval_quantity_5d_rho(ascotpy, dist, quantity, ma, qa):
         dist = distmod.squeeze(dist, vpar=0, vperp=0, time=0, charge=0)
 
     elif quantity == "energydensity":
-        emax = 0.5*ma*np.power(np.maximum( dist["vpar_edges"][-1],
-                                           dist["vperp_edges"][-1] ), 2) / const.e
-        dist = distconv.convert_vpavpe_to_Exi(dist, ma,
-                                              E_edges=np.linspace(0, emax,100),
-                                              xi_edges=np.linspace(-1,1,50))
+        dist = distconv.convert_ppappe_to_Exi(dist, ma, 100, 50)
         dist = distmod.squeeze(dist, pitch=0, time=0, charge=0)
 
         distE = copy.deepcopy(dist)
         for iphi in range(dist["phi"].size):
             for itheta in range(dist["theta"].size):
                 for irho in range(dist["rho"].size):
-                    distE["distribution"][irho, itheta, iphi, :] = dist["distribution"][irho, itheta, iphi,:] * dist["energy"] 
+                    distE["distribution"][irho, itheta, iphi, :] = dist["distribution"][irho, itheta, iphi,:] * dist["energy"] * const.e
 
         dist = distmod.squeeze(distE, energy=0)
 
     elif quantity == "toroidalcurrent":
-        dist = distmod.squeeze(dist, vperp=0, time=0, charge=0)
+        dist = distmod.squeeze(dist, pperp=0, time=0, charge=0)
 
         distj = copy.deepcopy(dist)
 
@@ -142,21 +139,16 @@ def eval_quantity_5d_rho(ascotpy, dist, quantity, ma, qa):
                 for irho in range(dist["rho"].size):
                     bphi = ascotpy.evaluate( r[irho], phi[irho], z[irho], 0.0, "bphi")
                     bnorm = ascotpy.evaluate(r[irho], phi[irho], z[irho], 0.0, "bnorm")
-                    for ivpar in range(dist["vpar"].size):
-                        distj["distribution"][irho, itheta, iphi, ivpar] = dist["distribution"][irho, itheta, iphi, ivpar] * dist["vpar"][ivpar] * qa * bphi / bnorm
-        dist = distmod.squeeze(distj, vpar=0)
+                    for ippar in range(dist["ppar"].size):
+                        distj["distribution"][irho, itheta, iphi, ippar] = dist["distribution"][irho, itheta, iphi, ippar] * dist["ppar"][ippar]/ma * qa * bphi / bnorm
+        dist = distmod.squeeze(distj, ppar=0)
 
     
     elif quantity == "ipowerdeposition" or quantity == "epowerdeposition" or quantity == "powerdeposition":
         
                 
         # Convert to pitch-energy distribution.
-        emax = 0.5*ma*np.power(np.maximum( dist["vpar_edges"][-1],
-                                           dist["vperp_edges"][-1] ), 2) / const.e
-        #print("Maximum energy {} eV".format(emax))
-        dist = distconv.convert_vpavpe_to_Exi(dist, ma,
-                                              E_edges=np.linspace(0, emax,100),
-                                              xi_edges=np.linspace(-1,1,50))
+        dist = distconv.convert_ppappe_to_Exi(dist, ma, 100, 50)
         # Integrate over pitch, time and charge dimensions
         dist = distmod.squeeze(dist, pitch=0, time=0, charge=0)
 
@@ -194,26 +186,22 @@ def eval_quantity_5d_rho(ascotpy, dist, quantity, ma, qa):
 def eval_quantity_5d(ascotpy, dist, quantity, ma, qa):
     # Evaluate the requested quantity in 5D
     if quantity == "density":
-        dist = distmod.squeeze(dist, vpar=0, vperp=0, time=0, charge=0)
+        dist = distmod.squeeze(dist, ppar=0, pperp=0, time=0, charge=0)
 
     elif quantity == "energydensity":
-        emax = 0.5*ma*np.power(np.maximum( dist["vpar_edges"][-1],
-                                           dist["vperp_edges"][-1] ), 2) / const.e
-        dist = distconv.convert_vpavpe_to_Exi(dist, ma,
-                                              E_edges=np.linspace(0, emax,100),
-                                              xi_edges=np.linspace(-1,1,50))
+        dist = distconv.convert_ppappe_to_Exi(dist, ma, 100, 50)
         dist = distmod.squeeze(dist, pitch=0, time=0, charge=0)
 
         distE = copy.deepcopy(dist)
         for ir in range(dist["r"].size):
             for ip in range(dist["phi"].size):
                 for iz in range(dist["z"].size):
-                    distE["distribution"][ir, ip, iz, :] = dist["distribution"][ir,ip,iz,:] * dist["energy"] 
+                    distE["distribution"][ir, ip, iz, :] = dist["distribution"][ir,ip,iz,:] * dist["energy"] * const.e
 
         dist = distmod.squeeze(distE, energy=0)
 
     elif quantity == "toroidalcurrent":
-        dist = distmod.squeeze(dist, vperp=0, time=0, charge=0)
+        dist = distmod.squeeze(dist, pperp=0, time=0, charge=0)
 
         distj = copy.deepcopy(dist)
 
@@ -222,19 +210,14 @@ def eval_quantity_5d(ascotpy, dist, quantity, ma, qa):
                 for iz in range(dist["z"].size):
                     bphi = ascotpy.evaluate(dist["r"][ir], dist["phi"][ip], dist["z"][iz], 0.0, "bphi")
                     bnorm = ascotpy.evaluate(dist["r"][ir], dist["phi"][ip], dist["z"][iz], 0.0, "bnorm")
-                    for ivpar in range(dist["vpar"].size):
-                        distj["distribution"][ir, ip, iz, ivpar] = dist["distribution"][ir,ip,iz,ivpar] * dist["vpar"][ivpar] * qa * bphi / bnorm
-        dist = distmod.squeeze(distj, vpar=0)
+                    for ippar in range(dist["ppar"].size):
+                        distj["distribution"][ir, ip, iz, ippar] = dist["distribution"][ir,ip,iz,ippar] * dist["ppar"][ippar]/ma * qa * bphi / bnorm
+        dist = distmod.squeeze(distj, ppar=0)
 
     elif quantity == "ipowerdeposition" or quantity == "epowerdeposition" or quantity == "powerdeposition":
         
         # Convert to pitch-energy distribution.
-        emax = 0.5*ma*np.power(np.maximum( dist["vpar_edges"][-1],
-                                           dist["vperp_edges"][-1] ), 2) / const.e
-        #print("Maximum energy {} eV".format(emax))        
-        dist = distconv.convert_vpavpe_to_Exi(dist, ma,
-                                              E_edges=np.linspace(0, emax,100),
-                                              xi_edges=np.linspace(-1,1,50))
+        dist = distconv.convert_ppappe_to_Exi(dist, ma, 100, 50)
         # Integrate over pitch, time and charge dimensions
         dist = distmod.squeeze(dist, pitch=0, time=0, charge=0)
 
