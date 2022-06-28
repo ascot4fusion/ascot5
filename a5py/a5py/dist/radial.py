@@ -125,6 +125,19 @@ def eval_quantity_5d_rho(ascotpy, dist, quantity, ma, qa):
 
         dist = distmod.squeeze(distE, energy=0)
 
+    elif quantity == "pressure":
+        dist = distconv.convert_ppappe_to_Exi(dist, ma, 100, 50)
+        dist = distmod.squeeze(dist, pitch=0, time=0, charge=0)
+
+        distp = copy.deepcopy(dist)
+        for iphi in range(dist["phi"].size):
+            for itheta in range(dist["theta"].size):
+                for irho in range(dist["rho"].size):
+                    velocity2 = 2 * dist["energy"] * const.e / ma
+                    distp["distribution"][irho, itheta, iphi, :] = dist["distribution"][irho, itheta, iphi,:] * ma * velocity2 / 3.0
+
+        dist = distmod.squeeze(distp, energy=0)
+
     elif quantity == "toroidalcurrent":
         dist = distmod.squeeze(dist, pperp=0, time=0, charge=0)
 
@@ -159,11 +172,11 @@ def eval_quantity_5d_rho(ascotpy, dist, quantity, ma, qa):
         distP = copy.deepcopy(dist)
         for iphi in range(dist["phi"].size):
             for itheta in range(dist["theta"].size):
-                
+
                 #Calculate R,phi,z for all rho-values for single phi,theta
                 (r, z) = ascotpy.get_rhotheta_rz(dist["rho"][:], dist["theta"][itheta], dist["phi"][iphi], time=0.0)
                 phi = np.ones_like(r) * dist["phi"][iphi]
-                
+
                 for irho in range(dist["rho"].size):
                     
                     coefs = ascotpy.eval_collcoefs(ma, qa, r[irho],
@@ -177,6 +190,50 @@ def eval_quantity_5d_rho(ascotpy, dist, quantity, ma, qa):
 
         # Integrate over the energy dimension
         dist = distmod.squeeze(distP, energy=0)
+
+    elif quantity == "colltorque":
+
+        # Convert to pitch-energy distribution.
+        dist = distconv.convert_ppappe_to_Exi(dist, ma, 100, 50)
+        # Integrate over pitch, time and charge dimensions
+        dist = distmod.squeeze(dist, time=0, charge=0)
+
+        # Convert the energy abscissa into velocity
+        va = np.sqrt( const.e*2*dist["energy"]/ma.v )
+
+        # Evaluate the ASCOT collision operator at each spatial location for all velocities in va
+        distT = copy.deepcopy(dist)
+        for iphi in range(dist["phi"].size):
+            for itheta in range(dist["theta"].size):
+
+                #Calculate R,phi,z for all rho-values for single phi,theta
+                (r, z) = ascotpy.get_rhotheta_rz(dist["rho"][:], dist["theta"][itheta], dist["phi"][iphi], time=0.0)
+                phi = np.ones_like(r) * dist["phi"][iphi]
+
+                for irho in range(dist["rho"].size):
+
+                    coefs = ascotpy.eval_collcoefs(ma, qa, r[irho],
+                                                   phi[irho], z[irho], 0, va)
+                    Bnorm = ascotpy.evaluate(r[irho],phi[irho], z[irho], 0, "bnorm")
+                    Bphi = ascotpy.evaluate(r[irho], phi[irho], z[irho], 0, "bphi")
+
+                    v = np.tile(va,(49,1)).T
+                    pitch = np.tile(dist["pitch"],(99,1))
+                    K = np.tile(sum(coefs["K"][0,:,:],0),(49,1)).T
+                    nu = np.tile(sum(coefs["nu"][0,:,:],0),(49,1)).T
+
+                    deflectFreq = nu
+                    dpitch = -deflectFreq*pitch
+                    dp1 = K * ma
+                    dPpara = pitch * dp1 + ma*v*dpitch
+                    colltorque = dPpara * r[irho] * Bphi/Bnorm
+
+                    distT["distribution"][irho, itheta, iphi, :] = dist["distribution"][irho, itheta, iphi, :]*-colltorque
+
+
+        # Integrate over the energy dimension
+        dist = distmod.squeeze(distT, energy=0, pitch=0)
+
     else:
         raise ValueError('Unknown quantity "{}".'.format(quantity))
 
@@ -199,6 +256,19 @@ def eval_quantity_5d(ascotpy, dist, quantity, ma, qa):
                     distE["distribution"][ir, ip, iz, :] = dist["distribution"][ir,ip,iz,:] * dist["energy"] * const.e
 
         dist = distmod.squeeze(distE, energy=0)
+
+    elif quantity == "pressure":
+        dist = distconv.convert_ppappe_to_Exi(dist, ma, 100, 50)
+        dist = distmod.squeeze(dist, pitch=0, time=0, charge=0)
+
+        distp = copy.deepcopy(dist)
+        for ir in range(dist["r"].size):
+            for ip in range(dist["phi"].size):
+                for iz in range(dist["z"].size):
+                    velocity2 = 2 * dist["energy"] * const.e / ma
+                    distp["distribution"][ir, ip, iz, :] = dist["distribution"][ir,ip,iz,:] * ma * velocity2 / 3.0
+
+        dist = distmod.squeeze(distp, energy=0)
 
     elif quantity == "toroidalcurrent":
         dist = distmod.squeeze(dist, pperp=0, time=0, charge=0)
@@ -240,6 +310,43 @@ def eval_quantity_5d(ascotpy, dist, quantity, ma, qa):
 
         # Integrate over the energy dimension
         dist = distmod.squeeze(distP, energy=0)
+
+    elif quantity == "colltorque":
+
+        # Convert to pitch-energy distribution.
+        dist = distconv.convert_ppappe_to_Exi(dist, ma, 100, 50)
+        # Integrate over pitch, time and charge dimensions
+        dist = distmod.squeeze(dist, time=0, charge=0)
+
+        # Convert the energy abscissa into velocity
+        va = np.sqrt( const.e*2*dist["energy"]/ma.v )
+
+        # Evaluate the ASCOT collision operator at each spatial location for all velocities in va
+        distT = copy.deepcopy(dist)
+        for ir in range(dist["r"].size):
+            for ip in range(dist["phi"].size):
+                for iz in range(dist["z"].size):
+                    coefs = ascotpy.eval_collcoefs(ma, qa, dist["r"][ir],
+                                                   dist["phi"][ip], dist["z"][iz], 0, va)
+                    Bnorm = ascotpy.evaluate(dist["r"][ir],dist["phi"][ip], dist["z"][iz], 0, "bnorm")
+                    Bphi = ascotpy.evaluate(dist["r"][ir],dist["phi"][ip], dist["z"][iz], 0, "bphi")
+
+                    v = np.tile(va,(49,1)).T
+                    pitch = np.tile(dist["pitch"],(99,1))
+                    K = np.tile(sum(coefs["K"][0,:,:],0),(49,1)).T
+                    nu = np.tile(sum(coefs["nu"][0,:,:],0),(49,1)).T
+
+                    deflectFreq = nu
+                    dpitch = -deflectFreq*pitch
+                    dp1 = K * ma
+                    dPpara = pitch * dp1 + ma*v*dpitch
+                    colltorque = dPpara * dist["r"][ir] * Bphi/Bnorm
+
+                    distT["distribution"][ir, ip, iz, :] = dist["distribution"][ir, ip, iz, :]*colltorque
+
+        # Integrate over the energy dimension
+        dist = distmod.squeeze(distT, energy=0, pitch=0)
+
 
     else:
         raise ValueError('Unknown quantity "{}".'.format(quantity))
