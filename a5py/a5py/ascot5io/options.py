@@ -288,8 +288,9 @@ def get_default():
          """\
          # Terminate when marker has completed user-specified number of orbits
          # Limit ENDCOND_MAX_TOROIDALORBS is used for a number of toroidal
-         # and ENDCOND_MAX_POLOIDALORBS for poloidal orbits. Marker is
-         # terminated when either of these limits is reached.
+         # and ENDCOND_MAX_POLOIDALORBS for poloidal orbits.
+         # 1 : Marker is terminated when either of these limits is reached.
+         # 2 : Marker is terminated when both limits are reached.
          """,
          0)
     )
@@ -769,14 +770,14 @@ def get_default():
          """\
          # Maximum number of points (per marker) to be written
          # If this number is exceeded when marker is being simulated, the oldest
-         # points will be replaced as long as the simulation continues. Thus, this
-         # parameter is effectively the number of marker's last positions that are
-         # stored.
+         # points will be replaced as long as the simulation continues. Thus,
+         # this parameter is effectively the number of marker's last positions
+         # that are stored.
          """,
          10)
     )
     info.append(
-        ("ORBITWRITE_TOROIDALANGLES",
+        ("ORBITWRITE_POLOIDALANGLES",
          """\
          # Poloidal angles of toroidal planes where toroidal plots are collected
          # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 0.
@@ -784,12 +785,20 @@ def get_default():
          [0, 180])
     )
     info.append(
-        ("ORBITWRITE_POLOIDALANGLES",
+        ("ORBITWRITE_TOROIDALANGLES",
          """\
          # Toroidal angles of poloidal planes where poloidal plots are collected
          # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 0.
          """,
          [0, 180])
+    )
+    info.append(
+        ("ORBITWRITE_RADIALDISTANCES",
+         """\
+         # Minor radius coordinate where radial plots are collected
+         # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 0.
+         """,
+         [-1, ])
     )
     info.append(
         ("ORBITWRITE_INTERVAL",
@@ -818,8 +827,9 @@ def get_default():
     info.append(
         ("TRANSCOEF_INTERVAL",
          """\
-         # Time interval for recording data points. If negative, data points are
-         # recorded at outer midplane.
+         # Time interval for recording data points. The data points are recorded
+         # outer mid-plane crossing if this interval has passed from the
+         # previous recording.
          """,
          -1)
     )
@@ -830,6 +840,14 @@ def get_default():
          # coefficients to reduce noise.
          """,
          5)
+    )
+    info.append(
+        ("TRANSCOEF_RECORDRHO",
+         """\
+         # Record coefficients in terms of normalized poloidal flux instead of
+         # meters.
+         """,
+         0)
     )
 
     cleaned = []
@@ -845,15 +863,27 @@ def get_default():
     return cleaned
 
 
-def generateopt():
+def generateopt(clean=False):
     """
     Get default option parameter names and values as a dictionary
+
+    Set clean=True to set disable all features except those that are supposed to
+    be enabled. Also clears all end conditions.
     """
     defopt = get_default()
     opt = {}
     for namecmtval in defopt:
         if len(namecmtval) == 3:
             opt[namecmtval[0]] = namecmtval[2]
+
+    if clean:
+        for o in opt:
+            if o.startswith("ENABLE"):
+                opt[o] = 0
+            if o.startswith("ENDCOND"):
+                opt[o] = 0
+            if o.startswith("DISABLE"):
+                opt[o] = 0
 
     return opt
 

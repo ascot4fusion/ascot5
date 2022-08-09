@@ -62,10 +62,10 @@ def vpar_momentum(m, p, b):
 
 def mu_velocity(m, v, b):
     """
-    Evaluate magnetic moment from velocity vector.
+    TODO: Evaluate magnetic moment from velocity vector.
     """
     gamma = gamma_velocity(v=v)
-    return (gamma * m * vperp)**2
+    return 0
 
 
 def pitch_momentum(p, b):

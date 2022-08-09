@@ -6,6 +6,8 @@ File: nbi.py
 import numpy as np
 import h5py
 
+import a5py.nbi.plot as plot
+
 from . ascot5file import add_group
 from a5py.ascot5io.ascot5data import AscotData
 
@@ -190,3 +192,25 @@ class nbi(AscotData):
             data = self.read()
 
         return write_hdf5(fn, **data)
+
+    def plot_grid_3D(self, ax=None):
+        beams = self.read()
+
+        for beam in beams:
+            ax = plot.plot_scatter_3D(beam["beamletx"], beam["beamlety"], beam["beamletz"],
+                                      equal = True, axes=ax,
+                                      color="red",linewidth=0.75)
+            
+        return ax
+
+
+    def plot_beamlet_3D(self, ax=None):
+        beams = self.read()
+
+        for beam in beams:
+            ax = plot.plot_arrow_3D(beam["beamletx"], beam["beamlety"], beam["beamletz"],
+                                    beam["beamletdx"], beam["beamletdy"], beam["beamletdz"],
+                                    axes=ax, arrow_length_ratio=0,
+                                    color="green", linewidth=0.1, length=10)
+
+        return ax

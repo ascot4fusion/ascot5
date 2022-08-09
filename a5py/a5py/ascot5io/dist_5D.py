@@ -34,8 +34,8 @@ def write_hdf5(fn, run, data):
                                         (data["n" + name]+1,),
                                         data=data[name + "_edges"], dtype="f8")
 
-            abscissa.attrs["name_0"+str(i+1)] = np.string_(name)
-            abscissa.attrs["unit_0"+str(i+1)] = np.string_(data[name + "_unit"])
+            abscissa.attrs["name_0"+str(i)] = np.string_(name)
+            abscissa.attrs["unit_0"+str(i)] = np.string_(data[name + "_unit"])
 
         g.create_dataset("abscissa_ndim", (1,), data=7, dtype="i4")
         g.create_dataset("ordinate_ndim", (1,), data=1, dtype="i4")

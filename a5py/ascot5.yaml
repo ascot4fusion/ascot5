@@ -21,6 +21,7 @@ dependencies:
   - python
   - ipython
   - vtk
+  - hdf5
   - pip
   - pip:
       - numpy

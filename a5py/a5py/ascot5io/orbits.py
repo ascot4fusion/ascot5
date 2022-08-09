@@ -133,32 +133,18 @@ class Orbits(AscotData):
         write_hdf5(fn, run, data)
 
 
-    def __getitem__(self, key):
+    def _eval(self, key, simmode, a5):
         """
-        Return queried quantity.
-
-        The quantity is returned as a single numpy array ordered by id and time.
-
-        The quantity will be in the same picture as the stored data is, e.g. if
-        one queries for magnetic momentum mu, mu will be in guiding center
-        picture if the data corresponds to guiding center data, particle picture
-        for particle data, and none for field line data.
-
-        Args:
-            key : str <br>
-                Name of the quantity.
-        Returns:
-            The quantity ordered by id and time.
+        Evaluate a quantity.
         """
-        # Init ascotpy object (no data is initialized yet)
-        from a5py.ascotpy import Ascotpy
-        a5 = Ascotpy(self._file)
+        with self as h5:
+            mask = read_data(h5, "simmode").v == simmode
 
         # Wrapper for read data which opens the HDF5 file
         def read_dataw(data):
             with self as h5:
                 data = read_data(h5, data)
-            return data
+            return data[mask]
 
         # Helper function that returns magnetic field vector
         def getbvec():
@@ -180,17 +166,21 @@ class Orbits(AscotData):
                 R   = read_dataw("r"),
                 phi = read_dataw("phi").to("rad"),
                 z   = read_dataw("z"),
-                t   = read_dataw("time"),
+                t   = read_dataw("mileage") + initime(),
                 quantity = quantity
             )
 
-        # Gets mass for each datapoint from the endstate
+        # Gets mass and initime for each datapoint from the inistate
         def mass():
-            return self._read_from_inistate(
+            m = self._read_from_inistate(
                 "mass", read_dataw("ids")).ravel() * unyt.amu
+            return m[mask]
 
-        # Get alias and data field names in HDF5
-        key  = getalias(key)
+        def initime():
+            m = self._read_from_inistate(
+                "time", read_dataw("ids")).ravel() * unyt.s
+            return m[mask]
+
         item = None
         with self as h5:
             h5keys = list(h5.keys())
@@ -199,19 +189,22 @@ class Orbits(AscotData):
         if key in h5keys:
             item = read_dataw(key)
 
-        # Mass is read from inistate
+        # Mass and time are read from inistate
         elif key == "mass":
             item = mass()
+        elif key == "time":
+            item = initime() + read_dataw("mileage")
+        elif key == "mileagerev":
+            item = read_dataw("mileage")
+            item = item[0] - item
         else:
-            # See what type of data is stored
-            if "mu" in h5keys:
-                key += "gc"
-            elif "charge" in h5keys:
+            if simmode == 1:
                 key += "prt"
+            elif simmode == 2:
+                key += "gc"
             else:
                 key += "fl"
 
-        # Evaluate the quantity if direct read could not be done
         # New quantities can be added here. Use suffix "gc" for quantities that
         # can be evaluated from guiding-center data, "prt" for particle data
         # and "fl" for field line data.
@@ -219,7 +212,7 @@ class Orbits(AscotData):
             pass
 
         ## Coordinates ##
-        elif key in ["xgc", "xprt", "xfl"]:
+        if key in ["xgc", "xprt", "xfl"]:
             item = physlib.xcoord(
                 r   = read_dataw("r"),
                 phi = read_dataw("phi")
@@ -376,6 +369,26 @@ class Orbits(AscotData):
             a5.free(bfield=True)
 
         ## Boozer and MHD parameters ##
+        elif key in ["psi(bzr)gc", "psi(bzr)prt", "psi(bzr)fl"]:
+            a5.init(bfield=True, boozer=True)
+            item = evalapy("psi (bzr)") * unyt.dimensionless
+            a5.free(bfield=True, boozer=True)
+
+        elif key in ["theta(bzr)gc", "theta(bzr)prt", "theta(bzr)fl"]:
+            a5.init(bfield=True, boozer=True)
+            item = evalapy("theta") * unyt.rad
+            a5.free(bfield=True, boozer=True)
+
+        elif key in ["phi(bzr)gc", "phi(bzr)prt", "phi(bzr)fl"]:
+            a5.init(bfield=True, boozer=True)
+            item = evalapy("zeta") * unyt.rad
+            a5.free(bfield=True, boozer=True)
+
+        elif key in ["db/b(mhd)gc", "db/b(mhd)prt", "db/b(mhd)fl"]:
+            a5.init(bfield=True, boozer=True, mhd=True)
+            item = evalapy("db/b") * unyt.dimensionless
+            a5.free(bfield=True, boozer=True, mhd=True)
+
         elif key in ["mhdepotgc", "mhdepotprt", "mhdepotfl"]:
             a5.init(bfield=True, boozer=True, mhd=True)
             item = evalapy("phi") * unyt.V
@@ -386,15 +399,64 @@ class Orbits(AscotData):
             item = evalapy("alpha") * unyt.m
             a5.free(bfield=True, boozer=True, mhd=True)
 
+        return item
+
+    
+    def __getitem__(self, key):
+        """
+        Return queried quantity.
+
+        The quantity is returned as a single numpy array ordered by id and time.
+
+        The quantity will be in the same picture as the stored data is, e.g. if
+        one queries for magnetic momentum mu, mu will be in guiding center
+        picture if the data corresponds to guiding center data, particle picture
+        for particle data, and none for field line data.
+
+        Args:
+            key : str <br>
+                Name of the quantity.
+        Returns:
+            The quantity ordered by id and time.
+        """
+
+        # Init ascotpy object (no data is initialized yet)
+        from a5py.ascotpy import Ascotpy
+        a5 = Ascotpy(self._file)
+
+        # Wrapper for read data which opens the HDF5 file
+        def read_dataw(data):
+            with self as h5:
+                data = read_data(h5, data)
+            return data
+
+        # Get alias
+        key  = getalias(key)
+
+        # Get simmode in each data point which is used as a mask
+        simmode = read_dataw("simmode")
+        sids    = np.unique(simmode)
+
+        item = self._eval(key, sids[0], a5)
+        item.convert_to_base("ascot")
+
+        # Deal with the hybrid case
+        if sids.size > 1:
+            item0 = np.zeros(simmode.shape) * item.unit_quantity
+            item0[simmode == sids[0]] = item
+            item = self._eval(key, sids[1], a5)
+            item.convert_to_base("ascot")
+
+            item0[simmode == sids[1]] = item
+            item = item0
+
+
         if item is None:
             raise Exception("Invalid query: " + key)
 
         # Strip units from fields to which they do not belong
         if key in ["ids"]:
             item = item.v
-        else:
-            # Convert to ascot unit system.
-            item.convert_to_base("ascot")
 
         # Dissect endcondition
         if key == "endcond":
@@ -403,10 +465,10 @@ class Orbits(AscotData):
             item[err > 0] = item[err > 0] & endcondmod.getbin("aborted")
             item[item==0] = endcondmod.getbin("none")
 
-        # Order by id and time
+        # Order by id and mileage
         ids  = read_dataw("ids").v
-        time = read_dataw("time")
-        idx  = np.lexsort((time, ids))
+        mile = read_dataw("mileage")
+        idx  = np.lexsort((mile, ids))
 
         return item[idx]
 
@@ -432,9 +494,7 @@ class Orbits(AscotData):
         idx = np.ones(val.shape, dtype=bool)
 
         if endcond is not None:
-            with self as h5:
-                ec = self._read_from_endstate("endcond", h5).ravel()
-
+            ec = self._read_from_endstate("endcond", self["ids"]).ravel()
             idx = np.logical_and( idx, ec == endcondmod.getbin(endcond) )
 
         if pncrid is not None:
@@ -453,13 +513,15 @@ class Orbits(AscotData):
         Get string describing what data this object contains (prt, gc, fl).
         """
         with self as h5:
-            h5keys = list(h5.keys())
+            simmode = np.unique(read_data(h5, "simmode"))
 
-        if "mu" in h5keys:
-            return "gc"
-        elif "charge" in h5keys:
+        if 1 in simmode and 2 in simmode:
+            return "hybrid"
+        if 1 in simmode:
             return "prt"
-        else:
+        if 2 in simmode:
+            return "gc"
+        if 3 in simmode:
             return "fl"
 
 
@@ -496,8 +558,10 @@ class Orbits(AscotData):
             if z is not None:
                 zc = np.log10(np.absolute(zc))
 
-        plot.plot_line(x=xc, y=yc, z=zc, ids=ids, equal=equal,
-                       xlabel=x, ylabel=y, zlabel=z, axes=axes, **kwargs)
+        axes = plot.plot_line(x=xc, y=yc, z=zc, ids=ids, equal=equal,
+                              xlabel=x, ylabel=y, zlabel=z, axes=axes, **kwargs)
+
+        return axes
 
 
     def scatter(self, x=None, y=None, z=None, c=None, endcond=None, pncrid=None,
@@ -544,9 +608,11 @@ class Orbits(AscotData):
             if c is not None:
                 cc = np.log10(np.absolute(cc))
 
-        plot.plot_scatter(x=xc, y=yc, z=zc, c=cc, equal=equal,
-                          ids=ids, xlabel=x, ylabel=y, zlabel=z, axes=axes,
-                          prune=prune, s=markersize, **kwargs)
+        axes = plot.plot_scatter(x=xc, y=yc, z=zc, c=cc, equal=equal,
+                                 ids=ids, xlabel=x, ylabel=y, zlabel=z,
+                                 axes=axes, prune=prune, s=markersize, **kwargs)
+
+        return axes
 
 
     def poincare(self, *args, log=False, endcond=None, equal=False,
@@ -580,13 +646,14 @@ class Orbits(AscotData):
         if x == "R" and y == "z":
             equal = True
 
-        self.scatter(x=x, y=y, c=z, pncrid=pncrid, endcond=endcond, prune=prune,
-                     sepid=sepid, log=log, equal=equal, axes=axes,
-                     markersize=markersize, ids=ids)
+        axes = self.scatter(x=x, y=y, c=z, pncrid=pncrid, endcond=endcond,
+                            prune=prune, sepid=sepid, log=log, equal=equal,
+                            axes=axes, markersize=markersize, ids=ids)
 
         if y == "phimod":
             axes.set_ylim([0, 360])
 
+        return axes
 
 
     def _read_from_inistate(self, key, ids):

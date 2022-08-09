@@ -99,7 +99,7 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
     theta_psithetageom = np.concatenate(
         (data, data[-1,:] + data[1:padding+1,:]) )
     theta_psithetageom = np.concatenate(
-        (data[nthetag-padding-1:-1,:] - data[-1,:], theta_psithetageom) )
+        (data[int(nthetag-padding-1):-1,:] - data[-1,:], theta_psithetageom) )
     nthetag += padding*2
 
     with h5py.File(fn, "a") as f:
@@ -161,9 +161,17 @@ def read_hdf5(fn, qid):
         for key in f[path]:
             out[key] = f[path][key][:]
 
+    # (Remove padding to theta_psithetageom)
+    padding = 4
+    nthetag = int(out["nthetag"] - padding*2)
+    out["theta_psithetageom"] = out["theta_psithetageom"][padding:,:]
+    out["theta_psithetageom"] = out["theta_psithetageom"][:nthetag,:]
+    out["nthetag"] = nthetag
+
     out["psi_rz"]             = np.transpose(out["psi_rz"])
     out["theta_psithetageom"] = np.transpose(out["theta_psithetageom"])
     out["nu_psitheta"]        = np.transpose(out["nu_psitheta"])
+
     return out
 
 
@@ -179,7 +187,7 @@ def write_hdf5_dummy(fn, desc="Dummy"):
     psimin     = 0
     psimax     = 1
     npsi       = 6
-    nthetag    = 10 
+    nthetag    = 10
     ntheta     = 10
     rmin       = 0.1
     rmax       = 10.0
@@ -212,3 +220,12 @@ class Boozer(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
+
+    def write(self,fn,data = None, desc=None):
+        if data is None:
+            data = self.read()
+
+        if desc is None:
+            return write_hdf5(fn=fn, **data)
+        else:
+            return write_hdf5(fn=fn, desc=desc, **data)

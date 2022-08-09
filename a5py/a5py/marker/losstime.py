@@ -48,7 +48,8 @@ def islost(endcond, losstime):
     """
     Small helper function to find markers that are lost: edcond=wall or maxrho.
     """
-    return np.logical_and(np.logical_or.reduce([endcond==32, endcond==128, endcond==1]),losstime >1e-8)
+    return np.logical_and(np.logical_or.reduce([endcond==32, endcond==128,
+                                                endcond==1]), losstime >1e-8)
 
 def firstpassagetime(t, K, D, inirho, endrho):
     """
@@ -259,7 +260,7 @@ def eval_radindep_coeffs(run=None, inirho=None, losstime=None, endcond=None,
     # Fit and return the coefficients.
     cumlost = np.linspace(0, 1, losstime.size)
     coeffs, _ = curve_fit(fitfun, losstime, cumlost,
-                          p0=[1e4, 1e4], bounds=(0,np.inf))
+                          p0=[1e0, 1e5], bounds=(0,np.inf))
 
     return (inirho, coeffs[0], coeffs[1], lost)
 

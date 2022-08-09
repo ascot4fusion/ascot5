@@ -54,7 +54,7 @@ def solve_model(xmin, xmax, simtime, timestep, numberofmarkers,
     if xgrid is None:
         xgrid = np.linspace(xmin, xmax, 10)
     if tgrid is None:
-        tgrid = np.linspace(timestep0, simtime, 1000)
+        tgrid = np.linspace(timestep, simtime, 1000)
     density = np.zeros( (xgrid.size-1, tgrid.size-1) )
 
     # Evaluate initial profile
@@ -107,7 +107,7 @@ def solve_model(xmin, xmax, simtime, timestep, numberofmarkers,
 
         ti = np.floor( i*timestep / ( tgrid[1] - tgrid[0] ) ).astype("i8")
         weights = np.ones(x1.shape) * timestep
-        density[:,ti] += np.histogram(x1, bins=xgrid, weights=weights)[0]
+        #density[:,ti] += np.histogram(x1, bins=xgrid, weights=weights)[0]
 
     density /= simtime
     losstime = np.sort(losstime[losstime<simtime])

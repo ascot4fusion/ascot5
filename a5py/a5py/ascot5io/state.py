@@ -10,6 +10,7 @@ import unyt
 import warnings
 
 from a5py.marker.alias import get as alias
+from a5py.marker.pploss import plotlossmap
 import a5py.marker.interpret as interpret
 import a5py.marker as marker
 import a5py.marker.plot as plot
@@ -32,46 +33,46 @@ def write_hdf5(fn, run, name, data):
 
     gname = "results/" + run + "/" + name
 
-    N = data["id"].size
+    fields = [("mass",      "amu"),
+              ("time",      "s"),
+              ("cputime",   "s"),
+              ("weight",    "markers/s"),
+              ("rprt",      "m"),
+              ("phiprt",    "deg"),
+              ("zprt",      "m"),
+              ("prprt",     "kg*m/s"),
+              ("pphiprt",   "kg*m/s"),
+              ("pzprt",     "kg*m/s"),
+              ("r",         "m"),
+              ("phi",       "deg"),
+              ("z",         "m"),
+              ("mu",        "eV/T"),
+              ("ppar",      "kg*m/s"),
+              ("zeta",      "rad"),
+              ("rho",       "1"),
+              ("theta",     "deg"),
+              ("ids",       "1"),
+              ("walltile",  "1"),
+              ("endcond",   "1"),
+              ("anum",      "1"),
+              ("znum",      "1"),
+              ("charge",    "e"),
+              ("errormsg",  "1"),
+              ("errorline", "1"),
+              ("errormod",  "1"),
+              ("br",        "T"),
+              ("bphi",      "T"),
+              ("bz",        "T")]
+
+    N = data["ids"].size
 
     with h5py.File(fn, "a") as f:
         g = f.create_group(gname)
 
-        g.create_dataset("mass",      (N,1), data=data["mass"],      dtype="f8")
-        g.create_dataset("time",      (N,1), data=data["time"],      dtype="f8")
-        g.create_dataset("cputime",   (N,1), data=data["cputime"],   dtype="f8")
-        g.create_dataset("weight",    (N,1), data=data["weight"],    dtype="f8")
-
-        g.create_dataset("rprt",      (N,1), data=data["rprt"],      dtype="f8")
-        g.create_dataset("phiprt",    (N,1), data=data["phiprt"],    dtype="f8")
-        g.create_dataset("zprt",      (N,1), data=data["zprt"],      dtype="f8")
-        g.create_dataset("prprt",     (N,1), data=data["prprt"],     dtype="f8")
-        g.create_dataset("pphiprt",   (N,1), data=data["pphiprt"],   dtype="f8")
-        g.create_dataset("pzprt",     (N,1), data=data["pzprt"],     dtype="f8")
-
-        g.create_dataset("r",         (N,1), data=data["r"],         dtype="f8")
-        g.create_dataset("phi",       (N,1), data=data["phi"],       dtype="f8")
-        g.create_dataset("z",         (N,1), data=data["z"],         dtype="f8")
-        g.create_dataset("mu",        (N,1), data=data["mu"],        dtype="f8")
-        g.create_dataset("ppar",      (N,1), data=data["ppar"],      dtype="f8")
-        g.create_dataset("zeta",      (N,1), data=data["zeta"],      dtype="f8")
-
-        g.create_dataset("rho",       (N,1), data=data["rhogc"],     dtype="f8")
-        g.create_dataset("theta",     (N,1), data=data["thetagc"],   dtype="f8")
-
-        g.create_dataset("ids",       (N,1), data=data["ids"],       dtype="i8")
-        g.create_dataset("walltile",  (N,1), data=data["walltile"],  dtype="i8")
-        g.create_dataset("endcond",   (N,1), data=data["endcond"],   dtype="i8")
-        g.create_dataset("anum",      (N,1), data=data["anum"],      dtype="i4")
-        g.create_dataset("znum",      (N,1), data=data["znum"],      dtype="i4")
-        g.create_dataset("charge",    (N,1), data=data["charge"],    dtype="i4")
-        g.create_dataset("errormsg",  (N,1), data=data["errormsg"],  dtype="i4")
-        g.create_dataset("errorline", (N,1), data=data["errorline"], dtype="i4")
-        g.create_dataset("errormod",  (N,1), data=data["errormod"],  dtype="i4")
-
-        g.create_dataset("br",        (N,1), data=data["br"],        dtype="f8")
-        g.create_dataset("bphi",      (N,1), data=data["bphi"],      dtype="f8")
-        g.create_dataset("bz",        (N,1), data=data["bz"],        dtype="f8")
+        for field in fields:
+            ds = g.create_dataset(field[0], (N,1), data=data[field[0]],
+                dtype="f8")
+            ds.attrs["unit"] = field[1]
 
 
 def read_hdf5(fn, qid, name):
@@ -407,6 +408,46 @@ class State(AscotData):
             a5.free(bfield=True)
 
         ## Boozer and MHD parameters ##
+        elif key == "psi(bzr)":
+            a5.init(bfield=True, boozer=True)
+            item = evalapy("psi (bzr)") * unyt.dimensionless
+            a5.free(bfield=True, boozer=True)
+
+        elif key == "psi(bzr)prt":
+            a5.init(bfield=True, boozer=True)
+            item = evalapyprt("psi (bzr)") * unyt.dimensionless
+            a5.free(bfield=True, boozer=True)
+
+        elif key == "theta(bzr)":
+            a5.init(bfield=True, boozer=True)
+            item = evalapy("theta") * unyt.rad
+            a5.free(bfield=True, boozer=True)
+
+        elif key == "theta(bzr)prt":
+            a5.init(bfield=True, boozer=True)
+            item = evalapyprt("theta") * unyt.rad
+            a5.free(bfield=True, boozer=True)
+
+        elif key == "phi(bzr)":
+            a5.init(bfield=True, boozer=True)
+            item = evalapy("zeta") * unyt.rad
+            a5.free(bfield=True, boozer=True)
+
+        elif key == "phi(bzr)prt":
+            a5.init(bfield=True, boozer=True)
+            item = evalapyprt("zeta") * unyt.rad
+            a5.free(bfield=True, boozer=True)
+
+        elif key == "db/b(mhd)":
+            a5.init(bfield=True, boozer=True, mhd=True)
+            item = evalapy("db/b") * unyt.T
+            a5.free(bfield=True, boozer=True, mhd=True)
+
+        elif key == "db/b(mhd)prt":
+            a5.init(bfield=True, boozer=True, mhd=True)
+            item = evalapyprt("db/b") * unyt.dimensionless
+            a5.free(bfield=True, boozer=True, mhd=True)
+
         elif key == "mhdepot":
             a5.init(bfield=True, boozer=True, mhd=True)
             item = evalapy("phi") * unyt.V
@@ -481,6 +522,9 @@ class State(AscotData):
         if pncrid is not None:
             idx = np.logical_and(idx, self["pncrid"] == pncrid)
 
+        if ids is not None:
+            idx = np.logical_and(idx, np.in1d(self["id"], ids))
+
         val = val[idx]
 
         return val
@@ -493,6 +537,37 @@ class State(AscotData):
             endcond.append(endcondmod.getname(e))
 
         return (endcond, counts)
+
+
+    def getmatrix(self, dim, quantity):
+        run = self._runnode
+
+        nsize = 1
+        for i in np.arange( len(dim) ):
+            nsize *= dim[i]
+
+        ntot = run.inistate["ids"].size
+        if ntot % nsize > 0:
+            print("The number of markers must be a multiple of dimensions.")
+            return
+
+        nslot = int(ntot / nsize)
+        outini = np.zeros(dim).ravel()
+        outend = np.zeros(dim).ravel()
+
+        ids = run.inistate["ids"]
+        qini = run.inistate[quantity]
+        qend = run.endstate[quantity]
+
+        n = 0; i = 0
+        while n < ntot:
+            idx  = np.logical_and(  ids > n,  ids <= n + nslot )
+            outini[i] = np.mean(qini[idx])
+            outend[i] = np.mean(qend[idx])
+            n += nslot
+            i += 1
+
+        return (np.reshape(outini, dim), np.reshape(outend, dim))
 
 
     def scatter(self, x=None, y=None, z=None, c=None, endcond=None, pncrid=None,
@@ -607,3 +682,23 @@ class State(AscotData):
             plot.plot_histogram(x=xc, y=yc, xbins=xbins, ybins=ybins,
                                 weights=weights, logscale=logscale,
                                 xlabel=x, ylabel=y, axes=axes)
+
+
+    def plot_lossmap(self, rmin, endcond=32, rhogrid=np.linspace( 0, 1, 10),
+                     ksigrid=np.linspace(-1, 1, 10), binmin=-5, binmax=-1, nbin=4,
+                     axes=None):
+        from a5py.ascotpy import Ascotpy
+        a5 = Ascotpy(self._file)
+        a5.init(bfield=True)
+
+        inistate = self._runnode.inistate
+        endstate = self._runnode.endstate
+        mass   = self["mass"][0].to("kg").v
+        charge = self["charge"][0].to("C").v
+        energy = np.mean(inistate["energy"]).to("J").v
+        plotlossmap(a5, mass, charge, energy,
+                    inistate["r"].v, inistate["z"].v, inistate["pitch"].v,
+                    rhogrid, ksigrid, endstate["time"].v, endstate["endcond"]==endcond,
+                    inistate["weight"].v, rmin=rmin, binmin=binmin, binmax=binmax, nbin=nbin, axes=axes)
+
+        a5.free(bfield=True)

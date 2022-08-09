@@ -158,9 +158,38 @@ class wall_3D(AscotData):
 
         return write_hdf5(fn, **data)
 
+    def remove_small_triangles(self,maximumAreaToRemove=0.0,data=None):
+        "The modification happens in-place. No deep copy is made!"
+        
+        if data is None:
+            w = self.read()
+        else:
+            w = data
+            
+        A = self.area(data=w)
+        
+        keep =  ( A > maximumAreaToRemove )
+    
+        fields = ["x1x2x3","y1y2y3","z1z2z3"]
+        for f in fields:
+            w[f] = w[f][keep,:]
+        w['flag'] = w['flag'][keep]
+        
+        nOld = w['n'][:]
+        nNew = len(w['flag'])
+        w['n'][:]         = nNew
+        w['nelements'][:] = nNew
+        
+        print('Removing {}/{} triangles'.format(nOld-nNew,nOld))
+        
+        return w
 
-    def area(self):
-        w = self.read()
+    def area(self, data= None):
+        if data is None:
+            w = self.read()
+        else:
+            w = data
+        
 
         ab_x = w["x1x2x3"][:,1] - w["x1x2x3"][:,0]
         ab_y = w["y1y2y3"][:,1] - w["y1y2y3"][:,0]
@@ -241,3 +270,66 @@ class wall_3D(AscotData):
         
         return a5VTKwall 
         
+    def append(self,newWall,data=None):
+        '''
+        Returns the wall  with newWall["x1x2x3], newWall["y1y2y3"],  newWall["z1z2z3"], newWall["flag"] to the existing triangles.
+        If data=None (or not given) reads the old triangles from file.
+        '''
+        if data is None:
+            w = self.read()
+        else:
+            w = data
+            
+        fields = ["x1x2x3","y1y2y3","z1z2z3","flag"]
+        for f in fields:
+            #print('Field "{}" has the shapes (data,newWall):'.format(f))
+            #print(w[f].shape, newWall[f].shape)
+            
+            
+            if(len(w[f].shape)==1):
+                if( len(newWall[f]) != len(newWall[f].ravel()) ):
+                    raise Exception("Wrong size field {}".format(f))
+                w[f] = np.concatenate( (w[f], newWall[f].ravel() ), axis=0 )
+            else:
+                w[f] = np.concatenate( (w[f], newWall[f]         ), axis=0 )
+
+                
+        
+        w['n'] = w['n'] + newWall['n']
+
+        return w
+
+
+    def move_component(self, movement, direction, component):    
+        '''
+        @Params:
+        filename    Filename where the wall will be saved.
+        movement    How much the component is moved in metres
+        direction    Which direction the component is moved [x, y, z]
+        component     Bool array of the points of a component
+        wall         Wall object where the wall is copied from, if left empty active 
+        wall from filename will be used
+        
+        @return the new wall data
+        '''
+        
+        
+        rwall = self.read()
+        
+    
+        #Movement in metres
+        t = movement/np.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2) 
+    
+        rwall['x1x2x3'][component,:] += t*direction[0]  
+        rwall['y1y2y3'][component,:] += t*direction[1]
+        rwall['z1z2z3'][component,:] += t*direction[2]
+    
+        new_rwall = {'x1x2x3':rwall['x1x2x3'],'y1y2y3':rwall['y1y2y3'],'z1z2z3':rwall['z1z2z3'],
+                'desc':'ICRHmv{}m'.format(movement),
+            'flag':rwall['flag'], 'flagIdList':rwall['flagIdList'],
+            'flagIdStrings':rwall['flagIdStrings'], 'nelements':rwall['n']}
+    
+        return new_rwall
+
+
+
