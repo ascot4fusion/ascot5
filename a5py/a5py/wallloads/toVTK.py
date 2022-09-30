@@ -13,7 +13,7 @@ def as3DpolyData(hdf5):
     import a5py.wallloads.calculate
     import a5py.wall.a5vtkwall
     
-    wallLoad = a5py.wallloads.calculate.wallLoad3DEndstate(hdf5)
+    wallLoad = a5py.wallloads.calculate.wallLoad3DEndstate(hdf5.active)
     wall = hdf5.active.wall
     
     avtk = a5py.wall.a5vtkwall.a5VtkWall(wall) 
