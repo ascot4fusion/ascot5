@@ -162,12 +162,12 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
     #undef WPATH
     #define WPATH "/wall/wall_3D_XXXXXXXXXX/"
 
+    int nelements;
+  
     /* Read number of wall elements and allocate offload array to
        store n 3D triangles */
-    if( hdf5_read_int(WPATH "nelements", &(offload_data->n),
+    if( hdf5_read_int(WPATH "nelements", &nelements,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
-    offload_data->offload_array_length = 9 * offload_data->n;
-    *offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
 
     /* Allocate temporary arrays for x1x2x3, y1y2y3, z1z2z3 for each triangle */
     real* x1x2x3 = (real*)malloc(3 * offload_data->n * sizeof(real));
@@ -181,6 +181,47 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
     if( hdf5_read_double(WPATH "z1z2z3", z1z2z3,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
 
+    int retval;
+    retval = hdf5_wall_3d_to_offload(
+		offload_data, offload_array,
+		nelements,
+		x1x2x3,
+		y1y2y3,
+		z1z2z3 );
+
+    free(x1x2x3);
+    free(y1y2y3);
+    free(z1z2z3);
+
+    return retval;
+}
+
+
+/**
+ * @brief Assign x1x2x3,y1y2y3,z1z2z3 to the offload array
+ *
+ * @param offload_data pointer to offload data
+ * @param offload_array pointer to offload array
+ * @param nelements length of the wall data
+ * @param x1x2x3 a 1-d array of 3*nelements containing x-coordinates of triangle corners
+ * @param y1y2y3 a 1-d array of 3*nelements containing y-coordinates of triangle corners
+ * @param z1z2z3 a 1-d array of 3*nelements containing z-coordinates of triangle corners
+ *
+ * @return Zero if assignment succeeded
+ */
+
+int hdf5_wall_3d_to_offload(
+		wall_3d_offload_data *offload_data, real **offload_array,
+		int nelements,
+		real* x1x2x3,
+		real* y1y2y3,
+		real* z1z2z3 ) {
+
+    offload_data->n = nelements;
+  
+    offload_data->offload_array_length = 9 * offload_data->n;
+    *offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
+
     /* The data in the offload array is to be in the format
      *  [x1 y1 z1 x2 y2 z2 x3 y3 z3; ... ]
      */
@@ -192,10 +233,6 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
             (*offload_array)[i*9 + j*3 + 2] = z1z2z3[3*i+j];
         }
     }
-
-    free(x1x2x3);
-    free(y1y2y3);
-    free(z1z2z3);
 
     return 0;
 }
