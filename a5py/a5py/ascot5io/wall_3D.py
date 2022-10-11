@@ -39,6 +39,17 @@ def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None,
     Returns:
         Name of the new input that was written.
     """
+
+    if type(nelements) == int:
+        pass
+    elif type(nelements) == list:
+        while type(nelements) == list:
+            nelements = nelements[0]
+    elif type(nelements) == np.ndarray:
+        nelements = int(nelements)
+    else:
+        raise ValueError("Unsupported format for nelements.")
+        
     assert x1x2x3.shape == (nelements,3)
     assert y1y2y3.shape == (nelements,3)
     assert z1z2z3.shape == (nelements,3)
