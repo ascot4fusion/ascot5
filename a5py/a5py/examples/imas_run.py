@@ -16,12 +16,22 @@ from   a5py.ascotpy import ascotpy2
 
 # Read from IMAS
 
+print('Reading 2D wall')
 # 2D wall
 w2d=a5py.ascot5io.imas.wall_2d()
-wdict=w2d.read("g2jvarje","test","3",92436,272)
+#wdict=w2d.read("g2jvarje","test","3",92436,272)
+wdict=w2d.read("akaslos","test","3",92436,272)
 a5py.ascot5io.wall_2D.write_hdf5('from_imas.h5',**wdict)
 
+print('Reading 3D wall')
+# 3D wall
+w3d=a5py.ascot5io.imas.wall_3d()
+wdict3=w3d.read("akaslos","mywall","3",101,101)
+#print(wdict3['x1x2x3'].shape, wdict3['y1y2y3'].shape, wdict3['z1z2z3'].shape, )
+a5py.ascot5io.wall_3D.write_hdf5('from_imas.h5',**wdict3)
 
+
+print('Initializing ascot5')
 
 
 M=a5py.ascotpy.ascot5_main.ascot5_main(input_filename=b'helloworld.h5',output_filename=b'helloworld_out.h5')
@@ -45,7 +55,11 @@ max_simtime=1.0e-4
 print("Reducing max_simtime to {}s.".format(max_simtime))
 M.sim.endcond_max_simtime = max_simtime
 
-M.inject_wall_2d( wdict['r'], wdict['z']  )
+#print("Injecting 2D wall from imas")
+#M.inject_wall_2d( wdict['r'], wdict['z']  )
+
+print("Injecting 3D wall from imas")
+M.inject_wall_3d( wdict3['x1x2x3'], wdict3['y1y2y3'], wdict3['z1z2z3']  )
 
 
 M.offload()

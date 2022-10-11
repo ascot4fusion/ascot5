@@ -215,8 +215,41 @@ class ascot5_main(object):
             R_c, z_c
             )
 
+        self.sim.wall_offload_data.type = ascotpy2.wall_type_2D
+        
         ascotpy2.wall_init_offload(
             ctypes.byref(self.sim.wall_offload_data),
             self.wall_offload_array
             )
 
+    def inject_wall_3d(self,x1x2x3,y1y2y3,z1z2z3):
+
+        nelements = int(x1x2x3.shape[0])
+
+        # Create temporary variable for the wall
+        x1x2x3_c = (ctypes.c_double * (3*nelements) )()
+        y1y2y3_c = (ctypes.c_double * (3*nelements) )()
+        z1z2z3_c = (ctypes.c_double * (3*nelements) )()
+
+        # Let's hope the ordering is correct...
+        x1x2x3_c[:] = x1x2x3.flatten()[:]
+        y1y2y3_c[:] = y1y2y3.flatten()[:]
+        z1z2z3_c[:] = z1z2z3.flatten()[:]
+
+        
+        ascotpy2.hdf5_wall_3d_to_offload(
+            ctypes.byref(self.sim.wall_offload_data.w3d),
+            ctypes.byref(self.wall_offload_array),
+            nelements,
+            x1x2x3_c, y1y2y3_c, z1z2z3_c,
+            )
+
+        self.sim.wall_offload_data.type = ascotpy2.wall_type_3D
+
+        ascotpy2.wall_init_offload(
+            ctypes.byref(self.sim.wall_offload_data),
+            self.wall_offload_array
+            )
+
+        
+    
