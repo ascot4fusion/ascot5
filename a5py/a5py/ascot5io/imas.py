@@ -19,7 +19,13 @@ class a5imas:
         # run = 272
         # ids = "wall"
 
-
+        self.ids_coordinates = {'user'       : user,
+                                'tokamak'    : tokamak,
+                                'version'    : version,
+                                'shot'       : shot,
+                                'run'        : run,
+                                'occurrence' : occurrence,
+                                'ids_name'   : self.ids_name }
 
         self.ids = imas.ids(shot, run)
         self.ids.open_env(user, tokamak, version)
@@ -51,7 +57,7 @@ class a5imas:
         # Put this inside the function, not to disturb usage where imas is not available
         import imas
 
-        
+
         backend = imas.imasdef.MDSPLUS_BACKEND
 
         self.occurrence = 0
@@ -81,6 +87,217 @@ class a5imas:
     def close(self):
         self.ids.close()
 
+
+    def description_string(self):
+        c = self.ids_coordinates
+        s = "DB:{} USER:{} IDS:{} SHOT:{} RUN:{} OCCUR:{}"
+        return s.format(c['tokamak'], c['user'], c['ids_name'], c['shot'], c['run'], c['occurrence'])
+
+
+class B_STS(a5imas):
+    ''' Read stellarator 3D magnetic field with the conventions laid out in:
+        git@github.com:sjjamsa/imas-ggd-b3d.git
+
+        Returns a dict modelled after write_hdf5() in  B_STS.py 
+    '''
+
+    def __init__(self):
+        super().__init__()
+        self.ids_name = "equilibrium"
+
+
+    def read(self, user, tokamak, version, shot, run, occurrence=0 ):
+
+
+        # Put this inside the function, not to disturb usage where imas is not available
+        import imas
+
+        itm = self.open( user, tokamak, version, shot, run, occurrence )
+
+
+
+        time_slice = 0
+        ggd_index  = 0
+        grids_ggd_index = 0
+
+        psi0 = 0.0 # We assume so
+        psi1 = 1.0 # We assume so
+
+
+        ggd  = self.ids.equilibrium.time_slice[time_slice].ggd[ggd_index]
+        grid = self.ids.equilibrium.grids_ggd[grids_ggd_index].grid[0] # Grid for cylindrical R phi z grids. Assumed (by convention) to be in index 0.
+
+
+        # Check we have R,phi,z grid:
+        if grid.identifier.index != 10:
+            raise ValueError("Expecting index 10 in grid identifier, instead of {}.".format(grid.identifier.index))
+        if len(grid.space) != 3 :
+            raise ValueError("Should be 3-dimensional grid.")
+        if grid.space[0].coordinates_type[0] != 4 :
+            raise ValueError("Coordinate type mismatch [R]")
+        if grid.space[1].coordinates_type[0] != 6 :
+            raise ValueError("Coordinate type mismatch [phi]")
+        if grid.space[2].coordinates_type[0] != 5 :
+            raise ValueError("Coordinate type mismatch [z]")
+
+
+        nR   = len(grid.space[0].objects_per_dimension[0].object)
+        nphi = len(grid.space[1].objects_per_dimension[0].object)
+        nz   = len(grid.space[2].objects_per_dimension[0].object)
+        if nR   < 1 :
+            raise ValueError("R is zero length")
+        if nphi < 1 :
+            raise ValueError("phi is zero length")
+        if nz   < 1 :
+            raise ValueError("z is zero length")
+
+
+        R   = np.zeros(shape=(  nR, ) )
+        phi = np.zeros(shape=(nphi, ) )
+        z   = np.zeros(shape=(  nz, ) )
+
+        for i in range(nR):
+            R[i]   = grid.space[0].objects_per_dimension[0].object[i].geometry[0]
+        for i in range(nphi):
+            phi[i] = grid.space[1].objects_per_dimension[0].object[i].geometry[0]
+        for i in range(nz):
+            z[i]   = grid.space[2].objects_per_dimension[0].object[i].geometry[0]
+
+        shape = (nR, nphi, nz)
+        order = 'F'
+
+        ldata = nR * nphi * nz
+        if  len( ggd.b_field_r[   0 ].values) != ldata :
+             raise ValueError("B_R size does not match R,phi,z size") 
+        if  len( ggd.b_field_tor[   0 ].values) != ldata :
+             raise ValueError("B_tor size does not match R,phi,z size") 
+        if  len( ggd.b_field_z[   0 ].values) != ldata :
+             raise ValueError("B_z size does not match R,phi,z size") 
+
+        B_R   = np.reshape( ggd.b_field_r[   0 ].values, newshape=shape, order=order )
+        B_tor = np.reshape( ggd.b_field_tor[ 0 ].values, newshape=shape, order=order )
+        B_z   = np.reshape( ggd.b_field_z[   0 ].values, newshape=shape, order=order )
+
+        if len( ggd.psi ) > 0 :
+            if  len( ggd.psi[   0 ].values) != ldata :
+                raise ValueError("psi data size does not match R,phi,z size") 
+            psi_arr   = np.reshape( ggd.psi[   0 ].values, newshape=shape, order=order )
+        else:
+            psi_arr   = None
+
+        if len( ggd.phi) > 0 :
+            if  len( ggd.phi[   0 ].values) != ldata :
+                raise ValueError("phi data size does not match R,phi,z size") 
+            phi_arr   = np.reshape( ggd.phi[   0 ].values, newshape=shape, order=order )
+        else:
+            phi_arr   = None
+
+        if len( ggd.theta) > 0 :
+            if  len( ggd.theta[   0 ].values) != ldata :
+                raise ValueError("theta data size does not match R,phi,z size") 
+            theta_arr = np.reshape( ggd.theta[ 0 ].values, newshape=shape, order=order )
+        else:
+            theta_arr = None
+
+        # Read the magnetix axis from grid[1] (index is "1" by convention)
+        if len (   self.ids.equilibrium.grids_ggd[grids_ggd_index].grid    ) > 1 :
+            grid = self.ids.equilibrium.grids_ggd[grids_ggd_index].grid[1]
+            axis_R = None
+            axis_z = None
+            nphi = len(grid.space[0].objects_per_dimension[0].object)
+            if nphi < 1 :
+                raise ValueError("axis data is zero length")
+
+            axis_R   = -1.0 * np.ones( shape=(nphi,) )
+            axis_z   = -1.0 * np.ones( shape=(nphi,) )
+            axis_phi = -1.0 * np.ones( shape=(nphi,) )
+
+            if (
+                    grid.space[0].coordinates_type[0] != 4 or  # R
+                    grid.space[0].coordinates_type[1] != 6 or  # phi
+                    grid.space[0].coordinates_type[2] != 5 ):  # z
+                raise ValueError("expected coordinates_type=[4 6 5]")
+
+
+
+            for i in range(nphi):
+                axis_R[i]   = grid.space[0].objects_per_dimension[0].object[i].geometry[0]
+                axis_phi[i] = grid.space[0].objects_per_dimension[0].object[i].geometry[1]
+                axis_z[i]   = grid.space[0].objects_per_dimension[0].object[i].geometry[2]
+        else:
+            axis_R = None
+            axis_z = None
+
+
+        # Create the dictionary
+
+
+
+        B = {}
+
+        Rmin = R[ 0]
+        Rmax = R[-1]
+        nR   = len(R)
+        Pmin = phi[ 0]
+        Pmax = phi[-1]
+        nP   = len(phi)
+        zmin = z[ 0]
+        zmax = z[-1]
+        nz   = len(z)
+
+        # For the 3D-arrays, the dimension order is (r,phi,z)
+        # Check that initial data is the shape we expect it to be
+        if (
+                B_R.shape[0] != nR or
+                B_R.shape[1] != nP or
+                B_R.shape[2] != nz ):
+            raise ValueError("unexpected array dimensions")
+
+
+
+
+
+        B["b_rmin"]     =      Rmin
+        B["b_rmax"]     =      Rmax
+        B["b_nr"]       =      nR
+        B["b_phimin"]   =      Pmin
+        B["b_phimax"]   =      Pmax
+        B["b_nphi"]     =      nP
+        B["b_zmin"]     =      zmin
+        B["b_zmax"]     =      zmax
+        B["b_nz"]       =      nz
+        B["psi_rmin"]   =      Rmin
+        B["psi_rmax"]   =      Rmax
+        B["psi_nr"]     =      nR
+        B["psi_phimin"] =      Pmin
+        B["psi_phimax"] =      Pmax
+        B["psi_nphi"]   =      nP
+        B["psi_zmin"]   =      zmin
+        B["psi_zmax"]   =      zmax
+        B["psi_nz"]     =      nz
+        B["axis_phimin"]=      Pmin
+        B["axis_phimax"]=      Pmax
+        B["axis_nphi"]  =      nP
+        B["axisr"]      =      axis_R
+        B["axisz"]      =      axis_z
+
+        # For the 3D-arrays, the required dimension order is (r,phi,z)
+        B["br"]         =      B_R
+        B["bphi"]       =      B_tor
+        B["bz"]         =      B_z
+        B["psi"]        =      psi_arr
+
+        print('old ', psi_arr.shape)
+        print('new ', B['psi'].shape)
+        print('len ', (nR,nP,nz), 'R,phi,z')
+
+        B["psi0"]       =      psi0  # This is a bold assumption atm
+        B["psi1"]       =      psi1  # This is a bold assumption atm.
+
+
+        B["desc"]       = self.description_string()
+
+        return B
 
 class wall_2d(a5imas):
 
@@ -122,6 +339,8 @@ class wall_2d(a5imas):
         }
 
         return w
+
+
 
 class wall_3d(a5imas):
 
