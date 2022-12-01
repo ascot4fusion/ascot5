@@ -10,6 +10,7 @@ import datetime
 import a5py.preprocessing.analyticequilibrium as psifun
 import a5py.ascot5io.B_2DS as B_2DS
 import a5py.ascot5io.B_3DS as B_3DS
+import a5py.ascot5io.B_STS as B_STS
 
 from . ascot5file import add_group
 
@@ -291,6 +292,94 @@ def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     return B_3DS.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax,
                             nphi, raxis, zaxis, psiRz, psi0, psi1,
                             Br, Bphi, Bz, desc=desc)
+
+def write_hdf5_B_STS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
+                     Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
+                     psi0=None, raxis=None, zaxis=None, desc=None):
+    """
+    Write analytical tokamak magnetic field as a stellarator field input in HDF5 file.
+
+    Args:
+        fn : str
+            Full path to the HDF5 file.
+        R0, z0 : real
+            Major axis Rz-coordinates.
+        B_phi0 : real
+            Toroidal field at axis.
+        psi_mult : real
+            Scaling factor for psi.
+        psi_coeff : real 13 x 1 numpy array
+            Coefficients defining psi.
+        Rmin, Rmax, zmin, zmax, phimin, phimax : real
+            Edges of the uniform Rphiz-grid.
+        nR, nz, nphi : int
+            Number of Rphiz-grid points.
+        psi0 : float, optional <br>
+            Poloidal flux at magnetic axis.
+        raxis : float, optional <br>
+            Magnetic axis R coordinate [m].
+        zaxis : float, optional <br>
+            Magnetic axis z coordinate [m].
+        desc : str, optional <br>
+            Input description.
+    """
+
+    rgrid = np.linspace(Rmin, Rmax, nR)
+    zgrid = np.linspace(zmin, zmax, nz)
+
+    zg, Rg = np.meshgrid(zgrid, rgrid);
+
+    c = psi_coeff # For shorter notation.
+    psiRz = psi_mult*psifun.psi0(Rg/R0,zg/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],
+                                 c[7],c[8],c[9],c[10],c[11],c[12])
+    psiRz_R = psi_mult*psifun.psiX(Rg/R0,zg/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],
+                                 c[7],c[8],c[9],c[10],c[11],c[12])
+    psiRz_z = psi_mult*psifun.psiY(Rg/R0,zg/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],
+                                 c[7],c[8],c[9],c[10],c[11],c[12])
+
+    Br = np.zeros((nR, nphi, nz))
+    Bz = np.zeros((nR, nphi, nz))
+    Bphi = np.zeros((nR, nphi, nz))
+    psi  = np.zeros((nR, nphi, nz))
+    axisr= np.zeros((nphi,))
+    axisz= np.zeros((nphi,))
+
+    
+    phigrid = np.linspace(phimin,phimax,nphi+1)
+    phigrid = phigrid[0:-1]
+
+    # search for magnetic axis if not given
+    if psi0 == None:
+        x = psifun.find_axis(R0, z0, c[0], c[1], c[2], c[3], c[4], c[5], c[6],
+            c[7], c[8], c[9], c[10], c[11], c[12])
+        psi0 = psi_mult*psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
+            c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
+        raxis = x[0]*R0
+        zaxis = x[1]*R0
+
+    psi1 = 0
+
+    
+    # The magnetic field one gets from psi as:
+    #  B_R &= -\frac{1}{R}\frac{\partial\psi}{\partial z}\\
+    #  B_z &=  \frac{1}{R}\frac{\partial\psi}{\partial R}
+    #  f
+    #  B_\phi = \frac{B_0R_0}{R}
+    #  f
+
+    for i in range(0,nphi):
+        Bphi[:,i,:] = ((R0/Rg)*B_phi0 )
+        psi[ :,i,:] = psiRz
+        Br[  :,i,:] = ( -1.0 / Rg / R0 ) * psiRz_z #/ ( np.pi*2 ) 
+        Bz[  :,i,:] = (  1.0 / Rg / R0 ) * psiRz_R #/ ( np.pi*2 ) # Why do we need to divide by 2pi???)
+        axisr[ i  ] = raxis
+        axisz[ i  ] = zaxis
+
+
+    return B_STS.write_hdf5(fn, b_rmin=Rmin, b_rmax=Rmax, b_nr=nR, b_zmin=zmin, b_zmax=zmax, b_nz=nz, b_phimin=phimin, b_phimax=phimax,
+                            b_nphi=nphi, axisr=axisr, axisz=axisz, psi=psi, psi0=psi0, psi1=psi1,
+                            br=Br, bphi=Bphi, bz=Bz, desc=desc,
+                            axis_phimin=phimin, axis_phimax=phimax, axis_nphi=nphi)
 
 
 class B_GS(AscotData):
