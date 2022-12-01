@@ -72,6 +72,8 @@ class a5imas:
         if self.ids_name == 'wall':
             #ids = data_entry.get(ids_name,occurrence)
             self.ids = imas.wall()
+        elif self.ids_name == 'equilibrium':
+            self.ids = imas.equilibrium()
         else:
             raise NotImplementedError("The ids {} has not been implemented in ascot5 imas.py create().".format(self.ids_name))
             # Probably easy enough to implement another ids "newids":
@@ -257,29 +259,30 @@ class B_STS(a5imas):
 
 
 
-        B["b_rmin"]     =      Rmin
-        B["b_rmax"]     =      Rmax
-        B["b_nr"]       =      nR
-        B["b_phimin"]   =      Pmin
-        B["b_phimax"]   =      Pmax
-        B["b_nphi"]     =      nP
-        B["b_zmin"]     =      zmin
-        B["b_zmax"]     =      zmax
-        B["b_nz"]       =      nz
-        B["psi_rmin"]   =      Rmin
-        B["psi_rmax"]   =      Rmax
-        B["psi_nr"]     =      nR
-        B["psi_phimin"] =      Pmin
-        B["psi_phimax"] =      Pmax
-        B["psi_nphi"]   =      nP
-        B["psi_zmin"]   =      zmin
-        B["psi_zmax"]   =      zmax
-        B["psi_nz"]     =      nz
-        B["axis_phimin"]=      Pmin
-        B["axis_phimax"]=      Pmax
-        B["axis_nphi"]  =      nP
-        B["axisr"]      =      axis_R
-        B["axisz"]      =      axis_z
+        B["b_rmin"]     =      np.array([Rmin   ])
+        B["b_rmax"]     =      np.array([Rmax   ])
+        B["b_nr"]       =      np.array([nR     ])
+        B["b_phimin"]   =      np.array([Pmin   ])
+        B["b_phimax"]   =      np.array([Pmax   ])
+        B["b_nphi"]     =      np.array([nP     ])
+        B["b_zmin"]     =      np.array([zmin   ])
+        B["b_zmax"]     =      np.array([zmax   ])
+        B["b_nz"]       =      np.array([nz     ])
+        B["psi_rmin"]   =      np.array([Rmin   ])
+        B["psi_rmax"]   =      np.array([Rmax   ])
+        B["psi_nr"]     =      np.array([nR     ])
+        B["psi_phimin"] =      np.array([Pmin   ])
+        B["psi_phimax"] =      np.array([Pmax   ])
+        B["psi_nphi"]   =      np.array([nP     ])
+        B["psi_zmin"]   =      np.array([zmin   ])
+        B["psi_zmax"]   =      np.array([zmax   ])
+        B["psi_nz"]     =      np.array([nz     ])
+        B["axis_phimin"]=      np.array([Pmin   ])
+        B["axis_phimax"]=      np.array([Pmax   ])
+        B["axis_nphi"]  =      np.array([nP     ])
+
+        B["axisr"]      =      axis_R 
+        B["axisz"]      =      axis_z 
 
         # For the 3D-arrays, the required dimension order is (r,phi,z)
         B["br"]         =      B_R
@@ -287,18 +290,203 @@ class B_STS(a5imas):
         B["bz"]         =      B_z
         B["psi"]        =      psi_arr
 
-        print('old ', psi_arr.shape)
-        print('new ', B['psi'].shape)
-        print('len ', (nR,nP,nz), 'R,phi,z')
+        #print('old ', psi_arr.shape)
+        #print('new ', B['psi'].shape)
+        #print('len ', (nR,nP,nz), 'R,phi,z')
 
-        B["psi0"]       =      psi0  # This is a bold assumption atm
-        B["psi1"]       =      psi1  # This is a bold assumption atm.
+        B["psi0"]       =      np.array([psi0])  # This is a bold assumption atm
+        B["psi1"]       =      np.array([psi1])  # This is a bold assumption atm.
 
 
         B["desc"]       = self.description_string()
 
         return B
 
+    def write(self, B, user, tokamak, version, shot, run, metadata={}):
+
+        # Check that all arrays have same size
+        if B['b_nr']   != B['psi_nr']:
+            raise ValueError('b_nr != psi_nr')
+        if B['b_nz']   != B['psi_nz']:
+            raise ValueError('b_nz != psi_nz')
+        if B['b_nphi'] != B['psi_nphi']:
+            raise ValueError('b_nphi != psi_nphi')
+        if B['b_nphi'] != B['axis_nphi']:
+            raise ValueError('b_nphi != axis_nphi')
+
+        if (
+                B['b_rmin'] != B['psi_rmin'] or
+                B['b_rmax'] != B['psi_rmax'] or
+                B['b_zmin'] != B['psi_zmin'] or
+                B['b_zmax'] != B['psi_zmax'] or
+                B['b_phimin'] != B['psi_phimin'] or
+                B['b_phimax'] != B['psi_phimax'] or
+                B['b_phimax'] != B['psi_phimax'] or
+                B['b_phimin'] != B['axis_phimin'] or
+                B['b_phimax'] != B['axis_phimax']   ):
+            raise ValueError('b/psi/axis r/z/phi min/max do not match Expecting identical grids.')
+                
+        
+        index_grids_ggd = 0
+        index_time_slice = 0
+        nGrids = 2
+        index_ggd = 0
+
+        self.create( user, tokamak, version, shot, run)
+
+        if 'ids_comment' in metadata :
+            self.ids.ids_properties.comment = metadata['ids_comment']
+        else:
+            self.ids.ids_properties.comment = "equilibrium IDS for testing"
+
+        # mandatory
+        self.ids.ids_properties.homogeneous_time = 1
+        self.ids.time = np.array([0.0])
+
+        
+        # Fill data
+
+        if len( self.ids.grids_ggd ) <= index_grids_ggd :
+            self.ids.grids_ggd.resize(index_grids_ggd+1)
+        if len( self.ids.grids_ggd[index_grids_ggd].grid ) < nGrids :
+            self.ids.grids_ggd[index_grids_ggd].grid.resize(nGrids)
+
+
+
+        # The structured grid
+        grid = self.ids.grids_ggd[index_grids_ggd].grid[0]
+
+        if "description_ggd_identifier_name" in metadata :
+            grid.identifier.name = metadata[ "description_ggd_identifier_name" ]
+        else :
+            grid.identifier.name = "structured_spaces"
+        if "description_ggd_identifier_desc" in metadata :
+            grid.identifier.description = metadata[ "description_ggd_identifier_desc" ]
+        else :
+            grid.identifier.description = "Cylindrical RphiZ grid"
+        grid.identifier.index = 10
+
+
+        nSpaces = 3 # nodes edges "faces"
+        if len(grid.space) < nSpaces:
+            grid.space.resize(nSpaces)
+
+        grid.space[0].coordinates_type = np.array( [4] ) # R
+        grid.space[1].coordinates_type = np.array( [6] ) # phi
+        grid.space[2].coordinates_type = np.array( [5] ) # phi
+
+        objdims=1 # GGD would create additional dimensions, but we don't really need them, do we?
+        for iSpace in range(3):
+            if len(grid.space[iSpace].objects_per_dimension) < objdims :
+                grid.space[   iSpace].objects_per_dimension.resize(objdims)
+
+        nR   = B['b_nr'][0]
+        if len(grid.space[0].objects_per_dimension[0].object) != nR :
+            grid.space[   0].objects_per_dimension[0].object.resize(nR)
+        nPhi = B['b_nphi'][0]
+        if len(grid.space[0].objects_per_dimension[0].object) != nPhi :
+            grid.space[   1].objects_per_dimension[0].object.resize(nPhi)
+        nz   = B['b_nz'][0]
+        if len(grid.space[2].objects_per_dimension[0].object) != nz :
+            grid.space[   2].objects_per_dimension[0].object.resize(nz)
+
+        R   = np.linspace( B['b_rmin'  ][0], B['b_rmax'  ][0], B['b_nr'  ][0] )
+        for i in range(nR):
+            grid.space[0].objects_per_dimension[0].object[i].geometry = np.array( [R[i]  ] )
+            grid.space[0].objects_per_dimension[0].object[i].nodes = np.array([i+1])
+        phi = np.linspace( B['b_phimin'][0], B['b_phimax'][0], B['b_nphi'][0] )
+        for i in range(nPhi):
+            grid.space[1].objects_per_dimension[0].object[i].geometry = np.array( [phi[i]] )
+            grid.space[1].objects_per_dimension[0].object[i].nodes = np.array([i+1])
+        z   = np.linspace( B['b_zmin'  ][0], B['b_zmax'  ][0], B['b_nz'  ][0] )
+        for i in range(nz):
+            grid.space[2].objects_per_dimension[0].object[i].geometry = np.array( [z[i]  ] )
+            grid.space[2].objects_per_dimension[0].object[i].nodes = np.array([i+1])
+            
+        # Todo... edges, sub-spaces
+
+            
+        # The magnetic axis grid
+        grid = self.ids.grids_ggd[index_grids_ggd].grid[1]
+
+        grid.identifier.index = 1
+        grid.identifier.description = 'magnetic axis'
+
+        
+        nSpaces = 1 
+        if len(grid.space) < nSpaces:
+            grid.space.resize(nSpaces)
+       
+        grid.space[0].identifier.index = 1
+        grid.space[0].coordinates_type = np.array([4, 6, 5])
+
+        # nodes & edges
+        objdims = 2
+
+        # nodes
+        if len(grid.space[0].objects_per_dimension) < objdims :
+            grid.space[0].objects_per_dimension.resize(2)
+            
+        if len(grid.space[0].objects_per_dimension[0].object) != nPhi:
+            grid.space[0].objects_per_dimension[0].object.resize(nPhi)
+
+        for i in range(nPhi):
+            grid.space[0].objects_per_dimension[0].object[i].geometry = np.array( [  B["axisr"][i], phi[i], B["axisz"][i] ] )
+            grid.space[0].objects_per_dimension[0].object[i].nodes = np.array([i+1])
+
+        # edges
+
+        if len(grid.space[0].objects_per_dimension[1].object) != 1:
+            grid.space[0].objects_per_dimension[1].object.resize(1)
+
+        grid.space[0].objects_per_dimension[1].object[0].nodes = np.arange( 1, nPhi+1, dtype=int )
+            
+
+        if len(grid.grid_subset) < 1:
+            grid.grid_subset.resize(1)
+
+        grid.grid_subset[0].identifier.index = 100
+        grid.grid_subset[0].dimension = 2
+
+        if len(grid.grid_subset[0].element) < 1:
+            grid.grid_subset[0].element.resize(1)
+        if len(grid.grid_subset[0].element[0].object) < 1:
+            grid.grid_subset[0].element[0].object.resize(1)
+    
+        grid.grid_subset[0].element[0].object[0].space     = 1
+        grid.grid_subset[0].element[0].object[0].dimension = 2
+        grid.grid_subset[0].element[0].object[0].index     = 1
+
+
+        # The fields
+        if len( self.ids.time_slice) <= index_time_slice :        
+            self.ids.time_slice.resize(index_time_slice+1)
+        if len(self.ids.time_slice[index_time_slice].ggd) <= index_ggd :
+            self.ids.time_slice[index_time_slice].ggd.resize(index_ggd+1)
+        ggd = self.ids.time_slice[index_time_slice].ggd[index_ggd]
+
+        if len(ggd.psi) < 1:
+            ggd.psi.resize(1)
+        ggd.psi[0].values = B['psi'].flatten(order='F')
+
+        if len(ggd.b_field_r) < 1:
+            ggd.b_field_r.resize(1)
+        ggd.b_field_r[0].values = B['br'].flatten(order='F')
+
+        if len(ggd.b_field_z) < 1:
+            ggd.b_field_z.resize(1)
+        ggd.b_field_z[0].values = B['bz'].flatten(order='F')
+
+        if len(ggd.b_field_tor) < 1:
+            ggd.b_field_tor.resize(1)
+        ggd.b_field_tor[0].values = B['bphi'].flatten(order='F')
+
+        
+        self.write_data_entry()
+                                 
+
+        
+    
 class wall_2d(a5imas):
 
     def __init__(self):
