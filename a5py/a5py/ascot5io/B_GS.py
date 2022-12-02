@@ -357,8 +357,17 @@ def write_hdf5_B_STS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
         raxis = x[0]*R0
         zaxis = x[1]*R0
 
-    psi1 = 0
-
+    psi1=0 #??
+        
+    #Normalize psi (It tries to impersonate the VMEC psi)
+    #print("Initial psi0: {}".format(psi0))
+    #print("Initial psi1: {}".format(psi1))
+    psiRz -= psi0 # move axis to 0
+    psi1  -= psi0 # ..
+    psiRz /= psi1 # scale LCFS to 1
+    psi0 = 0.0
+    psi1 = 1.0
+    
     
     # The magnetic field one gets from psi as:
     #  B_R &= -\frac{1}{R}\frac{\partial\psi}{\partial z}\\
@@ -370,8 +379,8 @@ def write_hdf5_B_STS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     for i in range(0,nphi):
         Bphi[:,i,:] = ((R0/Rg)*B_phi0 )
         psi[ :,i,:] = psiRz
-        Br[  :,i,:] = ( -1.0 / Rg / R0 ) * psiRz_z #/ ( np.pi*2 ) 
-        Bz[  :,i,:] = (  1.0 / Rg / R0 ) * psiRz_R #/ ( np.pi*2 ) # Why do we need to divide by 2pi???)
+        Br[  :,i,:] = ( -1.0 / Rg / R0 ) * psiRz_z 
+        Bz[  :,i,:] = (  1.0 / Rg / R0 ) * psiRz_R 
         axisr[ i  ] = raxis
         axisz[ i  ] = zaxis
 
