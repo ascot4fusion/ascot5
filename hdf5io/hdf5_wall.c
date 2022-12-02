@@ -170,9 +170,9 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
                       f, qid, __FILE__, __LINE__) ) {return 1;}
 
     /* Allocate temporary arrays for x1x2x3, y1y2y3, z1z2z3 for each triangle */
-    real* x1x2x3 = (real*)malloc(3 * offload_data->n * sizeof(real));
-    real* y1y2y3 = (real*)malloc(3 * offload_data->n * sizeof(real));
-    real* z1z2z3 = (real*)malloc(3 * offload_data->n * sizeof(real));
+    real* x1x2x3 = (real*)malloc(3 * nelements * sizeof(real));
+    real* y1y2y3 = (real*)malloc(3 * nelements * sizeof(real));
+    real* z1z2z3 = (real*)malloc(3 * nelements * sizeof(real));
 
     if( hdf5_read_double(WPATH "x1x2x3", x1x2x3,
                          f, qid, __FILE__, __LINE__) ) {return 1;}
