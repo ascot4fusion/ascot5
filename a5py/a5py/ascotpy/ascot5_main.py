@@ -5,6 +5,7 @@ Created on Nov 16, 2021
 '''
 
 import ctypes
+from math import pi
 
 # generate ascotpy2 in the source folder with
 # % clang2py -l ./libascot.so -o ../python/a5py/a5py/ascotpy/ascotpy2.py  particle.h hdf5_interface.h ascot5.h mpi_interface.h simulate.h ascot5_main.h offload.h diag.h libascot_mem.h --clang-args="-I/usr/include/hdf5/serial"
@@ -250,6 +251,143 @@ class ascot5_main(object):
             ctypes.byref(self.sim.wall_offload_data),
             self.wall_offload_array
             )
+
+        
+    
+    def inject_BSTS(self,bsts):
+        # bsts is the dictionary that comes from reading the hdf5
+
+
+
+        # 1. First fill in the meta-data struct
+        #--------------------------------------
+        # Mimic the C-function    hdf5_bfield_read_STS()
+
+        #phimin/max deg2rad
+        
+        #B_STS_offload_data
+        #sts = struct_c__SA_B_STS_offload_data()
+        BSTS = self.sim.B_offload_data.BSTS
+
+        BSTS.psigrid_n_r     = bsts['psi_nr'][0]
+        BSTS.psigrid_n_z     = bsts['psi_nz'][0]
+        BSTS.psigrid_n_phi   = bsts['psi_nphi'][0]
+        BSTS.psigrid_r_min   = bsts['psi_rmin'][0]
+        BSTS.psigrid_r_max   = bsts['psi_rmax'][0]
+        BSTS.psigrid_z_min   = bsts['psi_zmin'][0]
+        BSTS.psigrid_z_max   = bsts['psi_zmax'][0]
+        BSTS.psigrid_phi_min = bsts['psi_phimin'][0] * pi * 2.0 / 360.0
+        BSTS.psigrid_phi_max = bsts['psi_phimax'][0] * pi * 2.0 / 360.0
+
+        BSTS.Bgrid_n_r       = bsts['b_nr'][0]
+        BSTS.Bgrid_n_z       = bsts['b_nz'][0]
+        BSTS.Bgrid_n_phi     = bsts['b_nphi'][0]
+        BSTS.Bgrid_r_min     = bsts['b_rmin'][0]
+        BSTS.Bgrid_r_max     = bsts['b_rmax'][0]
+        BSTS.Bgrid_z_min     = bsts['b_zmin'][0]
+        BSTS.Bgrid_z_max     = bsts['b_zmax'][0]
+        BSTS.Bgrid_phi_min   = bsts['b_phimin'][0] * pi * 2.0 / 360.0
+        BSTS.Bgrid_phi_max   = bsts['b_phimax'][0] * pi * 2.0 / 360.0
+
+        BSTS.psi0            = bsts['psi0'][0]
+        BSTS.psi1            = bsts['psi1'][0]
+
+
+        BSTS.n_axis          = bsts['axis_nphi'][0]
+        BSTS.axis_min        = bsts['axis_phimin'][0] * pi * 2.0 / 360.0
+        BSTS.axis_max        = bsts['axis_phimax'][0] * pi * 2.0 / 360.0
+        # BSTS.axis_grid       = bsts['']   # Not really used
+        
+        # 2. Get the right sized offload array
+        #--------------------------------------
+        # Does this deed to be allocated by C code or can we do it with a python array?
+
+        '''
+        /* Allocate offload_array storing psi and the three components of B */
+        int psi_size = offload_data->psigrid_n_r*offload_data->psigrid_n_z
+           * offload_data->psigrid_n_phi;
+        int B_size = offload_data->Bgrid_n_r * offload_data->Bgrid_n_z
+           * offload_data->Bgrid_n_phi;
+        int axis_size = offload_data->n_axis;
+
+        *offload_array = (real*) malloc((psi_size + 3 * B_size + 2 * axis_size)
+                                    * sizeof(real));
+        offload_data->offload_array_length = psi_size + 3 * B_size + 2 * axis_size;
+        '''
+
+        offload_size = 0
+
+        npsi = bsts['psi_nr'][0] * bsts['psi_nz'][0] * bsts[ 'psi_nphi'][0]
+        nB   = bsts[  'b_nr'][0] * bsts[  'b_nz'][0] * bsts[   'b_nphi'][0]
+        naxis=                                         bsts['axis_nphi'][0]
+        
+        # psi_size
+        offload_size +=  1 * npsi
+        # B_size
+        offload_size +=  3 * nB
+        # axis_size
+        offload_size +=  2 * naxis
+        
+        BSTS.offload_array_length = offload_size
+
+        # Python side allocation
+        #-----------------------
+        # B_offload_array = (ctypes.c_double * (offload_size) )()
+        #self.B_offload_array.contents = B_offload_array
+
+
+        # C side allocation
+        #------------------
+        self.B_offload_array =  ascotpy2.libascot_allocate_reals(offload_size)
+
+        # Cast the pointer into an array
+        B_offload_array = ctypes.cast( self.B_offload_array, ctypes.POINTER(ctypes.c_double*offload_size) )[0]
+        
+        
+        # 3. copy the large arrays to the offload array
+        #----------------------------------------------
+
+        offset = 0
+        order = 'F'
+
+        B_offload_array[(offset):(offset+nB  )] = bsts['br'].flatten(order=order)
+        offset += nB
+        
+        B_offload_array[(offset):(offset+nB  )] = bsts['bphi'].flatten(order=order)
+        offset += nB
+
+        B_offload_array[(offset):(offset+nB  )] = bsts['bz'].flatten(order=order)
+        offset += nB
+
+        B_offload_array[(offset):(offset+npsi)] = bsts['psi'].flatten(order=order)
+        offset += npsi
+
+        B_offload_array[(offset):(offset+naxis)] = bsts['axisr']
+        offset += naxis
+
+        B_offload_array[(offset):(offset+naxis)] = bsts['axisz']
+        offset += naxis
+
+
+
+
+
+        # 4. Set the correct data type
+        #------------------------------
+
+        self.sim.B_offload_data.type = ascotpy2.B_field_type_STS
+
+        # 5. Do the init offload
+        #-----------------------
+
+        # B_field_init_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_field_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
+
+        print('B_field_init_offload')
+        ascotpy2.B_field_init_offload(
+            ctypes.byref(self.sim.B_offload_data),
+            ctypes.byref(self.B_offload_array)
+            )
+        print('                    ..complete')
 
         
     

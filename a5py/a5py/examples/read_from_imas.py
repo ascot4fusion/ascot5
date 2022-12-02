@@ -25,12 +25,16 @@ print("Reading 2D wall")
 wdict=w2d.read("akaslos","test","3",92436,272)
 
 print("Reading 3D field")
-b3ddict = bst.read("akaslos","ggdtest","3",16,2)
+#b3ddict = bst.read("akaslos","ggdtest","3",16,2)
+b3ddict = bst.read("akaslos","ggdtest","3",32,1)
 
-print("Writing")
+print("Writing to hdf5")
 a5py.ascot5io.wall_3D.write_hdf5('from_imas.h5',**wdict3)
 a5py.ascot5io.wall_2D.write_hdf5('from_imas.h5',**wdict)
 a5py.ascot5io.B_STS.write_hdf5('from_imas.h5',**b3ddict)
 
 
+print("Writing to IDS")
+#bst.write( b3ddict, "akaslos", "ggdtest", "3", 32, 1, metadata={'comment':'written by read_from_imas.py'})
+bst.write( b3ddict, "akaslos", "ggdtest", "3", 32, 2, metadata={'comment':'written by read_from_imas.py'})
 

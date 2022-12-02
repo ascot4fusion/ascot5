@@ -15,7 +15,7 @@ bsts   = a.bfield.active.read()
 
 w3dimas=a5py.ascot5io.imas.wall_3d()
 bstsimas=a5py.ascot5io.imas.B_STS()
-w3dimas.write( wdict3,'akaslos','mywall', '3',101,101, {'comment':filename} )
+w3dimas.write( wdict3,'akaslos','mywall', '3',201,101, {'comment':filename} )
 bstsimas.write(  bsts,'akaslos','ggdtest','3',32,   3, {'comment':filename} )
 
 

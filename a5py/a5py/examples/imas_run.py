@@ -26,25 +26,33 @@ a5py.ascot5io.wall_2D.write_hdf5('from_imas.h5',**wdict)
 print('Reading 3D wall')
 # 3D wall
 w3d=a5py.ascot5io.imas.wall_3d()
-wdict3=w3d.read("akaslos","mywall","3",101,101)
+wdict3=w3d.read("akaslos","mywall","3",201,101)
 #print(wdict3['x1x2x3'].shape, wdict3['y1y2y3'].shape, wdict3['z1z2z3'].shape, )
 a5py.ascot5io.wall_3D.write_hdf5('from_imas.h5',**wdict3)
+
+print('Reading Bfield (stellarator)')
+# 3D Bfield in Stellarator format
+bsts=a5py.ascot5io.imas.B_STS()
+bdict=bsts.read("akaslos","ggdtest","3",32,3)
+a5py.ascot5io.B_STS.write_hdf5('from_imas.h5',**bdict)
 
 
 print('Initializing ascot5')
 
 
 M=a5py.ascotpy.ascot5_main.ascot5_main(input_filename=b'helloworld.h5',output_filename=b'helloworld_out.h5')
+print("Inializing.")
 M.init()
 
 # don't read wall input
 what_to_read = ctypes.c_int32()
-what_to_read.value =    ascotpy2.hdf5_input_options | ascotpy2.hdf5_input_bfield | \
+what_to_read.value =    ascotpy2.hdf5_input_options | \
                         ascotpy2.hdf5_input_efield  | ascotpy2.hdf5_input_plasma | \
                         ascotpy2.hdf5_input_neutral | ascotpy2.hdf5_input_marker |\
                         ascotpy2.hdf5_input_boozer  | ascotpy2.hdf5_input_mhd
 
 #  ascotpy2.hdf5_input_wall |
+# ascotpy2.hdf5_input_bfield | \
 
 M.read_input(what_to_read=what_to_read)
 
@@ -61,17 +69,26 @@ M.sim.endcond_max_simtime = max_simtime
 print("Injecting 3D wall from imas")
 M.inject_wall_3d( wdict3['x1x2x3'], wdict3['y1y2y3'], wdict3['z1z2z3']  )
 
+print("Injecting stellarator B-field from imas")
+M.inject_BSTS(bdict)
 
+print("offloading")
 M.offload()
 
+print("simulating")
 M.run_simulation()
 
+print("gathering output")
 M.gather_output()
 
+print("printing marker summary")
 M.print_marker_summary()
 
+print("writing output h5")
 M.write_output_h5()
 
+print("freeing memory")
 M.free_c()
 
+print("finalizing MPI")
 M.finalize()
