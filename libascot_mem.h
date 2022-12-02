@@ -12,7 +12,7 @@
 
 input_particle* libascot_allocate_input_particles(int number_of_particles);
 real* libascot_allocate_reals(size_t size);
-void libascot_free(void *arr);
+void libascot_deallocate(void *arr);
 
 
 #endif /* LIBASCOT_MEM_H_ */

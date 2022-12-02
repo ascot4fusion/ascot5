@@ -21,6 +21,6 @@ real* libascot_allocate_reals(size_t size){
  *  @brief A wrapper to C stdlib free()
  *
  */
-void libascot_free(void *arr){
+void libascot_deallocate(void *arr){
   free( arr );
 }
