@@ -145,6 +145,14 @@ libascot: libascot.so
 
 libascot.so: CFLAGS+=-fPIC -shared
 
+ifeq ($(CC),h5cc)
+libascot.so: CFLAGS+=-shlib
+endif
+
+ifeq ($(CC),h5pcc)
+libascot.so: CFLAGS+=-shlib
+endif
+
 libascot.so: libascot.o ascot5_main.o libascot_mem.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
