@@ -143,7 +143,7 @@ all: $(BINS)
 libascot: libascot.so
 	true
 
-libascot.so: CFLAGS+=-shlib -fPIC -shared
+libascot.so: CFLAGS+=-fPIC -shared
 
 libascot.so: libascot.o ascot5_main.o libascot_mem.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
