@@ -111,7 +111,7 @@ def eval1d_fromRhodist(ascotpy, dist, quantity, rmin, rmax, zmin, zmax, ma=None,
 def eval_quantity_5d_rho(ascotpy, dist, quantity, ma, qa):
     # Evaluate the requested quantity in 5D
     if quantity == "density":
-        dist = distmod.squeeze(dist, vpar=0, vperp=0, time=0, charge=0)
+        dist = distmod.squeeze(dist, ppar=0, pperp=0, time=0, charge=0)
 
     elif quantity == "energydensity":
         dist = distconv.convert_ppappe_to_Exi(dist, ma, 100, 50)
