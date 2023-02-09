@@ -94,7 +94,7 @@ def convert(fnin):
                         g = h5["wall"][wall]
                         if not "flag" in g:
                             nelements = int(g["nelements"][:])
-                            flag = np.zeros(shape=(nelements,1), dtype=np.int)
+                            flag = np.zeros(shape=(nelements,1), dtype=int)
                             g.create_dataset('flag',(nelements,1), data=flag,
                                          dtype='i4')
                         else:

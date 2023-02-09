@@ -44,7 +44,7 @@ def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None,
     assert z1z2z3.shape == (nelements,3)
 
     if flag is None:
-        flag = np.zeros(shape=(nelements,1),dtype=np.int)
+        flag = np.zeros(shape=(nelements,1),dtype=int)
     else:
         assert flag.shape == (nelements,1)
         
@@ -114,7 +114,7 @@ def read_hdf5(fn, qid):
             out['n'] = np.array([nTriangles])
         
         if not 'flag' in out:
-            out['flag'] = np.zeros(shape=(nTriangles,),dtype=np.int)
+            out['flag'] = np.zeros(shape=(nTriangles,),dtype=int)
                     
         if 'flagIdStrings' in out:
             # We need to decode the bytearrays into strings.
