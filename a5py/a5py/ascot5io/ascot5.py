@@ -101,6 +101,7 @@ from a5py.ascot5io.wall_2D    import wall_2D
 from a5py.ascot5io.wall_3D    import wall_3D
 from a5py.ascot5io.plasma_1D  import plasma_1D
 from a5py.ascot5io.plasma_1DS import plasma_1DS
+from a5py.ascot5io.plasma_1Dt import plasma_1Dt
 from a5py.ascot5io.N0_3D      import N0_3D
 from a5py.ascot5io.boozer     import Boozer
 from a5py.ascot5io.mhd        import MHD
@@ -166,7 +167,7 @@ def create_inputobject(key, h5group):
         "E_3DST" : E_3DST,
         "prt" : mrk_prt, "prt_shined" : mrk_prt_shined, "gc" : mrk_gc, "fl" : mrk_fl,
         "wall_2D" : wall_2D, "wall_3D" : wall_3D,
-        "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS,
+        "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS, "plasma_1Dt" : plasma_1Dt,
         "N0_3D" : N0_3D,
         "Boozer" : Boozer, "MHD_STAT" : MHD, "MHD_NONSTAT" : MHD,
         "opt" : Opt,

@@ -100,7 +100,7 @@ def read_hdf5(fn, qid):
         Dictionary containing input data.
     """
 
-    path = "plasma/plasma_1D_" + qid
+    path = "plasma/plasma_1Dt_" + qid
 
     out = {}
     with h5py.File(fn,"r") as f:
@@ -127,7 +127,7 @@ def write_hdf5_dummy(fn, desc="Dummy"):
                rho, edens, etemp, idens, itemp, desc=desc)
 
 
-class plasma_1D(AscotData):
+class plasma_1Dt(AscotData):
     """
     Object representing P_1D data.
     """
