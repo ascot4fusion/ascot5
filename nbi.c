@@ -71,7 +71,7 @@ void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
     *mass = n->mass;
 }
 
-void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
+void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum, int znum,
                 B_field_data* Bdata, plasma_data* plsdata, wall_data* walldata,
                 random_data* rng) {
     a5err err;
@@ -126,7 +126,7 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
             }
 
             err = plasma_eval_densandtemp(pls_dens, pls_temp, rho, rpz[0],
-                                          rpz[1], rpz[2], 0.0, plsdata);
+                                          rpz[1], rpz[2], time, plsdata);
 
             if(!err) {
                 rate = pls_dens[0] * 1e-4*suzuki_sigmav(energy / anum,
@@ -174,7 +174,7 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
     }
 }
 
-void nbi_generate(int nprt, particle* p, nbi_injector* n,
+void nbi_generate(int nprt, real t0, real t1, particle* p, nbi_injector* n,
                   B_field_data* Bdata, plasma_data* plsdata,
                   wall_data* walldata, random_data* rng) {
 
@@ -186,12 +186,14 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
         int anum, znum;
         real mass;
 
+        real time = t0 + random_uniform(rng) * (t1-t0);
+
         int shinethrough = 1;
         do {
             nbi_inject(n, &xyz[0], &xyz[1], &xyz[2], &vxyz[0], &vxyz[1],
                        &vxyz[2], &anum, &znum, &mass, rng);
-            nbi_ionize(xyz, vxyz, &shinethrough, anum, znum, Bdata, plsdata,
-                   walldata, rng);
+            nbi_ionize(xyz, vxyz, time, &shinethrough, anum, znum, Bdata,
+                   plsdata, walldata, rng);
 
             if(shinethrough == 1) {
                 totalShine += 0.5 * mass * pow(math_norm(vxyz), 2);
@@ -213,7 +215,7 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
         p[i].charge = 1 * CONST_E;
         p[i].mass = mass;
         p[i].id = i+1;
-        p[i].time = 0;
+        p[i].time = time;
 
         totalPower += 0.5 * mass * pow(math_norm(vxyz), 2);
     }

@@ -27,7 +27,7 @@
 #include "random.h"
 #include "wall.h"
 
-int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt);
+int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt, double* t1, double* t2);
 
 /**
  * @brief Main function for BBNBI5
@@ -40,8 +40,9 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt);
 int main(int argc, char** argv) {
     /* Read and parse command line arguments */
     int nprt;
+    double t1, t2;
     sim_offload_data sim;
-    if(read_arguments(argc, argv, &sim, &nprt) != 0) {
+    if(read_arguments(argc, argv, &sim, &nprt, &t1, &t2) != 0) {
         return 1;
     }
 
@@ -89,7 +90,7 @@ int main(int argc, char** argv) {
 
     /* Simulate requested number of markers into array of particle structs */
     particle* p = (particle*) malloc(nprt*sizeof(particle));
-    nbi_generate(nprt, p, &inj[0], &B_data, &plasma_data, &wall_data, &rng);
+    nbi_generate(nprt, t1, t2, p, &inj[0], &B_data, &plasma_data, &wall_data, &rng);
 
     /* Copy markers from particle structs into input_particle structs to be
      * written into the h5 file */
@@ -129,7 +130,7 @@ int main(int argc, char** argv) {
  *
  * @return Zero if success
  */
-int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt) {
+int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt, double* t1, double* t2) {
     struct option longopts[] = {
         {"in", required_argument, 0, 1},
         {"out", required_argument, 0, 2},
@@ -137,6 +138,8 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt) {
         {"mpi_rank", required_argument, 0, 4},
         {"d", required_argument, 0, 5},
         {"n", required_argument, 0, 6},
+        {"t1", required_argument, 0, 7},
+        {"t2", required_argument, 0, 8},
         {0, 0, 0, 0}
     };
 
@@ -147,6 +150,8 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt) {
     sim->mpi_size       = 0;
     strcpy(sim->description, "No description.");
     *nprt               = 10000;
+    *t1                 = 0.0;
+    *t2                 = 1.0;
 
     // Read user input
     int c;
@@ -169,6 +174,12 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt) {
                 break;
             case 6:
                 *nprt = atoi(optarg);
+                break;
+            case 7:
+                *t1 = atof(optarg);
+                break;
+            case 8:
+                *t2 = atof(optarg);
                 break;
             default:
                 // Unregonizable argument(s). Tell user how to run ascot5_main
