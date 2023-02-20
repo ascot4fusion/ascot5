@@ -197,7 +197,7 @@ a5err plasma_1Dt_eval_densandtemp(real* dens, real* temp, real rho, real t,
             i_time = 0;
             t_time = 0;
         }
-        else if(i_time >= pls_data->n_time-1) {
+        else if(i_time >= pls_data->n_time-2) {
             /* time > t[n_time-1], use last profile */
             i_time = pls_data->n_time-2;
             t_time = 1;
