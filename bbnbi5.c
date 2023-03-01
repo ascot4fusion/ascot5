@@ -91,6 +91,10 @@ int main(int argc, char** argv) {
         total_power += inj[i].power;
     }
 
+    nbi_diag_data diag;
+    nbi_diag_init(&diag, 200, -2.0, 2.0, 200, -2.0, 2.0, 100, -1.0, 1.0,
+                  inj[0].energy / CONST_E);
+
 
     /* Simulate requested number of markers into array of particle structs */
     particle* p = (particle*) malloc(nprt*sizeof(particle));
@@ -107,7 +111,7 @@ int main(int argc, char** argv) {
         }
 
         nbi_generate(nprt_inj, &p[nprt_generated], &inj[i], &B_data,
-                     &plasma_data, &wall_data, &rng);
+                     &plasma_data, &wall_data, &rng, &diag);
 
         nprt_generated += nprt_inj;
         printf("Generated %d markers for injector %d.\n", nprt_inj, i+1);
@@ -149,6 +153,8 @@ int main(int argc, char** argv) {
     hdf5_write_string_attribute(of, "/marker", "active",  qid);
 
     hdf5_close(of);
+
+    nbi_diag_free(&diag);
 
     printf("\nDone.\n");
 

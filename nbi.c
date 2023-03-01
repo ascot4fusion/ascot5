@@ -9,6 +9,7 @@
 #include "physlib.h"
 #include "math.h"
 #include "nbi.h"
+#include "nbi_diag.h"
 #include "particle.h"
 #include "random.h"
 #include "plasma.h"
@@ -74,7 +75,7 @@ void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
 
 void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
                 B_field_data* Bdata, plasma_data* plsdata, wall_data* walldata,
-                random_data* rng) {
+                random_data* rng, nbi_diag_data* diag) {
     a5err err;
 
     real absv = math_norm(vxyz);
@@ -152,6 +153,8 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
         xyz[2] += ds * vhat[2];
         remaining *= exp(-rate * ds);
 
+        nbi_diag_update_dist(diag, xyz[0], xyz[1], xyz[2], energy*1e3, ds/absv);
+
         if(exited_plasma) {
             real rpz2[3]; /* new position, old position already in rpz */
             math_xyz2rpz(xyz, rpz2);
@@ -178,7 +181,7 @@ void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
 
 void nbi_generate(int nprt, particle* p, nbi_injector* n,
                   B_field_data* Bdata, plasma_data* plsdata,
-                  wall_data* walldata, random_data* rng) {
+                  wall_data* walldata, random_data* rng, nbi_diag_data* diag) {
 
     real totalShined = 0.0;
     real totalIonized = 0.0;
@@ -194,7 +197,7 @@ void nbi_generate(int nprt, particle* p, nbi_injector* n,
             nbi_inject(n, &xyz[0], &xyz[1], &xyz[2], &vxyz[0], &vxyz[1],
                        &vxyz[2], &anum, &znum, &mass, rng);
             nbi_ionize(xyz, vxyz, &shinethrough, anum, znum, Bdata, plsdata,
-                   walldata, rng);
+                       walldata, rng, diag);
 
             if(shinethrough == 1) {
                 #pragma omp atomic

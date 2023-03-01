@@ -11,6 +11,7 @@
 #include "plasma.h"
 #include "random.h"
 #include "wall.h"
+#include "nbi_diag.h"
 
 #define NBI_MAX_DISTANCE 100
 
@@ -43,9 +44,9 @@ void nbi_inject(nbi_injector* n, real* x, real* y, real* z, real* vx, real* vy,
                 real* vz, int* anum, int* znum, real* mass, random_data* rng);
 void nbi_ionize(real* xyz, real* vxyz, int* shinethrough, int anum, int znum,
                 B_field_data* Bdata, plasma_data* plsdata, wall_data* walldata,
-                random_data* rng);
+                random_data* rng, nbi_diag_data* diag);
 void nbi_generate(int nprt, particle* p, nbi_injector* n,
                   B_field_data* Bdata, plasma_data* plsdata,
-                  wall_data* walldata, random_data* rng);
+                  wall_data* walldata, random_data* rng, nbi_diag_data* diag);
 
 #endif
