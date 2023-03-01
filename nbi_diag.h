@@ -30,5 +30,6 @@ void nbi_diag_init(nbi_diag_data* data, int n_x, real min_x, real max_x,
                    real max_z, real full_energy);
 void nbi_diag_update_dist(nbi_diag_data* data, real x, real y, real z, real energy, real weight);
 void nbi_diag_normalize_dist(nbi_diag_data* data, real weight);
+void nbi_diag_write(char* fn, nbi_diag_data* data);
 
 #endif

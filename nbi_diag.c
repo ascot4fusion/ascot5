@@ -1,6 +1,9 @@
 #include <stdlib.h>
+#include <hdf5.h>
 #include "ascot5.h"
 #include "nbi_diag.h"
+#include "hdf5io/hdf5_histogram.h"
+#include "hdf5io/hdf5_helpers.h"
 
 void nbi_diag_init(nbi_diag_data* data, int n_x, real min_x, real max_x,
                    int n_y, real min_y, real max_y, int n_z, real min_z,
@@ -56,4 +59,31 @@ void nbi_diag_normalize_dist(nbi_diag_data* data, real weight) {
     for(int i = 0; i < 3*data->n_x*data->n_y*data->n_z; i++) {
         data->hist_neutral[i] *= weight;
     }
+}
+
+void nbi_diag_write(char* fn, nbi_diag_data* data) {
+    hid_t f = hdf5_create(fn);
+    hdf5_close(f);
+
+    f = hdf5_open(fn);
+
+    if(hdf5_find_group(f, "/bbnbi_results/")) {
+        hdf5_create_group(f, "/bbnbi_results/");
+    }
+
+    hid_t grp = H5Gcreate2(f, "/bbnbi_results/run_1234567890", H5P_DEFAULT,
+                           H5P_DEFAULT, H5P_DEFAULT);
+    H5Gclose(grp);
+
+    int abscissa_dim = 4;
+    int ordinate_dim = 1;
+    int abscissa_nslots[] = {3, data->n_x, data->n_y, data->n_z};
+    double abscissa_min[] = {0.5, data->min_x, data->min_y, data->min_z};
+    double abscissa_max[] = {3.5, data->max_x, data->max_y, data->max_z};
+    char* abscissa_units[] = {"", "m", "m", "m"};
+    char* abscissa_names[] = {"fraction", "x", "y", "z"};
+    char* ordinate_units[] = {"1/m^3"};
+    char* ordinate_names[] = {"neutral density"};
+
+    hdf5_histogram_write_uniform_double(f, "/bbnbi_results/run_1234567890/neutraldist", abscissa_dim, ordinate_dim, abscissa_nslots, abscissa_min, abscissa_max, abscissa_units, abscissa_names, ordinate_units, ordinate_names, data->hist_neutral);
 }

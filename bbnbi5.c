@@ -154,6 +154,8 @@ int main(int argc, char** argv) {
 
     hdf5_close(of);
 
+    nbi_diag_write(sim.hdf5_out, &diag);
+
     nbi_diag_free(&diag);
 
     printf("\nDone.\n");
