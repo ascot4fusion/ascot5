@@ -32,7 +32,27 @@ class Ascotpy(LibBfield, LibEfield, LibPlasma, LibNeutral, LibBoozer, LibMhd):
     def evaluate(self, R, phi, z, t, quantity, grid=False,
                  squeeze=[None, None, None, None]):
         """
-        Evaluate input data.
+        Evaluate input quantities at given coordinates.
+
+        Args:
+            R : array_like <br>
+                R coordinates where data is evaluated [m].
+            phi : array_like <br>
+                phi coordinates where data is evaluated [rad].
+            z : array_like <br>
+                z coordinates where data is evaluated [m].
+            t : array_like <br>
+                time coordinates where data is evaluated [s].
+            grid : boolean, optional <br>
+                treat input coordinates as abscissae and return the evaluated
+                quantities on a grid instead.
+
+        Returns:
+            Dictionary containing evaluated quantities.
+
+        Raises:
+            AssertionError if this is called data uninitialized.
+            RuntimeError if evaluation failed.
         """
         R   = np.asarray(R).ravel()
         phi = np.asarray(phi).ravel()
@@ -97,6 +117,31 @@ class Ascotpy(LibBfield, LibEfield, LibPlasma, LibNeutral, LibBoozer, LibMhd):
 
     def plotRz(self, R, phi, z, t, quantity, axes=None, clim=[None, None],
                **kwargs):
+        """
+        Evaluate and plot input quantities on Rz plane at given coordinates.
+
+        Args:
+            R : array_like <br>
+                R coordinates where data is evaluated [m].
+            phi : array_like <br>
+                phi coordinate where data is evaluated [rad].
+            z : array_like <br>
+                z coordinates where data is evaluated [m].
+            t : array_like <br>
+                time coordinate where data is evaluated [s].
+            axes :  <br>
+                plot on these axes instead of creating a new figure.
+            clim : array_like <br>
+                tuple with minimum and maximum color values.
+
+        Returns:
+            Dictionary containing evaluated quantities.
+
+        Raises:
+            AssertionError if this is called data uninitialized.
+            RuntimeError if evaluation failed.
+        """
+
         out = self.evaluate(R, phi, z, t, quantity, grid=True)
         out = np.transpose(out[:,0,:,0])
 

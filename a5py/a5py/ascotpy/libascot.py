@@ -627,7 +627,7 @@ class LibAscot:
 
     def eval_neutral(self, R, phi, z, t):
         """
-        Evaluate plasma quantities at given coordinates.
+        Evaluate neutral quantities at given coordinates.
 
         Args:
             R : array_like <br>
