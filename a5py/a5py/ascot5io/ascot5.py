@@ -520,12 +520,17 @@ class _RunNode(_Node):
         string += textcolor.title + "\nInput:\n" \
                   + textcolor.reset
         for inp in INPUT_PARENTS:
-            string += textcolor.active + inp.ljust(8) + textcolor.reset  \
-                      + textcolor.header + self[inp].get_type().ljust(10) \
-                      + " " + self[inp].get_qid() +  textcolor.reset    \
-                      + "    " + self[inp].get_date()  \
-                      + "\n        "                   \
-                      + self[inp].get_desc() + "\n"
+            if inp in self:
+                string += textcolor.active + inp.ljust(14) + textcolor.reset  \
+                          + textcolor.header + self[inp].get_type().ljust(10) \
+                          + " " + self[inp].get_qid() +  textcolor.reset    \
+                          + "    " + self[inp].get_date()  \
+                          + "\n              "                   \
+                          + self[inp].get_desc() + "\n"
+            else:
+                string += textcolor.red + inp.ljust(14) + textcolor.reset \
+                          + textcolor.header + "*not present*\n" \
+                          + textcolor.reset + "\n"
 
         string += textcolor.title + "\nOutput:\n" \
                   + textcolor.reset
