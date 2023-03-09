@@ -272,9 +272,13 @@ void libascot_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
  */
 void libascot_B_field_get_axis(int Neval, real* phi, real* Raxis, real* zaxis) {
 
+    real axisrz[2];
     for(int k = 0; k < Neval; k++) {
-        Raxis[k] = B_field_get_axis_r(&sim.B_data, phi[k]);
-        zaxis[k] = B_field_get_axis_z(&sim.B_data, phi[k]);
+        if( B_field_get_axis_rz(axisrz, &sim.B_data, phi[k]) ) {
+            continue;
+        }
+        Raxis[k] = axisrz[0];
+        zaxis[k] = axisrz[1];
     }
 }
 
@@ -308,8 +312,12 @@ void libascot_B_field_eval_rhovals(int nrho, real minrho, real maxrho,
     int NSTEP = 500;
     real step = 0.01;
 
-    real Raxis = B_field_get_axis_r(&sim.B_data, phi);
-    real zaxis = B_field_get_axis_z(&sim.B_data, phi);
+    real axisrz[2];
+    if( B_field_get_axis_rz(axisrz, &sim.B_data, phi) ) {
+        return;
+    }
+    real Raxis = axisrz[0];
+    real zaxis = axisrz[1];
 
     real psival, rho0;
 
