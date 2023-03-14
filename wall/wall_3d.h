@@ -51,7 +51,7 @@ typedef struct {
     int tree_array_size; /**<  */
     int* tree_array;     /**< Pointer to octree array */
 } wall_3d_data;
-  
+
 int wall_3d_init_offload(wall_3d_offload_data* offload_data,
                          real** offload_array);
 void wall_3d_free_offload(wall_3d_offload_data* offload_data,
