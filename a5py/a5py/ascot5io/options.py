@@ -241,11 +241,13 @@ def get_default():
     info.append(
         ("ENDCOND_SIMTIMELIM",
          """\
-         # Terminate when marker time exceeds ENDCOND_MAX_SIMTIME or when marker
+         # Terminate when marker time exceeds ENDCOND_LIM_SIMTIME or when marker
          # time has advanced ENDCOND_MAX_MILEAGE in a simulation. In other
          # words, marker is terminated if t > ENDCOND_MAX_MILEAGE or
-         # t0 + t > ENDCOND_MAX_SIMTIME where t0 is marker's initial time and t
-         # the time it has been simulated. See also ENDCOND_CPUTIMELIM.
+         # t0 + t > ENDCOND_LIM_SIMTIME where t0 is marker's initial time and t
+         # the time it has been simulated. Note that if time is reversed, the
+         # simulation is instead terminated when t0 + t < ENDCOND_LIM_SIMTIME.
+         # See also ENDCOND_CPUTIMELIM.
          """,
          1)
     )
@@ -295,9 +297,9 @@ def get_default():
          0)
     )
     info.append(
-        ("ENDCOND_MAX_SIMTIME",
+        ("ENDCOND_LIM_SIMTIME",
          """\
-         # Maximum simulation time [s]
+         # Time when the simulation stops [s]
          """,
          1)
     )
@@ -411,6 +413,16 @@ def get_default():
         ("DISABLE_GCDIFF_CCOLL",
          """\
          # Disable guiding center spatial diffusion
+         """,
+         0)
+    )
+    info.append(
+        ("REVERSE_TIME",
+         """\
+         # Trace markers backwards in time. Collision operator isn't reversible,
+         # so disable collisions if this option is used. Also when tracing
+         # markers, the simulation stops when marker time is below
+         # ENDCOND_LIM_SIMTIME.
          """,
          0)
     )
