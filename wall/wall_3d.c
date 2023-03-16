@@ -542,12 +542,24 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
     math_cross(q12, edge13, h);
     real det = math_dot(h, edge12);
 
-    /* Check that the ray is not parallel to the triangle and the triangle has
-       non-zero area */
-    real area[3];
-    math_cross(edge12, edge13, area);
+    /* Check that the triangle has non-zero area */
+    real normal[3], area;
+    math_cross(edge12, edge13, normal);
+    area = math_norm(normal);
+
     real w = -1.0;
-    if( fabs(det) > WALL_EPSILON && math_norm(area) > WALL_EPSILON ) {
+    if( normal > WALL_EPSILON ) {
+        /* If ray is parallel to the triangle, nudge it a little bit so we don't
+           have to handle annoying special cases */
+        if( fabs(det) < WALL_EPSILON ) {
+            Q12[0] = q2[0] - q1[0] + 2 * WALL_EPSILON * normal[0] / area;
+            Q12[1] = q2[1] - q1[1] + 2 * WALL_EPSILON * normal[1] / area;
+            Q12[2] = q2[2] - q1[2] + 2 * WALL_EPSILON * normal[2] / area;
+            math_unit(Q12, q12);
+            math_cross(q12, edge13, h);
+            det = math_dot(h, edge12);
+        }
+
         real tq11[3];
         tq11[0] = q1[0] - t1[0];
         tq11[1] = q1[1] - t1[1];
