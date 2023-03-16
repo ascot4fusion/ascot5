@@ -94,6 +94,7 @@ typedef struct {
                                     collisions */
     int disable_gcdiffccoll;   /**< Disables guiding center spatial diffusion
                                     from Coulomb collisions */
+    int reverse_time;          /**< Set time running backwards in simulation  */
 
     /* Options - end conditions */
     int endcond_active;        /**< Bit array notating active end conditions  */
@@ -190,6 +191,7 @@ typedef struct {
                                     collisions */
     int disable_gcdiffccoll;   /**< Disables guiding center spatial diffusion
                                     from Coulomb collisions */
+    int reverse_time;          /**< Set time running backwards in simulation  */
 
     /* Options - end conditions */
     int endcond_active;       /**< Bit array notating active end conditions  */

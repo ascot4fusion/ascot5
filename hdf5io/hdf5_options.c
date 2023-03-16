@@ -108,6 +108,9 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "DISABLE_GCDIFF_CCOLL", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->disable_gcdiffccoll = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "REVERSE_TIME", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->reverse_time = (int)tempfloat;
 
     int ec;
     sim->endcond_active = 0;

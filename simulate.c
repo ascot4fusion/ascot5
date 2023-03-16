@@ -339,6 +339,7 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->disable_energyccoll  = offload_data->disable_energyccoll;
     sim->disable_pitchccoll   = offload_data->disable_pitchccoll;
     sim->disable_gcdiffccoll  = offload_data->disable_gcdiffccoll;
+    sim->reverse_time         = offload_data->reverse_time;
 
     sim->endcond_active       = offload_data->endcond_active;
     sim->endcond_max_simtime  = offload_data->endcond_max_simtime;
