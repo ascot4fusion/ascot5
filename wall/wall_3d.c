@@ -548,7 +548,7 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
     area = math_norm(normal);
 
     real w = -1.0;
-    if( normal > WALL_EPSILON ) {
+    if( area > WALL_EPSILON ) {
         /* If ray is parallel to the triangle, nudge it a little bit so we don't
            have to handle annoying special cases */
         if( fabs(det) < WALL_EPSILON ) {
