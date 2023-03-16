@@ -98,7 +98,7 @@ typedef struct {
 
     /* Options - end conditions */
     int endcond_active;        /**< Bit array notating active end conditions  */
-    real endcond_max_simtime;  /**< Maximum simulation time [s]               */
+    real endcond_lim_simtime;  /**< Simulation time limit [s]                 */
     real endcond_max_mileage;  /**< Maximum simulation duration [s]           */
     real endcond_max_cputime;  /**< Maximum wall-clock time [s]               */
     real endcond_min_rho;      /**< Minimum rho limit                         */
@@ -195,7 +195,7 @@ typedef struct {
 
     /* Options - end conditions */
     int endcond_active;       /**< Bit array notating active end conditions  */
-    real endcond_max_simtime; /**< Maximum simulation time [s]               */
+    real endcond_lim_simtime; /**< Simulation time limit [s]                 */
     real endcond_max_mileage; /**< Maximum simulation duration [s]           */
     real endcond_max_cputime; /**< Maximum wall-clock time [s]               */
     real endcond_min_rho;     /**< Minimum rho limit                         */

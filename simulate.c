@@ -230,10 +230,10 @@ void simulate(int id, int n_particles, particle_state* p,
             if(pq.p[i]->endcond == endcond_hybrid) {
                 /* Check that there was no wall between when moving from
                    gc to fo */
-	        real w_coll;
+                real w_coll;
                 int tile = wall_hit_wall(pq.p[i]->r, pq.p[i]->phi, pq.p[i]->z,
                         pq.p[i]->rprt, pq.p[i]->phiprt, pq.p[i]->zprt,
-					 &sim.wall_data, &w_coll);
+                                         &sim.wall_data, &w_coll);
                 if(tile > 0) {
                     pq.p[i]->walltile = tile;
                     pq.p[i]->endcond |= endcond_wall;
@@ -342,7 +342,7 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->reverse_time         = offload_data->reverse_time;
 
     sim->endcond_active       = offload_data->endcond_active;
-    sim->endcond_max_simtime  = offload_data->endcond_max_simtime;
+    sim->endcond_lim_simtime  = offload_data->endcond_lim_simtime;
     sim->endcond_max_mileage  = offload_data->endcond_max_mileage;
     sim->endcond_max_cputime  = offload_data->endcond_max_cputime;
     sim->endcond_min_rho      = offload_data->endcond_min_rho;

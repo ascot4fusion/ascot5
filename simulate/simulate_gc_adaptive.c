@@ -209,7 +209,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                         hin[i] = -hnext[i];
                     }
                     else {
-                        p.time[i]    += hin[i];
+                        p.time[i]    += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) ) * hin[i];
                         p.mileage[i] += hin[i];
 
                         if(hnext[i] > hout_orb[i]) {
