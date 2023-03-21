@@ -52,7 +52,7 @@ class OptionsManager():
                     opttext = "\n" + opttext + i[0] + "\n\n"
                     continue
 
-                # Extranem name, description and value
+                # Extract name, description and value
                 name        = i[0]
                 description = i[1]
                 value       = opt[name]
@@ -96,7 +96,27 @@ class OptionsManager():
         self.canvas.grid_rowconfigure(0, weight=1)
         self.canvas.grid_columnconfigure(0, weight=1)
 
+        # Styles for highlights
+        textbox.tag_configure("HEADER", foreground="#004999")
+        textbox.tag_configure("DESC", foreground="#26abff")
+        textbox.tag_configure("VALUE", foreground="black")
+
         ## Set functionality ##
+
+        def applyhighlights():
+            """
+            Highlight values and descriptions.
+            """
+            lines = textbox.get('1.0', "end").splitlines()
+            for i,line in enumerate(lines):
+                if len(line) < 2:
+                    pass
+                elif line[0:2] == "#*":
+                    textbox.tag_add("HEADER",str(i+1)+".0", str(i+1)+".end")
+                elif line[0] == "#":
+                    textbox.tag_add("DESC",str(i+1)+".0", str(i+1)+".end")
+                else:
+                    textbox.tag_add("VALUE",str(i+1)+".0", str(i+1)+".end")
 
         def viewoptions():
             """
@@ -105,6 +125,7 @@ class OptionsManager():
             opttext = readoptions()
             textbox.delete("1.0", tk.END)
             textbox.insert("end", opttext)
+            applyhighlights()
 
 
         def writeoptions():
