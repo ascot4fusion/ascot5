@@ -16,7 +16,7 @@ class OptionsManager():
     Frame for viewing simulation options.
     """
 
-    def activateoptions(self, frame, canvas, group, filechanged, getdescinbox):
+    def display_options(self, frame, canvas, group, filechanged, getdescinbox):
         """
         Display options data for a given group.
 

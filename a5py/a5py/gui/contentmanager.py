@@ -52,7 +52,13 @@ class ContentManager(OptionsManager):
         self.canvasframe.pack(fill="both", expand=True)
 
 
-    def selectionchanged(self, parent, qid, ascot, ascotpy):
+    def display_group(self, parent, qid, ascot, ascotpy):
+        """
+        Display group information.
+
+        Displays description in the settingsframe and, in case if the group is
+        ans options group, the editable contents in the canvas frame.
+        """
         self.clear()
         if qid is None:
             # For parent groups there is nothing to display.
@@ -97,8 +103,9 @@ class ContentManager(OptionsManager):
         frame = tk.Frame(self.settingsframe)
         frame.grid(row=2, column=0, columnspan=2, sticky="nsew")
 
+        # Display options on the canvas.
         if parent == "options":
-            self.activateoptions(
+            self.display_options(
                 frame, self.canvasframe, group,
                 lambda : self.gui.filechanged(self.gui.filename),
                 lambda : descbox.get("1.0", "end-1c")

@@ -196,7 +196,7 @@ class GUI(tk.Tk):
                 outputqids = self.ascot.get_runsfrominput(qid)
                 self.groups.highlightoutputs(outputqids)
 
-        self.contentmanager.selectionchanged(
+        self.contentmanager.display_group(
             parent, qid, self.ascot, self.ascotpy)
 
 
