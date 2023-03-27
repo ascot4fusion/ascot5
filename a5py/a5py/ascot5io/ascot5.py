@@ -76,6 +76,7 @@ File: ascot5.py
 
 import h5py
 import warnings
+from collections import OrderedDict
 
 from . ascot5file import get_qid, get_activeqid, get_desc, get_date, get_type,\
     set_desc
@@ -464,6 +465,33 @@ class _InputNode(_ContainerNode):
 
         return string
 
+    def get_inputinfo(self, sortbydate=False):
+        """
+        Return tuple (QIDs, types, descs, dates) for all childs.
+
+        Results are either sorted by date or active first and then by date
+        (latter is default).
+        """
+        qids  = self._qids.copy()
+        types = self._types.copy()
+        descs = self._descs.copy()
+        dates = self._dates.copy()
+        if sortbydate:
+            if len(self._qids) > 0:
+                sortedqids  = \
+                    [x[1:] for _, x in sorted(zip(dates, qids))]
+                qids = sortedqids
+                sortedtypes = \
+                    [x for _, x in sorted(zip(dates, types))]
+                types = sortedtypes
+                sorteddescs = \
+                    [x for _, x in sorted(zip(dates, descs))]
+                descs = sorteddescs
+                sorteddates = sorted(dates)
+                dates = sorteddates
+
+        return (qids, types, descs, dates)
+
 class _RunNode(_Node):
     """
     Create an instance that represents the given run group data.
@@ -694,3 +722,50 @@ class Ascot(_ContainerNode):
                 runqids.append(qid[1:])
 
         return runqids
+
+
+    def get_parents(self):
+        """
+        Return ordered Dict of the parent groups.
+
+        Dict contains name of the group and the corresponding node or None if
+        the node is not present in the file.
+        """
+        parents = OrderedDict()
+        with h5py.File(self._hdf5fn, "r") as h5:
+            for p in INPUT_PARENTS:
+                if p in h5:
+                    parents[p] = self[p]
+                else:
+                    parents[p] = None
+
+        return parents
+
+
+    def get_resultsinfo(self, sortbydate=False):
+        """
+        Return tuple (QIDs, types, descs, dates) for all childs.
+
+        Results are either sorted by date or active first and then by date
+        (latter is default).
+        """
+        qids  = self._qids.copy()
+        types = self._types.copy()
+        descs = self._descs.copy()
+        dates = self._dates.copy()
+        if sortbydate:
+            if len(self._qids) > 0:
+                sortedqids  = \
+                    [x[1:] for _, x in sorted(zip(dates, qids))]
+                qids = sortedqids
+                sortedtypes = \
+                    [x for _, x in sorted(zip(dates, types))]
+                types = sortedtypes
+                sorteddescs = \
+                    [x for _, x in sorted(zip(dates, descs))]
+                descs = sorteddescs
+                sorteddates = \
+                    [x[:-1] for x in sorted(dates)]
+                dates = sorteddates
+
+        return (qids, types, descs, dates)
