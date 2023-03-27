@@ -55,7 +55,7 @@ class LibAscot:
 
         # Check that the HDF5 file exists
         self.h5fn = h5fn.encode('UTF-8')
-        Ascot(str(self.h5fn,'UTF-8'))
+        self.hdf5 = Ascot(str(self.h5fn,'UTF-8'))
 
         # Initialize attributes
         self.bfield_initialized  = False
@@ -244,9 +244,16 @@ class LibAscot:
                   plasma=self.plasma_initialized,
                   wall=self.wall_initialized,
                   neutral=self.neutral_initialized)
-        self.h5fn = h5fn.encode('UTF-8')
-        Ascot(str(self.h5fn,'UTF-8'))
 
+        self.h5fn = h5fn if type(h5fn) is bytes else h5fn.encode('UTF-8')
+        self.hdf5 = Ascot(str(self.h5fn,'UTF-8'))
+
+
+    def get_filepath(self):
+        """
+        Get path to the filename or None if no file is open.
+        """
+        return self.h5fn
 
     def init(self, bfield=False, efield=False, plasma=False, wall=False,
              neutral=False, boozer=False, mhd=False):
@@ -275,7 +282,7 @@ class LibAscot:
         Raises:
             RuntimeError if initialization failed.
         """
-        a5 = Ascot(str(self.h5fn,'UTF-8'))
+        a5 = self.hdf5
 
         if isinstance(bfield, str):
             qid    = bfield.encode('UTF-8')
