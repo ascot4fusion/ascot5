@@ -185,7 +185,6 @@ int main(int argc, char** argv) {
     int n_gathered;
     real* offload_array;
     int* int_offload_array;
-    int int_offload_array_length;
 
     offload_package offload_data;
     particle_state* ps;
@@ -212,6 +211,7 @@ int main(int argc, char** argv) {
     		&p,
     	    &n_gathered,
     	    &offload_array,
+    	    &int_offload_array,
     	    &offload_data,
     		&ps,
     	    &diag_offload_array   ) ) {
@@ -223,6 +223,7 @@ int main(int argc, char** argv) {
     		mpi_rank,
     		ps,
     	    offload_array,
+            int_offload_array,
     	    diag_offload_array,
     		&sim,
     	    &offload_data
@@ -350,6 +351,7 @@ int run(
 		int mpi_rank,
 		particle_state *ps,
 	    real *offload_array,
+        int* int_offload_array,
 	    real *diag_offload_array,
 		sim_offload_data *sim,
 	    offload_package *offload_data
@@ -718,7 +720,7 @@ int offload(
 		real** plasma_offload_array,
 		real** neutral_offload_array,
 		real** wall_offload_array,
-		real** wall_int_offload_array,
+		int** wall_int_offload_array,
 		real** boozer_offload_array,
 		real** mhd_offload_array,
 		int n_tot,
@@ -730,6 +732,7 @@ int offload(
 		input_particle **p,
 	    int* n_gathered,
 	    real **offload_array,
+        int  **int_offload_array,
 	    offload_package *offload_data,
 		particle_state** ps,
 	    real** diag_offload_array
@@ -738,6 +741,7 @@ int offload(
 
     particle_state* ps_gathered;
 
+    int int_offload_array_length;
 
 
 
@@ -763,11 +767,11 @@ int offload(
     neutral_free_offload(&sim->neutral_offload_data, neutral_offload_array);
 
     offload_pack(offload_data, offload_array, *wall_offload_array,
-                 sim.wall_offload_data.offload_array_length);
-    int_offload_array_length = sim.wall_offload_data.w3d.int_offload_array_length;
-    int_offload_array = (int*) malloc(int_offload_array_length*sizeof(int));
+                 sim->wall_offload_data.offload_array_length);
+    int_offload_array_length = sim->wall_offload_data.w3d.int_offload_array_length;
+    *int_offload_array = (int*) malloc(int_offload_array_length*sizeof(int));
     memcpy(int_offload_array, wall_int_offload_array, int_offload_array_length*sizeof(int));
-    wall_free_offload(&sim.wall_offload_data, wall_offload_array,
+    wall_free_offload(&sim->wall_offload_data, wall_offload_array,
                       wall_int_offload_array);
 
     offload_pack(offload_data, offload_array, *boozer_offload_array,
