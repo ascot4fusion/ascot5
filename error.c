@@ -193,6 +193,14 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
             sprintf(file, "particle.c");
             break;
 
+        case EF_BOOZER:
+            sprintf(file, "boozer.c");
+            break;
+
+        case EF_MHD:
+            sprintf(file, "mhd.c");
+            break;
+
         default:
             sprintf(file, "unknown file");
             break;

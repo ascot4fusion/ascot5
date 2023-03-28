@@ -59,7 +59,7 @@
 #ifndef ASCOT5_H
 #define ASCOT5_H
 
-#define stringify(c) #c
+#define stringify(...) #__VA_ARGS__
 #define str_macro(c) stringify(c)
 
 #include <omp.h>
@@ -87,6 +87,9 @@ typedef double real;  /**< Double precision float   */
 
 /** @brief Maximum number of plasma species */
 #define MAX_SPECIES 8
+
+/** @brief Maximum number of MHD modes */
+#define MHD_MODES_MAX_NUM 512
 
 /** @brief Maximum number of Wiener processes stored (effectively number
  *  of time step reductions) */

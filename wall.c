@@ -153,7 +153,7 @@ int wall_init(wall_data* w, wall_offload_data* offload_data,
  * @return wall element id if hit, zero otherwise
  */
 int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
-                  wall_data* w) {
+                  wall_data* w, real* w_coll) {
     int ret = 0;
     switch(w->type) {
         case wall_type_2D:
@@ -161,8 +161,8 @@ int wall_hit_wall(real r1, real phi1, real z1, real r2, real phi2, real z2,
             break;
 
         case wall_type_3D:
-            ret = wall_3d_hit_wall(r1, phi1, z1, r2, phi2, z2, &(w->w3d));
-            break;
+	    ret = wall_3d_hit_wall(r1, phi1, z1, r2, phi2, z2, &(w->w3d), w_coll);
+	    break;
     }
     return ret;
 }

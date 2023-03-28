@@ -94,7 +94,13 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
         /* RK4 method for orbit-following */
         if(sim->enable_orbfol) {
-            step_gc_rk4(&p, hin, &sim->B_data, &sim->E_data);
+            if(sim->enable_mhd) {
+                step_gc_rk4_mhd(&p, hin, &sim->B_data, &sim->E_data,
+                                &sim->boozer_data, &sim->mhd_data);
+            }
+            else {
+                step_gc_rk4(&p, hin, &sim->B_data, &sim->E_data);
+            }
         }
 
         /* Euler-Maruyama method for collisions */
@@ -111,7 +117,8 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]) {
-                p.time[i] = p.time[i] + hin[i];
+                p.time[i]    += hin[i];
+                p.mileage[i] += hin[i];
                 p.cputime[i] += cputime - cputime_last;
             }
         }
@@ -164,7 +171,8 @@ real simulate_gc_fixed_inidt(sim_data* sim, particle_simd_gc* p, int i) {
         /* Value calculated from gyrotime */
         real Bnorm = math_normc(p->B_r[i], p->B_phi[i], p->B_z[i]);
         real gyrotime = CONST_2PI /
-            phys_gyrofreq_vpar(p->mass[i], p->charge[i], p->mu[i], p->vpar[i], Bnorm);
+            phys_gyrofreq_ppar(p->mass[i], p->charge[i],
+                               p->mu[i], p->ppar[i], Bnorm);
         h = gyrotime/sim->fix_gyrodef_nstep;
     }
 
