@@ -770,7 +770,7 @@ int offload(
                  sim->wall_offload_data.offload_array_length);
     int_offload_array_length = sim->wall_offload_data.w3d.int_offload_array_length;
     *int_offload_array = (int*) malloc(int_offload_array_length*sizeof(int));
-    memcpy(int_offload_array, wall_int_offload_array, int_offload_array_length*sizeof(int));
+    memcpy(*int_offload_array, *wall_int_offload_array, int_offload_array_length*sizeof(int));
     wall_free_offload(&sim->wall_offload_data, wall_offload_array,
                       wall_int_offload_array);
 
