@@ -30,10 +30,12 @@ class ascot5_main(object):
     plasma_offload_array  = ctypes.POINTER(ctypes.c_double)()
     neutral_offload_array = ctypes.POINTER(ctypes.c_double)()
     wall_offload_array    = ctypes.POINTER(ctypes.c_double)()
+    wall_int_offload_array= ctypes.POINTER(ctypes.c_int   )()
     boozer_offload_array  = ctypes.POINTER(ctypes.c_double)()
     mhd_offload_array     = ctypes.POINTER(ctypes.c_double)()
     prt                   = ctypes.POINTER(ascotpy2.struct_c__SA_input_particle)()
     offload_array         = ctypes.POINTER(ctypes.c_double)() # Some sort of joint array for all (?)
+    offload_int_array     = ctypes.POINTER(ctypes.c_int   )() # Some sort of joint array for all (?)
     
     diag_offload_array    = ctypes.POINTER(ctypes.c_double)() 
 
@@ -105,6 +107,7 @@ class ascot5_main(object):
             ctypes.byref(self.plasma_offload_array),
             ctypes.byref(self.neutral_offload_array),
             ctypes.byref(self.wall_offload_array),
+            ctypes.byref(self.wall_int_offload_array),
             ctypes.byref(self.boozer_offload_array),
             ctypes.byref(self.mhd_offload_array),
             ctypes.byref(self.prt),
@@ -120,12 +123,14 @@ class ascot5_main(object):
             ctypes.byref(self.plasma_offload_array),
             ctypes.byref(self.neutral_offload_array),
             ctypes.byref(self.wall_offload_array),
+            ctypes.byref(self.wall_int_offload_array),
             ctypes.byref(self.boozer_offload_array),
             ctypes.byref(self.mhd_offload_array),
             self.n_tot,  self.mpi_rank, self.mpi_size, self.mpi_root,
             self.qid, ctypes.byref(self.nprts),
             ctypes.byref(self.prt), ctypes.byref(self.n_gathered),
             ctypes.byref(self.offload_array),
+            ctypes.byref(self.offload_int_array),
             ctypes.byref(self.offload_package),
             ctypes.byref(self.ps),
             ctypes.byref(self.diag_offload_array)
@@ -146,6 +151,7 @@ class ascot5_main(object):
                               self.mpi_rank,
                               self.ps,
                               self.offload_array,
+                              self.offload_int_array,
                               self.diag_offload_array,
                               ctypes.byref(self.sim),
                               self.offload_package)
@@ -217,6 +223,7 @@ class ascot5_main(object):
 
         ascotpy2.wall_init_offload(
             ctypes.byref(self.sim.wall_offload_data),
-            self.wall_offload_array
+            ctypes.byref(self.wall_offload_array),
+            ctypes.byref(self.wall_int_offload_array)
             )
 
