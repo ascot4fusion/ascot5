@@ -524,15 +524,16 @@ int test_rays_in_queue( wall_3d_data *wdata ){
 int main(int argc, char** argv) {
     wall_3d_offload_data offload_data;
     real* offload_array;
+    int* int_offload_array;
 
     /* Get a sample wall */
     tetra_wall(&offload_data, &offload_array);
 
 
-    wall_3d_init_offload(&offload_data, &offload_array);
+    wall_3d_init_offload(&offload_data, &offload_array, &int_offload_array);
 
     wall_3d_data wdata;
-    wall_3d_init(&wdata, &offload_data, offload_array);
+    wall_3d_init(&wdata, &offload_data, offload_array, int_offload_array);
 
     //test_wall_hit(&wdata);
     //test_collisions(wdata, offload_array);
@@ -545,12 +546,12 @@ int main(int argc, char** argv) {
 
 
     /* Deallocate the previous wall */
-    wall_3d_free_offload(&offload_data, &offload_array);
+    wall_3d_free_offload(&offload_data, &offload_array, &int_offload_array);
 
     /* Create and initialize the whole tree*/
     queue_wall(&offload_data, &offload_array);
-    wall_3d_init_offload(&offload_data,&offload_array);
-    wall_3d_init(&wdata, &offload_data, offload_array);
+    wall_3d_init_offload(&offload_data,&offload_array, &int_offload_array);
+    wall_3d_init(&wdata, &offload_data, offload_array, int_offload_array);
 
     if (test_rays_in_queue(&wdata)) {
         return 1;

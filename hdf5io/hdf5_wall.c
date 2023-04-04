@@ -39,7 +39,8 @@ int hdf5_wall_read_3D(hid_t f, wall_3d_offload_data* offload_data,
  * @return Zero if reading and initialization of data succeeded
  */
 int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data,
-                           real** offload_array, char* qid) {
+                           real** offload_array, int** int_offload_array,
+                           char* qid) {
 
     char path[256];
     int err = 1;
@@ -62,7 +63,7 @@ int hdf5_wall_init_offload(hid_t f, wall_offload_data* offload_data,
 
     /* Initialize if data was read succesfully */
     if(!err) {
-        err = wall_init_offload(offload_data, offload_array);
+        err = wall_init_offload(offload_data, offload_array, int_offload_array);
     }
 
     return err;
