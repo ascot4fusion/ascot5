@@ -52,7 +52,7 @@ class ContentManager(OptionsManager):
         self.canvasframe.pack(fill="both", expand=True)
 
 
-    def display_group(self, parent, qid, ascot, ascotpy):
+    def display_group(self, parent, qid):
         """
         Display group information.
 
@@ -65,9 +65,9 @@ class ContentManager(OptionsManager):
             return
 
         if parent == "results":
-            group = ascot["q"+qid]
+            group = self.gui.ascot.hdf5["q"+qid]
         else:
-            group = ascot[parent]["q"+qid]
+            group = self.gui.ascot.hdf5[parent]["q"+qid]
 
         # Always show description box on top.
         f1 = tk.Frame(self.settingsframe)
@@ -107,6 +107,6 @@ class ContentManager(OptionsManager):
         if parent == "options":
             self.display_options(
                 frame, self.canvasframe, group,
-                lambda : self.gui.filechanged(self.gui.filename),
+                lambda : self.gui.files.open_new_file(self.gui.ascot.h5fn),
                 lambda : descbox.get("1.0", "end-1c")
             )
