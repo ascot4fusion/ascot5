@@ -106,12 +106,12 @@ class State(AscotData):
     State object.
     """
 
-    def __init__(self, hdf5, runnode):
+    def __init__(self, root, hdf5, runnode):
         """
         Initialize state object from given HDF5 file to given RunNode.
         """
         self._runnode = runnode
-        super().__init__(hdf5)
+        super().__init__(root, hdf5)
 
 
     def read(self):

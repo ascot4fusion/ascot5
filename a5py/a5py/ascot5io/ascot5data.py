@@ -13,7 +13,8 @@ class AscotData():
     Abstract class for ASCOT5 input and output data.
     """
 
-    def __init__(self, hdf5):
+    def __init__(self, root, hdf5):
+        self._root   = root
         self._file   = hdf5.file.filename
         self._group  = hdf5.name.split("/")[2]
         self._path   = hdf5.name
@@ -65,15 +66,13 @@ class AscotData():
         """
         Set the current group as active.
         """
-        import a5py.ascot5io.ascot5tools as tools
-        tools.call_ascot5file(self._file, "set_active", self._path)
+        self._root._set_as_active(self.get_qid())
 
-    def remove_from_file(self):
+    def remove_from_file(self, repack=True):
         """
         Remove the group from the hdf5 file.
         """
-        with h5py.File(self._file, "a") as f:
-            ascot5file.remove_group(f, self._path)
+        self._root._remove_from_file(self.get_qid(), repack)
 
     def copy_to_hdf5file(self,target_file,newgroup=False):
 

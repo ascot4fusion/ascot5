@@ -40,12 +40,12 @@ class Transcoef(AscotData):
     Object representing transport coefficient data.
     """
 
-    def __init__(self, hdf5, runnode):
+    def __init__(self, root, hdf5, runnode):
         """
         Initialize transcoef object from given HDF5 file to given RunNode.
         """
         self._runnode = runnode
-        super().__init__(hdf5)
+        super().__init__(root, hdf5)
 
 
     def read(self):

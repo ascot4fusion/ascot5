@@ -76,12 +76,12 @@ File: ascot5.py
 
 import h5py
 import warnings
+import subprocess
+
 from collections import OrderedDict
 
 from . ascot5file import get_qid, get_activeqid, get_desc, get_date, get_type,\
-    set_desc
-from . ascot5file import get_inputqids
-from . ascot5file import remove_group
+    set_desc, get_inputqids, remove_group, set_active
 
 from a5py.ascot5io.B_TC       import B_TC
 from a5py.ascot5io.B_GS       import B_GS
@@ -126,6 +126,10 @@ from a5py.ascot5io.dist_rho6D import Dist_rho6D
 
 from a5py.ascot5io.ascot5file import INPUT_PARENTS
 
+class AscotInitException(Exception):
+    """Exception raised when Ascot object could not be initialized."""
+    pass
+
 
 class textcolor:
     """
@@ -153,7 +157,7 @@ class textcolor:
     header = bold
     active = green
 
-def create_inputobject(key, h5group):
+def create_inputobject(key, root, h5group):
     """
     Create an input object based on the HDF5 group name
 
@@ -178,10 +182,10 @@ def create_inputobject(key, h5group):
         warnings.warn("Unknown input group " + key)
         return None
 
-    return name_and_object[key](h5group)
+    return name_and_object[key](root, h5group)
 
 
-def create_outputobject(key, h5group, runnode):
+def create_outputobject(key, root, h5group, runnode):
     """
     Create an output object based on the HDF5 group name
 
@@ -198,7 +202,7 @@ def create_outputobject(key, h5group, runnode):
         warnings.warn("Unknown output group " + key)
         return None
 
-    return name_and_object[key](h5group, runnode)
+    return name_and_object[key](root, h5group, runnode)
 
 
 def write_dummy(fn, parent, desc="Dummy"):
@@ -410,6 +414,19 @@ class _ContainerNode(_Node):
         self._types = sortedtypes
         self._descs = sorteddescs
 
+
+    def remove_from_file(self, repack=True):
+        """
+        Remove the group from the hdf5 file.
+        """
+        with h5py.File(self._file, "a") as f:
+            remove_group(f, self._path)
+
+        if repack:
+            subprocess.call(["h5repack", self._file, "repack_" + self._file])
+            subprocess.call(["mv", "repack_" + self._file, self._file])
+
+
 class _InputNode(_ContainerNode):
     """
     Node that represents an input parent group.
@@ -429,15 +446,17 @@ class _InputNode(_ContainerNode):
         AscotData object representing the given input data.
     """
 
-    def __init__(self, parent):
+    def __init__(self, root, parent):
         """
         Initialize this node by initializing input objects and storing them.
         """
         super().__init__()
+        self._root = root
+        self._name = parent.name.split("/")[-1]
 
         for key in parent.keys():
             type_ = get_type(parent[key].name.split("/")[-1])
-            inputobj = create_inputobject(type_, parent[key])
+            inputobj = create_inputobject(type_, root, parent[key])
             if inputobj is not None:
                 self._init_store_qidgroup(parent.file, parent[key], inputobj)
 
@@ -492,6 +511,13 @@ class _InputNode(_ContainerNode):
 
         return (qids, types, descs, dates)
 
+    def remove_from_file(self, repack=True):
+        """
+        Remove the group from the hdf5 file.
+        """
+        print(self._name)
+        self._root._remove_from_file(self._name, repack)
+
 class _RunNode(_Node):
     """
     Create an instance that represents the given run group data.
@@ -515,9 +541,10 @@ class _RunNode(_Node):
         ascot5._StandardNode object representing the given run group data.
     """
 
-    def __init__(self, rungroup, inputgroups):
+    def __init__(self, root, rungroup, inputgroups):
         super().__init__()
 
+        self._root = root
         self._qid  = get_qid(rungroup)
         self._date = get_date(rungroup.file, rungroup)
         self._desc = get_desc(rungroup.file, rungroup)
@@ -528,7 +555,7 @@ class _RunNode(_Node):
 
         for key in rungroup:
             key = rungroup[key].name.split("/")[-1]
-            outputobj = create_outputobject(key, rungroup[key], self)
+            outputobj = create_outputobject(key, root, rungroup[key], self)
             if outputobj is not None:
                 self[key] = outputobj
 
@@ -586,12 +613,14 @@ class _RunNode(_Node):
             self._freeze()
         return val
 
-    def remove_from_file(self):
+    def remove_from_file(self, repack=True):
         """
         Remove the group from the hdf5 file.
         """
-        with h5py.File(self._file, "a") as f:
-            remove_group(f, self._path)
+        self._root._remove_from_file(self.get_qid(), repack)
+
+    def set_as_active(self):
+        self._root._set_as_active(self.get_qid())
 
 
 class Ascot(_ContainerNode):
@@ -603,12 +632,21 @@ class Ascot(_ContainerNode):
     can only be accessed by their name e.g. bfield.
     """
 
-    def __init__(self, fn):
+    def __init__(self, fn=None):
         """
         Initialize the whole node structure recursively and create data objects.
         """
         super().__init__()
         self._hdf5fn = fn
+
+        try:
+            if fn is not None:
+                h5py.File(self._hdf5fn, "r")
+        except:
+            self._hdf5fn = None
+            self.reload()
+            raise AscotInitException("Could not open file " + fn)
+
         self.reload()
 
     def __enter__(self):
@@ -643,19 +681,24 @@ class Ascot(_ContainerNode):
         return string
 
     def reload(self):
+        """
+        Reload this object from the file.
+        """
         fn = self._hdf5fn
         for v in list(vars(self)):
             delattr(self, v)
 
         super().__init__()
         self._hdf5fn = fn
+        if fn is None:
+            return
 
         with h5py.File(self._hdf5fn, "r") as h5:
 
             # Initialize input groups.
             for inp in h5.keys():
                 if( inp in INPUT_PARENTS ):
-                    self[inp] = _InputNode(h5[inp])
+                    self[inp] = _InputNode(self, h5[inp])
 
             if "results" in h5:
                 for run in h5["results"].keys():
@@ -674,7 +717,7 @@ class Ascot(_ContainerNode):
                                                 groups["q" + inputqids[inp]]))
 
                     # Make a run node and store it.
-                    runnode = _RunNode(h5["results"][run], inputgroups)
+                    runnode = _RunNode(self, h5["results"][run], inputgroups)
                     self._init_store_qidgroup(h5, h5["results"][run], runnode)
 
                 self._init_store_activegroup(h5, h5["results"])
@@ -703,8 +746,7 @@ class Ascot(_ContainerNode):
         """
         Remove every run node from this hdf5 file.
         """
-        for qid in self._qids:
-            self.__getattribute__('run_'+qid[1:]).remove_from_file()
+        self._remove_from_file("results", repack=True)
 
 
     def get_runsfrominput(self, inputqid):
@@ -769,3 +811,26 @@ class Ascot(_ContainerNode):
                 dates = sorteddates
 
         return (qids, types, descs, dates)
+
+
+    def _remove_from_file(self, group, repack=True):
+        """
+        Remove group from file.
+        """
+        with h5py.File(self._hdf5fn, "a") as f:
+            remove_group(f, group)
+
+        if repack:
+            fn     = self._hdf5fn
+            fntemp = self._hdf5fn + "_repack"
+            subprocess.call(["h5repack", fn, fntemp])
+            subprocess.call(["mv", fntemp, fn])
+
+        self.reload()
+
+
+    def _set_as_active(self, group):
+        with h5py.File(self._hdf5fn, "a") as f:
+            set_active(f, group)
+
+        self.reload()
