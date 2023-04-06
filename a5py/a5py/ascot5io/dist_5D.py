@@ -94,12 +94,12 @@ class Dist_5D(AscotData):
     Object representing 5D distribution data.
     """
 
-    def __init__(self, hdf5, runnode):
+    def __init__(self, root, hdf5, runnode):
         """
         Object representing orbit data.
         """
         self._runnode = runnode
-        super().__init__(hdf5)
+        super().__init__(root, hdf5)
 
 
     def read(self):

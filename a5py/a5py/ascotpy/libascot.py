@@ -21,12 +21,16 @@ from ctypes.util import find_library
 from numpy.ctypeslib import ndpointer
 from a5py.ascot5io.ascot5 import Ascot
 
+class AscotpyInitException(Exception):
+    """Exception raised when Ascotpy object could not be initialized."""
+    pass
+
 class LibAscot:
     """
     An object representing a running ascot5 process.
     """
 
-    def __init__(self, h5fn="ascot.h5", libpath="libascot.so"):
+    def __init__(self, h5fn=None, libpath="libascot.so"):
         """
         Initialize and start Ascot5 process using given HDF5 file as an input.
 
@@ -51,11 +55,7 @@ class LibAscot:
                 + "export LD_LIBRARY_PATH=/spam/ascot5 " \
                 + "or "                                  \
                 + "export LD_LIBRARY_PATH=/spam/ascot5:$LD_LIBRARY_PATH"
-            raise type(e)(str(e) + msg).with_traceback(sys.exc_info()[2])
-
-        # Check that the HDF5 file exists
-        self.h5fn = h5fn.encode('UTF-8')
-        self.hdf5 = Ascot(str(self.h5fn,'UTF-8'))
+            raise AscotpyInitException(msg)
 
         # Initialize attributes
         self.bfield_initialized  = False
@@ -230,6 +230,9 @@ class LibAscot:
             warnings.warn("libascot_eval_collcoefs not found", Warning)
             pass
 
+        # Check that the HDF5 file exists
+        self.reload(h5fn)
+
 
     def reload(self, h5fn):
         """
@@ -239,14 +242,26 @@ class LibAscot:
             h5fn : str <br>
                 Name of the new HDF5 file.
         """
-        self.free(bfield=self.bfield_initialized,
-                  efield=self.efield_initialized,
-                  plasma=self.plasma_initialized,
-                  wall=self.wall_initialized,
-                  neutral=self.neutral_initialized)
+        self.free(bfield  = self.bfield_initialized,
+                  efield  = self.efield_initialized,
+                  plasma  = self.plasma_initialized,
+                  wall    = self.wall_initialized,
+                  neutral = self.neutral_initialized,
+                  mhd     = self.mhd_initialized,
+                  boozer  = self.boozer_initialized)
 
-        self.h5fn = h5fn if type(h5fn) is bytes else h5fn.encode('UTF-8')
-        self.hdf5 = Ascot(str(self.h5fn,'UTF-8'))
+        if h5fn == None:
+            self.h5fn = None
+            self.hdf5 = Ascot()
+        else:
+            self.h5fn = h5fn if type(h5fn) is bytes else h5fn.encode('UTF-8')
+
+            try:
+                self.hdf5 = Ascot(str(self.h5fn,'UTF-8'))
+            except:
+                self.h5fn = None
+                self.hdf5 = None
+                raise
 
 
     def get_filepath(self):

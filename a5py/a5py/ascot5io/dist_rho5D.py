@@ -94,12 +94,12 @@ class Dist_rho5D(AscotData):
     """
     """
 
-    def __init__(self, hdf5, runnode):
+    def __init__(self, root, hdf5, runnode):
         """
         Object representing orbit data.
         """
         self._runnode = runnode
-        super().__init__(hdf5)
+        super().__init__(root, hdf5)
 
 
     def read(self):
