@@ -7,6 +7,9 @@ import tkinter
 import tkinter.ttk as ttk
 
 import numpy as np
+import matplotlib.pyplot as plt
+
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 class NumEntry(tkinter.Frame):
     """
@@ -182,3 +185,38 @@ class Tickbox(tkinter.Frame):
 
     def getval(self):
         return self.var.get()
+
+
+class NavToolbarNocoord(NavigationToolbar2Tk):
+    """
+    Navigation toolbar but without the coordinate display
+    """
+    def set_message(self, msg):
+        pass
+
+
+class PlotFrame(tkinter.Frame):
+    """
+    Frame containing matplotlib plot and NavToolbarNocoord
+    """
+
+    def __init__(self, master):
+        super().__init__(master)
+        fig = plt.figure()
+        ax  = fig.add_subplot(1,1,1)
+        figcanvas = FigureCanvasTkAgg(fig, self)
+
+        toolbar = NavToolbarNocoord(figcanvas, self, pack_toolbar=False)
+        toolbar.config(background="white")
+        for button in toolbar.winfo_children():
+            button.config(background="white")
+        toolbar.update()
+
+        toolbar.pack(side=tkinter.TOP, fill=tkinter.X)
+        figcanvas.get_tk_widget().pack(fill=tkinter.BOTH, expand=True)
+
+        self.axis = ax
+        self.fig  = figcanvas
+
+    def draw(self):
+        self.fig.draw()

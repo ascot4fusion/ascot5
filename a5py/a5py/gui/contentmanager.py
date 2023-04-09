@@ -3,9 +3,14 @@ import os
 import tkinter as tk
 from tkinter import ttk
 
-from .optionsmanager import OptionsManager
+from .contentgroup       import ContentGroup
+from .contentprecheck    import ContentPrecheck
+from .contentinput       import ContentInput
+from .contentoutput      import ContentOutput
+from .contentinteractive import ContentInteractive
 
-class ContentManager(OptionsManager):
+class ContentManager(ContentGroup, ContentPrecheck, ContentInput,
+                     ContentOutput, ContentInteractive):
     """
     Manages the contents in SettingsFrame and in CanvasFrame.
     """
@@ -23,20 +28,15 @@ class ContentManager(OptionsManager):
         self.settingsframe = tk.Frame(self.settingsframe_original)
         self.canvasframe   = tk.Frame(self.canvasframe_original)
 
-        # (The frames are initialized here)
-        self.clear()
-
-        # Show ASCOT5 logo at startup.
-        canvas = tk.Canvas(self.settingsframe)
-        canvas.pack(expand=True, fill="both")
-
-        # self.logo prevents image being cleared by garbage collector
+        # Load graphics
         logo = os.path.join(os.path.dirname(__file__), "logo.png")
         self.logo = tk.PhotoImage(file=logo)
-        canvas.create_image(150, 50, image=self.logo)
+
+        # (The frames are initialized here)
+        self.clear_content()
 
 
-    def clear(self):
+    def clear_content(self):
         """
         Clear settings and canvas frames.
         """
@@ -52,61 +52,45 @@ class ContentManager(OptionsManager):
         self.canvasframe.pack(fill="both", expand=True)
 
 
-    def display_group(self, parent, qid):
+    def display_content(self, content, **kwargs):
         """
-        Display group information.
+        Parse what content to display and display it.
 
-        Displays description in the settingsframe and, in case if the group is
-        ans options group, the editable contents in the canvas frame.
+        All display functions should be accessed via this interface.
         """
-        self.clear()
-        if qid is None:
-            # For parent groups there is nothing to display.
-            return
 
-        if parent == "results":
-            group = self.gui.ascot.hdf5["q"+qid]
-        else:
-            group = self.gui.ascot.hdf5[parent]["q"+qid]
-
-        # Always show description box on top.
-        f1 = tk.Frame(self.settingsframe)
-        tk.Label(f1, text="Description:").pack(side="left")
-        f1.grid(row=0, column=0, sticky="ew")
-
-        f2 = tk.Frame(self.settingsframe)
-        save = tk.Button(f2, text="Save")
-        save.pack(side="right")
-
-        load = tk.Button(f2, text="Revert")
-        load.pack(side="right")
-
-        f2.grid(row=0, column=1, sticky="ew")
-
-        descbox = tk.Text(self.settingsframe, height=5, width=50)
-        descbox.grid(row=1, column=0, columnspan=2, sticky="nsew",
-                     padx=2, pady=2)
-        descbox.insert("end", group.get_desc())
-
-        # Helper function
-        def replacetext(text):
-            descbox.delete("1.0", "end")
-            descbox.insert("end", text)
-
-        # Button functionality
-        save.configure(
-            command=lambda:group.set_desc(descbox.get("1.0", "end-1c")))
-        load.configure(
-            command=lambda:replacetext(group.get_desc()))
-
-        # Add extra frame where widgets can be added
-        frame = tk.Frame(self.settingsframe)
-        frame.grid(row=2, column=0, columnspan=2, sticky="nsew")
-
-        # Display options on the canvas.
-        if parent == "options":
-            self.display_options(
-                frame, self.canvasframe, group,
-                lambda : self.gui.files.open_new_file(self.gui.ascot.h5fn),
-                lambda : descbox.get("1.0", "end-1c")
+        if content == "welcome":
+            self.clear_content()
+            self._display_welcome(
+                self.gui, self.settingsframe, self.canvasframe
             )
+
+        if content == "group":
+            self.clear_content()
+            self._display_group(
+                self.gui, self.settingsframe, self.canvasframe,
+                kwargs["parent"], kwargs["qid"]
+            )
+
+        if content == "preflight":
+            self.clear_content()
+            self.display_precheck(
+                self.gui, self.settingsframe, self.canvasframe
+            )
+        if content == "input":
+            pass
+        if content == "output":
+            pass
+        if content == "interactive":
+            pass
+
+
+    def _display_welcome(self, gui, settingsframe, canvasframe):
+        """
+        Display welcome screen.
+        """
+
+        # Show ASCOT5 logo
+        canvas = tk.Canvas(self.settingsframe)
+        canvas.pack(expand=True, fill="both")
+        canvas.create_image(150, 50, image=self.logo)

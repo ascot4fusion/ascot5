@@ -14,7 +14,6 @@ from a5py.ascotpy.ascotpy import Ascotpy
 from a5py.ascot5io.ascot5file import INPUT_PARENTS
 
 from .contentmanager import ContentManager
-from .guifile import Datalink
 
 class GUI(tk.Tk):
     """
@@ -140,11 +139,11 @@ class GUI(tk.Tk):
         self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(1, weight=1)
 
-        self.files    = files
-        self.groups   = groups
+        self.files  = files
+        self.groups = groups
 
         # Set up content manager
-        self.contentmanager = ContentManager(self, settings.get_frame(), canvas)
+        self.content = ContentManager(self, settings.get_frame(), canvas)
 
         # Read file and show its contents
         self.ascot = Ascotpy()
@@ -239,9 +238,21 @@ class FileFrame(tk.Frame):
         self.filesizelabel = tk.Label(frame2, text="Size: ")
         self.filesizelabel.pack(side="left", anchor="nw")
 
-        # Sanity check button
-        self.sanitybutton = tk.Button(frame3, text="Sanity checks")
-        self.sanitybutton.pack(side="left", anchor="nw")
+        # Preflight check button
+        self.preflightbutton = tk.Button(frame3, text="Preflight checks")
+        self.preflightbutton.pack(side="left", anchor="nw")
+
+        # Input plotting button
+        self.inputplotbutton = tk.Button(frame3, text="View input data")
+        self.inputplotbutton.pack(side="left", anchor="nw")
+
+        # Output plotting button
+        self.outputplotbutton = tk.Button(frame3, text="Analyze results")
+        self.outputplotbutton.pack(side="left", anchor="nw")
+
+        # Interactive run button
+        self.interactiverunbutton = tk.Button(frame3, text="Interactive runs")
+        self.interactiverunbutton.pack(side="left", anchor="nw")
 
         frame1.pack(side="top", fill="x",    anchor="nw")
         frame2.pack(side="top", fill="x",    anchor="nw")
@@ -251,7 +262,21 @@ class FileFrame(tk.Frame):
         ## Set functionality ##
 
         # Browse button opens filename dialog when clicked
-        self.browsebutton.configure(command=self.browse_file)
+        self.browsebutton.configure(
+            command=self.browse_file
+        )
+        self.preflightbutton.configure(
+            command=lambda : self.gui.content.display_content("preflight")
+        )
+        self.inputplotbutton.configure(
+            command=lambda : self.gui.content.display_content("input")
+        )
+        self.outputplotbutton.configure(
+            command=lambda : self.gui.content.display_content("output")
+        )
+        self.interactiverunbutton.configure(
+            command=lambda : self.gui.content.display_content("interactive")
+        )
 
         # Unmutable filename field
         self.filenamefield.configure(state="disabled", wrap="none")
@@ -299,6 +324,7 @@ class FileFrame(tk.Frame):
 
         self.gui.groups.build_groups()
         self.display_file(filename)
+        self.gui.content.display_content("welcome")
 
 
     def display_file(self, filename):
@@ -467,7 +493,7 @@ class GroupFrame(tk.Frame):
                 self._highlightoutputs(outputqids)
 
             # Show contents for this group
-            self.gui.contentmanager.display_group(parent, qid)
+            self.gui.content.display_content("group", parent=parent, qid=qid)
 
 
     def activate_group(self):
