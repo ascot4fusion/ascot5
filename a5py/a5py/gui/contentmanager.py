@@ -74,13 +74,24 @@ class ContentManager(ContentGroup, ContentPrecheck, ContentInput,
 
         if content == "preflight":
             self.clear_content()
+            self.gui.ascot.init(bfield=True, ignorewarnings=True)
             self.display_precheck(
                 self.gui, self.settingsframe, self.canvasframe
             )
         if content == "input":
-            pass
+            self.clear_content()
+            self.display_input(
+                self.gui, self.settingsframe, self.canvasframe
+            )
         if content == "output":
-            pass
+            self.clear_content()
+            self.gui.ascot.init_from_run(self.gui.ascot.hdf5.active,
+                bfield=True, efield=True, neutral=True,
+                plasma=True, boozer=True, mhd=True)
+            self.display_output(
+                self.gui, self.settingsframe, self.canvasframe,
+                self.gui.ascot.hdf5.active
+            )
         if content == "interactive":
             pass
 

@@ -215,8 +215,16 @@ class PlotFrame(tkinter.Frame):
         toolbar.pack(side=tkinter.TOP, fill=tkinter.X)
         figcanvas.get_tk_widget().pack(fill=tkinter.BOTH, expand=True)
 
-        self.axis = ax
-        self.fig  = figcanvas
+        self.axis      = ax
+        self.fig       = fig
+        self.figcanvas = figcanvas
 
     def draw(self):
-        self.fig.draw()
+        self.figcanvas.draw()
+
+    def clear(self):
+        if self.fig.axes:
+            for ax in self.fig.axes:
+                self.fig.delaxes(ax)
+
+        self.axis = self.fig.add_subplot(1,1,1)

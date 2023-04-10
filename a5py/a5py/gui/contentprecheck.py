@@ -31,6 +31,5 @@ class ContentPrecheck:
 
         text_msg.insert("end", msg0)
 
-        gui.ascot.init(bfield=True)
         plot_top_view(gui.ascot, axes=fig_topview.axis)
         fig_topview.draw()

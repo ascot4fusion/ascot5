@@ -90,6 +90,8 @@ def contentgroup_options(frame, canvas, group, filechanged,
                          getdescinbox):
     """
     Display options data for a given group.
+
+    Private function.
     """
 
     ## Add Widgets ##
