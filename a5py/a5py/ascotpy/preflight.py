@@ -98,9 +98,11 @@ def plot_top_view(ascotpy, axes=None):
 
     Assumes bfield is initialized in ascotpy.
     """
+    showfig = False
     if axes == None:
         fig  = plt.figure()
         axes = fig.add_subplot(1,1,1)
+        showfig = True
 
     axis = ascotpy.evaluate(1, 0, 0, 0, "axis")
     z0 = axis["axisz"]
@@ -147,7 +149,9 @@ def plot_top_view(ascotpy, axes=None):
     axes.scatter(x,y, s=1, c="black", zorder=-2)
 
     axes.legend(("Magnetic field", "Plasma current", "Markers"))
-    plt.show()
+
+    if showfig:
+        plt.show()
 
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@ from tkinter import ttk
 import numpy as np
 
 from .components import PlotFrame, NumEntry
+from.guiparams import retrieve, store
 from a5py.ascotpy.libbfield  import LibBfield
 from a5py.ascotpy.libefield  import LibEfield
 from a5py.ascotpy.libplasma  import LibPlasma
@@ -46,20 +47,35 @@ class ContentInput:
                             plasma=plasma, boozer=boozer, mhd=mhd,
                             ignorewarnings=True)
 
+        ## Read parameters from storage
+        params = retrieve(
+            self.gui.ascot.h5fn,
+            input_rzplot_minr= 0.1,
+            input_rzplot_maxr=10.0,
+            input_rzplot_numr=50,
+            input_rzplot_minz= 8.0,
+            input_rzplot_maxz=-8.0,
+            input_rzplot_numz=50
+        )
+
         ## First add widgets ##
 
         fig_rzview = PlotFrame(canvas)
         fig_rzview.place(relheight=0.8, anchor="nw")
 
-        xmin_entry = NumEntry(panel, labeltext="R = ", defval=0.1)
-        xmax_entry = NumEntry(panel, labeltext=" - ",  defval=10)
-        xnum_entry = NumEntry(panel, labeltext=" : ",  defval=50,
-                                   isint=True)
+        xmin_entry = NumEntry(panel, labeltext="R = ",
+                              defval=params["input_rzplot_minr"])
+        xmax_entry = NumEntry(panel, labeltext=" - ",
+                              defval=params["input_rzplot_maxr"])
+        xnum_entry = NumEntry(panel, labeltext=" : ",
+                              defval=params["input_rzplot_numr"],isint=True)
 
-        ymin_entry = NumEntry(panel, labeltext="z = ", defval=-8)
-        ymax_entry = NumEntry(panel, labeltext=" - ",  defval=8)
-        ynum_entry = NumEntry(panel, labeltext=" : ",  defval=50,
-                                   isint=True)
+        ymin_entry = NumEntry(panel, labeltext="z = ",
+                              defval=params["input_rzplot_minz"])
+        ymax_entry = NumEntry(panel, labeltext=" - ",
+                              defval=params["input_rzplot_maxz"])
+        ynum_entry = NumEntry(panel, labeltext=" : ",
+                              defval=params["input_rzplot_numz"], isint=True)
 
         xmin_entry.grid(row=0, column=0, sticky="W")
         xmax_entry.grid(row=0, column=1, sticky="W")
@@ -70,15 +86,15 @@ class ContentInput:
         ynum_entry.grid(row=1, column=2, sticky="W")
 
         phi_entry = NumEntry(panel, labeltext="phi [deg]:", defval=0)
-        phi_entry.grid(row=2, column=0)
+        phi_entry.grid(row=3, column=0)
 
         time_entry = NumEntry(panel, labeltext="time [s]:", defval=0)
-        time_entry.grid(row=2, column=1)
+        time_entry.grid(row=3, column=1)
 
         cmin_entry = NumEntry(panel, labeltext="Color range", defval="")
         cmax_entry = NumEntry(panel, labeltext=" - ", defval="")
-        cmin_entry.grid(row=3, column=0)
-        cmax_entry.grid(row=3, column=1)
+        cmin_entry.grid(row=2, column=0)
+        cmax_entry.grid(row=2, column=1)
 
         qchoice = tk.StringVar(panel)
         qchoice.set(quantities[0])
@@ -111,6 +127,19 @@ class ContentInput:
             gui.ascot.plotseparatrix(r, phi, z, time, fig_rzview.axis)
             fig_rzview.draw()
 
+        def store_settings():
+            store(
+                self.gui.ascot.h5fn,
+                input_rzplot_minr=xmin_entry.getval(),
+                input_rzplot_maxr=xmax_entry.getval(),
+                input_rzplot_numr=xnum_entry.getval(),
+                input_rzplot_minz=ymin_entry.getval(),
+                input_rzplot_maxz=ymax_entry.getval(),
+                input_rzplot_numz=ynum_entry.getval()
+            )
 
         plotbutton = tk.Button(panel, text="Plot", command=plot)
-        plotbutton.grid(row=4, column=2, sticky="WE")
+        plotbutton.grid(row=2, column=2, sticky="WE")
+
+        savebutton = tk.Button(panel, text="Store", command=store_settings)
+        savebutton.grid(row=3, column=2, sticky="WE")
