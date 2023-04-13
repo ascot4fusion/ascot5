@@ -123,11 +123,13 @@ class DropdownMenu(tkinter.Frame):
     Dropdown menu where user can choose from given options.
     """
 
-    def __init__(self, master, defval, values, log=False, trace=None,
+    def __init__(self, master, defval=None, values=None, log=False, trace=None,
                  label=None):
         super().__init__(master)
         self.var = tkinter.StringVar(self)
-        self.var.set(defval)
+
+        if defval is not None:
+            self.var.set(defval)
 
         if trace is not None:
             self.var.trace('w', trace)
@@ -136,9 +138,10 @@ class DropdownMenu(tkinter.Frame):
             label = tkinter.Label(self, text=label)
             label.grid(row=0, column=0)
 
-        menu = ttk.Combobox(self, width=6, textvariable=self.var)
-        menu["values"] = values
-        menu.grid(row=0, column=1)
+        self.menu = ttk.Combobox(self, width=6, textvariable=self.var)
+        self.menu.grid(row=0, column=1)
+        if values is not None:
+            self.menu["values"] = values
 
         self.log = None
         if log:
@@ -161,6 +164,12 @@ class DropdownMenu(tkinter.Frame):
 
     def getval(self):
         return self.var.get()
+
+    def setvals(self, values, defval, log=None):
+        self.menu["values"] = values
+        self.var.set(defval)
+        if log is not None:
+            self.log.set(log)
 
 
 class Tickbox(tkinter.Frame):

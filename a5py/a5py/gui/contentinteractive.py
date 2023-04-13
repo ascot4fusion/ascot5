@@ -3,5 +3,8 @@ from tkinter import ttk
 
 class ContentInteractive:
 
-    def display_interactive(self):
+    def __init__(self, gui, settings, canvas):
+        pass
+
+    def display(self):
         pass

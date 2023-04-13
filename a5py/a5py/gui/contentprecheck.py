@@ -6,30 +6,54 @@ from .components import PlotFrame
 
 class ContentPrecheck:
 
-    def display_precheck(self, gui, frame, canvas):
+    def __init__(self, gui, settings, canvas):
+        self.gui = gui
 
-        ## First add widgets ##
+        ## Settings frame ##
+        settingsframe = tk.Frame(settings)
+        figcanvas     = tk.Frame(canvas)
 
-        fig_topview = PlotFrame(canvas)
+        fig_topview = PlotFrame(figcanvas)
         fig_topview.place(relheight=0.5, relwidth=0.5, anchor="nw")
 
-        text_msg = tk.Text(frame, height=25, width=50)
-        text_msg.pack()
+        class PrecheckResult(tk.Text):
 
-        ## Run preflight checks ##
-        msg = []
-        msg += check_inputs_present(gui.ascot)
-        msg += check_options_consistent(gui.ascot)
-        if len(msg) == 0:
-            msg += ["Preflight checks completed with no issues."]
+            def show(self):
+                """
+                Run and display results of the preflight tests.
+                """
+                msg = []
+                msg += check_inputs_present(gui.ascot)
+                msg += check_options_consistent(gui.ascot)
+                if len(msg) == 0:
+                    msg += ["Preflight checks completed with no issues."]
 
-        msg0 = ""
-        for m in msg:
-            msg0 += m + "\n"
+                msg0 = ""
+                for m in msg:
+                    msg0 += m + "\n"
 
-        ## Display checks ##
+                self.delete("1.0", "end")
+                self.insert("end", msg0)
 
-        text_msg.insert("end", msg0)
 
-        plot_top_view(gui.ascot, axes=fig_topview.axis)
-        fig_topview.draw()
+        precheckresults = PrecheckResult(settingsframe, height=25, width=50)
+        precheckresults.pack()
+
+        self.settingsframe   = settingsframe
+        self.figcanvas       = figcanvas
+        self.fig_topview     = fig_topview
+        self.precheckresults = precheckresults
+
+
+    def display(self):
+
+        self.figcanvas.pack_forget()
+
+        self.precheckresults.show()
+
+        self.gui.ascot.init(bfield=True, ignorewarnings=True)
+        plot_top_view(self.gui.ascot, axes=self.fig_topview.axis)
+        self.fig_topview.draw()
+
+        self.settingsframe.pack()
+        self.figcanvas.pack(fill="both", expand=True)

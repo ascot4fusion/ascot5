@@ -1,5 +1,3 @@
-import os
-
 import tkinter as tk
 from tkinter import ttk
 
@@ -9,8 +7,7 @@ from .contentinput       import ContentInput
 from .contentoutput      import ContentOutput
 from .contentinteractive import ContentInteractive
 
-class ContentManager(ContentGroup, ContentPrecheck, ContentInput,
-                     ContentOutput, ContentInteractive):
+class ContentManager():
     """
     Manages the contents in SettingsFrame and in CanvasFrame.
     """
@@ -20,88 +17,81 @@ class ContentManager(ContentGroup, ContentPrecheck, ContentInput,
 
         self.gui = gui
 
-        # These two frames are kept immutable
-        self.settingsframe_original = settingsframe
-        self.canvasframe_original   = canvasframe
+        # Add tabs to the notebook widget
+        groupframe       = ttk.Frame(canvasframe)
+        preflightframe   = ttk.Frame(canvasframe)
+        inputframe       = ttk.Frame(canvasframe)
+        outputframe      = ttk.Frame(canvasframe)
+        interactiveframe = ttk.Frame(canvasframe)
+        canvasframe.add(groupframe,       text="Group")
+        canvasframe.add(preflightframe,   text="Preflight")
+        canvasframe.add(inputframe,       text="Input")
+        canvasframe.add(outputframe,      text="Analysis")
+        canvasframe.add(interactiveframe, text="Run")
 
-        # These two form an extra layer and they can be changed
-        self.settingsframe = tk.Frame(self.settingsframe_original)
-        self.canvasframe   = tk.Frame(self.canvasframe_original)
+        # Initialize content frames (nothing is shown yet)
+        self.contentgroup       = ContentGroup(
+            gui, settingsframe, groupframe)
+        self.contentprecheck    = ContentPrecheck(
+            gui, settingsframe, preflightframe)
+        self.contentinput       = ContentInput(
+            gui, settingsframe, inputframe)
+        self.contentoutput      = ContentOutput(
+            gui, settingsframe, outputframe)
+        self.contentinteractive = ContentInteractive(
+            gui, settingsframe, interactiveframe)
 
-        # Load graphics
-        logo = os.path.join(os.path.dirname(__file__), "logo.png")
-        self.logo = tk.PhotoImage(file=logo)
+        # Have an empty frame here initially
+        self.active_settingsframe = ttk.Frame(settingsframe)
+        self.active_settingsframe.pack(fill="both")
 
-        # (The frames are initialized here)
-        self.clear_content()
+        # Display contents when tab changes
+        def on_tab_change(event):
+            tab = event.widget.tab('current')['text']
+            self.display_content(tab)
+
+        canvasframe.bind('<<NotebookTabChanged>>', on_tab_change)
 
 
-    def clear_content(self):
+    def update_content(self):
         """
-        Clear settings and canvas frames.
+        Redraw contents on settings and canvas frames.
         """
-        self.settingsframe.pack_forget()
-        self.canvasframe.pack_forget()
-        self.settingsframe.destroy()
-        self.canvasframe.destroy()
-
-        self.settingsframe = tk.Frame(self.settingsframe_original)
-        self.settingsframe.pack(fill="both", expand=True)
-
-        self.canvasframe = tk.Frame(self.canvasframe_original, bg="white")
-        self.canvasframe.pack(fill="both", expand=True)
+        self.display_content(self.content)
 
 
-    def display_content(self, content, **kwargs):
+    def display_content(self, content):
         """
         Parse what content to display and display it.
 
         All display functions should be accessed via this interface.
         """
+        self.content = content
 
-        if content == "welcome":
-            self.clear_content()
-            self._display_welcome(
-                self.gui, self.settingsframe, self.canvasframe
-            )
+        if content == "Group":
+            self.active_settingsframe.pack_forget()
+            tree = self.gui.groups.tree
+            qid    = tree.item(tree.selection(), "text")
+            parent = tree.item(tree.parent(tree.selection()), "text")
+            self.contentgroup.display(parent, qid)
+            self.active_settingsframe = self.contentgroup.settingsframe
 
-        if content == "group":
-            self.clear_content()
-            self._display_group(
-                self.gui, self.settingsframe, self.canvasframe,
-                kwargs["parent"], kwargs["qid"]
-            )
+        if content == "Preflight":
+            self.active_settingsframe.pack_forget()
+            self.contentprecheck.display()
+            self.active_settingsframe = self.contentprecheck.settingsframe
 
-        if content == "preflight":
-            self.clear_content()
-            self.gui.ascot.init(bfield=True, ignorewarnings=True)
-            self.display_precheck(
-                self.gui, self.settingsframe, self.canvasframe
-            )
-        if content == "input":
-            self.clear_content()
-            self.display_input(
-                self.gui, self.settingsframe, self.canvasframe
-            )
-        if content == "output":
-            self.clear_content()
-            self.gui.ascot.init_from_run(self.gui.ascot.hdf5.active,
-                bfield=True, efield=True, neutral=True,
-                plasma=True, boozer=True, mhd=True)
-            self.display_output(
-                self.gui, self.settingsframe, self.canvasframe,
-                self.gui.ascot.hdf5.active
-            )
-        if content == "interactive":
-            pass
+        if content == "Input":
+            self.active_settingsframe.pack_forget()
+            self.contentinput.display()
+            self.active_settingsframe = self.contentinput.settingsframe
 
+        if content == "Analysis":
+            self.active_settingsframe.pack_forget()
+            self.contentoutput.display()
+            self.active_settingsframe = self.contentoutput.settingsframe
 
-    def _display_welcome(self, gui, settingsframe, canvasframe):
-        """
-        Display welcome screen.
-        """
-
-        # Show ASCOT5 logo
-        canvas = tk.Canvas(self.settingsframe)
-        canvas.pack(expand=True, fill="both")
-        canvas.create_image(150, 50, image=self.logo)
+        if content == "Run":
+            self.active_settingsframe.pack_forget()
+            self.contentinteractive.display()
+            self.active_settingsframe = self.contentinteractive.settingsframe

@@ -14,6 +14,7 @@ from a5py.ascotpy.ascotpy import Ascotpy
 from a5py.ascot5io.ascot5file import INPUT_PARENTS
 
 from .contentmanager import ContentManager
+from .guiparams import GUIparams
 
 class GUI(tk.Tk):
     """
@@ -57,10 +58,10 @@ class GUI(tk.Tk):
     # FileFrame size (fixed) in pixels. Width is also used in other frames in
     # the same column.
     FILEFRAMEWIDTH  = 350
-    FILEFRAMEHEIGHT = 100
+    FILEFRAMEHEIGHT = 50
 
     # Other frame heights
-    INPUTFRAMEHEIGHT    = 250
+    INPUTFRAMEHEIGHT    = 300
     SETTINGSFRAMEHEIGHT = 250
 
     # Screenwidth method won't regonize dual monitors but instead returns their
@@ -127,8 +128,7 @@ class GUI(tk.Tk):
                                        height=GUI.SETTINGSFRAMEHEIGHT,
                                        borderwidth=GUI.BORDERWIDTH)
         canvas   = CanvasFrame(self,   width=GUI.MINWIDTH-GUI.FILEFRAMEWIDTH,
-                                       height=GUI.MINHEIGHT-GUI.FILEFRAMEHEIGHT,
-                               bg="white")
+                                       height=GUI.MINHEIGHT-GUI.FILEFRAMEHEIGHT)
 
         files.grid(   row=0, column=0, sticky="NWES")
         groups.grid(  row=1, column=0, sticky="NWES")
@@ -143,6 +143,7 @@ class GUI(tk.Tk):
         self.groups = groups
 
         # Set up content manager
+        self.params  = GUIparams()
         self.content = ContentManager(self, settings.get_frame(), canvas)
 
         # Read file and show its contents
@@ -198,13 +199,14 @@ class SettingsFrame(ttk.Frame):
         return self.contentframe
 
 
-class CanvasFrame(tk.Frame):
+class CanvasFrame(ttk.Notebook):
     """
     Frame that displays plots.
     """
+    pass
 
-    def __init__(self, container, *args, **kwargs):
-        tk.Frame.__init__(self, container, *args, **kwargs)
+    #def __init__(self, container, *args, **kwargs):
+    #    tk.Frame.__init__(self, container, *args, **kwargs)
 
 
 class FileFrame(tk.Frame):
@@ -218,7 +220,7 @@ class FileFrame(tk.Frame):
 
         frame1 = tk.Frame(self)
         frame2 = tk.Frame(self)
-        frame3 = tk.Frame(self, width=345, height=100)
+        frame3 = tk.Frame(self, width=kwargs["width"]-5, height=100)
 
         # Label "File: XXX"
         tk.Label(frame1, text="File: ").pack(side="left", anchor="nw")
@@ -228,7 +230,7 @@ class FileFrame(tk.Frame):
         self.filenamefield.pack(side="left", anchor="nw")
 
         # Browse button. We need to do this frame trick to set it correct size
-        tempframe = tk.Frame(frame1, width=24, height=22)
+        tempframe = tk.Frame(frame1, width=24, height=20)
         tempframe.pack_propagate(False)
         self.browsebutton = tk.Button(tempframe, text="...")
         self.browsebutton.pack(side="left")
@@ -238,25 +240,8 @@ class FileFrame(tk.Frame):
         self.filesizelabel = tk.Label(frame2, text="Size: ")
         self.filesizelabel.pack(side="left", anchor="nw")
 
-        # Preflight check button
-        self.preflightbutton = tk.Button(frame3, text="Preflight checks")
-        self.preflightbutton.pack(side="left", anchor="nw")
-
-        # Input plotting button
-        self.inputplotbutton = tk.Button(frame3, text="View input data")
-        self.inputplotbutton.pack(side="left", anchor="nw")
-
-        # Output plotting button
-        self.outputplotbutton = tk.Button(frame3, text="Analyze results")
-        self.outputplotbutton.pack(side="left", anchor="nw")
-
-        # Interactive run button
-        self.interactiverunbutton = tk.Button(frame3, text="Interactive runs")
-        self.interactiverunbutton.pack(side="left", anchor="nw")
-
         frame1.pack(side="top", fill="x",    anchor="nw")
         frame2.pack(side="top", fill="x",    anchor="nw")
-        frame3.pack(side="top", fill="both", anchor="nw")
 
 
         ## Set functionality ##
@@ -264,18 +249,6 @@ class FileFrame(tk.Frame):
         # Browse button opens filename dialog when clicked
         self.browsebutton.configure(
             command=self.browse_file
-        )
-        self.preflightbutton.configure(
-            command=lambda : self.gui.content.display_content("preflight")
-        )
-        self.inputplotbutton.configure(
-            command=lambda : self.gui.content.display_content("input")
-        )
-        self.outputplotbutton.configure(
-            command=lambda : self.gui.content.display_content("output")
-        )
-        self.interactiverunbutton.configure(
-            command=lambda : self.gui.content.display_content("interactive")
         )
 
         # Unmutable filename field
@@ -323,8 +296,8 @@ class FileFrame(tk.Frame):
                 return
 
         self.gui.groups.build_groups()
+        self.gui.params.retrieve(filename)
         self.display_file(filename)
-        self.gui.content.display_content("welcome")
 
 
     def display_file(self, filename):
@@ -434,7 +407,7 @@ class GroupFrame(tk.Frame):
                                             tags=("parent"))
             else:
                 if parents[parent] is None:
-                    # The parent does not exists
+                    # The parent does not exist
                     item = self.tree.insert("", index, text=parent,
                                             tags=("parent", "nodata"))
                     continue
@@ -456,7 +429,7 @@ class GroupFrame(tk.Frame):
                 if qids[i] == activeqid:
                     tags.append("active")
 
-                self.tree.insert(item, "end", text=qids[i], tags=tuple(tags),
+                self.tree.insert(item, 0, text=qids[i], tags=tuple(tags),
                                  values=(types[i], dates[i]))
 
 
@@ -492,8 +465,8 @@ class GroupFrame(tk.Frame):
                 outputqids = self.gui.ascot.hdf5.get_runsfrominput(qid)
                 self._highlightoutputs(outputqids)
 
-            # Show contents for this group
-            self.gui.content.display_content("group", parent=parent, qid=qid)
+        # Show contents for this group
+        self.gui.content.update_content()
 
 
     def activate_group(self):
@@ -510,6 +483,8 @@ class GroupFrame(tk.Frame):
         else:
             self.gui.ascot.hdf5[parentname]["q"+qid].set_as_active()
         self._activate(item, parent)
+
+        self.gui.content.update_content()
 
 
     def remove_group(self):
@@ -581,6 +556,9 @@ class GroupFrame(tk.Frame):
                 self._activate(group, parent)
                 break
 
+        self.gui.content.update_content()
+
+
     def export_group(self):
         """
         Export given group to another HDF5 file.
@@ -617,21 +595,77 @@ class GroupFrame(tk.Frame):
             return
 
 
-    def add_group(self, dummy=False):
+    def add_group(self, parent, group):
         """
-        Add a dummy group to a given parent group.
+        Add new group to the tree.
 
-        The GUI is re-initialized after this operation.
+        This function is called when the user has created a new group, so we can
+        assume that the group is newest, belongs to the top of the list, and
+        is the active group.
         """
-        tree   = self.groups.tree
-        item   = tree.selection()
-        parent = tree.item(tree.selection(), "text")
-        #write_dummy_input(self.filename, parent, desc="Dummy")
 
-        #self.ascot   = Ascot(self.filename)
-        #self.ascotpy = Ascotpy(self.filename)
-        #self.groups.build_groups(self.filename)
-        #self.contentmanager.clear()
+        # Create / unflag parent if this will be the first child
+        if parent == "results":
+            parent = None
+            for c in self.tree.get_children():
+                if self.tree.item(c, "text") == "results":
+                    parent = c
+
+            if parent is None:
+                parent = self.tree.insert("", "end", text="results",
+                                          tags=("parent"))
+
+        else:
+            for c in self.tree.get_children():
+                if self.tree.item(c, "text") == parent:
+                    parent = c
+                    if "nodata" in self.tree.item(parent, "tags"):
+                        tags = list(self.tree.item(parent, "tags"))
+                        tags.remove("nodata")
+                        self.tree.item(parent, tags=tuple(tags))
+
+        # Insert new group and set it active
+        self.tree.insert(parent, 0, text=group.get_qid(),
+                         values=(group.get_type(), group.get_date()))
+        item = self.tree.get_children(parent)[0]
+        self._activate(item, parent)
+
+        # Recolor alternating rows
+        alternatingrowcolor = 0
+        for c in self.tree.get_children(parent):
+            tags = list(self.tree.item(c, "tags"))
+
+            if "odd" in tags:
+                tags.remove("odd")
+            if "even" in tags:
+                tags.remove("even")
+
+            tags.append("odd" if alternatingrowcolor % 2 else "even")
+            alternatingrowcolor += 1
+
+            self.tree.item(c, tags=tuple(tags))
+
+        # Update contents
+        self.gui.content.update_content()
+
+
+    def add_dummygroup(self):
+        """
+        Adds dummy group for selected parent.
+        """
+        parent = self.tree.item(self.tree.selection(), "text")
+        self.gui.ascot.hdf5.add_dummyinputs(parent=parent, missing=False)
+
+        # New group is the newest group (qids in Ascot are ordered by date)
+        if parent == "results":
+            tmp = self.gui.ascot.hdf5
+        else:
+            tmp = self.gui.ascot.hdf5[parent]
+
+        qid = tmp._qids[-1]
+        group = tmp[qid]
+        group.set_as_active()
+        self.add_group(parent, group)
 
 
     def _highlightinputs(self, inputqids):
@@ -709,7 +743,7 @@ class GroupFrame(tk.Frame):
             self.add_command(label="Export",
                              command=groups.export_group)
             self.add_command(label="Add dummy input",
-                             command=lambda : groups.add_group(dummy=True))
+                             command=groups.add_dummygroup)
 
             # Show menu when tree is right-clicked
             tree.bind("<Button-3>", self.showmenu)
