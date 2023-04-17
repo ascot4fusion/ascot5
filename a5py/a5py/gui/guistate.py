@@ -1,11 +1,12 @@
 import os
 import sys
 import subprocess
+import threading
 import tkinter as tk
 from tkinter import ttk
 
 from tkinter.filedialog import askopenfilename, askdirectory
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog
 
 import a5py.ascot5io.ascot5tools as tools
 from a5py.ascot5io.ascot5 import Ascot, AscotInitException
@@ -144,7 +145,7 @@ class GUI(tk.Tk):
 
         # Set up content manager
         self.params  = GUIparams()
-        self.content = ContentManager(self, settings.get_frame(), canvas)
+        self.content = ContentManager(self, settings, canvas)
 
         # Read file and show its contents
         self.ascot = Ascotpy()
@@ -152,64 +153,68 @@ class GUI(tk.Tk):
         self.files.open_new_file(path)
 
 
+    def pleasehold(self, message, target):
+        """
+        Pops up a message and freezes GUI until the target function is done.
+
+        This method can be called e.g. when ascotpy is being initialized
+        to let the user know that it is happening.
+        """
+
+        # Dialog at the center of the main window
+        wd = 300
+        wh = 100
+        dialog = tk.Toplevel(width=wd, height=wh)
+        dialog.title("Please hold")
+        x = self.winfo_x()
+        y = self.winfo_y()
+        w = self.winfo_width()
+        h = self.winfo_height()
+        dialog.geometry("+%d+%d" % (x + int(w/2-wd/2), y + int(h/2-wh/2)))
+        f = tk.Frame(dialog, width=wd, height=wh)
+        f.pack_propagate(0)
+        tk.Label(dialog, text=message, font=("Calibri",12)).pack(anchor="c", fill="both", expand=True)
+        f.pack()#fill="both", expand=True)
+
+        # Show dialog
+        dialog.update_idletasks()
+
+        # Make it unclosable
+        def do_nothing():
+            pass
+        dialog.protocol("WM_DELETE_WINDOW", do_nothing)
+
+        # Focus on the dialog making main GUI unresponsive
+        dialog.grab_set()
+
+        # Do the thing
+        target()
+
+        # Flush all mouse clicks etc
+        dialog.update()
+
+        # Destroy dialog making main GUI responsive again
+        dialog.destroy()
+
+
 class SettingsFrame(ttk.Frame):
     """
-    Scrollable frame which can contain buttons and text fields.
-
-    Contents of this frame changes depending on what is being plotted or what is
-    selected. This frame can be thought of as a settings panel for CanvasFrame.
+    Contents of this frame changes depending on what tab is chosen.
+    ContentManager class then decides what is plotted on the canvas.
     """
 
-    SCROLLBARWIDTH = 36
-
     def __init__(self, container, *args, **kwargs):
-        """
-        Initializes a frame with a scrollbar.
-
-        Use contentframe as a root for child widgets.
-
-        See: https://blog.tecladocode.com/tkinter-scrollable-frames/
-        """
         super().__init__(container, *args, **kwargs)
-        canvas = tk.Canvas(self,
-                           width=kwargs["width"]-SettingsFrame.SCROLLBARWIDTH,
-                           height=kwargs["height"])
-        scrollbar = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
-        self.contentframe = ttk.Frame(canvas)
-
-        self.contentframe.bind(
-            "<Configure>",
-            lambda e: canvas.configure(
-                scrollregion=canvas.bbox("all")
-            )
-        )
-
-        canvas.create_window((0, 0), window=self.contentframe, anchor="nw")
-
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
 
 
-    def get_frame(self):
-        """
-        Return the actual contents frame.
-        """
-        return self.contentframe
-
-
-class CanvasFrame(ttk.Notebook):
+class CanvasFrame(ttk.Frame):
     """
     Frame that displays plots.
     """
     pass
 
-    #def __init__(self, container, *args, **kwargs):
-    #    tk.Frame.__init__(self, container, *args, **kwargs)
 
-
-class FileFrame(tk.Frame):
+class FileFrame(ttk.Frame):
     """
     Frame for accessing the HDF5 file.
     """
@@ -322,7 +327,7 @@ class FileFrame(tk.Frame):
             text="Size: " + "{0:.3f}".format(size) + " MB")
 
 
-class GroupFrame(tk.Frame):
+class GroupFrame(ttk.Frame):
     """
     Frame for displaying groups in a treeview.
 
