@@ -647,9 +647,10 @@ def read_data(group, name):
         unit_str = group[name].attrs["unit"]
         unit     = unyt.Unit(unit_str)
 
-        return group[name][:] * unit
+        return group[name][:].ravel() * unit
     else:
-        return group[name][:]
+        return group[name][:].ravel()
+
 
 
 def _generate_meta():
