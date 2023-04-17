@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-from .components import PlotFrame, NumEntry, DropdownMenu, Tickbox
+from .outputstate import StateFrame
 
 class ContentOutput:
     """
@@ -27,67 +27,31 @@ class ContentOutput:
     def __init__(self, gui, settings, canvas):
         self.gui = gui
 
-        settingsframe = ttk.Notebook(settings)
+        settings = ttk.Notebook(settings)
 
-        class StateFrame(tk.Frame):
+        framestate = StateFrame(settings).init()
+        frameorbit = ttk.Frame(settings)
+        framelost  = ttk.Frame(settings)
+        framedist  = ttk.Frame(settings)
 
-            def init(self, canvas):
-                frame = tk.Frame(self)
+        settings.add(framestate, text="Ini/Endstate")
+        settings.add(frameorbit, text="Orbit")
+        settings.add(framelost,  text="Losses")
+        settings.add(framedist,  text="Dists")
 
-                self.sctr_xcrd = DropdownMenu(frame, log=True, label="x: ")
-                self.sctr_ycrd = DropdownMenu(frame, log=True, label="y: ")
-                self.sctr_zcrd = DropdownMenu(frame, log=True, label="z: ")
-                self.sctr_ccrd = DropdownMenu(frame, log=True, label="c: ")
-                self.sctr_endc = DropdownMenu(frame, label="Endcond: ")
-                self.sctr_axeq = Tickbox(frame, label="Axis equal")
-
-                self.sctr_xcrd.pack()
-                self.sctr_ycrd.pack()
-                self.sctr_zcrd.pack()
-                self.sctr_ccrd.pack()
-                self.sctr_endc.pack()
-                self.sctr_axeq.pack()
-
-                self.scatterframe = frame
-
-                self.visible = None
-
-                self.plotframe = PlotFrame(canvas)
-                
-
-            def show(self, frame):
-                if frame != self.visible:
-                    self.visible = frame
-                    if frame == "scatter":
-                        self.histframe.pack_forget()
-                        self.scatterframe.pack()
-                    if frame == "hist":
-                        self.scatterframe.pack_forget()
-                        self.histframe.pack()
-
-            def plot(self):
-                self.sctr_xcrd.get_val()
-
-        stateframe = StateFrame(settingsframe)
-        plotcanvas = tk.Frame(canvas)
-        fig_dist2d = PlotFrame(plotcanvas)
-        fig_dist2d.place(relheight=0.8, anchor="nw")
-
-        settingsframe.add(stateframe, text="Ini/Endstate")
-
+        settings.pack(fill="both", expand=True)
 
         def on_tab_change(event):
             tab = event.widget.tab('current')['text']
             if tab == "Ini/Endstate":
                 pass
 
-        settingsframe.bind('<<NotebookTabChanged>>', on_tab_change)
+        settings.bind('<<NotebookTabChanged>>', on_tab_change)
 
-        self.settingsframe = settingsframe
-        self.plotcanvas    = plotcanvas
+        self.canvas = canvas
 
     def display(self):
-
+        pass
 
         self.gui.ascot.init_from_run(
             self.gui.ascot.hdf5.active,

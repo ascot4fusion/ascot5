@@ -17,7 +17,7 @@ class NumEntry(tkinter.Frame):
     """
 
     def __init__(self, master, isint=False, labeltext=None, defval=None,
-                 entrywidth=6):
+                 entrywidth=6, labelwidth=8, anchor="w"):
         """
         Initialize a frame which accepts inputs.
 
@@ -33,8 +33,8 @@ class NumEntry(tkinter.Frame):
         if defval is not None:
             self.choice.set(defval)
 
-        label = tkinter.Label(self, text=labeltext, anchor="w", width=8,
-                              font=("Calibri 10"))
+        label = tkinter.Label(self, text=labeltext, anchor=anchor,
+                              width=labelwidth, font=("Calibri 10"))
 
         vcmd  = self.register(self._validate)
         entry = tkinter.Entry(self, validate = "all",
@@ -124,7 +124,7 @@ class DropdownMenu(tkinter.Frame):
     """
 
     def __init__(self, master, defval=None, values=None, log=False, trace=None,
-                 label=None):
+                 label=None, width=6):
         super().__init__(master)
         self.var = tkinter.StringVar(self)
 
@@ -138,7 +138,8 @@ class DropdownMenu(tkinter.Frame):
             label = tkinter.Label(self, text=label)
             label.grid(row=0, column=0)
 
-        self.menu = ttk.Combobox(self, width=6, textvariable=self.var)
+        self.menu = ttk.Combobox(self, width=width, textvariable=self.var,
+                                 state="readonly")
         self.menu.grid(row=0, column=1)
         if values is not None:
             self.menu["values"] = values
@@ -172,15 +173,22 @@ class DropdownMenu(tkinter.Frame):
             self.log.set(log)
 
 
+    def settrace(self, trace):
+        self.var.trace('w', trace)
+        if self.log is not None:
+            self.log.trace('w', trace)
+
+
 class Tickbox(tkinter.Frame):
     """
     A tickbox and label.
     """
 
-    def __init__(self, master, defval, trace=None, label=None):
+    def __init__(self, master, defval=None, trace=None, label=None):
         super().__init__(master)
         self.var = tkinter.IntVar(self)
-        self.var.set(defval)
+        if defval is not None:
+            self.var.set(defval)
 
         if trace is not None:
             self.var.trace('w', trace)
@@ -209,10 +217,9 @@ class PlotFrame(tkinter.Frame):
     Frame containing matplotlib plot and NavToolbarNocoord
     """
 
-    def __init__(self, master):
+    def __init__(self, master, tight_layout=True):
         super().__init__(master)
-        fig = plt.figure()
-        ax  = fig.add_subplot(1,1,1)
+        fig = plt.figure(tight_layout=tight_layout)
         figcanvas = FigureCanvasTkAgg(fig, self)
 
         toolbar = NavToolbarNocoord(figcanvas, self, pack_toolbar=False)
@@ -224,8 +231,8 @@ class PlotFrame(tkinter.Frame):
         toolbar.pack(side=tkinter.TOP, fill=tkinter.X)
         figcanvas.get_tk_widget().pack(fill=tkinter.BOTH, expand=True)
 
-        self.axis      = ax
         self.fig       = fig
+        self.axis      = self.set_axes()
         self.figcanvas = figcanvas
 
     def draw(self):
@@ -236,4 +243,30 @@ class PlotFrame(tkinter.Frame):
             for ax in self.fig.axes:
                 self.fig.delaxes(ax)
 
-        self.axis = self.fig.add_subplot(1,1,1)
+        self.axis = self.set_axes()
+
+    def set_axes(self):
+        return self.fig.add_subplot(1,1,1)
+
+
+class ScrollableFrame(ttk.Frame):
+
+    def __init__(self, container, *args, **kwargs):
+        super().__init__(container, *args, **kwargs)
+        canvas = tkinter.Canvas(self)
+        scrollbar = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
+        self.scrollable_frame = ttk.Frame(canvas)
+
+        self.scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(
+                scrollregion=canvas.bbox("all")
+            )
+        )
+
+        canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")

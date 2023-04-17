@@ -18,39 +18,46 @@ class ContentManager():
         self.gui = gui
 
         # Add tabs to the notebook widget
-        groupframe       = ttk.Frame(canvasframe)
-        preflightframe   = ttk.Frame(canvasframe)
-        inputframe       = ttk.Frame(canvasframe)
-        outputframe      = ttk.Frame(canvasframe)
-        interactiveframe = ttk.Frame(canvasframe)
-        canvasframe.add(groupframe,       text="Group")
-        canvasframe.add(preflightframe,   text="Preflight")
-        canvasframe.add(inputframe,       text="Input")
-        canvasframe.add(outputframe,      text="Analysis")
-        canvasframe.add(interactiveframe, text="Run")
+        settings         = ttk.Notebook(settingsframe)
+        groupframe       = ttk.Frame(settings)
+        preflightframe   = ttk.Frame(settings)
+        inputframe       = ttk.Frame(settings)
+        outputframe      = ttk.Frame(settings)
+        interactiveframe = ttk.Frame(settings)
+        settings.add(groupframe,       text="Group")
+        settings.add(preflightframe,   text="Preflight")
+        settings.add(inputframe,       text="Input")
+        settings.add(outputframe,      text="Analysis")
+        settings.add(interactiveframe, text="Run")
 
         # Initialize content frames (nothing is shown yet)
-        self.contentgroup       = ContentGroup(
-            gui, settingsframe, groupframe)
+        groupcanvas       = ttk.Frame(canvasframe)
+        preflightcanvas   = ttk.Frame(canvasframe)
+        inputcanvas       = ttk.Frame(canvasframe)
+        outputcanvas      = ttk.Frame(canvasframe)
+        interactivecanvas = ttk.Frame(canvasframe)
+        self.contentgroup        = ContentGroup(
+            gui, groupframe, groupcanvas)
         self.contentprecheck    = ContentPrecheck(
-            gui, settingsframe, preflightframe)
+            gui, preflightframe, preflightcanvas)
         self.contentinput       = ContentInput(
-            gui, settingsframe, inputframe)
+            gui, inputframe, inputcanvas)
         self.contentoutput      = ContentOutput(
-            gui, settingsframe, outputframe)
+            gui, outputframe, outputcanvas)
         self.contentinteractive = ContentInteractive(
-            gui, settingsframe, interactiveframe)
+            gui, interactiveframe, interactivecanvas)
 
-        # Have an empty frame here initially
-        self.active_settingsframe = ttk.Frame(settingsframe)
-        self.active_settingsframe.pack(fill="both")
+        # Have an empty canvas initially
+        self.active_canvas = ttk.Frame(canvasframe)
+        self.active_canvas.pack(fill="both", expand=True)
 
         # Display contents when tab changes
         def on_tab_change(event):
             tab = event.widget.tab('current')['text']
             self.display_content(tab)
 
-        canvasframe.bind('<<NotebookTabChanged>>', on_tab_change)
+        settings.bind('<<NotebookTabChanged>>', on_tab_change)
+        settings.pack(fill="both", expand=True)
 
 
     def update_content(self):
@@ -69,29 +76,31 @@ class ContentManager():
         self.content = content
 
         if content == "Group":
-            self.active_settingsframe.pack_forget()
-            tree = self.gui.groups.tree
-            qid    = tree.item(tree.selection(), "text")
-            parent = tree.item(tree.parent(tree.selection()), "text")
-            self.contentgroup.display(parent, qid)
-            self.active_settingsframe = self.contentgroup.settingsframe
+            self.active_canvas.pack_forget()
+            self.contentgroup.display()
+            self.active_canvas = self.contentgroup.canvas
+            self.active_canvas.pack(fill="both", expand=True)
 
         if content == "Preflight":
-            self.active_settingsframe.pack_forget()
+            self.active_canvas.pack_forget()
             self.contentprecheck.display()
-            self.active_settingsframe = self.contentprecheck.settingsframe
+            self.active_canvas = self.contentprecheck.canvas
+            self.active_canvas.pack(fill="both", expand=True)
 
         if content == "Input":
-            self.active_settingsframe.pack_forget()
+            self.active_canvas.pack_forget()
             self.contentinput.display()
-            self.active_settingsframe = self.contentinput.settingsframe
+            self.active_canvas = self.contentinput.canvas
+            self.active_canvas.pack(fill="both", expand=True)
 
         if content == "Analysis":
-            self.active_settingsframe.pack_forget()
+            self.active_canvas.pack_forget()
             self.contentoutput.display()
-            self.active_settingsframe = self.contentoutput.settingsframe
+            self.active_canvas = self.contentoutput.canvas
+            self.active_canvas.pack(fill="both", expand=True)
 
         if content == "Run":
-            self.active_settingsframe.pack_forget()
+            self.active_canvas.pack_forget()
             self.contentinteractive.display()
-            self.active_settingsframe = self.contentinteractive.settingsframe
+            self.active_canvas = self.contentinteractive.canvas
+            self.active_canvas.pack(fill="both", expand=True)

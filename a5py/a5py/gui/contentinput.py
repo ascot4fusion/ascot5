@@ -3,7 +3,6 @@ from tkinter import ttk
 import numpy as np
 
 from .components import PlotFrame, NumEntry
-#from.guiparams import retrieve, store
 from a5py.ascotpy.libbfield  import LibBfield
 from a5py.ascotpy.libefield  import LibEfield
 from a5py.ascotpy.libplasma  import LibPlasma
@@ -18,41 +17,76 @@ class ContentInput:
 
         ## Add widgets
 
-        class EntryPanel(tk.Frame):
+        class EntryFrame(ttk.Frame):
 
-            def init(self):
-                xmin_entry = NumEntry(panel, labeltext="R = ", defval=0.1)
-                xmax_entry = NumEntry(panel, labeltext=" - ", defval=10.0)
-                xnum_entry = NumEntry(panel, labeltext=" : ", defval=50,
+            def init(self, canvas):
+                f = ttk.Frame(self)
+                f.pack(fill="both", expand=True)
+                f1 = ttk.Frame(f)
+                f2 = ttk.Frame(f)
+
+                f1.pack(anchor="w")
+                f2.pack(anchor="w")
+
+
+                xmin_entry = NumEntry(f1, labeltext="R [m]     = ", entrywidth=5,
+                                      labelwidth=12, anchor="w", defval=0.1)
+                xmax_entry = NumEntry(f1, labeltext="–",    entrywidth=5,
+                                      labelwidth=2, anchor="c", defval=10.0)
+                xnum_entry = NumEntry(f1, labeltext="x",    entrywidth=5,
+                                      labelwidth=2, anchor="c", defval=50,
                                       isint=True)
 
-                ymin_entry = NumEntry(panel, labeltext="z = ", defval=8.0)
-                ymax_entry = NumEntry(panel, labeltext=" - ", defval=-8.0)
-                ynum_entry = NumEntry(panel, labeltext=" : ", defval=50,
+                ymin_entry = NumEntry(f1, labeltext="z [m]     = ", entrywidth=5,
+                                      labelwidth=12, anchor="w", defval=8.0)
+                ymax_entry = NumEntry(f1, labeltext="–",    entrywidth=5,
+                                      labelwidth=2, anchor="c", defval=-8.0)
+                ynum_entry = NumEntry(f1, labeltext="x",    entrywidth=5,
+                                      labelwidth=2, anchor="c", defval=50,
                                       isint=True)
 
-                xmin_entry.grid(row=0, column=0, sticky="W")
-                xmax_entry.grid(row=0, column=1, sticky="W")
-                xnum_entry.grid(row=0, column=2, sticky="W")
+                xmin_entry.grid(row=0, column=0)
+                xmax_entry.grid(row=0, column=1)
+                xnum_entry.grid(row=0, column=2)
 
-                ymin_entry.grid(row=1, column=0, sticky="W")
-                ymax_entry.grid(row=1, column=1, sticky="W")
-                ynum_entry.grid(row=1, column=2, sticky="W")
+                ymin_entry.grid(row=1, column=0)
+                ymax_entry.grid(row=1, column=1)
+                ynum_entry.grid(row=1, column=2)
 
-                phi_entry = NumEntry(panel, labeltext="phi [deg]:", defval=0)
-                phi_entry.grid(row=3, column=0)
+                phi_entry = NumEntry(f1, labeltext="phi [deg] = ", entrywidth=5,
+                                     labelwidth=12, anchor="w", defval=0)
+                phi_entry.grid(row=2, column=0)
 
-                time_entry = NumEntry(panel, labeltext="time [s]:", defval=0)
-                time_entry.grid(row=3, column=1)
+                time_entry = NumEntry(f1, labeltext="Time [s]  = ", entrywidth=5,
+                                      labelwidth=12, anchor="w", defval=0)
+                time_entry.grid(row=3, column=0)
 
-                cmin_entry = NumEntry(panel, labeltext="Color range", defval="")
-                cmax_entry = NumEntry(panel, labeltext=" - ", defval="")
-                cmin_entry.grid(row=2, column=0)
-                cmax_entry.grid(row=2, column=1)
+                cmin_entry = NumEntry(f1, labeltext="Color     = ", entrywidth=5,
+                                      labelwidth=12, anchor="w", defval="")
+                cmax_entry = NumEntry(f1, labeltext="-", entrywidth=5,
+                                      labelwidth=2, anchor="c", defval="")
+                cmin_entry.grid(row=4, column=0)
+                cmax_entry.grid(row=4, column=1)
 
-                qchoice = tk.StringVar(panel)
-                qinput = ttk.Combobox(panel, width=10, textvariable=qchoice)
-                qinput.grid(row=4, column=1, sticky="WE")
+                qchoice = tk.StringVar(f2)
+                qinput = ttk.Combobox(f2, width=12, textvariable=qchoice)
+                qinput.pack(side="left")
+
+                plotbutton = tk.Button(f2, text="Plot", width=3)
+                plotbutton.pack()
+                savebutton = tk.Button(f2, text="Store", width=3)
+                savebutton.pack()
+
+                # Store parameters
+                gui.params.add(
+                    input_rzplot_minr=xmin_entry.choice,
+                    input_rzplot_maxr=xmax_entry.choice,
+                    input_rzplot_numr=xnum_entry.choice,
+                    input_rzplot_minz=ymin_entry.choice,
+                    input_rzplot_maxz=ymax_entry.choice,
+                    input_rzplot_numz=ynum_entry.choice,
+                    input_rzplot_qnt=qchoice
+                )
 
                 self.xmin_entry = xmin_entry
                 self.xmax_entry = xmax_entry
@@ -66,68 +100,83 @@ class ContentInput:
                 self.cmax_entry = cmax_entry
                 self.qchoice    = qchoice
                 self.qinput     = qinput
+                self.savebutton = savebutton
+                self.plotbutton = plotbutton
+                self.canvas     = canvas
+
+                return self
 
 
-            def plotparams(self):
-                out = {}
-                out["r"] = np.linspace( self.xmin_entry.getval() ,
-                                        self.xmax_entry.getval() ,
-                                        self.xnum_entry.getval() )
+            def view(self, gui, quantities):
 
-                out["z"] = np.linspace( self.ymin_entry.getval() ,
-                                        self.ymax_entry.getval() ,
-                                        self.ynum_entry.getval() )
+                self.qinput["values"] = quantities
+                if self.qchoice.get() is None or \
+                   ( self.qchoice.get() not in quantities ):
+                    self.qchoice.set(quantities[0])
 
-                out["phi"]  = self.phi_entry.getval() * np.pi / 180
-                out["time"] = self.time_entry.getval()
+                def storesettings():
+                    gui.params.store(gui.ascot.h5fn,
+                                     ["input_rzplot_minr",
+                                      "input_rzplot_maxr",
+                                      "input_rzplot_numr",
+                                      "input_rzplot_minz",
+                                      "input_rzplot_maxz",
+                                      "input_rzplot_numz",
+                                      "input_rzplot_qnt"]
+                                 )
+                self.savebutton.configure(command=storesettings)
 
-                clim = [None, None]
-                if not self.cmin_entry.isempty():
-                    clim[0] = self.cmin_entry.getval()
-                if not self.cmax_entry.isempty():
-                    clim[1] = self.cmax_entry.getval()
-                out["clim"] = clim
-                out["qnt"]  = self.qchoice.get()
-                return out
+                def plot():
+                    r = np.linspace( self.xmin_entry.getval() ,
+                                     self.xmax_entry.getval() ,
+                                     self.xnum_entry.getval() )
+
+                    z = np.linspace( self.ymin_entry.getval() ,
+                                     self.ymax_entry.getval() ,
+                                     self.ynum_entry.getval() )
+
+                    phi  = self.phi_entry.getval() * np.pi / 180
+                    time = self.time_entry.getval()
+
+                    clim = [None, None]
+                    if not self.cmin_entry.isempty():
+                        clim[0] = self.cmin_entry.getval()
+                    if not self.cmax_entry.isempty():
+                        clim[1] = self.cmax_entry.getval()
+                    qnt  = self.qchoice.get()
+
+                    self.canvas.fig_rzview.clear()
+                    gui.ascot.plotRz(r, phi, z, time, qnt, clim=clim,
+                                     axes=self.canvas.fig_rzview.axis)
+                    gui.ascot.plotseparatrix(r, phi, z, time,
+                                             self.canvas.fig_rzview.axis)
+                    self.canvas.fig_rzview.draw()
+
+                self.plotbutton.configure(command=plot)
+                plot()
 
 
-        settingsframe = tk.Frame(settings)
-        panel = EntryPanel(settingsframe)
-        panel.init()
+        class EntryCanvas(ttk.Frame):
 
-        savebutton = tk.Button(panel, text="Store")
-        savebutton.grid(row=2, column=2, sticky="WE")
-        plotbutton = tk.Button(panel, text="Plot")
-        plotbutton.grid(row=3, column=2, sticky="WE")
+            def init(self):
+                fig_rzview = PlotFrame(self)
+                fig_rzview.place(relheight=0.8, anchor="nw")
 
-        # Store parameters
-        gui.params.add(
-            input_rzplot_minr=panel.xmin_entry.choice,
-            input_rzplot_maxr=panel.xmax_entry.choice,
-            input_rzplot_numr=panel.xnum_entry.choice,
-            input_rzplot_minz=panel.ymin_entry.choice,
-            input_rzplot_maxz=panel.ymax_entry.choice,
-            input_rzplot_numz=panel.ynum_entry.choice,
-            input_rzplot_qnt=panel.qchoice
-        )
+                self.fig_rzview = fig_rzview
+                return self
 
-        plotcanvas = tk.Frame(canvas)
-        fig_rzview = PlotFrame(plotcanvas)
-        fig_rzview.place(relheight=0.8, anchor="nw")
 
-        self.settingsframe = settingsframe
-        self.panel         = panel
-        self.savebutton    = savebutton
-        self.plotbutton    = plotbutton
-        self.plotcanvas    = plotcanvas
-        self.fig_rzview    = fig_rzview
+        canvasentry = EntryCanvas(canvas).init()
+        frameentry = EntryFrame(settings).init(canvasentry)
+        canvasentry.pack(fill="both", expand=True)
+        frameentry.pack(fill="both", expand=True)
+
+        self.frameentry    = frameentry
+        self.canvasentry   = canvasentry
+        self.canvas        = canvas
 
 
     def display(self):
-
-        self.settingsframe.pack_forget()
-        self.panel.pack_forget()
-        self.plotcanvas.pack_forget()
 
         # Find what quantities we can plot and init
         quantities = []
@@ -157,40 +206,11 @@ class ContentInput:
             quantities += LibMhd.quantities
             mhd = True
 
-        self.gui.ascot.init(bfield=bfield, efield=efield, neutral=neutral,
+        def init():
+            self.gui.ascot.init(bfield=bfield, efield=efield, neutral=neutral,
                             plasma=plasma, boozer=boozer, mhd=mhd,
                             ignorewarnings=True)
 
-        self.panel.qinput["values"] = quantities
-        if self.panel.qchoice.get() is None or \
-           ( self.panel.qchoice.get() not in quantities ):
-            self.panel.qchoice.set(quantities[0])
+        msg = self.gui.pleasehold("Ascotpy is being initialized...", init)
 
-        def storesettings():
-            self.gui.params.store(self.gui.ascot.h5fn,
-                ["input_rzplot_minr",
-                 "input_rzplot_maxr",
-                 "input_rzplot_numr",
-                 "input_rzplot_minz",
-                 "input_rzplot_maxz",
-                 "input_rzplot_numz",
-                 "input_rzplot_qnt"]
-            )
-
-        def plot():
-            self.fig_rzview.clear()
-            out = self.panel.plotparams()
-            self.gui.ascot.plotRz(out["r"], out["phi"], out["z"], out["time"],
-                                  out["qnt"], clim=out["clim"],
-                                  axes=self.fig_rzview.axis)
-            self.gui.ascot.plotseparatrix(out["r"], out["phi"], out["z"],
-                                          out["time"], self.fig_rzview.axis)
-            self.fig_rzview.draw()
-
-        self.savebutton.configure(command=storesettings)
-        self.plotbutton.configure(command=plot)
-
-        self.panel.pack()
-        self.settingsframe.pack()
-        self.plotcanvas.pack(fill="both", expand=True)
-        plot()
+        self.frameentry.view(self.gui, quantities)
