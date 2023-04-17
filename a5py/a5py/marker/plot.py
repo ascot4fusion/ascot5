@@ -128,8 +128,13 @@ def plot_histogram(x, xbins=None, y=None, ybins=None, weights=None,
     else:
         if ybins is None:
             ybins = np.linspace(np.amin(y), np.amax(y), 10)
-
         axes.hist2d(x, y, bins=[xbins, ybins], weights=weights)
+
+        if xlabel is not None:
+            axes.set_xlabel(xlabel)
+
+        if ylabel is not None:
+            axes.set_ylabel(ylabel)
 
     if newfig:
         plt.show(block=False)
