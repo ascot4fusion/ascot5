@@ -125,4 +125,15 @@ class mrk_gc(mrk):
             data = self.read()
 
         return write_hdf5(fn, **data, desc=desc)
-    
+
+
+    def eval_energy(self, ascotpy):
+        with self as h5:
+            energy = read_data(h5, "energy")
+        return energy
+
+
+    def eval_pitch(self, ascotpy):
+        with self as h5:
+            pitch = read_data(h5, "pitch")
+        return pitch
