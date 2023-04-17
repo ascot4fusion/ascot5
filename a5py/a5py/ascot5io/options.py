@@ -910,7 +910,7 @@ def generateopt(clean=False):
     defopt = get_default()
     opt = {}
     for namecmtval in defopt:
-        if len(namecmtval) == 3:
+        if len(namecmtval) == 4:
             opt[namecmtval[0]] = namecmtval[2]
 
     if clean:
@@ -966,3 +966,47 @@ class Opt(AscotData):
                 msg += [o]
 
         return msg
+
+
+    def tostring(self):
+        """
+        Helper function that reads options data to a single string
+        """
+        # Read options data value pairs
+        opt, info = self.read(info=True)
+
+        # Make sure values are not too accurate
+        # or have too many leading zeros.
+        def trim(val):
+            if np.abs(val) >= 1e4 or (np.abs(val) <=1e-4 and val != 0):
+                return "{0:e}".format(val)
+            else:
+                return "{0:g}".format(val)
+
+        # Store options in a single string variable
+        opttext = ""
+        for i in info:
+            if len(i) == 1:
+                # Subtitle
+                opttext = "\n" + opttext + i[0] + "\n\n"
+                continue
+
+            # Extract name, description and value
+            name        = i[0]
+            description = i[1]
+            value       = opt[name]
+
+            opttext = opttext + description
+            if(len(value) == 1):
+                # Single value
+                opttext = opttext + name + "=" + trim(value[0]) + "\n\n"
+            elif(len(value) > 1):
+                # Multiple values, show as a list
+                opttext = opttext + name + "=" \
+                          + ",".join([trim(v) for v in value]) \
+                          + "\n\n"
+
+        # Remove empty lines from beginning and end
+        opttext = opttext[5:-2]
+
+        return opttext
