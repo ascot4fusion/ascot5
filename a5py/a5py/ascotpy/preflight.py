@@ -1,11 +1,11 @@
 """
-Preflight checks to help user to ensure the inputs are ok before running the simulation.
+Checks to help user to ensure the inputs are ok before running the simulation.
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
 from a5py.ascotpy import Ascotpy
-
+from a5py.misc import openfigureifnoaxes
 
 def check_inputs_present(ascotpy):
     """
@@ -92,6 +92,52 @@ def check_options_consistent(ascotpy):
     return msg
 
 
+def check_bfield_psi0(ascotpy):
+    """
+    Checks whether psi0 given in input is actually extreme value.
+
+    Because psi is interpolated with splines, there might be numerical error
+    that causes psi (near the axis) to have more extreme value than psi0
+    which is given in input. This leads to imaginary rho and termination
+    of the simulation if marker ends up there.
+
+    This check uses Monte Carlo method to 1. Draw phi 2. Evaluate axis (R,z)
+    3. Draw random (R,z) coordinates within 10 cm of the axis. 4. Evaluate psi
+    at that point and compare to psi0. Process repeats N times. Check passes
+    if all evaluations are valid.
+    """
+
+    data = ascotpy.hdf5.bfield.active.read()
+    if "psi0" not in data:
+        return []
+
+    psi0 = data["psi0"]
+    psi1 = data["psi1"]
+    psi0 = -7.1
+
+    N     = 10000
+    phi   = np.random.rand(N,) * 360
+    theta = np.random.rand(N,) * 2 * np.pi
+
+    axis = ascotpy.evaluate(1, phi, 0, 0, "axis")
+    z0 = axis["axisz"]
+    r0 = axis["axisr"]
+
+    R = 0.1 # 10 cm
+    r = R * np.cos(theta) + r0
+    z = R * np.sin(theta) + z0
+    psi = ascotpy.evaluate(r, phi, z, 0, "psi")
+
+    if psi0 < psi1 and any(psi < psi0):
+        return ["Error: psi0 = %.2e but we found near axis that psi = %.2e" \
+                % (psi0, np.amin(psi)) ]
+    elif psi0 > psi1 and any(psi > psi0):
+        return ["Error: psi0 = %.2e but we found near axis that psi = %.2e" \
+                % (psi0, np.amax(psi)) ]
+
+    return []
+
+
 def plot_top_view(ascotpy, axes=None):
     """
     Plot top view of the machine showing Ip, Bphi, and markers.
@@ -150,6 +196,22 @@ def plot_top_view(ascotpy, axes=None):
     plt.show()
 
 
+@openfigureifnoaxes
+def plot_energypitch(ascotpy, axes=None):
+    """
+    Plot marker energy-pitch histogram
+    """
+    ascotpy.hdf5.marker.active.plot_hist_energypitch(ascotpy, axes=axes)
+
+
+@openfigureifnoaxes
+def plot_rhophi(ascotpy, axes=None):
+    """
+    Plot marker rho-phi histogram
+    """
+    ascotpy.hdf5.marker.active.plot_hist_rhophi(ascotpy, axes=axes)
+
+
 if __name__ == '__main__':
     ascotpy = Ascotpy("ascot.h5")
     ascotpy.init(bfield=True)
@@ -157,6 +219,7 @@ if __name__ == '__main__':
     msg = []
     msg += check_inputs_present(ascotpy)
     msg += check_options_consistent(ascotpy)
+    msg += check_bfield_psi0(ascotpy)
 
     for s in msg:
         print(s)
@@ -164,6 +227,10 @@ if __name__ == '__main__':
     if len(msg) == 0:
         print("Preflight checks ok!")
 
-    plot_top_view(ascotpy)
+    fig  = plt.figure()
+    plot_top_view(ascotpy,    axes=fig.subplot(2,2,[1,3]))
+    plot_rhophi(ascotpy,      axes=fig.subplot(2,2,2))
+    plot_energypitch(ascotpy, axes=fig.subplot(2,2,4))
+    plt.show()
 
     ascotpy.free(bfield=True)
