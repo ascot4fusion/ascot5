@@ -726,17 +726,22 @@ class Ascot(_ContainerNode):
         self._freeze()
 
 
-    def add_dummyinputs(self, desc="Dummy"):
+    def add_dummyinputs(self, desc="Dummy", parent=None, missing=True):
         """
         Add dummy inputs for all missing groups.
         """
-        missing = []
+        missinggrps = []
         with h5py.File(self._hdf5fn, "r") as h5:
             for p in INPUT_PARENTS:
-                if p not in h5:
-                    missing.append(p)
+                if parent is not None and p != parent:
+                    continue
+                if missing:
+                    if p not in h5:
+                        missinggrps.append(p)
+                else:
+                    missinggrps.append(p)
 
-        for p in missing:
+        for p in missinggrps:
             write_dummy(self._hdf5fn, p, desc=desc)
 
         self.reload()
@@ -830,6 +835,9 @@ class Ascot(_ContainerNode):
 
 
     def _set_as_active(self, group):
+        """
+        Set group as active.
+        """
         with h5py.File(self._hdf5fn, "a") as f:
             set_active(f, group)
 
