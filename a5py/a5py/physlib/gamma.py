@@ -52,10 +52,9 @@ def gamma_velocity(v):
     Evaluate gamma from velocity.
     """
     if v.shape[0] == 3:
-        v = np.sum(v**2, axis=0)
+        v = np.sqrt(np.sum(v**2, axis=0))
     else:
-        v = v**2
-
+        v = v
     return np.sqrt( 1.0 / ( ( 1 - v / c ) * ( 1 + v / c ) ) )
 
 
