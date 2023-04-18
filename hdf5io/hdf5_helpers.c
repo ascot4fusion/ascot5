@@ -98,8 +98,9 @@ herr_t hdf5_find_group(hid_t loc, const char* path) {
  * @brief Generate a valid path from a given template and qid.
  *
  * Data in ASCOT5 HDF5 files is stored in groups, where each group is assigned
- * a unique identifier. The paths are then in format such as "bfield/B_2D-0123456789".
- * This function turns a template e.g. "bfield/B_2D-XXXXXXXXXX" to a valid path.
+ * a unique identifier. The paths are then in format such as
+ * "bfield/B_2D-0123456789". This function turns a template e.g.
+ * "bfield/B_2D-XXXXXXXXXX" to a valid path.
  */
 char* hdf5_generate_qid_path(const char* original, char* qid, char* path) {
     strcpy(path, original);
@@ -116,8 +117,9 @@ char* hdf5_generate_qid_path(const char* original, char* qid, char* path) {
  * @brief Generate a valid path from a given template and qid.
  *
  * Data in ASCOT5 HDF5 files is stored in groups, where each group is assigned
- * a unique identifier. The paths are then in format such as "bfield/B_2D-0123456789".
- * This function turns a template e.g. "bfield/B_2D-XXXXXXXXXX" to a valid path.
+ * a unique identifier. The paths are then in format such as
+ * "bfield/B_2D-0123456789". This function turns a template e.g.
+ * "bfield/B_2D-XXXXXXXXXX" to a valid path.
  */
 char* hdf5_gen_path(const char* original, char* qid, char* path) {
     strcpy(path, original);
@@ -238,10 +240,12 @@ int hdf5_read_long(const char* var, long* ptr, hid_t file, char* qid,
 /**
  * @brief Write string attribute with null-padding.
  *
- * There is a H5LTset_attribute_string function but it writes strings as null-terminated. However, string
- * attributes in ASCOT5 HDF5 file are assumed to be null-padded.
+ * There is a H5LTset_attribute_string function but it writes strings as
+ * null-terminated. However, string attributes in ASCOT5 HDF5 file are assumed
+ * to be null-padded.
  */
-herr_t hdf5_write_string_attribute(hid_t loc, const char* path, const char* attrname,  const char* string) {
+herr_t hdf5_write_string_attribute(hid_t loc, const char* path,
+                                   const char* attrname,  const char* string) {
     herr_t err;
 
     hid_t grp = H5Gopen(loc, path, H5P_DEFAULT);
@@ -251,8 +255,11 @@ herr_t hdf5_write_string_attribute(hid_t loc, const char* path, const char* attr
     H5Tset_strpad(atype,H5T_STR_NULLPAD);
 
     hid_t attr = H5Aopen(grp, attrname, H5P_DEFAULT);
+
+    /* Delete existing attribute with a same name */
     if(attr > 0) {
         H5Adelete(grp, attrname);
+        H5Aclose(attr);
     }
 
     attr = H5Acreate2(grp, attrname, atype, aid, H5P_DEFAULT, H5P_DEFAULT);
