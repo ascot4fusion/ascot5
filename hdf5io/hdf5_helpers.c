@@ -311,10 +311,16 @@ herr_t hdf5_write_extendible_dataset_double(hid_t group,
                                H5P_DEFAULT, prop, H5P_DEFAULT);
 
     /* Write data to dataset */
-    if(H5Dwrite(dataset, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data)) {
-        return -1;
+    int err = 0;
+    if( H5Dwrite(dataset, H5T_IEEE_F64LE, H5S_ALL, H5S_ALL,
+                 H5P_DEFAULT, data) < 0) {
+        err = -1;
     }
-    return 0;
+    H5Dclose(dataset);
+    H5Pclose(prop);
+    H5Sclose(dataspace);
+
+    return err;
 }
 
 
@@ -339,10 +345,16 @@ herr_t hdf5_write_extendible_dataset_long(hid_t group,
                                H5P_DEFAULT, prop, H5P_DEFAULT);
 
     /* Write data to dataset */
-    if(H5Dwrite(dataset, H5T_STD_I64LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data)) {
-        return -1;
+    int err = 0;
+    if( H5Dwrite(dataset, H5T_STD_I64LE, H5S_ALL, H5S_ALL,
+                 H5P_DEFAULT, data) < 0 ) {
+        err = -1;
     }
-    return 0;
+    H5Dclose(dataset);
+    H5Pclose(prop);
+    H5Sclose(dataspace);
+
+    return err;
 }
 
 /**
@@ -366,8 +378,14 @@ herr_t hdf5_write_extendible_dataset_int(hid_t group,
                                H5P_DEFAULT, prop, H5P_DEFAULT);
 
     /* Write data to dataset */
-    if(H5Dwrite(dataset, H5T_STD_I32LE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data)) {
-        return -1;
+    int err = 0;
+    if( H5Dwrite(dataset, H5T_STD_I32LE, H5S_ALL, H5S_ALL,
+                 H5P_DEFAULT, data) < 0 ) {
+        err = -1;
     }
-    return 0;
+    H5Dclose(dataset);
+    H5Pclose(prop);
+    H5Sclose(dataspace);
+
+    return err;
 }
