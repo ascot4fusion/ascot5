@@ -43,7 +43,7 @@
  * @return zero if initialization succeeded
  */
 int wall_3d_init_offload(wall_3d_offload_data* offload_data,
-                         real** offload_array) {
+                         real** offload_array, int** int_offload_array) {
 
     /* Find min & max values of the volume occupied by the wall triangles. */
     real xmin = (*offload_array)[0], xmax = (*offload_array)[0];
@@ -92,6 +92,8 @@ int wall_3d_init_offload(wall_3d_offload_data* offload_data,
               offload_data->xmin, offload_data->xmax, offload_data->ymin,
               offload_data->ymax, offload_data->zmin, offload_data->zmax);
 
+    wall_3d_init_octree(offload_data, *offload_array, int_offload_array);
+
     return 0;
 }
 
@@ -106,9 +108,12 @@ int wall_3d_init_offload(wall_3d_offload_data* offload_data,
  * @param offload_array pointer to pointer to offload array
  */
 void wall_3d_free_offload(wall_3d_offload_data* offload_data,
-                          real** offload_array) {
+                          real** offload_array, int** int_offload_array) {
     free(*offload_array);
     *offload_array = NULL;
+
+    free(*int_offload_array);
+    *int_offload_array = NULL;
 }
 
 /**
@@ -125,7 +130,7 @@ void wall_3d_free_offload(wall_3d_offload_data* offload_data,
  * @param offload_array offload array
  */
 void wall_3d_init(wall_3d_data* w, wall_3d_offload_data* offload_data,
-                  real* offload_array) {
+                  real* offload_array, int* int_offload_array) {
     w->n = offload_data->n;
     w->xmin = offload_data->xmin;
     w->xmax = offload_data->xmax;
@@ -139,7 +144,9 @@ void wall_3d_init(wall_3d_data* w, wall_3d_offload_data* offload_data,
     w->depth = offload_data->depth;
     w->ngrid = offload_data->ngrid;
     w->wall_tris = &offload_array[0];
-    wall_3d_init_octree(w, offload_array);
+
+    w->tree_array_size = offload_data->int_offload_array_length;
+    w->tree_array = &int_offload_array[0];
 }
 
 /**
@@ -231,7 +238,8 @@ void wall_3d_init_tree(wall_3d_data* w, real* offload_array) {
  * @param w pointer to wall data
  * @param offload_array the offload array
  */
-void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
+void wall_3d_init_octree(wall_3d_offload_data* w, real* offload_array,
+                         int** tree_array) {
 
 
     if (w->n > 1000000){
@@ -256,8 +264,8 @@ void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
         t3[2] = offload_array[i*9+8];
         octree_add(tree, t1, t2, t3, i);
         if (i%1000000==0 && i > 0){
-	  print_out(VERBOSE_NORMAL, "  Adding triangle %10d/%d.\n",i,w->n);
-	}
+            print_out(VERBOSE_NORMAL, "  Adding triangle %10d/%d.\n",i,w->n);
+        }
     }
 
     /* create lists for triangles in each grid square and fill the lists
@@ -287,18 +295,18 @@ void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
         list_size += list_int_size(tri_list[i]);
     }
 
-    w->tree_array_size = 2*ncell + list_size;
-    w->tree_array = (int*) malloc((w->tree_array_size)*sizeof(int));
+    w->int_offload_array_length = 2*ncell + list_size;
+    *tree_array = (int*) malloc((w->int_offload_array_length)*sizeof(int));
 
     int next_empty_list = ncell;
     for(i = 0; i < ncell; i++) {
-        w->tree_array[i] = next_empty_list;
-        w->tree_array[next_empty_list] = list_int_size(tri_list[i]);
+        (*tree_array)[i] = next_empty_list;
+        (*tree_array)[next_empty_list] = list_int_size(tri_list[i]);
         int j;
-        for(j = 0; j < w->tree_array[next_empty_list]; j++) {
-            w->tree_array[next_empty_list+j+1] = list_int_get(tri_list[i], j);
+        for(j = 0; j < (*tree_array)[next_empty_list]; j++) {
+            (*tree_array)[next_empty_list+j+1] = list_int_get(tri_list[i], j);
         }
-        next_empty_list += w->tree_array[next_empty_list] + 1;
+        next_empty_list += (*tree_array)[next_empty_list] + 1;
     }
     free(tri_list);
     octree_free(&tree);
@@ -319,7 +327,7 @@ void wall_3d_init_octree(wall_3d_data* w, real* offload_array) {
  * @return id, which is the first element id if hit, zero otherwise
  */
 int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
-			   real z2, wall_3d_data* wdata, real* w_coll) {
+            real z2, wall_3d_data* wdata, real* w_coll) {
     real rpz1[3], rpz2[3];
     rpz1[0] = r1;
     rpz1[1] = phi1;
@@ -348,7 +356,7 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
 
     int hit_tri = 0;
     real smallest_w = 1.1;
-    
+
     for(int i = 0; i <= abs(ix2-ix1); i++) {
         for(int j = 0; j <= abs(iy2-iy1); j++) {
             for(int k = 0; k <= abs(iz2-iz1); k++) {
@@ -357,11 +365,11 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
                 int iz = iz1 + k*((int) copysign(1, iz2-iz1));
 
                 if(ix >= 0 && ix < wdata->ngrid && iy >= 0 && iy < wdata->ngrid
-                   && iz >= 0 && iz < wdata->ngrid) { 
+                   && iz >= 0 && iz < wdata->ngrid) {
 
                     int ilist = wdata->tree_array[ix*wdata->ngrid*wdata->ngrid
                                                   + iy*wdata->ngrid + iz];
-		
+
                     for(int l = 0; l < wdata->tree_array[ilist]; l++) {
                         int itri = wdata->tree_array[ilist+l+1];
                         real w = wall_3d_tri_collision(q1, q2,
@@ -369,7 +377,7 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
                                                        &wdata->wall_tris[9*itri+3],
                                                        &wdata->wall_tris[9*itri+6]);
                         if(w >= 0 && w < smallest_w) {
-			    smallest_w = w;
+                            smallest_w = w;
                             hit_tri = itri+1;
                         }
                     }
@@ -393,7 +401,7 @@ int wall_3d_hit_wall(real r1, real phi1, real z1, real r2, real phi2,
  * @param z2 end point z coordinate [rad]
  * @param wdata pointer to data struct on target
  *
- * @return id is wall element id if hit, zero otherwise*         
+ * @return id is wall element id if hit, zero otherwise*
  */
 int wall_3d_hit_wall_full(real r1, real phi1, real z1, real r2, real phi2,
                           real z2, wall_3d_data* wdata, real* w_coll) {
@@ -413,18 +421,18 @@ int wall_3d_hit_wall_full(real r1, real phi1, real z1, real r2, real phi2,
     real smallest_w = 1.1;
     real w;
     int j;
-    
+
     for(j = 0; j < wdata->n; j++) {
         w = wall_3d_tri_collision(q1, q2, &wdata->wall_tris[9*j],
                 &wdata->wall_tris[9*j+3], &wdata->wall_tris[9*j+6]);
         if(w > 0) {
-	    if(w < smallest_w) {
-	        smallest_w = w;
-		hit_tri = j+1;
+            if(w < smallest_w) {
+                smallest_w = w;
+                hit_tri = j+1;
             }
-	}
+        }
     }
-    
+
     *w_coll = smallest_w;
     return hit_tri;
 }
@@ -605,7 +613,7 @@ double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
                 if( (T1-T0)*(T2-T0) <= 0.0 ){
                     return 0.0;
                 }
-			}
+            }
         } else {
             real k = (T2-T1)/(S2-S1);
             if(k==-1.0){

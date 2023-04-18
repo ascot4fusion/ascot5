@@ -492,6 +492,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
                              B_field_data* Bdata) {
     a5err err = 0;
     integer id;
+    real axisrz[2];
 
     if(p->type == input_particle_type_p) {
         /* Check that input is valid */
@@ -506,6 +507,9 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         }
         if(!err && p->p.id <= 0) {
             err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);
+        }
+        if(!err) {
+            err = B_field_get_axis_rz(axisrz, Bdata, ps->phiprt);
         }
 
         /* Particle to state */
@@ -525,8 +529,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->znum   = p->p.znum;
             ps->weight = p->p.weight;
             ps->time   = p->p.time;
-            ps->theta  = atan2(ps->zprt-B_field_get_axis_z(Bdata, ps->phiprt),
-                               ps->rprt-B_field_get_axis_r(Bdata, ps->phiprt));
+            ps->theta  = atan2(ps->zprt-axisrz[1], ps->rprt-axisrz[0]);
             ps->id       = id;
             ps->mileage  = 0;
             ps->endcond  = 0;
@@ -645,6 +648,9 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             mu   = physlib_gc_mu(p->p_gc.mass, pnorm, p->p_gc.pitch, Bnorm);
         }
         if(!err && mu < 0)          {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
+        if(!err) {
+            err = B_field_get_axis_rz(axisrz, Bdata, ps->phiprt);
+        }
 
         if(!err) {
             ps->r        = p->p_gc.r;
@@ -659,8 +665,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->znum     = p->p_gc.znum;
             ps->weight   = p->p_gc.weight;
             ps->time     = p->p_gc.time;
-            ps->theta    = atan2(ps->z-B_field_get_axis_z(Bdata, ps->phi),
-                                 ps->r-B_field_get_axis_r(Bdata, ps->phi));
+            ps->theta    = atan2(ps->z-axisrz[1], ps->r-axisrz[0]);
             ps->id       = id;
             ps->mileage  = 0;
             ps->endcond  = 0;
@@ -719,6 +724,9 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         if(!err) {
             err = B_field_eval_rho(rho, psi[0], Bdata);
         }
+        if(!err) {
+            err = B_field_get_axis_rz(axisrz, Bdata, ps->phiprt);
+        }
 
         if(!err) {
             ps->rprt       = p->p_ml.r;
@@ -735,8 +743,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
             ps->weight     = p->p_ml.weight;
             ps->time       = p->p_ml.time;
             ps->id         = id;
-            ps->theta      = atan2(p->p_ml.z - B_field_get_axis_z(Bdata, ps->phiprt),
-                                   p->p_ml.r - B_field_get_axis_r(Bdata, ps->phiprt));
+            ps->theta      = atan2(p->p_ml.z - axisrz[1], p->p_ml.r - axisrz[0]);
             ps->endcond    = 0;
             ps->walltile   = 0;
             ps->cputime    = 0;
@@ -1324,6 +1331,7 @@ void particle_ml_to_state(particle_simd_ml* p_ml, int j, particle_state* p,
 int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
                       B_field_data* Bdata) {
     a5err err = p_fo->err[j];
+    real axisrz[2];
     int simerr = 0; /* Error has already occurred */
     if(err) {simerr = 1;}
     p_gc->id[j]      = p_fo->id[j];
@@ -1384,6 +1392,9 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
     if(!err) {
         err = B_field_eval_rho(rho, psi[0], Bdata);
     }
+    if(!err) {
+        err = B_field_get_axis_rz(axisrz, Bdata, p_gc->phi[j]);
+    }
 
     if(!err) {
         p_gc->r[j]    = r;
@@ -1395,13 +1406,11 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
         p_gc->rho[j]  = rho[0];
 
         /* Evaluate pol angle so that it is cumulative and at gc position */
-        real axis_r = B_field_get_axis_r(Bdata, p_gc->phi[j]);
-        real axis_z = B_field_get_axis_z(Bdata, p_gc->phi[j]);
         p_gc->theta[j]  = p_fo->theta[j];
-        p_gc->theta[j] += atan2(   (p_fo->r[j]-axis_r) * (p_gc->z[j]-axis_z)
-                                 - (p_fo->z[j]-axis_z) * (p_gc->r[j]-axis_r),
-                                   (p_fo->r[j]-axis_r) * (p_gc->r[j]-axis_r)
-                                 + (p_fo->z[j]-axis_z) * (p_gc->z[j]-axis_z) );
+        p_gc->theta[j] += atan2( (p_fo->r[j]-axisrz[0]) * (p_gc->z[j]-axisrz[1])
+                               - (p_fo->z[j]-axisrz[1]) * (p_gc->r[j]-axisrz[0]),
+                                 (p_fo->r[j]-axisrz[0]) * (p_gc->r[j]-axisrz[0])
+                               + (p_fo->z[j]-axisrz[1]) * (p_gc->z[j]-axisrz[1]) );
 
         p_gc->B_r[j]        = B_dB[0];
         p_gc->B_r_dr[j]     = B_dB[1];

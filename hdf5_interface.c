@@ -59,6 +59,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
                               real** plasma_offload_array,
                               real** neutral_offload_array,
                               real** wall_offload_array,
+                              int** wall_int_offload_array,
                               real** boozer_offload_array,
                               real** mhd_offload_array,
                               input_particle** p,
@@ -210,7 +211,8 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_wall_init_offload(f, &(sim->wall_offload_data),
-                                   wall_offload_array, qid) ) {
+                                   wall_offload_array, wall_int_offload_array,
+                                   qid) ) {
             print_err("Error: Failed to initialize wall.\n");
             return 1;
         }

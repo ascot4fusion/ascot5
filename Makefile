@@ -38,6 +38,8 @@ ifeq ($(RANDOM),MKL)
 else ifeq ($(RANDOM),GSL)
 	DEFINES+=-DRANDOM_GSL
 	CFLAGS+=-lgsl -lgslcblas
+else ifeq ($(RANDOM),LCG)
+	DEFINES+=-DRANDOM_LCG
 endif
 
 ifneq ($(CC),h5cc)
@@ -143,7 +145,15 @@ all: $(BINS)
 libascot: libascot.so
 	true
 
-libascot.so: CFLAGS+=-shlib -fPIC -shared
+libascot.so: CFLAGS+=-fPIC -shared
+
+ifeq ($(CC),h5cc)
+libascot.so: CFLAGS+=-shlib
+endif
+
+ifeq ($(CC),h5pcc)
+libascot.so: CFLAGS+=-shlib
+endif
 
 libascot.so: libascot.o ascot5_main.o libascot_mem.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
@@ -206,7 +216,8 @@ test_spline: $(UTESTDIR)test_spline.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 ASCOTPY2_HEADERFILES=particle.h hdf5_interface.h ascot5.h mpi_interface.h simulate.h \
-	ascot5_main.h offload.h diag.h libascot_mem.h wall.h hdf5io/hdf5_wall.h
+	ascot5_main.h offload.h diag.h libascot_mem.h wall.h hdf5io/hdf5_wall.h \
+	Bfield/B_STS.h B_field.h hdf5io/hdf5_bfield.h
 
 ascotpy2.py : libascot.so
 	clang2py -l libascot.so -o $@  \

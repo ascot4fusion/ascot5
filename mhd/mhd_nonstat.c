@@ -189,7 +189,7 @@ a5err mhd_nonstat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
         err = boozer_eval_psithetazeta(ptz, &isinside, r, phi, z, boozerdata);
     }
     real rho[2];
-    if(!err) {
+    if(!err && isinside) {
         err = boozer_eval_rho_drho(rho, ptz[0], boozerdata);
     }
 
@@ -265,17 +265,13 @@ a5err mhd_nonstat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
                 - phi_dphi[0] * mhddata->nmode[i] * ptz[11] * sinmhd);
     }
 
-    /* Omit evaluation if evaluation failed or point outside the grid. */
-    if(err || !isinside) {
-        interperr = 0;
+    /* Omit evaluation if point outside the boozer or mhd grid. */
+    if(!isinside || interperr) {
         for(int i=0; i<10; i++) {
             mhd_dmhd[i] = 0;
         }
     }
 
-    if(interperr) {
-        err = error_raise( ERR_INPUT_EVALUATION, __LINE__, EF_MHD );
-    }
     return err;
 }
 
