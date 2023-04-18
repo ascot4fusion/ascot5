@@ -80,9 +80,17 @@ hid_t hdf5_create_group(hid_t loc, const char* path) {
         char* group = (char*) malloc((strlen(path) + 1) * sizeof(char));
         strncpy(group, start, end-start);
         group[end-start] = '\0';
-        hid_t g = H5Gcreate2(loc, group, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+        /* Open or create parent group */
+        hid_t gapl_id;
+        hid_t g = H5Gopen2(loc, group, gapl_id);
+        if(g < 0) {
+            g = H5Gcreate2(loc, group, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        }
         free(group);
-        return hdf5_create_group(g, end);
+        hid_t g0 = hdf5_create_group(g, end);
+        H5Gclose(g);
+        return g0;
     }
 }
 
