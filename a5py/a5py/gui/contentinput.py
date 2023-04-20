@@ -25,8 +25,8 @@ class ContentInput:
                 f1 = ttk.Frame(f)
                 f2 = ttk.Frame(f)
 
-                f1.pack(anchor="w")
-                f2.pack(anchor="w")
+                f1.pack(anchor="nw", side="left")
+                f2.pack(anchor="ne", side="left", fill="x", expand=True)
 
 
                 xmin_entry = NumEntry(f1, labeltext="R [m]     = ", entrywidth=5,
@@ -68,14 +68,15 @@ class ContentInput:
                 cmin_entry.grid(row=4, column=0)
                 cmax_entry.grid(row=4, column=1)
 
-                qchoice = tk.StringVar(f2)
-                qinput = ttk.Combobox(f2, width=12, textvariable=qchoice)
-                qinput.pack(side="left")
+                qchoice = tk.StringVar(f1)
+                qinput = ttk.Combobox(f1, width=12, textvariable=qchoice,
+                                      state="readonly")
+                qinput.grid(row=5,column=0, sticky="W")
 
                 plotbutton = tk.Button(f2, text="Plot", width=3)
-                plotbutton.pack()
+                plotbutton.pack(anchor="e")
                 savebutton = tk.Button(f2, text="Store", width=3)
-                savebutton.pack()
+                savebutton.pack(anchor="e")
 
                 # Store parameters
                 gui.params.add(

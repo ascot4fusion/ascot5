@@ -52,7 +52,7 @@ class ContentPrecheck:
                 self.fig_topview     = PlotFrames(self)
                 #self.fig_energypitch = PlotFrame(self)
                 #self.fig_rhophi      = PlotFrame(self)
-                self.fig_topview.place(relheight=0.5, relwidth=0.5, anchor="nw")
+                self.fig_topview.place(relheight=0.9, relwidth=0.9, anchor="nw")
                 #self.fig_topview.grid(column=0, row=0, rowspan=2)
                 #self.fig_energypitch.grid(column=1, row=0)
                 #self.fig_rhophi.grid(column=1, row=1)

@@ -46,7 +46,8 @@ class ContentGroup():
         self.gui = gui
 
         # Make this frame scrollable
-        settings = ScrollableFrame(settings)
+        from .gui import GUI
+        settings = ScrollableFrame(settings, framewidth=GUI.FILEFRAMEWIDTH-40)
         settings.pack(fill='both', expand=True)
         settings = settings.scrollable_frame
 
@@ -54,6 +55,7 @@ class ContentGroup():
         class LogoFrame(tk.Canvas):
 
             def init(self):
+
                 # Load graphics which are shown when no group is selected
                 # (on startup)
                 logo = os.path.join(os.path.dirname(__file__), "logo.png")
@@ -280,7 +282,7 @@ class ContentGroup():
                 self.fig_modes.draw()
 
         self.canvas        = canvas
-        self.logoframe     = LogoFrame(settings).init()
+        self.logoframe     = LogoFrame(settings, width=GUI.FILEFRAMEWIDTH-50).init()
         self.descframe     = DescFrame(settings).init()
         self.optionscanvas = OptionsCanvas(canvas).init()
         self.optionsframe  = OptionsFrame(settings).init(self.optionscanvas)

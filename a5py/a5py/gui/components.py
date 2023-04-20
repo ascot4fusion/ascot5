@@ -33,16 +33,16 @@ class NumEntry(tkinter.Frame):
         if defval is not None:
             self.choice.set(defval)
 
-        label = tkinter.Label(self, text=labeltext, anchor=anchor,
-                              width=labelwidth, font=("Calibri 10"))
+        self.label = tkinter.Label(self, text=labeltext, anchor=anchor,
+                                   width=labelwidth, font=("Calibri 10"))
 
         vcmd  = self.register(self._validate)
-        entry = tkinter.Entry(self, validate = "all",
-                              validatecommand=(vcmd, "%P"), width=entrywidth,
-                              textvariable=self.choice, font=("Calibri 10"))
+        self.entry = tkinter.Entry(
+            self, validate = "all", validatecommand=(vcmd, "%P"),
+            width=entrywidth, textvariable=self.choice, font=("Calibri 10"))
 
-        label.grid(row=0, column=0, sticky="W")
-        entry.grid(row=0, column=1, sticky="E")
+        self.label.grid(row=0, column=0, sticky="W")
+        self.entry.grid(row=0, column=1, sticky="E")
 
 
     def getval(self):
@@ -85,6 +85,19 @@ class NumEntry(tkinter.Frame):
         return val == ""
 
 
+    def disable(self):
+        self.label.configure(fg="gray")
+        self.entry.config(state="disabled")
+
+
+    def enable(self):
+        self.label.configure(fg="black")
+        self.entry.config(state="normal")
+
+    def setlabel(self, text):
+        self.label.configure(text=text)
+
+
     def _validate(self, P):
         """
         Check if entry is a valid float or int.
@@ -124,7 +137,7 @@ class DropdownMenu(tkinter.Frame):
     """
 
     def __init__(self, master, defval=None, values=None, log=False, trace=None,
-                 label=None, width=6, labelwidth=2):
+                 label=None, width=6, labelwidth=2, labelanchor="c"):
         super().__init__(master)
         self.var = tkinter.StringVar(self)
 
@@ -136,11 +149,11 @@ class DropdownMenu(tkinter.Frame):
 
         if label is not None:
             label = tkinter.Label(self, text=label, width=labelwidth)
-            label.grid(row=0, column=0)
+            label.pack(side="left", anchor=labelanchor)
 
         self.menu = ttk.Combobox(self, width=width, textvariable=self.var,
                                  state="readonly")
-        self.menu.grid(row=0, column=1)
+        self.menu.pack(side="left")
         if values is not None:
             self.menu["values"] = values
 
@@ -150,7 +163,7 @@ class DropdownMenu(tkinter.Frame):
             logtick = tkinter.Checkbutton(
                 self, text=" log10", onvalue=1,
                 offvalue=0, variable=self.log, height=1, width=5)
-            logtick.grid(row=0, column=2)
+            logtick.pack(side="left")
 
             if trace is not None:
                 self.log.trace('w', trace)
@@ -272,18 +285,18 @@ class ScrollableFrame(ttk.Frame):
         scrollbar.pack(side="right", fill="y")
 
 
-class ToggleButton(tkinter.Canvas):
+class Switch(tkinter.Canvas):
     def __init__(self, *args, command=None, fg='black', bg='gray', width=35,
-                 height=18, **kwargs):
+                     height=18, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.configure(width=width, height=height, borderwidth=0,
                        highlightthickness=0)
 
-        self.back_ground = self.create_arc((0, 0, 0, 0), start=90, extent=180,
-                                           fill="green", outline='')
-        self.back_ground1 = self.create_arc((0, 0, 0, 0), start=-90, extent=180,
-                                            fill="red", outline='')
+        self.back_ground = self.create_arc((0, 0, 0, 0), start=90,
+                                           extent=180, fill=bg, outline='')
+        self.back_ground1 = self.create_arc((0, 0, 0, 0), start=270,
+                                            extent=180, fill=bg, outline='')
         self.rect = self.create_rectangle(0, 0, 0, 0, fill=bg, outline='')
 
         self.btn = self.create_oval(0, 0, 0, 0, fill=fg, outline='')
@@ -292,36 +305,98 @@ class ToggleButton(tkinter.Canvas):
         self.bind('<Button>', self._animate, add='+')
         self.bind('<Button>', command, add='+')
 
-        self.state = 0
+        self.var = tkinter.IntVar(self)
+        self.var.set(0)
+        self.isdisabled = False
+        self.fillcolor = bg
+
 
     def _resize(self, event):
         self.coords(self.back_ground, 5, 5, event.height-5, event.height-5)
-        self.coords(self.back_ground1, 5, 5, event.height, event.height-5)
+        self.coords(self.back_ground1, 5, 5, event.height-5, event.height-5)
 
         factor = event.width-(self.coords(self.back_ground1)[2] -
                               self.coords(self.back_ground1)[0])-10
         self.move(self.back_ground1, factor, 0)
 
-        self.coords(self.rect, self.bbox(self.back_ground)[2]-2, 5,
+        self.coords(self.rect, self.bbox(self.back_ground)[2]-1, 6,
                     self.bbox(self.back_ground1)[0]+2, event.height-5)
 
-        self.coords(self.btn, 5, 5, event.height-5, event.height-5)
+        self.coords(self.btn, 4, 5, event.height-6, event.height-5)
 
-        if self.state:
-            self.moveto(self.btn, self.coords(self.back_ground1)[0]+4, 4)
+        if self.var.get():
+            self.moveto(self.btn, self.coords(self.back_ground1)[0]+1, 4)
+
 
     def _animate(self, event):
+        if self.isdisabled:
+            return
+
         x, y, w, h = self.coords(self.btn)
         x = int(x-1)
         y = int(y-1)
 
-        if x == self.coords(self.back_ground1)[0]+3:
-            self.moveto(self.btn, 4, 4)
-            self.state = 0
+        if x == self.coords(self.back_ground1)[0]:
+            self.toggle("off")
 
         else:
-            self.moveto(self.btn, self.coords(self.back_ground1)[0]+4, 4)
-            self.state = 1
+            self.toggle("on")
+
+
+    def toggle(self, onoff="on"):
+        if onoff == "off":
+            self.moveto(self.btn, 4, 4)
+            self.var.set(0)
+        elif onoff == "on":
+            self.moveto(self.btn, self.coords(self.back_ground1)[0]+1, 4)
+            self.var.set(1)
 
     def get_state(self):
-        return self.state
+        return self.var.get()
+
+
+    def disable(self, onoff="off"):
+        self.toggle(onoff)
+        self.isdisabled = True
+        self.itemconfigure(self.rect, fill="red")
+        self.itemconfigure(self.back_ground, fill="red")
+        self.itemconfigure(self.back_ground1, fill="red")
+
+
+    def enable(self, onoff="off"):
+        self.toggle(onoff)
+        self.isdisabled = False
+        self.itemconfigure(self.rect, fill=self.fillcolor)
+        self.itemconfigure(self.back_ground, fill=self.fillcolor)
+        self.itemconfigure(self.back_ground1, fill=self.fillcolor)
+
+
+class ToggleButton(ttk.Frame):
+
+    def __init__(self, *args, command=None, fg='black', bg='gray', width=35,
+                 height=18, label1text="Off", label2text="On", **kwargs):
+        super().__init__(*args, **kwargs)
+        self.switch = Switch(self, command=command, fg=fg, bg=bg, width=width,
+                             height=height)
+
+        self.labeloff = tkinter.Label(self, text=label1text)
+        self.labelon  = tkinter.Label(self, text=label2text)
+
+        self.labeloff.pack(side="left")
+        self.switch.pack(side="left")
+        self.labelon.pack(side="left")
+        self.var = self.switch.var
+
+
+    def disable(self, onoff="off"):
+        self.switch.disable(onoff)
+        if onoff == "off":
+            self.labelon.configure(fg="gray")
+        elif onoff == "on":
+            self.labeloff.configure(fg="gray")
+
+
+    def enable(self, onoff="off"):
+        self.switch.enable(onoff)
+        self.labelon.configure(fg="black")
+        self.labelon.configure(fg="black")
