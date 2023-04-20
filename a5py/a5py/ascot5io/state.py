@@ -571,28 +571,36 @@ class State(AscotData):
 
 
     def scatter(self, x=None, y=None, z=None, c=None, endcond=None, pncrid=None,
-                equal=False, log=False, axes=None):
+                equal=False, iniend=[-1,-1,-1,-1], log=False, axes=None):
         """
         Make scatter plot.
 
         """
         ids = self.get("id", endcond=endcond, pncrid=pncrid)
 
+        for i in range(len(iniend)):
+            if iniend[i] == -1:
+                iniend[i] = self
+            elif iniend[i] == 0:
+                iniend[i] = self._runnode.inistate
+            else:
+                iniend[i] = self._runnode.endstate
+
         xc = np.linspace(0, ids.size, ids.size)
         if x is not None:
-            xc = self.get(x, endcond=endcond, pncrid=pncrid)
+            xc = iniend[0].get(x, endcond=endcond, pncrid=pncrid)
 
         yc = None
         if y is not None:
-            yc = self.get(y, endcond=endcond, pncrid=pncrid)
+            yc = iniend[1].get(y, endcond=endcond, pncrid=pncrid)
 
         zc = None
         if z is not None:
-            zc = self.get(z, endcond=endcond, pncrid=pncrid)
+            zc = iniend[2].get(z, endcond=endcond, pncrid=pncrid)
 
         cc = None
         if c is not None:
-            cc = self.get(c, endcond=endcond, pncrid=pncrid)
+            cc = iniend[3].get(c, endcond=endcond, pncrid=pncrid)
 
         if isinstance(log, tuple):
             if log[0]:
@@ -617,10 +625,18 @@ class State(AscotData):
 
     def histogram(self, x, y=None, xbins=None, ybins=None, weight=False,
                   logx=False, logy=False, logscale=False, endcond=None,
-                  axes=None):
+                  axes=None, iniend=[-1,-1]):
         """
         Make histogram plot.
         """
+        for i in range(len(iniend)):
+            if iniend[i] == -1:
+                iniend[i] = self
+            elif iniend[i] == 0:
+                iniend[i] = self._runnode.inistate
+            else:
+                iniend[i] = self._runnode.endstate
+
         if y is None:
             # 1D plot
 
@@ -632,7 +648,7 @@ class State(AscotData):
 
             weights=None
             if endcond is not None or not hasattr(self._runnode, "endstate"):
-                xc = self.get(x, endcond=endcond)
+                xc = iniend[0].get(x, endcond=endcond)
                 if weight:
                     weights = self.get("weight", endcond=endcond)
                 if logx:
@@ -658,8 +674,8 @@ class State(AscotData):
 
         else:
             # 2D plot
-            xc = self.get(x, endcond=endcond)
-            yc = self.get(y, endcond=endcond)
+            xc = iniend[0].get(x, endcond=endcond)
+            yc = iniend[1].get(y, endcond=endcond)
 
             if logx:
                 xc = np.log10(np.absolute(xc))

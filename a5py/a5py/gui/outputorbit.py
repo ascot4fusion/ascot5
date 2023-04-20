@@ -83,7 +83,49 @@ class OrbitFrame(ttk.Frame):
                 self.zcrd.setvals(list(qwithnone.keys()), "None", 0)
                 self.ccrd.setvals(list(qwithnone.keys()), "None", 0)
 
+                self.canvas = canvas
                 return self
+
+
+            def plot(self, run):
+                xcoord  = self.xcrd.getval()
+                ycoord  = self.ycrd.getval()
+                zcoord  = self.zcrd.getval()
+                ccoord  = self.ccrd.getval()
+                equal   = self.axeq.getval() == 1
+                xlog    = self.xcrd.islog()
+                ylog    = self.ycrd.islog()
+                zlog    = self.zcrd.islog()
+                clog    = self.ccrd.islog()
+                endcond = self.endc.getval()
+
+                if endcond == "all":
+                    endcond = None
+
+                log = (xlog==1, ylog==1, zlog==1, clog==1)
+
+                if zcoord == "None":
+                    self.canvas.fig_rzview.clear()
+
+                    if ccoord == "None":
+                        run.orbit.plot(xcoord, ycoord, equal=equal, log=log,
+                                          endcond=endcond, axes=self.canvas.fig_rzview.axis)
+                    else:
+                        run.orbit.scatter(xcoord, ycoord, c=ccoord, equal=equal,
+                                             log=log, endcond=endcond, axes=self.canvas.fig_rzview.axis)
+                else:
+                    self.canvas.fig_rzview.make3d()
+                    self.canvas.fig_rzview.clear()
+                    if ccoord == "None":
+                        run.orbit.plot(xcoord, ycoord, zcoord, equal=equal,
+                                          log=log, endcond=endcond, axes=self.canvas.fig_rzview.axis)
+                    else:
+                        run.orbit.scatter(xcoord, ycoord, zcoord, ccoord,
+                                             equal=equal, log=log,
+                                             endcond=endcond, axes=self.canvas.fig_rzview.axis)
+
+                self.canvas.fig_rzview.draw()
+
 
         class PoincareFrame(ttk.Frame):
 
@@ -109,7 +151,11 @@ class OrbitFrame(ttk.Frame):
                 self.plotbutton.pack(anchor="nw")
                 self.savebutton.pack(anchor="nw")
 
+                self.canvas = canvas
                 return self
+
+            def plot(self, run):
+                pass
 
         master = ttk.Notebook(self)
 
@@ -135,8 +181,37 @@ class OrbitFrame(ttk.Frame):
 
         self.frametrajectory.endc.setvals(endconds, "all")
 
+        def plottrajectory():
+            self.frametrajectory.plot(run)
+
+        def plotpoincare():
+            self.framepoincare.plot(run)
+
+        self.frametrajectory.plotbutton.configure(command=plottrajectory)
+        self.framepoincare.plotbutton.configure(command=plotpoincare)
+
 
 class OrbitCanvas(ttk.Frame):
 
     def init(self):
+        class Plot3DFrame(PlotFrame):
+
+            def __init__(self, master, tight_layout=True):
+                self.axis3d = False
+                super().__init__(master, tight_layout=tight_layout)
+
+            def make3d(self):
+                self.axis3d = True
+
+            def set_axes(self):
+                if self.axis3d:
+                    self.axis3d = False
+                    return self.fig.add_subplot(1,1,1, projection="3d")
+
+                return self.fig.add_subplot(1,1,1)
+
+        fig_rzview = Plot3DFrame(self)
+        fig_rzview.place(relheight=0.8, anchor="nw")
+
+        self.fig_rzview = fig_rzview
         return self

@@ -24,12 +24,12 @@ class StateFrame(ttk.Frame):
             ("phi",       "deg"),
             ("pol",       "deg"),
             ("mu",        "eV/T"),
-            ("|v|",       "m/s"),
-            ("vpa",       "m/s"),
-            ("vpe",       "m/s"),
-            ("vR",        "m/s"),
-            ("vphi",      "m/s"),
-            ("vz",        "m/s"),
+            ("|p|",       "kg m/s"),
+            ("ppa",       "kg m/s"),
+            ("ppe",       "kg m/s"),
+            ("pR",        "kg m/s"),
+            ("pphi",      "kg m/s"),
+            ("pz",        "kg m/s"),
             ("|B|",       "T"),
             ("BR",        "T"),
             ("Bphi",      "T"),
@@ -89,7 +89,50 @@ class StateFrame(ttk.Frame):
                 self.zcrd.setvals(list(qwithnone.keys()), "None", 0)
                 self.ccrd.setvals(list(qwithnone.keys()), "None", 0)
 
+                self.canvas = canvas
                 return self
+
+            def plot(self, run):
+                xcoord  = self.xcrd.getval()
+                ycoord  = self.ycrd.getval()
+                zcoord  = self.zcrd.getval()
+                ccoord  = self.ccrd.getval()
+                equal   = self.axeq.getval() == 1
+                xlog    = self.xcrd.islog()
+                ylog    = self.ycrd.islog()
+                zlog    = self.zcrd.islog()
+                clog    = self.ccrd.islog()
+                endcond = self.endc.getval()
+
+                if endcond == "all":
+                    endcond = None
+
+                log = (xlog==1, ylog==1, zlog==1, clog==1)
+
+                if xcoord == "None":
+                    xcoord = None
+                if ycoord == "None":
+                    ycoord = None
+                if ccoord == "None":
+                    ccoord = None
+
+                iniend = [self.xbtn.var.get(), self.ybtn.var.get(),
+                          self.zbtn.var.get(), self.cbtn.var.get()]
+
+                if zcoord == "None":
+                    self.canvas.fig_rzview.clear()
+                    axes = self.canvas.fig_rzview.axis
+                    run.inistate.scatter(xcoord, ycoord, c=ccoord, equal=equal,
+                                         log=log, endcond=endcond, axes=axes,
+                                         iniend=iniend)
+                else:
+                    self.canvas.fig_rzview.make3d()
+                    self.canvas.fig_rzview.clear()
+                    axes = self.canvas.fig_rzview.axis
+                    run.inistate.scatter(xcoord, ycoord, zcoord, ccoord,
+                                         equal=equal, log=log, iniend=iniend,
+                                         endcond=endcond, axes=axes)
+                self.canvas.fig_rzview.draw()
 
 
         class HistFrame(ttk.Frame):
@@ -126,11 +169,11 @@ class StateFrame(ttk.Frame):
                 self.plotbutton.pack(anchor="nw")
                 self.savebutton.pack(anchor="nw")
 
-                wght = Tickbox(f3, label=" With weights", width=10)
-                axeq = Tickbox(f3, label=" Axis equal", width=10)
+                self.wght = Tickbox(f3, label=" With weights", width=10)
+                self.axeq = Tickbox(f3, label=" Axis equal", width=10)
 
-                wght.pack(side="left", anchor="w")
-                axeq.pack(side="left", anchor="w")
+                self.wght.pack(side="left", anchor="w")
+                self.axeq.pack(side="left", anchor="w")
 
                 self.xmin_entry = NumEntry(
                     f4, labeltext="rho [1] = ", entrywidth=5, labelwidth=26,
@@ -174,6 +217,7 @@ class StateFrame(ttk.Frame):
                     #output_stateplot_numz=ynum_entry.choice,
                     #output_stateplot_qnt=xcrd.var
                     #)
+                self.canvas = canvas
 
                 return self
 
@@ -195,6 +239,40 @@ class StateFrame(ttk.Frame):
                     self.ymax_entry.enable()
                     self.ynum_entry.enable()
                     self.ymin_entry.setlabel(val + " [" + unit + "]" + " = ")
+
+            def plot(self, run):
+                iniend = [self.xbtn.var.get(), self.ybtn.var.get()]
+                xcoord = self.xcrd.getval()
+                ycoord = self.ycrd.getval()
+                if ycoord == "None":
+                    ycoord = None
+
+                #endcond = self.endc.getval()
+                #if endcond == "all":
+                #    endcond = None
+                endcond = None
+
+                logx     = self.xcrd.islog()
+                logy     = self.ycrd.islog()
+                logscale = False#self.zlogtick.getval() == 1
+
+                xbins = [ self.xmin_entry.getval(),
+                          self.xmax_entry.getval(),
+                          self.xnum_entry.getval() + 1 ]
+
+                ybins = [ self.ymin_entry.getval(),
+                          self.ymax_entry.getval(),
+                          self.ynum_entry.getval() + 1 ]
+
+                weight = self.wght.getval() == 1
+
+                self.canvas.fig_rzview.clear()
+                run.inistate.histogram(x=xcoord, y=ycoord, xbins=xbins,
+                                       ybins=ybins, weight=weight, logx=logx,
+                                       logy=logy, logscale=logscale,
+                                       endcond=endcond, axes=self.canvas.fig_rzview.axis,
+                                       iniend=iniend)
+                self.canvas.fig_rzview.draw()
 
 
         master = ttk.Notebook(self)
@@ -218,8 +296,8 @@ class StateFrame(ttk.Frame):
                 self.framescatter.ybtn.enable()
                 self.framescatter.zbtn.enable()
                 self.framescatter.cbtn.enable()
-                self.framehistogram.xbtn.enable()
-                self.framehistogram.ybtn.enable()
+                self.framehist.xbtn.enable()
+                self.framehist.ybtn.enable()
 
         except AttributeError:
             endconds, counts = run.inistate.listendconds()
@@ -227,15 +305,45 @@ class StateFrame(ttk.Frame):
             self.framescatter.ybtn.disable()
             self.framescatter.zbtn.disable()
             self.framescatter.cbtn.disable()
-            self.framehistogram.xbtn.disable()
-            self.framehistogram.ybtn.disable()
+            self.framehist.xbtn.disable()
+            self.framehist.ybtn.disable()
 
         endconds = ["all"] + endconds
 
         self.framescatter.endc.setvals(endconds, "all")
 
+        def plotscatter():
+            self.framescatter.plot(run)
+
+        def plothist():
+            self.framehist.plot(run)
+
+        self.framescatter.plotbutton.configure(command=plotscatter)
+        self.framehist.plotbutton.configure(command=plothist)
+
 
 class StateCanvas(ttk.Frame):
 
     def init(self):
+
+        class Plot3DFrame(PlotFrame):
+
+            def __init__(self, master, tight_layout=True):
+                self.axis3d = False
+                super().__init__(master, tight_layout=tight_layout)
+
+            def make3d(self):
+                self.axis3d = True
+
+            def set_axes(self):
+                if self.axis3d:
+                    self.axis3d = False
+                    return self.fig.add_subplot(1,1,1, projection="3d")
+
+                return self.fig.add_subplot(1,1,1)
+
+        fig_rzview = Plot3DFrame(self)
+        fig_rzview.place(relheight=0.8, anchor="nw")
+
+        self.fig_rzview = fig_rzview
         return self

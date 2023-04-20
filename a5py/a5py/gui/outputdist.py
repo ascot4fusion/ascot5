@@ -34,7 +34,48 @@ class DistFrame(ttk.Frame):
                 self.plotbutton.pack(anchor="nw")
                 self.savebutton.pack(anchor="nw")
 
+                self.canvas = canvas
                 return self
+
+
+            def plot(self, run):
+                dist = self.source.getval()
+                if dist[1:4] == "rho":
+                    if len(dist.split(",")) == 5:
+                        dist = run.distrho5d
+                    else:
+                        dist = run.distrho6d
+                else:
+                    if len(dist.split(",")) == 5:
+                        dist = run.dist5d
+                    else:
+                        dist = run.dist6d
+
+                equal = False
+                x = self.xcrd.getval()
+                y = self.ycrd.getval()
+
+                if ( x == "R" and y == "z" ) or ( x == "z" and y == "R" ):
+                    equal = True
+
+                vel = ["pparp", "pperp", "pR", "pz", "pphi"]
+                if x in vel and y in vel:
+                    equal = True
+
+
+                self.canvas.fig_rzview.clear()
+
+                if y == "None":
+                    dist.plot_dist(
+                        x, logscale=False, equal=equal,
+                        axes=self.canvas.fig_rzview.axis)
+                else:
+                    dist.plot_dist(
+                        x, y, logscale=False, equal=equal,
+                        axes=self.canvas.fig_rzview.axis)
+
+                self.canvas.fig_rzview.draw()
+
 
             def setcoords(self, *args):
                 dist = self.source.var.get()
@@ -89,6 +130,7 @@ class DistFrame(ttk.Frame):
 
                 self.qnt.setvals(["Density"], "Density")
 
+                self.canvas = canvas
                 return self
 
         master = ttk.Notebook(self)
@@ -108,13 +150,13 @@ class DistFrame(ttk.Frame):
         dists = []
         try:
             run.dist5d
-            dists += ["{R, phi, z, ppa, ppe}"]
+            dists += ["{R, phi, z, ppar, pperp}"]
         except AttributeError:
             pass
 
         try:
             run.distrho5d
-            dists += ["{rho, phi, theta, ppa, ppe}"]
+            dists += ["{rho, phi, theta, ppar, pperp}"]
         except AttributeError:
             pass
 
@@ -133,8 +175,21 @@ class DistFrame(ttk.Frame):
         self.framegeneral.source.setvals(dists, dists[0])
         self.frameintegrated.source.setvals(dists, dists[0])
 
+        def plotgeneral():
+            self.framegeneral.plot(run)
+
+        def plotintegrated():
+            self.frameintegrated.plot(run)
+
+        self.framegeneral.plotbutton.configure(command=plotgeneral)
+        self.frameintegrated.plotbutton.configure(command=plotintegrated)
+
 
 class DistCanvas(ttk.Frame):
 
     def init(self):
+        fig_rzview = PlotFrame(self)
+        fig_rzview.place(relheight=0.8, anchor="nw")
+
+        self.fig_rzview = fig_rzview
         return self
