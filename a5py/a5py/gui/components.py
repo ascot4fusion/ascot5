@@ -124,7 +124,7 @@ class DropdownMenu(tkinter.Frame):
     """
 
     def __init__(self, master, defval=None, values=None, log=False, trace=None,
-                 label=None, width=6):
+                 label=None, width=6, labelwidth=2):
         super().__init__(master)
         self.var = tkinter.StringVar(self)
 
@@ -135,7 +135,7 @@ class DropdownMenu(tkinter.Frame):
             self.var.trace('w', trace)
 
         if label is not None:
-            label = tkinter.Label(self, text=label)
+            label = tkinter.Label(self, text=label, width=labelwidth)
             label.grid(row=0, column=0)
 
         self.menu = ttk.Combobox(self, width=width, textvariable=self.var,
@@ -147,9 +147,9 @@ class DropdownMenu(tkinter.Frame):
         self.log = None
         if log:
             self.log = tkinter.IntVar(self)
-            logtick = tkinter.Checkbutton(self, text="log10", onvalue=1,
-                                          offvalue=0, variable=self.log,
-                                          height=1, width=5)
+            logtick = tkinter.Checkbutton(
+                self, text=" log10", onvalue=1,
+                offvalue=0, variable=self.log, height=1, width=5)
             logtick.grid(row=0, column=2)
 
             if trace is not None:
@@ -184,7 +184,7 @@ class Tickbox(tkinter.Frame):
     A tickbox and label.
     """
 
-    def __init__(self, master, defval=None, trace=None, label=None):
+    def __init__(self, master, defval=None, trace=None, label=None, width=8):
         super().__init__(master)
         self.var = tkinter.IntVar(self)
         if defval is not None:
@@ -196,7 +196,7 @@ class Tickbox(tkinter.Frame):
         tick = tkinter.Checkbutton(self, text=label,
                                    variable=self.var,
                                    onvalue=1, offvalue=0,
-                                   height=1, width=8)
+                                   height=1, width=width)
         tick.pack()
 
 
@@ -251,9 +251,9 @@ class PlotFrame(tkinter.Frame):
 
 class ScrollableFrame(ttk.Frame):
 
-    def __init__(self, container, *args, **kwargs):
+    def __init__(self, container, *args, framewidth=100, **kwargs):
         super().__init__(container, *args, **kwargs)
-        canvas = tkinter.Canvas(self)
+        canvas = tkinter.Canvas(self, width=framewidth)
         scrollbar = ttk.Scrollbar(self, orient="vertical", command=canvas.yview)
         self.scrollable_frame = ttk.Frame(canvas)
 
@@ -270,3 +270,58 @@ class ScrollableFrame(ttk.Frame):
 
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
+
+
+class ToggleButton(tkinter.Canvas):
+    def __init__(self, *args, command=None, fg='black', bg='gray', width=35,
+                 height=18, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.configure(width=width, height=height, borderwidth=0,
+                       highlightthickness=0)
+
+        self.back_ground = self.create_arc((0, 0, 0, 0), start=90, extent=180,
+                                           fill="green", outline='')
+        self.back_ground1 = self.create_arc((0, 0, 0, 0), start=-90, extent=180,
+                                            fill="red", outline='')
+        self.rect = self.create_rectangle(0, 0, 0, 0, fill=bg, outline='')
+
+        self.btn = self.create_oval(0, 0, 0, 0, fill=fg, outline='')
+
+        self.bind('<Configure>', self._resize)
+        self.bind('<Button>', self._animate, add='+')
+        self.bind('<Button>', command, add='+')
+
+        self.state = 0
+
+    def _resize(self, event):
+        self.coords(self.back_ground, 5, 5, event.height-5, event.height-5)
+        self.coords(self.back_ground1, 5, 5, event.height, event.height-5)
+
+        factor = event.width-(self.coords(self.back_ground1)[2] -
+                              self.coords(self.back_ground1)[0])-10
+        self.move(self.back_ground1, factor, 0)
+
+        self.coords(self.rect, self.bbox(self.back_ground)[2]-2, 5,
+                    self.bbox(self.back_ground1)[0]+2, event.height-5)
+
+        self.coords(self.btn, 5, 5, event.height-5, event.height-5)
+
+        if self.state:
+            self.moveto(self.btn, self.coords(self.back_ground1)[0]+4, 4)
+
+    def _animate(self, event):
+        x, y, w, h = self.coords(self.btn)
+        x = int(x-1)
+        y = int(y-1)
+
+        if x == self.coords(self.back_ground1)[0]+3:
+            self.moveto(self.btn, 4, 4)
+            self.state = 0
+
+        else:
+            self.moveto(self.btn, self.coords(self.back_ground1)[0]+4, 4)
+            self.state = 1
+
+    def get_state(self):
+        return self.state
