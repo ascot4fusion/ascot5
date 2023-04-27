@@ -125,6 +125,7 @@ from a5py.ascot5io.dist_rho5D import Dist_rho5D
 from a5py.ascot5io.dist_rho6D import Dist_rho6D
 
 from a5py.ascot5io.ascot5file import INPUT_PARENTS
+from a5py.ascot5io.runmethods import RunMethods
 
 class AscotInitException(Exception):
     """Exception raised when Ascot object could not be initialized."""
@@ -518,7 +519,7 @@ class _InputNode(_ContainerNode):
         print(self._name)
         self._root._remove_from_file(self._name, repack)
 
-class _RunNode(_Node):
+class _RunNode(_Node, RunMethods):
     """
     Create an instance that represents the given run group data.
 
@@ -562,6 +563,7 @@ class _RunNode(_Node):
         # Store the filename and path in the file
         self._file = rungroup.file.filename
         self._path = rungroup.name
+        self.init_runmethods()
 
         self._freeze()
 
