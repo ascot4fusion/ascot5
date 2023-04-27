@@ -1,3 +1,8 @@
+"""
+Main window for the GUI.
+
+File: gui.py
+"""
 import os
 import sys
 import subprocess
@@ -47,9 +52,11 @@ class GUI(tk.Tk):
     FileFrame and GroupFrame are always displayed. Contents of
     SettingsFrame and CanvasFrame depends on what is clicked on the
     FileFrame/GroupFrame/SettingsFrame and those are managed by
-    the ContentManager class which this GUI inherits.
+    the ContentManager object.
 
-    Access to the data is handled by a separate class.
+    Access to the actual data is handled via an Ascotpy object. This
+    GUI should just pass the arguments to the plotting functions
+    implemented elsewhere instead of implementing those itself.
     """
 
     # Minimum GUI size in pixels
@@ -173,7 +180,8 @@ class GUI(tk.Tk):
         dialog.geometry("+%d+%d" % (x + int(w/2-wd/2), y + int(h/2-wh/2)))
         f = tk.Frame(dialog, width=wd, height=wh)
         f.pack_propagate(0)
-        tk.Label(dialog, text=message, font=("Calibri",12)).pack(anchor="c", fill="both", expand=True)
+        tk.Label(dialog, text=message,
+                 font=("Calibri",12)).pack(anchor="c", fill="both", expand=True)
         f.pack()#fill="both", expand=True)
 
         # Show dialog
@@ -199,17 +207,26 @@ class GUI(tk.Tk):
 
 class SettingsFrame(ttk.Frame):
     """
+    Frame that displays parameters the user can vary when viewing data.
+
     Contents of this frame changes depending on what tab is chosen.
     ContentManager class then decides what is plotted on the canvas.
-    """
 
-    def __init__(self, container, *args, **kwargs):
-        super().__init__(container, *args, **kwargs)
+    Only implemented as a separate class if there is a need to tune this
+    frame in future development.
+    """
+    pass
 
 
 class CanvasFrame(ttk.Frame):
     """
     Frame that displays plots.
+
+    Contents of this frame changes depending on what tab is chosen.
+    ContentManager class then decides what is plotted on the canvas.
+
+    Only implemented as a separate class if there is a need to tune this
+    frame in future development.
     """
     pass
 
