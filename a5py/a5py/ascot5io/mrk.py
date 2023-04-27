@@ -11,7 +11,7 @@ import h5py
 from a5py.ascot5io.ascot5data import AscotData
 from a5py.ascot5io.ascot5file import read_data
 from a5py.marker.plot import plot_histogram
-from a5py.misc import openfigureifnoaxes
+from a5py.plotting import openfigureifnoaxes
 
 def read_hdf5(fn, qid, prefix):
     """
@@ -94,7 +94,7 @@ class mrk(AscotData):
         return data
 
 
-    @openfigureifnoaxes
+    @openfigureifnoaxes(projection=None)
     def plot_hist_rhophi(self, ascotpy, rbins=10, pbins=10, weighted=False,
                          axes=None):
         """
@@ -113,7 +113,7 @@ class mrk(AscotData):
                        axes=axes)
 
 
-    @openfigureifnoaxes
+    @openfigureifnoaxes(projection=None)
     def plot_hist_energypitch(self, ascotpy, ebins=10, pbins=10, weighted=False,
                               axes=None):
         """

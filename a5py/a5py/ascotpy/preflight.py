@@ -5,7 +5,7 @@ Checks to help user to ensure the inputs are ok before running the simulation.
 import numpy as np
 import matplotlib.pyplot as plt
 from a5py.ascotpy import Ascotpy
-from a5py.misc import openfigureifnoaxes
+from a5py.plotting import openfigureifnoaxes
 
 def check_inputs_present(ascotpy):
     """
@@ -200,7 +200,7 @@ def plot_top_view(ascotpy, axes=None):
         plt.show()
 
 
-@openfigureifnoaxes
+@openfigureifnoaxes(projection=None)
 def plot_energypitch(ascotpy, axes=None):
     """
     Plot marker energy-pitch histogram
@@ -208,7 +208,7 @@ def plot_energypitch(ascotpy, axes=None):
     ascotpy.hdf5.marker.active.plot_hist_energypitch(ascotpy, axes=axes)
 
 
-@openfigureifnoaxes
+@openfigureifnoaxes(projection=None)
 def plot_rhophi(ascotpy, axes=None):
     """
     Plot marker rho-phi histogram
