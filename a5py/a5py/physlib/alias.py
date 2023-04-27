@@ -22,23 +22,25 @@ synonyms = {
     "ids"      : ["id"],
     "mass"     : ["m"],
     "charge"   : ["q"],
-    "vnorm"    : ["v", "velocity", "velocitynorm"],
-    "bnorm"    : ["b", "magneticfield", "magneticfieldnorm"],
+    "vnorm"    : ["v", "velocity", "velocitynorm", "|v|"],
+    "bnorm"    : ["b", "magneticfield", "magneticfieldnorm", "|b|"],
     "energy"   : ["ekin", "e"],
     "pitch"    : ["xi"],
     "mu"       : ["magneticmoment"],
     "gamma"    : ["lorentzfactor", "relativisticfactor"],
     "phi"      : ["tor", "toroidalangle"],
-    "phimod"   : ["tormod"],
+    "phimod"   : ["tormod", "phi(mod)", "tor(mod)"],
     "theta"    : ["pol", "poloidalangle"],
-    "thetamod" : ["polmod"],
+    "thetamod" : ["polmod", "pol(mod)", "theta(mod)"],
     "zeta"     : ["gyroangle"],
     "vpar"     : ["parallelvelocity", "vparallel", "vpa", "vpara"],
     "ppar"     : ["parallelmomentum", "pparallel", "ppa", "ppara"],
     "vperp"    : ["perpendicularvelocity", "vperpendicular", "vpe"],
     "pparp"    : ["perpendicularmomentum", "pperpendicular", "ppe"],
-    "pnorm"    : ["p", "momentum", "momentumnorm"],
-    "ptor"     : ["toroidalcanonicalangularmomentum", "ctor", "torcanangmom"]
+    "pnorm"    : ["p", "momentum", "momentumnorm", "|p|"],
+    "ptor"     : ["canonicaltoroidalmomentum"],
+    "wall"     : ["lost"],
+    "therm"    : ["thermalized"]
 }
 
 
