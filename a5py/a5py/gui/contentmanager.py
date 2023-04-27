@@ -1,3 +1,8 @@
+"""
+Defines ContentManager class for showing stuff at Canvas and Settings frames.
+
+File: contentmanager.py
+"""
 import tkinter as tk
 from tkinter import ttk
 
@@ -10,10 +15,28 @@ from .contentinteractive import ContentInteractive
 class ContentManager():
     """
     Manages the contents in SettingsFrame and in CanvasFrame.
+
+    Settings frame is a notebook widget where changing the tab also changes
+    what is shown on Canvas*. This is done so that we always pack_forget the
+    current frame on Canvas and pack the new one (Note that the frames are
+    kept as that way we preserve the settings user has given previously, which
+    makes smoother user-experience when different frames are toggled).
+
+    *For group contents the contents on Canvas also depends what is shown in
+    the group treeview.
+
+    This is fairly simple class as the actual contents are defined in Content*
+    classes that are imported an used here. If those also have subcontents and
+    implement a notebook to choose what is display, then those classes mimic the
+    structure in this class. In theory, everything could be defined here but
+    that would make this class huge...
     """
 
 
     def __init__(self, gui, settingsframe, canvasframe):
+        """
+        Generate all content widgets (which also generate their contents).
+        """
 
         self.gui = gui
 

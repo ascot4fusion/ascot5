@@ -109,29 +109,29 @@ class StateFrame(ttk.Frame):
 
                 log = (xlog==1, ylog==1, zlog==1, clog==1)
 
-                if xcoord == "None":
-                    xcoord = None
-                if ycoord == "None":
-                    ycoord = None
                 if ccoord == "None":
                     ccoord = None
 
-                iniend = [self.xbtn.var.get(), self.ybtn.var.get(),
-                          self.zbtn.var.get(), self.cbtn.var.get()]
+                iniend = ["e" if self.xbtn.var.get() else "i",
+                          "e" if self.ybtn.var.get() else "i",
+                          "e" if self.zbtn.var.get() else "i",
+                          "e" if self.cbtn.var.get() else "i"]
 
                 if zcoord == "None":
                     self.canvas.fig_rzview.clear()
                     axes = self.canvas.fig_rzview.axis
-                    run.inistate.scatter(xcoord, ycoord, c=ccoord, equal=equal,
-                                         log=log, endcond=endcond, axes=axes,
-                                         iniend=iniend)
+                    run.plotstate_scatter(xcoord, ycoord, c=ccoord,
+                                          axesequal=equal, log=log,
+                                          endcond=endcond, axes=axes,
+                                          iniend=iniend)
                 else:
                     self.canvas.fig_rzview.make3d()
                     self.canvas.fig_rzview.clear()
                     axes = self.canvas.fig_rzview.axis
-                    run.inistate.scatter(xcoord, ycoord, zcoord, ccoord,
-                                         equal=equal, log=log, iniend=iniend,
-                                         endcond=endcond, axes=axes)
+                    run.plotstate_scatter(xcoord, ycoord, zcoord, ccoord,
+                                          axesequal=equal, log=log,
+                                          iniend=iniend,
+                                          endcond=endcond, axes=axes)
                 self.canvas.fig_rzview.draw()
 
 

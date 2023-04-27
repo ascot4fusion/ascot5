@@ -141,10 +141,10 @@ class OrbitFrame(ttk.Frame):
 
                 self.plane = DropdownMenu(f1, label="           Plane: ", width=8,
                                           labelwidth=10, labelanchor="w")
-                self.coord = DropdownMenu(f1, label="Coordinates: ", width=8,
-                                          labelwidth=10, labelanchor="w")
+                #self.coord = DropdownMenu(f1, label="Coordinates: ", width=8,
+                #                          labelwidth=10, labelanchor="w")
                 self.plane.pack(fill="x", anchor="w")
-                self.coord.pack(fill="x", anchor="w")
+                #self.coord.pack(fill="x", anchor="w")
 
                 self.plotbutton = tk.Button(f2, text="Plot", width=3)
                 self.savebutton = tk.Button(f2, text="Store", width=3)
@@ -155,7 +155,13 @@ class OrbitFrame(ttk.Frame):
                 return self
 
             def plot(self, run):
-                pass
+                self.canvas.fig_rzview.clear()
+                plane = self.plane.getval()
+                plane = run.getorbit_poincareplanes().index(plane)
+
+                run.plotorbit_poincare(plane, conlen=True, axes=self.canvas.fig_rzview.axis)
+                self.canvas.fig_rzview.draw()
+
 
         master = ttk.Notebook(self)
 
@@ -180,6 +186,8 @@ class OrbitFrame(ttk.Frame):
         endconds = ["all"] + endconds
 
         self.frametrajectory.endc.setvals(endconds, "all")
+        planes = run.getorbit_poincareplanes()
+        self.framepoincare.plane.setvals(planes, planes[0])
 
         def plottrajectory():
             self.frametrajectory.plot(run)

@@ -39,7 +39,7 @@ class ContentOutput:
         canvasloss    = LossCanvas(canvas).init()
         canvasdist    = DistCanvas(canvas).init()
 
-        self.framesummary = SummaryFrame(settings).init(canvassummary)
+        self.framesummary = SummaryFrame(settings).init(gui, canvassummary)
         self.framestate   = StateFrame(settings).init(gui, canvasstate)
         self.frameorbit   = OrbitFrame(settings).init(gui, canvasorbit)
         self.framedist    = DistFrame(settings).init(gui, canvasdist)
