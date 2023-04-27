@@ -401,7 +401,7 @@ class Orbits(AscotData):
 
         return item
 
-    
+
     def __getitem__(self, key):
         """
         Return queried quantity.

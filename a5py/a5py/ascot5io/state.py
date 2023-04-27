@@ -491,7 +491,7 @@ class State(AscotData):
         return item[idx]
 
 
-    def get(self, key, ids=None, endcond=None, pncrid=None):
+    def get(self, key, ids=None, endcond=None):
         """
         Same as __getitem__ but with option to filter which points are returned.
 
@@ -502,8 +502,6 @@ class State(AscotData):
                 Id or a list of ids whose data points are returned.
             endcond : str, array_like, optional <br>
                 Endcond of those  markers which are returned.
-            pncrid : str, array_like, optional <br>
-                Poincare ID of those  markers which are returned.
         Returns:
             The quantity.
         """
@@ -517,10 +515,11 @@ class State(AscotData):
             else:
                 ec = self["endcond"]
 
-            idx = np.logical_and( idx, ec==endcondmod.getbin(endcond) )
-
-        if pncrid is not None:
-            idx = np.logical_and(idx, self["pncrid"] == pncrid)
+            if isinstance(endcond, str):
+                idx = np.logical_and( idx, ec==endcondmod.getbin(endcond) )
+            else:
+                for ec in endcond:
+                    idx = np.logical_and( idx, ec==endcondmod.getbin(ec) )
 
         if ids is not None:
             idx = np.logical_and(idx, np.in1d(self["id"], ids))
@@ -660,7 +659,7 @@ class State(AscotData):
 
                 ecs, count = self._runnode.endstate.listendconds()
                 for ec in ecs:
-                    xc0 = self.get(x, endcond=ec)
+                    xc0 = iniend[0].get(x, endcond=ec)
                     if weight:
                         weights.append(self.get("weight", endcond=ec))
                     if logx:
