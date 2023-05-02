@@ -47,7 +47,7 @@ def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None,
         flag = np.zeros(shape=(nelements,1),dtype=int)
     else:
         assert flag.shape == (nelements,1)
-        
+
     parent = "wall"
     group  = "wall_3D"
     gname  = ""
@@ -61,23 +61,22 @@ def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None,
         fids=np.empty(shape=(len(flagIdStrings),),dtype='|S{}'.format(strlen) )
         for istr,s in enumerate(flagIdStrings):
             fids[istr]=s
-        
+
     with h5py.File(fn, "a") as f:
         g = add_group(f, parent, group, desc=desc)
         gname = g.name.split("/")[-1]
 
-        g.create_dataset('x1x2x3',     (nelements,3), data=x1x2x3,    dtype='f8')
-        g.create_dataset('y1y2y3',     (nelements,3), data=y1y2y3,    dtype='f8')
-        g.create_dataset('z1z2z3',     (nelements,3), data=z1z2z3,    dtype='f8')
-        g.create_dataset('nelements',  (1,1),         data=nelements, dtype='i4')
-        fl = g.create_dataset('flag',(nelements,1),   data=flag,      dtype='i4')
+        g.create_dataset('x1x2x3',    (nelements,3), data=x1x2x3,    dtype='f8')
+        g.create_dataset('y1y2y3',    (nelements,3), data=y1y2y3,    dtype='f8')
+        g.create_dataset('z1z2z3',    (nelements,3), data=z1z2z3,    dtype='f8')
+        g.create_dataset('nelements', (1,1),         data=nelements, dtype='i4')
 
+        fl = g.create_dataset('flag', (nelements,1), data=flag,      dtype='i4')
         if flagIdList is not None and flagIdStrings is not None:
-            fl.attrs.create(name='flagIdList',    data=np.array( flagIdList    ),  dtype='i4')
-            fl.attrs.create(name='flagIdStrings', data=fids           )
+            fl.attrs.create(name='flagIdList',
+                            data=np.array(flagIdList), dtype='i4')
+            fl.attrs.create(name='flagIdStrings', data=fids)
 
-        
-            
     return gname
 
 
@@ -112,10 +111,10 @@ def read_hdf5(fn, qid):
 
         if not 'n' in out:
             out['n'] = np.array([nTriangles])
-        
+
         if not 'flag' in out:
             out['flag'] = np.zeros(shape=(nTriangles,),dtype=int)
-                    
+
         if 'flagIdStrings' in out:
             # We need to decode the bytearrays into strings.
             s=[]
@@ -128,7 +127,7 @@ def read_hdf5(fn, qid):
             out['flagIdStrings']=[]
             for fl in out['flagIdList']:
                 out['flagIdStrings'].append('Flag {}'.format(fl))
-                
+
     return out
 
 
@@ -141,7 +140,7 @@ class wall_3D(AscotData):
 
     def read(self):
         W=read_hdf5(self._file, self.get_qid())
-        
+
         # The dimensionality of  nTriangles = a5wall['nelements'][0][0] varies, so by-pass it.
         self.number_of_elements = W['x1x2x3'].shape[0]
         return W
@@ -152,6 +151,43 @@ class wall_3D(AscotData):
         return self.number_of_elements
 
 
+    def noderepresentation(self):
+        """
+        Return an array of vertices and indices that define this wall.
+
+        Returns:
+            vertices : float, array_like <br>
+                Triangle vertices in a format [[x1, y1, z1], ..., [xn, yn, zn]]
+                where n is 3 x number of triangles.
+            faces : int, array_like <br>
+                Array of dimension (number of triangles, 4) where each four
+                length array defines a wall elemenet as [number of vertices, i1,
+                i2, i3] where number of vertices is always 3 and i1, i2, and i3
+                define the indices of the vertices in the vertices array.
+        """
+        with self as h5:
+            ntriangle = int(h5["nelements"][:])
+            faces     = np.zeros((ntriangle,4), dtype="i8")
+            vertices  = np.zeros((ntriangle*3,3), dtype="f8")
+
+            faces[:, 0] = 3
+            faces[:, 1] = np.arange(ntriangle) * 3 + 0
+            faces[:, 2] = np.arange(ntriangle) * 3 + 1
+            faces[:, 3] = np.arange(ntriangle) * 3 + 2
+
+            vertices[0::3,0] = h5["x1x2x3"][:,0]
+            vertices[0::3,1] = h5["y1y2y3"][:,0]
+            vertices[0::3,2] = h5["z1z2z3"][:,0]
+            vertices[1::3,0] = h5["x1x2x3"][:,1]
+            vertices[1::3,1] = h5["y1y2y3"][:,1]
+            vertices[1::3,2] = h5["z1z2z3"][:,1]
+            vertices[2::3,0] = h5["x1x2x3"][:,2]
+            vertices[2::3,1] = h5["y1y2y3"][:,2]
+            vertices[2::3,2] = h5["z1z2z3"][:,2]
+
+        return (vertices, faces)
+
+
     def write(self, fn, data=None):
         if data is None:
             data = self.read()
@@ -160,36 +196,35 @@ class wall_3D(AscotData):
 
     def remove_small_triangles(self,maximumAreaToRemove=0.0,data=None):
         "The modification happens in-place. No deep copy is made!"
-        
+
         if data is None:
             w = self.read()
         else:
             w = data
-            
+
         A = self.area(data=w)
-        
+
         keep =  ( A > maximumAreaToRemove )
-    
+
         fields = ["x1x2x3","y1y2y3","z1z2z3"]
         for f in fields:
             w[f] = w[f][keep,:]
         w['flag'] = w['flag'][keep]
-        
+
         nOld = w['n'][:]
         nNew = len(w['flag'])
         w['n'][:]         = nNew
         w['nelements'][:] = nNew
-        
+
         print('Removing {}/{} triangles'.format(nOld-nNew,nOld))
-        
+
         return w
 
-    def area(self, data= None):
+    def area(self, data=None):
         if data is None:
             w = self.read()
         else:
             w = data
-        
 
         ab_x = w["x1x2x3"][:,1] - w["x1x2x3"][:,0]
         ab_y = w["y1y2y3"][:,1] - w["y1y2y3"][:,0]
@@ -232,10 +267,12 @@ class wall_3D(AscotData):
         return points,vertices
 
     def _removeDuplicatePoints(self,points,vertices):
-        ''' Remove duplicate points from points and vertices representation of the 3D wall
-        '''
+        """
+        Remove duplicate points from points and vertices representation.
+        """
 
-        upoints,inverse = np.unique(points, return_index=False,return_inverse=True, axis=0)
+        upoints,inverse = np.unique(points, return_index=False,
+                                    return_inverse=True, axis=0)
 
 
         uvertices = inverse[vertices]
@@ -251,41 +288,40 @@ class wall_3D(AscotData):
         else:
             plot.plot_projection(data["x1x2x3"], data["y1y2y3"],
                                  data["z1z2z3"], axes=axes)
-            
-            
+
     def toVtk(self):
         import a5py.wall.a5vtkwall
-        
+
         a5VTKwall = a5py.wall.a5vtkwall.a5VtkWall()
-        
+
         a5VTKwall.fromA5wall(self)
-        
+
         W=self.read()
-        
+
         # Add index of running triangle number
         a5VTKwall.addIndex(setAsActive=True)
-        
-        # Add coloring based on flags. (Get's activated only if there are more than one flag.
+
+        # Add coloring based on flags. (Get's activated only if there are more
+        # than one flag.
         a5VTKwall.addFlag(W['flag'],W['flagIdList'],W['flagIdStrings'])
-        
-        return a5VTKwall 
-        
+
+        return a5VTKwall
+
+
     def append(self,newWall,data=None):
-        '''
-        Returns the wall  with newWall["x1x2x3], newWall["y1y2y3"],  newWall["z1z2z3"], newWall["flag"] to the existing triangles.
+        """
+        Returns the wall with newWall["x1x2x3], newWall["y1y2y3"], newWall["z1z2z3"], newWall["flag"] to the existing triangles.
         If data=None (or not given) reads the old triangles from file.
-        '''
+        """
         if data is None:
             w = self.read()
         else:
             w = data
-            
+
         fields = ["x1x2x3","y1y2y3","z1z2z3","flag"]
         for f in fields:
             #print('Field "{}" has the shapes (data,newWall):'.format(f))
             #print(w[f].shape, newWall[f].shape)
-            
-            
             if(len(w[f].shape)==1):
                 if( len(newWall[f]) != len(newWall[f].ravel()) ):
                     raise Exception("Wrong size field {}".format(f))
@@ -293,15 +329,13 @@ class wall_3D(AscotData):
             else:
                 w[f] = np.concatenate( (w[f], newWall[f]         ), axis=0 )
 
-                
-        
         w['n'] = w['n'] + newWall['n']
 
         return w
 
 
-    def move_component(self, movement, direction, component):    
-        '''
+    def move_component(self, movement, direction, component):
+        """
         @Params:
         filename    Filename where the wall will be saved.
         movement    How much the component is moved in metres
@@ -309,27 +343,22 @@ class wall_3D(AscotData):
         component     Bool array of the points of a component
         wall         Wall object where the wall is copied from, if left empty active 
         wall from filename will be used
-        
+
         @return the new wall data
-        '''
-        
-        
+        """
         rwall = self.read()
-        
-    
+
         #Movement in metres
         t = movement/np.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2) 
-    
-        rwall['x1x2x3'][component,:] += t*direction[0]  
+
+        rwall['x1x2x3'][component,:] += t*direction[0]
         rwall['y1y2y3'][component,:] += t*direction[1]
         rwall['z1z2z3'][component,:] += t*direction[2]
-    
-        new_rwall = {'x1x2x3':rwall['x1x2x3'],'y1y2y3':rwall['y1y2y3'],'z1z2z3':rwall['z1z2z3'],
-                'desc':'ICRHmv{}m'.format(movement),
+
+        new_rwall = {'x1x2x3':rwall['x1x2x3'],'y1y2y3':rwall['y1y2y3'],
+                     'z1z2z3':rwall['z1z2z3'],
+                     'desc':'ICRHmv{}m'.format(movement),
             'flag':rwall['flag'], 'flagIdList':rwall['flagIdList'],
             'flagIdStrings':rwall['flagIdStrings'], 'nelements':rwall['n']}
-    
+
         return new_rwall
-
-
-
