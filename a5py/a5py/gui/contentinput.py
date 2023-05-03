@@ -148,9 +148,9 @@ class ContentInput:
 
                     self.canvas.fig_rzview.clear()
                     gui.ascot.plotRz(r, phi, z, time, qnt, clim=clim,
-                                     axes=self.canvas.fig_rzview.axis)
+                                     axes=self.canvas.fig_rzview.axes)
                     gui.ascot.plotseparatrix(r, phi, z, time,
-                                             self.canvas.fig_rzview.axis)
+                                             self.canvas.fig_rzview.axes)
                     self.canvas.fig_rzview.draw()
 
                 self.plotbutton.configure(command=plot)

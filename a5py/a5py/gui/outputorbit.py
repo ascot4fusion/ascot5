@@ -71,7 +71,7 @@ class OrbitFrame(ttk.Frame):
 
                 self.endc = DropdownMenu(f3, label="Endcond: ", width=12,
                                          labelwidth=8)
-                self.axeq = Tickbox(f3, label=" Axis equal")
+                self.axeq = Tickbox(f3, label=" Axes equal")
 
                 self.endc.pack(side="left", anchor="w")
                 self.axeq.pack(side="left", anchor="w")
@@ -109,20 +109,20 @@ class OrbitFrame(ttk.Frame):
 
                     if ccoord == "None":
                         run.orbit.plot(xcoord, ycoord, equal=equal, log=log,
-                                          endcond=endcond, axes=self.canvas.fig_rzview.axis)
+                                          endcond=endcond, axes=self.canvas.fig_rzview.axes)
                     else:
                         run.orbit.scatter(xcoord, ycoord, c=ccoord, equal=equal,
-                                             log=log, endcond=endcond, axes=self.canvas.fig_rzview.axis)
+                                             log=log, endcond=endcond, axes=self.canvas.fig_rzview.axes)
                 else:
                     self.canvas.fig_rzview.make3d()
                     self.canvas.fig_rzview.clear()
                     if ccoord == "None":
                         run.orbit.plot(xcoord, ycoord, zcoord, equal=equal,
-                                          log=log, endcond=endcond, axes=self.canvas.fig_rzview.axis)
+                                          log=log, endcond=endcond, axes=self.canvas.fig_rzview.axes)
                     else:
                         run.orbit.scatter(xcoord, ycoord, zcoord, ccoord,
                                              equal=equal, log=log,
-                                             endcond=endcond, axes=self.canvas.fig_rzview.axis)
+                                             endcond=endcond, axes=self.canvas.fig_rzview.axes)
 
                 self.canvas.fig_rzview.draw()
 
@@ -159,7 +159,7 @@ class OrbitFrame(ttk.Frame):
                 plane = self.plane.getval()
                 plane = run.getorbit_poincareplanes().index(plane)
 
-                run.plotorbit_poincare(plane, conlen=True, axes=self.canvas.fig_rzview.axis)
+                run.plotorbit_poincare(plane, conlen=True, axes=self.canvas.fig_rzview.axes)
                 self.canvas.fig_rzview.draw()
 
 
@@ -205,15 +205,15 @@ class OrbitCanvas(ttk.Frame):
         class Plot3DFrame(PlotFrame):
 
             def __init__(self, master, tight_layout=True):
-                self.axis3d = False
+                self.axes3d = False
                 super().__init__(master, tight_layout=tight_layout)
 
             def make3d(self):
-                self.axis3d = True
+                self.axes3d = True
 
             def set_axes(self):
-                if self.axis3d:
-                    self.axis3d = False
+                if self.axes3d:
+                    self.axes3d = False
                     return self.fig.add_subplot(1,1,1, projection="3d")
 
                 return self.fig.add_subplot(1,1,1)

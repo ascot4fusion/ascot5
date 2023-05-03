@@ -77,6 +77,10 @@ class NumEntry(tkinter.Frame):
             return float(s1)
 
 
+    def setval(self, val):
+        self.choice.set(val)
+
+
     def isempty(self):
         """
         Check if entry is just an empty string.
@@ -192,25 +196,22 @@ class DropdownMenu(tkinter.Frame):
             self.log.trace('w', trace)
 
 
-class Tickbox(tkinter.Frame):
+class Tickbox(tkinter.Checkbutton):
     """
     A tickbox and label.
     """
 
-    def __init__(self, master, defval=None, trace=None, label=None, width=8):
-        super().__init__(master)
-        self.var = tkinter.IntVar(self)
+    def __init__(self, master, defval=None, trace=None, label=None, width=8,
+                 justify=None):
+        self.var = tkinter.IntVar()
+        super().__init__(master, text=label, variable=self.var,
+                         onvalue=1, offvalue=0, height=1, width=width,
+                         justify=justify)
         if defval is not None:
             self.var.set(defval)
 
         if trace is not None:
             self.var.trace('w', trace)
-
-        tick = tkinter.Checkbutton(self, text=label,
-                                   variable=self.var,
-                                   onvalue=1, offvalue=0,
-                                   height=1, width=width)
-        tick.pack()
 
 
     def getval(self):
@@ -245,7 +246,7 @@ class PlotFrame(tkinter.Frame):
         figcanvas.get_tk_widget().pack(fill=tkinter.BOTH, expand=True)
 
         self.fig       = fig
-        self.axis      = self.set_axes()
+        self.axes      = self.set_axes()
         self.figcanvas = figcanvas
 
     def draw(self):
@@ -256,7 +257,7 @@ class PlotFrame(tkinter.Frame):
             for ax in self.fig.axes:
                 self.fig.delaxes(ax)
 
-        self.axis = self.set_axes()
+        self.axes = self.set_axes()
 
     def set_axes(self):
         return self.fig.add_subplot(1,1,1)

@@ -278,7 +278,7 @@ class ContentGroup():
                 self.fig_modes.clear()
                 group.plot_amplitude(amplitude=amplitude,
                                      mode=mode,
-                                     ax=self.fig_modes.axis)
+                                     ax=self.fig_modes.axes)
                 self.fig_modes.draw()
 
         self.canvas        = canvas

@@ -61,18 +61,10 @@ class ContentPrecheck:
 
             def view(self, ascot):
                 self.fig_topview.clear()
-                #self.fig_topview.axis.remove()
-                plot_top_view(ascot, axes=self.fig_topview.axis[0])
-                #self.fig_topview.draw()
-
-                #self.fig_energypitch.clear()
-                plot_energypitch(ascot, axes=self.fig_topview.axis[1])
-                #self.fig_energypitch.draw()
-
-                #self.fig_rhophi.clear()
-                plot_rhophi(ascot, axes=self.fig_topview.axis[2])
+                plot_top_view(ascot, axes=self.fig_topview.axes[0])
+                plot_energypitch(ascot, axes=self.fig_topview.axes[1])
+                plot_rhophi(ascot, axes=self.fig_topview.axes[2])
                 self.fig_topview.draw()
-                #self.fig_rhophi.draw()
 
 
         frameprecheck = PrecheckFrame(settings).init()

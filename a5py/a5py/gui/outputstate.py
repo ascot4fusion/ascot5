@@ -1,14 +1,34 @@
+"""
+State plotting (frame) for the output content.
+
+File: outputstate.py
+"""
 import tkinter as tk
 from tkinter import ttk
+import numpy as np
 
 from collections import OrderedDict
 from .components import PlotFrame, NumEntry, DropdownMenu, Tickbox, ToggleButton
 
 class StateFrame(ttk.Frame):
+    """
+    Settings frame for visualizing ini/end state.
+
+    Visualizing is done either via scatter plot (2D/3D + color) or histogram
+    (1D/2D).
+
+    This frame contains Notebook widget containing two nested frames: one for
+    the scatter plot settings and the other for the histogram settings. Both
+    share the same StateCanvas frame.
+    """
 
     def init(self, gui, canvas):
+        """
+        Define nested frames and initialize the notebook.
+        """
         self.gui = gui
 
+        # Quantities that can be plotted (should be generated from state.py)
         quantities = OrderedDict([
             ("R",         "m"),
             ("phi (mod)", "deg"),
@@ -37,12 +57,21 @@ class StateFrame(ttk.Frame):
             ("charge",    "T")
         ])
 
+        # Define separate classes for the nested frames
         class ScatterFrame(ttk.Frame):
+            """
+            Settings for the scatter plot.
+            """
 
             def init(self, canvas):
-                f1 = ttk.Frame(self)
-                f2 = ttk.Frame(self)
-                f3 = ttk.Frame(self)
+                """
+                Initialize all the widgets.
+                """
+
+                # For the overall layout we use three frames
+                f1 = ttk.Frame(self) # For coordinate selection widgets
+                f2 = ttk.Frame(self) # Plot and store buttons
+                f3 = ttk.Frame(self) # Additional settings
 
                 f1.grid(row=0, column=0, sticky="e")
                 f2.grid(row=0, column=1, sticky="ne")
@@ -50,6 +79,7 @@ class StateFrame(ttk.Frame):
 
                 self.columnconfigure(1, weight=1)
 
+                # Choose coordinate for [x,y,z,c] and tick if log scale is used
                 self.xcrd = DropdownMenu(f1, log=True, label="x: ", width=12)
                 self.ycrd = DropdownMenu(f1, log=True, label="y: ", width=12)
                 self.zcrd = DropdownMenu(f1, log=True, label="z: ", width=12)
@@ -60,6 +90,7 @@ class StateFrame(ttk.Frame):
                 self.zcrd.grid(row=2, column=0)
                 self.ccrd.grid(row=3, column=0)
 
+                # Is coordinate from ini or endstate
                 self.xbtn = ToggleButton(f1, label1text="Ini", label2text="End")
                 self.ybtn = ToggleButton(f1, label1text="Ini", label2text="End")
                 self.zbtn = ToggleButton(f1, label1text="Ini", label2text="End")
@@ -70,20 +101,25 @@ class StateFrame(ttk.Frame):
                 self.zbtn.grid(row=2, column=1)
                 self.cbtn.grid(row=3, column=1)
 
+                # Plot and store buttons
                 self.plotbutton = tk.Button(f2, text="Plot", width=3)
                 self.savebutton = tk.Button(f2, text="Store", width=3)
                 self.plotbutton.pack(anchor="nw")
                 self.savebutton.pack(anchor="nw")
 
+                # Only markers with this endstate are plotted
                 self.endc = DropdownMenu(f3, label="Endcond: ", width=12,
                                          labelwidth=8)
+                # Set x,y,z axes equal aspect ration
                 self.axeq = Tickbox(f3, label=" Axis equal")
 
                 self.endc.pack(side="left", anchor="w")
                 self.axeq.pack(side="left", anchor="w")
 
+                # Set values for the coordinate drop-down menus
                 self.xcrd.setvals(list(quantities.keys()), "R", 0)
                 self.ycrd.setvals(list(quantities.keys()), "z", 0)
+                # For z and c one can choose "None" which is also the default
                 qwithnone = quantities.copy()
                 qwithnone["None"] = ("None","")
                 self.zcrd.setvals(list(qwithnone.keys()), "None", 0)
@@ -93,6 +129,11 @@ class StateFrame(ttk.Frame):
                 return self
 
             def plot(self, run):
+                """
+                Plot the given run using the active settings in the frame.
+                """
+
+                # Read and process settings
                 xcoord  = self.xcrd.getval()
                 ycoord  = self.ycrd.getval()
                 zcoord  = self.zcrd.getval()
@@ -118,43 +159,53 @@ class StateFrame(ttk.Frame):
                           "e" if self.cbtn.var.get() else "i"]
 
                 if zcoord == "None":
-                    self.canvas.fig_rzview.clear()
-                    axes = self.canvas.fig_rzview.axis
+                    # 2D plot
+                    self.canvas.clear()
                     run.plotstate_scatter(xcoord, ycoord, c=ccoord,
                                           axesequal=equal, log=log,
-                                          endcond=endcond, axes=axes,
-                                          iniend=iniend)
+                                          endcond=endcond, iniend=iniend,
+                                          axes=self.canvas.axes)
                 else:
-                    self.canvas.fig_rzview.make3d()
-                    self.canvas.fig_rzview.clear()
-                    axes = self.canvas.fig_rzview.axis
+                    # 3D plot (here we have to first create 3D axes for canvas)
+                    self.canvas.make3d()
+                    self.canvas.clear()
                     run.plotstate_scatter(xcoord, ycoord, zcoord, ccoord,
                                           axesequal=equal, log=log,
-                                          iniend=iniend,
-                                          endcond=endcond, axes=axes)
-                self.canvas.fig_rzview.draw()
+                                          iniend=iniend, endcond=endcond,
+                                          axes=self.canvas.axes)
+                self.canvas.draw()
 
 
         class HistFrame(ttk.Frame):
+            """
+            Settings for the histogram frame.
+            """
 
             def init(self, canvas):
+                """
+                Initialize widgets.
+                """
 
-                f1 = ttk.Frame(self)
-                f2 = ttk.Frame(self)
-                f4 = tk.Frame(self)
-                f3 = ttk.Frame(self)
+                # Use four frames for layout
+                f1 = ttk.Frame(self) # Coordinate selection
+                f2 = ttk.Frame(self) # Plot and save buttons
+                f3 = ttk.Frame(self) # Bin selection
+                f4 = ttk.Frame(self) # Other settings
 
                 f1.grid(row=0, column=0, sticky="e")
                 f2.grid(row=0, column=1, sticky="ne")
-                f3.grid(row=2, column=0, columnspan=2, sticky="ew")
-                f4.grid(row=1, column=0, columnspan=2, sticky="ew")
+                f3.grid(row=1, column=0, columnspan=2, sticky="w")
+                f4.grid(row=2, column=0, sticky="w")
 
                 self.columnconfigure(1, weight=1)
 
+                # Coordinate selection
                 self.xcrd = DropdownMenu(f1, log=True, label="x: ", width=18,
                                          trace=self.newxcoord)
                 self.ycrd = DropdownMenu(f1, log=True, label="y: ", width=18,
                                          trace=self.newycoord)
+
+                # Coordinate taken from ini or endstate
                 self.xbtn = ToggleButton(f1, label1text="Ini", label2text="End")
                 self.ybtn = ToggleButton(f1, label1text="Ini", label2text="End")
 
@@ -164,32 +215,41 @@ class StateFrame(ttk.Frame):
                 self.xbtn.grid(row=0, column=1)
                 self.ybtn.grid(row=1, column=1)
 
+                # Plot and save buttons
                 self.plotbutton = tk.Button(f2, text="Plot", width=3)
                 self.savebutton = tk.Button(f2, text="Store", width=3)
                 self.plotbutton.pack(anchor="nw")
                 self.savebutton.pack(anchor="nw")
 
-                self.wght = Tickbox(f3, label=" With weights", width=10)
-                self.axeq = Tickbox(f3, label=" Axis equal", width=10)
+                # Weighted histogram (or no), axes equal aspect ratio (or no)
+                self.wght = Tickbox(f4, width=1)
+                self.axeq = Tickbox(f4, width=1)
+                self.zlog = Tickbox(f4, width=1)
 
-                self.wght.pack(side="left", anchor="w")
-                self.axeq.pack(side="left", anchor="w")
+                self.wght.grid(row=0,column=0,sticky="w")
+                tk.Label(f4, text="With weights").grid(row=0,column=1,sticky="w")
+                self.axeq.grid(row=1,column=0,sticky="w")
+                tk.Label(f4, text="Axis equal").grid(row=1,column=1,sticky="w")
+                self.zlog.grid(row=2,column=0,sticky="w")
+                tk.Label(f4, text="log10 scale").grid(row=2,column=1,sticky="w")
 
+                # Set NumEntries for xmin, xmax, and nx inputs
                 self.xmin_entry = NumEntry(
-                    f4, labeltext="rho [1] = ", entrywidth=5, labelwidth=26,
+                    f3, labeltext="rho [1] = ", entrywidth=5, labelwidth=22,
                     anchor="e", defval=0.0)
-                self.xmax_entry = NumEntry(f4, labeltext="–", entrywidth=5,
+                self.xmax_entry = NumEntry(f3, labeltext="–", entrywidth=5,
                                            labelwidth=2, anchor="c", defval=1.0)
-                self.xnum_entry = NumEntry(f4, labeltext="x", entrywidth=5,
+                self.xnum_entry = NumEntry(f3, labeltext="x", entrywidth=5,
                                            labelwidth=2, anchor="c", defval=50,
                                            isint=True)
 
+                # Set NumEntries for ymin, ymax, and ny inputs
                 self.ymin_entry = NumEntry(
-                    f4, labeltext="* = ", entrywidth=5, labelwidth=26,
+                    f3, labeltext="* = ", entrywidth=5, labelwidth=22,
                     anchor="e", defval=0.0)
-                self.ymax_entry = NumEntry(f4, labeltext="–", entrywidth=5,
+                self.ymax_entry = NumEntry(f3, labeltext="–", entrywidth=5,
                                            labelwidth=2, anchor="c", defval=1.0)
-                self.ynum_entry = NumEntry(f4, labeltext="x", entrywidth=5,
+                self.ynum_entry = NumEntry(f3, labeltext="x", entrywidth=5,
                                            labelwidth=2, anchor="c", defval=50,
                                            isint=True)
 
@@ -201,8 +261,8 @@ class StateFrame(ttk.Frame):
                 self.ymax_entry.grid(row=1, column=1)
                 self.ynum_entry.grid(row=1, column=2)
 
-                f4.columnconfigure(0, weight=1)
-
+                # Set values for the drop-down menus and allow y coordinate to
+                # have None option (in which case the histogram is 1D)
                 self.xcrd.setvals(list(quantities.keys()), "rho", 0)
                 qwithnone = quantities.copy()
                 qwithnone["None"] = ("None","")
@@ -221,12 +281,22 @@ class StateFrame(ttk.Frame):
 
                 return self
 
+
             def newxcoord(self, *args):
+                """
+                x-coordinate changed, update the label on the x bin selection.
+                """
                 val = self.xcrd.var.get()
                 unit = quantities[val]
                 self.xmin_entry.setlabel(val + " [" + unit + "]" + " = ")
 
+
             def newycoord(self, *args):
+                """
+                y-coordinate changed, update the label on the y bin selection.
+
+                If None, we disable the bin selection completely for y.
+                """
                 val = self.ycrd.var.get()
                 if val == "None":
                     self.ymin_entry.disable()
@@ -240,41 +310,55 @@ class StateFrame(ttk.Frame):
                     self.ynum_entry.enable()
                     self.ymin_entry.setlabel(val + " [" + unit + "]" + " = ")
 
+
             def plot(self, run):
-                iniend = [self.xbtn.var.get(), self.ybtn.var.get()]
+                """
+                Plot the histogram for the given run using active settings.
+                """
                 xcoord = self.xcrd.getval()
                 ycoord = self.ycrd.getval()
-                if ycoord == "None":
-                    ycoord = None
+                if ycoord == "None": ycoord = None
 
-                #endcond = self.endc.getval()
-                #if endcond == "all":
-                #    endcond = None
-                endcond = None
+                logx      = self.xcrd.islog()
+                logy      = self.ycrd.islog()
+                logscale  = self.zlog.getval() == 1
+                axesequal = self.axeq.getval() == 1
+                weight    = self.wght.getval() == 1
 
-                logx     = self.xcrd.islog()
-                logy     = self.ycrd.islog()
-                logscale = False#self.zlogtick.getval() == 1
+                iniend = ["e" if self.xbtn.var.get() else "i",
+                          "e" if self.ybtn.var.get() else "i"]
 
-                xbins = [ self.xmin_entry.getval(),
-                          self.xmax_entry.getval(),
-                          self.xnum_entry.getval() + 1 ]
+                def getbins(vmin, vmax, nv, islog):
+                    """
+                    Short function to check user input and generate bins.
+                    """
+                    if vmax < vmin or nv <= 0: return None
+                    if islog and (vmin <= 0 or vmax <= 0): return None
 
-                ybins = [ self.ymin_entry.getval(),
-                          self.ymax_entry.getval(),
-                          self.ynum_entry.getval() + 1 ]
+                    if islog:
+                        return np.logspace(np.log10(vmin), np.log10(vmax), nv)
+                    else:
+                        return np.linspace(vmin, vmax, nv)
 
-                weight = self.wght.getval() == 1
+                xbins = getbins(self.xmin_entry.getval(),
+                                self.xmax_entry.getval(),
+                                self.xnum_entry.getval(),
+                                logx)
+                ybins = getbins(self.ymin_entry.getval(),
+                                self.ymax_entry.getval(),
+                                self.ynum_entry.getval(),
+                                logy)
 
-                self.canvas.fig_rzview.clear()
-                run.inistate.histogram(x=xcoord, y=ycoord, xbins=xbins,
-                                       ybins=ybins, weight=weight, logx=logx,
-                                       logy=logy, logscale=logscale,
-                                       endcond=endcond, axes=self.canvas.fig_rzview.axis,
-                                       iniend=iniend)
-                self.canvas.fig_rzview.draw()
+                self.canvas.clear()
+                run.plotstate_histogram(
+                    xcoord, y=ycoord, xbins=xbins, ybins=ybins,
+                    endcond=None, weight=weight, iniend=iniend,
+                    log=[logx, logy], logscale=logscale,
+                    axesequal=axesequal, axes=self.canvas.axes)
+                self.canvas.draw()
 
-
+        # Nested frames defined. Now we just create instances and put the onto
+        # the notebook located in this main frame.
         master = ttk.Notebook(self)
 
         self.framescatter = ScatterFrame(master).init(canvas)
@@ -288,6 +372,9 @@ class StateFrame(ttk.Frame):
 
 
     def display(self):
+        """
+        Display state frame for the run that is currently active.
+        """
         run = self.gui.ascot.hdf5.active
         try:
             endconds, counts = run.endstate.listendconds()
@@ -322,28 +409,36 @@ class StateFrame(ttk.Frame):
         self.framehist.plotbutton.configure(command=plothist)
 
 
-class StateCanvas(ttk.Frame):
+class StateCanvas(PlotFrame):
+    """
+    Canvas for plotting the state plots.
+    """
+
+    def __init__(self, master):
+        """
+        Add attribute axes3d which flags whether next axes should be 3d.
+        """
+        self.axes3d = False
+        super().__init__(master)
+
+    def make3d(self):
+        """
+        Flag next axes to be created 3d.
+        """
+        self.axes3d = True
+
+    def set_axes(self):
+        """
+        Override this method to allow generation of 3d axes.
+        """
+        if self.axes3d:
+            self.axes3d = False
+            return self.fig.add_subplot(1,1,1, projection="3d")
+
+        return self.fig.add_subplot(1,1,1)
 
     def init(self):
-
-        class Plot3DFrame(PlotFrame):
-
-            def __init__(self, master, tight_layout=True):
-                self.axis3d = False
-                super().__init__(master, tight_layout=tight_layout)
-
-            def make3d(self):
-                self.axis3d = True
-
-            def set_axes(self):
-                if self.axis3d:
-                    self.axis3d = False
-                    return self.fig.add_subplot(1,1,1, projection="3d")
-
-                return self.fig.add_subplot(1,1,1)
-
-        fig_rzview = Plot3DFrame(self)
-        fig_rzview.place(relheight=0.8, anchor="nw")
-
-        self.fig_rzview = fig_rzview
+        """
+        Do nothing.
+        """
         return self

@@ -68,11 +68,11 @@ class DistFrame(ttk.Frame):
                 if y == "None":
                     dist.plot_dist(
                         x, logscale=False, equal=equal,
-                        axes=self.canvas.fig_rzview.axis)
+                        axes=self.canvas.fig_rzview.axes)
                 else:
                     dist.plot_dist(
                         x, y, logscale=False, equal=equal,
-                        axes=self.canvas.fig_rzview.axis)
+                        axes=self.canvas.fig_rzview.axes)
 
                 self.canvas.fig_rzview.draw()
 
