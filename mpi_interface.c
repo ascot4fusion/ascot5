@@ -107,7 +107,7 @@ void mpi_my_particles(int* start_index, int* n, int ntotal, int mpi_rank,
  * @param mpi_rank rank of this MPI process
  * @param mpi_size total number of MPI processes
  */
-void mpi_gather_particlestate(particle_state* ps, particle_state** psgathered, 
+void mpi_gather_particlestate(particle_state* ps, particle_state** psgathered,
                               int* ngathered, int ntotal, int mpi_rank,
                               int mpi_size, int mpi_root) {
 #ifdef MPI

@@ -74,16 +74,15 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished);
  * @param sim_offload pointer to simulation offload data
  * @param offload_data pointer to the rest of the offload data
  * @param offload_array pointer to input data offload array
+ * @param int_offload_array pointer to input data int offload array
  * @param diag_offload_array pointer to diagnostics offload array
  *
  * @todo Reorganize this function so that it conforms to documentation.
  */
-void simulate(int id, int n_particles, particle_state* p,
-        sim_offload_data* sim_offload,
-        offload_package* offload_data,
-        real* offload_array,
-        int* int_offload_array,
-        real* diag_offload_array) {
+void simulate(
+    int id, int n_particles, particle_state* p, sim_offload_data* sim_offload,
+    offload_package* offload_data, real* offload_array, int* int_offload_array,
+    real* diag_offload_array) {
 
     char targetname[5];
     if(id == 0) {
@@ -100,33 +99,40 @@ void simulate(int id, int n_particles, particle_state* p,
     sim_data sim;
     sim_init(&sim, sim_offload);
 
-    real* ptr;
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->B_offload_data.offload_array_length);
+    real* ptr; int* ptrint;
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->B_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->E_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->E_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->plasma_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->plasma_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->neutral_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->neutral_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->wall_offload_data.offload_array_length);
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, int_offload_array);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->wall_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, ptrint);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->boozer_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->boozer_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     boozer_init(&sim.boozer_data, &sim_offload->boozer_offload_data, ptr);
 
-    ptr = offload_unpack(offload_data, offload_array,
-            sim_offload->mhd_offload_data.offload_array_length);
+    offload_unpack(offload_data, offload_array,
+                   sim_offload->mhd_offload_data.offload_array_length,
+                   NULL, 0, &ptr, &ptrint);
     mhd_init(&sim.mhd_data, &sim_offload->mhd_offload_data, ptr);
 
     diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
@@ -231,10 +237,10 @@ void simulate(int id, int n_particles, particle_state* p,
             if(pq.p[i]->endcond == endcond_hybrid) {
                 /* Check that there was no wall between when moving from
                    gc to fo */
-	        real w_coll;
+                real w_coll;
                 int tile = wall_hit_wall(pq.p[i]->r, pq.p[i]->phi, pq.p[i]->z,
                         pq.p[i]->rprt, pq.p[i]->phiprt, pq.p[i]->zprt,
-					 &sim.wall_data, &w_coll);
+                                         &sim.wall_data, &w_coll);
                 if(tile > 0) {
                     pq.p[i]->walltile = tile;
                     pq.p[i]->endcond |= endcond_wall;
