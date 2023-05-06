@@ -1,7 +1,7 @@
 #ifndef LIBASCOT_H_
 #define LIBASCOT_H_
 
-#include "ascot.h5"
+#include "ascot5.h"
 #include "simulate.h"
 
 void libascot_B_field_eval_B_dB(sim_offload_data* sim0, real* B_offload_array,
