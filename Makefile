@@ -38,6 +38,8 @@ ifeq ($(RANDOM),MKL)
 else ifeq ($(RANDOM),GSL)
 	DEFINES+=-DRANDOM_GSL
 	CFLAGS+=-lgsl -lgslcblas
+else ifeq ($(RANDOM),LCG)
+	DEFINES+=-DRANDOM_LCG
 endif
 
 ifneq ($(CC),h5cc)

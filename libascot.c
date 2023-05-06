@@ -45,6 +45,7 @@ static real* Bdata;       /**< Magnetic field data (i.e. offload array) */
 static real* Edata;       /**< Electric field data (i.e. offload array) */
 static real* plasmadata;  /**< Plasma data (i.e. offload array)         */
 static real* walldata;    /**< Wall data (i.e. offload array)           */
+static  int* walldataint; /**< Wall data (integers) (i.e. octree)       */
 static real* neutraldata; /**< Neutral data (i.e. offload array)        */
 static real* boozerdata;  /**< Boozer data (i.e. offload array)         */
 static real* mhddata;     /**< MHD data (i.e. offload array)            */
@@ -109,11 +110,11 @@ int libascot_init(char* fn, char* bfield, char* efield, char* plasma,
     /* Initialize wall data if requested. */
     if(wall != NULL) {
         if( hdf5_wall_init_offload(f, &sim_offload.wall_offload_data,
-                &walldata, wall) ) {
+                &walldata, &walldataint, wall) ) {
             return 1;
         }
         wall_init(&sim.wall_data, &sim_offload.wall_offload_data,
-                walldata);
+                walldata, walldataint);
     }
 
     /* Initialize neutral data if requested. */

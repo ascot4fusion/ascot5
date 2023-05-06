@@ -82,6 +82,7 @@ void simulate(int id, int n_particles, particle_state* p,
         sim_offload_data* sim_offload,
         offload_package* offload_data,
         real* offload_array,
+        int* int_offload_array,
         real* diag_offload_array) {
 
     char targetname[5];
@@ -118,7 +119,7 @@ void simulate(int id, int n_particles, particle_state* p,
 
     ptr = offload_unpack(offload_data, offload_array,
             sim_offload->wall_offload_data.offload_array_length);
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, int_offload_array);
 
     ptr = offload_unpack(offload_data, offload_array,
             sim_offload->boozer_offload_data.offload_array_length);

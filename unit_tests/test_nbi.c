@@ -34,9 +34,10 @@ int main(int argc, char** argv) {
     real* B_offload_array;
     real* plasma_offload_array;
     real* wall_offload_array;
+    int* wall_int_offload_array;
     hdf5_interface_read_input(&sim, hdf5_input_bfield | hdf5_input_plasma |
                               hdf5_input_wall, &B_offload_array, NULL,
-                              &plasma_offload_array, NULL, &wall_offload_array,
+                              &plasma_offload_array, NULL, &wall_offload_array, &wall_int_offload_array,
                               NULL, NULL, NULL, NULL);
 
     B_field_data B_data;
@@ -46,7 +47,7 @@ int main(int argc, char** argv) {
     plasma_init(&plasma_data, &sim.plasma_offload_data, plasma_offload_array);
 
     wall_data wall_data;
-    wall_init(&wall_data, &sim.wall_offload_data, wall_offload_array);
+    wall_init(&wall_data, &sim.wall_offload_data, wall_offload_array, wall_int_offload_array);
 
     random_data rng;
     random_init(&rng, 12345);

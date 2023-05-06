@@ -158,6 +158,7 @@ int main(int argc, char** argv) {
     real* plasma_offload_array;
     real* neutral_offload_array;
     real* wall_offload_array;
+    int* wall_int_offload_array;
     real* boozer_offload_array;
     real* mhd_offload_array;
 
@@ -170,8 +171,9 @@ int main(int argc, char** argv) {
                                   hdf5_input_mhd,
                                   &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
-                                  &wall_offload_array, &boozer_offload_array,
-                                  &mhd_offload_array, &p, &n_tot) ) {
+                                  &wall_offload_array,  &wall_int_offload_array, 
+                                  &boozer_offload_array, &mhd_offload_array,
+                                  &p, &n_tot) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nInput reading or initializing failed.\n"
                    "See stderr for details.\n");
@@ -182,6 +184,8 @@ int main(int argc, char** argv) {
     int nprts;
     int n_gathered;
     real* offload_array;
+    int* int_offload_array;
+
     offload_package offload_data;
     particle_state* ps;
     real* diag_offload_array;
@@ -195,6 +199,7 @@ int main(int argc, char** argv) {
     		&plasma_offload_array,
     		&neutral_offload_array,
     		&wall_offload_array,
+            &wall_int_offload_array,
     		&boozer_offload_array,
     		&mhd_offload_array,
     		n_tot,
@@ -206,6 +211,7 @@ int main(int argc, char** argv) {
     		&p,
     	    &n_gathered,
     	    &offload_array,
+    	    &int_offload_array,
     	    &offload_data,
     		&ps,
     	    &diag_offload_array   ) ) {
@@ -217,6 +223,7 @@ int main(int argc, char** argv) {
     		mpi_rank,
     		ps,
     	    offload_array,
+            int_offload_array,
     	    diag_offload_array,
     		&sim,
     	    &offload_data
@@ -344,6 +351,7 @@ int run(
 		int mpi_rank,
 		particle_state *ps,
 	    real *offload_array,
+        int* int_offload_array,
 	    real *diag_offload_array,
 		sim_offload_data *sim,
 	    offload_package *offload_data
@@ -385,10 +393,11 @@ int run(
             #pragma omp target device(0) map( \
                 ps[0:n_mic], \
                 offload_array[0:offload_data.offload_array_length], \
+                int_offload_array[0:int_offload_array_length], \
                 diag_offload_array[0:sim.diag_offload_data.offload_array_length] \
             )
             simulate(1, n_mic, ps, sim, offload_data, offload_array,
-                diag_offload_array);
+                int_offload_array, diag_offload_array);
 
             mic_end = omp_get_wtime();
         }
@@ -402,7 +411,7 @@ int run(
         {
             host_start = omp_get_wtime();
             simulate(0, n_host, ps+2*n_mic, sim, offload_data,
-                offload_array, diag_offload_array);
+                offload_array, int_offload_array, diag_offload_array);
             host_end = omp_get_wtime();
         }
 #endif
@@ -711,6 +720,7 @@ int offload(
 		real** plasma_offload_array,
 		real** neutral_offload_array,
 		real** wall_offload_array,
+		int** wall_int_offload_array,
 		real** boozer_offload_array,
 		real** mhd_offload_array,
 		int n_tot,
@@ -722,6 +732,7 @@ int offload(
 		input_particle **p,
 	    int* n_gathered,
 	    real **offload_array,
+        int  **int_offload_array,
 	    offload_package *offload_data,
 		particle_state** ps,
 	    real** diag_offload_array
@@ -730,6 +741,7 @@ int offload(
 
     particle_state* ps_gathered;
 
+    int int_offload_array_length;
 
 
 
@@ -756,7 +768,11 @@ int offload(
 
     offload_pack(offload_data, offload_array, *wall_offload_array,
                  sim->wall_offload_data.offload_array_length);
-    wall_free_offload(&sim->wall_offload_data, wall_offload_array);
+    int_offload_array_length = sim->wall_offload_data.w3d.int_offload_array_length;
+    *int_offload_array = (int*) malloc(int_offload_array_length*sizeof(int));
+    memcpy(*int_offload_array, *wall_int_offload_array, int_offload_array_length*sizeof(int));
+    wall_free_offload(&sim->wall_offload_data, wall_offload_array,
+                      wall_int_offload_array);
 
     offload_pack(offload_data, offload_array, *boozer_offload_array,
                  sim->boozer_offload_data.offload_array_length);
