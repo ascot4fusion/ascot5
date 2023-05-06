@@ -211,11 +211,15 @@ int libascot_free(int bfield, int efield, int plasma, int wall, int neutral,
  * @param Bz_dphi output array [T].
  * @param Bz_dz output array [T].
  */
-void libascot_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z, real* t,
+void libascot_B_field_eval_B_dB(sim_offload_data* sim0, real* B_offload_array,
+                                int Neval, real* R, real* phi, real* z, real* t,
                                 real* BR, real* Bphi, real* Bz,
                                 real* BR_dR, real* BR_dphi, real* BR_dz,
                                 real* Bphi_dR, real* Bphi_dphi, real* Bphi_dz,
                                 real* Bz_dR, real* Bz_dphi, real* Bz_dz) {
+
+    sim_data simdata;
+    B_field_init(&simdata.B_data, &sim0->B_offload_data, B_offload_array);
     real B[12];
     for(int k = 0; k < Neval; k++) {
         if( B_field_eval_B_dB(B, R[k], phi[k], z[k], t[k], &sim.B_data) ) {

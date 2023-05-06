@@ -216,8 +216,8 @@ test_spline: $(UTESTDIR)test_spline.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 ASCOTPY2_HEADERFILES=particle.h hdf5_interface.h ascot5.h mpi_interface.h \
-	simulate.h ascot5_main.h offload.h diag.h libascot_mem.h wall.h \
-	Bfield/B_STS.h B_field.h $(HDF5IOHEADERS)
+	simulate.h ascot5_main.h offload.h diag.h libascot_mem.h libascot.h \
+	wall.h Bfield/B_STS.h B_field.h
 
 ascotpy2.py : libascot.so
 	clang2py -l libascot.so -o $@  \
