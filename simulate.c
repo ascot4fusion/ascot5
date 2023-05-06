@@ -122,7 +122,9 @@ void simulate(
 
     offload_unpack(offload_data, offload_array,
                    sim_offload->wall_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
+                   int_offload_array,
+                   sim_offload->wall_offload_data.int_offload_array_length,
+                   &ptr, &ptrint);
     wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, ptrint);
 
     offload_unpack(offload_data, offload_array,
