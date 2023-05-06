@@ -179,21 +179,24 @@ int main(int argc, char** argv) {
         return 1;
     };
 
-    /* Combine input offload arrays to one; initialize marker states array;
-     * allocate diag_offload_array. */
+    /* Initialize marker states array ps and free marker input p */
+    int nprts; /* Number of markers allocated for this MPI process */
+    particle_state* ps;
+    if( prepare_markers(
+            &sim, mpi_size, mpi_rank, n_tot, &p, &ps, &nprts,
+            B_offload_array) ) {
+        goto CLEANUP_FAILURE;
+    }
+
+    /* Combine input offload arrays to one */
     offload_package offload_data;
     real* offload_array;
-    real* diag_offload_array;
     int* int_offload_array;
-    int nprts;
-    particle_state* ps;
-    if( prepare_offload(
-            &sim, mpi_size, mpi_rank, n_tot, &offload_data,
-            &B_offload_array, &E_offload_array, &plasma_offload_array,
-            &neutral_offload_array, &wall_offload_array,
-            &wall_int_offload_array, &boozer_offload_array,
-            &mhd_offload_array, &p, &ps, &nprts,
-            &offload_array, &int_offload_array, &diag_offload_array) ) {
+    if( pack_offload_array(
+            &sim, &offload_data, &B_offload_array, &E_offload_array,
+            &plasma_offload_array, &neutral_offload_array, &wall_offload_array,
+            &wall_int_offload_array, &boozer_offload_array, &mhd_offload_array,
+            &offload_array, &int_offload_array) ) {
         goto CLEANUP_FAILURE;
     }
 
@@ -203,82 +206,109 @@ int main(int argc, char** argv) {
     }
 
     /* Actual simulation is done here; the results are stored in
-     * diag_offload_array and ps contains marker end states. */
-    offload_and_simulate(&sim, mpi_rank, nprts, ps, &offload_data,
-                         offload_array, int_offload_array, diag_offload_array);
+     * diag_offload_array and pout contains end states from all processes. */
+    real* diag_offload_array;
+    particle_state* pout;
+    offload_and_simulate(
+        &sim, mpi_size, mpi_rank, mpi_root, n_tot, nprts, ps, &offload_data,
+        offload_array, int_offload_array, &pout, &diag_offload_array);
 
     /* Free input data */
     offload_free_offload(&offload_data, &offload_array, &int_offload_array);
 
-    /* Gather output from all MPI processes */
-    particle_state* ps_gathered;
-    gather_output(&sim, mpi_size, mpi_rank, mpi_root, n_tot, ps, &ps_gathered,
-        diag_offload_array);
-
     /* Write output and clean */
-    if( write_output(&sim, mpi_rank, mpi_root, ps_gathered, n_tot,
+    if( write_output(&sim, mpi_rank, mpi_root, pout, n_tot,
                      diag_offload_array) ) {
         goto CLEANUP_FAILURE;
     }
-
-    mpi_interface_finalize();
     diag_free_offload(&sim.diag_offload_data, &diag_offload_array);
 
     /* Display marker summary and free marker arrays */
     if(mpi_rank == mpi_root) {
-        print_marker_summary(ps_gathered, n_tot);
+        print_marker_summary(pout, n_tot);
     }
-    free(ps_gathered);
+    free(pout);
 
     print_out0(VERBOSE_MINIMAL, mpi_rank, "\nDone.\n");
+    mpi_interface_finalize();
     return 0;
 
 /* GOTO this block to free resources in case simulation crashes */
 CLEANUP_FAILURE:
     mpi_interface_finalize();
-    int retval = free_simulation_data(
-        &sim, &ps_gathered, &offload_data, &offload_array, &int_offload_array,
-        &diag_offload_array);
+    free(p);
+    free(ps);
+    free(pout);
+    free(offload_array);
+    free(int_offload_array);
+    free(diag_offload_array);
     abort();
-    return retval;
+    return 1;
 }
 
 
 /**
- * @brief Free marker array.
+ * @brief Prepare markers for offload
  *
- * @param ps pointer to the marker array to be freed.
+ * Marker states are initialized here and stored in a single array, which
+ * then can be offloaded to the target.
  *
- * This function is just a wrapper for the deallocation free() function. This
- * wrapper is needed for the libascot Python interface.
+ * @param sim simulation offload data struct
+ * @param mpi_size number of MPI processes
+ * @param mpi_rank rank of this MPI process
+ * @param n_tot total number of markers
+ * @param pin pointer to marker input array which is deallocated here
+ * @param pout pointer to marker state array created here
+ * @param nprts pointer to variable for number of markers for this process
+ * @param B_offload_array pointer to magnetic field data needed for marker init
  *
- * @return zero always
+ * @returns zero on success
  */
-int free_ps(particle_state *ps){
-    free(ps);
+int prepare_markers(
+    sim_offload_data* sim, int mpi_size, int mpi_rank, int n_tot,
+    input_particle** pin, particle_state** pout, int* nprts,
+    real* B_offload_array) {
+
+    /* Choose which markers are used in this MPI process. Simply put, markers
+     * are divided into mpi_size sequential blocks and the mpi_rank:th block
+     * is chosen for this simulation. */
+    int start_index;
+    mpi_my_particles(&start_index, nprts, n_tot, mpi_rank, mpi_size);
+    (*pin) += start_index;
+
+    /* Set up particlestates on host, needs magnetic field evaluation */
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "\nInitializing marker states.\n");
+    B_field_data Bdata;
+    B_field_init(&Bdata, &sim->B_offload_data, B_offload_array);
+
+    *pout = (particle_state*) malloc(*nprts * sizeof(particle_state));
+    for(int i = 0; i < *nprts; i++) {
+        particle_input_to_state(&(*pin)[i], &(*pout)[i], &Bdata);
+    }
+
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "Estimated memory usage %.1f MB.\n",
+               (sizeof(real) * (*nprts)) / (1024.0*1024.0));
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "Marker states initialized.\n");
+
+    /* We can now free the input markers */
+    free((*pin)-start_index);
+
     return 0;
 }
 
 
 /**
- * @brief Prepare data to be offloaded
+ * @brief Prepare offload array to be offloaded
  *
  * When data is read, it is stored to input specific offload arrays which
  * are packed as a single array here (two actually as one array contains
  * integers and the other floats). The initial individual arrays are
  * deallocated.
  *
- * We also allocate data for the output in the common offload array, which
- * is then populated at the target, and the offload array is used to transfer
- * that data back to the host where it can be written.
- *
- * Marker states are also initialized here and stored in a single array, which
- * is then offloaded to the target.
- *
  * @param sim simulation offload data struct
- * @param mpi_size number of MPI processes
- * @param mpi_rank rank of this MPI process
- * @param n_tot total number of markers
  * @param offload_data empty offload package
  * @param B_offload_array magnetic field offload array
  * @param E_offload_array electric field offload array
@@ -288,34 +318,26 @@ int free_ps(particle_state *ps){
  * @param wall_int_offload_array wall integer offload array
  * @param boozer_offload_array boozer offload array
  * @param mhd_offload_array MHD data offload array
- * @param p pointer to marker input array
- * @param ps pointer to marker state array created here
- * @param nprts pointer to variable for number of markers for this process
  * @param offload_array pointer to common offload array created here
  * @param int_offload_array pointer to common offload integer array created here
- * @param diag_offload_array pointer to diagnostics offload array created here
  *
  * @returns zero on success
  */
-int prepare_offload(
-    sim_offload_data* sim, int mpi_size, int mpi_rank, int n_tot,
-    offload_package* offload_data, real** B_offload_array,
-    real** E_offload_array, real** plasma_offload_array,
+int pack_offload_array(
+    sim_offload_data* sim, offload_package* offload_data,
+    real** B_offload_array, real** E_offload_array, real** plasma_offload_array,
     real** neutral_offload_array, real** wall_offload_array,
     int** wall_int_offload_array, real** boozer_offload_array,
-    real** mhd_offload_array, input_particle** p, particle_state** ps,
-    int* nprts, real** offload_array, int** int_offload_array,
-    real** diag_offload_array) {
-
-    simulate_init_offload(sim);
+    real** mhd_offload_array, real** offload_array, int** int_offload_array) {
 
     /* Pack offload data into single array and free individual offload arrays */
-    /* B_offload_array is needed for marker evaluation and is freed later */
-
+    simulate_init_offload(sim);
     offload_init_offload(offload_data, offload_array, int_offload_array);
+
     offload_pack(offload_data, offload_array, *B_offload_array,
                  sim->B_offload_data.offload_array_length,
                  int_offload_array, NULL, 0);
+    B_field_free_offload(&sim->B_offload_data, B_offload_array);
 
     offload_pack(offload_data, offload_array, *E_offload_array,
                  sim->E_offload_data.offload_array_length,
@@ -348,42 +370,6 @@ int prepare_offload(
                  sim->mhd_offload_data.offload_array_length,
                  int_offload_array, NULL, 0);
     mhd_free_offload(&sim->mhd_offload_data, mhd_offload_array);
-
-    /* Initialize diagnostics offload data */
-    diag_init_offload(&sim->diag_offload_data, diag_offload_array, n_tot);
-
-    real diag_offload_array_size = sim->diag_offload_data.offload_array_length
-        * sizeof(real) / (1024.0*1024.0);
-    print_out0(VERBOSE_NORMAL, mpi_rank,
-               "Initialized diagnostics, %.1f MB.\n", diag_offload_array_size);
-
-    /* Choose which markers are used in this MPI process. Simply put, markers
-     * are divided into mpi_size sequential blocks and the mpi_rank:th block
-     * is chosen for this simulation. */
-    int start_index;
-    mpi_my_particles(&start_index, nprts, n_tot, mpi_rank, mpi_size);
-    (*p) += start_index;
-
-    /* Set up particlestates on host, needs magnetic field evaluation */
-    print_out0(VERBOSE_NORMAL, mpi_rank,
-               "\nInitializing marker states.\n");
-    B_field_data Bdata;
-    B_field_init(&Bdata, &sim->B_offload_data, *B_offload_array);
-
-    *ps = (particle_state*) malloc(*nprts * sizeof(particle_state));
-    for(int i = 0; i < *nprts; i++) {
-        particle_input_to_state(&(*p)[i], &(*ps)[i], &Bdata);
-    }
-
-    print_out0(VERBOSE_NORMAL, mpi_rank,
-               "Estimated memory usage %.1f MB.\n",
-               (sizeof(real) * (*nprts)) / (1024.0*1024.0));
-    print_out0(VERBOSE_NORMAL, mpi_rank,
-               "Marker states initialized.\n");
-
-    /* We can now free the Bfield offload array and input markers */
-    B_field_free_offload(&sim->B_offload_data, B_offload_array);
-    free((*p)-start_index);
 
     return 0;
 }
@@ -452,19 +438,30 @@ int write_rungroup(
  *
  * @param sim simulation offload data struct
  * @param mpi_rank rank of this MPI process
+ * @param n_tot total number of markers
  * @param nprts number of markers in this process
- * @param ps marker state array
+ * @param pin marker state array for this process (deallocated here)
  * @param offload_data packed offload data struct
  * @param offload_array packed offload array containing the input data
  * @param int_offload_array packed offload integer array containg the input data
+ * @param pout pointer to array containing all marker endstates
  * @param diag_offload_array allocated array to return output data from target
  *
  * @return zero on success
  */
 int offload_and_simulate(
-    sim_offload_data* sim, int mpi_rank, int nprts, particle_state* ps,
-    offload_package* offload_data, real* offload_array,
-    int* int_offload_array, real* diag_offload_array) {
+    sim_offload_data* sim, int mpi_size, int mpi_rank, int mpi_root, int n_tot,
+    int nprts, particle_state* pin, offload_package* offload_data,
+    real* offload_array, int* int_offload_array, particle_state** pout,
+    real** diag_offload_array) {
+
+    /* Initialize diagnostics offload data */
+    diag_init_offload(&sim->diag_offload_data, diag_offload_array, n_tot);
+
+    real diag_offload_array_size = sim->diag_offload_data.offload_array_length
+        * sizeof(real) / (1024.0*1024.0);
+    print_out0(VERBOSE_NORMAL, mpi_rank,
+               "Initialized diagnostics, %.1f MB.\n", diag_offload_array_size);
 
     /* Divide markers among host and target */
 #ifdef TARGET
@@ -496,13 +493,13 @@ int offload_and_simulate(
             mic_start = omp_get_wtime();
 
             #pragma omp target device(0) map( \
-                ps[0:n_mic], \
+                pin[0:n_mic], \
                 offload_array[0:offload_data.offload_array_length], \
                 int_offload_array[0:int_offload_array_length], \
                 diag_offload_array[0:sim.diag_offload_data.offload_array_length] \
             )
-            simulate(1, n_mic, ps, sim, offload_data, offload_array,
-                     int_offload_array, diag_offload_array);
+            simulate(1, n_mic, pin, sim, offload_data, offload_array,
+                     int_offload_array, *diag_offload_array);
 
             mic_end = omp_get_wtime();
         }
@@ -514,8 +511,8 @@ int offload_and_simulate(
         #pragma omp section
         {
             host_start = omp_get_wtime();
-            simulate(0, n_host, ps+2*n_mic, sim, offload_data,
-                offload_array, int_offload_array, diag_offload_array);
+            simulate(0, n_host, pin+2*n_mic, sim, offload_data,
+                offload_array, int_offload_array, *diag_offload_array);
             host_end = omp_get_wtime();
         }
 #endif
@@ -525,38 +522,15 @@ int offload_and_simulate(
     print_out0(VERBOSE_NORMAL, mpi_rank, "gpu %lf s, host %lf s\n",
         mic_end-mic_start, host_end-host_start);
 
-    return 0;
-}
-
-
-/**
- * @brief Gather markers and combine results from all MPI processes.
- *
- * Also frees the marker array belonging to this process.
- *
- * @param sim simulation offload data struct
- * @param mpi_size number of MPI processes
- * @param mpi_rank rank of this MPI process
- * @param mpi_root rank of the root process
- * @param n_tot total number of markers
- * @param ps particle state array belonging to this process
- * @param ps_gathered pointer where the marker combined marker array is stored
- * @param diag_offload_array diagnostics offload array where results are summed
- *
- * @return zero on success
- */
-int gather_output(
-    sim_offload_data* sim, int mpi_size, int mpi_rank, int mpi_root,
-    int n_tot, particle_state* ps, particle_state** ps_gathered,
-    real* diag_offload_array) {
-
+    /* Gather output data */
     int n_gathered;
-    mpi_gather_particlestate(ps, ps_gathered, &n_gathered, n_tot,
+    mpi_gather_particlestate(pin, pout, &n_gathered, n_tot,
                              mpi_rank, mpi_size, mpi_root);
+    free(pin);
 
-    mpi_gather_diag(&sim->diag_offload_data, diag_offload_array, n_tot,
+    mpi_gather_diag(&sim->diag_offload_data, *diag_offload_array, n_tot,
                     mpi_rank, mpi_size, mpi_root);
-    free(ps);
+
     return 0;
 }
 
@@ -615,33 +589,6 @@ int write_output(
     return 0;
 }
 
-
-/**
- * @brief Deallocate data that was needed to execute the simulation.
- *
- * Deallocated data includes marker array, offload data arrays (the individual
- * input arrays were deallocated when creating the common offload array), and
- * diagnostics data.
- *
- * @param sim simulation offload data struct
- * @param ps marker array
- * @param diag_offload_array
- * @param offload_array
- * @param offload_data
- *
- * @return zero on success
- */
-int free_simulation_data(
-    sim_offload_data* sim, particle_state** ps, offload_package *offload_data,
-    real** offload_array, int** int_offload_array, real** diag_offload_array) {
-
-    offload_free_offload(offload_data, offload_array, int_offload_array);
-    diag_free_offload(&sim->diag_offload_data, diag_offload_array);
-    free(*ps);
-    *ps = NULL;
-
-    return 0;
-}
 
 /**
  * @brief Read command line arguments and modify sim struct accordingly
@@ -909,4 +856,25 @@ void print_marker_summary(particle_state* ps, int n_tot) {
     free(temp);
     free(unique);
     free(count);
+}
+
+
+/**
+ * @brief Free marker array and diagnostics data.
+ *
+ * This function is required for the Python interface.
+ *
+ * @param sim simulation offload data struct
+ * @param ps pointer to the marker array to be freed
+ * @param diag_offload_array diagnostics offload array to be freed
+ *
+ * @return zero on success
+ */
+int free_simulation_output(
+    sim_offload_data* sim, particle_state **ps, real** diag_offload_array){
+    free(*ps);
+    *ps = NULL;
+    diag_free_offload(&sim->diag_offload_data, diag_offload_array);
+
+    return 0;
 }
