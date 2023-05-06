@@ -28,7 +28,7 @@ typedef struct {
                                    divided to in each direction.
                                    ngrid = 2^(depth-1)                        */
     int offload_array_length; /**< Length of the offload array                */
-    int int_offload_array_length; /**< Length of the int offload array        */
+    int int_offload_array_length;
 } wall_3d_offload_data;
 
 /**
