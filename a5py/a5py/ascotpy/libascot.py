@@ -17,6 +17,8 @@ import numpy as np
 
 from scipy import interpolate
 
+from a5py.ascotpy import ascotpy2
+
 from ctypes.util import find_library
 from numpy.ctypeslib import ndpointer
 from a5py.ascot5io.ascot5 import Ascot
@@ -29,6 +31,8 @@ class LibAscot:
     """
     An object representing a running ascot5 process.
     """
+
+    DUMMY_QID = "".encode('UTF-8')
 
     def __init__(self, h5fn=None, libpath="libascot.so"):
         """
@@ -58,180 +62,120 @@ class LibAscot:
             raise AscotpyInitException(msg)
 
         # Initialize attributes
-        self.bfield_initialized  = None
-        self.efield_initialized  = None
-        self.plasma_initialized  = None
-        self.neutral_initialized = None
-        self.wall_initialized    = None
-        self.boozer_initialized  = None
-        self.mhd_initialized     = None
+        self.ready_to_offload  = False
+        self.offload_data      = ascotpy2.struct_c__SA_offload_package()
+        self.offload_array     = ctypes.POINTER(ctypes.c_double)()
+        self.int_offload_array = ctypes.POINTER(ctypes.c_int   )()
 
-        # Declare functions found in libascot
+        self.sim = ascotpy2.struct_c__SA_sim_offload_data()
+        self.bfield_offload_array  = ctypes.POINTER(ctypes.c_double)()
+        self.efield_offload_array  = ctypes.POINTER(ctypes.c_double)()
+        self.plasma_offload_array  = ctypes.POINTER(ctypes.c_double)()
+        self.neutral_offload_array = ctypes.POINTER(ctypes.c_double)()
+        self.wall_offload_array    = ctypes.POINTER(ctypes.c_double)()
+        self.boozer_offload_array  = ctypes.POINTER(ctypes.c_double)()
+        self.mhd_offload_array     = ctypes.POINTER(ctypes.c_double)()
 
-        real_p = ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")
-
-        # Init and free functions.
-        try:
-            fun = self.libascot.libascot_init
-            fun.restype  = ctypes.c_int
-            fun.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p,
-                            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p,
-                            ctypes.c_char_p, ctypes.c_char_p]
-        except AttributeError:
-            warnings.warn("libascot_init not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_free
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                            ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                            ctypes.c_int]
-        except AttributeError:
-            warnings.warn("libascot_free not found", Warning)
-            pass
-
-        # B field functions.
-        try:
-            fun = self.libascot.libascot_B_field_eval_B_dB
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_B_field_eval_B_dB not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_B_field_eval_rho
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_B_field_eval_rho not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_B_field_get_axis
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_B_field_get_axis not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_B_field_eval_rhovals
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int,    ctypes.c_double, ctypes.c_double,
-                            ctypes.c_double, ctypes.c_double, ctypes.c_double,
-                            real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_B_field_eval_rhovals not found", Warning)
-            pass
-
-        # E field functions.
-        try:
-            fun = self.libascot.libascot_E_field_eval_E
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_E_field_eval_E not found", Warning)
-            pass
-
-        # Plasma functions.
-        try:
-            fun = self.libascot.libascot_plasma_get_n_species
-            fun.restype  = ctypes.c_int
-        except AttributeError:
-            warnings.warn("libascot_plasma_get_n_species not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_plasma_get_species_mass_and_charge
-            fun.restype  = None
-            fun.argtypes = [real_p, real_p]
-        except AttributeError:
-            warnings.warn(
-                "libascot_plasma_get_species_mass_and_charge not found",
-                Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_plasma_eval_background
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_plasma_eval_background not found", Warning)
-            pass
-
-        # Neutral functions.
-        try:
-            fun = self.libascot.libascot_neutral_eval_density
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p]
-        except AttributeError:
-            warnings.warn("libascot_neutral_eval_density not found", Warning)
-            pass
-
-        # Boozer and MHD functions.
-        try:
-            fun = self.libascot.libascot_boozer_eval_psithetazeta
-            fun.restype  = ctypes.c_int
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p,
-                            real_p]
-        except AttributeError:
-            warnings.warn("libascot_boozer_eval_psithetazeta not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_boozer_eval_fun
-            fun.restype  = ctypes.c_int
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_boozer_eval_fun not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_mhd_eval
-            fun.restype  = ctypes.c_int
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_mhd_eval not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_mhd_eval_perturbation
-            fun.restype  = ctypes.c_int
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p,
-                            real_p]
-        except AttributeError:
-            warnings.warn("libascot_mhd_eval_perturbation not found", Warning)
-            pass
-
-        # Collision coefficients.
-        try:
-            fun = self.libascot.libascot_eval_collcoefs
-            fun.restype  = ctypes.c_int
-            fun.argtypes = [ctypes.c_int, real_p, ctypes.c_double,
-                            ctypes.c_double, ctypes.c_double, ctypes.c_double,
-                            ctypes.c_double, ctypes.c_double, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_eval_collcoefs not found", Warning)
-            pass
+        self.wall_int_offload_array = ctypes.POINTER(ctypes.c_int)()
 
         # Check that the HDF5 file exists
         self.reload(h5fn)
+
+        # Declare functions found in libascot. We have to do this manually
+        # (instead of using clang2py) since we want to use numpy arrays
+        # for arguments. This can be done using this pointer.
+        real_p = ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")
+        sim_p  = ctypes.POINTER(ascotpy2.struct_c__SA_sim_offload_data)
+        cdbl_p = ctypes.POINTER(ctypes.c_double)
+
+        # B field functions.
+        fun = self.libascot.libascot_B_field_eval_B_dB
+        fun.restype  = None
+        fun.argtypes = [sim_p, cdbl_p,
+                        ctypes.c_int, real_p, real_p, real_p, real_p,
+                        real_p, real_p, real_p, real_p, real_p, real_p,
+                        real_p, real_p, real_p, real_p, real_p, real_p]
+
+        fun = self.libascot.libascot_B_field_eval_rho
+        fun.restype  = None
+        fun.argtypes = [sim_p, cdbl_p,
+                        ctypes.c_int, real_p, real_p, real_p, real_p,
+                        real_p, real_p]
+
+        fun = self.libascot.libascot_B_field_get_axis
+        fun.restype  = None
+        fun.argtypes = [sim_p, cdbl_p,
+                        ctypes.c_int, real_p, real_p, real_p]
+
+        fun = self.libascot.libascot_B_field_eval_rhovals
+        fun.restype  = None
+        fun.argtypes = [sim_p, cdbl_p,
+                        ctypes.c_int,    ctypes.c_double, ctypes.c_double,
+                        ctypes.c_double, ctypes.c_double, ctypes.c_double,
+                        real_p, real_p, real_p]
+
+        fun = self.libascot.libascot_E_field_eval_E
+        fun.restype  = None
+        fun.argtypes = [sim_p, cdbl_p, cdbl_p,
+                        ctypes.c_int, real_p, real_p, real_p, real_p,
+                        real_p, real_p, real_p]
+
+        fun = self.libascot.libascot_plasma_get_n_species
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [sim_p, cdbl_p]
+
+        fun = self.libascot.libascot_plasma_get_species_mass_and_charge
+        fun.restype  = None
+        fun.argtypes = [sim_p, cdbl_p, real_p, real_p]
+
+        fun = self.libascot.libascot_plasma_eval_background
+        fun.restype  = None
+        fun.argtypes = [sim_p, cdbl_p, cdbl_p,
+                        ctypes.c_int, real_p, real_p, real_p, real_p,
+                        real_p, real_p]
+
+        fun = self.libascot.libascot_neutral_eval_density
+        fun.restype  = None
+        fun.argtypes = [sim_p, cdbl_p,
+                        ctypes.c_int, real_p, real_p, real_p, real_p,
+                        real_p]
+
+        fun = self.libascot.libascot_boozer_eval_psithetazeta
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [sim_p, cdbl_p,
+                        ctypes.c_int, real_p, real_p, real_p, real_p,
+                        real_p, real_p, real_p, real_p, real_p, real_p,
+                        real_p, real_p, real_p, real_p, real_p, real_p,
+                        real_p]
+
+        fun = self.libascot.libascot_boozer_eval_fun
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [sim_p, cdbl_p, cdbl_p,
+                        ctypes.c_int, real_p, real_p, real_p, real_p,
+                        real_p, real_p, real_p]
+
+        fun = self.libascot.libascot_mhd_eval
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [sim_p, cdbl_p, cdbl_p,
+                        ctypes.c_int, real_p, real_p, real_p, real_p,
+                        real_p, real_p, real_p, real_p, real_p,
+                        real_p, real_p, real_p, real_p, real_p]
+
+        fun = self.libascot.libascot_mhd_eval_perturbation
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [sim_p, cdbl_p, cdbl_p, cdbl_p,
+                        ctypes.c_int, real_p, real_p, real_p, real_p,
+                        real_p, real_p, real_p, real_p, real_p, real_p,
+                        real_p]
+
+        fun = self.libascot.libascot_eval_collcoefs
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [sim_p, cdbl_p, cdbl_p, cdbl_p,
+                        ctypes.c_int, real_p, ctypes.c_double,
+                        ctypes.c_double, ctypes.c_double, ctypes.c_double,
+                        ctypes.c_double, ctypes.c_double, real_p, real_p,
+                        real_p, real_p, real_p, real_p, real_p, real_p,
+                        real_p, real_p, real_p, real_p]
 
 
     def reload(self, h5fn):
@@ -242,13 +186,8 @@ class LibAscot:
             h5fn : str <br>
                 Name of the new HDF5 file.
         """
-        self.free(bfield  = self.bfield_initialized,
-                  efield  = self.efield_initialized,
-                  plasma  = self.plasma_initialized,
-                  wall    = self.wall_initialized,
-                  neutral = self.neutral_initialized,
-                  mhd     = self.mhd_initialized,
-                  boozer  = self.boozer_initialized)
+        self.free(bfield=True, efield=True, plasma=True, neutral=True,
+                  boozer=True, mhd=True)
 
         if h5fn == None:
             self.h5fn = None
@@ -263,6 +202,8 @@ class LibAscot:
                 self.hdf5 = None
                 raise
 
+            self.sim.hdf5_in = self.h5fn
+
 
     def get_filepath(self):
         """
@@ -273,208 +214,96 @@ class LibAscot:
 
     def init(self, bfield=False, efield=False, plasma=False, wall=False,
              neutral=False, boozer=False, mhd=False, ignorewarnings=False):
-        """
-        Initialize input data.
+        if self.ready_to_offload:
+            return
 
-        If argument is False, that data is not read. If True, then active input
-        is read. Optionally, a QID of the input to be read can be given.
-
-        Args:
-            bfield : bool or str, optional <br>
-                Flag for initializing magnetic field.
-            efield : bool or str, optional <br>
-                Flag for initializing electric field.
-            plasma : bool or str optional <br>
-                Flag for initializing plasma data.
-            wall : bool or str optional <br>
-                Flag for initializing wall data.
-            neutral : bool or str optional <br>
-                Flag for initializing neutral data.
-            boozer : bool, optional <br>
-                Flag for initializing boozer data.
-            mhd : bool, optional <br>
-                Flag for initializing mhd data.
-            ignorewarnings : bool, optional <br>
-                If True, warnings are not displayed when trying to initialize
-                data that is already initialized
-
-        Raises:
-            RuntimeError if initialization failed.
-        """
         a5 = self.hdf5
+        inputs2read = ctypes.c_int32()
+        def init_field(field, qid, array, currentqid, byterep):
+            """
+            Initialize field's offload array which has given qid.
+            """
+            if isinstance(qid, str):
+                # Convert given qid to bytes
+                qid = qid.encode('UTF-8')
+            elif qid == True:
+                # qid == True means we use the active field
+                qid = a5[field].active.get_qid().encode('UTF-8')
+            else:
+                # This field is not read
+                return currentqid
 
-        if isinstance(bfield, str):
-            qid    = bfield.encode('UTF-8')
-            bfield = True
-        elif bfield:
-            qid = a5.bfield.active.get_qid().encode('UTF-8')
+            if qid == currentqid:
+                if not ignorewarnings:
+                    warnings.warn(field + " already initialized.", Warning)
+                return currentqid
+            else:
+                ascotpy2.libascot_deallocate(array)
+                inputs2read.value = inputs2read.value | byterep
+                return qid
 
-        if bfield and self.bfield_initialized == qid:
-            if not ignorewarnings:
-                warnings.warn("Magnetic field already initialized.", Warning)
-        elif bfield:
-            self.free(bfield=True)
-            if self.libascot.libascot_init(self.h5fn, qid, None, None, None,
-                                           None, None, None):
-                raise RuntimeError("Failed to initialize magnetic field")
+        self.sim.qid_bfield = init_field(
+            "bfield", bfield, self.bfield_offload_array, self.sim.qid_bfield,
+            ascotpy2.hdf5_input_bfield)
 
-            self.bfield_initialized = qid
+        self.sim.qid_efield = init_field(
+            "efield", efield, self.efield_offload_array, self.sim.qid_efield,
+            ascotpy2.hdf5_input_efield)
 
+        self.sim.qid_plasma = init_field(
+            "plasma", plasma, self.plasma_offload_array, self.sim.qid_plasma,
+            ascotpy2.hdf5_input_plasma)
 
-        if isinstance(efield, str):
-            qid    = efield.encode('UTF-8')
-            efield = True
-        elif efield:
-            qid = a5.efield.active.get_qid().encode('UTF-8')
+        self.sim.qid_neutral = init_field(
+            "neutral", neutral, self.neutral_offload_array, self.sim.qid_neutral,
+            ascotpy2.hdf5_input_neutral)
 
-        if efield and self.efield_initialized == qid:
-            if not ignorewarnings:
-                warnings.warn("Electric field already initialized.", Warning)
-        elif efield:
-            self.free(efield=True)
-            if self.libascot.libascot_init(self.h5fn, None, qid, None, None,
-                                           None, None, None) :
-                raise RuntimeError("Failed to initialize electric field")
+        self.sim.qid_boozer = init_field(
+            "boozer", boozer, self.boozer_offload_array, self.sim.qid_boozer,
+            ascotpy2.hdf5_input_boozer)
 
-            self.efield_initialized = qid
+        self.sim.qid_mhd = init_field(
+            "mhd", mhd, self.mhd_offload_array, self.sim.qid_mhd,
+            ascotpy2.hdf5_input_mhd)
 
-
-        if isinstance(plasma, str):
-            qid    = plasma.encode('UTF-8')
-            plasma = True
-        elif plasma:
-            qid = a5.plasma.active.get_qid().encode('UTF-8')
-
-        if plasma and self.plasma_initialized == qid:
-            if not ignorewarnings:
-                warnings.warn("Plasma already initialized.", Warning)
-        elif plasma:
-            self.free(plasma=True)
-            if self.libascot.libascot_init(self.h5fn, None, None, qid, None,
-                                           None, None, None) :
-                raise RuntimeError("Failed to initialize plasma")
-
-            self.plasma_initialized = qid
-
-
-        if isinstance(wall, str):
-            qid  = wall.encode('UTF-8')
-            wall = True
-        elif wall:
-            qid = a5.wall.active.get_qid().encode('UTF-8')
-
-        if wall and self.wall_initialized == qid:
-            if not ignorewarnings:
-                warnings.warn("Wall already initialized.", Warning)
-        elif wall:
-            self.free(wall=True)
-            if self.libascot.libascot_init(self.h5fn, None, None, None, qid,
-                                           None, None, None) :
-                raise RuntimeError("Failed to initialize wall")
-
-            self.wall_initialized = qid
-
-
-        if isinstance(neutral, str):
-            qid     = neutral.encode('UTF-8')
-            neutral = True
-        elif neutral:
-            qid = a5.neutral.active.get_qid().encode('UTF-8')
-
-        if neutral and self.neutral_initialized == qid:
-            if not ignorewarnings:
-                warnings.warn("Neutral data already initialized.", Warning)
-        elif neutral:
-            self.free(neutral=True)
-            if self.libascot.libascot_init(self.h5fn, None, None, None, None,
-                                           qid, None, None) :
-                raise RuntimeError("Failed to initialize neutral data")
-
-            self.neutral_initialized = qid
-
-        if isinstance(boozer, str):
-            qid    = boozer.encode('UTF-8')
-            boozer = True
-        elif boozer:
-            qid = a5.boozer.active.get_qid().encode('UTF-8')
-
-        if boozer and self.boozer_initialized == qid:
-            if not ignorewarnings:
-                warnings.warn("Boozer data already initialized.", Warning)
-        elif boozer:
-            self.free(boozer=True)
-            if self.libascot.libascot_init(self.h5fn, None, None, None, None,
-                                           None, qid, None) :
-                raise RuntimeError("Failed to initialize boozer data")
-
-            self.boozer_initialized = qid
-
-        if isinstance(mhd, str):
-            qid = mhd.encode('UTF-8')
-            mhd = True
-        elif mhd:
-            qid = a5.mhd.active.get_qid().encode('UTF-8')
-
-        if mhd and self.mhd_initialized == qid:
-            if not ignorewarnings:
-                warnings.warn("MHD data already initialized.", Warning)
-        elif mhd:
-            self.free(mhd=True)
-            if self.libascot.libascot_init(self.h5fn, None, None, None, None,
-                                           None, None, qid) :
-                raise RuntimeError("Failed to initialize MHD data")
-
-            self.mhd_initialized = qid
+        ascotpy2.hdf5_interface_read_input(
+            ctypes.byref(self.sim),
+            inputs2read,
+            ctypes.byref(self.bfield_offload_array),
+            ctypes.byref(self.efield_offload_array),
+            ctypes.byref(self.plasma_offload_array),
+            ctypes.byref(self.neutral_offload_array),
+            None, # Wall offload array
+            None, # Wall int offload array
+            ctypes.byref(self.boozer_offload_array),
+            ctypes.byref(self.mhd_offload_array),
+            None, # Marker array
+            None  # Number of markers that were read
+            )
 
 
     def free(self, bfield=False, efield=False, plasma=False, wall=False,
              neutral=False, boozer=False, mhd=False):
-        """
-        Free input data.
-
-        Args:
-            bfield : bool, optional <br>
-                Flag for freeing magnetic field.
-            efield : bool, optional <br>
-                Flag for freeing electric field.
-            plasma : bool, optional <br>
-                Flag for freeing plasma data.
-            wall : bool, optional <br>
-                Flag for freeing wall data.
-            neutral : bool, optional <br>
-                Flag for freeing neutral data.
-            boozer : bool, optional <br>
-                Flag for freeing boozer data.
-            mhd : bool, optional <br>
-                Flag for freeing mhd data.
-        """
-        if bfield and self.bfield_initialized is not None:
-            self.libascot.libascot_free(1, 0, 0, 0, 0, 0, 0)
-            self.bfield_initialized = None
-
-        if efield and self.efield_initialized is not None:
-            self.libascot.libascot_free(0, 1, 0, 0, 0, 0, 0)
-            self.efield_initialized = None
-
-        if plasma and self.plasma_initialized is not None:
-            self.libascot.libascot_free(0, 0, 1, 0, 0, 0, 0)
-            self.plasma_initialized = None
-
-        if wall and self.wall_initialized is not None:
-            self.libascot.libascot_free(0, 0, 0, 1, 0, 0, 0)
-            self.wall_initialized = None
-
-        if neutral and self.neutral_initialized is not None:
-            self.libascot.libascot_free(0, 0, 0, 0, 1, 0, 0)
-            self.neutral_initialized = None
-
-        if boozer and self.boozer_initialized is not None:
-            self.libascot.libascot_free(0, 0, 0, 0, 0, 1, 0)
-            self.boozer_initialized = None
-
-        if mhd and self.mhd_initialized is not None:
-            self.libascot.libascot_free(0, 0, 0, 0, 0, 0, 1)
-            self.mhd_initialized = None
+        if bfield:
+            self.sim.qid_bfield = LibAscot.DUMMY_QID
+            ascotpy2.libascot_deallocate(self.bfield_offload_array)
+        if efield:
+            self.sim.qid_efield = LibAscot.DUMMY_QID
+            ascotpy2.libascot_deallocate(self.efield_offload_array)
+        if plasma:
+            self.sim.qid_plasma = LibAscot.DUMMY_QID
+            ascotpy2.libascot_deallocate(self.plasma_offload_array)
+        if wall:
+            pass
+        if neutral:
+            self.sim.qid_neutral = LibAscot.DUMMY_QID
+            ascotpy2.libascot_deallocate(self.neutral_offload_array)
+        if boozer:
+            self.sim.qid_boozer = LibAscot.DUMMY_QID
+            ascotpy2.libascot_deallocate(self.boozer_offload_array)
+        if mhd:
+            self.sim.qid_mhd = LibAscot.DUMMY_QID
+            ascotpy2.libascot_deallocate(self.mhd_offload_array)
 
 
     def init_from_run(self, run, bfield=False, efield=False, plasma=False,
@@ -532,7 +361,7 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert self.bfield_initialized is not None, \
+        assert self.sim.qid_bfield != LibAscot.DUMMY_QID, \
             "Magnetic field not initialized"
 
         R   = np.asarray(R).ravel().astype(dtype="f8")
@@ -558,23 +387,25 @@ class LibAscot:
             out["bzdz"]     = np.zeros(R.shape, dtype="f8") + np.nan
 
             self.libascot.libascot_B_field_eval_B_dB(
-                Neval, R, phi, z, t,
-                out["br"], out["bphi"], out["bz"],
-                out["brdr"], out["brdphi"], out["brdz"],
-                out["bphidr"], out["bphidphi"], out["bphidz"],
-                out["bzdr"], out["bzdphi"], out["bzdz"])
+                ctypes.byref(self.sim), self.bfield_offload_array,
+                Neval, R, phi, z, t, out["br"], out["bphi"], out["bz"],
+                out["brdr"], out["brdphi"], out["brdz"], out["bphidr"],
+                out["bphidphi"], out["bphidz"], out["bzdr"], out["bzdphi"],
+                out["bzdz"])
 
         if evalrho:
             out["rho"] = np.zeros(R.shape, dtype="f8") + np.nan
             out["psi"] = np.zeros(R.shape, dtype="f8") + np.nan
-            self.libascot.libascot_B_field_eval_rho(Neval, R, phi, z, t,
-                                                    out["rho"], out["psi"])
+            self.libascot.libascot_B_field_eval_rho(
+                ctypes.byref(self.sim), self.bfield_offload_array,
+                Neval, R, phi, z, t, out["rho"], out["psi"])
 
         if evalaxis:
             out["axisr"] = np.zeros(R.shape, dtype="f8") + np.nan
             out["axisz"] = np.zeros(R.shape, dtype="f8") + np.nan
-            self.libascot.libascot_B_field_get_axis(Neval, phi, out["axisr"],
-                                                    out["axisz"])
+            self.libascot.libascot_B_field_get_axis(
+                ctypes.byref(self.sim), self.bfield_offload_array,
+                Neval, phi, out["axisr"], out["axisz"])
 
         return out
 
@@ -602,9 +433,9 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert self.bfield_initialized is not None, \
+        assert self.sim.qid_bfield != LibAscot.DUMMY_QID, \
             "Magnetic field not initialized"
-        assert self.efield_initialized is not None, \
+        assert self.sim.qid_efield != LibAscot.DUMMY_QID, \
             "Electric field not initialized"
 
         R   = np.asarray(R).ravel().astype(dtype="f8")
@@ -619,6 +450,7 @@ class LibAscot:
         out["ez"]   = np.zeros(R.shape, dtype="f8") + np.nan
 
         self.libascot.libascot_E_field_eval_E(
+            ctypes.byref(self.sim), self.efield_offload_array,
             Neval, R, phi, z, t, out["er"], out["ephi"], out["ez"])
 
         return out
@@ -632,14 +464,18 @@ class LibAscot:
             Dictionary containing nspecies, and anum, znum, charge, and mass for
             each species.
         """
-        assert self.plasma_initialized is not None, \
+        assert self.sim.qid_plasma != LibAscot.DUMMY_QID, \
             "Plasma not initialized"
 
         out = {}
-        out["nspecies"] = self.libascot.libascot_plasma_get_n_species()
+        out["nspecies"] = \
+            self.libascot.libascot_plasma_get_n_species(
+                ctypes.byref(self.sim), self.plasma_offload_array)
+
         out["mass"]     = np.zeros((out["nspecies"],), dtype="f8")
         out["charge"]   = np.zeros((out["nspecies"],), dtype="f8")
         self.libascot.libascot_plasma_get_species_mass_and_charge(
+            ctypes.byref(self.sim), self.plasma_offload_array,
             out["mass"], out["charge"])
 
         return out
@@ -668,9 +504,9 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert self.bfield_initialized is not None, \
+        assert self.sim.qid_bfield != LibAscot.DUMMY_QID, \
             "Magnetic field not initialized"
-        assert self.plasma_initialized is not None, \
+        assert self.sim.qid_plasma != LibAscot.DUMMY_QID, \
             "Plasma not initialized"
 
         R   = np.asarray(R).ravel().astype(dtype="f8")
@@ -686,6 +522,8 @@ class LibAscot:
         rawtemp = np.zeros((Neval*nspecies,), dtype="f8") + np.nan
 
         self.libascot.libascot_plasma_eval_background(
+            ctypes.byref(self.sim), self.bfield_offload_array,
+            self.plasma_offload_array,
             Neval, R, phi, z, t, rawdens, rawtemp)
 
         out = {}
@@ -719,7 +557,7 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert self.neutral_initialized is not None, \
+        assert self.sim.qid_neutral != LibAscot.DUMMY_QID, \
             "Neutral data not initialized"
 
         R   = np.asarray(R).ravel().astype(dtype="f8")
@@ -731,8 +569,9 @@ class LibAscot:
         out = {}
         out["density"] = np.zeros(R.shape, dtype="f8") + np.nan
 
-        self.libascot.libascot_neutral_eval_density(Neval, R, phi, z, t,
-                                                    out["density"])
+        self.libascot.libascot_neutral_eval_density(
+            ctypes.byref(self.sim), self.neutral_offload_array,
+            Neval, R, phi, z, t, out["density"])
 
         return out
 
@@ -760,7 +599,10 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert self.boozer_initialized is not None, \
+        if evalfun:
+            assert self.sim.qid_bfield != LibAscot.DUMMY_QID, \
+                "Magnetic field not initialized"
+        assert self.sim.qid_boozer != LibAscot.DUMMY_QID, \
             "Boozer data not initialized"
 
         R   = np.asarray(R).ravel().astype(dtype="f8")
@@ -776,6 +618,8 @@ class LibAscot:
             out["jacobian"]   = np.zeros(R.shape, dtype="f8") + np.nan
             out["jacobianb2"] = np.zeros(R.shape, dtype="f8") + np.nan
             self.libascot.libascot_boozer_eval_fun(
+                ctypes.byref(self.sim), self.bfield_offload_array,
+                self.boozer_offload_array,
                 Neval, R, phi, z, t, out["qprof"], out["jacobian"],
                 out["jacobianb2"])
         else:
@@ -793,6 +637,7 @@ class LibAscot:
             out["dzetadz"]    = np.zeros(R.shape, dtype="f8") + np.nan
             out["rho"]        = np.zeros(R.shape, dtype="f8") + np.nan
             self.libascot.libascot_boozer_eval_psithetazeta(
+                ctypes.byref(self.sim), self.boozer_offload_array,
                 Neval, R, phi, z, t, out["psi"], out["theta"], out["zeta"],
                 out["dpsidr"], out["dpsidphi"], out["dpsidz"],
                 out["dthetadr"], out["dthetadphi"], out["dthetadz"],
@@ -824,11 +669,11 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert self.bfield_initialized is not None, \
+        assert self.sim.qid_bfield != LibAscot.DUMMY_QID, \
             "Magnetic field not initialized"
-        assert self.boozer_initialized is not None, \
+        assert self.sim.qid_boozer != LibAscot.DUMMY_QID, \
             "Boozer data not initialized"
-        assert self.mhd_initialized is not None, \
+        assert self.sim.qid_mhd != LibAscot.DUMMY_QID, \
             "MHD data not initialized"
 
         R   = np.asarray(R).ravel().astype(dtype="f8")
@@ -847,6 +692,8 @@ class LibAscot:
         out["mhd_phi"]  = np.zeros(R.shape, dtype="f8") + np.nan
 
         self.libascot.libascot_mhd_eval_perturbation(
+            ctypes.byref(self.sim), self.bfield_offload_array,
+            self.boozer_offload_array, self.mhd_offload_array,
             Neval, R, phi, z, t, out["mhd_br"], out["mhd_bphi"], out["mhd_bz"],
             out["mhd_er"], out["mhd_ephi"], out["mhd_ez"], out["mhd_phi"])
 
@@ -901,9 +748,9 @@ class LibAscot:
             Dictionary with collision coefficients of shape
             (R.size, n_species, va.size).
         """
-        assert self.bfield_initialized is not None, \
+        assert self.sim.qid_bfield != LibAscot.DUMMY_QID, \
             "Magnetic field not initialized"
-        assert self.plasma_initialized is not None, \
+        assert self.sim.qid_plasma != LibAscot.DUMMY_QID, \
             "Plasma not initialized"
 
 
@@ -916,7 +763,9 @@ class LibAscot:
         va  = np.asarray(va).ravel().astype(dtype="f8")
         Neval = va.size
 
-        n_species = self.libascot.libascot_plasma_get_n_species()
+        n_species = \
+            self.libascot.libascot_plasma_get_n_species(
+                ctypes.byref(self.sim), self.plasma_offload_array)
 
         out = {}
         out["F"]      = np.zeros((R.size, n_species, va.size), dtype="f8")
@@ -945,10 +794,11 @@ class LibAscot:
             mu0    = np.zeros((n_species, va.size), dtype="f8")
             mu1    = np.zeros((n_species, va.size), dtype="f8")
             dmu0   = np.zeros((n_species, va.size), dtype="f8")
-            self.libascot.libascot_eval_collcoefs(Neval, va, R[i], phi[i], z[i],
-                                                  t[i], ma, qa, F, Dpara, Dperp,
-                                                  K, nu, Q, dQ, dDpara, clog,
-                                                  mu0, mu1, dmu0)
+            self.libascot.libascot_eval_collcoefs(
+                ctypes.byref(self.sim), self.bfield_offload_array,
+                self.plasma_offload_array,
+                Neval, va, R[i], phi[i], z[i], t[i], ma, qa, F, Dpara, Dperp,
+                K, nu, Q, dQ, dDpara, clog, mu0, mu1, dmu0)
             out["F"][i,:,:]      = F[:,:]
             out["Dpara"][i,:,:]  = Dpara[:,:]
             out["Dperp"][i,:,:]  = Dperp[:,:]
@@ -965,7 +815,7 @@ class LibAscot:
         return out
 
     def get_rhotheta_rz(self, rhovals, theta, phi, time):
-        assert self.bfield_initialized is not None, \
+        assert self.sim.qid_bfield != LibAscot.DUMMY_QID, \
             "Magnetic field not initialized"
 
         rhovals = np.asarray(rhovals).ravel().astype(dtype="f8")
@@ -976,6 +826,7 @@ class LibAscot:
         rho = np.zeros((ngrid,), dtype="f8")
 
         self.libascot.libascot_B_field_eval_rhovals(
+            ctypes.byref(self.sim), self.bfield_offload_array,
             ngrid, np.min(rhovals), np.max(rhovals), theta, phi, time,
             r, z, rho)
 
