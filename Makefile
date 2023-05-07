@@ -156,7 +156,7 @@ libascot.so: CFLAGS+=-shlib
 endif
 
 libascot.so: libascot.o ascot5_main.o libascot_mem.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ -lhdf5 -lhdf5_hl
 
 ascot5_main: ascot5_main.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
@@ -216,7 +216,7 @@ test_spline: $(UTESTDIR)test_spline.o $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 ASCOTPY2_HEADERFILES=particle.h hdf5_interface.h ascot5.h mpi_interface.h \
-	simulate.h ascot5_main.h offload.h diag.h libascot_mem.h libascot.h \
+	simulate.h ascot5_main.h offload.h diag.h libascot_mem.h \
 	wall.h Bfield/B_STS.h B_field.h
 
 ascotpy2.py : libascot.so
