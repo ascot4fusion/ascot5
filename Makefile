@@ -156,7 +156,7 @@ libascot.so: CFLAGS+=-shlib
 endif
 
 libascot.so: libascot.o ascot5_main.o libascot_mem.o $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ -lhdf5 -lhdf5_hl
+	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
