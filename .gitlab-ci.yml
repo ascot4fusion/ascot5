@@ -1,14 +1,14 @@
 image: ascot5pyv2
 
 
-build:   
+build:
     script:
-        - cd a5py 
+        - cd a5py
         - python setup.py build
 
-install:   
+install:
     script:
-        - cd a5py 
+        - cd a5py
         - pip install -e .
 
 wheel:
