@@ -267,6 +267,9 @@ void libascot_B_field_eval_rhovals(
 /**
  * @brief Evaluate electric field vector at given coordinates.
  *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param B_offload_array initialized magnetic field offload data
+ * @param E_offload_array initialized electric field offload data
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
@@ -276,10 +279,16 @@ void libascot_B_field_eval_rhovals(
  * @param Ephi output array [V/m].
  * @param Ez output array [V/m].
  */
-void libascot_E_field_eval_E(int Neval, real* R, real* phi, real* z, real* t,
-                             real* ER, real* Ephi, real* Ez) {
-    sim_data sim;
+void libascot_E_field_eval_E(
+    sim_offload_data* sim_offload_data, real* B_offload_array,
+    real* E_offload_array, int Neval, real* R, real* phi, real* z, real* t,
+    real* ER, real* Ephi, real* Ez) {
 
+    sim_data sim;
+    B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
+                 B_offload_array);
+    E_field_init(&sim.E_data, &sim_offload_data->E_offload_data,
+                 E_offload_array);
     real E[3];
     for(int k = 0; k < Neval; k++) {
         if( E_field_eval_E(E, R[k], phi[k], z[k], t[k],
@@ -295,21 +304,35 @@ void libascot_E_field_eval_E(int Neval, real* R, real* phi, real* z, real* t,
 /**
  * @brief Get number of plasma species.
  *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param plasma_offload_array initialized plasma offload data
+ *
  * @return number of plasma species.
  */
-int libascot_plasma_get_n_species() {
+int libascot_plasma_get_n_species(
+    sim_offload_data* sim_offload_data, real* plasma_offload_array) {
+
     sim_data sim;
+    plasma_init(&sim.plasma_data, &sim_offload_data->plasma_offload_data,
+                plasma_offload_array);
     return plasma_get_n_species(&sim.plasma_data);
 }
 
 /**
  * @brief Get mass and charge of all plasma species.
  *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param plasma_offload_array initialized plasma offload data
  * @param mass output array [kg].
  * @param charge output array [C].
  */
-void libascot_plasma_get_species_mass_and_charge(real* mass, real* charge) {
+void libascot_plasma_get_species_mass_and_charge(
+    sim_offload_data* sim_offload_data, real* plasma_offload_array, real* mass,
+    real* charge) {
+
     sim_data sim;
+    plasma_init(&sim.plasma_data, &sim_offload_data->plasma_offload_data,
+                plasma_offload_array);
     int n_species = plasma_get_n_species(&sim.plasma_data);
     const real* m = plasma_get_species_mass(&sim.plasma_data);
     const real* q = plasma_get_species_charge(&sim.plasma_data);
@@ -322,6 +345,9 @@ void libascot_plasma_get_species_mass_and_charge(real* mass, real* charge) {
 /**
  * @brief Evaluate plasma density and temperature at given coordinates.
  *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param B_offload_array initialized mangetic field offload data
+ * @param plasma_offload_array initialized plasma offload data
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
@@ -329,12 +355,17 @@ void libascot_plasma_get_species_mass_and_charge(real* mass, real* charge) {
  * @param t time coordinates of the evaluation points [s].
  * @param dens output array [m^-3].
  * @param temp output array [eV].
- *
- * @return zero if evaluation succeeded.
  */
-void libascot_plasma_eval_background(int Neval, real* R, real* phi, real* z,
-                                     real* t, real* dens, real* temp) {
+void libascot_plasma_eval_background(
+    sim_offload_data* sim_offload_data, real* B_offload_array,
+    real* plasma_offload_array, int Neval, real* R, real* phi, real* z, real* t,
+    real* dens, real* temp) {
+
     sim_data sim;
+    B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
+                 B_offload_array);
+    plasma_init(&sim.plasma_data, &sim_offload_data->plasma_offload_data,
+                plasma_offload_array);
     int n_species = plasma_get_n_species(&sim.plasma_data);
     real psi[1];
     real rho[1];
@@ -362,18 +393,22 @@ void libascot_plasma_eval_background(int Neval, real* R, real* phi, real* z,
 /**
  * @brief Evaluate neutral density at given coordinates.
  *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param neutral_offload_array initialized neutral offload data
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
  * @param t time coordinates of the evaluation points [s].
  * @param dens output array [m^-3].
- *
- * @return zero if evaluation succeeded.
  */
-void libascot_neutral_eval_density(int Neval, real* R, real* phi, real* z,
-                                   real* t, real* dens) {
+void libascot_neutral_eval_density(
+    sim_offload_data* sim_offload_data, real* neutral_offload_array, int Neval,
+    real* R, real* phi, real* z, real* t, real* dens) {
+
     sim_data sim;
+    neutral_init(&sim.neutral_data, &sim_offload_data->neutral_offload_data,
+                 neutral_offload_array);
     real n0[1];
     for(int k = 0; k < Neval; k++) {
         if( neutral_eval_n0(n0, R[k], phi[k], z[k], t[k], &sim.neutral_data) ) {
@@ -386,20 +421,37 @@ void libascot_neutral_eval_density(int Neval, real* R, real* phi, real* z,
 /**
  * @brief Evaluate boozer coordinates and derivatives.
  *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param boozer_offload_array initialized boozer offload data
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
  * @param t time coordinates of the evaluation points [s].
+ * @param psi output array
+ * @param theta output array
+ * @param zeta output array
+ * @param dpsidr output array
+ * @param dpsidphi output array
+ * @param dpsidz output array
+ * @param dthetadr output array
+ * @param dthetadphi output array
+ * @param dthetadz output array
+ * @param dzetadr output array
+ * @param dzetadphi output array
+ * @param dzetadz output array
+ * @param rho output array
  */
-void libascot_boozer_eval_psithetazeta(int Neval, real* R, real* phi, real* z,
-                                       real* t, real* psi, real* theta,
-                                       real* zeta, real* dpsidr, real* dpsidphi,
-                                       real* dpsidz, real* dthetadr,
-                                       real* dthetadphi, real* dthetadz,
-                                       real* dzetadr, real* dzetadphi,
-                                       real* dzetadz, real* rho) {
+void libascot_boozer_eval_psithetazeta(
+    sim_offload_data* sim_offload_data, real* boozer_offload_array, int Neval,
+    real* R, real* phi, real* z, real* t, real* psi, real* theta, real* zeta,
+    real* dpsidr, real* dpsidphi, real* dpsidz, real* dthetadr,
+    real* dthetadphi, real* dthetadz, real* dzetadr, real* dzetadphi,
+    real* dzetadz, real* rho) {
+
     sim_data sim;
+    boozer_init(&sim.boozer_data, &sim_offload_data->boozer_offload_data,
+                boozer_offload_array);
     real psithetazeta[12];
     real rhoval[2];
     int isinside;
@@ -433,6 +485,9 @@ void libascot_boozer_eval_psithetazeta(int Neval, real* R, real* phi, real* z,
 /**
  * @brief Evaluate boozer coordinates related quantities.
  *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param B_offload_array initialized magnetic field offload data
+ * @param boozer_offload_array initialized boozer offload data
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
@@ -440,11 +495,18 @@ void libascot_boozer_eval_psithetazeta(int Neval, real* R, real* phi, real* z,
  * @param t time coordinates of the evaluation points [s].
  * @param qprof array for storing the (flux averaged) safety factor.
  * @param jac array for storing the coordinate Jacobian.
- * @param jac array for storing the coordinate Jacobian multiplied with B^2.
+ * @param jacb2 array for storing the coordinate Jacobian multiplied with B^2.
  */
-void libascot_boozer_eval_fun(int Neval, real* R, real* phi, real* z,
-                              real* t, real* qprof, real* jac, real* jacB2) {
+void libascot_boozer_eval_fun(
+    sim_offload_data* sim_offload_data, real* B_offload_array,
+    real* boozer_offload_array, int Neval, real* R, real* phi, real* z, real* t,
+    real* qprof, real* jac, real* jacB2) {
+
     sim_data sim;
+    B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
+                 B_offload_array);
+    boozer_init(&sim.boozer_data, &sim_offload_data->boozer_offload_data,
+                boozer_offload_array);
     real psithetazeta[12];
     real B[12];
     int isinside;
@@ -484,51 +546,39 @@ void libascot_boozer_eval_fun(int Neval, real* R, real* phi, real* z,
 }
 
 /**
- * @brief Evaluate MHD perturbation EM-field components
- *
- * @param Neval number of evaluation points.
- * @param R R coordinates of the evaluation points [m].
- * @param phi phi coordinates of the evaluation points [rad].
- * @param z z coordinates of the evaluation points [m].
- * @param t time coordinates of the evaluation points [s].
- */
-void libascot_mhd_eval_perturbation(int Neval, real* R, real* phi, real* z,
-                                    real* t, real* mhd_br, real* mhd_bphi,
-                                    real* mhd_bz, real* mhd_er, real* mhd_ephi,
-                                    real* mhd_ez, real* mhd_phi) {
-    sim_data sim;
-    real pert_field[7];
-    int onlypert = 1;
-    for(int k = 0; k < Neval; k++) {
-        if( mhd_perturbations(pert_field, R[k], phi[k], z[k], t[k], onlypert,
-                              &sim.boozer_data, &sim.mhd_data, &sim.B_data) ) {
-            continue;
-        }
-        mhd_br[k]   = pert_field[0];
-        mhd_bphi[k] = pert_field[1];
-        mhd_bz[k]   = pert_field[2];
-        mhd_er[k]   = pert_field[3];
-        mhd_ephi[k] = pert_field[4];
-        mhd_ez[k]   = pert_field[5];
-        mhd_phi[k]  = pert_field[6];
-    }
-}
-
-/**
  * @brief Evaluate MHD perturbation potentials
  *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param boozer_offload_array initialized boozer offload data
+ * @param mhd_offload_array initialized MHD offload data
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
  * @param t time coordinates of the evaluation points [s].
+ * @param alpha output array
+ * @param dadr output array
+ * @param dadphi output array
+ * @param dadz output array
+ * @param dadt output array
+ * @param Phi output array
+ * @param dPhidr output array
+ * @param dPhidphi output array
+ * @param dPhidz output array
+ * @param dPhidt output array
  */
-void libascot_mhd_eval(int Neval, real* R, real* phi, real* z,
-                       real* t, real* alpha, real* dadr,
-                       real* dadphi, real* dadz, real* dadt,
-                       real* Phi, real* dPhidr, real* dPhidphi,
-                       real* dPhidz, real* dPhidt) {
+void libascot_mhd_eval(
+    sim_offload_data* sim_offload_data, real* boozer_offload_array,
+    real* mhd_offload_array, int Neval, real* R, real* phi, real* z, real* t,
+    real* alpha, real* dadr, real* dadphi, real* dadz, real* dadt, real* Phi,
+    real* dPhidr, real* dPhidphi, real* dPhidz, real* dPhidt) {
+
     sim_data sim;
+    boozer_init(&sim.boozer_data, &sim_offload_data->boozer_offload_data,
+                boozer_offload_array);
+    mhd_init(&sim.mhd_data, &sim_offload_data->mhd_offload_data,
+             mhd_offload_array);
+
     real mhd_dmhd[10];
     for(int k = 0; k < Neval; k++) {
         if( mhd_eval(mhd_dmhd, R[k], phi[k], z[k], t[k],
@@ -549,17 +599,95 @@ void libascot_mhd_eval(int Neval, real* R, real* phi, real* z,
 }
 
 /**
- * @brief Evaluate collision coefficients.
+ * @brief Evaluate MHD perturbation EM-field components
+ *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param B_offload_array initialized magnetic field offload data
+ * @param boozer_offload_array initialized boozer offload data
+ * @param mhd_offload_array initialized MHD offload data
+ * @param Neval number of evaluation points.
+ * @param R R coordinates of the evaluation points [m].
+ * @param phi phi coordinates of the evaluation points [rad].
+ * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
+ * @param mhd_br output array
+ * @param mhd_bphi output array
+ * @param mhd_bz output array
+ * @param mhd_er output array
+ * @param mhd_ephi output array
+ * @param mhd_ez output array
+ * @param mhd_phi output array
  */
-int libascot_eval_collcoefs(int Neval, real* va, real R, real phi, real z,
-                            real t, real ma, real qa, real* F, real* Dpara,
-                            real* Dperp, real* K, real* nu, real* Q, real* dQ,
-                            real* dDpara, real* clog, real* mu0, real* mu1,
-                            real* dmu0) {
+void libascot_mhd_eval_perturbation(
+    sim_offload_data* sim_offload_data, real* B_offload_array,
+    real* boozer_offload_array, real* mhd_offload_array, int Neval,
+    real* R, real* phi, real* z, real* t, real* mhd_br, real* mhd_bphi,
+    real* mhd_bz, real* mhd_er, real* mhd_ephi, real* mhd_ez, real* mhd_phi) {
 
     sim_data sim;
-    return mccc_eval_coefs(ma, qa, R, phi, z, t, va, Neval,
-                           &sim.plasma_data, &sim.B_data,
-                           F, Dpara, Dperp, K, nu, Q, dQ, dDpara, clog,
-                           mu0, mu1, dmu0);
+    B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
+                 B_offload_array);
+    boozer_init(&sim.boozer_data, &sim_offload_data->boozer_offload_data,
+                boozer_offload_array);
+    mhd_init(&sim.mhd_data, &sim_offload_data->mhd_offload_data,
+             mhd_offload_array);
+    real pert_field[7];
+    int onlypert = 1;
+    for(int k = 0; k < Neval; k++) {
+        if( mhd_perturbations(pert_field, R[k], phi[k], z[k], t[k], onlypert,
+                              &sim.boozer_data, &sim.mhd_data, &sim.B_data) ) {
+            continue;
+        }
+        mhd_br[k]   = pert_field[0];
+        mhd_bphi[k] = pert_field[1];
+        mhd_bz[k]   = pert_field[2];
+        mhd_er[k]   = pert_field[3];
+        mhd_ephi[k] = pert_field[4];
+        mhd_ez[k]   = pert_field[5];
+        mhd_phi[k]  = pert_field[6];
+    }
+}
+
+/**
+ * @brief Evaluate collision coefficients.
+ *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param B_offload_array initialized magnetic field offload data
+ * @param plasma_offload_array initialized plasma offload data
+ * @param Neval number of evaluation points.
+ * @param va test particle velocities at the evaluation point [m/s].
+ * @param R R coordinates of the evaluation points [m].
+ * @param phi phi coordinates of the evaluation points [rad].
+ * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
+ * @param ma test particle mass [kg]
+ * @param qa test particle charge [C]
+ * @param F output array
+ * @param Dpara output array
+ * @param Dperp output array
+ * @param K output array
+ * @param nu output array
+ * @param Q output array
+ * @param dQ output array
+ * @param dDpara output array
+ * @param clog output array
+ * @param mu0 output array
+ * @param mu1 output array
+ * @param dmu0 output array
+ */
+int libascot_eval_collcoefs(
+    sim_offload_data* sim_offload_data, real* B_offload_array,
+    real* plasma_offload_array, int Neval, real* va, real R, real phi, real z,
+    real t, real ma, real qa, real* F, real* Dpara, real* Dperp, real* K,
+    real* nu, real* Q, real* dQ, real* dDpara, real* clog, real* mu0, real* mu1,
+    real* dmu0) {
+
+    sim_data sim;
+    B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
+                 B_offload_array);
+    plasma_init(&sim.plasma_data, &sim_offload_data->plasma_offload_data,
+                plasma_offload_array);
+    return mccc_eval_coefs(
+        ma, qa, R, phi, z, t, va, Neval, &sim.plasma_data, &sim.B_data,
+        F, Dpara, Dperp, K, nu, Q, dQ, dDpara, clog, mu0, mu1, dmu0);
 }
