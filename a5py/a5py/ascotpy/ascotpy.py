@@ -9,13 +9,13 @@ File: ascotpy.py
 """
 import numpy as np
 
-from a5py.ascotpy.libbfield  import LibBfield
-from a5py.ascotpy.libefield  import LibEfield
-from a5py.ascotpy.libplasma  import LibPlasma
-from a5py.ascotpy.libneutral import LibNeutral
-from a5py.ascotpy.libboozer  import LibBoozer
-from a5py.ascotpy.libmhd     import LibMhd
-
+from a5py.ascotpy.libbfield   import LibBfield
+from a5py.ascotpy.libefield   import LibEfield
+from a5py.ascotpy.libplasma   import LibPlasma
+from a5py.ascotpy.libneutral  import LibNeutral
+from a5py.ascotpy.libboozer   import LibBoozer
+from a5py.ascotpy.libmhd      import LibMhd
+from a5py.ascotpy.libsimulate import LibSimulate
 
 import importlib.util as util
 
@@ -23,7 +23,8 @@ plt = util.find_spec("matplotlib")
 if plt:
     import matplotlib.pyplot as plt
 
-class Ascotpy(LibBfield, LibEfield, LibPlasma, LibNeutral, LibBoozer, LibMhd):
+class Ascotpy(LibBfield, LibEfield, LibPlasma, LibNeutral, LibBoozer, LibMhd,
+              LibSimulate):
     """
     One class to rule them all.
     """

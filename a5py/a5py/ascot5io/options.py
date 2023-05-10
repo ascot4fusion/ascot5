@@ -811,7 +811,7 @@ def get_default():
          # this parameter is effectively the number of marker's last positions
          # that are stored.
          """,
-         10, Valid(float, range=[-1e2, 1e2]))
+         10, Valid(float, range=[1, 1e6]))
     )
     info.append(
         ("ORBITWRITE_POLOIDALANGLES",

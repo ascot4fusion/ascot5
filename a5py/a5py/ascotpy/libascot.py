@@ -62,10 +62,13 @@ class LibAscot:
             raise AscotpyInitException(msg)
 
         # Initialize attributes
-        self.ready_to_offload  = False
+        self._offload_ready    = False
+        self._nmrk             = ctypes.c_int32()
+        self._diag_occupied    = False
         self.offload_data      = ascotpy2.struct_c__SA_offload_package()
         self.offload_array     = ctypes.POINTER(ctypes.c_double)()
         self.int_offload_array = ctypes.POINTER(ctypes.c_int   )()
+        self.markers = ctypes.POINTER(ascotpy2.struct_c__SA_particle_state)()
 
         self.sim = ascotpy2.struct_c__SA_sim_offload_data()
         self.bfield_offload_array  = ctypes.POINTER(ctypes.c_double)()
@@ -75,11 +78,24 @@ class LibAscot:
         self.wall_offload_array    = ctypes.POINTER(ctypes.c_double)()
         self.boozer_offload_array  = ctypes.POINTER(ctypes.c_double)()
         self.mhd_offload_array     = ctypes.POINTER(ctypes.c_double)()
+        self.diag_offload_array    = ctypes.POINTER(ctypes.c_double)()
 
         self.wall_int_offload_array = ctypes.POINTER(ctypes.c_int)()
 
         # Check that the HDF5 file exists
         self.reload(h5fn)
+
+        # MPI init needs to be called (only) once so that we can run simulations
+        argc       = ctypes.c_int32()
+        argc.value = 0
+        argv       = ctypes.POINTER(ctypes.c_char)()
+        self._mpi_rank = ctypes.c_int32()
+        self._mpi_root = ctypes.c_int32()
+        self._mpi_size = ctypes.c_int32()
+        ascotpy2.mpi_interface_init(
+            argc, ctypes.byref(argv), ctypes.byref(self.sim),
+            ctypes.byref(self._mpi_rank), ctypes.byref(self._mpi_size),
+            ctypes.byref(self._mpi_root))
 
         # Declare functions found in libascot. We have to do this manually
         # (instead of using clang2py) since we want to use numpy arrays
@@ -214,12 +230,13 @@ class LibAscot:
 
     def init(self, bfield=False, efield=False, plasma=False, wall=False,
              neutral=False, boozer=False, mhd=False, ignorewarnings=False):
-        if self.ready_to_offload:
-            return
+        if self._offload_ready:
+            raise AscotpyInitException("This instance has been packed")
 
         a5 = self.hdf5
         inputs2read = ctypes.c_int32()
-        def init_field(field, qid, array, currentqid, byterep):
+        def init_field(field, qid, array, currentqid, byterep,
+                       intarray=None):
             """
             Initialize field's offload array which has given qid.
             """
@@ -238,7 +255,10 @@ class LibAscot:
                     warnings.warn(field + " already initialized.", Warning)
                 return currentqid
             else:
-                ascotpy2.libascot_deallocate(array)
+                if qid == LibAscot.DUMMY_QID:
+                    ascotpy2.libascot_deallocate(array)
+                    if intarray is not None:
+                        ascotpy2.libascot_deallocate(intarray)
                 inputs2read.value = inputs2read.value | byterep
                 return qid
 
@@ -258,6 +278,10 @@ class LibAscot:
             "neutral", neutral, self.neutral_offload_array, self.sim.qid_neutral,
             ascotpy2.hdf5_input_neutral)
 
+        self.sim.qid_wall = init_field(
+            "wall", wall, self.wall_offload_array, self.sim.qid_wall,
+            ascotpy2.hdf5_input_wall, self.wall_int_offload_array)
+
         self.sim.qid_boozer = init_field(
             "boozer", boozer, self.boozer_offload_array, self.sim.qid_boozer,
             ascotpy2.hdf5_input_boozer)
@@ -273,8 +297,8 @@ class LibAscot:
             ctypes.byref(self.efield_offload_array),
             ctypes.byref(self.plasma_offload_array),
             ctypes.byref(self.neutral_offload_array),
-            None, # Wall offload array
-            None, # Wall int offload array
+            ctypes.byref(self.wall_offload_array),
+            ctypes.byref(self.wall_int_offload_array),
             ctypes.byref(self.boozer_offload_array),
             ctypes.byref(self.mhd_offload_array),
             None, # Marker array
@@ -284,25 +308,38 @@ class LibAscot:
 
     def free(self, bfield=False, efield=False, plasma=False, wall=False,
              neutral=False, boozer=False, mhd=False):
+        if self._offload_ready:
+            raise AscotpyInitException("This instance has been packed")
+
         if bfield:
             self.sim.qid_bfield = LibAscot.DUMMY_QID
+            self.sim.B_offload_data.offload_array_length = 0
             ascotpy2.libascot_deallocate(self.bfield_offload_array)
         if efield:
             self.sim.qid_efield = LibAscot.DUMMY_QID
+            self.sim.E_offload_data.offload_array_length = 0
             ascotpy2.libascot_deallocate(self.efield_offload_array)
         if plasma:
             self.sim.qid_plasma = LibAscot.DUMMY_QID
+            self.sim.plasma_offload_data.offload_array_length = 0
             ascotpy2.libascot_deallocate(self.plasma_offload_array)
         if wall:
-            pass
+            self.sim.qid_wall = LibAscot.DUMMY_QID
+            self.sim.wall_offload_data.offload_array_length = 0
+            self.sim.wall_offload_data.int_offload_array_length = 0
+            ascotpy2.libascot_deallocate(self.wall_offload_array)
+            ascotpy2.libascot_deallocate(self.wall_int_offload_array)
         if neutral:
             self.sim.qid_neutral = LibAscot.DUMMY_QID
+            self.sim.neutral_offload_data.offload_array_length = 0
             ascotpy2.libascot_deallocate(self.neutral_offload_array)
         if boozer:
             self.sim.qid_boozer = LibAscot.DUMMY_QID
+            self.sim.boozer_offload_data.offload_array_length = 0
             ascotpy2.libascot_deallocate(self.boozer_offload_array)
         if mhd:
             self.sim.qid_mhd = LibAscot.DUMMY_QID
+            self.sim.mhd_offload_data.offload_array_length = 0
             ascotpy2.libascot_deallocate(self.mhd_offload_array)
 
 
@@ -331,6 +368,102 @@ class LibAscot:
 
         self.init(bfield=bfield, efield=efield, plasma=plasma, wall=wall,
                   neutral=neutral, boozer=boozer, mhd=mhd, ignorewarnings=True)
+
+
+    def pack(self):
+        """
+        Pack offload arrays as one, making this instance ready for simulation.
+
+        Note that inputs cannot be changed or freed before calling unpack. Make
+        sure all required data is initialized before packing.
+        """
+        if self._offload_ready:
+            raise AscotpyInitException("This instance is already packed")
+
+        # This call internally frees individual offload arrays and initializes
+        # the common ones.
+        ascotpy2.pack_offload_array(
+            ctypes.byref(self.sim), ctypes.byref(self.offload_data),
+            self.bfield_offload_array, self.efield_offload_array,
+            self.plasma_offload_array, self.neutral_offload_array,
+            self.wall_offload_array, self.wall_int_offload_array,
+            self.boozer_offload_array, self.mhd_offload_array,
+            ctypes.byref(self.offload_array),
+            ctypes.byref(self.int_offload_array))
+        self._offload_ready = True
+
+        # Set pointers to correct locations (based on the order arrays are
+        # packed) so that we can continue using evaluation routines.
+        def advance(prevptr, increment):
+            ptr = ctypes.addressof(prevptr) + 2 * increment
+            ptr = ctypes.cast(ctypes.c_void_p(ptr),
+                              ctypes.POINTER(ctypes.c_double))
+            return ptr
+
+        self.bfield_offload_array = self.offload_array
+        self.efield_offload_array = advance(
+            self.bfield_offload_array.contents,
+            self.sim.B_offload_data.offload_array_length)
+        self.plasma_offload_array = advance(
+            self.efield_offload_array.contents,
+            self.sim.E_offload_data.offload_array_length)
+        self.neutral_offload_array = advance(
+            self.plasma_offload_array.contents,
+            self.sim.plasma_offload_data.offload_array_length)
+        self.wall_offload_array = advance(
+            self.neutral_offload_array.contents,
+            self.sim.neutral_offload_data.offload_array_length)
+        self.boozer_offload_array = advance(
+            self.wall_offload_array.contents,
+            self.sim.wall_offload_data.offload_array_length)
+        self.mhd_offload_array = advance(
+            self.boozer_offload_array.contents,
+            self.sim.boozer_offload_data.offload_array_length)
+
+        self.wall_int_offload_array = self.int_offload_array
+
+
+    def unpack(self, bfield=True, efield=True, plasma=True, wall=True,
+               neutral=True, boozer=True, mhd=True):
+        """
+        Unpack simulation arrays, i.e. free offload array and re-read data.
+
+        After unpacking the inputs can be changed or freed again but simulations
+        cannot be performed.
+        """
+        if not self._offload_ready:
+            raise AscotpyInitException("This instance hasn't been packed")
+
+        ascotpy2.libascot_deallocate(self.offload_array)
+        ascotpy2.libascot_deallocate(self.int_offload_array)
+        self.offload_data.offload_array_length     = 0
+        self.offload_data.int_offload_array_length = 0
+        self.offload_data.unpack_pos               = 0
+        self.offload_data.int_unpack_pos           = 0
+
+        inputs2read = {}
+        def readornot(name, read, qid):
+            if read:
+                inputs2read[name] = qid.decode("utf-8")
+            return LibAscot.DUMMY_QID
+
+        self.sim.qid_bfield  = readornot("bfield",  bfield,
+                                         self.sim.qid_bfield)
+        self.sim.qid_efield  = readornot("efield",  efield,
+                                         self.sim.qid_efield)
+        self.sim.qid_plasma  = readornot("plasma",  plasma,
+                                         self.sim.qid_plasma)
+        self.sim.qid_neutral = readornot("neutral", neutral,
+                                         self.sim.qid_neutral)
+        self.sim.qid_wall    = readornot("wall",    wall,
+                                         self.sim.qid_wall)
+        self.sim.qid_boozer  = readornot("boozer",  boozer,
+                                         self.sim.qid_boozer)
+        self.sim.qid_mhd     = readornot("mhd",     mhd,
+                                         self.sim.qid_mhd)
+
+        self._offload_ready = False
+        self.init(**inputs2read)
 
 
     def eval_bfield(self, R, phi, z, t, evalb=False, evalrho=False,
@@ -813,6 +946,7 @@ class LibAscot:
             out["dmu0"][i,:,:]   = dmu0[:,:]
 
         return out
+
 
     def get_rhotheta_rz(self, rhovals, theta, phi, time):
         assert self.sim.qid_bfield != LibAscot.DUMMY_QID, \
