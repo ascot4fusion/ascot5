@@ -98,7 +98,7 @@ a5err interp1Dexpl_eval_f(real* f, interp1D_data* str, real x) {
     int err = 0;
 
     /* Check that the coordinate is within the grid. */
-    if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
+    if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
         err = 1;
     }
 
@@ -149,7 +149,7 @@ a5err interp1Dexpl_eval_df(real* f_df, interp1D_data* str, real x) {
     int err = 0;
 
     /* Check that the coordinate is within the grid. */
-    if( str->bc_x == NATURALBC && (x < str->x_min || x > str->x_max) ) {
+    if( str->bc_x == NATURALBC && !(x >= str->x_min && x <= str->x_max) ) {
         err = 1;
     }
 

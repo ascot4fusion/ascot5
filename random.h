@@ -52,6 +52,31 @@ void random_gsl_normal_simd(random_data* rdata, int n, double* r);
 #define random_normal_simd(data, n, r) random_gsl_normal_simd(data, n, r)
 
 
+#elif defined(RANDOM_LCG)
+
+#include <stdint.h>
+
+#pragma omp declare target
+typedef struct {
+    uint64_t r;
+} random_data;
+
+void random_lcg_init(random_data* rdata, uint64_t seed);
+uint64_t random_lcg_integer(random_data* rdata);
+double random_lcg_uniform(random_data* rdata);
+double random_lcg_normal(random_data* rdata);
+void random_lcg_uniform_simd(random_data* rdata, int n, double* r);
+void random_lcg_normal_simd(random_data* rdata, int n, double* r);
+
+#define random_init(data, seed) random_lcg_init(data, seed)
+#define random_uniform(data) random_lcg_uniform(data)
+#define random_normal(data) random_lcg_normal(data)
+#define random_uniform_simd(data, n, r) random_lcg_uniform_simd(data, n, r)
+#define random_normal_simd(data, n, r) random_lcg_normal_simd(data, n, r)
+
+#pragma omp end declare target
+
+
 #else /* No RNG lib defined, use drand48 */
 
 //#define _XOPEN_SOURCE 500

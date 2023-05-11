@@ -1,4 +1,4 @@
-CC=h5pcc
+CC=h5cc
 
 
 ifdef TRAP_FPE
@@ -20,10 +20,6 @@ else
 	DEFINES+=-DVERBOSE=1
 endif
 
-ifdef B_STS_CLAMP_RHO_NONNEGATIVE
-	DEFINES+=-DB_STS_CLAMP_RHO_NONNEGATIVE=$(B_STS_CLAMP_RHO_NONNEGATIVE)
-endif
-
 ifeq ($(SINGLEPRECISION),1)
 	DEFINES+=-DSINGLEPRECISION
 endif
@@ -42,6 +38,8 @@ ifeq ($(RANDOM),MKL)
 else ifeq ($(RANDOM),GSL)
 	DEFINES+=-DRANDOM_GSL
 	CFLAGS+=-lgsl -lgslcblas
+else ifeq ($(RANDOM),LCG)
+	DEFINES+=-DRANDOM_LCG
 endif
 
 ifneq ($(CC),h5cc)
@@ -50,7 +48,7 @@ ifneq ($(CC),h5cc)
 	endif
 endif
 
-CFLAGS+=-lm -Wall -fopenmp -fPIC -std=c11 $(DEFINES) $(FLAGS)
+CFLAGS+=-O2 -lm -Wall -fopenmp -fPIC -std=c11 $(DEFINES) $(FLAGS)
 
 # Write CFLAGS and CC to a file to be included into output
 $(shell echo "#define CFLAGS " $(CFLAGS) > compiler_flags.h)
@@ -96,6 +94,10 @@ N0DIR = neutral/
 N0HEADERS =  $(wildcard $(N0DIR)N0_*.h)
 N0OBJS = $(patsubst %.c,%.o,$(wildcard $(N0DIR)N0_*.c))
 
+MHDDIR = mhd/
+MHDHEADERS =  $(wildcard $(MHDDIR)mhd_*.h)
+MHDOBJS = $(patsubst %.c,%.o,$(wildcard $(MHDDIR)mhd_*.c))
+
 LINTDIR = linint/
 LINTHEADERS =  $(wildcard $(LINTDIR)linint*.h)
 LINTOBJS = $(patsubst %.c,%.o,$(wildcard $(LINTDIR)linint*.c))
@@ -111,24 +113,26 @@ DOCDIR = doc/
 HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	$(DIAGHEADERS) $(BFHEADERS) $(EFHEADERS) $(WALLHEADERS) \
 	$(MCCCHEADERS) $(STEPHEADERS) $(SIMHEADERS) $(HDF5IOHEADERS) \
-	$(PLSHEADERS) $(N0HEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
+	$(PLSHEADERS) $(N0HEADERS) $(MHDHEADERS) $(LINTHEADERS) $(SPLINEHEADERS) \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
-	E_field.h wall.h simulate.h diag.h offload.h \
-	random.h print.h hdf5_interface.h suzuki.h nbi.h
+	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
+	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
+	mpi_interface.h libascot_mem.h
 
 OBJS= math.o list.o octree.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
 	$(MCCCOBJS) $(STEPOBJS) $(SIMOBJS) $(HDF5IOOBJS) \
-	$(PLSOBJS) $(N0OBJS) $(LINTOBJS) $(SPLINEOBJS) \
+	$(PLSOBJS) $(N0OBJS) $(MHDOBJS) $(LINTOBJS) $(SPLINEOBJS) \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
-	E_field.o wall.o simulate.o diag.o offload.o \
-	random.o print.c hdf5_interface.o suzuki.o nbi.o
+	E_field.o wall.o simulate.o diag.o offload.o boozer.o mhd.o \
+	random.o print.c hdf5_interface.o suzuki.o nbi.o biosaw.o \
+	mpi_interface.o
 
 BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 \
-	test_spline ascot5_main bbnbi5
+	test_spline ascot5_main bbnbi5 test_diag_orb
 
 ifdef NOGIT
 	DUMMY_GIT_INFO := $(shell touch gitver.h)
@@ -141,9 +145,17 @@ all: $(BINS)
 libascot: libascot.so
 	true
 
-libascot.so: CFLAGS+=-shlib -fPIC -shared
+libascot.so: CFLAGS+=-fPIC -shared
 
-libascot.so: libascot.o $(OBJS)
+ifeq ($(CC),h5cc)
+libascot.so: CFLAGS+=-shlib
+endif
+
+ifeq ($(CC),h5pcc)
+libascot.so: CFLAGS+=-shlib
+endif
+
+libascot.so: libascot.o ascot5_main.o libascot_mem.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)
@@ -156,6 +168,9 @@ doc:
 	doxygen Doxyfile
 
 test_B: $(UTESTDIR)test_B.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_diag_orb: $(UTESTDIR)test_diag_orb.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_wall_3d: $(UTESTDIR)test_wall_3d.o $(OBJS)
@@ -200,10 +215,20 @@ test_spline: $(UTESTDIR)test_spline.o $(OBJS)
 %.o: %.c $(HEADERS) Makefile
 	$(CC) -c -o $@ $< $(CFLAGS)
 
+ASCOTPY2_HEADERFILES=particle.h hdf5_interface.h ascot5.h mpi_interface.h simulate.h \
+	ascot5_main.h offload.h diag.h libascot_mem.h wall.h hdf5io/hdf5_wall.h \
+	Bfield/B_STS.h B_field.h hdf5io/hdf5_bfield.h
+
+ascotpy2.py : libascot.so
+	clang2py -l libascot.so -o $@  \
+		$(ASCOTPY2_HEADERFILES) \
+		--clang-args="-I/usr/include/hdf5/serial"
+# The above hdf5-include folder should not be hardcoded...
+
 clean:
 	@rm -f *.o *.so *.test *.optrpt $(BINS) $(SIMDIR)*.o $(STEPDIR)*.o \
 		$(MCCCDIR)*.o $(HDF5IODIR)*.o $(PLSDIR)*.o $(DIAGDIR)*.o \
-		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o \
+		$(BFDIR)*.o $(EFDIR)*.o $(WALLDIR)*.o $(MHDDIR)*.o \
 		$(N0DIR)*.o $(LINTDIR)*.o $(SPLINEDIR)*.o $(UTESTDIR)*.o *.pyc
 	@rm -rf $(DOCDIR)
 	@rm -f gitver.h

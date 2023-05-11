@@ -16,7 +16,7 @@
  * @brief Calculate guiding center equations of motion for a single particle
  *
  * @param ydot output right hand side of the equations of motion in a
- *             6-length array (rdot, phidot, zdot, vpardot, mudot, zetadot)
+ *             6-length array (rdot, phidot, zdot, ppardot, mudot, zetadot)
  * @param y input coordinates in a 6-length array (r, phi, z, vpar, mu, zeta)
  * @param mass mass [kg]
  * @param charge charge [C]
@@ -33,7 +33,7 @@ static void step_gceom(real* ydot, real* y, real mass, real charge,
     B[2] = B_dB[8];
 
     real normB = sqrt(math_dot(B, B));
-    real gamma = physlib_gamma_vpar(mass, y[4], y[3], normB);
+    real gamma = physlib_gamma_ppar(mass, y[4], y[3], normB);
 
     real gradB[3];
     gradB[0] = (B[0]*B_dB[1] + B[1]*B_dB[5] + B[2]*B_dB[9]) / normB;
@@ -50,17 +50,17 @@ static void step_gceom(real* ydot, real* y, real mass, real charge,
     curlB[2] = (B[1] - B_dB[2]) / y[0] + B_dB[5];
 
     real Bstar[3];
-    Bstar[0] = B[0] + (mass * y[3] * gamma / charge)
+    Bstar[0] = B[0] + (y[3] / charge)
                       * (curlB[0] / normB - gradBcrossB[0] / (normB*normB));
-    Bstar[1] = B[1] + (mass * y[3] * gamma / charge)
+    Bstar[1] = B[1] + (y[3] / charge)
                       * (curlB[1] / normB - gradBcrossB[1] / (normB*normB));
-    Bstar[2] = B[2] + (mass * y[3] * gamma / charge)
+    Bstar[2] = B[2] + (y[3] / charge)
                       * (curlB[2] / normB - gradBcrossB[2] / (normB*normB));
 
     real Estar[3];
-    Estar[0] = E[0] - y[4] * gradB[0] / (charge * gamma);
-    Estar[1] = E[1] - y[4] * gradB[1] / (charge * gamma);
-    Estar[2] = E[2] - y[4] * gradB[2] / (charge * gamma);
+    Estar[0] = E[0] - y[4] * gradB[0] / ( charge * gamma );
+    Estar[1] = E[1] - y[4] * gradB[1] / ( charge * gamma );
+    Estar[2] = E[2] - y[4] * gradB[2] / ( charge * gamma );
 
     real Bhat[3];
     Bhat[0] = B[0] / normB;
@@ -72,12 +72,15 @@ static void step_gceom(real* ydot, real* y, real mass, real charge,
     real EstarcrossBhat[3];
     math_cross(Estar, Bhat, EstarcrossBhat);
 
-    ydot[0] = (y[3]*Bstar[0]+EstarcrossBhat[0])/BhatDotBstar;
-    ydot[1] = (y[3]*Bstar[1]+EstarcrossBhat[1])/(y[0]*BhatDotBstar);
-    ydot[2] = (y[3]*Bstar[2]+EstarcrossBhat[2])/BhatDotBstar;
-    ydot[3] = (charge/(mass*gamma)) * math_dot(Bstar,Estar)/BhatDotBstar;
+    ydot[0] = ( y[3] * Bstar[0] / ( gamma * mass )
+                + EstarcrossBhat[0] ) / BhatDotBstar;
+    ydot[1] = ( y[3] * Bstar[1] / ( gamma * mass )
+                + EstarcrossBhat[1] ) / ( y[0]*BhatDotBstar );
+    ydot[2] = ( y[3] * Bstar[2] / ( gamma * mass )
+                + EstarcrossBhat[2] ) / BhatDotBstar;
+    ydot[3] = charge * math_dot(Bstar,Estar) / BhatDotBstar;
     ydot[4] = 0;
-    ydot[5] = charge * normB/(gamma*mass);
+    ydot[5] = charge * normB / ( gamma * mass );
 
 }
 

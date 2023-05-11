@@ -253,21 +253,14 @@ a5err B_TC_eval_B_dB(real B_dB[12], real r, real phi, real z,
 /**
  * @brief Return magnetic axis R-coordinate
  *
+ * @param rz pointer where axis R and z [m] values will be stored
  * @param Bdata pointer to magnetic field data struct
  *
- * @return Magnetic axis R-coordinate [m]
+ * @return Zero a5err value as this function can't fail.
  */
-real B_TC_get_axis_r(B_TC_data* Bdata) {
-    return Bdata->axisr;
-}
-
-/**
- * @brief Return magnetic axis z-coordinate
- *
- * @param Bdata pointer to magnetic field data struct
- *
- * @return Magnetic axis z-coordinate [m]
- */
-real B_TC_get_axis_z(B_TC_data* Bdata) {
-    return Bdata->axisz;
+a5err B_TC_get_axis_rz(real rz[2], B_TC_data* Bdata) {
+    a5err err = 0;
+    rz[0] = Bdata->axisr;
+    rz[1] = Bdata->axisz;
+    return err;
 }

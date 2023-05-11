@@ -14,6 +14,8 @@
 #include "plasma.h"
 #include "neutral.h"
 #include "wall.h"
+#include "boozer.h"
+#include "mhd.h"
 #include "diag.h"
 #include "offload.h"
 #include "random.h"
@@ -55,6 +57,8 @@ typedef struct {
     plasma_offload_data plasma_offload_data;   /**< Plasma offload data         */
     neutral_offload_data neutral_offload_data; /**< Neutral offload data        */
     wall_offload_data wall_offload_data;       /**< Wall offload data           */
+    boozer_offload_data boozer_offload_data;   /**< Boozer offload data         */
+    mhd_offload_data mhd_offload_data;         /**< MHD offload data            */
     diag_offload_data diag_offload_data;       /**< Diagnostics offload data    */
 
     /* Options - general */
@@ -81,6 +85,7 @@ typedef struct {
     /* Options - physics */
     int enable_orbfol;         /**< Is orbit-following enabled                */
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
+    int enable_mhd;            /**< Are MHD modes enabled                     */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb
@@ -93,6 +98,7 @@ typedef struct {
     /* Options - end conditions */
     int endcond_active;        /**< Bit array notating active end conditions  */
     real endcond_max_simtime;  /**< Maximum simulation time [s]               */
+    real endcond_max_mileage;  /**< Maximum simulation duration [s]           */
     real endcond_max_cputime;  /**< Maximum wall-clock time [s]               */
     real endcond_min_rho;      /**< Minimum rho limit                         */
     real endcond_max_rho;      /**< Maximum rho limit                         */
@@ -101,6 +107,7 @@ typedef struct {
                                     parameter times local thermal energy      */
     real endcond_max_tororb;   /**< Maximum limit for toroidal distance [rad] */
     real endcond_max_polorb;   /**< Maximum limit for poloidal distance [rad] */
+    int endcond_torandpol;     /**< Flag whether both tor and pol must be met */
 
     /* Metadata */
     char hdf5_in[256];     /**< Name of the input HDF5 file  */
@@ -119,6 +126,8 @@ typedef struct {
     char qid_wall[256];    /* Wall QID if active not used    */
     char qid_plasma[256];  /* Plasma QID if active not used  */
     char qid_neutral[256]; /* Neutral QID if active not used */
+    char qid_boozer[256];  /* Boozer QID if active not used  */
+    char qid_mhd[256];     /* MHD QID if active not used     */
 
 } sim_offload_data;
 
@@ -139,6 +148,8 @@ typedef struct {
     plasma_data plasma_data;   /**< Plasma data interface                     */
     neutral_data neutral_data; /**< Neutral data interface                    */
     wall_data wall_data;       /**< Wall data interface                       */
+    boozer_data boozer_data;   /**< Boozer data interface                     */
+    mhd_data mhd_data;         /**< MHD data interface                        */
     diag_data diag_data;       /**< Diagnostics data interface                */
 
     /* Metadata */
@@ -170,6 +181,7 @@ typedef struct {
     /* Options - physics */
     int enable_orbfol;         /**< Is orbit-following enabled                */
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
+    int enable_mhd;            /**< Are MHD modes enabled                     */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb
@@ -182,6 +194,7 @@ typedef struct {
     /* Options - end conditions */
     int endcond_active;       /**< Bit array notating active end conditions  */
     real endcond_max_simtime; /**< Maximum simulation time [s]               */
+    real endcond_max_mileage; /**< Maximum simulation duration [s]           */
     real endcond_max_cputime; /**< Maximum wall-clock time [s]               */
     real endcond_min_rho;     /**< Minimum rho limit                         */
     real endcond_max_rho;     /**< Maximum rho limit                         */
@@ -190,6 +203,7 @@ typedef struct {
                                    parameter times local thermal energy      */
     real endcond_max_tororb;  /**< Maximum limit for toroidal distance [rad] */
     real endcond_max_polorb;  /**< Maximum limit for poloidal distance [rad] */
+    int endcond_torandpol;    /**< Flag whether both tor and pol must be met */
 
 } sim_data;
 
@@ -199,7 +213,8 @@ void simulate_init_offload(sim_offload_data* sim);
 void simulate(int id, int n_particles, particle_state* p,
               sim_offload_data* sim_offload,
               offload_package* offload_data,
-              real* offload_array, real* diag_offload_array);
+              real* offload_array, int* int_offload_array,
+              real* diag_offload_array);
 #pragma omp end declare target
 
 #endif

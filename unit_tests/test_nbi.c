@@ -34,10 +34,11 @@ int main(int argc, char** argv) {
     real* B_offload_array;
     real* plasma_offload_array;
     real* wall_offload_array;
+    int* wall_int_offload_array;
     hdf5_interface_read_input(&sim, hdf5_input_bfield | hdf5_input_plasma |
                               hdf5_input_wall, &B_offload_array, NULL,
-                              &plasma_offload_array, NULL, &wall_offload_array,
-                              NULL, NULL);
+                              &plasma_offload_array, NULL, &wall_offload_array, &wall_int_offload_array,
+                              NULL, NULL, NULL, NULL);
 
     B_field_data B_data;
     B_field_init(&B_data, &sim.B_offload_data, B_offload_array);
@@ -46,7 +47,7 @@ int main(int argc, char** argv) {
     plasma_init(&plasma_data, &sim.plasma_offload_data, plasma_offload_array);
 
     wall_data wall_data;
-    wall_init(&wall_data, &sim.wall_offload_data, wall_offload_array);
+    wall_init(&wall_data, &sim.wall_offload_data, wall_offload_array, wall_int_offload_array);
 
     random_data rng;
     random_init(&rng, 12345);
@@ -82,10 +83,9 @@ int main(int argc, char** argv) {
     FILE* of = fopen("nbi.out", "w");
     for(int i=0; i < nprt; i++) {
         fprintf(of,"%d %le %le %le %le %le %le\n", i, p[i].r, p[i].phi,
-               p[i].z, p[i].v_r, p[i].v_phi, p[i].v_z);
+               p[i].z, p[i].p_r/p[i].mass, p[i].p_phi/p[i].mass, p[i].p_z/p[i].mass);
     }
     fclose(of);
 
     return 0;
 }
-

@@ -24,10 +24,13 @@
 #include "hdf5io/hdf5_neutral.h"
 #include "hdf5io/hdf5_efield.h"
 #include "hdf5io/hdf5_wall.h"
+#include "hdf5io/hdf5_boozer.h"
+#include "hdf5io/hdf5_mhd.h"
 #include "hdf5io/hdf5_marker.h"
 #include "hdf5io/hdf5_state.h"
 #include "hdf5io/hdf5_dist.h"
 #include "hdf5io/hdf5_orbit.h"
+#include "hdf5io/hdf5_transcoef.h"
 
 /**
  * @brief Read and initialize input data
@@ -42,6 +45,8 @@
  * @param plasma_offload_array pointer to plasma data offload array
  * @param neutral_offload_array pointer to neutral data offload array
  * @param wall_offload_array pointer to wall offload array
+ * @param boozer_offload_array pointer to boozer offload array
+ * @param mhd_offload_array pointer to mhd offload array
  * @param p pointer to marker offload data
  * @param n_markers pointer to integer notating how many markers were read
  *
@@ -54,6 +59,9 @@ int hdf5_interface_read_input(sim_offload_data* sim,
                               real** plasma_offload_array,
                               real** neutral_offload_array,
                               real** wall_offload_array,
+                              int** wall_int_offload_array,
+                              real** boozer_offload_array,
+                              real** mhd_offload_array,
                               input_particle** p,
                               int* n_markers){
 
@@ -65,14 +73,13 @@ int hdf5_interface_read_input(sim_offload_data* sim,
 
     /* Check if requested HDF5 file exists and open it */
     print_out(VERBOSE_IO, "\nInput file is %s.\n", sim->hdf5_in);
-    hid_t f = hdf5_open(sim->hdf5_in);
+    hid_t f = hdf5_open_ro(sim->hdf5_in);
     if(f < 0) {
         print_err("Error: File not found.");
         return 1;
     }
 
     /* Read active input from hdf5 and initialize */
-
     char qid[11];
 
     if(input_active & hdf5_input_options) {
@@ -144,15 +151,15 @@ int hdf5_interface_read_input(sim_offload_data* sim,
 
 
     if(input_active & hdf5_input_plasma) {
-        if(sim->qid_plasma[0] != '\0') {
-            strcpy(qid, sim->qid_plasma);
-        }
-        else if(hdf5_find_group(f, "/plasma/")) {
+        if(hdf5_find_group(f, "/plasma/")) {
             print_err("Error: No plasma data in input file.");
             return 1;
         }
         print_out(VERBOSE_IO, "\nReading plasma input.\n");
-        if( hdf5_get_active_qid(f, "/plasma/", qid) ) {
+        if(sim->qid_plasma[0] != '\0') {
+            strcpy(qid, sim->qid_plasma);
+        }
+        else if( hdf5_get_active_qid(f, "/plasma/", qid) ) {
             print_err("Error: Active QID not declared.");
             return 1;
         }
@@ -204,11 +211,58 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_wall_init_offload(f, &(sim->wall_offload_data),
-                                   wall_offload_array, qid) ) {
+                                   wall_offload_array, wall_int_offload_array,
+                                   qid) ) {
             print_err("Error: Failed to initialize wall.\n");
             return 1;
         }
         print_out(VERBOSE_IO, "Wall data read and initialized.\n");
+    }
+
+
+    if(input_active & hdf5_input_boozer) {
+        if(hdf5_find_group(f, "/boozer/")) {
+            print_err("Error: No boozer data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading boozer input.\n");
+        if(sim->qid_boozer[0] != '\0') {
+            strcpy(qid, sim->qid_boozer);
+        }
+        else if( hdf5_get_active_qid(f, "/boozer/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_boozer_init_offload(f, &(sim->boozer_offload_data),
+                                     boozer_offload_array, qid) ) {
+            print_err("Error: Failed to read boozer input.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Boozer data read and initialized.\n");
+    }
+
+
+    if(input_active & hdf5_input_mhd) {
+        if(hdf5_find_group(f, "/mhd/")) {
+            print_err("Error: No MHD data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading MHD input.\n");
+        if(sim->qid_mhd[0] != '\0') {
+            strcpy(qid, sim->qid_mhd);
+        }
+        else if( hdf5_get_active_qid(f, "/mhd/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_mhd_init_offload(f, &(sim->mhd_offload_data),
+                                  mhd_offload_array, qid) ) {
+            print_err("Error: Failed to read MHD input.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "MHD data read and initialized.\n");
     }
 
 
@@ -267,39 +321,42 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     if(fout < 0) {
         print_out(VERBOSE_IO, "Note: Output file %s is already present.\n",
                   sim->hdf5_out);
+    } else {
+        hdf5_close(fout);
     }
-    hdf5_close(fout);
 
-    /* Open output file and create results section if one does not yet exist. */
+    /* Open output file. */
     fout = hdf5_open(sim->hdf5_out);
 
-    if( hdf5_find_group(fout, "/results/") ) {
-        hdf5_create_group(fout, "/results/");
-    }
-
-    /* Create a run group for this specific run. */
+    /* Create a run group for this specific run (and results group if one */
+    /* doesn't exist already.                                             */
     char path[256];
     hdf5_gen_path("/results/run_XXXXXXXXXX", qid, path);
-    hid_t newgroup = H5Gcreate2(fout, path,
-                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Gclose (newgroup);
-    print_out(VERBOSE_IO, "\nThe qid of this run is %s\n", qid);
+    hid_t newgroup = hdf5_create_group(fout, path);
 
     /* If a run with identical qid exists, abort. */
+    print_out(VERBOSE_IO, "\nThe qid of this run is %s\n", qid);
     if(newgroup < 0) {
         print_err("Error: A run with qid %s already exists.\n", qid);
+        H5Gclose(newgroup);
         hdf5_close(fout);
         return 1;
     }
+    H5Gclose(newgroup);
 
     /* Set this run as the active run. */
     hdf5_write_string_attribute(fout, "/results", "active",  qid);
 
+    /* Open input file (if different file than the output) */
+    hid_t fin = fout;
+    if( strcmp(sim->hdf5_in, sim->hdf5_out) != 0 ) {
+        fin = hdf5_open(sim->hdf5_in);
+    }
+
+
     /* Read input data qids and store them here. */
     char inputqid[11];
     inputqid[10] = '\0';
-
-    hid_t fin = hdf5_open(sim->hdf5_in);
 
     if(sim->qid_options[0] != '\0') {
         strcpy(inputqid, sim->qid_options);
@@ -357,7 +414,26 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     }
     hdf5_write_string_attribute(fout, path, "qid_marker",  inputqid);
 
-    hdf5_close(fin);
+    if(sim->qid_boozer[0] != '\0') {
+        strcpy(inputqid, sim->qid_boozer);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/boozer/", "active", inputqid);
+    }
+    hdf5_write_string_attribute(fout, path, "qid_boozer",  inputqid);
+
+    if(sim->qid_mhd[0] != '\0') {
+        strcpy(inputqid, sim->qid_mhd);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/mhd/", "active", inputqid);
+    }
+    hdf5_write_string_attribute(fout, path, "qid_mhd",  inputqid);
+
+    /* If input and output are different files, close input */
+    if( strcmp(sim->hdf5_in, sim->hdf5_out) != 0 ) {
+        hdf5_close(fin);
+    }
 
     /* Set a description, repository status, and date; close the file. */
     hdf5_write_string_attribute(fout, path, "description",  sim->description);
@@ -494,6 +570,15 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
         }
     }
 
+    if(sim->diag_offload_data.diagtrcof_collect) {
+        print_out(VERBOSE_IO, "Writing transport coefficient diagnostics.\n");
+        int idx = sim->diag_offload_data.offload_diagtrcof_index;
+        if( hdf5_transcoef_write(f, qid, &sim->diag_offload_data.diagtrcof,
+                                 &diag_offload_array[idx]) ) {
+            print_err("Warning: Transport coefficients could not be written.\n");
+        }
+    }
+
     hdf5_close(f);
 
     print_out(VERBOSE_IO, "\nDiagnostics output written.\n");
@@ -555,4 +640,3 @@ void hdf5_generate_qid(char* qid) {
     /* Convert the random number to a string format */
     sprintf(qid, "%010lu", (long unsigned int)qint);
 }
-
