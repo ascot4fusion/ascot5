@@ -44,13 +44,15 @@ tests:
         - './ascot5_main --in helloworld.h5 --out helloworld_output.h5'
 
 pages:
+    tags:
+        - docker-images
+    image: ascot5v3dox
     script:
         - cd a5py
-        - apk update && apk add doxygen graphviz ttf-freefont
         - doxygen Doxyfile
         - mv docs/html/ public/
     artifacts:
         paths:
-            - public
+            - a5py/public
     only:
         - master
