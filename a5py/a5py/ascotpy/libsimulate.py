@@ -8,6 +8,8 @@ from a5py.ascotpy.libascot import LibAscot, AscotpyInitException
 
 from numpy.ctypeslib import ndpointer
 
+from a5py.physlib.gamma import momentum_velocity
+
 class LibSimulate(LibAscot):
 
 
@@ -138,12 +140,15 @@ class LibSimulate(LibAscot):
                 pin[i].type = ascotpy2.input_particle_type_p
                 p = pin[i].c__SA_input_particle_0.p
 
+                vvec = np.array([mrk["v_r"][i], mrk["v_phi"][i], mrk["v_z"][i]])
+                pvec = momentum_velocity(mrk["mass"][i], vvec)
+
                 p.r       = mrk["r"][i]
-                p.phi     = mrk["phi"][i]
+                p.phi     = mrk["phi"][i] * np.pi / 180
                 p.z       = mrk["z"][i]
-                p.p_r     = mrk["p_r"][i]
-                p.p_phi   = mrk["p_phi"][i]
-                p.p_z     = mrk["p_z"][i]
+                p.p_r     = pvec[0]
+                p.p_phi   = pvec[1]
+                p.p_z     = pvec[2]
                 p.mass    = mrk["mass"][i]
                 p.charge  = mrk["charge"][i]
                 p.anum    = mrk["anum"][i]
@@ -160,13 +165,13 @@ class LibSimulate(LibAscot):
                 p = pin[i].c__SA_input_particle_0.p_gc
 
                 p.r       = mrk["r"][i]
-                p.phi     = mrk["phi"][i]
+                p.phi     = mrk["phi"][i] * np.pi / 180
                 p.z       = mrk["z"][i]
-                p.energy  = mrk["energy"][i]
+                p.energy  = mrk["energy"][i] * unyt.elementary_charge.value
                 p.pitch   = mrk["pitch"][i]
                 p.zeta    = mrk["zeta"][i]
-                p.mass    = mrk["mass"][i]
-                p.charge  = mrk["charge"][i]
+                p.mass    = mrk["mass"][i] * unyt.atomic_mass_unit.value
+                p.charge  = mrk["charge"][i] * unyt.elementary_charge.value
                 p.anum    = mrk["anum"][i]
                 p.znum    = mrk["znum"][i]
                 p.weight  = mrk["weight"][i]
@@ -180,7 +185,7 @@ class LibSimulate(LibAscot):
                 p = pin[i].c__SA_input_particle_0.p_ml
 
                 p.r       = mrk["r"][i]
-                p.phi     = mrk["phi"][i]
+                p.phi     = mrk["phi"][i] * np.pi / 180
                 p.z       = mrk["z"][i]
                 p.pitch   = mrk["pitch"][i]
                 p.weight  = mrk["weight"][i]
@@ -230,8 +235,10 @@ class LibSimulate(LibAscot):
             raise AscotpyInitException("No result exists")
 
         if markers:
-            ascotpy2.libascot_deallocate(self.marker)
+            self._nmrk.value = 0
+            ascotpy2.libascot_deallocate(self.markers)
         if diagnostics:
+            self._diag_occupied = False
             ascotpy2.libascot_deallocate(self.diag_offload_array)
 
 
@@ -272,5 +279,5 @@ class LibSimulate(LibAscot):
         if ids is None:
             valid = ids[idx] > 0
         else:
-            valid = ids == mrk
+            valid = ids[idx] == mrk
         return (np.array(q)[idx])[valid]
