@@ -42,3 +42,15 @@ tests:
         - python a5py/a5py/examples/running_through_python.py
         - chmod u+x ascot5_main
         - './ascot5_main --in helloworld.h5 --out helloworld_output.h5'
+
+pages:
+    script:
+        - cd a5py
+        - apk update && apk add doxygen graphviz ttf-freefont
+        - doxygen Doxyfile
+        - mv docs/html/ public/
+    artifacts:
+        paths:
+            - public
+    only:
+        - master
