@@ -11,7 +11,9 @@ import h5py
 from a5py.ascot5io.ascot5data import AscotData
 from a5py.ascot5io.ascot5file import read_data
 from a5py.marker.plot import plot_histogram
-from a5py.plotting import openfigureifnoaxes
+
+from a5py.misc import openfigureifnoaxes
+from a5py.physlib.species import species as getspecies
 
 def read_hdf5(fn, qid, prefix):
     """
@@ -41,6 +43,43 @@ def read_hdf5(fn, qid, prefix):
     del out["id"]
     return out
 
+
+def generatemrk(nmrk, mrktype, species=None):
+    """
+    Generate dummy marker input of given type and species.
+    """
+    mrk = {
+        "n"      : nmrk,
+        "ids"    : ( 1 + np.arange(nmrk) ),
+        "r"      : np.zeros((nmrk,)),
+        "z"      : np.zeros((nmrk,)),
+        "phi"    : np.zeros((nmrk,)),
+        "weight" : np.ones((nmrk,)),
+        "time"   : np.zeros((nmrk,)),
+    }
+    if species is not None:
+        species = getspecies(species)
+
+    if mrktype == "particle":
+        mrk["vphi"]   = np.zeros((nmrk,))
+        mrk["vz"]     = np.zeros((nmrk,))
+        mrk["vphi"]   = np.zeros((nmrk,))
+        mrk["mass"]   = ( species["mass"]   * np.ones((nmrk,)) ).to_value("amu")
+        mrk["charge"] = species["charge"] * np.ones((nmrk,), dtype=np.int16)
+        mrk["anum"]   = species["anum"]   * np.ones((nmrk,), dtype=np.int16)
+        mrk["znum"]   = species["znum"]   * np.ones((nmrk,), dtype=np.int16)
+    if mrktype == "gc":
+        mrk["pitch"]  = np.zeros((nmrk,))
+        mrk["energy"] = np.zeros((nmrk,))
+        mrk["zeta"]   = np.zeros((nmrk,))
+        mrk["mass"]   = ( species["mass"]   * np.ones((nmrk,)) ).to_value("amu")
+        mrk["charge"] = species["charge"] * np.ones((nmrk,), dtype=np.int16)
+        mrk["anum"]   = species["anum"]   * np.ones((nmrk,), dtype=np.int16)
+        mrk["znum"]   = species["znum"]   * np.ones((nmrk,), dtype=np.int16)
+    if mrktype == "ml":
+        mrk["pitch"]  = np.zeros((nmrk,))
+
+    return mrk
 
 
 class mrk(AscotData):
