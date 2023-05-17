@@ -16,6 +16,7 @@ from a5py.ascotpy.libneutral  import LibNeutral
 from a5py.ascotpy.libboozer   import LibBoozer
 from a5py.ascotpy.libmhd      import LibMhd
 from a5py.ascotpy.libsimulate import LibSimulate
+from a5py.ascotpy.libascot    import LibAscot
 
 import importlib.util as util
 
@@ -98,7 +99,8 @@ class Ascotpy(LibBfield, LibEfield, LibPlasma, LibNeutral, LibBoozer, LibMhd,
             out = LibBoozer.evaluate(self, R, phi, z, t, quantity)
         if quantity in LibMhd.quantities:
             out = LibMhd.evaluate(self, R, phi, z, t, quantity)
-        if self.plasma_initialized and quantity in self.get_plasmaquantities():
+        if self.sim.qid_bfield != LibAscot.DUMMY_QID \
+           and quantity in self.get_plasmaquantities():
             out = LibPlasma.evaluate(self, R, phi, z, t, quantity)
 
         if grid:
