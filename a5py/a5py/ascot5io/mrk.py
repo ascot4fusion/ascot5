@@ -12,7 +12,7 @@ from a5py.ascot5io.ascot5data import AscotData
 from a5py.ascot5io.ascot5file import read_data
 from a5py.marker.plot import plot_histogram
 
-from a5py.misc import openfigureifnoaxes
+from a5py.plotting import openfigureifnoaxes
 from a5py.physlib.species import species as getspecies
 
 def read_hdf5(fn, qid, prefix):
