@@ -1,14 +1,14 @@
 image: ascot5pyv2
 
 
-build:   
+build:
     script:
-        - cd a5py 
+        - cd a5py
         - python setup.py build
 
-install:   
+install:
     script:
-        - cd a5py 
+        - cd a5py
         - pip install -e .
 
 wheel:
@@ -43,16 +43,16 @@ tests:
         - chmod u+x ascot5_main
         - './ascot5_main --in helloworld.h5 --out helloworld_output.h5'
 
-pages:
-    tags:
-        - docker-images
-    image: ascot5v3dox
-    script:
-        - cd a5py
-        - doxygen Doxyfile
-        - mv docs/html/ public/
-    artifacts:
-        paths:
-            - a5py/public
-    only:
-        - master
+#pages:
+#    tags:
+#        - docker-images
+#    image: ascot5v3dox
+#    script:
+#        - cd a5py
+#        - doxygen Doxyfile
+#        - mv docs/html/ public/
+#    artifacts:
+#        paths:
+#            - a5py/public
+#    only:
+#        - master
