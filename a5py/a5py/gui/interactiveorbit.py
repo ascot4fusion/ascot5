@@ -92,7 +92,7 @@ class OrbitFrame(ttk.Frame):
             gui.ascot.simulation_freeoutput()
 
             self.canvas.fig_rzview.clear()
-            self.canvas.fig_rzview.axis.plot(rorb, zorb)
+            self.canvas.fig_rzview.axes.plot(rorb, zorb)
             self.canvas.fig_rzview.draw()
 
         self.plotbutton.configure(command=plot)
