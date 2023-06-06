@@ -6,8 +6,8 @@ File: B_3DS.py
 import numpy as np
 import h5py
 
-from . ascot5file import add_group
-from a5py.ascot5io.ascot5data import AscotData
+from ._iohelpers.fileapi import add_group
+from ._iohelpers.treedata import DataGroup
 
 from . import B_2DS
 
@@ -192,7 +192,7 @@ def write_hdf5_B_2DS(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
 
 
 
-class B_3DS(AscotData):
+class B_3DS(DataGroup):
     """
     Object representing B_3DS data.
     """

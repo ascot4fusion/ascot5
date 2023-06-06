@@ -7,7 +7,7 @@ import h5py
 import numpy as np
 
 
-from . ascot5file import add_group
+from ._iohelpers.fileapi import add_group
 from a5py.ascot5io.mrk import mrk
 import a5py.ascot5io.mrk
 

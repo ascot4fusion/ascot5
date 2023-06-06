@@ -6,7 +6,7 @@ File: E_1DS.py
 import h5py
 import numpy as np
 
-from . ascot5file import add_group
+from ._iohelpers.fileapi import add_group
 from . E import E
 
 def write_hdf5(fn, nrho, rhomin, rhomax, dvdrho, reff, desc=None):

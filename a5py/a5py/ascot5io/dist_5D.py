@@ -10,7 +10,7 @@ import a5py.dist as distmod
 from a5py.marker.alias import get as alias
 import a5py.marker.interpret as interpret
 
-from a5py.ascot5io.ascot5data import AscotData
+from ._iohelpers.treedata import DataContainer
 
 def write_hdf5(fn, run, data):
     """
@@ -89,16 +89,15 @@ def read_hdf5(fn, qid):
     return out
 
 
-class Dist_5D(AscotData):
+class Dist_5D(DataContainer):
     """
     Object representing 5D distribution data.
     """
 
-    def __init__(self, root, hdf5, runnode):
+    def __init__(self, root, hdf5):
         """
         Object representing orbit data.
         """
-        self._runnode = runnode
         super().__init__(root, hdf5)
 
 

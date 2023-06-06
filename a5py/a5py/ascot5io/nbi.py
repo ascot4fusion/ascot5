@@ -8,8 +8,8 @@ import h5py
 
 import a5py.nbi.plot as plot
 
-from . ascot5file import add_group
-from a5py.ascot5io.ascot5data import AscotData
+from ._iohelpers.fileapi import add_group
+from ._iohelpers.treedata import DataGroup
 
 def write_hdf5(fn, nbi, desc=None):
     """
@@ -179,7 +179,7 @@ def write_hdf5_dummy(fn, desc="Dummy"):
     return write_hdf5(fn, [nbi], desc=desc)
 
 
-class nbi(AscotData):
+class nbi(DataGroup):
     """
     Object representing nbi data.
     """

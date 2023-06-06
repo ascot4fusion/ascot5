@@ -6,8 +6,8 @@ File: boozer.py
 import h5py
 import numpy as np
 
-from . ascot5file import add_group
-from . ascot5data import AscotData
+from ._iohelpers.fileapi import add_group
+from ._iohelpers.treedata import DataGroup
 
 def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
                zmin, zmax, nz, r0, z0, psi0, psi1, psi_rz, theta_psithetageom,
@@ -213,7 +213,7 @@ def write_hdf5_dummy(fn, desc="Dummy"):
         theta_psithetageom, nu_psitheta, nrzs, rs, zs, desc)
 
 
-class Boozer(AscotData):
+class Boozer(DataGroup):
     """
     Object representing boozer data.
     """

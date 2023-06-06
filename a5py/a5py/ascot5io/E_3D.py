@@ -6,7 +6,7 @@ File: E_3D.py
 import numpy as np
 import h5py
 
-from . ascot5file import add_group
+from ._iohelpers.fileapi import add_group
 from . E import E
 
 def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz, phimin, phimax, nphi,

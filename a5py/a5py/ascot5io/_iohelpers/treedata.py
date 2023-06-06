@@ -1,171 +1,202 @@
+"""Abstract classes for objects containing data.
 """
-Contains definition of DataContainer class.
-"""
-
 import h5py
 
-from . import ascot5file
+from a5py.exceptions import AscotIOException
+from . import fileapi
 
-class DataGroup():
-    """
-    Class inherited by the input and result groups in Ascot treeview.
+class DataContainer():
+    """Interface for providing access to underlying HDF5 data.
 
-    This class provides methods to change and view the meta data (QID,
-    name, type, description, date) and access to the raw data. The
-    raw data is accessed (via h5py) as
+    This class provides methods to change and access the raw data. The
+    raw data is accessed (via `h5py`) as
     with datacontainer as d:
       d["data"][:]
-    where d is the h5py.group corresponding to this container.
+    where `d` is the `h5py.Group` corresponding to this container.
 
-    Attributes:
-      _root : RootNode
+    Attributes
+    ----------
+    _root : `RootNode`
         The rootnode this object belongs to.
-      _path : str
+    _path : `str`
         Path to this data within the HDF5 file.
-      _opened : bool
-        If True, the raw data can be accessed via h5py.
+    _opened : `list` [obj]
+        List containing a single object, which is this data's HDF5 group if
+        the data is being accessed and `None` otherwise.
+
+        We are storing single item list, instead of storing the item directly,
+        since this class is inherited by `Note` objects whose attributes cannot
+        be changed directly. However, if the attribute is a list, the contents
+        of that list can be changed ;).
     """
 
-    def __init__(self, root, hdf5group):
-        """
-        Initialize container.
+    def __init__(self, root, path, **kwargs):
+        """Initialize data container.
 
-        Args:
-          root : RootNode
-            The rootnode this object belongs to.
-          hdf5group : h5py.group
-            The h5py group this data corresponds to.
+        Parameters
+        ----------
+        root : `RootNode`
+            The `RootNode` this data container belongs to.
+        path : `str`
+            Path to this data within the HDF5 file.
+        **kwargs
+            Arguments passed to other constructors in case of multiple
+            inheritance.
         """
         self._root   = root
-        self._path   = hdf5group.name
-        self._opened = None
+        self._path   = path
+        self._opened = [None]
+        super().__init__(**kwargs)
 
     def __enter__(self):
-        """
-        Call _open when entering with clause.
+        """Call _open when entering `with` clause.
 
-        Returns:
-          h5py.group
+        Returns
+        -------
+        data : `h5py.Group`
             HDF5 group corresponding to this data.
         """
         return self._open()
 
     def __exit__(self, exception_type, exception_value, traceback):
-        """
-        Call _close when exiting with clause.
+        """Call _close when exiting `with` clause.
         """
         self._close()
 
     def _open(self):
-        """
-        Open and return the HDF5 group corresponding to this data.
+        """Open and return the HDF5 group corresponding to this data.
 
-        Returns:
-          h5py.group
+        Returns
+        -------
+        data : `h5py.Group`
             HDF5 group corresponding to this data.
-        Raises:
-          AscotIOException
-            When this instance has already opened the file.
+
+        Raises
+        ------
+        AscotIOException
+            Raised if this instance has already opened the file.
         """
-        if self._opened is not None:
+        if self._opened[0] is not None:
             raise AscotIOException(
                 """The file has already been opened by this instance and
                    not closed by _close()""")
 
-        self._opened = h5py.File(self._file, "a")[self._path]
-        return self._opened
+        fn = self._root._ascot.file_getpath()
+        self._opened[0] = h5py.File(fn, "a")[self._path]
+        return self._opened[0]
 
     def _close(self):
+        """Close the HDF5 group corresponding to this data.
         """
-        Close the HDF5 group corresponding to this data.
-        """
-        self._opened.file.close()
-        self._opened = None
+        self._opened[0].file.close()
+        self._opened[0] = None
+
+class DataGroup(DataContainer):
+    """Data container that also has meta data (QID, date, description).
+    """
 
     def set_desc(self, desc):
-        """
-        Set description for this group.
+        """Set description for this group.
 
-        Args:
-          desc : str
+        Note that the first word in the description is this group's tag which
+        can be used to refer to this group.
+
+        Parameters
+        ----------
+        desc : `str`
             Short description for the user to document this group.
         """
         f = self._open()
-        val = ascot5file.set_desc(f.file, self._group,desc)
+        val = fileapi.set_desc(f.file, self._path, desc)
         self._close()
-        self._root._build(self._root.file_getpath())
+        self._root._build(self._root._ascot.file_getpath())
         return val
 
     def get_desc(self):
-        """
-        Get this group's description.
+        """Get this group's description.
 
-        Returns:
-          str
+        Returns
+        -------
+        desc : `str`
             Documentation the user has used to describe this group.
         """
         f = self._open()
-        val = ascot5file.get_desc(f.file, self._group)
+        val = fileapi.get_desc(f.file, self._path)
         self._close()
         return val
 
     def get_date(self):
-        """
-        Get the date when this group was created.
+        """Get the date when this group was created.
 
-        Returns:
-          The date in XXX format.
+        Returns
+        -------
+        date : `str`
+            The date in YYYY-MM-DD hh:mm:ss format.
         """
         f = self._open()
-        val = ascot5file.get_date(f.file, self._group)
+        val = fileapi.get_date(f.file, self._path)
         self._close()
         return val
 
     def get_qid(self):
-        """
-        Get QID of this group.
+        """Get QID of this group.
 
-        Returns:
-          str
+        Returns
+        -------
+        qid : `str`
             String with 10 characters containing numbers from 0-9 which is
             an unique identifier for this group.
         """
-        return ascot5file.get_qid(self._group)
+        val = fileapi.get_qid(self._path)
+        return val
 
     def get_type(self):
-        """
-        Return type of this group.
+        """Return type of this group.
 
-        Returns:
-          str
+        Returns
+        -------
+        gtype : `str`
             Group type.
         """
         path = self._path.split("/")[-1]
         return path[:-11]
 
     def get_name(self):
-        """
-        Return name of this group.
+        """Return name of this group.
 
-        Returns:
-          str
+        Returns
+        -------
+        name : `str`
             The name of the group as "<group type>_<group qid>".
         """
         return self._path.split("/")[2]
 
     def activate(self):
+        """Set this group as active.
+
+        Active inputs are used when the simulation is run. Active groups are
+        also used during post-processing.
         """
-        Set this group as active.
-        """
-        self._root._activate(self.get_qid())
+        self._root._activate_group(self.get_qid())
 
     def destroy(self, repack=True):
+        """Remove this group from the HDF5 file.
+
+        Parameters
+        ----------
+        repack : `bool`, optional
+            If True, repack the HDF5 file.
+
+            Removing data from the HDF5 file only removes references to it and
+            repacking is required to free the disk space. Repacking makes a copy
+            of the HDF5 file and destroys the original, and it also requires
+            3rd party tool `h5repack` which is why it's use is optional here.
         """
-        Remove this group from the HDF5 file.
-        """
-        self._root._destroy(self.get_qid(), repack)
+        self._root._destroy_group(self.get_qid(), repack)
 
     def copy_to_hdf5file(self,target_file,newgroup=False):
+        """
+        """
 
         import a5py.ascot5io.ascot5tools as tools
         group = tools.copygroup(self._root.file_getpath(), target_file,

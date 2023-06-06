@@ -8,8 +8,8 @@ import numpy as np
 import textwrap
 import copy
 
-from . ascot5file import add_group, get_qid
-from a5py.ascot5io.ascot5data import AscotData
+from ._iohelpers.fileapi import add_group, get_qid
+from ._iohelpers.treedata import DataGroup
 
 def write_hdf5(fn, options, desc=None):
     """
@@ -925,7 +925,7 @@ def generateopt(clean=False):
     return opt
 
 
-class Opt(AscotData):
+class Opt(DataGroup):
 
     def read(self, info=False):
         return read_hdf5(self._file, self.get_qid(), info=info)

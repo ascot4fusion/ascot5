@@ -12,8 +12,8 @@ File: mhd.py
 import h5py
 import numpy as np
 
-from . ascot5file import add_group
-from . ascot5data import AscotData
+from ._iohelpers.fileapi import add_group
+from ._iohelpers.treedata import DataGroup
 
 def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, phase, alpha, phi,
                nrho, rhomin, rhomax, ntime=None, tmin=None, tmax=None,
@@ -173,7 +173,7 @@ def read_hdf5(fn, qid):
     return out
 
 
-class MHD(AscotData):
+class MHD(DataGroup):
     """
     Object representing MHD data.
     """

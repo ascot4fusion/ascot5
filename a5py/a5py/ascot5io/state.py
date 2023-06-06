@@ -19,8 +19,8 @@ import a5py.physlib as physlib
 
 from a5py.physlib.alias import getalias
 
-from a5py.ascot5io.ascot5data import AscotData
-from a5py.ascot5io.ascot5file import read_data
+from ._iohelpers.treedata import DataContainer
+from ._iohelpers.fileapi import read_data
 
 def write_hdf5(fn, run, name, data):
     """
@@ -101,16 +101,15 @@ def read_hdf5(fn, qid, name):
     return out
 
 
-class State(AscotData):
+class State(DataContainer):
     """
     State object.
     """
 
-    def __init__(self, root, hdf5, runnode):
+    def __init__(self, root, hdf5):
         """
         Initialize state object from given HDF5 file to given RunNode.
         """
-        self._runnode = runnode
         super().__init__(root, hdf5)
 
 

@@ -6,8 +6,8 @@ File: N0_3D.py
 import numpy as np
 import h5py
 
-from . ascot5file import add_group
-from a5py.ascot5io.ascot5data import AscotData
+from ._iohelpers.fileapi import add_group
+from ._iohelpers.treedata import DataGroup
 
 def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz, phimin, phimax, nphi,
                nspecies, anum, znum, density, temperature, maxwellian=1,
@@ -152,7 +152,7 @@ def write_hdf5_dummy(fn, desc="Dummy"):
                desc=desc)
 
 
-class N0_3D(AscotData):
+class N0_3D(DataGroup):
     """
     Object representing N0_3D data.
     """

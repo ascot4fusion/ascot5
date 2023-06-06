@@ -6,8 +6,8 @@ File: wall_2D.py
 import h5py
 import numpy as np
 
-from . ascot5file import add_group
-from a5py.ascot5io.ascot5data import AscotData
+from ._iohelpers.fileapi import add_group
+from ._iohelpers.treedata import DataGroup
 
 from . import wall_3D
 
@@ -110,7 +110,7 @@ def write_hdf5_dummy(fn, desc="Dummy"):
     z = np.array([-100, -100, 100, 100])
     write_hdf5(fn=fn, nelements=4, r=r, z=z, desc=desc)
 
-class wall_2D(AscotData):
+class wall_2D(DataGroup):
     """
     Object representing wall_2D data.
     """

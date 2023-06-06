@@ -6,8 +6,8 @@ File: wall_3D.py
 import h5py
 import numpy as np
 
-from . ascot5file import add_group
-from a5py.ascot5io.ascot5data import AscotData
+from ._iohelpers.fileapi import add_group
+from ._iohelpers.treedata import DataGroup
 
 import a5py.wall.plot as plot
 
@@ -131,7 +131,7 @@ def read_hdf5(fn, qid):
     return out
 
 
-class wall_3D(AscotData):
+class wall_3D(DataGroup):
     """
     Object representing wall_3D data.
     """

@@ -8,8 +8,8 @@ import copy
 import numpy as np
 import h5py
 
-from a5py.ascot5io.ascot5data import AscotData
-from a5py.ascot5io.ascot5file import read_data
+from ._iohelpers.treedata import DataGroup
+from ._iohelpers.fileapi import read_data
 from a5py.marker.plot import plot_histogram
 
 from a5py.plotting import openfigureifnoaxes
@@ -82,7 +82,7 @@ def generatemrk(nmrk, mrktype, species=None):
     return mrk
 
 
-class mrk(AscotData):
+class mrk(DataGroup):
     '''
     A class acting as a superclass for all marker types.
     '''

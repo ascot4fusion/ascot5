@@ -38,19 +38,6 @@ class LackingDataError(Exception):
 
 class RunMethods():
 
-    def init_runmethods(self):
-        self.has_inistate = False
-        self.has_endstate = False
-        self.has_orbit    = False
-
-        if hasattr(self, "inistate"):
-            self.has_inistate = True
-        if hasattr(self, "endstate"):
-            self.has_endstate = True
-        if hasattr(self, "orbit"):
-            self.has_orbit = True
-
-
     def getstate(self):
         pass
 

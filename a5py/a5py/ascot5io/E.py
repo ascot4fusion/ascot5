@@ -3,9 +3,9 @@ Created on Apr 16, 2020
 
 @author: sjjamsa
 '''
-from . ascot5data import AscotData
+from ._iohelpers.treedata import DataGroup
 
-class E(AscotData):
+class E(DataGroup):
     '''
     A parent class for all Electric field classes.
     '''

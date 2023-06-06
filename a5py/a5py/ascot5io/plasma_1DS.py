@@ -8,8 +8,8 @@ import numpy as np
 import random
 import datetime
 
-from . ascot5file import add_group
-from . ascot5data import AscotData
+from ._iohelpers.fileapi import add_group
+from ._iohelpers.treedata import DataGroup
 
 def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho,
                edensity, etemperature, idensity, itemperature, desc=None):
@@ -107,7 +107,7 @@ def read_hdf5(fn, qid):
     return out
 
 
-class plasma_1DS(AscotData):
+class plasma_1DS(DataGroup):
     """
     Object representing P_1DS data.
     """

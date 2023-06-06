@@ -11,9 +11,9 @@ import a5py.preprocessing.analyticequilibrium as psifun
 import a5py.ascot5io.B_2DS as B_2DS
 import a5py.ascot5io.B_3DS as B_3DS
 
-from . ascot5file import add_group
+from ._iohelpers.fileapi import add_group
 
-from a5py.ascot5io.ascot5data import AscotData
+from ._iohelpers.treedata import DataGroup
 
 def write_hdf5(fn, r0, z0, bphi0, psimult, coefficients, psi0=None, psi1=0,
                raxis=None, zaxis=None, nripple=0, a0=2, alpha0=2, delta0=0.05,
@@ -293,7 +293,7 @@ def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
                             Br, Bphi, Bz, desc=desc)
 
 
-class B_GS(AscotData):
+class B_GS(DataGroup):
     """
     Object representing B_GS data.
     """

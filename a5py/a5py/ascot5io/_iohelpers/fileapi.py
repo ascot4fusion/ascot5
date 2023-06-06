@@ -1,5 +1,4 @@
-"""
-Module for creating and modifying the HDF5 file and for accessing meta data.
+"""Module for creating and modifying the HDF5 file and for accessing meta data.
 
 ASCOT5 HDF5 file is built as follows. At top level are parent groups, one (and
 only one) for each type of input (e.g. bfield for magnetic field input) and one
@@ -11,30 +10,21 @@ The result group is a different in a sense that it contains run groups, one
 for each simulation, which then contain the groups that store inistate,
 endstate, and whatever diagnostics were used. However, here we refer to the
 top level groups as parents, and the groups that are directly below them
-as groups.
+as data containers.
 
 A typical structure of a file can be like this:
 
-> /                              <br>
-> /bfield                        <br>
-> /bfield/B_2DS-1234567890       <br>
-> /bfield/B_2DS-2345678901       <br>
-> /bfield/B_3DS-3456789012       <br>
-> /efield                        <br>
-> /efield/E_TC-1234567890        <br>
-> /neutral                       <br>
-> /neutral/N0_3D-1234567890      <br>
-> /plasma                        <br>
-> /plasma/plasma_1D-1234567890   <br>
-> /wall                          <br>
-> /wall/wall_2D-1234567890       <br>
-> /options                       <br>
-> /options/opt-1234567890        <br>
-> /marker                        <br>
-> /marker/particle-1234567890    <br>
-> /results                       <br>
-> /results/run-1234567890        <br>
-> /results/run-2345678901        <br>
+> /
+> /bfield
+> /bfield/B_2DS_1234567890
+> /bfield/B_2DS_2345678901
+> /bfield/B_3DS_3456789012
+> ...
+> <other input groups>
+> ...
+> /results
+> /results/run_4567890123
+> /results/run_5678901234
 
 The number in group name is unique identifier (QID) which is generated when a
 group is created. It is generated from a 32 bit random integer and as such it
@@ -54,8 +44,6 @@ The groups should be created, removed, and their metadata accessed via this
 module. The actual datasets are accessed via corresponding modules. This module
 assumes the HDF5 file is open when these routines are called, and closed
 afterwards.
-
-File: ascot5file.py
 """
 
 import numpy as np
@@ -64,30 +52,46 @@ import unyt
 import random
 import datetime
 
-## Names of input parent groups.
-INPUT_PARENTS = ["options", "bfield", "efield", "marker", "plasma", "neutral",
-                 "wall", "boozer", "mhd", "nbi", "marker_shined"]
+from collections import OrderedDict
+from a5py.exceptions import AscotDataMissingException, AscotIOException
 
-## Current version
-VERSION = "0"
+INPUTGROUPS = [
+    "options", "bfield", "efield", "marker", "plasma", "neutral", "wall",
+    "boozer", "mhd", "nbi", "marker_shined"]
+"""Names of the input groups.
+"""
+
+OUTPUTGROUPS = [
+    "inistate", "endstate", "dist5d", "distrho5d", "dist6d", "distrho6d",
+    "orbit", "transcoef"]
+"""Names of the output groups in runs.
+"""
+
+VERSION = "5.4"
+"""Current version of the code.
+"""
 
 def set_active(f, group):
-    """
-    Set given group as active.
+    """Set given group as active.
 
-    Args:
-        f: h5py file.
-        group: Either the group's name or its h5py group object.
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    group : `str` or `h5py.Group`
+        Group object or its name.
 
-    Raise:
-        ValueError if the group or its parent does not exist.
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if the group or its parent does not exist.
     """
 
     if(str(group) == group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise ValueError("Could not find group" + group)
+            raise AscotDataMissingException("Could not find group" + group)
         else:
             group = grp
 
@@ -95,104 +99,120 @@ def set_active(f, group):
     group.parent.attrs["active"] = np.string_(qid)
 
 def get_active(f, parent):
-    """
-    Get active group.
+    """Get active group.
 
-    Args:
-        f: h5py file.
-        parent: Either parent's name or its h5py group.
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    parent : `str` or `h5py.Group`
+        Group object or its name.
 
-    Returns:
-        h5py group object.
+    Returns
+    -------
+    group : `h5py.Group`
+        The active group.
 
-    Raise:
-        ValueError if the parent or the active group does not exist.
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if the parent or the active group does not exist.
     """
 
     if str(parent) == parent:
         if parent in f:
             parent = f[parent]
         else:
-            raise ValueError("Parent " + parent + " does not exist.")
+            raise AscotDataMissingException(
+            "Parent " + parent + " does not exist.")
 
     qid = parent.attrs["active"].decode('utf-8')
     group = get_group(f, qid)
 
     if group == None:
-        raise ValueError("Active group does not exist.")
+        raise AscotDataMissingException("Active group does not exist.")
     else:
         return group
 
 def set_activeqid(f, qid):
+    """Set a group with the given QID as the active one.
+
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    qid : `str`
+        QID.
     """
-    Set a group with the given QID as the active one.
-
-    Args:
-        f: h5py file.
-        qid: Group's QID.
-
-    Raise:
-        ValueError if a group with given QID does not exist.
-    """
-
     group = get_group(f, qid)
     set_active(f, group)
 
 def get_activeqid(f, parent):
-    """
-    Get QID of the group which is the active one.
+    """Get QID of the currently active group.
 
-    Args:
-        f: h5py file.
-        parent: Parent's name.
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    parent : `str` or `h5py.Group`
+        Parent whose active group is sought.
 
-    Returns:
+    Returns
+    -------
+    qid : `str`
         QID string.
-
-    Raise:
-        ValueError if parent or active group does not exist.
     """
-
     group = get_active(f, parent)
     return group.parent.attrs["active"].decode('utf-8')
 
 
 def set_desc(f, group, desc):
-    """
-    Set group description.
+    """Set group description.
 
-    Args:
-        f: h5py file.
-        group: Either the group's name or its h5py group.
-        desc: Description as a string.
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    group : `str` or `h5py.Group`
+        Group object or its name.
+    desc : `str`
+        Description as a string.
 
-    Raise:
-        ValueError if group does not exist.
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if group does not exist.
     """
     # Check the group exists and access it.
     if(str(group) == group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise ValueError("Could not find group" + group)
+            raise AscotDataMissingException("Could not find group" + group)
         else:
             group = grp
 
     group.attrs["description"] = np.string_(desc)
 
 def get_desc(f, group):
-    """
-    Get group description.
+    """Get group description.
 
-    Args:
-        f: h5py file.
-        group: Either the group's name or its h5py group.
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    group : `str` or `h5py.Group`
+        Group object or its name.
 
-    Returns:
-        Date as a string.
+    Returns
+    -------
+    desc : `str`
+        Description as a string.
 
-    Raise:
-        ValueError if group does not exist.
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if group does not exist.
     """
 
     # Check the group exists and access it.
@@ -200,25 +220,30 @@ def get_desc(f, group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise ValueError("Could not find group" + group)
+            raise AscotDataMissingException("Could not find group" + group)
         else:
             group = grp
 
     return group.attrs["description"].decode('utf-8')
 
 def _set_date(f, group, date):
-    """
-    Set group date.
+    """Set group date.
 
     Note that this function should only be called when the group is created.
 
-    Args:
-        f: h5py file.
-        group: Either the group's name or its h5py group.
-        date: Date as a string in a YYYY-MM-DD hh:mm:ss format.
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    group : `str` or `h5py.Group`
+        Group object or its name.
+    date : `str`
+        Date as a string in a YYYY-MM-DD hh:mm:ss format.
 
-    Raise:
-        ValueError if group does not exist.
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if group does not exist.
     """
 
     # Check the group exists and access it.
@@ -226,25 +251,31 @@ def _set_date(f, group, date):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise ValueError("Could not find group" + group)
+            raise AscotDataMissingException("Could not find group" + group)
         else:
             group = grp
 
     group.attrs["date"] = np.string_(date)
 
 def get_date(f, group):
-    """
-    Get date (as a string) in a YYYY-MM-DD hh:mm:ss format.
+    """Get date.
 
-    Args:
-        f: h5py file.
-        group: Either the group's name or its h5py group.
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    group : `str` or `h5py.Group`
+        Group object or its name.
 
-    Returns:
-        Date as a string.
+    Returns
+    -------
+    date : `str`
+        Date as a string in format YYYY-MM-DD hh:mm:ss.
 
-    Raise:
-        ValueError if group does not exist.
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if group does not exist.
     """
 
     # Check the group exists and access it.
@@ -252,25 +283,28 @@ def get_date(f, group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise ValueError("Could not find group" + group)
+            raise AscotDataMissingException("Could not find group" + group)
         else:
             group = grp
 
     return group.attrs["date"].decode('utf-8')
 
-def _set_version(f, group, date):
-    """
-    Set group version.
+def _set_version(f, group):
+    """Set group version.
 
     Note that this function should only be called when the group is created.
 
-    Args:
-        f: h5py file.
-        group: Either the group's name or its h5py group.
-        vers: Version number as a string.
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    group : `str` or `h5py.Group`
+        Group object or its name.
 
-    Raise:
-        ValueError if group does not exist.
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if group does not exist.
     """
 
     # Check the group exists and access it.
@@ -278,25 +312,31 @@ def _set_version(f, group, date):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise ValueError("Could not find group" + group)
+            raise AscotDataMissingException("Could not find group" + group)
         else:
             group = grp
 
     group.attrs["version"] = np.string_(vers)
 
 def get_version(f, group):
-    """
-    Get input version.
+    """Get input version.
 
-    Args:
-        f: h5py file.
-        group: Either the group's name or its h5py group.
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    group : `str` or `h5py.Group`
+        Group object or its name.
 
-    Returns:
+    Returns
+    -------
+    version : `str`
         Version as a string.
 
-    Raise:
-        ValueError if group does not exist.
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if group does not exist.
     """
 
     # Check the group exists and access it.
@@ -304,24 +344,29 @@ def get_version(f, group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise ValueError("Could not find group" + group)
+            raise AscotDataMissingException("Could not find group" + group)
         else:
             group = grp
 
     return group.attrs["version"].decode('utf-8')
 
 def get_qid(group):
-    """
-    Get QID from a given group or from its name.
+    """Get QID from a given group.
 
-    Args:
-        group: Either the group's name or its h5py group.
+    Parameters
+    ----------
+    group : `str` or `h5py.Group`
+        Group object or its name.
 
-    Returns:
+    Returns
+    -------
+    qid : `str`
         QID string.
 
-    Raise:
-        ValueError if group does not have a valid QID.
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if group does not have a valid QID.
     """
     if(str(group) != group):
         group = group.name
@@ -333,20 +378,25 @@ def get_qid(group):
             return qid
 
     # Not a valid QID
-    raise ValueError(group + " is not a valid QID.")
+    raise AscotDataMissingException(group + " is not a valid QID.")
 
 def get_type(group):
-    """
-    Get type from a given group or from its name.
+    """Get type from a given group or from its name.
 
-    Args:
-        group: Either the group's name or its h5py group.
+    Parameters
+    ----------
+    group : `str` or `h5py.Group`
+        Group object or its name.
 
-    Returns:
-        Type string.
+    Returns
+    -------
+    type : `str`
+         Group's type.
 
-    Raise:
-        ValueError if group does not have a valid type.
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if group does not have a valid type.
     """
     if(str(group) != group):
         group = group.name
@@ -359,18 +409,22 @@ def get_type(group):
             return type_
 
     # Not a valid type
-    raise ValueError(group + " does not contain a valid type.")
+    raise AscotDataMissingException(group + " does not contain a valid type.")
 
 def get_group(f, qid):
-    """
-    Scan the file and return the group the QID corresponds to.
+    """Scan the file and return the group the QID corresponds to.
 
-    Args:
-        f: h5py file.
-        qid: QID string.
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    qid : `str`
+        QID string.
 
-    Returns:
-        h5py group or None if the group was not present.
+    Returns
+    -------
+    group : `h5py.Group`
+        Group or None if the group was not present.
     """
 
     for parent in f.keys():
@@ -381,24 +435,32 @@ def get_group(f, qid):
     return None
 
 def get_qids(f, parent):
-    """
-    Get QIDs of all the groups that a given parent contains.
+    """Get QIDs of all the groups that a given parent contains.
 
     The QIDs are returned as list of no specific order.
 
-    Args:
-        f: h5py file
-        parent Either the parent's name or its h5py group.
-    Returns:
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    parent : `str` or `h5py.Group`
+        Parent object or its name.
+
+    Returns
+    -------
+    qids : `list` [`str`]
         A list of QID strings.
-    Raise:
-        ValueError if parent group does not exist.
+
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if parent group does not exist.
     """
 
     # Check the parent exists and access it
     if(str(parent) == parent):
         if not parent in f:
-            raise ValueError("Could not find parent " + parent)
+            raise AscotDataMissingException("Could not find parent " + parent)
         parent = f[parent]
 
     qids = []
@@ -407,21 +469,26 @@ def get_qids(f, parent):
 
     return qids
 
-def get_inputqids(f, rungroup, ignore=[]):
-    """
-    Get all QIDs that tell which input was used in the given run group.
+def get_inputqids(f, rungroup):
+    """Get all QIDs that tell which input was used in the given run group.
 
-    The QIDs are returned as list, where the order is same as in
-    ascot5file.INPUT_PARENTS.
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    rungroup : `str` or `h5py.Group`
+        Either the run group object or its name.
 
-    Args:
-        f: h5py file.
-        rungroup: Either the run group's name or its h5py group.
-        ignore: List of names of inputs that are not relevant for this run.
-    Returns:
-        A list of QID strings.
-    Raise:
-        ValueError if run group does not exist.
+    Returns
+    -------
+    qids : `collections.OrderedDict` [`str`, `str`]
+        Ordered dictionary with "parent name" - "qid" value pairs with the order
+        being same as in `INPUTGROUPS`.
+
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if run group does not exist.
     """
 
     # Check the group exists and access it.
@@ -429,39 +496,39 @@ def get_inputqids(f, rungroup, ignore=[]):
         qid = get_qid(rungroup)
         grp = get_group(f, qid)
         if grp is None:
-            raise ValueError("Could not find group " + rungroup)
+            raise AscotDataMissingException("Could not find group " + rungroup)
         else:
             rungroup = grp
 
-    qids = [];
-    for inp in range(0, len(INPUT_PARENTS)):
-        if INPUT_PARENTS[inp] in ignore:
-            continue
-
+    qids = OrderedDict();
+    for inp in INPUTGROUPS:
         try:
-            qid = rungroup.attrs["qid_" + INPUT_PARENTS[inp]].decode('utf-8')
+            qids[inp] = rungroup.attrs["qid_" + inp].decode("utf-8")
         except KeyError as err:
-            #print(err)
             pass
-        else:
-            qids.append(qid)
 
     return qids
 
 def add_group(f, parent, group, desc=None):
-    """
-    Create a new group. A parent is created if need be.
+    """Create a new group. A parent is created if need be.
 
     If parent is created, then this new group is set as active.
 
-    Args:
-        f: h5py file.
-        parent: Either the parent's name or its h5py group.
-        group: Name of the group (without QID of course).
-        desc: optional, Description for the group.
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    parent : `str` or `h5py.Group`
+        Parent of the created group.
+    group : `str`
+        The group name.
+    desc : `str`, optional
+        Description for the group.
 
-    Returns:
-        h5py group of the new group.
+    Returns
+    -------
+    newgroup : `h5py.Group`
+        The new group.
     """
 
     # Create a parent if one does not exists yet.
@@ -487,8 +554,7 @@ def add_group(f, parent, group, desc=None):
 
 
 def remove_group(f, group):
-    """
-    Remove a group.
+    """Remove a group.
 
     If this was an active group, a most recent group is set as an active
     instead. If no other groups exist the parent is also removed.
@@ -498,29 +564,34 @@ def remove_group(f, group):
     Note that to reclaim the disk space which the group occupied, one needs
     to call h5repack in a terminal.
 
-    Args:
-        f: h5py file.
-        group: Either the group's name or its h5py group.
+    Parameters
+    ----------
+    f : `h5py.File`
+        Open HDF5 file.
+    group : `str` or `h5py.Group`
+        The group to be removed.
 
-    Raise:
-        ValueError if group could not be found.
-
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if group could not be found.
+    AscotIOException
+        Raised if the group is input used by a run.
     """
 
     # Check the group exists and access it.
     if(str(group) == group):
-        try:
-            #group is not a parent group
+        if group in f.keys():
+            # Group is a parent group
+            group = f[group]
+        else:
+            # assume group is data group
             qid = get_qid(group)
             grp = get_group(f, qid)
             if grp is None:
-                raise ValueError("Could not find group " + group)
+                raise AscotDataMissingException("Could not find group" + group)
             else:
                 group = grp
-
-        except ValueError:
-            #group is a parent group
-            group = f[group]
 
     # Check if this is an input group and whether it has been used in run.
     parent = group.parent
@@ -529,14 +600,16 @@ def remove_group(f, group):
             for run in f["results"].keys():
                 for q in f["results"][run].attrs.keys():
                     if q[:4] == "qid_" and q[4:] == group.name[1:]:
-                        return
+                        raise AscotIOException(
+                        "Input \"" + group.name[1:] + "\" is used by " + run)
         else:
             qid = get_qid(group)
             for run in f["results"].keys():
                 for q in f["results"][run].attrs.keys():
                     t = f["results"][run].attrs[q].decode('utf-8')
                     if q[:4] == "qid_" and t == qid:
-                        return
+                        raise AscotIOException(
+                            "Input " + qid + " is used by " + run)
 
     # Remove the group
     if parent.name!='/':
@@ -563,24 +636,33 @@ def remove_group(f, group):
 
 
 def copy_group(fs, ft, group, newgroup=False):
-    """
-    Copy group from one file to another. A parent is also created if need be.
+    """Copy group from one file to another. A parent is also created if need be.
 
     The new group is set as active if the parent on the target file has no other
     groups. The copied group retains its original QID and date of creation.
 
-    Args:
-        fs: h5py file from which group is copied.
-        ft: h5py file to which group is copied.
-        group: Either the group's name or its h5py group.
-        newgroup : bool, optional Flag indicating if copied group should be
-        given new QID and creation date. Default is false.
+    Parameters
+    ----------
+    fs : `h5py.File`
+        File from which the group is copied.
+    ft : `h5py.File`
+        File to which the group is copied.
+    group : `str` pr `h5py.Group`
+        The group to be copied.
+    newgroup : `bool`, optional
+        Flag indicating if copied group should be given new QID and date.
 
-    Returns:
-        h5py group of the copied group.
+    Returns
+    -------
+    groupt : `h5py.Group`
+        The new group which is a copy of group at ft.
 
-    Raise:
-        ValueError if group cannot be found or if it exists on the target file.
+    Raises
+    ------
+    AscotDataMissingException
+        Raised if the copied group cannot be found.
+    AscotIOException
+        Raised if the group already exists on the target file.
     """
 
     # Check the group exists and access it.
@@ -588,7 +670,7 @@ def copy_group(fs, ft, group, newgroup=False):
         qid = get_qid(group)
         grp = get_group(fs, qid)
         if grp is None:
-            raise ValueError("Could not find group " + group)
+            raise AscotDataMissingException("Could not find group " + group)
         else:
             group = grp
 
@@ -597,7 +679,7 @@ def copy_group(fs, ft, group, newgroup=False):
 
     newparent  = ft.require_group(parentname)
     if group.name in newparent:
-        raise ValueError("Target already has the group " + group.name)
+        raise AscotIOException("Target already has the group " + group.name)
 
     # Copy
     if newgroup:
@@ -617,17 +699,22 @@ def copy_group(fs, ft, group, newgroup=False):
 
 
 def write_data(group, name, data, dtype="f8", unit=None):
-    """
-    Write a dataset.
+    """Write a dataset.
 
-    The shape of the written dataset is deduced from the given dataset.
+    The shape of the written dataset is same as the input array.
 
-    Args:
-        group : HDF5 group where the dataset will be written.
-        name : Name of the new dataset.
-        data : Data to be written.
-        dtype : Data type.
-        unit : Unit string if the data has units.
+    Parameters
+    ----------
+    group : `h5py.Group`
+        HDF5 group where the dataset will be written.
+    name : `str`
+        Name of the new dataset.
+    data : `np.array`
+        Data to be written.
+    dtype : `str`, optional
+        Data type.
+    unit : `str`, optional
+        Unit string if the data has units.
     """
     g = group.create_dataset(
         name  = name,
@@ -640,8 +727,21 @@ def write_data(group, name, data, dtype="f8", unit=None):
 
 
 def read_data(group, name):
-    """
-    Read a dataset.
+    """Read a dataset and add units if present.
+
+    Parameters
+    ----------
+    group : `h5py.Group`
+        HDF5 group containing the dataset.
+    name : `str`
+        Name of the dataset.
+
+    Returns
+    -------
+    data : `np.array` or `unyt.array`, `(N,)`
+        Dataset with units read from the dataset attribute "unit".
+
+        If dataset has no "unit" attribute, ordinary `np.array` is returned.
     """
     if "unit" in group[name].attrs.keys():
         unit_str = group[name].attrs["unit"]
@@ -654,14 +754,15 @@ def read_data(group, name):
 
 
 def _generate_meta():
-    """
-    Generate QID, date and default description "No description.".
+    """Generate QID, date and default description/tag.
 
     Calls random number generator to create 32 bit string which is then
     converted as a QID string using left-padding with zeroes if necessary.
 
-    Returns:
-        tuple (QID, date, description) where all elements are strings.
+    Returns
+    -------
+    meta : `tuple` [`str`, `str`, `str`, `str`]
+        QID, date, description, and version number.
     """
     # Generate random unsigned 32 bit integer and convert it to string.
     qid = str(np.uint32(random.getrandbits(32)))
@@ -676,7 +777,7 @@ def _generate_meta():
     # Last digits are milliseconds which we don't need
     date = date[0:19]
 
-    desc = "No description."
+    desc = "TAG"
 
     vers = VERSION
 

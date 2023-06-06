@@ -6,8 +6,8 @@ File: B_TC.py
 import h5py
 import numpy as np
 
-from . ascot5file import add_group
-from a5py.ascot5io.ascot5data import AscotData
+from ._iohelpers.fileapi import add_group
+from ._iohelpers.treedata import DataGroup
 
 def write_hdf5(fn, bxyz, jacobian, rhoval, psival=None, axisr=1, axisz=0,
                desc=None):
@@ -91,7 +91,7 @@ def write_hdf5_dummy(fn, desc="Dummy"):
                       rhoval=0.5, psival=1.5, axisr=6, axisz=0, desc=desc)
 
 
-class B_TC(AscotData):
+class B_TC(DataGroup):
     """
     Object representing B_TC data.
     """

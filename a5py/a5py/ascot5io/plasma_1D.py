@@ -6,8 +6,8 @@ File: plasma_1D.py
 import h5py
 import numpy as np
 
-from . ascot5file import add_group
-from a5py.ascot5io.ascot5data import AscotData
+from ._iohelpers.fileapi import add_group
+from ._iohelpers.treedata import DataGroup
 
 def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho,
                edensity, etemperature, idensity, itemperature, desc=None):
@@ -121,7 +121,7 @@ def write_hdf5_dummy(fn, desc="Dummy"):
                rho, edens, etemp, idens, itemp, desc=desc)
 
 
-class plasma_1D(AscotData):
+class plasma_1D(DataGroup):
     """
     Object representing P_1D data.
     """
