@@ -3,18 +3,8 @@ Methods to evaluate quantities from electric field data.
 
 File: libefield.py
 """
-import numpy as np
 
-from a5py.ascotpy.libascot import LibAscot
-
-
-import importlib.util as util
-
-plt = util.find_spec("matplotlib")
-if plt:
-    import matplotlib.pyplot as plt
-
-class LibEfield(LibAscot):
+class LibEfield():
 
     quantities = ["er", "ephi", "ez"]
 

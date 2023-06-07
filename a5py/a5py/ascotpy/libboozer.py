@@ -3,18 +3,8 @@ Methods to evaluate quantities from boozer data.
 
 File: libbbozer.py
 """
-import numpy as np
 
-from a5py.ascotpy.libascot import LibAscot
-
-
-import importlib.util as util
-
-plt = util.find_spec("matplotlib")
-if plt:
-    import matplotlib.pyplot as plt
-
-class LibBoozer(LibAscot):
+class LibBoozer():
 
     quantities = ["psi (bzr)", "theta", "zeta",
                   "dpsidr (bzr)", "dpsidphi (bzr)", "dpsidz (bzr)",
