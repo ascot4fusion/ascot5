@@ -19,33 +19,46 @@ import a5py.marker.endcond as endcondmod
 import a5py.plotting as a5plt
 import a5py.wall as wall
 
-class LackingDataError(Exception):
-    """
-    Raised when the HDF5 file does not have necessary groups for the operation.
-    """
-
-    def __init__(self, missing):
-        """
-        Error informing what groups is missing.
-
-        Args:
-            missing : str <br>
-                Name of the group that is missing.
-        """
-        msg = "Output does not contain " + missing + " which is required.\n"
-        super().__init__(msg)
-
-
 class RunMethods():
 
-    def getstate(self):
+    def _require(self, *args):
+        """Check if required data is present.
+        """
         pass
 
+    def getstate(self, key, state="inistate", endcond=None, ids=None):
+        """Same as __getitem__ but with option to filter which points are returned.
+        """
+        self._require("inistate")
+        if endcond is not None: self._require("endstate")
 
-    def getorbit(self):
-        if not has_orbit:
-            pass
+        val = getattr(self,state)[key]
 
+        idx = np.ones(val.shape, dtype=bool)
+
+        if endcond is not None:
+            if hasattr(self._runnode, "endstate"):
+                ec = self._runnode.endstate["endcond"]
+            else:
+                ec = self["endcond"]
+
+            if isinstance(endcond, str):
+                idx = np.logical_and( idx, ec==endcondmod.getbin(endcond) )
+            else:
+                for ec in endcond:
+                    idx = np.logical_and( idx, ec==endcondmod.getbin(ec) )
+
+        if ids is not None:
+            idx = np.logical_and(idx, np.in1d(self["id"], ids))
+
+        val = val[idx]
+
+        return val
+
+
+    def getorbit(self, endcond=None):
+        self._require("orbit")
+        if endcond is not None: self._require("endstate")
 
     def getstate_markersummary(self):
         """
@@ -59,8 +72,7 @@ class RunMethods():
         Raise:
             LackingDataError if queried endstate is missing from output.
         """
-        if not self.has_endstate:
-            raise LackingDataError("endstate")
+        self._require("endstate")
         econd = self.endstate["endcond"]
         emsg  = self.endstate["errormsg"]
         emod  = self.endstate["errormod"]
@@ -102,8 +114,7 @@ class RunMethods():
     def getstate_losssummary(self):
         """
         """
-        if not self.has_endstate:
-            raise LackingDataError("endstate")
+        self._require("endstate")
 
         wmrks = self.endstate.get("weight")
         wloss = self.endstate.get("weight", endcond="wall")
@@ -128,6 +139,7 @@ class RunMethods():
 
 
     def getwall_figuresofmerit(self):
+        self._require("endstate")
         ids    = self.endstate.get("walltile", endcond="wall")
         energy = self.endstate.get("energy", endcond="wall")
         weight = self.endstate.get("weight", endcond="wall")
@@ -184,8 +196,7 @@ class RunMethods():
             self, x, y, z=None, c=None, color="C0", endcond=None,
             iniend=["i", "i", "i", "i"], log=[False, False, False, False],
             axesequal=False, axes=None, cax=None):
-        """
-        Make a scatter plot of marker state coordinates.
+        """Make a scatter plot of marker state coordinates.
 
         Marker ini and end state contains the information of marker phase-space
         position at the beginning and at the end of the simulation. With this
@@ -230,10 +241,8 @@ class RunMethods():
         Raise:
             LackingDataError if queried state is missing from output.
         """
-        if not self.has_inistate and "i" in iniend:
-            raise LackingDataError("inistate")
-        if not self.has_endstate and "e" in iniend:
-            raise LackingDataError("endstate")
+        if "i" in iniend: self._require("inistate")
+        if "e" in iniend: self._require("endstate")
 
         # Decipher whether quantity is evaluated from ini or endstate
         state = [None] * 4
@@ -315,12 +324,9 @@ class RunMethods():
         Raise:
             LackingDataError if queried state is missing from output.
         """
-        if not self.has_inistate and "i" in iniend:
-            raise LackingDataError("inistate")
-        if not self.has_endstate and "e" in iniend:
-            raise LackingDataError("endstate")
-        if not self.has_endstate and endcond is not None:
-            raise LackingDataError("endstate")
+        if "i" in iniend: self._require("inistate")
+        if "e" in iniend: self._require("endstate")
+        if endcond is not None: self._require("endstate")
 
         # Decipher whether quantity is evaluated from ini or endstate
         state = [None] * 2
@@ -374,8 +380,8 @@ class RunMethods():
 
 
     def plotorbit_poincare(self, plane, conlen=True, axes=None, cax=None):
-        """
-        Poincaré plot where color separates markers or shows connection length.
+        """Poincaré plot where color separates markers or shows connection
+        length.
 
         Args:
             plane : int <br>
@@ -603,8 +609,7 @@ class RunMethods():
             endcond : str, optional <br>
                 Only return markers that have given end condition.
         """
-        if not self.has_endstate:
-            raise LackingDataError("endstate")
+        self._require("endstate")
         return np.array([self.endstate.get("x", endcond=endcond),
                          self.endstate.get("y", endcond=endcond),
                          self.endstate.get("z", endcond=endcond)]).T
@@ -626,6 +631,7 @@ class RunMethods():
             mdepo
             iangle
         """
+        self._require("endstate")
         ids    = self.endstate.get("walltile", endcond="wall")
         energy = self.endstate.get("energy", endcond="wall")
         weight = self.endstate.get("weight", endcond="wall")

@@ -37,6 +37,7 @@ from ._iohelpers.fileapi import INPUTGROUPS
 from ._iohelpers.treeview import RootNode, InputNode, ResultNode
 from ._iohelpers.treedata import DataGroup
 from a5py.ascot5io.runmethods import RunMethods
+import a5py.premade as premade
 
 HDF5TOOBJ = {
     "B_TC" : B_TC, "B_GS" : B_GS, "B_2DS" : B_2DS, "B_3DS" : B_3DS,
@@ -73,31 +74,59 @@ class Ascot5IO(RootNode):
     input groups.
 
     The data can be accessed as
-    <pre>root.bfield.B_2DS_1234567890</pre>
+
+    .. code-block:: python
+
+       data.bfield.B_2DS_1234567890
+
     or, equivalently,
-    <pre>root["bfield"]["B_2DS_1234567890"]</pre>
+
+    .. code-block:: python
+
+       data["bfield"]["B_2DS_1234567890"]
+
     In each input group, one input is always set as "active" (meaning it would
     be used for the next simulation) and it can be accessed as
-    <pre>root.bfield.active</pre>
+
+    .. code-block:: python
+
+       data.bfield.active
+
     QID can be used as a reference as well
-    <pre>root.bfield.q1234567890</pre>
+
+    .. code-block:: python
+
+       data.bfield.q1234567890
 
     Run groups are accessed in a similar fashion, e.g.
-    <pre>root.run_1234567890</pre>
-    and the data within is accessed with
-    <pre>root.run_1234567890["orbits"]</pre>
+
+    .. code-block:: python
+
+       data.run_1234567890 .
+
     However, the easiest way to access the simulation output is via the methods
     in the RunNode. The active run (by default the most recent simulation) can
     be accessed with
-    <pre>root.active</pre>
+
+    .. code-block:: python
+
+       data.active
+
     and its inputs as
-    <pre>root.active.bfield</pre>
+
+    .. code-block:: python
+
+       data.active.bfield
 
     Most of these examples also work with dictionary-like reference but here we
     use only the attribute-like referencing for brevity.
 
     You can even use user defined tag taken from description to refer to it
-    <pre>a5.THATPRLRUN</pre>
+
+    .. code-block:: python
+
+       data.THATPRLRUN
+
     However, there are few rules to this:
 
     - Tag is the first word in description converted to all caps for brevity.
@@ -109,9 +138,10 @@ class Ascot5IO(RootNode):
       to most recent data).
 
     Finally, you can print the contents of a node with
-    <pre>a5.ls()</pre>
-    The list is ordered so that the first item is active qid and the rest are
-    sorted by date they were created from newest to oldest.
+
+    .. code-block:: python
+
+       data.ls()
     """
 
     def _create_inputgroup(self, path, h5):
@@ -173,24 +203,79 @@ class Ascot5IO(RootNode):
 
         Parameters
         ----------
-          inputtype : str
+        inputtype : `str`
             Type of the input e.g. "B_2DS" or "options".
-          inputdata : dict
+        inputdata : `dict`
             Dictionary containing all the data that is needed to create the
             requested input type.
+
+            If None, dummy input of given type is created.
+
+        Returns
+        -------
+        qid : `str`
+            QID of the created input.
         """
-        qid = HDF5TOOBJ[inputtype](self, None).write(self._ascot.file_getpath(),
-                                                     data=inputdata)
+        if inputdata is None:
+            qid = HDF5TOOBJ[inputtype](self, None).write_dummy(
+                self._ascot.file_getpath())
+        else:
+            qid = HDF5TOOBJ[inputtype](self, None).write(
+                self._ascot.file_getpath(), data=inputdata)
         self._build(self._ascot.file_getpath())
         return qid
 
-    def create_premade(self, write=True, **kwargs):
-        """Create inputs based on predefined simulations and write the data.
+    def create_premade(self, predef, write=True, activate=True, **kwargs):
+        """Create inputs based on predefined simulations or existing interfaces
+           that import data to Ascot5.
+
+        Predefined simulations are simulations whose inputs have alredy been
+        prepared for a given purpose e.g. to create Poincaré plots.
+
+        This method also acts as an interface to import data from external
+        sources using existing interfaces e.g. to convert EQDSK file to magnetic
+        field input.
+
+        See `a5py.premade` for details on what this method can produce.
 
         Parameters
         ----------
+        predef : `str`
+            Type of the premade data.
+
+            Available premades are listed in `a5py.premade`.
+        write : `str`
+            If `True`, the created inputs are written to the HDF5 file.
+        activate : `bool`, optional
+            If `True`, the created inputs are set as active.
+
+            This option is ignored if `write` is `False`.
+        **kwargs
+            Any required or optional parameters that are passed to
+            the constructor of the requested premade type.
+
+            See `a5py.premade` for more details.
+
+        Returns
+        -------
+        qids : `list` [`str`] or `dict` [`str`, `dict`]
+            QIDs of the inputs that were created and written or, if `write` is
+            `False`, dictionary containing input type and data that can be
+            passed to the corresponding `write_hdf5` function.
         """
-        self._build(self._ascot.file_getpath())
+        simdata = premade.construct(predef, **kwargs)
+        if not write:
+            return simdata
+
+        qids = []
+        for name, data in simdata.items():
+            qids.append(self.create_input(name, data))
+
+        if activate:
+            for q in qids:
+                self._activate_group(q)
+
+        return qids
 
 class InputGroup(InputNode):
     """Node containing input data groups.
