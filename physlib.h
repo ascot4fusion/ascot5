@@ -238,4 +238,20 @@
 #define phys_gyrofreq_ppar(m, q, mu, ppar, B) (                 \
         fabs(q) * B / ( m * physlib_gamma_ppar(m, mu, ppar, B) ) )
 
+
+/**
+ * P_Tor for guiding center 
+
+ */
+#define phys_ptoroid_gc()
+
+
+
+/**
+ * P_Tor for particle 
+
+ */
+#define phys_ptoroid_prt()
+
+
 #endif
