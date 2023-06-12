@@ -36,7 +36,7 @@ from a5py.ascot5io.dist_rho6D import Dist_rho6D
 from ._iohelpers.fileapi import INPUTGROUPS
 from ._iohelpers.treeview import RootNode, InputNode, ResultNode
 from ._iohelpers.treedata import DataGroup
-from a5py.ascot5io.runmethods import RunMethods
+from a5py.routines.runmixin import RunMixin
 import a5py.premade as premade
 
 HDF5TOOBJ = {
@@ -227,7 +227,7 @@ class Ascot5IO(RootNode):
 
     def create_premade(self, predef, write=True, activate=True, **kwargs):
         """Create inputs based on predefined simulations or existing interfaces
-           that import data to Ascot5.
+        that import data to Ascot5.
 
         Predefined simulations are simulations whose inputs have alredy been
         prepared for a given purpose e.g. to create Poincaré plots.
@@ -282,7 +282,7 @@ class InputGroup(InputNode):
     """
     pass
 
-class RunGroup(ResultNode, RunMethods):
+class RunGroup(ResultNode, RunMixin):
     """Node containing results and methods to process them.
     """
     pass

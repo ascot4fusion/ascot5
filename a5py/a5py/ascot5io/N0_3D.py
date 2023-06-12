@@ -1,7 +1,4 @@
-"""
-Non-axisymmetric tokamak neutral HDF5 IO
-
-File: N0_3D.py
+"""Non-axisymmetric tokamak neutral HDF5 IO
 """
 import numpy as np
 import h5py
@@ -12,53 +9,63 @@ from ._iohelpers.treedata import DataGroup
 def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz, phimin, phimax, nphi,
                nspecies, anum, znum, density, temperature, maxwellian=1,
                desc=None):
-    """
-    Write 3D neutral input in HDF5 file.
+    """Write 3D neutral input in HDF5 file.
 
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        rmin : float <br>
-            Minimum value in R grid [m].
-        rmax : float <br>
-            Maximum value in R grid [m].
-        nr : int <br>
-            Number of R grid points.
-        zmin : float <br>
-            Minimum value in z grid [m].
-        zmax : float <br>
-            Maximum value in z grid [m].
-        nz : int <br>
-            Number of z grid points.
-        phimin : float <br>
-            Minimum value in phi grid [deg].
-        phimax : float <br>
-            Maximum value in phi grid [deg].
-        nphi : int <br>
-            Number of phi grid points.
-        nspecies : int <br>
-            Number of neutral species.
-        anum : array_like (nspecies,1) <br>
-            Neutral species' atomic mass number.
-        znum array_like (nspecies,1) <br>
-            Neutral species' charge number.
-        density array_like (nr,nphi,nz,nspecies) <br>
-            Neutral species-wise density [m^-3].
-        temperature array_like (nr,nphi,nz,nspecies) <br>
-            Neutral species-wise temperature [eV].
-        maxwellian array_like (nspecies,1) <br> :
-            Whether species distribution is Maxwellian (1) of monoenergetic (0)
-        desc : str, optional <br>
-            Input description.
+    Parameters
+    ----------
+    fn : str
+        Full path to the HDF5 file.
+    rmin : float
+        Minimum value in R grid [m].
+    rmax : float
+        Maximum value in R grid [m].
+    nr : int
+        Number of R grid points.
+    zmin : float
+        Minimum value in z grid [m].
+    zmax : float
+        Maximum value in z grid [m].
+    nz : int
+        Number of z grid points.
+    phimin : float
+        Minimum value in phi grid [deg].
+    phimax : float
+        Maximum value in phi grid [deg].
+    nphi : int
+        Number of phi grid points.
+    nspecies : int
+        Number of neutral species.
+    anum : array_like (nspecies,1)
+        Neutral species' atomic mass number.
+    znum : array_like (nspecies,1)
+        Neutral species' charge number.
+    density : array_like (nr,nphi,nz,nspecies)
+        Neutral species-wise density [m^-3].
+    temperature : array_like (nr,nphi,nz,nspecies)
+        Neutral species-wise temperature [eV].
+    maxwellian : array_like (nspecies,1)
+        Whether species distribution is Maxwellian (1) of monoenergetic (0)
+    desc : str, optional
+        Input description.
 
-    Returns:
-        Name of the new input that was written.
+    Returns
+    -------
+    name : str
+        Name, i.e. "<type>_<qid>", of the new input that was written.
+
+    Raises
+    ------
+    ValueError
+        If inputs were not consistent.
     """
-    assert density.shape     == (nr,nphi,nz,nspecies)
-    assert temperature.shape == (nr,nphi,nz,nspecies)
-    assert anum.size == nspecies
-    assert znum.size == nspecies
-    assert (maxwellian == 1 or maxwellian.size == nspecies)
+    if density.shape != (nr,nphi,nz,nspecies):
+        raise ValueError("Density has invalid shape.")
+    if temperature.shape != (nr,nphi,nz,nspecies):
+        raise ValueError("Temperature has invalid shape.")
+    if anum.size != nspecies or znum.size != nspecies:
+        raise ValueError("Anum or Znum has invalid shape.")
+    if maxwellian != 1 and maxwellian.size != nspecies:
+        raise ValueError("Maxwellian has invalid shape.")
 
     parent = "neutral"
     group  = "N0_3D"
@@ -158,7 +165,7 @@ class N0_3D(DataGroup):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
 
     def write(self, fn, data=None):
@@ -166,3 +173,7 @@ class N0_3D(DataGroup):
             data = self.read()
 
         return write_hdf5(fn, **data)
+
+
+    def write_dummy(self, fn):
+        return write_hdf5_dummy(fn)

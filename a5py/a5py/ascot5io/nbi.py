@@ -1,7 +1,4 @@
-"""
-NBI injector HDF5 IO
-
-File: nbi.py
+"""NBI injector HDF5 IO
 """
 import numpy as np
 import h5py
@@ -12,57 +9,59 @@ from ._iohelpers.fileapi import add_group
 from ._iohelpers.treedata import DataGroup
 
 def write_hdf5(fn, nbi, desc=None):
-    """
-    Write NBI input in HDF5 file.
+    """Write NBI input in HDF5 file.
 
-    Args:
-        fn : str
-            Full path to the HDF5 file.
-        nbi : array
-            Array of dictionaries describing each injector with fields:
-                id : int
-                    Numerical identifier for the injector
-                nbeamlet : int
-                    Number of beamlets in this injector
-                beamletx : float
-                    X coordinates of beamlets [m]
-                beamlety : float
-                    Y coordinates of beamlets [m]
-                beamletz : float
-                    Z coordinates of beamlets [m]
-                beamletdx : float
-                    X components of the unit direction vector of beamlets
-                beamletdy : float
-                    Y components of the unit direction vector of beamlets
-                beamletdz : float
-                    Z components of the unit direction vector of beamlets
-                div_h : float
-                    Horizontal divergence [radians]
-                div_v : float
-                    Vertical divergence [radians]
-                div_halo_frac : float
-                    Fraction of particles with halo divergence
-                div_halo_h : float
-                    Horizontal divergence in halo [radians]
-                div_halo_v : float
-                    Vertical divergence in halo [radians]
-                anum : int
-                    Mass number of injected species
-                znum : int
-                    Nuclear charge number of injected species
-                mass : float
-                    Mass of the injected species [kg]
-                energy : float
-                    Full injection energy [J]
-                efrac : array_like (3)
-                    Particle fractions for full, 1/2 and 1/3 energies
-                power : float
-                    Injected power [W]
-        desc : str, optional <br>
-            Input description.
+    Parameters
+    ----------
+    fn : str
+        Full path to the HDF5 file.
+    nbi : array
+        Array of dictionaries describing each injector with fields:
+            id : int
+                Numerical identifier for the injector
+            nbeamlet : int
+                Number of beamlets in this injector
+            beamletx : float
+                X coordinates of beamlets [m]
+            beamlety : float
+                Y coordinates of beamlets [m]
+            beamletz : float
+                Z coordinates of beamlets [m]
+            beamletdx : float
+                X components of the unit direction vector of beamlets
+            beamletdy : float
+                Y components of the unit direction vector of beamlets
+            beamletdz : float
+                Z components of the unit direction vector of beamlets
+            div_h : float
+                Horizontal divergence [radians]
+            div_v : float
+                Vertical divergence [radians]
+            div_halo_frac : float
+                Fraction of particles with halo divergence
+            div_halo_h : float
+                Horizontal divergence in halo [radians]
+            div_halo_v : float
+                Vertical divergence in halo [radians]
+            anum : int
+                Mass number of injected species
+            znum : int
+                Nuclear charge number of injected species
+            mass : float
+                Mass of the injected species [kg]
+            energy : float
+                Full injection energy [J]
+            efrac : array_like (3)
+                Particle fractions for full, 1/2 and 1/3 energies
+            power : float
+                Injected power [W]
+    desc : str, optional
+        Input description.
 
-    Returns:
-        Name of the new input that was written.
+    Returns
+    -------
+    name : str
+        Name, i.e. "<type>_<qid>", of the new input that was written.
     """
 
     parent = "nbi"
@@ -185,7 +184,7 @@ class nbi(DataGroup):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
     def write(self, fn, data=None):
         if data is None:

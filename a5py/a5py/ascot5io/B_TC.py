@@ -1,7 +1,4 @@
-"""
-Trivial Cartesian magnetic field HDF5 IO.
-
-File: B_TC.py
+"""Trivial Cartesian magnetic field HDF5 IO.
 """
 import h5py
 import numpy as np
@@ -11,30 +8,38 @@ from ._iohelpers.treedata import DataGroup
 
 def write_hdf5(fn, bxyz, jacobian, rhoval, psival=None, axisr=1, axisz=0,
                desc=None):
-    """
-    Write trivial cartesian magnetic field input to HDF5 file.
+    """Write trivial cartesian magnetic field input to HDF5 file.
 
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        bxyz : array_like (3,1) <br>
-            Magnetic field in cartesian coordinates at origo.
-        jacobian : array_like (3,3) <br>
-            Magnetic field Jacobian, jacobian[i,j] = dB_i/dx_j
-        rhoval: float <br>
-            Constant rho value.
-        psival: float, optional <br>
-            Constant psi value. If None, same as rhoval.
-        axisr: float, optional <br>
-            Magnetic axis R coordinate.
-        axisz: real, optional <br>
-            Magnetic axis z coordinate.
-        desc : str, optional <br>
-            Input description.
+    Parameters
+    ----------
+    fn : str
+        Full path to the HDF5 file.
+    bxyz : array_like (3,1)
+        Magnetic field in cartesian coordinates at origo.
+    jacobian : array_like (3,3)
+        Magnetic field Jacobian, jacobian[i,j] = dB_i/dx_j
+    rhoval: float
+        Constant rho value.
+    psival: float, optional
+        Constant psi value. If None, same as rhoval.
+    axisr: float, optional
+        Magnetic axis R coordinate.
+    axisz: real, optional
+        Magnetic axis z coordinate.
+    desc : str, optional
+        Input description.
 
-    Returns:
-        Name of the new input that was written.
+    Returns
+    -------
+    name : str
+        Name, i.e. "<type>_<qid>", of the new input that was written.
+
+    Raises
+    ------
+    ValueError
+        If inputs were not consistent.
     """
+    if bxyz.shape != (3,1): raise ValueError("Invalid shape for Bxyz.")
 
     parent = "bfield"
     group  = "B_TC"
@@ -97,7 +102,7 @@ class B_TC(DataGroup):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
 
     def write(self, fn, data=None):

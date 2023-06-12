@@ -1,7 +1,4 @@
-"""
-2D wall IO.
-
-File: wall_2D.py
+"""2D wall IO.
 """
 import h5py
 import numpy as np
@@ -14,29 +11,36 @@ from . import wall_3D
 import a5py.wall.plot as plot
 
 def write_hdf5(fn, nelements, r, z, desc=None):
-    """
-    Write 2D wall input in HDF5 file.
+    """Write 2D wall input in HDF5 file.
 
     First vertice shouldn't correspond to the last vertice, i.e., don't give
     (R,z) coordinates that make a closed loop.
 
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        nelements : int <br>
-            Number of wall segments.
-        r : array_like (n,1) <br>
-            R coordinates of wall segment vertices [m].
-        z : array_like (n,1) <br>
-            z coordinates of wall segment vertices [m].
-        desc : str, optional <br>
-            Input description.
+    Parameters
+    ----------
+    fn : str
+        Full path to the HDF5 file.
+    nelements : int
+        Number of wall segments.
+    r : array_like (n,1)
+        R coordinates of wall segment vertices [m].
+    z : array_like (n,1)
+        z coordinates of wall segment vertices [m].
+    desc : str, optional
+        Input description.
 
-    Returns:
-        Name of the new input that was written.
+    Returns
+    -------
+    name : str
+        Name, i.e. "<type>_<qid>", of the new input that was written.
+
+    Raises
+    ------
+    ValueError
+        If the size of r or z does not match the number of elements.
     """
-    assert r.size == nelements
-    assert z.size == nelements
+    if r.size != nelements or z.size != elements:
+        raise ValueError("Size of r or z does not match the number of elements")
 
     parent = "wall"
     group  = "wall_2D"
@@ -77,13 +81,13 @@ def read_hdf5(fn, qid):
     return out
 
 
-def write_hdf5_3D(fn, n, R, z, nphi, desc=None):
+def write_hdf5_3D(fn, nelements, r, z, nphi, desc=None):
 
-    x1x2x3 = np.ones((2*n*nphi, 3))
-    y1y2y3 = np.ones((2*n*nphi, 3))
-    r1r2r3 = np.ones((2*n*nphi, 3))
-    p1p2p3 = np.ones((2*n*nphi, 3))
-    z1z2z3 = np.ones((2*n*nphi, 3))
+    x1x2x3 = np.ones((2*nelements*nphi, 3))
+    y1y2y3 = np.ones((2*nelements*nphi, 3))
+    r1r2r3 = np.ones((2*nelements*nphi, 3))
+    p1p2p3 = np.ones((2*nelements*nphi, 3))
+    z1z2z3 = np.ones((2*nelements*nphi, 3))
 
     def pol2cart(rho, phi):
         x = rho * np.cos(phi)
@@ -93,16 +97,18 @@ def write_hdf5_3D(fn, n, R, z, nphi, desc=None):
     pv = np.linspace(0, 2*np.pi, nphi+1)
     for i in range(1,nphi+1):
         for j in range(n):
-            r1r2r3[(i-1)*2*n + 2*(j-1),:] = [ R[j],    R[j],  R[j-1] ]
+            r1r2r3[(i-1)*2*n + 2*(j-1),:] = [ r[j],    r[j],  r[j-1] ]
             p1p2p3[(i-1)*2*n + 2*(j-1),:] = [ pv[i-1], pv[i], pv[i] ]
             z1z2z3[(i-1)*2*n + 2*(j-1),:] = [ z[j],    z[j],  z[j-1] ]
 
-            r1r2r3[(i-1)*2*n + 2*(j-1) + 1,:] = [ R[j],    R[j-1],  R[j-1] ]
+            r1r2r3[(i-1)*2*n + 2*(j-1) + 1,:] = [ r[j],    r[j-1],  r[j-1] ]
             p1p2p3[(i-1)*2*n + 2*(j-1) + 1,:] = [ pv[i-1], pv[i-1], pv[i] ]
             z1z2z3[(i-1)*2*n + 2*(j-1) + 1,:] = [ z[j],    z[j-1],  z[j-1] ]
 
     x1x2x3,y1y2y3 = pol2cart(r1r2r3, p1p2p3)
-    wall_3D.write_hdf5(fn, 2*n*nphi, x1x2x3, y1y2y3, z1z2z3, desc=desc)
+
+    return {"nelements" : 2*nelements*nphi, "x1x2x3" : x1x2x3,
+            "y1y2y3" : y1y2y3, "z1z2z3" : z1z2z3}
 
 
 def write_hdf5_dummy(fn, desc="Dummy"):
@@ -116,7 +122,7 @@ class wall_2D(DataGroup):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
 
     def write(self, fn, data=None):

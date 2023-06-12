@@ -1,7 +1,4 @@
-"""
-Analytic tokamak field HDF5 IO.
-
-File: B_GS.py
+"""Analytic tokamak field HDF5 IO.
 """
 import numpy as np
 import h5py
@@ -18,50 +15,51 @@ from ._iohelpers.treedata import DataGroup
 def write_hdf5(fn, r0, z0, bphi0, psimult, coefficients, psi0=None, psi1=0,
                raxis=None, zaxis=None, nripple=0, a0=2, alpha0=2, delta0=0.05,
                desc=None):
-    """
-    Write analytical tokamak magnetic field input in HDF5 file.
+    """Write analytical tokamak magnetic field input in HDF5 file.
 
     If psi0 is None, magnetic axis location is found numerically and psi0 value
     is evaluated at that point. The analytical field is defined by assuming
     midplane is at z=0, but it is moved to z=z0 here.
 
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        r0 : float <br>
-            Major radius R coordinate [m].
-        z0 : float <br>
-            Distance by which midplane is moved from z=0 plane [m].
-        bphi0 : float <br>
-            Toroidal field at axis [T].
-        psimult : float
-            Scaling factor for psi.
-        coefficients : array_like (13,1) <br>
-            Coefficients defining psi [c0, c1, ..., c11, A].
-        psi0 : float, optional <br>
-            Poloidal flux at magnetic axis.
-        psi1 : float, optional <br>
-            Poloidal flux at the separatrix.
-        raxis : float, optional <br>
-            Magnetic axis R coordinate [m].
-        zaxis : float, optional <br>
-            Magnetic axis z coordinate [m].
-        nripple : float, optional, default is 0. <br>
-            Number of TF coils.
-        a0 : float, optional, default is 2 [m]. <br>
-            Minor radius. [m]
-        alpha0 : float, optional, default is 2. <br>
-            Ripple penetration.
-        delta0 : float, optional, default is 0.05. <br>
-            Ripple (maximum) strength.
-        desc : str, optional <br>
-            Input description.
+    Parameters
+    ----------
+    fn : str
+        Full path to the HDF5 file.
+    r0 : float
+        Major radius R coordinate [m].
+    z0 : float
+        Distance by which midplane is moved from z=0 plane [m].
+    bphi0 : float
+        Toroidal field at axis [T].
+    psimult : float
+        Scaling factor for psi.
+    coefficients : array_like (13,1)
+        Coefficients defining psi [c0, c1, ..., c11, A].
+    psi0 : float, optional
+        Poloidal flux at magnetic axis.
+    psi1 : float, optional
+        Poloidal flux at the separatrix.
+    raxis : float, optional
+        Magnetic axis R coordinate [m].
+    zaxis : float, optional
+        Magnetic axis z coordinate [m].
+    nripple : float, optional
+        Number of TF coils.
+    a0 : float, optional
+        Minor radius. [m]
+    alpha0 : float, optional
+        Ripple penetration.
+    delta0 : float, optional
+        Ripple (maximum) strength.
+    desc : str, optional
+        Input description.
 
     Returns:
         Name of the new input that was written.
     """
 
-    assert coefficients.size == 13
+    if coefficients.size != 13:
+        raise ValueError("Coefficients invalid.")
 
     parent = "bfield"
     group  = "B_GS"
@@ -156,27 +154,27 @@ def write_hdf5_dummy(fn, kind="GS", desc="Dummy"):
                                 phi[0], phi[1], phi[2], psi0=None, desc=desc)
 
 
-def write_hdf5_B_2DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
-                     Rmin, Rmax, nR, zmin, zmax, nz, psi0=None, desc=None):
+def write_hdf5_B_2DS(fn, r0, z0, bphi0, psimult, coefficients,
+                     rmin, rmax, nr, zmin, zmax, nz, psi0=None, desc=None):
     """
     Write analytical tokamak magnetic field as a 2D field input in HDF5 file.
 
     Args:
         fn : str <br>
             Full path to the HDF5 file.
-        R0 : float <br>
+        r0 : float <br>
             Major axis R coordinate [m].
         z0 : float <br>
             Major axis z coordinate [m].
-        B_phi0 : float <br>
+        bphi0 : float <br>
             Toroidal field at axis.
-        psi_mult : real
+        psimult : real
             Scaling factor for psi.
-        psi_coeff : real 13 x 1 numpy array
+        coefficients : real 13 x 1 numpy array
             Coefficients defining psi.
-        Rmin, Rmax, zmin, zmax : real
+        rmin, rmax, zmin, zmax : real
             Edges of the uniform Rz-grid.
-        nR, nz : int
+        nr, nz : int
             Number of Rz-grid points.
         psi0 : float, optional <br>
             Poloidal flux at magnetic axis.
@@ -184,38 +182,43 @@ def write_hdf5_B_2DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
             Input description.
     """
 
-    rgrid = np.linspace(Rmin, Rmax, nR)
+    rgrid = np.linspace(rmin, rmax, nr)
     zgrid = np.linspace(zmin, zmax, nz)
 
-    zg, Rg = np.meshgrid(zgrid, rgrid);
+    zg, rg = np.meshgrid(zgrid, rgrid);
 
-    c = psi_coeff # For shorter notation.
-    psiRz = psi_mult*psifun.psi0(Rg/R0,zg/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],
-                                 c[7],c[8],c[9],c[10],c[11],c[12])
+    c = coefficients # For shorter notation.
+    psirz = psimult * psifun.psi0(
+        rg/r0, zg/r0, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8],
+        c[9], c[10], c[11], c[12])
 
-    Br = np.zeros((nR,nz))
-    Bz = np.zeros((nR,nz))
-    Bphi = (R0/Rg)*B_phi0
+    br = np.zeros((nr,nz))
+    bz = np.zeros((nr,nz))
+    bphi = ( r0 / rg ) * bphi0
 
     # search for magnetic axis if not given
     if psi0 == None:
-        x = psifun.find_axis(R0, z0, c[0], c[1], c[2], c[3], c[4], c[5], c[6],
+        x = psifun.find_axis(r0, z0, c[0], c[1], c[2], c[3], c[4], c[5], c[6],
             c[7], c[8], c[9], c[10], c[11], c[12])
         psi0 = psi_mult*psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
             c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
-        R0 = x[0]*R0
-        z0 = x[1]*R0
+        r0 = x[0]*r0
+        z0 = x[1]*r0
 
     psi1 = 0
 
-    return B_2DS.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz,
-                            R0, z0, psiRz, psi0, psi1,
-                            Br, Bphi, Bz, desc=desc)
+    return {"rmin" : rmin, "rmax" : rmax, "nr" : nr, "zmin" : zmin,
+            "zmax" : zmax, "nz" : nz, "r0" : r0, "z0" : z0, "psirz" : psirz,
+            "psi0" : psi0, "psi1" : psi1, "br" : br, "bphi" : bphi, "bz" : bz}
+
+    #return B_2DS.write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz,
+    #                        r0, z0, psibz, psi0, psi1,
+    #                        br, bphi, bz, desc=desc)
 
 
-def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
-                     Nripple, a0, alpha0, delta0,
-                     Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax, nphi,
+def write_hdf5_B_3DS(fn, r0, z0, bphi0, psimult, coefficients,
+                     nripple, a0, alpha0, delta0,
+                     rmin, rmax, nr, zmin, zmax, nz, phimin, phimax, nphi,
                      psi0=None, raxis=None, zaxis=None, desc=None):
     """
     Write analytical tokamak magnetic field as a 3D field input in HDF5 file.
@@ -223,15 +226,15 @@ def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
     Args:
         fn : str
             Full path to the HDF5 file.
-        R0, z0 : real
+        r0, z0 : real
             Major axis Rz-coordinates.
-        B_phi0 : real
+        bphi0 : real
             Toroidal field at axis.
-        psi_mult : real
+        psimult : real
             Scaling factor for psi.
-        psi_coeff : real 13 x 1 numpy array
+        coefficients : real 13 x 1 numpy array
             Coefficients defining psi.
-        Nripple : real
+        nripple : real
             Number of TF coils.
         a0 : real
             Minor radius [m].
@@ -239,9 +242,9 @@ def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
             Ripple penetration.
         delta0 : real
             Ripple strength.
-        Rmin, Rmax, zmin, zmax, phimin, phimax : real
+        rmin, rmax, zmin, zmax, phimin, phimax : real
             Edges of the uniform Rphiz-grid.
-        nR, nz, nphi : int
+        nr, nz, nphi : int
             Number of Rphiz-grid points.
         psi0 : float, optional <br>
             Poloidal flux at magnetic axis.
@@ -253,29 +256,29 @@ def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
             Input description.
     """
 
-    rgrid = np.linspace(Rmin, Rmax, nR)
+    rgrid = np.linspace(rmin, rmax, nr)
     zgrid = np.linspace(zmin, zmax, nz)
 
-    zg, Rg = np.meshgrid(zgrid, rgrid);
+    zg, rg = np.meshgrid(zgrid, rgrid);
 
-    c = psi_coeff # For shorter notation.
-    psiRz = psi_mult*psifun.psi0(Rg/R0,zg/R0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],
+    c = coefficients # For shorter notation.
+    psirz = psimult*psifun.psi0(rg/r0,zg/r0,c[0],c[1],c[2],c[3],c[4],c[5],c[6],
                                  c[7],c[8],c[9],c[10],c[11],c[12])
 
-    Br = np.zeros((nR, nphi, nz))
-    Bz = np.zeros((nR, nphi, nz))
-    Bphi = np.zeros((nR, nphi, nz))
+    br = np.zeros((nr, nphi, nz))
+    bz = np.zeros((nr, nphi, nz))
+    bphi = np.zeros((nr, nphi, nz))
 
     # Ripple
-    radius = np.sqrt( ( Rg - R0 ) * ( Rg - R0 ) + ( zg - z0 ) * ( zg - z0 ))
-    theta = np.arctan2( zg - z0, Rg - R0 )
+    radius = np.sqrt( ( rg - r0 ) * ( rg - r0 ) + ( zg - z0 ) * ( zg - z0 ))
+    theta = np.arctan2( zg - z0, rg - r0 )
     delta = delta0 * np.exp(-0.5*theta*theta) * np.power( radius / a0, alpha0 )
 
     phigrid = np.linspace(phimin,phimax,nphi+1)
     phigrid = phigrid[0:-1]
 
     for i in range(0,nphi):
-        Bphi[:,i,:] = ((R0/Rg)*B_phi0 * ( 1 + delta * np.cos(Nripple * phigrid[i]*2*np.pi/360) ))
+        bphi[:,i,:] = ((r0/rg)*bphi0 * ( 1 + delta * np.cos(Nripple * phigrid[i]*2*np.pi/360) ))
 
     # search for magnetic axis if not given
     if psi0 == None:
@@ -288,9 +291,13 @@ def write_hdf5_B_3DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
 
     psi1 = 0
 
-    return B_3DS.write_hdf5(fn, Rmin, Rmax, nR, zmin, zmax, nz, phimin, phimax,
-                            nphi, raxis, zaxis, psiRz, psi0, psi1,
-                            Br, Bphi, Bz, desc=desc)
+    return {"rmin" : rmin, "rmax" : rmax, "nr" : nr, "zmin" : zmin,
+            "zmax" : zmax, "nz" : nz, "phimin" : phimin, "phimax" : phimax,
+            "nphi" : nphi, "raxis" : raxis, "zaxis" : zaxis, "psirz" : psirz,
+            "psi0" : psi0, "psi1" : psi1, "br" : br, "bphi" : bphi, "bz" : bz}
+    #return B_3DS.write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz, phimin, phimax,
+    #nphi, raxis, zaxis, psiRz, psi0, psi1,
+    #br, bphi, bz, desc=desc)
 
 
 class B_GS(DataGroup):
@@ -299,7 +306,7 @@ class B_GS(DataGroup):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
     def write(self, fn, data=None):
         if data is None:

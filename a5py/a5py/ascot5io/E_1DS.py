@@ -1,7 +1,4 @@
-"""
-Spline radial electric field IO.
-
-File: E_1DS.py
+"""Spline radial electric field IO.
 """
 import h5py
 import numpy as np
@@ -10,28 +7,31 @@ from ._iohelpers.fileapi import add_group
 from . E import E
 
 def write_hdf5(fn, nrho, rhomin, rhomax, dvdrho, reff, desc=None):
-    """
-    Write radial electric field input in HDF5 file.
+    """Write radial electric field input in HDF5 file.
 
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        nrho : int <br>
-            Number of rho slots in data.
-        rhomin : float <br>
-            Minimum rho value.
-        rhomax : float <br>
-            Maximum rho value.
-        dvdr : array_like (nrho,1) <br>
-            Derivative of electric potential WRT minor radius [V/m].
-            If reff = 1, this is essentially equal to dv/drho
-        reff : float <br>
-            Effective minor radius of the plasma [m].
-        desc : str, optional <br>
-            Input description.
+    Parameters
+    ----------
+    fn : str
+        Full path to the HDF5 file.
+    nrho : int
+        Number of rho slots in data.
+    rhomin : float
+        Minimum rho value.
+    rhomax : float
+        Maximum rho value.
+    dvdr : array_like (nrho,1)
+        Derivative of electric potential WRT minor radius [V/m].
 
-    Returns:
-        Name of the new input that was written.
+        If reff = 1, this is essentially equal to dv/drho
+    reff : float
+        Effective minor radius of the plasma [m].
+    desc : str, optional
+        Input description.
+
+    Returns
+    -------
+    name : str
+        Name, i.e. "<type>_<qid>", of the new input that was written.
     """
 
     parent = "efield"
@@ -81,7 +81,7 @@ class E_1DS(E):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
 
     def write(self, fn, data=None):

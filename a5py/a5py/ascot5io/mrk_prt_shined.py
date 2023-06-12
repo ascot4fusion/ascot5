@@ -117,7 +117,7 @@ class mrk_prt_shined(mrk):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
 
     def write(self, fn, data=None, desc=None):

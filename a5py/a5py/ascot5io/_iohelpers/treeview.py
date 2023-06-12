@@ -336,9 +336,8 @@ class _ParentNode(_Node):
         -------
         meta : `dict` [`str`, `list` [`str`]]
             Dictionary containing QIDs ("qid"), dates ("date"), descriptions
-           ("desc"), and data types "type" as a list of strings.
+            ("desc"), and data types "type" as a list of strings.
         """
-
         nchild = len(self._qids)
         qids  = [None] * nchild
         dates = [None] * nchild
@@ -616,7 +615,7 @@ class RootNode(_ParentNode):
         Parameters
         ----------
         group : `str`
-            Name of the group to be activated.
+            Name or QID of the group to be activated.
         """
         fn = self._ascot.file_getpath()
         with h5py.File(fn, "a") as f:

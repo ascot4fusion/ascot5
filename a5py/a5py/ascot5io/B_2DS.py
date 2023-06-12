@@ -1,7 +1,4 @@
-"""
-Axisymmetric magnetic field HDF5 IO
-
-File: B_2DS.py
+"""Axisymmetric magnetic field HDF5 IO
 """
 import numpy as np
 import h5py
@@ -12,55 +9,62 @@ from ._iohelpers.treedata import DataGroup
 def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz,
                axisr, axisz, psi, psi0, psi1,
                br, bphi, bz, desc=None):
-    """
-    Write 2DS magnetic field input in HDF5 file.
+    """Write 2DS magnetic field input in HDF5 file.
 
     Note that br and bz should not include the equilibrium component of the
     magnetic field as that is calculated from psi by ASCOT5 during the
     simulation.
 
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        rmin : float <br>
-            R grid min edge [m].
-        rmax : float <br>
-            R grid max edge [m].
-        nr : int <br>
-            Number of R grid points.
-        zmin : float <br>
-            z grid min edge [m].
-        zmax : float <br>
-            z grid max edge [m].
-        nz : int <br>
-            Number of z grid points.
-        axisr : float <br>
-            Magnetic axis R coordinate [m].
-        axisz : float <br>
-            Magnetic axis z coordinate [m].
-        psi0 : float <br>
-            On-axis poloidal flux value [Vs/m].
-        psi1 : float <br>
-            Separatrix poloidal flux value [Vs/m].
-        psi : array_like (nr, nz) <br>
-            Poloidal flux values on the Rz grid [Vs/m].
-        br : array_like (nr,nz) <br>
-            Magnetic field R component (excl. equilibrium comp.) on Rz grid [T].
-        bphi : array_like (nr,nz) <br>
-            Magnetic field phi component on Rz grid [T].
-        bz : array_like (nr,nz) <br>
-            Magnetic field z component (excl. equilibrium comp.) onRz grid [T].
-        desc : str, optional <br>
-            Input description.
+    Parameters
+    ----------
+    fn : str
+        Full path to the HDF5 file.
+    rmin : float
+        R grid min edge [m].
+    rmax : float
+        R grid max edge [m].
+    nr : int
+        Number of R grid points.
+    zmin : float
+        z grid min edge [m].
+    zmax : float
+        z grid max edge [m].
+    nz : int
+        Number of z grid points.
+    axisr : float
+        Magnetic axis R coordinate [m].
+    axisz : float
+        Magnetic axis z coordinate [m].
+    psi0 : float
+        On-axis poloidal flux value [Vs/m].
+    psi1 : float
+        Separatrix poloidal flux value [Vs/m].
+    psi : array_like (nr, nz)
+        Poloidal flux values on the Rz grid [Vs/m].
+    br : array_like (nr,nz)
+        Magnetic field R component (excl. equilibrium comp.) on Rz grid [T].
+    bphi : array_like (nr,nz)
+        Magnetic field phi component on Rz grid [T].
+    bz : array_like (nr,nz)
+        Magnetic field z component (excl. equilibrium comp.) onRz grid [T].
+    desc : str, optional
+        Input description.
 
-    Returns:
-        Name of the new input that was written.
+    Returns
+    -------
+    name : str
+        Name, i.e. "<type>_<qid>", of the new input that was written.
+
+    Raises
+    ------
+    ValueError
+        If inputs were not consistent.
     """
 
-    assert psi.shape  == (nr,nz)
-    assert br.shape   == (nr,nz)
-    assert bphi.shape == (nr,nz)
-    assert bz.shape   == (nr,nz)
+    if psi.shape  != (nr,nz): raise ValueError("Inconsistent shape for psi.")
+    if br.shape   != (nr,nz): raise ValueError("Inconsistent shape for br.")
+    if bphi.shape != (nr,nz): raise ValueError("Inconsistent shape for bphi.")
+    if bz.shape   != (nr,nz): raise ValueError("Inconsistent shape for bz.")
 
     psi  = np.transpose(psi)
     br   = np.transpose(br)
@@ -133,7 +137,7 @@ class B_2DS(DataGroup):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
     def write(self, fn, data=None):
         if data is None:

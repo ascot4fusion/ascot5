@@ -1,7 +1,4 @@
-"""
-Trivial cartesian electric field IO.
-
-File: E_TC.py
+"""Trivial cartesian electric field IO.
 """
 import h5py
 import numpy as np
@@ -13,17 +10,27 @@ def write_hdf5(fn, exyz, desc=None):
     """
     Write trivial cartesian electric field input in HDF5 file.
 
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        exyz : array_like (3,1) <br>
-            Electric field value in cartesian coordinates
-        desc : str, optional <br>
-            Input description.
+    Parameters
+    ----------
+    fn : str
+        Full path to the HDF5 file.
+    exyz : array_like (3,1)
+        Electric field value in cartesian coordinates
+    desc : str, optional
+        Input description.
 
-    Returns:
-        Name of the new input that was written.
+    Returns
+    -------
+    name : str
+        Name, i.e. "<type>_<qid>", of the new input that was written.
+
+    Raises
+    ------
+    ValueError
+        If inputs were not consistent.
     """
+    if exyz.shape != (3,1):
+        raise ValueError("Exyz has wrong shape.")
 
     parent = "efield"
     group  = "E_TC"
@@ -75,7 +82,7 @@ class E_TC(E):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
 
     def write(self, fn, data=None):

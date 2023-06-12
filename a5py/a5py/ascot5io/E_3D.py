@@ -1,7 +1,4 @@
-"""
-Non-axisymmetric tokamak electric field HDF5 IO
-
-File: E_3D.py
+"""Non-axisymmetric tokamak electric field HDF5 IO
 """
 import numpy as np
 import h5py
@@ -11,56 +8,65 @@ from . E import E
 
 def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz, phimin, phimax, nphi,
                er, ephi, ez, desc=None):
-    """
-    Write 3D electric field input in HDF5 file for trilinear interpolation.
+    """Write 3D electric field input in HDF5 file for trilinear interpolation.
 
     The toroidal angle phi is treated as a periodic coordinate meaning that
     E(phi) = E(phi + n*(b_phimax - b_phimin)). Do note that to avoid duplicate
     data, the last points in phi axis in E data are not at phimax, i.e.
     er[:,-1,:] != ER(phi=phimax).
 
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        rmin : float <br>
-            Minimum value in R grid [m].
-        rmax : float <br>
-            Maximum value in R grid [m].
-        nr : int <br>
-            Number of R grid points.
-        zmin : float <br>
-            Minimum value in z grid [m].
-        zmax : float <br>
-            Maximum value in z grid [m].
-        nz : int <br>
-            Number of z grid points.
-        phimin : float <br>
-            Minimum value in phi grid [deg].
-        phimax : float <br>
-            Maximum value in phi grid [deg].
-        nphi : int <br>
-            Number of phi grid points.
-        er : array_like (nr,nphi,nz) <br>
-            Electric field R component [V/m].
-        ephi : array_like (nr,nphi,nz) <br>
-            Electric field phi component [V/m].
-        ez : array_like (nr,nphi,nz) <br>
-            Electric field z component [V/m].    
-        desc : str, optional <br>
-            Input description.
+    Parameters
+    ----------
+    fn : str
+        Full path to the HDF5 file.
+    rmin : float
+        Minimum value in R grid [m].
+    rmax : float
+        Maximum value in R grid [m].
+    nr : int
+        Number of R grid points.
+    zmin : float
+        Minimum value in z grid [m].
+    zmax : float
+        Maximum value in z grid [m].
+    nz : int
+        Number of z grid points.
+    phimin : float
+        Minimum value in phi grid [deg].
+    phimax : float
+        Maximum value in phi grid [deg].
+    nphi : int
+        Number of phi grid points.
+    er : array_like (nr,nphi,nz)
+        Electric field R component [V/m].
+    ephi : array_like (nr,nphi,nz)
+        Electric field phi component [V/m].
+    ez : array_like (nr,nphi,nz)
+        Electric field z component [V/m].
+    desc : str, optional
+        Input description.
 
-    Returns:
-        Name of the new input that was written.
+    Returns
+    -------
+    name : str
+        Name, i.e. "<type>_<qid>", of the new input that was written.
+
+    Raises
+    ------
+    ValueError
+        If inputs were not consistent.
     """
+    if er.shape   != (nr,nphi,nz):
+        raise ValueError("ER has an inconsinstent shape.")
+    if ephi.shape != (nr,nphi,nz):
+        raise ValueError("Ephi has an inconsinstent shape.")
+    if ez.shape   != (nr,nphi,nz):
+        raise ValueError("Ez has an inconsinstent shape.")
 
     parent = "efield"
     group  = "E_3D"
     gname  = ""
-    
-    assert er.shape   == (nr,nphi,nz)
-    assert ephi.shape == (nr,nphi,nz)
-    assert ez.shape   == (nr,nphi,nz)
-    
+
     er = np.transpose(er,(2,1,0))
     ephi = np.transpose(ephi,(2,1,0))
     ez = np.transpose(ez,(2,1,0))
@@ -117,4 +123,4 @@ class E_3D(E):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())

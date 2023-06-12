@@ -1,7 +1,4 @@
-"""
-3D wall IO.
-
-File: wall_3D.py
+"""3D wall IO.
 """
 import h5py
 import numpy as np
@@ -13,40 +10,58 @@ import a5py.wall.plot as plot
 
 def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None,
                flag=None, flagIdList=None, flagIdStrings=None):
-    """
-    Write 3D wall input in HDF5 file.
+    """Write 3D wall input in HDF5 file.
 
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        nelements : int <br>
-            Number of wall triangles
-        x1x2x3 : array_like (nelements,3) <br>
-            Each triangle's vertices' x coordinates [m].
-        y1y2y3 : array_like (nelements,3) <br>
-            Each triangle's vertices' y coordinates [m].
-        z1z2z3 : array_like (nelements,3) <br>
-            Each triangle's vertices' z coordinates [m].
-        desc : str, optional <br>
-            Input description.
-        flag : array_like (nelements,1) <br>
-            Integer array depicting the wall component of each triangle,
-        flagIdList, array_like (nUniqueFlags) <br>
-            List of keys of the flagIdStrings (int)
-        flagIdStrings, array_like (nUniqueFlags) <br>
-            List of values of the flagIdStrings (string)
+    Parameters
+    ----------
+    fn : str
+        Full path to the HDF5 file.
+    nelements : int
+        Number of wall triangles
+    x1x2x3 : array_like (nelements,3)
+        Each triangle's vertices' x coordinates [m].
+    y1y2y3 : array_like (nelements,3)
+        Each triangle's vertices' y coordinates [m].
+    z1z2z3 : array_like (nelements,3)
+        Each triangle's vertices' z coordinates [m].
+    desc : str, optional
+        Input description.
+    flag : array_like (nelements,1), optional
+        Integer array depicting the wall component of each triangle.
+    flagIdList : array_like (nUniqueFlags), optional
+        List of keys (int) of the flagIdStrings.
+    flagIdStrings : array_like (nUniqueFlags), optional
+        List of values (str) of the flagIdStrings.
 
-    Returns:
-        Name of the new input that was written.
+    Returns
+    -------
+    name : str
+        Name, i.e. "<type>_<qid>", of the new input that was written.
+
+    Raises
+    ------
+    ValueError
+        If the triangle vertices or flags have incorrect shape.
     """
-    assert x1x2x3.shape == (nelements,3)
-    assert y1y2y3.shape == (nelements,3)
-    assert z1z2z3.shape == (nelements,3)
+    if x1x2x3.shape != (nelements,3):
+        raise ValueError(
+            "Shape of x1x2x3 was " + str(x1x2x3.shape) + " but expected ("
+            + str(nelements) + ",3)")
+    if y1y2y3.shape != (nelements,3):
+        raise ValueError(
+            "Shape of y1y2y3 was " + str(y1y2y3.shape) + " but expected ("
+            + str(nelements) + ",3)")
+    if z1z2z3.shape != (nelements,3):
+        raise ValueError(
+            "Shape of z1z2z3 was " + str(z1z2z3.shape) + " but expected ("
+            + str(nelements) + ",3)")
 
     if flag is None:
         flag = np.zeros(shape=(nelements,1),dtype=int)
-    else:
-        assert flag.shape == (nelements,1)
+    elif flag.shape != (nelements,1):
+        raise ValueError(
+            "Shape of flag was " + str(flag.shape) + " but expected ("
+            + str(nelements) + ",1)")
 
     parent = "wall"
     group  = "wall_3D"
@@ -73,8 +88,8 @@ def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None,
 
         fl = g.create_dataset('flag', (nelements,1), data=flag,      dtype='i4')
         if flagIdList is not None and flagIdStrings is not None:
-            fl.attrs.create(name='flagIdList',
-                            data=np.array(flagIdList), dtype='i4')
+            flagIdList = np.array(flagIdList)
+            fl.attrs.create(name='flagIdList', data=flagIdList, dtype='i4')
             fl.attrs.create(name='flagIdStrings', data=fids)
 
     return gname
@@ -139,7 +154,7 @@ class wall_3D(DataGroup):
     number_of_elements = None
 
     def read(self):
-        W=read_hdf5(self._file, self.get_qid())
+        W=read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
         # The dimensionality of  nTriangles = a5wall['nelements'][0][0] varies, so by-pass it.
         self.number_of_elements = W['x1x2x3'].shape[0]

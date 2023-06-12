@@ -5,12 +5,12 @@ File: ascot5tools.py
 """
 import numpy as np
 import h5py
-from . import ascot5
-from . import ascot5file
+from a5py import Ascot
+from . import fileapi
 
-def call_ascot5file(fn, method, *args):
+def call_fileapi(fn, method, *args):
     """
-    Wrapper for calling ascot5file methods.
+    Wrapper for calling fileapi methods.
 
     This wrapper handles opening and closing of HDF5 file.
 
@@ -28,8 +28,8 @@ def call_ascot5file(fn, method, *args):
     Raise:
         ValueError if the method does not exist.
     """
-    if hasattr(ascot5file, method):
-        method_to_call = getattr(ascot5file, method)
+    if hasattr(fileapi, method):
+        method_to_call = getattr(fileapi, method)
         with h5py.File(fn, "a") as f:
             return method_to_call(f, *args)
     else:
@@ -62,58 +62,58 @@ def removegroup(fn, group, force=False):
 
         try:
             # This will raise an exception if group is not a data group.
-            qid = ascot5file.get_qid(group)
-            filegroup = ascot5file.get_group(f, qid)
+            qid = fileapi.get_qid(group)
+            filegroup = fileapi.get_group(f, qid)
 
             # This is a data group. If it is a run group or removal is forced,
             # we can remove it directly.
-            if force or ascot5file.get_type(filegroup) == "run":
-                ascot5file.remove_group(f, group)
+            if force or fileapi.get_type(filegroup) == "run":
+                fileapi.remove_group(f, group)
                 return
 
             # For input data groups we have to check if any run group refers to
             # it.
-            runqids = ascot5file.get_qids(f, "results")
+            runqids = fileapi.get_qids(f, "results")
 
             for runqid in runqids:
-                rungroup = ascot5file.get_group(f, runqid)
-                inqids   = ascot5file.get_inputqids(f, rungroup)
+                rungroup = fileapi.get_group(f, runqid)
+                inqids   = fileapi.get_inputqids(f, rungroup)
                 if qid in inqids:
                     raise RuntimeError("Run " + runqid
                                        + " has used group " + qid
                                        + " as an input. Removal aborted.")
 
             # No references, the group can be removed.
-            ascot5file.remove_group(f, group)
+            fileapi.remove_group(f, group)
 
         except ValueError:
             # The group is a parent group. If it is a results group or removal
             # is forced, we can remove it directly.
             if force or group == "results":
-                ascot5file.remove_group(f, group)
+                fileapi.remove_group(f, group)
                 return
 
             try:
-                runqids  = ascot5file.get_qids(f, "results")
+                runqids  = fileapi.get_qids(f, "results")
             except ValueError:
                 # There is no results group, so we can safely remove the group
                 pass
             else:
                 # For input parent groups we have to check if any run group
                 # refers to any of its data groups.
-                dataqids = ascot5file.get_qids(f, group)
+                dataqids = fileapi.get_qids(f, group)
 
                 for dataqid in dataqids:
                     for runqid in runqids:
-                        rungroup = ascot5file.get_group(f, runqid)
-                        inqids   = ascot5file.get_inputqids(f, rungroup)
+                        rungroup = fileapi.get_group(f, runqid)
+                        inqids   = fileapi.get_inputqids(f, rungroup)
                         if dataqid in inqids:
                             raise RuntimeError("Run " + runqid
                                                + " has used group " + dataqid
                                                + " as an input. Removal aborted.")
 
             # No references, the group can be removed.
-            ascot5file.remove_group(f, group)
+            fileapi.remove_group(f, group)
 
 
 def copygroup(fns, fnt, group, newgroup=False):
@@ -143,17 +143,17 @@ def copygroup(fns, fnt, group, newgroup=False):
 
         try:
             # This will raise exception if group is not a data group
-            ascot5file.get_qid(group)
+            fileapi.get_qid(group)
 
             # This is a data group
-            grp = ascot5file.copy_group(fs, ft, group, newgroup=newgroup)
+            grp = fileapi.copy_group(fs, ft, group, newgroup=newgroup)
             return grp.name
         except ValueError:
             # This is a parent group
-            qids = ascot5file.get_qids(fs, group)
+            qids = fileapi.get_qids(fs, group)
             for qid in qids:
-                grp = ascot5file.get_group(fs, qid)
-                ascot5file.copy_group(fs, ft, grp, newgroup=newgroup)
+                grp = fileapi.get_group(fs, qid)
+                fileapi.copy_group(fs, ft, grp, newgroup=newgroup)
 
 
 def combineoutput(fnt, addfns=None, contfns=None):
@@ -186,8 +186,8 @@ def combineoutput(fnt, addfns=None, contfns=None):
         return
 
     # Find the active groups
-    source = (ascot5.Ascot(fns)).active
-    target = (ascot5.Ascot(fnt)).active
+    source = Ascot(fns).data.active
+    target = Ascot(fnt).data.active
 
     # Combine states
     if addfns is not None:

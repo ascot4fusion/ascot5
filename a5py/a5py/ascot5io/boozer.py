@@ -1,7 +1,4 @@
-"""
-Boozer coordinate input IO.
-
-File: boozer.py
+"""Boozer coordinate input IO.
 """
 import h5py
 import numpy as np
@@ -12,8 +9,7 @@ from ._iohelpers.treedata import DataGroup
 def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
                zmin, zmax, nz, r0, z0, psi0, psi1, psi_rz, theta_psithetageom,
                nu_psitheta, nrzs, rs, zs, desc=None):
-    """
-    Write boozer input to HDF5 file.
+    """Write boozer input to HDF5 file.
 
     Note: the data in theta_psithetageom is assummed to span the whole interval
     (i.e. coinciding start and end points included) in the angular axis. This is
@@ -28,62 +24,75 @@ def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
     use the natural boundary condition which sets y'' = 0 (the nu data is
     has a local extrema at theta=0).
 
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        psimin : float <br>
-            Minimum psi grid value.
-        psimax : float <br>
-            Maximum psi grid value.
-        npsi : int <br>
-            Number of psi grid points.
-        ntheta : int <br>
-            Number of boozer theta grid values.
-        nthetag : int <br>
-            Number of geometric theta grid values.
-        rmin : float <br>
-            Minimum R grid value.
-        rmax : float <br>
-            Maximum R grid value.
-        nr : int <br>
-            Number of R grid points.
-        zmin : float <br>
-            Minimum z grid value.
-        zmax : float <br>
-            Maximum z grid value.
-        nz : int <br>
-            Number of z grid points.
-        r0 : float <br>
-            Magnetic axis R coordinate.
-        z0 : float <br>
-            Magnetic axis z coordinate.
-        psi0 : float <br>
-            Coordinate psi on axis.
-        psi1 : float <br>
-            Coordinate psi on separatrix.
-        psi_rz : array_like (nr,nz) <br>
-            Coordinate psi(R,z).
-        theta_psithetageom : array_like (npsi,nthetag) <br>
-            Coordinate theta(psi, thetag).
-        nu_psitheta : array_like (npsi,ntheta) <br>
-            nu(psi, theta).
-        nrsz : int <br>
-            Number of separatrix Rz points.
-        rs : array_like (nrsz,1) <br>
-            Separatrix R coordinates, start and end points should coincide.
-        zs : array_like (nrsz,1) <br>
-            Separatrix z coordinates, start and end points should coincide.
-        desc : str, optional <br>
-            Input's description.
+    Parameters
+    ----------
+    fn : str
+        Full path to the HDF5 file.
+    psimin : float
+        Minimum psi grid value.
+    psimax : float
+        Maximum psi grid value.
+    npsi : int
+        Number of psi grid points.
+    ntheta : int
+        Number of boozer theta grid values.
+    nthetag : int
+        Number of geometric theta grid values.
+    rmin : float
+        Minimum R grid value.
+    rmax : float
+        Maximum R grid value.
+    nr : int
+        Number of R grid points.
+    zmin : float
+        Minimum z grid value.
+    zmax : float
+        Maximum z grid value.
+    nz : int
+        Number of z grid points.
+    r0 : float
+        Magnetic axis R coordinate.
+    z0 : float
+        Magnetic axis z coordinate.
+    psi0 : float
+        Coordinate psi on axis.
+    psi1 : float
+        Coordinate psi on separatrix.
+    psi_rz : array_like (nr,nz)
+        Coordinate psi(R,z).
+    theta_psithetageom : array_like (npsi,nthetag)
+        Coordinate theta(psi, thetag).
+    nu_psitheta : array_like (npsi,ntheta)
+        nu(psi, theta).
+    nrsz : int
+        Number of separatrix Rz points.
+    rs : array_like (nrsz,1)
+        Separatrix R coordinates, start and end points should coincide.
+    zs : array_like (nrsz,1)
+        Separatrix z coordinates, start and end points should coincide.
+    desc : str, optional
+        Input's description.
 
-    Returns:
-        Name of the new input that was written.
+    Returns
+    -------
+    name : str
+        Name, i.e. "<type>_<qid>", of the new input that was written.
+
+    Raises
+    ------
+    ValueError
+        If inputs were not consistent.
     """
-    assert psi_rz.shape             == (nr,nz)
-    assert theta_psithetageom.shape == (npsi,nthetag)
-    assert nu_psitheta.shape        == (npsi,ntheta)
-    assert rs.size == nrzs
-    assert zs.size == nrzs
+    if psi_rz.shape != (nr,nz):
+        raise ValueError("psi has invalid shape.")
+    if theta_psithetageom.shape != (npsi,nthetag):
+        raise ValueError("theta has invalid shape.")
+    if nu_psitheta.shape != (npsi,ntheta):
+        raise ValueError("nu has invalid shape.")
+    if rs.size != nrzs:
+        raise ValueError("Separatrix r has invalid shape.")
+    if zs.size != nrzs:
+        raise ValueError("Separatrix z has invalid shape.")
 
     psi_rz             = np.transpose(psi_rz)
     theta_psithetageom = np.transpose(theta_psithetageom)
@@ -219,7 +228,7 @@ class Boozer(DataGroup):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
     def write(self,fn,data = None, desc=None):
         if data is None:
@@ -229,3 +238,6 @@ class Boozer(DataGroup):
             return write_hdf5(fn=fn, **data)
         else:
             return write_hdf5(fn=fn, desc=desc, **data)
+
+    def write_dummy(self, fn):
+        return write_hdf5_dummy(fn)

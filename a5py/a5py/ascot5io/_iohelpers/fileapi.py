@@ -53,23 +53,20 @@ import random
 import datetime
 
 from collections import OrderedDict
-from a5py.exceptions import AscotDataMissingException, AscotIOException
+from a5py.exceptions import AscotNoDataException, AscotIOException
 
-INPUTGROUPS = [
-    "options", "bfield", "efield", "marker", "plasma", "neutral", "wall",
-    "boozer", "mhd", "nbi", "marker_shined"]
-"""Names of the input groups.
+INPUTGROUPS = ["options", "bfield", "efield", "marker", "plasma", "neutral",
+               "wall", "boozer", "mhd", "nbi", "marker_shined"]
+"""Names of the input parent groups.
 """
 
-OUTPUTGROUPS = [
-    "inistate", "endstate", "dist5d", "distrho5d", "dist6d", "distrho6d",
-    "orbit", "transcoef"]
-"""Names of the output groups in runs.
+OUTPUTGROUPS = ["inistate", "endstate", "dist5d", "distrho5d", "dist6d",
+                "distrho6d", "orbit", "transcoef"]
+"""Names of the output data containers in runs.
 """
 
-VERSION = "5.4"
-"""Current version of the code.
-"""
+VERSION = "5.5"
+"""Current version of the code."""
 
 def set_active(f, group):
     """Set given group as active.
@@ -83,7 +80,7 @@ def set_active(f, group):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if the group or its parent does not exist.
     """
 
@@ -91,7 +88,7 @@ def set_active(f, group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotDataMissingException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group" + group)
         else:
             group = grp
 
@@ -115,7 +112,7 @@ def get_active(f, parent):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if the parent or the active group does not exist.
     """
 
@@ -123,14 +120,14 @@ def get_active(f, parent):
         if parent in f:
             parent = f[parent]
         else:
-            raise AscotDataMissingException(
+            raise AscotNoDataException(
             "Parent " + parent + " does not exist.")
 
     qid = parent.attrs["active"].decode('utf-8')
     group = get_group(f, qid)
 
     if group == None:
-        raise AscotDataMissingException("Active group does not exist.")
+        raise AscotNoDataException("Active group does not exist.")
     else:
         return group
 
@@ -180,7 +177,7 @@ def set_desc(f, group, desc):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if group does not exist.
     """
     # Check the group exists and access it.
@@ -188,7 +185,7 @@ def set_desc(f, group, desc):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotDataMissingException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group" + group)
         else:
             group = grp
 
@@ -211,7 +208,7 @@ def get_desc(f, group):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if group does not exist.
     """
 
@@ -220,7 +217,7 @@ def get_desc(f, group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotDataMissingException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group" + group)
         else:
             group = grp
 
@@ -242,7 +239,7 @@ def _set_date(f, group, date):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if group does not exist.
     """
 
@@ -251,7 +248,7 @@ def _set_date(f, group, date):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotDataMissingException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group" + group)
         else:
             group = grp
 
@@ -274,7 +271,7 @@ def get_date(f, group):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if group does not exist.
     """
 
@@ -283,7 +280,7 @@ def get_date(f, group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotDataMissingException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group" + group)
         else:
             group = grp
 
@@ -303,7 +300,7 @@ def _set_version(f, group):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if group does not exist.
     """
 
@@ -312,7 +309,7 @@ def _set_version(f, group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotDataMissingException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group" + group)
         else:
             group = grp
 
@@ -335,7 +332,7 @@ def get_version(f, group):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if group does not exist.
     """
 
@@ -344,7 +341,7 @@ def get_version(f, group):
         qid = get_qid(group)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotDataMissingException("Could not find group" + group)
+            raise AscotNoDataException("Could not find group" + group)
         else:
             group = grp
 
@@ -365,7 +362,7 @@ def get_qid(group):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if group does not have a valid QID.
     """
     if(str(group) != group):
@@ -378,7 +375,7 @@ def get_qid(group):
             return qid
 
     # Not a valid QID
-    raise AscotDataMissingException(group + " is not a valid QID.")
+    raise AscotNoDataException(group + " is not a valid QID.")
 
 def get_type(group):
     """Get type from a given group or from its name.
@@ -395,7 +392,7 @@ def get_type(group):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if group does not have a valid type.
     """
     if(str(group) != group):
@@ -409,7 +406,7 @@ def get_type(group):
             return type_
 
     # Not a valid type
-    raise AscotDataMissingException(group + " does not contain a valid type.")
+    raise AscotNoDataException(group + " does not contain a valid type.")
 
 def get_group(f, qid):
     """Scan the file and return the group the QID corresponds to.
@@ -453,14 +450,14 @@ def get_qids(f, parent):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if parent group does not exist.
     """
 
     # Check the parent exists and access it
     if(str(parent) == parent):
         if not parent in f:
-            raise AscotDataMissingException("Could not find parent " + parent)
+            raise AscotNoDataException("Could not find parent " + parent)
         parent = f[parent]
 
     qids = []
@@ -487,7 +484,7 @@ def get_inputqids(f, rungroup):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if run group does not exist.
     """
 
@@ -496,7 +493,7 @@ def get_inputqids(f, rungroup):
         qid = get_qid(rungroup)
         grp = get_group(f, qid)
         if grp is None:
-            raise AscotDataMissingException("Could not find group " + rungroup)
+            raise AscotNoDataException("Could not find group " + rungroup)
         else:
             rungroup = grp
 
@@ -573,7 +570,7 @@ def remove_group(f, group):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if group could not be found.
     AscotIOException
         Raised if the group is input used by a run.
@@ -589,7 +586,7 @@ def remove_group(f, group):
             qid = get_qid(group)
             grp = get_group(f, qid)
             if grp is None:
-                raise AscotDataMissingException("Could not find group" + group)
+                raise AscotNoDataException("Could not find group" + group)
             else:
                 group = grp
 
@@ -659,7 +656,7 @@ def copy_group(fs, ft, group, newgroup=False):
 
     Raises
     ------
-    AscotDataMissingException
+    AscotNoDataException
         Raised if the copied group cannot be found.
     AscotIOException
         Raised if the group already exists on the target file.
@@ -670,7 +667,7 @@ def copy_group(fs, ft, group, newgroup=False):
         qid = get_qid(group)
         grp = get_group(fs, qid)
         if grp is None:
-            raise AscotDataMissingException("Could not find group " + group)
+            raise AscotNoDataException("Could not find group " + group)
         else:
             group = grp
 

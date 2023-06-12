@@ -1,13 +1,10 @@
-"""
-MHD input IO.
+"""MHD input IO.
 
 This module reads and writes both MHD_STAT and MHD_NONSTAT data. The only
 difference between these two is the time-dependency of the eigenfunctions,
 that is, does the mode amplitude (alpha or Phi) depend only on psi or psi
 and time. MHD_STAT assumes only psi dependency, making the interpolation
 *much* faster. So don't use MHD_NONSTAT unless you really have to.
-
-File: mhd.py
 """
 import h5py
 import numpy as np
@@ -18,65 +15,80 @@ from ._iohelpers.treedata import DataGroup
 def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, phase, alpha, phi,
                nrho, rhomin, rhomax, ntime=None, tmin=None, tmax=None,
                desc=None):
-    """
-    Write MHD input to HDF5 file.
+    """Write MHD input to HDF5 file.
 
     This module writes both stationary and non-stationary MHD data. The latter
     is used when the time-grid is provided.
 
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        nmode : int <br>
-            Number of modes.
-        nmodes : array_like (nmode,) <br>
-            Mode n (toroidal) numbers.
-        mmodes : array_like (nmode,) <br>
-            Mode m (poloidal) numbers.
-        amplitude : array_like (nmode,) <br>
-            Mode amplitudies.
-        omega : array_like (nmode,) <br>
-            Mode frequencies [rad/s].
-        omega : array_like (nmode,) <br>
-            Mode phases [rad].
-        alpha : array_like (nrho, ntime, nmode) <br>
-            Magnetic perturbation eigenfunctions. If no time grid, the shape
-            should be (nrho, nmode).
-        phi : array_like (nrho, ntime, nmode) <br>
-            Electric perturbation eigenfunctions. If no time grid, the shape
-            should be (nrho, nmode).
-        nrho : int <br>
-            Number of rho grid points.
-        rhomin : float <br>
-            Minimum value in rho grid.
-        rhomax : float <br>
-            Maximum value in rho grid.
-        ntime : int, optional <br>
-            Number of time grid points.
-        tmin : float, optional <br>
-            Minimum value in time grid. Must be given for non-stationary input.
-        tmax : float, optional <br>
-            Maximum value in time grid. Must be given for non-stationary input.
-        desc : str, optional <br>
-            Input's description.
+    Parameters
+    ----------
+    fn : str
+        Full path to the HDF5 file.
+    nmode : int
+        Number of modes.
+    nmodes : array_like (nmode,)
+        Mode n (toroidal) numbers.
+    mmodes : array_like (nmode,)
+        Mode m (poloidal) numbers.
+    amplitude : array_like (nmode,)
+        Mode amplitudies.
+    omega : array_like (nmode,)
+        Mode frequencies [rad/s].
+    omega : array_like (nmode,)
+        Mode phases [rad].
+    alpha : array_like (nrho, ntime, nmode)
+        Magnetic perturbation eigenfunctions, if no time grid the shape
+        should be (nrho, nmode).
+    phi : array_like (nrho, ntime, nmode)
+        Electric perturbation eigenfunctions, if no time grid the shape
+        should be (nrho, nmode).
+    nrho : int
+        Number of rho grid points.
+    rhomin : float
+        Minimum value in rho grid.
+    rhomax : float
+        Maximum value in rho grid.
+    ntime : int, optional
+        Number of time grid points.
+    tmin : float, optional
+        Minimum value in time grid which must be given for non-stationary input.
+    tmax : float, optional
+        Maximum value in time grid which must be given for non-stationary input.
+    desc : str, optional
+        Input's description.
 
-    Returns:
-        Name of the new input that was written.
+    Returns
+    -------
+    name : str
+        Name, i.e. "<type>_<qid>", of the new input that was written.
+
+    Raises
+    ------
+    ValueError
+        If inputs were not consistent.
     """
-    assert nmodes.size == nmode
-    assert mmodes.size == nmode
+    if nmodes.size != nmode:
+        raise ValueError("Shape of nmodes is inconsistent with nmode")
+    if mmodes.size != nmode:
+        raise ValueError("Shape of mmodes is inconsistent with nmode")
 
-    assert (ntime is None and tmin is None and tmax is None) or \
-    (ntime is not None and tmin is not None and tmax is not None)
+    if not (ntime is None and tmin is None and tmax is None):
+        raise ValueError("Time grid data not consistent")
+    if not (ntime is not None and tmin is not None and tmax is not None):
+        raise ValueError("Time grid data not consistent")
 
     if ntime is None:
-        assert alpha.shape == (nrho,nmode)
-        assert phi.shape   == (nrho,nmode)
+        if alpha.shape != (nrho,nmode):
+            raise ValueError("alpha has inconsistent shape")
+        if phi.shape   != (nrho,nmode):
+            raise ValueError("phi has inconsistent shape")
         alpha = np.transpose(alpha, (1,0) )
         phi   = np.transpose(phi,   (1,0) )
     else:
-        assert alpha.shape == (nrho,ntime,nmode)
-        assert phi.shape   == (nrho,ntime,nmode)
+        if alpha.shape != (nrho,ntime,nmode):
+            raise ValueError("alpha has inconsistent shape")
+        if phi.shape   != (nrho,ntime,nmode):
+            raise ValueError("phi has inconsistent shape")
         alpha = np.transpose(alpha, (2,1,0) )
         phi   = np.transpose(phi,   (2,1,0) )
 
@@ -179,7 +191,7 @@ class MHD(DataGroup):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
     def isstat(self):
         """
@@ -239,3 +251,6 @@ class MHD(DataGroup):
 
         if ax is None:
             plt.show()
+
+    def write_dummy(self, fn):
+        return write_hdf5_dummy(fn)

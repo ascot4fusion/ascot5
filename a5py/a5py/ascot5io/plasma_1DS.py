@@ -1,7 +1,4 @@
-"""
-Plasma 1DS IO.
-
-File: plasma_1DS.py
+"""Plasma 1DS IO.
 """
 import h5py
 import numpy as np
@@ -13,44 +10,55 @@ from ._iohelpers.treedata import DataGroup
 
 def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho,
                edensity, etemperature, idensity, itemperature, desc=None):
-    """
-    Write 1DS plasma input in HDF5 file.
+    """Write 1DS plasma input in HDF5 file.
 
-    Args:
-        fn : str <br>
-            Path to hdf5 file.
-        nrho : int <br>
-            Number of rho grid points.
-        nion : int <br>
-            Number of ion species.
-        anum : array_like (nion,1) <br>
-            Ion species atomic mass number
-        znum : array_like (nion,1) <br>
-            Ion species charge number.
-        mass : array_like (nion,1) <br>
-            Ion species mass [amu].
-        charge : array_like (nion,1) <br>
-            Ion species charge [e].
-        rho : array_like (nrho,1) <br>
-            rho grid, doesn't have to be uniform.
-        edensity : array_like (nrho,1) <br>
-            Electron density [m^-3].
-        etemperature : array_like (nrho,1) <br>
-            Electron temperature [eV].
-        idensity : array_like (nrho,nion) <br>
-            Ion density [m^-3].
-        itemperature : array_like (nrho,1) <br>
-            Ion temperature [ev].
-        desc : str, optional <br>
-            Input description.
+    Parameters
+    ----------
+    fn : str
+        Path to hdf5 file.
+    nrho : int
+        Number of rho grid points.
+    nion : int
+        Number of ion species.
+    anum : array_like (nion,1)
+        Ion species atomic mass number
+    znum : array_like (nion,1)
+        Ion species charge number.
+    mass : array_like (nion,1)
+        Ion species mass [amu].
+    charge : array_like (nion,1)
+        Ion species charge [e].
+    rho : array_like (nrho,1)
+        rho grid, doesn't have to be uniform.
+    edensity : array_like (nrho,1)
+        Electron density [m^-3].
+    etemperature : array_like (nrho,1)
+        Electron temperature [eV].
+    idensity : array_like (nrho,nion)
+        Ion density [m^-3].
+    itemperature : array_like (nrho,1)
+        Ion temperature [ev].
+    desc : str, optional
+        Input description.
 
-    Returns:
-        Name of the new input that was written.
+    Returns
+    -------
+    name : str
+        Name, i.e. "<type>_<qid>", of the new input that was written.
+
+    Raises
+    ------
+    ValueError
+        If inputs were not consistent.
     """
-    assert etemperature.size == nrho
-    assert itemperature.size == nrho
-    assert edensity.size  == nrho
-    assert idensity.shape == (nrho,nion)
+    if etemperature.size != nrho:
+        raise ValueError("Invalid size for electron temperature.")
+    if itemperature.size != nrho:
+        raise ValueError("Invalid size for ion temperature.")
+    if edensity.size != nrho:
+        raise ValueError("Invalid size for electron density.")
+    if idensity.shape != (nrho,nion):
+        raise ValueError("Invalid size for ion density.")
 
     idensity = np.transpose(idensity)
 
@@ -113,4 +121,4 @@ class plasma_1DS(DataGroup):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())

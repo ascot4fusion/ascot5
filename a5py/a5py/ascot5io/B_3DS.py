@@ -1,7 +1,4 @@
-"""
-Non-axisymmetric tokamak magnetic field HDF5 IO
-
-File: B_3DS.py
+"""Non-axisymmetric tokamak magnetic field HDF5 IO
 """
 import numpy as np
 import h5py
@@ -16,8 +13,7 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
                axisr, axisz, psi, psi0, psi1, br, bphi, bz,
                psi_rmin=None, psi_rmax=None, psi_nr=None,
                psi_zmin=None, psi_zmax=None, psi_nz=None, desc=None):
-    """
-    Write 3DS magnetic field input in HDF5 file.
+    """Write 3DS magnetic field input in HDF5 file.
 
     Note that br and bz should not include the equilibrium component of the
     magnetic field as that is calculated from psi by ASCOT5 during the
@@ -31,60 +27,68 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
     data, the last points in phi axis in B data are not at b_phimax, i.e.
     br[:,-1,:] != BR(phi=b_phimax).
 
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        b_rmin : float <br>
-            Magnetic field data R grid min edge [m].
-        b_rmax : float <br>
-            Magnetic field data R grid max edge [m].
-        b_nr : int <br>
-            Number of R grid points in magnetic field data.
-        b_zmin : float <br>
-            Magnetic field data z grid min edge [m].
-        b_zmax : float <br>
-            Magnetic field data z grid max edge [m].
-        b_nz : int <br>
-            Number of z grid points in magnetic field data.
-        b_phimin : float <br>
-            Magnetic field data phi grid min edge [deg].
-        b_phimax : float <br>
-            Magnetic field data phi grid max edge [deg].
-        b_nphi : int <br>
-            Number of phi grid points in magnetic field data.
-        axisr : float <br>
-            Magnetic axis R coordinate [m].
-        axisz : float <br>
-            Magnetic axis z coordinate [m].
-        psi0 : float <br>
-            On-axis poloidal flux value [Vs/m].
-        psi1 : float <br>
-            Separatrix poloidal flux value [Vs/m].
-        psi : array_like (nr, nz) <br>
-            Poloidal flux values on the Rz grid [Vs/m].
-        br : array_like (nr,nphi,nz) <br>
-            Magnetic field R component (excl. equilibrium comp.) on Rz grid [T].
-        bphi : array_like (nr,nphi,nz) <br>
-            Magnetic field phi component on Rz grid [T].
-        bz : array_like (nr,nphi,nz) <br>
-            Magnetic field z component (excl. equilibrium comp.) onRz grid [T].
-        psi_rmin : float, optional <br>
-            Psi data R grid min edge [m].
-        psi_rmax : float, optional <br>
-            Psi data R grid max edge [m].
-        psi_nr : int, optional <br>
-            Number of R grid points in psi data.
-        psi_zmin : float, optional <br>
-            Psi data z grid min edge [m].
-        psi_zmax : float, optional <br>
-            Psi data z grid max edge [m].
-        psi_nz : int, optional <br>
-            Number of z grid points in psi data.
-        desc : str, optional <br>
-            Input description.
+    Parameters
+    ----------
+    fn : str
+        Full path to the HDF5 file.
+    b_rmin : float
+        Magnetic field data R grid min edge [m].
+    b_rmax : float
+        Magnetic field data R grid max edge [m].
+    b_nr : int
+        Number of R grid points in magnetic field data.
+    b_zmin : float
+        Magnetic field data z grid min edge [m].
+    b_zmax : float
+        Magnetic field data z grid max edge [m].
+    b_nz : int
+        Number of z grid points in magnetic field data.
+    b_phimin : float
+        Magnetic field data phi grid min edge [deg].
+    b_phimax : float
+        Magnetic field data phi grid max edge [deg].
+    b_nphi : int
+        Number of phi grid points in magnetic field data.
+    axisr : float
+        Magnetic axis R coordinate [m].
+    axisz : float
+        Magnetic axis z coordinate [m].
+    psi0 : float
+        On-axis poloidal flux value [Vs/m].
+    psi1 : float
+        Separatrix poloidal flux value [Vs/m].
+    psi : array_like (nr, nz)
+        Poloidal flux values on the Rz grid [Vs/m].
+    br : array_like (nr,nphi,nz)
+        Magnetic field R component (excl. equilibrium comp.) on Rz grid [T].
+    bphi : array_like (nr,nphi,nz)
+        Magnetic field phi component on Rz grid [T].
+    bz : array_like (nr,nphi,nz)
+        Magnetic field z component (excl. equilibrium comp.) onRz grid [T].
+    psi_rmin : float, optional
+        Psi data R grid min edge [m].
+    psi_rmax : float, optional
+        Psi data R grid max edge [m].
+    psi_nr : int, optional
+        Number of R grid points in psi data.
+    psi_zmin : float, optional
+        Psi data z grid min edge [m].
+    psi_zmax : float, optional
+        Psi data z grid max edge [m].
+    psi_nz : int, optional
+        Number of z grid points in psi data.
+    desc : str, optional
+        Input description.
 
-    Returns:
-        Name of the new input that was written.
+    Returns
+    -------
+    name : str
+        Name, i.e. "<type>_<qid>", of the new input that was written.
+
+    Raises
+    ------
+    ValueError
+        If inputs were not consistent.
     """
 
     parent = "bfield"
@@ -101,10 +105,14 @@ def write_hdf5(fn, b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
         psi_zmax = b_zmax
         psi_nz   = b_nz
 
-    assert psi.shape  == (psi_nr,psi_nz)
-    assert br.shape   == (b_nr,b_nphi,b_nz)
-    assert bphi.shape == (b_nr,b_nphi,b_nz)
-    assert bz.shape   == (b_nr,b_nphi,b_nz)
+    if psi.shape  != (psi_nr,psi_nz):
+        raise ValueError("Inconsistent shape foor psi.")
+    if br.shape   != (b_nr,b_nphi,b_nz):
+        raise ValueError("Inconsistent shape foor br.")
+    if bphi.shape != (b_nr,b_nphi,b_nz):
+        raise ValueError("Inconsistent shape foor bphi.")
+    if bz.shape   != (b_nr,b_nphi,b_nz):
+        raise ValueError("Inconsistent shape foor bz.")
 
     psi  = np.transpose(psi)
     br   = np.transpose(br,   (2,1,0))
@@ -198,7 +206,7 @@ class B_3DS(DataGroup):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
     def write(self, fn, data=None):
         if data is None:
