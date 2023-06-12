@@ -15,28 +15,28 @@ If you can't find here what you are looking for in this documentation, don't be 
   :hidden:
 
   running
-  
+
 .. toctree::
   :maxdepth: 2
   :caption: Processing Data
   :hidden:
-  
+
   processing
-  
+
 .. toctree::
   :maxdepth: 2
   :caption: Tutorials
   :hidden:
 
   teaching
-  
+
 .. toctree::
   :maxdepth: 2
   :caption: Publications
   :hidden:
 
   publishing
-  
+
 .. toctree::
   :maxdepth: 2
   :caption: For Developers

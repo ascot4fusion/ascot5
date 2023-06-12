@@ -10,7 +10,7 @@ Installing
 
       git clone git@version.aalto.fi:ascot/ascot5.git ascot5
       cd ascot5
-   
+
 2. Compile the main simulation program ``ascot5_main`` and the library ``libascot.so`` (which is needed for post-processing so it is not needed to execute simulations).
 
    .. code-block:: bash
@@ -30,9 +30,9 @@ Installing
       make clean
       make ascot5_main
       make libascot
-      
+
    Always use the branch ``master`` when running simulations unless you specifically need something from a feature branch.
-   
+
 4. Set up ``a5py`` Python package needed for input generation and post-processing.
 
    .. code-block:: bash
@@ -54,16 +54,16 @@ Installing
       source ascotenv/bin/activate
 
    or Conda (preferred)
-  
-   Edit ``ascot5/a5py/ascot5.yaml`` file 
+
+   Edit ``ascot5/a5py/ascot5.yaml`` file
 
    .. code-block:: bash
 
       conda create --file ascot5/a5py/requirements.txt --name ascotenv
       conda activate ascotenv
-     
+
    Whichever was chosen, the python package can be installed with
-  
+
    .. code-block:: bash
 
       pip install -e ascot5/a5py
@@ -78,30 +78,30 @@ Installing
       echo $PWD
 
    Edit your `.bashrc` and/or `.bash_profile`
-   
+
    .. code-block:: bash
 
       emacs -nw ~/.bashrc
-      
+
    Add the following lines (along with any ``module load`` or ``export`` that was needed for the code to compile
-   
+
    .. code-block::
-   
+
       <module loads here>
       export LD_LIBRARY_PATH=/path/to/ascot5folder:$LD_LIBRARY_PATH
       export EDITOR=/usr/bin/emacs
-      
+
    Last line is optional and it sets Emacs as the editor when editing ASCOT5 options. You can also add
-   
+
    .. code-block::
-   
+
       source activate /path/to/ascot5env # If using venv or virtualenv
       conda activate ascot5env # If using Conda
-      
+
    which automatically activates ASCOT5 environment each time you open the terminal or login (otherwise you have to execute the line manually).
-   
+
    Close the terminal (or log out) and the environment is set when you open a new one (or log in).
-   
+
 6. Test that ASCOT5 is working by running the tutorial.
 
 .. _Compiling:
@@ -121,7 +121,7 @@ Aalto desktops
    pkcon install libhdf5-dev
    pkcon install hdf5-tools
    make -j ascot5_main VERBOSE=1 FLAGS="-foffload=disable"
-   
+
 CSC.fi puhti
 ************
 
@@ -136,7 +136,7 @@ Alternatively:
 .. code-block:: bash
 
    make ascot5_main VERBOSE=2 MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -vecabi=cmdtarget"
-   
+
 Freia (UKAEA) (work in progress)
 ********************************
 
@@ -167,7 +167,7 @@ Lac8 at TCV
 .. code-block:: bash
 
    make ascot5_main CC=h5cc MPI=0 VERBOSE=2
-   
+
 Marenostrum (WIP)
 *****************
 
@@ -226,7 +226,7 @@ NERSC Cori
    export PMI_NO_PREINITIALIZE=1
    export HDF5_USE_FILE_LOCKING=FALSE
    make ascot5_main CC=h5cc VERBOSE=0 MPI=1 FLAGS="-qno-openmp-offload –diag-disable 3180"
-   
+
 OSX (Macports)
 **************
 
@@ -280,7 +280,7 @@ For Intel:
    make ascot5_main VERBOSE=2 MPI=1 FLAGS="-qno-openmp-offload -diag-disable 3180 -vecabi=cmdtarget"
 
 (add -xcommon-avx512 to optimize for skl/csl nodes)
-   
+
 Vdiubuntu.aalto.fi
 ******************
 
@@ -288,16 +288,16 @@ Compiling libascot.so requires that you change Makefile as
 
 .. code-block::
 
-   libascot.so: libascot.o $(OBJS) 
+   libascot.so: libascot.o $(OBJS)
    - $(CC) $(CFLAGS) -o $@ $^
    + $(CC) $(CFLAGS) -o $@ $^ -lhdf5_hl -lhdf5
 
 
 .. code-block:: bash
-   
+
    module load hdf5
    make VERBOSE=2 MPI=0 libascot.so CC=gcc FLAGS="-foffload=disable" -j
-   
+
 .. _Compilerflags:
 
 =======================
@@ -313,7 +313,7 @@ Parameters that can be given arguments for ``make`` are
 
 .. list-table::
    :widths: 10 50
-   
+
    * - NSIMD=16
      - Number of particles in a group. These are processed simultaneously by each thread and the optimal number depends on the platform. If unsure, keep the default value.
    * - CC=icc
@@ -352,6 +352,8 @@ Additional parameters can be found in ``ascot5.h``, but there is rarely a need t
 =======
 Options
 =======
+
+.. autoproperty:: a5py.ascot5io.options.Opt.SIM_MODE
 
 .. _Simulations:
 

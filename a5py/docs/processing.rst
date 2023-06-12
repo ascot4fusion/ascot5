@@ -1,6 +1,6 @@
-===========================
-Data access and preparation
-===========================
+===========
+Data format
+===========
 
 Simulation inputs and options, as well as the outputs once the simulation is complete, are stored in a single HDF5 file.
 
@@ -9,6 +9,7 @@ The file is designed to hold multiple inputs (even of same type) and results of 
 
 The exact structure of the HDF5 file is irrelevant since it should always be accessed via the Python interface provided by `a5py`.
 
+===========
 Data access
 ===========
 
@@ -16,11 +17,22 @@ Instances of :class:`.Ascot` class are used to open ``ascot.h5``.
 The contents of the file are accessed via `Ascot.data`, which is an instance of :class:`.Ascot5IO`, and it provides a "treeview" of the file.
 For example, the currently *active* magnetic field input is
 
+.. code-block:: python
+
+   from a5py import Ascot
+
+   a5 = Ascot("ascot.h5")
+   a5.data.bfield.active
+
 The magnetic field object here, like the results and input data in general, are stored as objects that inherit from the :class:`.DataGroup` class.
 These objects don't contain any data, but provide an interface to access the data on the disk.
-This means that initializing the `Ascot` object is a very light-weight process since no actual data is read during the initialization.
+This means that initializing the :class:`.Ascot` object is a very light-weight process since no actual data is read during the initialization.
 
 Simulation results are located at the top level of the hierarchy, e.g. the :class:`.DataGroup` corresponding to the *active* run is
+
+.. code-block:: python
+
+   a5.data.active()
 
 Inputs are divided on groups depending on what type of input data they provide. All magnetic field inputs are located under the `bfield` group, all electric field inputs under the `efield`, and so on.
 All different *input parent* groups are listed in `INPUGROUPS` and they are instances of :class:`.InputNode` class.
@@ -29,10 +41,14 @@ Similarly one of the simulation results is always flagged active (by default it 
 The active inputs are also used in post-processing and in GUI, so pay attention to what groups are active at the moment.
 The group can be set active with
 
+.. code-block:: python
+
+   a5.data.bfield.q0123456789.activate()
+
 The active flag is stored in the HDF5 file so it persists between Python sessions.
 
 Each group has a QID which is a 10-number identifier to separate that group from others and it is automatically created.
-For humans there is a description attribute that one can use to document contents of `ascot.h5`.
+For humans there is a description attribute that one can use to document contents of ``ascot.h5``.
 
 The meta data is accessed and modified using the methods found in :class:`.DataGroup` where one can also find methods to remove data groups.
 See the tutorial and API below for detailed description of data access.
@@ -40,37 +56,359 @@ See the tutorial and API below for detailed description of data access.
 .. autoclass:: a5py.ascot5io.Ascot5IO
   :members:
   :inherited-members:
-  
+
 .. autoclass:: a5py.ascot5io._iohelpers.treeview.InputNode
   :members:
   :inherited-members:
-  
+
 .. autoclass:: a5py.ascot5io._iohelpers.treeview.ResultNode
   :members:
   :inherited-members:
-  
+
 .. autoclass:: a5py.ascot5io._iohelpers.treedata.DataGroup
   :members:
   :inherited-members:
 
-
+================
 Input generation
 ================
 
+Inputs are written to ``ascot.h5``
+
+.. code-block:: python
+
+   a5 = Ascot("ascot.h5", create=True)
+
+   efield = {"E" : [0,0,0]}
+   a5.data.create_input("E_TC", efield)
+
+``E_TC`` is the input type, which in this case is *trivial Cartesian electric field*.
+The dictionary provided as the second argument contains data that is passed to an input type specific ``write_hdf5`` function that documents what the data should contain.
+The available inputs are listed below.
+
+For input templates and imports, see Importing and Predefined Inputs, but note that some of these use Ascotpy.
+
+Magnetic field (bfield)
+=======================
+
+A good quality magnetic field is
+If you don't specifically require some other input, use the axisymmetric field since that is fast to interpolate and divergence free.
+MHD modes are included via dedicated input and they must not be included in the magnetic field data.
+
+Tokamak axisymmetric (B_2DS)
+****************************
+
+.. autofunction:: a5py.ascot5io.B_2DS.write_hdf5
+
+Tokamak 3D (B_3DS)
+******************
+
+.. autofunction:: a5py.ascot5io.B_3DS.write_hdf5
+
+Tokamak time-dependent 3D (B_3DST)
+**********************************
+
+.. autofunction:: a5py.ascot5io.B_3DST.write_hdf5
+
+Stellarator (B_STS)
+*******************
+
+.. autofunction:: a5py.ascot5io.B_STS.write_hdf5
+
+Tokamak analytical (B_GS)
+*************************
+
+.. autofunction:: a5py.ascot5io.B_GS.write_hdf5
+
+Trivial Cartesian (B_TC)
+************************
+
+.. autofunction:: a5py.ascot5io.B_TC.write_hdf5
+
+
+Electric field (efield)
+=======================
+
+If electric field is not relevant for your simulation, use ``E_TC`` and set it to zero to effectively disable electric field.
+
+Trivial Cartesian (E_TC)
+************************
+
+.. autofunction:: a5py.ascot5io.E_TC.write_hdf5
+
+(E_3D)
+****************************
+
+.. autofunction:: a5py.ascot5io.E_3D.write_hdf5
+
+(E_1DS)
+****************************
+
+.. autofunction:: a5py.ascot5io.E_1DS.write_hdf5
+
+(E_3DST)
+****************************
+
+.. autofunction:: a5py.ascot5io.E_3DST.write_hdf5
+
+(E_3DS)
+****************************
+
+.. autofunction:: a5py.ascot5io.E_3DS.write_hdf5
+
+Plasma (plasma)
+===============
+
+Plasma data is required if collisions are included.
+
+Linearly interpolated 1D (plasma_1D)
+************************************
+
+.. autofunction:: a5py.ascot5io.plasma_1D.write_hdf5
+
+Spline-interpolated 1D (plasma_1DS)
+***********************************
+
+.. autofunction:: a5py.ascot5io.plasma_1DS.write_hdf5
+
+Wall mesh ``wall``
+==================
+
+Wall input is required when losses are modelled accurately.
+
+Axisymmetric ``wall_2D``
+************************
+
+.. autofunction:: a5py.ascot5io.wall_2D.write_hdf5
+
+Triangular 3D mesh ``wall_3D``
+******************************
+
+.. autofunction:: a5py.ascot5io.wall_3D.write_hdf5
+
+Neutral ``neutral``
+===================
+
+Neutral particle profiles required when CX reactions are included.
+
+3D ``N0_3D``
+************
+
+.. autofunction:: a5py.ascot5io.N0_3D.write_hdf5
+
+Boozer data ``boozer``
+======================
+
+Boozer data is required for simulations with MHD eigenfunctions.
+One can create it automatically from ``B_2DS`` with .
+
+``Boozer``
+**********
+
+.. autofunction:: a5py.ascot5io.boozer.write_hdf5
+
+MHD eigenfunctions ``mhd``
+==========================
 
 
 
+``MHD_STAT`` and ``MHD_NONSTAT``
+********************************
+
+.. autofunction:: a5py.ascot5io.mhd.write_hdf5
+
+Neutral beam injectors ``nbi``
+==============================
+
+``Nbi``
+*************
+
+.. autofunction:: a5py.ascot5io.nbi.write_hdf5
+
+Markers ``marker``
+==================
+
+Particles ``prt``
+*****************
+
+.. autofunction:: a5py.ascot5io.mrk_prt.write_hdf5
+
+Guiding centers ``gc``
+**********************
+
+.. autofunction:: a5py.ascot5io.mrk_gc.write_hdf5
+
+Magnetic-field-line tracers ``fl``
+**********************************
+
+.. autofunction:: a5py.ascot5io.mrk_fl.write_hdf5
+
+Options ``opt``
+===============
+
+There is only one type of options ``Opt`` and it is treated like any other input.
+The options are documented in :ref:`Running Simulations<Simulationoptions>`.
+
+===============
 Post-processing
 ===============
 
+Ascotpy
+=======
+
+Many post-processing (and also some pre-processing) tools make use of the Python interface to ASCOT5, referred as ``Ascotpy``.
+Instances of ``Ascot`` automatically establish the interface if ``libascot.so`` has been compiled and found in ``LD_LIBRARY_PATH``.
+The interface provides direct access to the C routines and it can be used to interpolate inputs exactly as they are interpolated during the simulation.
+It can also be used to simulate markers directly from Python.
+
+The interface is used by first initializing the data (note that this can be memory intensive with large inputs).
+The `~.Ascot.input_init` method reads the data from the HDF5 file and initializes it using ``ctypes`` so that the data can be passed to C routines.
+To free resources, `~.Ascot.input_free` must be called.
+
+.. code-block:: python
+
+   import numpy as np
+   from a5py import Ascot
+
+   a5 = Ascot("ascot.h5")
+   a5.input_init(bfield=True)
+   a5.input_plot(r=np.linspace(4,8,100), z=np.linspace(-2, 2, 100), phi=0, t=0, qnt="rho")
+   a5.input_free()
+
+The last line uses the interface internally to evaluate and then plot ``rho``.
+An exception is raised if trying to evaluate a quantity that needs input which has not been initialised.
+
+The methods of ``Ascot`` class provide tools to access the input data and they are listed below.
 
 .. autoclass:: a5py.Ascot
-  :members:
-  :inherited-members:
+
+.. automethod:: a5py.Ascot.input_init
+
+.. automethod:: a5py.Ascot.input_free
+
+.. automethod:: a5py.Ascot.input_eval
+
+.. automethod:: a5py.Ascot.input_plotrz
 
 Interactive simulations
 =======================
 
+Simulations can be run directly from Python via the interface provided by ``libascot.so`` and ``Ascotpy``.
+These simulations are equivalent to running ``ascot5_main`` with the exception that the output is not stored in ``ascot.h5``.
+These *interactive* simulations are intented for simulating a handful of markers at most which is why the distribution output is not implemented.
+The interface is useful for visualizing marker trajectories or Poincaré plots and evaluating quantities that require markers to be traced only for few orbits.
+
+Before an interactive simulation can be launched, one has to initialize and pack inputs, and set options and markers.
+
+.. code-block:: python
+
+   import numpy as np
+   from a5py import Ascot
+
+   a5 = Ascot("ascot.h5")
+   a5.simulation_initinputs()
+   a5.simulation_initmarkers()
+   a5.simulation_initoptions()
+
+The marker and options data are dictionaries with same format as required by their corresponding ``write_hdf5`` routines.
+The ``simulation_initinputs`` method requires that no inputs are initialized before calling it.
+It differs from the ``input_init`` method in that it initializes all inputs required for the simulation (except options and markers) and *packs* them.
+Packing means that input data is allocated in a single array and this is what ASCOT5 does internally when the data is *offloaded* for simulation.
+When inputs are packed, the input data cannot be deallocated or altered but otherwise it is possible to use methods like ``input_eval``, that evaluate and plot input data, normally.
+
+Simulation is run and data is accessed as:
+
+.. code-block:: python
+
+   a5.simulation_run()
+
+   # Calling this before the simulation would get the marker inistate
+   a5.simulation_getstate()
+
+   # Simulations can be rerun by free'ing the previous results first
+   a5.simulation_free(output=True)
+
+   a5.simulation_setoptions()
+   a5.simulation_run()
+   a5.simulation_getorbit()
+
+   # Free all resources
+   a5.simulation_free(inputs=True, markers=True, output=True)
+
+.. automethod:: a5py.Ascot.simulation_initinputs
+
+.. automethod:: a5py.Ascot.simulation_initmarkers
+
+.. automethod:: a5py.Ascot.simulation_initoptions
+
+.. automethod:: a5py.Ascot.simulation_run
+
+.. automethod:: a5py.Ascot.simulation_getstate
+
+.. automethod:: a5py.Ascot.simulation_getorbit
+
+.. automethod:: a5py.Ascot.simulation_free
+
+
+Simulation output
+=================
+
+
+.. autoclass:: a5py.ascot5io.RunGroup
+
+Ini- and endstate
+*****************
+
+.. automethod:: a5py.ascot5io.RunGroup.getstate
+
+Marker orbits
+*************
+
+.. automethod:: a5py.ascot5io.RunGroup.getorbit
+
+Transport coefficients
+**********************
+
+WIP
+
+Distributions
+*************
+
+WIP
+
+Losses and wall loads
+*********************
+
+End conditions
+**************
+
+.. autoproperty:: a5py.ascot5io.state.State.ABORTED
+
+.. autoproperty:: a5py.ascot5io.state.State.NONE
+
+.. autoproperty:: a5py.ascot5io.state.State.TLIM
+
+.. autoproperty:: a5py.ascot5io.state.State.EMIN
+
+.. autoproperty:: a5py.ascot5io.state.State.THERM
+
+.. autoproperty:: a5py.ascot5io.state.State.WALL
+
+.. autoproperty:: a5py.ascot5io.state.State.RHOMIN
+
+.. autoproperty:: a5py.ascot5io.state.State.RHOMAX
+
+.. autoproperty:: a5py.ascot5io.state.State.POLMAX
+
+.. autoproperty:: a5py.ascot5io.state.State.TORMAX
+
+.. autoproperty:: a5py.ascot5io.state.State.CPUMAX
 
 Exceptions
 ==========
+
+.. autoexception:: a5py.exceptions.AscotIOException
+
+.. autoexception:: a5py.exceptions.AscotNoDataException
+
+.. autoexception:: a5py.exceptions.AscotInitException
