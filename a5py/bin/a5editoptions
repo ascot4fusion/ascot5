@@ -2,8 +2,7 @@
 
 
 import a5py.ascot5io.options     as options
-import a5py.ascot5io.ascot5      as ascot5
-import a5py.ascot5io.ascot5tools as tools
+import a5py.ascot5io._iohelpers.tools as tools
 import numpy as np
 import os
 import subprocess
@@ -22,7 +21,7 @@ else:
     fn = "ascot.h5"
 
 try:
-    qid = tools.call_ascot5file(fn, "get_activeqid", "options")
+    qid = tools.call_fileapi(fn, "get_activeqid", "options")
 except ValueError:
 
     while True:
@@ -36,7 +35,7 @@ except ValueError:
         if makeopt == "n":
             exit()
 
-qid = tools.call_ascot5file(fn, "get_activeqid", "options")
+qid = tools.call_fileapi(fn, "get_activeqid", "options")
 opt, info = options.read_hdf5(fn, qid, True)
 opt.pop('qid')
 opt.pop('date')
@@ -103,8 +102,8 @@ else:
     group = options.write_hdf5(fn, opt, desc=desc)
 
     if removeOld:
-        oldqid = tools.call_ascot5file(fn, "get_activeqid", "options")
+        oldqid = tools.call_fileapi(fn, "get_activeqid", "options")
         tools.removegroup(fn, "opt_" + oldqid)
 
-    tools.call_ascot5file(fn, "set_active", group)
+    tools.call_fileapi(fn, "set_active", group)
     print("Options set and set as active.")
