@@ -10,6 +10,7 @@ import subprocess
 from a5py import Ascot
 from a5py.exceptions import AscotIOException
 from a5py.ascot5io._iohelpers import fileapi
+from a5py.ascot5io.state import State
 
 class TestAscot5IO(unittest.TestCase):
     """Class to test `ascot5io` module.
@@ -281,6 +282,28 @@ class TestAscot5IO(unittest.TestCase):
         with h5py.File(self.testfilename, "r") as h5:
             self.assertFalse("results" in h5,
                             "Results not removed in HDF5.")
+
+    def test_endcond(self):
+        """Test end conditions are parsed properly
+        """
+
+        state = State(None, None)
+        self.assertTrue(state._endcond_check(0x2, "aborted"),
+                        "Endcond did not match its binary repr.")
+        self.assertFalse(state._endcond_check(0x2, "none"),
+                         "Endcond matched wrong binary repr.")
+        self.assertFalse(state._endcond_check(0x2, "aborted none"),
+                         "Endcond AND operation failed.")
+        self.assertFalse(state._endcond_check(0x2, "not aborted"),
+                         "Endcond NOT operation failed.")
+        self.assertTrue(state._endcond_check(0x2, "aborted not none"),
+                        "Endcond AND NOT operation failed.")
+        self.assertTrue(state._endcond_check(0x2 | 0x4, "aborted"),
+                        "Endcond failed when multiple end conditions active.")
+        with self.assertRaises(
+                ValueError,
+                msg="Failed to raise exception when endcond unknown"):
+            state._endcond_check(0x2 | 0x4, "vanished")
 
     def tearDown(self):
         """Remove the file used in testing.
