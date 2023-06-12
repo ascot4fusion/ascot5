@@ -8,11 +8,13 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../../a5py'))
 
+import a5py
+
 # -- Project information -------------------------------------------------------
 project   = 'ASCOT5'
 copyright = '2023, Ascot Group'
 author    = 'Ascot Group'
-release   = '5.4'
+release   = a5py.ascot5io._iohelpers.fileapi.VERSION
 
 # -- General configuration -----------------------------------------------------
 extensions = ['sphinx.ext.autodoc',      # For generating doc from Python source

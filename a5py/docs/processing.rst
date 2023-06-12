@@ -88,86 +88,88 @@ The available inputs are listed below.
 
 For input templates and imports, see Importing and Predefined Inputs, but note that some of these use Ascotpy.
 
-Magnetic field (bfield)
-=======================
+.. autodata:: a5py.ascot5io._iohelpers.fileapi.INPUTGROUPS
+
+Magnetic field ``bfield``
+=========================
 
 A good quality magnetic field is
 If you don't specifically require some other input, use the axisymmetric field since that is fast to interpolate and divergence free.
 MHD modes are included via dedicated input and they must not be included in the magnetic field data.
 
-Tokamak axisymmetric (B_2DS)
-****************************
+Tokamak axisymmetric ``B_2DS``
+******************************
 
 .. autofunction:: a5py.ascot5io.B_2DS.write_hdf5
 
-Tokamak 3D (B_3DS)
-******************
+Tokamak 3D ``B_3DS``
+********************
 
 .. autofunction:: a5py.ascot5io.B_3DS.write_hdf5
 
-Tokamak time-dependent 3D (B_3DST)
-**********************************
+Tokamak time-dependent 3D ``B_3DST``
+************************************
 
 .. autofunction:: a5py.ascot5io.B_3DST.write_hdf5
 
-Stellarator (B_STS)
-*******************
+Stellarator ``B_STS``
+*********************
 
 .. autofunction:: a5py.ascot5io.B_STS.write_hdf5
 
-Tokamak analytical (B_GS)
-*************************
+Tokamak analytical ``B_GS``
+***************************
 
 .. autofunction:: a5py.ascot5io.B_GS.write_hdf5
 
-Trivial Cartesian (B_TC)
-************************
+Trivial Cartesian ``B_TC``
+**************************
 
 .. autofunction:: a5py.ascot5io.B_TC.write_hdf5
 
 
-Electric field (efield)
-=======================
+Electric field ``efield``
+=========================
 
 If electric field is not relevant for your simulation, use ``E_TC`` and set it to zero to effectively disable electric field.
 
-Trivial Cartesian (E_TC)
-************************
+Trivial Cartesian ``E_TC``
+**************************
 
 .. autofunction:: a5py.ascot5io.E_TC.write_hdf5
 
-(E_3D)
+``E_3D``
 ****************************
 
 .. autofunction:: a5py.ascot5io.E_3D.write_hdf5
 
-(E_1DS)
+``E_1DS``
 ****************************
 
 .. autofunction:: a5py.ascot5io.E_1DS.write_hdf5
 
-(E_3DST)
+``E_3DST``
 ****************************
 
 .. autofunction:: a5py.ascot5io.E_3DST.write_hdf5
 
-(E_3DS)
+``E_3DS``
 ****************************
 
 .. autofunction:: a5py.ascot5io.E_3DS.write_hdf5
 
-Plasma (plasma)
-===============
+Plasma ``plasma``
+=================
 
 Plasma data is required if collisions are included.
 
-Linearly interpolated 1D (plasma_1D)
-************************************
+Linearly interpolated 1D ``plasma_1D``
+**************************************
 
 .. autofunction:: a5py.ascot5io.plasma_1D.write_hdf5
 
-Spline-interpolated 1D (plasma_1DS)
-***********************************
+Spline-interpolated 1D ``plasma_1DS``
+*************************************
 
 .. autofunction:: a5py.ascot5io.plasma_1DS.write_hdf5
 
