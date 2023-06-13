@@ -8,143 +8,6 @@ from ._iohelpers.treedata import DataGroup
 
 import a5py.wall.plot as plot
 
-def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None,
-               flag=None, flagIdList=None, flagIdStrings=None):
-    """Write 3D wall input in HDF5 file.
-
-    Parameters
-    ----------
-    fn : str
-        Full path to the HDF5 file.
-    nelements : int
-        Number of wall triangles
-    x1x2x3 : array_like (nelements,3)
-        Each triangle's vertices' x coordinates [m].
-    y1y2y3 : array_like (nelements,3)
-        Each triangle's vertices' y coordinates [m].
-    z1z2z3 : array_like (nelements,3)
-        Each triangle's vertices' z coordinates [m].
-    desc : str, optional
-        Input description.
-    flag : array_like (nelements,1), optional
-        Integer array depicting the wall component of each triangle.
-    flagIdList : array_like (nUniqueFlags), optional
-        List of keys (int) of the flagIdStrings.
-    flagIdStrings : array_like (nUniqueFlags), optional
-        List of values (str) of the flagIdStrings.
-
-    Returns
-    -------
-    name : str
-        Name, i.e. "<type>_<qid>", of the new input that was written.
-
-    Raises
-    ------
-    ValueError
-        If the triangle vertices or flags have incorrect shape.
-    """
-    if x1x2x3.shape != (nelements,3):
-        raise ValueError(
-            "Shape of x1x2x3 was " + str(x1x2x3.shape) + " but expected ("
-            + str(nelements) + ",3)")
-    if y1y2y3.shape != (nelements,3):
-        raise ValueError(
-            "Shape of y1y2y3 was " + str(y1y2y3.shape) + " but expected ("
-            + str(nelements) + ",3)")
-    if z1z2z3.shape != (nelements,3):
-        raise ValueError(
-            "Shape of z1z2z3 was " + str(z1z2z3.shape) + " but expected ("
-            + str(nelements) + ",3)")
-
-    if flag is None:
-        flag = np.zeros(shape=(nelements,1),dtype=int)
-    elif flag.shape != (nelements,1):
-        raise ValueError(
-            "Shape of flag was " + str(flag.shape) + " but expected ("
-            + str(nelements) + ",1)")
-
-    parent = "wall"
-    group  = "wall_3D"
-    gname  = ""
-
-    # Convert strings to the favorite format
-    if flagIdStrings is not None:
-        strlen = 0
-        for s in flagIdStrings:
-            if len(s) >  strlen:
-                strlen = len(s)
-        fids=np.empty(shape=(len(flagIdStrings),),dtype='|S{}'.format(strlen) )
-        for istr,s in enumerate(flagIdStrings):
-            fids[istr]=s
-
-    with h5py.File(fn, "a") as f:
-        g = add_group(f, parent, group, desc=desc)
-        gname = g.name.split("/")[-1]
-
-        g.create_dataset('x1x2x3',    (nelements,3), data=x1x2x3,    dtype='f8')
-        g.create_dataset('y1y2y3',    (nelements,3), data=y1y2y3,    dtype='f8')
-        g.create_dataset('z1z2z3',    (nelements,3), data=z1z2z3,    dtype='f8')
-        g.create_dataset('nelements', (1,1),         data=nelements, dtype='i4')
-
-        fl = g.create_dataset('flag', (nelements,1), data=flag,      dtype='i4')
-        if flagIdList is not None and flagIdStrings is not None:
-            flagIdList = np.array(flagIdList)
-            fl.attrs.create(name='flagIdList', data=flagIdList, dtype='i4')
-            fl.attrs.create(name='flagIdStrings', data=fids)
-
-    return gname
-
-
-def read_hdf5(fn, qid):
-    """
-    Read 3D wall input from HDF5 file.
-
-    Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
-
-    Returns:
-        Dictionary containing input data.
-    """
-
-    path = "wall/wall_3D_" + qid
-
-    out = {}
-    with h5py.File(fn,"r") as f:
-        for key in f[path]:
-            out[key] = f[path][key][:]
-
-        nTriangles = out['x1x2x3'].shape[0]
-
-        if path+'/flag' in f:
-            flagAttrs = ['flagIdStrings','flagIdList']
-            for s in flagAttrs:
-                if s in f[ path+'/flag' ].attrs:
-                    out[s] = f[ path+'/flag' ].attrs.get(s)
-
-        if not 'n' in out:
-            out['n'] = np.array([nTriangles])
-
-        if not 'flag' in out:
-            out['flag'] = np.zeros(shape=(nTriangles,),dtype=int)
-
-        if 'flagIdStrings' in out:
-            # We need to decode the bytearrays into strings.
-            s=[]
-            for S in out['flagIdStrings']:
-                s.append(S.decode('utf-8'))
-            out['flagIdStrings']=s
-        else:
-            # Generate some flag names.
-            out['flagIdList']=np.unique(out['flag'])
-            out['flagIdStrings']=[]
-            for fl in out['flagIdList']:
-                out['flagIdStrings'].append('Flag {}'.format(fl))
-
-    return out
-
 
 class wall_3D(DataGroup):
     """
@@ -377,3 +240,141 @@ class wall_3D(DataGroup):
             'flagIdStrings':rwall['flagIdStrings'], 'nelements':rwall['n']}
 
         return new_rwall
+
+    @staticmethod
+    def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None,
+               flag=None, flagIdList=None, flagIdStrings=None):
+        """Write 3D wall input in HDF5 file.
+
+        Parameters
+        ----------
+        fn : str
+            Full path to the HDF5 file.
+        nelements : int
+            Number of wall triangles
+        x1x2x3 : array_like (nelements,3)
+            Each triangle's vertices' x coordinates [m].
+        y1y2y3 : array_like (nelements,3)
+            Each triangle's vertices' y coordinates [m].
+        z1z2z3 : array_like (nelements,3)
+            Each triangle's vertices' z coordinates [m].
+        desc : str, optional
+            Input description.
+        flag : array_like (nelements,1), optional
+            Integer array depicting the wall component of each triangle.
+        flagIdList : array_like (nUniqueFlags), optional
+            List of keys (int) of the flagIdStrings.
+        flagIdStrings : array_like (nUniqueFlags), optional
+            List of values (str) of the flagIdStrings.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+
+        Raises
+        ------
+        ValueError
+            If the triangle vertices or flags have incorrect shape.
+        """
+        if x1x2x3.shape != (nelements,3):
+            raise ValueError(
+                "Shape of x1x2x3 was " + str(x1x2x3.shape) + " but expected ("
+                + str(nelements) + ",3)")
+        if y1y2y3.shape != (nelements,3):
+            raise ValueError(
+                "Shape of y1y2y3 was " + str(y1y2y3.shape) + " but expected ("
+                + str(nelements) + ",3)")
+        if z1z2z3.shape != (nelements,3):
+            raise ValueError(
+                "Shape of z1z2z3 was " + str(z1z2z3.shape) + " but expected ("
+                + str(nelements) + ",3)")
+
+        if flag is None:
+            flag = np.zeros(shape=(nelements,1),dtype=int)
+        elif flag.shape != (nelements,1):
+            raise ValueError(
+                "Shape of flag was " + str(flag.shape) + " but expected ("
+                + str(nelements) + ",1)")
+
+        parent = "wall"
+        group  = "wall_3D"
+        gname  = ""
+
+        # Convert strings to the favorite format
+        if flagIdStrings is not None:
+            strlen = 0
+            for s in flagIdStrings:
+                if len(s) >  strlen:
+                    strlen = len(s)
+            fids=np.empty(shape=(len(flagIdStrings),),dtype='|S{}'.format(strlen) )
+            for istr,s in enumerate(flagIdStrings):
+                fids[istr]=s
+
+        with h5py.File(fn, "a") as f:
+            g = add_group(f, parent, group, desc=desc)
+            gname = g.name.split("/")[-1]
+
+            g.create_dataset('x1x2x3',    (nelements,3), data=x1x2x3,    dtype='f8')
+            g.create_dataset('y1y2y3',    (nelements,3), data=y1y2y3,    dtype='f8')
+            g.create_dataset('z1z2z3',    (nelements,3), data=z1z2z3,    dtype='f8')
+            g.create_dataset('nelements', (1,1),         data=nelements, dtype='i4')
+
+            fl = g.create_dataset('flag', (nelements,1), data=flag,      dtype='i4')
+            if flagIdList is not None and flagIdStrings is not None:
+                flagIdList = np.array(flagIdList)
+                fl.attrs.create(name='flagIdList', data=flagIdList, dtype='i4')
+                fl.attrs.create(name='flagIdStrings', data=fids)
+
+        return gname
+
+    @staticmethod
+    def read_hdf5(fn, qid):
+        """
+        Read 3D wall input from HDF5 file.
+
+        Args:
+        fn : str <br>
+            Full path to the HDF5 file.
+        qid : str <br>
+            QID of the data to be read.
+
+        Returns:
+        Dictionary containing input data.
+        """
+
+        path = "wall/wall_3D_" + qid
+
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
+
+            nTriangles = out['x1x2x3'].shape[0]
+
+            if path+'/flag' in f:
+                flagAttrs = ['flagIdStrings','flagIdList']
+                for s in flagAttrs:
+                    if s in f[ path+'/flag' ].attrs:
+                        out[s] = f[ path+'/flag' ].attrs.get(s)
+
+            if not 'n' in out:
+                out['n'] = np.array([nTriangles])
+
+            if not 'flag' in out:
+                out['flag'] = np.zeros(shape=(nTriangles,),dtype=int)
+
+            if 'flagIdStrings' in out:
+                # We need to decode the bytearrays into strings.
+                s=[]
+                for S in out['flagIdStrings']:
+                    s.append(S.decode('utf-8'))
+                out['flagIdStrings']=s
+            else:
+                # Generate some flag names.
+                out['flagIdList']=np.unique(out['flag'])
+                out['flagIdStrings']=[]
+                for fl in out['flagIdList']:
+                    out['flagIdStrings'].append('Flag {}'.format(fl))
+
+        return out
