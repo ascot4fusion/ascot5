@@ -1,4 +1,7 @@
-"""NBI injector HDF5 IO
+"""Input data representing NBI injectors.
+
+NBI injectors are used by BBNBI5 to generate NBI-ion source and calculate
+shinethrough.
 """
 import numpy as np
 import h5py
@@ -8,15 +11,51 @@ import a5py.nbi.plot as plot
 from ._iohelpers.fileapi import add_group
 from ._iohelpers.treedata import DataGroup
 
-def write_hdf5(fn, nbi, desc=None):
-    """Write NBI input in HDF5 file.
+class nbi(DataGroup):
+    """Object representing nbi data.
+    """
 
-    Parameters
-    ----------
-    fn : str
-        Full path to the HDF5 file.
-    nbi : array
-        Array of dictionaries describing each injector with fields:
+    def read(self):
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
+
+    def write(self, fn, data=None):
+        if data is None:
+            data = self.read()
+
+        return write_hdf5(fn, **data)
+
+    def plot_grid_3D(self, ax=None):
+        beams = self.read()
+
+        for beam in beams:
+            ax = plot.plot_scatter_3D(beam["beamletx"], beam["beamlety"], beam["beamletz"],
+                                      equal = True, axes=ax,
+                                      color="red",linewidth=0.75)
+        return ax
+
+
+    def plot_beamlet_3D(self, ax=None):
+        beams = self.read()
+
+        for beam in beams:
+            ax = plot.plot_arrow_3D(beam["beamletx"], beam["beamlety"], beam["beamletz"],
+                                    beam["beamletdx"], beam["beamletdy"], beam["beamletdz"],
+                                    axes=ax, arrow_length_ratio=0,
+                                    color="green", linewidth=0.1, length=10)
+
+        return ax
+
+    @staticmethod
+    def write_hdf5(fn, nbi, desc=None):
+        """Write NBI input in HDF5 file.
+
+        Parameters
+        ----------
+        fn : str
+            Full path to the HDF5 file.
+        nbi : array
+            Array of dictionaries describing each injector with fields:
+
             id : int
                 Numerical identifier for the injector
             nbeamlet : int
@@ -55,161 +94,123 @@ def write_hdf5(fn, nbi, desc=None):
                 Particle fractions for full, 1/2 and 1/3 energies
             power : float
                 Injected power [W]
-    desc : str, optional
-        Input description.
+        desc : str, optional
+            Input description.
 
-    Returns
-    -------
-    name : str
-        Name, i.e. "<type>_<qid>", of the new input that was written.
-    """
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+        """
+        parent = "nbi"
+        group  = "nbi"
+        gname  = ""
 
-    parent = "nbi"
-    group  = "nbi"
-    gname  = ""
+        with h5py.File(fn, "a") as f:
+            g = add_group(f, parent, group, desc=desc)
+            gname = g.name.split("/")[-1]
 
-    with h5py.File(fn, "a") as f:
-        g = add_group(f, parent, group, desc=desc)
-        gname = g.name.split("/")[-1]
+            g.create_dataset("ninj",  (1,), data=len(nbi),    dtype="i4")
 
-        g.create_dataset("ninj",  (1,), data=len(nbi),    dtype="i4")
+            for i in range(len(nbi)):
+                ginj = g.create_group("inj"+str(i+1))
 
-        for i in range(len(nbi)):
-            ginj = g.create_group("inj"+str(i+1))
+                nbeamlet = nbi[i]["nbeamlet"]
 
-            nbeamlet = nbi[i]["nbeamlet"]
+                ginj.create_dataset("id",            (1,),
+                                    data=nbi[i]["id"],            dtype="i4")
+                ginj.create_dataset("nbeamlet",      (1,),
+                                    data=nbi[i]["nbeamlet"],      dtype="i4")
+                ginj.create_dataset("beamletx",      (nbeamlet,),
+                                    data=nbi[i]["beamletx"],      dtype="f8")
+                ginj.create_dataset("beamlety",      (nbeamlet,),
+                                    data=nbi[i]["beamlety"],      dtype="f8")
+                ginj.create_dataset("beamletz",      (nbeamlet,),
+                                    data=nbi[i]["beamletz"],      dtype="f8")
+                ginj.create_dataset("beamletdx",     (nbeamlet,),
+                                    data=nbi[i]["beamletdx"],     dtype="f8")
+                ginj.create_dataset("beamletdy",     (nbeamlet,),
+                                    data=nbi[i]["beamletdy"],     dtype="f8")
+                ginj.create_dataset("beamletdz",     (nbeamlet,),
+                                    data=nbi[i]["beamletdz"],     dtype="f8")
+                ginj.create_dataset("div_h",         (1,),
+                                    data=nbi[i]["div_h"],         dtype="f8")
+                ginj.create_dataset("div_v",         (1,),
+                                    data=nbi[i]["div_v"],         dtype="f8")
+                ginj.create_dataset("div_halo_frac", (1,),
+                                    data=nbi[i]["div_halo_frac"], dtype="f8")
 
-            ginj.create_dataset("id",            (1,),
-                                data=nbi[i]["id"],            dtype="i4")
-            ginj.create_dataset("nbeamlet",      (1,),
-                                data=nbi[i]["nbeamlet"],      dtype="i4")
-            ginj.create_dataset("beamletx",      (nbeamlet,),
-                                data=nbi[i]["beamletx"],      dtype="f8")
-            ginj.create_dataset("beamlety",      (nbeamlet,),
-                                data=nbi[i]["beamlety"],      dtype="f8")
-            ginj.create_dataset("beamletz",      (nbeamlet,),
-                                data=nbi[i]["beamletz"],      dtype="f8")
-            ginj.create_dataset("beamletdx",     (nbeamlet,),
-                                data=nbi[i]["beamletdx"],     dtype="f8")
-            ginj.create_dataset("beamletdy",     (nbeamlet,),
-                                data=nbi[i]["beamletdy"],     dtype="f8")
-            ginj.create_dataset("beamletdz",     (nbeamlet,),
-                                data=nbi[i]["beamletdz"],     dtype="f8")
-            ginj.create_dataset("div_h",         (1,),
-                                data=nbi[i]["div_h"],         dtype="f8")
-            ginj.create_dataset("div_v",         (1,),
-                                data=nbi[i]["div_v"],         dtype="f8")
-            ginj.create_dataset("div_halo_frac", (1,),
-                                data=nbi[i]["div_halo_frac"], dtype="f8")
+                ginj.create_dataset("div_halo_h", (1,), data=nbi[i]["div_halo_h"],
+                                    dtype="f8")
+                ginj.create_dataset("div_halo_v", (1,), data=nbi[i]["div_halo_v"],
+                                    dtype="f8")
+                ginj.create_dataset("anum",       (1,), data=nbi[i]["anum"],
+                                    dtype="i4")
+                ginj.create_dataset("znum",       (1,), data=nbi[i]["znum"],
+                                    dtype="i4")
+                ginj.create_dataset("mass",       (1,), data=nbi[i]["mass"],
+                                    dtype="f8")
+                ginj.create_dataset("energy",     (1,), data=nbi[i]["energy"],
+                                    dtype="f8")
+                ginj.create_dataset("efrac",      (3,), data=nbi[i]["efrac"],
+                                    dtype="f8")
+                ginj.create_dataset("power",      (1,), data=nbi[i]["power"],
+                                    dtype="f8")
 
-            ginj.create_dataset("div_halo_h", (1,), data=nbi[i]["div_halo_h"],
-                                dtype="f8")
-            ginj.create_dataset("div_halo_v", (1,), data=nbi[i]["div_halo_v"],
-                                dtype="f8")
-            ginj.create_dataset("anum",       (1,), data=nbi[i]["anum"],
-                                dtype="i4")
-            ginj.create_dataset("znum",       (1,), data=nbi[i]["znum"],
-                                dtype="i4")
-            ginj.create_dataset("mass",       (1,), data=nbi[i]["mass"],
-                                dtype="f8")
-            ginj.create_dataset("energy",     (1,), data=nbi[i]["energy"],
-                                dtype="f8")
-            ginj.create_dataset("efrac",      (3,), data=nbi[i]["efrac"],
-                                dtype="f8")
-            ginj.create_dataset("power",      (1,), data=nbi[i]["power"],
-                                dtype="f8")
+        return gname
 
-    return gname
+    @staticmethod
+    def read_hdf5(fn, qid):
+        """
+        Read NBI input from HDF5 file.
 
-
-def read_hdf5(fn, qid):
-    """
-    Read NBI input from HDF5 file.
-
-    Args:
+        Args:
         fn : str <br>
             Full path to the HDF5 file.
         qid : str <br>
             QID of the data to be read.
 
-    Returns:
+        Returns:
         Dictionary containing input data.
-    """
+        """
 
-    path = "nbi/nbi_" + qid
+        path = "nbi/nbi_" + qid
 
-    out = []
-    with h5py.File(fn,"r") as f:
-        ninj = f[path]["ninj"][0]
-        for i in range(0,ninj):
-            out.append({})
-            for key in f[path+"/inj"+str(i+1)]:
-                out[i][key] = f[path+"/inj"+str(i+1)][key][:]
+        out = []
+        with h5py.File(fn,"r") as f:
+            ninj = f[path]["ninj"][0]
+            for i in range(0,ninj):
+                out.append({})
+                for key in f[path+"/inj"+str(i+1)]:
+                    out[i][key] = f[path+"/inj"+str(i+1)][key][:]
 
-    return out
+        return out
 
+    @staticmethod
+    def write_hdf5_dummy(fn, desc="Dummy"):
+        """
+        Write a dummy injector.
+        """
 
-def write_hdf5_dummy(fn, desc="Dummy"):
-    """
-    Write a dummy injector.
-    """
-
-    nbi = {
-        "id" : 1,
-        "nbeamlet" : 1,
-        "beamletx" : np.array([1.0]),
-        "beamlety" : np.array([0.0]),
-        "beamletz" : np.array([0.0]),
-        "beamletdx" : np.array([1.0]),
-        "beamletdy" : np.array([0.0]),
-        "beamletdz" : np.array([0.0]),
-        "div_h" : 0.0,
-        "div_v" : 0.0,
-        "div_halo_frac" : 0.0,
-        "div_halo_h" : 0.0,
-        "div_halo_v" : 0.0,
-        "anum" : 1.0,
-        "znum" : 1.0,
-        "mass" : 1.0,
-        "energy" : 1.0,
-        "efrac" : [1,0,0],
-        "power" : 1
-    }
-    return write_hdf5(fn, [nbi], desc=desc)
-
-
-class nbi(DataGroup):
-    """
-    Object representing nbi data.
-    """
-
-    def read(self):
-        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
-
-    def write(self, fn, data=None):
-        if data is None:
-            data = self.read()
-
-        return write_hdf5(fn, **data)
-
-    def plot_grid_3D(self, ax=None):
-        beams = self.read()
-
-        for beam in beams:
-            ax = plot.plot_scatter_3D(beam["beamletx"], beam["beamlety"], beam["beamletz"],
-                                      equal = True, axes=ax,
-                                      color="red",linewidth=0.75)
-            
-        return ax
-
-
-    def plot_beamlet_3D(self, ax=None):
-        beams = self.read()
-
-        for beam in beams:
-            ax = plot.plot_arrow_3D(beam["beamletx"], beam["beamlety"], beam["beamletz"],
-                                    beam["beamletdx"], beam["beamletdy"], beam["beamletdz"],
-                                    axes=ax, arrow_length_ratio=0,
-                                    color="green", linewidth=0.1, length=10)
-
-        return ax
+        nbi = {
+            "id" : 1,
+            "nbeamlet" : 1,
+            "beamletx" : np.array([1.0]),
+            "beamlety" : np.array([0.0]),
+            "beamletz" : np.array([0.0]),
+            "beamletdx" : np.array([1.0]),
+            "beamletdy" : np.array([0.0]),
+            "beamletdz" : np.array([0.0]),
+            "div_h" : 0.0,
+            "div_v" : 0.0,
+            "div_halo_frac" : 0.0,
+            "div_halo_h" : 0.0,
+            "div_halo_v" : 0.0,
+            "anum" : 1.0,
+            "znum" : 1.0,
+            "mass" : 1.0,
+            "energy" : 1.0,
+            "efrac" : [1,0,0],
+            "power" : 1
+        }
+        return write_hdf5(fn, [nbi], desc=desc)

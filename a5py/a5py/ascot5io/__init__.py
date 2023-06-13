@@ -1,29 +1,15 @@
 """Interface for accessing data in Ascot5 HDF5 files.
 """
-from a5py.ascot5io.B_TC       import B_TC
-from a5py.ascot5io.B_GS       import B_GS
-from a5py.ascot5io.B_2DS      import B_2DS
-from a5py.ascot5io.B_3DS      import B_3DS
-from a5py.ascot5io.B_3DST     import B_3DST
-from a5py.ascot5io.B_STS      import B_STS
-from a5py.ascot5io.E_TC       import E_TC
-from a5py.ascot5io.E_1DS      import E_1DS
-from a5py.ascot5io.E_3D       import E_3D
-from a5py.ascot5io.E_3DS      import E_3DS
-from a5py.ascot5io.E_3DST     import E_3DST
-from a5py.ascot5io.mrk_prt    import mrk_prt
-from a5py.ascot5io.mrk_prt_shined    import mrk_prt_shined
-from a5py.ascot5io.mrk_gc     import mrk_gc
-from a5py.ascot5io.mrk_fl     import mrk_fl
-from a5py.ascot5io.wall_2D    import wall_2D
-from a5py.ascot5io.wall_3D    import wall_3D
-from a5py.ascot5io.plasma_1D  import plasma_1D
-from a5py.ascot5io.plasma_1DS import plasma_1DS
-from a5py.ascot5io.N0_3D      import N0_3D
-from a5py.ascot5io.boozer     import Boozer
-from a5py.ascot5io.mhd        import MHD
-from a5py.ascot5io.options    import Opt
-from a5py.ascot5io.nbi        import nbi
+from .bfield  import B_TC, B_GS, B_2DS, B_3DS, B_3DST, B_STS
+from .efield  import E_TC, E_1DS, E_3D, E_3DS, E_3DST
+from .marker  import mrk_prt, mrk_gc, mrk_fl
+from .plasma  import plasma_1D, plasma_1DS
+from .wall    import wall_2D, wall_3D
+from .neutral import N0_3D
+from .boozer  import Boozer
+from .mhd     import MHD
+from .options import Opt
+from .nbi     import nbi
 
 from a5py.ascot5io.state      import State
 from a5py.ascot5io.orbits     import Orbits
@@ -44,8 +30,7 @@ HDF5TOOBJ = {
     "B_3DST" : B_3DST, "B_STS" : B_STS,
     "E_TC" : E_TC, "E_1DS" : E_1DS, "E_3D" : E_3D, "E_3DS" : E_3DS,
     "E_3DST" : E_3DST,
-    "prt" : mrk_prt, "prt_shined" : mrk_prt_shined, "gc" : mrk_gc,
-    "fl" : mrk_fl,
+    "prt" : mrk_prt, "gc" : mrk_gc, "fl" : mrk_fl,
     "wall_2D" : wall_2D, "wall_3D" : wall_3D,
     "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS,
     "N0_3D" : N0_3D,
@@ -149,7 +134,7 @@ class Ascot5IO(RootNode):
 
         Parameters
         ----------
-        path : `str`
+        path : str
             Path to the input group within the HDF5 file.
         h5 : `h5py.File`
             The HDF5 file from which the tree is constructed.
@@ -166,11 +151,11 @@ class Ascot5IO(RootNode):
 
         Parameters
         ----------
-        path : `str`
+        path : str
             Path to the result node within the HDF5 file.
         h5 : `h5py.File`
             The HDF5 file from which the tree is constructed.
-        inputqids : `dict` [`str`, `str`]
+        inputqids : dict [str, str]
             Dictionary containing the name of the input parent group
             (e.g. "bfield") and the QID of the input used for this result.
 
@@ -186,9 +171,9 @@ class Ascot5IO(RootNode):
 
         Parameters
         ----------
-        grouptype : `str`
+        grouptype : str
             Type of the group as it appears in `HDF5TOOBJ`.
-        path : `str`
+        path : str
             Path to the data in the HDF5 file that corresponds to the group.
 
         Returns
@@ -203,9 +188,9 @@ class Ascot5IO(RootNode):
 
         Parameters
         ----------
-        inputtype : `str`
+        inputtype : str
             Type of the input e.g. "B_2DS" or "options".
-        inputdata : `dict`
+        inputdata : dict
             Dictionary containing all the data that is needed to create the
             requested input type.
 
@@ -213,15 +198,15 @@ class Ascot5IO(RootNode):
 
         Returns
         -------
-        qid : `str`
+        qid : str
             QID of the created input.
         """
         if inputdata is None:
             qid = HDF5TOOBJ[inputtype](self, None).write_dummy(
                 self._ascot.file_getpath())
         else:
-            qid = HDF5TOOBJ[inputtype](self, None).write(
-                self._ascot.file_getpath(), data=inputdata)
+            qid = HDF5TOOBJ[inputtype].write_hdf5(
+                self._ascot.file_getpath(), **inputdata)
         self._build(self._ascot.file_getpath())
         return qid
 
@@ -240,13 +225,13 @@ class Ascot5IO(RootNode):
 
         Parameters
         ----------
-        predef : `str`
+        predef : str
             Type of the premade data.
 
             Available premades are listed in `a5py.premade`.
-        write : `str`
+        write : str
             If `True`, the created inputs are written to the HDF5 file.
-        activate : `bool`, optional
+        activate : bool, optional
             If `True`, the created inputs are set as active.
 
             This option is ignored if `write` is `False`.
@@ -258,7 +243,7 @@ class Ascot5IO(RootNode):
 
         Returns
         -------
-        qids : `list` [`str`] or `dict` [`str`, `dict`]
+        qids : list [str] or dict [str, dict]
             QIDs of the inputs that were created and written or, if `write` is
             `False`, dictionary containing input type and data that can be
             passed to the corresponding `write_hdf5` function.
