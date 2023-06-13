@@ -18,9 +18,9 @@ class DataContainer():
     ----------
     _root : `RootNode`
         The rootnode this object belongs to.
-    _path : `str`
+    _path : str
         Path to this data within the HDF5 file.
-    _opened : `list` [obj]
+    _opened : list [obj]
         List containing a single object, which is this data's HDF5 group if
         the data is being accessed and `None` otherwise.
 
@@ -37,7 +37,7 @@ class DataContainer():
         ----------
         root : `RootNode`
             The `RootNode` this data container belongs to.
-        path : `str`
+        path : str
             Path to this data within the HDF5 file.
         **kwargs
             Arguments passed to other constructors in case of multiple
@@ -103,7 +103,7 @@ class DataGroup(DataContainer):
 
         Parameters
         ----------
-        desc : `str`
+        desc : str
             Short description for the user to document this group.
         """
         f = self._open()
@@ -117,7 +117,7 @@ class DataGroup(DataContainer):
 
         Returns
         -------
-        desc : `str`
+        desc : str
             Documentation the user has used to describe this group.
         """
         f = self._open()
@@ -130,7 +130,7 @@ class DataGroup(DataContainer):
 
         Returns
         -------
-        date : `str`
+        date : str
             The date in YYYY-MM-DD hh:mm:ss format.
         """
         f = self._open()
@@ -143,7 +143,7 @@ class DataGroup(DataContainer):
 
         Returns
         -------
-        qid : `str`
+        qid : str
             String with 10 characters containing numbers from 0-9 which is
             an unique identifier for this group.
         """
@@ -155,7 +155,7 @@ class DataGroup(DataContainer):
 
         Returns
         -------
-        gtype : `str`
+        gtype : str
             Group type.
         """
         path = self._path.split("/")[-1]
@@ -166,7 +166,7 @@ class DataGroup(DataContainer):
 
         Returns
         -------
-        name : `str`
+        name : str
             The name of the group as "<group type>_<group qid>".
         """
         return self._path.split("/")[2]
@@ -184,7 +184,7 @@ class DataGroup(DataContainer):
 
         Parameters
         ----------
-        repack : `bool`, optional
+        repack : bool, optional
             If True, repack the HDF5 file.
 
             Removing data from the HDF5 file only removes references to it and

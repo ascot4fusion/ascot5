@@ -75,7 +75,7 @@ def set_active(f, group):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    group : `str` or `h5py.Group`
+    group : str or `h5py.Group`
         Group object or its name.
 
     Raises
@@ -102,7 +102,7 @@ def get_active(f, parent):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    parent : `str` or `h5py.Group`
+    parent : str or `h5py.Group`
         Group object or its name.
 
     Returns
@@ -138,7 +138,7 @@ def set_activeqid(f, qid):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    qid : `str`
+    qid : str
         QID.
     """
     group = get_group(f, qid)
@@ -151,12 +151,12 @@ def get_activeqid(f, parent):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    parent : `str` or `h5py.Group`
+    parent : str or `h5py.Group`
         Parent whose active group is sought.
 
     Returns
     -------
-    qid : `str`
+    qid : str
         QID string.
     """
     group = get_active(f, parent)
@@ -170,9 +170,9 @@ def set_desc(f, group, desc):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    group : `str` or `h5py.Group`
+    group : str or `h5py.Group`
         Group object or its name.
-    desc : `str`
+    desc : str
         Description as a string.
 
     Raises
@@ -198,12 +198,12 @@ def get_desc(f, group):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    group : `str` or `h5py.Group`
+    group : str or `h5py.Group`
         Group object or its name.
 
     Returns
     -------
-    desc : `str`
+    desc : str
         Description as a string.
 
     Raises
@@ -232,9 +232,9 @@ def _set_date(f, group, date):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    group : `str` or `h5py.Group`
+    group : str or `h5py.Group`
         Group object or its name.
-    date : `str`
+    date : str
         Date as a string in a YYYY-MM-DD hh:mm:ss format.
 
     Raises
@@ -261,12 +261,12 @@ def get_date(f, group):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    group : `str` or `h5py.Group`
+    group : str or `h5py.Group`
         Group object or its name.
 
     Returns
     -------
-    date : `str`
+    date : str
         Date as a string in format YYYY-MM-DD hh:mm:ss.
 
     Raises
@@ -295,7 +295,7 @@ def _set_version(f, group):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    group : `str` or `h5py.Group`
+    group : str or `h5py.Group`
         Group object or its name.
 
     Raises
@@ -322,12 +322,12 @@ def get_version(f, group):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    group : `str` or `h5py.Group`
+    group : str or `h5py.Group`
         Group object or its name.
 
     Returns
     -------
-    version : `str`
+    version : str
         Version as a string.
 
     Raises
@@ -352,12 +352,12 @@ def get_qid(group):
 
     Parameters
     ----------
-    group : `str` or `h5py.Group`
+    group : str or `h5py.Group`
         Group object or its name.
 
     Returns
     -------
-    qid : `str`
+    qid : str
         QID string.
 
     Raises
@@ -382,12 +382,12 @@ def get_type(group):
 
     Parameters
     ----------
-    group : `str` or `h5py.Group`
+    group : str or `h5py.Group`
         Group object or its name.
 
     Returns
     -------
-    type : `str`
+    type : str
          Group's type.
 
     Raises
@@ -415,7 +415,7 @@ def get_group(f, qid):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    qid : `str`
+    qid : str
         QID string.
 
     Returns
@@ -440,12 +440,12 @@ def get_qids(f, parent):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    parent : `str` or `h5py.Group`
+    parent : str or `h5py.Group`
         Parent object or its name.
 
     Returns
     -------
-    qids : `list` [`str`]
+    qids : list [str]
         A list of QID strings.
 
     Raises
@@ -473,12 +473,12 @@ def get_inputqids(f, rungroup):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    rungroup : `str` or `h5py.Group`
+    rungroup : str or `h5py.Group`
         Either the run group object or its name.
 
     Returns
     -------
-    qids : `collections.OrderedDict` [`str`, `str`]
+    qids : `collections.OrderedDict` [str, str]
         Ordered dictionary with "parent name" - "qid" value pairs with the order
         being same as in `INPUTGROUPS`.
 
@@ -515,11 +515,11 @@ def add_group(f, parent, group, desc=None):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    parent : `str` or `h5py.Group`
+    parent : str or `h5py.Group`
         Parent of the created group.
-    group : `str`
+    group : str
         The group name.
-    desc : `str`, optional
+    desc : str, optional
         Description for the group.
 
     Returns
@@ -565,7 +565,7 @@ def remove_group(f, group):
     ----------
     f : `h5py.File`
         Open HDF5 file.
-    group : `str` or `h5py.Group`
+    group : str or `h5py.Group`
         The group to be removed.
 
     Raises
@@ -644,9 +644,9 @@ def copy_group(fs, ft, group, newgroup=False):
         File from which the group is copied.
     ft : `h5py.File`
         File to which the group is copied.
-    group : `str` pr `h5py.Group`
+    group : str pr `h5py.Group`
         The group to be copied.
-    newgroup : `bool`, optional
+    newgroup : bool, optional
         Flag indicating if copied group should be given new QID and date.
 
     Returns
@@ -704,13 +704,13 @@ def write_data(group, name, data, dtype="f8", unit=None):
     ----------
     group : `h5py.Group`
         HDF5 group where the dataset will be written.
-    name : `str`
+    name : str
         Name of the new dataset.
     data : `np.array`
         Data to be written.
-    dtype : `str`, optional
+    dtype : str, optional
         Data type.
-    unit : `str`, optional
+    unit : str, optional
         Unit string if the data has units.
     """
     g = group.create_dataset(
@@ -730,7 +730,7 @@ def read_data(group, name):
     ----------
     group : `h5py.Group`
         HDF5 group containing the dataset.
-    name : `str`
+    name : str
         Name of the dataset.
 
     Returns
@@ -758,7 +758,7 @@ def _generate_meta():
 
     Returns
     -------
-    meta : `tuple` [`str`, `str`, `str`, `str`]
+    meta : `tuple` [str, str, str, str]
         QID, date, description, and version number.
     """
     # Generate random unsigned 32 bit integer and convert it to string.

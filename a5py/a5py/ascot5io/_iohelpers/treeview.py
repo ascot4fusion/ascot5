@@ -26,12 +26,12 @@ class _FancyText():
 
         Parameters
         ----------
-        string : `str`
+        string : str
             String to be converted.
 
         Returns
         -------
-        title : `str`
+        title : str
             The converted string.
         """
         return _FancyText._bold + _FancyText._underline + _FancyText._purple \
@@ -43,12 +43,12 @@ class _FancyText():
 
         Parameters
         ----------
-        string : `str`
+        string : str
             String to be converted.
 
         Returns
         -------
-        header : `str`
+        header : str
             The converted string.
         """
         return _FancyText._bold + string + _FancyText._reset
@@ -59,12 +59,12 @@ class _FancyText():
 
         Parameters
         ----------
-        string : `str`
+        string : str
             String to be converted.
 
         Returns
         -------
-        active : `str`
+        active : str
             The converted string.
         """
         return _FancyText._green + string + _FancyText._reset
@@ -82,7 +82,7 @@ class _Node():
 
     Attributes
     ----------
-    _frozen : `bool`
+    _frozen : bool
         When True, attributes cannot be added or removed for this node.
     """
 
@@ -113,7 +113,7 @@ class _Node():
 
         Parameters
         ----------
-        key : `str`
+        key : str
             Name of the attribute.
         value
             Value of the attribute.
@@ -134,7 +134,7 @@ class _Node():
 
         Parameters
         ----------
-        key: `str`
+        key: str
             Name of the attribute.
         value:
             Value of the attribute.
@@ -155,12 +155,12 @@ class _Node():
 
         Parameters
         ----------
-        key : `str`
+        key : str
             Name of the attribute.
 
         Returns
         -------
-        contains : `bool`
+        contains : bool
             True if this node contains the attribute.
         """
         return hasattr(self, key)
@@ -170,7 +170,7 @@ class _Node():
 
         Parameters
         ----------
-        key : `str`
+        key : str
             Name of the attribute.
         Returns
         -------
@@ -187,11 +187,11 @@ class _ParentNode(_Node):
 
     Attributes
     ----------
-    _qids : `list` [`str`]
+    _qids : list [str]
         QIDs of this node's children.
     _root : `RootNode`
         The `RootNode` this node belongs to.
-    _path : `str`
+    _path : str
         Path to this node within the HDF5 file.
     active : `DataGroup`
         The currently active group.
@@ -204,7 +204,7 @@ class _ParentNode(_Node):
         ----------
         root : `RootNode`
             The `RootNode` this node belongs to.
-        path : `str`
+        path : str
             Path to this node within the HDF5 file.
         **kwargs
             Arguments passed to other constructors in case of multiple
@@ -225,7 +225,7 @@ class _ParentNode(_Node):
 
         Parameters
         ----------
-        key : `str`
+        key : str
             Name of the child in format <type>_<QID>.
         datagroup : `DataGroup`
             The child data.
@@ -319,7 +319,7 @@ class _ParentNode(_Node):
 
         Parameters
         ----------
-        repack : `bool`, optional
+        repack : bool, optional
             If True, repack the HDF5 file.
 
             Removing data from the HDF5 file only removes references to it and
@@ -334,7 +334,7 @@ class _ParentNode(_Node):
 
         Returns
         -------
-        meta : `dict` [`str`, `list` [`str`]]
+        meta : dict [str, list [str]]
             Dictionary containing QIDs ("qid"), dates ("date"), descriptions
             ("desc"), and data types "type" as a list of strings.
         """
@@ -366,7 +366,7 @@ class InputNode(_ParentNode):
         ----------
         root : `RootNode`
             The `RootNode` this node belongs to.
-        path : `str`
+        path : str
             Path to this node within the HDF5 file.
         h5 : `h5py.File`
             The HDF5 file from which the tree is constructed.
@@ -389,12 +389,12 @@ class InputNode(_ParentNode):
 
         Parameters
         ----------
-        show : `str`, optional
+        show : str, optional
             If True, the contents are also printed on screen.
 
         Returns
         -------
-        contents : `str`
+        contents : str
             Multiline string decorated with ANSI escape sequences that list
             all data groups within this node.
         """
@@ -430,11 +430,11 @@ class ResultNode(_Node, DataGroup):
         ----------
         root : `RootNode`
             The `RootNode` this node belongs to.
-        path : `str`
+        path : str
             Path to this node within the HDF5 file.
         h5 : `h5py.File`
             The HDF5 file from which the tree is constructed.
-        inputqids : `dict` [`str`, `str`]
+        inputqids : dict [str, str]
             Dictionary containing the name of the input parent group
             (e.g. "bfield") and the QID of the input used for this result.
         **kwargs
@@ -457,7 +457,7 @@ class ResultNode(_Node, DataGroup):
 
         Returns
         -------
-        names : `list` [`str`]
+        names : list [str]
             List of names.
         """
         out = []
@@ -471,12 +471,12 @@ class ResultNode(_Node, DataGroup):
 
         Parameters
         ----------
-        show : `str`, optional
+        show : str, optional
             If True, the contents are also printed on screen.
 
         Returns
         -------
-        contents : `str`
+        contents : str
             Multiline string decorated with ANSI escape sequences that list
             this node's meta data, all output data within this node, and inputs
             that were used.
@@ -553,7 +553,7 @@ class RootNode(_ParentNode):
 
         Parameters
         ----------
-        fn : `str`
+        fn : str
             The HDF5 file from which the tree is constructed.
         """
         ascot = self._ascot
@@ -593,9 +593,9 @@ class RootNode(_ParentNode):
 
         Parameters
         ----------
-        group : `str`
+        group : str
             Name of the group to be removed.
-        repack : `bool`, optional
+        repack : bool, optional
             If True, repack the HDF5 file.
         """
         fn = self._ascot.file_getpath()
@@ -614,7 +614,7 @@ class RootNode(_ParentNode):
 
         Parameters
         ----------
-        group : `str`
+        group : str
             Name or QID of the group to be activated.
         """
         fn = self._ascot.file_getpath()
@@ -628,7 +628,7 @@ class RootNode(_ParentNode):
 
         Parameters
         ----------
-        path : `str`
+        path : str
             Path to the input group within the HDF5 file.
         h5 : `h5py.File`
             The HDF5 file from which the tree is constructed.
@@ -645,11 +645,11 @@ class RootNode(_ParentNode):
 
         Parameters
         ----------
-        path : `str`
+        path : str
             Path to the result node within the HDF5 file.
         h5 : `h5py.File`
             The HDF5 file from which the tree is constructed.
-        inputqids : `dict` [`str`, `str`]
+        inputqids : dict [str, str]
             Dictionary containing the name of the input parent group
             (e.g. "bfield") and the QID of the input used for this result.
 
@@ -665,9 +665,9 @@ class RootNode(_ParentNode):
 
         Parameters
         ----------
-        grouptype : `str`
+        grouptype : str
             Type of the group as it appears in `HDF5TOOBJ`.
-        path : `str`
+        path : str
             Path to the data in the HDF5 file that corresponds to the group.
 
         Returns
@@ -694,7 +694,7 @@ class RootNode(_ParentNode):
 
         Returns
         -------
-        qids : `list` [`str`]
+        qids : list [str]
             List of run QIDs.
         """
         # Find the parent group first
@@ -720,7 +720,7 @@ class RootNode(_ParentNode):
 
         Parameters
         ----------
-        repack : `bool`, optional
+        repack : bool, optional
             If True, repack the HDF5 file.
 
             Removing data from the HDF5 file only removes references to it and
@@ -735,12 +735,12 @@ class RootNode(_ParentNode):
 
         Parameters
         ----------
-        show : `str`, optional
+        show : str, optional
             If True, the contents are also printed on screen.
 
         Returns
         -------
-        contents : `str`
+        contents : str
             Multiline string decorated with ANSI escape sequences that list
             all results and their meta data and currently active inputs.
         """
