@@ -1,13 +1,10 @@
-"""
-Python side of the interactive Python interface.
+"""Python side of the interactive Python interface.
 
 This module defines LibAscot class whose methods can be used in Python to call
 Ascot5 functions (written in C) directly. The callable functions are defined in
 library module libascot.c which must be compiled first with make libascot. This
 module acts as a wrapper for those functions. More advanced functionality should
 be implemented in other modules.
-
-File: libascot.py
 """
 import ctypes
 import sys
@@ -28,9 +25,9 @@ try:
     STRUCT_OFFLOAD_PACKAGE = ascot2py.struct_c__SA_offload_package
     STRUCT_OFFLOAD_DATA    = ascot2py.struct_c__SA_sim_offload_data
     LIBASCOT = ascot2py._libraries['libascot.so']
-    LIBRARY_AVAILABLE = True
+    _LIBASCOTFOUND = True
 except OSError as error:
-    LIBRARY_AVAILABLE = False
+    _LIBASCOTFOUND = False
     msg = """
     Warning: Failed to import libascot.so. Some functionalities of Ascot\n
     are not available. Verify that libascot.so has been compiled, it can be\n
@@ -183,36 +180,6 @@ class LibAscot:
 
         return out
 
-
-    def _get_plasmaspecies(self):
-        """
-        Get plasma species information.
-
-        Returns;
-            Dictionary containing nspecies, and anum, znum, charge, and mass for
-            each species.
-        """
-
-        fun = LIBASCOT.libascot_plasma_get_n_species
-        fun.restype  = ctypes.c_int
-        fun.argtypes = [PTR_SIM, PTR_ARR]
-
-        out = {}
-        out["nspecies"] = fun(
-            ctypes.byref(self._sim), self._plasma_offload_array)
-
-        out["mass"]     = np.zeros((out["nspecies"],), dtype="f8")
-        out["charge"]   = np.zeros((out["nspecies"],), dtype="f8")
-
-        fun = LIBASCOT.libascot_plasma_get_species_mass_and_charge
-        fun.restype  = None
-        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_REAL, PTR_REAL]
-        fun(ctypes.byref(self._sim), self._plasma_offload_array,
-            out["mass"], out["charge"])
-
-        return out
-
-
     def _eval_plasma(self, R, phi, z, t):
         """
         Evaluate plasma quantities at given coordinates.
@@ -268,7 +235,6 @@ class LibAscot:
 
         return out
 
-
     def _eval_neutral(self, R, phi, z, t):
         """
         Evaluate neutral quantities at given coordinates.
@@ -310,7 +276,6 @@ class LibAscot:
             Neval, R, phi, z, t, out["n0"])
 
         return out
-
 
     def _eval_boozer(self, R, phi, z, t, evalfun=False):
         """
@@ -389,7 +354,6 @@ class LibAscot:
                 out["dzetadr"], out["dzetadphi"], out["dzetadz"], out["rho"])
 
         return out
-
 
     def _eval_mhd(self, R, phi, z, t, evalpot=False):
         """
@@ -472,7 +436,6 @@ class LibAscot:
 
         return out
 
-
     def input_eval_collcoefs(self, ma, qa, R, phi, z, t, va):
         """
         Evaluate Coulomb collision coefficients for given particle and coords.
@@ -502,8 +465,6 @@ class LibAscot:
             Dictionary with collision coefficients of shape
             (R.size, n_species, va.size).
         """
-
-
         ma  = float(ma)
         qa  = float(qa)
         R   = np.asarray(R).ravel().astype(dtype="f8")
@@ -571,6 +532,37 @@ class LibAscot:
 
         return out
 
+    def input_getplasmaspecies(self):
+        """Get species present in plasma input (electrons excluded).
+
+        Returns
+        -------
+        nspecies : int
+            Number of species.
+        mass : array_like
+            Species' mass.
+        charge : array_like
+            Species' charge state.
+        """
+
+        fun = LIBASCOT.libascot_plasma_get_n_species
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [PTR_SIM, PTR_ARR]
+
+        out = {}
+        out["nspecies"] = fun(
+            ctypes.byref(self._sim), self._plasma_offload_array)
+
+        out["mass"]     = np.zeros((out["nspecies"],), dtype="f8")
+        out["charge"]   = np.zeros((out["nspecies"],), dtype="f8")
+
+        fun = LIBASCOT.libascot_plasma_get_species_mass_and_charge
+        fun.restype  = None
+        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_REAL, PTR_REAL]
+        fun(ctypes.byref(self._sim), self._plasma_offload_array,
+            out["mass"], out["charge"])
+
+        return out["nspecies"], out["mass"], out["charge"]
 
     def input_rhotheta2rz(self, rhovals, theta, phi, time):
 

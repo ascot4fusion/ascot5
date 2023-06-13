@@ -1,5 +1,4 @@
-"""
-Methods to init, run, and process interactive simulations.
+"""Methods to init, run, and process interactive simulations.
 
 Interactive simulations are simulations that are run via libascot.so.
 They are equivalent to normal ascot5_main simulations, except that the
@@ -16,14 +15,17 @@ from numpy.ctypeslib import ndpointer
 from a5py.physlib.gamma import momentum_velocity
 
 class LibSimulate():
+    """Mixin class that introduces methods for active simulations.
+    """
 
     def simulation_initoptions(self, opt):
-        """
-        Set simulation options for the interactive simulation.
+        """Set options for the interactive simulation.
 
-        Args:
-            opt : dict
-                Options dictionary with the desired options.
+        Parameters
+        ----------
+        opt : `dict`
+            Options (same format as in the `write_hdf5` function) with
+            the desired options.
         """
 
         # Simulation mode options
@@ -131,20 +133,18 @@ class LibSimulate():
             diagorb.radialdistances[i] = radials[i]
 
 
-    def simulation_initinput(self):
-        """
-        Prepare input fields for the interactive simulation.
+    def simulation_initinputs(self):
+        """Prepare input fields for the interactive simulation.
 
-        All necessary inputs are initialized (if they haven't been already) and
-        they are packed. Packing means that the data arrays are stored as
-        a single array which is required in order to offload the data in ASCOT5.
-        In practice this means that the initialized inputs cannot be changed
-        before the array is unpacked.
+        Initializes simulation inputs. The inputs used in the simulation are
+        those that are active.
 
-        This method must be called before running the interactive simulation as
-        the input array must be packed for that. This method does not concern
-        options and markers, so you can modify those even after the input has
-        been packed.
+        This method differs from `input_init` in that the inputs are stored
+        internally in a single array. Therefore, individual inputs cannot be
+        changed while the inputs are packed. The unpacking is done by calling
+        the `simulation_free` method.
+
+        This method must be called before running the simulation.
         """
         self.input_init(bfield=True, efield=True, plasma=True, neutral=True,
                         wall=True, boozer=True, mhd=True, switch=True)
@@ -152,17 +152,19 @@ class LibSimulate():
 
 
     def simulation_initmarkers(self, mrk):
-        """
-        Create markers for the interactive simulations.
+        """Create markers for the interactive simulations.
 
         Any existing markers are deallocated when new ones are created.
         Note that you can use getstate also after creating the markers,
         but before running the simulation. In that case the result
         correspond to marker inistate.
 
-        Args:
-            mrk : dict
-                Marker dictionary which can be of any marker type.
+        Parameters
+        ----------
+        mrk : `dict`
+            Markers in same format as in the `write_hdf5` function.
+
+            All marker types are supported.
         """
         if self._nmrk.value > 0:
             ascot2py.libascot_deallocate(self._markers)
@@ -238,8 +240,7 @@ class LibSimulate():
 
 
     def simulation_run(self, printsummary=True):
-        """
-        Run the interactive simulation.
+        """Run the interactive simulation.
 
         This method runs the interactive simulation using the options set with
         simulation_initoptions, markers created with simulation_initmarkers and
@@ -280,7 +281,7 @@ class LibSimulate():
             ascot2py.print_marker_summary(self._markers, self._nmrk)
 
 
-    def simulation_free(self, inputs=False, markers=False, diagnostics=False):
+    def simulation_free(self, inputs=False, markers=False, output=False):
         """Free resources used by the interactive simulation.
 
         Args:
@@ -288,7 +289,7 @@ class LibSimulate():
             If True, inputs are unpacked (but not free'd).
           markers : bool, optional
             If True, markers are free'd.
-          diagnostics : bool, optional
+          outout : bool, optional
             If True, diagnostics data is free'd.
         """
         if inputs:
@@ -309,8 +310,7 @@ class LibSimulate():
 
 
     def simulation_getstate(self, quantity):
-        """
-        Access marker state data in interactive simulations.
+        """Access marker state data in interactive simulations.
 
         This method returns quantities from marker endstate (or inistate if
         called before running the simulation).
