@@ -1,3 +1,5 @@
+"""Tools for assessing physical quantities and units.
+"""
 from .coords import *
 from .gamma import *
 from .particle import *

@@ -314,17 +314,17 @@ Parameters that can be given arguments for ``make`` are
 .. list-table::
    :widths: 10 50
 
-   * - NSIMD=16
+   * - NSIMD
      - Number of particles in a group. These are processed simultaneously by each thread and the optimal number depends on the platform. If unsure, keep the default value.
-   * - CC=icc
+   * - CC
      - Compiler.
-   * - TARGET=1
+   * - TARGET
      - Offload computation to Xeon Phi accelerator.
-   * - VERBOSE=1
+   * - VERBOSE
      - Print increasing amounts of progress information. 0: No information except bare essentials. 1: Standard information; everything happening outside simulation loops is printed. 2: Extensive information; a record of simulation progress is written process-specific \*.stdout file(s).
-   * - MPI=1
+   * - MPI
      - Enable MPI.
-   * - NOGIT=1
+   * - NOGIT
      - Disable recording of repository status if Git is not available.
 
 Additional parameters can be found in ``ascot5.h``, but there is rarely a need to change these.
@@ -354,6 +354,7 @@ Options
 =======
 
 .. autoproperty:: a5py.ascot5io.options.Opt.SIM_MODE
+   :noindex:
 
 .. _Simulations:
 

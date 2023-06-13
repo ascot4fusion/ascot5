@@ -4,20 +4,16 @@ Citing ASCOT5
 
 It is sufficient to acknowledge ASCOT5 usage with something like:
 
-::
+  *Simulations were carried out using ASCOT5 orbit-following code [REF].*
 
-  Simulations were carried out using ASCOT5 orbit-following code [REF].
-
-Where the refence is either the official (unpublished) ASCOT5 reference paper :cite:t:`varje2019high`, Jari's thesis :cite:t:`Varjephd`, Konsta's thesis :cite:t:`Sarkimakiphd`, or ASCOT4 reference paper :cite:t:`hirvijoki2014ascot`.
+Where the refence is either the official (unpublished) ASCOT5 reference paper :cite:labelpar:`varje2019high`, Jari's thesis :cite:labelpar:`Varjephd`, Konsta's thesis :cite:labelpar:`Sarkimakiphd`, or ASCOT4 reference paper :cite:labelpar:`hirvijoki2014ascot`.
 
 If the work contains considerable ASCOT5 work, the referees might insist on a more detailed description.
 At minimum, describe i) how markers were generated and how many were used, ii) what physics were included or excluded, iii) when markers where terminated, and iv) whether the simulations were done in guiding-center or gyro-orbit mode.
 
-::
-
-  Markers representing fusion-born alpha particles were sampled from a fusion source distribution.
-  Total of 10^6 markers were traced until they made contact with the wall or cooled below 2 x Te.
-  Markers were traced using the guiding-center approximation and the simulations included Coulomb collisions.
+  *Markers representing fusion-born alpha particles were sampled from a fusion source distribution.*
+  *Total of 10^6 markers were traced until they made contact with the wall or cooled below 2 x Te.*
+  *Markers were traced using the guiding-center approximation and the simulations included Coulomb collisions.*
 
 It is also a good practice to refer as *markers* the points whose trajectories ASCOT5 simulates, and *particles* when discussing physical particles (markers multiplied by their weight).
 Furthermore, *full orbit* can refer to both *poloidal orbit* and *gyro-orbit* meaning it is better to write "gyro-orbit" explicitly (e.g. when comparing the results to guiding-center simulations).

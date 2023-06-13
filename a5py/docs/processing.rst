@@ -53,21 +53,13 @@ For humans there is a description attribute that one can use to document content
 The meta data is accessed and modified using the methods found in :class:`.DataGroup` where one can also find methods to remove data groups.
 See the tutorial and API below for detailed description of data access.
 
-.. autoclass:: a5py.ascot5io.Ascot5IO
-  :members:
-  :inherited-members:
-
-.. autoclass:: a5py.ascot5io._iohelpers.treeview.InputNode
-  :members:
-  :inherited-members:
-
-.. autoclass:: a5py.ascot5io._iohelpers.treeview.ResultNode
-  :members:
-  :inherited-members:
-
-.. autoclass:: a5py.ascot5io._iohelpers.treedata.DataGroup
-  :members:
-  :inherited-members:
+.. autosummary::
+   :nosignatures:
+   
+   a5py.ascot5io.Ascot5IO
+   a5py.ascot5io.RunGroup
+   a5py.ascot5io.InputGroup
+   a5py.ascot5io._iohelpers.treedata.DataGroup
 
 ================
 Input generation
@@ -88,7 +80,7 @@ The available inputs are listed below.
 
 For input templates and imports, see Importing and Predefined Inputs, but note that some of these use Ascotpy.
 
-.. autodata:: a5py.ascot5io._iohelpers.fileapi.INPUTGROUPS
+
 
 Magnetic field ``bfield``
 =========================
@@ -97,35 +89,22 @@ A good quality magnetic field is
 If you don't specifically require some other input, use the axisymmetric field since that is fast to interpolate and divergence free.
 MHD modes are included via dedicated input and they must not be included in the magnetic field data.
 
-Tokamak axisymmetric ``B_2DS``
-******************************
+.. autosummary::
+   :nosignatures:
 
-.. autofunction:: a5py.ascot5io.B_2DS.write_hdf5
-
-Tokamak 3D ``B_3DS``
-********************
-
-.. autofunction:: a5py.ascot5io.B_3DS.write_hdf5
-
-Tokamak time-dependent 3D ``B_3DST``
-************************************
-
-.. autofunction:: a5py.ascot5io.B_3DST.write_hdf5
-
-Stellarator ``B_STS``
-*********************
-
-.. autofunction:: a5py.ascot5io.B_STS.write_hdf5
-
-Tokamak analytical ``B_GS``
-***************************
-
-.. autofunction:: a5py.ascot5io.B_GS.write_hdf5
-
-Trivial Cartesian ``B_TC``
-**************************
-
-.. autofunction:: a5py.ascot5io.B_TC.write_hdf5
+   a5py.ascot5io.bfield
+   a5py.ascot5io.bfield.B_2DS
+   a5py.ascot5io.bfield.B_2DS.write_hdf5
+   a5py.ascot5io.bfield.B_3DS
+   a5py.ascot5io.bfield.B_3DS.write_hdf5
+   a5py.ascot5io.bfield.B_3DST
+   a5py.ascot5io.bfield.B_3DST.write_hdf5
+   a5py.ascot5io.bfield.B_STS
+   a5py.ascot5io.bfield.B_STS.write_hdf5
+   a5py.ascot5io.bfield.B_GS
+   a5py.ascot5io.bfield.B_GS.write_hdf5
+   a5py.ascot5io.bfield.B_TC
+   a5py.ascot5io.bfield.B_TC.write_hdf5
 
 
 Electric field ``efield``
@@ -133,70 +112,60 @@ Electric field ``efield``
 
 If electric field is not relevant for your simulation, use ``E_TC`` and set it to zero to effectively disable electric field.
 
-Trivial Cartesian ``E_TC``
-**************************
+.. autosummary::
+   :nosignatures:
 
-.. autofunction:: a5py.ascot5io.E_TC.write_hdf5
-
-``E_3D``
-****************************
-
-.. autofunction:: a5py.ascot5io.E_3D.write_hdf5
-
-``E_1DS``
-****************************
-
-.. autofunction:: a5py.ascot5io.E_1DS.write_hdf5
-
-``E_3DST``
-****************************
-
-.. autofunction:: a5py.ascot5io.E_3DST.write_hdf5
-
-``E_3DS``
-****************************
-
-.. autofunction:: a5py.ascot5io.E_3DS.write_hdf5
+   a5py.ascot5io.efield
+   a5py.ascot5io.efield.E_TC
+   a5py.ascot5io.efield.E_TC.write_hdf5
+   a5py.ascot5io.efield.E_1DS
+   a5py.ascot5io.efield.E_1DS.write_hdf5
+   a5py.ascot5io.efield.E_3D
+   a5py.ascot5io.efield.E_3D.write_hdf5
+   a5py.ascot5io.efield.E_3DS
+   a5py.ascot5io.efield.E_3DS.write_hdf5
+   a5py.ascot5io.efield.E_3DST
+   a5py.ascot5io.efield.E_3DST.write_hdf5
 
 Plasma ``plasma``
 =================
 
 Plasma data is required if collisions are included.
 
-Linearly interpolated 1D ``plasma_1D``
-**************************************
+.. autosummary::
+   :nosignatures:
 
-.. autofunction:: a5py.ascot5io.plasma_1D.write_hdf5
-
-Spline-interpolated 1D ``plasma_1DS``
-*************************************
-
-.. autofunction:: a5py.ascot5io.plasma_1DS.write_hdf5
+   a5py.ascot5io.plasma
+   a5py.ascot5io.plasma.plasma_1D
+   a5py.ascot5io.plasma.plasma_1D.write_hdf5
+   a5py.ascot5io.plasma.plasma_1DS
+   a5py.ascot5io.plasma.plasma_1DS.write_hdf5
 
 Wall mesh ``wall``
 ==================
 
 Wall input is required when losses are modelled accurately.
 
-Axisymmetric ``wall_2D``
-************************
+.. autosummary::
+   :nosignatures:
 
-.. autofunction:: a5py.ascot5io.wall_2D.write_hdf5
-
-Triangular 3D mesh ``wall_3D``
-******************************
-
-.. autofunction:: a5py.ascot5io.wall_3D.write_hdf5
+   a5py.ascot5io.wall
+   a5py.ascot5io.wall.wall_2D
+   a5py.ascot5io.wall.wall_2D.write_hdf5
+   a5py.ascot5io.wall.wall_3D
+   a5py.ascot5io.wall.wall_3D.write_hdf5
 
 Neutral ``neutral``
 ===================
 
 Neutral particle profiles required when CX reactions are included.
 
-3D ``N0_3D``
-************
+.. autosummary::
+   :nosignatures:
 
-.. autofunction:: a5py.ascot5io.N0_3D.write_hdf5
+   a5py.ascot5io.neutral
+   a5py.ascot5io.neutral.N0_3D
+   a5py.ascot5io.neutral.N0_3D.write_hdf5
 
 Boozer data ``boozer``
 ======================
@@ -204,46 +173,46 @@ Boozer data ``boozer``
 Boozer data is required for simulations with MHD eigenfunctions.
 One can create it automatically from ``B_2DS`` with .
 
-``Boozer``
-**********
+.. autosummary::
+   :nosignatures:
 
-.. autofunction:: a5py.ascot5io.boozer.write_hdf5
+   a5py.ascot5io.boozer
+   a5py.ascot5io.boozer.Boozer
+   a5py.ascot5io.boozer.Boozer.write_hdf5
 
 MHD eigenfunctions ``mhd``
 ==========================
 
+.. autosummary::
+   :nosignatures:
 
-
-``MHD_STAT`` and ``MHD_NONSTAT``
-********************************
-
-.. autofunction:: a5py.ascot5io.mhd.write_hdf5
+   a5py.ascot5io.mhd
+   a5py.ascot5io.mhd.MHD
+   a5py.ascot5io.mhd.MHD.write_hdf5
 
 Neutral beam injectors ``nbi``
 ==============================
 
-``Nbi``
-*************
+.. autosummary::
+   :nosignatures:
 
-.. autofunction:: a5py.ascot5io.nbi.write_hdf5
+   a5py.ascot5io.nbi
+   a5py.ascot5io.nbi.NBI
+   a5py.ascot5io.nbi.NBI.write_hdf5
 
 Markers ``marker``
 ==================
 
-Particles ``prt``
-*****************
+.. autosummary::
+   :nosignatures:
 
-.. autofunction:: a5py.ascot5io.mrk_prt.write_hdf5
-
-Guiding centers ``gc``
-**********************
-
-.. autofunction:: a5py.ascot5io.mrk_gc.write_hdf5
-
-Magnetic-field-line tracers ``fl``
-**********************************
-
-.. autofunction:: a5py.ascot5io.mrk_fl.write_hdf5
+   a5py.ascot5io.marker
+   a5py.ascot5io.marker.mrk_prt
+   a5py.ascot5io.marker.mrk_prt.write_hdf5
+   a5py.ascot5io.marker.mrk_gc
+   a5py.ascot5io.marker.mrk_gc.write_hdf5
+   a5py.ascot5io.marker.mrk_fl
+   a5py.ascot5io.marker.mrk_fl.write_hdf5
 
 Options ``opt``
 ===============
@@ -282,15 +251,14 @@ An exception is raised if trying to evaluate a quantity that needs input which h
 
 The methods of ``Ascot`` class provide tools to access the input data and they are listed below.
 
-.. autoclass:: a5py.Ascot
-
-.. automethod:: a5py.Ascot.input_init
-
-.. automethod:: a5py.Ascot.input_free
-
-.. automethod:: a5py.Ascot.input_eval
-
-.. automethod:: a5py.Ascot.input_plotrz
+.. autosummary::
+   :nosignatures:
+   
+   a5py.Ascot
+   a5py.Ascot.input_init
+   a5py.Ascot.input_free
+   a5py.Ascot.input_eval
+   a5py.Ascot.input_plotrz
 
 Interactive simulations
 =======================
@@ -337,36 +305,28 @@ Simulation is run and data is accessed as:
    # Free all resources
    a5.simulation_free(inputs=True, markers=True, output=True)
 
-.. automethod:: a5py.Ascot.simulation_initinputs
-
-.. automethod:: a5py.Ascot.simulation_initmarkers
-
-.. automethod:: a5py.Ascot.simulation_initoptions
-
-.. automethod:: a5py.Ascot.simulation_run
-
-.. automethod:: a5py.Ascot.simulation_getstate
-
-.. automethod:: a5py.Ascot.simulation_getorbit
-
-.. automethod:: a5py.Ascot.simulation_free
+.. autosummary::
+   :nosignatures:
+   
+   a5py.Ascot
+   a5py.Ascot.simulation_initinputs
+   a5py.Ascot.simulation_initmarkers
+   a5py.Ascot.simulation_initoptions
+   a5py.Ascot.simulation_run
+   a5py.Ascot.simulation_getstate
+   a5py.Ascot.simulation_getorbit
+   a5py.Ascot.simulation_free
 
 
 Simulation output
 =================
 
 
-.. autoclass:: a5py.ascot5io.RunGroup
-
 Ini- and endstate
 *****************
 
-.. automethod:: a5py.ascot5io.RunGroup.getstate
-
 Marker orbits
 *************
-
-.. automethod:: a5py.ascot5io.RunGroup.getorbit
 
 Transport coefficients
 **********************
@@ -384,33 +344,28 @@ Losses and wall loads
 End conditions
 **************
 
-.. autoproperty:: a5py.ascot5io.state.State.ABORTED
-
-.. autoproperty:: a5py.ascot5io.state.State.NONE
-
-.. autoproperty:: a5py.ascot5io.state.State.TLIM
-
-.. autoproperty:: a5py.ascot5io.state.State.EMIN
-
-.. autoproperty:: a5py.ascot5io.state.State.THERM
-
-.. autoproperty:: a5py.ascot5io.state.State.WALL
-
-.. autoproperty:: a5py.ascot5io.state.State.RHOMIN
-
-.. autoproperty:: a5py.ascot5io.state.State.RHOMAX
-
-.. autoproperty:: a5py.ascot5io.state.State.POLMAX
-
-.. autoproperty:: a5py.ascot5io.state.State.TORMAX
-
-.. autoproperty:: a5py.ascot5io.state.State.CPUMAX
+.. autosummary::
+   :nosignatures:
+   
+   a5py.ascot5io.state.State.ABORTED
+   a5py.ascot5io.state.State.ABORTED
+   a5py.ascot5io.state.State.NONE
+   a5py.ascot5io.state.State.TLIM
+   a5py.ascot5io.state.State.EMIN
+   a5py.ascot5io.state.State.THERM
+   a5py.ascot5io.state.State.WALL
+   a5py.ascot5io.state.State.RHOMIN
+   a5py.ascot5io.state.State.RHOMAX
+   a5py.ascot5io.state.State.POLMAX
+   a5py.ascot5io.state.State.TORMAX
+   a5py.ascot5io.state.State.CPUMAX
 
 Exceptions
 ==========
 
-.. autoexception:: a5py.exceptions.AscotIOException
+.. autosummary::
+   :nosignatures:
 
-.. autoexception:: a5py.exceptions.AscotNoDataException
-
-.. autoexception:: a5py.exceptions.AscotInitException
+   a5py.exceptions.AscotIOException
+   a5py.exceptions.AscotNoDataException
+   a5py.exceptions.AscotInitException

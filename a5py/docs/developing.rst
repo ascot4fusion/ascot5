@@ -140,6 +140,7 @@ Python docstrings are referenced via `autodoc <https://www.sphinx-doc.org/en/mas
 .. code-block:: rst
 
    .. automethod:: a5py.Ascot.input_eval
+      :noindex:
 
 which produces this output:
 
@@ -157,6 +158,16 @@ Testing
 =======
 
 TODO
+
+=============================
+`Python API <papi/a5py.rst>`_
+=============================
+
+.. toctree::
+   :hidden:
+
+   papi/a5py.rst
+
 
 ==================================
 `C API <_static/html/index.html>`_

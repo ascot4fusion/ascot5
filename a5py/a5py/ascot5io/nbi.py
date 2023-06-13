@@ -11,7 +11,7 @@ import a5py.nbi.plot as plot
 from ._iohelpers.fileapi import add_group
 from ._iohelpers.treedata import DataGroup
 
-class nbi(DataGroup):
+class NBI(DataGroup):
     """Object representing nbi data.
     """
 
@@ -32,7 +32,6 @@ class nbi(DataGroup):
                                       equal = True, axes=ax,
                                       color="red",linewidth=0.75)
         return ax
-
 
     def plot_beamlet_3D(self, ax=None):
         beams = self.read()

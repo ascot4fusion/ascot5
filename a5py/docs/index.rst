@@ -38,8 +38,7 @@ If you can't find here what you are looking for in this documentation, don't be 
   publishing
 
 .. toctree::
-  :maxdepth: 2
-  :caption: For Developers
+  :caption: Code Development
   :hidden:
 
   developing

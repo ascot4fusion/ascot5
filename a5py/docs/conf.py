@@ -21,7 +21,9 @@ extensions = ['sphinx.ext.autodoc',      # For generating doc from Python source
               'numpydoc',                # Source docs are done in numpy style
               'nbsphinx',                # Embed Jupyter notebooks
               'breathe',                 # Sphinx can access Doxygen output
+              'sphinx_automodapi.automodapi',
               'sphinxcontrib.bibtex',    # Can use bibtex
+              'sphinx.ext.autosummary',
               'sphinx.ext.intersphinx',] # Link to external libraries
 
 exclude_patterns = []
@@ -42,6 +44,7 @@ intersphinx_mapping = {
 html_theme = 'sphinx_rtd_theme'
 html_theme_options = {
     'logo_only': True,
+    'navigation_depth':6,
     }
 html_logo = 'logo.png'
 

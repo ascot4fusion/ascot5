@@ -1,4 +1,4 @@
-"""Interface for accessing data in Ascot5 HDF5 files.
+"""Interface for accessing data in ASCOT5 HDF5 files.
 """
 from .bfield  import B_TC, B_GS, B_2DS, B_3DS, B_3DST, B_STS
 from .efield  import E_TC, E_1DS, E_3D, E_3DS, E_3DST
@@ -9,7 +9,7 @@ from .neutral import N0_3D
 from .boozer  import Boozer
 from .mhd     import MHD
 from .options import Opt
-from .nbi     import nbi
+from .nbi     import NBI
 
 from a5py.ascot5io.state      import State
 from a5py.ascot5io.orbits     import Orbits
@@ -36,7 +36,7 @@ HDF5TOOBJ = {
     "N0_3D" : N0_3D,
     "Boozer" : Boozer, "MHD_STAT" : MHD, "MHD_NONSTAT" : MHD,
     "opt" : Opt,
-    "nbi" : nbi,
+    "nbi" : NBI,
     "inistate" : State,
     "endstate" : State,
     "orbit" : Orbits,

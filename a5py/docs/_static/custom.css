@@ -1,3 +1,7 @@
 .wy-table-responsive table td {
 white-space: normal;
 }
+
+.wy-side-nav-search, .wy-nav-top {
+    background: #ffeeaa;
+}
