@@ -14,6 +14,7 @@ import sys
 import os
 import warnings
 import numpy as np
+import unyt
 
 from scipy import interpolate
 
@@ -919,18 +920,19 @@ class LibAscot:
         n_species = self.libascot.libascot_plasma_get_n_species()
 
         out = {}
-        out["F"]      = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["Dpara"]  = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["Dperp"]  = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["K"]      = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["nu"]     = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["Q"]      = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["dQ"]     = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["dDpara"] = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["clog"]   = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["mu0"]    = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["mu1"]    = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["dmu0"]   = np.zeros((R.size, n_species, va.size), dtype="f8")
+        temp = np.zeros((R.size, n_species, va.size), dtype="f8")
+        out["F"]      = np.copy(temp) * unyt.m / unyt.s**2
+        out["Dpara"]  = np.copy(temp) * unyt.m**2 / unyt.s**3
+        out["Dperp"]  = np.copy(temp) * unyt.m**2 / unyt.s**3
+        out["K"]      = np.copy(temp) * unyt.m / unyt.s**2
+        out["nu"]     = np.copy(temp) / unyt.s
+        out["Q"]      = np.copy(temp) * unyt.m / unyt.s**2
+        out["dQ"]     = np.copy(temp) / unyt.s
+        out["dDpara"] = np.copy(temp) * unyt.m / unyt.s**2
+        out["clog"]   = np.copy(temp)
+        out["mu0"]    = np.copy(temp)
+        out["mu1"]    = np.copy(temp)
+        out["dmu0"]   = np.copy(temp)
 
         for i in range(R.size):
             F      = np.zeros((n_species, va.size), dtype="f8")
