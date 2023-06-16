@@ -194,7 +194,7 @@
  */
 #define mccc_coefs_DX(xi, Dpara, Dperp, gyrofreq) (              \
         ( 0.5 * ( Dpara - Dperp ) * ( 1 - xi*xi ) + Dperp )      \
-        / gyrofreq*gyrofreq) )
+        / (gyrofreq*gyrofreq) )
 
 #pragma omp declare target
 
