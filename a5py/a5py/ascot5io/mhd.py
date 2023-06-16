@@ -180,3 +180,62 @@ class MHD(AscotData):
 
     def read(self):
         return read_hdf5(self._file, self.get_qid())
+
+    def isstat(self):
+        """
+        Is the data STAT or NONSTAT.
+        """
+        path = "mhd/MHD_STAT_" + self.get_qid()
+        with h5py.File(self._file, "r") as f:
+            if path not in f:
+                return False
+        return True
+
+
+    def plot_amplitude(self, amplitude="alpha", mode=None, ax=None):
+        """
+        Plot radial profile of all (or given mode) amplitudes.
+
+        For NONSTAT the profiles are shown at earliest time in dataset.
+        TODO: Animate the NONSTAT to show profiles as a function of time.
+
+        Args:
+            amplitude : str <br>
+                Which amplitude is plotted: "alpha" (magnetic) or "phi" (electric)
+            mode : tuple(int,int) <br>
+                Mode (n,m) to be plotted or None to plot all modes.
+            ax : axes <br>
+                Axes where plotting is done or None to create and show new fig.
+        """
+        import matplotlib.pyplot as plt
+
+        data = self.read()
+        isstat = self.isstat()
+
+        axes = ax
+        if ax is None:
+            fig  = plt.figure()
+            axes = fig.add_subplot(1,1,1)
+
+        axes.set_xlabel(r"$\rho$")
+        axes.set_xlim(0,1)
+        if amplitude == "alpha":
+            axes.set_ylabel("Tm")
+        else:
+            axes.set_ylabel("V")
+
+        amplitude = data[amplitude]
+        rho = np.linspace(data["rhomin"], data["rhomax"], int(data["nrho"]))
+
+        for n in range(int(data["nmode"])):
+            if mode is None or \
+               ( mode[0] == data["nmodes"][n] and mode[1] == data["mmodes"][n] ):
+                if isstat:
+                    axes.plot(rho, amplitude[:,n] * data["amplitude"][n])
+                else:
+                    #t = data["tmin"]
+                    #tgrid = np.linspace(data["tmin"], data["tmax"], data["ntime"])
+                    axes.plot(rho, amplitude[n,0,:] * data["amplitude"][n])
+
+        if ax is None:
+            plt.show()

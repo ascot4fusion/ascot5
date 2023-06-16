@@ -133,11 +133,48 @@ def get_default():
     Get default option parameters.
 
     Returns:
-        A list containing default options in format (name, description, value).
-        List is ordered and contains info banners as well (as tuples).
+        A list containing default options in format (name, description, value,
+        Valid). List is ordered and contains info banners as well (as tuples).
+        Valid is an object with method check(value) that checks the value given
+        for this parameter is valid (e.g. parameter is int and within range).
     """
 
-    info = []
+    class Valid():
+
+        def __init__(self, type, range=None, values=None, islist=False):
+            """
+            New value with given type and range [min, max] or values [...].
+            """
+            self._type   = type
+            self._range  = range
+            self._values = values
+            self._islist = islist
+
+        def validate(self, value):
+            """
+            Return boolean which shows if the given value is valid.
+            """
+            if self._islist and isinstance(value, np.ndarray):
+                for v in value:
+                    if not self.validate(v):
+                        return False
+
+                return True
+
+            if isinstance(self._type, int) and not isinstance(value, int):
+                return False
+            if isinstance(self._type, float) and \
+               not (isinstance(value, int) or (isinstance(value, float)) ):
+                return False
+            if self._range is not None and \
+               (value < self._range[0] or value > self._range[1]):
+                return False
+            if self._values is not None and value not in self._values:
+                return False
+            return True
+
+
+    info  = []
 
     info.append(("""\
     #**************************************************************************#
@@ -155,7 +192,7 @@ def get_default():
          # - 3 Hybrid
          # - 4 Magnetic field lines
          """,
-         3)
+         3, Valid(int, values=[1,2,3,4]))
     )
     info.append(
         ("ENABLE_ADAPTIVE",
@@ -167,7 +204,7 @@ def get_default():
          # - 0 Use fixed time-step
          # - 1 Use adaptive time-step
          """,
-         1)
+         1, Valid(int, values=[0,1]))
     )
     info.append(
         ("RECORD_MODE",
@@ -176,7 +213,7 @@ def get_default():
          # - 0 Record GOs as GOs
          # - 1 Record GOs as GCs
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
     info.append(
         ("FIXEDSTEP_USE_USERDEFINED",
@@ -186,49 +223,49 @@ def get_default():
          # - 0 Calculate time-step from FIXEDSTEP_NSTEPS_PER_GYROTIME
          # - 1 Use opt.opt.FIXEDSTEP_USERDEFINED as a time-step
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
     info.append(
         ("FIXEDSTEP_USERDEFINED",
          """\
          # User-defined time-step [s]
          """,
-         1e-8)
+         1e-8, Valid(float, range=[1e-14, 1e0]))
     )
     info.append(
         ("FIXEDSTEP_GYRODEFINED",
          """\
          # Time-step is 2pi / ( gyrofrequency * N ) where N is this parameter
          """,
-         20)
+         20, Valid(int, range=[1, 1000]))
     )
     info.append(
         ("ADAPTIVE_TOL_ORBIT",
          """\
          # Relative error tolerance for orbit following in adaptive scheme
          """,
-         1e-8)
+         1e-8, Valid(float, range=[1e-12, 1e0]))
     )
     info.append(
         ("ADAPTIVE_TOL_CCOL",
          """\
          # Relative error tolerance for Coulomb collisions in adaptive scheme
          """,
-         1e-1)
+         1e-1, Valid(float, range=[1e-12, 1e0]))
     )
     info.append(
         ("ADAPTIVE_MAX_DRHO",
          """\
          # Maximum allowed change in rho during one time-step in adaptive scheme
          """,
-         0.1)
+         0.1, Valid(float, range=[1e-5, 1e0]))
     )
     info.append(
         ("ADAPTIVE_MAX_DPHI",
          """\
          # Maximum allowed change in phi during one time-step in adaptive scheme
          """,
-         2)
+         2, Valid(float, range=[1e-5, 1e2]))
     )
 
     info.append(("""\
@@ -247,7 +284,7 @@ def get_default():
          # t0 + t > ENDCOND_MAX_SIMTIME where t0 is marker's initial time and t
          # the time it has been simulated. See also ENDCOND_CPUTIMELIM.
          """,
-         1)
+         1, Valid(int, values=[0,1]))
     )
     info.append(
         ("ENDCOND_CPUTIMELIM",
@@ -256,7 +293,7 @@ def get_default():
          # amount of real time to simulate it. This limit should be rarely used
          # as its intended use is in debugging to stop markers stuck in a loop.
          """,
-         1)
+         1, Valid(int, values=[0,1]))
     )
     info.append(
         ("ENDCOND_RHOLIM",
@@ -264,7 +301,7 @@ def get_default():
          # Terminate if marker goes outside given rho boundaries
          # rho boundaries are defined by ENDCOND_MAX_RHO and ENDCOND_MAX_RHO.
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
     info.append(
         ("ENDCOND_ENERGYLIM",
@@ -274,14 +311,14 @@ def get_default():
          # ENDCOND_MIN_ENERGY_TIMES_THERMAL. Marker is terminated when either
          # of these limits is reached.
          """,
-         1)
+         1, Valid(int, values=[0,1]))
     )
     info.append(
         ("ENDCOND_WALLHIT",
          """\
          # Terminate when marker impacts wall
          """,
-         1)
+         1, Valid(int, values=[0,1]))
     )
     info.append(
         ("ENDCOND_MAXORBS",
@@ -292,70 +329,70 @@ def get_default():
          # 1 : Marker is terminated when either of these limits is reached.
          # 2 : Marker is terminated when both limits are reached.
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
     info.append(
         ("ENDCOND_MAX_SIMTIME",
          """\
          # Maximum simulation time [s]
          """,
-         1)
+         1, Valid(float, range=[-np.inf, np.inf]))
     )
     info.append(
         ("ENDCOND_MAX_MILEAGE",
          """\
          # The maximum amount of time this marker is simulated [s]
          """,
-         1)
+         1, Valid(float, range=[0, np.inf]))
     )
     info.append(
         ("ENDCOND_MAX_CPUTIME",
          """\
          # Maximum cpu time [s]
          """,
-         3600)
+         3600, Valid(float, range=[0, 365*24*60*60]))
     )
     info.append(
         ("ENDCOND_MAX_RHO",
          """\
          # Maximum rho value
          """,
-         2)
+         2, Valid(float, range=[0, 1e2]))
     )
     info.append(
         ("ENDCOND_MIN_RHO",
          """\
          # Minimum rho value
          """,
-         0)
+         0, Valid(float, range=[0, 1e2]))
     )
     info.append(
         ("ENDCOND_MIN_ENERGY",
          """\
          # Minimum energy [eV]
          """,
-         1e3)
+         1e3, Valid(float, range=[0, 1e12]))
     )
     info.append(
         ("ENDCOND_MIN_THERMAL",
          """\
          # Minimum energy limit is local ion thermal energy times this value
          """,
-         2)
+         2, Valid(float, range=[0, 1e12]))
     )
     info.append(
         ("ENDCOND_MAX_TOROIDALORBS",
          """\
          # Maximum number of toroidal orbits
          """,
-         100)
+         100, Valid(int, range=[0, 1e6]))
     )
     info.append(
         ("ENDCOND_MAX_POLOIDALORBS",
          """\
          # Maximum number of poloidal orbits
          """,
-         100)
+         100, Valid(float, range=[0, 1e6]))
     )
 
     info.append(("""\
@@ -370,49 +407,49 @@ def get_default():
          """\
          # Trace markers in an electromagnetic field
          """,
-         1)
+         1, Valid(int, values=[0,1]))
     )
     info.append(
         ("ENABLE_COULOMB_COLLISIONS",
          """\
          # Markers experience Coulomb collisions with background plasma
          """,
-         1)
+         1, Valid(int, values=[0,1]))
     )
     info.append(
         ("ENABLE_MHD",
          """\
          # Include MHD perturbations to orbit-following
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
     info.append(
         ("DISABLE_FIRSTORDER_GCTRANS",
          """\
          # Disable first order guiding center transformation in velocity space
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
     info.append(
         ("DISABLE_ENERGY_CCOLL",
          """\
          # Disable guiding center energy collisions
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
     info.append(
         ("DISABLE_PITCH_CCOLL",
          """\
          # Disable guiding center pitch collisions
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
     info.append(
         ("DISABLE_GCDIFF_CCOLL",
          """\
          # Disable guiding center spatial diffusion
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
 
     info.append(("""\
@@ -435,7 +472,7 @@ def get_default():
          #   - t   time
          #   - q   charge
          """,
-         1)
+         1, Valid(int, values=[0,1]))
     )
     info.append(
         ("ENABLE_DIST_6D",
@@ -451,7 +488,7 @@ def get_default():
          #    - t    time
          #    - q    charge
          """,
-         1)
+         1, Valid(int, values=[0,1]))
     )
     info.append(
         ("ENABLE_DIST_RHO5D",
@@ -467,7 +504,7 @@ def get_default():
          #    - t    time
          #    - q    charge
          """,
-         1)
+         1, Valid(int, values=[0,1]))
     )
     info.append(
         ("ENABLE_DIST_RHO6D",
@@ -484,259 +521,259 @@ def get_default():
          #    - t    time
          #    - q    charge
          """,
-         1)
+         1, Valid(int, values=[0,1]))
     )
     info.append(
         ("DIST_MIN_R",
          """\
          # Minimum bin edge for major R coordinate [m]
          """,
-         0.1)
+         0.1, Valid(float, range=[0.01, 1e2]))
     )
     info.append(
         ("DIST_MAX_R",
          """\
          # Maximum bin edge for R coordinate [m]
          """,
-         10)
+         10, Valid(float, range=[0.01, 1e2]))
     )
     info.append(
         ("DIST_NBIN_R",
          """\
          # Number of bins the interval [DIST_MIN_R, DIST_MAX_R] is divided to
          """,
-         10)
+         10, Valid(int, range=[1, 1e6]))
     )
     info.append(
         ("DIST_MIN_PHI",
          """\
          # Minimum bin edge for phi coordinate [deg]
          """,
-         0)
+         0, Valid(float, range=[0, 360]))
     )
     info.append(
         ("DIST_MAX_PHI",
          """\
          # Maximum bin edge for phi coordinate [deg]
          """,
-         360)
+         360, Valid(float, range=[0, 360]))
     )
     info.append(
         ("DIST_NBIN_PHI",
          """\
          # Number of bins the interval [DIST_MIN_phi, DIST_MAX_phi] is divided to
          """,
-         10)
+         10, Valid(int, range=[1, 1e6]))
     )
     info.append(
         ("DIST_MIN_Z",
          """\
          # Minimum bin edge for z coordinate [m]
          """,
-         -5)
+         -5, Valid(float, range=[-1e2, 1e2]))
     )
     info.append(
         ("DIST_MAX_Z",
          """\
          # Maximum bin edge for z coordinate [m]
          """,
-         5)
+         5, Valid(float, range=[-1e2, 1e2]))
     )
     info.append(
         ("DIST_NBIN_Z",
          """\
          # Number of bins the interval [DIST_MIN_z, DIST_MAX_z] is divided to
          """,
-         10)
+         10, Valid(int, range=[1, 1e6]))
     )
     info.append(
         ("DIST_MIN_RHO",
          """\
          # Minimum bin edge for rho coordinate
          """,
-         0)
+         0, Valid(float, range=[0, 1e1]))
     )
     info.append(
         ("DIST_MAX_RHO",
          """\
          # Maximum bin edge for rho coordinate
          """,
-         2)
+         2, Valid(float, range=[0, 1e1]))
     )
     info.append(
         ("DIST_NBIN_RHO",
          """\
          # Number of bins the interval [DIST_MIN_rho, DIST_MAX_rho] is divided to
          """,
-         10)
+         10, Valid(int, range=[1, 1e6]))
     )
     info.append(
         ("DIST_MIN_THETA",
          """\
          # Minimum bin edge for poloidal angle coordinate [deg]
          """,
-         0)
+         0, Valid(float, range=[0, 360]))
     )
     info.append(
         ("DIST_MAX_THETA",
          """\
          # Maximum bin edge for poloidal angle coordinate [deg]
          """,
-         360)
+         360, Valid(float, range=[0, 360]))
     )
     info.append(
         ("DIST_NBIN_THETA",
          """\
          # Number of bins the interval [DIST_MIN_THETA, DIST_MAX_THETA] is divided to
          """,
-         10)
+         10, Valid(int, range=[1, 1e6]))
     )
     info.append(
         ("DIST_MIN_PPA",
          """\
          # Minimum bin edge for ppa coordinate [kg m/s]
          """,
-         -3e8)
+         -7e-20, Valid(float, range=[-7e-18, 7e-18]))
     )
     info.append(
         ("DIST_MAX_PPA",
          """\
          # Maximum bin edge for ppa coordinate [kg m/s]
          """,
-         3e8)
+         7e-20, Valid(float, range=[-7e-18, 7e-18]))
     )
     info.append(
         ("DIST_NBIN_PPA",
          """\
          # Number of bins the interval [DIST_MIN_PPA, DIST_MAX_PPA] is divided to
          """,
-         10)
+         10, Valid(int, range=[1, 1e6]))
     )
     info.append(
         ("DIST_MIN_PPE",
          """\
          # Minimum bin edge for ppe coordinate [kg m/s]
          """,
-         0)
+         0, Valid(float, range=[0, 7e-18]))
     )
     info.append(
         ("DIST_MAX_PPE",
          """\
          # Maximum bin edge for ppe coordinate [kg m/s]
          """,
-         3e8)
+         7e-20, Valid(float, range=[0, 7e-18]))
     )
     info.append(
         ("DIST_NBIN_PPE",
          """\
          # Number of bins the interval [DIST_MIN_PPE, DIST_MAX_PPE] is divided to
          """,
-         10)
+         10, Valid(int, range=[1, 1e6]))
     )
     info.append(
         ("DIST_MIN_PR",
          """\
          # Minimum bin edge for pR coordinate [kg m/s]
          """,
-         0)
+         0, Valid(float, range=[-7e-18, 7e-18]))
     )
     info.append(
         ("DIST_MAX_PR",
          """\
          # Maximum bin edge for pR coordinate [kg m/s]
          """,
-         3e8)
+         7e-20, Valid(float, range=[-7e-18, 7e-18]))
     )
     info.append(
         ("DIST_NBIN_PR",
          """\
          # Number of bins the interval [DIST_MIN_PR, DIST_MAX_PR] is divided to
          """,
-         10)
+         10, Valid(int, range=[1, 1e6]))
     )
     info.append(
         ("DIST_MIN_PPHI",
          """\
          # Minimum bin edge for pphi coordinate [kg m/s]
          """,
-         0)
+         0, Valid(float, range=[-7e-18, 7e-18]))
     )
     info.append(
         ("DIST_MAX_PPHI",
          """\
          # Maximum bin edge for pphi coordinate [kg m/s]
          """,
-         3e8)
+         7e-20, Valid(float, range=[-7e-18, 7e-18]))
     )
     info.append(
         ("DIST_NBIN_PPHI",
          """\
          # Number of bins the interval [DIST_MIN_PPHI, DIST_MAX_PPHI] is divided to
          """,
-         10)
+         10, Valid(int, range=[1, 1e6]))
     )
     info.append(
         ("DIST_MIN_PZ",
          """\
          # Minimum bin edge for pz coordinate [kg m/s]
          """,
-         0)
+         0, Valid(float, range=[-7e-18, 7e-18]))
     )
     info.append(
         ("DIST_MAX_PZ",
          """\
          # Maximum bin edge for pz coordinate [kg m/s]
          """,
-         3e8)
+         7e-20, Valid(float, range=[-7e-18, 7e-18]))
     )
     info.append(
         ("DIST_NBIN_PZ",
          """\
          # Number of bins the interval [DIST_MIN_PZ, DIST_MAX_PZ] is divided to
          """,
-         10)
+         10, Valid(int, range=[1, 1e6]))
     )
     info.append(
         ("DIST_MIN_TIME",
          """\
          # Minimum bin edge for time coordinate [s]
          """,
-         0)
+         0, Valid(float, range=[0, 1e2]))
     )
     info.append(
         ("DIST_MAX_TIME",
          """\
          # Maximum bin edge for time coordinate [s]
          """,
-         1)
+         1, Valid(float, range=[0, 1e2]))
     )
     info.append(
         ("DIST_NBIN_TIME",
          """\
          # Number of bins the interval [DIST_MIN_TIME, DIST_MAX_TIME] is divided to
          """,
-         1)
+         1, Valid(int, range=[1, 1e6]))
     )
     info.append(
         ("DIST_MIN_CHARGE",
          """\
          # Minimum bin edge for charge coordinate [e]
          """,
-         -100)
+         -100, Valid(int, range=[-1e6, 1e6]))
     )
     info.append(
         ("DIST_MAX_CHARGE",
          """\
          # Maximum bin edge for charge coordinate [e]
          """,
-         100)
+         100, Valid(int, range=[-1e6, 1e6]))
     )
     info.append(
         ("DIST_NBIN_CHARGE",
          """\
          # Number of bins the interval [DIST_MIN_CHARGE, DIST_MAX_CHARGE] is divided to
          """,
-         1)
+         1, Valid(int, range=[1, 1e6]))
     )
 
     info.append(("""\
@@ -753,7 +790,7 @@ def get_default():
          #    - 0 Marker orbit diagnostics are not collected
          #    - 1 Marker orbit diagnostics are collected
          """,
-         1)
+         1, Valid(int, values=[0,1]))
     )
     info.append(
         ("ORBITWRITE_MODE",
@@ -763,7 +800,7 @@ def get_default():
          #    - 0 When marker crosses a plane (Poincare-plot)
          #    - 1 Between given time intervals
          """,
-         1)
+         1, Valid(int, values=[0,1]))
     )
     info.append(
         ("ORBITWRITE_NPOINT",
@@ -774,7 +811,7 @@ def get_default():
          # this parameter is effectively the number of marker's last positions
          # that are stored.
          """,
-         10)
+         10, Valid(float, range=[-1e2, 1e2]))
     )
     info.append(
         ("ORBITWRITE_POLOIDALANGLES",
@@ -782,7 +819,7 @@ def get_default():
          # Poloidal angles of toroidal planes where toroidal plots are collected
          # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 0.
          """,
-         [0, 180])
+         [0, 180], Valid(float, range=[-1, 360], islist=True))
     )
     info.append(
         ("ORBITWRITE_TOROIDALANGLES",
@@ -790,7 +827,7 @@ def get_default():
          # Toroidal angles of poloidal planes where poloidal plots are collected
          # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 0.
          """,
-         [0, 180])
+         [0, 180], Valid(float, range=[-1, 360], islist=True))
     )
     info.append(
         ("ORBITWRITE_RADIALDISTANCES",
@@ -798,7 +835,7 @@ def get_default():
          # Minor radius coordinate where radial plots are collected
          # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 0.
          """,
-         [-1, ])
+         -1, Valid(float, range=[-1, 1e1]))
     )
     info.append(
         ("ORBITWRITE_INTERVAL",
@@ -806,7 +843,7 @@ def get_default():
          # Time interval for writing marker state [s]
          # Used when ENABLE_ORBITWRITE = 1 and ORBITWRITE_MODE = 1.
          """,
-         1e-8)
+         1e-8, Valid(float, range=[0, 1e0]))
     )
 
     info.append(("""\
@@ -822,7 +859,7 @@ def get_default():
          #    - 0 Transport coefficients are not collected
          #    - 1 Transport coefficients are collected
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
     info.append(
         ("TRANSCOEF_INTERVAL",
@@ -831,7 +868,7 @@ def get_default():
          # outer mid-plane crossing if this interval has passed from the
          # previous recording.
          """,
-         -1)
+         0, Valid(float, range=[0, 1e2]))
     )
     info.append(
         ("TRANSCOEF_NAVG",
@@ -839,7 +876,7 @@ def get_default():
          # Number of subsequent data points that are averaged before calculating
          # coefficients to reduce noise.
          """,
-         5)
+         5, Valid(int, range=[1, 1e3]))
     )
     info.append(
         ("TRANSCOEF_RECORDRHO",
@@ -847,7 +884,7 @@ def get_default():
          # Record coefficients in terms of normalized poloidal flux instead of
          # meters.
          """,
-         0)
+         0, Valid(int, values=[0, 1]))
     )
 
     cleaned = []
@@ -858,7 +895,7 @@ def get_default():
 
         cleaned.append((namecmtval[0],
                         textwrap.dedent(namecmtval[1]),
-                        namecmtval[2]))
+                        namecmtval[2], namecmtval[3]))
 
     return cleaned
 
@@ -873,7 +910,7 @@ def generateopt(clean=False):
     defopt = get_default()
     opt = {}
     for namecmtval in defopt:
-        if len(namecmtval) == 3:
+        if len(namecmtval) == 4:
             opt[namecmtval[0]] = namecmtval[2]
 
     if clean:
@@ -910,3 +947,66 @@ class Opt(AscotData):
                 del data[par]
 
         return write_hdf5(fn, data,desc=desc)
+
+
+    def validatevalues(self):
+        """
+        Validate options and return names of faulty parameters.
+        """
+        opt  = get_default()
+        opt0 = {}
+        for o in opt:
+            if len(o) > 2:
+                opt0[o[0]] = o[3]
+
+        msg = []
+        opt = self.read()
+        for o in opt0.keys():
+            if o in opt.keys() and not opt0[o].validate(opt[o]):
+                msg += [o]
+
+        return msg
+
+
+    def tostring(self):
+        """
+        Helper function that reads options data to a single string
+        """
+        # Read options data value pairs
+        opt, info = self.read(info=True)
+
+        # Make sure values are not too accurate
+        # or have too many leading zeros.
+        def trim(val):
+            if np.abs(val) >= 1e4 or (np.abs(val) <=1e-4 and val != 0):
+                return "{0:e}".format(val)
+            else:
+                return "{0:g}".format(val)
+
+        # Store options in a single string variable
+        opttext = ""
+        for i in info:
+            if len(i) == 1:
+                # Subtitle
+                opttext = "\n" + opttext + i[0] + "\n\n"
+                continue
+
+            # Extract name, description and value
+            name        = i[0]
+            description = i[1]
+            value       = opt[name]
+
+            opttext = opttext + description
+            if(len(value) == 1):
+                # Single value
+                opttext = opttext + name + "=" + trim(value[0]) + "\n\n"
+            elif(len(value) > 1):
+                # Multiple values, show as a list
+                opttext = opttext + name + "=" \
+                          + ",".join([trim(v) for v in value]) \
+                          + "\n\n"
+
+        # Remove empty lines from beginning and end
+        opttext = opttext[5:-2]
+
+        return opttext

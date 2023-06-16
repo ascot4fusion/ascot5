@@ -441,7 +441,8 @@ def get_inputqids(f, rungroup, ignore=[]):
         try:
             qid = rungroup.attrs["qid_" + INPUT_PARENTS[inp]].decode('utf-8')
         except KeyError as err:
-            print(err)
+            #print(err)
+            pass
         else:
             qids.append(qid)
 
@@ -492,6 +493,8 @@ def remove_group(f, group):
     If this was an active group, a most recent group is set as an active
     instead. If no other groups exist the parent is also removed.
 
+    Input groups are not removed if they have been used in an existing run.
+
     Note that to reclaim the disk space which the group occupied, one needs
     to call h5repack in a terminal.
 
@@ -519,8 +522,23 @@ def remove_group(f, group):
             #group is a parent group
             group = f[group]
 
-    # Remove the group
+    # Check if this is an input group and whether it has been used in run.
     parent = group.parent
+    if "results" in f.keys() and parent.name != "results":
+        if parent.name == "/":
+            for run in f["results"].keys():
+                for q in f["results"][run].attrs.keys():
+                    if q[:4] == "qid_" and q[4:] == group.name[1:]:
+                        return
+        else:
+            qid = get_qid(group)
+            for run in f["results"].keys():
+                for q in f["results"][run].attrs.keys():
+                    t = f["results"][run].attrs[q].decode('utf-8')
+                    if q[:4] == "qid_" and t == qid:
+                        return
+
+    # Remove the group
     if parent.name!='/':
         was_active = get_active(f, parent) == group
         del f[group.name]
@@ -629,9 +647,10 @@ def read_data(group, name):
         unit_str = group[name].attrs["unit"]
         unit     = unyt.Unit(unit_str)
 
-        return group[name][:] * unit
+        return group[name][:].ravel() * unit
     else:
-        return group[name][:]
+        return group[name][:].ravel()
+
 
 
 def _generate_meta():

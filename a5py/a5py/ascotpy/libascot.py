@@ -21,12 +21,16 @@ from ctypes.util import find_library
 from numpy.ctypeslib import ndpointer
 from a5py.ascot5io.ascot5 import Ascot
 
+class AscotpyInitException(Exception):
+    """Exception raised when Ascotpy object could not be initialized."""
+    pass
+
 class LibAscot:
     """
     An object representing a running ascot5 process.
     """
 
-    def __init__(self, h5fn="ascot.h5", libpath="libascot.so"):
+    def __init__(self, h5fn=None, libpath="libascot.so"):
         """
         Initialize and start Ascot5 process using given HDF5 file as an input.
 
@@ -51,20 +55,16 @@ class LibAscot:
                 + "export LD_LIBRARY_PATH=/spam/ascot5 " \
                 + "or "                                  \
                 + "export LD_LIBRARY_PATH=/spam/ascot5:$LD_LIBRARY_PATH"
-            raise type(e)(str(e) + msg).with_traceback(sys.exc_info()[2])
-
-        # Check that the HDF5 file exists
-        self.h5fn = h5fn.encode('UTF-8')
-        Ascot(str(self.h5fn,'UTF-8'))
+            raise AscotpyInitException(msg)
 
         # Initialize attributes
-        self.bfield_initialized  = False
-        self.efield_initialized  = False
-        self.plasma_initialized  = False
-        self.neutral_initialized = False
-        self.wall_initialized    = False
-        self.boozer_initialized  = False
-        self.mhd_initialized     = False
+        self.bfield_initialized  = None
+        self.efield_initialized  = None
+        self.plasma_initialized  = None
+        self.neutral_initialized = None
+        self.wall_initialized    = None
+        self.boozer_initialized  = None
+        self.mhd_initialized     = None
 
         # Declare functions found in libascot
 
@@ -230,6 +230,9 @@ class LibAscot:
             warnings.warn("libascot_eval_collcoefs not found", Warning)
             pass
 
+        # Check that the HDF5 file exists
+        self.reload(h5fn)
+
 
     def reload(self, h5fn):
         """
@@ -239,17 +242,37 @@ class LibAscot:
             h5fn : str <br>
                 Name of the new HDF5 file.
         """
-        self.free(bfield=self.bfield_initialized,
-                  efield=self.efield_initialized,
-                  plasma=self.plasma_initialized,
-                  wall=self.wall_initialized,
-                  neutral=self.neutral_initialized)
-        self.h5fn = h5fn.encode('UTF-8')
-        Ascot(str(self.h5fn,'UTF-8'))
+        self.free(bfield  = self.bfield_initialized,
+                  efield  = self.efield_initialized,
+                  plasma  = self.plasma_initialized,
+                  wall    = self.wall_initialized,
+                  neutral = self.neutral_initialized,
+                  mhd     = self.mhd_initialized,
+                  boozer  = self.boozer_initialized)
+
+        if h5fn == None:
+            self.h5fn = None
+            self.hdf5 = Ascot()
+        else:
+            self.h5fn = h5fn if type(h5fn) is bytes else h5fn.encode('UTF-8')
+
+            try:
+                self.hdf5 = Ascot(str(self.h5fn,'UTF-8'))
+            except:
+                self.h5fn = None
+                self.hdf5 = None
+                raise
+
+
+    def get_filepath(self):
+        """
+        Get path to the filename or None if no file is open.
+        """
+        return self.h5fn
 
 
     def init(self, bfield=False, efield=False, plasma=False, wall=False,
-             neutral=False, boozer=False, mhd=False):
+             neutral=False, boozer=False, mhd=False, ignorewarnings=False):
         """
         Initialize input data.
 
@@ -271,11 +294,14 @@ class LibAscot:
                 Flag for initializing boozer data.
             mhd : bool, optional <br>
                 Flag for initializing mhd data.
+            ignorewarnings : bool, optional <br>
+                If True, warnings are not displayed when trying to initialize
+                data that is already initialized
 
         Raises:
             RuntimeError if initialization failed.
         """
-        a5 = Ascot(str(self.h5fn,'UTF-8'))
+        a5 = self.hdf5
 
         if isinstance(bfield, str):
             qid    = bfield.encode('UTF-8')
@@ -283,14 +309,16 @@ class LibAscot:
         elif bfield:
             qid = a5.bfield.active.get_qid().encode('UTF-8')
 
-        if bfield and self.bfield_initialized:
-            warnings.warn("Magnetic field already initialized.", Warning)
+        if bfield and self.bfield_initialized == qid:
+            if not ignorewarnings:
+                warnings.warn("Magnetic field already initialized.", Warning)
         elif bfield:
+            self.free(bfield=True)
             if self.libascot.libascot_init(self.h5fn, qid, None, None, None,
                                            None, None, None):
                 raise RuntimeError("Failed to initialize magnetic field")
 
-            self.bfield_initialized = True
+            self.bfield_initialized = qid
 
 
         if isinstance(efield, str):
@@ -299,14 +327,16 @@ class LibAscot:
         elif efield:
             qid = a5.efield.active.get_qid().encode('UTF-8')
 
-        if efield and self.efield_initialized:
-            warnings.warn("Electric field already initialized.", Warning)
+        if efield and self.efield_initialized == qid:
+            if not ignorewarnings:
+                warnings.warn("Electric field already initialized.", Warning)
         elif efield:
+            self.free(efield=True)
             if self.libascot.libascot_init(self.h5fn, None, qid, None, None,
                                            None, None, None) :
                 raise RuntimeError("Failed to initialize electric field")
 
-            self.efield_initialized = True
+            self.efield_initialized = qid
 
 
         if isinstance(plasma, str):
@@ -315,14 +345,16 @@ class LibAscot:
         elif plasma:
             qid = a5.plasma.active.get_qid().encode('UTF-8')
 
-        if plasma and self.plasma_initialized:
-            warnings.warn("Plasma already initialized.", Warning)
+        if plasma and self.plasma_initialized == qid:
+            if not ignorewarnings:
+                warnings.warn("Plasma already initialized.", Warning)
         elif plasma:
+            self.free(plasma=True)
             if self.libascot.libascot_init(self.h5fn, None, None, qid, None,
                                            None, None, None) :
                 raise RuntimeError("Failed to initialize plasma")
 
-            self.plasma_initialized = True
+            self.plasma_initialized = qid
 
 
         if isinstance(wall, str):
@@ -331,14 +363,16 @@ class LibAscot:
         elif wall:
             qid = a5.wall.active.get_qid().encode('UTF-8')
 
-        if wall and self.wall_initialized:
-            warnings.warn("Wall already initialized.", Warning)
+        if wall and self.wall_initialized == qid:
+            if not ignorewarnings:
+                warnings.warn("Wall already initialized.", Warning)
         elif wall:
+            self.free(wall=True)
             if self.libascot.libascot_init(self.h5fn, None, None, None, qid,
                                            None, None, None) :
                 raise RuntimeError("Failed to initialize wall")
 
-            self.wall_initialized = True
+            self.wall_initialized = qid
 
 
         if isinstance(neutral, str):
@@ -347,14 +381,16 @@ class LibAscot:
         elif neutral:
             qid = a5.neutral.active.get_qid().encode('UTF-8')
 
-        if neutral and self.neutral_initialized:
-            warnings.warn("Neutral data already initialized.", Warning)
-        if neutral:
+        if neutral and self.neutral_initialized == qid:
+            if not ignorewarnings:
+                warnings.warn("Neutral data already initialized.", Warning)
+        elif neutral:
+            self.free(neutral=True)
             if self.libascot.libascot_init(self.h5fn, None, None, None, None,
                                            qid, None, None) :
                 raise RuntimeError("Failed to initialize neutral data")
 
-            self.neutral_initialized = True
+            self.neutral_initialized = qid
 
         if isinstance(boozer, str):
             qid    = boozer.encode('UTF-8')
@@ -362,14 +398,16 @@ class LibAscot:
         elif boozer:
             qid = a5.boozer.active.get_qid().encode('UTF-8')
 
-        if boozer and self.boozer_initialized:
-            warnings.warn("Boozer data already initialized.", Warning)
-        if boozer:
+        if boozer and self.boozer_initialized == qid:
+            if not ignorewarnings:
+                warnings.warn("Boozer data already initialized.", Warning)
+        elif boozer:
+            self.free(boozer=True)
             if self.libascot.libascot_init(self.h5fn, None, None, None, None,
                                            None, qid, None) :
                 raise RuntimeError("Failed to initialize boozer data")
 
-            self.boozer_initialized = True
+            self.boozer_initialized = qid
 
         if isinstance(mhd, str):
             qid = mhd.encode('UTF-8')
@@ -377,14 +415,16 @@ class LibAscot:
         elif mhd:
             qid = a5.mhd.active.get_qid().encode('UTF-8')
 
-        if mhd and self.mhd_initialized:
-            warnings.warn("MHD data already initialized.", Warning)
-        if mhd:
+        if mhd and self.mhd_initialized == qid:
+            if not ignorewarnings:
+                warnings.warn("MHD data already initialized.", Warning)
+        elif mhd:
+            self.free(mhd=True)
             if self.libascot.libascot_init(self.h5fn, None, None, None, None,
                                            None, None, qid) :
                 raise RuntimeError("Failed to initialize MHD data")
 
-            self.mhd_initialized = True
+            self.mhd_initialized = qid
 
 
     def free(self, bfield=False, efield=False, plasma=False, wall=False,
@@ -408,33 +448,60 @@ class LibAscot:
             mhd : bool, optional <br>
                 Flag for freeing mhd data.
         """
-        if bfield and self.bfield_initialized:
+        if bfield and self.bfield_initialized is not None:
             self.libascot.libascot_free(1, 0, 0, 0, 0, 0, 0)
-            self.bfield_initialized = False
+            self.bfield_initialized = None
 
-        if efield and self.efield_initialized:
+        if efield and self.efield_initialized is not None:
             self.libascot.libascot_free(0, 1, 0, 0, 0, 0, 0)
-            self.efield_initialized = False
+            self.efield_initialized = None
 
-        if plasma and self.plasma_initialized:
+        if plasma and self.plasma_initialized is not None:
             self.libascot.libascot_free(0, 0, 1, 0, 0, 0, 0)
-            self.plasma_initialized = False
+            self.plasma_initialized = None
 
-        if wall and self.wall_initialized:
+        if wall and self.wall_initialized is not None:
             self.libascot.libascot_free(0, 0, 0, 1, 0, 0, 0)
-            self.wall_initialized = False
+            self.wall_initialized = None
 
-        if neutral and self.neutral_initialized:
+        if neutral and self.neutral_initialized is not None:
             self.libascot.libascot_free(0, 0, 0, 0, 1, 0, 0)
-            self.neutral_initialized = False
+            self.neutral_initialized = None
 
-        if boozer and self.boozer_initialized:
+        if boozer and self.boozer_initialized is not None:
             self.libascot.libascot_free(0, 0, 0, 0, 0, 1, 0)
-            self.boozer_initialized = False
+            self.boozer_initialized = None
 
-        if mhd and self.mhd_initialized:
+        if mhd and self.mhd_initialized is not None:
             self.libascot.libascot_free(0, 0, 0, 0, 0, 0, 1)
-            self.mhd_initialized = False
+            self.mhd_initialized = None
+
+
+    def init_from_run(self, run, bfield=False, efield=False, plasma=False,
+                      wall=False, neutral=False, boozer=False, mhd=False):
+        """
+        Initialize data that was used in the given run.
+        """
+        if isinstance(run, str):
+            run = self.hdf5["q"+run]
+
+        if bfield:
+            bfield = run.bfield.get_qid()
+        if efield:
+            efield = run.efield.get_qid()
+        if plasma:
+            plasma = run.plasma.get_qid()
+        if wall:
+            wall = run.wall.get_qid()
+        if neutral:
+            neutral = run.neutral.get_qid()
+        if boozer:
+            boozer = run.boozer.get_qid()
+        if mhd:
+            mhd = run.mhd.get_qid()
+
+        self.init(bfield=bfield, efield=efield, plasma=plasma, wall=wall,
+                  neutral=neutral, boozer=boozer, mhd=mhd, ignorewarnings=True)
 
 
     def eval_bfield(self, R, phi, z, t, evalb=False, evalrho=False,
@@ -465,7 +532,8 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert self.bfield_initialized, "Magnetic field not initialized"
+        assert self.bfield_initialized is not None, \
+            "Magnetic field not initialized"
 
         R   = np.asarray(R).ravel().astype(dtype="f8")
         phi = np.asarray(phi).ravel().astype(dtype="f8")
@@ -534,8 +602,10 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert self.bfield_initialized, "Magnetic field not initialized"
-        assert self.efield_initialized, "Electric field not initialized"
+        assert self.bfield_initialized is not None, \
+            "Magnetic field not initialized"
+        assert self.efield_initialized is not None, \
+            "Electric field not initialized"
 
         R   = np.asarray(R).ravel().astype(dtype="f8")
         phi = np.asarray(phi).ravel().astype(dtype="f8")
@@ -562,7 +632,8 @@ class LibAscot:
             Dictionary containing nspecies, and anum, znum, charge, and mass for
             each species.
         """
-        assert self.plasma_initialized, "Plasma not initialized"
+        assert self.plasma_initialized is not None, \
+            "Plasma not initialized"
 
         out = {}
         out["nspecies"] = self.libascot.libascot_plasma_get_n_species()
@@ -597,8 +668,10 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert self.bfield_initialized, "Magnetic field not initialized"
-        assert self.plasma_initialized, "Plasma not initialized"
+        assert self.bfield_initialized is not None, \
+            "Magnetic field not initialized"
+        assert self.plasma_initialized is not None, \
+            "Plasma not initialized"
 
         R   = np.asarray(R).ravel().astype(dtype="f8")
         phi = np.asarray(phi).ravel().astype(dtype="f8")
@@ -627,7 +700,7 @@ class LibAscot:
 
     def eval_neutral(self, R, phi, z, t):
         """
-        Evaluate plasma quantities at given coordinates.
+        Evaluate neutral quantities at given coordinates.
 
         Args:
             R : array_like <br>
@@ -646,7 +719,8 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert self.neutral_initialized, "Neutral data not initialized"
+        assert self.neutral_initialized is not None, \
+            "Neutral data not initialized"
 
         R   = np.asarray(R).ravel().astype(dtype="f8")
         phi = np.asarray(phi).ravel().astype(dtype="f8")
@@ -686,7 +760,8 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert self.boozer_initialized, "Boozer data not initialized"
+        assert self.boozer_initialized is not None, \
+            "Boozer data not initialized"
 
         R   = np.asarray(R).ravel().astype(dtype="f8")
         phi = np.asarray(phi).ravel().astype(dtype="f8")
@@ -749,9 +824,12 @@ class LibAscot:
             AssertionError if this is called data uninitialized.
             RuntimeError if evaluation failed.
         """
-        assert self.bfield_initialized, "Magnetic field not initialized"
-        assert self.boozer_initialized, "Boozer data not initialized"
-        assert self.mhd_initialized,    "MHD data not initialized"
+        assert self.bfield_initialized is not None, \
+            "Magnetic field not initialized"
+        assert self.boozer_initialized is not None, \
+            "Boozer data not initialized"
+        assert self.mhd_initialized is not None, \
+            "MHD data not initialized"
 
         R   = np.asarray(R).ravel().astype(dtype="f8")
         phi = np.asarray(phi).ravel().astype(dtype="f8")
@@ -823,8 +901,10 @@ class LibAscot:
             Dictionary with collision coefficients of shape
             (R.size, n_species, va.size).
         """
-        assert self.bfield_initialized, "Magnetic field not initialized"
-        assert self.plasma_initialized, "Plasma not initialized"
+        assert self.bfield_initialized is not None, \
+            "Magnetic field not initialized"
+        assert self.plasma_initialized is not None, \
+            "Plasma not initialized"
 
 
         ma  = float(ma)
@@ -885,7 +965,8 @@ class LibAscot:
         return out
 
     def get_rhotheta_rz(self, rhovals, theta, phi, time):
-        assert self.bfield_initialized, "Magnetic field not initialized"
+        assert self.bfield_initialized is not None, \
+            "Magnetic field not initialized"
 
         rhovals = np.asarray(rhovals).ravel().astype(dtype="f8")
 
