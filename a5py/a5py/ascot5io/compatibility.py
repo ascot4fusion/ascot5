@@ -66,7 +66,7 @@ def convert(fnin):
     - Adds ENABLE_MHD from options.
     - Replace velocity with momentum in distribution options.
     """
-    from ._iohelpers.treedata import get_qid
+    from .coreio.treedata import get_qid
     from a5py.ascot5io.boozer import write_hdf5_dummy as boozer_write_hdf5_dummy
     from a5py.ascot5io.mhd    import write_hdf5_dummy as mhd_write_hdf5_dummy
 
@@ -140,7 +140,7 @@ def convert_1to2(fnin):
 
     - Adds dummy NBI input to existing runs.
     """
-    from ._iohelpers.treedata import get_qid
+    from .coreio.treedata import get_qid
     from a5py.ascot5io.nbi import write_hdf5_dummy
 
     fnout = fnin[:-3] + "_" + str(CURRENT_VERSION) + ".h5"

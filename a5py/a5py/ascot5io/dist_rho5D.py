@@ -10,7 +10,7 @@ import a5py.dist as distmod
 from a5py.marker.alias import get as alias
 import a5py.marker.interpret as interpret
 
-from ._iohelpers.treedata import DataContainer
+from .coreio.treedata import DataContainer
 
 def write_hdf5(fn, run, data):
     """

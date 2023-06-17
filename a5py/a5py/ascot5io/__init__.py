@@ -19,9 +19,9 @@ from a5py.ascot5io.dist_6D    import Dist_6D
 from a5py.ascot5io.dist_rho5D import Dist_rho5D
 from a5py.ascot5io.dist_rho6D import Dist_rho6D
 
-from ._iohelpers.fileapi import INPUTGROUPS
-from ._iohelpers.treeview import RootNode, InputNode, ResultNode
-from ._iohelpers.treedata import DataGroup
+from .coreio.fileapi import INPUTGROUPS
+from .coreio.treeview import RootNode, InputNode, ResultNode
+from .coreio.treedata import DataGroup
 from a5py.routines.runmixin import RunMixin
 import a5py.premade as premade
 
