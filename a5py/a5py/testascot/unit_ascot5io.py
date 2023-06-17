@@ -6,6 +6,7 @@ import time
 import unittest
 import datetime
 import subprocess
+import importlib
 
 from a5py import Ascot
 from a5py.exceptions import AscotIOException
@@ -304,6 +305,35 @@ class TestAscot5IO(unittest.TestCase):
                 ValueError,
                 msg="Failed to raise exception when endcond unknown"):
             state._endcond_check(0x2 | 0x4, "vanished")
+
+    def test_inputs(self):
+        inputs = {
+            "bfield"  : ["B_TC", "B_GS", "B_2DS", "B_3DS", "B_3DST", "B_STS",],
+            "efield"  : ["E_TC", "E_1DS", "E_3D", "E_3DS", "E_3DST",],
+            "marker"  : ["Prt", "GC", "FL",],
+            "wall"    : ["wall_2D", "wall_3D",],
+            "plasma"  : ["plasma_1D", "plasma_1DS",],
+            "neutral" : ["N0_3D",],
+            "boozer"  : ["Boozer",],
+            "mhd"     : ["MHD_STAT", "MHD_NONSTAT",],
+            "options" : ["Opt",],
+            #"nbi"     : ["NBI",],
+            }
+        a5 = Ascot(self.testfilename, create=True)
+        for parent, inp in inputs.items():
+            mod = importlib.import_module("a5py.ascot5io." + parent)
+
+            for grp in inp:
+                fun = getattr(getattr(mod, grp), "write_hdf5_dummy")
+                fun(self.testfilename)
+                a5 = Ascot(self.testfilename)
+                data = a5.data[parent].DUMMY.read()
+
+                fun = getattr(getattr(mod, grp), "write_hdf5")
+                fun(fn=self.testfilename, desc="DUMMY2", **data)
+                a5 = Ascot(self.testfilename)
+                a5.data[parent].DUMMY.destroy()
+                a5.data[parent].DUMMY2.destroy()
 
     def tearDown(self):
         """Remove the file used in testing.

@@ -1,5 +1,4 @@
-"""
-Wrapper class for RunNode that adds methods to plot and access results.
+"""Wrapper class for RunNode that adds methods to plot and access results.
 
 The motivation for this class is following. Consider that user wants to plot
 a figure that shows i) particle orbits in (R,z), ii) their final (R,z) position,
@@ -7,46 +6,125 @@ and iii) the wall tiles. It is not clear whether this plot should be implemented
 as a method for State or Orbit class as data from both are needed. Furthermore,
 neither has access to the wall data. The only logical place for this method
 therefore is in the RunNode that has access to all relevant data.
-
-File: run.py
 """
-
 import numpy as np
 import matplotlib.pyplot as plt
 import pyvista as pv
 
-import a5py.marker.endcond as endcondmod
+from a5py.exceptions import AscotNoDataException
+
 import a5py.plotting as a5plt
 import a5py.wall as wall
 
-class RunMethods():
+class RunMixin():
+    """Class with methods to access and plot orbit and state data.
+
+    This class assumes it is inherited by ResultsNode.
+    """
 
     def _require(self, *args):
-        """Check if required data is present.
-        """
-        pass
+        """Check if required data is present and raise exception if not.
 
-    def getstate(self, key, state="inistate", endcond=None, ids=None):
-        """Same as __getitem__ but with option to filter which points are returned.
+        This is a helper function to quickly check that the data is available.
+
+        Parameters
+        ----------
+        *args : `str`
+            Name(s) of the required data.
+
+        Raises
+        ------
+        AscotNoDataException
+            Raised if the required data is not present.
+        """
+        for arg in args:
+            if not hasattr(self, arg):
+                raise AscotNoDataException(
+                    "Data for \"" +  arg + "\" is required but not present.")
+
+    def getstate(self, qnt, state="ini", ids=None, endcond=None):
+        """Evaluate a marker quantity based on its ini/endstate.
+
+        Inistate is marker's phase-space position right at the start of
+        the simulation and endstate is the position at the end of
+        the simulation.
+
+        This function not only returns the marker phase space coordinates but
+        also other quantities that can be inferred from it and information that
+        is stored along with coordinates. For a complete list of available
+        quantities, see.
+
+        ASCOT5 stores both particle and guiding center phase-space position in
+        all simulations. To differentiate these, quantities with suffix "prt",
+        e.g. "xprt", return particle quantities and without suffix the guiding
+        center quantity is returned.
+
+        Parameters
+        ----------
+        qnt : str
+            Name of the quantity.
+        state : {"ini", "end"}, optional
+            Is the quantity evaluated at the ini- or endstate.
+        ids : array_like, optional
+            Filter markers by their IDs.
+        endcond : str or list [str], optional
+            Filter markers by their end conditions.
+
+            See for a list of all possible end conditions or to list end
+            conditions that are currently present in the data.
+
+            Markers may have multiple end conditions active simultaneously. If
+            just the name of the end condition e.g. "POLMAX" is passed, then all
+            markers that have (at least) the ``POLMAX`` end condition are
+            returned.
+
+            If the end condition is preceded by "NOT", e.g. "NOT POLMAX", then
+            markers that don't have that end condition are returned.
+
+            Passing multiple end conditions in a single string returns markers
+            that have all listed end conditions active, e.g. "MAXPOL MAXTOR"
+            returns markers that have both ``POLMAX`` and ``TORMAX`` active
+            simultaneously.
+
+            Passing end condition strings as separate list items acts as
+            a logical OR, e.g. ["POLMAX", "TORMAX"] returns markers that have
+            either ``POLMAX`` or ``TORMAX`` active.
+
+        Returns
+        -------
+        val : array_like
+            The evaluated quantity sorted by marker ID.
+
+        Raises
+        ------
+        ValueError
+            Raised when the queried quantity could not be interpreted.
         """
         self._require("inistate")
         if endcond is not None: self._require("endstate")
+        if state not in ["ini", "end"]:
+            raise ValueError("Unrecognized state: " + state)
+        if state == "end": self._require("endstate")
 
-        val = getattr(self,state)[key]
+        # Get or evaluate the quantity
+        val = getattr(self, state + "state")[qnt]
 
+        # Parse by ids and endcond
         idx = np.ones(val.shape, dtype=bool)
-
         if endcond is not None:
-            if hasattr(self._runnode, "endstate"):
-                ec = self._runnode.endstate["endcond"]
-            else:
-                ec = self["endcond"]
+            endcond = np.asarray(endcond)
 
-            if isinstance(endcond, str):
-                idx = np.logical_and( idx, ec==endcondmod.getbin(endcond) )
-            else:
+            # Go through each unique end cond and mark that end cond valid or
+            # not. This can then be used to make udix as boolean mask array.
+            uecs, uidx = np.unique(getattr(self, state + "state")[qnt],
+                                   return_inverse=True)
+            mask = np.zeros(uecs.shape, dtype=bool)
+            for i in range(ecs):
                 for ec in endcond:
-                    idx = np.logical_and( idx, ec==endcondmod.getbin(ec) )
+                    accept  = self.endstate._endcond_check(uecs[i], ec)
+                    mask[i] = mask[i] or accept
+
+            idx = mask[uidx]
 
         if ids is not None:
             idx = np.logical_and(idx, np.in1d(self["id"], ids))
@@ -56,21 +134,48 @@ class RunMethods():
         return val
 
 
-    def getorbit(self, endcond=None):
+    def getorbit(self, qnt, ids=None, pncrid=None, endcond=None):
+        """Return orbit data.
+
+        Returns marker phase space coordinates and derived quantities along
+        the recorded orbit, if the orbit recording was enabled.
+
+        Parameters
+        ----------
+        qnt : `str`
+            Name of the quantity.
+        ids : array_like, optional
+            Filter markers by their IDs.
+        pncrid : array_like, optional
+            Filter data points by the Poincaré plane they correspond to.
+        endcond : `str` or `list` [`str`], optional
+            Filter markers by their end conditions.
+
+            See for details on how this argument is parsed and for a list of
+            end conditions present in the data.
+
+        Returns
+        -------
+        val : array_like
+            The queried quantity sorted first by marker ID and then by time.
+        """
         self._require("orbit")
         if endcond is not None: self._require("endstate")
 
     def getstate_markersummary(self):
-        """
-        Returns a summary of marker endconds.
+        """Return a summary of marker end conditions present in the data.
 
-        Returns:
-            summary : array_like, str <br>
-                Array of strings where each string has a format
-                "# of markers : end condition". If markers were aborted
-                then also error messages are listed as separate strings.
-        Raise:
-            LackingDataError if queried endstate is missing from output.
+        Returns
+        -------
+        summary : [`str`]
+            Array of strings where each string has a format
+            "# of markers : end condition". If markers were aborted then also
+            error messages are listed as separate strings with the same format.
+
+        Raises
+        ------
+        AscotNoDataException
+            Raised if endstate is missing from the output.
         """
         self._require("endstate")
         econd = self.endstate["endcond"]
@@ -112,7 +217,7 @@ class RunMethods():
 
 
     def getstate_losssummary(self):
-        """
+        """Return a summary of lost markers.
         """
         self._require("endstate")
 
@@ -139,6 +244,8 @@ class RunMethods():
 
 
     def getwall_figuresofmerit(self):
+        """
+        """
         self._require("endstate")
         ids    = self.endstate.get("walltile", endcond="wall")
         energy = self.endstate.get("energy", endcond="wall")
@@ -170,8 +277,7 @@ class RunMethods():
 
 
     def getorbit_poincareplanes(self):
-        """
-        Return a list of Poincaré planes that was collected in the simulation.
+        """Return a list of Poincaré planes that were present in the simulation.
 
         The list consists of "pol", "tor", and "rad" depending on the type of
         the plane.
@@ -206,39 +312,41 @@ class RunMethods():
         The plot is either 2D+1D or 3D+1D, where the extra coordinate is color,
         depending on the number of queried coordinates.
 
-        Args:
-            x : str <br>
-                Name of the quantity on x-axis.
-            y : str <br>
-                Name of the quantity on y-axis.
-            z : str, optional <br>
-                Name of the quantity on z-axis (makes plot 3D if given).
-            c : str, optional <br>
-                Name of the quantity shown with color scale.
-            color : str, optional <br>
-                Name of the color markers are colored with if c is not given.
-            nc : int, optional <br>
-                Number of colors used if c is given (the color scale is not
-                continuous)
-            cmap : str, optional <br>
-                Name of the colormap where nc colors are picked if c is given.
-            endcond : str, array_like, optional <br>
-                Endcond of those  markers which are plotted.
-            iniend : str, array_like, optional <br>
-                Flag whether a corresponding [x, y, z, c] coordinate is taken
-                from the ini ("i") or endstate ("e").
-            log : bool, array_like, optional <br>
-                Flag whether the corresponding axis [x, y, z, c] is made
-                logarithmic. If that is the case, absolute value is taken before
-                the quantity is passed to log10.
-            axesequal : bool, optional <br>
-                Flag whether to set aspect ratio for x and y (and z) axes equal.
-            axes : Axes, optional <br>
-                The Axes object to draw on. If None, a new figure is displayed.
-            cax : Axes, optional <br>
-                The Axes object for the color data (if c contains data),
-                otherwise taken from axes.
-        Raise:
+        Parameters
+        ----------
+        x : str <br>
+            Name of the quantity on x-axis.
+        y : str <br>
+            Name of the quantity on y-axis.
+        z : str, optional <br>
+            Name of the quantity on z-axis (makes plot 3D if given).
+        c : str, optional <br>
+            Name of the quantity shown with color scale.
+        color : str, optional <br>
+            Name of the color markers are colored with if c is not given.
+        nc : int, optional <br>
+            Number of colors used if c is given (the color scale is not
+            continuous)
+        cmap : str, optional <br>
+            Name of the colormap where nc colors are picked if c is given.
+        endcond : str, array_like, optional <br>
+            Endcond of those  markers which are plotted.
+        iniend : str, array_like, optional <br>
+            Flag whether a corresponding [x, y, z, c] coordinate is taken
+            from the ini ("i") or endstate ("e").
+        log : bool, array_like, optional <br>
+            Flag whether the corresponding axis [x, y, z, c] is made
+            logarithmic. If that is the case, absolute value is taken before
+            the quantity is passed to log10.
+        axesequal : bool, optional <br>
+            Flag whether to set aspect ratio for x and y (and z) axes equal.
+        axes : Axes, optional <br>
+            The Axes object to draw on. If None, a new figure is displayed.
+        cax : Axes, optional <br>
+            The Axes object for the color data (if c contains data),
+            otherwise taken from axes.
+
+        Raises
             LackingDataError if queried state is missing from output.
         """
         if "i" in iniend: self._require("inistate")
@@ -383,24 +491,26 @@ class RunMethods():
         """Poincaré plot where color separates markers or shows connection
         length.
 
-        Args:
-            plane : int <br>
-                Index number of the plane to be plotted in the list given by
-                getorbit_poincareplanes.
-            conlen : bool, optional <br>
-                If true, trajectories of lost markers are colored (in blue
-                shades) where the color shows the connection length at that
-                position. Confined (or all if conlen=False) markers are shown
-                with shades of red where color separates subsequent
-                trajectories.
-            axes : Axes, optional <br>
-                The Axes object to draw on.
-            cax : Axes, optional <br>
-                The Axes object for the connection length (if conlen is True),
-                otherwise taken from axes.
-        Raise:
-            LackingDataError if endstate or poincaré data is missing from
-            output.
+        Parameters
+        ----------
+        plane : int <br>
+            Index number of the plane to be plotted in the list given by
+            getorbit_poincareplanes.
+        conlen : bool, optional <br>
+            If true, trajectories of lost markers are colored (in blue
+            shades) where the color shows the connection length at that
+            position. Confined (or all if conlen=False) markers are shown
+            with shades of red where color separates subsequent
+            trajectories.
+        axes : Axes, optional <br>
+            The Axes object to draw on.
+        cax : Axes, optional <br>
+            The Axes object for the connection length (if conlen is True),
+            otherwise taken from axes.
+
+        Raises
+        ------
+        LackingDataError if endstate or poincaré data is missing from output.
         """
         if not self.has_orbit:
             raise LackingDataError("orbit")
@@ -640,15 +750,15 @@ class RunMethods():
 
 
     def getwall_3dmesh(self):
-        """
-        Return 3D mesh representation of 3D wall and associated loads.
+        """Return 3D mesh representation of 3D wall and associated loads.
 
-        Returns:
-            wallmesh : Polydata <br>
-                Mesh representing the wall. Cell data has fields
-                "pload" (particle load in units of prt/m^2 or prt/m^2s),
-                "eload" (power/energy load in units of W/m^2 or J/m^2),
-                and "iangle" (angle of incidence in units of deg).
+        Returns
+        -------
+        wallmesh : Polydata
+            Mesh representing the wall. Cell data has fields
+            "pload" (particle load in units of prt/m^2 or prt/m^2s),
+            "eload" (power/energy load in units of W/m^2 or J/m^2),
+            and "iangle" (angle of incidence in units of deg).
         """
         wallmesh = pv.PolyData( *self.wall.noderepresentation() )
         ids, _, eload, _, pload, _, iangle = self.getwall_loads()
@@ -665,33 +775,34 @@ class RunMethods():
 
     def plotwall_3dstill(self, wallmesh=None, points=None, data=None, log=False,
                          cpos=None, cfoc=None, cang=None, axes=None, cax=None):
-        """
-        Take a still shot of the mesh and display it using matplotlib backend.
+        """Take a still shot of the mesh and display it using matplotlib
+        backend.
 
         The rendering is done using vtk but the vtk (interactive) window is not
         displayed. It is recommended to use the interactive plot to find desired
         camera position and produce the actual plot using this method. The plot
         is shown using imshow and acts as a regular matplotlib plot.
 
-        Args:
-            wallmesh : Polydata <br>
-                Mesh representing the wall. If not given then construct the
-                mesh from the wall data.
-            points : {array_like, bool}, optional <br>
-                Array Npoint x 3 defining points (markers) to be shown. For
-                each point [x, y, z] coordinates are given. If boolean True is
-                given, then markers are read from the endstate.
-            cpos : array_like, optional <br>
-                Camera position coordinates [x, y, z].
-            cfoc : array_like, optional <br>
-                Camera focal point coordinates [x, y, z].
-            cang : array_like, optional <br>
-                Camera angle [azimuth, elevation, roll].
-            axes : Axes, optional <br>
-                The Axes object to draw on.
-            cax : Axes, optional <br>
-                The Axes object for the color data (if c contains data),
-                otherwise taken from axes.
+        Parameters
+        ----------
+        wallmesh : Polydata
+            Mesh representing the wall. If not given then construct the mesh
+            from the wall data.
+        points : {array_like, bool}, optional
+            Array Npoint x 3 defining points (markers) to be shown. For each
+            point [x, y, z] coordinates are given. If boolean True is given,
+            then markers are read from the endstate.
+        cpos : array_like, optional
+            Camera position coordinates [x, y, z].
+        cfoc : array_like, optional
+            Camera focal point coordinates [x, y, z].
+        cang : array_like, optional
+            Camera angle [azimuth, elevation, roll].
+        axes : Axes, optional
+            The Axes object to draw on.
+        cax : Axes, optional
+            The Axes object for the color data (if c contains data), otherwise
+            taken from axes.
         """
         if wallmesh is None:
             wallmesh = self.getwall_3dmesh()
@@ -710,27 +821,27 @@ class RunMethods():
     def plotwall_3dinteractive(self, wallmesh=None, *args, points=None,
                                data=None, log=False, cpos=None, cfoc=None,
                                cang=None):
-        """
-        Open vtk window to display interactive view of the wall mesh.
+        """Open vtk window to display interactive view of the wall mesh.
 
-        Args:
-            wallmesh, optional : Polydata <br>
-                Mesh representing the wall. If not given then construct the
-                mesh from the wall data.
-            *args : tuple (str, method), optional <br>
-                Key (str) method pairs. When key is pressed when the plot is
-                displayed, the associated method is called. The method should
-                take Plotter instance as an argument.
-            points : array_like, optional <br>
-                Array Npoint x 3 defining points (markers) to be shown. For
-                each point [x, y, z] coordinates are given. If boolean True is
-                given, then markers are read from the endstate.
-            cpos : array_like, optional <br>
-                Camera position coordinates [x, y, z].
-            cfoc : array_like, optional <br>
-                Camera focal point coordinates [x, y, z].
-            cang : array_like, optional <br>
-                Camera angle [azimuth, elevation, roll].
+        Parameters
+        ----------
+        wallmesh, optional : Polydata
+            Mesh representing the wall. If not given then construct the
+            mesh from the wall data.
+        *args : tuple (str, method), optional
+            Key (str) method pairs. When key is pressed when the plot is
+            displayed, the associated method is called. The method should
+            take Plotter instance as an argument.
+        points : array_like, optional
+            Array Npoint x 3 defining points (markers) to be shown. For
+            each point [x, y, z] coordinates are given. If boolean True is
+            given, then markers are read from the endstate.
+        cpos : array_like, optional
+            Camera position coordinates [x, y, z].
+        cfoc : array_like, optional
+            Camera focal point coordinates [x, y, z].
+        cang : array_like, optional
+            Camera angle [azimuth, elevation, roll].
         """
         if wallmesh is None:
             wallmesh = self.getwall_3dmesh()
