@@ -9,19 +9,31 @@ import numpy as np
 from ._iohelpers.fileapi import add_group
 from ._iohelpers.treedata import DataGroup
 
-
 class plasma_1D(DataGroup):
-    """Object representing P_1D data.
+    """Plasma profiles that have only radial dependency.
     """
 
     def read(self):
-        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
+        """Read data from HDF5 file.
 
-    def write(self, fn, data=None):
-        if data is None:
-            data = self.read()
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
 
-        return write_hdf5(fn, **data)
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
+                if key in ["nion", "nrho"]:
+                    out[key] = int(out[key])
+
+        out["idensity"] = np.transpose(out["idensity"])
+        return out
 
     def plot(self, pls=None):
         import matplotlib.pyplot as plt
@@ -75,8 +87,8 @@ class plasma_1D(DataGroup):
 
     @staticmethod
     def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho,
-               edensity, etemperature, idensity, itemperature, desc=None):
-        """Write 1D plasma input in HDF5 file.
+                   edensity, etemperature, idensity, itemperature, desc=None):
+        """Write input data to the HDF5 file.
 
         Parameters
         ----------
@@ -156,57 +168,68 @@ class plasma_1D(DataGroup):
         return gname
 
     @staticmethod
-    def read_hdf5(fn, qid):
-        """
-        Read P_1D input from HDF5 file.
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
 
-        Args:
-        fn : str <br>
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        The dummy output is an uniform hydrogen plasma.
+
+        Parameters
+        ----------
+        fn : str
             Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
 
-        Returns:
-        Dictionary containing input data.
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
         """
+        return plasma_1D.write_hdf5(
+            fn=fn, nrho=3, nion=1, znum=np.array([1]), anum=np.array([1]),
+            mass=np.array([1]), charge=np.array([1]),
+            rho=np.array([0, 0.5, 100]), edensity=1e20*np.ones((3,1)),
+            etemperature=1e3*np.ones((3,1)), idensity=1e20*np.ones((3,1)),
+            itemperature=1e20*np.ones((3,1)), desc="DUMMY")
 
-        path = "plasma/plasma_1D_" + qid
+class plasma_1DS(DataGroup):
+    """Same input as :class:`plasma_1D` but interpolated with splines.
+
+    Spline interpolation could yield negative value even though the inputs
+    were all positive. To avoid this, ASCOT5 internally takes a logarithm
+    of the input data before constructing the splines. The actual values
+    are then computed after the spline-evaluation. The logarithmic also
+    helps to interpolate the values at the edge more accurately.
+    """
+
+    def read(self):
+        """Read data from HDF5 file.
+
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
 
         out = {}
         with h5py.File(fn,"r") as f:
             for key in f[path]:
                 out[key] = f[path][key][:]
+                if key in ["nion", "nrho"]:
+                    out[key] = int(out[key])
 
         out["idensity"] = np.transpose(out["idensity"])
         return out
 
     @staticmethod
-    def write_hdf5_dummy(fn, desc="Dummy"):
-        Nrho   = 3
-        Nion   = 1
-        znum   = np.array([1])
-        anum   = np.array([1])
-        mass   = np.array([1])
-        charge = np.array([1])
-        rho    = np.array([0, 0.5, 100])
-        edens  = 1e20 * np.ones(rho.shape)
-        etemp  = 1e3  * np.ones(rho.shape)
-        idens  = 1e20 * np.ones((rho.size, Nion))
-        itemp  = 1e3  * np.ones(rho.shape)
-        write_hdf5(fn, Nrho, Nion, znum, anum, mass, charge,
-                   rho, edens, etemp, idens, itemp, desc=desc)
-
-class plasma_1DS(DataGroup):
-    """Object representing P_1DS data.
-    """
-
-    def read(self):
-        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
-
-    @staticmethod
     def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho,
-               edensity, etemperature, idensity, itemperature, desc=None):
-        """Write 1DS plasma input in HDF5 file.
+                   edensity, etemperature, idensity, itemperature, desc=None):
+        """Write input data to the HDF5 file.
 
         Parameters
         ----------
@@ -286,26 +309,28 @@ class plasma_1DS(DataGroup):
         return gname
 
     @staticmethod
-    def read_hdf5(fn, qid):
-        """
-        Read P_1DS input from HDF5 file.
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
 
-        Args:
-        fn : str <br>
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        The dummy output is an uniform hydrogen plasma.
+
+        Parameters
+        ----------
+        fn : str
             Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
 
-        Returns:
-        Dictionary containing input data.
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
         """
-
-        path = "plasma/plasma_1DS_" + qid
-
-        out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                out[key] = f[path][key][:]
-
-        out["idensity"] = np.transpose(out["idensity"])
-        return out
+        return plasma_1DS.write_hdf5(
+            fn=fn, nrho=3, nion=1, znum=np.array([1]), anum=np.array([1]),
+            mass=np.array([1]), charge=np.array([1]),
+            rho=np.array([0, 0.5, 100]), edensity=1e20*np.ones((3,1)),
+            etemperature=1e3*np.ones((3,1)), idensity=1e20*np.ones((3,1)),
+            itemperature=1e20*np.ones((3,1)), desc="DUMMY")

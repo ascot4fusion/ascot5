@@ -46,7 +46,7 @@ html_theme_options = {
     'logo_only': True,
     'navigation_depth':6,
     }
-html_logo = 'logo.png'
+html_logo = 'figs/logo.png'
 
 html_static_path = ['_static']
 html_css_files = [

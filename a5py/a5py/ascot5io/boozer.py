@@ -17,25 +17,42 @@ class Boozer(DataGroup):
     """
 
     def read(self):
-        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
+        """Read data from HDF5 file.
 
-    def write(self,fn,data = None, desc=None):
-        if data is None:
-            data = self.read()
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
 
-        if desc is None:
-            return write_hdf5(fn=fn, **data)
-        else:
-            return write_hdf5(fn=fn, desc=desc, **data)
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
+                if key in ["npsi", "ntheta", "nthetag", "nr", "nz", "nrzs"]:
+                    out[key] = int(out[key])
 
-    def write_dummy(self, fn):
-        return write_hdf5_dummy(fn)
+        # (Remove padding to theta_psithetageom)
+        padding = 4
+        nthetag = int(out["nthetag"] - padding*2)
+        out["theta_psithetageom"] = out["theta_psithetageom"][padding:,:]
+        out["theta_psithetageom"] = out["theta_psithetageom"][:nthetag,:]
+        out["nthetag"] = nthetag
+
+        out["psi_rz"]             = np.transpose(out["psi_rz"])
+        out["theta_psithetageom"] = np.transpose(out["theta_psithetageom"])
+        out["nu_psitheta"]        = np.transpose(out["nu_psitheta"])
+
+        return out
 
     @staticmethod
     def write_hdf5(fn, psimin, psimax, npsi, ntheta, nthetag, rmin, rmax, nr,
                zmin, zmax, nz, r0, z0, psi0, psi1, psi_rz, theta_psithetageom,
                nu_psitheta, nrzs, rs, zs, desc=None):
-        """Write boozer input to HDF5 file.
+        """Write input data to the HDF5 file.
 
         Note: the data in theta_psithetageom is assummed to span the whole
         interval (i.e. coinciding start and end points included) in the angular
@@ -135,7 +152,8 @@ class Boozer(DataGroup):
         theta_psithetageom = np.concatenate(
             (data, data[-1,:] + data[1:padding+1,:]) )
         theta_psithetageom = np.concatenate(
-            (data[int(nthetag-padding-1):-1,:] - data[-1,:], theta_psithetageom) )
+            (data[int(nthetag-padding-1):-1,:] - data[-1,:],
+             theta_psithetageom) )
         nthetag += padding*2
 
         with h5py.File(fn, "a") as f:
@@ -176,74 +194,31 @@ class Boozer(DataGroup):
         return gname
 
     @staticmethod
-    def read_hdf5(fn, qid):
-        """
-        Read Boozer input from HDF5 file.
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
 
-        Args:
-        fn : str <br>
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        The dummy output is a very large rectangular wall.
+
+        Parameters
+        ----------
+        fn : str
             Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
 
-        Returns:
-        Dictionary containing input data.
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
         """
+        rs = np.cos(np.linspace(0, 2*np.math.pi, 10))
+        zs = np.sin(np.linspace(0, 2*np.math.pi, 10))
 
-        path = "boozer/Boozer_" + qid
-
-        out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                out[key] = f[path][key][:]
-
-        # (Remove padding to theta_psithetageom)
-        padding = 4
-        nthetag = int(out["nthetag"] - padding*2)
-        out["theta_psithetageom"] = out["theta_psithetageom"][padding:,:]
-        out["theta_psithetageom"] = out["theta_psithetageom"][:nthetag,:]
-        out["nthetag"] = nthetag
-
-        out["psi_rz"]             = np.transpose(out["psi_rz"])
-        out["theta_psithetageom"] = np.transpose(out["theta_psithetageom"])
-        out["nu_psitheta"]        = np.transpose(out["nu_psitheta"])
-
-        return out
-
-    @staticmethod
-    def write_hdf5_dummy(fn, desc="Dummy"):
-        """
-        Write dummy boozer input.
-
-        Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        """
-
-        psimin     = 0
-        psimax     = 1
-        npsi       = 6
-        nthetag    = 10
-        ntheta     = 10
-        rmin       = 0.1
-        rmax       = 10.0
-        nr         = 5
-        zmin       = -10.0
-        zmax       = 10.0
-        nz         = 10
-        r0         = (rmax+rmin)/2.0
-        z0         = (zmin+zmax)/2.0
-        psi0       = 0
-        psi1       = 1
-        nrzs       = ntheta
-
-        rs = np.cos(np.linspace(0, 2*np.math.pi, nrzs))
-        zs = np.sin(np.linspace(0, 2*np.math.pi, nrzs))
-        psi_rz             = np.ones((nr,nz))
-        theta_psithetageom = np.ones((npsi,ntheta))
-        nu_psitheta        = np.ones((npsi,ntheta))
-
-        return write_hdf5(
-            fn, psimin, psimax, npsi, ntheta, nthetag, rmin,
-            rmax, nr, zmin, zmax, nz, r0, z0, psi0, psi1, psi_rz,
-            theta_psithetageom, nu_psitheta, nrzs, rs, zs, desc)
+        return Boozer.write_hdf5(
+            fn=fn, psimin=0, psimax=1, npsi=6, ntheta=10, nthetag=10,
+            rmin=0.1, rmax=10.0, nr=5, zmin=-10, zmax=10, nz=10, r0=5, z0=0,
+            psi0=0, psi1=1, psi_rz=np.ones((5,10)),
+            theta_psithetageom=np.ones((6,10)), nu_psitheta=np.ones((6,10)),
+            nrzs=10, rs=rs, zs=zs, desc="DUMMY")

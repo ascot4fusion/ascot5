@@ -22,26 +22,34 @@ class wall_2D(DataGroup):
     This wall is simple and fast in simulations, but it does not allow
     evaluation of wall loads. For those, use 3D wall instead.
 
-    The wall doesn't have to form a closed loop other than it prevents
-    markers from escaping the computational domain.
+    The wall doesn't have to form a closed loop but it prevents markers
+    from escaping the computational domain.
     """
 
     def read(self):
-        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
+        """Read data from HDF5 file.
 
-    def write(self, fn, data=None):
-        if data is None:
-            data = self.read()
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
 
-        return write_hdf5(fn, **data)
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
+                if key == "nelements":
+                    out[key] = int(out[key])
 
-    def plotRz(self, axes=None, phi=0):
-        w = self.read()
-        plot.plot_segments(w["r"], w["z"], axes=axes)
+        return out
 
     @staticmethod
     def write_hdf5(fn, nelements, r, z, desc=None):
-        """Write 2D wall input to HDF5.
+        """Write input data to the HDF5 file.
 
         First vertex shouldn't correspond to the last vertex, i.e., don't give
         (R,z) coordinates that make a closed loop.
@@ -71,7 +79,7 @@ class wall_2D(DataGroup):
         """
         if r.size != nelements:
             raise ValueError("Size of r does not match the number of elements.")
-        if z.size != elements:
+        if z.size != nelements:
             raise ValueError("Size of z does not match the number of elements.")
 
         parent = "wall"
@@ -82,47 +90,40 @@ class wall_2D(DataGroup):
             g = add_group(f, parent, group, desc=desc)
             gname = g.name.split("/")[-1]
 
-            g.create_dataset("nelements", (1,1),         data=nelements, dtype='i4')
-            g.create_dataset("r",         (nelements,1), data=r,         dtype='f8')
-            g.create_dataset("z",         (nelements,1), data=z,         dtype='f8')
+            g.create_dataset("r",         (nelements,1), data=r, dtype='f8')
+            g.create_dataset("z",         (nelements,1), data=z, dtype='f8')
+            g.create_dataset("nelements", (1,1),         data=nelements,
+                             dtype='i4')
 
         return gname
 
-    @staticmethod
-    def write_hdf5_3D(fn, nelements, r, z, nphi, desc=None):
-
-        x1x2x3 = np.ones((2*nelements*nphi, 3))
-        y1y2y3 = np.ones((2*nelements*nphi, 3))
-        r1r2r3 = np.ones((2*nelements*nphi, 3))
-        p1p2p3 = np.ones((2*nelements*nphi, 3))
-        z1z2z3 = np.ones((2*nelements*nphi, 3))
-
-        def pol2cart(rho, phi):
-            x = rho * np.cos(phi)
-            y = rho * np.sin(phi)
-            return(x, y)
-
-        pv = np.linspace(0, 2*np.pi, nphi+1)
-        for i in range(1,nphi+1):
-            for j in range(n):
-                r1r2r3[(i-1)*2*n + 2*(j-1),:] = [ r[j],    r[j],  r[j-1] ]
-                p1p2p3[(i-1)*2*n + 2*(j-1),:] = [ pv[i-1], pv[i], pv[i] ]
-                z1z2z3[(i-1)*2*n + 2*(j-1),:] = [ z[j],    z[j],  z[j-1] ]
-
-                r1r2r3[(i-1)*2*n + 2*(j-1) + 1,:] = [ r[j],    r[j-1],  r[j-1] ]
-                p1p2p3[(i-1)*2*n + 2*(j-1) + 1,:] = [ pv[i-1], pv[i-1], pv[i] ]
-                z1z2z3[(i-1)*2*n + 2*(j-1) + 1,:] = [ z[j],    z[j-1],  z[j-1] ]
-
-        x1x2x3,y1y2y3 = pol2cart(r1r2r3, p1p2p3)
-
-        return {"nelements" : 2*nelements*nphi, "x1x2x3" : x1x2x3,
-                "y1y2y3" : y1y2y3, "z1z2z3" : z1z2z3}
+    def plotRz(self, axes=None, phi=0):
+        w = self.read()
+        plot.plot_segments(w["r"], w["z"], axes=axes)
 
     @staticmethod
-    def write_hdf5_dummy(fn, desc="Dummy"):
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
+
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        The dummy output is a very large rectangular wall.
+
+        Parameters
+        ----------
+        fn : str
+            Full path to the HDF5 file.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+        """
         r = np.array([0.01, 100, 100, 0.01])
         z = np.array([-100, -100, 100, 100])
-        write_hdf5(fn=fn, nelements=4, r=r, z=z, desc=desc)
+        return wall_2D.write_hdf5(fn=fn, nelements=4, r=r, z=z, desc="DUMMY")
 
 
 class wall_3D(DataGroup):
@@ -145,11 +146,49 @@ class wall_3D(DataGroup):
     number_of_elements = None
 
     def read(self):
-        W=read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
+        """Read data from HDF5 file.
 
-        # The dimensionality of  nTriangles = a5wall['nelements'][0][0] varies, so by-pass it.
-        self.number_of_elements = W['x1x2x3'].shape[0]
-        return W
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
+
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
+                if key == "nelements":
+                    out[key] = int(out[key])
+
+            nTriangles = out['x1x2x3'].shape[0]
+
+            if path+'/flag' in f:
+                flagAttrs = ['flagIdStrings','flagIdList']
+                for s in flagAttrs:
+                    if s in f[ path+'/flag' ].attrs:
+                        out[s] = f[ path+'/flag' ].attrs.get(s)
+
+        if not 'flag' in out:
+            out['flag'] = np.zeros(shape=(nTriangles,),dtype=int)
+
+        if 'flagIdStrings' in out:
+            # We need to decode the bytearrays into strings.
+            s=[]
+            for S in out['flagIdStrings']:
+                s.append(S.decode('utf-8'))
+                out['flagIdStrings']=s
+        else:
+            # Generate some flag names.
+            out['flagIdList']=np.unique(out['flag'])
+            out['flagIdStrings']=[]
+            for fl in out['flagIdList']:
+                out['flagIdStrings'].append('Flag {}'.format(fl))
+
+        return out
 
     def getNumberOfElements(self):
         if self.number_of_elements is None:
@@ -192,13 +231,6 @@ class wall_3D(DataGroup):
             vertices[2::3,2] = h5["z1z2z3"][:,2]
 
         return (vertices, faces)
-
-
-    def write(self, fn, data=None):
-        if data is None:
-            data = self.read()
-
-        return write_hdf5(fn, **data)
 
     def remove_small_triangles(self,maximumAreaToRemove=0.0,data=None):
         "The modification happens in-place. No deep copy is made!"
@@ -370,9 +402,9 @@ class wall_3D(DataGroup):
         return new_rwall
 
     @staticmethod
-    def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, desc=None,
-                   flag=None, flagIdList=None, flagIdStrings=None):
-        """Write 3D wall input in HDF5 file.
+    def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, flag=None,
+                   flagIdList=None, flagIdStrings=None, desc=None):
+        """Write input data to the HDF5 file.
 
         Parameters
         ----------
@@ -386,14 +418,14 @@ class wall_3D(DataGroup):
             Each triangle's vertices' y coordinates [m].
         z1z2z3 : array_like (nelements,3)
             Each triangle's vertices' z coordinates [m].
-        desc : str, optional
-            Input description.
         flag : array_like (nelements,1), optional
             Integer array depicting the wall component of each triangle.
         flagIdList : array_like (nUniqueFlags), optional
             List of keys (int) of the flagIdStrings.
         flagIdStrings : array_like (nUniqueFlags), optional
             List of values (str) of the flagIdStrings.
+        desc : str, optional
+            Input description.
 
         Returns
         -------
@@ -435,7 +467,8 @@ class wall_3D(DataGroup):
             for s in flagIdStrings:
                 if len(s) >  strlen:
                     strlen = len(s)
-            fids=np.empty(shape=(len(flagIdStrings),),dtype='|S{}'.format(strlen) )
+            fids = np.empty( shape=(len(flagIdStrings),),
+                             dtype='|S{}'.format(strlen) )
             for istr,s in enumerate(flagIdStrings):
                 fids[istr]=s
 
@@ -443,12 +476,16 @@ class wall_3D(DataGroup):
             g = add_group(f, parent, group, desc=desc)
             gname = g.name.split("/")[-1]
 
-            g.create_dataset('x1x2x3',    (nelements,3), data=x1x2x3,    dtype='f8')
-            g.create_dataset('y1y2y3',    (nelements,3), data=y1y2y3,    dtype='f8')
-            g.create_dataset('z1z2z3',    (nelements,3), data=z1z2z3,    dtype='f8')
-            g.create_dataset('nelements', (1,1),         data=nelements, dtype='i4')
+            g.create_dataset('x1x2x3',    (nelements,3), data=x1x2x3,
+                             dtype='f8')
+            g.create_dataset('y1y2y3',    (nelements,3), data=y1y2y3,
+                             dtype='f8')
+            g.create_dataset('z1z2z3',    (nelements,3), data=z1z2z3,
+                             dtype='f8')
+            g.create_dataset('nelements', (1,1),         data=nelements,
+                             dtype='i4')
 
-            fl = g.create_dataset('flag', (nelements,1), data=flag,      dtype='i4')
+            fl = g.create_dataset('flag', (nelements,1), data=flag, dtype='i4')
             if flagIdList is not None and flagIdStrings is not None:
                 flagIdList = np.array(flagIdList)
                 fl.attrs.create(name='flagIdList', data=flagIdList, dtype='i4')
@@ -457,52 +494,78 @@ class wall_3D(DataGroup):
         return gname
 
     @staticmethod
-    def read_hdf5(fn, qid):
-        """
-        Read 3D wall input from HDF5 file.
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
 
-        Args:
-        fn : str <br>
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        The dummy output consists of a single triangle on a poloidal plane.
+
+        Parameters
+        ----------
+        fn : str
             Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
 
-        Returns:
-        Dictionary containing input data.
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
         """
+        return wall_3D.write_hdf5(
+            fn=fn, nelements=1, x1x2x3=np.array([[4],[8],[8]]).T,
+            y1y2y3=np.array([[0],[0],[0]]).T,
+            z1z2z3=np.array([[-4],[-4],[4]]).T, desc="DUMMY")
 
-        path = "wall/wall_3D_" + qid
+    @staticmethod
+    def convert_wall_2D(nphi, **kwargs):
+        """Convert :class:`wall_2D` input to :class:`wall_3D` input.
 
-        out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                out[key] = f[path][key][:]
+        This function repeats the 2D wall contour around the torus at intervals
+        Delta phi = 2 pi / (nphi - 1). Then each (R, z) point is connected to a
+        equivalent point in the adjacent contours by a line segment forming 3D
+        wall made of rectangles. Finally each rectangle is divided into two
+        triangles.
 
-            nTriangles = out['x1x2x3'].shape[0]
+        Parameters
+        ----------
+        nphi : int
+            Number of toroidal segments to be created.
+        **kwargs
+            Arguments passed to :meth:`wall_2D.write_hdf5` excluding ``fn`` and
+            ``desc``.
 
-            if path+'/flag' in f:
-                flagAttrs = ['flagIdStrings','flagIdList']
-                for s in flagAttrs:
-                    if s in f[ path+'/flag' ].attrs:
-                        out[s] = f[ path+'/flag' ].attrs.get(s)
+        Returns
+        -------
+        out : dict
+            :class:`wall_2D` converted as an input for :meth:`write_hdf5`.
+        """
+        x1x2x3 = np.ones((2*nelements*nphi, 3))
+        y1y2y3 = np.ones((2*nelements*nphi, 3))
+        r1r2r3 = np.ones((2*nelements*nphi, 3))
+        p1p2p3 = np.ones((2*nelements*nphi, 3))
+        z1z2z3 = np.ones((2*nelements*nphi, 3))
 
-            if not 'n' in out:
-                out['n'] = np.array([nTriangles])
+        def pol2cart(rho, phi):
+            """Poloidal coordinates to Cartesian.
+            """
+            x = rho * np.cos(phi)
+            y = rho * np.sin(phi)
+            return(x, y)
 
-            if not 'flag' in out:
-                out['flag'] = np.zeros(shape=(nTriangles,),dtype=int)
+        pv = np.linspace(0, 2*np.pi, nphi+1)
+        for i in range(1,nphi+1):
+            for j in range(n):
+                r1r2r3[(i-1)*2*n + 2*(j-1),:] = [ r[j],    r[j],  r[j-1] ]
+                p1p2p3[(i-1)*2*n + 2*(j-1),:] = [ pv[i-1], pv[i], pv[i] ]
+                z1z2z3[(i-1)*2*n + 2*(j-1),:] = [ z[j],    z[j],  z[j-1] ]
 
-            if 'flagIdStrings' in out:
-                # We need to decode the bytearrays into strings.
-                s=[]
-                for S in out['flagIdStrings']:
-                    s.append(S.decode('utf-8'))
-                out['flagIdStrings']=s
-            else:
-                # Generate some flag names.
-                out['flagIdList']=np.unique(out['flag'])
-                out['flagIdStrings']=[]
-                for fl in out['flagIdList']:
-                    out['flagIdStrings'].append('Flag {}'.format(fl))
+                r1r2r3[(i-1)*2*n + 2*(j-1) + 1,:] = [ r[j],    r[j-1],  r[j-1] ]
+                p1p2p3[(i-1)*2*n + 2*(j-1) + 1,:] = [ pv[i-1], pv[i-1], pv[i] ]
+                z1z2z3[(i-1)*2*n + 2*(j-1) + 1,:] = [ z[j],    z[j-1],  z[j-1] ]
 
-        return out
+        x1x2x3,y1y2y3 = pol2cart(r1r2r3, p1p2p3)
+
+        return {"nelements" : 2*nelements*nphi, "x1x2x3" : x1x2x3,
+                "y1y2y3" : y1y2y3, "z1z2z3" : z1z2z3}

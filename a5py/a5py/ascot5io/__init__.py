@@ -2,12 +2,12 @@
 """
 from .bfield  import B_TC, B_GS, B_2DS, B_3DS, B_3DST, B_STS
 from .efield  import E_TC, E_1DS, E_3D, E_3DS, E_3DST
-from .marker  import mrk_prt, mrk_gc, mrk_fl
+from .marker  import Prt, GC, FL
 from .plasma  import plasma_1D, plasma_1DS
 from .wall    import wall_2D, wall_3D
 from .neutral import N0_3D
 from .boozer  import Boozer
-from .mhd     import MHD
+from .mhd     import MHD_STAT, MHD_NONSTAT
 from .options import Opt
 from .nbi     import NBI
 
@@ -30,11 +30,11 @@ HDF5TOOBJ = {
     "B_3DST" : B_3DST, "B_STS" : B_STS,
     "E_TC" : E_TC, "E_1DS" : E_1DS, "E_3D" : E_3D, "E_3DS" : E_3DS,
     "E_3DST" : E_3DST,
-    "prt" : mrk_prt, "gc" : mrk_gc, "fl" : mrk_fl,
+    "prt" : Prt, "gc" : GC, "fl" : FL,
     "wall_2D" : wall_2D, "wall_3D" : wall_3D,
     "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS,
     "N0_3D" : N0_3D,
-    "Boozer" : Boozer, "MHD_STAT" : MHD, "MHD_NONSTAT" : MHD,
+    "Boozer" : Boozer, "MHD_STAT" : MHD_STAT, "MHD_NONSTAT" : MHD_NONSTAT,
     "opt" : Opt,
     "nbi" : NBI,
     "inistate" : State,
@@ -202,7 +202,7 @@ class Ascot5IO(RootNode):
             QID of the created input.
         """
         if inputdata is None:
-            qid = HDF5TOOBJ[inputtype](self, None).write_dummy(
+            qid = HDF5TOOBJ[inputtype].write_hdf5_dummy(
                 self._ascot.file_getpath())
         else:
             qid = HDF5TOOBJ[inputtype].write_hdf5(

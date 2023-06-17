@@ -16,13 +16,26 @@ class NBI(DataGroup):
     """
 
     def read(self):
-        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
+        """Read data from HDF5 file.
 
-    def write(self, fn, data=None):
-        if data is None:
-            data = self.read()
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
 
-        return write_hdf5(fn, **data)
+        out = []
+        with h5py.File(fn,"r") as f:
+            ninj = f[path]["ninj"][0]
+            for i in range(0,ninj):
+                out.append({})
+                for key in f[path+"/inj"+str(i+1)]:
+                    out[i][key] = f[path+"/inj"+str(i+1)][key][:]
+
+        return out
 
     def plot_grid_3D(self, ax=None):
         beams = self.read()
@@ -46,7 +59,7 @@ class NBI(DataGroup):
 
     @staticmethod
     def write_hdf5(fn, nbi, desc=None):
-        """Write NBI input in HDF5 file.
+        """Write input data to the HDF5 file.
 
         Parameters
         ----------
@@ -139,10 +152,10 @@ class NBI(DataGroup):
                 ginj.create_dataset("div_halo_frac", (1,),
                                     data=nbi[i]["div_halo_frac"], dtype="f8")
 
-                ginj.create_dataset("div_halo_h", (1,), data=nbi[i]["div_halo_h"],
-                                    dtype="f8")
-                ginj.create_dataset("div_halo_v", (1,), data=nbi[i]["div_halo_v"],
-                                    dtype="f8")
+                ginj.create_dataset("div_halo_h", (1,),
+                                    data=nbi[i]["div_halo_h"], dtype="f8")
+                ginj.create_dataset("div_halo_v", (1,),
+                                    data=nbi[i]["div_halo_v"], dtype="f8")
                 ginj.create_dataset("anum",       (1,), data=nbi[i]["anum"],
                                     dtype="i4")
                 ginj.create_dataset("znum",       (1,), data=nbi[i]["znum"],
@@ -159,38 +172,25 @@ class NBI(DataGroup):
         return gname
 
     @staticmethod
-    def read_hdf5(fn, qid):
-        """
-        Read NBI input from HDF5 file.
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
 
-        Args:
-        fn : str <br>
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        The dummy output is a very large rectangular wall.
+
+        Parameters
+        ----------
+        fn : str
             Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
 
-        Returns:
-        Dictionary containing input data.
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
         """
-
-        path = "nbi/nbi_" + qid
-
-        out = []
-        with h5py.File(fn,"r") as f:
-            ninj = f[path]["ninj"][0]
-            for i in range(0,ninj):
-                out.append({})
-                for key in f[path+"/inj"+str(i+1)]:
-                    out[i][key] = f[path+"/inj"+str(i+1)][key][:]
-
-        return out
-
-    @staticmethod
-    def write_hdf5_dummy(fn, desc="Dummy"):
-        """
-        Write a dummy injector.
-        """
-
         nbi = {
             "id" : 1,
             "nbeamlet" : 1,
@@ -212,4 +212,4 @@ class NBI(DataGroup):
             "efrac" : [1,0,0],
             "power" : 1
         }
-        return write_hdf5(fn, [nbi], desc=desc)
+        return NBI.write_hdf5(fn, [nbi], desc="DUMMY")

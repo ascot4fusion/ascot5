@@ -17,23 +17,30 @@ import numpy as np
 from ._iohelpers.fileapi import add_group
 from ._iohelpers.treedata import DataGroup
 
-class MHD(DataGroup):
-    """Object representing MHD data.
+class MHD_STAT(DataGroup):
+    """Stationary MHD eigenfunctions.
     """
 
     def read(self):
-        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
+        """Read data from HDF5 file.
 
-    def isstat(self):
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
         """
-        Is the data STAT or NONSTAT.
-        """
-        path = "mhd/MHD_STAT_" + self.get_qid()
-        with h5py.File(self._file, "r") as f:
-            if path not in f:
-                return False
-        return True
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
 
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
+
+        out["alpha"] = np.transpose(out["alpha"], (1,0) )
+        out["phi"]   = np.transpose(out["phi"],   (1,0) )
+        return out
 
     def plot_amplitude(self, amplitude="alpha", mode=None, ax=None):
         """
@@ -83,17 +90,10 @@ class MHD(DataGroup):
         if ax is None:
             plt.show()
 
-    def write_dummy(self, fn):
-        return write_hdf5_dummy(fn)
-
     @staticmethod
     def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, phase, alpha,
-                   phi, nrho, rhomin, rhomax, ntime=None, tmin=None, tmax=None,
-                   desc=None):
-        """Write MHD input to HDF5 file.
-
-        This module writes both stationary and non-stationary MHD data.
-        The latter is used when the time-grid is provided.
+                   phi, nrho, rhomin, rhomax, desc=None):
+        """Write input data to the HDF5 file.
 
         Parameters
         ----------
@@ -111,26 +111,16 @@ class MHD(DataGroup):
             Mode frequencies [rad/s].
         omega : array_like (nmode,)
             Mode phases [rad].
-        alpha : array_like (nrho, ntime, nmode)
-            Magnetic perturbation eigenfunctions, if no time grid the shape
-            should be (nrho, nmode).
-        phi : array_like (nrho, ntime, nmode)
-            Electric perturbation eigenfunctions, if no time grid the shape
-            should be (nrho, nmode).
+        alpha : array_like (nrho, nmode)
+            Magnetic perturbation eigenfunctions.
+        phi : array_like (nrho, nmode)
+            Electric perturbation eigenfunctions.
         nrho : int
             Number of rho grid points.
         rhomin : float
             Minimum value in rho grid.
         rhomax : float
             Maximum value in rho grid.
-        ntime : int, optional
-            Number of time grid points.
-        tmin : float, optional
-            Minimum value in time grid which must be given for non-stationary
-            input.
-        tmax : float, optional
-            Maximum value in time grid which must be given for non-stationary
-            input.
         desc : str, optional
             Input's description.
 
@@ -148,29 +138,15 @@ class MHD(DataGroup):
             raise ValueError("Shape of nmodes is inconsistent with nmode")
         if mmodes.size != nmode:
             raise ValueError("Shape of mmodes is inconsistent with nmode")
-
-        if not (ntime is None and tmin is None and tmax is None):
-            raise ValueError("Time grid data not consistent")
-        if not (ntime is not None and tmin is not None and tmax is not None):
-            raise ValueError("Time grid data not consistent")
-
-        if ntime is None:
-            if alpha.shape != (nrho,nmode):
-                raise ValueError("alpha has inconsistent shape")
-            if phi.shape   != (nrho,nmode):
-                raise ValueError("phi has inconsistent shape")
-            alpha = np.transpose(alpha, (1,0) )
-            phi   = np.transpose(phi,   (1,0) )
-        else:
-            if alpha.shape != (nrho,ntime,nmode):
-                raise ValueError("alpha has inconsistent shape")
-            if phi.shape   != (nrho,ntime,nmode):
-                raise ValueError("phi has inconsistent shape")
-            alpha = np.transpose(alpha, (2,1,0) )
-            phi   = np.transpose(phi,   (2,1,0) )
+        if alpha.shape != (nrho,nmode):
+            raise ValueError("alpha has inconsistent shape")
+        if phi.shape   != (nrho,nmode):
+            raise ValueError("phi has inconsistent shape")
+        alpha = np.transpose(alpha, (1,0) )
+        phi   = np.transpose(phi,   (1,0) )
 
         parent = "mhd"
-        group  = "MHD_STAT" if ntime is None else "MHD_NONSTAT"
+        group  = "MHD_STAT"
         gname  = ""
 
         with h5py.File(fn, "a") as f:
@@ -189,72 +165,223 @@ class MHD(DataGroup):
             g.create_dataset("omega",     (nmode,), data=omega,     dtype="f8")
             g.create_dataset("phase",     (nmode,), data=phase,     dtype="f8")
 
-            if ntime is None:
-                g.create_dataset("alpha", (nmode,nrho), data=alpha, dtype="f8")
-                g.create_dataset("phi",   (nmode,nrho), data=phi,   dtype="f8")
-            else:
-                g.create_dataset("ntime", (1,), data=ntime, dtype="i4")
-                g.create_dataset("tmin",  (1,), data=tmin,  dtype="f8")
-                g.create_dataset("tmax",  (1,), data=tmax,  dtype="f8")
-                g.create_dataset("alpha", (nmode,ntime,nrho), data=alpha,dtype="f8")
-                g.create_dataset("phi",   (nmode,ntime,nrho), data=phi,  dtype="f8")
+            g.create_dataset("alpha", (nmode,nrho), data=alpha, dtype="f8")
+            g.create_dataset("phi",   (nmode,nrho), data=phi,   dtype="f8")
 
         return gname
 
+    @staticmethod
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
 
-    def write_hdf5_dummy(fn, desc="Dummy"):
-        """Write dummy MHD input.
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
 
-        Args:
-        fn : str <br>
+        This method writes two modes with constant eigenfunctions.
+
+        Parameters
+        ----------
+        fn : str
             Full path to the HDF5 file.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
         """
-        nmode = 2
-        nrho  = 6
+        return MHD_STAT.write_hdf5(
+            fn=fn, nmode=2, nmodes=np.array([1, 2]), mmodes=np.array([3, 4]),
+            amplitude=np.array([0.1, 2]), omega=np.array([1, 1.5]),
+            phase=np.array([0, 3.141/4]), alpha=np.ones((6,2)),
+            phi=np.ones((6,2)), nrho=6, rhomin=0, rhomax=1, desc="DUMMY")
 
-        nmodes    = np.array([1, 2])
-        mmodes    = np.array([3, 4])
-        amplitude = np.array([0.1, 2])
-        omega     = np.array([1, 1.5])
-        phase     = np.array([0, 3.141/4])
-        alpha     = np.ones((nrho,nmode))
-        phi       = np.ones((nrho,nmode))
-        rhomin    = 0
-        rhomax    = 1
-        return write_hdf5(
-            fn, nmode, nmodes, mmodes, amplitude, omega, phase, alpha, phi,
-            nrho, rhomin, rhomax,
-            desc=desc)
+class MHD_NONSTAT(DataGroup):
+    """Time-dependent MHD eigenfunctions.
+    """
 
+    def read(self):
+        """Read data from HDF5 file.
 
-    def read_hdf5(fn, qid):
-        """Read MHD input from HDF5 file.
-
-        Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
-
-        Returns:
-        Dictionary containing input data.
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
         """
-
-        path = "mhd/MHD_STAT_" + qid
-        isstat = True
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
 
         out = {}
         with h5py.File(fn,"r") as f:
-            if path not in f:
-                path = "mhd/MHD_NONSTAT_" + qid
-                isstat = False
             for key in f[path]:
                 out[key] = f[path][key][:]
 
-        if isstat:
-            out["alpha"] = np.transpose(out["alpha"], (1,0) )
-            out["phi"]   = np.transpose(out["phi"],   (1,0) )
-        else:
-            out["alpha"] = np.transpose(out["alpha"], (2,1,0) )
-            out["phi"]   = np.transpose(out["phi"],   (2,1,0) )
+        out["alpha"] = np.transpose(out["alpha"], (2,1,0) )
+        out["phi"]   = np.transpose(out["phi"],   (2,1,0) )
         return out
+
+    def plot_amplitude(self, amplitude="alpha", mode=None, ax=None):
+        """
+        Plot radial profile of all (or given mode) amplitudes.
+
+        For NONSTAT the profiles are shown at earliest time in dataset.
+        TODO: Animate the NONSTAT to show profiles as a function of time.
+
+        Args:
+            amplitude : str <br>
+                Which amplitude is plotted: "alpha" (magnetic) or "phi" (electric)
+            mode : tuple(int,int) <br>
+                Mode (n,m) to be plotted or None to plot all modes.
+            ax : axes <br>
+                Axes where plotting is done or None to create and show new fig.
+        """
+        import matplotlib.pyplot as plt
+
+        data = self.read()
+        isstat = self.isstat()
+
+        axes = ax
+        if ax is None:
+            fig  = plt.figure()
+            axes = fig.add_subplot(1,1,1)
+
+        axes.set_xlabel(r"$\rho$")
+        axes.set_xlim(0,1)
+        if amplitude == "alpha":
+            axes.set_ylabel("Tm")
+        else:
+            axes.set_ylabel("V")
+
+        amplitude = data[amplitude]
+        rho = np.linspace(data["rhomin"], data["rhomax"], int(data["nrho"]))
+
+        for n in range(int(data["nmode"])):
+            if mode is None or \
+               ( mode[0] == data["nmodes"][n] and mode[1] == data["mmodes"][n] ):
+                if isstat:
+                    axes.plot(rho, amplitude[:,n] * data["amplitude"][n])
+                else:
+                    #t = data["tmin"]
+                    #tgrid = np.linspace(data["tmin"], data["tmax"], data["ntime"])
+                    axes.plot(rho, amplitude[n,0,:] * data["amplitude"][n])
+
+        if ax is None:
+            plt.show()
+
+    @staticmethod
+    def write_hdf5(fn, nmode, nmodes, mmodes, amplitude, omega, phase, alpha,
+                   phi, nrho, rhomin, rhomax, ntime, tmin, tmax,
+                   desc=None):
+        """Write input data to the HDF5 file.
+
+        Parameters
+        ----------
+        fn : str
+            Full path to the HDF5 file.
+        nmode : int
+            Number of modes.
+        nmodes : array_like (nmode,)
+            Mode n (toroidal) numbers.
+        mmodes : array_like (nmode,)
+            Mode m (poloidal) numbers.
+        amplitude : array_like (nmode,)
+            Mode amplitudies.
+        omega : array_like (nmode,)
+            Mode frequencies [rad/s].
+        omega : array_like (nmode,)
+            Mode phases [rad].
+        alpha : array_like (nrho, ntime, nmode)
+            Magnetic perturbation eigenfunctions.
+        phi : array_like (nrho, ntime, nmode)
+            Electric perturbation eigenfunctions.
+        nrho : int
+            Number of rho grid points.
+        rhomin : float
+            Minimum value in rho grid.
+        rhomax : float
+            Maximum value in rho grid.
+        ntime : int, optional
+            Number of time grid points.
+        tmin : float
+            Minimum value in time grid.
+        tmax : float, optional
+            Maximum value in time grid.
+        desc : str, optional
+            Input's description.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+
+        Raises
+        ------
+        ValueError
+            If inputs were not consistent.
+        """
+        if nmodes.size != nmode:
+            raise ValueError("Shape of nmodes is inconsistent with nmode")
+        if mmodes.size != nmode:
+            raise ValueError("Shape of mmodes is inconsistent with nmode")
+        if alpha.shape != (nrho,ntime,nmode):
+            raise ValueError("alpha has inconsistent shape")
+        if phi.shape   != (nrho,ntime,nmode):
+            raise ValueError("phi has inconsistent shape")
+        alpha = np.transpose(alpha, (2,1,0) )
+        phi   = np.transpose(phi,   (2,1,0) )
+
+        parent = "mhd"
+        group  = "MHD_NONSTAT"
+        gname  = ""
+
+        with h5py.File(fn, "a") as f:
+            g = add_group(f, parent, group, desc=desc)
+            gname = g.name.split("/")[-1]
+
+            g.create_dataset("nmode",  (1,), data=nmode,  dtype="i4")
+            g.create_dataset("nrho",   (1,), data=nrho,   dtype="i4")
+            g.create_dataset("rhomin", (1,), data=rhomin, dtype="f8")
+            g.create_dataset("rhomax", (1,), data=rhomax, dtype="f8")
+
+            g.create_dataset("nmodes", (nmode,), data=nmodes, dtype="i4")
+            g.create_dataset("mmodes", (nmode,), data=mmodes, dtype="i4")
+
+            g.create_dataset("amplitude", (nmode,), data=amplitude, dtype="f8")
+            g.create_dataset("omega",     (nmode,), data=omega,     dtype="f8")
+            g.create_dataset("phase",     (nmode,), data=phase,     dtype="f8")
+
+            g.create_dataset("ntime", (1,), data=ntime, dtype="i4")
+            g.create_dataset("tmin",  (1,), data=tmin,  dtype="f8")
+            g.create_dataset("tmax",  (1,), data=tmax,  dtype="f8")
+            g.create_dataset("alpha", (nmode,ntime,nrho), data=alpha,dtype="f8")
+            g.create_dataset("phi",   (nmode,ntime,nrho), data=phi,  dtype="f8")
+
+        return gname
+
+    @staticmethod
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
+
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        This method writes two modes with constant eigenfunctions.
+
+        Parameters
+        ----------
+        fn : str
+            Full path to the HDF5 file.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+        """
+        return MHD_NONSTAT.write_hdf5(
+            fn=fn, nmode=2, nmodes=np.array([1, 2]), mmodes=np.array([3, 4]),
+            amplitude=np.array([0.1, 2]), omega=np.array([1, 1.5]),
+            phase=np.array([0, 3.141/4]), alpha=np.ones((6,3,2)),
+            phi=np.ones((6,3,2)), nrho=6, rhomin=0, rhomax=1, ntime=3,
+            tmin=0, tmax=1, desc="DUMMY")

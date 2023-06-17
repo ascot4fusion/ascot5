@@ -55,7 +55,7 @@ See the tutorial and API below for detailed description of data access.
 
 .. autosummary::
    :nosignatures:
-   
+
    a5py.ascot5io.Ascot5IO
    a5py.ascot5io.RunGroup
    a5py.ascot5io.InputGroup
@@ -80,7 +80,9 @@ The available inputs are listed below.
 
 For input templates and imports, see Importing and Predefined Inputs, but note that some of these use Ascotpy.
 
-
+.. note::
+   ASCOT5 aims to use the user-provided data "as is" as far as possible, so that the user retains control and knowledge what is done with the data.
+   This means that ASCOT5 does not extrapolate inputs, so it is user's responsibility to ensure e.g. that the plasma profiles covers the whole region and that the magnetic field extends all the way to the wall.
 
 Magnetic field ``bfield``
 =========================
@@ -97,8 +99,6 @@ MHD modes are included via dedicated input and they must not be included in the 
    a5py.ascot5io.bfield.B_2DS.write_hdf5
    a5py.ascot5io.bfield.B_3DS
    a5py.ascot5io.bfield.B_3DS.write_hdf5
-   a5py.ascot5io.bfield.B_3DST
-   a5py.ascot5io.bfield.B_3DST.write_hdf5
    a5py.ascot5io.bfield.B_STS
    a5py.ascot5io.bfield.B_STS.write_hdf5
    a5py.ascot5io.bfield.B_GS
@@ -120,6 +120,8 @@ If electric field is not relevant for your simulation, use ``E_TC`` and set it t
    a5py.ascot5io.efield.E_TC.write_hdf5
    a5py.ascot5io.efield.E_1DS
    a5py.ascot5io.efield.E_1DS.write_hdf5
+
+..
    a5py.ascot5io.efield.E_3D
    a5py.ascot5io.efield.E_3D.write_hdf5
    a5py.ascot5io.efield.E_3DS
@@ -187,8 +189,10 @@ MHD eigenfunctions ``mhd``
    :nosignatures:
 
    a5py.ascot5io.mhd
-   a5py.ascot5io.mhd.MHD
-   a5py.ascot5io.mhd.MHD.write_hdf5
+   a5py.ascot5io.mhd.MHD_STAT
+   a5py.ascot5io.mhd.MHD_STAT.write_hdf5
+   a5py.ascot5io.mhd.MHD_NONSTAT
+   a5py.ascot5io.mhd.MHD_NONSTAT.write_hdf5
 
 Neutral beam injectors ``nbi``
 ==============================
@@ -207,12 +211,12 @@ Markers ``marker``
    :nosignatures:
 
    a5py.ascot5io.marker
-   a5py.ascot5io.marker.mrk_prt
-   a5py.ascot5io.marker.mrk_prt.write_hdf5
-   a5py.ascot5io.marker.mrk_gc
-   a5py.ascot5io.marker.mrk_gc.write_hdf5
-   a5py.ascot5io.marker.mrk_fl
-   a5py.ascot5io.marker.mrk_fl.write_hdf5
+   a5py.ascot5io.marker.Prt
+   a5py.ascot5io.marker.Prt.write_hdf5
+   a5py.ascot5io.marker.GC
+   a5py.ascot5io.marker.GC.write_hdf5
+   a5py.ascot5io.marker.FL
+   a5py.ascot5io.marker.FL.write_hdf5
 
 Options ``opt``
 ===============
@@ -253,7 +257,7 @@ The methods of ``Ascot`` class provide tools to access the input data and they a
 
 .. autosummary::
    :nosignatures:
-   
+
    a5py.Ascot
    a5py.Ascot.input_init
    a5py.Ascot.input_free
@@ -307,7 +311,7 @@ Simulation is run and data is accessed as:
 
 .. autosummary::
    :nosignatures:
-   
+
    a5py.Ascot
    a5py.Ascot.simulation_initinputs
    a5py.Ascot.simulation_initmarkers
@@ -346,7 +350,7 @@ End conditions
 
 .. autosummary::
    :nosignatures:
-   
+
    a5py.ascot5io.state.State.ABORTED
    a5py.ascot5io.state.State.ABORTED
    a5py.ascot5io.state.State.NONE

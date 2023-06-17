@@ -7,16 +7,18 @@
 .. autosummary::
    :nosignatures:
 
-   a5py.ascot5io.marker.mrk_prt
-   a5py.ascot5io.marker.mrk_gc
-   a5py.ascot5io.marker.mrk_fl
+   a5py.ascot5io.marker.Prt
+   a5py.ascot5io.marker.GC
+   a5py.ascot5io.marker.FL
 
-.. autoclass:: a5py.ascot5io.marker.mrk_prt
+.. autoclass:: a5py.ascot5io.marker.Prt
    :show-inheritance:
    :members:
 
-.. autoclass:: a5py.ascot5io.marker.mrk_gc
+.. autoclass:: a5py.ascot5io.marker.GC
+   :show-inheritance:
    :members:
 
-.. autoclass:: a5py.ascot5io.marker.mrk_fl
+.. autoclass:: a5py.ascot5io.marker.FL
+   :show-inheritance:
    :members:

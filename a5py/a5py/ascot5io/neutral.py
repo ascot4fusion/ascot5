@@ -18,22 +18,37 @@ class N0_3D(DataGroup):
     """
 
     def read(self):
-        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
+        """Read data from HDF5 file.
 
-    def write(self, fn, data=None):
-        if data is None:
-            data = self.read()
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
 
-        return write_hdf5(fn, **data)
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
 
-    def write_dummy(self, fn):
-        return write_hdf5_dummy(fn)
+        out["density"]     = np.transpose(out["density"],     (3,1,2,0))
+        out["temperature"] = np.transpose(out["temperature"], (3,1,2,0))
+
+        return out
 
     @staticmethod
     def write_hdf5(fn, rmin, rmax, nr, zmin, zmax, nz, phimin, phimax, nphi,
                nspecies, anum, znum, density, temperature, maxwellian=1,
                desc=None):
-        """Write 3D neutral input in HDF5 file.
+        """Write input data to the HDF5 file.
+
+        The toroidal angle phi is treated as a periodic coordinate, meaning
+        ``A(phi=phimin) == A(phi=phimax)``. However, the phi grid, where input
+        arrays are tabulated, is ``linspace(phimin, phimax, nphi+1)[:-1]``
+        to avoid storing duplicate data.
 
         Parameters
         ----------
@@ -52,9 +67,9 @@ class N0_3D(DataGroup):
         nz : int
             Number of z grid points.
         phimin : float
-            Minimum value in phi grid [deg].
+            Beginning of the toroidal period [deg].
         phimax : float
-            Maximum value in phi grid [deg].
+            End of the toroidal period [deg].
         nphi : int
             Number of phi grid points.
         nspecies : int
@@ -116,68 +131,39 @@ class N0_3D(DataGroup):
             g.create_dataset("zmax",     (1,), data=zmax,     dtype="f8")
             g.create_dataset("nz",       (1,), data=nz,       dtype="i4")
             g.create_dataset("nspecies", (1,), data=nspecies, dtype="i4")
-
-            g.create_dataset("anum",        (nspecies,),  data=anum,
-                             dtype="i4")
-            g.create_dataset("znum",        (nspecies,),  data=znum,
-                             dtype="i4")
-            g.create_dataset("maxwellian",  (nspecies,),  data=maxwellian,
-                             dtype="i4")
-
-            g.create_dataset("density",     (nspecies,nphi,nz,nr), data=density,
-                             dtype="f8")
-            g.create_dataset("temperature", (nspecies,nphi,nz,nr), data=temperature,
-                             dtype="f8")
+            g.create_dataset("anum",        (nspecies,),
+                             data=anum, dtype="i4")
+            g.create_dataset("znum",        (nspecies,),
+                             data=znum, dtype="i4")
+            g.create_dataset("maxwellian",  (nspecies,),
+                             data=maxwellian, dtype="i4")
+            g.create_dataset("density",     (nspecies,nphi,nz,nr),
+                             data=density, dtype="f8")
+            g.create_dataset("temperature", (nspecies,nphi,nz,nr),
+                             data=temperature, dtype="f8")
 
         return gname
 
     @staticmethod
-    def read_hdf5(fn, qid):
-        """
-        Read 3D neutral input from HDF5 file.
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
 
-        Args:
-        fn : str <br>
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        Parameters
+        ----------
+        fn : str
             Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
 
-        Returns:
-        Dictionary containing input data.
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
         """
-
-        path = "neutral/N0_3D_" + qid
-
-        out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                out[key] = f[path][key][:]
-
-        out["density"]     = np.transpose(out["density"],     (3,1,2,0))
-        out["temperature"] = np.transpose(out["temperature"], (3,1,2,0))
-
-        return out
-
-    @staticmethod
-    def write_hdf5_dummy(fn, desc="Dummy"):
-        N0Rmin = 0
-        N0Rmax = 100
-        N0nR   = 4
-        N0zmin = -100
-        N0zmax = 100
-        N0nz   = 3
-        N0pmin = 0
-        N0pmax = 2*np.pi
-        N0np   = 2
-        N0spec = 1
-        N0anum = np.array([1])
-        N0znum = np.array([1])
-        N0dens = np.ones( (N0nR,N0np,N0nz,N0spec) )
-        N0temp = np.ones( (N0nR,N0np,N0nz,N0spec) )
-        write_hdf5(fn,
-                   N0Rmin, N0Rmax, N0nR,
-                   N0zmin, N0zmax, N0nz,
-                   N0pmin, N0pmax, N0np,
-                   N0spec, N0anum, N0znum,
-                   N0dens, N0temp,
-                   desc=desc)
+        N0_3D.write_hdf5(
+            fn=fn, rmin=0, rmax=100, nr=3, zmin=-100, zmax=100, nz=3, phimin=0,
+            phimax=360, nphi=3, nspecies=1, anum=np.array([1]),
+            znum=np.array([1]), density=np.ones((3,3,3,1)),
+            temperature=np.ones((3,3,3,1)), desc="DUMMY")

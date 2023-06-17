@@ -49,7 +49,7 @@ class DataContainer():
         super().__init__(**kwargs)
 
     def __enter__(self):
-        """Call _open when entering `with` clause.
+        """Call _open when entering ``with`` clause.
 
         Returns
         -------
@@ -59,7 +59,7 @@ class DataContainer():
         return self._open()
 
     def __exit__(self, exception_type, exception_value, traceback):
-        """Call _close when exiting `with` clause.
+        """Call _close when exiting ``with`` clause.
         """
         self._close()
 

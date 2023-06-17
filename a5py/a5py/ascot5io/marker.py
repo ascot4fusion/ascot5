@@ -1,18 +1,17 @@
+"""Markers whose orbits are solved within the ASCOT5 code.
 """
-"""
-
 import copy
 import numpy as np
 import h5py
 
 from ._iohelpers.treedata import DataGroup
-from ._iohelpers.fileapi import read_data
+from ._iohelpers.fileapi import read_data, add_group, write_data
 from a5py.marker.plot import plot_histogram
 
 from a5py.plotting import openfigureifnoaxes
 from a5py.physlib.species import species as getspecies
 
-class mrk(DataGroup):
+class Marker(DataGroup):
     """A class acting as a superclass for all marker types.
     """
 
@@ -142,35 +141,6 @@ class mrk(DataGroup):
         return None
 
     @staticmethod
-    def read_hdf5(fn, qid, prefix):
-        """
-        Read particle marker input from HDF5 file.
-
-        Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
-
-        Returns:
-        Dictionary containing input data.
-        """
-
-        path = "marker/"+prefix+"_" + qid
-
-        out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                # Make all read-in datasets 1-d arrays,
-                # regardless of their original dimensionality
-                d=f[path][key][:]
-                out[key] = np.reshape(d,newshape=(d.size,))
-
-        out["ids"] = out["id"]
-        del out["id"]
-        return out
-
-    @staticmethod
     def generatemrk(nmrk, mrktype, species=None):
         """Generate dummy marker input of given type and species.
         """
@@ -186,8 +156,8 @@ class mrk(DataGroup):
         if species is not None:
             species = getspecies(species)
 
-        if mrktype == "particle":
-            mrk["vphi"]   = np.zeros((nmrk,))
+        if mrktype == "prt":
+            mrk["vr"]     = np.zeros((nmrk,))
             mrk["vz"]     = np.zeros((nmrk,))
             mrk["vphi"]   = np.zeros((nmrk,))
             mrk["mass"]   = ( species["mass"]   * np.ones((nmrk,)) ).to_value("amu")
@@ -202,25 +172,42 @@ class mrk(DataGroup):
             mrk["charge"] = species["charge"] * np.ones((nmrk,), dtype=np.int16)
             mrk["anum"]   = species["anum"]   * np.ones((nmrk,), dtype=np.int16)
             mrk["znum"]   = species["znum"]   * np.ones((nmrk,), dtype=np.int16)
-        if mrktype == "ml":
+        if mrktype == "fl":
             mrk["pitch"]  = np.zeros((nmrk,))
 
         return mrk
 
-class mrk_fl(mrk):
-    """Object representing field line marker data.
+class FL(Marker):
+    """Magnetic-field-line tracer input.
+
+    These are markers that trace magnetic field lines exactly. They don't
+    represent physical particles except that for calculating quantities like
+    ``mileage``, they are assumed to be photons travelling at the speed of
+    light.
     """
 
     def read(self):
-        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
+        """Read data from HDF5 file.
 
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
 
-    def write(self, fn, data=None, desc=None):
-        if data is None:
-            data = self.read()
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
+                if key == "n":
+                    out[key] = int(out[key])
 
-        return write_hdf5(fn, **data, desc=desc)
-
+        out["ids"] = out["id"]
+        del out["id"]
+        return out
 
     def eval_pitch(self, ascotpy):
         """
@@ -233,7 +220,7 @@ class mrk_fl(mrk):
 
     @staticmethod
     def write_hdf5(fn, n, ids, r, phi, z, pitch, weight, time, desc=None):
-        """Write magnetic field line marker input in hdf5 file.
+        """Write input data to the HDF5 file.
 
         Parameters
         ----------
@@ -284,49 +271,73 @@ class mrk_fl(mrk):
             g = add_group(f, parent, group, desc=desc)
             gname = g.name.split("/")[-1]
 
-            g.create_dataset("n",      (1,1), data=n,      dtype='i8').attrs['unit'] = '1';
-            g.create_dataset("r",      (n,1), data=r,      dtype='f8').attrs['unit'] = 'm';
-            g.create_dataset("phi",    (n,1), data=phi,    dtype='f8').attrs['unit'] = 'deg';
-            g.create_dataset("z",      (n,1), data=z,      dtype='f8').attrs['unit'] = 'm';
-            g.create_dataset("pitch",  (n,1), data=pitch,  dtype='f8').attrs['unit'] = '1';
-            g.create_dataset("weight", (n,1), data=weight, dtype='f8').attrs['unit'] = 'markers/s';
-            g.create_dataset("time",   (n,1), data=time,   dtype='f8').attrs['unit'] = 's';
-            g.create_dataset("id",     (n,1), data=ids,    dtype='i8').attrs['unit'] = '1';
+            write_data(g, "n",      n,      (1,1), "i8")
+            write_data(g, "r",      r,      (n,1), "f8", "m")
+            write_data(g, "phi",    phi,    (n,1), "f8", "deg")
+            write_data(g, "z",      z,      (n,1), "f8", "m")
+            write_data(g, "pitch",  pitch,  (n,1), "f8", "1")
+            write_data(g, "weight", weight, (n,1), "f8", "particles/s")
+            write_data(g, "time",   time,   (n,1), "f8", "s")
+            write_data(g, "id",     ids,    (n,1), "f8", "1")
 
         return gname
 
     @staticmethod
-    def read_hdf5(fn, qid):
-        """
-        Read field line marker input from HDF5 file.
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
 
-        Args:
-        fn : str <br>
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        This dummy input sets electric field to zero everywhere.
+
+        Parameters
+        ----------
+        fn : str
             Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
 
-        Returns:
-        Dictionary containing input data.
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
         """
+        mrk = Marker.generatemrk(nmrk=1, mrktype="fl", species=None)
+        FL.write_hdf5(fn=fn, desc="DUMMY", **mrk)
 
-        prefix='fl'
-        return a5py.ascot5io.mrk.read_hdf5(fn, qid, prefix)
+class GC(Marker):
+    """Particle input in guiding-center coordinates.
 
-class mrk_gc(mrk):
-    """Object representing guiding center marker data.
+    The guiding center phase-space is (R, Phi, Z, mu, ppar, zeta), where
+    R, Phi, Z are the guiding center position in cylindrical coordinates,
+    mu is the magnetic moment (first adiabatic invariant), and ppar is
+    the parallel momentum along the magnetic field line). The gyro-angle
+    zeta is an ignorable quantity in guiding-center integration, but it is
+    used in guiding-center-to-particle transformation.
     """
 
     def read(self):
-        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
+        """Read data from HDF5 file.
 
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
 
-    def write(self, fn, data=None, desc=None):
-        if data is None:
-            data = self.read()
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
+                if key == "n":
+                    out[key] = int(out[key])
 
-        return write_hdf5(fn, **data, desc=desc)
-
+        out["ids"] = out["id"]
+        del out["id"]
+        return out
 
     def eval_energy(self, ascotpy):
         with self as h5:
@@ -342,7 +353,7 @@ class mrk_gc(mrk):
     @staticmethod
     def write_hdf5(fn, n, ids, mass, charge, r, phi, z, energy, pitch, zeta,
                    anum, znum, weight, time, desc=None):
-        """Write guiding center marker input in hdf5 file.
+        """Write input data to the HDF5 file.
 
         Parameters
         ----------
@@ -429,35 +440,58 @@ class mrk_gc(mrk):
         return gname
 
     @staticmethod
-    def read_hdf5(fn, qid):
-        """
-        Read guiding center marker input from HDF5 file.
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
 
-        Args:
-        fn : str <br>
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        This dummy input sets electric field to zero everywhere.
+
+        Parameters
+        ----------
+        fn : str
             Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
 
-        Returns:
-        Dictionary containing input data.
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
         """
-        prefix='gc'
-        return a5py.ascot5io.mrk.read_hdf5(fn, qid, prefix)
+        mrk = Marker.generatemrk(nmrk=1, mrktype="gc", species="alpha")
+        GC.write_hdf5(fn=fn, desc="DUMMY", **mrk)
 
-class mrk_prt(mrk):
-    """Object representing particle marker data.
+class Prt(Marker):
+    """Marker input representing physical particles.
+
+    Particle phase-space is (r, phi, z, pr, pphi, pz), where r, phi, and z are
+    particle position in cylindrical coordinates, and pr, phi, and pz are its
+    momentum components.
     """
 
     def read(self):
-        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
+        """Read data from HDF5 file.
 
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
 
-    def write(self, fn, data=None, desc=None):
-        if data is None:
-            data = self.read()
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
+                if key == "n":
+                    out[key] = int(out[key])
 
-        return write_hdf5(fn, **data, desc=desc)
+        out["ids"] = out["id"]
+        del out["id"]
+        return out
 
     def eval_energy(self, ascotpy):
         with self as h5:
@@ -491,7 +525,7 @@ class mrk_prt(mrk):
     @staticmethod
     def write_hdf5(fn, n, ids, mass, charge, r, phi, z, vr, vphi, vz,
                    anum, znum, weight, time, desc=None):
-        """Write particle marker input in hdf5 file.
+        """Write input data to the HDF5 file.
 
         Parameters
         ----------
@@ -578,18 +612,24 @@ class mrk_prt(mrk):
         return gname
 
     @staticmethod
-    def read_hdf5(fn, qid):
-        """
-        Read particle marker input from HDF5 file.
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
 
-        Args:
-        fn : str <br>
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        This dummy input sets electric field to zero everywhere.
+
+        Parameters
+        ----------
+        fn : str
             Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
 
-        Returns:
-        Dictionary containing input data.
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
         """
-        prefix='prt'
-        return a5py.ascot5io.mrk.read_hdf5(fn, qid, prefix)
+        mrk = Marker.generatemrk(nmrk=1, mrktype="prt", species="alpha")
+        Prt.write_hdf5(fn=fn, desc="DUMMY", **mrk)

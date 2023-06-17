@@ -695,7 +695,7 @@ def copy_group(fs, ft, group, newgroup=False):
     return newgroupobj
 
 
-def write_data(group, name, data, dtype="f8", unit=None):
+def write_data(group, name, data, shape, dtype, unit=None):
     """Write a dataset.
 
     The shape of the written dataset is same as the input array.
@@ -708,14 +708,14 @@ def write_data(group, name, data, dtype="f8", unit=None):
         Name of the new dataset.
     data : `np.array`
         Data to be written.
-    dtype : str, optional
+    dtype : str
         Data type.
     unit : str, optional
         Unit string if the data has units.
     """
     g = group.create_dataset(
         name  = name,
-        shape = name.shape,
+        shape = shape,
         data  = data,
         dtype = dtype
     )
