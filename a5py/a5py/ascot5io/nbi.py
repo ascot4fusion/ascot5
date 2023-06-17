@@ -8,8 +8,8 @@ import h5py
 
 import a5py.nbi.plot as plot
 
-from ._iohelpers.fileapi import add_group
-from ._iohelpers.treedata import DataGroup
+from .coreio.fileapi import add_group
+from .coreio.treedata import DataGroup
 
 class NBI(DataGroup):
     """Object representing nbi data.

@@ -15,8 +15,8 @@ import a5py.physlib as physlib
 
 from a5py.physlib.alias import getalias
 
-from ._iohelpers.treedata import DataContainer
-from ._iohelpers.fileapi import read_data
+from .coreio.treedata import DataContainer
+from .coreio.fileapi import read_data
 
 def read_hdf5(fn, qid):
     """

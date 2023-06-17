@@ -6,7 +6,7 @@ File: transcoef.py
 import numpy as np
 import h5py
 
-from ._iohelpers.treedata import DataContainer
+from .coreio.treedata import DataContainer
 from a5py.marker.losstime import eval_coefficients
 
 def read_hdf5(fn, qid):

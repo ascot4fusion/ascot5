@@ -8,7 +8,7 @@ import copy
 import numpy as np
 import h5py
 
-from ._iohelpers.treedata import DataGroup
+from .coreio.treedata import DataGroup
 
 def read_hdf5(fn, qid, prefix):
     """

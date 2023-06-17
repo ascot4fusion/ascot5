@@ -4,8 +4,8 @@ import copy
 import numpy as np
 import h5py
 
-from ._iohelpers.treedata import DataGroup
-from ._iohelpers.fileapi import read_data, add_group, write_data
+from .coreio.treedata import DataGroup
+from .coreio.fileapi import read_data, add_group, write_data
 from a5py.marker.plot import plot_histogram
 
 from a5py.plotting import openfigureifnoaxes

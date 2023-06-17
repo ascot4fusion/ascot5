@@ -5,8 +5,8 @@ import numpy as np
 import ast
 import warnings
 
-from ._iohelpers.fileapi import add_group
-from ._iohelpers.treedata import DataGroup
+from .coreio.fileapi import add_group
+from .coreio.treedata import DataGroup
 
 class Opt(DataGroup):
     """Simulation options.

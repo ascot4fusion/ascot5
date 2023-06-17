@@ -11,8 +11,8 @@ condition.
 import h5py
 import numpy as np
 
-from ._iohelpers.fileapi import add_group
-from ._iohelpers.treedata import DataGroup
+from .coreio.fileapi import add_group
+from .coreio.treedata import DataGroup
 
 import a5py.wall.plot as plot
 
