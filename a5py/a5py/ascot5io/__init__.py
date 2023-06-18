@@ -23,7 +23,7 @@ from .coreio.fileapi import INPUTGROUPS
 from .coreio.treeview import RootNode, InputNode, ResultNode
 from .coreio.treedata import DataGroup
 from a5py.routines.runmixin import RunMixin
-import a5py.premade as premade
+from a5py.templates import InputFactory
 
 HDF5TOOBJ = {
     "B_TC" : B_TC, "B_GS" : B_GS, "B_2DS" : B_2DS, "B_3DS" : B_3DS,
@@ -183,84 +183,57 @@ class Ascot5IO(RootNode):
         """
         return HDF5TOOBJ[grouptype](self, path)
 
-    def create_input(self, inputtype, inputdata):
+    def create_input(self, inp, desc=None, activate=None, **kwargs):
         """Create input and write the data to the HDF5 file.
 
+        This method can be used in two ways to write input data.
+
+        1. From :mod:`ascot5io` choose the input type and find what is requested
+           by the corresponding ``write_hdf5`` function to write inputs
+           explicitly.
+
+        2. From :mod:`template` choose a template or import, and find what
+           parameters are requested to write premade inputs or imported data.
+
         Parameters
         ----------
-        inputtype : str
-            Type of the input e.g. "B_2DS" or "options".
-        inputdata : dict
-            Dictionary containing all the data that is needed to create the
-            requested input type.
+        inp : str
+            Type of the input e.g. "B_2DS" or name of the template/import
+            e.g. "analytical ITER-like".
+        desc :str
+            Input description.
+        activate : bool
+            Set created input as active.
+        **kwargs : dict
+            The parameters that are needed to create the requested input type
+            or template.
 
-            If None, dummy input of given type is created.
+            If input type is given but kwargs is empty, dummy input of given
+            type is created.
 
         Returns
         -------
-        qid : str
-            QID of the created input.
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
         """
-        if inputdata is None:
-            qid = HDF5TOOBJ[inputtype].write_hdf5_dummy(
+        if inp in HDF5TOOBJ.keys():
+            if len(kwargs) == 0:
+                name = HDF5TOOBJ[inp].write_hdf5_dummy(
                 self._ascot.file_getpath())
+            else:
+                name = HDF5TOOBJ[inp].write_hdf5(
+                    self._ascot.file_getpath(), **kwargs)
         else:
-            qid = HDF5TOOBJ[inputtype].write_hdf5(
-                self._ascot.file_getpath(), **inputdata)
+            gtype, data = InputFactory(self._ascot).construct(inp, **kwargs)
+            name = HDF5TOOBJ[gtype].write_hdf5(
+                    self._ascot.file_getpath(), **data)
+
         self._build(self._ascot.file_getpath())
-        return qid
-
-    def create_premade(self, predef, write=True, activate=True, **kwargs):
-        """Create inputs based on predefined simulations or existing interfaces
-        that import data to Ascot5.
-
-        Predefined simulations are simulations whose inputs have alredy been
-        prepared for a given purpose e.g. to create Poincaré plots.
-
-        This method also acts as an interface to import data from external
-        sources using existing interfaces e.g. to convert EQDSK file to magnetic
-        field input.
-
-        See `a5py.premade` for details on what this method can produce.
-
-        Parameters
-        ----------
-        predef : str
-            Type of the premade data.
-
-            Available premades are listed in `a5py.premade`.
-        write : str
-            If `True`, the created inputs are written to the HDF5 file.
-        activate : bool, optional
-            If `True`, the created inputs are set as active.
-
-            This option is ignored if `write` is `False`.
-        **kwargs
-            Any required or optional parameters that are passed to
-            the constructor of the requested premade type.
-
-            See `a5py.premade` for more details.
-
-        Returns
-        -------
-        qids : list [str] or dict [str, dict]
-            QIDs of the inputs that were created and written or, if `write` is
-            `False`, dictionary containing input type and data that can be
-            passed to the corresponding `write_hdf5` function.
-        """
-        simdata = premade.construct(predef, **kwargs)
-        if not write:
-            return simdata
-
-        qids = []
-        for name, data in simdata.items():
-            qids.append(self.create_input(name, data))
-
         if activate:
-            for q in qids:
-                self._activate_group(q)
-
-        return qids
+            self._activate_group(name)
+        if desc is not None:
+            self._get_group(name).set_desc(desc)
+        return name
 
 class InputGroup(InputNode):
     """Node containing input data groups.
