@@ -13,7 +13,7 @@ import pyvista as pv
 
 from a5py.exceptions import AscotNoDataException
 
-import a5py.plotting as a5plt
+import a5py.routines.plotting as a5plt
 import a5py.wall as wall
 
 class RunMixin():

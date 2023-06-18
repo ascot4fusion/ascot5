@@ -642,20 +642,6 @@ class Ascotpy(LibAscot, LibSimulate):
         out = self.input_eval(r=r, phi=phi, z=z, t=t, qnt=qnt, grid=True)
         out = np.transpose(out[:,0,:,0])
 
-        out = np.ma.masked_invalid(out)
-        if clim[0] is None:
-            clim[0] = np.nanmin(out)
-        if clim[1] is None:
-            clim[1] = np.nanmax(out)
-
-        mesh = axes.pcolormesh(r, z, out, vmin=clim[0], vmax=clim[1])
-        axes.patch.set(hatch='x', edgecolor=[0.9, 0.9, 0.9])
-
-        plt.colorbar(mesh, cax=cax)
-        axes.set_aspect("equal", adjustable="box")
-        axes.set_xlim(r[0], r[-1])
-        axes.set_ylim(z[0], z[-1])
-
     def get_plasmaquantities(self):
         """Return species present in plasma input.
         """
