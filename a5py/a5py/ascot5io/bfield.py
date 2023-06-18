@@ -20,7 +20,7 @@ import numpy as np
 from .coreio.fileapi import add_group
 from .coreio.treedata import DataGroup
 
-import a5py.preprocessing.analyticequilibrium as psifun
+import a5py.physlib.analyticequilibrium as psifun
 
 class B_TC(DataGroup):
     """Magnetic field in Cartesian basis for testing purposes.

@@ -1,9 +1,10 @@
+"""List of commonly encountered marker species and their properties.
+"""
 import numpy as np
 from unyt import amu
 
 def species(name, charge=None):
     """
-    Interpret particle name and return {Anum, Znum, mass, charge} dictionary.
 
     Assumes the particle is fully ionized. Charge state can be given explicitly
     with charge parameter.
