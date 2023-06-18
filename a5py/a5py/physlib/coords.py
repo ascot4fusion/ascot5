@@ -1,25 +1,21 @@
 """
 Ordinary coordinate transformations between different geometrical systems.
 """
-
 import numpy as np
+import unyt
 
-def xcoord(r, phi, z=0):
+def cart2pol(x, y, z=None):
+    """Cartesian x coordinate from cylindrical coordinates.
     """
-    Cartesian x coordinate from cylindrical coordinates.
-    """
-    return r * np.cos(phi)
+    return np.sqrt(x**2 + y**2), np.arctan2(y, x) * unyt.rad, z
 
-
-def ycoord(r, phi, z=0):
+def pol2cart(r, phi, z=None):
+    """Cartesian x coordinate from cylindrical coordinates.
     """
-    Cartesian y coordinate from cylindrical coordinates.
-    """
-    return r * np.sin(phi)
+    return r * np.cos(phi), r * np.sin(phi), z
 
 
 def anglemod(angle):
-    """
-    Transfer arbitrary angle to between interval [0, 2pi].
+    """Transfer arbitrary angle to between interval [0, 2pi].
     """
     return np.mod(angle + 2*np.pi, 2*np.pi)

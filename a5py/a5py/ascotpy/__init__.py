@@ -483,11 +483,11 @@ class Ascotpy(LibAscot, LibSimulate):
 
         return out
 
-    def input_eval(self, r, phi, z, t, qnt, grid=False):
+    def input_eval(self, r, phi, z, t, *qnt, grid=False):
         """Evaluate input quantities at given coordinates.
 
         This method uses ASCOT5 C-routines for evaluating inputs exactly as
-        they are evaluated during a simulation. See ``input_eval_list`` for
+        they are evaluated during a simulation. See :meth:`input_eval_list` for
         a complete list of available input and derived quantities.
 
         Parameters
@@ -500,8 +500,8 @@ class Ascotpy(LibAscot, LibSimulate):
             z coordinates where data is evaluated [m].
         t : array_like
             Time coordinates where data is evaluated [s].
-        qnt : str
-            Name of the evaluated quantity.
+        *qnt : str
+            Names of evaluated quantities.
         grid : boolean, optional
             Treat input coordinates as abscissae and return the evaluated
             quantities on a grid instead.
@@ -522,31 +522,31 @@ class Ascotpy(LibAscot, LibSimulate):
         RuntimeError
             If evaluation in libascot.so failed.
         """
-        R   = np.asarray(R).ravel()
-        phi = np.asarray(phi).ravel()
-        z   = np.asarray(z).ravel()
-        t   = np.asarray(t).ravel()
+        #r   = np.asarray(r).ravel()
+        #phi = np.asarray(phi).ravel()
+        #z   = np.asarray(z).ravel()
+        #t   = np.asarray(t).ravel()
 
         if grid:
-            arrsize = (R.size, phi.size, z.size, t.size)
-            R, phi, z, t = np.meshgrid(R, phi, z, t)
-            R   = R.ravel()
+            arrsize = (r.size, phi.size, z.size, t.size)
+            R, phi, z, t = np.meshgrid(r, phi, z, t)
+            R   = r.ravel()
             phi = phi.ravel()
             z   = z.ravel()
             t   = t.ravel()
         else:
             # Not a grid so check that dimensions are correct (and make
             # single-valued vectors correct size)
-            arrsize = np.amax(np.array([R.size, phi.size, z.size, t.size]))
+            arrsize = np.amax(np.array([r.size, phi.size, z.size, t.size]))
             errmsg = "Input arrays have inconsistent sizes ({}, {}, {}, {})"
-            assert (R.size == 1 or R.size == arrsize) and  \
+            assert (r.size == 1 or r.size == arrsize) and  \
                 (phi.size == 1 or phi.size == arrsize) and \
                 (z.size == 1 or z.size == arrsize) and     \
                 (t.size == 1 or t.size == arrsize),        \
-                errmsg.format(R.size, phi.size, z.size, t.size)
+                errmsg.format(r.size, phi.size, z.size, t.size)
 
-            if R.size == 1:
-                R = R[0]*np.ones((arrsize,))
+            if r.size == 1:
+                r = r[0]*np.ones((arrsize,))
             if phi.size == 1:
                 phi = phi[0]*np.ones((arrsize,))
             if z.size == 1:
@@ -554,69 +554,68 @@ class Ascotpy(LibAscot, LibSimulate):
             if t.size == 1:
                 t = t[0]*np.ones((arrsize,))
 
-        out = None
-        if quantity in ["rho", "psi"]:
-            out = self._eval_bfield(R, phi, z, t, evalrho=True)[quantity]
-        if quantity in ["br", "bphi", "bz", "brdr", "brdphi", "brdz", "bphidr",
-                        "bphidphi", "bphidz", "bzdr", "bzdphi", "bzdz"]:
-            out = self._eval_bfield(R, phi, z, t, evalb=True)[quantity]
-        if quantity == "divergence":
-            out = self._eval_bfield(R, phi, z, t, evalb=True)
-            out = out["br"]/R + out["brdr"] + out["bphidphi"]/R + out["bzdz"]
-        if quantity == "axis":
-            out = self._eval_bfield(R, phi, z, t, evalaxis=True)
-        if quantity == "bnorm":
-            out = self._eval_bfield(R, phi, z, t, evalb=True)
-            out = np.sqrt( out["br"]**2 + out["bphi"]**2 + out["bz"]**2 )
-        if quantity in ["jnorm", "jr", "jphi", "jz"]:
-            b  = self._eval_bfield(R, phi, z, t, evalb=True)
-            out = {}
-            out["jr"]    = b["bzdphi"]/R - b["bphidz"]
-            out["jphi"]  = b["brdz"] - b["bzdr"]
-            out["jz"]    = b["bphi"]/R + b["bphidr"] - b["brdphi"]/R
+        out = {}
+        if any(q in qnt for q in ["rho", "psi"]):
+            out.update(**self._eval_bfield(r, phi, z, t, evalrho=True))
+        if any(q in qnt for q in ["br", "bphi", "bz", "brdr", "brdphi", "brdz",
+                                  "bphidr", "bphidphi", "bphidz", "bzdr",
+                                  "bzdphi", "bzdz", "divergence", "bnorm",
+                                  "jnorm", "jr", "jphi", "jz"]):
+            out.update(self._eval_bfield(r, phi, z, t, evalb=True))
+            out["divergence"] = out["br"]/r + out["brdr"] + out["bphidphi"]/r \
+                + out["bzdz"]
+            out["bnorm"] = np.sqrt(out["br"]**2 + out["bphi"]**2 + out["bz"]**2)
+            out["jr"]    = (out["bzdphi"]/r - out["bphidz"]) / unyt.mu_0
+            out["jphi"]  = (out["brdz"] - out["bzdr"]) / unyt.mu_0
+            out["jz"]    = (out["bphi"]/r + out["bphidr"] - out["brdphi"]/r) \
+                            / unyt.mu_0
             out["jnorm"] = np.sqrt(out["jr"]**2 + out["jphi"]**2 + out["jz"]**2)
-            for k in out.keys():
-                out[k] /= unyt.mu_0
-            out = out[quantity]
-        if quantity in ["er", "ephi", "ez"]:
-            out = self._eval_efield(R, phi, z, t)[quantity]
-        if quantity in ["n0"]:
-            out = self._eval_neutral(R, phi, z, t)[quantity]
-        if quantity in ["psi (bzr)", "theta", "zeta", "dpsidr (bzr)",
-                        "dpsidphi (bzr)", "dpsidz (bzr)", "dthetadr",
-                        "dthetadphi", "dthetadz", "dzetadr", "dzetadphi",
-                        "dzetadz", "rho (bzr)"]:
-            quantity = quantity.split()[0]
-            out = self._eval_boozer(R, phi, z, t)[quantity]
-        if quantity in ["qprof", "bjac", "bjacxb2"]:
-            out = self._eval_boozer(R, phi, z, t, evalfun=True)[quantity]
-        if quantity in ["alpha", "phi"]:
-            out = self._eval_mhd(R, phi, z, t, evalpot=True)[quantity]
-        if quantity in ["mhd_br", "mhd_bphi", "mhd_bz", "mhd_er", "mhd_ephi",
-                        "mhd_ez", "mhd_phi"]:
-            out = self._eval_mhd(R, phi, z, t)[quantity]
-        if quantity in ["db/b (mhd)"]:
-            bpert = self._eval_mhd(R, phi, z, t)
-            b = self._eval_bfield(R, phi, z, t, evalb=True)
+        if any(q in qnt for q in ["axisr", "axisz"]):
+            out.update(self._eval_bfield(r, phi, z, t, evalaxis=True))
+        if any(q in qnt for q in ["er", "ephi", "ez"]):
+            out.update(self._eval_efield(r, phi, z, t))
+        if any(q in qnt for q in ["n0"]):
+            out.update(self._eval_neutral(r, phi, z, t))
+        if any(q in qnt for q in ["psi (bzr)", "theta", "zeta", "dpsidr (bzr)",
+                                  "dpsidphi (bzr)", "dpsidz (bzr)", "dthetadr",
+                                  "dthetadphi", "dthetadz", "dzetadr",
+                                  "dzetadphi", "dzetadz", "rho (bzr)"]):
+            out.update(self._eval_boozer(r, phi, z, t))
+        if any(q in qnt for q in ["qprof", "bjac", "bjacxb2"]):
+            out.update(self._eval_boozer(r, phi, z, t, evalfun=True))
+        if any(q in qnt for q in ["alpha", "phi"]):
+            out.update(self._eval_mhd(r, phi, z, t, evalpot=True))
+        if any(q in qnt for q in ["mhd_br", "mhd_bphi", "mhd_bz", "mhd_er",
+                                  "mhd_ephi", "mhd_ez", "mhd_phi"]):
+            out.update(self._eval_mhd(r, phi, z, t))
+        if any(q in qnt for q in ["db/b (mhd)"]):
+            bpert = self._eval_mhd(r, phi, z, t)
+            b = self._eval_bfield(r, phi, z, t, evalb=True)
             bpert = np.sqrt(  bpert["mhd_br"]**2
                             + bpert["mhd_bphi"]**2
                             + bpert["mhd_bz"]**2)
             b = np.sqrt(b["br"]**2 + b["bphi"]**2 + b["bz"]**2)
-            out = bpert/b
-        if quantity in ["ne", "te"]:
-            out = self._eval_plasma(R, phi, z, t)[quantity]
+            out["db/b (mhd)"] = bpert/b
+        if any(q in qnt for q in ["ne", "te"]):
+            out.update(self._eval_plasma(r, phi, z, t))
 
         ni = ["ni" + str(i+1) for i in range(99)]
         ti = ["ti" + str(i+1) for i in range(99)]
-        if quantity in ni or quantity in ti:
+        if any(q in qnt for q in ni) or any(q in qnt for q in ti):
             nspec = self.input_getplasmaspecies()[0]
-            if int(quantity[1:]) <= nspec:
-                out = self._eval_plasma(R, phi, z, t)[quantity]
+            if int(qnt[1:]) <= nspec:
+                out.update(self._eval_plasma(r, phi, z, t))
 
         if grid:
             out = np.reshape(out, arrsize)
 
-        return out
+        for q in list(out.keys()):
+            if q not in qnt:
+                del out[q]
+        if len(qnt) == 1:
+            return out[qnt[0]]
+        else:
+            return [out[q] for q in qnt]
 
     def input_plotrz(self, r, z, quantity, phi=0, t=0, clim=(None, None),
                      axes=None, cax=None):

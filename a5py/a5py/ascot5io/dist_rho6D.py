@@ -7,7 +7,6 @@ import numpy as np
 import h5py
 
 import a5py.dist as distmod
-import a5py.marker.interpret as interpret
 
 from .coreio.treedata import DataContainer
 

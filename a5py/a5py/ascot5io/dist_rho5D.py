@@ -7,8 +7,7 @@ import numpy as np
 import h5py
 
 import a5py.dist as distmod
-from a5py.marker.alias import get as alias
-import a5py.marker.interpret as interpret
+from a5py.physlib.alias import getalias as alias
 
 from .coreio.treedata import DataContainer
 

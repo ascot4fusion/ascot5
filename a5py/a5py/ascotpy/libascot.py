@@ -11,6 +11,7 @@ import sys
 import os
 import warnings
 import numpy as np
+import unyt
 
 from scipy import interpolate
 
@@ -40,14 +41,14 @@ class LibAscot:
     """Python wrapper of libascot.so.
     """
 
-    def _eval_bfield(self, R, phi, z, t, evalb=False, evalrho=False,
+    def _eval_bfield(self, r, phi, z, t, evalb=False, evalrho=False,
                      evalaxis=False):
         """
         Evaluate magnetic field quantities at given coordinates.
 
         Args:
-            R : array_like <br>
-                R coordinates where data is evaluated [m].
+            r : array_like <br>
+                r coordinates where data is evaluated [m].
             phi : array_like <br>
                 phi coordinates where data is evaluated [rad].
             z : array_like <br>
@@ -63,35 +64,29 @@ class LibAscot:
 
         Returns:
             Dictionary containing evaluated quantities.
-
-        Raises:
-            AssertionError if this is called data uninitialized.
-            RuntimeError if evaluation failed.
         """
-        #assert self._sim.qid_bfield != LibAscot.DUMMY_QID, \
-        #    "Magnetic field not initialized"
-
-        R   = np.asarray(R).ravel().astype(dtype="f8")
+        r   = np.asarray(r).ravel().astype(dtype="f8")
         phi = np.asarray(phi).ravel().astype(dtype="f8")
         z   = np.asarray(z).ravel().astype(dtype="f8")
         t   = np.asarray(t).ravel().astype(dtype="f8")
 
-        Neval = R.size
+        Neval = r.size
         out = {}
 
         if evalb:
-            out["br"]       = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bphi"]     = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bz"]       = np.zeros(R.shape, dtype="f8") + np.nan
-            out["brdr"]     = np.zeros(R.shape, dtype="f8") + np.nan
-            out["brdphi"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["brdz"]     = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bphidr"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bphidphi"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bphidz"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bzdr"]     = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bzdphi"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bzdz"]     = np.zeros(R.shape, dtype="f8") + np.nan
+            Tperm = unyt.T / unyt.m
+            out["br"]       = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.T
+            out["bphi"]     = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.T
+            out["bz"]       = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.T
+            out["brdr"]     = (np.zeros(r.shape, dtype="f8") + np.nan) * Tperm
+            out["brdphi"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.T
+            out["brdz"]     = (np.zeros(r.shape, dtype="f8") + np.nan) * Tperm
+            out["bphidr"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * Tperm
+            out["bphidphi"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.T
+            out["bphidz"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * Tperm
+            out["bzdr"]     = (np.zeros(r.shape, dtype="f8") + np.nan) * Tperm
+            out["bzdphi"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.T
+            out["bzdz"]     = (np.zeros(r.shape, dtype="f8") + np.nan) * Tperm
 
             fun = LIBASCOT.libascot_B_field_eval_B_dB
             fun.restype  = None
@@ -102,14 +97,15 @@ class LibAscot:
                             PTR_REAL, PTR_REAL, PTR_REAL]
 
             fun(ctypes.byref(self._sim), self._bfield_offload_array,
-                Neval, R, phi, z, t, out["br"], out["bphi"], out["bz"],
+                Neval, r, phi, z, t, out["br"], out["bphi"], out["bz"],
                 out["brdr"], out["brdphi"], out["brdz"], out["bphidr"],
                 out["bphidphi"], out["bphidz"], out["bzdr"], out["bzdphi"],
                 out["bzdz"])
 
         if evalrho:
-            out["rho"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["psi"] = np.zeros(R.shape, dtype="f8") + np.nan
+            out["psi"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.Wb
+            out["rho"] = (np.zeros(r.shape, dtype="f8") + np.nan) \
+                * unyt.dimensionless
 
             fun = LIBASCOT.libascot_B_field_eval_rho
             fun.restype  = None
@@ -118,11 +114,11 @@ class LibAscot:
                             PTR_REAL, PTR_REAL, PTR_REAL]
 
             fun(ctypes.byref(self._sim), self._bfield_offload_array,
-                Neval, R, phi, z, t, out["rho"], out["psi"])
+                Neval, r, phi, z, t, out["rho"], out["psi"])
 
         if evalaxis:
-            out["axisr"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["axisz"] = np.zeros(R.shape, dtype="f8") + np.nan
+            out["axisr"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.m
+            out["axisz"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.m
 
             fun = LIBASCOT.libascot_B_field_get_axis
             fun.restype  = None
@@ -134,15 +130,15 @@ class LibAscot:
 
         return out
 
-    def _eval_efield(self, R, phi, z, t):
+    def _eval_efield(self, r, phi, z, t):
         """
         Evaluate electric field quantities at given coordinates.
 
         Note that magnetic field has to be initialized as well.
 
         Args:
-            R : array_like <br>
-                R coordinates where data is evaluated [m].
+            r : array_like <br>
+                r coordinates where data is evaluated [m].
             phi : array_like <br>
                 phi coordinates where data is evaluated [rad].
             z : array_like <br>
@@ -158,16 +154,16 @@ class LibAscot:
             RuntimeError if evaluation failed.
         """
 
-        R   = np.asarray(R).ravel().astype(dtype="f8")
+        r   = np.asarray(r).ravel().astype(dtype="f8")
         phi = np.asarray(phi).ravel().astype(dtype="f8")
         z   = np.asarray(z).ravel().astype(dtype="f8")
         t   = np.asarray(t).ravel().astype(dtype="f8")
 
-        Neval = R.size
+        Neval = r.size
         out = {}
-        out["er"]   = np.zeros(R.shape, dtype="f8") + np.nan
-        out["ephi"] = np.zeros(R.shape, dtype="f8") + np.nan
-        out["ez"]   = np.zeros(R.shape, dtype="f8") + np.nan
+        out["er"]   = np.zeros(r.shape, dtype="f8") + np.nan
+        out["ephi"] = np.zeros(r.shape, dtype="f8") + np.nan
+        out["ez"]   = np.zeros(r.shape, dtype="f8") + np.nan
 
         fun = LIBASCOT.libascot_E_field_eval_E
         fun.restype  = None
@@ -176,19 +172,19 @@ class LibAscot:
                         PTR_REAL, PTR_REAL, PTR_REAL]
         fun(ctypes.byref(self._sim), self._efield_offload_array,
             self._bfield_offload_array,
-            Neval, R, phi, z, t, out["er"], out["ephi"], out["ez"])
+            Neval, r, phi, z, t, out["er"], out["ephi"], out["ez"])
 
         return out
 
-    def _eval_plasma(self, R, phi, z, t):
+    def _eval_plasma(self, r, phi, z, t):
         """
         Evaluate plasma quantities at given coordinates.
 
         Note that magnetic field has to be initialized as well.
 
         Args:
-            R : array_like <br>
-                R coordinates where data is evaluated [m].
+            r : array_like <br>
+                r coordinates where data is evaluated [m].
             phi : array_like <br>
                 phi coordinates where data is evaluated [rad].
             z : array_like <br>
@@ -204,12 +200,12 @@ class LibAscot:
             RuntimeError if evaluation failed.
         """
 
-        R   = np.asarray(R).ravel().astype(dtype="f8")
+        r   = np.asarray(r).ravel().astype(dtype="f8")
         phi = np.asarray(phi).ravel().astype(dtype="f8")
         z   = np.asarray(z).ravel().astype(dtype="f8")
         t   = np.asarray(t).ravel().astype(dtype="f8")
 
-        Neval = R.size
+        Neval = r.size
 
         # Allocate enough space for electrons and all ion species.
         nspecies = LIBASCOT.libascot_plasma_get_n_species()
@@ -224,7 +220,7 @@ class LibAscot:
 
         fun(ctypes.byref(self._sim), self._bfield_offload_array,
             self._plasma_offload_array,
-            Neval, R, phi, z, t, rawdens, rawtemp)
+            Neval, r, phi, z, t, rawdens, rawtemp)
 
         out = {}
         out["ne"] = rawdens[0:Neval]
@@ -235,13 +231,13 @@ class LibAscot:
 
         return out
 
-    def _eval_neutral(self, R, phi, z, t):
+    def _eval_neutral(self, r, phi, z, t):
         """
         Evaluate neutral quantities at given coordinates.
 
         Args:
-            R : array_like <br>
-                R coordinates where data is evaluated [m].
+            r : array_like <br>
+                r coordinates where data is evaluated [m].
             phi : array_like <br>
                 phi coordinates where data is evaluated [rad].
             z : array_like <br>
@@ -257,14 +253,14 @@ class LibAscot:
             RuntimeError if evaluation failed.
         """
 
-        R   = np.asarray(R).ravel().astype(dtype="f8")
+        r   = np.asarray(r).ravel().astype(dtype="f8")
         phi = np.asarray(phi).ravel().astype(dtype="f8")
         z   = np.asarray(z).ravel().astype(dtype="f8")
         t   = np.asarray(t).ravel().astype(dtype="f8")
 
-        Neval = R.size
+        Neval = r.size
         out = {}
-        out["n0"] = np.zeros(R.shape, dtype="f8") + np.nan
+        out["n0"] = np.zeros(r.shape, dtype="f8") + np.nan
 
         fun = LIBASCOT.libascot_neutral_eval_density
         fun.restype  = None
@@ -273,17 +269,17 @@ class LibAscot:
                         PTR_REAL]
 
         fun(ctypes.byref(self._sim), self._neutral_offload_array,
-            Neval, R, phi, z, t, out["n0"])
+            Neval, r, phi, z, t, out["n0"])
 
         return out
 
-    def _eval_boozer(self, R, phi, z, t, evalfun=False):
+    def _eval_boozer(self, r, phi, z, t, evalfun=False):
         """
         Evaluate boozer quantities at given coordinates.
 
         Args:
-            R : array_like <br>
-                R coordinates where data is evaluated [m].
+            r : array_like <br>
+                r coordinates where data is evaluated [m].
             phi : array_like <br>
                 phi coordinates where data is evaluated [rad].
             z : array_like <br>
@@ -301,18 +297,18 @@ class LibAscot:
             RuntimeError if evaluation failed.
         """
 
-        R   = np.asarray(R).ravel().astype(dtype="f8")
+        r   = np.asarray(r).ravel().astype(dtype="f8")
         phi = np.asarray(phi).ravel().astype(dtype="f8")
         z   = np.asarray(z).ravel().astype(dtype="f8")
         t   = np.asarray(t).ravel().astype(dtype="f8")
 
-        Neval = R.size
+        Neval = r.size
         out = {}
 
         if evalfun:
-            out["qprof"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bjac"]    = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bjacxb2"] = np.zeros(R.shape, dtype="f8") + np.nan
+            out["qprof"]   = np.zeros(r.shape, dtype="f8") + np.nan
+            out["bjac"]    = np.zeros(r.shape, dtype="f8") + np.nan
+            out["bjacxb2"] = np.zeros(r.shape, dtype="f8") + np.nan
 
             fun = LIBASCOT.libascot_boozer_eval_fun
             fun.restype  = ctypes.c_int
@@ -322,22 +318,22 @@ class LibAscot:
 
             fun(ctypes.byref(self._sim), self._bfield_offload_array,
                 self._boozer_offload_array,
-                Neval, R, phi, z, t, out["qprof"], out["bjac"],
+                Neval, r, phi, z, t, out["qprof"], out["bjac"],
                 out["bjacxb2"])
         else:
-            out["psi"]        = np.zeros(R.shape, dtype="f8") + np.nan
-            out["theta"]      = np.zeros(R.shape, dtype="f8") + np.nan
-            out["zeta"]       = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dpsidr"]     = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dpsidphi"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dpsidz"]     = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dthetadr"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dthetadphi"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dthetadz"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dzetadr"]    = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dzetadphi"]  = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dzetadz"]    = np.zeros(R.shape, dtype="f8") + np.nan
-            out["rho"]        = np.zeros(R.shape, dtype="f8") + np.nan
+            out["psi"]        = np.zeros(r.shape, dtype="f8") + np.nan
+            out["theta"]      = np.zeros(r.shape, dtype="f8") + np.nan
+            out["zeta"]       = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dpsidr"]     = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dpsidphi"]   = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dpsidz"]     = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dthetadr"]   = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dthetadphi"] = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dthetadz"]   = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dzetadr"]    = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dzetadphi"]  = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dzetadz"]    = np.zeros(r.shape, dtype="f8") + np.nan
+            out["rho"]        = np.zeros(r.shape, dtype="f8") + np.nan
 
             fun = LIBASCOT.libascot_boozer_eval_psithetazeta
             fun.restype  = ctypes.c_int
@@ -348,20 +344,20 @@ class LibAscot:
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
 
             fun(ctypes.byref(self._sim), self._boozer_offload_array,
-                Neval, R, phi, z, t, out["psi"], out["theta"], out["zeta"],
+                Neval, r, phi, z, t, out["psi"], out["theta"], out["zeta"],
                 out["dpsidr"], out["dpsidphi"], out["dpsidz"],
                 out["dthetadr"], out["dthetadphi"], out["dthetadz"],
                 out["dzetadr"], out["dzetadphi"], out["dzetadz"], out["rho"])
 
         return out
 
-    def _eval_mhd(self, R, phi, z, t, evalpot=False):
+    def _eval_mhd(self, r, phi, z, t, evalpot=False):
         """
         Evaluate mhd perturbation EM components at given coordinates.
 
         Args:
-            R : array_like <br>
-                R coordinates where data is evaluated [m].
+            r : array_like <br>
+                r coordinates where data is evaluated [m].
             phi : array_like <br>
                 phi coordinates where data is evaluated [rad].
             z : array_like <br>
@@ -379,20 +375,20 @@ class LibAscot:
             RuntimeError if evaluation failed.
         """
 
-        R   = np.asarray(R).ravel().astype(dtype="f8")
+        r   = np.asarray(r).ravel().astype(dtype="f8")
         phi = np.asarray(phi).ravel().astype(dtype="f8")
         z   = np.asarray(z).ravel().astype(dtype="f8")
         t   = np.asarray(t).ravel().astype(dtype="f8")
 
-        Neval = R.size
+        Neval = r.size
         out = {}
-        out["mhd_br"]   = np.zeros(R.shape, dtype="f8") + np.nan
-        out["mhd_bphi"] = np.zeros(R.shape, dtype="f8") + np.nan
-        out["mhd_bz"]   = np.zeros(R.shape, dtype="f8") + np.nan
-        out["mhd_er"]   = np.zeros(R.shape, dtype="f8") + np.nan
-        out["mhd_ephi"] = np.zeros(R.shape, dtype="f8") + np.nan
-        out["mhd_ez"]   = np.zeros(R.shape, dtype="f8") + np.nan
-        out["mhd_phi"]  = np.zeros(R.shape, dtype="f8") + np.nan
+        out["mhd_br"]   = np.zeros(r.shape, dtype="f8") + np.nan
+        out["mhd_bphi"] = np.zeros(r.shape, dtype="f8") + np.nan
+        out["mhd_bz"]   = np.zeros(r.shape, dtype="f8") + np.nan
+        out["mhd_er"]   = np.zeros(r.shape, dtype="f8") + np.nan
+        out["mhd_ephi"] = np.zeros(r.shape, dtype="f8") + np.nan
+        out["mhd_ez"]   = np.zeros(r.shape, dtype="f8") + np.nan
+        out["mhd_phi"]  = np.zeros(r.shape, dtype="f8") + np.nan
 
         fun = LIBASCOT.libascot_mhd_eval_perturbation
         fun.restype  = ctypes.c_int
@@ -403,22 +399,22 @@ class LibAscot:
 
         fun(ctypes.byref(self._sim), self._bfield_offload_array,
             self._boozer_offload_array, self._mhd_offload_array,
-            Neval, R, phi, z, t, out["mhd_br"], out["mhd_bphi"], out["mhd_bz"],
+            Neval, r, phi, z, t, out["mhd_br"], out["mhd_bphi"], out["mhd_bz"],
             out["mhd_er"], out["mhd_ephi"], out["mhd_ez"], out["mhd_phi"])
 
         if evalpot:
-            out["alpha"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["phi"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["alpha"] = np.zeros(r.shape, dtype="f8") + np.nan
+            out["phi"]   = np.zeros(r.shape, dtype="f8") + np.nan
 
-            out["dadt"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dadr"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dadphi"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dadz"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dadt"]   = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dadr"]   = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dadphi"] = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dadz"]   = np.zeros(r.shape, dtype="f8") + np.nan
 
-            out["dphidt"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dphidr"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dphidphi"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dphidz"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["dphidt"]   = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dphidr"]   = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dphidphi"] = np.zeros(r.shape, dtype="f8") + np.nan
+            out["dphidz"]   = np.zeros(r.shape, dtype="f8") + np.nan
 
             fun = LIBASCOT.libascot_mhd_eval
             fun.restype  = ctypes.c_int
@@ -429,7 +425,7 @@ class LibAscot:
                             PTR_REAL]
 
             fun(ctypes.byref(self._sim), self._boozer_offload_array,
-                self._mhd_offload_array, Neval, R, phi, z, t, out["alpha"],
+                self._mhd_offload_array, Neval, r, phi, z, t, out["alpha"],
                 out["dadr"], out["dadphi"], out["dadz"], out["dadt"],
                 out["phi"], out["dphidr"], out["dphidphi"], out["dphidz"],
                 out["dphidt"])

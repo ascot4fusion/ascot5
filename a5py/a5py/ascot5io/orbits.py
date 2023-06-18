@@ -6,11 +6,6 @@ File: orbits.py
 import numpy as np
 import h5py
 import unyt
-
-import a5py.marker.interpret as interpret
-import a5py.marker as marker
-import a5py.marker.endcond as endcondmod
-import a5py.marker.plot as plot
 import a5py.physlib as physlib
 
 from a5py.physlib.alias import getalias
@@ -367,37 +362,6 @@ class Orbits(DataContainer):
             )
             a5.free(bfield=True)
 
-        ## Boozer and MHD parameters ##
-        elif key in ["psi(bzr)gc", "psi(bzr)prt", "psi(bzr)fl"]:
-            a5.init(bfield=True, boozer=True)
-            item = evalapy("psi (bzr)") * unyt.dimensionless
-            a5.free(bfield=True, boozer=True)
-
-        elif key in ["theta(bzr)gc", "theta(bzr)prt", "theta(bzr)fl"]:
-            a5.init(bfield=True, boozer=True)
-            item = evalapy("theta") * unyt.rad
-            a5.free(bfield=True, boozer=True)
-
-        elif key in ["phi(bzr)gc", "phi(bzr)prt", "phi(bzr)fl"]:
-            a5.init(bfield=True, boozer=True)
-            item = evalapy("zeta") * unyt.rad
-            a5.free(bfield=True, boozer=True)
-
-        elif key in ["db/b(mhd)gc", "db/b(mhd)prt", "db/b(mhd)fl"]:
-            a5.init(bfield=True, boozer=True, mhd=True)
-            item = evalapy("db/b") * unyt.dimensionless
-            a5.free(bfield=True, boozer=True, mhd=True)
-
-        elif key in ["mhdepotgc", "mhdepotprt", "mhdepotfl"]:
-            a5.init(bfield=True, boozer=True, mhd=True)
-            item = evalapy("phi") * unyt.V
-            a5.free(bfield=True, boozer=True, mhd=True)
-
-        elif key in ["mhdalphagc", "mhdalphaprt", "mhdalphafl"]:
-            a5.init(bfield=True, boozer=True, mhd=True)
-            item = evalapy("alpha") * unyt.m
-            a5.free(bfield=True, boozer=True, mhd=True)
-
         return item
 
 
@@ -612,48 +576,6 @@ class Orbits(DataContainer):
                                  axes=axes, prune=prune, s=markersize, **kwargs)
 
         return axes
-
-
-    def poincare(self, *args, log=False, endcond=None, equal=False,
-                 prune=1, ids=None, markersize=5, axes=None):
-        """
-        Make a Poincare plot.
-        """
-
-        z   = None
-        sepid = False
-        if len(args) == 1:
-            x = "rho"
-            y = "phimod"
-            pncrid = args[0]
-            sepid = True
-
-        elif len(args) == 3:
-            x = args[0]
-            y = args[1]
-            pncrid = args[2]
-            sepid = True
-
-        if len(args) == 4:
-            x = args[0]
-            y = args[1]
-            z = args[2]
-            pncrid = args[3]
-            if log:
-                log = (0, 0, 1, 0)
-
-        if x == "R" and y == "z":
-            equal = True
-
-        axes = self.scatter(x=x, y=y, c=z, pncrid=pncrid, endcond=endcond,
-                            prune=prune, sepid=sepid, log=log, equal=equal,
-                            axes=axes, markersize=markersize, ids=ids)
-
-        if y == "phimod":
-            axes.set_ylim([0, 360])
-
-        return axes
-
 
     def _read_from_inistate(self, key, ids):
         isval = self._runnode.inistate[key]

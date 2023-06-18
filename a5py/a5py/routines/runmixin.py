@@ -42,7 +42,12 @@ class RunMixin():
                 raise AscotNoDataException(
                     "Data for \"" +  arg + "\" is required but not present.")
 
-    def getstate(self, qnt, state="ini", ids=None, endcond=None):
+    def getstate_list(self):
+        """
+        """
+        return self.inistate.list()
+
+    def getstate(self, qnt, mode="gc", state="ini", ids=None, endcond=None):
         """Evaluate a marker quantity based on its ini/endstate.
 
         Inistate is marker's phase-space position right at the start of
@@ -109,7 +114,7 @@ class RunMixin():
         if state == "end": self._require("endstate")
 
         # Get or evaluate the quantity
-        val = getattr(self, state + "state")[qnt]
+        val = getattr(self, state + "state").get(qnt, mode=mode)
 
         # Parse by ids and endcond
         idx = np.ones(val.shape, dtype=bool)
@@ -129,7 +134,7 @@ class RunMixin():
             idx = mask[uidx]
 
         if ids is not None:
-            idx = np.logical_and(idx, np.in1d(self["id"], ids))
+            idx = np.logical_and(idx, np.in1d(self.inistate.get("ids"), ids))
 
         val = val[idx]
 
