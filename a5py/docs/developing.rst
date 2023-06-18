@@ -159,15 +159,6 @@ Testing
 
 TODO
 
-=============================
-`Python API <papi/a5py.rst>`_
-=============================
-
-.. toctree::
-   :hidden:
-
-   papi/a5py.rst
-
 
 ==================================
 `C API <_static/html/index.html>`_

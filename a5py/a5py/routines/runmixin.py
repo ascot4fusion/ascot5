@@ -99,6 +99,8 @@ class RunMixin():
         ------
         ValueError
             Raised when the queried quantity could not be interpreted.
+        AscotNoDataException
+            Raised when data required for the opreation is not present.
         """
         self._require("inistate")
         if endcond is not None: self._require("endstate")
@@ -343,6 +345,8 @@ class RunMixin():
 
         Raises
         ------
+        AscotNoDataException
+            Raised when data required for the opreation is not present.
         """
         if "ini" in state: self._require("inistate")
         if "end" in state: self._require("endstate")
@@ -388,31 +392,34 @@ class RunMixin():
 
         Parameters
         ----------
-            x : str
-                Name of the quantity on x-axis.
-            y : str, optional
-                Name of the quantity on y-axis. Makes the histogram 2D.
-            cmap : str, optional
-                Name of the colormap used in the 2D histogram.
-            endcond : str, array_like, optional
-                Endcond of those  markers which are plotted. Separated by color
-                in 1D plot otherwise.
-            iniend : str, array_like, optional
-                Flag whether a corresponding [x, y] coordinate is taken from
-                the ini ("i") or endstate ("e").
-            log : bool, array_like, optional
-                Flag whether the corresponding axis [x, y] is made logarithmic.
-                If that is the case, absolute value is taken before the quantity
-                is passed to log10.
-            axesequal : bool, optional
-                Flag whether to set aspect ratio for x and y axes equal in 2D.
-            axes : Axes, optional
-                The Axes object to draw on. If None, a new figure is displayed.
-            cax : Axes, optional
-                The Axes object for the color data in 2D, otherwise taken from
-                axes.
-        Raise:
-            LackingDataError if queried state is missing from output.
+        x : str
+            Name of the quantity on x-axis.
+        y : str, optional
+            Name of the quantity on y-axis. Makes the histogram 2D.
+        cmap : str, optional
+            Name of the colormap used in the 2D histogram.
+        endcond : str, array_like, optional
+            Endcond of those  markers which are plotted. Separated by color
+            in 1D plot otherwise.
+        iniend : str, array_like, optional
+            Flag whether a corresponding [x, y] coordinate is taken from
+            the ini ("i") or endstate ("e").
+        log : bool, array_like, optional
+            Flag whether the corresponding axis [x, y] is made logarithmic.
+            If that is the case, absolute value is taken before the quantity
+            is passed to log10.
+        axesequal : bool, optional
+            Flag whether to set aspect ratio for x and y axes equal in 2D.
+        axes : Axes, optional
+            The Axes object to draw on. If None, a new figure is displayed.
+        cax : Axes, optional
+            The Axes object for the color data in 2D, otherwise taken from
+            axes.
+
+        Raises
+        ------
+        AscotNoDataException
+            Raised when data required for the opreation is not present.
         """
         if "i" in iniend: self._require("inistate")
         if "e" in iniend: self._require("endstate")
@@ -474,24 +481,25 @@ class RunMixin():
 
         Parameters
         ----------
-        plane : int <br>
+        plane : int
             Index number of the plane to be plotted in the list given by
             getorbit_poincareplanes.
-        conlen : bool, optional <br>
+        conlen : bool, optional
             If true, trajectories of lost markers are colored (in blue
             shades) where the color shows the connection length at that
             position. Confined (or all if conlen=False) markers are shown
             with shades of red where color separates subsequent
             trajectories.
-        axes : Axes, optional <br>
+        axes : Axes, optional
             The Axes object to draw on.
-        cax : Axes, optional <br>
+        cax : Axes, optional
             The Axes object for the connection length (if conlen is True),
             otherwise taken from axes.
 
         Raises
         ------
-        LackingDataError if endstate or poincaré data is missing from output.
+        AscotNoDataException
+            Raised when data required for the opreation is not present.
         """
         if not self.has_orbit:
             raise LackingDataError("orbit")
@@ -581,8 +589,7 @@ class RunMixin():
     def plotstate_summary(self, axes_inirho=None, axes_endrho=None,
                           axes_mileage=None, axes_energy=None,
                           axes_rz=None, axes_rhophi=None):
-        """
-        Plot several graphs that summarize the simulation.
+        """Plot several graphs that summarize the simulation.
 
         Following graphs are plotted:
           - inirho: Initial rho histogram with colors marking the endcond.
@@ -592,7 +599,8 @@ class RunMixin():
           - Rz: Final R-z scatterplot.
           - rhophi: Final rho-phi scatterplot.
 
-        Args:
+        Parameters
+        ----------
             axes_inirho: {Axes, bool}, optional <br>
                 Axes where inirho is plotted else a new figure is created. If
                 False, then this plot is omitted.
@@ -611,6 +619,11 @@ class RunMixin():
             axes_rhophi: {Axes, bool}, optional <br>
                 Axes where inirho is plotted else a new figure is created. If
                 False, then this plot is omitted.
+
+        Raises
+        ------
+        AscotNoDataException
+            Raised when data required for the opreation is not present.
         """
 
         # Initial rho histogram with colors marking endcond
@@ -693,10 +706,10 @@ class RunMixin():
 
 
     def getstate_pointcloud(self, endcond=None):
-        """
-        Return marker endstate (x,y,z) coordinates in single array.
+        """Return marker endstate (x,y,z) coordinates in single array.
 
-        Args:
+        Parameters
+        ----------
             endcond : str, optional <br>
                 Only return markers that have given end condition.
         """
@@ -706,8 +719,7 @@ class RunMixin():
                          self.endstate.get("z", endcond=endcond)]).T
 
     def getwall_loads(self):
-        """
-        Get 3D wall loads and associated quantities.
+        """Get 3D wall loads and associated quantities.
 
         This method does not return loads on all wall elements (as usually most
         of them receive no loads) but only those that are affected and their

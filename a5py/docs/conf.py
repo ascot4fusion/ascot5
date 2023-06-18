@@ -14,16 +14,15 @@ import a5py
 project   = 'ASCOT5'
 copyright = '2023, Ascot Group'
 author    = 'Ascot Group'
-release   = a5py.ascot5io._iohelpers.fileapi.VERSION
+release   = a5py.ascot5io.coreio.fileapi.VERSION
 
 # -- General configuration -----------------------------------------------------
 extensions = ['sphinx.ext.autodoc',      # For generating doc from Python source
               'numpydoc',                # Source docs are done in numpy style
               'nbsphinx',                # Embed Jupyter notebooks
               'breathe',                 # Sphinx can access Doxygen output
-              'sphinx_automodapi.automodapi',
               'sphinxcontrib.bibtex',    # Can use bibtex
-              'sphinx.ext.autosummary',
+              'sphinx.ext.autosummary',  # Creating summary tables
               'sphinx.ext.intersphinx',] # Link to external libraries
 
 exclude_patterns = []

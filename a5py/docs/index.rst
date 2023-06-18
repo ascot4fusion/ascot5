@@ -42,6 +42,10 @@ If you can't find here what you are looking for in this documentation, don't be 
   :hidden:
 
   developing
+  
+.. toctree::
+
+  papi/a5py.rst
 
 Getting started
 ===============

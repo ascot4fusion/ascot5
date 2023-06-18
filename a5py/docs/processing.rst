@@ -59,7 +59,7 @@ See the tutorial and API below for detailed description of data access.
    a5py.ascot5io.Ascot5IO
    a5py.ascot5io.RunGroup
    a5py.ascot5io.InputGroup
-   a5py.ascot5io._iohelpers.treedata.DataGroup
+   a5py.ascot5io.coreio.treedata.DataGroup
 
 ================
 Input generation

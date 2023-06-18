@@ -1,11 +1,3 @@
-========
-Examples
-========
-
-
-Getting started
-===============
-
 
 Basic usage
 ===========
@@ -13,4 +5,4 @@ Basic usage
 .. toctree::
   :maxdepth: 1
 
-  input_basics
+  tutorials/tutorial.ipynb

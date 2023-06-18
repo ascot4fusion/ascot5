@@ -172,6 +172,7 @@ class _Node():
         ----------
         key : str
             Name of the attribute.
+
         Returns
         -------
         value
@@ -250,7 +251,6 @@ class _ParentNode(_Node):
         h5 : `h5py.File`
             The HDF5 file from which the tree is constructed.
         """
-
         # Find active group and set it
         qid = fileapi.get_activeqid(h5, h5[self._path])
         self.active = self["q"+qid]
