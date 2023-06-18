@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import pyvista as pv
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from .helpers import openfigureifnoaxes
+from .plothelpers import openfigureifnoaxes
 
 @openfigureifnoaxes(projection=None)
 def still(wallmesh, points=None, data=None, log=False, cpos=None, cfoc=None,

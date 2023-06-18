@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from .helpers import openfigureifnoaxes
+from .plothelpers import openfigureifnoaxes
 
 @openfigureifnoaxes(projection=None)
 def scatter2d(x, y, c="C0", log=[False, False, False], nc=9, cmap="viridis",

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from .helpers import openfigureifnoaxes
+from .plothelpers import openfigureifnoaxes
 
 @openfigureifnoaxes(projection=None)
 def hist1d(x, xbins=None, weights=None, log=[False, False], xlabel=None,
