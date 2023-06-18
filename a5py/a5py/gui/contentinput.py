@@ -183,27 +183,27 @@ class ContentInput:
         quantities = []
 
         bfield = False
-        if hasattr(self.gui.ascot.hdf5, "bfield"):
+        if hasattr(self.gui.ascot.data, "bfield"):
             quantities += LibBfield.quantities
             bfield = True
         efield = False
-        if hasattr(self.gui.ascot.hdf5, "efield"):
+        if hasattr(self.gui.ascot.data, "efield"):
             quantities += LibEfield.quantities
             efield = True
         plasma = False
-        if hasattr(self.gui.ascot.hdf5, "plasma"):
+        if hasattr(self.gui.ascot.data, "plasma"):
             quantities += LibPlasma.quantities
             plasma = True
         neutral = False
-        if hasattr(self.gui.ascot.hdf5, "neutral"):
+        if hasattr(self.gui.ascot.data, "neutral"):
             quantities += LibNeutral.quantities
             neutral = True
         boozer = False
-        if hasattr(self.gui.ascot.hdf5, "boozer"):
+        if hasattr(self.gui.ascot.data, "boozer"):
             quantities += LibBoozer.quantities
             boozer = True
         mhd = False
-        if hasattr(self.gui.ascot.hdf5, "mhd"):
+        if hasattr(self.gui.ascot.data, "mhd"):
             quantities += LibMhd.quantities
             mhd = True
 

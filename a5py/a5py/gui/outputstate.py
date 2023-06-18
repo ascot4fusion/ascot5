@@ -375,7 +375,7 @@ class StateFrame(ttk.Frame):
         """
         Display state frame for the run that is currently active.
         """
-        run = self.gui.ascot.hdf5.active
+        run = self.gui.ascot.data.active
         try:
             endconds, counts = run.endstate.listendconds()
             if self.framescatter.xbtn.switch.isdisabled:

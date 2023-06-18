@@ -78,7 +78,7 @@ class ContentPrecheck:
 
 
     def display(self):
-        self.gui.ascot.init(bfield=True, ignorewarnings=True)
+        self.gui.ascot.input_init(bfield=True, switch=True)
 
         self.frameprecheck.view()
         self.canvasprecheck.view(self.gui.ascot)

@@ -13,11 +13,8 @@ from tkinter import ttk
 from tkinter.filedialog import askopenfilename, askdirectory
 from tkinter import messagebox, simpledialog
 
-import a5py.ascot5io.ascot5tools as tools
-from a5py.ascot5io.ascot5 import Ascot, AscotInitException
-from a5py.ascotpy.libascot import AscotpyInitException
-from a5py.ascotpy.ascotpy import Ascotpy
-from a5py.ascot5io.ascot5file import INPUT_PARENTS
+from a5py import Ascot
+from a5py.ascot5io._iohelpers import fileapi
 
 from .contentmanager import ContentManager
 from .guiparams import GUIparams
@@ -85,7 +82,8 @@ class GUI(tk.Tk):
 
         ## Add decorations: title and icons ##
         self.title("ASCOT5 GUI")
-        icon = os.path.join(os.path.dirname(__file__), "icon.png")
+        icon = os.path.join(os.path.dirname(__file__),
+                            "../../docs/figs/icon.png")
         self.tk.call("wm", "iconphoto", self._w, tk.PhotoImage(file=icon))
 
         ## Set window size and minimum size ##
@@ -155,7 +153,7 @@ class GUI(tk.Tk):
         self.content = ContentManager(self, settings, canvas)
 
         # Read file and show its contents
-        self.ascot = Ascotpy()
+        self.ascot = Ascot()
         path = None if filename is None else os.path.abspath(filename)
         self.files.open_new_file(path)
 
@@ -301,7 +299,7 @@ class FileFrame(ttk.Frame):
         if filename is not None:
 
             try:
-                self.gui.ascot.reload(filename)
+                self.gui.ascot.file_load(filename)
             except AscotInitException:
                 messagebox.showerror(
                     "Error",
@@ -413,22 +411,21 @@ class GroupFrame(ttk.Frame):
         self.tree.delete(*self.tree.get_children())
 
         # Check if we have an open HDF5 file and proceed.
-        if self.gui.ascot.get_filepath() is None:
+        if self.gui.ascot.file_getpath() is None:
             return
 
         # Construct the tree by creating all parents and their children
-        parents = self.gui.ascot.hdf5.get_parents()
-        for index, parent in enumerate(list(parents.keys()) + ["results"]):
+        for index, parent in enumerate(fileapi.INPUTGROUPS + ["results"]):
 
             if parent == "results":
                 qids, types, descs, dates = \
-                    self.gui.ascot.hdf5.get_resultsinfo(sortbydate=True)
+                    self.gui.ascot.data.get_contents()
                 if len(qids) > 0:
-                    activeqid = self.gui.ascot.hdf5.active.get_qid()
+                    activeqid = self.gui.ascot.data.active.get_qid()
                     item = self.tree.insert("", index, text=parent,
                                             tags=("parent"))
             else:
-                if parents[parent] is None:
+                if not parent in self.gui.ascot.data:
                     # The parent does not exist
                     item = self.tree.insert("", index, text=parent,
                                             tags=("parent", "nodata"))
@@ -436,9 +433,9 @@ class GroupFrame(ttk.Frame):
 
                 item = self.tree.insert("", index, text=parent, tags=("parent"))
                 qids, types, descs, dates = \
-                    self.gui.ascot.hdf5[parent].get_inputinfo(sortbydate=True)
+                    self.gui.ascot.data[parent].get_contents()
                 if len(qids) > 0:
-                    activeqid = self.gui.ascot.hdf5[parent].active.get_qid()
+                    activeqid = self.gui.ascot.data[parent].active.get_qid()
 
             # Generate children:
             # - Rows are tagged "even" or "odd"
@@ -477,14 +474,14 @@ class GroupFrame(ttk.Frame):
             if parent == "results":
                 inputqids = []
                 for p in INPUT_PARENTS:
-                    if p in self.gui.ascot.hdf5["q"+qid]:
+                    if p in self.gui.ascot.data["q"+qid]:
                         inputqids.append(
-                            self.gui.ascot.hdf5["q"+qid][p].get_qid())
+                            self.gui.ascot.data["q"+qid][p].get_qid())
 
                 self._highlightinputs(inputqids)
 
             else:
-                outputqids = self.gui.ascot.hdf5.get_runsfrominput(qid)
+                outputqids = self.gui.ascot.data.get_runsfrominput(qid)
                 self._highlightoutputs(outputqids)
 
         # Show contents for this group
@@ -501,9 +498,9 @@ class GroupFrame(ttk.Frame):
         parentname = self.tree.item(parent, "text")
 
         if parentname == "results":
-            self.gui.ascot.hdf5["q"+qid].set_as_active()
+            self.gui.ascot.data["q"+qid].set_as_active()
         else:
-            self.gui.ascot.hdf5[parentname]["q"+qid].set_as_active()
+            self.gui.ascot.data[parentname]["q"+qid].set_as_active()
         self._activate(item, parent)
 
         self.gui.content.update_content()
@@ -529,10 +526,10 @@ class GroupFrame(ttk.Frame):
             return
 
         # Remove the group in HDF5
-        self.gui.ascot.hdf5._remove_from_file(qid)
+        self.gui.ascot.data._remove_from_file(qid)
 
         try:
-            self.gui.ascot.hdf5[parentname]["q" + qid]
+            self.gui.ascot.data[parentname]["q" + qid]
             messagebox.showerror(
                   "Error",
                   "Could not remove the input group as it has been used in\n"
@@ -542,7 +539,7 @@ class GroupFrame(ttk.Frame):
             pass
 
         try:
-            self.gui.ascot.hdf5[qid]
+            self.gui.ascot.data[qid]
             messagebox.showerror(
                   "Error",
                   "Could not remove the input group as it has been used in\n"
@@ -567,10 +564,10 @@ class GroupFrame(ttk.Frame):
 
         # 2. Ordinary group: remove it and set the next one as active
         if parentname == "results":
-            activeqid = self.gui.ascot.hdf5.active.get_qid()
+            activeqid = self.gui.ascot.data.active.get_qid()
             self._highlightinputs([])
         else:
-            activeqid = self.gui.ascot.hdf5[parentname].active.get_qid()
+            activeqid = self.gui.ascot.data[parentname].active.get_qid()
 
         self.tree.delete(item)
         for group in self.tree.get_children(parent):
@@ -608,7 +605,7 @@ class GroupFrame(ttk.Frame):
             return
 
         try:
-            tools.copygroup(self.gui.ascot.hdf5._hdf5fn, fnout, group)
+            tools.copygroup(self.gui.ascot.file_getpath(), fnout, group)
 
         except Exception as err:
             messagebox.showerror(
@@ -676,17 +673,17 @@ class GroupFrame(ttk.Frame):
         Adds dummy group for selected parent.
         """
         parent = self.tree.item(self.tree.selection(), "text")
-        self.gui.ascot.hdf5.add_dummyinputs(parent=parent, missing=False)
+        self.gui.ascot.data.add_dummyinputs(parent=parent, missing=False)
 
         # New group is the newest group (qids in Ascot are ordered by date)
         if parent == "results":
-            tmp = self.gui.ascot.hdf5
+            tmp = self.gui.ascot.data
         else:
-            tmp = self.gui.ascot.hdf5[parent]
+            tmp = self.gui.ascot.data[parent]
 
         qid = tmp._qids[-1]
         group = tmp[qid]
-        group.set_as_active()
+        group.activate()
         self.add_group(parent, group)
 
 

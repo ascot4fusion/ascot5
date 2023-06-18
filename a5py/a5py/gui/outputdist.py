@@ -146,7 +146,7 @@ class DistFrame(ttk.Frame):
 
 
     def display(self):
-        run = self.gui.ascot.hdf5.active
+        run = self.gui.ascot.data.active
         dists = []
         try:
             run.dist5d

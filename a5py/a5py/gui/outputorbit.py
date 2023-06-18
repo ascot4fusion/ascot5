@@ -177,7 +177,7 @@ class OrbitFrame(ttk.Frame):
 
 
     def display(self):
-        run = self.gui.ascot.hdf5.active
+        run = self.gui.ascot.data.active
         try:
             endconds, counts = run.endstate.listendconds()
         except AttributeError:

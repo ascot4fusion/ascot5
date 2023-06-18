@@ -90,6 +90,6 @@ class ContentOutput:
     def display(self):
 
         self.gui.ascot.init_from_run(
-            self.gui.ascot.hdf5.active,
+            self.gui.ascot.data.active,
             bfield=True, efield=True, neutral=True,
             plasma=True, boozer=True, mhd=True)

@@ -25,7 +25,6 @@ import tkinter.ttk as ttk
 import numpy as np
 
 from a5py.ascot5io.options     import write_hdf5
-from a5py.ascot5io.ascot5tools import call_ascot5file
 from .components import PlotFrame, ScrollableFrame, DropdownMenu
 
 class ContentGroup():
@@ -58,7 +57,8 @@ class ContentGroup():
 
                 # Load graphics which are shown when no group is selected
                 # (on startup)
-                logo = os.path.join(os.path.dirname(__file__), "logo.png")
+                logo = os.path.join(os.path.dirname(__file__),
+                                    "../../docs/figs/logo.png")
                 logo = tk.PhotoImage(file=logo)
                 self.logo = logo # Otherwise garbage collector eats this
                 self.create_image(150, 50, image=logo)
@@ -206,8 +206,8 @@ class ContentGroup():
                 desc = group.get_desc()
                 grp = write_hdf5(group._file, opt, desc=desc)
                 grp = grp.split("_")[-1]
-                gui.ascot.hdf5.reload()
-                gui.ascot.hdf5["options"]["q"+grp].set_as_active()
+                gui.ascot.data.reload()
+                gui.ascot.data["options"]["q"+grp].set_as_active()
                 gui.groups.add_group("options", group)
 
 
@@ -307,9 +307,9 @@ class ContentGroup():
         try:
             int(qid)
             if parent == "results":
-                group = self.gui.ascot.hdf5["q"+qid]
+                group = self.gui.ascot.data["q"+qid]
             else:
-                group = self.gui.ascot.hdf5[parent]["q"+qid]
+                group = self.gui.ascot.data[parent]["q"+qid]
 
         except:
             # For parent groups there is nothing to display.

@@ -50,7 +50,7 @@ class SummaryFrame(ttk.Frame):
         """
         Display this frame and redraws canvas.
         """
-        run = self.gui.ascot.hdf5.active
+        run = self.gui.ascot.data.active
         self.viewsummarytext(run)
         self.canvas.clear()
 

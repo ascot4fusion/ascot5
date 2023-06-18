@@ -43,7 +43,7 @@ class ContentInteractive:
 
     def view(self, tab):
         if tab == "Orbit":
-            self.gui.ascot.free()
+            self.gui.ascot.input_free()
             self.active_canvas.pack_forget()
             self.runorbit.display(self.gui)
             self.active_canvas = self.runorbit.canvas

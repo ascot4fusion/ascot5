@@ -313,7 +313,7 @@ class LossFrame(ttk.Notebook):
 
 
     def display(self):
-        run = self.gui.ascot.hdf5.active
+        run = self.gui.ascot.data.active
         self.framegeneral.load(run)
         self.framewallload.load(run)
         self.frameview3d.load(run)
