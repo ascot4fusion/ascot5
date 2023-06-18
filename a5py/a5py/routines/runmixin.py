@@ -133,7 +133,6 @@ class RunMixin():
 
         return val
 
-
     def getorbit(self, qnt, ids=None, pncrid=None, endcond=None):
         """Return orbit data.
 
@@ -142,13 +141,13 @@ class RunMixin():
 
         Parameters
         ----------
-        qnt : `str`
+        qnt : str
             Name of the quantity.
         ids : array_like, optional
             Filter markers by their IDs.
         pncrid : array_like, optional
             Filter data points by the Poincaré plane they correspond to.
-        endcond : `str` or `list` [`str`], optional
+        endcond : str or list [str], optional
             Filter markers by their end conditions.
 
             See for details on how this argument is parsed and for a list of
@@ -215,7 +214,6 @@ class RunMixin():
 
         return msg
 
-
     def getstate_losssummary(self):
         """Return a summary of lost markers.
         """
@@ -241,7 +239,6 @@ class RunMixin():
         msg += ["Energy lost: " + str(power_lost) + " ("
                 + str(np.around(power_frac*100, decimals=1)) + "% of total)"]
         return msg
-
 
     def getwall_figuresofmerit(self):
         """
@@ -269,12 +266,10 @@ class RunMixin():
         msg += ["Peak load: " + str(np.around(energy_peak, decimals=2)) + " " + str(unit) + r"$/m^2$"]
         return msg
 
-
     def plotwall_loadvsarea(self, axes=None):
         ids, _, eload, _, _, _, _ = self.getwall_loads()
         area = self.wall.area()[ids-1]
         a5plt.loadvsarea(area, eload, axes=axes)
-
 
     def getorbit_poincareplanes(self):
         """Return a list of Poincaré planes that were present in the simulation.
@@ -297,10 +292,10 @@ class RunMixin():
 
         return plane
 
-
     def plotstate_scatter(
             self, x, y, z=None, c=None, color="C0", endcond=None,
-            iniend=["i", "i", "i", "i"], log=[False, False, False, False],
+            state=["ini", "ini", "ini", "ini"],
+            log=[False, False, False, False],
             axesequal=False, axes=None, cax=None):
         """Make a scatter plot of marker state coordinates.
 
@@ -314,65 +309,53 @@ class RunMixin():
 
         Parameters
         ----------
-        x : str <br>
+        x : str
             Name of the quantity on x-axis.
-        y : str <br>
+        y : str
             Name of the quantity on y-axis.
-        z : str, optional <br>
+        z : str, optional
             Name of the quantity on z-axis (makes plot 3D if given).
-        c : str, optional <br>
+        c : str, optional
             Name of the quantity shown with color scale.
-        color : str, optional <br>
+        color : str, optional
             Name of the color markers are colored with if c is not given.
-        nc : int, optional <br>
+        nc : int, optional
             Number of colors used if c is given (the color scale is not
             continuous)
-        cmap : str, optional <br>
+        cmap : str, optional
             Name of the colormap where nc colors are picked if c is given.
-        endcond : str, array_like, optional <br>
+        endcond : str, array_like, optional
             Endcond of those  markers which are plotted.
-        iniend : str, array_like, optional <br>
+        state : str, array_like, optional
             Flag whether a corresponding [x, y, z, c] coordinate is taken
-            from the ini ("i") or endstate ("e").
-        log : bool, array_like, optional <br>
+            from the ini ("ini") or endstate ("end").
+        log : bool, array_like, optional
             Flag whether the corresponding axis [x, y, z, c] is made
             logarithmic. If that is the case, absolute value is taken before
             the quantity is passed to log10.
-        axesequal : bool, optional <br>
+        axesequal : bool, optional
             Flag whether to set aspect ratio for x and y (and z) axes equal.
-        axes : Axes, optional <br>
+        axes : Axes, optional
             The Axes object to draw on. If None, a new figure is displayed.
-        cax : Axes, optional <br>
+        cax : Axes, optional
             The Axes object for the color data (if c contains data),
             otherwise taken from axes.
 
         Raises
-            LackingDataError if queried state is missing from output.
+        ------
         """
-        if "i" in iniend: self._require("inistate")
-        if "e" in iniend: self._require("endstate")
+        if "ini" in state: self._require("inistate")
+        if "end" in state: self._require("endstate")
 
-        # Decipher whether quantity is evaluated from ini or endstate
-        state = [None] * 4
-        for i in range(4):
-            if iniend[i] == "i":
-                state[i] = self.inistate
-            elif iniend[i] == "e":
-                state[i] = self.endstate
-            else:
-                raise ValueError("Only 'i' and 'e' are accepted for iniend.")
-
-        # Function for processing given coordinate
         def process(crdname, crdindex):
-
-            # Read data
-            crd   = state[crdindex].get(crdname, endcond=endcond)
+            """Get values and label for given coordinate
+            """
+            crd = self.getstate(crdname, state=state[crdindex],
+                                endcond=endcond)
             label = crdname + " [" + str(crd.units) + "]"
-
             return (crd, label)
 
-
-        # Process
+        # Find values and labels
         xc, xlabel = process(x, 0)
         yc, ylabel = process(y, 1)
         if z is not None:
@@ -393,40 +376,39 @@ class RunMixin():
                             ylabel=ylabel, zlabel=zlabel, clabel=clabel,
                             axesequal=axesequal, axes=axes, cax=cax)
 
-
     def plotstate_histogram(
             self, x, y=None, xbins=None, ybins=None, endcond=None, weight=False,
             iniend=["i", "i"], log=[False, False], logscale=False,
             cmap="viridis", axesequal=False, axes=None, cax=None):
-        """
-        Make a histogram plot of marker state coordinates.
+        """Make a histogram plot of marker state coordinates.
 
         The histogram is either 1D or 2D depending on if the y coordinate is
         provided. In the 1D histogram the markers with different endstate are
         separated by color if the endcond argument is None.
 
-        Args:
-            x : str <br>
+        Parameters
+        ----------
+            x : str
                 Name of the quantity on x-axis.
-            y : str, optional <br>
+            y : str, optional
                 Name of the quantity on y-axis. Makes the histogram 2D.
-            cmap : str, optional <br>
+            cmap : str, optional
                 Name of the colormap used in the 2D histogram.
-            endcond : str, array_like, optional <br>
+            endcond : str, array_like, optional
                 Endcond of those  markers which are plotted. Separated by color
                 in 1D plot otherwise.
-            iniend : str, array_like, optional <br>
+            iniend : str, array_like, optional
                 Flag whether a corresponding [x, y] coordinate is taken from
                 the ini ("i") or endstate ("e").
-            log : bool, array_like, optional <br>
+            log : bool, array_like, optional
                 Flag whether the corresponding axis [x, y] is made logarithmic.
                 If that is the case, absolute value is taken before the quantity
                 is passed to log10.
-            axesequal : bool, optional <br>
+            axesequal : bool, optional
                 Flag whether to set aspect ratio for x and y axes equal in 2D.
-            axes : Axes, optional <br>
+            axes : Axes, optional
                 The Axes object to draw on. If None, a new figure is displayed.
-            cax : Axes, optional <br>
+            cax : Axes, optional
                 The Axes object for the color data in 2D, otherwise taken from
                 axes.
         Raise:
@@ -485,7 +467,6 @@ class RunMixin():
             a5plt.hist2d(xc, yc, xbins=xbins, ybins=ybins, weights=weights,
                          log=[log[0], log[1], logscale], xlabel=xlabel,
                          ylabel=ylabel, axesequal=axesequal, axes=axes, cax=cax)
-
 
     def plotorbit_poincare(self, plane, conlen=True, axes=None, cax=None):
         """Poincaré plot where color separates markers or shows connection

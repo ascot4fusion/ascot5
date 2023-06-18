@@ -141,39 +141,39 @@ class Marker(DataGroup):
         return None
 
     @staticmethod
-    def generatemrk(nmrk, mrktype, species=None):
+    def generate(mrktype, n, species=None):
         """Generate dummy marker input of given type and species.
         """
         mrk = {
-            "n"      : nmrk,
-            "ids"    : ( 1 + np.arange(nmrk) ),
-            "r"      : np.zeros((nmrk,)),
-            "z"      : np.zeros((nmrk,)),
-            "phi"    : np.zeros((nmrk,)),
-            "weight" : np.ones((nmrk,)),
-            "time"   : np.zeros((nmrk,)),
+            "n"      : n,
+            "ids"    : ( 1 + np.arange(n) ),
+            "r"      : np.zeros((n,)),
+            "z"      : np.zeros((n,)),
+            "phi"    : np.zeros((n,)),
+            "weight" : np.ones((n,)),
+            "time"   : np.zeros((n,)),
         }
         if species is not None:
             species = getspecies(species)
 
         if mrktype == "prt":
-            mrk["vr"]     = np.zeros((nmrk,))
-            mrk["vz"]     = np.zeros((nmrk,))
-            mrk["vphi"]   = np.zeros((nmrk,))
-            mrk["mass"]   = ( species["mass"]   * np.ones((nmrk,)) ).to_value("amu")
-            mrk["charge"] = species["charge"] * np.ones((nmrk,), dtype=np.int16)
-            mrk["anum"]   = species["anum"]   * np.ones((nmrk,), dtype=np.int16)
-            mrk["znum"]   = species["znum"]   * np.ones((nmrk,), dtype=np.int16)
+            mrk["vr"]     = np.zeros((n,))
+            mrk["vz"]     = np.zeros((n,))
+            mrk["vphi"]   = np.zeros((n,))
+            mrk["mass"]   = ( species["mass"]   * np.ones((n,)) ).to_value("amu")
+            mrk["charge"] = species["charge"] * np.ones((n,), dtype=np.int16)
+            mrk["anum"]   = species["anum"]   * np.ones((n,), dtype=np.int16)
+            mrk["znum"]   = species["znum"]   * np.ones((n,), dtype=np.int16)
         if mrktype == "gc":
-            mrk["pitch"]  = np.zeros((nmrk,))
-            mrk["energy"] = np.zeros((nmrk,))
-            mrk["zeta"]   = np.zeros((nmrk,))
-            mrk["mass"]   = ( species["mass"]   * np.ones((nmrk,)) ).to_value("amu")
-            mrk["charge"] = species["charge"] * np.ones((nmrk,), dtype=np.int16)
-            mrk["anum"]   = species["anum"]   * np.ones((nmrk,), dtype=np.int16)
-            mrk["znum"]   = species["znum"]   * np.ones((nmrk,), dtype=np.int16)
+            mrk["pitch"]  = np.zeros((n,))
+            mrk["energy"] = np.zeros((n,))
+            mrk["zeta"]   = np.zeros((n,))
+            mrk["mass"]   = ( species["mass"]   * np.ones((n,)) ).to_value("amu")
+            mrk["charge"] = species["charge"] * np.ones((n,), dtype=np.int16)
+            mrk["anum"]   = species["anum"]   * np.ones((n,), dtype=np.int16)
+            mrk["znum"]   = species["znum"]   * np.ones((n,), dtype=np.int16)
         if mrktype == "fl":
-            mrk["pitch"]  = np.zeros((nmrk,))
+            mrk["pitch"]  = np.zeros((n,))
 
         return mrk
 

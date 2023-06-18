@@ -36,7 +36,7 @@ class Opt(DataGroup):
         """
         super().__init__(*args, **kwargs)
 
-        self._OPT_SIM_MODE                   = 3
+        self._OPT_SIM_MODE                   = 2
         self._OPT_ENABLE_ADAPTIVE            = 1
         self._OPT_RECORD_MODE                = 0
         self._OPT_FIXEDSTEP_USE_USERDEFINED  = 0
@@ -741,6 +741,11 @@ class Opt(DataGroup):
         data : dict
             Data read from HDF5 stored in the same format as is passed to
             :meth:`write_hdf5`.
+
+        Raises
+        ------
+        AscotIOException
+            If stored options were unviable.
         """
         fn   = self._root._ascot.file_getpath()
         path = self._path
@@ -758,6 +763,10 @@ class Opt(DataGroup):
                 if isinstance(defopt[key], list) and not isinstance(val, list):
                     val = [val]
                 out[key] = type(defopt[key])(val)
+
+        for o in defopt.keys():
+            if o not in out:
+                raise ValueError("Missing parameter: " + o)
 
         return out
 
@@ -859,6 +868,37 @@ class Opt(DataGroup):
 
         return out
 
+    def new(self, desc=None, **kwargs):
+        """Write new options with updated parameters.
+
+        This method reads the current options, updates the given parameters,
+        and writes the updated options as a new input.
+
+        Parameters
+        ----------
+        desc : str, optional
+            Input description.
+        **kwargs
+            <name> : <value> pairs for each options parameter that are updated.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+
+        Raises
+        ------
+        ValueError
+            If arguments contain unknown parameters.
+        """
+        options = self.read()
+        for o, val in kwargs.items():
+            if not o in options:
+                raise ValueError("Unknown parameter: " + o)
+            options[o] = val
+
+        return self._root.create_input("opt", desc=desc, **options)
+
     @staticmethod
     def write_hdf5(fn, desc=None, **kwargs):
         """Write input data to the HDF5 file.
@@ -870,7 +910,7 @@ class Opt(DataGroup):
         desc : str, optional
             Input description.
         **kwargs
-            Name : value pairs for each options parameter
+            <name> : <value> pairs for each options parameter
 
             Hint: :meth:`get_default` generates a default options dictionary
             from which one can pick parameters to change.
@@ -879,7 +919,22 @@ class Opt(DataGroup):
         -------
         name : str
             Name, i.e. "<type>_<qid>", of the new input that was written.
+
+        Raises
+        ------
+        ValueError
+            If arguments contain unknown parameters or if there are parameters
+            missing.
         """
+        opt = Opt.get_default()
+        for o in opt.keys():
+            if not o in kwargs:
+                raise ValueError("Missing parameter: " + o)
+
+        for o in kwargs.keys():
+            if not o in opt:
+                raise ValueError("Unknown parameter: " + o)
+
         parent = "options"
         group  = "opt"
         gname  = ""

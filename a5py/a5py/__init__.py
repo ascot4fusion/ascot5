@@ -61,6 +61,8 @@ class Ascot(Ascotpy):
         self.data       = None
 
         if create:
+            if os.path.isfile(inputfile):
+                raise AscotIOException("Cannot create file: file exists.")
             Ascot5IO._create_file(inputfile)
 
         self.file_load(inputfile)
@@ -243,43 +245,6 @@ class Ascot(Ascotpy):
         else:
             self._free(bfield=bfield, efield=efield, plasma=plasma, wall=wall,
                        neutral=neutral, boozer=boozer, mhd=mhd)
-
-    def input_plotrz(self, r, phi, z, t, quantity, clim=(None, None), axes=None,
-                     cax=None):
-        """Plot input quantity on a Rz plane at given coordinates.
-
-        Parameters
-       	----------
-        r : np.array
-	        R abscissa where data is evaluated and plotted [m].
-            z : np.array
-                z abscissa where data is evaluated and plotted [m].
-            phi : float
-                phi coordinate where data is evaluated [rad].
-            t : float
-                time coordinate where data is evaluated [s].
-            axes : Axes
-                plot on these axes instead of creating a new figure.
-            clim :
-                tuple with minimum and maximum color values.
-        """
-
-        out = self.input_eval(r, phi, z, t, quantity, grid=True)
-        out = np.transpose(out[:,0,:,0])
-
-        out = np.ma.masked_invalid(out)
-        if clim[0] is None:
-            clim[0] = np.nanmin(out)
-        if clim[1] is None:
-            clim[1] = np.nanmax(out)
-
-        mesh = axes.pcolormesh(r, z, out, vmin=clim[0], vmax=clim[1])
-        axes.patch.set(hatch='x', edgecolor=[0.9, 0.9, 0.9])
-
-        plt.colorbar(mesh, cax=cax)
-        axes.set_aspect("equal", adjustable="box")
-        axes.set_xlim(r[0], r[-1])
-        axes.set_ylim(z[0], z[-1])
 
     def input_plotseparatrix(self, r, phi, z, t, axes=None):
         """

@@ -10,7 +10,7 @@ import importlib
 
 from a5py import Ascot
 from a5py.exceptions import AscotIOException
-from a5py.ascot5io._iohelpers import fileapi
+from a5py.ascot5io.coreio import fileapi
 from a5py.ascot5io.state import State
 
 class TestAscot5IO(unittest.TestCase):

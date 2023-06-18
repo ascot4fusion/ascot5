@@ -8,7 +8,7 @@
 
    a5py.ascot5io
    a5py.ascotpy
-   a5py.premade
+   a5py.templates
    a5py.physlib
    a5py.routines
    a5py.gui
@@ -17,7 +17,7 @@
 
    a5py.ascot5io
    a5py.ascotpy
-   a5py.premade
+   a5py.templates
    a5py.physlib
    a5py.routines
    a5py.gui
@@ -40,7 +40,7 @@ Input initialization
 
    a5py.Ascot.input_init
    a5py.Ascot.input_free
-   
+
 Live simulations
 ****************
 
@@ -48,7 +48,7 @@ Live simulations
 
    a5py.Ascot.input_init
    a5py.Ascot.input_free
-   
+
 API
 ***
 

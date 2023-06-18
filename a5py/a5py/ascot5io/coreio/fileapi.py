@@ -423,7 +423,6 @@ def get_group(f, qid):
     group : `h5py.Group`
         Group or None if the group was not present.
     """
-
     for parent in f.keys():
         for group in f[parent].keys():
             if qid in group:
@@ -453,7 +452,6 @@ def get_qids(f, parent):
     AscotNoDataException
         Raised if parent group does not exist.
     """
-
     # Check the parent exists and access it
     if(str(parent) == parent):
         if not parent in f:
@@ -487,7 +485,6 @@ def get_inputqids(f, rungroup):
     AscotNoDataException
         Raised if run group does not exist.
     """
-
     # Check the group exists and access it.
     if(str(rungroup) == rungroup):
         qid = get_qid(rungroup)
@@ -527,7 +524,6 @@ def add_group(f, parent, group, desc=None):
     newgroup : `h5py.Group`
         The new group.
     """
-
     # Create a parent if one does not exists yet.
     if str(parent) == parent:
         parent = f.require_group(parent)
@@ -575,7 +571,6 @@ def remove_group(f, group):
     AscotIOException
         Raised if the group is input used by a run.
     """
-
     # Check the group exists and access it.
     if(str(group) == group):
         if group in f.keys():
@@ -661,7 +656,6 @@ def copy_group(fs, ft, group, newgroup=False):
     AscotIOException
         Raised if the group already exists on the target file.
     """
-
     # Check the group exists and access it.
     if(str(group) == group):
         qid = get_qid(group)

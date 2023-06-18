@@ -604,7 +604,7 @@ class RootNode(_ParentNode):
 
         if repack:
             fntemp = fn + "_repack"
-            subprocess.call(["h5repack", fn, fntemp])
+            subprocess.call(["h5repack", fn, fntemp], stdout=subprocess.DEVNULL)
             subprocess.call(["mv", fntemp, fn])
 
         self._build(fn)
@@ -622,6 +622,26 @@ class RootNode(_ParentNode):
             fileapi.set_active(f, group)
 
         self._build(fn)
+
+    def _get_group(self, name):
+        """Fetch group based on its QID or name.
+
+        Parameters
+        ----------
+        group : str
+            Name or QID of the group to be fetched.
+
+        Returns
+        -------
+        group : DataGroup
+            The group that was fetched.
+        """
+        qid = "q" + fileapi.get_qid(name)
+        if qid in self:
+            return self[qid]
+        for parent in fileapi.INPUTGROUPS:
+            if parent in self and qid in self[parent]:
+                return self[parent][qid]
 
     def _create_inputgroup(self, path, h5):
         """Create an input group to be added to the treeview.
