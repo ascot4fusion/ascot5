@@ -86,6 +86,7 @@ typedef struct {
     int enable_orbfol;         /**< Is orbit-following enabled                */
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
     int enable_mhd;            /**< Are MHD modes enabled                     */
+    int enable_atomic;         /**< Are atomic reactions enabled              */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb
@@ -182,6 +183,7 @@ typedef struct {
     int enable_orbfol;         /**< Is orbit-following enabled                */
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
     int enable_mhd;            /**< Are MHD modes enabled                     */
+    int enable_atomic;         /**< Are atomic reactions enabled              */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb
