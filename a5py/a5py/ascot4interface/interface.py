@@ -10,6 +10,7 @@ import a5py.ascot4interface.markers  as a4markers
 import a5py.ascot4interface.magn_bkg as a4magn_bkg
 import a5py.ascot4interface.plasma   as a4plasma
 import a5py.ascot4interface.erad     as a4erad
+import a5py.ascot4interface.neutral  as a4neutral
 import a5py.ascot4interface.wall_2d  as a4wall_2d
 import a5py.ascot4interface.wall_3d  as a4wall_3d
 import a5py.ascot4interface.mhdinput as a4mhdinput
@@ -17,6 +18,7 @@ import a5py.ascot4interface.mhdinput as a4mhdinput
 import a5py.ascot5io.B_2DS       as B_2DS
 import a5py.ascot5io.B_3DS       as B_3DS
 import a5py.ascot5io.B_STS       as B_STS
+import a5py.ascot5io.N0_1D       as N0_1D
 import a5py.ascot5io.N0_3D       as N0_3D
 import a5py.ascot5io.options     as options
 import a5py.ascot5io.plasma_1D   as plasma_1D
@@ -170,6 +172,25 @@ def read_erad(a4folder, h5fn):
         E = np.array([0, 0, 0])
         E_TC.write_hdf5(fn=h5fn, exyz=E)
 
+def read_neutral(a4folder, h5fn, anum_pls, znum_pls):
+    fname1d = a4folder + "input.neutral_1d"
+    fname3d = a4folder + "input.neutral_3d"
+    if (os.path.isfile(fname1d)):
+        data = a4neutral.read_neutral(fname1d)
+        N0_1D.write_hdf5(fn=h5fn,
+                         rhomin=data['rho'][0],
+                         rhomax=data['rho'][data['nrho']-1],
+                         nrho=data['nrho'], nspecies=data['nspecies'],
+                         anum=anum_pls, znum=znum_pls,
+                         density=data['dens'], temperature=data['temp'],
+                         maxwellian=1, desc=None)
+    else:
+        print("No 1D neutral data found. Writing dummy data.")
+        N0_1D.write_hdf5_dummy(h5fn)
+    if (os.path.isfile(fname3d)):
+        print("3D neutral data not yet implemented for ASCOT4. "
+              "Skipping 3D neutral input.")
+
 def read_wall(a4folder, h5fn):
     fname = a4folder + "input.wall_2d"
     if (os.path.isfile(fname)):
@@ -237,8 +258,8 @@ def run(a4folder, h5fn, overwrite=True):
     a4folder : str
         Path to folder where ASCOT4 input files are located. Input
         files should be named "input.magn_bkg", "input.magn_header",
-        "input.plasma_1d",   "input.wall_2d",   "input.wall_3d",
-        "input.particles" and "input.h5".
+        "input.plasma_1d",    "input.wall_2d",  "input.wall_3d",
+        "input.particles",    "input.h5"    and "input.neutral_1d".
 
     h5fn : str
         Full path to output HDF5 file.
@@ -283,10 +304,13 @@ def run(a4folder, h5fn, overwrite=True):
     if overwrite or (not "efield" in groups):
         read_erad(a4folder, h5fn)
 
-    # Neutral density
+    # Neutral profiles
     if overwrite or (not "neutral" in groups):
-        # No ASCOT4 neutral density
-        N0_3D.write_hdf5_dummy(h5fn)
+        # Since ASCOT4 neutral input does not specify the species,
+        # this information must be extracted from the plasma input
+        qid_pls = a5tools.call_ascot5file(h5fn, "get_activeqid", "plasma")
+        pls = plasma_1D.read_hdf5(fn=h5fn, qid=qid_pls)
+        read_neutral(a4folder, h5fn, pls["anum"][0], pls["znum"][0])
 
     # Boozer data
     if overwrite or (not "boozer" in groups):
@@ -300,7 +324,7 @@ def run(a4folder, h5fn, overwrite=True):
     if overwrite or (not "wall" in groups):
         read_wall(a4folder, h5fn)
 
-    # Options 
+    # Options
     if overwrite or (not "options" in groups):
         odict = options.generateopt()
         helpers.clean_opt(odict)
@@ -314,5 +338,4 @@ def run(a4folder, h5fn, overwrite=True):
         odict["ENABLE_MHD"]                = 1
         odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
-        options.write_hdf5(h5fn, odict)       
-
+        options.write_hdf5(h5fn, odict)

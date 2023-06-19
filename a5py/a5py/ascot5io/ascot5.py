@@ -102,6 +102,7 @@ from a5py.ascot5io.wall_2D    import wall_2D
 from a5py.ascot5io.wall_3D    import wall_3D
 from a5py.ascot5io.plasma_1D  import plasma_1D
 from a5py.ascot5io.plasma_1DS import plasma_1DS
+from a5py.ascot5io.N0_1D      import N0_1D
 from a5py.ascot5io.plasma_1Dt import plasma_1Dt
 from a5py.ascot5io.N0_3D      import N0_3D
 from a5py.ascot5io.boozer     import Boozer
@@ -112,7 +113,7 @@ from a5py.ascot5io.nbi        import nbi
 from a5py.ascot5io.E_TC       import write_hdf5_dummy as dummy_efield
 from a5py.ascot5io.wall_2D    import write_hdf5_dummy as dummy_wall
 from a5py.ascot5io.plasma_1D  import write_hdf5_dummy as dummy_plasma
-from a5py.ascot5io.N0_3D      import write_hdf5_dummy as dummy_neutral
+from a5py.ascot5io.N0_1D      import write_hdf5_dummy as dummy_neutral
 from a5py.ascot5io.boozer     import write_hdf5_dummy as dummy_boozer
 from a5py.ascot5io.mhd        import write_hdf5_dummy as dummy_mhd
 from a5py.ascot5io.nbi        import write_hdf5_dummy as dummy_nbi
@@ -173,7 +174,7 @@ def create_inputobject(key, root, h5group):
         "prt" : mrk_prt, "prt_shined" : mrk_prt_shined, "gc" : mrk_gc, "fl" : mrk_fl,
         "wall_2D" : wall_2D, "wall_3D" : wall_3D,
         "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS, "plasma_1Dt" : plasma_1Dt,
-        "N0_3D" : N0_3D,
+        "N0_1D" : N0_1D, "N0_3D" : N0_3D,
         "Boozer" : Boozer, "MHD_STAT" : MHD, "MHD_NONSTAT" : MHD,
         "opt" : Opt,
         "nbi" : nbi
@@ -665,11 +666,11 @@ class Ascot(_ContainerNode):
         for inp in INPUT_PARENTS:
             if(hasattr(self, inp)):
                 g = self[inp]
-                string += textcolor.active + inp.ljust(8) + textcolor.reset \
-                          + textcolor.header + g._types[0].ljust(10) + " "   \
+                string += textcolor.active + inp.ljust(12) + textcolor.reset \
+                          + textcolor.header + g._types[0].ljust(17) + " "   \
                           + g._qids[0][1:] + textcolor.reset + " " \
                           + g._dates[0] \
-                          + "\n        " + g._descs[0] + "\n"
+                          + "\n            " + g._descs[0] + "\n"
 
         string += textcolor.title + "\nResults:\n" \
                   + textcolor.reset
