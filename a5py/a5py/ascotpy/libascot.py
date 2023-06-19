@@ -66,6 +66,7 @@ class LibAscot:
         self.wall_initialized    = None
         self.boozer_initialized  = None
         self.mhd_initialized     = None
+        self.asigma_initialized  = None
 
         # Declare functions found in libascot
 
@@ -249,7 +250,8 @@ class LibAscot:
                   wall    = self.wall_initialized,
                   neutral = self.neutral_initialized,
                   mhd     = self.mhd_initialized,
-                  boozer  = self.boozer_initialized)
+                  boozer  = self.boozer_initialized,
+                  asigma=self.asigma_initialized)
 
         if h5fn == None:
             self.h5fn = None
@@ -295,6 +297,8 @@ class LibAscot:
                 Flag for initializing boozer data.
             mhd : bool, optional <br>
                 Flag for initializing mhd data.
+            asigma : bool or str optional <br>
+                Flag for initializing atomic sigma data.
             ignorewarnings : bool, optional <br>
                 If True, warnings are not displayed when trying to initialize
                 data that is already initialized
@@ -316,7 +320,7 @@ class LibAscot:
         elif bfield:
             self.free(bfield=True)
             if self.libascot.libascot_init(self.h5fn, qid, None, None, None,
-                                           None, None, None):
+                                           None, None, None, None):
                 raise RuntimeError("Failed to initialize magnetic field")
 
             self.bfield_initialized = qid
@@ -334,7 +338,7 @@ class LibAscot:
         elif efield:
             self.free(efield=True)
             if self.libascot.libascot_init(self.h5fn, None, qid, None, None,
-                                           None, None, None) :
+                                           None, None, None, None) :
                 raise RuntimeError("Failed to initialize electric field")
 
             self.efield_initialized = qid
@@ -352,7 +356,7 @@ class LibAscot:
         elif plasma:
             self.free(plasma=True)
             if self.libascot.libascot_init(self.h5fn, None, None, qid, None,
-                                           None, None, None) :
+                                           None, None, None, None) :
                 raise RuntimeError("Failed to initialize plasma")
 
             self.plasma_initialized = qid
@@ -370,7 +374,7 @@ class LibAscot:
         elif wall:
             self.free(wall=True)
             if self.libascot.libascot_init(self.h5fn, None, None, None, qid,
-                                           None, None, None) :
+                                           None, None, None, None) :
                 raise RuntimeError("Failed to initialize wall")
 
             self.wall_initialized = qid
@@ -388,7 +392,7 @@ class LibAscot:
         elif neutral:
             self.free(neutral=True)
             if self.libascot.libascot_init(self.h5fn, None, None, None, None,
-                                           qid, None, None) :
+                                           qid, None, None, None) :
                 raise RuntimeError("Failed to initialize neutral data")
 
             self.neutral_initialized = qid
@@ -428,8 +432,24 @@ class LibAscot:
             self.mhd_initialized = qid
 
 
+        if isinstance(asigma, str):
+            qid    = asigma.encode('UTF-8')
+            asigma = True
+        elif asigma:
+            qid = a5.asigma.active.get_qid().encode('UTF-8')
+
+        if asigma and self.asigma_initialized:
+            warnings.warn("Atomic sigma data already initialized.", Warning)
+        elif asigma:
+            if self.libascot.libascot_init(self.h5fn, None, None, None, None,
+                                           None, qid) :
+                raise RuntimeError("Failed to initialize atomic sigma data")
+
+            self.asigma_initialized = True
+
+
     def free(self, bfield=False, efield=False, plasma=False, wall=False,
-             neutral=False, boozer=False, mhd=False):
+             neutral=False, boozer=False, mhd=False, asigma=False):
         """
         Free input data.
 
@@ -448,6 +468,8 @@ class LibAscot:
                 Flag for freeing boozer data.
             mhd : bool, optional <br>
                 Flag for freeing mhd data.
+            asigma : bool, optional <br>
+                Flag for freeing atomic sigma data.
         """
         if bfield and self.bfield_initialized is not None:
             self.libascot.libascot_free(1, 0, 0, 0, 0, 0, 0)
@@ -476,6 +498,10 @@ class LibAscot:
         if mhd and self.mhd_initialized is not None:
             self.libascot.libascot_free(0, 0, 0, 0, 0, 0, 1)
             self.mhd_initialized = None
+
+        if asigma and self.asigma_initialized:
+            self.libascot.libascot_free(0, 0, 0, 0, 0, 0, 0, 1)
+            self.asigma_initialized = None
 
 
     def init_from_run(self, run, bfield=False, efield=False, plasma=False,

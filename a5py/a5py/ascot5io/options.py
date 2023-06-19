@@ -332,6 +332,20 @@ def get_default():
          0, Valid(int, values=[0,1]))
     )
     info.append(
+        ("ENDCOND_NEUTRALIZED",
+         """\
+         # Terminate when marker is neutralized
+         """,
+         0)
+    )
+    info.append(
+        ("ENDCOND_IONIZED",
+         """\
+         # Terminate when marker is ionized
+         """,
+         0)
+    )
+    info.append(
         ("ENDCOND_MAX_SIMTIME",
          """\
          # Maximum simulation time [s]
@@ -422,6 +436,13 @@ def get_default():
          # Include MHD perturbations to orbit-following
          """,
          0, Valid(int, values=[0,1]))
+    )
+    info.append(
+        ("ENABLE_ATOMIC",
+         """\
+         # Markers can undergo atomic reactions with background plasma
+         """,
+         0)
     )
     info.append(
         ("DISABLE_FIRSTORDER_GCTRANS",
