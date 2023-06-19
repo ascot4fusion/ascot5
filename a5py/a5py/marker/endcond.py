@@ -19,7 +19,9 @@ endconds = [
     ("rhomax",    6, 0x80),
     ("polmax",    7, 0x100),
     ("tormax",    8, 0x200),
-    ("cpumax",    9, 0x400)
+    ("cpumax",    9, 0x400),
+    ("hybrid",   10, 0x800),
+    ("neutr",    11, 0x1000)
 ]
 
 
