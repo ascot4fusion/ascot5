@@ -336,14 +336,14 @@ def get_default():
          """\
          # Terminate when marker is neutralized
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
     info.append(
         ("ENDCOND_IONIZED",
          """\
          # Terminate when marker is ionized
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
     info.append(
         ("ENDCOND_MAX_SIMTIME",
@@ -442,7 +442,7 @@ def get_default():
          """\
          # Markers can undergo atomic reactions with background plasma
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
     info.append(
         ("DISABLE_FIRSTORDER_GCTRANS",
