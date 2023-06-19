@@ -498,10 +498,18 @@ void libascot_plasma_eval_background(int Neval, real* R, real* phi, real* z,
  */
 void libascot_neutral_eval_density(int Neval, real* R, real* phi, real* z,
                                    real* t, real* dens) {
-
+    real psi[1];
+    real rho[1];
     real n0[1];
     for(int k = 0; k < Neval; k++) {
-        if( neutral_eval_n0(n0, R[k], phi[k], z[k], t[k], &sim.neutral_data) ) {
+        if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
+            continue;
+        }
+        if( B_field_eval_rho(rho, psi[0], &sim.B_data) ) {
+            continue;
+        }
+        if( neutral_eval_n0(n0, rho[0], R[k], phi[k], z[k], t[k],
+                            &sim.neutral_data) ) {
             continue;
         }
         dens[k] = n0[0];
