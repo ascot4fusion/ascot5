@@ -6,6 +6,7 @@
 #define HDF5_NEUTRAL_H
 #include "../ascot5.h"
 #include "../neutral.h"
+#include "../neutral/N0_1D.h"
 #include "../neutral/N0_3D.h"
 #include "hdf5.h"
 

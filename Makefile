@@ -131,7 +131,7 @@ OBJS= math.o list.o octree.o error.c \
 BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
-	test_interp1Dcomp test_linint3D test_N0 \
+	test_interp1Dcomp test_linint3D test_N0 test_N0_1D \
 	test_spline ascot5_main bbnbi5 test_diag_orb
 
 ifdef NOGIT
