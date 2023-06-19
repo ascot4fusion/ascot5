@@ -47,7 +47,7 @@ a5err atomic_react(
  * @param p_data pointer to plasma data
  * @param n_data pointer to neutral data
  * @param r_data pointer to random-generator data
- * @param asgm_data pointer to atomic reaction data
+ * @param asigma_data pointer to atomic reaction data
  */
 void atomic_fo(particle_simd_fo* p, real* h,
                plasma_data* p_data, neutral_data* n_data,
@@ -105,7 +105,7 @@ void atomic_fo(particle_simd_fo* p, real* h,
                 errflag = atomic_rates(&rate_eff_ion, &rate_eff_rec,
                                        p->znum[i], p->anum[i], p->mass[i],
                                        z_2, a_2, m_2,
-                                       asgm_data,
+                                       asigmadata,
                                        q, E,
                                        N_pls_spec,
                                        T_2, T_0[0],
@@ -151,7 +151,7 @@ void atomic_fo(particle_simd_fo* p, real* h,
  * @param z_2 atomic numbers of bulk particle species
  * @param a_2 atomic mass numbers of bulk particle species
  * @param m_2 masses of bulk particle species
- * @param asgm_data pointer to atomic data struct
+ * @param asigmadata pointer to atomic data struct
  * @param q charge of fast particle
  * @param E energy of fast particle
  * @param N_pls_spec of species in bulk plasma
