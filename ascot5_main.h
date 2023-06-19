@@ -16,6 +16,7 @@ int offload(
 		int**  wall_int_offload_array,
 		real** boozer_offload_array,
 		real** mhd_offload_array,
+                real** asigma_offload_array,
 		int n_tot,
 		int mpi_rank,
 		int mpi_size,

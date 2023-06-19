@@ -31,6 +31,7 @@
 #include "hdf5io/hdf5_dist.h"
 #include "hdf5io/hdf5_orbit.h"
 #include "hdf5io/hdf5_transcoef.h"
+#include "hdf5io/hdf5_asigma.h"
 
 /**
  * @brief Read and initialize input data
@@ -62,6 +63,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
                               int** wall_int_offload_array,
                               real** boozer_offload_array,
                               real** mhd_offload_array,
+                              real** asigma_offload_array,
                               input_particle** p,
                               int* n_markers){
 
@@ -288,6 +290,29 @@ int hdf5_interface_read_input(sim_offload_data* sim,
     }
 
 
+    if(input_active & hdf5_input_asigma) {
+        if(hdf5_find_group(f, "/asigma/")) {
+            print_err("Error: No atomic reaction data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading atomic reaction input.\n");
+        if(sim->qid_asigma[0] != '\0') {
+            strcpy(qid, sim->qid_asigma);
+        }
+        else if( hdf5_get_active_qid(f, "/asigma/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_asigma_init_offload(f, &(sim->asigma_offload_data),
+                                     asigma_offload_array, qid) ) {
+            print_err("Error: Failed to initialize atomic reaction data.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Atomic reaction data read and initialized.\n");
+    }
+
+
     /* Close the hdf5 file */
     if( hdf5_close(f) ) {
         print_err("Error: Could not close the file.\n");
@@ -429,6 +454,14 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
         H5LTget_attribute_string(fin, "/mhd/", "active", inputqid);
     }
     hdf5_write_string_attribute(fout, path, "qid_mhd",  inputqid);
+
+    if(sim->qid_asigma[0] != '\0') {
+        strcpy(inputqid, sim->qid_asigma);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/asigma/", "active", inputqid);
+    }
+    hdf5_write_string_attribute(fout, path, "qid_asigma",  inputqid);
 
     /* If input and output are different files, close input */
     if( strcmp(sim->hdf5_in, sim->hdf5_out) != 0 ) {

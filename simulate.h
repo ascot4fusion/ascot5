@@ -20,6 +20,7 @@
 #include "offload.h"
 #include "random.h"
 #include "simulate/mccc/mccc.h"
+#include "atomic.h"
 
 /**
  * @brief Simulaton modes
@@ -59,6 +60,7 @@ typedef struct {
     wall_offload_data wall_offload_data;       /**< Wall offload data           */
     boozer_offload_data boozer_offload_data;   /**< Boozer offload data         */
     mhd_offload_data mhd_offload_data;         /**< MHD offload data            */
+    asigma_offload_data asigma_offload_data;   /**< Atomic sigma offload data   */
     diag_offload_data diag_offload_data;       /**< Diagnostics offload data    */
 
     /* Options - general */
@@ -129,6 +131,7 @@ typedef struct {
     char qid_neutral[256]; /* Neutral QID if active not used */
     char qid_boozer[256];  /* Boozer QID if active not used  */
     char qid_mhd[256];     /* MHD QID if active not used     */
+    char qid_asigma[256];  /* Asigma QID if active not used  */
 
 } sim_offload_data;
 
@@ -151,6 +154,7 @@ typedef struct {
     wall_data wall_data;       /**< Wall data interface                       */
     boozer_data boozer_data;   /**< Boozer data interface                     */
     mhd_data mhd_data;         /**< MHD data interface                        */
+    asigma_data asigma_data;   /**< Atomic sigma data interface               */
     diag_data diag_data;       /**< Diagnostics data interface                */
 
     /* Metadata */

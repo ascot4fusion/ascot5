@@ -53,9 +53,9 @@ int main(int argc, char** argv) {
     int*  wall_int_offload_array;
     hdf5_interface_read_input(&sim, hdf5_input_bfield | hdf5_input_plasma |
                               hdf5_input_wall, &B_offload_array, NULL,
-                              &plasma_offload_array, NULL,
-                              &wall_offload_array, &wall_int_offload_array, 
-                              NULL, NULL, NULL, NULL);
+                              &plasma_offload_array, NULL, &wall_offload_array,
+                              &wall_int_offload_array, NULL, NULL, NULL, NULL,
+                              NULL);
 
     B_field_data B_data;
     B_field_init(&B_data, &sim.B_offload_data, B_offload_array);
