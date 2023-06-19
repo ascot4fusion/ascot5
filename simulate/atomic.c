@@ -13,17 +13,16 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
-#include "ascot5.h"
-#include "math.h"
-#include "consts.h"
-#include "error.h"
-#include "print.h"
-#include "particle.h"
-#include "plasma.h"
-#include "random.h"
-#include "asigma.h"
+#include "../ascot5.h"
+#include "../math.h"
+#include "../consts.h"
+#include "../error.h"
+#include "../print.h"
+#include "../particle.h"
+#include "../plasma.h"
+#include "../random.h"
+#include "../asigma.h"
 #include "atomic.h"
-#include "endcond.h"
 
 /**
  * @brief Determine if atomic reactions occur during one time-step
@@ -41,7 +40,7 @@
  */
 void atomic_fo(particle_simd_fo* p, real* h,
                plasma_data* p_data, neutral_data* n_data,
-               random_data* r_data, asigma_data* asgm_data) {
+               random_data* r_data, asigma_data* asigma_data) {
 
     /* Generate random numbers and get plasma information before going to the *
      * SIMD loop                                                              */
@@ -161,14 +160,10 @@ void atomic_fo(particle_simd_fo* p, real* h,
  * coefficient for recombinaton to a free electron is overwritten by the
  * asigma_eval_sigmav() call to determine the rate coefficient for CX.
  */
-a5err atomic_rates(real* rate_eff_ion, real* rate_eff_rec,
-                   int z_1, int a_1, real m_1,
-                   const int* z_2, const int* a_2, const real* m_2,
-                   asigma_data* asgm_data,
-                   int q, real E,
-                   int N_pls_spec,
-                   real* T, real T_0,
-                   real* n, real n_0) {
+a5err atomic_rates(
+    real* rate_eff_ion, real* rate_eff_rec, int z_1, int a_1, real m_1,
+    const int* z_2, const int* a_2, const real* m_2, asigma_data* asigmadata,
+    int q, real E, int N_pls_spec, real* T, real T_0, real* n, real n_0) {
     a5err err = 0;
 
     /* Define a helper variable for storing rate coefficients, and
@@ -193,7 +188,7 @@ a5err atomic_rates(real* rate_eff_ion, real* rate_eff_rec,
                                  z_1, a_1,
                                  z_2[0], a_2[0],
                                  0,//reac_type_sigmav_rec,
-                                 asgm_data,
+                                 asigmadata,
                                  E,
                                  T[0], &T[1], T_0,
                                  n[0], &n[1], 0);
@@ -208,7 +203,7 @@ a5err atomic_rates(real* rate_eff_ion, real* rate_eff_rec,
                                      z_1, a_1,
                                      z_2[i_spec], a_2[i_spec],
                                      0,//reac_type_sigmav_CX,
-                                     asgm_data,
+                                     asigmadata,
                                      E,
                                      T[0], &T[i_spec+1], T_0,
                                      n[0], &n[i_spec+1], i_spec);
@@ -237,7 +232,7 @@ a5err atomic_rates(real* rate_eff_ion, real* rate_eff_rec,
                                      z_1, a_1,
                                      z_2[i_spec], a_2[i_spec],
                                      0,//reac_type_BMS_sigmav,
-                                     asgm_data,
+                                     asigmadata,
                                      E,
                                      T[0], &T[i_spec+1], T_0,
                                      n[0], &n[i_spec+1], i_spec);
@@ -269,9 +264,8 @@ a5err atomic_rates(real* rate_eff_ion, real* rate_eff_rec,
  *
  * @return zero if evaluation succeeded
  */
-a5err atomic_react(int* q, real dt,
-                   real rate_eff_ion, real rate_eff_rec,
-                   int z_1, real rnd) {
+a5err atomic_react(
+    int* q, real dt, real rate_eff_ion, real rate_eff_rec, int z_1, real rnd) {
     a5err err = 0;
 
     /* Calculate the reaction probabilities for ionizing (charge-increasing)

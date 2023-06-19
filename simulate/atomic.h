@@ -7,12 +7,12 @@
 #ifndef ATOMIC_H
 #define ATOMIC_H
 
-#include "ascot5.h"
-#include "plasma.h"
-#include "neutral.h"
-#include "particle.h"
-#include "random.h"
-#include "asigma.h"
+#include "../ascot5.h"
+#include "../plasma.h"
+#include "../neutral.h"
+#include "../particle.h"
+#include "../random.h"
+#include "../asigma.h"
 
 #pragma omp declare target
 void atomic_fo(particle_simd_fo* p, real* h,

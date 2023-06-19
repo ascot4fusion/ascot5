@@ -16,11 +16,11 @@
 #include "wall.h"
 #include "boozer.h"
 #include "mhd.h"
+#include "asigma.h"
 #include "diag.h"
 #include "offload.h"
 #include "random.h"
 #include "simulate/mccc/mccc.h"
-#include "atomic.h"
 
 /**
  * @brief Simulaton modes

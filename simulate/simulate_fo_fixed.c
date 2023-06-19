@@ -23,6 +23,7 @@
 #include "simulate_fo_fixed.h"
 #include "step/step_fo_vpa.h"
 #include "mccc/mccc.h"
+#include "atomic.h"
 
 #pragma omp declare target
 #pragma omp declare simd uniform(sim)
@@ -114,7 +115,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         /* Atomic reactions */
         if(sim->enable_atomic) {
             atomic_fo(&p, hin, &sim->plasma_data, &sim->neutral_data,
-                      &sim->random_data, &sim->asgm_data);
+                      &sim->random_data, &sim->asigma_data);
         }
 
         /**********************************************************************/
