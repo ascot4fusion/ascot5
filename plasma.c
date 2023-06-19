@@ -406,3 +406,55 @@ const real* plasma_get_species_charge(plasma_data* pls_data) {
 
     return charge;
 }
+
+/**
+ * @brief Get atomic number of all plasma species
+ *
+ * Retrieve species' atomic number.
+ *
+ * This is a SIMD function.
+ *
+ * @param pls_data pointer to plasma data struct
+ *
+ * @return Pointer to array containing the requested atomic number values
+ */
+const int* plasma_get_species_znum(plasma_data* pls_data) {
+    const int* znum = NULL;
+    switch(pls_data->type) {
+        case plasma_type_1D:
+            znum = plasma_1D_get_species_znum( &(pls_data->plasma_1D) );
+            break;
+
+        case plasma_type_1DS:
+            znum = plasma_1DS_get_species_znum( &(pls_data->plasma_1DS) );
+            break;
+    }
+
+    return znum;
+}
+
+/**
+ * @brief Get mass number of all plasma species
+ *
+ * Retrieve species' mass number.
+ *
+ * This is a SIMD function.
+ *
+ * @param pls_data pointer to plasma data struct
+ *
+ * @return Pointer to array containing the requested mass number values
+ */
+const int* plasma_get_species_anum(plasma_data* pls_data) {
+    const int* anum = NULL;
+    switch(pls_data->type) {
+        case plasma_type_1D:
+            anum = plasma_1D_get_species_anum(&(pls_data->plasma_1D));
+            break;
+
+        case plasma_type_1DS:
+            anum = plasma_1DS_get_species_anum(&(pls_data->plasma_1DS));
+            break;
+    }
+
+    return anum;
+}
