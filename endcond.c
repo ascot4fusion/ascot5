@@ -27,6 +27,10 @@
  *
  * - cpumax: Marker simulation has exceeded maximum wall time
  *
+ * - neutr: Marker has been neutralized by an atomic reaction
+ *
+ * - ioniz: Marker has been ionized by an atomic reaction
+ *
  * - hybrid: Not an end condition per se but used to notate that the guiding
  *   center simulation will be resumed as a gyro-orbit simulation
  *
@@ -80,6 +84,8 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
     int active_polmax    = sim->endcond_active & endcond_polmax;
     int active_tormax    = sim->endcond_active & endcond_tormax;
     int active_cpumax    = sim->endcond_active & endcond_cpumax;
+    int active_neutr     = sim->endcond_active & endcond_neutr;
+    int active_ioniz     = sim->endcond_active & endcond_ioniz;
 
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
@@ -100,13 +106,13 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
             /* Check, using the wall collision module, whether marker hit wall
              * during this time-step. Store the wall element ID if it did. */
             if(active_wall) {
-	        real w_coll = 0;
+                real w_coll = 0;
                 int tile = wall_hit_wall(
                     p_i->r[i], p_i->phi[i], p_i->z[i],
                     p_f->r[i], p_f->phi[i], p_f->z[i], &sim->wall_data, &w_coll);
                 if(tile > 0) {
-		    real w = w_coll;
-		    p_f->time[i] = p_i->time[i] + w*(p_f->time[i] - p_i->time[i]);
+                    real w = w_coll;
+                    p_f->time[i] = p_i->time[i] + w*(p_f->time[i] - p_i->time[i]);
                     p_f->r[i]    = p_i->r[i] + w*(p_f->r[i] - p_i->r[i]);
                     p_f->phi[i]  = p_i->phi[i] + w*(p_f->phi[i] - p_i->phi[i]);
                     p_f->z[i]    = p_i->z[i] + w*(p_f->z[i] - p_i->z[i]);
@@ -114,7 +120,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                     p_f->walltile[i] = tile;
                     p_f->endcond[i] |= endcond_wall;
                     p_f->running[i] = 0;
-                }  
+                }
             }
 
             /* Evaluate marker energy, and check if it is below the minimum
@@ -192,6 +198,22 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                 }
             }
 
+            /* Check if the particle has been neutralized */
+            if(active_neutr) {
+                if(p_i->charge[i] != 0.0 && p_f->charge[i] == 0.0) {
+                    p_f->endcond[i] |= endcond_neutr;
+                    p_f->running[i] = 0;
+                }
+            }
+
+            /* Check if the particle has been ionized */
+            if(active_ioniz) {
+                if(p_i->charge[i] == 0.0 && p_f->charge[i] != 0.0) {
+                    p_f->endcond[i] |= endcond_ioniz;
+                    p_f->running[i] = 0;
+                }
+            }
+
             /* Zero end condition if error happened in this function */
             if(p_f->err[i]) {
                 p_f->endcond[i] = 0;
@@ -246,7 +268,7 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
             /* Check, using the wall collision module, whether marker hit wall
              * during this time-step. Store the wall element ID if it did. */
             if(active_wall) {
-	        real w_coll = 0;
+                real w_coll = 0;
                 int tile = wall_hit_wall(p_i->r[i], p_i->phi[i], p_i->z[i],
                                          p_f->r[i], p_f->phi[i], p_f->z[i],
                                          &sim->wall_data, &w_coll);
@@ -392,7 +414,7 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
             /* Check, using the wall collision module, whether marker hit wall
              * during this time-step. Store the wall element ID if it did. */
             if(active_wall) {
-	        real w_coll = 0;
+                real w_coll = 0;
                 int tile = wall_hit_wall(p_i->r[i], p_i->phi[i], p_i->z[i],
                                          p_f->r[i], p_f->phi[i], p_f->z[i],
                                          &sim->wall_data, &w_coll);
@@ -474,6 +496,8 @@ void endcond_parse(int endcond, int* endconds) {
     if(endcond & endcond_tormax) {endconds[i++] =  8;};
     if(endcond & endcond_cpumax) {endconds[i++] =  9;};
     if(endcond & endcond_hybrid) {endconds[i++] = 10;};
+    if(endcond & endcond_neutr)  {endconds[i++] = 11;};
+    if(endcond & endcond_ioniz)  {endconds[i++] = 12;};
 }
 
 /**
@@ -519,6 +543,12 @@ void endcond_parse2str(int endcond, char* str) {
             break;
         case 10:
             sprintf(str, "Hybrid condition");
+            break;
+        case 11:
+            sprintf(str, "Neutralization");
+            break;
+        case 12:
+            sprintf(str, "Ionization");
             break;
     }
 }
