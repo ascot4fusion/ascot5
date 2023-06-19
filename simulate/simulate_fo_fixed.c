@@ -111,6 +111,12 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
                           &sim->mccc_data);
         }
 
+        /* Atomic reactions */
+        if(sim->enable_atomic) {
+            atomic_fo(&p, hin, &sim->plasma_data, &sim->neutral_data,
+                      &sim->random_data, &sim->asgm_data);
+        }
+
         /**********************************************************************/
 
 
