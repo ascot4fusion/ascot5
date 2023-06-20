@@ -5,7 +5,6 @@ File: radial.py
 """
 import copy
 import numpy as np
-import scipy.constants as const
 
 from . import basic as distmod
 from . import conversion as distconv
@@ -121,7 +120,7 @@ def eval_quantity_5d_rho(ascotpy, dist, quantity, ma, qa):
         for iphi in range(dist["phi"].size):
             for itheta in range(dist["theta"].size):
                 for irho in range(dist["rho"].size):
-                    distE["distribution"][irho, itheta, iphi, :] = dist["distribution"][irho, itheta, iphi,:] * dist["energy"] * const.e
+                    distE["distribution"][irho, itheta, iphi, :] = dist["distribution"][irho, itheta, iphi,:] * dist["energy"] * unyt.e
 
         dist = distmod.squeeze(distE, energy=0)
 
@@ -133,7 +132,7 @@ def eval_quantity_5d_rho(ascotpy, dist, quantity, ma, qa):
         for iphi in range(dist["phi"].size):
             for itheta in range(dist["theta"].size):
                 for irho in range(dist["rho"].size):
-                    velocity2 = 2 * dist["energy"] * const.e / ma
+                    velocity2 = 2 * dist["energy"] * unyt.e / ma
                     distp["distribution"][irho, itheta, iphi, :] = dist["distribution"][irho, itheta, iphi,:] * ma * velocity2 / 3.0
 
         dist = distmod.squeeze(distp, energy=0)
@@ -166,7 +165,7 @@ def eval_quantity_5d_rho(ascotpy, dist, quantity, ma, qa):
         dist = distmod.squeeze(dist, pitch=0, time=0, charge=0)
 
         # Convert the energy abscissa into velocity
-        va = np.sqrt( const.e*2*dist["energy"]/ma )
+        va = np.sqrt( unyt.e*2*dist["energy"]/ma )
 
         # Evaluate the ASCOT collision operator at each spatial location for all velocities in va
         distP = copy.deepcopy(dist)
@@ -199,7 +198,7 @@ def eval_quantity_5d_rho(ascotpy, dist, quantity, ma, qa):
         dist = distmod.squeeze(dist, time=0, charge=0)
 
         # Convert the energy abscissa into velocity
-        va = np.sqrt( const.e*2*dist["energy"]/ma.v )
+        va = np.sqrt( unyt.e*2*dist["energy"]/ma.v )
 
         # Evaluate the ASCOT collision operator at each spatial location for all velocities in va
         distT = copy.deepcopy(dist)
@@ -253,7 +252,7 @@ def eval_quantity_5d(ascotpy, dist, quantity, ma, qa):
         for ir in range(dist["r"].size):
             for ip in range(dist["phi"].size):
                 for iz in range(dist["z"].size):
-                    distE["distribution"][ir, ip, iz, :] = dist["distribution"][ir,ip,iz,:] * dist["energy"] * const.e
+                    distE["distribution"][ir, ip, iz, :] = dist["distribution"][ir,ip,iz,:] * dist["energy"] * unyt.e
 
         dist = distmod.squeeze(distE, energy=0)
 
@@ -265,11 +264,30 @@ def eval_quantity_5d(ascotpy, dist, quantity, ma, qa):
         for ir in range(dist["r"].size):
             for ip in range(dist["phi"].size):
                 for iz in range(dist["z"].size):
-                    velocity2 = 2 * dist["energy"] * const.e / ma
+                    velocity2 = 2 * dist["energy"] * unyt.e / ma
                     distp["distribution"][ir, ip, iz, :] = dist["distribution"][ir,ip,iz,:] * ma * velocity2 / 3.0
 
         dist = distmod.squeeze(distp, energy=0)
 
+    elif quantity == "poloidalcurrent":
+        dist = distmod.squeeze(dist, pperp=0, time=0, charge=0)
+
+        # current distribution
+        distj = copy.deepcopy(dist)
+
+        # integration over toroid angles
+        for ir in range(dist["r"].size):
+            for ip in range(dist["phi"].size):
+                for iz in range(dist["z"].size):
+
+                    bphi = ascotpy.evaluate(dist["r"][ir], dist["phi"][ip], dist["z"][iz], 0.0, "bphi")
+                    bnorm = ascotpy.evaluate(dist["r"][ir], dist["phi"][ip], dist["z"][iz], 0.0, "bnorm")
+                    
+                    for ippar in range(dist["ppar"].size):
+                        distj["distribution"][ir, ip, iz, ippar] = dist["distribution"][ir,ip,iz,ippar] * dist["ppar"][ippar]/ma * qa * bphi / bnorm
+                        
+        dist = distmod.squeeze(distj, ppar=0)   
+    
     elif quantity == "toroidalcurrent":
         dist = distmod.squeeze(dist, pperp=0, time=0, charge=0)
 
@@ -292,7 +310,7 @@ def eval_quantity_5d(ascotpy, dist, quantity, ma, qa):
         dist = distmod.squeeze(dist, pitch=0, time=0, charge=0)
 
         # Convert the energy abscissa into velocity
-        va = np.sqrt( const.e*2*dist["energy"]/ma )
+        va = np.sqrt( unyt.e*2*dist["energy"]/ma )
 
         # Evaluate the ASCOT collision operator at each spatial location for all velocities in va
         distP = copy.deepcopy(dist)
@@ -301,12 +319,14 @@ def eval_quantity_5d(ascotpy, dist, quantity, ma, qa):
                 for iz in range(dist["z"].size):
                     coefs = ascotpy.eval_collcoefs(ma, qa, dist["r"][ir],
                                                    dist["phi"][ip], dist["z"][iz], 0, va)
+                    
                     if   quantity == "ipowerdeposition":
                         distP["distribution"][ir, ip, iz, :] = -dist["distribution"][ir, ip, iz, :]*sum(coefs["K"][0,1:,:],0) *ma*va
                     elif quantity == "epowerdeposition": 
                         distP["distribution"][ir, ip, iz, :] = -dist["distribution"][ir, ip, iz, :]*    coefs["K"][0, 0,:]    *ma*va
                     elif quantity == "powerdeposition":
                         distP["distribution"][ir, ip, iz, :] = -dist["distribution"][ir, ip, iz, :]*sum(coefs["K"][0, :,:],0) *ma*va
+                    
 
         # Integrate over the energy dimension
         dist = distmod.squeeze(distP, energy=0)
@@ -319,7 +339,7 @@ def eval_quantity_5d(ascotpy, dist, quantity, ma, qa):
         dist = distmod.squeeze(dist, time=0, charge=0)
 
         # Convert the energy abscissa into velocity
-        va = np.sqrt( const.e*2*dist["energy"]/ma.v )
+        va = np.sqrt( unyt.e*2*dist["energy"]/ma )
 
         # Evaluate the ASCOT collision operator at each spatial location for all velocities in va
         distT = copy.deepcopy(dist)
