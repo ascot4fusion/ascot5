@@ -275,7 +275,8 @@ class LibAscot:
 
 
     def init(self, bfield=False, efield=False, plasma=False, wall=False,
-             neutral=False, boozer=False, mhd=False, ignorewarnings=False):
+             neutral=False, boozer=False, mhd=False, asigma=False,
+             ignorewarnings=False):
         """
         Initialize input data.
 
