@@ -160,7 +160,7 @@ class Marker(DataGroup):
             mrk["vr"]     = np.zeros((n,))
             mrk["vz"]     = np.zeros((n,))
             mrk["vphi"]   = np.zeros((n,))
-            mrk["mass"]   = ( species["mass"]   * np.ones((n,)) ).to_value("amu")
+            mrk["mass"]   = ( species["mass"] * np.ones((n,)) ).to_value("amu")
             mrk["charge"] = species["charge"] * np.ones((n,), dtype=np.int16)
             mrk["anum"]   = species["anum"]   * np.ones((n,), dtype=np.int16)
             mrk["znum"]   = species["znum"]   * np.ones((n,), dtype=np.int16)
@@ -168,7 +168,7 @@ class Marker(DataGroup):
             mrk["pitch"]  = np.zeros((n,))
             mrk["energy"] = np.zeros((n,))
             mrk["zeta"]   = np.zeros((n,))
-            mrk["mass"]   = ( species["mass"]   * np.ones((n,)) ).to_value("amu")
+            mrk["mass"]   = ( species["mass"] * np.ones((n,)) ).to_value("amu")
             mrk["charge"] = species["charge"] * np.ones((n,), dtype=np.int16)
             mrk["anum"]   = species["anum"]   * np.ones((n,), dtype=np.int16)
             mrk["znum"]   = species["znum"]   * np.ones((n,), dtype=np.int16)
@@ -228,19 +228,19 @@ class FL(Marker):
             Full path to the HDF5 file.
         n : int
             Number of markers.
-        ids : array_like (n,1)
+        ids : array_like (n,)
             Unique identifier for each marker (must be a positive integer).
-        r : array_like (n,1)
+        r : array_like (n,)
             Magnetic field line R coordinate [m].
-        phi : array_like (n,1)
+        phi : array_like (n,)
             Magnetic field line phi coordinate [deg].
-        z : array_like (n,1)
+        z : array_like (n,)
             Magnetic field line z coordinate [m].
-        pitch : array_like (n,1)
+        pitch : array_like (n,)
             Sign which defines the direction field line is traced, + is parallel
-        weight : array_like (n,1)
+        weight : array_like (n,)
             Magnetic field line weight [markers/s].
-        time : array_like (n,1)
+        time : array_like (n,)
             Magnetic field line initial time [s].
         desc : str, optional
             Input description.
@@ -271,14 +271,14 @@ class FL(Marker):
             g = add_group(f, parent, group, desc=desc)
             gname = g.name.split("/")[-1]
 
-            write_data(g, "n",      n,      (1,1), "i8")
-            write_data(g, "r",      r,      (n,1), "f8", "m")
-            write_data(g, "phi",    phi,    (n,1), "f8", "deg")
-            write_data(g, "z",      z,      (n,1), "f8", "m")
-            write_data(g, "pitch",  pitch,  (n,1), "f8", "1")
-            write_data(g, "weight", weight, (n,1), "f8", "particles/s")
-            write_data(g, "time",   time,   (n,1), "f8", "s")
-            write_data(g, "id",     ids,    (n,1), "f8", "1")
+            write_data(g, "n",      n,      (1,), "i8")
+            write_data(g, "r",      r,      (n,), "f8", "m")
+            write_data(g, "phi",    phi,    (n,), "f8", "deg")
+            write_data(g, "z",      z,      (n,), "f8", "m")
+            write_data(g, "pitch",  pitch,  (n,), "f8", "1")
+            write_data(g, "weight", weight, (n,), "f8", "particles/s")
+            write_data(g, "time",   time,   (n,), "f8", "s")
+            write_data(g, "id",     ids,    (n,), "f8", "1")
 
         return gname
 
@@ -361,31 +361,31 @@ class GC(Marker):
             Full path to the HDF5 file.
         n : int
             Number of markers.
-        ids : array_like (n,1)
+        ids : array_like (n,)
             Unique identifier for each marker (must be a positive integer).
-        charge : array_like (n,1)
+        charge : array_like (n,)
             Charge [e].
-        mass : array_like (n,1)
+        mass : array_like (n,)
             Mass [amu].
-        r : array_like (n,1)
+        r : array_like (n,)
             Guiding center R coordinate [m].
-        phi : array_like (n,1)
+        phi : array_like (n,)
             Guiding center phi coordinate [deg].
-        z : array_like (n,1)
+        z : array_like (n,)
             Guiding center z coordinate [m].
-        energy : array_like (n,1)
+        energy : array_like (n,)
             Guiding center energy [eV].
-        pitch : array_like (n,1)
+        pitch : array_like (n,)
             Guiding center pitch (v_para/v_tot).
-        zeta : array_like (n,1)
+        zeta : array_like (n,)
             Guiding center gyroangle [rad].
-        anum : array_like (n,1)
+        anum : array_like (n,)
             Marker species atomic mass number.
-        znum : array_like (n,1)
+        znum : array_like (n,)
             Marker species charge number.
-        weight : array_like (n,1)
+        weight : array_like (n,)
             Guiding center weight [markers/s].
-        time : array_like (n,1)
+        time : array_like (n,)
             Guiding center initial time [s].
         desc : str, optional
             Input description.
@@ -422,20 +422,20 @@ class GC(Marker):
             g = add_group(f, parent, group, desc=desc)
             gname = g.name.split("/")[-1]
 
-            g.create_dataset("n",      (1,1), data=n,      dtype='i8').attrs['unit'] = '1';
-            g.create_dataset("r",      (n,1), data=r,      dtype='f8').attrs['unit'] = 'm';
-            g.create_dataset("phi",    (n,1), data=phi,    dtype='f8').attrs['unit'] = 'deg';
-            g.create_dataset("z",      (n,1), data=z,      dtype='f8').attrs['unit'] = 'm';
-            g.create_dataset("energy", (n,1), data=energy, dtype='f8').attrs['unit'] = 'ev';
-            g.create_dataset("pitch",  (n,1), data=pitch,  dtype='f8').attrs['unit'] = '1';
-            g.create_dataset("zeta",   (n,1), data=zeta,   dtype='f8').attrs['unit'] = 'rad';
-            g.create_dataset("mass",   (n,1), data=mass,   dtype='f8').attrs['unit'] = 'amu';
-            g.create_dataset("charge", (n,1), data=charge, dtype='i4').attrs['unit'] = 'e';
-            g.create_dataset("anum",   (n,1), data=anum,   dtype='i4').attrs['unit'] = '1';
-            g.create_dataset("znum",   (n,1), data=znum,   dtype='i4').attrs['unit'] = '1';
-            g.create_dataset("weight", (n,1), data=weight, dtype='f8').attrs['unit'] = 'markers/s';
-            g.create_dataset("time",   (n,1), data=time,   dtype='f8').attrs['unit'] = 's';
-            g.create_dataset("id",     (n,1), data=ids,    dtype='i8').attrs['unit'] = '1';
+            g.create_dataset("n",      (1,), data=n,      dtype='i8').attrs['unit'] = '1';
+            g.create_dataset("r",      (n,), data=r,      dtype='f8').attrs['unit'] = 'm';
+            g.create_dataset("phi",    (n,), data=phi,    dtype='f8').attrs['unit'] = 'deg';
+            g.create_dataset("z",      (n,), data=z,      dtype='f8').attrs['unit'] = 'm';
+            g.create_dataset("energy", (n,), data=energy, dtype='f8').attrs['unit'] = 'ev';
+            g.create_dataset("pitch",  (n,), data=pitch,  dtype='f8').attrs['unit'] = '1';
+            g.create_dataset("zeta",   (n,), data=zeta,   dtype='f8').attrs['unit'] = 'rad';
+            g.create_dataset("mass",   (n,), data=mass,   dtype='f8').attrs['unit'] = 'amu';
+            g.create_dataset("charge", (n,), data=charge, dtype='i4').attrs['unit'] = 'e';
+            g.create_dataset("anum",   (n,), data=anum,   dtype='i4').attrs['unit'] = '1';
+            g.create_dataset("znum",   (n,), data=znum,   dtype='i4').attrs['unit'] = '1';
+            g.create_dataset("weight", (n,), data=weight, dtype='f8').attrs['unit'] = 'markers/s';
+            g.create_dataset("time",   (n,), data=time,   dtype='f8').attrs['unit'] = 's';
+            g.create_dataset("id",     (n,), data=ids,    dtype='i8').attrs['unit'] = '1';
 
         return gname
 
@@ -533,31 +533,31 @@ class Prt(Marker):
             Full path to the HDF5 file.
         n : int
             Number of markers.
-        ids : array_like (n,1)
+        ids : array_like (n,)
             Unique identifier for each marker (must be a positive integer).
-        mass : array_like (n,1)
+        mass : array_like (n,)
             Mass [amu].
-        charge : array_like (n,1)
+        charge : array_like (n,)
             Charge [e].
-        r : array_like (n,1)
+        r : array_like (n,)
             Particle R coordinate [m].
-        phi : array_like (n,1)
+        phi : array_like (n,)
             Particle phi coordinate [deg].
-        z : array_like (n,1)
+        z : array_like (n,)
             Particle z coordinate [m].
-        vr : array_like (n,1)
+        vr : array_like (n,)
             Particle velocity R-component [m/s].
-        vphi : array_like (n,1)
+        vphi : array_like (n,)
             Particle velocity phi-component [m/s].
-        vz : array_like (n,1)
+        vz : array_like (n,)
             Particle velocity z-component [m/s].
-        anum : array_like (n,1)
+        anum : array_like (n,)
             Marker species atomic mass number.
-        znum : array_like (n,1)
+        znum : array_like (n,)
             Marker species charge number.
-        weight : array_like (n,1)
+        weight : array_like (n,)
             Particle weight [markers/s].
-        time : array_like (n,1)
+        time : array_like (n,)
             Particle initial time [s].
         desc : str, optional
             Input description.
@@ -594,20 +594,20 @@ class Prt(Marker):
             g = add_group(f, parent, group, desc=desc)
             gname = g.name.split("/")[-1]
 
-            g.create_dataset("n",      (1,1), data=n,      dtype='i8').attrs['unit'] = '1';
-            g.create_dataset("r",      (n,1), data=r,      dtype='f8').attrs['unit'] = 'm';
-            g.create_dataset("phi",    (n,1), data=phi,    dtype='f8').attrs['unit'] = 'deg';
-            g.create_dataset("z",      (n,1), data=z,      dtype='f8').attrs['unit'] = 'm';
-            g.create_dataset("vr",     (n,1), data=vr,     dtype='f8').attrs['unit'] = 'm/s';
-            g.create_dataset("vphi",   (n,1), data=vphi,   dtype='f8').attrs['unit'] = 'm/s';
-            g.create_dataset("vz",     (n,1), data=vz,     dtype='f8').attrs['unit'] = 'm/s';
-            g.create_dataset("mass",   (n,1), data=mass,   dtype='f8').attrs['unit'] = 'amu';
-            g.create_dataset("charge", (n,1), data=charge, dtype='i4').attrs['unit'] = 'e';
-            g.create_dataset("anum",   (n,1), data=anum,   dtype='i4').attrs['unit'] = '1';
-            g.create_dataset("znum",   (n,1), data=znum,   dtype='i4').attrs['unit'] = '1';
-            g.create_dataset("weight", (n,1), data=weight, dtype='f8').attrs['unit'] = 'markers/s';
-            g.create_dataset("time",   (n,1), data=time,   dtype='f8').attrs['unit'] = 's';
-            g.create_dataset("id",     (n,1), data=ids,    dtype='i8').attrs['unit'] = '1';
+            g.create_dataset("n",      (1,), data=n,      dtype='i8').attrs['unit'] = '1';
+            g.create_dataset("r",      (n,), data=r,      dtype='f8').attrs['unit'] = 'm';
+            g.create_dataset("phi",    (n,), data=phi,    dtype='f8').attrs['unit'] = 'deg';
+            g.create_dataset("z",      (n,), data=z,      dtype='f8').attrs['unit'] = 'm';
+            g.create_dataset("vr",     (n,), data=vr,     dtype='f8').attrs['unit'] = 'm/s';
+            g.create_dataset("vphi",   (n,), data=vphi,   dtype='f8').attrs['unit'] = 'm/s';
+            g.create_dataset("vz",     (n,), data=vz,     dtype='f8').attrs['unit'] = 'm/s';
+            g.create_dataset("mass",   (n,), data=mass,   dtype='f8').attrs['unit'] = 'amu';
+            g.create_dataset("charge", (n,), data=charge, dtype='i4').attrs['unit'] = 'e';
+            g.create_dataset("anum",   (n,), data=anum,   dtype='i4').attrs['unit'] = '1';
+            g.create_dataset("znum",   (n,), data=znum,   dtype='i4').attrs['unit'] = '1';
+            g.create_dataset("weight", (n,), data=weight, dtype='f8').attrs['unit'] = 'markers/s';
+            g.create_dataset("time",   (n,), data=time,   dtype='f8').attrs['unit'] = 's';
+            g.create_dataset("id",     (n,), data=ids,    dtype='i8').attrs['unit'] = '1';
 
         return gname
 

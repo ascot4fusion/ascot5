@@ -280,9 +280,15 @@ Before an interactive simulation can be launched, one has to initialize and pack
    from a5py import Ascot
 
    a5 = Ascot("ascot.h5")
+   
+   # You may use any options and markers but in this example we take them from
+   # the input file.
+   mrk = a5.data.marker.active.read()
+   opt = a5.data.options.active.read()
+   
    a5.simulation_initinputs()
-   a5.simulation_initmarkers()
-   a5.simulation_initoptions()
+   a5.simulation_initmarkers(**mrk)
+   a5.simulation_initoptions(**opt)
 
 The marker and options data are dictionaries with same format as required by their corresponding ``write_hdf5`` routines.
 The ``simulation_initinputs`` method requires that no inputs are initialized before calling it.
@@ -296,10 +302,7 @@ Simulation is run and data is accessed as:
 
    a5.simulation_run()
 
-   # Calling this before the simulation would get the marker inistate
-   a5.simulation_getstate()
-
-   # Simulations can be rerun by free'ing the previous results first
+   # Simulations can be rerun by freeing the previous results first
    a5.simulation_free(output=True)
 
    a5.simulation_setoptions()
@@ -317,8 +320,6 @@ Simulation is run and data is accessed as:
    a5py.Ascot.simulation_initmarkers
    a5py.Ascot.simulation_initoptions
    a5py.Ascot.simulation_run
-   a5py.Ascot.simulation_getstate
-   a5py.Ascot.simulation_getorbit
    a5py.Ascot.simulation_free
 
 

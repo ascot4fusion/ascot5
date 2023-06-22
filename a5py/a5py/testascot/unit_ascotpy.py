@@ -14,19 +14,34 @@ class TestAscot(unittest.TestCase):
     def setUpClass(cls):
         super(TestAscot, cls).setUpClass()
         a5 = Ascot("unittest.h5", create=True)
-        a5.data.create_premade(predef="analytical")
-        a5.data.create_input("N0_3D", None)
-        a5.data.create_input("Boozer", None)
-        a5.data.create_input("MHD_STAT", None)
-        a5.data.create_input("E_TC", {"exyz" : np.array([0,0,0]),
-                                      "desc" : "UNUSED"})
+        a5.data.create_input("options tutorial")
+        a5.data.create_input("bfield analytical iter circular")
+        a5.data.create_input("wall rectangular")
+        a5.data.create_input("plasma flat")
+
+        from a5py.ascot5io.marker import Marker
+        mrk = Marker.generate("gc", n=100, species="alpha")
+        mrk["energy"][:] = 3.5e6
+        mrk["pitch"][:]  = 0.99 - 1.98 * np.random.rand(100,)
+        mrk["r"][:]      = np.linspace(6.2, 8.2, 100)
+        a5.data.create_input("gc", **mrk)
+        a5.data.create_input("E_TC", exyz=np.array([0,0,0]))
+        a5.data.create_input("E_TC", exyz=np.array([0,0,0]), desc="UNUSED")
+
+        a5.data.create_input("N0_3D")
+        a5.data.create_input("Boozer")
+        a5.data.create_input("MHD_STAT")
+
+        name = a5.data.options.active.new(ENDCOND_MAX_MILEAGE=0.5e-4,
+                                          desc="Fast")
+        a5.data.options[name].activate()
 
         subprocess.run(["./ascot5_main", "--in=unittest.h5"])
 
     @classmethod
     def tearDownClass(cls):
         super(TestAscot, cls).tearDownClass()
-        #subprocess.run(["rm", "-f", "unittest.h5"])
+        subprocess.run(["rm", "-f", "unittest.h5"])
 
     def test_initandsim(self):
         """Test `ascotpy` initialization and simulation routines.
@@ -112,7 +127,7 @@ class TestAscot(unittest.TestCase):
         a5.data.active.efield.activate()
 
         # Test packing
-        a5.simulation_initinput()
+        a5.simulation_initinputs()
 
         with self.assertRaises(
                 AscotInitException,
@@ -122,10 +137,10 @@ class TestAscot(unittest.TestCase):
         # Test marker and options initialization
         opt = a5.data.options.active.read()
         opt.update({"ENDCOND_MAX_MILEAGE" : 1e-10})
-        a5.simulation_initoptions(opt)
+        a5.simulation_initoptions(**opt)
 
         mrk = a5.data.marker.active.read()
-        a5.simulation_initmarkers(mrk)
+        a5.simulation_initmarkers(**mrk)
 
         # Run simulation and test output initialization
         a5.simulation_run(printsummary=False)
@@ -140,40 +155,43 @@ class TestAscot(unittest.TestCase):
 
         # Input evaluations
         a5.input_init()
-        inputqnts = a5.input_eval_list()
+        inputqnts = a5.input_eval_list(show=False)
         for q in inputqnts:
             out = a5.input_eval(6.2, 0.0, 0.0, 0.0, q)
-            #print(out)
         a5.input_free()
 
         # State evaluations
         a5.input_init(bfield=True)
-        out = a5.data.active.getstate("psi")
-        print(out)
-        a5.input_free()
+        out = a5.data.active.getstate("r", "phi", "z")
+        outputqnts = a5.data.active.getstate_list()
+        for q in outputqnts:
+            continue
+            out = a5.data.active.getstate(q)
 
         # Orbit evaluations
+        out = a5.data.active.getorbit("r", "phi", "z")
+        outputqnts = a5.data.active.getorbit_list()
+        for q in outputqnts:
+            continue
+            out = a5.data.active.getorbit(q)
+        a5.input_free()
 
         # Simulation evaluations
-        a5.simulation_initinput()
+        a5.simulation_initinputs()
         for q in ["bphi"]:
             out = a5.input_eval(6.2, 0.0, 0.0, 0.0, q)
-            #print(out)
 
         opt = a5.data.options.active.read()
         opt.update({"ENDCOND_MAX_MILEAGE" : 1e-7})
-        a5.simulation_initoptions(opt)
+        a5.simulation_initoptions(**opt)
 
         mrk = a5.data.marker.active.read()
-        a5.simulation_initmarkers(mrk)
+        a5.simulation_initmarkers(**mrk)
 
-        a5.simulation_run(printsummary=False)
+        vr = a5.simulation_run(printsummary=False)
 
-        out = a5.simulation_getstate("mileage")
-        #print(out)
-
-        out = a5.simulation_getorbit("r",ids=2)
-        #print(out)
+        out = vr.getstate("ptor")
+        out = vr.getorbit("ptor")
 
     def test_postpro(self):
         """Test all postprocessing routines.

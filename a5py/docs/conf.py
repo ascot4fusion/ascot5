@@ -54,3 +54,4 @@ html_css_files = [
 
 # Bibtex
 bibtex_bibfiles = ['ascotwork.bib']
+nbsphinx_execute = 'never'

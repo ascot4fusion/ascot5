@@ -15,6 +15,7 @@ from a5py.exceptions import AscotNoDataException
 
 import a5py.routines.plotting as a5plt
 import a5py.wall as wall
+from a5py.ascot5io import State, Orbits
 
 class RunMixin():
     """Class with methods to access and plot orbit and state data.
@@ -43,11 +44,16 @@ class RunMixin():
                     "Data for \"" +  arg + "\" is required but not present.")
 
     def getstate_list(self):
+        """List quantities that can be evaluated with :meth:`getstate`.
         """
-        """
-        return self.inistate.list()
+        return State.listqnts()
 
-    def getstate(self, qnt, mode="gc", state="ini", ids=None, endcond=None):
+    def getorbit_list(self):
+        """List quantities that can be evaluated with :meth:`getorbit`.
+        """
+        return Orbits.listqnts()
+
+    def getstate(self, *qnt, mode="gc", state="ini", ids=None, endcond=None):
         """Evaluate a marker quantity based on its ini/endstate.
 
         Inistate is marker's phase-space position right at the start of
@@ -66,8 +72,8 @@ class RunMixin():
 
         Parameters
         ----------
-        qnt : str
-            Name of the quantity.
+        *qnt : str
+            Names of the quantities.
         state : {"ini", "end"}, optional
             Is the quantity evaluated at the ini- or endstate.
         ids : array_like, optional
@@ -100,12 +106,18 @@ class RunMixin():
         val : array_like
             The evaluated quantity sorted by marker ID.
 
+        If multiple quantities are queried, they are returned as a list in
+            the order they were listed in ``*qnt``.
+
         Raises
         ------
         ValueError
             Raised when the queried quantity could not be interpreted.
         AscotNoDataException
-            Raised when data required for the opreation is not present.
+            Raised when data required for the operation is not present.
+        AscotInitException
+            If evaluating quantity required interpolating an input that
+            was not initialized.
         """
         self._require("inistate")
         if endcond is not None: self._require("endstate")
@@ -114,10 +126,10 @@ class RunMixin():
         if state == "end": self._require("endstate")
 
         # Get or evaluate the quantity
-        val = getattr(self, state + "state").get(qnt, mode=mode)
+        data = getattr(self, state + "state").get(*qnt, mode=mode)
 
         # Parse by ids and endcond
-        idx = np.ones(val.shape, dtype=bool)
+        idx = np.ones(data[0].shape, dtype=bool)
         if endcond is not None:
             endcond = np.asarray(endcond)
 
@@ -136,11 +148,11 @@ class RunMixin():
         if ids is not None:
             idx = np.logical_and(idx, np.in1d(self.inistate.get("ids"), ids))
 
-        val = val[idx]
+        for i in range(len(data)):
+            data[i] = data[i][idx]
+        return data if len(data) > 1 else data[0]
 
-        return val
-
-    def getorbit(self, qnt, ids=None, pncrid=None, endcond=None):
+    def getorbit(self, *qnt, ids=None, pncrid=None, endcond=None):
         """Return orbit data.
 
         Returns marker phase space coordinates and derived quantities along
@@ -148,8 +160,8 @@ class RunMixin():
 
         Parameters
         ----------
-        qnt : str
-            Name of the quantity.
+        *qnt : str
+            Names of the quantities.
         ids : array_like, optional
             Filter markers by their IDs.
         pncrid : array_like, optional
@@ -157,16 +169,46 @@ class RunMixin():
         endcond : str or list [str], optional
             Filter markers by their end conditions.
 
-            See for details on how this argument is parsed and for a list of
-            end conditions present in the data.
+            See :meth:`getstate` for details on how this argument is parsed and
+            for a list of end conditions present in the data.
 
         Returns
         -------
         val : array_like
-            The queried quantity sorted first by marker ID and then by time.
+            The queried quantity sorted first by marker ID and then by mileage.
+
+            If multiple quantities are queried, they are returned as a list in
+            the order they were listed in ``*qnt``.
+
+        Raises
+        ------
+        ValueError
+            Raised when the queried quantity could not be interpreted.
+        AscotNoDataException
+            Raised when data required for the operation is not present.
+        AscotInitException
+            If evaluating quantity required interpolating an input that
+            was not initialized.
         """
-        self._require("orbit")
-        if endcond is not None: self._require("endstate")
+        self._require("orbit", "inistate", "endstate")
+        data = self.orbit.get(self.inistate, self.endstate, *qnt)
+        idarr = self.orbit.get(self.inistate, self.endstate, "ids")[0]
+        idx = np.ones(data[0].shape, dtype=bool)
+        if endcond is not None:
+            eids = self.getstate("ids", endcond=endcond)
+            idx = np.logical_and(idx, np.in1d(idarr, eids))
+
+        if pncrid is not None:
+            pncridarr = self.orbit.get(self.inistate, self.endstate,
+                                       "pncrid")[0]
+            idx = np.logical_and(idx, np.in1d(pncridarr, pncrid))
+
+        if ids is not None:
+            idx = np.logical_and(idx, np.in1d(idarr, ids))
+
+        for i in range(len(data)):
+            data[i] = data[i][idx]
+        return data if len(data) > 1 else data[0]
 
     def getstate_markersummary(self):
         """Return a summary of marker end conditions present in the data.

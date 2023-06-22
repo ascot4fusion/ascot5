@@ -8,6 +8,7 @@ from .libsimulate import LibSimulate
 from .libascot    import LibAscot
 
 from .libascot import _LIBASCOTFOUND
+from a5py.physlib import parseunits
 from a5py.exceptions import AscotInitException
 
 class Ascotpy(LibAscot, LibSimulate):
@@ -27,8 +28,10 @@ class Ascotpy(LibAscot, LibSimulate):
         Flag indicating if inputs are packed.
     _nmrk
         Number of markers currently in the marker array.
-    _markers
-        Marker array for interactive simulations.
+    _inistate
+        Marker input array for interactive simulations.
+    _endstate
+        Marker output array for interactive simulations.
     _diag_occupied
         Flag indicating if diagnostics array contains data.
     _diag_offload_array
@@ -80,7 +83,8 @@ class Ascotpy(LibAscot, LibSimulate):
         self._offload_data      = ascot2py.struct_c__SA_offload_package()
         self._offload_array     = ctypes.POINTER(ctypes.c_double)()
         self._int_offload_array = ctypes.POINTER(ctypes.c_int   )()
-        self._markers = ctypes.POINTER(ascot2py.struct_c__SA_particle_state)()
+        self._inistate = ctypes.POINTER(ascot2py.struct_c__SA_particle_state)()
+        self._endstate = ctypes.POINTER(ascot2py.struct_c__SA_particle_state)()
 
         self._sim = ascot2py.struct_c__SA_sim_offload_data()
         self._bfield_offload_array  = ctypes.POINTER(ctypes.c_double)()
@@ -324,13 +328,32 @@ class Ascotpy(LibAscot, LibSimulate):
         self._offload_ready = False
         self.input_init(**inputs2read)
 
+    def _requireinit(self, *inputs):
+        """Raise error if given input parent is not initialized.
+
+        Parameters
+        ----------
+        *inputs : [str]
+            Name(s) of the input parent group(s) e.g. "bfield".
+
+        Raises
+        ------
+        AscotInitException
+            If input parent group has no initialized data.
+        """
+        for inp in inputs:
+            qid = getattr(self._sim, "qid_" + inp)
+            if qid == Ascotpy.DUMMY_QID:
+                raise AscotInitException(inp + " is not initialized")
+
     def input_initialized(self):
         """Get inputs that are currently initialized.
 
         Returns
         -------
-        outputs : list [str]
-            List of outputs currently initialized.
+        outputs : dict [str, str]
+            Name of the input parent groups that are initialized and QID of the
+            initialized input.
         """
         out = {}
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
@@ -415,9 +438,9 @@ class Ascotpy(LibAscot, LibSimulate):
             "Electron temperature",
             "n0":
             "Neutral density",
-            "alpha":
+            "alphaeig":
             "Eigenfunction of the magnetic field MHD perturbation",
-            "phi":
+            "phieig":
             "Eigenfunction of the electric field MHD perturbation",
             "mhd_br":
             "R component of B-field perturbation due to MHD",
@@ -468,21 +491,20 @@ class Ascotpy(LibAscot, LibSimulate):
             "Determinant of the Jacobian in Boozer coordinate transformation",
             "bjacxb2":
             "bjac multiplied by B^2 which is constant along flux surfaces",
-            "ne":
-            "Electron density",
-            "te":
-            "Electron temperature",
-            "nij, where j >= 1":
-            "Ion species 'j' density",
-            "tij, where j >= 1":
-            "Ion species 'j' temperature",
         }
+
+        nion = self.input_getplasmaspecies()[0]
+        for i in range(1, nion+1):
+            out["ni" + str(i)] = "Ion species (anum, znum) = () density"
+            out["ti" + str(i)] = "Ion species (anum, znum) = () temperature"
+
         if show:
             for name, desc in out.items():
                 print(name.ljust(15) + " : " + desc)
 
         return out
 
+    @parseunits(r="m", phi="rad", z="m", t="s")
     def input_eval(self, r, phi, z, t, *qnt, grid=False):
         """Evaluate input quantities at given coordinates.
 
@@ -493,13 +515,13 @@ class Ascotpy(LibAscot, LibSimulate):
         Parameters
         ----------
         r : array_like
-            R coordinates where data is evaluated [m].
+            R coordinates where data is evaluated.
         phi : array_like
-            phi coordinates where data is evaluated [rad].
+            phi coordinates where data is evaluated.
         z : array_like
-            z coordinates where data is evaluated [m].
+            z coordinates where data is evaluated.
         t : array_like
-            Time coordinates where data is evaluated [s].
+            Time coordinates where data is evaluated.
         *qnt : str
             Names of evaluated quantities.
         grid : boolean, optional
@@ -522,10 +544,10 @@ class Ascotpy(LibAscot, LibSimulate):
         RuntimeError
             If evaluation in libascot.so failed.
         """
-        #r   = np.asarray(r).ravel()
-        #phi = np.asarray(phi).ravel()
-        #z   = np.asarray(z).ravel()
-        #t   = np.asarray(t).ravel()
+        r   = unyt.unyt_array(r).ravel()
+        phi = unyt.unyt_array(phi).ravel()
+        z   = unyt.unyt_array(z).ravel()
+        t   = unyt.unyt_array(t).ravel()
 
         if grid:
             arrsize = (r.size, phi.size, z.size, t.size)
@@ -583,7 +605,7 @@ class Ascotpy(LibAscot, LibSimulate):
             out.update(self._eval_boozer(r, phi, z, t))
         if any(q in qnt for q in ["qprof", "bjac", "bjacxb2"]):
             out.update(self._eval_boozer(r, phi, z, t, evalfun=True))
-        if any(q in qnt for q in ["alpha", "phi"]):
+        if any(q in qnt for q in ["alphaeig", "phieig"]):
             out.update(self._eval_mhd(r, phi, z, t, evalpot=True))
         if any(q in qnt for q in ["mhd_br", "mhd_bphi", "mhd_bz", "mhd_er",
                                   "mhd_ephi", "mhd_ez", "mhd_phi"]):
@@ -596,15 +618,11 @@ class Ascotpy(LibAscot, LibSimulate):
                             + bpert["mhd_bz"]**2)
             b = np.sqrt(b["br"]**2 + b["bphi"]**2 + b["bz"]**2)
             out["db/b (mhd)"] = bpert/b
-        if any(q in qnt for q in ["ne", "te"]):
-            out.update(self._eval_plasma(r, phi, z, t))
 
         ni = ["ni" + str(i+1) for i in range(99)]
         ti = ["ti" + str(i+1) for i in range(99)]
-        if any(q in qnt for q in ni) or any(q in qnt for q in ti):
-            nspec = self.input_getplasmaspecies()[0]
-            if int(qnt[1:]) <= nspec:
-                out.update(self._eval_plasma(r, phi, z, t))
+        if any(q in qnt for q in ["ne", "te"] + ni + ti):
+            out.update(self._eval_plasma(r, phi, z, t))
 
         if grid:
             out = np.reshape(out, arrsize)
