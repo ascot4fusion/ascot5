@@ -260,9 +260,12 @@ void diag_update_gc(diag_data* data, particle_simd_gc* p_f,
     if(data->distrho6D_collect){
         dist_rho6D_update_gc(&data->distrho6D, p_f, p_i);
     }
+
     if(data->diagtrcof_collect){
         diag_transcoef_update_gc(&data->diagtrcof, p_f, p_i);
     }
+
+    //TODO add com
 }
 
 /**
@@ -281,6 +284,7 @@ void diag_update_ml(diag_data* data, particle_simd_ml* p_f,
     if(data->diagorb_collect) {
         diag_orb_update_ml(&data->diagorb, p_f, p_i);
     }
+
     if(data->diagtrcof_collect){
         diag_transcoef_update_ml(&data->diagtrcof, p_f, p_i);
     }
