@@ -115,7 +115,6 @@ class Union(ctypes.Union, AsDictMixin):
     pass
 
 
-
 _libraries = {}
 _libraries['libascot.so'] = ctypes.CDLL('libascot.so')
 c_int128 = ctypes.c_ubyte*16
@@ -2103,6 +2102,9 @@ print_marker_summary.argtypes = [ctypes.POINTER(struct_c__SA_particle_state), ct
 libascot_allocate_input_particles = _libraries['libascot.so'].libascot_allocate_input_particles
 libascot_allocate_input_particles.restype = ctypes.POINTER(struct_c__SA_input_particle)
 libascot_allocate_input_particles.argtypes = [ctypes.c_int32]
+libascot_allocate_particle_states = _libraries['libascot.so'].libascot_allocate_particle_states
+libascot_allocate_particle_states.restype = ctypes.POINTER(struct_c__SA_particle_state)
+libascot_allocate_particle_states.argtypes = [ctypes.c_int32]
 libascot_allocate_reals = _libraries['libascot.so'].libascot_allocate_reals
 libascot_allocate_reals.restype = ctypes.POINTER(ctypes.c_double)
 libascot_allocate_reals.argtypes = [size_t]

@@ -9,14 +9,18 @@ class DataContainer():
     """Interface for providing access to underlying HDF5 data.
 
     This class provides methods to change and access the raw data. The
-    raw data is accessed (via `h5py`) as
-    with datacontainer as d:
-      d["data"][:]
-    where `d` is the `h5py.Group` corresponding to this container.
+    raw data is accessed (via :obj:`h5py`) as
+
+    .. code-block:: python
+
+       with datacontainer as d:
+           d["data"][:]
+
+    where ``d`` is the :obj:`h5py.Group` corresponding to this container.
 
     Attributes
     ----------
-    _root : `RootNode`
+    _root : :class:`RootNode`
         The rootnode this object belongs to.
     _path : str
         Path to this data within the HDF5 file.
@@ -35,8 +39,8 @@ class DataContainer():
 
         Parameters
         ----------
-        root : `RootNode`
-            The `RootNode` this data container belongs to.
+        root : :class:`RootNode`
+            The root node this data container belongs to.
         path : str
             Path to this data within the HDF5 file.
         **kwargs
@@ -53,7 +57,7 @@ class DataContainer():
 
         Returns
         -------
-        data : `h5py.Group`
+        data : :class:`h5py.Group`
             HDF5 group corresponding to this data.
         """
         return self._open()
@@ -63,13 +67,15 @@ class DataContainer():
         """
         self._close()
 
-    def _open(self):
+    def _open(self, mode="r"):
         """Open and return the HDF5 group corresponding to this data.
 
         Returns
         -------
-        data : `h5py.Group`
+        data : :class:`h5py.Group`
             HDF5 group corresponding to this data.
+        mode : {"r", "a"}
+            Is the file opened for (r)eading or (a)ppending.
 
         Raises
         ------
@@ -82,7 +88,7 @@ class DataContainer():
                    not closed by _close()""")
 
         fn = self._root._ascot.file_getpath()
-        self._opened[0] = h5py.File(fn, "a")[self._path]
+        self._opened[0] = h5py.File(fn, mode)[self._path]
         return self._opened[0]
 
     def _close(self):
@@ -106,7 +112,7 @@ class DataGroup(DataContainer):
         desc : str
             Short description for the user to document this group.
         """
-        f = self._open()
+        f = self._open("a")
         val = fileapi.set_desc(f.file, self._path, desc)
         self._close()
         self._root._build(self._root._ascot.file_getpath())
@@ -194,7 +200,7 @@ class DataGroup(DataContainer):
         """
         self._root._destroy_group(self.get_qid(), repack)
 
-    def copy_to_hdf5file(self,target_file,newgroup=False):
+    def export(self,target_file,newgroup=False):
         """
         """
 

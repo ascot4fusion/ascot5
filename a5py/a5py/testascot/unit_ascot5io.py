@@ -154,11 +154,11 @@ class TestAscot5IO(unittest.TestCase):
         # Create object with multiple groups.
         a5 = Ascot(self.testfilename, create=True)
         ETC = {"exyz" : np.array([0,0,0])}
-        grp1 = a5.data.create_input("E_TC", ETC)
+        grp1 = a5.data.create_input("E_TC", **ETC)
         time.sleep(1.0)
-        grp2 = a5.data.create_input("E_TC", ETC)
+        grp2 = a5.data.create_input("E_TC", **ETC)
         time.sleep(1.0)
-        grp3 = a5.data.create_input("E_TC", ETC)
+        grp3 = a5.data.create_input("E_TC", **ETC)
 
         # Test with parent group that dict and attribute references are equal
         self.assertEqual(a5.data.efield, a5.data["efield"],

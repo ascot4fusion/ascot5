@@ -49,14 +49,13 @@ class AnalyticalInputs():
             if splines:
                 out.update({"rmin" : 4, "rmax" : 8.5, "nr" : 120, "zmin" : -4,
                             "zmax" : 4, "nz" : 200})
-                out = B_GS.write_hdf5_B_2DS(fn="", **out)
                 return ("B_2DS", B_2DS.convert_B_GS(**out))
             return ("B_GS", out)
 
         out.update({"nripple" : 18, "a0" : 2, "alpha0" : 0.2, "delta0" : 0.5})
         if splines:
             out.update({"rmin" : 4, "rmax" : 8.5, "nr" : 120, "zmin" : -4,
-                        "zmax" : 4, "nz" : 200, "pmin" : 0, "pmax" : 360,
+                        "zmax" : 4, "nz" : 200, "phimin" : 0, "phimax" : 360,
                         "nphi" : 360})
             return ("B_3DS", B_3DS.convert_B_GS(**out))
 

@@ -23,19 +23,14 @@ try:
     PTR_REAL = ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")
     PTR_SIM  = ctypes.POINTER(ascot2py.struct_c__SA_sim_offload_data)
     PTR_ARR  = ctypes.POINTER(ctypes.c_double)
-    PTR_MRK  = ctypes.POINTER(ascot2py.struct_c__SA_particle_state)
-    STRUCT_OFFLOAD_PACKAGE = ascot2py.struct_c__SA_offload_package
-    STRUCT_OFFLOAD_DATA    = ascot2py.struct_c__SA_sim_offload_data
-    LIBASCOT = ascot2py._libraries['libascot.so']
-    _LIBASCOTFOUND = True
+    _LIBASCOT = ascot2py._libraries['libascot.so']
 except OSError as error:
-    _LIBASCOTFOUND = False
+    _LIBASCOT = None
     msg = """
-    Warning: Failed to import libascot.so. Some functionalities of Ascot\n
-    are not available. Verify that libascot.so has been compiled, it can be\n
-    found in LD_LIBRARY_PATH, and dependencies (e.g. HDF5) are available.\n
+    Warning: Failed to import libascot.so. Some functionalities of Ascot
+    are not available. Verify that libascot.so has been compiled, it can be
+    found in LD_LIBRARY_PATH, and dependencies (e.g. HDF5) are available.
     """
-    print(error.strerror)
     warnings.warn(msg)
 
 class LibAscot:
@@ -94,7 +89,7 @@ class LibAscot:
             out["bzdphi"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.T
             out["bzdz"]     = (np.zeros(r.shape, dtype="f8") + np.nan) * Tperm
 
-            fun = LIBASCOT.libascot_B_field_eval_B_dB
+            fun = _LIBASCOT.libascot_B_field_eval_B_dB
             fun.restype  = None
             fun.argtypes = [PTR_SIM, PTR_ARR,
                             ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
@@ -113,7 +108,7 @@ class LibAscot:
             out["rho"] = (np.zeros(r.shape, dtype="f8") + np.nan) \
                 * unyt.dimensionless
 
-            fun = LIBASCOT.libascot_B_field_eval_rho
+            fun = _LIBASCOT.libascot_B_field_eval_rho
             fun.restype  = None
             fun.argtypes = [PTR_SIM, PTR_ARR,
                             ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
@@ -126,7 +121,7 @@ class LibAscot:
             out["axisr"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.m
             out["axisz"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.m
 
-            fun = LIBASCOT.libascot_B_field_get_axis
+            fun = _LIBASCOT.libascot_B_field_get_axis
             fun.restype  = None
             fun.argtypes = [PTR_SIM, PTR_ARR,
                             ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL]
@@ -170,7 +165,7 @@ class LibAscot:
         out["ephi"] = (np.zeros(r.shape, dtype="f8") + np.nan) * Vperm
         out["ez"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * Vperm
 
-        fun = LIBASCOT.libascot_E_field_eval_E
+        fun = _LIBASCOT.libascot_E_field_eval_E
         fun.restype  = None
         fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
                         ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
@@ -217,7 +212,7 @@ class LibAscot:
         rawdens = (np.zeros((Neval*nspecies,), dtype="f8") + np.nan) / m3
         rawtemp = (np.zeros((Neval*nspecies,), dtype="f8") + np.nan) * eV
 
-        fun = LIBASCOT.libascot_plasma_eval_background
+        fun = _LIBASCOT.libascot_plasma_eval_background
         fun.restype  = None
         fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
                         ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
@@ -268,7 +263,7 @@ class LibAscot:
         m3 = unyt.m**3
         out["n0"] = (np.zeros(r.shape, dtype="f8") + np.nan) / m3
 
-        fun = LIBASCOT.libascot_neutral_eval_density
+        fun = _LIBASCOT.libascot_neutral_eval_density
         fun.restype  = None
         fun.argtypes = [PTR_SIM, PTR_ARR,
                         ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
@@ -316,7 +311,7 @@ class LibAscot:
             out["bjac"]    = (np.copy(temp) + np.nan) / T**2
             out["bjacxb2"] = (np.copy(temp) + np.nan) * nodim
 
-            fun = LIBASCOT.libascot_boozer_eval_fun
+            fun = _LIBASCOT.libascot_boozer_eval_fun
             fun.restype  = ctypes.c_int
             fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
                             ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
@@ -341,7 +336,7 @@ class LibAscot:
             out["dzetadz"]        = (np.copy(temp) + np.nan) / m
             out["rho (bzr)"]      = (np.copy(temp) + np.nan) * nodim
 
-            fun = LIBASCOT.libascot_boozer_eval_psithetazeta
+            fun = _LIBASCOT.libascot_boozer_eval_psithetazeta
             fun.restype  = ctypes.c_int
             fun.argtypes = [PTR_SIM, PTR_ARR,
                             ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
@@ -399,7 +394,7 @@ class LibAscot:
         out["mhd_ez"]   = (np.copy(temp) + np.nan) * V/m
         out["mhd_phi"]  = (np.copy(temp) + np.nan) * V
 
-        fun = LIBASCOT.libascot_mhd_eval_perturbation
+        fun = _LIBASCOT.libascot_mhd_eval_perturbation
         fun.restype  = ctypes.c_int
         fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR, PTR_ARR,
                         ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
@@ -423,7 +418,7 @@ class LibAscot:
             out["dphidphi"] = (np.copy(temp) + np.nan) * V
             out["dphidz"]   = (np.copy(temp) + np.nan) * V/m
 
-            fun = LIBASCOT.libascot_mhd_eval
+            fun = _LIBASCOT.libascot_mhd_eval
             fun.restype  = ctypes.c_int
             fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
                             ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
@@ -500,7 +495,7 @@ class LibAscot:
         out["mu1"]    = np.copy(temp)
         out["dmu0"]   = np.copy(temp)
 
-        fun = LIBASCOT.libascot_eval_collcoefs
+        fun = __LIBASCOT.libascot_eval_collcoefs
         fun.restype  = ctypes.c_int
         fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR, PTR_ARR,
                         ctypes.c_int, PTR_REAL, ctypes.c_double,
@@ -559,7 +554,7 @@ class LibAscot:
         RuntimeError
             If evaluation in libascot.so failed.
         """
-        fun = LIBASCOT.libascot_plasma_get_n_species
+        fun = _LIBASCOT.libascot_plasma_get_n_species
         fun.restype  = ctypes.c_int
         fun.argtypes = [PTR_SIM, PTR_ARR]
 
@@ -570,7 +565,7 @@ class LibAscot:
         out["mass"]     = np.zeros((out["nspecies"],), dtype="f8")
         out["charge"]   = np.zeros((out["nspecies"],), dtype="f8")
 
-        fun = LIBASCOT.libascot_plasma_get_species_mass_and_charge
+        fun = _LIBASCOT.libascot_plasma_get_species_mass_and_charge
         fun.restype  = None
         fun.argtypes = [PTR_SIM, PTR_ARR, PTR_REAL, PTR_REAL]
         fun(ctypes.byref(self._sim), self._plasma_offload_array,
@@ -617,7 +612,7 @@ class LibAscot:
         z   = np.zeros((ngrid,), dtype="f8")
         rho = np.zeros((ngrid,), dtype="f8")
 
-        fun = LIBASCOT.libascot_B_field_eval_rhovals
+        fun = _LIBASCOT.libascot_B_field_eval_rhovals
         fun.restype  = None
         fun.argtypes = [PTR_SIM, PTR_ARR,
                         ctypes.c_int,    ctypes.c_double, ctypes.c_double,

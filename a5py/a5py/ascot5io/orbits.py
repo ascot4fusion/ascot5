@@ -14,9 +14,9 @@ class Orbits(DataContainer):
     quantities at certain points along the marker orbit.
     """
 
-    GYROORBIT = 1
+    GYROORBIT     = 1
     GUIDINGCENTER = 2
-    FIELDLINE = 3
+    FIELDLINE     = 3
 
     def read_hdf5(self, fn, qid):
         """
@@ -114,9 +114,9 @@ class Orbits(DataContainer):
 
         Parameters
         ----------
-        inistate : State
+        inistate : :class:`State`
             Inistate is needed to evaluate some orbit quantities.
-        endstate : State
+        endstate : :class:`State`
             Endstate is needed to evaluate some orbit quantities.
         *qnt : str
             Names of the quantities.
@@ -136,20 +136,16 @@ class Orbits(DataContainer):
                     return fileapi.read_data(h5, q)
             return None
 
-        mode = _val("simmode")
-        ids  = inistate.get("ids")[0]
-        val     = inistate.get("mass")[0].v
-        f       = lambda x: val[ids == x]
-        mass = np.array([f(x) for x in _val("ids")]).ravel() * unyt.amu
-        val     = inistate.get("time")[0]
-        f       = lambda x: val[ids == x]
-        time = np.array([f(x) for x in _val("ids")]).ravel() * unyt.s
-        val     = inistate.get("mileage")[0]
-        f       = lambda x: val[ids == x]
-        connlen = np.array([f(x) for x in _val("ids")]).ravel() * unyt.s
-        connlen -= _val("mileage")
-        if not Orbits.FIELDLINE in mode:
-            time = time + _val("mileage")
+        # Sort using the fact that inistate.get return values ordered by ID
+        # and also np.unique returns indices that produce a sorted array.
+        mode    = _val("simmode")
+        _, idx  = np.unique(_val("ids").v, return_inverse=True)
+        mass    = inistate.get("mass")[0][idx]
+        time    = inistate.get("time")[0][idx]
+        connlen = inistate.get("mileage")[0][idx] - _val("mileage")
+
+        # Only field lines are constant in time
+        if not Orbits.FIELDLINE in mode: time = time + _val("mileage")
 
         def _eval(q, mask=None):
             """Evaluate input quantities at marker position.
@@ -158,10 +154,10 @@ class Orbits(DataContainer):
                 _val("r", mask=mask), _val("phi",  mask=mask),
                 _val("z", mask=mask), time[mask], *[q])
 
-        return Orbits.getactual(mass, time, connlen, mode, _val, _eval, *qnt)
+        return Orbits._getactual(mass, time, connlen, mode, _val, _eval, *qnt)
 
     @staticmethod
-    def getactual(mass, time, totmil, mode, _val, _eval, *qnt):
+    def _getactual(mass, time, totmil, mode, _val, _eval, *qnt):
         """Calculate orbit quantities using the helper functions and data.
 
         Parameters
@@ -180,7 +176,7 @@ class Orbits(DataContainer):
             ``_val(qnt : str, mask : array_like) -> value``
         _eval : callable
             Function that returns interpolated input quantity at masked
-            positions along the marker trajectory.
+            positions.
 
             ``_eval(qnt : str, mask : array_like) -> value``
         *qnt : str

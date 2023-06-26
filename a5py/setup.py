@@ -29,4 +29,5 @@ setup(name='a5py',
         'bin/a5doxygen',
         'bin/test_ascot.py'
       ],
+      package_data={'a5py/ascotpy': ['lib.so']},
       include_package_data=True)

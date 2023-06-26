@@ -1,20 +1,93 @@
 """Module for generating common plots with ASCOT5.
 """
 import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import pyvista as pv
+import warnings
+
+try:
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    import mpl_toolkits
+except ImportError:
+    warnings.warn("Could not import matplotlib. Plotting disabled.")
+
+try:
+    import pyvista as pv
+except ImportError:
+    warnings.warn("Could not import pyvista. 3D wall plotting disabled.")
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from functools import wraps
 
-def openfigureifnoaxes(projection=None):
+def setpaperstyle(height=5, halfpage=False):
+    """TODO make this style suitable for publications
+    """
+    mpl.style.use(
+        {"figure.figsize":(8., 6.),
+        "figure.autolayout":True,
+        "font.family":"serif",
+        "font.serif":"ComputerModern",
+        "text.usetex":True,
+        "pdf.fonttype":42,
+        "ps.fonttype":42,
+        "axes.labelsize":28,
+        "axes.titlesize":28,
+        "axes.titlepad":12,
+        "xtick.labelsize":24,
+        "ytick.labelsize":24,
+        "axes.labelpad":6,
+        "legend.fontsize":22,
+        "legend.numpoints":1,
+        "legend.scatterpoints":1,
+        "grid.linewidth":0.8,
+        "lines.linewidth":1.4,
+        "patch.linewidth":0.24,
+        "lines.markersize":5.6,
+        "lines.markeredgewidth":0,
+        "xtick.major.width":0.8,
+        "ytick.major.width":0.8,
+        "xtick.minor.width":0.4,
+        "ytick.minor.width":0.4,
+        "xtick.major.pad":5.6,
+        "ytick.major.pad":5.6,}
+    )
+
+def setguistyle():
+    """Syle used in GUI.
+    """
+    mpl.style.use({
+        "figure.autolayout":False,
+        "font.family":"serif",
+        "font.serif":"ComputerModern",
+        "text.usetex":True,
+        "axes.labelsize":18,
+        "axes.titlesize":18,
+        "axes.titlepad":12,
+        "xtick.labelsize":16,
+        "ytick.labelsize":16,
+        "axes.labelpad":6,
+        "legend.fontsize":16,
+        "legend.numpoints":1,
+        "legend.scatterpoints":1,
+        "grid.linewidth":0.8,
+        "lines.linewidth":1.4,
+        "patch.linewidth":0.24,
+        "lines.markersize":5.6,
+        "lines.markeredgewidth":0,
+        "xtick.major.width":0.8,
+        "ytick.major.width":0.8,
+        "xtick.minor.width":0.4,
+        "ytick.minor.width":0.4,
+        "xtick.major.pad":5.6,
+        "ytick.major.pad":5.6,
+    })
+
+def openfigureifnoaxes(projection="rectilinear"):
     """Decorator for creating and displaying a new figure if axes are not
     provided.
 
     Parameters
     ----------
-    projection : str, {None, 'aitoff', 'hammer', 'lambert', 'mollweide',
+    projection : str, {None, '3d', 'aitoff', 'hammer', 'lambert', 'mollweide',
     'polar', 'rectilinear'}, optional
         The axes projection type, see Matplotlib documentation for details.
     """
@@ -26,12 +99,16 @@ def openfigureifnoaxes(projection=None):
             """Create a new figure if axes is None and pass *args and **kwargs
             for the plotter.
             """
-            if not axes:
+            if axes is None:
                 fig  = plt.figure()
                 axes = fig.add_subplot(111, projection=projection)
                 plotfun(*args, axes=axes, **kwargs)
                 plt.show()
             else:
+                if projection != None and axes.name != projection:
+                    raise ValueError(
+                        "Invalid projection \"%s\" on axes: expected \"%s\"" %
+                        (axes.name, projection))
                 plotfun(*args, axes=axes, **kwargs)
 
         return wrapper
@@ -39,9 +116,9 @@ def openfigureifnoaxes(projection=None):
     return actualdecorator
 
 @openfigureifnoaxes(projection=None)
-def scatter2d(x, y, c="C0", log=[False, False, False], nc=9, cmap="viridis",
-              xlabel=None, ylabel=None, clabel=None, axesequal=False, axes=None,
-              cax=None):
+def scatter2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
+              xlabel=None, ylabel=None, clabel=None, cint=9, cmap=None,
+              axesequal=False, axes=None, cax=None):
     """Make a scatter plot in 2D+1 where color can be one dimension.
 
     For better performance this function uses matplotlib's plot function instead
@@ -54,91 +131,85 @@ def scatter2d(x, y, c="C0", log=[False, False, False], nc=9, cmap="viridis",
         Marker x-coordinates.
     y : array_like
         Marker y-coordinates.
-    c : {str, array_like}, optional
+    c : str or array_like, optional
         Color data or string indicating the color.
-    log : [bool, bool, bool], optional
-        Make [x-axis, y-axis, color axis] logarithmic.
-    nc : int, optional
-        Number of colors used if c contains data. Since we are using plot
-        instead of data, the color scale can't be continuous.
-    cmap : str, optional
-        Name of the colormap where nc colors are picked if c contains data.
+    xlog : {"linear", "log", "symlog"}, optional
+        x-axis scaling.
+    ylog : {"linear", "log", "symlog"}, optional
+        y-axis scaling.
+    clog : {"linear", "log", "symlog"}, optional
+        color-axis scaling.
     xlabel : str, optional
         Label for the x-axis.
     ylabel : str, optional
         Label for the y-axis.
     clabel : str, optional
         Label for the color axis.
+    cint : int, optional
+        Number of colors used if c contains data. Since we are using plot
+        instead of data, the color scale can't be continuous.
+    cmap : str, optional
+        Name of the colormap where nc colors are picked if c contains data.
     axesequal : bool, optional
         Flag to set aspect ratio of [x,y] axes equal.
-    axes : Axes, optional
-        The Axes object to draw on.
-    cax : Axes, optional
-        The Axes object for the color data (if c contains data), otherwise
-        taken from axes.
+    axes : :obj:`~matplotlib.axes.Axes`, optional
+        The axes where figure is plotted or otherwise new figure is created.
+    cax : :obj:`~matplotlib.axes.Axes`, optional
+        The color bar axes or otherwise taken from the main axes.
     """
+    axes.set_xscale(xlog)
+    axes.set_yscale(ylog)
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+    if axesequal: axes.set_aspect("equal", adjustable="box")
 
-    cmap = plt.cm.get_cmap(cmap, nc)
-    cbar = None
-
-    if log[0]:
-        x      = np.log10(np.absolute(x))
-        xlabel = "log10(| " + xlabel + " |)"
-
-    if log[1]:
-        y      = np.log10(np.absolute(y))
-        ylabel = "log10(| " + ylabel + " |)"
-
-    if isinstance(c, str):
+    if c is None or isinstance(c, str):
         # Simple plot with a single color
         axes.plot(x, y, color=c, linestyle="None", marker="o")
-    else:
-        if log[1]:
-            c      = np.log10(np.absolute(c))
-            clabel = "log10(| " + clabel + " |)"
+        return
 
-        # Sort inputs by color values and then find the indices that divide the
-        # color range in even intervals
-        idx  = np.argsort(c)
-        x    = x[idx]
-        y    = y[idx]
-        c    = c[idx]
-        clim = np.linspace(c[0], c[-1], nc+1)
-        idx  = np.searchsorted(c, clim) + 1
+    # Sort inputs by color values and then find the indices that divide the
+    # color range in given intervals
+    idx  = np.argsort(c)
+    x    = x[idx]
+    y    = y[idx]
+    c    = c[idx]
+    if isinstance(cint, int):
+        cint = np.linspace(c[0], c[-1], cint+1)
+    idx  = np.searchsorted(c, cint) + 1
+    nc = cint.size - 1
 
-        # Now plot markers corresponding to each interval with a different color
-        i1 = 0
-        for i in range(nc):
-            i2 = idx[i+1]
-            axes.plot(x[i1:i2], y[i1:i2], color=cmap(i/nc), linestyle="None",
-                      marker="o")
-            i1 = i2
+    # Choose default colormap depending on whether values change sign, and pick
+    # nc colors
+    if cmap is None:
+        cmap = "viridis"
+        if any(c < 0) and any(c > 0): cmap = "bwr"
+    cmap = plt.get_cmap(cmap, nc)
 
-        # Make colorbar with where color scale has the intervals
-        norm = mpl.colors.BoundaryNorm(clim, nc)
-        smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-        cbar = plt.colorbar(smap, ax=axes, cax=cax)
-        cax  = cbar.ax
+    # Now plot markers corresponding to each interval with a different color
+    i1 = 0
+    for i in range(nc):
+        i2 = idx[i+1]
+        axes.plot(x[i1:i2], y[i1:i2], color=cmap(i/nc), linestyle="None",
+                  marker="o")
+        i1 = i2
 
-    # Apply decorations
-    if axesequal:
-        axes.set_aspect("equal", adjustable="box")
-
-    axes.set_xlabel(xlabel);
-    axes.set_ylabel(ylabel);
-    axes.tick_params(axis="x", direction="out")
-    axes.tick_params(axis="y", direction="out")
-
-    if cbar is not None:
-        cbar.set_label(clabel)
-
-    return (axes, cax)
-
+    # Make colorbar with where color scale has the intervals
+    norm = mpl.colors.BoundaryNorm(cint, nc)
+    smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+    cbar = plt.colorbar(smap, ax=axes, cax=cax)
+    ticks = [];
+    for b in cint.v:
+        log = np.floor(np.log10(np.abs(b)))
+        mul = b / 10**log
+        ticks.append(r"$%.2f\times 10^{%.0f}$" % (mul, log))
+    cbar.ax.set_yticklabels(ticks)
+    cbar.set_label(clabel)
 
 @openfigureifnoaxes(projection="3d")
-def scatter3d(x, y, z, c="C0", nc=9, cmap="viridis",
-              log=[False, False, False, False], xlabel=None, ylabel=None,
-              zlabel=None, clabel=None, axesequal=False, axes=None, cax=None):
+def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
+              clog="linear", xlabel=None, ylabel=None, zlabel=None, clabel=None,
+              cint=None, cmap=None, axesequal=False, axes=None, cax=None):
     """Make a scatter plot in 3D+1 where color can be one dimension.
 
     For better performance this function uses matplotlib's plot function instead
@@ -153,15 +224,16 @@ def scatter3d(x, y, z, c="C0", nc=9, cmap="viridis",
         Marker y-coordinates.
     z : array_like
         Marker z-coordinates.
-    c : {str, array_like}, optional
+    c : str or array_like, optional
         Color data or string indicating the color.
-    log : [bool, bool, bool, bool], optional
-        Make [x-axis, y-axis, z-axis, color axis] logarithmic.
-    nc : int, optional
-        Number of colors used if c contains data. Since we are using plot
-        instead of data, the color scale can't be continuous.
-    cmap : str, optional
-        Name of the colormap where nc colors are picked if c contains data.
+    xlog : {"linear", "log", "symlog"}, optional
+        x-axis scaling.
+    ylog : {"linear", "log", "symlog"}, optional
+        y-axis scaling.
+    zlog : {"linear", "log", "symlog"}, optional
+        z-axis scaling.
+    clog : {"linear", "log", "symlog"}, optional
+        color-axis scaling.
     xlabel : str, optional
         Label for the x-axis.
     ylabel : str, optional
@@ -170,72 +242,72 @@ def scatter3d(x, y, z, c="C0", nc=9, cmap="viridis",
         Label for the z-axis.
     clabel : str, optional
         Label for the color axis.
+    cint : int, optional
+        Number of colors used if c contains data. Since we are using plot
+        instead of data, the color scale can't be continuous.
+    cmap : str, optional
+        Name of the colormap where nc colors are picked if c contains data.
     axesequal : bool, optional
-        Flag to set aspect ratio of [x,y,z] axes equal.
-    axes : Axes, optional
-        The Axes object to draw on. If None, a new figure is displayed.
-    cax : Axes, optional
-        The Axes object for the color data (if c contains data), otherwise
-        taken from axes.
+        Flag to set aspect ratio of [x,y] axes equal.
+    axes : :obj:`~matplotlib.axes.Axes`, optional
+        The axes where figure is plotted or otherwise new figure is created.
+    cax : :obj:`~matplotlib.axes.Axes`, optional
+        The color bar axes or otherwise taken from the main axes.
     """
-    cmap = plt.cm.get_cmap(cmap, nc)
-    cbar = None
+    axes.set_xscale(xlog)
+    axes.set_yscale(ylog)
+    axes.set_zscale(zlog)
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+    axes.set_zlabel(zlabel)
+    if axesequal: axes.set_aspect("equal", adjustable="box")
 
-    if log[1]:
-        x      = np.log10(np.absolute(x))
-        xlabel = "log10(| " + xlabel + " |)"
-    if log[1]:
-        y      = np.log10(np.absolute(y))
-        ylabel = "log10(| " + ylabel + " |)"
-    if log[1]:
-        z      = np.log10(np.absolute(z))
-        zlabel = "log10(| " + zlabel + " |)"
-
-    if isinstance(c, str):
+    if c is None or isinstance(c, str):
         # Simple plot with a single color
         axes.plot(x, y, z, color=c, linestyle="None", marker="o")
-    else:
-        if log[1]:
-            c      = np.log10(np.absolute(c))
-            clabel = "log10(| " + clabel + " |)"
+        return
 
-        # Sort inputs by color values and then find the indices that divide the
-        # color range in even intervals
-        idx  = np.argsort(c)
-        x    = x[idx]
-        y    = y[idx]
-        z    = z[idx]
-        c    = c[idx]
-        clim = np.linspace(c[0], c[-1], nc+1)
-        idx  = np.searchsorted(c, clim) + 1
+    # Sort inputs by color values and then find the indices that divide the
+    # color range in even intervals
+    idx  = np.argsort(c)
+    x    = x[idx]
+    y    = y[idx]
+    z    = z[idx]
+    c    = c[idx]
+    if cint is None:
+        cint = np.linspace(c[0], c[-1], 10)
+    elif isinstance(cint, int):
+        cint = np.linspace(c[0], c[-1], cint+1)
+    idx  = np.searchsorted(c, cint) + 1
+    nc = cint.size - 1
 
-        # Now plot markers corresponding to each interval with a different color
-        i1 = 0
-        for i in range(nc):
-            i2 = idx[i+1]
-            axes.plot(x[i1:i2], y[i1:i2], z[i1:i2], color=cmap(i/nc),
-                      linestyle="None", marker="o")
-            i1 = i2
+    # Choose default colormap depending on whether values change sign, and pick
+    # nc colors
+    if cmap is None:
+        cmap = "viridis"
+        if any(c < 0) and any(c > 0): cmap = "bwr"
+    cmap = plt.get_cmap(cmap, nc)
 
-        # Make colorbar with where color scale has the intervals
-        norm = mpl.colors.BoundaryNorm(clim, nc)
-        smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-        cbar = plt.colorbar(smap, ax=axes, cax=cax)
-        cax  = cbar.ax
+    # Now plot markers corresponding to each interval with a different color
+    i1 = 0
+    for i in range(nc):
+        i2 = idx[i+1]
+        axes.plot(x[i1:i2], y[i1:i2], z[i1:i2], color=cmap(i/nc),
+                  linestyle="None", marker="o")
+        i1 = i2
 
-    # Apply decorations
-    if axesequal:
-        axes.set_aspect("equal", adjustable="box")
+    # Make colorbar with where color scale has the intervals
+    norm = mpl.colors.BoundaryNorm(cint, nc)
+    smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+    cbar = plt.colorbar(smap, ax=axes, cax=cax)
 
-    axes.set_xlabel(xlabel);
-    axes.set_ylabel(ylabel);
-    axes.set_zlabel(ylabel);
-    axes.tick_params(axis="x", direction="out")
-    axes.tick_params(axis="y", direction="out")
-    axes.tick_params(axis="z", direction="out")
-
-    if cbar is not None:
-        cbar.set_label(clabel)
+    ticks = [];
+    for b in cint.v:
+        log = np.floor(np.log10(np.abs(b)))
+        mul = b / 10**log
+        ticks.append(r"$%.2f\times 10^{%.0f}$" % (mul, log))
+    cbar.ax.set_yticklabels(ticks)
+    cbar.set_label(clabel)
 
 @openfigureifnoaxes(projection=None)
 def hist1d(x, xbins=None, weights=None, log=[False, False], xlabel=None,
@@ -244,14 +316,14 @@ def hist1d(x, xbins=None, weights=None, log=[False, False], xlabel=None,
 
     Parameters
     ----------
-    x : array_like
+    x : array_like or list [array_like]
         Array or a list of arrays to be binned and plotted.
 
         If list is given, the resulting histogram is stacked with each
         array in the list corresponding to one layer in the stacked histogram.
     xbins : int or array_like, optional
         Number of bins or array storing bin edges for the x coordinate.
-    weights : array_like, optional
+    weights : array_like or list [array_like], optional
         Values the datapoints are weighted with.
 
         Same format as for x.
@@ -351,48 +423,242 @@ def hist2d(x, y, xbins=None, ybins=None, weights=None,
         axes.set_aspect("equal", adjustable="box")
 
 @openfigureifnoaxes(projection=None)
-def mesh2d(x, y, z, xlabel=None, ylabel=None, clim=[None, None], axesequal=False,
-         axes=None):
+def mesh2d(x, y, z, log=False, diverging=False, xlabel=None, ylabel=None,
+           clabel=None, clim=[None, None], cmap=None, axesequal=False,
+           axes=None, cax=None):
     """Make a mesh (surface) plot in 2D.
 
     Parameters
     ----------
-    x : array_like
-    y : array_like
-    z : array_like
+    x : array_like (nx,)
+        Abscissa for the x-axis.
+    y : array_like (ny,)
+        Abscissa for the y-axis.
+    z : array_like (nx,ny)
+        Data to be plotted.
+    log : bool, optional
+        Make color axis logarithmic.
+    diverging : bool, optional
+        Use diverging colormapping which is centered at zero.
+
+        Works with logarithmic scale as well.
+    xlabel : str, optional
+        Label for the x-axis.
+    ylabel : str, optional
+        Label for the y-axis.
+    clabel : str, optional
+        Label for the color-axis.
+    clim : [float, float], optional
+        Color [min, max] limits.
+    cmap : str, optional
+        Colormap.
+    axesequal : bool, optional
+        Flag to set the aspect ratio equal.
+    axes : :obj:`~matplotlib.axes.Axes`, optional
+        The axes where figure is plotted or otherwise new figure is created.
+    cax : :obj:`~matplotlib.axes.Axes`, optional
+        The color bar axes or otherwise taken from the main axes.
     """
-    axes.image(z)
+    z = np.ma.masked_invalid(z)
+    if clim[0] is None:
+        clim[0] = np.nanmin(z)
+    if clim[1] is None:
+        clim[1] = np.nanmax(z)
+
+    if log:
+        if diverging:
+            if cmap == None: cmap = "bwr"
+            norm = mpl.colors.SymLogNorm(linthresh=10, linscale=1.0,
+                                 vmin=clim[0], vmax=clim[1], base=10)
+        else:
+            if cmap == None: cmap = "viridis"
+            norm = mpl.colors.LogNorm(vmin=clim[0], vmax=clim[1])
+    else:
+        if diverging:
+            if cmap == None: cmap = "bwr"
+            norm = mpl.colors.CenteredNorm(halfrange=np.amax(np.abs(clim)))
+        else:
+            if cmap == None: cmap = "viridis"
+            norm = mpl.colors.Normalize(vmin=clim[0], vmax=clim[1])
+
+    pcm = axes.pcolormesh(x, y, z.T, norm=norm, cmap=cmap, shading="nearest")
+    axes.patch.set(hatch='x', edgecolor=[0.9, 0.9, 0.9])
+
+    axes.set_xlim(x[0], x[-1])
+    axes.set_ylim(y[0], y[-1])
 
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
 
     if axesequal:
         axes.set_aspect("equal", adjustable="box")
-    """
-    out = np.ma.masked_invalid(out)
-    if clim[0] is None:
-            clim[0] = np.nanmin(out)
-        if clim[1] is None:
-            clim[1] = np.nanmax(out)
 
-        mesh = axes.pcolormesh(r, z, out, vmin=clim[0], vmax=clim[1])
-        axes.patch.set(hatch='x', edgecolor=[0.9, 0.9, 0.9])
-
-        plt.colorbar(mesh, cax=cax)
-        axes.set_aspect("equal", adjustable="box")
-        axes.set_xlim(r[0], r[-1])
-        axes.set_ylim(z[0], z[-1])
-    """
+    cbar = plt.colorbar(pcm, ax=axes, cax=cax)
+    cbar.set_label(clabel)
 
 def contour2d():
     """Plot contour on 2D plane.
     """
     pass
 
-def line2d():
-    """Plot line segments on 2D plane.
+@openfigureifnoaxes(projection=None)
+def line2d(x, y, c=None, xlog="linear", ylog="linear", clog="linear",
+           xlabel=None, ylabel=None, clabel=None, bbox=None,
+           cmap=None, axesequal=False, axes=None, cax=None):
+    """Plot line segments in 2D.
+
+    x : array_like
+        Marker x-coordinates.
+    y : array_like
+        Marker y-coordinates.
+    c : str or array_like, optional
+        Color data or string indicating the color.
+    xlog : {"linear", "log", "symlog"}, optional
+        x-axis scaling.
+    ylog : {"linear", "log", "symlog"}, optional
+        y-axis scaling.
+    clog : {"linear", "log", "symlog"}, optional
+        color-axis scaling.
+    cmap : str, optional
+        Name of the colormap.
+    xlabel : str, optional
+        Label for the x-axis.
+    ylabel : str, optional
+        Label for the y-axis.
+    clabel : str, optional
+        Label for the color axis.
+    axesequal : bool, optional
+        Flag to set aspect ratio of [x,y] axes equal.
+    axes : :obj:`~matplotlib.axes.Axes`, optional
+        The axes where figure is plotted or otherwise new figure is created.
+    cax : :obj:`~matplotlib.axes.Axes`, optional
+        The color bar axes or otherwise taken from the main axes.
     """
-    pass
+    axes.set_xscale(xlog)
+    axes.set_yscale(ylog)
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+    if axesequal: axes.set_aspect("equal", adjustable="box")
+    if c is None or isinstance(c, str):
+        # Simple plot with a single color
+        for i in range(len(x)):
+            axes.plot(x[i], y[i], color=c)
+        return
+
+    if bbox is None:
+        bbox = "[xmin, xmax, ymin, ymax, cmin, cmax]"
+        raise ValueError("Specify bounding box: bbox="+bbox)
+    axes.set_xlim(bbox[0], bbox[1])
+    axes.set_ylim(bbox[2], bbox[3])
+    if clog == "linear":
+        if bbox[-2]*bbox[-1] < 0:
+            if cmap == None: cmap = "bwr"
+            norm = mpl.colors.CenteredNorm(halfrange=np.amax(np.abs(bbox[-2:])))
+        else:
+            if cmap == None: cmap = "viridis"
+            norm = plt.Normalize(bbox[-2], bbox[-1])
+    elif clog == "log":
+        if cmap == None: cmap = "viridis"
+        norm = mpl.colors.LogNorm(vmin=bbox[-2], vmax=bbox[-1])
+    elif clog == "symlog":
+        if cmap == None: cmap = "bwr"
+        norm = mpl.colors.SymLogNorm(linthresh=10, linscale=1.0,
+                                     vmin=bbox[-2], vmax=bbox[-1], base=10)
+
+    for i in range(len(x)):
+        points = np.array([x[i], y[i]]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+
+        lc = mpl.collections.LineCollection(segments, cmap=cmap, norm=norm)
+        lc.set_array(c[i][1:])
+        line = axes.add_collection(lc)
+    smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+    plt.colorbar(smap, ax=axes, cax=cax)
+
+@openfigureifnoaxes(projection="3d")
+def line3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
+           clog="linear", xlabel=None, ylabel=None, zlabel=None, clabel=None,
+           bbox=None, cmap=None, axesequal=False, axes=None, cax=None):
+    """Plot line segments in 3D.
+
+    Parameters
+    ----------
+    x : array_like
+        Marker x-coordinates.
+    y : array_like
+        Marker y-coordinates.
+    z : array_like
+        Marker z-coordinates.
+    c : str or array_like, optional
+        Color data or string indicating the color.
+    xlog : {"linear", "log", "symlog"}, optional
+        x-axis scaling.
+    ylog : {"linear", "log", "symlog"}, optional
+        y-axis scaling.
+    zlog : {"linear", "log", "symlog"}, optional
+        z-axis scaling.
+    clog : {"linear", "log", "symlog"}, optional
+        color-axis scaling.
+    cmap : str, optional
+        Name of the colormap.
+    xlabel : str, optional
+        Label for the x-axis.
+    ylabel : str, optional
+        Label for the y-axis.
+    zlabel : str, optional
+        Label for the z-axis.
+    clabel : str, optional
+        Label for the color axis.
+    axesequal : bool, optional
+        Flag to set aspect ratio of [x,y,z] axes equal.
+    axes : :obj:`~matplotlib.axes.Axes`, optional
+        The axes where figure is plotted or otherwise new figure is created.
+    cax : :obj:`~matplotlib.axes.Axes`, optional
+        The color bar axes or otherwise taken from the main axes.
+    """
+    axes.set_xscale(xlog)
+    axes.set_yscale(ylog)
+    axes.set_zscale(zlog)
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+    axes.set_zlabel(zlabel)
+    if axesequal: axes.set_aspect("equal", adjustable="box")
+    if c is None or isinstance(c, str):
+        # Simple plot with a single color
+        for i in range(len(x)):
+            axes.plot(x[i], y[i], z[i], color=c)
+        return
+
+    if bbox is None:
+        bbox = "[xmin, xmax, ymin, ymax, cmin, cmax]"
+        raise ValueError("Specify bounding box: bbox="+bbox)
+    axes.set_xlim(bbox[0], bbox[1])
+    axes.set_ylim(bbox[2], bbox[3])
+    axes.set_zlim(bbox[4], bbox[5])
+    if clog == "linear":
+        if bbox[-2]*bbox[-1] < 0:
+            if cmap == None: cmap = "bwr"
+            norm = mpl.colors.CenteredNorm(halfrange=np.amax(np.abs(bbox[-2:])))
+        else:
+            if cmap == None: cmap = "viridis"
+            norm = plt.Normalize(bbox[-2], bbox[-1])
+    elif clog == "log":
+        if cmap == None: cmap = "viridis"
+        norm = mpl.colors.LogNorm(vmin=bbox[-2], vmax=bbox[-1])
+    elif clog == "symlog":
+        if cmap == None: cmap = "bwr"
+        norm = mpl.colors.SymLogNorm(linthresh=10, linscale=1.0,
+                                     vmin=bbox[-2], vmax=bbox[-1], base=10)
+    for i in range(len(x)):
+        points = np.array([x[i], y[i], z[i]]).T.reshape(-1, 1, 3)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+
+        lc = mpl_toolkits.mplot3d.art3d.Line3DCollection(
+            segments, cmap=cmap, norm=norm)
+        lc.set_array(c[i][1:])
+        line = axes.add_collection(lc)
+    smap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+    plt.colorbar(smap, ax=axes, cax=cax)
 
 @openfigureifnoaxes(projection=None)
 def poincare(x, y, ids, conlen=None, xlim=None, ylim=None, xlabel=None,
@@ -427,11 +693,10 @@ def poincare(x, y, ids, conlen=None, xlim=None, ylim=None, xlabel=None,
         Label for the y-axis.
     clabel : str, optional
         Label for the color axis.
-    axes : Axes, optional
-        The Axes object to draw on.
-    cax : Axes, optional
-        The Axes object for the connection length (if conlen is given),
-        otherwise taken from axes.
+    axes : :obj:`~matplotlib.axes.Axes`, optional
+        The axes where figure is plotted or otherwise new figure is created.
+    cax : :obj:`~matplotlib.axes.Axes`, optional
+        The color bar axes or otherwise taken from the main axes.
     """
     nc = 5 # How many colors are used
 
@@ -565,11 +830,10 @@ def still(wallmesh, points=None, data=None, log=False, cpos=None, cfoc=None,
         Camera focal point coordinates [x, y, z].
     cang : array_like, optional
         Camera angle [azimuth, elevation, roll].
-    axes : Axes, optional
-        The Axes object to draw on.
-    cax : Axes, optional
-        The Axes object for the color data (if c contains data), otherwise
-        taken from axes.
+    axes : :obj:`~matplotlib.axes.Axes`, optional
+        The axes where figure is plotted or otherwise new figure is created.
+    cax : :obj:`~matplotlib.axes.Axes`, optional
+        The color bar axes or otherwise taken from the main axes.
     """
     p = pv.Plotter(off_screen=True)
     if data is None:

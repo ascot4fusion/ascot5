@@ -18,6 +18,7 @@
    a5py.ascot5io.mhd
    a5py.ascot5io.nbi
    a5py.ascot5io.options
+   a5py.ascot5io.coreio
 
 .. autosummary::
 
@@ -31,6 +32,7 @@
    a5py.ascot5io.mhd
    a5py.ascot5io.nbi
    a5py.ascot5io.options
+   a5py.ascot5io.coreio
 
 .. autoclass:: a5py.ascot5io.Ascot5IO
    :show-inheritance:

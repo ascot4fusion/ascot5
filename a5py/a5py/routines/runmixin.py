@@ -8,8 +8,8 @@ neither has access to the wall data. The only logical place for this method
 therefore is in the RunNode that has access to all relevant data.
 """
 import numpy as np
-import matplotlib.pyplot as plt
 import pyvista as pv
+import unyt
 
 from a5py.exceptions import AscotNoDataException
 
@@ -46,12 +46,18 @@ class RunMixin():
     def getstate_list(self):
         """List quantities that can be evaluated with :meth:`getstate`.
         """
+        self._require("_inistate")
         return State.listqnts()
 
     def getorbit_list(self):
         """List quantities that can be evaluated with :meth:`getorbit`.
         """
-        return Orbits.listqnts()
+        self._require("_orbit")
+        qnts = Orbits.listqnts()
+        if self.options.read()["ORBITWRITE_MODE"] != 0:
+            del qnts["pncrid"]
+            del qnts["pncrdir"]
+        return qnts
 
     def getstate(self, *qnt, mode="gc", state="ini", ids=None, endcond=None):
         """Evaluate a marker quantity based on its ini/endstate.
@@ -119,37 +125,39 @@ class RunMixin():
             If evaluating quantity required interpolating an input that
             was not initialized.
         """
-        self._require("inistate")
-        if endcond is not None: self._require("endstate")
+        self._require("_inistate")
+        if endcond is not None: self._require("_endstate")
         if state not in ["ini", "end"]:
             raise ValueError("Unrecognized state: " + state)
-        if state == "end": self._require("endstate")
+        if state == "end": self._require("_endstate")
 
         # Get or evaluate the quantity
-        data = getattr(self, state + "state").get(*qnt, mode=mode)
+        data = getattr(self, "_" + state + "state").get(*qnt, mode=mode)
 
         # Parse by ids and endcond
         idx = np.ones(data[0].shape, dtype=bool)
         if endcond is not None:
-            endcond = np.asarray(endcond)
+            if not isinstance(endcond, list): endcond = [endcond]
 
             # Go through each unique end cond and mark that end cond valid or
             # not. This can then be used to make udix as boolean mask array.
-            uecs, uidx = np.unique(getattr(self, state + "state")[qnt],
+            uecs, uidx = np.unique(self._endstate.get("endcond"),
                                    return_inverse=True)
             mask = np.zeros(uecs.shape, dtype=bool)
-            for i in range(ecs):
+            for i, uec in enumerate(uecs):
                 for ec in endcond:
-                    accept  = self.endstate._endcond_check(uecs[i], ec)
+                    accept  = State.endcond_check(uec, ec)
                     mask[i] = mask[i] or accept
 
             idx = mask[uidx]
 
         if ids is not None:
-            idx = np.logical_and(idx, np.in1d(self.inistate.get("ids"), ids))
+            idx = np.logical_and(idx, np.in1d(self._inistate.get("ids"), ids))
 
         for i in range(len(data)):
             data[i] = data[i][idx]
+        if "mu" in qnt:
+            data[qnt.index("mu")].convert_to_units("eV/T")
         return data if len(data) > 1 else data[0]
 
     def getorbit(self, *qnt, ids=None, pncrid=None, endcond=None):
@@ -190,16 +198,16 @@ class RunMixin():
             If evaluating quantity required interpolating an input that
             was not initialized.
         """
-        self._require("orbit", "inistate", "endstate")
-        data = self.orbit.get(self.inistate, self.endstate, *qnt)
-        idarr = self.orbit.get(self.inistate, self.endstate, "ids")[0]
+        self._require("_orbit", "_inistate", "_endstate")
+        data = self._orbit.get(self._inistate, self._endstate, *qnt)
+        idarr = self._orbit.get(self._inistate, self._endstate, "ids")[0]
         idx = np.ones(data[0].shape, dtype=bool)
         if endcond is not None:
             eids = self.getstate("ids", endcond=endcond)
             idx = np.logical_and(idx, np.in1d(idarr, eids))
 
         if pncrid is not None:
-            pncridarr = self.orbit.get(self.inistate, self.endstate,
+            pncridarr = self.orbit.get(self._inistate, self._endstate,
                                        "pncrid")[0]
             idx = np.logical_and(idx, np.in1d(pncridarr, pncrid))
 
@@ -208,6 +216,8 @@ class RunMixin():
 
         for i in range(len(data)):
             data[i] = data[i][idx]
+        if "mu" in qnt:
+            data[qnt.index("mu")].convert_to_units("eV/T")
         return data if len(data) > 1 else data[0]
 
     def getstate_markersummary(self):
@@ -217,28 +227,30 @@ class RunMixin():
         -------
         summary : [`str`]
             Array of strings where each string has a format
-            "# of markers : end condition". If markers were aborted then also
-            error messages are listed as separate strings with the same format.
+            "# of markers : end condition".
+
+            If markers were aborted then also error messages are listed as
+            separate strings with the same format.
 
         Raises
         ------
         AscotNoDataException
-            Raised if endstate is missing from the output.
+            Raised when data required for the operation is not present.
         """
-        self._require("endstate")
-        econd = self.endstate["endcond"]
-        emsg  = self.endstate["errormsg"]
-        emod  = self.endstate["errormod"]
-        eline = self.endstate["errorline"]
+        self._require("_endstate")
+        econd, emsg, emod, eline = self._endstate.get(
+            "endcond", "errormsg", "errormod", "errorline")
         errors = np.unique(np.array([emsg, eline, emod]), axis=1).T
 
         ec, counts = np.unique(econd, return_counts=True)
         msg = ["End conditions:"]
         for i, e in enumerate(ec):
-            econd = endcondmod.getname(e)
+            econd = State.endcond_tostring(e)
             if econd == "none": econd = "aborted"
             msg.append(str(counts[i]) + " : " + econd)
 
+        # It would be better to import these via libascot, but then this
+        # function would require libascot and we don't want that.
         modules = [
             "mccc_wiener.c", "mccc_push.c", "mccc.c", "step_fo_vpa.c",
             "step_gc_cashkarp.c", "step_gc_rk4", "N0_3D.c", "N0_ST.c",
@@ -246,7 +258,6 @@ class RunMixin():
             "plasma_1DS.c", "plasma.c", "E_field.c", "neutral.c",
             "E_1DS.c", "B_field.c", "particle.c", "boozer.c", "mhd.c"
         ]
-
         messages = [
             "Input evaluation failed", "Unknown input type",
             "Unphysical quantity when evaluating input",
@@ -289,6 +300,40 @@ class RunMixin():
                 + str(np.around(power_frac*100, decimals=1)) + "% of total)"]
         return msg
 
+    def getstate_pointcloud(self, endcond=None):
+        """Return marker endstate (x,y,z) coordinates in single array.
+
+        Parameters
+        ----------
+            endcond : str, optional <br>
+                Only return markers that have given end condition.
+        """
+        self._require("_endstate")
+        return np.array([self._endstate.get("x", endcond=endcond),
+                         self._endstate.get("y", endcond=endcond),
+                         self._endstate.get("z", endcond=endcond)]).T
+
+    def getorbit_poincareplanes(self):
+        """Return a list of Poincaré planes that were present in the simulation.
+
+        The list consists of "pol", "tor", and "rad" depending on the type of
+        the plane.
+        """
+        opt  = self.options.read()
+        npol = opt["ORBITWRITE_POLOIDALANGLES"]
+        ntor = opt["ORBITWRITE_TOROIDALANGLES"]
+        nrad = opt["ORBITWRITE_RADIALDISTANCES"]
+        npol = 0 if npol[0] < 0 else npol.size
+        ntor = 0 if ntor[0] < 0 else ntor.size
+        nrad = 0 if nrad[0] < 0 else nrad.size
+
+        plane = [None] * (npol + ntor + nrad)
+        plane[:npol]                    = ["pol"]
+        plane[npol:npol+ntor]           = ["tor"]
+        plane[npol+ntor:npol+ntor+nrad] = ["rad"]
+
+        return plane
+
     def getwall_figuresofmerit(self):
         """
         """
@@ -315,46 +360,73 @@ class RunMixin():
         msg += ["Peak load: " + str(np.around(energy_peak, decimals=2)) + " " + str(unit) + r"$/m^2$"]
         return msg
 
-    def plotwall_loadvsarea(self, axes=None):
-        ids, _, eload, _, _, _, _ = self.getwall_loads()
-        area = self.wall.area()[ids-1]
-        a5plt.loadvsarea(area, eload, axes=axes)
+    def getwall_loads(self):
+        """Get 3D wall loads and associated quantities.
 
-    def getorbit_poincareplanes(self):
-        """Return a list of Poincaré planes that were present in the simulation.
+        This method does not return loads on all wall elements (as usually most
+        of them receive no loads) but only those that are affected and their
+        IDs.
 
-        The list consists of "pol", "tor", and "rad" depending on the type of
-        the plane.
+        Returns:
+            ids
+            edepo
+            eload
+            pdepo
+            pload
+            mdepo
+            iangle
         """
-        opt  = self.options.read()
-        npol = opt["ORBITWRITE_POLOIDALANGLES"]
-        ntor = opt["ORBITWRITE_TOROIDALANGLES"]
-        nrad = opt["ORBITWRITE_RADIALDISTANCES"]
-        npol = 0 if npol[0] < 0 else npol.size
-        ntor = 0 if ntor[0] < 0 else ntor.size
-        nrad = 0 if nrad[0] < 0 else nrad.size
+        self._require("endstate")
+        ids    = self.endstate.get("walltile", endcond="wall")
+        energy = self.endstate.get("energy", endcond="wall")
+        weight = self.endstate.get("weight", endcond="wall")
+        area   = self.wall.area()
+        return wall.loads(ids, energy, weight, area)
 
-        plane = [None] * (npol + ntor + nrad)
-        plane[:npol]                    = ["pol"]
-        plane[npol:npol+ntor]           = ["tor"]
-        plane[npol+ntor:npol+ntor+nrad] = ["rad"]
 
-        return plane
+    def getwall_3dmesh(self):
+        """Return 3D mesh representation of 3D wall and associated loads.
 
-    def plotstate_scatter(
-            self, x, y, z=None, c=None, color="C0", endcond=None,
-            state=["ini", "ini", "ini", "ini"],
-            log=[False, False, False, False],
-            axesequal=False, axes=None, cax=None):
+        Returns
+        -------
+        wallmesh : Polydata
+            Mesh representing the wall.
+
+            The mesh cell data has fields:
+
+            - "pload" particle load in units of prt/m^2 or prt/m^2s,
+            - "eload" power/energy load in units of W/m^2 or J/m^2
+        """
+        wallmesh = pv.PolyData( *self.wall.noderepresentation() )
+        ids, _, eload, _, pload, _, iangle = self.getwall_loads()
+        ids = ids - 1 # Convert IDs to indices
+        ntriangle = wallmesh.n_faces
+        wallmesh.cell_data["pload"]       = np.zeros((ntriangle,)) + np.nan
+        wallmesh.cell_data["pload"][ids]  = pload
+        wallmesh.cell_data["eload"]       = np.zeros((ntriangle,)) + np.nan
+        wallmesh.cell_data["eload"][ids]  = pload
+
+        #- "iangle" angle of incidence in units of deg
+        #wallmesh.cell_data["iangle"]      = np.zeros((ntriangle,)) + np.nan
+        #wallmesh.cell_data["iangle"][ids] = iangle
+        return wallmesh
+
+    def plotstate_scatter(self, x, y, z=None, c=None, endcond=None, ids=None,
+                          cint=9, cmap=None, axesequal=False, axes=None,
+                          cax=None):
         """Make a scatter plot of marker state coordinates.
 
-        Marker ini and end state contains the information of marker phase-space
-        position at the beginning and at the end of the simulation. With this
-        routine one can plot e.g. final (R,z) coordinates or mileage vs initial
-        rho coordinate.
-
         The plot is either 2D+1D or 3D+1D, where the extra coordinate is color,
-        depending on the number of queried coordinates.
+        depending on the number of queried coordinates. The color scale is
+        discrete, not continuous.
+
+        The quantity ("qnt") must have one of the following formats:
+
+        - "ini qnt" plots inistate of quantity qnt.
+        - "end qnt" plots endstate of quantity qnt.
+        - "diff qnt" plots the difference between ini and endstate.
+        - "reldiff qnt" plots the relative difference (x1/x0 - 1).
+        - "log ini/end/diff/reldiff qnt" plots the logarithmic value.
 
         Parameters
         ----------
@@ -363,68 +435,107 @@ class RunMixin():
         y : str
             Name of the quantity on y-axis.
         z : str, optional
-            Name of the quantity on z-axis (makes plot 3D if given).
+            Name of the quantity on z-axis.
+
+            If not None, the plot will be in 3D.
         c : str, optional
-            Name of the quantity shown with color scale.
-        color : str, optional
-            Name of the color markers are colored with if c is not given.
-        nc : int, optional
-            Number of colors used if c is given (the color scale is not
-            continuous)
-        cmap : str, optional
-            Name of the colormap where nc colors are picked if c is given.
+            Name of the quantity shown with color scale or name of a color
+            to plot all markers with same color.
         endcond : str, array_like, optional
-            Endcond of those  markers which are plotted.
-        state : str, array_like, optional
-            Flag whether a corresponding [x, y, z, c] coordinate is taken
-            from the ini ("ini") or endstate ("end").
-        log : bool, array_like, optional
-            Flag whether the corresponding axis [x, y, z, c] is made
-            logarithmic. If that is the case, absolute value is taken before
-            the quantity is passed to log10.
+            Endcond of those markers which are plotted.
+        ids : array_like
+            IDs of the markers to be plotted.
+        cint : int or array_like optional
+            Number of colors to be used or bin edges.
+
+            All markers that have ``cint[i] < c <= cint[i+1]`` are plotted with
+            same color. If ``cint`` array is not given explicitly,
+            cint = np.linspace(min(c), max(c), cint).
+        cmap : str, optional
+            Name of the colormap where colors are picked.
         axesequal : bool, optional
             Flag whether to set aspect ratio for x and y (and z) axes equal.
-        axes : Axes, optional
-            The Axes object to draw on. If None, a new figure is displayed.
-        cax : Axes, optional
-            The Axes object for the color data (if c contains data),
-            otherwise taken from axes.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
 
         Raises
         ------
         AscotNoDataException
             Raised when data required for the opreation is not present.
+        ValueError
+            If argument could not be parsed.
         """
-        if "ini" in state: self._require("inistate")
-        if "end" in state: self._require("endstate")
-
-        def process(crdname, crdindex):
-            """Get values and label for given coordinate
+        def parsearg(arg):
+            """Parse arguments of from "log ini qnt" to (qnt, value, islog).
             """
-            crd = self.getstate(crdname, state=state[crdindex],
-                                endcond=endcond)
-            label = crdname + " [" + str(crd.units) + "]"
-            return (crd, label)
+            arg = arg.lower()
+            log = "linear"
+            if "log" in arg:
+                arg = arg.replace("log", "")
+                log = "log"
 
-        # Find values and labels
-        xc, xlabel = process(x, 0)
-        yc, ylabel = process(y, 1)
-        if z is not None:
-            zc, zlabel = process(z, 2)
+            if "ini" in arg:
+                arg = arg.replace("ini", "").strip()
+                val = self.getstate(arg, state="ini", endcond=endcond, ids=ids)
+                arg = "Initial " + arg
+            elif "end" in arg:
+                arg = arg.replace("end", "").strip()
+                val = self.getstate(arg, state="end", endcond=endcond, ids=ids)
+                arg = "Final " + arg
+            elif "reldiff" in arg:
+                arg = arg.replace("reldiff", "").strip()
+                val1 = self.getstate(arg, state="ini", endcond=endcond, ids=ids)
+                val2 = self.getstate(arg, state="end", endcond=endcond, ids=ids)
+                val = (val2 -val1) / val1
+                arg = r"$\Delta x/x_0$ " + arg
+            elif "diff" in arg:
+                arg = arg.replace("diff", "").strip()
+                val1 = self.getstate(arg, state="ini", endcond=endcond, ids=ids)
+                val2 = self.getstate(arg, state="end", endcond=endcond, ids=ids)
+                val = val2 - val1
+                arg = r"$\Delta$ " + arg
+            else:
+                raise ValueError(
+                    "Unclear if a quantity is evaluated from ini or endstate.\n"
+                    + "Use \"ini/end/diff/reldiff %s\"" % (arg)
+                )
+            if any(val < 0) and log == "log":
+                log = "symlog"
+
+            # Make sure val is an unyt array
+            try:
+                val.units
+            except AttributeError:
+                val *= unyt.dimensionless
+            return (arg, val, log)
+
+        x, xc, xlog = parsearg(x)
+        y, yc, ylog = parsearg(y)
+        x = x + " [" + str(xc.units) + "]"
+        y = y + " [" + str(yc.units) + "]"
+
+        cc = None; clog = False;
         if c is not None:
-            cc, clabel = process(c, 3)
-        else:
-            cc = color
-            clabel = None
+            if len(c.split()) == 1:
+                # c is a color string, not quantity
+                cc = c
+                c = None
+            else:
+                c, cc, clog = parsearg(c)
+                c = c + " [" + str(cc.units) + "]"
 
-        # Plot
         if z is None:
-            a5plt.scatter2d(x=xc, y=yc, c=cc, log=[log[0], log[1], log[3]],
-                            xlabel=xlabel, ylabel=ylabel, clabel=clabel,
+            a5plt.scatter2d(xc, yc, c=cc, xlog=xlog, ylog=ylog, clog=clog,
+                            xlabel=x, ylabel=y, clabel=c, cint=cint, cmap=cmap,
                             axesequal=axesequal, axes=axes, cax=cax)
         else:
-            a5plt.scatter3d(x=xc, y=yc, z=zc, c=cc, log=log, xlabel=xlabel,
-                            ylabel=ylabel, zlabel=zlabel, clabel=clabel,
+            z, zc, zlog = parsearg(z)
+            z = z + " [" + str(zc.units) + "]"
+            a5plt.scatter3d(xc, yc, zc, c=cc, xlog=xlog, ylog=ylog,
+                            zlog=zlog, clog=clog, xlabel=x, ylabel=y, zlabel=z,
+                            clabel=c, cint=cint, cmap=cmap,
                             axesequal=axesequal, axes=axes, cax=cax)
 
     def plotstate_histogram(
@@ -468,9 +579,9 @@ class RunMixin():
         AscotNoDataException
             Raised when data required for the opreation is not present.
         """
-        if "i" in iniend: self._require("inistate")
-        if "e" in iniend: self._require("endstate")
-        if endcond is not None: self._require("endstate")
+        if "i" in iniend: self._require("_inistate")
+        if "e" in iniend: self._require("_endstate")
+        if endcond is not None: self._require("_endstate")
 
         # Decipher whether quantity is evaluated from ini or endstate
         state = [None] * 2
@@ -488,7 +599,7 @@ class RunMixin():
             xc = []
             weights = []
 
-            ecs, count = self.endstate.listendconds()
+            ecs, count = self._endstate.listendconds()
             for ec in ecs:
                 if endcond is not None and ec not in [endcond]:
                     pass
@@ -522,9 +633,144 @@ class RunMixin():
                          log=[log[0], log[1], logscale], xlabel=xlabel,
                          ylabel=ylabel, axesequal=axesequal, axes=axes, cax=cax)
 
+    def plotorbit_trajectory(self, x, y, z=None, c=None, endcond=None, ids=None,
+                             cmap=None, axesequal=False, axes=None, cax=None):
+        """Plot orbit trajectories in arbitrary coordinates.
+
+        The plot is either 2D+1D or 3D+1D, where the extra coordinate is color,
+        depending on the number of queried coordinates. The color scale is
+        discrete, not continuous.
+
+        The quantity ("qnt") must have one of the following formats:
+
+        - "diff qnt" plots the difference between inistate and current value.
+        - "reldiff qnt" plots the relative difference (x1/x0 - 1).
+        - "log <diff/reldiff> qnt" plots the logarithmic value.
+
+        Parameters
+        ----------
+        x : str
+            Name of the quantity on x-axis.
+        y : str
+            Name of the quantity on y-axis.
+        z : str, optional
+            Name of the quantity on z-axis.
+
+            If not None, the plot will be in 3D.
+        c : str, optional
+            The color used to plot the markers or name of the quantity shown
+            with color.
+
+            If None, markers are plotted with different colors.
+        endcond : str, array_like, optional
+            Endcond of those  markers which are plotted.
+        ids : array_like
+            IDs of the markers to be plotted.
+        cmap : str, optional
+            Colormap.
+        axesequal : bool, optional
+            Flag whether to set aspect ratio for x and y (and z) axes equal.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
+        """
+        def parsearg(arg):
+            """Parse arguments of from string to (qnt, label, islog).
+            """
+            arg = arg.lower()
+            log = "linear"
+            label = arg
+            if "log" in arg:
+                arg = arg.replace("log", "")
+                log = "log"
+            if "reldiff" in arg:
+                arg = arg.replace("reldiff", "")
+                label = r"$\Delta x/x_0$ " + arg
+            elif "diff" in arg:
+                arg = arg.replace("diff", "")
+                label = r"$\Delta$ " + arg
+
+            arg = arg.strip()
+            return (arg, label, log)
+
+        cc = c; clabel = None; clog = "linear"# Default values passed to plotter
+        x, xlabel, xlog = parsearg(x)
+        y, ylabel, ylog = parsearg(y)
+        if c is not None: c, clabel, clog = parsearg(c)
+        if z is not None: z, zlabel, zlog = parsearg(z)
+
+        if c is not None and not c in self.getorbit_list():
+            # c is a color string, not quantity
+            c = None
+
+        # Orbit evaluation can be expensive so we try to get all coordinates
+        # with a single call
+        if z is None and c is None:
+            idarr, xc, yc = self.getorbit(
+                "ids", x, y, endcond=endcond, ids=ids)
+        elif z is not None and c is None:
+            idarr, xc, yc, zc = self.getorbit(
+                "ids", x, y, z, endcond=endcond, ids=ids)
+        elif z is None and c is not None:
+            idarr, xc, yc, cc = self.getorbit(
+                "ids", x, y, c, endcond=endcond, ids=ids)
+        elif z is not None and c is not None:
+            idarr, xc, yc, zc, cc = self.getorbit(
+                "ids", x, y, z, c, endcond=endcond, ids=ids)
+
+        # Find indices to map values from inistate to orbit array
+        _, idarr = np.unique(idarr, return_inverse=True)
+        idx = np.where(idarr[:-1] != idarr[1:])[0] + 1
+        def parsevals(val, log, label, qnt):
+            """Compute values and split them by orbit
+            """
+            if "x/x_0" in label:
+                val0 = self.getstate(qnt, state="ini", endcond=endcond, ids=ids)
+                val = ( val / val0[idarr] ) - 1
+            elif "Delta" in label:
+                val0 = self.getstate(qnt, state="ini", endcond=endcond, ids=ids)
+                val = val - val0[idarr]
+
+            if any(val < 0) and log == "log":
+                log = "symlog"
+
+            # Make sure val is an unyt array
+            try:
+                val.units
+            except AttributeError:
+                val *= unyt.dimensionless
+            vmin = np.amin(val)
+            vmax = np.amax(val)
+            val = np.split(val, idx)
+            return (val, log, vmin, vmax)
+
+        xc, xlog, xmin, xmax = parsevals(xc, xlog, xlabel, x)
+        yc, ylog, ymin, ymax = parsevals(yc, ylog, ylabel, y)
+        xlabel = xlabel + " [" + str(xc[0].units) + "]"
+        ylabel = ylabel + " [" + str(yc[0].units) + "]"
+        bbox = [xmin, xmax, ymin, ymax, None, None]
+        if z is not None:
+            zc, zlog, zmin, zmax = parsevals(zc, zlog, zlabel, z)
+            zlabel + " [" + str(zc[0].units) + "]"
+            bbox = [xmin, xmax, ymin, ymax, zmin, zmax, None, None]
+        if c is not None:
+            cc, clog, bbox[-2], bbox[-1] = parsevals(cc, clog, clabel, c)
+            clabel + " [" + str(cc[0].units) + "]"
+
+        if z is None:
+            a5plt.line2d(xc, yc, c=cc, xlog=xlog, ylog=ylog, clog=clog,
+                         xlabel=xlabel, ylabel=ylabel, clabel=clabel, bbox=bbox,
+                         cmap=cmap, axesequal=axesequal, axes=axes, cax=cax)
+        else:
+            a5plt.line3d(xc, yc, zc, c=cc, xlog=xlog, ylog=ylog, zlog=zlog,
+                         clog=clog, xlabel=xlabel, ylabel=ylabel, zlabel=zlabel,
+                         clabel=clabel, bbox=bbox, cmap=cmap,
+                         axesequal=axesequal, axes=axes, cax=cax)
+
     def plotorbit_poincare(self, plane, conlen=True, axes=None, cax=None):
-        """Poincaré plot where color separates markers or shows connection
-        length.
+        """Create a Poincaré plot where the color separates different markers
+        or shows the connection length.
 
         Parameters
         ----------
@@ -537,11 +783,10 @@ class RunMixin():
             position. Confined (or all if conlen=False) markers are shown
             with shades of red where color separates subsequent
             trajectories.
-        axes : Axes, optional
-            The Axes object to draw on.
-        cax : Axes, optional
-            The Axes object for the connection length (if conlen is True),
-            otherwise taken from axes.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
 
         Raises
         ------
@@ -672,7 +917,7 @@ class RunMixin():
         AscotNoDataException
             Raised when data required for the opreation is not present.
         """
-
+        self._require("_inistate", "_endstate")
         # Initial rho histogram with colors marking endcond
         fig = None
         if axes_inirho is None:
@@ -751,67 +996,10 @@ class RunMixin():
                 iniend=["e", "e", "i", "i"], axesequal=False, axes=axes_rhophi)
             if fig is not None: plt.show()
 
-
-    def getstate_pointcloud(self, endcond=None):
-        """Return marker endstate (x,y,z) coordinates in single array.
-
-        Parameters
-        ----------
-            endcond : str, optional <br>
-                Only return markers that have given end condition.
-        """
-        self._require("endstate")
-        return np.array([self.endstate.get("x", endcond=endcond),
-                         self.endstate.get("y", endcond=endcond),
-                         self.endstate.get("z", endcond=endcond)]).T
-
-    def getwall_loads(self):
-        """Get 3D wall loads and associated quantities.
-
-        This method does not return loads on all wall elements (as usually most
-        of them receive no loads) but only those that are affected and their
-        IDs.
-
-        Returns:
-            ids
-            edepo
-            eload
-            pdepo
-            pload
-            mdepo
-            iangle
-        """
-        self._require("endstate")
-        ids    = self.endstate.get("walltile", endcond="wall")
-        energy = self.endstate.get("energy", endcond="wall")
-        weight = self.endstate.get("weight", endcond="wall")
-        area   = self.wall.area()
-        return wall.loads(ids, energy, weight, area)
-
-
-    def getwall_3dmesh(self):
-        """Return 3D mesh representation of 3D wall and associated loads.
-
-        Returns
-        -------
-        wallmesh : Polydata
-            Mesh representing the wall. Cell data has fields
-            "pload" (particle load in units of prt/m^2 or prt/m^2s),
-            "eload" (power/energy load in units of W/m^2 or J/m^2),
-            and "iangle" (angle of incidence in units of deg).
-        """
-        wallmesh = pv.PolyData( *self.wall.noderepresentation() )
-        ids, _, eload, _, pload, _, iangle = self.getwall_loads()
-        ids = ids - 1 # Convert IDs to indices
-        ntriangle = wallmesh.n_faces
-        wallmesh.cell_data["pload"]       = np.zeros((ntriangle,)) + np.nan
-        wallmesh.cell_data["pload"][ids]  = pload
-        wallmesh.cell_data["eload"]       = np.zeros((ntriangle,)) + np.nan
-        wallmesh.cell_data["eload"][ids]  = pload
-        wallmesh.cell_data["iangle"]      = np.zeros((ntriangle,)) + np.nan
-        wallmesh.cell_data["iangle"][ids] = iangle
-        return wallmesh
-
+    def plotwall_loadvsarea(self, axes=None):
+        ids, _, eload, _, _, _, _ = self.getwall_loads()
+        area = self.wall.area()[ids-1]
+        a5plt.loadvsarea(area, eload, axes=axes)
 
     def plotwall_3dstill(self, wallmesh=None, points=None, data=None, log=False,
                          cpos=None, cfoc=None, cang=None, axes=None, cax=None):

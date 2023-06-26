@@ -1,6 +1,6 @@
-=================
-``a5py.premade``
-=================
+=============
+``templates``
+=============
 
 .. automodule:: a5py.templates
    :members:

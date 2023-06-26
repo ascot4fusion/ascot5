@@ -7,7 +7,7 @@ import unyt
 from .ascot5io import Ascot5IO
 from .ascotpy  import Ascotpy
 
-from .ascotpy.libascot import _LIBASCOTFOUND
+from .ascotpy.libascot import _LIBASCOT
 from .exceptions import *
 
 # Define the unit system ascot uses and add our own unit types
@@ -86,25 +86,25 @@ class Ascot(Ascotpy):
             Path to the new HDF5 file.
         """
         # Free any resources that are currently being used (by the old file)
-        self.input_free()
+        if _LIBASCOT: self.input_free()
 
         if inputfile == None:
             # No input file so this is now an empty instance
             self._inputfile = None
             self.data = Ascot5IO(self)
-            if _LIBASCOTFOUND:
+            if _LIBASCOT:
                 self._sim.hdf5_in = "".encode('UTF-8')
         else:
             inputfile = os.path.abspath(inputfile)
             try:
                 self._inputfile = inputfile
                 self.data = Ascot5IO(self)
-                if _LIBASCOTFOUND:
+                if _LIBASCOT:
                     self._sim.hdf5_in = inputfile.encode('UTF-8')
             except:
                 self.inputfile = None
                 self.data = Ascot5IO(self)
-                if _LIBASCOTFOUND:
+                if _LIBASCOT:
                     self._sim.hdf5_in = "".encode('UTF-8')
 
                 # Pass exception from failed RootNode initialization
@@ -154,6 +154,10 @@ class Ascot(Ascotpy):
             input initialized and instead the old input is free'd and the new
             one initialized.
         """
+        if not _LIBASCOT:
+            raise AscotInitException(
+                "Python interface disabled as libascot.so is not found")
+
         args = locals()
         if run:
             # Init inputs using the run; first check whether to init everything
@@ -237,6 +241,9 @@ class Ascot(Ascotpy):
         mhd     : bool, optional
             Toggle to free the MHD input.
         """
+        if not _LIBASCOT:
+            raise AscotInitException(
+                "Python interface disabled as libascot.so is not found")
         freeall = not any([bfield, efield, plasma, wall, neutral, boozer,
                            mhd])
         if freeall:
@@ -245,12 +252,3 @@ class Ascot(Ascotpy):
         else:
             self._free(bfield=bfield, efield=efield, plasma=plasma, wall=wall,
                        neutral=neutral, boozer=boozer, mhd=mhd)
-
-    def input_plotseparatrix(self, r, phi, z, t, axes=None):
-        """
-        Plot plasma separatrix
-        """
-        out = self.input_eval(r, phi, z, t, "rho", grid=True)
-
-        mesh = axes.contour(r, z, np.transpose(out[:,0,:,0]), [1],
-                            colors='black',zorder=1)

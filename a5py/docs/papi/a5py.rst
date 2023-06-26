@@ -26,13 +26,13 @@ Python API
    a5py.routines
    a5py.gui
 
-``a5py.exceptions``
+``exceptions``
 ===================
 
 .. automodule:: a5py.exceptions
    :members:
 
-``a5py.Ascot``
+``Ascot``
 ==============
 
 .. autoclass:: a5py.Ascot

@@ -8,12 +8,16 @@ directly from Python.
 import unyt
 import ctypes
 import numpy as np
-from a5py.ascotpy import ascot2py
 
 from numpy.ctypeslib import ndpointer
 
-from a5py.routines.virtualrun import VirtualRun
 from a5py.physlib import momentum_velocity
+from a5py.routines.virtualrun import VirtualRun
+from a5py.exceptions import *
+
+from .libascot import _LIBASCOT
+if _LIBASCOT:
+    from . import ascot2py
 
 class LibSimulate():
     """Mixin class that introduces methods for active simulations.
@@ -29,6 +33,10 @@ class LibSimulate():
         **opt :
             Options in same format as accepted by :meth:`Opt.write_hdf5`.
         """
+        self._virtualoptions = opt
+        if not _LIBASCOT:
+            raise AscotInitException(
+                "Python interface disabled as libascot.so is not found")
         # Simulation mode options
         self._sim.sim_mode    = int(opt["SIM_MODE"]);
         self._sim.enable_ada  = int(opt["ENABLE_ADAPTIVE"])
@@ -164,6 +172,10 @@ class LibSimulate():
             :meth:`Prt.write_hdf5`, :meth:`GC.write_hdf5`, or
             :meth:`FL.write_hdf5`.
         """
+        self._virtualmarkers = mrk
+        if not _LIBASCOT:
+            raise AscotInitException(
+                "Python interface disabled as libascot.so is not found")
         if self._nmrk.value > 0:
             ascot2py.libascot_deallocate(self._inistate)
             self._nmrk.value = 0
@@ -230,7 +242,7 @@ class LibSimulate():
                 p.time    = mrk["time"][i]
                 p.id      = mrk["ids"][i]
 
-        pout = ctypes.POINTER(ascot2py.struct_c__SA_input_particle)()
+        #pout = ctypes.POINTER(ascot2py.struct_c__SA_input_particle)()
         ascot2py.prepare_markers(
             ctypes.byref(self._sim), self._mpi_size, self._mpi_rank, nmrk,
             ctypes.byref(pin), ctypes.byref(self._inistate),
@@ -262,6 +274,9 @@ class LibSimulate():
             If inputs are not packed, markers are not initialized or previous
             results have not been freed.
         """
+        if not _LIBASCOT:
+            raise AscotInitException(
+                "Python interface disabled as libascot.so is not found")
         if not self._offload_ready:
             raise AscotInitException(
                 "Initialize inputs before running the simulation")
@@ -272,9 +287,19 @@ class LibSimulate():
             raise AscotInitException(
                 "Free previous results before running the simulation")
 
+        # Copy inistate to "endstate" and give endstate to ASCOT5 as an input.
+        # Otherwise the inistate would get overwritten as the code updates
+        # the marker positions in the input array.
+        self._endstate = ascot2py.libascot_allocate_particle_states(self._nmrk)
+        for j in range(self._nmrk.value):
+            for i in range(len(ascot2py.particle_state._fields_)):
+                name = self._inistate[j]._fields_[i][0]
+                val  = getattr(self._inistate[j], name)
+                setattr(self._endstate[j], name, val)
+
         ascot2py.offload_and_simulate(
             ctypes.byref(self._sim), self._mpi_size, self._mpi_rank,
-            self._mpi_root, self._nmrk, self._nmrk, self._inistate,
+            self._mpi_root, self._nmrk, self._nmrk, self._endstate,
             ctypes.byref(self._offload_data), self._offload_array,
             self._int_offload_array, ctypes.byref(self._endstate),
             ctypes.byref(self._diag_offload_array))
@@ -283,14 +308,29 @@ class LibSimulate():
         if printsummary:
             ascot2py.print_marker_summary(self._endstate, self._nmrk)
 
-        return VirtualRun(self, self._nmrk, self._inistate, self._endstate,
+        class VirtualInput():
+            """Wrapper for marker and options inputs.
+            """
+
+            def __init__(self, inp):
+                self.inp = inp
+
+            def read(self):
+                return self.inp
+
+        return VirtualRun(self, self._nmrk.value,
+                          self._inistate, self._endstate,
                           self._sim.diag_offload_data.diagorb.Npnt,
                           self._sim.diag_offload_data.diagorb.record_mode,
                           self._sim.diag_offload_data.diagorb.mode,
+                          VirtualInput(self._virtualoptions),
+                          VirtualInput(self._virtualmarkers),
                           self._diag_offload_array)
 
     def simulation_free(self, inputs=False, markers=False, diagnostics=False):
         """Free resources used by the interactive simulation.
+
+        If called without arguments, everything will be freed.
 
         Parameters
         ----------
@@ -301,21 +341,21 @@ class LibSimulate():
         diagnostics : bool, optional
             If True, diagnostics data is freed.
         """
-        if inputs:
+        if not _LIBASCOT:
+            raise AscotInitException(
+                "Python interface disabled as libascot.so is not found")
+        if not inputs and not markers and not diagnostics:
+            inputs      = True
+            markers     = True
+            diagnostics = True
+
+        if inputs and self._offload_ready:
             self._unpack()
-
-        if markers:
-            if self._nmrk.value == 0:
-                raise AscotpyInitException(
-                    "Markers are already freed")
-
+        if markers and self._nmrk.value > 0:
             self._nmrk.value = 0
             ascot2py.libascot_deallocate(self._inistate)
-        if diagnostics:
-            if not self._diag_occupied:
-                raise AscotpyInitException(
-                    "Results are already freed")
-
+            self._virtualmarkers = None
+        if diagnostics and self._diag_occupied:
             self._diag_occupied = False
             ascot2py.libascot_deallocate(self._diag_offload_array)
             ascot2py.libascot_deallocate(self._endstate)

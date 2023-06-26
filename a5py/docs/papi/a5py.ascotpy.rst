@@ -1,5 +1,5 @@
 =================
-``a5py.ascotpy``
+``ascotpy``
 =================
 
 .. automodule:: a5py.ascotpy

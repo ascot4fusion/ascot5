@@ -302,7 +302,7 @@ class FL(Marker):
         name : str
             Name, i.e. "<type>_<qid>", of the new input that was written.
         """
-        mrk = Marker.generatemrk(nmrk=1, mrktype="fl", species=None)
+        mrk = Marker.generate(n=1, mrktype="fl", species=None)
         FL.write_hdf5(fn=fn, desc="DUMMY", **mrk)
 
 class GC(Marker):
@@ -459,7 +459,7 @@ class GC(Marker):
         name : str
             Name, i.e. "<type>_<qid>", of the new input that was written.
         """
-        mrk = Marker.generatemrk(nmrk=1, mrktype="gc", species="alpha")
+        mrk = Marker.generate(n=1, mrktype="gc", species="alpha")
         GC.write_hdf5(fn=fn, desc="DUMMY", **mrk)
 
 class Prt(Marker):
@@ -631,5 +631,5 @@ class Prt(Marker):
         name : str
             Name, i.e. "<type>_<qid>", of the new input that was written.
         """
-        mrk = Marker.generatemrk(nmrk=1, mrktype="prt", species="alpha")
+        mrk = Marker.generate(n=1, mrktype="prt", species="alpha")
         Prt.write_hdf5(fn=fn, desc="DUMMY", **mrk)

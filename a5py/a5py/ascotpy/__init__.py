@@ -4,12 +4,16 @@ import ctypes
 import unyt
 import numpy as np
 
-from .libsimulate import LibSimulate
-from .libascot    import LibAscot
-
-from .libascot import _LIBASCOTFOUND
+import a5py.routines.plotting as a5plt
 from a5py.physlib import parseunits
+from a5py.routines.plotting import openfigureifnoaxes
 from a5py.exceptions import AscotInitException
+
+from .libascot    import LibAscot, _LIBASCOT
+from .libsimulate import LibSimulate
+
+if _LIBASCOT:
+    from . import ascot2py
 
 class Ascotpy(LibAscot, LibSimulate):
     """Class with methods to initialize and access the data via Python.
@@ -73,7 +77,7 @@ class Ascotpy(LibAscot, LibSimulate):
         """Initialize pointers to data that is being passed between Python and C
         via libascot.
         """
-        if not _LIBASCOTFOUND:
+        if not _LIBASCOT:
             return
 
         # Initialize attributes
@@ -504,7 +508,7 @@ class Ascotpy(LibAscot, LibSimulate):
 
         return out
 
-    @parseunits(r="m", phi="rad", z="m", t="s")
+    @parseunits(r="m", phi="deg", z="m", t="s")
     def input_eval(self, r, phi, z, t, *qnt, grid=False):
         """Evaluate input quantities at given coordinates.
 
@@ -544,15 +548,17 @@ class Ascotpy(LibAscot, LibSimulate):
         RuntimeError
             If evaluation in libascot.so failed.
         """
-        r   = unyt.unyt_array(r).ravel()
-        phi = unyt.unyt_array(phi).ravel()
-        z   = unyt.unyt_array(z).ravel()
-        t   = unyt.unyt_array(t).ravel()
+        r   = unyt.unyt_array(r).astype(dtype=np.double).ravel()
+        phi = unyt.unyt_array(phi).astype(dtype=np.double).ravel()
+        z   = unyt.unyt_array(z).astype(dtype=np.double).ravel()
+        t   = unyt.unyt_array(t).astype(dtype=np.double).ravel()
+
+        phi = phi.to("rad")
 
         if grid:
             arrsize = (r.size, phi.size, z.size, t.size)
-            R, phi, z, t = np.meshgrid(r, phi, z, t)
-            R   = r.ravel()
+            r, phi, z, t = np.meshgrid(r, phi, z, t)
+            r   = r.ravel()
             phi = phi.ravel()
             z   = z.ravel()
             t   = t.ravel()
@@ -624,45 +630,66 @@ class Ascotpy(LibAscot, LibSimulate):
         if any(q in qnt for q in ["ne", "te"] + ni + ti):
             out.update(self._eval_plasma(r, phi, z, t))
 
-        if grid:
-            out = np.reshape(out, arrsize)
-
         for q in list(out.keys()):
             if q not in qnt:
                 del out[q]
+            elif grid:
+                out[q] = np.reshape(out[q], arrsize)
         if len(qnt) == 1:
             return out[qnt[0]]
         else:
             return [out[q] for q in qnt]
 
-    def input_plotrz(self, r, z, quantity, phi=0, t=0, clim=(None, None),
-                     axes=None, cax=None):
+    @openfigureifnoaxes(projection=None)
+    def input_plotrz(self, r, z, qnt, phi=0*unyt.deg, t=0*unyt.s,
+                     clim=[None, None], cmap=None, axes=None, cax=None):
         """Plot input quantity on a (R, z) plane at given coordinates.
+
+        To plot quantity on a logarithmic scale (base 10), add "log" in
+        the name of the quantity e.g. "log ne".
 
         Parameters
         ----------
-        r : array_like
-             R abscissa where data is evaluated and plotted [m].
-        z : array_like
-            z abscissa where data is evaluated and plotted [m].
+        r : array_like (nr,)
+             R abscissa where data is evaluated and plotted.
+        z : array_like (nz,)
+            z abscissa where data is evaluated and plotted.
         qnt : str
             Name of the plotted quantity.
-        phi : float
-            Toroidal coordinate where data is evaluated [deg].
-        t : float
-            Time coordinate where data is evaluated [s].
-        axes : Axes
-            plot on these axes instead of creating a new figure.
-        clim : tuple (float, float)
+        phi : float, optional
+            Toroidal coordinate where data is evaluated.
+        t : float, optional
+            Time coordinate where data is evaluated.
+        clim : list [float, float], optional
             Minimum and maximum color range values.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
         """
-        out = self.input_eval(r=r, phi=phi, z=z, t=t, qnt=qnt, grid=True)
-        out = np.transpose(out[:,0,:,0])
+        log = False
+        if "log" in qnt:
+            qnt = qnt.replace("log", "").strip()
+            log = True
+
+        out = np.squeeze(self.input_eval(r, phi, z, t, qnt, grid=True)[:,0,:,0])
+        diverging = np.nanmin(out)*np.nanmax(out) < 0 # If data has both -+ vals
+        try:
+            r = r.v
+        except AttributeError:
+            pass
+        try:
+            z = z.v
+        except AttributeError:
+            pass
+        a5plt.mesh2d(r, z, out.v, diverging=diverging, log=log,
+                     axesequal=True, xlabel="R [m]", ylabel="z [m]",
+                     clabel=qnt + " [" + str(out.units) + "]", clim=clim,
+                     cmap=cmap, axes=axes, cax=cax)
 
     def get_plasmaquantities(self):
         """Return species present in plasma input.
         """
-
         spec = self.get_plasmaspecies()
         for i in range(1,spec["nspecies"]):
             quantities.append("ni" + str(i))

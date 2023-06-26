@@ -447,8 +447,9 @@ class ResultNode(_Node, DataGroup):
         for name, qid in inputqids.items():
             self[name] = root[name]["q"+qid]
 
+        # Store output data
         for name, group in h5[path].items():
-            self[name] = root._create_datagroup(name, group.name)
+            self["_" + name] = root._create_datagroup(name, group.name)
 
         self._freeze()
 

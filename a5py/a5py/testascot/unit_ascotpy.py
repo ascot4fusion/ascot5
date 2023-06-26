@@ -1,17 +1,22 @@
-"""Test `Ascot` object.
+"""Unit tests for
 """
 import numpy as np
 import unittest
 import subprocess
+import unyt
 
 from a5py import Ascot, AscotInitException, AscotIOException
 
 class TestAscot(unittest.TestCase):
-    """Class for testing `Ascot` object.
+    """Class for testing :class:`Ascot` object.
     """
 
     @classmethod
     def setUpClass(cls):
+        """Create and run a test case.
+
+        Assumes ascot5_main is located in the same folder.
+        """
         super(TestAscot, cls).setUpClass()
         a5 = Ascot("unittest.h5", create=True)
         a5.data.create_input("options tutorial")
@@ -44,7 +49,7 @@ class TestAscot(unittest.TestCase):
         subprocess.run(["rm", "-f", "unittest.h5"])
 
     def test_initandsim(self):
-        """Test `ascotpy` initialization and simulation routines.
+        """Test :class:`Ascotpy` initialization and simulation routines.
         """
         a5 = Ascot("unittest.h5")
         a5.data.active.efield.activate()
@@ -119,6 +124,7 @@ class TestAscot(unittest.TestCase):
                          "Initialized input was not the correct one.")
         a5.input_free(efield=True)
 
+        # Give run QID, init all inputs
         a5.input_init(run=a5.data.active.get_qid())
         inps = a5.input_initialized()
         self.assertEqual(inps["efield"], a5.data.active.efield.get_qid(),
@@ -128,7 +134,6 @@ class TestAscot(unittest.TestCase):
 
         # Test packing
         a5.simulation_initinputs()
-
         with self.assertRaises(
                 AscotInitException,
                 msg="Trying to init packed data should raise an exception."):
@@ -145,59 +150,119 @@ class TestAscot(unittest.TestCase):
         # Run simulation and test output initialization
         a5.simulation_run(printsummary=False)
 
-        # Verify that simulations can't be run when data is occupied or missing
-        a5.simulation_free(inputs=True, markers=True, diagnostics=True)
+        # Verify that simulations can't be run when data is occupied
+        with self.assertRaises(
+                AscotInitException,
+                msg="Trying to run with occupied output should cause an error"):
+            a5.simulation_run(printsummary=False)
+
+        # This hould run
+        a5.simulation_free(diagnostics=True)
+        a5.simulation_run(printsummary=False)
+        a5.simulation_free(diagnostics=True)
+
+        # Can't run when input is missing
+        a5.simulation_free(markers=True, diagnostics=True)
+        with self.assertRaises(
+                AscotInitException,
+                msg="Trying to run without markers should cause an error"):
+            a5.simulation_run(printsummary=False)
+
+        # Init markers but free inputs
+        a5.simulation_initmarkers(**mrk)
+        a5.simulation_free(inputs=True)
+        with self.assertRaises(
+                AscotInitException,
+                msg="Trying to run without input should cause an error"):
+            a5.simulation_run(printsummary=False)
+
+        # Free everyting
+        a5.simulation_free()
+        with self.assertRaises(
+                AscotInitException,
+                msg="Trying to run without input should cause an error"):
+            a5.simulation_run(printsummary=False)
 
     def test_eval(self):
-        """Test `ascotpy` evaluation routines.
+        """Test :class:`Ascotpy` evaluation routines.
         """
         a5 = Ascot("unittest.h5")
 
         # Input evaluations
         a5.input_init()
         inputqnts = a5.input_eval_list(show=False)
+        r = 6.2 * unyt.m; phi = 0 * unyt.deg; z = 0 * unyt.m; t = 0 * unyt.s
+        br, bphi, bz = a5.input_eval(r, phi, z, t, "br", "bphi", "bz")
         for q in inputqnts:
-            out = a5.input_eval(6.2, 0.0, 0.0, 0.0, q)
+            out = a5.input_eval(r, phi, z, t, q)
         a5.input_free()
 
         # State evaluations
         a5.input_init(bfield=True)
-        out = a5.data.active.getstate("r", "phi", "z")
+        e, v, m = a5.data.active.getstate(
+            "ekin", "vpar", "mu", endcond="tlim", ids=1)
+        self.assertTrue(
+            e.units == unyt.eV and v.units == unyt.m/unyt.s and \
+            m.units == unyt.eV/unyt.T and e.size==1 and v.size==1 and \
+            m.size==1,
+            "State evaluation failed")
         outputqnts = a5.data.active.getstate_list()
         for q in outputqnts:
-            continue
             out = a5.data.active.getstate(q)
 
         # Orbit evaluations
-        out = a5.data.active.getorbit("r", "phi", "z")
+        e, v, m = a5.data.active.getorbit(
+            "ekin", "vpar", "mu", endcond="tlim", ids=1)
+        self.assertTrue(
+            e.units == unyt.eV and v.units == unyt.m/unyt.s and \
+            m.units == unyt.eV/unyt.T,
+            "Orbit evaluation failed")
         outputqnts = a5.data.active.getorbit_list()
         for q in outputqnts:
-            continue
             out = a5.data.active.getorbit(q)
         a5.input_free()
 
-        # Simulation evaluations
+        # Packing should not prevent input evaluation
         a5.simulation_initinputs()
-        for q in ["bphi"]:
-            out = a5.input_eval(6.2, 0.0, 0.0, 0.0, q)
+        out = a5.input_eval(r, phi, z, t, "bnorm")
 
+        # Prepare simulation data
         opt = a5.data.options.active.read()
         opt.update({"ENDCOND_MAX_MILEAGE" : 1e-7})
         a5.simulation_initoptions(**opt)
-
         mrk = a5.data.marker.active.read()
         a5.simulation_initmarkers(**mrk)
+        vrun = a5.simulation_run(printsummary=False)
 
-        vr = a5.simulation_run(printsummary=False)
+        # Virtual state evaluations
+        e, v, m = vrun.getstate(
+            "ekin", "vpar", "mu", endcond="tlim", ids=1)
+        self.assertTrue(
+            e.units == unyt.eV and v.units == unyt.m/unyt.s and \
+            m.units == unyt.eV/unyt.T and e.size==1 and v.size==1 and \
+            m.size==1,
+            "Virtual state evaluation failed")
+        outputqnts = a5.data.active.getstate_list()
+        for q in outputqnts:
+            out = vrun.getstate(q)
 
-        out = vr.getstate("ptor")
-        out = vr.getorbit("ptor")
+        # Virtual orbit evaluations
+        out = vrun.getorbit("r", "phi", "z")
+        e, v, m = vrun.getorbit(
+            "ekin", "vpar", "mu", endcond="tlim", ids=1)
+        self.assertTrue(
+            e.units == unyt.eV and v.units == unyt.m/unyt.s and \
+            m.units == unyt.eV/unyt.T,
+            "Virtual orbit evaluation failed")
+        outputqnts = vrun.getorbit_list()
+        for q in outputqnts:
+            out = a5.data.active.getorbit(q)
+        a5.simulation_free()
 
     def test_postpro(self):
-        """Test all postprocessing routines.
+        """Test postprocessing routines.
         """
         pass
 
 if __name__ == '__main__':
-    # Simple simulation with results is required for the tests.
     unittest.main()

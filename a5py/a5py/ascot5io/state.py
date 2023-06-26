@@ -17,6 +17,81 @@ class State(DataContainer):
     # can have docstrings.
     _NONE    = 0x1
     _ABORTED = 0x2
+    _TLIM    = 0x4
+    _EMIN    = 0x8
+    _THERM   = 0x10
+    _WALL    = 0x20
+    _RHOMIN  = 0x40
+    _RHOMAX  = 0x80
+    _POLMAX  = 0x100
+    _TORMAX  = 0x200
+    _CPUMAX  = 0x400
+
+    @property
+    def ABORTED(self):
+        """Marker simulation terminated in an error.
+        """
+        return State._ABORTED
+
+    @property
+    def NONE(self):
+        """No active end condition meaning the marker hasn't been simulated yet.
+        """
+        return State._NONE
+
+    @property
+    def TLIM(self):
+        """Simulation time limit or maximum mileage reached.
+        """
+        return State._TLIM
+
+    @property
+    def EMIN(self):
+        """Minimum energy reached.
+        """
+        return State._EMIN
+
+    @property
+    def THERM(self):
+        """Local thermal energy reached.
+        """
+        return State._THERM
+
+    @property
+    def WALL():
+        """Marker intersected a wall element.
+        """
+        return State._WALL
+
+    @property
+    def RHOMIN(self):
+        """Minimum radial coordinate (rho) reached.
+        """
+        return State._RHOMIN
+
+    @property
+    def RHOMAX(self):
+        """Maximum radial coordinate (rho) reached.
+        """
+        return _RHOMAX
+
+    @property
+    def POLMAX(self):
+        """Maximum poloidal turns reached.
+        """
+        return State._POLMAX
+
+    @property
+    def TORMAX(self):
+        """Maximum toroidal turns reached.
+        """
+        return State._TORMAX
+
+    @property
+    def CPUMAX(self):
+        """Simulation for this marker exceeded the set CPU time.
+        """
+        return State._CPUMAX
 
     def write_hdf5(self):
         """Write state data in HDF5 file.
@@ -96,126 +171,6 @@ class State(DataContainer):
 
         return out
 
-    def _endcond_check(self, bitarr, string):
-        """Check if the binary end condition matches the human-readable.
-
-        Parameters
-        ----------
-        bitarr : :obj:`np.uint32`
-            Value of the end condition as it is stored in the HDF5 file.
-        string : str
-            Human-readable end condition (case-insensitive).
-
-            Markers may have multiple end conditions active simultaneously.
-            If just the name of the end condition e.g. "MAXPOL" is passed,
-            then all markers with the ``MAXPOL`` end condition are returned.
-
-            If the end cond is preceded by "NOT", e.g. "NOT MAXPOL", then
-            markers that don't have that end condition are returned.
-
-            Passing multiple end conditions returns markers that have all listed
-            end conditions active, e.g. "MAXPOL MAXTOR" returns markers that
-            have both ``MAXPOL`` and ``MAXTOR`` active simultaneously.
-
-        Returns
-        -------
-        match : bool
-            True if the two representations of end conditions match.
-        """
-        endconds = string.upper().split()
-        ec_yes = np.array(0, dtype=np.uint32)
-        ec_non = np.array(0, dtype=np.uint32)
-
-        i = 0
-        while i < len(endconds):
-            ec = endconds[i]
-
-            NOT = False
-            if ec == "NOT":
-                NOT = True
-                i += 1
-                ec = endconds[i]
-
-            try:
-                ec = getattr(self, ec)
-            except AttributeError:
-                raise ValueError("Unknown end condition: " + ec)
-
-            i += 1
-            if NOT:
-                ec_non = ec_non | ec
-            else:
-                ec_yes = ec_yes | ec
-
-        return (bitarr & ec_yes) == ec_yes and (bitarr & ec_non) == 0
-
-    @property
-    def ABORTED(self):
-        """Marker simulation terminated in an error.
-        """
-        return State._ABORTED
-
-    @property
-    def NONE(self):
-        """No active end condition meaning the marker hasn't been simulated yet.
-        """
-        return State._NONE
-
-    @property
-    def TLIM(self):
-        """Simulation time limit or maximum mileage reached.
-        """
-        return 0x4
-
-    @property
-    def EMIN(self):
-        """Minimum energy reached.
-        """
-        return 0x8
-
-    @property
-    def THERM(self):
-        """Local thermal energy reached.
-        """
-        return 0x10
-
-    @property
-    def WALL():
-        """Marker intersected a wall element.
-        """
-        return 0x20
-
-    @property
-    def RHOMIN(self):
-        """Minimum radial coordinate (rho) reached.
-        """
-        return 0x40
-
-    @property
-    def RHOMAX(self):
-        """Maximum radial coordinate (rho) reached.
-        """
-        return 0x80
-
-    @property
-    def POLMAX(self):
-        """Maximum poloidal turns reached.
-        """
-        return 0x100
-
-    @property
-    def TORMAX(self):
-        """Maximum toroidal turns reached.
-        """
-        return 0x200
-
-    @property
-    def CPUMAX(self):
-        """Simulation for this marker exceeded the set CPU time.
-        """
-        return 0x400
-
-
     def read(self):
         """
         Read state data to dictionary.
@@ -232,14 +187,14 @@ class State(DataContainer):
         Parameters
         ----------
         qnt : str
-            Name of the quantity.
+            Name of the quantities.
         mode : {"prt", "gc"}, optional
             Is the quantity evaluated in particle or guiding center phase-space.
 
         Returns
         -------
         value : array_like
-            The quantity as an array ordered by marker ID.
+            The quantities as an array ordered by marker ID.
         """
         def _val(q):
             """Read quantity from HDF5.
@@ -258,7 +213,28 @@ class State(DataContainer):
 
     @staticmethod
     def _getactual(mode, _val, _eval, *qnt):
-        """Return marker quantity.
+        """Calculate marker quantities using the helper functions and data.
+
+        Parameters
+        ----------
+        mode : {"prt", "gc"}
+            Phase-space where quantity is evaluated.
+        _val : callable
+            Function that returns a stored marker parameter.
+
+            ``_val(qnt : str, mask : array_like) -> value``
+        _eval : callable
+            Function that returns interpolated input quantity at masked
+            positions at given position.
+
+            ``_eval(r, phi, z, qnt : str) -> value``
+        *qnt : str
+            Names of the quantities.
+
+        Returns
+        -------
+        *value : array_like
+            The quantities as an array ordered by marker ID.
         """
         items = [None]*len(qnt)
         def add(q, val):
@@ -443,6 +419,82 @@ class State(DataContainer):
                 # Non-dimensional
                 pass
         return items
+
+    @staticmethod
+    def endcond_check(bitarr, string):
+        """Check if the binary end condition matches the human-readable.
+
+        Parameters
+        ----------
+        bitarr : :obj:`np.uint32`
+            Value of the end condition as it is stored in the HDF5 file.
+        string : str
+            Human-readable end condition (case-insensitive).
+
+            Markers may have multiple end conditions active simultaneously.
+            If just the name of the end condition e.g. "MAXPOL" is passed,
+            then all markers with the ``MAXPOL`` end condition are returned.
+
+            If the end cond is preceded by "NOT", e.g. "NOT MAXPOL", then
+            markers that don't have that end condition are returned.
+
+            Passing multiple end conditions returns markers that have all listed
+            end conditions active, e.g. "MAXPOL MAXTOR" returns markers that
+            have both ``MAXPOL`` and ``MAXTOR`` active simultaneously.
+
+        Returns
+        -------
+        match : bool
+            True if the two representations of end conditions match.
+        """
+        endconds = string.upper().split()
+        ec_yes = np.array(0, dtype=np.uint32)
+        ec_non = np.array(0, dtype=np.uint32)
+
+        i = 0
+        while i < len(endconds):
+            ec = endconds[i]
+
+            NOT = False
+            if ec == "NOT":
+                NOT = True
+                i += 1
+                ec = endconds[i]
+
+            try:
+                ec = getattr(State, "_" + ec)
+            except AttributeError:
+                raise ValueError("Unknown end condition: " + ec)
+
+            i += 1
+            if NOT:
+                ec_non = ec_non | ec
+            else:
+                ec_yes = ec_yes | ec
+
+        return (bitarr & ec_yes) == ec_yes and (bitarr & ec_non) == 0
+
+    @staticmethod
+    def endcond_tostring(bitarr):
+        """Convert end condition bitarray to human readable.
+
+        Parameters
+        ----------
+        bitarr : :obj:`np.uint32`
+            Value of the end condition as it is stored in the HDF5 file.
+
+        Returns
+        -------
+        string : str
+            End condition in a human readable format.
+        """
+        endcond = ["NONE", "ABORTED", "TLIM", "EMIN", "THERM", "WALL", "RHOMIN",
+                   "RHOMAX", "POLMAX", "TORMAX", "CPUMAX"]
+        string = ""
+        for ec in endcond:
+            if bitarr & getattr(State, "_" + ec):
+                string += ec + " and "
+        return string[:-5] # remove last "and"
 
     @staticmethod
     def listqnts():
