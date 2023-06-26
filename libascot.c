@@ -68,7 +68,7 @@ void libascot_B_field_eval_B_dB(
     sim_data sim;
     B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
                  B_offload_array);
-    real B[12];
+    real B[15];
     for(int k = 0; k < Neval; k++) {
         if( B_field_eval_B_dB(B, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
             continue;
@@ -508,7 +508,7 @@ void libascot_boozer_eval_fun(
     boozer_init(&sim.boozer_data, &sim_offload_data->boozer_offload_data,
                 boozer_offload_array);
     real psithetazeta[12];
-    real B[12];
+    real B[15];
     int isinside;
     for(int k = 0; k < Neval; k++) {
         if( boozer_eval_psithetazeta(psithetazeta, &isinside, R[k], phi[k],
