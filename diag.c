@@ -15,6 +15,7 @@
 #include <string.h>
 #include "ascot5.h"
 #include "simulate.h"
+#include "B_field.h"
 #include "diag.h"
 #include "diag/diag_orb.h"
 #include "diag/dist_5D.h"
@@ -254,7 +255,7 @@ void diag_update_fo(diag_data* data, particle_simd_fo* p_f,
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  */
-void diag_update_gc(diag_data* data, particle_simd_gc* p_f,
+void diag_update_gc(diag_data* data, B_field_data* Bdata, particle_simd_gc* p_f,
                     particle_simd_gc* p_i) {
     if(data->diagorb_collect) {
         diag_orb_update_gc(&data->diagorb, p_f, p_i);
@@ -277,7 +278,7 @@ void diag_update_gc(diag_data* data, particle_simd_gc* p_f,
     }
 
     if(data->distCOM_collect){
-        dist_COM_update_gc(&data->distCOM, p_f, p_i);
+        dist_COM_update_gc(&data->distCOM, Bdata, p_f, p_i);
     }
 
     if(data->diagtrcof_collect){

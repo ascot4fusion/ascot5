@@ -8,15 +8,15 @@
 #include "../ascot5.h"
 #include "../consts.h"
 #include "../physlib.h"
-#include "dist_com.h"
 #include "../particle.h"
+#include "dist_com.h"
 
 /**
  * @brief Internal function calculating the index in the histogram array
  */
 #pragma omp declare target
 unsigned long dist_COM_index(int i_mu, int i_Ekin, int i_Ptor,
-			     int n_mu, int n_Ekin, int n_Ptor) {
+                             int n_mu, int n_Ekin, int n_Ptor) {
     return i_mu    * (n_Ekin * n_Ptor)
         + i_Ekin   * (n_Ptor)
         + i_Ptor;
@@ -47,8 +47,8 @@ void dist_COM_free_offload(dist_COM_offload_data* offload_data) {
  * @param offload_data pointer to offload data struct
  * @param offload_array offload array
  */
-void dist_COM_init(dist_COM_data* dist_data, dist_COM_offload_data* offload_data,
-                  real* offload_array) {
+void dist_COM_init(dist_COM_data* dist_data,
+                   dist_COM_offload_data* offload_data, real* offload_array) {
     dist_data->n_mu       = offload_data->n_mu;
     dist_data->min_mu     = offload_data->min_mu;
     dist_data->max_mu     = offload_data->max_mu;
@@ -75,12 +75,12 @@ void dist_COM_init(dist_COM_data* dist_data, dist_COM_offload_data* offload_data
  * @param p_f pointer to SIMD gc struct at the end of current time step
  * @param p_i pointer to SIMD gc struct at the start of current time step
  */
-void dist_COM_update_gc(dist_COM_data* dist, particle_simd_gc* p_f,
-                       particle_simd_gc* p_i) {
+void dist_COM_update_gc(dist_COM_data* dist, B_field_data* Bdata,
+                        particle_simd_gc* p_f, particle_simd_gc* p_i) {
     real Ekin;
     real Ptor;
     real B;
-    real psi=0;
+    real psi;
 
     int i_mu[NSIMD];
     int i_Ekin[NSIMD];
@@ -93,22 +93,25 @@ void dist_COM_update_gc(dist_COM_data* dist, particle_simd_gc* p_f,
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
 
+            B_field_eval_psi(&psi, p_f->r[i], p_f->phi[i], p_f->z[i],
+                             p_f->time[i], Bdata);
+
             B = math_normc(p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]);
-	    i_mu[i] = floor((p_f->mu[i] - dist->min_mu)
-	              / ((dist->max_mu - dist->min_mu)/dist->n_mu));
+            i_mu[i] = floor((p_f->mu[i] - dist->min_mu)
+                            / ((dist->max_mu - dist->min_mu)/dist->n_mu));
 
             Ekin = physlib_Ekin_ppar(p_f->mass[i], p_f->mu[i], p_f->ppar[i], B);
 
-	    i_Ekin[i] = floor((Ekin - dist->min_Ekin)
-		        /  ((dist->max_Ekin - dist->min_Ekin)/dist->n_Ekin));
-	    Ptor = phys_ptoroid_gc(p_f->charge[i], p_f->r[i], p_f->ppar[i], psi, B, p_f->B_phi[i]);
+            i_Ekin[i] = floor((Ekin - dist->min_Ekin)
+                              /  ((dist->max_Ekin - dist->min_Ekin) / dist->n_Ekin));
+            Ptor = phys_ptoroid_gc(p_f->charge[i], p_f->r[i], p_f->ppar[i], psi, B, p_f->B_phi[i]);
 
-	    i_Ptor[i] = floor((Ptor - dist->min_Ptor)
-		        /  ((dist->max_Ptor - dist->min_Ptor)/dist->n_Ptor));
+            i_Ptor[i] = floor((Ptor - dist->min_Ptor)
+                              /  ((dist->max_Ptor - dist->min_Ptor)/dist->n_Ptor));
 
-            if(i_mu[i]     >= 0  &&  i_mu[i]     <= dist->n_mu - 1      &&
-               i_Ekin[i]   >= 0  &&  i_Ekin[i]   <= dist->n_Ekin - 1    &&
-               i_Ptor[i]     >= 0  &&  i_Ptor[i]     <= dist->n_Ptor - 1        ) {
+            if(i_mu[i]   >= 0 && i_mu[i]   <= dist->n_mu - 1   &&
+               i_Ekin[i] >= 0 && i_Ekin[i] <= dist->n_Ekin - 1 &&
+               i_Ptor[i] >= 0 && i_Ptor[i] <= dist->n_Ptor - 1 ) {
                 ok[i] = 1;
                 weight[i] = p_f->weight[i] * (p_f->time[i] - p_i->time[i]);
             }

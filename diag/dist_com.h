@@ -7,6 +7,7 @@
 
 #include "../ascot5.h"
 #include "../particle.h"
+#include "../B_field.h"
 
 /**
  * @brief Histogram parameters that will be offloaded to target
@@ -46,10 +47,10 @@ typedef struct {
 
 #pragma omp declare target
 void dist_COM_init(dist_COM_data* dist_data,
-                  dist_COM_offload_data* offload_data,
-                  real* offload_array);
-void dist_COM_update_gc(dist_COM_data* dist, particle_simd_gc* p_f,
-                       particle_simd_gc* p_i);
+                   dist_COM_offload_data* offload_data,
+                   real* offload_array);
+void dist_COM_update_gc(dist_COM_data* dist, B_field_data* Bdata,
+                        particle_simd_gc* p_f, particle_simd_gc* p_i);
 #pragma omp end declare target
 
 #endif

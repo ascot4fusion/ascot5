@@ -292,7 +292,7 @@ int hdf5_dist_write_rho6D(hid_t f, char* qid, dist_rho6D_offload_data* dist,
  * @param dist pointer to distribution data struct
  * @param hist pointer to distribution data
  */
-int hdf5_dist_write_com(hid_t f, char* qid, dist_COM_offload_data* dist,
+int hdf5_dist_write_COM(hid_t f, char* qid, dist_COM_offload_data* dist,
                         real* hist) {
 
     int abscissa_dim = 3;

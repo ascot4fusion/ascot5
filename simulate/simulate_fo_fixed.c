@@ -156,7 +156,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
                     gc_i.running[i] = 0;
                 }
             }
-            diag_update_gc(&sim->diag_data, &gc_f, &gc_i);
+            diag_update_gc(&sim->diag_data, &sim->B_data, &gc_f, &gc_i);
         }
 
         /* Update running particles */
