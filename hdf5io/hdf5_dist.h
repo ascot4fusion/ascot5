@@ -11,6 +11,7 @@
 #include "../diag/dist_6D.h"
 #include "../diag/dist_rho5D.h"
 #include "../diag/dist_rho6D.h"
+#include "../diag/dist_com.h"
 
 int hdf5_dist_write_5D(hid_t f, char* qid, dist_5D_offload_data* dist,
                        real* hist);
@@ -20,5 +21,7 @@ int hdf5_dist_write_rho5D(hid_t f, char* qid, dist_rho5D_offload_data* dist,
                           real* hist);
 int hdf5_dist_write_rho6D(hid_t f, char* qid, dist_rho6D_offload_data* dist,
                           real* hist);
+int hdf5_dist_write_COM(hid_t f, char* qid, dist_COM_offload_data* dist,
+                        real* hist);
 
 #endif
