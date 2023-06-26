@@ -314,9 +314,9 @@ int hdf5_dist_write_COM(hid_t f, char* qid, dist_COM_offload_data* dist,
     abscissa_max[2] = dist->max_Ptor;
 
     char* abscissa_names[] = { "mu", "ekin", "ptor"};
-    char* abscissa_units[] = { "eV/T", "eV", "J s"};
+    char* abscissa_units[] = { "J/T", "J", "J s"};
     char* ordinate_names[] = { "distribution" };
-    char* ordinate_units[] = { "T / eV**2 J s"};
+    char* ordinate_units[] = { "T / J**3 s"};
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
