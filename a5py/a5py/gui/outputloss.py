@@ -4,7 +4,7 @@ import numpy as np
 import pyvista as pv
 
 from matplotlib.gridspec import GridSpec
-from a5py.plotting import defaultcamera
+from a5py.routines.plotting import defaultcamera
 from .components import PlotFrame, NumEntry, DropdownMenu, Tickbox
 
 class LossFrame(ttk.Notebook):

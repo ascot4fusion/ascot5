@@ -24,7 +24,7 @@ import tkinter.ttk as ttk
 
 import numpy as np
 
-from a5py.ascot5io.options     import write_hdf5
+from a5py.ascot5io.options import Opt
 from .components import PlotFrame, ScrollableFrame, DropdownMenu
 
 class ContentGroup():
@@ -204,7 +204,7 @@ class ContentGroup():
                         opt[p[0].strip()] = np.fromstring(p[1].strip(),sep=",")
 
                 desc = group.get_desc()
-                grp = write_hdf5(group._file, opt, desc=desc)
+                grp = Opt.write_hdf5(group._file, **opt, desc=desc)
                 grp = grp.split("_")[-1]
                 gui.ascot.data.reload()
                 gui.ascot.data["options"]["q"+grp].set_as_active()

@@ -223,9 +223,9 @@ class VirtualOrbits():
                     val = np.array(self.arr[arrlen*14:arrlen*15]) * T
                 elif q == "simmode":
                     val = np.array(self.arr[arrlen*15:arrlen*16]) * nodim
-                if q == "pncrid" and self.orbmode:
+                if q == "pncrid" and self.orbmode == 0:
                     val = np.array(self.arr[arrlen*16:arrlen*17]) * nodim
-                if q == "pncrdir" and self.orbmode:
+                if q == "pncrdir" and self.orbmode == 0:
                     val = np.array(self.arr[arrlen*17:arrlen*18]) * nodim
             elif self.mode == ascot2py.simulate_mode_gc:
                 if q == "ppar":
@@ -250,9 +250,9 @@ class VirtualOrbits():
                     val = np.array(self.arr[arrlen*14:arrlen*15]) * T
                 elif q == "simmode":
                     val = np.array(self.arr[arrlen*15:arrlen*16]) * nodim
-                if q == "pncrid" and self.orbmode:
+                if q == "pncrid" and self.orbmode == 0:
                     val = np.array(self.arr[arrlen*16:arrlen*17]) * nodim
-                if q == "pncrdir" and self.orbmode:
+                if q == "pncrdir" and self.orbmode == 0:
                     val = np.array(self.arr[arrlen*17:arrlen*18]) * nodim
             elif self.mode == ascot2py.simulate_mode_ml:
                 if q == "rho":
@@ -267,9 +267,9 @@ class VirtualOrbits():
                     val = np.array(self.arr[arrlen*9:arrlen*10]) * T
                 elif q == "simmode":
                     val = np.array(self.arr[arrlen*10:arrlen*11]) * nodim
-                if q == "pncrid" and self.orbmode:
+                if q == "pncrid" and self.orbmode == 0:
                     val = np.array(self.arr[arrlen*11:arrlen*12]) * nodim
-                if q == "pncrdir" and self.orbmode:
+                if q == "pncrdir" and self.orbmode == 0:
                     val = np.array(self.arr[arrlen*12:arrlen*13]) * nodim
             elif self.mode == ascot2py.simulate_mode_hybrid:
                 if q == "pr":
@@ -300,9 +300,9 @@ class VirtualOrbits():
                     val = np.array(self.arr[arrlen*17:arrlen*18]) * T
                 elif q == "simmode":
                     val = np.array(self.arr[arrlen*18:arrlen*19]) * nodim
-                if q == "pncrid" and self.orbmode:
+                if q == "pncrid" and self.orbmode == 0:
                     val = np.array(self.arr[arrlen*19:arrlen*20]) * nodim
-                if q == "pncrdir" and self.orbmode:
+                if q == "pncrdir" and self.orbmode == 0:
                     val = np.array(self.arr[arrlen*20:arrlen*21]) * nodim
             return val[idx][mask].ravel()
 

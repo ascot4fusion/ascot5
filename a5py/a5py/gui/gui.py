@@ -1,7 +1,4 @@
-"""
-Main window for the GUI.
-
-File: gui.py
+"""Main window for the GUI.
 """
 import os
 import sys
@@ -14,14 +11,13 @@ from tkinter.filedialog import askopenfilename, askdirectory
 from tkinter import messagebox, simpledialog
 
 from a5py import Ascot
-from a5py.ascot5io._iohelpers import fileapi
+from a5py.ascot5io.coreio import fileapi
 
 from .contentmanager import ContentManager
 from .guiparams import GUIparams
 
 class GUI(tk.Tk):
-    """
-    Window where all GUI elements are stored.
+    """Window where all GUI elements are stored.
 
 
     The GUI looks like following:
@@ -51,7 +47,7 @@ class GUI(tk.Tk):
     FileFrame/GroupFrame/SettingsFrame and those are managed by
     the ContentManager object.
 
-    Access to the actual data is handled via an Ascotpy object. This
+    Access to the actual data is handled via an Ascot object. This
     GUI should just pass the arguments to the plotting functions
     implemented elsewhere instead of implementing those itself.
     """
@@ -159,8 +155,7 @@ class GUI(tk.Tk):
 
 
     def pleasehold(self, message, target):
-        """
-        Pops up a message and freezes GUI until the target function is done.
+        """Pops up a message and freezes GUI until the target function is done.
 
         This method can be called e.g. when ascotpy is being initialized
         to let the user know that it is happening.
@@ -202,10 +197,8 @@ class GUI(tk.Tk):
         # Destroy dialog making main GUI responsive again
         dialog.destroy()
 
-
 class SettingsFrame(ttk.Frame):
-    """
-    Frame that displays parameters the user can vary when viewing data.
+    """Frame that displays parameters the user can vary when viewing data.
 
     Contents of this frame changes depending on what tab is chosen.
     ContentManager class then decides what is plotted on the canvas.
@@ -214,11 +207,9 @@ class SettingsFrame(ttk.Frame):
     frame in future development.
     """
     pass
-
 
 class CanvasFrame(ttk.Frame):
-    """
-    Frame that displays plots.
+    """Frame that displays plots.
 
     Contents of this frame changes depending on what tab is chosen.
     ContentManager class then decides what is plotted on the canvas.
@@ -228,10 +219,8 @@ class CanvasFrame(ttk.Frame):
     """
     pass
 
-
 class FileFrame(ttk.Frame):
-    """
-    Frame for accessing the HDF5 file.
+    """Frame for accessing the HDF5 file.
     """
 
     def __init__(self, gui, *args, **kwargs):
@@ -263,7 +252,6 @@ class FileFrame(ttk.Frame):
         frame1.pack(side="top", fill="x",    anchor="nw")
         frame2.pack(side="top", fill="x",    anchor="nw")
 
-
         ## Set functionality ##
 
         # Browse button opens filename dialog when clicked
@@ -274,10 +262,8 @@ class FileFrame(ttk.Frame):
         # Unmutable filename field
         self.filenamefield.configure(state="disabled", wrap="none")
 
-
     def browse_file(self):
-        """
-        Open dialog for choosing HDF5 file and open it.
+        """Open dialog for choosing HDF5 file and open it.
 
         If a valid file is chosen, deliver the filename to GUI and refresh.
         """
@@ -291,10 +277,8 @@ class FileFrame(ttk.Frame):
         fn = os.path.abspath(fn)
         self.open_new_file(fn)
 
-
     def open_new_file(self, filename):
-        """
-        Update the contents of the fileframe if file has changed.
+        """Update the contents of the fileframe if file has changed.
         """
         if filename is not None:
 
@@ -319,7 +303,6 @@ class FileFrame(ttk.Frame):
         self.gui.params.retrieve(filename)
         self.display_file(filename)
 
-
     def display_file(self, filename):
         """
         Display file name and size.
@@ -341,10 +324,8 @@ class FileFrame(ttk.Frame):
         self.filesizelabel.configure(
             text="Size: " + "{0:.3f}".format(size) + " MB")
 
-
 class GroupFrame(ttk.Frame):
-    """
-    Frame for displaying groups in a treeview.
+    """Frame for displaying groups in a treeview.
 
     Also handles any operations regarding contents of the file.
     """
@@ -401,7 +382,6 @@ class GroupFrame(ttk.Frame):
         self.tree = tree
         self.gui  = gui
 
-
     def build_groups(self):
         """
         (Re)Build tree from scratch from the file in GUI.
@@ -420,6 +400,7 @@ class GroupFrame(ttk.Frame):
             if parent == "results":
                 qids, types, descs, dates = \
                     self.gui.ascot.data.get_contents()
+                print(qids)
                 if len(qids) > 0:
                     activeqid = self.gui.ascot.data.active.get_qid()
                     item = self.tree.insert("", index, text=parent,
@@ -451,10 +432,8 @@ class GroupFrame(ttk.Frame):
                 self.tree.insert(item, 0, text=qids[i], tags=tuple(tags),
                                  values=(types[i], dates[i]))
 
-
     def select_group(self, event):
-        """
-        User selected a group.
+        """User selected a group.
 
         Update tree view accordingly and notify GUI.
         """
@@ -473,7 +452,7 @@ class GroupFrame(ttk.Frame):
         if qid is not None:
             if parent == "results":
                 inputqids = []
-                for p in INPUT_PARENTS:
+                for p in fileapi.INPUTGROUPS:
                     if p in self.gui.ascot.data["q"+qid]:
                         inputqids.append(
                             self.gui.ascot.data["q"+qid][p].get_qid())
@@ -481,16 +460,14 @@ class GroupFrame(ttk.Frame):
                 self._highlightinputs(inputqids)
 
             else:
-                outputqids = self.gui.ascot.data.get_runsfrominput(qid)
+                outputqids = self.gui.ascot.data.get_runs(qid)
                 self._highlightoutputs(outputqids)
 
         # Show contents for this group
         self.gui.content.update_content()
 
-
     def activate_group(self):
-        """
-        Set item (group) as active in the tree.
+        """Set item (group) as active in the tree.
         """
         item       = self.tree.selection()
         parent     = self.tree.parent(item)
@@ -498,17 +475,14 @@ class GroupFrame(ttk.Frame):
         parentname = self.tree.item(parent, "text")
 
         if parentname == "results":
-            self.gui.ascot.data["q"+qid].set_as_active()
+            self.gui.ascot.data["q"+qid].activate()
         else:
-            self.gui.ascot.data[parentname]["q"+qid].set_as_active()
+            self.gui.ascot.data[parentname]["q"+qid].activate()
         self._activate(item, parent)
-
         self.gui.content.update_content()
 
-
     def remove_group(self):
-        """
-        Remove item (group) from tree.
+        """Remove item (group) from tree.
         """
         item       = self.tree.selection()
         parent     = self.tree.parent(item)
@@ -551,7 +525,7 @@ class GroupFrame(ttk.Frame):
         # Update treeview
 
         # 1. Whole group was removed / ceased to exist
-        if qid in INPUT_PARENTS or qid == "results":
+        if qid in fileapi.INPUTGROUPS or qid == "results":
             for c in self.tree.get_children(item):
                 self.tree.delete(c)
 
@@ -576,7 +550,6 @@ class GroupFrame(ttk.Frame):
                 break
 
         self.gui.content.update_content()
-
 
     def export_group(self):
         """
@@ -612,7 +585,6 @@ class GroupFrame(ttk.Frame):
                     "Error",
                     "Could not copy the group as something went wrong.")
             return
-
 
     def add_group(self, parent, group):
         """
@@ -667,7 +639,6 @@ class GroupFrame(ttk.Frame):
         # Update contents
         self.gui.content.update_content()
 
-
     def add_dummygroup(self):
         """
         Adds dummy group for selected parent.
@@ -686,10 +657,8 @@ class GroupFrame(ttk.Frame):
         group.activate()
         self.add_group(parent, group)
 
-
     def _highlightinputs(self, inputqids):
-        """
-        Highlight inputs used in the selected run.
+        """Highlight inputs used in the selected run.
         """
         children = self.tree.get_children()
         for c in children:
@@ -709,10 +678,8 @@ class GroupFrame(ttk.Frame):
 
                 self.tree.item(g, values=(vals[0], date))
 
-
     def _highlightoutputs(self, outputqids):
-        """
-        Highlight inputs used in the selected run.
+        """Highlight runs that have used the selected input.
         """
         children = self.tree.get_children()
         for c in children:
@@ -733,8 +700,7 @@ class GroupFrame(ttk.Frame):
                 self.tree.item(g, values=(vals[0], date))
 
     def _activate(self, item, parent):
-        """
-        Move active tag from the previous active to the current one.
+        """Move active tag from the previous active to the current one.
         """
         for c in self.tree.get_children(parent):
             tags = list(self.tree.item(c, "tags"))
@@ -746,10 +712,8 @@ class GroupFrame(ttk.Frame):
                 tags.append("active")
                 self.tree.item(c, tags=tuple(tags))
 
-
     class GroupMenu(tk.Menu):
-        """
-        Popupmenu displayed when groups treeview is right-clicked.
+        """Popupmenu displayed when groups treeview is right-clicked.
         """
 
         def __init__(self, gui, groups, tree, *args, **kwargs):
@@ -773,7 +737,6 @@ class GroupFrame(ttk.Frame):
 
             self.groups = groups
 
-
         def showmenu(self, event):
             """
             Show menu if a group was right-clicked and select the group.
@@ -788,32 +751,25 @@ class GroupFrame(ttk.Frame):
 
                 # Disable "activate" option if selected item is a parent
                 self.entryconfigure(0, state="normal")
-                if itemname in INPUT_PARENTS + ["results"]:
+                if itemname in fileapi.INPUTGROUPS + ["results"]:
                     self.entryconfigure(0, state="disabled")
 
                 # Disable "remove" option if parent has no children
                 self.entryconfigure(1, state="normal")
-                if itemname in INPUT_PARENTS and \
+                if itemname in fileapi.INPUTGROUPS and \
                    len(self.groups.tree.get_children(item)) == 0:
                     self.entryconfigure(1, state="disabled")
 
                 # Disable "export" option for parents and runs
                 self.entryconfigure(2, state="normal")
-                if itemname in INPUT_PARENTS + ["results"] \
+                if itemname in fileapi.INPUTGROUPS + ["results"] \
                    or parentname == "results":
                     self.entryconfigure(2, state="disabled")
-
-                # Disable "add dummy input" option for other than input parents
-                self.entryconfigure(4, state="normal")
-                if itemname not in INPUT_PARENTS:
-                    self.entryconfigure(4, state="disabled")
 
                 # This will launch a event that will update the GUI.
                 self.groups.tree.selection_set(item)
 
-
         def hidemenu(self, event):
-            """
-            Hide menu.
+            """Hide menu.
             """
             self.unpost()

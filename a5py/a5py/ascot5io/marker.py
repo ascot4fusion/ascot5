@@ -278,7 +278,7 @@ class FL(Marker):
             write_data(g, "pitch",  pitch,  (n,), "f8", "1")
             write_data(g, "weight", weight, (n,), "f8", "particles/s")
             write_data(g, "time",   time,   (n,), "f8", "s")
-            write_data(g, "id",     ids,    (n,), "f8", "1")
+            write_data(g, "id",     ids,    (n,), "i8", "1")
 
         return gname
 

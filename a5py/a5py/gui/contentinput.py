@@ -3,12 +3,6 @@ from tkinter import ttk
 import numpy as np
 
 from .components import PlotFrame, NumEntry
-from a5py.ascotpy.libbfield  import LibBfield
-from a5py.ascotpy.libefield  import LibEfield
-from a5py.ascotpy.libplasma  import LibPlasma
-from a5py.ascotpy.libneutral import LibNeutral
-from a5py.ascotpy.libboozer  import LibBoozer
-from a5py.ascotpy.libmhd     import LibMhd
 
 class ContentInput:
 

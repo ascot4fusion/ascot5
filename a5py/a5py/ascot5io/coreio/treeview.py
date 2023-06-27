@@ -334,9 +334,14 @@ class _ParentNode(_Node):
 
         Returns
         -------
-        meta : dict [str, list [str]]
-            Dictionary containing QIDs ("qid"), dates ("date"), descriptions
-            ("desc"), and data types "type" as a list of strings.
+        qids : array_like, str
+            QIDs.
+        dates : array_like, str
+            Dates.
+        descs : array_like, str
+            Descriptions.
+        types : array_like, str
+            Data types.
         """
         nchild = len(self._qids)
         qids  = [None] * nchild
@@ -350,7 +355,7 @@ class _ParentNode(_Node):
             descs[i] = self["q"+qid].get_desc()
             types[i] = self["q"+qid].get_type()
 
-        return {"qid":qids, "date":dates, "desc":descs, "type":types}
+        return qids, dates, descs, types
 
 class InputNode(_ParentNode):
     """Node that represents an input parent group.

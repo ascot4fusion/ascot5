@@ -61,14 +61,14 @@ class ContentManager():
         interactivecanvas = ttk.Frame(canvasframe)
         self.contentgroup        = ContentGroup(
             gui, groupframe, groupcanvas)
-        self.contentprecheck    = ContentPrecheck(
-            gui, preflightframe, preflightcanvas)
-        self.contentinput       = ContentInput(
-            gui, inputframe, inputcanvas)
-        self.contentoutput      = ContentOutput(
-            gui, outputframe, outputcanvas)
-        self.contentinteractive = ContentInteractive(
-            gui, interactiveframe, interactivecanvas)
+        #self.contentprecheck    = ContentPrecheck(
+        #    gui, preflightframe, preflightcanvas)
+        #self.contentinput       = ContentInput(
+        #    gui, inputframe, inputcanvas)
+        #self.contentoutput      = ContentOutput(
+        #    gui, outputframe, outputcanvas)
+        #self.contentinteractive = ContentInteractive(
+        #    gui, interactiveframe, interactivecanvas)
 
         # Have an empty canvas initially
         self.active_canvas = ttk.Frame(canvasframe)

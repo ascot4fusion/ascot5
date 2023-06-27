@@ -128,17 +128,14 @@ class LibSimulate():
         radials = radials if isinstance(radials, list) else [radials]
 
         diagorb.ntoroidalplots = len(torangs)
-        if torangs: diagorb.ntoroidalplots = 0
         for i in range(diagorb.ntoroidalplots):
             diagorb.toroidalangles[i] = torangs[i] * np.pi / 180
 
         diagorb.npoloidalplots = len(polangs)
-        if polangs: diagorb.npoloidalplots = 0
         for i in range(diagorb.npoloidalplots):
             diagorb.poloidalangles[i] = polangs[i] * np.pi / 180
 
         diagorb.nradialplots = len(radials)
-        if radials: diagorb.nradialplots = 0
         for i in range(diagorb.nradialplots):
             diagorb.radialdistances[i] = radials[i]
 

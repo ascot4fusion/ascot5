@@ -4,7 +4,7 @@ from tkinter import ttk
 from .components import PlotFrame, NumEntry
 
 from a5py.ascot5io import options
-from a5py.ascot5io import mrk as marker
+#from a5py.ascot5io import mrk as marker
 
 class OrbitFrame(ttk.Frame):
 

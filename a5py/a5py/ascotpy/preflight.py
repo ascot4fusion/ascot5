@@ -5,7 +5,7 @@ Checks to help user to ensure the inputs are ok before running the simulation.
 import numpy as np
 import matplotlib.pyplot as plt
 from a5py.ascotpy import Ascotpy
-from a5py.plotting import openfigureifnoaxes
+from a5py.routines.plotting import openfigureifnoaxes
 
 def check_inputs_present(ascotpy):
     """

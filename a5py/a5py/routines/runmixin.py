@@ -207,7 +207,7 @@ class RunMixin():
             idx = np.logical_and(idx, np.in1d(idarr, eids))
 
         if pncrid is not None:
-            pncridarr = self.orbit.get(self._inistate, self._endstate,
+            pncridarr = self._orbit.get(self._inistate, self._endstate,
                                        "pncrid")[0]
             idx = np.logical_and(idx, np.in1d(pncridarr, pncrid))
 
@@ -323,9 +323,9 @@ class RunMixin():
         npol = opt["ORBITWRITE_POLOIDALANGLES"]
         ntor = opt["ORBITWRITE_TOROIDALANGLES"]
         nrad = opt["ORBITWRITE_RADIALDISTANCES"]
-        npol = 0 if npol[0] < 0 else npol.size
-        ntor = 0 if ntor[0] < 0 else ntor.size
-        nrad = 0 if nrad[0] < 0 else nrad.size
+        npol = 0 if npol[0] < 0 else len(npol)
+        ntor = 0 if ntor[0] < 0 else len(ntor)
+        nrad = 0 if nrad[0] < 0 else len(nrad)
 
         plane = [None] * (npol + ntor + nrad)
         plane[:npol]                    = ["pol"]
@@ -793,15 +793,6 @@ class RunMixin():
         AscotNoDataException
             Raised when data required for the opreation is not present.
         """
-        if not self.has_orbit:
-            raise LackingDataError("orbit")
-        try:
-            self.orbit["pncrid"]
-        except:
-            raise LackingDataError("orbit(poincare)")
-        if not self.has_endstate:
-            raise LackingDataError("endstate")
-
         # Set quantities corresponding to the planetype
         planes = self.getorbit_poincareplanes()
         if len(planes) <= plane:
@@ -833,9 +824,9 @@ class RunMixin():
             ylim = [0, 360]
             axesequal = True
 
-        ids = self.orbit.get("id", pncrid=plane)
-        x   = self.orbit.get(x,    pncrid=plane)
-        y   = self.orbit.get(y,    pncrid=plane)
+        ids, x, y, clen = self.getorbit("ids", x, y, "connlen", pncrid=plane)
+        #x   = self._orbit.get(x,    pncrid=plane)
+        #y   = self._orbit.get(y,    pncrid=plane)
 
         if ptype == "pol":
             # Determine (R,z) limits by making sure the data fits nicely and
@@ -846,25 +837,26 @@ class RunMixin():
         if conlen:
             # Calculate connection length using endstate (only markers that pass
             # this plane are considered)
-            total = self.endstate.get("mileage", ids=np.unique(ids))
+            #total = self.endstate.get("mileage", ids=np.unique(ids))
 
             # Find how many data points each marker has in orbit data arrays.
             # idx are indices of last data point for given id.
-            idx = np.argwhere(ids[1:] - ids[:-1]).ravel()
-            idx = np.append(idx, ids.size-1)
+            #idx = np.argwhere(ids[1:] - ids[:-1]).ravel()
+            #idx = np.append(idx, ids.size-1)
             # Getting the number of data points now is just a simple operation:
-            idx[1:] -= idx[:-1]
-            idx[0] += 1
+            #idx[1:] -= idx[:-1]
+            #idx[0] += 1
 
             # Now we can repeat the total mileage by the number of data points
             # each marker has, so we can calculate the connection length at each
             # point as: conlen = total - mileage
-            total  = np.repeat(total, idx)
-            conlen = total - self.orbit.get("mileage", pncrid=plane)
+            #total  = np.repeat(total, idx)
+            #conlen = total - self.orbit.get("mileage", pncrid=plane)
 
             # Now set confined markers as having negative connection length
-            lost1 = self.endstate.get("id", endcond="rhomax")
-            lost2 = self.endstate.get("id", endcond="wall")
+            conlen = clen
+            lost1 = self.getstate("ids", state="end", endcond="rhomax")
+            lost2 = self.getstate("ids", state="end", endcond="wall")
 
             idx = ~np.logical_or(np.in1d(ids, lost1), np.in1d(ids, lost2))
             conlen[idx] *= -1
