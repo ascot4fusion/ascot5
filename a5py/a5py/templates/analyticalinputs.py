@@ -81,7 +81,7 @@ class AnalyticalInputs():
             a corresponding type.
         """
         nrho   = 100
-        rho    = np.transpose( np.linspace(0, 2, nrho) )
+        rho    = np.transpose( np.linspace(0, 10, nrho) )
         prof   = np.ones((nrho, 1))
         edens  = density     * prof
         etemp  = temperature * prof

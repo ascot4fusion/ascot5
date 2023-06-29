@@ -52,7 +52,9 @@ class Opt(DataGroup):
         self._OPT_ENDCOND_ENERGYLIM          = 0
         self._OPT_ENDCOND_WALLHIT            = 0
         self._OPT_ENDCOND_MAXORBS            = 0
-        self._OPT_ENDCOND_MAX_SIMTIME        = 1.0
+        self._OPT_ENDCOND_NEUTRALIZED        = 0
+        self._OPT_ENDCOND_IONIZED            = 0
+        self._OPT_ENDCOND_LIM_SIMTIME        = 1.0
         self._OPT_ENDCOND_MAX_MILEAGE        = 1.0
         self._OPT_ENDCOND_MAX_CPUTIME        = 3600.0
         self._OPT_ENDCOND_MAX_RHO            = 2.0
@@ -69,6 +71,7 @@ class Opt(DataGroup):
         self._OPT_DISABLE_ENERGY_CCOLL       = 0
         self._OPT_DISABLE_PITCH_CCOLL        = 0
         self._OPT_DISABLE_GCDIFF_CCOLL       = 0
+        self._OPT_REVERSE_TIME               = 0
         self._OPT_ENABLE_DIST_5D             = 0
         self._OPT_ENABLE_DIST_6D             = 0
         self._OPT_ENABLE_DIST_RHO5D          = 0
@@ -203,12 +206,14 @@ class Opt(DataGroup):
 
     @property
     def _ENDCOND_SIMTIMELIM(self):
-        """Terminate when marker time exceeds ENDCOND_MAX_SIMTIME or when marker
+        """Terminate when marker time passes ENDCOND_LIM_SIMTIME or when marker
         time has advanced ENDCOND_MAX_MILEAGE in a simulation
 
-        In other words, marker is terminated if t > ENDCOND_MAX_MILEAGE or
-        t0 + t > ENDCOND_MAX_SIMTIME where t0 is marker's initial time and t
-        the time it has been simulated. See also ENDCOND_CPUTIMELIM.
+        Marker is terminated if t > ENDCOND_MAX_MILEAGE or
+        t0 + t > ENDCOND_LIM_SIMTIME where t0 is marker's initial time and t
+        the time it has been simulated. Note that if time is reversed, the
+        simulation is instead terminated when t0 + t < ENDCOND_LIM_SIMTIME.
+        See also ENDCOND_CPUTIMELIM.
         """
         return self._OPT_ENDCOND_SIMTIMELIM
 
@@ -260,10 +265,22 @@ class Opt(DataGroup):
         return self._OPT_ENDCOND_MAXORBS
 
     @property
-    def _ENDCOND_MAX_SIMTIME(self):
-        """Maximum simulation time
+    def _ENDCOND_NEUTRALIZED(self):
+        """Terminate when the marker becomes neutral
         """
-        return self._OPT_ENDCOND_MAX_SIMTIME
+        return self._OPT_ENDCOND_NEUTRALIZED
+
+    @property
+    def _ENDCOND_IONIZED(self):
+        """Terminate when the marker becomes ionized.
+        """
+        return self._OPT_ENDCOND_IONIZED
+
+    @property
+    def _ENDCOND_LIM_SIMTIME(self):
+        """Time when the simulation stops [s]
+        """
+        return self._OPT_ENDCOND_LIM_SIMTIME
 
     @property
     def _ENDCOND_MAX_MILEAGE(self):
@@ -360,6 +377,17 @@ class Opt(DataGroup):
         """Disable guiding center spatial diffusion
         """
         return self._OPT_DISABLE_GCDIFF_CCOLL
+
+    @property
+    def _REVERSE_TIME(self):
+         """Trace markers backwards in time.
+
+         Collision operator isn't reversible so disable collisions if this
+         option is used. Also when tracing markers, the simulation stops when
+         marker time is below ENDCOND_LIM_SIMTIME.
+         """
+         return self._OPT_REVERSE_TIME
+
 
     @property
     def _ENABLE_DIST_5D(self):

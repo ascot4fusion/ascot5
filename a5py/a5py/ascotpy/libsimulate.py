@@ -55,16 +55,18 @@ class LibSimulate():
         self._sim.enable_orbfol       = int(opt["ENABLE_ORBIT_FOLLOWING"])
         self._sim.enable_clmbcol      = int(opt["ENABLE_COULOMB_COLLISIONS"])
         self._sim.enable_mhd          = int(opt["ENABLE_MHD"])
+        self._sim.enable_atomic       = int(opt["ENABLE_ATOMIC"])
         self._sim.disable_gctransform = int(opt["DISABLE_FIRSTORDER_GCTRANS"])
         self._sim.disable_energyccoll = int(opt["DISABLE_ENERGY_CCOLL"])
         self._sim.disable_pitchccoll  = int(opt["DISABLE_PITCH_CCOLL"])
         self._sim.disable_gcdiffccoll = int(opt["DISABLE_GCDIFF_CCOLL"])
+        self._sim.reverse_time        = int(opt["REVERSE_TIME"])
 
         # Which end conditions are active
         self._sim.endcond_active = 0;
         if opt["ENDCOND_SIMTIMELIM"]:
             self._sim.endcond_active = \
-                self._sim.endcond_active | ascot2py.endcond_tmax
+                self._sim.endcond_active | ascot2py.endcond_tlim
         if opt["ENDCOND_CPUTIMELIM"]:
             self._sim.endcond_active = \
                 self._sim.endcond_active | ascot2py.endcond_cpumax
@@ -87,10 +89,16 @@ class LibSimulate():
             self._sim.endcond_active = \
                 self._sim.endcond_active | ascot2py.endcond_tormax
         self._sim.endcond_torandpol  = 0 + 1 * int(opt["ENDCOND_MAXORBS"] == 2)
+        if opt["ENDCOND_NEUTRALIZED"]:
+            self._sim.endcond_active = \
+                self._sim.endcond_active | ascot2py.endcond_neutrz
+        if opt["ENDCOND_IONIZED"]:
+            self._sim.endcond_active = \
+                self._sim.endcond_active | ascot2py.endcond_ioniz
 
         # End condition parameters
         eV2J = unyt.e.base_value
-        self._sim.endcond_max_simtime = opt["ENDCOND_MAX_SIMTIME"]
+        self._sim.endcond_lim_simtime = opt["ENDCOND_LIM_SIMTIME"]
         self._sim.endcond_max_mileage = opt["ENDCOND_MAX_MILEAGE"]
         self._sim.endcond_max_cputime = opt["ENDCOND_MAX_CPUTIME"]
         self._sim.endcond_max_rho     = opt["ENDCOND_MAX_RHO"]

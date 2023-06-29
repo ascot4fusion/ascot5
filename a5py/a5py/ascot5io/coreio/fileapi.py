@@ -56,7 +56,8 @@ from collections import OrderedDict
 from a5py.exceptions import AscotNoDataException, AscotIOException
 
 INPUTGROUPS = ["options", "bfield", "efield", "marker", "plasma", "neutral",
-               "wall", "boozer", "mhd", "asigma", "nbi", "marker_shined"]
+               "wall", "boozer", "mhd", #"asigma",
+               "nbi", "marker_shined"]
 """Names of the input parent groups.
 """
 

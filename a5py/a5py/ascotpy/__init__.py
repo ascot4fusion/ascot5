@@ -197,6 +197,7 @@ class Ascotpy(LibAscot, LibSimulate):
             ctypes.byref(self._wall_int_offload_array),
             ctypes.byref(self._boozer_offload_array),
             ctypes.byref(self._mhd_offload_array),
+            ctypes.byref(self._mhd_offload_array), # Placeholder
             None, # Marker array (ignore)
             None  # Number of markers that were read (ignore)
             )
@@ -256,6 +257,7 @@ class Ascotpy(LibAscot, LibSimulate):
             self._plasma_offload_array, self._neutral_offload_array,
             self._wall_offload_array,   self._wall_int_offload_array,
             self._boozer_offload_array, self._mhd_offload_array,
+            self._mhd_offload_array, # Placeholder
             ctypes.byref(self._offload_array),
             ctypes.byref(self._int_offload_array))
         self._offload_ready = True

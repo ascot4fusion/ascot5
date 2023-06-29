@@ -26,6 +26,8 @@ class State(DataContainer):
     _POLMAX  = 0x100
     _TORMAX  = 0x200
     _CPUMAX  = 0x400
+    _NEUTR   = 0x800
+    _IONIZ   = 0x1000
 
     @property
     def ABORTED(self):
@@ -92,6 +94,18 @@ class State(DataContainer):
         """Simulation for this marker exceeded the set CPU time.
         """
         return State._CPUMAX
+
+    @property
+    def NEUTR(self):
+        """Ion marker neutralized.
+        """
+        return State._NEUTR
+
+    @property
+    def IONIZ(self):
+        """Neutral marker ionized.
+        """
+        return State._IONIZ
 
     def write_hdf5(self):
         """Write state data in HDF5 file.
