@@ -3,8 +3,8 @@
  * @brief Module for performing guiding center transformations
  *
  * The guiding center transformation is done both ways between particle
- * phase-space [r, phi, z, vr, vphi, vz] and guiding center phase-space
- * [R, Phi, Z, vpar, mu, zeta] to first order (both in spatial and velocity
+ * phase-space [r, phi, z, pr, pphi, pz] and guiding center phase-space
+ * [R, Phi, Z, ppar, mu, zeta] to first order (both in spatial and momentum
  * space coordinates).
  *
  * The guiding genter motion is defined from a basis {bhat, e1, e2}, where bhat
@@ -18,10 +18,10 @@
  *   gctransform_particle2guidingcenter()
  *
  * - guiding center to particle transformation is accomplished by calling
- *   gctransform_guidingcenter2particle() which gives [r, phi, z, vpar, mu,
- *   zeta] in particle coordinates. To obtain [r, phi, z, vr, vphi, vz],
+ *   gctransform_guidingcenter2particle() which gives [r, phi, z, ppar, mu,
+ *   zeta] in particle coordinates. To obtain [r, phi, z, pr, pphi, pz],
  *   first evaluate magnetic field at particle position and then call
- *   gctransform_vparmuzeta2vRvphivz().
+ *   gctransform_pparmuzeta2pRpphipz().
  *
  * The transformation is relativistic.
  *
@@ -39,7 +39,7 @@
 #include "gctransform.h"
 
 #pragma omp declare target
-/** Order to which guiding center transformation is done in velocity space. */
+/** Order to which guiding center transformation is done in momentum space. */
 static int GCTRANSFORM_ORDER = 1;
 #pragma omp end declare target
 
@@ -55,8 +55,10 @@ void gctransform_setorder(int order) {
 /**
  * @brief Transform particle to guiding center  phase space
  *
- * The transformation is done from coordinates [r, phi, z, vr, vphi, vz] to
- * [R, Phi, Z, vpar, mu, zeta].
+ * The transformation is done from coordinates [r, phi, z, pr, pphi, pz] to
+ * [R, Phi, Z, ppar, mu, zeta]. If particle is neutral, the transformation
+ * will be in zeroth order both in real and momentum space as that
+ * transformation is valid when q = 0.
  *
  * @param mass   mass [kg]
  * @param charge charge [C]
@@ -206,7 +208,10 @@ void gctransform_particle2guidingcenter(
     math_cross(bhat, e1, e2);
 
     /* Gyrolength */
-    real rho0 = sqrt( ( 2* mass * mu0 ) / Bnorm ) / fabs(charge);
+    real rho0 = 0.0;
+    if(charge != 0) {
+        rho0 = sqrt( ( 2* mass * mu0 ) / Bnorm ) / fabs(charge);
+    }
 
     /* First order position */
     real XYZ[3];
@@ -225,19 +230,23 @@ void gctransform_particle2guidingcenter(
     real zeta0 =
         atan2( -math_dot(rhohat, e2), math_dot(rhohat, e1) );
 
-    /* First order velocity terms vpar, mu1, and zeta1 */
-    real ppar1 =
-        -ppar0 * rho0 * math_dot(rhohat, kappa) +
-        ( mass * mu0 / charge ) * ( tau + a1ddotgradb );
+    /* First order momentum terms ppar, mu1, and zeta1 */
+    real ppar1 = 0.0;
+    if(charge != 0) {
+        ppar1 = -ppar0 * rho0 * math_dot(rhohat, kappa) +
+            ( mass * mu0 / charge ) * ( tau + a1ddotgradb );
+    }
 
-    real ppar2   = ppar0 * ppar0;
+    real ppar2   = ppar0 * ppar0; // Power, not second order component ;)
     real temp[3] = { mu0 * gradB[0] + ppar2 * kappa[0] / mass,
                      mu0 * gradB[1] + ppar2 * kappa[1] / mass,
                      mu0 * gradB[2] + ppar2 * kappa[2] / mass };
-    real mu1 =
-        ( rho0 / Bnorm ) * math_dot(rhohat, temp) -
-        ( ppar0 * mu0 / ( charge * Bnorm ) ) *
-        ( tau + a1ddotgradb );
+    real mu1 = 0.0;
+    if(charge != 0) {
+        mu1 = ( rho0 / Bnorm ) * math_dot(rhohat, temp) -
+            ( ppar0 * mu0 / ( charge * Bnorm ) ) *
+            ( tau + a1ddotgradb );
+    }
 
     /* This monster is Littlejohn's gyro gauge vector (nabla e1) dot e2 */
     real bx2by2 = bhat[0] * bhat[0] + bhat[1] * bhat[1];
@@ -259,12 +268,14 @@ void gctransform_particle2guidingcenter(
     temp[0] = gradB[0] + kappa[0] * ( ppar2 / mass ) / (2 * mu0);
     temp[1] = gradB[1] + kappa[1] * ( ppar2 / mass ) / (2 * mu0);
     temp[2] = gradB[2] + kappa[2] * ( ppar2 / mass ) / (2 * mu0);
-    real zeta1 =
-        -rho0 * math_dot(rhohat, Rvec) +
-        ( ppar0 / ( charge * Bnorm ) ) * a2ddotgradb +
-        ( rho0 / Bnorm ) * math_dot(perphat, temp);
+    real zeta1 = 0.0;
+    if(charge != 0) {
+        zeta1 = -rho0 * math_dot(rhohat, Rvec) +
+            ( ppar0 / ( charge * Bnorm ) ) * a2ddotgradb +
+            ( rho0 / Bnorm ) * math_dot(perphat, temp);
+    }
 
-    /* Choose whether to use first order transformation in velocity space */
+    /* Choose whether to use first order transformation in momentum space */
     if(GCTRANSFORM_ORDER) {
         *ppar  = ppar0 + ppar1;
         *mu    = fabs(mu0 + mu1);
@@ -284,7 +295,9 @@ void gctransform_particle2guidingcenter(
  * @brief Transform guiding center to particle phase space
  *
  * The transformation is done from coordinates [R, Phi, Z, ppar, mu] to
- * [r, phi, z, ppar_prt, mu_prt, zeta_prt].
+ * [r, phi, z, ppar_prt, mu_prt, zeta_prt]. If particle is neutral,
+ * the transformation will be in zeroth order both in real and momentum space
+ * as that transformation is valid when q = 0.
  *
  * @param mass     mass [kg]
  * @param charge   charge [C]
@@ -373,9 +386,12 @@ void gctransform_guidingcenter2particle(
     math_cross(bhat, e1, e2);
 
     /* Gyrolength */
-    real rho0 = sqrt( ( 2* mass * mu ) / Bnorm ) / fabs(charge);
+    real rho0 = 0.0;
+    if(charge != 0) {
+        rho0 = sqrt( ( 2* mass * mu ) / Bnorm ) / fabs(charge);
+    }
 
-    /* Gyrovector rhohat and vperphat*/
+    /* Gyrovector rhohat and pperphat*/
     real rhohat[3];
     real perphat[3];
     real c = cos(zeta);
@@ -429,19 +445,23 @@ void gctransform_guidingcenter2particle(
             );
 
     /* First order terms */
-    real ppar1 =
-        -ppar * rho0 * math_dot(rhohat, kappa) +
-        ( mass * mu / charge ) * ( tau + a1ddotgradb );
+    real ppar1 = 0.0;
+    if(charge != 0) {
+        ppar1 = -ppar * rho0 * math_dot(rhohat, kappa) +
+            ( mass * mu / charge ) * ( tau + a1ddotgradb );
+    }
 
-    real ppar2 = ppar * ppar;
+    real ppar2 = ppar * ppar; // Second power, not second order term
     real temp[3] =
         { mu * gradB[0] + ppar2 * kappa[0] / mass,
           mu * gradB[1] + ppar2 * kappa[1] / mass,
           mu * gradB[2] + ppar2 * kappa[2] / mass };
-    real mu1 =
-        ( rho0 / Bnorm ) * math_dot(rhohat, temp) -
-        ( ppar * mu / ( charge * Bnorm ) ) *
-        ( tau + a1ddotgradb );
+    real mu1 = 0.0;
+    if(charge != 0) {
+        mu1 = ( rho0 / Bnorm ) * math_dot(rhohat, temp) -
+            ( ppar * mu / ( charge * Bnorm ) ) *
+            ( tau + a1ddotgradb );
+    }
 
     temp[0] = gradB[0] + kappa[0] * ppar2 / (2 * mass * mu);
     temp[1] = gradB[1] + kappa[1] * ppar2 / (2 * mass * mu);
@@ -463,13 +483,14 @@ void gctransform_guidingcenter2particle(
     Rvec[2] =
         b1x * ( nablabhat[7] + b2x * ( nablabhat[6] + nablabhat[7] ) ) +
         b1y * ( nablabhat[6] + b2y * ( nablabhat[6] + nablabhat[7] ) );
-    real zeta1 =
-        -rho0 * math_dot(rhohat, Rvec) +
-        ( ppar / ( charge * Bnorm ) ) * a2ddotgradb +
-        ( rho0 / Bnorm ) * math_dot(perphat, temp);
+    real zeta1 = 0.0;
+    if(charge != 0) {
+        zeta1 = -rho0 * math_dot(rhohat, Rvec) +
+            ( ppar / ( charge * Bnorm ) ) * a2ddotgradb +
+            ( rho0 / Bnorm ) * math_dot(perphat, temp);
+    }
 
-    /* Choose whether to use first or zeroth order velocity transform */
-
+    /* Choose whether to use first or zeroth order momentum transform */
     if(GCTRANSFORM_ORDER) {
         mu   = fabs(mu - mu1);
         ppar -= ppar1;
@@ -503,21 +524,21 @@ void gctransform_guidingcenter2particle(
 }
 
 /**
- * @brief Transform particle vpar, mu, and zeta to velocity vector.
+ * @brief Transform particle ppar, mu, and zeta to momentum vector.
  *
- * The transformation is done from coordinates [R, Phi, Z, vpar, mu] to
- * [r, phi, z, vr, vphi, vz]. The transformation is done to first order.
+ * The transformation is done from coordinates [R, Phi, Z, ppar, mu] to
+ * [r, phi, z, pr, pphi, pz]. The transformation is done to first order.
  *
  * @param mass   mass [kg]
  * @param charge charge [C]
  * @param B_dB   gradient of magnetic field vector at particle position
  * @param phi    particle phi coordinate [rad]
- * @param vpar   particle parallel velocity [m/s]
+ * @param ppar   particle parallel momentum [kg m/s]
  * @param mu     particle magnetic moment [J/T]
  * @param zeta   particle gyroangle [rad]
- * @param vr     pointer to particle velocity R-component [m/s]
- * @param vphi   pointer to particle velocity phi-component [m/s]
- * @param vz     pointer to particle velocity z-component [m/s]
+ * @param pr     pointer to particle momentum R-component [kg m/s]
+ * @param pphi   pointer to particle momentum phi-component [kg m/s]
+ * @param pz     pointer to particle momentum z-component [kg m/s]
  */
 void gctransform_pparmuzeta2prpphipz(real mass, real charge, real* B_dB,
                                      real phi, real ppar, real mu, real zeta,

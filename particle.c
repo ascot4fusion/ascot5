@@ -81,6 +81,8 @@ void particle_to_fo_dummy(particle_simd_fo* p_fo, int j){
     p_fo->p_z[j]      = 1;
     p_fo->mass[j]     = 1;
     p_fo->charge[j]   = 1;
+    p_fo->znum[j]     = 1;
+    p_fo->anum[j]     = 1;
     p_fo->weight[j]   = 0;
     p_fo->time[j]     = 0;
     p_fo->id[j]       = -1;
@@ -822,6 +824,8 @@ a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
 
         p_fo->mass[j]       = p->mass;
         p_fo->charge[j]     = p->charge;
+        p_fo->znum[j]       = p->znum;
+        p_fo->anum[j]       = p->anum;
         p_fo->weight[j]     = p->weight;
         p_fo->time[j]       = p->time;
         p_fo->theta[j]      = p->theta;
@@ -903,6 +907,8 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
 
     p->mass       = p_fo->mass[j];
     p->charge     = p_fo->charge[j];
+    p->znum       = p_fo->znum[j];
+    p->anum       = p_fo->anum[j];
     p->weight     = p_fo->weight[j];
     p->time       = p_fo->time[j];
     p->theta      = p_fo->theta[j];
@@ -1464,6 +1470,8 @@ void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j) 
 
         p2->mass[j]       = p1->mass[i];
         p2->charge[j]     = p1->charge[i];
+        p2->znum[j]       = p1->znum[i];
+        p2->anum[j]       = p1->anum[i];
 
         p2->id[j]         = p1->id[i];
         p2->running[j]    = p1->running[i];

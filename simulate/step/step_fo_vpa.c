@@ -23,6 +23,9 @@
  * volume preserving algorithm (Boris method for relativistic particles) see
  * Zhang 2015.
  *
+ * This algorithm is valid for neutral particles as well, in which case the
+ * motion reduces to ballistic motion where momentum remains constant.
+ *
  * @param p particle_simd_fo struct that will be updated
  * @param h pointer to array containing time steps
  * @param Bdata pointer to magnetic field data

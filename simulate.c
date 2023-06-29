@@ -82,6 +82,7 @@ void simulate(int id, int n_particles, particle_state* p,
         sim_offload_data* sim_offload,
         offload_package* offload_data,
         real* offload_array,
+        int* int_offload_array,
         real* diag_offload_array) {
 
     char targetname[5];
@@ -118,7 +119,7 @@ void simulate(int id, int n_particles, particle_state* p,
 
     ptr = offload_unpack(offload_data, offload_array,
             sim_offload->wall_offload_data.offload_array_length);
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, int_offload_array);
 
     ptr = offload_unpack(offload_data, offload_array,
             sim_offload->boozer_offload_data.offload_array_length);
@@ -335,6 +336,7 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->enable_orbfol        = offload_data->enable_orbfol;
     sim->enable_clmbcol       = offload_data->enable_clmbcol;
     sim->enable_mhd           = offload_data->enable_mhd;
+    sim->enable_atomic        = offload_data->enable_atomic;
     sim->disable_gctransform  = offload_data->disable_gctransform;
     sim->disable_energyccoll  = offload_data->disable_energyccoll;
     sim->disable_pitchccoll   = offload_data->disable_pitchccoll;

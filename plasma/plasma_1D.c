@@ -117,8 +117,10 @@ void plasma_1D_init(plasma_1D_data* pls_data,
     pls_data->n_species = offload_data->n_species;
 
     for(int i = 0; i < pls_data->n_species; i++) {
-        pls_data->mass[i] = offload_data->mass[i];
+        pls_data->mass[i]   = offload_data->mass[i];
         pls_data->charge[i] = offload_data->charge[i];
+        pls_data->znum[i]   = offload_data->znum[i];
+        pls_data->anum[i]   = offload_data->anum[i];
     }
     pls_data->rho  = &offload_array[0];
     pls_data->temp = &offload_array[pls_data->n_rho];
@@ -290,4 +292,28 @@ const real* plasma_1D_get_species_mass(plasma_1D_data* pls_data) {
  */
 const real* plasma_1D_get_species_charge(plasma_1D_data* pls_data) {
     return pls_data->charge;
+}
+
+/**
+ * @brief Return pointer to array storing species atomic number
+ *
+ * @param pls_data pointer to plasma data
+ *
+ * @return pointer to immutable MAX_SPECIES length array containing
+ *         atomic numbers
+ */
+const int* plasma_1D_get_species_znum(plasma_1D_data* pls_data) {
+    return pls_data->znum;
+}
+
+/**
+ * @brief Return pointer to array storing species mass number
+ *
+ * @param pls_data pointer to plasma data
+ *
+ * @return pointer to immutable MAX_SPECIES length array containing
+ *         mass numbers
+ */
+const int* plasma_1D_get_species_anum(plasma_1D_data* pls_data) {
+    return pls_data->anum;
 }

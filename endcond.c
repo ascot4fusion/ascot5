@@ -27,6 +27,10 @@
  *
  * - cpumax: Marker simulation has exceeded maximum wall time
  *
+ * - neutr: Marker has been neutralized by an atomic reaction
+ *
+ * - ioniz: Marker has been ionized by an atomic reaction
+ *
  * - hybrid: Not an end condition per se but used to notate that the guiding
  *   center simulation will be resumed as a gyro-orbit simulation
  *
@@ -80,6 +84,8 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
     int active_polmax    = sim->endcond_active & endcond_polmax;
     int active_tormax    = sim->endcond_active & endcond_tormax;
     int active_cpumax    = sim->endcond_active & endcond_cpumax;
+    int active_neutr     = sim->endcond_active & endcond_neutr;
+    int active_ioniz     = sim->endcond_active & endcond_ioniz;
 
     #pragma omp simd
     for(int i = 0; i < NSIMD; i++) {
@@ -192,6 +198,22 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
             if(active_cpumax) {
                 if(p_f->cputime[i] > sim->endcond_max_cputime) {
                     p_f->endcond[i] |= endcond_cpumax;
+                    p_f->running[i] = 0;
+                }
+            }
+
+            /* Check if the particle has been neutralized */
+            if(active_neutr) {
+                if(p_i->charge[i] != 0.0 && p_f->charge[i] == 0.0) {
+                    p_f->endcond[i] |= endcond_neutr;
+                    p_f->running[i] = 0;
+                }
+            }
+
+            /* Check if the particle has been ionized */
+            if(active_ioniz) {
+                if(p_i->charge[i] == 0.0 && p_f->charge[i] != 0.0) {
+                    p_f->endcond[i] |= endcond_ioniz;
                     p_f->running[i] = 0;
                 }
             }
@@ -486,6 +508,8 @@ void endcond_parse(int endcond, int* endconds) {
     if(endcond & endcond_tormax) {endconds[i++] =  8;};
     if(endcond & endcond_cpumax) {endconds[i++] =  9;};
     if(endcond & endcond_hybrid) {endconds[i++] = 10;};
+    if(endcond & endcond_neutr)  {endconds[i++] = 11;};
+    if(endcond & endcond_ioniz)  {endconds[i++] = 12;};
 }
 
 /**
@@ -531,6 +555,12 @@ void endcond_parse2str(int endcond, char* str) {
             break;
         case 10:
             sprintf(str, "Hybrid condition");
+            break;
+        case 11:
+            sprintf(str, "Neutralization");
+            break;
+        case 12:
+            sprintf(str, "Ionization");
             break;
     }
 }

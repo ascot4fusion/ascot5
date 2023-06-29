@@ -25,7 +25,10 @@ enum {
     endcond_polmax = 0x40,  /**< Poloidal limit          */
     endcond_tormax = 0x80,  /**< Toroidal limit          */
     endcond_cpumax = 0x100, /**< Wall time exceeded      */
-    endcond_hybrid = 0x200  /**< Hybrid mode condition   */
+    endcond_hybrid = 0x200, /**< Hybrid mode condition   */
+    endcond_neutr  = 0x400, /**< Neutralized             */
+    endcond_ioniz  = 0x800  /**< Ionized                 */
+
 };
 
 #pragma omp declare target

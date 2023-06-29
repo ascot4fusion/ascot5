@@ -27,7 +27,7 @@
 #include "random.h"
 #include "wall.h"
 
-int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt);
+int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt, double* t1, double* t2);
 
 /**
  * @brief Main function for BBNBI5
@@ -40,8 +40,9 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt);
 int main(int argc, char** argv) {
     /* Read and parse command line arguments */
     int nprt;
+    double t1, t2;
     sim_offload_data sim;
-    if(read_arguments(argc, argv, &sim, &nprt) != 0) {
+    if(read_arguments(argc, argv, &sim, &nprt, &t1, &t2) != 0) {
         return 1;
     }
 
@@ -49,10 +50,12 @@ int main(int argc, char** argv) {
     real* B_offload_array;
     real* plasma_offload_array;
     real* wall_offload_array;
+    int*  wall_int_offload_array;
     hdf5_interface_read_input(&sim, hdf5_input_bfield | hdf5_input_plasma |
                               hdf5_input_wall, &B_offload_array, NULL,
                               &plasma_offload_array, NULL, &wall_offload_array,
-                              NULL, NULL, NULL, NULL);
+                              &wall_int_offload_array, NULL, NULL, NULL, NULL,
+                              NULL);
 
     B_field_data B_data;
     B_field_init(&B_data, &sim.B_offload_data, B_offload_array);
@@ -61,7 +64,7 @@ int main(int argc, char** argv) {
     plasma_init(&plasma_data, &sim.plasma_offload_data, plasma_offload_array);
 
     wall_data wall_data;
-    wall_init(&wall_data, &sim.wall_offload_data, wall_offload_array);
+    wall_init(&wall_data, &sim.wall_offload_data, wall_offload_array, wall_int_offload_array);
 
     random_data rng;
     random_init(&rng, time(NULL));
@@ -106,7 +109,7 @@ int main(int argc, char** argv) {
             nprt_inj = inj[i].power/total_power * nprt;
         }
 
-        nbi_generate(nprt_inj, &p[nprt_generated], &inj[i], &B_data,
+        nbi_generate(nprt_inj, t1, t2, &p[nprt_generated], &inj[i], &B_data,
                      &plasma_data, &wall_data, &rng);
 
         nprt_generated += nprt_inj;
@@ -172,7 +175,7 @@ int main(int argc, char** argv) {
  *
  * @return Zero if success
  */
-int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt) {
+int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt, double* t1, double* t2) {
     struct option longopts[] = {
         {"in", required_argument, 0, 1},
         {"out", required_argument, 0, 2},
@@ -183,6 +186,8 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt) {
         {"wall",    required_argument, 0, 7},
         {"plasma",  required_argument, 0, 8},
         {"n",       required_argument, 0, 9},
+        {"t1", required_argument, 0, 10},
+        {"t2", required_argument, 0, 11},
         {0, 0, 0, 0}
     };
 
@@ -196,6 +201,8 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt) {
     sim->qid_wall[0]    = '\0';
     sim->qid_plasma[0]  = '\0';
     *nprt               = 10000;
+    *t1                 = 0.0;
+    *t2                 = 1.0;
 
     // Read user input
     int c;
@@ -242,6 +249,12 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim, int* nprt) {
                 break;
             case 9:
                 *nprt = atoi(optarg);
+                break;
+            case 10:
+                *t1 = atof(optarg);
+                break;
+            case 11:
+                *t2 = atof(optarg);
                 break;
             default:
                 // Unregonizable argument(s). Tell user how to run ascot5_main
