@@ -424,9 +424,11 @@ class GroupFrame(tk.Frame):
 
         # Set white background, header font, and default font for tree entries.
         style = ttk.Style()
-        style.configure("Treeview.Heading", font=("Calibri", 10))
+        style.configure("Treeview.Heading", font=("Calibri", 10),
+                        background="white")
+        style.map('Treeview.Heading', background=[('focus', 'white')])
         style.configure("Treeview", font=("Calibri", 9),
-                        background="white", fieldbackground="white")
+                        background="white", fieldbackground="white", indent=1)
 
         # Tree where only one item can be selected at a time
         tree = ttk.Treeview(self, style="mystyle.Treeview", selectmode="browse")
@@ -675,10 +677,15 @@ class GroupMenu(tk.Menu):
             self.post(e.x_root, e.y_root)
             self.focus_set()
 
-            # Disable "add dummy option" if selected item is not parent
+            # Disable "add dummy input" option if selected item is not parent
             self.entryconfigure(4, state="normal")
             if itemname not in INPUT_PARENTS + ["results"]:
                 self.entryconfigure(4, state="disabled")
+
+            # Disable "activate" option is selected item is a parent
+            self.entryconfigure(0, state="normal")
+            if itemname in INPUT_PARENTS + ["results"]:
+                self.entryconfigure(0, state="disabled")
 
             # This will launch a event that will update the GUI.
             self.tree.selection_set(item)

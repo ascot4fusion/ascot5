@@ -29,7 +29,7 @@ def read_hdf5(fn, qid, prefix):
     out = {}
     with h5py.File(fn,"r") as f:
         for key in f[path]:
-            # Make all read-in datasets 1-d arrays, 
+            # Make all read-in datasets 1-d arrays,
             # regardless of their original dimensionality
             d=f[path][key][:]
             out[key] = np.reshape(d,newshape=(d.size,))

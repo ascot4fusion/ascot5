@@ -27,7 +27,7 @@ Begin by creating your own virtual environment:::
 
 If you can't use/install virtualenv, you can use `venv` instead:::
 
-    python3 -m --system_site_packages venv ascot
+    python3 -m venv --system-site-packages ascot
     source ascot/bin/activate
 
 Flag --system-site-packages makes your virtual environment inherit packages
@@ -39,15 +39,19 @@ with:::
 
     pip list
 
-If necessary, install the required packages:::
+Then install `a5py` and the requirements will be picked up from
+`requirements.txt`:::
 
-    pip install numpy
-    pip install scipy
-    pip install h5py
+    pip install -e /path/to/a5py
 
-and then you can install `a5py`:::
+If not, install the required packages:::
 
-    pip install /path/to/a5py
+    pip install -r requirements.txt
+
+The `-e` in the command above makes the package "editable", meaning links to
+the source files are made in the site-packages folder rather than copies. This
+means you can change and update the source files, and this will be immediately
+reflected in the `a5py` Python package.
 
 You can now import `a5py` as any library. Note that `a5py` contains scripts that
 can be used directly from command line after the installation e.g.:::
@@ -55,14 +59,16 @@ can be used directly from command line after the installation e.g.:::
     a5gui ascot.h5
     (Open GUI on ascot.h5)
 
-To exit your virtualenvironment, type::
+To exit your virtual environment, type::
 
     deactivate
 
 Updating a5py
 --------------
 
-Everytime the source code is modified, e.g. by pulling a new version from git::
+If you did not use the `-e` flag to install `a5py` in your virtual environment,
+then everytime the source code is modified, e.g. by pulling a new version from
+git::
 
     git pull --rebase
 

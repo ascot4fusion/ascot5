@@ -4,3 +4,7 @@
 /a5py/build
 /a5py/dist
 /a5py/a5py.egg-info/
+/a5py/venv
+/a5py/.venv
+/a5py/env
+/a5py/.env

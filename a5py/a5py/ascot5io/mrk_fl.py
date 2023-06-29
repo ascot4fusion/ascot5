@@ -6,7 +6,7 @@ File: mrk_fl.py
 import h5py
 import numpy as np
 
-from . ascot5file import add_group
+from . ascot5file import add_group, read_data
 from a5py.ascot5io.mrk import mrk
 import a5py.ascot5io.mrk
 
@@ -99,3 +99,13 @@ class mrk_fl(mrk):
             data = self.read()
 
         return write_hdf5(fn, **data, desc=desc)
+
+
+    def eval_pitch(self, ascotpy):
+        """
+        Evaluate pitch.
+        """
+        with self as h5:
+            pitch = read_data(h5, "pitch")
+
+        return pitch

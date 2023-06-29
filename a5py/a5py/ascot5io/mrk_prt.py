@@ -10,6 +10,9 @@ from . ascot5file import add_group
 from a5py.ascot5io.mrk import mrk
 import a5py.ascot5io.mrk
 
+from a5py.ascot5io.ascot5file import read_data
+from a5py.physlib.gamma import energy_velocity
+
 
 def write_hdf5(fn, n, ids, mass, charge,
                r, phi, z, vr, vphi, vz,
@@ -124,3 +127,31 @@ class mrk_prt(mrk):
             data = self.read()
 
         return write_hdf5(fn, **data, desc=desc)
+
+    def eval_energy(self, ascotpy):
+        with self as h5:
+            vr   = read_data(h5, "vr")
+            vz   = read_data(h5, "vz")
+            vphi = read_data(h5, "vphi")
+            mass = read_data(h5, "mass")
+
+        v = np.sqrt(vr**2 + vz**2 + vphi**2)
+        return energy_velocity(mass, v)
+
+    def eval_pitch(self, ascotpy):
+        with self as h5:
+            r    = read_data(h5, "r")
+            z    = read_data(h5, "z")
+            phi  = read_data(h5, "phi")
+            vr   = read_data(h5, "vr")
+            vz   = read_data(h5, "vz")
+            vphi = read_data(h5, "vphi")
+            mass = read_data(h5, "mass")
+
+        br    = ascotpy.evaluate(r, phi, z, 0, "br")
+        bz    = ascotpy.evaluate(r, phi, z, 0, "bz")
+        bphi  = ascotpy.evaluate(r, phi, z, 0, "bphi")
+        b     = np.sqrt(br**2 + bz**2 + bphi**2)
+        v     = np.sqrt(vr**2 + vz**2 + vphi**2)
+        pitch = ( vr * br + vz * bz + vphi * bphi ) / ( b * v )
+        return pitch
