@@ -5,7 +5,7 @@ from .efield  import E_TC, E_1DS, E_3D, E_3DS, E_3DST
 from .marker  import Prt, GC, FL
 from .plasma  import plasma_1D, plasma_1DS
 from .wall    import wall_2D, wall_3D
-from .neutral import N0_3D
+from .neutral import N0_1D, N0_3D
 from .boozer  import Boozer
 from .mhd     import MHD_STAT, MHD_NONSTAT
 from .options import Opt
@@ -34,7 +34,7 @@ HDF5TOOBJ = {
     "prt" : Prt, "gc" : GC, "fl" : FL,
     "wall_2D" : wall_2D, "wall_3D" : wall_3D,
     "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS,
-    "N0_3D" : N0_3D,
+    "N0_1D" : N0_1D, "N0_3D" : N0_3D,
     "Boozer" : Boozer, "MHD_STAT" : MHD_STAT, "MHD_NONSTAT" : MHD_NONSTAT,
     "opt" : Opt,
     "nbi" : NBI,

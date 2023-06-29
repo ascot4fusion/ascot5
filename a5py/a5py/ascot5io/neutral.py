@@ -8,6 +8,139 @@ import h5py
 from .coreio.fileapi import add_group
 from .coreio.treedata import DataGroup
 
+class N0_1D(DataGroup):
+    """Constant-on-flux-surfaces neutral profile.
+    """
+
+    def read_hdf5(self):
+        """Read data from HDF5 file.
+
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
+
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
+
+        out["density"]     = np.transpose(out["density"],     (1,0))
+        out["temperature"] = np.transpose(out["temperature"], (1,0))
+
+        return out
+
+    @staticmethod
+    def write_hdf5(fn, rhomin, rhomax, nrho,
+               nspecies, anum, znum, density, temperature, maxwellian=1,
+               desc=None):
+        """Write input data to the HDF5 file.
+
+        Parameters
+        ----------
+        fn : str
+            Full path to the HDF5 file.
+        rhomin : float
+            Minimum value in rho grid [1].
+        rhomax : float
+            Maximum value in rho grid [1].
+        nrho : int
+            Number of rho grid points.
+        nspecies : int
+            Number of neutral species.
+        anum : array_like (nspecies,1)
+            Neutral species' atomic mass number.
+        znum array_like (nspecies,1)
+            Neutral species' charge number.
+        density array_like (nrho,nspecies)
+            Neutral species-wise density [m^-3].
+        temperature array_like (nrho,nspecies)
+            Neutral species-wise temperature [eV].
+        maxwellian array_like (nspecies,1)
+            Whether species distribution is Maxwellian (1) of monoenergetic (0)
+        desc : str, optional
+            Input description.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+
+        Raises
+        ------
+        ValueError
+            If inputs were not consistent.
+        """
+        if density.shape != (nrho,nspecies):
+            raise ValueError("Density has invalid shape.")
+        if temperature.size != (nrho,nspecies):
+            raise ValueError("Temperature has invalid shape.")
+        if anum.size != nspecies or znum.size != nspecies:
+            raise ValueError("Anum or Znum has invalid shape.")
+        if maxwellian != 1 and maxwellian.size != nspecies:
+            raise ValueError("Failed to interpret maxwellian parameter.")
+
+        parent = "neutral"
+        group  = "N0_1D"
+        gname  = ""
+
+        # Transpose n0 from (rho, spec) to (spec, rho)
+        density     = np.transpose(density)
+
+        if maxwellian == 1:
+            maxwellian = np.ones( (int(nspecies),1) )
+
+        with h5py.File(fn, "a") as f:
+            g = add_group(f, parent, group, desc=desc)
+            gname = g.name.split("/")[-1]
+
+            g.create_dataset("rhomin",   (1,), data=rhomin,   dtype="f8")
+            g.create_dataset("rhomax",   (1,), data=rhomax,   dtype="f8")
+            g.create_dataset("nrho",     (1,), data=nrho,     dtype="i4")
+            g.create_dataset("nspecies", (1,), data=nspecies, dtype="i4")
+
+            g.create_dataset("anum",        (nspecies,),  data=anum,
+                             dtype="i4")
+            g.create_dataset("znum",        (nspecies,),  data=znum,
+                             dtype="i4")
+            g.create_dataset("maxwellian",  (nspecies,),  data=maxwellian,
+                             dtype="i4")
+
+            g.create_dataset("density",     (nspecies,nrho), data=density,
+                             dtype="f8")
+            g.create_dataset("temperature", (nspecies,nrho), data=temperature,
+                             dtype="f8")
+
+        return gname
+
+    @staticmethod
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
+
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        Parameters
+        ----------
+        fn : str
+            Full path to the HDF5 file.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+        """
+        N0_1D.write_hdf5(
+            fn=fn, rhomin=0, rhomax=2, nrho=100, nspecies=1,
+            anum=np.array([1]), znum=np.array([1]),
+            density=5e16*np.ones( (100, 2) ),
+            temperature=1e3*np.ones( (100, 2) ), desc="DUMMY")
+
 class N0_3D(DataGroup):
     """Non-axisymmetric neutral data.
 
