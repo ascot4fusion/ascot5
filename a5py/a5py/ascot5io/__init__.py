@@ -18,6 +18,7 @@ from a5py.ascot5io.dist_5D    import Dist_5D
 from a5py.ascot5io.dist_6D    import Dist_6D
 from a5py.ascot5io.dist_rho5D import Dist_rho5D
 from a5py.ascot5io.dist_rho6D import Dist_rho6D
+from a5py.ascot5io.dist_com   import Dist_COM
 
 from .coreio.fileapi import INPUTGROUPS
 from .coreio.treeview import RootNode, InputNode, ResultNode
@@ -44,6 +45,7 @@ HDF5TOOBJ = {
     "dist6d" : Dist_6D,
     "distrho5d" : Dist_rho5D,
     "distrho6d" : Dist_rho6D,
+    "distcom" : Dist_COM,
     "transcoef": Transcoef
 }
 """Dictionary connecting group names in HDF5 file to corresponding data objects.

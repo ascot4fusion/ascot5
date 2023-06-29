@@ -371,7 +371,9 @@ Options
    a5py.ascot5io.options.Opt._ENDCOND_ENERGYLIM
    a5py.ascot5io.options.Opt._ENDCOND_WALLHIT
    a5py.ascot5io.options.Opt._ENDCOND_MAXORBS
-   a5py.ascot5io.options.Opt._ENDCOND_MAX_SIMTIME
+   a5py.ascot5io.options.Opt._ENDCOND_NEUTRALIZED
+   a5py.ascot5io.options.Opt._ENDCOND_IONIZED
+   a5py.ascot5io.options.Opt._ENDCOND_LIM_SIMTIME
    a5py.ascot5io.options.Opt._ENDCOND_MAX_MILEAGE
    a5py.ascot5io.options.Opt._ENDCOND_MAX_CPUTIME
    a5py.ascot5io.options.Opt._ENDCOND_MAX_RHO
@@ -383,6 +385,7 @@ Options
    a5py.ascot5io.options.Opt._ENABLE_ORBIT_FOLLOWING
    a5py.ascot5io.options.Opt._ENABLE_COULOMB_COLLISIONS
    a5py.ascot5io.options.Opt._ENABLE_MHD
+   a5py.ascot5io.options.Opt._ENABLE_ATOMIC
    a5py.ascot5io.options.Opt._DISABLE_FIRSTORDER_GCTRANS
    a5py.ascot5io.options.Opt._DISABLE_ENERGY_CCOLL
    a5py.ascot5io.options.Opt._DISABLE_PITCH_CCOLL
@@ -427,6 +430,16 @@ Options
    a5py.ascot5io.options.Opt._DIST_MIN_CHARGE
    a5py.ascot5io.options.Opt._DIST_MAX_CHARGE
    a5py.ascot5io.options.Opt._DIST_NBIN_CHARGE
+   a5py.ascot5io.options.Opt._ENABLE_DIST_COM
+   a5py.ascot5io.options.Opt._DIST_MIN_MU
+   a5py.ascot5io.options.Opt._DIST_MAX_MU
+   a5py.ascot5io.options.Opt._DIST_NBIN_MU
+   a5py.ascot5io.options.Opt._DIST_MIN_EKIN
+   a5py.ascot5io.options.Opt._DIST_MAX_EKIN
+   a5py.ascot5io.options.Opt._DIST_NBIN_EKIN
+   a5py.ascot5io.options.Opt._DIST_MIN_PTOR
+   a5py.ascot5io.options.Opt._DIST_MAX_PTOR
+   a5py.ascot5io.options.Opt._DIST_NBIN_PTOR
    a5py.ascot5io.options.Opt._ENABLE_ORBITWRITE
    a5py.ascot5io.options.Opt._ORBITWRITE_MODE
    a5py.ascot5io.options.Opt._ORBITWRITE_NPOINT

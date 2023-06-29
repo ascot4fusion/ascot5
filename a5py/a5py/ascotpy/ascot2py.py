@@ -295,6 +295,35 @@ B_field_type = ctypes.c_uint32 # enum
 class struct_c__SA_B_field_offload_data(Structure):
     pass
 
+class struct_c__SA_B_3DS_offload_data(Structure):
+    pass
+
+struct_c__SA_B_3DS_offload_data._pack_ = 1 # source:False
+struct_c__SA_B_3DS_offload_data._fields_ = [
+    ('psigrid_n_r', ctypes.c_int32),
+    ('psigrid_n_z', ctypes.c_int32),
+    ('psigrid_r_min', ctypes.c_double),
+    ('psigrid_r_max', ctypes.c_double),
+    ('psigrid_z_min', ctypes.c_double),
+    ('psigrid_z_max', ctypes.c_double),
+    ('Bgrid_n_r', ctypes.c_int32),
+    ('Bgrid_n_z', ctypes.c_int32),
+    ('Bgrid_r_min', ctypes.c_double),
+    ('Bgrid_r_max', ctypes.c_double),
+    ('Bgrid_z_min', ctypes.c_double),
+    ('Bgrid_z_max', ctypes.c_double),
+    ('Bgrid_n_phi', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('Bgrid_phi_min', ctypes.c_double),
+    ('Bgrid_phi_max', ctypes.c_double),
+    ('psi0', ctypes.c_double),
+    ('psi1', ctypes.c_double),
+    ('axis_r', ctypes.c_double),
+    ('axis_z', ctypes.c_double),
+    ('offload_array_length', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
+]
+
 class struct_c__SA_B_GS_offload_data(Structure):
     pass
 
@@ -350,35 +379,6 @@ struct_c__SA_B_2DS_offload_data._fields_ = [
     ('axis_z', ctypes.c_double),
     ('offload_array_length', ctypes.c_int32),
     ('PADDING_0', ctypes.c_ubyte * 4),
-]
-
-class struct_c__SA_B_3DS_offload_data(Structure):
-    pass
-
-struct_c__SA_B_3DS_offload_data._pack_ = 1 # source:False
-struct_c__SA_B_3DS_offload_data._fields_ = [
-    ('psigrid_n_r', ctypes.c_int32),
-    ('psigrid_n_z', ctypes.c_int32),
-    ('psigrid_r_min', ctypes.c_double),
-    ('psigrid_r_max', ctypes.c_double),
-    ('psigrid_z_min', ctypes.c_double),
-    ('psigrid_z_max', ctypes.c_double),
-    ('Bgrid_n_r', ctypes.c_int32),
-    ('Bgrid_n_z', ctypes.c_int32),
-    ('Bgrid_r_min', ctypes.c_double),
-    ('Bgrid_r_max', ctypes.c_double),
-    ('Bgrid_z_min', ctypes.c_double),
-    ('Bgrid_z_max', ctypes.c_double),
-    ('Bgrid_n_phi', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('Bgrid_phi_min', ctypes.c_double),
-    ('Bgrid_phi_max', ctypes.c_double),
-    ('psi0', ctypes.c_double),
-    ('psi1', ctypes.c_double),
-    ('axis_r', ctypes.c_double),
-    ('axis_z', ctypes.c_double),
-    ('offload_array_length', ctypes.c_int32),
-    ('PADDING_1', ctypes.c_ubyte * 4),
 ]
 
 struct_c__SA_B_field_offload_data._pack_ = 1 # source:False
@@ -1043,6 +1043,41 @@ diag_orb_update_ml.argtypes = [ctypes.POINTER(struct_c__SA_diag_orb_data), ctype
 class struct_c__SA_diag_offload_data(Structure):
     pass
 
+class struct_c__SA_dist_5D_offload_data(Structure):
+    pass
+
+struct_c__SA_dist_5D_offload_data._pack_ = 1 # source:False
+struct_c__SA_dist_5D_offload_data._fields_ = [
+    ('n_r', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('min_r', ctypes.c_double),
+    ('max_r', ctypes.c_double),
+    ('n_phi', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
+    ('min_phi', ctypes.c_double),
+    ('max_phi', ctypes.c_double),
+    ('n_z', ctypes.c_int32),
+    ('PADDING_2', ctypes.c_ubyte * 4),
+    ('min_z', ctypes.c_double),
+    ('max_z', ctypes.c_double),
+    ('n_ppara', ctypes.c_int32),
+    ('PADDING_3', ctypes.c_ubyte * 4),
+    ('min_ppara', ctypes.c_double),
+    ('max_ppara', ctypes.c_double),
+    ('n_pperp', ctypes.c_int32),
+    ('PADDING_4', ctypes.c_ubyte * 4),
+    ('min_pperp', ctypes.c_double),
+    ('max_pperp', ctypes.c_double),
+    ('n_time', ctypes.c_int32),
+    ('PADDING_5', ctypes.c_ubyte * 4),
+    ('min_time', ctypes.c_double),
+    ('max_time', ctypes.c_double),
+    ('n_q', ctypes.c_int32),
+    ('PADDING_6', ctypes.c_ubyte * 4),
+    ('min_q', ctypes.c_double),
+    ('max_q', ctypes.c_double),
+]
+
 class struct_c__SA_dist_rho6D_offload_data(Structure):
     pass
 
@@ -1121,52 +1156,6 @@ struct_c__SA_dist_6D_offload_data._fields_ = [
     ('max_q', ctypes.c_double),
 ]
 
-class struct_c__SA_dist_5D_offload_data(Structure):
-    pass
-
-struct_c__SA_dist_5D_offload_data._pack_ = 1 # source:False
-struct_c__SA_dist_5D_offload_data._fields_ = [
-    ('n_r', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('min_r', ctypes.c_double),
-    ('max_r', ctypes.c_double),
-    ('n_phi', ctypes.c_int32),
-    ('PADDING_1', ctypes.c_ubyte * 4),
-    ('min_phi', ctypes.c_double),
-    ('max_phi', ctypes.c_double),
-    ('n_z', ctypes.c_int32),
-    ('PADDING_2', ctypes.c_ubyte * 4),
-    ('min_z', ctypes.c_double),
-    ('max_z', ctypes.c_double),
-    ('n_ppara', ctypes.c_int32),
-    ('PADDING_3', ctypes.c_ubyte * 4),
-    ('min_ppara', ctypes.c_double),
-    ('max_ppara', ctypes.c_double),
-    ('n_pperp', ctypes.c_int32),
-    ('PADDING_4', ctypes.c_ubyte * 4),
-    ('min_pperp', ctypes.c_double),
-    ('max_pperp', ctypes.c_double),
-    ('n_time', ctypes.c_int32),
-    ('PADDING_5', ctypes.c_ubyte * 4),
-    ('min_time', ctypes.c_double),
-    ('max_time', ctypes.c_double),
-    ('n_q', ctypes.c_int32),
-    ('PADDING_6', ctypes.c_ubyte * 4),
-    ('min_q', ctypes.c_double),
-    ('max_q', ctypes.c_double),
-]
-
-class struct_c__SA_diag_transcoef_offload_data(Structure):
-    pass
-
-struct_c__SA_diag_transcoef_offload_data._pack_ = 1 # source:False
-struct_c__SA_diag_transcoef_offload_data._fields_ = [
-    ('Nmrk', ctypes.c_int64),
-    ('Navg', ctypes.c_int32),
-    ('recordrho', ctypes.c_int32),
-    ('interval', ctypes.c_double),
-]
-
 class struct_c__SA_dist_rho5D_offload_data(Structure):
     pass
 
@@ -1202,6 +1191,36 @@ struct_c__SA_dist_rho5D_offload_data._fields_ = [
     ('max_q', ctypes.c_double),
 ]
 
+class struct_c__SA_diag_transcoef_offload_data(Structure):
+    pass
+
+struct_c__SA_diag_transcoef_offload_data._pack_ = 1 # source:False
+struct_c__SA_diag_transcoef_offload_data._fields_ = [
+    ('Nmrk', ctypes.c_int64),
+    ('Navg', ctypes.c_int32),
+    ('recordrho', ctypes.c_int32),
+    ('interval', ctypes.c_double),
+]
+
+class struct_c__SA_dist_COM_offload_data(Structure):
+    pass
+
+struct_c__SA_dist_COM_offload_data._pack_ = 1 # source:False
+struct_c__SA_dist_COM_offload_data._fields_ = [
+    ('n_mu', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('min_mu', ctypes.c_double),
+    ('max_mu', ctypes.c_double),
+    ('n_Ekin', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
+    ('min_Ekin', ctypes.c_double),
+    ('max_Ekin', ctypes.c_double),
+    ('n_Ptor', ctypes.c_int32),
+    ('PADDING_2', ctypes.c_ubyte * 4),
+    ('min_Ptor', ctypes.c_double),
+    ('max_Ptor', ctypes.c_double),
+]
+
 struct_c__SA_diag_offload_data._pack_ = 1 # source:False
 struct_c__SA_diag_offload_data._fields_ = [
     ('diagorb_collect', ctypes.c_int32),
@@ -1209,82 +1228,50 @@ struct_c__SA_diag_offload_data._fields_ = [
     ('dist6D_collect', ctypes.c_int32),
     ('distrho5D_collect', ctypes.c_int32),
     ('distrho6D_collect', ctypes.c_int32),
+    ('distCOM_collect', ctypes.c_int32),
     ('diagtrcof_collect', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
     ('diagorb', diag_orb_offload_data),
     ('dist5D', struct_c__SA_dist_5D_offload_data),
     ('dist6D', struct_c__SA_dist_6D_offload_data),
     ('distrho5D', struct_c__SA_dist_rho5D_offload_data),
     ('distrho6D', struct_c__SA_dist_rho6D_offload_data),
+    ('distCOM', struct_c__SA_dist_COM_offload_data),
     ('diagtrcof', struct_c__SA_diag_transcoef_offload_data),
     ('offload_dist5D_index', ctypes.c_int32),
     ('offload_dist6D_index', ctypes.c_int32),
     ('offload_distrho5D_index', ctypes.c_int32),
     ('offload_distrho6D_index', ctypes.c_int32),
+    ('offload_distCOM_index', ctypes.c_int32),
     ('offload_diagorb_index', ctypes.c_int32),
     ('offload_diagtrcof_index', ctypes.c_int32),
     ('offload_dist_length', ctypes.c_int32),
     ('offload_array_length', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
 ]
 
 diag_offload_data = struct_c__SA_diag_offload_data
 class struct_c__SA_diag_data(Structure):
     pass
 
-class struct_c__SA_dist_rho6D_data(Structure):
+class struct_c__SA_dist_COM_data(Structure):
     pass
 
-struct_c__SA_dist_rho6D_data._pack_ = 1 # source:False
-struct_c__SA_dist_rho6D_data._fields_ = [
-    ('n_rho', ctypes.c_int32),
+struct_c__SA_dist_COM_data._pack_ = 1 # source:False
+struct_c__SA_dist_COM_data._fields_ = [
+    ('n_mu', ctypes.c_int32),
     ('PADDING_0', ctypes.c_ubyte * 4),
-    ('min_rho', ctypes.c_double),
-    ('max_rho', ctypes.c_double),
-    ('n_theta', ctypes.c_int32),
+    ('min_mu', ctypes.c_double),
+    ('max_mu', ctypes.c_double),
+    ('n_Ekin', ctypes.c_int32),
     ('PADDING_1', ctypes.c_ubyte * 4),
-    ('min_theta', ctypes.c_double),
-    ('max_theta', ctypes.c_double),
-    ('n_phi', ctypes.c_int32),
+    ('min_Ekin', ctypes.c_double),
+    ('max_Ekin', ctypes.c_double),
+    ('n_Ptor', ctypes.c_int32),
     ('PADDING_2', ctypes.c_ubyte * 4),
-    ('min_phi', ctypes.c_double),
-    ('max_phi', ctypes.c_double),
-    ('n_pr', ctypes.c_int32),
-    ('PADDING_3', ctypes.c_ubyte * 4),
-    ('min_pr', ctypes.c_double),
-    ('max_pr', ctypes.c_double),
-    ('n_pphi', ctypes.c_int32),
-    ('PADDING_4', ctypes.c_ubyte * 4),
-    ('min_pphi', ctypes.c_double),
-    ('max_pphi', ctypes.c_double),
-    ('n_pz', ctypes.c_int32),
-    ('PADDING_5', ctypes.c_ubyte * 4),
-    ('min_pz', ctypes.c_double),
-    ('max_pz', ctypes.c_double),
-    ('n_time', ctypes.c_int32),
-    ('PADDING_6', ctypes.c_ubyte * 4),
-    ('min_time', ctypes.c_double),
-    ('max_time', ctypes.c_double),
-    ('n_q', ctypes.c_int32),
-    ('PADDING_7', ctypes.c_ubyte * 4),
-    ('min_q', ctypes.c_double),
-    ('max_q', ctypes.c_double),
+    ('min_Ptor', ctypes.c_double),
+    ('max_Ptor', ctypes.c_double),
     ('histogram', ctypes.POINTER(ctypes.c_double)),
-]
-
-class struct_c__SA_diag_transcoef_data(Structure):
-    pass
-
-class struct_diag_transcoef_link(Structure):
-    pass
-
-struct_c__SA_diag_transcoef_data._pack_ = 1 # source:False
-struct_c__SA_diag_transcoef_data._fields_ = [
-    ('Navg', ctypes.c_int32),
-    ('recordrho', ctypes.c_int32),
-    ('interval', ctypes.c_double),
-    ('datapoints', ctypes.POINTER(ctypes.POINTER(struct_diag_transcoef_link))),
-    ('id', ctypes.POINTER(ctypes.c_double)),
-    ('Kcoef', ctypes.POINTER(ctypes.c_double)),
-    ('Dcoef', ctypes.POINTER(ctypes.c_double)),
 ]
 
 class struct_c__SA_dist_5D_data(Structure):
@@ -1359,6 +1346,63 @@ struct_c__SA_dist_rho5D_data._fields_ = [
     ('histogram', ctypes.POINTER(ctypes.c_double)),
 ]
 
+class struct_c__SA_dist_rho6D_data(Structure):
+    pass
+
+struct_c__SA_dist_rho6D_data._pack_ = 1 # source:False
+struct_c__SA_dist_rho6D_data._fields_ = [
+    ('n_rho', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('min_rho', ctypes.c_double),
+    ('max_rho', ctypes.c_double),
+    ('n_theta', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
+    ('min_theta', ctypes.c_double),
+    ('max_theta', ctypes.c_double),
+    ('n_phi', ctypes.c_int32),
+    ('PADDING_2', ctypes.c_ubyte * 4),
+    ('min_phi', ctypes.c_double),
+    ('max_phi', ctypes.c_double),
+    ('n_pr', ctypes.c_int32),
+    ('PADDING_3', ctypes.c_ubyte * 4),
+    ('min_pr', ctypes.c_double),
+    ('max_pr', ctypes.c_double),
+    ('n_pphi', ctypes.c_int32),
+    ('PADDING_4', ctypes.c_ubyte * 4),
+    ('min_pphi', ctypes.c_double),
+    ('max_pphi', ctypes.c_double),
+    ('n_pz', ctypes.c_int32),
+    ('PADDING_5', ctypes.c_ubyte * 4),
+    ('min_pz', ctypes.c_double),
+    ('max_pz', ctypes.c_double),
+    ('n_time', ctypes.c_int32),
+    ('PADDING_6', ctypes.c_ubyte * 4),
+    ('min_time', ctypes.c_double),
+    ('max_time', ctypes.c_double),
+    ('n_q', ctypes.c_int32),
+    ('PADDING_7', ctypes.c_ubyte * 4),
+    ('min_q', ctypes.c_double),
+    ('max_q', ctypes.c_double),
+    ('histogram', ctypes.POINTER(ctypes.c_double)),
+]
+
+class struct_c__SA_diag_transcoef_data(Structure):
+    pass
+
+class struct_diag_transcoef_link(Structure):
+    pass
+
+struct_c__SA_diag_transcoef_data._pack_ = 1 # source:False
+struct_c__SA_diag_transcoef_data._fields_ = [
+    ('Navg', ctypes.c_int32),
+    ('recordrho', ctypes.c_int32),
+    ('interval', ctypes.c_double),
+    ('datapoints', ctypes.POINTER(ctypes.POINTER(struct_diag_transcoef_link))),
+    ('id', ctypes.POINTER(ctypes.c_double)),
+    ('Kcoef', ctypes.POINTER(ctypes.c_double)),
+    ('Dcoef', ctypes.POINTER(ctypes.c_double)),
+]
+
 class struct_c__SA_dist_6D_data(Structure):
     pass
 
@@ -1406,12 +1450,15 @@ struct_c__SA_diag_data._fields_ = [
     ('dist6D_collect', ctypes.c_int32),
     ('distrho5D_collect', ctypes.c_int32),
     ('distrho6D_collect', ctypes.c_int32),
+    ('distCOM_collect', ctypes.c_int32),
     ('diagtrcof_collect', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
     ('diagorb', diag_orb_data),
     ('dist5D', struct_c__SA_dist_5D_data),
     ('dist6D', struct_c__SA_dist_6D_data),
     ('distrho5D', struct_c__SA_dist_rho5D_data),
     ('distrho6D', struct_c__SA_dist_rho6D_data),
+    ('distCOM', struct_c__SA_dist_COM_data),
     ('diagtrcof', struct_c__SA_diag_transcoef_data),
 ]
 
@@ -1445,7 +1492,7 @@ diag_update_fo.restype = None
 diag_update_fo.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_particle_simd_fo), ctypes.POINTER(struct_c__SA_particle_simd_fo)]
 diag_update_gc = _libraries['libascot.so'].diag_update_gc
 diag_update_gc.restype = None
-diag_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
+diag_update_gc.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_B_field_data), ctypes.POINTER(struct_c__SA_particle_simd_gc), ctypes.POINTER(struct_c__SA_particle_simd_gc)]
 diag_update_ml = _libraries['libascot.so'].diag_update_ml
 diag_update_ml.restype = None
 diag_update_ml.argtypes = [ctypes.POINTER(struct_c__SA_diag_data), ctypes.POINTER(struct_c__SA_particle_simd_ml), ctypes.POINTER(struct_c__SA_particle_simd_ml)]
@@ -1493,6 +1540,33 @@ class struct_c__SA_sim_offload_data(Structure):
 class struct_c__SA_mhd_offload_data(Structure):
     pass
 
+
+# values for enumeration 'mhd_type'
+mhd_type__enumvalues = {
+    0: 'mhd_type_stat',
+    1: 'mhd_type_nonstat',
+}
+mhd_type_stat = 0
+mhd_type_nonstat = 1
+mhd_type = ctypes.c_uint32 # enum
+class struct_c__SA_mhd_stat_offload_data(Structure):
+    pass
+
+struct_c__SA_mhd_stat_offload_data._pack_ = 1 # source:False
+struct_c__SA_mhd_stat_offload_data._fields_ = [
+    ('n_modes', ctypes.c_int32),
+    ('nrho', ctypes.c_int32),
+    ('rho_min', ctypes.c_double),
+    ('rho_max', ctypes.c_double),
+    ('nmode', ctypes.c_int32 * 512),
+    ('mmode', ctypes.c_int32 * 512),
+    ('amplitude_nm', ctypes.c_double * 512),
+    ('omega_nm', ctypes.c_double * 512),
+    ('phase_nm', ctypes.c_double * 512),
+    ('offload_array_length', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+]
+
 class struct_c__SA_mhd_nonstat_offload_data(Structure):
     pass
 
@@ -1515,33 +1589,6 @@ struct_c__SA_mhd_nonstat_offload_data._fields_ = [
     ('PADDING_1', ctypes.c_ubyte * 4),
 ]
 
-class struct_c__SA_mhd_stat_offload_data(Structure):
-    pass
-
-struct_c__SA_mhd_stat_offload_data._pack_ = 1 # source:False
-struct_c__SA_mhd_stat_offload_data._fields_ = [
-    ('n_modes', ctypes.c_int32),
-    ('nrho', ctypes.c_int32),
-    ('rho_min', ctypes.c_double),
-    ('rho_max', ctypes.c_double),
-    ('nmode', ctypes.c_int32 * 512),
-    ('mmode', ctypes.c_int32 * 512),
-    ('amplitude_nm', ctypes.c_double * 512),
-    ('omega_nm', ctypes.c_double * 512),
-    ('phase_nm', ctypes.c_double * 512),
-    ('offload_array_length', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-]
-
-
-# values for enumeration 'mhd_type'
-mhd_type__enumvalues = {
-    0: 'mhd_type_stat',
-    1: 'mhd_type_nonstat',
-}
-mhd_type_stat = 0
-mhd_type_nonstat = 1
-mhd_type = ctypes.c_uint32 # enum
 struct_c__SA_mhd_offload_data._pack_ = 1 # source:False
 struct_c__SA_mhd_offload_data._fields_ = [
     ('type', mhd_type),
@@ -1555,6 +1602,16 @@ struct_c__SA_mhd_offload_data._fields_ = [
 class struct_c__SA_E_field_offload_data(Structure):
     pass
 
+class struct_c__SA_E_TC_offload_data(Structure):
+    pass
+
+struct_c__SA_E_TC_offload_data._pack_ = 1 # source:False
+struct_c__SA_E_TC_offload_data._fields_ = [
+    ('Exyz', ctypes.c_double * 3),
+    ('offload_array_length', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+]
+
 class struct_c__SA_E_1DS_offload_data(Structure):
     pass
 
@@ -1566,16 +1623,6 @@ struct_c__SA_E_1DS_offload_data._fields_ = [
     ('rho_max', ctypes.c_double),
     ('offload_array_length', ctypes.c_int32),
     ('PADDING_1', ctypes.c_ubyte * 4),
-]
-
-class struct_c__SA_E_TC_offload_data(Structure):
-    pass
-
-struct_c__SA_E_TC_offload_data._pack_ = 1 # source:False
-struct_c__SA_E_TC_offload_data._fields_ = [
-    ('Exyz', ctypes.c_double * 3),
-    ('offload_array_length', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
 ]
 
 
@@ -1595,22 +1642,6 @@ struct_c__SA_E_field_offload_data._fields_ = [
     ('E1DS', struct_c__SA_E_1DS_offload_data),
     ('offload_array_length', ctypes.c_int32),
     ('PADDING_1', ctypes.c_ubyte * 4),
-]
-
-class struct_c__SA_asigma_offload_data(Structure):
-    pass
-
-
-# values for enumeration 'asigma_type'
-asigma_type__enumvalues = {
-    0: 'asigma_type_loc',
-}
-asigma_type_loc = 0
-asigma_type = ctypes.c_uint32 # enum
-struct_c__SA_asigma_offload_data._pack_ = 1 # source:False
-struct_c__SA_asigma_offload_data._fields_ = [
-    ('type', asigma_type),
-    ('offload_array_length', ctypes.c_int32),
 ]
 
 class struct_c__SA_plasma_offload_data(Structure):
@@ -1689,33 +1720,6 @@ struct_c__SA_plasma_offload_data._fields_ = [
     ('PADDING_1', ctypes.c_ubyte * 4),
 ]
 
-class struct_c__SA_boozer_offload_data(Structure):
-    pass
-
-struct_c__SA_boozer_offload_data._pack_ = 1 # source:False
-struct_c__SA_boozer_offload_data._fields_ = [
-    ('nr', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('r_min', ctypes.c_double),
-    ('r_max', ctypes.c_double),
-    ('nz', ctypes.c_int32),
-    ('PADDING_1', ctypes.c_ubyte * 4),
-    ('z_min', ctypes.c_double),
-    ('z_max', ctypes.c_double),
-    ('npsi', ctypes.c_int32),
-    ('PADDING_2', ctypes.c_ubyte * 4),
-    ('psi_min', ctypes.c_double),
-    ('psi_max', ctypes.c_double),
-    ('psi0', ctypes.c_double),
-    ('psi1', ctypes.c_double),
-    ('ntheta', ctypes.c_int32),
-    ('nthetag', ctypes.c_int32),
-    ('r0', ctypes.c_double),
-    ('z0', ctypes.c_double),
-    ('nrzs', ctypes.c_int32),
-    ('offload_array_length', ctypes.c_int32),
-]
-
 class struct_c__SA_neutral_offload_data(Structure):
     pass
 
@@ -1774,6 +1778,49 @@ struct_c__SA_neutral_offload_data._fields_ = [
     ('N03D', struct_c__SA_N0_3D_offload_data),
     ('offload_array_length', ctypes.c_int32),
     ('PADDING_1', ctypes.c_ubyte * 4),
+]
+
+class struct_c__SA_asigma_offload_data(Structure):
+    pass
+
+
+# values for enumeration 'asigma_type'
+asigma_type__enumvalues = {
+    0: 'asigma_type_loc',
+}
+asigma_type_loc = 0
+asigma_type = ctypes.c_uint32 # enum
+struct_c__SA_asigma_offload_data._pack_ = 1 # source:False
+struct_c__SA_asigma_offload_data._fields_ = [
+    ('type', asigma_type),
+    ('offload_array_length', ctypes.c_int32),
+]
+
+class struct_c__SA_boozer_offload_data(Structure):
+    pass
+
+struct_c__SA_boozer_offload_data._pack_ = 1 # source:False
+struct_c__SA_boozer_offload_data._fields_ = [
+    ('nr', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('r_min', ctypes.c_double),
+    ('r_max', ctypes.c_double),
+    ('nz', ctypes.c_int32),
+    ('PADDING_1', ctypes.c_ubyte * 4),
+    ('z_min', ctypes.c_double),
+    ('z_max', ctypes.c_double),
+    ('npsi', ctypes.c_int32),
+    ('PADDING_2', ctypes.c_ubyte * 4),
+    ('psi_min', ctypes.c_double),
+    ('psi_max', ctypes.c_double),
+    ('psi0', ctypes.c_double),
+    ('psi1', ctypes.c_double),
+    ('ntheta', ctypes.c_int32),
+    ('nthetag', ctypes.c_int32),
+    ('r0', ctypes.c_double),
+    ('z0', ctypes.c_double),
+    ('nrzs', ctypes.c_int32),
+    ('offload_array_length', ctypes.c_int32),
 ]
 
 struct_c__SA_sim_offload_data._pack_ = 1 # source:False
@@ -1840,175 +1887,6 @@ struct_c__SA_sim_offload_data._fields_ = [
 sim_offload_data = struct_c__SA_sim_offload_data
 class struct_c__SA_sim_data(Structure):
     pass
-
-class struct_c__SA_mhd_data(Structure):
-    pass
-
-class struct_c__SA_mhd_nonstat_data(Structure):
-    pass
-
-struct_c__SA_mhd_nonstat_data._pack_ = 1 # source:False
-struct_c__SA_mhd_nonstat_data._fields_ = [
-    ('n_modes', ctypes.c_int32),
-    ('nmode', ctypes.c_int32 * 512),
-    ('mmode', ctypes.c_int32 * 512),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('amplitude_nm', ctypes.c_double * 512),
-    ('omega_nm', ctypes.c_double * 512),
-    ('phase_nm', ctypes.c_double * 512),
-    ('alpha_nm', struct_c__SA_interp2D_data * 512),
-    ('phi_nm', struct_c__SA_interp2D_data * 512),
-]
-
-class struct_c__SA_mhd_stat_data(Structure):
-    pass
-
-class struct_c__SA_interp1D_data(Structure):
-    pass
-
-struct_c__SA_interp1D_data._pack_ = 1 # source:False
-struct_c__SA_interp1D_data._fields_ = [
-    ('n_x', ctypes.c_int32),
-    ('bc_x', ctypes.c_int32),
-    ('x_min', ctypes.c_double),
-    ('x_max', ctypes.c_double),
-    ('x_grid', ctypes.c_double),
-    ('c', ctypes.POINTER(ctypes.c_double)),
-]
-
-struct_c__SA_mhd_stat_data._pack_ = 1 # source:False
-struct_c__SA_mhd_stat_data._fields_ = [
-    ('n_modes', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('rho_min', ctypes.c_double),
-    ('rho_max', ctypes.c_double),
-    ('nmode', ctypes.c_int32 * 512),
-    ('mmode', ctypes.c_int32 * 512),
-    ('amplitude_nm', ctypes.c_double * 512),
-    ('omega_nm', ctypes.c_double * 512),
-    ('phase_nm', ctypes.c_double * 512),
-    ('alpha_nm', struct_c__SA_interp1D_data * 512),
-    ('phi_nm', struct_c__SA_interp1D_data * 512),
-]
-
-struct_c__SA_mhd_data._pack_ = 1 # source:False
-struct_c__SA_mhd_data._fields_ = [
-    ('type', mhd_type),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('stat', struct_c__SA_mhd_stat_data),
-    ('nonstat', struct_c__SA_mhd_nonstat_data),
-]
-
-class struct_c__SA_asigma_data(Structure):
-    _pack_ = 1 # source:False
-    _fields_ = [
-    ('type', asigma_type),
-     ]
-
-class struct_c__SA_E_field_data(Structure):
-    pass
-
-class struct_c__SA_E_TC_data(Structure):
-    pass
-
-struct_c__SA_E_TC_data._pack_ = 1 # source:False
-struct_c__SA_E_TC_data._fields_ = [
-    ('Exyz', ctypes.POINTER(ctypes.c_double)),
-]
-
-class struct_c__SA_E_1DS_data(Structure):
-    _pack_ = 1 # source:False
-    _fields_ = [
-    ('dV', struct_c__SA_interp1D_data),
-     ]
-
-struct_c__SA_E_field_data._pack_ = 1 # source:False
-struct_c__SA_E_field_data._fields_ = [
-    ('type', E_field_type),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('ETC', struct_c__SA_E_TC_data),
-    ('E1DS', struct_c__SA_E_1DS_data),
-]
-
-class struct_c__SA_plasma_data(Structure):
-    pass
-
-class struct_c__SA_plasma_1D_data(Structure):
-    pass
-
-struct_c__SA_plasma_1D_data._pack_ = 1 # source:False
-struct_c__SA_plasma_1D_data._fields_ = [
-    ('n_rho', ctypes.c_int32),
-    ('n_species', ctypes.c_int32),
-    ('mass', ctypes.c_double * 8),
-    ('charge', ctypes.c_double * 8),
-    ('anum', ctypes.c_int32 * 8),
-    ('znum', ctypes.c_int32 * 8),
-    ('rho', ctypes.POINTER(ctypes.c_double)),
-    ('temp', ctypes.POINTER(ctypes.c_double)),
-    ('dens', ctypes.POINTER(ctypes.c_double)),
-]
-
-class struct_c__SA_plasma_1Dt_data(Structure):
-    pass
-
-struct_c__SA_plasma_1Dt_data._pack_ = 1 # source:False
-struct_c__SA_plasma_1Dt_data._fields_ = [
-    ('n_rho', ctypes.c_int32),
-    ('n_time', ctypes.c_int32),
-    ('n_species', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('mass', ctypes.c_double * 8),
-    ('charge', ctypes.c_double * 8),
-    ('anum', ctypes.c_int32 * 8),
-    ('znum', ctypes.c_int32 * 8),
-    ('rho', ctypes.POINTER(ctypes.c_double)),
-    ('time', ctypes.POINTER(ctypes.c_double)),
-    ('temp', ctypes.POINTER(ctypes.c_double)),
-    ('dens', ctypes.POINTER(ctypes.c_double)),
-]
-
-class struct_c__SA_plasma_1DS_data(Structure):
-    pass
-
-struct_c__SA_plasma_1DS_data._pack_ = 1 # source:False
-struct_c__SA_plasma_1DS_data._fields_ = [
-    ('n_species', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('mass', ctypes.c_double * 8),
-    ('charge', ctypes.c_double * 8),
-    ('anum', ctypes.c_int32 * 8),
-    ('znum', ctypes.c_int32 * 8),
-    ('temp', struct_c__SA_interp1D_data * 2),
-    ('dens', struct_c__SA_interp1D_data * 8),
-]
-
-struct_c__SA_plasma_data._pack_ = 1 # source:False
-struct_c__SA_plasma_data._fields_ = [
-    ('type', plasma_type),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('plasma_1D', struct_c__SA_plasma_1D_data),
-    ('plasma_1Dt', struct_c__SA_plasma_1Dt_data),
-    ('plasma_1DS', struct_c__SA_plasma_1DS_data),
-]
-
-class struct_c__SA_boozer_data(Structure):
-    pass
-
-struct_c__SA_boozer_data._pack_ = 1 # source:False
-struct_c__SA_boozer_data._fields_ = [
-    ('psi0', ctypes.c_double),
-    ('psi1', ctypes.c_double),
-    ('r0', ctypes.c_double),
-    ('z0', ctypes.c_double),
-    ('rs', ctypes.POINTER(ctypes.c_double)),
-    ('zs', ctypes.POINTER(ctypes.c_double)),
-    ('nrzs', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('nu_psitheta', struct_c__SA_interp2D_data),
-    ('theta_psithetageom', struct_c__SA_interp2D_data),
-    ('psi_rz', struct_c__SA_interp2D_data),
-]
 
 class struct_c__SA_mccc_data(Structure):
     pass
@@ -2081,6 +1959,175 @@ struct_c__SA_neutral_data._fields_ = [
     ('PADDING_0', ctypes.c_ubyte * 4),
     ('N01D', struct_c__SA_N0_1D_data),
     ('N03D', struct_c__SA_N0_3D_data),
+]
+
+class struct_c__SA_asigma_data(Structure):
+    _pack_ = 1 # source:False
+    _fields_ = [
+    ('type', asigma_type),
+     ]
+
+class struct_c__SA_mhd_data(Structure):
+    pass
+
+class struct_c__SA_mhd_stat_data(Structure):
+    pass
+
+class struct_c__SA_interp1D_data(Structure):
+    pass
+
+struct_c__SA_interp1D_data._pack_ = 1 # source:False
+struct_c__SA_interp1D_data._fields_ = [
+    ('n_x', ctypes.c_int32),
+    ('bc_x', ctypes.c_int32),
+    ('x_min', ctypes.c_double),
+    ('x_max', ctypes.c_double),
+    ('x_grid', ctypes.c_double),
+    ('c', ctypes.POINTER(ctypes.c_double)),
+]
+
+struct_c__SA_mhd_stat_data._pack_ = 1 # source:False
+struct_c__SA_mhd_stat_data._fields_ = [
+    ('n_modes', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('rho_min', ctypes.c_double),
+    ('rho_max', ctypes.c_double),
+    ('nmode', ctypes.c_int32 * 512),
+    ('mmode', ctypes.c_int32 * 512),
+    ('amplitude_nm', ctypes.c_double * 512),
+    ('omega_nm', ctypes.c_double * 512),
+    ('phase_nm', ctypes.c_double * 512),
+    ('alpha_nm', struct_c__SA_interp1D_data * 512),
+    ('phi_nm', struct_c__SA_interp1D_data * 512),
+]
+
+class struct_c__SA_mhd_nonstat_data(Structure):
+    pass
+
+struct_c__SA_mhd_nonstat_data._pack_ = 1 # source:False
+struct_c__SA_mhd_nonstat_data._fields_ = [
+    ('n_modes', ctypes.c_int32),
+    ('nmode', ctypes.c_int32 * 512),
+    ('mmode', ctypes.c_int32 * 512),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('amplitude_nm', ctypes.c_double * 512),
+    ('omega_nm', ctypes.c_double * 512),
+    ('phase_nm', ctypes.c_double * 512),
+    ('alpha_nm', struct_c__SA_interp2D_data * 512),
+    ('phi_nm', struct_c__SA_interp2D_data * 512),
+]
+
+struct_c__SA_mhd_data._pack_ = 1 # source:False
+struct_c__SA_mhd_data._fields_ = [
+    ('type', mhd_type),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('stat', struct_c__SA_mhd_stat_data),
+    ('nonstat', struct_c__SA_mhd_nonstat_data),
+]
+
+class struct_c__SA_E_field_data(Structure):
+    pass
+
+class struct_c__SA_E_1DS_data(Structure):
+    _pack_ = 1 # source:False
+    _fields_ = [
+    ('dV', struct_c__SA_interp1D_data),
+     ]
+
+class struct_c__SA_E_TC_data(Structure):
+    pass
+
+struct_c__SA_E_TC_data._pack_ = 1 # source:False
+struct_c__SA_E_TC_data._fields_ = [
+    ('Exyz', ctypes.POINTER(ctypes.c_double)),
+]
+
+struct_c__SA_E_field_data._pack_ = 1 # source:False
+struct_c__SA_E_field_data._fields_ = [
+    ('type', E_field_type),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('ETC', struct_c__SA_E_TC_data),
+    ('E1DS', struct_c__SA_E_1DS_data),
+]
+
+class struct_c__SA_plasma_data(Structure):
+    pass
+
+class struct_c__SA_plasma_1Dt_data(Structure):
+    pass
+
+struct_c__SA_plasma_1Dt_data._pack_ = 1 # source:False
+struct_c__SA_plasma_1Dt_data._fields_ = [
+    ('n_rho', ctypes.c_int32),
+    ('n_time', ctypes.c_int32),
+    ('n_species', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('mass', ctypes.c_double * 8),
+    ('charge', ctypes.c_double * 8),
+    ('anum', ctypes.c_int32 * 8),
+    ('znum', ctypes.c_int32 * 8),
+    ('rho', ctypes.POINTER(ctypes.c_double)),
+    ('time', ctypes.POINTER(ctypes.c_double)),
+    ('temp', ctypes.POINTER(ctypes.c_double)),
+    ('dens', ctypes.POINTER(ctypes.c_double)),
+]
+
+class struct_c__SA_plasma_1D_data(Structure):
+    pass
+
+struct_c__SA_plasma_1D_data._pack_ = 1 # source:False
+struct_c__SA_plasma_1D_data._fields_ = [
+    ('n_rho', ctypes.c_int32),
+    ('n_species', ctypes.c_int32),
+    ('mass', ctypes.c_double * 8),
+    ('charge', ctypes.c_double * 8),
+    ('anum', ctypes.c_int32 * 8),
+    ('znum', ctypes.c_int32 * 8),
+    ('rho', ctypes.POINTER(ctypes.c_double)),
+    ('temp', ctypes.POINTER(ctypes.c_double)),
+    ('dens', ctypes.POINTER(ctypes.c_double)),
+]
+
+class struct_c__SA_plasma_1DS_data(Structure):
+    pass
+
+struct_c__SA_plasma_1DS_data._pack_ = 1 # source:False
+struct_c__SA_plasma_1DS_data._fields_ = [
+    ('n_species', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('mass', ctypes.c_double * 8),
+    ('charge', ctypes.c_double * 8),
+    ('anum', ctypes.c_int32 * 8),
+    ('znum', ctypes.c_int32 * 8),
+    ('temp', struct_c__SA_interp1D_data * 2),
+    ('dens', struct_c__SA_interp1D_data * 8),
+]
+
+struct_c__SA_plasma_data._pack_ = 1 # source:False
+struct_c__SA_plasma_data._fields_ = [
+    ('type', plasma_type),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('plasma_1D', struct_c__SA_plasma_1D_data),
+    ('plasma_1Dt', struct_c__SA_plasma_1Dt_data),
+    ('plasma_1DS', struct_c__SA_plasma_1DS_data),
+]
+
+class struct_c__SA_boozer_data(Structure):
+    pass
+
+struct_c__SA_boozer_data._pack_ = 1 # source:False
+struct_c__SA_boozer_data._fields_ = [
+    ('psi0', ctypes.c_double),
+    ('psi1', ctypes.c_double),
+    ('r0', ctypes.c_double),
+    ('z0', ctypes.c_double),
+    ('rs', ctypes.POINTER(ctypes.c_double)),
+    ('zs', ctypes.POINTER(ctypes.c_double)),
+    ('nrzs', ctypes.c_int32),
+    ('PADDING_0', ctypes.c_ubyte * 4),
+    ('nu_psitheta', struct_c__SA_interp2D_data),
+    ('theta_psithetageom', struct_c__SA_interp2D_data),
+    ('psi_rz', struct_c__SA_interp2D_data),
 ]
 
 struct_c__SA_sim_data._pack_ = 1 # source:False
@@ -2352,6 +2399,8 @@ __all__ = \
     'struct_c__SA_diag_transcoef_offload_data',
     'struct_c__SA_dist_5D_data', 'struct_c__SA_dist_5D_offload_data',
     'struct_c__SA_dist_6D_data', 'struct_c__SA_dist_6D_offload_data',
+    'struct_c__SA_dist_COM_data',
+    'struct_c__SA_dist_COM_offload_data',
     'struct_c__SA_dist_rho5D_data',
     'struct_c__SA_dist_rho5D_offload_data',
     'struct_c__SA_dist_rho6D_data',

@@ -112,6 +112,16 @@ class Opt(DataGroup):
         self._OPT_DIST_MIN_CHARGE            = -100
         self._OPT_DIST_MAX_CHARGE            = 100
         self._OPT_DIST_NBIN_CHARGE           = 1
+        self._OPT_ENABLE_DIST_COM            = 0
+        self._OPT_DIST_MIN_MU                = 0
+        self._OPT_DIST_MAX_MU                = 2.5e-13
+        self._OPT_DIST_NBIN_MU               = 100
+        self._OPT_DIST_MIN_EKIN              = 0
+        self._OPT_DIST_MAX_EKIN              = 1.0e-12
+        self._OPT_DIST_NBIN_EKIN             = 50
+        self._OPT_DIST_MIN_PTOR              = -1.0e-18
+        self._OPT_DIST_MAX_PTOR              = 1.0e-18
+        self._OPT_DIST_NBIN_PTOR             = 200
         self._OPT_ENABLE_ORBITWRITE          = 0
         self._OPT_ORBITWRITE_MODE            = 1
         self._OPT_ORBITWRITE_NPOINT          = 100
@@ -672,6 +682,66 @@ class Opt(DataGroup):
         """Number of bins the interval [MIN_CHARGE, MAX_CHARGE] is divided to
         """
         return self._OPT_DIST_NBIN_CHARGE
+
+    @property
+    def _ENABLE_DIST_COM(self):
+        """Collect constant-of-motion distribution histogram [mu, Ekin, Ptor]
+        """
+        return self._OPT_ENABLE_DIST_COM
+
+    @property
+    def _DIST_MIN_MU(self):
+        """Minimum bin edge for magnetic moment coordinate in COM-dist [J/T]
+        """
+        return self._OPT_DIST_MIN_MU
+
+    @property
+    def _DIST_MAX_MU(self):
+        """Maximum bin edge for magnetic moment coordinate in COM-dist [J/T]
+        """
+        return self._OPT_DIST_MAX_MU
+
+    @property
+    def _DIST_NBIN_MU(self):
+        """Number of bins the interval [MIN_MU, MAX_MU] is divided to
+        """
+        return self._OPT_DIST_NBIN_MU
+
+    @property
+    def _DIST_MIN_EKIN(self):
+        """Minimum bin edge for the energy coordinate [J]
+        """
+        return self._OPT_DIST_MIN_EKIN
+
+    @property
+    def _DIST_MAX_EKIN(self):
+        """Maximum bin edge for the energy coordinate [J]
+        """
+        return self._OPT_DIST_MAX_EKIN
+
+    @property
+    def _DIST_NBIN_EKIN(self):
+        """Number of bins the interval [MIN_EKIN, MAX_EKIN] is divided to
+        """
+        return self._OPT_DIST_NBIN_EKIN
+
+    @property
+    def _DIST_MIN_PTOR(self):
+        """Minimum bin edge for the can. tor. ang. mom. coordinate [kg m^2/s]
+        """
+        return self._OPT_DIST_MIN_PTOR
+
+    @property
+    def _DIST_MAX_PTOR(self):
+        """Maximum bin edge for the can. tor. ang. mom. coordinate [kg m^2/s]
+        """
+        return self._OPT_DIST_MAX_PTOR
+
+    @property
+    def _DIST_NBIN_PTOR(self):
+        """Number of bins the interval [MIN_PTOR, MAX_PTOR] is divided to
+        """
+        return self._OPT_DIST_NBIN_PTOR
 
     @property
     def _ENABLE_ORBITWRITE(self):

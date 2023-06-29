@@ -113,6 +113,7 @@ class LibSimulate():
         diag.dist6D_collect    = int(opt["ENABLE_DIST_6D"]) * 0    # Not impl.
         diag.distrho5D_collect = int(opt["ENABLE_DIST_RHO5D"]) * 0 # Not impl.
         diag.distrho6D_collect = int(opt["ENABLE_DIST_RHO6D"]) * 0 # Not impl.
+        diag.dist5D_collect    = int(opt["ENABLE_DIST_COM"]) * 0   # Not impl.
         diag.diagtrcof_collect = int(opt["ENABLE_TRANSCOEF"]) * 0  # Not impl.
         diag.diagorb_collect   = int(opt["ENABLE_ORBITWRITE"])
 
