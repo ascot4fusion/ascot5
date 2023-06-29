@@ -64,6 +64,7 @@ class Opt(DataGroup):
         self._OPT_ENABLE_ORBIT_FOLLOWING     = 0
         self._OPT_ENABLE_COULOMB_COLLISIONS  = 0
         self._OPT_ENABLE_MHD                 = 0
+        self._OPT_ENABLE_ATOMIC              = 0
         self._OPT_DISABLE_FIRSTORDER_GCTRANS = 0
         self._OPT_DISABLE_ENERGY_CCOLL       = 0
         self._OPT_DISABLE_PITCH_CCOLL        = 0
@@ -329,6 +330,12 @@ class Opt(DataGroup):
         """Include MHD perturbations to orbit-following
         """
         return self._OPT_ENABLE_MHD
+
+    @property
+    def _ENABLE_ATOMIC(self):
+        """Include atomic reactions (charge-exchange etc.)
+        """
+        return self._OPT_ENABLE_ATOMIC
 
     @property
     def _DISABLE_FIRSTORDER_GCTRANS(self):

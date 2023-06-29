@@ -16,7 +16,7 @@ import tempfile
 import subprocess
 
 ## KEEP THIS UPDATED ##
-CURRENT_VERSION = 3
+CURRENT_VERSION = 4
 
 def convert_oldtonew(fnin, origin, keeptemp=False):
     """
@@ -55,8 +55,42 @@ def convert_oldtonew(fnin, origin, keeptemp=False):
         version += 1
         fntemp  = fnout
 
-
 def convert(fnin):
+    """
+    Update version 3 HDF5 to version 4.
+
+    - Adds REVERSE_TIME option.
+    - Renames ENDCOND_MAX_SIMTIME to ENDCOND_LIM_SIMTIME.
+    """
+    from a5py.ascot5io.ascot5file import get_qid
+    from a5py.ascot5io.boozer import write_hdf5_dummy as boozer_write_hdf5_dummy
+    from a5py.ascot5io.mhd    import write_hdf5_dummy as mhd_write_hdf5_dummy
+
+    fnout = fnin[:-3] + "_" + str(CURRENT_VERSION) + ".h5"
+
+    subprocess.call(["cp", fnin, fnout])
+
+    def wrapper():
+        with h5py.File(fnout, "a") as h5:
+            if "options" in h5:
+                print("Adding REVERSE_TIME=0")
+                print("ENDCOND_LIM_SIMTIME=ENDCOND_MAX_SIMTIME")
+                for opt in h5["options"]:
+                    opt = h5["options"][opt]
+                    opt.create_dataset("ENDCOND_LIM_SIMTIME", (1,),
+                                       data=opt["ENDCOND_MAX_SIMTIME"],
+                                       dtype='f8')
+
+                    opt.create_dataset("REVERSE_TIME", (1,), data=0,
+                                       dtype='f8')
+                    del opt["ENDCOND_MAX_SIMTIME"]
+
+    wrapper()
+
+    print("Conversion complete.")
+
+
+def convert2to3(fnin):
     """
     Update version 2 HDF5 to version 3.
 
