@@ -221,16 +221,23 @@ class RunMixin():
         return data if len(data) > 1 else data[0]
 
     def getstate_markersummary(self):
-        """Return a summary of marker end conditions present in the data.
+        """Return a summary of marker end conditions and errors present in
+        the data.
 
         Returns
         -------
-        summary : [`str`]
-            Array of strings where each string has a format
-            "# of markers : end condition".
+        econds : list [(int, str)]
+            List of present end conditions.
 
-            If markers were aborted then also error messages are listed as
-            separate strings with the same format.
+            Each list member is a tuple, where first item is the number of
+            markers with the end condition specified in the second item.
+
+        emsg : list [(str, int, str)]
+            List of present errors.
+
+            Each list member is a tuple, where first item is the error
+            message, second the line number where error was raised, and
+            third is the name of the file.
 
         Raises
         ------
@@ -243,11 +250,11 @@ class RunMixin():
         errors = np.unique(np.array([emsg, eline, emod]), axis=1).T
 
         ec, counts = np.unique(econd, return_counts=True)
-        msg = ["End conditions:"]
+        econds = []
         for i, e in enumerate(ec):
             econd = State.endcond_tostring(e)
             if econd == "none": econd = "aborted"
-            msg.append(str(counts[i]) + " : " + econd)
+            econds.append( (counts[i], econd) )
 
         # It would be better to import these via libascot, but then this
         # function would require libascot and we don't want that.
@@ -266,13 +273,12 @@ class RunMixin():
             "Unphysical result when integrating marker coordinates"
         ]
 
+        emsg = []
         for e in errors:
             if np.sum(e) > 0:
-                msg.append("Error: " + messages[e[0]-1] \
-                           + ". At line " + str(e[1])  \
-                           + " in " + modules[e[2]-1])
+                emsg.append( (messages[e[0]-1], e[1], modules[e[2]-1]) )
 
-        return msg
+        return econds, emsg
 
     def getstate_losssummary(self):
         """Return a summary of lost markers.
@@ -314,25 +320,39 @@ class RunMixin():
                          self._endstate.get("z", endcond=endcond)]).T
 
     def getorbit_poincareplanes(self):
-        """Return a list of Poincaré planes that were present in the simulation.
+        """Return a list of Poincaré planes that were present in the simulation
+        and the corresponding pncrid.
 
-        The list consists of "pol", "tor", and "rad" depending on the type of
-        the plane.
+        Returns
+        -------
+        pol : list [(float, int)]
+            List of tuples with a toroidal angle and pncrid for each poloidal
+            plane or empty list if there are none.
+        tor : list [float]
+            List of tuples with a poloidal angle and pncrid for each toroidal
+            plane or empty list if there are none.
+        rad : list [float]
+            List of tuples with radius and pncrid for radial surfaces or empty
+            list if there are none.
         """
         opt  = self.options.read()
-        npol = opt["ORBITWRITE_POLOIDALANGLES"]
-        ntor = opt["ORBITWRITE_TOROIDALANGLES"]
-        nrad = opt["ORBITWRITE_RADIALDISTANCES"]
-        npol = 0 if npol[0] < 0 else len(npol)
-        ntor = 0 if ntor[0] < 0 else len(ntor)
-        nrad = 0 if nrad[0] < 0 else len(nrad)
+        polval = opt["ORBITWRITE_POLOIDALANGLES"]
+        torval = opt["ORBITWRITE_TOROIDALANGLES"]
+        radval = opt["ORBITWRITE_RADIALDISTANCES"]
 
-        plane = [None] * (npol + ntor + nrad)
-        plane[:npol]                    = ["pol"]
-        plane[npol:npol+ntor]           = ["tor"]
-        plane[npol+ntor:npol+ntor+nrad] = ["rad"]
+        pncrid = 0
+        def opt2list(val):
+            """Conver the option string to a list with tuples (val, pncrid)
+            """
+            nonlocal pncrid
+            tuples = []
+            if val[0] < 0: val = []
+            for i in range(len(val)):
+                tuples.append((val[i], pncrid))
+                pncrid += 1
+            return tuples
 
-        return plane
+        return opt2list(polval), opt2list(torval), opt2list(radval)
 
     def getwall_figuresofmerit(self):
         """
@@ -538,100 +558,137 @@ class RunMixin():
                             clabel=c, cint=cint, cmap=cmap,
                             axesequal=axesequal, axes=axes, cax=cax)
 
-    def plotstate_histogram(
-            self, x, y=None, xbins=None, ybins=None, endcond=None, weight=False,
-            iniend=["i", "i"], log=[False, False], logscale=False,
-            cmap="viridis", axesequal=False, axes=None, cax=None):
+    def plotstate_histogram(self, x, y=None, xbins=10, ybins=10, endcond=None,
+                            ids=None, weight=False, logscale=False, cmap=None,
+                            axesequal=False, axes=None, cax=None):
         """Make a histogram plot of marker state coordinates.
 
         The histogram is either 1D or 2D depending on if the y coordinate is
         provided. In the 1D histogram the markers with different endstate are
         separated by color if the endcond argument is None.
 
+        The quantity ("qnt") must have one of the following formats:
+
+        - "ini qnt" plots inistate of quantity qnt.
+        - "end qnt" plots endstate of quantity qnt.
+        - "diff qnt" plots the difference between ini and endstate.
+        - "reldiff qnt" plots the relative difference (x1/x0 - 1).
+        - "log ini/end/diff/reldiff qnt" plots the logarithmic value.
+
         Parameters
         ----------
         x : str
             Name of the quantity on x-axis.
         y : str, optional
-            Name of the quantity on y-axis. Makes the histogram 2D.
+            Name of the quantity on y-axis.
+
+            If not None, the histogram will be in 2D.
+        xbins : int or array_like, optional
+            Bin edges for the x coordinate or the number of bins.
+        ybins : int or array_like, optional
+            Bin edges for the y coordinate or the number of bins.
+        endcond : str, array_like, optional
+            Endcond of those markers which are plotted.
+
+            If None and the plot is in 1D, the histogram will be stacked with
+            different colors indicating different end conditions.
+        ids : array_like
+            IDs of the markers to be plotted.
+        weight : bool
+            Whether to weight markers when they are binned to the histogram.
+
+            The weighted histogram represents physical particles whereas
+            the unweighted histogram corresponds to markers.
         cmap : str, optional
             Name of the colormap used in the 2D histogram.
-        endcond : str, array_like, optional
-            Endcond of those  markers which are plotted. Separated by color
-            in 1D plot otherwise.
-        iniend : str, array_like, optional
-            Flag whether a corresponding [x, y] coordinate is taken from
-            the ini ("i") or endstate ("e").
-        log : bool, array_like, optional
-            Flag whether the corresponding axis [x, y] is made logarithmic.
-            If that is the case, absolute value is taken before the quantity
-            is passed to log10.
         axesequal : bool, optional
             Flag whether to set aspect ratio for x and y axes equal in 2D.
-        axes : Axes, optional
-            The Axes object to draw on. If None, a new figure is displayed.
-        cax : Axes, optional
-            The Axes object for the color data in 2D, otherwise taken from
-            axes.
-
-        Raises
-        ------
-        AscotNoDataException
-            Raised when data required for the opreation is not present.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
         """
-        if "i" in iniend: self._require("_inistate")
-        if "e" in iniend: self._require("_endstate")
-        if endcond is not None: self._require("_endstate")
+        def parsearg(arg):
+            """Parse arguments of from "log ini qnt" to (qnt, value, islog).
+            """
+            arg = arg.lower()
+            log = "linear"
+            if "log" in arg:
+                arg = arg.replace("log", "")
+                log = "log"
 
-        # Decipher whether quantity is evaluated from ini or endstate
-        state = [None] * 2
-        for i in range(2):
-            if iniend[i] == "i":
-                state[i] = self.inistate
-            elif iniend[i] == "e":
-                state[i] = self.endstate
+            if "ini" in arg:
+                arg = arg.replace("ini", "").strip()
+                val = self.getstate(arg, state="ini", endcond=endcond, ids=ids)
+                if log == "log": arg = "|" + arg + "|"
+                arg = "Initial " + arg
+            elif "end" in arg:
+                arg = arg.replace("end", "").strip()
+                val = self.getstate(arg, state="end", endcond=endcond, ids=ids)
+                if log == "log": arg = "|" + arg + "|"
+                arg = "Final " + arg
+            elif "reldiff" in arg:
+                arg = arg.replace("reldiff", "").strip()
+                val1 = self.getstate(arg, state="ini", endcond=endcond, ids=ids)
+                val2 = self.getstate(arg, state="end", endcond=endcond, ids=ids)
+                val = (val2 -val1) / val1
+                arg = r"$\Delta x/x_0$ " + arg
+                if log == "log": arg = "|" + arg + "|"
+            elif "diff" in arg:
+                arg = arg.replace("diff", "").strip()
+                val1 = self.getstate(arg, state="ini", endcond=endcond, ids=ids)
+                val2 = self.getstate(arg, state="end", endcond=endcond, ids=ids)
+                val = val2 - val1
+                arg = r"$\Delta$ " + arg
+                if log == "log": arg = "|" + arg + "|"
             else:
-                raise ValueError("Only 'i' and 'e' are accepted for iniend.")
+                raise ValueError(
+                    "Unclear if a quantity is evaluated from ini or endstate.\n"
+                    + "Use \"ini/end/diff/reldiff %s\"" % (arg)
+                )
+            if log == "log": val = np.abs(val)
+            # Make sure val is an unyt array
+            try:
+                val.units
+            except AttributeError:
+                val *= unyt.dimensionless
+            return (arg, val, log)
 
+        x, xc, xlog = parsearg(x)
         if y is None:
             # 1D plot
-
-            xc = []
+            xcs = []
             weights = []
 
-            ecs, count = self._endstate.listendconds()
+            ecs, _ = self.getstate_markersummary()
             for ec in ecs:
-                if endcond is not None and ec not in [endcond]:
-                    pass
+                if endcond is not None and ec[1] not in [endcond]:
+                    continue
 
-                xc.append(state[0].get(x, endcond=ec))
-                weights.append(state[0].get("weight", endcond=ec))
+                ids, w = self.getstate("ids", "weight", endcond=ec[1], ids=ids)
+                xcs.append(xc[ids-1])
+                weights.append(w)
 
+            xc = xcs
             idx = np.argsort([len(i) for i in xc])[::-1]
-            xc  = [xc[i] for i in idx]
-            ecs = [ecs[i] for i in idx]
+            xc  = [xc[i].v for i in idx]
+            ecs = [ecs[i][1] + " : %.2e" % ecs[i][0] for i in idx]
             weights = [weights[i] for i in idx]
-            if not weight:
-                weights = None
+            if not weight: weights = None
 
-            xlabel = x + " [" + str(xc[0].units) + "]"
-            a5plt.hist1d(x=xc, xbins=xbins, weights=weights,
-                         log=[log[0], logscale],
-                         xlabel=xlabel, axes=axes, legend=ecs)
+            a5plt.hist1d(x=xc, xbins=xbins, weights=weights, xlog=xlog,
+                         logscale=logscale, xlabel=x, axes=axes, legend=ecs)
 
         else:
             # 2D plot
-            xc = state[0].get(x, endcond=endcond)
-            yc = state[1].get(y, endcond=endcond)
-            weights = state[0].get("weight", endcond=endcond)
-            if not weight:
-                weights = None
+            y, yc, ylog = parsearg(y)
+            weights = self.getstate("weight", state="ini", endcond=endcond,
+                                    ids=ids)
+            if not weight: weights = None
 
-            xlabel = x + " [" + str(xc.units) + "]"
-            ylabel = y + " [" + str(yc.units) + "]"
             a5plt.hist2d(xc, yc, xbins=xbins, ybins=ybins, weights=weights,
-                         log=[log[0], log[1], logscale], xlabel=xlabel,
-                         ylabel=ylabel, axesequal=axesequal, axes=axes, cax=cax)
+                         xlog=xlog, ylog=ylog, logscale=logscale, xlabel=x,
+                         ylabel=y, axesequal=axesequal, axes=axes, cax=cax)
 
     def plotorbit_trajectory(self, x, y, z=None, c=None, endcond=None, ids=None,
                              cmap=None, axesequal=False, axes=None, cax=None):
@@ -768,16 +825,24 @@ class RunMixin():
                          clabel=clabel, bbox=bbox, cmap=cmap,
                          axesequal=axesequal, axes=axes, cax=cax)
 
-    def plotorbit_poincare(self, plane, conlen=True, axes=None, cax=None):
+    def plotorbit_poincare(self, plane, connlen=True, axes=None, cax=None):
         """Create a Poincaré plot where the color separates different markers
         or shows the connection length.
 
         Parameters
         ----------
-        plane : int
-            Index number of the plane to be plotted in the list given by
-            getorbit_poincareplanes.
-        conlen : bool, optional
+        plane : str
+            The Poincaré plane to be plotted.
+
+            The argument is expected to have format "pol/tor/rad i" where the
+            first part specifies the type of the plane (poloidal, toroidal,
+            radial) and the second argument is the plane index. For example,
+            ``plane="pol 2"`` plots the second poloidal plane. The order of
+            the planes is same as given by :meth:`getorbit_poincareplanes`.
+        connlen : bool, optional
+            Show connection length and separated lost and confined markers with
+            color.
+
             If true, trajectories of lost markers are colored (in blue
             shades) where the color shows the connection length at that
             position. Confined (or all if conlen=False) markers are shown
@@ -790,82 +855,75 @@ class RunMixin():
 
         Raises
         ------
-        AscotNoDataException
-            Raised when data required for the opreation is not present.
+        ValueError
+            Raised when the plane is unknown.
         """
         # Set quantities corresponding to the planetype
-        planes = self.getorbit_poincareplanes()
-        if len(planes) <= plane:
+        pol, tor, rad = self.getorbit_poincareplanes()
+        if "pol" in plane:
+            plane = int(plane.split()[1]) - 1
+            if plane < len(pol) and plane >= 0:
+                plane = pol[plane][1]
+                x = "r"
+                y = "z"
+                xlabel = "R [m]"
+                ylabel = "z [m]"
+                xlim = None # Determined spearately
+                ylim = None # Determined separately
+                axesequal = True
+            else:
+                raise ValueError("Unknown plane.")
+        elif "tor" in plane:
+            plane = int(plane.split()[1]) - 1
+            if plane < len(tor) and plane >= 0:
+                plane = tor[plane][1]
+                x = "rho"
+                y = "phimod"
+                xlabel = "Normalized poloidal flux"
+                ylabel = "Toroidal angle [deg]"
+                xlim = [0, 1.1]
+                ylim = [0, 360]
+                axesequal = False
+            else:
+                raise ValueError("Unknown plane.")
+        elif "rad" in plane:
+            plane = int(plane.split()[1]) - 1
+            if plane < len(rad) and plane >= 0:
+                plane = rad[plane][1]
+                x = "thetamod"
+                y = "phimod"
+                xlabel = "Poloidal angle [deg]"
+                ylabel = "Toroidal angle [deg]"
+                xlim = [0, 360]
+                ylim = [0, 360]
+                axesequal = True
+            else:
+                raise ValueError("Unknown plane.")
+        else:
             raise ValueError("Unknown plane.")
 
-        ptype = planes[plane]
-        if ptype == "pol":
-            x = "r"
-            y = "z"
-            xlabel = "R [m]"
-            ylabel = "z [m]"
-            xlim = None # TBD
-            ylim = None # TBD
-            axesequal = True
-        elif ptype == "tor":
-            x = "rho"
-            y = "phimod"
-            xlabel = "Normalized poloidal flux"
-            ylabel = "Toroidal angle [deg]"
-            xlim = [0, 1.1]
-            ylim = [0, 360]
-            axesequal = False
-        elif ptype == "rad":
-            x = "thetamod"
-            y = "phimod"
-            xlabel = "Poloidal angle [deg]"
-            ylabel = "Toroidal angle [deg]"
-            xlim = [0, 360]
-            ylim = [0, 360]
-            axesequal = True
+        plotconnlen = connlen
+        ids, x, y, connlen = self.getorbit("ids", x, y, "connlen", pncrid=plane)
 
-        ids, x, y, clen = self.getorbit("ids", x, y, "connlen", pncrid=plane)
-        #x   = self._orbit.get(x,    pncrid=plane)
-        #y   = self._orbit.get(y,    pncrid=plane)
-
-        if ptype == "pol":
-            # Determine (R,z) limits by making sure the data fits nicely and
-            # then rounding to nearest decimal.
+        if xlim == None:
+            # Determine (R,z) limits for poloidal plane by making sure the data
+            # fits nicely and then rounding to nearest decimal.
             xlim = [np.floor(np.amin(x)*9) / 10, np.ceil(np.amax(x)*11) / 10]
             ylim = [np.floor(np.amin(y)*11) / 10, np.ceil(np.amax(y)*11) / 10]
 
-        if conlen:
-            # Calculate connection length using endstate (only markers that pass
-            # this plane are considered)
-            #total = self.endstate.get("mileage", ids=np.unique(ids))
-
-            # Find how many data points each marker has in orbit data arrays.
-            # idx are indices of last data point for given id.
-            #idx = np.argwhere(ids[1:] - ids[:-1]).ravel()
-            #idx = np.append(idx, ids.size-1)
-            # Getting the number of data points now is just a simple operation:
-            #idx[1:] -= idx[:-1]
-            #idx[0] += 1
-
-            # Now we can repeat the total mileage by the number of data points
-            # each marker has, so we can calculate the connection length at each
-            # point as: conlen = total - mileage
-            #total  = np.repeat(total, idx)
-            #conlen = total - self.orbit.get("mileage", pncrid=plane)
-
+        if plotconnlen:
             # Now set confined markers as having negative connection length
-            conlen = clen
-            lost1 = self.getstate("ids", state="end", endcond="rhomax")
-            lost2 = self.getstate("ids", state="end", endcond="wall")
+            connlen *= -1
+            lost1 = self.getstate("ids", state="end", endcond="rhomax wall")
 
-            idx = ~np.logical_or(np.in1d(ids, lost1), np.in1d(ids, lost2))
-            conlen[idx] *= -1
-            clabel = "Connection length [" + str(conlen.units) + "]"
+            idx = ~np.in1d(ids, lost1)
+            connlen[idx] *= -1
+            clabel = "Connection length [" + str(connlen.units) + "]"
         else:
-            conlen = None
+            connlen = None
             clabel = None
 
-        a5plt.poincare(x, y, ids, conlen=conlen, xlim=xlim, ylim=ylim,
+        a5plt.poincare(x, y, ids, connlen=connlen, xlim=xlim, ylim=ylim,
                        xlabel=xlabel, ylabel=ylabel, clabel=clabel,
                        axesequal=axesequal, axes=axes, cax=cax)
 

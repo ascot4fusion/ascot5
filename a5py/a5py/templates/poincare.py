@@ -5,6 +5,7 @@ import unyt
 
 from a5py.ascot5io.marker  import Marker
 from a5py.ascot5io.options import Opt
+from a5py.physlib import parseunits
 
 class PoincareTemplates():
 
@@ -95,6 +96,7 @@ class PoincareTemplates():
             mrk["energy"][:] = energy
             return ("gc", mrk)
 
+    @parseunits(tor="deg", pol="deg")
     def options_poincare(self, simmode=4, tor=0*unyt.deg, pol=0*unyt.deg,
                          ntorb=500, nporb=500, both=False, maxrho=False,
                          mhd=False, cpulim=None):

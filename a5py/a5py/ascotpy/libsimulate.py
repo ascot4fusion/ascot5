@@ -119,7 +119,6 @@ class LibSimulate():
             self._sim.sim_mode == ascot2py.simulate_mode_hybrid):
             diagorb.record_mode = ascot2py.simulate_mode_gc
 
-
         torangs = opt["ORBITWRITE_TOROIDALANGLES"]
         torangs = torangs if isinstance(torangs, list) else [torangs]
         polangs = opt["ORBITWRITE_POLOIDALANGLES"]

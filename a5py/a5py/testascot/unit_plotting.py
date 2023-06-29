@@ -13,6 +13,7 @@ import unyt
 
 from a5py import Ascot
 import a5py.routines.plotting as a5plt
+from a5py.ascot5io.marker import Marker
 
 class TestPlotting(unittest.TestCase):
 
@@ -30,30 +31,26 @@ class TestPlotting(unittest.TestCase):
         a5.data.create_input("bfield analytical iter circular")
         a5.data.create_input("wall rectangular")
         a5.data.create_input("plasma flat")
-
-        from a5py.ascot5io.marker import Marker
-        mrk = Marker.generate("gc", n=100, species="alpha")
-        mrk["energy"][:] = 3.5e6
-        mrk["pitch"][:]  = 0.99 - 1.98 * np.random.rand(100,)
-        mrk["r"][:]      = np.linspace(6.2, 8.2, 100)
-        #a5.data.create_input("gc", **mrk)
         a5.data.create_input("E_TC", exyz=np.array([0,0,0]))
-
         a5.data.create_input("N0_3D")
         a5.data.create_input("Boozer")
         a5.data.create_input("MHD_STAT")
 
-        #name = a5.data.options.active.new(ENDCOND_MAX_MILEAGE=0.5e-4,
-        #                                  desc="Fast")
-        #a5.data.options[name].activate()
+        a5.simulation_initinputs()
+
+        mrk = Marker.generate("gc", n=100, species="alpha")
+        mrk["weight"][:] = 10**(10 +10*np.random.rand(100,))
+        mrk["energy"][:] = 3.5e6
+        mrk["pitch"][:]  = 0.99 - 1.98 * np.random.rand(100,)
+        mrk["r"][:]      = np.linspace(6.2, 8.5, 100)
+        a5.simulation_initmarkers(**mrk)
+
         opt = a5.data.options.active.read()
         opt.update(ENDCOND_MAX_MILEAGE=simtime)
-        a5.simulation_initinputs()
-        a5.simulation_initmarkers(**mrk)
         a5.simulation_initoptions(**opt)
         return a5.simulation_run()
 
-    def _test_input_plotrz(self):
+    def test_input_plotrz(self):
         a5 = Ascot("unittest.h5", create=True)
         a5.data.create_input("bfield analytical iter circular", splines=True,
                              axisymmetric=True)
@@ -93,9 +90,9 @@ class TestPlotting(unittest.TestCase):
                         cmap="PuOr",axes=ax)
 
         a5.input_free()
-        plt.show(block=True)
+        plt.show(block=False)
 
-    def _test_plotstate_scatter(self):
+    def test_plotstate_scatter(self):
         vr = self.initandrunsim(1e-3)
         fig = plt.figure(figsize=(30,40))
 
@@ -123,11 +120,36 @@ class TestPlotting(unittest.TestCase):
         vr.plotstate_scatter("log end x", "log end y", "log end z",
                              c="log diff phi", axesequal=True, axes=ax)
 
-        plt.show(block=True)
+        plt.show(block=False)
+
+    def _test_plotstate_histogram(self):
+        vr = self.initandrunsim(1e-4)
+        fig = plt.figure(figsize=(30,40))
+
+        ax = fig.add_subplot(2,3,1)
+        vr.plotstate_histogram("end phimod", axes=ax)
+
+        ax = fig.add_subplot(2,3,2)
+        vr.plotstate_histogram("log end phi", xbins=10, axes=ax)
+
+        ax = fig.add_subplot(2,3,3)
+        vr.plotstate_histogram("end ekin", xbins=np.linspace(0,4e6,100),
+                               logscale=True, weight=True, axes=ax)
+
+        ax = fig.add_subplot(2,3,4)
+        vr.plotstate_histogram("end phimod", "end thetamod", axes=ax)
+
+        ax = fig.add_subplot(2,3,5)
+        vr.plotstate_histogram("log end phi", "log end theta", axes=ax)
+
+        ax = fig.add_subplot(2,3,6)
+        vr.plotstate_histogram("end phimod", "end thetamod", logscale=True,
+                               weight=True, axes=ax)
+
+        plt.show(block=False)
 
     def test_plotorbit_trajectory(self):
         vr = self.initandrunsim(1e-4)
-
         fig = plt.figure(figsize=(30,40))
 
         ax = fig.add_subplot(2,3,1)
@@ -155,7 +177,7 @@ class TestPlotting(unittest.TestCase):
         vr.plotorbit_trajectory("log x", "log y", "log z", c="log diff ekin",
                                 axesequal=True, axes=ax)
 
-        plt.show(block=True)
+        plt.show(block=False)
 
 if __name__ == '__main__':
     unittest.main()

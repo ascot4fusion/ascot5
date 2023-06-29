@@ -5,3 +5,4 @@ Basic usage
   :maxdepth: 1
 
   tutorials/tutorial.ipynb
+  tutorials/poincaretutorial.ipynb

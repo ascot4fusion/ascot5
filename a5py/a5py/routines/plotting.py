@@ -310,8 +310,8 @@ def scatter3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
     cbar.set_label(clabel)
 
 @openfigureifnoaxes(projection=None)
-def hist1d(x, xbins=None, weights=None, log=[False, False], xlabel=None,
-           legend=None, axes=None):
+def hist1d(x, xbins=None, weights=None, xlog="linear", logscale=False,
+           xlabel=None, legend=None, axes=None):
     """Plot (stacked) marker histogram in 1D.
 
     Parameters
@@ -327,8 +327,10 @@ def hist1d(x, xbins=None, weights=None, log=[False, False], xlabel=None,
         Values the datapoints are weighted with.
 
         Same format as for x.
-    log : [bool, bool], optional
-        Make [x, y] axes logarithmic.
+    xlog : {"linear", "log"}, optional
+        x-axis scaling.
+    logscale : bool, optional
+        Show histogram in logarithmic scale.
     xlabel : str, optional
         Label for the x-axis.
     legend : str, array_like
@@ -339,30 +341,29 @@ def hist1d(x, xbins=None, weights=None, log=[False, False], xlabel=None,
     axes : :obj:`~matplotlib.axes.Axes`, optional
         The axes where figure is plotted or otherwise new figure is created.
     """
-
-    # Set log scales
-    if log[0]: x = [np.log10(x) for x in x]
-    if log[0] and ( xbins is not None and not isinstance(xbins, int) ):
-        xbins = np.log10(xbins)
-
-    if not log[1]: axes.ticklabel_format(style="sci", axis="y", scilimits=(0,0))
-
-    # Plot and legend
-    axes.hist(x, xbins, density=False, stacked=True, log=log[1],
-              weights=weights, rwidth=1)
-    axes.legend(legend, frameon=False)
-
-    # Set labels
-    if log[0] and xlabel is not None: xlabel = "log10( "+xlabel+" )"
     axes.set_xlabel(xlabel)
-
+    axes.set_xscale(xlog)
     ylabel = "Markers per bin" if weights is None else "Particles per bin"
     axes.set_ylabel(ylabel)
+    if not logscale:
+        axes.ticklabel_format(style="sci", axis="y", scilimits=(0,0))
+
+    if isinstance(xbins, int) and xlog == "log":
+        xmin = x[0][0]; xmax = x[0][0]
+        for i in range(len(x)):
+            xmin = np.amin([np.amin(x[i]), xmin])
+            xmax = np.amax([np.amax(x[i]), xmax])
+        xbins = np.logspace(np.log10(xmin), np.log10(xmax), xbins)
+
+    # Plot and legend
+    axes.hist(x, xbins, density=False, stacked=True, log=logscale,
+              weights=weights, rwidth=2)
+    axes.legend(legend, frameon=False)
 
 @openfigureifnoaxes(projection=None)
-def hist2d(x, y, xbins=None, ybins=None, weights=None,
-           log=[False, False, False], xlabel=None, ylabel=None, axesequal=False,
-           axes=None, cax=None):
+def hist2d(x, y, xbins=None, ybins=None, weights=None, xlog="linear",
+           ylog="linear", logscale=False, xlabel=None, ylabel=None,
+           axesequal=False, axes=None, cax=None):
     """Plot marker histogram in 2D.
 
     Parameters
@@ -380,8 +381,12 @@ def hist2d(x, y, xbins=None, ybins=None, weights=None,
 
         If weights are included, the colorbar label changes from "Markers"
         to "Particles".
-    log : [bool, bool, bool], optional
-        Make [x, y, color] axes logarithmic.
+    xlog : {"linear", "log"}, optional
+        x-axis scaling.
+    ylog : {"linear", "log"}, optional
+        y-axis scaling.
+    logscale : bool, optional
+        Show histogram in logarithmic scale.
     xlabel : str, optional
         Label for the x-axis.
     ylabel : str, optional
@@ -393,34 +398,29 @@ def hist2d(x, y, xbins=None, ybins=None, weights=None,
     cax : :obj:`~matplotlib.axes.Axes`, optional
         The color bar axes or otherwise taken from the main axes.
     """
-    # Set log scales
-    if log[0]: x = [np.log10(np.abs(x)) for x in x]
-    if log[0] and ( xbins is not None and not isinstance(xbins, int) ):
-        xbins = np.log10(xbins)
+    axes.set_xlabel(xlabel)
+    axes.set_xscale(xlog)
+    axes.set_ylabel(ylabel)
+    axes.set_yscale(ylog)
+    clabel = "Markers per bin" if weights is None else "Particles per bin"
+    if axesequal: axes.set_aspect("equal", adjustable="box")
 
-    if log[1]: y = [np.log10(np.abs(y)) for y in y]
-    if log[1] and ( ybins is not None and not isinstance(ybins, int) ):
-        ybins = np.log10(ybins)
+    if isinstance(xbins, int) and xlog == "log":
+        xmin = np.amin(x)
+        xmax = np.amax(x)
+        xbins = np.logspace(np.log10(xmin), np.log10(xmax), xbins)
 
-    # Plot and colorbar
+    if isinstance(ybins, int) and ylog == "log":
+        ymin = np.amin(y)
+        ymax = np.amax(y)
+        ybins = np.logspace(np.log10(ymin), np.log10(ymax), ybins)
+
     h,_,_,m = axes.hist2d(x, y, bins=[xbins, ybins], weights=weights)
 
     norm = None
-    if log[2]:
-        norm = mpl.colors.LogNorm(np.amin(h), np.amax(h))
+    if logscale: norm = mpl.colors.LogNorm(np.amin(h), np.amax(h))
     cbar = plt.colorbar(m, norm=norm, ax=axes, cax=cax)
-
-    # Set labels
-    if log[0] and xlabel is not None: xlabel = "log10( "+xlabel+" )"
-    axes.set_xlabel(xlabel)
-    if log[1] and ylabel is not None: ylabel = "log10( "+ylabel+" )"
-    axes.set_ylabel(ylabel)
-
-    clabel = "Markers per bin" if weights is None else "Particles per bin"
     cbar.set_label(clabel)
-
-    if axesequal:
-        axes.set_aspect("equal", adjustable="box")
 
 @openfigureifnoaxes(projection=None)
 def mesh2d(x, y, z, log=False, diverging=False, xlabel=None, ylabel=None,
@@ -661,7 +661,7 @@ def line3d(x, y, z, c=None, xlog="linear", ylog="linear", zlog="linear",
     plt.colorbar(smap, ax=axes, cax=cax)
 
 @openfigureifnoaxes(projection=None)
-def poincare(x, y, ids, conlen=None, xlim=None, ylim=None, xlabel=None,
+def poincare(x, y, ids, connlen=None, xlim=None, ylim=None, xlabel=None,
              ylabel=None, clabel=None, axesequal=False, axes=None, cax=None):
     """Poincaré plot where color separates markers or shows the connection
     length.
@@ -679,10 +679,12 @@ def poincare(x, y, ids, conlen=None, xlim=None, ylim=None, xlabel=None,
     ids : array_like
         Array of marker IDs showing to which marker the points in x and y
         arrays correspond to.
-    conlen : array_like, optional
-        Connection length at the position (x,y). Negative if the marker is
-        confined. If given, the color scale shows connection length instead
-        of marker ID. The confined markers are still shown with shades of red.
+    connlen : array_like, optional
+        Connection length at the position (x,y).
+
+        Negative if the marker is confined. If given, the color scale shows
+        connection length instead of marker ID. The confined markers are still
+        shown with shades of red.
     xlim : tuple(float, float), optional
         Min and max values for the x-axis.
     ylim : tuple(float, float), optional
@@ -700,12 +702,12 @@ def poincare(x, y, ids, conlen=None, xlim=None, ylim=None, xlabel=None,
     """
     nc = 5 # How many colors are used
 
-    if conlen is not None:
+    if connlen is not None:
         # If we don't have lost markers then ignore the connection length.
-        if np.argwhere(conlen > 0).size == 0:
-            conlen = None
+        if np.argwhere(connlen > 0).size == 0:
+            connlen = None
 
-    if conlen is None:
+    if connlen is None:
         # Shuffle colors and plot
         cmap = plt.cm.get_cmap("Reds", nc)
         uids  = np.unique(ids)
@@ -718,33 +720,33 @@ def poincare(x, y, ids, conlen=None, xlim=None, ylim=None, xlabel=None,
 
     else:
         # Sort by connection length (confined markers are indicated with a
-        # negative conlen).
-        idx = np.argsort(conlen)
+        # negative connlen).
+        idx = np.argsort(connlen)
         x   = x[idx]
         y   = y[idx]
         ids = ids[idx]
-        conlen = conlen[idx]
+        connlen = connlen[idx]
 
         # Find where the line between confined and lost markers is.
-        # Set conlen positive again for confined markers and rearrange again
+        # Set connlen positive again for confined markers and rearrange again
         # by the connection length.
-        idx    = np.argwhere(conlen > 0).ravel()[0]
+        idx    = np.argwhere(connlen > 0).ravel()[0]
         x      = np.append(x[idx:],      np.flip(x[:idx]))
         y      = np.append(y[idx:],      np.flip(y[:idx]))
         ids    = np.append(ids[idx:],    np.flip(ids[:idx]))
-        conlen = np.append(conlen[idx:], np.flip(-conlen[:idx]))
-        idx = (conlen.size - 1) - idx
+        connlen = np.append(connlen[idx:], np.flip(-connlen[:idx]))
+        idx = (connlen.size - 1) - idx
 
         # The color has meaning only for lost markers so find the scale
-        cmin = conlen[0]
-        cmax = conlen[idx]
+        cmin = connlen[0]
+        cmax = connlen[idx]
 
         logscale = False
         if cmin / cmax < 0.1:
             logscale = True
             cmin   = np.log10(cmin)
             cmax   = np.log10(cmax)
-            conlen = np.log10(conlen)
+            connlen = np.log10(connlen)
 
         cmin = np.floor(cmin)
         cmax = np.ceil(cmax)
@@ -752,7 +754,7 @@ def poincare(x, y, ids, conlen=None, xlim=None, ylim=None, xlabel=None,
         clim = np.linspace(cmin, cmax, nc_b+1)
 
         # Confined markers are plotted separately.
-        conlen[idx+1:] = cmax + 1/nc
+        connlen[idx+1:] = cmax + 1/nc
         clim = np.append(clim, cmax + np.linspace(0, 1/nc, nc))
 
         # Create colormap and colorbar
@@ -780,7 +782,7 @@ def poincare(x, y, ids, conlen=None, xlim=None, ylim=None, xlabel=None,
             cb.ax.set_ylabel(clabel)
 
         # Find the indices that divide the color range in even intervals
-        idx  = np.searchsorted(conlen, clim) + 1
+        idx  = np.searchsorted(connlen, clim) + 1
 
         # Now plot markers on to each interval with a different color
         i1 = 0

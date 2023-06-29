@@ -760,9 +760,14 @@ class Opt(DataGroup):
                 val = f[path][key][:]
 
                 # Take type from the default parameter
-                if isinstance(defopt[key], list) and not isinstance(val, list):
-                    val = [val]
-                out[key] = type(defopt[key])(val)
+                if isinstance(defopt[key], list):
+                    try:
+                        val[0]
+                        out[key] = type(defopt[key])(val)
+                    except Exception:
+                        out[key] = val
+                else:
+                    out[key] = type(defopt[key])(val)
 
         for o in defopt.keys():
             if o not in out:

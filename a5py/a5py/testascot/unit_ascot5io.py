@@ -72,7 +72,7 @@ class TestAscot5IO(unittest.TestCase):
         grp3 = a5.data.create_input("E_TC", ETC)
 
         # Groups should be ordered by date
-        dates = a5.data["efield"].get_contents()["date"]
+        dates = a5.data["efield"].get_contents()[1]
         self.assertEqual(dates, sorted(dates)[::-1],
                          "Groups are not sorted by date.")
 
@@ -287,24 +287,22 @@ class TestAscot5IO(unittest.TestCase):
     def test_endcond(self):
         """Test end conditions are parsed properly
         """
-
-        state = State(None, None)
-        self.assertTrue(state._endcond_check(0x2, "aborted"),
+        self.assertTrue(State.endcond_check(0x2, "aborted"),
                         "Endcond did not match its binary repr.")
-        self.assertFalse(state._endcond_check(0x2, "none"),
+        self.assertFalse(State.endcond_check(0x2, "none"),
                          "Endcond matched wrong binary repr.")
-        self.assertFalse(state._endcond_check(0x2, "aborted none"),
+        self.assertFalse(State.endcond_check(0x2, "aborted none"),
                          "Endcond AND operation failed.")
-        self.assertFalse(state._endcond_check(0x2, "not aborted"),
+        self.assertFalse(State.endcond_check(0x2, "not aborted"),
                          "Endcond NOT operation failed.")
-        self.assertTrue(state._endcond_check(0x2, "aborted not none"),
+        self.assertTrue(State.endcond_check(0x2, "aborted not none"),
                         "Endcond AND NOT operation failed.")
-        self.assertTrue(state._endcond_check(0x2 | 0x4, "aborted"),
+        self.assertTrue(State.endcond_check(0x2 | 0x4, "aborted"),
                         "Endcond failed when multiple end conditions active.")
         with self.assertRaises(
                 ValueError,
                 msg="Failed to raise exception when endcond unknown"):
-            state._endcond_check(0x2 | 0x4, "vanished")
+            State.endcond_check(0x2 | 0x4, "vanished")
 
     def test_inputs(self):
         inputs = {
@@ -332,6 +330,7 @@ class TestAscot5IO(unittest.TestCase):
                 fun = getattr(getattr(mod, grp), "write_hdf5")
                 fun(fn=self.testfilename, desc="DUMMY2", **data)
                 a5 = Ascot(self.testfilename)
+                data = a5.data[parent].DUMMY2.read()
                 a5.data[parent].DUMMY.destroy()
                 a5.data[parent].DUMMY2.destroy()
 
