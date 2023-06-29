@@ -7,7 +7,7 @@
  * active.
  *
  * The end conditions are:
- * - tmax: Marker time exceeds maximum simulation time
+ * - tlim: Marker time has passed the simulation time limit
  *
  * - emin: Marker energy is below minimum value
  *
@@ -75,7 +75,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
 
     /* Note which end conditions are set as active.
        Only these ones are checked */
-    int active_tmax      = sim->endcond_active & endcond_tmax;
+    int active_tlim      = sim->endcond_active & endcond_tlim;
     int active_wall      = sim->endcond_active & endcond_wall;
     int active_emin      = sim->endcond_active & endcond_emin;
     int active_therm     = sim->endcond_active & endcond_therm;
@@ -92,13 +92,17 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
         if(p_f->running[i]) {
 
             /* Check if the marker time exceeds simulation time */
-            if(active_tmax) {
-                if(p_f->time[i] > sim->endcond_max_simtime) {
-                    p_f->endcond[i] |= endcond_tmax;
+            if(active_tlim) {
+                if(!sim->reverse_time && p_f->time[i] > sim->endcond_lim_simtime) {
+                    p_f->endcond[i] |= endcond_tlim;
+                    p_f->running[i] = 0;
+                }
+                if(sim->reverse_time && p_f->time[i] < sim->endcond_lim_simtime) {
+                    p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
                 if(p_f->mileage[i] > sim->endcond_max_mileage) {
-                    p_f->endcond[i] |= endcond_tmax;
+                    p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
             }
@@ -240,7 +244,7 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                       sim_data* sim) {
     int i;
 
-    int active_tmax      = sim->endcond_active & endcond_tmax;
+    int active_tlim      = sim->endcond_active & endcond_tlim;
     int active_wall      = sim->endcond_active & endcond_wall;
     int active_emin      = sim->endcond_active & endcond_emin;
     int active_therm     = sim->endcond_active & endcond_therm;
@@ -254,13 +258,17 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
     for(i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
             /* Check if the marker time exceeds simulation time */
-            if(active_tmax) {
-                if(p_f->time[i] > sim->endcond_max_simtime) {
-                    p_f->endcond[i] |= endcond_tmax;
+            if(active_tlim) {
+                if(!sim->reverse_time && p_f->time[i] > sim->endcond_lim_simtime) {
+                    p_f->endcond[i] |= endcond_tlim;
+                    p_f->running[i] = 0;
+                }
+                if(sim->reverse_time && p_f->time[i] < sim->endcond_lim_simtime) {
+                    p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
                 if(p_f->mileage[i] > sim->endcond_max_mileage) {
-                    p_f->endcond[i] |= endcond_tmax;
+                    p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
             }
@@ -388,7 +396,7 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
                       sim_data* sim) {
     int i;
 
-    int active_tmax      = sim->endcond_active & endcond_tmax;
+    int active_tlim      = sim->endcond_active & endcond_tlim;
     int active_wall      = sim->endcond_active & endcond_wall;
     int active_rhomax    = sim->endcond_active & endcond_rhomax;
     int active_rhomin    = sim->endcond_active & endcond_rhomin;
@@ -400,13 +408,17 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
     for(i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
             /* Check if the marker time exceeds simulation time */
-            if(active_tmax) {
-                if(p_f->time[i] > sim->endcond_max_simtime) {
-                    p_f->endcond[i] |= endcond_tmax;
+            if(active_tlim) {
+                if(!sim->reverse_time && p_f->time[i] > sim->endcond_lim_simtime) {
+                    p_f->endcond[i] |= endcond_tlim;
+                    p_f->running[i] = 0;
+                }
+                if(sim->reverse_time && p_f->time[i] < sim->endcond_lim_simtime) {
+                    p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
                 if(p_f->mileage[i] > sim->endcond_max_mileage) {
-                    p_f->endcond[i] |= endcond_tmax;
+                    p_f->endcond[i] |= endcond_tlim;
                     p_f->running[i] = 0;
                 }
             }
@@ -486,7 +498,7 @@ void endcond_check_ml(particle_simd_ml* p_f, particle_simd_ml* p_i,
 void endcond_parse(int endcond, int* endconds) {
     int i = 0;
 
-    if(endcond & endcond_tmax)   {endconds[i++] =  1;};
+    if(endcond & endcond_tlim)   {endconds[i++] =  1;};
     if(endcond & endcond_emin)   {endconds[i++] =  2;};
     if(endcond & endcond_therm)  {endconds[i++] =  3;};
     if(endcond & endcond_wall)   {endconds[i++] =  4;};
@@ -515,7 +527,7 @@ void endcond_parse2str(int endcond, char* str) {
 
     switch(endcond) {
         case 1:
-            sprintf(str, "Max sim time");
+            sprintf(str, "Sim time limit");
             break;
         case 2:
             sprintf(str, "Min energy");

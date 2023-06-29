@@ -111,6 +111,9 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "DISABLE_GCDIFF_CCOLL", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->disable_gcdiffccoll = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "REVERSE_TIME", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->reverse_time = (int)tempfloat;
 
     int ec;
     sim->endcond_active = 0;
@@ -118,7 +121,7 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENDCOND_SIMTIMELIM", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     ec = (int)tempfloat;
-    sim->endcond_active = sim->endcond_active | endcond_tmax * (ec > 0);
+    sim->endcond_active = sim->endcond_active | endcond_tlim * (ec > 0);
     if( hdf5_read_double(OPTPATH "ENDCOND_CPUTIMELIM", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     ec = (int)tempfloat;
@@ -157,8 +160,8 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     }
 
 
-    if( hdf5_read_double(OPTPATH "ENDCOND_MAX_SIMTIME",
-                         &sim->endcond_max_simtime,
+    if( hdf5_read_double(OPTPATH "ENDCOND_LIM_SIMTIME",
+                         &sim->endcond_lim_simtime,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
      if( hdf5_read_double(OPTPATH "ENDCOND_MAX_MILEAGE",
                          &sim->endcond_max_mileage,

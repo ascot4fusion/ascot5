@@ -16,7 +16,7 @@
  * These bit masks are used to mark specific end condition as being active.
  */
 enum {
-    endcond_tmax   = 0x1,   /**< Maximum simulation time */
+    endcond_tlim   = 0x1,   /**< Simulation time limit   */
     endcond_emin   = 0x2,   /**< Minimum energy          */
     endcond_therm  = 0x4,   /**< Thermalized             */
     endcond_wall   = 0x8,   /**< Wall collision          */
