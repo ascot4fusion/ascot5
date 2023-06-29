@@ -15,12 +15,14 @@
 #include <string.h>
 #include "ascot5.h"
 #include "simulate.h"
+#include "B_field.h"
 #include "diag.h"
 #include "diag/diag_orb.h"
 #include "diag/dist_5D.h"
 #include "diag/dist_6D.h"
 #include "diag/dist_rho5D.h"
 #include "diag/dist_rho6D.h"
+#include "diag/dist_com.h"
 #include "diag/diag_transcoef.h"
 #include "particle.h"
 
@@ -68,6 +70,12 @@ int diag_init_offload(diag_offload_data* data, real** offload_array, int Nmrk){
             * data->distrho6D.n_pr * data->distrho6D.n_pphi
             * data->distrho6D.n_pz * data->distrho6D.n_time
             * data->distrho6D.n_q;
+    }
+
+    if(data->distCOM_collect) {
+        data->offload_distCOM_index = n;
+        n += data->distCOM.n_mu * data->distCOM.n_Ekin
+            * data->distCOM.n_Ptor;
     }
 
     data->offload_dist_length = n;
@@ -148,6 +156,7 @@ void diag_init(diag_data* data, diag_offload_data* offload_data,
     data->dist6D_collect    = offload_data->dist6D_collect;
     data->distrho5D_collect = offload_data->distrho5D_collect;
     data->distrho6D_collect = offload_data->distrho6D_collect;
+    data->distCOM_collect   = offload_data->distCOM_collect;
     data->diagtrcof_collect = offload_data->diagtrcof_collect;
 
     if(data->dist5D_collect) {
@@ -169,10 +178,17 @@ void diag_init(diag_data* data, diag_offload_data* offload_data,
         dist_rho6D_init(&data->distrho6D, &offload_data->distrho6D,
                         &offload_array[offload_data->offload_distrho6D_index]);
     }
+
+    if(data->distCOM_collect) {
+        dist_COM_init(&data->distCOM, &offload_data->distCOM,
+                        &offload_array[offload_data->offload_distCOM_index]);
+    }
+
     if(data->diagorb_collect) {
         diag_orb_init(&data->diagorb, &offload_data->diagorb,
                       &offload_array[offload_data->offload_diagorb_index]);
     }
+
     if(data->diagtrcof_collect) {
         diag_transcoef_init(
             &data->diagtrcof, &offload_data->diagtrcof,
@@ -239,7 +255,7 @@ void diag_update_fo(diag_data* data, particle_simd_fo* p_f,
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  */
-void diag_update_gc(diag_data* data, particle_simd_gc* p_f,
+void diag_update_gc(diag_data* data, B_field_data* Bdata, particle_simd_gc* p_f,
                     particle_simd_gc* p_i) {
     if(data->diagorb_collect) {
         diag_orb_update_gc(&data->diagorb, p_f, p_i);
@@ -260,6 +276,11 @@ void diag_update_gc(diag_data* data, particle_simd_gc* p_f,
     if(data->distrho6D_collect){
         dist_rho6D_update_gc(&data->distrho6D, p_f, p_i);
     }
+
+    if(data->distCOM_collect){
+        dist_COM_update_gc(&data->distCOM, Bdata, p_f, p_i);
+    }
+
     if(data->diagtrcof_collect){
         diag_transcoef_update_gc(&data->diagtrcof, p_f, p_i);
     }
@@ -281,6 +302,7 @@ void diag_update_ml(diag_data* data, particle_simd_ml* p_f,
     if(data->diagorb_collect) {
         diag_orb_update_ml(&data->diagorb, p_f, p_i);
     }
+
     if(data->diagtrcof_collect){
         diag_transcoef_update_ml(&data->diagtrcof, p_f, p_i);
     }
@@ -349,6 +371,13 @@ void diag_sum(diag_offload_data* data, real* array1, real* array2) {
             * data->distrho6D.n_phi * data->distrho6D.n_pr
             * data->distrho6D.n_pphi * data->distrho6D.n_pz
             * data->distrho6D.n_time * data->distrho6D.n_q;
+        diag_arraysum(start, stop, array1, array2);
+    }
+
+    if(data->distCOM_collect){
+        int start = data->offload_distCOM_index;
+        int stop = start + data->distCOM.n_mu * data->distCOM.n_Ekin
+            * data->distCOM.n_Ptor;
         diag_arraysum(start, stop, array1, array2);
     }
 }

@@ -9,6 +9,7 @@
 #include "../diag/dist_6D.h"
 #include "../diag/dist_rho5D.h"
 #include "../diag/dist_rho6D.h"
+#include "../diag/dist_com.h"
 #include "../math.h"
 #include "hdf5_histogram.h"
 #include "hdf5_helpers.h"
@@ -268,6 +269,58 @@ int hdf5_dist_write_rho6D(hid_t f, char* qid, dist_rho6D_offload_data* dist,
     /* Create a group for this distribution and write the data in it */
     char path[256];
     hdf5_generate_qid_path("/results/run_XXXXXXXXXX/distrho6d", qid, path);
+
+    int retval = hdf5_histogram_write_uniform_double(f, path,
+                                                     abscissa_dim, ordinate_dim,
+                                                     abscissa_n_slots,
+                                                     abscissa_min,
+                                                     abscissa_max,
+                                                     abscissa_units,
+                                                     abscissa_names,
+                                                     ordinate_units,
+                                                     ordinate_names,
+                                                     hist);
+
+    return retval;
+}
+
+/**
+ * @brief Write constants-of-motion distribution to an existing result group
+ *
+ * @param f HDF5 file id
+ * @param qid run QID where distribution is written
+ * @param dist pointer to distribution data struct
+ * @param hist pointer to distribution data
+ */
+int hdf5_dist_write_COM(hid_t f, char* qid, dist_COM_offload_data* dist,
+                        real* hist) {
+
+    int abscissa_dim = 3;
+    int ordinate_dim = 1;
+
+    int abscissa_n_slots[3];
+    abscissa_n_slots[0] = dist->n_mu;
+    abscissa_n_slots[1] = dist->n_Ekin;
+    abscissa_n_slots[2] = dist->n_Ptor;
+
+    double abscissa_min[3];
+    abscissa_min[0] = dist->min_mu;
+    abscissa_min[1] = dist->min_Ekin;
+    abscissa_min[2] = dist->min_Ptor;
+
+    double abscissa_max[3];
+    abscissa_max[0] = dist->max_mu;
+    abscissa_max[1] = dist->max_Ekin;
+    abscissa_max[2] = dist->max_Ptor;
+
+    char* abscissa_names[] = { "mu", "ekin", "ptor"};
+    char* abscissa_units[] = { "J/T", "J", "J s"};
+    char* ordinate_names[] = { "distribution" };
+    char* ordinate_units[] = { "T / J**3 s"};
+
+    /* Create a group for this distribution and write the data in it */
+    char path[256];
+    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/distcom", qid, path);
 
     int retval = hdf5_histogram_write_uniform_double(f, path,
                                                      abscissa_dim, ordinate_dim,
