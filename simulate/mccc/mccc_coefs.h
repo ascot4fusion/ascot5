@@ -11,7 +11,7 @@
 #include "mccc.h"
 
 /**
- * @brief Evaluate collision parameter
+ * @brief Evaluate collision parameter [kg^2 m^3 / s^4]
  *
  *\f$c_{ab} = \frac{n_b q_a^2q_b^2 \ln\Lambda_{ab}}{4\pi\epsilon_0^2}\f$
  *
@@ -26,7 +26,7 @@
         nb * qa*qa * qb*qb * clogab / ( 4 * CONST_PI * CONST_E0*CONST_E0 ) )
 
 /**
- * @brief Evaluate non-relativistic drag coefficient []
+ * @brief Evaluate non-relativistic drag coefficient [m/s^2]
  *
  *\f$Q =-c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\mu_0(v_a/v_b) / (m_a m_b v_b^2)\f$
  *
@@ -44,7 +44,7 @@
         -mccc_coefs_cab(qa, qb, nb, clogab) * mu0 / ( ma * mb * vb*vb ) )
 
 /**
- * @brief Evaluate derivative of non-relativistic drag coefficient []
+ * @brief Evaluate derivative of non-relativistic drag coefficient [m/s^2]
  *
  *\f$Q'=-c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\mu_0'(v_a/v_b) / (m_a m_b v_b^2)\f$
  *
@@ -59,10 +59,10 @@
  * - \f$\ln\Lambda_{ab}\f$ is Coulomb logarithm.
  */
 #define mccc_coefs_dQ(ma, qa, mb, qb, nb, vb, clogab, dmu0) (           \
-        -mccc_coefs_cab(qa, qb, nb, clogab) * dmu0 / ( ma * mb * vb*vb ) )
+        -mccc_coefs_cab(qa, qb, nb, clogab) * dmu0 / ( ma * mb * vb*vb*vb ) )
 
 /**
- * @brief Evaluate non-relativistic friction coefficient
+ * @brief Evaluate non-relativistic friction coefficient [m/s^2]
  *
  *\f$F = -c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\left(m_a^{-1} + m_b^{-1}\right)
   \mu0(v_a/v_b) / (m_a v_b^2)\f$
@@ -82,7 +82,7 @@
         / ( ma * vb*vb ) )
 
 /**
- * @brief Evaluate non-relativistic parallel diffusion coefficient []
+ * @brief Evaluate non-relativistic parallel diffusion coefficient [m^2/s^3]
  *
  *\f$D_\parallel=c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\mu_0(v_a/v_b)
   /(2m_a^2v_a)\f$
@@ -107,7 +107,8 @@
         / ( 6 * CONST_SQRTPI * ma*ma * vb ) )
 
 /**
- * @brief Evaluate non-relativistic parallel diffusion coefficient []
+ * @brief Evaluate derivative of non-relativistic parallel diffusion
+ * coefficient [m/s^2]
  *
  * \f$D_\parallel'=c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})(\mu_0'(v_a/v_b)/v_b
   - \mu(v_a/v_b)/v_a)/(2m_a^2v_a)\f$
@@ -127,7 +128,8 @@
         / ( 2 * ma*ma * va ) )
 
 /**
- * @brief Evaluate non-relativistic perpendicular diffusion coefficient []
+ * @brief Evaluate non-relativistic perpendicular diffusion
+ * coefficient [m^2/s^3]
  *
  *\f$D_\perp=c_{ab}(q_a,q_b,n_b,\ln\Lambda_{ab})\mu_1(v_a/v_b)
   /(2m_a^2v_a)\f$
@@ -152,15 +154,15 @@
         / ( 6 * CONST_SQRTPI * ma*ma * vb ) )
 
 /**
- * @brief Evaluate guiding center drag coefficient []
+ * @brief Evaluate guiding center drag coefficient [m/s^2]
  *
  *\f$K = Q + D_\parallel' + 2D_\parallel/va\f$
  *
  * where
  *
  * - \f$v_a\f$ is test particle velocity [m/s]
- * - \f$D_parallel\f$ is  []
- * - \f$Q\f$ is  []
+ * - \f$D_parallel\f$ is  [1/s]
+ * - \f$Q\f$ is  [m/s^2]
  */
 #define mccc_coefs_K(va, Dpara, dDpara, Q) (    \
         Q + dDpara + 2*Dpara / va )
@@ -179,15 +181,15 @@
         2 * Dperp / ( va * va ) )
 
 /**
- * @brief Evaluate spatial diffusion coefficient []
+ * @brief Evaluate spatial diffusion coefficient [m^2/s]
  *
  *\f$D_X = (\frac{1}{2}(D_\parallel-D_\perp)(1-\xi^2) + D_\perp)/\omega_g^2\f$
  *
  * where
  *
  * - \f$xi\f$ is test particle pitch
- * - \f$D_\parallel\f$ is parallel diffusion coefficient []
- * - \f$D_perp\f$ is perpendicular diffusion coefficient []
+ * - \f$D_\parallel\f$ is parallel diffusion coefficient [m^2/s^3]
+ * - \f$D_perp\f$ is perpendicular diffusion coefficient [m^2/s^3]
  * - \f$\omega_g\f$ is gyrofrequency [1/s]
  */
 #define mccc_coefs_DX(xi, Dpara, Dperp, gyrofreq) (              \

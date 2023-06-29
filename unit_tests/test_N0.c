@@ -1,6 +1,6 @@
 /**
  * @file test_N0.c
- * @brief Test program for magnetic fields
+ * @brief Test program for neutral 3D data
  */
 #include <getopt.h>
 #include <stdio.h>
@@ -87,7 +87,8 @@ int main(int argc, char** argv) {
     for(i = 0; i < n_r; i++) {
         for(j = 0; j < n_phi; j++) {
             for(k = 0; k < n_z; k++) {
-                neutral_eval_n0(&n0, r[i], phi[j], z[k], time, &ndata);
+                /* Use dummy rho = 0 */
+                neutral_eval_n0(&n0, 0, r[i], phi[j], z[k], time, &ndata);
                 fprintf(f,"%le\n", n0);
                 /* fprintf(f,"%le\n", r[i]*z[k]); */
             }

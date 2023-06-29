@@ -9,6 +9,9 @@
 /** Default depth of octree struct */
 #define WALL_OCTREE_DEPTH 7
 
+/** Small value to check if x = 0 (i.e. abs(x) < WALL_EPSILON) */
+#define WALL_EPSILON 1e-9
+
 /**
  * @brief 3D wall offload data
  */

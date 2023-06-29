@@ -344,13 +344,15 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->enable_orbfol        = offload_data->enable_orbfol;
     sim->enable_clmbcol       = offload_data->enable_clmbcol;
     sim->enable_mhd           = offload_data->enable_mhd;
+    sim->enable_atomic        = offload_data->enable_atomic;
     sim->disable_gctransform  = offload_data->disable_gctransform;
     sim->disable_energyccoll  = offload_data->disable_energyccoll;
     sim->disable_pitchccoll   = offload_data->disable_pitchccoll;
     sim->disable_gcdiffccoll  = offload_data->disable_gcdiffccoll;
+    sim->reverse_time         = offload_data->reverse_time;
 
     sim->endcond_active       = offload_data->endcond_active;
-    sim->endcond_max_simtime  = offload_data->endcond_max_simtime;
+    sim->endcond_lim_simtime  = offload_data->endcond_lim_simtime;
     sim->endcond_max_mileage  = offload_data->endcond_max_mileage;
     sim->endcond_max_cputime  = offload_data->endcond_max_cputime;
     sim->endcond_min_rho      = offload_data->endcond_min_rho;

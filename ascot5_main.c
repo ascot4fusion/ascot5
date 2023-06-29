@@ -159,6 +159,7 @@ int main(int argc, char** argv) {
     int* wall_int_offload_array;
     real* boozer_offload_array;
     real* mhd_offload_array;
+    real* asigma_offload_array;
 
     /* Read input from the HDF5 file */
     if( hdf5_interface_read_input(&sim,
@@ -166,11 +167,12 @@ int main(int argc, char** argv) {
                                   hdf5_input_efield  | hdf5_input_plasma |
                                   hdf5_input_neutral | hdf5_input_wall   |
                                   hdf5_input_marker  | hdf5_input_boozer |
-                                  hdf5_input_mhd,
+                                  hdf5_input_mhd     | hdf5_input_asigma,
                                   &B_offload_array, &E_offload_array,
                                   &plasma_offload_array, &neutral_offload_array,
                                   &wall_offload_array,  &wall_int_offload_array,
                                   &boozer_offload_array, &mhd_offload_array,
+                                  &asigma_offload_array,
                                   &p, &n_tot) ) {
         print_out0(VERBOSE_MINIMAL, mpi_rank,
                    "\nInput reading or initializing failed.\n"
@@ -196,7 +198,7 @@ int main(int argc, char** argv) {
             &sim, &offload_data, &B_offload_array, &E_offload_array,
             &plasma_offload_array, &neutral_offload_array, &wall_offload_array,
             &wall_int_offload_array, &boozer_offload_array, &mhd_offload_array,
-            &offload_array, &int_offload_array) ) {
+            &asigma_offload_array, &offload_array, &int_offload_array) ) {
         goto CLEANUP_FAILURE;
     }
 
@@ -328,7 +330,8 @@ int pack_offload_array(
     real** B_offload_array, real** E_offload_array, real** plasma_offload_array,
     real** neutral_offload_array, real** wall_offload_array,
     int** wall_int_offload_array, real** boozer_offload_array,
-    real** mhd_offload_array, real** offload_array, int** int_offload_array) {
+    real** mhd_offload_array, real** asigma_offload_array, real** offload_array,
+    int** int_offload_array) {
 
     /* Pack offload data into single array and free individual offload arrays */
     simulate_init_offload(sim);
@@ -429,7 +432,6 @@ int write_rungroup(
     free(ps_gathered);
 
     return 0;
-
 }
 
 
@@ -630,6 +632,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
         {"neutral", required_argument, 0, 12},
         {"boozer",  required_argument, 0, 13},
         {"mhd",     required_argument, 0, 14},
+        {"asigma",  required_argument, 0, 15},
         {0, 0, 0, 0}
     };
 
@@ -648,6 +651,7 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
     sim->qid_neutral[0] = '\0';
     sim->qid_boozer[0]  = '\0';
     sim->qid_mhd[0]     = '\0';
+    sim->qid_asigma[0]  = '\0';
 
     /* Read user input */
     int c;
@@ -711,6 +715,9 @@ int read_arguments(int argc, char** argv, sim_offload_data* sim) {
                 break;
             case 14:
                 strcpy(sim->qid_mhd, optarg);
+                break;
+            case 15:
+                strcpy(sim->qid_asigma, optarg);
                 break;
             default:
                 // Unregonizable argument(s). Tell user how to run ascot5_main
@@ -856,25 +863,4 @@ void print_marker_summary(particle_state* ps, int n_tot) {
     free(temp);
     free(unique);
     free(count);
-}
-
-
-/**
- * @brief Free marker array and diagnostics data.
- *
- * This function is required for the Python interface.
- *
- * @param sim simulation offload data struct
- * @param ps pointer to the marker array to be freed
- * @param diag_offload_array diagnostics offload array to be freed
- *
- * @return zero on success
- */
-int free_simulation_output(
-    sim_offload_data* sim, particle_state **ps, real** diag_offload_array){
-    free(*ps);
-    *ps = NULL;
-    diag_free_offload(&sim->diag_offload_data, diag_offload_array);
-
-    return 0;
 }

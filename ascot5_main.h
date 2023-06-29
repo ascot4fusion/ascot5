@@ -18,7 +18,8 @@ int pack_offload_array(
     real** B_offload_array, real** E_offload_array, real** plasma_offload_array,
     real** neutral_offload_array, real** wall_offload_array,
     int** wall_int_offload_array, real** boozer_offload_array,
-    real** mhd_offload_array, real** offload_array, int** int_offload_array);
+    real** mhd_offload_array, real** asigma_offload_array, real** offload_array,
+    int** int_offload_array);
 
 int prepare_markers(
     sim_offload_data* sim, int mpi_size, int mpi_rank, int n_tot,
