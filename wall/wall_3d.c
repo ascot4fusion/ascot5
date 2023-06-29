@@ -516,6 +516,8 @@ int wall_3d_tri_in_cube(real t1[3], real t2[3], real t3[3], real bb1[3],
 /**
  * @brief Check if a line segment intersects a triangle
  *
+ * This routine implements the Möller-Trumbore algorithm.
+ *
  * @param q1 line segment start point xyz coordinates [m]
  * @param q2 line segment end point xyz coordinates [m]
  * @param t1 xyz coordinates of first triangle vertex [m]
@@ -527,140 +529,66 @@ int wall_3d_tri_in_cube(real t1[3], real t2[3], real t3[3], real bb1[3],
  *         is no intersection
  */
 double wall_3d_tri_collision(real q1[3], real q2[3], real t1[3], real t2[3],
-                             real t3[3]) {
-    real t2t1[3];
-    t2t1[0] = t2[0] - t1[0];
-    t2t1[1] = t2[1] - t1[1];
-    t2t1[2] = t2[2] - t1[2];
+            real t3[3]) {
+    real q12[3], Q12[3];
+    Q12[0] = q2[0] - q1[0];
+    Q12[1] = q2[1] - q1[1];
+    Q12[2] = q2[2] - q1[2];
+    math_unit(Q12, q12);
 
-    real t3t1[3];
-    t3t1[0] = t3[0] - t1[0];
-    t3t1[1] = t3[1] - t1[1];
-    t3t1[2] = t3[2] - t1[2];
+    real edge12[3];
+    edge12[0] = t2[0] - t1[0];
+    edge12[1] = t2[1] - t1[1];
+    edge12[2] = t2[2] - t1[2];
 
-    real n[3];
-    math_cross(t2t1, t3t1, n);
+    real edge13[3];
+    edge13[0] = t3[0] - t1[0];
+    edge13[1] = t3[1] - t1[1];
+    edge13[2] = t3[2] - t1[2];
 
-    real t1q1[3];
-    t1q1[0] = t1[0]-q1[0];
-    t1q1[1] = t1[1]-q1[1];
-    t1q1[2] = t1[2]-q1[2];
+    real h[3];
+    math_cross(q12, edge13, h);
+    real det = math_dot(h, edge12);
 
-    real q2q1[3];
-    q2q1[0] = q2[0]-q1[0];
-    q2q1[1] = q2[1]-q1[1];
-    q2q1[2] = q2[2]-q1[2];
+    /* Check that the triangle has non-zero area */
+    real normal[3], area;
+    math_cross(edge12, edge13, normal);
+    area = math_norm(normal);
 
-    /* Is the interval parallel to the triangle? */
-    real par = math_dot(q2q1, n);
-    if (par == 0.0) {
-        /* Check if one of the points solve the plane equation (is it on the plane?)*/
-        if( math_point_on_plane( q1, t1, t2, t3 ) != 0 ){
-            return -1.0;
+    real w = -1.0;
+    if( area > WALL_EPSILON ) {
+        /* If ray is parallel to the triangle, nudge it a little bit so we don't
+           have to handle annoying special cases */
+        if( fabs(det) < WALL_EPSILON ) {
+            Q12[0] = q2[0] - q1[0] + 2 * WALL_EPSILON * normal[0] / area;
+            Q12[1] = q2[1] - q1[1] + 2 * WALL_EPSILON * normal[1] / area;
+            Q12[2] = q2[2] - q1[2] + 2 * WALL_EPSILON * normal[2] / area;
+            math_unit(Q12, q12);
+            math_cross(q12, edge13, h);
+            det = math_dot(h, edge12);
         }
 
+        real tq11[3];
+        tq11[0] = q1[0] - t1[0];
+        tq11[1] = q1[1] - t1[1];
+        tq11[2] = q1[2] - t1[2];
 
-        /** Is at least one of the points inside the triangle?
-         * Go to barycentric coordinates.
-         */
-        real S1,S2,T1,T2;
-        real AP[3];
-        AP[0] = q1[0]-t1[0]; AP[1] = q1[1]-t1[1]; AP[2] = q1[2]-t1[2];
-        math_barycentric_coords_triangle( AP, t2t1, t3t1, n, &S1, &T1);
-        if (1.0 >= T1+S1 &&
-               T1 >= 0.0 && T1 <= 1.0 &&
-               S1 >= 0.0 && S1 <= 1.0      )
-        {
-                return 0.0;
-        }
+        real n[3];
+        math_cross(tq11, edge12, n);
 
-        AP[0] = q2[0]-t1[0]; AP[1] = q2[1]-t1[1]; AP[2] = q2[2]-t1[2];
-        math_barycentric_coords_triangle( AP, t2t1, t3t1, n, &S2, &T2);
-        if (1.0 >= T2+S2 &&
-               T2 >= 0.0 && T2 <= 1.0 &&
-               S2 >= 0.0 && S2 <= 1.0      )
-        {
-                return 0.0;
-        }
+        real u = math_dot(h, tq11) / det;
+        real v = math_dot(q12, n) / det;
 
-
-                /*
-                 * Does the line intersect any edges? */
-
-        /* We know one edge is vertical at s=0*/
-        if (S1 * S2 < 0.0){
-                /* The points are on both sides of s=0*/
-                real L= fabs(S1)+fabs(S2);
-                real T0 =T1 + fabs(S1)/L*(T2-T1);
-                if ( T0 >= 0.0 && T0 <= 1.0){
-                        return 0.0;
-                }
-        }
-                /* We know one edge is horizontal at t=0*/
-        if (T1 * T2 < 0.0){
-                /* The points are on both sides of t=0*/
-                real L= fabs(T1)+fabs(T2);
-                real S0 = S1 + fabs(T1)/L*(S2-S1);
-                if ( S0 >= 0.0 && S0 <= 1.0){
-                        return 0.0;
-                }
-        }
-        /* We know one edge is at -45 degrees : t = 1- s*/
-        if (S1==S2){
-            /* vertical line*/
-            if( S1 >= 0.0 && S1 <= 1.0 ){
-                real T0 = 1.0 - S1;
-                if( (T1-T0)*(T2-T0) <= 0.0 ){
-                    return 0.0;
-                }
+        if( ( u >= 0.0 && u <= 1.0 ) && ( v >= 0.0 && u + v <= 1.0 )  ) {
+            w = ( math_dot(n, edge13) / det ) / math_norm(Q12);
+            if( w > 1.0 ) {
+                w = -1.0;
             }
-        } else {
-            real k = (T2-T1)/(S2-S1);
-            if(k==-1.0){
-                /* Parallel line*/
-                if(S1+T1==1.0){
-                    return 0.0;
-                }
-            }else{
-                real S0 = ( k*(1-T1)+S1)/(1.0+k);
-                if ( S0 >= 0.0 && S0 <= 1.0){
-                    return 0.0;
-                }
-            }
-
-        }
-        return -1;
-    }     /* Is the interval is not parallel to the triangle */
-
-
-
-
-
-    real w = math_dot(t1q1, n) / par ;
-
-    real p[3];
-    p[0] = q1[0] + w * (q2[0] - q1[0]) - t1[0];
-    p[1] = q1[1] + w * (q2[1] - q1[1]) - t1[1];
-    p[2] = q1[2] + w * (q2[2] - q1[2]) - t1[2];
-
-    if(w >= 0 && w <= 1) {
-        real v = (math_dot(t3t1,p)
-             - math_dot(t3t1,t2t1) * math_dot(t2t1,p) / math_dot(t2t1,t2t1))
-            / (math_dot(t3t1,t3t1) - math_dot(t2t1,t3t1)*math_dot(t2t1,t3t1)
-                                     / math_dot(t2t1,t2t1));
-        real u = (math_dot(t2t1, p) - v * math_dot(t2t1,t3t1))
-                 / math_dot(t2t1,t2t1);
-
-        if(v >= 0 && u >= 0 && v+u <= 1) {
-            return w;
-        }
-        else {
-            return -1;
         }
     }
-    else {
-        return -1;
-    }
+
+    return w;
+
 }
 
 /**
