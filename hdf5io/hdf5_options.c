@@ -212,11 +212,10 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     diag->distrho5D_collect = (int)tempfloat;
     if( hdf5_read_double(OPTPATH "ENABLE_DIST_RHO6D", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
-    diag->distCOM_collect = 1;// TODO
-    //diag->distCOM_collect = (int)tempfloat;
-    //if( hdf5_read_double(OPTPATH "ENABLE_DIST_COM", &tempfloat,
-    //                     file, qid, __FILE__, __LINE__) ) {return 1;}
     diag->distrho6D_collect = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_DIST_COM", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    diag->distCOM_collect = (int)tempfloat;
     if( hdf5_read_double(OPTPATH "ENABLE_ORBITWRITE", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     diag->diagorb_collect = (int)tempfloat;
@@ -614,8 +613,6 @@ int hdf5_options_read_distCOM(hid_t file, dist_COM_offload_data* dist,
     #define OPTPATH "/options/opt_XXXXXXXXXX/"
 
     real tempfloat;
-
-    /*
     if( hdf5_read_double(OPTPATH "DIST_MIN_MU", &dist->min_mu,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     if( hdf5_read_double(OPTPATH "DIST_MAX_MU", &dist->max_mu,
@@ -639,17 +636,6 @@ int hdf5_options_read_distCOM(hid_t file, dist_COM_offload_data* dist,
     if( hdf5_read_double(OPTPATH "DIST_NBIN_PTOR", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     dist->n_Ptor = (int)tempfloat;
-    */
-    //TODO
-    dist->n_mu = 100;
-    dist->min_mu = 0;
-    dist->max_mu = 2 * 3.5e6 * CONST_E / 5.0;
-    dist->n_Ekin = 100;
-    dist->min_Ekin = 0;
-    dist->max_Ekin = 2 * 3.5e6 * CONST_E;
-    dist->n_Ptor = 100;
-    dist->min_Ptor = -100;
-    dist->max_Ptor = 100;
 
     return 0;
 }
