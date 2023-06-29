@@ -35,6 +35,7 @@ int main(int argc, char** argv) {
     real* plasma_offload_array;
     real* neutral_offload_array;
     real* wall_offload_array;
+    int*  wall_int_offload_array;
     real* offload_array;
     int n;
     input_particle* p;
@@ -47,7 +48,8 @@ int main(int argc, char** argv) {
                               &B_offload_array, &E_offload_array,
                               &plasma_offload_array,
                               &neutral_offload_array,
-                              &wall_offload_array, NULL, NULL, &p, &n);
+                              &wall_offload_array, &wall_int_offload_array,
+                              NULL, NULL, &p, &n);
 
     /* Init magnetic background */
     offload_package offload_data;

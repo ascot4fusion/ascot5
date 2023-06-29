@@ -221,6 +221,8 @@ typedef struct {
     real mass[NSIMD] __memalign__;    /**< Mass [kg]                          */
     real charge[NSIMD] __memalign__;  /**< Charge [C]                         */
     real time[NSIMD] __memalign__;    /**< Marker simulation time [s]         */
+    int znum[NSIMD] __memalign__;     /**< Particle atomic number             */
+    int anum[NSIMD] __memalign__;     /**< Particle mass number               */
 
     /* Magnetic field data */
     real B_r[NSIMD] __memalign__;        /**< Magnetic field R component at
