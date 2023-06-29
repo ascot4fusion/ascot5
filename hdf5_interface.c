@@ -289,7 +289,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         print_out(VERBOSE_IO, "Marker data read and initialized.\n");
     }
 
-
+    /*
     if(input_active & hdf5_input_asigma) {
         if(hdf5_find_group(f, "/asigma/")) {
             print_err("Error: No atomic reaction data in input file.");
@@ -311,6 +311,7 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         print_out(VERBOSE_IO, "Atomic reaction data read and initialized.\n");
     }
+    */
 
 
     /* Close the hdf5 file */
