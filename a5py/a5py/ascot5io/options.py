@@ -686,18 +686,24 @@ class Opt(DataGroup):
     @property
     def _ENABLE_DIST_COM(self):
         """Collect constant-of-motion distribution histogram [mu, Ekin, Ptor]
+
+        The coordinates are:
+
+        - mu   magnetic moment (first adiabatic invariant)
+        - Ekin kinetic energy
+        - Ptor canonical toroidal angular momentum
         """
         return self._OPT_ENABLE_DIST_COM
 
     @property
     def _DIST_MIN_MU(self):
-        """Minimum bin edge for magnetic moment coordinate in COM-dist [J/T]
+        """Minimum bin edge for the mu coordinate in COM-dist [J/T]
         """
         return self._OPT_DIST_MIN_MU
 
     @property
     def _DIST_MAX_MU(self):
-        """Maximum bin edge for magnetic moment coordinate in COM-dist [J/T]
+        """Maximum bin edge for the mu coordinate in COM-dist [J/T]
         """
         return self._OPT_DIST_MAX_MU
 
@@ -727,13 +733,13 @@ class Opt(DataGroup):
 
     @property
     def _DIST_MIN_PTOR(self):
-        """Minimum bin edge for the can. tor. ang. mom. coordinate [kg m^2/s]
+        """Minimum bin edge for the Ptor coordinate [kg m^2/s]
         """
         return self._OPT_DIST_MIN_PTOR
 
     @property
     def _DIST_MAX_PTOR(self):
-        """Maximum bin edge for the can. tor. ang. mom. coordinate [kg m^2/s]
+        """Maximum bin edge for the Ptor coordinate [kg m^2/s]
         """
         return self._OPT_DIST_MAX_PTOR
 
@@ -912,7 +918,7 @@ class Opt(DataGroup):
         for o, val in opt.items():
             if isinstance(val, list):
                 for i, v in enumerate(val):
-                    val[i] = float(trim(v[0]))
+                    val[i] = float(trim(v))
                 opt[o] = str(val)
             else:
                 opt[o] = trim(val)
