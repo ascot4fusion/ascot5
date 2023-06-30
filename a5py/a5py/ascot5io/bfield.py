@@ -531,12 +531,15 @@ class B_2DS(DataGroup):
             :class:`B_3DS` converted as an input for :meth:`write_hdf5`.
         """
         bphi = np.mean(kwargs["bphi"], axis=1)
+        br   = np.mean(kwargs["bphi"], axis=1) * 0
+        bz   = np.mean(kwargs["bphi"], axis=1) * 0
         return {
             "rmin":kwargs["b_rmin"], "rmax":kwargs["b_rmax"],
             "nr":kwargs["b_nr"], "zmin":kwargs["b_zmin"],
             "zmax":kwargs["b_zmax"], "nz":kwargs["b_nz"],
+            "axisr":kwargs["axisr"], "axisz":kwargs["axisz"],
             "psi0":kwargs["psi0"], "psi1":kwargs["psi1"],
-            "psi":kwargs["psi"], "br":kwargs["br"]*0, "bz":kwargs["bz"]*0,
+            "psi":kwargs["psi"], "br":br, "bz":bz,
             "bphi":bphi}
 
 class B_3DS(DataGroup):
