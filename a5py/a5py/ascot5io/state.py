@@ -259,7 +259,7 @@ class State(DataContainer):
                                     _val("time"), *q)
         evalgc  = lambda *q : _eval(_val("r"), _val("phi"), _val("z"),
                                     _val("time"), *q)
-        bvecprt = lambda : unyt.unyt_array(self.evalprt("br", "bphi", "bz"))
+        bvecprt = lambda : unyt.unyt_array(evalprt("br", "bphi", "bz"))
         bvecgc = lambda : unyt.unyt_array([_val("br"), _val("bphi"),
                                 _val("bz")])
         pvecprt = lambda : unyt.unyt_array([_val("prprt"), _val("pphiprt"),

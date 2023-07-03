@@ -3,6 +3,7 @@
 import copy
 import numpy as np
 import h5py
+import unyt
 
 from .coreio.treedata import DataGroup
 from .coreio.fileapi import read_data, add_group, write_data
@@ -134,7 +135,7 @@ class Marker(DataGroup):
             "time"   : np.zeros((n,)),
         }
         if species is None:
-            species = {"mass":1, "charge":1, "anum":1, "znum":1}
+            species = {"mass":1*unyt.atomic_mass_unit, "charge":1*unyt.e, "anum":1, "znum":1}
         else:
             species = getspecies(species)
 

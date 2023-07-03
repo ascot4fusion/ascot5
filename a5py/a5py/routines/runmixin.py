@@ -346,16 +346,20 @@ class RunMixin():
             for i in qnt:
                 mrk[i] = qnt[i]
         elif mrktype == "gc":
-            qnt = ["r", "phi", "z", "weight", "time", "energy", "pitch", "zeta",
+            qnt = ["r", "phi", "z", "weight", "time", "ekin", "pitch", "zeta",
                    "mass", "charge", "anum", "znum"]
-            state = self.getstate(*qnt, mode="prt", state="end", ids=ids)
-            for i in qnt:
-                mrk[i] = qnt[i]
+            state = self.getstate(*qnt, mode="gc", state="end", ids=ids)
+            for i, q in enumerate(qnt):
+                if q == "ekin":
+                    mrk["energy"] = state[i]
+                else:
+                    mrk[q] = state[i]
         elif mrktype == "fl":
             qnt = ["r", "phi", "z", "weight", "time", "pitch"]
             state = self.getstate(*qnt, mode="gc", state="end", ids=ids)
             for i in qnt:
                 mrk[i] = qnt[i]
+        return mrk
 
     def getorbit_poincareplanes(self):
         """Return a list of Poincaré planes that were present in the simulation
@@ -468,6 +472,15 @@ class RunMixin():
         #wallmesh.cell_data["iangle"]      = np.zeros((ntriangle,)) + np.nan
         #wallmesh.cell_data["iangle"][ids] = iangle
         return wallmesh
+
+    def getdist(self, dist):
+        """Calculate distribution function and its moments.
+
+        Parameters
+        ----------
+        dist
+        """
+        pass
 
     def plotstate_scatter(self, x, y, z=None, c=None, xmode="gc", ymode="gc",
                           zmode="gc", cmode="gc", endcond=None, ids=None,
