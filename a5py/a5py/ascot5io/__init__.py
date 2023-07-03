@@ -2,7 +2,7 @@
 """
 from .bfield  import B_TC, B_GS, B_2DS, B_3DS, B_3DST, B_STS
 from .efield  import E_TC, E_1DS, E_3D, E_3DS, E_3DST
-from .marker  import Prt, GC, FL
+from .marker  import Marker, Prt, GC, FL
 from .plasma  import plasma_1D, plasma_1DS
 from .wall    import wall_2D, wall_3D
 from .neutral import N0_1D, N0_3D

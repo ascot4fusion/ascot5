@@ -6,6 +6,7 @@ import unyt
 from a5py.ascot5io.marker  import Marker
 from a5py.ascot5io.options import Opt
 from a5py.physlib import parseunits
+from a5py.exceptions import *
 
 class PoincareTemplates():
 
@@ -51,6 +52,14 @@ class PoincareTemplates():
             **IMPORTANT** The simulation mode also needs to be set to GO or GC.
         energy : float
             Marker energy if physical particles are traced.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
 
         Raises
         ------
@@ -131,6 +140,14 @@ class PoincareTemplates():
             Maximum CPU time spent on simulating a single marker.
 
             This parameter can be used to ensure the simulation is terminated.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
         """
         out = Opt.get_default()
         out.update({
@@ -160,3 +177,186 @@ class PoincareTemplates():
             out["ENABLE_MHD":mhd]
 
         return ("opt", out)
+
+    def boozer_tokamak(self, npsi=50, nthgeo=60, nthbzr=60, psipad=0.005):
+        """Build mapping from real-space to Boozer coordinates assuming
+        axisymmetric tokamak field.
+
+        Parameters
+        ----------
+        npsi : int, optional
+            Number of psi grid points.
+        nthgeo : int, optional
+            Number of geometrical theta grid points.
+        nthbzr : int, optional
+            Number of boozer theta grid points.
+        psipad : float, optional
+            Relative padding in psi0 and psi1.
+
+        Returns
+        -------
+        gtype : str
+            Type of the generated input data.
+        data : dict
+            Input data that can be passed to ``write_hdf5`` method of
+            a corresponding type.
+        """
+        inp = self._ascot.input_initilized()
+        if "bfield" not in inp:
+            raise AscotInitException("bfield not initialized")
+        grp   = self._ascot.data._getgroup(inp["bfield"])
+        gtype = grp.get_type()
+        if gtype == "B_2DS":
+            d = gtype.read()
+            rmin   = d["rmin"]
+            rmax   = d["rmax"]
+            nrcntr = d["nr"]
+            zmin   = d["zmin"]
+            zmax   = d["zmax"]
+            nzcntr = d["nz"]
+            psi0   = d["psi0"]
+            psi1   = d["psi1"]
+            raxis  = d["raxis"]
+            zaxis  = d["zaxis"]
+            del d
+        elif gtype == "B_3DS":
+            d = gtype.read()
+            rmin   = d["psi_rmin"]
+            rmax   = d["psi_rmax"]
+            nrcntr = d["psi_nr"]
+            zmin   = d["psi_zmin"]
+            zmax   = d["psi_zmax"]
+            nzcntr = d["psi_nz"]
+            psi0   = d["psi0"]
+            psi1   = d["psi1"]
+            raxis  = d["raxis"]
+            zaxis  = d["zaxis"]
+            del d
+        else:
+            raise AscotNoDataException("bfield is neither B_2DS or B_3DS")
+
+        # The boozer coordinate system is constructed by integrating along
+        # psi = constant surfaces. Use this grid to evaluate psi values
+        # on a (R,z) plane.
+        rgrid = np.linspace(rmin, rmax, nrcntr)
+        zgrid = np.linspace(zmin, zmax, nzcntr)
+
+        # ...and this poloidal grid to evaluate values along the contour
+        thgrid = np.linspace(0, 2*np.pi, 1000)
+
+        # Boozer coordinate psi-grid. Add a little bit of padding to psi0 and
+        # psi1 values as otherwise making the contour at those points could
+        # yield funny results.
+        psimin  = np.amin([psi0, psi1])
+        psimax  = np.amax([psi0, psi1])
+        dpsi    = psimax - psimin
+        psigrid = np.linspace(psimin + psipad*dpsi, psimax - psipad*dpsi, npsi)
+        if psimin < psi0: psigrid = np.flip(psigrid) # Ensure grid start at psi0
+
+        # Boozer coordinate theta grid
+        thgeogrid = np.linspace(0, 2*np.pi, nthgeo)
+
+        # Boozer coordinate nu grid
+        thbzrgrid = np.linspace(0, 2*np.pi, nthbzr)
+
+        # Set up the data tables (psi can be evaluated directly)
+        thtable  = np.zeros( (psigrid.size, thgeogrid.size) )
+        nutable  = np.zeros( (psigrid.size, thbzrgrid.size) )
+        psitable = a5.input_eval(
+            rgrid*unyt.m, 0*unyt.deg, zgrid*unyt.m, 0*unyt.s, "psi", grid=True)
+        psitable = np.squeeze(psitable)
+
+        # Helper quantities evaluated when the coordinate transform is made
+        qprof = np.zeros(psigrid.shape)
+        Iprof = np.zeros(psigrid.shape)
+        gprof = np.zeros(psigrid.shape)
+
+        # Calculate Boozer angular coordinates for each psi
+        for i in range(psigrid.size):
+
+            # Find (iR,iz) contour where psi = psigrid[i]
+            contours = measure.find_contours(psitable, psigrid[i])
+
+            # It is possible that there are several contours. Pick the one with
+            # most elements as that is likely the contour we want
+            contour = np.array([0])
+            for j in range(len(contours)):
+                if contour.size < contours[j].size:
+                    contour = contours[j]
+
+            # Conver the index values to actual (R, z) coordinates
+            cr = contour[:, 0] * (rgrid[-1] - rgrid[0]) / rgrid.size + rgrid[0]
+            cz = contour[:, 1] * (zgrid[-1] - zgrid[0]) / zgrid.size + zgrid[0]
+
+            # Using interpolation, make a new set of contour points that start
+            # at the outer midplane
+            cth = np.mod(np.arctan2(cz[:-1] - zaxis, cr[:-1] - raxis), 2*np.pi)
+            fr = interp1d(cth, cr[:-1], kind='cubic', fill_value="extrapolate")
+            fz = interp1d(cth, cz[:-1], kind='cubic', fill_value="extrapolate")
+            cr = fr(thgrid)
+            cz = fz(thgrid)
+
+            # Contour line lengths and differentials
+            dL = np.sqrt( (cr[:-1]-cr[1:])**2 + (cz[:-1]-cz[1:])**2 )
+            L  = np.append(0, np.cumsum(dL))
+
+            # Magnetic field along the contour
+            br, bphi, bz = a5.input_eval(cr, 0, cz, 0, "br", "bphi", "bz")
+            bpol  = np.sqrt(br**2 + bz**2)
+            bnorm = np.sqrt(br**2 + bphi**2 + bz**2)
+
+            ar = cr[1:] - cr[:-1]
+            az = cz[1:] - cz[:-1]
+            dL = ( ( br[1:] + br[:-1] ) * ar + ( bz[1:] + bz[:-1] ) * az ) \
+                / ( bpol[1:] + bpol[:-1] )
+
+            # The toroidal current term
+            Iprof[i] = -np.sum( 0.5*dL*( bpol[1:] + bpol[:-1] ) ) / ( 2*np.pi )
+
+            # g = R*Bphi
+            gprof[i] = cr[0] * bphi[0]
+
+            # Use trapezoidal rule to evaluate the safety factor q(psi)
+            temp = cd**2 * bpol
+            qprof[i] = ( 0.5 / ( 2*np.pi ) ) * np.sum(
+                dL * ( gprof[i] / temp[1:] + gprof[i] / temp[:-1] ) )
+
+            # Evaluate the boozer theta with the trapezoidal rule
+            # (set theta(0) = 0)
+            jac = (Iprof + qprof*gprof)[i] / bnorm**2
+            temp = jac * bpol
+            theta = np.append(0, np.cumsum(
+                0.5 * dL * ( 1/temp[1:] + 1/temp[:-1] ) ) )
+
+            # Normalize theta to interval [0,2pi]. Note that new jacobian is J/s
+            theta = 2*np.pi * theta / theta[-1]
+            th    = interp1d(thgrid, theta, "linear")
+            thtable[i, :] = th(thgeogrid)
+
+            # Evaluate boozer nu with trapezoidal rule
+            temp = cr**2 * bpol
+            nu = np.append(0, 0.5 * np.cumsum(
+                dL * ( 1/temp[:-1] + 1/temp[1:] ) ) )
+
+            # Interpolate
+            nu = interp1d(theta, nu, 'linear', fill_value="extrapolate")
+            nutable[i,:] = -( gprof[i] * nu(thbzrgrid) - qprof[i] * thbzrgrid)
+
+        # Flip the data grids to set indices right
+        if psimin < psi0:
+            thtable = np.flip(thtable,axis=0)
+            nutable = np.flip(nutable,axis=0)
+
+        # The last contour can be used to define separatrix location
+        cr = np.append(cr, cr[0])
+        cz = np.append(cz, cz[0])
+
+        #Create input
+        return ("Boozer", {
+            "psimin":psimin, "psimax":psimax, "npsi":int(psigrid.size),
+            "ntheta":int(thbzrgrid.size), "nthetag":int(thgeogrid.size),
+            "rmin":rgrid[0], "rmax":rgrid[-1], "nr":int(rgrid.size),
+            "zmin":zgrid[0], "zmax":zgrid[-1], "nz":int(zgrid.size),
+            "r0":raxis, "z0":zaxis, "psi0":psi0, "psi1":psi1,
+            "psi_rz":psitable, "theta_psithetageom":thtable,
+            "nu_psitheta":nutable, "nrzs":int(cr.size), "rs":cr, "zs":cz} )

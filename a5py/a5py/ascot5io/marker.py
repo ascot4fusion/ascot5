@@ -104,45 +104,25 @@ class Marker(DataGroup):
                            ylabel=r"Pitch [$p_\parallel/p$]",
                            axes=axes)
 
-    def eval_rho(self, ascotpy):
-        """
-        Evaluate rho coordinate.
-        """
-        with self as h5:
-            r   = read_data(h5, "r")
-            phi = read_data(h5, "phi")
-            z   = read_data(h5, "z")
-        rho = ascotpy.evaluate(r, phi, z, 0, "rho")
-        return rho
-
-    def eval_phi(self, ascotpy):
-        """
-        Evaluate toroidal angle.
-        """
-        with self as h5:
-            phi = read_data(h5, "r")
-
-        return phi
-
-    def eval_energy(self, ascotpy):
-        """
-        Evaluate energy.
-
-        Implement in subclass.
-        """
-        return None
-
-    def eval_pitch(self, ascotpy):
-        """
-        Evaluate pitch.
-
-        Implemented in subclass.
-        """
-        return None
-
     @staticmethod
     def generate(mrktype, n, species=None):
         """Generate dummy marker input of given type and species.
+
+        Parameters
+        ----------
+        mrktype : {"prt", "gc", "fl"}
+            Type of marker input to be created.
+        n : int
+            Number of markers.
+        species : str, optional
+            Marker species to initialize anum, znum, mass, and charge.
+
+        Returns
+        -------
+        mrk : dict
+            Markers parameters that can be supplied to :meth:`Prt.write_hdf5`,
+            :meth:`GC.write_hdf5` or :meth:`FL.write_hdf5` depending on
+            ``mrktype`` value.
         """
         mrk = {
             "n"      : n,
@@ -153,7 +133,9 @@ class Marker(DataGroup):
             "weight" : np.ones((n,)),
             "time"   : np.zeros((n,)),
         }
-        if species is not None:
+        if species is None:
+            species = {"mass":1, "charge":1, "anum":1, "znum":1}
+        else:
             species = getspecies(species)
 
         if mrktype == "prt":

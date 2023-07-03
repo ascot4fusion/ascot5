@@ -15,7 +15,7 @@ from a5py.exceptions import AscotNoDataException
 
 import a5py.routines.plotting as a5plt
 import a5py.wall as wall
-from a5py.ascot5io import State, Orbits
+from a5py.ascot5io import Marker, State, Orbits
 
 class RunMixin():
     """Class with methods to access and plot orbit and state data.
@@ -311,13 +311,51 @@ class RunMixin():
 
         Parameters
         ----------
-            endcond : str, optional <br>
-                Only return markers that have given end condition.
+        endcond : str, optional
+            Only return markers that have given end condition.
         """
         self._require("_endstate")
         return np.array([self._endstate.get("x", endcond=endcond),
                          self._endstate.get("y", endcond=endcond),
                          self._endstate.get("z", endcond=endcond)]).T
+
+    def getstate_markers(self, mrktype, ids=None):
+        """Convert endstate to marker input.
+
+        Parameters
+        ----------
+        mrktype : {"prt", "gc", "fl"}
+            Type of marker input to be created.
+        ids : array_like, optional
+            Select only these markers for the output.
+
+        Returns
+        -------
+        mrk : dict
+            Markers parameters that can be supplied to :meth:`Prt.write_hdf5`,
+            :meth:`GC.write_hdf5` or :meth:`FL.write_hdf5` depending on
+            ``mrktype`` value.
+        """
+        ids = self.getstate("ids", state="ini", ids=ids)
+        mrk = Marker.generate(mrktype, ids.size)
+        mrk["ids"] = ids
+        if mrktype == "prt":
+            qnt = ["r", "phi", "z", "weight", "time", "vr", "vphi", "vz",
+                   "mass", "charge", "anum", "znum"]
+            state = self.getstate(*qnt, mode="prt", state="end", ids=ids)
+            for i in qnt:
+                mrk[i] = qnt[i]
+        elif mrktype == "gc":
+            qnt = ["r", "phi", "z", "weight", "time", "energy", "pitch", "zeta",
+                   "mass", "charge", "anum", "znum"]
+            state = self.getstate(*qnt, mode="prt", state="end", ids=ids)
+            for i in qnt:
+                mrk[i] = qnt[i]
+        elif mrktype == "fl":
+            qnt = ["r", "phi", "z", "weight", "time", "pitch"]
+            state = self.getstate(*qnt, mode="gc", state="end", ids=ids)
+            for i in qnt:
+                mrk[i] = qnt[i]
 
     def getorbit_poincareplanes(self):
         """Return a list of Poincaré planes that were present in the simulation
@@ -431,7 +469,8 @@ class RunMixin():
         #wallmesh.cell_data["iangle"][ids] = iangle
         return wallmesh
 
-    def plotstate_scatter(self, x, y, z=None, c=None, endcond=None, ids=None,
+    def plotstate_scatter(self, x, y, z=None, c=None, xmode="gc", ymode="gc",
+                          zmode="gc", cmode="gc", endcond=None, ids=None,
                           cint=9, cmap=None, axesequal=False, axes=None,
                           cax=None):
         """Make a scatter plot of marker state coordinates.
@@ -461,6 +500,14 @@ class RunMixin():
         c : str, optional
             Name of the quantity shown with color scale or name of a color
             to plot all markers with same color.
+        xmode : {"prt", "gc"}, optional
+            Evaluate x quantity in particle or guiding-center phase space.
+        ymode : {"prt", "gc"}, optional
+            Evaluate y quantity in particle or guiding-center phase space.
+        zmode : {"prt", "gc"}, optional
+            Evaluate z quantity in particle or guiding-center phase space.
+        cmode : {"prt", "gc"}, optional
+            Evaluate color quantity in particle or guiding-center phase space.
         endcond : str, array_like, optional
             Endcond of those markers which are plotted.
         ids : array_like
@@ -558,9 +605,10 @@ class RunMixin():
                             clabel=c, cint=cint, cmap=cmap,
                             axesequal=axesequal, axes=axes, cax=cax)
 
-    def plotstate_histogram(self, x, y=None, xbins=10, ybins=10, endcond=None,
-                            ids=None, weight=False, logscale=False, cmap=None,
-                            axesequal=False, axes=None, cax=None):
+    def plotstate_histogram(self, x, y=None, xbins=10, ybins=10, xmode="gc",
+                            ymode="gc", endcond=None, ids=None, weight=False,
+                            logscale=False, cmap=None, axesequal=False,
+                            axes=None, cax=None):
         """Make a histogram plot of marker state coordinates.
 
         The histogram is either 1D or 2D depending on if the y coordinate is
@@ -587,6 +635,10 @@ class RunMixin():
             Bin edges for the x coordinate or the number of bins.
         ybins : int or array_like, optional
             Bin edges for the y coordinate or the number of bins.
+        xmode : {"prt", "gc"}, optional
+            Evaluate x quantity in particle or guiding-center phase space.
+        ymode : {"prt", "gc"}, optional
+            Evaluate y quantity in particle or guiding-center phase space.
         endcond : str, array_like, optional
             Endcond of those markers which are plotted.
 
@@ -608,7 +660,7 @@ class RunMixin():
         cax : :obj:`~matplotlib.axes.Axes`, optional
             The color bar axes or otherwise taken from the main axes.
         """
-        def parsearg(arg):
+        def parsearg(arg, mode, endcond):
             """Parse arguments of from "log ini qnt" to (qnt, value, islog).
             """
             arg = arg.lower()
@@ -619,25 +671,31 @@ class RunMixin():
 
             if "ini" in arg:
                 arg = arg.replace("ini", "").strip()
-                val = self.getstate(arg, state="ini", endcond=endcond, ids=ids)
+                val = self.getstate(arg, state="ini", endcond=endcond, ids=ids,
+                                    mode=mode)
                 if log == "log": arg = "|" + arg + "|"
                 arg = "Initial " + arg
             elif "end" in arg:
                 arg = arg.replace("end", "").strip()
-                val = self.getstate(arg, state="end", endcond=endcond, ids=ids)
+                val = self.getstate(arg, state="end", endcond=endcond, ids=ids,
+                                    mode=mode)
                 if log == "log": arg = "|" + arg + "|"
                 arg = "Final " + arg
             elif "reldiff" in arg:
                 arg = arg.replace("reldiff", "").strip()
-                val1 = self.getstate(arg, state="ini", endcond=endcond, ids=ids)
-                val2 = self.getstate(arg, state="end", endcond=endcond, ids=ids)
+                val1 = self.getstate(arg, state="ini", endcond=endcond, ids=ids,
+                                     mode=mode)
+                val2 = self.getstate(arg, state="end", endcond=endcond, ids=ids,
+                                     mode=mode)
                 val = (val2 -val1) / val1
                 arg = r"$\Delta x/x_0$ " + arg
                 if log == "log": arg = "|" + arg + "|"
             elif "diff" in arg:
                 arg = arg.replace("diff", "").strip()
-                val1 = self.getstate(arg, state="ini", endcond=endcond, ids=ids)
-                val2 = self.getstate(arg, state="end", endcond=endcond, ids=ids)
+                val1 = self.getstate(arg, state="ini", endcond=endcond, ids=ids,
+                                     mode=mode)
+                val2 = self.getstate(arg, state="end", endcond=endcond, ids=ids,
+                                     mode=mode)
                 val = val2 - val1
                 arg = r"$\Delta$ " + arg
                 if log == "log": arg = "|" + arg + "|"
@@ -654,34 +712,52 @@ class RunMixin():
                 val *= unyt.dimensionless
             return (arg, val, log)
 
-        x, xc, xlog = parsearg(x)
         if y is None:
             # 1D plot
             xcs = []
             weights = []
 
+            #ecs, _ = self.getstate_markersummary()
+            #for ec in ecs:
+            #    if endcond is not None and ec[1] not in [endcond]:
+            #        continue
+
+            #    ids, w = self.getstate("ids", "weight", endcond=ec[1], ids=ids)
+            #    xcs.append(xc[ids-1])
+            #    weights.append(w)
+
+            #xc = [xc]
+
+            x0       = x
+            xcs      = []
+            weights  = []
+            endconds = []
             ecs, _ = self.getstate_markersummary()
             for ec in ecs:
-                if endcond is not None and ec[1] not in [endcond]:
-                    continue
+                if endcond is None or ec[1] in endcond:
+                    w = self.getstate("weight", endcond=ec[1], ids=ids)
+                    x, xc, xlog = parsearg(x0, xmode, ec[1])
+                    xcs.append(xc)
+                    weights.append(w)
+                    endconds.append(ec)
 
-                ids, w = self.getstate("ids", "weight", endcond=ec[1], ids=ids)
-                xcs.append(xc[ids-1])
-                weights.append(w)
+            if len(xcs) == 0: return
 
-            xc = xcs
-            idx = np.argsort([len(i) for i in xc])[::-1]
-            xc  = [xc[i].v for i in idx]
-            ecs = [ecs[i][1] + " : %.2e" % ecs[i][0] for i in idx]
+            # Sort data so that when the stacked histogram is plotted, the stack
+            # with most markers is at the bottom.
+            idx = np.argsort([len(i) for i in xcs])[::-1]
+            xcs = [xcs[i].v for i in idx]
+            ecs = [endconds[i][1] + " : %.2e" % endconds[i][0] for i in idx]
             weights = [weights[i] for i in idx]
             if not weight: weights = None
 
-            a5plt.hist1d(x=xc, xbins=xbins, weights=weights, xlog=xlog,
+            a5plt.hist1d(x=xcs, xbins=xbins, weights=weights, xlog=xlog,
                          logscale=logscale, xlabel=x, axes=axes, legend=ecs)
 
         else:
             # 2D plot
-            y, yc, ylog = parsearg(y)
+            x, xc, xlog = parsearg(x, xmode, endcond)
+            y, yc, ylog = parsearg(y, ymode, endcond)
             weights = self.getstate("weight", state="ini", endcond=endcond,
                                     ids=ids)
             if not weight: weights = None
@@ -689,6 +765,108 @@ class RunMixin():
             a5plt.hist2d(xc, yc, xbins=xbins, ybins=ybins, weights=weights,
                          xlog=xlog, ylog=ylog, logscale=logscale, xlabel=x,
                          ylabel=y, axesequal=axesequal, axes=axes, cax=cax)
+
+    def plotstate_summary(self, axes_inirho=None, axes_endrho=None,
+                          axes_mileage=None, axes_energy=None, axes_rz=None,
+                          axes_rhophi=None):
+        """Plot several graphs that summarize the simulation.
+
+        Following graphs are plotted:
+
+        - inirho: Initial rho histogram with colors marking the endcond.
+        - endrho: Initial rho histogram with colors marking the endcond.
+        - mileage: Final mileage histogram with colors marking the endcond.
+        - energy: Final energy histogram with colors marking the endcond.
+        - Rz: Final R-z scatterplot.
+        - rhophi: Final rho-phi scatterplot.
+
+        Parameters
+        ----------
+        axes_inirho  : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where inirho is plotted or otherwise new figure is created.
+        axes_endrho  : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where endrho is plotted or otherwise new figure is created.
+        axes_mileage : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where mileage is plotted or otherwise new figure is
+            created.
+        axes_energy  : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where energy is plotted or otherwise new figure is created.
+        axes_rz      : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where Rz is plotted or otherwise new figure is created.
+        axes_rhophi  : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where rhophi is plotted or otherwise new figure is created.
+        """
+        # Initial rho histogram with colors marking endcond
+        axes_inirho.set_xlim(0,1.1)
+        axes_inirho.set_title("Initial radial position")
+        self.plotstate_histogram(
+            "rho", xbins=np.linspace(0,1.1,55), weight=True,
+            iniend=["i", "i"], axes=axes_inirho)
+
+        # Final rho histogram with colors marking endcond
+        fig = None
+        if axes_endrho is None:
+            fig = plt.figure()
+            axes_endrho = fig.add_subplot(1,1,1)
+        if axes_endrho != False:
+            axes_endrho.set_xlim([0,1.1])
+            axes_endrho.set_title("Final radial position")
+            self.plotstate_histogram(
+                "rho", xbins=np.linspace(0,1.1,55), weight=True,
+                iniend=["e", "i"], axes=axes_endrho)
+            if fig is not None: plt.show()
+
+        # Mileage histogram with colors marking endcond
+        fig = None
+        if axes_mileage is None:
+            fig = plt.figure()
+            axes_mileage = fig.add_subplot(1,1,1)
+        if axes_mileage != False:
+            axes_mileage.set_title("Final mileage")
+            self.plotstate_histogram(
+                "mileage", xbins=55, weight=True,
+                iniend=["e", "i"], log=[True, False], axes=axes_mileage)
+            if fig is not None: plt.show()
+
+        # Final energy histogram with colors marking endcond
+        fig = None
+        if axes_energy is None:
+            fig = plt.figure()
+            axes_energy = fig.add_subplot(1,1,1)
+        if axes_energy != False:
+            axes_energy.set_title("Final energy")
+            self.plotstate_histogram(
+                "energy", xbins=55, weight=True,
+                iniend=["e", "i"], log=[True, False], axes=axes_energy)
+            if fig is not None: plt.show()
+
+        # Final Rz scatter positions
+        fig = None
+        if axes_rz is None:
+            fig = plt.figure()
+            axes_rz = fig.add_subplot(1,1,1)
+        if axes_rz != False:
+            axes_rz.set_title("Final R-z positions")
+            self.plotstate_scatter(
+                "R", "z", color="C0", endcond=None,
+                iniend=["e", "e", "i", "i"], axesequal=True, axes=axes_rz)
+            if fig is not None: plt.show()
+
+        # Final rho-phi scatter positions
+        fig = None
+        if axes_rhophi is None:
+            fig = plt.figure()
+            axes_rhophi = fig.add_subplot(1,1,1)
+        if axes_rhophi != False:
+            axes_rhophi.set_xlim(left=0)
+            axes_rhophi.set_ylim([0,360])
+            axes_rhophi.set_xticks([0, 0.5, 1.0])
+            axes_rhophi.set_yticks([0, 180, 360])
+            axes_rhophi.set_title("Final rho-phi positions")
+            self.plotstate_scatter(
+                "rho", "phimod", color="C0", endcond=None,
+                iniend=["e", "e", "i", "i"], axesequal=False, axes=axes_rhophi)
+            if fig is not None: plt.show()
 
     def plotorbit_trajectory(self, x, y, z=None, c=None, endcond=None, ids=None,
                              cmap=None, axesequal=False, axes=None, cax=None):
@@ -926,125 +1104,6 @@ class RunMixin():
         a5plt.poincare(x, y, ids, connlen=connlen, xlim=xlim, ylim=ylim,
                        xlabel=xlabel, ylabel=ylabel, clabel=clabel,
                        axesequal=axesequal, axes=axes, cax=cax)
-
-
-    def plotstate_summary(self, axes_inirho=None, axes_endrho=None,
-                          axes_mileage=None, axes_energy=None,
-                          axes_rz=None, axes_rhophi=None):
-        """Plot several graphs that summarize the simulation.
-
-        Following graphs are plotted:
-          - inirho: Initial rho histogram with colors marking the endcond.
-          - endrho: Initial rho histogram with colors marking the endcond.
-          - mileage: Final mileage histogram with colors marking the endcond.
-          - energy: Final energy histogram with colors marking the endcond.
-          - Rz: Final R-z scatterplot.
-          - rhophi: Final rho-phi scatterplot.
-
-        Parameters
-        ----------
-            axes_inirho: {Axes, bool}, optional <br>
-                Axes where inirho is plotted else a new figure is created. If
-                False, then this plot is omitted.
-            axes_endrho: {Axes, bool}, optional <br>
-                Axes where inirho is plotted else a new figure is created. If
-                False, then this plot is omitted.
-            axes_mileage: {Axes, bool}, optional <br>
-                Axes where inirho is plotted else a new figure is created. If
-                False, then this plot is omitted.
-            axes_energy: {Axes, bool}, optional <br>
-                Axes where inirho is plotted else a new figure is created. If
-                False, then this plot is omitted.
-            axes_rz: {Axes, bool}, optional <br>
-                Axes where inirho is plotted else a new figure is created. If
-                False, then this plot is omitted.
-            axes_rhophi: {Axes, bool}, optional <br>
-                Axes where inirho is plotted else a new figure is created. If
-                False, then this plot is omitted.
-
-        Raises
-        ------
-        AscotNoDataException
-            Raised when data required for the opreation is not present.
-        """
-        self._require("_inistate", "_endstate")
-        # Initial rho histogram with colors marking endcond
-        fig = None
-        if axes_inirho is None:
-            fig = plt.figure()
-            axes_inirho = fig.add_subplot(1,1,1)
-        if axes_inirho != False:
-            axes_inirho.set_xlim(0,1.1)
-            axes_inirho.set_title("Initial radial position")
-            self.plotstate_histogram(
-                "rho", xbins=np.linspace(0,1.1,55), weight=True,
-                iniend=["i", "i"], axes=axes_inirho)
-            if fig is not None: plt.show()
-
-        # Final rho histogram with colors marking endcond
-        fig = None
-        if axes_endrho is None:
-            fig = plt.figure()
-            axes_endrho = fig.add_subplot(1,1,1)
-        if axes_endrho != False:
-            axes_endrho.set_xlim([0,1.1])
-            axes_endrho.set_title("Final radial position")
-            self.plotstate_histogram(
-                "rho", xbins=np.linspace(0,1.1,55), weight=True,
-                iniend=["e", "i"], axes=axes_endrho)
-            if fig is not None: plt.show()
-
-        # Mileage histogram with colors marking endcond
-        fig = None
-        if axes_mileage is None:
-            fig = plt.figure()
-            axes_mileage = fig.add_subplot(1,1,1)
-        if axes_mileage != False:
-            axes_mileage.set_title("Final mileage")
-            self.plotstate_histogram(
-                "mileage", xbins=55, weight=True,
-                iniend=["e", "i"], log=[True, False], axes=axes_mileage)
-            if fig is not None: plt.show()
-
-        # Final energy histogram with colors marking endcond
-        fig = None
-        if axes_energy is None:
-            fig = plt.figure()
-            axes_energy = fig.add_subplot(1,1,1)
-        if axes_energy != False:
-            axes_energy.set_title("Final energy")
-            self.plotstate_histogram(
-                "energy", xbins=55, weight=True,
-                iniend=["e", "i"], log=[True, False], axes=axes_energy)
-            if fig is not None: plt.show()
-
-        # Final Rz scatter positions
-        fig = None
-        if axes_rz is None:
-            fig = plt.figure()
-            axes_rz = fig.add_subplot(1,1,1)
-        if axes_rz != False:
-            axes_rz.set_title("Final R-z positions")
-            self.plotstate_scatter(
-                "R", "z", color="C0", endcond=None,
-                iniend=["e", "e", "i", "i"], axesequal=True, axes=axes_rz)
-            if fig is not None: plt.show()
-
-        # Final rho-phi scatter positions
-        fig = None
-        if axes_rhophi is None:
-            fig = plt.figure()
-            axes_rhophi = fig.add_subplot(1,1,1)
-        if axes_rhophi != False:
-            axes_rhophi.set_xlim(left=0)
-            axes_rhophi.set_ylim([0,360])
-            axes_rhophi.set_xticks([0, 0.5, 1.0])
-            axes_rhophi.set_yticks([0, 180, 360])
-            axes_rhophi.set_title("Final rho-phi positions")
-            self.plotstate_scatter(
-                "rho", "phimod", color="C0", endcond=None,
-                iniend=["e", "e", "i", "i"], axesequal=False, axes=axes_rhophi)
-            if fig is not None: plt.show()
 
     def plotwall_loadvsarea(self, axes=None):
         ids, _, eload, _, _, _, _ = self.getwall_loads()

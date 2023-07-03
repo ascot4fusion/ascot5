@@ -122,7 +122,7 @@ class TestPlotting(unittest.TestCase):
 
         plt.show(block=False)
 
-    def _test_plotstate_histogram(self):
+    def test_plotstate_histogram(self):
         vr = self.initandrunsim(1e-4)
         fig = plt.figure(figsize=(30,40))
 
@@ -130,7 +130,7 @@ class TestPlotting(unittest.TestCase):
         vr.plotstate_histogram("end phimod", axes=ax)
 
         ax = fig.add_subplot(2,3,2)
-        vr.plotstate_histogram("log end phi", xbins=10, axes=ax)
+        vr.plotstate_histogram("log end phi", xbins=10, endcond="WALL", axes=ax)
 
         ax = fig.add_subplot(2,3,3)
         vr.plotstate_histogram("end ekin", xbins=np.linspace(0,4e6,100),
@@ -140,7 +140,8 @@ class TestPlotting(unittest.TestCase):
         vr.plotstate_histogram("end phimod", "end thetamod", axes=ax)
 
         ax = fig.add_subplot(2,3,5)
-        vr.plotstate_histogram("log end phi", "log end theta", axes=ax)
+        vr.plotstate_histogram("log end phi", "log end theta", endcond="WALL",
+                               axes=ax)
 
         ax = fig.add_subplot(2,3,6)
         vr.plotstate_histogram("end phimod", "end thetamod", logscale=True,
