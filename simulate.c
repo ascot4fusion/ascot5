@@ -137,6 +137,10 @@ void simulate(
                    NULL, 0, &ptr, &ptrint);
     mhd_init(&sim.mhd_data, &sim_offload->mhd_offload_data, ptr);
 
+    /* Offload complete. Reset struct so it can be reused. */
+    offload_data->unpack_pos     = 0;
+    offload_data->int_unpack_pos = 0;
+
     diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
               diag_offload_array);
 
