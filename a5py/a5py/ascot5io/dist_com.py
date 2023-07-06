@@ -136,3 +136,86 @@ class Dist_COM(DataContainer):
             data = self.read()
 
         write_hdf5(fn, run, data)
+
+        
+    def plot_muptor(self, E, axes=None):
+        """
+        Plot constant of motion distribution on (mu, Ptor) plane for a given E.
+        """
+        import matplotlib.pyplot as plt
+        data = self.read()
+        hist = data["histogram"]
+        mu_edges, Ptor_edges = data["mu_edges"], data["ptor_edges"]
+        E_vector, E_edges = data["ekin"], data["ekin_edges"]
+        if E is None:
+            plot = np.sum(hist, axis=1)
+        elif type(E) == int:
+            i = E
+            plot = hist[:,i,:]
+        else:
+            i = np.argmax(E < E_edges)-1
+            plot1 = hist[:,i,:]
+            plot2 = hist[:,i+1,:]
+
+            k = E/(E_vector[i+1]-E_vector[i])
+            plot = plot1*k + (1-k)*plot2
+        
+        h = axes.pcolormesh(Ptor_edges, mu_edges, plot, shading="flat")
+        axes.set_ylabel("mu (J/T)")
+        axes.set_xlabel("Ptor (Js)")
+        plt.colorbar(h, ax=axes)
+        
+    def plot_muEkin(self, Ptor, axes=None):
+        """
+        Plot constant of motion distribution on (mu, Ptor) plane for a given E.
+        """
+        import matplotlib.pyplot as plt
+        data = self.read()
+        hist = data["histogram"]
+        mu_edges, E_edges = data["mu_edges"], data["ekin_edges"]
+        Ptor_vector, Ptor_edges = data["ptor"], data["ptor_edges"]
+        if Ptor is None:
+            plot = np.sum(hist, axis=2)
+        elif type(Ptor) == int:
+            i = Ptor
+            plot = hist[:,:,i]
+        else:
+            i = np.argmax(Ptor < Ptor_edges)-1
+            plot1 = hist[:,:,i]
+            plot2 = hist[:,:,i+1]
+
+            k = Ptor/(Ptor_vector[i+1]-Ptor_vector[i])
+            plot = plot1*k + (1-k)*plot2
+        
+        h = axes.pcolormesh(E_edges, mu_edges, plot, shading="flat")
+        axes.set_ylabel("mu (J/T)")
+        axes.set_xlabel("E (J)")
+        plt.colorbar(h, ax=axes)
+
+        
+    def plot_EkinPtor(self, mu, axes=None):
+        """
+        Plot constant of motion distribution on (mu, Ptor) plane for a given E.
+        """
+        import matplotlib.pyplot as plt
+        data = self.read()
+        hist = data["histogram"]
+        E_edges, Ptor_edges = data["ekin_edges"], data["ptor_edges"]
+        mu_vector, mu_edges = data["mu"], data["mu_edges"]
+        if mu is None:
+            plot = np.sum(hist, axis=0)
+        elif type(mu) == int:
+            i = mu
+            plot = hist[i,:,:]
+        else:
+            i = np.argmax(mu < mu_edges)-1
+            plot1 = hist[i,:,:]
+            plot2 = hist[i+1,:,:]
+
+            k = mu/(mu_vector[i+1]-mu_vector[i])
+            plot = plot1*k + (1-k)*plot2
+        
+        h = axes.pcolormesh(Ptor_edges, E_edges, plot, shading="flat")
+        axes.set_ylabel("E (J)")
+        axes.set_xlabel("Ptor (Js)")
+        plt.colorbar(h, ax=axes)
