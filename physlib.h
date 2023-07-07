@@ -239,17 +239,17 @@
         fabs(q) * B / ( m * physlib_gamma_ppar(m, mu, ppar, B) ) )
 
 /**
+ * @brief Evaluate toroidal canonical momentum for particle
+ *
+ */
+#define phys_ptoroid_fo(q, R, pphi, psi) ( 		\
+	R * pphi  +  q * psi )
+
+/**
  * @brief Evaluate toroidal canonical momentum for guiding center
  *
  */
 #define phys_ptoroid_gc(q, R, ppar, psi, B, Bphi) (             \
 	 ppar * R * (Bphi / B)  +  q * psi )
-
-/**
- * @brief Evaluate toroidal canonical momentum for particle
- *
- */
-#define phys_ptoroid_prt(q, R, pphi, psi) ( 		\
-	R * pphi  +  q * psi )
 
 #endif
