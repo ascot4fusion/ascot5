@@ -214,12 +214,13 @@ void diag_free(diag_data* data) {
  * @brief Collects diagnostics when marker represents a particle
  *
  * @param data diagnostics data struct
+ * @param Bdata pointer to magnetic field data
  * @param p_f pointer to SIMD struct storing marker states at the end of current
  *        time-step
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
  *        current time-step
  */
-void diag_update_fo(diag_data* data, particle_simd_fo* p_f,
+void diag_update_fo(diag_data* data, B_field_data* Bdata, particle_simd_fo* p_f,
                     particle_simd_fo* p_i) {
     if(data->diagorb_collect) {
         diag_orb_update_fo(&data->diagorb, p_f, p_i);
@@ -241,6 +242,10 @@ void diag_update_fo(diag_data* data, particle_simd_fo* p_f,
         dist_rho6D_update_fo(&data->distrho6D, p_f, p_i);
     }
 
+    if(data->distCOM_collect){
+    	dist_COM_update_fo(&data->distCOM, Bdata, p_f, p_i);
+    }
+    
     if(data->diagtrcof_collect){
         diag_transcoef_update_fo(&data->diagtrcof, p_f, p_i);
     }
@@ -250,6 +255,7 @@ void diag_update_fo(diag_data* data, particle_simd_fo* p_f,
  * @brief Collects diagnostics when marker represents a guiding center
  *
  * @param data pointer to diagnostics data struct
+ * @param Bdata pointer to magnetic field data
  * @param p_f pointer to SIMD struct storing marker states at the end of current
  *        time-step
  * @param p_i pointer to SIMD struct storing marker states at the beginning of
