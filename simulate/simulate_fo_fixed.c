@@ -155,7 +155,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         /* Update diagnostics */
         if(!(sim->record_mode)) {
             /* Record particle coordinates */
-            diag_update_fo(&sim->diag_data, &p, &p0);
+            diag_update_fo(&sim->diag_data, &sim->B_data, &p, &p0);
         }
         else {
             /* Instead of particle coordinates we record guiding center */
