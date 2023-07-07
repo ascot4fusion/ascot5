@@ -64,7 +64,7 @@ void dist_COM_init(dist_COM_data* dist_data,
     dist_data->histogram = &offload_array[0];
 }
 
-/** 
+/**
  * @brief Update the histogram from full-orbit markers
  */
 void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
@@ -92,18 +92,15 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
             B_field_eval_psi(&psi, p_f->r[i], p_f->phi[i], p_f->z[i],
                              p_f->time[i], Bdata);
 
-	    real B [] = {p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]};
-	    Bnorm = math_normc(p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]);
+            real B [] = {p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]};
+            Bnorm = math_normc(p_f->B_r[i], p_f->B_phi[i], p_f->B_z[i]);
 
-	    real p [] = {p_f->p_r[i], p_f->p_phi[i], p_f->p_z[i]};
-	    pnorm = math_normc(p_f->p_r[i], p_f->p_phi[i], p_f->p_z[i]);
-	    
-	    ppar = math_dot(p, B) / Bnorm;
-	    
-	    xi = ppar / pnorm;
-	    
-	    mu = physlib_gc_mu(p_f->mass[i], pnorm, xi, Bnorm);
-	    
+            real p [] = {p_f->p_r[i], p_f->p_phi[i], p_f->p_z[i]};
+            pnorm = math_normc(p_f->p_r[i], p_f->p_phi[i], p_f->p_z[i]);
+            ppar = math_dot(p, B) / Bnorm;
+            xi = ppar / pnorm;
+
+            mu = physlib_gc_mu(p_f->mass[i], pnorm, xi, Bnorm);
             i_mu[i] = floor((mu - dist->min_mu)
                             / ((dist->max_mu - dist->min_mu)/dist->n_mu));
             Ekin = physlib_Ekin_pnorm(p_f->mass[i], pnorm);
@@ -114,7 +111,7 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
 
             i_Ptor[i] = floor((Ptor - dist->min_Ptor)
                               /  ((dist->max_Ptor - dist->min_Ptor)/dist->n_Ptor));
-	    
+            printf("%e %e %e\n", mu, dist->min_mu, dist->max_mu);
             if(i_mu[i]   >= 0 && i_mu[i]   <= dist->n_mu - 1   &&
                i_Ekin[i] >= 0 && i_Ekin[i] <= dist->n_Ekin - 1 &&
                i_Ptor[i] >= 0 && i_Ptor[i] <= dist->n_Ptor - 1 ) {
@@ -183,7 +180,7 @@ void dist_COM_update_gc(dist_COM_data* dist, B_field_data* Bdata,
 
             i_Ptor[i] = floor((Ptor - dist->min_Ptor)
                               /  ((dist->max_Ptor - dist->min_Ptor)/dist->n_Ptor));
-	    
+
             if(i_mu[i]   >= 0 && i_mu[i]   <= dist->n_mu - 1   &&
                i_Ekin[i] >= 0 && i_Ekin[i] <= dist->n_Ekin - 1 &&
                i_Ptor[i] >= 0 && i_Ptor[i] <= dist->n_Ptor - 1 ) {
