@@ -699,6 +699,131 @@ class Ascotpy(LibAscot, LibSimulate):
 
         return quantities
 
+    def input_rhovolume(self, nrho=10, method="int", nmin=100, ntheta=360,
+                        nphi=360, t=0*unyt.s):
+        """Evaluate flux surface volumes.
+
+        Parameters
+        ----------
+        nrho : int, optional
+            Number of radial grid points between [0, 1].
+
+            Note that is advised to first use this method to generate a sparse
+            grid with known volumes and then interpolate that if more denser
+            grid ise needed.
+        method : {"int", "mc"}, optional
+            Method used to evaluate the volumes.
+
+            "prism" divides the volume into structured 3D grid consisting of
+            triangular prims where the triangular plane is poloidal and one
+            of the vertices is at magnetic axis while the other two are along
+            a given flux surface. The volume is the estimated as a sum of these
+            prisms.
+
+            "mc" divides the volume into toroidal sectors of same size, and on
+            each sector fins the separatrix bounding box. Bounding box is
+            assumed to be fixed along the sector and markers are randomly
+            sampled within it. The volumes are then estimated via the Monte
+            Carlo method.
+        nmin : int, optional
+            Minimum number of markers required for each rho bin before the
+            Monte Carlo algorithm is stopped in "mc".
+        ntheta : int, optional
+            Number of poloidal points in "prism" for the grid and in "mc" for
+            estimating the bounding box volume.
+        nphi : int, optional
+            Number of toroidal slices in both methods.
+        t : float, optional
+            Time slice when the volumes are computed.
+
+        Returns
+        -------
+        volume : array_like
+            Volume of each radial bin.
+        """
+        rho   = np.linspace(0.001, 0.999, nrho) * unyt.dimensionless
+        phi   = np.linspace(0, 2*np.pi, nphi)   * unyt.rad
+        theta = np.linspace(0, 2*np.pi, ntheta) * unyt.rad
+
+        if method == "prism":
+            volume = np.zeros((nrho,)) * unyt.m**3
+            for ip in range(nphi):
+                if ip > 0:
+                    # Calculate volumes from previous sector's weighted areas.
+                    # All triangles begin at (r0,z0) so we always subtract the
+                    # inner volume to get the correct size. For this reason
+                    # area[0] is kept at zero always.
+                    h = (phi[ip] - phi[ip-1]).v
+                    volume[:] += np.sum(area[1:, :] - area[:-1, :], axis=1) * h
+
+                # Get axis location and reset weighted triangle areas
+                out = self._eval_bfield(1*unyt.m, phi[ip], 1*unyt.m, t,
+                                        evalaxis=True)
+                r0   = out["axisr"]
+                z0   = out["axisz"]
+                area = np.zeros((nrho+1,ntheta-1)) * unyt.m**3
+                for it in range(ntheta):
+                    # (R,z) values corresponding to rho and current theta & phi
+                    rc, zc = self.input_rhotheta2rz(rho, theta[it], phi[ip], t)
+                    if it > 0:
+                        # Calculate the triangle areas and weight them with
+                        # triangle centroid which makes volume calculation
+                        # straightforward.
+                        cr = (r0 + rc + rc0) / 3
+                        temp = r0*(zc0 - zc) + rc0*(zc - z0) + rc*(z0 - zc0)
+                        area[1:,it-1] = 0.5 * np.abs(temp) * cr
+
+                    # Save points so we can calculate the weighted area at the
+                    # next theta slice
+                    rc0 = rc
+                    zc0 = zc
+
+            return volume
+
+        elif method == "mc":
+            # First go through every phi slice and determine the bounding box
+            bbox = np.zeros( (phi.size, 4) ) * unyt.m
+            for ip in range(phi.size):
+                out = self._eval_bfield(0*unyt.m, phi[ip], 0*unyt.m, t,
+                                        evalaxis=True)
+                r0 = out["axisr"].v
+                z0 = out["axisz"].v
+                bbox[ip, :] = np.array([r0, r0, z0, z0])
+                for it in range(theta.size):
+                    rc, zc = self.input_rhotheta2rz(
+                        rho[-1], theta[it], phi[ip], t)
+                    bbox[ip, 0] = np.nanmin([np.nanmin(rc.v), bbox[ip, 0]])
+                    bbox[ip, 1] = np.nanmax([np.nanmax(rc.v), bbox[ip, 1]])
+                    bbox[ip, 2] = np.nanmin([np.nanmin(zc.v), bbox[ip, 2]])
+                    bbox[ip, 3] = np.nanmax([np.nanmax(zc.v), bbox[ip, 3]])
+
+            # For each phi slice, draw this many markers repeatedly until there
+            # are at minimun nmin markers at each rho bin
+            n = 20000
+            volume = np.zeros((nrho,)) * unyt.m**3
+            for ip in range(phi.size-1):
+                # Total markers sampled and volume of the toroidal sector
+                ntot   = 0
+                vtorus = 0.5 * (bbox[ip, 1]**2 - bbox[ip, 0]**2) \
+                    * ( bbox[ip, 3] - bbox[ip, 2] ) * ( phi[ip+1] - phi[ip] ).v
+
+                # Sample markers
+                points_in_bins = np.zeros((nrho,))
+                while np.any(points_in_bins < nmin):
+                    p = np.random.uniform(phi[ip], phi[ip+1], n) * unyt.rad
+                    r = np.random.uniform(bbox[ip, 0], bbox[ip, 1], n) * unyt.m
+                    z = np.random.uniform(bbox[ip, 2], bbox[ip, 3], n) * unyt.m
+
+                    rho   = self.input_eval(r, p, z, t, "rho").v
+                    ind   = rho <= 1 # Reject markers outside separatrix
+                    i_rho = np.floor( rho[ind] / (1.0/nrho) ).astype(int)
+                    np.add.at(points_in_bins, i_rho, 1)
+                    ntot = ntot + n
+
+                # Volume of this sector as estimated via Monte Carlo
+                volume[:] += vtorus * points_in_bins / ntot
+            return volume
+
     def _evaluateripple(self, R, z, t, nphi):
         """TBD
         """
