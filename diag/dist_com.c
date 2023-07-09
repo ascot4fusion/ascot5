@@ -111,7 +111,7 @@ void dist_COM_update_fo(dist_COM_data* dist, B_field_data* Bdata,
 
             i_Ptor[i] = floor((Ptor - dist->min_Ptor)
                               /  ((dist->max_Ptor - dist->min_Ptor)/dist->n_Ptor));
-            printf("%e %e %e\n", mu, dist->min_mu, dist->max_mu);
+
             if(i_mu[i]   >= 0 && i_mu[i]   <= dist->n_mu - 1   &&
                i_Ekin[i] >= 0 && i_Ekin[i] <= dist->n_Ekin - 1 &&
                i_Ptor[i] >= 0 && i_Ptor[i] <= dist->n_Ptor - 1 ) {
