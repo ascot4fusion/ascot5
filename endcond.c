@@ -91,6 +91,26 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
     for(int i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
 
+            /* Update bounces if pitch changed sign */
+            if( (p_i->p_r[i]*p_i->B_r[i] + p_i->p_phi[i]*p_i->B_phi[i]
+                 + p_i->p_z[i]*p_i->B_z[i])
+                * (p_f->p_r[i]*p_f->B_r[i] + p_f->p_phi[i]*p_f->B_phi[i]
+                   + p_f->p_z[i]*p_f->B_z[i]) < 0 ) {
+                if(p_f->bounces[i] > 0) {
+                    /* Half bounce */
+                    p_f->bounces[i] *= -1;
+                }
+                else if(p_f->bounces[i] < 0) {
+                    /* Bounce complete */
+                    p_f->bounces[i] *= -1;
+                    p_f->bounces[i] +=  1;
+                }
+                else {
+                    /* Initial bounce */
+                    p_f->bounces[i] +=  1;
+                }
+            }
+
             /* Check if the marker time exceeds simulation time */
             if(active_tlim) {
                 if(!sim->reverse_time && p_f->time[i] > sim->endcond_lim_simtime) {
@@ -182,6 +202,10 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                 if(fabs(p_f->theta[i]) > sim->endcond_max_polorb) {
                     maxorb |= endcond_polmax;
                 }
+                else if( p_f->bounces[i] - 1 >
+                         (int)(sim->endcond_max_polorb / CONST_2PI )) {
+                    maxorb |= endcond_polmax;
+                }
             }
             if( sim->endcond_torandpol &&
                 maxorb & endcond_tormax && maxorb & endcond_polmax ) {
@@ -257,6 +281,23 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
     #pragma omp simd
     for(i = 0; i < NSIMD; i++) {
         if(p_f->running[i]) {
+            /* Update bounces if pitch changed sign */
+            if( p_i->ppar[i] * p_f->ppar[i] < 0 ) {
+                if(p_f->bounces[i] > 0) {
+                    /* Half bounce */
+                    p_f->bounces[i] *= -1;
+                }
+                else if(p_f->bounces[i] < 0) {
+                    /* Bounce complete */
+                    p_f->bounces[i] *= -1;
+                    p_f->bounces[i] +=  1;
+                }
+                else {
+                    /* Initial bounce */
+                    p_f->bounces[i] +=  1;
+                }
+            }
+
             /* Check if the marker time exceeds simulation time */
             if(active_tlim) {
                 if(!sim->reverse_time && p_f->time[i] > sim->endcond_lim_simtime) {
@@ -342,6 +383,10 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
             }
             if(active_polmax) {
                 if(fabs(p_f->theta[i]) > sim->endcond_max_polorb) {
+                    maxorb |= endcond_polmax;
+                }
+                else if(p_f->bounces[i] - 1 >
+                        (int)(sim->endcond_max_polorb / CONST_2PI)) {
                     maxorb |= endcond_polmax;
                 }
             }
