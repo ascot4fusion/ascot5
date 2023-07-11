@@ -202,7 +202,7 @@ void endcond_check_fo(particle_simd_fo* p_f, particle_simd_fo* p_i,
                 if(fabs(p_f->theta[i]) > sim->endcond_max_polorb) {
                     maxorb |= endcond_polmax;
                 }
-                else if( p_f->bounces[i] - 1 >
+                else if( p_f->bounces[i] - 1 >=
                          (int)(sim->endcond_max_polorb / CONST_2PI )) {
                     maxorb |= endcond_polmax;
                 }
@@ -385,7 +385,7 @@ void endcond_check_gc(particle_simd_gc* p_f, particle_simd_gc* p_i,
                 if(fabs(p_f->theta[i]) > sim->endcond_max_polorb) {
                     maxorb |= endcond_polmax;
                 }
-                else if(p_f->bounces[i] - 1 >
+                else if(p_f->bounces[i] - 1 >=
                         (int)(sim->endcond_max_polorb / CONST_2PI)) {
                     maxorb |= endcond_polmax;
                 }
