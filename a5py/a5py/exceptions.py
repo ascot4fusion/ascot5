@@ -26,3 +26,8 @@ class AscotInitException(Exception):
     or any related data.
     """
     pass
+
+class AscotUnitWarning(UserWarning):
+    """Warning raised when quantities are provided without units.
+    """
+    pass
