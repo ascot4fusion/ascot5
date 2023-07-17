@@ -1,670 +1,400 @@
-"""
-Orbit data IO module.
-
-File: orbits.py
+"""Orbit data IO module.
 """
 import numpy as np
 import h5py
 import unyt
-
-import a5py.marker.interpret as interpret
-import a5py.marker as marker
-import a5py.marker.endcond as endcondmod
-import a5py.marker.plot as plot
 import a5py.physlib as physlib
 
-from a5py.physlib.alias import getalias
+from .coreio import fileapi
+from .coreio.treedata import DataContainer
 
-from a5py.ascot5io.ascot5data import AscotData
-from a5py.ascot5io.ascot5file import read_data
 
-def read_hdf5(fn, qid):
+class Orbits(DataContainer):
+    """Orbit diagnostics that collect marker phase-space coordinates and related
+    quantities at certain points along the marker orbit.
     """
-    Read orbit output from HDF5 file.
 
-    Args:
+    GYROORBIT     = 1
+    GUIDINGCENTER = 2
+    FIELDLINE     = 3
+
+    def read_hdf5(self, fn, qid):
+        """
+        Read orbit output from HDF5 file.
+
+        Args:
         fn : str <br>
             Full path to the HDF5 file.
         qid : str <br>
             QID of the data to be read.
 
-    Returns:
+        Returns:
         Dictionary containing orbit data.
-    """
+        """
 
-    path = "results/run_" + qid + "/orbit"
+        path = "results/run_" + qid + "/orbit"
 
-    out = {}
-    with h5py.File(fn,"r") as f:
-        for key in f[path]:
-            out[key] = f[path][key][:]
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
 
-    return out
+        return out
 
+    @staticmethod
+    def write_hdf5(fn, data, desc=None):
+        """
+        Write state data in HDF5 file.
 
-def write_hdf5(fn, run, data, desc=None):
-    """
-    Write state data in HDF5 file.
-
-    Args:
+        Args:
         fn : str <br>
             Full path to the HDF5 file.
         desc : str, optional <br>
             Input description.
-    """
-
-    gname = "results/" + run + "/orbit"
-
-    N = data["id"].size
-
-    with h5py.File(fn, "a") as f:
-        g = f.create_group(gname)
-
-        g.create_dataset("id",   (N,1), data=data["id"],   dtype="i8")
-        g.create_dataset("time", (N,1), data=data["time"], dtype="f8")
-
-        if "pncrid" in data:
-            g.create_dataset("pncrid", (N,1), data=data["pncrid"], dtype="i4")
-
-        if "charge" in data:
-            g.create_dataset("charge", (N,1), data=data["charge"], dtype="i4")
-
-        if "weight" in data:
-            g.create_dataset("weight", (N,1), data=data["weight"], dtype="f8")
-
-        if "pr" in data:
-            g.create_dataset("r",     (N,1), data=data["r"],     dtype="f8")
-            g.create_dataset("phi",   (N,1), data=data["phi"],   dtype="f8")
-            g.create_dataset("z",     (N,1), data=data["z"],     dtype="f8")
-
-            g.create_dataset("pr",    (N,1), data=data["pr"],    dtype="f8")
-            g.create_dataset("pphi",  (N,1), data=data["pphi"],  dtype="f8")
-            g.create_dataset("pz",    (N,1), data=data["pz"],    dtype="f8")
-
-            g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
-            g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
-            g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
-            g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
-            g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
-        else:
-            g.create_dataset("r",     (N,1), data=data["r"],     dtype="f8")
-            g.create_dataset("phi",   (N,1), data=data["phi"],   dtype="f8")
-            g.create_dataset("z",     (N,1), data=data["z"],     dtype="f8")
-
-            g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
-            g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
-            g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
-            g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
-            g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
-
-        if "ppar" in data:
-            g.create_dataset("ppar",  (N,1), data=data["ppar"],  dtype="f8")
-            g.create_dataset("mu",    (N,1), data=data["mu"],    dtype="f8")
-            g.create_dataset("zeta",  (N,1), data=data["zeta"],  dtype="f8")
-
-
-class Orbits(AscotData):
-    """
-    Object representing orbit data.
-    """
-
-    def __init__(self, hdf5, runnode):
         """
-        Initialize orbit object from given HDF5 file to given RunNode.
-        """
-        self._runnode = runnode
-        super().__init__(hdf5)
 
+        gname = "results/" + run + "/orbit"
 
-    def read(self):
-        """
-        Read orbit data to dictionary.
-        """
-        return read_hdf5(self._file, self.get_qid())
+        N = data["id"].size
 
+        with h5py.File(fn, "a") as f:
+            g = f.create_group(gname)
 
-    def write(self, fn, run, data=None):
-        """
-        Write orbit data to HDF5 file.
-        """
-        if data is None:
-            data = self.read()
+            g.create_dataset("id",   (N,1), data=data["id"],   dtype="i8")
+            g.create_dataset("time", (N,1), data=data["time"], dtype="f8")
 
-        write_hdf5(fn, run, data)
+            if "pncrid" in data:
+                g.create_dataset("pncrid", (N,1), data=data["pncrid"], dtype="i4")
 
+            if "charge" in data:
+                g.create_dataset("charge", (N,1), data=data["charge"], dtype="i4")
 
-    def _eval(self, key, simmode, a5):
-        """
-        Evaluate a quantity.
-        """
-        with self as h5:
-            mask = read_data(h5, "simmode").v == simmode
+            if "weight" in data:
+                g.create_dataset("weight", (N,1), data=data["weight"], dtype="f8")
 
-        # Wrapper for read data which opens the HDF5 file
-        def read_dataw(data):
-            with self as h5:
-                data = read_data(h5, data)
-            return data[mask]
+            if "pr" in data:
+                g.create_dataset("r",     (N,1), data=data["r"],     dtype="f8")
+                g.create_dataset("phi",   (N,1), data=data["phi"],   dtype="f8")
+                g.create_dataset("z",     (N,1), data=data["z"],     dtype="f8")
 
-        # Helper function that returns magnetic field vector
-        def getbvec():
-            return unyt.T * np.array(
-                [read_dataw("br"),
-                 read_dataw("bphi"),
-                 read_dataw("bz")])
+                g.create_dataset("pr",    (N,1), data=data["pr"],    dtype="f8")
+                g.create_dataset("pphi",  (N,1), data=data["pphi"],  dtype="f8")
+                g.create_dataset("pz",    (N,1), data=data["pz"],    dtype="f8")
 
-        # Helper function that returns particle momentum vector
-        def getpvecprt():
-            return unyt.kg * unyt.m / unyt.s * np.array(
-                [read_dataw("pr"),
-                 read_dataw("pphi"),
-                 read_dataw("pz")])
-
-        # Helper function that evaluates ascotpy at marker position
-        def evalapy(quantity):
-            return a5.evaluate(
-                R   = read_dataw("r"),
-                phi = read_dataw("phi").to("rad"),
-                z   = read_dataw("z"),
-                t   = read_dataw("mileage") + initime(),
-                quantity = quantity
-            )
-
-        # Gets mass and initime for each datapoint from the inistate
-        def mass():
-            m = self._read_from_inistate(
-                "mass", read_dataw("ids")).ravel() * unyt.amu
-            return m[mask]
-
-        def initime():
-            m = self._read_from_inistate(
-                "time", read_dataw("ids")).ravel() * unyt.s
-            return m[mask]
-
-        item = None
-        with self as h5:
-            h5keys = list(h5.keys())
-
-        # See if the field can be read directly and without conversions
-        if key in h5keys:
-            item = read_dataw(key)
-
-        # Mass and time are read from inistate
-        elif key == "mass":
-            item = mass()
-        elif key == "time":
-            item = initime() + read_dataw("mileage")
-        elif key == "mileagerev":
-            item = read_dataw("mileage")
-            item = item[0] - item
-        else:
-            if simmode == 1:
-                key += "prt"
-            elif simmode == 2:
-                key += "gc"
+                g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
+                g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
+                g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
+                g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
+                g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
             else:
-                key += "fl"
+                g.create_dataset("r",     (N,1), data=data["r"],     dtype="f8")
+                g.create_dataset("phi",   (N,1), data=data["phi"],   dtype="f8")
+                g.create_dataset("z",     (N,1), data=data["z"],     dtype="f8")
 
-        # New quantities can be added here. Use suffix "gc" for quantities that
-        # can be evaluated from guiding-center data, "prt" for particle data
-        # and "fl" for field line data.
-        if item is not None:
-            pass
+                g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
+                g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
+                g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
+                g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
+                g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
 
-        ## Coordinates ##
-        if key in ["xgc", "xprt", "xfl"]:
-            item = physlib.xcoord(
-                r   = read_dataw("r"),
-                phi = read_dataw("phi")
-            )
-        elif key in ["ygc", "yprt", "yfl"]:
-            item = physlib.ycoord(
-                r   = read_dataw("r"),
-                phi = read_dataw("phi")
-            )
-        elif key in ["phimodgc", "phimodprt", "phimodfl"]:
-            item = np.mod(read_dataw("phi"), 2 * np.pi * unyt.rad)
+            if "ppar" in data:
+                g.create_dataset("ppar",  (N,1), data=data["ppar"],  dtype="f8")
+                g.create_dataset("mu",    (N,1), data=data["mu"],    dtype="f8")
+                g.create_dataset("zeta",  (N,1), data=data["zeta"],  dtype="f8")
 
-        elif key in ["thetamodgc", "thetamodprt", "thetamodfl"]:
-            item = np.mod(read_dataw("theta"), 2 * np.pi * unyt.rad)
+    def get(self, inistate, endstate, *qnt):
+        """Return marker quantity.
 
-        ## Energy, gamma, and pitch ##
-        elif key == "energygc":
-            item = physlib.energy_muppar(
-                m    = mass(),
-                mu   = read_dataw("mu"),
-                ppar = read_dataw("ppar"),
-                b    = getbvec()
-            )
-        elif key == "energyprt":
-            item = physlib.energy_momentum(
-                m = mass(),
-                p = getpvecprt()
-            )
-        elif key == "gammagc":
-            item = physlib.gamma_muppar(
-                m    = mass(),
-                mu   = read_dataw("mu"),
-                ppar = read_dataw("ppar"),
-                b    = getbvec()
-            )
-        elif key == "gammaprt":
-            item = physlib.gamma_momentum(
-                m = mass(),
-                p = getpvecprt()
-            )
-        elif key == "pitchgc":
-            item = physlib.pitch_muppar(
-                m    = mass(),
-                mu   = read_dataw("mu"),
-                ppar = read_dataw("ppar"),
-                b    = getbvec()
-            )
-        elif key == "pitchprt":
-            item = pitch_momentum(
-                p = getpvecprt(),
-                b = getbvec()
-            )
+        This function accesses the orbit data within the HDF5 file and uses that
+        to evaluate the queried quantity. The evaluated quantity at a given
+        position corresponds to that mode which was active at the simulation:
+        GO simulations return particle phase-space, GC guiding-center
+        phase-space and hybrid depends on whether marker was GO or GC at that
+        moment when data point was written.
 
-        ## Velocity and momentum components, norms and mu ##
-        elif key == "vpargc":
-            item = physlib.vpar_muppar(
-                m    = mass(),
-                mu   = read_dataw("mu"),
-                ppar = read_dataw("ppar"),
-                b    = getbvec()
-            )
-        elif key == "vparprt":
-            item = physlib.vpar_momentum(
-                m = mass(),
-                p = getpvecprt(),
-                b = getbvec()
-            )
-        elif key == "pparprt":
-            item = physlib.ppar_momentum(
-                p = getpvecprt(),
-                b = getbvec()
-            )
-        elif key == "pnormgc":
-            item = physlib.momentum_muppar(
-                m    = mass(),
-                mu   = read_dataw("mu"),
-                ppar = read_dataw("ppar"),
-                b    = getbvec()
-            )
-        elif key == "pnormprt":
-            item = getpvecprt()
-            item = np.sqrt( np.sum( item**2, axis=0 ) )
+        Parameters
+        ----------
+        inistate : :class:`State`
+            Inistate is needed to evaluate some orbit quantities.
+        endstate : :class:`State`
+            Endstate is needed to evaluate some orbit quantities.
+        *qnt : str
+            Names of the quantities.
 
-        elif key == "vnormgc":
-            item = physlib.velocity_muppar(
-                m    = mass(),
-                mu   = read_dataw("mu"),
-                ppar = read_dataw("ppar"),
-                b    = getbvec()
-            )
-        elif key == "vnormprt":
-            item = getpvecprt()
-            item = np.sqrt( np.sum( item**2, axis=0 ) )
-            item = physlib.velocity_momentum(
-                m = mass(),
-                p = item
-            )
-        elif key == "vrprt":
-            item = physlib.velocity_momentum(
-                m = mass(),
-                p = getpvecprt()
-            )[0,:]
-        elif key == "vphiprt":
-            item = physlib.velocity_momentum(
-                m = mass(),
-                p = getpvecprt()
-            )[1,:]
-        elif key == "vzprt":
-            item = physlib.velocity_momentum(
-                m = mass(),
-                p = getpvecprt()
-            )[2,:]
-        elif key == "muprt":
-            item = physlib.mu_momentum(
-                m = mass(),
-                p = getpvecprt(),
-                b = getbvec()
-            )
-
-        ## Background quantities ##
-        elif key in ["bnormgc", "bnormprt", "bnormfl"]:
-            item = getbvec()
-            item = np.sqrt( np.sum( item**2, axis=0 ) )
-
-        elif key in ["psigc", "psiprt", "psifl"]:
-            a5.init(bfield=True)
-            item = evalapy("psi") * unyt.Wb
-            a5.free(bfield=True)
-
-        elif key in ["rhogc", "rhoprt", "rhofl"]:
-            a5.init(bfield=True)
-            item = evalapy("rho") * unyt.dimensionless
-            a5.free(bfield=True)
-
-        elif key == "ptorgc":
-            a5.init(bfield=True)
-            item = physlib.torcanangmom_ppar(
-                q    = read_dataw("charge"),
-                r    = read_dataw("r"),
-                ppar = read_dataw("ppar"),
-                b    = getbvec(),
-                psi  = evalapy("psi") * unyt.Wb
-            )
-            a5.free(bfield=True)
-
-        elif key == "ptorprt":
-            a5.init(bfield=True)
-            item = physlib.torcanangmom_momentum(
-                q   = read_dataw("charge"),
-                r   = read_dataw("r"),
-                p   = getpvecprt(),
-                psi = evalapy("psi") * unyt.Wb
-            )
-            a5.free(bfield=True)
-
-        ## Boozer and MHD parameters ##
-        elif key in ["psi(bzr)gc", "psi(bzr)prt", "psi(bzr)fl"]:
-            a5.init(bfield=True, boozer=True)
-            item = evalapy("psi (bzr)") * unyt.dimensionless
-            a5.free(bfield=True, boozer=True)
-
-        elif key in ["theta(bzr)gc", "theta(bzr)prt", "theta(bzr)fl"]:
-            a5.init(bfield=True, boozer=True)
-            item = evalapy("theta") * unyt.rad
-            a5.free(bfield=True, boozer=True)
-
-        elif key in ["phi(bzr)gc", "phi(bzr)prt", "phi(bzr)fl"]:
-            a5.init(bfield=True, boozer=True)
-            item = evalapy("zeta") * unyt.rad
-            a5.free(bfield=True, boozer=True)
-
-        elif key in ["db/b(mhd)gc", "db/b(mhd)prt", "db/b(mhd)fl"]:
-            a5.init(bfield=True, boozer=True, mhd=True)
-            item = evalapy("db/b") * unyt.dimensionless
-            a5.free(bfield=True, boozer=True, mhd=True)
-
-        elif key in ["mhdepotgc", "mhdepotprt", "mhdepotfl"]:
-            a5.init(bfield=True, boozer=True, mhd=True)
-            item = evalapy("phi") * unyt.V
-            a5.free(bfield=True, boozer=True, mhd=True)
-
-        elif key in ["mhdalphagc", "mhdalphaprt", "mhdalphafl"]:
-            a5.init(bfield=True, boozer=True, mhd=True)
-            item = evalapy("alpha") * unyt.m
-            a5.free(bfield=True, boozer=True, mhd=True)
-
-        return item
-
-    
-    def __getitem__(self, key):
+        Returns
+        -------
+        *value : array_like
+            The quantities as an array ordered by marker ID (major) and mileage
+            (minor).
         """
-        Return queried quantity.
-
-        The quantity is returned as a single numpy array ordered by id and time.
-
-        The quantity will be in the same picture as the stored data is, e.g. if
-        one queries for magnetic momentum mu, mu will be in guiding center
-        picture if the data corresponds to guiding center data, particle picture
-        for particle data, and none for field line data.
-
-        Args:
-            key : str <br>
-                Name of the quantity.
-        Returns:
-            The quantity ordered by id and time.
-        """
-
-        # Init ascotpy object (no data is initialized yet)
-        from a5py.ascotpy import Ascotpy
-        a5 = Ascotpy(self._file)
-
-        # Wrapper for read data which opens the HDF5 file
-        def read_dataw(data):
+        # Prepare helper variables and functions
+        def _val(q, mask=None):
+            """Read quantity from HDF5.
+            """
             with self as h5:
-                data = read_data(h5, data)
-            return data
+                if q in h5:
+                    return fileapi.read_data(h5, q)
+            return None
 
-        # Get alias
-        key  = getalias(key)
+        # Sort using the fact that inistate.get return values ordered by ID
+        # and also np.unique returns indices that produce a sorted array.
+        mode    = _val("simmode")
+        _, idx  = np.unique(_val("ids").v, return_inverse=True)
+        mass    = inistate.get("mass")[0][idx]
+        time    = inistate.get("time")[0][idx]
+        connlen = inistate.get("mileage")[0][idx] - _val("mileage")
 
-        # Get simmode in each data point which is used as a mask
-        simmode = read_dataw("simmode")
-        sids    = np.unique(simmode)
+        # Only field lines are constant in time
+        if not Orbits.FIELDLINE in mode: time = time + _val("mileage")
 
-        item = self._eval(key, sids[0], a5)
-        item.convert_to_base("ascot")
+        def _eval(q, mask=None):
+            """Evaluate input quantities at marker position.
+            """
+            return self._root._ascot.input_eval(
+                _val("r", mask=mask), _val("phi",  mask=mask),
+                _val("z", mask=mask), time[mask], *[q])
 
-        # Deal with the hybrid case
-        if sids.size > 1:
-            item0 = np.zeros(simmode.shape) * item.unit_quantity
-            item0[simmode == sids[0]] = item
-            item = self._eval(key, sids[1], a5)
-            item.convert_to_base("ascot")
+        return Orbits._getactual(mass, time, connlen, mode, _val, _eval, *qnt)
 
-            item0[simmode == sids[1]] = item
-            item = item0
+    @staticmethod
+    def _getactual(mass, time, totmil, mode, _val, _eval, *qnt):
+        """Calculate orbit quantities using the helper functions and data.
 
+        Parameters
+        ----------
+        mass : array_like, (n,)
+            Marker mass repeated at each orbit point.
+        time : array_like, (n,)
+            Laboratory time at each orbit point.
+        totmil : array_like, (n,)
+            Total mileage (from endstate) repeated at each orbit point.
+        mode : array_like, (n,)
+            The simmode value at each orbit point.
+        _val : callable
+            Function that returns a stored orbit parameter at masked positions.
 
-        if item is None:
-            raise Exception("Invalid query: " + key)
+            ``_val(qnt : str, mask : array_like) -> value``
+        _eval : callable
+            Function that returns interpolated input quantity at masked
+            positions.
 
-        # Strip units from fields to which they do not belong
-        if key in ["ids"]:
-            item = item.v
+            ``_eval(qnt : str, mask : array_like) -> value``
+        *qnt : str
+            Names of the quantities.
 
-        # Dissect endcondition
-        if key == "endcond":
-            err = read_dataw("errormsg")
-            item = item << 2
-            item[err > 0] = item[err > 0] & endcondmod.getbin("aborted")
-            item[item==0] = endcondmod.getbin("none")
+        Returns
+        -------
+        *value : array_like
+            The quantities as an array ordered by marker ID (major) and mileage
+            (minor).
+        """
+        items = [None]*len(qnt)
+        def add(q, val):
+            if q in qnt:
+                items[qnt.index(q)] = val()
 
-        # Order by id and mileage
-        ids  = read_dataw("ids").v
-        mile = read_dataw("mileage")
+        # Some helper quantities as functions so they are evaluated only
+        # when needed. Mask is used to separate GOs, GCs, and FLs since
+        # they are all stored in the same data.
+        bvec = lambda mask : unyt.unyt_array(
+            [_val("br", mask), _val("bphi", mask), _val("bz", mask)])
+        pvecprt = lambda mask : unyt.unyt_array(
+            [_val("pr", mask), _val("pphi", mask), _val("pz", mask)])
+        def pvecgc(mask):
+            bnorm = np.sqrt(np.sum(bvec(mask)**2,axis=0))
+            pnorm = physlib.momentum_muppar(
+                mass[mask], _val("mu", mask),
+                _val("ppar", mask), bnorm)
+            bhat  = bvec(mask) / bnorm
+            e1 = np.zeros(bhat.shape)
+            e1[2,:] = 1
+            e2 = np.cross(bhat.T, e1.T).T
+            e1 = e2 / np.sqrt(np.sum(e2**2, axis=0))
+            e2 = np.cross(bhat.T, e1.T).T
+            perphat = -np.sin(_val("zeta", mask))*e1 \
+                - np.cos(_val("zeta", mask))*e2
+            return bhat * _val("ppar", mask) \
+                + perphat * np.sqrt(pnorm**2 - _val("ppar", mask)**2)
+        vvecprt = lambda mask : physlib.velocity_momentum(mass[mask],
+                                                          pvecprt(mask))
+        vvecgc = lambda mask : physlib.velocity_momentum(mass[mask],
+                                                         pvecgc(mask))
+        # Common quantities
+        add("ids", lambda : _val("ids"))
+        add("r", lambda : _val("r"))
+        add("z", lambda : _val("z"))
+        add("phi", lambda : _val("phi"))
+        add("phimod", lambda : np.mod(_val("phi"), 2 * np.pi * unyt.rad))
+        add("theta", lambda : _val("theta"))
+        add("thetamod", lambda : np.mod(_val("theta"), 2 * np.pi * unyt.rad))
+        add("x", lambda : physlib.pol2cart(_val("r"), _val("phi"))[0])
+        add("y", lambda : physlib.pol2cart(_val("r"), _val("phi"))[1])
+        add("br", lambda : _val("br"))
+        add("bz", lambda : _val("bz"))
+        add("bphi", lambda : _val("bphi"))
+        add("bnorm", lambda : np.sqrt( _val("br")**2 + _val("bphi")**2
+                                       + _val("bz")**2 ))
+        add("rho", lambda : _eval("rho"))
+        add("psi", lambda : _eval("psi"))
+        add("mileage", lambda : _val("mileage"))
+        add("mass", lambda : mass)
+        add("charge", lambda : _val("charge"))
+        add("weight", lambda : _val("weight"))
+        add("time", lambda : time)
+        add("pncrid", lambda : _val("pncrid"))
+        add("pncrdir", lambda : _val("pncdir"))
+        add("connlen", lambda : totmil)
+
+        firstmask = 0; lastmask=0
+        if Orbits.GYROORBIT in mode:
+            # Record the index of first masked array so that we can later append
+            # all other arrays created here with GC mask (in hybrid mode)
+            firstmask = len(items)
+            mask = mode == Orbits.GYROORBIT
+            add("pr", lambda : _val("pr", mask))
+            add("pz", lambda : _val("pz", mask))
+            add("pphi", lambda : _val("pphi", mask))
+            add("ppar", lambda : physlib.ppar_momentum(pvecprt(mask),
+                                                       bvec(mask)))
+            if "pperp" in qnt:
+                pnorm2 = np.sum( pvecprt(mask)**2, axis=0 )
+                pperp2 = physlib.ppar_momentum(pvecprt(mask), bvec(mask))**2
+                add("pperp", lambda : np.sqrt(pnorm2 - pperp2))
+            add("pnorm", lambda : np.sqrt( np.sum( pvecprt(mask)**2, axis=0 ) ))
+            add("vr", lambda : vvecprt(mask)[0,:])
+            add("vz", lambda : vvecprt(mask)[2,:])
+            add("vphi", lambda : vvecprt(mask)[1,:])
+            add("vpar", lambda : physlib.vpar_momentum(
+                mass[mask], pvecprt(mask), bvec(mask)))
+            if "vperp" in qnt:
+                vpar = physlib.vpar_momentum(
+                    mass[mask], pvecprt(mask), bvec(mask))
+                add("vperp", lambda : np.sqrt(np.sum(pvecprt(mask)**2, axis=0)
+                                              - vpar**2))
+            if "vnorm" in qnt:
+                pnorm = np.sqrt(np.sum(pvecprt(mask)**2, axis=0))
+                add("vnorm", lambda : physlib.velocity_momentum(mass[mask],
+                                                                pnorm))
+            add("ekin", lambda : physlib.energy_momentum(mass[mask],
+                                                         pvecprt(mask)))
+            add("pitch", lambda : physlib.pitch_momentum(pvecprt(mask),
+                                                         bvec(mask)))
+            add("mu", lambda : physlib.mu_momentum(mass[mask], pvecprt(mask),
+                                                   bvec(mask)))
+            add("zeta", lambda : mass[mask]*np.nan) # TODO implement properly
+            add("ptor", lambda : physlib.torcanangmom_momentum(
+                _val("charge", mask), _val("r", mask), pvecprt(mask),
+                _eval("psi", mask)))
+            lastmask = len(items)
+
+        if Orbits.GUIDINGCENTER in mode:
+            mask = mode == Orbits.GUIDINGCENTER
+            add("pr", lambda : pvecgc(mask)[0,:])
+            add("pz", lambda : pvecgc(mask)[2,:])
+            add("pphi", lambda : pvecgc(mask)[1,:])
+            add("ppar", lambda : _val("ppar", mask))
+            if "pperp" in qnt:
+                pnorm = physlib.momentum_muppar(
+                    mass[mask], _val("mu", mask),
+                    _val("ppar", mask), bvec(mask))
+                add("pperp", lambda : np.sqrt(pnorm**2 - _val("ppar")**2))
+            add("pnorm", lambda : physlib.momentum_muppar(
+                mass[mask], _val("mu", mask),
+                _val("ppar", mask), bvec(mask)))
+            add("vr", lambda : vvecgc(mask)[0,:])
+            add("vz", lambda : vvecgc(mask)[2,:])
+            add("vphi", lambda : vvecgc(mask)[1,:])
+            add("vpar", lambda : physlib.vpar_muppar(
+                mass[mask], _val("mu", mask), _val("ppar", mask), bvec(mask)))
+            if "vperp" in qnt:
+                pnorm = physlib.momentum_muppar(
+                    mass[mask], _val("mu", mask),
+                    _val("ppar", mask), bvec(mask))
+                pperp = np.sqrt(pnorm**2 - _val("ppar", mask)**2)
+                gamma = physlib.gamma_momentum(mass[mask], pnorm)
+                add("vperp", lambda : pperp / (gamma * mass[mask]))
+            if "vnorm" in qnt:
+                pnorm = physlib.momentum_muppar(
+                    mass[mask], _val("mu", mask),
+                    _val("ppar", mask), bvec(mask))
+                gamma = physlib.gamma_momentum(mass[mask], pnorm)
+                add("vnorm", lambda : pnorm / (gamma * mass[mask]))
+            add("ekin", lambda : physlib.energy_muppar(
+                mass[mask], _val("mu", mask), _val("ppar", mask), bvec(mask)))
+            add("pitch", lambda : physlib.pitch_muppar(
+                mass[mask], _val("mu", mask), _val("ppar", mask), bvec(mask)))
+            add("mu", lambda : _val("mu", mask))
+            add("zeta", lambda : _val("zeta", mask))
+            add("ptor", lambda : physlib.torcanangmom_ppar(
+                _val("charge", mask), _val("r", mask), _val("ppar", mask),
+                bvec(mask), _eval("psi", mask)))
+
+        if Orbits.GYROORBIT in mode and Orbits.GUIDINGCENTER in mode:
+            # Hybrid data, combine masked arrays
+            nmasked = lastmask - firstmask
+            for i in range(lastmask):
+                if i < firstmask: continue
+                items[i] = np.append(items[i], items[i+nmasked])
+            for i in range(nmasked):
+                del items[lastmask+i]
+
+        for i in range(len(items)):
+            if items[i] is None:
+                raise ValueError("Unknown quantity in " + qnt[i])
+
+        # Sort first by IDs and then by mileage
+        ids  = _val("ids").v
+        mile = _val("mileage").v
         idx  = np.lexsort((mile, ids))
+        for i in range(len(items)):
+            items[i] = items[i][idx]
+            items[i].convert_to_base("ascot")
+        return items
 
-        return item[idx]
-
-
-    def get(self, key, ids=None, endcond=None, pncrid=None):
+    @staticmethod
+    def listqnts():
+        """List all available quantities.
         """
-        Same as __getitem__ but with option to filter which points are returned.
-
-        Args:
-            key : str <br>
-                Name of the quantity (see alias.py for a complete list).
-            ids : int, array_like, optional <br>
-                Id or a list of ids whose data points are returned.
-            endcond : str, array_like, optional <br>
-                Endcond of those  markers which are returned.
-            pncrid : str, array_like, optional <br>
-                Poincare ID of those  markers which are returned.
-        Returns:
-            The quantity.
-        """
-        val = self[key]
-
-        idx = np.ones(val.shape, dtype=bool)
-
-        if endcond is not None:
-            ec = self._read_from_endstate("endcond", self["ids"]).ravel()
-            idx = np.logical_and( idx, ec == endcondmod.getbin(endcond) )
-
-        if pncrid is not None:
-            idx = np.logical_and(idx, self["pncrid"] == pncrid)
-
-        if ids is not None:
-            idx = np.logical_and(idx, np.in1d(self["id"], ids))
-
-        val = val[idx]
-
-        return val
-
-
-    def get_datatype(self):
-        """
-        Get string describing what data this object contains (prt, gc, fl).
-        """
-        with self as h5:
-            simmode = np.unique(read_data(h5, "simmode"))
-
-        if 1 in simmode and 2 in simmode:
-            return "hybrid"
-        if 1 in simmode:
-            return "prt"
-        if 2 in simmode:
-            return "gc"
-        if 3 in simmode:
-            return "fl"
-
-
-    def plot(self, x=None, y=None, z=None, endcond=None, pncrid=None,
-             equal=False, log=False, axes=None, ids=None, **kwargs):
-        """
-        Plot orbits as a continuous line.
-        """
-        ids0 = ids
-        ids = self.get("id", endcond=endcond, ids=ids0)
-
-        xc = np.linspace(0, ids.size, ids.size)
-        if x is not None:
-            xc = self.get(x, endcond=endcond, pncrid=pncrid, ids=ids0)
-
-        yc = None
-        if y is not None:
-            yc = self.get(y, endcond=endcond, pncrid=pncrid, ids=ids0)
-
-        zc = None
-        if z is not None:
-            zc = self.get(z, endcond=endcond, pncrid=pncrid, ids=ids0)
-
-        if isinstance(log, tuple):
-            if log[0]:
-                xc = np.log10(np.absolute(xc))
-            if log[1]:
-                yc = np.log10(np.absolute(yc))
-            if z is not None and log[2]:
-                zc = np.log10(np.absolute(zc))
-        elif log:
-            xc = np.log10(np.absolute(xc))
-            yc = np.log10(np.absolute(yc))
-            if z is not None:
-                zc = np.log10(np.absolute(zc))
-
-        axes = plot.plot_line(x=xc, y=yc, z=zc, ids=ids, equal=equal,
-                              xlabel=x, ylabel=y, zlabel=z, axes=axes, **kwargs)
-
-        return axes
-
-
-    def scatter(self, x=None, y=None, z=None, c=None, endcond=None, pncrid=None,
-                sepid=False, equal=False, log=False, axes=None, prune=1, ids=None,
-                markersize=5, **kwargs):
-        """
-        Make scatter plot.
-        """
-        ids = self.get("id", ids=ids, endcond=endcond, pncrid=pncrid)
-
-        xc = np.linspace(0, ids.size, ids.size)
-        if x is not None:
-            xc = self.get(x, ids=ids, endcond=endcond, pncrid=pncrid)
-
-        yc = None
-        if y is not None:
-            yc = self.get(y, ids=ids, endcond=endcond, pncrid=pncrid)
-
-        zc = None
-        if z is not None:
-            zc = self.get(z, ids=ids, endcond=endcond, pncrid=pncrid)
-
-        cc = None
-        if c is not None:
-            cc = self.get(c, ids=ids, endcond=endcond, pncrid=pncrid)
-
-        if not sepid:
-            ids = None
-
-        if isinstance(log, tuple):
-            if log[0]:
-                xc = np.log10(np.absolute(xc))
-            if log[1]:
-                yc = np.log10(np.absolute(yc))
-            if z is not None and log[2]:
-                zc = np.log10(np.absolute(zc))
-            if c is not None and log[3]:
-                cc = np.log10(np.absolute(cc))
-        elif log:
-            xc = np.log10(np.absolute(xc))
-            yc = np.log10(np.absolute(yc))
-            if z is not None:
-                zc = np.log10(np.absolute(zc))
-            if c is not None:
-                cc = np.log10(np.absolute(cc))
-
-        axes = plot.plot_scatter(x=xc, y=yc, z=zc, c=cc, equal=equal,
-                                 ids=ids, xlabel=x, ylabel=y, zlabel=z,
-                                 axes=axes, prune=prune, s=markersize, **kwargs)
-
-        return axes
-
-
-    def poincare(self, *args, log=False, endcond=None, equal=False,
-                 prune=1, ids=None, markersize=5, axes=None):
-        """
-        Make a Poincare plot.
-        """
-
-        z   = None
-        sepid = False
-        if len(args) == 1:
-            x = "rho"
-            y = "phimod"
-            pncrid = args[0]
-            sepid = True
-
-        elif len(args) == 3:
-            x = args[0]
-            y = args[1]
-            pncrid = args[2]
-            sepid = True
-
-        if len(args) == 4:
-            x = args[0]
-            y = args[1]
-            z = args[2]
-            pncrid = args[3]
-            if log:
-                log = (0, 0, 1, 0)
-
-        if x == "R" and y == "z":
-            equal = True
-
-        axes = self.scatter(x=x, y=y, c=z, pncrid=pncrid, endcond=endcond,
-                            prune=prune, sepid=sepid, log=log, equal=equal,
-                            axes=axes, markersize=markersize, ids=ids)
-
-        if y == "phimod":
-            axes.set_ylim([0, 360])
-
-        return axes
-
-
-    def _read_from_inistate(self, key, ids):
-        isval = self._runnode.inistate[key]
-        isid  = self._runnode.inistate["ids"]
-        f     = lambda x: isval[isid == x]
-        return np.array([f(x) for x in ids])
-
-
-    def _read_from_endstate(self, key, ids):
-        esval = self._runnode.endstate[key]
-        esid  = self._runnode.endstate["ids"]
-        f     = lambda x: esval[esid == x]
-        return np.array([f(x) for x in ids])
+        out = {
+            "r":        "R coordinate",
+            "z":        "z coordinate",
+            "phi":      "Toroidal coordinate (cumulative)",
+            "phimod":   "Toroidal coordinate",
+            "theta":    "Poloidal coordinate (cumulative)",
+            "thetamod": "Poloidal coordinate",
+            "x":        "x coordinate",
+            "y":        "y coordinate",
+            "pr":       "Momentum R component",
+            "pz":       "Momentum z component",
+            "pphi":     "Momentum phi component",
+            "ppar":     "Momentum component parallel to B",
+            "pperp":    "Momentum component perpendicular to B",
+            "pnorm":    "Momentum norm",
+            "vr":       "Velocity R component",
+            "vz":       "Velocity z component",
+            "vphi":     "Velocity phi component",
+            "vpar":     "Velocity component parallel to B",
+            "vperp":    "Velocity component perpendicular to B",
+            "vnorm":    "Velocity norm",
+            "br":       "Magnetic field R component at the marker position",
+            "bz":       "Magnetic field z component at the marker position",
+            "bphi":     "Magnetic field phi component at the marker position",
+            "bnorm":    "Magnetic field strength at the marker position",
+            "ekin":     "Kinetic energy",
+            "pitch":    "vpa / vnorm",
+            "mu":       "Magnetic moment",
+            "zeta":     "Gyroangle",
+            "psi":      "Poloidal flux at the marker position",
+            "rho":      "Square root of normalized psi",
+            "ptor":     "Canonical toroidal angular momentum",
+            "mass":     "Mass",
+            "charge":   "Charge",
+            "time":     "Current laboratory time",
+            "mileage":  "Laboratory time elapsed in simulation",
+            "weight":   "How many physical particles a marker represents",
+            "ids":      "Marker ID",
+            "connlen":  "Connection length for lost markers",
+            "pncrid":   "Poincaré plane this point corresponds to",
+            "pncrdir":  "Direction at which Poincaré plane was crossed",
+        }
+        return out

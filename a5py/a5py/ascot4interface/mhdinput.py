@@ -24,11 +24,11 @@ def read_alfven(fn):
 
         # Poloidal mode numbers
         data["mmodes"] = np.array(fh.readline().split()[:data["nmode"]])
-        data["mmodes"] = data["mmodes"].astype(np.int)
+        data["mmodes"] = data["mmodes"].astype(int)
 
         # Toroidal mode numbers
         data["nmodes"] = np.array(fh.readline().split()[:data["nmode"]])
-        data["nmodes"] = data["nmodes"].astype(np.int)
+        data["nmodes"] = data["nmodes"].astype(int)
 
         # Amplitudes
         data["amplitude"] = np.array(fh.readline().split()[:data["nmode"]])

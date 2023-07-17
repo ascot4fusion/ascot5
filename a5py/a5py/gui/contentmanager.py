@@ -1,105 +1,129 @@
-import os
+"""
+Defines ContentManager class for showing stuff at Canvas and Settings frames.
 
+File: contentmanager.py
+"""
 import tkinter as tk
 from tkinter import ttk
 
-from .optionsmanager import OptionsManager
+from .contentgroup       import ContentGroup
+from .contentprecheck    import ContentPrecheck
+from .contentinput       import ContentInput
+from .contentoutput      import ContentOutput
+from .contentinteractive import ContentInteractive
 
-class ContentManager(OptionsManager):
+class ContentManager():
     """
     Manages the contents in SettingsFrame and in CanvasFrame.
+
+    Settings frame is a notebook widget where changing the tab also changes
+    what is shown on Canvas*. This is done so that we always pack_forget the
+    current frame on Canvas and pack the new one (Note that the frames are
+    kept as that way we preserve the settings user has given previously, which
+    makes smoother user-experience when different frames are toggled).
+
+    *For group contents the contents on Canvas also depends what is shown in
+    the group treeview.
+
+    This is fairly simple class as the actual contents are defined in Content*
+    classes that are imported an used here. If those also have subcontents and
+    implement a notebook to choose what is display, then those classes mimic the
+    structure in this class. In theory, everything could be defined here but
+    that would make this class huge...
     """
 
 
     def __init__(self, gui, settingsframe, canvasframe):
+        """
+        Generate all content widgets (which also generate their contents).
+        """
 
         self.gui = gui
 
-        # These two frames are kept immutable
-        self.settingsframe_original = settingsframe
-        self.canvasframe_original   = canvasframe
+        # Add tabs to the notebook widget
+        settings         = ttk.Notebook(settingsframe)
+        groupframe       = ttk.Frame(settings)
+        preflightframe   = ttk.Frame(settings)
+        inputframe       = ttk.Frame(settings)
+        outputframe      = ttk.Frame(settings)
+        interactiveframe = ttk.Frame(settings)
+        settings.add(groupframe,       text="Group")
+        settings.add(preflightframe,   text="Preflight")
+        settings.add(inputframe,       text="Input")
+        settings.add(outputframe,      text="Analysis")
+        settings.add(interactiveframe, text="Run")
 
-        # These two form an extra layer and they can be changed
-        self.settingsframe = tk.Frame(self.settingsframe_original)
-        self.canvasframe   = tk.Frame(self.canvasframe_original)
+        # Initialize content frames (nothing is shown yet)
+        groupcanvas       = ttk.Frame(canvasframe)
+        preflightcanvas   = ttk.Frame(canvasframe)
+        inputcanvas       = ttk.Frame(canvasframe)
+        outputcanvas      = ttk.Frame(canvasframe)
+        interactivecanvas = ttk.Frame(canvasframe)
+        self.contentgroup        = ContentGroup(
+            gui, groupframe, groupcanvas)
+        #self.contentprecheck    = ContentPrecheck(
+        #    gui, preflightframe, preflightcanvas)
+        #self.contentinput       = ContentInput(
+        #    gui, inputframe, inputcanvas)
+        #self.contentoutput      = ContentOutput(
+        #    gui, outputframe, outputcanvas)
+        #self.contentinteractive = ContentInteractive(
+        #    gui, interactiveframe, interactivecanvas)
 
-        # (The frames are initialized here)
-        self.clear()
+        # Have an empty canvas initially
+        self.active_canvas = ttk.Frame(canvasframe)
+        self.active_canvas.pack(fill="both", expand=True)
 
-        # Show ASCOT5 logo at startup.
-        canvas = tk.Canvas(self.settingsframe)
-        canvas.pack(expand=True, fill="both")
+        # Display contents when tab changes
+        def on_tab_change(event):
+            tab = event.widget.tab('current')['text']
+            self.display_content(tab)
 
-        # self.logo prevents image being cleared by garbage collector
-        logo = os.path.join(os.path.dirname(__file__), "logo.png")
-        self.logo = tk.PhotoImage(file=logo)
-        canvas.create_image(150, 50, image=self.logo)
+        settings.bind('<<NotebookTabChanged>>', on_tab_change)
+        settings.pack(fill="both", expand=True)
 
 
-    def clear(self):
+    def update_content(self):
         """
-        Clear settings and canvas frames.
+        Redraw contents on settings and canvas frames.
         """
-        self.settingsframe.pack_forget()
-        self.canvasframe.pack_forget()
-        self.settingsframe.destroy()
-        self.canvasframe.destroy()
-
-        self.settingsframe = tk.Frame(self.settingsframe_original)
-        self.settingsframe.pack(fill="both", expand=True)
-
-        self.canvasframe = tk.Frame(self.canvasframe_original, bg="white")
-        self.canvasframe.pack(fill="both", expand=True)
+        self.display_content(self.content)
 
 
-    def selectionchanged(self, parent, qid, ascot, ascotpy):
-        self.clear()
-        if qid is None:
-            # For parent groups there is nothing to display.
-            return
+    def display_content(self, content):
+        """
+        Parse what content to display and display it.
 
-        if parent == "results":
-            group = ascot["q"+qid]
-        else:
-            group = ascot[parent]["q"+qid]
+        All display functions should be accessed via this interface.
+        """
+        self.content = content
 
-        # Always show description box on top.
-        f1 = tk.Frame(self.settingsframe)
-        tk.Label(f1, text="Description:").pack(side="left")
-        f1.grid(row=0, column=0, sticky="ew")
+        if content == "Group":
+            self.active_canvas.pack_forget()
+            self.contentgroup.display()
+            self.active_canvas = self.contentgroup.canvas
+            self.active_canvas.pack(fill="both", expand=True)
 
-        f2 = tk.Frame(self.settingsframe)
-        save = tk.Button(f2, text="Save")
-        save.pack(side="right")
+        if content == "Preflight":
+            self.active_canvas.pack_forget()
+            self.contentprecheck.display()
+            self.active_canvas = self.contentprecheck.canvas
+            self.active_canvas.pack(fill="both", expand=True)
 
-        load = tk.Button(f2, text="Revert")
-        load.pack(side="right")
+        if content == "Input":
+            self.active_canvas.pack_forget()
+            self.contentinput.display()
+            self.active_canvas = self.contentinput.canvas
+            self.active_canvas.pack(fill="both", expand=True)
 
-        f2.grid(row=0, column=1, sticky="ew")
+        if content == "Analysis":
+            self.active_canvas.pack_forget()
+            self.contentoutput.display()
+            self.active_canvas = self.contentoutput.canvas
+            self.active_canvas.pack(fill="both", expand=True)
 
-        descbox = tk.Text(self.settingsframe, height=5, width=50)
-        descbox.grid(row=1, column=0, columnspan=2, sticky="nsew",
-                     padx=2, pady=2)
-        descbox.insert("end", group.get_desc())
-
-        # Helper function
-        def replacetext(text):
-            descbox.delete("1.0", "end")
-            descbox.insert("end", text)
-
-        # Button functionality
-        save.configure(
-            command=lambda:group.set_desc(descbox.get("1.0", "end-1c")))
-        load.configure(
-            command=lambda:replacetext(group.get_desc()))
-
-        # Add extra frame where widgets can be added
-        frame = tk.Frame(self.settingsframe)
-        frame.grid(row=2, column=0, columnspan=2, sticky="nsew")
-
-        if parent == "options":
-            self.activateoptions(
-                frame, self.canvasframe, group,
-                lambda : self.gui.filechanged(self.gui.filename),
-                lambda : descbox.get("1.0", "end-1c")
-            )
+        if content == "Run":
+            self.active_canvas.pack_forget()
+            self.contentinteractive.display()
+            self.active_canvas = self.contentinteractive.canvas
+            self.active_canvas.pack(fill="both", expand=True)

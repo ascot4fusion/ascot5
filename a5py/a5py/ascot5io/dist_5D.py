@@ -5,12 +5,12 @@ File: dist_5D.py
 """
 import numpy as np
 import h5py
+import scipy.constants as const
 
 import a5py.dist as distmod
-from a5py.marker.alias import get as alias
-import a5py.marker.interpret as interpret
+from a5py.physlib.alias import getalias as alias
 
-from a5py.ascot5io.ascot5data import AscotData
+from .coreio.treedata import DataContainer
 
 def write_hdf5(fn, run, data):
     """
@@ -89,17 +89,16 @@ def read_hdf5(fn, qid):
     return out
 
 
-class Dist_5D(AscotData):
+class Dist_5D(DataContainer):
     """
     Object representing 5D distribution data.
     """
 
-    def __init__(self, hdf5, runnode):
+    def __init__(self, root, hdf5):
         """
         Object representing orbit data.
         """
-        self._runnode = runnode
-        super().__init__(hdf5)
+        super().__init__(root, hdf5)
 
 
     def read(self):
@@ -234,6 +233,33 @@ class Dist_5D(AscotData):
         else:
             distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal,
                                  axes=axes)
+
+
+    def eval_1d_dist(self, quantity, rhomin, rhomax, nrho):
+        from a5py.ascotpy import Ascotpy
+        a5 = Ascotpy(self._file)
+        a5.init(bfield=self._runnode.bfield.get_qid(),
+                plasma=self._runnode.plasma.get_qid())
+
+        ma = self._runnode.inistate["mass"][0]
+        #print('mass {} kg'.format(ma)) 
+        # ma *= const.physical_constants["atomic mass constant"][0]
+        qa = self._runnode.inistate["charge"][0]
+        # qa *=  * const.e
+        #print('charge {} C'.format(qa)) 
+        
+        dist = distmod.eval1d(a5, self.get_dist(), quantity,
+                              rhomin, rhomax, nrho, ma=ma, qa=qa)
+
+        a5.free(bfield=True, plasma=True)
+
+        return dist
+
+
+    def plot_1d_dist(self, quantity, rhomin, rhomax, nrho, axes=None):
+        dist = self.eval_1d_dist(quantity, rhomin, rhomax, nrho)
+        distmod.plot_dist_1D(dist, axes=axes)
+
 
     def plot_E_xi_dist(self, *args, E_edges=None, xi_edges=None,
                        logscale=False, equal=False, axes=None, dist=None):

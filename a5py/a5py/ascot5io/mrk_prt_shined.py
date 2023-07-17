@@ -6,7 +6,7 @@ File: mrk_prt_shined.py
 import h5py
 import numpy as np
 
-from . ascot5file import add_group
+from .coreio.fileapi import add_group
 from a5py.ascot5io.mrk import mrk
 import a5py.ascot5io.mrk
 import a5py.ascot5io.mrk_shined
@@ -117,7 +117,7 @@ class mrk_prt_shined(mrk):
     """
 
     def read(self):
-        return read_hdf5(self._file, self.get_qid())
+        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid())
 
 
     def write(self, fn, data=None, desc=None):

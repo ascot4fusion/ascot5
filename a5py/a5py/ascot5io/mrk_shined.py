@@ -8,7 +8,7 @@ import copy
 import numpy as np
 import h5py
 
-from a5py.ascot5io.ascot5data import AscotData
+from .coreio.treedata import DataGroup
 
 def read_hdf5(fn, qid, prefix):
     """
@@ -29,7 +29,7 @@ def read_hdf5(fn, qid, prefix):
     out = {}
     with h5py.File(fn,"r") as f:
         for key in f[path]:
-            # Make all read-in datasets 1-d arrays, 
+            # Make all read-in datasets 1-d arrays,
             # regardless of their original dimensionality
             d=f[path][key][:]
             out[key] = np.reshape(d,newshape=(d.size,))
@@ -40,7 +40,7 @@ def read_hdf5(fn, qid, prefix):
 
 
 
-class mrk(AscotData):
+class mrk(DataGroup):
     '''
     A class acting as a superclass for all marker types.
     '''

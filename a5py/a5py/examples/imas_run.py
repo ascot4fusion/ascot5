@@ -8,10 +8,10 @@
 # the below works.
 
 import ctypes
-import a5py.ascotpy.ascot5_main
+#import a5py.ascotpy.ascot5_main
 import a5py.ascot5io.imas
-import a5py.ascot5io.wall_2D
-from   a5py.ascotpy import ascotpy2
+import a5py.ascot5io.wall
+from   a5py.ascotpy import ascot2py
 
 
 # Read from IMAS
@@ -36,6 +36,8 @@ bsts=a5py.ascot5io.imas.B_STS()
 bdict=bsts.read("akaslos","ggdtest","3",32,3)
 a5py.ascot5io.B_STS.write_hdf5('from_imas.h5',**bdict)
 
+print('Stopping test')
+quit()
 
 print('Initializing ascot5')
 

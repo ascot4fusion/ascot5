@@ -1,619 +1,226 @@
-"""
-Python side of the interactive Python interface.
+"""Python side of the interactive Python interface.
 
 This module defines LibAscot class whose methods can be used in Python to call
 Ascot5 functions (written in C) directly. The callable functions are defined in
 library module libascot.c which must be compiled first with make libascot. This
 module acts as a wrapper for those functions. More advanced functionality should
 be implemented in other modules.
-
-File: libascot.py
 """
 import ctypes
 import sys
 import os
 import warnings
 import numpy as np
+import unyt
 
 from scipy import interpolate
-
-from ctypes.util import find_library
 from numpy.ctypeslib import ndpointer
-from a5py.ascot5io.ascot5 import Ascot
+
+from a5py.physlib import parseunits
+
+try:
+    from . import ascot2py
+    PTR_REAL = ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")
+    PTR_SIM  = ctypes.POINTER(ascot2py.struct_c__SA_sim_offload_data)
+    PTR_ARR  = ctypes.POINTER(ctypes.c_double)
+    _LIBASCOT = ascot2py._libraries['libascot.so']
+except OSError as error:
+    _LIBASCOT = None
+    msg = """
+    Warning: Failed to import libascot.so. Some functionalities of Ascot
+    are not available. Verify that libascot.so has been compiled, it can be
+    found in LD_LIBRARY_PATH, and dependencies (e.g. HDF5) are available.
+    """
+    warnings.warn(msg)
 
 class LibAscot:
+    """Python wrapper of libascot.so.
     """
-    An object representing a running ascot5 process.
-    """
 
-    def __init__(self, h5fn="ascot.h5", libpath="libascot.so"):
+    def _eval_bfield(self, r, phi, z, t, evalb=False, evalrho=False,
+                     evalaxis=False):
+        """Evaluate magnetic field quantities at given coordinates.
+
+        Parameters
+        ----------
+        r : array_like, (n,)
+            R coordinates where data is evaluated [m].
+        phi : array_like (n,)
+            phi coordinates where data is evaluated [rad].
+        z : array_like (n,)
+            z coordinates where data is evaluated [m].
+        t : array_like (n,)
+            Time coordinates where data is evaluated [s].
+        evalb : bool, optional
+            Evaluate B_field_eval_B_dB.
+        evalrho : bool, optional
+            Evaluate B_field_eval_rho.
+        evalaxis : bool, optional
+            Evaluate B_field_get_axis.
+
+        Returns
+        -------
+        out : dict [str, array_like (n,)]
+            Evaluated quantities in a dictionary.
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        RuntimeError
+            If evaluation in libascot.so failed.
         """
-        Initialize and start Ascot5 process using given HDF5 file as an input.
-
-        This function starts the process but does not read or initialize any
-        data yet. All flags are set to False and function arguments are defined
-        explicitly (because C uses strong typing whereas Python does not).
-
-        Args:
-            libpath : str, optional <br>
-                Path to libascot.so library file. Default is to assume it
-                is in the LD_LIBRARY_PATH.
-            h5fn : str, optional <br>
-                Path to HDF5 from which inputs are read. Default is "ascot.h5"
-                in same folder the script is executed.
-        """
-
-        # Open library
-        try:
-            self.libascot = ctypes.CDLL(libpath)
-        except Exception as e:
-            msg = "\nCould not locate libascot.so. Try " \
-                + "export LD_LIBRARY_PATH=/spam/ascot5 " \
-                + "or "                                  \
-                + "export LD_LIBRARY_PATH=/spam/ascot5:$LD_LIBRARY_PATH"
-            raise type(e)(str(e) + msg).with_traceback(sys.exc_info()[2])
-
-        # Check that the HDF5 file exists
-        self.h5fn = h5fn.encode('UTF-8')
-        Ascot(str(self.h5fn,'UTF-8'))
-
-        # Initialize attributes
-        self.bfield_initialized  = False
-        self.efield_initialized  = False
-        self.plasma_initialized  = False
-        self.neutral_initialized = False
-        self.wall_initialized    = False
-        self.boozer_initialized  = False
-        self.mhd_initialized     = False
-
-        # Declare functions found in libascot
-
-        real_p = ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")
-
-        # Init and free functions.
-        try:
-            fun = self.libascot.libascot_init
-            fun.restype  = ctypes.c_int
-            fun.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p,
-                            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p,
-                            ctypes.c_char_p, ctypes.c_char_p]
-        except AttributeError:
-            warnings.warn("libascot_init not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_free
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                            ctypes.c_int, ctypes.c_int, ctypes.c_int,
-                            ctypes.c_int]
-        except AttributeError:
-            warnings.warn("libascot_free not found", Warning)
-            pass
-
-        # B field functions.
-        try:
-            fun = self.libascot.libascot_B_field_eval_B_dB
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_B_field_eval_B_dB not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_B_field_eval_rho
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_B_field_eval_rho not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_B_field_get_axis
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_B_field_get_axis not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_B_field_eval_rhovals
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int,    ctypes.c_double, ctypes.c_double,
-                            ctypes.c_double, ctypes.c_double, ctypes.c_double,
-                            real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_B_field_eval_rhovals not found", Warning)
-            pass
-
-        # E field functions.
-        try:
-            fun = self.libascot.libascot_E_field_eval_E
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_E_field_eval_E not found", Warning)
-            pass
-
-        # Plasma functions.
-        try:
-            fun = self.libascot.libascot_plasma_get_n_species
-            fun.restype  = ctypes.c_int
-        except AttributeError:
-            warnings.warn("libascot_plasma_get_n_species not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_plasma_get_species_mass_and_charge
-            fun.restype  = None
-            fun.argtypes = [real_p, real_p]
-        except AttributeError:
-            warnings.warn(
-                "libascot_plasma_get_species_mass_and_charge not found",
-                Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_plasma_eval_background
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_plasma_eval_background not found", Warning)
-            pass
-
-        # Neutral functions.
-        try:
-            fun = self.libascot.libascot_neutral_eval_density
-            fun.restype  = None
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p]
-        except AttributeError:
-            warnings.warn("libascot_neutral_eval_density not found", Warning)
-            pass
-
-        # Boozer and MHD functions.
-        try:
-            fun = self.libascot.libascot_boozer_eval_psithetazeta
-            fun.restype  = ctypes.c_int
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p,
-                            real_p]
-        except AttributeError:
-            warnings.warn("libascot_boozer_eval_psithetazeta not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_boozer_eval_fun
-            fun.restype  = ctypes.c_int
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_boozer_eval_fun not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_mhd_eval
-            fun.restype  = ctypes.c_int
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_mhd_eval not found", Warning)
-            pass
-
-        try:
-            fun = self.libascot.libascot_mhd_eval_perturbation
-            fun.restype  = ctypes.c_int
-            fun.argtypes = [ctypes.c_int, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p,
-                            real_p]
-        except AttributeError:
-            warnings.warn("libascot_mhd_eval_perturbation not found", Warning)
-            pass
-
-        # Collision coefficients.
-        try:
-            fun = self.libascot.libascot_eval_collcoefs
-            fun.restype  = ctypes.c_int
-            fun.argtypes = [ctypes.c_int, real_p, ctypes.c_double,
-                            ctypes.c_double, ctypes.c_double, ctypes.c_double,
-                            ctypes.c_double, ctypes.c_double, real_p, real_p,
-                            real_p, real_p, real_p, real_p, real_p, real_p,
-                            real_p, real_p, real_p, real_p]
-        except AttributeError:
-            warnings.warn("libascot_eval_collcoefs not found", Warning)
-            pass
-
-
-    def reload(self, h5fn):
-        """
-        Change HDF5 file and free resources from old one.
-
-        Args:
-            h5fn : str <br>
-                Name of the new HDF5 file.
-        """
-        self.free(bfield=self.bfield_initialized,
-                  efield=self.efield_initialized,
-                  plasma=self.plasma_initialized,
-                  wall=self.wall_initialized,
-                  neutral=self.neutral_initialized)
-        self.h5fn = h5fn.encode('UTF-8')
-        Ascot(str(self.h5fn,'UTF-8'))
-
-
-    def init(self, bfield=False, efield=False, plasma=False, wall=False,
-             neutral=False, boozer=False, mhd=False):
-        """
-        Initialize input data.
-
-        If argument is False, that data is not read. If True, then active input
-        is read. Optionally, a QID of the input to be read can be given.
-
-        Args:
-            bfield : bool or str, optional <br>
-                Flag for initializing magnetic field.
-            efield : bool or str, optional <br>
-                Flag for initializing electric field.
-            plasma : bool or str optional <br>
-                Flag for initializing plasma data.
-            wall : bool or str optional <br>
-                Flag for initializing wall data.
-            neutral : bool or str optional <br>
-                Flag for initializing neutral data.
-            boozer : bool, optional <br>
-                Flag for initializing boozer data.
-            mhd : bool, optional <br>
-                Flag for initializing mhd data.
-
-        Raises:
-            RuntimeError if initialization failed.
-        """
-        a5 = Ascot(str(self.h5fn,'UTF-8'))
-
-        if isinstance(bfield, str):
-            qid    = bfield.encode('UTF-8')
-            bfield = True
-        elif bfield:
-            qid = a5.bfield.active.get_qid().encode('UTF-8')
-
-        if bfield and self.bfield_initialized:
-            warnings.warn("Magnetic field already initialized.", Warning)
-        elif bfield:
-            if self.libascot.libascot_init(self.h5fn, qid, None, None, None,
-                                           None, None, None):
-                raise RuntimeError("Failed to initialize magnetic field")
-
-            self.bfield_initialized = True
-
-
-        if isinstance(efield, str):
-            qid    = efield.encode('UTF-8')
-            efield = True
-        elif efield:
-            qid = a5.efield.active.get_qid().encode('UTF-8')
-
-        if efield and self.efield_initialized:
-            warnings.warn("Electric field already initialized.", Warning)
-        elif efield:
-            if self.libascot.libascot_init(self.h5fn, None, qid, None, None,
-                                           None, None, None) :
-                raise RuntimeError("Failed to initialize electric field")
-
-            self.efield_initialized = True
-
-
-        if isinstance(plasma, str):
-            qid    = plasma.encode('UTF-8')
-            plasma = True
-        elif plasma:
-            qid = a5.plasma.active.get_qid().encode('UTF-8')
-
-        if plasma and self.plasma_initialized:
-            warnings.warn("Plasma already initialized.", Warning)
-        elif plasma:
-            if self.libascot.libascot_init(self.h5fn, None, None, qid, None,
-                                           None, None, None) :
-                raise RuntimeError("Failed to initialize plasma")
-
-            self.plasma_initialized = True
-
-
-        if isinstance(wall, str):
-            qid  = wall.encode('UTF-8')
-            wall = True
-        elif wall:
-            qid = a5.wall.active.get_qid().encode('UTF-8')
-
-        if wall and self.wall_initialized:
-            warnings.warn("Wall already initialized.", Warning)
-        elif wall:
-            if self.libascot.libascot_init(self.h5fn, None, None, None, qid,
-                                           None, None, None) :
-                raise RuntimeError("Failed to initialize wall")
-
-            self.wall_initialized = True
-
-
-        if isinstance(neutral, str):
-            qid     = neutral.encode('UTF-8')
-            neutral = True
-        elif neutral:
-            qid = a5.neutral.active.get_qid().encode('UTF-8')
-
-        if neutral and self.neutral_initialized:
-            warnings.warn("Neutral data already initialized.", Warning)
-        if neutral:
-            if self.libascot.libascot_init(self.h5fn, None, None, None, None,
-                                           qid, None, None) :
-                raise RuntimeError("Failed to initialize neutral data")
-
-            self.neutral_initialized = True
-
-        if isinstance(boozer, str):
-            qid    = boozer.encode('UTF-8')
-            boozer = True
-        elif boozer:
-            qid = a5.boozer.active.get_qid().encode('UTF-8')
-
-        if boozer and self.boozer_initialized:
-            warnings.warn("Boozer data already initialized.", Warning)
-        if boozer:
-            if self.libascot.libascot_init(self.h5fn, None, None, None, None,
-                                           None, qid, None) :
-                raise RuntimeError("Failed to initialize boozer data")
-
-            self.boozer_initialized = True
-
-        if isinstance(mhd, str):
-            qid = mhd.encode('UTF-8')
-            mhd = True
-        elif mhd:
-            qid = a5.mhd.active.get_qid().encode('UTF-8')
-
-        if mhd and self.mhd_initialized:
-            warnings.warn("MHD data already initialized.", Warning)
-        if mhd:
-            if self.libascot.libascot_init(self.h5fn, None, None, None, None,
-                                           None, None, qid) :
-                raise RuntimeError("Failed to initialize MHD data")
-
-            self.mhd_initialized = True
-
-
-    def free(self, bfield=False, efield=False, plasma=False, wall=False,
-             neutral=False, boozer=False, mhd=False):
-        """
-        Free input data.
-
-        Args:
-            bfield : bool, optional <br>
-                Flag for freeing magnetic field.
-            efield : bool, optional <br>
-                Flag for freeing electric field.
-            plasma : bool, optional <br>
-                Flag for freeing plasma data.
-            wall : bool, optional <br>
-                Flag for freeing wall data.
-            neutral : bool, optional <br>
-                Flag for freeing neutral data.
-            boozer : bool, optional <br>
-                Flag for freeing boozer data.
-            mhd : bool, optional <br>
-                Flag for freeing mhd data.
-        """
-        if bfield and self.bfield_initialized:
-            self.libascot.libascot_free(1, 0, 0, 0, 0, 0, 0)
-            self.bfield_initialized = False
-
-        if efield and self.efield_initialized:
-            self.libascot.libascot_free(0, 1, 0, 0, 0, 0, 0)
-            self.efield_initialized = False
-
-        if plasma and self.plasma_initialized:
-            self.libascot.libascot_free(0, 0, 1, 0, 0, 0, 0)
-            self.plasma_initialized = False
-
-        if wall and self.wall_initialized:
-            self.libascot.libascot_free(0, 0, 0, 1, 0, 0, 0)
-            self.wall_initialized = False
-
-        if neutral and self.neutral_initialized:
-            self.libascot.libascot_free(0, 0, 0, 0, 1, 0, 0)
-            self.neutral_initialized = False
-
-        if boozer and self.boozer_initialized:
-            self.libascot.libascot_free(0, 0, 0, 0, 0, 1, 0)
-            self.boozer_initialized = False
-
-        if mhd and self.mhd_initialized:
-            self.libascot.libascot_free(0, 0, 0, 0, 0, 0, 1)
-            self.mhd_initialized = False
-
-
-    def eval_bfield(self, R, phi, z, t, evalb=False, evalrho=False,
-                    evalaxis=False):
-        """
-        Evaluate magnetic field quantities at given coordinates.
-
-        Args:
-            R : array_like <br>
-                R coordinates where data is evaluated [m].
-            phi : array_like <br>
-                phi coordinates where data is evaluated [rad].
-            z : array_like <br>
-                z coordinates where data is evaluated [m].
-            t : array_like <br>
-                time coordinates where data is evaluated [s].
-            evalb : bool, optional <br>
-                Evaluate magnetic field vector and derivatives.
-            evalrho : bool, optional <br>
-                Evaluate poloidal flux and normalized poloidal flux.
-            evalaxis : bool, optional <br>
-                Evaluate magnetic axis.
-
-        Returns:
-            Dictionary containing evaluated quantities.
-
-        Raises:
-            AssertionError if this is called data uninitialized.
-            RuntimeError if evaluation failed.
-        """
-        assert self.bfield_initialized, "Magnetic field not initialized"
-
-        R   = np.asarray(R).ravel().astype(dtype="f8")
-        phi = np.asarray(phi).ravel().astype(dtype="f8")
-        z   = np.asarray(z).ravel().astype(dtype="f8")
-        t   = np.asarray(t).ravel().astype(dtype="f8")
-
-        Neval = R.size
+        self._requireinit("bfield")
+        Neval = r.size
         out = {}
 
         if evalb:
-            out["br"]       = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bphi"]     = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bz"]       = np.zeros(R.shape, dtype="f8") + np.nan
-            out["brdr"]     = np.zeros(R.shape, dtype="f8") + np.nan
-            out["brdphi"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["brdz"]     = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bphidr"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bphidphi"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bphidz"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bzdr"]     = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bzdphi"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["bzdz"]     = np.zeros(R.shape, dtype="f8") + np.nan
+            Tperm = unyt.T / unyt.m
+            out["br"]       = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.T
+            out["bphi"]     = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.T
+            out["bz"]       = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.T
+            out["brdr"]     = (np.zeros(r.shape, dtype="f8") + np.nan) * Tperm
+            out["brdphi"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.T
+            out["brdz"]     = (np.zeros(r.shape, dtype="f8") + np.nan) * Tperm
+            out["bphidr"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * Tperm
+            out["bphidphi"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.T
+            out["bphidz"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * Tperm
+            out["bzdr"]     = (np.zeros(r.shape, dtype="f8") + np.nan) * Tperm
+            out["bzdphi"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.T
+            out["bzdz"]     = (np.zeros(r.shape, dtype="f8") + np.nan) * Tperm
 
-            self.libascot.libascot_B_field_eval_B_dB(
-                Neval, R, phi, z, t,
-                out["br"], out["bphi"], out["bz"],
-                out["brdr"], out["brdphi"], out["brdz"],
-                out["bphidr"], out["bphidphi"], out["bphidz"],
-                out["bzdr"], out["bzdphi"], out["bzdz"])
+            fun = _LIBASCOT.libascot_B_field_eval_B_dB
+            fun.restype  = None
+            fun.argtypes = [PTR_SIM, PTR_ARR,
+                            ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                            PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                            PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                            PTR_REAL, PTR_REAL, PTR_REAL]
+
+            fun(ctypes.byref(self._sim), self._bfield_offload_array,
+                Neval, r, phi, z, t, out["br"], out["bphi"], out["bz"],
+                out["brdr"], out["brdphi"], out["brdz"], out["bphidr"],
+                out["bphidphi"], out["bphidz"], out["bzdr"], out["bzdphi"],
+                out["bzdz"])
 
         if evalrho:
-            out["rho"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["psi"] = np.zeros(R.shape, dtype="f8") + np.nan
-            self.libascot.libascot_B_field_eval_rho(Neval, R, phi, z, t,
-                                                    out["rho"], out["psi"])
+            out["psi"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.Wb
+            out["rho"] = (np.zeros(r.shape, dtype="f8") + np.nan) \
+                * unyt.dimensionless
+
+            fun = _LIBASCOT.libascot_B_field_eval_rho
+            fun.restype  = None
+            fun.argtypes = [PTR_SIM, PTR_ARR,
+                            ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                            PTR_REAL, PTR_REAL, PTR_REAL]
+
+            fun(ctypes.byref(self._sim), self._bfield_offload_array,
+                Neval, r, phi, z, t, out["rho"], out["psi"])
 
         if evalaxis:
-            out["axisr"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["axisz"] = np.zeros(R.shape, dtype="f8") + np.nan
-            self.libascot.libascot_B_field_get_axis(Neval, phi, out["axisr"],
-                                                    out["axisz"])
+            out["axisr"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.m
+            out["axisz"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.m
+
+            fun = _LIBASCOT.libascot_B_field_get_axis
+            fun.restype  = None
+            fun.argtypes = [PTR_SIM, PTR_ARR,
+                            ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL]
+
+            fun(ctypes.byref(self._sim), self._bfield_offload_array,
+                Neval, phi, out["axisr"], out["axisz"])
 
         return out
 
+    def _eval_efield(self, r, phi, z, t):
+        """Evaluate electric field quantities at given coordinates.
 
-    def eval_efield(self, R, phi, z, t):
+        Parameters
+        ----------
+        r : array_like, (n,)
+            R coordinates where data is evaluated [m].
+        phi : array_like (n,)
+            phi coordinates where data is evaluated [rad].
+        z : array_like (n,)
+            z coordinates where data is evaluated [m].
+        t : array_like (n,)
+            Time coordinates where data is evaluated [s].
+
+        Returns
+        -------
+        out : dict [str, array_like (n,)]
+            Evaluated quantities in a dictionary.
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        RuntimeError
+            If evaluation in libascot.so failed.
         """
-        Evaluate electric field quantities at given coordinates.
-
-        Note that magnetic field has to be initialized as well.
-
-        Args:
-            R : array_like <br>
-                R coordinates where data is evaluated [m].
-            phi : array_like <br>
-                phi coordinates where data is evaluated [rad].
-            z : array_like <br>
-                z coordinates where data is evaluated [m].
-            t : array_like <br>
-                time coordinates where data is evaluated [s].
-
-        Returns:
-            Dictionary containing evaluated quantities.
-
-        Raises:
-            AssertionError if this is called data uninitialized.
-            RuntimeError if evaluation failed.
-        """
-        assert self.bfield_initialized, "Magnetic field not initialized"
-        assert self.efield_initialized, "Electric field not initialized"
-
-        R   = np.asarray(R).ravel().astype(dtype="f8")
-        phi = np.asarray(phi).ravel().astype(dtype="f8")
-        z   = np.asarray(z).ravel().astype(dtype="f8")
-        t   = np.asarray(t).ravel().astype(dtype="f8")
-
-        Neval = R.size
+        self._requireinit("bfield", "efield")
+        Neval = r.size
         out = {}
-        out["er"]   = np.zeros(R.shape, dtype="f8") + np.nan
-        out["ephi"] = np.zeros(R.shape, dtype="f8") + np.nan
-        out["ez"]   = np.zeros(R.shape, dtype="f8") + np.nan
+        Vperm = unyt.V / unyt.m
+        out["er"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * Vperm
+        out["ephi"] = (np.zeros(r.shape, dtype="f8") + np.nan) * Vperm
+        out["ez"]   = (np.zeros(r.shape, dtype="f8") + np.nan) * Vperm
 
-        self.libascot.libascot_E_field_eval_E(
-            Neval, R, phi, z, t, out["er"], out["ephi"], out["ez"])
-
-        return out
-
-
-    def get_plasmaspecies(self):
-        """
-        Get plasma species information.
-
-        Returns;
-            Dictionary containing nspecies, and anum, znum, charge, and mass for
-            each species.
-        """
-        assert self.plasma_initialized, "Plasma not initialized"
-
-        out = {}
-        out["nspecies"] = self.libascot.libascot_plasma_get_n_species()
-        out["mass"]     = np.zeros((out["nspecies"],), dtype="f8")
-        out["charge"]   = np.zeros((out["nspecies"],), dtype="f8")
-        self.libascot.libascot_plasma_get_species_mass_and_charge(
-            out["mass"], out["charge"])
+        fun = _LIBASCOT.libascot_E_field_eval_E
+        fun.restype  = None
+        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
+                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL, PTR_REAL]
+        fun(ctypes.byref(self._sim), self._efield_offload_array,
+            self._bfield_offload_array,
+            Neval, r, phi, z, t, out["er"], out["ephi"], out["ez"])
 
         return out
 
+    def _eval_plasma(self, r, phi, z, t):
+        """Evaluate plasma quantities at given coordinates.
 
-    def eval_plasma(self, R, phi, z, t):
+        Parameters
+        ----------
+        r : array_like, (n,)
+            R coordinates where data is evaluated [m].
+        phi : array_like (n,)
+            phi coordinates where data is evaluated [rad].
+        z : array_like (n,)
+            z coordinates where data is evaluated [m].
+        t : array_like (n,)
+            Time coordinates where data is evaluated [s].
+
+        Returns
+        -------
+        out : dict [str, array_like (n,)]
+            Evaluated quantities in a dictionary.
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        RuntimeError
+            If evaluation in libascot.so failed.
         """
-        Evaluate plasma quantities at given coordinates.
-
-        Note that magnetic field has to be initialized as well.
-
-        Args:
-            R : array_like <br>
-                R coordinates where data is evaluated [m].
-            phi : array_like <br>
-                phi coordinates where data is evaluated [rad].
-            z : array_like <br>
-                z coordinates where data is evaluated [m].
-            t : array_like <br>
-                time coordinates where data is evaluated [s].
-
-        Returns:
-            Dictionary containing evaluated quantities.
-
-        Raises:
-            AssertionError if this is called data uninitialized.
-            RuntimeError if evaluation failed.
-        """
-        assert self.bfield_initialized, "Magnetic field not initialized"
-        assert self.plasma_initialized, "Plasma not initialized"
-
-        R   = np.asarray(R).ravel().astype(dtype="f8")
-        phi = np.asarray(phi).ravel().astype(dtype="f8")
-        z   = np.asarray(z).ravel().astype(dtype="f8")
-        t   = np.asarray(t).ravel().astype(dtype="f8")
-
-        Neval = R.size
+        self._requireinit("bfield", "plasma")
+        Neval = r.size
 
         # Allocate enough space for electrons and all ion species.
-        nspecies = self.libascot.libascot_plasma_get_n_species()
-        rawdens = np.zeros((Neval*nspecies,), dtype="f8") + np.nan
-        rawtemp = np.zeros((Neval*nspecies,), dtype="f8") + np.nan
+        m3 = unyt.m**3
+        eV = unyt.eV
+        nspecies  = self.input_getplasmaspecies()[0] + 1
+        rawdens = (np.zeros((Neval*nspecies,), dtype="f8") + np.nan) / m3
+        rawtemp = (np.zeros((Neval*nspecies,), dtype="f8") + np.nan) * eV
 
-        self.libascot.libascot_plasma_eval_background(
-            Neval, R, phi, z, t, rawdens, rawtemp)
+        fun = _LIBASCOT.libascot_plasma_eval_background
+        fun.restype  = None
+        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
+                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL]
+
+        fun(ctypes.byref(self._sim), self._bfield_offload_array,
+            self._plasma_offload_array,
+            Neval, r, phi, z, t, rawdens, rawtemp)
 
         out = {}
         out["ne"] = rawdens[0:Neval]
@@ -624,177 +231,211 @@ class LibAscot:
 
         return out
 
+    def _eval_neutral(self, r, phi, z, t):
+        """Evaluate neutral input quantities at given coordinates.
 
-    def eval_neutral(self, R, phi, z, t):
+        Parameters
+        ----------
+        r : array_like, (n,)
+            R coordinates where data is evaluated [m].
+        phi : array_like (n,)
+            phi coordinates where data is evaluated [rad].
+        z : array_like (n,)
+            z coordinates where data is evaluated [m].
+        t : array_like (n,)
+            Time coordinates where data is evaluated [s].
+
+        Returns
+        -------
+        out : dict [str, array_like (n,)]
+            Evaluated quantities in a dictionary.
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        RuntimeError
+            If evaluation in libascot.so failed.
         """
-        Evaluate plasma quantities at given coordinates.
-
-        Args:
-            R : array_like <br>
-                R coordinates where data is evaluated [m].
-            phi : array_like <br>
-                phi coordinates where data is evaluated [rad].
-            z : array_like <br>
-                z coordinates where data is evaluated [m].
-            t : array_like <br>
-                time coordinates where data is evaluated [s].
-
-        Returns:
-            Dictionary containing evaluated quantities.
-
-        Raises:
-            AssertionError if this is called data uninitialized.
-            RuntimeError if evaluation failed.
-        """
-        assert self.neutral_initialized, "Neutral data not initialized"
-
-        R   = np.asarray(R).ravel().astype(dtype="f8")
-        phi = np.asarray(phi).ravel().astype(dtype="f8")
-        z   = np.asarray(z).ravel().astype(dtype="f8")
-        t   = np.asarray(t).ravel().astype(dtype="f8")
-
-        Neval = R.size
+        self._requireinit("bfield", "neutral")
+        Neval = r.size
         out = {}
-        out["density"] = np.zeros(R.shape, dtype="f8") + np.nan
+        m3 = unyt.m**3
+        out["n0"] = (np.zeros(r.shape, dtype="f8") + np.nan) / m3
 
-        self.libascot.libascot_neutral_eval_density(Neval, R, phi, z, t,
-                                                    out["density"])
+        fun = _LIBASCOT.libascot_neutral_eval_density
+        fun.restype  = None
+        fun.argtypes = [PTR_SIM, PTR_ARR,
+                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL]
+
+        fun(ctypes.byref(self._sim), self._neutral_offload_array,
+            Neval, r, phi, z, t, out["n0"])
 
         return out
 
+    def _eval_boozer(self, r, phi, z, t, evalfun=False):
+        """Evaluate boozer coordinate quantities at given coordinates.
 
-    def eval_boozer(self, R, phi, z, t, evalfun=False):
+        Parameters
+        ----------
+        r : array_like, (n,)
+            R coordinates where data is evaluated [m].
+        phi : array_like (n,)
+            phi coordinates where data is evaluated [rad].
+        z : array_like (n,)
+            z coordinates where data is evaluated [m].
+        t : array_like (n,)
+            Time coordinates where data is evaluated [s].
+
+        Returns
+        -------
+        out : dict [str, array_like (n,)]
+            Evaluated quantities in a dictionary.
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        RuntimeError
+            If evaluation in libascot.so failed.
         """
-        Evaluate boozer quantities at given coordinates.
-
-        Args:
-            R : array_like <br>
-                R coordinates where data is evaluated [m].
-            phi : array_like <br>
-                phi coordinates where data is evaluated [rad].
-            z : array_like <br>
-                z coordinates where data is evaluated [m].
-            t : array_like <br>
-                time coordinates where data is evaluated [s].
-            evalfun : boolean, optional <br>
-                evaluate the boozer functions instead of the coordinates.
-
-        Returns:
-            Dictionary containing evaluated quantities.
-
-        Raises:
-            AssertionError if this is called data uninitialized.
-            RuntimeError if evaluation failed.
-        """
-        assert self.boozer_initialized, "Boozer data not initialized"
-
-        R   = np.asarray(R).ravel().astype(dtype="f8")
-        phi = np.asarray(phi).ravel().astype(dtype="f8")
-        z   = np.asarray(z).ravel().astype(dtype="f8")
-        t   = np.asarray(t).ravel().astype(dtype="f8")
-
-        Neval = R.size
+        self._requireinit("bfield", "boozer")
+        Neval = r.size
         out = {}
-
+        temp = np.zeros(r.shape, dtype="f8")
+        nodim = unyt.dimensionless
+        T = unyt.T; Wb = unyt.Wb; m = unyt.m; rad = unyt.rad
         if evalfun:
-            out["qprof"]      = np.zeros(R.shape, dtype="f8") + np.nan
-            out["jacobian"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["jacobianb2"] = np.zeros(R.shape, dtype="f8") + np.nan
-            self.libascot.libascot_boozer_eval_fun(
-                Neval, R, phi, z, t, out["qprof"], out["jacobian"],
-                out["jacobianb2"])
+            out["qprof"]   = (np.copy(temp) + np.nan) * nodim
+            out["bjac"]    = (np.copy(temp) + np.nan) / T**2
+            out["bjacxb2"] = (np.copy(temp) + np.nan) * nodim
+
+            fun = _LIBASCOT.libascot_boozer_eval_fun
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
+                            ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                            PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
+
+            fun(ctypes.byref(self._sim), self._bfield_offload_array,
+                self._boozer_offload_array,
+                Neval, r, phi, z, t, out["qprof"], out["bjac"],
+                out["bjacxb2"])
         else:
-            out["psi"]        = np.zeros(R.shape, dtype="f8") + np.nan
-            out["theta"]      = np.zeros(R.shape, dtype="f8") + np.nan
-            out["zeta"]       = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dpsidr"]     = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dpsidphi"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dpsidz"]     = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dthetadr"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dthetadphi"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dthetadz"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dzetadr"]    = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dzetadphi"]  = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dzetadz"]    = np.zeros(R.shape, dtype="f8") + np.nan
-            out["rho"]        = np.zeros(R.shape, dtype="f8") + np.nan
-            self.libascot.libascot_boozer_eval_psithetazeta(
-                Neval, R, phi, z, t, out["psi"], out["theta"], out["zeta"],
-                out["dpsidr"], out["dpsidphi"], out["dpsidz"],
-                out["dthetadr"], out["dthetadphi"], out["dthetadz"],
-                out["dzetadr"], out["dzetadphi"], out["dzetadz"], out["rho"])
+            out["psi (bzr)"]      = (np.copy(temp) + np.nan) * Wb
+            out["theta"]          = (np.copy(temp) + np.nan) * rad
+            out["zeta"]           = (np.copy(temp) + np.nan) * rad
+            out["dpsidr (bzr)"]   = (np.copy(temp) + np.nan) * Wb/m
+            out["dpsidphi (bzr)"] = (np.copy(temp) + np.nan) * Wb
+            out["dpsidz (bzr)"]   = (np.copy(temp) + np.nan) * Wb/m
+            out["dthetadr"]       = (np.copy(temp) + np.nan) / m
+            out["dthetadphi"]     = (np.copy(temp) + np.nan) * nodim
+            out["dthetadz"]       = (np.copy(temp) + np.nan) / m
+            out["dzetadr"]        = (np.copy(temp) + np.nan) / m
+            out["dzetadphi"]      = (np.copy(temp) + np.nan) * nodim
+            out["dzetadz"]        = (np.copy(temp) + np.nan) / m
+            out["rho (bzr)"]      = (np.copy(temp) + np.nan) * nodim
+
+            fun = _LIBASCOT.libascot_boozer_eval_psithetazeta
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [PTR_SIM, PTR_ARR,
+                            ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                            PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                            PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                            PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
+
+            fun(ctypes.byref(self._sim), self._boozer_offload_array,
+                Neval, r, phi, z, t, out["psi (bzr)"], out["theta"],
+                out["zeta"], out["dpsidr (bzr)"], out["dpsidphi (bzr)"],
+                out["dpsidz (bzr)"], out["dthetadr"], out["dthetadphi"],
+                out["dthetadz"], out["dzetadr"], out["dzetadphi"],
+                out["dzetadz"], out["rho (bzr)"])
 
         return out
 
+    def _eval_mhd(self, r, phi, z, t, evalpot=False):
+        """Evaluate MHD quantities at given coordinates.
 
-    def eval_mhd(self, R, phi, z, t, evalpot=False):
+        Parameters
+        ----------
+        r : array_like, (n,)
+            R coordinates where data is evaluated [m].
+        phi : array_like (n,)
+            phi coordinates where data is evaluated [rad].
+        z : array_like (n,)
+            z coordinates where data is evaluated [m].
+        t : array_like (n,)
+            Time coordinates where data is evaluated [s].
+        evalpot : bool, optional
+            Evaluate eigenfunctions as well.
+
+        Returns
+        -------
+        out : dict [str, array_like (n,)]
+            Evaluated quantities in a dictionary.
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        RuntimeError
+            If evaluation in libascot.so failed.
         """
-        Evaluate mhd perturbation EM components at given coordinates.
-
-        Args:
-            R : array_like <br>
-                R coordinates where data is evaluated [m].
-            phi : array_like <br>
-                phi coordinates where data is evaluated [rad].
-            z : array_like <br>
-                z coordinates where data is evaluated [m].
-            t : array_like <br>
-                time coordinates where data is evaluated [s].
-            evalpot : boolean, optional <br>
-                flag to evaluate also alpha and phi.
-
-        Returns:
-            Dictionary containing evaluated quantities.
-
-        Raises:
-            AssertionError if this is called data uninitialized.
-            RuntimeError if evaluation failed.
-        """
-        assert self.bfield_initialized, "Magnetic field not initialized"
-        assert self.boozer_initialized, "Boozer data not initialized"
-        assert self.mhd_initialized,    "MHD data not initialized"
-
-        R   = np.asarray(R).ravel().astype(dtype="f8")
-        phi = np.asarray(phi).ravel().astype(dtype="f8")
-        z   = np.asarray(z).ravel().astype(dtype="f8")
-        t   = np.asarray(t).ravel().astype(dtype="f8")
-
-        Neval = R.size
+        self._requireinit("bfield", "boozer", "mhd")
+        Neval = r.size
         out = {}
-        out["mhd_br"]   = np.zeros(R.shape, dtype="f8") + np.nan
-        out["mhd_bphi"] = np.zeros(R.shape, dtype="f8") + np.nan
-        out["mhd_bz"]   = np.zeros(R.shape, dtype="f8") + np.nan
-        out["mhd_er"]   = np.zeros(R.shape, dtype="f8") + np.nan
-        out["mhd_ephi"] = np.zeros(R.shape, dtype="f8") + np.nan
-        out["mhd_ez"]   = np.zeros(R.shape, dtype="f8") + np.nan
-        out["mhd_phi"]  = np.zeros(R.shape, dtype="f8") + np.nan
+        T = unyt.T; V = unyt.V; m = unyt.m; s = unyt.s
+        temp = np.zeros(r.shape, dtype="f8")
+        out["mhd_br"]   = (np.copy(temp) + np.nan) * T
+        out["mhd_bphi"] = (np.copy(temp) + np.nan) * T
+        out["mhd_bz"]   = (np.copy(temp) + np.nan) * T
+        out["mhd_er"]   = (np.copy(temp) + np.nan) * V/m
+        out["mhd_ephi"] = (np.copy(temp) + np.nan) * V/m
+        out["mhd_ez"]   = (np.copy(temp) + np.nan) * V/m
+        out["mhd_phi"]  = (np.copy(temp) + np.nan) * V
 
-        self.libascot.libascot_mhd_eval_perturbation(
-            Neval, R, phi, z, t, out["mhd_br"], out["mhd_bphi"], out["mhd_bz"],
+        fun = _LIBASCOT.libascot_mhd_eval_perturbation
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR, PTR_ARR,
+                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL]
+
+        fun(ctypes.byref(self._sim), self._bfield_offload_array,
+            self._boozer_offload_array, self._mhd_offload_array,
+            Neval, r, phi, z, t, out["mhd_br"], out["mhd_bphi"], out["mhd_bz"],
             out["mhd_er"], out["mhd_ephi"], out["mhd_ez"], out["mhd_phi"])
 
         if evalpot:
-            out["alpha"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["phi"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            out["alphaeig"] = (np.copy(temp) + np.nan) * T*m
+            out["phieig"]   = (np.copy(temp) + np.nan) * V
+            out["dadt"]     = (np.copy(temp) + np.nan) * T*m/s
+            out["dadr"]     = (np.copy(temp) + np.nan) * T
+            out["dadphi"]   = (np.copy(temp) + np.nan) * T*m
+            out["dadz"]     = (np.copy(temp) + np.nan) * T
+            out["dphidt"]   = (np.copy(temp) + np.nan) * V/s
+            out["dphidr"]   = (np.copy(temp) + np.nan) * V/m
+            out["dphidphi"] = (np.copy(temp) + np.nan) * V
+            out["dphidz"]   = (np.copy(temp) + np.nan) * V/m
 
-            out["dadt"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dadr"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dadphi"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dadz"]   = np.zeros(R.shape, dtype="f8") + np.nan
+            fun = _LIBASCOT.libascot_mhd_eval
+            fun.restype  = ctypes.c_int
+            fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
+                            ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                            PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                            PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                            PTR_REAL]
 
-            out["dphidt"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dphidr"]   = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dphidphi"] = np.zeros(R.shape, dtype="f8") + np.nan
-            out["dphidz"]   = np.zeros(R.shape, dtype="f8") + np.nan
-
-            self.libascot.libascot_mhd_eval(
-                Neval, R, phi, z, t, out["alpha"], out["dadr"], out["dadphi"],
-                out["dadz"], out["dadt"], out["phi"], out["dphidr"],
-                out["dphidphi"], out["dphidz"], out["dphidt"])
+            fun(ctypes.byref(self._sim), self._boozer_offload_array,
+                self._mhd_offload_array, Neval, r, phi, z, t, out["alphaeig"],
+                out["dadr"], out["dadphi"], out["dadz"], out["dadt"],
+                out["phieig"], out["dphidr"], out["dphidphi"], out["dphidz"],
+                out["dphidt"])
 
         return out
 
-
-    def eval_collcoefs(self, ma, qa, R, phi, z, t, va):
+    @parseunits(ma="kg", qa="C", r="m", phi="rad", z="m", t="s", va="m/s")
+    def input_eval_collcoefs(self, ma, qa, r, phi, z, t, va):
         """
         Evaluate Coulomb collision coefficients for given particle and coords.
 
@@ -803,56 +444,66 @@ class LibAscot:
         mass and charge to evaluate the coefficients as a function of test
         particle velocity.
 
-        Args:
-            ma : float <br>
-                Test particle mass [kg].
-            qa : float <br>
-                Test particle charge [C].
-            R : array_like <br>
-                R coordinates where data is evaluated [m].
-            phi : array_like <br>
-                phi coordinates where data is evaluated [rad].
-            z : array_like <br>
-                z coordinates where data is evaluated [m].
-            t : array_like <br>
-                Time coordinates where data is evaluated [s].
-            va : array_like <br>
-                Test particle velocities [m/s].
+        Parameters
+        ----------
+        ma : float
+            Test particle mass.
+        qa : float
+            Test particle charge.
+        r : array_like, (n,)
+            R coordinates where data is evaluated.
+        phi : float
+            phi coordinate where data is evaluated.
+        z : float
+            z coordinate where data is evaluated.
+        t : float
+            Time coordinate where data is evaluated.
+        evalpot : bool, optional
+            Evaluate eigenfunctions as well.
 
-        Returns:
-            Dictionary with collision coefficients of shape
-            (R.size, n_species, va.size).
+        Returns
+        -------
+        out : dict [str, array_like (n,)]
+            Evaluated quantities in a dictionary.
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        RuntimeError
+            If evaluation in libascot.so failed.
         """
-        assert self.bfield_initialized, "Magnetic field not initialized"
-        assert self.plasma_initialized, "Plasma not initialized"
-
-
+        self._requireinit("bfield", "plasma")
         ma  = float(ma)
         qa  = float(qa)
-        R   = np.asarray(R).ravel().astype(dtype="f8")
-        phi = np.asarray(phi).ravel().astype(dtype="f8")
-        z   = np.asarray(z).ravel().astype(dtype="f8")
-        t   = np.asarray(t).ravel().astype(dtype="f8")
-        va  = np.asarray(va).ravel().astype(dtype="f8")
         Neval = va.size
 
-        n_species = self.libascot.libascot_plasma_get_n_species()
+        n_species = self.input_getplasmaspecies() + 1
 
         out = {}
-        out["F"]      = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["Dpara"]  = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["Dperp"]  = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["K"]      = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["nu"]     = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["Q"]      = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["dQ"]     = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["dDpara"] = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["clog"]   = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["mu0"]    = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["mu1"]    = np.zeros((R.size, n_species, va.size), dtype="f8")
-        out["dmu0"]   = np.zeros((R.size, n_species, va.size), dtype="f8")
+        temp = np.zeros((r.size, n_species, va.size), dtype="f8")
+        out["F"]      = np.copy(temp) * unyt.m / unyt.s**2
+        out["Dpara"]  = np.copy(temp) * unyt.m**2 / unyt.s**3
+        out["Dperp"]  = np.copy(temp) * unyt.m**2 / unyt.s**3
+        out["K"]      = np.copy(temp) * unyt.m / unyt.s**2
+        out["nu"]     = np.copy(temp) / unyt.s
+        out["Q"]      = np.copy(temp) * unyt.m / unyt.s**2
+        out["dQ"]     = np.copy(temp) / unyt.s
+        out["dDpara"] = np.copy(temp) * unyt.m / unyt.s**2
+        out["clog"]   = np.copy(temp)
+        out["mu0"]    = np.copy(temp)
+        out["mu1"]    = np.copy(temp)
+        out["dmu0"]   = np.copy(temp)
 
-        for i in range(R.size):
+        fun = __LIBASCOT.libascot_eval_collcoefs
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR, PTR_ARR,
+                        ctypes.c_int, PTR_REAL, ctypes.c_double,
+                        ctypes.c_double, ctypes.c_double, ctypes.c_double,
+                        ctypes.c_double, ctypes.c_double, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
+        for i in range(r.size):
             F      = np.zeros((n_species, va.size), dtype="f8")
             Dpara  = np.zeros((n_species, va.size), dtype="f8")
             Dperp  = np.zeros((n_species, va.size), dtype="f8")
@@ -865,10 +516,10 @@ class LibAscot:
             mu0    = np.zeros((n_species, va.size), dtype="f8")
             mu1    = np.zeros((n_species, va.size), dtype="f8")
             dmu0   = np.zeros((n_species, va.size), dtype="f8")
-            self.libascot.libascot_eval_collcoefs(Neval, va, R[i], phi[i], z[i],
-                                                  t[i], ma, qa, F, Dpara, Dperp,
-                                                  K, nu, Q, dQ, dDpara, clog,
-                                                  mu0, mu1, dmu0)
+            fun(ctypes.byref(self._sim), self._bfield_offload_array,
+                self._plasma_offload_array,
+                Neval, va, r[i], phi[i], z[i], t[i], ma, qa, F, Dpara, Dperp,
+                K, nu, Q, dQ, dDpara, clog, mu0, mu1, dmu0)
             out["F"][i,:,:]      = F[:,:]
             out["Dpara"][i,:,:]  = Dpara[:,:]
             out["Dperp"][i,:,:]  = Dperp[:,:]
@@ -884,9 +535,76 @@ class LibAscot:
 
         return out
 
-    def get_rhotheta_rz(self, rhovals, theta, phi, time):
-        assert self.bfield_initialized, "Magnetic field not initialized"
+    def input_getplasmaspecies(self):
+        """Get species present in plasma input (electrons excluded).
 
+        Returns
+        -------
+        nspecies : int
+            Number of species.
+        mass : array_like
+            Species' mass.
+        charge : array_like
+            Species' charge state.
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        RuntimeError
+            If evaluation in libascot.so failed.
+        """
+        fun = _LIBASCOT.libascot_plasma_get_n_species
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [PTR_SIM, PTR_ARR]
+
+        out = {}
+        out["nspecies"] = fun(
+            ctypes.byref(self._sim), self._plasma_offload_array)
+
+        out["mass"]     = np.zeros((out["nspecies"],), dtype="f8")
+        out["charge"]   = np.zeros((out["nspecies"],), dtype="f8")
+
+        fun = _LIBASCOT.libascot_plasma_get_species_mass_and_charge
+        fun.restype  = None
+        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_REAL, PTR_REAL]
+        fun(ctypes.byref(self._sim), self._plasma_offload_array,
+            out["mass"], out["charge"])
+
+        return out["nspecies"], out["mass"], out["charge"]
+
+    @parseunits(rhovals="1", theta="rad", phi="deg", time="s")
+    def input_rhotheta2rz(self, rhovals, theta, phi, time):
+        """Convert rho coordinate to (R,z) position.
+
+        Conversion is done at fixed (theta, phi).
+
+        Parameters
+        ----------
+        rhovals : array_like (n,)
+            Normalized poloidal flux coordinates to be converted.
+        theta : float
+            Poloidal angle.
+        phi : float
+            Toroidal angle.
+        time : float
+            Time slice.
+
+        Returns
+        -------
+        r : array_like (n,)
+            R coordinates at (rhovals, theta, phi)
+        z : array_like (n,)
+            z coordinates at (rhovals, theta, phi)
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        RuntimeError
+            If evaluation in libascot.so failed.
+        """
+        self._requireinit("bfield")
         rhovals = np.asarray(rhovals).ravel().astype(dtype="f8")
 
         ngrid = 100
@@ -894,7 +612,13 @@ class LibAscot:
         z   = np.zeros((ngrid,), dtype="f8")
         rho = np.zeros((ngrid,), dtype="f8")
 
-        self.libascot.libascot_B_field_eval_rhovals(
+        fun = _LIBASCOT.libascot_B_field_eval_rhovals
+        fun.restype  = None
+        fun.argtypes = [PTR_SIM, PTR_ARR,
+                        ctypes.c_int,    ctypes.c_double, ctypes.c_double,
+                        ctypes.c_double, ctypes.c_double, ctypes.c_double,
+                        PTR_REAL, PTR_REAL, PTR_REAL]
+        fun(ctypes.byref(self._sim), self._bfield_offload_array,
             ngrid, np.min(rhovals), np.max(rhovals), theta, phi, time,
             r, z, rho)
 
@@ -904,33 +628,4 @@ class LibAscot:
         fr = interpolate.interp1d(rho, r, fill_value="extrapolate")
         fz = interpolate.interp1d(rho, z, fill_value="extrapolate")
 
-        return (fr(rhovals), fz(rhovals))
-
-
-def test():
-    """
-    For testing purposes.
-    """
-    ascot = LibAscot(h5fn="ascot.h5")
-    ascot.init(bfield=True, efield=True, plasma=True, wall=True,
-               neutral=True)
-
-    R   = np.array([6.2,   7, 8])
-    phi = np.array([  0,   0, 0])
-    z   = np.array([0.0, 0.2, 0.2])
-    t   = np.array([0.0])
-
-    bvals       = ascot.eval_bfield(R, phi, z, t, evalb=True, evalpsi=True,
-                                            evalrho=True, evalaxis=True)
-    evals       = ascot.eval_efield(R, phi, z, t)
-    plasmavals  = ascot.eval_plasma(R, phi, z, t)
-    neutralvals = ascot.eval_neutral(R, phi, z, t)
-
-    print(bvals)
-
-    ascot.free(bfield=True, efield=True, plasma=True, wall=True,
-               neutral=True)
-
-
-if __name__ == '__main__':
-    test()
+        return (fr(rhovals) * unyt.m, fz(rhovals) * unyt.m)

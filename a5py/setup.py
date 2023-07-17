@@ -1,4 +1,12 @@
+from os import path
 from setuptools import setup, find_packages
+
+here = path.abspath(path.dirname(__file__))
+
+with open(path.join(here, 'requirements.txt')) as requirements_file:
+    # Parse requirements.txt, ignoring any commented-out lines.
+    requirements = [line for line in requirements_file.read().splitlines()
+                    if not line.startswith('#')]
 
 setup(name='a5py',
       version='0.0',
@@ -7,15 +15,7 @@ setup(name='a5py',
       license='LGPL',
       packages=find_packages(),
       zip_safe=False,
-      install_requires=[
-          'numpy',
-          'h5py',
-          'prompt_toolkit',
-          'unyt',
-          'scipy',
-          'matplotlib',
-          'scikit-image'
-      ],
+      install_requires=requirements,
       scripts=[
         'bin/a5removegroup',
         'bin/a5copygroup',
@@ -29,4 +29,5 @@ setup(name='a5py',
         'bin/a5doxygen',
         'bin/test_ascot.py'
       ],
+      package_data={'a5py/ascotpy': ['lib.so']},
       include_package_data=True)
