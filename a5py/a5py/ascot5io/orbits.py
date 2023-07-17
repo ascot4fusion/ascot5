@@ -18,89 +18,15 @@ class Orbits(DataContainer):
     GUIDINGCENTER = 2
     FIELDLINE     = 3
 
-    def read_hdf5(self, fn, qid):
+    def read(self):
+        """Read raw state data to a dictionary.
         """
-        Read orbit output from HDF5 file.
-
-        Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
-
-        Returns:
-        Dictionary containing orbit data.
-        """
-
-        path = "results/run_" + qid + "/orbit"
-
         out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                out[key] = f[path][key][:]
+        with self as f:
+            for key in f:
+                out[key] = f[key][:]
 
         return out
-
-    @staticmethod
-    def write_hdf5(fn, data, desc=None):
-        """
-        Write state data in HDF5 file.
-
-        Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        desc : str, optional <br>
-            Input description.
-        """
-
-        gname = "results/" + run + "/orbit"
-
-        N = data["id"].size
-
-        with h5py.File(fn, "a") as f:
-            g = f.create_group(gname)
-
-            g.create_dataset("id",   (N,1), data=data["id"],   dtype="i8")
-            g.create_dataset("time", (N,1), data=data["time"], dtype="f8")
-
-            if "pncrid" in data:
-                g.create_dataset("pncrid", (N,1), data=data["pncrid"], dtype="i4")
-
-            if "charge" in data:
-                g.create_dataset("charge", (N,1), data=data["charge"], dtype="i4")
-
-            if "weight" in data:
-                g.create_dataset("weight", (N,1), data=data["weight"], dtype="f8")
-
-            if "pr" in data:
-                g.create_dataset("r",     (N,1), data=data["r"],     dtype="f8")
-                g.create_dataset("phi",   (N,1), data=data["phi"],   dtype="f8")
-                g.create_dataset("z",     (N,1), data=data["z"],     dtype="f8")
-
-                g.create_dataset("pr",    (N,1), data=data["pr"],    dtype="f8")
-                g.create_dataset("pphi",  (N,1), data=data["pphi"],  dtype="f8")
-                g.create_dataset("pz",    (N,1), data=data["pz"],    dtype="f8")
-
-                g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
-                g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
-                g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
-                g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
-                g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
-            else:
-                g.create_dataset("r",     (N,1), data=data["r"],     dtype="f8")
-                g.create_dataset("phi",   (N,1), data=data["phi"],   dtype="f8")
-                g.create_dataset("z",     (N,1), data=data["z"],     dtype="f8")
-
-                g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
-                g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
-                g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
-                g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
-                g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
-
-            if "ppar" in data:
-                g.create_dataset("ppar",  (N,1), data=data["ppar"],  dtype="f8")
-                g.create_dataset("mu",    (N,1), data=data["mu"],    dtype="f8")
-                g.create_dataset("zeta",  (N,1), data=data["zeta"],  dtype="f8")
 
     def get(self, inistate, endstate, *qnt):
         """Return marker quantity.
@@ -398,3 +324,64 @@ class Orbits(DataContainer):
             "pncrdir":  "Direction at which Poincaré plane was crossed",
         }
         return out
+
+    @staticmethod
+    def write_hdf5(fn, data, desc=None):
+        """Write state data in HDF5 file.
+
+        Parameters
+        ----------
+        fn : str
+            Full path to the HDF5 file.
+        desc : str, optional
+            Input description.
+        """
+
+        gname = "results/" + run + "/orbit"
+
+        N = data["id"].size
+
+        with h5py.File(fn, "a") as f:
+            g = f.create_group(gname)
+
+            g.create_dataset("id",   (N,1), data=data["id"],   dtype="i8")
+            g.create_dataset("time", (N,1), data=data["time"], dtype="f8")
+
+            if "pncrid" in data:
+                g.create_dataset("pncrid", (N,1), data=data["pncrid"], dtype="i4")
+
+            if "charge" in data:
+                g.create_dataset("charge", (N,1), data=data["charge"], dtype="i4")
+
+            if "weight" in data:
+                g.create_dataset("weight", (N,1), data=data["weight"], dtype="f8")
+
+            if "pr" in data:
+                g.create_dataset("r",     (N,1), data=data["r"],     dtype="f8")
+                g.create_dataset("phi",   (N,1), data=data["phi"],   dtype="f8")
+                g.create_dataset("z",     (N,1), data=data["z"],     dtype="f8")
+
+                g.create_dataset("pr",    (N,1), data=data["pr"],    dtype="f8")
+                g.create_dataset("pphi",  (N,1), data=data["pphi"],  dtype="f8")
+                g.create_dataset("pz",    (N,1), data=data["pz"],    dtype="f8")
+
+                g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
+                g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
+                g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
+                g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
+                g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
+            else:
+                g.create_dataset("r",     (N,1), data=data["r"],     dtype="f8")
+                g.create_dataset("phi",   (N,1), data=data["phi"],   dtype="f8")
+                g.create_dataset("z",     (N,1), data=data["z"],     dtype="f8")
+
+                g.create_dataset("rho",   (N,1), data=data["rho"],   dtype="f8")
+                g.create_dataset("theta", (N,1), data=data["theta"], dtype="f8")
+                g.create_dataset("br",    (N,1), data=data["br"],    dtype="f8")
+                g.create_dataset("bphi",  (N,1), data=data["bphi"],  dtype="f8")
+                g.create_dataset("bz",    (N,1), data=data["bz"],    dtype="f8")
+
+            if "ppar" in data:
+                g.create_dataset("ppar",  (N,1), data=data["ppar"],  dtype="f8")
+                g.create_dataset("mu",    (N,1), data=data["mu"],    dtype="f8")
+                g.create_dataset("zeta",  (N,1), data=data["zeta"],  dtype="f8")
