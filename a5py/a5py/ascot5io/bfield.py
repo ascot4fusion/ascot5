@@ -42,7 +42,7 @@ class B_TC(DataGroup):
         out = {}
         with self as f:
             for key in f:
-                out[key] = [key][:]
+                out[key] = f[key][:]
         return out
 
     @staticmethod
