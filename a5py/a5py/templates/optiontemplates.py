@@ -29,6 +29,7 @@ class OptionTemplates():
              "ENABLE_ORBIT_FOLLOWING":1,  "ENABLE_COULOMB_COLLISIONS":1,
              "ENABLE_DIST_5D":1,          "ENABLE_DIST_6D":1,
              "ENABLE_DIST_RHO5D":1,       "ENABLE_DIST_RHO6D":1,
+             "ENABLE_DIST_COM":1,
              "DIST_MIN_R":3.5, "DIST_MAX_R":8.5, "DIST_NBIN_R":12,
              "DIST_MIN_PHI":0, "DIST_MAX_PHI":360, "DIST_NBIN_PHI":20,
              "DIST_MIN_Z":-2.45, "DIST_MAX_Z":2.45, "DIST_NBIN_Z":24,
@@ -42,7 +43,7 @@ class OptionTemplates():
              "DIST_NBIN_PPHI":15,
              "DIST_MIN_PZ":-10e-20, "DIST_MAX_PZ":10e-20, "DIST_NBIN_PZ":16,
              "DIST_MIN_TIME":0, "DIST_MAX_TIME":3e-2, "DIST_NBIN_TIME":2,
-             "DIST_MIN_CHARGE":-100, "DIST_MAX_CHARGE":100,
+             "DIST_MIN_CHARGE":-1.5, "DIST_MAX_CHARGE":2.5,
              "DIST_NBIN_CHARGE":1,
              "ENABLE_ORBITWRITE":1, "ORBITWRITE_MODE":1,
              "ORBITWRITE_NPOINT":100, "ORBITWRITE_INTERVAL":0,}
