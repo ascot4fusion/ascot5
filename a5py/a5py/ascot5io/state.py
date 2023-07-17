@@ -159,38 +159,15 @@ class State(DataContainer):
                                       dtype="f8")
                 ds.attrs["unit"] = field[1]
 
-
-    def read_hdf5(self, fn, qid, name):
+    def read(self):
+        """Read raw state data to a dictionary.
         """
-        Read state output from HDF5 file.
-
-        Args:
-        fn : str <br>
-            Full path to the HDF5 file.
-        qid : str <br>
-            QID of the data to be read.
-        name : str <br>
-            Name of the data to read, e.g. "inistate", "endstate", "distrho5d"
-
-        Returns:
-        Dictionary containing input data.
-        """
-
-        path = "results/run_" + qid + "/" + name
-
         out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                out[key] = f[path][key][:]
+        with self as f:
+            for key in f:
+                out[key] = f[key][:]
 
         return out
-
-    def read(self):
-        """
-        Read state data to dictionary.
-        """
-        return read_hdf5(self._root._ascot.file_getpath(), self.get_qid(),
-                         self._path.split("/")[-1])
 
     def get(self, *qnt, mode="gc"):
         """Return marker quantity.
