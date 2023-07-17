@@ -84,8 +84,7 @@ class DataContainer():
         """
         if self._opened[0] is not None:
             raise AscotIOException(
-                """The file has already been opened by this instance and
-                   not closed by _close()""")
+                "File already opened by this instance")
 
         fn = self._root._ascot.file_getpath()
         self._opened[0] = h5py.File(fn, mode)[self._path]
