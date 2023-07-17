@@ -1,4 +1,4 @@
-"""Unit tests for
+"""Unit tests for most post-processing routines.
 """
 import numpy as np
 import unittest
@@ -37,8 +37,10 @@ class TestAscot(unittest.TestCase):
         a5.data.create_input("Boozer")
         a5.data.create_input("MHD_STAT")
 
-        name = a5.data.options.active.new(ENDCOND_MAX_MILEAGE=0.5e-4,
-                                          desc="Fast")
+        name = a5.data.options.active.new(
+            ENDCOND_MAX_MILEAGE=0.5e-4, DIST_MIN_CHARGE=1.5,
+            DIST_MAX_CHARGE=2.5, DIST_NBIN_PPE=50, DIST_NBIN_PPA=100,
+            desc="Fast")
         a5.data.options[name].activate()
 
         subprocess.run(["./ascot5_main", "--in=unittest.h5"])
@@ -259,10 +261,110 @@ class TestAscot(unittest.TestCase):
             out = a5.data.active.getorbit(q)
         a5.simulation_free()
 
-    def test_postpro(self):
-        """Test postprocessing routines.
+    def test_dist(self):
+        """Test distribution postprocessing.
         """
-        pass
+        a5 = Ascot("unittest.h5")
 
+        # Test volume calculation
+        R,Z = np.meshgrid(np.linspace(3,7,101), np.linspace(-2,2,101))
+        psi = np.sqrt((R-5)**2 + (Z-0)**2)
+        bdata = {"rmin":3, "rmax":7, "nr":101, "zmin":-2, "zmax":2, "nz":101,
+                 "axisr":5, "axisz":0, "psi":psi, "psi0":0, "psi1":1,
+                 "br":psi*0, "bphi":psi*0, "bz":psi*0}
+        qid = a5.data.create_input("B_2DS", **bdata).split("_")[-1]
+
+        try:
+            a5.input_init(bfield=qid)
+            vol1, area1 = a5.input_rhovolume(
+                method="prism", nrho=20, ntheta=20, nphi=2, return_area=True)
+            vol2, area2 = a5.input_rhovolume(
+                method="mc", nrho=2, ntheta=5, nphi=2, return_area=True)
+            a5.input_free()
+        except:
+            a5.input_free()
+            raise
+
+        delta = 1
+        vol0 = 2*np.pi*5*np.pi*1.0**2
+        self.assertAlmostEqual(
+            np.sum(vol1).v, vol0, None, "Volume calculation with prism failed",
+            delta)
+        self.assertAlmostEqual(
+            np.sum(vol2).v, vol0, None, "Volume calculation with MC failed",
+            delta)
+        area0 = np.pi*1.0**2
+        self.assertAlmostEqual(
+            np.sum(area1).v, area0, None, "Area calculation with prism failed",
+            delta)
+        self.assertAlmostEqual(
+            np.sum(area2).v, area0, None, "Area calculation with MC failed",
+            delta)
+
+        # Test distribution initializing
+        a5.data.active.getdist("5d")
+        a5.data.active.getdist("rho5d")
+        a5.data.active.getdist("6d")
+        a5.data.active.getdist("rho6d")
+        a5.data.active.getdist("com")
+
+        # Test slicing, interpolating, and integrating
+        dist = a5.data.active.getdist("5d")
+        dist.integrate(charge=np.s_[:], time=np.s_[:])
+        self.assertFalse("charge" in dist.abscissae, "Integration failed")
+        self.assertFalse("time" in dist.abscissae, "Integration failed")
+
+        dist.slice(ppar=np.s_[0], pperp=np.s_[0])
+        self.assertTrue(dist.abscissa("ppar").size == 1, "Slicing failed")
+        self.assertTrue(dist.abscissa("pperp").size == 1, "Slicing failed")
+
+        out = dist.interpolate(phi=2*unyt.deg, r=6.2*unyt.m)
+        self.assertEqual(out.size, dist.abscissa("z").size,
+                         "Integration/slicing/interpolation failed")
+
+        # Get 5D distribution in both momentum spaces and verify the number of
+        # particles is same
+        dist    = a5.data.active.getdist("5d")
+        exidist = a5.data.active.getdist("5d", exi=True)
+        time, weight = a5.data.active.getstate("mileage", "weight", state="end")
+        #print(np.sum(dist.v), np.sum(exidist.v), np.sum(time*weight).v)
+        self.assertAlmostEqual(np.sum(dist.histogram().v),
+                               np.sum(time*weight).v, None,
+                               "Distribution not valid",
+                               0.001)
+        self.assertAlmostEqual(np.sum(exidist.histogram().v),
+                               np.sum(time*weight).v, None,
+                               "Converting ppar-pperp to ekin-pitch failed",
+                               0.001)
+
+        a5.input_init(bfield=True)
+        rhodist    = a5.data.active.getdist("rho5d")
+        rhoexidist = a5.data.active.getdist("rho5d", exi=True)
+        mom1 = a5.data.active.getdist_moments(dist, "density")
+        mom2 = a5.data.active.getdist_moments(exidist, "density")
+        mom3 = a5.data.active.getdist_moments(rhodist, "density")
+        mom4 = a5.data.active.getdist_moments(rhoexidist, "density")
+        a5.input_free()
+        #print(np.sum(mom1.ordinate("density") * mom1.volume),
+        #      np.sum(mom2.ordinate("density") * mom2.volume),
+        #      np.sum(mom3.ordinate("density") * mom3.volume),
+        #      np.sum(mom4.ordinate("density") * mom4.volume))
+
+        self.assertAlmostEqual(np.sum(mom1.ordinate("density") * mom1.volume).v,
+                               np.sum(time*weight).v, None,
+                               "Converting ppar-pperp to ekin-pitch failed",
+                               0.001)
+        self.assertAlmostEqual(np.sum(mom2.ordinate("density") * mom2.volume).v,
+                               np.sum(time*weight).v, None,
+                               "Converting ppar-pperp to ekin-pitch failed",
+                               0.001)
+        self.assertAlmostEqual(np.sum(mom3.ordinate("density") * mom3.volume).v,
+                               np.sum(time*weight).v, None,
+                               "Converting ppar-pperp to ekin-pitch failed",
+                               0.001)
+        self.assertAlmostEqual(np.sum(mom4.ordinate("density") * mom4.volume).v,
+                               np.sum(time*weight).v, None,
+                               "Converting ppar-pperp to ekin-pitch failed",
+                               0.001)
 if __name__ == '__main__':
     unittest.main()
