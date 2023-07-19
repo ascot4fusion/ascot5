@@ -131,23 +131,25 @@ class Ascot(Ascotpy):
         If the input is already initialized, nothing is done. In case there is
         already different input of same type initialized, an error is raised.
 
+        If the input argument is a dict, it is used instead of reading the data from hdf5.
+
         Parameters
         ----------
         run     : str or bool, optional
             The run group or True to use the one that is active.
-        bfield  : str or bool, optional
+        bfield  : str or bool or dict, optional
             The magnetic field input or True to use the one that is active.
-        efield  : str or bool, optional
+        efield  : str or bool or dict, optional
             The electric field input or True to use the one that is active.
-        plasma  : str or bool, optional
+        plasma  : str or bool or dict, optional
             The plasma input or True to use the one that is active.
-        wall    : str or bool, optional
+        wall    : str or bool or dict, optional
             The wall input or True to use the one that is active.
-        neutral : str or bool, optional
+        neutral : str or bool or dict, optional
             The neutral input or True to use the one that is active.
-        boozer  : str or bool, optional
+        boozer  : str or bool or dict, optional
             The boozer input or True to use the one that is active.
-        mhd     : str or bool, optional
+        mhd     : str or bool or dict, optional
             The MHD input or True to use the one that is active.
         switch : bool, optional
             If ``True``, no error is raised if there is already a different
@@ -206,6 +208,10 @@ class Ascot(Ascotpy):
                         raise AscotIOException(
                             "Input \"" + inp + "/" + args[inp]
                             + "\" not present.")
+                elif isinstance(args[inp], dict):
+                    # Argument is a dictionary, presumably in the correct format
+                    # It is simply passed forward to _init()
+                    pass
                 elif args[inp]:
                     # Argument is True, and data is present
                     args[inp] = getattr(self.data, inp).active.get_qid()

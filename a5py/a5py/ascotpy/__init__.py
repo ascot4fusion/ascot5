@@ -121,26 +121,35 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         """Read, offload, and initialize input data so it can be accessed
         by libascot.
 
-        Assumes data is present and the provided QIDs are valid.
+        Assumes data is present in the hdf5 file and the provided QIDs are valid.
+        
+        If the parameter is given as a dict, it is used directly instead of reading it from the hdf5 file.
 
         Parameters
         ----------
         data : Ascot5IO
             Ascot5 data on disk which is used in initialization.
-        bfield : str
-            QID of the magnetic field to be initialized.
+        bfield : str or dict
+            str  - QID of the magnetic field to be initialized.
+            dict - the struct from read()
         efield : str
             QID of the electric field to be initialized.
+            dict - the struct from read()
         plasma : str
             QID of the plasma data to be initialized.
+            dict - the struct from read()
         wall : str
             QID of the wall data to be initialized.
+            dict - the struct from read()
         neutral : str
             QID of the neutral data to be initialized.
+            dict - the struct from read()
         boozer : str
             QID of the boozer to be initialized.
+            dict - the struct from read()
         mhd : str
             QID of the MHD data to be initialized.
+            dict - the struct from read()
         switch : bool
             If ``True``, free input that has been
         """
@@ -150,12 +159,22 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         # Iterate through all inputs and mark those that are initialized
         inputs2read = ctypes.c_int32()
         args = locals() # Contains function arguments and values in a dictionary
+
+
+        # List here dependencies to be directly injected (provided)
+        to_be_provided = []
+        
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
                     "mhd"]:
             if args[inp] is None:
                 # This input is not initialized
                 continue
 
+            # Inject/provide this input
+            if isinstance(args[inp],dict):
+                to_be_provided.append(inp)
+                continue
+            
             # Convert QID strings to bytes
             args[inp] = args[inp].encode("UTF-8")
 
@@ -203,6 +222,32 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             None  # Number of markers that were read (ignore)
             )
 
+        for inp in to_be_provided:
+            if inp == "wall":
+                if 'x1x2x3' in args[inp]:
+                    self.provide_wall_3d(  args[inp]['x1x2x3'],  args[inp]['y1y2y3'],  args[inp]['z1z2z3']  )
+                elif 'r' in args[inp]:
+                    self.provide_wall_2d(  args[inp]['r'],  args[inp]['z']  )
+                else:
+                    raise AscotInitException("Unsupported dict for input '{}' passed for injection.".format(inp))                    
+            elif inp == "bfield":
+                if 'b_rmin' in args[inp]:
+                    self.provide_BSTS( b_rmin=args[inp]['b_rmin'], b_rmax=args[inp]['b_rmax'], b_nr=args[inp]['b_nr'],
+                                       b_zmin=args[inp]['b_zmin'], b_zmax=args[inp]['b_zmax'], b_nz=args[inp]['b_nz'],
+                                       b_phimin=args[inp]['b_phimin'], b_phimax=args[inp]['b_phimax'], b_nphi=args[inp]['b_nphi'],
+                                       psi0=args[inp]['psi0'], psi1=args[inp]['psi1'],
+                                       br=args[inp]['br'], bphi=args[inp]['bphi'], bz=args[inp]['bz'], psi=args[inp]['psi'],
+                                       axis_phimin=args[inp]['axis_phimin'], axis_phimax=args[inp]['axis_phimax'],
+                                       axis_nphi=args[inp]['axis_nphi'],
+                                       axisr=args[inp]['axisr'], axisz=args[inp]['axisz'],
+                                       psi_rmin=args[inp]['psi_rmin'],     psi_rmax=args[inp]['psi_rmax'], psi_nr=args[inp]['psi_nr'],
+                                       psi_zmin=args[inp]['psi_zmin'],     psi_zmax=args[inp]['psi_zmax'], psi_nz=args[inp]['psi_nz'],
+                                       psi_phimin=args[inp]['psi_phimin'], psi_phimax=args[inp]['psi_phimax'], psi_nphi=args[inp]['psi_nphi'] )
+                else:
+                    raise AscotInitException("Unsupported dict for input '{}' passed for injection.".format(inp))
+            else:
+                raise AscotInitException("Unsupported input to inject: '{}'".format(inp))
+                
 
     def _free(self, bfield=False, efield=False, plasma=False, wall=False,
               neutral=False, boozer=False, mhd=False):

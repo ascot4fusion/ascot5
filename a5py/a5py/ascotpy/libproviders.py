@@ -6,6 +6,7 @@ This is in contrast to reading inputs from hdf5 files.
 
 import ctypes
 from math import pi
+from a5py.ascotpy import ascot2py
 
 
 class LibProviders():
@@ -13,33 +14,34 @@ class LibProviders():
 
     """
 
-    def provide_wall_2d(self,R,z):
+    def provide_wall_2d(self,r,z):
 
-        if( len(R) != len(z) ):
+        if( len(r) != len(z) ):
             raise ValueError("R and z must be of equal length.")
 
-        nelements = len(R)
+        nelements = len(r)
 
         # Create temporary variable for the wall
         R_c = (ctypes.c_double * nelements)()
         z_c = (ctypes.c_double * nelements)()
 
         for i in range(nelements):
-            R_c[i] = R[i]
+            R_c[i] = r[i]
             z_c[i] = z[i]
 
-        ascotpy2.hdf5_wall_2d_to_offload(
+        ascot2py.hdf5_wall_2d_to_offload(
             ctypes.byref(self._sim.wall_offload_data.w2d),
             ctypes.byref(self._wall_offload_array),
             nelements,
             R_c, z_c
             )
 
-        self._sim.wall_offload_data.type = ascotpy2.wall_type_2D
+        self._sim.wall_offload_data.type = ascot2py.wall_type_2D
 
-        ascotpy2.wall_init_offload(
+        ascot2py.wall_init_offload(
             ctypes.byref(self._sim.wall_offload_data),
-            self._wall_offload_array
+            self._wall_offload_array,
+            self._wall_int_offload_array
             )
 
     def provide_wall_3d(self,x1x2x3,y1y2y3,z1z2z3):
@@ -57,26 +59,34 @@ class LibProviders():
         z1z2z3_c[:] = z1z2z3.flatten()[:]
 
 
-        ascotpy2.hdf5_wall_3d_to_offload(
+        ascot2py.hdf5_wall_3d_to_offload(
             ctypes.byref(self._sim.wall_offload_data.w3d),
             ctypes.byref(self._wall_offload_array),
             nelements,
             x1x2x3_c, y1y2y3_c, z1z2z3_c,
             )
 
-        self._sim.wall_offload_data.type = ascotpy2.wall_type_3D
+        self._sim.wall_offload_data.type = ascot2py.wall_type_3D
 
-        ascotpy2.wall_init_offload(
+        ascot2py.wall_init_offload(
             ctypes.byref(self._sim.wall_offload_data),
-            self._wall_offload_array
+            self._wall_offload_array,
+            self._wall_int_offload_array
             )
 
 
 
-    def provide_BSTS(self,bsts):
+    def provide_BSTS(self,
+                     b_rmin, b_rmax, b_nr, b_zmin, b_zmax, b_nz,
+                     b_phimin, b_phimax, b_nphi, psi0, psi1,
+                     br, bphi, bz, psi,
+                     axis_phimin, axis_phimax, axis_nphi, axisr, axisz,
+                     psi_rmin=None,   psi_rmax=None, psi_nr=None,
+                     psi_zmin=None,   psi_zmax=None, psi_nz=None,
+                     psi_phimin=None, psi_phimax=None, psi_nphi=None ):
+
         # bsts is the dictionary that comes from reading the hdf5
-
-
+        bsts=locals()
 
         # 1. First fill in the meta-data struct
         #--------------------------------------
@@ -157,10 +167,10 @@ class LibProviders():
 
         # C side allocation
         #------------------
-        self._B_offload_array =  ascotpy2.libascot_allocate_reals(offload_size)
+        self._bfield_offload_array =  ascot2py.libascot_allocate_reals(offload_size)
 
         # Cast the pointer into an array
-        B_offload_array = ctypes.cast( self._B_offload_array, ctypes.POINTER(ctypes.c_double*offload_size) )[0]
+        B_offload_array = ctypes.cast( self._bfield_offload_array, ctypes.POINTER(ctypes.c_double*offload_size) )[0]
 
 
         # 3. copy the large arrays to the offload array
@@ -194,16 +204,16 @@ class LibProviders():
         # 4. Set the correct data type
         #------------------------------
 
-        self._sim.B_offload_data.type = ascotpy2.B_field_type_STS
+        self._sim.B_offload_data.type = ascot2py.B_field_type_STS
 
         # 5. Do the init offload
         #-----------------------
 
         # B_field_init_offload.argtypes = [ctypes.POINTER(struct_c__SA_B_field_offload_data), ctypes.POINTER(ctypes.POINTER(ctypes.c_double))]
 
-        ascotpy2.B_field_init_offload(
+        ascot2py.B_field_init_offload(
             ctypes.byref(self._sim.B_offload_data),
-            ctypes.byref(self._B_offload_array)
+            ctypes.byref(self._bfield_offload_array)
             )
 
 
