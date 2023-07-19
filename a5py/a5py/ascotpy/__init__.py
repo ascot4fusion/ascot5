@@ -745,6 +745,172 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
         return quantities
 
+    def input_rhovolume(self, nrho=10, method="int", tol=1e-2, ntheta=360,
+                        nphi=360, t=0*unyt.s, nperiod=1,
+                        return_area=False, return_coords=False):
+        """Evaluate flux surface volumes.
+
+        Parameters
+        ----------
+        nrho : int, optional
+            Number of radial grid edges between [0, 1].
+
+        method : {"int", "mc"}, optional
+            Method used to evaluate the volumes.
+
+            "prism" divides the volume into structured 3D grid consisting of
+            triangular prims where the triangular plane is poloidal and one
+            of the vertices is at magnetic axis while the other two are along
+            a given flux surface. The volume is the estimated as a sum of these
+            prisms.
+
+            "mc" divides the volume into toroidal sectors of same size, and on
+            each sector fins the separatrix bounding box. Bounding box is
+            assumed to be fixed along the sector and markers are randomly
+            sampled within it. The volumes are then estimated via the Monte
+            Carlo method.
+        tol : float, optional
+            If relative difference in volume in subsequent iterations falls
+            below this value, the Monte Carlo algorithm in "mc" finishes.
+        ntheta : int, optional
+            Number of poloidal grid edges.
+        nphi : int, optional
+            Number of toroidal grid edges.
+        t : float, optional
+            Time slice when the volumes are computed.
+        nperiod : int, optional
+            How many periods toroidal volume is assumed to have.
+        return_area : bool, optional
+            Return also the area on (R, z) plane.
+        return_coords : bool, optional
+            Return also the (R, phi, z) coordinates for grid center points.
+
+        Returns
+        -------
+        volume : array_like (nrho-1, ntheta-1, nphi-1)
+            Volume of each bin.
+        area : array_like (nrho-1, ntheta-1, nphi-1)
+            Area of the poloidal cross section of each bin if
+            ``return_area=True``.
+        r : array_like (nrho-1, ntheta-1, nphi-1)
+            R coordinates of bin centers if ``return_coords=True``.
+        p : array_like (nrho-1, ntheta-1, nphi-1)
+            phi coordinates of bin centers if ``return_coords=True``.
+        z : array_like (nrho-1, ntheta-1, nphi-1)
+            z coordinates of bin centers if ``return_coords=True``.
+        """
+        rho   = np.linspace(0, 1,   nrho) * unyt.dimensionless
+        phi   = np.linspace(0, 2*np.pi / nperiod, nphi) * unyt.rad
+        theta = np.linspace(0, 2*np.pi, ntheta) * unyt.rad
+
+        r = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.m
+        p = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.rad
+        z = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.m
+
+        area   = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.m**2
+        volume = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.m**3
+
+        if method == "prism":
+            for ip in range(nphi-1):
+                # Get axis location
+                out = self._eval_bfield(1*unyt.m, phi[ip], 1*unyt.m, t,
+                                        evalaxis=True)
+                r0 = out["axisr"]
+                z0 = out["axisz"]
+                cr = np.zeros((nrho-1, ntheta-1)) * unyt.m
+
+                # Contour coordinates (excluding rho=0 which is on axis)
+                rc0, zc0 = self.input_rhotheta2rz(rho[1:], theta[0], phi[ip], t)
+                for it in range(ntheta-1):
+                    # (R,z) values corresponding to rho and current theta & phi
+                    r[:,it,ip], z[:,it,ip] = self.input_rhotheta2rz(
+                        (rho[1:] + rho[:-1]) / 2, (theta[it+1] + theta[it]) / 2,
+                        (phi[ip+1] + phi[ip]) / 2, t)
+                    p[:,:,ip] = (phi[ip+1] + phi[ip]) / 2
+
+                    rc, zc = self.input_rhotheta2rz(
+                        rho[1:], theta[it+1], phi[ip], t)
+                    # Calculate the triangle areas and triangle centroid
+                    cr[:,it] = (r0 + rc + rc0) / 3
+                    area[:,it,ip] = 0.5 * np.abs(  r0*(zc0 - zc) + rc0*(zc - z0)
+                                                 + rc*(z0 - zc0) )
+
+                    # Save points so we can calculate the area at the next slice
+                    rc0 = rc
+                    zc0 = zc
+
+                h = (phi[ip+1] - phi[ip]).v
+                volume[:,:,ip] = h * cr * area[:,:,ip]
+
+                # Calculated areas and volumes are for up to given rho value but
+                # we ant them to be between two rho values
+                area[1:,:,ip]   -= area[:-1,:,ip]
+                volume[1:,:,ip] -= volume[:-1,:,ip]
+
+        elif method == "mc":
+            for ip in range(nphi-1):
+                out = self._eval_bfield(0*unyt.m, phi[ip], 0*unyt.m, t,
+                                        evalaxis=True)
+                r0 = out["axisr"]
+                z0 = out["axisz"]
+                bbox = np.array([r0.v, r0.v, z0.v, z0.v]) * unyt.m
+
+                for it in range(ntheta-1):
+                    # (R,z) values corresponding to rho and current theta & phi
+                    r[:,it,ip], z[:,it,ip] = self.input_rhotheta2rz(
+                        (rho[1:] + rho[:-1]) / 2, (theta[it+1] + theta[it]) / 2,
+                        (phi[ip+1] + phi[ip]) / 2, t)
+                    p[:,:,ip] = (phi[ip+1] + phi[ip]) / 2
+
+                    # Determine bounding box for the separatrix
+                    rc, zc = self.input_rhotheta2rz(
+                        rho[-1], theta[it], phi[ip], t)
+                    bbox[0] = np.nanmin([np.nanmin(rc), bbox[0]])
+                    bbox[1] = np.nanmax([np.nanmax(rc), bbox[1]])
+                    bbox[2] = np.nanmin([np.nanmin(zc), bbox[2]])
+                    bbox[3] = np.nanmax([np.nanmax(zc), bbox[3]])
+
+                # Number of markers drawn per iteration, total number of markers
+                # drawn and area and volume of the test region
+                ndraw  = 10000
+                ntot   = 0
+                atotal = (bbox[1] - bbox[0]) * (bbox[3] - bbox[2])
+                vtotal = 0.5 * (bbox[1]**2 - bbox[0]**2) \
+                    * ( bbox[3] - bbox[2] ) * ( phi[ip+1] - phi[ip] ).v
+                deltarho = 1.0 / (nrho-1)
+                deltath  = 2*np.pi / (ntheta-1)
+
+                v0 = volume[:,:,ip].copy()
+                points_in_bins = np.zeros((nrho-1, ntheta-1))
+                while np.sum(v0) == 0 or \
+                      np.nanmax(np.abs( volume[:,:,ip] - v0 ) / v0)  > tol:
+
+                    v0[:,:] = volume[:,:,ip]
+                    p = np.random.uniform(phi[ip], phi[ip+1], ndraw) * unyt.rad
+                    r = np.random.uniform(bbox[0], bbox[1], ndraw) * unyt.m
+                    z = np.random.uniform(bbox[2], bbox[3], ndraw) * unyt.m
+                    theta = np.arctan2(z-z0,r-r0) + np.pi
+
+                    rho   = self.input_eval(r, p, z, t, "rho").v
+                    ind   = rho <= 1 # Reject markers outside separatrix
+                    i_rho = np.floor(rho[ind] / deltarho).astype(int)
+                    i_theta = np.floor(theta[ind] / deltath).astype(int)
+
+                    np.add.at(points_in_bins, (i_rho, i_theta), 1)
+                    ntot += ndraw
+
+                    area[:,:,ip] = atotal * points_in_bins / ntot
+                    volume[:,:,ip] = vtotal * points_in_bins / ntot
+
+        if return_area and return_coords:
+            return volume, area, r, p, z
+        elif return_area:
+            return volume, area
+        elif return_coords:
+            return volume, r, p, z
+        else:
+            return volume
+
     def _evaluateripple(self, R, z, t, nphi):
         """TBD
         """

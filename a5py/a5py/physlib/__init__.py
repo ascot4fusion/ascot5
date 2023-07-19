@@ -6,6 +6,8 @@ import scipy.constants as constants
 import warnings
 from functools import wraps
 
+from a5py.exceptions import AscotUnitWarning
+
 e     = constants.elementary_charge * unyt.C
 m_e   = constants.physical_constants["electron mass"][0] * unyt.kg
 m_p   = constants.physical_constants["proton mass"][0] * unyt.kg
@@ -55,7 +57,7 @@ def vpar_muppar(m, mu, ppar, b):
 def gamma_momentum(m, p):
     """Evaluate gamma from momentum.
     """
-    if p.shape[0] == 3:
+    if len(p.shape) > 0 and p.shape[0] == 3:
         p = np.sum(p**2, axis=0)
     else:
         p = p**2
@@ -296,7 +298,7 @@ def parseunits(strip=False, **units):
                     msg1 += name + ", "
                     msg2 += str(unit) + ", "
                 msg = msg1[:-2] + msg2[:-2] + ")"
-                warnings.warn(msg, UserWarning)
+                warnings.warn(msg, AscotUnitWarning, stacklevel=2)
 
             return fun(*parsedargs, **kwargs)
 

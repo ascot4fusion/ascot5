@@ -19,8 +19,8 @@ from a5py.exceptions import AscotNoDataException
 
 import a5py.routines.plotting as a5plt
 import a5py.wall as wall
-    
-from a5py.ascot5io import Marker, State, Orbits
+from a5py.ascot5io import Marker, State, Orbits, Dist
+from a5py.ascot5io.dist import DistMoment
 
 class RunMixin():
     """Class with methods to access and plot orbit and state data.
@@ -478,14 +478,187 @@ class RunMixin():
         #wallmesh.cell_data["iangle"][ids] = iangle
         return wallmesh
 
-    def getdist(self, dist):
-        """Calculate distribution function and its moments.
+    def getdist(self, dist, exi=False, ekin_edges=None, pitch_edges=None):
+        """Return distribution function.
 
         Parameters
         ----------
-        dist
+        dist : {"5d", "6d", "rho5d", "rho6d", "com"}
+            Name of the distribution.
+        exi : bool, optional
+            Convert the momentum space to energy-pitch.
+
+            Not applicable for ``dist``={"6d", "rho6d", "com"}.
+
+        Returns
+        -------
+        data : :class:`DistData`
+            The distribution data object.
         """
-        pass
+        mass = np.mean(self.getstate("mass"))
+        if dist == "5d":
+            self._require("_dist5d")
+            dist = self._dist5d.get()
+            if exi:
+                if ekin_edges is None:
+                    ekin_edges  = int(dist.abscissa("ppar").size / 2)
+                if pitch_edges is None:
+                    pitch_edges = dist.abscissa("pperp").size
+                dist = Dist.ppappe2ekinpitch(
+                    dist, mass, ekin_edges=ekin_edges, pitch_edges=pitch_edges)
+        elif dist == "6d":
+            self._require("_dist6d")
+            dist = self._dist6d.get()
+        elif dist == "rho5d":
+            self._require("_distrho5d")
+            dist = self._distrho5d.get()
+            if exi:
+                if ekin_edges is None:
+                    ekin_edges  = int(dist.abscissa("ppar").size / 2)
+                if pitch_edges is None:
+                    pitch_edges = dist.abscissa("pperp").size
+                dist = Dist.ppappe2ekinpitch(
+                    dist, mass, ekin_edges=ekin_edges, pitch_edges=pitch_edges)
+        elif dist == "rho6d":
+            self._require("_distrho6d")
+            dist = self._distrho6d.get()
+        elif dist == "com":
+            self._require("_distcom")
+            dist = self._distcom.get()
+        else:
+            raise ValueError("Unknown distribution")
+
+        return dist
+
+    def getdist_moments(self, dist, *moments):
+        """Calculate moments of distribution.
+
+        Parameters
+        ----------
+        dist : str or :class:`DistData`
+            Distribution from which moments are calculated.
+        *moments : str
+            Moments to be calculated.
+
+        Returns
+        -------
+        out : :class:`DistMoment`
+            Distribution object containing moments as ordinates.
+        """
+        if "rho" in dist.abscissae:
+            rhodist = True
+            nrho   = dist.abscissa_edges("rho").size
+            ntheta = dist.abscissa_edges("theta").size
+            nphi   = dist.abscissa_edges("phi").size
+            volume, area, r, phi, z = self._root._ascot.input_rhovolume(
+                method="prism", nrho=nrho, ntheta=ntheta, nphi=nphi,
+                return_area=True, return_coords=True)
+            out = DistMoment(
+                dist.abscissa_edges("rho"), dist.abscissa_edges("theta"),
+                dist.abscissa_edges("phi"), r, phi, z, area, volume, rhodist)
+        elif all([x in dist.abscissae for x in ["r", "phi", "z"]]):
+            rhodist = False
+            r = dist.abscissa_edges("r")
+            p = dist.abscissa_edges("phi").to("rad").v
+            z = dist.abscissa_edges("z")
+            v1, v2 = np.meshgrid( r[1:] - r[:-1], z[1:] - z[:-1])
+            area = v1 * v2
+            v1, v2, v3 = np.meshgrid(
+                p[1:] - p[:-1], r[1:]**2 - r[:-1]**2, z[1:] - z[:-1])
+            volume = 0.5 * v1 * v2 * v3
+            r, phi, z = np.meshgrid(
+                dist.abscissa("r"), dist.abscissa("phi"), dist.abscissa("z"))
+            out = DistMoment(
+                dist.abscissa_edges("r"), dist.abscissa_edges("phi"),
+                dist.abscissa_edges("z"), r, phi, z, area, volume, rhodist)
+        else:
+            raise ValueError("Distribution has neither rho nor R, phi and z")
+
+        ordinates = {}
+        if "density" in moments:
+            Dist.density(dist, out)
+        if "chargedensity" in moments:
+            Dist.chargedensity(dist, out)
+        if "energydensity" in moments:
+            Dist.energydensity(dist, out)
+        if "toroidalcurrent" in moments:
+            mass = np.mean(self.getstate("mass"))
+            Dist.toroidalcurrent(self._root._ascot, mass, dist, out)
+        return out
+
+    def plotdist(self, dist, axes=None, cax=None):
+        """Plot distribution in 1D or 2D.
+
+        This method assumes that the input distribution has been integrated,
+        sliced, and interpolated so that only one or two dimensions have
+        a size above one.
+
+        Parameters
+        ----------
+        dist : :class:`DistData`
+            The distribution data object.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
+        """
+        x = None; y = None;
+        for key in dist.abscissae:
+            val = dist.abscissa_edges(key)
+            if val.size > 2:
+                if x is None:
+                    x = val
+                    xlabel = key + " [" + x.units + "]"
+                elif y is None:
+                    y = val
+                    ylabel = key + " [" + y.units + "]"
+                else:
+                    raise ValueError(
+                        "The distribution has more than two dimensions with "
+                        + "size greater than one")
+        if x is None: raise ValueError("The distribution is zero dimensional")
+
+        ordinate = np.squeeze(dist.distribution())
+        if y is None:
+            ylabel = "f" + " [" + ordinate.units + "]"
+            a5plt.mesh1d(x, ordinate, xlabel=xlabel, ylabel=ylabel, axes=axes)
+        else:
+            axesequal = x.units == y.units
+            clabel = "f" + " [" + ordinate.units + "]"
+            a5plt.mesh2d(x, y, ordinate, axesequal=axesequal, xlabel=xlabel,
+                         ylabel=ylabel, clabel=clabel, axes=axes, cax=cax)
+
+    def plotdist_moments(self, moment, ordinate, axes=None, cax=None):
+        """Plot radial or (R,z) profile of a distribution moment.
+
+        The plotted profile is the average of (theta, phi) or phi depending
+        on whether the input is calculated from a rho distribution or not.
+
+        Parameters
+        ----------
+        moment: class:`DistMoment`
+            Moments calculated from the distribution.
+        ordinate : str
+            Name of the moment to be plotted.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
+        """
+        if moment.rhodist:
+            ylabel = ordinate
+            ordinate = moment.ordinate(ordinate, toravg=True, polavg=True)
+            ylabel += " [" + str(ordinate.units) + "]"
+            a5plt.mesh1d(moment.rho, ordinate,
+                         xlabel="Normalized poloidal flux",
+                         ylabel=ylabel, axes=axes)
+        else:
+            clabel = ordinate
+            ordinate = moment.ordinate(ordinate, toravg=True)
+            clabel += " [" + str(ordinate.units) + "]"
+            a5plt.mesh2d(moment.r, moment.z, ordinate, axesequal=True,
+                         xlabel="R [m]", ylabel="z [m]", clabel=clabel,
+                         axes=axes, cax=cax)
 
     def plotstate_scatter(self, x, y, z=None, c=None, xmode="gc", ymode="gc",
                           zmode="gc", cmode="gc", endcond=None, ids=None,

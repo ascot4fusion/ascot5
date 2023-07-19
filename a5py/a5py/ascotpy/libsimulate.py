@@ -178,14 +178,14 @@ class LibSimulate():
             :meth:`Prt.write_hdf5`, :meth:`GC.write_hdf5`, or
             :meth:`FL.write_hdf5`.
         """
-        self._virtualmarkers = mrk
         if not _LIBASCOT:
             raise AscotInitException(
                 "Python interface disabled as libascot.so is not found")
         if self._nmrk.value > 0:
             ascot2py.libascot_deallocate(self._inistate)
             self._nmrk.value = 0
-
+            self._virtualmarkers = None
+        self._virtualmarkers = mrk
         nmrk = mrk["n"]
         pin = ascot2py.libascot_allocate_input_particles(nmrk)
         prttypes = ascot2py.input_particle_type__enumvalues
@@ -253,7 +253,6 @@ class LibSimulate():
                 p.time    = mrk["time"][i]
                 p.id      = mrk["ids"][i]
 
-        #pout = ctypes.POINTER(ascot2py.struct_c__SA_input_particle)()
         ascot2py.prepare_markers(
             ctypes.byref(self._sim), self._mpi_size, self._mpi_rank, nmrk,
             ctypes.byref(pin), ctypes.byref(self._inistate),
@@ -329,6 +328,9 @@ class LibSimulate():
             def read(self):
                 return self.inp
 
+        orbits = None
+        if self._sim.diag_offload_data.diagorb_collect:
+            orbits = self._diag_offload_array
         return VirtualRun(self, self._nmrk.value,
                           self._inistate, self._endstate,
                           self._sim.diag_offload_data.diagorb.Npnt,
@@ -336,7 +338,7 @@ class LibSimulate():
                           self._sim.diag_offload_data.diagorb.mode,
                           VirtualInput(self._virtualoptions),
                           VirtualInput(self._virtualmarkers),
-                          self._diag_offload_array)
+                          orbits)
 
     def simulation_free(self, inputs=False, markers=False, diagnostics=False):
         """Free resources used by the interactive simulation.

@@ -423,6 +423,37 @@ def hist2d(x, y, xbins=None, ybins=None, weights=None, xlog="linear",
     cbar.set_label(clabel)
 
 @openfigureifnoaxes(projection=None)
+def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False):
+    """Plot 1D distribution.
+
+    Parameters
+    ----------
+    x : array_like (nx,)
+        Abscissa edges for the x-axis.
+    z : array_like (nx-1,)
+        Data to be plotted.
+    xlabel : str, optional
+        Label for the x-axis.
+    ylabel : str, optional
+        Label for the y-axis.
+    axes : :obj:`~matplotlib.axes.Axes`, optional
+        The axes where figure is plotted or otherwise new figure is created.
+    """
+    xc = np.zeros((y.size*2,))
+    xc[1:-1:2] = x[1:-1]
+    xc[2:-1:2] = x[1:-1]
+    xc[0]      = x[0]
+    xc[-1]     = x[-1]
+    yc = np.zeros((y.size*2,))
+    yc[::2]    = y
+    yc[1::2]   = y
+
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+    axes.set_xlim(x[0], x[-1])
+    axes.plot(xc, yc)
+
+@openfigureifnoaxes(projection=None)
 def mesh2d(x, y, z, log=False, diverging=False, xlabel=None, ylabel=None,
            clabel=None, clim=[None, None], cmap=None, axesequal=False,
            axes=None, cax=None):
@@ -430,10 +461,10 @@ def mesh2d(x, y, z, log=False, diverging=False, xlabel=None, ylabel=None,
 
     Parameters
     ----------
-    x : array_like (nx,)
-        Abscissa for the x-axis.
-    y : array_like (ny,)
-        Abscissa for the y-axis.
+    x : array_like (nx,) or (nx+1,)
+        Abscissa or abscissa edges for the x-axis.
+    y : array_like (ny,) or (ny+1,)
+        Abscissa or abscissa edges for the y-axis.
     z : array_like (nx,ny)
         Data to be plotted.
     log : bool, optional
@@ -481,7 +512,8 @@ def mesh2d(x, y, z, log=False, diverging=False, xlabel=None, ylabel=None,
             if cmap == None: cmap = "viridis"
             norm = mpl.colors.Normalize(vmin=clim[0], vmax=clim[1])
 
-    pcm = axes.pcolormesh(x, y, z.T, norm=norm, cmap=cmap, shading="nearest")
+    shading = "nearest" if z.shape == (x.size,y.size) else "flat"
+    pcm = axes.pcolormesh(x, y, z.T, norm=norm, cmap=cmap, shading=shading)
     axes.patch.set(hatch='x', edgecolor=[0.9, 0.9, 0.9])
 
     axes.set_xlim(x[0], x[-1])

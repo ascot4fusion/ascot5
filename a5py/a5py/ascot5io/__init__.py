@@ -14,11 +14,8 @@ from .nbi     import NBI
 from a5py.ascot5io.state      import State
 from a5py.ascot5io.orbits     import Orbits
 from a5py.ascot5io.transcoef  import Transcoef
-from a5py.ascot5io.dist_5D    import Dist_5D
-from a5py.ascot5io.dist_6D    import Dist_6D
-from a5py.ascot5io.dist_rho5D import Dist_rho5D
-from a5py.ascot5io.dist_rho6D import Dist_rho6D
-from a5py.ascot5io.dist_com   import Dist_COM
+from .dist import Dist_5D, Dist_6D, Dist_rho5D, Dist_rho6D, Dist_COM
+from .dist import Dist
 
 from .coreio.fileapi import INPUTGROUPS
 from .coreio.treeview import RootNode, InputNode, ResultNode

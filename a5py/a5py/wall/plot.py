@@ -11,8 +11,6 @@ plt = util.find_spec("matplotlib")
 if plt:
         import matplotlib.pyplot as plt
 
-import a5py.postprocessing.mathlib as mathlib
-
 def plot_segments(x, y, axes=None):
     """
     """

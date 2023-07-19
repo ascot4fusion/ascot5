@@ -227,7 +227,7 @@ class plasma_1DS(DataGroup):
         return out
 
     @staticmethod
-    def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rho,
+    def write_hdf5(fn, nrho, nion, anum, znum, mass, charge, rhomin, rhomax,
                    edensity, etemperature, idensity, itemperature, desc=None):
         """Write input data to the HDF5 file.
 
@@ -247,8 +247,10 @@ class plasma_1DS(DataGroup):
             Ion species mass [amu].
         charge : array_like (nion,1)
             Ion species charge [e].
-        rho : array_like (nrho,1)
-            rho grid, doesn't have to be uniform.
+        rhomin : float
+            Minimum rho grid value.
+        rhomax : float
+            Maximum rho grid value.
         edensity : array_like (nrho,1)
             Electron density [m^-3].
         etemperature : array_like (nrho,1)
@@ -295,7 +297,8 @@ class plasma_1DS(DataGroup):
             g.create_dataset('anum',   (nion,1), data=anum,   dtype='i4')
             g.create_dataset('charge', (nion,1), data=charge, dtype='i4')
             g.create_dataset('mass',   (nion,1), data=mass,   dtype='f8')
-            g.create_dataset('rho',    (nrho,1), data=rho,    dtype='f8')
+            g.create_dataset('rhomin', (1,1),    data=rhomin, dtype='f8')
+            g.create_dataset('rhomax', (1,1),    data=rhomax, dtype='f8')
 
             g.create_dataset('etemperature', (nrho,1),    data=etemperature,
                              dtype='f8')
@@ -331,6 +334,6 @@ class plasma_1DS(DataGroup):
         return plasma_1DS.write_hdf5(
             fn=fn, nrho=3, nion=1, znum=np.array([1]), anum=np.array([1]),
             mass=np.array([1]), charge=np.array([1]),
-            rho=np.array([0, 0.5, 100]), edensity=1e20*np.ones((3,1)),
+            rhomin=0, rhomax=100, edensity=1e20*np.ones((3,1)),
             etemperature=1e3*np.ones((3,1)), idensity=1e20*np.ones((3,1)),
             itemperature=1e20*np.ones((3,1)), desc="DUMMY")

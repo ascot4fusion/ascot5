@@ -39,14 +39,10 @@ class B_TC(DataGroup):
             Data read from HDF5 stored in the same format as is passed to
             :meth:`write_hdf5`.
         """
-        fn   = self._root._ascot.file_getpath()
-        path = self._path
-
         out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                out[key] = f[path][key][:]
-
+        with self as f:
+            for key in f:
+                out[key] = f[key][:]
         return out
 
     @staticmethod
@@ -154,13 +150,10 @@ class B_GS(DataGroup):
             Data read from HDF5 stored in the same format as is passed to
             :meth:`write_hdf5`.
         """
-        fn   = self._root._ascot.file_getpath()
-        path = self._path
-
         out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                out[key] = f[path][key][:]
+        with self as f:
+            for key in f:
+                out[key] = f[key][:]
 
         return out
 
@@ -314,13 +307,10 @@ class B_2DS(DataGroup):
             Data read from HDF5 stored in the same format as is passed to
             :meth:`write_hdf5`.
         """
-        fn   = self._root._ascot.file_getpath()
-        path = self._path
-
         out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                out[key] = f[path][key][:]
+        with self as f:
+            for key in f:
+                out[key] = f[key][:]
 
         out["psi"]  = np.transpose(out["psi"])
         out["br"]   = np.transpose(out["br"])
@@ -569,13 +559,10 @@ class B_3DS(DataGroup):
             Data read from HDF5 stored in the same format as is passed to
             :meth:`write_hdf5`.
         """
-        fn   = self._root._ascot.file_getpath()
-        path = self._path
-
         out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                out[key] = f[path][key][:]
+        with self as f:
+            for key in f:
+                out[key] = f[key][:]
 
         out["psi"]  = np.transpose(out["psi"])
         out["br"]   = np.transpose(out["br"],   (2,1,0))
@@ -850,13 +837,10 @@ class B_3DST(DataGroup):
             Data read from HDF5 stored in the same format as is passed to
             :meth:`write_hdf5`.
         """
-        fn   = self._root._ascot.file_getpath()
-        path = self._path
-
         out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                out[key] = f[path][key][:]
+        with self as f:
+            for key in f:
+                out[key] = f[key][:]
 
         out["psi"]  = np.transpose(out["psi"])
         out["br"]   = np.transpose(out["br"],   (3,2,1,0))
@@ -1055,13 +1039,10 @@ class B_STS(DataGroup):
             Data read from HDF5 stored in the same format as is passed to
             :meth:`write_hdf5`.
         """
-        fn   = self._root._ascot.file_getpath()
-        path = self._path
-
         out = {}
-        with h5py.File(fn,"r") as f:
-            for key in f[path]:
-                out[key] = f[path][key][:]
+        with self as f:
+            for key in f:
+                out[key] = f[key][:]
 
         out["psi"]  = np.transpose(out["psi"],  (2,1,0))
         out["br"]   = np.transpose(out["br"],   (2,1,0))
