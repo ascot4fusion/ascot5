@@ -129,6 +129,10 @@ void simulate(int id, int n_particles, particle_state* p,
             sim_offload->mhd_offload_data.offload_array_length);
     mhd_init(&sim.mhd_data, &sim_offload->mhd_offload_data, ptr);
 
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->asigma_offload_data.offload_array_length);
+    asigma_init(&sim.asigma_data, &sim_offload->asigma_offload_data, ptr);
+
     diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
               diag_offload_array);
 

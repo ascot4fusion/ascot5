@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include "../ascot5.h"
 #include "../math.h"
+#include "../physlib.h"
 #include "../consts.h"
 #include "../error.h"
 #include "../print.h"
@@ -29,14 +30,15 @@
 a5err atomic_rates(
     real* rate_eff_ion, real* rate_eff_rec, int z_1, int a_1, real m_1,
     const int* z_2, const int* a_2, const real* m_2, asigma_data* asgm_data,
-    int q, real E, int N_pls_spec, real* T, real T_0, real* n, real n_0);
+    int q, real E, int N_pls_spec, int N_ntl_spec, real* T, real* T_0,
+    real* n, real* n_0, int* enable_atomic);
 #pragma omp declare simd
 a5err atomic_react(
     int* q, real dt, real rate_eff_ion, real rate_eff_rec, int z_1, real rnd);
 #pragma omp end declare target
 
 /**
- * @brief Determine if atomic reactions occur during one time-step
+ * @brief Determine if atomic reactions occur during time-step and change charge
  *
  * The terms ionization and recombination are used loosely in variable names.
  * Ionization (ion) stands for all charge-increasing reactions, and
@@ -47,11 +49,13 @@ a5err atomic_react(
  * @param p_data pointer to plasma data
  * @param n_data pointer to neutral data
  * @param r_data pointer to random-generator data
- * @param asigma_data pointer to atomic reaction data
+ * @param asgm_data pointer to atomic reaction data
+ * @param enable_atomic pointer to atomic enable and functionality flag
  */
 void atomic_fo(particle_simd_fo* p, real* h,
                plasma_data* p_data, neutral_data* n_data,
-               random_data* r_data, asigma_data* asigmadata) {
+               random_data* r_data, asigma_data* asigmadata,
+               int* enable_atomic) {
 
     /* Generate random numbers and get plasma information before going to the *
      * SIMD loop                                                              */
@@ -59,6 +63,7 @@ void atomic_fo(particle_simd_fo* p, real* h,
     random_uniform_simd(r_data, NSIMD, rnd);
 
     int N_pls_spec  = plasma_get_n_species(p_data);
+    int N_ntl_spec  = neutral_get_n_species(n_data);
     const real* m_2 = plasma_get_species_mass(p_data);
     const int* z_2  = plasma_get_species_znum(p_data);
     const int* a_2  = plasma_get_species_anum(p_data);
@@ -74,7 +79,7 @@ void atomic_fo(particle_simd_fo* p, real* h,
             p_comps[1] = p->p_phi[i];
             p_comps[2] = p->p_z[i];
             real p_norm   = math_norm(p_comps);
-            real E = p_norm*p_norm/(2*p->mass[i]);
+            real E = physlib_Ekin_pnorm(p->mass[i], p_norm);
 
             /* Evaluate plasma density and temperature */
             real n_2[MAX_SPECIES], T_2[MAX_SPECIES];
@@ -107,9 +112,10 @@ void atomic_fo(particle_simd_fo* p, real* h,
                                        z_2, a_2, m_2,
                                        asigmadata,
                                        q, E,
-                                       N_pls_spec,
-                                       T_2, T_0[0],
-                                       n_2, n_0[0]);
+                                       N_pls_spec, N_ntl_spec,
+                                       T_2, T_0,
+                                       n_2, n_0,
+                                       enable_atomic);
             }
 
             /* Determine if an atomic reaction occurs */
@@ -154,27 +160,24 @@ void atomic_fo(particle_simd_fo* p, real* h,
  * @param asigmadata pointer to atomic data struct
  * @param q charge of fast particle
  * @param E energy of fast particle
- * @param N_pls_spec of species in bulk plasma
+ * @param N_pls_spec number of species in bulk plasma
+ * @param N_ntl_spec number of species in bulk neutrals
  * @param T temperature of bulk plasma species
- * @param T_0 temperature of bulk neutrals
+ * @param T_0 temperature of bulk neutral species
  * @param n density of bulk plasma species
- * @param n_0 density of bulk neutrals
+ * @param n_0 density of bulk neutral species
+ * @param enable_atomic pointer to atomic enable and functionality flag
  *
  * @return zero if evaluation succeeded
  *
- * @todo
- * - Implement a more general algorithm for the determination of reaction
- * rates based on charge state!
- * - Implement multiple neutral species (in ASCOT5 as a whole), and
- * account for this in the call to asigma_eval_sigmav()!
- * - Any error raised by the asigma_eval_sigmav() call to determine the rate
- * coefficient for recombinaton to a free electron is overwritten by the
- * asigma_eval_sigmav() call to determine the rate coefficient for CX.
+ * @todo Implement a more general algorithm for the determination of reaction
+ *   rates based on charge state!
  */
 a5err atomic_rates(
     real* rate_eff_ion, real* rate_eff_rec, int z_1, int a_1, real m_1,
     const int* z_2, const int* a_2, const real* m_2, asigma_data* asigmadata,
-    int q, real E, int N_pls_spec, real* T, real T_0, real* n, real n_0) {
+    int q, real E, int N_pls_spec, int N_ntl_spec, real* T, real* T_0,
+    real* n, real* n_0, int* enable_atomic) {
     a5err err = 0;
 
     /* Define a helper variable for storing rate coefficients, and
@@ -184,75 +187,59 @@ a5err atomic_rates(
     *rate_eff_ion = 0;
 
     /* Based on particle charge state, reaction rates are calculated for
-       possible reactions using the asigma helper module. Asigma
-       typically does not return a reaction rate. Instead, it might for
-       example return a rate coefficient. A rate coefficient must be
-       multiplied by the density of the reaction counterpart to obtain
-       the reaction rate.
+       possible reactions using the asigma helper module. Typically, asigma
+       does not return a reaction rate. Instead, it might for example return
+       a rate coefficient. A rate coefficient must be multiplied by the
+       density of the reaction counterpart to obtain the reaction rate.
        NOTE: Currently, only two charge states and a limited range of
        reaction types are implemented. */
     if(q == 1) {
-        /* Test particle has charge state +1. Several possible recombining
-           (charge-decreasing) reactions exist. */
-        /* Recombination to free electron */
-        err = asigma_eval_sigmav(&sigmav,
-                                 z_1, a_1,
-                                 z_2[0], a_2[0],
-                                 0,//reac_type_sigmav_rec,
-                                 asigmadata,
-                                 E,
-                                 T[0], &T[1], T_0,
-                                 n[0], &n[1], 0);
-        *rate_eff_rec += sigmav*n[0];
-        /* Charge exchange (CX).
-           NOTE: The loop over neutral species is currently only a placeholder.
-           Note that the upper loop limit is a hardcoded 1! The reason is that
-           the current implementation allows for only one neutral species.
-           Note that T_0 and n_0 are scalar variables! */
-        for(int i_spec = 0; i_spec < 1; i_spec++) {
+        /* Test particle has charge state +1. Evaluate the rate coefficient
+           and multiply it by the reaction counterpart density to find the
+           reaction rate for a recombining (charge-decreasing) reaction. */
+        /* Charge exchange (CX)
+           NOTE: Ion density is not used in asigma_eval_sigmav() for
+           reac_type_sigmav_CX, so just pass density of main bulk ion species
+           as the dummy parameter. */
+        for(int i_spec = 0; i_spec < N_ntl_spec; i_spec++) {
             err = asigma_eval_sigmav(&sigmav,
-                                     z_1, a_1,
+                                     z_1, a_1, m_1,
                                      z_2[i_spec], a_2[i_spec],
-                                     0,//reac_type_sigmav_CX,
+                                     reac_type_sigmav_CX,
                                      asigmadata,
                                      E,
-                                     T[0], &T[i_spec+1], T_0,
-                                     n[0], &n[i_spec+1], i_spec);
-            *rate_eff_rec += sigmav*n_0;
+                                     T[0], T_0[i_spec], n[1],
+                                     enable_atomic);
+            *rate_eff_rec += sigmav*n_0[i_spec];
         }
     } else if(q == 0) {
-        /* Test particle is neutral. We use beam-stopping (BMS) coefficients
-           to calculate the ionization probability. The BMS coefficient
-           returned by asigma_eval_sigmav() is multiplied by the electron
-           density corresponding to the reaction counterpart density because
-           of how BMS coefficients are defined. The species index maximum
-           excludes electrons.
-           NOTE: The below iteration over ion species and cumulation of
-           the reaction rate does not work with the Suzuki model, which
-           currently might be called inside asigma_loc_eval_sigmav(...), which
-           is called inside the below asigma_eval_sigmav(...). However, the
-           best fix is probably to move Suzuki away from
-           asigma_loc_eval_sigmav(...), where it never belonged in the first
-           place since the "loc" submodule is for when local-file atomic data
-           is used.
+        /* Test particle is neutral. Evaluate the beam-stopping (BMS)
+           coefficient. Because of how BMS coefficients are defined, to
+           determine the reaction rate, the BMS coefficient returned by
+           asigma_eval_sigmav() is multiplied by the electron density
+           corresponding to the ionic reaction counterpart density. The
+           species index maximum excludes electrons.
            NOTE: Fully ionized ions are assumed when multiplying the effective
-           rate coefficient by the electron density corresponding to the
-           reaction counterpart density. */
+           rate coefficient by the electron density corresponding to the ionic
+           reaction counterpart density.
+           NOTE: Neutral temperature is not used in asigma_eval_sigmav() for
+           reac_type_BMS_sigmav, so just pass temperature of main bulk neutral
+           species as the dummy parameter. */
         for(int i_spec = 0; i_spec < (N_pls_spec-1); i_spec++) {
             err = asigma_eval_sigmav(&sigmav,
-                                     z_1, a_1,
+                                     z_1, a_1, m_1,
                                      z_2[i_spec], a_2[i_spec],
-                                     0,//reac_type_BMS_sigmav,
+                                     reac_type_BMS_sigmav,
                                      asigmadata,
                                      E,
-                                     T[0], &T[i_spec+1], T_0,
-                                     n[0], &n[i_spec+1], i_spec);
+                                     T[0], T_0[0], n[i_spec+1],
+                                     enable_atomic);
             *rate_eff_ion += sigmav*z_2[i_spec]*n[i_spec+1];
         }
     } else {
         print_err("Warning: Test particle has a charge state for which "
                   "determination of atomic reaction rates has not "
-                  "been implemented\n");
+                  "been implemented.\n");
         err = error_raise( ERR_ATOMIC_EVALUATION, __LINE__, EF_ATOMIC );
     }
 
