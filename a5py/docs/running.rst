@@ -353,104 +353,140 @@ Additional parameters can be found in ``ascot5.h``, but there is rarely a need t
 Options
 =======
 
+.. currentmodule:: a5py.ascot5io.options
+
+.. rubric:: Simulation mode and time step
+
 .. autosummary::
 
-   a5py.ascot5io.options.Opt._SIM_MODE
-   a5py.ascot5io.options.Opt._ENABLE_ADAPTIVE
-   a5py.ascot5io.options.Opt._RECORD_MODE
-   a5py.ascot5io.options.Opt._FIXEDSTEP_USE_USERDEFINED
-   a5py.ascot5io.options.Opt._FIXEDSTEP_USERDEFINED
-   a5py.ascot5io.options.Opt._FIXEDSTEP_GYRODEFINED
-   a5py.ascot5io.options.Opt._ADAPTIVE_TOL_ORBIT
-   a5py.ascot5io.options.Opt._ADAPTIVE_TOL_CCOL
-   a5py.ascot5io.options.Opt._ADAPTIVE_MAX_DRHO
-   a5py.ascot5io.options.Opt._ADAPTIVE_MAX_DPHI
-   a5py.ascot5io.options.Opt._ENDCOND_SIMTIMELIM
-   a5py.ascot5io.options.Opt._ENDCOND_CPUTIMELIM
-   a5py.ascot5io.options.Opt._ENDCOND_RHOLIM
-   a5py.ascot5io.options.Opt._ENDCOND_ENERGYLIM
-   a5py.ascot5io.options.Opt._ENDCOND_WALLHIT
-   a5py.ascot5io.options.Opt._ENDCOND_MAXORBS
-   a5py.ascot5io.options.Opt._ENDCOND_NEUTRALIZED
-   a5py.ascot5io.options.Opt._ENDCOND_IONIZED
-   a5py.ascot5io.options.Opt._ENDCOND_LIM_SIMTIME
-   a5py.ascot5io.options.Opt._ENDCOND_MAX_MILEAGE
-   a5py.ascot5io.options.Opt._ENDCOND_MAX_CPUTIME
-   a5py.ascot5io.options.Opt._ENDCOND_MAX_RHO
-   a5py.ascot5io.options.Opt._ENDCOND_MIN_RHO
-   a5py.ascot5io.options.Opt._ENDCOND_MIN_ENERGY
-   a5py.ascot5io.options.Opt._ENDCOND_MIN_THERMAL
-   a5py.ascot5io.options.Opt._ENDCOND_MAX_TOROIDALORBS
-   a5py.ascot5io.options.Opt._ENDCOND_MAX_POLOIDALORBS
-   a5py.ascot5io.options.Opt._ENABLE_ORBIT_FOLLOWING
-   a5py.ascot5io.options.Opt._ENABLE_COULOMB_COLLISIONS
-   a5py.ascot5io.options.Opt._ENABLE_MHD
-   a5py.ascot5io.options.Opt._ENABLE_ATOMIC
-   a5py.ascot5io.options.Opt._DISABLE_FIRSTORDER_GCTRANS
-   a5py.ascot5io.options.Opt._DISABLE_ENERGY_CCOLL
-   a5py.ascot5io.options.Opt._DISABLE_PITCH_CCOLL
-   a5py.ascot5io.options.Opt._DISABLE_GCDIFF_CCOLL
-   a5py.ascot5io.options.Opt._ENABLE_DIST_5D
-   a5py.ascot5io.options.Opt._ENABLE_DIST_6D
-   a5py.ascot5io.options.Opt._ENABLE_DIST_RHO5D
-   a5py.ascot5io.options.Opt._ENABLE_DIST_RHO6D
-   a5py.ascot5io.options.Opt._DIST_MIN_R
-   a5py.ascot5io.options.Opt._DIST_MAX_R
-   a5py.ascot5io.options.Opt._DIST_NBIN_R
-   a5py.ascot5io.options.Opt._DIST_MIN_PHI
-   a5py.ascot5io.options.Opt._DIST_MAX_PHI
-   a5py.ascot5io.options.Opt._DIST_NBIN_PHI
-   a5py.ascot5io.options.Opt._DIST_MIN_Z
-   a5py.ascot5io.options.Opt._DIST_MAX_Z
-   a5py.ascot5io.options.Opt._DIST_NBIN_Z
-   a5py.ascot5io.options.Opt._DIST_MIN_RHO
-   a5py.ascot5io.options.Opt._DIST_MAX_RHO
-   a5py.ascot5io.options.Opt._DIST_NBIN_RHO
-   a5py.ascot5io.options.Opt._DIST_MIN_THETA
-   a5py.ascot5io.options.Opt._DIST_MAX_THETA
-   a5py.ascot5io.options.Opt._DIST_NBIN_THETA
-   a5py.ascot5io.options.Opt._DIST_MIN_PPA
-   a5py.ascot5io.options.Opt._DIST_MAX_PPA
-   a5py.ascot5io.options.Opt._DIST_NBIN_PPA
-   a5py.ascot5io.options.Opt._DIST_MIN_PPE
-   a5py.ascot5io.options.Opt._DIST_MAX_PPE
-   a5py.ascot5io.options.Opt._DIST_NBIN_PPE
-   a5py.ascot5io.options.Opt._DIST_MIN_PR
-   a5py.ascot5io.options.Opt._DIST_MAX_PR
-   a5py.ascot5io.options.Opt._DIST_NBIN_PR
-   a5py.ascot5io.options.Opt._DIST_MIN_PPHI
-   a5py.ascot5io.options.Opt._DIST_MAX_PPHI
-   a5py.ascot5io.options.Opt._DIST_NBIN_PPHI
-   a5py.ascot5io.options.Opt._DIST_MIN_PZ
-   a5py.ascot5io.options.Opt._DIST_MAX_PZ
-   a5py.ascot5io.options.Opt._DIST_NBIN_PZ
-   a5py.ascot5io.options.Opt._DIST_MIN_TIME
-   a5py.ascot5io.options.Opt._DIST_MAX_TIME
-   a5py.ascot5io.options.Opt._DIST_NBIN_TIME
-   a5py.ascot5io.options.Opt._DIST_MIN_CHARGE
-   a5py.ascot5io.options.Opt._DIST_MAX_CHARGE
-   a5py.ascot5io.options.Opt._DIST_NBIN_CHARGE
-   a5py.ascot5io.options.Opt._ENABLE_DIST_COM
-   a5py.ascot5io.options.Opt._DIST_MIN_MU
-   a5py.ascot5io.options.Opt._DIST_MAX_MU
-   a5py.ascot5io.options.Opt._DIST_NBIN_MU
-   a5py.ascot5io.options.Opt._DIST_MIN_EKIN
-   a5py.ascot5io.options.Opt._DIST_MAX_EKIN
-   a5py.ascot5io.options.Opt._DIST_NBIN_EKIN
-   a5py.ascot5io.options.Opt._DIST_MIN_PTOR
-   a5py.ascot5io.options.Opt._DIST_MAX_PTOR
-   a5py.ascot5io.options.Opt._DIST_NBIN_PTOR
-   a5py.ascot5io.options.Opt._ENABLE_ORBITWRITE
-   a5py.ascot5io.options.Opt._ORBITWRITE_MODE
-   a5py.ascot5io.options.Opt._ORBITWRITE_NPOINT
-   a5py.ascot5io.options.Opt._ORBITWRITE_POLOIDALANGLES
-   a5py.ascot5io.options.Opt._ORBITWRITE_TOROIDALANGLES
-   a5py.ascot5io.options.Opt._ORBITWRITE_RADIALDISTANCES
-   a5py.ascot5io.options.Opt._ORBITWRITE_INTERVAL
-   a5py.ascot5io.options.Opt._ENABLE_TRANSCOEF
-   a5py.ascot5io.options.Opt._TRANSCOEF_INTERVAL
-   a5py.ascot5io.options.Opt._TRANSCOEF_NAVG
-   a5py.ascot5io.options.Opt._TRANSCOEF_RECORDRHO
+   ~Opt._SIM_MODE
+   ~Opt._ENABLE_ADAPTIVE
+   ~Opt._RECORD_MODE
+   ~Opt._FIXEDSTEP_USE_USERDEFINED
+   ~Opt._FIXEDSTEP_USERDEFINED
+   ~Opt._FIXEDSTEP_GYRODEFINED
+   ~Opt._ADAPTIVE_TOL_ORBIT
+   ~Opt._ADAPTIVE_TOL_CCOL
+   ~Opt._ADAPTIVE_MAX_DRHO
+   ~Opt._ADAPTIVE_MAX_DPHI
+
+.. rubric:: Simulation end conditions
+
+.. autosummary::
+
+   ~Opt._ENDCOND_SIMTIMELIM
+   ~Opt._ENDCOND_CPUTIMELIM
+   ~Opt._ENDCOND_RHOLIM
+   ~Opt._ENDCOND_ENERGYLIM
+   ~Opt._ENDCOND_WALLHIT
+   ~Opt._ENDCOND_MAXORBS
+   ~Opt._ENDCOND_NEUTRALIZED
+   ~Opt._ENDCOND_IONIZED
+   ~Opt._ENDCOND_LIM_SIMTIME
+   ~Opt._ENDCOND_MAX_MILEAGE
+   ~Opt._ENDCOND_MAX_CPUTIME
+   ~Opt._ENDCOND_MAX_RHO
+   ~Opt._ENDCOND_MIN_RHO
+   ~Opt._ENDCOND_MIN_ENERGY
+   ~Opt._ENDCOND_MIN_THERMAL
+   ~Opt._ENDCOND_MAX_TOROIDALORBS
+   ~Opt._ENDCOND_MAX_POLOIDALORBS
+
+.. rubric:: Active physics
+
+.. autosummary::
+
+   ~Opt._ENABLE_ORBIT_FOLLOWING
+   ~Opt._ENABLE_COULOMB_COLLISIONS
+   ~Opt._ENABLE_MHD
+   ~Opt._ENABLE_ATOMIC
+   ~Opt._DISABLE_FIRSTORDER_GCTRANS
+   ~Opt._DISABLE_ENERGY_CCOLL
+   ~Opt._DISABLE_PITCH_CCOLL
+   ~Opt._DISABLE_GCDIFF_CCOLL
+
+.. rubric:: Distributions
+
+.. autosummary::
+
+   ~Opt._ENABLE_DIST_5D
+   ~Opt._ENABLE_DIST_6D
+   ~Opt._ENABLE_DIST_RHO5D
+   ~Opt._ENABLE_DIST_RHO6D
+   ~Opt._DIST_MIN_R
+   ~Opt._DIST_MAX_R
+   ~Opt._DIST_NBIN_R
+   ~Opt._DIST_MIN_PHI
+   ~Opt._DIST_MAX_PHI
+   ~Opt._DIST_NBIN_PHI
+   ~Opt._DIST_MIN_Z
+   ~Opt._DIST_MAX_Z
+   ~Opt._DIST_NBIN_Z
+   ~Opt._DIST_MIN_RHO
+   ~Opt._DIST_MAX_RHO
+   ~Opt._DIST_NBIN_RHO
+   ~Opt._DIST_MIN_THETA
+   ~Opt._DIST_MAX_THETA
+   ~Opt._DIST_NBIN_THETA
+   ~Opt._DIST_MIN_PPA
+   ~Opt._DIST_MAX_PPA
+   ~Opt._DIST_NBIN_PPA
+   ~Opt._DIST_MIN_PPE
+   ~Opt._DIST_MAX_PPE
+   ~Opt._DIST_NBIN_PPE
+   ~Opt._DIST_MIN_PR
+   ~Opt._DIST_MAX_PR
+   ~Opt._DIST_NBIN_PR
+   ~Opt._DIST_MIN_PPHI
+   ~Opt._DIST_MAX_PPHI
+   ~Opt._DIST_NBIN_PPHI
+   ~Opt._DIST_MIN_PZ
+   ~Opt._DIST_MAX_PZ
+   ~Opt._DIST_NBIN_PZ
+   ~Opt._DIST_MIN_TIME
+   ~Opt._DIST_MAX_TIME
+   ~Opt._DIST_NBIN_TIME
+   ~Opt._DIST_MIN_CHARGE
+   ~Opt._DIST_MAX_CHARGE
+   ~Opt._DIST_NBIN_CHARGE
+
+.. rubric:: Constant of motion distribution
+
+.. autosummary::
+
+   ~Opt._ENABLE_DIST_COM
+   ~Opt._DIST_MIN_MU
+   ~Opt._DIST_MAX_MU
+   ~Opt._DIST_NBIN_MU
+   ~Opt._DIST_MIN_EKIN
+   ~Opt._DIST_MAX_EKIN
+   ~Opt._DIST_NBIN_EKIN
+   ~Opt._DIST_MIN_PTOR
+   ~Opt._DIST_MAX_PTOR
+   ~Opt._DIST_NBIN_PTOR
+
+.. rubric:: Recording marker trajectories
+
+.. autosummary::
+
+   ~Opt._ENABLE_ORBITWRITE
+   ~Opt._ORBITWRITE_MODE
+   ~Opt._ORBITWRITE_NPOINT
+   ~Opt._ORBITWRITE_POLOIDALANGLES
+   ~Opt._ORBITWRITE_TOROIDALANGLES
+   ~Opt._ORBITWRITE_RADIALDISTANCES
+   ~Opt._ORBITWRITE_INTERVAL
+
+.. rubric:: Transport coefficients
+
+.. autosummary::
+
+   ~Opt._ENABLE_TRANSCOEF
+   ~Opt._TRANSCOEF_INTERVAL
+   ~Opt._TRANSCOEF_NAVG
+   ~Opt._TRANSCOEF_RECORDRHO
+
+.. currentmodule:: a5py
 
 .. _Simulations:
 

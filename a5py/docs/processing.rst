@@ -457,7 +457,7 @@ Marker states can be visualized conveniently with :meth:`~RunGroup.plotstate_sca
    RunGroup
    RunGroup.getstate
    RunGroup.getstate_list
-   RunGroup.getstate_summary
+   RunGroup.getstate_markersummary
    RunGroup.plotstate_scatter
    RunGroup.plotstate_histogram
 
@@ -525,17 +525,123 @@ In most cases the reason for the error is that the marker input contains non-phy
 To list all end conditions and possible errors, use the :meth:`~RunGroup.getstate_summary` method.
 The error shows the error message and the line and file in which it originated.
 
-Exceptions
-==========
+Distributions
+=============
 
-These are the custom exceptions used by :mod:`a5py`.
+ASCOT5 can be used to collect N-dimensional histograms that represent distribution of the simulated particle population in phase-space.
+There are in total of five distributions that can be collected:
+
+  - ``5d`` Distribution in (R, phi, z, ppar, pperp).
+  - ``6d`` Distribution in (R, phi, z, pR, pphi, pz).
+  - ``rho5d`` Distribution in (rho, theta, phi, ppar, pperp).
+  - ``rho6d`` Distribution in (rho, theta, pR, phi, pz).
+  - ``com`` Distribution in (mu, ekin, ptor), i.e. in constants of motion space (first adiabatic invariant, energy, canonical toroidal angluar momentum).
+
+While all distributions can be collected irrespective of the simulation mode, there are few considerations.
+If you are only interested in the distribution function itself, use either ``5d``/``rho5d`` or ``6d``/``rho6d`` depending on whether the simulation is in guiding -center (5D) or gyro-orbit (6D) mode and in what real-space basis you need the distribution in.
+``com`` is for special cases.
+However, if you are also interested in moments of the distribution, choose one of the 5D distributions: ``rho5d`` can be used to calculate 1D profiles of the moments while ``5d`` can be used for (R, z) profiles.
+
+In addition to the phase-space coordinates stated here, all distributions (except ``com``) can also have charge state and time as additional coordinates.
+Note though that other than that there is no way to separate contributions from different particles.
+It is advisable to run separate simulations when there are e.g. several NBIs so that their contributions can be separated.
+Finally, all markers should have same mass when distributions are collected as the mass is not a separate coordinate.
+
+Distribution data is obtained in post-processing with the method :meth:`~RunGroup.getdist`, which returns a :class:`~a5py.ascot5io.dist.DistData` object.
+For 5D distributions it is possible to change the momentum space from parallel and perpendicular momentum to energy and pitch.
+
+.. code-block:: python
+
+   # Return 5d distribution
+   dist = a5.data.active.getdist("5d")
+
+   # 5D distribution where momentum space is converted to energy-pitch
+   exidist = a5.data.active.getdist("5d", exi=True)
+
+   # List containing names of the abscissae
+   print(dist.abscissae)
+
+   # Get abscissa and edges of an abscissa
+   dist.abscissa("r")
+   dist.abscissa_edges("r")
+
+   # Distribution (function) and histogram (particles per bin)
+   dist.distribution()
+   dist.histogram()
+
+The resulting distribution data can be easily sliced, integrated and interpolated using the methods of :class:`~a5py.ascot5io.dist.DistData`.
+One can use these methods to process the distribution until it has only one or two non-singleton dimensions left and it can be visualized.
+
+.. code-block:: python
+
+   dist = a5.data.active.getdist("5d")
+
+   # Integrate over time dimension. Also integrate over the charge dimension
+   # but use charge as a weight.
+   dist.integrate(time=np.s_[:], charge=dist.abscissa("charge"))
+
+   # Take slices and interpolate. These operations won't reduce dimensionality but
+   # they reduce the size of the dimensions to one.
+   dist.slice(ppar=np.s_[0], pperp=np.s_[0])
+   dist.interpolate(phi=2*unyt.deg)
+
+   # Two non-singleton dimensions (R and z) remain so the distribution can be visualized
+   a5.data.active.plotdist(dist)
+
+Moments are calculated with :meth:`~RunGroup.getdist_moments` and they are represented with :class:`~a5py.ascot5io.dist.DistMoment` object.
+Note that some of the moments require that the input data such as the magnetic field is initialized first.
+
+.. code-block:: python
+
+   # Calculate and plot toroidally averaged density on (R,z) plane
+   dist = a5.data.active.getdist("5d")
+   mom = a5.data.active.getdist_moments(dist, "density", "chargedensity")
+   a5.plotdist_moments(mom, "density")
+
+   # Calculate and plot 1D profile of a toroidally and poloidally averaged density
+   dist = a5.data.active.getdist("rho5d")
+   mom = a5.data.active.getdist_moments(dist, "density", "chargedensity")
+   a5.plotdist_moments(mom, "density")
 
 .. autosummary::
    :nosignatures:
 
-   a5py.exceptions.AscotIOException
-   a5py.exceptions.AscotNoDataException
-   a5py.exceptions.AscotInitException
+   RunGroup.getdist
+   RunGroup.getdist_moments
+   RunGroup.plotdist
+   RunGroup.plotdist_moments
+
+.. currentmodule:: a5py.ascot5io.dist
+
+.. autosummary::
+   :nosignatures:
+
+   DistData
+   DistData.distribution
+   DistData.histogram
+   DistData.abscissa
+   DistData.abscissa_edges
+   DistData.integrate
+   DistData.slice
+   DistData.interpolate
+
+   DistMoment
+   DistMoment.ordinate
+
+Exceptions
+==========
+
+.. currentmodule:: a5py.ascot5io
+
+These are the custom exceptions and warnings used by :mod:`a5py`.
+
+.. autosummary::
+   :nosignatures:
+
+   ~a5py.exceptions.AscotIOException
+   ~a5py.exceptions.AscotNoDataException
+   ~a5py.exceptions.AscotInitException
+   ~a5py.exceptions.AscotUnitWarning
 
 Interactive simulations
 =======================
@@ -644,4 +750,6 @@ The warning can be suppressed with:
 
 .. code-block:: python
 
-   TBD
+   import warnings
+   from a5py import AscotUnitWarning
+   warnings.filterwarnings("ignore", category=AscotUnitWarning)

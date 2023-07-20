@@ -488,7 +488,7 @@ class RunMixin():
         exi : bool, optional
             Convert the momentum space to energy-pitch.
 
-            Not applicable for ``dist``={"6d", "rho6d", "com"}.
+            Not applicable for ``dist`` = {"6d", "rho6d", "com"}.
 
         Returns
         -------
