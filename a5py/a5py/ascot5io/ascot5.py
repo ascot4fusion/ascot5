@@ -107,6 +107,7 @@ from a5py.ascot5io.plasma_1Dt import plasma_1Dt
 from a5py.ascot5io.N0_3D      import N0_3D
 from a5py.ascot5io.boozer     import Boozer
 from a5py.ascot5io.mhd        import MHD
+from a5py.ascot5io.asigma_loc import asigma_loc
 from a5py.ascot5io.options    import Opt
 from a5py.ascot5io.nbi        import nbi
 
@@ -176,6 +177,7 @@ def create_inputobject(key, root, h5group):
         "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS, "plasma_1Dt" : plasma_1Dt,
         "N0_1D" : N0_1D, "N0_3D" : N0_3D,
         "Boozer" : Boozer, "MHD_STAT" : MHD, "MHD_NONSTAT" : MHD,
+        "asigma_loc" : asigma_loc,
         "opt" : Opt,
         "nbi" : nbi
     }

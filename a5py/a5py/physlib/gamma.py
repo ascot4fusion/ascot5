@@ -89,7 +89,7 @@ def gamma_energy(m, energy):
 
 def energy_momentum(m, p):
     """
-    Evaluate kinetic energy from velocity.
+    Evaluate kinetic energy from momentum.
     """
     gamma = gamma_momentum(m=m, p=p)
     return energy_gamma(m=m, gamma=gamma)

@@ -443,8 +443,15 @@ def get_default():
         ("ENABLE_ATOMIC",
          """\
          # Markers can undergo atomic reactions with background plasma
+         # or neutrals
+         # - 0 Atomic reactions are turned off
+         # - 1 Atomic reactions are on but marker is terminated when outside
+         #     the reaction data domain.
+         # - 2 Atomic reactions are on but they are ignored when marker is
+         #     outside the reaction data domain.
+
          """,
-         0, Valid(int, values=[0,1]))
+         0, Valid(int, values=[0,1,2]))
     )
     info.append(
         ("DISABLE_FIRSTORDER_GCTRANS",
