@@ -209,13 +209,13 @@ def init():
     itemp  = Ti  * np.ones(rho.shape)
     for i in range(1, nscan+1):
         idens = ni[i-1] * np.ones((rho.size, Nion))
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge,
                         rho, edens, etemp, idens, itemp,
                         desc="NEOCLASS_GO" + str(i))
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge,
                         rho, edens, etemp, idens, itemp,
                         desc="NEOCLASS_GCF" + str(i))
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge,
                         rho, edens, etemp, idens, itemp,
                         desc="NEOCLASS_GCA" + str(i))
 

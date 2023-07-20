@@ -188,13 +188,13 @@ def init():
     idens  = 1   * np.ones((rho.size, Nion))
     itemp  = 1e3 * np.ones(rho.shape)
     for i in range(1, nB+1):
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge,
                         rho, edens, etemp, idens, itemp,
                         desc="CLASS_GO" + str(i))
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge,
                         rho, edens, etemp, idens, itemp,
                         desc="CLASS_GCF" + str(i))
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge,
                         rho, edens, etemp, idens, itemp,
                         desc="CLASS_GCA" + str(i))
 

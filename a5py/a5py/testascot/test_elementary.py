@@ -220,15 +220,15 @@ def init():
     etemp  = 1e3  * np.ones(rho.shape)
     idens  = 1e20 * np.ones((rho.size, Nion))
     itemp  = 1e3  * np.ones(rho.shape)
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="GYROMOTION")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="EXB_GO")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="EXB_GC")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="GRADB_GO")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="GRADB_GC")
 
 def run():
