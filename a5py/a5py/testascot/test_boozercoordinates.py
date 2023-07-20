@@ -41,6 +41,7 @@ import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_fl    as mrk
 import a5py.ascot5io.boozer    as boozer
 import a5py.ascot5io.mhd       as mhdmod
+import a5py.ascot5io.asigma_loc as asigma_loc
 
 import a5py.testascot.helpers as helpers
 
@@ -176,6 +177,7 @@ def init():
     zwall = np.array([-100, -100, 100, 100])
     W_2D.write_hdf5(helpers.testfn, nwall, Rwall, zwall, desc="BOOZER")
     N0_3D.write_hdf5_dummy(helpers.testfn, desc="BOOZER")
+    asigma_loc.write_hdf5_empty(helpers.testfn, desc="BOOZER")
 
     Nrho   = 3
     Nion   = 1

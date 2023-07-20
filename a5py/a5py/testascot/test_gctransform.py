@@ -58,6 +58,7 @@ import a5py.ascot5io.mrk_gc    as mrk
 import a5py.ascot5io.mrk_prt   as prt
 import a5py.ascot5io.boozer    as boozer
 import a5py.ascot5io.mhd       as mhd
+import a5py.ascot5io.asigma_loc as asigma_loc
 
 import a5py.testascot.helpers as helpers
 
@@ -235,6 +236,7 @@ def init():
         N0_3D.write_hdf5_dummy(helpers.testfn, desc=tname)
         boozer.write_hdf5_dummy(helpers.testfn, desc=tname)
         mhd.write_hdf5_dummy(helpers.testfn, desc=tname)
+        asigma_loc.write_hdf5_empty(helpers.testfn, desc=tname)
 
     Nrho   = 3
     Nion   = 1

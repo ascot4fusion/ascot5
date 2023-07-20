@@ -35,6 +35,7 @@ import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 import a5py.ascot5io.boozer    as boozer
 import a5py.ascot5io.mhd       as mhdmod
+import a5py.ascot5io.asigma_loc as asigma_loc
 
 import a5py.testascot.helpers as helpers
 
@@ -226,6 +227,7 @@ def init():
         write_dummy(helpers.testfn, "wall", desc=d)
         write_dummy(helpers.testfn, "neutral", desc=d)
         write_dummy(helpers.testfn, "nbi", desc=d)
+        asigma_loc.write_hdf5_empty(helpers.testfn, desc=d)
 
 
 def run():

@@ -489,7 +489,7 @@ def get_default():
          # markers, the simulation stops when marker time is below
          # ENDCOND_LIM_SIMTIME.
          """,
-         0)
+         0, Valid(int, values=[0,1]))
     )
 
     info.append(("""\
