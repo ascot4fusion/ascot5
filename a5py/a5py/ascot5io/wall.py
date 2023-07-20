@@ -437,6 +437,22 @@ class wall_3D(DataGroup):
         ValueError
             If the triangle vertices or flags have incorrect shape.
         """
+
+
+        if type(nelements) == int:
+            pass
+        elif type(nelements) == list:
+            while type(nelements) == list:
+                nelements = nelements[0]
+        elif type(nelements) == np.ndarray:
+            nelements = int(nelements)
+        else:
+            raise ValueError("Unsupported format for nelements.")
+
+
+
+
+
         if x1x2x3.shape != (nelements,3):
             raise ValueError(
                 "Shape of x1x2x3 was " + str(x1x2x3.shape) + " but expected ("

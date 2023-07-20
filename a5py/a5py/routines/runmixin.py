@@ -8,7 +8,11 @@ neither has access to the wall data. The only logical place for this method
 therefore is in the RunNode that has access to all relevant data.
 """
 import numpy as np
-import pyvista as pv
+import warnings
+try:
+    import pyvista as pv
+except ImportError:
+    warnings.warn("Could not import pyvista. 3D wall plotting disabled.")
 import unyt
 
 from a5py.exceptions import AscotNoDataException

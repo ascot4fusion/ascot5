@@ -147,7 +147,8 @@ class LibSimulate():
         for i in range(diagorb.nradialplots):
             diagorb.radialdistances[i] = radials[i]
 
-    def simulation_initinputs(self):
+    def simulation_initinputs(self,bfield=True, efield=True, plasma=True, neutral=True,
+                        wall=True, boozer=True, mhd=True, switch=True):
         """Prepare input fields for the interactive simulation.
 
         Initializes simulation inputs. The inputs used in the simulation are
@@ -160,8 +161,8 @@ class LibSimulate():
 
         This method must be called before running the simulation.
         """
-        self.input_init(bfield=True, efield=True, plasma=True, neutral=True,
-                        wall=True, boozer=True, mhd=True, switch=True)
+        self.input_init(bfield=bfield, efield=efield, plasma=plasma, neutral=neutral,
+                        wall=wall, boozer=boozer, mhd=mhd, switch=switch)
         self._pack()
 
 
@@ -189,13 +190,14 @@ class LibSimulate():
         pin = ascot2py.libascot_allocate_input_particles(nmrk)
         prttypes = ascot2py.input_particle_type__enumvalues
 
+        
         # particle
-        if "v_r" in mrk:
+        if "vr" in mrk:
             for i in range(nmrk):
                 pin[i].type = ascot2py.input_particle_type_p
                 p = pin[i].c__SA_input_particle_0.p
 
-                vvec = np.array([mrk["v_r"][i], mrk["v_phi"][i], mrk["v_z"][i]])
+                vvec = np.array([mrk["vr"][i], mrk["vphi"][i], mrk["vz"][i]]) * unyt.m/unyt.s
                 pvec = momentum_velocity(mrk["mass"][i], vvec)
 
                 p.r       = mrk["r"][i]
@@ -206,7 +208,11 @@ class LibSimulate():
                 p.p_z     = pvec[2]
                 p.mass    = mrk["mass"][i]
                 p.charge  = mrk["charge"][i]
-                p.anum    = mrk["anum"][i]
+                print(mrk)
+                print(mrk["anum"])
+                print(mrk["anum"][i])
+                print(mrk["anum"][i][0])
+                p.anum    = mrk["anum"][i][0]
                 p.znum    = mrk["znum"][i]
                 p.weight  = mrk["weight"][i]
                 p.time    = mrk["time"][i]
