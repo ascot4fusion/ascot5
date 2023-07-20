@@ -791,6 +791,10 @@ int offload(
                  sim->mhd_offload_data.offload_array_length);
     mhd_free_offload(&sim->mhd_offload_data, mhd_offload_array);
 
+    offload_pack(offload_data, offload_array, *asigma_offload_array,
+                 sim->asigma_offload_data.offload_array_length);
+    asigma_free_offload(&sim->asigma_offload_data, asigma_offload_array);
+
     /* Initialize diagnostics offload data.
      * Separate arrays for host and target */
     diag_init_offload(&sim->diag_offload_data, diag_offload_array, n_tot);

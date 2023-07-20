@@ -44,10 +44,10 @@ void N0_1D_free_offload(N0_1D_offload_data* offload_data, real** offload_array);
 void N0_1D_init(N0_1D_data* ndata, N0_1D_offload_data* offload_data,
                 real* offload_array);
 #pragma omp declare simd uniform(ndata)
-a5err N0_1D_eval_n0(real* n0, real rho, int species,
-                    N0_1D_data* ndata);
+a5err N0_1D_eval_n0(real* n0, real rho, N0_1D_data* ndata);
 #pragma omp declare simd uniform(ndata)
-a5err N0_1D_eval_t0(real* t0, real rho, int species,
-                    N0_1D_data* ndata);
+a5err N0_1D_eval_t0(real* t0, real rho, N0_1D_data* ndata);
+#pragma omp declare simd uniform(ndata)
+int N0_1D_get_n_species(N0_1D_data* ndata);
 #pragma omp end declare target
 #endif
