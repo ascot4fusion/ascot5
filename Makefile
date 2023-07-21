@@ -115,7 +115,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
 	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
-	mpi_interface.h libascot_mem.h
+	mpi_interface.h boschhale.h libascot_mem.h
 
 OBJS= math.o list.o octree.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -209,7 +209,7 @@ test_spline: $(UTESTDIR)test_spline.o $(OBJS)
 %.o: %.c $(HEADERS) Makefile
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-ASCOTPY2_HEADERFILES=particle.h hdf5_interface.h ascot5.h mpi_interface.h simulate.h \
+ASCOTPY2_HEADERFILES=particle.h hdf5_interface.h ascot5.h mpi_interface.h simulate.h afsi.h \
 	ascot5_main.h offload.h diag.h libascot_mem.h wall.h hdf5io/hdf5_wall.h
 
 ascotpy2.py : libascot.so
