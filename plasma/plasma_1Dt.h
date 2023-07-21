@@ -65,6 +65,10 @@ int plasma_1Dt_get_n_species(plasma_1Dt_data* pls_data);
 const real* plasma_1Dt_get_species_mass(plasma_1Dt_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
 const real* plasma_1Dt_get_species_charge(plasma_1Dt_data* pls_data);
+#pragma omp declare simd uniform(pls_data)
+const int* plasma_1Dt_get_species_znum(plasma_1Dt_data* pls_data);
+#pragma omp declare simd uniform(pls_data)
+const int* plasma_1Dt_get_species_anum(plasma_1Dt_data* pls_data);
 #pragma omp end declare target
 
 #endif

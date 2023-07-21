@@ -50,6 +50,43 @@ int plasma_1Dt_init_offload(plasma_1Dt_offload_data* offload_data,
               (*offload_array)[n_rho], (*offload_array)[n_rho+n_time-1],n_time);
     print_out(VERBOSE_IO,
               "Number of ion species = %d\n", n_ions);
+    print_out(VERBOSE_IO,
+              "Species Z/A  charge [e]/mass [amu] "
+              "Density [m^-3] at Min/Max rho(t=t0)"
+              "  Temperature [eV] at Min/Max rho(t=t0)\n");
+    for(int i=0; i < n_ions; i++) {
+        print_out(VERBOSE_IO,
+                  " %3d  /%3d   %3d  /%7.3f             %1.2le/%1.2le     "
+                  "     %1.2le/%1.2le       \n",
+                  offload_data->znum[i+1], offload_data->anum[i+1],
+                  (int)round(offload_data->charge[i+1]/CONST_E),
+                  offload_data->mass[i+1]/CONST_U,
+                  (*offload_array)[n_rho*(4+i)],
+                  (*offload_array)[n_rho*(5+i) - 1],
+                  (*offload_array)[n_rho*2] / CONST_E,
+                  (*offload_array)[n_rho*3-1] / CONST_E);
+    }
+    print_out(VERBOSE_IO,
+              "[electrons]  %3d  /%7.3f             %1.2le/%1.2le          "
+              "%1.2le/%1.2le       \n",
+              -1, CONST_M_E/CONST_U,
+              (*offload_array)[n_rho*3],
+              (*offload_array)[n_rho*4 - 1],
+              (*offload_array)[n_rho] / CONST_E,
+              (*offload_array)[n_rho*2-1] / CONST_E);
+    real quasineutrality = 0;
+    for(int k = 0; k <n_rho; k++) {
+        real ele_qdens = (*offload_array)[n_rho*3 + k] * CONST_E;
+        real ion_qdens = 0;
+        for(int i=0; i < n_ions; i++) {
+            ion_qdens +=
+                (*offload_array)[n_rho*(4+i) + k] * offload_data->charge[i+1];
+        }
+        quasineutrality = fmax( quasineutrality,
+                                fabs( 1 - ion_qdens / ele_qdens ) );
+    }
+    print_out(VERBOSE_IO, "Quasi-neutrality is (electron / ion charge density)"
+              " %.2f\n", 1+quasineutrality);
     return 0;
 }
 
@@ -212,13 +249,13 @@ a5err plasma_1Dt_eval_densandtemp(real* dens, real* temp, real rho, real t,
             p12 = pls_data->dens[i_time*pls_data->n_species*pls_data->n_rho
                                  + i*pls_data->n_rho
                                  + i_rho + 1];
-            p21 = pls_data->dens[(i_time+1)*pls_data->n_species*pls_data->n_rho 
+            p21 = pls_data->dens[(i_time+1)*pls_data->n_species*pls_data->n_rho
                                  + i*pls_data->n_rho
                                  + i_rho];
-            p22 = pls_data->dens[(i_time+1)*pls_data->n_species*pls_data->n_rho 
+            p22 = pls_data->dens[(i_time+1)*pls_data->n_species*pls_data->n_rho
                                  + i*pls_data->n_rho
                                  + i_rho + 1];
-            
+
             p1 = p11 + t_rho * (p12 - p11);
             p2 = p21 + t_rho * (p22 - p21);
 
@@ -285,4 +322,28 @@ const real* plasma_1Dt_get_species_mass(plasma_1Dt_data* pls_data) {
  */
 const real* plasma_1Dt_get_species_charge(plasma_1Dt_data* pls_data) {
     return pls_data->charge;
+}
+
+/**
+ * @brief Return pointer to array storing species atomic number
+ *
+ * @param pls_data pointer to plasma data
+ *
+ * @return pointer to immutable MAX_SPECIES length array containing
+ *         atomic numbers
+ */
+const int* plasma_1Dt_get_species_znum(plasma_1Dt_data* pls_data) {
+    return pls_data->znum;
+}
+
+/**
+ * @brief Return pointer to array storing species mass number
+ *
+ * @param pls_data pointer to plasma data
+ *
+ * @return pointer to immutable MAX_SPECIES length array containing
+ *         mass numbers
+ */
+const int* plasma_1Dt_get_species_anum(plasma_1Dt_data* pls_data) {
+    return pls_data->anum;
 }
