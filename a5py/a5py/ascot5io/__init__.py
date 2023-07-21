@@ -8,6 +8,7 @@ from .wall    import wall_2D, wall_3D
 from .neutral import N0_1D, N0_3D
 from .boozer  import Boozer
 from .mhd     import MHD_STAT, MHD_NONSTAT
+from .asigma  import Asigma_loc
 from .options import Opt
 from .nbi     import NBI
 
@@ -33,6 +34,7 @@ HDF5TOOBJ = {
     "plasma_1D" : plasma_1D, "plasma_1DS" : plasma_1DS,
     "N0_1D" : N0_1D, "N0_3D" : N0_3D,
     "Boozer" : Boozer, "MHD_STAT" : MHD_STAT, "MHD_NONSTAT" : MHD_NONSTAT,
+    "asigma_loc" : Asigma_loc,
     "opt" : Opt,
     "nbi" : NBI,
     "inistate" : State,

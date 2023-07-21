@@ -17,21 +17,22 @@ File: test_coulombcollisions.py
 import sys
 import copy
 
-import numpy                   as np
+import numpy                    as np
 import unyt
 import scipy
-import matplotlib.pyplot       as plt
-import matplotlib.lines        as mlines
+import matplotlib.pyplot        as plt
+import matplotlib.lines         as mlines
 
-import a5py.ascot5io.options   as options
-import a5py.ascot5io.B_GS      as B_GS
-import a5py.ascot5io.E_TC      as E_TC
-import a5py.ascot5io.plasma_1D as P_1D
-import a5py.ascot5io.wall_2D   as W_2D
-import a5py.ascot5io.N0_3D     as N0_3D
-import a5py.ascot5io.mrk_gc    as mrk
-import a5py.ascot5io.boozer    as boozer
-import a5py.ascot5io.mhd       as mhd
+import a5py.ascot5io.options    as options
+import a5py.ascot5io.B_GS       as B_GS
+import a5py.ascot5io.E_TC       as E_TC
+import a5py.ascot5io.plasma_1D  as P_1D
+import a5py.ascot5io.wall_2D    as W_2D
+import a5py.ascot5io.N0_3D      as N0_3D
+import a5py.ascot5io.mrk_gc     as mrk
+import a5py.ascot5io.boozer     as boozer
+import a5py.ascot5io.mhd        as mhd
+import a5py.ascot5io.asigma_loc as asigma_loc
 
 import a5py.testascot.helpers as helpers
 
@@ -279,17 +280,17 @@ def init():
     etemp  = Te  * np.ones(rho.shape)
     idens  = ne  * np.ones((rho.size, Nion))
     itemp  = 1e3 * np.ones(rho.shape)
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="THERMAL_GO")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="THERMAL_GCF")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="THERMAL_GCA")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="SLOWING_GO")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="SLOWING_GCF")
-    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge, rho,
+    P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge, rho,
                     edens, etemp, idens, itemp, desc="SLOWING_GCA")
 
     #**************************************************************************#
@@ -313,6 +314,7 @@ def init():
         N0_3D.write_hdf5_dummy(helpers.testfn, desc=tname)
         boozer.write_hdf5_dummy(helpers.testfn, desc=tname)
         mhd.write_hdf5_dummy(helpers.testfn, desc=tname)
+        asigma_loc.write_hdf5_empty(helpers.testfn, desc=tname)
 
 
 def run():

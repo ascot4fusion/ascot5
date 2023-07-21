@@ -360,7 +360,14 @@ class Opt(DataGroup):
 
     @property
     def _ENABLE_ATOMIC(self):
-        """Include atomic reactions (charge-exchange etc.)
+        """Markers can undergo atomic reactions with background plasma
+        or neutrals
+
+        - 0 Atomic reactions are turned off.
+        - 1 Atomic reactions are on but marker is terminated when outside
+            the reaction data domain.
+        - 2 Atomic reactions are on but they are ignored when marker is
+            outside the reaction data domain.
         """
         return self._OPT_ENABLE_ATOMIC
 

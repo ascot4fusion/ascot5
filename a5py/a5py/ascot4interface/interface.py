@@ -30,6 +30,7 @@ import a5py.ascot5io.wall_2D     as wall_2D
 import a5py.ascot5io.wall_3D     as wall_3D
 import a5py.ascot5io.boozer      as boozer
 import a5py.ascot5io.mhd         as mhd
+import a5py.ascot5io.asigma_loc  as asigma_loc
 import a5py.ascot5io.ascot5tools as a5tools
 import a5py.testascot.helpers    as helpers
 
@@ -323,6 +324,10 @@ def run(a4folder, h5fn, overwrite=True):
     # Wall.
     if overwrite or (not "wall" in groups):
         read_wall(a4folder, h5fn)
+
+    # Atomic data
+    if overwrite or (not "asigma" in groups):
+        asigma_loc.write_hdf5_empty(h5fn)
 
     # Options
     if overwrite or (not "options" in groups):

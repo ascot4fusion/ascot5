@@ -33,6 +33,7 @@ import a5py.ascot5io.N0_3D     as N0_3D
 import a5py.ascot5io.mrk_gc    as mrk
 import a5py.ascot5io.boozer    as boozer
 import a5py.ascot5io.mhd       as mhd
+import a5py.ascot5io.asigma_loc as asigma_loc
 
 from a5py.ascot5io.ascot5 import Ascot
 from a5py.physlib import e, m_e, m_p, c, eps_0
@@ -188,13 +189,13 @@ def init():
     idens  = 1   * np.ones((rho.size, Nion))
     itemp  = 1e3 * np.ones(rho.shape)
     for i in range(1, nB+1):
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge,
                         rho, edens, etemp, idens, itemp,
                         desc="CLASS_GO" + str(i))
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge,
                         rho, edens, etemp, idens, itemp,
                         desc="CLASS_GCF" + str(i))
-        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, znum, anum, mass, charge,
+        P_1D.write_hdf5(helpers.testfn, Nrho, Nion, anum, znum, mass, charge,
                         rho, edens, etemp, idens, itemp,
                         desc="CLASS_GCA" + str(i))
 
@@ -229,6 +230,10 @@ def init():
         mhd.write_hdf5_dummy(helpers.testfn,    desc="CLASS_GO"  + str(i))
         mhd.write_hdf5_dummy(helpers.testfn,    desc="CLASS_GCF" + str(i))
         mhd.write_hdf5_dummy(helpers.testfn,    desc="CLASS_GCA" + str(i))
+
+        asigma_loc.write_hdf5_empty(helpers.testfn, desc="CLASS_GO"  + str(i))
+        asigma_loc.write_hdf5_empty(helpers.testfn, desc="CLASS_GCF" + str(i))
+        asigma_loc.write_hdf5_empty(helpers.testfn, desc="CLASS_GCA" + str(i))
 
 
 def run():
