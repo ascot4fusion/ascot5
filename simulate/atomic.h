@@ -15,7 +15,8 @@
 #pragma omp declare target
 void atomic_fo(particle_simd_fo* p, real* h,
                plasma_data* p_data, neutral_data* n_data,
-               random_data* r_data, asigma_data* asigma_data);
+               random_data* r_data, asigma_data* asigma_data,
+               int* enable_atomic);
 #pragma omp end declare target
 
 #endif

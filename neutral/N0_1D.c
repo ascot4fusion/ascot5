@@ -108,16 +108,16 @@ void N0_1D_init(N0_1D_data* ndata, N0_1D_offload_data* offload_data,
  *
  * @param n0 n0 value will be stored in n0[0]
  * @param rho normalized poloidal flux coordinate
- * @param species neutral species index
- * @param ndata pointer to neutral density data struct
+ * @param ndata pointer to neutral data struct
  *
  * @return zero if evaluation succeeded
  */
-a5err N0_1D_eval_n0(real* n0, real rho, int species,
-                    N0_1D_data* ndata) {
+a5err N0_1D_eval_n0(real* n0, real rho, N0_1D_data* ndata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    interperr += linint1D_eval_f(&n0[0], &ndata->n0[species], rho);
+    for(int i=0; i<ndata->n_species; i++) {
+        interperr += linint1D_eval_f(&n0[i], &ndata->n0[i], rho);
+    }
 
     if(interperr) {
         return error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_N0_1D);
@@ -134,20 +134,31 @@ a5err N0_1D_eval_n0(real* n0, real rho, int species,
  *
  * @param t0 t0 value will be stored in t0[0]
  * @param rho normalized poloidal flux coordinate
- * @param species neutral species index
- * @param ndata pointer to neutral density data struct
+ * @param ndata pointer to neutral data struct
  *
  * @return zero if evaluation succeeded
  */
-a5err N0_1D_eval_t0(real* t0, real rho, int species,
-                    N0_1D_data* ndata) {
+a5err N0_1D_eval_t0(real* t0, real rho, N0_1D_data* ndata) {
     a5err err = 0;
     int interperr = 0; /* If error happened during interpolation */
-    interperr += linint1D_eval_f(&t0[0], &ndata->t0[species], rho);
+    for(int i=0; i<ndata->n_species; i++) {
+        interperr += linint1D_eval_f(&t0[i], &ndata->t0[i], rho);
+    }
 
     if(interperr) {
         return error_raise(ERR_INPUT_EVALUATION, __LINE__, EF_N0_1D);
     }
 
     return err;
+}
+
+/**
+ * @brief Return number of neutral species
+ *
+ * @param ndata pointer to neutral data struct
+ *
+ * @return number of neutral species
+ */
+int N0_1D_get_n_species(N0_1D_data* ndata) {
+    return ndata->n_species;
 }

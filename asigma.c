@@ -26,6 +26,7 @@
 #include "error.h"
 #include "math.h"
 #include "asigma.h"
+#include "asigma/asigma_loc.h"
 #include "consts.h"
 
 /**
@@ -50,6 +51,13 @@ int asigma_init_offload(asigma_offload_data* offload_data,
     int err = 0;
 
     switch(offload_data->type) {
+
+        case asigma_type_loc:
+            err = asigma_loc_init_offload(&(offload_data->asigma_loc),
+                                          offload_array);
+            offload_data->offload_array_length =
+                offload_data->asigma_loc.offload_array_length;
+            break;
 
         default:
             /* Unrecognized input. Produce error. */
@@ -79,6 +87,9 @@ int asigma_init_offload(asigma_offload_data* offload_data,
 void asigma_free_offload(asigma_offload_data* offload_data,
                          real** offload_array) {
     switch(offload_data->type) {
+        case asigma_type_loc:
+            asigma_loc_free_offload(&(offload_data->asigma_loc), offload_array);
+            break;
     }
 }
 
@@ -95,10 +106,15 @@ void asigma_free_offload(asigma_offload_data* offload_data,
  *
  * @return zero if initialization succeeded
  */
-int asigma_init(asigma_data* asigma_data, asigma_offload_data* offload_data,
+int asigma_init(asigma_data* asgm_data,
+                asigma_offload_data* offload_data,
                 real* offload_array) {
     int err = 0;
     switch(offload_data->type) {
+        case asigma_type_loc:
+            asigma_loc_init(&(asgm_data->asigma_loc),
+                            &(offload_data->asigma_loc), offload_array);
+            break;
 
         default:
             /* Unrecognized input. Produce error. */
@@ -106,7 +122,7 @@ int asigma_init(asigma_data* asigma_data, asigma_offload_data* offload_data,
             err = 1;
             break;
     }
-    asigma_data->type = offload_data->type;
+    asgm_data->type = offload_data->type;
 
     return err;
 }
@@ -117,6 +133,8 @@ int asigma_init(asigma_data* asigma_data, asigma_offload_data* offload_data,
  * This function evaluates the cross-section (sigma) for the atomic reaction
  * corresponding to the reaction identifiers given as parameters at the
  * given mass-normalized collision energy.
+ *
+ * This is a SIMD function.
  *
  * @param sigma pointer to evaluated cross-section
  * @param z_1 atomic number of fast particle
@@ -131,10 +149,19 @@ int asigma_init(asigma_data* asigma_data, asigma_offload_data* offload_data,
  */
 a5err asigma_eval_sigma(
     real* sigma, int z_1, int a_1, int z_2, int a_2, int reac_type,
-    asigma_data* asigma_data, real E_coll_per_amu) {
+    asigma_data* asigma_data, real E_coll_per_amu, int* enable_atomic) {
     a5err err = 0;
 
     switch(asigma_data->type) {
+        case asigma_type_loc:
+            err = asigma_loc_eval_sigma(sigma,
+                                        z_1, a_1,
+                                        z_2, a_2,
+                                        reac_type,
+                                        &(asigma_data->asigma_loc),
+                                        E_coll_per_amu,
+                                        enable_atomic);
+            break;
 
         default:
             /* Unrecognized input. Produce error. */
@@ -157,31 +184,43 @@ a5err asigma_eval_sigma(
  * reaction corresponding to the reaction identifiers given as parameters
  * at the given fast particle energy and bulk plasma conditions.
  *
+ * This is a SIMD function.
+ *
  * @param sigmav pointer to evaluated rate coefficient
  * @param z_1 atomic number of fast particle
  * @param a_1 atomic mass number of fast particle
+ * @param m_1 mass of fast particle
  * @param z_2 atomic number of bulk particle
  * @param a_2 atomic mass number of bulk particle
  * @param reac_type reaction type
- * @param asigma_loc_data pointer to atomic data struct
+ * @param asigma_data pointer to atomic data struct
  * @param E energy of fast particle
  * @param T_e electron temperature of bulk plasma
  * @param T_i ion temperature of bulk plasma
  * @param T_0 temperature of bulk neutrals
  * @param n_e electron density of bulk plasma
  * @param n_i ion density of bulk plasma
+ * @param enable_atomic pointer to atomic enable and functionality flag
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
- *
- * @todo Make this a SIMD function like in other modules, e.g., plasma!
  */
 a5err asigma_eval_sigmav(
-    real* sigmav, int z_1, int a_1, int z_2, int a_2, int reac_type,
-    asigma_data* asigma_data, real E, real T_e, real* T_i, real T_0,
-    real n_e, real* n_i, int i_spec) {
+    real* sigmav, int z_1, int a_1, real m_1, int z_2, int a_2, int reac_type,
+    asigma_data* asigma_data, real E, real T_e, real T_0, real n_i,
+    int* enable_atomic) {
     a5err err = 0;
 
     switch(asigma_data->type) {
+        case asigma_type_loc:
+            err = asigma_loc_eval_sigmav(sigmav,
+                                         z_1, a_1, m_1,
+                                         z_2, a_2,
+                                         reac_type,
+                                         &(asigma_data->asigma_loc),
+                                         E,
+                                         T_e, T_0, n_i,
+                                         enable_atomic);
+            break;
 
         default:
             /* Unrecognized input. Produce error. */

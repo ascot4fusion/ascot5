@@ -100,8 +100,7 @@ MHDOBJS = $(patsubst %.c,%.o,$(wildcard $(MHDDIR)mhd_*.c))
 
 ASIGMADIR = asigma/
 ASIGMAHEADERS = $(wildcard $(ASIGMADIR)asigma_*.h)
-ASIGMAOBJS = $(patsubst %.c,%.o,$(wildcard \
-					$(ASIGMADIR)asigma_*.c))
+ASIGMAOBJS = $(patsubst %.c,%.o,$(wildcard $(ASIGMADIR)asigma_*.c))
 
 LINTDIR = linint/
 LINTHEADERS =  $(wildcard $(LINTDIR)linint*.h)
@@ -139,7 +138,7 @@ BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 test_N0_1D \
-	test_spline ascot5_main bbnbi5 test_diag_orb
+	test_spline ascot5_main bbnbi5 test_diag_orb test_asigma
 
 ifdef NOGIT
 	DUMMY_GIT_INFO := $(shell touch gitver.h)
@@ -217,6 +216,9 @@ test_nbi: $(UTESTDIR)test_nbi.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 test_spline: $(UTESTDIR)test_spline.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
+test_asigma: $(UTESTDIR)test_asigma.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
 %.o: %.c $(HEADERS) Makefile

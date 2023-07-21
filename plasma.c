@@ -425,6 +425,10 @@ const int* plasma_get_species_znum(plasma_data* pls_data) {
             znum = plasma_1D_get_species_znum( &(pls_data->plasma_1D) );
             break;
 
+        case plasma_type_1Dt:
+            znum = plasma_1Dt_get_species_znum( &(pls_data->plasma_1Dt) );
+            break;
+
         case plasma_type_1DS:
             znum = plasma_1DS_get_species_znum( &(pls_data->plasma_1DS) );
             break;
@@ -449,6 +453,10 @@ const int* plasma_get_species_anum(plasma_data* pls_data) {
     switch(pls_data->type) {
         case plasma_type_1D:
             anum = plasma_1D_get_species_anum(&(pls_data->plasma_1D));
+            break;
+
+        case plasma_type_1Dt:
+            anum = plasma_1Dt_get_species_anum(&(pls_data->plasma_1Dt));
             break;
 
         case plasma_type_1DS:

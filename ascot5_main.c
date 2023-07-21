@@ -374,6 +374,11 @@ int pack_offload_array(
                  int_offload_array, NULL, 0);
     mhd_free_offload(&sim->mhd_offload_data, mhd_offload_array);
 
+    offload_pack(offload_data, offload_array, *asigma_offload_array,
+                 sim->asigma_offload_data.offload_array_length,
+                 int_offload_array, NULL, 0);
+    asigma_free_offload(&sim->asigma_offload_data, asigma_offload_array);
+
     return 0;
 }
 
