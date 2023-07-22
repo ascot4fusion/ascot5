@@ -36,6 +36,7 @@ class TestAscot(unittest.TestCase):
         a5.data.create_input("N0_3D")
         a5.data.create_input("Boozer")
         a5.data.create_input("MHD_STAT")
+        a5.data.create_input("asigma_loc")
 
         name = a5.data.options.active.new(
             ENDCOND_MAX_MILEAGE=0.5e-4, DIST_MIN_CHARGE=1.5,

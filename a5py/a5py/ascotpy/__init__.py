@@ -99,6 +99,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         self._wall_offload_array    = ctypes.POINTER(ctypes.c_double)()
         self._boozer_offload_array  = ctypes.POINTER(ctypes.c_double)()
         self._mhd_offload_array     = ctypes.POINTER(ctypes.c_double)()
+        self._asigma_offload_array  = ctypes.POINTER(ctypes.c_double)()
         self._diag_offload_array    = ctypes.POINTER(ctypes.c_double)()
 
         self._wall_int_offload_array = ctypes.POINTER(ctypes.c_int)()
@@ -121,35 +122,32 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         """Read, offload, and initialize input data so it can be accessed
         by libascot.
 
-        Assumes data is present in the hdf5 file and the provided QIDs are valid.
-        
-        If the parameter is given as a dict, it is used directly instead of reading it from the hdf5 file.
+        Assumes data is present in the hdf5 file and the provided QIDs are
+        valid. If the parameter is given as a dict in same format as it is
+        written, it is used directly instead of reading the from the file.
 
         Parameters
         ----------
         data : Ascot5IO
             Ascot5 data on disk which is used in initialization.
         bfield : str or dict
-            str  - QID of the magnetic field to be initialized.
-            dict - the struct from read()
-        efield : str
-            QID of the electric field to be initialized.
-            dict - the struct from read()
-        plasma : str
-            QID of the plasma data to be initialized.
-            dict - the struct from read()
-        wall : str
-            QID of the wall data to be initialized.
-            dict - the struct from read()
-        neutral : str
-            QID of the neutral data to be initialized.
-            dict - the struct from read()
-        boozer : str
-            QID of the boozer to be initialized.
-            dict - the struct from read()
-        mhd : str
-            QID of the MHD data to be initialized.
-            dict - the struct from read()
+            QID of the magnetic field to be initialized or the data as a
+            dictionary.
+        efield : str or dict
+            QID of the electric field to be initialized or the data as a
+            dictionary.
+        plasma : str or dict
+            QID of the plasma data to be initialized or the data as a
+            dictionary.
+        wall : str or dict
+            QID of the wall data to be initialized or the data as a dictionary.
+        neutral : str or dict
+            QID of the neutral data to be initialized or the data as a
+            dictionary.
+        boozer : str or dict
+            QID of the boozer to be initialized or the data as a dictionary.
+        mhd : str or dict
+            QID of the MHD data to be initialized or the data as a dictionary.
         switch : bool
             If ``True``, free input that has been
         """
@@ -160,10 +158,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         inputs2read = ctypes.c_int32()
         args = locals() # Contains function arguments and values in a dictionary
 
-
         # List here dependencies to be directly injected (provided)
         to_be_provided = []
-        
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
                     "mhd"]:
             if args[inp] is None:
@@ -174,7 +170,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             if isinstance(args[inp],dict):
                 to_be_provided.append(inp)
                 continue
-            
+
             # Convert QID strings to bytes
             args[inp] = args[inp].encode("UTF-8")
 
@@ -217,7 +213,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             ctypes.byref(self._wall_int_offload_array),
             ctypes.byref(self._boozer_offload_array),
             ctypes.byref(self._mhd_offload_array),
-            ctypes.byref(self._mhd_offload_array), # Placeholder
+            ctypes.byref(self._asigma_offload_array),
             None, # Marker array (ignore)
             None  # Number of markers that were read (ignore)
             )
@@ -247,7 +243,6 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                     raise AscotInitException("Unsupported dict for input '{}' passed for injection.".format(inp))
             else:
                 raise AscotInitException("Unsupported input to inject: '{}'".format(inp))
-                
 
     def _free(self, bfield=False, efield=False, plasma=False, wall=False,
               neutral=False, boozer=False, mhd=False):
@@ -303,7 +298,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             self._plasma_offload_array, self._neutral_offload_array,
             self._wall_offload_array,   self._wall_int_offload_array,
             self._boozer_offload_array, self._mhd_offload_array,
-            self._mhd_offload_array, # Placeholder
+            self._asigma_offload_array,
             ctypes.byref(self._offload_array),
             ctypes.byref(self._int_offload_array))
         self._offload_ready = True

@@ -310,10 +310,11 @@ class TestAscot5IO(unittest.TestCase):
             "efield"  : ["E_TC", "E_1DS", "E_3D", "E_3DS", "E_3DST",],
             "marker"  : ["Prt", "GC", "FL",],
             "wall"    : ["wall_2D", "wall_3D",],
-            "plasma"  : ["plasma_1D", "plasma_1DS",],
+            "plasma"  : ["plasma_1D", "plasma_1DS", "plasma_1Dt"],
             "neutral" : ["N0_3D",],
             "boozer"  : ["Boozer",],
             "mhd"     : ["MHD_STAT", "MHD_NONSTAT",],
+            "asigma"  : ["Asigma_loc"],
             "options" : ["Opt",],
             #"nbi"     : ["NBI",],
             }

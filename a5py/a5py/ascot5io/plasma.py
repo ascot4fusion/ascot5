@@ -337,3 +337,142 @@ class plasma_1DS(DataGroup):
             rhomin=0, rhomax=100, edensity=1e20*np.ones((3,1)),
             etemperature=1e3*np.ones((3,1)), idensity=1e20*np.ones((3,1)),
             itemperature=1e20*np.ones((3,1)), desc="DUMMY")
+
+class plasma_1Dt(DataGroup):
+    """Time-dependent 1D plasma profiles.
+    """
+
+    def read(self):
+        """Read data from HDF5 file.
+
+        Returns
+        -------
+        data : dict
+            Data read from HDF5 stored in the same format as is passed to
+            :meth:`write_hdf5`.
+        """
+        fn   = self._root._ascot.file_getpath()
+        path = self._path
+
+        out = {}
+        with h5py.File(fn,"r") as f:
+            for key in f[path]:
+                out[key] = f[path][key][:]
+                if key in ["nion", "nrho", "ntime"]:
+                    out[key] = int(out[key])
+
+        return out
+
+    @staticmethod
+    def write_hdf5(fn, nrho, ntime, nion, anum, znum, mass, charge, rho, time,
+                   edensity, etemperature, idensity, itemperature, desc=None):
+        """Write input data to the HDF5 file.
+
+        Parameters
+        ----------
+        fn : str
+            Path to hdf5 file.
+        nrho : int
+            Number of rho grid points.
+        ntime : int
+            Number of time grid points.
+        nion : int
+            Number of ion species.
+        anum : array_like (nion,1)
+            Ion species atomic mass number
+        znum : array_like (nion,1)
+            Ion species charge number.
+        mass : array_like (nion,1)
+            Ion species mass [amu].
+        charge : array_like (nion,1)
+            Ion species charge [e].
+        rho : array_like (nrho,1)
+            rho grid, doesn't have to be uniform.
+        time : array_like (nrho,1)
+            time grid, doesn't have to be uniform.
+        edensity : array_like (ntime,nrho)
+            Electron density [m^-3].
+        etemperature : array_like (ntime,nrho)
+            Electron temperature [eV].
+        idensity : array_like (ntime,nion,nrho)
+            Ion density [m^-3].
+        itemperature : array_like (ntime,nrho)
+            Ion temperature [ev].
+        desc : str, optional
+            Input description.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+
+        Raises
+        ------
+        ValueError
+            If inputs were not consistent.
+        """
+        if etemperature.shape != (ntime,nrho):
+            raise ValueError("Invalid shape for electron temperature.")
+        if itemperature.shape != (ntime,nrho):
+            raise ValueError("Invalid shape for ion temperature.")
+        if edensity.shape != (ntime,nrho):
+            raise ValueError("Invalid shape for electron density.")
+        if idensity.shape != (ntime,nion,nrho):
+            raise ValueError("Invalid shape for ion density.")
+
+        parent = "plasma"
+        group  = "plasma_1Dt"
+        gname  = ""
+
+        with h5py.File(fn, "a") as f:
+            g = add_group(f, parent, group, desc=desc)
+            gname = g.name.split("/")[-1]
+
+            g.create_dataset('nion',   (1,1),     data=nion,   dtype='i4')
+            g.create_dataset('nrho',   (1,1),     data=nrho,   dtype='i4')
+            g.create_dataset('ntime',  (1,1),     data=ntime,  dtype='i4')
+            g.create_dataset('znum',   (nion,1),  data=znum,   dtype='i4')
+            g.create_dataset('anum',   (nion,1),  data=anum,   dtype='i4')
+            g.create_dataset('charge', (nion,1),  data=charge, dtype='i4')
+            g.create_dataset('mass',   (nion,1),  data=mass,   dtype='f8')
+            g.create_dataset('rho',    (nrho,1),  data=rho,    dtype='f8')
+            g.create_dataset('time',   (ntime,1), data=time,   dtype='f8')
+
+            g.create_dataset('etemperature', (ntime,nrho),
+                             data=etemperature, dtype='f8')
+            g.create_dataset('edensity',     (ntime,nrho),
+                             data=edensity, dtype='f8')
+            g.create_dataset('itemperature', (ntime,nrho),
+                             data=itemperature, dtype='f8')
+            g.create_dataset('idensity',     (ntime,nion,nrho),
+                             data=idensity, dtype='f8')
+
+        return gname
+
+    @staticmethod
+    def write_hdf5_dummy(fn):
+        """Write dummy data that has correct format and is valid, but can be
+        non-sensical.
+
+        This method is intended for testing purposes or to provide data whose
+        presence is needed but which is not actually used in simulation.
+
+        The dummy output is an uniform hydrogen plasma.
+
+        Parameters
+        ----------
+        fn : str
+            Full path to the HDF5 file.
+
+        Returns
+        -------
+        name : str
+            Name, i.e. "<type>_<qid>", of the new input that was written.
+        """
+        return plasma_1Dt.write_hdf5(
+            fn=fn, nrho=3, ntime=4, nion=1, znum=np.array([1]),
+            anum=np.array([1]), mass=np.array([1]), charge=np.array([1]),
+            rho=np.array([0, 0.5, 100]), time=np.array([0, 0.2, 0.4, 0.6]),
+            edensity=1e20*np.ones((4,3)), etemperature=1e3*np.ones((4,3)),
+            idensity=1e20*np.ones((4,1,3)), itemperature=1e20*np.ones((4,3)),
+            desc="DUMMY")

@@ -196,7 +196,11 @@ class Ascot(Ascotpy):
 
             for inp in ["bfield", "efield", "plasma", "wall", "neutral",
                         "boozer", "mhd"]:
-                if args[inp] and not inp in self.data:
+                if isinstance(args[inp], dict):
+                    # Argument is a dictionary, presumably in the correct format
+                    # It is simply passed forward to _init()
+                    pass
+                elif args[inp] and not inp in self.data:
                     # Requested data not present
                     raise AscotIOException("Input \"" + inp + "\" not present.")
                 elif initall and inp in self.data:
@@ -209,10 +213,6 @@ class Ascot(Ascotpy):
                         raise AscotIOException(
                             "Input \"" + inp + "/" + args[inp]
                             + "\" not present.")
-                elif isinstance(args[inp], dict):
-                    # Argument is a dictionary, presumably in the correct format
-                    # It is simply passed forward to _init()
-                    pass
                 elif args[inp]:
                     # Argument is True, and data is present
                     args[inp] = getattr(self.data, inp).active.get_qid()
