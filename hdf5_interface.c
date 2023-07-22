@@ -48,6 +48,7 @@
  * @param wall_offload_array pointer to wall offload array
  * @param boozer_offload_array pointer to boozer offload array
  * @param mhd_offload_array pointer to mhd offload array
+ * @param asigma_offload_array pointer to atomic offload array
  * @param p pointer to marker offload data
  * @param n_markers pointer to integer notating how many markers were read
  *

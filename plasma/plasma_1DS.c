@@ -121,7 +121,7 @@ int plasma_1DS_init_offload(plasma_1DS_offload_data* offload_data,
         print_out(VERBOSE_IO,
                   " %3d  /%3d   %3d  /%7.3f             %1.2le/%1.2le     "
                   "           %1.2le/%1.2le       \n",
-                  offload_data->znum[i+1], offload_data->anum[i+1],
+                  offload_data->znum[i], offload_data->anum[i],
                   (int)round(offload_data->charge[i+1]/CONST_E),
                   offload_data->mass[i+1]/CONST_U,
                   (*offload_array)[n_rho*(4+i)],
