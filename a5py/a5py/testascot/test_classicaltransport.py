@@ -80,7 +80,7 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-10
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIMTIME"]       = 5e-6
+    odict["ENDCOND_LIM_SIMTIME"]       = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
@@ -98,7 +98,7 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-9
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIMTIME"]       = 5e-6
+    odict["ENDCOND_LIM_SIMTIME"]       = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
@@ -121,7 +121,7 @@ def init():
     odict["FIXEDSTEP_USE_USERDEFINED"] = 1
     odict["FIXEDSTEP_USERDEFINED"]     = 1e-8
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIMTIME"]       = 5e-6
+    odict["ENDCOND_LIM_SIMTIME"]       = 5e-6
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 

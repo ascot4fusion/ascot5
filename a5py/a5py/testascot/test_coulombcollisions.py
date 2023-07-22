@@ -79,7 +79,7 @@ def init():
     helpers.clean_opt(odict)
 
     odict["ENDCOND_SIMTIMELIM"]        = 1
-    odict["ENDCOND_MAX_SIMTIME"]       = simtime_th
+    odict["ENDCOND_LIM_SIMTIME"]       = simtime_th
     odict["ENABLE_ORBIT_FOLLOWING"]    = 1
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
     odict["ENABLE_DIST_5D"]            = 1
