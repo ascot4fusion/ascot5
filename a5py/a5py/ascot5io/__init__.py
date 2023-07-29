@@ -185,7 +185,8 @@ class Ascot5IO(RootNode):
         """
         return HDF5TOOBJ[grouptype](self, path)
 
-    def create_input(self, inp, desc=None, activate=None, **kwargs):
+    def create_input(self, inp, desc=None, activate=None, dryrun=False,
+                     **kwargs):
         """Create input and write the data to the HDF5 file.
 
         This method can be used in two ways to write input data.
@@ -202,10 +203,13 @@ class Ascot5IO(RootNode):
         inp : str
             Type of the input e.g. "B_2DS" or name of the template/import
             e.g. "analytical ITER-like".
-        desc :str
+        desc : str, optional
             Input description.
-        activate : bool
+        activate : bool, optional
             Set created input as active.
+        dryrun : bool, optional
+            If True, the data is not written to HDF5 but instead it is returned
+            as a dictionary.
         **kwargs : dict
             The parameters that are needed to create the requested input type
             or template.
@@ -215,8 +219,9 @@ class Ascot5IO(RootNode):
 
         Returns
         -------
-        name : str
-            Name, i.e. "<type>_<qid>", of the new input that was written.
+        data : str or dict
+            Name, i.e. "<type>_<qid>", of the new input that was written or the
+            data that was created but not written if ``dryrun`` is True.
         """
         if inp in HDF5TOOBJ.keys():
             if len(kwargs) == 0:
@@ -227,7 +232,10 @@ class Ascot5IO(RootNode):
                     self._ascot.file_getpath(), **kwargs)
         else:
             gtype, data = InputFactory(self._ascot).construct(inp, **kwargs)
-            name = HDF5TOOBJ[gtype].write_hdf5(
+            if dryrun:
+                return data
+            else:
+                name = HDF5TOOBJ[gtype].write_hdf5(
                     self._ascot.file_getpath(), **data)
 
         self._build(self._ascot.file_getpath())
