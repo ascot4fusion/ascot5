@@ -9,6 +9,7 @@ from .ascotpy  import Ascotpy
 
 from .ascotpy.libascot import _LIBASCOT
 from .exceptions import *
+from .routines.plotting import openfigureifnoaxes
 
 # Define the unit system ascot uses and add our own unit types
 unyt.define_unit("markers", 1*unyt.Dimensionless)
@@ -259,3 +260,168 @@ class Ascot(Ascotpy):
         else:
             self._free(bfield=bfield, efield=efield, plasma=plasma, wall=wall,
                        neutral=neutral, boozer=boozer, mhd=mhd)
+
+    def preflight_inputspresent(self):
+        """Check required inputs are present for this run.
+        """
+
+        # Determine what we are simulating.
+        runtype = "ascot"
+
+        msg = []
+        if runtype == "ascot":
+            for inp in ["bfield", "efield", "plasma", "neutral", "options",
+                        "marker", "wall", "boozer", "mhd", "asigma"]:
+                if not hasattr(self.data, inp):
+                    msg += ["Error: %s data is missing" % inp]
+
+        return msg
+
+    def preflight_optionsconsistent(self):
+        """Check that options are consistent with inputs and each other.
+        """
+        msg = []
+        opt = self.data.options.active
+
+        #msg0 = opt.validatevalues()
+        msg0 = []
+        if len(msg0) > 0:
+            msg += ["Error: following options had invalid parameters:"]
+            msg += msg0
+
+        opt = opt.read()
+        if opt["ENABLE_MHD"] == 1 and \
+           self.data.bfield.active.get_type() == "B_STS":
+            msg += ["Error: cannot enable MHD for stellarators"]
+
+        if opt["SIM_MODE"] in [1,2,3] and \
+           self.data.marker.active.get_type() == "mrk_fl":
+            msg += ["Error: SIM_MODE invalid for field-line markers"]
+
+        # Make rough estimates on how much memory is consumed by diagnostics
+        high_memory_consumption = 1e9 # In bits
+        # Orbit = Npoint * Nfields (~10) * Nmrk * 8 bit
+        orb_mem = opt["ORBITWRITE_NPOINT"] * 10 \
+            * self.data.marker.active.read()["n"] * 8
+        # Distributions = NR * Nz * ... * 8 bit
+        rzp = opt["DIST_NBIN_R"] * opt["DIST_NBIN_Z"] * opt["DIST_NBIN_PHI"]
+        rtp = opt["DIST_NBIN_RHO"] * opt["DIST_NBIN_THETA"] * opt["DIST_NBIN_PHI"]
+        p2d = opt["DIST_NBIN_PPA"] * opt["DIST_NBIN_PPE"]
+        p3d = opt["DIST_NBIN_PR"] * opt["DIST_NBIN_PZ"] * opt["DIST_NBIN_PPHI"]
+
+        if opt["ENABLE_ORBITWRITE"] == 1 and orb_mem > high_memory_consumption:
+            msg += ["Warning: orbit diagnostic memory consumption high (~" +
+                    str(int(orb_mem / 1e9)) + "Gb)"]
+
+        if opt["ENABLE_DIST_5D"] == 1 and rzp * p2d * 8 > high_memory_consumption:
+            msg += ["Warning: 5D distribution memory consumption high (~" +
+                    str(int(rzp * p2d * 8 / 1e9)) + "Gb)"]
+
+        if opt["ENABLE_DIST_6D"] == 1 and rzp * p3d * 8 > high_memory_consumption:
+            msg += ["Warning: 6D distribution memory consumption high (~" +
+                    str(int(rzp * p3d * 8 / 1e9)) + "Gb)"]
+
+        if opt["ENABLE_DIST_RHO5D"] == 1 and rtp * p2d * 8 > high_memory_consumption:
+            msg += ["Warning: rho5D distribution memory consumption high (~" +
+                    str(int(rtp * p2d * 8 / 1e9)) + "Gb)"]
+
+        if opt["ENABLE_DIST_RHO6D"] == 1 and rtp * p3d * 8 > high_memory_consumption:
+            msg += ["Warning: rho6D distribution memory consumption high (~" +
+                    str(int(rtp * p3d * 8 / 1e9)) + "Gb)"]
+
+        return msg
+
+    def preflight_bfieldpsi0(self):
+        """Checks whether psi0 given in input is actually extreme value.
+
+        Because psi is interpolated with splines, there might be numerical error
+        that causes psi (near the axis) to have more extreme value than psi0
+        which is given in input. This leads to imaginary rho and termination
+        of the simulation if marker ends up there.
+
+        This check uses Monte Carlo method to 1. Draw phi 2. Evaluate axis (R,z)
+        3. Draw random (R,z) coordinates within 10 cm of the axis. 4. Evaluate psi
+        at that point and compare to psi0. Process repeats N times. Check passes
+        if all evaluations are valid.
+        """
+
+        data = self.data.bfield.active.read()
+        if "psi0" not in data:
+            return []
+
+        psi0 = data["psi0"]
+        psi1 = data["psi1"]
+        psi0 = -7.1
+
+        N     = 10000
+        phi   = np.random.rand(N,) * 360
+        theta = np.random.rand(N,) * 2 * np.pi
+
+        axis = self.input_eval(1, phi, 0, 0, "axis")
+        z0 = axis["axisz"]
+        r0 = axis["axisr"]
+
+        R = 0.1 # 10 cm
+        r = R * np.cos(theta) + r0
+        z = R * np.sin(theta) + z0
+        psi = self.input_eval(r, phi, z, 0, "psi")
+
+        if psi0 < psi1 and any(psi < psi0):
+            return ["Error: psi0 = %.2e but we found near axis that psi = %.2e"\
+                    % (psi0, np.amin(psi)) ]
+        elif psi0 > psi1 and any(psi > psi0):
+            return ["Error: psi0 = %.2e but we found near axis that psi = %.2e"\
+                    % (psi0, np.amax(psi)) ]
+        return []
+
+    @openfigureifnoaxes(projection=None)
+    def preflight_plottopview(self, axes=None):
+        """Plot top view of the machine showing Ip, Bphi, and markers.
+
+        Assumes bfield is initialized in ascotpy.
+        """
+        r0, z0 = self.input_eval(1, 0, 0, 0, "axisr", "axisz")
+        #z0 = axis["axisz"]
+        #r0 = axis["axisr"]
+
+        rmin = r0-r0/2
+        rmax = r0+r0/2
+        dphi = 10 * np.pi/180 # So that b and j quivers dont overlap
+
+        r   = np.linspace(rmin, rmax, 10)
+        phi = np.linspace(0, 360, 18, endpoint=False) * np.pi/180
+        phi, r = np.meshgrid(phi, r)
+        r   = r.ravel()
+        phi = phi.ravel()
+
+        br   = np.squeeze(self.input_eval(r, phi, z0, 0, "br"))
+        bphi = np.squeeze(self.input_eval(r, phi, z0, 0, "bphi"))
+        jr   = np.squeeze(self.input_eval(r, phi + dphi, z0, 0, "jr"))
+        jphi = np.squeeze(self.input_eval(r, phi + dphi, z0, 0, "jphi"))
+
+        x  = np.cos(phi) * r
+        y  = np.sin(phi) * r
+        bx = np.cos(phi) * br - np.sin(phi) * bphi
+        by = np.sin(phi) * br + np.cos(phi) * bphi
+        bnorm = np.sqrt(bx**2 + by**2)
+
+        xj = np.cos(phi+dphi) * r
+        yj = np.sin(phi+dphi) * r
+        jx = np.cos(phi+dphi) * jr - np.sin(phi+dphi) * jphi
+        jy = np.sin(phi+dphi) * jr + np.cos(phi+dphi) * jphi
+        jnorm = np.sqrt(jx**2 + jy**2)
+
+        axes.quiver(x,y, bx/bnorm, by/bnorm,
+                    color="blue", scale=40)
+        axes.quiver(xj,yj, jx/jnorm, jy/jnorm,
+                    color="red", scale=40)
+
+        axes.set_aspect("equal", adjustable="box")
+
+        marker = self.data.marker.active.read()
+        x  = np.cos(marker["phi"] * np.pi/180) * marker["r"]
+        y  = np.sin(marker["phi"] * np.pi/180) * marker["r"]
+
+        axes.scatter(x,y, s=1, c="black", zorder=-2)
+
+        axes.legend(("Magnetic field", "Plasma current", "Markers"))
