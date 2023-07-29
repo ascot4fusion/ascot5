@@ -1,7 +1,4 @@
-"""
-Contains definition of various GUI component classes.
-
-File: components.py
+"""Contains definition of various GUI component classes.
 """
 import tkinter
 import tkinter.ttk as ttk
@@ -401,3 +398,70 @@ class ToggleButton(ttk.Frame):
         self.switch.enable(onoff)
         self.labelon.configure(fg="black")
         self.labelon.configure(fg="black")
+
+class ContentTab(ttk.Frame):
+    """Leaf node in the NestedNotebook that is a frame widget.
+    """
+
+    def __init__(self, frame, canvas, gui, *args, tabselected=None, tabdisabled=None, **kwargs):
+        super().__init__(frame, *args, tabselected=tabselected, tabdisabled=tabdisabled, **kwargs)
+        self.frame  = frame
+        self.canvas = canvas
+        self.gui    = gui
+
+class NestedNotebook(ttk.Notebook):
+    """Notebook that can has other notebooks or frames in it's tabs.
+    """
+
+    def __init__(self, frame, *args, tabselected=None, **kwargs):
+        super().__init__(frame, *args, **kwargs)
+        self._children = {}
+        self._sleep = True
+
+        if tabselected is None:
+            self.tabselected = lambda : 0
+        else:
+            self.tabselected = tabselected
+
+        def eventhandler(event):
+            #print(event.widget.tab("current")["text"])
+            self.tabchanged()
+        self.bind("<<NotebookTabChanged>>", eventhandler)
+
+    def add(self, text, tabselected=None, tab=None):
+        if tab == None:
+            tab = NestedNotebook(self, tabselected=tabselected)
+        self._children[text] = tab
+        super().add(tab, text=text)
+
+    def traverse(self, text):
+        for txt, frame in self._children.items():
+            if txt == text: return frame
+        for c in self._children.values():
+            if not isinstance(c, NestedNotebook): continue
+            frame = c.traverse(text)
+            if frame is not None: return frame
+        return None
+
+    def currenttab(self):
+        tab = self.nametowidget(self.select())
+        if isinstance(tab, NestedNotebook):
+            return tab.currenttab()
+        for name, item in self._children.items():
+            if item == tab:
+                return tab, name
+
+    def tabchanged(self):
+        if self._sleep: return
+        tab = self.nametowidget(self.select())
+        if isinstance(tab, NestedNotebook):
+            tab.tabselected()
+            tab.tabchanged()
+        else:
+            tab.selecttab()
+
+    def wakeup(self):
+        self._sleep = False
+        for c in self._children.values():
+            if not isinstance(c, NestedNotebook): continue
+            c.wakeup()

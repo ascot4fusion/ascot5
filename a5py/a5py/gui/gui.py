@@ -10,7 +10,7 @@ from tkinter import ttk
 from tkinter.filedialog import askopenfilename, askdirectory
 from tkinter import messagebox, simpledialog
 
-from a5py import Ascot
+from a5py import Ascot, AscotIOException
 from a5py.ascot5io.coreio import fileapi
 
 from .contentmanager import ContentManager
@@ -110,14 +110,10 @@ class GUI(tk.Tk):
 
         # Make sure everything is closed when the window is closed
         def close():
-            """
-            Close the gui and terminate the program.
+            """Close the gui and terminate the program.
             """
             self.destroy()
-            exit()
-
         self.protocol("WM_DELETE_WINDOW", close)
-
 
         # Initialize content frames
         files    = FileFrame(self,     width=GUI.FILEFRAMEWIDTH,
@@ -137,6 +133,8 @@ class GUI(tk.Tk):
         settings.grid(row=2, column=0, sticky="NWES")
         canvas.grid(  row=0, column=1, sticky="NWSE", rowspan=3)
 
+        settings.pack_propagate(False)
+
         self.grid_rowconfigure(1, weight=1)
         self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -153,6 +151,11 @@ class GUI(tk.Tk):
         path = None if filename is None else os.path.abspath(filename)
         self.files.open_new_file(path)
 
+        def wakecontentmanager(event):
+            self.content.wakeup()
+            self.unbind('<Visibility>')
+
+        self.bind('<Visibility>', wakecontentmanager)
 
     def pleasehold(self, message, target):
         """Pops up a message and freezes GUI until the target function is done.
@@ -175,7 +178,7 @@ class GUI(tk.Tk):
         f.pack_propagate(0)
         tk.Label(dialog, text=message,
                  font=("Calibri",12)).pack(anchor="c", fill="both", expand=True)
-        f.pack()#fill="both", expand=True)
+        f.pack()
 
         # Show dialog
         dialog.update_idletasks()
@@ -201,10 +204,6 @@ class SettingsFrame(ttk.Frame):
     """Frame that displays parameters the user can vary when viewing data.
 
     Contents of this frame changes depending on what tab is chosen.
-    ContentManager class then decides what is plotted on the canvas.
-
-    Only implemented as a separate class if there is a need to tune this
-    frame in future development.
     """
     pass
 
@@ -212,12 +211,22 @@ class CanvasFrame(ttk.Frame):
     """Frame that displays plots.
 
     Contents of this frame changes depending on what tab is chosen.
-    ContentManager class then decides what is plotted on the canvas.
-
-    Only implemented as a separate class if there is a need to tune this
-    frame in future development.
     """
-    pass
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.slides = {}
+        self.current = ttk.Frame(self)
+        self.current.pack()
+
+    def slideadd(self, widget, frame):
+        self.slides[widget.winfo_name()] = frame
+
+    def slideshow(self, widget):
+        if self.current != widget:
+            self.current.pack_forget()
+            self.current = self.slides[widget.winfo_name()]
+            self.current.pack(fill="both", expand=True)
 
 class FileFrame(ttk.Frame):
     """Frame for accessing the HDF5 file.
@@ -302,10 +311,10 @@ class FileFrame(ttk.Frame):
         self.gui.groups.build_groups()
         self.gui.params.retrieve(filename)
         self.display_file(filename)
+        self.gui.content.restart()
 
     def display_file(self, filename):
-        """
-        Display file name and size.
+        """Display file name and size.
         """
         if filename is None:
             filename = ""
@@ -331,8 +340,7 @@ class GroupFrame(ttk.Frame):
     """
 
     def __init__(self, gui, *args, **kwargs):
-        """
-        Initializes tree which doesn't contain any data.
+        """Initializes tree which doesn't contain any data.
         """
         super().__init__(*args, **kwargs)
 
@@ -383,8 +391,7 @@ class GroupFrame(ttk.Frame):
         self.gui  = gui
 
     def build_groups(self):
-        """
-        (Re)Build tree from scratch from the file in GUI.
+        """(Re)Build tree from scratch from the file in GUI.
         """
 
         # Clear tree.
@@ -400,7 +407,6 @@ class GroupFrame(ttk.Frame):
             if parent == "results":
                 qids, types, descs, dates = \
                     self.gui.ascot.data.get_contents()
-                print(qids)
                 if len(qids) > 0:
                     activeqid = self.gui.ascot.data.active.get_qid()
                     item = self.tree.insert("", index, text=parent,
@@ -413,7 +419,7 @@ class GroupFrame(ttk.Frame):
                     continue
 
                 item = self.tree.insert("", index, text=parent, tags=("parent"))
-                qids, types, descs, dates = \
+                qids, dates, descs, types = \
                     self.gui.ascot.data[parent].get_contents()
                 if len(qids) > 0:
                     activeqid = self.gui.ascot.data[parent].active.get_qid()
@@ -467,7 +473,7 @@ class GroupFrame(ttk.Frame):
         self.gui.content.update_content()
 
     def activate_group(self):
-        """Set item (group) as active in the tree.
+        """Set currently selected item (group) as active in the tree.
         """
         item       = self.tree.selection()
         parent     = self.tree.parent(item)
@@ -482,7 +488,7 @@ class GroupFrame(ttk.Frame):
         self.gui.content.update_content()
 
     def remove_group(self):
-        """Remove item (group) from tree.
+        """Remove currently selected item (group) from tree.
         """
         item       = self.tree.selection()
         parent     = self.tree.parent(item)
@@ -500,31 +506,18 @@ class GroupFrame(ttk.Frame):
             return
 
         # Remove the group in HDF5
-        self.gui.ascot.data._remove_from_file(qid)
-
         try:
-            self.gui.ascot.data[parentname]["q" + qid]
+            self.gui.ascot.data._destroy_group(qid)
+        except AscotIOException:
             messagebox.showerror(
                   "Error",
                   "Could not remove the input group as it has been used in\n"
                 + "a simulation. Remove the simulation group first.")
             return
-        except:
-            pass
-
-        try:
-            self.gui.ascot.data[qid]
-            messagebox.showerror(
-                  "Error",
-                  "Could not remove the input group as it has been used in\n"
-                + "a simulation. Remove the simulation group first.")
-            return
-        except:
-            pass
 
         # Update treeview
 
-        # 1. Whole group was removed / ceased to exist
+        # 1. Whole group was removed
         if qid in fileapi.INPUTGROUPS or qid == "results":
             for c in self.tree.get_children(item):
                 self.tree.delete(c)
@@ -537,18 +530,31 @@ class GroupFrame(ttk.Frame):
             return
 
         # 2. Ordinary group: remove it and set the next one as active
-        if parentname == "results":
-            activeqid = self.gui.ascot.data.active.get_qid()
-            self._highlightinputs([])
-        else:
-            activeqid = self.gui.ascot.data[parentname].active.get_qid()
-
+        #    or remove the parent as well
         self.tree.delete(item)
-        for group in self.tree.get_children(parent):
-            if activeqid == self.tree.item(group, "text"):
-                self._activate(group, parent)
-                break
-
+        if parentname == "results":
+            #if not hasattr(self.gui.ascot.data, "active"):
+            if self.gui.ascot.data.active is None:
+                # Last group
+                self.tree.delete(parent)
+                self._highlightinputs([])
+            else:
+                activeqid = self.gui.ascot.data.active.get_qid()
+                self._highlightinputs([])
+                for group in self.tree.get_children(parent):
+                    if activeqid == self.tree.item(group, "text"):
+                        self._activate(group, parent)
+                        break
+        else:
+            if not hasattr(self.gui.ascot.data, parentname):
+                # Last group
+                self.tree.item(parent, tags=("parent", "nodata"))
+            else:
+                activeqid = self.gui.ascot.data[parentname].active.get_qid()
+                for group in self.tree.get_children(parent):
+                    if activeqid == self.tree.item(group, "text"):
+                        self._activate(group, parent)
+                        break
         self.gui.content.update_content()
 
     def export_group(self):
@@ -723,10 +729,10 @@ class GroupFrame(ttk.Frame):
                              command=groups.activate_group)
             self.add_command(label="Remove",
                              command=groups.remove_group)
-            self.add_command(label="Export",
-                             command=groups.export_group)
-            self.add_command(label="Add dummy input",
-                             command=groups.add_dummygroup)
+            #self.add_command(label="Export",
+            #                 command=groups.export_group)
+            #self.add_command(label="Add dummy input",
+            #                 command=groups.add_dummygroup)
 
             # Show menu when tree is right-clicked
             tree.bind("<Button-3>", self.showmenu)

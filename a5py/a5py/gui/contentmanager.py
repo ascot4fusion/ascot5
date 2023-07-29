@@ -1,20 +1,19 @@
-"""
-Defines ContentManager class for showing stuff at Canvas and Settings frames.
-
-File: contentmanager.py
+"""Defines ContentManager class for showing stuff at Canvas and Settings frames.
 """
 import tkinter as tk
 from tkinter import ttk
 
-from .contentgroup       import ContentGroup
-from .contentprecheck    import ContentPrecheck
-from .contentinput       import ContentInput
-from .contentoutput      import ContentOutput
-from .contentinteractive import ContentInteractive
+from a5py import AscotInitException
 
-class ContentManager():
-    """
-    Manages the contents in SettingsFrame and in CanvasFrame.
+from .filecontents  import Info
+from .inputcontents import Field, Preflight
+from .resultcontents import Summary, StateScatter, StateHistogram, Orbit, \
+    Poincare, LossSummary, Dists, Moments, WallLoad, Wall3D
+from .runcontents import Trace
+from .components import NestedNotebook
+
+class ContentManager(NestedNotebook):
+    """Manages the contents in SettingsFrame and in CanvasFrame.
 
     Settings frame is a notebook widget where changing the tab also changes
     what is shown on Canvas*. This is done so that we always pack_forget the
@@ -32,98 +31,119 @@ class ContentManager():
     that would make this class huge...
     """
 
-
     def __init__(self, gui, settingsframe, canvasframe):
+        """Generate all content widgets (which also generate their contents).
         """
-        Generate all content widgets (which also generate their contents).
-        """
-
+        super().__init__(settingsframe)
+        self.pack(fill="both", expand=True)
         self.gui = gui
+        self.canvas = canvasframe
 
-        # Add tabs to the notebook widget
-        settings         = ttk.Notebook(settingsframe)
-        groupframe       = ttk.Frame(settings)
-        preflightframe   = ttk.Frame(settings)
-        inputframe       = ttk.Frame(settings)
-        outputframe      = ttk.Frame(settings)
-        interactiveframe = ttk.Frame(settings)
-        settings.add(groupframe,       text="Group")
-        settings.add(preflightframe,   text="Preflight")
-        settings.add(inputframe,       text="Input")
-        settings.add(outputframe,      text="Analysis")
-        settings.add(interactiveframe, text="Run")
+        def tabselected(tab):
+            if self._sleep: return
+            if tab == "Inputs":
+                try:
+                    self.gui.ascot.simulation_free()
+                except AscotInitException:
+                    pass
+                init = {"wall" : False}
+                for inp in ["bfield", "efield", "plasma", "neutral", "boozer",
+                            "mhd"]:
+                    init[inp] = inp in self.gui.ascot.data
+                #msg = self.gui.pleasehold("Ascotpy is being initialized..."
+                self.gui.ascot.input_init(**init, switch=True)
+            elif tab == "Results":
+                try:
+                    self.gui.ascot.simulation_free()
+                except AscotInitException:
+                    pass
+                self.gui.ascot.input_init(
+                    run=True, bfield=True, efield=True, plasma=True,
+                    neutral=True, boozer=True, mhd=True, switch=True)
+            elif tab == "Run":
+                self.gui.ascot.input_free()
+                self.gui.ascot.simulation_initinputs()
 
-        # Initialize content frames (nothing is shown yet)
-        groupcanvas       = ttk.Frame(canvasframe)
-        preflightcanvas   = ttk.Frame(canvasframe)
-        inputcanvas       = ttk.Frame(canvasframe)
-        outputcanvas      = ttk.Frame(canvasframe)
-        interactivecanvas = ttk.Frame(canvasframe)
-        self.contentgroup        = ContentGroup(
-            gui, groupframe, groupcanvas)
-        #self.contentprecheck    = ContentPrecheck(
-        #    gui, preflightframe, preflightcanvas)
-        #self.contentinput       = ContentInput(
-        #    gui, inputframe, inputcanvas)
-        #self.contentoutput      = ContentOutput(
-        #    gui, outputframe, outputcanvas)
-        #self.contentinteractive = ContentInteractive(
-        #    gui, interactiveframe, interactivecanvas)
+        args = (self, self.canvas, self.gui)
 
-        # Have an empty canvas initially
-        self.active_canvas = ttk.Frame(canvasframe)
-        self.active_canvas.pack(fill="both", expand=True)
-
-        # Display contents when tab changes
-        def on_tab_change(event):
-            tab = event.widget.tab('current')['text']
-            self.display_content(tab)
-
-        settings.bind('<<NotebookTabChanged>>', on_tab_change)
-        settings.pack(fill="both", expand=True)
-
+        self.add("File", tab=Info(*args))
+        self.add("Inputs", tabselected=lambda : tabselected("Inputs"))
+        self.traverse("Inputs").add("Plot (R,z)", tab=Field(*args))
+        self.traverse("Inputs").add("Preflight", tab=Preflight(*args))
+        self.add("Results", tabselected=lambda : tabselected("Results"))
+        self.traverse("Results").add("Summary", tab=Summary(*args))
+        self.traverse("Results").add("Ini/Endstate")
+        self.traverse("Ini/Endstate").add("Scatter", tab=StateScatter(*args))
+        self.traverse("Ini/Endstate").add("Histogram", tab=StateHistogram(*args))
+        self.traverse("Results").add("Orbits")
+        self.traverse("Orbits").add("Trajectory", tab=Orbit(*args))
+        self.traverse("Orbits").add("Poincaré", tab=Poincare(*args))
+        self.traverse("Results").add("Dists")
+        self.traverse("Dists").add("Distribution", tab=Dists(*args))
+        self.traverse("Dists").add("Moments", tab=Moments(*args))
+        self.traverse("Results").add("Losses")
+        self.traverse("Losses").add("Total", tab=LossSummary(*args))
+        self.traverse("Losses").add("Wall loads", tab=WallLoad(*args))
+        self.traverse("Losses").add("View 3D", tab=Wall3D(*args))
+        self.add("Run", tabselected=lambda : tabselected("Run"))
+        self.traverse("Run").add("Trace", tab=Trace(*args))
 
     def update_content(self):
+        """Redraw contents on settings and canvas frames.
         """
-        Redraw contents on settings and canvas frames.
-        """
-        self.display_content(self.content)
+        tab, name = self.currenttab()
+        if name == "File":
+            tab.selecttab()
 
+    def restart(self):
+        # Free any used resources
+        try:
+            self.gui.ascot.simulation_free()
+        except:
+            self.gui.ascot.input_free()
 
-    def display_content(self, content):
-        """
-        Parse what content to display and display it.
+        # Has results?
+        if self.gui.ascot.data.active is None:
+            self.tab(2, state="disabled")
+        else:
+            self.tab(2, state="normal")
 
-        All display functions should be accessed via this interface.
-        """
-        self.content = content
+            run = self.gui.ascot.data.active
+            tab0 = self.traverse("Results")
 
-        if content == "Group":
-            self.active_canvas.pack_forget()
-            self.contentgroup.display()
-            self.active_canvas = self.contentgroup.canvas
-            self.active_canvas.pack(fill="both", expand=True)
+            # Has orbit data?
+            if not hasattr(run, "_orbit"):
+                tab0.tab(2, state="disabled")
+            else:
+                tab0.tab(2, state="normal")
+                tab1 = self.traverse("Orbits")
 
-        if content == "Preflight":
-            self.active_canvas.pack_forget()
-            self.contentprecheck.display()
-            self.active_canvas = self.contentprecheck.canvas
-            self.active_canvas.pack(fill="both", expand=True)
+                # Has Poincare data?
+                if run.getorbit_poincareplanes() is None:
+                    tab1.tab(1, state="disabled")
+                else:
+                    tab1.tab(1, state="normal")
 
-        if content == "Input":
-            self.active_canvas.pack_forget()
-            self.contentinput.display()
-            self.active_canvas = self.contentinput.canvas
-            self.active_canvas.pack(fill="both", expand=True)
+            # Has distribution data?
+            if not ( hasattr(run, "_dist5d") or hasattr(run, "_distrho5d") or
+                     hasattr(run, "_dist6d") or hasattr(run, "_distrho6d") or
+                     hasattr(run, "_distcom") ):
+                tab0.tab(3, state="disabled")
+            else:
+                tab0.tab(3, state="normal")
+                tab1 = self.traverse("Dists")
 
-        if content == "Analysis":
-            self.active_canvas.pack_forget()
-            self.contentoutput.display()
-            self.active_canvas = self.contentoutput.canvas
-            self.active_canvas.pack(fill="both", expand=True)
+                # Has 5D distribution data to calculate moments?
+                if not( hasattr(run, "_dist5d") or hasattr(run, "_distrho5d") ):
+                    tab1.tab(1, state="disabled")
+                else:
+                    tab1.tab(1, state="normal")
 
-        if content == "Run":
-            self.active_canvas.pack_forget()
-            self.contentinteractive.display()
-            self.active_canvas = self.contentinteractive.canvas
-            self.active_canvas.pack(fill="both", expand=True)
+            # Has 3D wall?
+            tab1 = self.traverse("Losses")
+            if run.wall.get_type() != "wall_3D":
+                tab1.tab(1, state="disabled")
+                tab1.tab(2, state="disabled")
+            else:
+                tab1.tab(1, state="normal")
+                tab1.tab(2, state="normal")
