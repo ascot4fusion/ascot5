@@ -557,11 +557,14 @@ class wall_3D(DataGroup):
         out : dict
             :class:`wall_2D` converted as an input for :meth:`write_hdf5`.
         """
-        x1x2x3 = np.ones((2*nelements*nphi, 3))
-        y1y2y3 = np.ones((2*nelements*nphi, 3))
-        r1r2r3 = np.ones((2*nelements*nphi, 3))
-        p1p2p3 = np.ones((2*nelements*nphi, 3))
-        z1z2z3 = np.ones((2*nelements*nphi, 3))
+        r = kwargs["r"]
+        z = kwargs["z"]
+        n = kwargs["nelements"]
+        x1x2x3 = np.ones((2*n*nphi, 3))
+        y1y2y3 = np.ones((2*n*nphi, 3))
+        r1r2r3 = np.ones((2*n*nphi, 3))
+        p1p2p3 = np.ones((2*n*nphi, 3))
+        z1z2z3 = np.ones((2*n*nphi, 3))
 
         def pol2cart(rho, phi):
             """Poloidal coordinates to Cartesian.
@@ -583,5 +586,5 @@ class wall_3D(DataGroup):
 
         x1x2x3,y1y2y3 = pol2cart(r1r2r3, p1p2p3)
 
-        return {"nelements" : 2*nelements*nphi, "x1x2x3" : x1x2x3,
+        return {"nelements" : 2*n*nphi, "x1x2x3" : x1x2x3,
                 "y1y2y3" : y1y2y3, "z1z2z3" : z1z2z3}
