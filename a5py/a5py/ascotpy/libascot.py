@@ -436,13 +436,11 @@ class LibAscot:
 
     @parseunits(ma="kg", qa="C", r="m", phi="rad", z="m", t="s", va="m/s")
     def input_eval_collcoefs(self, ma, qa, r, phi, z, t, va):
-        """
-        Evaluate Coulomb collision coefficients for given particle and coords.
+        """Evaluate Coulomb collision coefficients for a given test particle.
 
         Collision coefficients are evaluated by interpolating the plasma
-        parameters on given coordinates, and using those and given test particle
-        mass and charge to evaluate the coefficients as a function of test
-        particle velocity.
+        parameters on given coordinates. The coefficients are returned as
+        a function of the test particle velocity.
 
         Parameters
         ----------
@@ -452,20 +450,22 @@ class LibAscot:
             Test particle charge.
         r : array_like, (n,)
             R coordinates where data is evaluated.
-        phi : float
-            phi coordinate where data is evaluated.
-        z : float
-            z coordinate where data is evaluated.
-        t : float
-            Time coordinate where data is evaluated.
-        evalpot : bool, optional
-            Evaluate eigenfunctions as well.
+        phi : array_like, (n,)
+            phi coordinates where data is evaluated.
+        z : array_like, (n,)
+            z coordinates where data is evaluated.
+        t : array_like, (n,)
+            Time coordinates where data is evaluated.
+        va : array_like, (nv,)
+            Test particle velocity.
 
         Returns
         -------
-        out : dict [str, array_like (n,)]
-            Evaluated quantities in a dictionary.
+        out : dict [str, array_like (nion+1, n, nv)]
+            Evaluated collision coefficients in a dictionary.
 
+            The first dimension is the background plasma species where the first
+            index is for the electrons followed by ions.
         Raises
         ------
         AssertionError
@@ -474,14 +474,10 @@ class LibAscot:
             If evaluation in libascot.so failed.
         """
         self._requireinit("bfield", "plasma")
-        ma  = float(ma)
-        qa  = float(qa)
-        Neval = va.size
-
-        n_species = self.input_getplasmaspecies() + 1
+        n_species = self.input_getplasmaspecies()[0] + 1
 
         out = {}
-        temp = np.zeros((r.size, n_species, va.size), dtype="f8")
+        temp = np.zeros((n_species, r.size, va.size), dtype="f8")
         out["F"]      = np.copy(temp) * unyt.m / unyt.s**2
         out["Dpara"]  = np.copy(temp) * unyt.m**2 / unyt.s**3
         out["Dperp"]  = np.copy(temp) * unyt.m**2 / unyt.s**3
@@ -495,14 +491,15 @@ class LibAscot:
         out["mu1"]    = np.copy(temp)
         out["dmu0"]   = np.copy(temp)
 
-        fun = __LIBASCOT.libascot_eval_collcoefs
+        fun = _LIBASCOT.libascot_eval_collcoefs
         fun.restype  = ctypes.c_int
-        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR, PTR_ARR,
+        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
                         ctypes.c_int, PTR_REAL, ctypes.c_double,
                         ctypes.c_double, ctypes.c_double, ctypes.c_double,
                         ctypes.c_double, ctypes.c_double, PTR_REAL, PTR_REAL,
                         PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                         PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
+
         for i in range(r.size):
             F      = np.zeros((n_species, va.size), dtype="f8")
             Dpara  = np.zeros((n_species, va.size), dtype="f8")
@@ -518,20 +515,21 @@ class LibAscot:
             dmu0   = np.zeros((n_species, va.size), dtype="f8")
             fun(ctypes.byref(self._sim), self._bfield_offload_array,
                 self._plasma_offload_array,
-                Neval, va, r[i], phi[i], z[i], t[i], ma, qa, F, Dpara, Dperp,
+                va.size, va, r[i], phi[i], z[i], t[i],
+                ma, qa, F, Dpara, Dperp,
                 K, nu, Q, dQ, dDpara, clog, mu0, mu1, dmu0)
-            out["F"][i,:,:]      = F[:,:]
-            out["Dpara"][i,:,:]  = Dpara[:,:]
-            out["Dperp"][i,:,:]  = Dperp[:,:]
-            out["K"][i,:,:]      = K[:,:]
-            out["nu"][i,:,:]     = nu[:,:]
-            out["Q"][i,:,:]      = Q[:,:]
-            out["dQ"][i,:,:]     = dQ[:,:]
-            out["dDpara"][i,:,:] = dDpara[:,:]
-            out["clog"][i,:,:]   = clog[:,:]
-            out["mu0"][i,:,:]    = mu0[:,:]
-            out["mu1"][i,:,:]    = mu1[:,:]
-            out["dmu0"][i,:,:]   = dmu0[:,:]
+            out["F"][:,i,:]      = F[:,:]
+            out["Dpara"][:,i,:]  = Dpara[:,:]
+            out["Dperp"][:,i,:]  = Dperp[:,:]
+            out["K"][:,i,:]      = K[:,:]
+            out["nu"][:,i,:]     = nu[:,:]
+            out["Q"][:,i,:]      = Q[:,:]
+            out["dQ"][:,i,:]     = dQ[:,:]
+            out["dDpara"][:,i,:] = dDpara[:,:]
+            out["clog"][:,i,:]   = clog[:,:]
+            out["mu0"][:,i,:]    = mu0[:,:]
+            out["mu1"][:,i,:]    = mu1[:,:]
+            out["dmu0"][:,i,:]   = dmu0[:,:]
 
         return out
 
