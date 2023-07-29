@@ -288,12 +288,11 @@ class RunMixin():
     def getstate_losssummary(self):
         """Return a summary of lost markers.
         """
-        self._require("endstate")
+        self._require("_endstate")
 
-        wmrks = self.endstate.get("weight")
-        wloss = self.endstate.get("weight", endcond="wall")
-        emrks = self.endstate.get("energy")
-        eloss = self.endstate.get("energy", endcond="wall")
+        wmrks, emrks = self.getstate("weight", "ekin", state="end")
+        wloss, eloss = self.getstate("weight", "ekin", state="end",
+                                     endcond="wall")
 
         markers_lost   = wloss.size
         markers_frac   = wloss.size / wmrks.size
@@ -383,13 +382,16 @@ class RunMixin():
             list if there are none.
         """
         opt  = self.options.read()
+        hasdata = opt["ENABLE_ORBITWRITE"] == 1 and opt["ORBITWRITE_MODE"] == 0
+        if not hasdata: return None
+
         polval = opt["ORBITWRITE_POLOIDALANGLES"]
         torval = opt["ORBITWRITE_TOROIDALANGLES"]
         radval = opt["ORBITWRITE_RADIALDISTANCES"]
 
         pncrid = 0
         def opt2list(val):
-            """Conver the option string to a list with tuples (val, pncrid)
+            """Convert the option string to a list with tuples (val, pncrid)
             """
             nonlocal pncrid
             tuples = []
@@ -404,10 +406,9 @@ class RunMixin():
     def getwall_figuresofmerit(self):
         """
         """
-        self._require("endstate")
-        ids    = self.endstate.get("walltile", endcond="wall")
-        energy = self.endstate.get("energy", endcond="wall")
-        weight = self.endstate.get("weight", endcond="wall")
+        self._require("_endstate")
+        ids, energy, weight = self.getstate("walltile", "ekin", "weight",
+                                            state="end", endcond="wall")
         area   = self.wall.area()
 
         wetted_total, energy_peak = wall.figuresofmerit(ids, energy, weight, area)
@@ -443,13 +444,11 @@ class RunMixin():
             mdepo
             iangle
         """
-        self._require("endstate")
-        ids    = self.endstate.get("walltile", endcond="wall")
-        energy = self.endstate.get("energy", endcond="wall")
-        weight = self.endstate.get("weight", endcond="wall")
+        self._require("_endstate")
+        ids, energy, weight = self.getstate("walltile", "ekin", "weight",
+                                            state="end", endcond="wall")
         area   = self.wall.area()
         return wall.loads(ids, energy, weight, area)
-
 
     def getwall_3dmesh(self):
         """Return 3D mesh representation of 3D wall and associated loads.
@@ -485,6 +484,8 @@ class RunMixin():
         ----------
         dist : {"5d", "6d", "rho5d", "rho6d", "com"}
             Name of the distribution.
+
+            If ``dist`` is ``None``, returns a list of available distributions.
         exi : bool, optional
             Convert the momentum space to energy-pitch.
 
@@ -492,9 +493,19 @@ class RunMixin():
 
         Returns
         -------
-        data : :class:`DistData`
-            The distribution data object.
+        data : :class:`DistData` or list [str]
+            The distribution data object or a list of available distributions if
+            ``dist`` is ``None``.
         """
+        if dist is None:
+            dists = ["5d", "6d", "rho5d", "rho6d", "com"]
+            for d in dists:
+                try:
+                    self._require("_dist" + d)
+                except AscotNoDataException:
+                    dists.remove(d)
+            return dists
+
         mass = np.mean(self.getstate("mass"))
         if dist == "5d":
             self._require("_dist5d")
@@ -584,6 +595,9 @@ class RunMixin():
         if "toroidalcurrent" in moments:
             mass = np.mean(self.getstate("mass"))
             Dist.toroidalcurrent(self._root._ascot, mass, dist, out)
+        if "electronpowerdep" in moments:
+            mass = np.mean(self.getstate("mass"))
+            Dist.electronpowerdep(self._root._ascot, mass, dist, out)
         return out
 
     def plotdist(self, dist, axes=None, cax=None):
@@ -608,10 +622,10 @@ class RunMixin():
             if val.size > 2:
                 if x is None:
                     x = val
-                    xlabel = key + " [" + x.units + "]"
+                    xlabel = key + " [" + str(x.units) + "]"
                 elif y is None:
                     y = val
-                    ylabel = key + " [" + y.units + "]"
+                    ylabel = key + " [" + str(y.units) + "]"
                 else:
                     raise ValueError(
                         "The distribution has more than two dimensions with "
@@ -620,11 +634,11 @@ class RunMixin():
 
         ordinate = np.squeeze(dist.distribution())
         if y is None:
-            ylabel = "f" + " [" + ordinate.units + "]"
+            ylabel = "f" + " [" + str(ordinate.units) + "]"
             a5plt.mesh1d(x, ordinate, xlabel=xlabel, ylabel=ylabel, axes=axes)
         else:
             axesequal = x.units == y.units
-            clabel = "f" + " [" + ordinate.units + "]"
+            clabel = "f" + " [" + str(ordinate.units) + "]"
             a5plt.mesh2d(x, y, ordinate, axesequal=axesequal, xlabel=xlabel,
                          ylabel=ylabel, clabel=clabel, axes=axes, cax=cax)
 
@@ -956,108 +970,6 @@ class RunMixin():
             a5plt.hist2d(xc, yc, xbins=xbins, ybins=ybins, weights=weights,
                          xlog=xlog, ylog=ylog, logscale=logscale, xlabel=x,
                          ylabel=y, axesequal=axesequal, axes=axes, cax=cax)
-
-    def plotstate_summary(self, axes_inirho=None, axes_endrho=None,
-                          axes_mileage=None, axes_energy=None, axes_rz=None,
-                          axes_rhophi=None):
-        """Plot several graphs that summarize the simulation.
-
-        Following graphs are plotted:
-
-        - inirho: Initial rho histogram with colors marking the endcond.
-        - endrho: Initial rho histogram with colors marking the endcond.
-        - mileage: Final mileage histogram with colors marking the endcond.
-        - energy: Final energy histogram with colors marking the endcond.
-        - Rz: Final R-z scatterplot.
-        - rhophi: Final rho-phi scatterplot.
-
-        Parameters
-        ----------
-        axes_inirho  : :obj:`~matplotlib.axes.Axes`, optional
-            The axes where inirho is plotted or otherwise new figure is created.
-        axes_endrho  : :obj:`~matplotlib.axes.Axes`, optional
-            The axes where endrho is plotted or otherwise new figure is created.
-        axes_mileage : :obj:`~matplotlib.axes.Axes`, optional
-            The axes where mileage is plotted or otherwise new figure is
-            created.
-        axes_energy  : :obj:`~matplotlib.axes.Axes`, optional
-            The axes where energy is plotted or otherwise new figure is created.
-        axes_rz      : :obj:`~matplotlib.axes.Axes`, optional
-            The axes where Rz is plotted or otherwise new figure is created.
-        axes_rhophi  : :obj:`~matplotlib.axes.Axes`, optional
-            The axes where rhophi is plotted or otherwise new figure is created.
-        """
-        # Initial rho histogram with colors marking endcond
-        axes_inirho.set_xlim(0,1.1)
-        axes_inirho.set_title("Initial radial position")
-        self.plotstate_histogram(
-            "rho", xbins=np.linspace(0,1.1,55), weight=True,
-            iniend=["i", "i"], axes=axes_inirho)
-
-        # Final rho histogram with colors marking endcond
-        fig = None
-        if axes_endrho is None:
-            fig = plt.figure()
-            axes_endrho = fig.add_subplot(1,1,1)
-        if axes_endrho != False:
-            axes_endrho.set_xlim([0,1.1])
-            axes_endrho.set_title("Final radial position")
-            self.plotstate_histogram(
-                "rho", xbins=np.linspace(0,1.1,55), weight=True,
-                iniend=["e", "i"], axes=axes_endrho)
-            if fig is not None: plt.show()
-
-        # Mileage histogram with colors marking endcond
-        fig = None
-        if axes_mileage is None:
-            fig = plt.figure()
-            axes_mileage = fig.add_subplot(1,1,1)
-        if axes_mileage != False:
-            axes_mileage.set_title("Final mileage")
-            self.plotstate_histogram(
-                "mileage", xbins=55, weight=True,
-                iniend=["e", "i"], log=[True, False], axes=axes_mileage)
-            if fig is not None: plt.show()
-
-        # Final energy histogram with colors marking endcond
-        fig = None
-        if axes_energy is None:
-            fig = plt.figure()
-            axes_energy = fig.add_subplot(1,1,1)
-        if axes_energy != False:
-            axes_energy.set_title("Final energy")
-            self.plotstate_histogram(
-                "energy", xbins=55, weight=True,
-                iniend=["e", "i"], log=[True, False], axes=axes_energy)
-            if fig is not None: plt.show()
-
-        # Final Rz scatter positions
-        fig = None
-        if axes_rz is None:
-            fig = plt.figure()
-            axes_rz = fig.add_subplot(1,1,1)
-        if axes_rz != False:
-            axes_rz.set_title("Final R-z positions")
-            self.plotstate_scatter(
-                "R", "z", color="C0", endcond=None,
-                iniend=["e", "e", "i", "i"], axesequal=True, axes=axes_rz)
-            if fig is not None: plt.show()
-
-        # Final rho-phi scatter positions
-        fig = None
-        if axes_rhophi is None:
-            fig = plt.figure()
-            axes_rhophi = fig.add_subplot(1,1,1)
-        if axes_rhophi != False:
-            axes_rhophi.set_xlim(left=0)
-            axes_rhophi.set_ylim([0,360])
-            axes_rhophi.set_xticks([0, 0.5, 1.0])
-            axes_rhophi.set_yticks([0, 180, 360])
-            axes_rhophi.set_title("Final rho-phi positions")
-            self.plotstate_scatter(
-                "rho", "phimod", color="C0", endcond=None,
-                iniend=["e", "e", "i", "i"], axesequal=False, axes=axes_rhophi)
-            if fig is not None: plt.show()
 
     def plotorbit_trajectory(self, x, y, z=None, c=None, endcond=None, ids=None,
                              cmap=None, axesequal=False, axes=None, cax=None):

@@ -555,7 +555,6 @@ class Dist(DataContainer):
             dist.integrate(**integrate)
             dist._distribution *= bphi / (bnorm * mass)
         moment.add_ordinates(toroidalcurrent=dist.histogram() / moment.volume)
-        #return (ordinate / mass) * (bphi / bnorm)
 
     @staticmethod
     def poloidalcurrent(dist, moment):
@@ -571,17 +570,44 @@ class Dist(DataContainer):
         pass
 
     @staticmethod
-    def electronpowerdep(dist, moment):
+    def electronpowerdep(ascot, mass, dist, moment):
         """Calculate power deposition to electrons.
 
         Parameters
         ----------
+        ascot : :class:`Ascot`
+            Ascot object for interpolating input data.
+        mass : float
+            Test particle mass.
         dist : :class:`DistData`
             Distribution from where the moments are calculated.
         moment : class:`DistMoment`
             Moment data used in calculation and where the result is stored.
         """
-        pass
+        if not "ekin" in dist.abscissae or not "pitch" in dist.abscissae:
+            raise ValueError("Distribution must be in energy-pitch basis.")
+        if moment.rhodist:
+            va = physlib.vnorm_gamma(
+                physlib.gamma_energy( mass, dist.abscissa("ekin") ) )
+            dist = dist.integrate(copy=True, pitch=np.s_[:])
+            for qa in dist.abscissa("charge"):
+                coefs = ascot.input_eval_collcoefs(
+                    mass, qa, moment.rc.ravel(), moment.phic.ravel(), moment.zc.ravel(),
+                    np.zeros(moment.rc.ravel().shape)*unyt.s, va)
+                K = coefs["K"][0].reshape((*moment.volume.shape,va.size))
+                units = K.units
+                dist._distribution[:,:,:,:,0,0] *= K.v
+            dist.integrate(ekin=va, charge=np.s_[:], time=np.s_[:])
+            dist._distribution *= units * mass
+            moment.add_ordinates(electronpowerdep=dist.histogram().to("eV/s") / moment.volume)
+        else:
+            # Placeholder
+            integrate = {}
+            for k in dist.abscissae:
+                if k not in ["r", "phi", "z"]:
+                    integrate[k] = np.s_[:]
+            dist = dist.integrate(copy=True, **integrate)
+            moment.add_ordinates(electronpowerdep=0*dist.histogram() / moment.volume)
 
     @staticmethod
     def ionpowerdep(dist, moment):
