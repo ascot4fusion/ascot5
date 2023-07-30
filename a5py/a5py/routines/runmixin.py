@@ -21,6 +21,7 @@ import a5py.routines.plotting as a5plt
 import a5py.wall as wall
 from a5py.ascot5io import Marker, State, Orbits, Dist
 from a5py.ascot5io.dist import DistMoment
+import a5py.physlib as physlib
 
 class RunMixin():
     """Class with methods to access and plot orbit and state data.
@@ -402,6 +403,37 @@ class RunMixin():
             return tuples
 
         return opt2list(polval), opt2list(torval), opt2list(radval)
+
+    def getorbit_average(self, qnt, ids):
+        """Calculate average of a quantity during a single poloidal transit.
+        """
+        qnt, mileage, r, z, p, pitch, pol = \
+            self.getorbit(qnt, "mileage", "r", "z", "phi", "pitch", "theta", ids=ids)
+        #return mileage, r, z, 1
+        if any(pitch < 0) and any(pitch > 0):
+            if pitch[0] < 0 or pitch[1] < 0:
+                i1 = np.argmax(pitch > 0)
+                i2 = np.argmax(pitch[i1:] < 0) + i1
+                i2 = np.argmax(pitch[i2:] > 0) + i2
+            else:
+                i1 = np.argmax(pitch < 0)
+                i2 = np.argmax(pitch[i1:] > 0) + i1
+                i2 = np.argmax(pitch[i2:] < 0) + i2
+        else:
+            i1 = 1
+            if pol[-1] > pol[0]:
+                i2 = np.argmax(pol > (pol[0] + 360*unyt.deg))
+            else:
+                i2 = np.argmax(pol < (pol[0] - 360*unyt.deg))
+        qnt = qnt[i1:i2]
+        mileage = mileage[i1-1:i2]
+        r = r[i1-1:i2]
+        z = z[i1-1:i2]
+        p = p[i1-1:i2]
+        x, y, _ = physlib.pol2cart(r, p)
+        ds = np.sqrt(np.diff(x)**2 + np.diff(y)**2 + np.diff(z)**2)
+        qnt = np.sum(qnt*ds) / np.sum(ds)
+        return mileage[1:], r, z, qnt
 
     def getwall_figuresofmerit(self):
         """
