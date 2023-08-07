@@ -1114,11 +1114,5 @@ class Wall3D(ContentTab):
 
         return (cpos, cfoc, cang)
 
-    def display(self):
-        run = self.gui.ascot.data.active
-        self.framegeneral.load(run)
-        self.framewallload.load(run)
-        self.frameview3d.load(run)
-
     class Canvas(PlotFrame):
         pass

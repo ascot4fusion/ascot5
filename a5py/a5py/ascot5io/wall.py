@@ -10,11 +10,13 @@ condition.
 """
 import h5py
 import numpy as np
+import unyt
 
 from .coreio.fileapi import add_group
 from .coreio.treedata import DataGroup
 
 import a5py.wall.plot as plot
+import a5py.physlib as physlib
 
 class wall_2D(DataGroup):
     """Contour in Rz-plane that represents an axisymmetric wall.
@@ -97,9 +99,29 @@ class wall_2D(DataGroup):
 
         return gname
 
-    def plotRz(self, axes=None, phi=0):
+    def getwallcontour(self, phi=0*unyt.deg):
+        """Return a cross section of the wall with a given poloidal plane.
+
+        Parameters
+        ----------
+        phi : float
+            Toroidal angle of the plane.
+
+        Returns
+        -------
+        lines : array_like (n,2,2)
+            Line segments [[[r1,z1], [r2,z2]], ...] that form the cross section.
+        """
         w = self.read()
-        plot.plot_segments(w["r"], w["z"], axes=axes)
+        r = np.append(w["r"], w["r"][0])
+        z = np.append(w["z"], w["z"][0])
+        lines = np.zeros((r.size-1, 2, 2))
+        for i in range(r.size-1):
+            lines[i, 0, 0] = r[i]
+            lines[i, 0, 1] = z[i]
+            lines[i, 1, 0] = r[i+1]
+            lines[i, 1, 1] = z[i+1]
+        return lines
 
     @staticmethod
     def write_hdf5_dummy(fn):
@@ -317,15 +339,49 @@ class wall_3D(DataGroup):
 
         return upoints,uvertices
 
+    def getwallcontour(self, phi=0*unyt.deg):
+        """Return a cross section of the wall with a given poloidal plane.
 
-    def plotRz(self, axes=None, phi=None):
-        data = self.read()
-        if phi is not None:
-            plot.plot_intersection(data["x1x2x3"], data["y1y2y3"],
-                                   data["z1z2z3"], phi, axes=axes)
-        else:
-            plot.plot_projection(data["x1x2x3"], data["y1y2y3"],
-                                 data["z1z2z3"], axes=axes)
+        Parameters
+        ----------
+        phi : float
+            Toroidal angle of the plane.
+
+        Returns
+        -------
+        lines : array_like (n,2,2)
+            Line segments [[[r1,z1], [r2,z2]], ...] that form the cross section.
+        """
+        import pyvista as pv
+        phi = phi.to("rad").v
+        s1 = self.tomesh()
+        rmin = np.amin(np.sqrt( s1.points[:,0]**2 + s1.points[:,1]**2 ))
+        rmax = np.amax(np.sqrt( s1.points[:,0]**2 + s1.points[:,1]**2 ))
+        zmin = np.amin(s1.points[:,2])
+        zmax = np.amax(s1.points[:,2])
+        r0 = 0.5*(rmin+rmax)
+        z0 = 0.5*(zmin+zmax)
+        dr = (rmax - rmin)
+        dz = (zmax - zmin)
+
+        x, y, z = physlib.pol2cart(r0, phi, z0)
+        s2 = pv.Plane(center=(x,y,z), direction=(-np.sin(phi),np.cos(phi),0),
+                      i_size=dr*1.1, j_size=dz*1.1,
+                      i_resolution=1, j_resolution=1).triangulate()
+
+        cut,_,_ = s2.intersection(s1, split_first=False, split_second=False)
+        r, phi, z = physlib.cart2pol(cut.points[:,0], cut.points[:,1],
+                                     cut.points[:,2])
+        i0 = cut.lines[1::3]
+        i1 = cut.lines[2::3]
+        lines = np.array( [
+            ( (r[i0[i]], z[i0[i]]), (r[i1[i]], z[i1[i]]) ) \
+            for i in range(i0.size) ] )
+        return lines
+
+    def tomesh(self):
+        import pyvista as pv
+        return pv.PolyData( *self.noderepresentation() )
 
     def toVtk(self):
         import a5py.wall.a5vtkwall

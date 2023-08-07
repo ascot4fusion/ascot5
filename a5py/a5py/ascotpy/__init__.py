@@ -683,7 +683,6 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         else:
             return [out[q] for q in qnt]
 
-    @openfigureifnoaxes(projection=None)
     def input_plotrz(self, r, z, qnt, phi=0*unyt.deg, t=0*unyt.s,
                      clim=[None, None], cmap=None, axes=None, cax=None):
         """Plot input quantity on a (R, z) plane at given coordinates.
@@ -729,6 +728,18 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                      axesequal=True, xlabel="R [m]", ylabel="z [m]",
                      clabel=qnt + " [" + str(out.units) + "]", clim=clim,
                      cmap=cmap, axes=axes, cax=cax)
+
+    def input_plotseparatrix(self, phi=0*unyt.deg, t=0*unyt.s,
+                             rlim=[0.1*unyt.m, 20*unyt.m],
+                             zlim=[-10*unyt.m, 10*unyt.m], axes=None):
+        """Plot separatrix on (R,z) plane.
+        """
+        r = np.linspace(rlim[0], rlim[1], 100)
+        z = np.linspace(zlim[0], zlim[1], 100)
+        v = np.squeeze(self.input_eval(r, phi, z, t, "rho", grid=True)[:,0,:,0])
+        a5plt.contour2d(r, z, v, [1], xlabel="R [m]", ylabel="z [m]",
+                        colors="black", linestyles="solid", linewidths=1,
+                        axesequal=True, axes=axes)
 
     def get_plasmaquantities(self):
         """Return species present in plasma input.

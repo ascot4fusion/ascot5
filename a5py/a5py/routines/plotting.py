@@ -528,8 +528,21 @@ def mesh2d(x, y, z, log=False, diverging=False, xlabel=None, ylabel=None,
     cbar = plt.colorbar(pcm, ax=axes, cax=cax)
     cbar.set_label(clabel)
 
-def contour2d():
+@openfigureifnoaxes(projection=None)
+def contour2d(x, y, z, contours, xlabel=None, ylabel=None, axesequal=False,
+              colors=None, linestyles=None, linewidths=None, axes=None):
     """Plot contour on 2D plane.
+    """
+    axes.contour(x, y, z.T, contours, colors=colors, linestyles=linestyles,
+                 linewidths=linewidths)
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+    if axesequal:
+        axes.set_aspect("equal", adjustable="box")
+
+@openfigureifnoaxes(projection=None)
+def arrows2d():
+    """Plot vector field on 2D plane.
     """
     pass
 

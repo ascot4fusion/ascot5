@@ -9,7 +9,7 @@ from .ascotpy  import Ascotpy
 
 from .ascotpy.libascot import _LIBASCOT
 from .exceptions import *
-from .routines.plotting import openfigureifnoaxes
+from .routines.plotting import openfigureifnoaxes, line2d
 
 # Define the unit system ascot uses and add our own unit types
 unyt.define_unit("markers", 1*unyt.Dimensionless)
@@ -425,3 +425,17 @@ class Ascot(Ascotpy):
         axes.scatter(x,y, s=1, c="black", zorder=-2)
 
         axes.legend(("Magnetic field", "Plasma current", "Markers"))
+
+    def input_plotwallcontour(self, phi=0*unyt.deg, axes=None):
+        """Plot intersection of the wall and the poloidal plane at the given
+        toroidal angle.
+
+        Parameters
+        ----------
+        phi : float
+            Toroidal angle of the poloidal plane.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        """
+        ls = self.data.wall.active.getwallcontour(phi=phi)
+        line2d(ls[:,:,0], ls[:,:,1], c="black", axesequal=True, axes=axes)
