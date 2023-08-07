@@ -29,7 +29,7 @@ void afsi_sample_thermal(afsi_thermal_data* data, real mass, real* ppara,
  * @brief Calculate fusion source from two arbitrary ion distributions.
  *
  * @param react fusion reaction type.
- * @param n
+ * @param n number of Monte Carlo samples to be used.
  * @param dist1 first source distribution.
  * @param dist2 second source distribution.
  * @param fusion_dist pointer to distribution where the output is stored.
@@ -373,7 +373,7 @@ void afsi_test_dist(dist_5D_data* dist1) {
     real sum = 0.0;
 
     int ncell = dist1->n_r * dist1->n_phi * dist1->n_z * dist1->n_ppara
-              * dist1->n_pperp * dist1->n_time * dist1->n_q
+        * dist1->n_pperp * dist1->n_time * dist1->n_q;
     for(int i = 0; i < ncell; i++) {
         sum += dist1->histogram[i];
     }

@@ -162,7 +162,7 @@ ifeq ($(CC),h5pcc)
 libascot.so: CFLAGS+=-shlib
 endif
 
-libascot.so: libascot.o ascot5_main.o libascot_mem.o $(OBJS)
+libascot.so: libascot.o ascot5_main.o libascot_mem.o afsi.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)
