@@ -233,12 +233,12 @@ void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol,
 
 
             /* Evaluate theta angle so that it is cumulative */
-            real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
-            real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-            p->theta[i] += atan2(   (R0-axis_r) * (p->z[i]-axis_z)
-                                  - (z0-axis_z) * (p->r[i]-axis_r),
-                                    (R0-axis_r) * (p->r[i]-axis_r)
-                                  + (z0-axis_z) * (p->z[i]-axis_z) );
+            real axisrz[2];
+            errflag  = B_field_get_axis_rz(axisrz, Bdata, p->phi[i]);
+            p->theta[i] += atan2(   (R0-axisrz[0]) * (p->z[i]-axisrz[1])
+                                  - (z0-axisrz[1]) * (p->r[i]-axisrz[0]),
+                                    (R0-axisrz[0]) * (p->r[i]-axisrz[0])
+                                  + (z0-axisrz[1]) * (p->z[i]-axisrz[1]) );
 
         }
     }
@@ -497,12 +497,12 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
 
 
             /* Evaluate theta angle so that it is cumulative */
-            real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
-            real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-            p->theta[i] += atan2(   (R0-axis_r) * (p->z[i]-axis_z)
-                                  - (z0-axis_z) * (p->r[i]-axis_r),
-                                    (R0-axis_r) * (p->r[i]-axis_r)
-                                  + (z0-axis_z) * (p->z[i]-axis_z) );
+            real axisrz[2];
+            errflag  = B_field_get_axis_rz(axisrz, Bdata, p->phi[i]);
+            p->theta[i] += atan2(   (R0-axisrz[0]) * (p->z[i]-axisrz[1])
+                                  - (z0-axisrz[1]) * (p->r[i]-axisrz[0]),
+                                    (R0-axisrz[0]) * (p->r[i]-axisrz[0])
+                                  + (z0-axisrz[1]) * (p->z[i]-axisrz[1]) );
 
         }
     }

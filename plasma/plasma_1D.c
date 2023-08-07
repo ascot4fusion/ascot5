@@ -37,7 +37,7 @@
  * @return zero if initialization succes
  */
 int plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
-                            real** offload_array) {
+                           real** offload_array) {
 
     int n_rho = offload_data->n_rho;
     int n_ions = offload_data->n_species -1;
@@ -48,26 +48,28 @@ int plasma_1D_init_offload(plasma_1D_offload_data* offload_data,
               " Number of ion species = %d\n",
               (*offload_array)[0], (*offload_array)[n_rho-1], n_rho, n_ions);
     print_out(VERBOSE_IO,
-              "Species Z/A    Density [m^-3] at Min/Max rho"
+              "Species Z/A  charge [e]/mass [amu] Density [m^-3] at Min/Max rho"
               "    Temperature [eV] at Min/Max rho\n");
-    print_out(VERBOSE_IO,
-              "     Electrons              %1.2le/%1.2le          "
-              "        %1.2le/%1.2le       \n",
-              (*offload_array)[n_rho*3],
-              (*offload_array)[n_rho*4 - 1],
-              (*offload_array)[n_rho] / CONST_E,
-              (*offload_array)[n_rho*2-1] / CONST_E);
     for(int i=0; i < n_ions; i++) {
         print_out(VERBOSE_IO,
-                  "      %3d/%3d               %1.2le/%1.2le     "
-                  "             %1.2le/%1.2le       \n",
+                  " %3d  /%3d   %3d  /%7.3f             %1.2le/%1.2le     "
+                  "           %1.2le/%1.2le       \n",
+                  offload_data->znum[i], offload_data->anum[i],
                   (int)round(offload_data->charge[i+1]/CONST_E),
-                  (int)round(offload_data->mass[i+1]/CONST_U),
+                  offload_data->mass[i+1]/CONST_U,
                   (*offload_array)[n_rho*(4+i)],
                   (*offload_array)[n_rho*(5+i) - 1],
                   (*offload_array)[n_rho*2] / CONST_E,
                   (*offload_array)[n_rho*3-1] / CONST_E);
     }
+    print_out(VERBOSE_IO,
+              "[electrons]  %3d  /%7.3f             %1.2le/%1.2le          "
+              "      %1.2le/%1.2le       \n",
+              -1, CONST_M_E/CONST_U,
+              (*offload_array)[n_rho*3],
+              (*offload_array)[n_rho*4 - 1],
+              (*offload_array)[n_rho] / CONST_E,
+              (*offload_array)[n_rho*2-1] / CONST_E);
     real quasineutrality = 0;
     for(int k = 0; k <n_rho; k++) {
         real ele_qdens = (*offload_array)[n_rho*3 + k] * CONST_E;
@@ -117,8 +119,10 @@ void plasma_1D_init(plasma_1D_data* pls_data,
     pls_data->n_species = offload_data->n_species;
 
     for(int i = 0; i < pls_data->n_species; i++) {
-        pls_data->mass[i] = offload_data->mass[i];
+        pls_data->mass[i]   = offload_data->mass[i];
         pls_data->charge[i] = offload_data->charge[i];
+        pls_data->znum[i]   = offload_data->znum[i];
+        pls_data->anum[i]   = offload_data->anum[i];
     }
     pls_data->rho  = &offload_array[0];
     pls_data->temp = &offload_array[pls_data->n_rho];
@@ -290,4 +294,28 @@ const real* plasma_1D_get_species_mass(plasma_1D_data* pls_data) {
  */
 const real* plasma_1D_get_species_charge(plasma_1D_data* pls_data) {
     return pls_data->charge;
+}
+
+/**
+ * @brief Return pointer to array storing species atomic number
+ *
+ * @param pls_data pointer to plasma data
+ *
+ * @return pointer to immutable MAX_SPECIES length array containing
+ *         atomic numbers
+ */
+const int* plasma_1D_get_species_znum(plasma_1D_data* pls_data) {
+    return pls_data->znum;
+}
+
+/**
+ * @brief Return pointer to array storing species mass number
+ *
+ * @param pls_data pointer to plasma data
+ *
+ * @return pointer to immutable MAX_SPECIES length array containing
+ *         mass numbers
+ */
+const int* plasma_1D_get_species_anum(plasma_1D_data* pls_data) {
+    return pls_data->anum;
 }

@@ -98,6 +98,12 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
                     "large)");
             break;
 
+        case ERR_ATOMIC_EVALUATION:
+            sprintf(msg, "Atomic reaction evaluation failed "
+                    "(atomic reactions for the current charge state might"
+                    "not have been implemented)");
+            break;
+
         default:
             sprintf(msg, "Unknown error");
             break;
@@ -161,6 +167,10 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
             sprintf(file, "neutral.c");
             break;
 
+        case EF_N0_1D:
+            sprintf(file, "N0_1D.c");
+            break;
+
         case EF_N0_3D:
             sprintf(file, "N0_3D.c");
             break;
@@ -199,6 +209,18 @@ void error_parse2str(a5err err, char* msg, char* line, char* file) {
 
         case EF_MHD:
             sprintf(file, "mhd.c");
+            break;
+
+        case EF_ATOMIC:
+            sprintf(file, "atomic.c");
+            break;
+
+        case EF_ASIGMA:
+            sprintf(file, "asigma.c");
+            break;
+
+        case EF_ASIGMA_LOC:
+            sprintf(file, "asigma_loc.c");
             break;
 
         default:

@@ -573,89 +573,52 @@ a5err B_field_eval_B_dB(real B_dB[15], real r, real phi, real z, real t,
 }
 
 /**
- * @brief Return magnetic axis R-coordinate
+ * @brief Return magnetic axis Rz-coordinates
  *
- * Returns magnetic axis R-coordinate at given toroidal angle.
+ * Returns magnetic axis Rz-coordinates at given toroidal angle.
  *
- * @param phi phi coordinate [deg]
+ * @param rz pointer where axis R and z [m] values will be stored
  * @param Bdata pointer to magnetic field data struct
+ * @param phi phi coordinate [deg]
  *
  * @return Magnetic axis R-coordinate [m]
  */
-real B_field_get_axis_r(B_field_data* Bdata, real phi) {
+a5err B_field_get_axis_rz(real rz[2], B_field_data* Bdata, real phi) {
     a5err err = 0;
-    real axis_r = 0;
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            axis_r = B_GS_get_axis_r(&(Bdata->BGS));
+            err = B_GS_get_axis_rz(rz, &(Bdata->BGS));
             break;
 
         case B_field_type_2DS:
-            axis_r = B_2DS_get_axis_r(&(Bdata->B2DS));
+            err = B_2DS_get_axis_rz(rz, &(Bdata->B2DS));
             break;
 
         case B_field_type_3DS:
-            axis_r = B_3DS_get_axis_r(&(Bdata->B3DS));
+            err = B_3DS_get_axis_rz(rz, &(Bdata->B3DS));
             break;
 
         case B_field_type_STS:
-            err = B_STS_get_axis_r(&axis_r, &(Bdata->BSTS), phi);
-            if(err) {
-                /* In case of error, return some reasonable value to avoid
-                   further complications */
-                axis_r = 5;
-            }
+            err = B_STS_get_axis_rz(rz, &(Bdata->BSTS), phi);
             break;
 
         case B_field_type_TC:
-            axis_r = B_TC_get_axis_r(&(Bdata->BTC));
+            err = B_TC_get_axis_rz(rz, &(Bdata->BTC));
+            break;
+
+        default:
+            /* Unregonized input. Produce error. */
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_B_FIELD );
             break;
     }
 
-    return axis_r;
-}
-
-/**
- * @brief Return magnetic axis z-coordinate
- *
- * Returns magnetic axis z-coordinate at given toroidal angle.
- *
- * @param phi phi coordinate [deg]
- * @param Bdata pointer to magnetic field data struct
- *
- * @return Magnetic axis z-coordinate [m]
- */
-real B_field_get_axis_z(B_field_data* Bdata, real phi) {
-    a5err err = 0;
-    real axis_z = 0;
-
-    switch(Bdata->type) {
-        case B_field_type_GS:
-            axis_z = B_GS_get_axis_z(&(Bdata->BGS));
-            break;
-
-        case B_field_type_2DS:
-            axis_z = B_2DS_get_axis_z(&(Bdata->B2DS));
-            break;
-
-        case B_field_type_3DS:
-            axis_z = B_3DS_get_axis_z(&(Bdata->B3DS));
-            break;
-
-        case B_field_type_STS:
-            err = B_STS_get_axis_z(&axis_z, &(Bdata->BSTS), phi);
-            if(err) {
-                /* In case of error, return some reasonable value to avoid
-                   further complications */
-                axis_z = 0;
-            }
-            break;
-
-        case B_field_type_TC:
-            axis_z = B_TC_get_axis_z(&(Bdata->BTC));
-            break;
+    if(err) {
+      /* In case of error, return some reasonable values to avoid further
+         complications */
+      rz[0] = 1.0;
+      rz[1] = 0.0;
     }
 
-    return axis_z;
+    return err;
 }

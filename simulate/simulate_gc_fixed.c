@@ -92,6 +92,14 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
 
         /*************************** Physics **********************************/
 
+        /* Set time-step negative if tracing backwards in time */
+        #pragma omp simd
+        for(int i = 0; i < NSIMD; i++) {
+            if(sim->reverse_time) {
+                hin[i]  = -hin[i];
+            }
+        }
+
         /* RK4 method for orbit-following */
         if(sim->enable_orbfol) {
             if(sim->enable_mhd) {
@@ -100,6 +108,14 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
             }
             else {
                 step_gc_rk4(&p, hin, &sim->B_data, &sim->E_data);
+            }
+        }
+
+        /* Switch sign of the time-step again if it was reverted earlier */
+        #pragma omp simd
+        for(int i = 0; i < NSIMD; i++) {
+            if(sim->reverse_time) {
+                hin[i]  = -hin[i];
             }
         }
 
@@ -117,7 +133,7 @@ void simulate_gc_fixed(particle_queue* pq, sim_data* sim) {
         #pragma omp simd
         for(int i = 0; i < NSIMD; i++) {
             if(p.running[i]) {
-                p.time[i]    += hin[i];
+                p.time[i]    += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) ) * hin[i];
                 p.mileage[i] += hin[i];
                 p.cputime[i] += cputime - cputime_last;
             }

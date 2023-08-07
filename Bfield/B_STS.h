@@ -78,8 +78,6 @@ a5err B_STS_eval_B(real B[3], real r, real phi, real z, B_STS_data* Bdata);
 a5err B_STS_eval_B_dB(real B_dB[12], real r, real phi, real z,
                       B_STS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_STS_get_axis_r(real* axis_r, B_STS_data* Bdata, real phi);
-#pragma omp declare simd uniform(Bdata)
-a5err B_STS_get_axis_z(real* axis_z, B_STS_data* Bdata, real phi);
+a5err B_STS_get_axis_rz(real rz[2], B_STS_data* Bdata, real phi);
 #pragma omp end declare target
 #endif

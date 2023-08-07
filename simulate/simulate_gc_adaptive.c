@@ -124,6 +124,14 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
 
         /*************************** Physics **********************************/
 
+        /* Set time-step negative if tracing backwards in time */
+        #pragma omp simd
+        for(int i = 0; i < NSIMD; i++) {
+            if(sim->reverse_time) {
+                hin[i]  = -hin[i];
+            }
+        }
+
         /* Cash-Karp method for orbit-following */
         if(sim->enable_orbfol) {
             if(sim->enable_mhd) {
@@ -138,6 +146,11 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
             /* Check whether time step was rejected */
             #pragma omp simd
             for(int i = 0; i < NSIMD; i++) {
+                /* Switch sign of the time-step again if it was reverted earlier */
+                if(sim->reverse_time) {
+                    hout_orb[i] = -hout_orb[i];
+                    hin[i]      = -hin[i];
+                }
                 if(p.running[i] && hout_orb[i] < 0){
                     p.running[i] = 0;
                     hnext[i] = hout_orb[i];
@@ -196,7 +209,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
                         hin[i] = -hnext[i];
                     }
                     else {
-                        p.time[i]    += hin[i];
+                        p.time[i]    += ( 1.0 - 2.0 * ( sim->reverse_time > 0 ) ) * hin[i];
                         p.mileage[i] += hin[i];
 
                         if(hnext[i] > hout_orb[i]) {

@@ -241,12 +241,12 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
                 p->mu[i]   = physlib_gc_mu(p->mass[i], pout, xiout, Bnorm);
 
                 /* Evaluate phi and theta angles so that they are cumulative */
-                real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
-                real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->theta[i] += atan2(   (R0-axis_r) * (p->z[i]-axis_z)
-                                      - (z0-axis_z) * (p->r[i]-axis_r),
-                                        (R0-axis_r) * (p->r[i]-axis_r)
-                                      + (z0-axis_z) * (p->z[i]-axis_z) );
+                real axisrz[2];
+                errflag  = B_field_get_axis_rz(axisrz, Bdata, p->phi[i]);
+                p->theta[i] += atan2(   (R0-axisrz[0]) * (p->z[i]-axisrz[1])
+                                      - (z0-axisrz[1]) * (p->r[i]-axisrz[0]),
+                                        (R0-axisrz[0]) * (p->r[i]-axisrz[0])
+                                      + (z0-axisrz[1]) * (p->z[i]-axisrz[1]) );
                 p->phi[i] += atan2(   Xin_xyz[0] * Xout_xyz[1]
                                     - Xin_xyz[1] * Xout_xyz[0],
                                       Xin_xyz[0] * Xout_xyz[0]

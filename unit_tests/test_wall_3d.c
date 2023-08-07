@@ -25,69 +25,69 @@ void tetra_wall(wall_3d_offload_data *offload_data,
 
 
 
-	int iTri,iedge;
-	const int nTri = TETRA_N_TRIANGLES;
+    int iTri,iedge;
+    const int nTri = TETRA_N_TRIANGLES;
 
-	offload_data->n = nTri;
-	offload_data->offload_array_length = nTri*3*3;
+    offload_data->n = nTri;
+    offload_data->offload_array_length = nTri*3*3;
 
     /* The data in the offload array is to be in the format
      *  [x1 y1 z1 x2 y2 z2 x3 y3 z3; ... ]
      */
-	*offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
-	iTri=-1;
+    *offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
+    iTri=-1;
 
-	iTri++;;iedge=0; /*o,x,z*/
-	(*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
-	(*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
-	(*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
-	iedge++;
-	(*offload_array)[iTri*9 + iedge*3 + 0] = 1.0; /* x */
-	(*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
-	(*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
-	iedge++;
-	(*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
-	(*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
-	(*offload_array)[iTri*9 + iedge*3 + 2] = 1.0; /* z */
+    iTri++;;iedge=0; /*o,x,z*/
+    (*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
+    (*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
+    (*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
+    iedge++;
+    (*offload_array)[iTri*9 + iedge*3 + 0] = 1.0; /* x */
+    (*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
+    (*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
+    iedge++;
+    (*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
+    (*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
+    (*offload_array)[iTri*9 + iedge*3 + 2] = 1.0; /* z */
 
-	iTri++;;iedge=0; /*o,x,y*/
-	(*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
-	(*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
-	(*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
-	iedge++;
-	(*offload_array)[iTri*9 + iedge*3 + 0] = 1.0; /* x */
-	(*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
-	(*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
-	iedge++;
-	(*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
-	(*offload_array)[iTri*9 + iedge*3 + 1] = 1.0; /* y */
-	(*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
+    iTri++;;iedge=0; /*o,x,y*/
+    (*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
+    (*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
+    (*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
+    iedge++;
+    (*offload_array)[iTri*9 + iedge*3 + 0] = 1.0; /* x */
+    (*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
+    (*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
+    iedge++;
+    (*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
+    (*offload_array)[iTri*9 + iedge*3 + 1] = 1.0; /* y */
+    (*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
 
-	iTri++;;iedge=0; /*o,z,y*/
-	(*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
-	(*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
-	(*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
-	iedge++;
-	(*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
-	(*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
-	(*offload_array)[iTri*9 + iedge*3 + 2] = 1.0; /* z */
-	iedge++;
-	(*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
-	(*offload_array)[iTri*9 + iedge*3 + 1] = 1.0; /* y */
-	(*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
+    iTri++;;iedge=0; /*o,z,y*/
+    (*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
+    (*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
+    (*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
+    iedge++;
+    (*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
+    (*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
+    (*offload_array)[iTri*9 + iedge*3 + 2] = 1.0; /* z */
+    iedge++;
+    (*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
+    (*offload_array)[iTri*9 + iedge*3 + 1] = 1.0; /* y */
+    (*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
 
-	iTri++;;iedge=0; /*x,y,z*/
-	(*offload_array)[iTri*9 + iedge*3 + 0] = 1.0; /* x */
-	(*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
-	(*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
-	iedge++;
-	(*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
-	(*offload_array)[iTri*9 + iedge*3 + 1] = 1.0; /* y */
-	(*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
-	iedge++;
-	(*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
-	(*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
-	(*offload_array)[iTri*9 + iedge*3 + 2] = 1.0; /* z */
+    iTri++;;iedge=0; /*x,y,z*/
+    (*offload_array)[iTri*9 + iedge*3 + 0] = 1.0; /* x */
+    (*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
+    (*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
+    iedge++;
+    (*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
+    (*offload_array)[iTri*9 + iedge*3 + 1] = 1.0; /* y */
+    (*offload_array)[iTri*9 + iedge*3 + 2] = 0.0; /* z */
+    iedge++;
+    (*offload_array)[iTri*9 + iedge*3 + 0] = 0.0; /* x */
+    (*offload_array)[iTri*9 + iedge*3 + 1] = 0.0; /* y */
+    (*offload_array)[iTri*9 + iedge*3 + 2] = 1.0; /* z */
 
 }
 
@@ -103,52 +103,48 @@ void tetra_wall(wall_3d_offload_data *offload_data,
  *
  */
 void queue_wall(wall_3d_offload_data *offload_data,
-		real **offload_array) {
+                real **offload_array) {
 
 
-        real z;
-  
-	int iTri,iedge,ibatch;
-	const int nTri = TRIQUEUE_N_TRIANGLES;
-	
-	
-	offload_data->n = nTri;
-	offload_data->offload_array_length = nTri*3*3;
+    real z;
+
+    int iTri,iedge,ibatch;
+    const int nTri = TRIQUEUE_N_TRIANGLES;
+
+    offload_data->n = nTri;
+    offload_data->offload_array_length = nTri*3*3;
 
     /* The data in the offload array is to be in the format
      *  [x1 y1 z1 x2 y2 z2 x3 y3 z3; ... ]
      */
-	*offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
+    *offload_array = (real*) malloc(9 * offload_data->n * sizeof(real));
 
-	int tri_in_batch = TRIQUEUE_N_TRIANGLES/TRIQUEUE_N_BATCHES;
-	real dz_batch = TRIQUEUE_Z_DISTANCE / TRIQUEUE_N_BATCHES;
-	/*Compress the triangles at the beginnings of each group*/
-	real dz_tri   = dz_batch / (10*tri_in_batch);
-	
-	for ( ibatch=0; ibatch<TRIQUEUE_N_BATCHES; ibatch++) {
-	  for ( iTri=0; iTri<tri_in_batch; iTri++) {
-	    z= ibatch * dz_batch + iTri * dz_tri;
-	    iedge=0;
-	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 0] = 1.0; /* x */
-	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 1] = 1.0; /* y */
-	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 2] = z;   /* z */
-	    iedge++;
-	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 0] = 1.01; /* x */
-	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 1] = 2.01; /* y */
-	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 2] = z;   /* z */
-	    iedge++;
-	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 0] = 2.02; /* x */
-	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 1] = 1.02; /* y */
-	    (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 2] = z  ; /* z */
+    int tri_in_batch = TRIQUEUE_N_TRIANGLES/TRIQUEUE_N_BATCHES;
+    real dz_batch = TRIQUEUE_Z_DISTANCE / TRIQUEUE_N_BATCHES;
+    /*Compress the triangles at the beginnings of each group*/
+    real dz_tri   = dz_batch / (10*tri_in_batch);
 
-	    /*if (ibatch==0){
-	      printf("z=%f\n",z);
-	      }*/
-	  }
-	}
+    for ( ibatch=0; ibatch<TRIQUEUE_N_BATCHES; ibatch++) {
+        for ( iTri=0; iTri<tri_in_batch; iTri++) {
+            z= ibatch * dz_batch + iTri * dz_tri;
+            iedge=0;
+            (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 0] = 1.0; /* x */
+            (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 1] = 1.0; /* y */
+            (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 2] = z;   /* z */
+            iedge++;
+            (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 0] = 1.01; /* x */
+            (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 1] = 2.01; /* y */
+            (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 2] = z;   /* z */
+            iedge++;
+            (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 0] = 2.02; /* x */
+            (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 1] = 1.02; /* y */
+            (*offload_array)[ibatch*9*tri_in_batch + iTri*9 + iedge*3 + 2] = z  ; /* z */
 
-
-	
+            /*if (ibatch==0){
+              printf("z=%f\n",z);
+              }*/
+        }
+    }
 }
 
 /**
@@ -172,10 +168,10 @@ void test_wall_hit(wall_3d_data* wdata) {
         q1[2] = ((real)rand()/(real)RAND_MAX)*(zmax-zmin) + zmin;
         q2[2] = ((real)rand()/(real)RAND_MAX)*(zmax-zmin) + zmin;
 
-	real w_coll = 0;
+        real w_coll = 0;
         wall_3d_hit_wall(q1[0], q1[1], q1[2], q2[0], q2[1], q2[2], wdata, &w_coll);
         real w = w_coll;
-	printf("%lf %lf %lf %lf %lf %lf %f\n", q1[0], q1[1], q1[2],
+        printf("%lf %lf %lf %lf %lf %lf %f\n", q1[0], q1[1], q1[2],
                q2[0], q2[1], q2[2], w);
     }
 }
@@ -241,7 +237,7 @@ void test_tri_in_cube(void) {
 }
 
 int test_all_tris(real *offload_array, real q1[3], real q2[3], int *shouldhit){
-	real w;
+    real w;
     int iTri = 0;
     const int nTri =TETRA_N_TRIANGLES;
 
@@ -272,15 +268,15 @@ int test_all_tris(real *offload_array, real q1[3], real q2[3], int *shouldhit){
 
     }
 
-	return 0;
+    return 0;
 }
 
 
 int test_fixed_rays(real *offload_array ){
 
-	printf("Triangles are: 0:o,x,z 1:o,x,y 2:o,z,y 3:x,y,z\n");
+    printf("Triangles are: 0:o,x,z 1:o,x,y 2:o,z,y 3:x,y,z\n");
 
-	int ray=-1;
+    int ray=-1;
 
     real q1[3], q2[3];
     const int nTri =TETRA_N_TRIANGLES;
@@ -348,187 +344,179 @@ int test_fixed_rays(real *offload_array ){
 
 int test_rays_in_queue( wall_3d_data *wdata ){
 
-  /* Check the first batch. Make a ray going through the whole batch upwards */
+    /* Check the first batch. Make a ray going through the whole batch upwards */
 
-  real q1[3], q2[3], rpz1[3], rpz2[3];
-  int tri_in_batch = TRIQUEUE_N_TRIANGLES/TRIQUEUE_N_BATCHES;
-  real dz_batch = TRIQUEUE_Z_DISTANCE / TRIQUEUE_N_BATCHES;
-  real dz_tri   = dz_batch / (10*tri_in_batch);
-  int  hitId,correctId;
-  int failed;
-  real correct_w;
-  const real w_tolerance = 1.1e-6;
+    real q1[3], q2[3], rpz1[3], rpz2[3];
+    int tri_in_batch = TRIQUEUE_N_TRIANGLES/TRIQUEUE_N_BATCHES;
+    real dz_batch = TRIQUEUE_Z_DISTANCE / TRIQUEUE_N_BATCHES;
+    real dz_tri   = dz_batch / (10*tri_in_batch);
+    int  hitId,correctId;
+    int failed;
+    real correct_w;
+    const real w_tolerance = 1.1e-6;
 
+    failed = 0;
 
+    q1[0]= 1.2; q1[1]=1.2; q1[2]= -1.0 * dz_tri;
+    q2[0]= 1.2; q2[1]=1.2; q2[2]= 0.5  * dz_batch;
 
-  failed = 0;
-  
-  q1[0]= 1.2; q1[1]=1.2; q1[2]= -1.0 * dz_tri;
-  q2[0]= 1.2; q2[1]=1.2; q2[2]= 0.5  * dz_batch;
+    // We should hit the first in queue.
+    correctId = 1;
+    correct_w = fabs(q1[2]) / ( q2[2] - q1[2] );
+    printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check all tris]\n",
+           q1[0],q1[1],q1[2],
+           q2[0],q2[1],q2[2]  );
+    math_xyz2rpz(q1, rpz1);
+    math_xyz2rpz(q2, rpz2);
+    real w_coll;
+    hitId = wall_3d_hit_wall_full(rpz1[0], rpz1[1], rpz1[2],
+                                  rpz2[0], rpz2[1], rpz2[2],  wdata, &w_coll);
+    if ( hitId == correctId ){
+        printf("Correct hit id: %6d ok!\n",hitId);
+    }
+    else{
+        printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
+        failed++;
+    }
+    if ( fabs(w_coll - correct_w) < w_tolerance) {
+        printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
+    }
+    else{
+        printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
+        failed++;
+    }
 
-  // We should hit the first in queue.
-  correctId = 1;
-  correct_w = fabs(q1[2]) / ( q2[2] - q1[2] );
-  printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check all tris]\n",
-	 q1[0],q1[1],q1[2],
-	 q2[0],q2[1],q2[2]  );
-  math_xyz2rpz(q1, rpz1);
-  math_xyz2rpz(q2, rpz2);
-  real w_coll;
-  hitId = wall_3d_hit_wall_full(rpz1[0], rpz1[1], rpz1[2],
-				rpz2[0], rpz2[1], rpz2[2],  wdata, &w_coll); 
-  if ( hitId == correctId ){
-    printf("Correct hit id: %6d ok!\n",hitId);
-  }
-  else{
-    printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
-    failed++;
-  }
-  if ( fabs(w_coll - correct_w) < w_tolerance) {
-      printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
-  }
-  else{
-      printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
-      failed++;
-  }
-
-  correctId = 1;
-  // No change in correct_w
-  printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check using search tree]\n",
-	 q1[0],q1[1],q1[2],
-	 q2[0],q2[1],q2[2]  );
-  math_xyz2rpz(q1, rpz1);
-  math_xyz2rpz(q2, rpz2);
-  hitId = wall_3d_hit_wall(rpz1[0], rpz1[1], rpz1[2],
-			   rpz2[0], rpz2[1], rpz2[2],  wdata, &w_coll); 
-  if ( hitId == correctId ){
-    printf("Correct hit id: %6d ok!\n",hitId);
-  }
-  else{
-    printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
-    failed++;
-  }
-  if ( fabs(w_coll - correct_w) < w_tolerance) {
-      printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
-  }
-  else{
-      printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
-      failed++;
-  }
+    correctId = 1;
+    // No change in correct_w
+    printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check using search tree]\n",
+           q1[0],q1[1],q1[2],
+           q2[0],q2[1],q2[2]  );
+    math_xyz2rpz(q1, rpz1);
+    math_xyz2rpz(q2, rpz2);
+    hitId = wall_3d_hit_wall(rpz1[0], rpz1[1], rpz1[2],
+                             rpz2[0], rpz2[1], rpz2[2],  wdata, &w_coll);
+    if ( hitId == correctId ){
+        printf("Correct hit id: %6d ok!\n",hitId);
+    }
+    else{
+        printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
+        failed++;
+    }
+    if ( fabs(w_coll - correct_w) < w_tolerance) {
+        printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
+    }
+    else{
+        printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
+        failed++;
+    }
 
 
 
-  // We should hit the last triangle of the first batch
-  correctId = tri_in_batch ;
-  correct_w = (q2[2] - (dz_tri * (TRIQUEUE_N_TRIANGLES / TRIQUEUE_N_BATCHES -1) ) ) / fabs( q2[2] - q1[2] );
-  printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check all tris]]\n",
-	 q2[0],q2[1],q2[2],
-	 q1[0],q1[1],q1[2]  );
-  math_xyz2rpz(q2, rpz2);
-  math_xyz2rpz(q1, rpz1);
-  hitId = wall_3d_hit_wall_full(rpz2[0], rpz2[1], rpz2[2],
-				rpz1[0], rpz1[1], rpz1[2],  wdata, &w_coll);
-  /*hitId = wall_3d_hit_wall(rpz2[0], rpz2[1], rpz2[2],
-    rpz1[0], rpz1[1], rpz1[2],  wdata); */
-  if ( hitId == correctId ){
-    printf("Correct hit id: %6d ok!\n",hitId);
-  }
-  else{
-    printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
-    failed++;
-  }
-  if ( fabs(w_coll - correct_w) < w_tolerance) {
-      printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
-  }
-  else{
-      printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
-      failed++;
-  }
+    // We should hit the last triangle of the first batch
+    correctId = tri_in_batch ;
+    correct_w = (q2[2] - (dz_tri * (TRIQUEUE_N_TRIANGLES / TRIQUEUE_N_BATCHES -1) ) ) / fabs( q2[2] - q1[2] );
+    printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check all tris]]\n",
+           q2[0],q2[1],q2[2],
+           q1[0],q1[1],q1[2]  );
+    math_xyz2rpz(q2, rpz2);
+    math_xyz2rpz(q1, rpz1);
+    hitId = wall_3d_hit_wall_full(rpz2[0], rpz2[1], rpz2[2],
+                                  rpz1[0], rpz1[1], rpz1[2],  wdata, &w_coll);
+    /*hitId = wall_3d_hit_wall(rpz2[0], rpz2[1], rpz2[2],
+      rpz1[0], rpz1[1], rpz1[2],  wdata); */
+    if ( hitId == correctId ){
+        printf("Correct hit id: %6d ok!\n",hitId);
+    }
+    else{
+        printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
+        failed++;
+    }
+    if ( fabs(w_coll - correct_w) < w_tolerance) {
+        printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
+    }
+    else{
+        printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
+        failed++;
+    }
 
-    
-  correctId = tri_in_batch ;
-  // No change in correct_w
-  printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check using search tree]]\n",
-	 q2[0],q2[1],q2[2],
-	 q1[0],q1[1],q1[2]  );
-  math_xyz2rpz(q2, rpz2);
-  math_xyz2rpz(q1, rpz1);
-  hitId = wall_3d_hit_wall(rpz2[0], rpz2[1], rpz2[2],
-			   rpz1[0], rpz1[1], rpz1[2],  wdata, &w_coll);
-  if ( hitId == correctId ){
-    printf("Correct hit id: %6d ok!\n",hitId);
-  }
-  else{
-    printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
-    failed++;
-  }
-  if ( fabs(w_coll - correct_w) < w_tolerance) {
-      printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
-  }
-  else{
-      printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
-      failed++;
-  }
+    correctId = tri_in_batch ;
+    // No change in correct_w
+    printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check using search tree]]\n",
+           q2[0],q2[1],q2[2],
+           q1[0],q1[1],q1[2]  );
+    math_xyz2rpz(q2, rpz2);
+    math_xyz2rpz(q1, rpz1);
+    hitId = wall_3d_hit_wall(rpz2[0], rpz2[1], rpz2[2],
+                             rpz1[0], rpz1[1], rpz1[2],  wdata, &w_coll);
+    if ( hitId == correctId ){
+        printf("Correct hit id: %6d ok!\n",hitId);
+    }
+    else{
+        printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
+        failed++;
+    }
+    if ( fabs(w_coll - correct_w) < w_tolerance) {
+        printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
+    }
+    else{
+        printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
+        failed++;
+    }
 
-    
-  // Now we are supposed to hit the first triangle of the second batch
-  q1[0]= 1.2; q1[1]=1.2; q1[2]= -1.0 * dz_tri+dz_batch;
-  q2[0]= 1.2; q2[1]=1.2; q2[2]= 1.5  * dz_batch;
-  correctId = tri_in_batch + 1;
-  correct_w = fabs(dz_batch -q1[2])  / fabs(q2[2]-q1[2]);
-  printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check all tris]]\n",
-	 q1[0],q1[1],q1[2],
-	 q2[0],q2[1],q2[2]  );
-  math_xyz2rpz(q1, rpz1);
-  math_xyz2rpz(q2, rpz2);
-  hitId = wall_3d_hit_wall_full(rpz1[0], rpz1[1], rpz1[2],
-				rpz2[0], rpz2[1], rpz2[2],  wdata,  &w_coll);
-  /*hitId = wall_3d_hit_wall(rpz2[0], rpz2[1], rpz2[2],
-    rpz1[0], rpz1[1], rpz1[2],  wdata); */
-  if ( hitId == correctId ){
-    printf("Correct hit id: %6d ok!\n",hitId);
-  }
-  else{
-    printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
-    failed++;
-  }
-  if ( fabs(w_coll - correct_w) < w_tolerance) {
-      printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
-  }
-  else{
-      printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
-      failed++;
-  }
+    // Now we are supposed to hit the first triangle of the second batch
+    q1[0]= 1.2; q1[1]=1.2; q1[2]= -1.0 * dz_tri+dz_batch;
+    q2[0]= 1.2; q2[1]=1.2; q2[2]= 1.5  * dz_batch;
+    correctId = tri_in_batch + 1;
+    correct_w = fabs(dz_batch -q1[2])  / fabs(q2[2]-q1[2]);
+    printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check all tris]]\n",
+           q1[0],q1[1],q1[2],
+           q2[0],q2[1],q2[2]  );
+    math_xyz2rpz(q1, rpz1);
+    math_xyz2rpz(q2, rpz2);
+    hitId = wall_3d_hit_wall_full(rpz1[0], rpz1[1], rpz1[2],
+                                  rpz2[0], rpz2[1], rpz2[2],  wdata,  &w_coll);
+    /*hitId = wall_3d_hit_wall(rpz2[0], rpz2[1], rpz2[2],
+      rpz1[0], rpz1[1], rpz1[2],  wdata); */
+    if ( hitId == correctId ){
+        printf("Correct hit id: %6d ok!\n",hitId);
+    }
+    else{
+        printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
+        failed++;
+    }
+    if ( fabs(w_coll - correct_w) < w_tolerance) {
+        printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
+    }
+    else{
+        printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
+        failed++;
+    }
 
-    
-  correctId = tri_in_batch + 1;
-  // No change in correct_w
-  printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check using search tree]]\n",
-	 q1[0],q1[1],q1[2],
-	 q2[0],q2[1],q2[2]  );
-  math_xyz2rpz(q1, rpz1);
-  math_xyz2rpz(q2, rpz2);
-  hitId = wall_3d_hit_wall(rpz1[0], rpz1[1], rpz1[2],
-			   rpz2[0], rpz2[1], rpz2[2],  wdata, &w_coll);
-  if ( hitId == correctId ){
-    printf("Correct hit id: %6d ok!\n",hitId);
-  }
-  else{
-    printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
-    failed++;
-  }
-  if ( fabs(w_coll - correct_w) < w_tolerance) {
-      printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
-  }
-  else{
-      printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
-      failed++;
-  }
+    correctId = tri_in_batch + 1;
+    // No change in correct_w
+    printf("Ray (%f,%f,%f) ---> (%f,%f,%f) [check using search tree]]\n",
+           q1[0],q1[1],q1[2],
+           q2[0],q2[1],q2[2]  );
+    math_xyz2rpz(q1, rpz1);
+    math_xyz2rpz(q2, rpz2);
+    hitId = wall_3d_hit_wall(rpz1[0], rpz1[1], rpz1[2],
+                             rpz2[0], rpz2[1], rpz2[2],  wdata, &w_coll);
+    if ( hitId == correctId ){
+        printf("Correct hit id: %6d ok!\n",hitId);
+    }
+    else{
+        printf("Expected hit id: %6d, got %d.\n fail!\n",correctId,hitId);
+        failed++;
+    }
+    if ( fabs(w_coll - correct_w) < w_tolerance) {
+        printf("Expected w=%g, got w=%g  ... ok!\n",correct_w,w_coll);
+    }
+    else{
+        printf("Expected w=%g, got w=%g\n fail!\n",correct_w,w_coll);
+        failed++;
+    }
 
-    
-  
-  
-  return failed;
+    return failed;
 }
 
 
@@ -536,15 +524,16 @@ int test_rays_in_queue( wall_3d_data *wdata ){
 int main(int argc, char** argv) {
     wall_3d_offload_data offload_data;
     real* offload_array;
+    int* int_offload_array;
 
     /* Get a sample wall */
     tetra_wall(&offload_data, &offload_array);
 
 
-    wall_3d_init_offload(&offload_data, &offload_array);
+    wall_3d_init_offload(&offload_data, &offload_array, &int_offload_array);
 
     wall_3d_data wdata;
-    wall_3d_init(&wdata, &offload_data, offload_array);
+    wall_3d_init(&wdata, &offload_data, offload_array, int_offload_array);
 
     //test_wall_hit(&wdata);
     //test_collisions(wdata, offload_array);
@@ -557,18 +546,16 @@ int main(int argc, char** argv) {
 
 
     /* Deallocate the previous wall */
-    wall_3d_free_offload(&offload_data, &offload_array);
-    
+    wall_3d_free_offload(&offload_data, &offload_array, &int_offload_array);
+
     /* Create and initialize the whole tree*/
     queue_wall(&offload_data, &offload_array);
-    wall_3d_init_offload(&offload_data,&offload_array);
-    wall_3d_init(&wdata, &offload_data, offload_array);
-		   
+    wall_3d_init_offload(&offload_data,&offload_array, &int_offload_array);
+    wall_3d_init(&wdata, &offload_data, offload_array, int_offload_array);
+
     if (test_rays_in_queue(&wdata)) {
         return 1;
     }
 
-
-    
     return 0;
 }

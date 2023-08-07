@@ -10,11 +10,9 @@
 
 #include "particle.h"
 
-/**
- *  @brief A routine to allocate an array of particles
- *
- */
 input_particle* libascot_allocate_input_particles(int number_of_particles);
+real* libascot_allocate_reals(size_t size);
+void libascot_deallocate(void *arr);
 
 
 #endif /* LIBASCOT_MEM_H_ */
