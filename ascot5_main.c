@@ -320,6 +320,7 @@ int prepare_markers(
  * @param wall_int_offload_array wall integer offload array
  * @param boozer_offload_array boozer offload array
  * @param mhd_offload_array MHD data offload array
+ * @param asigma_offload_array atomic data offload array
  * @param offload_array pointer to common offload array created here
  * @param int_offload_array pointer to common offload integer array created here
  *
