@@ -1,3 +1,7 @@
+/**
+ * @file boschdale.h
+ * @brief Header file for boschdale.c
+ */
 #ifndef BOSCHHALE_H
 #define BOSCHHALE_H
 

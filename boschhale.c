@@ -1,17 +1,28 @@
+/**
+ * @file boschdale.c
+ * @brief Formulas for fusion cross-sections and thermal reactivities.
+ *
+ * The model is adapted from here:
+ * https://www.doi.org/10.1088/0029-5515/32/4/I07
+ */
 #include "ascot5.h"
 #include <math.h>
 #include "boschhale.h"
 
-/*
-E in keV
-
-Reaction indices:
-
-1 = T(d,n)^4He
-2 = ^3He(d,p)^4He
-3 = D(d,p)T
-4 = D(d,n)^3He
-*/
+/**
+ * @brief Estimate cross-section for a given fusion reaction.
+ *
+ * Reaction indices:
+ *
+ * 1 = T(d,n)^4He
+ * 2 = ^3He(d,p)^4He
+ * 3 = D(d,p)T
+ * 4 = D(d,n)^3He
+ *
+ * @param reaction reaction for which the cross-section is estimated.
+ * @param E ion energy in keV.
+ * @return cross-section.
+ */
 real boschhale_sigma(int reaction, real E) {
 
     real BG, A[5], B[4];
@@ -136,16 +147,20 @@ real boschhale_sigma(int reaction, real E) {
 
 }
 
-/*
-Ti in keV
-
-Reaction indices:
-
-1 = T(d,n)^4He
-2 = ^3He(d,p)^4He
-3 = D(d,p)T
-4 = D(d,n)^3He
-*/
+/**
+ * @brief Estimate reactivity for a given fusion reaction.
+ *
+ * Reaction indices:
+ *
+ * 1 = T(d,n)^4He
+ * 2 = ^3He(d,p)^4He
+ * 3 = D(d,p)T
+ * 4 = D(d,n)^3He
+ *
+ * @param reaction reaction for which the reactivity is estimated.
+ * @param Ti ion temperature in keV.
+ * @return reactivity.
+ */
 real boschhale_sigmav(int reaction, real Ti) {
 
     real BG, MRC2, C1, C2, C3, C4, C5, C6, C7;
@@ -213,5 +228,4 @@ real boschhale_sigmav(int reaction, real Ti) {
                   * exp(-3*xi) * 1.e-6;
 
     return sigmav;
-
 }
