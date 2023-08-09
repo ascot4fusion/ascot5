@@ -411,7 +411,11 @@ class Dist(DataContainer):
                 abscissa = f["abscissa_vec_0"+str(i+1)]
                 name     = abscissa.attrs["name_0"+str(i)].decode("utf-8")
                 unit     = abscissa.attrs["unit_0"+str(i)].decode("utf-8")
-                abscissa_edges[name] = abscissa[:] * unyt.Unit(unit)
+                try:
+                    abscissa_edges[name] = abscissa[:] * unyt.Unit(unit)
+                except:
+                    unit = unit.replace(" ", "*")
+                    abscissa_edges[name] = abscissa[:] * unyt.Unit(unit)
 
         return DistData(histogram, **abscissa_edges)
 
@@ -485,7 +489,7 @@ class Dist(DataContainer):
             integrate = {}
             for k in dist.abscissae:
                 if k not in ["rho", "theta", "phi"]:
-                    integrate[k] = np.s_[:]
+                    integrate[k] = np.s_[:]  
             dist.integrate(**integrate)
         else:
             dist = dist.integrate(copy=True, ekin=dist.abscissa("ekin"))
@@ -497,7 +501,7 @@ class Dist(DataContainer):
         moment.add_ordinates(energydensity=dist.histogram() / moment.volume)
 
     @staticmethod
-    def pressure():
+    def pressure(vnorm, mass, dist, moment):
         """Calculate pressure.
 
         Parameters
@@ -507,8 +511,24 @@ class Dist(DataContainer):
         moment : class:`DistMoment`
             Moment data used in calculation and where the result is stored.
         """
-        pass
-
+        if not "ekin" in dist.abscissae or not "pitch" in dist.abscissae:
+            raise ValueError("Distribution must be in energy-pitch basis.")
+        if moment.rhodist:
+            integrate = {}
+            for k in dist.abscissae:
+                if k not in ["rho", "theta", "phi"]:
+                    integrate[k] = np.s_[:]  
+            dist = dist.integrate(copy=True, **integrate)
+            dist._distribution *= mass * vnorm**2 / 3.0
+        else:
+            integrate = {}
+            for k in dist.abscissae:
+                if k not in ["r", "phi", "z"]:
+                    integrate[k] = np.s_[:]
+            dist = dist.integrate(copy=True, **integrate)
+            dist._distribution *= mass * vnorm**2 / 3.0
+        moment.add_ordinates(pressure=dist.histogram() / moment.volume)
+        
     @staticmethod
     def toroidalcurrent(ascot, mass, dist, moment):
         """Calculate toroidal current density.
@@ -524,6 +544,8 @@ class Dist(DataContainer):
         moment : class:`DistMoment`
             Moment data used in calculation and where the result is stored.
         """
+        if not "ppar" in dist.abscissae or not "pperp" in dist.abscissae:
+            raise ValueError("Distribution must be in ppar-pperp basis.")
         if moment.rhodist:
             dist = dist.integrate(copy=True,
                                   charge=dist.abscissa("charge"),
@@ -532,16 +554,16 @@ class Dist(DataContainer):
                 moment.rc, moment.phic, moment.zc, 0*unyt.s, "bphi", "bnorm")
             bphi  = bphi.reshape(moment.volume.shape)
             bnorm = bnorm.reshape(moment.volume.shape)
-
+            
             integrate = {}
             for k in dist.abscissae:
                 if k not in ["rho", "theta", "phi"]:
                     integrate[k] = np.s_[:]
-            dist.integrate(**integrate)
+            dist = dist.integrate(copy=True, **integrate)
             dist._distribution *= bphi / (bnorm * mass)
         else:
-            dist = dist.integrate(copy=True,
-                                  charge=dist.abscissa("charge"),
+            dist = dist.integrate(copy=True, 
+                                  charge=dist.abscissa("charge") ,
                                   ppar=dist.abscissa("ppar"))
             bphi, bnorm = ascot.input_eval(
                 moment.rc, moment.phic, moment.zc, 0*unyt.s, "bphi", "bnorm")
@@ -557,7 +579,7 @@ class Dist(DataContainer):
         moment.add_ordinates(toroidalcurrent=dist.histogram() / moment.volume)
 
     @staticmethod
-    def poloidalcurrent(dist, moment):
+    def parallelcurrent(ascot, mass, dist, moment):
         """Calculate pressure.
 
         Parameters
@@ -567,8 +589,82 @@ class Dist(DataContainer):
         moment : class:`DistMoment`
             Moment data used in calculation and where the result is stored.
         """
-        pass
+        if not "ppar" in dist.abscissae or not "pperp" in dist.abscissae:
+            raise ValueError("Distribution must be in ppar-pperp basis.")
+        if moment.rhodist:
+            dist = dist.integrate(copy=True,
+                                  charge=dist.abscissa("charge"),
+                                  ppar=dist.abscissa("ppar"))
+            '''bphi, bnorm = ascot.input_eval(
+                moment.rc, moment.phic, moment.zc, 0*unyt.s, "bphi", "bnorm")
+            bphi  = bphi.reshape(moment.volume.shape)
+            bnorm = bnorm.reshape(moment.volume.shape)'''
+            
+            integrate = {}
+            for k in dist.abscissae:
+                if k not in ["rho", "theta", "phi"]:
+                    integrate[k] = np.s_[:]
+            dist = dist.integrate(copy=True, **integrate)
+            dist._distribution *= 1/mass# bphi / (bnorm * mass)
+        else:
+            dist = dist.integrate(copy=True, 
+                                  charge=dist.abscissa("charge") ,
+                                  ppar=dist.abscissa("ppar"))
+            '''bphi, bnorm = ascot.input_eval(
+                moment.rc, moment.phic, moment.zc, 0*unyt.s, "bphi", "bnorm")
+            bphi  = bphi.reshape(moment.volume.shape)
+            bnorm = bnorm.reshape(moment.volume.shape)'''
 
+            integrate = {}
+            for k in dist.abscissae:
+                if k not in ["r", "phi", "z"]:
+                    integrate[k] = np.s_[:]
+            dist.integrate(**integrate)
+            dist._distribution *= 1/mass
+        moment.add_ordinates(parallelcurrent=dist.histogram() / moment.volume)
+
+    @staticmethod
+    def powerdep(ascot, mass, dist, moment):
+        """Calculate number density.
+
+        Parameters
+        ----------
+        dist : :class:`DistData`
+            Distribution from where the moments are calculated.
+        moment : class:`DistMoment`
+            Moment data used in calculation and where the result is stored.
+        """
+        if not "ekin" in dist.abscissae or not "pitch" in dist.abscissae:
+            raise ValueError("Distribution must be in energy-pitch basis.")
+        if moment.rhodist:
+            va = physlib.vnorm_gamma(
+                physlib.gamma_energy( mass, dist.abscissa("ekin") ) )
+            dist = dist.integrate(copy=True, pitch=np.s_[:])
+            for qa in dist.abscissa("charge"):
+                coefs = ascot.input_eval_collcoefs(
+                    mass, qa, moment.rc.ravel(), moment.phic.ravel(), moment.zc.ravel(),
+                    np.zeros(moment.rc.ravel().shape)*unyt.s, va)
+                K = np.sum(coefs["F"],axis=0).reshape((*moment.volume.shape,va.size))
+                units = K.units
+                dist._distribution[:,:,:,:,0,0] *= K.v
+            dist.integrate(ekin=va, charge=np.s_[:], time=np.s_[:])
+            dist._distribution *= units * mass
+        else:
+            va = physlib.vnorm_gamma(
+                physlib.gamma_energy( mass, dist.abscissa("ekin") ) )
+            dist = dist.integrate(copy=True, pitch=np.s_[:])
+            for qa in dist.abscissa("charge"):
+                coefs = ascot.input_eval_collcoefs(
+                    mass, qa, moment.rc.ravel(), moment.phic.ravel(), moment.zc.ravel(),
+                    np.zeros(moment.rc.ravel().shape)*unyt.s, va)
+                K = np.sum(coefs["F"],axis=0).reshape((*moment.volume.shape,va.size))
+                units = K.units
+                dist._distribution[:,:,:,:,0,0] *= K.v
+            dist.integrate(ekin=va, charge=np.s_[:], time=np.s_[:])
+            dist._distribution *= units * mass
+        moment.add_ordinates(powerdep=-dist.histogram().to("eV/s") / moment.volume)
+
+        
     @staticmethod
     def electronpowerdep(ascot, mass, dist, moment):
         """Calculate power deposition to electrons.
@@ -599,18 +695,23 @@ class Dist(DataContainer):
                 dist._distribution[:,:,:,:,0,0] *= K.v
             dist.integrate(ekin=va, charge=np.s_[:], time=np.s_[:])
             dist._distribution *= units * mass
-            moment.add_ordinates(electronpowerdep=dist.histogram().to("eV/s") / moment.volume)
         else:
-            # Placeholder
-            integrate = {}
-            for k in dist.abscissae:
-                if k not in ["r", "phi", "z"]:
-                    integrate[k] = np.s_[:]
-            dist = dist.integrate(copy=True, **integrate)
-            moment.add_ordinates(electronpowerdep=0*dist.histogram() / moment.volume)
-
+            va = physlib.vnorm_gamma(
+                physlib.gamma_energy( mass, dist.abscissa("ekin") ) )
+            dist = dist.integrate(copy=True, pitch=np.s_[:])
+            for qa in dist.abscissa("charge"):
+                coefs = ascot.input_eval_collcoefs(
+                    mass, qa, moment.rc.ravel(), moment.phic.ravel(), moment.zc.ravel(),
+                    np.zeros(moment.rc.ravel().shape)*unyt.s, va)
+                K = coefs["K"][0].reshape((*moment.volume.shape,va.size))
+                units = K.units
+                dist._distribution[:,:,:,:,0,0] *= K.v
+            dist.integrate(ekin=va, charge=np.s_[:], time=np.s_[:])
+            dist._distribution *= units * mass
+        moment.add_ordinates(electronpowerdep=-dist.histogram().to("eV/s") / moment.volume)
+        
     @staticmethod
-    def ionpowerdep(dist, moment):
+    def ionpowerdep(ascot, mass, dist, moment):
         """Calculate power deposition to ions.
 
         Parameters
@@ -620,7 +721,142 @@ class Dist(DataContainer):
         moment : class:`DistMoment`
             Moment data used in calculation and where the result is stored.
         """
-        pass
+        if not "ekin" in dist.abscissae or not "pitch" in dist.abscissae:
+            raise ValueError("Distribution must be in energy-pitch basis.")
+        if moment.rhodist:
+            va = physlib.vnorm_gamma(
+                physlib.gamma_energy( mass, dist.abscissa("ekin") ) )
+            dist = dist.integrate(copy=True, pitch=np.s_[:])
+            for qa in dist.abscissa("charge"):
+                coefs = ascot.input_eval_collcoefs(
+                    mass, qa, moment.rc.ravel(), moment.phic.ravel(), moment.zc.ravel(),
+                    np.zeros(moment.rc.ravel().shape)*unyt.s, va)
+                K = np.sum(coefs["K"][1:],axis=0).reshape((*moment.volume.shape,va.size))
+                units = K.units
+                dist._distribution[:,:,:,:,0,0] *= K.v
+            dist.integrate(ekin=va, charge=np.s_[:], time=np.s_[:])
+            dist._distribution *= units * mass
+        else:
+            va = physlib.vnorm_gamma(
+                physlib.gamma_energy( mass, dist.abscissa("ekin") ) )
+            dist = dist.integrate(copy=True, pitch=np.s_[:])
+            for qa in dist.abscissa("charge"):
+                coefs = ascot.input_eval_collcoefs(
+                    mass, qa, moment.rc.ravel(), moment.phic.ravel(), moment.zc.ravel(),
+                    np.zeros(moment.rc.ravel().shape)*unyt.s, va)
+                K = np.sum(coefs["K"][1:],axis=0).reshape((*moment.volume.shape,va.size))
+                units = K.units
+                dist._distribution[:,:,:,:,0,0] *= K.v
+            dist.integrate(ekin=va, charge=np.s_[:], time=np.s_[:])
+            dist._distribution *= units * mass
+        moment.add_ordinates(ionpowerdep=-dist.histogram().to("eV/s") / moment.volume)
+
+
+    @staticmethod
+    def jxBTorque(ascot, mass, dist, moment):
+        """Calculate power deposition to ions.
+
+        Parameters
+        ----------
+        dist : :class:`DistData`
+            Distribution from where the moments are calculated.
+        moment : class:`DistMoment`
+            Moment data used in calculation and where the result is stored.
+        """
+        if not "ppar" in dist.abscissae or not "pperp" in dist.abscissae:
+            raise ValueError("Distribution must be in ppar-pperp basis.")
+        if moment.rhodist:
+            dist = dist.integrate(copy=True,
+                                  charge=dist.abscissa("charge"),
+                                  ppar=dist.abscissa("ppar"))
+            bphi, bnorm, br, bz = ascot.input_eval(
+                moment.rc, moment.phic, moment.zc, 0*unyt.s, "bphi", "bnorm", "br", "bz")
+            btheta = np.sqrt(br**2 + bz**2)
+            
+            bphi   = bphi.reshape(moment.volume.shape)
+            bnorm  = bnorm.reshape(moment.volume.shape)
+            btheta = btheta.reshape(moment.volume.shape)
+            r      = moment.rc.reshape(moment.volume.shape)
+            
+            integrate = {}
+            for k in dist.abscissae:
+                if k not in ["rho", "theta", "phi"]:
+                    integrate[k] = np.s_[:]
+            dist = dist.integrate(copy=True, **integrate)
+            dist._distribution *= -bphi / (bnorm * mass) * btheta *r
+        else:
+            dist = dist.integrate(copy=True, 
+                                  charge=dist.abscissa("charge") ,
+                                  ppar=dist.abscissa("ppar"))
+            bphi, bnorm, br, bz = ascot.input_eval(
+                moment.rc, moment.phic, moment.zc, 0*unyt.s, "bphi", "bnorm", "br", "bz")
+            btheta = np.sqrt(br**2 + bz**2)
+            
+            bphi   = bphi.reshape(moment.volume.shape)
+            bnorm  = bnorm.reshape(moment.volume.shape)
+            btheta = btheta.reshape(moment.volume.shape)
+            r      = moment.rc.reshape(moment.volume.shape)
+            
+            
+            integrate = {}
+            for k in dist.abscissae:
+                if k not in ["r", "phi", "z"]:
+                    integrate[k] = np.s_[:]
+            dist.integrate(**integrate)
+            dist._distribution *= -(bphi / (bnorm * mass)) * btheta *r
+        moment.add_ordinates(jxBTorque=dist.histogram() / moment.volume)
+
+    @staticmethod
+    def collTorque(dist, moment):
+        """Calculate power deposition to ions.
+
+        Parameters
+        ----------
+        dist : :class:`DistData`
+            Distribution from where the moments are calculated.
+        moment : class:`DistMoment`
+            Moment data used in calculation and where the result is stored.
+        """
+        if not "ekin" in dist.abscissae or not "pitch" in dist.abscissae:
+            raise ValueError("Distribution must be in energy-pitch basis.")
+        if moment.rhodist:
+            bphi, bnorm = ascot.input_eval(
+                moment.rc, moment.phic, moment.zc, 0*unyt.s, "bphi", "bnorm")
+            bphi  = bphi.reshape(moment.volume.shape)
+            bnorm = bnorm.reshape(moment.volume.shape)
+            pass
+        else:
+            pass
+        moment.add_ordinates(collTorque=1 / 1)
+
+    @staticmethod
+    def canMomentTorque(dist, moment):
+        """Calculate power deposition to ions.
+
+        Parameters
+        ----------
+        dist : :class:`DistData`
+            Distribution from where the moments are calculated.
+        moment : class:`DistMoment`
+            Moment data used in calculation and where the result is stored.
+        """
+        if not "ekin" in dist.abscissae or not "pitch" in dist.abscissae:
+            raise ValueError("Distribution must be in energy-pitch basis.")
+        if moment.rhodist:
+            dist = dist.integrate(copy=True, charge=dist.abscissa("charge"))
+            integrate = {}
+            for k in dist.abscissae:
+                if k not in ["rho", "theta", "phi"]:
+                    integrate[k] = np.s_[:]
+            dist.integrate(**integrate)
+        else:
+            dist = dist.integrate(copy=True, charge=dist.abscissa("charge"))
+            integrate = {}
+            for k in dist.abscissae:
+                if k not in ["r", "phi", "z"]:
+                    integrate[k] = np.s_[:]
+            dist.integrate(**integrate)
+        moment.add_ordinates(canMomentTorque=-dist.histogram() / moment.volume)
 
     @staticmethod
     def ppappe2ekinpitch(dist, mass, ekin_edges=10, pitch_edges=10):
@@ -783,4 +1019,114 @@ class Dist_rho6D(Dist):
     pass
 
 class Dist_COM(Dist):
-    pass
+
+    def read(self):
+        """Read 5D distribution from a HDF5 file to a dictionary.
+        """
+        out = {}
+        with self as f:
+
+            # A Short helper function to calculate grid points from grid edges.
+            def edges2grid(edges):
+                return np.linspace(0.5*(edges[0]+edges[1]),
+                                   0.5*(edges[-2]+edges[-1]), num=edges.size-1)
+
+            abscissae = [0] * int(f["abscissa_ndim"][:])
+            for i in range(0, len(abscissae)):
+                abscissa     = f["abscissa_vec_0"+str(i+1)]
+                name         = abscissa.attrs["name_0"+str(i)].decode("utf-8")
+                abscissae[i] = name
+
+                unit = abscissa.attrs["unit_0"+str(i)].decode("utf-8")
+                out[name + "_edges"] = abscissa[:] #* unyt.Unit(unit)
+                out[name]            = edges2grid(out[name + "_edges"])
+                out["n" + name]      = out[name].size
+
+            out["abscissae"] = abscissae
+            out["histogram"] = f["ordinate"][0,:,:,:] \
+                * unyt.dimensionless
+
+        return out
+
+    
+    def plot_muptor(self, E, axes=None):
+        """
+        Plot constant of motion distribution on (mu, Ptor) plane for a given E.
+        """
+        import matplotlib.pyplot as plt
+        data = self.read()
+        hist = data["histogram"]
+        mu_edges, Ptor_edges = data["mu_edges"], data["ptor_edges"]
+        E_vector, E_edges = data["ekin"], data["ekin_edges"]
+        if E is None:
+            plot = np.sum(hist, axis=1)
+        elif type(E) == int:
+            i = E
+            plot = hist[:,i,:]
+        else:
+            i = np.argmax(E < E_edges)-1
+            plot1 = hist[:,i,:]
+            plot2 = hist[:,i+1,:]
+
+            k = E/(E_vector[i+1]-E_vector[i])
+            plot = plot1*k + (1-k)*plot2
+
+        h = axes.pcolormesh(Ptor_edges, mu_edges, plot, shading="flat")
+        axes.set_ylabel("mu (J/T)")
+        axes.set_xlabel("Ptor (Js)")
+        plt.colorbar(h, ax=axes)
+
+    def plot_muEkin(self, Ptor, axes=None):
+        """
+        Plot constant of motion distribution on (mu, Ptor) plane for a given E.
+        """
+        import matplotlib.pyplot as plt
+        data = self.read()
+        hist = data["histogram"]
+        mu_edges, E_edges = data["mu_edges"], data["ekin_edges"]
+        Ptor_vector, Ptor_edges = data["ptor"], data["ptor_edges"]
+        if Ptor is None:
+            plot = np.sum(hist, axis=2)
+        elif type(Ptor) == int:
+            i = Ptor
+            plot = hist[:,:,i]
+        else:
+            i = np.argmax(Ptor < Ptor_edges)-1
+            plot1 = hist[:,:,i]
+            plot2 = hist[:,:,i+1]
+
+            k = Ptor/(Ptor_vector[i+1]-Ptor_vector[i])
+            plot = plot1*k + (1-k)*plot2
+        
+        h = axes.pcolormesh(E_edges, mu_edges, plot, shading="flat")
+        axes.set_ylabel("mu (J/T)")
+        axes.set_xlabel("E (J)")
+        plt.colorbar(h, ax=axes)
+
+        
+    def plot_EkinPtor(self, mu, axes=None):
+        """
+        Plot constant of motion distribution on (mu, Ptor) plane for a given E.
+        """
+        import matplotlib.pyplot as plt
+        data = self.read()
+        hist = data["histogram"]
+        E_edges, Ptor_edges = data["ekin_edges"], data["ptor_edges"]
+        mu_vector, mu_edges = data["mu"], data["mu_edges"]
+        if mu is None:
+            plot = np.sum(hist, axis=0)
+        elif type(mu) == int:
+            i = mu
+            plot = hist[i,:,:]
+        else:
+            i = np.argmax(mu < mu_edges)-1
+            plot1 = hist[i,:,:]
+            plot2 = hist[i+1,:,:]
+
+            k = mu/(mu_vector[i+1]-mu_vector[i])
+            plot = plot1*k + (1-k)*plot2
+        
+        h = axes.pcolormesh(Ptor_edges, E_edges, plot, shading="flat")
+        axes.set_ylabel("E (J)")
+        axes.set_xlabel("Ptor (Js)")
+        plt.colorbar(h, ax=axes)

@@ -474,6 +474,10 @@ class LibAscot:
             If evaluation in libascot.so failed.
         """
         self._requireinit("bfield", "plasma")
+        ma  = float(ma)
+        qa  = float(qa)
+        Neval = va.size
+
         n_species = self.input_getplasmaspecies()[0] + 1
 
         out = {}

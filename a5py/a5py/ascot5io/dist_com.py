@@ -159,7 +159,7 @@ class Dist_COM(DataContainer):
 
             k = E/(E_vector[i+1]-E_vector[i])
             plot = plot1*k + (1-k)*plot2
-        
+
         h = axes.pcolormesh(Ptor_edges, mu_edges, plot, shading="flat")
         axes.set_ylabel("mu (J/T)")
         axes.set_xlabel("Ptor (Js)")

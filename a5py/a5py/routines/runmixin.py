@@ -618,18 +618,40 @@ class RunMixin():
             raise ValueError("Distribution has neither rho nor R, phi and z")
 
         ordinates = {}
-        if "density" in moments:
+        if "density" in moments: 
             Dist.density(dist, out)
         if "chargedensity" in moments:
             Dist.chargedensity(dist, out)
-        if "energydensity" in moments:
+        if "energydensity" in moments: 
             Dist.energydensity(dist, out)
         if "toroidalcurrent" in moments:
             mass = np.mean(self.getstate("mass"))
             Dist.toroidalcurrent(self._root._ascot, mass, dist, out)
+        if "parallelcurrent" in moments:
+            mass = np.mean(self.getstate("mass"))
+            Dist.parallelcurrent(self._root._ascot, mass, dist, out)
+        if "pressure" in moments:
+            vnorm = self.getstate("vnorm")
+            mass = np.mean(self.getstate("mass"))
+            Dist.pressure(vnorm, mass, dist, out)
+        if "powerdep" in moments:
+            mass = np.mean(self.getstate("mass"))
+            Dist.powerdep(self._root._ascot, mass, dist, out)
         if "electronpowerdep" in moments:
             mass = np.mean(self.getstate("mass"))
             Dist.electronpowerdep(self._root._ascot, mass, dist, out)
+        if "ionpowerdep" in moments:
+            mass = np.mean(self.getstate("mass"))
+            Dist.ionpowerdep(self._root._ascot, mass, dist, out)
+        if "jxBTorque" in moments:
+            mass = np.mean(self.getstate("mass"))
+            Dist.jxBTorque(self._root._ascot, mass, dist, out)
+        if "collTorque" in moments:
+            # WIP
+            Dist.collTorque(dist, out)
+        if "canMomentTorque" in moments:
+            # WIP
+            Dist.canMomentTorque(dist, out)
         return out
 
     def plotdist(self, dist, axes=None, cax=None):
