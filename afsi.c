@@ -117,12 +117,10 @@ void afsi_run(int reaction, int n, afsi_data* react1, afsi_data* react2,
             for(int iz = 0; iz < n_z; iz++) {
                 real density1 = afsi_get_density(react1, iR, iphi, iz);
                 real density2 = afsi_get_density(react2, iR, iphi, iz);
-
                 if(density1 > 0 && density2 > 0) {
                     afsi_sample_reactant_velocities(
                         react1, react2, m1, m2, n, iR, iphi, iz,
                         v1x, v1y, v1z, v2x, v2y, v2z);
-
                     for(int i = 0; i < n; i++) {
                         real vcom2 =   (v1x[i] - v2x[i]) * (v1x[i] - v2x[i])
                                      + (v1y[i] - v2y[i]) * (v1y[i] - v2y[i])
@@ -138,6 +136,7 @@ void afsi_run(int reaction, int n, afsi_data* react1, afsi_data* react2,
                             i, m1, m2, mprod1, mprod2, Q,
                             v1x, v1y, v1z, v2x, v2y, v2z,
                             ppara1, pperp1, ppara2, pperp2);
+
                         int ippara = floor(
                             (ppara1[i] - prod1->min_ppara) * prod1->n_ppara
                             / ( prod1->max_ppara - prod1->min_ppara ) );
@@ -207,21 +206,20 @@ void afsi_sample_reactant_velocities(
     real* pperp2 = (real*) malloc(n*sizeof(real));
 
     if(react1->type == 1) {
-        afsi_sample_5D(react1->dist_5D, ppara1, pperp1, n, iR, iphi, iz);
+        afsi_sample_5D(react1->dist_5D, n, iR, iphi, iz, ppara1, pperp1);
     }
     else if(react1->type == 2) {
         afsi_sample_thermal(
-            react1->dist_thermal, m1, ppara1, pperp1, n, iR, iphi, iz);
+            react1->dist_thermal, m1, n, iR, iphi, iz, ppara1, pperp1);
     }
 
     if(react2->type == 1) {
-        afsi_sample_5D(react2->dist_5D, ppara2, pperp2, n, iR, iphi, iz);
+        afsi_sample_5D(react2->dist_5D, n, iR, iphi, iz, ppara2, pperp2);
     }
     else if(react2->type == 2) {
         afsi_sample_thermal(
-            react2->dist_thermal, m2, ppara2, pperp2, n, iR, iphi, iz);
+            react2->dist_thermal, m2, n, iR, iphi, iz, ppara2, pperp2);
     }
-
     for(int i = 0; i < n; i++) {
         real rx = 2*round(random_uniform(rdata))-1;
         real ry = 2*round(random_uniform(rdata))-1;
@@ -527,7 +525,7 @@ void afsi_test_thermal() {
     real* ppara = (real*) malloc(n*sizeof(real));
     real* pperp = (real*) malloc(n*sizeof(real));
 
-    afsi_sample_thermal(&data, 3.343e-27, ppara, pperp, n, 0, 0, 0);
+    afsi_sample_thermal(&data, 3.343e-27, n, 0, 0, 0, ppara, pperp);
 
     for(int i = 0; i < n; i++) {
         printf("%le %le\n", ppara[i], pperp[i]);
