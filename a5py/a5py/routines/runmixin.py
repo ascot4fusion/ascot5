@@ -406,10 +406,16 @@ class RunMixin():
 
     def getorbit_average(self, qnt, ids):
         """Calculate average of a quantity during a single poloidal transit.
+
+        Parameters
+        ----------
+        qnt : str
+            Name of the averaged quantity.
+        
         """
         qnt, mileage, r, z, p, pitch, pol = \
-            self.getorbit(qnt, "mileage", "r", "z", "phi", "pitch", "theta", ids=ids)
-        #return mileage, r, z, 1
+            self.getorbit(qnt, "mileage", "r", "z", "phi", "pitch", "theta",
+                          ids=ids)
         if any(pitch < 0) and any(pitch > 0):
             if pitch[0] < 0 or pitch[1] < 0:
                 i1 = np.argmax(pitch > 0)
@@ -443,7 +449,8 @@ class RunMixin():
                                             state="end", endcond="wall")
         area   = self.wall.area()
 
-        wetted_total, energy_peak = wall.figuresofmerit(ids, energy, weight, area)
+        wetted_total, energy_peak = wall.figuresofmerit(ids, energy, weight,
+                                                        area)
         unit = "J"
         if energy_peak > 1e9:
             energy_peak /= 1e9
@@ -456,8 +463,10 @@ class RunMixin():
             unit = "KJ"
 
         msg = []
-        msg += ["Total wetted area: " + str(np.around(wetted_total, decimals=2)) + r" $m^2$"]
-        msg += ["Peak load: " + str(np.around(energy_peak, decimals=2)) + " " + str(unit) + r"$/m^2$"]
+        msg += ["Total wetted area: " + str(np.around(wetted_total, decimals=2))
+                + r" $m^2$"]
+        msg += ["Peak load: " + str(np.around(energy_peak, decimals=2)) + " "
+                + str(unit) + r"$/m^2$"]
         return msg
 
     def getwall_loads(self):
@@ -467,14 +476,22 @@ class RunMixin():
         of them receive no loads) but only those that are affected and their
         IDs.
 
-        Returns:
-            ids
-            edepo
-            eload
-            pdepo
-            pload
-            mdepo
-            iangle
+        Returns
+        -------
+        ids : array_like
+            a
+        edepo : array_like
+            a
+        eload : array_like
+            a
+        pdepo : array_like
+            a
+        pload : array_like
+            a
+        mdepo : array_like
+            a
+        iangle : array_like
+            a
         """
         self._require("_endstate")
         ids, energy, weight = self.getstate("walltile", "ekin", "weight",
