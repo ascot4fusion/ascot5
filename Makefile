@@ -122,7 +122,7 @@ HEADERS=ascot5.h math.h consts.h list.h octree.h physlib.h error.h \
 	neutral.h plasma.h particle.h endcond.h B_field.h gctransform.h \
 	E_field.h wall.h simulate.h diag.h offload.h boozer.h mhd.h \
 	random.h print.h hdf5_interface.h suzuki.h nbi.h biosaw.h \
-	asigma.h mpi_interface.h libascot_mem.h
+	asigma.h boschhale.h mpi_interface.h libascot_mem.h
 
 OBJS= math.o list.o octree.o error.c \
 	$(DIAGOBJS)  $(BFOBJS) $(EFOBJS) $(WALLOBJS) \
@@ -132,13 +132,14 @@ OBJS= math.o list.o octree.o error.c \
 	neutral.o plasma.o particle.o endcond.o B_field.o gctransform.o \
 	E_field.o wall.o simulate.o diag.o offload.o boozer.o mhd.o \
 	random.o print.c hdf5_interface.o suzuki.o nbi.o biosaw.o \
-	asigma.o mpi_interface.o
+	asigma.o mpi_interface.o boschhale.o
 
 BINS=test_math test_nbi test_bsearch \
 	test_wall_2d test_plasma test_random \
 	test_wall_3d test_B test_offload test_E \
 	test_interp1Dcomp test_linint3D test_N0 test_N0_1D \
-	test_spline ascot5_main bbnbi5 test_diag_orb test_asigma
+	test_spline ascot5_main bbnbi5 test_diag_orb test_asigma \
+	test_afsi
 
 ifdef NOGIT
 	DUMMY_GIT_INFO := $(shell touch gitver.h)
@@ -161,7 +162,7 @@ ifeq ($(CC),h5pcc)
 libascot.so: CFLAGS+=-shlib
 endif
 
-libascot.so: libascot.o ascot5_main.o libascot_mem.o $(OBJS)
+libascot.so: libascot.o ascot5_main.o libascot_mem.o afsi.o $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
 ascot5_main: ascot5_main.o $(OBJS)
@@ -212,6 +213,9 @@ test_N0: $(UTESTDIR)test_N0.o $(OBJS)
 test_bsearch: $(UTESTDIR)test_bsearch.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
+test_afsi: $(UTESTDIR)test_afsi.o $(OBJS)
+	$(CC) -o $@ $^ $(CFLAGS)
+
 test_nbi: $(UTESTDIR)test_nbi.o $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS)
 
@@ -226,7 +230,7 @@ test_asigma: $(UTESTDIR)test_asigma.o $(OBJS)
 
 ASCOTPY2_HEADERFILES=particle.h hdf5_interface.h ascot5.h mpi_interface.h simulate.h \
 	ascot5_main.h offload.h diag.h libascot_mem.h wall.h hdf5io/hdf5_wall.h \
-	Bfield/B_STS.h B_field.h hdf5io/hdf5_bfield.h
+	Bfield/B_STS.h B_field.h hdf5io/hdf5_bfield.h afsi.h
 
 ascotpy2.py : libascot.so
 	clang2py -l libascot.so -o $@  \
