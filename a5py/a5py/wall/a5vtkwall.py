@@ -103,6 +103,11 @@ class a5VtkWall(object):
         self.flagIdList    = flagIdList
         self.flagIdStrings = flagIdStrings
         
+        print('\nFlag descriptions:\n-------------')
+        for i,s in enumerate(flagIdStrings):
+            print('{:3} {:12}'.format(i,s))
+        print('--')
+
         if setAsActive is None:
             setAsActive =  len(np.unique(flag)) > 1
             

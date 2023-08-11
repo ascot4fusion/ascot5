@@ -71,6 +71,9 @@ class WallFrame(PlotFrame):
             self.vtkWall=a5py.wall.a5vtkwall.a5VtkWall(W=self._wall)
             print("Add triangle numbering for colors")
             self.vtkWall.addIndex()
+            print("Add triangle flags for colors")
+            W=self._wall.read()
+            self.vtkWall.addFlag( W['flag'], W['flagIdList'], W['flagIdStrings'])
             print(" ...done. Next plotting") 
         
         self.camControl = a5py.wall.a5vtkwall.camControl()
