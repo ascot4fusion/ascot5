@@ -201,7 +201,10 @@ class wall_3D(DataGroup):
             # We need to decode the bytearrays into strings.
             s=[]
             for S in out['flagIdStrings']:
-                s.append(S.decode('utf-8'))
+                if not isinstance(S,str):
+                    s.append(S.decode('utf-8'))
+                else:
+                    s.append(S)
                 out['flagIdStrings']=s
         else:
             # Generate some flag names.
@@ -457,6 +460,33 @@ class wall_3D(DataGroup):
 
         return new_rwall
 
+    def set_flags( self, names, indexes):
+        '''
+        @Params:
+        names       list of strings containing names of various flags
+        indexes     which flag indexes (zero indexed, last index value not included) correspond to each flag, list of tuples
+
+        example with 1000 triangles:
+                 names   = ['foo','bar','baz']
+                 indexes = [(0,10), (10,100), (100,1000)]
+
+        @return the new wall data
+        '''
+        W = self.read()
+
+        flagIdList    = []
+        flagIdStrings = []
+
+        for i,name in enumerate(names):
+            W['flag'][indexes[i][0]:(indexes[i][1])] = i
+            flagIdList.append(i)
+            flagIdStrings.append(name)
+
+        W['flagIdList']    = np.array(  flagIdList )
+        W['flagIdStrings'] = flagIdStrings
+        return W
+
+
     @staticmethod
     def write_hdf5(fn, nelements, x1x2x3, y1y2y3, z1z2z3, flag=None,
                    flagIdList=None, flagIdStrings=None, desc=None):
@@ -493,8 +523,6 @@ class wall_3D(DataGroup):
         ValueError
             If the triangle vertices or flags have incorrect shape.
         """
-
-
         if type(nelements) == int:
             pass
         elif type(nelements) == list:
@@ -504,10 +532,6 @@ class wall_3D(DataGroup):
             nelements = int(nelements)
         else:
             raise ValueError("Unsupported format for nelements.")
-
-
-
-
 
         if x1x2x3.shape != (nelements,3):
             raise ValueError(
@@ -523,8 +547,8 @@ class wall_3D(DataGroup):
                 + str(nelements) + ",3)")
 
         if flag is None:
-            flag = np.zeros(shape=(nelements,1),dtype=int)
-        elif flag.shape != (nelements,1):
+            flag = np.zeros(shape=(nelements,),dtype=int)
+        elif flag.shape != (nelements,):
             raise ValueError(
                 "Shape of flag was " + str(flag.shape) + " but expected ("
                 + str(nelements) + ",1)")
@@ -561,7 +585,9 @@ class wall_3D(DataGroup):
             if flagIdList is not None and flagIdStrings is not None:
                 flagIdList = np.array(flagIdList)
                 fl.attrs.create(name='flagIdList', data=flagIdList, dtype='i4')
-                fl.attrs.create(name='flagIdStrings', data=fids)
+                fl.attrs.create(name='flagIdStrings', data=fids,
+                                dtype=h5py.string_dtype(encoding='utf-8',
+                                                        length=None))
 
         return gname
 

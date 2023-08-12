@@ -170,7 +170,7 @@ def generate(a5, rgrid, zgrid, npsi, nthgeo, nthbzr, zaxis, raxis, psi0, psi1,
 
     if evalq:
         rhogrid = np.sqrt( (psigrid - psi0) / (psi1 - psi0) )
-        return booz, rhogrid, qprof
+        return booz, rhogrid, qprof, gprof, Iprof
     else:
         return booz
 
@@ -189,16 +189,16 @@ if __name__ == "__main__":
     zgrid = np.linspace(data["zmin"], data["zmax"], int(data["nz"]))
 
     a5.init(bfield=True)
-    booz, rhoprof, qprof = generate(a5,
-                                   rgrid  = rgrid,
-                                   zgrid  = zgrid,
-                                   npsi   = 100,
-                                   nthgeo = 180,
-                                   nthbzr = 180,
-                                   raxis  = data["axisr"],
-                                   zaxis  = data["axisz"],
-                                   psi0   = data["psi0"],
-                                   psi1   = data["psi1"])
+    booz, rhoprof, qprof, gprof, Iprof = generate(a5,
+                                                  rgrid  = rgrid,
+                                                  zgrid  = zgrid,
+                                                  npsi   = 100,
+                                                  nthgeo = 180,
+                                                  nthbzr = 180,
+                                                  raxis  = data["axisr"],
+                                                  zaxis  = data["axisz"],
+                                                  psi0   = data["psi0"],
+                                                  psi1   = data["psi1"])
     a5.free(bfield=True)
 
     print("rho and q(rho):\n")

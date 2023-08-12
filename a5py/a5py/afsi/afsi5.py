@@ -1,3 +1,29 @@
+"""AFSI5: Versatile fusion source integrator AFSI for fast ion and neutron
+studies in fusion devices
+
+ASCOT Fusion Source Integrator (AFSI) is a tool for calculating fusion rates
+and fusion products for arbitrary particle populations. It can be used either
+as a preprocessing tool e.g. to generate source distribution of alphas or as
+a postprocessing tool e.g. to evaluate neutron source from beam-thermal fusion.
+
+AFSI can be used in three ways:
+
+  - thermal: Calculates fusion rates between two Maxwellian populations.
+  - beam-thermal: Calculates fusion rates between a Maxwellian and arbitrary
+    population e.g. beam ions as obtained from ASCOT5 simulation.
+  - beam-beam: Calculates fusion rates between two arbitrary populations.
+
+Possible fusion reactions are listed below in a format
+reactant 1 + reactant 2 -> product1 + product2:
+
+  1. D + T   -> He4 + n
+  2. D + He3 -> He4 + p
+  3. D + D   -> T   + p
+  4. D + D   -> He3 + n
+
+Reference:
+https://iopscience.iop.org/article/10.1088/1741-4326/aa92e9
+"""
 import sys
 import ctypes
 import copy
@@ -6,309 +32,391 @@ import numpy.ctypeslib as npctypes
 from a5py.ascot5io.ascot5 import Ascot
 from a5py.ascotpy import Ascotpy
 
-libascot = ctypes.CDLL("libascot.so")
+from a5py.ascotpy import ascotpy2
 
-class dist_5D_data(ctypes.Structure):
-    _fields_ = [("n_r", ctypes.c_int),
-                ("min_r", ctypes.c_double),
-                ("max_r", ctypes.c_double),
-                ("n_phi", ctypes.c_int),
-                ("min_phi", ctypes.c_double),
-                ("max_phi", ctypes.c_double),
-                ("n_z", ctypes.c_int),
-                ("min_z", ctypes.c_double),
-                ("max_z", ctypes.c_double),
-                ("n_ppara", ctypes.c_int),
-                ("min_ppara", ctypes.c_double),
-                ("max_ppara", ctypes.c_double),
-                ("n_pperp", ctypes.c_int),
-                ("min_pperp", ctypes.c_double),
-                ("max_pperp", ctypes.c_double),
-                ("n_time", ctypes.c_int),
-                ("min_time", ctypes.c_double),
-                ("max_time", ctypes.c_double),
-                ("n_q", ctypes.c_int),
-                ("min_q", ctypes.c_double),
-                ("max_q", ctypes.c_double),
-                ("histogram", ctypes.POINTER(ctypes.c_double))]
+def thermal(fn, reaction, minr, maxr, nr, minz, maxz, nz,
+            minphi=0, maxphi=2*np.pi, nphi=1, nmc=1000, mult=1.0,
+            ispecies1=1, ispecies2=1,
+            minppara=-1.3e-19, maxppara=1.3e-19, nppara=80,
+            minpperp=0, maxpperp=1.3e-19, npperp=40):
+    """Calculate thermonuclear fusion between two thermal (Maxwellian)
+    species.
 
-    def __init__(self, dist):
-        self.n_r = dist["nr"]
-        self.min_r = dist["r_edges"][0]
-        self.max_r = dist["r_edges"][-1]
-        self.n_phi = dist["nphi"]
-        self.min_phi = dist["phi_edges"][0]
-        self.max_phi = dist["phi_edges"][-1]
-        self.n_z = dist["nz"]
-        self.min_z = dist["z_edges"][0]
-        self.max_z = dist["z_edges"][-1]
-        self.n_ppara = dist["nppar"]
-        self.min_ppara = dist["ppar_edges"][0]
-        self.max_ppara = dist["ppar_edges"][-1]
-        self.n_pperp = dist["npperp"]
-        self.min_pperp = dist["pperp_edges"][0]
-        self.max_pperp = dist["pperp_edges"][-1]
-        self.n_time = dist["ntime"]
-        self.min_time = dist["time_edges"][0]
-        self.max_time = dist["time_edges"][-1]
-        self.n_q = dist["ncharge"]
-        self.min_q = dist["charge_edges"][0]
-        self.max_q = dist["charge_edges"][-1]
-        self.histogram = npctypes.as_ctypes(np.ascontiguousarray(dist["histogram"].ravel(), dtype="f8"))
+    Parameters
+    ----------
+    fn : str
+        Ascot5 HDF5 file name where plasma data is located.
+    reaction : int
+        Fusion reaction index.
+    minr : float
+        Minimum R value in the output distribution.
+    maxr : float
+        Maximum R value in the output distribution.
+    nr : int
+        Number of R bins in the output distribution.
+    minz : float
+        Minimum z value in the output distribution.
+    maxz : float
+        Maximum z value in the output distribution.
+    nz : int
+        Number of z bins in the output distribution.
+    minphi : float, optional
+        Minimum phi value in the output distribution.
+    maxphi : float, optional
+        Maximum phi value in the output distribution.
+    nphi : int, optional
+        Number of phi bins in the output distribution.
+    nmc : int, optional
+        Number of MC samples used in each (R, phi, z) bin.
+    mult : float, optional
+        Multiplier for the fusion rate.
 
-class afsi_thermal_data(ctypes.Structure):
-    _fields_ = [("n_r", ctypes.c_int),
-                ("min_r", ctypes.c_double),
-                ("max_r", ctypes.c_double),
-                ("n_phi", ctypes.c_int),
-                ("min_phi", ctypes.c_double),
-                ("max_phi", ctypes.c_double),
-                ("n_z", ctypes.c_int),
-                ("min_z", ctypes.c_double),
-                ("max_z", ctypes.c_double),
-                ("temperature", ctypes.POINTER(ctypes.c_double)),
-                ("density", ctypes.POINTER(ctypes.c_double))]
+        Use 0.5 if the population is interacting with itself to avoid double
+        counting.
+    ispecies1 : int, optional
+        Ion species index (as they are listed in the plasma input) for the first
+        reactant.
+    ispecies2 : int, optional
+        Ion species index (as they are listed in the plasma input) for
+        the second reactant.
+    minppara : float, optional
+        Minimum ppara value in the output distribution.
+    maxppara : float, optional
+        Maximum ppara value in the output distribution.
+    nppara : int, optional
+        Number of pperp bins in the output distribution.
+    minpperp : float, optional
+        Minimum pperp value in the output distribution.
+    maxpperp : float, optional
+        Maximum ppara value in the output distribution.
+    npperp : int, optional
+        Number of pperp bins in the output distribution.
 
-    def __init__(self, Rv, phiv, zv, temperature, density):
-        self.n_r = len(Rv)-1
-        self.min_r = Rv[0]
-        self.max_r = Rv[-1]
-        self.n_phi = len(phiv)-1
-        self.min_phi = phiv[0]
-        self.max_phi = phiv[-1]
-        self.n_z = len(zv)-1
-        self.min_z = zv[0]
-        self.max_z = zv[-1]
-        self.temperature = npctypes.as_ctypes(np.ascontiguousarray(temperature.ravel(), dtype="f8"))
-        self.density = npctypes.as_ctypes(np.ascontiguousarray(density.ravel(), dtype="f8"))
-
-class afsi_data(ctypes.Structure):
-    _fields_ = [("type", ctypes.c_int),
-                ("dist_5D", ctypes.POINTER(dist_5D_data)),
-                ("dist_thermal", ctypes.POINTER(afsi_thermal_data))]
-
-    def __init__(self, dist_5D=None, dist_thermal=None):
-        if dist_5D is not None:
-            self.type = 1
-            self.dist_5D = ctypes.pointer(dist_5D)
-        elif dist_thermal is not None:
-            self.type = 2
-            self.dist_thermal = ctypes.pointer(dist_thermal)
-        else:
-            self.type = 0
-
-class afsi_dist_5D(ctypes.Structure):
-    _fields_ = [("n_r", ctypes.c_int),
-                ("min_r", ctypes.c_double),
-                ("max_r", ctypes.c_double),
-                ("n_phi", ctypes.c_int),
-                ("min_phi", ctypes.c_double),
-                ("max_phi", ctypes.c_double),
-                ("n_z", ctypes.c_int),
-                ("min_z", ctypes.c_double),
-                ("max_z", ctypes.c_double),
-                ("n_pitch", ctypes.c_int),
-                ("min_pitch", ctypes.c_double),
-                ("max_pitch", ctypes.c_double),
-                ("n_energy", ctypes.c_int),
-                ("min_energy", ctypes.c_double),
-                ("max_energy", ctypes.c_double),
-                ("histogram", ctypes.POINTER(ctypes.c_double))]
-                #("histogram", npctypes.ndpointer(dtype=np.float64,ndim=1,flags="C_CONTIGUOUS"))]
-
-class afsi_dist_6D(ctypes.Structure):
-    _fields_ = [("n_r", ctypes.c_int),
-                ("min_r", ctypes.c_double),
-                ("max_r", ctypes.c_double),
-                ("n_phi", ctypes.c_int),
-                ("min_phi", ctypes.c_double),
-                ("max_phi", ctypes.c_double),
-                ("n_z", ctypes.c_int),
-                ("min_z", ctypes.c_double),
-                ("max_z", ctypes.c_double),
-                ("n_vr", ctypes.c_int),
-                ("min_vr", ctypes.c_double),
-                ("max_vr", ctypes.c_double),
-                ("n_vphi", ctypes.c_int),
-                ("min_vphi", ctypes.c_double),
-                ("max_vphi", ctypes.c_double),
-                ("n_vz", ctypes.c_int),
-                ("min_vz", ctypes.c_double),
-                ("max_vz", ctypes.c_double),
-                ("histogram", ctypes.POINTER(ctypes.c_double))]
-
-libascot.afsi_mc.restype = None
-libascot.afsi_mc.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.POINTER(afsi_data), ctypes.POINTER(afsi_data), ctypes.POINTER(afsi_dist_5D)]
-
-libascot.afsi_test_dist.restype = None
-libascot.afsi_test_dist.argtypes = [ctypes.POINTER(dist_5D_data)]
-
-
-def afsi_thermal(reaction, fn1, mult, nmc, it, ispecies1=1, ispecies2=1):
+    Returns
+    -------
+    prod1 : array_like
+        Fusion product 1 distribution.
+    prod2 : array_like
+        Fusion product 2 distribution.
     """
-    Calculate thermonuclear fusion.
+    time = 0
+    r_edges   = np.linspace(minr, maxr, nr+1)
+    phi_edges = np.linspace(minphi, maxphi, nphi+1)
+    z_edges   = np.linspace(minz, maxz, nz+1)
+    r   = (r_edges[1:]   + r_edges[:-1])   / 2
+    phi = (phi_edges[1:] + phi_edges[:-1]) / 2
+    z   = (z_edges[1:]   + z_edges[:-1])   / 2
+    temp  = np.zeros((nr, nphi, nz))
+    dens1 = np.zeros((nr, nphi, nz))
+    dens2 = np.zeros((nr, nphi, nz))
 
-    Args:
-        reaction : int <br>
-            Fusion reaction index
-        fn1 : str <br>
-            Path to hdf5 file.
-        mult : int <br>
-            Multiplier for fusion rate (1/1+dij), 0.5 if identical populations
-        nmc : int <br>
-            Number of MC samples.
-        it : int <br>
-            Time index from 5D distribution
-        ispecies1 : int <br>
-            Species index for first reactant.
-        ispecies2 : int <br>
-            Species index for second reactant.
+    apy = Ascotpy(fn)
+    apy.init(bfield=True, plasma=True)
+    for j in range(nphi):
+        for i in range(nr):
+            for k in range(nz):
+                temp[i,j,k]  = apy.evaluate(r[i], phi[j], z[k], time, "ti1")
+                dens1[i,j,k] = apy.evaluate(r[i], phi[j], z[k], time,
+                                            "ni"+str(ispecies1))
+                dens2[i,j,k] = apy.evaluate(r[i], phi[j], z[k], time,
+                                            "ni"+str(ispecies2))
+    apy.free(bfield=True,plasma=True)
 
-    Returns:
-        Fusion product distribution.
+    thermal1 = _init_thermal_data(
+        minr, maxr, nr, minphi, maxphi, nphi, minz, maxz, nz, temp, dens1)
+    thermal2 = _init_thermal_data(
+        minr, maxr, nr, minphi, maxphi, nphi, minz, maxz, nz, temp, dens2)
+
+    react1 = _init_afsi_data(dist_thermal=thermal1)
+    react2 = _init_afsi_data(dist_thermal=thermal2)
+
+    d = {
+        "nr" : nr, "nphi" : nphi, "nz" : nz, "nppar" : 1, "npperp" : 1,
+        "ntime" : 1, "ncharge" : 1,
+        "r_edges"      : r_edges,
+        "phi_edges"    : phi_edges,
+        "z_edges"      : z_edges,
+        "ppar_edges"   : np.linspace(0, 1, 2),
+        "pperp_edges"  : np.linspace(0, 1, 2),
+        "charge_edges" : np.linspace(0, 2, 2),
+        "time_edges"   : np.linspace(0, 1, 2),
+        "histogram"    : np.zeros((nr, nphi, nz, 1, 1, 1, 1))
+    }
+    temp = _init_dist_5d(d)
+
+    q1, q2 = _product_charge(reaction)
+    prod1 = _init_product_dist(temp, q1, minppara, maxppara, nppara,
+                               minpperp, maxpperp, npperp)
+    prod2 = _init_product_dist(temp, q2, minppara, maxppara, nppara,
+                               minpperp, maxpperp, npperp)
+
+    ascotpy2.afsi_run(reaction, nmc, react1, react2, prod1, prod2)
+    prod1.dist *= mult
+    prod2.dist *= mult
+
+    return prod1, prod2
+
+def beamthermal(fn, reaction, it, beam, nmc=1000, mult=1.0, ispecies=1,
+                swap=False, minppara=-1.3e-19, maxppara=1.3e-19, nppara=80,
+                minpperp=0, maxpperp=1.3e-19, npperp=40):
+    """Calculate beam-thermal fusion.
+
+    Parameters
+    ----------
+    fn : str
+        Ascot5 HDF5 file name where plasma data is located.
+    reaction : int
+        Fusion reaction index
+    it : int
+        Time index from 5D distribution
+    beam1 : dict
+        Beam distribution that acts as reactant 1.
+    nmc : int, optional
+        Number of MC samples used in each (R, phi, z) bin.
+    mult : float, optional
+        Multiplier for the fusion rate.
+
+        Use 0.5 if the population is interacting with itself to avoid double
+        counting.
+    ispecies : int, optional
+        Ion species index (as they are listed in the plasma input) for thermal
+        reactant.
+    swap : bool, optional
+        Swap reactants so that the beam becomes reactant 2 and thermal species
+        reactant 1.
+    minppara : float, optional
+        Minimum ppara value in the output distribution.
+    maxppara : float, optional
+        Maximum ppara value in the output distribution.
+    nppara : int, optional
+        Number of pperp bins in the output distribution.
+    minpperp : float, optional
+        Minimum pperp value in the output distribution.
+    maxpperp : float, optional
+        Maximum ppara value in the output distribution.
+    npperp : int, optional
+        Number of pperp bins in the output distribution.
+
+    Returns
+    -------
+    prod1 : array_like
+        Fusion product 1 distribution.
+    prod2 : array_like
+        Fusion product 2 distribution.
     """
-    d1=Ascot(fn1).active.dist5d.read()
-    d1["ntime"]=1
-    d1["time_edges"]=d1["time_edges"][it:it+1]
-    d1["histogram"]=d1["histogram"][:,:,:,:,:,[it],:]
-    dist1 = dist_5D_data(d1)
+    time   = 0
+    nr     = beam["nr"]
+    nphi   = beam["nphi"]
+    nz     = beam["nz"]
+    r      = beam["r"]
+    phi    = beam["phi"]
+    z      = beam["z"]
+    minr   = beam["r_edges"][0]
+    maxr   = beam["r_edges"][-1]
+    minphi = beam["phi_edges"][0]
+    maxphi = beam["phi_edges"][-1]
+    minz   = beam["z_edges"][0]
+    maxz   = beam["z_edges"][-1]
 
-    apy=Ascotpy(fn1)
+    apy = Ascotpy(fn)
     apy.init(bfield=True,plasma=True)
-    temp = np.zeros((dist1.n_r, dist1.n_phi, dist1.n_z))
-    dens1 = np.zeros((dist1.n_r, dist1.n_phi, dist1.n_z))
-    dens2 = np.zeros((dist1.n_r, dist1.n_phi, dist1.n_z))
-    for i in range(dist1.n_r):
-        for j in range(dist1.n_phi):
-            for k in range(dist1.n_z):
-                temp[i,j,k] = apy.evaluate(d1["r"][i],0,d1["z"][k],d1["time"][it],"ti1")
-                dens1[i,j,k] = apy.evaluate(d1["r"][i],0,d1["z"][k],d1["time"][it],"ni"+str(ispecies1))
-                dens2[i,j,k] = apy.evaluate(d1["r"][i],0,d1["z"][k],d1["time"][it],"ni"+str(ispecies2))
+    temp = np.zeros((nr, nphi, nz))
+    dens = np.zeros((nr, nphi, nz))
+    for j in range(nphi):
+        for i in range(nr):
+            for k in range(nz):
+                temp[i,j,k] = apy.evaluate(r[i], phi[j], z[k], time, "ti1")
+                dens[i,j,k] = apy.evaluate(r[i], phi[j], z[k], time,
+                                           "ni"+str(ispecies))
+    apy.free(bfield=True,plasma=True)
 
-    thermal1 = afsi_thermal_data(d1["r_edges"],d1["phi_edges"],d1["z_edges"],temp,dens1)
-    thermal2 = afsi_thermal_data(d1["r_edges"],d1["phi_edges"],d1["z_edges"],temp,dens2)
+    thermal = _init_thermal_data(
+        minr, maxr, nr, minphi, maxphi, nphi, minz, maxz, nz, temp, dens)
 
-    data_th1 = afsi_data(dist_thermal=thermal1)
-    data_th2 = afsi_data(dist_thermal=thermal2)
+    dist = _init_dist_5d(beam)
+    react1 = _init_afsi_data(dist_thermal=thermal)
+    react2 = _init_afsi_data(dist_5D=dist)
 
-    fusiondist=init_fusiondist(dist1)
+    q1, q2 = _product_charge(reaction)
+    prod1 = _init_product_dist(dist, q1, minppara, maxppara, nppara,
+                               minpperp, maxpperp, npperp)
+    prod2 = _init_product_dist(dist, q2, minppara, maxppara, nppara,
+                               minpperp, maxpperp, npperp)
 
-    libascot.afsi_mc(reaction, nmc, data_th1, data_th2, fusiondist)
-    fusiondist.histogram=mult*npctypes.as_array(fusiondist.histogram,shape=[dist1.n_r*dist1.n_phi*dist1.n_z]).reshape(dist1.n_phi,dist1.n_z,dist1.n_r)
-    return fusiondist
-
-
-def afsi_beamthermal(reaction, fn1, mult, nmc, it, ispecies=1):
-    """
-    Calculate beam-thermal fusion.
-
-    Args:
-        reaction : int <br>
-            Fusion reaction index
-        fn1 : str <br>
-            Path to hdf5 file.
-        mult : int <br>
-            Multiplier for fusion rate (1/1+dij), 0.5 if identical populations
-        nmc : int <br>
-            Number of MC samples.
-        it : int <br>
-            Time index from 5D distribution
-        ispecies : int <br>
-            Species index for thermal reactant.
-
-    Returns:
-        Fusion product distribution.
-    """
-
-    d1=Ascot(fn1).active.dist5d.read()
-    d1["ntime"]=1
-    d1["time_edges"]=d1["time_edges"][it:it+1]
-    d1["histogram"]=d1["histogram"][:,:,:,:,:,[it],:]
-    dist1 = dist_5D_data(d1)
-
-    apy=Ascotpy(fn1)
-    apy.init(bfield=True,plasma=True)
-    temp = np.zeros((dist1.n_r, dist1.n_phi, dist1.n_z))
-    dens = np.zeros((dist1.n_r, dist1.n_phi, dist1.n_z))
-    for i in range(dist1.n_r):
-        for j in range(dist1.n_phi):
-            for k in range(dist1.n_z):
-                temp[i,j,k] = apy.evaluate(d1["r"][i],0,d1["z"][k],d1["time"][it],"ti1")
-                dens[i,j,k] = apy.evaluate(d1["r"][i],0,d1["z"][k],d1["time"][it],"ni"+ispecies)
-    thermal = afsi_thermal_data(d1["r_edges"],d1["phi_edges"],d1["z_edges"],temp,dens,dens)
-
-    data_fast1 = afsi_data(dist_5D=dist1)
-    data_th = afsi_data(dist_thermal=thermal)
-
-    fusiondist=init_fusiondist(dist1)
-
-    libascot.afsi_mc(reaction, nmc, data_th, data_fast1, fusiondist)
-    fusiondist.histogram=mult*npctypes.as_array(fusiondist.histogram,shape=[dist1.n_r*dist1.n_phi*dist1.n_z]).reshape(dist1.n_phi,dist1.n_z,dist1.n_r)
-    return fusiondist
-
-def afsi_beambeam(reaction, fn1, mult, nmc, it, fn2=None):
-    """
-    Calculate beam-beam fusion.
-
-    Args:
-        reaction : int <br>
-            Fusion reaction index
-        fn1 : str <br>
-            Path to hdf5 file.
-        mult : int <br>
-            Multiplier for fusion rate (1/1+dij), 0.5 if identical populations
-        nmc : int <br>
-            Number of MC samples.
-        it : int <br>
-            Time index from 5D distribution
-        fn2 : str <br>
-            Path to second hdf5 file.
-
-    Returns:
-        Fusion product distribution.
-    """
-    d1=Ascot(fn1).active.dist5d.read()
-    d1["ntime"]=1
-    d1["time_edges"]=d1["time_edges"][it:it+1]
-    d1["histogram"]=d1["histogram"][:,:,:,:,:,[it],:]
-    dist1 = dist_5D_data(d1)
-
-    if fn2 is not None:
-        d2=Ascot(fn2).active.dist5d.read()
-        d2["ntime"]=1
-        d2["time_edges"]=d2["time_edges"][it:it+1]
-        d2["histogram"]=d2["histogram"][:,:,:,:,:,[it],:]
-        dist2 = dist_5D_data(d2)
-
-    data_fast1 = afsi_data(dist_5D=dist1)
-    if fn2 is not None:
-        data_fast2 = afsi_data(dist_5D=dist2)
-
-    fusiondist=init_fusiondist(dist1)
-
-    if fn2 is not None:
-        libascot.afsi_mc(reaction, nmc, data_fast1, data_fast2, fusiondist)
+    if swap:
+        ascotpy2.afsi_run(reaction, nmc, react1, react2, prod1, prod2)
     else:
-        libascot.afsi_mc(reaction, nmc, data_fast1, data_fast1, fusiondist)
+        ascotpy2.afsi_run(reaction, nmc, react2, react1, prod1, prod2)
+    prod1.dist *= mult
+    prod2.dist *= mult
 
-    fusiondist.histogram=mult*npctypes.as_array(fusiondist.histogram,shape=[dist1.n_r*dist1.n_phi*dist1.n_z]).reshape(dist1.n_phi,dist1.n_z,dist1.n_r)
-    return fusiondist
+    return prod1, prod2
 
-def init_fusiondist(dist1):
-    fusiondist = afsi_dist_5D()
-    fusiondist.n_r = dist1.n_r
-    fusiondist.min_r = dist1.min_r
-    fusiondist.max_r = dist1.max_r
-    fusiondist.n_phi = dist1.n_phi
-    fusiondist.min_phi = dist1.min_phi
-    fusiondist.max_phi = dist1.max_phi
-    fusiondist.n_z = dist1.n_z
-    fusiondist.min_z = dist1.min_z
-    fusiondist.max_z = dist1.max_z
-    fusiondist.n_pitch = 1
-    fusiondist.min_pitch = 0.0
-    fusiondist.max_pitch = 1.0
-    fusiondist.n_energy = 1
-    fusiondist.min_energy = 0.0
-    fusiondist.max_energy = 20e6
-    fusiondist.histogram = npctypes.as_ctypes(np.ascontiguousarray(np.zeros(dist1.n_r*dist1.n_phi*dist1.n_z), dtype="f8"))
+def beambeam(reaction, it, beam1, beam2=None, nmc=1000, mult=1.0,
+             minppara=-1.3e-19, maxppara=1.3e-19, nppara=80,
+             minpperp=0, maxpperp=1.3e-19, npperp=40):
+    """Calculate beam-beam fusion.
+
+    Parameters
+    ----------
+    reaction : int
+        Fusion reaction index.
+    it : int
+        Time index from 5D distribution.
+    beam1 : dict
+        Beam1 distribution.
+    beam2 : dict, optional
+        Beam2 distribution or None to calculate fusion generation with
+        beam1 itself.
+    nmc : int, optional
+        Number of MC samples used in each (R, phi, z) bin.
+    mult : float, optional
+        Multiplier for the fusion rate.
+
+        Use 0.5 if the population is interacting with itself to avoid double
+        counting.
+    minppara : float, optional
+        Minimum ppara value in the output distribution.
+    maxppara : float, optional
+        Maximum ppara value in the output distribution.
+    nppara : int, optional
+        Number of pperp bins in the output distribution.
+    minpperp : float, optional
+        Minimum pperp value in the output distribution.
+    maxpperp : float, optional
+        Maximum ppara value in the output distribution.
+    npperp : int, optional
+        Number of pperp bins in the output distribution.
+
+    Returns
+    -------
+    prod1 : array_like
+        Fusion product 1 distribution.
+    prod2 : array_like
+        Fusion product 2 distribution.
+    """
+    beam1["ntime"] = 1
+    beam1["time_edges"] = beam1["time_edges"][it:it+1]
+    beam1["histogram"]  = beam1["histogram"][:,:,:,:,:,[it],:]
+    dist1 = _init_dist_5d(beam1)
+
+    react1 = _init_afsi_data(dist_5D=dist1)
+    if beam2 is not None:
+        beam2["ntime"] = 1
+        beam2["time_edges"] = beam2["time_edges"][it:it+1]
+        beam2["histogram"]  = beam2["histogram"][:,:,:,:,:,[it],:]
+        dist2  = _init_dist_5d(beam2)
+        react2 = _init_afsi_data(dist_5D=dist2)
+    else:
+        react2 = react1
+
+    q1, q2 = _product_charge(reaction)
+    prod1 = _init_product_dist(dist1, q1, minppara, maxppara, nppara,
+                               minpperp, maxpperp, npperp)
+    prod2 = _init_product_dist(dist1, q2, minppara, maxppara, nppara,
+                               minpperp, maxpperp, npperp)
+
+    ascotpy2.afsi_run(reaction, nmc, react1, react2, prod1, prod2)
+    prod1.dist *= mult
+    prod2.dist *= mult
+
+    return prod1, prod2
+
+def _init_afsi_data(dist_5D=None, dist_thermal=None):
+    afsidata = ascotpy2.afsi_data()
+    if dist_5D is not None:
+        afsidata.type = 1
+        afsidata.dist_5D = ctypes.pointer(dist_5D)
+    elif dist_thermal is not None:
+        afsidata.type = 2
+        afsidata.dist_thermal = ctypes.pointer(dist_thermal)
+    else:
+        afsidata.type = 0
+    return afsidata
+
+def _init_thermal_data(minr, maxr, nr, minphi, maxphi, nphi, minz, maxz, nz,
+                       temperature, density):
+    thermaldata         = ascotpy2.afsi_thermal_data()
+    thermaldata.n_r     = nr
+    thermaldata.min_r   = minr
+    thermaldata.max_r   = maxr
+    thermaldata.n_phi   = nphi
+    thermaldata.min_phi = minphi
+    thermaldata.max_phi = maxphi
+    thermaldata.n_z     = nz
+    thermaldata.min_z   = minz
+    thermaldata.max_z   = maxz
+    thermaldata.temperature = npctypes.as_ctypes(
+        np.ascontiguousarray(temperature.ravel(), dtype="f8"))
+    thermaldata.density = npctypes.as_ctypes(
+        np.ascontiguousarray(density.ravel(), dtype="f8"))
+    return thermaldata
+
+def _init_dist_5d(dist):
+    data           = ascotpy2.struct_c__SA_dist_5D_data()
+    data.n_r       = dist["nr"]
+    data.min_r     = dist["r_edges"][0]
+    data.max_r     = dist["r_edges"][-1]
+    data.n_phi     = dist["nphi"]
+    data.min_phi   = dist["phi_edges"][0]
+    data.max_phi   = dist["phi_edges"][-1]
+    data.n_z       = dist["nz"]
+    data.min_z     = dist["z_edges"][0]
+    data.max_z     = dist["z_edges"][-1]
+    data.n_ppara   = dist["nppar"]
+    data.min_ppara = dist["ppar_edges"][0]
+    data.max_ppara = dist["ppar_edges"][-1]
+    data.n_pperp   = dist["npperp"]
+    data.min_pperp = dist["pperp_edges"][0]
+    data.max_pperp = dist["pperp_edges"][-1]
+    data.n_time    = dist["ntime"]
+    data.min_time  = dist["time_edges"][0]
+    data.max_time  = dist["time_edges"][-1]
+    data.n_q       = dist["ncharge"]
+    data.min_q     = dist["charge_edges"][0]
+    data.max_q     = dist["charge_edges"][-1]
+    data.histogram = npctypes.as_ctypes(np.ascontiguousarray(
+        dist["histogram"].ravel(), dtype="f8"))
+    return data
+
+def _init_product_dist(react, charge, minppara, maxppara, nppara,
+                       minpperp, maxpperp, npperp):
+    prod            = ascotpy2.struct_c__SA_dist_5D_data()
+    prod.n_r        = react.n_r
+    prod.min_r      = react.min_r
+    prod.max_r      = react.max_r
+    prod.n_phi      = react.n_phi
+    prod.min_phi    = react.min_phi
+    prod.max_phi    = react.max_phi
+    prod.n_z        = react.n_z
+    prod.min_z      = react.min_z
+    prod.max_z      = react.max_z
+    prod.n_ppara    = nppara
+    prod.min_ppara  = minppara
+    prod.max_ppara  = maxppara
+    prod.n_pperp    = npperp
+    prod.min_pperp  = minpperp
+    prod.max_pperp  = maxpperp
+    prod.n_time     = react.n_time
+    prod.min_time   = react.min_time
+    prod.max_time   = react.max_time
+    prod.n_charge   = 1
+    prod.min_charge = charge - 1
+    prod.max_charge = charge + 1
+
+    distsize = prod.n_r * prod.n_phi * prod.n_z * prod.n_ppara * prod.n_pperp
+    prod.histogram  = npctypes.as_ctypes(
+        np.ascontiguousarray(np.zeros(distsize), dtype="f8") )
+    shape = [prod.n_r, prod.n_phi, prod.n_z, prod.n_ppara, prod.n_pperp]
+    prod.dist = npctypes.as_array(prod.histogram, shape=shape)
+    return prod
+
+def _product_charge(reaction):
+    if reaction == 1:
+        return 2, 0
+    elif reaction == 2:
+        return 2, 1
+    elif reaction == 3:
+        return 1, 1
+    elif reaction == 4:
+        return 2, 0
