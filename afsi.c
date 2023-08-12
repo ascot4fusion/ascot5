@@ -351,12 +351,10 @@ void afsi_sample_5D(dist_5D_data* dist, int n, int iR, int iphi, int iz,
         real r = random_uniform(rdata);
         for(int j = 0; j < dist->n_ppara*dist->n_pperp; j++) {
             if(cumdist[j] > r) {
-                pperp[i] = dist->min_pperp
-                    + j%dist->n_pperp * (dist->max_pperp - dist->min_pperp)
-                      / dist->n_pperp;
-                ppara[i] = dist->min_ppara
-                    + j/dist->n_pperp * (dist->max_ppara - dist->min_ppara)
-                      / dist->n_ppara;
+                pperp[i] = dist->min_pperp + (j % dist->n_pperp + 0.0)
+                    * (dist->max_pperp - dist->min_pperp) / dist->n_pperp;
+                ppara[i] = dist->min_ppara + (j / dist->n_pperp + 0.0)
+                    * (dist->max_ppara - dist->min_ppara) / dist->n_ppara;
                 break;
             }
         }
@@ -459,17 +457,17 @@ real afsi_get_volume(afsi_data* dist, int iR) {
     real dR, dz;
 
     if(dist->type == 1) {
-        dR = (dist->dist_5D->max_r-dist->dist_5D->min_r)/dist->dist_5D->n_r;
-        dz = (dist->dist_5D->max_z-dist->dist_5D->min_z)/dist->dist_5D->n_z;
-        return  2*CONST_PI*(dist->dist_5D->min_r + iR * dR + 0.5*dR)*dR*dz;
+        dR = (dist->dist_5D->max_r - dist->dist_5D->min_r) / dist->dist_5D->n_r;
+        dz = (dist->dist_5D->max_z - dist->dist_5D->min_z) / dist->dist_5D->n_z;
+        return CONST_2PI*(dist->dist_5D->min_r + iR * dR + 0.5*dR)*dR*dz;
     }
 
     else if(dist->type == 2) {
-        dR = (dist->dist_thermal->max_r-dist->dist_thermal->min_r)
+        dR = (dist->dist_thermal->max_r - dist->dist_thermal->min_r)
             / dist->dist_thermal->n_r;
-        dz = (dist->dist_thermal->max_z-dist->dist_thermal->min_z)
+        dz = (dist->dist_thermal->max_z - dist->dist_thermal->min_z)
             / dist->dist_thermal->n_z;
-        return  2*CONST_PI*(dist->dist_thermal->min_r + iR * dR + 0.5*dR)*dR*dz;
+        return CONST_2PI*(dist->dist_thermal->min_r + iR * dR + 0.5*dR)*dR*dz;
     }
     return 0;
 }
