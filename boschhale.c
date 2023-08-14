@@ -20,8 +20,8 @@
  * 4 = D(d,n)^3He
  *
  * @param reaction reaction for which the cross-section is estimated.
- * @param E ion energy in keV.
- * @return cross-section.
+ * @param E ion energy [keV].
+ * @return cross-section [m^2].
  */
 real boschhale_sigma(int reaction, real E) {
 
@@ -158,7 +158,7 @@ real boschhale_sigma(int reaction, real E) {
  * 4 = D(d,n)^3He
  *
  * @param reaction reaction for which the reactivity is estimated.
- * @param Ti ion temperature in keV.
+ * @param Ti ion temperature [keV].
  * @return reactivity.
  */
 real boschhale_sigmav(int reaction, real Ti) {
