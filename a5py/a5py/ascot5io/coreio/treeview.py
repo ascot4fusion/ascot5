@@ -266,15 +266,14 @@ class _ParentNode(_Node):
 
         # Add references by tag
         def desc2tag(desc):
-            """
-            Convert desc to tag.
+            """Convert desc to tag.
             """
             # Cut from first whitespace
             desc = desc.split(" ")[0]
 
             # Maximum length is 10 characters
-            if len(desc) > 10:
-                desc = desc[:10]
+            #if len(desc) > 10:
+            #    desc = desc[:10]
 
             # Remove all special characters
             desc = "".join(c for c in desc if c.isalnum())
