@@ -892,12 +892,12 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                       np.nanmax(np.abs( volume[:,:,ip] - v0 ) / v0)  > tol:
 
                     v0[:,:] = volume[:,:,ip]
-                    p = np.random.uniform(phi[ip], phi[ip+1], ndraw) * unyt.rad
-                    r = np.random.uniform(bbox[0], bbox[1], ndraw) * unyt.m
-                    z = np.random.uniform(bbox[2], bbox[3], ndraw) * unyt.m
-                    theta = np.arctan2(z-z0,r-r0) + np.pi
+                    pi = np.random.uniform(phi[ip], phi[ip+1], ndraw) * unyt.rad
+                    ri = np.random.uniform(bbox[0], bbox[1], ndraw) * unyt.m
+                    zi = np.random.uniform(bbox[2], bbox[3], ndraw) * unyt.m
+                    theta = np.arctan2(zi-z0,ri-r0) + np.pi
 
-                    rho   = self.input_eval(r, p, z, t, "rho").v
+                    rho   = self.input_eval(ri, pi, zi, t, "rho").v
                     ind   = rho <= 1 # Reject markers outside separatrix
                     i_rho = np.floor(rho[ind] / deltarho).astype(int)
                     i_theta = np.floor(theta[ind] / deltath).astype(int)
