@@ -1,10 +1,7 @@
+"""Store and retrieve GUI related parameters to/from HDF5
 """
-Store and retrieve GUI related parameters to/from HDF5
-"""
-
 import numpy as np
 import h5py
-
 
 class GUIparams():
 
@@ -12,15 +9,13 @@ class GUIparams():
         self.params = {}
 
     def add(self, **kwargs):
-        """
-        Add parameters.
+        """Add parameters.
         """
         for k in kwargs.keys():
             self.params[k] = kwargs[k]
 
     def store(self, hdf5, params):
-        """
-        Stores parameter(s) to HDF5.
+        """Stores parameter(s) to HDF5.
 
         Only stores the ones whose name is on the given list "params".
         """
@@ -31,8 +26,7 @@ class GUIparams():
 
             group = h5["gui"]
             def store_dataset(name, dtype):
-                """
-                For storing datasets
+                """For storing datasets
                 """
                 if name not in params:
                     return
@@ -52,10 +46,8 @@ class GUIparams():
             store_dataset("input_rzplot_numz", "i8")
             store_dataset("input_rzplot_qnt",  S)
 
-
     def retrieve(self, hdf5):
-        """
-        Retrieves parameter(s) from HDF5.
+        """Retrieves parameter(s) from HDF5.
         """
         S = h5py.string_dtype(encoding='utf-8', length=None)
         try:
