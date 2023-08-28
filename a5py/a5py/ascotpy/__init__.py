@@ -751,7 +751,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
         return quantities
 
-    def input_rhovolume(self, nrho=10, method="int", tol=1e-2, ntheta=360,
+    def input_rhovolume(self, nrho=10, method="prism", tol=1e-2, ntheta=360,
                         nphi=360, t=0*unyt.s, nperiod=1,
                         return_area=False, return_coords=False):
         """Evaluate flux surface volumes.
@@ -761,7 +761,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         nrho : int, optional
             Number of radial grid edges between [0, 1].
 
-        method : {"int", "mc"}, optional
+        method : {"prism", "mc"}, optional
             Method used to evaluate the volumes.
 
             "prism" divides the volume into structured 3D grid consisting of
@@ -932,6 +932,20 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         bmin = np.nanmin(out, axis=1)
         return (bmax - bmin) / (bmax + bmin)
 
+    def input_plotmuptorboundaries(self, mugrid, ptorgrid, ekin):
+        """Plot boundaries of different orbit topologies in (mu, ekin)
+        phase-space when energy is fixed.
+
+        Parameters
+        ----------
+        mugrid : array_like
+            Grid for the magnetic moment abscissa.
+        ptorgrid : array_like
+            Grid for the the canonical toroidal angular momentum abscissa.
+        ekin : float
+            Particle energy.
+        """
+        pass
 
     def _evaluateripplewell(self, R, z, t, nphi):
         """TBD
