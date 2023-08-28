@@ -310,8 +310,8 @@ void libascot_B_field_eval_rhovals(int nrho, real minrho, real maxrho,
                                    real theta, real phi, real t,
                                    real* r, real* z, real* rho) {
     /* Maximum number of steps and step length [m] */
-    int NSTEP = 500;
-    real step = 0.01;
+    int NSTEP = 50000;
+    real step = 0.0001;
 
     real axisrz[2];
     if( B_field_get_axis_rz(axisrz, &sim.B_data, phi) ) {
