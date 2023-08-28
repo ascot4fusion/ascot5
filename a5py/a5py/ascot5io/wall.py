@@ -299,7 +299,7 @@ class wall_3D(DataGroup):
 
         A = 0.5 * np.sqrt(   (ab_y * ac_z - ab_z * ac_y)**2
                            + (ab_z * ac_x - ab_x * ac_z)**2
-                           + (ab_x * ac_y - ab_y * ac_x)**2 )
+                           + (ab_x * ac_y - ab_y * ac_x)**2 ) * unyt.m**2
 
         return A
 
