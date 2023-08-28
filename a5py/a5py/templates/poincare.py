@@ -210,26 +210,26 @@ class PoincareTemplates():
             Input data that can be passed to ``write_hdf5`` method of
             a corresponding type.
         """
-        inp = self._ascot.input_initilized()
+        inp = self._ascot.input_initialized()
         if "bfield" not in inp:
             raise AscotInitException("bfield not initialized")
-        grp   = self._ascot.data._getgroup(inp["bfield"])
+        grp   = self._ascot.data._get_group(inp["bfield"])
         gtype = grp.get_type()
         if gtype == "B_2DS":
-            d = gtype.read()
+            d = grp.read()
             rmin   = d["rmin"]
             rmax   = d["rmax"]
-            nrcntr = d["nr"]
+            nrcntr = int(d["nr"])
             zmin   = d["zmin"]
             zmax   = d["zmax"]
-            nzcntr = d["nz"]
+            nzcntr = int(d["nz"])
             psi0   = d["psi0"]
             psi1   = d["psi1"]
-            raxis  = d["raxis"]
-            zaxis  = d["zaxis"]
+            raxis  = d["axisr"]
+            zaxis  = d["axisz"]
             del d
         else:
-            raise AscotNoDataException("bfield is neither B_2DS or B_3DS")
+            raise AscotNoDataException("bfield is not B_2DS")
 
         # The boozer coordinate system is constructed by integrating along
         # psi = constant surfaces. Use this grid to evaluate psi values
@@ -259,7 +259,7 @@ class PoincareTemplates():
         # Set up the data tables (psi can be evaluated directly)
         thtable  = np.zeros( (psigrid.size, thgeogrid.size) )
         nutable  = np.zeros( (psigrid.size, thbzrgrid.size) )
-        psitable = a5.input_eval(
+        psitable = self._ascot.input_eval(
             rgrid*unyt.m, 0*unyt.deg, zgrid*unyt.m, 0*unyt.s, "psi", grid=True)
         psitable = np.squeeze(psitable)
 
