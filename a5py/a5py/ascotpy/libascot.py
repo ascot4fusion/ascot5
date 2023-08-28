@@ -338,13 +338,14 @@ class LibAscot:
 
             fun = _LIBASCOT.libascot_boozer_eval_psithetazeta
             fun.restype  = ctypes.c_int
-            fun.argtypes = [PTR_SIM, PTR_ARR,
+            fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
                             ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
 
             fun(ctypes.byref(self._sim), self._boozer_offload_array,
+                self._bfield_offload_array,
                 Neval, r, phi, z, t, out["psi (bzr)"], out["theta"],
                 out["zeta"], out["dpsidr (bzr)"], out["dpsidphi (bzr)"],
                 out["dpsidz (bzr)"], out["dthetadr"], out["dthetadphi"],
@@ -420,14 +421,15 @@ class LibAscot:
 
             fun = _LIBASCOT.libascot_mhd_eval
             fun.restype  = ctypes.c_int
-            fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
+            fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR, PTR_ARR,
                             ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL]
 
             fun(ctypes.byref(self._sim), self._boozer_offload_array,
-                self._mhd_offload_array, Neval, r, phi, z, t, out["alphaeig"],
+                self._mhd_offload_array, self._bfield_offload_array,
+                Neval, r, phi, z, t, out["alphaeig"],
                 out["dadr"], out["dadphi"], out["dadz"], out["dadt"],
                 out["phieig"], out["dphidr"], out["dphidphi"], out["dphidz"],
                 out["dphidt"])
@@ -609,7 +611,7 @@ class LibAscot:
         self._requireinit("bfield")
         rhovals = np.asarray(rhovals).ravel().astype(dtype="f8")
 
-        ngrid = 100
+        ngrid = 1000
         r   = np.zeros((ngrid,), dtype="f8")
         z   = np.zeros((ngrid,), dtype="f8")
         rho = np.zeros((ngrid,), dtype="f8")
