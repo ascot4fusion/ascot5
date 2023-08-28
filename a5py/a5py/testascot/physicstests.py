@@ -17,6 +17,7 @@ Implemented tests:
 import copy
 import unyt
 import subprocess
+import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -26,6 +27,7 @@ from a5py import Ascot, physlib
 from a5py.routines import plotting as a5plt
 from a5py.ascot5io.options import Opt
 from a5py.ascot5io.marker import Marker
+from a5py.ascot5io.bfield import B_2DS
 
 class PhysTest():
 
@@ -400,20 +402,22 @@ class PhysTest():
         opt = Opt.get_default()
         opt.update({
             "SIM_MODE" : 1, "FIXEDSTEP_USE_USERDEFINED" : 1,
-            "FIXEDSTEP_USERDEFINED" : 1e-11, "ENDCOND_SIMTIMELIM" : 1,
+            "FIXEDSTEP_USERDEFINED" : 1e-12, "ENDCOND_SIMTIMELIM" : 1,
             "ENDCOND_LIM_SIMTIME" : 5e-6, "ENABLE_ORBIT_FOLLOWING" : 1,
             "ENABLE_ORBITWRITE" : 1, "ORBITWRITE_MODE" : 1,
             "ORBITWRITE_INTERVAL" : 1e-10, "ORBITWRITE_NPOINT" : 50002
         })
         init("opt", **opt, desc=PhysTest.tag_orbfol_go)
         opt.update({
-            "SIM_MODE" : 2, "FIXEDSTEP_USERDEFINED" : 1e-10,
+            "SIM_MODE" : 2, "FIXEDSTEP_USERDEFINED" : 1e-12,
+            "ENABLE_ADAPTIVE" : 0,
             "ORBITWRITE_INTERVAL" : 1e-8, "ORBITWRITE_NPOINT" : 502
         })
         init("opt", **opt, desc=PhysTest.tag_orbfol_gcf)
         opt.update({
             "ENABLE_ADAPTIVE" : 1, "ADAPTIVE_MAX_DRHO" : 0.1,
-            "ADAPTIVE_MAX_DPHI" : 10, "FIXEDSTEP_USERDEFINED" : 1e-8
+            "ADAPTIVE_MAX_DPHI" : 10, "ADAPTIVE_TOL_ORBIT" : 1e-10,
+            "FIXEDSTEP_USERDEFINED" : 1e-8
         })
         init("opt", **opt, desc=PhysTest.tag_orbfol_gca)
 
@@ -520,7 +524,7 @@ class PhysTest():
             return True
 
         # Numerical values
-        self.ascot.input_init(bfield=True)
+        self.ascot.input_init(run=run_go.get_qid(), bfield=True)
         tgo1, ego1, mugo1, pgo1, rgo1, zgo1 = run_go.getorbit(
             "mileage", "ekin", "mu", "ptor", "r", "z", ids=1)
         tgo2, ego2, mugo2, pgo2, rgo2, zgo2 = run_go.getorbit(
@@ -676,6 +680,96 @@ class PhysTest():
         run_zeroth = self.ascot.data[PhysTest.tag_gctransform_zeroth]
         run_first  = self.ascot.data[PhysTest.tag_gctransform_first]
 
+        # Initialize plots
+        fig = a5plt.figuredoublecolumn(3/2)
+        gs  = GridSpec(3, 3, figure=fig)
+        h1a = fig.add_subplot(gs[0,0])
+        h1b = fig.add_subplot(gs[1,0])
+        h1c = fig.add_subplot(gs[2,0])
+        h2  = fig.add_subplot(gs[:,1])
+        h3  = fig.add_subplot(gs[:,2])
+
+        h1a.set_xlim(0, 30)
+        h1b.set_xlim(0, 30)
+        h1c.set_xlim(0, 30)
+        h1a.set_xticklabels([])
+        h1b.set_xticklabels([])
+
+        h2.set_xlim(6.2, 6.7)
+        h2.set_ylim(1.0, 1.6)
+        h2.set_aspect("equal", adjustable="box")
+        h3.set_xlim(6.2, 6.7)
+        h3.set_ylim(1.0, 1.6)
+        h3.set_aspect("equal", adjustable="box")
+        h3.set_yticklabels([])
+
+        h1c.set_xlabel("Time [µs]")
+        h1a.set_ylabel(r"$(E-E_0)/E_0$")
+        h1b.set_ylabel(r"$(\mu-\mu_0)/\mu_0$")
+        h1c.set_ylabel(r"$(P-P_0)/P_0$")
+        h2.set_xlabel("R [m]")
+        h2.set_ylabel("z [m]")
+
+        # Get data and plot
+        self.ascot.input_init(run=run_go.get_qid(), bfield=True)
+        rgo, zgo, tgo, ego, mugo, pgo = run_go.getorbit(
+            "r", "z", "mileage", "ekin", "mu", "ptor")
+        rgc, zgc, tgc, egc, mugc, pgc = run_gc.getorbit(
+            "r", "z", "mileage", "ekin", "mu", "ptor")
+        rgo2gc, zgo2gc, tgo2gc, ego2gc, mugo2gc, pgo2gc = run_go2gc.getorbit(
+            "r", "z", "mileage", "ekin", "mu", "ptor")
+        self.ascot.input_free()
+
+        h1a.plot(tgo.to("µs"), mugo)
+        h1a.plot(tgo2gc.to("µs"), mugo2gc)
+        h1a.plot(tgc.to("µs"), mugc)
+
+        h1b.plot(tgo.to("µs"), ego)
+        h1b.plot(tgo2gc.to("µs"), ego2gc)
+        h1b.plot(tgc.to("µs"), egc)
+
+        h1c.plot(tgo.to("µs"), pgo)
+        h1c.plot(tgo2gc.to("µs"), pgo2gc)
+        h1c.plot(tgc.to("µs"), pgc)
+
+        h2.plot(rgo, zgo)
+        h2.plot(rgo2gc, zgo2gc)
+        h2.plot(rgc, zgc)
+
+        nrep = run_zeroth.getstate("ids").size
+        for i in range(nrep):
+            r, z = run_zeroth.getorbit("r", "z", ids=i)
+            h3.plot(r, z, color="C1")
+        for i in range(nrep):
+            r, z = run_first.getorbit("r", "z", ids=i)
+            h3.plot(r.v+0.01, z, color="C2")
+        h3.plot(rgo2gc, zgo2gc, color="black")
+
+        # Verify results by interpolating the orbits at fixed intervals and then
+        # calculating sum-of-squares of the difference between go and gc and
+        # go2gc and gc. The latter should be smaller if the guiding center
+        # transformation works.
+        t = np.linspace(0, 1e-6, 1000)
+        mugo    = np.interp(t, tgo,    mugo)
+        mugc    = np.interp(t, tgc,    mugc)
+        mugo2gc = np.interp(t, tgo2gc, mugo2gc)
+        ego    = np.interp(t, tgo,    ego)
+        egc    = np.interp(t, tgc,    egc)
+        ego2gc = np.interp(t, tgo2gc, ego2gc)
+        pgo    = np.interp(t, tgo,    pgo)
+        pgc    = np.interp(t, tgc,    pgc)
+        pgo2gc = np.interp(t, tgo2gc, pgo2gc)
+
+        err1 = np.sum( (mugo    - mugc)**2 )
+        err2 = np.sum( (mugo2gc - mugc)**2 )
+        print(err2/err1)
+        err1 = np.sum( (ego    - egc)**2 )
+        err2 = np.sum( (ego2gc - egc)**2 )
+        print(err2/err1)
+        err1 = np.sum( (pgo    - pgc)**2 )
+        err2 = np.sum( (pgo2gc - pgc)**2 )
+        print(err2/err1)
+
     def init_ccoll(self):
         """Initialize data for the Coulomb collision test.
         """
@@ -790,6 +884,61 @@ class PhysTest():
         run_sgcf = self.ascot.data[PhysTest.tag_ccoll_slowinggcf]
         run_sgca = self.ascot.data[PhysTest.tag_ccoll_slowinggca]
 
+        fig = a5plt.figuredoublecolumn()
+        gs = GridSpec(2, 2, figure=fig)
+        h1 = fig.add_subplot(gs[0,0])
+        h2 = fig.add_subplot(gs[0,1])
+        h3 = fig.add_subplot(gs[1,0])
+        h4 = fig.add_subplot(gs[1,1])
+
+        # Analytical results
+        alphaZ = 2
+        clog   = 16
+        vth    = np.sqrt(2*Te*e / m_e)
+        vcrit  = vth * np.power( (3.0*np.sqrt(np.pi)/4.0) * (m_e / m_p) , 1/3.0)
+        Ecrit  = 0.5 * m_a * vcrit * vcrit / e
+        ts     = 3 * np.sqrt( np.power(2*np.pi * Te * e, 3) / m_e ) * eps_0 * eps_0 \
+            * m_a /( alphaZ * alphaZ * np.power(e, 4) * ne * clog)
+
+        heaviside = np.logical_and(SLOWING["Egrid"] <= Esd,
+                                   SLOWING["Egrid"] >= 50*Te)
+
+        THERMAL["analytical"]  = 2 * np.sqrt(THERMAL["Egrid"]/np.pi) \
+            * np.power(Te,-3.0/2) \
+            * np.exp(-THERMAL["Egrid"]/Te)
+        THERMAL["analytical"] *= (simtime_th/2)
+        SLOWING["analytical"] = heaviside * ts \
+            / ( ( 1 + np.power(Ecrit/SLOWING["Egrid"], 3.0/2) )\
+                * 2 * SLOWING["Egrid"] )
+
+        # ts is slowing down rate which gives the slowing down time as
+        # t_sd = ts*log(v_0 / v_th) = 0.5*ts*log(E_0/E_th)
+        slowingdowntime = 0.5*ts*np.log(Esd/(50*Te))
+
+        for run in [run_tgo, run_tgcf, run_tgca]:
+            dist = run.getdist("5d", exi=True)
+            edist = dist.integrate(
+                r=np.s_[:], phi=np.s_[:], z=np.s_[:], time=np.s_[:],
+                charge=np.s_[:], pitch=np.s_[:], copy=True)
+            xdist = dist.integrate(
+                r=np.s_[:], phi=np.s_[:], z=np.s_[:], time=np.s_[:],
+                charge=np.s_[:], ekin=np.s_[:], copy=True)
+            run.plotdist(edist, axes=h1)
+            run.plotdist(xdist, axes=h2)
+
+        for run in [run_sgo, run_sgcf, run_sgca]:
+            dist = run.getdist("5d", exi=True)
+            edist = dist.integrate(
+                r=np.s_[:], phi=np.s_[:], z=np.s_[:], time=np.s_[:],
+                charge=np.s_[:], pitch=np.s_[:], copy=True)
+            xdist = dist.integrate(
+                r=np.s_[:], phi=np.s_[:], z=np.s_[:], time=np.s_[:],
+                charge=np.s_[:], ekin=np.s_[:], copy=True)
+            run.plotdist(edist, axes=h3)
+            run.plotdist(xdist, axes=h4)
+
+        plt.show()
+
     def init_classical(self):
         """Initialize data for the classical transport test.
         """
@@ -838,7 +987,7 @@ class PhysTest():
             for tag in [PhysTest.tag_classical_go, PhysTest.tag_classical_gcf,
                         PhysTest.tag_classical_gca]:
                 # Transport is scanned as a function of magnetic field strength
-                d = {"bxyz" : np.array([1, 0, 0]), "rhoval" : 1.5,
+                d = {"bxyz" : np.array([1, 0, 0]), "rhoval" : 0.5,
                      "jacobian" : np.array([0,0,0,0,0,0,0,0,0])}
                 d["bxyz"][0] = 1.0 + i * (10.0 - 1.0) / 5
                 init("B_TC", **d, desc=tag + str(i))
@@ -854,19 +1003,67 @@ class PhysTest():
         for tag in [PhysTest.tag_classical_go, PhysTest.tag_classical_gcf,
                     PhysTest.tag_classical_gca]:
             i = 0
-            while tag + str(i) in self.ascot.data.bfield.ls():
-                self._activateinputs(tag)
+            while tag + str(i) in self.ascot.data.bfield.ls(show=False):
+                self._activateinputs(tag+str(i))
                 self._runascot(tag+str(i))
                 i += 1
 
     def check_classical(self):
         """Check classical transport test.
         """
-        while tag + str(i) in self.ascot.data.bfield.ls(show=False):
+        nscan = 0
+        while PhysTest.tag_classical_go + str(nscan) in \
+              self.ascot.data.bfield.ls(show=False):
+            nscan += 1
+
+        # Initialize plots
+        fig = a5plt.figuredoublecolumn(3/2)
+        ax = fig.add_subplot(1,1,1)
+
+        # Numerical values
+        ndim = 2 # Diffusion happens on 2D plane
+        bnorm = np.zeros((nscan,)) * unyt.T
+        Dgo   = np.zeros((nscan,)) * unyt.m**2 / unyt.s
+        Dgcf  = np.zeros((nscan,)) * unyt.m**2 / unyt.s
+        Dgca  = np.zeros((nscan,)) * unyt.m**2 / unyt.s
+        for i in range(nscan):
             run_go  = self.ascot.data[PhysTest.tag_classical_go  + str(i)]
             run_gcf = self.ascot.data[PhysTest.tag_classical_gcf + str(i)]
             run_gca = self.ascot.data[PhysTest.tag_classical_gca + str(i)]
-            i += 1
+
+            yi, zi, ti = run_go.getstate("y", "z", "mileage", state="ini")
+            yf, zf, tf = run_go.getstate("y", "z", "mileage", state="end")
+            Dgo[i] = np.mean( ( (yi - yf)**2 + (zi - zf)**2 ) / (tf - ti) ) \
+                / (2*ndim)
+            yi, zi, ti = run_gcf.getstate("y", "z", "mileage", state="ini")
+            yf, zf, tf = run_gcf.getstate("y", "z", "mileage", state="end")
+            Dgcf[i] = np.mean( ( (yi - yf)**2 + (zi - zf)**2 ) / (tf - ti) ) \
+                / (2*ndim)
+            yi, zi, ti = run_gca.getstate("y", "z", "mileage", state="ini")
+            yf, zf, tf = run_gca.getstate("y", "z", "mileage", state="end")
+            Dgca[i] = np.mean( ( (yi - yf)**2 + (zi - zf)**2 ) / (tf - ti) ) \
+                / (2*ndim)
+
+            bnorm[i] = np.sqrt(np.sum(run_go.bfield.read()["bxyz"]**2))
+
+        # Analytical
+        clog = 13.4
+        ekin = run_go.getstate("ekin")[0]
+        self.ascot.input_init(run=run_go.get_qid(), bfield=True, plasma=True)
+        ne, Te = self.ascot.input_eval(6.2, 0, 0, 0, "ne", "te")
+        self.ascot.input_free()
+        #collfreq = ( (unyt.me / unyt.mp) * ( np.sqrt(2 / np.pi) / 3 )
+        #             * ( unyt.e**2 / ( 4 * np.pi * unyt.eps_0 ) )**2 * ne * clog
+        #             * 4 * np.pi / np.sqrt( unyt.me * (Te)**3 ) ).to("1/s")
+        collfreq = physlib.collfreq_ie(unyt.mp, unyt.e, ne, Te, clog)
+        rhog = physlib.gyrolength(unyt.mp, 1*unyt.e, ekin, 0.0, bnorm).to("m")
+        Dana = collfreq * rhog**2 / 2
+
+        # Plotting
+        ax.scatter(1/bnorm**2, Dgo)
+        ax.scatter(1/bnorm**2, Dgcf)
+        ax.scatter(1/bnorm**2, Dgca)
+        ax.plot(1/bnorm**2, Dana, color="black")
 
     def init_neoclassical(self):
         """Initialize data for the neoclassical transport test.
@@ -958,11 +1155,95 @@ class PhysTest():
     def check_neoclassical(self):
         """Check neoclassical transport test.
         """
-        while tag + str(i) in self.ascot.data.bfield.ls():
+        nscan = 0
+        items = self.ascot.data.bfield.ls(show=False)
+        while PhysTest.tag_neoclassical_go + str(nscan) in items:
+            nscan += 1
+            print(nscan)
+
+        # Evaluate Ti and R_omp(rho) as these are needed
+        run_go = self.ascot.data[PhysTest.tag_neoclassical_go  + "0"]
+        self.ascot.input_init(run=run_go.get_qid(), bfield=True, plasma=True)
+        Ti         = self.ascot.input_eval(6.2, 0, 0, 0, "ti1")
+        rhoomp     = np.linspace(0, 1, 100)
+        romp, zomp = self.ascot.input_rhotheta2rz(rhoomp, 0, 0, 0)
+        self.ascot.input_free()
+
+        # Initialize plots
+        fig = a5plt.figuredoublecolumn(3/2)
+        ax = fig.add_subplot(1,1,1)
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+
+        # Numerical values
+        ni    = np.zeros((nscan,)) / unyt.m**3
+        Dgo   = np.zeros((nscan,)) * unyt.m**2 / unyt.s
+        Dgcf  = np.zeros((nscan,)) * unyt.m**2 / unyt.s
+        Dgca  = np.zeros((nscan,)) * unyt.m**2 / unyt.s
+        for i in range(nscan):
             run_go  = self.ascot.data[PhysTest.tag_neoclassical_go  + str(i)]
             run_gcf = self.ascot.data[PhysTest.tag_neoclassical_gcf + str(i)]
             run_gca = self.ascot.data[PhysTest.tag_neoclassical_gca + str(i)]
-            i += 1
+
+            ri, ti = run_go.getstate("rho", "mileage", state="ini")
+            rf, tf = run_go.getstate("rho", "mileage", state="end")
+            ri = np.interp(ri, rhoomp, romp) * unyt.m
+            rf = np.interp(rf, rhoomp, romp) * unyt.m
+            Dgo[i] = 0.5 * np.mean( (rf - ri)**2 / (tf - ti) )
+
+            ri, ti = run_gcf.getstate("rho", "mileage", state="ini")
+            rf, tf = run_gcf.getstate("rho", "mileage", state="end")
+            ri = np.interp(ri, rhoomp, romp) * unyt.m
+            rf = np.interp(rf, rhoomp, romp) * unyt.m
+            Dgcf[i] = 0.5 * np.mean( (rf - ri)**2 / (tf - ti) )
+
+            ri, ti = run_gca.getstate("rho", "mileage", state="ini")
+            rf, tf = run_gca.getstate("rho", "mileage", state="end")
+            ri = np.interp(ri, rhoomp, romp) * unyt.m
+            rf = np.interp(rf, rhoomp, romp) * unyt.m
+            Dgca[i] = 0.5 * np.mean( (rf - ri)**2 / (tf - ti) )
+
+            ni[i] = run_go.plasma.read()["idensity"][0, 0]
+
+        r0    = run_go.getstate("r")[0]
+        axisr = run_go.bfield.read()["raxis"][0] * unyt.m
+        eps   = (r0 - axisr) / axisr
+        qfac  = 1.7 # Safety factor at r0 was verified numerically
+        bnorm = run_go.bfield.read()["bphi0"][0] * unyt.T
+
+        ekin   = run_go.getstate("ekin")[0]
+        omegat = physlib.bouncefrequency(unyt.me, ekin, r0, axisr, qfac)
+        rhog   = physlib.gyrolength(unyt.me, 1*unyt.e, ekin, 0.0, bnorm).to("m")
+
+        clog     = 15
+        density  = np.power( 10, np.linspace(np.log10(ni[0]) - 1,
+                                             np.log10(ni[-1]) + 1, 50) ) / unyt.m**3
+        collfreq = physlib.collfreq_ie(unyt.mp, unyt.e, density, Ti, clog) \
+            * ( unyt.mp / unyt.me )
+        veff = collfreq / omegat
+        # Add intermediate values needed for plotting a continuous curve
+        veff = np.append(veff, [1, np.power(eps, 3.0/2.0)])
+        veff.sort()
+
+        Dps = qfac**2 * veff * omegat * rhog**2 / 2
+        Dp  = 0.5 * qfac**2 * omegat * rhog**2 * np.ones(veff.shape)
+        Db  = np.power(eps, -3.0/2.0) * Dps
+
+        # x coordinate for plotting the numerical coefficients
+        collfreq = physlib.collfreq_ie(unyt.mp, unyt.e, ni, Ti, clog) \
+            * ( unyt.mp / unyt.me )
+        veff_x = collfreq / omegat
+
+        ax.plot(veff, Dps, color="black")
+        ax.plot(veff, Dp, color="black")
+        ax.plot(veff, Db, color="black")
+        ax.scatter(veff_x, Dgo, marker="*")
+        ax.scatter(veff_x, Dgcf, marker="o")
+        ax.scatter(veff_x, Dgca, marker="^")
+        print(Dgo)
+        print(Dgcf)
+        print(Dgca)
+        plt.show()
 
     def init_boozer(self):
         """Initialize data for the Boozer transformation test.
@@ -976,27 +1257,36 @@ class PhysTest():
         opt = Opt.get_default()
         opt.update({
             "SIM_MODE" : 4, "ENDCOND_SIMTIMELIM" : 1,
-            "ENDCOND_MAX_MILEAGE" : 1e3/3e8, "ENABLE_ORBIT_FOLLOWING" : 1,
+            "ENDCOND_MAX_MILEAGE" : 1e2/3e8, "ENABLE_ORBIT_FOLLOWING" : 1,
             "ENABLE_ORBITWRITE" : 1, "ORBITWRITE_MODE" : 1,
             "ORBITWRITE_INTERVAL" : 1e-1/3e8, "ORBITWRITE_NPOINT" : 10002
         })
-        init("opt", **opt, desc=PhysTest.tag_boozer)
-
-        # Magnetic field is just some tokamak with Boozer data
-        qid = init("bfield_analytical_iter_circular", splines=True,
-                   desc=PhysTest.tag_boozer)
-        qid = self.ascot.data.bfield[qid].get_qid()
-        self.ascot.input_init(bfield=qid)
-        init("boozer_tokamak")
-        self.ascot.input_free(bfield=True)
 
         # Use field line markers
-        mrk = Marker.generate("fl", n=2)
-        mrk["r"][:]      = np.array([7.0, 8.0])
+        mrk = Marker.generate("fl", n=1)
+        mrk["r"][:]      = 8.0
         mrk["phi"][:]    = 0
         mrk["z"][:]      = 0
         mrk["pitch"][:]  = 1.0
-        init("fl", **mrk, desc=PhysTest.tag_boozer)
+
+        # Magnetic field is just some tokamak with Boozer data
+        b = init("bfield_analytical_iter_circular", dryrun=True)
+        b.update({"rmin" : 4, "rmax" : 8.5, "nr" : 120, "zmin" : -4,
+                  "zmax" : 4, "nz" : 200})
+
+        bphi = [5.3, -5.3, 5.3, -5.3]
+        psimult = [200, 200, -200, -200]
+        for i in range(4):
+            b.update({"bphi0" : bphi[i], "psimult" : psimult[i]})
+            out = B_2DS.convert_B_GS(**b)
+            qid = init("B_2DS", **out, desc=PhysTest.tag_boozer+str(i))
+            qid = self.ascot.data.bfield[qid].get_qid()
+            self.ascot.input_init(bfield=qid)
+            qid = init("boozer_tokamak", desc=PhysTest.tag_boozer+str(i))
+            self.ascot.input_free(bfield=True)
+
+            init("fl", **mrk, desc=PhysTest.tag_boozer+str(i))
+            init("opt", **opt, desc=PhysTest.tag_boozer+str(i))
 
         # This perturbation is used only in the post-processing
         mhd = {"nmode" : 1, "nmodes" : np.array([2]), "mmodes" : np.array([3]),
@@ -1008,7 +1298,7 @@ class PhysTest():
         phi     = alpha*0
         mhd["phi"]   = np.tile(phi, (mhd["nmode"],1)).T
         mhd["alpha"] = np.tile(alpha, (mhd["nmode"],1)).T
-        init("MHD_STAT", **mhd, desc=PhysTest.tag_boozer)
+        init("MHD_STAT", **mhd, desc=PhysTest.tag_boozer+"0")
 
     def run_boozer(self):
         """Run Boozer transformation test.
@@ -1016,14 +1306,92 @@ class PhysTest():
         if hasattr(self.ascot.data, PhysTest.tag_boozer):
             warnings.warn("Results already present: Test Boozer transformation")
             return
-        for tag in [PhysTest.tag_boozer]:
-            self._activateinputs(tag)
-            self._runascot(tag)
+        for i in range(4):
+            self._activateinputs(PhysTest.tag_boozer + str(i))
+            self._runascot(PhysTest.tag_boozer + str(i))
 
     def check_boozer(self):
         """Check Boozer transformation test.
         """
-        run = self.ascot.data[PhysTest.tag_boozer]
+        run1 = self.ascot.data[PhysTest.tag_boozer+"0"]
+        run2 = self.ascot.data[PhysTest.tag_boozer+"1"]
+        run3 = self.ascot.data[PhysTest.tag_boozer+"2"]
+        run4 = self.ascot.data[PhysTest.tag_boozer+"3"]
+
+        # Initialize plots
+        fig = a5plt.figuredoublecolumn(3/2)
+        ax1 = fig.add_subplot(3,2,1)
+        ax2 = fig.add_subplot(3,2,3)
+        ax3 = fig.add_subplot(3,2,5)
+        ax4 = fig.add_subplot(3,2,2)
+        ax5 = fig.add_subplot(3,2,4)
+
+        ax3.set_xlabel("Boozer theta [rad]")
+        ax1.set_ylabel("Error in Bpol [T]")
+        ax2.set_ylabel("Error in Bphi [T]")
+        ax3.set_ylabel("Jacobian")
+        ax4.set_ylabel("q")
+        ax5.set_ylabel("q")
+        ax5.set_xlabel("Orbit parameter s")
+
+        colors = ["C0", "C1", "C2", "C3"]
+        for i, run in enumerate([run1, run2, run3, run4]):
+            self.ascot.input_init(run=run.get_qid(), bfield=True, boozer=True,
+                                  mhd=True)
+            r, phi, z, t, pol = run.getorbit("r", "phi", "z", "time", "theta")
+            theta, zeta, alpha, jacb2 = self.ascot.input_eval(
+                r, phi, z, t, "theta", "zeta", "alphaeig", "bjacxb2")
+
+            # Results are plotted as a function of poloidal angle so find the
+            # "discontinuity" points at 0/2pi.
+            idx = np.nonzero(np.abs(np.diff(theta)) > np.pi)[0]
+            theta = theta.v
+            zeta  = zeta.v
+
+            # Numerical safety factor has some noise so evaluate the average
+            dz = np.diff(zeta)
+            dz[dz > np.pi]  = dz[dz > np.pi]  - 2*np.pi
+            dz[dz < -np.pi] = dz[dz < -np.pi] + 2*np.pi
+            dt = np.diff(theta)
+            dt[dt > np.pi]  = dt[dt > np.pi]  - 2*np.pi
+            dt[dt < -np.pi] = dt[dt < -np.pi] + 2*np.pi
+            qfac = dz/dt
+
+            # Evaluate gradients and field components so we can compare those
+            a, b, c = self.ascot.input_eval(
+                r, phi, z, t, "dpsidr (bzr)", "dpsidphi (bzr)", "dpsidz (bzr)")
+            gradpsi = np.array([a, b/r, c]).T
+            a, b, c = self.ascot.input_eval(
+                r, phi, z, t, "dthetadr", "dthetadphi", "dthetadz")
+            gradtheta = np.array([a, b/r, c]).T
+            a, b, c = self.ascot.input_eval(
+                r, phi, z, t, "dzetadr", "dzetadphi", "dzetadz")
+            gradzeta = np.array([a, b/r, c]).T
+
+            br, bphi, bz = self.ascot.input_eval(
+                r, phi, z, t, "br", "bphi", "bz")
+            self.ascot.input_free()
+
+            # Magnetic field vector from Boozer coordinates
+            veca = np.cross(gradpsi, gradtheta)
+            vecb = np.cross(gradzeta, gradpsi)
+            bvec = -veca*np.mean(qfac) - vecb
+
+            idx = np.nonzero(np.abs(np.diff(theta)) > np.pi)[0]
+            dbpol = np.sqrt((bvec[:,0] - br.v)**2 + (bvec[:,2] - bz.v)**2)
+            dbphi = bvec[:,1] - bphi.v
+            bnorm = br**2 + bz**2 + bphi**2
+
+            j0 = 1
+            for j in idx[1:]:
+                ax1.plot(theta[j0:j], dbpol[j0:j], color=colors[i])
+                ax2.plot(theta[j0:j], dbphi[j0:j], color=colors[i])
+                ax3.plot(theta[j0:j], jacb2[j0:j], color=colors[i])
+                j0 = j
+            if qfac[0] > 0:
+                ax4.plot(qfac, color=colors[i])
+            else:
+                ax5.plot(qfac, color=colors[i])
 
     def init_mhd(self):
         """Initialize data for the MHD test.
@@ -1200,4 +1568,5 @@ class PhysTest():
 
 if __name__ == '__main__':
     test = PhysTest()
-    test.execute(init=False, run=False, check=True, tests=["gctransform"])
+    test.execute(init=True, run=True, check=True, tests=["boozer"])
+    plt.show()
