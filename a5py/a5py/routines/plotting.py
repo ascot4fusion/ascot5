@@ -21,21 +21,20 @@ from functools import wraps
 def setpaperstyle(height=5, halfpage=False):
     """TODO make this style suitable for publications
     """
-    mpl.style.use(
-        {"figure.figsize":(8., 6.),
-        "figure.autolayout":True,
+    mpl.style.use({
+        "figure.autolayout":False,
         "font.family":"serif",
         "font.serif":"ComputerModern",
         "text.usetex":True,
         "pdf.fonttype":42,
         "ps.fonttype":42,
-        "axes.labelsize":28,
-        "axes.titlesize":28,
-        "axes.titlepad":12,
-        "xtick.labelsize":24,
-        "ytick.labelsize":24,
+        "axes.labelsize":14,
+        "axes.titlesize":16,
+        "axes.titlepad":6,
+        "xtick.labelsize":12,
+        "ytick.labelsize":12,
         "axes.labelpad":6,
-        "legend.fontsize":22,
+        "legend.fontsize":12,
         "legend.numpoints":1,
         "legend.scatterpoints":1,
         "grid.linewidth":0.8,
@@ -48,11 +47,12 @@ def setpaperstyle(height=5, halfpage=False):
         "xtick.minor.width":0.4,
         "ytick.minor.width":0.4,
         "xtick.major.pad":5.6,
-        "ytick.major.pad":5.6,}
-    )
+        "ytick.major.pad":5.6,
+        "axes.formatter.limits":[-1,1]
+    })
 
 def setguistyle():
-    """Syle used in GUI.
+    """Style used in GUI.
     """
     mpl.style.use({
         "figure.autolayout":False,
@@ -80,6 +80,26 @@ def setguistyle():
         "xtick.major.pad":5.6,
         "ytick.major.pad":5.6,
     })
+
+def figuresinglecolumn(aspectratio=3/2):
+    """Return figure that has a size suitable for printing in A4 single-column
+    width (when the paper has a double-column format).
+
+    Parameters
+    ----------
+    aspectratio : float
+        Width / height ratio of the returned figure.
+
+    Returns
+    -------
+    """
+    return plt.figure(figsize=(3.504, 3.504/aspectratio))
+
+def figuredoublecolumn(aspectratio=3/2):
+    """Return figure that has a size suitable for printing in A4 double-column
+    width (when the paper has a double-column format).
+    """
+    return plt.figure(figsize=(7.205, 7.205/aspectratio))
 
 def openfigureifnoaxes(projection="rectilinear"):
     """Decorator for creating and displaying a new figure if axes are not
@@ -987,23 +1007,9 @@ def loadvsarea(wetted, loads, axes=None):
 
     axes.set_xscale('log')
     axes.set_yscale('linear')
-    #axes.set_ylim((1e4, 2e8))
-    #ax.set_xlim((1,14))
-    #ax.spines['left'].set_visible(False)
-    #ax.yaxis.set_ticks_position('right')
-    #ax.yaxis.set_visible(False)
-
-    #divider = make_axes_locatable(axes)
-    #axes1 = divider.append_axes("left", size=1.8, pad=0, sharex=axes)
-    #axes1.set_yscale('log')
-    #ax1.set_xscale('linear')
-    #ax1.set_xlim((1e-4, 9.99e-1))
-    #ax1.spines['right'].set_visible(False)
-    #ax1.yaxis.set_ticks_position('left')
-    #plt.setp(ax1.get_xticklabels(), visible=True)
     axes.plot(loads, wetted)
-    axes.set_xlabel(r"Wet area [m$^2$]")
-    axes.set_ylabel(r"Wet area [m$^2$]")
+    axes.set_xlabel(r"Load above [" + str(loads.units) + "]")
+    axes.set_ylabel(r"Wetted area [" + str(wetted.units) + "]")
 
 def defaultcamera(wallmesh):
     """Get default camera (helper function for the 3D plots).
