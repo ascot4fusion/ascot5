@@ -61,8 +61,9 @@ class AnalyticalInputs():
 
         return ("B_GS", out)
 
-    def plasma_flat(self, density=10e20, temperature=10e3):
-        """Create uniform hydrogen plasma that decays is flat inside the
+    def plasma_flat(self, density=10e20, temperature=10e3, anum=1, znum=1,
+                    charge=1, mass=1):
+        """Create uniform single-species plasma that is flat inside the
         separatrix but inexistent outside.
 
         Parameters
@@ -71,6 +72,14 @@ class AnalyticalInputs():
             Plasma density.
         temperature : float, optional
             Plasma temperature.
+        anum : int, optional
+            Ion atomic number.
+        znum : int, optional
+            Ion charge number.
+        charge : int, optional
+            Ion charge.
+        mass : int, optional
+            Ion mass.
 
         Returns
         -------
@@ -90,12 +99,23 @@ class AnalyticalInputs():
         edens[rho>1] = 1
         idens[rho>1] = 1
 
-        out = {"nrho" : nrho, "nion" : 1, "anum" : np.array([1]),
-               "znum" : np.array([1]), "mass" : np.array([1]),
-               "charge" : np.array([1]), "rho" : rho,
+        out = {"nrho" : nrho, "nion" : 1, "anum" : np.array([anum]),
+               "znum" : np.array([znum]), "mass" : np.array([mass]),
+               "charge" : np.array([charge]), "rho" : rho,
                "edensity" : edens, "etemperature" : etemp, "idensity" : idens,
                "itemperature" : itemp}
         return ("plasma_1D", out)
+
+    def neutral_flat(self, density=10e20, temperature=10e3, anum=1, znum=1):
+        """Create uniform single-species constant neutral data.
+        """
+        density     = np.ones((100,1)) * density
+        temperature = np.ones((100,1)) * temperature
+        out = {"rhomin" : 0, "rhomax" : 10, "nrho" : 100, "nspecies" : 1,
+               "anum" : np.array([anum]), "znum" : np.array([znum]),
+               "density" : density, "temperature" : temperature,
+               "maxwellian" : 1}
+        return ("N0_1D", out)
 
     def wall_rectangular(self, nphi=1):
         """Create wall with a rectangular cross section.
