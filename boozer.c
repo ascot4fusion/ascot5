@@ -72,7 +72,7 @@ int boozer_init_offload(boozer_offload_data* offload_data,
             &coeff_array[rzsize * NSIZE_COMP2D],
             &(*offload_array)[rzsize],
             offload_data->npsi, offload_data->ntheta,
-            NATURALBC, NATURALBC,
+            NATURALBC, PERIODICBC,
             offload_data->psi_min, offload_data->psi_max,
             THETAMIN, THETAMAX);
 
@@ -157,7 +157,7 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                              &(offload_array[rzsize]),
                              offload_data->npsi,
                              offload_data->ntheta,
-                             NATURALBC, NATURALBC,
+                             NATURALBC, PERIODICBC,
                              offload_data->psi_min,
                              offload_data->psi_max,
                              THETAMIN, THETAMAX);
@@ -190,9 +190,6 @@ void boozer_free_offload(boozer_offload_data* offload_data,
  * @brief Evaluate Boozer coordinates and partial derivatives
  *
  * The output vector has the following elements:
- *
- * - isinside /= 0 , the point (r,phi,z) is inside the grid
- *            == 0 , the point (r,phi,z) is outside the grid
  *
  * - psithetazeta[0]  = psi
  * - psithetazeta[1]  = dpsi/dR
@@ -230,10 +227,9 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
     isinside[0]=0;
     if(math_point_in_polygon(r, z, boozerdata->rs, boozerdata->zs,
                              boozerdata->nrzs)) {
-        isinside[0]=1;
 
         /* Get the psi value and check that it is within the psi grid (the grid
-           does not extend all the way to the axis) */
+           does not extend all the way to the axis) Use t = 0.0 s */
         real psi[4], rho[2];
         err = B_field_eval_psi_dpsi(psi, r, phi, z, 0.0, Bdata);
         if(!err) {
@@ -284,10 +280,13 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
             psithetazeta[7]=theta[1]*psi[3]+theta[2]*dthgeo_dz;/* dtheta_dz   */
 
             /* Zeta and derivatives */
-            psithetazeta[8]=fmod(phi+CONST_2PI, CONST_2PI)+nu[0];/* zeta      */
+            psithetazeta[8]=fmod(phi+nu[0], CONST_2PI);          /* zeta      */
             psithetazeta[9]=nu[1]*psi[1]+nu[2]*psithetazeta[5];  /* dzeta_dR  */
             psithetazeta[10]=1.0;                                /* dzeta_dphi*/
             psithetazeta[11]=nu[1]*psi[3]+nu[2]*psithetazeta[7]; /* dzeta_dz  */
+
+            /* Make sure zeta is between [0, 2pi]*/
+            psithetazeta[8]=fmod(psithetazeta[8] + CONST_2PI, CONST_2PI);
         }
     }
 
