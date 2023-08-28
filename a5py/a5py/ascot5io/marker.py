@@ -135,7 +135,8 @@ class Marker(DataGroup):
             "time"   : np.zeros((n,)),
         }
         if species is None:
-            species = {"mass":1*unyt.atomic_mass_unit, "charge":1*unyt.e, "anum":1, "znum":1}
+            species = {"mass":1*unyt.atomic_mass_unit, "charge":1*unyt.e,
+                       "anum":1, "znum":1}
         else:
             species = getspecies(species)
 
@@ -286,7 +287,7 @@ class FL(Marker):
             Name, i.e. "<type>_<qid>", of the new input that was written.
         """
         mrk = Marker.generate(n=1, mrktype="fl", species=None)
-        FL.write_hdf5(fn=fn, desc="DUMMY", **mrk)
+        return FL.write_hdf5(fn=fn, desc="DUMMY", **mrk)
 
 class GC(Marker):
     """Particle input in guiding-center coordinates.
@@ -443,7 +444,7 @@ class GC(Marker):
             Name, i.e. "<type>_<qid>", of the new input that was written.
         """
         mrk = Marker.generate(n=1, mrktype="gc", species="alpha")
-        GC.write_hdf5(fn=fn, desc="DUMMY", **mrk)
+        return GC.write_hdf5(fn=fn, desc="DUMMY", **mrk)
 
 class Prt(Marker):
     """Marker input representing physical particles.
@@ -615,4 +616,4 @@ class Prt(Marker):
             Name, i.e. "<type>_<qid>", of the new input that was written.
         """
         mrk = Marker.generate(n=1, mrktype="prt", species="alpha")
-        Prt.write_hdf5(fn=fn, desc="DUMMY", **mrk)
+        return Prt.write_hdf5(fn=fn, desc="DUMMY", **mrk)
