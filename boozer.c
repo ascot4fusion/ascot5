@@ -187,30 +187,6 @@ void boozer_free_offload(boozer_offload_data* offload_data,
 }
 
 /**
- * @brief Evaluates the normalized psi and derivatives from a given psi
- *
- * This is equivalent to the one found in the magnetic field module but uses
- * the boozer data (for the sake of consistence) instead.
- *
- * @param rho pointer for storing [rho, drho/dpsi]
- * @param psi poloidal flux function
- */
-a5err boozer_eval_rho_drho(real rho[2], real psi, boozer_data* boozerdata){
-    a5err err = 0;
-
-    /* Check that the values seem valid */
-    real delta = boozerdata->psi1 - boozerdata->psi0;
-    if( !err && (psi - boozerdata->psi0) / delta < 0 ) {
-         err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_BOOZER );
-    }
-
-    rho[0] = sqrt( ( psi - boozerdata-> psi0 ) / delta );
-    rho[1] = 1.0 / (2*delta*rho[0]);
-
-    return err;
-}
-
-/**
  * @brief Evaluate Boozer coordinates and partial derivatives
  *
  * The output vector has the following elements:
