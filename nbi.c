@@ -111,22 +111,22 @@ void nbi_ionize(real* xyz, real* vxyz, real time, int* shinethrough, int anum, i
         real rpz[3];
         math_xyz2rpz(xyz, rpz);
 
-        real psi, rho;
+        real psi, rho[2];
         err = B_field_eval_psi(&psi, rpz[0], rpz[1], rpz[2], 0.0, Bdata);
 
         if(!err) {
-            err = B_field_eval_rho(&rho, psi, Bdata);
+            err = B_field_eval_rho(rho, psi, Bdata);
 
             /* check for wall collisions after passing through separatrix
              * twice */
-            if(!entered_plasma && rho < 1.0) {
+            if(!entered_plasma && rho[0] < 1.0) {
                 entered_plasma = 1;
             }
-            if(entered_plasma && !exited_plasma && rho >= 1.0) {
+            if(entered_plasma && !exited_plasma && rho[0] >= 1.0) {
                 exited_plasma = 1;
             }
 
-            err = plasma_eval_densandtemp(pls_dens, pls_temp, rho, rpz[0],
+            err = plasma_eval_densandtemp(pls_dens, pls_temp, rho[0], rpz[0],
                                           rpz[1], rpz[2], time, plsdata);
 
             if(!err) {

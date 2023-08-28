@@ -540,7 +540,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         }
 
         /* Guiding center transformation */
-        real B_dB[15], r, phi, z, ppar, mu, zeta, psi[1], rho[1];
+        real B_dB[15], r, phi, z, ppar, mu, zeta, psi[1], rho[2];
         if(!err) {
             err = B_field_eval_B_dB(B_dB, ps->rprt, ps->phiprt, ps->zprt,
                                     ps->time, Bdata);
@@ -605,7 +605,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         p->type = input_particle_type_s;
         id = p->p_gc.id;
 
-        real B_dB[15], psi[1], rho[1];
+        real B_dB[15], psi[1], rho[2];
         if(!err) {
             err = B_field_eval_B_dB(B_dB, p->p_gc.r, p->p_gc.phi, p->p_gc.z,
                                     p->p_gc.time, Bdata);
@@ -714,7 +714,7 @@ void particle_input_to_state(input_particle* p, particle_state* ps,
         p->type = input_particle_type_s;
         id = p->p_ml.id;
 
-        real B_dB[15], psi[1], rho[1];
+        real B_dB[15], psi[1], rho[2];
         if(!err) {
             err = B_field_eval_B_dB(B_dB, p->p_ml.r, p->p_ml.phi, p->p_ml.z,
                                     p->p_ml.time, Bdata);
@@ -836,7 +836,7 @@ a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
     }
 
     /* Magnetic field stored in state is for the gc position */
-    real B_dB[15], psi[1], rho[1];
+    real B_dB[15], psi[1], rho[2];
     if(!err) {
         err = B_field_eval_B_dB(B_dB, p->rprt, p->phiprt, p->zprt, p->time,
                                 Bdata);
@@ -919,7 +919,7 @@ void particle_fo_to_state(particle_simd_fo* p_fo, int j, particle_state* p,
     p->mileage    = p_fo->mileage[j];
 
     /* Particle to guiding center */
-    real B_dB[15], psi[1], rho[1];
+    real B_dB[15], psi[1], rho[2];
     rho[0]        = p_fo->rho[j];
     B_dB[0]       = p_fo->B_r[j];
     B_dB[1]       = p_fo->B_r_dr[j];
@@ -1386,7 +1386,7 @@ int particle_fo_to_gc(particle_simd_fo* p_fo, int j, particle_simd_gc* p_gc,
     if(!err && r <= 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
     if(!err && mu < 0)  {err = error_raise(ERR_MARKER_UNPHYSICAL, __LINE__, EF_PARTICLE);}
 
-    real psi[1], rho[1];
+    real psi[1], rho[2];
     if(!err) {
         err = B_field_eval_B_dB(
             B_dB, r, phi, z, p_fo->time[j], Bdata);

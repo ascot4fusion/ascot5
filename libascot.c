@@ -249,7 +249,7 @@ void libascot_B_field_eval_B_dB(int Neval, real* R, real* phi, real* z, real* t,
  */
 void libascot_B_field_eval_rho(int Neval, real* R, real* phi, real* z, real* t,
                                real* rho, real* psi) {
-    real rhoval[1];
+    real rhoval[2];
     real psival[1];
     for(int k = 0; k < Neval; k++) {
         if( B_field_eval_psi(psival, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
@@ -320,7 +320,7 @@ void libascot_B_field_eval_rhovals(int nrho, real minrho, real maxrho,
     real Raxis = axisrz[0];
     real zaxis = axisrz[1];
 
-    real psival, rho0;
+    real psival, rho0[2];
 
     /* Start evaluation from axis */
     real R1 = Raxis;
@@ -328,12 +328,12 @@ void libascot_B_field_eval_rhovals(int nrho, real minrho, real maxrho,
     if(B_field_eval_psi(&psival, R1, phi, z1, t, &sim.B_data)) {
         return;
     }
-    if( B_field_eval_rho(&rho0, psival, &sim.B_data) ) {
+    if( B_field_eval_rho(rho0, psival, &sim.B_data) ) {
         return;
     }
 
     int iter = 0;
-    while(rho0 < minrho && iter < NSTEP) {
+    while(rho0[0] < minrho && iter < NSTEP) {
         iter++;
 
         R1 = Raxis + iter*step*cos(theta);
@@ -341,7 +341,7 @@ void libascot_B_field_eval_rhovals(int nrho, real minrho, real maxrho,
         if( B_field_eval_psi(&psival, R1, phi, z1, t, &sim.B_data) ) {
             continue;
         }
-        if( B_field_eval_rho(&rho0, psival, &sim.B_data) ) {
+        if( B_field_eval_rho(rho0, psival, &sim.B_data) ) {
             continue;
         }
     }
@@ -361,7 +361,7 @@ void libascot_B_field_eval_rhovals(int nrho, real minrho, real maxrho,
     real z2 = z1;
 
     iter = 0;
-    while(rho0 < maxrho && iter < NSTEP) {
+    while(rho0[0] < maxrho && iter < NSTEP) {
         iter++;
 
         R2 = R1 + iter*step*cos(theta);
@@ -369,7 +369,7 @@ void libascot_B_field_eval_rhovals(int nrho, real minrho, real maxrho,
         if( B_field_eval_psi(&psival, R2, phi, z2, t, &sim.B_data) ) {
             break;
         }
-        if( B_field_eval_rho(&rho0, psival, &sim.B_data) ) {
+        if( B_field_eval_rho(rho0, psival, &sim.B_data) ) {
             break;
         }
     }
@@ -384,10 +384,10 @@ void libascot_B_field_eval_rhovals(int nrho, real minrho, real maxrho,
         if( B_field_eval_psi(&psival, r[i], phi, z[i], t, &sim.B_data) ) {
             continue;
         }
-        if( B_field_eval_rho(&rho0, psival, &sim.B_data) ) {
+        if( B_field_eval_rho(rho0, psival, &sim.B_data) ) {
             continue;
         }
-        rho[i] = rho0;
+        rho[i] = rho0[0];
     }
 }
 
@@ -462,7 +462,7 @@ void libascot_plasma_eval_background(int Neval, real* R, real* phi, real* z,
 
     int n_species = plasma_get_n_species(&sim.plasma_data);
     real psi[1];
-    real rho[1];
+    real rho[2];
     real n[MAX_SPECIES];
     real T[MAX_SPECIES];
 
@@ -499,7 +499,7 @@ void libascot_plasma_eval_background(int Neval, real* R, real* phi, real* z,
 void libascot_neutral_eval_density(int Neval, real* R, real* phi, real* z,
                                    real* t, real* dens) {
     real psi[1];
-    real rho[1];
+    real rho[2];
     real n0[1];
     for(int k = 0; k < Neval; k++) {
         if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
@@ -537,13 +537,13 @@ void libascot_boozer_eval_psithetazeta(int Neval, real* R, real* phi, real* z,
     int isinside;
     for(int k = 0; k < Neval; k++) {
         if( boozer_eval_psithetazeta(psithetazeta, &isinside, R[k], phi[k],
-                                     z[k], &sim.boozer_data) ) {
+                                     z[k], &sim.B_data, &sim.boozer_data) ) {
             continue;
         }
         if(!isinside) {
             continue;
         }
-        if( boozer_eval_rho_drho(rhoval, psithetazeta[0], &sim.boozer_data) ) {
+        if( B_field_eval_rho(rhoval, psithetazeta[0], &sim.B_data) ) {
             continue;
         }
         psi[k]        = psithetazeta[0];
@@ -581,7 +581,7 @@ void libascot_boozer_eval_fun(int Neval, real* R, real* phi, real* z,
     int isinside;
     for(int k = 0; k < Neval; k++) {
         if( boozer_eval_psithetazeta(psithetazeta, &isinside, R[k], phi[k],
-                                     z[k], &sim.boozer_data) ) {
+                                     z[k], &sim.B_data, &sim.boozer_data) ) {
             continue;
         }
         if(!isinside) {
@@ -661,7 +661,7 @@ void libascot_mhd_eval(int Neval, real* R, real* phi, real* z,
     real mhd_dmhd[10];
     for(int k = 0; k < Neval; k++) {
         if( mhd_eval(mhd_dmhd, R[k], phi[k], z[k], t[k],
-                     &sim.boozer_data, &sim.mhd_data) ) {
+                     &sim.boozer_data, &sim.mhd_data, &sim.B_data) ) {
             continue;
         }
         alpha[k]    = mhd_dmhd[0];

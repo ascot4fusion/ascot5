@@ -166,7 +166,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
             real psi[1];
-            real rho[1];
+            real rho[2];
             if(!errflag) {
                 errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i],
                                             t0 + h[i], Bdata);
@@ -284,7 +284,7 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, yprev[0], yprev[1], yprev[2], t0,
-                                   boozer, mhd);
+                                   boozer, mhd, Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k1, yprev, mass, charge, B_dB, E, mhd_dmhd);
@@ -306,7 +306,7 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   t0 + h[i]/2.0, boozer, mhd);
+                                   t0 + h[i]/2.0, boozer, mhd, Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k2, tempy, mass, charge, B_dB, E, mhd_dmhd);
@@ -327,7 +327,7 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   t0 + h[i]/2.0, boozer, mhd);
+                                   t0 + h[i]/2.0, boozer, mhd, Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k3, tempy, mass, charge, B_dB, E, mhd_dmhd);
@@ -347,7 +347,7 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   t0 + h[i], boozer, mhd);
+                                   t0 + h[i], boozer, mhd, Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k4, tempy, mass, charge, B_dB, E, mhd_dmhd);
@@ -383,7 +383,7 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
             real psi[1];
-            real rho[1];
+            real rho[2];
             if(!errflag) {
                 errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i],
                                             t0 + h[i], Bdata);

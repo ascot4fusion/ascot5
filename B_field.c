@@ -306,7 +306,7 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z, real t,
 }
 
 /**
- * @brief Evaluate normalized poloidal flux rho
+ * @brief Evaluate normalized poloidal flux rho and its psi derivative
  *
  * This function evaluates the normalized poloidal flux rho at the given
  * coordinates. The rho is evaluated from psi as:
@@ -326,28 +326,34 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z, real t,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
+a5err B_field_eval_rho(real rho[2], real psi, B_field_data* Bdata) {
     a5err err = 0;
 
+    real psi0 = 0.0, psi1 = 1.0;
     switch(Bdata->type) {
         case B_field_type_GS:
-            err = B_GS_eval_rho(rho, psi, &(Bdata->BGS));
+            psi0 = Bdata->BGS.psi0;
+            psi1 = Bdata->BGS.psi1;
             break;
 
         case B_field_type_2DS:
-            err = B_2DS_eval_rho(rho, psi, &(Bdata->B2DS));
+            psi0 = Bdata->B2DS.psi0;
+            psi1 = Bdata->B2DS.psi1;
             break;
 
         case B_field_type_3DS:
-            err = B_3DS_eval_rho(rho, psi, &(Bdata->B3DS));
+            psi0 = Bdata->B3DS.psi0;
+            psi1 = Bdata->B3DS.psi1;
             break;
 
         case B_field_type_STS:
-            err = B_STS_eval_rho(rho, psi, &(Bdata->BSTS));
+            psi0 = Bdata->BSTS.psi0;
+            psi1 = Bdata->BSTS.psi1;
             break;
 
         case B_field_type_TC:
-            err = B_TC_eval_rho(rho, psi, &(Bdata->BTC));
+            psi0 = Bdata->BTC.psival;
+            psi1 = 2.0;
             break;
 
         default:
@@ -356,10 +362,19 @@ a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
             break;
     }
 
+    real delta = (psi1 - psi0);
+    if( (psi - psi0) / delta < 0 ) {
+         err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_FIELD );
+    } else {
+        rho[0] = sqrt( (psi - psi0) / delta );
+        rho[1] = 1.0 / (2*delta*rho[0]);
+    }
+
     if(err) {
         /* In case of error, return some reasonable value to avoid further
            complications */
         rho[0] = 1;
+        rho[1] = 0;
     }
 
     return err;

@@ -7,6 +7,7 @@
 
 #include "ascot5.h"
 #include "error.h"
+#include "B_field.h"
 #include "spline/interp.h"
 
 /**
@@ -60,12 +61,10 @@ void boozer_free_offload(boozer_offload_data* offload_data,
 void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                  real* offload_array);
 
-#pragma omp declare simd uniform(boozerdata)
+#pragma omp declare simd uniform(Bdata, boozerdata)
 a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside, real r,
-                               real phi, real z, boozer_data* boozerdata);
-
-#pragma omp declare simd uniform(boozerdata)
-a5err boozer_eval_rho_drho(real rho[2], real psi, boozer_data* boozerdata);
+                               real phi, real z, B_field_data* Bdata,
+                               boozer_data* boozerdata);
 
 #pragma omp end declare target
 

@@ -9,6 +9,7 @@
 #include "consts.h"
 #include "math.h"
 #include "error.h"
+#include "B_field.h"
 #include "boozer.h"
 #include "spline/interp.h"
 
@@ -212,7 +213,7 @@ a5err boozer_eval_rho_drho(real rho[2], real psi, boozer_data* boozerdata){
 /**
  * @brief Evaluate Boozer coordinates and partial derivatives
  *
- * the modified vectors
+ * The output vector has the following elements:
  *
  * - isinside /= 0 , the point (r,phi,z) is inside the grid
  *            == 0 , the point (r,phi,z) is outside the grid
@@ -230,18 +231,19 @@ a5err boozer_eval_rho_drho(real rho[2], real psi, boozer_data* boozerdata){
  * - psithetazeta[10] = dzeta/dphi
  * - psithetazeta[11] = dzeta/dz
  *
- * @param thetazeta evaluated Boozer angular coordinates and their gradients.
+ * @param psithetazeta evaluated Boozer coordinates and their gradients.
  * @param isinside a flag indicating whether the queried point was inside
  *        boozer grid
  * @param r R coordinate
  * @param phi phi coordinate
  * @param z z coordinate
+ * @param Bdata pointer to magnetic field data
  * @param boozerdata pointer to boozerdata
  *
  * @return zero on success
  */
 a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
-                               real r, real phi, real z,
+                               real r, real phi, real z, B_field_data* Bdata,
                                boozer_data* boozerdata) {
     a5err err = 0;
     int interperr = 0;
@@ -256,9 +258,11 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
 
         /* Get the psi value and check that it is within the psi grid (the grid
            does not extend all the way to the axis) */
-        real psi[6], rho[2];
-        interperr += interp2Dcomp_eval_df(psi, &boozerdata->psi_rz, r, z);
-        err = boozer_eval_rho_drho(rho, psi[0], boozerdata);
+        real psi[4], rho[2];
+        err = B_field_eval_psi_dpsi(psi, r, phi, z, 0.0, Bdata);
+        if(!err) {
+            err = B_field_eval_rho(rho, psi[0], Bdata);
+        }
 
         if(!err && rho[0] < 1) {
 
@@ -286,7 +290,7 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
             psithetazeta[0]=psi[0]; /* psi       */
             psithetazeta[1]=psi[1]; /* dpsi_dr   */
             psithetazeta[2]=0;      /* dpsi_dphi */
-            psithetazeta[3]=psi[2]; /* dpsi_dz   */
+            psithetazeta[3]=psi[3]; /* dpsi_dz   */
 
             /* Helpers */
             real asq;
@@ -301,13 +305,13 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
             psithetazeta[4]=theta[0];                          /* theta       */
             psithetazeta[5]=theta[1]*psi[1]+theta[2]*dthgeo_dr;/* dtheta_dr   */
             psithetazeta[6]=0;                                 /* dtheta_dphi */
-            psithetazeta[7]=theta[1]*psi[2]+theta[2]*dthgeo_dz;/* dtheta_dz   */
+            psithetazeta[7]=theta[1]*psi[3]+theta[2]*dthgeo_dz;/* dtheta_dz   */
 
             /* Zeta and derivatives */
             psithetazeta[8]=fmod(phi+CONST_2PI, CONST_2PI)+nu[0];/* zeta      */
             psithetazeta[9]=nu[1]*psi[1]+nu[2]*psithetazeta[5];  /* dzeta_dR  */
             psithetazeta[10]=1.0;                                /* dzeta_dphi*/
-            psithetazeta[11]=nu[1]*psi[2]+nu[2]*psithetazeta[7]; /* dzeta_dz  */
+            psithetazeta[11]=nu[1]*psi[3]+nu[2]*psithetazeta[7]; /* dzeta_dz  */
         }
     }
 
