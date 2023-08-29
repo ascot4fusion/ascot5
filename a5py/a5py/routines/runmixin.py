@@ -648,9 +648,8 @@ class RunMixin():
             mass = np.mean(self.getstate("mass"))
             Dist.parallelcurrent(self._root._ascot, mass, dist, out)
         if "pressure" in moments:
-            vnorm = self.getstate("vnorm")
             mass = np.mean(self.getstate("mass"))
-            Dist.pressure(vnorm, mass, dist, out)
+            Dist.pressure(self._root._ascot, mass, dist, out)
         if "powerdep" in moments:
             mass = np.mean(self.getstate("mass"))
             Dist.powerdep(self._root._ascot, mass, dist, out)
@@ -664,8 +663,8 @@ class RunMixin():
             mass = np.mean(self.getstate("mass"))
             Dist.jxBTorque(self._root._ascot, mass, dist, out)
         if "collTorque" in moments:
-            # WIP
-            Dist.collTorque(dist, out)
+            mass = np.mean(self.getstate("mass"))
+            Dist.collTorque(self._root._ascot, mass, dist, out)
         if "canMomentTorque" in moments:
             # WIP
             Dist.canMomentTorque(dist, out)

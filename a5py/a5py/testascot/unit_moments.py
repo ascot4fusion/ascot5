@@ -40,8 +40,8 @@ class TestAscot(unittest.TestCase):
         name = a5.data.options.active.new(
             ENDCOND_MAX_MILEAGE=1.5e-4, DIST_MIN_CHARGE=1.5,
             DIST_MAX_CHARGE=2.5, DIST_NBIN_PPE=50, DIST_NBIN_PPA=50,
-            DIST_NBIN_PHI=10, DIST_NBIN_R=50, DIST_NBIN_Z=100, DIST_NBIN_TIME=1,
-            DIST_NBIN_THETA=25, DIST_MIN_R=4, DIST_MAX_R=8, DIST_MIN_Z=-2,
+            DIST_NBIN_PHI=1, DIST_NBIN_R=50, DIST_NBIN_Z=100, DIST_NBIN_TIME=1,
+            DIST_NBIN_THETA=200, DIST_MIN_R=4, DIST_MAX_R=8, DIST_MIN_Z=-2,
             DIST_MAX_Z=2, DIST_NBIN_RHO=10,
             ENABLE_DIST_6D=0, ENABLE_DIST_RHO6D=1, ENABLE_DIST_COM=0,
             ORBITWRITE_NPOINT=6000)
@@ -56,19 +56,19 @@ class TestAscot(unittest.TestCase):
 
     def test_moments(self):
         a5 = Ascot("unittest.h5")
-        ordinate = "electronpowerdep"
+        ordinate = "jxBTorque"
 
         a5.input_init(bfield=True, plasma=True)
-        dist = a5.data.active.getdist("5d", exi=True)
+        dist = a5.data.active.getdist("5d", exi=False)
         mom = a5.data.active.getdist_moments(dist, ordinate)
 
-        rhodist = a5.data.active.getdist("rho5d", exi=True)
+        rhodist = a5.data.active.getdist("rho5d", exi=False)
         rhomom = a5.data.active.getdist_moments(rhodist, ordinate)
         #print(np.sum(rhodist.distribution()))
         #print(np.sum(rhomom.ordinate(ordinate)))
         #print(dist.abscissa("pitch"))
         #print(dist.abscissa("ekin").to("eV"))
-
+        
         rho, r, z, phi, psi, weight, time, \
             charge, energy, vphi, vnorm, vpar, \
             mass, p, pitch, bnorm, bphi, ppar = \
@@ -83,46 +83,46 @@ class TestAscot(unittest.TestCase):
         elif ordinate == "chargedensity": 
             weight *= charge * dt
         elif ordinate == "energydensity": 
-            weight *= energy * dt
+            weight *= ( energy * dt ).to("J")
         elif ordinate == "pressure": 
-            weight *= (1/3) * mass * vnorm**2 * dt
+            weight *= ( (1/3) * mass * vnorm**2 * dt ).to("J")
         elif ordinate == "toroidalcurrent": 
-            weight *= charge * vphi * dt
+            weight *= ( charge * vphi * dt ).to("A*m")
         elif ordinate == "parallelcurrent": 
-            weight *= charge * vpar * dt
+            weight *= ( charge * vpar * dt ).to("A*m")
         elif ordinate == "powerdep": 
             a5.input_init(bfield=True, plasma=True)
             coefs = a5.input_eval_collcoefs(mass[0], charge[0], r, phi, z, time, vnorm)
             K = np.sum(coefs["Q"],axis=0)
             K = np.diagonal(K)
             dE_d = p*K*dt
-            weight *= -dE_d.to("eV/s")
+            weight *= dE_d.to("W")
         elif ordinate == "electronpowerdep": 
             a5.input_init(bfield=True, plasma=True)
             coefs = a5.input_eval_collcoefs(mass[0], charge[0], r, phi, z, time, vnorm)
             K = coefs["K"][0,0,:]
             dE_d = p*K*dt
-            weight *= -dE_d.to("eV/s")
+            weight *= dE_d.to("W")
         elif ordinate == "ionpowerdep": 
             a5.input_init(bfield=True, plasma=True)
             K = a5.input_eval_collcoefs(mass[0], charge[0], r, phi, z, time, vnorm)["Q"]
             K = np.sum(K[1:,:,:],axis=0)
             K = np.diagonal(K)
             dE_d = p*K*dt
-            weight *= -dE_d.to("eV/s")
+            weight *= dE_d.to("W")
         elif ordinate == "jxBTorque": # nOK
             # append 0 ok?
-            dPsi = abs(np.diff(psi))
+            dPsi = np.diff(psi)
             dPsi = np.append(dPsi, 0)
             weight *= -charge * dPsi
         elif ordinate == "collTorque": # nOK
             a5.input_init(bfield=True, plasma=True)
             nu = np.sum(a5.input_eval_collcoefs(mass[0], charge[0],
-                                                r, phi, z, time, vnorm)["nu"],axis=1)
-            Q = np.sum(a5.input_eval_collcoefs(mass[0], charge[0],
-                                               r, phi, z, time, vnorm)["Q"],axis=1)
-            dppar = mass*Q[0]*pitch-p*pitch*nu[0]
-            weight *= r *(dppar*(bphi/bnorm)) *dt
+                                                r, phi, z, time, vnorm)["nu"],axis=0)
+            K = np.sum(a5.input_eval_collcoefs(mass[0], charge[0],
+                                               r, phi, z, time, vnorm)["K"],axis=0)
+            dppar = mass*K[0]*pitch-p*pitch*nu[0]
+            weight *= (r *(dppar*(bphi/bnorm)) *dt ).to("J")
         elif ordinate == "canMomentTorque": # nOK
             # append 0 ok?
             Pphi = ppar *r *(bphi/bnorm)+ charge *psi
@@ -153,26 +153,11 @@ class TestAscot(unittest.TestCase):
         ax2 = fig.add_subplot(1,3,2)
         plt.title("Ascot <3")
         a5.data.active.plotdist_moments(mom, ordinate, axes=ax2)
-
+        
         ax3 = fig.add_subplot(1,3,3)
         pm = ax3.plot(rhodist.abscissa("rho").v,
                       rhoprt / np.sum(np.sum(rhomom.volume, axis=1), axis=1))
         a5.data.active.plotdist_moments(rhomom, ordinate, axes=ax3)
-
-        '''
-        print(np.sum (rhomom.ordinate(ordinate) * rhomom.volume) * 1.6e-19)
-        ekin1, weight1 = a5.data.active.getstate("ekin", "weight", state="ini")
-        ekin2, weight2 = a5.data.active.getstate("ekin", "weight", state="end")
-        aa = - ekin1*weight1 + ekin2*weight2
-        print(sum(aa))
-        print("V",np.sum(rhomom.volume))
-        '''
-        a5.input_init(bfield=True, plasma=True)
-        psi1, weight1 = a5.data.active.getstate("psi", "weight", state="ini")
-        psi2, weight2 = a5.data.active.getstate("psi", "weight", state="end")
-        aa = charge * weight1*(psi1-psi2)
-        print(aa.in_mks())
-        
         
         plt.show()
 
