@@ -181,8 +181,8 @@ class PoincareTemplates():
 
         return ("opt", out)
 
-    def boozer_tokamak(self, npsi=100, nthgeo=200, nthbzr=200,
-                       rhomin=0.3, rhomax=0.9):
+    def boozer_tokamak(self, npsi=100, nthgeo=200, nthbzr=200, tstep=1e-2,
+                       nint=8000, rhomin=0.3, rhomax=0.9):
         """Build mapping from real-space to Boozer coordinates assuming
         axisymmetric tokamak field.
 
@@ -194,10 +194,15 @@ class PoincareTemplates():
             Number of geometrical theta grid points.
         nthbzr : int, optional
             Number of boozer theta grid points.
-        rhomin : float
+        tstep : float, optional
+            Time-step (in meters) for the algorithm solving the psi = const.
+            contour.
+        nint : int, optional
+            Number of points in line integral evaluations.
+        rhomin : float, optional
             Minimum rho in the radial grid which cannot be zero since
             the Boozer coordinates cannot be computed there.
-        rhomax : float
+        rhomax : float, optional
             Maximum rho in the radial grid which cannot be one since
             the separatrix does not form a closed surface when there is
             an X-point.
@@ -238,7 +243,7 @@ class PoincareTemplates():
         zgrid = np.linspace(zmin, zmax, nzcntr)
 
         # ...and this poloidal grid to evaluate values along the contour
-        thgrid = np.linspace(0, 2*np.pi, 2000)
+        thgrid = np.linspace(0, 2*np.pi, nint)
 
         # Boozer coordinate psi-grid. Add a little bit of padding to psi0 and
         # psi1 values as otherwise making the contour at those points could
@@ -305,7 +310,7 @@ class PoincareTemplates():
             # the integration.
             sol = solve_ivp(tracepsi, [0, 2*np.pi*raxis],
                             np.array([rzomp[0].v, rzomp[1].v+delta]).ravel(),
-                            max_step=1.0e-1, events=event)
+                            max_step=tstep, events=event)
             r = sol.y[0,:]
             z = sol.y[1,:]
 
