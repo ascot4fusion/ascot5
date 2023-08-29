@@ -228,6 +228,9 @@ class B_GS(DataGroup):
             psi0 = psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
                                c[5], c[6], c[7], c[8], c[9], c[10], c[11],
                                c[12]) * psimult * 1.001
+            psi1 = psifun.psi0(x[0]+0.1, x[1], c[0], c[1], c[2], c[3], c[4],
+                               c[5], c[6], c[7], c[8], c[9], c[10], c[11],
+                               c[12]) * psimult
             raxis = x[0]*r0
             zaxis = x[1]*r0
 
@@ -491,7 +494,7 @@ class B_2DS(DataGroup):
                                  c[6], c[7], c[8], c[9], c[10], c[11], c[12])
             psi0 = kwargs["psimult"]*psifun.psi0(
                 x[0], x[1], c[0], c[1], c[2], c[3], c[4],
-                c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
+                c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) * 1.001
             r0 = x[0]*kwargs["r0"]
             z0 = x[1]*kwargs["r0"]
 

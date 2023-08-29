@@ -98,7 +98,7 @@ def init():
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
     for i in range(1, nscan+1):
-        odict["ENDCOND_MAX_SIMTIME"]   = np.maximum( 5e-4,
+        odict["ENDCOND_LIM_SIMTIME"]   = np.maximum( 5e-4,
                                                      4e-2 / (ni[i-1]/ni[0]) )
         odict["FIXEDSTEP_USERDEFINED"] = np.minimum( 2e-9,
                                                      3e-10 / (ni[i-1]/ni[-1]) )
@@ -119,7 +119,7 @@ def init():
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
     for i in range(1, nscan+1):
-        odict["ENDCOND_MAX_SIMTIME"]   = np.maximum( 5e-4,
+        odict["ENDCOND_LIM_SIMTIME"]   = np.maximum( 5e-4,
                                                      4e-2 / (ni[i-1]/ni[0]) )
         odict["FIXEDSTEP_USERDEFINED"] = np.minimum( 2e-8,
                                                      5e-10 / (ni[i-1]/ni[-1]) )
@@ -146,7 +146,7 @@ def init():
     odict["ENABLE_COULOMB_COLLISIONS"] = 1
 
     for i in range(1, nscan+1):
-        odict["ENDCOND_MAX_SIMTIME"] = np.maximum( 5e-4,
+        odict["ENDCOND_LIM_SIMTIME"] = np.maximum( 5e-4,
                                                    4e-2 / (ni[i-1]/ni[0]) )
         options.write_hdf5(helpers.testfn, odict,
                            desc="NEOCLASS_GCA" + str(i))

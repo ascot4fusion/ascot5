@@ -3,8 +3,10 @@
 from .analyticalinputs import AnalyticalInputs
 from .optiontemplates  import OptionTemplates
 from .poincare  import PoincareTemplates
+from .importdata import ImportAdas
 
-class InputFactory(AnalyticalInputs, OptionTemplates, PoincareTemplates):
+class InputFactory(AnalyticalInputs, OptionTemplates, PoincareTemplates,
+                   ImportAdas):
     """Class for creating input data from templates or imported data.
 
     The templates are constructed by calling :meth:`construct` and specifying

@@ -244,10 +244,10 @@ def find_axis(R0, z0, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, A):
     """
     Find minimum of psi (corresponding to magnetic axis)
     """
-    pfun = lambda x, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, A : \
-        psi0(x[0], x[1], c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, A)
-    return scipy.optimize.fmin(pfun, (R0/R0, z0/R0), args=(c0, c1, c2, c3, c4,
-        c5, c6, c7, c8, c9, c10, c11, A), ftol=1e-8, disp=False)
+    pfun = lambda x : psi0(x[0], x[1],
+                           c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, A)
+    return scipy.optimize.minimize(pfun, np.array([R0/R0, z0/R0]).ravel(),
+                                   tol=1e-8).x
 
 
 def analyticGS(A, R0, epsilon, kappa, delta, Xpointx, Xpointy, sym):

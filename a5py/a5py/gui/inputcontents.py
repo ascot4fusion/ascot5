@@ -29,9 +29,9 @@ class Field(ContentTab):
                               isint=True)
 
         ymin_entry = NumEntry(f1, labeltext="z [m]     = ", entrywidth=5,
-                              labelwidth=12, anchor="w", defval=8.0)
+                              labelwidth=12, anchor="w", defval=-8.0)
         ymax_entry = NumEntry(f1, labeltext="–",    entrywidth=5,
-                              labelwidth=2, anchor="c", defval=-8.0)
+                              labelwidth=2, anchor="c", defval=8.0)
         ynum_entry = NumEntry(f1, labeltext="x",    entrywidth=5,
                               labelwidth=2, anchor="c", defval=50,
                               isint=True)

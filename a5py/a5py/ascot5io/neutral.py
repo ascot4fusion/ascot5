@@ -36,8 +36,8 @@ class N0_1D(DataGroup):
 
     @staticmethod
     def write_hdf5(fn, rhomin, rhomax, nrho,
-               nspecies, anum, znum, density, temperature, maxwellian=1,
-               desc=None):
+                   nspecies, anum, znum, density, temperature, maxwellian=1,
+                   desc=None):
         """Write input data to the HDF5 file.
 
         Parameters
@@ -77,7 +77,7 @@ class N0_1D(DataGroup):
         """
         if density.shape != (nrho,nspecies):
             raise ValueError("Density has invalid shape.")
-        if temperature.size != (nrho,nspecies):
+        if temperature.shape != (nrho,nspecies):
             raise ValueError("Temperature has invalid shape.")
         if anum.size != nspecies or znum.size != nspecies:
             raise ValueError("Anum or Znum has invalid shape.")
@@ -90,6 +90,7 @@ class N0_1D(DataGroup):
 
         # Transpose n0 from (rho, spec) to (spec, rho)
         density     = np.transpose(density)
+        temperature = np.transpose(temperature)
 
         if maxwellian == 1:
             maxwellian = np.ones( (int(nspecies),1) )
@@ -135,11 +136,10 @@ class N0_1D(DataGroup):
         name : str
             Name, i.e. "<type>_<qid>", of the new input that was written.
         """
-        N0_1D.write_hdf5(
-            fn=fn, rhomin=0, rhomax=2, nrho=100, nspecies=1,
+        return N0_1D.write_hdf5(
+            fn=fn, rhomin=0, rhomax=2, nrho=3, nspecies=1,
             anum=np.array([1]), znum=np.array([1]),
-            density=5e16*np.ones( (100, 2) ),
-            temperature=1e3*np.ones( (100, 2) ), desc="DUMMY")
+            density=np.ones((3, 1)), temperature=np.ones((3, 1)), desc="DUMMY")
 
 class N0_3D(DataGroup):
     """Non-axisymmetric neutral data.
@@ -295,7 +295,7 @@ class N0_3D(DataGroup):
         name : str
             Name, i.e. "<type>_<qid>", of the new input that was written.
         """
-        N0_3D.write_hdf5(
+        return N0_3D.write_hdf5(
             fn=fn, rmin=0, rmax=100, nr=3, zmin=-100, zmax=100, nz=3, phimin=0,
             phimax=360, nphi=3, nspecies=1, anum=np.array([1]),
             znum=np.array([1]), density=np.ones((3,3,3,1)),

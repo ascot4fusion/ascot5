@@ -66,8 +66,10 @@ class Summary(ContentTab):
         self.plot.axes_rz.set_title("Final R-z positions")
         run.plotstate_scatter("end R", "end z", c="C0", endcond=None,
                               axesequal=True, axes=self.plot.axes_rz)
+        #self.gui.ascot.input_plotseparatrix(0, 0, axes=self.plot.axes_rz)
+        self.gui.ascot.input_plotwallcontour(axes=self.plot.axes_rz)
 
-        self.plot.axes_rhophi.set_xlim(left=0)
+        self.plot.axes_rhophi.set_xlim([0,1.2])
         self.plot.axes_rhophi.set_ylim([0,360])
         self.plot.axes_rhophi.set_xticks([0, 0.5, 1.0])
         self.plot.axes_rhophi.set_yticks([0, 180, 360])
@@ -895,10 +897,13 @@ class WallLoad(ContentTab):
         self.loadsummary.config(state="normal")
         self.loadsummary.delete("1.0", "end")
 
-        text = ""
-        msg = run.getwall_figuresofmerit()
-        for m in msg:
-            text += m + "\n"
+        wetted, epeak = run.getwall_figuresofmerit()
+        text = "Wetted area: " \
+            + np.format_float_scientific(wetted, precision=2) \
+            + " " + str(wetted.units) + "\n"\
+            + "Peak load: " \
+            + np.format_float_scientific(epeak, precision=2) \
+            + " " + str(epeak.units) + "\n"\
 
         self.loadsummary.insert("end", text)
         self.loadsummary.config(state="disabled")

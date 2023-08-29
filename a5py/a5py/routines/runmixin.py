@@ -291,7 +291,7 @@ class RunMixin():
         """
         self._require("_endstate")
 
-        wmrks, emrks = self.getstate("weight", "ekin", state="end")
+        wmrks, emrks = self.getstate("weight", "ekin", state="ini")
         wloss, eloss = self.getstate("weight", "ekin", state="end",
                                      endcond="wall")
 
@@ -299,8 +299,8 @@ class RunMixin():
         markers_frac   = wloss.size / wmrks.size
         particles_lost = np.sum(wloss)
         particles_frac = np.sum(wloss) / np.sum(wmrks)
-        power_lost     = np.sum(wloss * eloss)
-        power_frac     = np.sum(wloss * eloss) / np.sum(wmrks * emrks)
+        power_lost     = np.sum(wloss * eloss.to("J"))
+        power_frac     = np.sum(wloss * eloss.to("J")) / np.sum(wmrks * emrks)
 
         msg = []
         msg += ["Markers lost: " + str(markers_lost) + " ("
@@ -442,62 +442,81 @@ class RunMixin():
         return mileage[1:], r, z, qnt
 
     def getwall_figuresofmerit(self):
+        """Get peak power load and other 0D quantities related to wall loads.
+
+        Returns
+        -------
+        warea : float
+            Total wetted area.
+        pload : float
+            Peak power load.
         """
-        """
-        self._require("_endstate")
-        ids, energy, weight = self.getstate("walltile", "ekin", "weight",
-                                            state="end", endcond="wall")
-        area   = self.wall.area()
+        wetted, area, edepo, pdepo, iangle = self.getwall_loads()
+        wetted_total = np.sum(area)
+        energy_peak  = np.amax(edepo/area)
+        return wetted_total, energy_peak
 
-        wetted_total, energy_peak = wall.figuresofmerit(ids, energy, weight,
-                                                        area)
-        unit = "J"
-        if energy_peak > 1e9:
-            energy_peak /= 1e9
-            unit = "GJ"
-        elif energy_peak > 1e6:
-            energy_peak /= 1e6
-            unit = "MJ"
-        elif energy_peak > 1e3:
-            energy_peak /= 1e3
-            unit = "KJ"
-
-        msg = []
-        msg += ["Total wetted area: " + str(np.around(wetted_total, decimals=2))
-                + r" $m^2$"]
-        msg += ["Peak load: " + str(np.around(energy_peak, decimals=2)) + " "
-                + str(unit) + r"$/m^2$"]
-        return msg
-
-    def getwall_loads(self):
-        """Get 3D wall loads and associated quantities.
+    def getwall_loads(self, weights=True):
+        """Get wall loads and associated quantities.
 
         This method does not return loads on all wall elements (as usually most
         of them receive no loads) but only those that are affected and their
         IDs.
 
+        Parameters
+        ----------
+        weights : bool, optional
+            Include marker weights to get physical results (otherwise particle
+            deposition would be just the number of markers that hit the tile).
+
+            Dropping weights is useful to check how many markers hit a tile
+            which tells us how good the statistics are.
+
         Returns
         -------
         ids : array_like
-            a
+            Indices of loaded wall tiles.
+        area : array_like
+            Area of each tile.
         edepo : array_like
-            a
-        eload : array_like
-            a
+            Energy/power deposition per tile.
         pdepo : array_like
-            a
-        pload : array_like
-            a
-        mdepo : array_like
-            a
+            Particle/flux deposition per tile.
         iangle : array_like
-            a
+            Angle of incidence (TODO).
         """
         self._require("_endstate")
         ids, energy, weight = self.getstate("walltile", "ekin", "weight",
                                             state="end", endcond="wall")
-        area   = self.wall.area()
-        return wall.loads(ids, energy, weight, area)
+        energy.convert_to_units("J")
+        eunit = (energy.units * weight.units)
+        try:
+            eunit = (1 * eunit).to("W")
+        except unyt.exceptions.UnitConversionError:
+            pass
+        wetted = np.unique(ids)
+        area   = self.wall.area()[wetted-1]
+        edepo  = np.zeros(wetted.shape) * eunit
+        pdepo  = np.zeros(wetted.shape) * weight.units
+        iangle = np.zeros(wetted.shape)
+
+        # Sort markers by wall tile ID to make processing faster
+        idx    = np.argsort(ids)
+        ids    = ids[idx]
+        energy = energy[idx]
+        weight = weight[idx]
+
+        idx = np.append(np.argwhere(ids[1:] - ids[:-1]).ravel(), ids.size-1)
+
+        i0 = 0
+        for i in range(wetted.size):
+            i1 = idx[i] + 1
+            pdepo[i]  = np.sum(weight[i0:i1])
+            edepo[i]  = np.sum(energy[i0:i1]*weight[i0:i1])
+            iangle[i] = 0 #TBD
+            i0 = i1
+
+        return wetted, area, edepo, pdepo, iangle
 
     def getwall_3dmesh(self):
         """Return 3D mesh representation of 3D wall and associated loads.
@@ -611,7 +630,7 @@ class RunMixin():
             ntheta = dist.abscissa_edges("theta").size
             nphi   = dist.abscissa_edges("phi").size
             volume, area, r, phi, z = self._root._ascot.input_rhovolume(
-                method="prism", nrho=nrho, ntheta=ntheta, nphi=nphi,
+                method="mc", tol=1e-3, nrho=nrho, ntheta=ntheta, nphi=nphi,
                 return_area=True, return_coords=True)
             out = DistMoment(
                 dist.abscissa_edges("rho"), dist.abscissa_edges("theta"),
@@ -1279,9 +1298,15 @@ class RunMixin():
                        axesequal=axesequal, axes=axes, cax=cax)
 
     def plotwall_loadvsarea(self, axes=None):
-        ids, _, eload, _, _, _, _ = self.getwall_loads()
-        area = self.wall.area()[ids-1]
-        a5plt.loadvsarea(area, eload, axes=axes)
+        """Plot histogram showing area affected by at least a given load.
+
+        Parameters
+        ----------
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        """
+        _, area, eload, _, _ = self.getwall_loads()
+        a5plt.loadvsarea(area, eload/area, axes=axes)
 
     def plotwall_3dstill(self, wallmesh=None, points=None, data=None, log=False,
                          cpos=None, cfoc=None, cang=None, axes=None, cax=None):
@@ -1308,11 +1333,10 @@ class RunMixin():
             Camera focal point coordinates [x, y, z].
         cang : array_like, optional
             Camera angle [azimuth, elevation, roll].
-        axes : Axes, optional
-            The Axes object to draw on.
-        cax : Axes, optional
-            The Axes object for the color data (if c contains data), otherwise
-            taken from axes.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
         """
         if wallmesh is None:
             wallmesh = self.getwall_3dmesh()

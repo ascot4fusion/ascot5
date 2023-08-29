@@ -210,22 +210,47 @@ def torcanangmom_ppar(q, r, ppar, b, psi):
     bnorm = np.sqrt( np.sum(b**2, axis=0) )
     return ppar * r * b[1,:] / bnorm + q * psi
 
-def gyrolength(m, energy, pitch, b):
-    """TODO Evaluate gyrolength from energy and pitch.
+def gyrolength(m, q, energy, pitch, bnorm):
+    """Evaluate gyrolength from energy and pitch.
     """
-    pass
+    gamma = gamma_energy(m, energy)
+    vnorm = vnorm_gamma(gamma)
+    return gamma * np.sqrt(1 - pitch**2) * m * vnorm / (bnorm * np.abs(q))
 
-def gyrofrequency(m, energy, b):
-    """TODO Evaluate gyrofrequency from energy.
+def gyrofrequency(m, q, energy, bnorm):
+    """Evaluate gyrofrequency from energy.
     """
-    pass
+    gamma = gamma_energy(m, energy)
+    return unyt.rad * np.abs(q) * bnorm / (gamma * m)
+
+def bouncefrequency(m, ekin, minorradius, majorradius, safetyfactor):
+    """Estimate bounce frequency from energy and aspect ratio.
+    """
+    eps = minorradius / majorradius
+    gamma = gamma_energy(m, ekin)
+    vnorm = vnorm_gamma(gamma)
+    return np.sqrt(0.5 * eps) * vnorm / ( safetyfactor * majorradius )
+
+def collfreq_ei(mi, qi, ne, Te, clog):
+    """Evaluate electron-ion collision frequency.
+    """
+    return ( ( np.sqrt(2 / np.pi) / 3 )
+             * ( unyt.e * qi / ( 4 * np.pi * unyt.eps_0 ) )**2 * ne * clog
+             * 4 * np.pi / np.sqrt( unyt.me * Te**3 ) ).to("1/s")
+
+def collfreq_ie(mi, qi, ne, Te, clog):
+    """Evaluate ion-electron collision frequency.
+    """
+    return ( (unyt.me / mi) * ( np.sqrt(2 / np.pi) / 3 )
+             * ( unyt.e * qi / ( 4 * np.pi * unyt.eps_0 ) )**2 * ne * clog
+             * 4 * np.pi / np.sqrt( unyt.me * Te**3 ) ).to("1/s")
 
 def parseunits(strip=False, **units):
     """Prepare arguments that are expected to have physical units.
 
     This decorator:
 
-    - Makes sure every argument has expected dimensions.
+    - Makes sure every argument has expected physical dimensions.
     - Assigns units if units were not provided but they were expected.
     - Strips units if asked (after checking/assignment).
 
