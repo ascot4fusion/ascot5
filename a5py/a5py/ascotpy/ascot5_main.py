@@ -33,6 +33,7 @@ class ascot5_main(object):
     wall_int_offload_array= ctypes.POINTER(ctypes.c_int   )()
     boozer_offload_array  = ctypes.POINTER(ctypes.c_double)()
     mhd_offload_array     = ctypes.POINTER(ctypes.c_double)()
+    asigma_offload_array  = ctypes.POINTER(ctypes.c_double)()
     prt                   = ctypes.POINTER(ascotpy2.struct_c__SA_input_particle)()
     offload_array         = ctypes.POINTER(ctypes.c_double)() # Some sort of joint array for all (?)
     offload_int_array     = ctypes.POINTER(ctypes.c_int   )() # Some sort of joint array for all (?)
@@ -110,6 +111,7 @@ class ascot5_main(object):
             ctypes.byref(self.wall_int_offload_array),
             ctypes.byref(self.boozer_offload_array),
             ctypes.byref(self.mhd_offload_array),
+            ctypes.byref(self.asigma_offload_array),
             ctypes.byref(self.prt),
             ctypes.byref(self.n_tot)
             )
@@ -126,6 +128,7 @@ class ascot5_main(object):
             ctypes.byref(self.wall_int_offload_array),
             ctypes.byref(self.boozer_offload_array),
             ctypes.byref(self.mhd_offload_array),
+            ctypes.byref(self.asigma_offload_array),
             self.n_tot,  self.mpi_rank, self.mpi_size, self.mpi_root,
             self.qid, ctypes.byref(self.nprts),
             ctypes.byref(self.prt), ctypes.byref(self.n_gathered),
