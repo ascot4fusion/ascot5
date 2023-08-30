@@ -5,6 +5,7 @@
  * This module handles IO operations to HDF5 file. Accessing HDF5 files
  * from the main program should be done using this module.
  */
+#define _XOPEN_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -484,7 +485,7 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     char date[21];
-    sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900,
+    sprintf(date, "%04hu-%02hu-%02hu %02hu:%02hu:%02hu.", tm.tm_year + 1900,
             tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     hdf5_write_string_attribute(fout, path, "date",  date);
 
