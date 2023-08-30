@@ -89,7 +89,7 @@ void simulate(
         sprintf(targetname, "host");
     }
     else {
-        sprintf(targetname, "mic%d", id-1);
+        sprintf(targetname, "mic%hu", (unsigned short)(id-1));
     }
     /**************************************************************************/
     /* 1. Input offload data is unpacked and initialized by calling           */
@@ -222,10 +222,10 @@ void simulate(
 #if VERBOSE > 1
             /* Update progress until simulation is complete.             */
             /* Trim .h5 from filename and replace it with _??????.stdout */
-            char filename[256], outfn[256];
+            char filename[300], outfn[256];
             strcpy(outfn, sim_offload->hdf5_out);
             outfn[strlen(outfn)-3] = '\0';
-            sprintf(filename, "%s.stdout", outfn);
+            sprintf(filename, "%s_%hu.stdout", outfn, (unsigned short)id);
             sim_monitor(filename, &pq.n, &pq.finished);
 #endif
         }
@@ -287,10 +287,10 @@ void simulate(
             {
 #if VERBOSE > 1
                 /* Trim .h5 from filename and replace it with _??????.stdout */
-                char filename[256], outfn[256];
+                char filename[300], outfn[256];
                 strcpy(outfn, sim_offload->hdf5_out);
                 outfn[strlen(outfn)-3] = '\0';
-                sprintf(filename, "%s.stdout", outfn);
+                sprintf(filename, "%s_%hu.stdout", outfn, (unsigned short)id);
                 sim_monitor(filename, &pq.n, &pq.finished);
 #endif
             }
