@@ -140,21 +140,6 @@ a5err B_TC_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
 }
 
 /**
- * @brief Evaluate normalized poloidal flux rho
- *
- * @param rho pointer where rho value will be stored
- * @param psi poloidal flux value from which rho is evaluated
- * @param Bdata pointer to magnetic field data struct
- *
- * @return zero to indicate success
- */
-a5err B_TC_eval_rho(real* rho, real psi, B_TC_data* Bdata) {
-    rho[0] = Bdata->rhoval;
-
-    return 0;
-}
-
-/**
  * @brief Evaluate normalized poloidal flux rho and its derivatives
  *
  * @param rho_drho pointer where rho and its derivatives will be stored

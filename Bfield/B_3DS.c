@@ -327,30 +327,6 @@ a5err B_3DS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
 }
 
 /**
- * @brief Evaluate normalized poloidal flux rho
- *
- * @param rho pointer where rho value will be stored
- * @param psi poloidal flux from which rho is evaluated
- * @param Bdata pointer to magnetic field data struct
- *
- * @return Non-zero a5err value if evaluation failed, zero otherwise
- */
-a5err B_3DS_eval_rho(real* rho, real psi, B_3DS_data* Bdata) {
-    a5err err = 0;
-
-    /* Check that the values seem valid */
-    real delta = (Bdata->psi1 - Bdata->psi0);
-    if( (psi - Bdata->psi0) / delta < 0 ) {
-         err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_3DS );
-    }
-
-    if(!err) {
-        rho[0] = sqrt( (psi - Bdata->psi0) / delta );
-    }
-    return err;
-}
-
-/**
  * @brief Evaluate normalized poloidal flux rho and its derivatives
  *
  * @param rho_drho pointer where rho and its derivatives will be stored

@@ -53,7 +53,7 @@ real afsi_get_volume(afsi_data* dist, int iR);
 void afsi_run(int reaction, int n, afsi_data* react1, afsi_data* react2,
               dist_5D_data* prod1, dist_5D_data* prod2) {
 
-    random_init(rdata, 1);
+    random_init(rdata, time((NULL)));
 
     real m1=0, m2=0, mprod1=0, mprod2=0, Q=0;
     switch(reaction) {
@@ -339,7 +339,6 @@ void afsi_sample_5D(dist_5D_data* dist, int n, int iR, int iphi, int iz,
             }
         }
     }
-
     for(int ippara = 0; ippara < dist->n_ppara; ippara++) {
         for(int ipperp = 0; ipperp < dist->n_pperp; ipperp++) {
             cumdist[ippara*dist->n_pperp+ipperp] /=
@@ -351,9 +350,9 @@ void afsi_sample_5D(dist_5D_data* dist, int n, int iR, int iphi, int iz,
         real r = random_uniform(rdata);
         for(int j = 0; j < dist->n_ppara*dist->n_pperp; j++) {
             if(cumdist[j] > r) {
-                pperp[i] = dist->min_pperp + (j % dist->n_pperp + 0.0)
+                pperp[i] = dist->min_pperp + (j % dist->n_pperp + 0.5)
                     * (dist->max_pperp - dist->min_pperp) / dist->n_pperp;
-                ppara[i] = dist->min_ppara + (j / dist->n_pperp + 0.0)
+                ppara[i] = dist->min_ppara + (j / dist->n_pperp + 0.5)
                     * (dist->max_ppara - dist->min_ppara) / dist->n_ppara;
                 break;
             }

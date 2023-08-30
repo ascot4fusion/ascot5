@@ -199,7 +199,7 @@ void mccc_gc_milstein(particle_simd_gc* p, real* hin, real* hout, real tol,
             math_xyz2rpz(Xout_xyz, Xout_rpz);
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
-            real B_dB[15], psi[1], rho[1];
+            real B_dB[15], psi[1], rho[2];
             if(!errflag) {
                 errflag = B_field_eval_B_dB(B_dB, Xout_rpz[0], Xout_rpz[1],
                                             Xout_rpz[2], p->time[i] + hin[i],

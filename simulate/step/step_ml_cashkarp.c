@@ -221,7 +221,7 @@ void step_ml_cashkarp(particle_simd_ml* p, real* h, real* hnext, real tol,
 
 
             real psi[1];
-            real rho[1];
+            real rho[2];
             if(!errflag) {
                 errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i],
                                            p->time[i] + h[i], Bdata);
@@ -485,7 +485,7 @@ void step_ml_cashkarp_mhd(particle_simd_ml* p, real* h, real* hnext, real tol,
 
 
             real psi[1];
-            real rho[1];
+            real rho[2];
             if(!errflag) {
                 errflag = B_field_eval_psi(psi, p->r[i], p->phi[i], p->z[i],
                                            p->time[i] + h[i], Bdata);

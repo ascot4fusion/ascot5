@@ -148,7 +148,7 @@ void step_fo_vpa(particle_simd_fo* p, real* h, B_field_data* Bdata,
             /* Evaluate magnetic field (and gradient) and rho at new position */
             real BdBrpz[15];
             real psi[1];
-            real rho[1];
+            real rho[2];
             if(!errflag) {
                 errflag = B_field_eval_B_dB(BdBrpz, p->r[i], p->phi[i], p->z[i],
                                             t0 + h[i], Bdata);
@@ -341,7 +341,7 @@ void step_fo_vpa_mhd(particle_simd_fo* p, real* h, B_field_data* Bdata,
             /* Evaluate magnetic field (and gradient) and rho at new position */
             real BdBrpz[15];
             real psi[1];
-            real rho[1];
+            real rho[2];
             if(!errflag) {
                 errflag = B_field_eval_B_dB(BdBrpz, p->r[i], p->phi[i], p->z[i],
                                             t0 + h[i], Bdata);

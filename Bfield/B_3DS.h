@@ -62,8 +62,6 @@ a5err B_3DS_eval_psi(real* psi, real r, real phi, real z, B_3DS_data* Bdata);
 a5err B_3DS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
                           B_3DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_3DS_eval_rho(real* rho, real psi, B_3DS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
 a5err B_3DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
                           B_3DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
