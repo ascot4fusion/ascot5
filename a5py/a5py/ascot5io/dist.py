@@ -755,25 +755,48 @@ class Dist(DataContainer):
         if not "ppar" in dist.abscissae or not "pperp" in dist.abscissae:
             raise ValueError("Distribution must be in ppar-pperp basis.")
         if moment.rhodist:
-            dist = dist.integrate(copy=True,
-                                  charge=dist.abscissa("charge"),
-                                  ppar=dist.abscissa("ppar"))
             bphi, bnorm, br, bz = ascot.input_eval(
                 moment.rc, moment.phic, moment.zc, 0*unyt.s, "bphi", "bnorm", "br", "bz")
-            btheta = np.sqrt(br**2 + bz**2)
+            dbrdr, dbphidr , dbzdr  = ascot.input_eval(
+                moment.rc, moment.phic, moment.zc, 0*unyt.s, "brdr", "bphidr", "bzdr")
+            dbrdphi, dbphidphi , dbzdphi  = ascot.input_eval(
+                moment.rc, moment.phic, moment.zc, 0*unyt.s, "brdphi", "bphidphi", "bzdphi")
+            dbrdz, dbphidz , dbzdz  = ascot.input_eval(
+                moment.rc, moment.phic, moment.zc, 0*unyt.s, "brdz", "bphidz", "bzdz")
             
-            bphi   = bphi.reshape(moment.volume.shape)
-            bnorm  = bnorm.reshape(moment.volume.shape)
-            btheta = btheta.reshape(moment.volume.shape)
-            r      = moment.rc.reshape(moment.volume.shape)
+            GradBr   = (br*dbrdr + bphi*dbphidr + bz*dbzdr) /bnorm
+            GradBphi = (br*dbrdphi + bphi*dbphidphi + bz*dbzdphi) /bnorm
+            GradBz   = (br*dbrdz + bphi*dbphidz + bz*dbzdz) /bnorm
+
+            r      = moment.rc
+            b = np.array([br/bnorm, bphi/bnorm, bz/bnorm]).T
+            GradB = np.array([GradBr, GradBphi, GradBz]).T
+            # curlB brings an issue: #
+            # "The requested array has an inhomogeneous shape after 1 dimensions."
+            curlB = np.array([dbzdphi /r - dbphidz, dbrdz - dbzdr, (bphi-dbrdphi)/r -dbphidr]).T
+            GradBcrossB = np.cross(GradB ,b)
+            crossb = (curlB - GradBcrossB) / bnorm
+
+            for qa in dist.abscissa("charge"):
+                dist._distribution[:,:,:,:,0,0] *= bnorm/qa + dist.abscissa("ppar")*crossb
             
+            bpol = np.sqrt(br**2 + bz**2) .reshape(moment.volume.shape)
+            r      = moment.rc .reshape(moment.volume.shape)
+            q = dist.abscissa("charge")
+            
+            dist = dist.integrate(copy=True, ppar=dist.abscissa("ppar"))
             integrate = {}
             for k in dist.abscissae:
                 if k not in ["rho", "theta", "phi"]:
                     integrate[k] = np.s_[:]
-            dist = dist.integrate(copy=True, **integrate)
-            dist._distribution *= -bphi / (bnorm * mass) * btheta *r
+            dist.integrate(**integrate)
+                    
+            #dist = dist.integrate(time=np.s_[:])
+            dist._distribution *= 1/mass * bpol * r
+            
+            
         else:
+            # Placeholder
             dist = dist.integrate(copy=True, 
                                   charge=dist.abscissa("charge") ,
                                   ppar=dist.abscissa("ppar"))
@@ -792,6 +815,8 @@ class Dist(DataContainer):
                     integrate[k] = np.s_[:]
             dist.integrate(**integrate)
             dist._distribution *= -(bphi / (bnorm * mass)) * btheta *r
+            
+            
         moment.add_ordinates(jxBTorque=dist.histogram() / moment.volume)
 
     @staticmethod
@@ -860,7 +885,7 @@ class Dist(DataContainer):
             
             r = np.transpose(moment.rc, (1,0,2))
             dist._distribution *= -(bphi/bnorm) *r *units
-            
+
         moment.add_ordinates(collTorque=dist.histogram().to("J") / moment.volume)
 
     @staticmethod
@@ -877,6 +902,7 @@ class Dist(DataContainer):
         if not "ekin" in dist.abscissae or not "pitch" in dist.abscissae:
             raise ValueError("Distribution must be in energy-pitch basis.")
         if moment.rhodist:
+            # Placeholder
             dist = dist.integrate(copy=True, charge=dist.abscissa("charge"))
             integrate = {}
             for k in dist.abscissae:
@@ -884,6 +910,7 @@ class Dist(DataContainer):
                     integrate[k] = np.s_[:]
             dist.integrate(**integrate)
         else:
+            # Placeholder
             dist = dist.integrate(copy=True, charge=dist.abscissa("charge"))
             integrate = {}
             for k in dist.abscissae:
