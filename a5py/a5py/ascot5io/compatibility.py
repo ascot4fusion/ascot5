@@ -71,10 +71,16 @@ def convert(fnin):
     subprocess.call(["cp", fnin, fnout])
 
     def wrapper():
+        import a5py.ascot5io.asigma_loc as asigmamod
+        print("Add: Dummy atomic data (asigma)")
+        asigma = asigmamod.write_hdf5_empty(fnout)
         with h5py.File(fnout, "a") as h5:
             if "options" in h5:
-                print("Adding REVERSE_TIME=0")
-                print("ENDCOND_LIM_SIMTIME=ENDCOND_MAX_SIMTIME")
+                print("Add: REVERSE_TIME = 0")
+                print("ENDCOND_MAX_SIMTIME -> ENDCOND_LIM_SIMTIME")
+                print("Add: ENABLE_ATOMIC = 0")
+                print("Add: ENDCOND_IONIZED = 0")
+                print("Add: ENDCOND_NEUTRALIZED = 0")
                 for opt in h5["options"]:
                     opt = h5["options"][opt]
                     opt.create_dataset("ENDCOND_LIM_SIMTIME", (1,),
@@ -83,7 +89,19 @@ def convert(fnin):
 
                     opt.create_dataset("REVERSE_TIME", (1,), data=0,
                                        dtype='f8')
+                    opt.create_dataset("ENABLE_ATOMIC", (1,), data=0,
+                                       dtype='i8')
+                    opt.create_dataset("ENDCOND_IONIZED", (1,), data=0,
+                                       dtype='i8')
+                    opt.create_dataset("ENDCOND_NEUTRALIZED", (1,), data=0,
+                                       dtype='i8')
                     del opt["ENDCOND_MAX_SIMTIME"]
+
+            if "results" in h5:
+                for run in h5["results"]:
+                    if run.name[:4] != "run": continue
+                    run.attrs["qid_asigma"] = asigma.split["_"][-1]
+                    print(asigma)
 
     wrapper()
 
