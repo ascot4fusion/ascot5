@@ -16,49 +16,51 @@ class Marker(DataGroup):
     """A class acting as a superclass for all marker types.
     """
 
-    def prune(self,keepNmarkers, data=None, probabilities=None):
-        """Keep a subset of markers.
+    def prune(self, pick, normalize=True, mrk=None):
+        """Take a subset of markers.
 
-        Args:
-            keepNmarkers : int <br>
-                How many markers to keep.
+        Parameters
+        ----------
+        pick : int or array_like
+            Either number of markers to be picked (in which case they are chosen
+            randomly) or the marker IDs.
+        normalize : bool, optional
+            Reweight the output markers so that the total weight is
+            the same as in input.
+        mrk : dict, optional
+            Marker data dictionary (same format as in corresponding
+            ``write_hdf5`` function).
 
-            data=None         : dict <br>
-                The data from .read() -method.
-                If None, will be automatically read.
+            If None, the data is read from the file.
 
-            probabilities=None
-                What is the probability to include each marker
-                If None, use the weights, (sum normalized to 1.0).
-
-        Returns:
-            A dictionary as if from .read()
+        Returns
+        -------
+        out : dict
+            Marker data dictionary (same format as in corresponding
+            ``write_hdf5`` function) with picked markers.
         """
 
-        if data is None:
-            data = self.read()
+        if mrk is None:
+            mrk = self.read()
         else:
-            data = copy.deepcopy(data)
+            mrk = copy.deepcopy(mrk)
 
-        n = data['n'][0]
-        totalWeight = np.sum(data["weight"])
+        weighttotal = np.sum(mrk["weight"])
 
-        if probabilities is None:
-            probabilities = data["weight"] / totalWeight
+        if isinstance(pick, int):
+            rng  = np.random.default_rng()
+            pick = rng.choice(mrk["ids"].ravel(), size=(pick,), replace=False)
 
-        fortune = np.random.choice(np.arange(n),size=(keepNmarkers,),replace=False,p=probabilities)
+        idx = np.where(np.in1d(mrk["ids"], pick))
+        for k in mrk:
+            if k == "n": continue
+            mrk[k] = mrk[k][idx]
 
-        for k in data.keys():
-            if k=='n':
-                data[k][0]=keepNmarkers
-                continue
-            data[k] = data[k][fortune]
+        if normalize:
+            mrk["weight"][:] *= weighttotal / np.sum(mrk["weight"])
 
-        newWeight = np.sum(data["weight"])
-
-        data['weight'] *= totalWeight / newWeight
-
-        return data
+        mrk["n"] = pick.size
+        return mrk
 
     @openfigureifnoaxes(projection=None)
     def plot_hist_rhophi(self, ascotpy, rbins=10, pbins=10, weighted=False,
