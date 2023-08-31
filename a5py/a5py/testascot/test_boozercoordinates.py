@@ -125,7 +125,7 @@ def init():
     h5 = ascot5.Ascot(helpers.testfn)
     a5 = Ascotpy(helpers.testfn)
     a5.init(bfield=h5.bfield["BOOZER"].get_qid())
-    booz, rhoprof, qprof = genbooz(a5,
+    booz, rhoprof, qprof,_,_ = genbooz(a5,
                                    rgrid=rgrid,
                                    zgrid=zgrid,
                                    npsi=200,
