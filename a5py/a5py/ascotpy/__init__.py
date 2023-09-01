@@ -62,6 +62,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         Offload data for the Boozer input.
     _mhd_offload_array
         Offload data for the MHD input.
+    _asigma_offload_array
+        Offload data for the atomic data input.
     _mpi_root
         Rank of the root MPI process.
     _mpi_rank
@@ -117,7 +119,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             ctypes.byref(self._mpi_root))
 
     def _init(self, data, bfield=None, efield=None, plasma=None,
-              wall=None, neutral=None, boozer=None, mhd=None,
+              wall=None, neutral=None, boozer=None, mhd=None, asigma=None,
               switch=False):
         """Read, offload, and initialize input data so it can be accessed
         by libascot.
@@ -148,6 +150,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             QID of the boozer to be initialized or the data as a dictionary.
         mhd : str or dict
             QID of the MHD data to be initialized or the data as a dictionary.
+        asigma : str or dict
+            QID of the atomicdata to be initialized or the data as a dictionary.
         switch : bool
             If ``True``, free input that has been
         """
@@ -161,7 +165,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         # List here dependencies to be directly injected (provided)
         to_be_provided = []
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd"]:
+                    "mhd", "asigma"]:
             if args[inp] is None:
                 # This input is not initialized
                 continue
@@ -198,7 +202,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         # an exception, in which case sim.qid_* would point to data which is not
         # initialized.
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd"]:
+                    "mhd", "asigma"]:
             if inputs2read.value & getattr(ascot2py, "hdf5_input_" + inp):
                 setattr(self._sim, "qid_" + inp, args[inp])
 
@@ -245,7 +249,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                 raise AscotInitException("Unsupported input to inject: '{}'".format(inp))
 
     def _free(self, bfield=False, efield=False, plasma=False, wall=False,
-              neutral=False, boozer=False, mhd=False):
+              neutral=False, boozer=False, mhd=False, asigma=False):
         """Free input data initialized in C-side.
         """
         if self._offload_ready:
@@ -256,7 +260,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         # Iterate through all inputs and free the data if the corresponding
         # argument is True
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd"]:
+                    "mhd", "asigma"]:
             if args[inp] and \
                getattr(self._sim, "qid_" + inp) != Ascotpy.DUMMY_QID:
 
@@ -330,12 +334,15 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         self._mhd_offload_array = advance(
             self._boozer_offload_array.contents,
             self._sim.boozer_offload_data.offload_array_length)
+        self._asigma_offload_array = advance(
+            self._mhd_offload_array.contents,
+            self._sim.mhd_offload_data.offload_array_length)
 
         self._wall_int_offload_array = self._int_offload_array
 
 
     def _unpack(self, bfield=True, efield=True, plasma=True, wall=True,
-               neutral=True, boozer=True, mhd=True):
+                neutral=True, boozer=True, mhd=True, asigma=True):
         """Unpack simulation arrays, i.e. free offload array and re-read data.
 
         After unpacking the inputs can be changed or freed again but simulations
@@ -371,6 +378,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                                           self._sim.qid_boozer)
         self._sim.qid_mhd     = readornot("mhd",     mhd,
                                           self._sim.qid_mhd)
+        self._sim.qid_asigma  = readornot("asigma",  asigma,
+                                          self._sim.qid_asigma)
 
         self._offload_ready = False
         self.input_init(**inputs2read)
@@ -404,7 +413,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         """
         out = {}
         for inp in ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd"]:
+                    "mhd", "asigma"]:
             qid = getattr(self._sim, "qid_" + inp)
             if qid != Ascotpy.DUMMY_QID:
                 out[inp] = qid.decode("utf-8")
@@ -540,10 +549,12 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             "bjac multiplied by B^2 which is constant along flux surfaces",
         }
 
-        nion = self.input_getplasmaspecies()[0]
-        for i in range(1, nion+1):
-            out["ni" + str(i)] = "Ion species (anum, znum) = () density"
-            out["ti" + str(i)] = "Ion species (anum, znum) = () temperature"
+        nion, mass, charge, anum, znum = self.input_getplasmaspecies()
+        for i in range(nion):
+            out["ni" + str(i+1)] = "Ion species (anum, znum) = (%d, %d) density" \
+                % (anum[i], znum[i])
+            out["ti" + str(i+1)] = "Ion species (anum, znum) = (%d, %d) temperature" \
+                % (anum[i], znum[i])
 
         if show:
             for name, desc in out.items():

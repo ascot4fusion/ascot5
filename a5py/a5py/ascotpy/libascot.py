@@ -21,6 +21,7 @@ from a5py.physlib import parseunits
 try:
     from . import ascot2py
     PTR_REAL = ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")
+    PTR_LONG = ndpointer(ctypes.c_long, flags="C_CONTIGUOUS")
     PTR_SIM  = ctypes.POINTER(ascot2py.struct_c__SA_sim_offload_data)
     PTR_ARR  = ctypes.POINTER(ctypes.c_double)
     _LIBASCOT = ascot2py._libraries['libascot.so']
@@ -468,6 +469,7 @@ class LibAscot:
 
             The first dimension is the background plasma species where the first
             index is for the electrons followed by ions.
+
         Raises
         ------
         AssertionError
@@ -539,6 +541,69 @@ class LibAscot:
 
         return out
 
+    @parseunits(ma="kg", r="m", phi="rad", z="m", t="s", va="m/s")
+    def input_eval_atomicsigma(self, ma, anum, znum, r, phi, z, t, va, ion,
+                               reaction):
+        """Evaluate atomic reaction rate cross-sections for a given test
+        particle.
+
+        This function is a work in progress.
+
+        Parameters
+        ----------
+        ma : float
+            Test particle mass
+        anum : int
+            Test particle atomic mass number.
+        znum : int
+            Test particle charge number.
+        r : array_like, (n,)
+            R coordinates where data is evaluated [m].
+        phi : array_like (n,)
+            phi coordinates where data is evaluated [rad].
+        z : array_like (n,)
+            z coordinates where data is evaluated [m].
+        t : array_like (n,)
+            Time coordinates where data is evaluated [s].
+        va : array_like (n,)
+            Test particle velocities where data is evaluated in each grid point.
+        ion : int
+            Index number of the background ion species in plasma input.
+        reaction : int
+            Reaction.
+
+        Returns
+        -------
+        sigmav : array_like, (n,nv)
+            Reaction cross-section.
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        """
+        self._requireinit("bfield", "plasma", "neutral", "asigma")
+
+        fun = _LIBASCOT.libascot_eval_sigmav
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR, PTR_ARR, PTR_ARR,
+                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        ctypes.c_int, PTR_REAL, ctypes.c_int, ctypes.c_int,
+                        ctypes.c_double, ctypes.c_int, ctypes.c_int, PTR_REAL]
+
+        Neval = r.size
+        Nv    = va.size
+
+        out = {}
+        out["sigmav"] = (np.zeros(r.shape, dtype="f8") + np.nan) / unyt.m**2
+        fun(ctypes.byref(self._sim), self._bfield_offload_array,
+            self._plasma_offload_array, self._neutral_offload_array,
+            self._asigma_offload_array, Neval, r, phi, z, t, Nv, va,
+            anum, znum, ma, ion, reaction, out["sigmav"])
+
+        return out["sigmav"]
+
+
     def input_getplasmaspecies(self):
         """Get species present in plasma input (electrons excluded).
 
@@ -550,6 +615,10 @@ class LibAscot:
             Species' mass.
         charge : array_like
             Species' charge state.
+        anum : array_like
+            Species' atomic mass number.
+        znum : array_like
+            Species' charge number.
 
         Raises
         ------
@@ -564,18 +633,22 @@ class LibAscot:
 
         out = {}
         out["nspecies"] = fun(
-            ctypes.byref(self._sim), self._plasma_offload_array)
+            ctypes.byref(self._sim), self._plasma_offload_array) - 1
 
-        out["mass"]     = np.zeros((out["nspecies"],), dtype="f8")
-        out["charge"]   = np.zeros((out["nspecies"],), dtype="f8")
+        out["mass"]   = np.zeros((out["nspecies"],), dtype="f8")
+        out["charge"] = np.zeros((out["nspecies"],), dtype="f8")
+        out["anum"]   = np.zeros((out["nspecies"],), dtype="i8")
+        out["znum"]   = np.zeros((out["nspecies"],), dtype="i8")
 
         fun = _LIBASCOT.libascot_plasma_get_species_mass_and_charge
         fun.restype  = None
-        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_REAL, PTR_REAL]
+        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_REAL, PTR_REAL, PTR_LONG,
+                        PTR_LONG]
         fun(ctypes.byref(self._sim), self._plasma_offload_array,
-            out["mass"], out["charge"])
+            out["mass"], out["charge"], out["anum"], out["znum"])
 
-        return out["nspecies"], out["mass"], out["charge"]
+        return out["nspecies"], out["mass"], out["charge"], out["anum"],\
+            out["znum"]
 
     @parseunits(rhovals="1", theta="rad", phi="deg", time="s")
     def input_rhotheta2rz(self, rhovals, theta, phi, time):
