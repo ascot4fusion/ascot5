@@ -682,7 +682,7 @@ class RunMixin():
             mass = np.mean(self.getstate("mass"))
             Dist.jxBTorque(self._root._ascot, mass, dist, out)
         if "collTorque" in moments:
-            mass = np.mean(self.getstate("mass"))
+            mass = np.mean(self.getstate("mass")).to("kg")
             Dist.collTorque(self._root._ascot, mass, dist, out)
         if "canMomentTorque" in moments:
             # WIP
