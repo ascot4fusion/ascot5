@@ -21,7 +21,9 @@
 #include "neutral.h"
 #include "boozer.h"
 #include "mhd.h"
+#include "asigma.h"
 #include "consts.h"
+#include "physlib.h"
 
 #include "simulate/mccc/mccc.h"
 
@@ -323,12 +325,14 @@ int libascot_plasma_get_n_species(
  *
  * @param sim_offload_data initialized simulation offload data struct
  * @param plasma_offload_array initialized plasma offload data
- * @param mass output array [kg].
- * @param charge output array [C].
+ * @param mass mass output array [kg].
+ * @param charge charge output array [C].
+ * @param anum atomic mass number output array [1].
+ * @param znum charge number output array [1].
  */
 void libascot_plasma_get_species_mass_and_charge(
     sim_offload_data* sim_offload_data, real* plasma_offload_array, real* mass,
-    real* charge) {
+    real* charge, int* anum, int* znum) {
 
     sim_data sim;
     plasma_init(&sim.plasma_data, &sim_offload_data->plasma_offload_data,
@@ -336,9 +340,13 @@ void libascot_plasma_get_species_mass_and_charge(
     int n_species = plasma_get_n_species(&sim.plasma_data);
     const real* m = plasma_get_species_mass(&sim.plasma_data);
     const real* q = plasma_get_species_charge(&sim.plasma_data);
+    const int* a  = plasma_get_species_anum(&sim.plasma_data);
+    const int* z  = plasma_get_species_znum(&sim.plasma_data);
     for(int i=0; i<n_species; i++) {
         mass[i]   = m[i];
         charge[i] = q[i];
+        anum[i]   = a[i];
+        znum[i]   = z[i];
     }
 }
 
@@ -699,4 +707,75 @@ int libascot_eval_collcoefs(
     return mccc_eval_coefs(
         ma, qa, R, phi, z, t, va, Neval, &sim.plasma_data, &sim.B_data,
         F, Dpara, Dperp, K, nu, Q, dQ, dDpara, clog, mu0, mu1, dmu0);
+}
+
+/**
+ * @brief Evaluate cross-section for atomic reactions.
+ *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param B_offload_array initialized magnetic field offload data
+ * @param plasma_offload_array initialized magnetic field offload data
+ * @param neutral_offload_array initialized magnetic field offload data
+ * @param asigma_offload_array initialized magnetic field offload data
+ * @param Neval number of evaluation points in (R, phi, z, t).
+ * @param R R coordinates of the evaluation points [m].
+ * @param phi phi coordinates of the evaluation points [rad].
+ * @param z z coordinates of the evaluation points [m].
+ * @param t time coordinates of the evaluation points [s].
+ * @param Nv number of evaluation points in velocity space.
+ * @param va test particle velocities [m/s].
+ * @param Aa test particle atomic mass number.
+ * @param Za test particle charge number.
+ * @param ma test particle mass.
+ * @param ib target ion index nuber in plasma input.
+ * @param reac_type reaction type
+ * @param sigmav output array where evaluated values are stored [1/m^2].
+ */
+void libascot_eval_sigmav(
+    sim_offload_data* sim_offload_data, real* B_offload_array,
+    real* plasma_offload_array, real* neutral_offload_array,
+    real* asigma_offload_array,
+    int Neval, real* R, real* phi, real* z, real* t, int Nv, real* va,
+    int Aa, int Za, real ma, int ib, int reac_type, real* sigmav) {
+
+    sim_data sim;
+    B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
+                 B_offload_array);
+    plasma_init(&sim.plasma_data, &sim_offload_data->plasma_offload_data,
+                plasma_offload_array);
+    neutral_init(&sim.neutral_data, &sim_offload_data->neutral_offload_data,
+                 neutral_offload_array);
+
+    const int* Zb  = plasma_get_species_znum(&sim.plasma_data);
+    const int* Ab  = plasma_get_species_anum(&sim.plasma_data);
+
+    int enable_atomic = 1;
+    real psi[1];
+    real rho[2];
+    real n[MAX_SPECIES];
+    real T[MAX_SPECIES];
+    real T0[1];
+    for (int k=0; k < Neval; k++) {
+        if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
+            continue;
+        }
+        if( B_field_eval_rho(rho, psi[0], &sim.B_data) ) {
+            continue;
+        }
+        if( plasma_eval_densandtemp(n, T, rho[0], R[k], phi[k], z[k], t[k],
+                                    &sim.plasma_data) ) {
+            continue;
+        }
+        if( neutral_eval_t0(T0, rho[0], R[k], phi[k], z[k], t[k],
+                            &sim.neutral_data) ) {
+            continue;
+        }
+        for (int j=0; j < Nv; j++) {
+            real E = (physlib_gamma_vnorm(va[j]) - 1.0) * ma * CONST_C*CONST_C;
+            asigma_eval_sigmav(
+                &sigmav[Nv*k + j], Za, Aa, ma, Zb[ib], Ab[ib], reac_type,
+                &sim.asigma_data, E, T[0], T0[0], n[ib+1], &enable_atomic);
+        }
+    }
+
 }
