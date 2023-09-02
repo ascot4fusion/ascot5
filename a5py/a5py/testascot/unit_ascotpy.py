@@ -57,7 +57,7 @@ class TestAscot(unittest.TestCase):
         a5 = Ascot("unittest.h5")
         a5.data.active.efield.activate()
         allinps = ["bfield", "efield", "plasma", "wall", "neutral", "boozer",
-                    "mhd"]
+                    "mhd", "asigma"]
 
         # Test basic init and free
         a5.input_init()

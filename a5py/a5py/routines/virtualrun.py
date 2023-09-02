@@ -44,7 +44,7 @@ class VirtualRun(RunMixin):
         self.options = options
         self.markers = markers
         for inp in ["bfield", "efield", "plasma", "neutral", "wall", "boozer",
-                    "mhd"]:
+                    "mhd", "asigma"]:
             grp = ascot.data[inp].active
             setattr(self, inp, grp)
         self._inistate = VirtualState(ascot, nmrk, inistate)

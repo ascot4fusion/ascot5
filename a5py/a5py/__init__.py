@@ -198,7 +198,7 @@ class Ascot(Ascotpy):
                                mhd, asigma])
 
             for inp in ["bfield", "efield", "plasma", "wall", "neutral",
-                        "boozer", "mhd"]:
+                        "boozer", "mhd", "asigma"]:
                 if isinstance(args[inp], dict):
                     # Argument is a dictionary, presumably in the correct format
                     # It is simply passed forward to _init()

@@ -193,11 +193,11 @@ class TestAscot5IO(unittest.TestCase):
         self.assertEqual(a5.data.efield[grp2], a5.data.efield["TEST"],
                          "Reference by tag failed.")
 
-        # Reference by tag: no more than ten chars and special chars omitted
-        a5.data.efield[grp2].set_desc("N1C3T^GBUT_THISISOMITTED")
+        # Reference by tag: special chars omitted
+        a5.data.efield[grp2].set_desc("N1C3T^GBA_T")
         self.assertFalse("TEST" in a5.data.efield,
                          "Reference by tag failed.")
-        self.assertEqual(a5.data.efield[grp2], a5.data.efield["N1C3TGBUT"],
+        self.assertEqual(a5.data.efield[grp2], a5.data.efield["N1C3TGBAT"],
                          "Reference by tag failed.")
 
         # Reference by tag: no tag reverts to default and if first char is num.

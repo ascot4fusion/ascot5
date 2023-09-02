@@ -147,8 +147,9 @@ class LibSimulate():
         for i in range(diagorb.nradialplots):
             diagorb.radialdistances[i] = radials[i]
 
-    def simulation_initinputs(self,bfield=True, efield=True, plasma=True, neutral=True,
-                        wall=True, boozer=True, mhd=True, switch=True):
+    def simulation_initinputs(self, bfield=True, efield=True, plasma=True,
+                              neutral=True, wall=True, boozer=True, mhd=True,
+                              asigma=True, switch=True):
         """Prepare input fields for the interactive simulation.
 
         Initializes simulation inputs. The inputs used in the simulation are
@@ -161,8 +162,9 @@ class LibSimulate():
 
         This method must be called before running the simulation.
         """
-        self.input_init(bfield=bfield, efield=efield, plasma=plasma, neutral=neutral,
-                        wall=wall, boozer=boozer, mhd=mhd, switch=switch)
+        self.input_init(
+            bfield=bfield, efield=efield, plasma=plasma, neutral=neutral,
+            wall=wall, boozer=boozer, mhd=mhd, asigma=asigma, switch=switch)
         self._pack()
 
 
@@ -190,7 +192,6 @@ class LibSimulate():
         pin = ascot2py.libascot_allocate_input_particles(nmrk)
         prttypes = ascot2py.input_particle_type__enumvalues
 
-        
         # particle
         if "vr" in mrk:
             for i in range(nmrk):

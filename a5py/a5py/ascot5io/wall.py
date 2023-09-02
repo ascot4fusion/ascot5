@@ -548,7 +548,7 @@ class wall_3D(DataGroup):
 
         if flag is None:
             flag = np.zeros(shape=(nelements,),dtype=int)
-        elif flag.shape != (nelements,):
+        elif flag.shape != (nelements,1):
             raise ValueError(
                 "Shape of flag was " + str(flag.shape) + " but expected ("
                 + str(nelements) + ",1)")
