@@ -773,18 +773,18 @@ class Dist(DataContainer):
             GradB = np.array([GradBr, GradBphi, GradBz]).T
             # curlB brings an issue: #
             # "The requested array has an inhomogeneous shape after 1 dimensions."
-            curlB = np.array([dbzdphi /r - dbphidz, dbrdz - dbzdr, (bphi-dbrdphi)/r -dbphidr]).T
-            GradBcrossB = np.cross(GradB ,b)
-            crossb = (curlB - GradBcrossB) / bnorm
+            #curlB = np.array([dbzdphi /r - dbphidz, dbrdz - dbzdr, (bphi-dbrdphi)/r -dbphidr]).T
+            #GradBcrossB = np.cross(GradB ,b)
+            #crossb = (curlB - GradBcrossB) / bnorm
 
-            for qa in dist.abscissa("charge"):
-                dist._distribution[:,:,:,:,0,0] *= bnorm/qa + dist.abscissa("ppar")*crossb
+            #for qa in dist.abscissa("charge"):
+            #    dist._distribution[:,:,:,:,0,0] *= bnorm/qa + dist.abscissa("ppar")*crossb
             
-            bpol = np.sqrt(br**2 + bz**2) .reshape(moment.volume.shape)
-            r      = moment.rc .reshape(moment.volume.shape)
-            q = dist.abscissa("charge")
+            #bpol = np.sqrt(br**2 + bz**2) .reshape(moment.volume.shape)
+            #r      = moment.rc .reshape(moment.volume.shape)
+            #q = dist.abscissa("charge")
             
-            dist = dist.integrate(copy=True, ppar=dist.abscissa("ppar"))
+            #dist = dist.integrate(copy=True, ppar=dist.abscissa("ppar"))
             integrate = {}
             for k in dist.abscissae:
                 if k not in ["rho", "theta", "phi"]:
@@ -969,7 +969,7 @@ class Dist(DataContainer):
         except AttributeError:
             pitch_edges *= unyt.dimensionless
 
-        # Create new, empty, distribution where ppar and pperp are replaced
+        # Create a new empty distribution where ppar and pperp are replaced
         # by ekin and pitch
         dim = []
         abscissa_edges = {}
@@ -985,35 +985,31 @@ class Dist(DataContainer):
                 abscissa_edges[k] = dist.abscissa_edges(k)
         exdist = DistData(np.zeros(dim)*unyt.particles, **abscissa_edges)
 
-        # Transform E-xi grid to points in (vpa,vpa) space that are used in
+        # Transform E-xi grid to points in (ppa,ppa) space that are used in
         # interpolation.
-        xi, ekin = np.meshgrid(exdist.abscissa("pitch"), exdist.abscissa("ekin"))
-        pnorm = physlib.pnorm_gamma(mass, physlib.gamma_energy(mass, ekin.ravel()))
-        ppa = (xi.ravel() * pnorm).to("amu*m/s").v
-        ppe = (np.sqrt(1 - xi.ravel()**2) * pnorm).to("amu*m/s").v
-
-        #p2pa, p2pe = np.meshgrid(exdist.abscissa("ppar"), exdist.abscissa("pperp"))
-        #pnorm   = np.sqrt(p2pa**2 + p2pe**2)
-        #p2pitch = p2pa / pnorm
-        #p2ekin  = (np.sqrt(1 + (pnorm/(mass*unyt.c))) - 1)*
+        xi, ekin = np.meshgrid(
+            exdist.abscissa("pitch"), exdist.abscissa("ekin") )
+        pnorm = physlib.pnorm_gamma(
+            mass, physlib.gamma_energy(mass, ekin.ravel()) )
+        ppa = ( xi.ravel() * pnorm ).to("amu*m/s").v
+        ppe = ( np.sqrt(1 - xi.ravel()**2 ) * pnorm).to("amu*m/s").v
 
         # Coordinate transform Jacobian: dppa dppe = |jac| dE dxi
         # Jacobian for transform (ppa, ppe) -> (p, xi) is p / sqrt(1-xi^2)
         # because jac = dppa / dp  = xi, dppe / dp  = sqrt(1-xi^2)
         #               dppa / dxi = p,  dppe / dxi = -xi p / sqrt(1-xi^2),
-        # and the Jacobian for (p, xi) -> (E, xi) is e E0 / c^2 p when
-        # E is in electronvolts. Therefore the combined Jacobian is
-        # (e E0 / c^2) / sqrt(1-xi*xi).
-        #E0  = np.sqrt( (pg*constants.c)**2 + (masskg.v*constants.c**2)**2 )
-        #jac = (constants.e * E0 / constants.c**2) / np.sqrt(1 - xig*xig)
+        # and the Jacobian for (p, xi) -> (E, xi) is m gamma / p.
+        #
+        # Therefore the combined Jacobian is:
+        # ( m gamma / p ) / sqrt(1-xi*xi).
         jac = (mass + ekin / unyt.c**2) / np.sqrt(1 - xi**2)
 
         # Quantities needed in iteration on each loop
-        ippa = dist.abscissae.index("ppar")
-        units = dist.distribution().units
+        ippa     = dist.abscissae.index("ppar")
+        units    = dist.distribution().units
         exishape = (exdist.abscissa("ekin").size, exdist.abscissa("pitch").size)
-        ppar  = dist.abscissa("ppar").to("amu*m/s").v
-        pperp = dist.abscissa("pperp").to("amu*m/s").v
+        ppar     = dist.abscissa("ppar").to("amu*m/s").v
+        pperp    = dist.abscissa("pperp").to("amu*m/s").v
 
         # Use itertools to conveniently make N "for" loops into a single loop
         ranges = []

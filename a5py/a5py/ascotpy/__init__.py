@@ -906,12 +906,12 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                     pi = np.random.uniform(phi[ip], phi[ip+1], ndraw) * unyt.rad
                     ri = np.random.uniform(bbox[0], bbox[1], ndraw) * unyt.m
                     zi = np.random.uniform(bbox[2], bbox[3], ndraw) * unyt.m
-                    theta = np.arctan2(zi-z0,ri-r0) + np.pi
+                    th = np.arctan2(zi-z0,ri-r0) + np.pi
 
-                    rho   = self.input_eval(ri, pi, zi, t, "rho").v
-                    ind   = rho <= 1 # Reject markers outside separatrix
-                    i_rho = np.floor(rho[ind] / deltarho).astype(int)
-                    i_theta = np.floor(theta[ind] / deltath).astype(int)
+                    rhoi    = self.input_eval(ri, pi, zi, t, "rho").v
+                    ind     = rhoi <= 1 # Reject markers outside separatrix
+                    i_rho   = np.floor(rhoi[ind] / deltarho).astype(int)
+                    i_theta = np.floor(th[ind] / deltath).astype(int)
 
                     np.add.at(points_in_bins, (i_rho, i_theta), 1)
                     ntot += ndraw
