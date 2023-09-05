@@ -221,12 +221,14 @@ void simulate(
         {
 #if VERBOSE > 1
             /* Update progress until simulation is complete.             */
-            /* Trim .h5 from filename and replace it with _??????.stdout */
-            char filename[300], outfn[256];
-            strcpy(outfn, sim_offload->hdf5_out);
-            outfn[strlen(outfn)-3] = '\0';
-            sprintf(filename, "%s_%hu.stdout", outfn, (unsigned short)id);
-            sim_monitor(filename, &pq.n, &pq.finished);
+            /* Trim .h5 from filename and replace it with _<QID>.stdout  */
+            if(id == 0) {
+                char filename[519], outfn[256];
+                strcpy(outfn, sim_offload->hdf5_out);
+                outfn[strlen(outfn)-3] = '\0';
+                sprintf(filename, "%s_%s.stdout", outfn, sim_offload->qid);
+                sim_monitor(filename, &pq.n, &pq.finished);
+            }
 #endif
         }
     }
@@ -286,12 +288,14 @@ void simulate(
             #pragma omp section
             {
 #if VERBOSE > 1
-                /* Trim .h5 from filename and replace it with _??????.stdout */
-                char filename[300], outfn[256];
-                strcpy(outfn, sim_offload->hdf5_out);
-                outfn[strlen(outfn)-3] = '\0';
-                sprintf(filename, "%s_%hu.stdout", outfn, (unsigned short)id);
-                sim_monitor(filename, &pq.n, &pq.finished);
+                /* Trim .h5 from filename and replace it with _<qid>.stdout */
+                if(id == 0) {
+                    char filename[519], outfn[256];
+                    strcpy(outfn, sim_offload->hdf5_out);
+                    outfn[strlen(outfn)-3] = '\0';
+                    sprintf(filename, "%s_%s.stdout", outfn, sim_offload->qid);
+                    sim_monitor(filename, &pq.n, &pq.finished);
+                }
 #endif
             }
         }
