@@ -96,6 +96,9 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENABLE_MHD", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->enable_mhd = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "ENABLE_ATOMIC", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->enable_atomic = (int)tempfloat;
     if( hdf5_read_double(OPTPATH "DISABLE_FIRSTORDER_GCTRANS", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->disable_gctransform = (int)tempfloat;
@@ -108,6 +111,9 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "DISABLE_GCDIFF_CCOLL", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     sim->disable_gcdiffccoll = (int)tempfloat;
+    if( hdf5_read_double(OPTPATH "REVERSE_TIME", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    sim->reverse_time = (int)tempfloat;
 
     int ec;
     sim->endcond_active = 0;
@@ -115,7 +121,7 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     if( hdf5_read_double(OPTPATH "ENDCOND_SIMTIMELIM", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     ec = (int)tempfloat;
-    sim->endcond_active = sim->endcond_active | endcond_tmax * (ec > 0);
+    sim->endcond_active = sim->endcond_active | endcond_tlim * (ec > 0);
     if( hdf5_read_double(OPTPATH "ENDCOND_CPUTIMELIM", &tempfloat,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
     ec = (int)tempfloat;
@@ -139,6 +145,14 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     ec = (int)tempfloat;
     sim->endcond_active = sim->endcond_active | endcond_polmax * (ec > 0);
     sim->endcond_active = sim->endcond_active | endcond_tormax * (ec > 0);
+    if( hdf5_read_double(OPTPATH "ENDCOND_NEUTRALIZED", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    ec = (int)tempfloat;
+    sim->endcond_active = sim->endcond_active | endcond_neutr * (ec > 0);
+    if( hdf5_read_double(OPTPATH "ENDCOND_IONIZED", &tempfloat,
+                         file, qid, __FILE__, __LINE__) ) {return 1;}
+    ec = (int)tempfloat;
+    sim->endcond_active = sim->endcond_active | endcond_ioniz * (ec > 0);
 
     sim->endcond_torandpol = 0;
     if( ec == 2) {
@@ -146,8 +160,8 @@ int hdf5_options_read(hid_t file, sim_offload_data* sim, char* qid){
     }
 
 
-    if( hdf5_read_double(OPTPATH "ENDCOND_MAX_SIMTIME",
-                         &sim->endcond_max_simtime,
+    if( hdf5_read_double(OPTPATH "ENDCOND_LIM_SIMTIME",
+                         &sim->endcond_lim_simtime,
                          file, qid, __FILE__, __LINE__) ) {return 1;}
      if( hdf5_read_double(OPTPATH "ENDCOND_MAX_MILEAGE",
                          &sim->endcond_max_mileage,

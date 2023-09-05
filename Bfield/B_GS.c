@@ -283,28 +283,6 @@ a5err B_GS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
 }
 
 /**
- * @brief Evaluate normalized poloidal flux rho
- *
- * @param rho pointer where rho value will be stored
- * @param psi poloidal flux from which rho is evaluated
- * @param Bdata pointer to magnetic field data struct
- *
- * @return zero to indicate success
- */
-a5err B_GS_eval_rho(real* rho, real psi, B_GS_data* Bdata) {
-
-    /* Check that the values seem valid */
-    real delta = Bdata->psi1 - Bdata->psi0;
-    if( (psi - Bdata->psi0) / delta < 0 ) {
-         return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_GS );
-    }
-
-    rho[0] = sqrt( (psi - Bdata->psi0) / (Bdata->psi1 - Bdata->psi0) );
-
-    return 0;
-}
-
-/**
  * @brief Evaluate normalized poloidal flux rho and its derivatives
  *
  * @param rho_drho pointer where rho and its derivatives will be stored
@@ -571,21 +549,14 @@ a5err B_GS_eval_B_dB(real B_dB[12], real r, real phi, real z,
 /**
  * @brief Return magnetic axis R-coordinate
  *
+ * @param rz pointer where axis R and z [m] values will be stored
  * @param Bdata pointer to magnetic field data struct
  *
- * @return Magnetic axis R-coordinate [m]
+ * @return Zero a5err value as this function can't fail.
  */
-real B_GS_get_axis_r(B_GS_data* Bdata) {
-    return Bdata->raxis;
-}
-
-/**
- * @brief Return magnetic axis z-coordinate
- *
- * @param Bdata pointer to magnetic field data struct
- *
- * @return Magnetic axis z-coordinate [m]
- */
-real B_GS_get_axis_z(B_GS_data* Bdata) {
-    return Bdata->zaxis;
+a5err B_GS_get_axis_rz(real rz[2], B_GS_data* Bdata) {
+    a5err err = 0;
+    rz[0] = Bdata->raxis;
+    rz[1] = Bdata->zaxis;
+    return err;
 }

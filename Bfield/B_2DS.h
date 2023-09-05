@@ -53,8 +53,6 @@ a5err B_2DS_eval_psi(real* psi, real r, real phi, real z, B_2DS_data* Bdata);
 a5err B_2DS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
                           B_2DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-a5err B_2DS_eval_rho(real* rho, real psi, B_2DS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
 a5err B_2DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
                           B_2DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
@@ -62,8 +60,6 @@ a5err B_2DS_eval_B(real B[3], real r, real phi, real z, B_2DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
 a5err B_2DS_eval_B_dB(real B_dB[12], real r, real phi, real z, B_2DS_data* Bdata);
 #pragma omp declare simd uniform(Bdata)
-real B_2DS_get_axis_r(B_2DS_data* Bdata);
-#pragma omp declare simd uniform(Bdata)
-real B_2DS_get_axis_z(B_2DS_data* Bdata);
+a5err B_2DS_get_axis_rz(real rz[2], B_2DS_data* Bdata);
 #pragma omp end declare target
 #endif

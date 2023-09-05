@@ -166,7 +166,7 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
             real psi[1];
-            real rho[1];
+            real rho[2];
             if(!errflag) {
                 errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i],
                                             t0 + h[i], Bdata);
@@ -198,12 +198,12 @@ void step_gc_rk4(particle_simd_gc* p, real* h, B_field_data* Bdata,
                 p->rho[i] = rho[0];
 
                 /* Evaluate theta angle so that it is cumulative */
-                real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
-                real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->theta[i] += atan2(   (R0-axis_r) * (p->z[i]-axis_z)
-                                      - (z0-axis_z) * (p->r[i]-axis_r),
-                                        (R0-axis_r) * (p->r[i]-axis_r)
-                                      + (z0-axis_z) * (p->z[i]-axis_z) );
+                real axisrz[2];
+                errflag = B_field_get_axis_rz(axisrz, Bdata, p->phi[i]);
+                p->theta[i] += atan2(   (R0-axisrz[0]) * (p->z[i]-axisrz[1])
+                                      - (z0-axisrz[1]) * (p->r[i]-axisrz[0]),
+                                        (R0-axisrz[0]) * (p->r[i]-axisrz[0])
+                                      + (z0-axisrz[1]) * (p->z[i]-axisrz[1]) );
             }
 
             /* Error handling */
@@ -284,7 +284,7 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, yprev[0], yprev[1], yprev[2], t0,
-                                   boozer, mhd);
+                                   boozer, mhd, Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k1, yprev, mass, charge, B_dB, E, mhd_dmhd);
@@ -306,7 +306,7 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   t0 + h[i]/2.0, boozer, mhd);
+                                   t0 + h[i]/2.0, boozer, mhd, Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k2, tempy, mass, charge, B_dB, E, mhd_dmhd);
@@ -327,7 +327,7 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   t0 + h[i]/2.0, boozer, mhd);
+                                   t0 + h[i]/2.0, boozer, mhd, Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k3, tempy, mass, charge, B_dB, E, mhd_dmhd);
@@ -347,7 +347,7 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   t0 + h[i], boozer, mhd);
+                                   t0 + h[i], boozer, mhd, Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k4, tempy, mass, charge, B_dB, E, mhd_dmhd);
@@ -383,7 +383,7 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
 
             /* Evaluate magnetic field (and gradient) and rho at new position */
             real psi[1];
-            real rho[1];
+            real rho[2];
             if(!errflag) {
                 errflag = B_field_eval_B_dB(B_dB, p->r[i], p->phi[i], p->z[i],
                                             t0 + h[i], Bdata);
@@ -415,12 +415,12 @@ void step_gc_rk4_mhd(particle_simd_gc* p, real* h, B_field_data* Bdata,
                 p->rho[i] = rho[0];
 
                 /* Evaluate pol angle so that it is cumulative */
-                real axis_r = B_field_get_axis_r(Bdata, p->phi[i]);
-                real axis_z = B_field_get_axis_z(Bdata, p->phi[i]);
-                p->theta[i] += atan2(  (R0-axis_r) * (p->z[i]-axis_z)
-                                     - (z0-axis_z) * (p->r[i]-axis_r),
-                                       (R0-axis_r) * (p->r[i]-axis_r)
-                                     + (z0-axis_z) * (p->z[i]-axis_z) );
+                real axisrz[2];
+                errflag  = B_field_get_axis_rz(axisrz, Bdata, p->phi[i]);
+                p->theta[i] += atan2(   (R0-axisrz[0]) * (p->z[i]-axisrz[1])
+                                      - (z0-axisrz[1]) * (p->r[i]-axisrz[0]),
+                                        (R0-axisrz[0]) * (p->r[i]-axisrz[0])
+                                      + (z0-axisrz[1]) * (p->z[i]-axisrz[1]) );
             }
 
             /* Error handling */

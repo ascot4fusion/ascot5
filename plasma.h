@@ -11,6 +11,7 @@
 #include "ascot5.h"
 #include "error.h"
 #include "plasma/plasma_1D.h"
+#include "plasma/plasma_1Dt.h"
 #include "plasma/plasma_1DS.h"
 
 /**
@@ -22,6 +23,7 @@
  */
 typedef enum plasma_type {
     plasma_type_1D, /**< Linear-interpolated 1D plasma data */
+    plasma_type_1Dt, /**< Linear-interpolated time-dependent 1D plasma data */
     plasma_type_1DS /**< Spline-interpolated 1D plasma data */
 } plasma_type;
 
@@ -38,6 +40,7 @@ typedef enum plasma_type {
 typedef struct {
     plasma_type type;         /**< Plasma data type wrapped by this struct    */
     plasma_1D_offload_data plasma_1D;   /**< 1D data or NULL if not active    */
+    plasma_1Dt_offload_data plasma_1Dt; /**< 1D data or NULL if not active    */
     plasma_1DS_offload_data plasma_1DS; /**< 1DS data or NULL if not active   */
     int offload_array_length; /**< Allocated offload array length             */
 } plasma_offload_data;
@@ -54,6 +57,7 @@ typedef struct {
 typedef struct {
     plasma_type type;           /**< Plasma data type wrapped by this struct */
     plasma_1D_data plasma_1D;   /**< 1D data or NULL if not active           */
+    plasma_1Dt_data plasma_1Dt; /**< 1D data or NULL if not active           */
     plasma_1DS_data plasma_1DS; /**< 1DS data or NULL if not active          */
 } plasma_data;
 
@@ -81,6 +85,10 @@ int plasma_get_n_species(plasma_data* pls_data);
 const real* plasma_get_species_mass(plasma_data* pls_data);
 #pragma omp declare simd uniform(pls_data)
 const real* plasma_get_species_charge(plasma_data* pls_data);
+#pragma omp declare simd uniform(pls_data)
+const int* plasma_get_species_znum(plasma_data* pls_data);
+#pragma omp declare simd uniform(pls_data)
+const int* plasma_get_species_anum(plasma_data* pls_data);
 #pragma omp end declare target
 
 #endif

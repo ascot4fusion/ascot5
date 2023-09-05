@@ -20,13 +20,13 @@
  * bicubic splines. \f$\psi\f$ and \f$\mathbf{B}\f$ are given in separate grids.
  *
  * This module does no extrapolation so if queried value is outside the
- * \f$Rz\f$-grid an error is thrown. 
+ * \f$Rz\f$-grid an error is thrown.
  *
  * The toroidal angle phi is treated as a periodic coordinate meaning that
- * B(phi) = B(phi + N*(b_phimax - b_phimin)) being N the periodic number. 
+ * B(phi) = B(phi + N*(b_phimax - b_phimin)) being N the periodic number.
  * Do note that to avoid duplicate data, the last points in phi axis in B data
- * are not at b_phimax, i.e. br[:,-1,:] != BR(phi=b_phimax). It is user's 
- * responsibility to provide input whose \f$\phi\f$-grid makes sense (in 
+ * are not at b_phimax, i.e. br[:,-1,:] != BR(phi=b_phimax). It is user's
+ * responsibility to provide input whose \f$\phi\f$-grid makes sense (in
  * that it actually represents a periodic field).
  *
  * @see B_field.c
@@ -327,30 +327,6 @@ a5err B_3DS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
 }
 
 /**
- * @brief Evaluate normalized poloidal flux rho
- *
- * @param rho pointer where rho value will be stored
- * @param psi poloidal flux from which rho is evaluated
- * @param Bdata pointer to magnetic field data struct
- *
- * @return Non-zero a5err value if evaluation failed, zero otherwise
- */
-a5err B_3DS_eval_rho(real* rho, real psi, B_3DS_data* Bdata) {
-    a5err err = 0;
-
-    /* Check that the values seem valid */
-    real delta = (Bdata->psi1 - Bdata->psi0);
-    if( (psi - Bdata->psi0) / delta < 0 ) {
-         err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_3DS );
-    }
-
-    if(!err) {
-        rho[0] = sqrt( (psi - Bdata->psi0) / delta );
-    }
-    return err;
-}
-
-/**
  * @brief Evaluate normalized poloidal flux rho and its derivatives
  *
  * @param rho_drho pointer where rho and its derivatives will be stored
@@ -505,21 +481,14 @@ a5err B_3DS_eval_B_dB(real B_dB[12], real r, real phi, real z,
 /**
  * @brief Return magnetic axis R-coordinate
  *
+ * @param rz pointer where axis R and z [m] values will be stored
  * @param Bdata pointer to magnetic field data struct
  *
- * @return Magnetic axis R-coordinate [m]
+ * @return Zero a5err value as this function can't fail.
  */
-real B_3DS_get_axis_r(B_3DS_data* Bdata) {
-    return Bdata->axis_r;
-}
-
-/**
- * @brief Return magnetic axis z-coordinate
- *
- * @param Bdata pointer to magnetic field data struct
- *
- * @return Magnetic axis z-coordinate [m]
- */
-real B_3DS_get_axis_z(B_3DS_data* Bdata) {
-    return Bdata->axis_z;
+a5err B_3DS_get_axis_rz(real rz[2], B_3DS_data* Bdata) {
+    a5err err = 0;
+    rz[0] = Bdata->axis_r;
+    rz[1] = Bdata->axis_z;
+    return err;
 }

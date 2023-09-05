@@ -79,17 +79,16 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished);
  * @todo Reorganize this function so that it conforms to documentation.
  */
 void simulate(int id, int n_particles, particle_state* p,
-        sim_offload_data* sim_offload,
-        offload_package* offload_data,
-        real* offload_array,
-        real* diag_offload_array) {
+              sim_offload_data* sim_offload, offload_package* offload_data,
+              real* offload_array, int* int_offload_array,
+              real* diag_offload_array) {
 
     char targetname[5];
     if(id == 0) {
         sprintf(targetname, "host");
     }
     else {
-        sprintf(targetname, "mic%d", id-1);
+        sprintf(targetname, "mic%hu", (unsigned short)(id-1));
     }
     /**************************************************************************/
     /* 1. Input offload data is unpacked and initialized by calling           */
@@ -118,7 +117,7 @@ void simulate(int id, int n_particles, particle_state* p,
 
     ptr = offload_unpack(offload_data, offload_array,
             sim_offload->wall_offload_data.offload_array_length);
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, int_offload_array);
 
     ptr = offload_unpack(offload_data, offload_array,
             sim_offload->boozer_offload_data.offload_array_length);
@@ -127,6 +126,10 @@ void simulate(int id, int n_particles, particle_state* p,
     ptr = offload_unpack(offload_data, offload_array,
             sim_offload->mhd_offload_data.offload_array_length);
     mhd_init(&sim.mhd_data, &sim_offload->mhd_offload_data, ptr);
+
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->asigma_offload_data.offload_array_length);
+    asigma_init(&sim.asigma_data, &sim_offload->asigma_offload_data, ptr);
 
     diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
               diag_offload_array);
@@ -203,12 +206,14 @@ void simulate(int id, int n_particles, particle_state* p,
         {
 #if VERBOSE > 1
             /* Update progress until simulation is complete.             */
-            /* Trim .h5 from filename and replace it with _??????.stdout */
-            char filename[256], outfn[256];
-            strcpy(outfn, sim_offload->hdf5_out);
-            outfn[strlen(outfn)-3] = '\0';
-            sprintf(filename, "%s.stdout", outfn);
-            sim_monitor(filename, &pq.n, &pq.finished);
+            /* Trim .h5 from filename and replace it with _<QID>.stdout  */
+            if(id == 0) {
+                char filename[519], outfn[256];
+                strcpy(outfn, sim_offload->hdf5_out);
+                outfn[strlen(outfn)-3] = '\0';
+                sprintf(filename, "%s_%s.stdout", outfn, sim_offload->qid);
+                sim_monitor(filename, &pq.n, &pq.finished);
+            }
 #endif
         }
     }
@@ -230,10 +235,10 @@ void simulate(int id, int n_particles, particle_state* p,
             if(pq.p[i]->endcond == endcond_hybrid) {
                 /* Check that there was no wall between when moving from
                    gc to fo */
-	        real w_coll;
+                real w_coll;
                 int tile = wall_hit_wall(pq.p[i]->r, pq.p[i]->phi, pq.p[i]->z,
                         pq.p[i]->rprt, pq.p[i]->phiprt, pq.p[i]->zprt,
-					 &sim.wall_data, &w_coll);
+                                         &sim.wall_data, &w_coll);
                 if(tile > 0) {
                     pq.p[i]->walltile = tile;
                     pq.p[i]->endcond |= endcond_wall;
@@ -268,12 +273,14 @@ void simulate(int id, int n_particles, particle_state* p,
             #pragma omp section
             {
 #if VERBOSE > 1
-                /* Trim .h5 from filename and replace it with _??????.stdout */
-                char filename[256], outfn[256];
-                strcpy(outfn, sim_offload->hdf5_out);
-                outfn[strlen(outfn)-3] = '\0';
-                sprintf(filename, "%s.stdout", outfn);
-                sim_monitor(filename, &pq.n, &pq.finished);
+                /* Trim .h5 from filename and replace it with _<qid>.stdout */
+                if(id == 0) {
+                    char filename[519], outfn[256];
+                    strcpy(outfn, sim_offload->hdf5_out);
+                    outfn[strlen(outfn)-3] = '\0';
+                    sprintf(filename, "%s_%s.stdout", outfn, sim_offload->qid);
+                    sim_monitor(filename, &pq.n, &pq.finished);
+                }
 #endif
             }
         }
@@ -335,13 +342,15 @@ void sim_init(sim_data* sim, sim_offload_data* offload_data) {
     sim->enable_orbfol        = offload_data->enable_orbfol;
     sim->enable_clmbcol       = offload_data->enable_clmbcol;
     sim->enable_mhd           = offload_data->enable_mhd;
+    sim->enable_atomic        = offload_data->enable_atomic;
     sim->disable_gctransform  = offload_data->disable_gctransform;
     sim->disable_energyccoll  = offload_data->disable_energyccoll;
     sim->disable_pitchccoll   = offload_data->disable_pitchccoll;
     sim->disable_gcdiffccoll  = offload_data->disable_gcdiffccoll;
+    sim->reverse_time         = offload_data->reverse_time;
 
     sim->endcond_active       = offload_data->endcond_active;
-    sim->endcond_max_simtime  = offload_data->endcond_max_simtime;
+    sim->endcond_lim_simtime  = offload_data->endcond_lim_simtime;
     sim->endcond_max_mileage  = offload_data->endcond_max_mileage;
     sim->endcond_max_cputime  = offload_data->endcond_max_cputime;
     sim->endcond_min_rho      = offload_data->endcond_min_rho;

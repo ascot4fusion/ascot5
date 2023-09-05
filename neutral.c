@@ -18,6 +18,7 @@
 #include "error.h"
 #include "print.h"
 #include "neutral.h"
+#include "neutral/N0_1D.h"
 #include "neutral/N0_3D.h"
 
 /**
@@ -42,6 +43,11 @@ int neutral_init_offload(neutral_offload_data* offload_data,
     int err = 0;
 
     switch(offload_data->type) {
+        case neutral_type_1D:
+            err = N0_1D_init_offload(&(offload_data->N01D), offload_array);
+            offload_data->offload_array_length =
+                offload_data->N01D.offload_array_length;
+            break;
         case neutral_type_3D:
             err = N0_3D_init_offload(&(offload_data->N03D), offload_array);
             offload_data->offload_array_length =
@@ -75,6 +81,9 @@ int neutral_init_offload(neutral_offload_data* offload_data,
 void neutral_free_offload(neutral_offload_data* offload_data,
                           real** offload_array) {
     switch(offload_data->type) {
+        case neutral_type_1D:
+            N0_1D_free_offload(&(offload_data->N01D), offload_array);
+            break;
         case neutral_type_3D:
             N0_3D_free_offload(&(offload_data->N03D), offload_array);
             break;
@@ -99,6 +108,10 @@ int neutral_init(neutral_data* ndata, neutral_offload_data* offload_data,
     int err = 0;
 
     switch(offload_data->type) {
+        case neutral_type_1D:
+            N0_1D_init(&(ndata->N01D),
+                       &(offload_data->N01D), offload_array);
+            break;
         case neutral_type_3D:
             N0_3D_init(&(ndata->N03D),
                        &(offload_data->N03D), offload_array);
@@ -122,6 +135,7 @@ int neutral_init(neutral_data* ndata, neutral_offload_data* offload_data,
  * This is a SIMD function.
  *
  * @param n0 pointer where neutral density is stored [m^-3]
+ * @param rho normalized poloidal flux coordinate
  * @param r R coordinate [m]
  * @param phi phi coordinate [deg]
  * @param z z coordinate [m]
@@ -130,13 +144,16 @@ int neutral_init(neutral_data* ndata, neutral_offload_data* offload_data,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err neutral_eval_n0(real* n0, real r, real phi, real z, real t,
+a5err neutral_eval_n0(real* n0, real rho, real r, real phi, real z, real t,
                       neutral_data* ndata) {
     a5err err = 0;
 
     switch(ndata->type) {
+        case neutral_type_1D:
+            err = N0_1D_eval_n0(n0, rho, &(ndata->N01D));
+            break;
         case neutral_type_3D:
-            err = N0_3D_eval_n0(n0, r, phi, z, 0, &(ndata->N03D));
+            err = N0_3D_eval_n0(n0, r, phi, z, &(ndata->N03D));
             break;
         default:
             /* Unregonized input. Produce error. */
@@ -155,11 +172,12 @@ a5err neutral_eval_n0(real* n0, real r, real phi, real z, real t,
 /**
  * @brief Evaluate neutral temperature
  *
- * This function evaluates the neutral temperature n0 at the given coordinates.
+ * This function evaluates the neutral temperature t0 at the given coordinates.
  *
  * This is a SIMD function.
  *
  * @param t0 pointer where neutral temperature is stored [J]
+ * @param rho normalized poloidal flux coordinate
  * @param r R coordinate [m]
  * @param phi phi coordinate [deg]
  * @param z z coordinate [m]
@@ -168,13 +186,16 @@ a5err neutral_eval_n0(real* n0, real r, real phi, real z, real t,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err neutral_eval_t0(real* t0, real r, real phi, real z, real t,
+a5err neutral_eval_t0(real* t0, real rho, real r, real phi, real z, real t,
                       neutral_data* ndata) {
     a5err err = 0;
 
     switch(ndata->type) {
+        case neutral_type_1D:
+            err = N0_1D_eval_t0(t0, rho, &(ndata->N01D));
+            break;
         case neutral_type_3D:
-            err = N0_3D_eval_t0(t0, r, phi, z, 0, &(ndata->N03D));
+            err = N0_3D_eval_t0(t0, r, phi, z, &(ndata->N03D));
             break;
         default:
             /* Unregonized input. Produce error. */
@@ -188,4 +209,29 @@ a5err neutral_eval_t0(real* t0, real r, real phi, real z, real t,
     }
 
     return err;
+}
+
+/**
+ * @brief Get the number of neutral species
+ *
+ * Retrieve the number of how many neutral species the data contains.
+ *
+ * This is a SIMD function.
+ *
+ * @param neutral_data pointer to neutral data struct
+ *
+ * @return The number of neutral species
+ */
+int neutral_get_n_species(neutral_data* ndata) {
+    int n = 0;
+    switch(ndata->type) {
+        case neutral_type_1D:
+            n = N0_1D_get_n_species(&(ndata->N01D));
+            break;
+        case neutral_type_3D:
+            n = N0_3D_get_n_species(&(ndata->N03D));
+            break;
+    }
+
+    return n;
 }

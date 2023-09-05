@@ -306,7 +306,7 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z, real t,
 }
 
 /**
- * @brief Evaluate normalized poloidal flux rho
+ * @brief Evaluate normalized poloidal flux rho and its psi derivative
  *
  * This function evaluates the normalized poloidal flux rho at the given
  * coordinates. The rho is evaluated from psi as:
@@ -326,28 +326,34 @@ a5err B_field_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z, real t,
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
+a5err B_field_eval_rho(real rho[2], real psi, B_field_data* Bdata) {
     a5err err = 0;
 
+    real psi0 = 0.0, psi1 = 1.0;
     switch(Bdata->type) {
         case B_field_type_GS:
-            err = B_GS_eval_rho(rho, psi, &(Bdata->BGS));
+            psi0 = Bdata->BGS.psi0;
+            psi1 = Bdata->BGS.psi1;
             break;
 
         case B_field_type_2DS:
-            err = B_2DS_eval_rho(rho, psi, &(Bdata->B2DS));
+            psi0 = Bdata->B2DS.psi0;
+            psi1 = Bdata->B2DS.psi1;
             break;
 
         case B_field_type_3DS:
-            err = B_3DS_eval_rho(rho, psi, &(Bdata->B3DS));
+            psi0 = Bdata->B3DS.psi0;
+            psi1 = Bdata->B3DS.psi1;
             break;
 
         case B_field_type_STS:
-            err = B_STS_eval_rho(rho, psi, &(Bdata->BSTS));
+            psi0 = Bdata->BSTS.psi0;
+            psi1 = Bdata->BSTS.psi1;
             break;
 
         case B_field_type_TC:
-            err = B_TC_eval_rho(rho, psi, &(Bdata->BTC));
+            psi0 = Bdata->BTC.psival;
+            psi1 = 2.0;
             break;
 
         default:
@@ -356,10 +362,19 @@ a5err B_field_eval_rho(real* rho, real psi, B_field_data* Bdata) {
             break;
     }
 
+    real delta = (psi1 - psi0);
+    if( (psi - psi0) / delta < 0 ) {
+         err = error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_FIELD );
+    } else {
+        rho[0] = sqrt( (psi - psi0) / delta );
+        rho[1] = 1.0 / (2*delta*rho[0]);
+    }
+
     if(err) {
         /* In case of error, return some reasonable value to avoid further
            complications */
         rho[0] = 1;
+        rho[1] = 0;
     }
 
     return err;
@@ -573,89 +588,52 @@ a5err B_field_eval_B_dB(real B_dB[15], real r, real phi, real z, real t,
 }
 
 /**
- * @brief Return magnetic axis R-coordinate
+ * @brief Return magnetic axis Rz-coordinates
  *
- * Returns magnetic axis R-coordinate at given toroidal angle.
+ * Returns magnetic axis Rz-coordinates at given toroidal angle.
  *
- * @param phi phi coordinate [deg]
+ * @param rz pointer where axis R and z [m] values will be stored
  * @param Bdata pointer to magnetic field data struct
+ * @param phi phi coordinate [deg]
  *
  * @return Magnetic axis R-coordinate [m]
  */
-real B_field_get_axis_r(B_field_data* Bdata, real phi) {
+a5err B_field_get_axis_rz(real rz[2], B_field_data* Bdata, real phi) {
     a5err err = 0;
-    real axis_r = 0;
 
     switch(Bdata->type) {
         case B_field_type_GS:
-            axis_r = B_GS_get_axis_r(&(Bdata->BGS));
+            err = B_GS_get_axis_rz(rz, &(Bdata->BGS));
             break;
 
         case B_field_type_2DS:
-            axis_r = B_2DS_get_axis_r(&(Bdata->B2DS));
+            err = B_2DS_get_axis_rz(rz, &(Bdata->B2DS));
             break;
 
         case B_field_type_3DS:
-            axis_r = B_3DS_get_axis_r(&(Bdata->B3DS));
+            err = B_3DS_get_axis_rz(rz, &(Bdata->B3DS));
             break;
 
         case B_field_type_STS:
-            err = B_STS_get_axis_r(&axis_r, &(Bdata->BSTS), phi);
-            if(err) {
-                /* In case of error, return some reasonable value to avoid
-                   further complications */
-                axis_r = 5;
-            }
+            err = B_STS_get_axis_rz(rz, &(Bdata->BSTS), phi);
             break;
 
         case B_field_type_TC:
-            axis_r = B_TC_get_axis_r(&(Bdata->BTC));
+            err = B_TC_get_axis_rz(rz, &(Bdata->BTC));
+            break;
+
+        default:
+            /* Unregonized input. Produce error. */
+            err = error_raise( ERR_UNKNOWN_INPUT, __LINE__, EF_B_FIELD );
             break;
     }
 
-    return axis_r;
-}
-
-/**
- * @brief Return magnetic axis z-coordinate
- *
- * Returns magnetic axis z-coordinate at given toroidal angle.
- *
- * @param phi phi coordinate [deg]
- * @param Bdata pointer to magnetic field data struct
- *
- * @return Magnetic axis z-coordinate [m]
- */
-real B_field_get_axis_z(B_field_data* Bdata, real phi) {
-    a5err err = 0;
-    real axis_z = 0;
-
-    switch(Bdata->type) {
-        case B_field_type_GS:
-            axis_z = B_GS_get_axis_z(&(Bdata->BGS));
-            break;
-
-        case B_field_type_2DS:
-            axis_z = B_2DS_get_axis_z(&(Bdata->B2DS));
-            break;
-
-        case B_field_type_3DS:
-            axis_z = B_3DS_get_axis_z(&(Bdata->B3DS));
-            break;
-
-        case B_field_type_STS:
-            err = B_STS_get_axis_z(&axis_z, &(Bdata->BSTS), phi);
-            if(err) {
-                /* In case of error, return some reasonable value to avoid
-                   further complications */
-                axis_z = 0;
-            }
-            break;
-
-        case B_field_type_TC:
-            axis_z = B_TC_get_axis_z(&(Bdata->BTC));
-            break;
+    if(err) {
+      /* In case of error, return some reasonable values to avoid further
+         complications */
+      rz[0] = 1.0;
+      rz[1] = 0.0;
     }
 
-    return axis_z;
+    return err;
 }

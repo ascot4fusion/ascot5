@@ -67,11 +67,11 @@ int mccc_eval_coefs(real ma, real qa, real r, real phi, real z, real t,
     mdata.usetabulated = 0;
 
     /* Evaluate rho as it is needed to evaluate plasma parameters */
-    real psi, rho;
+    real psi, rho[2];
     if( B_field_eval_psi(&psi, r, phi, z, t, Bdata) ) {
         return 1;
     }
-    if( B_field_eval_rho(&rho, psi, Bdata) ) {
+    if( B_field_eval_rho(rho, psi, Bdata) ) {
         return 1;
     }
 
@@ -81,7 +81,7 @@ int mccc_eval_coefs(real ma, real qa, real r, real phi, real z, real t,
     const real* mb = plasma_get_species_mass(pdata);
 
     real nb[MAX_SPECIES], Tb[MAX_SPECIES];
-    if( plasma_eval_densandtemp(nb, Tb, rho, r, phi, z, t, pdata) ) {
+    if( plasma_eval_densandtemp(nb, Tb, rho[0], r, phi, z, t, pdata) ) {
         return 1;
     }
 

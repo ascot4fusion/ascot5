@@ -16,6 +16,7 @@
 #include "wall.h"
 #include "boozer.h"
 #include "mhd.h"
+#include "asigma.h"
 #include "diag.h"
 #include "offload.h"
 #include "random.h"
@@ -59,6 +60,7 @@ typedef struct {
     wall_offload_data wall_offload_data;       /**< Wall offload data           */
     boozer_offload_data boozer_offload_data;   /**< Boozer offload data         */
     mhd_offload_data mhd_offload_data;         /**< MHD offload data            */
+    asigma_offload_data asigma_offload_data;   /**< Atomic sigma offload data   */
     diag_offload_data diag_offload_data;       /**< Diagnostics offload data    */
 
     /* Options - general */
@@ -86,6 +88,8 @@ typedef struct {
     int enable_orbfol;         /**< Is orbit-following enabled                */
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
     int enable_mhd;            /**< Are MHD modes enabled                     */
+    int enable_atomic;         /**< Are atomic reactions enabled, and with
+                                    what functionality                        */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb
@@ -94,10 +98,11 @@ typedef struct {
                                     collisions */
     int disable_gcdiffccoll;   /**< Disables guiding center spatial diffusion
                                     from Coulomb collisions */
+    int reverse_time;          /**< Set time running backwards in simulation  */
 
     /* Options - end conditions */
     int endcond_active;        /**< Bit array notating active end conditions  */
-    real endcond_max_simtime;  /**< Maximum simulation time [s]               */
+    real endcond_lim_simtime;  /**< Simulation time limit [s]                 */
     real endcond_max_mileage;  /**< Maximum simulation duration [s]           */
     real endcond_max_cputime;  /**< Maximum wall-clock time [s]               */
     real endcond_min_rho;      /**< Minimum rho limit                         */
@@ -128,6 +133,7 @@ typedef struct {
     char qid_neutral[256]; /* Neutral QID if active not used */
     char qid_boozer[256];  /* Boozer QID if active not used  */
     char qid_mhd[256];     /* MHD QID if active not used     */
+    char qid_asigma[256];  /* Asigma QID if active not used  */
 
 } sim_offload_data;
 
@@ -150,6 +156,7 @@ typedef struct {
     wall_data wall_data;       /**< Wall data interface                       */
     boozer_data boozer_data;   /**< Boozer data interface                     */
     mhd_data mhd_data;         /**< MHD data interface                        */
+    asigma_data asigma_data;   /**< Atomic sigma data interface               */
     diag_data diag_data;       /**< Diagnostics data interface                */
 
     /* Metadata */
@@ -182,6 +189,7 @@ typedef struct {
     int enable_orbfol;         /**< Is orbit-following enabled                */
     int enable_clmbcol;        /**< Are Coulomb collisions enabled            */
     int enable_mhd;            /**< Are MHD modes enabled                     */
+    int enable_atomic;         /**< Are atomic reactions enabled              */
     int disable_gctransform;   /**< Disables first order velocity terms in
                                     guiding center transformation             */
     int disable_energyccoll;   /**< Disables energy component from Coulomb
@@ -190,10 +198,11 @@ typedef struct {
                                     collisions */
     int disable_gcdiffccoll;   /**< Disables guiding center spatial diffusion
                                     from Coulomb collisions */
+    int reverse_time;          /**< Set time running backwards in simulation  */
 
     /* Options - end conditions */
     int endcond_active;       /**< Bit array notating active end conditions  */
-    real endcond_max_simtime; /**< Maximum simulation time [s]               */
+    real endcond_lim_simtime; /**< Simulation time limit [s]                 */
     real endcond_max_mileage; /**< Maximum simulation duration [s]           */
     real endcond_max_cputime; /**< Maximum wall-clock time [s]               */
     real endcond_min_rho;     /**< Minimum rho limit                         */
@@ -213,7 +222,8 @@ void simulate_init_offload(sim_offload_data* sim);
 void simulate(int id, int n_particles, particle_state* p,
               sim_offload_data* sim_offload,
               offload_package* offload_data,
-              real* offload_array, real* diag_offload_array);
+              real* offload_array, int* int_offload_array,
+              real* diag_offload_array);
 #pragma omp end declare target
 
 #endif

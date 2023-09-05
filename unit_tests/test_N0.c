@@ -1,6 +1,6 @@
 /**
  * @file test_N0.c
- * @brief Test program for magnetic fields
+ * @brief Test program for neutral 3D data
  */
 #include <getopt.h>
 #include <stdio.h>
@@ -32,6 +32,7 @@ int main(int argc, char** argv) {
     real* plasma_offload_array;
     real* neutral_offload_array;
     real* wall_offload_array;
+    int* wall_int_offload_array;
     real* offload_array;
     int n;
     input_particle* p;
@@ -44,7 +45,8 @@ int main(int argc, char** argv) {
                               &B_offload_array, &E_offload_array,
                               &plasma_offload_array,
                               &neutral_offload_array,
-                              &wall_offload_array, NULL, NULL, &p, &n);
+                              &wall_offload_array, &wall_int_offload_array,
+                              NULL, NULL, &p, &n);
 
     /* Init magnetic background */
     offload_package offload_data;
@@ -85,7 +87,8 @@ int main(int argc, char** argv) {
     for(i = 0; i < n_r; i++) {
         for(j = 0; j < n_phi; j++) {
             for(k = 0; k < n_z; k++) {
-                neutral_eval_n0(&n0, r[i], phi[j], z[k], time, &ndata);
+                /* Use dummy rho = 0 */
+                neutral_eval_n0(&n0, 0, r[i], phi[j], z[k], time, &ndata);
                 fprintf(f,"%le\n", n0);
                 /* fprintf(f,"%le\n", r[i]*z[k]); */
             }

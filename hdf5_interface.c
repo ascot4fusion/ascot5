@@ -5,6 +5,7 @@
  * This module handles IO operations to HDF5 file. Accessing HDF5 files
  * from the main program should be done using this module.
  */
+#define _XOPEN_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,6 +32,7 @@
 #include "hdf5io/hdf5_dist.h"
 #include "hdf5io/hdf5_orbit.h"
 #include "hdf5io/hdf5_transcoef.h"
+#include "hdf5io/hdf5_asigma.h"
 
 /**
  * @brief Read and initialize input data
@@ -47,6 +49,7 @@
  * @param wall_offload_array pointer to wall offload array
  * @param boozer_offload_array pointer to boozer offload array
  * @param mhd_offload_array pointer to mhd offload array
+ * @param asigma_offload_array pointer to atomic offload array
  * @param p pointer to marker offload data
  * @param n_markers pointer to integer notating how many markers were read
  *
@@ -59,8 +62,10 @@ int hdf5_interface_read_input(sim_offload_data* sim,
                               real** plasma_offload_array,
                               real** neutral_offload_array,
                               real** wall_offload_array,
+                              int** wall_int_offload_array,
                               real** boozer_offload_array,
                               real** mhd_offload_array,
+                              real** asigma_offload_array,
                               input_particle** p,
                               int* n_markers){
 
@@ -210,7 +215,8 @@ int hdf5_interface_read_input(sim_offload_data* sim,
         }
         print_out(VERBOSE_IO, "Active QID is %s\n", qid);
         if( hdf5_wall_init_offload(f, &(sim->wall_offload_data),
-                                   wall_offload_array, qid) ) {
+                                   wall_offload_array, wall_int_offload_array,
+                                   qid) ) {
             print_err("Error: Failed to initialize wall.\n");
             return 1;
         }
@@ -286,6 +292,29 @@ int hdf5_interface_read_input(sim_offload_data* sim,
     }
 
 
+    if(input_active & hdf5_input_asigma) {
+        if(hdf5_find_group(f, "/asigma/")) {
+            print_err("Error: No atomic reaction data in input file.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "\nReading atomic reaction input.\n");
+        if(sim->qid_asigma[0] != '\0') {
+            strcpy(qid, sim->qid_asigma);
+        }
+        else if( hdf5_get_active_qid(f, "/asigma/", qid) ) {
+            print_err("Error: Active QID not declared.");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Active QID is %s\n", qid);
+        if( hdf5_asigma_init_offload(f, &(sim->asigma_offload_data),
+                                     asigma_offload_array, qid) ) {
+            print_err("Error: Failed to initialize atomic reaction data.\n");
+            return 1;
+        }
+        print_out(VERBOSE_IO, "Atomic reaction data read and initialized.\n");
+    }
+
+
     /* Close the hdf5 file */
     if( hdf5_close(f) ) {
         print_err("Error: Could not close the file.\n");
@@ -319,39 +348,42 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     if(fout < 0) {
         print_out(VERBOSE_IO, "Note: Output file %s is already present.\n",
                   sim->hdf5_out);
+    } else {
+        hdf5_close(fout);
     }
-    hdf5_close(fout);
 
-    /* Open output file and create results section if one does not yet exist. */
+    /* Open output file. */
     fout = hdf5_open(sim->hdf5_out);
 
-    if( hdf5_find_group(fout, "/results/") ) {
-        hdf5_create_group(fout, "/results/");
-    }
-
-    /* Create a run group for this specific run. */
+    /* Create a run group for this specific run (and results group if one */
+    /* doesn't exist already.                                             */
     char path[256];
     hdf5_gen_path("/results/run_XXXXXXXXXX", qid, path);
-    hid_t newgroup = H5Gcreate2(fout, path,
-                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Gclose (newgroup);
-    print_out(VERBOSE_IO, "\nThe qid of this run is %s\n", qid);
+    hid_t newgroup = hdf5_create_group(fout, path);
 
     /* If a run with identical qid exists, abort. */
+    print_out(VERBOSE_IO, "\nThe qid of this run is %s\n", qid);
     if(newgroup < 0) {
         print_err("Error: A run with qid %s already exists.\n", qid);
+        H5Gclose(newgroup);
         hdf5_close(fout);
         return 1;
     }
+    H5Gclose(newgroup);
 
     /* Set this run as the active run. */
     hdf5_write_string_attribute(fout, "/results", "active",  qid);
 
+    /* Open input file (if different file than the output) */
+    hid_t fin = fout;
+    if( strcmp(sim->hdf5_in, sim->hdf5_out) != 0 ) {
+        fin = hdf5_open(sim->hdf5_in);
+    }
+
+
     /* Read input data qids and store them here. */
     char inputqid[11];
     inputqid[10] = '\0';
-
-    hid_t fin = hdf5_open(sim->hdf5_in);
 
     if(sim->qid_options[0] != '\0') {
         strcpy(inputqid, sim->qid_options);
@@ -425,7 +457,18 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     }
     hdf5_write_string_attribute(fout, path, "qid_mhd",  inputqid);
 
-    hdf5_close(fin);
+    if(sim->qid_asigma[0] != '\0') {
+        strcpy(inputqid, sim->qid_asigma);
+    }
+    else {
+        H5LTget_attribute_string(fin, "/asigma/", "active", inputqid);
+    }
+    hdf5_write_string_attribute(fout, path, "qid_asigma",  inputqid);
+
+    /* If input and output are different files, close input */
+    if( strcmp(sim->hdf5_in, sim->hdf5_out) != 0 ) {
+        hdf5_close(fin);
+    }
 
     /* Set a description, repository status, and date; close the file. */
     hdf5_write_string_attribute(fout, path, "description",  sim->description);
@@ -442,7 +485,7 @@ int hdf5_interface_init_results(sim_offload_data* sim, char* qid) {
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
     char date[21];
-    sprintf(date, "%04d-%02d-%02d %02d:%02d:%02d.", tm.tm_year + 1900,
+    sprintf(date, "%04hu-%02hu-%02hu %02hu:%02hu:%02hu.", tm.tm_year + 1900,
             tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     hdf5_write_string_attribute(fout, path, "date",  date);
 
@@ -632,4 +675,3 @@ void hdf5_generate_qid(char* qid) {
     /* Convert the random number to a string format */
     sprintf(qid, "%010lu", (long unsigned int)qint);
 }
-

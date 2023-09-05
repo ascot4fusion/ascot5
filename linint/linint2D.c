@@ -78,10 +78,9 @@ int linint2D_eval_f(real* f, linint2D_data* str, real x, real y) {
     /* Normalized y coordinate in current cell */
     real dy   = ( y - (str->y_min + i_y*str->y_grid) ) / str->y_grid;
 
-    /* Index jump to cell */
-    int n  = i_y*str->n_x + i_x;
-    int x1 = 1;        /* Index jump one x forward */
-    int y1 = str->n_x; /* Index jump one y forward */
+    int n  = i_y*str->n_x + i_x; /* Index jump to cell       */
+    int x1 = 1;                  /* Index jump one x forward */
+    int y1 = str->n_x;           /* Index jump one y forward */
 
     int err = 0;
 

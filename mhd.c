@@ -174,19 +174,20 @@ int mhd_init(mhd_data* mhddata, mhd_offload_data* offload_data,
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
-               boozer_data* boozerdata, mhd_data* mhddata) {
+               boozer_data* boozerdata, mhd_data* mhddata,
+               B_field_data* Bdata) {
     a5err err = 0;
 
     switch(mhddata->type) {
 
         case mhd_type_stat:
             err = mhd_stat_eval(mhd_dmhd, r, phi, z, t,
-                                boozerdata, &(mhddata->stat));
+                                boozerdata, &(mhddata->stat), Bdata);
             break;
 
         case mhd_type_nonstat:
             err = mhd_nonstat_eval(mhd_dmhd, r, phi, z, t,
-                                boozerdata, &(mhddata->nonstat));
+                                   boozerdata, &(mhddata->nonstat), Bdata);
             break;
 
         default:
