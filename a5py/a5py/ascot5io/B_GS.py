@@ -75,7 +75,7 @@ def write_hdf5(fn, r0, z0, bphi0, psimult, coefficients, psi0=None, psi1=0,
                              c[7], c[8], c[9], c[10], c[11], c[12])
         psi0 = psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
                            c[5], c[6], c[7], c[8], c[9], c[10], c[11],
-                           c[12]) * psimult * 1.001
+                           c[12]) * psimult * 1.0001
         raxis = x[0]*r0
         zaxis = x[1]*r0
 
@@ -202,7 +202,7 @@ def write_hdf5_B_2DS(fn, R0, z0, B_phi0, psi_mult, psi_coeff,
         x = psifun.find_axis(R0, z0, c[0], c[1], c[2], c[3], c[4], c[5], c[6],
             c[7], c[8], c[9], c[10], c[11], c[12])
         psi0 = psi_mult*psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
-            c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) # At axis.
+            c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12])*1.001 # At axis.
         R0 = x[0]*R0
         z0 = x[1]*R0
 

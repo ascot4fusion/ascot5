@@ -999,7 +999,7 @@ class LibAscot:
 
         rhovals = np.asarray(rhovals).ravel().astype(dtype="f8")
 
-        ngrid = 100
+        ngrid = 1000
         r   = np.zeros((ngrid,), dtype="f8")
         z   = np.zeros((ngrid,), dtype="f8")
         rho = np.zeros((ngrid,), dtype="f8")
@@ -1008,6 +1008,7 @@ class LibAscot:
             ngrid, np.min(rhovals), np.max(rhovals), theta, phi, time,
             r, z, rho)
 
+        if np.min(rhovals) == np.max(rhovals): return (r[0], z[0])
         rho[0]  = rhovals[0]
         rho[-1] = rhovals[-1]
 

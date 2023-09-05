@@ -99,7 +99,7 @@ def convert(fnin):
 
             if "results" in h5:
                 for run in h5["results"]:
-                    if run.name[:4] != "run": continue
+                    if run[:4] != "run": continue
                     run.attrs["qid_asigma"] = asigma.split["_"][-1]
                     print(asigma)
 
