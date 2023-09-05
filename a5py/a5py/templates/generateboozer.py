@@ -18,6 +18,7 @@ import numpy as np
 
 from skimage import measure
 from scipy.interpolate import griddata, interp1d
+from scipy.integrate import solve_ivp, cumtrapz
 
 import a5py.ascot5io.boozer as boozer
 from a5py.ascot5io.ascot5 import Ascot
@@ -25,12 +26,11 @@ from a5py.ascotpy.ascotpy import Ascotpy
 
 
 def generate(a5, rgrid, zgrid, npsi, nthgeo, nthbzr, zaxis, raxis, psi0, psi1,
-             evalq=True, psipad=0.005):
+             evalq=True, tstep=1e-2, nint=8000):
 
     # Resolutions for grids used internally
     rres  = 400
     zres  = 800
-    thres = 1000
 
     # Set up the grids
     R = np.linspace(rgrid[0], rgrid[-1], rres) # For contours
@@ -40,15 +40,18 @@ def generate(a5, rgrid, zgrid, npsi, nthgeo, nthbzr, zaxis, raxis, psi0, psi1,
     psimin = np.amin([psi0, psi1])
     psimax = np.amax([psi0, psi1])
     dpsi   = psimax - psimin
+    psipad = 0.01
+    psimin += psipad*dpsi
+    psimax -= psipad*dpsi
 
     # For contours and thbzr and nu datas
-    psigrid   = np.linspace(psimin+psipad*dpsi, psimax-psipad*dpsi, npsi)
+    psigrid   = np.linspace(psimin, psimax, npsi)
     # For thtbzr data
     thgeogrid = np.linspace(0, 2*np.pi, nthgeo)
     # For nu data
-    thbzrgrid = np.linspace(0, 2*np.pi, nthbzr)
+    thbzrgrid = np.linspace(0, 2*np.pi, nthbzr+1)[:-1]
     # Angles at which contour points are evaluated
-    thgrid = np.linspace(0, 2*np.pi, thres)
+    thgrid = np.linspace(0, 2*np.pi, nint)
 
     ## Set up the data tables (psi can be evaluated directly) ##
     psitable = np.squeeze(a5.evaluate(R=rgrid, phi=0, z=zgrid, t=0,
@@ -61,78 +64,94 @@ def generate(a5, rgrid, zgrid, npsi, nthgeo, nthbzr, zaxis, raxis, psi0, psi1,
     Iprof = np.zeros(psigrid.shape)
     gprof = np.zeros(psigrid.shape)
 
-    # Evaluate psi for finding the contours
-    psi  = np.squeeze(a5.evaluate(R=R, phi=0, z=Z, t=0,
-                                  quantity="psi", grid=True))
-
     if psimin < psi0:
         psigrid = np.flip(psigrid)
 
+    # Functions needed to trace psi = const. surfaces.
+    def event(t, y):
+        """Detect the midplane crossing.
+        """
+        return zaxis - y[1]
+
+    # Terminate when midplane crossing is detected (see docmentation on
+    # solve_ivp at scipy) and at right diection. delta is to ensure that
+    # we ignore the first crossing by starting the simulation slightly off
+    # plane.
+    event.terminal  = True
+    event.direction = 1 - 2 * (psi1 > psi0)
+    delta = -1e-8 * event.direction
+
+    def tracepsi(t, y):
+        """Calculate new position when tracing Bpol.
+        """
+        br = a5.evaluate(R=y[0], phi=0, z=y[1], t=0, quantity="br")
+        bz = a5.evaluate(R=y[0], phi=0, z=y[1], t=0, quantity="bz")
+        return np.array([br / np.sqrt(br**2 + bz**2),
+                         bz / np.sqrt(br**2 + bz**2)]).ravel()
+
     for i in range(psigrid.size):
-        contours = measure.find_contours(psi, psigrid[i])
-        contour = np.array([0])
-        for j in range(len(contours)):
-            if contour.size < contours[j].size:
-                contour = contours[j]
+        # Find (R,z) location at the outer midplane where psi(R,z) = psi(i)
+        rzomp = a5.get_rhotheta_rz(
+            np.sqrt((psigrid[i]-psi0) / (psi1 - psi0)), 0, 0, 0)
 
-        # Normalize coordinates to R,z values
-        cr = contour[:, 0]*(R[-1]-R[0])/R.size + R[0]
-        cz = contour[:, 1]*(Z[-1]-Z[0])/Z.size + Z[0]
+        # Solve the contour by tracing Bpol. The integration upper limit
+        # (2 pi R) is set high as the integration is actually terminated
+        # when OMP is crossed (this is taken care by the event. z0 + delta
+        # ensures that we don't accidentally terminate it when we start
+        # the integration.
+        sol = solve_ivp(tracepsi, [0, 2*np.pi*raxis],
+                        np.array([rzomp[0], rzomp[1]+delta[0]]).ravel(),
+                        max_step=tstep, events=event)
+        r = sol.y[0,:]
+        z = sol.y[1,:]
 
-        # We want to have a contour that "begins" at the OMP
-        thdat  = np.mod(np.arctan2(cz[:-1]-zaxis, cr[:-1]-raxis), 2*np.pi)
-        r = interp1d(thdat, cr[:-1], kind='cubic', fill_value="extrapolate")
-        z = interp1d(thdat, cz[:-1], kind='cubic', fill_value="extrapolate")
-        cr = r(thgrid)
-        cz = z(thgrid)
+        # Interpolate the contour points on the fixed (geometrical) theta
+        # grid (at OMP we set thetageom=thetabzr=0)
+        theta = np.mod(np.arctan2(z - zaxis, r - raxis), 2*np.pi)
+        r = np.interp(thgrid, theta, r, period=2*np.pi)
+        z = np.interp(thgrid, theta, z, period=2*np.pi)
 
-        # Contour line lengths and differentials
-        dL = np.sqrt( (cr[:-1]-cr[1:])**2 + (cz[:-1]-cz[1:])**2 )
-        L = np.append(0, np.cumsum(dL))
+        # Magnetic field along the contour (psi can be used to check that
+        # the contour was set properly). Drop the last element in r and z
+        # as it is the same as first.
+        br   = a5.evaluate(R=r[:-1], phi=0, z=z[:-1], t=0, quantity="br")
+        bphi = a5.evaluate(R=r[:-1], phi=0, z=z[:-1], t=0, quantity="bphi")
+        bz   = a5.evaluate(R=r[:-1], phi=0, z=z[:-1], t=0, quantity="bz")
 
-        # Magnetic field along the contour
-        br    = np.squeeze(a5.evaluate(R=cr, phi=0, z=cz, t=0, quantity="br"))
-        bphi  = np.squeeze(a5.evaluate(R=cr, phi=0, z=cz, t=0, quantity="bphi"))
-        bz    = np.squeeze(a5.evaluate(R=cr, phi=0, z=cz, t=0, quantity="bz"))
-        bpol  = np.sqrt(br*br + bz*bz)
-        bnorm = np.sqrt(br*br + bphi*bphi + bz*bz)
+        bpol  = np.sqrt(br**2 + bz**2)
+        bnorm = np.sqrt(br**2 + bphi**2 + bz**2)
+        ds    = (np.diff(r) * br + np.diff(z) * bz) / bpol # darc dot e^_pol
+        r = r[:-1]; z = z[:-1]
 
-        ar = cr[1:] - cr[:-1]
-        az = cz[1:] - cz[:-1]
-        dL = ( ( br[1:] + br[:-1] )*ar + ( bz[1:] + bz[:-1] )*az ) / (bpol[1:] + bpol[:-1])
+        # The toroidal current term (multiplying this with mu0/2 pi gets
+        # enclosed toroidal current)
+        Iprof[i] = np.sum( ds * bpol ) / ( 2*np.pi )
 
-        # The toroidal current term
-        Iprof[i] = -np.sum(
-            0.5*dL*( bpol[1:] + bpol[:-1] )
-        ) / (2*np.pi)
+        # g = R*Bphi, since Bphi ~ 1/R this is a constant
+        gprof[i] = r[0] * bphi[0]
 
-        # g = R*Bphi
-        gprof[i] = cr[0]*bphi[0]
+        # The (global) safety factor q(psi)
+        qprof[i] = np.sum( ds * gprof[i] / ( r**2 * bpol ) ) / ( 2*np.pi )
 
-        # Use trapezoidal rule to evaluate the safety factor q(psi)
-        qprof[i] = (0.5 / (2*np.pi)) * np.sum(
-              dL*(   gprof[i] / ( cr[1:]**2*bpol[1:]   )
-                   + gprof[i] / ( cr[:-1]**2*bpol[:-1] ) ) )
-
-        # Evaluate the boozer theta with the trapezoidal rule (set theta(0) = 0)
+        # Boozer coordinate Jacobian is (I - qg) / B^2. Setting it fixes the
+        # Boozer poloidal angle which we can now solve.
         jac = (Iprof + qprof*gprof)[i] / bnorm**2
-        theta = np.append(0, np.cumsum(
-            0.5*dL*(   1/(jac[1:]*bpol[1:]   )
-                     + 1/(jac[:-1]*bpol[:-1] ) )
-        ) )
+        btheta = np.append(0, np.cumsum( ds / ( jac * bpol ) ))
 
-        # Normalize theta to interval [0,2pi]. Note that new jacobian is J/s
-        s = theta[-1]
-        theta = 2*np.pi*theta / s
-        th = interp1d(thgrid, theta, "linear")
-        thtable[i, :] = th(thgeogrid)
+        # The above Jacobian is for a periodical theta, so theta[-1] should
+        # equal to 2 pi already, but normalize it to remove numerical error
+        # (note that the new Jacobian would be J / a)
+        a = 2*np.pi / btheta[-1]
+        btheta *= a
+        thtable[i, :] = interp1d(thgrid, btheta, "linear")(thgeogrid)
 
-        nu = np.append(0, 0.5*np.cumsum(
-            dL*(   1/(cr[:-1]**2*bpol[:-1])
-                 + 1/(cr[1:]**2*bpol[1:]) )
-        ) )
-        nu = interp1d(theta, nu, 'linear', fill_value="extrapolate")
-        nutable[i,:] = -(gprof[i]*nu(thbzrgrid) - qprof[i]*thbzrgrid)
+        # For Boozer toroidal coordinate, we need to integrate the local
+        # safety factor along the contour
+        nu = gprof[i] * np.append(0, np.cumsum( ds / ( r**2 * bpol ) ) )
+
+        # Interpolate nu used in zeta = phi + nu(psi, theta)
+        nutable[i,:] = -interp1d(btheta, nu, 'linear')(thbzrgrid) \
+            + qprof[i] * thbzrgrid
 
     # Flip the data grids to set indices right
     if psimin < psi0:
@@ -143,8 +162,8 @@ def generate(a5, rgrid, zgrid, npsi, nthgeo, nthbzr, zaxis, raxis, psi0, psi1,
     ## Construct the boozer input ##
 
     # Note that the last contour can be used to define separatrix location
-    cr = np.append(cr, cr[0])
-    cz = np.append(cz, cz[0])
+    cr = np.append(r, r[0])
+    cz = np.append(z, z[0])
     booz = {
         "psimin":psimin,
         "psimax":psimax,

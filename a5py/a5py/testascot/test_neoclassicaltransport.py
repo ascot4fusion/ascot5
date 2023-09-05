@@ -329,12 +329,11 @@ def check():
     #*                  Evaluate the analytical estimate                       #
     #*                                                                         #
     #**************************************************************************#
-
     eps = (r0 - (axisr - R0)) / axisr
     q   = 1.7 # This was verified numerically
     B   = 5.3
 
-    gamma  = 1 + Ekin * e / ( m_e * c * c )
+    gamma  = 1 + (Ekin * e / ( m_e * c * c )).v
     v      = np.sqrt(1.0 - 1.0 / ( gamma * gamma ) ) * c
     omegat = (v / (q * axisr)) * np.sqrt(0.5*eps)
     rhog   = gamma * m_e * v / (B * e)
@@ -357,7 +356,7 @@ def check():
 
     # x coordinate for plotting the numerical coefficients
     collfreq = (np.sqrt(2/np.pi) / 3) \
-               * np.power(e*e / ( 4*np.pi*eps0 ), 2) \
+               * np.power(e*e / ( 4*np.pi*eps_0 ), 2) \
                * ( 4*np.pi / np.sqrt( m_e*np.power(Ti*e, 3) ) ) * ni * clog
     veff_x   = collfreq/omegat
 
