@@ -82,8 +82,7 @@ hid_t hdf5_create_group(hid_t loc, const char* path) {
         group[end-start] = '\0';
 
         /* Open or create parent group */
-        hid_t gapl_id;
-        hid_t g = H5Gopen2(loc, group, gapl_id);
+        hid_t g = H5Gopen2(loc, group, H5P_DEFAULT);
         if(g < 0) {
             g = H5Gcreate2(loc, group, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         }
