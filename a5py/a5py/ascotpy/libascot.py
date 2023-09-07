@@ -650,22 +650,20 @@ class LibAscot:
         return out["nspecies"], out["mass"], out["charge"], out["anum"],\
             out["znum"]
 
-    @parseunits(rhovals="1", theta="rad", phi="deg", time="s")
-    def input_rhotheta2rz(self, rhovals, theta, phi, time):
-        """Convert rho coordinate to (R,z) position.
-
-        Conversion is done at fixed (theta, phi).
+    @parseunits(rhovals="1", theta="rad", phi="rad", time="s")
+    def input_rhotheta2rz(self, rho, theta, phi, time, maxiter=100, tol=1e-5):
+        """Convert (rho, theta, phi) coordinates to (R,z) positions.
 
         Parameters
         ----------
         rhovals : array_like (n,)
             Normalized poloidal flux coordinates to be converted.
-        theta : float
-            Poloidal angle.
-        phi : float
-            Toroidal angle.
+        theta : array_like (n,)
+            Poloidal angle coordinates to be converted.
+        phi : array_like (n,)
+            Toroidal angle coordinates to be converted.
         time : float
-            Time slice.
+            Time slice (same for all).
 
         Returns
         -------
@@ -682,28 +680,18 @@ class LibAscot:
             If evaluation in libascot.so failed.
         """
         self._requireinit("bfield")
-        rhovals = np.asarray(rhovals).ravel().astype(dtype="f8")
+        #rho = np.asarray(rho).ravel().astype(dtype="f8")
+        Neval = rho.size
+        r   = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.m
+        z   = np.NaN * np.zeros((Neval,), dtype="f8") * unyt.m
 
-        ngrid = 1000
-        r   = np.zeros((ngrid,), dtype="f8")
-        z   = np.zeros((ngrid,), dtype="f8")
-        rho = np.zeros((ngrid,), dtype="f8")
-
-        fun = _LIBASCOT.libascot_B_field_eval_rhovals
+        fun = _LIBASCOT.libascot_B_field_rhotheta2rz
         fun.restype  = None
         fun.argtypes = [PTR_SIM, PTR_ARR,
-                        ctypes.c_int,    ctypes.c_double, ctypes.c_double,
-                        ctypes.c_double, ctypes.c_double, ctypes.c_double,
-                        PTR_REAL, PTR_REAL, PTR_REAL]
+                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                        ctypes.c_double, ctypes.c_int, ctypes.c_double,
+                        PTR_REAL, PTR_REAL]
         fun(ctypes.byref(self._sim), self._bfield_offload_array,
-            ngrid, np.min(rhovals), np.max(rhovals), theta, phi, time,
-            r, z, rho)
+            Neval, rho, theta, phi, time, maxiter, tol, r, z)
 
-        if np.min(rhovals) == np.max(rhovals): return (r[0], z[0])
-        rho[0]  = rhovals[0]
-        rho[-1] = rhovals[-1]
-
-        fr = interpolate.interp1d(rho, r, fill_value="extrapolate")
-        fz = interpolate.interp1d(rho, z, fill_value="extrapolate")
-
-        return (fr(rhovals) * unyt.m, fz(rhovals) * unyt.m)
+        return (r, z)
