@@ -152,117 +152,74 @@ void libascot_B_field_get_axis(
 }
 
 /**
- * @brief Get Rz coordinates for uniform grid of rho values.
+ * @brief Map (rho, theta, phi) to (R,z) coordinates.
  *
- * Purpose of this function is to form a connection between rho and Rz
- * coordinates.
- *
- * This function starts from magnetic axis (at given phi), and takes small steps
- * in the direction of theta until the rho evaluated at that point exceeds
- * rhomin. Rz coordinates of that point are recorded, and steps are continued
- * until rhomax is reached and coordinates of that point are recorded.
- * Interval [(Rmin, zmin), (Rmax,zmax)] is then divided to nrho uniform grid
- * points and rho is evaluated at those points.
+ * This function implements the Newton method. If the function fails on
+ * a given position, the corresponding (R,z) values in the output arrays are
+ * not altered.
  *
  * @param sim_offload_data initialized simulation offload data struct
  * @param B_offload_array initialized magnetic field offload data
- * @param nrho number of evaluation points.
- * @param minrho minimum rho value.
- * @param maxrho maximum rho value.
- * @param theta poloidal angle [rad].
- * @param phi toroidal angle [rad].
- * @param t time coordinate [s].
+ * @param Neval number of query points.
+ * @param rho the square root of the normalized poloidal flux values.
+ * @param theta poloidal angles [rad].
+ * @param phi toroidal angles [rad].
+ * @param t time coordinate (same for all) [s].
+ * @param maxiter maximum number of iterations in Newton algorithm.
+ * @param tol algorithm is stopped when |rho - rho(r,z)| < tol
  * @param r output array for R coordinates [m].
- * @param z output array for R coordinates [m].
- * @param rho output array for rho values.
+ * @param z output array for z coordinates [m].
  */
-void libascot_B_field_eval_rhovals(
-    sim_offload_data* sim_offload_data, real* B_offload_array, int nrho,
-    real minrho, real maxrho, real theta, real phi, real t, real* r, real* z,
-    real* rho) {
+void libascot_B_field_rhotheta2rz(
+    sim_offload_data* sim_offload_data, real* B_offload_array, int Neval,
+    real* rho, real* theta, real* phi, real t, int maxiter, real tol,
+    real* r, real* z) {
 
     sim_data sim;
     B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
                  B_offload_array);
-    /* Maximum number of steps and step length [m] */
-    int NSTEP = 50000;
-    real step = 0.0001;
 
-    real axisrz[2];
-    if( B_field_get_axis_rz(axisrz, &sim.B_data, phi) ) {
-        return;
-    }
-    real Raxis = axisrz[0];
-    real zaxis = axisrz[1];
-
-    real psival, rho0[2];
-
-    /* Start evaluation from axis */
-    real R1 = Raxis;
-    real z1 = zaxis;
-    if(B_field_eval_psi(&psival, R1, phi, z1, t, &sim.B_data)) {
-        return;
-    }
-    if( B_field_eval_rho(rho0, psival, &sim.B_data) ) {
-        return;
-    }
-
-    int iter = 0;
-    while(rho0[0] < minrho && iter < NSTEP) {
-        iter++;
-
-        R1 = Raxis + iter*step*cos(theta);
-        z1 = zaxis + iter*step*sin(theta);
-        if( B_field_eval_psi(&psival, R1, phi, z1, t, &sim.B_data) ) {
+    #pragma omp parallel for
+    for(int j=0; j<Neval; j++) {
+        real axisrz[2];
+        real rhodrho[4];
+        if( B_field_get_axis_rz(axisrz, &sim.B_data, phi[j]) ) {
             continue;
         }
-        if( B_field_eval_rho(rho0, psival, &sim.B_data) ) {
+        if( B_field_eval_rho_drho(
+                rhodrho, axisrz[0], phi[j], axisrz[1], &sim.B_data) ) {
             continue;
         }
-    }
-    if(iter > 0) {
-        /* Value stored in rho0 is > minrho so we take previous R,z coordinates,
-         * since it is the last point where rho0 < minrho. */
-        R1 = Raxis + (iter-1)*step*cos(theta);
-        z1 = zaxis + (iter-1)*step*sin(theta);
-    }
-
-    if(iter == NSTEP) {
-        /* Maximum iterations reached. Abort. */
-        return;
-    }
-
-    real R2 = R1;
-    real z2 = z1;
-
-    iter = 0;
-    while(rho0[0] < maxrho && iter < NSTEP) {
-        iter++;
-
-        R2 = R1 + iter*step*cos(theta);
-        z2 = z1 + iter*step*sin(theta);
-        if( B_field_eval_psi(&psival, R2, phi, z2, t, &sim.B_data) ) {
-            break;
-        }
-        if( B_field_eval_rho(rho0, psival, &sim.B_data) ) {
-            break;
-        }
-    }
-
-    /* With limits determined, we can make a simple linspace from (R1, z1) to
-     * (R2, z2) and evaluate rho at those points.                             */
-    real rstep = (R2 - R1) / (nrho-1);
-    real zstep = (z2 - z1) / (nrho-1);
-    for(int i=0; i<nrho; i++) {
-        r[i] = R1 + rstep*i;
-        z[i] = z1 + zstep*i;
-        if( B_field_eval_psi(&psival, r[i], phi, z[i], t, &sim.B_data) ) {
+        if( rhodrho[0] > rho[j] ) {
+            /* Due to padding, rho might not be exactly zero on the axis so we
+             * return the axis position for small values of queried rho */
+            r[j] = axisrz[0];
+            z[j] = axisrz[1];
             continue;
         }
-        if( B_field_eval_rho(rho0, psival, &sim.B_data) ) {
-            continue;
+
+        real x = 0.1;
+        real rj, zj;
+        real costh = cos(theta[j]);
+        real sinth = sin(theta[j]);
+        for(int i=0; i<maxiter; i++) {
+            rj = axisrz[0] + x * costh;
+            zj = axisrz[1] + x * sinth;
+            if( B_field_eval_rho_drho(rhodrho, rj, phi[j], zj, &sim.B_data) ) {
+                break;
+            }
+            if( fabs(rho[j] - rhodrho[0]) < tol ) {
+                r[j] = rj;
+                z[j] = zj;
+                break;
+            }
+
+            real drhodx = costh * rhodrho[1] + sinth * rhodrho[3];
+            x = x - (rhodrho[0] - rho[j]) / drhodx;
+            if( x < 0 ) {
+                break;
+            }
         }
-        rho[i] = rho0[0];
     }
 }
 

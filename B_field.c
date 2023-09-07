@@ -410,7 +410,7 @@ a5err B_field_eval_rho(real rho[2], real psi, B_field_data* Bdata) {
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err B_field_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
-                       B_field_data* Bdata) {
+                            B_field_data* Bdata) {
     a5err err = 0;
 
     switch(Bdata->type) {
