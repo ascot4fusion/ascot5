@@ -7,6 +7,7 @@ try:
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     import mpl_toolkits
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
 except ImportError:
     warnings.warn("Could not import matplotlib. Plotting disabled.")
 
@@ -15,7 +16,6 @@ try:
 except ImportError:
     warnings.warn("Could not import pyvista. 3D wall plotting disabled.")
 
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from functools import wraps
 
 def setpaperstyle(height=5, halfpage=False):
@@ -475,7 +475,7 @@ def mesh1d(x, y, log=False, xlabel=None, ylabel=None, axes=False):
 
 @openfigureifnoaxes(projection=None)
 def mesh2d(x, y, z, log=False, diverging=False, xlabel=None, ylabel=None,
-           clabel=None, clim=[None, None], cmap=None, axesequal=False,
+           clabel=None, clim=None, cmap=None, axesequal=False,
            axes=None, cax=None):
     """Make a mesh (surface) plot in 2D.
 
@@ -510,11 +510,12 @@ def mesh2d(x, y, z, log=False, diverging=False, xlabel=None, ylabel=None,
     cax : :obj:`~matplotlib.axes.Axes`, optional
         The color bar axes or otherwise taken from the main axes.
     """
-    z = np.ma.masked_invalid(z)
+    if clim is None: clim = [None, None]
     if clim[0] is None:
         clim[0] = np.nanmin(z)
     if clim[1] is None:
         clim[1] = np.nanmax(z)
+    z = np.ma.masked_invalid(z)
 
     if log:
         if diverging:
@@ -999,7 +1000,7 @@ def interactive(wallmesh, *args, points=None, data=None, log=False, cpos=None,
 
 @openfigureifnoaxes(projection=None)
 def loadvsarea(wetted, loads, axes=None):
-    """
+    """Plot histogram showing minimum load vs area.
     """
     idx = np.argsort(-loads)
     wetted = np.cumsum(wetted[idx])
@@ -1010,6 +1011,78 @@ def loadvsarea(wetted, loads, axes=None):
     axes.plot(loads, wetted)
     axes.set_xlabel(r"Load above [" + str(loads.units) + "]")
     axes.set_ylabel(r"Wetted area [" + str(wetted.units) + "]")
+
+@openfigureifnoaxes(projection=None)
+def triangularpatch(
+        patches, color, log=False, xlim=None, ylim=None, clim=None, xlabel=None,
+        ylabel=None, clabel=None, cmap=None, axes=None, cax=None):
+    """Plot triangular patches.
+    """
+    if clim    is None: clim = [None, None]
+    if clim[0] is None: clim[0] = np.nanmin(color)
+    if clim[1] is None: clim[1] = np.nanmax(color)
+
+    if log:
+        norm = mpl.colors.LogNorm(clim[0], clim[1])
+    else:
+        norm = mpl.colors.Normalize(clim[0], clim[1])
+
+    coll = mpl.collections.PolyCollection(patches, array=color, norm=norm,
+                                          cmap=cmap)
+    axes.add_collection(coll)
+
+    axes.set_xlim(xlim)
+    axes.set_ylim(ylim)
+    axes.set_xlabel(xlabel)
+    axes.set_ylabel(ylabel)
+
+    plt.colorbar(coll, norm=norm, ax=axes, cax=cax, label=clabel)
+
+@openfigureifnoaxes(projection="polar")
+def momentumpolarplot(pnorm_edges, pitch_edges, dist, axes=None, cax=None):
+    """Plot momentum space distribution in polar coordinates.
+
+    Parameters
+    ----------
+    pnorm_edges : array_like
+        Momentum abscissa edges.
+    pitch_edges : array_like
+        Pitch abscissa edges.
+    dist : array_like
+        Values of the distribution.
+    axes : :obj:`~matplotlib.axes.Axes`, optional
+        The axes where figure is plotted or otherwise new figure is created.
+    cax : :obj:`~matplotlib.axes.Axes`, optional
+        The color bar axes or otherwise taken from the main axes.
+    """
+    theta = np.arccos(pitch_edges)
+    h = axes.pcolormesh(theta, pnorm_edges, dist)
+    plt.colorbar(h, ax=axes, cax=cax)
+    axes.set_thetamin(0)
+    axes.set_thetamax(180)
+    axes.set_xticks(np.array([0, 45, 90, 135, 180])*np.pi/180)
+    axes.set_xticklabels([1.0, 0.5, 0.0, -0.5, -1.0])
+
+@openfigureifnoaxes(projection=None)
+def momentumpolargrid(pnorm_edges, pitch_edges, axes=None):
+    """Plot momentum space polar coordinate grid in Cartesian basis.
+
+    Parameters
+    ----------
+    pnorm_edges : array_like
+        Momentum abscissa edges.
+    pitch_edges : array_like
+        Pitch abscissa edges.
+    axes : :obj:`~matplotlib.axes.Axes`, optional
+        The axes where figure is plotted or otherwise new figure is created.
+    """
+    ang = np.linspace(0, np.pi, 60)
+    for v in pnorm_edges:
+        axes.plot(v*np.cos(ang), v*np.sin(ang), color="black")
+
+    p = pnorm_edges[-1]
+    for v in pitch_edges:
+        axes.plot([0, v*p], [0, np.sqrt(1.0 - v**2)*p], color="black")
 
 def defaultcamera(wallmesh):
     """Get default camera (helper function for the 3D plots).

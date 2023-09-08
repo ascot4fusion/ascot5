@@ -909,14 +909,23 @@ class WallLoad(ContentTab):
         self.loadsummary.config(state="disabled")
 
         self.plot.clear()
-        run.plotwall_loadvsarea(axes=self.plot.axes)
+        run.plotwall_loadvsarea(axes=self.plot.axes[0])
+        run.plotwall_torpol(axes=self.plot.axes[1])
         self.plot.draw()
         self.canvas.slideshow(self)
 
     class Canvas(PlotFrame):
         """Canvas for plotting.
         """
-        pass
+
+        def set_axes(self):
+            """Override this method to allow generation of multiple axes.
+            """
+            gs = GridSpec(1,2)
+            ax = []
+            ax += [self.fig.add_subplot(gs[:,0])]
+            ax += [self.fig.add_subplot(gs[0,1])]
+            return ax
 
 
 class Wall3D(ContentTab):

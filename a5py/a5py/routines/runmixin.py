@@ -532,7 +532,7 @@ class RunMixin():
             - "eload" power/energy load in units of W/m^2 or J/m^2
         """
         wallmesh = pv.PolyData( *self.wall.noderepresentation() )
-        ids, _, eload, _, pload, _, iangle = self.getwall_loads()
+        ids, _, eload, pload, iangle = self.getwall_loads()
         ids = ids - 1 # Convert IDs to indices
         ntriangle = wallmesh.n_faces
         wallmesh.cell_data["pload"]       = np.zeros((ntriangle,)) + np.nan
@@ -545,7 +545,8 @@ class RunMixin():
         #wallmesh.cell_data["iangle"][ids] = iangle
         return wallmesh
 
-    def getdist(self, dist, exi=False, ekin_edges=None, pitch_edges=None):
+    def getdist(self, dist, exi=False, ekin_edges=None, pitch_edges=None,
+                plotexi=False):
         """Return distribution function.
 
         Parameters
@@ -557,7 +558,18 @@ class RunMixin():
         exi : bool, optional
             Convert the momentum space to energy-pitch.
 
+            The distribution is normalized to conserve the particle number.
+
             Not applicable for ``dist`` = {"6d", "rho6d", "com"}.
+        ekin_edges : int or array_like, optional
+            Number of bins or bin edges in the energy abscissa if ``exi=True``.
+        pitch_edges : int or array_like, optional
+            Number of bins or bin edges in the pitch abscissa if ``exi=True``.
+        plotexi : bool, optional
+            Visualize the transformation from ppar-perp to energy-pitch if
+            if ``exi=True``.
+
+            Use this option to adjust energy and pitch abscissae to your liking.
 
         Returns
         -------
@@ -577,37 +589,77 @@ class RunMixin():
         mass = np.mean(self.getstate("mass"))
         if dist == "5d":
             self._require("_dist5d")
-            dist = self._dist5d.get()
+            distout = self._dist5d.get()
             if exi:
                 if ekin_edges is None:
-                    ekin_edges  = int(dist.abscissa("ppar").size / 2)
+                    ekin_edges  = int(distout.abscissa("ppar").size / 2)
                 if pitch_edges is None:
-                    pitch_edges = dist.abscissa("pperp").size
-                dist = Dist.ppappe2ekinpitch(
-                    dist, mass, ekin_edges=ekin_edges, pitch_edges=pitch_edges)
+                    pitch_edges = distout.abscissa("pperp").size
+                distout = Dist.ppappe2ekinpitch(
+                    distout, mass, ekin_edges=ekin_edges,
+                    pitch_edges=pitch_edges)
         elif dist == "6d":
             self._require("_dist6d")
-            dist = self._dist6d.get()
+            if exi:
+                raise ValueError("Energy-pitch transformation not valid for 6d")
+            distout = self._dist6d.get()
         elif dist == "rho5d":
             self._require("_distrho5d")
-            dist = self._distrho5d.get()
+            distout = self._distrho5d.get()
             if exi:
                 if ekin_edges is None:
-                    ekin_edges  = int(dist.abscissa("ppar").size / 2)
+                    ekin_edges  = int(distout.abscissa("ppar").size / 2)
                 if pitch_edges is None:
-                    pitch_edges = dist.abscissa("pperp").size
-                dist = Dist.ppappe2ekinpitch(
-                    dist, mass, ekin_edges=ekin_edges, pitch_edges=pitch_edges)
+                    pitch_edges = distout.abscissa("pperp").size
+                distout = Dist.ppappe2ekinpitch(
+                    distout, mass, ekin_edges=ekin_edges,
+                    pitch_edges=pitch_edges)
         elif dist == "rho6d":
             self._require("_distrho6d")
-            dist = self._distrho6d.get()
+            if exi:
+                raise ValueError("Energy-pitch transformation not valid for 6d")
+            distout = self._distrho6d.get()
         elif dist == "com":
             self._require("_distcom")
-            dist = self._distcom.get()
+            if exi:
+                raise ValueError(
+                    "Energy-pitch transformation not valid for COM")
+            distout = self._distcom.get()
         else:
             raise ValueError("Unknown distribution")
 
-        return dist
+        if exi and plotexi:
+            if dist == "5d":    dist0 = self._dist5d.get()
+            if dist == "rho5d": dist0 = self._distrho5d.get()
+            integrate = {}
+            for k in dist0.abscissae:
+                if k not in ["ppar", "pperp"]:
+                    integrate[k] = np.s_[:]
+            dist0.integrate(**integrate)
+            integrate = {}
+            for k in distout.abscissae:
+                if k not in ["ekin", "pitch"]:
+                    integrate[k] = np.s_[:]
+            dist1 = distout.integrate(copy=True, **integrate)
+
+            g = physlib.gamma_energy(mass, dist1.abscissa_edges("ekin"))
+            pnorm_edges = physlib.pnorm_gamma(mass, g).to("kg*m/s")
+            pitch_edges = dist1.abscissa_edges("pitch")
+
+            import matplotlib.pyplot as plt
+            fig = plt.figure()
+            ax1 = fig.add_subplot(3,1,1)
+            ax2 = fig.add_subplot(3,1,2, projection='polar')
+            ax3 = fig.add_subplot(3,1,3)
+
+            self.plotdist(dist0, axes=ax1)
+            a5plt.momentumpolargrid(pnorm_edges, pitch_edges, axes=ax1)
+            a5plt.momentumpolarplot(pnorm_edges, pitch_edges,
+                                    dist1.distribution(), axes=ax2)
+            self.plotdist(dist1, axes=ax3)
+            plt.show()
+
+        return distout
 
     def getdist_moments(self, dist, *moments):
         """Calculate moments of distribution.
@@ -630,8 +682,9 @@ class RunMixin():
             ntheta = dist.abscissa_edges("theta").size
             nphi   = dist.abscissa_edges("phi").size
             volume, area, r, phi, z = self._root._ascot.input_rhovolume(
-                method="mc", tol=1e-3, nrho=nrho, ntheta=ntheta, nphi=nphi,
+                method="prism", tol=1e-1, nrho=nrho, ntheta=ntheta, nphi=nphi,
                 return_area=True, return_coords=True)
+            volume[volume == 0] = 1e-8
             out = DistMoment(
                 dist.abscissa_edges("rho"), dist.abscissa_edges("theta"),
                 dist.abscissa_edges("phi"), r, phi, z, area, volume, rhodist)
@@ -654,11 +707,11 @@ class RunMixin():
             raise ValueError("Distribution has neither rho nor R, phi and z")
 
         ordinates = {}
-        if "density" in moments: 
+        if "density" in moments:
             Dist.density(dist, out)
         if "chargedensity" in moments:
             Dist.chargedensity(dist, out)
-        if "energydensity" in moments: 
+        if "energydensity" in moments:
             Dist.energydensity(dist, out)
         if "toroidalcurrent" in moments:
             mass = np.mean(self.getstate("mass"))
@@ -726,6 +779,12 @@ class RunMixin():
             ylabel = "f" + " [" + str(ordinate.units) + "]"
             a5plt.mesh1d(x, ordinate, xlabel=xlabel, ylabel=ylabel, axes=axes)
         else:
+            # Swap pitch and energy
+            if "ekin" in xlabel and "pitch" in ylabel:
+                temp = x; x = y; y = temp
+                temp = xlabel; xlabel = ylabel; ylabel = temp
+                ordinate = ordinate.T
+
             axesequal = x.units == y.units
             clabel = "f" + " [" + str(ordinate.units) + "]"
             a5plt.mesh2d(x, y, ordinate, axesequal=axesequal, xlabel=xlabel,
@@ -1307,6 +1366,75 @@ class RunMixin():
         """
         _, area, eload, _, _ = self.getwall_loads()
         a5plt.loadvsarea(area, eload/area, axes=axes)
+
+    @a5plt.openfigureifnoaxes(projection=None)
+    def plotwall_torpol(self, log=True, clim=None, axes=None, cax=None):
+        """Plot the toroidal-poloidal projection of the wall loads.
+
+        Note that the resulting doesn't present the areas accurately and even
+        the locations are approximate. The purpose of the plot is to roughly
+        illustrate how the losses are distributed.
+
+        Parameters
+        ----------
+        log : bool, optional
+            Make the color scale logarithmic.
+        clim : [float, float], optional
+            Minimum and maximum values in the color scale.
+        axes : :obj:`~matplotlib.axes.Axes`, optional
+            The axes where figure is plotted or otherwise new figure is created.
+        cax : :obj:`~matplotlib.axes.Axes`, optional
+            The color bar axes or otherwise taken from the main axes.
+        """
+        wetted, area, edepo, pdepo, iangle = self.getwall_loads()
+        d = self.wall.read()
+        nelement = wetted.size
+        color    = edepo/area
+        x1x2x3   = d["x1x2x3"][wetted]
+        y1y2y3   = d["y1y2y3"][wetted]
+        z1z2z3   = d["z1z2z3"][wetted]
+
+        # Toroidal angle for each vertex
+        tor = np.rad2deg( np.arctan2( y1y2y3, x1x2x3 ))
+
+        # Poloidal angle for each vertex
+        out = self._root._ascot._eval_bfield(
+            1*unyt.m, tor*unyt.deg, 1*unyt.m, 0*unyt.s, evalaxis=True)
+        axisr  = out["axisr"].v
+        axisz  = out["axisz"].v
+        rmajor = np.sqrt( x1x2x3**2 + y1y2y3**2 )
+        pol    = np.rad2deg( np.arctan2(z1z2z3 - axisz, rmajor - axisr) )
+
+        # If triangle would otherwise be split on different ends of [0, 360]
+        # range in tor or pol, move it to top/right.
+        dx = (np.amax(tor, axis=1) - np.amin(tor, axis=1)) > 180.0
+        tor[dx, :] = np.mod(tor[dx, :], 360)
+        dy = (np.amax(pol, axis=1) - np.amin(pol, axis=1)) > 180.0
+        pol[dy, :] = np.mod(pol[dy, :], 360)
+
+        # Move the horizontal axis to 0...360
+        tor[np.amin(tor, axis=1) < 0, :] += 360.0
+
+        # Sort the patches so that triangles closest to the axis are drawn
+        # last (so that they are on top of others)
+        rminor = np.sqrt( (rmajor - axisr)**2 + (z1z2z3 - axisz)**2 )
+        idx    = np.flipud( np.argsort(np.amin(rminor, axis=1), axis=0) )
+        tor    = tor[idx, :]
+        pol    = pol[idx, :]
+        color  = color[idx]
+
+        # Convert the data into format [vert0, vert1, ...] where verti contains
+        # vertices of triangle i in (3,2) array.
+        patches = np.zeros((nelement,3,2))
+        patches[:,:,0] = tor[:,:]
+        patches[:,:,1] = pol[:,:]
+        a5plt.triangularpatch(
+            patches, color, xlim=[-2, 362], ylim=[-182, 182], clim=clim,
+            log=log, axes=axes, cax=cax, clabel=r"Wall load [W/m$^2$]",
+            cmap="Reds",
+            xlabel="Toroidal angle [deg]", ylabel="Poloidal angle [deg]")
+        axes.set_xticks([0, 90, 180, 270, 360])
+        axes.set_yticks([-180, -90, 0, 90, 180])
 
     def plotwall_3dstill(self, wallmesh=None, points=None, data=None, log=False,
                          cpos=None, cfoc=None, cang=None, axes=None, cax=None):
