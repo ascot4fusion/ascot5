@@ -227,12 +227,11 @@ class B_GS(DataGroup):
                                  c[6], c[7], c[8], c[9], c[10], c[11], c[12])
             psi0 = psifun.psi0(x[0], x[1], c[0], c[1], c[2], c[3], c[4],
                                c[5], c[6], c[7], c[8], c[9], c[10], c[11],
-                               c[12]) * psimult * 1.001
-            psi1 = psifun.psi0(x[0]+0.1, x[1], c[0], c[1], c[2], c[3], c[4],
-                               c[5], c[6], c[7], c[8], c[9], c[10], c[11],
                                c[12]) * psimult
+            psi1  = 0
             raxis = x[0]*r0
             zaxis = x[1]*r0
+            psi0 = psi0 - 1e-8 if psi0 < psi1 else psi0 + 1e-8
 
         with h5py.File(fn, "a") as f:
             g = add_group(f, parent, group, desc=desc)
@@ -494,11 +493,12 @@ class B_2DS(DataGroup):
                                  c[6], c[7], c[8], c[9], c[10], c[11], c[12])
             psi0 = kwargs["psimult"]*psifun.psi0(
                 x[0], x[1], c[0], c[1], c[2], c[3], c[4],
-                c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12]) * 1.001
+                c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12])
             r0 = x[0]*kwargs["r0"]
             z0 = x[1]*kwargs["r0"]
-
             psi1 = 0
+            # Padding
+            psi0 = psi0 - 1e-4 if psi0 < psi1 else psi0 + 1e-4
 
         return {"rmin" : rmin, "rmax" : rmax, "nr" : nr, "zmin" : zmin,
                 "zmax" : zmax, "nz" : nz, "axisr" : r0, "axisz" : z0,
