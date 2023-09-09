@@ -4,6 +4,7 @@ import ctypes
 import unyt
 import numpy as np
 import warnings
+import wurlitzer # For muting libascot.so
 
 import a5py.routines.plotting as a5plt
 from a5py.physlib import parseunits
@@ -71,6 +72,9 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         Rank of this MPI process.
     _mpi_size
         Number of MPI processes.
+    _mute
+        Mute output from libascot.so: "yes" - stdout and stderr both muted,
+        "no" - output is not muted, "err" - stderr is printed.
     """
 
     DUMMY_QID = "".encode('UTF-8')
@@ -118,6 +122,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             argc, ctypes.byref(argv), ctypes.byref(self._sim),
             ctypes.byref(self._mpi_rank), ctypes.byref(self._mpi_size),
             ctypes.byref(self._mpi_root))
+        self._mute = "no"
 
     def _init(self, data, bfield=None, efield=None, plasma=None,
               wall=None, neutral=None, boozer=None, mhd=None, asigma=None,
@@ -207,21 +212,32 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             if inputs2read.value & getattr(ascot2py, "hdf5_input_" + inp):
                 setattr(self._sim, "qid_" + inp, args[inp])
 
-        ascot2py.hdf5_interface_read_input(
-            ctypes.byref(self._sim),
-            inputs2read,
-            ctypes.byref(self._bfield_offload_array),
-            ctypes.byref(self._efield_offload_array),
-            ctypes.byref(self._plasma_offload_array),
-            ctypes.byref(self._neutral_offload_array),
-            ctypes.byref(self._wall_offload_array),
-            ctypes.byref(self._wall_int_offload_array),
-            ctypes.byref(self._boozer_offload_array),
-            ctypes.byref(self._mhd_offload_array),
-            ctypes.byref(self._asigma_offload_array),
-            None, # Marker array (ignore)
-            None  # Number of markers that were read (ignore)
+        def hdf5init():
+            """Simple wrapper.
+            """
+            ascot2py.hdf5_interface_read_input(
+                ctypes.byref(self._sim),
+                inputs2read,
+                ctypes.byref(self._bfield_offload_array),
+                ctypes.byref(self._efield_offload_array),
+                ctypes.byref(self._plasma_offload_array),
+                ctypes.byref(self._neutral_offload_array),
+                ctypes.byref(self._wall_offload_array),
+                ctypes.byref(self._wall_int_offload_array),
+                ctypes.byref(self._boozer_offload_array),
+                ctypes.byref(self._mhd_offload_array),
+                ctypes.byref(self._asigma_offload_array),
+                None, # Marker array (ignore)
+                None  # Number of markers that were read (ignore)
             )
+
+        if self._mute == "no":
+            hdf5init()
+        else:
+            with wurlitzer.pipes() as (out, err):
+                hdf5init()
+            err = err.read()
+            if self._mute == "err" and len(err) > 1: print(err)
 
         for inp in to_be_provided:
             if inp == "wall":

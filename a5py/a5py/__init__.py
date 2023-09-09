@@ -49,18 +49,28 @@ class Ascot(Ascotpy):
         Container for the HDF5 data.
     """
 
-    def __init__(self, inputfile=None, create=False):
+    def __init__(self, inputfile=None, create=False, mute="err"):
         """Initialize Ascot instance.
 
         Parameters
         ----------
         inputfile : str, optional
             Name of the HDF5 file or `None` to create an empty instance.
+        create : bool, optional
+            Create a new HDF5 file with given name.
+        mute : {"yes", "no", "err"}, optional
+            Mute output from libascot.so, i.e. don't display the
+            "Reading input X" stuff.
+
+            Possible values are: "yes" - both stdout and stderr are muted,
+            "no" - nothing is muted, "err" - stderr is shown.
         """
         super().__init__()
 
         self._inputfile = None
         self.data       = None
+        if mute not in ["yes", "no", "err"]:
+            raise ValueError("mute must be either \"yes\", \"no\" or \"err\".")
 
         if create:
             if os.path.isfile(inputfile):
@@ -68,6 +78,7 @@ class Ascot(Ascotpy):
             Ascot5IO._create_file(inputfile)
 
         self.file_load(inputfile)
+        self._mute = mute
 
     def file_getpath(self):
         """Return name of the HDF5 file from which this instance reads the data.

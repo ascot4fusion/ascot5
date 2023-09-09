@@ -6,6 +6,7 @@ unyt
 scikit-image
 matplotlib
 pyvista
+wurlitzer
 ipykernel
 sphinx
 numpydoc
