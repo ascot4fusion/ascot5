@@ -249,7 +249,7 @@ a5err B_GS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
     real logr = log(r);
 
     psi_dpsi[1] = ( Bdata->psi_mult / (r * Bdata->R0) ) *
-        (1-C[12]) * (r3/2)
+        ( (1-C[12]) * (r3/2)
         + C[12] * (r/2 + r*logr)
         + C[1]  * (2*r)
         + C[2]  * (2*r*logr + r)
@@ -261,7 +261,7 @@ a5err B_GS_eval_psi_dpsi(real psi_dpsi[4], real r, real phi, real z,
         + C[8]  * (2*z*r)
         + C[9]  * (-6*z*r*logr - 3*z*r)
         + C[10] * (12*z*r3 - 8*z3*r)
-        + C[11] * (-120*z*r3-160*z3*r*logr-80*z3*r+240*z*r3*logr);
+        + C[11] * (-120*z*r3-160*z3*r*logr-80*z3*r+240*z*r3*logr) );
 
     psi_dpsi[2] = 0;
 
@@ -302,7 +302,7 @@ a5err B_GS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
     /* Check that the values seem valid */
     real delta = Bdata->psi1 - Bdata->psi0;
     if( (psi_dpsi[0] - Bdata->psi0) / delta < 0 ) {
-         return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_GS );
+        return error_raise( ERR_INPUT_UNPHYSICAL, __LINE__, EF_B_GS );
     }
 
     rho_drho[0] = sqrt( (psi_dpsi[0] - Bdata->psi0) / delta );

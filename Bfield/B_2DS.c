@@ -307,8 +307,7 @@ a5err B_2DS_eval_rho_drho(real rho_drho[4], real r, real phi, real z,
     }
 
     /* Normalize psi to get rho */
-    rho_drho[0] = sqrt(fabs((psi_dpsi[0] - Bdata->psi0) / delta));
-
+    rho_drho[0] = sqrt((psi_dpsi[0] - Bdata->psi0) / delta);
     rho_drho[1] = psi_dpsi[1] / (2*delta*rho_drho[0]);
     rho_drho[2] = 0;
     rho_drho[3] = psi_dpsi[2] / (2*delta*rho_drho[0]);
