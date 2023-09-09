@@ -3,6 +3,7 @@
 import ctypes
 import unyt
 import numpy as np
+import warnings
 
 import a5py.routines.plotting as a5plt
 from a5py.physlib import parseunits
@@ -762,16 +763,19 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
         return quantities
 
-    def input_rhovolume(self, nrho=10, method="prism", tol=1e-2, ntheta=360,
-                        nphi=360, t=0*unyt.s, nperiod=1,
-                        return_area=False, return_coords=False):
+    def input_rhovolume(self, nrho=10, ntheta=360, nphi=10, method="mc",
+                        tol=1e-1, t=0*unyt.s, return_area=False,
+                        return_coords=False):
         """Evaluate flux surface volumes.
 
         Parameters
         ----------
         nrho : int, optional
             Number of radial grid edges between [0, 1].
-
+        ntheta : int, optional
+            Number of poloidal grid edges.
+        nphi : int, optional
+            Number of toroidal grid edges.
         method : {"prism", "mc"}, optional
             Method used to evaluate the volumes.
 
@@ -788,15 +792,9 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             Carlo method.
         tol : float, optional
             If relative difference in volume in subsequent iterations falls
-            below this value, the Monte Carlo algorithm in "mc" finishes.
-        ntheta : int, optional
-            Number of poloidal grid edges.
-        nphi : int, optional
-            Number of toroidal grid edges.
+            below this value, the algorithm finishes.
         t : float, optional
             Time slice when the volumes are computed.
-        nperiod : int, optional
-            How many periods toroidal volume is assumed to have.
         return_area : bool, optional
             Return also the area on (R, z) plane.
         return_coords : bool, optional
@@ -816,108 +814,154 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         z : array_like (nrho-1, ntheta-1, nphi-1)
             z coordinates of bin centers if ``return_coords=True``.
         """
-        rho   = np.linspace(0, 1,   nrho) * unyt.dimensionless
-        phi   = np.linspace(0, 2*np.pi / nperiod, nphi) * unyt.rad
-        theta = np.linspace(0, 2*np.pi, ntheta) * unyt.rad
+        if nrho < 2 or ntheta < 2 or nphi < 2:
+            raise ValueError(
+                "Minimum number of edges is 2 but nrho=%d, ntheta=%d, nphi%d"
+                + " were given", (nrho, ntheta, nphi))
 
-        r = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.m
-        p = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.rad
-        z = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.m
-
+        # Grid edges and area and volume of the grid cells
+        rho    = np.linspace(0, 1,   nrho) * unyt.dimensionless
+        phi    = np.linspace(0, 2*np.pi, nphi) * unyt.rad
+        theta  = np.linspace(0, 2*np.pi, ntheta) * unyt.rad
         area   = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.m**2
         volume = np.zeros((nrho-1, ntheta-1, nphi-1)) * unyt.m**3
 
+        # Compute grid center points in (R,phi,z)
+        rhoc, thc, p = np.meshgrid(
+            ( rho[1:]   + rho[:-1]   ) / 2,
+            ( theta[1:] + theta[:-1] ) / 2,
+            ( phi[1:]   + phi[:-1]   ) / 2, indexing="ij")
+        r, z = self.input_rhotheta2rz(
+            rhoc.ravel(), thc.ravel(), p.ravel(), t)
+        r *= unyt.m
+        z *= unyt.m
+        del thc, rhoc
+
+        def integrate_prism(rho, theta, phimin, phimax):
+            """Integrate volume by dividing it into prisms.
+            """
+            # Integration variable theta
+            th = np.linspace(0, 2*np.pi, 1000)
+
+            # Get axis location
+            out = self._eval_bfield(
+                1*unyt.m, (phimin + phimax) / 2, 1*unyt.m, t, evalaxis=True)
+            r0 = out["axisr"]
+            z0 = out["axisz"]
+
+            # Get contour points for each rho value
+            rhoc, thc, phic = np.meshgrid(
+                rho[1:], th, ( phimin + phimax ) / 2, indexing="ij" )
+            rc, zc = self.input_rhotheta2rz(
+                rhoc.ravel(), thc.ravel()*unyt.rad, phic.ravel(), t)
+            rc = rc.reshape(rhoc.shape)[:,:,0]
+            zc = zc.reshape(rhoc.shape)[:,:,0]
+
+            # Calculate the triangle areas and triangle centroid
+            area = 0.5 * np.abs(  r0        * ( zc[:,:-1] - zc[:,1:]  )
+                                + rc[:,:-1] * ( zc[:,1:]  - z0        )
+                                + rc[:,1:]  * ( z0        - zc[:,:-1] ) )
+            h       = (phimax - phimin).v
+            centerr = (r0 + rc[:,:-1] + rc[:,1:]) / 3
+            volume  = h * centerr * area
+
+            # Now divide these to theta sectors that were requested
+            V = np.zeros((rho.size-1, theta.size-1)) * unyt.m**3
+            A = np.zeros((rho.size-1, theta.size-1)) * unyt.m**2
+            th = th[:-1] # Drop last index as it is same as first
+            for it in range(theta.size-1):
+                idx = np.logical_and(th >= theta[it], th < theta[it+1])
+                V[:,it] = np.sum(volume[:, idx], axis=1)
+                A[:,it] = np.sum(area[:, idx], axis=1)
+
+            V[1:,:] -= V[:-1,:]
+            A[1:,:] -= A[:-1,:]
+            return V, A
+
+        def integrate_mc(rho, theta, phimin, phimax):
+            """Integrate volume by dividing it into prisms.
+            """
+            # Determine the bounding box
+            th = np.linspace(0, 2*np.pi, 1000)
+            rhoc, thc, phic = np.meshgrid(1.0*unyt.dimensionless, th,
+                                          np.append(phimin, phimax),
+                                          indexing="ij" )
+            rc, zc = self.input_rhotheta2rz(
+                rhoc.ravel(), thc.ravel()*unyt.rad, phic.ravel()*unyt.rad, t)
+            bbox = np.ones((4,)) * unyt.m
+            bbox[0] = np.nanmin(rc)
+            bbox[1] = np.nanmax(rc)
+            bbox[2] = np.nanmin(zc)
+            bbox[3] = np.nanmax(zc)
+
+            # Get axis location
+            out = self._eval_bfield(
+                1*unyt.m, (phimin + phimax) / 2, 1*unyt.m, t, evalaxis=True)
+            r0 = out["axisr"]
+            z0 = out["axisz"]
+
+            # Number of markers drawn per iteration, total number of markers
+            # drawn and area and volume of the test region
+            ndraw  = 10000
+            ntot   = 0
+            atotal = (bbox[1] - bbox[0]) * (bbox[3] - bbox[2])
+            vtotal = 0.5 * (bbox[1]**2 - bbox[0]**2) \
+                * ( bbox[3] - bbox[2] ) * ( phimax - phimin ).v
+            deltarho = 1.0 / (rho.size-1)
+            deltath  = 2*np.pi / (theta.size-1)
+
+            v0     = np.zeros((rho.size-1, theta.size-1)) * unyt.m**3
+            area   = np.zeros((rho.size-1, theta.size-1)) * unyt.m**2
+            volume = np.zeros((rho.size-1, theta.size-1)) * unyt.m**3
+            points_in_bins = np.zeros((rho.size-1, theta.size-1))
+            while np.sum(v0) == 0 or \
+                  np.max(np.abs( volume[v0>0] - v0[v0>0] ) / v0[v0>0])  > tol:
+                v0[:,:] = volume
+                pi = np.random.uniform(phimin, phimax,   ndraw) * unyt.rad
+                ri = np.random.uniform(bbox[0], bbox[1], ndraw) * unyt.m
+                zi = np.random.uniform(bbox[2], bbox[3], ndraw) * unyt.m
+                th = np.arctan2(zi-z0,ri-r0) + np.pi
+
+                rhoi    = self.input_eval(ri, pi, zi, t, "rho").v
+                ind     = rhoi <= 1 # Reject markers outside separatrix
+                i_rho   = np.floor(rhoi[ind] / deltarho).astype(int)
+                i_theta = np.floor(th[ind] / deltath).astype(int)
+
+                np.add.at(points_in_bins, (i_rho, i_theta), 1)
+                ntot += ndraw
+
+                area[:,:]   = atotal * points_in_bins / ntot
+                volume[:,:] = vtotal * points_in_bins / ntot
+
+            return volume, area
+
         if method == "prism":
-            for ip in range(nphi-1):
-                # Get axis location
-                out = self._eval_bfield(1*unyt.m, phi[ip], 1*unyt.m, t,
-                                        evalaxis=True)
-                r0 = out["axisr"]
-                z0 = out["axisz"]
-                cr = np.zeros((nrho-1, ntheta-1)) * unyt.m
-
-                # Contour coordinates (excluding rho=0 which is on axis)
-                rc0, zc0 = self.input_rhotheta2rz(rho[1:], theta[0], phi[ip], t)
-                for it in range(ntheta-1):
-                    # (R,z) values corresponding to rho and current theta & phi
-                    r[:,it,ip], z[:,it,ip] = self.input_rhotheta2rz(
-                        (rho[1:] + rho[:-1]) / 2, (theta[it+1] + theta[it]) / 2,
-                        (phi[ip+1] + phi[ip]) / 2, t)
-                    p[:,:,ip] = (phi[ip+1] + phi[ip]) / 2
-
-                    rc, zc = self.input_rhotheta2rz(
-                        rho[1:], theta[it+1], phi[ip], t)
-                    # Calculate the triangle areas and triangle centroid
-                    cr[:,it] = (r0 + rc + rc0) / 3
-                    area[:,it,ip] = 0.5 * np.abs(  r0*(zc0 - zc) + rc0*(zc - z0)
-                                                 + rc*(z0 - zc0) )
-
-                    # Save points so we can calculate the area at the next slice
-                    rc0 = rc
-                    zc0 = zc
-
-                h = (phi[ip+1] - phi[ip]).v
-                volume[:,:,ip] = h * cr * area[:,:,ip]
-
-                # Calculated areas and volumes are for up to given rho value but
-                # we ant them to be between two rho values
-                area[1:,:,ip]   -= area[:-1,:,ip]
-                volume[1:,:,ip] -= volume[:-1,:,ip]
-
+            integrate = integrate_prism
         elif method == "mc":
-            for ip in range(nphi-1):
-                out = self._eval_bfield(0*unyt.m, phi[ip], 0*unyt.m, t,
-                                        evalaxis=True)
-                r0 = out["axisr"]
-                z0 = out["axisz"]
-                bbox = np.array([r0.v, r0.v, z0.v, z0.v]) * unyt.m
+            integrate = integrate_mc
 
-                for it in range(ntheta-1):
-                    # (R,z) values corresponding to rho and current theta & phi
-                    r[:,it,ip], z[:,it,ip] = self.input_rhotheta2rz(
-                        (rho[1:] + rho[:-1]) / 2, (theta[it+1] + theta[it]) / 2,
-                        (phi[ip+1] + phi[ip]) / 2, t)
-                    p[:,:,ip] = (phi[ip+1] + phi[ip]) / 2
+        for ip in range(nphi-1):
+            volume[:,:,ip], area[:,:,ip] = \
+                integrate(rho, theta, phi[ip], phi[ip+1])
+            dphi = (phi[ip+1] - phi[ip]) / 2
+            v, _   = integrate(rho, theta, phi[ip], phi[ip] + dphi)
+            v1, _  = integrate(rho, theta, phi[ip] + dphi, phi[ip] + dphi*2)
+            v += v1
+            while(np.abs(np.sum(v) - np.sum(volume[:,:,ip])) > tol):
+                volume[:,:,ip] = v
+                dphi /= 2
+                v[:] = 0 * unyt.m**3
+                for i in range(int((phi[ip+1] - phi[ip])/dphi)):
+                    v1, _ = integrate(rho, theta, phi[ip] + dphi*i,
+                                      phi[ip] + dphi*(i+1))
+                    v += v1
+            volume[:,:,ip] = v
 
-                    # Determine bounding box for the separatrix
-                    rc, zc = self.input_rhotheta2rz(
-                        rho[-1], theta[it], phi[ip], t)
-                    bbox[0] = np.nanmin([np.nanmin(rc), bbox[0]])
-                    bbox[1] = np.nanmax([np.nanmax(rc), bbox[1]])
-                    bbox[2] = np.nanmin([np.nanmin(zc), bbox[2]])
-                    bbox[3] = np.nanmax([np.nanmax(zc), bbox[3]])
-
-                # Number of markers drawn per iteration, total number of markers
-                # drawn and area and volume of the test region
-                ndraw  = 10000
-                ntot   = 0
-                atotal = (bbox[1] - bbox[0]) * (bbox[3] - bbox[2])
-                vtotal = 0.5 * (bbox[1]**2 - bbox[0]**2) \
-                    * ( bbox[3] - bbox[2] ) * ( phi[ip+1] - phi[ip] ).v
-                deltarho = 1.0 / (nrho-1)
-                deltath  = 2*np.pi / (ntheta-1)
-
-                v0 = volume[:,:,ip].copy()
-                points_in_bins = np.zeros((nrho-1, ntheta-1))
-                while np.sum(v0) == 0 or \
-                      np.nanmax(np.abs( volume[:,:,ip] - v0 ) / v0)  > tol:
-
-                    v0[:,:] = volume[:,:,ip]
-                    pi = np.random.uniform(phi[ip], phi[ip+1], ndraw) * unyt.rad
-                    ri = np.random.uniform(bbox[0], bbox[1], ndraw) * unyt.m
-                    zi = np.random.uniform(bbox[2], bbox[3], ndraw) * unyt.m
-                    th = np.arctan2(zi-z0,ri-r0) + np.pi
-
-                    rhoi    = self.input_eval(ri, pi, zi, t, "rho").v
-                    ind     = rhoi <= 1 # Reject markers outside separatrix
-                    i_rho   = np.floor(rhoi[ind] / deltarho).astype(int)
-                    i_theta = np.floor(th[ind] / deltath).astype(int)
-
-                    np.add.at(points_in_bins, (i_rho, i_theta), 1)
-                    ntot += ndraw
-
-                    area[:,:,ip] = atotal * points_in_bins / ntot
-                    volume[:,:,ip] = vtotal * points_in_bins / ntot
+        if np.sum(volume == 0):
+            warnings.warn(
+                "Volume calculation resulted in one or more elements with zero"
+              + " volume. This might happen when psi0 differs from the actual"
+              + " value.")
 
         if return_area and return_coords:
             return volume, area, r, p, z
