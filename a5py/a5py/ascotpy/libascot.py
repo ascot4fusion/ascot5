@@ -362,8 +362,8 @@ class LibAscot:
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
 
-            fun(ctypes.byref(self._sim), self._boozer_offload_array,
-                self._bfield_offload_array,
+            fun(ctypes.byref(self._sim), self._bfield_offload_array,
+                self._boozer_offload_array,
                 Neval, r, phi, z, t, out["psi (bzr)"], out["theta"],
                 out["zeta"], out["dpsidr (bzr)"], out["dpsidphi (bzr)"],
                 out["dpsidz (bzr)"], out["dthetadr"], out["dthetadphi"],
@@ -445,8 +445,8 @@ class LibAscot:
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
                             PTR_REAL]
 
-            fun(ctypes.byref(self._sim), self._boozer_offload_array,
-                self._mhd_offload_array, self._bfield_offload_array,
+            fun(ctypes.byref(self._sim), self._bfield_offload_array,
+                self._boozer_offload_array, self._mhd_offload_array,
                 Neval, r, phi, z, t, out["alphaeig"],
                 out["dadr"], out["dadphi"], out["dadz"], out["dadt"],
                 out["phieig"], out["dphidr"], out["dphidphi"], out["dphidz"],
@@ -555,7 +555,6 @@ class LibAscot:
             out["dmu0"])
 
         for d in list(out.keys()):
-            #if not grid: print(va)
             if d not in coefs:
                 del out[d]
             else:
