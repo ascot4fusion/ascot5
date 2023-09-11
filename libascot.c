@@ -405,6 +405,7 @@ void libascot_neutral_eval_density(
  * @brief Evaluate boozer coordinates and derivatives.
  *
  * @param sim_offload_data initialized simulation offload data struct
+ * @param B_offload_array initialized magnetic field offload data
  * @param boozer_offload_array initialized boozer offload data
  * @param Neval number of evaluation points.
  * @param R R coordinates of the evaluation points [m].
@@ -426,13 +427,16 @@ void libascot_neutral_eval_density(
  * @param rho output array
  */
 void libascot_boozer_eval_psithetazeta(
-    sim_offload_data* sim_offload_data, real* boozer_offload_array, int Neval,
+    sim_offload_data* sim_offload_data, real* B_offload_array,
+    real* boozer_offload_array, int Neval,
     real* R, real* phi, real* z, real* t, real* psi, real* theta, real* zeta,
     real* dpsidr, real* dpsidphi, real* dpsidz, real* dthetadr,
     real* dthetadphi, real* dthetadz, real* dzetadr, real* dzetadphi,
     real* dzetadz, real* rho) {
 
     sim_data sim;
+    B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
+                 B_offload_array);
     boozer_init(&sim.boozer_data, &sim_offload_data->boozer_offload_data,
                 boozer_offload_array);
 
@@ -534,6 +538,7 @@ void libascot_boozer_eval_fun(
  * @brief Evaluate MHD perturbation potentials
  *
  * @param sim_offload_data initialized simulation offload data struct
+ * @param B_offload_array initialized magnetic field offload data
  * @param boozer_offload_array initialized boozer offload data
  * @param mhd_offload_array initialized MHD offload data
  * @param Neval number of evaluation points.
@@ -553,12 +558,15 @@ void libascot_boozer_eval_fun(
  * @param dPhidt output array
  */
 void libascot_mhd_eval(
-    sim_offload_data* sim_offload_data, real* boozer_offload_array,
-    real* mhd_offload_array, int Neval, real* R, real* phi, real* z, real* t,
+    sim_offload_data* sim_offload_data, real* B_offload_array,
+    real* boozer_offload_array, real* mhd_offload_array, int Neval,
+    real* R, real* phi, real* z, real* t,
     real* alpha, real* dadr, real* dadphi, real* dadz, real* dadt, real* Phi,
     real* dPhidr, real* dPhidphi, real* dPhidz, real* dPhidt) {
 
     sim_data sim;
+    B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
+                 B_offload_array);
     boozer_init(&sim.boozer_data, &sim_offload_data->boozer_offload_data,
                 boozer_offload_array);
     mhd_init(&sim.mhd_data, &sim_offload_data->mhd_offload_data,
