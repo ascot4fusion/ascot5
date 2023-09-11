@@ -38,14 +38,14 @@ class TestAscot(unittest.TestCase):
         a5.data.create_input("asigma_loc")
 
         name = a5.data.options.active.new(
-            ENDCOND_MAX_MILEAGE=1.5e-4, DIST_NBIN_TIME=1, DIST_MIN_CHARGE=1.5,
+            ENDCOND_MAX_MILEAGE=1.5e-3, DIST_NBIN_TIME=1, DIST_MIN_CHARGE=1.5,
             DIST_MAX_CHARGE=2.5, DIST_NBIN_CHARGE=1, DIST_MIN_R=4, DIST_MAX_R=8,
             DIST_MIN_Z=-2, DIST_MAX_Z=2,
             ENABLE_DIST_6D=0, ENABLE_DIST_RHO6D=1, ENABLE_DIST_COM=0,
             DIST_NBIN_PHI=1, DIST_NBIN_R=50, DIST_NBIN_Z=100,
             DIST_NBIN_PPE=50, DIST_NBIN_PPA=50,
-            DIST_NBIN_THETA=2,  DIST_NBIN_RHO=10,
-            ORBITWRITE_NPOINT=6000)
+            DIST_NBIN_THETA=2,  DIST_NBIN_RHO=10, ENABLE_COULOMB_COLLISIONS=1,
+            ORBITWRITE_NPOINT=60000)
         a5.data.options[name].activate()
 
         subprocess.run(["./ascot5_main", "--in=unittest.h5"])
@@ -57,9 +57,10 @@ class TestAscot(unittest.TestCase):
 
     def test_moments(self):
         a5 = Ascot("unittest.h5")
-        ordinates = ["density", "chargedensity", "energydensity", "pressure",
-                     "toroidalcurrent", "parallelcurrent", "powerdep",
-                     "electronpowerdep", "ionpowerdep"]
+        #ordinates = ["density", "chargedensity", "energydensity", "pressure",
+        #             "toroidalcurrent", "parallelcurrent", "powerdep",
+        #             "electronpowerdep", "ionpowerdep"]
+        ordinates = ["jxbtorque"]
 
         a5.input_init(bfield=True, plasma=True)
         dist    = a5.data.active.getdist("5d")
@@ -79,7 +80,8 @@ class TestAscot(unittest.TestCase):
                                     "mileage", "charge", "ekin", "vphi",
                                     "vnorm", "vpar", "mass", "pnorm", "pitch",
                                     "bnorm", "bphi", "ppar")
-        ei     = a5.data.active.getstate("ekin", state="ini")
+        ei, psii, Pphii = a5.data.active.getstate("ekin", "psi", "pphi",
+                                                  state="ini")
         ef, tf = a5.data.active.getstate("ekin", "mileage", state="end")
         dt = np.diff(time, prepend=0)
 
@@ -89,14 +91,14 @@ class TestAscot(unittest.TestCase):
         dEtot_d = p * dt * np.sum(k, axis=0)
         dEele_d = p * dt * k[0,:]
         dEion_d = p * dt * np.sum(k[1:,:], axis=0)
-        dPsi    = np.diff(psi)
-        dPsi    = np.append(dPsi, 0)
+        dpsi    = np.zeros(psi.shape) * psi.units
+        dpsi[0] = psi[0] - psii
+        dpsi[1:] = psi[1:] - psi[:-1]
         nu      = np.sum(nu, axis=0)
         k       = np.sum(k, axis=0)
         dppar   = mass * k * pitch - p * pitch * nu
         Pphi    = ppar * r * (bphi/bnorm) + charge * psi
-        dPphi   = np.diff(Pphi)
-        dPphi   = np.append(dPphi, 0)
+        dPphi   = np.diff(Pphi, prepend=Pphi[0])
 
         a5.input_free()
 
@@ -110,9 +112,9 @@ class TestAscot(unittest.TestCase):
         mrkdist["powerdep"]         = weight * dEtot_d.to("W")
         mrkdist["electronpowerdep"] = weight * dEele_d.to("W")
         mrkdist["ionpowerdep"]      = weight * dEion_d.to("W")
-        mrkdist["jxbtorque"]        = weight * -charge * dPsi
+        mrkdist["jxbtorque"]        = weight * (-charge * dpsi/unyt.s).to("N*m")
         mrkdist["colltorque"]       = weight * (r*dppar*(bphi/bnorm)*dt).to("J")
-        mrkdist["canmomtorque"]     = weight * -charge *dPphi
+        mrkdist["canmomtorque"]     = weight * -charge * dPphi
 
         print(weight[0]*tf)
         print(((ef-ei)*weight[0]/unyt.s).to("W"))

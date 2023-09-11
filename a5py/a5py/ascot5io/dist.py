@@ -712,8 +712,8 @@ class Dist(DataContainer):
             ionpowerdep=(dist.histogram() / moment.volume ).to("W/m**3"))
 
     @staticmethod
-    def jxBTorque(ascot, mass, dist, moment):
-        """Calculate power deposition to ions.
+    def jxbtorque(ascot, mass, dist, moment):
+        """Calculate j_rad x B_pol toroidal torque.
 
         Parameters
         ----------
@@ -722,69 +722,41 @@ class Dist(DataContainer):
         moment : class:`DistMoment`
             Moment data used in calculation and where the result is stored.
         """
-        if not "ppar" in dist.abscissae or not "pperp" in dist.abscissae:
-            raise ValueError("Distribution must be in ppar-pperp basis.")
+        dist = dist._copy()
+        gradbr, gradbphi, gradbz, curlbr, curlbphi, curlbz, br, bphi, bz = \
+            ascot.input_eval(moment.rc.ravel(), moment.phic.ravel(), moment.zc.ravel(), 0*unyt.s,
+                             "gradbr", "gradbphi", "gradbz", "curlbr",
+                             "curlbphi", "curlbz", "br", "bphi", "bz")
+        bvec = unyt.unyt_array([br, bphi, bz]).T
+        bnorm = np.sqrt(np.sum(bvec**2))
+        curlb = unyt.unyt_array([gradbr, gradbphi, gradbz]).T
+        gradb = unyt.unyt_array([curlbr, curlbphi, curlbz]).T
+        curlbhat = ( np.cross(gradb, bvec/bnorm)*unyt.T/unyt.m - curlb ) / bnorm
+        for iq, q in enumerate(dist.abscissa("charge")):
+            for ippa, ppa in enumerate(dist.abscissa("ppar")):
+                Bstar = bvec + (ppa / q) * curlbhat
+                for ippe, ppe in enumerate(dist.abscissa("pperp")):
+                    gamma = physlib.gamma_momentum(mass, np.sqrt(ppa**2+ppe**2))
+                    dr = (ppa / (gamma*mass)) * Bstar[:,0] \
+                        / (np.sum(Bstar * bvec / bnorm, axis=1))
+                    dz = (ppa / (gamma*mass)) * Bstar[:,2] \
+                        / (np.sum(Bstar * bvec / bnorm, axis=1))
+                    deltapsi = bz * moment.rc.ravel() * dr - br * moment.rc.ravel() * dz
+                    deltapsi = deltapsi.reshape(moment.volume.shape)
+                    dist._distribution[:,:,:,ippa, ippe, iq, 0] *= (deltapsi * q).v
+        integrate = {}
+        dist._distribution *= (deltapsi * q).units
         if moment.rhodist:
-            bphi, bnorm, br, bz = ascot.input_eval(
-                moment.rc, moment.phic, moment.zc, 0*unyt.s, "bphi", "bnorm", "br", "bz")
-            dbrdr, dbphidr , dbzdr  = ascot.input_eval(
-                moment.rc, moment.phic, moment.zc, 0*unyt.s, "brdr", "bphidr", "bzdr")
-            dbrdphi, dbphidphi , dbzdphi  = ascot.input_eval(
-                moment.rc, moment.phic, moment.zc, 0*unyt.s, "brdphi", "bphidphi", "bzdphi")
-            dbrdz, dbphidz , dbzdz  = ascot.input_eval(
-                moment.rc, moment.phic, moment.zc, 0*unyt.s, "brdz", "bphidz", "bzdz")
-
-            GradBr   = (br*dbrdr + bphi*dbphidr + bz*dbzdr) /bnorm
-            GradBphi = (br*dbrdphi + bphi*dbphidphi + bz*dbzdphi) /bnorm
-            GradBz   = (br*dbrdz + bphi*dbphidz + bz*dbzdz) /bnorm
-
-            r      = moment.rc
-            b = np.array([br/bnorm, bphi/bnorm, bz/bnorm]).T
-            GradB = np.array([GradBr, GradBphi, GradBz]).T
-            # curlB brings an issue: #
-            # "The requested array has an inhomogeneous shape after 1 dimensions."
-            #curlB = np.array([dbzdphi /r - dbphidz, dbrdz - dbzdr, (bphi-dbrdphi)/r -dbphidr]).T
-            #GradBcrossB = np.cross(GradB ,b)
-            #crossb = (curlB - GradBcrossB) / bnorm
-
-            #for qa in dist.abscissa("charge"):
-            #    dist._distribution[:,:,:,:,0,0] *= bnorm/qa + dist.abscissa("ppar")*crossb
-
-            #bpol = np.sqrt(br**2 + bz**2) .reshape(moment.volume.shape)
-            #r      = moment.rc .reshape(moment.volume.shape)
-            #q = dist.abscissa("charge")
-
-            #dist = dist.integrate(copy=True, ppar=dist.abscissa("ppar"))
-            integrate = {}
             for k in dist.abscissae:
                 if k not in ["rho", "theta", "phi"]:
                     integrate[k] = np.s_[:]
-            dist.integrate(**integrate)
-
-            #dist = dist.integrate(time=np.s_[:])
-            dist._distribution *= 1/mass * bpol * r
-
         else:
-            # Placeholder
-            dist = dist.integrate(copy=True,
-                                  charge=dist.abscissa("charge") ,
-                                  ppar=dist.abscissa("ppar"))
-            bphi, bnorm, br, bz = ascot.input_eval(
-                moment.rc, moment.phic, moment.zc, 0*unyt.s, "bphi", "bnorm", "br", "bz")
-            btheta = np.sqrt(br**2 + bz**2)
-
-            bphi   = bphi.reshape(moment.volume.shape)
-            bnorm  = bnorm.reshape(moment.volume.shape)
-            btheta = btheta.reshape(moment.volume.shape)
-            r      = moment.rc.reshape(moment.volume.shape)
-
-            integrate = {}
             for k in dist.abscissae:
                 if k not in ["r", "phi", "z"]:
                     integrate[k] = np.s_[:]
-            dist.integrate(**integrate)
-            dist._distribution *= -(bphi / (bnorm * mass)) * btheta *r
-        moment.add_ordinates(jxBTorque=dist.histogram() / moment.volume)
+        dist.integrate(**integrate)
+        moment.add_ordinates(
+            jxbtorque=(dist.histogram() / moment.volume).to("N*m/m**3"))
 
     @staticmethod
     def collTorque(ascot, mass, dist, moment):
