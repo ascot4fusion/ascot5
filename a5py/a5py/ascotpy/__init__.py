@@ -472,25 +472,37 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             "bnorm":
             "Magnetic field norm (not including MHD)",
             "brdr":
-            "d/dR of magnetic field R component (not including MHD)",
+            "d/dr of magnetic field R component (not including MHD)",
             "brdphi":
             "d/dphi of magnetic field R component (not including MHD)",
             "brdz":
             "d/dz of magnetic field R component (not including MHD)",
             "bphidr":
-            "d/dR of magnetic field phi component (not including MHD)",
+            "d/dr of magnetic field phi component (not including MHD)",
             "bphidphi":
             "d/dphi of magnetic field phi component (not including MHD)",
             "bphidz":
             "d/dz of magnetic field phi component (not including MHD)",
             "bzdr":
-            "d/dR of magnetic field z component (not including MHD)",
+            "d/dr of magnetic field z component (not including MHD)",
             "bzdphi":
             "d/dphi of magnetic field z component (not including MHD)",
             "bzdz":
             "d/dz of magnetic field z component (not including MHD)",
-            "divergence":
+            "divb":
             "Magnetic field divergence (not including MHD)",
+            "gradbr":
+            "Magnetic field gradient R component (not including MHD)",
+            "gradbphi":
+            "Magnetic field gradient phi component (not including MHD)",
+            "gradbz":
+            "Magnetic field gradient z component (not including MHD)",
+            "curlbr":
+            "Magnetic field curl R component (not including MHD)",
+            "curlbphi":
+            "Magnetic field curl phi component (not including MHD)",
+            "curlbz":
+            "Magnetic field curl z component (not including MHD)",
             "jr":
             "Current density R component",
             "jphi":
@@ -658,10 +670,12 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             out.update(**self._eval_bfield(r, phi, z, t, evalrho=True))
         if any(q in qnt for q in ["br", "bphi", "bz", "brdr", "brdphi", "brdz",
                                   "bphidr", "bphidphi", "bphidz", "bzdr",
-                                  "bzdphi", "bzdz", "divergence", "bnorm",
-                                  "jnorm", "jr", "jphi", "jz"]):
+                                  "bzdphi", "bzdz", "divb", "bnorm",
+                                  "jnorm", "jr", "jphi", "jz", "gradbr",
+                                  "gradbphi", "gradbz", "curlbr", "curlbphi",
+                                  "curlbz"]):
             out.update(self._eval_bfield(r, phi, z, t, evalb=True))
-            out["divergence"] = out["br"]/r + out["brdr"] + out["bphidphi"]/r \
+            out["divb"] = out["br"]/r + out["brdr"] + out["bphidphi"]/r \
                 + out["bzdz"]
             out["bnorm"] = np.sqrt(out["br"]**2 + out["bphi"]**2 + out["bz"]**2)
             out["jr"]    = (out["bzdphi"]/r - out["bphidz"]) / unyt.mu_0
@@ -669,6 +683,16 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             out["jz"]    = (out["bphi"]/r + out["bphidr"] - out["brdphi"]/r) \
                             / unyt.mu_0
             out["jnorm"] = np.sqrt(out["jr"]**2 + out["jphi"]**2 + out["jz"]**2)
+            out["gradbr"]   = (out["br"]*out["brdr"] + out["bphi"]*out["bphidr"]
+                               + out["bz"]*out["bzdr"]) / out["bnorm"]
+            out["gradbphi"] = (out["br"]*out["brdphi"]
+                               + out["bphi"]*out["bphidphi"]
+                               + out["bz"]*out["bzdphi"]) / (out["bnorm"]*r)
+            out["gradbz"]   = (out["br"]*out["brdz"] + out["bphi"]*out["bphidz"]
+                               + out["bz"]*out["bzdz"]) / out["bnorm"]
+            out["curlbr"]   = out["bzdphi"] / r - out["bphidz"]
+            out["curlbphi"] = out["brdz"] - out["bzdr"]
+            out["curlbz"]   = (out["bphi"] - out["brdphi"]) / r + out["bphidr"]
         if any(q in qnt for q in ["axisr", "axisz"]):
             out.update(self._eval_bfield(r, phi, z, t, evalaxis=True))
         if any(q in qnt for q in ["er", "ephi", "ez"]):
