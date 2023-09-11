@@ -70,8 +70,10 @@ void libascot_B_field_eval_B_dB(
     sim_data sim;
     B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
                  B_offload_array);
-    real B[15];
+
+    #pragma omp parallel for
     for(int k = 0; k < Neval; k++) {
+        real B[15];
         if( B_field_eval_B_dB(B, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
             continue;
         }
@@ -110,9 +112,10 @@ void libascot_B_field_eval_rho(
     sim_data sim;
     B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
                  B_offload_array);
-    real rhoval[2];
-    real psival[1];
+
+    #pragma omp parallel for
     for(int k = 0; k < Neval; k++) {
+        real rhoval[2], psival[1];
         if( B_field_eval_psi(psival, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
             continue;
         }
@@ -141,8 +144,9 @@ void libascot_B_field_get_axis(
     sim_data sim;
     B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
                  B_offload_array);
-    real axisrz[2];
+    #pragma omp parallel for
     for(int k = 0; k < Neval; k++) {
+        real axisrz[2];
         if( B_field_get_axis_rz(axisrz, &sim.B_data, phi[k]) ) {
             continue;
         }
@@ -249,8 +253,10 @@ void libascot_E_field_eval_E(
                  B_offload_array);
     E_field_init(&sim.E_data, &sim_offload_data->E_offload_data,
                  E_offload_array);
-    real E[3];
+
+    #pragma omp parallel for
     for(int k = 0; k < Neval; k++) {
+        real E[3];
         if( E_field_eval_E(E, R[k], phi[k], z[k], t[k],
                            &sim.E_data, &sim.B_data) ) {
             continue;
@@ -337,12 +343,10 @@ void libascot_plasma_eval_background(
     plasma_init(&sim.plasma_data, &sim_offload_data->plasma_offload_data,
                 plasma_offload_array);
     int n_species = plasma_get_n_species(&sim.plasma_data);
-    real psi[1];
-    real rho[2];
-    real n[MAX_SPECIES];
-    real T[MAX_SPECIES];
 
+    #pragma omp parallel for
     for(int k = 0; k < Neval; k++) {
+        real psi[1], rho[2], n[MAX_SPECIES], T[MAX_SPECIES];
         if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
             continue;
         }
@@ -379,10 +383,10 @@ void libascot_neutral_eval_density(
     sim_data sim;
     neutral_init(&sim.neutral_data, &sim_offload_data->neutral_offload_data,
                  neutral_offload_array);
-    real psi[1];
-    real rho[2];
-    real n0[1];
+
+    #pragma omp parallel for
     for(int k = 0; k < Neval; k++) {
+        real psi[1], rho[2], n0[1];
         if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
             continue;
         }
@@ -431,10 +435,11 @@ void libascot_boozer_eval_psithetazeta(
     sim_data sim;
     boozer_init(&sim.boozer_data, &sim_offload_data->boozer_offload_data,
                 boozer_offload_array);
-    real psithetazeta[12];
-    real rhoval[2];
-    int isinside;
+
+    #pragma omp parallel for
     for(int k = 0; k < Neval; k++) {
+        int isinside;
+        real psithetazeta[12], rhoval[2];
         if( boozer_eval_psithetazeta(psithetazeta, &isinside, R[k], phi[k],
                                      z[k], &sim.B_data, &sim.boozer_data) ) {
             continue;
@@ -486,10 +491,11 @@ void libascot_boozer_eval_fun(
                  B_offload_array);
     boozer_init(&sim.boozer_data, &sim_offload_data->boozer_offload_data,
                 boozer_offload_array);
-    real psithetazeta[12];
-    real B[15];
-    int isinside;
+
+    #pragma omp parallel for
     for(int k = 0; k < Neval; k++) {
+        int isinside;
+        real psithetazeta[12], B[15];
         if( boozer_eval_psithetazeta(psithetazeta, &isinside, R[k], phi[k],
                                      z[k], &sim.B_data, &sim.boozer_data) ) {
             continue;
@@ -558,8 +564,9 @@ void libascot_mhd_eval(
     mhd_init(&sim.mhd_data, &sim_offload_data->mhd_offload_data,
              mhd_offload_array);
 
-    real mhd_dmhd[10];
+    #pragma omp parallel for
     for(int k = 0; k < Neval; k++) {
+        real mhd_dmhd[10];
         if( mhd_eval(mhd_dmhd, R[k], phi[k], z[k], t[k],
                      &sim.boozer_data, &sim.mhd_data, &sim.B_data) ) {
             continue;
@@ -610,9 +617,10 @@ void libascot_mhd_eval_perturbation(
                 boozer_offload_array);
     mhd_init(&sim.mhd_data, &sim_offload_data->mhd_offload_data,
              mhd_offload_array);
-    real pert_field[7];
     int onlypert = 1;
+    #pragma omp parallel for
     for(int k = 0; k < Neval; k++) {
+        real pert_field[7];
         if( mhd_perturbations(pert_field, R[k], phi[k], z[k], t[k], onlypert,
                               &sim.boozer_data, &sim.mhd_data, &sim.B_data) ) {
             continue;
@@ -673,8 +681,10 @@ void libascot_eval_collcoefs(
     const real* qb = plasma_get_species_charge(&sim.plasma_data);
     const real* mb = plasma_get_species_mass(&sim.plasma_data);
 
-    real mufun[3] = {0., 0., 0.};
+    #pragma omp parallel for
     for(int k=0; k<Neval; k++) {
+        real mufun[3] = {0., 0., 0.};
+
         /* Evaluate rho as it is needed to evaluate plasma parameters */
         real psi, rho[2];
         if( B_field_eval_psi(&psi, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
@@ -783,12 +793,9 @@ void libascot_eval_sigmav(
     const int* Ab  = plasma_get_species_anum(&sim.plasma_data);
 
     int enable_atomic = 1;
-    real psi[1];
-    real rho[2];
-    real n[MAX_SPECIES];
-    real T[MAX_SPECIES];
-    real T0[1];
+    #pragma omp parallel for
     for (int k=0; k < Neval; k++) {
+        real psi[1], rho[2], T0[1], n[MAX_SPECIES], T[MAX_SPECIES];
         if( B_field_eval_psi(psi, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
             continue;
         }
