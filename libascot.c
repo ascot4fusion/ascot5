@@ -25,7 +25,7 @@
 #include "consts.h"
 #include "physlib.h"
 
-#include "simulate/mccc/mccc.h"
+#include "simulate/mccc/mccc_coefs.h"
 
 #include "hdf5_interface.h"
 #include "hdf5io/hdf5_helpers.h"
@@ -300,7 +300,11 @@ void libascot_plasma_get_species_mass_and_charge(
     const real* q = plasma_get_species_charge(&sim.plasma_data);
     const int* a  = plasma_get_species_anum(&sim.plasma_data);
     const int* z  = plasma_get_species_znum(&sim.plasma_data);
-    for(int i=0; i<n_species; i++) {
+    mass[0]   = CONST_M_E;
+    charge[0] = -CONST_E;
+    anum[0]   = 0;
+    znum[0]   = 0;
+    for(int i=1; i<n_species; i++) {
         mass[i]   = m[i];
         charge[i] = q[i];
         anum[i]   = a[i];
@@ -650,21 +654,92 @@ void libascot_mhd_eval_perturbation(
  * @param mu1 output array
  * @param dmu0 output array
  */
-int libascot_eval_collcoefs(
+void libascot_eval_collcoefs(
     sim_offload_data* sim_offload_data, real* B_offload_array,
-    real* plasma_offload_array, int Neval, real* va, real R, real phi, real z,
-    real t, real ma, real qa, real* F, real* Dpara, real* Dperp, real* K,
-    real* nu, real* Q, real* dQ, real* dDpara, real* clog, real* mu0, real* mu1,
-    real* dmu0) {
+    real* plasma_offload_array, int Neval, real* R, real* phi, real* z, real* t,
+    int Nv, real* va, real ma, real qa, real* F, real* Dpara, real* Dperp,
+    real* K, real* nu, real* Q, real* dQ, real* dDpara, real* clog,
+    real* mu0, real* mu1, real* dmu0) {
 
     sim_data sim;
+    sim.mccc_data.usetabulated = 0;
     B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
                  B_offload_array);
     plasma_init(&sim.plasma_data, &sim_offload_data->plasma_offload_data,
                 plasma_offload_array);
-    return mccc_eval_coefs(
-        ma, qa, R, phi, z, t, va, Neval, &sim.plasma_data, &sim.B_data,
-        F, Dpara, Dperp, K, nu, Q, dQ, dDpara, clog, mu0, mu1, dmu0);
+
+    /* Evaluate plasma parameters */
+    int n_species  = plasma_get_n_species(&sim.plasma_data);
+    const real* qb = plasma_get_species_charge(&sim.plasma_data);
+    const real* mb = plasma_get_species_mass(&sim.plasma_data);
+
+    real mufun[3] = {0., 0., 0.};
+    for(int k=0; k<Neval; k++) {
+        /* Evaluate rho as it is needed to evaluate plasma parameters */
+        real psi, rho[2];
+        if( B_field_eval_psi(&psi, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
+            continue;
+        }
+        if( B_field_eval_rho(rho, psi, &sim.B_data) ) {
+            continue;
+        }
+
+        real nb[MAX_SPECIES], Tb[MAX_SPECIES];
+        if( plasma_eval_densandtemp(nb, Tb, rho[0], R[k], phi[k], z[k], t[k],
+                                    &sim.plasma_data) ) {
+            continue;
+        }
+
+        /* Evaluate coefficients for different velocities */
+        for(int iv=0; iv<Nv; iv++) {
+
+            /* Loop through all plasma species */
+            for(int ib=0; ib<n_species; ib++) {
+
+                /* Coulomb logarithm */
+                real clogab[MAX_SPECIES];
+                mccc_coefs_clog(clogab, ma, qa, va[iv], n_species, mb, qb,
+                                nb, Tb);
+
+                /* Special functions */
+                real vb = sqrt( 2 * Tb[ib] / mb[ib] );
+                real x  = va[iv] / vb;
+                mccc_coefs_mufun(mufun, x, &sim.mccc_data);
+
+                /* Coefficients */
+                real Fb      = mccc_coefs_F(ma, qa, mb[ib], qb[ib], nb[ib], vb,
+                                            clogab[ib], mufun[0]);
+                real Qb      = mccc_coefs_Q(ma, qa, mb[ib], qb[ib], nb[ib], vb,
+                                            clogab[ib], mufun[0]);
+                real dQb     = mccc_coefs_dQ(ma, qa, mb[ib], qb[ib], nb[ib], vb,
+                                             clogab[ib], mufun[2]);
+                real Dparab  = mccc_coefs_Dpara(ma, qa, va[iv], qb[ib], nb[ib],
+                                                vb, clogab[ib], mufun[0]);
+                real Dperpb  = mccc_coefs_Dperp(ma, qa, va[iv], qb[ib], nb[ib],
+                                                vb, clogab[ib], mufun[1]);
+                real dDparab = mccc_coefs_dDpara(ma, qa, va[iv], qb[ib], nb[ib],
+                                                 vb, clogab[ib], mufun[0],
+                                                 mufun[2]);
+                real Kb      = mccc_coefs_K(va[iv], Dparab, dDparab, Qb);
+                real nub     = mccc_coefs_nu(va[iv], Dperpb);
+
+                /* Store requested quantities */
+                int idx = ib*Nv*Neval + Nv * k + iv;
+                if(mu0 != NULL)    { mu0[idx]    = mufun[0];   }
+                if(mu1 != NULL)    { mu1[idx]    = mufun[1];   }
+                if(dmu0 != NULL)   { dmu0[idx]   = mufun[2];   }
+                if(clog != NULL)   { clog[idx]   = clogab[ib]; }
+                if(F != NULL)      { F[idx]      = Fb;         }
+                if(Dpara != NULL)  { Dpara[idx]  = Dparab;     }
+                if(Dperp != NULL)  { Dperp[idx]  = Dperpb;     }
+                if(K != NULL)      { K[idx]      = Kb;         }
+                if(nu != NULL)     { nu[idx]     = nub;        }
+                if(Q != NULL)      { Q[idx]      = Qb;         }
+                if(dQ != NULL)     { dQ[idx]     = dQb;        }
+                if(dDpara != NULL) { dDpara[idx] = dDparab;    }
+            }
+        }
+    }
 }
 
 /**
