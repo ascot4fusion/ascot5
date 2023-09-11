@@ -849,8 +849,6 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             ( phi[1:]   + phi[:-1]   ) / 2, indexing="ij")
         r, z = self.input_rhotheta2rz(
             rhoc.ravel(), thc.ravel(), p.ravel(), t)
-        r *= unyt.m
-        z *= unyt.m
         del thc, rhoc
 
         def integrate_prism(rho, theta, phimin, phimax):

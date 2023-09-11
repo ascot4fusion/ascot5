@@ -411,7 +411,6 @@ class RunMixin():
         ----------
         qnt : str
             Name of the averaged quantity.
-        
         """
         qnt, mileage, r, z, p, pitch, pol = \
             self.getorbit(qnt, "mileage", "r", "z", "phi", "pitch", "theta",
@@ -661,7 +660,7 @@ class RunMixin():
 
         return distout
 
-    def getdist_moments(self, dist, *moments):
+    def getdist_moments(self, dist, *moments, volmethod="prism"):
         """Calculate moments of distribution.
 
         Parameters
@@ -670,21 +669,27 @@ class RunMixin():
             Distribution from which moments are calculated.
         *moments : str
             Moments to be calculated.
+        volmethod : {"mc", "prism"}, optional
+            Method used to calculate the volume.
+
+            It is a good idea to verify that same results are obtained with both
+            methods.
 
         Returns
         -------
         out : :class:`DistMoment`
             Distribution object containing moments as ordinates.
         """
-        if "rho" in dist.abscissae:
+        # Initialize the moment object and evaluate the volume.
+        if all([x in dist.abscissae for x in ["rho", "theta", "phi"]]):
             rhodist = True
             nrho   = dist.abscissa_edges("rho").size
             ntheta = dist.abscissa_edges("theta").size
             nphi   = dist.abscissa_edges("phi").size
             volume, area, r, phi, z = self._root._ascot.input_rhovolume(
-                method="prism", tol=1e-1, nrho=nrho, ntheta=ntheta, nphi=nphi,
+                method=volmethod, tol=1e-2, nrho=nrho, ntheta=ntheta, nphi=nphi,
                 return_area=True, return_coords=True)
-            volume[volume == 0] = 1e-8
+            volume[volume == 0] = 1e-8 # To avoid division by zero
             out = DistMoment(
                 dist.abscissa_edges("rho"), dist.abscissa_edges("theta"),
                 dist.abscissa_edges("phi"), r, phi, z, area, volume, rhodist)
@@ -704,43 +709,91 @@ class RunMixin():
                 dist.abscissa_edges("r"), dist.abscissa_edges("phi"),
                 dist.abscissa_edges("z"), r, phi, z, area, volume, rhodist)
         else:
-            raise ValueError("Distribution has neither rho nor R, phi and z")
+            raise ValueError(
+                "Distribution has neither (rho, theta, phi) nor (R, phi, z)")
 
         ordinates = {}
+        mass = np.mean(self.getstate("mass"))
         if "density" in moments:
             Dist.density(dist, out)
         if "chargedensity" in moments:
             Dist.chargedensity(dist, out)
         if "energydensity" in moments:
-            Dist.energydensity(dist, out)
+            Dist.energydensity(mass, dist, out)
         if "toroidalcurrent" in moments:
-            mass = np.mean(self.getstate("mass"))
             Dist.toroidalcurrent(self._root._ascot, mass, dist, out)
         if "parallelcurrent" in moments:
-            mass = np.mean(self.getstate("mass"))
             Dist.parallelcurrent(self._root._ascot, mass, dist, out)
         if "pressure" in moments:
-            mass = np.mean(self.getstate("mass"))
-            Dist.pressure(self._root._ascot, mass, dist, out)
+            Dist.pressure(mass, dist, out)
         if "powerdep" in moments:
-            mass = np.mean(self.getstate("mass"))
             Dist.powerdep(self._root._ascot, mass, dist, out)
         if "electronpowerdep" in moments:
-            mass = np.mean(self.getstate("mass"))
             Dist.electronpowerdep(self._root._ascot, mass, dist, out)
         if "ionpowerdep" in moments:
-            mass = np.mean(self.getstate("mass"))
             Dist.ionpowerdep(self._root._ascot, mass, dist, out)
-        if "jxBTorque" in moments:
-            mass = np.mean(self.getstate("mass"))
+        if "jxbtorque" in moments:
             Dist.jxBTorque(self._root._ascot, mass, dist, out)
-        if "collTorque" in moments:
-            mass = np.mean(self.getstate("mass")).to("kg")
+        if "colltorque" in moments:
             Dist.collTorque(self._root._ascot, mass, dist, out)
-        if "canMomentTorque" in moments:
-            # WIP
+        if "canmomtorque" in moments:
             Dist.canMomentTorque(dist, out)
         return out
+
+    def getdist_list(self, show=True):
+        """List all available distributions and moments.
+
+        Parameters
+        ----------
+        show : bool, optional
+            Print the output.
+
+        Returns
+        -------
+        dists : list [str]
+            List of available distributions.
+        moms : list [(str, str)]
+            List of distribution moments that can be evaluated and their
+            meaning.
+        """
+        dists = []
+        if hasattr(self, "_dist5d"):    dists.append("5d")
+        if hasattr(self, "_distrho5d"): dists.append("rho5d")
+        if hasattr(self, "_dist6d"):    dists.append("6d")
+        if hasattr(self, "_distrho6d"): dists.append("rho6d")
+        if hasattr(self, "_distcom"):   dists.append("com")
+
+        moms = []
+        if "5d" not in dists and "rho5d" not in dists:
+            if show:
+                print("Available distributions:")
+                for d in dists:
+                    print(d)
+                print("\nMoments available only for 5d/rho5d dists.")
+            return dists, moms
+
+        moms = [
+            ("density", "Particle number density"),
+            ("chargedensity", "Charge density"),
+            ("energydensity", "Energy density"),
+            ("toroidalcurrent", "Toroidal current"),
+            ("parallelcurrent", "Parallel current"),
+            ("pressure", "Pressure"),
+            ("powerdep", "Total deposited power"),
+            ("ionpowerdep", "Power deposited to ions"),
+            ("electronpowerdep", "Power deposited to electrons"),
+            ("jxbtorque", "j_rad x B_pol torque"),
+            ("colltorque", "Torque from collisions"),
+            ("canmomtorque", "Torque from change in can. tor. ang. momentum"),
+        ]
+        if show:
+            print("Available distributions:")
+            for d in dists:
+                print(d)
+            print("Available Moments:")
+            for d in moms:
+                print(d[0] + " : " + d[1])
+        return dists, moms
 
     def plotdist(self, dist, axes=None, cax=None):
         """Plot distribution in 1D or 2D.

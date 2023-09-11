@@ -35,6 +35,7 @@ class TestPlotting(unittest.TestCase):
         a5.data.create_input("N0_3D")
         a5.data.create_input("Boozer")
         a5.data.create_input("MHD_STAT")
+        a5.data.create_input("asigma_loc")
 
         a5.simulation_initinputs()
 

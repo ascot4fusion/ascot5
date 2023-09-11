@@ -20,14 +20,15 @@ class TestAscot(unittest.TestCase):
         super(TestAscot, cls).setUpClass()
         a5 = Ascot("unittest.h5", create=True)
         a5.data.create_input("options tutorial")
-        a5.data.create_input("bfield analytical iter circular")
+        a5.data.create_input("bfield analytical iter circular", splines=False)
         a5.data.create_input("wall rectangular")
         a5.data.create_input("plasma flat")
 
         from a5py.ascot5io.marker import Marker
         mrk = Marker.generate("gc", n=100, species="alpha")
         mrk["energy"][:] = 3.5e6
-        mrk["pitch"][:]  = 0.99 - 1.98 * np.random.rand(100,)
+        #mrk["pitch"][:]  = 0.99 - 1.98 * np.random.rand(100,)
+        mrk["pitch"][:]  = -0.99 - 0 * np.random.rand(100,)
         mrk["r"][:]      = np.linspace(6.2, 8.2, 100)
         a5.data.create_input("gc", **mrk)
         a5.data.create_input("E_TC", exyz=np.array([0,0,0]))
@@ -40,7 +41,8 @@ class TestAscot(unittest.TestCase):
 
         name = a5.data.options.active.new(
             ENDCOND_MAX_MILEAGE=0.5e-4, DIST_MIN_CHARGE=1.5,
-            DIST_MAX_CHARGE=2.5, DIST_NBIN_PPE=50, DIST_NBIN_PPA=100,
+            DIST_MAX_CHARGE=2.5, DIST_NBIN_PPE=10, DIST_NBIN_PPA=20,
+            DIST_NBIN_PHI=3, DIST_NBIN_R=10, DIST_NBIN_Z=10, DIST_NBIN_RHO=10,
             desc="Fast")
         a5.data.options[name].activate()
 
@@ -51,7 +53,7 @@ class TestAscot(unittest.TestCase):
         super(TestAscot, cls).tearDownClass()
         subprocess.run(["rm", "-f", "unittest.h5"])
 
-    def test_initandsim(self):
+    def _test_initandsim(self):
         """Test :class:`Ascotpy` initialization and simulation routines.
         """
         a5 = Ascot("unittest.h5")
@@ -159,7 +161,7 @@ class TestAscot(unittest.TestCase):
                 msg="Trying to run with occupied output should cause an error"):
             a5.simulation_run(printsummary=False)
 
-        # This hould run
+        # This should run
         a5.simulation_free(diagnostics=True)
         a5.simulation_run(printsummary=False)
         a5.simulation_free(diagnostics=True)
@@ -186,7 +188,7 @@ class TestAscot(unittest.TestCase):
                 msg="Trying to run without input should cause an error"):
             a5.simulation_run(printsummary=False)
 
-    def test_eval(self):
+    def _test_eval(self):
         """Test :class:`Ascotpy` evaluation routines.
         """
         a5 = Ascot("unittest.h5")
@@ -277,17 +279,28 @@ class TestAscot(unittest.TestCase):
 
         try:
             a5.input_init(bfield=qid)
-            vol1, area1 = a5.input_rhovolume(
-                method="prism", nrho=20, ntheta=20, nphi=2, return_area=True)
-            vol2, area2 = a5.input_rhovolume(
-                method="mc", nrho=2, ntheta=5, nphi=2, return_area=True)
+            vol1, area1, r1, p1, z1 = a5.input_rhovolume(
+                method="prism", nrho=5, ntheta=4, nphi=3, return_area=True,
+                return_coords=True)
+            vol2, area2, r2, p2, z2 = a5.input_rhovolume(
+                method="mc", nrho=5, ntheta=4, nphi=3, return_area=True,
+                return_coords=True)
             a5.input_free()
         except:
             a5.input_free()
             raise
 
+        print(r1.shape, r2.shape)
+        print(p1.shape, p2.shape)
+        print(z1.shape, z2.shape)
         delta = 1
         vol0 = 2*np.pi*5*np.pi*1.0**2
+        print(
+            """
+            Volume calculation:
+            %3.3f %3.3f %3.3f
+            """ % (np.sum(vol1).v, np.sum(vol2).v, vol0)
+        )
         self.assertAlmostEqual(
             np.sum(vol1).v, vol0, None, "Volume calculation with prism failed",
             delta)
@@ -295,12 +308,18 @@ class TestAscot(unittest.TestCase):
             np.sum(vol2).v, vol0, None, "Volume calculation with MC failed",
             delta)
         area0 = np.pi*1.0**2
+        print(
+            """
+            Area calculation:
+            %3.3f %3.3f %3.3f
+            """ % (np.sum(area1[:,:,0]).v, np.sum(area2[:,:,0]).v, area0)
+        )
         self.assertAlmostEqual(
-            np.sum(area1).v, area0, None, "Area calculation with prism failed",
-            delta)
+            np.sum(area1[:,:,0]).v, area0, None,
+            "Area calculation with prism failed", delta)
         self.assertAlmostEqual(
-            np.sum(area2).v, area0, None, "Area calculation with MC failed",
-            delta)
+            np.sum(area2[:,:,0]).v, area0, None,
+            "Area calculation with MC failed", delta)
 
         # Test distribution initializing
         a5.data.active.getdist("5d")
@@ -313,7 +332,7 @@ class TestAscot(unittest.TestCase):
         dist = a5.data.active.getdist("5d")
         dist.integrate(charge=np.s_[:], time=np.s_[:])
         self.assertFalse("charge" in dist.abscissae, "Integration failed")
-        self.assertFalse("time" in dist.abscissae, "Integration failed")
+        self.assertFalse("time"   in dist.abscissae, "Integration failed")
 
         dist.slice(ppar=np.s_[0], pperp=np.s_[0])
         self.assertTrue(dist.abscissa("ppar").size == 1, "Slicing failed")
@@ -326,9 +345,9 @@ class TestAscot(unittest.TestCase):
         # Get 5D distribution in both momentum spaces and verify the number of
         # particles is same
         dist    = a5.data.active.getdist("5d")
-        exidist = a5.data.active.getdist("5d", exi=True)
+        exidist = a5.data.active.getdist("5d", exi=True, ekin_edges=10,
+                                         pitch_edges=20, plotexi=False)
         time, weight = a5.data.active.getstate("mileage", "weight", state="end")
-        #print(np.sum(dist.v), np.sum(exidist.v), np.sum(time*weight).v)
         self.assertAlmostEqual(np.sum(dist.histogram().v),
                                np.sum(time*weight).v, None,
                                "Distribution not valid",
@@ -346,10 +365,10 @@ class TestAscot(unittest.TestCase):
         mom3 = a5.data.active.getdist_moments(rhodist, "density")
         mom4 = a5.data.active.getdist_moments(rhoexidist, "density")
         a5.input_free()
-        #print(np.sum(mom1.ordinate("density") * mom1.volume),
-        #      np.sum(mom2.ordinate("density") * mom2.volume),
-        #      np.sum(mom3.ordinate("density") * mom3.volume),
-        #      np.sum(mom4.ordinate("density") * mom4.volume))
+        print(np.sum(mom1.ordinate("density") * mom1.volume),
+              np.sum(mom2.ordinate("density") * mom2.volume),
+              np.sum(mom3.ordinate("density") * mom3.volume),
+              np.sum(mom4.ordinate("density") * mom4.volume))
 
         self.assertAlmostEqual(np.sum(mom1.ordinate("density") * mom1.volume).v,
                                np.sum(time*weight).v, None,

@@ -297,7 +297,7 @@ def parseunits(strip=False, **units):
                     (name, dim, valdim))
             if strip:
                 return val.to(unit).v
-            return val
+            return val.to(unit)
 
         @wraps(fun)
         def wrapper(*args, **kwargs):

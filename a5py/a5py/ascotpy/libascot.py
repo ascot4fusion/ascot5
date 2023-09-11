@@ -20,11 +20,28 @@ from a5py.physlib import parseunits
 
 try:
     from . import ascot2py
-    PTR_REAL = ndpointer(ctypes.c_double, flags="C_CONTIGUOUS")
-    PTR_LONG = ndpointer(ctypes.c_long, flags="C_CONTIGUOUS")
+
+    def _ndpointerwithnull(*args, **kwargs):
+        """This produces ndpointer which can also be a NULL pointer.
+
+        This wrapper is required since otherwise it is not possible to
+        supply None (indicating NULL) as an argument that requires
+        a numpy array.
+        """
+        base = ndpointer(*args, **kwargs)
+        def from_param(cls, obj):
+            if obj is None:
+                return obj
+            return base.from_param(obj)
+        return type(base.__name__, (base,),
+                    {'from_param': classmethod(from_param)})
+
+    PTR_REAL = _ndpointerwithnull(ctypes.c_double, flags="C_CONTIGUOUS")
+    PTR_INT  = _ndpointerwithnull(ctypes.c_int,    flags="C_CONTIGUOUS")
     PTR_SIM  = ctypes.POINTER(ascot2py.struct_c__SA_sim_offload_data)
     PTR_ARR  = ctypes.POINTER(ctypes.c_double)
     _LIBASCOT = ascot2py._libraries['libascot.so']
+
 except OSError as error:
     _LIBASCOT = None
     msg = """
@@ -438,7 +455,7 @@ class LibAscot:
         return out
 
     @parseunits(ma="kg", qa="C", r="m", phi="rad", z="m", t="s", va="m/s")
-    def input_eval_collcoefs(self, ma, qa, r, phi, z, t, va):
+    def input_eval_collcoefs(self, ma, qa, r, phi, z, t, va, *coefs, grid=True):
         """Evaluate Coulomb collision coefficients for a given test particle.
 
         Collision coefficients are evaluated by interpolating the plasma
@@ -459,13 +476,35 @@ class LibAscot:
             z coordinates where data is evaluated.
         t : array_like, (n,)
             Time coordinates where data is evaluated.
-        va : array_like, (nv,)
+        va : array_like, (nv,) or (n,)
             Test particle velocity.
+        *coefs : str
+            Names of the coefficients to be evaluated.
+
+            "clog"   - Coulomb logarithm.
+            "f"      - Drag in particle Fokker-Planck equation.
+            "k"      - Drag in guiding-center Fokker-Planck equation.
+            "nu"     - Pitch collision frequency.
+            "dpara"  - Parallel diffusion.
+            "dperp"  - Perpendicular diffusion.
+            "ddpara" -  d(Dpara) / dv.
+            "q"      - From K = Q + dDpara + 2*Dpara / va.
+            "dq"     - d(Q) / dv.
+            "mu0"    - One of the special functions needed in evaluation.
+            "mu1"    - One of the special functions needed in evaluation.
+            "dmu0"   - One of the special functions needed in evaluation.
+        grid : bool, optional
+            If True, all velocity components are evaluated at each (R,phi,z)
+            position, i.e., the returned values are of shape (nion+1,n,nv).
+
+            If False, the coefficients are evaluated at positions (R,phi,z,va),
+            e.g. along an orbit, and the returned values have shape (nion+1,n).
 
         Returns
         -------
-        out : dict [str, array_like (nion+1, n, nv)]
-            Evaluated collision coefficients in a dictionary.
+        *out : array_like, (nion+1, n, nv) or (nion+1, n)
+            Evaluated collision coefficients in same order as declared in
+            ``*coefs``.
 
             The first dimension is the background plasma species where the first
             index is for the electrons followed by ions.
@@ -478,67 +517,52 @@ class LibAscot:
             If evaluation in libascot.so failed.
         """
         self._requireinit("bfield", "plasma")
-        ma  = float(ma)
-        qa  = float(qa)
-        Neval = va.size
+        Neval = r.size
+        Nv = va.size if grid else 1
+        n_species = self.input_getplasmaspecies()[0]
 
-        n_species = self.input_getplasmaspecies()[0] + 1
-
-        out = {}
-        temp = np.zeros((n_species, r.size, va.size), dtype="f8")
-        out["F"]      = np.copy(temp) * unyt.m / unyt.s**2
-        out["Dpara"]  = np.copy(temp) * unyt.m**2 / unyt.s**3
-        out["Dperp"]  = np.copy(temp) * unyt.m**2 / unyt.s**3
-        out["K"]      = np.copy(temp) * unyt.m / unyt.s**2
-        out["nu"]     = np.copy(temp) / unyt.s
-        out["Q"]      = np.copy(temp) * unyt.m / unyt.s**2
-        out["dQ"]     = np.copy(temp) / unyt.s
-        out["dDpara"] = np.copy(temp) * unyt.m / unyt.s**2
-        out["clog"]   = np.copy(temp)
-        out["mu0"]    = np.copy(temp)
-        out["mu1"]    = np.copy(temp)
-        out["dmu0"]   = np.copy(temp)
+        m = unyt.m; s = unyt.s
+        out = {"clog":None, "f":None, "k":None, "nu":None, "dpara":None,
+               "dperp":None, "ddpara":None, "q":None, "dq":None, "mu0":None,
+               "mu1":None, "dmu0":None}
+        temp = np.zeros((n_species, Neval, Nv), dtype="f8")
+        if "clog"   in coefs: out["clog"]   = np.copy(temp)
+        if "f"      in coefs: out["f"]      = np.copy(temp) * m/s**2
+        if "k"      in coefs: out["k"]      = np.copy(temp) * m/s**2
+        if "nu"     in coefs: out["nu"]     = np.copy(temp) / s
+        if "dpara"  in coefs: out["dpara"]  = np.copy(temp) * m**2/s**3
+        if "dperp"  in coefs: out["dperp"]  = np.copy(temp) * m**2/s**3
+        if "ddpara" in coefs: out["ddpara"] = np.copy(temp) * m/s**2
+        if "q"      in coefs: out["q"]      = np.copy(temp) * m/s**2
+        if "dq"     in coefs: out["dq"]     = np.copy(temp) / s
+        if "mu0"    in coefs: out["mu0"]    = np.copy(temp)
+        if "mu1"    in coefs: out["mu1"]    = np.copy(temp)
+        if "dmu0"   in coefs: out["dmu0"]   = np.copy(temp)
 
         fun = _LIBASCOT.libascot_eval_collcoefs
         fun.restype  = ctypes.c_int
         fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR,
-                        ctypes.c_int, PTR_REAL, ctypes.c_double,
-                        ctypes.c_double, ctypes.c_double, ctypes.c_double,
-                        ctypes.c_double, ctypes.c_double, PTR_REAL, PTR_REAL,
-                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
+                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        ctypes.c_int, PTR_REAL,
+                        ctypes.c_double, ctypes.c_double,
+                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL]
+        fun(ctypes.byref(self._sim), self._bfield_offload_array,
+            self._plasma_offload_array, Neval, r, phi, z, t, Nv, va, ma, qa,
+            out["f"], out["dpara"], out["dperp"], out["k"], out["nu"], out["q"],
+            out["dq"], out["ddpara"], out["clog"], out["mu0"], out["mu1"],
+            out["dmu0"])
 
-        for i in range(r.size):
-            F      = np.zeros((n_species, va.size), dtype="f8")
-            Dpara  = np.zeros((n_species, va.size), dtype="f8")
-            Dperp  = np.zeros((n_species, va.size), dtype="f8")
-            K      = np.zeros((n_species, va.size), dtype="f8")
-            nu     = np.zeros((n_species, va.size), dtype="f8")
-            Q      = np.zeros((n_species, va.size), dtype="f8")
-            dQ     = np.zeros((n_species, va.size), dtype="f8")
-            dDpara = np.zeros((n_species, va.size), dtype="f8")
-            clog   = np.zeros((n_species, va.size), dtype="f8")
-            mu0    = np.zeros((n_species, va.size), dtype="f8")
-            mu1    = np.zeros((n_species, va.size), dtype="f8")
-            dmu0   = np.zeros((n_species, va.size), dtype="f8")
-            fun(ctypes.byref(self._sim), self._bfield_offload_array,
-                self._plasma_offload_array,
-                va.size, va, r[i], phi[i], z[i], t[i],
-                ma, qa, F, Dpara, Dperp,
-                K, nu, Q, dQ, dDpara, clog, mu0, mu1, dmu0)
-            out["F"][:,i,:]      = F[:,:]
-            out["Dpara"][:,i,:]  = Dpara[:,:]
-            out["Dperp"][:,i,:]  = Dperp[:,:]
-            out["K"][:,i,:]      = K[:,:]
-            out["nu"][:,i,:]     = nu[:,:]
-            out["Q"][:,i,:]      = Q[:,:]
-            out["dQ"][:,i,:]     = dQ[:,:]
-            out["dDpara"][:,i,:] = dDpara[:,:]
-            out["clog"][:,i,:]   = clog[:,:]
-            out["mu0"][:,i,:]    = mu0[:,:]
-            out["mu1"][:,i,:]    = mu1[:,:]
-            out["dmu0"][:,i,:]   = dmu0[:,:]
+        for d in list(out.keys()):
+            #if not grid: print(va)
+            if d not in coefs:
+                del out[d]
+            else:
+                if not grid: out[d] = out[d].reshape((n_species, Neval))
 
+        out = [out[k] for k in coefs]
+        if len(out) == 1: out = out[0]
         return out
 
     @parseunits(ma="kg", r="m", phi="rad", z="m", t="s", va="m/s")
@@ -605,7 +629,7 @@ class LibAscot:
 
 
     def input_getplasmaspecies(self):
-        """Get species present in plasma input (electrons excluded).
+        """Get species present in plasma input (electrons first).
 
         Returns
         -------
@@ -627,23 +651,24 @@ class LibAscot:
         RuntimeError
             If evaluation in libascot.so failed.
         """
+        self._requireinit("plasma")
         fun = _LIBASCOT.libascot_plasma_get_n_species
         fun.restype  = ctypes.c_int
         fun.argtypes = [PTR_SIM, PTR_ARR]
 
         out = {}
         out["nspecies"] = fun(
-            ctypes.byref(self._sim), self._plasma_offload_array) - 1
+            ctypes.byref(self._sim), self._plasma_offload_array)
 
         out["mass"]   = np.zeros((out["nspecies"],), dtype="f8")
         out["charge"] = np.zeros((out["nspecies"],), dtype="f8")
-        out["anum"]   = np.zeros((out["nspecies"],), dtype="i8")
-        out["znum"]   = np.zeros((out["nspecies"],), dtype="i8")
+        out["anum"]   = np.zeros((out["nspecies"],), dtype="i4")
+        out["znum"]   = np.zeros((out["nspecies"],), dtype="i4")
 
         fun = _LIBASCOT.libascot_plasma_get_species_mass_and_charge
-        fun.restype  = None
-        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_REAL, PTR_REAL, PTR_LONG,
-                        PTR_LONG]
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_REAL, PTR_REAL, PTR_INT,
+                        PTR_INT]
         fun(ctypes.byref(self._sim), self._plasma_offload_array,
             out["mass"], out["charge"], out["anum"], out["znum"])
 
