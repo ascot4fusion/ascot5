@@ -3,11 +3,12 @@
 import ctypes
 import unyt
 import numpy as np
+import scipy
 import warnings
 import wurlitzer # For muting libascot.so
 
+import a5py.physlib as physlib
 import a5py.routines.plotting as a5plt
-from a5py.physlib import parseunits
 from a5py.routines.plotting import openfigureifnoaxes
 from a5py.exceptions import AscotInitException
 
@@ -591,7 +592,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
         return out
 
-    @parseunits(r="m", phi="deg", z="m", t="s")
+    @physlib.parseunits(r="m", phi="deg", z="m", t="s")
     def input_eval(self, r, phi, z, t, *qnt, grid=False):
         """Evaluate input quantities at given coordinates.
 
@@ -640,7 +641,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
 
         if grid:
             arrsize = (r.size, phi.size, z.size, t.size)
-            r, phi, z, t = np.meshgrid(r, phi, z, t)
+            r, phi, z, t = np.meshgrid(r, phi, z, t, indexing="ij")
             r   = r.ravel()
             phi = phi.ravel()
             z   = z.ravel()
@@ -666,7 +667,8 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
                 t = t[0]*np.ones((arrsize,))
 
         out = {}
-        if any(q in qnt for q in ["rho", "psi"]):
+        if any(q in qnt for q in ["rho", "psi", "rhodpsi", "psidr", "psidphi",
+                                  "psidz"]):
             out.update(**self._eval_bfield(r, phi, z, t, evalrho=True))
         if any(q in qnt for q in ["br", "bphi", "bz", "brdr", "brdphi", "brdz",
                                   "bphidr", "bphidphi", "bphidz", "bzdr",
@@ -1010,22 +1012,64 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         else:
             return volume
 
-    def _evaluateripple(self, R, z, t, nphi):
-        """TBD
-        """
-        nin = R.size
-        phigrid = np.linspace(0, 2*np.pi, nphi+1)[:-1]
-        R = np.meshgrid(R, phigrid, indexing="ij")[0]
-        z = np.meshgrid(z, phigrid, indexing="ij")[0]
-        t, phigrid = np.meshgrid(t, phigrid, indexing="ij")
-        out = np.abs(self.eval_bfield(R.ravel(), phigrid.ravel(), z.ravel(),
-                                      t.ravel(), evalb=True)["bphi"])
-        out = out.reshape(nin, nphi)
-        bmax = np.nanmax(out, axis=1)
-        bmin = np.nanmin(out, axis=1)
-        return (bmax - bmin) / (bmax + bmin)
+    def input_eval_safetyfactor(self, rho, nth=10000):
+        """Evaluate safety factor and associated quantities.
 
-    def input_plotmuptorboundaries(self, mugrid, ptorgrid, ekin):
+        This function most likely works for tokamaks only.
+
+        Parameters
+        ----------
+        rho : array_like, (n,)
+            Radial positions where the safety factor is evaluated.
+
+            Note that evaluating it near the axis or exactly at the separatrix
+            may yield mess.
+
+        Returns
+        -------
+        qprof : array_like, (n,)
+            Safety factor.
+        Iprof : array_like, (n,)
+            Toroidal current term which, when multiplied with mu0/2, gives the
+            enclosed toroidal current.
+        gprof : array_like, (n,)
+            This is just R * Bphi which is constant since Bphi ~ 1/R.
+        """
+        qprof = np.zeros(rho.shape)
+        Iprof = np.zeros(rho.shape)
+        gprof = np.zeros(rho.shape)
+        thgrid = np.linspace(0, 2*np.pi, nth)
+        for i in range(rho.size):
+            # Interpolate the contour points on the fixed theta grid
+            r, z = self.input_rhotheta2rz(
+                rho[i]*np.ones(thgrid.shape), thgrid*unyt.rad,
+                np.zeros(thgrid.shape)*unyt.rad, 0*unyt.s)
+
+            # Magnetic field along the contour (psi can be used to check that
+            # the contour was set properly). Drop the last element in r and z
+            # as it is the same as first.
+            br, bphi, bz, psi = self.input_eval(
+                r[:-1], 0*unyt.rad, z[:-1], 0*unyt.s,
+                "br", "bphi", "bz", "psi")
+
+            bpol  = np.sqrt(br**2 + bz**2)
+            bnorm = np.sqrt(br**2 + bphi**2 + bz**2)
+            ds    = (np.diff(r) * br + np.diff(z) * bz) / bpol # darc dot e^_pol
+            r = r[:-1]; z = z[:-1]
+
+            # The toroidal current term (multiplying this with mu0/2 pi gets
+            # enclosed toroidal current)
+            Iprof[i] = np.sum( ds * bpol ) / ( 2*np.pi )
+
+            # g = R*Bphi, since Bphi ~ 1/R this is a constant
+            gprof[i] = r[0] * bphi[0]
+
+            # The (global) safety factor q(psi)
+            qprof[i] = np.sum( ds * gprof[i] / ( r**2 * bpol ) ) / ( 2*np.pi )
+
+        return qprof, Iprof, gprof
+
+    def input_eval_orbitboundaries(self, mugrid, ptorgrid, ekin):
         """Plot boundaries of different orbit topologies in (mu, ekin)
         phase-space when energy is fixed.
 
@@ -1040,71 +1084,131 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
         """
         pass
 
-    def _evaluateripplewell(self, R, z, t, nphi):
-        """TBD
+    def input_eval_ripple(
+            self, rgrid, zgrid, rlarmor, rho0=1.0*unyt.dimensionless,
+            theta0=0*unyt.rad, t=0*unyt.s, nphi=362, plot=True, axes1=None,
+            axes2=None):
+        """Evaluate various ripple quantities.
+
+        The variation of toroidal field strength as a function of toroidal angle
+        is called the toroidal field (TF) ripple. The TF ripple can lead to
+        ripple-induced losses provided that i) the particle is trapped in
+        a ripple well in which case it is promptly lost or ii) the ripple causes
+        particle motion to become stochastic which leads to radial diffusion.
+
+        This function evaluates the quantities relevant for ripple transport.
+        Note that ``deltacrit`` and ``ripplewell`` are approximate quantities
+        based on analytical estimates.
+
+        Parameters
+        ----------
+        rgrid : array_like
+            R points where ``delta``, ``deltacrit``, and ``ripplewell`` are
+            evaluated.
+        zgrid : array_like
+            z points where ``delta``, ``deltacrit``, and ``ripplewell`` are
+            evaluated.
+        rlarmor : float or tuple (str, int, float)
+            Larmor radius of the test particle or tuple with
+            (species, charge, energy).
+        rho0 : float, optional
+            Radial coordinate where ``amplitude`` is evaluated.
+        theta0 : float, optional
+            Poloidal coordinate where ``amplitude`` is evaluated.
+        t : float, optional
+            Time instance for time-dependent fields.
+        nphi : int, optional
+            Number of toroidal grid points in ripple evaluation.
+
+            There is probably never a need to change this number.
+        plot : bool, optional
+            If True, the evaluated quantities are also plotted.
+        axes1 : , optional
+            Axes for plotting ``amplitude`` if ``plot``=True.
+        axes2 : , optional
+            Axes for plotting ``delta``, ``deltacrit``, and ``ripplewell`` if
+            ``plot``=True.
+
+        Returns
+        -------
+        phigrid : array_like, (nphi)
+            Toroidal grid [-2, 362] where ``amplitude`` is given.
+
+            This grid is not limited to [0,360] as usual so that one can also
+            use it to spot any discontinuities in field if the input was poorly
+            constructed.
+        amplitude : array_like, (nphi,)
+            Variation in toroidal field strength, i.e.
+            Bphi(phi) - Bphi_axisymmetric.
+        delta : array_like, (nr,nz)
+            Ripple magnitude defined as  (Bmax-Bmin) / (Bmax+Bmin), where Bmax
+            and Bmin are toroidal extrema of Bphi.
+        deltacrit : array_like, (nr,nz)
+            Critical ripple magnitude.
+
+            Particles are subject to stochastic ripple diffusion when
+            ``deltacrit`` < 1.
+        ripplewell : array_like, (nr,nz)
+            Ripple well parameter.
+
+            Particles are bound to be ripple-trapped when ``ripplewell`` < 1.
+            However, this does not necessarily mean that the particle is lost as
+            it may escape the well when ripple-trapping causes it to drift
+            outwards. As particles that are ripple-trapped drift vertically,
+            a good indication that a trapped particle will be lost if the ripple
+            well region covers everything vertically below/above that point.
         """
-        nin = R.size
-        phigrid = np.linspace(0, 2*np.pi, nphi+1)[:-1]
-        R = np.meshgrid(R, phigrid, indexing="ij")[0]
-        z = np.meshgrid(z, phigrid, indexing="ij")[0]
-        t, phigrid = np.meshgrid(t, phigrid, indexing="ij")
-        out = self.eval_bfield(R.ravel(), phigrid.ravel(), z.ravel(),
-                               t.ravel(), evalb=True)
+        phi = np.linspace(-2, 362, nphi) * unyt.deg
+        bphi, rho, drhodpsi = self.input_eval(
+            rgrid, phi, zgrid, 0*unyt.s, "bphi", "rho", "rhodpsi", grid=True)
+        bphi = np.squeeze(np.abs(bphi))
+        bmax = np.nanmax(bphi, axis=1)
+        bmin = np.nanmin(bphi, axis=1)
+        delta = (bmax - bmin) / (bmax + bmin)
+        rho = np.squeeze(rho[:,0,:,0])
+        drhodpsi = np.squeeze(drhodpsi[:,0,:,0])
 
-        bnorm = np.sqrt( out["br"]*out["br"] + out["bphi"]*out["bphi"]
-                         + out["bz"]*out["bz"] )
-        bhat_r   = out["br"]   / bnorm
-        bhat_phi = out["bphi"] / bnorm
-        bhat_z   = out["bz"]   / bnorm
+        if not isinstance(rlarmor, float):
+            prt   = physlib.species.species(rlarmor[0], charge=rlarmor[1])
+            ekin  = rlarmor[2] * unyt.eV
+            bnorm = np.mean(bphi)
+            rlarmor = physlib.gyrolength(
+                prt["mass"], prt["charge"], ekin, 0.0, bnorm)
 
-        bbar = (bhat_r * out["bphidr"] +  bhat_z * out["bphidz"]).reshape(nin, nphi)
-        btil = (bhat_phi * out["bphidphi"] / R.ravel()).reshape(nin, nphi)
+        r0, z0 = self.input_rhotheta2rz(rho0*np.ones((nphi,)),
+                                        theta0*np.ones((nphi,)), phi, 0*unyt.s)
+        amplitude = self.input_eval(r0, phi, z0, 0*unyt.s, "bphi")
+        amplitude -= np.mean(amplitude)
 
-        return np.nanmean(np.abs(bbar), axis=1) \
-            / np.nanmax(np.abs(btil), axis=1)
+        # Use fft to find ripple periodicity
+        ff      = np.fft.fftfreq(len(phi), (phi[1]-phi[0]))
+        Fyy     = abs(np.fft.fft(amplitude))
+        Nripple = np.round(abs(ff[np.argmax(Fyy[1:])+1]) * (phi[-1] - phi[0]))
 
-    def _plotripple(self, Rgrid, zgrid, time, nphi, axes=None):
-        """TBD
-        """
-        R, z, t = np.meshgrid(Rgrid, zgrid, time, indexing="ij")
-        rip = self.evaluateripple(R, z, t, nphi).reshape(Rgrid.size, zgrid.size)
+        rhogrid = np.linspace(0, 1, 100)
+        q, _, _ = self.input_eval_safetyfactor(rhogrid)
+        q = scipy.interpolate.CubicSpline(rhogrid, q, extrapolate=False)
 
-        newfig = axes is None
-        if newfig:
-            plt.figure()
-            axes = plt.gca()
+        raxis, zaxis = self.input_rhotheta2rz(0.0*unyt.dimensionless, 0.0, 0.0, 0.0)
 
-        CS = axes.contour(Rgrid, zgrid, 100 * rip.transpose(),
-                          [0.01, 0.05, 0.1, 0.5, 1, 5])
-        axes.clabel(CS)
+        rg, zg = np.meshgrid(rgrid, zgrid, indexing="ij")
+        rminor = np.sqrt( (rg - raxis)**2 + (zg - zaxis)**2 )
+        sinth  = (zg - zaxis) / rminor
+        eps    = rminor / raxis
+        qfac   = np.abs(q(rho))
+        dqdpsi = np.abs(q(rho,1) * drhodpsi)
 
-        axes.set_aspect("equal", adjustable="box")
-        axes.set_xlim(Rgrid[0], Rgrid[-1])
-        axes.set_ylim(zgrid[0], zgrid[-1])
+        deltacrit = np.sqrt( eps / (np.pi * Nripple * qfac) )**3 \
+            / ( rlarmor * dqdpsi * delta )
+        ripplewell = rg * np.abs(sinth) / ( Nripple * qfac * delta )
 
-        if newfig:
-            plt.show(block=False)
+        if plot:
+            axes1.plot(phi, amplitude)
+            axes2.contour(rgrid, zgrid, deltacrit.T.v, np.array([1.0]), colors="C0")
+            axes2.contour(rgrid, zgrid, ripplewell.T.v, np.array([1.0]), colors="C1")
+            cs = axes2.contour(rgrid, zgrid, delta.T, colors="black")
+            axes2.clabel(cs, cs.levels)
 
-    def _plotripplewell(self, Rgrid, zgrid, time, nphi, axes=None,
-                       clevel=[-1,0,1], clabel=True, **kwargs):
-        """TBD
-        """
-        R, z, t = np.meshgrid(Rgrid, zgrid, time, indexing="ij")
-        rip = self.evaluateripplewell(R, z, t, nphi).reshape(Rgrid.size, zgrid.size)
+            axes2.set_aspect("equal", adjustable="box")
 
-        newfig = axes is None
-        if newfig:
-            plt.figure()
-            axes = plt.gca()
-
-        CS = axes.contour(Rgrid, zgrid, np.log10(rip.transpose()),
-                          clevel, **kwargs)
-        if clabel:
-            axes.clabel(CS)
-
-        axes.set_aspect("equal", adjustable="box")
-        axes.set_xlim(Rgrid[0], Rgrid[-1])
-        axes.set_ylim(zgrid[0], zgrid[-1])
-
-        if newfig:
-            plt.show(block=False)
+        return phi, amplitude, delta, deltacrit, ripplewell

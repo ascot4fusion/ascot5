@@ -125,15 +125,24 @@ class LibAscot:
             out["psi"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.Wb
             out["rho"] = (np.zeros(r.shape, dtype="f8") + np.nan) \
                 * unyt.dimensionless
+            out["rhodpsi"] = (np.zeros(r.shape, dtype="f8") + np.nan) / unyt.Wb
+            out["psidr"] = (np.zeros(r.shape, dtype="f8") + np.nan) \
+                * unyt.Wb / unyt.m
+            out["psidphi"] = (np.zeros(r.shape, dtype="f8") + np.nan) \
+                * unyt.Wb
+            out["psidz"] = (np.zeros(r.shape, dtype="f8") + np.nan) \
+                * unyt.Wb / unyt.m
 
             fun = _LIBASCOT.libascot_B_field_eval_rho
             fun.restype  = None
             fun.argtypes = [PTR_SIM, PTR_ARR,
                             ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
-                            PTR_REAL, PTR_REAL, PTR_REAL]
+                            PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                            PTR_REAL, PTR_REAL]
 
             fun(ctypes.byref(self._sim), self._bfield_offload_array,
-                Neval, r, phi, z, t, out["rho"], out["psi"])
+                Neval, r, phi, z, t, out["rho"], out["rhodpsi"], out["psi"],
+                out["psidr"], out["psidphi"], out["psidz"])
 
         if evalaxis:
             out["axisr"] = (np.zeros(r.shape, dtype="f8") + np.nan) * unyt.m
