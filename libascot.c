@@ -107,7 +107,8 @@ void libascot_B_field_eval_B_dB(
  */
 void libascot_B_field_eval_rho(
     sim_offload_data* sim_offload_data, real* B_offload_array, int Neval,
-    real* R, real* phi, real* z, real* t, real* rho, real* psi) {
+    real* R, real* phi, real* z, real* t, real* rho, real* drhodpsi, real* psi,
+    real* dpsidr, real* dpsidphi, real* dpsidz) {
 
     sim_data sim;
     B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
@@ -115,15 +116,20 @@ void libascot_B_field_eval_rho(
 
     #pragma omp parallel for
     for(int k = 0; k < Neval; k++) {
-        real rhoval[2], psival[1];
-        if( B_field_eval_psi(psival, R[k], phi[k], z[k], t[k], &sim.B_data) ) {
+        real rhoval[2], psival[4];
+        if( B_field_eval_psi_dpsi(psival, R[k], phi[k], z[k], t[k],
+                                  &sim.B_data) ) {
             continue;
         }
-        psi[k] = psival[0];
+        psi[k]      = psival[0];
+        dpsidr[k]   = psival[1];
+        dpsidphi[k] = psival[2];
+        dpsidz[k]   = psival[3];
         if( B_field_eval_rho(rhoval, psival[0], &sim.B_data) ) {
             continue;
         }
-        rho[k] = rhoval[0];
+        rho[k]      = rhoval[0];
+        drhodpsi[k] = rhoval[1];
     }
 }
 
