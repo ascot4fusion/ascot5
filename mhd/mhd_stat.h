@@ -59,13 +59,15 @@ void mhd_stat_free_offload(mhd_stat_offload_data* offload_data,
 #pragma omp declare target
 void mhd_stat_init(mhd_stat_data* mhdata, mhd_stat_offload_data* offload_data,
                    real* offload_array);
-#pragma omp declare simd uniform(boozerdata, mhddata)
+#pragma omp declare simd uniform(boozerdata, mhddata, includemode)
 a5err mhd_stat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
-                    boozer_data* boozerdata, mhd_stat_data* mhddata,
-                    B_field_data* Bdata);
-#pragma omp declare simd uniform(boozerdata, mhddata, Bdata)
+                    int includemode, boozer_data* boozerdata,
+                    mhd_stat_data* mhddata, B_field_data* Bdata);
+#pragma omp declare simd uniform(boozerdata, mhddata, Bdata, pertonly,\
+                                 includemode)
 a5err mhd_stat_perturbations(real pert_field[7], real r, real phi, real z,
-                             real t, int pertonly, boozer_data* boozerdata,
+                             real t, int pertonly, int includemode,
+                             boozer_data* boozerdata,
                              mhd_stat_data* mhddata, B_field_data* Bdata);
 
 #pragma omp end declare target

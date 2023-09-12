@@ -258,7 +258,7 @@ void step_fo_vpa_mhd(particle_simd_fo* p, real* h, B_field_data* Bdata,
             if(!errflag) {
                 errflag = mhd_perturbations(
                     pert, posrpz[0], posrpz[1], posrpz[2], t0 + h[i]/2,
-                    pertonly, boozer, mhd, Bdata);
+                    pertonly, MHD_INCLUDE_ALL, boozer, mhd, Bdata);
             }
             Brpz[0] = pert[0];
             Brpz[1] = pert[1];

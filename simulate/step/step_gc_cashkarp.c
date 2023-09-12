@@ -371,7 +371,7 @@ void step_gc_cashkarp_mhd(particle_simd_gc* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, yprev[0], yprev[1], yprev[2],
-                                   t0, boozer, mhd, Bdata);
+                                   t0, MHD_INCLUDE_ALL, boozer, mhd, Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k1, yprev, mass, charge, B_dB, E, mhd_dmhd);
@@ -393,7 +393,8 @@ void step_gc_cashkarp_mhd(particle_simd_gc* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   t0 + (1.0/5)*h[i], boozer, mhd, Bdata);
+                                   t0 + (1.0/5)*h[i], MHD_INCLUDE_ALL, boozer,
+                                   mhd, Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k2, tempy, mass, charge, B_dB, E, mhd_dmhd);
@@ -416,7 +417,8 @@ void step_gc_cashkarp_mhd(particle_simd_gc* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   t0 + (3.0/10)*h[i], boozer, mhd, Bdata);
+                                   t0 + (3.0/10)*h[i], MHD_INCLUDE_ALL, boozer,
+                                   mhd, Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k3, tempy, mass, charge, B_dB, E, mhd_dmhd);
@@ -440,7 +442,8 @@ void step_gc_cashkarp_mhd(particle_simd_gc* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   t0 + (3.0/5)*h[i], boozer, mhd, Bdata);
+                                   t0 + (3.0/5)*h[i], MHD_INCLUDE_ALL, boozer,
+                                   mhd, Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k4, tempy, mass, charge, B_dB, E, mhd_dmhd);
@@ -465,7 +468,8 @@ void step_gc_cashkarp_mhd(particle_simd_gc* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   t0 + h[i], boozer, mhd, Bdata);
+                                   t0 + h[i], MHD_INCLUDE_ALL, boozer, mhd,
+                                   Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k5, tempy, mass, charge, B_dB, E, mhd_dmhd);
@@ -491,7 +495,8 @@ void step_gc_cashkarp_mhd(particle_simd_gc* p, real* h, real* hnext, real tol,
             }
             if(!errflag) {
                 errflag = mhd_eval(mhd_dmhd, tempy[0], tempy[1], tempy[2],
-                                   t0 + (7.0/8)*h[i], boozer, mhd, Bdata);
+                                   t0 + (7.0/8)*h[i], MHD_INCLUDE_ALL, boozer,
+                                   mhd, Bdata);
             }
             if(!errflag) {
                 step_gceom_mhd(k6, tempy, mass, charge, B_dB, E, mhd_dmhd);

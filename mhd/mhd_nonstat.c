@@ -10,6 +10,7 @@
 #include "../spline/interp.h"
 #include "../B_field.h"
 #include "../math.h"
+#include "../mhd.h"
 #include "mhd_nonstat.h"
 
 /**
@@ -173,14 +174,15 @@ void mhd_nonstat_init(mhd_nonstat_data* mhddata,
  * @param phi phi coordinate [rad]
  * @param z z coordinate [m]
  * @param t time coordinate [s]
+ * @param includemode mode number to include or MHD_INCLUDE_ALL
  * @param boozerdata pointer to boozer data
  * @param mhddata pointer to mhd data
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
 a5err mhd_nonstat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
-                       boozer_data* boozerdata, mhd_nonstat_data* mhddata,
-                       B_field_data* Bdata) {
+                       int includemode, boozer_data* boozerdata,
+                       mhd_nonstat_data* mhddata, B_field_data* Bdata) {
 
     a5err err = 0;
 
@@ -204,6 +206,7 @@ a5err mhd_nonstat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
 
     int interperr = 0;
     for(int i = 0; i < iterations; i++){
+        if( includemode != MHD_INCLUDE_ALL && includemode != i ) { continue; }
         /* Get interpolated values */
         real a_da[6], phi_dphi[6];
         interperr += interp2Dcomp_eval_df(a_da, &(mhddata->alpha_nm[i]),
@@ -301,21 +304,22 @@ a5err mhd_nonstat_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
  * @param z z coordinate [m]
  * @param t time coordinate [s]
  * @param pertonly flag whether to return the whole field or only perturbation
+ * @param includemode mode number to include or MHD_INCLUDE_ALL
  * @param boozerdata pointer to boozer data
  * @param mhddata pointer to mhd data
  * @param Bdata pointer to magnetic field data
  *
  * @return Non-zero a5err value if evaluation failed, zero otherwise
  */
-a5err mhd_nonstat_perturbations(real pert_field[7], real r, real phi, real z,
-                                real t, int pertonly, boozer_data* boozerdata,
-                                mhd_nonstat_data* mhddata,
-                                B_field_data* Bdata) {
+a5err mhd_nonstat_perturbations(
+    real pert_field[7], real r, real phi, real z, real t, int pertonly,
+    int includemode, boozer_data* boozerdata, mhd_nonstat_data* mhddata,
+    B_field_data* Bdata) {
     a5err err = 0;
     real mhd_dmhd[10];
     if(!err) {
-        err = mhd_nonstat_eval(mhd_dmhd, r, phi, z, t, boozerdata, mhddata,
-                               Bdata);
+        err = mhd_nonstat_eval(mhd_dmhd, r, phi, z, t, includemode, boozerdata,
+                               mhddata, Bdata);
     }
     /*  see example of curl evaluation in step_gc_rk4.c, ydot_gc*/
     real B_dB[15];

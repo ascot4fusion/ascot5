@@ -581,7 +581,7 @@ void libascot_mhd_eval(
     #pragma omp parallel for
     for(int k = 0; k < Neval; k++) {
         real mhd_dmhd[10];
-        if( mhd_eval(mhd_dmhd, R[k], phi[k], z[k], t[k],
+        if( mhd_eval(mhd_dmhd, R[k], phi[k], z[k], t[k], MHD_INCLUDE_ALL,
                      &sim.boozer_data, &sim.mhd_data, &sim.B_data) ) {
             continue;
         }
@@ -636,7 +636,8 @@ void libascot_mhd_eval_perturbation(
     for(int k = 0; k < Neval; k++) {
         real pert_field[7];
         if( mhd_perturbations(pert_field, R[k], phi[k], z[k], t[k], onlypert,
-                              &sim.boozer_data, &sim.mhd_data, &sim.B_data) ) {
+                              MHD_INCLUDE_ALL, &sim.boozer_data, &sim.mhd_data,
+                              &sim.B_data) ) {
             continue;
         }
         mhd_br[k]   = pert_field[0];
