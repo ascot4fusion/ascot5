@@ -215,7 +215,8 @@ def gyrolength(m, q, energy, pitch, bnorm):
     """
     gamma = gamma_energy(m, energy)
     vnorm = vnorm_gamma(gamma)
-    return gamma * np.sqrt(1 - pitch**2) * m * vnorm / (bnorm * np.abs(q))
+    return ( gamma * np.sqrt(1 - pitch**2) * m * vnorm
+             / (bnorm * np.abs(q)) ).to("m")
 
 def gyrofrequency(m, q, energy, bnorm):
     """Evaluate gyrofrequency from energy.
