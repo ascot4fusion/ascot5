@@ -82,13 +82,8 @@ class PoincareTemplates():
         else:
             pol = pol * np.ones((nmrk,))
 
-        r = np.zeros((nmrk,))
-        z = np.zeros((nmrk,))
         rhovals = np.linspace(rhomin, rhomax, nmrk)
-        for i in range(nmrk):
-            rz = self._ascot.input_rhotheta2rz(rhovals, pol[i], tor[i], time)
-            r[i] = rz[0][i]
-            z[i] = rz[1][i]
+        r, z = self._ascot.input_rhotheta2rz(rhovals, pol, tor, time)
 
         if species is None:
             mrk = Marker.generate("fl", nmrk)
@@ -181,7 +176,7 @@ class PoincareTemplates():
 
         return ("opt", out)
 
-    def boozer_tokamak(self, npsi=100, nthgeo=200, nthbzr=200, tstep=1e-2,
+    def boozer_tokamak(self, npsi=50, nthgeo=20, nthbzr=20,
                        nint=8000, rhomin=0.3, rhomax=0.9):
         """Build mapping from real-space to Boozer coordinates assuming
         axisymmetric tokamak field.
@@ -194,9 +189,6 @@ class PoincareTemplates():
             Number of geometrical theta grid points.
         nthbzr : int, optional
             Number of boozer theta grid points.
-        tstep : float, optional
-            Time-step (in meters) for the algorithm solving the psi = const.
-            contour.
         nint : int, optional
             Number of points in line integral evaluations.
         rhomin : float, optional
@@ -273,58 +265,21 @@ class PoincareTemplates():
         Iprof = np.zeros(psigrid.shape)
         gprof = np.zeros(psigrid.shape)
 
-        # Functions needed to trace psi = const. surfaces.
-        def event(t, y):
-            """Detect the midplane crossing.
-            """
-            return zaxis - y[1]
-
-        # Terminate when midplane crossing is detected (see docmentation on
-        # solve_ivp at scipy) and at right diection. delta is to ensure that
-        # we ignore the first crossing by starting the simulation slightly off
-        # plane.
-        event.terminal  = True
-        event.direction = 1 - 2 * (psi1 > psi0)
-        delta = -1e-8 * event.direction
-
-        def tracepsi(t, y):
-            """Calculate new position when tracing Bpol.
-            """
-            br, bz = self._ascot.input_eval(
-                y[0]*unyt.m, 0*unyt.rad, y[1]*unyt.m, 0*unyt.s,"br", "bz")
-            return np.array([br / np.sqrt(br**2 + bz**2),
-                             bz / np.sqrt(br**2 + bz**2)]).ravel()
-
         # Calculate Boozer angular coordinates for each psi
         for i in range(psigrid.size):
 
-            # Find (R,z) location at the outer midplane where psi(R,z) = psi(i)
-            rzomp = self._ascot.input_rhotheta2rz(
-                np.sqrt((psigrid[i]-psi0) / (psi1 - psi0)) * unyt.dimensionless,
-                0*unyt.rad, 0*unyt.rad, 0*unyt.s)
-
-            # Solve the contour by tracing Bpol. The integration upper limit
-            # (2 pi R) is set high as the integration is actually terminated
-            # when OMP is crossed (this is taken care by the event. z0 + delta
-            # ensures that we don't accidentally terminate it when we start
-            # the integration.
-            sol = solve_ivp(tracepsi, [0, 2*np.pi*raxis],
-                            np.array([rzomp[0].v, rzomp[1].v+delta]).ravel(),
-                            max_step=tstep, events=event)
-            r = sol.y[0,:]
-            z = sol.y[1,:]
-
             # Interpolate the contour points on the fixed (geometrical) theta
             # grid (at OMP we set thetageom=thetabzr=0)
-            theta = np.mod(np.arctan2(z - zaxis, r - raxis), 2*np.pi)
-            r = np.interp(thgrid, theta, r, period=2*np.pi)
-            z = np.interp(thgrid, theta, z, period=2*np.pi)
+            rhogrid = np.sqrt((psigrid[i]-psi0) / (psi1 - psi0)) \
+                * np.ones(thgrid.shape)*unyt.dimensionless
+            r, z = self._ascot.input_rhotheta2rz(
+            rhogrid, thgrid*unyt.rad, np.zeros(thgrid.shape)*unyt.rad, 0*unyt.s)
 
             # Magnetic field along the contour (psi can be used to check that
             # the contour was set properly). Drop the last element in r and z
             # as it is the same as first.
             br, bphi, bz, psi = self._ascot.input_eval(
-                r[:-1]*unyt.m, 0*unyt.rad, z[:-1]*unyt.m, 0*unyt.s,
+                r[:-1], 0*unyt.rad, z[:-1], 0*unyt.s,
                 "br", "bphi", "bz", "psi")
 
             bpol  = np.sqrt(br**2 + bz**2)
