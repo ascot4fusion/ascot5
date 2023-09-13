@@ -78,6 +78,17 @@ a5err mhd_perturbations(real pert_field[7], real r, real phi, real z,
                         real t, int pertonly, int includemode,
                         boozer_data* boozerdata, mhd_data* mhddata,
                         B_field_data* Bdata);
-
+#pragma omp declare simd uniform(mhddata)
+int mhd_get_n_modes(mhd_data* mhddata);
+#pragma omp declare simd uniform(mhddata)
+const int* mhd_get_nmode(mhd_data* mhddata);
+#pragma omp declare simd uniform(mhddata)
+const int* mhd_get_mmode(mhd_data* mhddata);
+#pragma omp declare simd uniform(mhddata)
+const real* mhd_get_amplitude(mhd_data* mhddata);
+#pragma omp declare simd uniform(mhddata)
+const real* mhd_get_frequency(mhd_data* mhddata);
+#pragma omp declare simd uniform(mhddata)
+const real*  mhd_get_phase(mhd_data* mhddata);
 #pragma omp end declare target
 #endif

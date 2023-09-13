@@ -541,6 +541,56 @@ void libascot_boozer_eval_fun(
 }
 
 /**
+ * @brief Get number of MHD modes.
+ *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param mhd_offload_array initialized mhd offload data
+ *
+ * @return number of MHD modes
+ */
+int libascot_mhd_get_n_modes(
+    sim_offload_data* sim_offload_data, real* mhd_offload_array) {
+
+    sim_data sim;
+    mhd_init(&sim.mhd_data, &sim_offload_data->mhd_offload_data,
+             mhd_offload_array);
+    return mhd_get_n_modes(&sim.mhd_data);
+}
+
+/**
+ * @brief Get MHD mode amplitude, frequency, phase, and mode numbers
+ *
+ * @param sim_offload_data initialized simulation offload data struct
+ * @param mhd_offload_array initialized mhd offload data
+ * @param nmode output array for toroidal mode number
+ * @param mmode output array for poloidal mode number
+ * @param amplitude output array for mode amplitude
+ * @param omega output array for mode frequency
+ * @param phase output array for mode phase
+ */
+void libascot_mhd_get_mode_specs(
+    sim_offload_data* sim_offload_data, real* mhd_offload_array, int* nmode,
+    int* mmode, real* amplitude, real* omega, real* phase) {
+
+    sim_data sim;
+    mhd_init(&sim.mhd_data, &sim_offload_data->mhd_offload_data,
+             mhd_offload_array);
+    int n_modes   = mhd_get_n_modes(&sim.mhd_data);
+    const int* n  = mhd_get_nmode(&sim.mhd_data);
+    const int* m  = mhd_get_mmode(&sim.mhd_data);
+    const real* a = mhd_get_amplitude(&sim.mhd_data);
+    const real* o = mhd_get_frequency(&sim.mhd_data);
+    const real* p = mhd_get_phase(&sim.mhd_data);
+    for(int i=0; i<n_modes; i++) {
+        nmode[i]     = n[i];
+        mmode[i]     = m[i];
+        amplitude[i] = a[i];
+        omega[i]     = o[i];
+        phase[i]     = p[i];
+    }
+}
+
+/**
  * @brief Evaluate MHD perturbation potentials
  *
  * @param sim_offload_data initialized simulation offload data struct
@@ -552,6 +602,7 @@ void libascot_boozer_eval_fun(
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
  * @param t time coordinates of the evaluation points [s].
+ * @param includemode mode index to include or MHD_INCLUDE_ALL
  * @param alpha output array
  * @param dadr output array
  * @param dadphi output array
@@ -566,7 +617,7 @@ void libascot_boozer_eval_fun(
 void libascot_mhd_eval(
     sim_offload_data* sim_offload_data, real* B_offload_array,
     real* boozer_offload_array, real* mhd_offload_array, int Neval,
-    real* R, real* phi, real* z, real* t,
+    real* R, real* phi, real* z, real* t, int includemode,
     real* alpha, real* dadr, real* dadphi, real* dadz, real* dadt, real* Phi,
     real* dPhidr, real* dPhidphi, real* dPhidz, real* dPhidt) {
 
@@ -581,7 +632,7 @@ void libascot_mhd_eval(
     #pragma omp parallel for
     for(int k = 0; k < Neval; k++) {
         real mhd_dmhd[10];
-        if( mhd_eval(mhd_dmhd, R[k], phi[k], z[k], t[k], MHD_INCLUDE_ALL,
+        if( mhd_eval(mhd_dmhd, R[k], phi[k], z[k], t[k], includemode,
                      &sim.boozer_data, &sim.mhd_data, &sim.B_data) ) {
             continue;
         }
@@ -610,6 +661,7 @@ void libascot_mhd_eval(
  * @param phi phi coordinates of the evaluation points [rad].
  * @param z z coordinates of the evaluation points [m].
  * @param t time coordinates of the evaluation points [s].
+ * @param includemode mode index to include or MHD_INCLUDE_ALL
  * @param mhd_br output array
  * @param mhd_bphi output array
  * @param mhd_bz output array
@@ -621,8 +673,9 @@ void libascot_mhd_eval(
 void libascot_mhd_eval_perturbation(
     sim_offload_data* sim_offload_data, real* B_offload_array,
     real* boozer_offload_array, real* mhd_offload_array, int Neval,
-    real* R, real* phi, real* z, real* t, real* mhd_br, real* mhd_bphi,
-    real* mhd_bz, real* mhd_er, real* mhd_ephi, real* mhd_ez, real* mhd_phi) {
+    real* R, real* phi, real* z, real* t, int includemode, real* mhd_br,
+    real* mhd_bphi, real* mhd_bz, real* mhd_er, real* mhd_ephi, real* mhd_ez,
+    real* mhd_phi) {
 
     sim_data sim;
     B_field_init(&sim.B_data, &sim_offload_data->B_offload_data,
@@ -636,7 +689,7 @@ void libascot_mhd_eval_perturbation(
     for(int k = 0; k < Neval; k++) {
         real pert_field[7];
         if( mhd_perturbations(pert_field, R[k], phi[k], z[k], t[k], onlypert,
-                              MHD_INCLUDE_ALL, &sim.boozer_data, &sim.mhd_data,
+                              includemode, &sim.boozer_data, &sim.mhd_data,
                               &sim.B_data) ) {
             continue;
         }

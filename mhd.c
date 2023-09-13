@@ -256,3 +256,123 @@ a5err mhd_perturbations(real pert_field[7], real r, real phi, real z,
 
     return err;
 }
+
+/**
+ * @brief Return number of modes.
+ *
+ * @param mhddata pointer to mhd data
+ *
+ * @return number of modes
+ */
+int mhd_get_n_modes(mhd_data* mhddata) {
+    int val = 0;
+    switch(mhddata->type) {
+        case mhd_type_stat:
+            val = mhddata->stat.n_modes;
+            break;
+        case mhd_type_nonstat:
+            val = mhddata->nonstat.n_modes;
+            break;
+    }
+    return val;
+}
+
+/**
+ * @brief Return mode toroidal numbers.
+ *
+ * @param mhddata pointer to mhd data
+ *
+ * @return mode n numbers
+ */
+const int* mhd_get_nmode(mhd_data* mhddata) {
+    const int* val = NULL;
+    switch(mhddata->type) {
+        case mhd_type_stat:
+            val = mhddata->stat.nmode;
+            break;
+        case mhd_type_nonstat:
+            val = mhddata->nonstat.nmode;
+            break;
+    }
+    return val;
+}
+
+/**
+ * @brief Return mode poloidal numbers.
+ *
+ * @param mhddata pointer to mhd data
+ *
+ * @return mode m numbers
+ */
+const int* mhd_get_mmode(mhd_data* mhddata) {
+    const int* val = NULL;
+    switch(mhddata->type) {
+        case mhd_type_stat:
+            val = mhddata->stat.mmode;
+            break;
+        case mhd_type_nonstat:
+            val = mhddata->nonstat.mmode;
+            break;
+    }
+    return val;
+}
+
+/**
+ * @brief Return mode amplitudes.
+ *
+ * @param mhddata pointer to mhd data
+ *
+ * @return mode amplitudes
+ */
+const real* mhd_get_amplitude(mhd_data* mhddata) {
+    const real* val = NULL;
+    switch(mhddata->type) {
+        case mhd_type_stat:
+            val = mhddata->stat.amplitude_nm;
+            break;
+        case mhd_type_nonstat:
+            val = mhddata->nonstat.amplitude_nm;
+            break;
+    }
+    return val;
+}
+
+/**
+ * @brief Return mode frequencies.
+ *
+ * @param mhddata pointer to mhd data
+ *
+ * @return mode omega
+ */
+const real* mhd_get_frequency(mhd_data* mhddata) {
+    const real* val = NULL;
+    switch(mhddata->type) {
+        case mhd_type_stat:
+            val = mhddata->stat.omega_nm;
+            break;
+        case mhd_type_nonstat:
+            val = mhddata->nonstat.omega_nm;
+            break;
+    }
+    return val;
+}
+
+/**
+ * @brief Return mode phases.
+ *
+ * @param mhddata pointer to mhd data
+ *
+ * @return mode phases
+ */
+const real* mhd_get_phase(mhd_data* mhddata) {
+    const real* val = NULL;
+    switch(mhddata->type) {
+        case mhd_type_stat:
+            val = mhddata->stat.phase_nm;
+            break;
+        case mhd_type_nonstat:
+            val = mhddata->nonstat.phase_nm;
+            break;
+    }
+    return val;
+}
