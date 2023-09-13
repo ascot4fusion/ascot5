@@ -228,14 +228,14 @@ test_asigma: $(UTESTDIR)test_asigma.o $(OBJS)
 %.o: %.c $(HEADERS) Makefile
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-ASCOTPY2_HEADERFILES=particle.h hdf5_interface.h ascot5.h mpi_interface.h \
+ASCOT2PY_HEADERFILES=particle.h hdf5_interface.h ascot5.h mpi_interface.h \
 	simulate.h ascot5_main.h offload.h diag.h libascot_mem.h \
 	wall.h Bfield/B_STS.h B_field.h endcond.h diag/diag_orb.h \
 	hdf5io/hdf5_wall.h hdf5io/hdf5_bfield.h afsi.h
 
-ascotpy2.py : libascot.so
+ascot2py.py : libascot.so
 	clang2py -l libascot.so -o $@  \
-		$(ASCOTPY2_HEADERFILES) \
+		$(ASCOT2PY_HEADERFILES) \
 		--clang-args="-I/usr/include/hdf5/serial"
 # The above hdf5-include folder should not be hardcoded...
 
