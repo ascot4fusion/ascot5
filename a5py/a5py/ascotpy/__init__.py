@@ -1212,3 +1212,40 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             axes2.set_aspect("equal", adjustable="box")
 
         return phi, amplitude, delta, deltacrit, ripplewell
+
+    def input_eval_mhdalphafromphi(self, nrho=100,
+                                   reverse=False, plot=True):
+        """Evaluate magnetic potential from electric potential assuming that
+        Epar = 0.
+
+        This function can be used to verify that the MHD modes were porperly
+        imported. Note the Epar=0 condition though.
+
+        alphanm' = (n*q - m) * phinm / (g*q + I)
+
+        Parameters
+        ----------
+        rgrid : array_like, (nr,)
+        zgrid : array_like, (nz,)
+        phi : float, optional
+        """
+        n, nmode, mmode, _, omega, _ = self.input_mhd_modes()
+        rhogrid = np.linspace(0.05, 0.95, nrho)
+        q, I, g = self.input_eval_safetyfactor(rhogrid)
+
+        r, z = self.input_rhotheta2rz(rhogrid, rhogrid, rhogrid*0, 0*unyt.s)
+
+        import matplotlib.pyplot as plt
+        alphanm  = np.zeros((n, nrho)) + 1
+        phinm    = np.zeros((n, nrho))
+        alphanm_ = np.zeros((n, nrho)) + 2
+        for i in range(n):
+            out = self._eval_mhd(r, r, z, r*0*0, evalpot=True)
+            alphanm[i,:]  = out["alphaeig"]
+            phinm[i,:]    = out["phieig"]
+            alphanm_[i,:] = (2*1.256e-6*np.pi) * (( nmode[i] * q - mmode[i] ) * phinm[i,:] / (g*q + I)) / omega[i]
+            print(nmode[i], mmode[i], np.amax(alphanm[i,:]), np.amax(alphanm_[i,:]))
+
+            plt.plot(alphanm[i,:])
+            plt.plot(alphanm_[i,:], linestyle="--")
+        plt.show()
