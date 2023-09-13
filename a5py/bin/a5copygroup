@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+
+"""
+This script copies a data or parent group from one HDF5 file to another.
+"""
+
+import sys
+import a5py.ascot5io.ascot5tools as tools
+
+# Parse options
+setactive = False
+makenew   = False
+
+if "-a" in sys.argv:
+    sys.argv.remove("-a")
+    setactive = True
+
+if "-n" in sys.argv:
+    sys.argv.remove("-n")
+    makenew = True
+
+if len(sys.argv) == 4:
+    print("Copying input " + sys.argv[3]
+          + " from " + sys.argv[1] + " to " + sys.argv[2])
+    group = tools.copygroup(sys.argv[1], sys.argv[2], sys.argv[3],
+                            newgroup=makenew)
+
+    if group is not None and setactive:
+        tools.call_ascot5file(sys.argv[2], "set_active", group)
+
+    print("Done.")
+
+else:
+    print("Copies a parent or a data group from one HDF5 file to another.\n")
+    print("Usage:\n\n"
+          + "a5copygroup source.h5 destination.h5 B_2D-1234567890\n")
+    print("Options:\n\n"
+          + "-a : Set copied group as active.\n"
+          + "-n : Give copied group new QID and creation date.\n")

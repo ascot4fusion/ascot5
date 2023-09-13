@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+
+"""
+This script removes data and parent groups from HDF5 file.
+"""
+
+import sys
+import subprocess
+import a5py.ascot5io.ascot5tools as tools
+
+if len(sys.argv) >= 3:
+    for group in sys.argv[2:]:
+        print("Removing group " + group + " from " + sys.argv[1])
+        try:
+            tools.removegroup(sys.argv[1], group)
+        except RuntimeError:
+            rm = input(
+                    "The group to be removed has been used as an input.\n"
+                    "Really remove? (y/n)\n")
+            while True:
+                if rm is "y":
+                    print("Removing group " + group + " from " + sys.argv[1])
+                    tools.removegroup(sys.argv[1], group, force=True)
+                    break
+                elif rm is "n":
+                    print("Group " + group + " was not removed.")
+                    break
+                else:
+                    rm = input("Yes (y) or no (n)?\n")
+
+    print("Repacking the HDF5 file")
+    subprocess.call(["h5repack", sys.argv[1], "repack_" + sys.argv[1]])
+    subprocess.call(["mv", "repack_" + sys.argv[1], sys.argv[1]])
+    print("Done.")
+
+else:
+    print("Removes a parent or a data group from HDF5 file.\n")
+    print("Usage:\n\n"
+          + "a5removegroup input.h5 bfield\n"
+          + "a5removegroup input.h5 results marker\n"
+          + "a5removegroup input.h5 B_2D-1234567890\n")

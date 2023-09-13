@@ -1,0 +1,16 @@
+numpy
+scipy
+h5py
+prompt_toolkit
+unyt
+scikit-image
+matplotlib
+pyvista
+wurlitzer
+ipykernel
+sphinx
+numpydoc
+nbsphinx
+breathe
+sphinxcontrib-bibtex
+sphinx-rtd-theme
