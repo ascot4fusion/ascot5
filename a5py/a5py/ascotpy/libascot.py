@@ -381,7 +381,7 @@ class LibAscot:
 
         return out
 
-    def _eval_mhd(self, r, phi, z, t, evalpot=False):
+    def _eval_mhd(self, r, phi, z, t, mode=None, evalpot=False):
         """Evaluate MHD quantities at given coordinates.
 
         Parameters
@@ -394,6 +394,9 @@ class LibAscot:
             z coordinates where data is evaluated [m].
         t : array_like (n,)
             Time coordinates where data is evaluated [s].
+        mode : int
+            Pick a specific mode that is included by giving its index or
+            None to include all modes.
         evalpot : bool, optional
             Evaluate eigenfunctions as well.
 
@@ -410,6 +413,7 @@ class LibAscot:
             If evaluation in libascot.so failed.
         """
         self._requireinit("bfield", "boozer", "mhd")
+        if mode is None: mode = -1 # equal to MHD_INCLUDE_ALL
         Neval = r.size
         out = {}
         T = unyt.T; V = unyt.V; m = unyt.m; s = unyt.s
@@ -423,16 +427,17 @@ class LibAscot:
         out["mhd_phi"]  = (np.copy(temp) + np.nan) * V
 
         fun = _LIBASCOT.libascot_mhd_eval_perturbation
-        fun.restype  = ctypes.c_int
+        fun.restype  = None
         fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR, PTR_ARR,
                         ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                        PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                        PTR_REAL, PTR_REAL]
+                        ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
+                        PTR_REAL, PTR_REAL, PTR_REAL]
 
         fun(ctypes.byref(self._sim), self._bfield_offload_array,
             self._boozer_offload_array, self._mhd_offload_array,
-            Neval, r, phi, z, t, out["mhd_br"], out["mhd_bphi"], out["mhd_bz"],
-            out["mhd_er"], out["mhd_ephi"], out["mhd_ez"], out["mhd_phi"])
+            Neval, r, phi, z, t, mode, out["mhd_br"], out["mhd_bphi"],
+            out["mhd_bz"], out["mhd_er"], out["mhd_ephi"], out["mhd_ez"],
+            out["mhd_phi"])
 
         if evalpot:
             out["alphaeig"] = (np.copy(temp) + np.nan) * T*m
@@ -447,21 +452,72 @@ class LibAscot:
             out["dphidz"]   = (np.copy(temp) + np.nan) * V/m
 
             fun = _LIBASCOT.libascot_mhd_eval
-            fun.restype  = ctypes.c_int
+            fun.restype  = None
             fun.argtypes = [PTR_SIM, PTR_ARR, PTR_ARR, PTR_ARR,
                             ctypes.c_int, PTR_REAL, PTR_REAL, PTR_REAL,
+                            PTR_REAL, ctypes.c_int, PTR_REAL, PTR_REAL,
                             PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                            PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL, PTR_REAL,
-                            PTR_REAL]
+                            PTR_REAL, PTR_REAL, PTR_REAL]
 
             fun(ctypes.byref(self._sim), self._bfield_offload_array,
                 self._boozer_offload_array, self._mhd_offload_array,
-                Neval, r, phi, z, t, out["alphaeig"],
+                Neval, r, phi, z, t, mode, out["alphaeig"],
                 out["dadr"], out["dadphi"], out["dadz"], out["dadt"],
                 out["phieig"], out["dphidr"], out["dphidphi"], out["dphidz"],
                 out["dphidt"])
 
         return out
+
+    def input_mhd_modes(self):
+        """Return mode numbers, amplitudes and frequencies.
+
+        Returns
+        -------
+        nmodes : int
+            Number of modes present.
+        nmode : array_like (nmodes,)
+            Toroidal mode number of each mode.
+        mmode : array_like (nmodes,)
+            Poloidal mode number of each mode.
+        amplitude : array_like (nmodes,)
+            Amplitude of each mode.
+        omega : array_like (nmodes,)
+            Frequency of each mode.
+        phase : array_like (nmodes,)
+            Phase of each mode.
+
+        Raises
+        ------
+        AssertionError
+            If required data has not been initialized.
+        RuntimeError
+            If evaluation in libascot.so failed.
+        """
+        self._requireinit("mhd")
+        fun = _LIBASCOT.libascot_mhd_get_n_modes
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [PTR_SIM, PTR_ARR]
+
+        out = {}
+        out["nmodes"] = fun(
+            ctypes.byref(self._sim), self._mhd_offload_array)
+
+        out["nmode"]     = np.zeros((out["nmodes"],), dtype="i4")
+        out["mmode"]     = np.zeros((out["nmodes"],), dtype="i4")
+        out["amplitude"] = np.zeros((out["nmodes"],), dtype="f8")
+        out["omega"] = np.zeros((out["nmodes"],), dtype="f8")
+        out["phase"]     = np.zeros((out["nmodes"],), dtype="f8")
+
+        fun = _LIBASCOT.libascot_mhd_get_mode_specs
+        fun.restype  = ctypes.c_int
+        fun.argtypes = [PTR_SIM, PTR_ARR, PTR_INT, PTR_INT, PTR_REAL, PTR_REAL,
+                        PTR_REAL]
+        fun(ctypes.byref(self._sim), self._mhd_offload_array,
+            out["nmode"], out["mmode"], out["amplitude"], out["omega"],
+            out["phase"])
+
+        return out["nmodes"], out["nmode"], out["mmode"], out["amplitude"],\
+            out["omega"], out["phase"]
 
     @parseunits(ma="kg", qa="C", r="m", phi="rad", z="m", t="s", va="m/s")
     def input_eval_collcoefs(self, ma, qa, r, phi, z, t, va, *coefs, grid=True):
