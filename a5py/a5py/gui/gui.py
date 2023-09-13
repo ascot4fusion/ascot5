@@ -113,6 +113,7 @@ class GUI(tk.Tk):
             """Close the gui and terminate the program.
             """
             self.destroy()
+            exit()
         self.protocol("WM_DELETE_WINDOW", close)
 
         # Initialize content frames

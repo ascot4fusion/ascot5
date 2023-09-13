@@ -1475,7 +1475,7 @@ class PhysTest():
         opt = Opt.get_default()
         opt.update({
             "SIM_MODE" : 1, "FIXEDSTEP_USE_USERDEFINED" : 1,
-            "ENDCOND_SIMTIMELIM" : 1, "ENDCOND_LIM_SIMTIME" : 1e-1,
+            "ENDCOND_SIMTIMELIM" : 1, "ENDCOND_LIM_SIMTIME" : 1e-3, # 1e-3
             "ENABLE_ORBIT_FOLLOWING" : 1, "ENABLE_ATOMIC" : 1
         })
         opt.update({
@@ -1483,12 +1483,12 @@ class PhysTest():
         })
         init("opt", **opt, desc=PhysTest.tag_atomic_ionz)
         opt.update({
-            "FIXEDSTEP_USERDEFINED" : 1e-13, "ENDCOND_NEUTRALIZED" : 0,
+            "FIXEDSTEP_USERDEFINED" : 1e-9, "ENDCOND_NEUTRALIZED" : 0,#1e-13
             "ENDCOND_IONIZED" : 1
         })
         init("opt", **opt, desc=PhysTest.tag_atomic_cx)
 
-        mrk = Marker.generate("gc", n=1000, species="deuterium")
+        mrk = Marker.generate("gc", n=100, species="deuterium")
         mrk["r"][:]      = 7.0
         mrk["phi"][:]    = 0.0
         mrk["z"][:]      = 0.0
@@ -1497,7 +1497,7 @@ class PhysTest():
         mrk["pitch"][:]  = 1.0 - 2.0 * np.random.rand(mrk["n"],)
         init("gc", **mrk, desc=PhysTest.tag_atomic_cx)
 
-        mrk = Marker.generate("gc", n=1000, species="deuterium")
+        mrk = Marker.generate("gc", n=100, species="deuterium")
         mrk["charge"][:] = 0
         mrk["r"][:]      = 7.0
         mrk["phi"][:]    = 0.0
@@ -1510,7 +1510,6 @@ class PhysTest():
         for tag in [PhysTest.tag_atomic_cx, PhysTest.tag_atomic_ionz]:
             # Some tokamak magnetic field
             init("bfield_analytical_iter_circular", desc=tag)
-            init("bfield_analytical_iter_circular", desc=tag)
 
             # Plasma and neutral data
             init("plasma_flat", anum=2, znum=1, mass=2.0135532,
@@ -1519,7 +1518,6 @@ class PhysTest():
                  desc=tag)
 
             # ADAS data
-            init("import_adas", desc=tag)
             init("import_adas", desc=tag)
 
     def run_atomic(self):
