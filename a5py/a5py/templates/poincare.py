@@ -176,8 +176,8 @@ class PoincareTemplates():
 
         return ("opt", out)
 
-    def boozer_tokamak(self, npsi=50, nthgeo=20, nthbzr=20,
-                       nint=8000, rhomin=0.3, rhomax=0.9):
+    def boozer_tokamak(self, npsi=100, nthgeo=200, nthbzr=200, tol=1e-5,
+                       nint=10000, rhomin=0.3, rhomax=0.9):
         """Build mapping from real-space to Boozer coordinates assuming
         axisymmetric tokamak field.
 
@@ -273,7 +273,8 @@ class PoincareTemplates():
             rhogrid = np.sqrt((psigrid[i]-psi0) / (psi1 - psi0)) \
                 * np.ones(thgrid.shape)*unyt.dimensionless
             r, z = self._ascot.input_rhotheta2rz(
-            rhogrid, thgrid*unyt.rad, np.zeros(thgrid.shape)*unyt.rad, 0*unyt.s)
+                rhogrid, thgrid*unyt.rad, np.zeros(thgrid.shape)*unyt.rad,
+                0*unyt.s, tol=tol)
 
             # Magnetic field along the contour (psi can be used to check that
             # the contour was set properly). Drop the last element in r and z
