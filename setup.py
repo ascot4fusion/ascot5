@@ -9,9 +9,9 @@ with open(path.join(here, 'requirements.txt')) as requirements_file:
                     if not line.startswith('#')]
 
 setup(name='a5py',
-      version='0.0',
-      description='ASCOT5 python library',
-      url='http://github.com/ascot/python/a5py',
+      version='5.5',
+      description='ASCOT5',
+      url='https://github.com/ascot4fusion/ascot5',
       license='LGPL',
       packages=find_packages(),
       zip_safe=False,
@@ -24,10 +24,5 @@ setup(name='a5py',
         'bin/a5ascot4input',
         'bin/a5setactive',
         'bin/a5gui',
-        'bin/a5ls',
         'bin/a5makecompatible',
-        'bin/a5doxygen',
-        'bin/test_ascot.py'
-      ],
-      package_data={'a5py/ascotpy': ['lib.so']},
-      include_package_data=True)
+      ],)
