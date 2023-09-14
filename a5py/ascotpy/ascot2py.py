@@ -114,10 +114,13 @@ class Structure(ctypes.Structure, AsDictMixin):
 class Union(ctypes.Union, AsDictMixin):
     pass
 
-
+# Ugly solution to find libascot.so
+from pathlib import Path
+libpath = str(Path(__file__).absolute().parent.parent.parent) \
+    + "/build/libascot.so"
 
 _libraries = {}
-_libraries['libascot.so'] = ctypes.CDLL('libascot.so')
+_libraries['libascot.so'] = ctypes.CDLL(libpath)
 c_int128 = ctypes.c_ubyte*16
 c_uint128 = c_int128
 void = None
