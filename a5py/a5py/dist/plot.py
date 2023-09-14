@@ -10,7 +10,7 @@ plt = util.find_spec("matplotlib")
 if plt:
     import matplotlib.pyplot as plt
 
-def plot_dist_1D(dist, logscale=False, axes=None,label=None):
+def plot_dist_1D(dist, logscale=False, axes=None):
     """
     Plot distribution as a 1D plot.
 
@@ -35,17 +35,13 @@ def plot_dist_1D(dist, logscale=False, axes=None,label=None):
         ordinate = dist["distribution"]
     elif "histogram" in dist:
         ordinate = dist["histogram"]
-    elif "density" in dist:
-        ordinate = dist["density"]
-    elif "epowerdeposition" in dist:
-        ordinate = dist["epowerdeposition"]
 
     x = dist["abscissae"][0]
 
     if logscale:
         ordinate = np.log10(ordinate)
 
-    axes.plot(dist[x], ordinate,label=label)
+    axes.plot(dist[x], ordinate)
     axes.set_xlabel(x);
     axes.tick_params(axis='x', direction='out')
     axes.tick_params(axis='y', direction='out')

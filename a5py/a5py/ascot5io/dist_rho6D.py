@@ -7,8 +7,9 @@ import numpy as np
 import h5py
 
 import a5py.dist as distmod
+import a5py.marker.interpret as interpret
 
-from .coreio.treedata import DataContainer
+from a5py.ascot5io.ascot5data import AscotData
 
 def write_hdf5(fn, run, data):
     """
@@ -87,14 +88,15 @@ def read_hdf5(fn, qid):
     return out
 
 
-class Dist_rho6D(DataContainer):
+class Dist_rho6D(AscotData):
     """
     """
 
-    def __init__(self, root, hdf5):
+    def __init__(self, root, hdf5, runnode):
         """
         Object representing orbit data.
         """
+        self._runnode = runnode
         super().__init__(root, hdf5)
 
 

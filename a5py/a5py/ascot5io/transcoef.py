@@ -6,7 +6,7 @@ File: transcoef.py
 import numpy as np
 import h5py
 
-from .coreio.treedata import DataContainer
+from a5py.ascot5io.ascot5data import AscotData
 from a5py.marker.losstime import eval_coefficients
 
 def read_hdf5(fn, qid):
@@ -35,15 +35,16 @@ def read_hdf5(fn, qid):
     return out
 
 
-class Transcoef(DataContainer):
+class Transcoef(AscotData):
     """
     Object representing transport coefficient data.
     """
 
-    def __init__(self, root, hdf5):
+    def __init__(self, root, hdf5, runnode):
         """
         Initialize transcoef object from given HDF5 file to given RunNode.
         """
+        self._runnode = runnode
         super().__init__(root, hdf5)
 
 

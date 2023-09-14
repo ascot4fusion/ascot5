@@ -244,7 +244,7 @@ void simulate_gc_adaptive(particle_queue* pq, sim_data* sim) {
         endcond_check_gc(&p, &p0, sim);
 
         /* Update diagnostics */
-        diag_update_gc(&sim->diag_data, &sim->B_data, &p, &p0);
+        diag_update_gc(&sim->diag_data, &p, &p0);
 
         /* Update number of running particles */
         n_running = particle_cycle_gc(pq, &p, &sim->B_data, cycle);

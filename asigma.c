@@ -198,6 +198,7 @@ a5err asigma_eval_sigma(
  * @param T_e electron temperature of bulk plasma
  * @param T_i ion temperature of bulk plasma
  * @param T_0 temperature of bulk neutrals
+ * @param n_e electron density of bulk plasma
  * @param n_i ion density of bulk plasma
  * @param enable_atomic pointer to atomic enable and functionality flag
  *
@@ -211,10 +212,14 @@ a5err asigma_eval_sigmav(
 
     switch(asigma_data->type) {
         case asigma_type_loc:
-            err = asigma_loc_eval_sigmav(
-                sigmav, z_1, a_1, m_1, z_2, a_2,
-                reac_type, &(asigma_data->asigma_loc),
-                E, T_e, T_0, n_i, enable_atomic);
+            err = asigma_loc_eval_sigmav(sigmav,
+                                         z_1, a_1, m_1,
+                                         z_2, a_2,
+                                         reac_type,
+                                         &(asigma_data->asigma_loc),
+                                         E,
+                                         T_e, T_0, n_i,
+                                         enable_atomic);
             break;
 
         default:

@@ -156,7 +156,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
         /* Update diagnostics */
         if(!(sim->record_mode)) {
             /* Record particle coordinates */
-            diag_update_fo(&sim->diag_data, &sim->B_data, &p, &p0);
+            diag_update_fo(&sim->diag_data, &p, &p0);
         }
         else {
             /* Instead of particle coordinates we record guiding center */
@@ -180,7 +180,7 @@ void simulate_fo_fixed(particle_queue* pq, sim_data* sim) {
                     gc_i.running[i] = 0;
                 }
             }
-            diag_update_gc(&sim->diag_data, &sim->B_data, &gc_f, &gc_i);
+            diag_update_gc(&sim->diag_data, &gc_f, &gc_i);
         }
 
         /* Update running particles */

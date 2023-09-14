@@ -74,15 +74,14 @@ void sim_monitor(char* filename, volatile int* n, volatile int* finished);
  * @param sim_offload pointer to simulation offload data
  * @param offload_data pointer to the rest of the offload data
  * @param offload_array pointer to input data offload array
- * @param int_offload_array pointer to input data int offload array
  * @param diag_offload_array pointer to diagnostics offload array
  *
  * @todo Reorganize this function so that it conforms to documentation.
  */
-void simulate(
-    int id, int n_particles, particle_state* p, sim_offload_data* sim_offload,
-    offload_package* offload_data, real* offload_array, int* int_offload_array,
-    real* diag_offload_array) {
+void simulate(int id, int n_particles, particle_state* p,
+              sim_offload_data* sim_offload, offload_package* offload_data,
+              real* offload_array, int* int_offload_array,
+              real* diag_offload_array) {
 
     char targetname[5];
     if(id == 0) {
@@ -99,52 +98,38 @@ void simulate(
     sim_data sim;
     sim_init(&sim, sim_offload);
 
-    real* ptr; int* ptrint;
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->B_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
+    real* ptr;
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->B_offload_data.offload_array_length);
     B_field_init(&sim.B_data, &sim_offload->B_offload_data, ptr);
 
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->E_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->E_offload_data.offload_array_length);
     E_field_init(&sim.E_data, &sim_offload->E_offload_data, ptr);
 
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->plasma_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->plasma_offload_data.offload_array_length);
     plasma_init(&sim.plasma_data, &sim_offload->plasma_offload_data, ptr);
 
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->neutral_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->neutral_offload_data.offload_array_length);
     neutral_init(&sim.neutral_data, &sim_offload->neutral_offload_data, ptr);
 
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->wall_offload_data.offload_array_length,
-                   int_offload_array,
-                   sim_offload->wall_offload_data.int_offload_array_length,
-                   &ptr, &ptrint);
-    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, ptrint);
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->wall_offload_data.offload_array_length);
+    wall_init(&sim.wall_data, &sim_offload->wall_offload_data, ptr, int_offload_array);
 
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->boozer_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->boozer_offload_data.offload_array_length);
     boozer_init(&sim.boozer_data, &sim_offload->boozer_offload_data, ptr);
 
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->mhd_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->mhd_offload_data.offload_array_length);
     mhd_init(&sim.mhd_data, &sim_offload->mhd_offload_data, ptr);
 
-    offload_unpack(offload_data, offload_array,
-                   sim_offload->asigma_offload_data.offload_array_length,
-                   NULL, 0, &ptr, &ptrint);
+    ptr = offload_unpack(offload_data, offload_array,
+            sim_offload->asigma_offload_data.offload_array_length);
     asigma_init(&sim.asigma_data, &sim_offload->asigma_offload_data, ptr);
-
-    /* Offload complete. Reset struct so it can be reused. */
-    offload_data->unpack_pos     = 0;
-    offload_data->int_unpack_pos = 0;
 
     diag_init(&sim.diag_data, &sim_offload->diag_offload_data,
               diag_offload_array);

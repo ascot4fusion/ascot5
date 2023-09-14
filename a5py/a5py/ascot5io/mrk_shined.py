@@ -8,7 +8,7 @@ import copy
 import numpy as np
 import h5py
 
-from .coreio.treedata import DataGroup
+from a5py.ascot5io.ascot5data import AscotData
 
 def read_hdf5(fn, qid, prefix):
     """
@@ -40,7 +40,7 @@ def read_hdf5(fn, qid, prefix):
 
 
 
-class mrk(DataGroup):
+class mrk(AscotData):
     '''
     A class acting as a superclass for all marker types.
     '''

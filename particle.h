@@ -243,7 +243,6 @@ typedef struct {
     real B_z_dz[NSIMD] __memalign__;     /**< dB_z/dz at marker position [T/m]     */
 
     /* Quantities used in diagnostics */
-    int bounces[NSIMD] __memalign__;  /**< Number of times pitch sign changed */
     real weight[NSIMD] __memalign__;  /**< Marker weight                      */
     real cputime[NSIMD] __memalign__; /**< Marker wall-clock time [s]         */
     real rho[NSIMD] __memalign__;     /**< Marker rho coordinate              */
@@ -310,7 +309,6 @@ typedef struct {
     real B_z_dz[NSIMD] __memalign__;     /**< dB_z/dz at marker position [T/m]     */
 
     /* Quantities used in diagnostics */
-    int bounces[NSIMD] __memalign__;  /**< Number of times pitch sign changed */
     real weight[NSIMD] __memalign__;  /**< Marker weight                      */
     real cputime[NSIMD] __memalign__; /**< Marker wall-clock time [s]         */
     real rho[NSIMD] __memalign__;     /**< Marker rho coordinate              */

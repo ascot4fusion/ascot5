@@ -5,7 +5,7 @@ Checks to help user to ensure the inputs are ok before running the simulation.
 import numpy as np
 import matplotlib.pyplot as plt
 from a5py.ascotpy import Ascotpy
-from a5py.routines.plotting import openfigureifnoaxes
+from a5py.misc import openfigureifnoaxes
 
 def check_inputs_present(ascotpy):
     """
@@ -144,11 +144,9 @@ def plot_top_view(ascotpy, axes=None):
 
     Assumes bfield is initialized in ascotpy.
     """
-    showfig = False
     if axes == None:
         fig  = plt.figure()
         axes = fig.add_subplot(1,1,1)
-        showfig = True
 
     axis = ascotpy.evaluate(1, 0, 0, 0, "axis")
     z0 = axis["axisz"]
@@ -195,12 +193,10 @@ def plot_top_view(ascotpy, axes=None):
     axes.scatter(x,y, s=1, c="black", zorder=-2)
 
     axes.legend(("Magnetic field", "Plasma current", "Markers"))
-
-    if showfig:
-        plt.show()
+    plt.show()
 
 
-@openfigureifnoaxes(projection=None)
+@openfigureifnoaxes
 def plot_energypitch(ascotpy, axes=None):
     """
     Plot marker energy-pitch histogram
@@ -208,7 +204,7 @@ def plot_energypitch(ascotpy, axes=None):
     ascotpy.hdf5.marker.active.plot_hist_energypitch(ascotpy, axes=axes)
 
 
-@openfigureifnoaxes(projection=None)
+@openfigureifnoaxes
 def plot_rhophi(ascotpy, axes=None):
     """
     Plot marker rho-phi histogram

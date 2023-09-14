@@ -15,9 +15,6 @@
 #include "mhd/mhd_stat.h"
 #include "mhd/mhd_nonstat.h"
 
-/** @brief includemode parameter to include all modes (default) */
-#define MHD_INCLUDE_ALL -1
-
 /**
  * @brief MHD input types
  *
@@ -68,27 +65,13 @@ void mhd_free_offload(mhd_offload_data* offload_data,
 #pragma omp declare target
 int mhd_init(mhd_data* data, mhd_offload_data* offload_data,
              real* offload_array);
-#pragma omp declare simd uniform(boozerdata, mhddata, Bdata, includemode)
+#pragma omp declare simd uniform(boozerdata, mhddata, Bdata)
 a5err mhd_eval(real mhd_dmhd[10], real r, real phi, real z, real t,
-               int includemode, boozer_data* boozerdata, mhd_data* mhddata,
-               B_field_data* Bdata);
-#pragma omp declare simd uniform(boozerdata, mhddata, Bdata, pertonly,\
-                                 includemode)
+               boozer_data* boozerdata, mhd_data* mhddata, B_field_data* Bdata);
+#pragma omp declare simd uniform(boozerdata, mhddata, Bdata)
 a5err mhd_perturbations(real pert_field[7], real r, real phi, real z,
-                        real t, int pertonly, int includemode,
-                        boozer_data* boozerdata, mhd_data* mhddata,
-                        B_field_data* Bdata);
-#pragma omp declare simd uniform(mhddata)
-int mhd_get_n_modes(mhd_data* mhddata);
-#pragma omp declare simd uniform(mhddata)
-const int* mhd_get_nmode(mhd_data* mhddata);
-#pragma omp declare simd uniform(mhddata)
-const int* mhd_get_mmode(mhd_data* mhddata);
-#pragma omp declare simd uniform(mhddata)
-const real* mhd_get_amplitude(mhd_data* mhddata);
-#pragma omp declare simd uniform(mhddata)
-const real* mhd_get_frequency(mhd_data* mhddata);
-#pragma omp declare simd uniform(mhddata)
-const real*  mhd_get_phase(mhd_data* mhddata);
+                        real t, int pertonly, boozer_data* boozerdata,
+                        mhd_data* mhddata, B_field_data* Bdata);
+
 #pragma omp end declare target
 #endif

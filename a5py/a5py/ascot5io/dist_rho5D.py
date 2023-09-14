@@ -7,9 +7,10 @@ import numpy as np
 import h5py
 
 import a5py.dist as distmod
-from a5py.physlib.alias import getalias as alias
+from a5py.marker.alias import get as alias
+import a5py.marker.interpret as interpret
 
-from .coreio.treedata import DataContainer
+from a5py.ascot5io.ascot5data import AscotData
 
 def write_hdf5(fn, run, data):
     """
@@ -89,14 +90,15 @@ def read_hdf5(fn, qid):
     return out
 
 
-class Dist_rho5D(DataContainer):
+class Dist_rho5D(AscotData):
     """
     """
 
-    def __init__(self, root, hdf5):
+    def __init__(self, root, hdf5, runnode):
         """
         Object representing orbit data.
         """
+        self._runnode = runnode
         super().__init__(root, hdf5)
 
 
@@ -188,7 +190,7 @@ class Dist_rho5D(DataContainer):
 
 
     def plot_dist(self, *args, logscale=False, equal=False, axes=None,
-                  dist=None,label=None):
+                  dist=None):
         """
         Plot distribution.
 
@@ -227,7 +229,7 @@ class Dist_rho5D(DataContainer):
         distmod.squeeze(dist, **abscissae)
 
         if not y:
-            distmod.plot_dist_1D(dist, logscale=logscale, axes=axes,label=label)
+            distmod.plot_dist_1D(dist, logscale=logscale, axes=axes)
         else:
             distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal,
                                  axes=axes)
@@ -277,33 +279,3 @@ class Dist_rho5D(DataContainer):
         else:
             distmod.plot_dist_2D(dist, x, y, logscale=logscale, equal=equal,
                                  axes=axes)
-
-
-
-    def eval_1d_dist(self, quantity,rmin, rmax, zmin, zmax):
-        '''
-            The R/z min/max are needed for numerical calculation of the rho slot volumes.
-            They should cover the whole plasma.
-        '''
-        from a5py.ascotpy import Ascotpy
-        a5 = Ascotpy(self._file)
-        a5.init(bfield=self._runnode.bfield.get_qid(),
-                plasma=self._runnode.plasma.get_qid())
-
-        ma = self._runnode.inistate["mass"][0]
-        print('mass {} kg'.format(ma)) 
-        # ma *= const.physical_constants["atomic mass constant"][0]
-        qa = self._runnode.inistate["charge"][0]
-        # qa *=  * const.e
-        print('charge {} C'.format(qa)) 
-
-        
-
-        dist = distmod.eval1d_fromRhodist(a5, self.get_dist(), quantity, 
-                                          rmin, rmax, zmin, zmax, ma=ma, qa=qa)
-
-
-        a5.free(bfield=True, plasma=True)
-        
-        return dist
-        

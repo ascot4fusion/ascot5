@@ -49,7 +49,6 @@ int wall_init_offload(wall_offload_data* offload_data, real** offload_array,
             err = wall_2d_init_offload(&(offload_data->w2d), offload_array);
             offload_data->offload_array_length =
                 offload_data->w2d.offload_array_length;
-            offload_data->int_offload_array_length = 0;
             break;
 
         case wall_type_3D:
@@ -57,8 +56,6 @@ int wall_init_offload(wall_offload_data* offload_data, real** offload_array,
                                        int_offload_array);
             offload_data->offload_array_length =
                 offload_data->w3d.offload_array_length;
-            offload_data->int_offload_array_length =
-                offload_data->w3d.int_offload_array_length;
             break;
 
         default:

@@ -83,7 +83,6 @@ void particle_to_fo_dummy(particle_simd_fo* p_fo, int j){
     p_fo->charge[j]   = 1;
     p_fo->znum[j]     = 1;
     p_fo->anum[j]     = 1;
-    p_fo->bounces[j]  = 0;
     p_fo->weight[j]   = 0;
     p_fo->time[j]     = 0;
     p_fo->id[j]       = -1;
@@ -122,7 +121,6 @@ void particle_to_gc_dummy(particle_simd_gc* p_gc, int j) {
     p_gc->mass[j]       = 1;
     p_gc->charge[j]     = 1;
     p_gc->time[j]       = 0;
-    p_gc->bounces[j]    = 0;
     p_gc->weight[j]     = 0;
     p_gc->id[j]         = -1;
     p_gc->mileage[j]    = 0;
@@ -828,7 +826,6 @@ a5err particle_state_to_fo(particle_state* p, int i, particle_simd_fo* p_fo,
         p_fo->charge[j]     = p->charge;
         p_fo->znum[j]       = p->znum;
         p_fo->anum[j]       = p->anum;
-        p_fo->bounces[j]    = 0;
         p_fo->weight[j]     = p->weight;
         p_fo->time[j]       = p->time;
         p_fo->theta[j]      = p->theta;
@@ -1039,7 +1036,6 @@ a5err particle_state_to_gc(particle_state* p, int i, particle_simd_gc* p_gc,
         p_gc->mass[j]       = p->mass;
         p_gc->charge[j]     = p->charge;
         p_gc->time[j]       = p->time;
-        p_gc->bounces[j]    = 0;
         p_gc->weight[j]     = p->weight;
         p_gc->rho[j]        = p->rho;
         p_gc->theta[j]      = p->theta;
@@ -1478,7 +1474,6 @@ void particle_copy_fo(particle_simd_fo* p1, int i, particle_simd_fo* p2, int j) 
         p2->anum[j]       = p1->anum[i];
 
         p2->id[j]         = p1->id[i];
-        p2->bounces[j]    = p1->bounces[i];
         p2->running[j]    = p1->running[i];
         p2->endcond[j]    = p1->endcond[i];
         p2->walltile[j]   = p1->walltile[i];
@@ -1527,7 +1522,6 @@ void particle_copy_gc(particle_simd_gc* p1, int i, particle_simd_gc* p2, int j) 
     p2->charge[j]     = p1->charge[i];
 
     p2->id[j]         = p1->id[i];
-    p2->bounces[j]    = p1->bounces[i];
     p2->running[j]    = p1->running[i];
     p2->endcond[j]    = p1->endcond[i];
     p2->walltile[j]   = p1->walltile[i];

@@ -595,15 +595,6 @@ int hdf5_interface_write_diagnostics(sim_offload_data* sim,
         }
     }
 
-    if(sim->diag_offload_data.distCOM_collect) {
-        print_out(VERBOSE_IO, "\nWriting COM distribution.\n");
-        int idx = sim->diag_offload_data.offload_distCOM_index;
-        if( hdf5_dist_write_COM( f, qid, &sim->diag_offload_data.distCOM,
-                                 &diag_offload_array[idx]) ) {
-            print_err("Warning: COM distribution could not be written.\n");
-        }
-    }
-
     if(sim->diag_offload_data.diagorb_collect) {
         print_out(VERBOSE_IO, "Writing orbit diagnostics.\n");
 

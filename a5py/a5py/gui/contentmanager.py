@@ -1,149 +1,105 @@
-"""Defines ContentManager class for showing stuff at Canvas and Settings frames.
-"""
+import os
+
 import tkinter as tk
 from tkinter import ttk
 
-from a5py import AscotInitException
+from .optionsmanager import OptionsManager
 
-from .filecontents  import Info
-from .inputcontents import Field, Preflight
-from .resultcontents import Summary, StateScatter, StateHistogram, Orbit, \
-    Poincare, LossSummary, Dists, Moments, WallLoad, Wall3D
-from .runcontents import Trace
-from .components import NestedNotebook
-
-class ContentManager(NestedNotebook):
-    """Manages the contents in SettingsFrame and in CanvasFrame.
-
-    Settings frame is a notebook widget where changing the tab also changes
-    what is shown on Canvas*. This is done so that we always pack_forget the
-    current frame on Canvas and pack the new one (Note that the frames are
-    kept as that way we preserve the settings user has given previously, which
-    makes smoother user-experience when different frames are toggled).
-
-    *For group contents the contents on Canvas also depends what is shown in
-    the group treeview.
-
-    This is fairly simple class as the actual contents are defined in Content*
-    classes that are imported an used here. If those also have subcontents and
-    implement a notebook to choose what is display, then those classes mimic the
-    structure in this class. In theory, everything could be defined here but
-    that would make this class huge...
+class ContentManager(OptionsManager):
+    """
+    Manages the contents in SettingsFrame and in CanvasFrame.
     """
 
+
     def __init__(self, gui, settingsframe, canvasframe):
-        """Generate all content widgets (which also generate their contents).
-        """
-        super().__init__(settingsframe)
-        self.pack(fill="both", expand=True)
+
         self.gui = gui
-        self.canvas = canvasframe
 
-        def tabselected(tab):
-            if self._sleep: return
-            if tab == "Inputs":
-                try:
-                    self.gui.ascot.simulation_free()
-                except AscotInitException:
-                    pass
-                init = {"wall" : False}
-                for inp in ["bfield", "efield", "plasma", "neutral", "boozer",
-                            "mhd"]:
-                    init[inp] = inp in self.gui.ascot.data
-                #msg = self.gui.pleasehold("Ascotpy is being initialized..."
-                self.gui.ascot.input_init(**init, switch=True)
-            elif tab == "Results":
-                try:
-                    self.gui.ascot.simulation_free()
-                except AscotInitException:
-                    pass
-                self.gui.ascot.input_init(
-                    run=True, bfield=True, efield=True, plasma=True,
-                    neutral=True, boozer=True, mhd=True, switch=True)
-            elif tab == "Run":
-                self.gui.ascot.input_free()
-                self.gui.ascot.simulation_initinputs()
+        # These two frames are kept immutable
+        self.settingsframe_original = settingsframe
+        self.canvasframe_original   = canvasframe
 
-        args = (self, self.canvas, self.gui)
+        # These two form an extra layer and they can be changed
+        self.settingsframe = tk.Frame(self.settingsframe_original)
+        self.canvasframe   = tk.Frame(self.canvasframe_original)
 
-        self.add("File", tab=Info(*args))
-        self.add("Inputs", tabselected=lambda : tabselected("Inputs"))
-        self.traverse("Inputs").add("Plot (R,z)", tab=Field(*args))
-        self.traverse("Inputs").add("Preflight", tab=Preflight(*args))
-        self.add("Results", tabselected=lambda : tabselected("Results"))
-        self.traverse("Results").add("Summary", tab=Summary(*args))
-        self.traverse("Results").add("Ini/Endstate")
-        self.traverse("Ini/Endstate").add("Scatter", tab=StateScatter(*args))
-        self.traverse("Ini/Endstate").add("Histogram", tab=StateHistogram(*args))
-        self.traverse("Results").add("Orbits")
-        self.traverse("Orbits").add("Trajectory", tab=Orbit(*args))
-        self.traverse("Orbits").add("Poincaré", tab=Poincare(*args))
-        self.traverse("Results").add("Dists")
-        self.traverse("Dists").add("Distribution", tab=Dists(*args))
-        self.traverse("Dists").add("Moments", tab=Moments(*args))
-        self.traverse("Results").add("Losses")
-        self.traverse("Losses").add("Total", tab=LossSummary(*args))
-        self.traverse("Losses").add("Wall loads", tab=WallLoad(*args))
-        self.traverse("Losses").add("View 3D", tab=Wall3D(*args))
-        self.add("Run", tabselected=lambda : tabselected("Run"))
-        self.traverse("Run").add("Trace", tab=Trace(*args))
+        # (The frames are initialized here)
+        self.clear()
 
-    def update_content(self):
-        """Redraw contents on settings and canvas frames.
+        # Show ASCOT5 logo at startup.
+        canvas = tk.Canvas(self.settingsframe)
+        canvas.pack(expand=True, fill="both")
+
+        # self.logo prevents image being cleared by garbage collector
+        logo = os.path.join(os.path.dirname(__file__), "logo.png")
+        self.logo = tk.PhotoImage(file=logo)
+        canvas.create_image(150, 50, image=self.logo)
+
+
+    def clear(self):
         """
-        tab, name = self.currenttab()
-        if name == "File":
-            tab.selecttab()
+        Clear settings and canvas frames.
+        """
+        self.settingsframe.pack_forget()
+        self.canvasframe.pack_forget()
+        self.settingsframe.destroy()
+        self.canvasframe.destroy()
 
-    def restart(self):
-        # Free any used resources
-        try:
-            self.gui.ascot.simulation_free()
-        except:
-            self.gui.ascot.input_free()
+        self.settingsframe = tk.Frame(self.settingsframe_original)
+        self.settingsframe.pack(fill="both", expand=True)
 
-        # Has results?
-        if self.gui.ascot.data.active is None:
-            self.tab(2, state="disabled")
+        self.canvasframe = tk.Frame(self.canvasframe_original, bg="white")
+        self.canvasframe.pack(fill="both", expand=True)
+
+
+    def selectionchanged(self, parent, qid, ascot, ascotpy):
+        self.clear()
+        if qid is None:
+            # For parent groups there is nothing to display.
+            return
+
+        if parent == "results":
+            group = ascot["q"+qid]
         else:
-            self.tab(2, state="normal")
+            group = ascot[parent]["q"+qid]
 
-            run = self.gui.ascot.data.active
-            tab0 = self.traverse("Results")
+        # Always show description box on top.
+        f1 = tk.Frame(self.settingsframe)
+        tk.Label(f1, text="Description:").pack(side="left")
+        f1.grid(row=0, column=0, sticky="ew")
 
-            # Has orbit data?
-            if not hasattr(run, "_orbit"):
-                tab0.tab(2, state="disabled")
-            else:
-                tab0.tab(2, state="normal")
-                tab1 = self.traverse("Orbits")
+        f2 = tk.Frame(self.settingsframe)
+        save = tk.Button(f2, text="Save")
+        save.pack(side="right")
 
-                # Has Poincare data?
-                if run.getorbit_poincareplanes() is None:
-                    tab1.tab(1, state="disabled")
-                else:
-                    tab1.tab(1, state="normal")
+        load = tk.Button(f2, text="Revert")
+        load.pack(side="right")
 
-            # Has distribution data?
-            if not ( hasattr(run, "_dist5d") or hasattr(run, "_distrho5d") or
-                     hasattr(run, "_dist6d") or hasattr(run, "_distrho6d") or
-                     hasattr(run, "_distcom") ):
-                tab0.tab(3, state="disabled")
-            else:
-                tab0.tab(3, state="normal")
-                tab1 = self.traverse("Dists")
+        f2.grid(row=0, column=1, sticky="ew")
 
-                # Has 5D distribution data to calculate moments?
-                if not( hasattr(run, "_dist5d") or hasattr(run, "_distrho5d") ):
-                    tab1.tab(1, state="disabled")
-                else:
-                    tab1.tab(1, state="normal")
+        descbox = tk.Text(self.settingsframe, height=5, width=50)
+        descbox.grid(row=1, column=0, columnspan=2, sticky="nsew",
+                     padx=2, pady=2)
+        descbox.insert("end", group.get_desc())
 
-            # Has 3D wall?
-            tab1 = self.traverse("Losses")
-            if run.wall.get_type() != "wall_3D":
-                tab1.tab(1, state="disabled")
-                tab1.tab(2, state="disabled")
-            else:
-                tab1.tab(1, state="normal")
-                tab1.tab(2, state="normal")
+        # Helper function
+        def replacetext(text):
+            descbox.delete("1.0", "end")
+            descbox.insert("end", text)
+
+        # Button functionality
+        save.configure(
+            command=lambda:group.set_desc(descbox.get("1.0", "end-1c")))
+        load.configure(
+            command=lambda:replacetext(group.get_desc()))
+
+        # Add extra frame where widgets can be added
+        frame = tk.Frame(self.settingsframe)
+        frame.grid(row=2, column=0, columnspan=2, sticky="nsew")
+
+        if parent == "options":
+            self.activateoptions(
+                frame, self.canvasframe, group,
+                lambda : self.gui.filechanged(self.gui.filename),
+                lambda : descbox.get("1.0", "end-1c")
+            )

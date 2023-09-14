@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 
-import a5py.gui.gui as a5gui
+import a5py.gui.guistate as a5gui
+import a5py.gui.gui as a5guiold
 
 import sys
 
-if len(sys.argv) == 2:
+if len(sys.argv) == 3 and sys.argv[2] == "new":
     gui = a5gui.GUI(sys.argv[1])
     gui.mainloop()
+
+elif len(sys.argv) == 2:
+    gui = a5guiold.GUI(sys.argv[1])
+    gui.launch()
 elif len(sys.argv) == 1:
-    gui = a5gui.GUI()
-    gui.mainloop()
+    gui = a5guiold.GUI()
+    gui.launch()

@@ -9,9 +9,7 @@
 #include "../diag/dist_6D.h"
 #include "../diag/dist_rho5D.h"
 #include "../diag/dist_rho6D.h"
-#include "../diag/dist_com.h"
 #include "../math.h"
-#include "../consts.h"
 #include "hdf5_histogram.h"
 #include "hdf5_helpers.h"
 #include "hdf5_dist.h"
@@ -61,16 +59,22 @@ int hdf5_dist_write_5D(hid_t f, char* qid, dist_5D_offload_data* dist,
                                "charge" };
     char* abscissa_units[] = { "m", "deg", "m", "kg*m/s", "kg*m/s", "s", "e" };
     char* ordinate_names[] = { "distribution" };
-    char* ordinate_units[] = { "s/(m^5*kg^2*deg*e)" };
+    char* ordinate_units[] = { "s/m^5*kg^2*deg*e" };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
     hdf5_generate_qid_path("/results/run_XXXXXXXXXX/dist5d", qid, path);
 
-    int retval = hdf5_histogram_write_uniform_double(
-        f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
-        abscissa_max, abscissa_units, abscissa_names, ordinate_units,
-        ordinate_names, hist);
+    int retval = hdf5_histogram_write_uniform_double(f, path,
+                                                     abscissa_dim, ordinate_dim,
+                                                     abscissa_n_slots,
+                                                     abscissa_min,
+                                                     abscissa_max,
+                                                     abscissa_units,
+                                                     abscissa_names,
+                                                     ordinate_units,
+                                                     ordinate_names,
+                                                     hist);
 
     return retval;
 }
@@ -121,19 +125,25 @@ int hdf5_dist_write_6D(hid_t f, char* qid, dist_6D_offload_data* dist,
 
     char* abscissa_names[] = { "r", "phi", "z", "pr", "pphi", "pz", "time",
                                "charge" };
-    char* abscissa_units[] = { "m", "deg", "m", "kg*m/s", "kg*m/s", "kg*m/s",
+    char* abscissa_units[] = { "m", "deg", "m", "kg m/s", "kg m/s", "kg m/s",
                                "s", "e" };
     char* ordinate_names[] = { "distribution" };
-    char* ordinate_units[] = { "s/(m^6*kg^3*deg*e)" };
+    char* ordinate_units[] = { "s/m^6*kg^3*deg*e" };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
     hdf5_generate_qid_path("/results/run_XXXXXXXXXX/dist6d", qid, path);
 
-    int retval = hdf5_histogram_write_uniform_double(
-        f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
-        abscissa_max, abscissa_units, abscissa_names, ordinate_units,
-        ordinate_names, hist);
+    int retval = hdf5_histogram_write_uniform_double(f, path,
+                                                     abscissa_dim, ordinate_dim,
+                                                     abscissa_n_slots,
+                                                     abscissa_min,
+                                                     abscissa_max,
+                                                     abscissa_units,
+                                                     abscissa_names,
+                                                     ordinate_units,
+                                                     ordinate_names,
+                                                     hist);
 
     return retval;
 }
@@ -181,19 +191,25 @@ int hdf5_dist_write_rho5D(hid_t f, char* qid, dist_rho5D_offload_data* dist,
 
     char* abscissa_names[] = { "rho", "theta", "phi", "ppar", "pperp", "time",
                                "charge" };
-    char* abscissa_units[] = { "1", "deg", "deg", "kg*m/s", "kg*m/s",
+    char* abscissa_units[] = { "1", "deg", "deg", "kg m/s", "kg m/s",
                                "s", "e" };
     char* ordinate_names[] = { "distribution" };
-    char* ordinate_units[] = { "s/(m^2*kg^2*deg^2*e)" };
+    char* ordinate_units[] = { "s/m^2*kg^2*deg^2e" };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
     hdf5_generate_qid_path("/results/run_XXXXXXXXXX/distrho5d", qid, path);
 
-    int retval = hdf5_histogram_write_uniform_double(
-        f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
-        abscissa_max, abscissa_units, abscissa_names, ordinate_units,
-        ordinate_names, hist);
+    int retval = hdf5_histogram_write_uniform_double(f, path,
+                                                     abscissa_dim, ordinate_dim,
+                                                     abscissa_n_slots,
+                                                     abscissa_min,
+                                                     abscissa_max,
+                                                     abscissa_units,
+                                                     abscissa_names,
+                                                     ordinate_units,
+                                                     ordinate_names,
+                                                     hist);
 
     return retval;
 }
@@ -244,65 +260,25 @@ int hdf5_dist_write_rho6D(hid_t f, char* qid, dist_rho6D_offload_data* dist,
 
     char* abscissa_names[] = { "rho", "theta", "phi", "pr", "pphi", "pz",
                                "time", "charge" };
-    char* abscissa_units[] = { "1", "deg", "deg", "kg*m/s", "kg*m/s", "kg*m/s",
+    char* abscissa_units[] = { "1", "deg", "deg", "kg m/s", "kg m/s", "kg m/s",
                                "s", "e" };
     char* ordinate_names[] = { "distribution" };
-    char* ordinate_units[] = { "s^2/(m^3*kg^3*deg^2*e)" };
+    char* ordinate_units[] = { "s^2/m^3*kg^3*deg^2*e" };
 
     /* Create a group for this distribution and write the data in it */
     char path[256];
     hdf5_generate_qid_path("/results/run_XXXXXXXXXX/distrho6d", qid, path);
 
-    int retval = hdf5_histogram_write_uniform_double(
-        f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
-        abscissa_max, abscissa_units, abscissa_names, ordinate_units,
-        ordinate_names, hist);
-
-    return retval;
-}
-
-/**
- * @brief Write constants-of-motion distribution to an existing result group
- *
- * @param f HDF5 file id
- * @param qid run QID where distribution is written
- * @param dist pointer to distribution data struct
- * @param hist pointer to distribution data
- */
-int hdf5_dist_write_COM(hid_t f, char* qid, dist_COM_offload_data* dist,
-                        real* hist) {
-
-    int abscissa_dim = 3;
-    int ordinate_dim = 1;
-
-    int abscissa_n_slots[3];
-    abscissa_n_slots[0] = dist->n_mu;
-    abscissa_n_slots[1] = dist->n_Ekin;
-    abscissa_n_slots[2] = dist->n_Ptor;
-
-    double abscissa_min[3];
-    abscissa_min[0] = dist->min_mu   / CONST_E;
-    abscissa_min[1] = dist->min_Ekin / CONST_E;
-    abscissa_min[2] = dist->min_Ptor / CONST_E;
-
-    double abscissa_max[3];
-    abscissa_max[0] = dist->max_mu   / CONST_E;
-    abscissa_max[1] = dist->max_Ekin / CONST_E;
-    abscissa_max[2] = dist->max_Ptor / CONST_E;
-
-    char* abscissa_names[] = { "mu", "ekin", "ptor"};
-    char* abscissa_units[] = { "eV/T", "eV", "eV*s"};
-    char* ordinate_names[] = { "distribution" };
-    char* ordinate_units[] = { "T/(eV**3*s)"};
-
-    /* Create a group for this distribution and write the data in it */
-    char path[256];
-    hdf5_generate_qid_path("/results/run_XXXXXXXXXX/distcom", qid, path);
-
-    int retval = hdf5_histogram_write_uniform_double(
-        f, path, abscissa_dim, ordinate_dim, abscissa_n_slots, abscissa_min,
-        abscissa_max, abscissa_units, abscissa_names, ordinate_units,
-        ordinate_names, hist);
+    int retval = hdf5_histogram_write_uniform_double(f, path,
+                                                     abscissa_dim, ordinate_dim,
+                                                     abscissa_n_slots,
+                                                     abscissa_min,
+                                                     abscissa_max,
+                                                     abscissa_units,
+                                                     abscissa_names,
+                                                     ordinate_units,
+                                                     ordinate_names,
+                                                     hist);
 
     return retval;
 }
