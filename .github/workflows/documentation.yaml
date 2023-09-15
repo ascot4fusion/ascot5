@@ -18,8 +18,7 @@ jobs:
           pip install -e .
       - name: Sphinx build
         run: |
-          make -C doc
-          make -C doc
+          make doc
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         # Change the ref to refs/heads/main once the code is merged
