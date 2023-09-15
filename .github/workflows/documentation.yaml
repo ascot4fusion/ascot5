@@ -10,7 +10,6 @@ jobs:
       - uses: actions/setup-python@v3
       - name: Install dependencies
         run: |
-          conda install pandoc
           pip install -e .
       - name: Sphinx build
         run: |
