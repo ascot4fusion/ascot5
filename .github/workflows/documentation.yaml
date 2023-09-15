@@ -17,7 +17,7 @@ jobs:
           make -C doc
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/8-merging-python-and-c-repositoriesfeature/8-merging-python-and-c-repositories' }}
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
