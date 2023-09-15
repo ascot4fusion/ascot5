@@ -13,13 +13,16 @@ jobs:
       - uses: actions/setup-python@v3
       - name: Install dependencies
         run: |
+          sudo apt-get install -y doxygen
           sudo apt install pandoc
           pip install -e .
       - name: Sphinx build
         run: |
           make -C doc
+          make -C doc
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
+        # Change the ref to refs/heads/main once the code is merged
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/feature/8-merging-python-and-c-repositories' }}
         with:
           publish_branch: gh-pages
