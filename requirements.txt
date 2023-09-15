@@ -14,3 +14,4 @@ nbsphinx
 breathe
 sphinxcontrib-bibtex
 sphinx-rtd-theme
+pypandoc
