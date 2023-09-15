@@ -12,6 +12,8 @@ This repository is maintained by ASCOT team in Aalto University and VTT Technica
 Installation
 ============
 
+First clone the repository: ``git clone git@github.com:ascot4fusion/ascot5.git``.
+
 Minimal
 *******
 
@@ -52,7 +54,7 @@ or Conda (preferred)
    conda create --file ascot5/requirements.txt --name ascotenv
    conda activate ascotenv
 
-Whichever was chosen, the python package can be installed with
+Whichever was chosen, the python package can be installed with (assuming the code is located in "ascot5" folder)
 
 .. code-block:: bash
 
@@ -76,9 +78,10 @@ In ascot5 folder:
 Documentation (for developers)
 ******************************
 
+In ascot5 folder:
+
 .. code-block:: bash
 
-   cd ascot5
    make doc
 
 The main page of the documentation is located at ``build/doc/index.html``.
@@ -87,3 +90,11 @@ Requirements
 ============
 
 **C compiler**, **HDF5**, **OpenMP**, **Python3**, **MPI** (optional), and **VTK** (optional).
+
+
+GIT usage
+=========
+
+If you work on an issue, create a branch named ``feature/<issuenumber>-branchname``, if the issue is a feature request, or ``bugfix/<issuenumber>-branchname``, if the issue is a bug.
+
+Features should be branched from ``develop`` and bugfixes from ``main`` (if the bug is in ``develop`` only, treat the fix as a feature).
