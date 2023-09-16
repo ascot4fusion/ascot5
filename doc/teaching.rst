@@ -1,5 +1,7 @@
-Basic usage
-===========
+.. _Tutorial:
+
+Tutorials
+=========
 
 .. toctree::
   :maxdepth: 1
