@@ -7,11 +7,3 @@ scikit-image
 matplotlib
 pyvista
 wurlitzer
-ipykernel
-sphinx
-numpydoc
-nbsphinx
-breathe
-sphinxcontrib-bibtex
-sphinx-rtd-theme
-pypandoc

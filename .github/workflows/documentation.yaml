@@ -15,7 +15,7 @@ jobs:
         run: |
           sudo apt-get install -y doxygen
           sudo apt install pandoc
-          pip install -e .
+          pip install -e .[doc]
       - name: Sphinx build
         run: |
           make doc
