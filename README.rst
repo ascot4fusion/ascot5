@@ -30,9 +30,9 @@ The binary is located at ``build/ascot5_main``.
 Python library a5py
 *******************
 
-The Python library is useful even if you do only the minimal installation as it provides command line tools to e.g. update simulation options.
+The Python library is useful even if you do only the minimal installation as it provides command line tools e.g. to update simulation options.
+Exit the ``ascot5`` folder, and install a virtual environment first.
 
-It is recommended to set a virtual environment when working with ASCOT5.
 You can use either ``virtualenv`` (3rd party tool)
 
 .. code-block:: bash
@@ -51,10 +51,10 @@ or Conda (preferred)
 
 .. code-block:: bash
 
-   conda create --file ascot5/requirements.txt --name ascotenv
+   conda create --name ascotenv
    conda activate ascotenv
 
-Whichever was chosen, the python package can be installed with (assuming the code is located in "ascot5" folder)
+Whichever was chosen, the python package can be installed with (assuming the code is located in ``ascot5`` folder)
 
 .. code-block:: bash
 
@@ -68,7 +68,7 @@ Full
 In addition to above, the full installation requires library ``libascot.so`` since many of the features in ``a5py`` use the ASCOT5 C-routines directly.
 The full installation enables simulations via Python and interpolating data exactly as it is interpolated in run time.
 
-In ascot5 folder:
+In ``ascot5`` folder:
 
 .. code-block:: bash
 
@@ -82,6 +82,7 @@ In ascot5 folder:
 
 .. code-block:: bash
 
+   pip install -e .[doc] # To install optional dependencies
    make doc
 
 The main page of the documentation is located at ``build/doc/index.html``.
