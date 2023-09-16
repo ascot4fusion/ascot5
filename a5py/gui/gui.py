@@ -79,7 +79,7 @@ class GUI(tk.Tk):
         ## Add decorations: title and icons ##
         self.title("ASCOT5 GUI")
         icon = os.path.join(os.path.dirname(__file__),
-                            "../../docs/figs/icon.png")
+                            "../../doc/_static/icon.png")
         self.tk.call("wm", "iconphoto", self._w, tk.PhotoImage(file=icon))
 
         ## Set window size and minimum size ##
