@@ -8,38 +8,40 @@ Installing
 
    .. code-block:: bash
 
-      git clone git@version.aalto.fi:ascot/ascot5.git ascot5
+      git clone git@github.com:ascot4fusion/ascot5.git ascot5
       cd ascot5
 
-2. Compile the main simulation program ``ascot5_main`` and the library ``libascot.so`` (which is needed for post-processing so it is not needed to execute simulations).
+2. Compile the main simulation program ``ascot5_main`` and the library ``libascot.so`` (which is needed for post-processing but not for executing simulations).
 
    .. code-block:: bash
 
       make ascot5_main
       make libascot
 
-   Compiling requires **C compiler**, **HDF5**, **OpenMP** and **MPI** (optional), and for the postprocessing one needs **Python 3** and **VTK** (optional).
-   See :ref:`here<Compiling>` for tips on how to compile the code (on different platforms).
+   Compiling requires **C compiler**, **HDF5**, **OpenMP** and **MPI** (optional).
+   For postprocessing one needs **Python 3** and **VTK** (optional for 3D walls).
+   See :ref:`here<Compiling>` for tips on how to compile the code on different platforms.
+   The binaries will be located in ``build`` folder.
 
-3. Everytime there is a new release, you can update the code as:
+3. Whenever there is a new release, you can update the code as:
 
    .. code-block:: bash
 
       git pull
-      git checkout master
+      git checkout main
       make clean
       make ascot5_main
       make libascot
 
-   Always use the branch ``master`` when running simulations unless you specifically need something from a feature branch.
+   Always use the branch ``main`` when running simulations unless you specifically need something from a feature branch.
 
-4. Set up ``a5py`` Python package needed for input generation and post-processing.
+4. Set up a virtual environment
 
    .. code-block:: bash
 
       cd ..
 
-   It is recommended to set a virtual environment when working with ASCOT5. You can use either ``virtualenv`` (3rd party tool)
+   You can use either ``virtualenv`` (3rd party tool)
 
    .. code-block:: bash
 
@@ -53,31 +55,28 @@ Installing
       python3 -m venv --system-site-packages ascotenv
       source ascotenv/bin/activate
 
-   or Conda (preferred)
-
-   Edit ``ascot5/a5py/ascot5.yaml`` file
+   or Conda
 
    .. code-block:: bash
 
-      conda create --file ascot5/a5py/requirements.txt --name ascotenv
+      conda create --name ascotenv
       conda activate ascotenv
 
-   Whichever was chosen, the python package can be installed with
+5. Install ``a5py`` Python package needed for input generation and post-processing.
 
    .. code-block:: bash
 
-      pip install -e ascot5/a5py
+      pip install -e ascot5
 
-5. Set environment variables.
-
-   Note the directory where ``libascot.so`` is located as it needs to be added to ``LD_LIBRARY_PATH``:
+   For developers, the extra packages required for generating the documentation are installed with
 
    .. code-block:: bash
 
-      cd ascot5
-      echo $PWD
+      pip install -e ascot5[doc]
 
-   Edit your `.bashrc` and/or `.bash_profile`
+   In addition Doxygen is needed.
+
+6. (Optional) Edit your `.bashrc` and/or `.bash_profile`
 
    .. code-block:: bash
 
@@ -87,22 +86,16 @@ Installing
 
    .. code-block::
 
-      <module loads here>
-      export LD_LIBRARY_PATH=/path/to/ascot5folder:$LD_LIBRARY_PATH
-      export EDITOR=/usr/bin/emacs
-
-   Last line is optional and it sets Emacs as the editor when editing ASCOT5 options. You can also add
-
-   .. code-block::
-
+      <module loads and exports here>
+      export EDITOR=/usr/bin/emacs # To use emacs when editing options
       source activate /path/to/ascot5env # If using venv or virtualenv
       conda activate ascot5env # If using Conda
 
-   which automatically activates ASCOT5 environment each time you open the terminal or login (otherwise you have to execute the line manually).
+   This will automatically activate ASCOT5 environment each time you open a terminal or login.
 
    Close the terminal (or log out) and the environment is set when you open a new one (or log in).
 
-6. Test that ASCOT5 is working by running the tutorial.
+7. Test that ASCOT5 is working by running the :ref:`tutorial<Tutorial>`.
 
 .. _Compiling:
 
