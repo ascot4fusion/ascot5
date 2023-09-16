@@ -18,7 +18,6 @@ ascot.h5
 *.optrpt
 *.pyc
 *.so
-doc/
 gitver.h
 compiler_flags.h
 bbnbi5
