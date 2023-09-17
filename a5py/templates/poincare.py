@@ -177,7 +177,7 @@ class PoincareTemplates():
         return ("opt", out)
 
     def boozer_tokamak(self, npsi=100, nthgeo=200, nthbzr=200, tol=1e-5,
-                       nint=10000, rhomin=0.3, rhomax=0.9):
+                       nint=1000, rhomin=0.3, rhomax=0.9):
         """Build mapping from real-space to Boozer coordinates assuming
         axisymmetric tokamak field.
 
@@ -210,29 +210,10 @@ class PoincareTemplates():
         inp = self._ascot.input_initialized()
         if "bfield" not in inp:
             raise AscotInitException("bfield not initialized")
-        grp   = self._ascot.data._get_group(inp["bfield"])
-        gtype = grp.get_type()
-        if gtype == "B_2DS":
-            d = grp.read()
-            rmin   = d["rmin"]
-            rmax   = d["rmax"]
-            nrcntr = int(d["nr"])
-            zmin   = d["zmin"]
-            zmax   = d["zmax"]
-            nzcntr = int(d["nz"])
-            psi0   = d["psi0"]
-            psi1   = d["psi1"]
-            raxis  = d["axisr"]
-            zaxis  = d["axisz"]
-            del d
-        else:
-            raise AscotNoDataException("bfield is not B_2DS")
-
-        # The boozer coordinate system is constructed by integrating along
-        # psi = constant surfaces. Use this grid to evaluate psi values
-        # on a (R,z) plane.
-        rgrid = np.linspace(rmin, rmax, nrcntr)
-        zgrid = np.linspace(zmin, zmax, nzcntr)
+        grp  = self._ascot.data._get_group(inp["bfield"])
+        d    = grp.read()
+        psi0 = d["psi0"]
+        psi1 = d["psi1"]
 
         # ...and this poloidal grid to evaluate values along the contour
         thgrid = np.linspace(0, 2*np.pi, nint)
@@ -256,9 +237,6 @@ class PoincareTemplates():
         # Set up the data tables (psi can be evaluated directly)
         thtable  = np.zeros( (psigrid.size, thgeogrid.size) )
         nutable  = np.zeros( (psigrid.size, thbzrgrid.size) )
-        psitable = self._ascot.input_eval(
-            rgrid*unyt.m, 0*unyt.deg, zgrid*unyt.m, 0*unyt.s, "psi", grid=True)
-        psitable = np.squeeze(psitable)
 
         # Helper quantities evaluated when the coordinate transform is made
         qprof = np.zeros(psigrid.shape)
@@ -307,6 +285,10 @@ class PoincareTemplates():
             # equal to 2 pi already, but normalize it to remove numerical error
             # (note that the new Jacobian would be J / a)
             a = 2*np.pi / btheta[-1]
+            if np.isnan(a) or np.abs(a - 1) > 0.1:
+                raise ValueError(
+                    "Something wrong with Boozer data generation. " +
+                    "Theta is not periodic: thetamax/2pi = %f", a)
             btheta *= a
             thtable[i, :] = interp1d(thgrid, btheta, "linear")(thgeogrid)
 
@@ -323,16 +305,18 @@ class PoincareTemplates():
             thtable = np.flip(thtable,axis=0)
             nutable = np.flip(nutable,axis=0)
 
-        # The last contour can be used to define separatrix location
-        cr = np.append(r, r[0])
-        cz = np.append(z, z[0])
+        # The last contour can be used to define separatrix location,
+        # we just prune it as the number of points affect how fast the
+        # Boozer evaluation in ASCOT5 is.
+        cr = interp1d(thgrid, np.append(r, r[0]), "linear")(thgeogrid)
+        cz = interp1d(thgrid, np.append(z, z[0]), "linear")(thgeogrid)
 
         #Create input
         return ("Boozer", {
             "psimin":psimin, "psimax":psimax, "npsi":int(psigrid.size),
             "ntheta":int(thbzrgrid.size), "nthetag":int(thgeogrid.size),
-            "rmin":rgrid[0], "rmax":rgrid[-1], "nr":int(rgrid.size),
-            "zmin":zgrid[0], "zmax":zgrid[-1], "nz":int(zgrid.size),
-            "r0":raxis, "z0":zaxis, "psi0":psi0, "psi1":psi1,
-            "psi_rz":psitable, "theta_psithetageom":thtable,
+            "rmin":1, "rmax":2, "nr":2,
+            "zmin":1, "zmax":2, "nz":2,
+            "r0":1, "z0":1, "psi0":psi0, "psi1":psi1,
+            "psi_rz":np.zeros((2,2)), "theta_psithetageom":thtable,
             "nu_psitheta":nutable, "nrzs":int(cr.size), "rs":cr, "zs":cz} )

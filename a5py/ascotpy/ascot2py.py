@@ -1787,24 +1787,12 @@ class struct_c__SA_boozer_offload_data(Structure):
 
 struct_c__SA_boozer_offload_data._pack_ = 1 # source:False
 struct_c__SA_boozer_offload_data._fields_ = [
-    ('nr', ctypes.c_int32),
-    ('PADDING_0', ctypes.c_ubyte * 4),
-    ('r_min', ctypes.c_double),
-    ('r_max', ctypes.c_double),
-    ('nz', ctypes.c_int32),
-    ('PADDING_1', ctypes.c_ubyte * 4),
-    ('z_min', ctypes.c_double),
-    ('z_max', ctypes.c_double),
     ('npsi', ctypes.c_int32),
-    ('PADDING_2', ctypes.c_ubyte * 4),
+    ('PADDING_0', ctypes.c_ubyte * 4),
     ('psi_min', ctypes.c_double),
     ('psi_max', ctypes.c_double),
-    ('psi0', ctypes.c_double),
-    ('psi1', ctypes.c_double),
     ('ntheta', ctypes.c_int32),
     ('nthetag', ctypes.c_int32),
-    ('r0', ctypes.c_double),
-    ('z0', ctypes.c_double),
     ('nrzs', ctypes.c_int32),
     ('offload_array_length', ctypes.c_int32),
 ]
@@ -2018,17 +2006,14 @@ class struct_c__SA_boozer_data(Structure):
 
 struct_c__SA_boozer_data._pack_ = 1 # source:False
 struct_c__SA_boozer_data._fields_ = [
-    ('psi0', ctypes.c_double),
-    ('psi1', ctypes.c_double),
-    ('r0', ctypes.c_double),
-    ('z0', ctypes.c_double),
+    ('psi_min', ctypes.c_double),
+    ('psi_max', ctypes.c_double),
     ('rs', ctypes.POINTER(ctypes.c_double)),
     ('zs', ctypes.POINTER(ctypes.c_double)),
     ('nrzs', ctypes.c_int32),
     ('PADDING_0', ctypes.c_ubyte * 4),
     ('nu_psitheta', struct_c__SA_interp2D_data),
     ('theta_psithetageom', struct_c__SA_interp2D_data),
-    ('psi_rz', struct_c__SA_interp2D_data),
 ]
 
 class struct_c__SA_plasma_data(Structure):
