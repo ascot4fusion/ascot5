@@ -48,7 +48,7 @@ class ContentManager(NestedNotebook):
                     pass
                 init = {"wall" : False}
                 for inp in ["bfield", "efield", "plasma", "neutral", "boozer",
-                            "mhd"]:
+                            "mhd", "asigma"]:
                     init[inp] = inp in self.gui.ascot.data
                 #msg = self.gui.pleasehold("Ascotpy is being initialized..."
                 self.gui.ascot.input_init(**init, switch=True)

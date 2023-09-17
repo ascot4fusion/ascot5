@@ -579,12 +579,12 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             "bjac multiplied by B^2 which is constant along flux surfaces",
         }
 
-        nion, mass, charge, anum, znum = self.input_getplasmaspecies()
-        for i in range(nion):
-            out["ni" + str(i+1)] = "Ion species (anum, znum) = (%d, %d) density" \
-                % (anum[i], znum[i])
-            out["ti" + str(i+1)] = "Ion species (anum, znum) = (%d, %d) temperature" \
-                % (anum[i], znum[i])
+        #nion, mass, charge, anum, znum = self.input_getplasmaspecies()
+        #for i in range(nion):
+        #    out["ni" + str(i+1)] = "Ion species (anum, znum) = (%d, %d) density" \
+        #        % (anum[i], znum[i])
+        #    out["ti" + str(i+1)] = "Ion species (anum, znum) = (%d, %d) temperature" \
+        #        % (anum[i], znum[i])
 
         if show:
             for name, desc in out.items():
@@ -1243,7 +1243,7 @@ class Ascotpy(LibAscot, LibSimulate, LibProviders):
             out = self._eval_mhd(r, r, z, r*0*0, evalpot=True)
             alphanm[i,:]  = out["alphaeig"]
             phinm[i,:]    = out["phieig"]
-            alphanm_[i,:] = (2*1.256e-6*np.pi) * (( nmode[i] * q - mmode[i] ) * phinm[i,:] / (g*q + I)) / omega[i]
+            alphanm_[i,:] = (( nmode[i] * q - mmode[i] ) * phinm[i,:] / (g*q + I)) / omega[i]
             print(nmode[i], mmode[i], np.amax(alphanm[i,:]), np.amax(alphanm_[i,:]))
 
             plt.plot(alphanm[i,:])
