@@ -40,7 +40,6 @@ int boozer_init_offload(boozer_offload_data* offload_data,
     int err = 0;
 
     /* Size of 2D grids and 1D data */
-    int rzsize      = offload_data->nr   * offload_data->nz;
     int nusize      = offload_data->npsi * offload_data->ntheta;
     int thetasize   = offload_data->npsi * offload_data->nthetag;
     int contoursize = offload_data->nrzs;
@@ -52,25 +51,16 @@ int boozer_init_offload(boozer_offload_data* offload_data,
 
     /* Allocate array for storing coefficients (which later replaces the
        offload array) and contour points */
-    real* coeff_array = (real*)malloc( ( ( rzsize + nusize + thetasize)
+    real* coeff_array = (real*)malloc( ( ( nusize + thetasize)
                                          * NSIZE_COMP2D + 2*contoursize )
                                        * sizeof(real) );
 
     /* Evaluate and store coefficients */
 
-    /* psi */
+    /* nu */
     err += interp2Dcomp_init_coeff(
             &coeff_array[0],
             &(*offload_array)[0],
-            offload_data->nr, offload_data->nz,
-            NATURALBC, NATURALBC,
-            offload_data->r_min, offload_data->r_max,
-            offload_data->z_min, offload_data->z_max);
-
-    /* nu */
-    err += interp2Dcomp_init_coeff(
-            &coeff_array[rzsize * NSIZE_COMP2D],
-            &(*offload_array)[rzsize],
             offload_data->npsi, offload_data->ntheta,
             NATURALBC, PERIODICBC,
             offload_data->psi_min, offload_data->psi_max,
@@ -78,33 +68,27 @@ int boozer_init_offload(boozer_offload_data* offload_data,
 
     /* theta_bzr */
     err += interp2Dcomp_init_coeff(
-            &coeff_array[(rzsize + nusize) * NSIZE_COMP2D],
-            &(*offload_array)[rzsize + nusize],
+            &coeff_array[nusize * NSIZE_COMP2D],
+            &(*offload_array)[nusize],
             offload_data->npsi, offload_data->nthetag,
             NATURALBC, NATURALBC,
             offload_data->psi_min, offload_data->psi_max,
             THETAMIN-padding, THETAMAX+padding);
 
     for(int i = 0; i < contoursize; i++) {
-        coeff_array[(rzsize + nusize + thetasize)*NSIZE_COMP2D + i] =
-            (*offload_array)[rzsize + nusize + thetasize + i];
-        coeff_array[(rzsize + nusize + thetasize)*NSIZE_COMP2D + contoursize + i] =
-            (*offload_array)[rzsize + nusize + thetasize + contoursize + i];
+        coeff_array[(nusize + thetasize)*NSIZE_COMP2D + i] =
+            (*offload_array)[nusize + thetasize + i];
+        coeff_array[(nusize + thetasize)*NSIZE_COMP2D + contoursize + i] =
+            (*offload_array)[nusize + thetasize + contoursize + i];
     }
 
     free(*offload_array);
     *offload_array = coeff_array;
-    offload_data->offload_array_length = (rzsize + nusize + thetasize)
-                                         * NSIZE_COMP2D + 2* contoursize;
+    offload_data->offload_array_length = (nusize + thetasize)
+                                         * NSIZE_COMP2D + 2 * contoursize;
 
     /* Print some sanity check on data */
     print_out(VERBOSE_IO, "\nBoozer input\n");
-    print_out(VERBOSE_IO, "R grid: n = %4.d min = %3.3f max = %3.3f\n",
-              offload_data->nr,
-              offload_data->r_min, offload_data->r_max);
-    print_out(VERBOSE_IO, "z grid: n = %4.d min = %3.3f max = %3.3f\n",
-              offload_data->nz,
-              offload_data->z_min, offload_data->z_max);
     print_out(VERBOSE_IO, "psi grid: n = %4.d min = %3.3f max = %3.3f\n",
               offload_data->npsi,
               offload_data->psi_min, offload_data->psi_max);
@@ -124,11 +108,8 @@ int boozer_init_offload(boozer_offload_data* offload_data,
 void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                  real* offload_array) {
 
-    boozerdata->psi0  = offload_data->psi0;
-    boozerdata->psi1  = offload_data->psi1;
-    boozerdata->r0    = offload_data->r0;
-    boozerdata->z0    = offload_data->z0;
-    boozerdata->nrzs  = offload_data->nrzs;
+    boozerdata->psi_min  = offload_data->psi_min;
+    boozerdata->psi_max  = offload_data->psi_max;
 
     /* Grid limits for theta_bzr and theta_geo grids*/
     real THETAMIN = 0;
@@ -136,25 +117,13 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
     real padding = (4.0*CONST_2PI)/(offload_data->nthetag-2*4.0-1);
 
     /* Size of 1D and 2D input data arrays */
-    int rzsize      = offload_data->nr * offload_data->nz * NSIZE_COMP2D;
     int nusize      = offload_data->npsi * offload_data->ntheta * NSIZE_COMP2D;
     int thetasize   = offload_data->npsi * offload_data->nthetag * NSIZE_COMP2D;
     int contoursize = offload_data->nrzs;
 
     /* Initialize splines */
-
-    interp2Dcomp_init_spline(&boozerdata->psi_rz,
-                             &(offload_array[0]),
-                             offload_data->nr,
-                             offload_data->nz,
-                             NATURALBC, NATURALBC,
-                             offload_data->r_min,
-                             offload_data->r_max,
-                             offload_data->z_min,
-                             offload_data->z_max);
-
     interp2Dcomp_init_spline(&boozerdata->nu_psitheta,
-                             &(offload_array[rzsize]),
+                             &(offload_array[0]),
                              offload_data->npsi,
                              offload_data->ntheta,
                              NATURALBC, PERIODICBC,
@@ -163,7 +132,7 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                              THETAMIN, THETAMAX);
 
     interp2Dcomp_init_spline(&boozerdata->theta_psithetageom,
-                             &(offload_array[rzsize + nusize]),
+                             &(offload_array[nusize]),
                              offload_data->npsi,
                              offload_data->nthetag,
                              NATURALBC, NATURALBC,
@@ -171,8 +140,9 @@ void boozer_init(boozer_data* boozerdata, boozer_offload_data* offload_data,
                              offload_data->psi_max,
                              THETAMIN-padding, THETAMAX+padding);
 
-    boozerdata->rs = &(offload_array[rzsize + nusize + thetasize]);
-    boozerdata->zs = &(offload_array[rzsize + nusize + thetasize + contoursize]);
+    boozerdata->rs   = &(offload_array[nusize + thetasize]);
+    boozerdata->zs   = &(offload_array[nusize + thetasize + contoursize]);
+    boozerdata->nrzs = offload_data->nrzs;
 }
 
 /**
@@ -221,29 +191,34 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
     a5err err = 0;
     int interperr = 0;
 
-
     /* Winding number to test whether we are inside the plasma (and not in the
        private plasma region) */
     isinside[0]=0;
     if(math_point_in_polygon(r, z, boozerdata->rs, boozerdata->zs,
                              boozerdata->nrzs)) {
-
         /* Get the psi value and check that it is within the psi grid (the grid
            does not extend all the way to the axis) Use t = 0.0 s */
-        real psi[4], rho[2];
+        real psi[4], rho[2], r0, z0;
         err = B_field_eval_psi_dpsi(psi, r, phi, z, 0.0, Bdata);
         if(!err) {
             err = B_field_eval_rho(rho, psi[0], Bdata);
         }
+        if(!err) {
+            real rz[2];
+            err = B_field_get_axis_rz(rz, Bdata, phi);
+            r0 = rz[0];
+            z0 = rz[1];
+        }
 
-        if(!err && rho[0] < 1) {
+        if(!err && psi[0] < boozerdata->psi_max &&
+           psi[0] > boozerdata->psi_min) {
 
             /* Update the flag, and we are good to go */
             isinside[0]=1;
 
             /* Geometrical theta */
             real thgeo;
-            thgeo = fmod( atan2(z-boozerdata->z0,r-boozerdata->r0) + CONST_2PI,
+            thgeo = fmod( atan2(z-z0,r-r0) + CONST_2PI,
                           CONST_2PI);
 
             /* Boozer theta and derivatives */
@@ -266,12 +241,12 @@ a5err boozer_eval_psithetazeta(real psithetazeta[12], int* isinside,
 
             /* Helpers */
             real asq;
-            asq = (r - boozerdata->r0) * (r - boozerdata->r0)
-                + (z - boozerdata->z0) * (z - boozerdata->z0);
+            asq = (r - r0) * (r - r0)
+                + (z - z0) * (z - z0);
             real dthgeo_dr;
-            dthgeo_dr=-(z-boozerdata->z0)/asq;
+            dthgeo_dr=-(z-z0)/asq;
             real dthgeo_dz;
-            dthgeo_dz=(r-boozerdata->r0)/asq;
+            dthgeo_dz=(r-r0)/asq;
 
             /* Theta and derivatives */
             psithetazeta[4]=theta[0];                          /* theta       */
