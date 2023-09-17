@@ -114,7 +114,7 @@ class Field(ContentTab):
             self.gui.ascot.input_plotrz(r, z, qnt, phi=phi, t=time, clim=clim,
                                         axes=plotrz.axes)
             self.gui.ascot.input_plotseparatrix(phi, time, axes=plotrz.axes)
-            self.gui.ascot.input_plotwallcontour(axes=plotrz.axes)
+            #self.gui.ascot.input_plotwallcontour(axes=plotrz.axes)
             plotrz.draw()
 
         savebutton.configure(command=storesettings)
