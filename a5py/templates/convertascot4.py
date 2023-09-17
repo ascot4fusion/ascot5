@@ -464,11 +464,11 @@ class Ascot4Templates():
 
             # Amplitudes
             data["amplitude"] = np.array(fh.readline().split()[:data["nmode"]])
-            data["amplitude"] = data["amplitude"].astype(np.float)
+            data["amplitude"] = data["amplitude"].astype("f8")
 
             # Angular frequencies (omega) [rad/s]
             data["omega"] = np.array(fh.readline().split()[:data["nmode"]])
-            data["omega"] = data["omega"].astype(np.float)
+            data["omega"] = data["omega"].astype("f8")
 
             # Phase not given, fix it at zero
             data["phase"] = data["omega"]*0
