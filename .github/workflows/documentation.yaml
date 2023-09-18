@@ -13,16 +13,19 @@ jobs:
         uses: actions/checkout@master
         with:
           name: ascot4fusion/figures
-          ref:  refs/heads/main
-          path: figures
       - name: Showdir
         run: |
           pwd
           ls
       - uses: actions/checkout@v3
+        with:
+          path: ./subdir
       - uses: actions/setup-python@v3
       - name: Install dependencies
         run: |
+          cd subdir
+          pwd
+          ls
           sudo apt-get install -y doxygen
           sudo apt install pandoc
           pip install -e .[doc]
