@@ -13,7 +13,12 @@ jobs:
         uses: actions/checkout@master
         with:
           name: ascot4fusion/figures
-          ref: refs/heads/main
+          ref:  refs/heads/main
+          path: figures
+      - name: Showdir
+        run: |
+          pwd
+          ls
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
       - name: Install dependencies
@@ -23,6 +28,8 @@ jobs:
           pip install -e .[doc]
       - name: Sphinx build
         run: |
+          pwd
+          ls
           make doc
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
