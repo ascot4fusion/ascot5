@@ -9,30 +9,23 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Clone figures repository
-        uses: actions/checkout@master
-        with:
-          name: ascot4fusion/figures
-      - name: Showdir
-        run: |
-          pwd
-          ls
       - uses: actions/checkout@v3
-        with:
-          path: ./subdir
       - uses: actions/setup-python@v3
       - name: Install dependencies
         run: |
-          cd subdir
-          pwd
-          ls
           sudo apt-get install -y doxygen
           sudo apt install pandoc
           pip install -e .[doc]
+      - name: Clone figures repository
+        uses: actions/checkout@master
+        with:
+          repository: ascot4fusion/figures
+          path: .figures
       - name: Sphinx build
         run: |
           pwd
           ls
+          ls figures
           make doc
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
