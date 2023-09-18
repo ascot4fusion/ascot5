@@ -29,7 +29,7 @@ This software is distributed under the `LGPLv3 <https://www.gnu.org/licenses/lgp
 Gallery
 =======
 
-.. figure:: figs/gallery_resparc.png
+.. figure:: ../../figures/sparcre.png
    :class: with-border
    :align: center
    :width: 300px
